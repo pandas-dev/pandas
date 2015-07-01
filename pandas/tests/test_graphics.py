@@ -1146,6 +1146,53 @@ class TestSeriesPlots(TestPlotBase):
         self._check_grid_settings(Series([1,2,3]),
             plotting._series_kinds + plotting._common_kinds)
 
+    @slow
+    def test_standard_colors(self):
+        for c in ['r', 'red', 'green', '#FF0000']:
+            result = plotting._get_standard_colors(1, color=c)
+            self.assertEqual(result, [c])
+
+            result = plotting._get_standard_colors(1, color=[c])
+            self.assertEqual(result, [c])
+
+            result = plotting._get_standard_colors(3, color=c)
+            self.assertEqual(result, [c] * 3)
+
+            result = plotting._get_standard_colors(3, color=[c])
+            self.assertEqual(result, [c] * 3)
+
+    @slow
+    def test_standard_colors_all(self):
+        import matplotlib.colors as colors
+
+        # multiple colors like mediumaquamarine
+        for c in colors.cnames:
+            result = plotting._get_standard_colors(num_colors=1, color=c)
+            self.assertEqual(result, [c])
+
+            result = plotting._get_standard_colors(num_colors=1, color=[c])
+            self.assertEqual(result, [c])
+
+            result = plotting._get_standard_colors(num_colors=3, color=c)
+            self.assertEqual(result, [c] * 3)
+
+            result = plotting._get_standard_colors(num_colors=3, color=[c])
+            self.assertEqual(result, [c] * 3)
+
+        # single letter colors like k
+        for c in colors.ColorConverter.colors:
+            result = plotting._get_standard_colors(num_colors=1, color=c)
+            self.assertEqual(result, [c])
+
+            result = plotting._get_standard_colors(num_colors=1, color=[c])
+            self.assertEqual(result, [c])
+
+            result = plotting._get_standard_colors(num_colors=3, color=c)
+            self.assertEqual(result, [c] * 3)
+
+            result = plotting._get_standard_colors(num_colors=3, color=[c])
+            self.assertEqual(result, [c] * 3)
+
 
 @tm.mplskip
 class TestDataFramePlots(TestPlotBase):
@@ -1736,7 +1783,6 @@ class TestDataFramePlots(TestPlotBase):
 
         default_colors = plt.rcParams.get('axes.color_cycle')
 
-
         df = DataFrame(randn(5, 5))
         ax = df.plot(kind='bar')
         self._check_colors(ax.patches[::5], facecolors=default_colors[:5])
@@ -1762,6 +1808,11 @@ class TestDataFramePlots(TestPlotBase):
 
         ax = df.ix[:, [0]].plot(kind='bar', color='DodgerBlue')
         self._check_colors([ax.patches[0]], facecolors=['DodgerBlue'])
+        tm.close()
+
+        ax = df.plot(kind='bar', color='green')
+        self._check_colors(ax.patches[::5], facecolors=['green'] * 5)
+        tm.close()
 
     @slow
     def test_bar_linewidth(self):
@@ -2897,6 +2948,10 @@ class TestDataFramePlots(TestPlotBase):
         ax = df.ix[:, [0]].plot(color='DodgerBlue')
         self._check_colors(ax.lines, linecolors=['DodgerBlue'])
 
+        ax = df.plot(color='red')
+        self._check_colors(ax.get_lines(), linecolors=['red'] * 5)
+        tm.close()
+
     @slow
     def test_area_colors(self):
         from matplotlib import cm
@@ -2971,6 +3026,10 @@ class TestDataFramePlots(TestPlotBase):
 
         ax = df.ix[:, [0]].plot(kind='hist', color='DodgerBlue')
         self._check_colors([ax.patches[0]], facecolors=['DodgerBlue'])
+
+        ax = df.plot(kind='hist', color='green')
+        self._check_colors(ax.patches[::10], facecolors=['green'] * 5)
+        tm.close()
 
     @slow
     def test_kde_colors(self):
