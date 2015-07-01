@@ -138,3 +138,5 @@ Bug Fixes
 - Bug in ``read_msgpack`` where input type is not always checked (:issue:`10369`)
 
 - Bug in `pandas.read_csv` with ``index_col=False`` or with ``index_col=['a', 'b']``  (:issue:`10413`, :issue:`10467`)
+
+- Bug in `Series.from_csv` with ``header`` kwarg not setting the ``Series.name`` or the ``Series.index.name`` (:issue:`10483`)
