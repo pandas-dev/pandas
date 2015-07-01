@@ -86,7 +86,7 @@ names : array-like
     should explicitly pass header=None
 prefix : string, default None
     Prefix to add to column numbers when no header, e.g 'X' for X0, X1, ...
-na_values : list-like or dict, default None
+na_values : str, list-like or dict, default None
     Additional strings to recognize as NA/NaN. If dict passed, specific
     per-column NA values
 true_values : list
