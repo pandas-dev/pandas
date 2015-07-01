@@ -3534,6 +3534,16 @@ class TestMultiIndex(Base, tm.TestCase):
         expected = self.index.get_level_values(0)
         self.assert_numpy_array_equal(result, expected)
 
+        # GH 10460
+        index = MultiIndex(levels=[CategoricalIndex(['A', 'B']),
+                                   CategoricalIndex([1, 2, 3])],
+                           labels=[np.array([0, 0, 0, 1, 1, 1]),
+                                   np.array([0, 1, 2, 0, 1, 2])])
+        exp = CategoricalIndex(['A', 'A', 'A', 'B', 'B', 'B'])
+        self.assert_index_equal(index.get_level_values(0), exp)
+        exp = CategoricalIndex([1, 2 ,3, 1, 2, 3])
+        self.assert_index_equal(index.get_level_values(1), exp)
+
     def test_get_level_values_na(self):
         arrays = [['a', 'b', 'b'], [1, np.nan, 2]]
         index = pd.MultiIndex.from_arrays(arrays)
