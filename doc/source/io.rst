@@ -115,7 +115,7 @@ They can take a number of arguments:
     as the index.
   - ``names``: List of column names to use as column names. To replace header
     existing in file, explicitly pass ``header=0``.
-  - ``na_values``: optional list of strings to recognize as NaN (missing
+  - ``na_values``: optional string or list of strings to recognize as NaN (missing
     values), either in addition to or in lieu of the default set.
   - ``true_values``: list of strings to recognize as ``True``
   - ``false_values``: list of strings to recognize as ``False``
@@ -723,7 +723,8 @@ NA Values
 ~~~~~~~~~
 
 To control which values are parsed as missing values (which are signified by ``NaN``), specifiy a
-list of strings in ``na_values``. If you specify a number (a ``float``, like ``5.0`` or an ``integer`` like ``5``),
+string in ``na_values``. If you specify a list of strings, then all values in
+it are considered to be missing values. If you specify a number (a ``float``, like ``5.0`` or an ``integer`` like ``5``),
 the corresponding equivalent values will also imply a missing value (in this case effectively
 ``[5.0,5]`` are recognized as ``NaN``.
 
