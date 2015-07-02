@@ -2228,6 +2228,7 @@ def _get_empty_meta(columns, index_col, index_names):
     else:
         index_col = list(index_col)
         index = MultiIndex.from_arrays([[]] * len(index_col), names=index_names)
+        index_col.sort()
         for i, n in enumerate(index_col):
             columns.pop(n-i)
 

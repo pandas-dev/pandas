@@ -2305,7 +2305,15 @@ MyColumn
         # GH 10467
         data = 'x,y,z'
         result = self.read_csv(StringIO(data), index_col=['x', 'y'])
-        expected = DataFrame([], columns=['z'], index=MultiIndex.from_arrays([[]] * 2, names=['x', 'y']))
+        expected = DataFrame([], columns=['z'],
+                             index=MultiIndex.from_arrays([[]] * 2, names=['x', 'y']))
+        tm.assert_frame_equal(result, expected)
+
+    def test_empty_with_reversed_multiindex(self):
+        data = 'x,y,z'
+        result = self.read_csv(StringIO(data), index_col=[1, 0])
+        expected = DataFrame([], columns=['z'],
+                             index=MultiIndex.from_arrays([[]] * 2, names=['y', 'x']))
         tm.assert_frame_equal(result, expected)
 
     def test_empty_with_index_col_false(self):
