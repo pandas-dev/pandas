@@ -6,6 +6,14 @@
   <td><img src="https://img.shields.io/pypi/v/pandas.svg" alt="latest release" /></td>
 </tr>
 <tr>
+  <td>Package Status</td>
+  <td><img src="https://img.shields.io/pypi/status/pandas.svg" alt="status" /></td>
+</tr>
+<tr>
+  <td>License</td>
+  <td><img src="https://img.shields.io/pypi/l/pandas.svg" alt="license" /></td>
+</tr>
+<tr>
   <td>Build Status</td>
   <td>
     <a href="https://travis-ci.org/pydata/pandas">
