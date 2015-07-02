@@ -93,6 +93,17 @@ class TestAPI(TestPackers):
         for i, result in enumerate(read_msgpack(s,iterator=True)):
             tm.assert_frame_equal(result,dfs[i])
 
+    def test_invalid_arg(self):
+        #GH10369
+        class A(object):
+            def __init__(self):
+                self.read = 0
+
+        tm.assertRaises(ValueError, read_msgpack, path_or_buf=None)
+        tm.assertRaises(ValueError, read_msgpack, path_or_buf={})
+        tm.assertRaises(ValueError, read_msgpack, path_or_buf=A())
+
+
 class TestNumpy(TestPackers):
 
     def test_numpy_scalar_float(self):
