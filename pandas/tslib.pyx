@@ -29,7 +29,7 @@ cdef extern from "datetime_helper.h":
     double total_seconds(object)
 
 # this is our datetime.pxd
-from datetime cimport *
+from datetime cimport cmp_pandas_datetimestruct
 from util cimport is_integer_object, is_float_object, is_datetime64_object, is_timedelta64_object
 
 from libc.stdlib cimport free
