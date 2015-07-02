@@ -1,6 +1,9 @@
 # pandas: powerful Python data analysis toolkit
 
-|Build Status| |Gitter| |Downloads|
+-[![Build Status](https://travis-ci.org/pydata/pandas.svg?branch=master)](https://travis-ci.org/pydata/pandas)
+-[![Join the chat at
+-https://gitter.im/pydata/pandas](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/pydata/pandas?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+-[![Downloads](https://img.shields.io/pypi/dm/pandas.svg)](https://pypi.python.org/pypi/pandas)
 
 ## What is it
 
@@ -225,11 +228,3 @@ list. Specialized discussions or design issues should take place on
 the PyData mailing list / Google group:
 
 https://groups.google.com/forum/#!forum/pydata
-
-.. |Build Status| image:: https://travis-ci.org/pydata/pandas.svg?branch=master
-   :target: https://travis-ci.org/pydata/pandas
-.. |Gitter| image:: https://badges.gitter.im/Join%20Chat.svg
-   :alt: Join the chat at https://gitter.im/pydata/pandas
-   :target: https://gitter.im/pydata/pandas?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge
-.. |Downloads| image:: https://img.shields.io/pypi/dm/pandas.svg
-   :target: https://pypi.python.org/pypi/pandas/
