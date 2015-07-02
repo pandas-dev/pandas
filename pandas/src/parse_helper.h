@@ -6,7 +6,7 @@ static double xstrtod(const char *p, char **q, char decimal, char sci,
 
 int to_double(char *item, double *p_value, char sci, char decimal, int *maybe_int)
 {
-    char *p_end;
+    char *p_end = NULL;
 
     *p_value = xstrtod(item, &p_end, decimal, sci, 1, maybe_int);
 
