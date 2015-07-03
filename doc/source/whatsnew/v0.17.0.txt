@@ -26,7 +26,7 @@ New features
 
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
-- `regex` argument to DataFrame.filter now handles numeric column names instead of raising an exception.
+- ``regex`` argument to ``DataFrame.filter`` now handles numeric column names instead of raising ``ValueError`` (:issue:`10384`).
   
 .. _whatsnew_0170.api:
 

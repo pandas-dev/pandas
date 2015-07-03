@@ -10758,12 +10758,13 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         
         # regex with ints in column names
         # from PR #10384
-        df = DataFrame(0., index=[0, 1, 2], columns=[0, 1, 'A1', 'B'])
+        df = DataFrame(0., index=[0, 1, 2], columns=['A1', 1, 'B', 2, 'C'])
+        expected = DataFrame(0., index=[0, 1, 2], columns=[1, 2])
         filtered = df.filter(regex='^[0-9]+$')
-        self.assertEqual(len(filtered.columns), 2)
+        self.assert_frame_equal(filtered, expected)
         
-        expected = DataFrame(0., index=[0, 1, 2], columns=[0, 1, '0', '1'])
-        filtered = expected.filter(regex='^[0-9]+$') # shouldn't remove anything
+        expected = DataFrame(0., index=[0, 1, 2], columns=[0, '0', 1, '1'])
+        filtered = expected.filter(regex='^[0-9]+$')  # shouldn't remove anything
         self.assert_frame_equal(filtered, expected)
 
         # pass in None
