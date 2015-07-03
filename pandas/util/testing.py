@@ -628,7 +628,12 @@ def assert_index_equal(left, right, exact=False, check_names=True,
                 msg = '{0} classes are different'.format(obj)
                 raise_assert_detail(obj, msg, l, r)
             assert_attr_equal('dtype', l, r, obj=obj)
-            assert_attr_equal('inferred_type', l, r, obj=obj)
+
+            # allow string-like to have different inferred_types
+            if l.inferred_type in ('string', 'unicode'):
+                assertIn(r.inferred_type, ('string', 'unicode'))
+            else:
+                assert_attr_equal('inferred_type', l, r, obj=obj)
 
     def _get_ilevel_values(index, level):
         # accept level number only
@@ -865,8 +870,8 @@ def assert_numpy_array_equal(left, right,
 
 # This could be refactored to use the NDFrame.equals method
 def assert_series_equal(left, right, check_dtype=True,
-                        check_index_type=False,
-                        check_series_type=False,
+                        check_index_type=True,
+                        check_series_type=True,
                         check_less_precise=False,
                         check_names=True,
                         check_exact=False,
@@ -947,9 +952,9 @@ def assert_series_equal(left, right, check_dtype=True,
 
 # This could be refactored to use the NDFrame.equals method
 def assert_frame_equal(left, right, check_dtype=True,
-                       check_index_type=False,
-                       check_column_type=False,
-                       check_frame_type=False,
+                       check_index_type=True,
+                       check_column_type=True,
+                       check_frame_type=True,
                        check_less_precise=False,
                        check_names=True,
                        by_blocks=False,

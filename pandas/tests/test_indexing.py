@@ -1880,7 +1880,8 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         # this is ok
         df.sortlevel(inplace=True)
         res = df.ix[key]
-        index = MultiIndex.from_arrays([[4] * 3, [2012] * 3],
+        # col has float dtype, result should be Float64Index
+        index = MultiIndex.from_arrays([[4.] * 3, [2012] * 3],
                                        names=['col', 'year'])
         expected = DataFrame({'amount': [222, 333, 444]}, index=index)
         tm.assert_frame_equal(res, expected)
@@ -2592,26 +2593,28 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         result = dfnu.ix[['E']]
         assert_frame_equal(result, expected)
 
+        # ToDo: check_index_type can be True after GH 11497
+
         # GH 4619; duplicate indexer with missing label
         df = DataFrame({"A": [0, 1, 2]})
-        result = df.ix[[0,8,0]]
-        expected = DataFrame({"A": [0, np.nan, 0]},index=[0,8,0])
-        assert_frame_equal(result,expected)
+        result = df.ix[[0, 8, 0]]
+        expected = DataFrame({"A": [0, np.nan, 0]}, index=[0, 8, 0])
+        assert_frame_equal(result, expected, check_index_type=False)
 
         df = DataFrame({"A": list('abc')})
         result = df.ix[[0,8,0]]
-        expected = DataFrame({"A": ['a', np.nan, 'a']},index=[0,8,0])
-        assert_frame_equal(result,expected)
+        expected = DataFrame({"A": ['a', np.nan, 'a']}, index=[0, 8, 0])
+        assert_frame_equal(result, expected, check_index_type=False)
 
         # non unique with non unique selector
-        df = DataFrame({'test': [5,7,9,11]}, index=['A','A','B','C'])
-        expected = DataFrame({'test' : [5,7,5,7,np.nan]},index=['A','A','A','A','E'])
-        result = df.ix[['A','A','E']]
+        df = DataFrame({'test': [5, 7, 9, 11]}, index=['A', 'A', 'B', 'C'])
+        expected = DataFrame({'test' : [5, 7, 5, 7, np.nan]}, index=['A', 'A', 'A', 'A', 'E'])
+        result = df.ix[['A', 'A', 'E']]
         assert_frame_equal(result, expected)
 
         # GH 5835
         # dups on index and missing values
-        df = DataFrame(np.random.randn(5,5),columns=['A','B','B','B','A'])
+        df = DataFrame(np.random.randn(5, 5), columns=['A', 'B', 'B', 'B', 'A'])
 
         expected = pd.concat([df.ix[:,['A','B']],DataFrame(np.nan,columns=['C'],index=df.index)],axis=1)
         result = df.ix[:,['A','B','C']]
@@ -3168,7 +3171,7 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         expected = DataFrame(new_list)
         expected = pd.concat([ expected, DataFrame(index=idx[idx>sidx.max()]) ])
         result = df2.loc[idx]
-        assert_frame_equal(result, expected)
+        assert_frame_equal(result, expected, check_index_type=False)
 
     def test_mi_access(self):
 
@@ -3504,7 +3507,7 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
             df.loc[conv(dt1),'one'] = 100
             df.loc[conv(dt2),'one'] = 200
 
-            expected = DataFrame({'one' : [100.0,200.0]},index=[dt1,dt2])
+            expected = DataFrame({'one' : [100.0, 200.0]},index=[dt1, dt2])
             assert_frame_equal(df, expected)
 
     def test_series_partial_set(self):
@@ -3512,42 +3515,44 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         # Regression from GH4825
         ser = Series([0.1, 0.2], index=[1, 2])
 
+        # ToDo: check_index_type can be True after GH 11497
+
         # loc
         expected = Series([np.nan, 0.2, np.nan], index=[3, 2, 3])
         result = ser.loc[[3, 2, 3]]
-        assert_series_equal(result, expected)
+        assert_series_equal(result, expected, check_index_type=False)
 
         # raises as nothing in in the index
         self.assertRaises(KeyError, lambda : ser.loc[[3, 3, 3]])
 
         expected = Series([0.2, 0.2, np.nan], index=[2, 2, 3])
         result = ser.loc[[2, 2, 3]]
-        assert_series_equal(result, expected)
+        assert_series_equal(result, expected, check_index_type=False)
 
         expected = Series([0.3, np.nan, np.nan], index=[3, 4, 4])
-        result = Series([0.1, 0.2, 0.3], index=[1,2,3]).loc[[3,4,4]]
-        assert_series_equal(result, expected)
+        result = Series([0.1, 0.2, 0.3], index=[1, 2, 3]).loc[[3, 4, 4]]
+        assert_series_equal(result, expected, check_index_type=False)
 
         expected = Series([np.nan, 0.3, 0.3], index=[5, 3, 3])
-        result = Series([0.1, 0.2, 0.3, 0.4], index=[1,2,3,4]).loc[[5,3,3]]
-        assert_series_equal(result, expected)
+        result = Series([0.1, 0.2, 0.3, 0.4], index=[1, 2, 3, 4]).loc[[5, 3, 3]]
+        assert_series_equal(result, expected, check_index_type=False)
 
         expected = Series([np.nan, 0.4, 0.4], index=[5, 4, 4])
-        result = Series([0.1, 0.2, 0.3, 0.4], index=[1,2,3,4]).loc[[5,4,4]]
-        assert_series_equal(result, expected)
+        result = Series([0.1, 0.2, 0.3, 0.4], index=[1, 2, 3, 4]).loc[[5, 4, 4]]
+        assert_series_equal(result, expected, check_index_type=False)
 
         expected = Series([0.4, np.nan, np.nan], index=[7, 2, 2])
-        result = Series([0.1, 0.2, 0.3, 0.4], index=[4,5,6,7]).loc[[7,2,2]]
-        assert_series_equal(result, expected)
+        result = Series([0.1, 0.2, 0.3, 0.4], index=[4, 5, 6, 7]).loc[[7, 2, 2]]
+        assert_series_equal(result, expected, check_index_type=False)
 
         expected = Series([0.4, np.nan, np.nan], index=[4, 5, 5])
-        result = Series([0.1, 0.2, 0.3, 0.4], index=[1,2,3,4]).loc[[4,5,5]]
-        assert_series_equal(result, expected)
+        result = Series([0.1, 0.2, 0.3, 0.4], index=[1, 2, 3, 4]).loc[[4, 5, 5]]
+        assert_series_equal(result, expected, check_index_type=False)
 
         # iloc
-        expected = Series([0.2,0.2,0.1,0.1], index=[2,2,1,1])
-        result = ser.iloc[[1,1,0,0]]
-        assert_series_equal(result, expected)
+        expected = Series([0.2, 0.2, 0.1, 0.1], index=[2, 2, 1, 1])
+        result = ser.iloc[[1, 1, 0, 0]]
+        assert_series_equal(result, expected, check_index_type=False)
 
     def test_partial_set_invalid(self):
 
@@ -3617,7 +3622,7 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         # these work as they don't really change
         # anything but the index
         # GH5632
-        expected = DataFrame(columns=['foo'])
+        expected = DataFrame(columns=['foo'], index=pd.Index([], dtype=int))
         def f():
             df = DataFrame()
             df['foo'] = Series([], dtype='object')
@@ -3634,7 +3639,7 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
             return df
         assert_frame_equal(f(), expected)
 
-        expected = DataFrame(columns=['foo'])
+        expected = DataFrame(columns=['foo'], index=pd.Index([], dtype=int))
         expected['foo'] = expected['foo'].astype('float64')
         def f():
             df = DataFrame()
@@ -3654,16 +3659,16 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
 
         df = DataFrame()
         df2 = DataFrame()
-        df2[1] = Series([1],index=['foo'])
-        df.loc[:,1] = Series([1],index=['foo'])
-        assert_frame_equal(df,DataFrame([[1]],index=['foo'],columns=[1]))
+        df2[1] = Series([1], index=['foo'])
+        df.loc[:,1] = Series([1], index=['foo'])
+        assert_frame_equal(df,DataFrame([[1]], index=['foo'], columns=[1]))
         assert_frame_equal(df,df2)
 
         # no index to start
-        expected = DataFrame({ 0 : Series(1,index=range(4)) },columns=['A','B',0])
+        expected = DataFrame({ 0 : Series(1,index=range(4)) }, columns=['A','B',0])
 
         df = DataFrame(columns=['A','B'])
-        df[0] = Series(1,index=range(4))
+        df[0] = Series(1, index=range(4))
         df.dtypes
         str(df)
         assert_frame_equal(df,expected)
@@ -3676,28 +3681,28 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
 
         # GH5720, GH5744
         # don't create rows when empty
-        expected = DataFrame(columns=['A','B','New'])
+        expected = DataFrame(columns=['A', 'B', 'New'], index=pd.Index([], dtype=int))
         expected['A'] = expected['A'].astype('int64')
         expected['B'] = expected['B'].astype('float64')
         expected['New'] = expected['New'].astype('float64')
         df = DataFrame({"A": [1, 2, 3], "B": [1.2, 4.2, 5.2]})
         y = df[df.A > 5]
         y['New'] = np.nan
-        assert_frame_equal(y,expected)
+        assert_frame_equal(y, expected)
         #assert_frame_equal(y,expected)
 
-        expected = DataFrame(columns=['a','b','c c','d'])
+        expected = DataFrame(columns=['a', 'b', 'c c', 'd'])
         expected['d'] = expected['d'].astype('int64')
         df = DataFrame(columns=['a', 'b', 'c c'])
         df['d'] = 3
-        assert_frame_equal(df,expected)
+        assert_frame_equal(df, expected)
         assert_series_equal(df['c c'],Series(name='c c',dtype=object))
 
         # reindex columns is ok
         df = DataFrame({"A": [1, 2, 3], "B": [1.2, 4.2, 5.2]})
         y = df[df.A > 5]
         result = y.reindex(columns=['A','B','C'])
-        expected = DataFrame(columns=['A','B','C'])
+        expected = DataFrame(columns=['A','B','C'], index=pd.Index([], dtype=int))
         expected['A'] = expected['A'].astype('int64')
         expected['B'] = expected['B'].astype('float64')
         expected['C'] = expected['C'].astype('float64')
@@ -4140,7 +4145,13 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         # fancy floats/integers create the correct entry (as nan)
         # fancy tests
         expected = Series([2, 0], index=Float64Index([5.0, 0.0]))
-        for fancy_idx in [[5.0, 0.0], [5, 0], np.array([5.0, 0.0]), np.array([5, 0])]:
+        for fancy_idx in [[5.0, 0.0], np.array([5.0, 0.0])]: # float
+            assert_series_equal(s[fancy_idx], expected)
+            assert_series_equal(s.loc[fancy_idx], expected)
+            assert_series_equal(s.ix[fancy_idx], expected)
+
+        expected = Series([2, 0], index=Index([5, 0], dtype=int))
+        for fancy_idx in [[5, 0], np.array([5, 0])]: #int
             assert_series_equal(s[fancy_idx], expected)
             assert_series_equal(s.loc[fancy_idx], expected)
             assert_series_equal(s.ix[fancy_idx], expected)
@@ -4778,10 +4789,12 @@ class TestCategoricalIndex(tm.TestCase):
         expected = self.df.iloc[[4,0,1,5]]
         assert_frame_equal(result, expected)
 
+        # ToDo: check_index_type can be True after GH XXX
+
         result = self.df2.loc[['a','b','e']]
-        expected = DataFrame({'A' : [0,1,5,2,3,np.nan],
-                              'B' : Series(list('aaabbe')).astype('category',categories=list('cabe')) }).set_index('B')
-        assert_frame_equal(result, expected)
+        exp_index = pd.CategoricalIndex(list('aaabbe'), categories=list('cabe'), name='B')
+        expected = DataFrame({'A' : [0,1,5,2,3,np.nan]}, index=exp_index)
+        assert_frame_equal(result, expected, check_index_type=False)
 
         # element in the categories but not in the values
         self.assertRaises(KeyError, lambda : self.df2.loc['e'])
@@ -4790,15 +4803,15 @@ class TestCategoricalIndex(tm.TestCase):
         df = self.df2.copy()
         df.loc['e'] = 20
         result = df.loc[['a','b','e']]
-        expected = DataFrame({'A' : [0,1,5,2,3,20],
-                              'B' : Series(list('aaabbe')).astype('category',categories=list('cabe')) }).set_index('B')
+        exp_index = pd.CategoricalIndex(list('aaabbe'), categories=list('cabe'), name='B')
+        expected = DataFrame({'A' : [0,1,5,2,3,20]}, index=exp_index)
         assert_frame_equal(result, expected)
 
         df = self.df2.copy()
         result = df.loc[['a','b','e']]
         expected = DataFrame({'A' : [0,1,5,2,3,np.nan],
                               'B' : Series(list('aaabbe')).astype('category',categories=list('cabe')) }).set_index('B')
-        assert_frame_equal(result, expected)
+        assert_frame_equal(result, expected, check_index_type=False)
 
 
         # not all labels in the categories

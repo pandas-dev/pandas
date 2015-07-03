@@ -434,63 +434,56 @@ class TestCategorical(tm.TestCase):
     def test_describe(self):
         # string type
         desc = self.factor.describe()
-        expected = DataFrame.from_dict(dict(counts=[3, 2, 3],
-                                            freqs=[3/8., 2/8., 3/8.],
-                                            categories=['a', 'b', 'c'])
-                                            ).set_index('categories')
+        expected = DataFrame({'counts': [3, 2, 3],
+                              'freqs': [3/8., 2/8., 3/8.]},
+                             index=pd.CategoricalIndex(['a', 'b', 'c'], name='categories'))
         tm.assert_frame_equal(desc, expected)
 
         # check unused categories
         cat = self.factor.copy()
         cat.set_categories(["a","b","c","d"], inplace=True)
         desc = cat.describe()
-        expected = DataFrame.from_dict(dict(counts=[3, 2, 3, 0],
-                                            freqs=[3/8., 2/8., 3/8., 0],
-                                            categories=['a', 'b', 'c', 'd'])
-                                            ).set_index('categories')
+        expected = DataFrame({'counts': [3, 2, 3, 0],
+                              'freqs': [3/8., 2/8., 3/8., 0]},
+                             index=pd.CategoricalIndex(['a', 'b', 'c', 'd'], name='categories'))
         tm.assert_frame_equal(desc, expected)
 
         # check an integer one
         desc = Categorical([1,2,3,1,2,3,3,2,1,1,1]).describe()
-        expected = DataFrame.from_dict(dict(counts=[5, 3, 3],
-                                            freqs=[5/11., 3/11., 3/11.],
-                                            categories=[1,2,3]
-                                            )
-                                            ).set_index('categories')
+        expected = DataFrame({'counts': [5, 3, 3],
+                              'freqs': [5/11., 3/11., 3/11.]},
+                             index=pd.CategoricalIndex([1, 2, 3], name='categories'))
         tm.assert_frame_equal(desc, expected)
 
         # https://github.com/pydata/pandas/issues/3678
         # describe should work with NaN
         cat = pd.Categorical([np.nan,1, 2, 2])
         desc = cat.describe()
-        expected = DataFrame.from_dict(dict(counts=[1, 2, 1],
-                                            freqs=[1/4., 2/4., 1/4.],
-                                            categories=Categorical([1,2,np.nan],
-                                                                   [1, 2])
-                                            )
-                                            ).set_index('categories')
+        expected = DataFrame({'counts': [1, 2, 1],
+                              'freqs': [1/4., 2/4., 1/4.]},
+                             index=pd.CategoricalIndex([1, 2, np.nan], categories=[1, 2],
+                                                       name='categories'))
         tm.assert_frame_equal(desc, expected)
 
         # NA as a category
         with tm.assert_produces_warning(FutureWarning):
-            cat = pd.Categorical(["a","c","c",np.nan], categories=["b","a","c",np.nan])
+            cat = pd.Categorical(["a", "c", "c", np.nan], categories=["b", "a", "c", np.nan])
             result = cat.describe()
 
         expected = DataFrame([[0,0],[1,0.25],[2,0.5],[1,0.25]],
                              columns=['counts','freqs'],
-                             index=Index(['b','a','c',np.nan],name='categories'))
+                             index=pd.CategoricalIndex(['b', 'a', 'c', np.nan], name='categories'))
         tm.assert_frame_equal(result,expected)
 
         # NA as an unused category
         with tm.assert_produces_warning(FutureWarning):
-            cat = pd.Categorical(["a","c","c"], categories=["b","a","c",np.nan])
+            cat = pd.Categorical(["a", "c", "c"], categories=["b", "a", "c", np.nan])
             result = cat.describe()
 
-        expected = DataFrame([[0,0],[1,1/3.],[2,2/3.],[0,0]],
-                             columns=['counts','freqs'],
-                             index=Index(['b','a','c',np.nan],name='categories'))
+        exp_idx = pd.CategoricalIndex(['b', 'a', 'c', np.nan], name='categories')
+        expected = DataFrame([[0, 0], [1, 1/3.], [2, 2/3.], [0, 0]],
+                             columns=['counts', 'freqs'], index=exp_idx)
         tm.assert_frame_equal(result,expected)
-
 
     def test_print(self):
         expected = ["[a, b, b, a, a, c, c, c]",
@@ -2373,6 +2366,7 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
 
         res = self.cat.groupby(['value_group'])['value_group'].count()
         exp = res[sorted(res.index, key=lambda x: float(x.split()[0]))]
+        exp.index = pd.CategoricalIndex(exp.index, name=exp.index.name)
         tm.assert_series_equal(res, exp)
 
     def test_min_max(self):
@@ -2423,10 +2417,10 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
 
         s = pd.Series(pd.Categorical(["a","b","c","c","c","b"], categories=["c","a","b","d"]))
         res = s.value_counts(sort=False)
-        exp = Series([3,1,2,0], index=["c","a","b","d"])
+        exp = Series([3,1,2,0], index=pd.CategoricalIndex(["c","a","b","d"]))
         tm.assert_series_equal(res, exp)
         res = s.value_counts(sort=True)
-        exp = Series([3,2,1,0], index=["c","b","a","d"])
+        exp = Series([3,2,1,0], index=pd.CategoricalIndex(["c","b","a","d"]))
         tm.assert_series_equal(res, exp)
 
     def test_value_counts_with_nan(self):
@@ -2435,42 +2429,42 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
         s = pd.Series(["a", "b", "a"], dtype="category")
         tm.assert_series_equal(
             s.value_counts(dropna=True),
-            pd.Series([2, 1], index=["a", "b"]))
+            pd.Series([2, 1], index=pd.CategoricalIndex(["a", "b"])))
         tm.assert_series_equal(
             s.value_counts(dropna=False),
-            pd.Series([2, 1], index=["a", "b"]))
+            pd.Series([2, 1], index=pd.CategoricalIndex(["a", "b"])))
 
         s = pd.Series(["a", "b", None, "a", None, None], dtype="category")
         tm.assert_series_equal(
             s.value_counts(dropna=True),
-            pd.Series([2, 1], index=["a", "b"]))
+            pd.Series([2, 1], index=pd.CategoricalIndex(["a", "b"])))
         tm.assert_series_equal(
             s.value_counts(dropna=False),
-            pd.Series([3, 2, 1], index=[np.nan, "a", "b"]))
+            pd.Series([3, 2, 1], index=pd.CategoricalIndex([np.nan, "a", "b"])))
         # When we aren't sorting by counts, and np.nan isn't a
         # category, it should be last.
         tm.assert_series_equal(
             s.value_counts(dropna=False, sort=False),
-            pd.Series([2, 1, 3], index=["a", "b", np.nan]))
+            pd.Series([2, 1, 3], index=pd.CategoricalIndex(["a", "b", np.nan])))
 
         with tm.assert_produces_warning(FutureWarning):
             s = pd.Series(pd.Categorical(["a", "b", "a"], categories=["a", "b", np.nan]))
             tm.assert_series_equal(
                 s.value_counts(dropna=True),
-                pd.Series([2, 1], index=["a", "b"]))
+                pd.Series([2, 1], index=pd.CategoricalIndex(["a", "b"])))
             tm.assert_series_equal(
                 s.value_counts(dropna=False),
-                pd.Series([2, 1, 0], index=["a", "b", np.nan]))
+                pd.Series([2, 1, 0], index=pd.CategoricalIndex(["a", "b", np.nan])))
 
         with tm.assert_produces_warning(FutureWarning):
             s = pd.Series(pd.Categorical(["a", "b", None, "a", None, None],
                                          categories=["a", "b", np.nan]))
             tm.assert_series_equal(
                 s.value_counts(dropna=True),
-                pd.Series([2, 1], index=["a", "b"]))
+                pd.Series([2, 1], index=pd.CategoricalIndex(["a", "b"])))
             tm.assert_series_equal(
                 s.value_counts(dropna=False),
-                pd.Series([3, 2, 1], index=[np.nan, "a", "b"]))
+                pd.Series([3, 2, 1], index=pd.CategoricalIndex([np.nan, "a", "b"])))
 
     def test_groupby(self):
 
@@ -2478,7 +2472,7 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
         data = DataFrame({"a":[1,1,1,2,2,2,3,4,5], "b":cats})
 
         expected = DataFrame({'a': Series([1, 2, 4, np.nan],
-                             index=Index(['a', 'b', 'c', 'd'], name='b'))})
+                             index=pd.CategoricalIndex(['a', 'b', 'c', 'd'], name='b'))})
         result = data.groupby("b").mean()
         tm.assert_frame_equal(result, expected)
 
@@ -2488,7 +2482,8 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
 
         # single grouper
         gb = df.groupby("A")
-        expected = DataFrame({ 'values' : Series([3,7,np.nan],index=Index(['a','b','z'],name='A')) })
+        exp_idx = pd.CategoricalIndex(['a', 'b', 'z'], name='A')
+        expected = DataFrame({'values': Series([3, 7, np.nan], index=exp_idx)})
         result = gb.sum()
         tm.assert_frame_equal(result, expected)
 
@@ -2568,7 +2563,7 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
         df = pd.DataFrame({'a': [1, 0, 0, 0]})
         c = pd.cut(df.a, [0, 1, 2, 3, 4])
         result = df.groupby(c).apply(len)
-        expected = pd.Series([1, 0, 0, 0], index=c.values.categories)
+        expected = pd.Series([1, 0, 0, 0], index=pd.CategoricalIndex(c.values.categories))
         expected.index.name = 'a'
         tm.assert_series_equal(result, expected)
 

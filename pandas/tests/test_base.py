@@ -577,7 +577,7 @@ class TestIndexOps(Ops):
 
             s = klass({})
             expected = Series([], dtype=np.int64)
-            tm.assert_series_equal(s.value_counts(), expected)
+            tm.assert_series_equal(s.value_counts(), expected, check_index_type=False)
             self.assert_numpy_array_equal(s.unique(), np.array([]))
             self.assertEqual(s.nunique(), 0)
 

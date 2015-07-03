@@ -129,7 +129,8 @@ class TestGroupBy(tm.TestCase):
             assert_series_equal(transformed, expected)
 
             value_grouped = data.groupby(data)
-            assert_series_equal(value_grouped.aggregate(np.mean), agged)
+            assert_series_equal(value_grouped.aggregate(np.mean), agged,
+                                check_index_type=False)
 
             # complex agg
             agged = grouped.aggregate([np.mean, np.std])
@@ -390,6 +391,9 @@ class TestGroupBy(tm.TestCase):
         # Check string level
         expected = df.reset_index().groupby([pd.Grouper(key='foo', freq='W'),
                                              pd.Grouper(key='bar', freq='W')]).sum()
+        # reset index changes columns dtype to object
+        expected.columns = pd.Index([0], dtype=int)
+
         result = df.groupby([pd.Grouper(level='foo', freq='W'),
                              pd.Grouper(level='bar', freq='W')]).sum()
         assert_frame_equal(result, expected)
@@ -746,14 +750,18 @@ class TestGroupBy(tm.TestCase):
     def test_agg_apply_corner(self):
         # nothing to group, all NA
         grouped = self.ts.groupby(self.ts * np.nan)
+        self.assertEqual(self.ts.dtype, np.float64)
 
-        assert_series_equal(grouped.sum(), Series([]))
-        assert_series_equal(grouped.agg(np.sum), Series([]))
-        assert_series_equal(grouped.apply(np.sum), Series([]))
+        # groupby float64 values results in Float64Index
+        exp = Series([], dtype=np.float64, index=pd.Index([], dtype=np.float64))
+        assert_series_equal(grouped.sum(), exp)
+        assert_series_equal(grouped.agg(np.sum), exp)
+        assert_series_equal(grouped.apply(np.sum), exp, check_index_type=False)
 
         # DataFrame
         grouped = self.tsframe.groupby(self.tsframe['A'] * np.nan)
-        exp_df = DataFrame(columns=self.tsframe.columns, dtype=float)
+        exp_df = DataFrame(columns=self.tsframe.columns, dtype=float,
+                           index=pd.Index([], dtype=np.float64))
         assert_frame_equal(grouped.sum(), exp_df, check_names=False)
         assert_frame_equal(grouped.agg(np.sum), exp_df, check_names=False)
         assert_frame_equal(grouped.apply(np.sum), DataFrame({}, dtype=float))
@@ -1831,7 +1839,8 @@ class TestGroupBy(tm.TestCase):
         assert_frame_equal(df.loc[[0, 2]], g_not_as.head(1))
         assert_frame_equal(df.loc[[1, 2]], g_not_as.tail(1))
 
-        empty_not_as = DataFrame(columns=df.columns)
+        empty_not_as = DataFrame(columns=df.columns, index=pd.Index([],
+                                 dtype=df.index.dtype))
         empty_not_as['A'] = empty_not_as['A'].astype(df.A.dtype)
         empty_not_as['B'] = empty_not_as['B'].astype(df.B.dtype)
         assert_frame_equal(empty_not_as, g_not_as.head(0))
@@ -2972,9 +2981,12 @@ class TestGroupBy(tm.TestCase):
     def test_groupby_dtype_inference_empty(self):
         # GH 6733
         df = DataFrame({'x': [], 'range': np.arange(0,dtype='int64')})
+        self.assertEqual(df['x'].dtype, np.float64)
+
         result = df.groupby('x').first()
-        expected = DataFrame({'range' : Series([],index=Index([],name='x'),dtype='int64') })
-        assert_frame_equal(result,expected,by_blocks=True)
+        exp_index = Index([], name='x', dtype=np.float64)
+        expected = DataFrame({'range' : Series([], index=exp_index, dtype='int64')})
+        assert_frame_equal(result,expected, by_blocks=True)
 
     def test_groupby_list_infer_array_like(self):
         result = self.df.groupby(list(self.df['A'])).mean()
@@ -3535,33 +3547,27 @@ class TestGroupBy(tm.TestCase):
                         ['(2.5, 5]', 4, 50],
                         ['(0, 2.5]', 1, 60],
                         ['(5, 7.5]', 7, 70]], columns=['range', 'foo', 'bar'])
-        df['range'] = Categorical(df['range'],ordered=True)
-        index = Index(['(0, 2.5]', '(2.5, 5]', '(5, 7.5]', '(7.5, 10]'], dtype='object')
-        index.name = 'range'
-        result_sort = DataFrame([[1, 60], [5, 30], [6, 40], [10, 10]], columns=['foo', 'bar'])
-        result_sort.index = index
-        index = Index(['(7.5, 10]', '(2.5, 5]', '(5, 7.5]', '(0, 2.5]'], dtype='object')
-        index.name = 'range'
-        result_nosort = DataFrame([[10, 10], [5, 30], [6, 40], [1, 60]], index=index, columns=['foo', 'bar'])
-        result_nosort.index = index
+        df['range'] = Categorical(df['range'], ordered=True)
+        index = CategoricalIndex(['(0, 2.5]', '(2.5, 5]', '(5, 7.5]', '(7.5, 10]'], name='range')
+        result_sort = DataFrame([[1, 60], [5, 30], [6, 40], [10, 10]],
+                                columns=['foo', 'bar'], index=index)
 
         col = 'range'
         assert_frame_equal(result_sort, df.groupby(col, sort=True).first())
         # when categories is ordered, group is ordered by category's order
         assert_frame_equal(result_sort, df.groupby(col, sort=False).first())
 
-        df['range'] = Categorical(df['range'],ordered=False)
-        index = Index(['(0, 2.5]', '(2.5, 5]', '(5, 7.5]', '(7.5, 10]'], dtype='object')
-        index.name = 'range'
-        result_sort = DataFrame([[1, 60], [5, 30], [6, 40], [10, 10]], columns=['foo', 'bar'])
-        result_sort.index = index
-        index = Index(['(7.5, 10]', '(2.5, 5]', '(5, 7.5]', '(0, 2.5]'], dtype='object')
-        index.name = 'range'
-        result_nosort = DataFrame([[10, 10], [5, 30], [6, 40], [1, 60]], index=index, columns=['foo', 'bar'])
-        result_nosort.index = index
+        df['range'] = Categorical(df['range'], ordered=False)
+        index = CategoricalIndex(['(0, 2.5]', '(2.5, 5]', '(5, 7.5]', '(7.5, 10]'], name='range')
+        result_sort = DataFrame([[1, 60], [5, 30], [6, 40], [10, 10]],
+                                columns=['foo', 'bar'], index=index)
+
+        index = CategoricalIndex(['(7.5, 10]', '(2.5, 5]', '(5, 7.5]', '(0, 2.5]'],
+                                 name='range')
+        result_nosort = DataFrame([[10, 10], [5, 30], [6, 40], [1, 60]],
+                                  index=index, columns=['foo', 'bar'])
 
         col = 'range'
-
         #### this is an unordered categorical, but we allow this ####
         assert_frame_equal(result_sort, df.groupby(col, sort=True).first())
         assert_frame_equal(result_nosort, df.groupby(col, sort=False).first())
@@ -3644,7 +3650,8 @@ class TestGroupBy(tm.TestCase):
         result = data.groupby(cats).mean()
 
         expected = data.groupby(np.asarray(cats)).mean()
-        expected = expected.reindex(levels)
+        exp_idx = CategoricalIndex(levels, ordered=True)
+        expected = expected.reindex(exp_idx)
 
         assert_frame_equal(result, expected)
 
@@ -3654,7 +3661,7 @@ class TestGroupBy(tm.TestCase):
         idx = cats.codes.argsort()
         ord_labels = np.asarray(cats).take(idx)
         ord_data = data.take(idx)
-        expected = ord_data.groupby(ord_labels, sort=False).describe()
+        expected = ord_data.groupby(Categorical(ord_labels), sort=False).describe()
         expected.index.names = [None, None]
         assert_frame_equal(desc_result, expected)
 
@@ -4026,8 +4033,12 @@ class TestGroupBy(tm.TestCase):
         df = pd.DataFrame(np.arange(12).reshape(-1, 3), index=idx)
 
         by_levels = df.groupby(level=idx_names).mean()
+        # reset_index changes columns dtype to object
         by_columns = df.reset_index().groupby(idx_names).mean()
 
+        tm.assert_frame_equal(by_levels, by_columns, check_column_type=False)
+
+        by_columns.columns = pd.Index(by_columns.columns, dtype=np.int64)
         tm.assert_frame_equal(by_levels, by_columns)
 
     def test_gb_apply_list_of_unequal_len_arrays(self):
@@ -5443,7 +5454,7 @@ class TestGroupBy(tm.TestCase):
         groups_single_key = test.groupby("cat")
         res = groups_single_key.agg('mean')
         exp = DataFrame({"ints":[1.5,1.5,np.nan], "val":[20,30,np.nan]},
-                        index=pd.Index(["a", "b", "c"], name="cat"))
+                        index=pd.CategoricalIndex(["a", "b", "c"], name="cat"))
         tm.assert_frame_equal(res, exp)
 
         # Grouping on two columns

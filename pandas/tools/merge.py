@@ -304,6 +304,7 @@ class _MergeOperation(object):
     def _get_join_info(self):
         left_ax = self.left._data.axes[self.axis]
         right_ax = self.right._data.axes[self.axis]
+
         if self.left_index and self.right_index:
             join_index, left_indexer, right_indexer = \
                 left_ax.join(right_ax, how=self.how, return_indexers=True)
@@ -321,7 +322,6 @@ class _MergeOperation(object):
              right_indexer) = _get_join_indexers(self.left_join_keys,
                                                  self.right_join_keys,
                                                  sort=self.sort, how=self.how)
-
             if self.right_index:
                 if len(self.left) > 0:
                     join_index = self.left.index.take(left_indexer)
@@ -337,6 +337,8 @@ class _MergeOperation(object):
             else:
                 join_index = Index(np.arange(len(left_indexer)))
 
+        if len(join_index) == 0:
+            join_index = join_index.astype(object)
         return join_index, left_indexer, right_indexer
 
     def _get_merge_data(self):
