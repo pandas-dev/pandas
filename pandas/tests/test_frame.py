@@ -10382,6 +10382,13 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
             [[1, 2, 3], [4, 5, 6], [7, 8, 9]], index=['a', 'a', 'c'])
         self.assertRaises(ValueError, df.apply, lambda x: x, 2)
 
+        # GH9573
+        df = DataFrame({'c0':['A','A','B','B'], 'c1':['C','C','D','D']})
+        df = df.apply(lambda ts: ts.astype('category'))
+        self.assertEqual(df.shape, (4, 2))
+        self.assertTrue(isinstance(df['c0'].dtype, com.CategoricalDtype))
+        self.assertTrue(isinstance(df['c1'].dtype, com.CategoricalDtype))
+
     def test_apply_mixed_datetimelike(self):
         # mixed datetimelike
         # GH 7778
