@@ -132,3 +132,4 @@ Bug Fixes
 
 - Bug in `pandas.concat` with ``axis=0`` when column is of dtype ``category`` (:issue:`10177`)
 - Bug in ``read_msgpack`` where input type is not always checked (:issue:`10369`)
+- Bug in ``Categorical`` ``Series.shift`` (:issue:`10495`)

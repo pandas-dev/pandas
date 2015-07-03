@@ -1175,6 +1175,18 @@ class TestCategorical(tm.TestCase):
         self.assert_numpy_array_equal(cat == 4 , [False, False, False])
         self.assert_numpy_array_equal(cat != 4 , [True, True, True])
 
+    def test_shift(self):
+        # GH10495
+        # Series.shift should not depend on the dtype being categorical or not
+        values = ['a', 'b', 'c']
+        shifts = [-1, 0, 1]
+        results = [['b', 'c', np.nan], ['a', 'b', 'c'], [np.nan, 'a', 'b']]
+
+        for shift, result in zip(shifts, results):
+            b = pd.Series(pd.Categorical(result, categories=values))
+            a = pd.Series(values, dtype='category').shift(shift)
+            self.assert_series_equal(a, b)
+
 
 class TestCategoricalAsBlock(tm.TestCase):
     _multiprocess_can_split_ = True
