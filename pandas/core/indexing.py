@@ -524,7 +524,7 @@ class _NDFrameIndexer(object):
         Parameters
         ----------
         indexer : tuple, slice, scalar
-            The indexer used to get the locations that will be set to 
+            The indexer used to get the locations that will be set to
             `ser`
 
         ser : pd.Series
@@ -532,7 +532,7 @@ class _NDFrameIndexer(object):
 
         multiindex_indexer : boolean, optional
             Defaults to False. Should be set to True if `indexer` was from
-            a `pd.MultiIndex`, to avoid unnecessary broadcasting. 
+            a `pd.MultiIndex`, to avoid unnecessary broadcasting.
 
 
         Returns:

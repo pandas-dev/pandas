@@ -300,7 +300,7 @@ class TestStata(tm.TestCase):
             original.to_stata(path, None)
             written_and_read_again = self.read_dta(path)
             tm.assert_frame_equal(written_and_read_again.set_index('index'),
-                                  original)
+                                  original, check_index_type=False)
 
     def test_read_write_dta10(self):
         original = DataFrame(data=[["string", "object", 1, 1.1,
@@ -315,8 +315,9 @@ class TestStata(tm.TestCase):
         with tm.ensure_clean() as path:
             original.to_stata(path, {'datetime': 'tc'})
             written_and_read_again = self.read_dta(path)
+            # original.index is np.int32, readed index is np.int64
             tm.assert_frame_equal(written_and_read_again.set_index('index'),
-                                  original)
+                                  original, check_index_type=False)
 
     def test_stata_doc_examples(self):
         with tm.ensure_clean() as path:
