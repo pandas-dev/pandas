@@ -9,7 +9,8 @@ The SQL tests are broken down in different classes:
     - `TestSQLiteFallbackApi`: test the public API with a sqlite DBAPI connection
 - Tests for the different SQL flavors (flavor specific type conversions)
     - Tests for the sqlalchemy mode: `_TestSQLAlchemy` is the base class with
-      common methods, the different tested flavors (sqlite3, MySQL, PostgreSQL)
+      common methods, `_TestSQLAlchemyConn` tests the API with a SQLAlchemy
+      Connection object. The different tested flavors (sqlite3, MySQL, PostgreSQL)
       derive from the base class
     - Tests for the fallback mode (`TestSQLiteFallback` and `TestMySQLLegacy`)
 
@@ -43,6 +44,8 @@ try:
     import sqlalchemy
     import sqlalchemy.schema
     import sqlalchemy.sql.sqltypes as sqltypes
+    from sqlalchemy.ext import declarative
+    from sqlalchemy.orm import session as sa_session
     SQLALCHEMY_INSTALLED = True
 except ImportError:
     SQLALCHEMY_INSTALLED = False
@@ -867,6 +870,31 @@ class TestSQLApi(_TestSQLApi):
         self.assertTrue(isinstance(table.table.c['time'].type, sqltypes.DateTime))
 
 
+class _EngineToConnMixin(object):
+    """
+    A mixin that causes setup_connect to create a conn rather than an engine.
+    """
+
+    def setUp(self):
+        super(_EngineToConnMixin, self).setUp()
+        engine = self.conn
+        conn = engine.connect()
+        self.__tx = conn.begin()
+        self.pandasSQL = sql.SQLDatabase(conn)
+        self.__engine = engine
+        self.conn = conn
+
+    def tearDown(self):
+        self.__tx.rollback()
+        self.conn.close()
+        self.conn = self.__engine
+        self.pandasSQL = sql.SQLDatabase(self.__engine)
+
+
+class TestSQLApiConn(_EngineToConnMixin, TestSQLApi):
+    pass
+
+
 class TestSQLiteFallbackApi(_TestSQLApi):
     """
     Test the public sqlite connection fallback API
@@ -1002,9 +1030,6 @@ class _TestSQLAlchemy(PandasSQLTest):
             self.conn.connect()
         except sqlalchemy.exc.OperationalError:
             raise nose.SkipTest("Can't connect to {0} server".format(self.flavor))
-
-    def tearDown(self):
-        raise NotImplementedError()
 
     def test_aread_sql(self):
         self._read_sql_iris()
@@ -1359,9 +1384,58 @@ class _TestSQLAlchemy(PandasSQLTest):
         self.assertTrue(isinstance(col_dict['i32'].type, sqltypes.Integer))
         self.assertTrue(isinstance(col_dict['i64'].type, sqltypes.BigInteger))
 
+    def test_connectable_issue_example(self):
+        # This tests the example raised in issue
+        # https://github.com/pydata/pandas/issues/10104
+
+        def foo(connection):
+            query = 'SELECT test_foo_data FROM test_foo_data'
+            return sql.read_sql_query(query, con=connection)
+
+        def bar(connection, data):
+            data.to_sql(name='test_foo_data', con=connection, if_exists='append')
+
+        def main(connectable):
+            with connectable.connect() as conn:
+                with conn.begin():
+                    foo_data = conn.run_callable(foo)
+                    conn.run_callable(bar, foo_data)
+
+        DataFrame({'test_foo_data': [0, 1, 2]}).to_sql('test_foo_data', self.conn)
+        main(self.conn)
+
+    def test_temporary_table(self):
+        test_data = u'Hello, World!'
+        expected = DataFrame({'spam': [test_data]})
+        Base = declarative.declarative_base()
+
+        class Temporary(Base):
+            __tablename__ = 'temp_test'
+            __table_args__ = {'prefixes': ['TEMPORARY']}
+            id = sqlalchemy.Column(sqlalchemy.Integer, primary_key=True)
+            spam = sqlalchemy.Column(sqlalchemy.Unicode(30), nullable=False)
+
+        Session = sa_session.sessionmaker(bind=self.conn)
+        session = Session()
+        with session.transaction:
+            conn = session.connection()
+            Temporary.__table__.create(conn)
+            session.add(Temporary(spam=test_data))
+            session.flush()
+            df = sql.read_sql_query(
+                sql=sqlalchemy.select([Temporary.spam]),
+                con=conn,
+            )
+
+        tm.assert_frame_equal(df, expected)
 
 
-class TestSQLiteAlchemy(_TestSQLAlchemy):
+class _TestSQLAlchemyConn(_EngineToConnMixin, _TestSQLAlchemy):
+    def test_transactions(self):
+        raise nose.SkipTest("Nested transactions rollbacks don't work with Pandas")
+
+
+class _TestSQLiteAlchemy(object):
     """
     Test the sqlalchemy backend against an in-memory sqlite database.
 
@@ -1378,8 +1452,8 @@ class TestSQLiteAlchemy(_TestSQLAlchemy):
         cls.driver = None
 
     def tearDown(self):
+        super(_TestSQLiteAlchemy, self).tearDown()
         # in memory so tables should not be removed explicitly
-        pass
 
     def test_default_type_conversion(self):
         df = sql.read_sql_table("types_test_data", self.conn)
@@ -1417,7 +1491,7 @@ class TestSQLiteAlchemy(_TestSQLAlchemy):
             self.assertEqual(len(w), 0, "Warning triggered for other table")
 
 
-class TestMySQLAlchemy(_TestSQLAlchemy):
+class _TestMySQLAlchemy(object):
     """
     Test the sqlalchemy backend against an MySQL database.
 
@@ -1438,6 +1512,7 @@ class TestMySQLAlchemy(_TestSQLAlchemy):
             raise nose.SkipTest('pymysql not installed')
 
     def tearDown(self):
+        super(_TestMySQLAlchemy, self).tearDown()
         c = self.conn.execute('SHOW TABLES')
         for table in c.fetchall():
             self.conn.execute('DROP TABLE %s' % table[0])
@@ -1491,7 +1566,7 @@ class TestMySQLAlchemy(_TestSQLAlchemy):
         tm.assert_frame_equal(df, res2)
 
 
-class TestPostgreSQLAlchemy(_TestSQLAlchemy):
+class _TestPostgreSQLAlchemy(object):
     """
     Test the sqlalchemy backend against an PostgreSQL database.
 
@@ -1512,6 +1587,7 @@ class TestPostgreSQLAlchemy(_TestSQLAlchemy):
             raise nose.SkipTest('psycopg2 not installed')
 
     def tearDown(self):
+        super(_TestPostgreSQLAlchemy, self).tearDown()
         c = self.conn.execute(
             "SELECT table_name FROM information_schema.tables"
             " WHERE table_schema = 'public'")
@@ -1563,15 +1639,18 @@ class TestPostgreSQLAlchemy(_TestSQLAlchemy):
 
         ## specifying schema in user-provided meta
 
-        engine2 = self.connect()
-        meta = sqlalchemy.MetaData(engine2, schema='other')
-        pdsql = sql.SQLDatabase(engine2, meta=meta)
-        pdsql.to_sql(df, 'test_schema_other2', index=False)
-        pdsql.to_sql(df, 'test_schema_other2', index=False, if_exists='replace')
-        pdsql.to_sql(df, 'test_schema_other2', index=False, if_exists='append')
-        res1 = sql.read_sql_table('test_schema_other2', self.conn, schema='other')
-        res2 = pdsql.read_table('test_schema_other2')
-        tm.assert_frame_equal(res1, res2)
+        # The schema won't be applied on another Connection
+        # because of transactional schemas
+        if isinstance(self.conn, sqlalchemy.engine.Engine):
+            engine2 = self.connect()
+            meta = sqlalchemy.MetaData(engine2, schema='other')
+            pdsql = sql.SQLDatabase(engine2, meta=meta)
+            pdsql.to_sql(df, 'test_schema_other2', index=False)
+            pdsql.to_sql(df, 'test_schema_other2', index=False, if_exists='replace')
+            pdsql.to_sql(df, 'test_schema_other2', index=False, if_exists='append')
+            res1 = sql.read_sql_table('test_schema_other2', self.conn, schema='other')
+            res2 = pdsql.read_table('test_schema_other2')
+            tm.assert_frame_equal(res1, res2)
 
     def test_datetime_with_time_zone(self):
         # Test to see if we read the date column with timezones that
@@ -1586,6 +1665,31 @@ class TestPostgreSQLAlchemy(_TestSQLAlchemy):
 
         # "2000-06-01 00:00:00-07:00" should convert to "2000-06-01 07:00:00"
         self.assertEqual(df.DateColWithTz[1], Timestamp('2000-06-01 07:00:00'))
+
+
+class TestMySQLAlchemy(_TestMySQLAlchemy, _TestSQLAlchemy):
+    pass
+
+
+class TestMySQLAlchemyConn(_TestMySQLAlchemy, _TestSQLAlchemyConn): 
+    pass
+
+
+class TestPostgreSQLAlchemy(_TestPostgreSQLAlchemy, _TestSQLAlchemy):
+    pass
+
+
+class TestPostgreSQLAlchemyConn(_TestPostgreSQLAlchemy, _TestSQLAlchemyConn):
+    pass
+
+
+class TestSQLiteAlchemy(_TestSQLiteAlchemy, _TestSQLAlchemy):
+    pass
+
+
+class TestSQLiteAlchemyConn(_TestSQLiteAlchemy, _TestSQLAlchemyConn):
+    pass
+
 
 #------------------------------------------------------------------------------
 #--- Test Sqlite / MySQL fallback
