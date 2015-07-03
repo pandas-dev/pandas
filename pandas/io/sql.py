@@ -834,7 +834,11 @@ class SQLTable(PandasObject):
                    for name, typ, is_index in column_names_and_types]
 
         if self.keys is not None:
-            pkc = PrimaryKeyConstraint(self.keys, name=self.name + '_pk')
+            if not com.is_list_like(self.keys):
+                keys = [self.keys]
+            else:
+                keys = self.keys
+            pkc = PrimaryKeyConstraint(*keys, name=self.name + '_pk')
             columns.append(pkc)
 
         schema = self.schema or self.pd_sql.meta.schema
@@ -899,8 +903,8 @@ class SQLTable(PandasObject):
 
     def _get_notnull_col_dtype(self, col):
         """
-        Infer datatype of the Series col.  In case the dtype of col is 'object' 
-        and it contains NA values, this infers the datatype of the not-NA 
+        Infer datatype of the Series col.  In case the dtype of col is 'object'
+        and it contains NA values, this infers the datatype of the not-NA
         values.  Needed for inserting typed data containing NULLs, GH8778.
         """
         col_for_inference = col
@@ -1272,7 +1276,7 @@ def _get_unicode_name(name):
     return uname
 
 def _get_valid_mysql_name(name):
-    # Filter for unquoted identifiers 
+    # Filter for unquoted identifiers
     # See http://dev.mysql.com/doc/refman/5.0/en/identifiers.html
     uname = _get_unicode_name(name)
     if not len(uname):
@@ -1293,7 +1297,7 @@ def _get_valid_sqlite_name(name):
     # Ensure the string does not include any NUL characters.
     # Replace all " with "".
     # Wrap the entire thing in double quotes.
-    
+
     uname = _get_unicode_name(name)
     if not len(uname):
         raise ValueError("Empty table or column name specified")
@@ -1377,7 +1381,11 @@ class SQLiteTable(SQLTable):
                             for cname, ctype, _ in column_names_and_types]
 
         if self.keys is not None and len(self.keys):
-            cnames_br = ",".join([escape(c) for c in self.keys])
+            if not com.is_list_like(self.keys):
+                keys = [self.keys]
+            else:
+                keys = self.keys
+            cnames_br = ", ".join([escape(c) for c in keys])
             create_tbl_stmts.append(
                 "CONSTRAINT {tbl}_pk PRIMARY KEY ({cnames_br})".format(
                 tbl=self.name, cnames_br=cnames_br))
@@ -1391,7 +1399,7 @@ class SQLiteTable(SQLTable):
             cnames = "_".join(ix_cols)
             cnames_br = ",".join([escape(c) for c in ix_cols])
             create_stmts.append(
-                "CREATE INDEX " + escape("ix_"+self.name+"_"+cnames) + 
+                "CREATE INDEX " + escape("ix_"+self.name+"_"+cnames) +
                 "ON " + escape(self.name) + " (" + cnames_br + ")")
 
         return create_stmts
@@ -1416,7 +1424,7 @@ class SQLiteTable(SQLTable):
 
         elif col_type == "complex":
             raise ValueError('Complex datatypes not supported')
-            
+
         if col_type not in _SQL_TYPES:
             col_type = "string"
 
