@@ -10765,6 +10765,9 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         
         expected = DataFrame(0., index=[0, 1, 2], columns=[0, '0', 1, '1'])
         filtered = expected.filter(regex='^[0-9]+$')  # shouldn't remove anything
+        
+        expected = DataFrame(0., index=[0, 1, 2], columns=[0, 1, '0', '1'])
+        filtered = expected.filter(regex='^[0-9]+$')  # shouldn't remove anything
         self.assert_frame_equal(filtered, expected)
 
         # pass in None
