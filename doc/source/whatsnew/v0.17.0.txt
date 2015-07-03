@@ -128,6 +128,7 @@ Bug Fixes
 
 
 - Bug in ``test_categorical`` on big-endian builds (:issue:`10425`)
+- Bug in ``Series.shift`` and ``DataFrame.shift`` not supporting categorical data (:issue:`9416`)
 - Bug in ``Series.map`` using categorical ``Series`` raises ``AttributeError`` (:issue:`10324`)
 - Bug in ``MultiIndex.get_level_values`` including ``Categorical`` raises ``AttributeError`` (:issue:`10460`)
 

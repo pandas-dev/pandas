@@ -10360,6 +10360,15 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
                        columns=['high', 'low'])
         assert_frame_equal(rs, xp)
 
+    def test_shift_categorical(self):
+        # GH 9416
+        s1 = pd.Series(['a', 'b', 'c'], dtype='category')
+        s2 = pd.Series(['A', 'B', 'C'], dtype='category')
+        df = DataFrame({'one': s1, 'two': s2})
+        rs = df.shift(1)
+        xp = DataFrame({'one': s1.shift(1), 'two': s2.shift(1)})
+        assert_frame_equal(rs, xp)
+
     def test_shift_empty(self):
         # Regression test for #8019
         df = DataFrame({'foo': []})

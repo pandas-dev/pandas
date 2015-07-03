@@ -1709,6 +1709,10 @@ class CategoricalBlock(NonConsolidatableMixIn, ObjectBlock):
                                                                limit=limit),
                                           placement=self.mgr_locs)
 
+    def shift(self, periods, axis=0):
+        return self.make_block_same_class(values=self.values.shift(periods),
+                                          placement=self.mgr_locs)
+
     def take_nd(self, indexer, axis=0, new_mgr_locs=None, fill_tuple=None):
         """
         Take values according to indexer and return them as a block.bb
