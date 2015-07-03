@@ -141,24 +141,28 @@ def read_msgpack(path_or_buf, iterator=False, **kwargs):
 
         try:
             exists = os.path.exists(path_or_buf)
-        except (TypeError,ValueError):
+        except (TypeError, ValueError):
             exists = False
 
         if exists:
             with open(path_or_buf, 'rb') as fh:
                 return read(fh)
 
-    # treat as a string-like
-    if not hasattr(path_or_buf, 'read'):
-
+    # treat as a binary-like
+    if isinstance(path_or_buf, compat.binary_type):
+        fh = None
         try:
             fh = compat.BytesIO(path_or_buf)
             return read(fh)
         finally:
-            fh.close()
+            if fh is not None:
+                fh.close()
 
     # a buffer like
-    return read(path_or_buf)
+    if hasattr(path_or_buf, 'read') and compat.callable(path_or_buf.read):
+        return read(path_or_buf)
+
+    raise ValueError('path_or_buf needs to be a string file path or file-like')
 
 dtype_dict = {21: np.dtype('M8[ns]'),
               u('datetime64[ns]'): np.dtype('M8[ns]'),
