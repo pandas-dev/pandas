@@ -35,6 +35,7 @@ from pandas import compat
 from pandas.util.testing import (assert_series_equal,
                                  assert_almost_equal,
                                  assert_frame_equal,
+                                 assert_index_equal,
                                  ensure_clean)
 import pandas.util.testing as tm
 
@@ -5259,6 +5260,25 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         shifted = ts.shift(1)
         expected = ts.astype(float).shift(1)
         assert_series_equal(shifted, expected)
+
+    def test_shift_categorical(self):
+        # GH 9416
+        s = pd.Series(['a', 'b', 'c', 'd'], dtype='category')
+
+        assert_series_equal(s.iloc[:-1], s.shift(1).shift(-1).valid())
+
+        sp1 = s.shift(1)
+        assert_index_equal(s.index, sp1.index)
+        self.assertTrue(np.all(sp1.values.codes[:1] == -1))
+        self.assertTrue(np.all(s.values.codes[:-1] == sp1.values.codes[1:]))
+
+        sn2 = s.shift(-2)
+        assert_index_equal(s.index, sn2.index)
+        self.assertTrue(np.all(sn2.values.codes[-2:] == -1))
+        self.assertTrue(np.all(s.values.codes[2:] == sn2.values.codes[:-2]))
+
+        assert_index_equal(s.values.categories, sp1.values.categories)
+        assert_index_equal(s.values.categories, sn2.values.categories)
 
     def test_truncate(self):
         offset = datetools.bday
