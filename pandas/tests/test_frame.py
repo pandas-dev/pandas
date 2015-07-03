@@ -10795,7 +10795,11 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         df = DataFrame(0., index=[0, 1, 2], columns=[0, 1, '_A', '_B'])
         filtered = df.filter(like='_')
         self.assertEqual(len(filtered.columns), 2)
-
+        
+        # regex with ints in column names
+        df = DataFrame(0., index=[0, 1, 2], columns=[0, 1, 'A1', 'B'])
+        filtered = df.filter(regex='^[0-9]+$')
+        self.assertEqual(len(filtered.columns), 2)
         # pass in None
         with assertRaisesRegexp(TypeError, 'Must pass'):
             self.frame.filter(items=None)
