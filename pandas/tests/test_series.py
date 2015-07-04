@@ -1562,7 +1562,7 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         a = Series([1, 2, 3, 4])
         result = a.reshape(2, 2)
         expected = a.values.reshape(2, 2)
-        np.testing.assert_array_equal(result, expected)
+        tm.assert_numpy_array_equal(result, expected)
         self.assertTrue(type(result) is type(expected))
 
     def test_reshape_2d_return_array(self):
@@ -7070,13 +7070,13 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
 
         r = s.searchsorted([30])
         e = np.array([2])
-        tm.assert_array_equal(r, e)
+        tm.assert_numpy_array_equal(r, e)
 
     def test_searchsorted_numeric_dtypes_vector(self):
         s = Series([1, 2, 90, 1000, 3e9])
         r = s.searchsorted([91, 2e6])
         e = np.array([3, 4])
-        tm.assert_array_equal(r, e)
+        tm.assert_numpy_array_equal(r, e)
 
     def test_search_sorted_datetime64_scalar(self):
         s = Series(pd.date_range('20120101', periods=10, freq='2D'))
@@ -7090,14 +7090,14 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         v = [pd.Timestamp('20120102'), pd.Timestamp('20120104')]
         r = s.searchsorted(v)
         e = np.array([1, 2])
-        tm.assert_array_equal(r, e)
+        tm.assert_numpy_array_equal(r, e)
 
     def test_searchsorted_sorter(self):
         # GH8490
         s = Series([3, 1, 2])
         r = s.searchsorted([0, 3], sorter=np.argsort(s))
         e = np.array([0, 2])
-        tm.assert_array_equal(r, e)
+        tm.assert_numpy_array_equal(r, e)
 
     def test_to_frame_expanddim(self):
         # GH 9762

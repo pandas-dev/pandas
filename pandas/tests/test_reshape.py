@@ -15,7 +15,6 @@ from numpy import nan
 import numpy as np
 
 from pandas.util.testing import assert_frame_equal
-from numpy.testing import assert_array_equal
 
 from pandas.core.reshape import (melt, lreshape, get_dummies,
                                  wide_to_long)
@@ -234,7 +233,7 @@ class TestGetDummies(tm.TestCase):
 
         res_just_na = get_dummies([nan], dummy_na=True, sparse=self.sparse)
         exp_just_na = DataFrame(Series(1.0,index=[0]),columns=[nan])
-        assert_array_equal(res_just_na.values, exp_just_na.values)
+        tm.assert_numpy_array_equal(res_just_na.values, exp_just_na.values)
 
     def test_unicode(self):  # See GH 6885 - get_dummies chokes on unicode values
         import unicodedata

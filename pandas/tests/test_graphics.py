@@ -25,7 +25,7 @@ import numpy as np
 from numpy import random
 from numpy.random import rand, randn
 
-from numpy.testing import assert_array_equal, assert_allclose
+from numpy.testing import assert_allclose
 from numpy.testing.decorators import slow
 import pandas.tools.plotting as plotting
 
@@ -646,11 +646,11 @@ class TestSeriesPlots(TestPlotBase):
             expected = np.hstack((.1, expected, 1e4))
 
         ax = Series([200, 500]).plot(log=True, kind='bar')
-        assert_array_equal(ax.yaxis.get_ticklocs(), expected)
+        tm.assert_numpy_array_equal(ax.yaxis.get_ticklocs(), expected)
         tm.close()
 
         ax = Series([200, 500]).plot(log=True, kind='barh')
-        assert_array_equal(ax.xaxis.get_ticklocs(), expected)
+        tm.assert_numpy_array_equal(ax.xaxis.get_ticklocs(), expected)
         tm.close()
 
         # GH 9905
@@ -660,13 +660,13 @@ class TestSeriesPlots(TestPlotBase):
             expected = np.hstack((1.0e-04, expected, 1.0e+01))
 
         ax = Series([0.1, 0.01, 0.001]).plot(log=True, kind='bar')
-        assert_array_equal(ax.get_ylim(), (0.001, 0.10000000000000001))
-        assert_array_equal(ax.yaxis.get_ticklocs(), expected)
+        tm.assert_numpy_array_equal(ax.get_ylim(), (0.001, 0.10000000000000001))
+        tm.assert_numpy_array_equal(ax.yaxis.get_ticklocs(), expected)
         tm.close()
 
         ax = Series([0.1, 0.01, 0.001]).plot(log=True, kind='barh')
-        assert_array_equal(ax.get_xlim(), (0.001, 0.10000000000000001))
-        assert_array_equal(ax.xaxis.get_ticklocs(), expected)
+        tm.assert_numpy_array_equal(ax.get_xlim(), (0.001, 0.10000000000000001))
+        tm.assert_numpy_array_equal(ax.xaxis.get_ticklocs(), expected)
 
     @slow
     def test_bar_ignore_index(self):
@@ -2154,7 +2154,7 @@ class TestDataFramePlots(TestPlotBase):
         # no subplots
         df = DataFrame({'A': [3] * 5, 'B': lrange(1, 6)}, index=lrange(5))
         ax = df.plot(kind='bar', grid=True, log=True)
-        assert_array_equal(ax.yaxis.get_ticklocs(), expected)
+        tm.assert_numpy_array_equal(ax.yaxis.get_ticklocs(), expected)
 
     @slow
     def test_bar_log_subplots(self):
@@ -2166,8 +2166,8 @@ class TestDataFramePlots(TestPlotBase):
                         Series([300, 500])]).plot(log=True, kind='bar',
                                                   subplots=True)
 
-        assert_array_equal(ax[0].yaxis.get_ticklocs(), expected)
-        assert_array_equal(ax[1].yaxis.get_ticklocs(), expected)
+        tm.assert_numpy_array_equal(ax[0].yaxis.get_ticklocs(), expected)
+        tm.assert_numpy_array_equal(ax[1].yaxis.get_ticklocs(), expected)
 
     @slow
     def test_boxplot(self):
@@ -2178,7 +2178,7 @@ class TestDataFramePlots(TestPlotBase):
 
         ax = _check_plot_works(df.plot, kind='box')
         self._check_text_labels(ax.get_xticklabels(), labels)
-        assert_array_equal(ax.xaxis.get_ticklocs(),
+        tm.assert_numpy_array_equal(ax.xaxis.get_ticklocs(),
                            np.arange(1, len(numeric_cols) + 1))
         self.assertEqual(len(ax.lines),
                          self.bp_n_objects * len(numeric_cols))
@@ -2205,7 +2205,7 @@ class TestDataFramePlots(TestPlotBase):
         numeric_cols = df._get_numeric_data().columns
         labels = [com.pprint_thing(c) for c in numeric_cols]
         self._check_text_labels(ax.get_xticklabels(), labels)
-        assert_array_equal(ax.xaxis.get_ticklocs(), positions)
+        tm.assert_numpy_array_equal(ax.xaxis.get_ticklocs(), positions)
         self.assertEqual(len(ax.lines), self.bp_n_objects * len(numeric_cols))
 
     @slow
@@ -2231,7 +2231,7 @@ class TestDataFramePlots(TestPlotBase):
         positions = np.array([3, 2, 8])
         ax = df.plot(kind='box', positions=positions, vert=False)
         self._check_text_labels(ax.get_yticklabels(), labels)
-        assert_array_equal(ax.yaxis.get_ticklocs(), positions)
+        tm.assert_numpy_array_equal(ax.yaxis.get_ticklocs(), positions)
         self.assertEqual(len(ax.lines), self.bp_n_objects * len(numeric_cols))
 
     @slow
@@ -2888,7 +2888,7 @@ class TestDataFramePlots(TestPlotBase):
         xticks = ax.lines[0].get_xdata()
         self.assertTrue(xticks[0] < xticks[1])
         ydata = ax.lines[0].get_ydata()
-        assert_array_equal(ydata, np.array([1.0, 2.0, 3.0]))
+        tm.assert_numpy_array_equal(ydata, np.array([1.0, 2.0, 3.0]))
 
     def test_all_invalid_plot_data(self):
         df = DataFrame(list('abcd'))

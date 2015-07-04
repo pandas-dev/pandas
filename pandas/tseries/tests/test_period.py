@@ -30,7 +30,6 @@ from pandas.util.testing import(assert_series_equal, assert_almost_equal,
                                 assertRaisesRegexp)
 import pandas.util.testing as tm
 from pandas import compat
-from numpy.testing import assert_array_equal
 
 
 class TestPeriodProperties(tm.TestCase):
@@ -1979,7 +1978,7 @@ class TestPeriodIndex(tm.TestCase):
 
         idx1 = PeriodIndex(ordinal=[-1, 0, 1], freq='A')
         idx2 = PeriodIndex(ordinal=np.array([-1, 0, 1]), freq='A')
-        assert_array_equal(idx1,idx2)
+        tm.assert_numpy_array_equal(idx1,idx2)
 
     def test_dti_to_period(self):
         dti = DatetimeIndex(start='1/1/2005', end='12/1/2005', freq='M')
@@ -2393,7 +2392,7 @@ class TestPeriodIndex(tm.TestCase):
 
         result = index.map(lambda x: x.ordinal)
         exp = [x.ordinal for x in index]
-        assert_array_equal(result, exp)
+        tm.assert_numpy_array_equal(result, exp)
 
     def test_map_with_string_constructor(self):
         raw = [2005, 2007, 2009]
@@ -2418,7 +2417,7 @@ class TestPeriodIndex(tm.TestCase):
             self.assertEqual(res.dtype, np.dtype('object').type)
 
             # lastly, values should compare equal
-            assert_array_equal(res, expected)
+            tm.assert_numpy_array_equal(res, expected)
 
     def test_convert_array_of_periods(self):
         rng = period_range('1/1/2000', periods=20, freq='D')

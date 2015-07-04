@@ -553,7 +553,7 @@ class TestIndexOps(Ops):
             expected = Series([4, 3, 2], index=['b', 'a', 'd'])
             tm.assert_series_equal(s.value_counts(), expected)
 
-            self.assert_numpy_array_equivalent(s.unique(), np.array(['a', 'b', np.nan, 'd'], dtype='O'))
+            self.assert_numpy_array_equal(s.unique(), np.array(['a', 'b', np.nan, 'd'], dtype='O'))
             self.assertEqual(s.nunique(), 3)
 
             s = klass({})

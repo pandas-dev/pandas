@@ -21,7 +21,6 @@ from distutils.version import LooseVersion
 
 from numpy.random import randn, rand
 import numpy as np
-from numpy.testing import assert_array_equal
 
 import pandas as pd
 from pandas.core.common import (is_sequence, array_equivalent, is_list_like, is_number,
@@ -631,34 +630,14 @@ def assert_categorical_equal(res, exp):
         raise AssertionError("ordered not the same")
 
 
-def assert_numpy_array_equal(np_array, assert_equal, err_msg=None):
-    """Checks that 'np_array' is equal to 'assert_equal'
+def assert_numpy_array_equal(np_array, assert_equal,
+                             strict_nan=False, err_msg=None):
+    """Checks that 'np_array' is equivalent to 'assert_equal'.
 
-    Note that the expected array should not contain `np.nan`!
-    Two numpy arrays are equal if all
-    elements are equal, which is not possible if `np.nan` is such an element!
-
-    If the expected array includes `np.nan` use
-    `assert_numpy_array_equivalent(...)`.
-    """
-    if np.array_equal(np_array, assert_equal):
-        return
-    if err_msg is None:
-        err_msg = '{0} is not equal to {1}.'.format(np_array, assert_equal)
-    raise AssertionError(err_msg)
-
-
-def assert_numpy_array_equivalent(np_array, assert_equal, strict_nan=False, err_msg=None):
-    """Checks that 'np_array' is equivalent to 'assert_equal'
-
-    Two numpy arrays are equivalent if the arrays have equal non-NaN elements,
-     and `np.nan` in corresponding locations.
-
-    If the the expected array does not contain `np.nan`
-    `assert_numpy_array_equivalent` is the similar to
-    `assert_numpy_array_equal()`. If the expected array includes
-    `np.nan` use this
-    function.
+    This is similar to ``numpy.testing.assert_array_equal``, but can
+    check equality including ``np.nan``. Two numpy arrays are regarded as
+    equivalent if the arrays have equal non-NaN elements,
+    and `np.nan` in corresponding locations.
     """
     if array_equivalent(np_array, assert_equal, strict_nan=strict_nan):
         return
@@ -694,7 +673,7 @@ def assert_series_equal(left, right, check_dtype=True,
                     '[datetimelike_compat=True] {0} is not equal to {1}.'.format(left.values,
                                                                                  right.values))
         else:
-            assert_numpy_array_equivalent(left.values, right.values)
+            assert_numpy_array_equal(left.values, right.values)
     else:
         assert_almost_equal(left.values, right.values, check_less_precise)
     if check_less_precise:
