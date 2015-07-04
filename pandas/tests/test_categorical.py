@@ -958,20 +958,59 @@ class TestCategorical(tm.TestCase):
         self.assertEqual(_max, 1)
 
     def test_unique(self):
-        cat = Categorical(["a","b"])
-        exp = np.asarray(["a","b"])
+        # categories are reordered based on value when ordered=False
+        cat = Categorical(["a", "b"])
+        exp = np.asarray(["a", "b"])
         res = cat.unique()
         self.assert_numpy_array_equal(res, exp)
 
-        cat = Categorical(["a","b","a","a"], categories=["a","b","c"])
+        cat = Categorical(["a", "b", "a", "a"], categories=["a", "b", "c"])
         res = cat.unique()
         self.assert_numpy_array_equal(res, exp)
+        tm.assert_categorical_equal(res, Categorical(exp))
 
-        # unique should not sort
-        cat = Categorical(["b", "b", np.nan, "a"], categories=["a","b","c"])
+        cat = Categorical(["c", "a", "b", "a", "a"], categories=["a", "b", "c"])
+        exp = np.asarray(["c", "a", "b"])
+        res = cat.unique()
+        self.assert_numpy_array_equal(res, exp)
+        tm.assert_categorical_equal(res, Categorical(exp, categories=['c', 'a', 'b']))
+
+        # nan must be removed
+        cat = Categorical(["b", np.nan, "b", np.nan, "a"], categories=["a", "b", "c"])
         res = cat.unique()
         exp = np.asarray(["b", np.nan, "a"], dtype=object)
         self.assert_numpy_array_equal(res, exp)
+        tm.assert_categorical_equal(res, Categorical(["b", np.nan, "a"], categories=["b", "a"]))
+
+    def test_unique_ordered(self):
+        # keep categories order when ordered=True
+        cat = Categorical(['b', 'a', 'b'], categories=['a', 'b'], ordered=True)
+        res = cat.unique()
+        exp = np.asarray(['b', 'a'])
+        exp_cat = Categorical(exp, categories=['a', 'b'], ordered=True)
+        self.assert_numpy_array_equal(res, exp)
+        tm.assert_categorical_equal(res, exp_cat)
+
+        cat = Categorical(['c', 'b', 'a', 'a'], categories=['a', 'b', 'c'], ordered=True)
+        res = cat.unique()
+        exp = np.asarray(['c', 'b', 'a'])
+        exp_cat = Categorical(exp, categories=['a', 'b', 'c'], ordered=True)
+        self.assert_numpy_array_equal(res, exp)
+        tm.assert_categorical_equal(res, exp_cat)
+
+        cat = Categorical(['b', 'a', 'a'], categories=['a', 'b', 'c'], ordered=True)
+        res = cat.unique()
+        exp = np.asarray(['b', 'a'])
+        exp_cat = Categorical(exp, categories=['a', 'b'], ordered=True)
+        self.assert_numpy_array_equal(res, exp)
+        tm.assert_categorical_equal(res, exp_cat)
+
+        cat = Categorical(['b', 'b', np.nan, 'a'], categories=['a', 'b', 'c'], ordered=True)
+        res = cat.unique()
+        exp = np.asarray(['b', np.nan, 'a'], dtype=object)
+        exp_cat = Categorical(exp, categories=['a', 'b'], ordered=True)
+        self.assert_numpy_array_equal(res, exp)
+        tm.assert_categorical_equal(res, exp_cat)
 
     def test_mode(self):
         s = Categorical([1,1,2,4,5,5,5], categories=[5,4,3,2,1], ordered=True)
