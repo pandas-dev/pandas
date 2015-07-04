@@ -12161,8 +12161,8 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
 
         result = df.quantile([.5, .75], axis=1)
         expected = DataFrame({1: [1.5, 1.75], 2: [2.5, 2.75],
-                              3: [3.5, 3.75]}, index=["0.5", "0.75"])
-        assert_frame_equal(result, expected)
+                              3: [3.5, 3.75]}, index=[0.5, 0.75])
+        assert_frame_equal(result, expected, check_index_type=True)
 
         # We may want to break API in the future to change this
         # so that we exclude non-numeric along the same axis
