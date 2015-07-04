@@ -303,7 +303,22 @@ Other API Changes
 - Allow passing `kwargs` to the interpolation methods (:issue:`10378`).
 - Serialize metadata properties of subclasses of pandas objects (:issue:`10553`).
 - ``Categorical.name`` was removed to make `Categorical` more ``numpy.ndarray`` like. Use ``Series(cat, name="whatever")`` instead (:issue:`10482`).
+- ``Categorical.unique`` now returns new ``Categorical`` which ``categories`` and ``codes`` are unique, rather than returnning ``np.array`` (:issue:`10508`)
 
+   - unordered category: values and categories are sorted by appearance order.
+   - ordered category: values are sorted by appearance order, categories keeps existing order.
+
+.. ipython :: python
+
+   cat = pd.Categorical(['C', 'A', 'B', 'C'], categories=['A', 'B', 'C'], ordered=True)
+   cat
+   cat.unique()
+
+   cat = pd.Categorical(['C', 'A', 'B', 'C'], categories=['A', 'B', 'C'])
+   cat
+   cat.unique()
+
+- ``groupby`` using ``Categorical`` follows the same rule as ``Categorical.unique`` described above  (:issue:`10508`)
 - ``NaT``'s methods now either raise ``ValueError``, or return ``np.nan`` or ``NaT`` (:issue:`9513`)
 
   ===============================     ==============================================================
@@ -365,6 +380,9 @@ Bug Fixes
 - Bug in ``DataFrame.interpolate`` with ``axis=1`` and ``inplace=True`` (:issue:`10395`)
 - Bug in ``io.sql.get_schema`` when specifying multiple columns as primary
   key (:issue:`10385`).
+
+- Bug in ``groupby(sort=False)`` with datetime-like ``Categorical`` raises ``ValueError`` (:issue:`10505`)
+
 - Bug in ``test_categorical`` on big-endian builds (:issue:`10425`)
 - Bug in ``Series.shift`` and ``DataFrame.shift`` not supporting categorical data (:issue:`9416`)
 - Bug in ``Series.map`` using categorical ``Series`` raises ``AttributeError`` (:issue:`10324`)
