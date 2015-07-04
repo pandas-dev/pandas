@@ -24,7 +24,6 @@ from numpy import random, nan, inf
 from numpy.random import randn
 import numpy as np
 import numpy.ma as ma
-from numpy.testing import assert_array_equal
 import numpy.ma.mrecords as mrecords
 
 import pandas.core.nanops as nanops
@@ -40,6 +39,7 @@ from pandas.parser import CParserError
 from pandas.util.misc import is_little_endian
 
 from pandas.util.testing import (assert_almost_equal,
+                                 assert_numpy_array_equal,
                                  assert_series_equal,
                                  assert_frame_equal,
                                  assertRaisesRegexp,
@@ -125,7 +125,7 @@ class CheckIndexing(object):
         df['@awesome_domain'] = ad
         self.assertRaises(KeyError, df.__getitem__, 'df["$10"]')
         res = df['@awesome_domain']
-        assert_array_equal(ad, res.values)
+        assert_numpy_array_equal(ad, res.values)
 
     def test_getitem_dupe_cols(self):
         df = DataFrame([[1, 2, 3], [4, 5, 6]], columns=['a', 'a', 'b'])
@@ -4664,13 +4664,13 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
     def test_from_records_empty_with_nonempty_fields_gh3682(self):
         a = np.array([(1, 2)], dtype=[('id', np.int64), ('value', np.int64)])
         df = DataFrame.from_records(a, index='id')
-        assert_array_equal(df.index, Index([1], name='id'))
+        assert_numpy_array_equal(df.index, Index([1], name='id'))
         self.assertEqual(df.index.name, 'id')
-        assert_array_equal(df.columns, Index(['value']))
+        assert_numpy_array_equal(df.columns, Index(['value']))
 
         b = np.array([], dtype=[('id', np.int64), ('value', np.int64)])
         df = DataFrame.from_records(b, index='id')
-        assert_array_equal(df.index, Index([], name='id'))
+        assert_numpy_array_equal(df.index, Index([], name='id'))
         self.assertEqual(df.index.name, 'id')
 
     def test_from_records_with_datetimes(self):
@@ -6108,7 +6108,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         assert_frame_equal(result,expected)
 
         result = df.values>b
-        assert_array_equal(result,expected.values)
+        assert_numpy_array_equal(result,expected.values)
 
         result = df>l
         assert_frame_equal(result,expected)
@@ -6120,7 +6120,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         assert_frame_equal(result,expected)
 
         result = df.values>b_r
-        assert_array_equal(result,expected.values)
+        assert_numpy_array_equal(result,expected.values)
 
         self.assertRaises(ValueError, df.__gt__, b_c)
         self.assertRaises(ValueError, df.values.__gt__, b_c)
@@ -6140,7 +6140,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         assert_frame_equal(result,expected)
 
         result = df.values == b_r
-        assert_array_equal(result,expected.values)
+        assert_numpy_array_equal(result,expected.values)
 
         self.assertRaises(ValueError, lambda : df == b_c)
         self.assertFalse((df.values == b_c))

@@ -13,7 +13,7 @@ dec = np.testing.dec
 
 from pandas.util.testing import (assert_almost_equal, assert_series_equal,
                                  assert_frame_equal, assert_panel_equal, assertRaisesRegexp,
-                                 assert_array_equal, assert_attr_equal)
+                                 assert_numpy_array_equal, assert_attr_equal)
 from numpy.testing import assert_equal
 
 from pandas import Series, DataFrame, bdate_range, Panel, MultiIndex
@@ -575,7 +575,7 @@ class TestSparseSeries(tm.TestCase,
 
         reindexed = self.bseries.reindex(self.bseries.index, copy=False)
         reindexed.sp_values[:] = 1.
-        np.testing.assert_array_equal(self.bseries.sp_values, 1.)
+        tm.assert_numpy_array_equal(self.bseries.sp_values, np.repeat(1., 10))
 
     def test_sparse_reindex(self):
         length = 10
@@ -899,7 +899,7 @@ class TestSparseSeriesScipyInteraction(tm.TestCase):
         (A, il, jl) = results
         (A_result, il_result, jl_result) = check
         # convert to dense and compare
-        assert_array_equal(A.todense(), A_result.todense())
+        assert_numpy_array_equal(A.todense(), A_result.todense())
         # or compare directly as difference of sparse
         # assert(abs(A - A_result).max() < 1e-12) # max is failing in python
         # 2.6

@@ -9,7 +9,6 @@ from numpy.random import randn
 
 import operator
 import numpy as np
-from numpy.testing import assert_array_equal
 
 from pandas.core.api import DataFrame, Panel
 from pandas.computation import expressions as expr
@@ -271,7 +270,7 @@ class TestExpressions(tm.TestCase):
 
                         result   = expr.evaluate(op, op_str, f, f, use_numexpr=True)
                         expected = expr.evaluate(op, op_str, f, f, use_numexpr=False)
-                        assert_array_equal(result,expected.values)
+                        tm.assert_numpy_array_equal(result,expected.values)
 
                         result   = expr._can_use_numexpr(op, op_str, f2, f2, 'evaluate')
                         self.assertFalse(result)
@@ -306,7 +305,7 @@ class TestExpressions(tm.TestCase):
 
                     result   = expr.evaluate(op, op_str, f11, f12, use_numexpr=True)
                     expected = expr.evaluate(op, op_str, f11, f12, use_numexpr=False)
-                    assert_array_equal(result,expected.values)
+                    tm.assert_numpy_array_equal(result,expected.values)
 
                     result   = expr._can_use_numexpr(op, op_str, f21, f22, 'evaluate')
                     self.assertFalse(result)
@@ -331,7 +330,7 @@ class TestExpressions(tm.TestCase):
                     c.fill(cond)
                     result   = expr.where(c, f.values, f.values+1)
                     expected = np.where(c, f.values, f.values+1)
-                    assert_array_equal(result,expected)
+                    tm.assert_numpy_array_equal(result,expected)
 
         expr.set_use_numexpr(False)
         testit()

@@ -5,7 +5,6 @@ from pandas.compat import lrange, zip
 
 import numpy as np
 from numpy.testing.decorators import slow
-from numpy.testing import assert_array_equal
 
 from pandas import Index, Series, DataFrame
 
@@ -306,7 +305,7 @@ class TestTSPlot(tm.TestCase):
         bts = DataFrame({'a': tm.makeTimeSeries()})
         ax = bts.plot()
         idx = ax.get_lines()[0].get_xdata()
-        assert_array_equal(bts.index.to_period(), PeriodIndex(idx))
+        tm.assert_numpy_array_equal(bts.index.to_period(), PeriodIndex(idx))
 
     @slow
     def test_axis_limits(self):
@@ -642,9 +641,9 @@ class TestTSPlot(tm.TestCase):
         self.assertFalse(hasattr(ax, 'freq'))
         lines = ax.get_lines()
         x1 = lines[0].get_xdata()
-        assert_array_equal(x1, s2.index.asobject.values)
+        tm.assert_numpy_array_equal(x1, s2.index.asobject.values)
         x2 = lines[1].get_xdata()
-        assert_array_equal(x2, s1.index.asobject.values)
+        tm.assert_numpy_array_equal(x2, s1.index.asobject.values)
 
     def test_mixed_freq_regular_first_df(self):
         # GH 9852
@@ -674,9 +673,9 @@ class TestTSPlot(tm.TestCase):
         self.assertFalse(hasattr(ax, 'freq'))
         lines = ax.get_lines()
         x1 = lines[0].get_xdata()
-        assert_array_equal(x1, s2.index.asobject.values)
+        tm.assert_numpy_array_equal(x1, s2.index.asobject.values)
         x2 = lines[1].get_xdata()
-        assert_array_equal(x2, s1.index.asobject.values)
+        tm.assert_numpy_array_equal(x2, s1.index.asobject.values)
 
     def test_mixed_freq_hf_first(self):
         idxh = date_range('1/1/1999', periods=365, freq='D')
@@ -1044,7 +1043,7 @@ class TestTSPlot(tm.TestCase):
         fig = plt.figure()
         ax = fig.add_subplot(111)
         lines = ax.plot(x, y, label='Y')
-        assert_array_equal(DatetimeIndex(lines[0].get_xdata()), x)
+        tm.assert_numpy_array_equal(DatetimeIndex(lines[0].get_xdata()), x)
 
     @slow
     def test_mpl_nopandas(self):
@@ -1063,9 +1062,9 @@ class TestTSPlot(tm.TestCase):
         ax.plot_date([x.toordinal() for x in dates], values2, **kw)
 
         line1, line2 = ax.get_lines()
-        assert_array_equal(np.array([x.toordinal() for x in dates]),
+        tm.assert_numpy_array_equal(np.array([x.toordinal() for x in dates]),
                            line1.get_xydata()[:, 0])
-        assert_array_equal(np.array([x.toordinal() for x in dates]),
+        tm.assert_numpy_array_equal(np.array([x.toordinal() for x in dates]),
                            line2.get_xydata()[:, 0])
 
     @slow

@@ -813,7 +813,7 @@ class TestIndexing(tm.TestCase):
         # GH6394
         # Regression in chained getitem indexing with embedded list-like from 0.12
         def check(result, expected):
-            self.assert_numpy_array_equal(result,expected)
+            tm.assert_numpy_array_equal(result,expected)
             tm.assertIsInstance(result, np.ndarray)
 
 
@@ -4765,7 +4765,7 @@ class TestSeriesNoneCoercion(tm.TestCase):
             expected_series = Series(expected_result)
 
             assert_attr_equal('dtype', start_series, expected_series)
-            self.assert_numpy_array_equivalent(
+            tm.assert_numpy_array_equal(
                 start_series.values,
                 expected_series.values, strict_nan=True)
 
@@ -4777,7 +4777,7 @@ class TestSeriesNoneCoercion(tm.TestCase):
             expected_series = Series(expected_result)
 
             assert_attr_equal('dtype', start_series, expected_series)
-            self.assert_numpy_array_equivalent(
+            tm.assert_numpy_array_equal(
                 start_series.values,
                 expected_series.values, strict_nan=True)
 
@@ -4789,7 +4789,7 @@ class TestSeriesNoneCoercion(tm.TestCase):
             expected_series = Series(expected_result)
 
             assert_attr_equal('dtype', start_series, expected_series)
-            self.assert_numpy_array_equivalent(
+            tm.assert_numpy_array_equal(
                 start_series.values,
                 expected_series.values, strict_nan=True)
 
@@ -4801,7 +4801,7 @@ class TestSeriesNoneCoercion(tm.TestCase):
             expected_series = Series(expected_result)
 
             assert_attr_equal('dtype', start_series, expected_series)
-            self.assert_numpy_array_equivalent(
+            tm.assert_numpy_array_equal(
                 start_series.values,
                 expected_series.values, strict_nan=True)
 
@@ -4828,7 +4828,7 @@ class TestDataframeNoneCoercion(tm.TestCase):
             expected_dataframe = DataFrame({'foo': expected_result})
 
             assert_attr_equal('dtype', start_dataframe['foo'], expected_dataframe['foo'])
-            self.assert_numpy_array_equivalent(
+            tm.assert_numpy_array_equal(
                 start_dataframe['foo'].values,
                 expected_dataframe['foo'].values, strict_nan=True)
 
@@ -4840,7 +4840,7 @@ class TestDataframeNoneCoercion(tm.TestCase):
             expected_dataframe = DataFrame({'foo': expected_result})
 
             assert_attr_equal('dtype', start_dataframe['foo'], expected_dataframe['foo'])
-            self.assert_numpy_array_equivalent(
+            tm.assert_numpy_array_equal(
                 start_dataframe['foo'].values,
                 expected_dataframe['foo'].values, strict_nan=True)
 
@@ -4852,7 +4852,7 @@ class TestDataframeNoneCoercion(tm.TestCase):
             expected_dataframe = DataFrame({'foo': expected_result})
 
             assert_attr_equal('dtype', start_dataframe['foo'], expected_dataframe['foo'])
-            self.assert_numpy_array_equivalent(
+            tm.assert_numpy_array_equal(
                 start_dataframe['foo'].values,
                 expected_dataframe['foo'].values, strict_nan=True)
 
@@ -4872,7 +4872,7 @@ class TestDataframeNoneCoercion(tm.TestCase):
 
         for column in expected_dataframe.columns:
             assert_attr_equal('dtype', start_dataframe[column], expected_dataframe[column])
-            self.assert_numpy_array_equivalent(
+            tm.assert_numpy_array_equal(
                 start_dataframe[column].values,
                 expected_dataframe[column].values, strict_nan=True)
 

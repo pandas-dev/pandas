@@ -30,7 +30,6 @@ import pandas.index as _index
 
 from pandas.compat import range, long, StringIO, lrange, lmap, zip, product
 from numpy.random import rand
-from numpy.testing import assert_array_equal
 from pandas.util.testing import assert_frame_equal
 import pandas.compat as compat
 import pandas.core.common as com
@@ -849,11 +848,11 @@ class TestTimeSeries(tm.TestCase):
 
         result2 = to_datetime(strings)
         tm.assertIsInstance(result2, DatetimeIndex)
-        self.assert_numpy_array_equivalent(result, result2)
+        tm.assert_numpy_array_equal(result, result2)
 
         malformed = np.array(['1/100/2000', np.nan], dtype=object)
         result = to_datetime(malformed)
-        self.assert_numpy_array_equivalent(result, malformed)
+        tm.assert_numpy_array_equal(result, malformed)
 
         self.assertRaises(ValueError, to_datetime, malformed,
                           errors='raise')
@@ -936,7 +935,7 @@ class TestTimeSeries(tm.TestCase):
             result = getattr(idx, field)
             expected = [getattr(x, field) if x is not NaT else np.nan
                         for x in idx]
-            self.assert_numpy_array_equivalent(result, np.array(expected))
+            self.assert_numpy_array_equal(result, np.array(expected))
 
     def test_nat_scalar_field_access(self):
         fields = ['year', 'quarter', 'month', 'day', 'hour',
@@ -2758,7 +2757,7 @@ class TestDatetimeIndex(tm.TestCase):
         joined = cols.join(df.columns)
         self.assertEqual(cols.dtype, np.dtype('O'))
         self.assertEqual(cols.dtype, joined.dtype)
-        assert_array_equal(cols.values, joined.values)
+        tm.assert_numpy_array_equal(cols.values, joined.values)
 
     def test_slice_keeps_name(self):
         # GH4226
