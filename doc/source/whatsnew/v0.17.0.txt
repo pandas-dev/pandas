@@ -391,6 +391,42 @@ New behavior:
 
 See :ref:`documentation <io.hdf5>` for more details.
 
+Changes to ``display.precision`` option
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The ``display.precision`` option has been clarified to refer to decimal places (:issue:`10451`).
+
+Earlier versions of pandas would format floating point numbers to have one less decimal place than the value in
+``display.precision``.
+
+.. code-block:: python
+
+  In [1]: pd.set_option('display.precision', 2)
+
+  In [2]: pd.DataFrame({'x': [123.456789]})
+  Out[2]:
+         x
+  0  123.5
+
+If interpreting precision as "significant figures" this did work for scientific notation but that same interpretation
+did not work for values with standard formatting. It was also out of step with how numpy handles formatting.
+
+Going forward the value of ``display.precision`` will directly control the number of places after the decimal, for
+regular formatting as well as scientific notation, similar to how numpy's ``precision`` print option works.
+
+.. ipython:: python
+
+  pd.set_option('display.precision', 2)
+  pd.DataFrame({'x': [123.456789]})
+
+To preserve output behavior with prior versions the default value of ``display.precision`` has been reduced to ``6``
+from ``7``.
+
+.. ipython:: python
+  :suppress:
+  pd.set_option('display.precision', 6)
+
+
 .. _whatsnew_0170.api_breaking.other:
 
 Other API Changes

@@ -227,7 +227,7 @@ can specify the option ``df.info(null_counts=True)`` to override on showing a pa
    df.info()
    pd.reset_option('max_info_rows')
 
-``display.precision`` sets the output display precision. This is only a
+``display.precision`` sets the output display precision in terms of decimal places. This is only a
 suggestion.
 
 .. ipython:: python
@@ -368,9 +368,11 @@ display.notebook_repr_html True         When True, IPython notebook will
                                         pandas objects (if it is available).
 display.pprint_nest_depth  3            Controls the number of nested levels
                                         to process when pretty-printing
-display.precision          7            Floating point output precision
-                                        (number of significant digits). This is
-                                        only a suggestion
+display.precision          6            Floating point output precision in
+                                        terms of number of places after the
+                                        decimal, for regular formatting as well
+                                        as scientific notation. Similar to
+                                        numpy's ``precision`` print option
 display.show_dimensions    truncate     Whether to print out dimensions
                                         at the end of DataFrame repr.
                                         If 'truncate' is specified, only
