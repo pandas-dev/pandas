@@ -3540,6 +3540,64 @@ one,two
         self.assertEqual(result['one'].dtype, 'u1')
         self.assertEqual(result['two'].dtype, 'S1')
 
+    def test_empty_pass_dtype(self):
+        data = 'one,two'
+        result = self.read_csv(StringIO(data), dtype={'one': 'u1'})
+
+        expected = DataFrame({'one': np.empty(0, dtype='u1'),
+                              'two': np.empty(0, dtype=np.object)})
+        tm.assert_frame_equal(result, expected)
+
+    def test_empty_with_index_pass_dtype(self):
+        data = 'one,two'
+        result = self.read_csv(StringIO(data), index_col=['one'],
+                               dtype={'one': 'u1', 1: 'f'})
+
+        expected = DataFrame({'two': np.empty(0, dtype='f')},
+                             index=Index([], dtype='u1', name='one'))
+        tm.assert_frame_equal(result, expected)
+
+    def test_empty_with_multiindex_pass_dtype(self):
+        data = 'one,two,three'
+        result = self.read_csv(StringIO(data), index_col=['one', 'two'],
+                               dtype={'one': 'u1', 1: 'f8'})
+
+        expected = DataFrame({'three': np.empty(0, dtype=np.object)}, index=MultiIndex.from_arrays(
+            [np.empty(0, dtype='u1'), np.empty(0, dtype='O')],
+            names=['one', 'two'])
+            )
+        tm.assert_frame_equal(result, expected)
+
+    def test_empty_with_mangled_column_pass_dtype_by_names(self):
+        data = 'one,one'
+        result = self.read_csv(StringIO(data), dtype={'one': 'u1', 'one.1': 'f'})
+
+        expected = DataFrame({'one': np.empty(0, dtype='u1'), 'one.1': np.empty(0, dtype='f')})
+        tm.assert_frame_equal(result, expected)
+
+    def test_empty_with_mangled_column_pass_dtype_by_indexes(self):
+        data = 'one,one'
+        result = self.read_csv(StringIO(data), dtype={0: 'u1', 1: 'f'})
+
+        expected = DataFrame({'one': np.empty(0, dtype='u1'), 'one.1': np.empty(0, dtype='f')})
+        tm.assert_frame_equal(result, expected)
+
+    def test_empty_with_dup_column_pass_dtype_by_names(self):
+        data = 'one,one'
+        result = self.read_csv(StringIO(data), mangle_dupe_cols=False, dtype={'one': 'u1'})
+        expected = pd.concat([Series([], name='one', dtype='u1')] * 2, axis=1)
+        tm.assert_frame_equal(result, expected)
+
+    def test_empty_with_dup_column_pass_dtype_by_indexes(self):
+        ### FIXME in GH9424
+        raise nose.SkipTest("GH 9424; known failure read_csv with duplicate columns")
+
+        data = 'one,one'
+        result = self.read_csv(StringIO(data), mangle_dupe_cols=False, dtype={0: 'u1', 1: 'f'})
+        expected = pd.concat([Series([], name='one', dtype='u1'), 
+                              Series([], name='one', dtype='f')], axis=1)
+        tm.assert_frame_equal(result, expected)
+
     def test_usecols_dtypes(self):
         data = """\
 1,2,3

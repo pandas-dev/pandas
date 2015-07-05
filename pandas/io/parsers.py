@@ -1170,7 +1170,8 @@ class CParserWrapper(ParserBase):
             if nrows is None:
                 return _get_empty_meta(self.orig_names,
                                        self.index_col,
-                                       self.index_names)
+                                       self.index_names,
+                                       dtype=self.kwds.get('dtype'))
             else:
                 raise
 
@@ -2219,19 +2220,30 @@ def _clean_index_names(columns, index_col):
     return index_names, columns, index_col
 
 
-def _get_empty_meta(columns, index_col, index_names):
+def _get_empty_meta(columns, index_col, index_names, dtype=None):
     columns = list(columns)
+
+    if dtype is None:
+        dtype = {}
+    else:
+        # Convert column indexes to column names.
+        dtype = dict((columns[k] if com.is_integer(k) else k, v)
+                     for k, v in compat.iteritems(dtype))
 
     if index_col is None or index_col is False:
         index = Index([])
     else:
-        index_col = list(index_col)
-        index = MultiIndex.from_arrays([[]] * len(index_col), names=index_names)
+        index = [ np.empty(0, dtype=dtype.get(index_name, np.object))
+                  for index_name in index_names ]
+        index = MultiIndex.from_arrays(index, names=index_names)
         index_col.sort()
         for i, n in enumerate(index_col):
             columns.pop(n-i)
 
-    return index, columns, {}
+    col_dict = dict((col_name, np.empty(0, dtype=dtype.get(col_name, np.object)))
+                    for col_name in columns)
+
+    return index, columns, col_dict
 
 
 def _floatify_na_values(na_values):
