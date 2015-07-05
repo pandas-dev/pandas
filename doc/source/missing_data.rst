@@ -82,7 +82,7 @@ pandas provides the :func:`~pandas.core.common.isnull` and
 .. ipython:: python
 
    df2['one']
-   isnull(df2['one'])
+   pd.isnull(df2['one'])
    df2['four'].notnull()
 
 **Summary:** ``NaN`` and ``None`` (in object arrays) are considered
@@ -99,7 +99,7 @@ pandas objects provide intercompatibility between ``NaT`` and ``NaN``.
 .. ipython:: python
 
    df2 = df.copy()
-   df2['timestamp'] = Timestamp('20120101')
+   df2['timestamp'] = pd.Timestamp('20120101')
    df2
    df2.ix[['a','c','h'],['one','timestamp']] = np.nan
    df2
@@ -260,7 +260,7 @@ use case of this is to fill a DataFrame with the mean of that column.
 
 .. ipython:: python
 
-        dff = pd.DataFrame(np.random.randn(10,3),columns=list('ABC'))
+        dff = pd.DataFrame(np.random.randn(10,3), columns=list('ABC'))
         dff.iloc[3:5,0] = np.nan
         dff.iloc[4:6,1] = np.nan
         dff.iloc[5:8,2] = np.nan
@@ -276,7 +276,7 @@ a Series in this case.
 
 .. ipython:: python
 
-        dff.where(notnull(dff),dff.mean(),axis='columns')
+        dff.where(pd.notnull(dff), dff.mean(), axis='columns')
 
 
 .. _missing_data.dropna:
@@ -321,7 +321,7 @@ performs linear interpolation at missing datapoints.
    :suppress:
 
    np.random.seed(123456)
-   idx = date_range('1/1/2000', periods=100, freq='BM')
+   idx = pd.date_range('1/1/2000', periods=100, freq='BM')
    ts = pd.Series(np.random.randn(100), index=idx)
    ts[1:20] = np.nan
    ts[60:80] = np.nan
@@ -368,7 +368,7 @@ You can also interpolate with a DataFrame:
 .. ipython:: python
 
    df = pd.DataFrame({'A': [1, 2.1, np.nan, 4.7, 5.6, 6.8],
-                   'B': [.25, np.nan, np.nan, 4, 12.2, 14.4]})
+                      'B': [.25, np.nan, np.nan, 4, 12.2, 14.4]})
    df
    df.interpolate()
 
@@ -425,7 +425,7 @@ at the new values.
    ser = pd.Series(np.sort(np.random.uniform(size=100)))
 
    # interpolate at new_index
-   new_index = ser.index | Index([49.25, 49.5, 49.75, 50.25, 50.5, 50.75])
+   new_index = ser.index | pd.Index([49.25, 49.5, 49.75, 50.25, 50.5, 50.75])
    interp_s = ser.reindex(new_index).interpolate(method='pchip')
    interp_s[49:51]
 
