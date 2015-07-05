@@ -154,7 +154,7 @@ lines are replaced by an ellipsis.
 
 .. ipython:: python
 
-   df=pd.DataFrame(np.random.randn(7,2))
+   df = pd.DataFrame(np.random.randn(7,2))
    pd.set_option('max_rows', 7)
    df
    pd.set_option('max_rows', 5)
@@ -166,7 +166,7 @@ dataframes to stretch across pages, wrapped over the full column vs row-wise.
 
 .. ipython:: python
 
-   df=pd.DataFrame(np.random.randn(5,10))
+   df = pd.DataFrame(np.random.randn(5,10))
    pd.set_option('expand_frame_repr', True)
    df
    pd.set_option('expand_frame_repr', False)
@@ -178,7 +178,7 @@ dataframes to stretch across pages, wrapped over the full column vs row-wise.
 
 .. ipython:: python
 
-   df=pd.DataFrame(np.random.randn(10,10))
+   df = pd.DataFrame(np.random.randn(10,10))
    pd.set_option('max_rows', 5)
    pd.set_option('large_repr', 'truncate')
    df
@@ -192,8 +192,8 @@ of this length or longer will be truncated with an ellipsis.
 
 .. ipython:: python
 
-   df=pd.DataFrame(np.array([['foo', 'bar', 'bim', 'uncomfortably long string'],
-                        ['horse', 'cow', 'banana', 'apple']]))
+   df = pd.DataFrame(np.array([['foo', 'bar', 'bim', 'uncomfortably long string'],
+                               ['horse', 'cow', 'banana', 'apple']]))
    pd.set_option('max_colwidth',40)
    df
    pd.set_option('max_colwidth', 6)
@@ -205,7 +205,7 @@ will be given.
 
 .. ipython:: python
 
-   df=pd.DataFrame(np.random.randn(10,10))
+   df = pd.DataFrame(np.random.randn(10,10))
    pd.set_option('max_info_columns', 11)
    df.info()
    pd.set_option('max_info_columns', 5)
@@ -219,7 +219,7 @@ can specify the option ``df.info(null_counts=True)`` to override on showing a pa
 
 .. ipython:: python
 
-   df=pd.DataFrame(np.random.choice([0,1,np.nan],size=(10,10)))
+   df  =pd.DataFrame(np.random.choice([0,1,np.nan], size=(10,10)))
    df
    pd.set_option('max_info_rows', 11)
    df.info()
@@ -232,7 +232,7 @@ suggestion.
 
 .. ipython:: python
 
-   df=pd.DataFrame(np.random.randn(5,5))
+   df = pd.DataFrame(np.random.randn(5,5))
    pd.set_option('precision',7)
    df
    pd.set_option('precision',4)
@@ -244,7 +244,7 @@ precision at which the number is stored.
 
 .. ipython:: python
 
-   df=pd.DataFrame(np.random.randn(6,6))
+   df = pd.DataFrame(np.random.randn(6,6))
    pd.set_option('chop_threshold', 0)
    df
    pd.set_option('chop_threshold', .5)
@@ -256,7 +256,8 @@ Options are 'right', and 'left'.
 
 .. ipython:: python
 
-   df=pd.DataFrame(np.array([np.random.randn(6), np.random.randint(1,9,6)*.1, np.zeros(6)]).T, columns=['A', 'B', 'C'], dtype='float')
+   df = pd.DataFrame(np.array([np.random.randn(6), np.random.randint(1,9,6)*.1, np.zeros(6)]).T,
+                     columns=['A', 'B', 'C'], dtype='float')
    pd.set_option('colheader_justify', 'right')
    df
    pd.set_option('colheader_justify', 'left')
