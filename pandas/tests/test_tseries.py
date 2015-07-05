@@ -739,6 +739,7 @@ class TestPeriodField(tm.TestCase):
     def test_get_period_field_array_raises_on_out_of_range(self):
         self.assertRaises(ValueError, period.get_period_field_arr, -1, np.empty(1), 0)
 
+<<<<<<< HEAD
 
 class TestHolidayConflictingArguments(tm.TestCase):
 
@@ -750,6 +751,8 @@ class TestHolidayConflictingArguments(tm.TestCase):
             h = Holiday("Cyber Monday", month=11, day=1,
                         offset=[DateOffset(weekday=SA(4))], observance=next_monday)
 
+=======
+>>>>>>> 9b23e5cd2843915d61e0117d8ad979c03ec87548
 class TestDaysInMonth(tm.TestCase):
     def test_day_not_in_month_coerce_true_NaT(self):
         self.assertTrue(isnull(to_datetime('2015-02-29', coerce=True)))
