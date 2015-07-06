@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # pylint: disable=E1101
 
 from datetime import datetime
@@ -21,6 +22,7 @@ from pandas.io.stata import (read_stata, StataReader, InvalidColumnName,
 import pandas.util.testing as tm
 from pandas.tslib import NaT
 from pandas import compat
+
 
 class TestStata(tm.TestCase):
 
@@ -76,6 +78,8 @@ class TestStata(tm.TestCase):
         self.dta20_117 = os.path.join(self.dirpath, 'stata11_117.dta')
 
         self.dta21_117 = os.path.join(self.dirpath, 'stata12_117.dta')
+
+        self.dta22_118 = os.path.join(self.dirpath, 'stata14_118.dta')
 
     def read_dta(self, file):
         # Legacy default reader configuration
@@ -243,6 +247,36 @@ class TestStata(tm.TestCase):
             columns=['x', 'y', 'z'])
 
         tm.assert_frame_equal(parsed_117, expected, check_dtype=False)
+
+
+    def test_read_dta18(self):
+        parsed_118 = self.read_dta(self.dta22_118)
+        parsed_118["Bytes"] = parsed_118["Bytes"].astype('O')
+        expected = DataFrame.from_records(
+            [['Cat', 'Bogota', u'Bogotá', 1, 1.0, u'option b Ünicode', 1.0],
+             ['Dog', 'Boston', u'Uzunköprü', np.nan, np.nan, np.nan, np.nan],
+             ['Plane', 'Rome', u'Tromsø', 0, 0.0, 'option a', 0.0],
+             ['Potato', 'Tokyo', u'Elâzığ', -4, 4.0, 4, 4],
+             ['', '', '', 0, 0.3332999, 'option a', 1/3.]
+             ],
+            columns=['Things', 'Cities', 'Unicode_Cities_Strl', 'Ints', 'Floats', 'Bytes', 'Longs'])
+        expected["Floats"] = expected["Floats"].astype(np.float32)
+        for col in parsed_118.columns:
+            tm.assert_almost_equal(parsed_118[col], expected[col])
+
+        rdr = StataReader(self.dta22_118)
+        vl = rdr.variable_labels()
+        vl_expected = {u'Unicode_Cities_Strl': u'Here are some strls with Ünicode chars',
+                       u'Longs': u'long data',
+                       u'Things': u'Here are some things',
+                       u'Bytes': u'byte data',
+                       u'Ints': u'int data',
+                       u'Cities': u'Here are some cities',
+                       u'Floats': u'float data'}
+        tm.assert_dict_equal(vl, vl_expected)
+
+        self.assertEqual(rdr.data_label, u'This is a  Ünicode data label')
+
 
     def test_read_write_dta5(self):
         original = DataFrame([(np.nan, np.nan, np.nan, np.nan, np.nan)],
