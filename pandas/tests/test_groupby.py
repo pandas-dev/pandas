@@ -3505,11 +3505,13 @@ class TestGroupBy(tm.TestCase):
         desc_result = grouped.describe()
 
         idx = cats.codes.argsort()
-        ord_labels = np.asarray(cats).take(idx)
+        ord_labels = cats.take_nd(idx)
         ord_data = data.take(idx)
-        expected = ord_data.groupby(ord_labels, sort=False).describe()
+        expected = ord_data.groupby(ord_labels).describe()
         expected.index.names = ['myfactor', None]
         assert_frame_equal(desc_result, expected)
+        tm.assert_index_equal(desc_result.index, expected.index)
+        tm.assert_index_equal(desc_result.index.get_level_values(0), expected.index.get_level_values(0))
 
         # GH 10460
         expc = Categorical.from_codes(np.arange(4).repeat(8), levels, name='myfactor', ordered=True)
