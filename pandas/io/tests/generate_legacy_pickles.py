@@ -143,16 +143,14 @@ def write_legacy_pickles():
     except:
         import pickle
 
-    sys_version = version = pandas.__version__
-    if len(sys.argv) < 2:
-        exit("{0} <version> <output_dir>".format(sys.argv[0]))
+    version = pandas.__version__
+    if len(sys.argv) != 2:
+        exit("Specify output directory: generate_legacy_pickles.py <output_dir>")
 
-    version = str(sys.argv[1])
-    output_dir = str(sys.argv[2])
+    output_dir = str(sys.argv[1])
 
     print("This script generates a pickle file for the current arch, system, and python version")
-    print("  system version: {0}".format(sys_version))
-    print("  output version: {0}".format(version))
+    print("  pandas version: {0}".format(version))
     print("  output dir    : {0}".format(output_dir))
 
     # construct a reasonable platform name
