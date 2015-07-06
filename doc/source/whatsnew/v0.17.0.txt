@@ -103,7 +103,7 @@ Bug Fixes
 ~~~~~~~~~
 
 - Bug in ``DataFrame.apply`` when function returns categorical series. (:issue:`9573`)
-
+- Bug in ``to_datetime`` with invalid dates and formats supplied (:issue:`10154`)
 
 - Bug in ``Index.drop_duplicates`` dropping name(s) (:issue:`10115`)
 
