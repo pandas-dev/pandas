@@ -8,6 +8,7 @@ import pandas.lib as lib
 import pandas.tslib as tslib
 import pandas.core.common as com
 from pandas.compat import StringIO, callable
+from pandas.tslib import NaT, iNaT
 import pandas.compat as compat
 
 try:
@@ -320,7 +321,7 @@ def to_datetime(arg, errors='ignore', dayfirst=False, utc=None, box=True,
                     except ValueError:
                         # Only raise this error if the user provided the
                         # datetime format, and not when it was inferred
-                        if not infer_datetime_format:
+                        if not infer_datetime_format and not coerce:
                             raise
 
             if result is None and (format is None or infer_datetime_format):
@@ -349,7 +350,11 @@ def to_datetime(arg, errors='ignore', dayfirst=False, utc=None, box=True,
     elif com.is_list_like(arg):
         return _convert_listlike(arg, box, format)
 
-    return _convert_listlike(np.array([ arg ]), box, format)[0]
+    try:
+        return _convert_listlike(np.array([ arg ]), box, format)[0]
+    except ValueError as e:
+        if not coerce:
+            raise e
 
 class DateParseError(ValueError):
     pass
