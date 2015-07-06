@@ -885,7 +885,13 @@ class Block(PandasObject):
         """ shift the block by periods, possibly upcast """
         # convert integer to float if necessary. need to do a lot more than
         # that, handle boolean etc also
-        new_values, fill_value = com._maybe_upcast(self.values)
+        if isinstance(self.values, Categorical):
+            # hack toward fixing issue 10495
+            values = self.values._codes
+        else:
+            values = self.values
+        new_values, fill_value = com._maybe_upcast(values)
+
         # make sure array sent to np.roll is c_contiguous
         f_ordered = new_values.flags.f_contiguous
         if f_ordered:
@@ -905,6 +911,13 @@ class Block(PandasObject):
         # restore original order
         if f_ordered:
             new_values = new_values.T
+
+        if isinstance(self.values, Categorical):
+            # hack toward fixing issue 10495
+            new_values[np.isnan(new_values)] = -1
+            new_values = Categorical.from_codes(new_values,
+                    categories=self.values.categories)
+
 
         return [make_block(new_values,
                            ndim=self.ndim, fastpath=True,
