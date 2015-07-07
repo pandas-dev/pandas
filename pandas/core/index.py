@@ -1055,7 +1055,7 @@ class Index(IndexOpsMixin, PandasObject):
         raise TypeError("unhashable type: %r" % type(self).__name__)
 
     def __setitem__(self, key, value):
-        raise TypeError("Indexes does not support mutable operations")
+        raise TypeError("Indexes do not support mutable operations")
 
     def __getitem__(self, key):
         """
