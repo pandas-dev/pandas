@@ -2301,6 +2301,81 @@ MyColumn
         expected = DataFrame([], columns=['y'], index=Index([], name='x'))
         tm.assert_frame_equal(result, expected)
 
+    def test_emtpy_with_multiindex(self):
+        # GH 10467
+        data = 'x,y,z'
+        result = self.read_csv(StringIO(data), index_col=['x', 'y'])
+        expected = DataFrame([], columns=['z'],
+                             index=MultiIndex.from_arrays([[]] * 2, names=['x', 'y']))
+        tm.assert_frame_equal(result, expected)
+
+    def test_empty_with_reversed_multiindex(self):
+        data = 'x,y,z'
+        result = self.read_csv(StringIO(data), index_col=[1, 0])
+        expected = DataFrame([], columns=['z'],
+                             index=MultiIndex.from_arrays([[]] * 2, names=['y', 'x']))
+        tm.assert_frame_equal(result, expected)
+
+    def test_empty_index_col_scenarios(self):
+        data = 'x,y,z'
+
+        # None, no index
+        index_col, expected = None, DataFrame([], columns=list('xyz')),
+        tm.assert_frame_equal(self.read_csv(StringIO(data), index_col=index_col), expected)
+
+        # False, no index
+        index_col, expected = False, DataFrame([], columns=list('xyz')),
+        tm.assert_frame_equal(self.read_csv(StringIO(data), index_col=index_col), expected)
+
+        # int, first column
+        index_col, expected = 0, DataFrame([], columns=['y', 'z'], index=Index([], name='x'))
+        tm.assert_frame_equal(self.read_csv(StringIO(data), index_col=index_col), expected)
+
+        # int, not first column
+        index_col, expected = 1, DataFrame([], columns=['x', 'z'], index=Index([], name='y'))
+        tm.assert_frame_equal(self.read_csv(StringIO(data), index_col=index_col), expected)
+
+        # str, first column
+        index_col, expected = 'x', DataFrame([], columns=['y', 'z'], index=Index([], name='x'))
+        tm.assert_frame_equal(self.read_csv(StringIO(data), index_col=index_col), expected)
+
+        # str, not the first column
+        index_col, expected = 'y', DataFrame([], columns=['x', 'z'], index=Index([], name='y'))
+        tm.assert_frame_equal(self.read_csv(StringIO(data), index_col=index_col), expected)
+
+        # list of int
+        index_col, expected = [0, 1], DataFrame([], columns=['z'],
+                                                index=MultiIndex.from_arrays([[]] * 2, names=['x', 'y']))
+        tm.assert_frame_equal(self.read_csv(StringIO(data), index_col=index_col), expected)
+
+        # list of str
+        index_col, expected = (
+            ['x', 'y'],
+            DataFrame([], columns=['z'], index=MultiIndex.from_arrays([[]] * 2, names=['x', 'y']))
+        )
+        tm.assert_frame_equal(self.read_csv(StringIO(data), index_col=index_col), expected)
+
+        # list of int, reversed sequence
+        index_col, expected = (
+            [1, 0],
+            DataFrame([], columns=['z'], index=MultiIndex.from_arrays([[]] * 2, names=['y', 'x']))
+        )
+        tm.assert_frame_equal(self.read_csv(StringIO(data), index_col=index_col), expected)
+
+        # list of str, reversed sequence
+        index_col, expected = (
+            ['y', 'x'],
+            DataFrame([], columns=['z'], index=MultiIndex.from_arrays([[]] * 2, names=['y', 'x']))
+        )
+        tm.assert_frame_equal(self.read_csv(StringIO(data), index_col=index_col), expected)
+
+    def test_empty_with_index_col_false(self):
+        # GH 10413
+        data = 'x,y'
+        result = self.read_csv(StringIO(data), index_col=False)
+        expected = DataFrame([], columns=['x', 'y'])
+        tm.assert_frame_equal(result, expected)
+
     def test_float_parser(self):
         # GH 9565
         data = '45e-1,4.5,45.,inf,-inf'
