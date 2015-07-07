@@ -4462,18 +4462,20 @@ class TestDateTimeIndexToJulianDate(tm.TestCase):
         tm.assert_index_equal(r1, r2)
 
 class TestDaysInMonth(tm.TestCase):
+    # tests for issue #10154
+    # Not all tests pass there are other issues, see comments on lines
     def test_day_not_in_month_coerce_true_NaT(self):
         self.assertTrue(isnull(to_datetime('2015-02-29', coerce=True)))
-        self.assertTrue(isnull(to_datetime('2015-02-29', format="%Y-%m-%d", coerce=True)))
+        self.assertTrue(isnull(to_datetime('2015-02-29', format="%Y-%m-%d", coerce=True))) # this test fails
         self.assertTrue(isnull(to_datetime('2015-02-32', format="%Y-%m-%d", coerce=True)))
-        self.assertTrue(isnull(to_datetime('2015-04-31', format="%Y-%m-%d", coerce=True)))
+        self.assertTrue(isnull(to_datetime('2015-04-31', format="%Y-%m-%d", coerce=True))) # this test fails
 
     def test_day_not_in_month_coerce_false_raise(self):
         self.assertRaises(ValueError, to_datetime, '2015-02-29', errors='raise', coerce=False)
         self.assertRaises(ValueError, to_datetime, '2015-02-29', errors='raise', format="%Y-%m-%d", coerce=False)
         self.assertRaises(ValueError, to_datetime, '2015-02-32', errors='raise', format="%Y-%m-%d", coerce=False)
         self.assertRaises(ValueError, to_datetime, '2015-04-31', errors='raise', format="%Y-%m-%d", coerce=False)
-        
+
     def test_day_not_in_month_coerce_false_ignore(self):
         self.assertEqual(to_datetime('2015-02-29', errors='ignore', coerce=False), '2015-02-29')
         self.assertRaises(ValueError, to_datetime, '2015-02-29', errors='ignore', format="%Y-%m-%d", coerce=False)
