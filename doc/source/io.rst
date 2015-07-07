@@ -3179,9 +3179,10 @@ Notes & Caveats
 .. warning::
 
    ``PyTables`` will show a ``NaturalNameWarning`` if a  column name
-   cannot be used as an attribute selector. Generally identifiers that
-   have spaces, start with numbers, or ``_``, or have ``-`` embedded are not considered
-   *natural*. These types of identifiers cannot be used in a ``where`` clause
+   cannot be used as an attribute selector.
+   *Natural* identifiers contain only letters, numbers, and underscores,
+   and may not begin with a number.
+   Other identifiers cannot be used in a ``where`` clause
    and are generally a bad idea.
 
 DataTypes
