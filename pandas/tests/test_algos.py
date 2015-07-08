@@ -2,6 +2,7 @@
 from pandas.compat import range
 
 import numpy as np
+from numpy.random import RandomState
 
 from pandas.core.api import Series, Categorical
 import pandas as pd
@@ -9,6 +10,7 @@ import pandas as pd
 import pandas.core.algorithms as algos
 import pandas.util.testing as tm
 import pandas.hashtable as hashtable
+
 
 class TestMatch(tm.TestCase):
     _multiprocess_can_split_ = True
@@ -284,6 +286,125 @@ class TestValueCounts(tm.TestCase):
         tm.assert_series_equal(
             pd.Series([10.3, 5., 5., None]).value_counts(dropna=False),
             pd.Series([2, 1, 1], index=[5., 10.3, np.nan]))
+
+
+class GroupVarTestMixin(object):
+
+    def test_group_var_generic_1d(self):
+        prng = RandomState(1234)
+
+        out = (np.nan * np.ones((5, 1))).astype(self.dtype)
+        counts = np.zeros(5, dtype=int)
+        values = 10 * prng.rand(15, 1).astype(self.dtype)
+        labels = np.tile(np.arange(5), (3, ))
+
+        expected_out = (np.squeeze(values)
+                        .reshape((5, 3), order='F')
+                        .std(axis=1, ddof=1) ** 2)[:, np.newaxis]
+        expected_counts = counts + 3
+
+        self.algo(out, counts, values, labels)
+        np.testing.assert_allclose(out, expected_out, self.rtol)
+        tm.assert_array_equal(counts, expected_counts)
+
+    def test_group_var_generic_1d_flat_labels(self):
+        prng = RandomState(1234)
+
+        out = (np.nan * np.ones((1, 1))).astype(self.dtype)
+        counts = np.zeros(1, dtype=int)
+        values = 10 * prng.rand(5, 1).astype(self.dtype)
+        labels = np.zeros(5, dtype=int)
+
+        expected_out = np.array([[values.std(ddof=1) ** 2]])
+        expected_counts = counts + 5
+
+        self.algo(out, counts, values, labels)
+
+        np.testing.assert_allclose(out, expected_out, self.rtol)
+        tm.assert_array_equal(counts, expected_counts)
+
+    def test_group_var_generic_2d_all_finite(self):
+        prng = RandomState(1234)
+
+        out = (np.nan * np.ones((5, 2))).astype(self.dtype)
+        counts = np.zeros(5, dtype=int)
+        values = 10 * prng.rand(10, 2).astype(self.dtype)
+        labels = np.tile(np.arange(5), (2, ))
+
+        expected_out = np.std(
+            values.reshape(2, 5, 2), ddof=1, axis=0) ** 2
+        expected_counts = counts + 2
+
+        self.algo(out, counts, values, labels)
+        np.testing.assert_allclose(out, expected_out, self.rtol)
+        tm.assert_array_equal(counts, expected_counts)
+
+    def test_group_var_generic_2d_some_nan(self):
+        prng = RandomState(1234)
+
+        out = (np.nan * np.ones((5, 2))).astype(self.dtype)
+        counts = np.zeros(5, dtype=int)
+        values = 10 * prng.rand(10, 2).astype(self.dtype)
+        values[:, 1] = np.nan
+        labels = np.tile(np.arange(5), (2, ))
+
+        expected_out = np.vstack([
+            values[:, 0].reshape(5, 2, order='F').std(ddof=1, axis=1) ** 2,
+            np.nan * np.ones(5)
+        ]).T
+        expected_counts = counts + 2
+
+        self.algo(out, counts, values, labels)
+        np.testing.assert_allclose(out, expected_out, self.rtol)
+        tm.assert_array_equal(counts, expected_counts)
+
+    def test_group_var_constant(self):
+        # Regression test from GH 10448.
+
+        out = np.array([[np.nan]], dtype=self.dtype)
+        counts = np.array([0])
+        values = 0.832845131556193 * np.ones((3, 1), dtype=self.dtype)
+        labels = np.zeros(3, dtype=np.int)
+
+        self.algo(out, counts, values, labels)
+
+        self.assertEqual(counts[0], 3)
+        self.assertTrue(out[0, 0] >= 0)  # Python 2.6 has no assertGreaterEqual
+        tm.assert_almost_equal(out[0, 0], 0.0)
+
+
+class TestGroupVarFloat64(tm.TestCase, GroupVarTestMixin):
+    __test__ = True
+    _multiprocess_can_split_ = True
+
+    algo = algos.algos.group_var_float64
+    dtype = np.float64
+    rtol = 1e-5
+
+    def test_group_var_large_inputs(self):
+
+        prng = RandomState(1234)
+
+        out = np.array([[np.nan]], dtype=self.dtype)
+        counts = np.array([0])
+        values = (prng.rand(10 ** 6) + 10 ** 12).astype(self.dtype)
+        values.shape = (10 ** 6, 1)
+        labels = np.zeros(10 ** 6, dtype=np.int)
+
+        self.algo(out, counts, values, labels)
+
+        self.assertEqual(counts[0], 10 ** 6)
+        tm.assert_almost_equal(out[0, 0], 1.0 / 12, check_less_precise=True)
+
+
+class TestGroupVarFloat32(tm.TestCase, GroupVarTestMixin):
+    __test__ = True
+    _multiprocess_can_split_ = True
+
+    algo = algos.algos.group_var_float32
+    dtype = np.float32
+    rtol = 1e-2
+
 
 def test_quantile():
     s = Series(np.random.randn(100))
