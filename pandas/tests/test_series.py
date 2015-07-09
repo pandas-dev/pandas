@@ -5959,7 +5959,7 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
 
         # test pass-through and non-conversion when other types selected
         s = Series(['1.0','2.0','3.0'])
-        results = s.convert_objects(True,True,True)
+        results = s.convert_objects(datetime=True, numeric=True, timedelta=True)
         expected = Series([1.0,2.0,3.0])
         assert_series_equal(results, expected)
         results = s.convert_objects(True,False,True)
@@ -5967,15 +5967,15 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
 
         s = Series([datetime(2001, 1, 1, 0, 0),datetime(2001, 1, 1, 0, 0)],
                    dtype='O')
-        results = s.convert_objects(True,True,True)
+        results = s.convert_objects(datetime=True, numeric=True, timedelta=True)
         expected = Series([datetime(2001, 1, 1, 0, 0),datetime(2001, 1, 1, 0, 0)])
         assert_series_equal(results, expected)
-        results = s.convert_objects(False,True,True)
+        results = s.convert_objects(datetime=False,numeric=True,timedelta=True)
         assert_series_equal(results, s)
 
         td = datetime(2001, 1, 1, 0, 0) - datetime(2000, 1, 1, 0, 0)
         s = Series([td, td], dtype='O')
-        results = s.convert_objects(True,True,True)
+        results = s.convert_objects(datetime=True, numeric=True, timedelta=True)
         expected = Series([td, td])
         assert_series_equal(results, expected)
         results = s.convert_objects(True,True,False)
@@ -6068,7 +6068,7 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
     def test_convert_objects_no_arg_warning(self):
         s = Series(['1.0','2'])
         with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter('always', RuntimeWarning)
+            warnings.simplefilter('always', DeprecationWarning)
             s.convert_objects()
             self.assertEqual(len(w), 1)
 

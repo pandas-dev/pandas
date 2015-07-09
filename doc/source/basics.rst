@@ -1524,13 +1524,15 @@ object conversion
 
 .. note::
 
-The syntax of :meth:`~DataFrame.convert_objects`  changed in 0.17.0.
+    The syntax of :meth:`~DataFrame.convert_objects`  changed in 0.17.0. See
+    :ref:`API changes <whatsnew_0170.api_breaking.convert_objects>`
+    for more details.
 
 :meth:`~DataFrame.convert_objects` is a method to try to force conversion of
 types from the ``object`` dtype to other types. To try converting specific
 types that are *number like*, e.g. could be a string that represents a number,
-pass ``numeric=True``. The force the conversion, add the keword argument
-``coerce=True``.  This will force strings and numbers alike to be numbers if
+pass ``numeric=True``. To force the conversion, add the keyword argument
+``coerce=True``.  This will force strings and number-like objects to be numbers if
 possible, otherwise they will be set to ``np.nan``.
 
 .. ipython:: python
@@ -1559,10 +1561,12 @@ but occasionally has non-dates intermixed and you want to represent as missing.
    s.convert_objects(datetime=True, coerce=True)
 
 Without passing ``coerce=True``, :meth:`~DataFrame.convert_objects` will attempt
-the *soft* conversion of any *object* dtypes, meaning that if all
+*soft* conversion of any *object* dtypes, meaning that if all
 the objects in a Series are of the same type, the Series will have that dtype.
-Setting ``coerce=True`` will not *convert* - for example, a series of string
-dates will not be converted to a series of datetimes.
+Note that setting ``coerce=True`` does not *convert* arbitrary types to either
+``datetime64[ns]`` or ``timedelta64[ns]``. For example, a series containing string
+dates will not be converted to a series of datetimes. To convert between types,
+see :ref:`converting to timestamps <timeseries.converting>`.
 
 gotchas
 ~~~~~~~

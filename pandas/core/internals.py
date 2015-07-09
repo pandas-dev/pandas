@@ -1476,7 +1476,8 @@ class ObjectBlock(Block):
                     datetime=datetime,
                     numeric=numeric,
                     timedelta=timedelta,
-                    coerce=coerce
+                    coerce=coerce,
+                    copy=copy
                 ).reshape(values.shape)
                 values = _block_shape(values, ndim=self.ndim)
                 newb = make_block(values,
@@ -1490,7 +1491,8 @@ class ObjectBlock(Block):
                 datetime=datetime,
                 numeric=numeric,
                 timedelta=timedelta,
-                coerce=coerce
+                coerce=coerce,
+                copy=copy
             ).reshape(self.values.shape)
             blocks.append(make_block(values,
                                      ndim=self.ndim, placement=self.mgr_locs))
