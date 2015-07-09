@@ -957,13 +957,15 @@ def get_dummies(data, prefix=None, prefix_sep='_', dummy_na=False,
         If `columns` is None then all the columns with
         `object` or `category` dtype will be converted.
     sparse : bool, default False
-        Whether the returned DataFrame should be sparse or not.
+        Whether the dummy columns should be sparse or not.  Returns
+        SparseDataFrame if `data` is a Series or if all columns are included.
+        Otherwise returns a DataFrame with some SparseBlocks.
 
         .. versionadded:: 0.16.1
 
     Returns
     -------
-    dummies : DataFrame
+    dummies : DataFrame or SparseDataFrame
 
     Examples
     --------
@@ -1042,8 +1044,11 @@ def get_dummies(data, prefix=None, prefix_sep='_', dummy_na=False,
         elif isinstance(prefix_sep, dict):
             prefix_sep = [prefix_sep[col] for col in columns_to_encode]
 
-        result = data.drop(columns_to_encode, axis=1)
-        with_dummies = [result]
+        if set(columns_to_encode) == set(data.columns):
+            with_dummies = []
+        else:
+            with_dummies = [data.drop(columns_to_encode, axis=1)]
+
         for (col, pre, sep) in zip(columns_to_encode, prefix, prefix_sep):
 
             dummy = _get_dummies_1d(data[col], prefix=pre, prefix_sep=sep,
