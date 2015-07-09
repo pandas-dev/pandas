@@ -1892,15 +1892,18 @@ def _possibly_convert_objects(values,
                               datetime=True,
                               numeric=True,
                               timedelta=True,
-                              coerce=False):
+                              coerce=False,
+                              copy=True):
     """ if we have an object dtype, try to coerce dates and/or numbers """
 
     conversion_count = sum((datetime, numeric, timedelta))
     if conversion_count == 0:
         import warnings
-        warnings.warn('Must explicitly pass type for conversion. Original '
-                      'value returned.', RuntimeWarning)
-        return values
+        warnings.warn('Must explicitly pass type for conversion. Defaulting to '
+                      'pre-0.17 behavior where datetime=True, numeric=True, '
+                      'timedelta=True and coerce=False', DeprecationWarning)
+        datetime = numeric = timedelta = True
+        coerce = False
 
     if isinstance(values, (list, tuple)):
         # List or scalar
@@ -1909,6 +1912,7 @@ def _possibly_convert_objects(values,
         values = np.array([values], dtype=np.object_)
     elif not is_object_dtype(values.dtype):
         # If not object, do not attempt conversion
+        values = values.copy() if copy else values
         return values
 
     # If 1 flag is coerce, ensure 2 others are False
@@ -1942,6 +1946,7 @@ def _possibly_convert_objects(values,
                                                    coerce_numeric=True)
             # If all NaNs, then do not-alter
             values = converted if not isnull(converted).all() else values
+            values = values.copy() if copy else values
         except:
             pass
 
