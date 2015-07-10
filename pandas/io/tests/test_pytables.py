@@ -2067,9 +2067,8 @@ class TestHDFStore(tm.TestCase):
         # GH2852
         # issue storing datetime.date with a timezone as it resets when read back in a new timezone
 
-        import platform
-        if platform.system() == "Windows":
-            raise nose.SkipTest("timezone setting not supported on windows")
+        # timezone setting not supported on windows
+        tm._skip_if_windows()
 
         import datetime
         import time

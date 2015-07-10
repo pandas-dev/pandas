@@ -36,7 +36,7 @@ def _skip_if_python_ver(skip_major, skip_minor=None):
         raise nose.SkipTest("skipping Python version %d.%d" % (major, minor))
 
 
-json_unicode = (json.dumps if sys.version_info[0] >= 3
+json_unicode = (json.dumps if compat.PY3
                 else partial(json.dumps, encoding="utf-8"))
 
 class UltraJSONTests(TestCase):

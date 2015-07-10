@@ -1,7 +1,6 @@
 from datetime import datetime
 from pandas.compat import range
 import nose
-import sys
 import numpy as np
 
 from pandas.core.index import Index
@@ -14,11 +13,6 @@ from pandas.tseries.index import cdate_range, bdate_range, date_range
 import pandas.core.datetools as datetools
 from pandas.util.testing import assertRaisesRegexp
 import pandas.util.testing as tm
-
-
-def _skip_if_windows_python_3():
-    if sys.version_info > (3,) and sys.platform == 'win32':
-        raise nose.SkipTest("not used on python 3/win32")
 
 
 def eq_gen_range(kwargs, expected):
@@ -459,7 +453,7 @@ class TestDateRange(tm.TestCase):
         early_dr.union(late_dr)
 
     def test_month_range_union_tz_dateutil(self):
-        _skip_if_windows_python_3()
+        tm._skip_if_windows_python_3()
         tm._skip_if_no_dateutil()
         from pandas.tslib import _dateutil_gettz as timezone
         tz = timezone('US/Eastern')

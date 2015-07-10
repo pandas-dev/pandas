@@ -46,14 +46,6 @@ def _skip_if_has_locale():
     if lang is not None:
         raise nose.SkipTest("Specific locale is set {0}".format(lang))
 
-def _skip_if_windows_python_3():
-    if sys.version_info > (3,) and sys.platform == 'win32':
-        raise nose.SkipTest("not used on python 3/win32")
-
-def _skip_if_not_windows_python_3():
-    if sys.version_info < (3,) or sys.platform != 'win32':
-        raise nose.SkipTest("only run on python 3/win32")
-
 
 class TestTimeSeriesDuplicates(tm.TestCase):
     _multiprocess_can_split_ = True
@@ -417,7 +409,7 @@ class TestTimeSeries(tm.TestCase):
         self.assertEqual(stamp.tzinfo, dtval.tzinfo)
 
     def test_timestamp_to_datetime_explicit_dateutil(self):
-        _skip_if_windows_python_3()
+        tm._skip_if_windows_python_3()
         tm._skip_if_no_dateutil()
         from pandas.tslib import _dateutil_gettz as gettz
         rng = date_range('20090415', '20090519',
