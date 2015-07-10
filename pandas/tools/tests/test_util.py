@@ -43,8 +43,7 @@ class TestLocaleUtils(tm.TestCase):
         if not cls.locales:
             raise nose.SkipTest("No locales found")
 
-        if os.name == 'nt':  # we're on windows
-            raise nose.SkipTest("Running on Windows")
+        tm._skip_if_windows()
 
     @classmethod
     def tearDownClass(cls):

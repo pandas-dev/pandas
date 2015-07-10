@@ -28,7 +28,7 @@ from pandas.core.common import is_sequence, array_equivalent, is_list_like, is_n
 import pandas.compat as compat
 from pandas.compat import(
     filter, map, zip, range, unichr, lrange, lmap, lzip, u, callable, Counter,
-    raise_with_traceback, httplib
+    raise_with_traceback, httplib, is_platform_windows
 )
 
 from pandas.computation import expressions as expr
@@ -221,6 +221,17 @@ def _skip_if_no_dateutil():
     except ImportError:
         import nose
         raise nose.SkipTest("dateutil not installed")
+
+
+def _skip_if_windows_python_3():
+    if compat.PY3 and is_platform_windows():
+        import nose
+        raise nose.SkipTest("not used on python 3/win32")
+
+def _skip_if_windows():
+    if is_platform_windows():
+        import nose
+        raise nose.SkipTest("Running on Windows")
 
 
 def _skip_if_no_cday():
