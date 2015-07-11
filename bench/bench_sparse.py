@@ -1,4 +1,3 @@
-import sys
 import numpy as np
 
 from pandas import *
@@ -30,7 +29,7 @@ is2 = SparseSeries(arr2, kind='integer', index=index)
 s1_dense = s1.to_dense()
 s2_dense = s2.to_dense()
 
-if 'linux' in sys.platform:
+if compat.is_platform_linux():
     pth = '/home/wesm/code/pandas/example'
 else:
     pth = '/Users/wesm/code/pandas/example'

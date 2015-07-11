@@ -1,7 +1,5 @@
 # pylint: disable-msg=E1101,W0612
 from datetime import datetime, timedelta, tzinfo, date
-import sys
-import os
 import nose
 
 import numpy as np
@@ -837,8 +835,8 @@ class TestTimeZoneSupportDateutil(TestTimeZoneSupportPytz):
         return x.replace(tzinfo=tz)
 
     def test_utc_with_system_utc(self):
-        if sys.platform == 'win32':
-            raise nose.SkipTest('Skipped on win32 due to dateutil bug.')
+        # Skipped on win32 due to dateutil bug
+        tm._skip_if_windows()
 
         from pandas.tslib import maybe_get_tz
 
