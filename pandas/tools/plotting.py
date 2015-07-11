@@ -2005,10 +2005,10 @@ class HistPlot(LinePlot):
     def _post_plot_logic(self):
         if self.orientation == 'horizontal':
             for ax in self.axes:
-                ax.set_xlabel('Degree')
+                ax.set_xlabel('Frequency')
         else:
             for ax in self.axes:
-                ax.set_ylabel('Degree')
+                ax.set_ylabel('Frequency')
 
     @property
     def orientation(self):

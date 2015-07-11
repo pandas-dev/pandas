@@ -1001,12 +1001,12 @@ class TestSeriesPlots(TestPlotBase):
     def test_hist_kwargs(self):
         ax = self.ts.plot(kind='hist', bins=5)
         self.assertEqual(len(ax.patches), 5)
-        self._check_text_labels(ax.yaxis.get_label(), 'Degree')
+        self._check_text_labels(ax.yaxis.get_label(), 'Frequency')
         tm.close()
 
         if self.mpl_ge_1_3_1:
             ax = self.ts.plot(kind='hist', orientation='horizontal')
-            self._check_text_labels(ax.xaxis.get_label(), 'Degree')
+            self._check_text_labels(ax.xaxis.get_label(), 'Frequency')
             tm.close()
 
             ax = self.ts.plot(kind='hist', align='left', stacked=True)
