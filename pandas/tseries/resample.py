@@ -238,6 +238,10 @@ class TimeGrouper(Grouper):
         end_stamps = labels + 1
         bins = ax.searchsorted(end_stamps, side='left')
 
+        # Addresses GH #10530
+        if self.base > 0:
+            labels += type(self.freq)(self.base)
+
         return binner, bins, labels
 
     def _get_time_period_bins(self, ax):
