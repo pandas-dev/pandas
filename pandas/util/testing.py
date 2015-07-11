@@ -59,7 +59,6 @@ def reset_testing_mode():
 
 set_testing_mode()
 
-
 class TestCase(unittest.TestCase):
 
     @classmethod
@@ -634,7 +633,7 @@ def assert_categorical_equal(res, exp):
         raise AssertionError("name not the same")
 
 
-def assert_numpy_array_equal(np_array, assert_equal):
+def assert_numpy_array_equal(np_array, assert_equal, err_msg=None):
     """Checks that 'np_array' is equal to 'assert_equal'
 
     Note that the expected array should not contain `np.nan`!
@@ -646,11 +645,12 @@ def assert_numpy_array_equal(np_array, assert_equal):
     """
     if np.array_equal(np_array, assert_equal):
         return
-    raise AssertionError(
-        '{0} is not equal to {1}.'.format(np_array, assert_equal))
+    if err_msg is None:
+        err_msg = '{0} is not equal to {1}.'.format(np_array, assert_equal)
+    raise AssertionError(err_msg)
 
 
-def assert_numpy_array_equivalent(np_array, assert_equal, strict_nan=False):
+def assert_numpy_array_equivalent(np_array, assert_equal, strict_nan=False, err_msg=None):
     """Checks that 'np_array' is equivalent to 'assert_equal'
 
     Two numpy arrays are equivalent if the arrays have equal non-NaN elements,
@@ -664,8 +664,9 @@ def assert_numpy_array_equivalent(np_array, assert_equal, strict_nan=False):
     """
     if array_equivalent(np_array, assert_equal, strict_nan=strict_nan):
         return
-    raise AssertionError(
-        '{0} is not equivalent to {1}.'.format(np_array, assert_equal))
+    if err_msg is None:
+        err_msg = '{0} is not equivalent to {1}.'.format(np_array, assert_equal)
+    raise AssertionError(err_msg)
 
 
 # This could be refactored to use the NDFrame.equals method

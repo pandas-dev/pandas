@@ -504,11 +504,6 @@ class TestNanops(tm.TestCase):
         s == s2
         s2 == s
 
-    def test_none_comparison(self):
-        # bug brought up by #1079
-        s = Series(np.random.randn(10), index=lrange(0, 20, 2))
-        self.assertRaises(TypeError, s.__eq__, None)
-
     def test_sum_zero(self):
         arr = np.array([])
         self.assertEqual(nanops.nansum(arr), 0)

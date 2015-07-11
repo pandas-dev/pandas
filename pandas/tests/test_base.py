@@ -12,6 +12,7 @@ from pandas.util.testing import assertRaisesRegexp, assertIsInstance
 from pandas.tseries.common import is_datetimelike
 from pandas import Series, Index, Int64Index, DatetimeIndex, TimedeltaIndex, PeriodIndex, Timedelta
 import pandas.tslib as tslib
+from pandas import _np_version_under1p9
 import nose
 
 import pandas.util.testing as tm
@@ -273,6 +274,45 @@ class TestIndexOps(Ops):
         self.is_valid_objs  = [ o for o in self.objs if o._allow_index_ops ]
         self.not_valid_objs = [ o for o in self.objs if not o._allow_index_ops ]
 
+    def test_none_comparison(self):
+
+        # bug brought up by #1079
+        # changed from TypeError in 0.17.0
+        for o in self.is_valid_objs:
+            if isinstance(o, Series):
+
+                o[0] = np.nan
+
+                result = o == None
+                self.assertFalse(result.iat[0])
+                self.assertFalse(result.iat[1])
+
+                result = o != None
+                self.assertTrue(result.iat[0])
+                self.assertTrue(result.iat[1])
+
+                result = None == o
+                self.assertFalse(result.iat[0])
+                self.assertFalse(result.iat[1])
+
+                if _np_version_under1p9:
+                    # fails as this tries not __eq__ which
+                    # is not valid for numpy
+                    pass
+                else:
+                    result = None != o
+                    self.assertTrue(result.iat[0])
+                    self.assertTrue(result.iat[1])
+
+                result = None > o
+                self.assertFalse(result.iat[0])
+                self.assertFalse(result.iat[1])
+
+                result = o < None
+                self.assertFalse(result.iat[0])
+                self.assertFalse(result.iat[1])
+
+
     def test_ndarray_compat_properties(self):
 
         for o in self.objs:
@@ -513,7 +553,7 @@ class TestIndexOps(Ops):
             expected = Series([4, 3, 2], index=['b', 'a', 'd'])
             tm.assert_series_equal(s.value_counts(), expected)
 
-            self.assert_numpy_array_equal(s.unique(), np.array(['a', 'b', np.nan, 'd'], dtype='O'))
+            self.assert_numpy_array_equivalent(s.unique(), np.array(['a', 'b', np.nan, 'd'], dtype='O'))
             self.assertEqual(s.nunique(), 3)
 
             s = klass({})
