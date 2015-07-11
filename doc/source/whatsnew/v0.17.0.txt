@@ -94,6 +94,8 @@ Other enhancements
 
 - Enable `read_hdf` to be used without specifying a key when the HDF file contains a single dataset (:issue:`10443`)
 
+- Added functionality to use ``base`` when resampling a ``TimeDeltaIndex`` (:issue:`10530`)
+
 - ``DatetimeIndex`` can be instantiated using strings contains ``NaT`` (:issue:`7599`)
 - The string parsing of ``to_datetime``, ``Timestamp`` and ``DatetimeIndex`` has been made consistent. (:issue:`7599`)
 
