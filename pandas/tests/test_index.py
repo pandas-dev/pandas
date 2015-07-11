@@ -1022,7 +1022,7 @@ class TestIndex(Base, tm.TestCase):
         # windows has different precision on datetime.datetime.now (it doesn't include us
         # since the default for Timestamp shows these but Index formating does not
         # we are skipping
-        if not is_platform_windows:
+        if not is_platform_windows():
             formatted = index.format()
             expected = [str(index[0])]
             self.assertEqual(formatted, expected)

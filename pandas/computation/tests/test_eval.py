@@ -163,9 +163,7 @@ class TestEvalNumexprPandas(tm.TestCase):
             self.check_floor_division(lhs, '//', rhs)
 
     def test_pow(self):
-        import platform
-        if platform.system() == 'Windows':
-            raise nose.SkipTest('not testing pow on Windows')
+        tm._skip_if_windows()
 
         # odd failure on win32 platform, so skip
         for lhs, rhs in product(self.lhses, self.rhses):

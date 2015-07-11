@@ -990,7 +990,7 @@ class TestDataFrameFormatting(tm.TestCase):
 </table>
 <p>20 rows × 20 columns</p>
 </div>'''.format(div_style)
-        if sys.version_info[0] < 3:
+        if compat.PY2:
             expected = expected.decode('utf-8')
         self.assertEqual(result, expected)
 
@@ -1106,7 +1106,7 @@ class TestDataFrameFormatting(tm.TestCase):
 </table>
 <p>8 rows × 8 columns</p>
 </div>'''.format(div_style)
-        if sys.version_info[0] < 3:
+        if compat.PY2:
             expected = expected.decode('utf-8')
         self.assertEqual(result, expected)
 
@@ -1216,7 +1216,7 @@ class TestDataFrameFormatting(tm.TestCase):
 </table>
 <p>8 rows × 8 columns</p>
 </div>'''.format(div_style)
-        if sys.version_info[0] < 3:
+        if compat.PY2:
             expected = expected.decode('utf-8')
         self.assertEqual(result, expected)
 

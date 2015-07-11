@@ -163,7 +163,7 @@ g,7,seven
 
     def test_read_csv(self):
         if not compat.PY3:
-            if 'win' in sys.platform:
+            if compat.is_platform_windows():
                 prefix = u("file:///")
             else:
                 prefix = u("file://")

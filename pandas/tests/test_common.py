@@ -2,7 +2,6 @@
 import collections
 from datetime import datetime
 import re
-import sys
 
 import nose
 from nose.tools import assert_equal
@@ -447,7 +446,7 @@ def test_is_hashable():
 
     # old-style classes in Python 2 don't appear hashable to
     # collections.Hashable but also seem to support hash() by default
-    if sys.version_info[0] == 2:
+    if compat.PY2:
         class OldStyleClass():
             pass
         c = OldStyleClass()
