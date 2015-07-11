@@ -143,3 +143,6 @@ Bug Fixes
 - Bug in `Series.from_csv` with ``header`` kwarg not setting the ``Series.name`` or the ``Series.index.name`` (:issue:`10483`)
 
 - Bug in `groupby.var` which caused variance to be inaccurate for small float values (:issue:`10448`)
+
+- Bug in ``to_json`` which was causing segmentation fault when serializing
+  0-rank ndarray (:issue:`9576`)
