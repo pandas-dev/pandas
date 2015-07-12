@@ -1856,3 +1856,11 @@ def test_parallel(num_threads=2):
                 thread.join()
         return inner
     return wrapper
+
+
+class SubclassedDataFrame(DataFrame):
+    _metadata = ['testattr']
+
+    @property
+    def _constructor(self):
+        return SubclassedDataFrame
