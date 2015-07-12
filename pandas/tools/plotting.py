@@ -1907,8 +1907,11 @@ class BarPlot(MPLPlot):
                 neg_prior = neg_prior + np.where(mask, 0, y)
             else:
                 w = self.bar_width / K
-                rect = bar_f(ax, self.ax_pos + (i + 0.5) * w, y, w,
-                             start=start, label=label, **kwds)
+                if self.kind == 'barh':
+                    x = self.ax_pos - (i + 0.5) * w + 0.5
+                else:
+                    x = self.ax_pos + (i + 0.5) * w
+                rect = bar_f(ax, x, y, w, start=start, label=label, **kwds)
             self._add_legend_handle(rect, label, index=i)
 
     def _post_plot_logic(self):
