@@ -236,7 +236,7 @@ plot_params = _Options()
 
 def scatter_matrix(frame, alpha=0.5, figsize=None, ax=None, grid=False,
                    diagonal='hist', marker='.', density_kwds=None,
-                   hist_kwds=None, range_padding=0.05, **kwds):
+                   hist_kwds=None, range_padding=0.05, kde_kwds=None, **kwds):
     """
     Draw a matrix of scatter plots.
 
@@ -290,6 +290,7 @@ def scatter_matrix(frame, alpha=0.5, figsize=None, ax=None, grid=False,
 
     hist_kwds = hist_kwds or {}
     density_kwds = density_kwds or {}
+    kde_kwds = kde_kwds or {}
 
     # workaround because `c='b'` is hardcoded in matplotlibs scatter method
     kwds.setdefault('c', plt.rcParams['patch.facecolor'])
@@ -315,7 +316,7 @@ def scatter_matrix(frame, alpha=0.5, figsize=None, ax=None, grid=False,
                 elif diagonal in ('kde', 'density'):
                     from scipy.stats import gaussian_kde
                     y = values
-                    gkde = gaussian_kde(y)
+                    gkde = gaussian_kde(y, **kde_kwds)
                     ind = np.linspace(y.min(), y.max(), 1000)
                     ax.plot(ind, gkde.evaluate(ind), **density_kwds)
 
