@@ -45,7 +45,8 @@ from pandas.util.testing import (assert_almost_equal,
                                  assertRaisesRegexp,
                                  assertRaises,
                                  makeCustomDataframe as mkdf,
-                                 ensure_clean)
+                                 ensure_clean,
+                                 SubclassedDataFrame)
 from pandas.core.indexing import IndexingError
 from pandas.core.common import PandasError
 
@@ -14501,16 +14502,8 @@ starting,ending,measure
 
     def test_dataframe_metadata(self):
 
-        class TestDataFrame(DataFrame):
-            _metadata = ['testattr']
-
-            @property
-            def _constructor(self):
-                return TestDataFrame
-
-
-        df = TestDataFrame({'X': [1, 2, 3], 'Y': [1, 2, 3]},
-                           index=['a', 'b', 'c'])
+        df = SubclassedDataFrame({'X': [1, 2, 3], 'Y': [1, 2, 3]},
+                                 index=['a', 'b', 'c'])
         df.testattr = 'XXX'
 
         self.assertEqual(df.testattr, 'XXX')
@@ -14519,6 +14512,11 @@ starting,ending,measure
         self.assertEqual(df.iloc[[0, 1], :].testattr, 'XXX')
         # GH9776
         self.assertEqual(df.iloc[0:1, :].testattr, 'XXX')
+        # GH10553
+        unpickled = self.round_trip_pickle(df)
+        assert_frame_equal(df, unpickled)
+        self.assertEqual(df._metadata, unpickled._metadata)
+        self.assertEqual(df.testattr, unpickled.testattr)
 
     def test_to_panel_expanddim(self):
         # GH 9762
