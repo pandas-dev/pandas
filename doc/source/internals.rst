@@ -6,15 +6,10 @@
    :suppress:
 
    import numpy as np
-   import random
    np.random.seed(123456)
-   from pandas import *
-   options.display.max_rows=15
-   import pandas as pd
-   randn = np.random.randn
-   randint = np.random.randint
    np.set_printoptions(precision=4, suppress=True)
-   from pandas.compat import range, zip
+   import pandas as pd
+   pd.options.display.max_rows = 15
 
 *********
 Internals
@@ -81,7 +76,7 @@ integer **labels**, and the level **names**:
 
 .. ipython:: python
 
-   index = MultiIndex.from_product([range(3), ['one', 'two']], names=['first', 'second'])
+   index = pd.MultiIndex.from_product([range(3), ['one', 'two']], names=['first', 'second'])
    index
    index.levels
    index.labels
@@ -210,7 +205,7 @@ Below is an example to define 2 original properties, "internal_cache" as a tempo
    class SubclassedDataFrame2(DataFrame):
 
        # temporary properties
-       _internal_names = DataFrame._internal_names + ['internal_cache']
+       _internal_names = pd.DataFrame._internal_names + ['internal_cache']
        _internal_names_set = set(_internal_names)
 
        # normal properties
@@ -244,5 +239,3 @@ Below is an example to define 2 original properties, "internal_cache" as a tempo
    # properties defined in _metadata are retained
    >>> df[['A', 'B']].added_property
    property
-
-
