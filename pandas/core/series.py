@@ -438,10 +438,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     __long__ = _coerce_method(int)
     __int__ = _coerce_method(int)
 
-    # we are preserving name here
-    def __getstate__(self):
-        return dict(_data=self._data, name=self.name)
-
     def _unpickle_series_compat(self, state):
         if isinstance(state, dict):
             self._data = state['_data']

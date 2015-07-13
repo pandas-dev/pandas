@@ -80,8 +80,8 @@ class NDFrame(PandasObject):
     """
     _internal_names = ['_data', '_cacher', '_item_cache', '_cache',
                        'is_copy', '_subtyp', '_index',
-                       '_default_kind', '_default_fill_value',
-                       '__array_struct__','__array_interface__']
+                       '_default_kind', '_default_fill_value', '_metadata',
+                       '__array_struct__', '__array_interface__']
     _internal_names_set = set(_internal_names)
     _accessors = frozenset([])
     _metadata = []
@@ -760,7 +760,9 @@ class NDFrame(PandasObject):
     # Picklability
 
     def __getstate__(self):
-        return self._data
+        meta = dict((k, getattr(self, k, None)) for k in self._metadata)
+        return dict(_data=self._data, _typ=self._typ,
+                    _metadata=self._metadata, **meta)
 
     def __setstate__(self, state):
 
