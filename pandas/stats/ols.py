@@ -818,7 +818,7 @@ class MovingOLS(OLS):
 
             betas[i] = math.solve(xx, xy)
 
-        mask = -np.isnan(betas).any(axis=1)
+        mask = np.logical_not(np.isnan(betas).any(axis=1))
         have_betas = np.arange(N)[mask]
 
         return betas, have_betas, mask
