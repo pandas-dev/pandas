@@ -27,6 +27,7 @@ New features
 ~~~~~~~~~~~~
 
 - SQL io functions now accept a SQLAlchemy connectable. (:issue:`7877`)
+- Enable writing complex values to HDF stores when using table format (:issue:`10447`)
 
 .. _whatsnew_0170.enhancements.other:
 
@@ -147,3 +148,4 @@ Bug Fixes
 - Bug in `groupby.var` which caused variance to be inaccurate for small float values (:issue:`10448`)
 
 - Bug in ``Series.plot(kind='hist')`` Y Label not informative (:issue:`10485`)
+
