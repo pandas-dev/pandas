@@ -271,7 +271,7 @@ def to_hdf(path_or_buf, key, value, mode=None, complevel=None, complib=None,
         f(path_or_buf)
 
 
-def read_hdf(path_or_buf, key, **kwargs):
+def read_hdf(path_or_buf, key=None, **kwargs):
     """ read from the store, close it if we opened it
 
         Retrieve pandas object stored in file, optionally based on where
@@ -280,7 +280,8 @@ def read_hdf(path_or_buf, key, **kwargs):
         Parameters
         ----------
         path_or_buf : path (string), or buffer to read from
-        key : group identifier in the store
+        key : group identifier in the store. Can be omitted a HDF file contains
+            a single pandas object.
         where : list of Term (or convertable) objects, optional
         start : optional, integer (defaults to None), row number to start
             selection
@@ -329,6 +330,12 @@ def read_hdf(path_or_buf, key, **kwargs):
                                   'implemented.')
 
     try:
+        if key is None:
+            keys = store.keys()
+            if len(keys) != 1:
+                raise ValueError('key must be provided when HDF file contains '
+                                 'multiple datasets.')
+            key = keys[0]
         return store.select(key, auto_close=auto_close, **kwargs)
     except:
         # if there is an error, close the store
