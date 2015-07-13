@@ -3060,7 +3060,8 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         assert_frame_equal(df,expected)
 
         df = df_orig.copy()
-        df.iloc[:,0:2] = df.iloc[:,0:2].convert_objects(convert_numeric=True)
+        df.iloc[:,0:2] = df.iloc[:,0:2].convert_objects(datetime=True,
+                                                        numeric=True)
         expected =  DataFrame([[1,2,'3','.4',5,6.,'foo']],columns=list('ABCDEFG'))
         assert_frame_equal(df,expected)
 

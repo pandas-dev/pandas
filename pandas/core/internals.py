@@ -622,7 +622,7 @@ class Block(PandasObject):
 
             # may have to soft convert_objects here
             if block.is_object and not self.is_object:
-                block = block.convert(convert_numeric=False)
+                block = block.convert(numeric=False)
 
             return block
         except (ValueError, TypeError) as detail:
@@ -1455,7 +1455,7 @@ class ObjectBlock(Block):
         """
         return lib.is_bool_array(self.values.ravel())
 
-    def convert(self, convert_dates=True, convert_numeric=True, convert_timedeltas=True,
+    def convert(self, datetime=True, numeric=True, timedelta=True, coerce=False,
                 copy=True, by_item=True):
         """ attempt to coerce any object types to better types
             return a copy of the block (if copy = True)
@@ -1472,9 +1472,11 @@ class ObjectBlock(Block):
                 values = self.iget(i)
 
                 values = com._possibly_convert_objects(
-                    values.ravel(), convert_dates=convert_dates,
-                    convert_numeric=convert_numeric,
-                    convert_timedeltas=convert_timedeltas,
+                    values.ravel(),
+                    datetime=datetime,
+                    numeric=numeric,
+                    timedelta=timedelta,
+                    coerce=coerce
                 ).reshape(values.shape)
                 values = _block_shape(values, ndim=self.ndim)
                 newb = make_block(values,
@@ -1484,8 +1486,11 @@ class ObjectBlock(Block):
         else:
 
             values = com._possibly_convert_objects(
-                self.values.ravel(), convert_dates=convert_dates,
-                convert_numeric=convert_numeric
+                self.values.ravel(),
+                datetime=datetime,
+                numeric=numeric,
+                timedelta=timedelta,
+                coerce=coerce
             ).reshape(self.values.shape)
             blocks.append(make_block(values,
                                      ndim=self.ndim, placement=self.mgr_locs))
@@ -1529,8 +1534,8 @@ class ObjectBlock(Block):
         # split and convert the blocks
         result_blocks = []
         for blk in blocks:
-            result_blocks.extend(blk.convert(convert_dates=True,
-                                             convert_numeric=False))
+            result_blocks.extend(blk.convert(datetime=True,
+                                             numeric=False))
         return result_blocks
 
     def _can_hold_element(self, element):

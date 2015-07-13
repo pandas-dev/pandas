@@ -601,7 +601,7 @@ class TestGroupBy(tm.TestCase):
             return grp.iloc[0]
         result = df.groupby('A').apply(f)[['C']]
         e = df.groupby('A').first()[['C']]
-        e.loc['Pony'] = np.nan
+        e.loc['Pony'] = pd.NaT
         assert_frame_equal(result,e)
 
         # scalar outputs

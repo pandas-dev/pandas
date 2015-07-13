@@ -1887,65 +1887,63 @@ def _maybe_box_datetimelike(value):
 
 _values_from_object = lib.values_from_object
 
-def _possibly_convert_objects(values, convert_dates=True,
-                              convert_numeric=True,
-                              convert_timedeltas=True):
+
+def _possibly_convert_objects(values,
+                              datetime=True,
+                              numeric=True,
+                              timedelta=True,
+                              coerce=False):
     """ if we have an object dtype, try to coerce dates and/or numbers """
 
-    # if we have passed in a list or scalar
+    conversion_count = sum((datetime, numeric, timedelta))
+    if conversion_count == 0:
+        import warnings
+        warnings.warn('Must explicitly pass type for conversion. Original '
+                      'value returned.', RuntimeWarning)
+        return values
+
     if isinstance(values, (list, tuple)):
+        # List or scalar
         values = np.array(values, dtype=np.object_)
-    if not hasattr(values, 'dtype'):
+    elif not hasattr(values, 'dtype'):
         values = np.array([values], dtype=np.object_)
+    elif not is_object_dtype(values.dtype):
+        # If not object, do not attempt conversion
+        return values
 
-    # convert dates
-    if convert_dates and values.dtype == np.object_:
+    # If 1 flag is coerce, ensure 2 others are False
+    if coerce:
+        if conversion_count > 1:
+            raise ValueError("Only one of 'datetime', 'numeric' or "
+                             "'timedelta' can be True when when coerce=True.")
 
-        # we take an aggressive stance and convert to datetime64[ns]
-        if convert_dates == 'coerce':
-            new_values = _possibly_cast_to_datetime(
-                values, 'M8[ns]', coerce=True)
+        # Immediate return if coerce
+        if datetime:
+            return pd.to_datetime(values, coerce=True, box=False)
+        elif timedelta:
+            return pd.to_timedelta(values, coerce=True, box=False)
+        elif numeric:
+            return lib.maybe_convert_numeric(values, set(), coerce_numeric=True)
 
-            # if we are all nans then leave me alone
-            if not isnull(new_values).all():
-                values = new_values
+    # Soft conversions
+    if datetime:
+        values = lib.maybe_convert_objects(values,
+                                           convert_datetime=datetime)
 
-        else:
-            values = lib.maybe_convert_objects(
-                values, convert_datetime=convert_dates)
+    if timedelta and is_object_dtype(values.dtype):
+        # Object check to ensure only run if previous did not convert
+        values = lib.maybe_convert_objects(values,
+                                           convert_timedelta=timedelta)
 
-    # convert timedeltas
-    if convert_timedeltas and values.dtype == np.object_:
-
-        if convert_timedeltas == 'coerce':
-            from pandas.tseries.timedeltas import to_timedelta
-            values = to_timedelta(values, coerce=True)
-
-            # if we are all nans then leave me alone
-            if not isnull(new_values).all():
-                values = new_values
-
-        else:
-            values = lib.maybe_convert_objects(
-                values, convert_timedelta=convert_timedeltas)
-
-    # convert to numeric
-    if values.dtype == np.object_:
-        if convert_numeric:
-            try:
-                new_values = lib.maybe_convert_numeric(
-                    values, set(), coerce_numeric=True)
-
-                # if we are all nans then leave me alone
-                if not isnull(new_values).all():
-                    values = new_values
-
-            except:
-                pass
-        else:
-
-            # soft-conversion
-            values = lib.maybe_convert_objects(values)
+    if numeric and is_object_dtype(values.dtype):
+        try:
+            converted = lib.maybe_convert_numeric(values,
+                                                   set(),
+                                                   coerce_numeric=True)
+            # If all NaNs, then do not-alter
+            values = converted if not isnull(converted).all() else values
+        except:
+            pass
 
     return values
 
