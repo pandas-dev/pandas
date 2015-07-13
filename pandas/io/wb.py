@@ -155,7 +155,7 @@ def download(country=['MX', 'CA', 'US'], indicator=['NY.GDP.MKTP.CD', 'NY.GNS.IC
         out = reduce(lambda x, y: x.merge(y, how='outer'), data)
         out = out.drop('iso_code', axis=1)
         out = out.set_index(['country', 'year'])
-        out = out.convert_objects(convert_numeric=True)
+        out = out.convert_objects(datetime=True, numeric=True)
         return out
     else:
         msg = "No indicators returned data."
