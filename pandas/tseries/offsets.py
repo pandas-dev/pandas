@@ -1508,22 +1508,7 @@ class BQuarterEnd(QuarterOffset):
         modMonth = (dt.month - self.startingMonth) % 3
         return BMonthEnd().onOffset(dt) and modMonth == 0
 
-
-_int_to_month = {
-    1: 'JAN',
-    2: 'FEB',
-    3: 'MAR',
-    4: 'APR',
-    5: 'MAY',
-    6: 'JUN',
-    7: 'JUL',
-    8: 'AUG',
-    9: 'SEP',
-    10: 'OCT',
-    11: 'NOV',
-    12: 'DEC'
-}
-
+_int_to_month = tslib._MONTH_ALIASES
 _month_to_int = dict((v, k) for k, v in _int_to_month.items())
 
 

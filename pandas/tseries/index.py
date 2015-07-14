@@ -239,8 +239,9 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
 
             # try a few ways to make it datetime64
             if lib.is_string_array(data):
-                data = _str_to_dt_array(data, freq, dayfirst=dayfirst,
-                                        yearfirst=yearfirst)
+                data = tslib.parse_str_array_to_datetime(data, freq=freq,
+                                                         dayfirst=dayfirst,
+                                                         yearfirst=yearfirst)
             else:
                 data = tools.to_datetime(data, errors='raise')
                 data.offset = freq
@@ -254,8 +255,9 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
                     return data
 
         if issubclass(data.dtype.type, compat.string_types):
-            data = _str_to_dt_array(data, freq, dayfirst=dayfirst,
-                                      yearfirst=yearfirst)
+            data = tslib.parse_str_array_to_datetime(data, freq=freq,
+                                                     dayfirst=dayfirst,
+                                                     yearfirst=yearfirst)
 
         if issubclass(data.dtype.type, np.datetime64):
             if isinstance(data, ABCSeries):
@@ -288,8 +290,9 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
                 values = data
 
             if lib.is_string_array(values):
-                subarr = _str_to_dt_array(values, freq, dayfirst=dayfirst,
-                                        yearfirst=yearfirst)
+                subarr = tslib.parse_str_array_to_datetime(values, freq=freq, dayfirst=dayfirst,
+                                                     yearfirst=yearfirst)
+
             else:
                 try:
                     subarr = tools.to_datetime(data, box=False)
@@ -298,11 +301,11 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
                     if isinstance(subarr, ABCSeries):
                         subarr = subarr.values
                         if subarr.dtype == np.object_:
-                            subarr = tools.to_datetime(subarr, box=False)
+                            subarr = tools._to_datetime(subarr, box=False)
 
                 except ValueError:
                     # tz aware
-                    subarr = tools.to_datetime(data, box=False, utc=True)
+                    subarr = tools._to_datetime(data, box=False, utc=True)
 
                 if not np.issubdtype(subarr.dtype, np.datetime64):
                     raise ValueError('Unable to convert %s to datetime dtype'
@@ -332,7 +335,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
                 if inferred != freq.freqstr:
                     on_freq = cls._generate(subarr[0], None, len(subarr), None, freq, tz=tz)
                     if not np.array_equal(subarr.asi8, on_freq.asi8):
-                        raise ValueError('Inferred frequency {0} from passed dates does not'
+                        raise ValueError('Inferred frequency {0} from passed dates does not '
                                          'conform to passed frequency {1}'.format(inferred, freq.freqstr))
 
         if freq_infer:
@@ -534,7 +537,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
             xdr = generate_range(offset=offset, start=_CACHE_START,
                                  end=_CACHE_END)
 
-            arr = tools.to_datetime(list(xdr), box=False)
+            arr = tools._to_datetime(list(xdr), box=False)
 
             cachedRange = DatetimeIndex._simple_new(arr)
             cachedRange.offset = offset
@@ -1924,17 +1927,6 @@ def _to_m8(key, tz=None):
         key = Timestamp(key, tz=tz)
 
     return np.int64(tslib.pydt_to_i8(key)).view(_NS_DTYPE)
-
-
-def _str_to_dt_array(arr, offset=None, dayfirst=None, yearfirst=None):
-    def parser(x):
-        result = parse_time_string(x, offset, dayfirst=dayfirst,
-                                   yearfirst=yearfirst)
-        return result[0]
-
-    arr = np.asarray(arr, dtype=object)
-    data = _algos.arrmap_object(arr, parser)
-    return tools.to_datetime(data)
 
 
 _CACHE_START = Timestamp(datetime(1950, 1, 1))

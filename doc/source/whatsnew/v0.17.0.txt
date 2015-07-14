@@ -35,6 +35,45 @@ Other enhancements
 ^^^^^^^^^^^^^^^^^^
 - Enable `read_hdf` to be used without specifying a key when the HDF file contains a single dataset (:issue:`10443`)
 
+- ``DatetimeIndex`` can be instantiated using strings contains ``NaT`` (:issue:`7599`)
+- The string parsing of ``to_datetime``, ``Timestamp`` and ``DatetimeIndex`` has been made consistent" (:issue:`7599`)
+
+  Prior to v0.17.0, ``Timestamp`` and ``to_datetime`` may parse year-only datetime-string incorrectly using today's date, otherwise ``DatetimeIndex`` uses the beginning of the year.
+  ``Timestamp`` and ``to_datetime`` may raise ``ValueError`` in some types of datetime-string which ``DatetimeIndex`` can parse, such as quarterly string.
+
+  Previous Behavior
+
+  .. code-block:: python
+
+     In [1]: Timestamp('2012Q2')
+     Traceback
+        ...
+     ValueError: Unable to parse 2012Q2
+
+     # Results in today's date.
+     In [2]: Timestamp('2014')
+     Out [2]: 2014-08-12 00:00:00
+
+  v0.17.0 can parse them as below. It works on ``DatetimeIndex`` also.
+
+  New Behaviour
+
+  .. ipython:: python
+
+     Timestamp('2012Q2')
+     Timestamp('2014')
+     DatetimeIndex(['2012Q2', '2014'])
+
+  .. note:: If you want to perform calculations based on today's date, use ``Timestamp.now()`` and ``pandas.tseries.offsets``.
+
+  .. ipython:: python
+
+     import pandas.tseries.offsets as offsets
+     Timestamp.now()
+     Timestamp.now() + offsets.DateOffset(years=1)
+
+- ``to_datetime`` can now accept ``yearfirst`` keyword (:issue:`7599`)
+
 - ``.as_blocks`` will now take a ``copy`` optional argument to return a copy of the data, default is to copy (no change in behavior from prior versions), (:issue:`9607`)
 
 - ``regex`` argument to ``DataFrame.filter`` now handles numeric column names instead of raising ``ValueError`` (:issue:`10384`).
