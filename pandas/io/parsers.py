@@ -2045,8 +2045,9 @@ def _make_date_converter(date_parser=None, dayfirst=False,
     def converter(*date_cols):
         if date_parser is None:
             strs = _concat_date_cols(date_cols)
+
             try:
-                return tools.to_datetime(
+                return tools._to_datetime(
                     com._ensure_object(strs),
                     utc=None,
                     box=False,
