@@ -540,9 +540,11 @@ class TestReadHtml(tm.TestCase, ReadHtmlMixin):
                'Hamilton Bank, NA', 'The Citizens Savings Bank']
         dfnew = df.applymap(try_remove_ws).replace(old, new)
         gtnew = ground_truth.applymap(try_remove_ws)
-        converted = dfnew.convert_objects(convert_numeric=True)
-        tm.assert_frame_equal(converted.convert_objects(convert_dates='coerce'),
-                              gtnew)
+        converted = dfnew.convert_objects(datetime=True, numeric=True)
+        date_cols = ['Closing Date','Updated Date']
+        converted[date_cols] = converted[date_cols].convert_objects(datetime=True,
+                                                                    coerce=True)
+        tm.assert_frame_equal(converted,gtnew)
 
     @slow
     def test_gold_canyon(self):

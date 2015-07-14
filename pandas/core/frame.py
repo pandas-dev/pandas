@@ -3351,7 +3351,7 @@ class DataFrame(NDFrame):
         return self._constructor(result,
                                  index=new_index,
                                  columns=new_columns).convert_objects(
-            convert_dates=True,
+            datetime=True,
             copy=False)
 
     def combine_first(self, other):
@@ -3830,7 +3830,9 @@ class DataFrame(NDFrame):
 
             if axis == 1:
                 result = result.T
-            result = result.convert_objects(copy=False)
+            result = result.convert_objects(datetime=True,
+                                            timedelta=True,
+                                            copy=False)
 
         else:
 
@@ -3958,7 +3960,10 @@ class DataFrame(NDFrame):
             combined_columns = self.columns.tolist() + self.columns.union(other.index).difference(self.columns).tolist()
             other = other.reindex(combined_columns, copy=False)
             other = DataFrame(other.values.reshape((1, len(other))),
-                              index=index, columns=combined_columns).convert_objects()
+                              index=index,
+                              columns=combined_columns)
+            other = other.convert_objects(datetime=True, timedelta=True)
+
             if not self.columns.equals(combined_columns):
                 self = self.reindex(columns=combined_columns)
         elif isinstance(other, list) and not isinstance(other[0], DataFrame):
