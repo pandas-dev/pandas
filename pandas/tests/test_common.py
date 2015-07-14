@@ -4,7 +4,7 @@ from datetime import datetime
 import re
 
 import nose
-from nose.tools import assert_equal
+from nose.tools import assert_equal, assert_true
 import numpy as np
 from pandas.tslib import iNaT, NaT
 from pandas import Series, DataFrame, date_range, DatetimeIndex, Timestamp, Float64Index
@@ -1026,6 +1026,22 @@ def test_dict_compat():
     assert(com._dict_compat(expected) == expected)
     assert(com._dict_compat(data_unchanged) == data_unchanged)
 
+def test_possibly_convert_objects_copy():
+    values = np.array([1, 2])
+
+    out = com._possibly_convert_objects(values, copy=False)
+    assert_true(values is out)
+
+    out = com._possibly_convert_objects(values, copy=True)
+    assert_true(values is not out)
+
+    values = np.array(['apply','banana'])
+    out = com._possibly_convert_objects(values, copy=False)
+    assert_true(values is out)
+
+    out = com._possibly_convert_objects(values, copy=True)
+    assert_true(values is not out)
+    
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],

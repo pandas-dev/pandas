@@ -48,12 +48,78 @@ Backwards incompatible API changes
 
 .. _whatsnew_0170.api_breaking.other:
 
+.. _whatsnew_0170.api_breaking.convert_objects:
+Changes to convert_objects
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+- ``DataFrame.convert_objects`` keyword arguments have been shortened. (:issue:`10265`)
+
+=====================   =============
+Old                     New
+=====================   =============
+``convert_dates``       ``datetime``
+``convert_numeric``     ``numeric``
+``convert_timedelta``   ``timedelta``
+=====================   =============
+
+- Coercing types with ``DataFrame.convert_objects`` is now implemented using the
+keyword argument ``coerce=True``.  Previously types were coerced by setting a
+keyword argument to ``'coerce'`` instead of ``True``, as in ``convert_dates='coerce'``.
+
+  .. ipython:: python
+
+    df = pd.DataFrame({'i': ['1','2'],
+                       'f': ['apple', '4.2'],
+                       's': ['apple','banana']})
+    df
+
+  The old usage of ``DataFrame.convert_objects`` used `'coerce'` along with the
+  type.
+
+  .. code-block:: python
+
+    In [2]: df.convert_objects(convert_numeric='coerce')
+
+  Now the ``coerce`` keyword must be explicitly used.
+
+  .. ipython:: python
+
+    df.convert_objects(numeric=True, coerce=True)
+
+- In earlier versions of pandas, ``DataFrame.convert_objects`` would not coerce
+numeric types when there were no values convertible to a numeric type.  For example,
+
+  .. code-block:: python
+
+    In [1]: df = pd.DataFrame({'s': ['a','b']})
+    In [2]: df.convert_objects(convert_numeric='coerce')
+    Out[2]:
+        s
+     0  a
+     1  b
+
+returns the original DataFrame with no conversion. This change alters
+this behavior so that
+
+  .. ipython:: python
+
+    pd.DataFrame({'s': ['a','b']})
+    df.convert_objects(numeric=True, coerce=True)
+
+converts all non-number-like strings to ``NaN``.
+
+- In earlier versions of pandas, the default behavior was to try and convert
+datetimes and timestamps. The new default is for ``DataFrame.convert_objects``
+to do nothing, and so it is necessary to pass at least one conversion target
+in the method call.
+
+
 Other API Changes
 ^^^^^^^^^^^^^^^^^
 - Enable writing Excel files in :ref:`memory <_io.excel_writing_buffer>` using StringIO/BytesIO (:issue:`7074`)
 - Enable serialization of lists and dicts to strings in ExcelWriter (:issue:`8188`)
 - Allow passing `kwargs` to the interpolation methods (:issue:`10378`).
 - Serialize metadata properties of subclasses of pandas objects (:issue:`10553`).
+
 
 .. _whatsnew_0170.deprecations:
 
