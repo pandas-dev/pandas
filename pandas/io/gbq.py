@@ -15,9 +15,6 @@ from pandas.core.common import PandasError
 
 
 def _check_google_client_version():
-    if compat.PY3:
-        raise NotImplementedError("Google's libraries do not support Python 3 yet")
-
     try:
         import pkg_resources
 
@@ -26,8 +23,9 @@ def _check_google_client_version():
 
     _GOOGLE_API_CLIENT_VERSION = pkg_resources.get_distribution('google-api-python-client').version
 
-    if LooseVersion(_GOOGLE_API_CLIENT_VERSION) < '1.2.0':
-        raise ImportError("pandas requires google-api-python-client >= 1.2.0 for Google "
+    required_version = '1.4.0' if compat.PY3 else '1.2.0'
+    if LooseVersion(_GOOGLE_API_CLIENT_VERSION) < required_version:
+        raise ImportError("pandas requires google-api-python-client >= " + required_version + " for Google "
                           "BigQuery support, current version " + _GOOGLE_API_CLIENT_VERSION)
 
 logger = logging.getLogger('pandas.io.gbq')
@@ -267,10 +265,10 @@ def _parse_data(schema, rows):
 
     fields = schema['fields']
     col_types = [field['type'] for field in fields]
-    col_names = [field['name'].encode('ascii', 'ignore') for field in fields]
+    col_names = [field['name'] for field in fields]
     col_dtypes = [dtype_map.get(field['type'], object) for field in fields]
     page_array = np.zeros((len(rows),),
-                          dtype=zip(col_names, col_dtypes))
+                          dtype=list(zip(col_names, col_dtypes)))
 
     for row_num, raw_row in enumerate(rows):
         entries = raw_row.get('f', [])
