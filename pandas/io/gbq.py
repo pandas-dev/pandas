@@ -131,7 +131,7 @@ class GbqConnector(object):
 
         return bigquery_service
 
-    def run_query(self, query):
+    def run_query(self, query, silent):
         try:
             from apiclient.errors import HttpError
             from oauth2client.client import AccessTokenRefreshError
@@ -180,7 +180,8 @@ class GbqConnector(object):
         job_reference = query_reply['jobReference']
 
         while(not query_reply.get('jobComplete', False)):
-            print('Job not yet complete...')
+            if not silent:
+                print('Job not yet complete...')
             query_reply = job_collection.getQueryResults(
                             projectId=job_reference['projectId'],
                             jobId=job_reference['jobId']).execute()
@@ -292,7 +293,7 @@ def _parse_entry(field_value, field_type):
     return field_value
 
 
-def read_gbq(query, project_id=None, index_col=None, col_order=None, reauth=False):
+def read_gbq(query, project_id=None, index_col=None, col_order=None, reauth=False, silent = False):
     """Load data from Google BigQuery.
 
     THIS IS AN EXPERIMENTAL LIBRARY
@@ -317,6 +318,8 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None, reauth=Fals
     reauth : boolean (default False)
         Force Google BigQuery to reauthenticate the user. This is useful
         if multiple accounts are used.
+    silent : boolean (default False)
+        Do not print status messages during query execution if True
 
     Returns
     -------
@@ -330,7 +333,7 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None, reauth=Fals
         raise TypeError("Missing required parameter: project_id")
 
     connector = GbqConnector(project_id, reauth = reauth)
-    schema, pages = connector.run_query(query)
+    schema, pages = connector.run_query(query, silent = silent)
     dataframe_list = []
     while len(pages) > 0:
         page = pages.pop()
