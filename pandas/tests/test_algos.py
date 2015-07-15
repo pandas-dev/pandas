@@ -294,9 +294,9 @@ class GroupVarTestMixin(object):
         prng = RandomState(1234)
 
         out = (np.nan * np.ones((5, 1))).astype(self.dtype)
-        counts = np.zeros(5, dtype=int)
+        counts = np.zeros(5, dtype='int64')
         values = 10 * prng.rand(15, 1).astype(self.dtype)
-        labels = np.tile(np.arange(5), (3, ))
+        labels = np.tile(np.arange(5), (3, )).astype('int64')
 
         expected_out = (np.squeeze(values)
                         .reshape((5, 3), order='F')
@@ -311,9 +311,9 @@ class GroupVarTestMixin(object):
         prng = RandomState(1234)
 
         out = (np.nan * np.ones((1, 1))).astype(self.dtype)
-        counts = np.zeros(1, dtype=int)
+        counts = np.zeros(1, dtype='int64')
         values = 10 * prng.rand(5, 1).astype(self.dtype)
-        labels = np.zeros(5, dtype=int)
+        labels = np.zeros(5, dtype='int64')
 
         expected_out = np.array([[values.std(ddof=1) ** 2]])
         expected_counts = counts + 5
@@ -327,9 +327,9 @@ class GroupVarTestMixin(object):
         prng = RandomState(1234)
 
         out = (np.nan * np.ones((5, 2))).astype(self.dtype)
-        counts = np.zeros(5, dtype=int)
+        counts = np.zeros(5, dtype='int64')
         values = 10 * prng.rand(10, 2).astype(self.dtype)
-        labels = np.tile(np.arange(5), (2, ))
+        labels = np.tile(np.arange(5), (2, )).astype('int64')
 
         expected_out = np.std(
             values.reshape(2, 5, 2), ddof=1, axis=0) ** 2
@@ -343,10 +343,10 @@ class GroupVarTestMixin(object):
         prng = RandomState(1234)
 
         out = (np.nan * np.ones((5, 2))).astype(self.dtype)
-        counts = np.zeros(5, dtype=int)
+        counts = np.zeros(5, dtype='int64')
         values = 10 * prng.rand(10, 2).astype(self.dtype)
         values[:, 1] = np.nan
-        labels = np.tile(np.arange(5), (2, ))
+        labels = np.tile(np.arange(5), (2, )).astype('int64')
 
         expected_out = np.vstack([
             values[:, 0].reshape(5, 2, order='F').std(ddof=1, axis=1) ** 2,
@@ -362,9 +362,9 @@ class GroupVarTestMixin(object):
         # Regression test from GH 10448.
 
         out = np.array([[np.nan]], dtype=self.dtype)
-        counts = np.array([0])
+        counts = np.array([0],dtype='int64')
         values = 0.832845131556193 * np.ones((3, 1), dtype=self.dtype)
-        labels = np.zeros(3, dtype=np.int)
+        labels = np.zeros(3, dtype='int64')
 
         self.algo(out, counts, values, labels)
 
@@ -386,10 +386,10 @@ class TestGroupVarFloat64(tm.TestCase, GroupVarTestMixin):
         prng = RandomState(1234)
 
         out = np.array([[np.nan]], dtype=self.dtype)
-        counts = np.array([0])
+        counts = np.array([0],dtype='int64')
         values = (prng.rand(10 ** 6) + 10 ** 12).astype(self.dtype)
         values.shape = (10 ** 6, 1)
-        labels = np.zeros(10 ** 6, dtype=np.int)
+        labels = np.zeros(10 ** 6, dtype='int64')
 
         self.algo(out, counts, values, labels)
 
