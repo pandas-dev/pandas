@@ -4388,7 +4388,11 @@ class JoinUnit(object):
         # Usually it's enough to check but a small fraction of values to see if
         # a block is NOT null, chunks should help in such cases.  1000 value
         # was chosen rather arbitrarily.
-        values_flat = self.block.values.ravel()
+        values = self.block.values
+        if self.block.is_categorical:
+            values_flat = values.categories
+        else:
+            values_flat = values.ravel()
         total_len = values_flat.shape[0]
         chunk_len = max(total_len // 40, 1000)
         for i in range(0, total_len, chunk_len):
