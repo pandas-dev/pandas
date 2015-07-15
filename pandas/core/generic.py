@@ -2876,6 +2876,9 @@ class NDFrame(PandasObject):
         """
         Interpolate values according to different methods.
 
+        Please note that only ``method='linear'`` is supported for DataFrames/Series
+        with a MultiIndex.
+
         Parameters
         ----------
         method : {'linear', 'time', 'index', 'values', 'nearest', 'zero',
