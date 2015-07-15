@@ -1528,12 +1528,14 @@ object conversion
     :ref:`API changes <whatsnew_0170.api_breaking.convert_objects>`
     for more details.
 
-:meth:`~DataFrame.convert_objects` is a method to try to force conversion of
-types from the ``object`` dtype to other types. To try converting specific
-types that are *number like*, e.g. could be a string that represents a number,
-pass ``numeric=True``. To force the conversion, add the keyword argument
-``coerce=True``.  This will force strings and number-like objects to be numbers if
-possible, otherwise they will be set to ``np.nan``.
+:meth:`~DataFrame.convert_objects` is a method that converts columns from
+the ``object`` dtype to datetimes, timedeltas or floats. For example, to
+attempt conversion of object data that are *number like*, e.g. could be a
+string that represents a number, pass ``numeric=True``. By default, this will
+attempt a soft conversion and so will only succeed if the entire column is
+convertible. To force the conversion, add the keyword argument ``coerce=True``.
+This will force strings and number-like objects to be numbers if
+possible, and other values will be set to ``np.nan``.
 
 .. ipython:: python
 
@@ -1549,7 +1551,7 @@ possible, otherwise they will be set to ``np.nan``.
 To force conversion to ``datetime64[ns]``, pass ``datetime=True`` and ``coerce=True``.
 This will convert any datetime-like object to dates, forcing other values to ``NaT``.
 This might be useful if you are reading in data which is mostly dates,
-but occasionally has non-dates intermixed and you want to represent as missing.
+but occasionally contains non-dates that you wish to represent as missing.
 
 .. ipython:: python
 
