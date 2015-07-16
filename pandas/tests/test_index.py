@@ -1550,22 +1550,70 @@ class TestIndex(Base, tm.TestCase):
         tm.assert_dict_equal(groups, exp)
 
     def test_equals_op(self):
-        # For issue #9785
+        # GH9947
         index_a = Index(['foo', 'bar', 'baz'])
         index_b = Index(['foo', 'bar', 'baz', 'qux'])
-        # Testing Numpy Results Equivelent
-        assert_array_equal(
-            index_a.equals(index_a),
-            index_a == index_a
-        )
-        assert_array_equal(
-            index_a.equals(index_b),
-            index_a == index_b,
-        )
-        assert_array_equal(
-            index_b.equals(index_a),
-            index_b == index_a,
-        )
+        index_c = Index(['foo', 'bar', 'qux'])
+        index_d = Index(['foo'])
+        with tm.assertRaisesRegexp(ValueError, "Lengths must match"):
+            index_a == index_b
+        assert_array_equal(index_a == index_a, np.array([True, True, True]))
+        assert_array_equal(index_a == index_c, np.array([True, True, False]))
+
+        # test comparisons with numpy arrays
+        array_a = np.array(['foo', 'bar', 'baz'])
+        array_b = np.array(['foo', 'bar', 'baz', 'qux'])
+        array_c = np.array(['foo', 'bar', 'qux'])
+        array_d = np.array(['foo'])
+        with tm.assertRaisesRegexp(ValueError, "Lengths must match"):
+            index_a == array_b
+        assert_array_equal(index_a == array_a, np.array([True, True, True]))
+        assert_array_equal(index_a == array_c, np.array([True, True, False]))
+
+        # test comparisons with Series
+        series_a = Series(['foo', 'bar', 'baz'])
+        series_b = Series(['foo', 'bar', 'baz', 'qux'])
+        series_c = Series(['foo', 'bar', 'qux'])
+        series_d = Series(['foo'])
+        with tm.assertRaisesRegexp(ValueError, "Lengths must match"):
+            index_a == series_b
+        assert_array_equal(index_a == series_a, np.array([True, True, True]))
+        assert_array_equal(index_a == series_c, np.array([True, True, False]))
+
+        # cases where length is 1 for one of them
+        with tm.assertRaisesRegexp(ValueError, "Lengths must match"):
+            index_a == index_d
+        with tm.assertRaisesRegexp(ValueError, "Lengths must match"):
+            index_a == series_d
+        with tm.assertRaisesRegexp(ValueError, "Lengths must match"):
+            index_a == array_d
+        with tm.assertRaisesRegexp(ValueError, "Series lengths must match"):
+            series_a == series_d
+        with tm.assertRaisesRegexp(ValueError, "Lengths must match"):
+            series_a == array_d
+
+        # comparing with scalar should broadcast
+        assert_array_equal(index_a == 'foo', np.array([True, False, False]))
+        assert_array_equal(series_a == 'foo', np.array([True, False, False]))
+        assert_array_equal(array_a == 'foo', np.array([True, False, False]))
+
+        # GH9785
+        # test comparisons of multiindex
+        from pandas.compat import StringIO
+        df = pd.read_csv(StringIO('a,b,c\n1,2,3\n4,5,6'), index_col=[0, 1])
+        assert_array_equal(df.index == df.index, np.array([True, True]))
+
+        mi1 = MultiIndex.from_tuples([(1, 2), (4, 5)])
+        assert_array_equal(df.index == mi1, np.array([True, True]))
+        mi2 = MultiIndex.from_tuples([(1, 2), (4, 6)])
+        assert_array_equal(df.index == mi2, np.array([True, False]))
+        mi3 = MultiIndex.from_tuples([(1, 2), (4, 5), (8, 9)])
+        with tm.assertRaisesRegexp(ValueError, "Lengths must match"):
+            df.index == mi3
+        with tm.assertRaisesRegexp(ValueError, "Lengths must match"):
+            df.index == index_a
+        assert_array_equal(index_a == mi3, np.array([False, False, False]))
+
 
 class TestCategoricalIndex(Base, tm.TestCase):
     _holder = CategoricalIndex
@@ -4815,46 +4863,8 @@ class TestMultiIndex(Base, tm.TestCase):
         tm.assert_frame_equal(result, df_expected)
 
     def test_equals_operator(self):
-        # For issue #9785
+        # GH9785
         self.assertTrue((self.index == self.index).all())
-
-    def test_index_compare(self):
-        # For issue #9785
-        index_unequal = Index(['foo', 'bar', 'baz'])
-        index_equal = Index([
-            ('foo', 'one'), ('foo', 'two'), ('bar', 'one'),
-            ('baz', 'two'), ('qux', 'one'), ('qux', 'two')
-        ], tupleize_cols=False)
-        # Testing Numpy Results Equivelent
-        assert_array_equal(
-            index_unequal.equals(self.index),
-            index_unequal == self.index,
-            err_msg = 'Index compared with MultiIndex failed',
-        )
-        assert_array_equal(
-            self.index.equals(index_unequal),
-            self.index == index_unequal,
-            err_msg = 'MultiIndex compared with Index failed',
-        )
-        assert_array_equal(
-            self.index.equals(index_equal),
-            self.index == index_equal,
-            err_msg = 'MultiIndex compared with Similar Index failed',
-        )
-        assert_array_equal(
-            index_equal.equals(self.index),
-            index_equal == self.index,
-            err_msg = 'Index compared with Similar MultiIndex failed',
-        )
-        # Testing that the result is true for the index_equal case
-        self.assertTrue(
-            (self.index == index_equal).all(),
-            msg='Assert Index compared with Similar MultiIndex match'
-        )
-        self.assertTrue(
-            (index_equal == self.index).all(),
-            msg='Assert MultiIndex compared with Similar Index match'
-        )
 
 
 def test_get_combined_index():

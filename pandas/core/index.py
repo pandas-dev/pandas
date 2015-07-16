@@ -2593,6 +2593,9 @@ class Index(IndexOpsMixin, PandasObject):
         def _make_compare(op):
 
             def _evaluate_compare(self, other):
+                if isinstance(other, (np.ndarray, Index, ABCSeries)):
+                    if other.ndim > 0 and len(self) != len(other):
+                        raise ValueError('Lengths must match to compare')
                 func = getattr(self.values, op)
                 result = func(np.asarray(other))
 
