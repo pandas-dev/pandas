@@ -232,6 +232,7 @@ Other API Changes
 - Allow passing `kwargs` to the interpolation methods (:issue:`10378`).
 - Serialize metadata properties of subclasses of pandas objects (:issue:`10553`).
 - Boolean comparisons of a ``Series`` vs None will now be equivalent to comparing with np.nan, rather than raise ``TypeError``, xref (:issue:`1079`).
+- Remove use of some deprecated numpy comparisons (:issue:`10569`)
 
 .. _whatsnew_0170.deprecations:
 
