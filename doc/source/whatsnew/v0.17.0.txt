@@ -152,6 +152,76 @@ Old                     New
   to do nothing, and so it is necessary to pass at least one conversion target
   in the method call.
 
+- Operator equal on Index should behavior similarly to Series (:issue:`9947`)
+
+Starting in v0.17.0, comparing ``Index`` objects of different lengths will raise
+a ``ValueError``. This is to be consistent with the behavior of ``Series``.
+
+Previous behavior:
+
+.. code-block:: python
+
+   In [2]: pd.Index([1, 2, 3]) == pd.Index([1, 4, 5])
+   Out[2]: array([ True, False, False], dtype=bool)
+
+   In [3]: pd.Index([1, 2, 3]) == pd.Index([2])
+   Out[3]: array([False,  True, False], dtype=bool)
+
+   In [4]: pd.Index([1, 2, 3]) == pd.Index([1, 2])
+   Out[4]: False
+
+   In [5]: pd.Series([1, 2, 3]) == pd.Series([1, 4, 5])
+   Out[5]:
+   0     True
+   1    False
+   2    False
+   dtype: bool
+
+   In [6]: pd.Series([1, 2, 3]) == pd.Series([2])
+   ValueError: Series lengths must match to compare
+
+   In [7]: pd.Series([1, 2, 3]) == pd.Series([1, 2])
+   ValueError: Series lengths must match to compare
+
+New behavior:
+
+.. code-block:: python
+
+   In [8]: pd.Index([1, 2, 3]) == pd.Index([1, 4, 5])
+   Out[8]: array([ True, False, False], dtype=bool)
+
+   In [9]: pd.Index([1, 2, 3]) == pd.Index([2])
+   ValueError: Lengths must match to compare
+
+   In [10]: pd.Index([1, 2, 3]) == pd.Index([1, 2])
+   ValueError: Lengths must match to compare
+
+   In [11]: pd.Series([1, 2, 3]) == pd.Series([1, 4, 5])
+   Out[11]:
+   0     True
+   1    False
+   2    False
+   dtype: bool
+
+   In [12]: pd.Series([1, 2, 3]) == pd.Series([2])
+   ValueError: Series lengths must match to compare
+
+   In [13]: pd.Series([1, 2, 3]) == pd.Series([1, 2])
+   ValueError: Series lengths must match to compare
+
+Note that this is different from the ``numpy`` behavior where a comparison can
+be broadcast:
+
+.. ipython:: python
+
+   np.array([1, 2, 3]) == np.array([1])
+
+or it can return False if broadcasting can not be done:
+
+.. ipython:: python
+
+   np.array([1, 2, 3]) == np.array([1, 2])
+
 .. _whatsnew_0170.api_breaking.other:
 
 Other API Changes
@@ -256,3 +326,4 @@ Bug Fixes
 
 - Bug in ``Series.plot(kind='hist')`` Y Label not informative (:issue:`10485`)
 
+- Bug in operator equal on Index not being consistent with Series (:issue:`9947`)
