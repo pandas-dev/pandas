@@ -17,7 +17,7 @@ from pandas.lib import isscalar
 from pandas.tslib import iNaT
 from pandas.core.common import(bind_method, is_list_like, notnull, isnull,
                                _values_from_object, _maybe_match_name,
-                               needs_i8_conversion, is_datetimelike_v_integer, is_integer_dtype)
+                               needs_i8_conversion, is_datetimelike_v_numeric, is_integer_dtype)
 
 # -----------------------------------------------------------------------------
 # Functions that add arithmetic methods to objects, given arithmetic factory
@@ -565,17 +565,17 @@ def _comp_method_SERIES(op, name, str_rep, masker=False):
                 result = lib.scalar_compare(x, y, op)
         else:
 
-            # numpy does not like comparisons vs None
-            if lib.isscalar(y) and isnull(y):
-                y = np.nan
-
             # we want to compare like types
             # we only want to convert to integer like if
             # we are not NotImplemented, otherwise
             # we would allow datetime64 (but viewed as i8) against
             # integer comparisons
-            if is_datetimelike_v_integer(x, y):
+            if is_datetimelike_v_numeric(x, y):
                 raise TypeError("invalid type comparison")
+
+            # numpy does not like comparisons vs None
+            if lib.isscalar(y) and isnull(y):
+                y = np.nan
 
             # we have a datetime/timedelta and may need to convert
             mask = None

@@ -24,7 +24,7 @@ import numpy as np
 from numpy.testing import assert_array_equal
 
 import pandas as pd
-from pandas.core.common import is_sequence, array_equivalent, is_list_like, is_number
+from pandas.core.common import is_sequence, array_equivalent, is_list_like, is_number, is_datetimelike_v_numeric
 import pandas.compat as compat
 from pandas.compat import(
     filter, map, zip, range, unichr, lrange, lmap, lzip, u, callable, Counter,
@@ -675,7 +675,8 @@ def assert_series_equal(left, right, check_dtype=True,
                         check_series_type=False,
                         check_less_precise=False,
                         check_exact=False,
-                        check_names=True):
+                        check_names=True,
+                        check_datetimelike_compat=False):
     if check_series_type:
         assertIsInstance(left, type(right))
     if check_dtype:
@@ -684,6 +685,18 @@ def assert_series_equal(left, right, check_dtype=True,
         if not np.array_equal(left.values, right.values):
             raise AssertionError('{0} is not equal to {1}.'.format(left.values,
                                                                    right.values))
+    elif check_datetimelike_compat:
+        # we want to check only if we have compat dtypes
+        # e.g. integer and M|m are NOT compat, but we can simply check the values in that case
+        if is_datetimelike_v_numeric(left, right):
+            # datetime.datetime and pandas.tslib.Timestamp may hold
+            # equivalent values but fail assert_frame_equal
+            if not all([x == y for x, y in zip(left, right)]):
+                raise AssertionError(
+                    '[datetimelike_compat=True] {0} is not equal to {1}.'.format(left.values,
+                                                                                 right.values))
+        else:
+            assert_numpy_array_equivalent(left.values, right.values)
     else:
         assert_almost_equal(left.values, right.values, check_less_precise)
     if check_less_precise:
@@ -716,7 +729,8 @@ def assert_frame_equal(left, right, check_dtype=True,
                        check_less_precise=False,
                        check_names=True,
                        by_blocks=False,
-                       check_exact=False):
+                       check_exact=False,
+                       check_datetimelike_compat=False):
     if check_frame_type:
         assertIsInstance(left, type(right))
     assertIsInstance(left, DataFrame)
@@ -750,7 +764,8 @@ def assert_frame_equal(left, right, check_dtype=True,
                                 check_index_type=check_index_type,
                                 check_less_precise=check_less_precise,
                                 check_exact=check_exact,
-                                check_names=check_names)
+                                check_names=check_names,
+                                check_datetimelike_compat=check_datetimelike_compat)
 
     if check_index_type:
         for level in range(left.index.nlevels):

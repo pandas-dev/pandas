@@ -14,7 +14,7 @@ from pandas.core.common import (_possibly_downcast_to_dtype, isnull,
                                 is_null_datelike_scalar, _maybe_promote,
                                 is_timedelta64_dtype, is_datetime64_dtype,
                                 array_equivalent, _maybe_convert_string_to_object,
-                                is_categorical, needs_i8_conversion, is_datetimelike_v_integer)
+                                is_categorical, needs_i8_conversion, is_datetimelike_v_numeric)
 from pandas.core.index import Index, MultiIndex, _ensure_index
 from pandas.core.indexing import maybe_convert_indices, length_of_indexer
 from pandas.core.categorical import Categorical, maybe_to_categorical
@@ -3890,7 +3890,7 @@ def _possibly_compare(a, b, op):
     is_b_array = isinstance(b, np.ndarray)
 
     # numpy deprecation warning to have i8 vs integer comparisions
-    if is_datetimelike_v_integer(a, b):
+    if is_datetimelike_v_numeric(a, b):
         res = False
     else:
         res = op(a, b)

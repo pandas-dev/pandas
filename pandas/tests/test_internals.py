@@ -753,15 +753,15 @@ class TestBlockManager(tm.TestCase):
 
     def test_equals_block_order_different_dtypes(self):
         # GH 9330
-        
-        mgr_strings = [ 
+
+        mgr_strings = [
             "a:i8;b:f8", # basic case
             "a:i8;b:f8;c:c8;d:b", # many types
             "a:i8;e:dt;f:td;g:string", # more types
             "a:i8;b:category;c:category2;d:category2", # categories
             "c:sparse;d:sparse_na;b:f8", # sparse
             ]
-        
+
         for mgr_string in mgr_strings:
             bm = create_mgr(mgr_string)
             block_perms = itertools.permutations(bm.blocks)
@@ -812,6 +812,13 @@ class TestIndexing(object):
         def assert_slice_ok(mgr, axis, slobj):
             # import pudb; pudb.set_trace()
             mat = mgr.as_matrix()
+
+            # we maybe using an ndarray to test slicing and
+            # might not be the full length of the axis
+            if isinstance(slobj, np.ndarray):
+                ax = mgr.axes[axis]
+                if len(ax) and len(slobj) and len(slobj) != len(ax):
+                    slobj = np.concatenate([slobj, np.zeros(len(ax)-len(slobj),dtype=bool)])
             sliced = mgr.get_slice(slobj, axis=axis)
             mat_slobj = (slice(None),) * axis + (slobj,)
             assert_almost_equal(mat[mat_slobj], sliced.as_matrix())
