@@ -1538,7 +1538,7 @@ class Index(IndexOpsMixin, PandasObject):
         self._assert_can_do_setop(other)
 
         if self.equals(other):
-            return Index([], name=self.name)
+            return self._shallow_copy(np.asarray([]))
 
         other, result_name = self._convert_can_do_setop(other)
 

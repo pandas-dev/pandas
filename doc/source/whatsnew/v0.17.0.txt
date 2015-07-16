@@ -357,7 +357,9 @@ Bug Fixes
 - Bug in ``ExcelReader`` when worksheet is empty (:issue:`6403`)
 - Bug in ``Table.select_column`` where name is not preserved (:issue:`10392`)
 - Bug in ``offsets.generate_range`` where ``start`` and ``end`` have finer precision than ``offset`` (:issue:`9907`)
+- Bug in ``Subclasses of Index with no values returned Index objects rather than their own classes, in some cases`` (:issue:`10596`)
 - Bug in ``pd.rolling_*`` where ``Series.name`` would be lost in the output (:issue:`10565`)
+
 
 
 

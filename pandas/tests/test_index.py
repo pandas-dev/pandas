@@ -367,6 +367,12 @@ class Base(object):
                 with tm.assertRaisesRegexp(TypeError, msg):
                     result = first.difference([1, 2, 3])
 
+            # GH 10596 - empty difference retains index's type
+
+            result = idx.difference(idx)
+            expected = idx[0:0]
+            self.assertTrue(result.equals(expected))
+
     def test_symmetric_diff(self):
         for name, idx in compat.iteritems(self.indices):
             first = idx[1:]
