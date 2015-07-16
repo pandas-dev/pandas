@@ -14,6 +14,7 @@ users upgrade to this version.
 Highlights include:
 
   - Release the Global Interpreter Lock (GIL) on some cython operations, see :ref:`here <whatsnew_0170.gil>`
+  - Development installed versions of pandas will now have ``PEP440`` compliant version strings (:issue:`9518`)
 
 Check the :ref:`API Changes <whatsnew_0170.api>` and :ref:`deprecations <whatsnew_0170.deprecations>` before updating.
 

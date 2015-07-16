@@ -78,10 +78,6 @@ scikits
 *.c
 *.cpp
 
-# Things specific to this project #
-###################################
-pandas/version.py
-
 # Documentation generated files #
 #################################
 doc/source/generated

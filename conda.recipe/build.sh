@@ -1,2 +1,3 @@
-#!/bin/bash
-$PYTHON setup.py install --quiet
+#!/bin/sh
+
+$PYTHON setup.py install
