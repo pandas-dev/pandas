@@ -3,6 +3,7 @@ import warnings
 import operator
 import weakref
 import gc
+
 import numpy as np
 import pandas.lib as lib
 
@@ -26,6 +27,7 @@ from pandas.core.common import (isnull, notnull, is_list_like,
 import pandas.core.nanops as nanops
 from pandas.util.decorators import Appender, Substitution, deprecate_kwarg
 from pandas.core import config
+
 
 # goal is to be able to define the docs close to function, while still being
 # able to share
@@ -2473,6 +2475,26 @@ class NDFrame(PandasObject):
         -------
         converted : same as input object
         """
+
+        # Deprecation code to handle usage change
+        issue_warning = False
+        if datetime == 'coerce':
+            datetime = coerce = True
+            numeric = timedelta = False
+            issue_warning = True
+        elif numeric == 'coerce':
+            numeric = coerce = True
+            datetime = timedelta = False
+            issue_warning = True
+        elif timedelta == 'coerce':
+            timedelta = coerce = True
+            datetime = numeric = False
+            issue_warning = True
+        if issue_warning:
+            warnings.warn("The use of 'coerce' as an input is deprecated. "
+                          "Instead set coerce=True.",
+                          FutureWarning)
+
         return self._constructor(
             self._data.convert(datetime=datetime,
                                numeric=numeric,
