@@ -481,6 +481,8 @@ class TestDataReader(tm.TestCase):
         for name in ("F-F_Research_Data_Factors",
                      "F-F_Research_Data_Factors_weekly", "6_Portfolios_2x3",
                      "F-F_ST_Reversal_Factor", "F-F_Momentum_Factor"):
+            raise nose.SkipTest('getting 404 errors as of 7/15/15')
+
             ff = DataReader(name, "famafrench")
             self.assertTrue(ff is not None)
             self.assertIsInstance(ff, dict)
