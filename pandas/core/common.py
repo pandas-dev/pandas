@@ -462,6 +462,10 @@ def array_equivalent(left, right, strict_nan=False):
     if issubclass(left.dtype.type, (np.floating, np.complexfloating)):
         return ((left == right) | (np.isnan(left) & np.isnan(right))).all()
 
+    # numpy will will not allow this type of datetimelike vs integer comparison
+    elif is_datetimelike_v_integer(left, right):
+        return False
+
     # NaNs cannot occur otherwise.
     return np.array_equal(left, right)
 
@@ -2538,6 +2542,13 @@ def is_datetime_or_timedelta_dtype(arr_or_dtype):
     tipo = _get_dtype_type(arr_or_dtype)
     return issubclass(tipo, (np.datetime64, np.timedelta64))
 
+
+def is_datetimelike_v_integer(a, b):
+    # return if we have an i8 convertible and and integer comparision
+    a = np.asarray(a)
+    b = np.asarray(b)
+    return (needs_i8_conversion(a) and is_integer_dtype(b)) or (
+        needs_i8_conversion(b) and is_integer_dtype(a))
 
 needs_i8_conversion = is_datetime_or_timedelta_dtype
 

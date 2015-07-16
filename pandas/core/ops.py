@@ -17,7 +17,7 @@ from pandas.lib import isscalar
 from pandas.tslib import iNaT
 from pandas.core.common import(bind_method, is_list_like, notnull, isnull,
                                _values_from_object, _maybe_match_name,
-                               needs_i8_conversion, is_integer_dtype)
+                               needs_i8_conversion, is_datetimelike_v_integer, is_integer_dtype)
 
 # -----------------------------------------------------------------------------
 # Functions that add arithmetic methods to objects, given arithmetic factory
@@ -574,9 +574,7 @@ def _comp_method_SERIES(op, name, str_rep, masker=False):
             # we are not NotImplemented, otherwise
             # we would allow datetime64 (but viewed as i8) against
             # integer comparisons
-            if needs_i8_conversion(x) and (not isscalar(y) and is_integer_dtype(y)):
-                raise TypeError("invalid type comparison")
-            elif (not isscalar(y) and needs_i8_conversion(y)) and is_integer_dtype(x):
+            if is_datetimelike_v_integer(x, y):
                 raise TypeError("invalid type comparison")
 
             # we have a datetime/timedelta and may need to convert
@@ -690,7 +688,7 @@ def _bool_method_SERIES(op, name, str_rep):
         return result
 
     def wrapper(self, other):
-        is_self_int_dtype = com.is_integer_dtype(self.dtype)
+        is_self_int_dtype = is_integer_dtype(self.dtype)
 
         fill_int = lambda x: x.fillna(0)
         fill_bool = lambda x: x.fillna(False).astype(bool)
@@ -698,7 +696,7 @@ def _bool_method_SERIES(op, name, str_rep):
         if isinstance(other, pd.Series):
             name = _maybe_match_name(self, other)
             other = other.reindex_like(self)
-            is_other_int_dtype = com.is_integer_dtype(other.dtype)
+            is_other_int_dtype = is_integer_dtype(other.dtype)
             other = fill_int(other) if is_other_int_dtype else fill_bool(other)
 
             filler = fill_int if is_self_int_dtype and is_other_int_dtype else fill_bool
@@ -711,7 +709,7 @@ def _bool_method_SERIES(op, name, str_rep):
 
         else:
             # scalars, list, tuple, np.array
-            filler = fill_int if is_self_int_dtype and com.is_integer_dtype(np.asarray(other)) else fill_bool
+            filler = fill_int if is_self_int_dtype and is_integer_dtype(np.asarray(other)) else fill_bool
             return filler(self._constructor(na_op(self.values, other),
                                     index=self.index)).__finalize__(self)
 

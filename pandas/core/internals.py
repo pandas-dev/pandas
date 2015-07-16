@@ -14,7 +14,7 @@ from pandas.core.common import (_possibly_downcast_to_dtype, isnull,
                                 is_null_datelike_scalar, _maybe_promote,
                                 is_timedelta64_dtype, is_datetime64_dtype,
                                 array_equivalent, _maybe_convert_string_to_object,
-                                is_categorical)
+                                is_categorical, needs_i8_conversion, is_datetimelike_v_integer)
 from pandas.core.index import Index, MultiIndex, _ensure_index
 from pandas.core.indexing import maybe_convert_indices, length_of_indexer
 from pandas.core.categorical import Categorical, maybe_to_categorical
@@ -3885,9 +3885,16 @@ def _vstack(to_stack, dtype):
 
 
 def _possibly_compare(a, b, op):
-    res = op(a, b)
+
     is_a_array = isinstance(a, np.ndarray)
     is_b_array = isinstance(b, np.ndarray)
+
+    # numpy deprecation warning to have i8 vs integer comparisions
+    if is_datetimelike_v_integer(a, b):
+        res = False
+    else:
+        res = op(a, b)
+
     if np.isscalar(res) and (is_a_array or is_b_array):
         type_names = [type(a).__name__, type(b).__name__]
 
