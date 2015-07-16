@@ -6209,6 +6209,34 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
             result = s.convert_objects(datetime=True, coerce=True)
             assert_series_equal(result, expected)
 
+    # GH 10601
+    # Remove test after deprecation to convert_objects is final
+    def test_convert_objects_old_style_deprecation(self):
+        s = Series(['foo', 'bar', 1, 1.0], dtype='O')
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter('always', FutureWarning)
+            new_style = s.convert_objects(datetime=True, coerce=True)
+            old_style = s.convert_objects(convert_dates='coerce')
+            self.assertEqual(len(w), 2)
+        assert_series_equal(new_style, old_style)
+
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter('always', FutureWarning)
+            new_style = s.convert_objects(numeric=True, coerce=True)
+            old_style = s.convert_objects(convert_numeric='coerce')
+            self.assertEqual(len(w), 2)
+        assert_series_equal(new_style, old_style)
+
+        dt = datetime(2001, 1, 1, 0, 0)
+        td = dt - datetime(2000, 1, 1, 0, 0)
+        s = Series(['a', '3.1415', dt, td])
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter('always', FutureWarning)
+            new_style = s.convert_objects(timedelta=True, coerce=True)
+            old_style = s.convert_objects(convert_timedeltas='coerce')
+            self.assertEqual(len(w), 2)
+        assert_series_equal(new_style, old_style)
+
     def test_convert_objects_no_arg_warning(self):
         s = Series(['1.0','2'])
         with warnings.catch_warnings(record=True) as w:
