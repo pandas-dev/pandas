@@ -17,7 +17,9 @@ from pandas.lib import isscalar
 from pandas.tslib import iNaT
 from pandas.core.common import(bind_method, is_list_like, notnull, isnull,
                                _values_from_object, _maybe_match_name,
-                               needs_i8_conversion, is_datetimelike_v_numeric, is_integer_dtype)
+                               needs_i8_conversion, is_datetimelike_v_numeric,
+                               is_integer_dtype, is_categorical_dtype, is_object_dtype,
+                               is_timedelta64_dtype, is_datetime64_dtype, is_bool_dtype)
 
 # -----------------------------------------------------------------------------
 # Functions that add arithmetic methods to objects, given arithmetic factory
@@ -276,11 +278,11 @@ class _TimeOp(object):
         lvalues = self._convert_to_array(left, name=name)
         rvalues = self._convert_to_array(right, name=name, other=lvalues)
 
-        self.is_timedelta_lhs = com.is_timedelta64_dtype(left)
-        self.is_datetime_lhs = com.is_datetime64_dtype(left)
+        self.is_timedelta_lhs = is_timedelta64_dtype(left)
+        self.is_datetime_lhs = is_datetime64_dtype(left)
         self.is_integer_lhs = left.dtype.kind in ['i', 'u']
-        self.is_datetime_rhs = com.is_datetime64_dtype(rvalues)
-        self.is_timedelta_rhs = com.is_timedelta64_dtype(rvalues)
+        self.is_datetime_rhs = is_datetime64_dtype(rvalues)
+        self.is_timedelta_rhs = is_timedelta64_dtype(rvalues)
         self.is_integer_rhs = rvalues.dtype.kind in ('i', 'u')
 
         self._validate()
@@ -355,7 +357,7 @@ class _TimeOp(object):
             elif isinstance(values, pd.DatetimeIndex):
                 values = values.to_series()
             elif not (isinstance(values, (np.ndarray, pd.Series)) and
-                      com.is_datetime64_dtype(values)):
+                      is_datetime64_dtype(values)):
                 values = tslib.array_to_datetime(values)
         elif inferred_type in ('timedelta', 'timedelta64'):
             # have a timedelta, convert to to ns here
@@ -448,8 +450,8 @@ class _TimeOp(object):
         that the data is not the right type for time ops.
         """
         # decide if we can do it
-        is_timedelta_lhs = com.is_timedelta64_dtype(left)
-        is_datetime_lhs = com.is_datetime64_dtype(left)
+        is_timedelta_lhs = is_timedelta64_dtype(left)
+        is_datetime_lhs = is_datetime64_dtype(left)
         if not (is_datetime_lhs or is_timedelta_lhs):
             return None
 
@@ -547,17 +549,17 @@ def _comp_method_SERIES(op, name, str_rep, masker=False):
 
         # dispatch to the categorical if we have a categorical
         # in either operand
-        if com.is_categorical_dtype(x):
+        if is_categorical_dtype(x):
             return op(x,y)
-        elif com.is_categorical_dtype(y) and not lib.isscalar(y):
+        elif is_categorical_dtype(y) and not isscalar(y):
             return op(y,x)
 
-        if com.is_object_dtype(x.dtype):
+        if is_object_dtype(x.dtype):
             if isinstance(y, list):
                 y = lib.list_to_object_array(y)
 
             if isinstance(y, (np.ndarray, pd.Series)):
-                if not com.is_object_dtype(y.dtype):
+                if not is_object_dtype(y.dtype):
                     result = lib.vec_compare(x, y.astype(np.object_), op)
                 else:
                     result = lib.vec_compare(x, y, op)
@@ -574,7 +576,7 @@ def _comp_method_SERIES(op, name, str_rep, masker=False):
                 raise TypeError("invalid type comparison")
 
             # numpy does not like comparisons vs None
-            if lib.isscalar(y) and isnull(y):
+            if isscalar(y) and isnull(y):
                 y = np.nan
 
             # we have a datetime/timedelta and may need to convert
@@ -624,13 +626,13 @@ def _comp_method_SERIES(op, name, str_rep, masker=False):
             return self._constructor(na_op(self.values, np.asarray(other)),
                                      index=self.index).__finalize__(self)
         elif isinstance(other, pd.Categorical):
-            if not com.is_categorical_dtype(self):
+            if not is_categorical_dtype(self):
                 msg = "Cannot compare a Categorical for op {op} with Series of dtype {typ}.\n"\
                       "If you want to compare values, use 'series <op> np.asarray(other)'."
                 raise TypeError(msg.format(op=op,typ=self.dtype))
 
 
-        if com.is_categorical_dtype(self):
+        if is_categorical_dtype(self):
             # cats are a special case as get_values() would return an ndarray, which would then
             # not take categories ordering into account
             # we can go directly to op, as the na_op would just test again and dispatch to it.
@@ -641,7 +643,7 @@ def _comp_method_SERIES(op, name, str_rep, masker=False):
                 other = np.asarray(other)
 
             res = na_op(values, other)
-            if lib.isscalar(res):
+            if isscalar(res):
                 raise TypeError('Could not compare %s type with Series'
                                 % type(other))
 
@@ -667,7 +669,7 @@ def _bool_method_SERIES(op, name, str_rep):
                 y = lib.list_to_object_array(y)
 
             if isinstance(y, (np.ndarray, pd.Series)):
-                if (com.is_bool_dtype(x.dtype) and com.is_bool_dtype(y.dtype)):
+                if (is_bool_dtype(x.dtype) and is_bool_dtype(y.dtype)):
                     result = op(x, y)  # when would this be hit?
                 else:
                     x = com._ensure_object(x)
@@ -1069,7 +1071,7 @@ def _arith_method_PANEL(op, name, str_rep=None, fill_zeros=None,
 
     # work only for scalars
     def f(self, other):
-        if not lib.isscalar(other):
+        if not isscalar(other):
             raise ValueError('Simple arithmetic with %s can only be '
                              'done with scalar values' %
                              self._constructor.__name__)
