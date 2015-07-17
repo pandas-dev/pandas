@@ -21,6 +21,7 @@ from cpython cimport (PyDict_New, PyDict_GetItem, PyDict_SetItem,
                       PyTuple_SetItem,
                       PyTuple_New,
                       PyObject_SetAttrString,
+                      PyObject_RichCompareBool,
                       PyBytes_GET_SIZE,
                       PyUnicode_GET_SIZE)
 
@@ -372,19 +373,19 @@ def isnullobj2d_old(ndarray[object, ndim=2] arr):
                 result[i, j] = 1
     return result.view(np.bool_)
 
-def list_to_object_array(list obj):
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+cpdef ndarray[object] list_to_object_array(list obj):
     '''
     Convert list to object ndarray. Seriously can't believe I had to write this
     function
     '''
     cdef:
-        Py_ssize_t i, n
-        ndarray[object] arr
+        Py_ssize_t i, n = len(obj)
+        ndarray[object] arr = np.empty(n, dtype=object)
 
-    n = len(obj)
-    arr = np.empty(n, dtype=object)
-
-    for i from 0 <= i < n:
+    for i in range(n):
         arr[i] = obj[i]
 
     return arr
@@ -732,28 +733,25 @@ def scalar_compare(ndarray[object] values, object val, object op):
 
     return result.view(bool)
 
+
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def array_equivalent_object(ndarray[object] left, ndarray[object] right):
+cpdef bint array_equivalent_object(object[:] left, object[:] right):
     """ perform an element by element comparion on 1-d object arrays
         taking into account nan positions """
-    cdef Py_ssize_t i, n
-    cdef object x, y
+    cdef:
+        Py_ssize_t i, n = left.shape[0]
+        object x, y
 
-    n = len(left)
-    for i from 0 <= i < n:
+    for i in range(n):
         x = left[i]
         y = right[i]
 
         # we are either not equal or both nan
         # I think None == None will be true here
-        if cpython.PyObject_RichCompareBool(x, y, cpython.Py_EQ):
-            continue
-        elif _checknull(x) and _checknull(y):
-            continue
-        else:
+        if not (PyObject_RichCompareBool(x, y, cpython.Py_EQ) or
+                _checknull(x) and _checknull(y)):
             return False
-
     return True
 
 
