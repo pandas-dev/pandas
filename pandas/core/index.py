@@ -164,18 +164,18 @@ class Index(IndexOpsMixin, PandasObject):
         elif data is None or np.isscalar(data):
             cls._scalar_data_error(data)
         else:
-            if tupleize_cols and isinstance(data, list) and data:
+            if tupleize_cols and isinstance(data, list) and data and isinstance(data[0], tuple):
                 try:
-                    sorted(data)
-                    has_mixed_types = False
-                except (TypeError, UnicodeDecodeError):
-                    has_mixed_types = True  # python3 only
-                if isinstance(data[0], tuple) and not has_mixed_types:
-                    try:
-                        return MultiIndex.from_tuples(
-                            data, names=name or kwargs.get('names'))
-                    except (TypeError, KeyError):
-                        pass  # python2 - MultiIndex fails on mixed types
+
+                    # must be orderable in py3
+                    if compat.PY3:
+                        sorted(data)
+                    return MultiIndex.from_tuples(
+                        data, names=name or kwargs.get('names'))
+                except (TypeError, KeyError):
+                    # python2 - MultiIndex fails on mixed types
+                    pass
+
             # other iterable of some kind
             subarr = com._asarray_tuplesafe(data, dtype=object)
 
