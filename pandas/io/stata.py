@@ -23,6 +23,7 @@ from pandas import compat, to_timedelta, to_datetime, isnull, DatetimeIndex
 from pandas.compat import lrange, lmap, lzip, text_type, string_types, range, \
     zip, BytesIO
 from pandas.util.decorators import Appender
+import pandas as pd
 import pandas.core.common as com
 from pandas.io.common import get_filepath_or_buffer
 from pandas.lib import max_len_string_array, infer_dtype
@@ -291,7 +292,7 @@ def _stata_elapsed_date_to_datetime_vec(dates, fmt):
         warn("Encountered %tC format. Leaving in Stata Internal Format.")
         conv_dates = Series(dates, dtype=np.object)
         if has_bad_values:
-            conv_dates[bad_locs] = np.nan
+            conv_dates[bad_locs] = pd.NaT
         return conv_dates
     elif fmt in ["%td", "td", "%d", "d"]:  # Delta days relative to base
         base = stata_epoch

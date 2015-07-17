@@ -180,9 +180,9 @@ class TestStata(tm.TestCase):
         # buggy test because of the NaT comparison on certain platforms
         # Format 113 test fails since it does not support tc and tC formats
         # tm.assert_frame_equal(parsed_113, expected)
-        tm.assert_frame_equal(parsed_114, expected)
-        tm.assert_frame_equal(parsed_115, expected)
-        tm.assert_frame_equal(parsed_117, expected)
+        tm.assert_frame_equal(parsed_114, expected, check_datetimelike_compat=True)
+        tm.assert_frame_equal(parsed_115, expected, check_datetimelike_compat=True)
+        tm.assert_frame_equal(parsed_117, expected, check_datetimelike_compat=True)
 
     def test_read_dta3(self):
         parsed_113 = self.read_dta(self.dta3_113)
@@ -684,6 +684,7 @@ class TestStata(tm.TestCase):
         expected.append([NaT] * 7)
         columns = ['date_tc', 'date_td', 'date_tw', 'date_tm', 'date_tq',
                    'date_th', 'date_ty']
+
         # Fixes for weekly, quarterly,half,year
         expected[2][2] = datetime(9999,12,24)
         expected[2][3] = datetime(9999,12,1)
@@ -696,11 +697,10 @@ class TestStata(tm.TestCase):
         expected[5][5] = expected[5][6] = datetime(1678,1,1)
 
         expected = DataFrame(expected, columns=columns, dtype=np.object)
-
         parsed_115 = read_stata(self.dta18_115)
         parsed_117 = read_stata(self.dta18_117)
-        tm.assert_frame_equal(expected, parsed_115)
-        tm.assert_frame_equal(expected, parsed_117)
+        tm.assert_frame_equal(expected, parsed_115, check_datetimelike_compat=True)
+        tm.assert_frame_equal(expected, parsed_117, check_datetimelike_compat=True)
 
         date_conversion =  dict((c, c[-2:]) for c in columns)
         #{c : c[-2:] for c in columns}
@@ -709,7 +709,8 @@ class TestStata(tm.TestCase):
             expected.to_stata(path, date_conversion)
             written_and_read_again = self.read_dta(path)
             tm.assert_frame_equal(written_and_read_again.set_index('index'),
-                                  expected)
+                                  expected,
+                                  check_datetimelike_compat=True)
 
     def test_dtype_conversion(self):
         expected = self.read_csv(self.csv15)
@@ -912,7 +913,8 @@ class TestStata(tm.TestCase):
                             warnings.simplefilter("always")
                             parsed = read_stata(fname, convert_categoricals=convert_categoricals,
                                                 convert_dates=convert_dates)
-                        itr = read_stata(fname, iterator=True)
+                        itr = read_stata(fname, iterator=True, convert_categoricals=convert_categoricals,
+                                         convert_dates=convert_dates)
 
                         pos = 0
                         for j in range(5):
@@ -923,12 +925,10 @@ class TestStata(tm.TestCase):
                                 except StopIteration:
                                     break
                             from_frame = parsed.iloc[pos:pos+chunksize, :]
-                            try:
-                                tm.assert_frame_equal(from_frame, chunk, check_dtype=False)
-                            except AssertionError:
-                                # datetime.datetime and pandas.tslib.Timestamp may hold
-                                # equivalent values but fail assert_frame_equal
-                                assert(all([x == y for x, y in zip(from_frame, chunk)]))
+                            tm.assert_frame_equal(from_frame,
+                                                  chunk,
+                                                  check_dtype=False,
+                                                  check_datetimelike_compat=True)
 
                             pos += chunksize
 
@@ -966,13 +966,15 @@ class TestStata(tm.TestCase):
                 for convert_categoricals in False, True:
                     for convert_dates in False, True:
 
+                        # Read the whole file
                         with warnings.catch_warnings(record=True) as w:
                             warnings.simplefilter("always")
                             parsed = read_stata(fname, convert_categoricals=convert_categoricals,
                                                 convert_dates=convert_dates)
-                        itr = read_stata(fname, iterator=True,
-                                         convert_categoricals=convert_categoricals)
 
+                        # Compare to what we get when reading by chunk
+                        itr = read_stata(fname, iterator=True, convert_dates=convert_dates,
+                                         convert_categoricals=convert_categoricals)
                         pos = 0
                         for j in range(5):
                             with warnings.catch_warnings(record=True) as w:
@@ -982,12 +984,10 @@ class TestStata(tm.TestCase):
                                 except StopIteration:
                                     break
                             from_frame = parsed.iloc[pos:pos+chunksize, :]
-                            try:
-                                tm.assert_frame_equal(from_frame, chunk, check_dtype=False)
-                            except AssertionError:
-                                # datetime.datetime and pandas.tslib.Timestamp may hold
-                                # equivalent values but fail assert_frame_equal
-                                assert(all([x == y for x, y in zip(from_frame, chunk)]))
+                            tm.assert_frame_equal(from_frame,
+                                                  chunk,
+                                                  check_dtype=False,
+                                                  check_datetimelike_compat=True)
 
                             pos += chunksize
 
@@ -1011,4 +1011,3 @@ class TestStata(tm.TestCase):
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
                    exit=False)
-
