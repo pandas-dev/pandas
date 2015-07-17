@@ -904,7 +904,6 @@ class TestStata(tm.TestCase):
                      self.dta16_117, self.dta17_117, self.dta18_117,
                      self.dta19_117, self.dta20_117]
 
-        raise nose.SkipTest("buggy test: #10606")
         for fname in files_117:
             for chunksize in 1,2:
                 for convert_categoricals in False, True:
@@ -962,7 +961,6 @@ class TestStata(tm.TestCase):
                      self.dta17_115, self.dta18_115, self.dta19_115,
                      self.dta20_115]
 
-        raise nose.SkipTest("buggy test: #10606")
         for fname in files_115:
             for chunksize in 1,2:
                 for convert_categoricals in False, True:
