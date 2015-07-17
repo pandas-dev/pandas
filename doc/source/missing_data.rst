@@ -68,26 +68,40 @@ detect this value with data of different types: floating point, integer,
 boolean, and general object. In many cases, however, the Python ``None`` will
 arise and we wish to also consider that "missing" or "null".
 
-Prior to version v0.10.0 ``inf`` and ``-inf`` were also
-considered to be "null" in computations. This is no longer the case by
-default; use the ``mode.use_inf_as_null`` option to recover it.
+.. note::
+
+   Prior to version v0.10.0 ``inf`` and ``-inf`` were also
+   considered to be "null" in computations. This is no longer the case by
+   default; use the ``mode.use_inf_as_null`` option to recover it.
 
 .. _missing.isnull:
 
 To make detecting missing values easier (and across different array dtypes),
 pandas provides the :func:`~pandas.core.common.isnull` and
 :func:`~pandas.core.common.notnull` functions, which are also methods on
-``Series`` objects:
+``Series`` and ``DataFrame`` objects:
 
 .. ipython:: python
 
    df2['one']
    pd.isnull(df2['one'])
    df2['four'].notnull()
+   df2.isnull()
 
-**Summary:** ``NaN`` and ``None`` (in object arrays) are considered
-missing by the ``isnull`` and ``notnull`` functions. ``inf`` and
-``-inf`` are no longer considered missing by default.
+.. warning::
+
+   One has to be mindful that in python (and numpy), the ``nan's`` don't compare equal, but ``None's`` **do**.
+
+   .. ipython:: python
+
+      None == None
+      np.nan == np.nan
+
+   So as compared to above, a scalar equality comparison versus a ``None/np.nan`` doesn't provide useful information.
+
+   .. ipython:: python
+
+      df2['one'] == np.nan
 
 Datetimes
 ---------
