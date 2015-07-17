@@ -949,6 +949,21 @@ class StataReader(StataParser):
 
         self._read_header()
 
+    def __enter__(self):
+        """ enter context manager """
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        """ exit context manager """
+        self.close()
+	
+    def close(self):
+        """ close the handle if its open """
+        try:
+            self.path_or_buf.close()
+        except IOError:
+            pass
+	
     def _read_header(self):
         first_char = self.path_or_buf.read(1)
         if struct.unpack('c', first_char)[0] == b'<':
