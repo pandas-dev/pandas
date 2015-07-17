@@ -914,7 +914,8 @@ class TestStata(tm.TestCase):
                             warnings.simplefilter("always")
                             parsed = read_stata(fname, convert_categoricals=convert_categoricals,
                                                 convert_dates=convert_dates)
-                        itr = read_stata(fname, iterator=True)
+                        itr = read_stata(fname, iterator=True, convert_categoricals=convert_categoricals,
+                                         convert_dates=convert_dates)
 
                         pos = 0
                         for j in range(5):
@@ -967,13 +968,15 @@ class TestStata(tm.TestCase):
                 for convert_categoricals in False, True:
                     for convert_dates in False, True:
 
+                        # Read the whole file
                         with warnings.catch_warnings(record=True) as w:
                             warnings.simplefilter("always")
                             parsed = read_stata(fname, convert_categoricals=convert_categoricals,
                                                 convert_dates=convert_dates)
-                        itr = read_stata(fname, iterator=True,
-                                         convert_categoricals=convert_categoricals)
 
+                        # Compare to what we get when reading by chunk
+                        itr = read_stata(fname, iterator=True, convert_dates=convert_dates,
+                                         convert_categoricals=convert_categoricals)
                         pos = 0
                         for j in range(5):
                             with warnings.catch_warnings(record=True) as w:
