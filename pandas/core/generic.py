@@ -3574,7 +3574,14 @@ class NDFrame(PandasObject):
                 except ValueError:
                     new_other = np.array(other)
 
-                matches = (new_other == np.array(other))
+                # we can end up comparing integers and m8[ns]
+                # which is a numpy no no
+                is_i8 = com.needs_i8_conversion(self.dtype)
+                if is_i8:
+                    matches = False
+                else:
+                    matches = (new_other == np.array(other))
+
                 if matches is False or not matches.all():
 
                     # coerce other to a common dtype if we can

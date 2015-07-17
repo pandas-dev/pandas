@@ -849,11 +849,11 @@ class TestTimeSeries(tm.TestCase):
 
         result2 = to_datetime(strings)
         tm.assertIsInstance(result2, DatetimeIndex)
-        self.assert_numpy_array_equal(result, result2)
+        self.assert_numpy_array_equivalent(result, result2)
 
         malformed = np.array(['1/100/2000', np.nan], dtype=object)
         result = to_datetime(malformed)
-        self.assert_numpy_array_equal(result, malformed)
+        self.assert_numpy_array_equivalent(result, malformed)
 
         self.assertRaises(ValueError, to_datetime, malformed,
                           errors='raise')

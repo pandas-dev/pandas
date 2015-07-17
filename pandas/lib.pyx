@@ -378,7 +378,7 @@ def isnullobj2d_old(ndarray[object, ndim=2] arr):
 @cython.boundscheck(False)
 cpdef ndarray[object] list_to_object_array(list obj):
     '''
-    Convert list to object ndarray. Seriously can't believe I had to write this
+    Convert list to object ndarray. Seriously can\'t believe I had to write this
     function
     '''
     cdef:
@@ -682,6 +682,7 @@ def scalar_compare(ndarray[object] values, object val, object op):
     cdef:
         Py_ssize_t i, n = len(values)
         ndarray[uint8_t, cast=True] result
+        bint isnull_val
         int flag
         object x
 
@@ -701,11 +702,14 @@ def scalar_compare(ndarray[object] values, object val, object op):
         raise ValueError('Unrecognized operator')
 
     result = np.empty(n, dtype=bool).view(np.uint8)
+    isnull_val = _checknull(val)
 
     if flag == cpython.Py_NE:
         for i in range(n):
             x = values[i]
             if _checknull(x):
+                result[i] = True
+            elif isnull_val:
                 result[i] = True
             else:
                 try:
@@ -717,6 +721,8 @@ def scalar_compare(ndarray[object] values, object val, object op):
             x = values[i]
             if _checknull(x):
                 result[i] = False
+            elif isnull_val:
+                result[i] = False
             else:
                 try:
                     result[i] = cpython.PyObject_RichCompareBool(x, val, flag)
@@ -727,6 +733,8 @@ def scalar_compare(ndarray[object] values, object val, object op):
         for i in range(n):
             x = values[i]
             if _checknull(x):
+                result[i] = False
+            elif isnull_val:
                 result[i] = False
             else:
                 result[i] = cpython.PyObject_RichCompareBool(x, val, flag)
