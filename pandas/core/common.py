@@ -2553,6 +2553,16 @@ def is_datetimelike_v_numeric(a, b):
     return (needs_i8_conversion(a) and f(b)) or (
         needs_i8_conversion(b) and f(a))
 
+def is_datetimelike_v_object(a, b):
+    # return if we have an i8 convertible and object comparision
+    if not hasattr(a,'dtype'):
+        a = np.asarray(a)
+    if not hasattr(b, 'dtype'):
+        b = np.asarray(b)
+    f = lambda x: is_object_dtype(x)
+    return (needs_i8_conversion(a) and f(b)) or (
+        needs_i8_conversion(b) and f(a))
+
 needs_i8_conversion = is_datetime_or_timedelta_dtype
 
 def i8_boxer(arr_or_dtype):
