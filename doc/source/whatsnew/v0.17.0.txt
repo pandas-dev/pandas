@@ -34,6 +34,7 @@ New features
 
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
+
 - Enable `read_hdf` to be used without specifying a key when the HDF file contains a single dataset (:issue:`10443`)
 
 - ``DatetimeIndex`` can be instantiated using strings contains ``NaT`` (:issue:`7599`)
@@ -91,7 +92,7 @@ Backwards incompatible API changes
 Changes to convert_objects
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-- ``DataFrame.convert_objects`` keyword arguments have been shortened. (:issue:`10265`)
+``DataFrame.convert_objects`` keyword arguments have been shortened. (:issue:`10265`)
 
   =====================   =============
   Old                     New
@@ -101,70 +102,65 @@ Changes to convert_objects
   ``convert_timedelta``   ``timedelta``
   =====================   =============
 
-- Coercing types with ``DataFrame.convert_objects`` is now implemented using the
-  keyword argument ``coerce=True``.  Previously types were coerced by setting a
-  keyword argument to ``'coerce'`` instead of ``True``, as in ``convert_dates='coerce'``.
+Coercing types with ``DataFrame.convert_objects`` is now implemented using the
+keyword argument ``coerce=True``.  Previously types were coerced by setting a
+keyword argument to ``'coerce'`` instead of ``True``, as in ``convert_dates='coerce'``.
 
-  .. ipython:: python
+.. ipython:: python
 
-    df = pd.DataFrame({'i': ['1','2'],
-                       'f': ['apple', '4.2'],
-                       's': ['apple','banana']})
-    df
+   df = pd.DataFrame({'i': ['1','2'],
+                      'f': ['apple', '4.2'],
+                      's': ['apple','banana']})
+   df
 
-  The old usage of ``DataFrame.convert_objects`` used `'coerce'` along with the
-  type.
+The old usage of ``DataFrame.convert_objects`` used `'coerce'` along with the
+type.
 
-  .. code-block:: python
+.. code-block:: python
 
-    In [2]: df.convert_objects(convert_numeric='coerce')
+   In [2]: df.convert_objects(convert_numeric='coerce')
 
-  Now the ``coerce`` keyword must be explicitly used.
+Now the ``coerce`` keyword must be explicitly used.
 
-  .. ipython:: python
+.. ipython:: python
 
-    df.convert_objects(numeric=True, coerce=True)
+   df.convert_objects(numeric=True, coerce=True)
 
-- In earlier versions of pandas, ``DataFrame.convert_objects`` would not coerce
-  numeric types when there were no values convertible to a numeric type.  For example,
+In earlier versions of pandas, ``DataFrame.convert_objects`` would not coerce
+numeric types when there were no values convertible to a numeric type. This returns
+the original DataFrame with no conversion. This change alters
+this behavior so that converts all non-number-like strings to ``NaN``.
 
-  .. code-block:: python
+.. code-block:: python
 
-    In [1]: df = pd.DataFrame({'s': ['a','b']})
-    In [2]: df.convert_objects(convert_numeric='coerce')
-    Out[2]:
-        s
-     0  a
-     1  b
+   In [1]: df = pd.DataFrame({'s': ['a','b']})
+   In [2]: df.convert_objects(convert_numeric='coerce')
+   Out[2]:
+          s
+       0  a
+       1  b
 
-  returns the original DataFrame with no conversion. This change alters
-  this behavior so that
+.. ipython:: python
 
-  .. ipython:: python
+   pd.DataFrame({'s': ['a','b']})
+   df.convert_objects(numeric=True, coerce=True)
 
-    pd.DataFrame({'s': ['a','b']})
-    df.convert_objects(numeric=True, coerce=True)
+In earlier versions of pandas, the default behavior was to try and convert
+datetimes and timestamps. The new default is for ``DataFrame.convert_objects``
+to do nothing, and so it is necessary to pass at least one conversion target
+in the method call.
 
-  converts all non-number-like strings to ``NaN``.
+Changes to Index Comparisons
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-- In earlier versions of pandas, the default behavior was to try and convert
-  datetimes and timestamps. The new default is for ``DataFrame.convert_objects``
-  to do nothing, and so it is necessary to pass at least one conversion target
-  in the method call.
+Operator equal on Index should behavior similarly to Series (:issue:`9947`)
 
-.. _whatsnew_0170.api_breaking.other:
+Starting in v0.17.0, comparing ``Index`` objects of different lengths will raise
+a ``ValueError``. This is to be consistent with the behavior of ``Series``.
 
-Other API Changes
-^^^^^^^^^^^^^^^^^
+Previous behavior:
 
-- Operator equal on Index should behavior similarly to Series (:issue:`9947`)
-
-  Starting in v0.17.0, comparing ``Index`` objects of different lengths will raise
-  a ``ValueError``. This is to be consistent with the behavior of ``Series``.
-
-  Previous behavior:
-
-  .. code-block:: python
+.. code-block:: python
 
    In [2]: pd.Index([1, 2, 3]) == pd.Index([1, 4, 5])
    Out[2]: array([ True, False, False], dtype=bool)
@@ -188,9 +184,9 @@ Other API Changes
    In [7]: pd.Series([1, 2, 3]) == pd.Series([1, 2])
    ValueError: Series lengths must match to compare
 
-  New behavior:
+New behavior:
 
-  .. code-block:: python
+.. code-block:: python
 
    In [8]: pd.Index([1, 2, 3]) == pd.Index([1, 4, 5])
    Out[8]: array([ True, False, False], dtype=bool)
@@ -214,24 +210,27 @@ Other API Changes
    In [13]: pd.Series([1, 2, 3]) == pd.Series([1, 2])
    ValueError: Series lengths must match to compare
 
-  Note that this is different from the ``numpy`` behavior where a comparison can
-  be broadcast:
+Note that this is different from the ``numpy`` behavior where a comparison can
+be broadcast:
 
-  .. ipython:: python
+.. ipython:: python
 
    np.array([1, 2, 3]) == np.array([1])
 
-  or it can return False if broadcasting can not be done:
+or it can return False if broadcasting can not be done:
 
-  .. ipython:: python
+.. ipython:: python
 
    np.array([1, 2, 3]) == np.array([1, 2])
+
+Other API Changes
+^^^^^^^^^^^^^^^^^
 
 - Enable writing Excel files in :ref:`memory <_io.excel_writing_buffer>` using StringIO/BytesIO (:issue:`7074`)
 - Enable serialization of lists and dicts to strings in ExcelWriter (:issue:`8188`)
 - Allow passing `kwargs` to the interpolation methods (:issue:`10378`).
 - Serialize metadata properties of subclasses of pandas objects (:issue:`10553`).
-- Boolean comparisons of a ``Series`` vs None will now be equivalent to comparing with np.nan, rather than raise ``TypeError``, xref (:issue:`1079`).
+- Boolean comparisons of a ``Series`` vs ``None`` will now be equivalent to comparing with ``np.nan``, rather than raise ``TypeError``, xref (:issue:`1079`).
 - Remove use of some deprecated numpy comparisons (:issue:`10569`)
 
 .. _whatsnew_0170.deprecations:
@@ -288,46 +287,48 @@ Bug Fixes
 
 - Bug in ``DataFrame.apply`` when function returns categorical series. (:issue:`9573`)
 - Bug in ``to_datetime`` with invalid dates and formats supplied (:issue:`10154`)
-
 - Bug in ``Index.drop_duplicates`` dropping name(s) (:issue:`10115`)
-
-
 - Bug in ``pd.Series`` when setting a value on an empty ``Series`` whose index has a frequency. (:issue:`10193`)
-
 - Bug in ``DataFrame.plot`` raises ``ValueError`` when color name is specified by multiple characters (:issue:`10387`)
 - Bug in ``DataFrame.reset_index`` when index contains `NaT`. (:issue:`10388`)
-
-
 - Bug in ``ExcelReader`` when worksheet is empty (:issue:`6403`)
-
-
 - Bug in ``Table.select_column`` where name is not preserved (:issue:`10392`)
 - Bug in ``offsets.generate_range`` where ``start`` and ``end`` have finer precision than ``offset`` (:issue:`9907`)
 
 
-- Bug in ``DataFrame.interpolate`` with ``axis=1`` and ``inplace=True`` (:issue:`10395`)
 
+
+
+
+- Bug in ``DataFrame.interpolate`` with ``axis=1`` and ``inplace=True`` (:issue:`10395`)
 - Bug in ``io.sql.get_schema`` when specifying multiple columns as primary
   key (:issue:`10385`).
-
-
 - Bug in ``test_categorical`` on big-endian builds (:issue:`10425`)
 - Bug in ``Series.map`` using categorical ``Series`` raises ``AttributeError`` (:issue:`10324`)
 - Bug in ``MultiIndex.get_level_values`` including ``Categorical`` raises ``AttributeError`` (:issue:`10460`)
 
+
+
+
+
+
+
 - Bug that caused segfault when resampling an empty Series (:issue:`10228`)
 - Bug in ``DatetimeIndex`` and ``PeriodIndex.value_counts`` resets name from its result, but retains in result's ``Index``. (:issue:`10150`)
-
 - Bug in `pandas.concat` with ``axis=0`` when column is of dtype ``category`` (:issue:`10177`)
-
 - Bug in ``read_msgpack`` where input type is not always checked (:issue:`10369`)
-
 - Bug in `pandas.read_csv` with ``index_col=False`` or with ``index_col=['a', 'b']``  (:issue:`10413`, :issue:`10467`)
-
 - Bug in `Series.from_csv` with ``header`` kwarg not setting the ``Series.name`` or the ``Series.index.name`` (:issue:`10483`)
-
 - Bug in `groupby.var` which caused variance to be inaccurate for small float values (:issue:`10448`)
-
 - Bug in ``Series.plot(kind='hist')`` Y Label not informative (:issue:`10485`)
+
+
+
+
+
+
+
+
+
 
 - Bug in operator equal on Index not being consistent with Series (:issue:`9947`)
