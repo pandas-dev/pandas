@@ -382,3 +382,5 @@ Bug Fixes
 
 
 - Bug in operator equal on Index not being consistent with Series (:issue:`9947`)
+
+- Reading "famafrench" data via ``DataReader`` results in HTTP 404 error because of the website url is changed (:issue:`10591`).
