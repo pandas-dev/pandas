@@ -230,7 +230,7 @@ Boolean comparisons of a ``Series`` vs ``None`` will now be equivalent to compar
 
 .. ipython:: python
 
-   s = Series(range(3.))
+   s = Series(range(3))
    s.iloc[1] = None
    s
 
@@ -256,7 +256,7 @@ Usually you simply want to know which values are null.
 .. warning::
 
    You generally will want to use ``isnull/notnull`` for these types of comparisons, as ``isnull/notnull`` tells you which elements are null. One has to be
-   mindful that ``nan's`` don't compare equal, but ``None's`` do.
+   mindful that ``nan's`` don't compare equal, but ``None's`` do. Note that Pandas/numpy uses the fact that ``np.nan != np.nan``, and treats ``None`` like ``np.nan``.
 
    .. ipython:: python
 

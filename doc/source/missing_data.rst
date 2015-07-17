@@ -91,6 +91,7 @@ pandas provides the :func:`~pandas.core.common.isnull` and
 .. warning::
 
    One has to be mindful that in python (and numpy), the ``nan's`` don't compare equal, but ``None's`` **do**.
+   Note that Pandas/numpy uses the fact that ``np.nan != np.nan``, and treats ``None`` like ``np.nan``.
 
    .. ipython:: python
 
