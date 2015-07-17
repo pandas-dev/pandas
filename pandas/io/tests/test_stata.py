@@ -430,10 +430,11 @@ class TestStata(tm.TestCase):
         data_label = 'This is a data file.'
         with tm.ensure_clean() as path:
             original.to_stata(path, time_stamp=time_stamp, data_label=data_label)
-            reader = StataReader(path)
-            parsed_time_stamp = dt.datetime.strptime(reader.time_stamp, ('%d %b %Y %H:%M'))
-            assert parsed_time_stamp == time_stamp
-            assert reader.data_label == data_label
+	    
+            with StataReader(path) as reader:
+                parsed_time_stamp = dt.datetime.strptime(reader.time_stamp, ('%d %b %Y %H:%M'))
+                assert parsed_time_stamp == time_stamp
+                assert reader.data_label == data_label
 
     def test_numeric_column_names(self):
         original = DataFrame(np.reshape(np.arange(25.0), (5, 5)))
@@ -599,13 +600,14 @@ class TestStata(tm.TestCase):
         original = DataFrame(s)
         with tm.ensure_clean() as path:
             original.to_stata(path, write_index=False)
-            sr = StataReader(path)
-            typlist = sr.typlist
-            variables = sr.varlist
-            formats = sr.fmtlist
-            for variable, fmt, typ in zip(variables, formats, typlist):
-                self.assertTrue(int(variable[1:]) == int(fmt[1:-1]))
-                self.assertTrue(int(variable[1:]) == typ)
+
+            with StataReader(path) as sr:
+                typlist = sr.typlist
+                variables = sr.varlist
+                formats = sr.fmtlist
+                for variable, fmt, typ in zip(variables, formats, typlist):
+                    self.assertTrue(int(variable[1:]) == int(fmt[1:-1]))
+                    self.assertTrue(int(variable[1:]) == typ)
 
     def test_excessively_long_string(self):
         str_lens = (1, 244, 500)
