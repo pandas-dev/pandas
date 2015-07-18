@@ -357,6 +357,7 @@ def encode(obj):
                     'klass': obj.__class__.__name__,
                     'axes': data.axes,
                     'blocks': [{'items': data.items.take(b.mgr_locs),
+                                'locs': b.mgr_locs.as_array,
                                 'values': convert(b.values),
                                 'shape': b.values.shape,
                                 'dtype': b.dtype.num,
@@ -485,9 +486,15 @@ def decode(obj):
         def create_block(b):
             values = unconvert(b['values'], dtype_for(b['dtype']),
                                b['compress']).reshape(b['shape'])
+
+            # locs handles duplicate column names, and should be used instead of items; see GH 9618
+            if 'locs' in b:
+                placement = b['locs']
+            else:
+                placement = axes[0].get_indexer(b['items'])
             return make_block(values=values,
                               klass=getattr(internals, b['klass']),
-                              placement=axes[0].get_indexer(b['items']))
+                              placement=placement)
 
         blocks = [create_block(b) for b in obj['blocks']]
         return globals()[obj['klass']](BlockManager(blocks, axes))
