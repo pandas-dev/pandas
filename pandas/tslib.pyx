@@ -1808,7 +1808,8 @@ cpdef object _get_rule_month(object source, object default='DEC'):
 
 cpdef array_to_datetime(ndarray[object] values, raise_=False,
                         dayfirst=False, yearfirst=False, freq=None,
-                        format=None, utc=None, coerce=False, unit=None):
+                        format=None, utc=None, coerce=False, unit=None,
+                        require_iso8601=False):
     cdef:
         Py_ssize_t i, n = len(values)
         object val, py_dt
@@ -1908,6 +1909,17 @@ cpdef array_to_datetime(ndarray[object] values, raise_=False,
                     iresult[i] = value
                     _check_dts_bounds(&dts)
                 except ValueError:
+                    # if requiring iso8601 strings, skip trying other formats
+                    if require_iso8601:
+                        if coerce:
+                            iresult[i] = iNaT
+                            continue
+                        elif raise_:
+                            raise ValueError("time data %r does match format specified" %
+                                             (val,))
+                        else:
+                            return values
+
                     try:
                         py_dt = parse_datetime_string(val, dayfirst=dayfirst,
                                                       yearfirst=yearfirst, freq=freq)
@@ -1971,7 +1983,7 @@ cpdef array_to_datetime(ndarray[object] values, raise_=False,
                     continue
                 try:
                     oresult[i] = parse_datetime_string(val, dayfirst=dayfirst,
-                                                       yearfirst=yearfirst, freq=freq)
+                                                    yearfirst=yearfirst, freq=freq)
                     _pydatetime_to_dts(oresult[i], &dts)
                     _check_dts_bounds(&dts)
                 except Exception:
