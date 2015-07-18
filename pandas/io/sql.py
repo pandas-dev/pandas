@@ -62,7 +62,7 @@ def _is_sqlalchemy_connectable(con):
 
     if _SQLALCHEMY_INSTALLED:
         import sqlalchemy
-        return isinstance(con, sqlalchemy.engine.Connectable)
+        return isinstance(con, sqlalchemy.engine.Connectable) or isinstance(con, sqlalchemy.orm.session.Session)
     else:
         return False
 
@@ -362,7 +362,7 @@ def read_sql_query(sql, con, index_col=None, coerce_float=True, params=None,
     ----------
     sql : string
         SQL query to be executed
-    con : SQLAlchemy connectable(engine/connection) or sqlite3 DBAPI2 connection
+    con : SQLAlchemy connectable(engine/connection/session) or sqlite3 DBAPI2 connection
         Using SQLAlchemy makes it possible to use any DB supported by that
         library.
         If a DBAPI2 object, only sqlite3 is supported.
@@ -420,7 +420,7 @@ def read_sql(sql, con, index_col=None, coerce_float=True, params=None,
     ----------
     sql : string
         SQL query to be executed or database table name.
-    con : SQLAlchemy connectable(engine/connection) or DBAPI2 connection (fallback mode)
+    con : SQLAlchemy connectable(engine/connection/session) or DBAPI2 connection (fallback mode)
         Using SQLAlchemy makes it possible to use any DB supported by that
         library.
         If a DBAPI2 object, only sqlite3 is supported.

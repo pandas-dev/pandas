@@ -918,6 +918,30 @@ class TestSQLApi(SQLAlchemyMixIn, _TestSQLApi):
         table = sql.SQLTable("test_type", db, frame=df)
         self.assertTrue(isinstance(table.table.c['time'].type, sqltypes.DateTime))
 
+    def test_session(self):
+        """
+        read_sql_query should work within a session.
+        a temporary table created within the session should be able to be queried.
+        """
+        from sqlalchemy.orm import sessionmaker
+        session = sessionmaker(bind=self.conn)()
+        # create a temporary table within a session
+        # this is contrived example or a temporary tables but they can be really useful
+        session.execute("""CREATE TEMPORARY TABLE temp_iris AS SELECT * FROM iris LIMIT 5""")
+        # read_sql_query can read from the temporary table
+        iris_frame = sql.read_sql_query("SELECT * FROM temp_iris", session)
+        assert(len(iris_frame) == 5)
+
+    def test_session_close(self):
+        """read_sql_query shouldn't close the session"""
+        from sqlalchemy.orm import sessionmaker
+        session = sessionmaker(bind=self.conn)()
+        session.execute("""CREATE TEMPORARY TABLE temp_iris AS SELECT * FROM iris LIMIT 5""")
+        sql.read_sql_query("SELECT count(1) FROM temp_iris", session)
+        # run again to test that the session hasn't been closed by the last call
+        iris_frame = sql.read_sql_query("SELECT * FROM temp_iris", session)
+        assert(len(iris_frame) == 5)
+
 
 class _EngineToConnMixin(object):
     """
