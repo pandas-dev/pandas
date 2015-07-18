@@ -1080,6 +1080,26 @@ class TestCategorical(tm.TestCase):
         exp = np.array([0,1,3,2])
         self.assert_numpy_array_equal(cat.codes, exp)
 
+    def test_shift(self):
+        # GH 9416
+        cat = pd.Categorical(['a', 'b', 'c', 'd', 'a'])
+
+        # shift forward
+        sp1 = cat.shift(1)
+        xp1 = pd.Categorical([np.nan, 'a', 'b', 'c', 'd'])
+        self.assert_categorical_equal(sp1, xp1)
+        self.assert_categorical_equal(cat[:-1], sp1[1:])
+
+        # shift back
+        sn2 = cat.shift(-2)
+        xp2 = pd.Categorical(['c', 'd', 'a', np.nan, np.nan],
+                categories=['a', 'b', 'c', 'd'])
+        self.assert_categorical_equal(sn2, xp2)
+        self.assert_categorical_equal(cat[2:], sn2[:-2])
+
+        # shift by zero
+        self.assert_categorical_equal(cat, cat.shift(0))
+
     def test_nbytes(self):
         cat = pd.Categorical([1,2,3])
         exp = cat._codes.nbytes + cat._categories.values.nbytes
