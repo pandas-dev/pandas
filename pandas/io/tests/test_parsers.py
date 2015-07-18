@@ -2696,7 +2696,7 @@ c   1   2   3   4
                 columns = ["time", "pri", "pgn", "dst", "src","data"])
 
         # Hacky fix for dst column dtype
-        expected.dst = expected.dst.astype(object)
+        expected["dst"] = expected["dst"].astype(object)
 
         tm.assert_frame_equal(df, expected)
 
