@@ -17,9 +17,11 @@ from pandas.util.testing import (assert_frame_equal, assert_series_equal,
                                  assert_almost_equal,
                                  makeCustomDataframe as mkdf,
                                  assertRaisesRegexp)
-from pandas import isnull, DataFrame, Index, MultiIndex, Panel, Series, date_range, read_table, read_csv
+from pandas import (isnull, DataFrame, Index, MultiIndex, Panel, Series, date_range,
+                    read_table, read_csv, SparseSeries, SparseDataFrame)
 import pandas.algos as algos
 import pandas.util.testing as tm
+from pandas.sparse.tests.test_sparse import assert_sp_series_equal, assert_sp_frame_equal
 
 a_ = np.array
 
@@ -2475,6 +2477,24 @@ bar2,12,13,14,15
         result = concat(reader, ignore_index=True)
         expected = read_csv(StringIO(data))
         assert_frame_equal(result,expected)
+
+    def test_concat_sp_series(self):
+        # GH10536
+        data = [0, 1, 1, 2, 3, 0, np.nan]
+        index = [1, 2, 3, 4, 5, 6, 7]
+        sp = SparseSeries(data, index=index)
+        result = concat([sp, sp], axis=0)
+        expected = SparseSeries(data * 2, index=index * 2, kind='integer')
+        assert_sp_series_equal(result, expected)
+
+    def test_concat_sp_dataframe(self):
+        # GH10536
+        data = [0, 1, 1, 2, 3, 0, np.nan]
+        sp = SparseDataFrame(data)
+        result = concat([sp, sp], axis=1, ignore_index=True)
+        expected = SparseDataFrame({0: data, 1: data})
+        assert_sp_frame_equal(result, expected)
+
 
 class TestOrderedMerge(tm.TestCase):
 
