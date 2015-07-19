@@ -4414,7 +4414,7 @@ class MultiIndex(Index):
         levels = [c.categories for c in cats]
         labels = [c.codes for c in cats]
         if names is None:
-            names = [c.name for c in cats]
+            names = [getattr(arr, "name", None) for arr in arrays]
 
         return MultiIndex(levels=levels, labels=labels,
                           sortorder=sortorder, names=names,

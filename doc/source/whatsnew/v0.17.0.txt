@@ -270,6 +270,7 @@ Other API Changes
 - Enable serialization of lists and dicts to strings in ExcelWriter (:issue:`8188`)
 - Allow passing `kwargs` to the interpolation methods (:issue:`10378`).
 - Serialize metadata properties of subclasses of pandas objects (:issue:`10553`).
+- ``Categorical.name`` was removed to make `Categorical` more ``numpy.ndarray`` like. Use ``Series(cat, name="whatever")`` instead (:issue:`10482`).
 
 - ``NaT``'s methods now either raise ``ValueError``, or return ``np.nan`` or ``NaT`` (:issue:`9513`)
 ===========================     ==============================================================
