@@ -62,7 +62,11 @@ def _is_sqlalchemy_connectable(con):
 
     if _SQLALCHEMY_INSTALLED:
         import sqlalchemy
-        return isinstance(con, sqlalchemy.engine.Connectable) or isinstance(con, sqlalchemy.orm.session.Session)
+        is_connectable = isinstance(con, sqlalchemy.engine.Connectable)
+        if sqlalchemy.__version__ >= '1.0.0':
+            # support sessions, if sqlalchemy version has them
+            is_connectable |= isinstance(con, sqlalchemy.orm.session.Session)
+        return is_connectable
     else:
         return False
 

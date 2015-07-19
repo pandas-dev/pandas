@@ -923,6 +923,8 @@ class TestSQLApi(SQLAlchemyMixIn, _TestSQLApi):
         read_sql_query should work within a session.
         a temporary table created within the session should be able to be queried.
         """
+        if sqlalchemy.__version__ < '1.0.0':
+            nose.SkipTest('session requires sqlalchemy>=1.0.0')
         from sqlalchemy.orm import sessionmaker
         session = sessionmaker(bind=self.conn)()
         # create a temporary table within a session
@@ -934,6 +936,8 @@ class TestSQLApi(SQLAlchemyMixIn, _TestSQLApi):
 
     def test_session_close(self):
         """read_sql_query shouldn't close the session"""
+        if sqlalchemy.__version__ < '1.0.0':
+            nose.SkipTest('session requires sqlalchemy>=1.0.0')
         from sqlalchemy.orm import sessionmaker
         session = sessionmaker(bind=self.conn)()
         session.execute("""CREATE TEMPORARY TABLE temp_iris AS SELECT * FROM iris LIMIT 5""")
