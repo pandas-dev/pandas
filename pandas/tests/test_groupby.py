@@ -3453,7 +3453,7 @@ class TestGroupBy(tm.TestCase):
         levels = ['foo', 'bar', 'baz', 'qux']
         codes = np.random.randint(0, 4, size=100)
 
-        cats = Categorical.from_codes(codes, levels, name='myfactor', ordered=True)
+        cats = Categorical.from_codes(codes, levels, ordered=True)
 
         data = DataFrame(np.random.randn(100, 4))
 
@@ -3461,10 +3461,8 @@ class TestGroupBy(tm.TestCase):
 
         expected = data.groupby(np.asarray(cats)).mean()
         expected = expected.reindex(levels)
-        expected.index.name = 'myfactor'
 
         assert_frame_equal(result, expected)
-        self.assertEqual(result.index.name, cats.name)
 
         grouped = data.groupby(cats)
         desc_result = grouped.describe()
@@ -3473,12 +3471,12 @@ class TestGroupBy(tm.TestCase):
         ord_labels = np.asarray(cats).take(idx)
         ord_data = data.take(idx)
         expected = ord_data.groupby(ord_labels, sort=False).describe()
-        expected.index.names = ['myfactor', None]
+        expected.index.names = [None, None]
         assert_frame_equal(desc_result, expected)
 
         # GH 10460
-        expc = Categorical.from_codes(np.arange(4).repeat(8), levels, name='myfactor', ordered=True)
-        exp = CategoricalIndex(expc, name='myfactor')
+        expc = Categorical.from_codes(np.arange(4).repeat(8), levels, ordered=True)
+        exp = CategoricalIndex(expc)
         self.assert_index_equal(desc_result.index.get_level_values(0), exp)
         exp = Index(['count', 'mean', 'std', 'min', '25%', '50%', '75%', 'max'] * 4)
         self.assert_index_equal(desc_result.index.get_level_values(1), exp)
@@ -3488,7 +3486,7 @@ class TestGroupBy(tm.TestCase):
         levels = pd.date_range('2014-01-01', periods=4)
         codes = np.random.randint(0, 4, size=100)
 
-        cats = Categorical.from_codes(codes, levels, name='myfactor', ordered=True)
+        cats = Categorical.from_codes(codes, levels, ordered=True)
 
         data = DataFrame(np.random.randn(100, 4))
         result = data.groupby(cats).mean()
@@ -3496,10 +3494,9 @@ class TestGroupBy(tm.TestCase):
         expected = data.groupby(np.asarray(cats)).mean()
         expected = expected.reindex(levels)
         expected.index = CategoricalIndex(expected.index, categories=expected.index,
-                                          name='myfactor', ordered=True)
+                                          ordered=True)
 
         assert_frame_equal(result, expected)
-        self.assertEqual(result.index.name, cats.name)
 
         grouped = data.groupby(cats)
         desc_result = grouped.describe()
@@ -3508,14 +3505,14 @@ class TestGroupBy(tm.TestCase):
         ord_labels = cats.take_nd(idx)
         ord_data = data.take(idx)
         expected = ord_data.groupby(ord_labels).describe()
-        expected.index.names = ['myfactor', None]
+        expected.index.names = [None, None]
         assert_frame_equal(desc_result, expected)
         tm.assert_index_equal(desc_result.index, expected.index)
         tm.assert_index_equal(desc_result.index.get_level_values(0), expected.index.get_level_values(0))
 
         # GH 10460
-        expc = Categorical.from_codes(np.arange(4).repeat(8), levels, name='myfactor', ordered=True)
-        exp = CategoricalIndex(expc, name='myfactor')
+        expc = Categorical.from_codes(np.arange(4).repeat(8), levels, ordered=True)
+        exp = CategoricalIndex(expc)
         self.assert_index_equal(desc_result.index.get_level_values(0), exp)
         exp = Index(['count', 'mean', 'std', 'min', '25%', '50%', '75%', 'max'] * 4)
         self.assert_index_equal(desc_result.index.get_level_values(1), exp)
