@@ -114,6 +114,9 @@ class UltraJSONTests(TestCase):
         self.assertEqual(sut, decoded)
 
     def test_encodeDoubleTinyExponential(self):
+        if compat.is_platform_windows() and not compat.PY3:
+            raise nose.SkipTest("buggy on win-64 for py2")
+
         num = 1e-40
         self.assertEqual(num, ujson.decode(ujson.encode(num)))
         num = 1e-100
