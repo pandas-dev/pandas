@@ -919,8 +919,8 @@ class TestTimeSeries(tm.TestCase):
         assert_series_equal(result, expected)
 
         td = pd.Series(['May 04', 'Jun 02', ''], index=[1,2,3])
-        self.assertRaises(ValueError, lambda : pd.to_datetime(td,format='%b %y'))
-        self.assertRaises(ValueError, lambda : td.apply(pd.to_datetime, format='%b %y'))
+        self.assertRaises(ValueError, lambda : pd.to_datetime(td,format='%b %y', errors='raise'))
+        self.assertRaises(ValueError, lambda : td.apply(pd.to_datetime, format='%b %y', errors='raise'))
         expected = pd.to_datetime(td, format='%b %y', coerce=True)
 
         result = td.apply(lambda x: pd.to_datetime(x, format='%b %y', coerce=True))
@@ -4197,6 +4197,20 @@ class TimeConversionFormats(tm.TestCase):
         expected = Series(['20121231','20141231','NaT'],dtype='M8[ns]')
         assert_series_equal(result, expected)
 
+    # GH 10178
+    def test_to_datetime_format_integer(self):
+        s = Series([2000, 2001, 2002])
+        expected = Series([ Timestamp(x) for x in s.apply(str) ])
+
+        result = to_datetime(s,format='%Y')
+        assert_series_equal(result, expected)
+
+        s = Series([200001, 200105, 200206])
+        expected = Series([ Timestamp(x[:4] + '-' + x[4:]) for x in s.apply(str) ])
+
+        result = to_datetime(s,format='%Y%m')
+        assert_series_equal(result, expected)
+
     def test_to_datetime_format_microsecond(self):
         val = '01-Apr-2011 00:00:01.978'
         format = '%d-%b-%Y %H:%M:%S.%f'
@@ -4524,9 +4538,9 @@ class TestDaysInMonth(tm.TestCase):
 
     def test_day_not_in_month_coerce_false_ignore(self):
         self.assertEqual(to_datetime('2015-02-29', errors='ignore', coerce=False), '2015-02-29')
-        self.assertRaises(ValueError, to_datetime, '2015-02-29', errors='ignore', format="%Y-%m-%d", coerce=False)
-        self.assertRaises(ValueError, to_datetime, '2015-02-32', errors='ignore', format="%Y-%m-%d", coerce=False)
-        self.assertRaises(ValueError, to_datetime, '2015-04-31', errors='ignore', format="%Y-%m-%d", coerce=False)
+        self.assertEqual(to_datetime('2015-02-29', errors='ignore', format="%Y-%m-%d", coerce=False), '2015-02-29')
+        self.assertEqual(to_datetime('2015-02-32', errors='ignore', format="%Y-%m-%d", coerce=False), '2015-02-32')
+        self.assertEqual(to_datetime('2015-04-31', errors='ignore', format="%Y-%m-%d", coerce=False), '2015-04-31')
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
