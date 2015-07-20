@@ -1391,6 +1391,7 @@ Freq: Q-DEC"""
 
         for o in [pd.offsets.YearBegin(2), pd.offsets.MonthBegin(1), pd.offsets.Minute(),
                   np.timedelta64(365, 'D'), timedelta(365), Timedelta(days=365)]:
+            msg = 'Input has different freq from PeriodIndex\\(freq=A-DEC\\)'
             with tm.assertRaisesRegexp(ValueError, 'Input has different freq from Period'):
                 rng + o
 
@@ -1404,7 +1405,8 @@ Freq: Q-DEC"""
         for o in [pd.offsets.YearBegin(2), pd.offsets.MonthBegin(1), pd.offsets.Minute(),
                   np.timedelta64(365, 'D'), timedelta(365),  Timedelta(days=365)]:
             rng = pd.period_range('2014-01', '2016-12', freq='M')
-            with tm.assertRaisesRegexp(ValueError, 'Input has different freq from Period'):
+            msg = 'Input has different freq from PeriodIndex\\(freq=M\\)'
+            with tm.assertRaisesRegexp(ValueError, msg):
                 rng + o
 
         # Tick
@@ -1422,7 +1424,8 @@ Freq: Q-DEC"""
         for o in [pd.offsets.YearBegin(2), pd.offsets.MonthBegin(1), pd.offsets.Minute(),
                   np.timedelta64(4, 'h'), timedelta(hours=23), Timedelta('23:00:00')]:
             rng = pd.period_range('2014-05-01', '2014-05-15', freq='D')
-            with tm.assertRaisesRegexp(ValueError, 'Input has different freq from Period'):
+            msg = 'Input has different freq from PeriodIndex\\(freq=D\\)'
+            with tm.assertRaisesRegexp(ValueError, msg):
                 rng + o
 
         offsets = [pd.offsets.Hour(2), timedelta(hours=2), np.timedelta64(2, 'h'),
@@ -1439,9 +1442,10 @@ Freq: Q-DEC"""
         for delta in [pd.offsets.YearBegin(2), timedelta(minutes=30),
                       np.timedelta64(30, 's'),  Timedelta(seconds=30)]:
             rng = pd.period_range('2014-01-01 10:00', '2014-01-05 10:00', freq='H')
-            with tm.assertRaisesRegexp(ValueError, 'Input has different freq from Period'):
+            msg = 'Input has different freq from PeriodIndex\\(freq=H\\)'
+            with tm.assertRaisesRegexp(ValueError, msg):
                 result = rng + delta
-            with tm.assertRaisesRegexp(ValueError, 'Input has different freq from Period'):
+            with tm.assertRaisesRegexp(ValueError, msg):
                 rng += delta
 
         # int
@@ -1502,7 +1506,8 @@ Freq: Q-DEC"""
         for o in [pd.offsets.YearBegin(2), pd.offsets.MonthBegin(1), pd.offsets.Minute(),
                   np.timedelta64(365, 'D'), timedelta(365)]:
             rng = pd.period_range('2014', '2024', freq='A')
-            with tm.assertRaisesRegexp(ValueError, 'Input has different freq from Period'):
+            msg = 'Input has different freq from PeriodIndex\\(freq=A-DEC\\)'
+            with tm.assertRaisesRegexp(ValueError, msg):
                 rng - o
 
         rng = pd.period_range('2014-01', '2016-12', freq='M')
@@ -1515,7 +1520,8 @@ Freq: Q-DEC"""
         for o in [pd.offsets.YearBegin(2), pd.offsets.MonthBegin(1), pd.offsets.Minute(),
                   np.timedelta64(365, 'D'), timedelta(365)]:
             rng = pd.period_range('2014-01', '2016-12', freq='M')
-            with tm.assertRaisesRegexp(ValueError, 'Input has different freq from Period'):
+            msg = 'Input has different freq from PeriodIndex\\(freq=M\\)'
+            with tm.assertRaisesRegexp(ValueError, msg):
                 rng - o
 
         # Tick
@@ -1532,7 +1538,8 @@ Freq: Q-DEC"""
         for o in [pd.offsets.YearBegin(2), pd.offsets.MonthBegin(1), pd.offsets.Minute(),
                   np.timedelta64(4, 'h'), timedelta(hours=23)]:
             rng = pd.period_range('2014-05-01', '2014-05-15', freq='D')
-            with tm.assertRaisesRegexp(ValueError, 'Input has different freq from Period'):
+            msg = 'Input has different freq from PeriodIndex\\(freq=D\\)'
+            with tm.assertRaisesRegexp(ValueError, msg):
                 rng - o
 
         offsets = [pd.offsets.Hour(2), timedelta(hours=2), np.timedelta64(2, 'h'),
@@ -1547,9 +1554,10 @@ Freq: Q-DEC"""
 
         for delta in [pd.offsets.YearBegin(2), timedelta(minutes=30), np.timedelta64(30, 's')]:
             rng = pd.period_range('2014-01-01 10:00', '2014-01-05 10:00', freq='H')
-            with tm.assertRaisesRegexp(ValueError, 'Input has different freq from Period'):
+            msg = 'Input has different freq from PeriodIndex\\(freq=H\\)'
+            with tm.assertRaisesRegexp(ValueError, msg):
                 result = rng + delta
-            with tm.assertRaisesRegexp(ValueError, 'Input has different freq from Period'):
+            with tm.assertRaisesRegexp(ValueError, msg):
                 rng += delta
 
         # int

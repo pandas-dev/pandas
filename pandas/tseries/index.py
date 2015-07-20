@@ -1077,15 +1077,6 @@ class DatetimeIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
                               end=max(left_end, right_end),
                               freq=left.offset)
 
-    def __array_finalize__(self, obj):
-        if self.ndim == 0:  # pragma: no cover
-            return self.item()
-
-        self.offset = getattr(obj, 'offset', None)
-        self.tz = getattr(obj, 'tz', None)
-        self.name = getattr(obj, 'name', None)
-        self._reset_identity()
-
     def __iter__(self):
         """
         Return an iterator over the boxed values

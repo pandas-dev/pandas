@@ -19,7 +19,8 @@ from pandas._period import (
 import pandas.core.common as com
 from pandas.core.common import (isnull, _INT64_DTYPE, _maybe_box,
                                 _values_from_object, ABCSeries,
-                                is_integer, is_float, is_object_dtype)
+                                is_integer, is_float, is_object_dtype,
+                                is_float_dtype)
 from pandas import compat
 from pandas.util.decorators import cache_readonly
 
@@ -307,6 +308,30 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
             return False
         return key.ordinal in self._engine
 
+    def __array_wrap__(self, result, context=None):
+        """
+        Gets called after a ufunc. Needs additional handling as
+        PeriodIndex stores internal data as int dtype
+
+        Replace this to __numpy_ufunc__ in future version
+        """
+        if isinstance(context, tuple) and len(context) > 0:
+            func = context[0]
+            if (func is np.add):
+                return self._add_delta(context[1][1])
+            elif (func is np.subtract):
+                return self._add_delta(-context[1][1])
+            elif isinstance(func, np.ufunc):
+                if 'M->M' not in func.types:
+                    msg = "ufunc '{0}' not supported for the PeriodIndex"
+                    # This should be TypeError, but TypeError cannot be raised
+                    # from here because numpy catches.
+                    raise ValueError(msg.format(func.__name__))
+
+        if com.is_bool_dtype(result):
+            return result
+        return PeriodIndex(result, freq=self.freq, name=self.name)
+
     @property
     def _box_func(self):
         return lambda x: Period._from_ordinal(ordinal=x, freq=self.freq)
@@ -522,7 +547,18 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
             base = frequencies.get_base_alias(freqstr)
             if base == self.freq.rule_code:
                 return other.n
-        raise ValueError("Input has different freq from PeriodIndex(freq={0})".format(self.freq))
+        elif isinstance(other, np.ndarray):
+            if com.is_integer_dtype(other):
+                return other
+            elif com.is_timedelta64_dtype(other):
+                offset = frequencies.to_offset(self.freq)
+                if isinstance(offset, offsets.Tick):
+                    nanos = tslib._delta_to_nanoseconds(other)
+                    offset_nanos = tslib._delta_to_nanoseconds(offset)
+                    if (nanos % offset_nanos).all() == 0:
+                        return nanos // offset_nanos
+        msg = "Input has different freq from PeriodIndex(freq={0})"
+        raise ValueError(msg.format(self.freqstr))
 
     def _add_delta(self, other):
         ordinal_delta = self._maybe_convert_timedelta(other)
@@ -774,14 +810,6 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
             formatter = lambda dt: u('%s') % dt
         values[imask] = np.array([formatter(dt) for dt in values[imask]])
         return values
-
-    def __array_finalize__(self, obj):
-        if not self.ndim:  # pragma: no cover
-            return self.item()
-
-        self.freq = getattr(obj, 'freq', None)
-        self.name = getattr(obj, 'name', None)
-        self._reset_identity()
 
     def take(self, indices, axis=0):
         """

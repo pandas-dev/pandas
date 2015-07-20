@@ -309,6 +309,8 @@ Other enhancements
 
 - ``DataFrame.apply`` will return a Series of dicts if the passed function returns a dict and ``reduce=True`` (:issue:`8735`).
 
+- ``PeriodIndex`` now supports arithmetic with ``np.ndarray`` (:issue:`10638`)
+
 - ``concat`` will now use existing Series names if provided (:issue:`10698`).
 
   .. ipython:: python
@@ -332,6 +334,7 @@ Other enhancements
   .. ipython:: python
 
     pd.concat([foo, bar, baz], 1)
+
 
 .. _whatsnew_0170.api:
 
@@ -1005,3 +1008,5 @@ Bug Fixes
 - Bug when constructing ``DataFrame`` where passing a dictionary with only scalar values and specifying columns did not raise an error (:issue:`10856`)
 - Bug in ``.var()`` causing roundoff errors for highly similar values (:issue:`10242`)
 - Bug in ``DataFrame.plot(subplots=True)`` with duplicated columns outputs incorrect result (:issue:`10962`)
+- Bug in ``Index`` arithmetic may result in incorrect class (:issue:`10638`)
+
