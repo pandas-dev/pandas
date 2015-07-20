@@ -172,12 +172,11 @@ def _reconstruct_object(typ, obj, axes, dtype):
         ret_value = res_t.type(obj)
     else:
         ret_value = typ(obj).astype(res_t)
+        # The condition is to distinguish 0-dim array (returned in case of scalar)
+        # and 1 element array
+        # e.g. np.array(0) and np.array([0])
+        if len(obj.shape) == 1 and len(obj) == 1:
+            if not isinstance(ret_value, np.ndarray):
+                ret_value = np.array([ret_value]).astype(res_t)
 
-    try:
-        ret = ret_value.item()
-    except (ValueError, IndexError):
-        # XXX: we catch IndexError to absorb a
-        # regression in numpy 1.7.0
-        # fixed by numpy/numpy@04b89c63
-        ret = ret_value
-    return ret
+    return ret_value
