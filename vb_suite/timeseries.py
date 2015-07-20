@@ -157,6 +157,10 @@ timeseries_to_datetime_iso8601 = \
     Benchmark('to_datetime(strings)', setup,
               start_date=datetime(2012, 7, 11))
 
+timeseries_to_datetime_iso8601_format = \
+    Benchmark("to_datetime(strings, format='%Y-%m-%d %H:%M:%S')", setup,
+              start_date=datetime(2012, 7, 11))
+
 setup = common_setup + """
 rng = date_range('1/1/2000', periods=10000, freq='D')
 strings = Series(rng.year*10000+rng.month*100+rng.day,dtype=np.int64).apply(str)

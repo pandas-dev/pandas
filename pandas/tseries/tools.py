@@ -296,21 +296,24 @@ def _to_datetime(arg, errors='ignore', dayfirst=False, yearfirst=False,
             return result
 
         arg = com._ensure_object(arg)
+        require_iso8601 = False
 
         if infer_datetime_format and format is None:
             format = _guess_datetime_format_for_array(arg, dayfirst=dayfirst)
 
-            if format is not None:
-                # There is a special fast-path for iso8601 formatted
-                # datetime strings, so in those cases don't use the inferred
-                # format because this path makes process slower in this
-                # special case
-                format_is_iso8601 = (
-                    '%Y-%m-%dT%H:%M:%S.%f'.startswith(format) or
-                    '%Y-%m-%d %H:%M:%S.%f'.startswith(format)
-                )
-                if format_is_iso8601:
-                    format = None
+        if format is not None:
+            # There is a special fast-path for iso8601 formatted
+            # datetime strings, so in those cases don't use the inferred
+            # format because this path makes process slower in this
+            # special case
+            format_is_iso8601 = (
+                ('%Y-%m-%dT%H:%M:%S.%f'.startswith(format) or
+                '%Y-%m-%d %H:%M:%S.%f'.startswith(format)) and
+				format != '%Y'
+            )
+            if format_is_iso8601:
+                require_iso8601 = not infer_datetime_format
+                format = None
 
         try:
             result = None
@@ -334,16 +337,20 @@ def _to_datetime(arg, errors='ignore', dayfirst=False, yearfirst=False,
                             raise
                         result = arg
                     except ValueError:
-                        # Only raise this error if the user provided the
-                        # datetime format, and not when it was inferred
+                        # if format was inferred, try falling back
+                        # to array_to_datetime - terminate here
+                        # for specified formats
                         if not infer_datetime_format:
-                            raise
+                            if errors == 'raise':
+                                raise
+                            result = arg
 
             if result is None and (format is None or infer_datetime_format):
-                result = tslib.array_to_datetime(arg, raise_=errors == 'raise',
+                result = tslib.array_to_datetime(arg, raise_=errors=='raise',
                                                  utc=utc, dayfirst=dayfirst,
                                                  yearfirst=yearfirst, freq=freq,
-                                                 coerce=coerce, unit=unit)
+                                                 coerce=coerce, unit=unit,
+                                                 require_iso8601=require_iso8601)
 
             if com.is_datetime64_dtype(result) and box:
                 result = DatetimeIndex(result, tz='utc' if utc else None)
