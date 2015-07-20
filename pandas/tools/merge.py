@@ -402,19 +402,14 @@ class _MergeOperation(object):
                 if self.left_on is None:
                     raise MergeError('Must pass left_on or left_index=True')
             else:
-                if not self.left.columns.is_unique:
-                    raise MergeError("Left data columns not unique: %s"
-                                     % repr(self.left.columns))
-
-                if not self.right.columns.is_unique:
-                    raise MergeError("Right data columns not unique: %s"
-                                     % repr(self.right.columns))
-
                 # use the common columns
                 common_cols = self.left.columns.intersection(
                     self.right.columns)
                 if len(common_cols) == 0:
                     raise MergeError('No common columns to perform merge on')
+                if not common_cols.is_unique:
+                    raise MergeError("Data columns not unique: %s"
+                                     % repr(common_cols))
                 self.left_on = self.right_on = common_cols
         elif self.on is not None:
             if self.left_on is not None or self.right_on is not None:

@@ -108,6 +108,8 @@ Other enhancements
 - ``regex`` argument to ``DataFrame.filter`` now handles numeric column names instead of raising ``ValueError`` (:issue:`10384`).
 - ``pd.read_stata`` will now read Stata 118 type files. (:issue:`9882`)
 
+- ``pd.merge`` will now allow duplicate column names if they are not merged upon (:issue:`10639`).
+
 .. _whatsnew_0170.api:
 
 .. _whatsnew_0170.api_breaking:
