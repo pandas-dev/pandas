@@ -843,7 +843,6 @@ class TestMerge(tm.TestCase):
         assert_frame_equal(result, expected)
 
     def test_overlapping_columns_error_message(self):
-        # #2649
         df = DataFrame({'key': [1, 2, 3],
                         'v1': [4, 5, 6],
                         'v2': [7, 8, 9]})
@@ -853,7 +852,16 @@ class TestMerge(tm.TestCase):
 
         df.columns = ['key', 'foo', 'foo']
         df2.columns = ['key', 'bar', 'bar']
+        expected = DataFrame({'key': [1, 2, 3],
+                         'v1': [4, 5, 6],
+                         'v2': [7, 8, 9],
+                         'v3': [4, 5, 6],
+                         'v4': [7, 8, 9]})
+        expected.columns = ['key', 'foo', 'foo', 'bar', 'bar']
+        assert_frame_equal(merge(df, df2), expected)
 
+        # #2649, #10639
+        df2.columns = ['key1', 'foo', 'foo']
         self.assertRaises(ValueError, merge, df, df2)
 
 def _check_merge(x, y):
