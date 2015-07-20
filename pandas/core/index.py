@@ -273,7 +273,12 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Gets called after a ufunc
         """
-        return self._shallow_copy(result)
+        if is_bool_dtype(result):
+            return result
+
+        attrs = self._get_attributes_dict()
+        attrs = self._maybe_update_attributes(attrs)
+        return Index(result, **attrs)
 
     @cache_readonly
     def dtype(self):
@@ -2809,6 +2814,10 @@ class Index(IndexOpsMixin, PandasObject):
         cls.__abs__ = _make_invalid_op('__abs__')
         cls.__inv__ = _make_invalid_op('__inv__')
 
+    def _maybe_update_attributes(self, attrs):
+        """ Update Index attributes (e.g. freq) depending on op """
+        return attrs
+
     @classmethod
     def _add_numeric_methods(cls):
         """ add in numeric methods """
@@ -2849,7 +2858,9 @@ class Index(IndexOpsMixin, PandasObject):
                 if reversed:
                     values, other = other, values
 
-                return self._shallow_copy(op(values, other))
+                attrs = self._get_attributes_dict()
+                attrs = self._maybe_update_attributes(attrs)
+                return Index(op(values, other), **attrs)
 
             return _evaluate_numeric_binop
 
@@ -2861,8 +2872,9 @@ class Index(IndexOpsMixin, PandasObject):
                 if not self._is_numeric_dtype:
                     raise TypeError("cannot evaluate a numeric op {opstr} for type: {typ}".format(opstr=opstr,
                                                                                                   typ=type(self)))
-
-                return self._shallow_copy(op(self.values))
+                attrs = self._get_attributes_dict()
+                attrs = self._maybe_update_attributes(attrs)
+                return Index(op(self.values), **attrs)
 
             return _evaluate_numeric_unary
 

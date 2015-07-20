@@ -960,7 +960,7 @@ class TestTimedeltaIndex(tm.TestCase):
         rng = timedelta_range('1 days, 10:11:12.100123456', periods=2, freq='s')
         expt = [1*86400+10*3600+11*60+12+100123456./1e9,1*86400+10*3600+11*60+13+100123456./1e9]
         assert_allclose(rng.total_seconds(), expt, atol=1e-10, rtol=0)
-        
+
         # test Series
         s = Series(rng)
         s_expt = Series(expt,index=[0,1])
@@ -970,7 +970,7 @@ class TestTimedeltaIndex(tm.TestCase):
         s[1] = np.nan
         s_expt = Series([1*86400+10*3600+11*60+12+100123456./1e9,np.nan],index=[0,1])
         tm.assert_series_equal(s.dt.total_seconds(),s_expt)
-        
+
         # with both nat
         s = Series([np.nan,np.nan], dtype='timedelta64[ns]')
         tm.assert_series_equal(s.dt.total_seconds(),Series([np.nan,np.nan],index=[0,1]))
@@ -980,7 +980,7 @@ class TestTimedeltaIndex(tm.TestCase):
         rng = Timedelta('1 days, 10:11:12.100123456')
         expt = 1*86400+10*3600+11*60+12+100123456./1e9
         assert_allclose(rng.total_seconds(), expt, atol=1e-10, rtol=0)
-        
+
         rng = Timedelta(np.nan)
         self.assertTrue(np.isnan(rng.total_seconds()))
 
@@ -1512,6 +1512,44 @@ class TestSlicing(tm.TestCase):
                                 lambda: ts.loc[::0])
         self.assertRaisesRegexp(ValueError, 'slice step cannot be zero',
                                 lambda: ts.ix[::0])
+
+    def test_tdi_ops_attributes(self):
+        rng = timedelta_range('2 days', periods=5, freq='2D', name='x')
+
+        result = rng + 1
+        exp = timedelta_range('4 days', periods=5, freq='2D', name='x')
+        tm.assert_index_equal(result, exp)
+        self.assertEqual(result.freq, '2D')
+
+        result = rng -2
+        exp = timedelta_range('-2 days', periods=5, freq='2D', name='x')
+        tm.assert_index_equal(result, exp)
+        self.assertEqual(result.freq, '2D')
+
+        result = rng * 2
+        exp = timedelta_range('4 days', periods=5, freq='4D', name='x')
+        tm.assert_index_equal(result, exp)
+        self.assertEqual(result.freq, '4D')
+
+        result = rng / 2
+        exp = timedelta_range('1 days', periods=5, freq='D', name='x')
+        tm.assert_index_equal(result, exp)
+        self.assertEqual(result.freq, 'D')
+
+        result = - rng
+        exp = timedelta_range('-2 days', periods=5, freq='-2D', name='x')
+        tm.assert_index_equal(result, exp)
+        # tdi doesn't infer negative freq
+        self.assertEqual(result.freq, None)
+
+        rng = pd.timedelta_range('-2 days', periods=5, freq='D', name='x')
+
+        result = abs(rng)
+        exp = TimedeltaIndex(['2 days', '1 days', '0 days', '1 days',
+                              '2 days'], name='x')
+        tm.assert_index_equal(result, exp)
+        # tdi doesn't infer negative freq
+        self.assertEqual(result.freq, None)
 
 
 if __name__ == '__main__':
