@@ -155,7 +155,7 @@ in the method call.
 Changes to Index Comparisons
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Operator equal on Index should behavior similarly to Series (:issue:`9947`)
+Operator equal on Index should behavior similarly to Series (:issue:`9947`, :issue:`10637`)
 
 Starting in v0.17.0, comparing ``Index`` objects of different lengths will raise
 a ``ValueError``. This is to be consistent with the behavior of ``Series``.
@@ -390,7 +390,6 @@ Bug Fixes
 
 
 
-- Bug in operator equal on Index not being consistent with Series (:issue:`9947`)
 - Reading "famafrench" data via ``DataReader`` results in HTTP 404 error because of the website url is changed (:issue:`10591`).
 - Bug in `read_msgpack` where DataFrame to decode has duplicate column names (:issue:`9618`)
 
