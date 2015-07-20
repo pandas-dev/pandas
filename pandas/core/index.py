@@ -3260,8 +3260,12 @@ class CategoricalIndex(Index, PandasDelegate):
                 elif isinstance(other, Index):
                     other = self._create_categorical(self, other.values, categories=self.categories, ordered=self.ordered)
 
+                if isinstance(other, (ABCCategorical, np.ndarray, ABCSeries)):
+                    if len(self.values) != len(other):
+                        raise ValueError("Lengths must match to compare")
+
                 if isinstance(other, ABCCategorical):
-                    if not (self.values.is_dtype_equal(other) and len(self.values) == len(other)):
+                    if not self.values.is_dtype_equal(other):
                         raise TypeError("categorical index comparisions must have the same categories and ordered attributes")
 
                 return getattr(self.values, op)(other)
