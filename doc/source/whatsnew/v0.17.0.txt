@@ -377,16 +377,12 @@ Bug Fixes
 - Bug in ``Series.plot(kind='hist')`` Y Label not informative (:issue:`10485`)
 
 
-
-
-
-
-
-
-
-
 - Bug in operator equal on Index not being consistent with Series (:issue:`9947`)
 
 - Reading "famafrench" data via ``DataReader`` results in HTTP 404 error because of the website url is changed (:issue:`10591`).
 
 - Bug in `read_msgpack` where DataFrame to decode has duplicate column names (:issue:`9618`)
+
+
+- Bug in `get_dummies` with `sparse=True` not returning SparseDataFrame (:issue:`10531`)
+
