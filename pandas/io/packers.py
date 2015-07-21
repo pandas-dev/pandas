@@ -169,10 +169,16 @@ dtype_dict = {21: np.dtype('M8[ns]'),
               u('datetime64[us]'): np.dtype('M8[us]'),
               22: np.dtype('m8[ns]'),
               u('timedelta64[ns]'): np.dtype('m8[ns]'),
-              u('timedelta64[us]'): np.dtype('m8[us]')}
+              u('timedelta64[us]'): np.dtype('m8[us]'),
+
+              # this is platform int, which we need to remap to np.int64
+              # for compat on windows platforms
+              7: np.dtype('int64'),
+}
 
 
 def dtype_for(t):
+    """ return my dtype mapping, whether number or name """
     if t in dtype_dict:
         return dtype_dict[t]
     return np.typeDict[t]
@@ -266,7 +272,7 @@ def encode(obj):
                     'klass': obj.__class__.__name__,
                     'name': getattr(obj, 'name', None),
                     'freq': getattr(obj, 'freqstr', None),
-                    'dtype': obj.dtype.num,
+                    'dtype': obj.dtype.name,
                     'data': convert(obj.asi8),
                     'compress': compressor}
         elif isinstance(obj, DatetimeIndex):
@@ -279,7 +285,7 @@ def encode(obj):
             return {'typ': 'datetime_index',
                     'klass': obj.__class__.__name__,
                     'name': getattr(obj, 'name', None),
-                    'dtype': obj.dtype.num,
+                    'dtype': obj.dtype.name,
                     'data': convert(obj.asi8),
                     'freq': getattr(obj, 'freqstr', None),
                     'tz': tz,
@@ -288,14 +294,14 @@ def encode(obj):
             return {'typ': 'multi_index',
                     'klass': obj.__class__.__name__,
                     'names': getattr(obj, 'names', None),
-                    'dtype': obj.dtype.num,
+                    'dtype': obj.dtype.name,
                     'data': convert(obj.values),
                     'compress': compressor}
         else:
             return {'typ': 'index',
                     'klass': obj.__class__.__name__,
                     'name': getattr(obj, 'name', None),
-                    'dtype': obj.dtype.num,
+                    'dtype': obj.dtype.name,
                     'data': convert(obj.values),
                     'compress': compressor}
     elif isinstance(obj, Series):
@@ -305,7 +311,7 @@ def encode(obj):
             )
             #d = {'typ': 'sparse_series',
             #     'klass': obj.__class__.__name__,
-            #     'dtype': obj.dtype.num,
+            #     'dtype': obj.dtype.name,
             #     'index': obj.index,
             #     'sp_index': obj.sp_index,
             #     'sp_values': convert(obj.sp_values),
@@ -318,7 +324,7 @@ def encode(obj):
                     'klass': obj.__class__.__name__,
                     'name': getattr(obj, 'name', None),
                     'index': obj.index,
-                    'dtype': obj.dtype.num,
+                    'dtype': obj.dtype.name,
                     'data': convert(obj.values),
                     'compress': compressor}
     elif issubclass(tobj, NDFrame):
@@ -360,7 +366,7 @@ def encode(obj):
                                 'locs': b.mgr_locs.as_array,
                                 'values': convert(b.values),
                                 'shape': b.values.shape,
-                                'dtype': b.dtype.num,
+                                'dtype': b.dtype.name,
                                 'klass': b.__class__.__name__,
                                 'compress': compressor
                                 } for b in data.blocks]}
@@ -413,7 +419,7 @@ def encode(obj):
         return {'typ': 'ndarray',
                 'shape': obj.shape,
                 'ndim': obj.ndim,
-                'dtype': obj.dtype.num,
+                'dtype': obj.dtype.name,
                 'data': convert(obj),
                 'compress': compressor}
     elif isinstance(obj, np.number):
@@ -449,11 +455,12 @@ def decode(obj):
         return Period(ordinal=obj['ordinal'], freq=obj['freq'])
     elif typ == 'index':
         dtype = dtype_for(obj['dtype'])
-        data = unconvert(obj['data'], np.typeDict[obj['dtype']],
+        data = unconvert(obj['data'], dtype,
                          obj.get('compress'))
         return globals()[obj['klass']](data, dtype=dtype, name=obj['name'])
     elif typ == 'multi_index':
-        data = unconvert(obj['data'], np.typeDict[obj['dtype']],
+        dtype = dtype_for(obj['dtype'])
+        data = unconvert(obj['data'], dtype,
                          obj.get('compress'))
         data = [tuple(x) for x in data]
         return globals()[obj['klass']].from_tuples(data, names=obj['names'])
