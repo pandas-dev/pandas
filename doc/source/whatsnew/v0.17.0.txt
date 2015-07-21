@@ -393,5 +393,6 @@ Bug Fixes
 - Bug in operator equal on Index not being consistent with Series (:issue:`9947`)
 - Reading "famafrench" data via ``DataReader`` results in HTTP 404 error because of the website url is changed (:issue:`10591`).
 - Bug in `read_msgpack` where DataFrame to decode has duplicate column names (:issue:`9618`)
-
 - Bug in ``io.common.get_filepath_or_buffer`` which caused reading of valid S3 files to fail if the bucket also contained keys for which the user does not have read permission (:issue:`10604`)
+- Bug in vectorised setting of timestamp columns with python ``datetime.date`` and numpy ``datetime64`` (:issue:`10408`, :issue:`10412`)
+
