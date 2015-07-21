@@ -14,7 +14,7 @@ Key items to import for 2/3 compatible code:
   * Uses the original method if available, otherwise uses items, keys, values.
 * types:
     * text_type: unicode in Python 2, str in Python 3
-    * binary_type: str in Python 2, bythes in Python 3
+    * binary_type: str in Python 2, bytes in Python 3
     * string_types: basestring in Python 2, str in Python 3
 * bind_method: binds functions to classes
 * add_metaclass(metaclass) - class decorator that recreates class with with the

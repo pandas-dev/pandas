@@ -15,7 +15,8 @@ import pandas.core.common as com
 import pandas.computation.expressions as expressions
 from pandas.lib import isscalar
 from pandas.tslib import iNaT
-from pandas.core.common import(bind_method, is_list_like, notnull, isnull,
+from pandas.compat import bind_method
+from pandas.core.common import(is_list_like, notnull, isnull,
                                _values_from_object, _maybe_match_name,
                                needs_i8_conversion, is_datetimelike_v_numeric,
                                is_integer_dtype, is_categorical_dtype, is_object_dtype,
