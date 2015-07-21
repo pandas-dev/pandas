@@ -3204,6 +3204,9 @@ class TestCParserHighMemory(ParserTests, tm.TestCase):
         return read_table(*args, **kwds)
 
     def test_compact_ints(self):
+        if compat.is_platform_windows():
+            raise nose.SkipTest("segfaults on win-64, only when all tests are run")
+
         data = ('0,1,0,0\n'
                 '1,1,0,0\n'
                 '0,1,0,1')
@@ -3516,6 +3519,25 @@ class TestCParserLowMemory(ParserTests, tm.TestCase):
                 '0,1,0,1')
 
         result = read_csv(StringIO(data), delimiter=',', header=None,
+                          compact_ints=True)
+        ex_dtype = np.dtype([(str(i), 'i1') for i in range(4)])
+        self.assertEqual(result.to_records(index=False).dtype, ex_dtype)
+
+        result = read_csv(StringIO(data), delimiter=',', header=None,
+			  compact_ints=True,
+                          use_unsigned=True)
+        ex_dtype = np.dtype([(str(i), 'u1') for i in range(4)])
+        self.assertEqual(result.to_records(index=False).dtype, ex_dtype)
+
+    def test_compact_ints_as_recarray(self):
+        if compat.is_platform_windows():
+            raise nose.SkipTest("segfaults on win-64, only when all tests are run")
+
+        data = ('0,1,0,0\n'
+                '1,1,0,0\n'
+                '0,1,0,1')
+        
+        result = read_csv(StringIO(data), delimiter=',', header=None,
                           compact_ints=True, as_recarray=True)
         ex_dtype = np.dtype([(str(i), 'i1') for i in range(4)])
         self.assertEqual(result.dtype, ex_dtype)
@@ -3553,6 +3575,21 @@ one,two
 2,3.5
 3,4.5
 4,5.5"""
+
+        result = self.read_csv(StringIO(data), dtype={'one': 'u1', 1: 'S1'})
+        self.assertEqual(result['one'].dtype, 'u1')
+        self.assertEqual(result['two'].dtype, 'object')
+
+    def test_pass_dtype_as_recarray(self):
+        data = """\
+one,two
+1,2.5
+2,3.5
+3,4.5
+4,5.5"""
+
+        if compat.is_platform_windows():
+            raise nose.SkipTest("segfaults on win-64, only when all tests are run")
 
         result = self.read_csv(StringIO(data), dtype={'one': 'u1', 1: 'S1'},
                                as_recarray=True)
@@ -3623,6 +3660,7 @@ one,two
 4,5,6
 7,8,9
 10,11,12"""
+
         result = self.read_csv(StringIO(data), usecols=(0, 1, 2),
                                names=('a', 'b', 'c'),
                                header=None,

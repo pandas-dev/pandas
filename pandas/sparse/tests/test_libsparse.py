@@ -8,7 +8,7 @@ from numpy.testing import assert_almost_equal, assert_equal
 import pandas.util.testing as tm
 
 from pandas.core.sparse import SparseSeries
-from pandas import DataFrame
+from pandas import DataFrame, compat
 
 from pandas._sparse import IntIndex, BlockIndex
 import pandas._sparse as splib
@@ -230,6 +230,8 @@ def test_intersect():
         _check_length_exc(xindex.to_int_index(),
                           longer_index.to_int_index())
 
+    if compat.is_platform_windows():
+        raise nose.SkipTest("segfaults on win-64 when all tests are run")
     check_cases(_check_case)
 
 
