@@ -167,9 +167,10 @@ class Grouper(object):
         groupby key, which selects the grouping column of the target
     level : name/number, defaults to None
         the level for the target index
-    freq : string / freqency object, defaults to None
+    freq : string / frequency object, defaults to None
         This will groupby the specified frequency if the target selection (via key or level) is
-        a datetime-like object
+        a datetime-like object. For full specification of available frequencies, please see
+        `here <http://pandas.pydata.org/pandas-docs/stable/timeseries.html>`_. 
     axis : number/name of the axis, defaults to 0
     sort : boolean, default to False
         whether to sort the resulting labels
@@ -187,11 +188,19 @@ class Grouper(object):
 
     Examples
     --------
-    >>> df.groupby(Grouper(key='A')) : syntactic sugar for df.groupby('A')
-    >>> df.groupby(Grouper(key='date',freq='60s')) : specify a resample on the column 'date'
-    >>> df.groupby(Grouper(level='date',freq='60s',axis=1)) :
-        specify a resample on the level 'date' on the columns axis with a frequency of 60s
+    
+    Syntactic sugar for ``df.groupby('A')``
 
+    >>> df.groupby(Grouper(key='A'))
+
+    Specify a resample operation on the column 'date'
+
+    >>> df.groupby(Grouper(key='date', freq='60s'))
+
+    Specify a resample operation on the level 'date' on the columns axis
+    with a frequency of 60s 
+
+    >>> df.groupby(Grouper(level='date', freq='60s', axis=1)) 
     """
 
     def __new__(cls, *args, **kwargs):
