@@ -4132,6 +4132,12 @@ class TestS3(tm.TestCase):
         nt.assert_false(df.empty)
         tm.assert_frame_equal(pd.read_csv(tm.get_data_path('tips.csv')), df)
 
+        # Read public file from bucket with not-public contents
+        df = pd.read_csv('s3://cant_get_it/tips.csv')
+        nt.assert_true(isinstance(df, pd.DataFrame))
+        nt.assert_false(df.empty)
+        tm.assert_frame_equal(pd.read_csv(tm.get_data_path('tips.csv')), df)
+
     @tm.network
     def test_s3_fails(self):
         import boto
@@ -4139,9 +4145,11 @@ class TestS3(tm.TestCase):
                                 'S3ResponseError: 404 Not Found'):
             pd.read_csv('s3://nyqpug/asdf.csv')
 
+        # Receive a permission error when trying to read a private bucket.
+        # It's irrelevant here that this isn't actually a table.
         with tm.assertRaisesRegexp(boto.exception.S3ResponseError,
-                                'S3ResponseError: 403 Forbidden'):
-            pd.read_csv('s3://cant_get_it/tips.csv')
+                                   'S3ResponseError: 403 Forbidden'):
+            pd.read_csv('s3://cant_get_it/')
 
 
 def assert_same_values_and_dtype(res, exp):
