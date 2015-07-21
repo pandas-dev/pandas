@@ -376,6 +376,7 @@ Bug Fixes
 - Bug in `Series.from_csv` with ``header`` kwarg not setting the ``Series.name`` or the ``Series.index.name`` (:issue:`10483`)
 - Bug in `groupby.var` which caused variance to be inaccurate for small float values (:issue:`10448`)
 - Bug in ``Series.plot(kind='hist')`` Y Label not informative (:issue:`10485`)
+- Bug in ``read_csv`` when using a converter which generates a ``uint8`` type (:issue:`9266`)
 
 
 
