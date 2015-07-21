@@ -388,3 +388,5 @@ Bug Fixes
 - Bug in operator equal on Index not being consistent with Series (:issue:`9947`)
 - Reading "famafrench" data via ``DataReader`` results in HTTP 404 error because of the website url is changed (:issue:`10591`).
 - Bug in `read_msgpack` where DataFrame to decode has duplicate column names (:issue:`9618`)
+
+- Bug in `_convert_to_ndarrays` which caused an `AttributeError` to be raised at times (:issue:`9266`)
