@@ -932,7 +932,7 @@ class StataReader(StataParser):
 
         self._native_byteorder =  _set_endianness(sys.byteorder)
         if isinstance(path_or_buf, str):
-            path_or_buf, encoding = get_filepath_or_buffer(
+            path_or_buf, encoding, _ = get_filepath_or_buffer(
                 path_or_buf, encoding=self._default_encoding
             )
 
