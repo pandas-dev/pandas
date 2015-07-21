@@ -18,7 +18,8 @@ from pandas.core.internals import (items_overlap_with_suffix,
 from pandas.util.decorators import Appender, Substitution
 from pandas.core.common import ABCSeries
 from pandas.io.parsers import TextFileReader
-
+from pandas.sparse.series import SparseSeries
+from pandas.sparse.frame import SparseDataFrame
 import pandas.core.common as com
 
 import pandas.lib as lib
@@ -838,6 +839,7 @@ class _Concatenator(object):
             axis = 1 if axis == 0 else 0
 
         self._is_series = isinstance(sample, ABCSeries)
+        self._is_sp_series = isinstance(sample, SparseSeries)
         if not 0 <= axis <= sample.ndim:
             raise AssertionError("axis must be between 0 and {0}, "
                                  "input was {1}".format(sample.ndim, axis))
@@ -894,13 +896,21 @@ class _Concatenator(object):
             if self.axis == 0:
                 new_data = com._concat_compat([x.values for x in self.objs])
                 name = com._consensus_name_attr(self.objs)
-                return Series(new_data, index=self.new_axes[0], name=name).__finalize__(self, method='concat')
+                if self._is_sp_series:
+                    klass = SparseSeries
+                else:
+                    klass = Series
+                return klass(new_data, index=self.new_axes[0], name=name).__finalize__(self, method='concat')
 
             # combine as columns in a frame
             else:
                 data = dict(zip(range(len(self.objs)), self.objs))
                 index, columns = self.new_axes
-                tmpdf = DataFrame(data, index=index)
+                if self._is_sp_series:
+                    klass = SparseDataFrame
+                else:
+                    klass = DataFrame
+                tmpdf = klass(data, index=index)
                 if columns is not None:
                     tmpdf.columns = columns
                 return tmpdf.__finalize__(self, method='concat')
