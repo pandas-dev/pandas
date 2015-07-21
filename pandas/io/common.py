@@ -94,7 +94,7 @@ def maybe_read_encoded_stream(reader, encoding=None):
         else:
             errors = 'replace'
             encoding = 'utf-8'
-        reader = StringIO(reader.read().decode(encoding, errors))
+        reader = BytesIO(reader.read())
     else:
         encoding = None
     return reader, encoding
