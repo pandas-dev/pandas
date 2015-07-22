@@ -322,6 +322,8 @@ class DataFrame(NDFrame):
                     if dtype is None:
                         # 1783
                         v = np.empty(len(index), dtype=object)
+                    elif np.issubdtype(dtype, np.flexible):
+                        v = np.empty(len(index), dtype=object)
                     else:
                         v = np.empty(len(index), dtype=dtype)
 

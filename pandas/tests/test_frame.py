@@ -3617,6 +3617,20 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
                           [('a', [8]), ('a', [5]), ('b', [6])],
                           columns=['b', 'a', 'a'])
 
+    def test_constructor_empty_with_string_dtype(self):
+        # GH 9428
+        expected = DataFrame(index=[0, 1], columns=[0, 1], dtype=object)
+
+        df = DataFrame(index=[0, 1], columns=[0, 1], dtype=str)
+        assert_frame_equal(df, expected)
+        df = DataFrame(index=[0, 1], columns=[0, 1], dtype=np.str_)
+        assert_frame_equal(df, expected)
+        df = DataFrame(index=[0, 1], columns=[0, 1], dtype=np.unicode_)
+        assert_frame_equal(df, expected)
+        df = DataFrame(index=[0, 1], columns=[0, 1], dtype='U5')
+        assert_frame_equal(df, expected)
+
+
     def test_column_dups_operations(self):
 
         def check(result, expected=None):
