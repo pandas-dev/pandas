@@ -311,7 +311,7 @@ Numba works by generating optimized machine code using the LLVM compiler infrast
 
     As of ``numba`` version 0.20, pandas objects cannot be passed directly to numba-compiled functions. Instead, one must pass the ``numpy`` array underlying the ``pandas`` object to the numba-compiled function as demonstrated below.
 
-jit
+Jit
 ~~~
 
 Using ``numba`` to just-in-time compile your code. We simply take the plain python code from above and annotate with the ``@jit`` decorator.
@@ -352,7 +352,7 @@ Note that we directly pass ``numpy`` arrays to the numba function. ``compute_num
     In [4]: %timeit compute_numba(df)
     1000 loops, best of 3: 798 us per loop
 
-vectorize
+Vectorize
 ~~~~~~~~~
 
 ``numba`` can also be used to write vectorized functions that do not require the user to explicitly
@@ -382,6 +382,9 @@ Consider the following toy example of doubling each observation:
     # Custom function with numba
     In [7]: %timeit df['col1_doubled'] = double_every_value_withnumba(df.a.values)
     1000 loops, best of 3: 145 us per loop
+
+Caveats
+~~~~~~~
 
 .. note::
 
