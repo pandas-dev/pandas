@@ -1,4 +1,5 @@
 from datetime import datetime
+import re
 import json
 import logging
 import sys
@@ -25,8 +26,10 @@ def _check_google_client_version():
         raise ImportError('Could not import pkg_resources (setuptools).')
 
     _GOOGLE_API_CLIENT_VERSION = pkg_resources.get_distribution('google-api-python-client').version
+    _GOOGLE_API_CLIENT_VERSION = re.sub(
+        r'(\.0+)*$', '', _GOOGLE_API_CLIENT_VERSION)
 
-    if LooseVersion(_GOOGLE_API_CLIENT_VERSION) < '1.2.0':
+    if LooseVersion(_GOOGLE_API_CLIENT_VERSION) < '1.2':
         raise ImportError("pandas requires google-api-python-client >= 1.2.0 for Google "
                           "BigQuery support, current version " + _GOOGLE_API_CLIENT_VERSION)
 
@@ -121,7 +124,7 @@ class GbqConnector(object):
 
         try:
             from apiclient.discovery import build
-        
+
         except ImportError:
             raise ImportError('Could not import Google API Client.')
 
