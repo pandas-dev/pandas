@@ -87,6 +87,8 @@ Other enhancements
 Backwards incompatible API changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+- Line and kde plot with ``subplots=True`` now uses default colors, not all black. Specify ``color='k'`` to draw all lines in black (:issue:`9894`)
+
 .. _whatsnew_0170.api_breaking.convert_objects:
 
 Changes to convert_objects
@@ -341,6 +343,7 @@ Bug Fixes
 - Bug in ``Index.drop_duplicates`` dropping name(s) (:issue:`10115`)
 - Bug in ``pd.Series`` when setting a value on an empty ``Series`` whose index has a frequency. (:issue:`10193`)
 - Bug in ``DataFrame.plot`` raises ``ValueError`` when color name is specified by multiple characters (:issue:`10387`)
+
 - Bug in ``DataFrame.reset_index`` when index contains `NaT`. (:issue:`10388`)
 - Bug in ``ExcelReader`` when worksheet is empty (:issue:`6403`)
 - Bug in ``Table.select_column`` where name is not preserved (:issue:`10392`)
@@ -381,7 +384,8 @@ Bug Fixes
 
 
 
-
+- Bug in line and kde plot cannot accept multiple colors when ``subplots=True`` (:issue:`9894`)
+- Bug in ``DataFrame.plot`` raises ``ValueError`` when color name is specified by multiple characters (:issue:`10387`)
 
 
 

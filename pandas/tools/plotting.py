@@ -1288,23 +1288,28 @@ class MPLPlot(object):
         if isinstance(self.secondary_y, (tuple, list, np.ndarray, Index)):
             return self.data.columns[i] in self.secondary_y
 
-    def _get_style(self, i, col_name):
-        style = ''
-        if self.subplots:
-            style = 'k'
-
+    def _apply_style_colors(self, colors, kwds, col_num, label):
+        """
+        Manage style and color based on column number and its label.
+        Returns tuple of appropriate style and kwds which "color" may be added.
+        """
+        style = None
         if self.style is not None:
             if isinstance(self.style, list):
                 try:
-                    style = self.style[i]
+                    style = self.style[col_num]
                 except IndexError:
                     pass
             elif isinstance(self.style, dict):
-                style = self.style.get(col_name, style)
+                style = self.style.get(label, style)
             else:
                 style = self.style
 
-        return style or None
+        has_color = 'color' in kwds or self.colormap is not None
+        nocolor_style = style is None or re.match('[a-z]+', style) is None
+        if (has_color or self.subplots) and nocolor_style:
+            kwds['color'] = colors[col_num % len(colors)]
+        return style, kwds
 
     def _get_colors(self, num_colors=None, color_kwds='color'):
         if num_colors is None:
@@ -1313,11 +1318,6 @@ class MPLPlot(object):
         return _get_standard_colors(num_colors=num_colors,
                                     colormap=self.colormap,
                                     color=self.kwds.get(color_kwds))
-
-    def _maybe_add_color(self, colors, kwds, style, i):
-        has_color = 'color' in kwds or self.colormap is not None
-        if has_color and (style is None or re.match('[a-z]+', style) is None):
-            kwds['color'] = colors[i % len(colors)]
 
     def _parse_errorbars(self, label, err):
         '''
@@ -1638,9 +1638,8 @@ class LinePlot(MPLPlot):
         colors = self._get_colors()
         for i, (label, y) in enumerate(it):
             ax = self._get_ax(i)
-            style = self._get_style(i, label)
             kwds = self.kwds.copy()
-            self._maybe_add_color(colors, kwds, style, i)
+            style, kwds = self._apply_style_colors(colors, kwds, i, label)
 
             errors = self._get_errorbars(label=label, index=i)
             kwds = dict(kwds, **errors)
@@ -1990,13 +1989,13 @@ class HistPlot(LinePlot):
         colors = self._get_colors()
         for i, (label, y) in enumerate(self._iter_data()):
             ax = self._get_ax(i)
-            style = self._get_style(i, label)
-            label = com.pprint_thing(label)
 
             kwds = self.kwds.copy()
-            kwds['label'] = label
-            self._maybe_add_color(colors, kwds, style, i)
 
+            label = com.pprint_thing(label)
+            kwds['label'] = label
+
+            style, kwds = self._apply_style_colors(colors, kwds, i, label)
             if style is not None:
                 kwds['style'] = style
 
