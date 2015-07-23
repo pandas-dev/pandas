@@ -426,7 +426,7 @@ def _process_data_structure(arg, kill_inf=True):
         values = arg.values
     elif isinstance(arg, Series):
         values = arg.values
-        return_hook = lambda v: Series(v, arg.index)
+        return_hook = lambda v: Series(v, arg.index, name=arg.name)
     else:
         return_hook = lambda v: v
         values = arg
