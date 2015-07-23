@@ -79,6 +79,7 @@ Other enhancements
 - ``.as_blocks`` will now take a ``copy`` optional argument to return a copy of the data, default is to copy (no change in behavior from prior versions), (:issue:`9607`)
 
 - ``regex`` argument to ``DataFrame.filter`` now handles numeric column names instead of raising ``ValueError`` (:issue:`10384`).
+- ``pd.read_stata`` will now read Stata 118 type files. (:issue:`9882`)
 
 .. _whatsnew_0170.api:
 
