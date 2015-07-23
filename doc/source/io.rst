@@ -3990,7 +3990,7 @@ represented using ``StataMissingValue`` objects, and columns containing missing
 values will have ``object`` data type.
 
 :func:`~pandas.read_stata` and :class:`~pandas.io.stata.StataReader` supports .dta
-formats 104, 105, 108, 113-115 (Stata 10-12) and 117 (Stata 13+).
+formats 104, 105, 108, 113-115 (Stata 10-12), 117 (Stata 13), and 118 (Stata 14).
 
 .. note::
 
