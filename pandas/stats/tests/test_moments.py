@@ -725,6 +725,14 @@ class TestMoments(Base):
         self.assertRaises(Exception, mom.ewma, self.arr, com=9.5, span=20, halflife=50)
         self.assertRaises(Exception, mom.ewma, self.arr)
 
+    def test_moment_preserve_series_name(self):
+        # GH 10565
+        s = Series(np.arange(100), name='foo')
+        s2 = mom.rolling_mean(s, 30)
+        s3 = mom.rolling_sum(s, 20)
+        self.assertEqual(s2.name, 'foo')
+        self.assertEqual(s3.name, 'foo')
+
     def test_ew_empty_arrays(self):
         arr = np.array([], dtype=np.float64)
 
