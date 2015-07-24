@@ -5,7 +5,8 @@ from datetime import timedelta
 import numpy as np
 from pandas.core.common import (_NS_DTYPE, _INT64_DTYPE,
                                 _values_from_object, _maybe_box,
-                                ABCSeries, is_integer, is_float)
+                                ABCSeries, is_integer, is_float,
+                                is_object_dtype, is_datetime64_dtype)
 from pandas.core.index import Index, Int64Index, Float64Index
 import pandas.compat as compat
 from pandas.compat import u
@@ -494,9 +495,16 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
 
     @classmethod
     def _simple_new(cls, values, name=None, freq=None, tz=None, **kwargs):
+        """
+        we require the we have a dtype compat for the values
+        if we are passed a non-dtype compat, then coerce using the constructor
+        """
+
         if not getattr(values,'dtype',None):
             values = np.array(values,copy=False)
-        if values.dtype != _NS_DTYPE:
+        if is_object_dtype(values):
+            return cls(values, name=name, freq=freq, tz=tz, **kwargs).values
+        elif not is_datetime64_dtype(values):
             values = com._ensure_int64(values).view(_NS_DTYPE)
 
         result = object.__new__(cls)

@@ -401,30 +401,33 @@ class Base(object):
         for name, idx in compat.iteritems(self.indices):
             result = idx[1:4]
 
-            if len(idx)>0:
-                #test 0th element
-                self.assertTrue(idx[0:4].equals(
-                    result.insert(0, idx[0])))
+            if not len(idx):
+                continue
+
+            #test 0th element
+            self.assertTrue(idx[0:4].equals(
+                result.insert(0, idx[0])))
 
     def test_delete_base(self):
 
         for name, idx in compat.iteritems(self.indices):
 
-            if len(idx)>0:
+            if not len(idx):
+                continue
 
-                expected = idx[1:]
-                result = idx.delete(0)
-                self.assertTrue(result.equals(expected))
-                self.assertEqual(result.name, expected.name)
+            expected = idx[1:]
+            result = idx.delete(0)
+            self.assertTrue(result.equals(expected))
+            self.assertEqual(result.name, expected.name)
 
-                expected = idx[:-1]
-                result = idx.delete(-1)
-                self.assertTrue(result.equals(expected))
-                self.assertEqual(result.name, expected.name)
+            expected = idx[:-1]
+            result = idx.delete(-1)
+            self.assertTrue(result.equals(expected))
+            self.assertEqual(result.name, expected.name)
 
-                with tm.assertRaises((IndexError, ValueError)):
-                    # either depending on numpy version
-                    result = idx.delete(len(idx))
+            with tm.assertRaises((IndexError, ValueError)):
+                # either depending on numpy version
+                result = idx.delete(len(idx))
 
     def test_equals_op(self):
         # GH9947, GH10637

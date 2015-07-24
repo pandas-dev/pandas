@@ -367,7 +367,8 @@ Bug Fixes
 - Bug in ``Series.shift`` and ``DataFrame.shift`` not supporting categorical data (:issue:`9416`)
 - Bug in ``Series.map`` using categorical ``Series`` raises ``AttributeError`` (:issue:`10324`)
 - Bug in ``MultiIndex.get_level_values`` including ``Categorical`` raises ``AttributeError`` (:issue:`10460`)
-- Bug in `get_dummies` with `sparse=True` not returning SparseDataFrame (:issue:`10531`)
+- Bug in ``pd.get_dummies`` with `sparse=True` not returning ``SparseDataFrame`` (:issue:`10531`)
+- Bug in ``Index`` subtypes (such as ``PeriodIndex``) not returning their own type for ``.drop`` and ``.insert`` methods (:issue:`10620`)
 
 
 
@@ -402,6 +403,3 @@ Bug Fixes
 - Bug in vectorised setting of timestamp columns with python ``datetime.date`` and numpy ``datetime64`` (:issue:`10408`, :issue:`10412`)
 
 - Bug in ``pd.DataFrame`` when constructing an empty DataFrame with a string dtype (:issue:`9428`)
-- Bug in `Index` subtypes (such as `PeriodIndex`) not returning their own type for `.drop` and `.insert` methods
-
-- Bug in `Index` subtypes (such as `PeriodIndex`) not returning their own type for `.drop` and `.insert` methods
