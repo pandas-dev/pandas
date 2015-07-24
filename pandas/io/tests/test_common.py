@@ -29,12 +29,12 @@ class TestCommonIOCapabilities(tm.TestCase):
 
     def test_get_filepath_or_buffer_with_path(self):
         filename = '~/sometest'
-        filepath_or_buffer, _ = common.get_filepath_or_buffer(filename)
+        filepath_or_buffer, _, _ = common.get_filepath_or_buffer(filename)
         self.assertNotEqual(filepath_or_buffer, filename)
         self.assertNotIn('~', filepath_or_buffer)
         self.assertEqual(os.path.expanduser(filename), filepath_or_buffer)
 
     def test_get_filepath_or_buffer_with_buffer(self):
         input_buffer = StringIO()
-        filepath_or_buffer, _ = common.get_filepath_or_buffer(input_buffer)
+        filepath_or_buffer, _, _ = common.get_filepath_or_buffer(input_buffer)
         self.assertEqual(filepath_or_buffer, input_buffer)

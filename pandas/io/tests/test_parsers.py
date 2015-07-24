@@ -3089,6 +3089,7 @@ A,B,C
         df = self.read_csv(StringIO(data))
         tm.assert_almost_equal(df.values, expected)
 
+
 class TestFwfColspaceSniffing(tm.TestCase):
     def test_full_file(self):
         # File with all values
@@ -4115,6 +4116,26 @@ class TestParseSQL(tm.TestCase):
         result = lib.convert_sql_column(arr)
         expected = np.array([1.5, np.nan, 3, 4.2], dtype='f8')
         assert_same_values_and_dtype(result, expected)
+
+
+class TestUrlGz(tm.TestCase):
+    def setUp(self):
+        dirpath = tm.get_data_path()
+        localtable = os.path.join(dirpath, 'salary.table')
+        self.local_table = read_table(localtable)
+
+    @tm.network
+    def test_url_gz(self):
+        url = ('https://raw.github.com/mdagost/pandas/url_gzip_fix/'
+               'pandas/io/tests/data/salary.table.gz')
+        url_table = read_table(url, compression="gzip", engine="python")
+        tm.assert_frame_equal(url_table, self.local_table)
+
+    @tm.network
+    def test_url_gz_infer(self):
+        url = ('https://s3.amazonaws.com/pandas-url-test/salary.table.gz')
+        url_table = read_table(url, compression="infer", engine="python")
+        tm.assert_frame_equal(url_table, self.local_table)
 
 
 class TestS3(tm.TestCase):

@@ -26,6 +26,7 @@ import pandas.lib as lib
 import pandas.tslib as tslib
 import pandas.parser as _parser
 
+
 class ParserWarning(Warning):
     pass
 
@@ -234,8 +235,10 @@ def _read(filepath_or_buffer, kwds):
     if skipfooter is not None:
         kwds['skip_footer'] = skipfooter
 
-    filepath_or_buffer, _ = get_filepath_or_buffer(filepath_or_buffer,
-                                                   encoding)
+    filepath_or_buffer, _, compression = get_filepath_or_buffer(filepath_or_buffer,
+                                                                encoding,
+                                                                compression=kwds.get('compression', None))
+    kwds['compression'] = compression
 
     if kwds.get('date_parser', None) is not None:
         if isinstance(kwds['parse_dates'], bool):
@@ -402,8 +405,9 @@ def _make_parser_function(name, sep=','):
             delimiter = sep
 
         if delim_whitespace and delimiter is not default_sep:
-            raise ValueError("Specified a delimiter with both sep and"\
-                    " delim_whitespace=True; you can only specify one.")
+            raise ValueError("Specified a delimiter with both sep and"
+                             " delim_whitespace=True; you can only"
+                             " specify one.")
 
         if engine is not None:
             engine_specified = True
@@ -1711,7 +1715,7 @@ class PythonParser(ParserBase):
             num_original_columns = ncols
             if not names:
                 if self.prefix:
-                    columns = [['%s%d' % (self.prefix,i) for i in range(ncols)]]
+                    columns = [['%s%d' % (self.prefix, i) for i in range(ncols)]]
                 else:
                     columns = [lrange(ncols)]
                 columns = self._handle_usecols(columns, columns[0])
@@ -2233,8 +2237,8 @@ def _get_empty_meta(columns, index_col, index_names, dtype=None):
     if index_col is None or index_col is False:
         index = Index([])
     else:
-        index = [ np.empty(0, dtype=dtype.get(index_name, np.object))
-                  for index_name in index_names ]
+        index = [np.empty(0, dtype=dtype.get(index_name, np.object))
+                  for index_name in index_names]
         index = MultiIndex.from_arrays(index, names=index_names)
         index_col.sort()
         for i, n in enumerate(index_col):
