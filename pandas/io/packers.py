@@ -126,7 +126,7 @@ def read_msgpack(path_or_buf, iterator=False, **kwargs):
     obj : type of object stored in file
 
     """
-    path_or_buf, _ = get_filepath_or_buffer(path_or_buf)
+    path_or_buf, _, _ = get_filepath_or_buffer(path_or_buf)
     if iterator:
         return Iterator(path_or_buf)
 
