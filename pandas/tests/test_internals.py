@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 # pylint: disable=W0102
 
+from datetime import datetime, date
+
 import nose
 import numpy as np
 
@@ -284,6 +286,26 @@ class TestBlock(tm.TestCase):
 
     def test_repr(self):
         pass
+
+
+class TestDatetimeBlock(tm.TestCase):
+    _multiprocess_can_split_ = True
+
+    def test_try_coerce_arg(self):
+        block = create_block('datetime', [0])
+
+        # coerce None
+        none_coerced = block._try_coerce_args(block.values, None)[1]
+        self.assertTrue(pd.Timestamp(none_coerced) is pd.NaT)
+
+        # coerce different types of date bojects
+        vals = (np.datetime64('2010-10-10'),
+                datetime(2010, 10, 10),
+                date(2010, 10, 10))
+        for val in vals:
+            coerced = block._try_coerce_args(block.values, val)[1]
+            self.assertEqual(np.int64, type(coerced))
+            self.assertEqual(pd.Timestamp('2010-10-10'), pd.Timestamp(coerced))
 
 
 class TestBlockManager(tm.TestCase):

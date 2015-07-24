@@ -3,7 +3,7 @@
 from __future__ import print_function
 # pylint: disable-msg=W0612,E1101
 from copy import deepcopy
-from datetime import datetime, timedelta, time
+from datetime import datetime, timedelta, time, date
 import sys
 import operator
 import re
@@ -4247,6 +4247,16 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         result = df.dtypes
         expected = Series([np.dtype('timedelta64[ns]')]*6+[np.dtype('datetime64[ns]')]*2,index=list('ABCDEFGH'))
         assert_series_equal(result,expected)
+
+    def test_setitem_datetime_coercion(self):
+        # GH 1048
+        df = pd.DataFrame({'c': [pd.Timestamp('2010-10-01')]*3})
+        df.loc[0:1, 'c'] = np.datetime64('2008-08-08')
+        self.assertEqual(pd.Timestamp('2008-08-08'), df.loc[0, 'c'])
+        self.assertEqual(pd.Timestamp('2008-08-08'), df.loc[1, 'c'])
+        df.loc[2, 'c'] = date(2005, 5, 5)
+        self.assertEqual(pd.Timestamp('2005-05-05'), df.loc[2, 'c'])
+
 
     def test_new_empty_index(self):
         df1 = DataFrame(randn(0, 3))
