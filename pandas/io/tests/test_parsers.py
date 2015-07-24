@@ -3537,7 +3537,7 @@ class TestCParserLowMemory(ParserTests, tm.TestCase):
         data = ('0,1,0,0\n'
                 '1,1,0,0\n'
                 '0,1,0,1')
-        
+
         result = read_csv(StringIO(data), delimiter=',', header=None,
                           compact_ints=True, as_recarray=True)
         ex_dtype = np.dtype([(str(i), 'i1') for i in range(4)])
@@ -4126,14 +4126,13 @@ class TestUrlGz(tm.TestCase):
 
     @tm.network
     def test_url_gz(self):
-        url = ('https://raw.github.com/mdagost/pandas/url_gzip_fix/'
-               'pandas/io/tests/data/salary.table.gz')
+        url = 'https://raw.github.com/pydata/pandas/master/pandas/io/tests/data/salary.table.gz'
         url_table = read_table(url, compression="gzip", engine="python")
         tm.assert_frame_equal(url_table, self.local_table)
 
     @tm.network
     def test_url_gz_infer(self):
-        url = ('https://s3.amazonaws.com/pandas-url-test/salary.table.gz')
+        url = ('https://s3.amazonaws.com/pandas-test/salary.table.gz')
         url_table = read_table(url, compression="infer", engine="python")
         tm.assert_frame_equal(url_table, self.local_table)
 
