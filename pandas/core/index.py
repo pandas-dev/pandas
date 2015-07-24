@@ -1548,8 +1548,13 @@ class Index(IndexOpsMixin, PandasObject):
         other, result_name_update = self._convert_can_do_setop(other)
         if result_name is None:
             result_name = result_name_update
+
         the_diff = sorted(set((self.difference(other)).union(other.difference(self))))
-        return Index(the_diff, name=result_name)
+        attribs = self._get_attributes_dict()
+        attribs['name'] = result_name
+        if 'freq' in attribs:
+            attribs['freq'] = None
+        return self._shallow_copy(the_diff, infer=True, **attribs)
 
     def get_loc(self, key, method=None):
         """
@@ -2527,7 +2532,7 @@ class Index(IndexOpsMixin, PandasObject):
         -------
         new_index : Index
         """
-        return Index(np.delete(self._data, loc), name=self.name)
+        return self._shallow_copy(np.delete(self._data, loc))
 
     def insert(self, loc, item):
         """
@@ -2543,11 +2548,12 @@ class Index(IndexOpsMixin, PandasObject):
         -------
         new_index : Index
         """
-        _self = np.asarray(self)
-        item_idx = Index([item], dtype=self.dtype).values
-        idx = np.concatenate(
-            (_self[:loc], item_idx, _self[loc:]))
-        return Index(idx, name=self.name)
+        indexes=[self[:loc],
+                 Index([item]),
+                 self[loc:]]
+
+        return indexes[0].append(indexes[1]).append(indexes[2])
+
 
     def drop(self, labels, errors='raise'):
         """
