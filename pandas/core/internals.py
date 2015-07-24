@@ -2,7 +2,7 @@ import copy
 import itertools
 import re
 import operator
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 from collections import defaultdict
 
 import numpy as np
@@ -1839,7 +1839,7 @@ class DatetimeBlock(Block):
 
         if is_null_datelike_scalar(other):
             other = tslib.iNaT
-        elif isinstance(other, datetime):
+        elif isinstance(other, (datetime, np.datetime64, date)):
             other = lib.Timestamp(other).asm8.view('i8')
         elif hasattr(other, 'dtype') and com.is_integer_dtype(other):
             other = other.view('i8')
