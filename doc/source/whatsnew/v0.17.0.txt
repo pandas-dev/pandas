@@ -401,4 +401,5 @@ Bug Fixes
 - Bug in ``io.common.get_filepath_or_buffer`` which caused reading of valid S3 files to fail if the bucket also contained keys for which the user does not have read permission (:issue:`10604`)
 - Bug in vectorised setting of timestamp columns with python ``datetime.date`` and numpy ``datetime64`` (:issue:`10408`, :issue:`10412`)
 - Bug in ``pd.DataFrame`` when constructing an empty DataFrame with a string dtype (:issue:`9428`)
+- Bug in `Index` subtypes (such as `PeriodIndex`) not returning their own type for `.drop` and `.insert` methods
 

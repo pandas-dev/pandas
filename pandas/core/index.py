@@ -1548,8 +1548,16 @@ class Index(IndexOpsMixin, PandasObject):
         other, result_name_update = self._convert_can_do_setop(other)
         if result_name is None:
             result_name = result_name_update
-        the_diff = sorted(set((self.difference(other)).union(other.difference(self))))
-        return Index(the_diff, name=result_name)
+        the_diff_sorted = sorted(set((self.difference(other)).union(other.difference(self))))
+        if isinstance(self, MultiIndex):
+            # multiindexes don't currently work well with _shallow_copy & can't be supplied a name
+            return Index(the_diff_sorted, **self._get_attributes_dict())
+        else:
+            # convert list to Index and pull values out - required for subtypes such as PeriodIndex
+            diff_array = Index(the_diff_sorted).values
+            return self._shallow_copy(diff_array, name=result_name)
+
+
 
     def get_loc(self, key, method=None):
         """
@@ -2527,7 +2535,7 @@ class Index(IndexOpsMixin, PandasObject):
         -------
         new_index : Index
         """
-        return Index(np.delete(self._data, loc), name=self.name)
+        return self._shallow_copy(np.delete(self._data, loc))
 
     def insert(self, loc, item):
         """
@@ -2543,11 +2551,12 @@ class Index(IndexOpsMixin, PandasObject):
         -------
         new_index : Index
         """
-        _self = np.asarray(self)
-        item_idx = Index([item], dtype=self.dtype).values
-        idx = np.concatenate(
-            (_self[:loc], item_idx, _self[loc:]))
-        return Index(idx, name=self.name)
+        indexes=[self[:loc],
+                 Index([item]),
+                 self[loc:]]
+
+        return indexes[0].append(indexes[1]).append(indexes[2])
+
 
     def drop(self, labels, errors='raise'):
         """
