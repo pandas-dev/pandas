@@ -125,8 +125,8 @@ def factorize(values, sort=False, order=None, na_sentinel=-1, size_hint=None):
     note: an array of Periods will ignore sort as it returns an always sorted PeriodIndex
     """
     if order is not None:
-        warn("order is deprecated."
-             "See https://github.com/pydata/pandas/issues/6926", FutureWarning)
+        msg = "order is deprecated. See https://github.com/pydata/pandas/issues/6926"
+        warn(msg, FutureWarning, stacklevel=2)
 
     from pandas.core.index import Index
     from pandas.core.series import Series

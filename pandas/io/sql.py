@@ -200,7 +200,7 @@ def tquery(sql, con=None, cur=None, retry=True):
     warnings.warn(
         "tquery is deprecated, and will be removed in future versions. "
         "You can use ``execute(...).fetchall()`` instead.",
-        FutureWarning)
+        FutureWarning, stacklevel=2)
 
     cur = execute(sql, con, cur=cur)
     result = _safe_fetch(cur)
@@ -255,7 +255,7 @@ def uquery(sql, con=None, cur=None, retry=True, params=None):
     warnings.warn(
         "uquery is deprecated, and will be removed in future versions. "
         "You can use ``execute(...).rowcount`` instead.",
-        FutureWarning)
+        FutureWarning, stacklevel=2)
 
     cur = execute(sql, con, cur=cur, params=params)
 
@@ -618,7 +618,7 @@ def pandasSQL_builder(con, flavor=None, schema=None, meta=None,
         return SQLDatabase(con, schema=schema, meta=meta)
     else:
         if flavor == 'mysql':
-            warnings.warn(_MYSQL_WARNING, FutureWarning)
+            warnings.warn(_MYSQL_WARNING, FutureWarning, stacklevel=2)
         return SQLiteDatabase(con, flavor, is_cursor=is_cursor)
 
 
@@ -1672,7 +1672,8 @@ def get_schema(frame, name, flavor='sqlite', keys=None, con=None, dtype=None):
 def read_frame(*args, **kwargs):
     """DEPRECATED - use read_sql
     """
-    warnings.warn("read_frame is deprecated, use read_sql", FutureWarning)
+    warnings.warn("read_frame is deprecated, use read_sql", FutureWarning,
+                  stacklevel=2)
     return read_sql(*args, **kwargs)
 
 
@@ -1680,7 +1681,8 @@ def read_frame(*args, **kwargs):
 def frame_query(*args, **kwargs):
     """DEPRECATED - use read_sql
     """
-    warnings.warn("frame_query is deprecated, use read_sql", FutureWarning)
+    warnings.warn("frame_query is deprecated, use read_sql", FutureWarning,
+                  stacklevel=2)
     return read_sql(*args, **kwargs)
 
 
@@ -1718,7 +1720,8 @@ def write_frame(frame, name, con, flavor='sqlite', if_exists='fail', **kwargs):
     pandas.DataFrame.to_sql
 
     """
-    warnings.warn("write_frame is deprecated, use to_sql", FutureWarning)
+    warnings.warn("write_frame is deprecated, use to_sql", FutureWarning,
+                  stacklevel=2)
 
     # for backwards compatibility, set index=False when not specified
     index = kwargs.pop('index', False)

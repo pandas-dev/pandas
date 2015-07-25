@@ -3376,11 +3376,11 @@ class NDFrame(PandasObject):
             For frequencies that evenly subdivide 1 day, the "origin" of the
             aggregated intervals. For example, for '5min' frequency, base could
             range from 0 through 4. Defaults to 0
-        
+
 
         Examples
         --------
-        
+
         Start by creating a series with 9 one minute timestamps.
 
         >>> index = pd.date_range('1/1/2000', periods=9, freq='T')
@@ -3409,11 +3409,11 @@ class NDFrame(PandasObject):
         Downsample the series into 3 minute bins as above, but label each
         bin using the right edge instead of the left. Please note that the
         value in the bucket used as the label is not included in the bucket,
-        which it labels. For example, in the original series the 
+        which it labels. For example, in the original series the
         bucket ``2000-01-01 00:03:00`` contains the value 3, but the summed
-        value in the resampled bucket with the label``2000-01-01 00:03:00`` 
+        value in the resampled bucket with the label``2000-01-01 00:03:00``
         does not include 3 (if it did, the summed value would be 6, not 3).
-        To include this value close the right side of the bin interval as 
+        To include this value close the right side of the bin interval as
         illustrated in the example below this one.
 
         >>> series.resample('3T', how='sum', label='right')
@@ -3424,7 +3424,7 @@ class NDFrame(PandasObject):
 
         Downsample the series into 3 minute bins as above, but close the right
         side of the bin interval.
-        
+
         >>> series.resample('3T', how='sum', label='right', closed='right')
         2000-01-01 00:00:00     0
         2000-01-01 00:03:00     6
@@ -3453,7 +3453,7 @@ class NDFrame(PandasObject):
         2000-01-01 00:02:00    2
         Freq: 30S, dtype: int64
 
-        Upsample the series into 30 second bins and fill the 
+        Upsample the series into 30 second bins and fill the
         ``NaN`` values using the ``bfill`` method.
 
         >>> series.resample('30S', fill_method='bfill')[0:5]
@@ -3468,7 +3468,7 @@ class NDFrame(PandasObject):
 
         >>> def custom_resampler(array_like):
         ...     return np.sum(array_like)+5
-        
+
         >>> series.resample('3T', how=custom_resampler)
         2000-01-01 00:00:00     8
         2000-01-01 00:03:00    17
