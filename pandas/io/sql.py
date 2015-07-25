@@ -80,17 +80,17 @@ def _convert_params(sql, params):
 
 def _handle_date_column(col, format=None):
     if isinstance(format, dict):
-        return to_datetime(col, **format)
+        return to_datetime(col, errors='ignore', **format)
     else:
         if format in ['D', 's', 'ms', 'us', 'ns']:
-            return to_datetime(col, coerce=True, unit=format, utc=True)
+            return to_datetime(col, errors='coerce', unit=format, utc=True)
         elif (issubclass(col.dtype.type, np.floating)
                 or issubclass(col.dtype.type, np.integer)):
             # parse dates as timestamp
             format = 's' if format is None else format
-            return to_datetime(col, coerce=True, unit=format, utc=True)
+            return to_datetime(col, errors='coerce', unit=format, utc=True)
         else:
-            return to_datetime(col, coerce=True, format=format, utc=True)
+            return to_datetime(col, errors='coerce', format=format, utc=True)
 
 
 def _parse_date_columns(data_frame, parse_dates):

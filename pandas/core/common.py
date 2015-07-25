@@ -1903,9 +1903,9 @@ def _possibly_convert_objects(values,
 
         # Immediate return if coerce
         if datetime:
-            return pd.to_datetime(values, coerce=True, box=False)
+            return pd.to_datetime(values, errors='coerce', box=False)
         elif timedelta:
-            return pd.to_timedelta(values, coerce=True, box=False)
+            return pd.to_timedelta(values, errors='coerce', box=False)
         elif numeric:
             return lib.maybe_convert_numeric(values, set(), coerce_numeric=True)
 
@@ -1958,7 +1958,7 @@ def _possibly_convert_platform(values):
     return values
 
 
-def _possibly_cast_to_datetime(value, dtype, coerce=False):
+def _possibly_cast_to_datetime(value, dtype, errors='raise'):
     """ try to cast the array/value to a datetimelike dtype, converting float
     nan to iNaT
     """
@@ -2002,9 +2002,9 @@ def _possibly_cast_to_datetime(value, dtype, coerce=False):
                 elif np.prod(value.shape) and value.dtype != dtype:
                     try:
                         if is_datetime64:
-                            value = to_datetime(value, coerce=coerce).values
+                            value = to_datetime(value, errors=errors).values
                         elif is_timedelta64:
-                            value = to_timedelta(value, coerce=coerce).values
+                            value = to_timedelta(value, errors=errors).values
                     except (AttributeError, ValueError):
                         pass
 
@@ -2066,7 +2066,7 @@ def _possibly_infer_to_datetimelike(value, convert_dates=False):
         def _try_datetime(v):
             # safe coerce to datetime64
             try:
-                return tslib.array_to_datetime(v, raise_=True).reshape(shape)
+                return tslib.array_to_datetime(v, errors='raise').reshape(shape)
             except:
                 return v
 

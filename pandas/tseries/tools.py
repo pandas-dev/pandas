@@ -9,6 +9,7 @@ import pandas.tslib as tslib
 import pandas.core.common as com
 from pandas.compat import StringIO, callable
 import pandas.compat as compat
+from pandas.util.decorators import deprecate_kwarg
 
 try:
     import dateutil
@@ -171,8 +172,10 @@ def _guess_datetime_format_for_array(arr, **kwargs):
         return _guess_datetime_format(arr[non_nan_elements[0]], **kwargs)
 
 
-def to_datetime(arg, errors='ignore', dayfirst=False, yearfirst=False,
-                utc=None, box=True, format=None, exact=True, coerce=False,
+@deprecate_kwarg(old_arg_name='coerce', new_arg_name='errors',
+                 mapping={True: 'coerce', False: 'raise'})
+def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
+                utc=None, box=True, format=None, exact=True, coerce=None,
                 unit='ns', infer_datetime_format=False):
     """
     Convert argument to datetime.
@@ -180,8 +183,10 @@ def to_datetime(arg, errors='ignore', dayfirst=False, yearfirst=False,
     Parameters
     ----------
     arg : string, datetime, array of strings (with possible NAs)
-    errors : {'ignore', 'raise'}, default 'ignore'
-        Errors are ignored by default (values left untouched).
+    errors : {'ignore', 'raise', 'coerce'}, default 'raise'
+        - If 'raise', then invalid parsing will raise an exception
+        - If 'coerce', then invalid parsing will be set as NaT
+        - If 'ignore', then invalid parsing will return the input
     dayfirst : boolean, default False
         Specify a date parse order if `arg` is str or its list-likes.
         If True, parses dates with the day first, eg 10/11/12 is parsed as 2012-11-10.
@@ -189,24 +194,22 @@ def to_datetime(arg, errors='ignore', dayfirst=False, yearfirst=False,
         with day first (this is a known bug, based on dateutil behavior).
     yearfirst : boolean, default False
         Specify a date parse order if `arg` is str or its list-likes.
-        If True parses dates with the year first, eg 10/11/12 is parsed as 2010-11-12.
-        If both dayfirst and yearfirst are True, yearfirst is preceded (same as dateutil).
+        - If True parses dates with the year first, eg 10/11/12 is parsed as 2010-11-12.
+        - If both dayfirst and yearfirst are True, yearfirst is preceded (same as dateutil).
         Warning: yearfirst=True is not strict, but will prefer to parse
         with year first (this is a known bug, based on dateutil beahavior).
     utc : boolean, default None
         Return UTC DatetimeIndex if True (converting any tz-aware
         datetime.datetime objects as well).
     box : boolean, default True
-        If True returns a DatetimeIndex, if False returns ndarray of values.
+        - If True returns a DatetimeIndex
+        - If False returns ndarray of values.
     format : string, default None
         strftime to parse time, eg "%d/%m/%Y", note that "%f" will parse
         all the way up to nanoseconds.
     exact : boolean, True by default
-        If True, require an exact format match.
-        If False, allow the format to match anywhere in the target string.
-    coerce : force errors to NaT (False by default)
-        Timestamps outside the interval between Timestamp.min and Timestamp.max
-        (approximately 1677-09-22 to 2262-04-11) will be also forced to NaT.
+        - If True, require an exact format match.
+        - If False, allow the format to match anywhere in the target string.
     unit : unit of the arg (D,s,ms,us,ns) denote the unit in epoch
         (e.g. a unix timestamp), which is an integer/float number.
     infer_datetime_format : boolean, default False
@@ -256,16 +259,16 @@ def to_datetime(arg, errors='ignore', dayfirst=False, yearfirst=False,
 
     >>> pd.to_datetime('13000101', format='%Y%m%d')
     datetime.datetime(1300, 1, 1, 0, 0)
-    >>> pd.to_datetime('13000101', format='%Y%m%d', coerce=True)
+    >>> pd.to_datetime('13000101', format='%Y%m%d', errors='coerce')
     NaT
     """
     return _to_datetime(arg, errors=errors, dayfirst=dayfirst, yearfirst=yearfirst,
-                        utc=utc, box=box, format=format, exact=exact, coerce=coerce,
+                        utc=utc, box=box, format=format, exact=exact,
                         unit=unit, infer_datetime_format=infer_datetime_format)
 
 
-def _to_datetime(arg, errors='ignore', dayfirst=False, yearfirst=False,
-                 utc=None, box=True, format=None, exact=True, coerce=False,
+def _to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
+                 utc=None, box=True, format=None, exact=True,
                  unit='ns', freq=None, infer_datetime_format=False):
     """
     Same as to_datetime, but accept freq for
@@ -322,7 +325,7 @@ def _to_datetime(arg, errors='ignore', dayfirst=False, yearfirst=False,
                 # shortcut formatting here
                 if format == '%Y%m%d':
                     try:
-                        result = _attempt_YYYYMMDD(arg, coerce=coerce)
+                        result = _attempt_YYYYMMDD(arg, errors=errors)
                     except:
                         raise ValueError("cannot convert the input to '%Y%m%d' date format")
 
@@ -330,8 +333,7 @@ def _to_datetime(arg, errors='ignore', dayfirst=False, yearfirst=False,
                 if result is None:
                     try:
                         result = tslib.array_strptime(
-                            arg, format, exact=exact, coerce=coerce
-                        )
+                            arg, format, exact=exact, errors=errors)
                     except (tslib.OutOfBoundsDatetime):
                         if errors == 'raise':
                             raise
@@ -346,10 +348,10 @@ def _to_datetime(arg, errors='ignore', dayfirst=False, yearfirst=False,
                             result = arg
 
             if result is None and (format is None or infer_datetime_format):
-                result = tslib.array_to_datetime(arg, raise_=errors=='raise',
+                result = tslib.array_to_datetime(arg, errors=errors,
                                                  utc=utc, dayfirst=dayfirst,
                                                  yearfirst=yearfirst, freq=freq,
-                                                 coerce=coerce, unit=unit,
+                                                 unit=unit,
                                                  require_iso8601=require_iso8601)
 
             if com.is_datetime64_dtype(result) and box:
@@ -376,14 +378,20 @@ def _to_datetime(arg, errors='ignore', dayfirst=False, yearfirst=False,
     return _convert_listlike(np.array([ arg ]), box, format)[0]
 
 
-def _attempt_YYYYMMDD(arg, coerce):
+def _attempt_YYYYMMDD(arg, errors):
     """ try to parse the YYYYMMDD/%Y%m%d format, try to deal with NaT-like,
-        arg is a passed in as an object dtype, but could really be ints/strings with nan-like/or floats (e.g. with nan) """
+        arg is a passed in as an object dtype, but could really be ints/strings with nan-like/or floats (e.g. with nan)
+
+        Parameters
+        ----------
+        arg : passed value
+        errors : 'raise','ignore','coerce'
+        """
 
     def calc(carg):
         # calculate the actual result
         carg = carg.astype(object)
-        return tslib.array_to_datetime(lib.try_parse_year_month_day(carg/10000,carg/100 % 100, carg % 100), coerce=coerce)
+        return tslib.array_to_datetime(lib.try_parse_year_month_day(carg/10000,carg/100 % 100, carg % 100), errors=errors)
 
     def calc_with_mask(carg,mask):
         result = np.empty(carg.shape, dtype='M8[ns]')
