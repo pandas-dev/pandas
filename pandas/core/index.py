@@ -842,14 +842,14 @@ class Index(IndexOpsMixin, PandasObject):
             elif is_float(key):
                 key = to_int()
                 warnings.warn("scalar indexers for index type {0} should be integers and not floating point".format(
-                    type(self).__name__),FutureWarning, stacklevel=8)
+                    type(self).__name__),FutureWarning, stacklevel=2)
                 return key
             return self._invalid_indexer('label', key)
 
         if is_float(key):
             if not self.is_floating():
                 warnings.warn("scalar indexers for index type {0} should be integers and not floating point".format(
-                    type(self).__name__),FutureWarning, stacklevel=8)
+                    type(self).__name__),FutureWarning, stacklevel=2)
             return to_int()
 
         return key
@@ -887,7 +887,7 @@ class Index(IndexOpsMixin, PandasObject):
                 # warn if it's a convertible float
                 if v == int(v):
                     warnings.warn("slice indexers when using iloc should be integers "
-                                  "and not floating point",FutureWarning)
+                                  "and not floating point",FutureWarning, stacklevel=2)
                     return int(v)
 
                 self._invalid_indexer('slice {0} value'.format(c), v)
@@ -1415,7 +1415,7 @@ class Index(IndexOpsMixin, PandasObject):
     def __add__(self, other):
         if com.is_list_like(other):
             warnings.warn("using '+' to provide set union with Indexes is deprecated, "
-                          "use '|' or .union()", FutureWarning)
+                          "use '|' or .union()", FutureWarning, stacklevel=2)
         if isinstance(other, Index):
             return self.union(other)
         return Index(np.array(self) + other)
@@ -1423,14 +1423,14 @@ class Index(IndexOpsMixin, PandasObject):
     def __radd__(self, other):
         if com.is_list_like(other):
             warnings.warn("using '+' to provide set union with Indexes is deprecated, "
-                          "use '|' or .union()", FutureWarning)
+                          "use '|' or .union()", FutureWarning, stacklevel=2)
         return Index(other + np.array(self))
 
     __iadd__ = __add__
 
     def __sub__(self, other):
         warnings.warn("using '-' to provide set differences with Indexes is deprecated, "
-                      "use .difference()",FutureWarning)
+                      "use .difference()",FutureWarning, stacklevel=2)
         return self.difference(other)
 
     def __and__(self, other):

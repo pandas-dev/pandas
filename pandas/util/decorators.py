@@ -10,7 +10,7 @@ def deprecate(name, alternative, alt_name=None):
 
     def wrapper(*args, **kwargs):
         warnings.warn("%s is deprecated. Use %s instead" % (name, alt_name),
-                      FutureWarning)
+                      FutureWarning, stacklevel=2)
         return alternative(*args, **kwargs)
     return wrapper
 
@@ -79,7 +79,7 @@ def deprecate_kwarg(old_arg_name, new_arg_name, mapping=None):
                     msg = "the '%s' keyword is deprecated, " \
                           "use '%s' instead" % (old_arg_name, new_arg_name)
 
-                warnings.warn(msg, FutureWarning)
+                warnings.warn(msg, FutureWarning, stacklevel=2)
                 if kwargs.get(new_arg_name, None) is not None:
                     msg = "Can only specify '%s' or '%s', not both" % \
                       (old_arg_name, new_arg_name)

@@ -2624,7 +2624,7 @@ def boxplot(data, column=None, by=None, ax=None, fontsize=None,
                    "now, set return_type='axes'.\n To keep the previous "
                    "behavior and silence this warning, set "
                    "return_type='dict'.")
-            warnings.warn(msg, FutureWarning)
+            warnings.warn(msg, FutureWarning, stacklevel=2)
             return_type = 'dict'
         if ax is None:
             ax = _gca()
@@ -2972,7 +2972,7 @@ def _grouped_plot(plotf, data, column=None, by=None, numeric_only=True,
     if figsize == 'default':
         # allowed to specify mpl default with 'default'
         warnings.warn("figsize='default' is deprecated. Specify figure"
-                      "size by tuple instead", FutureWarning)
+                      "size by tuple instead", FutureWarning, stacklevel=2)
         figsize = None
 
     grouped = data.groupby(by)

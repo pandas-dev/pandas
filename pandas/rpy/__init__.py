@@ -8,7 +8,7 @@ warnings.warn("The pandas.rpy module is deprecated and will be "
               "like rpy2. "
               "\nSee here for a guide on how to port your code to rpy2: "
               "http://pandas.pydata.org/pandas-docs/stable/r_interface.html",
-              FutureWarning)
+              FutureWarning, stacklevel=2)
 
 try:
     from .common import importr, r, load_data

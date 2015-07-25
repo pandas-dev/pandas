@@ -1468,7 +1468,7 @@ class DataFrame(NDFrame):
 
         if colSpace is not None:  # pragma: no cover
             warnings.warn("colSpace is deprecated, use col_space",
-                          FutureWarning)
+                          FutureWarning, stacklevel=2)
             col_space = colSpace
 
         formatter = fmt.DataFrameFormatter(self, buf=buf, columns=columns,
@@ -1517,7 +1517,7 @@ class DataFrame(NDFrame):
 
         if colSpace is not None:  # pragma: no cover
             warnings.warn("colSpace is deprecated, use col_space",
-                          FutureWarning)
+                          FutureWarning, stacklevel=2)
             col_space = colSpace
 
         formatter = fmt.DataFrameFormatter(self, buf=buf, columns=columns,

@@ -608,7 +608,7 @@ class Options(object):
         self.symbol = symbol.upper()
         if data_source is None:
             warnings.warn("Options(symbol) is deprecated, use Options(symbol,"
-                          " data_source) instead", FutureWarning)
+                          " data_source) instead", FutureWarning, stacklevel=2)
             data_source = "yahoo"
         if data_source != "yahoo":
             raise NotImplementedError("currently only yahoo supported")
@@ -1072,7 +1072,8 @@ class Options(object):
                 Note: Format of returned data frame is dependent on Yahoo and may change.
 
         """
-        warnings.warn("get_forward_data() is deprecated", FutureWarning)
+        warnings.warn("get_forward_data() is deprecated", FutureWarning,
+                      stacklevel=2)
         end_date = dt.date.today() + MonthEnd(months)
         dates = (date for date in self.expiry_dates if date <= end_date.date())
         data = self._get_data_in_date_range(dates, call=call, put=put)
