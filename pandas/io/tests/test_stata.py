@@ -419,7 +419,7 @@ class TestStata(tm.TestCase):
         for col in cols:
             expected[col] = expected[col].convert_objects(datetime=True, numeric=True)
         expected['float_'] = expected['float_'].astype(np.float32)
-        expected['date_td'] = pd.to_datetime(expected['date_td'], coerce=True)
+        expected['date_td'] = pd.to_datetime(expected['date_td'], errors='coerce')
 
         parsed_113 = self.read_dta(self.dta14_113)
         parsed_113.index.name = 'index'
@@ -464,7 +464,7 @@ class TestStata(tm.TestCase):
         data_label = 'This is a data file.'
         with tm.ensure_clean() as path:
             original.to_stata(path, time_stamp=time_stamp, data_label=data_label)
-	    
+
             with StataReader(path) as reader:
                 parsed_time_stamp = dt.datetime.strptime(reader.time_stamp, ('%d %b %Y %H:%M'))
                 assert parsed_time_stamp == time_stamp

@@ -68,7 +68,7 @@ def test_to_datetime1():
 
     # unparseable
     s = 'Month 1, 1999'
-    assert to_datetime(s) == s
+    assert to_datetime(s, errors='ignore') == s
 
 
 def test_normalize_date():

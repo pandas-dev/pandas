@@ -1806,9 +1806,9 @@ cpdef object _get_rule_month(object source, object default='DEC'):
         return source.split('-')[1]
 
 
-cpdef array_to_datetime(ndarray[object] values, raise_=False,
+cpdef array_to_datetime(ndarray[object] values, errors='raise',
                         dayfirst=False, yearfirst=False, freq=None,
-                        format=None, utc=None, coerce=False, unit=None,
+                        format=None, utc=None, unit=None,
                         require_iso8601=False):
     cdef:
         Py_ssize_t i, n = len(values)
@@ -1817,9 +1817,13 @@ cpdef array_to_datetime(ndarray[object] values, raise_=False,
         ndarray[object] oresult
         pandas_datetimestruct dts
         bint utc_convert = bool(utc), seen_integer=0, seen_datetime=0
+        bint is_raise=errors=='raise', is_ignore=errors=='ignore', is_coerce=errors=='coerce'
         _TSObject _ts
         int64_t m = cast_from_unit(None,unit)
         int out_local = 0, out_tzoffset = 0
+
+    # specify error conditions
+    assert is_raise or is_ignore or is_coerce
 
     try:
         result = np.empty(n, dtype='M8[ns]')
@@ -1837,7 +1841,7 @@ cpdef array_to_datetime(ndarray[object] values, raise_=False,
                         try:
                             _check_dts_bounds(&_ts.dts)
                         except ValueError:
-                            if coerce:
+                            if is_coerce:
                                 iresult[i] = iNaT
                                 continue
                             raise
@@ -1852,7 +1856,7 @@ cpdef array_to_datetime(ndarray[object] values, raise_=False,
                     try:
                         _check_dts_bounds(&dts)
                     except ValueError:
-                        if coerce:
+                        if is_coerce:
                             iresult[i] = iNaT
                             continue
                         raise
@@ -1862,7 +1866,7 @@ cpdef array_to_datetime(ndarray[object] values, raise_=False,
                     _check_dts_bounds(&dts)
                     seen_datetime=1
                 except ValueError:
-                    if coerce:
+                    if is_coerce:
                         iresult[i] = iNaT
                         continue
                     raise
@@ -1874,19 +1878,19 @@ cpdef array_to_datetime(ndarray[object] values, raise_=False,
                         iresult[i] = _get_datetime64_nanos(val)
                         seen_datetime=1
                     except ValueError:
-                        if coerce:
+                        if is_coerce:
                             iresult[i] = iNaT
                             continue
                         raise
 
             # if we are coercing, dont' allow integers
-            elif is_integer_object(val) and not coerce:
+            elif is_integer_object(val) and not is_coerce:
                 if val == iNaT:
                     iresult[i] = iNaT
                 else:
                     iresult[i] = val*m
                     seen_integer=1
-            elif is_float_object(val) and not coerce:
+            elif is_float_object(val) and not is_coerce:
                 if val != val or val == iNaT:
                     iresult[i] = iNaT
                 else:
@@ -1911,10 +1915,10 @@ cpdef array_to_datetime(ndarray[object] values, raise_=False,
                 except ValueError:
                     # if requiring iso8601 strings, skip trying other formats
                     if require_iso8601:
-                        if coerce:
+                        if is_coerce:
                             iresult[i] = iNaT
                             continue
-                        elif raise_:
+                        elif is_raise:
                             raise ValueError("time data %r does match format specified" %
                                              (val,))
                         else:
@@ -1924,34 +1928,34 @@ cpdef array_to_datetime(ndarray[object] values, raise_=False,
                         py_dt = parse_datetime_string(val, dayfirst=dayfirst,
                                                       yearfirst=yearfirst, freq=freq)
                     except Exception:
-                        if coerce:
+                        if is_coerce:
                             iresult[i] = iNaT
                             continue
-                        raise TypeError
+                        raise TypeError("invalid string coercion to datetime")
 
                     try:
                         _ts = convert_to_tsobject(py_dt, None, None)
                         iresult[i] = _ts.value
                     except ValueError:
-                        if coerce:
+                        if is_coerce:
                             iresult[i] = iNaT
                             continue
                         raise
                 except:
-                    if coerce:
+                    if is_coerce:
                         iresult[i] = iNaT
                         continue
                     raise
 
         # don't allow mixed integers and datetime like
-        # higher levels can catch and coerce to object, for
+        # higher levels can catch and is_coerce to object, for
         # example
         if seen_integer and seen_datetime:
             raise ValueError("mixed datetimes and integers in passed array")
 
         return result
     except OutOfBoundsDatetime:
-        if raise_:
+        if is_raise:
             raise
 
         oresult = np.empty(n, dtype=object)
@@ -1987,12 +1991,12 @@ cpdef array_to_datetime(ndarray[object] values, raise_=False,
                     _pydatetime_to_dts(oresult[i], &dts)
                     _check_dts_bounds(&dts)
                 except Exception:
-                    if raise_:
+                    if is_raise:
                         raise
                     return values
                     # oresult[i] = val
             else:
-                if raise_:
+                if is_raise:
                     raise
                 return values
 
@@ -2548,13 +2552,16 @@ cdef PyTypeObject* td_type = <PyTypeObject*> Timedelta
 cdef inline bint is_timedelta(object o):
     return Py_TYPE(o) == td_type # isinstance(o, Timedelta)
 
-def array_to_timedelta64(ndarray[object] values, unit='ns', coerce=False):
+def array_to_timedelta64(ndarray[object] values, unit='ns', errors='raise'):
     """ convert an ndarray to an array of ints that are timedeltas
         force conversion if coerce = True,
         else will raise if cannot convert """
     cdef:
         Py_ssize_t i, n
         ndarray[int64_t] iresult
+        bint is_raise=errors=='raise', is_ignore=errors=='ignore', is_coerce=errors=='coerce'
+
+    assert is_raise or is_ignore or is_coerce
 
     n = values.shape[0]
     result = np.empty(n, dtype='m8[ns]')
@@ -2564,15 +2571,18 @@ def array_to_timedelta64(ndarray[object] values, unit='ns', coerce=False):
     # if so then we hit the fast path
     try:
         for i in range(n):
-            result[i] = parse_timedelta_string(values[i], coerce)
+            result[i] = parse_timedelta_string(values[i], is_coerce)
     except:
         for i in range(n):
-            result[i] = convert_to_timedelta64(values[i], unit, coerce)
+            result[i] = convert_to_timedelta64(values[i], unit, is_coerce)
     return iresult
 
 
-def convert_to_timedelta(object ts, object unit='ns', coerce=False):
-    return convert_to_timedelta64(ts, unit, coerce)
+def convert_to_timedelta(object ts, object unit='ns', errors='raise'):
+    cdef bint is_raise=errors=='raise', is_ignore=errors=='ignore', is_coerce=errors=='coerce'
+
+    assert is_raise or is_ignore or is_coerce
+    return convert_to_timedelta64(ts, unit, is_coerce)
 
 cdef dict timedelta_abbrevs = { 'd' : 'd',
                                 'days' : 'd',
@@ -2892,7 +2902,7 @@ cdef inline convert_to_timedelta64(object ts, object unit, object coerce):
         raise ValueError("Invalid type for timedelta scalar: %s" % type(ts))
     return ts.astype('timedelta64[ns]')
 
-def array_strptime(ndarray[object] values, object fmt, bint exact=True, bint coerce=False):
+def array_strptime(ndarray[object] values, object fmt, bint exact=True, errors='raise'):
     """
     Parameters
     ----------
@@ -2911,6 +2921,9 @@ def array_strptime(ndarray[object] values, object fmt, bint exact=True, bint coe
         int64_t us, ns
         object val, group_key, ampm, found
         dict found_key
+        bint is_raise=errors=='raise', is_ignore=errors=='ignore', is_coerce=errors=='coerce'
+
+    assert is_raise or is_ignore or is_coerce
 
     global _TimeRE_cache, _regex_cache
     with _cache_lock:
@@ -2983,13 +2996,13 @@ def array_strptime(ndarray[object] values, object fmt, bint exact=True, bint coe
         if exact:
             found = format_regex.match(val)
             if not found:
-                if coerce:
+                if is_coerce:
                     iresult[i] = iNaT
                     continue
                 raise ValueError("time data %r does not match format %r (match)" %
                                  (values[i], fmt))
             if len(val) != found.end():
-                if coerce:
+                if is_coerce:
                     iresult[i] = iNaT
                     continue
                 raise ValueError("unconverted data remains: %s" %
@@ -2999,7 +3012,7 @@ def array_strptime(ndarray[object] values, object fmt, bint exact=True, bint coe
         else:
             found = format_regex.search(val)
             if not found:
-                if coerce:
+                if is_coerce:
                     iresult[i] = iNaT
                     continue
                 raise ValueError("time data %r does not match format %r (search)" %
@@ -3134,7 +3147,7 @@ def array_strptime(ndarray[object] values, object fmt, bint exact=True, bint coe
                 month = datetime_result.month
                 day = datetime_result.day
         except ValueError:
-                if coerce:
+                if is_coerce:
                     iresult[i] = iNaT
                     continue
                 raise
@@ -3154,7 +3167,7 @@ def array_strptime(ndarray[object] values, object fmt, bint exact=True, bint coe
         try:
             _check_dts_bounds(&dts)
         except ValueError:
-            if coerce:
+            if is_coerce:
                 iresult[i] = iNaT
                 continue
             raise
