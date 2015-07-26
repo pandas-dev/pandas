@@ -190,7 +190,7 @@ class TestnanopsDataFrame(tm.TestCase):
                     if skipna and axis is None:
                         res = testfunc(testarval, **kwargs)
                         self.check_results(targ, res, axis)
-                except AssertionError as exc:
+                except BaseException as exc:
                     exc.args += ('axis: %s of %s' % (axis, testarval.ndim-1),
                                  'skipna: %s' % skipna,
                                  'kwargs: %s' % kwargs)
@@ -222,7 +222,7 @@ class TestnanopsDataFrame(tm.TestCase):
         try:
             self.check_fun_data(testfunc, targfunc,
                                 testarval, targarval, targarnanval, **kwargs)
-        except AssertionError as exc:
+        except BaseException as exc:
             exc.args += ('testar: %s' % testar,
                          'targar: %s' % targar,
                          'targarnan: %s' % targarnan)
@@ -295,7 +295,7 @@ class TestnanopsDataFrame(tm.TestCase):
                                 allow_complex, allow_all_nan, allow_str,
                                 allow_date, allow_tdelta, allow_obj,
                                 ddof=ddof)
-            except AssertionError as exc:
+            except BaseException as exc:
                 exc.args += ('ddof %s' % ddof,)
                 raise
 
@@ -370,7 +370,7 @@ class TestnanopsDataFrame(tm.TestCase):
                              allow_complex=False,
                              allow_str=False,
                              allow_date=False,
-                             allow_tdelta=False,
+                             allow_tdelta=True,
                              allow_obj='convert')
 
     def test_nanstd(self):
@@ -388,7 +388,8 @@ class TestnanopsDataFrame(tm.TestCase):
                              allow_complex=False,
                              allow_str=False,
                              allow_date=False,
-                             allow_tdelta=False)
+                             allow_tdelta=True,
+                             allow_obj='convert')
 
     def _minmax_wrap(self, value, axis=None, func=None):
         res = func(value, axis)
@@ -676,7 +677,7 @@ class TestnanopsDataFrame(tm.TestCase):
                     self.assertTrue(res0)
                 else:
                     self.assertFalse(res0)
-            except AssertionError as exc:
+            except BaseException as exc:
                 exc.args += ('dim: %s' % getattr(value, 'ndim', value),)
                 raise
             if not hasattr(value, 'ndim'):
@@ -713,7 +714,7 @@ class TestnanopsDataFrame(tm.TestCase):
             val = getattr(self, arr)
             try:
                 self.check_bool(nanops._has_infs, val, correct)
-            except AssertionError as exc:
+            except BaseException as exc:
                 exc.args += (arr,)
                 raise
 
@@ -723,7 +724,7 @@ class TestnanopsDataFrame(tm.TestCase):
                 self.check_bool(nanops._has_infs, val, correct)
                 self.check_bool(nanops._has_infs, val.astype('f4'), correct)
                 self.check_bool(nanops._has_infs, val.astype('f2'), correct)
-            except AssertionError as exc:
+            except BaseException as exc:
                 exc.args += (arr,)
                 raise
 
@@ -756,7 +757,7 @@ class TestnanopsDataFrame(tm.TestCase):
             val = getattr(self, arr)
             try:
                 self.check_bool(func1, val, correct)
-            except AssertionError as exc:
+            except BaseException as exc:
                 exc.args += (arr,)
                 raise
 
@@ -766,7 +767,7 @@ class TestnanopsDataFrame(tm.TestCase):
                 self.check_bool(func1, val, correct)
                 self.check_bool(func1, val.astype('f4'), correct)
                 self.check_bool(func1, val.astype('f2'), correct)
-            except AssertionError as exc:
+            except BaseException as exc:
                 exc.args += (arr,)
                 raise
 
@@ -828,6 +829,121 @@ class TestEnsureNumeric(tm.TestCase):
                           lambda: nanops._ensure_numeric({}))
         self.assertRaises(TypeError,
                           lambda: nanops._ensure_numeric([]))
+
+
+class TestNanvarFixedValues(tm.TestCase):
+
+    def setUp(self):
+        # Samples from a normal distribution.
+        self.variance = variance = 3.0
+        self.samples = self.prng.normal(scale=variance ** 0.5, size=100000)
+
+    def test_nanvar_all_finite(self):
+        samples = self.samples
+        actual_variance = nanops.nanvar(samples)
+        np.testing.assert_almost_equal(
+            actual_variance, self.variance, decimal=2)
+
+    def test_nanvar_nans(self):
+        samples = np.nan * np.ones(2 * self.samples.shape[0])
+        samples[::2] = self.samples
+
+        actual_variance = nanops.nanvar(samples, skipna=True)
+        np.testing.assert_almost_equal(
+            actual_variance, self.variance, decimal=2)
+
+        actual_variance = nanops.nanvar(samples, skipna=False)
+        np.testing.assert_almost_equal(
+            actual_variance, np.nan, decimal=2)
+
+    def test_nanstd_nans(self):
+        samples = np.nan * np.ones(2 * self.samples.shape[0])
+        samples[::2] = self.samples
+
+        actual_std = nanops.nanstd(samples, skipna=True)
+        np.testing.assert_almost_equal(
+            actual_std, self.variance ** 0.5, decimal=2)
+
+        actual_std = nanops.nanvar(samples, skipna=False)
+        np.testing.assert_almost_equal(
+            actual_std, np.nan, decimal=2)
+
+    def test_nanvar_axis(self):
+        # Generate some sample data.
+        samples_norm = self.samples
+        samples_unif = self.prng.uniform(size=samples_norm.shape[0])
+        samples = np.vstack([samples_norm, samples_unif])
+
+        actual_variance = nanops.nanvar(samples, axis=1)
+        np.testing.assert_array_almost_equal(
+            actual_variance, np.array([self.variance, 1.0 / 12]), decimal=2)
+
+    def test_nanvar_ddof(self):
+        n = 5
+        samples = self.prng.uniform(size=(10000, n+1))
+        samples[:, -1] = np.nan  # Force use of our own algorithm.
+
+        variance_0 = nanops.nanvar(samples, axis=1, skipna=True, ddof=0).mean()
+        variance_1 = nanops.nanvar(samples, axis=1, skipna=True, ddof=1).mean()
+        variance_2 = nanops.nanvar(samples, axis=1, skipna=True, ddof=2).mean()
+
+        # The unbiased estimate.
+        var = 1.0 / 12
+        np.testing.assert_almost_equal(variance_1, var, decimal=2)
+        # The underestimated variance.
+        np.testing.assert_almost_equal(
+            variance_0,  (n - 1.0) / n * var, decimal=2)
+        # The overestimated variance.
+        np.testing.assert_almost_equal(
+            variance_2,  (n - 1.0) / (n - 2.0) * var, decimal=2)
+
+    def test_ground_truth(self):
+        # Test against values that were precomputed with Numpy.
+        samples = np.empty((4, 4))
+        samples[:3, :3] = np.array([[0.97303362, 0.21869576, 0.55560287],
+                                    [0.72980153, 0.03109364, 0.99155171],
+                                    [0.09317602, 0.60078248, 0.15871292]])
+        samples[3] = samples[:, 3] = np.nan
+
+        # Actual variances along axis=0, 1 for ddof=0, 1, 2
+        variance = np.array(
+            [[[0.13762259, 0.05619224, 0.11568816],
+              [0.20643388, 0.08428837, 0.17353224],
+              [0.41286776, 0.16857673, 0.34706449]],
+             [[0.09519783, 0.16435395, 0.05082054],
+              [0.14279674, 0.24653093, 0.07623082],
+              [0.28559348, 0.49306186, 0.15246163]]]
+        )
+
+        # Test nanvar.
+        for axis in range(2):
+            for ddof in range(3):
+                var = nanops.nanvar(samples, skipna=True, axis=axis, ddof=ddof)
+                np.testing.assert_array_almost_equal(
+                    var[:3], variance[axis, ddof]
+                )
+                np.testing.assert_equal(var[3], np.nan)
+
+        # Test nanstd.
+        for axis in range(2):
+            for ddof in range(3):
+                std = nanops.nanstd(samples, skipna=True, axis=axis, ddof=ddof)
+                np.testing.assert_array_almost_equal(
+                    std[:3], variance[axis, ddof] ** 0.5
+                )
+                np.testing.assert_equal(std[3], np.nan)
+
+    def test_nanstd_roundoff(self):
+        # Regression test for GH 10242 (test data taken from GH 10489). Ensure
+        # that variance is stable.
+        data = Series(766897346 * np.ones(10))
+        for ddof in range(3):
+            result = data.std(ddof=ddof)
+            self.assertEqual(result, 0.0)
+
+    @property
+    def prng(self):
+        return np.random.RandomState(1234)
 
 
 if __name__ == '__main__':
