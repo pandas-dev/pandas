@@ -189,8 +189,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             elif isinstance(data, Categorical):
                 if dtype is not None:
                     raise ValueError("cannot specify a dtype with a Categorical")
-                if name is None:
-                    name = data.name
             elif (isinstance(data, types.GeneratorType) or
                   (compat.PY3 and isinstance(data, map))):
                 data = list(data)

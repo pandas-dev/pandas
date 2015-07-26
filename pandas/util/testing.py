@@ -630,9 +630,6 @@ def assert_categorical_equal(res, exp):
     if res.ordered != exp.ordered:
         raise AssertionError("ordered not the same")
 
-    if res.name != exp.name:
-        raise AssertionError("name not the same")
-
 
 def assert_numpy_array_equal(np_array, assert_equal, err_msg=None):
     """Checks that 'np_array' is equal to 'assert_equal'

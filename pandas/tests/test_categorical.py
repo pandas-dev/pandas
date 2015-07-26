@@ -492,7 +492,7 @@ class TestCategorical(tm.TestCase):
     def test_big_print(self):
         factor = Categorical([0,1,2,0,1,2]*100, ['a', 'b', 'c'], name='cat', fastpath=True)
         expected = ["[a, b, c, a, b, ..., b, c, a, b, c]",
-                    "Name: cat, Length: 600",
+                    "Length: 600",
                     "Categories (3, object): [a, b, c]"]
         expected = "\n".join(expected)
 
@@ -501,15 +501,11 @@ class TestCategorical(tm.TestCase):
         self.assertEqual(actual, expected)
 
     def test_empty_print(self):
-        factor = Categorical([], ["a","b","c"], name="cat")
-        expected = ("[], Name: cat, Categories (3, object): [a, b, c]")
+        factor = Categorical([], ["a","b","c"])
+        expected = ("[], Categories (3, object): [a, b, c]")
         # hack because array_repr changed in numpy > 1.6.x
         actual = repr(factor)
         self.assertEqual(actual, expected)
-
-        factor = Categorical([], ["a","b","c"])
-        expected = ("[], Categories (3, object): [a, b, c]")
-        actual = repr(factor)
 
         self.assertEqual(expected, actual)
         factor = Categorical([], ["a","b","c"], ordered=True)
@@ -523,9 +519,9 @@ class TestCategorical(tm.TestCase):
 
     def test_print_none_width(self):
         # GH10087
-        a = pd.Series(pd.Categorical([1,2,3,4], name="a"))
+        a = pd.Series(pd.Categorical([1,2,3,4]))
         exp = u("0    1\n1    2\n2    3\n3    4\n" +
-              "Name: a, dtype: category\nCategories (4, int64): [1, 2, 3, 4]")
+              "dtype: category\nCategories (4, int64): [1, 2, 3, 4]")
 
         with option_context("display.width", None):
             self.assertEqual(exp, repr(a))
@@ -1170,6 +1166,13 @@ class TestCategorical(tm.TestCase):
 
         self.assertFalse(LooseVersion(pd.__version__) >= '0.18')
 
+    def test_removed_names_produces_warning(self):
+        with tm.assert_produces_warning(UserWarning):
+            Categorical([0,1], name="a")
+
+        with tm.assert_produces_warning(UserWarning):
+            Categorical.from_codes([1,2], ["a","b","c"], name="a")
+
     def test_datetime_categorical_comparison(self):
         dt_cat = pd.Categorical(pd.date_range('2014-01-01', periods=3), ordered=True)
         self.assert_numpy_array_equal(dt_cat > dt_cat[0], [False, True, True])
@@ -1673,23 +1676,23 @@ class TestCategoricalAsBlock(tm.TestCase):
         self.assert_numpy_array_equal(res["cat"].values, res["s"].values)
 
     def test_repr(self):
-        a = pd.Series(pd.Categorical([1,2,3,4], name="a"))
+        a = pd.Series(pd.Categorical([1,2,3,4]))
         exp = u("0    1\n1    2\n2    3\n3    4\n" +
-              "Name: a, dtype: category\nCategories (4, int64): [1, 2, 3, 4]")
+              "dtype: category\nCategories (4, int64): [1, 2, 3, 4]")
 
         self.assertEqual(exp, a.__unicode__())
 
-        a = pd.Series(pd.Categorical(["a","b"] *25, name="a"))
+        a = pd.Series(pd.Categorical(["a","b"] *25))
         exp = u("0     a\n1     b\n" + "     ..\n" +
                 "48    a\n49    b\n" +
-                "Name: a, dtype: category\nCategories (2, object): [a, b]")
+                "dtype: category\nCategories (2, object): [a, b]")
         with option_context("display.max_rows", 5):
             self.assertEqual(exp, repr(a))
 
         levs = list("abcdefghijklmnopqrstuvwxyz")
-        a = pd.Series(pd.Categorical(["a","b"], name="a", categories=levs, ordered=True))
+        a = pd.Series(pd.Categorical(["a","b"], categories=levs, ordered=True))
         exp = u("0    a\n1    b\n" +
-                "Name: a, dtype: category\n"
+                "dtype: category\n"
                 "Categories (26, object): [a < b < c < d ... w < x < y < z]")
         self.assertEqual(exp,a.__unicode__())
 
@@ -2202,8 +2205,8 @@ class TestCategoricalAsBlock(tm.TestCase):
         tm.assert_series_equal(result, expected)
 
         result = df.loc["h":"j","cats"]
-        expected = Series(Categorical(['a','b','b'], name='cats',
-                          categories=['a','b','c']), index=['h','i','j'])
+        expected = Series(Categorical(['a','b','b'],
+                          categories=['a','b','c']), index=['h','i','j'], name='cats')
         tm.assert_series_equal(result, expected)
 
         result = df.ix["h":"j",0:1]
