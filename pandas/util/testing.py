@@ -1918,7 +1918,8 @@ class _AssertRaisesContextmanager(object):
 
 
 @contextmanager
-def assert_produces_warning(expected_warning=Warning, filter_level="always", clear=None):
+def assert_produces_warning(expected_warning=Warning, filter_level="always",
+                            clear=None, check_stacklevel=True):
     """
     Context manager for running code that expects to raise (or not raise)
     warnings.  Checks that code raises the expected warning and only the
@@ -1966,6 +1967,15 @@ def assert_produces_warning(expected_warning=Warning, filter_level="always", cle
             if (expected_warning and issubclass(actual_warning.category,
                                                 expected_warning)):
                 saw_warning = True
+
+                if check_stacklevel:
+                    from inspect import getframeinfo, stack
+                    caller = getframeinfo(stack()[2][0])
+                    msg = ("Warning not set with correct stacklevel. File were warning"
+                           " is raised: {0} != {1}. Warning message: {2}".format(
+                               actual_warning.filename, caller.filename,
+                               actual_warning.message))
+                    assert actual_warning.filename == caller.filename, msg
             else:
                 extra_warnings.append(actual_warning.category.__name__)
         if expected_warning:
