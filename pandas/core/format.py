@@ -68,22 +68,15 @@ docstring_to_string = """
 class CategoricalFormatter(object):
 
     def __init__(self, categorical, buf=None, length=True,
-                 na_rep='NaN', name=False, footer=True):
+                 na_rep='NaN', footer=True):
         self.categorical = categorical
         self.buf = buf if buf is not None else StringIO(u(""))
-        self.name = name
         self.na_rep = na_rep
         self.length = length
         self.footer = footer
 
     def _get_footer(self):
         footer = ''
-
-        if self.name:
-            name = com.pprint_thing(self.categorical.name,
-                                    escape_chars=('\t', '\r', '\n'))
-            footer += ('Name: %s' % name if self.categorical.name is not None
-                       else '')
 
         if self.length:
             if footer:

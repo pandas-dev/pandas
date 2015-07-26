@@ -692,9 +692,7 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
 
     def test_constructor_categorical(self):
         cat = pd.Categorical([0, 1, 2, 0, 1, 2], ['a', 'b', 'c'], fastpath=True)
-        cat.name = 'foo'
         res = Series(cat)
-        self.assertEqual(res.name, cat.name)
         self.assertTrue(res.values.equals(cat))
 
     def test_constructor_maskedarray(self):

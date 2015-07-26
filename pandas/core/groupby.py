@@ -1969,8 +1969,6 @@ class Grouping(object):
                 self._group_index = CategoricalIndex(Categorical.from_codes(np.arange(len(c)),
                                                      categories=c,
                                                      ordered=self.grouper.ordered))
-                if self.name is None:
-                    self.name = self.grouper.name
 
             # a passed Grouper like
             elif isinstance(self.grouper, Grouper):
