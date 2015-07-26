@@ -1220,6 +1220,14 @@ class TestIndex(Base, tm.TestCase):
         with tm.assertRaises(TypeError):
             idx.get_loc('a', method='nearest')
 
+    def test_get_loc_keyerror(self):
+        # GH10645
+        mi = pd.MultiIndex.from_arrays([range(100), range(100)])
+        self.assertRaises(KeyError, lambda: mi.get_loc((1000001, 0)))
+
+        mi = pd.MultiIndex.from_arrays([range(1000000), range(1000000)])
+        self.assertRaises(KeyError, lambda: mi.get_loc((1000001, 0)))
+
     def test_slice_locs(self):
         for dtype in [int, float]:
             idx = Index(np.array([0, 1, 2, 5, 6, 7, 9, 10], dtype=dtype))

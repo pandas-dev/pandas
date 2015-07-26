@@ -398,3 +398,4 @@ Bug Fixes
 - Bug in vectorised setting of timestamp columns with python ``datetime.date`` and numpy ``datetime64`` (:issue:`10408`, :issue:`10412`)
 - Bug in ``pd.DataFrame`` when constructing an empty DataFrame with a string dtype (:issue:`9428`)
 
+- Bug in ``MultiIndex.__contains__`` throws an ``IndexError`` for large multiindices (:issue:`10645`)
