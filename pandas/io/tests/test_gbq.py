@@ -9,6 +9,7 @@ import subprocess
 import sys
 import platform
 from time import sleep
+from io import StringIO
 
 import numpy as np
 
@@ -291,6 +292,14 @@ class TestReadGBQIntegration(tm.TestCase):
         # http://stackoverflow.com/questions/19145587/bq-py-not-paging-results
         df = gbq.read_gbq("SELECT id FROM [publicdata:samples.wikipedia] GROUP EACH BY id ORDER BY id ASC LIMIT 200005", project_id=PROJECT_ID)
         self.assertEqual(len(df.drop_duplicates()), 200005)
+    
+    def test_silent_option_true(self):
+        stdout = sys.stdout
+        sys.stdout = StringIO()
+        gbq.read_gbq("SELECT 3", project_id = PROJECT_ID, silent = True)
+        output = sys.stdout.getvalue()
+        sys.stdout = stdout
+        tm.assert_equal(output, "")
 
 class TestToGBQIntegration(tm.TestCase):
     # This class requires bq.py to be installed for setup/teardown. 
