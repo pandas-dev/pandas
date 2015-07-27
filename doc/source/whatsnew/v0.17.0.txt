@@ -31,10 +31,36 @@ New features
 - Enable writing complex values to HDF stores when using table format (:issue:`10447`)
 - Enable reading gzip compressed files via URL, either by explicitly setting the compression parameter or by inferring from the presence of the HTTP Content-Encoding header in the response (:issue:`8685`)
 
+
+.. _whatsnew_0170.gil:
+
+Releasing the GIL
+^^^^^^^^^^^^^^^^^
+
+We are releasing the global-interpreter-lock (GIL) on some cython operations.
+This will allow other threads to run simultaneously during computation, potentially allowing performance improvements
+from multi-threading. Notably ``groupby`` and some indexing operations are a benefit from this. (:issue:`8882`)
+
+For example the groupby expression in the following code will have the GIL released during the factorization step, e.g. ``df.groupby('key')``
+as well as the ``.sum()`` operation.
+
+.. code-block:: python
+
+   N = 1e6
+   df = DataFrame({'key' : np.random.randint(0,ngroups,size=N),
+                   'data' : np.random.randn(N) })
+   df.groupby('key')['data'].sum()
+
+Releasing of the GIL could benefit an application that uses threads for user interactions (e.g. ``QT``), or performaning multi-threaded computations. A nice example of a library that can handle these types of computation-in-parallel is the dask_ library.
+
+.. _dask: https://dask.readthedocs.org/en/latest/
+
 .. _whatsnew_0170.enhancements.other:
 
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
+
+- `read_sql` and `to_sql` can accept database URI as con parameter (:issue:`10214`)
 
 - Enable `read_hdf` to be used without specifying a key when the HDF file contains a single dataset (:issue:`10443`)
 
@@ -277,14 +303,15 @@ Other API Changes
 - ``Categorical.name`` was removed to make `Categorical` more ``numpy.ndarray`` like. Use ``Series(cat, name="whatever")`` instead (:issue:`10482`).
 
 - ``NaT``'s methods now either raise ``ValueError``, or return ``np.nan`` or ``NaT`` (:issue:`9513`)
-===========================     ==============================================================
-Behavior                        Methods
-===========================     ==============================================================
-``return np.nan``               ``weekday``, ``isoweekday``
-``return NaT``                  ``date``, ``now``, ``replace``, ``to_datetime``, ``today``
-``return np.datetime64('NaT')`` ``to_datetime64`` (unchanged)
-``raise ValueError``            All other public methods (names not beginning with underscores)
-===========================     ===============================================================
+
+  ===============================     ==============================================================
+  Behavior                            Methods
+  ===============================     ==============================================================
+  ``return np.nan``                   ``weekday``, ``isoweekday``
+  ``return NaT``                      ``date``, ``now``, ``replace``, ``to_datetime``, ``today``
+  ``return np.datetime64('NaT')``     ``to_datetime64`` (unchanged)
+  ``raise ValueError``                All other public methods (names not beginning with underscores)
+  ===============================     ===============================================================
 
 .. _whatsnew_0170.deprecations:
 
@@ -297,29 +324,6 @@ Removal of prior version deprecations/changes
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 - Remove use of some deprecated numpy comparison operations, mainly in tests. (:issue:`10569`)
-
-.. _dask: https://dask.readthedocs.org/en/latest/
-
-.. _whatsnew_0170.gil:
-
-Releasing the GIL
-~~~~~~~~~~~~~~~~~
-
-We are releasing the global-interpreter-lock (GIL) on some cython operations.
-This will allow other threads to run simultaneously during computation, potentially allowing performance improvements
-from multi-threading. Notably ``groupby`` and some indexing operations are a benefit from this. (:issue:`8882`)
-
-For example the groupby expression in the following code will have the GIL released during the factorization step, e.g. ``df.groupby('key')``
-as well as the ``.sum()`` operation.
-
-.. code-block:: python
-
-   N = 1e6
-   df = DataFrame({'key' : np.random.randint(0,ngroups,size=N),
-                   'data' : np.random.randn(N) })
-   df.groupby('key')['data'].sum()
-
-Releasing of the GIL could benefit an application that uses threads for user interactions (e.g. ``QT``), or performaning multi-threaded computations. A nice example of a library that can handle these types of computation-in-parallel is the dask_ library.
 
 
 .. _whatsnew_0170.performance:
