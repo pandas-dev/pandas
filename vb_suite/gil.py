@@ -94,5 +94,5 @@ def take_1d_pg2_float64():
 
 """
 
-nogil_take1d_float64 = Benchmark('take_1d_pg2()_int64', setup, start_date=datetime(2015, 1, 1))
-nogil_take1d_int64 = Benchmark('take_1d_pg2()_float64', setup, start_date=datetime(2015, 1, 1))
+nogil_take1d_float64 = Benchmark('take_1d_pg2_int64()', setup, start_date=datetime(2015, 1, 1))
+nogil_take1d_int64 = Benchmark('take_1d_pg2_float64()', setup, start_date=datetime(2015, 1, 1))

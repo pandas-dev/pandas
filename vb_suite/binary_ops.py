@@ -88,7 +88,7 @@ frame_float_floor_by_zero = \
     Benchmark("df // 0", setup, name='frame_float_floor_by_zero')
 
 setup = common_setup + """
-df  = DataFrame(np.random.random_integers((1000, 1000)))
+df  = DataFrame(np.random.random_integers(np.iinfo(np.int16).min, np.iinfo(np.int16).max, size=(1000, 1000)))
 """
 frame_int_div_by_zero = \
     Benchmark("df / 0", setup, name='frame_int_div_by_zero')
@@ -111,8 +111,8 @@ frame_float_mod = \
     Benchmark("df / df2", setup, name='frame_float_mod')
 
 setup = common_setup + """
-df  = DataFrame(np.random.random_integers((1000, 1000)))
-df2 = DataFrame(np.random.random_integers((1000, 1000)))
+df  = DataFrame(np.random.random_integers(np.iinfo(np.int16).min, np.iinfo(np.int16).max, size=(1000, 1000)))
+df2 = DataFrame(np.random.random_integers(np.iinfo(np.int16).min, np.iinfo(np.int16).max, size=(1000, 1000)))
 """
 frame_int_mod = \
     Benchmark("df / df2", setup, name='frame_int_mod')

@@ -40,7 +40,7 @@ sparse_constructor = Benchmark(stmt, setup, name="sparse_frame_constructor",
 
 
 setup = common_setup + """
-s = pd.Series([nan] * 10000)
+s = pd.Series([np.nan] * 10000)
 s[0] = 3.0
 s[100] = -1.0
 s[999] = 12.1
@@ -59,7 +59,7 @@ import pandas.sparse.series
 A = scipy.sparse.coo_matrix(([3.0, 1.0, 2.0], ([1, 0, 0], [0, 2, 3])), shape=(100, 100))
 """
 
-stmt = "ss = pandas.sparse.series.from_coo(A)"
+stmt = "ss = pandas.sparse.series.SparseSeries.from_coo(A)"
 
 sparse_series_from_coo = Benchmark(stmt, setup, name="sparse_series_from_coo",
                                start_date=datetime(2015, 1, 3))
