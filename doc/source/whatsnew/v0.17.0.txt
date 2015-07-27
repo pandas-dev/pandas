@@ -60,6 +60,8 @@ Releasing of the GIL could benefit an application that uses threads for user int
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
 
+- `read_sql` and `to_sql` can accept database URI as con parameter (:issue:`10214`)
+
 - Enable `read_hdf` to be used without specifying a key when the HDF file contains a single dataset (:issue:`10443`)
 
 - ``DatetimeIndex`` can be instantiated using strings contains ``NaT`` (:issue:`7599`)

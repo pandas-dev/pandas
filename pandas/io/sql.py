@@ -289,7 +289,7 @@ def read_sql_table(table_name, con, schema=None, index_col=None,
     ----------
     table_name : string
         Name of SQL table in database
-    con : SQLAlchemy connectable
+    con : SQLAlchemy connectable (or database string URI)
         Sqlite DBAPI connection mode not supported
     schema : string, default None
         Name of SQL schema in database to query (if database flavor
@@ -328,6 +328,8 @@ def read_sql_table(table_name, con, schema=None, index_col=None,
     read_sql
 
     """
+    
+    con = _engine_builder(con)
     if not _is_sqlalchemy_connectable(con):
         raise NotImplementedError("read_sql_table only supported for "
                                   "SQLAlchemy connectable.")
@@ -362,7 +364,8 @@ def read_sql_query(sql, con, index_col=None, coerce_float=True, params=None,
     ----------
     sql : string
         SQL query to be executed
-    con : SQLAlchemy connectable(engine/connection) or sqlite3 DBAPI2 connection
+    con : SQLAlchemy connectable(engine/connection) or database string URI 
+        or sqlite3 DBAPI2 connection
         Using SQLAlchemy makes it possible to use any DB supported by that
         library.
         If a DBAPI2 object, only sqlite3 is supported.
@@ -420,7 +423,8 @@ def read_sql(sql, con, index_col=None, coerce_float=True, params=None,
     ----------
     sql : string
         SQL query to be executed or database table name.
-    con : SQLAlchemy connectable(engine/connection) or DBAPI2 connection (fallback mode)
+    con : SQLAlchemy connectable(engine/connection) or database string URI
+        or DBAPI2 connection (fallback mode)
         Using SQLAlchemy makes it possible to use any DB supported by that
         library.
         If a DBAPI2 object, only sqlite3 is supported.
@@ -504,7 +508,8 @@ def to_sql(frame, name, con, flavor='sqlite', schema=None, if_exists='fail',
     frame : DataFrame
     name : string
         Name of SQL table
-    con : SQLAlchemy connectable(engine/connection) or sqlite3 DBAPI2 connection
+    con : SQLAlchemy connectable(engine/connection) or database string URI
+        or sqlite3 DBAPI2 connection
         Using SQLAlchemy makes it possible to use any DB supported by that
         library.
         If a DBAPI2 object, only sqlite3 is supported.
@@ -584,6 +589,22 @@ _MYSQL_WARNING = ("The 'mysql' flavor with DBAPI connection is deprecated "
                   "MySQL will be further supported with SQLAlchemy connectables.")
 
 
+def _engine_builder(con):
+    """
+    Returns a SQLAlchemy engine from a URI (if con is a string)
+    else it just return con without modifying it
+    """
+    if isinstance(con, string_types):
+        try:
+            import sqlalchemy
+            con = sqlalchemy.create_engine(con)
+            return con
+
+        except ImportError:
+            _SQLALCHEMY_INSTALLED = False
+
+    return con
+
 def pandasSQL_builder(con, flavor=None, schema=None, meta=None,
                       is_cursor=False):
     """
@@ -592,6 +613,7 @@ def pandasSQL_builder(con, flavor=None, schema=None, meta=None,
     """
     # When support for DBAPI connections is removed,
     # is_cursor should not be necessary.
+    con = _engine_builder(con)
     if _is_sqlalchemy_connectable(con):
         return SQLDatabase(con, schema=schema, meta=meta)
     else:
