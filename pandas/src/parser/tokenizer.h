@@ -27,11 +27,7 @@ See LICENSE for the license
 #define ERROR_INVALID_CHARS  3
 #define ERROR_MINUS_SIGN     4
 
-#if defined(_MSC_VER)
-#include "../headers/ms_stdint.h"
-#else
-#include <stdint.h>
-#endif
+#include "../headers/stdint.h"
 
 #include "khash.h"
 
