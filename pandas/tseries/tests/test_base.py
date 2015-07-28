@@ -644,7 +644,7 @@ Freq: D"""
 
         with tm.assert_produces_warning(FutureWarning):
             result = dti-dti
-            expected = Index([])
+            expected = dti[0:0]
             tm.assert_index_equal(result,expected)
 
         with tm.assert_produces_warning(FutureWarning):
@@ -654,7 +654,7 @@ Freq: D"""
 
         with tm.assert_produces_warning(FutureWarning):
             result = dti_tz-dti_tz
-            expected = Index([])
+            expected = dti_tz[0:0]
             tm.assert_index_equal(result,expected)
 
         with tm.assert_produces_warning(FutureWarning):

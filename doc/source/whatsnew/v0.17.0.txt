@@ -390,6 +390,7 @@ Bug Fixes
 - Bug in ``pd.get_dummies`` with `sparse=True` not returning ``SparseDataFrame`` (:issue:`10531`)
 - Bug in ``Index`` subtypes (such as ``PeriodIndex``) not returning their own type for ``.drop`` and ``.insert`` methods (:issue:`10620`)
 
+- Bug in subclasses of ``Index`` with no values returned Index objects rather than their own classes, in some cases (:issue:`10596`)
 
 
 

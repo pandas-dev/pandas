@@ -733,9 +733,9 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
                 # values = np.asarray(list(values), dtype=object)
                 # return values.reshape(result.shape)
 
-                return PeriodIndex(result, name=self.name, freq=self.freq)
+                return self._shallow_copy(result)
 
-            return PeriodIndex(result, name=self.name, freq=self.freq)
+            return self._shallow_copy(result)
 
     def _format_native_types(self, na_rep=u('NaT'), **kwargs):
 
@@ -796,7 +796,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
                 to_concat = [x.asobject.values for x in to_concat]
             else:
                 cat_values = np.concatenate([x.values for x in to_concat])
-                return PeriodIndex(cat_values, freq=self.freq, name=name)
+                return self._shallow_copy(cat_values, name=name)
 
         to_concat = [x.values if isinstance(x, Index) else x
                      for x in to_concat]
