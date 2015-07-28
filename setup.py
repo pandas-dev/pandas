@@ -456,16 +456,22 @@ if sys.byteorder == 'big':
 else:
     macros = [('__LITTLE_ENDIAN__', '1')]
 
-msgpack_ext = Extension('pandas.msgpack',
-                        sources = [srcpath('msgpack',
+packer_ext = Extension('pandas.msgpack._packer',
+                        sources = [srcpath('_packer',
                                    suffix=suffix if suffix == '.pyx' else '.cpp',
-                                   subdir='')],
+                                   subdir='msgpack')],
                         language='c++',
-                        include_dirs=common_include,
+                        include_dirs=['pandas/src/msgpack'] + common_include,
                         define_macros=macros)
-
-extensions.append(msgpack_ext)
-
+unpacker_ext = Extension('pandas.msgpack._unpacker',
+                        sources = [srcpath('_unpacker',
+                                   suffix=suffix if suffix == '.pyx' else '.cpp',
+                                   subdir='msgpack')],
+                        language='c++',
+                        include_dirs=['pandas/src/msgpack'] + common_include,
+                        define_macros=macros)
+extensions.append(packer_ext)
+extensions.append(unpacker_ext)
 # if not ISRELEASED:
 #     extensions.extend([sandbox_ext])
 
@@ -525,6 +531,7 @@ setup(name=DISTNAME,
                 'pandas.io.tests',
                 'pandas.io.tests.test_json',
                 'pandas.stats.tests',
+                'pandas.msgpack'
                 ],
       package_data={'pandas.io': ['tests/data/legacy_hdf/*.h5',
                                   'tests/data/legacy_pickle/*/*.pickle',

@@ -54,9 +54,9 @@ class TestPackers(tm.TestCase):
     def tearDown(self):
         pass
 
-    def encode_decode(self, x, **kwargs):
+    def encode_decode(self, x, compress=None, **kwargs):
         with ensure_clean(self.path) as p:
-            to_msgpack(p, x, **kwargs)
+            to_msgpack(p, x, compress=compress, **kwargs)
             return read_msgpack(p, **kwargs)
 
 class TestAPI(TestPackers):
@@ -517,12 +517,38 @@ class TestCompression(TestPackers):
             assert_frame_equal(self.frame[k], i_rec[k])
 
 
+class TestEncoding(TestPackers):
+        def setUp(self):
+            super(TestEncoding, self).setUp()
+            data = {
+                'A': [compat.u('\u2019')] * 1000,
+                'B': np.arange(1000, dtype=np.int32),
+                'C': list(100 * 'abcdefghij'),
+                'D': date_range(datetime.datetime(2015, 4, 1), periods=1000),
+                'E': [datetime.timedelta(days=x) for x in range(1000)],
+                'G': [400] * 1000
+            }
+            self.frame = {
+                'float': DataFrame(dict((k, data[k]) for k in ['A', 'A'])),
+                'int': DataFrame(dict((k, data[k]) for k in ['B', 'B'])),
+                'mixed': DataFrame(data),
+            }
+            self.utf_encodings = ['utf8', 'utf16', 'utf32']
+
+        def test_utf(self):
+            # GH10581
+            for encoding in self.utf_encodings:
+                for frame in compat.itervalues(self.frame):
+                    result = self.encode_decode(frame, encoding=encoding)
+                    assert_frame_equal(result, frame)
+
+
 class TestMsgpack():
     """
     How to add msgpack tests:
 
     1. Install pandas version intended to output the msgpack.
-
+TestPackers
     2. Execute "generate_legacy_storage_files.py" to create the msgpack.
     $ python generate_legacy_storage_files.py <output_dir> msgpack
 

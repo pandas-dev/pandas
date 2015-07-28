@@ -63,3 +63,4 @@ def test_incorrect_type_nested_map():
         assert 0, 'should raise exception'
     except UnexpectedTypeException:
         assert 1, 'okay'
+
