@@ -60,7 +60,7 @@ from pandas.io.common import get_filepath_or_buffer
 from pandas.core.internals import BlockManager, make_block
 import pandas.core.internals as internals
 
-from pandas.msgpack import Unpacker as _Unpacker, Packer as _Packer
+from pandas.msgpack import Unpacker as _Unpacker, Packer as _Packer, ExtType
 
 # until we can pass this into our conversion functions,
 # this is pretty hacky
@@ -131,7 +131,7 @@ def read_msgpack(path_or_buf, iterator=False, **kwargs):
         return Iterator(path_or_buf)
 
     def read(fh):
-        l = list(unpack(fh))
+        l = list(unpack(fh, **kwargs))
         if len(l) == 1:
             return l[0]
         return l
@@ -222,7 +222,7 @@ def convert(values):
         # convert to a bytes array
         v = v.tostring()
         import zlib
-        return zlib.compress(v)
+        return ExtType(0, zlib.compress(v))
 
     elif compressor == 'blosc':
 
@@ -233,18 +233,24 @@ def convert(values):
         # convert to a bytes array
         v = v.tostring()
         import blosc
-        return blosc.compress(v, typesize=dtype.itemsize)
+        return ExtType(0, blosc.compress(v, typesize=dtype.itemsize))
 
     # ndarray (on original dtype)
-    return v.tostring()
+    return ExtType(0, v.tostring())
 
 
 def unconvert(values, dtype, compress=None):
 
+    as_is_ext = isinstance(values, ExtType) and values.code == 0
+
+    if as_is_ext:
+        values = values.data
+
     if dtype == np.object_:
         return np.array(values, dtype=object)
 
-    values = values.encode('latin1')
+    if not as_is_ext:
+        values = values.encode('latin1')
 
     if compress == 'zlib':
         import zlib
@@ -558,19 +564,23 @@ def decode(obj):
 
 
 def pack(o, default=encode,
-         encoding='latin1', unicode_errors='strict', use_single_float=False):
+         encoding='latin1', unicode_errors='strict', use_single_float=False,
+         autoreset=1, use_bin_type=1):
     """
     Pack an object and return the packed bytes.
     """
 
     return Packer(default=default, encoding=encoding,
                   unicode_errors=unicode_errors,
-                  use_single_float=use_single_float).pack(o)
+                  use_single_float=use_single_float,
+                  autoreset=autoreset,
+                  use_bin_type=use_bin_type).pack(o)
 
 
 def unpack(packed, object_hook=decode,
            list_hook=None, use_list=False, encoding='latin1',
-           unicode_errors='strict', object_pairs_hook=None):
+           unicode_errors='strict', object_pairs_hook=None,
+           max_buffer_size=0, ext_hook=ExtType):
     """
     Unpack a packed object, return an iterator
     Note: packed lists will be returned as tuples
@@ -580,7 +590,9 @@ def unpack(packed, object_hook=decode,
                     list_hook=list_hook,
                     use_list=use_list, encoding=encoding,
                     unicode_errors=unicode_errors,
-                    object_pairs_hook=object_pairs_hook)
+                    object_pairs_hook=object_pairs_hook,
+                    max_buffer_size=max_buffer_size,
+                    ext_hook=ext_hook)
 
 
 class Packer(_Packer):
@@ -588,11 +600,15 @@ class Packer(_Packer):
     def __init__(self, default=encode,
                  encoding='latin1',
                  unicode_errors='strict',
-                 use_single_float=False):
+                 use_single_float=False,
+                 autoreset=1,
+                 use_bin_type=1):
         super(Packer, self).__init__(default=default,
                                      encoding=encoding,
                                      unicode_errors=unicode_errors,
-                                     use_single_float=use_single_float)
+                                     use_single_float=use_single_float,
+                                     autoreset=autoreset,
+                                     use_bin_type=use_bin_type)
 
 
 class Unpacker(_Unpacker):
@@ -600,7 +616,7 @@ class Unpacker(_Unpacker):
     def __init__(self, file_like=None, read_size=0, use_list=False,
                  object_hook=decode,
                  object_pairs_hook=None, list_hook=None, encoding='latin1',
-                 unicode_errors='strict', max_buffer_size=0):
+                 unicode_errors='strict', max_buffer_size=0, ext_hook=ExtType):
         super(Unpacker, self).__init__(file_like=file_like,
                                        read_size=read_size,
                                        use_list=use_list,
@@ -609,7 +625,8 @@ class Unpacker(_Unpacker):
                                        list_hook=list_hook,
                                        encoding=encoding,
                                        unicode_errors=unicode_errors,
-                                       max_buffer_size=max_buffer_size)
+                                       max_buffer_size=max_buffer_size,
+                                       ext_hook=ext_hook)
 
 
 class Iterator(object):
