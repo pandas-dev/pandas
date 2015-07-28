@@ -539,7 +539,7 @@ class TestMoments(Base):
                 result = func(arr, 20, center=True)
                 expected = func(np.concatenate((arr, np.array([np.NaN] * 9))), 20)[9:]
 
-            self.assert_numpy_array_equivalent(result, expected)
+            self.assert_numpy_array_equal(result, expected)
 
         if test_stable:
             result = func(self.arr + 1e9, window)
@@ -1684,7 +1684,7 @@ class TestMomentsConsistency(Base):
                     assert_index_equal(result.columns, df.columns)
                 for i, result in enumerate(results):
                     if i > 0:
-                        self.assert_numpy_array_equivalent(result, results[0])
+                        self.assert_numpy_array_equal(result, results[0])
 
             # DataFrame with itself, pairwise=True
             for f in [lambda x: mom.expanding_cov(x, pairwise=True),
@@ -1701,7 +1701,7 @@ class TestMomentsConsistency(Base):
                     assert_index_equal(result.minor_axis, df.columns)
                 for i, result in enumerate(results):
                     if i > 0:
-                        self.assert_numpy_array_equivalent(result, results[0])
+                        self.assert_numpy_array_equal(result, results[0])
 
             # DataFrame with itself, pairwise=False
             for f in [lambda x: mom.expanding_cov(x, pairwise=False),
@@ -1717,7 +1717,7 @@ class TestMomentsConsistency(Base):
                     assert_index_equal(result.columns, df.columns)
                 for i, result in enumerate(results):
                     if i > 0:
-                        self.assert_numpy_array_equivalent(result, results[0])
+                        self.assert_numpy_array_equal(result, results[0])
 
             # DataFrame with another DataFrame, pairwise=True
             for f in [lambda x, y: mom.expanding_cov(x, y, pairwise=True),
@@ -1734,7 +1734,7 @@ class TestMomentsConsistency(Base):
                     assert_index_equal(result.minor_axis, df2.columns)
                 for i, result in enumerate(results):
                     if i > 0:
-                        self.assert_numpy_array_equivalent(result, results[0])
+                        self.assert_numpy_array_equal(result, results[0])
 
             # DataFrame with another DataFrame, pairwise=False
             for f in [lambda x, y: mom.expanding_cov(x, y, pairwise=False),
@@ -1769,7 +1769,7 @@ class TestMomentsConsistency(Base):
                     assert_index_equal(result.columns, df.columns)
                 for i, result in enumerate(results):
                     if i > 0:
-                        self.assert_numpy_array_equivalent(result, results[0])
+                        self.assert_numpy_array_equal(result, results[0])
 
     def test_rolling_skew_edge_cases(self):
 

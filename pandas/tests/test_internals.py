@@ -658,7 +658,9 @@ class TestBlockManager(tm.TestCase):
 
         df_unique = df.copy()
         df_unique.columns = ['x', 'y']
-        np.testing.assert_array_equal(df_unique.values, df.values)
+        self.assertEqual(df_unique.values.shape, df.values.shape)
+        tm.assert_numpy_array_equal(df_unique.values[0], df.values[0])
+        tm.assert_numpy_array_equal(df_unique.values[1], df.values[1])
 
     def test_consolidate(self):
         pass
@@ -1066,7 +1068,7 @@ class TestBlockPlacement(tm.TestCase):
 
     def test_slice_to_array_conversion(self):
         def assert_as_array_equals(slc, asarray):
-            np.testing.assert_array_equal(
+            tm.assert_numpy_array_equal(
                 BlockPlacement(slc).as_array,
                 np.asarray(asarray))
 

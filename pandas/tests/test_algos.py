@@ -305,7 +305,7 @@ class GroupVarTestMixin(object):
 
         self.algo(out, counts, values, labels)
         np.testing.assert_allclose(out, expected_out, self.rtol)
-        tm.assert_array_equal(counts, expected_counts)
+        tm.assert_numpy_array_equal(counts, expected_counts)
 
     def test_group_var_generic_1d_flat_labels(self):
         prng = RandomState(1234)
@@ -321,7 +321,7 @@ class GroupVarTestMixin(object):
         self.algo(out, counts, values, labels)
 
         np.testing.assert_allclose(out, expected_out, self.rtol)
-        tm.assert_array_equal(counts, expected_counts)
+        tm.assert_numpy_array_equal(counts, expected_counts)
 
     def test_group_var_generic_2d_all_finite(self):
         prng = RandomState(1234)
@@ -337,7 +337,7 @@ class GroupVarTestMixin(object):
 
         self.algo(out, counts, values, labels)
         np.testing.assert_allclose(out, expected_out, self.rtol)
-        tm.assert_array_equal(counts, expected_counts)
+        tm.assert_numpy_array_equal(counts, expected_counts)
 
     def test_group_var_generic_2d_some_nan(self):
         prng = RandomState(1234)
@@ -356,7 +356,7 @@ class GroupVarTestMixin(object):
 
         self.algo(out, counts, values, labels)
         np.testing.assert_allclose(out, expected_out, self.rtol)
-        tm.assert_array_equal(counts, expected_counts)
+        tm.assert_numpy_array_equal(counts, expected_counts)
 
     def test_group_var_constant(self):
         # Regression test from GH 10448.
@@ -421,12 +421,12 @@ def test_unique_label_indices():
     left = unique_label_indices(a)
     right = np.unique(a, return_index=True)[1]
 
-    tm.assert_array_equal(left, right)
+    tm.assert_numpy_array_equal(left, right)
 
     a[np.random.choice(len(a), 10)] = -1
     left= unique_label_indices(a)
     right = np.unique(a, return_index=True)[1][1:]
-    tm.assert_array_equal(left, right)
+    tm.assert_numpy_array_equal(left, right)
 
 if __name__ == '__main__':
     import nose

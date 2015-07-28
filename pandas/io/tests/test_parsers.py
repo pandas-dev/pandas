@@ -33,7 +33,6 @@ from pandas.tseries.index import date_range
 import pandas.tseries.tools as tools
 
 from numpy.testing.decorators import slow
-from numpy.testing import assert_array_equal
 
 import pandas.parser
 
@@ -747,7 +746,7 @@ Klosterdruckerei\tKlosterdruckerei <Kempten> (1609-1805)\tHochfurstliche Buchhan
         _NA_VALUES = set(['-1.#IND', '1.#QNAN', '1.#IND', '-1.#QNAN',
                           '#N/A','N/A', 'NA', '#NA', 'NULL', 'NaN',
                           'nan', '-NaN', '-nan', '#N/A N/A',''])
-        assert_array_equal (_NA_VALUES, parsers._NA_VALUES)
+        self.assertEqual(_NA_VALUES, parsers._NA_VALUES)
         nv = len(_NA_VALUES)
         def f(i, v):
             if i == 0:

@@ -11,7 +11,6 @@ import nose
 
 from numpy import nan as NA
 import numpy as np
-from numpy.testing import assert_array_equal
 from numpy.random import randint
 
 from pandas.compat import range, lrange, u, unichr
@@ -53,7 +52,7 @@ class TestStringMethods(tm.TestCase):
 
             # indices of each yielded Series should be equal to the index of
             # the original Series
-            assert_array_equal(s.index, ds.index)
+            tm.assert_numpy_array_equal(s.index, ds.index)
 
             for el in s:
                 # each element of the series is either a basestring/str or nan
@@ -561,7 +560,7 @@ class TestStringMethods(tm.TestCase):
             s_or_idx = klass(['A1', 'A2'])
             result = s_or_idx.str.extract(r'(?P<uno>A)\d')
             tm.assert_equal(result.name, 'uno')
-            tm.assert_array_equal(result, klass(['A', 'A']))
+            tm.assert_numpy_array_equal(result, klass(['A', 'A']))
 
         s = Series(['A1', 'B2', 'C3'])
         # one group, no matches
@@ -918,34 +917,34 @@ class TestStringMethods(tm.TestCase):
             s = klass(['ABCDEFG', 'BCDEFEF', 'DEFGHIJEF', 'EFGHEF'])
 
             result = s.str.index('EF')
-            tm.assert_array_equal(result, klass([4, 3, 1, 0]))
+            tm.assert_numpy_array_equal(result, klass([4, 3, 1, 0]))
             expected = np.array([v.index('EF') for v in s.values])
-            tm.assert_array_equal(result.values, expected)
+            tm.assert_numpy_array_equal(result.values, expected)
 
             result = s.str.rindex('EF')
-            tm.assert_array_equal(result, klass([4, 5, 7, 4]))
+            tm.assert_numpy_array_equal(result, klass([4, 5, 7, 4]))
             expected = np.array([v.rindex('EF') for v in s.values])
-            tm.assert_array_equal(result.values, expected)
+            tm.assert_numpy_array_equal(result.values, expected)
 
             result = s.str.index('EF', 3)
-            tm.assert_array_equal(result, klass([4, 3, 7, 4]))
+            tm.assert_numpy_array_equal(result, klass([4, 3, 7, 4]))
             expected = np.array([v.index('EF', 3) for v in s.values])
-            tm.assert_array_equal(result.values, expected)
+            tm.assert_numpy_array_equal(result.values, expected)
 
             result = s.str.rindex('EF', 3)
-            tm.assert_array_equal(result, klass([4, 5, 7, 4]))
+            tm.assert_numpy_array_equal(result, klass([4, 5, 7, 4]))
             expected = np.array([v.rindex('EF', 3) for v in s.values])
-            tm.assert_array_equal(result.values, expected)
+            tm.assert_numpy_array_equal(result.values, expected)
 
             result = s.str.index('E', 4, 8)
-            tm.assert_array_equal(result, klass([4, 5, 7, 4]))
+            tm.assert_numpy_array_equal(result, klass([4, 5, 7, 4]))
             expected = np.array([v.index('E', 4, 8) for v in s.values])
-            tm.assert_array_equal(result.values, expected)
+            tm.assert_numpy_array_equal(result.values, expected)
 
             result = s.str.rindex('E', 0, 5)
-            tm.assert_array_equal(result, klass([4, 3, 1, 4]))
+            tm.assert_numpy_array_equal(result, klass([4, 3, 1, 4]))
             expected = np.array([v.rindex('E', 0, 5) for v in s.values])
-            tm.assert_array_equal(result.values, expected)
+            tm.assert_numpy_array_equal(result.values, expected)
 
             with tm.assertRaisesRegexp(ValueError, "substring not found"):
                 result = s.str.index('DE')
@@ -956,9 +955,9 @@ class TestStringMethods(tm.TestCase):
         # test with nan
         s = Series(['abcb', 'ab', 'bcbe', np.nan])
         result = s.str.index('b')
-        tm.assert_array_equal(result, Series([1, 1, 0, np.nan]))
+        tm.assert_numpy_array_equal(result, Series([1, 1, 0, np.nan]))
         result = s.str.rindex('b')
-        tm.assert_array_equal(result, Series([3, 1, 2, np.nan]))
+        tm.assert_numpy_array_equal(result, Series([3, 1, 2, np.nan]))
 
     def test_pad(self):
         values = Series(['a', 'b', NA, 'c', NA, 'eeeeee'])
@@ -1054,17 +1053,17 @@ class TestStringMethods(tm.TestCase):
                 table = str.maketrans('abc', 'cde')
             result = s.str.translate(table)
             expected = klass(['cdedefg', 'cdee', 'edddfg', 'edefggg'])
-            tm.assert_array_equal(result, expected)
+            tm.assert_numpy_array_equal(result, expected)
 
             # use of deletechars is python 2 only
             if not compat.PY3:
                 result = s.str.translate(table, deletechars='fg')
                 expected = klass(['cdede', 'cdee', 'eddd', 'ede'])
-                tm.assert_array_equal(result, expected)
+                tm.assert_numpy_array_equal(result, expected)
 
                 result = s.str.translate(None, deletechars='fg')
                 expected = klass(['abcde', 'abcc', 'cddd', 'cde'])
-                tm.assert_array_equal(result, expected)
+                tm.assert_numpy_array_equal(result, expected)
             else:
                 with tm.assertRaisesRegexp(ValueError, "deletechars is not a valid argument"):
                     result = s.str.translate(table, deletechars='fg')
@@ -1073,7 +1072,7 @@ class TestStringMethods(tm.TestCase):
         s = Series(['a', 'b', 'c', 1.2])
         expected = Series(['c', 'd', 'e', np.nan])
         result = s.str.translate(table)
-        tm.assert_array_equal(result, expected)
+        tm.assert_numpy_array_equal(result, expected)
 
     def test_center_ljust_rjust(self):
         values = Series(['a', 'b', NA, 'c', NA, 'eeeeee'])
