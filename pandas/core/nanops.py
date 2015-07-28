@@ -346,11 +346,22 @@ def _get_counts_nanvar(mask, axis, ddof, dtype=float):
     return count, d
 
 
-def _nanvar(values, axis=None, skipna=True, ddof=1):
-    # private nanvar calculator
+@disallow('M8')
+@bottleneck_switch(ddof=1)
+def nanstd(values, axis=None, skipna=True, ddof=1):
+    result = np.sqrt(nanvar(values, axis=axis, skipna=skipna, ddof=ddof))
+    return _wrap_results(result, values.dtype)
+
+
+@disallow('M8')
+@bottleneck_switch(ddof=1)
+def nanvar(values, axis=None, skipna=True, ddof=1):
+
+    dtype = values.dtype
     mask = isnull(values)
     if is_any_int_dtype(values):
         values = values.astype('f8')
+        values[mask] = np.nan
 
     if is_float_dtype(values):
         count, d = _get_counts_nanvar(mask, axis, ddof, values.dtype)
@@ -361,29 +372,29 @@ def _nanvar(values, axis=None, skipna=True, ddof=1):
         values = values.copy()
         np.putmask(values, mask, 0)
 
-    X = _ensure_numeric(values.sum(axis))
-    XX = _ensure_numeric((values ** 2).sum(axis))
-    result = np.fabs((XX - X * X / count) / d)
-    return result
 
-@disallow('M8')
-@bottleneck_switch(ddof=1)
-def nanstd(values, axis=None, skipna=True, ddof=1):
+    # xref GH10242
+    # Compute variance via two-pass algorithm, which is stable against
+    # cancellation errors and relatively accurate for small numbers of
+    # observations.
+    #
+    # See https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance
+    avg = _ensure_numeric(values.sum(axis=axis, dtype=np.float64)) / count
+    if axis is not None:
+        avg = np.expand_dims(avg, axis)
+    sqr = _ensure_numeric((avg - values) ** 2)
+    np.putmask(sqr, mask, 0)
+    result = sqr.sum(axis=axis, dtype=np.float64) / d
 
-    result = np.sqrt(_nanvar(values, axis=axis, skipna=skipna, ddof=ddof))
+    # Return variance as np.float64 (the datatype used in the accumulator),
+    # unless we were dealing with a float array, in which case use the same
+    # precision as the original values array.
+    if is_float_dtype(dtype):
+        result = result.astype(dtype)
     return _wrap_results(result, values.dtype)
 
-@disallow('M8','m8')
-@bottleneck_switch(ddof=1)
-def nanvar(values, axis=None, skipna=True, ddof=1):
 
-    # we are going to allow timedelta64[ns] here
-    # but NOT going to coerce them to the Timedelta type
-    # as this could cause overflow
-    # so var cannot be computed (but std can!)
-    return _nanvar(values, axis=axis, skipna=skipna, ddof=ddof)
-
-@disallow('M8','m8')
+@disallow('M8', 'm8')
 def nansem(values, axis=None, skipna=True, ddof=1):
     var = nanvar(values, axis, skipna, ddof=ddof)
 
@@ -391,6 +402,7 @@ def nansem(values, axis=None, skipna=True, ddof=1):
     if not is_float_dtype(values.dtype):
         values = values.astype('f8')
     count, _ = _get_counts_nanvar(mask, axis, ddof, values.dtype)
+    var = nanvar(values, axis, skipna, ddof=ddof)
 
     return np.sqrt(var) / np.sqrt(count)
 

@@ -684,8 +684,8 @@ class TestTimedeltas(tm.TestCase):
         self.assertEqual(result[0], expected)
 
         # invalid ops
-        for op in ['skew','kurt','sem','var','prod']:
-            self.assertRaises(TypeError, lambda : getattr(td,op)())
+        for op in ['skew','kurt','sem','prod']:
+            self.assertRaises(TypeError, getattr(td,op))
 
         # GH 10040
         # make sure NaT is properly handled by median()

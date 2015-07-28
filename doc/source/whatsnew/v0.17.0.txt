@@ -923,3 +923,5 @@ Bug Fixes
 - Bug in plotting functions may raise ``IndexError`` when plotted on ``GridSpec`` (:issue:`10819`)
 - Bug in plot result may show unnecessary minor ticklabels (:issue:`10657`)
 - Bug in ``groupby`` incorrect computation for aggregation on ``DataFrame`` with ``NaT`` (E.g ``first``, ``last``, ``min``). (:issue:`10590`)
+- Bug when constructing ``DataFrame`` where passing a dictionary with only scalar values and specifying columns did not raise an error (:issue:`10856`)
+- Bug in ``.var()`` causing roundoff errors for highly similar values (:issue:`10242`)
