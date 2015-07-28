@@ -182,15 +182,15 @@ class TestnanopsDataFrame(tm.TestCase):
                                    **kwargs)
                     self.check_results(targ, res, axis)
                     if skipna:
-                        res = testfunc(testarval, axis=axis)
+                        res = testfunc(testarval, axis=axis, **kwargs)
                         self.check_results(targ, res, axis)
                     if axis is None:
-                        res = testfunc(testarval, skipna=skipna)
+                        res = testfunc(testarval, skipna=skipna, **kwargs)
                         self.check_results(targ, res, axis)
                     if skipna and axis is None:
-                        res = testfunc(testarval)
+                        res = testfunc(testarval, **kwargs)
                         self.check_results(targ, res, axis)
-                except BaseException as exc:
+                except AssertionError as exc:
                     exc.args += ('axis: %s of %s' % (axis, testarval.ndim-1),
                                  'skipna: %s' % skipna,
                                  'kwargs: %s' % kwargs)
@@ -222,7 +222,7 @@ class TestnanopsDataFrame(tm.TestCase):
         try:
             self.check_fun_data(testfunc, targfunc,
                                 testarval, targarval, targarnanval, **kwargs)
-        except BaseException as exc:
+        except AssertionError as exc:
             exc.args += ('testar: %s' % testar,
                          'targar: %s' % targar,
                          'targarnan: %s' % targarnan)
@@ -291,12 +291,13 @@ class TestnanopsDataFrame(tm.TestCase):
                         allow_date=False, allow_tdelta=False, allow_obj=True,):
         for ddof in range(3):
             try:
-                self.check_funs(self, testfunc, targfunc,
+                self.check_funs(testfunc, targfunc,
                                 allow_complex, allow_all_nan, allow_str,
                                 allow_date, allow_tdelta, allow_obj,
                                 ddof=ddof)
-            except BaseException as exc:
+            except AssertionError as exc:
                 exc.args += ('ddof %s' % ddof,)
+                raise
 
     def _badobj_wrap(self, value, func, allow_complex=True, **kwargs):
         if value.dtype.kind == 'O':
@@ -366,16 +367,28 @@ class TestnanopsDataFrame(tm.TestCase):
 
     def test_nanvar(self):
         self.check_funs_ddof(nanops.nanvar, np.var,
-                             allow_complex=False, allow_date=False, allow_tdelta=False)
+                             allow_complex=False,
+                             allow_str=False,
+                             allow_date=False,
+                             allow_tdelta=False,
+                             allow_obj='convert')
 
     def test_nanstd(self):
         self.check_funs_ddof(nanops.nanstd, np.std,
-                             allow_complex=False, allow_date=False, allow_tdelta=True)
+                             allow_complex=False,
+                             allow_str=False,
+                             allow_date=False,
+                             allow_tdelta=True,
+                             allow_obj='convert')
 
     def test_nansem(self):
         tm.skip_if_no_package('scipy.stats')
-        self.check_funs_ddof(nanops.nansem, np.var,
-                             allow_complex=False, allow_date=False, allow_tdelta=False)
+        from scipy.stats import sem
+        self.check_funs_ddof(nanops.nansem, sem,
+                             allow_complex=False,
+                             allow_str=False,
+                             allow_date=False,
+                             allow_tdelta=False)
 
     def _minmax_wrap(self, value, axis=None, func=None):
         res = func(value, axis)
@@ -663,7 +676,7 @@ class TestnanopsDataFrame(tm.TestCase):
                     self.assertTrue(res0)
                 else:
                     self.assertFalse(res0)
-            except BaseException as exc:
+            except AssertionError as exc:
                 exc.args += ('dim: %s' % getattr(value, 'ndim', value),)
                 raise
             if not hasattr(value, 'ndim'):
@@ -700,7 +713,7 @@ class TestnanopsDataFrame(tm.TestCase):
             val = getattr(self, arr)
             try:
                 self.check_bool(nanops._has_infs, val, correct)
-            except BaseException as exc:
+            except AssertionError as exc:
                 exc.args += (arr,)
                 raise
 
@@ -710,7 +723,7 @@ class TestnanopsDataFrame(tm.TestCase):
                 self.check_bool(nanops._has_infs, val, correct)
                 self.check_bool(nanops._has_infs, val.astype('f4'), correct)
                 self.check_bool(nanops._has_infs, val.astype('f2'), correct)
-            except BaseException as exc:
+            except AssertionError as exc:
                 exc.args += (arr,)
                 raise
 
@@ -743,7 +756,7 @@ class TestnanopsDataFrame(tm.TestCase):
             val = getattr(self, arr)
             try:
                 self.check_bool(func1, val, correct)
-            except BaseException as exc:
+            except AssertionError as exc:
                 exc.args += (arr,)
                 raise
 
@@ -753,7 +766,7 @@ class TestnanopsDataFrame(tm.TestCase):
                 self.check_bool(func1, val, correct)
                 self.check_bool(func1, val.astype('f4'), correct)
                 self.check_bool(func1, val.astype('f2'), correct)
-            except BaseException as exc:
+            except AssertionError as exc:
                 exc.args += (arr,)
                 raise
 
