@@ -108,6 +108,8 @@ Other enhancements
 - ``regex`` argument to ``DataFrame.filter`` now handles numeric column names instead of raising ``ValueError`` (:issue:`10384`).
 - ``pd.read_stata`` will now read Stata 118 type files. (:issue:`9882`)
 
+- ``pd.merge`` will now allow duplicate column names if they are not merged upon (:issue:`10639`).
+
 .. _whatsnew_0170.api:
 
 .. _whatsnew_0170.api_breaking:
@@ -367,7 +369,8 @@ Bug Fixes
 - Bug in ``Series.shift`` and ``DataFrame.shift`` not supporting categorical data (:issue:`9416`)
 - Bug in ``Series.map`` using categorical ``Series`` raises ``AttributeError`` (:issue:`10324`)
 - Bug in ``MultiIndex.get_level_values`` including ``Categorical`` raises ``AttributeError`` (:issue:`10460`)
-- Bug in `get_dummies` with `sparse=True` not returning SparseDataFrame (:issue:`10531`)
+- Bug in ``pd.get_dummies`` with `sparse=True` not returning ``SparseDataFrame`` (:issue:`10531`)
+- Bug in ``Index`` subtypes (such as ``PeriodIndex``) not returning their own type for ``.drop`` and ``.insert`` methods (:issue:`10620`)
 
 
 
@@ -400,6 +403,6 @@ Bug Fixes
 - Bug in `read_msgpack` where DataFrame to decode has duplicate column names (:issue:`9618`)
 - Bug in ``io.common.get_filepath_or_buffer`` which caused reading of valid S3 files to fail if the bucket also contained keys for which the user does not have read permission (:issue:`10604`)
 - Bug in vectorised setting of timestamp columns with python ``datetime.date`` and numpy ``datetime64`` (:issue:`10408`, :issue:`10412`)
-- Bug in ``pd.DataFrame`` when constructing an empty DataFrame with a string dtype (:issue:`9428`)
 
 - Bug in ``MultiIndex.__contains__`` throws an ``IndexError`` for large multiindices (:issue:`10645`)
+- Bug in ``pd.DataFrame`` when constructing an empty DataFrame with a string dtype (:issue:`9428`)

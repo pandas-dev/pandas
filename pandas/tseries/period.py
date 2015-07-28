@@ -19,7 +19,7 @@ from pandas._period import (
 import pandas.core.common as com
 from pandas.core.common import (isnull, _INT64_DTYPE, _maybe_box,
                                 _values_from_object, ABCSeries,
-                                is_integer, is_float)
+                                is_integer, is_float, is_object_dtype)
 from pandas import compat
 from pandas.lib import Timestamp, Timedelta
 import pandas.lib as lib
@@ -259,12 +259,31 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
 
     @classmethod
     def _simple_new(cls, values, name=None, freq=None, **kwargs):
+        if not getattr(values,'dtype',None):
+            values = np.array(values,copy=False)
+        if is_object_dtype(values):
+            return PeriodIndex(values, name=name, freq=freq, **kwargs)
+
         result = object.__new__(cls)
         result._data = values
         result.name = name
         result.freq = freq
         result._reset_identity()
         return result
+
+    def _shallow_copy(self, values=None, infer=False, **kwargs):
+        """ we always want to return a PeriodIndex """
+        return super(PeriodIndex, self)._shallow_copy(values=values, infer=False, **kwargs)
+
+    def _coerce_scalar_to_index(self, item):
+        """
+        we need to coerce a scalar to a compat for our index type
+
+        Parameters
+        ----------
+        item : scalar item to coerce
+        """
+        return PeriodIndex([item], **self._get_attributes_dict())
 
     @property
     def _na_value(self):

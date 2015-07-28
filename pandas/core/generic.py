@@ -138,6 +138,9 @@ class NDFrame(PandasObject):
 
     @property
     def _constructor(self):
+        """Used when a manipulation result has the same dimesions as the
+        original.
+        """
         raise AbstractMethodError(self)
 
     def __unicode__(self):
@@ -153,10 +156,16 @@ class NDFrame(PandasObject):
 
     @property
     def _constructor_sliced(self):
+        """Used when a manipulation result has one lower dimension(s) as the
+        original, such as DataFrame single columns slicing.
+        """
         raise AbstractMethodError(self)
 
     @property
     def _constructor_expanddim(self):
+        """Used when a manipulation result has one higher dimension as the
+        original, such as Series.to_frame() and DataFrame.to_panel()
+        """
         raise NotImplementedError
 
     #----------------------------------------------------------------------
