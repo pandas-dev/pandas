@@ -3,8 +3,8 @@ Contains data structures designed for manipulating panel (3-dimensional) data
 """
 # pylint: disable=E1103,W0231,W0212,W0621
 from __future__ import division
-from pandas.compat import (map, zip, range, lrange, lmap, u, OrderedDict,
-                           OrderedDefaultdict)
+from pandas.compat import (map, zip, range, lrange, lmap, u, u_safe,
+                           OrderedDict, OrderedDefaultdict)
 from pandas import compat
 import warnings
 import numpy as np
@@ -450,7 +450,7 @@ class Panel(NDFrame):
         kwargs['na_rep'] = na_rep
 
         for item, df in compat.iteritems(self):
-            name = str(item)
+            name = u_safe(item)
             df.to_excel(writer, name, **kwargs)
         writer.save()
 
