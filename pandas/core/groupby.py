@@ -1959,7 +1959,8 @@ class Grouping(object):
 
                 # fix bug #GH8868 sort=False being ignored in categorical groupby
                 else:
-                    self.grouper = self.grouper.reorder_categories(self.grouper.unique())
+                    cat = self.grouper.unique()
+                    self.grouper = self.grouper.reorder_categories(cat.categories)
 
                 # we make a CategoricalIndex out of the cat grouper
                 # preserving the categories / ordered attributes
