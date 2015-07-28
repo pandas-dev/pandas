@@ -14,7 +14,6 @@ from pandas.io.data import DataReader, SymbolWarning, RemoteDataError, _yahoo_co
 from pandas.util.testing import (assert_series_equal, assert_produces_warning,
                                  network, assert_frame_equal)
 import pandas.util.testing as tm
-from numpy.testing import assert_array_equal
 
 if compat.PY3:
     from urllib.error import HTTPError
@@ -533,7 +532,7 @@ class TestFred(tm.TestCase):
                     [848.3],
                     [933.3]]
         result = web.get_data_fred("A09024USA144NNBR", start="1915").ix[:5]
-        assert_array_equal(result.values, np.array(expected))
+        tm.assert_numpy_array_equal(result.values, np.array(expected))
 
     @network
     def test_invalid_series(self):

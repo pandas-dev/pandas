@@ -10,8 +10,7 @@ from pandas import Series, DataFrame
 import pandas.util.testing as tm
 from pandas.util.testing import (
     assert_almost_equal, assertRaisesRegexp, raise_with_traceback,
-    assert_series_equal, assert_frame_equal, assert_isinstance,
-    RNGContext
+    assert_series_equal, assert_frame_equal, RNGContext
 )
 
 # let's get meta.
@@ -259,7 +258,7 @@ class TestDeprecatedTests(tm.TestCase):
             self.assertNotAlmostEquals(1, 2)
 
         with tm.assert_produces_warning(FutureWarning):
-            assert_isinstance(Series([1, 2]), Series, msg='xxx')
+            tm.assert_isinstance(Series([1, 2]), Series, msg='xxx')
 
 
 class TestLocale(tm.TestCase):
