@@ -3413,7 +3413,8 @@ class TestGroupBy(tm.TestCase):
 
         col = 'range'
         assert_frame_equal(result_sort, df.groupby(col, sort=True).first())
-        assert_frame_equal(result_nosort, df.groupby(col, sort=False).first())
+        # when categories is ordered, group is ordered by category's order
+        assert_frame_equal(result_sort, df.groupby(col, sort=False).first())
 
         df['range'] = Categorical(df['range'],ordered=False)
         index = Index(['(0, 2.5]', '(2.5, 5]', '(5, 7.5]', '(7.5, 10]'], dtype='object')
@@ -3428,6 +3429,55 @@ class TestGroupBy(tm.TestCase):
         col = 'range'
 
         #### this is an unordered categorical, but we allow this ####
+        assert_frame_equal(result_sort, df.groupby(col, sort=True).first())
+        assert_frame_equal(result_nosort, df.groupby(col, sort=False).first())
+
+    def test_groupby_sort_categorical_datetimelike(self):
+        # GH10505
+
+        # use same data as test_groupby_sort_categorical, which category is
+        # corresponding to datetime.month
+        df = DataFrame({'dt': [datetime(2011, 7, 1), datetime(2011, 7, 1),
+                               datetime(2011, 2, 1), datetime(2011, 5, 1),
+                               datetime(2011, 2, 1), datetime(2011, 1, 1),
+                               datetime(2011, 5, 1)],
+                        'foo': [10, 8, 5, 6, 4, 1, 7],
+                        'bar': [10, 20, 30, 40, 50, 60, 70]},
+                       columns=['dt', 'foo', 'bar'])
+
+        # ordered=True
+        df['dt'] = Categorical(df['dt'], ordered=True)
+        index = [datetime(2011, 1, 1), datetime(2011, 2, 1),
+                 datetime(2011, 5, 1), datetime(2011, 7, 1)]
+        result_sort = DataFrame([[1, 60], [5, 30], [6, 40], [10, 10]], columns=['foo', 'bar'])
+        result_sort.index = CategoricalIndex(index, name='dt', ordered=True)
+
+        index = [datetime(2011, 7, 1), datetime(2011, 2, 1),
+                 datetime(2011, 5, 1), datetime(2011, 1, 1)]
+        result_nosort = DataFrame([[10, 10], [5, 30], [6, 40], [1, 60]],
+                                  columns=['foo', 'bar'])
+        result_nosort.index = CategoricalIndex(index, categories=index,
+                                               name='dt', ordered=True)
+
+        col = 'dt'
+        assert_frame_equal(result_sort, df.groupby(col, sort=True).first())
+        # when categories is ordered, group is ordered by category's order
+        assert_frame_equal(result_sort, df.groupby(col, sort=False).first())
+
+        # ordered = False
+        df['dt'] = Categorical(df['dt'], ordered=False)
+        index = [datetime(2011, 1, 1), datetime(2011, 2, 1),
+                 datetime(2011, 5, 1), datetime(2011, 7, 1)]
+        result_sort = DataFrame([[1, 60], [5, 30], [6, 40], [10, 10]], columns=['foo', 'bar'])
+        result_sort.index = CategoricalIndex(index, name='dt')
+
+        index = [datetime(2011, 7, 1), datetime(2011, 2, 1),
+                 datetime(2011, 5, 1), datetime(2011, 1, 1)]
+        result_nosort = DataFrame([[10, 10], [5, 30], [6, 40], [1, 60]],
+                                  columns=['foo', 'bar'])
+        result_nosort.index = CategoricalIndex(index, categories=index, name='dt')
+
+        col = 'dt'
         assert_frame_equal(result_sort, df.groupby(col, sort=True).first())
         assert_frame_equal(result_nosort, df.groupby(col, sort=False).first())
 
