@@ -1604,15 +1604,6 @@ class ExcelCell(object):
         self.mergestart = mergestart
         self.mergeend = mergeend
 
-
-header_style = {"font": {"bold": True},
-                "borders": {"top": "thin",
-                            "right": "thin",
-                            "bottom": "thin",
-                            "left": "thin"},
-                "alignment": {"horizontal": "center", "vertical": "top"}}
-
-
 class ExcelFormatter(object):
 
     """
@@ -1629,6 +1620,7 @@ class ExcelFormatter(object):
     header : boolean or list of string, default True
         Write out column names. If a list of string is given it is
         assumed to be aliases for the column names
+    header_style : Format dict, default None
     index : boolean, default True
         output row names (index)
     index_label : string or sequence, default None
@@ -1644,7 +1636,7 @@ class ExcelFormatter(object):
 
     def __init__(self, df, na_rep='', float_format=None, cols=None,
                  header=True, index=True, index_label=None, merge_cells=False,
-                 inf_rep='inf'):
+                 inf_rep='inf', header_style=None):
         self.df = df
         self.rowcounter = 0
         self.na_rep = na_rep
@@ -1657,6 +1649,7 @@ class ExcelFormatter(object):
         self.header = header
         self.merge_cells = merge_cells
         self.inf_rep = inf_rep
+        self.header_style = header_style
 
     def _format_value(self, val):
         if lib.checknull(val):
@@ -1688,7 +1681,7 @@ class ExcelFormatter(object):
             # Format multi-index as a merged cells.
             for lnum in range(len(level_lengths)):
                 name = columns.names[lnum]
-                yield ExcelCell(lnum, coloffset, name, header_style)
+                yield ExcelCell(lnum, coloffset, name, self.header_style)
 
             for lnum, (spans, levels, labels) in enumerate(zip(level_lengths,
                                                                columns.levels,
@@ -1700,19 +1693,19 @@ class ExcelFormatter(object):
                         yield ExcelCell(lnum,
                                         coloffset + i + 1,
                                         values[i],
-                                        header_style,
+                                        self.header_style,
                                         lnum,
                                         coloffset + i + spans[i])
                     else:
                         yield ExcelCell(lnum,
                                         coloffset + i + 1,
                                         values[i],
-                                        header_style)
+                                        self.header_style)
         else:
             # Format in legacy format with dots to indicate levels.
             for i, values in enumerate(zip(*level_strs)):
                 v = ".".join(map(com.pprint_thing, values))
-                yield ExcelCell(lnum, coloffset + i + 1, v, header_style)
+                yield ExcelCell(lnum, coloffset + i + 1, v, self.header_style)
 
         self.rowcounter = lnum
 
@@ -1736,7 +1729,7 @@ class ExcelFormatter(object):
 
             for colindex, colname in enumerate(colnames):
                 yield ExcelCell(self.rowcounter, colindex + coloffset, colname,
-                                header_style)
+                                self.header_style)
 
     def _format_header(self):
         if isinstance(self.columns, MultiIndex):
@@ -1749,7 +1742,7 @@ class ExcelFormatter(object):
             row = [x if x is not None else ''
                    for x in self.df.index.names] + [''] * len(self.columns)
             if reduce(lambda x, y: x and y, map(lambda x: x != '', row)):
-                gen2 = (ExcelCell(self.rowcounter, colindex, val, header_style)
+                gen2 = (ExcelCell(self.rowcounter, colindex, val, self.header_style)
                         for colindex, val in enumerate(row))
                 self.rowcounter += 1
         return itertools.chain(gen, gen2)
@@ -1785,13 +1778,13 @@ class ExcelFormatter(object):
                     yield ExcelCell(self.rowcounter,
                                     0,
                                     index_label,
-                                    header_style)
+                                    self.header_style)
                     self.rowcounter += 1
                 else:
                     yield ExcelCell(self.rowcounter - 1,
                                     0,
                                     index_label,
-                                    header_style)
+                                    self.header_style)
 
             # write index_values
             index_values = self.df.index
@@ -1800,7 +1793,7 @@ class ExcelFormatter(object):
 
             coloffset = 1
             for idx, idxval in enumerate(index_values):
-                yield ExcelCell(self.rowcounter + idx, 0, idxval, header_style)
+                yield ExcelCell(self.rowcounter + idx, 0, idxval, self.header_style)
 
         # Get a frame that will account for any duplicates in the column names.
         col_mapped_frame = self.df.loc[:, self.columns]
@@ -1836,7 +1829,7 @@ class ExcelFormatter(object):
                     yield ExcelCell(self.rowcounter,
                                     cidx,
                                     name,
-                                    header_style)
+                                    self.header_style)
                 self.rowcounter += 1
 
             if self.merge_cells:
@@ -1854,14 +1847,14 @@ class ExcelFormatter(object):
                             yield ExcelCell(self.rowcounter + i,
                                             gcolidx,
                                             values[i],
-                                            header_style,
+                                            self.header_style,
                                             self.rowcounter + i + spans[i] - 1,
                                             gcolidx)
                         else:
                             yield ExcelCell(self.rowcounter + i,
                                             gcolidx,
                                             values[i],
-                                            header_style)
+                                            self.header_style)
                     gcolidx += 1
 
             else:
@@ -1871,7 +1864,7 @@ class ExcelFormatter(object):
                         yield ExcelCell(self.rowcounter + idx,
                                         gcolidx,
                                         indexcolval,
-                                        header_style)
+                                        self.header_style)
                     gcolidx += 1
 
         # Get a frame that will account for any duplicates in the column names.

@@ -1195,7 +1195,7 @@ class DataFrame(NDFrame):
     def to_excel(self, excel_writer, sheet_name='Sheet1', na_rep='',
                  float_format=None, columns=None, header=True, index=True,
                  index_label=None, startrow=0, startcol=0, engine=None,
-                 merge_cells=True, encoding=None, inf_rep='inf'):
+                 merge_cells=True, encoding=None, inf_rep='inf', override_header_style='default'):
         """
         Write DataFrame to a excel sheet
 
@@ -1220,6 +1220,9 @@ class DataFrame(NDFrame):
             Column label for index column(s) if desired. If None is given, and
             `header` and `index` are True, then the index names are used. A
             sequence should be given if the DataFrame uses MultiIndex.
+        override_header_style : dict, default None
+            Provide a dict with styles to be applied to header cells,
+            or set to None to use the default header cell formatting.  
         startrow :
             upper left cell row to dump data frame
         startcol :
@@ -1264,6 +1267,20 @@ class DataFrame(NDFrame):
             excel_writer = ExcelWriter(excel_writer, engine=engine)
             need_save = True
 
+        if override_header_style == {}:
+            header_style = None
+        elif override_header_style != None:
+            header_style = override_header_style
+        else:
+            # The following is the old "global" style.  
+            header_style = {"font": {"bold": True},
+                            "borders": {"top": "thin",
+                                        "right": "thin",
+                                        "bottom": "thin",
+                                        "left": "thin"},
+                            "alignment": {"horizontal": "center", "vertical": "top"}}
+        
+
         formatter = fmt.ExcelFormatter(self,
                                        na_rep=na_rep,
                                        cols=columns,
@@ -1272,7 +1289,8 @@ class DataFrame(NDFrame):
                                        index=index,
                                        index_label=index_label,
                                        merge_cells=merge_cells,
-                                       inf_rep=inf_rep)
+                                       inf_rep=inf_rep,
+                                       header_style=header_style)
         formatted_cells = formatter.get_formatted_cells()
         excel_writer.write_cells(formatted_cells, sheet_name,
                                  startrow=startrow, startcol=startcol)

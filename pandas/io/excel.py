@@ -1386,17 +1386,17 @@ class _XlsxWriter(ExcelWriter):
         if style_dict.get('font'):
             font = style_dict['font']
             if font.get('bold'):
-                xl_format.set_bold()
+                xl_format.set_bold( font['bold'] )
+            if font.get('font_color'):
+                xl_format.set_font_color( font['font_color'] )
 
         # Map the alignment to XlsxWriter alignment properties.
         alignment = style_dict.get('alignment')
         if alignment:
-            if (alignment.get('horizontal')
-                    and alignment['horizontal'] == 'center'):
-                xl_format.set_align('center')
-            if (alignment.get('vertical')
-                    and alignment['vertical'] == 'top'):
-                xl_format.set_align('top')
+            if (alignment.get('horizontal')):
+                xl_format.set_align(alignment['horizontal'])
+            if (alignment.get('vertical')):
+                xl_format.set_align(alignment['vertical'])
 
         # Map the cell borders to XlsxWriter border properties.
         if style_dict.get('borders'):
