@@ -89,7 +89,6 @@ class Index(IndexOpsMixin, PandasObject):
     _left_indexer = _algos.left_join_indexer_object
     _inner_indexer = _algos.inner_join_indexer_object
     _outer_indexer = _algos.outer_join_indexer_object
-
     _box_scalars = False
 
     _typ = 'index'
@@ -204,6 +203,17 @@ class Index(IndexOpsMixin, PandasObject):
 
     @classmethod
     def _simple_new(cls, values, name=None, **kwargs):
+        """
+        we require the we have a dtype compat for the values
+        if we are passed a non-dtype compat, then coerce using the constructor
+
+        Must be careful not to recurse.
+        """
+        if not hasattr(values, 'dtype'):
+            values = np.array(values,copy=False)
+            if is_object_dtype(values):
+                values = cls(values, name=name, **kwargs).values
+
         result = object.__new__(cls)
         result._data = values
         result.name = name
@@ -341,14 +351,40 @@ class Index(IndexOpsMixin, PandasObject):
             result._id = self._id
         return result
 
-    def _shallow_copy(self, values=None, **kwargs):
-        """ create a new Index, don't copy the data, use the same object attributes
-            with passed in attributes taking precedence """
+    def _shallow_copy(self, values=None, infer=False, **kwargs):
+        """
+        create a new Index, don't copy the data, use the same object attributes
+        with passed in attributes taking precedence
+
+        *this is an internal non-public method*
+
+        Parameters
+        ----------
+        values : the values to create the new Index, optional
+        infer : boolean, default False
+            if True, infer the new type of the passed values
+        kwargs : updates the default attributes for this Index
+        """
         if values is None:
             values = self.values
         attributes = self._get_attributes_dict()
         attributes.update(kwargs)
+
+        if infer:
+            attributes['copy'] = False
+            return Index(values, **attributes)
+
         return self.__class__._simple_new(values,**attributes)
+
+    def _coerce_scalar_to_index(self, item):
+        """
+        we need to coerce a scalar to a compat for our index type
+
+        Parameters
+        ----------
+        item : scalar item to coerce
+        """
+        return Index([item], dtype=self.dtype, **self._get_attributes_dict())
 
     def copy(self, names=None, name=None, dtype=None, deep=False):
         """
@@ -1132,7 +1168,9 @@ class Index(IndexOpsMixin, PandasObject):
         appended : Index
         """
         to_concat, name = self._ensure_compat_append(other)
-        return Index(np.concatenate(to_concat), name=name)
+        attribs = self._get_attributes_dict()
+        attribs['name'] = name
+        return self._shallow_copy(np.concatenate(to_concat), infer=True, **attribs)
 
     @staticmethod
     def _ensure_compat_concat(indexes):
@@ -1549,7 +1587,11 @@ class Index(IndexOpsMixin, PandasObject):
         if result_name is None:
             result_name = result_name_update
         the_diff = sorted(set((self.difference(other)).union(other.difference(self))))
-        return Index(the_diff, name=result_name)
+        attribs = self._get_attributes_dict()
+        attribs['name'] = result_name
+        if 'freq' in attribs:
+            attribs['freq'] = None
+        return self._shallow_copy(the_diff, infer=True, **attribs)
 
     def get_loc(self, key, method=None):
         """
@@ -2527,7 +2569,8 @@ class Index(IndexOpsMixin, PandasObject):
         -------
         new_index : Index
         """
-        return Index(np.delete(self._data, loc), name=self.name)
+        attribs = self._get_attributes_dict()
+        return self._shallow_copy(np.delete(self._data, loc), **attribs)
 
     def insert(self, loc, item):
         """
@@ -2544,10 +2587,12 @@ class Index(IndexOpsMixin, PandasObject):
         new_index : Index
         """
         _self = np.asarray(self)
-        item_idx = Index([item], dtype=self.dtype).values
+        item = self._coerce_scalar_to_index(item).values
+
         idx = np.concatenate(
-            (_self[:loc], item_idx, _self[loc:]))
-        return Index(idx, name=self.name)
+            (_self[:loc], item, _self[loc:]))
+        attribs = self._get_attributes_dict()
+        return self._shallow_copy(idx, infer=True, **attribs)
 
     def drop(self, labels, errors='raise'):
         """
@@ -3678,7 +3723,7 @@ class MultiIndex(Index):
         Level of sortedness (must be lexicographically sorted by that
         level)
     names : optional sequence of objects
-        Names for each of the index levels.
+        Names for each of the index levels. (name is accepted for compat)
     copy : boolean, default False
         Copy the meta-data
     verify_integrity : boolean, default True
@@ -3694,8 +3739,11 @@ class MultiIndex(Index):
     rename = Index.set_names
 
     def __new__(cls, levels=None, labels=None, sortorder=None, names=None,
-                copy=False, verify_integrity=True, _set_identity=True, **kwargs):
+                copy=False, verify_integrity=True, _set_identity=True, name=None, **kwargs):
 
+        # compat with Index
+        if name is not None:
+            names = name
         if levels is None or labels is None:
             raise TypeError("Must pass both levels and labels")
         if len(levels) != len(labels):
@@ -4004,7 +4052,12 @@ class MultiIndex(Index):
         result._id = self._id
         return result
 
-    _shallow_copy = view
+    def _shallow_copy(self, values=None, infer=False, **kwargs):
+        if values is not None:
+            if 'name' in kwargs:
+                kwargs['names'] = kwargs.pop('name',None)
+            return MultiIndex.from_tuples(values, **kwargs)
+        return self.view()
 
     @cache_readonly
     def dtype(self):
