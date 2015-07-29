@@ -104,6 +104,12 @@ class TestTSPlot(tm.TestCase):
         for s in self.datetime_ser:
             _check_plot_works(f, s.index.freq.rule_code, ax=ax, series=s)
 
+        for s in self.period_ser:
+            _check_plot_works(s.plot, ax=ax)
+
+        for s in self.datetime_ser:
+            _check_plot_works(s.plot, ax=ax)
+
         ax = ts.plot(style='k')
         self.assertEqual((0., 0., 0.), ax.get_lines()[0].get_color())
 
@@ -150,6 +156,15 @@ class TestTSPlot(tm.TestCase):
         # note this is added to the annual plot already in existence, and changes its freq field
         daily = Series(1, index=date_range('2014-01-01', periods=3, freq='D'))
         check_format_of_first_point(daily.plot(), 't = 2014-01-01  y = 1.000000')
+        tm.close()
+
+        # tsplot
+        import matplotlib.pyplot as plt
+        from pandas.tseries.plotting import tsplot
+        tsplot(annual, plt.Axes.plot)
+        check_format_of_first_point(plt.gca(), 't = 2014  y = 1.000000')
+        tsplot(daily, plt.Axes.plot)
+        check_format_of_first_point(plt.gca(), 't = 2014-01-01  y = 1.000000')
 
     @slow
     def test_line_plot_period_series(self):
@@ -745,6 +760,15 @@ class TestTSPlot(tm.TestCase):
         for l in ax.get_lines():
             self.assertTrue(PeriodIndex(data=l.get_xdata()).freq.startswith('W'))
 
+        # tsplot
+        from pandas.tseries.plotting import tsplot
+        import matplotlib.pyplot as plt
+
+        tsplot(high, plt.Axes.plot)
+        lines = tsplot(low, plt.Axes.plot)
+        for l in lines:
+            self.assertTrue(PeriodIndex(data=l.get_xdata()).freq.startswith('W'))
+
     @slow
     def test_from_weekly_resampling(self):
         idxh = date_range('1/1/1999', periods=52, freq='W')
@@ -759,7 +783,22 @@ class TestTSPlot(tm.TestCase):
                                1553, 1558, 1562])
         for l in ax.get_lines():
             self.assertTrue(PeriodIndex(data=l.get_xdata()).freq.startswith('W'))
+            xdata = l.get_xdata(orig=False)
+            if len(xdata) == 12: # idxl lines
+                self.assert_numpy_array_equal(xdata, expected_l)
+            else:
+                self.assert_numpy_array_equal(xdata, expected_h)
+        tm.close()
 
+        # tsplot
+        from pandas.tseries.plotting import tsplot
+        import matplotlib.pyplot as plt
+
+        tsplot(low, plt.Axes.plot)
+        lines = tsplot(high, plt.Axes.plot)
+
+        for l in lines:
+            self.assertTrue(PeriodIndex(data=l.get_xdata()).freq.startswith('W'))
             xdata = l.get_xdata(orig=False)
             if len(xdata) == 12: # idxl lines
                 self.assert_numpy_array_equal(xdata, expected_l)

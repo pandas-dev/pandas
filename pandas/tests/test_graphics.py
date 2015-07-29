@@ -3281,6 +3281,36 @@ class TestDataFramePlots(TestPlotBase):
             self.assertTrue(ax.yaxis.get_label().get_visible(),
                              "y label is invisible but shouldn't")
 
+    def test_memory_leak(self):
+        """ Check that every plot type gets properly collected. """
+        import weakref
+        import gc
+
+        results = {}
+        for kind in plotting._plot_klass.keys():
+            args = {}
+            if kind in ['hexbin', 'scatter', 'pie']:
+                df = self.hexbin_df
+                args = {'x': 'A', 'y': 'B'}
+            elif kind == 'area':
+                df = self.tdf.abs()
+            else:
+                df = self.tdf
+
+            # Use a weakref so we can see if the object gets collected without
+            # also preventing it from being collected
+            results[kind] = weakref.proxy(df.plot(kind=kind, **args))
+
+        # have matplotlib delete all the figures
+        tm.close()
+        # force a garbage collection
+        gc.collect()
+        for key in results:
+            # check that every plot was collected
+            with tm.assertRaises(ReferenceError):
+                # need to actually access something to get an error
+                results[key].lines
+
     @slow
     def test_df_grid_settings(self):
         # Make sure plot defaults to rcParams['axes.grid'] setting, GH 9792
