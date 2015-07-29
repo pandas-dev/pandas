@@ -329,6 +329,10 @@ Interpolation
   :meth:`~pandas.DataFrame.interpolate`, and :meth:`~pandas.Series.interpolate` have
   revamped interpolation methods and functionality.
 
+.. versionadded:: 0.17.0
+
+  The ``limit_direction`` keyword argument was added.
+
 Both Series and Dataframe objects have an ``interpolate`` method that, by default,
 performs linear interpolation at missing datapoints.
 
@@ -448,16 +452,32 @@ at the new values.
 .. _documentation: http://docs.scipy.org/doc/scipy/reference/interpolate.html#univariate-interpolation
 .. _guide: http://docs.scipy.org/doc/scipy/reference/tutorial/interpolate.html
 
+Interpolation Limits
+^^^^^^^^^^^^^^^^^^^^
 
 Like other pandas fill methods, ``interpolate`` accepts a ``limit`` keyword
-argument.  Use this to limit the number of consecutive interpolations, keeping
-``NaN`` values for interpolations that are too far from the last valid
+argument. Use this argument to limit the number of consecutive interpolations,
+keeping ``NaN`` values for interpolations that are too far from the last valid
 observation:
 
 .. ipython:: python
 
-   ser = pd.Series([1, 3, np.nan, np.nan, np.nan, 11])
+   ser = pd.Series([np.nan, np.nan, 5, np.nan, np.nan, np.nan, 13])
    ser.interpolate(limit=2)
+
+By default, ``limit`` applies in a forward direction, so that only ``NaN``
+values after a non-``NaN`` value can be filled. If you provide ``'backward'`` or
+``'both'`` for the ``limit_direction`` keyword argument, you can fill ``NaN``
+values before non-``NaN`` values, or both before and after non-``NaN`` values,
+respectively:
+
+.. ipython:: python
+
+   ser.interpolate(limit=1)  # limit_direction == 'forward'
+
+   ser.interpolate(limit=1, limit_direction='backward')
+
+   ser.interpolate(limit=1, limit_direction='both')
 
 .. _missing_data.replace:
 
