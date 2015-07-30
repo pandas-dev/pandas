@@ -2131,7 +2131,7 @@ def outer_join_indexer_%(name)s(ndarray[%(c_type)s] left,
             rindexer[j] = j
             result[j] = right[j]
     elif nright == 0:
-        for i in range(nright):
+        for i in range(nleft):
             lindexer[i] = i
             rindexer[i] = -1
             result[i] = left[i]

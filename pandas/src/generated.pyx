@@ -10345,7 +10345,7 @@ def outer_join_indexer_float64(ndarray[float64_t] left,
             rindexer[j] = j
             result[j] = right[j]
     elif nright == 0:
-        for i in range(nright):
+        for i in range(nleft):
             lindexer[i] = i
             rindexer[i] = -1
             result[i] = left[i]
@@ -10474,7 +10474,7 @@ def outer_join_indexer_float32(ndarray[float32_t] left,
             rindexer[j] = j
             result[j] = right[j]
     elif nright == 0:
-        for i in range(nright):
+        for i in range(nleft):
             lindexer[i] = i
             rindexer[i] = -1
             result[i] = left[i]
@@ -10603,7 +10603,7 @@ def outer_join_indexer_object(ndarray[object] left,
             rindexer[j] = j
             result[j] = right[j]
     elif nright == 0:
-        for i in range(nright):
+        for i in range(nleft):
             lindexer[i] = i
             rindexer[i] = -1
             result[i] = left[i]
@@ -10732,7 +10732,7 @@ def outer_join_indexer_int32(ndarray[int32_t] left,
             rindexer[j] = j
             result[j] = right[j]
     elif nright == 0:
-        for i in range(nright):
+        for i in range(nleft):
             lindexer[i] = i
             rindexer[i] = -1
             result[i] = left[i]
@@ -10861,7 +10861,7 @@ def outer_join_indexer_int64(ndarray[int64_t] left,
             rindexer[j] = j
             result[j] = right[j]
     elif nright == 0:
-        for i in range(nright):
+        for i in range(nleft):
             lindexer[i] = i
             rindexer[i] = -1
             result[i] = left[i]

@@ -389,6 +389,7 @@ Bug Fixes
 - Bug in ``MultiIndex.get_level_values`` including ``Categorical`` raises ``AttributeError`` (:issue:`10460`)
 - Bug in ``pd.get_dummies`` with `sparse=True` not returning ``SparseDataFrame`` (:issue:`10531`)
 - Bug in ``Index`` subtypes (such as ``PeriodIndex``) not returning their own type for ``.drop`` and ``.insert`` methods (:issue:`10620`)
+- Bug in ``algos.outer_join_indexer`` when ``right`` array is empty (:issue:`10618`)
 
 
 
