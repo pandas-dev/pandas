@@ -168,6 +168,38 @@ class TestFactorize(tm.TestCase):
             _test_vector_resize(tbl(), vect(), dtype, 0)
             _test_vector_resize(tbl(), vect(), dtype, 10)
 
+class TestIndexer(tm.TestCase):
+    _multiprocess_can_split_ = True
+
+    def test_outer_join_indexer(self):
+        typemap = [('int32', algos.algos.outer_join_indexer_int32),
+                   ('int64', algos.algos.outer_join_indexer_int64),
+                   ('float32', algos.algos.outer_join_indexer_float32),
+                   ('float64', algos.algos.outer_join_indexer_float64),
+                   ('object', algos.algos.outer_join_indexer_object)]
+
+        for dtype, indexer in typemap:
+            left = np.arange(3, dtype = dtype)
+            right = np.arange(2,5, dtype = dtype)
+            empty = np.array([], dtype = dtype)
+
+            result, lindexer, rindexer = indexer(left, right)
+            tm.assertIsInstance(result, np.ndarray)
+            tm.assertIsInstance(lindexer, np.ndarray)
+            tm.assertIsInstance(rindexer, np.ndarray)
+            tm.assert_numpy_array_equal(result, np.arange(5, dtype = dtype))
+            tm.assert_numpy_array_equal(lindexer, np.array([0, 1, 2, -1, -1]))
+            tm.assert_numpy_array_equal(rindexer, np.array([-1, -1, 0, 1, 2]))
+
+            result, lindexer, rindexer = indexer(empty, right)
+            tm.assert_numpy_array_equal(result, right)
+            tm.assert_numpy_array_equal(lindexer, np.array([-1, -1, -1]))
+            tm.assert_numpy_array_equal(rindexer, np.array([0, 1, 2]))
+
+            result, lindexer, rindexer = indexer(left, empty)
+            tm.assert_numpy_array_equal(result, left)
+            tm.assert_numpy_array_equal(lindexer, np.array([0, 1, 2]))
+            tm.assert_numpy_array_equal(rindexer, np.array([-1, -1, -1]))
 
 class TestUnique(tm.TestCase):
     _multiprocess_can_split_ = True
