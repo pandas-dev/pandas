@@ -464,7 +464,7 @@ class TestStata(tm.TestCase):
         data_label = 'This is a data file.'
         with tm.ensure_clean() as path:
             original.to_stata(path, time_stamp=time_stamp, data_label=data_label)
-	    
+
             with StataReader(path) as reader:
                 parsed_time_stamp = dt.datetime.strptime(reader.time_stamp, ('%d %b %Y %H:%M'))
                 assert parsed_time_stamp == time_stamp
@@ -475,10 +475,8 @@ class TestStata(tm.TestCase):
         original.index.name = 'index'
         with tm.ensure_clean() as path:
             # should get a warning for that format.
-            with warnings.catch_warnings(record=True) as w:
-                tm.assert_produces_warning(original.to_stata(path), InvalidColumnName)
-            # should produce a single warning
-            tm.assert_equal(len(w), 1)
+            with tm.assert_produces_warning(InvalidColumnName):
+                original.to_stata(path)
 
             written_and_read_again = self.read_dta(path)
             written_and_read_again = written_and_read_again.set_index('index')
@@ -530,11 +528,8 @@ class TestStata(tm.TestCase):
         original = DataFrame({'s0': s0, 's1': s1, 's2': s2, 's3': s3})
         original.index.name = 'index'
         with tm.ensure_clean() as path:
-            with warnings.catch_warnings(record=True) as w:
-                tm.assert_produces_warning(original.to_stata(path),
-                                           PossiblePrecisionLoss)
-            # should produce a single warning
-            tm.assert_equal(len(w), 1)
+            with tm.assert_produces_warning(PossiblePrecisionLoss):
+                original.to_stata(path)
 
             written_and_read_again = self.read_dta(path)
             modified = original.copy()
@@ -548,10 +543,8 @@ class TestStata(tm.TestCase):
         original = DataFrame([datetime(2006, 11, 19, 23, 13, 20)])
         original.index.name = 'index'
         with tm.ensure_clean() as path:
-            with warnings.catch_warnings(record=True) as w:
-                tm.assert_produces_warning(original.to_stata(path, {0: 'tc'}),
-                                           InvalidColumnName)
-            tm.assert_equal(len(w), 1)
+            with tm.assert_produces_warning(InvalidColumnName):
+                original.to_stata(path, {0: 'tc'})
 
             written_and_read_again = self.read_dta(path)
             modified = original.copy()

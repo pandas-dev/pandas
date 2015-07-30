@@ -4103,9 +4103,12 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
 
         def check_iloc_compat(s):
             # invalid type for iloc (but works with a warning)
-            self.assert_produces_warning(FutureWarning, lambda : s.iloc[6.0:8])
-            self.assert_produces_warning(FutureWarning, lambda : s.iloc[6.0:8.0])
-            self.assert_produces_warning(FutureWarning, lambda : s.iloc[6:8.0])
+            with self.assert_produces_warning(FutureWarning):
+                s.iloc[6.0:8]
+            with self.assert_produces_warning(FutureWarning):
+                s.iloc[6.0:8.0]
+            with self.assert_produces_warning(FutureWarning):
+                s.iloc[6:8.0]
 
         def check_slicing_positional(index):
 
