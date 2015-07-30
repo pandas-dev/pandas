@@ -2002,6 +2002,13 @@ class TestConcatenate(tm.TestCase):
         result = df.append(df)
         assert_frame_equal(result, expected)
 
+    def test_with_mixed_tuples(self):
+        # 10697
+        # columns have mixed tuples, so handle properly
+        df1 = DataFrame({ u'A' : 'foo', (u'B',1) : 'bar' },index=range(2))
+        df2 = DataFrame({ u'B' : 'foo', (u'B',1) : 'bar' },index=range(2))
+        result = concat([df1,df2])
+
     def test_join_dups(self):
 
         # joining dups

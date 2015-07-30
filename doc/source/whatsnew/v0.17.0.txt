@@ -367,7 +367,7 @@ Bug Fixes
 - Bug in ``Index.drop_duplicates`` dropping name(s) (:issue:`10115`)
 - Bug in ``pd.Series`` when setting a value on an empty ``Series`` whose index has a frequency. (:issue:`10193`)
 - Bug in ``DataFrame.plot`` raises ``ValueError`` when color name is specified by multiple characters (:issue:`10387`)
-
+- Bug in ``Index`` construction with a mixed list of tuples (:issue:`10697`)
 - Bug in ``DataFrame.reset_index`` when index contains `NaT`. (:issue:`10388`)
 - Bug in ``ExcelReader`` when worksheet is empty (:issue:`6403`)
 - Bug in ``Table.select_column`` where name is not preserved (:issue:`10392`)
