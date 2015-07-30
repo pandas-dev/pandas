@@ -110,6 +110,8 @@ Other enhancements
 
 - ``pd.merge`` will now allow duplicate column names if they are not merged upon (:issue:`10639`).
 
+- ``pd.pivot`` will now allow passing index as ``None`` (:issue:`3962`).
+
 .. _whatsnew_0170.api:
 
 .. _whatsnew_0170.api_breaking:

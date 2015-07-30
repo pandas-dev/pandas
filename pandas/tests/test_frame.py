@@ -9478,6 +9478,47 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         repr(result)
         self.assert_numpy_array_equal(result.columns, ['A', 'B'])
 
+    def test_pivot_index_none(self):
+        # gh-3962
+        data = {
+            'index': ['A', 'B', 'C', 'C', 'B', 'A'],
+            'columns': ['One', 'One', 'One', 'Two', 'Two', 'Two'],
+            'values': [1., 2., 3., 3., 2., 1.]
+        }
+
+        frame = DataFrame(data).set_index('index')
+        result = frame.pivot(columns='columns', values='values')
+        expected = DataFrame({
+            'One': {'A': 1., 'B': 2., 'C': 3.},
+            'Two': {'A': 1., 'B': 2., 'C': 3.}
+        })
+
+        expected.index.name, expected.columns.name = 'index', 'columns'
+        assert_frame_equal(result, expected)
+
+        # omit values
+        result = frame.pivot(columns='columns')
+
+        expected.columns = pd.MultiIndex.from_tuples([('values', 'One'),
+                                                     ('values', 'Two')],
+                                                     names=[None, 'columns'])
+        expected.index.name = 'index'
+        assert_frame_equal(result, expected, check_names=False)
+        self.assertEqual(result.index.name, 'index',)
+        self.assertEqual(result.columns.names, (None, 'columns'))
+        expected.columns = expected.columns.droplevel(0)
+
+        data = {
+            'index': range(7),
+            'columns': ['One', 'One', 'One', 'Two', 'Two', 'Two'],
+            'values': [1., 2., 3., 3., 2., 1.]
+        }
+
+        result = frame.pivot(columns='columns', values='values')
+
+        expected.columns.name = 'columns'
+        assert_frame_equal(result, expected)
+
     def test_reindex(self):
         newFrame = self.frame.reindex(self.ts1.index)
 
