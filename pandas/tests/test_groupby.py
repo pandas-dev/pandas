@@ -4479,7 +4479,7 @@ class TestGroupBy(tm.TestCase):
 
     def test_filter_multiple_timestamp(self):
         # GH 10114
-        df = DataFrame({'A' : np.arange(5),
+        df = DataFrame({'A' : np.arange(5,dtype='int64'),
                         'B' : ['foo','bar','foo','bar','bar'],
                         'C' : Timestamp('20130101') })
 
