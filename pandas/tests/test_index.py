@@ -553,6 +553,15 @@ class TestIndex(Base, tm.TestCase):
         # corner case
         self.assertRaises(TypeError, Index, 0)
 
+    def test_consruction_list_mixed_tuples(self):
+        # 10697
+        # if we are constructing from a mixed list of tuples, make sure that we
+        # are independent of the sorting order
+        idx1 = Index([('A',1),'B'])
+        self.assertIsInstance(idx1, Index) and self.assertNotInstance(idx1, MultiIndex)
+        idx2 = Index(['B',('A',1)])
+        self.assertIsInstance(idx2, Index) and self.assertNotInstance(idx2, MultiIndex)
+
     def test_constructor_from_series(self):
 
         expected = DatetimeIndex([Timestamp('20110101'),Timestamp('20120101'),Timestamp('20130101')])
