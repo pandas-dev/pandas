@@ -391,7 +391,7 @@ Bug Fixes
 - Bug in ``Index`` subtypes (such as ``PeriodIndex``) not returning their own type for ``.drop`` and ``.insert`` methods (:issue:`10620`)
 - Bug in ``algos.outer_join_indexer`` when ``right`` array is empty (:issue:`10618`)
 
-
+- Bug in ``filter`` (regression from 0.16.0) and ``transform`` when grouping on multiple keys, one of which is datetime-like (:issue:`10114`)
 
 
 

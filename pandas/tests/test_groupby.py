@@ -4477,6 +4477,32 @@ class TestGroupBy(tm.TestCase):
         expected = s.iloc[[1, 2, 4, 7]]
         assert_series_equal(actual, expected)
 
+    def test_filter_multiple_timestamp(self):
+        # GH 10114
+        df = DataFrame({'A' : np.arange(5),
+                        'B' : ['foo','bar','foo','bar','bar'],
+                        'C' : Timestamp('20130101') })
+
+        grouped = df.groupby(['B', 'C'])
+
+        result = grouped['A'].filter(lambda x: True)
+        assert_series_equal(df['A'], result)
+
+        result = grouped['A'].transform(len)
+        expected = Series([2, 3, 2, 3, 3], name='A')
+        assert_series_equal(result, expected)
+
+        result = grouped.filter(lambda x: True)
+        assert_frame_equal(df, result)
+
+        result = grouped.transform('sum')
+        expected = DataFrame({'A' : [2, 8, 2, 8, 8]})
+        assert_frame_equal(result, expected)
+
+        result = grouped.transform(len)
+        expected = DataFrame({'A' : [2, 3, 2, 3, 3]})
+        assert_frame_equal(result, expected)
+
     def test_filter_and_transform_with_non_unique_int_index(self):
         # GH4620
         index = [1, 1, 1, 2, 1, 1, 0, 1]
