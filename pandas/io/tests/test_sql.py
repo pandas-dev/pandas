@@ -216,7 +216,7 @@ class SQLAlchemyMixIn(MixInBase):
 
     def _close_conn(self):
         pass
-           
+
 class PandasSQLTest(unittest.TestCase):
     """
     Base class with common private methods for SQLAlchemy and fallback cases.
@@ -1271,7 +1271,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         result = sql.read_sql_query('SELECT * FROM test_datetime', self.conn)
         if self.flavor == 'sqlite':
             self.assertTrue(isinstance(result.loc[0, 'A'], string_types))
-            result['A'] = to_datetime(result['A'], coerce=True)
+            result['A'] = to_datetime(result['A'], errors='coerce')
             tm.assert_frame_equal(result, df)
         else:
             tm.assert_frame_equal(result, df)
@@ -1720,7 +1720,7 @@ class TestMySQLAlchemy(_TestMySQLAlchemy, _TestSQLAlchemy):
     pass
 
 
-class TestMySQLAlchemyConn(_TestMySQLAlchemy, _TestSQLAlchemyConn): 
+class TestMySQLAlchemyConn(_TestMySQLAlchemy, _TestSQLAlchemyConn):
     pass
 
 

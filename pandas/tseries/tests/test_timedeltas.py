@@ -607,12 +607,22 @@ class TestTimedeltas(tm.TestCase):
         # ms
         testit('L',lambda x: 'ms')
 
+    def test_to_timedelta_invalid(self):
+
         # these will error
         self.assertRaises(ValueError, lambda : to_timedelta([1,2],unit='foo'))
         self.assertRaises(ValueError, lambda : to_timedelta(1,unit='foo'))
 
         # time not supported ATM
         self.assertRaises(ValueError, lambda :to_timedelta(time(second=1)))
+        self.assertTrue(to_timedelta(time(second=1), errors='coerce') is pd.NaT)
+
+        self.assertRaises(ValueError, lambda : to_timedelta(['foo','bar']))
+        tm.assert_index_equal(TimedeltaIndex([pd.NaT,pd.NaT]),
+                              to_timedelta(['foo','bar'], errors='coerce'))
+
+        tm.assert_index_equal(TimedeltaIndex(['1 day', pd.NaT, '1 min']),
+                              to_timedelta(['1 day','bar','1 min'], errors='coerce'))
 
     def test_to_timedelta_via_apply(self):
         # GH 5458

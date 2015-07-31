@@ -851,7 +851,11 @@ class TestTimeSeries(tm.TestCase):
         tm.assert_numpy_array_equal(result, result2)
 
         malformed = np.array(['1/100/2000', np.nan], dtype=object)
-        result = to_datetime(malformed)
+
+        # GH 10636, default is now 'raise'
+        self.assertRaises(ValueError, lambda : to_datetime(malformed, errors='raise'))
+
+        result = to_datetime(malformed, errors='ignore')
         tm.assert_numpy_array_equal(result, malformed)
 
         self.assertRaises(ValueError, to_datetime, malformed,
@@ -920,9 +924,9 @@ class TestTimeSeries(tm.TestCase):
         td = pd.Series(['May 04', 'Jun 02', ''], index=[1,2,3])
         self.assertRaises(ValueError, lambda : pd.to_datetime(td,format='%b %y', errors='raise'))
         self.assertRaises(ValueError, lambda : td.apply(pd.to_datetime, format='%b %y', errors='raise'))
-        expected = pd.to_datetime(td, format='%b %y', coerce=True)
+        expected = pd.to_datetime(td, format='%b %y', errors='coerce')
 
-        result = td.apply(lambda x: pd.to_datetime(x, format='%b %y', coerce=True))
+        result = td.apply(lambda x: pd.to_datetime(x, format='%b %y', errors='coerce'))
         assert_series_equal(result, expected)
 
     def test_nat_vector_field_access(self):
@@ -1002,7 +1006,7 @@ class TestTimeSeries(tm.TestCase):
     def test_to_datetime_unprocessable_input(self):
         # GH 4928
         self.assert_numpy_array_equal(
-            to_datetime([1, '1']),
+            to_datetime([1, '1'], errors='ignore'),
             np.array([1, '1'], dtype='O')
         )
         self.assertRaises(TypeError, to_datetime, [1, '1'], errors='raise')
@@ -1048,7 +1052,7 @@ class TestTimeSeries(tm.TestCase):
         for dt in oob_dts:
             self.assertRaises(ValueError, pd.to_datetime, dt, errors='raise')
             self.assertRaises(ValueError, tslib.Timestamp, dt)
-            self.assertIs(pd.to_datetime(dt, coerce=True), NaT)
+            self.assertIs(pd.to_datetime(dt, errors='coerce'), NaT)
 
     def test_to_datetime_array_of_dt64s(self):
         dts = [
@@ -1070,12 +1074,11 @@ class TestTimeSeries(tm.TestCase):
             ValueError,
             pd.to_datetime,
             dts_with_oob,
-            coerce=False,
             errors='raise'
         )
 
         self.assert_numpy_array_equal(
-            pd.to_datetime(dts_with_oob, box=False, coerce=True),
+            pd.to_datetime(dts_with_oob, box=False, errors='coerce'),
             np.array(
                     [
                         Timestamp(dts_with_oob[0]).asm8,
@@ -1086,11 +1089,11 @@ class TestTimeSeries(tm.TestCase):
             )
         )
 
-        # With coerce=False and errors='ignore', out of bounds datetime64s
+        # With errors='ignore', out of bounds datetime64s
         # are converted to their .item(), which depending on the version of
         # numpy is either a python datetime.datetime or datetime.date
         self.assert_numpy_array_equal(
-            pd.to_datetime(dts_with_oob, box=False, coerce=False),
+            pd.to_datetime(dts_with_oob, box=False, errors='ignore'),
             np.array(
                     [dt.item() for dt in dts_with_oob],
                     dtype='O'
@@ -4188,11 +4191,11 @@ class TimeConversionFormats(tm.TestCase):
         # coercion
         # GH 7930
         s = Series([20121231, 20141231, 99991231])
-        result = pd.to_datetime(s,format='%Y%m%d')
+        result = pd.to_datetime(s,format='%Y%m%d',errors='ignore')
         expected = np.array([ datetime(2012,12,31), datetime(2014,12,31), datetime(9999,12,31) ], dtype=object)
         self.assert_numpy_array_equal(result, expected)
 
-        result = pd.to_datetime(s,format='%Y%m%d', coerce=True)
+        result = pd.to_datetime(s,format='%Y%m%d', errors='coerce')
         expected = Series(['20121231','20141231','NaT'],dtype='M8[ns]')
         assert_series_equal(result, expected)
 
@@ -4521,25 +4524,37 @@ class TestDateTimeIndexToJulianDate(tm.TestCase):
 
 class TestDaysInMonth(tm.TestCase):
 
+    def test_coerce_deprecation(self):
+
+        # deprecation of coerce
+        with tm.assert_produces_warning(FutureWarning):
+            to_datetime('2015-02-29', coerce=True)
+        with tm.assert_produces_warning(FutureWarning):
+            self.assertRaises(ValueError, lambda : to_datetime('2015-02-29', coerce=False))
+
+        # multiple arguments
+        for e, c in zip(['raise','ignore','coerce'],[True,False]):
+            with tm.assert_produces_warning(FutureWarning):
+                self.assertRaises(TypeError, lambda : to_datetime('2015-02-29', errors=e, coerce=c))
+
     # tests for issue #10154
+    def test_day_not_in_month_coerce(self):
+        self.assertTrue(isnull(to_datetime('2015-02-29', errors='coerce')))
+        self.assertTrue(isnull(to_datetime('2015-02-29', format="%Y-%m-%d", errors='coerce')))
+        self.assertTrue(isnull(to_datetime('2015-02-32', format="%Y-%m-%d", errors='coerce')))
+        self.assertTrue(isnull(to_datetime('2015-04-31', format="%Y-%m-%d", errors='coerce')))
 
-    def test_day_not_in_month_coerce_true_NaT(self):
-        self.assertTrue(isnull(to_datetime('2015-02-29', coerce=True)))
-        self.assertTrue(isnull(to_datetime('2015-02-29', format="%Y-%m-%d", coerce=True)))
-        self.assertTrue(isnull(to_datetime('2015-02-32', format="%Y-%m-%d", coerce=True)))
-        self.assertTrue(isnull(to_datetime('2015-04-31', format="%Y-%m-%d", coerce=True)))
+    def test_day_not_in_month_raise(self):
+        self.assertRaises(ValueError, to_datetime, '2015-02-29', errors='raise')
+        self.assertRaises(ValueError, to_datetime, '2015-02-29', errors='raise', format="%Y-%m-%d")
+        self.assertRaises(ValueError, to_datetime, '2015-02-32', errors='raise', format="%Y-%m-%d")
+        self.assertRaises(ValueError, to_datetime, '2015-04-31', errors='raise', format="%Y-%m-%d")
 
-    def test_day_not_in_month_coerce_false_raise(self):
-        self.assertRaises(ValueError, to_datetime, '2015-02-29', errors='raise', coerce=False)
-        self.assertRaises(ValueError, to_datetime, '2015-02-29', errors='raise', format="%Y-%m-%d", coerce=False)
-        self.assertRaises(ValueError, to_datetime, '2015-02-32', errors='raise', format="%Y-%m-%d", coerce=False)
-        self.assertRaises(ValueError, to_datetime, '2015-04-31', errors='raise', format="%Y-%m-%d", coerce=False)
-
-    def test_day_not_in_month_coerce_false_ignore(self):
-        self.assertEqual(to_datetime('2015-02-29', errors='ignore', coerce=False), '2015-02-29')
-        self.assertEqual(to_datetime('2015-02-29', errors='ignore', format="%Y-%m-%d", coerce=False), '2015-02-29')
-        self.assertEqual(to_datetime('2015-02-32', errors='ignore', format="%Y-%m-%d", coerce=False), '2015-02-32')
-        self.assertEqual(to_datetime('2015-04-31', errors='ignore', format="%Y-%m-%d", coerce=False), '2015-04-31')
+    def test_day_not_in_month_ignore(self):
+        self.assertEqual(to_datetime('2015-02-29', errors='ignore'), '2015-02-29')
+        self.assertEqual(to_datetime('2015-02-29', errors='ignore', format="%Y-%m-%d"), '2015-02-29')
+        self.assertEqual(to_datetime('2015-02-32', errors='ignore', format="%Y-%m-%d"), '2015-02-32')
+        self.assertEqual(to_datetime('2015-04-31', errors='ignore', format="%Y-%m-%d"), '2015-04-31')
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
