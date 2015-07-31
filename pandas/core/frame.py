@@ -3460,8 +3460,9 @@ class DataFrame(NDFrame):
 
         Parameters
         ----------
-        index : string or object
-            Column name to use to make new frame's index
+        index : string or object, optional
+            Column name to use to make new frame's index. If None, uses
+            existing index.
         columns : string or object
             Column name to use to make new frame's columns
         values : string or object, optional
