@@ -197,18 +197,30 @@ or ``format``, use ``to_datetime`` if these are required.
 Invalid Data
 ~~~~~~~~~~~~
 
-Pass ``coerce=True`` to convert invalid data to ``NaT`` (not a time):
+.. note::
+
+   In version 0.17.0, the default for ``to_datetime`` is now ``errors='raise'``, rather than ``errors='ignore'``. This means
+   that invalid parsing will raise rather that return the original input as in previous versions.
+
+Pass ``errors='coerce'`` to convert invalid data to ``NaT`` (not a time):
 
 .. ipython:: python
+   :okexcept:
 
-   to_datetime(['2009-07-31', 'asd'])
+   # this is the default, raise when unparseable
+   to_datetime(['2009-07-31', 'asd'], errors='raise')
 
-   to_datetime(['2009-07-31', 'asd'], coerce=True)
+   # return the original input when unparseable
+   to_datetime(['2009-07-31', 'asd'], errors='ignore')
+
+   # return NaT for input when unparseable
+   to_datetime(['2009-07-31', 'asd'], errors='coerce')
 
 
 Take care, ``to_datetime`` may not act as you expect on mixed data:
 
 .. ipython:: python
+   :okexcept:
 
    to_datetime([1, '1'])
 

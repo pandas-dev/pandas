@@ -419,7 +419,7 @@ class TestStata(tm.TestCase):
         for col in cols:
             expected[col] = expected[col].convert_objects(datetime=True, numeric=True)
         expected['float_'] = expected['float_'].astype(np.float32)
-        expected['date_td'] = pd.to_datetime(expected['date_td'], coerce=True)
+        expected['date_td'] = pd.to_datetime(expected['date_td'], errors='coerce')
 
         parsed_113 = self.read_dta(self.dta14_113)
         parsed_113.index.name = 'index'

@@ -652,10 +652,10 @@ class TestArrayToDatetime(tm.TestCase):
         # These strings don't look like datetimes so they shouldn't be
         # attempted to be converted
         arr = np.array(['-352.737091', '183.575577'], dtype=object)
-        self.assert_numpy_array_equal(tslib.array_to_datetime(arr), arr)
+        self.assert_numpy_array_equal(tslib.array_to_datetime(arr, errors='ignore'), arr)
 
         arr = np.array(['1', '2', '3', '4', '5'], dtype=object)
-        self.assert_numpy_array_equal(tslib.array_to_datetime(arr), arr)
+        self.assert_numpy_array_equal(tslib.array_to_datetime(arr, errors='ignore'), arr)
 
     def test_coercing_dates_outside_of_datetime64_ns_bounds(self):
         invalid_dates = [
@@ -671,13 +671,12 @@ class TestArrayToDatetime(tm.TestCase):
                 ValueError,
                 tslib.array_to_datetime,
                 np.array([invalid_date], dtype='object'),
-                coerce=False,
-                raise_=True,
+                errors='raise',
             )
             self.assertTrue(
                 np.array_equal(
                     tslib.array_to_datetime(
-                        np.array([invalid_date], dtype='object'), coerce=True
+                        np.array([invalid_date], dtype='object'), errors='coerce',
                     ),
                     np.array([tslib.iNaT], dtype='M8[ns]')
                 )
@@ -685,7 +684,7 @@ class TestArrayToDatetime(tm.TestCase):
 
         arr = np.array(['1/1/1000', '1/1/2000'], dtype=object)
         self.assert_numpy_array_equal(
-            tslib.array_to_datetime(arr, coerce=True),
+            tslib.array_to_datetime(arr, errors='coerce'),
             np.array(
                     [
                         tslib.iNaT,
@@ -700,11 +699,11 @@ class TestArrayToDatetime(tm.TestCase):
 
         # Without coercing, the presence of any invalid dates prevents
         # any values from being converted
-        self.assert_numpy_array_equal(tslib.array_to_datetime(arr), arr)
+        self.assert_numpy_array_equal(tslib.array_to_datetime(arr,errors='ignore'), arr)
 
         # With coercing, the invalid dates becomes iNaT
         self.assert_numpy_array_equal(
-            tslib.array_to_datetime(arr, coerce=True),
+            tslib.array_to_datetime(arr, errors='coerce'),
             np.array(
                     [
                         '2013-01-01T00:00:00.000000000-0000',

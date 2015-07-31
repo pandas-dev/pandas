@@ -65,10 +65,11 @@ Other enhancements
 - Enable `read_hdf` to be used without specifying a key when the HDF file contains a single dataset (:issue:`10443`)
 
 - ``DatetimeIndex`` can be instantiated using strings contains ``NaT`` (:issue:`7599`)
-- The string parsing of ``to_datetime``, ``Timestamp`` and ``DatetimeIndex`` has been made consistent" (:issue:`7599`)
+- The string parsing of ``to_datetime``, ``Timestamp`` and ``DatetimeIndex`` has been made consistent. (:issue:`7599`)
 
-  Prior to v0.17.0, ``Timestamp`` and ``to_datetime`` may parse year-only datetime-string incorrectly using today's date, otherwise ``DatetimeIndex`` uses the beginning of the year.
-  ``Timestamp`` and ``to_datetime`` may raise ``ValueError`` in some types of datetime-string which ``DatetimeIndex`` can parse, such as quarterly string.
+  Prior to v0.17.0, ``Timestamp`` and ``to_datetime`` may parse year-only datetime-string incorrectly using today's date, otherwise ``DatetimeIndex``
+  uses the beginning of the year. ``Timestamp`` and ``to_datetime`` may raise ``ValueError`` in some types of datetime-string which ``DatetimeIndex``
+  can parse, such as a quarterly string.
 
   Previous Behavior
 
@@ -120,6 +121,45 @@ Backwards incompatible API changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 - Line and kde plot with ``subplots=True`` now uses default colors, not all black. Specify ``color='k'`` to draw all lines in black (:issue:`9894`)
+
+.. _whatsnew_0170.api_breaking.to_datetime
+
+Changes to to_datetime and to_timedelta
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The default for ``pd.to_datetime`` error handling has changed to ``errors='raise'``. In prior versions it was ``errors='ignore'``.
+Furthermore, the ``coerce`` argument has been deprecated in favor of ``errors='coerce'``. This means that invalid parsing will raise rather that return the original
+input as in previous versions. (:issue:`10636`)
+
+Previous Behavior:
+
+  .. code-block:: python
+
+     In [2]: pd.to_datetime(['2009-07-31', 'asd'])
+     Out[2]: array(['2009-07-31', 'asd'], dtype=object)
+
+New Behavior:
+
+  .. ipython:: python
+     :okexcept:
+
+     pd.to_datetime(['2009-07-31', 'asd'])
+
+  Of course you can coerce this as well.
+
+  .. ipython:: python
+
+     to_datetime(['2009-07-31', 'asd'], errors='coerce')
+
+  To keep the previous behaviour, you can use `errors='ignore'`:
+
+  .. ipython:: python
+    :okexcept:
+
+    to_datetime(['2009-07-31', 'asd'], errors='ignore')
+
+``pd.to_timedelta`` gained a similar API, of ``errors='raise'|'ignore'|'coerce'``, and the ``coerce`` keyword
+has been deprecated in favor of ``errors='coerce'``.
 
 .. _whatsnew_0170.api_breaking.convert_objects:
 
