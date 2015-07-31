@@ -1040,6 +1040,28 @@ class TestHDFStore(Base):
             store.append('df2', df[10:], dropna=False)
             tm.assert_frame_equal(store['df2'], df)
 
+        # Test to make sure defaults are to not drop. 
+        # Corresponding to Issue 9382
+        df_with_missing = DataFrame({'col1':[0, np.nan, 2], 'col2':[1, np.nan,  np.nan]})
+
+        with ensure_clean_path(self.path) as path:
+            df_with_missing.to_hdf(path, 'df_with_missing', format = 'table')
+            reloaded = read_hdf(path, 'df_with_missing')
+            tm.assert_frame_equal(df_with_missing, reloaded)
+
+        matrix = [[[np.nan, np.nan, np.nan],[1,np.nan,np.nan]],
+            [[np.nan, np.nan, np.nan], [np.nan,5,6]],
+            [[np.nan, np.nan, np.nan],[np.nan,3,np.nan]]]
+
+        panel_with_missing = Panel(matrix, items=['Item1', 'Item2','Item3'],
+                   major_axis=[1,2],
+                   minor_axis=['A', 'B', 'C'])
+
+        with ensure_clean_path(self.path) as path:
+           panel_with_missing.to_hdf(path, 'panel_with_missing', format='table')
+           reloaded_panel = read_hdf(path, 'panel_with_missing') 
+           tm.assert_panel_equal(panel_with_missing, reloaded_panel)
+
     def test_append_frame_column_oriented(self):
 
         with ensure_clean_store(self.path) as store:
@@ -4884,7 +4906,6 @@ class TestHDFComplexValues(Base):
             store.append('df', df)
             result = store.select('df')
             assert_frame_equal(pd.concat([df, df], 0), result)
-
 
 def _test_sort(obj):
     if isinstance(obj, DataFrame):

@@ -337,6 +337,9 @@ Usually you simply want to know which values are null.
       None == None
       np.nan == np.nan
 
+
+.. _whatsnew_0170.api_breaking.other:
+
 Other API Changes
 ^^^^^^^^^^^^^^^^^
 
@@ -371,6 +374,52 @@ Other API Changes
   ``return np.datetime64('NaT')``     ``to_datetime64`` (unchanged)
   ``raise ValueError``                All other public methods (names not beginning with underscores)
   ===============================     ===============================================================
+
+
+- default behavior for HDFStore write functions with ``format='table'`` is now to keep rows that are all missing except for index. Previously, the behavior was to drop rows that were all missing save the index. The previous behavior can be replicated using the ``dropna=True`` option. (:issue:`9382`)
+
+Previously,
+
+.. ipython:: python
+
+   df_with_missing = pd.DataFrame({'col1':[0, np.nan, 2], 
+                                   'col2':[1, np.nan, np.nan]})
+   
+   df_with_missing
+
+
+.. code-block:: python
+
+   In [28]: 
+   df_with_missing.to_hdf('file.h5', 'df_with_missing', format='table', mode='w')
+   
+   pd.read_hdf('file.h5', 'df_with_missing')
+   
+   Out [28]: 
+         col1  col2
+     0     0     1
+     2     2   NaN
+
+
+New behavior: 
+
+.. ipython:: python
+   :suppress:
+
+   import os
+
+.. ipython:: python
+
+   df_with_missing.to_hdf('file.h5', 'df_with_missing', format = 'table', mode='w')
+   
+   pd.read_hdf('file.h5', 'df_with_missing')
+
+.. ipython:: python
+   :suppress:
+
+   os.remove('file.h5')
+
+See :ref:`documentation <io.hdf5>` for more details.  
 
 .. _whatsnew_0170.deprecations:
 

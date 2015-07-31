@@ -220,7 +220,7 @@ format_doc = """
 """
 
 with config.config_prefix('io.hdf'):
-    config.register_option('dropna_table', True, dropna_doc,
+    config.register_option('dropna_table', False, dropna_doc,
                            validator=config.is_bool)
     config.register_option(
         'default_format', None, format_doc,
@@ -817,7 +817,7 @@ class HDFStore(StringMixin):
             This will force Table format, append the input data to the
             existing.
         encoding : default None, provide an encoding for strings
-        dropna   : boolean, default True, do not write an ALL nan row to
+        dropna   : boolean, default False, do not write an ALL nan row to
             the store settable by the option 'io.hdf.dropna_table'
         """
         if format is None:
@@ -899,7 +899,7 @@ class HDFStore(StringMixin):
         chunksize    : size to chunk the writing
         expectedrows : expected TOTAL row size of this table
         encoding     : default None, provide an encoding for strings
-        dropna       : boolean, default True, do not write an ALL nan row to
+        dropna       : boolean, default False, do not write an ALL nan row to
             the store settable by the option 'io.hdf.dropna_table'
         Notes
         -----
@@ -919,7 +919,7 @@ class HDFStore(StringMixin):
                              **kwargs)
 
     def append_to_multiple(self, d, value, selector, data_columns=None,
-                           axes=None, dropna=True, **kwargs):
+                           axes=None, dropna=False, **kwargs):
         """
         Append to multiple tables
 
@@ -934,7 +934,7 @@ class HDFStore(StringMixin):
         data_columns : list of columns to create as data columns, or True to
             use all columns
         dropna : if evaluates to True, drop rows from all tables if any single
-                 row in each table has all NaN
+                 row in each table has all NaN. Default False.
 
         Notes
         -----
@@ -3787,7 +3787,7 @@ class AppendableTable(LegacyTable):
 
     def write(self, obj, axes=None, append=False, complib=None,
               complevel=None, fletcher32=None, min_itemsize=None,
-              chunksize=None, expectedrows=None, dropna=True, **kwargs):
+              chunksize=None, expectedrows=None, dropna=False, **kwargs):
 
         if not append and self.is_exists:
             self._handle.remove_node(self.group, 'table')
@@ -3827,7 +3827,7 @@ class AppendableTable(LegacyTable):
         # add the rows
         self.write_data(chunksize, dropna=dropna)
 
-    def write_data(self, chunksize, dropna=True):
+    def write_data(self, chunksize, dropna=False):
         """ we form the data into a 2-d including indexes,values,mask
             write chunk-by-chunk """
 
