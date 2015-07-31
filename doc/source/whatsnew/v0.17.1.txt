@@ -25,6 +25,7 @@ Enhancements
   objects for the ``filepath_or_buffer`` argument. (:issue:`11033`)
 - ``DataFrame`` now uses the fields of a ``namedtuple`` as columns, if columns are not supplied (:issue:`11181`)
 - Improve the error message displayed in :func:`pandas.io.gbq.to_gbq` when the DataFrame does not match the schema of the destination table (:issue:`11359`)
+- Added ``axvlines_kwds`` to parallel coordinates plot (:issue:`10709`)
 
 - ``Index`` now has ``fillna`` method (:issue:`10089`)
 
