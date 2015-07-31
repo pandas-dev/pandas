@@ -1532,6 +1532,7 @@ class BaseGrouper(object):
 
         if is_datetime_or_timedelta_dtype(values.dtype):
             values = values.view('int64')
+            values[values == tslib.iNaT] = np.nan
             # GH 7754
             is_numeric = True
         elif is_bool_dtype(values.dtype):
@@ -2761,9 +2762,7 @@ class NDFrameGroupBy(GroupBy):
 
         for block in data.blocks:
 
-            values = block._try_operate(block.values)
-
-            result, _ = self.grouper.aggregate(values, how, axis=agg_axis)
+            result, _ = self.grouper.aggregate(block.values, how, axis=agg_axis)
 
             # see if we can cast the block back to the original dtype
             result = block._try_coerce_and_cast_result(result)
