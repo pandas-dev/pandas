@@ -1582,7 +1582,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     def sort_index(self, ascending=True):
         """
-        Sort object by labels (along an axis)
+        Sort object by labels (along an axis). Creates a new instance (i.e.
+        does not sort in-place).
 
         Parameters
         ----------
