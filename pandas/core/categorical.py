@@ -12,7 +12,7 @@ from pandas.core.base import PandasObject, PandasDelegate
 import pandas.core.common as com
 from pandas.util.decorators import cache_readonly, deprecate_kwarg
 
-from pandas.core.common import (CategoricalDtype, ABCSeries, ABCIndexClass, ABCPeriodIndex, ABCCategoricalIndex,
+from pandas.core.common import (CategoricalDtype, ABCSeries, ABCIndexClass, ABCCategoricalIndex,
                                 isnull, notnull, is_dtype_equal,
                                 is_categorical_dtype, is_integer_dtype, is_object_dtype,
                                 _possibly_infer_to_datetimelike, get_dtype_kinds,
@@ -1053,15 +1053,12 @@ class Categorical(PandasObject):
         Returns
         -------
         values : numpy array
-            A numpy array of the same dtype as categorical.categories.dtype or dtype string if
-            periods
+            A numpy array of the same dtype as categorical.categories.dtype or
+            Index if datetime / periods
         """
-
-        # if we are a period index, return a string repr
-        if isinstance(self.categories, ABCPeriodIndex):
-            return take_1d(np.array(self.categories.to_native_types(), dtype=object),
-                           self._codes)
-
+        # if we are a datetime and period index, return Index to keep metadata
+        if com.is_datetimelike(self.categories):
+            return self.categories.take(self._codes)
         return np.array(self)
 
     def check_for_ordered(self, op):
@@ -1308,7 +1305,7 @@ class Categorical(PandasObject):
 
     def __iter__(self):
         """Returns an Iterator over the values of this Categorical."""
-        return iter(np.array(self))
+        return iter(self.get_values())
 
     def _tidy_repr(self, max_vals=10, footer=True):
         """ a short repr displaying only max_vals and an optional (but default footer) """
@@ -1328,7 +1325,7 @@ class Categorical(PandasObject):
         max_categories = (10 if get_option("display.max_categories") == 0
                     else get_option("display.max_categories"))
         from pandas.core import format as fmt
-        category_strs = fmt.format_array(self.categories.get_values(), None)
+        category_strs = fmt.format_array(self.categories, None)
         if len(category_strs) > max_categories:
             num = max_categories // 2
             head = category_strs[:num]
@@ -1343,8 +1340,9 @@ class Categorical(PandasObject):
         """ Returns a string representation of the footer."""
 
         category_strs = self._repr_categories()
-        levheader = "Categories (%d, %s): " % (len(self.categories),
-                                               self.categories.dtype)
+        dtype = getattr(self.categories, 'dtype_str', str(self.categories.dtype))
+
+        levheader = "Categories (%d, %s): " % (len(self.categories), dtype)
         width, height = get_terminal_size()
         max_width = get_option("display.width") or width
         if com.in_ipython_frontend():
@@ -1352,13 +1350,14 @@ class Categorical(PandasObject):
             max_width = 0
         levstring = ""
         start = True
-        cur_col_len = len(levheader)
+        cur_col_len = len(levheader) # header
         sep_len, sep = (3, " < ") if self.ordered else (2, ", ")
+        linesep = sep.rstrip() + "\n" # remove whitespace
         for val in category_strs:
             if max_width != 0 and cur_col_len + sep_len + len(val) > max_width:
-                levstring += "\n" + (" "* len(levheader))
-                cur_col_len = len(levheader)
-            if not start:
+                levstring += linesep + (" " * (len(levheader) + 1))
+                cur_col_len = len(levheader) + 1 # header + a whitespace
+            elif not start:
                 levstring += sep
                 cur_col_len += len(val)
             levstring += val

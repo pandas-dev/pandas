@@ -21,6 +21,8 @@ from pandas.core.common import (isnull, _INT64_DTYPE, _maybe_box,
                                 _values_from_object, ABCSeries,
                                 is_integer, is_float, is_object_dtype)
 from pandas import compat
+from pandas.util.decorators import cache_readonly
+
 from pandas.lib import Timestamp, Timedelta
 import pandas.lib as lib
 import pandas.tslib as tslib
@@ -529,6 +531,11 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
         values = self.values + n
         values[mask] = tslib.iNaT
         return PeriodIndex(data=values, name=self.name, freq=self.freq)
+
+    @cache_readonly
+    def dtype_str(self):
+        """ return the dtype str of the underlying data """
+        return self.inferred_type
 
     @property
     def inferred_type(self):
