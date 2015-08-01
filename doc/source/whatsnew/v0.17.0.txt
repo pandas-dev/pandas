@@ -14,6 +14,10 @@ users upgrade to this version.
 Highlights include:
 
   - Release the Global Interpreter Lock (GIL) on some cython operations, see :ref:`here <whatsnew_0170.gil>`
+  - The default for ``to_datetime`` will now be to ``raise`` when presented with unparseable formats,
+    previously this would return the original input, see :ref:`here <whatsnew_0170.api_breaking.to_datetime>`
+  - The default for ``dropna`` in ``HDFStore`` has changed to ``False``, to store by default all rows even
+    if they are all ``NaN``, see :ref:`here <whatsnew_0170.api_breaking.hdf_dropna>`
   - Development installed versions of pandas will now have ``PEP440`` compliant version strings (:issue:`9518`)
 
 Check the :ref:`API Changes <whatsnew_0170.api>` and :ref:`deprecations <whatsnew_0170.deprecations>` before updating.
@@ -51,9 +55,10 @@ as well as the ``.sum()`` operation.
                    'data' : np.random.randn(N) })
    df.groupby('key')['data'].sum()
 
-Releasing of the GIL could benefit an application that uses threads for user interactions (e.g. ``QT``), or performaning multi-threaded computations. A nice example of a library that can handle these types of computation-in-parallel is the dask_ library.
+Releasing of the GIL could benefit an application that uses threads for user interactions (e.g. QT_), or performaning multi-threaded computations. A nice example of a library that can handle these types of computation-in-parallel is the dask_ library.
 
 .. _dask: https://dask.readthedocs.org/en/latest/
+.. _QT: https://wiki.python.org/moin/PyQt
 
 .. _whatsnew_0170.enhancements.other:
 
@@ -133,32 +138,35 @@ input as in previous versions. (:issue:`10636`)
 
 Previous Behavior:
 
-  .. code-block:: python
+.. code-block:: python
 
-     In [2]: pd.to_datetime(['2009-07-31', 'asd'])
-     Out[2]: array(['2009-07-31', 'asd'], dtype=object)
+   In [2]: pd.to_datetime(['2009-07-31', 'asd'])
+   Out[2]: array(['2009-07-31', 'asd'], dtype=object)
 
 New Behavior:
 
-  .. ipython:: python
-     :okexcept:
+.. code-block:: python
 
-     pd.to_datetime(['2009-07-31', 'asd'])
+   In [3]: pd.to_datetime(['2009-07-31', 'asd'])
+   ValueError: Unknown string format
 
-  Of course you can coerce this as well.
+.. ipython:: python
 
-  .. ipython:: python
+   pd.to_datetime(['2009-07-31', 'asd'])
 
-     to_datetime(['2009-07-31', 'asd'], errors='coerce')
+Of course you can coerce this as well.
 
-  To keep the previous behaviour, you can use `errors='ignore'`:
+.. ipython:: python
 
-  .. ipython:: python
-    :okexcept:
+   to_datetime(['2009-07-31', 'asd'], errors='coerce')
 
-    to_datetime(['2009-07-31', 'asd'], errors='ignore')
+To keep the previous behaviour, you can use `errors='ignore'`:
 
-``pd.to_timedelta`` gained a similar API, of ``errors='raise'|'ignore'|'coerce'``, and the ``coerce`` keyword
+.. ipython:: python
+
+   to_datetime(['2009-07-31', 'asd'], errors='ignore')
+
+Furthermore, ``pd.to_timedelta`` has gained a similar API, of ``errors='raise'|'ignore'|'coerce'``. The ``coerce`` keyword
 has been deprecated in favor of ``errors='coerce'``.
 
 .. _whatsnew_0170.api_breaking.convert_objects:
@@ -337,6 +345,55 @@ Usually you simply want to know which values are null.
       None == None
       np.nan == np.nan
 
+.. _whatsnew_0170.api_breaking.hdf_dropna:
+
+HDFStore dropna behavior
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+default behavior for HDFStore write functions with ``format='table'`` is now to keep rows that are all missing except for index. Previously, the behavior was to drop rows that were all missing save the index. The previous behavior can be replicated using the ``dropna=True`` option. (:issue:`9382`)
+
+Previously:
+
+.. ipython:: python
+
+   df_with_missing = pd.DataFrame({'col1':[0, np.nan, 2],
+                                   'col2':[1, np.nan, np.nan]})
+
+   df_with_missing
+
+
+.. code-block:: python
+
+   In [28]:
+   df_with_missing.to_hdf('file.h5', 'df_with_missing', format='table', mode='w')
+
+   pd.read_hdf('file.h5', 'df_with_missing')
+
+   Out [28]:
+         col1  col2
+     0     0     1
+     2     2   NaN
+
+
+New behavior:
+
+.. ipython:: python
+   :suppress:
+
+   import os
+
+.. ipython:: python
+
+   df_with_missing.to_hdf('file.h5', 'df_with_missing', format = 'table', mode='w')
+
+   pd.read_hdf('file.h5', 'df_with_missing')
+
+.. ipython:: python
+   :suppress:
+
+   os.remove('file.h5')
+
+See :ref:`documentation <io.hdf5>` for more details.
 
 .. _whatsnew_0170.api_breaking.other:
 
@@ -348,78 +405,32 @@ Other API Changes
 - Allow passing `kwargs` to the interpolation methods (:issue:`10378`).
 - Serialize metadata properties of subclasses of pandas objects (:issue:`10553`).
 - ``Categorical.name`` was removed to make `Categorical` more ``numpy.ndarray`` like. Use ``Series(cat, name="whatever")`` instead (:issue:`10482`).
-- ``Categorical.unique`` now returns new ``Categorical`` which ``categories`` and ``codes`` are unique, rather than returnning ``np.array`` (:issue:`10508`)
+- ``Categorical.unique`` now returns new ``Categorical`` which ``categories`` and ``codes`` are unique, rather than returning ``np.array`` (:issue:`10508`)
 
    - unordered category: values and categories are sorted by appearance order.
    - ordered category: values are sorted by appearance order, categories keeps existing order.
 
-.. ipython :: python
+   .. ipython :: python
 
-   cat = pd.Categorical(['C', 'A', 'B', 'C'], categories=['A', 'B', 'C'], ordered=True)
-   cat
-   cat.unique()
+      cat = pd.Categorical(['C', 'A', 'B', 'C'], categories=['A', 'B', 'C'], ordered=True)
+      cat
+      cat.unique()
 
-   cat = pd.Categorical(['C', 'A', 'B', 'C'], categories=['A', 'B', 'C'])
-   cat
-   cat.unique()
+      cat = pd.Categorical(['C', 'A', 'B', 'C'], categories=['A', 'B', 'C'])
+      cat
+      cat.unique()
 
 - ``groupby`` using ``Categorical`` follows the same rule as ``Categorical.unique`` described above  (:issue:`10508`)
 - ``NaT``'s methods now either raise ``ValueError``, or return ``np.nan`` or ``NaT`` (:issue:`9513`)
 
-  ===============================     ==============================================================
-  Behavior                            Methods
-  ===============================     ==============================================================
-  ``return np.nan``                   ``weekday``, ``isoweekday``
-  ``return NaT``                      ``date``, ``now``, ``replace``, ``to_datetime``, ``today``
-  ``return np.datetime64('NaT')``     ``to_datetime64`` (unchanged)
-  ``raise ValueError``                All other public methods (names not beginning with underscores)
-  ===============================     ===============================================================
-
-
-- default behavior for HDFStore write functions with ``format='table'`` is now to keep rows that are all missing except for index. Previously, the behavior was to drop rows that were all missing save the index. The previous behavior can be replicated using the ``dropna=True`` option. (:issue:`9382`)
-
-Previously,
-
-.. ipython:: python
-
-   df_with_missing = pd.DataFrame({'col1':[0, np.nan, 2], 
-                                   'col2':[1, np.nan, np.nan]})
-   
-   df_with_missing
-
-
-.. code-block:: python
-
-   In [28]: 
-   df_with_missing.to_hdf('file.h5', 'df_with_missing', format='table', mode='w')
-   
-   pd.read_hdf('file.h5', 'df_with_missing')
-   
-   Out [28]: 
-         col1  col2
-     0     0     1
-     2     2   NaN
-
-
-New behavior: 
-
-.. ipython:: python
-   :suppress:
-
-   import os
-
-.. ipython:: python
-
-   df_with_missing.to_hdf('file.h5', 'df_with_missing', format = 'table', mode='w')
-   
-   pd.read_hdf('file.h5', 'df_with_missing')
-
-.. ipython:: python
-   :suppress:
-
-   os.remove('file.h5')
-
-See :ref:`documentation <io.hdf5>` for more details.  
+   ===============================     ==============================================================
+   Behavior                            Methods
+   ===============================     ==============================================================
+   ``return np.nan``                   ``weekday``, ``isoweekday``
+   ``return NaT``                      ``date``, ``now``, ``replace``, ``to_datetime``, ``today``
+   ``return np.datetime64('NaT')``     ``to_datetime64`` (unchanged)
+   ``raise ValueError``                All other public methods (names not beginning with underscores)
+   ===============================     ===============================================================
 
 .. _whatsnew_0170.deprecations:
 
@@ -490,13 +501,13 @@ Bug Fixes
 
 - Bug that caused segfault when resampling an empty Series (:issue:`10228`)
 - Bug in ``DatetimeIndex`` and ``PeriodIndex.value_counts`` resets name from its result, but retains in result's ``Index``. (:issue:`10150`)
-- Bug in `pd.eval` using ``numexpr`` engine coerces 1 element numpy array to scalar (:issue:`10546`)
-- Bug in `pandas.concat` with ``axis=0`` when column is of dtype ``category`` (:issue:`10177`)
+- Bug in ``pd.eval`` using ``numexpr`` engine coerces 1 element numpy array to scalar (:issue:`10546`)
+- Bug in ``pd.concat`` with ``axis=0`` when column is of dtype ``category`` (:issue:`10177`)
 - Bug in ``read_msgpack`` where input type is not always checked (:issue:`10369`, :issue:`10630`)
-- Bug in `pandas.read_csv` with kwargs ``index_col=False``, ``index_col=['a', 'b']`` or ``dtype``
+- Bug in ``pd.read_csv`` with kwargs ``index_col=False``, ``index_col=['a', 'b']`` or ``dtype``
   (:issue:`10413`, :issue:`10467`, :issue:`10577`)
-- Bug in `Series.from_csv` with ``header`` kwarg not setting the ``Series.name`` or the ``Series.index.name`` (:issue:`10483`)
-- Bug in `groupby.var` which caused variance to be inaccurate for small float values (:issue:`10448`)
+- Bug in ``Series.from_csv`` with ``header`` kwarg not setting the ``Series.name`` or the ``Series.index.name`` (:issue:`10483`)
+- Bug in ``groupby.var`` which caused variance to be inaccurate for small float values (:issue:`10448`)
 - Bug in ``Series.plot(kind='hist')`` Y Label not informative (:issue:`10485`)
 - Bug in ``read_csv`` when using a converter which generates a ``uint8`` type (:issue:`9266`)
 
@@ -510,7 +521,7 @@ Bug Fixes
 
 
 - Reading "famafrench" data via ``DataReader`` results in HTTP 404 error because of the website url is changed (:issue:`10591`).
-- Bug in `read_msgpack` where DataFrame to decode has duplicate column names (:issue:`9618`)
+- Bug in ``read_msgpack`` where DataFrame to decode has duplicate column names (:issue:`9618`)
 - Bug in ``io.common.get_filepath_or_buffer`` which caused reading of valid S3 files to fail if the bucket also contained keys for which the user does not have read permission (:issue:`10604`)
 - Bug in vectorised setting of timestamp columns with python ``datetime.date`` and numpy ``datetime64`` (:issue:`10408`, :issue:`10412`)
 
