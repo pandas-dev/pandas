@@ -366,7 +366,7 @@ class TestTimeSeries(tm.TestCase):
         s = Series(rng, index=rng)
         tm.assertIsInstance(s[5], Timestamp)
 
-        tm.assertIsInstance(s.iget_value(5), Timestamp)
+        tm.assertIsInstance(s.iat[5], Timestamp)
 
     def test_date_range_ambiguous_arguments(self):
         # #2538
@@ -3854,7 +3854,7 @@ class TestSlicing(tm.TestCase):
         assert_series_equal(result, expected)
 
         result = s['2005-1-1']
-        self.assertEqual(result, s.irow(0))
+        self.assertEqual(result, s.iloc[0])
 
         self.assertRaises(Exception, s.__getitem__, '2004-12-31')
 
@@ -4065,12 +4065,12 @@ class TestSlicing(tm.TestCase):
                         'L': lvls})
 
         result = df.TS.max()
-        exp = Timestamp(df.TS.iget(-1))
+        exp = Timestamp(df.TS.iat[-1])
         self.assertTrue(isinstance(result, Timestamp))
         self.assertEqual(result, exp)
 
         result = df.TS.min()
-        exp = Timestamp(df.TS.iget(0))
+        exp = Timestamp(df.TS.iat[0])
         self.assertTrue(isinstance(result, Timestamp))
         self.assertEqual(result, exp)
 

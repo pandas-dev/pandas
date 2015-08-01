@@ -363,7 +363,7 @@ class GeomPoint(Layer):
             else:
                 ax = fig.gca()
         for index in range(len(self.data)):
-            row = self.data.irow(index)
+            row = self.data.iloc[index]
             x = row[self.aes['x']]
             y = row[self.aes['y']]
             size_scaler = self.aes['size']

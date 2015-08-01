@@ -425,7 +425,7 @@ def print_report(df,h_head=None,h_msg="",h_baseline=None,b_msg=""):
         lfmt = ("{:%s}" % name_width)
         lfmt += ("| {:%d.4f} " % (col_width-2))* len(df.columns)
         lfmt += "|\n"
-        s += lfmt.format(df.index[i],*list(df.irow(i).values))
+        s += lfmt.format(df.index[i],*list(df.iloc[i].values))
 
     s+= ftr + "\n"
 

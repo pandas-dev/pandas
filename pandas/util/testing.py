@@ -734,8 +734,8 @@ def assert_frame_equal(left, right, check_dtype=True,
     else:
         for i, col in enumerate(left.columns):
             assert col in right
-            lcol = left.icol(i)
-            rcol = right.icol(i)
+            lcol = left.iloc[:, i]
+            rcol = right.iloc[:, i]
             assert_series_equal(lcol, rcol,
                                 check_dtype=check_dtype,
                                 check_index_type=check_index_type,

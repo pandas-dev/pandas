@@ -1993,7 +1993,7 @@ Thur,Lunch,Yes,51.51,17"""
                           columns=columns)
 
         result = frame.ix[:, 1]
-        exp = frame.icol(1)
+        exp = frame.loc[:, ('Ohio', 'Red')]
         tm.assertIsInstance(result, Series)
         assert_series_equal(result, exp)
 

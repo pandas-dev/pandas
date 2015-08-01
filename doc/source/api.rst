@@ -1558,7 +1558,6 @@ application to columns of a specific data type.
    DataFrameGroupBy.hist
    DataFrameGroupBy.idxmax
    DataFrameGroupBy.idxmin
-   DataFrameGroupBy.irow
    DataFrameGroupBy.mad
    DataFrameGroupBy.pct_change
    DataFrameGroupBy.plot
