@@ -125,9 +125,7 @@ Other enhancements
 Backwards incompatible API changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-- Line and kde plot with ``subplots=True`` now uses default colors, not all black. Specify ``color='k'`` to draw all lines in black (:issue:`9894`)
-
-.. _whatsnew_0170.api_breaking.to_datetime
+.. _whatsnew_0170.api_breaking.to_datetime:
 
 Changes to to_datetime and to_timedelta
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -152,21 +150,19 @@ New Behavior:
 
 .. ipython:: python
 
-   pd.to_datetime(['2009-07-31', 'asd'])
-
 Of course you can coerce this as well.
 
 .. ipython:: python
 
    to_datetime(['2009-07-31', 'asd'], errors='coerce')
 
-To keep the previous behaviour, you can use `errors='ignore'`:
+To keep the previous behaviour, you can use ``errors='ignore'``:
 
 .. ipython:: python
 
    to_datetime(['2009-07-31', 'asd'], errors='ignore')
 
-Furthermore, ``pd.to_timedelta`` has gained a similar API, of ``errors='raise'|'ignore'|'coerce'``. The ``coerce`` keyword
+Furthermore, ``pd.to_timedelta`` has gained a similar API, of ``errors='raise'|'ignore'|'coerce'``, and the ``coerce`` keyword
 has been deprecated in favor of ``errors='coerce'``.
 
 .. _whatsnew_0170.api_breaking.convert_objects:
@@ -350,7 +346,7 @@ Usually you simply want to know which values are null.
 HDFStore dropna behavior
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
-default behavior for HDFStore write functions with ``format='table'`` is now to keep rows that are all missing except for index. Previously, the behavior was to drop rows that were all missing save the index. The previous behavior can be replicated using the ``dropna=True`` option. (:issue:`9382`)
+The default behavior for HDFStore write functions with ``format='table'`` is now to keep rows that are all missing. Previously, the behavior was to drop rows that were all missing save the index. The previous behavior can be replicated using the ``dropna=True`` option. (:issue:`9382`)
 
 Previously:
 
@@ -400,6 +396,7 @@ See :ref:`documentation <io.hdf5>` for more details.
 Other API Changes
 ^^^^^^^^^^^^^^^^^
 
+- Line and kde plot with ``subplots=True`` now uses default colors, not all black. Specify ``color='k'`` to draw all lines in black (:issue:`9894`)
 - Enable writing Excel files in :ref:`memory <_io.excel_writing_buffer>` using StringIO/BytesIO (:issue:`7074`)
 - Enable serialization of lists and dicts to strings in ExcelWriter (:issue:`8188`)
 - Allow passing `kwargs` to the interpolation methods (:issue:`10378`).
