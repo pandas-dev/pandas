@@ -97,7 +97,7 @@ class TestExpressions(tm.TestCase):
     def test_integer_arithmetic(self):
         self.run_arithmetic_test(self.integer, self.integer,
                                  assert_frame_equal)
-        self.run_arithmetic_test(self.integer.icol(0), self.integer.icol(0),
+        self.run_arithmetic_test(self.integer.iloc[:,0], self.integer.iloc[:, 0],
                                  assert_series_equal, check_dtype=True)
 
     @nose.tools.nottest
@@ -182,7 +182,7 @@ class TestExpressions(tm.TestCase):
         self.run_frame(self.integer, self.integer)
 
     def test_integer_arithmetic_series(self):
-        self.run_series(self.integer.icol(0), self.integer.icol(0))
+        self.run_series(self.integer.iloc[:, 0], self.integer.iloc[:, 0])
 
     @slow
     def test_integer_panel(self):
@@ -192,7 +192,7 @@ class TestExpressions(tm.TestCase):
         self.run_frame(self.frame2, self.frame2)
 
     def test_float_arithmetic_series(self):
-        self.run_series(self.frame2.icol(0), self.frame2.icol(0))
+        self.run_series(self.frame2.iloc[:, 0], self.frame2.iloc[:, 0])
 
     @slow
     def test_float_panel(self):
@@ -220,7 +220,7 @@ class TestExpressions(tm.TestCase):
 
     def test_float_arithemtic(self):
         self.run_arithmetic_test(self.frame, self.frame, assert_frame_equal)
-        self.run_arithmetic_test(self.frame.icol(0), self.frame.icol(0),
+        self.run_arithmetic_test(self.frame.iloc[:, 0], self.frame.iloc[:, 0],
                                  assert_series_equal, check_dtype=True)
 
     def test_mixed_arithmetic(self):
@@ -232,7 +232,7 @@ class TestExpressions(tm.TestCase):
     def test_integer_with_zeros(self):
         self.integer *= np.random.randint(0, 2, size=np.shape(self.integer))
         self.run_arithmetic_test(self.integer, self.integer, assert_frame_equal)
-        self.run_arithmetic_test(self.integer.icol(0), self.integer.icol(0),
+        self.run_arithmetic_test(self.integer.iloc[:, 0], self.integer.iloc[:, 0],
                                  assert_series_equal)
 
     def test_invalid(self):

@@ -4884,7 +4884,7 @@ class TestGroupBy(tm.TestCase):
             'fillna',
             'mad',
             'any', 'all',
-            'irow', 'take',
+            'take',
             'idxmax', 'idxmin',
             'shift', 'tshift',
             'ffill', 'bfill',
@@ -4905,7 +4905,7 @@ class TestGroupBy(tm.TestCase):
             'fillna',
             'mad',
             'any', 'all',
-            'irow', 'take',
+            'take',
             'idxmax', 'idxmin',
             'shift', 'tshift',
             'ffill', 'bfill',
@@ -4929,6 +4929,20 @@ class TestGroupBy(tm.TestCase):
     AGG_FUNCTIONS = ['sum', 'prod', 'min', 'max', 'median', 'mean', 'skew',
                      'mad', 'std', 'var', 'sem']
     AGG_FUNCTIONS_WITH_SKIPNA = ['skew', 'mad']
+
+    def test_groupby_whitelist_deprecations(self):
+        from string import ascii_lowercase
+        letters = np.array(list(ascii_lowercase))
+        N = 10
+        random_letters = letters.take(np.random.randint(0, 26, N))
+        df = DataFrame({'floats': N / 10 * Series(np.random.random(N)),
+                        'letters': Series(random_letters)})
+
+        # 10711 deprecated
+        with tm.assert_produces_warning(FutureWarning):
+            df.groupby('letters').irow(0)
+        with tm.assert_produces_warning(FutureWarning):
+            df.groupby('letters').floats.irow(0)
 
     def test_regression_whitelist_methods(self) :
 
@@ -5000,16 +5014,17 @@ class TestGroupBy(tm.TestCase):
         grp = self.mframe.groupby(level='second')
         results = set([v for v in dir(grp) if not v.startswith('_')])
         expected = set(['A','B','C',
-            'agg','aggregate','apply','boxplot','filter','first','get_group',
-            'groups','hist','indices','last','max','mean','median',
-            'min','name','ngroups','nth','ohlc','plot', 'prod',
-            'size', 'std', 'sum', 'transform', 'var', 'sem', 'count', 'head',
-            'describe', 'cummax', 'quantile', 'rank', 'cumprod', 'tail',
-            'resample', 'cummin', 'fillna', 'cumsum', 'cumcount',
-            'all', 'shift', 'skew', 'bfill', 'irow', 'ffill',
-            'take', 'tshift', 'pct_change', 'any', 'mad', 'corr', 'corrwith',
-            'cov', 'dtypes', 'diff', 'idxmax', 'idxmin'
-        ])
+                        'agg','aggregate','apply','boxplot','filter','first','get_group',
+                        'groups','hist','indices','last','max','mean','median',
+                        'min','name','ngroups','nth','ohlc','plot', 'prod',
+                        'size', 'std', 'sum', 'transform', 'var', 'sem', 'count', 'head',
+                        'irow',
+                        'describe', 'cummax', 'quantile', 'rank', 'cumprod', 'tail',
+                        'resample', 'cummin', 'fillna', 'cumsum', 'cumcount',
+                        'all', 'shift', 'skew', 'bfill', 'ffill',
+                        'take', 'tshift', 'pct_change', 'any', 'mad', 'corr', 'corrwith',
+                        'cov', 'dtypes', 'diff', 'idxmax', 'idxmin'
+                        ])
         self.assertEqual(results, expected)
 
     def test_lexsort_indexer(self):

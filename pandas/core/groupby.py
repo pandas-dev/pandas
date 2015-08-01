@@ -3,6 +3,7 @@ from functools import wraps
 import numpy as np
 import datetime
 import collections
+import warnings
 
 from pandas.compat import(
     zip, builtins, range, long, lzip,
@@ -71,7 +72,7 @@ _common_apply_whitelist = frozenset([
     'fillna',
     'mad',
     'any', 'all',
-    'irow', 'take',
+    'take',
     'idxmax', 'idxmin',
     'shift', 'tshift',
     'ffill', 'bfill',
@@ -170,7 +171,7 @@ class Grouper(object):
     freq : string / frequency object, defaults to None
         This will groupby the specified frequency if the target selection (via key or level) is
         a datetime-like object. For full specification of available frequencies, please see
-        `here <http://pandas.pydata.org/pandas-docs/stable/timeseries.html>`_. 
+        `here <http://pandas.pydata.org/pandas-docs/stable/timeseries.html>`_.
     axis : number/name of the axis, defaults to 0
     sort : boolean, default to False
         whether to sort the resulting labels
@@ -188,7 +189,7 @@ class Grouper(object):
 
     Examples
     --------
-    
+
     Syntactic sugar for ``df.groupby('A')``
 
     >>> df.groupby(Grouper(key='A'))
@@ -198,9 +199,9 @@ class Grouper(object):
     >>> df.groupby(Grouper(key='date', freq='60s'))
 
     Specify a resample operation on the level 'date' on the columns axis
-    with a frequency of 60s 
+    with a frequency of 60s
 
-    >>> df.groupby(Grouper(level='date', freq='60s', axis=1)) 
+    >>> df.groupby(Grouper(level='date', freq='60s', axis=1))
     """
 
     def __new__(cls, *args, **kwargs):
@@ -710,6 +711,16 @@ class GroupBy(PandasObject):
 
     def transform(self, func, *args, **kwargs):
         raise AbstractMethodError(self)
+
+    def irow(self, i):
+        """
+        DEPRECATED. Use ``.nth(i)`` instead
+        """
+
+        # 10177
+        warnings.warn("irow(i) is deprecated. Please use .nth(i)",
+                      FutureWarning, stacklevel=2)
+        return self.nth(i)
 
     def mean(self):
         """

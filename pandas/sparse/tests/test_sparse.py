@@ -1240,8 +1240,10 @@ class TestSparseDataFrame(tm.TestCase, test_frame.SafeForSparse):
         self.assertRaises(Exception, sdf.__getitem__, ['a', 'd'])
 
     def test_icol(self):
+        # 10711 deprecated
+
         # 2227
-        result = self.frame.icol(0)
+        result = self.frame.iloc[:, 0]
         self.assertTrue(isinstance(result, SparseSeries))
         assert_sp_series_equal(result, self.frame['A'])
 
@@ -1249,7 +1251,7 @@ class TestSparseDataFrame(tm.TestCase, test_frame.SafeForSparse):
         data = {'A': [0, 1]}
         iframe = SparseDataFrame(data, default_kind='integer')
         self.assertEqual(type(iframe['A'].sp_index),
-                         type(iframe.icol(0).sp_index))
+                         type(iframe.iloc[:, 0].sp_index))
 
     def test_set_value(self):
 

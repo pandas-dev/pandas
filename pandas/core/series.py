@@ -781,9 +781,30 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         return self.values.reshape(shape, **kwargs)
 
-    iget_value = _ixs
-    iget = _ixs
-    irow = _ixs
+    def iget_value(self, i, axis=0):
+        """
+        DEPRECATED. Use ``.iloc[i]`` or ``.iat[i]`` instead
+        """
+        warnings.warn("iget_value(i) is deprecated. Please use .iloc[i] or .iat[i]",
+                      FutureWarning, stacklevel=2)
+        return self._ixs(i)
+
+    def iget(self, i, axis=0):
+        """
+        DEPRECATED. Use ``.iloc[i]`` or ``.iat[i]`` instead
+        """
+
+        warnings.warn("iget(i) is deprecated. Please use .iloc[i] or .iat[i]",
+                      FutureWarning, stacklevel=2)
+        return self._ixs(i)
+
+    def irow(self, i, axis=0):
+        """
+        DEPRECATED. Use ``.iloc[i]`` or ``.iat[i]`` instead
+        """
+        warnings.warn("irow(i) is deprecated. Please use .iloc[i] or iat[i]",
+                      FutureWarning, stacklevel=2)
+        return self._ixs(i)
 
     def get_value(self, label, takeable=False):
         """
@@ -2323,7 +2344,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                                 sep=sep, parse_dates=parse_dates,
                                 encoding=encoding,
                                 infer_datetime_format=infer_datetime_format)
-        result = df.icol(0)
+        result = df.iloc[:,0]
         if header is None:
             result.index.name = result.name = None
 

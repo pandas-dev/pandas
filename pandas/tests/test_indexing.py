@@ -559,16 +559,17 @@ class TestIndexing(tm.TestCase):
 
     def test_iloc_getitem_multiindex(self):
 
-        df = DataFrame(np.random.randn(3, 3),
+        arr = np.random.randn(3, 3)
+        df = DataFrame(arr,
                        columns=[[2,2,4],[6,8,10]],
                        index=[[4,4,8],[8,10,12]])
 
         rs = df.iloc[2]
-        xp = df.irow(2)
+        xp = Series(arr[2],index=df.columns)
         assert_series_equal(rs, xp)
 
         rs = df.iloc[:,2]
-        xp = df.icol(2)
+        xp = Series(arr[:, 2],index=df.index)
         assert_series_equal(rs, xp)
 
         rs = df.iloc[2,2]
