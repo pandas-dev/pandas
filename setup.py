@@ -17,11 +17,9 @@ from distutils.version import LooseVersion
 import versioneer
 cmdclass = versioneer.get_cmdclass()
 
-# may need to work around setuptools bug by providing a fake Pyrex
 min_cython_ver = '0.19.1'
 try:
     import Cython
-    sys.path.insert(0, os.path.join(os.path.dirname(__file__), "fake_pyrex"))
     ver = Cython.__version__
     _CYTHON_INSTALLED = ver >= LooseVersion(min_cython_ver)
 except ImportError:
@@ -78,7 +76,6 @@ try:
     if not _CYTHON_INSTALLED:
         raise ImportError('No supported version of Cython installed.')
     from Cython.Distutils import build_ext as _build_ext
-    # from Cython.Distutils import Extension # to get pyrex debugging symbols
     cython = True
 except ImportError:
     cython = False
