@@ -401,7 +401,6 @@ Other API Changes
 - Enable serialization of lists and dicts to strings in ExcelWriter (:issue:`8188`)
 - Allow passing `kwargs` to the interpolation methods (:issue:`10378`).
 - Serialize metadata properties of subclasses of pandas objects (:issue:`10553`).
-- ``Categorical.name`` was removed to make `Categorical` more ``numpy.ndarray`` like. Use ``Series(cat, name="whatever")`` instead (:issue:`10482`).
 - ``Categorical.unique`` now returns new ``Categorical`` which ``categories`` and ``codes`` are unique, rather than returning ``np.array`` (:issue:`10508`)
 
    - unordered category: values and categories are sorted by appearance order.
@@ -453,6 +452,8 @@ Deprecations
   ``.iget_value(i, j)``     ``.iloc[i, j]`` or ``.iat[i, j]``
   ``.icol(j)``              ``.iloc[:, j]``
   =====================     ==============================================================
+
+- ``Categorical.name`` was deprecated to make ``Categorical`` more ``numpy.ndarray`` like. Use ``Series(cat, name="whatever")`` instead (:issue:`10482`).
 
 .. _whatsnew_0170.prior_deprecations:
 
