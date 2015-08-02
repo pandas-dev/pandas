@@ -2185,12 +2185,12 @@ argument to ``to_excel`` and to ``ExcelWriter``. The built-in engines are:
 
    df.to_excel('path_to_file.xlsx', sheet_name='Sheet1')
 
+.. _io.excel_writing_buffer:
+
 Writing Excel Files to Memory
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. versionadded:: 0.17
-
-.. _io.excel_writing_buffer
 
 Pandas supports writing Excel files to buffer-like objects such as ``StringIO`` or
 ``BytesIO`` using :class:`~pandas.io.excel.ExcelWriter`.
@@ -2412,7 +2412,7 @@ for some advanced strategies
 
 .. warning::
 
-   As of version 0.17.0, ``HDFStore`` will not drop rows that have all missing values by default. Previously, if all values (except the index) were missing, ``HDFStore`` would not write those rows to disk. 
+   As of version 0.17.0, ``HDFStore`` will not drop rows that have all missing values by default. Previously, if all values (except the index) were missing, ``HDFStore`` would not write those rows to disk.
 
 .. ipython:: python
    :suppress:
@@ -2511,7 +2511,7 @@ similar to how ``read_csv`` and ``to_csv`` work. (new in 0.11.0)
    os.remove('store_tl.h5')
 
 
-As of version 0.17.0, HDFStore will no longer drop rows that are all missing by default. This behavior can be enabled by setting ``dropna=True``.  
+As of version 0.17.0, HDFStore will no longer drop rows that are all missing by default. This behavior can be enabled by setting ``dropna=True``.
 
 .. ipython:: python
    :suppress:
@@ -2520,16 +2520,16 @@ As of version 0.17.0, HDFStore will no longer drop rows that are all missing by 
 
 .. ipython:: python
 
-   df_with_missing = pd.DataFrame({'col1':[0, np.nan, 2], 
+   df_with_missing = pd.DataFrame({'col1':[0, np.nan, 2],
                                    'col2':[1, np.nan, np.nan]})
    df_with_missing
 
-   df_with_missing.to_hdf('file.h5', 'df_with_missing', 
+   df_with_missing.to_hdf('file.h5', 'df_with_missing',
                            format = 'table', mode='w')
-   
+
    pd.read_hdf('file.h5', 'df_with_missing')
 
-   df_with_missing.to_hdf('file.h5', 'df_with_missing', 
+   df_with_missing.to_hdf('file.h5', 'df_with_missing',
                            format = 'table', mode='w', dropna=True)
    pd.read_hdf('file.h5', 'df_with_missing')
 
@@ -2547,7 +2547,7 @@ This is also true for the major axis of a ``Panel``:
           [[np.nan, np.nan, np.nan], [np.nan,5,6]],
           [[np.nan, np.nan, np.nan],[np.nan,3,np.nan]]]
 
-   panel_with_major_axis_all_missing = Panel(matrix, 
+   panel_with_major_axis_all_missing = Panel(matrix,
            items=['Item1', 'Item2','Item3'],
            major_axis=[1,2],
            minor_axis=['A', 'B', 'C'])
@@ -2555,8 +2555,8 @@ This is also true for the major axis of a ``Panel``:
    panel_with_major_axis_all_missing
 
    panel_with_major_axis_all_missing.to_hdf('file.h5', 'panel',
-                                           dropna = True, 
-                                           format='table', 
+                                           dropna = True,
+                                           format='table',
                                            mode='w')
    reloaded = read_hdf('file.h5', 'panel')
    reloaded
@@ -3224,8 +3224,7 @@ Notes & Caveats
      ``PyTables`` only supports concurrent reads (via threading or
      processes). If you need reading and writing *at the same time*, you
      need to serialize these operations in a single thread in a single
-     process. You will corrupt your data otherwise. See the issue
-     (:`2397`) for more information.
+     process. You will corrupt your data otherwise. See the (:issue:`2397`) for more information.
    - If you use locks to manage write access between multiple processes, you
      may want to use :py:func:`~os.fsync` before releasing write locks. For
      convenience you can use ``store.flush(fsync=True)`` to do this for you.
@@ -3256,34 +3255,19 @@ DataTypes
 ``HDFStore`` will map an object dtype to the ``PyTables`` underlying
 dtype. This means the following types are known to work:
 
-    - floating : ``float64, float32, float16`` *(using* ``np.nan`` *to
-      represent invalid values)*
-    - integer : ``int64, int32, int8, uint64, uint32, uint8``
-    - bool
-    - datetime64[ns] *(using* ``NaT`` *to represent invalid values)*
-    - object : ``strings`` *(using* ``np.nan`` *to represent invalid
-      values)*
+======================================================  =========================
+Type                                                    Represents missing values
+======================================================  =========================
+floating : ``float64, float32, float16``                ``np.nan``
+integer : ``int64, int32, int8, uint64,uint32, uint8``
+boolean
+``datetime64[ns]``                                      ``NaT``
+``timedelta64[ns]``                                     ``NaT``
+categorical : see the section below
+object : ``strings``                                    ``np.nan``
+======================================================  =========================
 
-Currently, ``unicode`` and ``datetime`` columns (represented with a
-dtype of ``object``), **WILL FAIL**. In addition, even though a column
-may look like a ``datetime64[ns]``, if it contains ``np.nan``, this
-**WILL FAIL**. You can try to convert datetimelike columns to proper
-``datetime64[ns]`` columns, that possibly contain ``NaT`` to represent
-invalid values. (Some of these issues have been addressed and these
-conversion may not be necessary in future versions of pandas)
-
-    .. ipython:: python
-
-       import datetime
-       df = DataFrame(dict(datelike=Series([datetime.datetime(2001, 1, 1),
-                                            datetime.datetime(2001, 1, 2), np.nan])))
-       df
-       df.dtypes
-
-       # to convert
-       df['datelike'] = Series(df['datelike'].values, dtype='M8[ns]')
-       df
-       df.dtypes
+``unicode`` columns are not supported, and **WILL FAIL**.
 
 .. _io.hdf5-categorical:
 
@@ -3813,22 +3797,22 @@ connecting to.
 
 .. code-block:: python
 
-  from sqlalchemy import create_engine
+   from sqlalchemy import create_engine
 
-  engine = create_engine('postgresql://scott:tiger@localhost:5432/mydatabase')
+   engine = create_engine('postgresql://scott:tiger@localhost:5432/mydatabase')
 
-  engine = create_engine('mysql+mysqldb://scott:tiger@localhost/foo')
+   engine = create_engine('mysql+mysqldb://scott:tiger@localhost/foo')
 
-  engine = create_engine('oracle://scott:tiger@127.0.0.1:1521/sidname')
+   engine = create_engine('oracle://scott:tiger@127.0.0.1:1521/sidname')
 
-  engine = create_engine('mssql+pyodbc://mydsn')
+   engine = create_engine('mssql+pyodbc://mydsn')
 
-  # sqlite://<nohostname>/<path>
-  # where <path> is relative:
-  engine = create_engine('sqlite:///foo.db')
+   # sqlite://<nohostname>/<path>
+   # where <path> is relative:
+   engine = create_engine('sqlite:///foo.db')
 
-  # or absolute, starting with a slash:
-  engine = create_engine('sqlite:////absolute/path/to/foo.db')
+   # or absolute, starting with a slash:
+   engine = create_engine('sqlite:////absolute/path/to/foo.db')
 
 For more information see the examples the SQLAlchemy `documentation <http://docs.sqlalchemy.org/en/rel_0_9/core/engines.html>`__
 
@@ -3939,8 +3923,8 @@ will produce the dictionary representation of the schema.
 
 .. code-block:: python
 
-    df = pandas.DataFrame({'A': [1.0]})
-    gbq.generate_bq_schema(df, default_type='STRING')
+   df = pandas.DataFrame({'A': [1.0]})
+   gbq.generate_bq_schema(df, default_type='STRING')
 
 .. warning::
 
@@ -4145,14 +4129,16 @@ This is an informal comparison of various IO methods, using pandas 0.13.1.
 
 .. code-block:: python
 
-   In [3]: df = DataFrame(randn(1000000,2),columns=list('AB'))
+   In [1]: df = DataFrame(randn(1000000,2),columns=list('AB'))
+
+   In [2]: df.info()
    <class 'pandas.core.frame.DataFrame'>
    Int64Index: 1000000 entries, 0 to 999999
    Data columns (total 2 columns):
-   A    1000000  non-null values
-   B    1000000  non-null values
+   A    1000000 non-null float64
+   B    1000000 non-null float64
    dtypes: float64(2)
-
+   memory usage: 22.9 MB
 
 Writing
 
