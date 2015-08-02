@@ -577,7 +577,6 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
 
     def setUp(self):
         import warnings
-        warnings.filterwarnings(action='ignore', category=FutureWarning)
 
         self.ts = _ts.copy()
         self.ts.name = 'ts'
@@ -1145,14 +1144,28 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
             self.assertIsNone(result)
 
     def test_iget(self):
+
         s = Series(np.random.randn(10), index=lrange(0, 20, 2))
+
+        # 10711, deprecated
+        with tm.assert_produces_warning(FutureWarning):
+            s.iget(1)
+
+        # 10711, deprecated
+        with tm.assert_produces_warning(FutureWarning):
+            s.irow(1)
+
+        # 10711, deprecated
+        with tm.assert_produces_warning(FutureWarning):
+            s.iget_value(1)
+
         for i in range(len(s)):
-            result = s.iget(i)
+            result = s.iloc[i]
             exp = s[s.index[i]]
             assert_almost_equal(result, exp)
 
         # pass a slice
-        result = s.iget(slice(1, 3))
+        result = s.iloc[slice(1, 3)]
         expected = s.ix[2:4]
         assert_series_equal(result, expected)
 
@@ -1161,13 +1174,13 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         self.assertTrue((s[1:3] == 0).all())
 
         # list of integers
-        result = s.iget([0, 2, 3, 4, 5])
+        result = s.iloc[[0, 2, 3, 4, 5]]
         expected = s.reindex(s.index[[0, 2, 3, 4, 5]])
         assert_series_equal(result, expected)
 
     def test_iget_nonunique(self):
         s = Series([0, 1, 2], index=[0, 1, 0])
-        self.assertEqual(s.iget(2), 2)
+        self.assertEqual(s.iloc[2], 2)
 
     def test_getitem_regression(self):
         s = Series(lrange(5), index=lrange(5))
