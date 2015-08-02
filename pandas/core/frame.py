@@ -546,7 +546,15 @@ class DataFrame(NDFrame):
             return None
 
     def iteritems(self):
-        """Iterator over (column, series) pairs"""
+        """
+        Iterator over (column name, Series) pairs.
+
+        See also
+        --------
+        iterrows : Iterate over the rows of a DataFrame as (index, Series) pairs.
+        itertuples : Iterate over the rows of a DataFrame as tuples of the values.
+
+        """
         if self.columns.is_unique and hasattr(self, '_item_cache'):
             for k in self.columns:
                 yield k, self._get_item_cache(k)
@@ -556,25 +564,45 @@ class DataFrame(NDFrame):
 
     def iterrows(self):
         """
-        Iterate over rows of DataFrame as (index, Series) pairs.
+        Iterate over the rows of a DataFrame as (index, Series) pairs.
 
         Notes
         -----
 
-        * ``iterrows`` does **not** preserve dtypes across the rows (dtypes
-          are preserved across columns for DataFrames). For example,
+        1. Because ``iterrows` returns a Series for each row,
+           it does **not** preserve dtypes across the rows (dtypes are
+           preserved across columns for DataFrames). For example,
 
-            >>> df = DataFrame([[1, 1.0]], columns=['x', 'y'])
-            >>> row = next(df.iterrows())[1]
-            >>> print(row['x'].dtype)
-            float64
-            >>> print(df['x'].dtype)
-            int64
+           >>> df = pd.DataFrame([[1, 1.5]], columns=['int', 'float'])
+           >>> row = next(df.iterrows())[1]
+           >>> row
+           int      1.0
+           float    1.5
+           Name: 0, dtype: float64
+           >>> print(row['int'].dtype)
+           float64
+           >>> print(df['int'].dtype)
+           int64
+
+           To preserve dtypes while iterating over the rows, it is better
+           to use :meth:`itertuples` which returns tuples of the values
+           and which is generally faster as ``iterrows``.
+
+        2. You should **never modify** something you are iterating over.
+           This is not guaranteed to work in all cases. Depending on the
+           data types, the iterator returns a copy and not a view, and writing
+           to it will have no effect.
 
         Returns
         -------
         it : generator
             A generator that iterates over the rows of the frame.
+
+        See also
+        --------
+        itertuples : Iterate over the rows of a DataFrame as tuples of the values.
+        iteritems : Iterate over (column name, Series) pairs.
+
         """
         columns = self.columns
         for k, v in zip(self.index, self.values):
@@ -583,8 +611,32 @@ class DataFrame(NDFrame):
 
     def itertuples(self, index=True):
         """
-        Iterate over rows of DataFrame as tuples, with index value
-        as first element of the tuple
+        Iterate over the rows of DataFrame as tuples, with index value
+        as first element of the tuple.
+
+        Parameters
+        ----------
+        index : boolean, default True
+            If True, return the index as the first element of the tuple.
+
+        See also
+        --------
+        iterrows : Iterate over the rows of a DataFrame as (index, Series) pairs.
+        iteritems : Iterate over (column name, Series) pairs.
+
+        Examples
+        --------
+
+        >>> df = pd.DataFrame({'col1': [1, 2], 'col2': [0.1, 0.2]}, index=['a', 'b'])
+        >>> df
+           col1  col2
+        a     1   0.1
+        b     2   0.2
+        >>> for row in df.itertuples():
+        ...     print(row)
+        ('a', 1, 0.10000000000000001)
+        ('b', 2, 0.20000000000000001)
+
         """
         arrays = []
         if index:
