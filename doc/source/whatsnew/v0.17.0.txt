@@ -472,6 +472,7 @@ Deprecations
 .. note:: These indexing function have been deprecated in the documentation since 0.11.0.
 
 - For ``Series`` the following indexing functions are deprecated (:issue:`10177`).
+
   =====================  =================================
   Deprecated Function    Replacement
   =====================  =================================
@@ -481,6 +482,7 @@ Deprecations
   =====================  =================================
 
 - For ``DataFrame`` the following indexing functions are deprecated (:issue:`10177`).
+
   =====================  =================================
   Deprecated Function    Replacement
   =====================  =================================
