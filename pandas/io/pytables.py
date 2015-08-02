@@ -3973,7 +3973,7 @@ class AppendableTable(LegacyTable):
         values = self.selection.select_coords()
 
         # delete the rows in reverse order
-        l = Series(values).order()
+        l = Series(values).sort_values()
         ln = len(l)
 
         if ln:

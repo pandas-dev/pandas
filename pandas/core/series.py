@@ -1423,8 +1423,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         See Also
         --------
-        Series.sort
-        Series.order
+        Series.sort_values
         numpy.searchsorted
 
         Notes
@@ -1602,38 +1601,150 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     #----------------------------------------------------------------------
     # Reindexing, sorting
 
-    def sort_index(self, ascending=True):
-        """
-        Sort object by labels (along an axis)
+    @Appender(generic._shared_docs['sort_values'] % _shared_doc_kwargs)
+    def sort_values(self, axis=0, ascending=True, inplace=False,
+                    kind='quicksort', na_position='last'):
 
-        Parameters
-        ----------
-        ascending : boolean or list, default True
-            Sort ascending vs. descending. Specify list for multiple sort
-            orders
+        axis = self._get_axis_number(axis)
 
-        Examples
-        --------
-        >>> result1 = s.sort_index(ascending=False)
-        >>> result2 = s.sort_index(ascending=[1, 0])
+        # GH 5856/5853
+        if inplace and self._is_cached:
+            raise ValueError("This Series is a view of some other array, to "
+                             "sort in-place you must create a copy")
 
-        Returns
-        -------
-        sorted_obj : Series
-        """
+        def _try_kind_sort(arr):
+            # easier to ask forgiveness than permission
+            try:
+                # if kind==mergesort, it can fail for object dtype
+                return arr.argsort(kind=kind)
+            except TypeError:
+                # stable sort not available for object dtype
+                # uses the argsort default quicksort
+                return arr.argsort(kind='quicksort')
+
+        arr = self.values
+        sortedIdx = np.empty(len(self), dtype=np.int32)
+
+        bad = isnull(arr)
+
+        good = ~bad
+        idx = np.arange(len(self))
+
+        argsorted = _try_kind_sort(arr[good])
+
+        if not ascending:
+            argsorted = argsorted[::-1]
+
+        if na_position == 'last':
+            n = good.sum()
+            sortedIdx[:n] = idx[good][argsorted]
+            sortedIdx[n:] = idx[bad]
+        elif na_position == 'first':
+            n = bad.sum()
+            sortedIdx[n:] = idx[good][argsorted]
+            sortedIdx[:n] = idx[bad]
+        else:
+            raise ValueError('invalid na_position: {!r}'.format(na_position))
+
+        result = self._constructor(arr[sortedIdx], index=self.index[sortedIdx])
+
+        if inplace:
+            self._update_inplace(result)
+        else:
+            return result.__finalize__(self)
+
+    @Appender(generic._shared_docs['sort_index'] % _shared_doc_kwargs)
+    def sort_index(self, axis=0, level=None, ascending=True, inplace=False,
+                   sort_remaining=True):
+
+        axis = self._get_axis_number(axis)
         index = self.index
-        if isinstance(index, MultiIndex):
+        if level is not None:
+            new_index, indexer = index.sortlevel(level, ascending=ascending,
+                                                 sort_remaining=sort_remaining)
+        elif isinstance(index, MultiIndex):
             from pandas.core.groupby import _lexsort_indexer
             indexer = _lexsort_indexer(index.labels, orders=ascending)
             indexer = com._ensure_platform_int(indexer)
-            new_labels = index.take(indexer)
+            new_index = index.take(indexer)
         else:
-            new_labels, indexer = index.order(return_indexer=True,
-                                              ascending=ascending)
+            new_index, indexer = index.sort_values(return_indexer=True,
+                                                   ascending=ascending)
 
         new_values = self.values.take(indexer)
         return self._constructor(new_values,
-                                 index=new_labels).__finalize__(self)
+                                 index=new_index).__finalize__(self)
+
+    def sort(self, axis=0, ascending=True, kind='quicksort', na_position='last', inplace=True):
+        """
+        DEPRECATED: use :meth:`Series.sort_values(inplace=True)` for INPLACE sorting
+
+        Sort values and index labels by value. This is an inplace sort by default.
+        Series.order is the equivalent but returns a new Series.
+
+        Parameters
+        ----------
+        axis : int (can only be zero)
+        ascending : boolean, default True
+            Sort ascending. Passing False sorts descending
+        kind : {'mergesort', 'quicksort', 'heapsort'}, default 'quicksort'
+            Choice of sorting algorithm. See np.sort for more
+            information. 'mergesort' is the only stable algorithm
+        na_position : {'first', 'last'} (optional, default='last')
+            'first' puts NaNs at the beginning
+            'last' puts NaNs at the end
+        inplace : boolean, default True
+            Do operation in place.
+
+        See Also
+        --------
+        Series.sort_values
+        """
+        warnings.warn("sort is deprecated, use sort_values(inplace=True) for for INPLACE sorting",
+                      FutureWarning, stacklevel=2)
+
+        return self.sort_values(ascending=ascending,
+                                kind=kind,
+                                na_position=na_position,
+                                inplace=inplace)
+
+    def order(self, na_last=None, ascending=True, kind='quicksort', na_position='last', inplace=False):
+        """
+        DEPRECATED: use :meth:`Series.sort_values`
+
+        Sorts Series object, by value, maintaining index-value link.
+        This will return a new Series by default. Series.sort is the equivalent but as an inplace method.
+
+        Parameters
+        ----------
+        na_last : boolean (optional, default=True) (DEPRECATED; use na_position)
+            Put NaN's at beginning or end
+        ascending : boolean, default True
+            Sort ascending. Passing False sorts descending
+        kind : {'mergesort', 'quicksort', 'heapsort'}, default 'quicksort'
+            Choice of sorting algorithm. See np.sort for more
+            information. 'mergesort' is the only stable algorithm
+        na_position : {'first', 'last'} (optional, default='last')
+            'first' puts NaNs at the beginning
+            'last' puts NaNs at the end
+        inplace : boolean, default False
+            Do operation in place.
+
+        Returns
+        -------
+        y : Series
+
+        See Also
+        --------
+        Series.sort_values
+        """
+        warnings.warn("order is deprecated, use sort_values(...)",
+                      FutureWarning, stacklevel=2)
+
+        return self.sort_values(ascending=ascending,
+                                kind=kind,
+                                na_position=na_position,
+                                inplace=inplace)
 
     def argsort(self, axis=0, kind='quicksort', order=None):
         """
@@ -1701,114 +1812,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                      ascending=ascending, pct=pct)
         return self._constructor(ranks, index=self.index).__finalize__(self)
 
-    def sort(self, axis=0, ascending=True, kind='quicksort', na_position='last', inplace=True):
-        """
-        Sort values and index labels by value. This is an inplace sort by default.
-        Series.order is the equivalent but returns a new Series.
-
-        Parameters
-        ----------
-        axis : int (can only be zero)
-        ascending : boolean, default True
-            Sort ascending. Passing False sorts descending
-        kind : {'mergesort', 'quicksort', 'heapsort'}, default 'quicksort'
-            Choice of sorting algorithm. See np.sort for more
-            information. 'mergesort' is the only stable algorithm
-        na_position : {'first', 'last'} (optional, default='last')
-            'first' puts NaNs at the beginning
-            'last' puts NaNs at the end
-        inplace : boolean, default True
-            Do operation in place.
-
-        See Also
-        --------
-        Series.order
-        """
-        return self.order(ascending=ascending,
-                          kind=kind,
-                          na_position=na_position,
-                          inplace=inplace)
-
-    def order(self, na_last=None, ascending=True, kind='quicksort', na_position='last', inplace=False):
-        """
-        Sorts Series object, by value, maintaining index-value link.
-        This will return a new Series by default. Series.sort is the equivalent but as an inplace method.
-
-        Parameters
-        ----------
-        na_last : boolean (optional, default=True) (DEPRECATED; use na_position)
-            Put NaN's at beginning or end
-        ascending : boolean, default True
-            Sort ascending. Passing False sorts descending
-        kind : {'mergesort', 'quicksort', 'heapsort'}, default 'quicksort'
-            Choice of sorting algorithm. See np.sort for more
-            information. 'mergesort' is the only stable algorithm
-        na_position : {'first', 'last'} (optional, default='last')
-            'first' puts NaNs at the beginning
-            'last' puts NaNs at the end
-        inplace : boolean, default False
-            Do operation in place.
-
-        Returns
-        -------
-        y : Series
-
-        See Also
-        --------
-        Series.sort
-        """
-
-        # GH 5856/5853
-        if inplace and self._is_cached:
-            raise ValueError("This Series is a view of some other array, to "
-                             "sort in-place you must create a copy")
-
-        if na_last is not None:
-            warnings.warn(("na_last is deprecated. Please use na_position instead"),
-                          FutureWarning)
-            na_position = 'last' if na_last else 'first'
-
-        def _try_kind_sort(arr):
-            # easier to ask forgiveness than permission
-            try:
-                # if kind==mergesort, it can fail for object dtype
-                return arr.argsort(kind=kind)
-            except TypeError:
-                # stable sort not available for object dtype
-                # uses the argsort default quicksort
-                return arr.argsort(kind='quicksort')
-
-        arr = self.values
-        sortedIdx = np.empty(len(self), dtype=np.int32)
-
-        bad = isnull(arr)
-
-        good = ~bad
-        idx = np.arange(len(self))
-
-        argsorted = _try_kind_sort(arr[good])
-
-        if not ascending:
-            argsorted = argsorted[::-1]
-
-        if na_position == 'last':
-            n = good.sum()
-            sortedIdx[:n] = idx[good][argsorted]
-            sortedIdx[n:] = idx[bad]
-        elif na_position == 'first':
-            n = bad.sum()
-            sortedIdx[n:] = idx[good][argsorted]
-            sortedIdx[:n] = idx[bad]
-        else:
-            raise ValueError('invalid na_position: {!r}'.format(na_position))
-
-        result = self._constructor(arr[sortedIdx], index=self.index[sortedIdx])
-
-        if inplace:
-            self._update_inplace(result)
-        else:
-            return result.__finalize__(self)
-
     def nlargest(self, n=5, take_last=False):
         """Return the largest `n` elements.
 
@@ -1826,7 +1829,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Notes
         -----
-        Faster than ``.order(ascending=False).head(n)`` for small `n` relative
+        Faster than ``.sort_values(ascending=False).head(n)`` for small `n` relative
         to the size of the ``Series`` object.
 
         See Also
@@ -1859,7 +1862,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Notes
         -----
-        Faster than ``.order().head(n)`` for small `n` relative to
+        Faster than ``.sort_values().head(n)`` for small `n` relative to
         the size of the ``Series`` object.
 
         See Also
@@ -1889,15 +1892,13 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Returns
         -------
         sorted : Series
-        """
-        if not isinstance(self.index, MultiIndex):
-            raise TypeError('can only sort by level with a hierarchical index')
 
-        new_index, indexer = self.index.sortlevel(level, ascending=ascending,
-                                                 sort_remaining=sort_remaining)
-        new_values = self.values.take(indexer)
-        return self._constructor(new_values,
-                                 index=new_index).__finalize__(self)
+        See Also
+        --------
+        Series.sort_index(level=...)
+
+        """
+        return self.sort_index(level=level, ascending=ascending, sort_remaining=sort_remaining)
 
     def swaplevel(self, i, j, copy=True):
         """

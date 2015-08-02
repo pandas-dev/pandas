@@ -151,7 +151,7 @@ class DatetimeIndexOpsMixin(object):
         except Exception:
             return _algos.arrmap_object(self.asobject.values, f)
 
-    def order(self, return_indexer=False, ascending=True):
+    def sort_values(self, return_indexer=False, ascending=True):
         """
         Return sorted copy of Index
         """

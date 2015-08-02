@@ -14,6 +14,7 @@ users upgrade to this version.
 Highlights include:
 
 - Release the Global Interpreter Lock (GIL) on some cython operations, see :ref:`here <whatsnew_0170.gil>`
+- The sorting API has been revamped to remove some long-time inconsistencies, see :ref:`here <whatsnew_0170.api_breaking.sorting>`
 - The default for ``to_datetime`` will now be to ``raise`` when presented with unparseable formats,
   previously this would return the original input, see :ref:`here <whatsnew_0170.api_breaking.to_datetime>`
 - The default for ``dropna`` in ``HDFStore`` has changed to ``False``, to store by default all rows even
@@ -186,6 +187,65 @@ Other enhancements
 
 Backwards incompatible API changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. _whatsnew_0170.api_breaking.sorting:
+
+Changes to sorting API
+^^^^^^^^^^^^^^^^^^^^^^
+
+The sorting API has had some longtime inconsistencies. (:issue:`9816`,:issue:`8239`).
+
+Here is a summary of the **prior** to 0.17.0 API
+
+- ``Series.sort`` is **INPLACE** while ``DataFrame.sort`` returns a new object.
+- ``Series.order`` returned a new object
+- It was possible to use ``Series/DataFrame.sort_index`` to sort by **values** by passing the ``by`` keyword.
+- ``Series/DataFrame.sortlevel`` worked only on a ``MultiIndex`` for sorting by index.
+
+To address these issues, we have revamped the API:
+
+- We have introduced a new method, :meth:`DataFrame.sort_values`, which is the merger of ``DataFrame.sort()``, ``Series.sort()``,
+  and ``Series.order``, to handle sorting of **values**.
+- The existing method ``Series.sort()`` has been deprecated and will be removed in a
+  future version of pandas.
+- The ``by`` argument of ``DataFrame.sort_index()`` has been deprecated and will be removed in a future version of pandas.
+- The methods ``DataFrame.sort()``, ``Series.order()``, will not be recommended to use and will carry a deprecation warning
+  in the doc-string.
+- The existing method ``.sort_index()`` will gain the ``level`` keyword to enable level sorting.
+
+We now have two distinct and non-overlapping methods of sorting. A ``*`` marks items that
+will show a ``FutureWarning``.
+
+To sort by the **values**:
+
+=================================     ====================================
+Previous                              Replacement
+=================================     ====================================
+\*``Series.order()``                   ``Series.sort_values()``
+\*``Series.sort()``                    ``Series.sort_values(inplace=True)``
+\*``DataFrame.sort(columns=...)``      ``DataFrame.sort_values(by=...)``
+=================================     ====================================
+
+To sort by the **index**:
+
+=================================     ====================================
+Previous                              Equivalent
+=================================     ====================================
+``Series.sort_index()``               ``Series.sort_index()``
+``Series.sortlevel(level=...)``       ``Series.sort_index(level=...``)
+``DataFrame.sort_index()``            ``DataFrame.sort_index()``
+``DataFrame.sortlevel(level=...)``    ``DataFrame.sort_index(level=...)``
+\*``DataFrame.sort()``                 ``DataFrame.sort_index()``
+==================================    ====================================
+
+We have also deprecated and changed similar methods in two Series-like classes, ``Index`` and ``Categorical``.
+
+==================================    ====================================
+Previous                              Replacement
+==================================    ====================================
+\*``Index.order()``                     ``Index.sort_values()``
+\*``Categorical.order()``               ``Categorical.sort_values``
+==================================    ====================================
 
 .. _whatsnew_0170.api_breaking.to_datetime:
 
@@ -570,7 +630,7 @@ Removal of prior version deprecations/changes
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 - Remove use of some deprecated numpy comparison operations, mainly in tests. (:issue:`10569`)
-
+- Removal of ``na_last`` parameters from ``Series.order()`` and ``Series.sort()``, in favor of ``na_position``, xref (:issue:`5231`)
 
 .. _whatsnew_0170.performance:
 
