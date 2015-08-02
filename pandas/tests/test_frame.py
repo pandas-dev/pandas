@@ -1781,16 +1781,20 @@ class CheckIndexing(object):
     def test_irow(self):
         df = DataFrame(np.random.randn(10, 4), index=lrange(0, 20, 2))
 
-        result = df.irow(1)
+        # 10711, deprecated
+        with tm.assert_produces_warning(FutureWarning):
+            df.irow(1)
+
+        result = df.iloc[1]
         exp = df.ix[2]
         assert_series_equal(result, exp)
 
-        result = df.irow(2)
+        result = df.iloc[2]
         exp = df.ix[4]
         assert_series_equal(result, exp)
 
         # slice
-        result = df.irow(slice(4, 8))
+        result = df.iloc[slice(4, 8)]
         expected = df.ix[8:14]
         assert_frame_equal(result, expected)
 
@@ -1804,23 +1808,28 @@ class CheckIndexing(object):
         assert_series_equal(df[2], exp_col)
 
         # list of integers
-        result = df.irow([1, 2, 4, 6])
+        result = df.iloc[[1, 2, 4, 6]]
         expected = df.reindex(df.index[[1, 2, 4, 6]])
         assert_frame_equal(result, expected)
 
     def test_icol(self):
+
         df = DataFrame(np.random.randn(4, 10), columns=lrange(0, 20, 2))
 
-        result = df.icol(1)
+        # 10711, deprecated
+        with tm.assert_produces_warning(FutureWarning):
+            df.icol(1)
+
+        result = df.iloc[:, 1]
         exp = df.ix[:, 2]
         assert_series_equal(result, exp)
 
-        result = df.icol(2)
+        result = df.iloc[:, 2]
         exp = df.ix[:, 4]
         assert_series_equal(result, exp)
 
         # slice
-        result = df.icol(slice(4, 8))
+        result = df.iloc[:, slice(4, 8)]
         expected = df.ix[:, 8:14]
         assert_frame_equal(result, expected)
 
@@ -1832,21 +1841,23 @@ class CheckIndexing(object):
         self.assertTrue((df[8] == 0).all())
 
         # list of integers
-        result = df.icol([1, 2, 4, 6])
+        result = df.iloc[:, [1, 2, 4, 6]]
         expected = df.reindex(columns=df.columns[[1, 2, 4, 6]])
         assert_frame_equal(result, expected)
 
     def test_irow_icol_duplicates(self):
+        # 10711, deprecated
+
         df = DataFrame(np.random.rand(3, 3), columns=list('ABC'),
                        index=list('aab'))
 
-        result = df.irow(0)
+        result = df.iloc[0]
         result2 = df.ix[0]
         tm.assertIsInstance(result, Series)
         assert_almost_equal(result.values, df.values[0])
         assert_series_equal(result, result2)
 
-        result = df.T.icol(0)
+        result = df.T.iloc[:, 0]
         result2 = df.T.ix[:, 0]
         tm.assertIsInstance(result, Series)
         assert_almost_equal(result.values, df.values[0])
@@ -1856,34 +1867,39 @@ class CheckIndexing(object):
         df = DataFrame(np.random.randn(3, 3), columns=[['i', 'i', 'j'],
                                                        ['A', 'A', 'B']],
                        index=[['i', 'i', 'j'], ['X', 'X', 'Y']])
-        rs = df.irow(0)
+        rs = df.iloc[0]
         xp = df.ix[0]
         assert_series_equal(rs, xp)
 
-        rs = df.icol(0)
+        rs = df.iloc[:, 0]
         xp = df.T.ix[0]
         assert_series_equal(rs, xp)
 
-        rs = df.icol([0])
+        rs = df.iloc[:, [0]]
         xp = df.ix[:, [0]]
         assert_frame_equal(rs, xp)
 
         # #2259
         df = DataFrame([[1, 2, 3], [4, 5, 6]], columns=[1, 1, 2])
-        result = df.icol([0])
+        result = df.iloc[:, [0]]
         expected = df.take([0], axis=1)
         assert_frame_equal(result, expected)
 
     def test_icol_sparse_propegate_fill_value(self):
         from pandas.sparse.api import SparseDataFrame
         df = SparseDataFrame({'A': [999, 1]}, default_fill_value=999)
-        self.assertTrue(len(df['A'].sp_values) == len(df.icol(0).sp_values))
+        self.assertTrue(len(df['A'].sp_values) == len(df.iloc[:, 0].sp_values))
 
     def test_iget_value(self):
+        # 10711 deprecated
+
+        with tm.assert_produces_warning(FutureWarning):
+            self.frame.iget_value(0,0)
+
         for i, row in enumerate(self.frame.index):
             for j, col in enumerate(self.frame.columns):
-                result = self.frame.iget_value(i, j)
-                expected = self.frame.get_value(row, col)
+                result = self.frame.iat[i,j]
+                expected = self.frame.at[row, col]
                 assert_almost_equal(result, expected)
 
     def test_nested_exception(self):
@@ -4755,7 +4771,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         for i in range(len(df.index)):
             tup = []
             for _, b in compat.iteritems(blocks):
-                tup.extend(b.irow(i).values)
+                tup.extend(b.iloc[i].values)
             tuples.append(tuple(tup))
 
         recarray  = np.array(tuples, dtype=dtypes).view(np.recarray)
@@ -5621,9 +5637,9 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         result = self.frame[:0].add(self.frame)
         assert_frame_equal(result, self.frame * np.nan)
         with assertRaisesRegexp(NotImplementedError, 'fill_value'):
-            self.frame.add(self.frame.irow(0), fill_value=3)
+            self.frame.add(self.frame.iloc[0], fill_value=3)
         with assertRaisesRegexp(NotImplementedError, 'fill_value'):
-            self.frame.add(self.frame.irow(0), axis='index', fill_value=3)
+            self.frame.add(self.frame.iloc[0], axis='index', fill_value=3)
 
     def test_binary_ops_align(self):
 
@@ -6380,7 +6396,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
                 # labeling them dupe.1,dupe.2, etc'. monkey patch columns
                 recons.columns = df.columns
             if rnlvl and not cnlvl:
-                delta_lvl = [recons.icol(i).values for i in range(rnlvl-1)]
+                delta_lvl = [recons.iloc[:, i].values for i in range(rnlvl-1)]
                 ix=MultiIndex.from_arrays([list(recons.index)]+delta_lvl)
                 recons.index = ix
                 recons = recons.iloc[:,rnlvl-1:]
@@ -9409,7 +9425,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         df = DataFrame(randn(5, 2), index=['b', 'b', 'c', 'b', 'a'])
 
         cross = df.xs('c')
-        exp = df.irow(2)
+        exp = df.iloc[2]
         assert_series_equal(cross, exp)
 
     def test_xs_keep_level(self):

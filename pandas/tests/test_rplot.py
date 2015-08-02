@@ -160,7 +160,7 @@ class TestScaleGradient(tm.TestCase):
 
     def test_gradient(self):
         for index in range(len(self.data)):
-            row = self.data.irow(index)
+            row = self.data.iloc[index]
             r, g, b = self.gradient(self.data, index)
             r1, g1, b1 = self.gradient.colour1
             r2, g2, b2 = self.gradient.colour2
@@ -178,7 +178,7 @@ class TestScaleGradient2(tm.TestCase):
 
     def test_gradient2(self):
         for index in range(len(self.data)):
-            row = self.data.irow(index)
+            row = self.data.iloc[index]
             r, g, b = self.gradient(self.data, index)
             r1, g1, b1 = self.gradient.colour1
             r2, g2, b2 = self.gradient.colour2

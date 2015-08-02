@@ -121,18 +121,6 @@ the specification are assumed to be ``:``. (e.g. ``p.loc['a']`` is equiv to
     DataFrame; ``df.loc[row_indexer,column_indexer]``
     Panel; ``p.loc[item_indexer,major_indexer,minor_indexer]``
 
-Deprecations
-------------
-
-Beginning with version 0.11.0, it's recommended that you transition away from
-the following methods as they *may* be deprecated in future versions.
-
-  - ``irow``
-  - ``icol``
-  - ``iget_value``
-
-See the section :ref:`Selection by Position <indexing.integer>` for substitutes.
-
 .. _indexing.basics:
 
 Basics
@@ -432,19 +420,13 @@ Select via integer list
 
    df1.iloc[[1,3,5],[1,3]]
 
-For slicing rows explicitly (equiv to deprecated ``df.irow(slice(1,3))``).
-
 .. ipython:: python
 
    df1.iloc[1:3,:]
 
-For slicing columns explicitly (equiv to deprecated ``df.icol(slice(1,3))``).
-
 .. ipython:: python
 
    df1.iloc[:,1:3]
-
-For getting a scalar via integer position (equiv to deprecated ``df.get_value(1,1)``)
 
 .. ipython:: python
 
