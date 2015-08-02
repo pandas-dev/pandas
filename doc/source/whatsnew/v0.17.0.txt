@@ -137,6 +137,7 @@ Other enhancements
 - ``.as_blocks`` will now take a ``copy`` optional argument to return a copy of the data, default is to copy (no change in behavior from prior versions), (:issue:`9607`)
 
 - ``regex`` argument to ``DataFrame.filter`` now handles numeric column names instead of raising ``ValueError`` (:issue:`10384`).
+
 - ``pd.read_stata`` will now read Stata 118 type files. (:issue:`9882`)
 
 - ``pd.merge`` will now allow duplicate column names if they are not merged upon (:issue:`10639`).
@@ -151,6 +152,30 @@ Other enhancements
    s.drop_duplicates(keep='last')
    s.drop_duplicates(keep=False)
 
+
+- ``concat`` will now inherit the existing series names (even when some are missing), if new ones are not provided through the ``keys`` argument (:issue:`10698`).
+
+  Previous Behavior:
+
+  .. code-block:: python
+
+     In [1]: foo = pd.Series([1,2], name='foo')
+     In [2]: bar = pd.Series([1,2])
+     In [3]: baz = pd.Series([4,5])
+     In [4] pd.concat([foo, bar, baz], 1)
+     Out[4]:
+           0  1  2
+        0  1  1  4
+        1  2  2  5
+
+  New Behavior:
+
+  .. ipython:: python
+
+    foo = pd.Series([1,2], name='foo')
+    bar = pd.Series([1,2])
+    baz = pd.Series([4,5])
+    pd.concat([foo, bar, baz], 1)
 
 .. _whatsnew_0170.api:
 

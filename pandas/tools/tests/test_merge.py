@@ -1797,6 +1797,15 @@ class TestConcatenate(tm.TestCase):
         self.assertEqual(list(result.columns), [('t1', 'value'),
                                                 ('t2', 'value')])
 
+    def test_concat_series_partial_columns_names(self):
+        foo = pd.Series([1,2], name='foo')
+        bar = pd.Series([1,2])
+        baz = pd.Series([4,5])
+
+        result = pd.concat([foo, bar, baz], 1)
+        expected = DataFrame({'foo' : [1,2], 0 : [1,2], 1 : [4,5]}, columns=['foo',0,1])
+        tm.assert_frame_equal(result, expected)
+
     def test_concat_dict(self):
         frames = {'foo': DataFrame(np.random.randn(4, 3)),
                   'bar': DataFrame(np.random.randn(4, 3)),
@@ -2330,7 +2339,7 @@ class TestConcatenate(tm.TestCase):
 
         s2.name = None
         result = concat([s, s2], axis=1)
-        self.assertTrue(np.array_equal(result.columns, lrange(2)))
+        self.assertTrue(np.array_equal(result.columns, Index(['A', 0], dtype='object')))
 
         # must reindex, #2603
         s = Series(randn(3), index=['c', 'a', 'b'], name='A')
@@ -2431,7 +2440,7 @@ class TestConcatenate(tm.TestCase):
         s2 = Series(randn(len(dates)), index=dates, name='value')
 
         result = concat([s1, s2], axis=1, ignore_index=True)
-        self.assertTrue(np.array_equal(result.columns, [0, 1]))
+        self.assertTrue(np.array_equal(result.columns, ['value', 'value']))
 
     def test_concat_iterables(self):
         from collections import deque, Iterable

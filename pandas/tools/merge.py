@@ -16,7 +16,7 @@ from pandas.core.index import (Index, MultiIndex, _get_combined_index,
 from pandas.core.internals import (items_overlap_with_suffix,
                                    concatenate_block_managers)
 from pandas.util.decorators import Appender, Substitution
-from pandas.core.common import ABCSeries
+from pandas.core.common import ABCSeries, isnull
 from pandas.io.parsers import TextFileReader
 
 import pandas.core.common as com
@@ -896,8 +896,14 @@ class _Concatenator(object):
                 data = dict(zip(range(len(self.objs)), self.objs))
                 index, columns = self.new_axes
                 tmpdf = DataFrame(data, index=index)
-                if columns is not None:
-                    tmpdf.columns = columns
+                # checks if the column variable already stores valid column names (because set via the 'key' argument
+                # in the 'concat' function call. If that's not the case, use the series names as column names
+                if columns.equals(Index(np.arange(len(self.objs)))):
+                    columns = np.array([ data[i].name for i in range(len(data)) ], dtype='object')
+                    indexer = isnull(columns)
+                    if indexer.any():
+                        columns[indexer] = np.arange(len(indexer[indexer]))
+                tmpdf.columns = columns
                 return tmpdf.__finalize__(self, method='concat')
 
         # combine block managers
