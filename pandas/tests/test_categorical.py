@@ -2203,27 +2203,27 @@ class TestCategoricalAsBlock(tm.TestCase):
         self.assertEqual(res_val, exp_val)
 
         # i : int, slice, or sequence of integers
-        res_row = df.irow(2)
+        res_row = df.iloc[2]
         tm.assert_series_equal(res_row, exp_row)
         tm.assertIsInstance(res_row["cats"], compat.string_types)
 
-        res_df = df.irow(slice(2,4))
+        res_df = df.iloc[slice(2,4)]
         tm.assert_frame_equal(res_df, exp_df)
         self.assertTrue(com.is_categorical_dtype(res_df["cats"]))
 
-        res_df = df.irow([2,3])
+        res_df = df.iloc[[2,3]]
         tm.assert_frame_equal(res_df, exp_df)
         self.assertTrue(com.is_categorical_dtype(res_df["cats"]))
 
-        res_col = df.icol(0)
+        res_col = df.iloc[:,0]
         tm.assert_series_equal(res_col, exp_col)
         self.assertTrue(com.is_categorical_dtype(res_col))
 
-        res_df = df.icol(slice(0,2))
+        res_df = df.iloc[:,slice(0,2)]
         tm.assert_frame_equal(res_df, df)
         self.assertTrue(com.is_categorical_dtype(res_df["cats"]))
 
-        res_df = df.icol([0,1])
+        res_df = df.iloc[:,[0,1]]
         tm.assert_frame_equal(res_df, df)
         self.assertTrue(com.is_categorical_dtype(res_df["cats"]))
 

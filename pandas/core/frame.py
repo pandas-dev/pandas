@@ -552,7 +552,7 @@ class DataFrame(NDFrame):
                 yield k, self._get_item_cache(k)
         else:
             for i, k in enumerate(self.columns):
-                yield k, self.icol(i)
+                yield k, self._ixs(i,axis=1)
 
     def iterrows(self):
         """
@@ -1697,9 +1697,20 @@ class DataFrame(NDFrame):
             return self
 
     def irow(self, i, copy=False):
+        """
+        DEPRECATED. Use ``.iloc[i]`` instead
+        """
+
+        warnings.warn("irow(i) is deprecated. Please use .iloc[i]",
+                      FutureWarning, stacklevel=2)
         return self._ixs(i, axis=0)
 
     def icol(self, i):
+        """
+        DEPRECATED. Use ``.iloc[:, i]`` instead
+        """
+        warnings.warn("icol(i) is deprecated. Please use .iloc[:,i]",
+                      FutureWarning, stacklevel=2)
         return self._ixs(i, axis=1)
 
     def _ixs(self, i, axis=0):
@@ -1773,6 +1784,11 @@ class DataFrame(NDFrame):
                 return result
 
     def iget_value(self, i, j):
+        """
+        DEPRECATED. Use ``.iat[i, j]`` instead
+        """
+        warnings.warn("iget_value(i, j) is deprecated. Please use .iat[i, j]",
+                      FutureWarning, stacklevel=2)
         return self.iat[i, j]
 
     def __getitem__(self, key):
@@ -3769,7 +3785,7 @@ class DataFrame(NDFrame):
 
         dtype = object if self._is_mixed_type else None
         if axis == 0:
-            series_gen = (self.icol(i) for i in range(len(self.columns)))
+            series_gen = (self._ixs(i,axis=1) for i in range(len(self.columns)))
             res_index = self.columns
             res_columns = self.index
         elif axis == 1:
@@ -4900,11 +4916,11 @@ def _to_arrays(data, columns, coerce_float=False, dtype=None):
     """
     if isinstance(data, DataFrame):
         if columns is not None:
-            arrays = [data.icol(i).values for i, col in enumerate(data.columns)
+            arrays = [data._ixs(i,axis=1).values for i, col in enumerate(data.columns)
                       if col in columns]
         else:
             columns = data.columns
-            arrays = [data.icol(i).values for i in range(len(columns))]
+            arrays = [data._ixs(i,axis=1).values for i in range(len(columns))]
 
         return arrays, columns
 

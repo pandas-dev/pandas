@@ -434,6 +434,26 @@ Other API Changes
 Deprecations
 ^^^^^^^^^^^^
 
+.. note:: These indexing function have been deprecated in the documentation since 0.11.0.
+
+- For ``Series`` the following indexing functions are deprecated (:issue:`10177`).
+  =====================     ==============================================================
+  Deprecated Function       Replacement
+  =====================     ==============================================================
+  ``.irow(i)``              ``.iloc[i]`` or ``.iat[i]``
+  ``.iget(i)``              ``.iloc[i]`` or ``.iat[i]``
+  ``.iget_value(i)``        ``.iloc[i]`` or ``.iat[i]``
+  =====================     ==============================================================
+
+- For ``DataFrame`` the following indexing functions are deprecated (:issue:`10177`).
+  =====================     ==============================================================
+  Deprecated Function       Replacement
+  =====================     ==============================================================
+  ``.irow(i)``              ``.iloc[i]``
+  ``.iget_value(i, j)``     ``.iloc[i, j]`` or ``.iat[i, j]``
+  ``.icol(j)``              ``.iloc[:, j]``
+  =====================     ==============================================================
+
 .. _whatsnew_0170.prior_deprecations:
 
 Removal of prior version deprecations/changes
