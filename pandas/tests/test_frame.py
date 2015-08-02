@@ -1466,7 +1466,7 @@ class CheckIndexing(object):
         self.assertTrue(result.values.all())
         self.assertTrue((cp.iloc[0:1] == df.iloc[0:1]).values.all())
 
-        warnings.filterwarnings(action='ignore', category=FutureWarning)
+        warnings.filterwarnings(action='default', category=FutureWarning)
 
         cp = df.copy()
         cp.iloc[4:5] = 0
@@ -2220,7 +2220,6 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
 
     def setUp(self):
         import warnings
-        warnings.filterwarnings(action='ignore', category=FutureWarning)
 
         self.frame = _frame.copy()
         self.frame2 = _frame2.copy()
