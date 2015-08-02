@@ -1698,7 +1698,7 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
 
         for frame in a, b:
             for i in range(5):  # lexsort depth
-                df = frame.copy() if i == 0 else frame.sort(columns=cols[:i])
+                df = frame.copy() if i == 0 else frame.sort_values(by=cols[:i])
                 mi = df.set_index(cols[:-1])
                 assert not mi.index.lexsort_depth < i
                 loop(mi, df, keys)
@@ -2958,7 +2958,7 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         self.assertRaises(KeyError, df.loc.__getitem__, tuple([slice(1,2)]))
 
         # monotonic are ok
-        df = DataFrame({'A' : [1,2,3,4,5,6], 'B' : [3,4,5,6,7,8]}, index = [0,1,0,1,2,3]).sort(axis=0)
+        df = DataFrame({'A' : [1,2,3,4,5,6], 'B' : [3,4,5,6,7,8]}, index = [0,1,0,1,2,3]).sort_index(axis=0)
         result = df.loc[1:]
         expected = DataFrame({'A' : [2,4,5,6], 'B' : [4, 6,7,8]}, index = [1,1,2,3])
         assert_frame_equal(result,expected)
@@ -3866,10 +3866,9 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         self.assertRaises(com.SettingWithCopyError, f)
 
         df = DataFrame(np.random.randn(10,4))
-        s = df.iloc[:,0]
-        s = s.order()
-        assert_series_equal(s,df.iloc[:,0].order())
-        assert_series_equal(s,df[0].order())
+        s = df.iloc[:,0].sort_values()
+        assert_series_equal(s,df.iloc[:,0].sort_values())
+        assert_series_equal(s,df[0].sort_values())
 
         # false positives GH6025
         df = DataFrame ({'column1':['a', 'a', 'a'], 'column2': [4,8,9] })

@@ -1418,29 +1418,48 @@ description.
 
 .. _basics.sorting:
 
-Sorting by index and value
---------------------------
+Sorting
+-------
+
+.. warning::
+
+   The sorting API is substantially changed in 0.17.0, see :ref:`here <whatsnew_0170.api_breaking.sorting>` for these changes.
+   In particular, all sorting methods now return a new object by default, and **DO NOT** operate in-place (except by passing ``inplace=True``).
 
 There are two obvious kinds of sorting that you may be interested in: sorting
-by label and sorting by actual values. The primary method for sorting axis
-labels (indexes) across data structures is the :meth:`~DataFrame.sort_index` method.
+by label and sorting by actual values.
+
+By Index
+~~~~~~~~
+
+The primary method for sorting axis
+labels (indexes) are the ``Series.sort_index()`` and the ``DataFrame.sort_index()`` methods.
 
 .. ipython:: python
 
    unsorted_df = df.reindex(index=['a', 'd', 'c', 'b'],
                             columns=['three', 'two', 'one'])
+
+   # DataFrame
    unsorted_df.sort_index()
    unsorted_df.sort_index(ascending=False)
    unsorted_df.sort_index(axis=1)
 
-:meth:`DataFrame.sort_index` can accept an optional ``by`` argument for ``axis=0``
+   # Series
+   unsorted_df['three'].sort_index()
+
+By Values
+~~~~~~~~~
+
+The :meth:`Series.sort_values` and :meth:`DataFrame.sort_values` are the entry points for **value** sorting (that is the values in a column or row).
+:meth:`DataFrame.sort_values` can accept an optional ``by`` argument for ``axis=0``
 which will use an arbitrary vector or a column name of the DataFrame to
 determine the sort order:
 
 .. ipython:: python
 
    df1 = pd.DataFrame({'one':[2,1,1,1],'two':[1,3,2,4],'three':[5,4,3,2]})
-   df1.sort_index(by='two')
+   df1.sort_values(by='two')
 
 The ``by`` argument can take a list of column names, e.g.:
 
@@ -1448,9 +1467,7 @@ The ``by`` argument can take a list of column names, e.g.:
 
    df1[['one', 'two', 'three']].sort_index(by=['one','two'])
 
-Series has the method :meth:`~Series.order` (analogous to `R's order function
-<http://stat.ethz.ch/R-manual/R-patched/library/base/html/order.html>`__) which
-sorts by value, with special treatment of NA values via the ``na_position``
+These methods have special treatment of NA values via the ``na_position``
 argument:
 
 .. ipython:: python
@@ -1459,11 +1476,11 @@ argument:
    s.order()
    s.order(na_position='first')
 
-.. note::
 
-   :meth:`Series.sort` sorts a Series by value in-place. This is to provide
-   compatibility with NumPy methods which expect the ``ndarray.sort``
-   behavior. :meth:`Series.order` returns a copy of the sorted data.
+.. _basics.searchsorted:
+
+searchsorted
+~~~~~~~~~~~~
 
 Series has the :meth:`~Series.searchsorted` method, which works similar to
 :meth:`numpy.ndarray.searchsorted`.
@@ -1493,7 +1510,7 @@ faster than sorting the entire Series and calling ``head(n)`` on the result.
 
    s = pd.Series(np.random.permutation(10))
    s
-   s.order()
+   s.sort_values()
    s.nsmallest(3)
    s.nlargest(3)
 

@@ -922,7 +922,7 @@ class NDFrame(PandasObject):
             in the store wherever possible
         fletcher32 : bool, default False
             If applying compression use the fletcher32 checksum
-        dropna : boolean, default False. 
+        dropna : boolean, default False.
             If true, ALL nan rows will not be written to store.
 
         """
@@ -1683,24 +1683,73 @@ class NDFrame(PandasObject):
         new_data = self._data.add_suffix(suffix)
         return self._constructor(new_data).__finalize__(self)
 
-    def sort_index(self, axis=0, ascending=True):
+    _shared_docs['sort_values'] = """
+        Sort by the values along either axis
+
+        .. versionadded:: 0.17.0
+
+        Parameters
+        ----------
+        by : string name or list of names which refer to the axis items
+        axis : %(axes)s to direct sorting
+        ascending : bool or list of bool
+             Sort ascending vs. descending. Specify list for multiple sort orders.
+             If this is a list of bools, must match the length of the by
+        inplace : bool
+             if True, perform operation in-place
+        kind : {`quicksort`, `mergesort`, `heapsort`}
+             Choice of sorting algorithm. See also ndarray.np.sort for more information.
+             `mergesort` is the only stable algorithm. For DataFrames, this option is
+             only applied when sorting on a single column or label.
+        na_position : {'first', 'last'}
+             `first` puts NaNs at the beginning, `last` puts NaNs at the end
+
+        Returns
+        -------
+        sorted_obj : %(klass)s
         """
+    def sort_values(self, by, axis=0, ascending=True, inplace=False,
+                    kind='quicksort', na_position='last'):
+        raise AbstractMethodError(self)
+
+    _shared_docs['sort_index'] = """
         Sort object by labels (along an axis)
 
         Parameters
         ----------
-        axis : {0, 1}
-            Sort index/rows versus columns
+        axis : %(axes)s to direct sorting
+        level : int or level name or list of ints or list of level names
+            if not None, sort on values in specified index level(s)
         ascending : boolean, default True
             Sort ascending vs. descending
+        inplace : bool
+            if True, perform operation in-place
+        kind : {`quicksort`, `mergesort`, `heapsort`}
+             Choice of sorting algorithm. See also ndarray.np.sort for more information.
+             `mergesort` is the only stable algorithm. For DataFrames, this option is
+             only applied when sorting on a single column or label.
+        na_position : {'first', 'last'}
+             `first` puts NaNs at the beginning, `last` puts NaNs at the end
+        sort_remaining : bool
+            if true and sorting by level and index is multilevel, sort by other levels
+            too (in order) after sorting by specified level
 
         Returns
         -------
-        sorted_obj : type of caller
+        sorted_obj : %(klass)s
         """
+
+    @Appender(_shared_docs['sort_index'] % dict(axes="axes", klass="NDFrame"))
+    def sort_index(self, axis=0, level=None, ascending=True, inplace=False,
+                   kind='quicksort', na_position='last', sort_remaining=True):
         axis = self._get_axis_number(axis)
         axis_name = self._get_axis_name(axis)
         labels = self._get_axis(axis)
+
+        if level is not None:
+            raise NotImplementedError("level is not implemented")
+        if inplace:
+            raise NotImplementedError("inplace is not implemented")
 
         sort_index = labels.argsort()
         if not ascending:
@@ -2910,7 +2959,7 @@ class NDFrame(PandasObject):
               use the actual numerical values of the index
             * 'krogh', 'piecewise_polynomial', 'spline', and 'pchip' are all
               wrappers around the scipy interpolation methods of similar
-              names. These use the actual numerical values of the index. See 
+              names. These use the actual numerical values of the index. See
               the scipy documentation for more on their behavior:
               http://docs.scipy.org/doc/scipy/reference/interpolate.html#univariate-interpolation
               http://docs.scipy.org/doc/scipy/reference/tutorial/interpolate.html
