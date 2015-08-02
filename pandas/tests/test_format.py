@@ -1523,7 +1523,7 @@ class TestDataFrameFormatting(tm.TestCase):
 
     def test_to_string_float_formatting(self):
         self.reset_display_options()
-        fmt.set_option('display.precision', 6, 'display.column_space',
+        fmt.set_option('display.precision', 5, 'display.column_space',
                        12, 'display.notebook_repr_html', False)
 
         df = DataFrame({'x': [0, 0.25, 3456.000, 12e+45, 1.64e+6,
@@ -1554,7 +1554,7 @@ class TestDataFrameFormatting(tm.TestCase):
         self.assertEqual(df_s, expected)
 
         self.reset_display_options()
-        self.assertEqual(get_option("display.precision"), 7)
+        self.assertEqual(get_option("display.precision"), 6)
 
         df = DataFrame({'x': [1e9, 0.2512]})
         df_s = df.to_string()
@@ -3055,7 +3055,7 @@ class TestFloatArrayFormatter(tm.TestCase):
         # Issue #9764
 
         # In case default display precision changes:
-        with pd.option_context('display.precision', 7):
+        with pd.option_context('display.precision', 6):
             # DataFrame example from issue #9764
             d=pd.DataFrame({'col1':[9.999e-8, 1e-7, 1.0001e-7, 2e-7, 4.999e-7, 5e-7, 5.0001e-7, 6e-7, 9.999e-7, 1e-6, 1.0001e-6, 2e-6, 4.999e-6, 5e-6, 5.0001e-6, 6e-6]})
 
@@ -3069,6 +3069,17 @@ class TestFloatArrayFormatter(tm.TestCase):
 
             for (start, stop), v in expected_output.items():
                 self.assertEqual(str(d[start:stop]), v)
+
+    def test_too_long(self):
+        # GH 10451
+        with pd.option_context('display.precision', 4):
+            # need both a number > 1e8 and something that normally formats to having length > display.precision + 6
+            df = pd.DataFrame(dict(x=[12345.6789]))
+            self.assertEqual(str(df), '            x\n0  12345.6789')
+            df = pd.DataFrame(dict(x=[2e8]))
+            self.assertEqual(str(df), '           x\n0  200000000')
+            df = pd.DataFrame(dict(x=[12345.6789, 2e8]))
+            self.assertEqual(str(df), '            x\n0  1.2346e+04\n1  2.0000e+08')
 
 
 class TestRepr_timedelta64(tm.TestCase):

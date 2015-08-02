@@ -236,7 +236,7 @@ def mpl_style_cb(key):
     return val
 
 with cf.config_prefix('display'):
-    cf.register_option('precision', 7, pc_precision_doc, validator=is_int)
+    cf.register_option('precision', 6, pc_precision_doc, validator=is_int)
     cf.register_option('float_format', None, float_format_doc)
     cf.register_option('column_space', 12, validator=is_int)
     cf.register_option('max_info_rows', 1690785, pc_max_info_rows_doc,
