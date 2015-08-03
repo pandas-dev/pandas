@@ -352,13 +352,11 @@ objects of the same length:
 Trying to compare ``Index`` or ``Series`` objects of different lengths will
 raise a ValueError:
 
-.. code-block:: python
+.. ipython:: python
+    :okexcept:
 
-    In [55]: pd.Series(['foo', 'bar', 'baz']) == pd.Series(['foo', 'bar'])
-    ValueError: Series lengths must match to compare
-
-    In [56]: pd.Series(['foo', 'bar', 'baz']) == pd.Series(['foo'])
-    ValueError: Series lengths must match to compare
+    pd.Series(['foo', 'bar', 'baz']) == pd.Series(['foo', 'bar'])
+    pd.Series(['foo', 'bar', 'baz']) == pd.Series(['foo'])
 
 Note that this is different from the numpy behavior where a comparison can
 be broadcast:
