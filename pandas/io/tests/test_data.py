@@ -291,13 +291,11 @@ class TestYahooOptions(tm.TestCase):
 
         # aapl has monthlies
         cls.aapl = web.Options('aapl', 'yahoo')
-        today = datetime.today()
-        cls.year = today.year
-        cls.month = today.month + 1
-        if cls.month > 12:
-            cls.year = cls.year + 1
-            cls.month = 1
-        cls.expiry = datetime(cls.year, cls.month, 1)
+        d = (Timestamp.today() + pd.offsets.MonthBegin(1)).normalize()
+        cls.year = d.year
+        cls.month = d.month
+        cls.expiry = d
+        cls.expiry2 = d + pd.offsets.MonthBegin(1)
         cls.dirpath = tm.get_data_path()
         cls.html1 = os.path.join(cls.dirpath, 'yahoo_options1.html')
         cls.html2 = os.path.join(cls.dirpath, 'yahoo_options2.html')
@@ -325,7 +323,7 @@ class TestYahooOptions(tm.TestCase):
     def test_get_near_stock_price(self):
         try:
             options = self.aapl.get_near_stock_price(call=True, put=True,
-                                                     expiry=self.expiry)
+                                                     expiry=[self.expiry,self.expiry2])
         except RemoteDataError as e:
             raise nose.SkipTest(e)
         self.assertTrue(len(options) > 1)
