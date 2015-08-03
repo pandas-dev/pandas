@@ -3922,10 +3922,13 @@ class DataFrame(NDFrame):
         if reduce:
 
             try:
-
                 # the is the fast-path
                 values = self.values
-                dummy = Series(NA, index=self._get_axis(axis),
+                # Create a dummy Series from an empty array
+                # Unlike filling with NA, this works for any dtype
+                index = self._get_axis(axis)
+                empty_arr = np.empty(len(index), dtype=values.dtype)
+                dummy = Series(empty_arr, index=self._get_axis(axis),
                                dtype=values.dtype)
 
                 labels = self._get_agg_axis(axis)

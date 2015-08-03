@@ -11255,6 +11255,25 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         res = s.apply(lambda x: Series({'min': min(x), 'max': max(x)}), 1)
         tm.assertIsInstance(res.index, MultiIndex)
 
+    def test_apply_dict(self):
+
+        # GH 8735
+        A = DataFrame([['foo', 'bar'], ['spam', 'eggs']])
+        A_dicts = pd.Series([dict([(0, 'foo'), (1, 'spam')]),
+                             dict([(0, 'bar'), (1, 'eggs')])])
+        B = DataFrame([[0, 1], [2, 3]])
+        B_dicts = pd.Series([dict([(0, 0), (1, 2)]), dict([(0, 1), (1, 3)])])
+        fn = lambda x: x.to_dict()
+
+        for df, dicts in [(A, A_dicts), (B, B_dicts)]:
+            reduce_true = df.apply(fn, reduce=True)
+            reduce_false = df.apply(fn, reduce=False)
+            reduce_none = df.apply(fn, reduce=None)
+
+            assert_series_equal(reduce_true, dicts)
+            assert_frame_equal(reduce_false, df)
+            assert_series_equal(reduce_none, dicts)
+
     def test_applymap(self):
         applied = self.frame.applymap(lambda x: x * 2)
         assert_frame_equal(applied, self.frame * 2)
