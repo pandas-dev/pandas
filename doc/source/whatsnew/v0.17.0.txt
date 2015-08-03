@@ -606,3 +606,4 @@ Bug Fixes
 - Bug in vectorised setting of timestamp columns with python ``datetime.date`` and numpy ``datetime64`` (:issue:`10408`, :issue:`10412`)
 
 - Bug in ``pd.DataFrame`` when constructing an empty DataFrame with a string dtype (:issue:`9428`)
+- Bug in ``read_stata`` when reading a file with a different order set in ``columns`` (:issue:`10739`)
