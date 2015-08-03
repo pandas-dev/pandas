@@ -208,21 +208,13 @@ Pass ``errors='coerce'`` to convert invalid data to ``NaT`` (not a time):
    :okexcept:
 
    # this is the default, raise when unparseable
-   to_datetime(['2009-07-31', 'asd'], errors='raise')
+   to_datetime(['2009/07/31', 'asd'], errors='raise')
 
    # return the original input when unparseable
-   to_datetime(['2009-07-31', 'asd'], errors='ignore')
+   to_datetime(['2009/07/31', 'asd'], errors='ignore')
 
    # return NaT for input when unparseable
-   to_datetime(['2009-07-31', 'asd'], errors='coerce')
-
-
-Take care, ``to_datetime`` may not act as you expect on mixed data:
-
-.. ipython:: python
-   :okexcept:
-
-   to_datetime([1, '1'])
+   to_datetime(['2009/07/31', 'asd'], errors='coerce')
 
 Epoch Timestamps
 ~~~~~~~~~~~~~~~~
