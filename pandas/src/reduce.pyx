@@ -133,7 +133,7 @@ cdef class Reducer:
                 else:
                     res = self.f(chunk)
 
-                if hasattr(res,'values'):
+                if hasattr(res,'values') and isinstance(res.values, np.ndarray):
                     res = res.values
                 if i == 0:
                     result = _get_result_array(res,
