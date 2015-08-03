@@ -235,6 +235,50 @@ class TestUnique(tm.TestCase):
 
         tm.assert_almost_equal(result, expected)
 
+    def test_datetime64_dtype_array_returned(self):
+        # GH 9431
+        expected = np.array(['2015-01-03T00:00:00.000000000+0000',
+                             '2015-01-01T00:00:00.000000000+0000'], dtype='M8[ns]')
+
+        dt_index = pd.to_datetime(['2015-01-03T00:00:00.000000000+0000',
+                                   '2015-01-01T00:00:00.000000000+0000',
+                                   '2015-01-01T00:00:00.000000000+0000'])
+        result = algos.unique(dt_index)
+        tm.assert_numpy_array_equal(result, expected)
+        self.assertEqual(result.dtype, expected.dtype)
+
+        s = pd.Series(dt_index)
+        result = algos.unique(s)
+        tm.assert_numpy_array_equal(result, expected)
+        self.assertEqual(result.dtype, expected.dtype)
+
+        arr = s.values
+        result = algos.unique(arr)
+        tm.assert_numpy_array_equal(result, expected)
+        self.assertEqual(result.dtype, expected.dtype)
+
+
+    def test_timedelta64_dtype_array_returned(self):
+        # GH 9431
+        expected = np.array([31200, 45678, 10000], dtype='m8[ns]')
+
+        td_index = pd.to_timedelta([31200, 45678, 31200, 10000, 45678])
+        result = algos.unique(td_index)
+        tm.assert_numpy_array_equal(result, expected)
+        self.assertEqual(result.dtype, expected.dtype)
+
+        s = pd.Series(td_index)
+        result = algos.unique(s)
+        tm.assert_numpy_array_equal(result, expected)
+        self.assertEqual(result.dtype, expected.dtype)
+
+        arr = s.values
+        result = algos.unique(arr)
+        tm.assert_numpy_array_equal(result, expected)
+        self.assertEqual(result.dtype, expected.dtype)
+
+
+
 class TestValueCounts(tm.TestCase):
     _multiprocess_can_split_ = True
 
