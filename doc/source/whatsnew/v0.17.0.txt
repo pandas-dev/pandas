@@ -218,6 +218,8 @@ Other enhancements
 
 - Support pickling of ``Period`` objects (:issue:`10439`)
 
+- ``DataFrame.apply`` will return a Series of dicts if the passed function returns a dict and ``reduce=True`` (:issue:`8735`).
+
 .. _whatsnew_0170.api:
 
 .. _whatsnew_0170.api_breaking:
