@@ -3610,7 +3610,7 @@ below and the SQLAlchemy `documentation <http://docs.sqlalchemy.org/en/rel_0_9/c
 
 If you want to manage your own connections you can pass one of those instead:
 
-.. ipython:: python
+.. code-block:: python
 
    with engine.connect() as conn, conn.begin():
        data = pd.read_sql_table('data', conn)
