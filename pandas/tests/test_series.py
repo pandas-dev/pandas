@@ -3286,14 +3286,37 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
             s + op(5)
             op(5) + s
 
-        # invalid DateOffsets
-        for do in [ 'Week', 'BDay', 'BQuarterEnd', 'BMonthEnd', 'BYearEnd',
-                    'BYearBegin','BQuarterBegin', 'BMonthBegin',
-                    'MonthEnd','YearBegin', 'YearEnd',
-                    'MonthBegin', 'QuarterBegin' ]:
+
+    def test_timedelta64_operations_with_DateOffset(self):
+        # GH 10699
+        td = Series([timedelta(minutes=5, seconds=3)] * 3)
+        result = td + pd.offsets.Minute(1)
+        expected = Series([timedelta(minutes=6, seconds=3)] * 3)
+        assert_series_equal(result, expected)
+
+        result = td - pd.offsets.Minute(1)
+        expected = Series([timedelta(minutes=4, seconds=3)] * 3)
+        assert_series_equal(result, expected)
+
+        result = td + Series([pd.offsets.Minute(1), pd.offsets.Second(3),
+                              pd.offsets.Hour(2)])
+        expected = Series([timedelta(minutes=6, seconds=3),
+                           timedelta(minutes=5, seconds=6),
+                           timedelta(hours=2, minutes=5, seconds=3)])
+        assert_series_equal(result, expected)
+
+        result = td + pd.offsets.Minute(1) + pd.offsets.Second(12)
+        expected = Series([timedelta(minutes=6, seconds=15)] * 3)
+        assert_series_equal(result, expected)
+
+        # valid DateOffsets
+        for do in [ 'Hour', 'Minute', 'Second', 'Day', 'Micro',
+                    'Milli', 'Nano' ]:
             op = getattr(pd.offsets,do)
-            self.assertRaises(TypeError, s.__add__, op(5))
-            self.assertRaises(TypeError, s.__radd__, op(5))
+            td + op(5)
+            op(5) + td
+            td - op(5)
+            op(5) - td
 
     def test_timedelta64_operations_with_timedeltas(self):
 

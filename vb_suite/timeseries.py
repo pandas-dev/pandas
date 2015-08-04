@@ -405,3 +405,33 @@ timeseries_iter_periodindex = Benchmark('iter_n(idx2)', setup)
 timeseries_iter_datetimeindex_preexit = Benchmark('iter_n(idx1, M)', setup)
 
 timeseries_iter_periodindex_preexit = Benchmark('iter_n(idx2, M)', setup)
+
+
+#----------------------------------------------------------------------
+# apply an Offset to a  DatetimeIndex
+setup = common_setup + """
+N = 100000
+idx1 = date_range(start='20140101', freq='T', periods=N)
+delta_offset = Day()
+fast_offset = DateOffset(months=2, days=2)
+slow_offset = offsets.BusinessDay()
+
+"""
+
+timeseries_datetimeindex_offset_delta = Benchmark('idx1 + delta_offset', setup)
+timeseries_datetimeindex_offset_fast = Benchmark('idx1 + fast_offset', setup)
+timeseries_datetimeindex_offset_slow = Benchmark('idx1 + slow_offset', setup)
+
+# apply an Offset to a Series containing datetime64 values
+setup = common_setup + """
+N = 100000
+s = Series(date_range(start='20140101', freq='T', periods=N))
+delta_offset = Day()
+fast_offset = DateOffset(months=2, days=2)
+slow_offset = offsets.BusinessDay()
+
+"""
+
+timeseries_series_offset_delta = Benchmark('s + delta_offset', setup)
+timeseries_series_offset_fast = Benchmark('s + fast_offset', setup)
+timeseries_series_offset_slow = Benchmark('s + slow_offset', setup)
