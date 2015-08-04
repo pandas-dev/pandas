@@ -647,6 +647,46 @@ Another example is parameterizing ``YearEnd`` with the specific ending month:
    d + YearEnd()
    d + YearEnd(month=6)
 
+
+.. _timeseries.offsetseries:
+
+Using offsets with ``Series`` / ``DatetimeIndex``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Offsets can be used with either a ``Series`` or ``DatetimeIndex`` to
+apply the offset to each element.
+
+.. ipython:: python
+
+   rng = date_range('2012-01-01', '2012-01-03')
+   s = Series(rng)
+   rng
+   rng + DateOffset(months=2)
+   s + DateOffset(months=2)
+   s - DateOffset(months=2)
+   
+If the offset class maps directly to a ``Timedelta`` (``Day``, ``Hour``,
+``Minute``, ``Second``, ``Micro``, ``Milli``, ``Nano``) it can be
+used exactly like a ``Timedelta`` - see the
+:ref:`Timedelta section<timedeltas.operations>` for more examples.
+
+.. ipython:: python
+
+   s - Day(2)
+   td = s - Series(date_range('2011-12-29', '2011-12-31'))
+   td
+   td + Minute(15)
+
+Note that some offsets (such as ``BQuarterEnd``) do not have a
+vectorized implementation.  They can still be used but may 
+calculate signficantly slower and will raise a ``PerformanceWarning``
+
+.. ipython:: python
+   :okwarning:
+
+   rng + BQuarterEnd()
+
+
 .. _timeseries.alias:
 
 Custom Business Days (Experimental)

@@ -1444,6 +1444,7 @@ Conversion
 
    DatetimeIndex.to_datetime
    DatetimeIndex.to_period
+   DatetimeIndex.to_perioddelta
    DatetimeIndex.to_pydatetime
    DatetimeIndex.to_series
 
