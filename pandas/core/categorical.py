@@ -1027,6 +1027,7 @@ class Categorical(PandasObject):
         """
         import pandas.hashtable as htable
         from pandas.core.series import Series
+        from pandas.core.index import CategoricalIndex
 
         cat = self.dropna() if dropna else self
         keys, counts = htable.value_count_int64(com._ensure_int64(cat._codes))
@@ -1036,9 +1037,11 @@ class Categorical(PandasObject):
         if not dropna and -1 in keys:
             ix = np.append(ix, -1)
         result = result.reindex(ix, fill_value=0)
-        result.index = (np.append(cat.categories, np.nan)
+        index = (np.append(cat.categories, np.nan)
             if not dropna and -1 in keys
             else cat.categories)
+
+        result.index = CategoricalIndex(index, self.categories, self.ordered)
 
         return result
 

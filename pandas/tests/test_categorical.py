@@ -458,7 +458,8 @@ class TestCategorical(tm.TestCase):
         desc = cat.describe()
         expected = DataFrame.from_dict(dict(counts=[1, 2, 1],
                                             freqs=[1/4., 2/4., 1/4.],
-                                            categories=[1,2,np.nan]
+                                            categories=Categorical([1,2,np.nan],
+                                                                   [1, 2])
                                             )
                                             ).set_index('categories')
         tm.assert_frame_equal(desc, expected)
