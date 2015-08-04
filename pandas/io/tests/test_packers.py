@@ -532,14 +532,30 @@ class TestMsgpack():
     http://stackoverflow.com/questions/6689537/nose-test-generators-inside-class
     """
     def setUp(self):
-        from pandas.io.tests.generate_legacy_storage_files import create_msgpack_data
+        from pandas.io.tests.generate_legacy_storage_files import (
+            create_msgpack_data, create_data)
         self.data = create_msgpack_data()
+        self.all_data = create_data()
         self.path = u('__%s__.msgpack' % tm.rands(10))
+        self.minimum_structure = {'series': ['float', 'int', 'mixed', 'ts', 'mi', 'dup'],
+                                  'frame': ['float', 'int', 'mixed', 'mi'],
+                                  'panel': ['float'],
+                                  'index': ['int', 'date', 'period'],
+                                  'mi': ['reg2']}
+
+    def check_min_structure(self, data):
+        for typ, v in self.minimum_structure.items():
+            assert typ in data, '"{0}" not found in unpacked data'.format(typ)
+            for kind in v:
+                assert kind in data[typ], '"{0}" not found in data["{1}"]'.format(kind, typ)
 
     def compare(self, vf):
         data = read_msgpack(vf)
+        self.check_min_structure(data)
         for typ, dv in data.items():
+            assert typ in self.all_data, 'unpacked data contains extra key "{0}"'.format(typ)
             for dt, result in dv.items():
+                assert dt in self.all_data[typ], 'data["{0}"] contains extra key "{1}"'.format(typ, dt)
                 try:
                     expected = self.data[typ][dt]
                 except KeyError:
