@@ -1649,6 +1649,7 @@ values, the resulting grid has two columns and two rows. A histogram is
 displayed for each cell of the grid.
 
 .. ipython:: python
+   :okwarning:
 
    plt.figure()
 
@@ -1680,6 +1681,7 @@ Example below is the same as previous except the plot is set to kernel density
 estimation. A ``seaborn`` example is included beneath.
 
 .. ipython:: python
+   :okwarning:
 
    plt.figure()
 
@@ -1706,6 +1708,7 @@ The plot below shows that it is possible to have two or more plots for the same
 data displayed on the same Trellis grid cell.
 
 .. ipython:: python
+   :okwarning:
 
    plt.figure()
 
@@ -1745,6 +1748,7 @@ Below is a similar plot but with 2D kernel density estimation plot superimposed,
 followed by a ``seaborn`` equivalent:
 
 .. ipython:: python
+   :okwarning:
 
    plt.figure()
 
@@ -1774,6 +1778,7 @@ only uses 'sex' attribute. If the second grouping attribute is not specified,
 the plots will be arranged in a column.
 
 .. ipython:: python
+   :okwarning:
 
    plt.figure()
 
@@ -1792,6 +1797,7 @@ the plots will be arranged in a column.
 If the first grouping attribute is not specified the plots will be arranged in a row.
 
 .. ipython:: python
+   :okwarning:
 
    plt.figure()
 
@@ -1816,6 +1822,7 @@ scale objects to specify these mappings. The list of scale classes is
 given below with initialization arguments for quick reference.
 
 .. ipython:: python
+   :okwarning:
 
    plt.figure()
 
