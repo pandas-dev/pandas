@@ -3127,6 +3127,79 @@ class DataFrame(NDFrame):
         else:
             return self._constructor(new_data).__finalize__(self)
 
+    def _nsorted(self, columns, n, method, take_last):
+        if not com.is_list_like(columns):
+            columns = [columns]
+        columns = list(columns)
+        ser = getattr(self[columns[0]], method)(n, take_last=take_last)
+        ascending = dict(nlargest=False, nsmallest=True)[method]
+        return self.loc[ser.index].sort(columns, ascending=ascending,
+                                        kind='mergesort')
+
+    def nlargest(self, n, columns, take_last=False):
+        """Get the rows of a DataFrame sorted by the `n` largest
+        values of `columns`.
+
+        .. versionadded:: 0.17.0
+
+        Parameters
+        ----------
+        n : int
+            Number of items to retrieve
+        columns : list or str
+            Column name or names to order by
+        take_last : bool, optional
+            Where there are duplicate values, take the last duplicate
+
+        Returns
+        -------
+        DataFrame
+
+        Examples
+        --------
+        >>> df = DataFrame({'a': [1, 10, 8, 11, -1],
+        ...                 'b': list('abdce'),
+        ...                 'c': [1.0, 2.0, np.nan, 3.0, 4.0]})
+        >>> df.nlargest(3, 'a')
+            a  b   c
+        3  11  c   3
+        1  10  b   2
+        2   8  d NaN
+        """
+        return self._nsorted(columns, n, 'nlargest', take_last)
+
+    def nsmallest(self, n, columns, take_last=False):
+        """Get the rows of a DataFrame sorted by the `n` smallest
+        values of `columns`.
+
+        .. versionadded:: 0.17.0
+
+        Parameters
+        ----------
+        n : int
+            Number of items to retrieve
+        columns : list or str
+            Column name or names to order by
+        take_last : bool, optional
+            Where there are duplicate values, take the last duplicate
+
+        Returns
+        -------
+        DataFrame
+
+        Examples
+        --------
+        >>> df = DataFrame({'a': [1, 10, 8, 11, -1],
+        ...                 'b': list('abdce'),
+        ...                 'c': [1.0, 2.0, np.nan, 3.0, 4.0]})
+        >>> df.nsmallest(3, 'a')
+           a  b   c
+        4 -1  e   4
+        0  1  a   1
+        2  8  d NaN
+        """
+        return self._nsorted(columns, n, 'nsmallest', take_last)
+
     def swaplevel(self, i, j, axis=0):
         """
         Swap levels i and j in a MultiIndex on a particular axis
