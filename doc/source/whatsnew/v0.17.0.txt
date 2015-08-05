@@ -613,3 +613,4 @@ Bug Fixes
 
 - Bug in ``pd.DataFrame`` when constructing an empty DataFrame with a string dtype (:issue:`9428`)
 - Bug in ``read_stata`` when reading a file with a different order set in ``columns`` (:issue:`10739`)
+- Bug in ``pd.unique`` for arrays with the ``datetime64`` or ``timedelta64`` dtype that meant an array with object dtype was returned instead the original dtype (:issue: `9431`)
