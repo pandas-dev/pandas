@@ -2745,7 +2745,7 @@ class Index(IndexOpsMixin, PandasObject):
                 if reversed:
                     values, other = other, values
 
-                return self._shallow_copy(op(values, other))
+                return Index(op(values, other), **self._get_attributes_dict())
 
             return _evaluate_numeric_binop
 
