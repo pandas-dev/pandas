@@ -316,6 +316,13 @@ Some other important things to know about the docs:
   output saved) during the doc build. This way, they will always be up to date,
   but it makes the doc building a bit more complex.
 
+- The utility script ``scripts/api_rst_coverage.py`` can be used to compare
+  the list of methods documented in ``doc/source/api.rst`` (which is used to generate
+  the `API Reference <http://pandas.pydata.org/pandas-docs/version/0.16.0/api.html>`_ page)
+  and the actual methods of the classes ``Series``, ``DataFrame``, ``Panel``, and ``Panel4D``.
+  It will identify methods documented in in ``doc/source/api.rst`` that are not actually
+  class methods, and class methods that are not documented in ``doc/source/api.rst``.
+
 
 How to build the pandas documentation
 -------------------------------------
