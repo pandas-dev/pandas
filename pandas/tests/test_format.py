@@ -632,6 +632,10 @@ class TestDataFrameFormatting(tm.TestCase):
 </table>"""
         self.assertEqual(result, expected)
 
+        df.index = Index(df.index.values, name='idx')
+        result = df.to_html(index=False)
+        self.assertEqual(result, expected)
+
     def test_to_html_multiindex_sparsify_false_multi_sparse(self):
         with option_context('display.multi_sparse', False):
             index = MultiIndex.from_arrays([[0, 0, 1, 1], [0, 1, 0, 1]],
@@ -1922,15 +1926,195 @@ c  10  11  12  13  14\
                            'C': ['one', 'two', np.NaN]},
                           columns=['A', 'B', 'C'],
                           index=index)
+        expected_with_index = ('<table border="1" class="dataframe">\n'
+                               '  <thead>\n'
+                               '    <tr style="text-align: right;">\n'
+                               '      <th></th>\n'
+                               '      <th>A</th>\n'
+                               '      <th>B</th>\n'
+                               '      <th>C</th>\n'
+                               '    </tr>\n'
+                               '  </thead>\n'
+                               '  <tbody>\n'
+                               '    <tr>\n'
+                               '      <th>foo</th>\n'
+                               '      <td>1</td>\n'
+                               '      <td>1.2</td>\n'
+                               '      <td>one</td>\n'
+                               '    </tr>\n'
+                               '    <tr>\n'
+                               '      <th>bar</th>\n'
+                               '      <td>2</td>\n'
+                               '      <td>3.4</td>\n'
+                               '      <td>two</td>\n'
+                               '    </tr>\n'
+                               '    <tr>\n'
+                               '      <th>baz</th>\n'
+                               '      <td>3</td>\n'
+                               '      <td>5.6</td>\n'
+                               '      <td>NaN</td>\n'
+                               '    </tr>\n'
+                               '  </tbody>\n'
+                               '</table>')
+        self.assertEqual(df.to_html(), expected_with_index)
+
+        expected_without_index = ('<table border="1" class="dataframe">\n'
+                                  '  <thead>\n'
+                                  '    <tr style="text-align: right;">\n'
+                                  '      <th>A</th>\n'
+                                  '      <th>B</th>\n'
+                                  '      <th>C</th>\n'
+                                  '    </tr>\n'
+                                  '  </thead>\n'
+                                  '  <tbody>\n'
+                                  '    <tr>\n'
+                                  '      <td>1</td>\n'
+                                  '      <td>1.2</td>\n'
+                                  '      <td>one</td>\n'
+                                  '    </tr>\n'
+                                  '    <tr>\n'
+                                  '      <td>2</td>\n'
+                                  '      <td>3.4</td>\n'
+                                  '      <td>two</td>\n'
+                                  '    </tr>\n'
+                                  '    <tr>\n'
+                                  '      <td>3</td>\n'
+                                  '      <td>5.6</td>\n'
+                                  '      <td>NaN</td>\n'
+                                  '    </tr>\n'
+                                  '  </tbody>\n'
+                                  '</table>')
         result = df.to_html(index=False)
         for i in index:
             self.assertNotIn(i, result)
+        self.assertEqual(result, expected_without_index)
+        df.index = Index(['foo', 'bar', 'baz'], name='idx')
+        expected_with_index = ('<table border="1" class="dataframe">\n'
+                               '  <thead>\n'
+                               '    <tr style="text-align: right;">\n'
+                               '      <th></th>\n'
+                               '      <th>A</th>\n'
+                               '      <th>B</th>\n'
+                               '      <th>C</th>\n'
+                               '    </tr>\n'
+                               '    <tr>\n'
+                               '      <th>idx</th>\n'
+                               '      <th></th>\n'
+                               '      <th></th>\n'
+                               '      <th></th>\n'
+                               '    </tr>\n'
+                               '  </thead>\n'
+                               '  <tbody>\n'
+                               '    <tr>\n'
+                               '      <th>foo</th>\n'
+                               '      <td>1</td>\n'
+                               '      <td>1.2</td>\n'
+                               '      <td>one</td>\n'
+                               '    </tr>\n'
+                               '    <tr>\n'
+                               '      <th>bar</th>\n'
+                               '      <td>2</td>\n'
+                               '      <td>3.4</td>\n'
+                               '      <td>two</td>\n'
+                               '    </tr>\n'
+                               '    <tr>\n'
+                               '      <th>baz</th>\n'
+                               '      <td>3</td>\n'
+                               '      <td>5.6</td>\n'
+                               '      <td>NaN</td>\n'
+                               '    </tr>\n'
+                               '  </tbody>\n'
+                               '</table>')
+        self.assertEqual(df.to_html(), expected_with_index)
+        self.assertEqual(df.to_html(index=False), expected_without_index)
 
         tuples = [('foo', 'car'), ('foo', 'bike'), ('bar', 'car')]
         df.index = MultiIndex.from_tuples(tuples)
+
+        expected_with_index = ('<table border="1" class="dataframe">\n'
+                               '  <thead>\n'
+                               '    <tr style="text-align: right;">\n'
+                               '      <th></th>\n'
+                               '      <th></th>\n'
+                               '      <th>A</th>\n'
+                               '      <th>B</th>\n'
+                               '      <th>C</th>\n'
+                               '    </tr>\n'
+                               '  </thead>\n'
+                               '  <tbody>\n'
+                               '    <tr>\n'
+                               '      <th rowspan="2" valign="top">foo</th>\n'
+                               '      <th>car</th>\n'
+                               '      <td>1</td>\n'
+                               '      <td>1.2</td>\n'
+                               '      <td>one</td>\n'
+                               '    </tr>\n'
+                               '    <tr>\n'
+                               '      <th>bike</th>\n'
+                               '      <td>2</td>\n'
+                               '      <td>3.4</td>\n'
+                               '      <td>two</td>\n'
+                               '    </tr>\n'
+                               '    <tr>\n'
+                               '      <th>bar</th>\n'
+                               '      <th>car</th>\n'
+                               '      <td>3</td>\n'
+                               '      <td>5.6</td>\n'
+                               '      <td>NaN</td>\n'
+                               '    </tr>\n'
+                               '  </tbody>\n'
+                               '</table>')
+        self.assertEqual(df.to_html(), expected_with_index)
+
         result = df.to_html(index=False)
         for i in ['foo', 'bar', 'car', 'bike']:
             self.assertNotIn(i, result)
+        # must be the same result as normal index
+        self.assertEqual(result, expected_without_index)
+
+        df.index = MultiIndex.from_tuples(tuples, names=['idx1', 'idx2'])
+        expected_with_index = ('<table border="1" class="dataframe">\n'
+                               '  <thead>\n'
+                               '    <tr style="text-align: right;">\n'
+                               '      <th></th>\n'
+                               '      <th></th>\n'
+                               '      <th>A</th>\n'
+                               '      <th>B</th>\n'
+                               '      <th>C</th>\n'
+                               '    </tr>\n'
+                               '    <tr>\n'
+                               '      <th>idx1</th>\n'
+                               '      <th>idx2</th>\n'
+                               '      <th></th>\n'
+                               '      <th></th>\n'
+                               '      <th></th>\n'
+                               '    </tr>\n'
+                               '  </thead>\n'
+                               '  <tbody>\n'
+                               '    <tr>\n'
+                               '      <th rowspan="2" valign="top">foo</th>\n'
+                               '      <th>car</th>\n'
+                               '      <td>1</td>\n'
+                               '      <td>1.2</td>\n'
+                               '      <td>one</td>\n'
+                               '    </tr>\n'
+                               '    <tr>\n'
+                               '      <th>bike</th>\n'
+                               '      <td>2</td>\n'
+                               '      <td>3.4</td>\n'
+                               '      <td>two</td>\n'
+                               '    </tr>\n'
+                               '    <tr>\n'
+                               '      <th>bar</th>\n'
+                               '      <th>car</th>\n'
+                               '      <td>3</td>\n'
+                               '      <td>5.6</td>\n'
+                               '      <td>NaN</td>\n'
+                               '    </tr>\n'
+                               '  </tbody>\n'
+                               '</table>')
+        self.assertEqual(df.to_html(), expected_with_index)
+        self.assertEqual(df.to_html(index=False), expected_without_index)
 
     def test_repr_html(self):
         self.frame._repr_html_()
