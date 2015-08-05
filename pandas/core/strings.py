@@ -193,7 +193,7 @@ def str_contains(arr, pat, case=True, flags=0, na=np.nan, regex=True):
 
     See Also
     --------
-    match : analagous, but stricter, relying on re.match instead of re.search
+    match : analogous, but stricter, relying on re.match instead of re.search
 
     """
     if regex:

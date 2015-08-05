@@ -14609,6 +14609,41 @@ starting,ending,measure
         self.assertEqual(df._metadata, unpickled._metadata)
         self.assertEqual(df.testattr, unpickled.testattr)
 
+    def test_nlargest(self):
+        # GH10393
+        from string import ascii_lowercase
+        df = pd.DataFrame({'a': np.random.permutation(10),
+                           'b': list(ascii_lowercase[:10])})
+        result = df.nlargest(5, 'a')
+        expected = df.sort('a', ascending=False).head(5)
+        tm.assert_frame_equal(result, expected)
+
+    def test_nlargest_multiple_columns(self):
+        from string import ascii_lowercase
+        df = pd.DataFrame({'a': np.random.permutation(10),
+                           'b': list(ascii_lowercase[:10]),
+                           'c': np.random.permutation(10).astype('float64')})
+        result = df.nlargest(5, ['a', 'b'])
+        expected = df.sort(['a', 'b'], ascending=False).head(5)
+        tm.assert_frame_equal(result, expected)
+
+    def test_nsmallest(self):
+        from string import ascii_lowercase
+        df = pd.DataFrame({'a': np.random.permutation(10),
+                           'b': list(ascii_lowercase[:10])})
+        result = df.nsmallest(5, 'a')
+        expected = df.sort('a').head(5)
+        tm.assert_frame_equal(result, expected)
+
+    def test_nsmallest_multiple_columns(self):
+        from string import ascii_lowercase
+        df = pd.DataFrame({'a': np.random.permutation(10),
+                           'b': list(ascii_lowercase[:10]),
+                           'c': np.random.permutation(10).astype('float64')})
+        result = df.nsmallest(5, ['a', 'c'])
+        expected = df.sort(['a', 'c']).head(5)
+        tm.assert_frame_equal(result, expected)
+
     def test_to_panel_expanddim(self):
         # GH 9762
 

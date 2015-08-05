@@ -1497,6 +1497,20 @@ faster than sorting the entire Series and calling ``head(n)`` on the result.
    s.nsmallest(3)
    s.nlargest(3)
 
+.. versionadded:: 0.17.0
+
+``DataFrame`` also has the ``nlargest`` and ``nsmallest`` methods.
+
+.. ipython:: python
+
+   df = DataFrame({'a': [-2, -1, 1, 10, 8, 11, -1],
+                   'b': list('abdceff'),
+                   'c': [1.0, 2.0, 4.0, 3.2, np.nan, 3.0, 4.0]})
+   df.nlargest(3, 'a')
+   df.nlargest(5, ['a', 'c'])
+   df.nsmallest(3, 'a')
+   df.nsmallest(5, ['a', 'c'])
+
 
 .. _basics.multi-index_sorting:
 
