@@ -3921,16 +3921,16 @@ class DataFrame(NDFrame):
         # e.g. if we want to apply to a SparseFrame, then can't directly reduce
         if reduce:
 
-            try:
-                # the is the fast-path
-                values = self.values
-                # Create a dummy Series from an empty array
-                # Unlike filling with NA, this works for any dtype
-                index = self._get_axis(axis)
-                empty_arr = np.empty(len(index), dtype=values.dtype)
-                dummy = Series(empty_arr, index=self._get_axis(axis),
-                               dtype=values.dtype)
+            # the is the fast-path
+            values = self.values
+            # Create a dummy Series from an empty array
+            # Unlike filling with NA, this works for any dtype
+            index = self._get_axis(axis)
+            empty_arr = np.empty(len(index), dtype=values.dtype)
+            dummy = Series(empty_arr, index=self._get_axis(axis),
+                           dtype=values.dtype)
 
+            try:
                 labels = self._get_agg_axis(axis)
                 result = lib.reduce(values, func, axis=axis, dummy=dummy,
                                     labels=labels)
