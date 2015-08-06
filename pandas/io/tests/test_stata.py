@@ -782,6 +782,14 @@ class TestStata(tm.TestCase):
                              columns=columns)
 
         tm.assert_frame_equal(expected, dropped)
+
+        # See PR 10757
+        columns = ['int_', 'long_', 'byte_']
+        expected = expected[columns]
+        reordered = read_stata(self.dta15_117, convert_dates=True,
+                               columns=columns)
+        tm.assert_frame_equal(expected, reordered)
+
         with tm.assertRaises(ValueError):
             columns = ['byte_', 'byte_']
             read_stata(self.dta15_117, convert_dates=True, columns=columns)
