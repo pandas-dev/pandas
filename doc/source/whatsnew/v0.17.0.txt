@@ -598,7 +598,7 @@ Bug Fixes
 - Bug in ``DataFrame.plot`` raises ``ValueError`` when color name is specified by multiple characters (:issue:`10387`)
 
 
-
+- Bug in ``read_stata`` when reading a file with a different order set in ``columns`` (:issue:`10757`)
 
 - Reading "famafrench" data via ``DataReader`` results in HTTP 404 error because of the website url is changed (:issue:`10591`).
 - Bug in ``read_msgpack`` where DataFrame to decode has duplicate column names (:issue:`9618`)
