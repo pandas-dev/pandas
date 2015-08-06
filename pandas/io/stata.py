@@ -1614,14 +1614,12 @@ class StataReader(StataParser):
             typlist = []
             fmtlist = []
             lbllist = []
-            matched = set()
-            for i, col in enumerate(data.columns):
-                if col in column_set:
-                    matched.update([col])
-                    dtyplist.append(self.dtyplist[i])
-                    typlist.append(self.typlist[i])
-                    fmtlist.append(self.fmtlist[i])
-                    lbllist.append(self.lbllist[i])
+            for col in columns:
+                i = data.columns.get_loc(col)
+                dtyplist.append(self.dtyplist[i])
+                typlist.append(self.typlist[i])
+                fmtlist.append(self.fmtlist[i])
+                lbllist.append(self.lbllist[i])
 
             self.dtyplist = dtyplist
             self.typlist = typlist
