@@ -2897,18 +2897,21 @@ class NDFrame(PandasObject):
                   'polynomial', 'spline' 'piecewise_polynomial', 'pchip'}
 
             * 'linear': ignore the index and treat the values as equally
-              spaced. default
+              spaced. This is the only method supported on MultiIndexes.
+              default
             * 'time': interpolation works on daily and higher resolution
               data to interpolate given length of interval
             * 'index', 'values': use the actual numerical values of the index
             * 'nearest', 'zero', 'slinear', 'quadratic', 'cubic',
               'barycentric', 'polynomial' is passed to
-              `scipy.interpolate.interp1d` with the order given both
+              `scipy.interpolate.interp1d` with the order given. Both
               'polynomial' and 'spline' requre that you also specify and order
-              (int) e.g. df.interpolate(method='polynomial', order=4)
+              (int) e.g. df.interpolate(method='polynomial', order=4). These
+              use the actual numerical values of the index
             * 'krogh', 'piecewise_polynomial', 'spline', and 'pchip' are all
               wrappers around the scipy interpolation methods of similar
-              names. See the scipy documentation for more on their behavior:
+              names. These use the actual numerical values of the index. See 
+              the scipy documentation for more on their behavior:
               http://docs.scipy.org/doc/scipy/reference/interpolate.html#univariate-interpolation
               http://docs.scipy.org/doc/scipy/reference/tutorial/interpolate.html
 
