@@ -132,6 +132,15 @@ class Base(object):
         self.assertTrue("'foo'" in str(idx))
         self.assertTrue(idx.__class__.__name__ in str(idx))
 
+    def test_dtype_str(self):
+        for idx in self.indices.values():
+            dtype = idx.dtype_str
+            self.assertIsInstance(dtype, compat.string_types)
+            if isinstance(idx, PeriodIndex):
+                self.assertEqual(dtype, 'period')
+            else:
+                self.assertEqual(dtype, str(idx.dtype))
+
     def test_repr_max_seq_item_setting(self):
         # GH10182
         idx = self.create_index()

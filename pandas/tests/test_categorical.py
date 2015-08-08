@@ -1736,6 +1736,582 @@ class TestCategoricalAsBlock(tm.TestCase):
                 "Categories (26, object): [a < b < c < d ... w < x < y < z]")
         self.assertEqual(exp,a.__unicode__())
 
+    def test_categorical_repr(self):
+        c = pd.Categorical([1, 2 ,3])
+        exp = """[1, 2, 3]
+Categories (3, int64): [1, 2, 3]"""
+        self.assertEqual(repr(c), exp)
+
+        c = pd.Categorical([1, 2 ,3, 1, 2 ,3], categories=[1, 2, 3])
+        exp = """[1, 2, 3, 1, 2, 3]
+Categories (3, int64): [1, 2, 3]"""
+        self.assertEqual(repr(c), exp)
+
+        c = pd.Categorical([1, 2, 3, 4, 5] * 10)
+        exp = """[1, 2, 3, 4, 5, ..., 1, 2, 3, 4, 5]
+Length: 50
+Categories (5, int64): [1, 2, 3, 4, 5]"""
+        self.assertEqual(repr(c), exp)
+
+        c = pd.Categorical(np.arange(20))
+        exp = """[0, 1, 2, 3, 4, ..., 15, 16, 17, 18, 19]
+Length: 20
+Categories (20, int64): [0, 1, 2, 3, ..., 16, 17, 18, 19]"""
+        self.assertEqual(repr(c), exp)
+
+    def test_categorical_repr_ordered(self):
+        c = pd.Categorical([1, 2 ,3], ordered=True)
+        exp = """[1, 2, 3]
+Categories (3, int64): [1 < 2 < 3]"""
+        self.assertEqual(repr(c), exp)
+
+        c = pd.Categorical([1, 2 ,3, 1, 2 ,3], categories=[1, 2, 3], ordered=True)
+        exp = """[1, 2, 3, 1, 2, 3]
+Categories (3, int64): [1 < 2 < 3]"""
+        self.assertEqual(repr(c), exp)
+
+        c = pd.Categorical([1, 2, 3, 4, 5] * 10, ordered=True)
+        exp = """[1, 2, 3, 4, 5, ..., 1, 2, 3, 4, 5]
+Length: 50
+Categories (5, int64): [1 < 2 < 3 < 4 < 5]"""
+        self.assertEqual(repr(c), exp)
+
+        c = pd.Categorical(np.arange(20), ordered=True)
+        exp = """[0, 1, 2, 3, 4, ..., 15, 16, 17, 18, 19]
+Length: 20
+Categories (20, int64): [0 < 1 < 2 < 3 ... 16 < 17 < 18 < 19]"""
+        self.assertEqual(repr(c), exp)
+
+    def test_categorical_repr_datetime(self):
+        idx = pd.date_range('2011-01-01 09:00', freq='H', periods=5)
+        c = pd.Categorical(idx)
+        exp = """[2011-01-01 09:00:00, 2011-01-01 10:00:00, 2011-01-01 11:00:00, 2011-01-01 12:00:00, 2011-01-01 13:00:00]
+Categories (5, datetime64[ns]): [2011-01-01 09:00:00, 2011-01-01 10:00:00, 2011-01-01 11:00:00,
+                                 2011-01-01 12:00:00, 2011-01-01 13:00:00]"""
+        self.assertEqual(repr(c), exp)
+
+        c = pd.Categorical(idx.append(idx), categories=idx)
+        exp = """[2011-01-01 09:00:00, 2011-01-01 10:00:00, 2011-01-01 11:00:00, 2011-01-01 12:00:00, 2011-01-01 13:00:00, 2011-01-01 09:00:00, 2011-01-01 10:00:00, 2011-01-01 11:00:00, 2011-01-01 12:00:00, 2011-01-01 13:00:00]
+Categories (5, datetime64[ns]): [2011-01-01 09:00:00, 2011-01-01 10:00:00, 2011-01-01 11:00:00,
+                                 2011-01-01 12:00:00, 2011-01-01 13:00:00]"""
+        self.assertEqual(repr(c), exp)
+
+        idx = pd.date_range('2011-01-01 09:00', freq='H', periods=5, tz='US/Eastern')
+        c = pd.Categorical(idx)
+        exp = """[2011-01-01 09:00:00-05:00, 2011-01-01 10:00:00-05:00, 2011-01-01 11:00:00-05:00, 2011-01-01 12:00:00-05:00, 2011-01-01 13:00:00-05:00]
+Categories (5, datetime64[ns]): [2011-01-01 09:00:00-05:00, 2011-01-01 10:00:00-05:00,
+                                 2011-01-01 11:00:00-05:00, 2011-01-01 12:00:00-05:00,
+                                 2011-01-01 13:00:00-05:00]"""
+        self.assertEqual(repr(c), exp)
+
+        c = pd.Categorical(idx.append(idx), categories=idx)
+        exp = """[2011-01-01 09:00:00-05:00, 2011-01-01 10:00:00-05:00, 2011-01-01 11:00:00-05:00, 2011-01-01 12:00:00-05:00, 2011-01-01 13:00:00-05:00, 2011-01-01 09:00:00-05:00, 2011-01-01 10:00:00-05:00, 2011-01-01 11:00:00-05:00, 2011-01-01 12:00:00-05:00, 2011-01-01 13:00:00-05:00]
+Categories (5, datetime64[ns]): [2011-01-01 09:00:00-05:00, 2011-01-01 10:00:00-05:00,
+                                 2011-01-01 11:00:00-05:00, 2011-01-01 12:00:00-05:00,
+                                 2011-01-01 13:00:00-05:00]"""
+        self.assertEqual(repr(c), exp)
+
+    def test_categorical_repr_datetime_ordered(self):
+        idx = pd.date_range('2011-01-01 09:00', freq='H', periods=5)
+        c = pd.Categorical(idx, ordered=True)
+        exp = """[2011-01-01 09:00:00, 2011-01-01 10:00:00, 2011-01-01 11:00:00, 2011-01-01 12:00:00, 2011-01-01 13:00:00]
+Categories (5, datetime64[ns]): [2011-01-01 09:00:00 < 2011-01-01 10:00:00 < 2011-01-01 11:00:00 <
+                                 2011-01-01 12:00:00 < 2011-01-01 13:00:00]"""
+        self.assertEqual(repr(c), exp)
+
+        c = pd.Categorical(idx.append(idx), categories=idx, ordered=True)
+        exp = """[2011-01-01 09:00:00, 2011-01-01 10:00:00, 2011-01-01 11:00:00, 2011-01-01 12:00:00, 2011-01-01 13:00:00, 2011-01-01 09:00:00, 2011-01-01 10:00:00, 2011-01-01 11:00:00, 2011-01-01 12:00:00, 2011-01-01 13:00:00]
+Categories (5, datetime64[ns]): [2011-01-01 09:00:00 < 2011-01-01 10:00:00 < 2011-01-01 11:00:00 <
+                                 2011-01-01 12:00:00 < 2011-01-01 13:00:00]"""
+        self.assertEqual(repr(c), exp)
+
+        idx = pd.date_range('2011-01-01 09:00', freq='H', periods=5, tz='US/Eastern')
+        c = pd.Categorical(idx, ordered=True)
+        exp = """[2011-01-01 09:00:00-05:00, 2011-01-01 10:00:00-05:00, 2011-01-01 11:00:00-05:00, 2011-01-01 12:00:00-05:00, 2011-01-01 13:00:00-05:00]
+Categories (5, datetime64[ns]): [2011-01-01 09:00:00-05:00 < 2011-01-01 10:00:00-05:00 <
+                                 2011-01-01 11:00:00-05:00 < 2011-01-01 12:00:00-05:00 <
+                                 2011-01-01 13:00:00-05:00]"""
+        self.assertEqual(repr(c), exp)
+
+        c = pd.Categorical(idx.append(idx), categories=idx, ordered=True)
+        exp = """[2011-01-01 09:00:00-05:00, 2011-01-01 10:00:00-05:00, 2011-01-01 11:00:00-05:00, 2011-01-01 12:00:00-05:00, 2011-01-01 13:00:00-05:00, 2011-01-01 09:00:00-05:00, 2011-01-01 10:00:00-05:00, 2011-01-01 11:00:00-05:00, 2011-01-01 12:00:00-05:00, 2011-01-01 13:00:00-05:00]
+Categories (5, datetime64[ns]): [2011-01-01 09:00:00-05:00 < 2011-01-01 10:00:00-05:00 <
+                                 2011-01-01 11:00:00-05:00 < 2011-01-01 12:00:00-05:00 <
+                                 2011-01-01 13:00:00-05:00]"""
+        self.assertEqual(repr(c), exp)
+
+    def test_categorical_repr_period(self):
+        idx = pd.period_range('2011-01-01 09:00', freq='H', periods=5)
+        c = pd.Categorical(idx)
+        exp = """[2011-01-01 09:00, 2011-01-01 10:00, 2011-01-01 11:00, 2011-01-01 12:00, 2011-01-01 13:00]
+Categories (5, period): [2011-01-01 09:00, 2011-01-01 10:00, 2011-01-01 11:00, 2011-01-01 12:00,
+                         2011-01-01 13:00]"""
+        self.assertEqual(repr(c), exp)
+
+        c = pd.Categorical(idx.append(idx), categories=idx)
+        exp = """[2011-01-01 09:00, 2011-01-01 10:00, 2011-01-01 11:00, 2011-01-01 12:00, 2011-01-01 13:00, 2011-01-01 09:00, 2011-01-01 10:00, 2011-01-01 11:00, 2011-01-01 12:00, 2011-01-01 13:00]
+Categories (5, period): [2011-01-01 09:00, 2011-01-01 10:00, 2011-01-01 11:00, 2011-01-01 12:00,
+                         2011-01-01 13:00]"""
+        self.assertEqual(repr(c), exp)
+
+        idx = pd.period_range('2011-01', freq='M', periods=5)
+        c = pd.Categorical(idx)
+        exp = """[2011-01, 2011-02, 2011-03, 2011-04, 2011-05]
+Categories (5, period): [2011-01, 2011-02, 2011-03, 2011-04, 2011-05]"""
+        self.assertEqual(repr(c), exp)
+
+        c = pd.Categorical(idx.append(idx), categories=idx)
+        exp = """[2011-01, 2011-02, 2011-03, 2011-04, 2011-05, 2011-01, 2011-02, 2011-03, 2011-04, 2011-05]
+Categories (5, period): [2011-01, 2011-02, 2011-03, 2011-04, 2011-05]"""
+        self.assertEqual(repr(c), exp)
+
+    def test_categorical_repr_period_ordered(self):
+        idx = pd.period_range('2011-01-01 09:00', freq='H', periods=5)
+        c = pd.Categorical(idx, ordered=True)
+        exp = """[2011-01-01 09:00, 2011-01-01 10:00, 2011-01-01 11:00, 2011-01-01 12:00, 2011-01-01 13:00]
+Categories (5, period): [2011-01-01 09:00 < 2011-01-01 10:00 < 2011-01-01 11:00 < 2011-01-01 12:00 <
+                         2011-01-01 13:00]"""
+        self.assertEqual(repr(c), exp)
+
+        c = pd.Categorical(idx.append(idx), categories=idx, ordered=True)
+        exp = """[2011-01-01 09:00, 2011-01-01 10:00, 2011-01-01 11:00, 2011-01-01 12:00, 2011-01-01 13:00, 2011-01-01 09:00, 2011-01-01 10:00, 2011-01-01 11:00, 2011-01-01 12:00, 2011-01-01 13:00]
+Categories (5, period): [2011-01-01 09:00 < 2011-01-01 10:00 < 2011-01-01 11:00 < 2011-01-01 12:00 <
+                         2011-01-01 13:00]"""
+        self.assertEqual(repr(c), exp)
+
+        idx = pd.period_range('2011-01', freq='M', periods=5)
+        c = pd.Categorical(idx, ordered=True)
+        exp = """[2011-01, 2011-02, 2011-03, 2011-04, 2011-05]
+Categories (5, period): [2011-01 < 2011-02 < 2011-03 < 2011-04 < 2011-05]"""
+        self.assertEqual(repr(c), exp)
+
+        c = pd.Categorical(idx.append(idx), categories=idx, ordered=True)
+        exp = """[2011-01, 2011-02, 2011-03, 2011-04, 2011-05, 2011-01, 2011-02, 2011-03, 2011-04, 2011-05]
+Categories (5, period): [2011-01 < 2011-02 < 2011-03 < 2011-04 < 2011-05]"""
+        self.assertEqual(repr(c), exp)
+
+    def test_categorical_repr_timedelta(self):
+        idx = pd.timedelta_range('1 days', periods=5)
+        c = pd.Categorical(idx)
+        exp = """[1 days, 2 days, 3 days, 4 days, 5 days]
+Categories (5, timedelta64[ns]): [1 days, 2 days, 3 days, 4 days, 5 days]"""
+        self.assertEqual(repr(c), exp)
+
+        c = pd.Categorical(idx.append(idx), categories=idx)
+        exp = """[1 days, 2 days, 3 days, 4 days, 5 days, 1 days, 2 days, 3 days, 4 days, 5 days]
+Categories (5, timedelta64[ns]): [1 days, 2 days, 3 days, 4 days, 5 days]"""
+        self.assertEqual(repr(c), exp)
+
+        idx = pd.timedelta_range('1 hours', periods=20)
+        c = pd.Categorical(idx)
+        exp = """[0 days 01:00:00, 1 days 01:00:00, 2 days 01:00:00, 3 days 01:00:00, 4 days 01:00:00, ..., 15 days 01:00:00, 16 days 01:00:00, 17 days 01:00:00, 18 days 01:00:00, 19 days 01:00:00]
+Length: 20
+Categories (20, timedelta64[ns]): [0 days 01:00:00, 1 days 01:00:00, 2 days 01:00:00,
+                                   3 days 01:00:00, ..., 16 days 01:00:00, 17 days 01:00:00,
+                                   18 days 01:00:00, 19 days 01:00:00]"""
+        self.assertEqual(repr(c), exp)
+
+        c = pd.Categorical(idx.append(idx), categories=idx)
+        exp = """[0 days 01:00:00, 1 days 01:00:00, 2 days 01:00:00, 3 days 01:00:00, 4 days 01:00:00, ..., 15 days 01:00:00, 16 days 01:00:00, 17 days 01:00:00, 18 days 01:00:00, 19 days 01:00:00]
+Length: 40
+Categories (20, timedelta64[ns]): [0 days 01:00:00, 1 days 01:00:00, 2 days 01:00:00,
+                                   3 days 01:00:00, ..., 16 days 01:00:00, 17 days 01:00:00,
+                                   18 days 01:00:00, 19 days 01:00:00]"""
+        self.assertEqual(repr(c), exp)
+
+    def test_categorical_repr_timedelta_ordered(self):
+        idx = pd.timedelta_range('1 days', periods=5)
+        c = pd.Categorical(idx, ordered=True)
+        exp = """[1 days, 2 days, 3 days, 4 days, 5 days]
+Categories (5, timedelta64[ns]): [1 days < 2 days < 3 days < 4 days < 5 days]"""
+        self.assertEqual(repr(c), exp)
+
+        c = pd.Categorical(idx.append(idx), categories=idx, ordered=True)
+        exp = """[1 days, 2 days, 3 days, 4 days, 5 days, 1 days, 2 days, 3 days, 4 days, 5 days]
+Categories (5, timedelta64[ns]): [1 days < 2 days < 3 days < 4 days < 5 days]"""
+        self.assertEqual(repr(c), exp)
+
+        idx = pd.timedelta_range('1 hours', periods=20)
+        c = pd.Categorical(idx, ordered=True)
+        exp = """[0 days 01:00:00, 1 days 01:00:00, 2 days 01:00:00, 3 days 01:00:00, 4 days 01:00:00, ..., 15 days 01:00:00, 16 days 01:00:00, 17 days 01:00:00, 18 days 01:00:00, 19 days 01:00:00]
+Length: 20
+Categories (20, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01:00:00 <
+                                   3 days 01:00:00 ... 16 days 01:00:00 < 17 days 01:00:00 <
+                                   18 days 01:00:00 < 19 days 01:00:00]"""
+        self.assertEqual(repr(c), exp)
+
+        c = pd.Categorical(idx.append(idx), categories=idx, ordered=True)
+        exp = """[0 days 01:00:00, 1 days 01:00:00, 2 days 01:00:00, 3 days 01:00:00, 4 days 01:00:00, ..., 15 days 01:00:00, 16 days 01:00:00, 17 days 01:00:00, 18 days 01:00:00, 19 days 01:00:00]
+Length: 40
+Categories (20, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01:00:00 <
+                                   3 days 01:00:00 ... 16 days 01:00:00 < 17 days 01:00:00 <
+                                   18 days 01:00:00 < 19 days 01:00:00]"""
+        self.assertEqual(repr(c), exp)
+
+    def test_categorical_series_repr(self):
+        s = pd.Series(pd.Categorical([1, 2 ,3]))
+        exp = """0    1
+1    2
+2    3
+dtype: category
+Categories (3, int64): [1, 2, 3]"""
+        self.assertEqual(repr(s), exp)
+
+        s = pd.Series(pd.Categorical(np.arange(10)))
+        exp = """0    0
+1    1
+2    2
+3    3
+4    4
+5    5
+6    6
+7    7
+8    8
+9    9
+dtype: category
+Categories (10, int64): [0, 1, 2, 3, ..., 6, 7, 8, 9]"""
+        self.assertEqual(repr(s), exp)
+
+    def test_categorical_series_repr_ordered(self):
+        s = pd.Series(pd.Categorical([1, 2 ,3], ordered=True))
+        exp = """0    1
+1    2
+2    3
+dtype: category
+Categories (3, int64): [1 < 2 < 3]"""
+        self.assertEqual(repr(s), exp)
+
+        s = pd.Series(pd.Categorical(np.arange(10), ordered=True))
+        exp = """0    0
+1    1
+2    2
+3    3
+4    4
+5    5
+6    6
+7    7
+8    8
+9    9
+dtype: category
+Categories (10, int64): [0 < 1 < 2 < 3 ... 6 < 7 < 8 < 9]"""
+        self.assertEqual(repr(s), exp)
+
+    def test_categorical_series_repr_datetime(self):
+        idx = pd.date_range('2011-01-01 09:00', freq='H', periods=5)
+        s = pd.Series(pd.Categorical(idx))
+        exp = """0   2011-01-01 09:00:00
+1   2011-01-01 10:00:00
+2   2011-01-01 11:00:00
+3   2011-01-01 12:00:00
+4   2011-01-01 13:00:00
+dtype: category
+Categories (5, datetime64[ns]): [2011-01-01 09:00:00, 2011-01-01 10:00:00, 2011-01-01 11:00:00,
+                                 2011-01-01 12:00:00, 2011-01-01 13:00:00]"""
+        self.assertEqual(repr(s), exp)
+
+        idx = pd.date_range('2011-01-01 09:00', freq='H', periods=5, tz='US/Eastern')
+        s = pd.Series(pd.Categorical(idx))
+        exp = """0   2011-01-01 09:00:00-05:00
+1   2011-01-01 10:00:00-05:00
+2   2011-01-01 11:00:00-05:00
+3   2011-01-01 12:00:00-05:00
+4   2011-01-01 13:00:00-05:00
+dtype: category
+Categories (5, datetime64[ns]): [2011-01-01 09:00:00-05:00, 2011-01-01 10:00:00-05:00,
+                                 2011-01-01 11:00:00-05:00, 2011-01-01 12:00:00-05:00,
+                                 2011-01-01 13:00:00-05:00]"""
+        self.assertEqual(repr(s), exp)
+
+    def test_categorical_series_repr_datetime_ordered(self):
+        idx = pd.date_range('2011-01-01 09:00', freq='H', periods=5)
+        s = pd.Series(pd.Categorical(idx, ordered=True))
+        exp = """0   2011-01-01 09:00:00
+1   2011-01-01 10:00:00
+2   2011-01-01 11:00:00
+3   2011-01-01 12:00:00
+4   2011-01-01 13:00:00
+dtype: category
+Categories (5, datetime64[ns]): [2011-01-01 09:00:00 < 2011-01-01 10:00:00 < 2011-01-01 11:00:00 <
+                                 2011-01-01 12:00:00 < 2011-01-01 13:00:00]"""
+        self.assertEqual(repr(s), exp)
+
+        idx = pd.date_range('2011-01-01 09:00', freq='H', periods=5, tz='US/Eastern')
+        s = pd.Series(pd.Categorical(idx, ordered=True))
+        exp = """0   2011-01-01 09:00:00-05:00
+1   2011-01-01 10:00:00-05:00
+2   2011-01-01 11:00:00-05:00
+3   2011-01-01 12:00:00-05:00
+4   2011-01-01 13:00:00-05:00
+dtype: category
+Categories (5, datetime64[ns]): [2011-01-01 09:00:00-05:00 < 2011-01-01 10:00:00-05:00 <
+                                 2011-01-01 11:00:00-05:00 < 2011-01-01 12:00:00-05:00 <
+                                 2011-01-01 13:00:00-05:00]"""
+        self.assertEqual(repr(s), exp)
+
+    def test_categorical_series_repr_period(self):
+        idx = pd.period_range('2011-01-01 09:00', freq='H', periods=5)
+        s = pd.Series(pd.Categorical(idx))
+        exp = """0   2011-01-01 09:00
+1   2011-01-01 10:00
+2   2011-01-01 11:00
+3   2011-01-01 12:00
+4   2011-01-01 13:00
+dtype: category
+Categories (5, period): [2011-01-01 09:00, 2011-01-01 10:00, 2011-01-01 11:00, 2011-01-01 12:00,
+                         2011-01-01 13:00]"""
+        self.assertEqual(repr(s), exp)
+
+        idx = pd.period_range('2011-01', freq='M', periods=5)
+        s = pd.Series(pd.Categorical(idx))
+        exp = """0   2011-01
+1   2011-02
+2   2011-03
+3   2011-04
+4   2011-05
+dtype: category
+Categories (5, period): [2011-01, 2011-02, 2011-03, 2011-04, 2011-05]"""
+        self.assertEqual(repr(s), exp)
+
+    def test_categorical_series_repr_period_ordered(self):
+        idx = pd.period_range('2011-01-01 09:00', freq='H', periods=5)
+        s = pd.Series(pd.Categorical(idx, ordered=True))
+        exp = """0   2011-01-01 09:00
+1   2011-01-01 10:00
+2   2011-01-01 11:00
+3   2011-01-01 12:00
+4   2011-01-01 13:00
+dtype: category
+Categories (5, period): [2011-01-01 09:00 < 2011-01-01 10:00 < 2011-01-01 11:00 < 2011-01-01 12:00 <
+                         2011-01-01 13:00]"""
+        self.assertEqual(repr(s), exp)
+
+        idx = pd.period_range('2011-01', freq='M', periods=5)
+        s = pd.Series(pd.Categorical(idx, ordered=True))
+        exp = """0   2011-01
+1   2011-02
+2   2011-03
+3   2011-04
+4   2011-05
+dtype: category
+Categories (5, period): [2011-01 < 2011-02 < 2011-03 < 2011-04 < 2011-05]"""
+        self.assertEqual(repr(s), exp)
+
+    def test_categorical_series_repr_timedelta(self):
+        idx = pd.timedelta_range('1 days', periods=5)
+        s = pd.Series(pd.Categorical(idx))
+        exp = """0   1 days
+1   2 days
+2   3 days
+3   4 days
+4   5 days
+dtype: category
+Categories (5, timedelta64[ns]): [1 days, 2 days, 3 days, 4 days, 5 days]"""
+        self.assertEqual(repr(s), exp)
+
+        idx = pd.timedelta_range('1 hours', periods=10)
+        s = pd.Series(pd.Categorical(idx))
+        exp = """0   0 days 01:00:00
+1   1 days 01:00:00
+2   2 days 01:00:00
+3   3 days 01:00:00
+4   4 days 01:00:00
+5   5 days 01:00:00
+6   6 days 01:00:00
+7   7 days 01:00:00
+8   8 days 01:00:00
+9   9 days 01:00:00
+dtype: category
+Categories (10, timedelta64[ns]): [0 days 01:00:00, 1 days 01:00:00, 2 days 01:00:00,
+                                   3 days 01:00:00, ..., 6 days 01:00:00, 7 days 01:00:00,
+                                   8 days 01:00:00, 9 days 01:00:00]"""
+        self.assertEqual(repr(s), exp)
+
+    def test_categorical_series_repr_timedelta_ordered(self):
+        idx = pd.timedelta_range('1 days', periods=5)
+        s = pd.Series(pd.Categorical(idx, ordered=True))
+        exp = """0   1 days
+1   2 days
+2   3 days
+3   4 days
+4   5 days
+dtype: category
+Categories (5, timedelta64[ns]): [1 days < 2 days < 3 days < 4 days < 5 days]"""
+        self.assertEqual(repr(s), exp)
+
+        idx = pd.timedelta_range('1 hours', periods=10)
+        s = pd.Series(pd.Categorical(idx, ordered=True))
+        exp = """0   0 days 01:00:00
+1   1 days 01:00:00
+2   2 days 01:00:00
+3   3 days 01:00:00
+4   4 days 01:00:00
+5   5 days 01:00:00
+6   6 days 01:00:00
+7   7 days 01:00:00
+8   8 days 01:00:00
+9   9 days 01:00:00
+dtype: category
+Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01:00:00 <
+                                   3 days 01:00:00 ... 6 days 01:00:00 < 7 days 01:00:00 <
+                                   8 days 01:00:00 < 9 days 01:00:00]"""
+        self.assertEqual(repr(s), exp)
+
+    def test_categorical_index_repr(self):
+        idx = pd.CategoricalIndex(pd.Categorical([1, 2 ,3]))
+        exp = """CategoricalIndex([1, 2, 3], categories=[1, 2, 3], ordered=False, dtype='category')"""
+        self.assertEqual(repr(idx), exp)
+
+        i = pd.CategoricalIndex(pd.Categorical(np.arange(10)))
+        exp = """CategoricalIndex([0, 1, 2, 3, 4, 5, 6, 7, 8, 9], categories=[0, 1, 2, 3, 4, 5, 6, 7, ...], ordered=False, dtype='category')"""
+        self.assertEqual(repr(i), exp)
+
+    def test_categorical_index_repr_ordered(self):
+        i = pd.CategoricalIndex(pd.Categorical([1, 2 ,3], ordered=True))
+        exp = """CategoricalIndex([1, 2, 3], categories=[1, 2, 3], ordered=True, dtype='category')"""
+        self.assertEqual(repr(i), exp)
+
+        i = pd.CategoricalIndex(pd.Categorical(np.arange(10), ordered=True))
+        exp = """CategoricalIndex([0, 1, 2, 3, 4, 5, 6, 7, 8, 9], categories=[0, 1, 2, 3, 4, 5, 6, 7, ...], ordered=True, dtype='category')"""
+        self.assertEqual(repr(i), exp)
+
+    def test_categorical_index_repr_datetime(self):
+        idx = pd.date_range('2011-01-01 09:00', freq='H', periods=5)
+        i = pd.CategoricalIndex(pd.Categorical(idx))
+        exp = """CategoricalIndex(['2011-01-01 09:00:00', '2011-01-01 10:00:00',
+                  '2011-01-01 11:00:00', '2011-01-01 12:00:00',
+                  '2011-01-01 13:00:00'],
+                 categories=[2011-01-01 09:00:00, 2011-01-01 10:00:00, 2011-01-01 11:00:00, 2011-01-01 12:00:00, 2011-01-01 13:00:00], ordered=False, dtype='category')"""
+        self.assertEqual(repr(i), exp)
+
+        idx = pd.date_range('2011-01-01 09:00', freq='H', periods=5, tz='US/Eastern')
+        i = pd.CategoricalIndex(pd.Categorical(idx))
+        exp = """CategoricalIndex(['2011-01-01 09:00:00-05:00', '2011-01-01 10:00:00-05:00',
+                  '2011-01-01 11:00:00-05:00', '2011-01-01 12:00:00-05:00',
+                  '2011-01-01 13:00:00-05:00'],
+                 categories=[2011-01-01 09:00:00-05:00, 2011-01-01 10:00:00-05:00, 2011-01-01 11:00:00-05:00, 2011-01-01 12:00:00-05:00, 2011-01-01 13:00:00-05:00], ordered=False, dtype='category')"""
+        self.assertEqual(repr(i), exp)
+
+    def test_categorical_index_repr_datetime_ordered(self):
+        idx = pd.date_range('2011-01-01 09:00', freq='H', periods=5)
+        i = pd.CategoricalIndex(pd.Categorical(idx, ordered=True))
+        exp = """CategoricalIndex(['2011-01-01 09:00:00', '2011-01-01 10:00:00',
+                  '2011-01-01 11:00:00', '2011-01-01 12:00:00',
+                  '2011-01-01 13:00:00'],
+                 categories=[2011-01-01 09:00:00, 2011-01-01 10:00:00, 2011-01-01 11:00:00, 2011-01-01 12:00:00, 2011-01-01 13:00:00], ordered=True, dtype='category')"""
+        self.assertEqual(repr(i), exp)
+
+        idx = pd.date_range('2011-01-01 09:00', freq='H', periods=5, tz='US/Eastern')
+        i = pd.CategoricalIndex(pd.Categorical(idx, ordered=True))
+        exp = """CategoricalIndex(['2011-01-01 09:00:00-05:00', '2011-01-01 10:00:00-05:00',
+                  '2011-01-01 11:00:00-05:00', '2011-01-01 12:00:00-05:00',
+                  '2011-01-01 13:00:00-05:00'],
+                 categories=[2011-01-01 09:00:00-05:00, 2011-01-01 10:00:00-05:00, 2011-01-01 11:00:00-05:00, 2011-01-01 12:00:00-05:00, 2011-01-01 13:00:00-05:00], ordered=True, dtype='category')"""
+        self.assertEqual(repr(i), exp)
+
+        i = pd.CategoricalIndex(pd.Categorical(idx.append(idx), ordered=True))
+        exp = """CategoricalIndex(['2011-01-01 09:00:00-05:00', '2011-01-01 10:00:00-05:00',
+                  '2011-01-01 11:00:00-05:00', '2011-01-01 12:00:00-05:00',
+                  '2011-01-01 13:00:00-05:00', '2011-01-01 09:00:00-05:00',
+                  '2011-01-01 10:00:00-05:00', '2011-01-01 11:00:00-05:00',
+                  '2011-01-01 12:00:00-05:00', '2011-01-01 13:00:00-05:00'],
+                 categories=[2011-01-01 09:00:00-05:00, 2011-01-01 10:00:00-05:00, 2011-01-01 11:00:00-05:00, 2011-01-01 12:00:00-05:00, 2011-01-01 13:00:00-05:00], ordered=True, dtype='category')"""
+        self.assertEqual(repr(i), exp)
+
+    def test_categorical_index_repr_period(self):
+        # test all length
+        idx = pd.period_range('2011-01-01 09:00', freq='H', periods=1)
+        i = pd.CategoricalIndex(pd.Categorical(idx))
+        exp = """CategoricalIndex(['2011-01-01 09:00'], categories=[2011-01-01 09:00], ordered=False, dtype='category')"""
+        self.assertEqual(repr(i), exp)
+
+        idx = pd.period_range('2011-01-01 09:00', freq='H', periods=2)
+        i = pd.CategoricalIndex(pd.Categorical(idx))
+        exp = """CategoricalIndex(['2011-01-01 09:00', '2011-01-01 10:00'], categories=[2011-01-01 09:00, 2011-01-01 10:00], ordered=False, dtype='category')"""
+        self.assertEqual(repr(i), exp)
+
+        idx = pd.period_range('2011-01-01 09:00', freq='H', periods=3)
+        i = pd.CategoricalIndex(pd.Categorical(idx))
+        exp = """CategoricalIndex(['2011-01-01 09:00', '2011-01-01 10:00', '2011-01-01 11:00'], categories=[2011-01-01 09:00, 2011-01-01 10:00, 2011-01-01 11:00], ordered=False, dtype='category')"""
+        self.assertEqual(repr(i), exp)
+
+        idx = pd.period_range('2011-01-01 09:00', freq='H', periods=5)
+        i = pd.CategoricalIndex(pd.Categorical(idx))
+        exp = """CategoricalIndex(['2011-01-01 09:00', '2011-01-01 10:00', '2011-01-01 11:00',
+                  '2011-01-01 12:00', '2011-01-01 13:00'],
+                 categories=[2011-01-01 09:00, 2011-01-01 10:00, 2011-01-01 11:00, 2011-01-01 12:00, 2011-01-01 13:00], ordered=False, dtype='category')"""
+        self.assertEqual(repr(i), exp)
+
+        i = pd.CategoricalIndex(pd.Categorical(idx.append(idx)))
+        exp = """CategoricalIndex(['2011-01-01 09:00', '2011-01-01 10:00', '2011-01-01 11:00',
+                  '2011-01-01 12:00', '2011-01-01 13:00', '2011-01-01 09:00',
+                  '2011-01-01 10:00', '2011-01-01 11:00', '2011-01-01 12:00',
+                  '2011-01-01 13:00'],
+                 categories=[2011-01-01 09:00, 2011-01-01 10:00, 2011-01-01 11:00, 2011-01-01 12:00, 2011-01-01 13:00], ordered=False, dtype='category')"""
+        self.assertEqual(repr(i), exp)
+
+        idx = pd.period_range('2011-01', freq='M', periods=5)
+        i = pd.CategoricalIndex(pd.Categorical(idx))
+        exp = """CategoricalIndex(['2011-01', '2011-02', '2011-03', '2011-04', '2011-05'], categories=[2011-01, 2011-02, 2011-03, 2011-04, 2011-05], ordered=False, dtype='category')"""
+        self.assertEqual(repr(i), exp)
+
+    def test_categorical_index_repr_period_ordered(self):
+        idx = pd.period_range('2011-01-01 09:00', freq='H', periods=5)
+        i = pd.CategoricalIndex(pd.Categorical(idx, ordered=True))
+        exp = """CategoricalIndex(['2011-01-01 09:00', '2011-01-01 10:00', '2011-01-01 11:00',
+                  '2011-01-01 12:00', '2011-01-01 13:00'],
+                 categories=[2011-01-01 09:00, 2011-01-01 10:00, 2011-01-01 11:00, 2011-01-01 12:00, 2011-01-01 13:00], ordered=True, dtype='category')"""
+        self.assertEqual(repr(i), exp)
+
+        idx = pd.period_range('2011-01', freq='M', periods=5)
+        i = pd.CategoricalIndex(pd.Categorical(idx, ordered=True))
+        exp = """CategoricalIndex(['2011-01', '2011-02', '2011-03', '2011-04', '2011-05'], categories=[2011-01, 2011-02, 2011-03, 2011-04, 2011-05], ordered=True, dtype='category')"""
+        self.assertEqual(repr(i), exp)
+
+    def test_categorical_index_repr_timedelta(self):
+        idx = pd.timedelta_range('1 days', periods=5)
+        i = pd.CategoricalIndex(pd.Categorical(idx))
+        exp = """CategoricalIndex(['1 days', '2 days', '3 days', '4 days', '5 days'], categories=[1 days 00:00:00, 2 days 00:00:00, 3 days 00:00:00, 4 days 00:00:00, 5 days 00:00:00], ordered=False, dtype='category')"""
+        self.assertEqual(repr(i), exp)
+
+        idx = pd.timedelta_range('1 hours', periods=10)
+        i = pd.CategoricalIndex(pd.Categorical(idx))
+        exp = """CategoricalIndex(['0 days 01:00:00', '1 days 01:00:00', '2 days 01:00:00',
+                  '3 days 01:00:00', '4 days 01:00:00', '5 days 01:00:00',
+                  '6 days 01:00:00', '7 days 01:00:00', '8 days 01:00:00',
+                  '9 days 01:00:00'],
+                 categories=[0 days 01:00:00, 1 days 01:00:00, 2 days 01:00:00, 3 days 01:00:00, 4 days 01:00:00, 5 days 01:00:00, 6 days 01:00:00, 7 days 01:00:00, ...], ordered=False, dtype='category')"""
+        self.assertEqual(repr(i), exp)
+
+    def test_categorical_index_repr_timedelta_ordered(self):
+        idx = pd.timedelta_range('1 days', periods=5)
+        i = pd.CategoricalIndex(pd.Categorical(idx, ordered=True))
+        exp = """CategoricalIndex(['1 days', '2 days', '3 days', '4 days', '5 days'], categories=[1 days 00:00:00, 2 days 00:00:00, 3 days 00:00:00, 4 days 00:00:00, 5 days 00:00:00], ordered=True, dtype='category')"""
+        self.assertEqual(repr(i), exp)
+
+        idx = pd.timedelta_range('1 hours', periods=10)
+        i = pd.CategoricalIndex(pd.Categorical(idx, ordered=True))
+        exp = """CategoricalIndex(['0 days 01:00:00', '1 days 01:00:00', '2 days 01:00:00',
+                  '3 days 01:00:00', '4 days 01:00:00', '5 days 01:00:00',
+                  '6 days 01:00:00', '7 days 01:00:00', '8 days 01:00:00',
+                  '9 days 01:00:00'],
+                 categories=[0 days 01:00:00, 1 days 01:00:00, 2 days 01:00:00, 3 days 01:00:00, 4 days 01:00:00, 5 days 01:00:00, 6 days 01:00:00, 7 days 01:00:00, ...], ordered=True, dtype='category')"""
+        self.assertEqual(repr(i), exp)
+
+    def test_categorical_frame(self):
+        # normal DataFrame
+        dt = pd.date_range('2011-01-01 09:00', freq='H', periods=5, tz='US/Eastern')
+        p = pd.period_range('2011-01', freq='M', periods=5)
+        df = pd.DataFrame({'dt': dt, 'p': p})
+        exp = """                         dt       p
+0 2011-01-01 09:00:00-05:00 2011-01
+1 2011-01-01 10:00:00-05:00 2011-02
+2 2011-01-01 11:00:00-05:00 2011-03
+3 2011-01-01 12:00:00-05:00 2011-04
+4 2011-01-01 13:00:00-05:00 2011-05"""
+
+        df = pd.DataFrame({'dt': pd.Categorical(dt), 'p': pd.Categorical(p)})
+        self.assertEqual(repr(df), exp)
+
     def test_info(self):
 
         # make sure it works
