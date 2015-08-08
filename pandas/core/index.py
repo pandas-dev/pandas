@@ -276,6 +276,11 @@ class Index(IndexOpsMixin, PandasObject):
         """ return the dtype object of the underlying data """
         return self._data.dtype
 
+    @cache_readonly
+    def dtype_str(self):
+        """ return the dtype str of the underlying data """
+        return str(self.dtype)
+
     @property
     def values(self):
         """ return the underlying data as an ndarray """
@@ -2993,6 +2998,10 @@ class CategoricalIndex(Index, PandasDelegate):
             pass
 
         return False
+
+    @property
+    def _formatter_func(self):
+        return self.categories._formatter_func
 
     def _format_attrs(self):
         """
