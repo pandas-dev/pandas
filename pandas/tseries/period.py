@@ -267,7 +267,11 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
         result = object.__new__(cls)
         result._data = values
         result.name = name
+
+        if freq is None:
+            raise ValueError('freq not specified')
         result.freq = freq
+
         result._reset_identity()
         return result
 

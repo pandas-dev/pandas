@@ -163,17 +163,26 @@ class DatetimeIndexOpsMixin(object):
             return sorted_index, _as
         else:
             sorted_values = np.sort(self.values)
+            attribs = self._get_attributes_dict()
+            freq = attribs['freq']
+            from pandas.tseries.period import PeriodIndex
+            if freq is not None and not isinstance(self, PeriodIndex):
+                if freq.n > 0 and not ascending:
+                    freq = freq * -1
+                elif freq.n < 0 and ascending:
+                    freq = freq * -1
+            attribs['freq'] = freq
+
             if not ascending:
                 sorted_values = sorted_values[::-1]
-            attribs = self._get_attributes_dict()
-            attribs['freq'] = None
+
             return self._simple_new(sorted_values, **attribs)
 
     def take(self, indices, axis=0):
         """
         Analogous to ndarray.take
         """
-        maybe_slice = lib.maybe_indices_to_slice(com._ensure_int64(indices))
+        maybe_slice = lib.maybe_indices_to_slice(com._ensure_int64(indices), len(self))
         if isinstance(maybe_slice, slice):
             return self[maybe_slice]
         return super(DatetimeIndexOpsMixin, self).take(indices, axis)
