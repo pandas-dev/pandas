@@ -180,8 +180,8 @@ class DatetimeIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
 
     tz = None
     offset = None
-    _comparables = ['name','freqstr','tz']
-    _attributes = ['name','freq','tz']
+    _comparables = ['name', 'freqstr', 'tz']
+    _attributes = ['name', 'freq', 'tz']
     _datetimelike_ops = ['year','month','day','hour','minute','second',
                          'weekofyear','week','dayofweek','weekday','dayofyear','quarter', 'days_in_month', 'daysinmonth',
                          'date','time','microsecond','nanosecond','is_month_start','is_month_end',
@@ -1550,7 +1550,7 @@ class DatetimeIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
                 freq = self.freq
         else:
             if com.is_list_like(loc):
-                loc = lib.maybe_indices_to_slice(com._ensure_int64(np.array(loc)))
+                loc = lib.maybe_indices_to_slice(com._ensure_int64(np.array(loc)), len(self))
             if isinstance(loc, slice) and loc.step in (1, None):
                 if (loc.start in (0, None) or loc.stop in (len(self), None)):
                     freq = self.freq
