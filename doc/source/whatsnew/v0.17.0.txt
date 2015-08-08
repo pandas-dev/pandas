@@ -142,6 +142,15 @@ Other enhancements
 - ``pd.merge`` will now allow duplicate column names if they are not merged upon (:issue:`10639`).
 
 - ``pd.pivot`` will now allow passing index as ``None`` (:issue:`3962`).
+- ``drop_duplicates`` and ``duplicated`` now accept ``keep`` keyword to target first, last, and all duplicates. ``take_last`` keyword is deprecated, see :ref:`deprecations <whatsnew_0170.deprecations>` (:issue:`6511`, :issue:`8505`)
+
+.. ipython :: python
+
+   s = pd.Series(['A', 'B', 'C', 'A', 'B', 'D'])
+   s.drop_duplicates()
+   s.drop_duplicates(keep='last')
+   s.drop_duplicates(keep=False)
+
 
 .. _whatsnew_0170.api:
 
@@ -520,6 +529,7 @@ Deprecations
   =====================  =================================
 
 - ``Categorical.name`` was deprecated to make ``Categorical`` more ``numpy.ndarray`` like. Use ``Series(cat, name="whatever")`` instead (:issue:`10482`).
+- ``drop_duplicates`` and ``duplicated``'s ``take_last`` keyword was removed in favor of ``keep``. (:issue:`6511`, :issue:`8505`)
 
 .. _whatsnew_0170.prior_deprecations:
 

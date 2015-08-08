@@ -683,6 +683,10 @@ class TestIndexOps(Ops):
 
     def test_duplicated_drop_duplicates(self):
         # GH 4060
+
+        import warnings
+        warnings.simplefilter('always')
+
         for original in self.objs:
 
             if isinstance(original, Index):
@@ -714,15 +718,36 @@ class TestIndexOps(Ops):
                 self.assertTrue(duplicated.dtype == bool)
                 tm.assert_index_equal(idx.drop_duplicates(), original)
 
-                last_base = [False] * len(idx)
-                last_base[3] = True
-                last_base[5] = True
-                expected = np.array(last_base)
-                duplicated = idx.duplicated(take_last=True)
+                base = [False] * len(idx)
+                base[3] = True
+                base[5] = True
+                expected = np.array(base)
+
+                duplicated = idx.duplicated(keep='last')
                 tm.assert_numpy_array_equal(duplicated, expected)
                 self.assertTrue(duplicated.dtype == bool)
-                tm.assert_index_equal(idx.drop_duplicates(take_last=True),
-                                      idx[~np.array(last_base)])
+                result = idx.drop_duplicates(keep='last')
+                tm.assert_index_equal(result, idx[~expected])
+
+                # deprecate take_last
+                with tm.assert_produces_warning(FutureWarning):
+                    duplicated = idx.duplicated(take_last=True)
+                tm.assert_numpy_array_equal(duplicated, expected)
+                self.assertTrue(duplicated.dtype == bool)
+                with tm.assert_produces_warning(FutureWarning):
+                    result = idx.drop_duplicates(take_last=True)
+                tm.assert_index_equal(result, idx[~expected])
+
+                base = [False] * len(original) + [True, True]
+                base[3] = True
+                base[5] = True
+                expected = np.array(base)
+
+                duplicated = idx.duplicated(keep=False)
+                tm.assert_numpy_array_equal(duplicated, expected)
+                self.assertTrue(duplicated.dtype == bool)
+                result = idx.drop_duplicates(keep=False)
+                tm.assert_index_equal(result, idx[~expected])
 
                 with tm.assertRaisesRegexp(TypeError,
                                            "drop_duplicates\(\) got an unexpected keyword argument"):
@@ -745,13 +770,29 @@ class TestIndexOps(Ops):
                 tm.assert_series_equal(s.duplicated(), expected)
                 tm.assert_series_equal(s.drop_duplicates(), original)
 
-                last_base = [False] * len(idx)
-                last_base[3] = True
-                last_base[5] = True
-                expected = Series(last_base, index=idx, name='a')
-                tm.assert_series_equal(s.duplicated(take_last=True), expected)
-                tm.assert_series_equal(s.drop_duplicates(take_last=True),
-                                       s[~np.array(last_base)])
+                base = [False] * len(idx)
+                base[3] = True
+                base[5] = True
+                expected = Series(base, index=idx, name='a')
+
+                tm.assert_series_equal(s.duplicated(keep='last'), expected)
+                tm.assert_series_equal(s.drop_duplicates(keep='last'),
+                                       s[~np.array(base)])
+
+                # deprecate take_last
+                with tm.assert_produces_warning(FutureWarning):
+                    tm.assert_series_equal(s.duplicated(take_last=True), expected)
+                with tm.assert_produces_warning(FutureWarning):
+                    tm.assert_series_equal(s.drop_duplicates(take_last=True),
+                                           s[~np.array(base)])
+                base = [False] * len(original) + [True, True]
+                base[3] = True
+                base[5] = True
+                expected = Series(base, index=idx, name='a')
+
+                tm.assert_series_equal(s.duplicated(keep=False), expected)
+                tm.assert_series_equal(s.drop_duplicates(keep=False),
+                                       s[~np.array(base)])
 
                 s.drop_duplicates(inplace=True)
                 tm.assert_series_equal(s, original)

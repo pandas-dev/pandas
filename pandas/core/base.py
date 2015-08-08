@@ -6,7 +6,7 @@ import numpy as np
 from pandas.core import common as com
 import pandas.core.nanops as nanops
 import pandas.lib as lib
-from pandas.util.decorators import Appender, cache_readonly
+from pandas.util.decorators import Appender, cache_readonly, deprecate_kwarg
 from pandas.core.strings import StringMethods
 from pandas.core.common import AbstractMethodError
 
@@ -543,8 +543,12 @@ class IndexOpsMixin(object):
 
         Parameters
         ----------
-        take_last : boolean, default False
-            Take the last observed index in a group. Default first
+
+        keep : {'first', 'last', False}, default 'first'
+            - ``first`` : Drop duplicates except for the first occurrence.
+            - ``last`` : Drop duplicates except for the last occurrence.
+            - False : Drop all duplicates.
+        take_last : deprecated
         %(inplace)s
 
         Returns
@@ -552,9 +556,10 @@ class IndexOpsMixin(object):
         deduplicated : %(klass)s
         """)
 
+    @deprecate_kwarg('take_last', 'keep', mapping={True: 'last', False: 'first'})
     @Appender(_shared_docs['drop_duplicates'] % _indexops_doc_kwargs)
-    def drop_duplicates(self, take_last=False, inplace=False):
-        duplicated = self.duplicated(take_last=take_last)
+    def drop_duplicates(self, keep='first', inplace=False):
+        duplicated = self.duplicated(keep=keep)
         result = self[np.logical_not(duplicated)]
         if inplace:
             return self._update_inplace(result)
@@ -566,18 +571,22 @@ class IndexOpsMixin(object):
 
         Parameters
         ----------
-        take_last : boolean, default False
-            Take the last observed index in a group. Default first
+        keep : {'first', 'last', False}, default 'first'
+            - ``first`` : Mark duplicates as ``True`` except for the first occurrence.
+            - ``last`` : Mark duplicates as ``True`` except for the last occurrence.
+            - False : Mark all duplicates as ``True``.
+        take_last : deprecated
 
         Returns
         -------
         duplicated : %(duplicated)s
         """)
 
+    @deprecate_kwarg('take_last', 'keep', mapping={True: 'last', False: 'first'})
     @Appender(_shared_docs['duplicated'] % _indexops_doc_kwargs)
-    def duplicated(self, take_last=False):
+    def duplicated(self, keep='first'):
         keys = com._ensure_object(self.values)
-        duplicated = lib.duplicated(keys, take_last=take_last)
+        duplicated = lib.duplicated(keys, keep=keep)
         try:
             return self._constructor(duplicated,
                                      index=self.index).__finalize__(self)
