@@ -4720,9 +4720,9 @@ class TestMultiIndex(Base, tm.TestCase):
         labels = [np.random.choice(n, k * n) for lev in levels]
         mi = MultiIndex(levels=levels, labels=labels)
 
-        for take_last in [False, True]:
-            left = mi.duplicated(take_last=take_last)
-            right = pd.lib.duplicated(mi.values, take_last=take_last)
+        for keep in ['first', 'last', False]:
+            left = mi.duplicated(keep=keep)
+            right = pd.lib.duplicated(mi.values, keep=keep)
             tm.assert_numpy_array_equal(left, right)
 
         # GH5873

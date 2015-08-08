@@ -4782,29 +4782,63 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         self.assertEqual(s._get_axis_name('rows'), 'index')
 
     def test_drop_duplicates(self):
-        s = Series([1, 2, 3, 3])
+        # check both int and object
+        for s in [Series([1, 2, 3, 3]), Series(['1', '2', '3', '3'])]:
+            expected = Series([False, False, False, True])
+            assert_series_equal(s.duplicated(), expected)
+            assert_series_equal(s.drop_duplicates(), s[~expected])
+            sc = s.copy()
+            sc.drop_duplicates(inplace=True)
+            assert_series_equal(sc, s[~expected])
 
-        result = s.duplicated()
-        expected = Series([False, False, False, True])
-        assert_series_equal(result, expected)
+            expected = Series([False, False, True, False])
+            assert_series_equal(s.duplicated(keep='last'), expected)
+            assert_series_equal(s.drop_duplicates(keep='last'), s[~expected])
+            sc = s.copy()
+            sc.drop_duplicates(keep='last', inplace=True)
+            assert_series_equal(sc, s[~expected])
+            # deprecate take_last
+            assert_series_equal(s.duplicated(take_last=True), expected)
+            assert_series_equal(s.drop_duplicates(take_last=True), s[~expected])
+            sc = s.copy()
+            sc.drop_duplicates(take_last=True, inplace=True)
+            assert_series_equal(sc, s[~expected])
 
-        result = s.duplicated(take_last=True)
-        expected = Series([False, False, True, False])
-        assert_series_equal(result, expected)
+            expected = Series([False, False, True, True])
+            assert_series_equal(s.duplicated(keep=False), expected)
+            assert_series_equal(s.drop_duplicates(keep=False), s[~expected])
+            sc = s.copy()
+            sc.drop_duplicates(keep=False, inplace=True)
+            assert_series_equal(sc, s[~expected])
 
-        result = s.drop_duplicates()
-        expected = s[[True, True, True, False]]
-        assert_series_equal(result, expected)
-        sc = s.copy()
-        sc.drop_duplicates(inplace=True)
-        assert_series_equal(sc, expected)
+        for s in [Series([1, 2, 3, 5, 3, 2, 4]),
+                  Series(['1', '2', '3', '5', '3', '2', '4'])]:
+            expected = Series([False, False, False, False, True, True, False])
+            assert_series_equal(s.duplicated(), expected)
+            assert_series_equal(s.drop_duplicates(), s[~expected])
+            sc = s.copy()
+            sc.drop_duplicates(inplace=True)
+            assert_series_equal(sc, s[~expected])
 
-        result = s.drop_duplicates(take_last=True)
-        expected = s[[True, True, False, True]]
-        assert_series_equal(result, expected)
-        sc = s.copy()
-        sc.drop_duplicates(take_last=True, inplace=True)
-        assert_series_equal(sc, expected)
+            expected = Series([False, True, True, False, False, False, False])
+            assert_series_equal(s.duplicated(keep='last'), expected)
+            assert_series_equal(s.drop_duplicates(keep='last'), s[~expected])
+            sc = s.copy()
+            sc.drop_duplicates(keep='last', inplace=True)
+            assert_series_equal(sc, s[~expected])
+            # deprecate take_last
+            assert_series_equal(s.duplicated(take_last=True), expected)
+            assert_series_equal(s.drop_duplicates(take_last=True), s[~expected])
+            sc = s.copy()
+            sc.drop_duplicates(take_last=True, inplace=True)
+            assert_series_equal(sc, s[~expected])
+
+            expected = Series([False, True, True, False, True, True, False])
+            assert_series_equal(s.duplicated(keep=False), expected)
+            assert_series_equal(s.drop_duplicates(keep=False), s[~expected])
+            sc = s.copy()
+            sc.drop_duplicates(keep=False, inplace=True)
+            assert_series_equal(sc, s[~expected])
 
     def test_sort(self):
         ts = self.ts.copy()

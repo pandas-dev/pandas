@@ -1178,8 +1178,7 @@ takes as an argument the columns to use to identify duplicated rows.
 - ``drop_duplicates`` removes duplicate rows.
 
 By default, the first observed row of a duplicate set is considered unique, but
-each method has a ``take_last`` parameter that indicates the last observed row
-should be taken instead.
+each method has a ``keep`` parameter to specify targets to be kept.
 
 .. ipython:: python
 
@@ -1187,8 +1186,11 @@ should be taken instead.
                        'b' : ['x', 'y', 'y', 'x', 'y', 'x', 'x'],
                        'c' : np.random.randn(7)})
    df2.duplicated(['a','b'])
+   df2.duplicated(['a','b'], keep='last')
+   df2.duplicated(['a','b'], keep=False)
    df2.drop_duplicates(['a','b'])
-   df2.drop_duplicates(['a','b'], take_last=True)
+   df2.drop_duplicates(['a','b'], keep='last')
+   df2.drop_duplicates(['a','b'], keep=False)
 
 An alternative way to drop duplicates on the index is ``.groupby(level=0)`` combined with ``first()`` or ``last()``.
 
@@ -1199,7 +1201,7 @@ An alternative way to drop duplicates on the index is ``.groupby(level=0)`` comb
    df3.groupby(level=0).first()
 
    # a bit more verbose
-   df3.reset_index().drop_duplicates(subset='b', take_last=False).set_index('b')
+   df3.reset_index().drop_duplicates(subset='b', keep='first').set_index('b')
 
 .. _indexing.dictionarylike:
 

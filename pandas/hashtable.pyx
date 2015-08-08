@@ -1026,25 +1026,41 @@ def mode_int64(int64_t[:] values):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def duplicated_int64(ndarray[int64_t, ndim=1] values, int take_last):
+def duplicated_int64(ndarray[int64_t, ndim=1] values, object keep='first'):
     cdef:
-        int ret = 0
+        int ret = 0, value, k
         Py_ssize_t i, n = len(values)
         kh_int64_t * table = kh_init_int64()
         ndarray[uint8_t, ndim=1, cast=True] out = np.empty(n, dtype='bool')
 
     kh_resize_int64(table, min(n, _SIZE_HINT_LIMIT))
 
-    with nogil:
-        if take_last:
+    if keep not in ('last', 'first', False):
+        raise ValueError('keep must be either "first", "last" or False')
+
+    if keep == 'last':
+        with nogil:
             for i from n > i >=0:
                 kh_put_int64(table, values[i], &ret)
                 out[i] = ret == 0
-        else:
+    elif keep == 'first':
+        with nogil:
             for i from 0 <= i < n:
                 kh_put_int64(table, values[i], &ret)
                 out[i] = ret == 0
-
+    else:
+        with nogil:
+            for i from 0 <= i < n:
+                value = values[i]
+                k = kh_get_int64(table, value)
+                if k != table.n_buckets:
+                    out[table.vals[k]] = 1
+                    out[i] = 1
+                else:
+                    k = kh_put_int64(table, value, &ret)
+                    table.keys[k] = value
+                    table.vals[k] = i
+                    out[i] = 0
     kh_destroy_int64(table)
     return out
 
