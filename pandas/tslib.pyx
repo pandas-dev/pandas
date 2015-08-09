@@ -3253,9 +3253,12 @@ def cast_to_nanoseconds(ndarray arr):
 
     unit = get_datetime64_unit(arr.flat[0])
     for i in range(n):
-        pandas_datetime_to_datetimestruct(ivalues[i], unit, &dts)
-        iresult[i] = pandas_datetimestruct_to_datetime(PANDAS_FR_ns, &dts)
-        _check_dts_bounds(&dts)
+        if ivalues[i] != NPY_NAT:
+            pandas_datetime_to_datetimestruct(ivalues[i], unit, &dts)
+            iresult[i] = pandas_datetimestruct_to_datetime(PANDAS_FR_ns, &dts)
+            _check_dts_bounds(&dts)
+        else:
+            iresult[i] = NPY_NAT
 
     return result
 

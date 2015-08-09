@@ -629,4 +629,5 @@ Bug Fixes
 - Bug in ``pd.DataFrame`` when constructing an empty DataFrame with a string dtype (:issue:`9428`)
 - Bug in ``pd.unique`` for arrays with the ``datetime64`` or ``timedelta64`` dtype that meant an array with object dtype was returned instead the original dtype (:issue: `9431`)
 - Bug in ``DatetimeIndex.take`` and ``TimedeltaIndex.take`` may not raise ``IndexError`` against invalid index (:issue:`10295`)
+- Bug in ``Series([np.nan]).astype('M8[ms]')``, which now returns ``Series([pd.NaT])`` (:issue:`10747`) 
 - Bug in ``PeriodIndex.order`` reset freq (:issue:`10295`)
