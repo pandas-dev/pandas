@@ -1590,9 +1590,10 @@ dtypes
 ------
 
 The main types stored in pandas objects are ``float``, ``int``, ``bool``,
-``datetime64[ns]``, ``timedelta[ns]`` and ``object``. In addition these dtypes
-have item sizes, e.g. ``int64`` and ``int32``. A convenient :attr:`~DataFrame.dtypes``
-attribute for DataFrames returns a Series with the data type of each column.
+``datetime64[ns]`` and ``datetime64[ns, tz]`` (in >= 0.17.0), ``timedelta[ns]``, ``category`` (in >= 0.15.0), and ``object``. In addition these dtypes
+have item sizes, e.g. ``int64`` and ``int32``. See :ref:`Series with TZ <timeseries.timezone_series>` for more detail on ``datetime64[ns, tz]`` dtypes.
+
+A convenient :attr:`~DataFrame.dtypes` attribute for DataFrames returns a Series with the data type of each column.
 
 .. ipython:: python
 
@@ -1814,8 +1815,14 @@ dtypes:
    df['tdeltas'] = df.dates.diff()
    df['uint64'] = np.arange(3, 6).astype('u8')
    df['other_dates'] = pd.date_range('20130101', periods=3).values
+   df['tz_aware_dates'] = pd.date_range('20130101', periods=3, tz='US/Eastern')
    df
 
+And the dtypes
+
+.. ipython:: python
+
+   df.dtypes
 
 :meth:`~DataFrame.select_dtypes` has two parameters ``include`` and ``exclude`` that allow you to
 say "give me the columns WITH these dtypes" (``include``) and/or "give the
@@ -1868,7 +1875,7 @@ All numpy dtypes are subclasses of ``numpy.generic``:
 
 .. note::
 
-    Pandas also defines an additional ``category`` dtype, which is not integrated into the normal
+    Pandas also defines the types ``category``, and ``datetime64[ns, tz]``, which are not integrated into the normal
     numpy hierarchy and wont show up with the above function.
 
 .. note::

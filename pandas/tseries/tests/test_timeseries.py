@@ -1101,6 +1101,60 @@ class TestTimeSeries(tm.TestCase):
             )
         )
 
+    def test_to_datetime_tz(self):
+
+        # xref 8260
+        # uniform returns a DatetimeIndex
+        arr = [pd.Timestamp('2013-01-01 13:00:00-0800', tz='US/Pacific'),pd.Timestamp('2013-01-02 14:00:00-0800', tz='US/Pacific')]
+        result = pd.to_datetime(arr)
+        expected = DatetimeIndex(['2013-01-01 13:00:00','2013-01-02 14:00:00'],tz='US/Pacific')
+        tm.assert_index_equal(result, expected)
+
+        # mixed tzs will raise
+        arr = [pd.Timestamp('2013-01-01 13:00:00', tz='US/Pacific'),pd.Timestamp('2013-01-02 14:00:00', tz='US/Eastern')]
+        self.assertRaises(ValueError, lambda : pd.to_datetime(arr))
+
+    def test_to_datetime_tz_pytz(self):
+
+        # xref 8260
+        tm._skip_if_no_pytz()
+        import pytz
+
+        us_eastern = pytz.timezone('US/Eastern')
+        arr = np.array([us_eastern.localize(datetime(year=2000, month=1, day=1, hour=3, minute=0)),
+                        us_eastern.localize(datetime(year=2000, month=6, day=1, hour=3, minute=0))],dtype=object)
+        result = pd.to_datetime(arr, utc=True)
+        expected = DatetimeIndex(['2000-01-01 08:00:00+00:00', '2000-06-01 07:00:00+00:00'], dtype='datetime64[ns, UTC]', freq=None)
+        tm.assert_index_equal(result, expected)
+
+    def test_to_datetime_tz_psycopg2(self):
+
+        # xref 8260
+        try:
+            import psycopg2
+        except ImportError:
+            raise nose.SkipTest("no psycopg2 installed")
+
+        # misc cases
+        arr = np.array([ datetime(2000, 1, 1, 3, 0, tzinfo=psycopg2.tz.FixedOffsetTimezone(offset=-300, name=None)),
+                         datetime(2000, 6, 1, 3, 0, tzinfo=psycopg2.tz.FixedOffsetTimezone(offset=-240, name=None))], dtype=object)
+
+        result = pd.to_datetime(arr, errors='coerce', utc=True)
+        expected = DatetimeIndex(['2000-01-01 08:00:00+00:00', '2000-06-01 07:00:00+00:00'], dtype='datetime64[ns, UTC]', freq=None)
+        tm.assert_index_equal(result, expected)
+
+        # dtype coercion
+        i = pd.DatetimeIndex(['2000-01-01 08:00:00+00:00'],tz=psycopg2.tz.FixedOffsetTimezone(offset=-300, name=None))
+        self.assertFalse(com.is_datetime64_ns_dtype(i))
+
+        # tz coerceion
+        result = pd.to_datetime(i, errors='coerce')
+        tm.assert_index_equal(result, i)
+
+        result = pd.to_datetime(i, errors='coerce', utc=True)
+        expected = pd.DatetimeIndex(['2000-01-01 13:00:00'])
+        tm.assert_index_equal(result, expected)
+
     def test_index_to_datetime(self):
         idx = Index(['1/1/2000', '1/2/2000', '1/3/2000'])
 
@@ -2139,6 +2193,12 @@ class TestDatetimeIndex(tm.TestCase):
         result = rng.astype('i8')
         self.assert_numpy_array_equal(result, rng.asi8)
 
+        # with tz
+        rng = date_range('1/1/2000', periods=10, tz='US/Eastern')
+        result = rng.astype('datetime64[ns]')
+        expected = date_range('1/1/2000', periods=10, tz='US/Eastern').tz_convert('UTC').tz_localize(None)
+        tm.assert_index_equal(result, expected)
+
     def test_to_period_nofreq(self):
         idx = DatetimeIndex(['2000-01-01', '2000-01-02', '2000-01-04'])
         self.assertRaises(ValueError, idx.to_period)
@@ -2470,6 +2530,15 @@ class TestDatetimeIndex(tm.TestCase):
             result = s - pd.DateOffset(years=1)
             exp = klass(date_range('1999-01-01', '1999-01-31'))
             assert_func(result, exp)
+
+            s = klass([Timestamp('2000-01-15 00:15:00', tz='US/Central'),
+                       pd.Timestamp('2000-02-15', tz='US/Central')])
+            result = s + pd.offsets.Day()
+            result2 = pd.offsets.Day() + s
+            exp = klass([Timestamp('2000-01-16 00:15:00', tz='US/Central'),
+                         Timestamp('2000-02-16', tz='US/Central')])
+            assert_func(result, exp)
+            assert_func(result2, exp)
 
             s = klass([Timestamp('2000-01-15 00:15:00', tz='US/Central'),
                        pd.Timestamp('2000-02-15', tz='US/Central')])

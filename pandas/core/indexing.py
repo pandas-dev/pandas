@@ -294,9 +294,9 @@ class _NDFrameIndexer(object):
                     new_index = index.insert(len(index),indexer)
 
                     # this preserves dtype of the value
-                    new_values = Series([value]).values
-                    if len(self.obj.values):
-                        new_values = np.concatenate([self.obj.values,
+                    new_values = Series([value])._values
+                    if len(self.obj._values):
+                        new_values = np.concatenate([self.obj._values,
                                                      new_values])
 
                     self.obj._data = self.obj._constructor(
@@ -548,7 +548,7 @@ class _NDFrameIndexer(object):
             # series, so need to broadcast (see GH5206)
             if (sum_aligners == self.ndim and
                     all([com.is_sequence(_) for _ in indexer])):
-                ser = ser.reindex(obj.axes[0][indexer[0]], copy=True).values
+                ser = ser.reindex(obj.axes[0][indexer[0]], copy=True)._values
 
                 # single indexer
                 if len(indexer) > 1:
@@ -570,9 +570,9 @@ class _NDFrameIndexer(object):
                     else:
                         new_ix = Index(new_ix)
                     if ser.index.equals(new_ix) or not len(new_ix):
-                        return ser.values.copy()
+                        return ser._values.copy()
 
-                    return ser.reindex(new_ix).values
+                    return ser.reindex(new_ix)._values
 
                 # 2 dims
                 elif single_aligner and is_frame:
@@ -580,8 +580,8 @@ class _NDFrameIndexer(object):
                     # reindex along index
                     ax = self.obj.axes[1]
                     if ser.index.equals(ax) or not len(ax):
-                        return ser.values.copy()
-                    return ser.reindex(ax).values
+                        return ser._values.copy()
+                    return ser.reindex(ax)._values
 
                 # >2 dims
                 elif single_aligner:
@@ -596,7 +596,7 @@ class _NDFrameIndexer(object):
                             broadcast.append((n, len(labels)))
 
                     # broadcast along other dims
-                    ser = ser.values.copy()
+                    ser = ser._values.copy()
                     for (axis, l) in broadcast:
                         shape = [-1] * (len(broadcast) + 1)
                         shape[axis] = l
@@ -611,9 +611,9 @@ class _NDFrameIndexer(object):
             ax = self.obj._get_axis(1)
 
             if ser.index.equals(ax):
-                return ser.values.copy()
+                return ser._values.copy()
 
-            return ser.reindex(ax).values
+            return ser.reindex(ax)._values
 
         raise ValueError('Incompatible indexer with Series')
 
@@ -659,16 +659,16 @@ class _NDFrameIndexer(object):
             if idx is not None and cols is not None:
 
                 if df.index.equals(idx) and df.columns.equals(cols):
-                    val = df.copy().values
+                    val = df.copy()._values
                 else:
-                    val = df.reindex(idx, columns=cols).values
+                    val = df.reindex(idx, columns=cols)._values
                 return val
 
         elif ((isinstance(indexer, slice) or is_list_like_indexer(indexer))
               and is_frame):
             ax = self.obj.index[indexer]
             if df.index.equals(ax):
-                val = df.copy().values
+                val = df.copy()._values
             else:
 
                 # we have a multi-index and are trying to align
@@ -677,7 +677,7 @@ class _NDFrameIndexer(object):
                     df.index, MultiIndex) and ax.nlevels != df.index.nlevels:
                     raise TypeError("cannot align on a multi-index with out specifying the join levels")
 
-                val = df.reindex(index=ax).values
+                val = df.reindex(index=ax)._values
             return val
 
         elif np.isscalar(indexer) and is_panel:
@@ -688,9 +688,9 @@ class _NDFrameIndexer(object):
             # a passed in dataframe which is actually a transpose
             # of what is needed
             if idx.equals(df.index) and cols.equals(df.columns):
-                return df.copy().values
+                return df.copy()._values
 
-            return df.reindex(idx, columns=cols).values
+            return df.reindex(idx, columns=cols)._values
 
         raise ValueError('Incompatible indexer with DataFrame')
 
@@ -1660,11 +1660,11 @@ def check_bool_indexer(ax, key):
     result = key
     if isinstance(key, ABCSeries) and not key.index.equals(ax):
         result = result.reindex(ax)
-        mask = com.isnull(result.values)
+        mask = com.isnull(result._values)
         if mask.any():
             raise IndexingError('Unalignable boolean Series key provided')
 
-        result = result.astype(bool).values
+        result = result.astype(bool)._values
 
     else:
         # is_bool_indexer has already checked for nulls in the case of an

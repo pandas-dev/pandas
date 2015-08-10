@@ -2418,6 +2418,11 @@ class NDFrame(PandasObject):
         return self.as_matrix()
 
     @property
+    def _values(self):
+        """ internal implementation """
+        return self.values
+
+    @property
     def _get_values(self):
         # compat
         return self.as_matrix()

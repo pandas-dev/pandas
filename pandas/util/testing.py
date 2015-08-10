@@ -23,9 +23,11 @@ from numpy.random import randn, rand
 import numpy as np
 
 import pandas as pd
-from pandas.core.common import (is_sequence, array_equivalent, is_list_like,
+from pandas.core.common import (is_sequence, array_equivalent, is_list_like, is_number,
                                 is_datetimelike_v_numeric, is_datetimelike_v_object,
-                                is_number, pprint_thing, take_1d)
+                                is_number, pprint_thing, take_1d,
+                                needs_i8_conversion)
+
 import pandas.compat as compat
 from pandas.compat import(
     filter, map, zip, range, unichr, lrange, lmap, lzip, u, callable, Counter,
@@ -902,7 +904,7 @@ def assert_series_equal(left, right, check_dtype=True,
     elif check_datetimelike_compat:
         # we want to check only if we have compat dtypes
         # e.g. integer and M|m are NOT compat, but we can simply check the values in that case
-        if is_datetimelike_v_numeric(left, right) or is_datetimelike_v_object(left, right):
+        if is_datetimelike_v_numeric(left, right) or is_datetimelike_v_object(left, right) or needs_i8_conversion(left) or needs_i8_conversion(right):
 
             # datetimelike may have different objects (e.g. datetime.datetime vs Timestamp) but will compare equal
             if not Index(left.values).equals(Index(right.values)):

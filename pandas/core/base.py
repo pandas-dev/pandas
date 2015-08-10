@@ -364,6 +364,11 @@ class IndexOpsMixin(object):
         """ return the base object if the memory of the underlying data is shared """
         return self.values.base
 
+    @property
+    def _values(self):
+        """ the internal implementation """
+        return self.values
+
     def max(self):
         """ The maximum value of the object """
         return nanops.nanmax(self.values)
@@ -396,6 +401,14 @@ class IndexOpsMixin(object):
     def hasnans(self):
         """ return if I have any nans; enables various perf speedups """
         return com.isnull(self).any()
+
+    def _reduce(self, op, name, axis=0, skipna=True, numeric_only=None,
+                filter_type=None, **kwds):
+        """ perform the reduction type operation if we can """
+        func = getattr(self,name,None)
+        if func is None:
+            raise TypeError("{klass} cannot perform the operation {op}".format(klass=self.__class__.__name__,op=name))
+        return func(**kwds)
 
     def value_counts(self, normalize=False, sort=True, ascending=False,
                      bins=None, dropna=True):
@@ -586,7 +599,7 @@ class IndexOpsMixin(object):
     @deprecate_kwarg('take_last', 'keep', mapping={True: 'last', False: 'first'})
     @Appender(_shared_docs['duplicated'] % _indexops_doc_kwargs)
     def duplicated(self, keep='first'):
-        keys = com._ensure_object(self.values)
+        keys = com._values_from_object(com._ensure_object(self.values))
         duplicated = lib.duplicated(keys, keep=keep)
         try:
             return self._constructor(duplicated,

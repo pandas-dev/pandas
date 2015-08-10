@@ -396,11 +396,11 @@ class _MergeOperation(object):
                         right_keys.append(rk)
                         join_names.append(None)  # what to do?
                     else:
-                        right_keys.append(right[rk].values)
+                        right_keys.append(right[rk]._values)
                         join_names.append(rk)
                 else:
                     if not is_rkey(rk):
-                        right_keys.append(right[rk].values)
+                        right_keys.append(right[rk]._values)
                         if lk == rk:
                             # avoid key upcast in corner case (length-0)
                             if len(left) > 0:
@@ -409,7 +409,7 @@ class _MergeOperation(object):
                                 left_drop.append(lk)
                     else:
                         right_keys.append(rk)
-                    left_keys.append(left[lk].values)
+                    left_keys.append(left[lk]._values)
                     join_names.append(lk)
         elif _any(self.left_on):
             for k in self.left_on:
@@ -417,10 +417,10 @@ class _MergeOperation(object):
                     left_keys.append(k)
                     join_names.append(None)
                 else:
-                    left_keys.append(left[k].values)
+                    left_keys.append(left[k]._values)
                     join_names.append(k)
             if isinstance(self.right.index, MultiIndex):
-                right_keys = [lev.values.take(lab)
+                right_keys = [lev._values.take(lab)
                               for lev, lab in zip(self.right.index.levels,
                                                   self.right.index.labels)]
             else:
@@ -431,10 +431,10 @@ class _MergeOperation(object):
                     right_keys.append(k)
                     join_names.append(None)
                 else:
-                    right_keys.append(right[k].values)
+                    right_keys.append(right[k]._values)
                     join_names.append(k)
             if isinstance(self.left.index, MultiIndex):
-                left_keys = [lev.values.take(lab)
+                left_keys = [lev._values.take(lab)
                              for lev, lab in zip(self.left.index.levels,
                                                  self.left.index.labels)]
             else:
@@ -952,7 +952,7 @@ class _Concatenator(object):
 
             # stack blocks
             if self.axis == 0:
-                new_data = com._concat_compat([x.values for x in self.objs])
+                new_data = com._concat_compat([x._values for x in self.objs])
                 name = com._consensus_name_attr(self.objs)
                 return Series(new_data, index=self.new_axes[0], name=name).__finalize__(self, method='concat')
 

@@ -115,7 +115,7 @@ class SparseDataFrame(DataFrame):
                                           index=index,
                                           kind=self._default_kind,
                                           fill_value=self._default_fill_value)
-            mgr = df_to_manager(data, columns, index)
+            mgr = to_manager(data, columns, index)
             if dtype is not None:
                 mgr = mgr.astype(dtype)
 
@@ -181,7 +181,7 @@ class SparseDataFrame(DataFrame):
             if c not in sdict:
                 sdict[c] = sp_maker(nan_vec)
 
-        return df_to_manager(sdict, columns, index)
+        return to_manager(sdict, columns, index)
 
     def _init_matrix(self, data, index, columns, dtype=None):
         data = _prep_ndarray(data, copy=False)
@@ -233,7 +233,7 @@ class SparseDataFrame(DataFrame):
             series_dict[col] = SparseSeries(sp_values, sparse_index=sp_index,
                                             fill_value=fv)
 
-        self._data = df_to_manager(series_dict, columns, index)
+        self._data = to_manager(series_dict, columns, index)
         self._default_fill_value = fv
         self._default_kind = kind
 
@@ -737,7 +737,7 @@ class SparseDataFrame(DataFrame):
         """
         return self.apply(lambda x: lmap(func, x))
 
-def df_to_manager(sdf, columns, index):
+def to_manager(sdf, columns, index):
     """ create and return the block manager from a dataframe of series, columns, index """
 
     # from BlockManager perspective

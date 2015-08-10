@@ -8,6 +8,8 @@ import pickle as pkl
 import nose
 import os
 
+from distutils.version import LooseVersion
+
 import numpy as np
 import pandas.util.testing as tm
 import pandas as pd
@@ -41,7 +43,7 @@ class TestPickle():
         self.data = create_pickle_data()
         self.path = u('__%s__.pickle' % tm.rands(10))
 
-    def compare_element(self, typ, result, expected):
+    def compare_element(self, result, expected, typ, version=None):
         if isinstance(expected,Index):
             tm.assert_index_equal(expected, result)
             return
@@ -53,7 +55,7 @@ class TestPickle():
             comparator = getattr(tm,"assert_%s_equal" % typ,tm.assert_almost_equal)
             comparator(result,expected)
 
-    def compare(self, vf):
+    def compare(self, vf, version):
 
         # py3 compat when reading py2 pickle
         try:
@@ -72,8 +74,29 @@ class TestPickle():
                 except (KeyError):
                     continue
 
-                self.compare_element(typ, result, expected)
+                # use a specific comparator
+                # if available
+                comparator = getattr(self,"compare_{typ}_{dt}".format(typ=typ,dt=dt), self.compare_element)
+                comparator(result, expected, typ, version)
         return data
+
+    def compare_series_dt_tz(self, result, expected, typ, version):
+        # 8260
+        # dtype is object < 0.17.0
+        if LooseVersion(version) < '0.17.0':
+            expected = expected.astype(object)
+            tm.assert_series_equal(result, expected)
+        else:
+            tm.assert_series_equal(result, expected)
+
+    def compare_frame_dt_mixed_tzs(self, result, expected, typ, version):
+        # 8260
+        # dtype is object < 0.17.0
+        if LooseVersion(version) < '0.17.0':
+            expected = expected.astype(object)
+            tm.assert_frame_equal(result, expected)
+        else:
+            tm.assert_frame_equal(result, expected)
 
     def read_pickles(self, version):
         if not is_little_endian():
@@ -83,7 +106,7 @@ class TestPickle():
         n = 0
         for f in os.listdir(pth):
             vf = os.path.join(pth, f)
-            data = self.compare(vf)
+            data = self.compare(vf, version)
 
             if data is None:
                 continue
@@ -150,14 +173,14 @@ class TestPickle():
 
                         # test reading with each unpickler
                         result = pd.read_pickle(path)
-                        self.compare_element(typ, result, expected)
+                        self.compare_element(result, expected, typ)
 
                         if c_unpickler is not None:
                             result = c_unpickler(path)
-                            self.compare_element(typ, result, expected)
+                            self.compare_element(result, expected, typ)
 
                         result = python_unpickler(path)
-                        self.compare_element(typ, result, expected)
+                        self.compare_element(result, expected, typ)
 
     def _validate_timeseries(self, pickled, current):
         # GH 7748

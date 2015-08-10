@@ -203,34 +203,59 @@ class series_timestamp_compare(object):
 
 class timestamp_ops_diff1(object):
     goal_time = 0.2
+    N = 1000000
 
     def setup(self):
-        self.N = 1000000
-        self.s = Series(date_range('20010101', periods=self.N, freq='s'))
+        self.s = self.create()
+
+    def create(self):
+        return Series(date_range('20010101', periods=self.N, freq='s'))
 
     def time_timestamp_ops_diff1(self):
         self.s.diff()
 
+class timestamp_tz_ops_diff1(timestamp_ops_diff1):
+    N = 10000
+
+    def create(self):
+        return Series(date_range('20010101', periods=self.N, freq='s', tz='US/Eastern'))
 
 class timestamp_ops_diff2(object):
     goal_time = 0.2
+    N = 1000000
 
     def setup(self):
-        self.N = 1000000
-        self.s = Series(date_range('20010101', periods=self.N, freq='s'))
+        self.s = self.create()
+
+    def create(self):
+        return Series(date_range('20010101', periods=self.N, freq='s'))
 
     def time_timestamp_ops_diff2(self):
         (self.s - self.s.shift())
 
+class timestamp_tz_ops_diff2(timestamp_ops_diff2):
+    N = 10000
+
+    def create(self):
+        return Series(date_range('20010101', periods=self.N, freq='s', tz='US/Eastern'))
 
 class timestamp_series_compare(object):
     goal_time = 0.2
+    N = 1000000
 
     def setup(self):
-        self.N = 1000000
         self.halfway = ((self.N // 2) - 1)
-        self.s = Series(date_range('20010101', periods=self.N, freq='T'))
+        self.s = self.create()
         self.ts = self.s[self.halfway]
+
+    def create(self):
+        return Series(date_range('20010101', periods=self.N, freq='T'))
 
     def time_timestamp_series_compare(self):
         (self.ts >= self.s)
+
+class timestamp_tz_series_compare(timestamp_series_compare):
+    N = 10000
+
+    def create(self):
+        return Series(date_range('20010101', periods=self.N, freq='T', tz='US/Eastern'))

@@ -83,7 +83,9 @@ def create_data():
                             index=MultiIndex.from_tuples(tuple(zip(*[[1, 1, 2, 2, 2], [3, 4, 3, 4, 5]])),
                                                          names=['one', 'two'])),
                   dup=Series(np.arange(5).astype(np.float64), index=['A', 'B', 'C', 'D', 'A']),
-                  cat=Series(Categorical(['foo', 'bar', 'baz'])))
+                  cat=Series(Categorical(['foo', 'bar', 'baz'])),
+                  dt=Series(date_range('20130101',periods=5)),
+                  dt_tz=Series(date_range('20130101',periods=5,tz='US/Eastern')))
     if LooseVersion(pandas.__version__) >= '0.17.0':
         series['period'] = Series([Period('2000Q1')] * 5)
 
@@ -101,7 +103,9 @@ def create_data():
                  cat_onecol=DataFrame(dict(A=Categorical(['foo', 'bar']))),
                  cat_and_float=DataFrame(dict(A=Categorical(['foo', 'bar', 'baz']),
                                               B=np.arange(3).astype(np.int64))),
-                 mixed_dup=mixed_dup_df)
+                 mixed_dup=mixed_dup_df,
+                 dt_mixed_tzs=DataFrame(dict(A=Timestamp('20130102', tz='US/Eastern'), B=Timestamp('20130603', tz='CET')), index=range(5)),
+                 )
 
     mixed_dup_panel = Panel(dict(ItemA=frame['float'], ItemB=frame['int']))
     mixed_dup_panel.items = ['ItemA', 'ItemA']

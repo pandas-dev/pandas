@@ -178,7 +178,7 @@ class DatetimeIndexOpsMixin(object):
 
             return self._simple_new(sorted_values, **attribs)
 
-    def take(self, indices, axis=0):
+    def take(self, indices, axis=0, **kwargs):
         """
         Analogous to ndarray.take
         """
@@ -343,11 +343,6 @@ class DatetimeIndexOpsMixin(object):
                 if freq is not None:
                     freq = "'%s'" % freq
                 attrs.append(('freq',freq))
-            elif attrib == 'tz':
-                tz = self.tz
-                if tz is not None:
-                    tz = "'%s'" % tz
-                attrs.append(('tz',tz))
         return attrs
 
     @cache_readonly
@@ -451,9 +446,9 @@ class DatetimeIndexOpsMixin(object):
 
         inc = tslib._delta_to_nanoseconds(other)
         mask = self.asi8 == tslib.iNaT
-        new_values = (self.asi8 + inc).view(self.dtype)
+        new_values = (self.asi8 + inc).view('i8')
         new_values[mask] = tslib.iNaT
-        return new_values.view(self.dtype)
+        return new_values.view('i8')
 
     def _add_delta_tdi(self, other):
         # add a delta of a TimedeltaIndex
@@ -547,8 +542,7 @@ class DatetimeIndexOpsMixin(object):
         """
         Analogous to ndarray.repeat
         """
-        return self._simple_new(self.values.repeat(repeats),
-                                name=self.name)
+        return self._shallow_copy(self.values.repeat(repeats), freq=None)
 
     def summary(self, name=None):
         """

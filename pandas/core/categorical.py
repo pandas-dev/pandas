@@ -12,13 +12,14 @@ from pandas.core.base import PandasObject, PandasDelegate
 import pandas.core.common as com
 from pandas.util.decorators import cache_readonly, deprecate_kwarg
 
-from pandas.core.common import (CategoricalDtype, ABCSeries, ABCIndexClass, ABCCategoricalIndex,
+from pandas.core.common import (ABCSeries, ABCIndexClass, ABCPeriodIndex, ABCCategoricalIndex,
                                 isnull, notnull, is_dtype_equal,
                                 is_categorical_dtype, is_integer_dtype, is_object_dtype,
                                 _possibly_infer_to_datetimelike, get_dtype_kinds,
                                 is_list_like, is_sequence, is_null_slice, is_bool,
                                 _ensure_platform_int, _ensure_object, _ensure_int64,
                                 _coerce_indexer_dtype, take_1d)
+from pandas.core.dtypes import CategoricalDtype
 from pandas.util.terminal import get_terminal_size
 from pandas.core.config import get_option
 
@@ -85,7 +86,7 @@ def _cat_compare_op(op):
 def maybe_to_categorical(array):
     """ coerce to a categorical if a series is given """
     if isinstance(array, (ABCSeries, ABCCategoricalIndex)):
-        return array.values
+        return array._values
     return array
 
 _codes_doc = """The category codes of this categorical.
@@ -231,7 +232,7 @@ class Categorical(PandasObject):
 
             # we are either a Series or a CategoricalIndex
             if isinstance(values, (ABCSeries, ABCCategoricalIndex)):
-                values = values.values
+                values = values._values
 
             if ordered is None:
                 ordered = values.ordered
