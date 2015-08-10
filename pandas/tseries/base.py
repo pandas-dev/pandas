@@ -182,10 +182,12 @@ class DatetimeIndexOpsMixin(object):
         """
         Analogous to ndarray.take
         """
-        maybe_slice = lib.maybe_indices_to_slice(com._ensure_int64(indices), len(self))
+        indices = com._ensure_int64(indices)
+        maybe_slice = lib.maybe_indices_to_slice(indices, len(self))
         if isinstance(maybe_slice, slice):
             return self[maybe_slice]
-        return super(DatetimeIndexOpsMixin, self).take(indices, axis)
+        taken = self.asi8.take(indices)
+        return self._shallow_copy(taken, freq=None)
 
     def get_duplicates(self):
         values = Index.get_duplicates(self)
