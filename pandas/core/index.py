@@ -1194,7 +1194,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         return indexes
 
-    def take(self, indexer, axis=0):
+    def take(self, indices, axis=0):
         """
         return a new Index of the values selected by the indexer
 
@@ -1203,11 +1203,9 @@ class Index(IndexOpsMixin, PandasObject):
         numpy.ndarray.take
         """
 
-        indexer = com._ensure_platform_int(indexer)
-        taken = np.array(self).take(indexer)
-
-        # by definition cannot propogate freq
-        return self._shallow_copy(taken, freq=None)
+        indices = com._ensure_platform_int(indices)
+        taken = self.values.take(indices)
+        return self._shallow_copy(taken)
 
     def putmask(self, mask, value):
         """

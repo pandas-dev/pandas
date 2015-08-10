@@ -276,6 +276,11 @@ class Base(object):
             expected = ind[indexer]
             self.assertTrue(result.equals(expected))
 
+            if not isinstance(ind, (DatetimeIndex, PeriodIndex, TimedeltaIndex)):
+                # GH 10791
+                with tm.assertRaises(AttributeError):
+                    ind.freq
+
     def test_setops_errorcases(self):
         for name, idx in compat.iteritems(self.indices):
             # # non-iterable input
@@ -4775,7 +4780,7 @@ class TestMultiIndex(Base, tm.TestCase):
 
         mi = MultiIndex.from_product([list('ab'),range(3)],names=['first','second'])
         str(mi)
-        
+
         if compat.PY3:
             tm.assert_index_equal(eval(repr(mi)), mi, exact=True)
         else:
@@ -4784,11 +4789,11 @@ class TestMultiIndex(Base, tm.TestCase):
             tm.assert_index_equal(result, mi, exact=False)
             self.assertEqual(mi.get_level_values('first').inferred_type, 'string')
             self.assertEqual(result.get_level_values('first').inferred_type, 'unicode')
-            
+
         mi_u = MultiIndex.from_product([list(u'ab'),range(3)],names=['first','second'])
         result = eval(repr(mi_u))
-        tm.assert_index_equal(result, mi_u, exact=True)            
-            
+        tm.assert_index_equal(result, mi_u, exact=True)
+
         # formatting
         if compat.PY3:
             str(mi)
@@ -4810,7 +4815,7 @@ class TestMultiIndex(Base, tm.TestCase):
 
         mi = MultiIndex.from_product([list(u'abcdefg'),range(10)],names=['first','second'])
         result = eval(repr(mi_u))
-        tm.assert_index_equal(result, mi_u, exact=True)     
+        tm.assert_index_equal(result, mi_u, exact=True)
 
     def test_str(self):
         # tested elsewhere
