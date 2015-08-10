@@ -148,8 +148,7 @@ pandas can be installed via pip from
 
 This will likely require the installation of a number of dependencies,
 including NumPy, will require a compiler to compile required bits of code,
-and can take a few minutes to complete. On machines with little memory 
-(like virtual private servers) this process might crash the compiler.
+and can take a few minutes to complete.
 
 Installing using your Linux distribution's package manager.
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
