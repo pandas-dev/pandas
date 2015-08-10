@@ -153,7 +153,8 @@ and can take a few minutes to complete.
 Installing using your Linux distribution's package manager.
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-
+The commands in this table will install pandas for Python 2 from your distribution.
+To install pandas for Python 3 you may need to use the package ``python3-pandas``.
 
 .. csv-table::
     :header: "Distribution", "Status", "Download / Repository Link", "Install method"
