@@ -148,11 +148,14 @@ pandas can be installed via pip from
 
 This will likely require the installation of a number of dependencies,
 including NumPy, will require a compiler to compile required bits of code,
-and can take a few minutes to complete.
+and can take a few minutes to complete. On machines with little memory 
+(like virtual private servers) this process might crash the compiler.
 
 Installing using your Linux distribution's package manager.
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+The commands in this table will install pandas for Python 2 from your distribution. 
+To install pandas for Python 3 you need to use the package ``python3-pandas``.
 
 
 .. csv-table::
