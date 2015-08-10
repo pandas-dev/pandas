@@ -20,7 +20,7 @@ import pandas.lib as lib
 import pandas.tslib as tslib
 from pandas import compat
 from pandas.compat import StringIO, BytesIO, range, long, u, zip, map, string_types, iteritems
-
+from pandas.core.dtypes import CategoricalDtype, CategoricalDtypeType, DatetimeTZDtype, DatetimeTZDtypeType
 from pandas.core.config import get_option
 
 class PandasError(Exception):
@@ -114,77 +114,29 @@ class _ABCGeneric(type):
 ABCGeneric = _ABCGeneric("ABCGeneric", tuple(), {})
 
 
-class CategoricalDtypeType(type):
+def bind_method(cls, name, func):
+    """Bind a method to class, python 2 and python 3 compatible.
+
+    Parameters
+    ----------
+
+    cls : type
+        class to receive bound method
+    name : basestring
+        name of method on class instance
+    func : function
+        function to be bound as method
+
+
+    Returns
+    -------
+    None
     """
-    the type of CategoricalDtype, this metaclass determines subclass ability
-    """
-    def __init__(cls, name, bases, attrs):
-        pass
-
-class CategoricalDtype(object):
-    __meta__ = CategoricalDtypeType
-    """
-    A np.dtype duck-typed class, suitable for holding a custom categorical dtype.
-
-    THIS IS NOT A REAL NUMPY DTYPE, but essentially a sub-class of np.object
-    """
-    name = 'category'
-    names = None
-    type = CategoricalDtypeType
-    subdtype = None
-    kind = 'O'
-    str = '|O08'
-    num = 100
-    shape = tuple()
-    itemsize = 8
-    base = np.dtype('O')
-    isbuiltin = 0
-    isnative = 0
-
-    def __unicode__(self):
-        return self.name
-
-    def __str__(self):
-        """
-        Return a string representation for a particular Object
-
-        Invoked by str(df) in both py2/py3.
-        Yields Bytestring in Py2, Unicode String in py3.
-        """
-
-        if compat.PY3:
-            return self.__unicode__()
-        return self.__bytes__()
-
-    def __bytes__(self):
-        """
-        Return a string representation for a particular object.
-
-        Invoked by bytes(obj) in py3 only.
-        Yields a bytestring in both py2/py3.
-        """
-        from pandas.core.config import get_option
-
-        encoding = get_option("display.encoding")
-        return self.__unicode__().encode(encoding, 'replace')
-
-    def __repr__(self):
-        """
-        Return a string representation for a particular object.
-
-        Yields Bytestring in Py2, Unicode String in py3.
-        """
-        return str(self)
-
-    def __hash__(self):
-        # make myself hashable
-        return hash(str(self))
-
-    def __eq__(self, other):
-        if isinstance(other, compat.string_types):
-            return other == self.name
-
-        return isinstance(other, CategoricalDtype)
+    # only python 2 has bound/unbound method issue
+    if not compat.PY3:
+        setattr(cls, name, types.MethodType(func, None, cls))
+    else:
+        setattr(cls, name, func)
 
 def isnull(obj):
     """Detect missing values (NaN in numeric arrays, None/NaN in object arrays)
@@ -764,9 +716,12 @@ def take_nd(arr, indexer, axis=0, out=None, fill_value=np.nan,
         undefined if allow_fill == False and -1 is present in indexer.
     """
 
+    # dispatch to internal type takes
     if is_categorical(arr):
         return arr.take_nd(indexer, fill_value=fill_value,
                            allow_fill=allow_fill)
+    elif is_datetimetz(arr):
+        return arr.take(indexer, fill_value=fill_value, allow_fill=allow_fill)
 
     if indexer is None:
         indexer = np.arange(arr.shape[axis], dtype=np.int64)
@@ -1247,13 +1202,18 @@ def _maybe_upcast(values, fill_value=np.nan, dtype=None, copy=False):
     copy : if True always make a copy even if no upcast is required
     """
 
-    if dtype is None:
-        dtype = values.dtype
-    new_dtype, fill_value = _maybe_promote(dtype, fill_value)
-    if new_dtype != values.dtype:
-        values = values.astype(new_dtype)
-    elif copy:
-        values = values.copy()
+    if is_internal_type(values):
+        if copy:
+            values = values.copy()
+    else:
+        if dtype is None:
+            dtype = values.dtype
+        new_dtype, fill_value = _maybe_promote(dtype, fill_value)
+        if new_dtype != values.dtype:
+            values = values.astype(new_dtype)
+        elif copy:
+            values = values.copy()
+
     return values, fill_value
 
 
@@ -1724,7 +1684,7 @@ def _interpolate_scipy_wrapper(x, y, new_x, method, fill_value=None,
 
     if getattr(x, 'is_all_dates', False):
         # GH 5975, scipy.interp1d can't hande datetime64s
-        x, new_x = x.values.astype('i8'), new_x.astype('i8')
+        x, new_x = x._values.astype('i8'), new_x.astype('i8')
 
     try:
         alt_methods['pchip'] = interpolate.pchip_interpolate
@@ -1831,7 +1791,8 @@ def _invalidate_string_dtypes(dtype_set):
 
 
 def _get_dtype_from_object(dtype):
-    """Get a numpy dtype.type-style object.
+    """Get a numpy dtype.type-style object. This handles the
+       datetime64[ns] and datetime64[ns, TZ] compat
 
     Notes
     -----
@@ -1840,6 +1801,10 @@ def _get_dtype_from_object(dtype):
     # type object from a dtype
     if isinstance(dtype, type) and issubclass(dtype, np.generic):
         return dtype
+    elif is_categorical(dtype):
+        return CategoricalDtype().type
+    elif is_datetimetz(dtype):
+        return DatetimeTZDtype(dtype).type
     elif isinstance(dtype, np.dtype):  # dtype object
         try:
             _validate_date_like_dtype(dtype)
@@ -1850,15 +1815,16 @@ def _get_dtype_from_object(dtype):
     elif isinstance(dtype, compat.string_types):
         if dtype == 'datetime' or dtype == 'timedelta':
             dtype += '64'
-        elif dtype == 'category':
-            return CategoricalDtypeType
+
         try:
-            return _get_dtype_from_object(getattr(np, dtype))
+            return _get_dtype_from_object(getattr(np,dtype))
         except AttributeError:
             # handles cases like _get_dtype(int)
             # i.e., python objects that are valid dtypes (unlike user-defined
             # types, in general)
+            # further handle internal types
             pass
+
     return _get_dtype_from_object(np.dtype(dtype))
 
 
@@ -1978,8 +1944,8 @@ def _possibly_convert_platform(values):
     if isinstance(values, (list, tuple)):
         values = lib.list_to_object_array(values)
     if getattr(values, 'dtype', None) == np.object_:
-        if hasattr(values, 'values'):
-            values = values.values
+        if hasattr(values, '_values'):
+            values = values._values
         values = lib.maybe_convert_objects(values)
 
     return values
@@ -1997,18 +1963,21 @@ def _possibly_cast_to_datetime(value, dtype, errors='raise'):
             dtype = np.dtype(dtype)
 
         is_datetime64 = is_datetime64_dtype(dtype)
+        is_datetime64tz = is_datetime64tz_dtype(dtype)
         is_timedelta64 = is_timedelta64_dtype(dtype)
 
-        if is_datetime64 or is_timedelta64:
+        if is_datetime64 or is_datetime64tz or is_timedelta64:
 
             # force the dtype if needed
-            if is_datetime64 and dtype != _NS_DTYPE:
+            if is_datetime64 and not is_dtype_equal(dtype,_NS_DTYPE):
                 if dtype.name == 'datetime64[ns]':
                     dtype = _NS_DTYPE
                 else:
                     raise TypeError(
                         "cannot convert datetimelike to dtype [%s]" % dtype)
-            elif is_timedelta64 and dtype != _TD_DTYPE:
+            elif is_datetime64tz:
+                pass
+            elif is_timedelta64 and not is_dtype_equal(dtype,_TD_DTYPE):
                 if dtype.name == 'timedelta64[ns]':
                     dtype = _TD_DTYPE
                 else:
@@ -2026,14 +1995,27 @@ def _possibly_cast_to_datetime(value, dtype, errors='raise'):
                     value = tslib.iNaT
 
                 # we have an array of datetime or timedeltas & nulls
-                elif np.prod(value.shape) and value.dtype != dtype:
+                elif np.prod(value.shape) and not is_dtype_equal(value.dtype, dtype):
                     try:
                         if is_datetime64:
-                            value = to_datetime(value, errors=errors).values
+                            value = to_datetime(value, errors=errors)._values
+                        elif is_datetime64tz:
+
+                            # input has to be UTC at this point, so just localize
+                            value = to_datetime(value, errors=errors).tz_localize(dtype.tz)
                         elif is_timedelta64:
-                            value = to_timedelta(value, errors=errors).values
+                            value = to_timedelta(value, errors=errors)._values
                     except (AttributeError, ValueError):
                         pass
+
+        # coerce datetimelike to object
+        elif is_datetime64_dtype(value) and not is_datetime64_dtype(dtype):
+            if is_object_dtype(dtype):
+                ints = np.asarray(value).view('i8')
+                return tslib.ints_to_pydatetime(ints)
+
+            # we have a non-castable dtype that was passed
+            raise TypeError('Cannot cast datetime64 to %s' % dtype)
 
     else:
 
@@ -2073,12 +2055,18 @@ def _possibly_infer_to_datetimelike(value, convert_dates=False):
 
     Parameters
     ----------
-    value : np.array
+    value : np.array / Series / Index / list-like
     convert_dates : boolean, default False
        if True try really hard to convert dates (such as datetime.date), other
        leave inferred dtype 'date' alone
 
     """
+
+    if isinstance(value, (ABCDatetimeIndex, ABCPeriodIndex)):
+        return value
+    elif isinstance(value, ABCSeries):
+        if isinstance(value._values, ABCDatetimeIndex):
+            return value._values
 
     v = value
     if not is_list_like(v):
@@ -2093,9 +2081,22 @@ def _possibly_infer_to_datetimelike(value, convert_dates=False):
         def _try_datetime(v):
             # safe coerce to datetime64
             try:
-                return tslib.array_to_datetime(v, errors='raise').reshape(shape)
+                v = tslib.array_to_datetime(v, errors='raise')
+            except ValueError:
+
+                # we might have a sequence of the same-datetimes with tz's
+                # if so coerce to a DatetimeIndex; if they are not the same, then
+                # these stay as object dtype
+                try:
+                    from pandas import to_datetime
+                    return to_datetime(v)
+                except:
+                    pass
+
             except:
-                return v
+                pass
+
+            return v.reshape(shape)
 
         def _try_timedelta(v):
             # safe coerce to timedelta64
@@ -2103,7 +2104,7 @@ def _possibly_infer_to_datetimelike(value, convert_dates=False):
             # will try first with a string & object conversion
             from pandas.tseries.timedeltas import to_timedelta
             try:
-                return to_timedelta(v).values.reshape(shape)
+                return to_timedelta(v)._values.reshape(shape)
             except:
                 return v
 
@@ -2112,9 +2113,9 @@ def _possibly_infer_to_datetimelike(value, convert_dates=False):
         inferred_type = lib.infer_dtype(sample)
 
         if inferred_type in ['datetime', 'datetime64'] or (convert_dates and inferred_type in ['date']):
-            value = _try_datetime(v).reshape(shape)
+            value = _try_datetime(v)
         elif inferred_type in ['timedelta', 'timedelta64']:
-            value = _try_timedelta(v).reshape(shape)
+            value = _try_timedelta(v)
 
         # its possible to have nulls intermixed within the datetime or timedelta
         # these will in general have an inferred_type of 'mixed', so have to try
@@ -2125,9 +2126,9 @@ def _possibly_infer_to_datetimelike(value, convert_dates=False):
         elif inferred_type in ['mixed']:
 
             if lib.is_possible_datetimelike_array(_ensure_object(v)):
-                value = _try_timedelta(v).reshape(shape)
+                value = _try_timedelta(v)
                 if lib.infer_dtype(value) in ['mixed']:
-                    value = _try_datetime(v).reshape(shape)
+                    value = _try_datetime(v)
 
     return value
 
@@ -2448,19 +2449,21 @@ def is_period_arraylike(arr):
 
 def is_datetime_arraylike(arr):
     """ return if we are datetime arraylike / DatetimeIndex """
-    if isinstance(arr, pd.DatetimeIndex):
+    if isinstance(arr, ABCDatetimeIndex):
         return True
     elif isinstance(arr, (np.ndarray, ABCSeries)):
         return arr.dtype == object and lib.infer_dtype(arr) == 'datetime'
     return getattr(arr, 'inferred_type', None) == 'datetime'
 
 def is_datetimelike(arr):
-    return arr.dtype in _DATELIKE_DTYPES or isinstance(arr, ABCPeriodIndex)
+    return arr.dtype in _DATELIKE_DTYPES or isinstance(arr, ABCPeriodIndex) or is_datetimetz(arr)
 
 def _coerce_to_dtype(dtype):
     """ coerce a string / np.dtype to a dtype """
     if is_categorical_dtype(dtype):
         dtype = CategoricalDtype()
+    elif is_datetime64tz_dtype(dtype):
+        dtype = DatetimeTZDtype(dtype)
     else:
         dtype = np.dtype(dtype)
     return dtype
@@ -2471,9 +2474,18 @@ def _get_dtype(arr_or_dtype):
     elif isinstance(arr_or_dtype, type):
         return np.dtype(arr_or_dtype)
     elif isinstance(arr_or_dtype, CategoricalDtype):
-        return CategoricalDtype()
-    return arr_or_dtype.dtype
+        return arr_or_dtype
+    elif isinstance(arr_or_dtype, DatetimeTZDtype):
+        return arr_or_dtype
+    elif isinstance(arr_or_dtype, compat.string_types):
+        if is_categorical_dtype(arr_or_dtype):
+            return CategoricalDtype.construct_from_string(arr_or_dtype)
+        elif is_datetime64tz_dtype(arr_or_dtype):
+            return DatetimeTZDtype.construct_from_string(arr_or_dtype)
 
+    if hasattr(arr_or_dtype, 'dtype'):
+        arr_or_dtype = arr_or_dtype.dtype
+    return np.dtype(arr_or_dtype)
 
 def _get_dtype_type(arr_or_dtype):
     if isinstance(arr_or_dtype, np.dtype):
@@ -2482,23 +2494,26 @@ def _get_dtype_type(arr_or_dtype):
         return np.dtype(arr_or_dtype).type
     elif isinstance(arr_or_dtype, CategoricalDtype):
         return CategoricalDtypeType
+    elif isinstance(arr_or_dtype, DatetimeTZDtype):
+        return DatetimeTZDtypeType
     elif isinstance(arr_or_dtype, compat.string_types):
         if is_categorical_dtype(arr_or_dtype):
             return CategoricalDtypeType
+        elif is_datetime64tz_dtype(arr_or_dtype):
+            return DatetimeTZDtypeType
         return _get_dtype_type(np.dtype(arr_or_dtype))
     try:
         return arr_or_dtype.dtype.type
     except AttributeError:
-        raise ValueError('%r is not a dtype' % arr_or_dtype)
+        return type(None)
 
 def is_dtype_equal(source, target):
     """ return a boolean if the dtypes are equal """
-    source = _get_dtype_type(source)
-    target = _get_dtype_type(target)
-
     try:
+        source = _get_dtype(source)
+        target = _get_dtype(target)
         return source == target
-    except TypeError:
+    except (TypeError, AttributeError):
 
         # invalid comparison
         # object == category will hit this
@@ -2524,14 +2539,24 @@ def is_int_or_datetime_dtype(arr_or_dtype):
     return (issubclass(tipo, np.integer) or
             issubclass(tipo, (np.datetime64, np.timedelta64)))
 
-
 def is_datetime64_dtype(arr_or_dtype):
-    tipo = _get_dtype_type(arr_or_dtype)
+    try:
+        tipo = _get_dtype_type(arr_or_dtype)
+    except TypeError:
+        return False
     return issubclass(tipo, np.datetime64)
 
+def is_datetime64tz_dtype(arr_or_dtype):
+    return DatetimeTZDtype.is_dtype(arr_or_dtype)
+
+def is_datetime64_any_dtype(arr_or_dtype):
+    return is_datetime64_dtype(arr_or_dtype) or is_datetime64tz_dtype(arr_or_dtype)
 
 def is_datetime64_ns_dtype(arr_or_dtype):
-    tipo = _get_dtype(arr_or_dtype)
+    try:
+        tipo = _get_dtype(arr_or_dtype)
+    except TypeError:
+        return False
     return tipo == _NS_DTYPE
 
 def is_timedelta64_dtype(arr_or_dtype):
@@ -2555,9 +2580,10 @@ def is_datetimelike_v_numeric(a, b):
         a = np.asarray(a)
     if not hasattr(b, 'dtype'):
         b = np.asarray(b)
-    f = lambda x: is_integer_dtype(x) or is_float_dtype(x)
-    return (needs_i8_conversion(a) and f(b)) or (
-        needs_i8_conversion(b) and f(a))
+    is_numeric = lambda x: is_integer_dtype(x) or is_float_dtype(x)
+    is_datetimelike = needs_i8_conversion
+    return (is_datetimelike(a) and is_numeric(b)) or (
+        is_datetimelike(b) and is_numeric(a))
 
 def is_datetimelike_v_object(a, b):
     # return if we have an i8 convertible and object comparision
@@ -2566,14 +2592,17 @@ def is_datetimelike_v_object(a, b):
     if not hasattr(b, 'dtype'):
         b = np.asarray(b)
     f = lambda x: is_object_dtype(x)
-    return (needs_i8_conversion(a) and f(b)) or (
-        needs_i8_conversion(b) and f(a))
+    is_object = lambda x: is_integer_dtype(x) or is_float_dtype(x)
+    is_datetimelike = needs_i8_conversion
+    return (is_datetimelike(a) and is_object(b)) or (
+        is_datetimelike(b) and is_object(a))
 
-needs_i8_conversion = is_datetime_or_timedelta_dtype
+needs_i8_conversion = lambda arr_or_dtype: is_datetime_or_timedelta_dtype(arr_or_dtype) or \
+                      is_datetime64tz_dtype(arr_or_dtype)
 
 def i8_boxer(arr_or_dtype):
     """ return the scalar boxer for the dtype """
-    if is_datetime64_dtype(arr_or_dtype):
+    if is_datetime64_dtype(arr_or_dtype) or is_datetime64tz_dtype(arr_or_dtype):
         return lib.Timestamp
     elif is_timedelta64_dtype(arr_or_dtype):
         return lambda x: lib.Timedelta(x,unit='ns')
@@ -2603,20 +2632,33 @@ def is_bool_dtype(arr_or_dtype):
         return False
     return issubclass(tipo, np.bool_)
 
+def is_sparse(array):
+    """ return if we are a sparse array """
+    return isinstance(array, (ABCSparseArray, ABCSparseSeries))
+
+def is_datetimetz(array):
+    """ return if we are a datetime with tz array """
+    return (isinstance(array, ABCDatetimeIndex) and getattr(array,'tz',None) is not None) or is_datetime64tz_dtype(array)
+
+def is_internal_type(value):
+    """
+    if we are a klass that is preserved by the internals
+    these are internal klasses that we represent (and don't use a np.array)
+    """
+    if is_categorical(value):
+        return True
+    elif is_sparse(value):
+        return True
+    elif is_datetimetz(value):
+        return True
+    return False
+
 def is_categorical(array):
     """ return if we are a categorical possibility """
-    return isinstance(array, ABCCategorical) or isinstance(array.dtype, CategoricalDtype)
+    return isinstance(array, ABCCategorical) or is_categorical_dtype(array)
 
 def is_categorical_dtype(arr_or_dtype):
-    if hasattr(arr_or_dtype,'dtype'):
-        arr_or_dtype = arr_or_dtype.dtype
-
-    if isinstance(arr_or_dtype, CategoricalDtype):
-        return True
-    try:
-        return arr_or_dtype == 'category'
-    except:
-        return False
+    return CategoricalDtype.is_dtype(arr_or_dtype)
 
 def is_complex_dtype(arr_or_dtype):
     tipo = _get_dtype_type(arr_or_dtype)
@@ -2979,8 +3021,10 @@ def get_dtype_kinds(l):
         dtype = arr.dtype
         if is_categorical_dtype(dtype):
             typ = 'category'
-        elif isinstance(arr, ABCSparseArray):
+        elif is_sparse(arr):
             typ = 'sparse'
+        elif is_datetimetz(arr):
+            typ = 'datetimetz'
         elif is_datetime64_dtype(dtype):
             typ = 'datetime'
         elif is_timedelta64_dtype(dtype):
@@ -3029,7 +3073,7 @@ def _concat_compat(to_concat, axis=0):
     typs = get_dtype_kinds(to_concat)
 
     # these are mandated to handle empties as well
-    if 'datetime' in typs or 'timedelta' in typs:
+    if 'datetime' in typs or 'datetimetz' in typs or 'timedelta' in typs:
         from pandas.tseries.common import _concat_compat
         return _concat_compat(to_concat, axis=axis)
 

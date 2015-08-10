@@ -579,21 +579,21 @@ class TestPivotTable(tm.TestCase):
 
         exp_idx = Index(['a', 'b'], name='label')
         expected = DataFrame({7: [0, 3], 8: [1, 4], 9:[2, 5]},
-                             index=exp_idx, columns=[7, 8, 9])
+                             index=exp_idx, columns=Index([7, 8, 9],name='dt1'))
         tm.assert_frame_equal(result, expected)
 
         result = pivot_table(df, index=df['dt2'].dt.month, columns=df['dt1'].dt.hour,
                              values='value1')
 
         expected = DataFrame({7: [0, 3], 8: [1, 4], 9:[2, 5]},
-                             index=[1, 2], columns=[7, 8, 9])
+                             index=Index([1, 2],name='dt2'), columns=Index([7, 8, 9],name='dt1'))
         tm.assert_frame_equal(result, expected)
 
-        result = pivot_table(df, index=df['dt2'].dt.year,
+        result = pivot_table(df, index=df['dt2'].dt.year.values,
                              columns=[df['dt1'].dt.hour, df['dt2'].dt.month],
                              values='value1')
 
-        exp_col = MultiIndex.from_arrays([[7, 7, 8, 8, 9, 9], [1, 2] * 3])
+        exp_col = MultiIndex.from_arrays([[7, 7, 8, 8, 9, 9], [1, 2] * 3],names=['dt1','dt2'])
         expected = DataFrame(np.array([[0, 3, 1, 4, 2, 5]],dtype='int64'),
                              index=[2013], columns=exp_col)
         tm.assert_frame_equal(result, expected)

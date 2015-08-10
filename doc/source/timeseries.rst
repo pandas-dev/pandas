@@ -1745,3 +1745,30 @@ constructor as well as ``tz_localize``.
 
    # tz_convert(None) is identical with tz_convert('UTC').tz_localize(None)
    didx.tz_convert('UCT').tz_localize(None)
+
+.. _timeseries.timezone_series:
+
+TZ aware Dtypes
+~~~~~~~~~~~~~~~
+
+.. versionadded:: 0.17.0
+
+``Series/DatetimeIndex`` with a timezone naive value are represented with a dtype of ``datetime64[ns]``.
+
+.. ipython:: python
+
+   dr = pd.date_range('20130101',periods=3)
+   dr
+   s = Series(dr)
+   s
+
+``Series/DatetimeIndex`` with a timezone aware value are represented with a dtype of ``datetime64[ns, tz]``.
+
+.. ipython:: python
+
+   dr = pd.date_range('20130101',periods=3,tz='US/Eastern')
+   dr
+   s = Series(dr)
+   s
+
+Both of these ``Series`` can be manipulated via the ``.dt`` accessor, see the :ref:`docs <basics.dt_accessors>` as well.

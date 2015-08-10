@@ -35,6 +35,7 @@ from pandas import (DataFrame, Index, Series, Panel, notnull, isnull,
                     MultiIndex, DatetimeIndex, Timestamp, date_range,
                     read_csv, timedelta_range, Timedelta, CategoricalIndex,
                     option_context)
+from pandas.core.dtypes import DatetimeTZDtype
 import pandas as pd
 from pandas.parser import CParserError
 from pandas.util.misc import is_little_endian
@@ -2254,6 +2255,11 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         self.all_mixed    = DataFrame({'a': 1., 'b': 2, 'c': 'foo', 'float32' : np.array([1.]*10,dtype='float32'),
                                        'int32' : np.array([1]*10,dtype='int32'),
                                        }, index=np.arange(10))
+        self.tzframe = DataFrame({'A' : date_range('20130101',periods=3),
+                                  'B' : date_range('20130101',periods=3,tz='US/Eastern'),
+                                  'C' : date_range('20130101',periods=3,tz='CET')})
+        self.tzframe.iloc[1,1] = pd.NaT
+        self.tzframe.iloc[1,2] = pd.NaT
 
         self.ts1 = tm.makeTimeSeries()
         self.ts2 = tm.makeTimeSeries()[5:]
@@ -4080,13 +4086,14 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         import pytz
         tz = pytz.timezone('US/Eastern')
         dt = tz.localize(datetime(2012, 1, 1))
+
         df = DataFrame({'End Date': dt}, index=[0])
         self.assertEqual(df.iat[0,0],dt)
-        assert_series_equal(df.dtypes,Series({'End Date' : np.dtype('object') }))
+        assert_series_equal(df.dtypes,Series({'End Date' : 'datetime64[ns, US/Eastern]' }))
 
         df = DataFrame([{'End Date': dt}])
         self.assertEqual(df.iat[0,0],dt)
-        assert_series_equal(df.dtypes,Series({'End Date' : np.dtype('object') }))
+        assert_series_equal(df.dtypes,Series({'End Date' : 'datetime64[ns, US/Eastern]' }))
 
         # tz-aware (UTC and other tz's)
         # GH 8411
@@ -4117,6 +4124,183 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         df = DataFrame( {'a' : i, 'b' :  i_no_tz } )
         expected = DataFrame( {'a' : i.to_series(keep_tz=True).reset_index(drop=True), 'b': i_no_tz })
         assert_frame_equal(df, expected)
+
+    def test_constructor_with_datetime_tz(self):
+
+        # 8260
+        # support datetime64 with tz
+
+        idx = Index(date_range('20130101',periods=3,tz='US/Eastern'),
+                    name='foo')
+        dr = date_range('20130110',periods=3)
+
+        # construction
+        df = DataFrame({'A' : idx, 'B' : dr})
+        self.assertTrue(df['A'].dtype,'M8[ns, US/Eastern')
+        self.assertTrue(df['A'].name == 'A')
+        assert_series_equal(df['A'],Series(idx,name='A'))
+        assert_series_equal(df['B'],Series(dr,name='B'))
+
+        # construction from dict
+        df2 = DataFrame(dict(A=Timestamp('20130102', tz='US/Eastern'), B=Timestamp('20130603', tz='CET')), index=range(5))
+        assert_series_equal(df2.dtypes, Series(['datetime64[ns, US/Eastern]', 'datetime64[ns, CET]'], index=['A','B']))
+
+        # dtypes
+        tzframe = DataFrame({'A' : date_range('20130101',periods=3),
+                             'B' : date_range('20130101',periods=3,tz='US/Eastern'),
+                             'C' : date_range('20130101',periods=3,tz='CET')})
+        tzframe.iloc[1,1] = pd.NaT
+        tzframe.iloc[1,2] = pd.NaT
+        result = tzframe.dtypes.sort_index()
+        expected = Series([ np.dtype('datetime64[ns]'),
+                            DatetimeTZDtype('datetime64[ns, US/Eastern]'),
+                            DatetimeTZDtype('datetime64[ns, CET]') ],
+                          ['A','B','C'])
+
+        # concat
+        df3 = pd.concat([df2.A.to_frame(),df2.B.to_frame()],axis=1)
+        assert_frame_equal(df2, df3)
+
+        # select_dtypes
+        result = df3.select_dtypes(include=['datetime64[ns]'])
+        expected = df3.reindex(columns=[])
+        assert_frame_equal(result, expected)
+
+        # this will select based on issubclass, and these are the same class
+        result = df3.select_dtypes(include=['datetime64[ns, CET]'])
+        expected = df3
+        assert_frame_equal(result, expected)
+
+        # from index
+        idx2 = date_range('20130101',periods=3,tz='US/Eastern',name='foo')
+        df2 = DataFrame(idx2)
+        assert_series_equal(df2['foo'],Series(idx2,name='foo'))
+        df2 = DataFrame(Series(idx2))
+        assert_series_equal(df2['foo'],Series(idx2,name='foo'))
+
+        idx2 = date_range('20130101',periods=3,tz='US/Eastern')
+        df2 = DataFrame(idx2)
+        assert_series_equal(df2[0],Series(idx2,name=0))
+        df2 = DataFrame(Series(idx2))
+        assert_series_equal(df2[0],Series(idx2,name=0))
+
+        # interleave with object
+        result = self.tzframe.assign(D = 'foo').values
+        expected = np.array([[Timestamp('2013-01-01 00:00:00'),
+                              Timestamp('2013-01-02 00:00:00'),
+                              Timestamp('2013-01-03 00:00:00')],
+                             [Timestamp('2013-01-01 00:00:00-0500', tz='US/Eastern'),
+                              pd.NaT,
+                              Timestamp('2013-01-03 00:00:00-0500', tz='US/Eastern')],
+                             [Timestamp('2013-01-01 00:00:00+0100', tz='CET'),
+                              pd.NaT,
+                              Timestamp('2013-01-03 00:00:00+0100', tz='CET')],
+                             ['foo','foo','foo']], dtype=object).T
+        self.assert_numpy_array_equal(result, expected)
+
+        # interleave with only datetime64[ns]
+        result = self.tzframe.values
+        expected = np.array([[Timestamp('2013-01-01 00:00:00'),
+                              Timestamp('2013-01-02 00:00:00'),
+                              Timestamp('2013-01-03 00:00:00')],
+                             [Timestamp('2013-01-01 00:00:00-0500', tz='US/Eastern'),
+                              pd.NaT,
+                              Timestamp('2013-01-03 00:00:00-0500', tz='US/Eastern')],
+                             [Timestamp('2013-01-01 00:00:00+0100', tz='CET'),
+                              pd.NaT,
+                              Timestamp('2013-01-03 00:00:00+0100', tz='CET')]], dtype=object).T
+        self.assert_numpy_array_equal(result, expected)
+
+        # astype
+        expected = np.array([[Timestamp('2013-01-01 00:00:00'),
+                              Timestamp('2013-01-02 00:00:00'),
+                              Timestamp('2013-01-03 00:00:00')],
+                             [Timestamp('2013-01-01 00:00:00-0500', tz='US/Eastern'),
+                              pd.NaT,
+                              Timestamp('2013-01-03 00:00:00-0500', tz='US/Eastern')],
+                             [Timestamp('2013-01-01 00:00:00+0100', tz='CET'),
+                              pd.NaT,
+                              Timestamp('2013-01-03 00:00:00+0100', tz='CET')]], dtype=object).T
+        result = self.tzframe.astype(object)
+        assert_frame_equal(result, DataFrame(expected, index=self.tzframe.index, columns=self.tzframe.columns))
+
+        result = self.tzframe.astype('datetime64[ns]')
+        expected = DataFrame({'A' : date_range('20130101',periods=3),
+                              'B' : date_range('20130101',periods=3,tz='US/Eastern').tz_convert('UTC').tz_localize(None),
+                              'C' : date_range('20130101',periods=3,tz='CET').tz_convert('UTC').tz_localize(None)})
+        expected.iloc[1,1] = pd.NaT
+        expected.iloc[1,2] = pd.NaT
+        assert_frame_equal(result, expected)
+
+        # str formatting
+        result = self.tzframe.astype(str)
+        expected = np.array([['2013-01-01', '2013-01-01 00:00:00-05:00',
+                              '2013-01-01 00:00:00+01:00'],
+                             ['2013-01-02', 'NaT', 'NaT'],
+                             ['2013-01-03', '2013-01-03 00:00:00-05:00',
+                              '2013-01-03 00:00:00+01:00']], dtype=object)
+        self.assert_numpy_array_equal(result, expected)
+
+        result = str(self.tzframe)
+        self.assertTrue('0 2013-01-01 2013-01-01 00:00:00-05:00 2013-01-01 00:00:00+01:00' in result)
+        self.assertTrue('1 2013-01-02                       NaT                       NaT' in result)
+        self.assertTrue('2 2013-01-03 2013-01-03 00:00:00-05:00 2013-01-03 00:00:00+01:00' in result)
+
+        # setitem
+        df['C'] = idx
+        assert_series_equal(df['C'],Series(idx,name='C'))
+
+        df['D'] = 'foo'
+        df['D'] = idx
+        assert_series_equal(df['D'],Series(idx,name='D'))
+        del df['D']
+
+        # assert that A & C are not sharing the same base (e.g. they
+        # are copies)
+        b1 = df._data.blocks[1]
+        b2 = df._data.blocks[2]
+        self.assertTrue(b1.values.equals(b2.values))
+        self.assertFalse(id(b1.values.values.base) == id(b2.values.values.base))
+
+        # with nan
+        df2 = df.copy()
+        df2.iloc[1,1] = pd.NaT
+        df2.iloc[1,2] = pd.NaT
+        result = df2['B']
+        assert_series_equal(notnull(result), Series([True,False,True],name='B'))
+        assert_series_equal(df2.dtypes, df.dtypes)
+
+        # set/reset
+        df = DataFrame({'A' : [0,1,2] }, index=idx)
+        result = df.reset_index()
+        self.assertTrue(result['foo'].dtype,'M8[ns, US/Eastern')
+
+        result = result.set_index('foo')
+        tm.assert_index_equal(df.index,idx)
+
+        # indexing
+        result = df2.iloc[1]
+        expected = Series([Timestamp('2013-01-02 00:00:00-0500', tz='US/Eastern'), np.nan, np.nan],
+                          index=list('ABC'), dtype='object', name=1)
+        assert_series_equal(result, expected)
+        result = df2.loc[1]
+        expected = Series([Timestamp('2013-01-02 00:00:00-0500', tz='US/Eastern'), np.nan, np.nan],
+                          index=list('ABC'), dtype='object', name=1)
+        assert_series_equal(result, expected)
+
+        # indexing - fast_xs
+        df = DataFrame({'a': date_range('2014-01-01', periods=10, tz='UTC')})
+        result = df.iloc[5]
+        expected = Timestamp('2014-01-06 00:00:00+0000', tz='UTC', offset='D')
+        self.assertEqual(result, expected)
+
+        result = df.loc[5]
+        self.assertEqual(result, expected)
+
+        # indexing - boolean
+        result = df[df.a > df.a[3]]
+        expected = df.iloc[4:]
+        assert_frame_equal(result, expected)
 
     def test_constructor_for_list_with_dtypes(self):
         intname = np.dtype(np.int_).name
@@ -4422,11 +4606,11 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
             result = df.astype(tt)
 
             expected = DataFrame({
-                'a' : list(map(tt, a.values)),
-                'b' : list(map(tt, b.values)),
-                'c' : list(map(tt, c.values)),
-                'd' : list(map(tt, d.values)),
-                'e' : list(map(tt, e.values)),
+                'a' : list(map(tt, map(lambda x: Timestamp(x)._date_repr, a._values))),
+                'b' : list(map(tt, map(Timestamp, b._values))),
+                'c' : list(map(tt, map(lambda x: Timedelta(x)._repr_base(format='all'), c._values))),
+                'd' : list(map(tt, d._values)),
+                'e' : list(map(tt, e._values)),
                 })
 
             assert_frame_equal(result, expected)
@@ -4449,6 +4633,10 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         # empty
         unpickled = self.round_trip_pickle(self.empty)
         repr(unpickled)
+
+        # tz frame
+        unpickled = self.round_trip_pickle(self.tzframe)
+        assert_frame_equal(self.tzframe, unpickled)
 
     def test_to_dict(self):
         test_data = {
@@ -6381,6 +6569,17 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
             result['dt_data'] = pd.to_timedelta(result['dt_data'])
 
             assert_frame_equal(df, result, check_index_type=True)
+
+        # tz, 8260
+        with ensure_clean(pname) as path:
+
+            self.tzframe.to_csv(path)
+            result = pd.read_csv(path, index_col=0, parse_dates=['A'])
+
+            converter = lambda c: pd.to_datetime(result[c]).dt.tz_localize('UTC').dt.tz_convert(self.tzframe[c].dt.tz)
+            result['B'] = converter('B')
+            result['C'] = converter('C')
+            assert_frame_equal(result, self.tzframe)
 
     def test_to_csv_cols_reordering(self):
         # GH3454
@@ -15211,8 +15410,10 @@ starting,ending,measure
         self.assertEqual(df[['X']].testattr, 'XXX')
         self.assertEqual(df.loc[['a', 'b'], :].testattr, 'XXX')
         self.assertEqual(df.iloc[[0, 1], :].testattr, 'XXX')
+
         # GH9776
         self.assertEqual(df.iloc[0:1, :].testattr, 'XXX')
+
         # GH10553
         unpickled = self.round_trip_pickle(df)
         assert_frame_equal(df, unpickled)

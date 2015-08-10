@@ -17,7 +17,7 @@ import pandas.tseries.tools as tools
 from pytz import NonExistentTimeError
 
 import pandas.util.testing as tm
-
+from pandas.core.dtypes import DatetimeTZDtype
 from pandas.util.testing import assert_frame_equal
 from pandas.compat import lrange, zip
 
@@ -669,7 +669,8 @@ class TestTimeZoneSupportPytz(tm.TestCase):
         dr = date_range('2011/1/1', '2012/1/1', freq='W-FRI')
         dr_tz = dr.tz_localize(self.tzstr('US/Eastern'))
         e = DataFrame({'A': 'foo', 'B': dr_tz}, index=dr)
-        self.assertEqual(e['B'].dtype, 'O')
+        tz_expected = DatetimeTZDtype('ns',dr_tz.tzinfo)
+        self.assertEqual(e['B'].dtype, tz_expected)
 
         # GH 2810 (with timezones)
         datetimes_naive   = [ ts.to_pydatetime() for ts in dr ]
@@ -677,8 +678,8 @@ class TestTimeZoneSupportPytz(tm.TestCase):
         df = DataFrame({'dr' : dr, 'dr_tz' : dr_tz,
                         'datetimes_naive': datetimes_naive,
                         'datetimes_with_tz' : datetimes_with_tz })
-        result = df.get_dtype_counts()
-        expected = Series({ 'datetime64[ns]' : 2, 'object' : 2 })
+        result = df.get_dtype_counts().sort_index()
+        expected = Series({ 'datetime64[ns]' : 2, str(tz_expected) : 2 }).sort_index()
         tm.assert_series_equal(result, expected)
 
     def test_hongkong_tz_convert(self):

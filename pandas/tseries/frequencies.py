@@ -15,6 +15,7 @@ import pandas.lib as lib
 import pandas.tslib as tslib
 import pandas._period as period
 from pandas.tslib import Timedelta
+from pytz import AmbiguousTimeError
 
 class FreqGroup(object):
     FR_ANN = 1000
@@ -784,7 +785,7 @@ def _period_str_to_code(freqstr):
     if freqstr in _rule_aliases:
         new = _rule_aliases[freqstr]
         warnings.warn(_LEGACY_FREQ_WARNING.format(freqstr, new),
-                      FutureWarning, stacklevel=6)
+                      FutureWarning, stacklevel=3)
         freqstr = new
     freqstr = _lite_rule_alias.get(freqstr, freqstr)
 
@@ -793,7 +794,7 @@ def _period_str_to_code(freqstr):
         if lower in _rule_aliases:
             new = _rule_aliases[lower]
             warnings.warn(_LEGACY_FREQ_WARNING.format(lower, new),
-                          FutureWarning, stacklevel=6)
+                          FutureWarning, stacklevel=3)
             freqstr = new
         freqstr = _lite_rule_alias.get(lower, freqstr)
 
@@ -833,8 +834,8 @@ def infer_freq(index, warn=True):
     import pandas as pd
 
     if isinstance(index, com.ABCSeries):
-        values = index.values
-        if not (com.is_datetime64_dtype(index.values) or com.is_timedelta64_dtype(index.values) or values.dtype == object):
+        values = index._values
+        if not (com.is_datetime64_dtype(values) or com.is_timedelta64_dtype(values) or values.dtype == object):
             raise TypeError("cannot infer freq from a non-convertible dtype on a Series of {0}".format(index.dtype))
         index = values
 
@@ -850,7 +851,11 @@ def infer_freq(index, warn=True):
             raise TypeError("cannot infer freq from a non-convertible index type {0}".format(type(index)))
         index = index.values
 
-    index = pd.DatetimeIndex(index)
+    try:
+        index = pd.DatetimeIndex(index)
+    except AmbiguousTimeError:
+        index = pd.DatetimeIndex(index.asi8)
+
     inferer = _FrequencyInferer(index, warn=warn)
     return inferer.get_freq()
 

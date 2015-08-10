@@ -172,3 +172,28 @@ timestamp_ops_diff1 = Benchmark("s.diff()", setup,
                                 start_date=datetime(2013, 1, 1))
 timestamp_ops_diff2 = Benchmark("s-s.shift()", setup,
                                 start_date=datetime(2013, 1, 1))
+
+#----------------------------------------------------------------------
+# timeseries with tz
+
+setup = common_setup + """
+N = 10000
+halfway = N // 2 - 1
+s = Series(date_range('20010101', periods=N, freq='T', tz='US/Eastern'))
+ts = s[halfway]
+"""
+
+timestamp_tz_series_compare = Benchmark("ts >= s", setup,
+                                        start_date=datetime(2013, 9, 27))
+series_timestamp_tz_compare = Benchmark("s <= ts", setup,
+                                        start_date=datetime(2012, 2, 21))
+
+setup = common_setup + """
+N = 10000
+s = Series(date_range('20010101', periods=N, freq='s', tz='US/Eastern'))
+"""
+
+timestamp_tz_ops_diff1 = Benchmark("s.diff()", setup,
+                                   start_date=datetime(2013, 1, 1))
+timestamp_tz_ops_diff2 = Benchmark("s-s.shift()", setup,
+                                   start_date=datetime(2013, 1, 1))

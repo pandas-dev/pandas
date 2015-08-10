@@ -73,13 +73,11 @@ except AttributeError:
 cdef _try_infer_map(v):
     """ if its in our map, just return the dtype """
     cdef:
-        object val_name, val_kind
-    val_name = v.dtype.name
-    if val_name in _TYPE_MAP:
-        return _TYPE_MAP[val_name]
-    val_kind = v.dtype.kind
-    if val_kind in _TYPE_MAP:
-       return _TYPE_MAP[val_kind]
+        object attr, val
+    for attr in ['name','kind','base']:
+        val = getattr(v.dtype,attr)
+        if val in _TYPE_MAP:
+            return _TYPE_MAP[val]
     return None
 
 def infer_dtype(object _values):
@@ -99,7 +97,7 @@ def infer_dtype(object _values):
         # this will handle ndarray-like
         # e.g. categoricals
         try:
-            values = getattr(_values, 'values', _values)
+            values = getattr(_values, '_values', getattr(_values, 'values', _values))
         except:
             val = _try_infer_map(_values)
             if val is not None:

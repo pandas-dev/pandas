@@ -219,15 +219,15 @@ class SparseSeries(Series):
     @property
     def values(self):
         """ return the array """
-        return self._data._values
+        return self.block.values
 
     def __array__(self, result=None):
         """ the array interface, return my values """
-        return self._data._values
+        return self.block.values
 
     def get_values(self):
         """ same as values """
-        return self._data._values.to_dense().view()
+        return self.block.to_dense().view()
 
     @property
     def block(self):
