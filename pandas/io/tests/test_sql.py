@@ -166,14 +166,6 @@ SQL_STRINGS = {
         'sqlite': """
                 CREATE VIEW iris_view AS
                 SELECT * FROM iris;
-                """,
-        'mysql': """
-                CREATE VIEW iris_view AS
-                SELECT * FROM iris;
-                """,
-        'postgresql': """
-                CREATE VIEW iris_view AS
-                SELECT * FROM iris;
                 """
     }
 }
