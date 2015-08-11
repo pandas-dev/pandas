@@ -161,6 +161,12 @@ SQL_STRINGS = {
                 SELECT * FROM iris WHERE
                 "Name"=%(name)s AND "SepalLength"=%(length)s
                 """
+    },
+    'create_view': {
+        'sqlite': """
+                CREATE VIEW iris_view AS
+                SELECT * FROM iris;
+                """
     }
 }
 
