@@ -166,6 +166,7 @@ SQL_STRINGS = {
         'sqlite': """
                 CREATE VIEW iris_view AS
                 SELECT * FROM iris;
+<<<<<<< HEAD
                 """,
         'mysql': """
                 CREATE VIEW iris_view AS
@@ -174,6 +175,8 @@ SQL_STRINGS = {
         'postgresql': """
                 CREATE VIEW iris_view AS
                 SELECT * FROM iris;
+=======
+>>>>>>> BUG: Add ability to 'read_sql_table' to read views and implement unit test to check behaviour. Closes #10750.
                 """
     }
 }
