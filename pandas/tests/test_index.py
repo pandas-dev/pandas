@@ -2817,7 +2817,31 @@ class DatetimeLike(Base):
         result = self._holder(i)
         tm.assert_index_equal(result, i)
 
-class TestDatetimeIndex(DatetimeLike, tm.TestCase):
+class DatetimeAbsoluteLike(DatetimeLike):
+
+    # GH10801
+    def test_datetimeabsolute_contains(self):
+
+        i = self.create_index()
+
+        self.assertTrue(i[2] in i)
+        self.assertFalse('2012' in i)
+
+        #  python datetime objects
+        self.assertTrue(datetime(2013,1,1) in i)
+
+        # strings
+        self.assertTrue('2013-1-1' in i)
+
+        # Timestamp # GH10801
+        self.assertTrue(pd.Timestamp('2013-1-1') in i)
+
+        # pandas Period
+        self.assertTrue(pd.Period('2013-1-1', 'D') in i)
+        self.assertFalse(pd.Period('2013-1-1', 'M') in i)
+
+
+class TestDatetimeIndex(DatetimeAbsoluteLike, tm.TestCase):
     _holder = DatetimeIndex
     _multiprocess_can_split_ = True
 
@@ -2964,7 +2988,7 @@ class TestDatetimeIndex(DatetimeLike, tm.TestCase):
         self.assertIs(DatetimeIndex([np.nan])[0], pd.NaT)
 
 
-class TestPeriodIndex(DatetimeLike, tm.TestCase):
+class TestPeriodIndex(DatetimeAbsoluteLike, tm.TestCase):
     _holder = PeriodIndex
     _multiprocess_can_split_ = True
 
