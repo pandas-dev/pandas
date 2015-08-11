@@ -143,6 +143,9 @@ Other enhancements
 - ``pd.merge`` will now allow duplicate column names if they are not merged upon (:issue:`10639`).
 
 - ``pd.pivot`` will now allow passing index as ``None`` (:issue:`3962`).
+
+- ``read_sql_table`` will now allow reading from views (:issue:`10750`).
+
 - ``drop_duplicates`` and ``duplicated`` now accept ``keep`` keyword to target first, last, and all duplicates. ``take_last`` keyword is deprecated, see :ref:`deprecations <whatsnew_0170.deprecations>` (:issue:`6511`, :issue:`8505`)
 
 .. ipython :: python
@@ -152,6 +155,33 @@ Other enhancements
    s.drop_duplicates(keep='last')
    s.drop_duplicates(keep=False)
 
+- ``read_sql_table`` will now allow reading from views (:issue:`10750`).
+
+- ``concat`` will now inherit the existing series names (even when some are missing), if new ones are not provided through the ``keys`` argument (:issue:`10698`).
+
+  Previous Behavior:
+
+  .. code-block:: python
+
+     In [1]: foo = pd.Series([1,2], name='foo')
+     In [2]: bar = pd.Series([1,2])
+     In [3]: baz = pd.Series([4,5])
+     In [4] pd.concat([foo, bar, baz], 1)
+     Out[4]:
+           0  1  2
+        0  1  1  4
+        1  2  2  5
+
+  New Behavior:
+
+  .. ipython:: python
+
+    foo = pd.Series([1,2], name='foo')
+    bar = pd.Series([1,2])
+    baz = pd.Series([4,5])
+    pd.concat([foo, bar, baz], 1)
+
+- ``read_sql_table`` will now allow reading from views (:issue:`10750`).
 
 - ``read_sql_table`` will now allow reading from views (:issue:`10750`).
 
@@ -532,7 +562,6 @@ Deprecations
   =====================  =================================
 
 - ``Categorical.name`` was deprecated to make ``Categorical`` more ``numpy.ndarray`` like. Use ``Series(cat, name="whatever")`` instead (:issue:`10482`).
-- ``drop_duplicates`` and ``duplicated``'s ``take_last`` keyword was removed in favor of ``keep``. (:issue:`6511`, :issue:`8505`)
 
 .. _whatsnew_0170.prior_deprecations:
 
@@ -619,9 +648,6 @@ Bug Fixes
 
 
 - Bug in ``read_stata`` when reading a file with a different order set in ``columns`` (:issue:`10757`)
-- Bug in ``Categorical`` may not representing properly when category contains ``tz`` or ``Period`` (:issue:`10713`)
-- Bug in ``Categorical.__iter__`` may not returning correct ``datetime`` and ``Period`` (:issue:`10713`)
-
 
 - Reading "famafrench" data via ``DataReader`` results in HTTP 404 error because of the website url is changed (:issue:`10591`).
 - Bug in ``read_msgpack`` where DataFrame to decode has duplicate column names (:issue:`9618`)
