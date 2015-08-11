@@ -161,6 +161,23 @@ SQL_STRINGS = {
                 SELECT * FROM iris WHERE
                 "Name"=%(name)s AND "SepalLength"=%(length)s
                 """
+    },
+    'create_view': {
+        'sqlite': """
+                CREATE VIEW iris_view AS
+                SELECT * FROM iris;
+<<<<<<< HEAD
+                """,
+        'mysql': """
+                CREATE VIEW iris_view AS
+                SELECT * FROM iris;
+                """,
+        'postgresql': """
+                CREATE VIEW iris_view AS
+                SELECT * FROM iris;
+=======
+>>>>>>> BUG: Add ability to 'read_sql_table' to read views and implement unit test to check behaviour. Closes #10750.
+                """
     }
 }
 
@@ -243,6 +260,10 @@ class PandasSQLTest(unittest.TestCase):
 
             for row in r:
                 self._get_exec().execute(ins, row)
+
+    def _load_iris_view(self):
+        self.drop_table('iris_view')
+        self._get_exec().execute(SQL_STRINGS['create_view'][self.flavor])
 
     def _check_iris_loaded_frame(self, iris_frame):
         pytype = iris_frame.dtypes[0].type
@@ -482,6 +503,7 @@ class _TestSQLApi(PandasSQLTest):
     def setUp(self):
         self.conn = self.connect()
         self._load_iris_data()
+        self._load_iris_view()
         self._load_test1_data()
         self._load_test2_data()
         self._load_test3_data()
@@ -490,6 +512,11 @@ class _TestSQLApi(PandasSQLTest):
     def test_read_sql_iris(self):
         iris_frame = sql.read_sql_query(
             "SELECT * FROM iris", self.conn)
+        self._check_iris_loaded_frame(iris_frame)
+
+    def test_read_sql_view(self):
+        iris_frame = sql.read_sql_query(
+            "SELECT * FROM iris_view", self.conn)
         self._check_iris_loaded_frame(iris_frame)
 
     def test_legacy_read_frame(self):

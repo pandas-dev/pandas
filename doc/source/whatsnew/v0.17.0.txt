@@ -177,6 +177,8 @@ Other enhancements
     baz = pd.Series([4,5])
     pd.concat([foo, bar, baz], 1)
 
+- ``read_sql_table`` will now allow reading from views (:issue:`10750`).
+
 .. _whatsnew_0170.api:
 
 .. _whatsnew_0170.api_breaking:
