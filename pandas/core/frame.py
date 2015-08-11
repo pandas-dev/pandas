@@ -2628,7 +2628,7 @@ class DataFrame(NDFrame):
         -------
         dataframe : DataFrame
         """
-        if not isinstance(keys, list):
+        if not com.is_list_like(keys):
             keys = [keys]
 
         if inplace:
