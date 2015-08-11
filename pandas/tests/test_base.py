@@ -683,10 +683,6 @@ class TestIndexOps(Ops):
 
     def test_duplicated_drop_duplicates(self):
         # GH 4060
-
-        import warnings
-        warnings.simplefilter('always')
-
         for original in self.objs:
 
             if isinstance(original, Index):

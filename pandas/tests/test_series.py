@@ -4798,10 +4798,13 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
             sc.drop_duplicates(keep='last', inplace=True)
             assert_series_equal(sc, s[~expected])
             # deprecate take_last
-            assert_series_equal(s.duplicated(take_last=True), expected)
-            assert_series_equal(s.drop_duplicates(take_last=True), s[~expected])
+            with tm.assert_produces_warning(FutureWarning):
+                assert_series_equal(s.duplicated(take_last=True), expected)
+            with tm.assert_produces_warning(FutureWarning):
+                assert_series_equal(s.drop_duplicates(take_last=True), s[~expected])
             sc = s.copy()
-            sc.drop_duplicates(take_last=True, inplace=True)
+            with tm.assert_produces_warning(FutureWarning):
+                sc.drop_duplicates(take_last=True, inplace=True)
             assert_series_equal(sc, s[~expected])
 
             expected = Series([False, False, True, True])
@@ -4827,10 +4830,13 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
             sc.drop_duplicates(keep='last', inplace=True)
             assert_series_equal(sc, s[~expected])
             # deprecate take_last
-            assert_series_equal(s.duplicated(take_last=True), expected)
-            assert_series_equal(s.drop_duplicates(take_last=True), s[~expected])
+            with tm.assert_produces_warning(FutureWarning):
+                assert_series_equal(s.duplicated(take_last=True), expected)
+            with tm.assert_produces_warning(FutureWarning):
+                assert_series_equal(s.drop_duplicates(take_last=True), s[~expected])
             sc = s.copy()
-            sc.drop_duplicates(take_last=True, inplace=True)
+            with tm.assert_produces_warning(FutureWarning):
+                sc.drop_duplicates(take_last=True, inplace=True)
             assert_series_equal(sc, s[~expected])
 
             expected = Series([False, True, True, False, True, True, False])
