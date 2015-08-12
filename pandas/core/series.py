@@ -2453,6 +2453,11 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     def asof(self, where):
         """
+        DEPRECATED. Please use :meth:`Series.reindex` instead.
+
+        So a `Series.asof(where)` can be replaced by
+        `Series.dropna().reindex(where, method='ffill')`.
+
         Return last good (non-NaN) value in TimeSeries if value is NaN for
         requested date.
 
@@ -2469,7 +2474,14 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Returns
         -------
         value or NaN
+
+        See Also
+        --------
+        pandas.Series.reindex
+
         """
+        warnings.warn("`Series.asof` is deprecated, use "
+                      "`Series.reindex` instead.", FutureWarning)
         if isinstance(where, compat.string_types):
             where = datetools.to_datetime(where)
 
