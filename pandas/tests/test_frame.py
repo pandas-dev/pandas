@@ -7848,7 +7848,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         inp.dropna(how='all', axis=(0, 1), inplace=True)
         assert_frame_equal(inp, expected)
 
-    def test_aaa_drop_duplicates(self):
+    def test_drop_duplicates(self):
         df = DataFrame({'AAA': ['foo', 'bar', 'foo', 'bar',
                                 'foo', 'bar', 'bar', 'foo'],
                         'B': ['one', 'one', 'two', 'two',
@@ -7892,7 +7892,8 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         assert_frame_equal(result, expected)
 
         # deprecate take_last
-        result = df.drop_duplicates(('AAA', 'B'), take_last=True)
+        with tm.assert_produces_warning(FutureWarning):
+            result = df.drop_duplicates(('AAA', 'B'), take_last=True)
         expected = df.ix[[0, 5, 6, 7]]
         assert_frame_equal(result, expected)
 
@@ -7913,8 +7914,10 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         assert_frame_equal(result, expected)
 
         # deprecate take_last
-        result = df2.drop_duplicates(take_last=True)
-        expected = df2.drop_duplicates(['AAA', 'B'], take_last=True)
+        with tm.assert_produces_warning(FutureWarning):
+            result = df2.drop_duplicates(take_last=True)
+        with tm.assert_produces_warning(FutureWarning):
+            expected = df2.drop_duplicates(['AAA', 'B'], take_last=True)
         assert_frame_equal(result, expected)
 
     def test_drop_duplicates_for_take_all(self):
@@ -8008,7 +8011,8 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         assert_frame_equal(result, expected)
 
         # deprecate take_last
-        result = df.drop_duplicates(('AA', 'AB'), take_last=True)
+        with tm.assert_produces_warning(FutureWarning):
+            result = df.drop_duplicates(('AA', 'AB'), take_last=True)
         expected = df.ix[[6, 7]]
         assert_frame_equal(result, expected)
 
@@ -8041,7 +8045,8 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         self.assertEqual(len(result), 0)
 
         # deprecate take_last
-        result = df.drop_duplicates('A', take_last=True)
+        with tm.assert_produces_warning(FutureWarning):
+            result = df.drop_duplicates('A', take_last=True)
         expected = df.ix[[1, 6, 7]]
         assert_frame_equal(result, expected)
 
@@ -8059,7 +8064,8 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         assert_frame_equal(result, expected)
 
         # deprecate take_last
-        result = df.drop_duplicates(['A', 'B'], take_last=True)
+        with tm.assert_produces_warning(FutureWarning):
+            result = df.drop_duplicates(['A', 'B'], take_last=True)
         expected = df.ix[[1, 5, 6, 7]]
         assert_frame_equal(result, expected)
 
@@ -8086,7 +8092,8 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         self.assertEqual(len(result), 0)
 
         # deprecate take_last
-        result = df.drop_duplicates('C', take_last=True)
+        with tm.assert_produces_warning(FutureWarning):
+            result = df.drop_duplicates('C', take_last=True)
         expected = df.ix[[3, 7]]
         assert_frame_equal(result, expected)
 
@@ -8104,7 +8111,8 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         assert_frame_equal(result, expected)
 
         # deprecate take_last
-        result = df.drop_duplicates(['C', 'B'], take_last=True)
+        with tm.assert_produces_warning(FutureWarning):
+            result = df.drop_duplicates(['C', 'B'], take_last=True)
         expected = df.ix[[1, 3, 6, 7]]
         assert_frame_equal(result, expected)
 
@@ -8172,7 +8180,8 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
 
         # deprecate take_last
         df = orig.copy()
-        df.drop_duplicates('A', take_last=True, inplace=True)
+        with tm.assert_produces_warning(FutureWarning):
+            df.drop_duplicates('A', take_last=True, inplace=True)
         expected = orig.ix[[6, 7]]
         result = df
         assert_frame_equal(result, expected)
@@ -8198,7 +8207,8 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
 
         # deprecate take_last
         df = orig.copy()
-        df.drop_duplicates(['A', 'B'], take_last=True, inplace=True)
+        with tm.assert_produces_warning(FutureWarning):
+            df.drop_duplicates(['A', 'B'], take_last=True, inplace=True)
         expected = orig.ix[[0, 5, 6, 7]]
         result = df
         assert_frame_equal(result, expected)
@@ -8227,8 +8237,10 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
 
         # deprecate take_last
         df2 = orig2.copy()
-        df2.drop_duplicates(take_last=True, inplace=True)
-        expected = orig2.drop_duplicates(['A', 'B'], take_last=True)
+        with tm.assert_produces_warning(FutureWarning):
+            df2.drop_duplicates(take_last=True, inplace=True)
+        with tm.assert_produces_warning(FutureWarning):
+            expected = orig2.drop_duplicates(['A', 'B'], take_last=True)
         result = df2
         assert_frame_equal(result, expected)
 
