@@ -405,7 +405,7 @@ class AbstractHolidayCalendar(object):
         else:
             return holidays
 
-USMemorialDay = Holiday('MemorialDay', month=5, day=24,
+USMemorialDay = Holiday('MemorialDay', month=5, day=25,
                         offset=DateOffset(weekday=MO(1)))
 USLaborDay = Holiday('Labor Day', month=9, day=1,
                      offset=DateOffset(weekday=MO(1)))
