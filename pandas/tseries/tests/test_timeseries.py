@@ -3291,6 +3291,12 @@ class TestSeriesDatetime64(tm.TestCase):
         series[2] = val
         self.assertTrue(com.isnull(series[2]))
 
+    def test_NaT_cast(self):
+        # GH10747
+        result = Series([np.nan]).astype('M8[ns]')
+        expected = Series([NaT])
+        assert_series_equal(result, expected)
+
     def test_set_none_nan(self):
         self.series[3] = None
         self.assertIs(self.series[3], NaT)
