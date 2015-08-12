@@ -142,6 +142,9 @@ Other enhancements
 - ``pd.merge`` will now allow duplicate column names if they are not merged upon (:issue:`10639`).
 
 - ``pd.pivot`` will now allow passing index as ``None`` (:issue:`3962`).
+
+- ``read_sql_table`` will now allow reading from views (:issue:`10750`).
+
 - ``drop_duplicates`` and ``duplicated`` now accept ``keep`` keyword to target first, last, and all duplicates. ``take_last`` keyword is deprecated, see :ref:`deprecations <whatsnew_0170.deprecations>` (:issue:`6511`, :issue:`8505`)
 
 .. ipython :: python
