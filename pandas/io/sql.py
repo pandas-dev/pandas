@@ -337,7 +337,7 @@ def read_sql_table(table_name, con, schema=None, index_col=None,
     from sqlalchemy.schema import MetaData
     meta = MetaData(con, schema=schema)
     try:
-        meta.reflect(only=[table_name])
+        meta.reflect(only=[table_name], views=True)
     except sqlalchemy.exc.InvalidRequestError:
         raise ValueError("Table %s not found" % table_name)
 
