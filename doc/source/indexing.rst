@@ -1180,28 +1180,43 @@ takes as an argument the columns to use to identify duplicated rows.
 By default, the first observed row of a duplicate set is considered unique, but
 each method has a ``keep`` parameter to specify targets to be kept.
 
-.. ipython:: python
-
-   df2 = pd.DataFrame({'a' : ['one', 'one', 'two', 'three', 'two', 'one', 'six'],
-                       'b' : ['x', 'y', 'y', 'x', 'y', 'x', 'x'],
-                       'c' : np.random.randn(7)})
-   df2.duplicated(['a','b'])
-   df2.duplicated(['a','b'], keep='last')
-   df2.duplicated(['a','b'], keep=False)
-   df2.drop_duplicates(['a','b'])
-   df2.drop_duplicates(['a','b'], keep='last')
-   df2.drop_duplicates(['a','b'], keep=False)
-
-An alternative way to drop duplicates on the index is ``.groupby(level=0)`` combined with ``first()`` or ``last()``.
+- ``keep='first'`` (default): mark / drop duplicates except for the first occurrence.
+- ``keep='last'``: mark / drop duplicates except for the last occurrence.
+- ``keep=False``: mark  / drop all duplicates.
 
 .. ipython:: python
 
-   df3 = df2.set_index('b')
+   df2 = pd.DataFrame({'a': ['one', 'one', 'two', 'two', 'two', 'three', 'four'],
+                       'b': ['x', 'y', 'x', 'y', 'x', 'x', 'x'],
+                       'c': np.random.randn(7)})
+   df2
+   df2.duplicated('a')
+   df2.duplicated('a', keep='last')
+   df2.duplicated('a', keep=False)
+   df2.drop_duplicates('a')
+   df2.drop_duplicates('a', keep='last')
+   df2.drop_duplicates('a', keep=False)
+
+Also, you can pass a list of columns to identify duplications.
+
+.. ipython:: python
+
+   df2.duplicated(['a', 'b'])
+   df2.drop_duplicates(['a', 'b'])
+
+To drop duplicates by index value, use ``Index.duplicated`` then perform slicing.
+Same options are available in ``keep`` parameter.
+
+.. ipython:: python
+
+   df3 = pd.DataFrame({'a': np.arange(6),
+                       'b': np.random.randn(6)},
+                      index=['a', 'a', 'b', 'c', 'b', 'a'])
    df3
-   df3.groupby(level=0).first()
-
-   # a bit more verbose
-   df3.reset_index().drop_duplicates(subset='b', keep='first').set_index('b')
+   df3.index.duplicated()
+   df3[~df3.index.duplicated()]
+   df3[~df3.index.duplicated(keep='last')]
+   df3[~df3.index.duplicated(keep=False)]
 
 .. _indexing.dictionarylike:
 
