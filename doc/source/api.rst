@@ -799,9 +799,7 @@ Binary operator functions
    DataFrame.ne
    DataFrame.eq
    DataFrame.combine
-   DataFrame.combineAdd
    DataFrame.combine_first
-   DataFrame.combineMult
 
 Function application, GroupBy
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

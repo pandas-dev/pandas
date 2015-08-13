@@ -11787,61 +11787,65 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         assert_frame_equal(df, expected)
 
     def test_combineAdd(self):
-        # trivial
-        comb = self.frame.combineAdd(self.frame)
-        assert_frame_equal(comb, self.frame * 2)
 
-        # more rigorous
-        a = DataFrame([[1., nan, nan, 2., nan]],
-                      columns=np.arange(5))
-        b = DataFrame([[2., 3., nan, 2., 6., nan]],
-                      columns=np.arange(6))
-        expected = DataFrame([[3., 3., nan, 4., 6., nan]],
-                             columns=np.arange(6))
+        with tm.assert_produces_warning(FutureWarning):
+            # trivial
+            comb = self.frame.combineAdd(self.frame)
+            assert_frame_equal(comb, self.frame * 2)
 
-        result = a.combineAdd(b)
-        assert_frame_equal(result, expected)
-        result2 = a.T.combineAdd(b.T)
-        assert_frame_equal(result2, expected.T)
+            # more rigorous
+            a = DataFrame([[1., nan, nan, 2., nan]],
+                          columns=np.arange(5))
+            b = DataFrame([[2., 3., nan, 2., 6., nan]],
+                          columns=np.arange(6))
+            expected = DataFrame([[3., 3., nan, 4., 6., nan]],
+                                 columns=np.arange(6))
 
-        expected2 = a.combine(b, operator.add, fill_value=0.)
-        assert_frame_equal(expected, expected2)
+            result = a.combineAdd(b)
+            assert_frame_equal(result, expected)
+            result2 = a.T.combineAdd(b.T)
+            assert_frame_equal(result2, expected.T)
 
-        # corner cases
-        comb = self.frame.combineAdd(self.empty)
-        assert_frame_equal(comb, self.frame)
+            expected2 = a.combine(b, operator.add, fill_value=0.)
+            assert_frame_equal(expected, expected2)
 
-        comb = self.empty.combineAdd(self.frame)
-        assert_frame_equal(comb, self.frame)
+            # corner cases
+            comb = self.frame.combineAdd(self.empty)
+            assert_frame_equal(comb, self.frame)
 
-        # integer corner case
-        df1 = DataFrame({'x': [5]})
-        df2 = DataFrame({'x': [1]})
-        df3 = DataFrame({'x': [6]})
-        comb = df1.combineAdd(df2)
-        assert_frame_equal(comb, df3)
+            comb = self.empty.combineAdd(self.frame)
+            assert_frame_equal(comb, self.frame)
 
-        # mixed type GH2191
-        df1 = DataFrame({'A': [1, 2], 'B': [3, 4]})
-        df2 = DataFrame({'A': [1, 2], 'C': [5, 6]})
-        rs = df1.combineAdd(df2)
-        xp = DataFrame({'A': [2, 4], 'B': [3, 4.], 'C': [5, 6.]})
-        assert_frame_equal(xp, rs)
+            # integer corner case
+            df1 = DataFrame({'x': [5]})
+            df2 = DataFrame({'x': [1]})
+            df3 = DataFrame({'x': [6]})
+            comb = df1.combineAdd(df2)
+            assert_frame_equal(comb, df3)
+
+            # mixed type GH2191
+            df1 = DataFrame({'A': [1, 2], 'B': [3, 4]})
+            df2 = DataFrame({'A': [1, 2], 'C': [5, 6]})
+            rs = df1.combineAdd(df2)
+            xp = DataFrame({'A': [2, 4], 'B': [3, 4.], 'C': [5, 6.]})
+            assert_frame_equal(xp, rs)
 
         # TODO: test integer fill corner?
 
     def test_combineMult(self):
-        # trivial
-        comb = self.frame.combineMult(self.frame)
 
-        assert_frame_equal(comb, self.frame ** 2)
+        with tm.assert_produces_warning(FutureWarning):
+            # trivial
+            comb = self.frame.combineMult(self.frame)
 
-        # corner cases
-        comb = self.frame.combineMult(self.empty)
-        assert_frame_equal(comb, self.frame)
+            assert_frame_equal(comb, self.frame ** 2)
 
-        comb = self.empty.combineMult(self.frame)
-        assert_frame_equal(comb, self.frame)
+            # corner cases
+            comb = self.frame.combineMult(self.empty)
+            assert_frame_equal(comb, self.frame)
+
+            comb = self.empty.combineMult(self.frame)
+            assert_frame_equal(comb, self.frame)
 
     def test_combine_generic(self):
         df1 = self.frame
