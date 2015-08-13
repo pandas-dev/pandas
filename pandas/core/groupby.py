@@ -102,11 +102,11 @@ class SpecificationError(GroupByError):
 
 
 def _groupby_function(name, alias, npfunc, numeric_only=True,
-                      _convert=False):
+                      fillna=None, _convert=False):
     def f(self):
         self._set_selection_from_grouper()
         try:
-            return self._cython_agg_general(alias, numeric_only=numeric_only)
+            return self._cython_agg_general(alias, numeric_only=numeric_only, fillna=fillna)
         except AssertionError as e:
             raise SpecificationError(str(e))
         except Exception:
@@ -793,8 +793,8 @@ class GroupBy(PandasObject):
         """
         return self.grouper.size()
 
-    sum = _groupby_function('sum', 'add', np.sum)
-    prod = _groupby_function('prod', 'prod', np.prod)
+    sum = _groupby_function('sum', 'add', np.sum, fillna=0.0)
+    prod = _groupby_function('prod', 'prod', np.prod, fillna=1.0)
     min = _groupby_function('min', 'min', np.min, numeric_only=False)
     max = _groupby_function('max', 'max', np.max, numeric_only=False)
     first = _groupby_function('first', 'first', _first_compat,
@@ -1118,7 +1118,7 @@ class GroupBy(PandasObject):
 
         return result
 
-    def _cython_agg_general(self, how, numeric_only=True):
+    def _cython_agg_general(self, how, numeric_only=True, fillna=None):
         output = {}
         for name, obj in self._iterate_slices():
             is_numeric = is_numeric_dtype(obj.dtype)
@@ -1126,7 +1126,7 @@ class GroupBy(PandasObject):
                 continue
 
             try:
-                result, names = self.grouper.aggregate(obj.values, how)
+                result, names = self.grouper.aggregate(obj.values, how, fillna=fillna)
             except AssertionError as e:
                 raise GroupByError(str(e))
             output[name] = self._try_cast(result, obj)
@@ -1511,7 +1511,7 @@ class BaseGrouper(object):
                                       (how, dtype_str))
         return func, dtype_str
 
-    def aggregate(self, values, how, axis=0):
+    def aggregate(self, values, how, axis=0, fillna=None):
         arity = self._cython_arity.get(how, 1)
 
         vdim = values.ndim
@@ -1534,14 +1534,18 @@ class BaseGrouper(object):
             values = values.view('int64')
             # GH 7754
             is_numeric = True
+            fillna = None
         elif is_bool_dtype(values.dtype):
             values = _algos.ensure_float64(values)
+            fillna = None
         elif com.is_integer_dtype(values):
             values = values.astype('int64', copy=False)
+            fillna = None
         elif is_numeric:
             values = _algos.ensure_float64(values)
         else:
             values = values.astype(object)
+            fillna = None
 
         try:
             agg_func, dtype_str = self._get_aggregate_function(how, values)
@@ -1563,6 +1567,10 @@ class BaseGrouper(object):
         counts = np.zeros(self.ngroups, dtype=np.int64)
 
         result = self._aggregate(result, counts, values, agg_func, is_numeric)
+
+        # if we have a non-None fillna, then replace
+        if fillna is not None:
+            result[np.isnan(result)] = fillna
 
         if com.is_integer_dtype(result):
             if len(result[result == tslib.iNaT]) > 0:
@@ -2581,8 +2589,8 @@ class NDFrameGroupBy(GroupBy):
                 continue
             yield val, slicer(val)
 
-    def _cython_agg_general(self, how, numeric_only=True):
-        new_items, new_blocks = self._cython_agg_blocks(how, numeric_only=numeric_only)
+    def _cython_agg_general(self, how, numeric_only=True, fillna=None):
+        new_items, new_blocks = self._cython_agg_blocks(how, numeric_only=numeric_only, fillna=fillna)
         return self._wrap_agged_blocks(new_items, new_blocks)
 
     def _wrap_agged_blocks(self, items, blocks):
@@ -2608,7 +2616,7 @@ class NDFrameGroupBy(GroupBy):
 
     _block_agg_axis = 0
 
-    def _cython_agg_blocks(self, how, numeric_only=True):
+    def _cython_agg_blocks(self, how, numeric_only=True, fillna=None):
         data, agg_axis = self._get_data_to_aggregate()
 
         new_blocks = []
@@ -2620,7 +2628,7 @@ class NDFrameGroupBy(GroupBy):
 
             values = block._try_operate(block.values)
 
-            result, _ = self.grouper.aggregate(values, how, axis=agg_axis)
+            result, _ = self.grouper.aggregate(values, how, axis=agg_axis, fillna=fillna)
 
             # see if we can cast the block back to the original dtype
             result = block._try_coerce_and_cast_result(result)

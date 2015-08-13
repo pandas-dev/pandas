@@ -551,6 +551,20 @@ Other API Changes
 
 - Improved error message when concatenating an empty iterable of dataframes (:issue:`9157`)
 
+- ``Series.sum()`` will now return 0.0, and ``Series.prod()`` will return 1.0 for all-NaN series rather than ``NaN``; this is for compat with ``numpy`` >= 1.8.2 and ``bottleneck`` >= 1.0 (:issue:`9422`).
+
+   .. ipython:: python
+
+      s = Series([np.nan])
+      s.sum()
+      s.sum(skipna=False)
+      s.prod()
+      s.prod(skipna=False)
+
+   .. warning::
+
+      ``bottleneck`` is used for these calculations. If you have ``bottleneck`` < 1.0, then these will all return ``NaN``.
+
 .. _whatsnew_0170.deprecations:
 
 Deprecations

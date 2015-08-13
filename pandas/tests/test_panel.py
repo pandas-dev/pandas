@@ -70,13 +70,13 @@ class SafeForLongAndSparse(object):
         self._check_stat_op('count', f, obj=self.panel, has_skipna=False)
 
     def test_sum(self):
-        self._check_stat_op('sum', np.sum)
+        self._check_stat_op('sum', np.sum, fillna=0.0)
 
     def test_mean(self):
         self._check_stat_op('mean', np.mean)
 
     def test_prod(self):
-        self._check_stat_op('prod', np.prod)
+        self._check_stat_op('prod', np.prod, fillna=1.0)
 
     def test_median(self):
         def wrapper(x):
@@ -139,7 +139,7 @@ class SafeForLongAndSparse(object):
 
     #     self._check_stat_op('skew', alt)
 
-    def _check_stat_op(self, name, alternative, obj=None, has_skipna=True):
+    def _check_stat_op(self, name, alternative, obj=None, has_skipna=True, fillna=None):
         if obj is None:
             obj = self.panel
 
@@ -161,14 +161,22 @@ class SafeForLongAndSparse(object):
 
             for i in range(obj.ndim):
                 result = f(axis=i, skipna=False)
-                assert_frame_equal(result, obj.apply(wrapper, axis=i))
+                expected = obj.apply(wrapper, axis=i)
+                assert_frame_equal(result, expected)
         else:
             skipna_wrapper = alternative
             wrapper = alternative
 
         for i in range(obj.ndim):
             result = f(axis=i)
-            assert_frame_equal(result, obj.apply(skipna_wrapper, axis=i))
+            expected = obj.apply(skipna_wrapper, axis=i)
+
+            # 9422
+            # all-nan rows get the fillna
+            if fillna is not None:
+                expected[isnull(obj).all(axis=i)] = fillna
+
+            assert_frame_equal(result, expected)
 
         self.assertRaises(Exception, f, axis=obj.ndim)
 
