@@ -532,7 +532,11 @@ Deprecations
   =====================  =================================
 
 - ``Categorical.name`` was deprecated to make ``Categorical`` more ``numpy.ndarray`` like. Use ``Series(cat, name="whatever")`` instead (:issue:`10482`).
-- ``drop_duplicates`` and ``duplicated``'s ``take_last`` keyword was removed in favor of ``keep``. (:issue:`6511`, :issue:`8505`)
+- ``drop_duplicates`` and ``duplicated``'s ``take_last`` keyword was deprecated in favor of ``keep``. (:issue:`6511`, :issue:`8505`)
+- ``DataFrame.combineAdd`` and ``DataFrame.combineMult`` are deprecated. They
+  can easily be replaced by using the ``add`` and ``mul`` methods:
+  ``DataFrame.add(other, fill_value=0)`` and ``DataFrame.mul(other, fill_value=1.)``
+  (:issue:`10735`).
 
 .. _whatsnew_0170.prior_deprecations:
 
@@ -633,5 +637,5 @@ Bug Fixes
 - Bug in ``pd.DataFrame`` when constructing an empty DataFrame with a string dtype (:issue:`9428`)
 - Bug in ``pd.unique`` for arrays with the ``datetime64`` or ``timedelta64`` dtype that meant an array with object dtype was returned instead the original dtype (:issue: `9431`)
 - Bug in ``DatetimeIndex.take`` and ``TimedeltaIndex.take`` may not raise ``IndexError`` against invalid index (:issue:`10295`)
-- Bug in ``Series([np.nan]).astype('M8[ms]')``, which now returns ``Series([pd.NaT])`` (:issue:`10747`) 
+- Bug in ``Series([np.nan]).astype('M8[ms]')``, which now returns ``Series([pd.NaT])`` (:issue:`10747`)
 - Bug in ``PeriodIndex.order`` reset freq (:issue:`10295`)

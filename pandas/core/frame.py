@@ -4900,6 +4900,8 @@ class DataFrame(NDFrame):
 
     def combineAdd(self, other):
         """
+        DEPRECATED. Use ``DataFrame.add(other, fill_value=0.)`` instead.
+
         Add two DataFrame objects and do not propagate
         NaN values, so if for a (column, time) one frame is missing a
         value, it will default to the other frame's value (which might
@@ -4912,11 +4914,21 @@ class DataFrame(NDFrame):
         Returns
         -------
         DataFrame
+
+        See also
+        --------
+        DataFrame.add
+
         """
+        warnings.warn("'combineAdd' is deprecated. Use "
+                      "'DataFrame.add(other, fill_value=0.)' instead",
+                      FutureWarning, stacklevel=2)
         return self.add(other, fill_value=0.)
 
     def combineMult(self, other):
         """
+        DEPRECATED. Use ``DataFrame.mul(other, fill_value=1.)`` instead.
+
         Multiply two DataFrame objects and do not propagate NaN values, so if
         for a (column, time) one frame is missing a value, it will default to
         the other frame's value (which might be NaN as well)
@@ -4928,7 +4940,15 @@ class DataFrame(NDFrame):
         Returns
         -------
         DataFrame
+
+        See also
+        --------
+        DataFrame.mul
+
         """
+        warnings.warn("'combineMult' is deprecated. Use "
+                      "'DataFrame.mul(other, fill_value=1.)' instead",
+                      FutureWarning, stacklevel=2)
         return self.mul(other, fill_value=1.)
 
 
