@@ -134,6 +134,8 @@ Other enhancements
 
 - ``to_datetime`` can now accept ``yearfirst`` keyword (:issue:`7599`)
 
+- ``pandas.tseries.offsets`` larger than the ``Day`` offset can now be used with with ``Series`` for addition/subtraction (:issue:`10699`).  See the :ref:`Documentation <timeseries.offsetseries>` for more details.
+
 - ``.as_blocks`` will now take a ``copy`` optional argument to return a copy of the data, default is to copy (no change in behavior from prior versions), (:issue:`9607`)
 
 - ``regex`` argument to ``DataFrame.filter`` now handles numeric column names instead of raising ``ValueError`` (:issue:`10384`).

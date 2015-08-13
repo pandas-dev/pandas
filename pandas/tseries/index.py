@@ -1,5 +1,6 @@
 # pylint: disable=E1101
 import operator
+import warnings
 from datetime import time, datetime
 from datetime import timedelta
 import numpy as np
@@ -7,6 +8,7 @@ from pandas.core.common import (_NS_DTYPE, _INT64_DTYPE,
                                 _values_from_object, _maybe_box,
                                 ABCSeries, is_integer, is_float,
                                 is_object_dtype, is_datetime64_dtype)
+from pandas.io.common import PerformanceWarning
 from pandas.core.index import Index, Int64Index, Float64Index
 import pandas.compat as compat
 from pandas.compat import u
@@ -16,6 +18,7 @@ from pandas.tseries.frequencies import (
 from pandas.tseries.base import DatelikeOps, DatetimeIndexOpsMixin
 from pandas.tseries.offsets import DateOffset, generate_range, Tick, CDay
 from pandas.tseries.tools import parse_time_string, normalize_date
+from pandas.tseries.timedeltas import to_timedelta
 from pandas.util.decorators import cache_readonly, deprecate_kwarg
 import pandas.core.common as com
 import pandas.tseries.offsets as offsets
@@ -672,14 +675,25 @@ class DatetimeIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
             new_values = self._add_delta_tdi(delta)
             # update name when delta is Index
             name = com._maybe_match_name(self, delta)
+        elif isinstance(delta, DateOffset):
+            new_values = self._add_offset(delta).asi8
         else:
             new_values = self.astype('O') + delta
+
         tz = 'UTC' if self.tz is not None else None
         result = DatetimeIndex(new_values, tz=tz, name=name, freq='infer')
         utc = _utc()
         if self.tz is not None and self.tz is not utc:
             result = result.tz_convert(self.tz)
         return result
+
+    def _add_offset(self, offset):
+        try:
+            return offset.apply_index(self)
+        except NotImplementedError:
+            warnings.warn("Non-vectorized DateOffset being applied to Series or DatetimeIndex",
+                           PerformanceWarning)
+            return self.astype('O') + offset
 
     def _format_native_types(self, na_rep=u('NaT'),
                              date_format=None, **kwargs):
@@ -833,6 +847,24 @@ class DatetimeIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
                 if result.freq is None:
                     result.offset = to_offset(result.inferred_freq)
             return result
+
+    def to_perioddelta(self, freq):
+        """
+        Calcuates TimedeltaIndex of difference between index
+        values and index converted to PeriodIndex at specified
+        freq.  Used for vectorized offsets
+
+        .. versionadded:: 0.17.0
+
+        Parameters
+        ----------
+        freq : Period frequency
+
+        Returns
+        -------
+        y : TimedeltaIndex
+        """
+        return to_timedelta(self.asi8 - self.to_period(freq).to_timestamp().asi8)
 
     def union_many(self, others):
         """

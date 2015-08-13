@@ -31,6 +31,7 @@ import pandas.index as _index
 from pandas.compat import range, long, StringIO, lrange, lmap, zip, product
 from numpy.random import rand
 from pandas.util.testing import assert_frame_equal
+from pandas.io.common import PerformanceWarning
 import pandas.compat as compat
 import pandas.core.common as com
 from pandas import concat
@@ -2454,6 +2455,91 @@ class TestDatetimeIndex(tm.TestCase):
         result = index_1 & index_2
         self.assertEqual(len(result), 0)
 
+    # GH 10699
+    def test_datetime64_with_DateOffset(self):
+        for klass, assert_func in zip([Series, DatetimeIndex],
+                                      [self.assert_series_equal,
+                                       tm.assert_index_equal]):
+            s = klass(date_range('2000-01-01', '2000-01-31'))
+            result = s + pd.DateOffset(years=1)
+            result2 = pd.DateOffset(years=1) + s
+            exp = klass(date_range('2001-01-01', '2001-01-31'))
+            assert_func(result, exp)
+            assert_func(result2, exp)
+
+            result = s - pd.DateOffset(years=1)
+            exp = klass(date_range('1999-01-01', '1999-01-31'))
+            assert_func(result, exp)
+
+            s = klass([Timestamp('2000-01-15 00:15:00', tz='US/Central'),
+                       pd.Timestamp('2000-02-15', tz='US/Central')])
+            result = s + pd.offsets.MonthEnd()
+            result2 = pd.offsets.MonthEnd() + s
+            exp = klass([Timestamp('2000-01-31 00:15:00', tz='US/Central'),
+                         Timestamp('2000-02-29', tz='US/Central')])
+            assert_func(result, exp)
+            assert_func(result2, exp)
+
+            # array of offsets - valid for Series only
+            if klass is Series:
+                with tm.assert_produces_warning(PerformanceWarning):
+                    s = klass([Timestamp('2000-1-1'), Timestamp('2000-2-1')])
+                    result = s + Series([pd.offsets.DateOffset(years=1),
+                                        pd.offsets.MonthEnd()])
+                    exp = klass([Timestamp('2001-1-1'), Timestamp('2000-2-29')])
+                    assert_func(result, exp)
+
+                    # same offset
+                    result = s + Series([pd.offsets.DateOffset(years=1),
+                                         pd.offsets.DateOffset(years=1)])
+                    exp = klass([Timestamp('2001-1-1'), Timestamp('2001-2-1')])
+                    assert_func(result, exp)
+
+            s = klass([Timestamp('2000-01-05 00:15:00'), Timestamp('2000-01-31 00:23:00'),
+                       Timestamp('2000-01-01'), Timestamp('2000-02-29'), Timestamp('2000-12-31')])
+
+            #DateOffset relativedelta fastpath
+            relative_kwargs = [('years', 2), ('months', 5), ('days', 3),
+                            ('hours', 5), ('minutes', 10), ('seconds', 2),
+                            ('microseconds', 5)]
+            for i, kwd in enumerate(relative_kwargs):
+                op = pd.DateOffset(**dict([kwd]))
+                assert_func(klass([x + op for x in s]), s + op)
+                assert_func(klass([x - op for x in s]), s - op)
+                op = pd.DateOffset(**dict(relative_kwargs[:i+1]))
+                assert_func(klass([x + op for x in s]), s + op)
+                assert_func(klass([x - op for x in s]), s - op)
+
+
+            # split by fast/slow path to test perf warning
+            off = {False:
+                   ['YearBegin', ('YearBegin', {'month': 5}),
+                    'YearEnd', ('YearEnd', {'month': 5}),
+                    'MonthBegin', 'MonthEnd', 'Week', ('Week', {'weekday': 3}),
+                    'BusinessDay', 'BDay', 'QuarterEnd', 'QuarterBegin'],
+                   PerformanceWarning:
+                   ['CustomBusinessDay', 'CDay', 'CBMonthEnd','CBMonthBegin',
+                    'BMonthBegin', 'BMonthEnd', 'BusinessHour', 'BYearBegin',
+                    'BYearEnd','BQuarterBegin', ('LastWeekOfMonth', {'weekday':2}),
+                    ('FY5253Quarter', {'qtr_with_extra_week': 1, 'startingMonth': 1,
+                                       'weekday': 2, 'variation': 'nearest'}),
+                    ('FY5253',{'weekday': 0, 'startingMonth': 2, 'variation': 'nearest'}),
+                    ('WeekOfMonth', {'weekday': 2, 'week': 2}), 'Easter',
+                    ('DateOffset', {'day': 4}), ('DateOffset', {'month': 5})]}
+
+            for normalize in (True, False):
+                for warning, offsets in off.items():
+                    for do in offsets:
+                        if isinstance(do, tuple):
+                            do, kwargs = do
+                        else:
+                            do = do
+                            kwargs = {}
+                        op = getattr(pd.offsets,do)(5, normalize=normalize, **kwargs)
+                        with tm.assert_produces_warning(warning):
+                            assert_func(klass([x + op for x in s]), s + op)
+                            assert_func(klass([x - op for x in s]), s - op)
+                            assert_func(klass([op + x for x in s]), op + s)
     # def test_add_timedelta64(self):
     #     rng = date_range('1/1/2000', periods=5)
     #     delta = rng.values[3] - rng.values[1]
@@ -4228,12 +4314,12 @@ class TimeConversionFormats(tm.TestCase):
 
     def test_to_datetime_format_time(self):
         data = [
-                ['01/10/2010 15:20', '%m/%d/%Y %H:%M', Timestamp('2010-01-10 15:20')],
-	            ['01/10/2010 05:43', '%m/%d/%Y %I:%M', Timestamp('2010-01-10 05:43')],
-	            ['01/10/2010 13:56:01', '%m/%d/%Y %H:%M:%S', Timestamp('2010-01-10 13:56:01')]#,
-	            #['01/10/2010 08:14 PM', '%m/%d/%Y %I:%M %p', Timestamp('2010-01-10 20:14')],
-	            #['01/10/2010 07:40 AM', '%m/%d/%Y %I:%M %p', Timestamp('2010-01-10 07:40')],
-	            #['01/10/2010 09:12:56 AM', '%m/%d/%Y %I:%M:%S %p', Timestamp('2010-01-10 09:12:56')]
+               ['01/10/2010 15:20', '%m/%d/%Y %H:%M', Timestamp('2010-01-10 15:20')],
+             ['01/10/2010 05:43', '%m/%d/%Y %I:%M', Timestamp('2010-01-10 05:43')],
+             ['01/10/2010 13:56:01', '%m/%d/%Y %H:%M:%S', Timestamp('2010-01-10 13:56:01')]#,
+             #['01/10/2010 08:14 PM', '%m/%d/%Y %I:%M %p', Timestamp('2010-01-10 20:14')],
+             #['01/10/2010 07:40 AM', '%m/%d/%Y %I:%M %p', Timestamp('2010-01-10 07:40')],
+             #['01/10/2010 09:12:56 AM', '%m/%d/%Y %I:%M:%S %p', Timestamp('2010-01-10 09:12:56')]
             ]
         for s, format, dt in data:
             self.assertEqual(to_datetime(s, format=format), dt)
