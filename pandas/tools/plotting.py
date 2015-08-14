@@ -592,7 +592,7 @@ def bootstrap_plot(series, fig=None, size=50, samples=500, **kwds):
     return fig
 
 @deprecate_kwarg(old_arg_name='colors', new_arg_name='color')
-@deprecate_kwarg(old_arg_name='data', new_arg_name='frame')
+@deprecate_kwarg(old_arg_name='data', new_arg_name='frame', stacklevel=3)
 def parallel_coordinates(frame, class_column, cols=None, ax=None, color=None,
                          use_columns=False, xticks=None, colormap=None,
                          axvlines=True, **kwds):
@@ -2624,7 +2624,7 @@ def boxplot(data, column=None, by=None, ax=None, fontsize=None,
                    "now, set return_type='axes'.\n To keep the previous "
                    "behavior and silence this warning, set "
                    "return_type='dict'.")
-            warnings.warn(msg, FutureWarning, stacklevel=2)
+            warnings.warn(msg, FutureWarning, stacklevel=3)
             return_type = 'dict'
         if ax is None:
             ax = _gca()
@@ -2972,7 +2972,7 @@ def _grouped_plot(plotf, data, column=None, by=None, numeric_only=True,
     if figsize == 'default':
         # allowed to specify mpl default with 'default'
         warnings.warn("figsize='default' is deprecated. Specify figure"
-                      "size by tuple instead", FutureWarning, stacklevel=2)
+                      "size by tuple instead", FutureWarning, stacklevel=4)
         figsize = None
 
     grouped = data.groupby(by)

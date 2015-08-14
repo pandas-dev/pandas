@@ -1590,7 +1590,7 @@ class TestCategoricalAsBlock(tm.TestCase):
 
         # Changing categories should also make the replaced category np.nan
         s3 = Series(Categorical(["a","b","c","a"]))
-        with tm.assert_produces_warning(FutureWarning):
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             s3.cat.categories = ["a","b",np.nan]
         self.assert_numpy_array_equal(s3.cat.categories,
                                       np.array(["a","b",np.nan], dtype=np.object_))

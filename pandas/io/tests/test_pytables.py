@@ -122,7 +122,7 @@ def _maybe_remove(store, key):
         pass
 
 
-def compat_assert_produces_warning(w,f):
+def compat_assert_produces_warning(w, f):
     """ don't produce a warning under PY3 """
     if compat.PY3:
         f()
@@ -2516,7 +2516,8 @@ class TestHDFStore(Base):
                 [ "minor_axis=['A','B']", dict(field='major_axis', op='>', value='20121114') ]
                 ]
             for t in terms:
-                with tm.assert_produces_warning(expected_warning=DeprecationWarning):
+                with tm.assert_produces_warning(expected_warning=DeprecationWarning,
+                                                check_stacklevel=False):
                     Term(t)
 
             # valid terms
@@ -2609,7 +2610,8 @@ class TestHDFStore(Base):
                        major_axis=date_range('1/1/2000', periods=5),
                        minor_axis=['A', 'B', 'C', 'D'])
             store.append('wp',wp)
-            with tm.assert_produces_warning(expected_warning=DeprecationWarning):
+            with tm.assert_produces_warning(expected_warning=DeprecationWarning,
+                                            check_stacklevel=not compat.PY3):
                 result = store.select('wp', [('major_axis>20000102'),
                                              ('minor_axis', '=', ['A','B']) ])
             expected = wp.loc[:,wp.major_axis>Timestamp('20000102'),['A','B']]
@@ -2628,20 +2630,24 @@ class TestHDFStore(Base):
             store.append('wp',wp)
 
             # stringified datetimes
-            with tm.assert_produces_warning(expected_warning=DeprecationWarning):
+            with tm.assert_produces_warning(expected_warning=DeprecationWarning,
+                                            check_stacklevel=not compat.PY3):
                 result = store.select('wp', [('major_axis','>',datetime.datetime(2000,1,2))])
             expected = wp.loc[:,wp.major_axis>Timestamp('20000102')]
             assert_panel_equal(result, expected)
-            with tm.assert_produces_warning(expected_warning=DeprecationWarning):
+            with tm.assert_produces_warning(expected_warning=DeprecationWarning,
+                                            check_stacklevel=not compat.PY3):
                 result = store.select('wp', [('major_axis','>',datetime.datetime(2000,1,2,0,0))])
             expected = wp.loc[:,wp.major_axis>Timestamp('20000102')]
             assert_panel_equal(result, expected)
-            with tm.assert_produces_warning(expected_warning=DeprecationWarning):
+            with tm.assert_produces_warning(expected_warning=DeprecationWarning,
+                                            check_stacklevel=not compat.PY3):
                 result = store.select('wp', [('major_axis','=',[datetime.datetime(2000,1,2,0,0),
                                                                 datetime.datetime(2000,1,3,0,0)])])
             expected = wp.loc[:,[Timestamp('20000102'),Timestamp('20000103')]]
             assert_panel_equal(result, expected)
-            with tm.assert_produces_warning(expected_warning=DeprecationWarning):
+            with tm.assert_produces_warning(expected_warning=DeprecationWarning,
+                                            check_stacklevel=not compat.PY3):
                 result = store.select('wp', [('minor_axis','=',['A','B'])])
             expected = wp.loc[:,:,['A','B']]
             assert_panel_equal(result, expected)
@@ -4528,7 +4534,7 @@ class TestHDFStore(Base):
             s = Series(np.random.randn(len(unicode_values)), unicode_values)
             self._check_roundtrip(s, tm.assert_series_equal)
 
-        compat_assert_produces_warning(PerformanceWarning,f)
+        compat_assert_produces_warning(PerformanceWarning, f)
 
     def test_store_datetime_mixed(self):
 

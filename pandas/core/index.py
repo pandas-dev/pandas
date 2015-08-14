@@ -842,14 +842,14 @@ class Index(IndexOpsMixin, PandasObject):
             elif is_float(key):
                 key = to_int()
                 warnings.warn("scalar indexers for index type {0} should be integers and not floating point".format(
-                    type(self).__name__),FutureWarning, stacklevel=2)
+                    type(self).__name__), FutureWarning, stacklevel=5)
                 return key
             return self._invalid_indexer('label', key)
 
         if is_float(key):
             if not self.is_floating():
                 warnings.warn("scalar indexers for index type {0} should be integers and not floating point".format(
-                    type(self).__name__),FutureWarning, stacklevel=2)
+                    type(self).__name__), FutureWarning, stacklevel=3)
             return to_int()
 
         return key
@@ -887,7 +887,7 @@ class Index(IndexOpsMixin, PandasObject):
                 # warn if it's a convertible float
                 if v == int(v):
                     warnings.warn("slice indexers when using iloc should be integers "
-                                  "and not floating point",FutureWarning, stacklevel=2)
+                                  "and not floating point", FutureWarning, stacklevel=7)
                     return int(v)
 
                 self._invalid_indexer('slice {0} value'.format(c), v)

@@ -204,7 +204,7 @@ def str_contains(arr, pat, case=True, flags=0, na=np.nan, regex=True):
 
         if regex.groups > 0:
             warnings.warn("This pattern has match groups. To actually get the"
-                          " groups, use str.extract.", UserWarning)
+                          " groups, use str.extract.", UserWarning, stacklevel=3)
 
         f = lambda x: bool(regex.search(x))
     else:
@@ -377,11 +377,12 @@ def str_match(arr, pat, case=True, flags=0, na=np.nan, as_indexer=False):
         # Do this first, to make sure it happens even if the re.compile
         # raises below.
         warnings.warn("In future versions of pandas, match will change to"
-                      " always return a bool indexer.", UserWarning)
+                      " always return a bool indexer.", FutureWarning,
+                      stacklevel=3)
 
     if as_indexer and regex.groups > 0:
         warnings.warn("This pattern has match groups. To actually get the"
-                      " groups, use str.extract.", UserWarning)
+                      " groups, use str.extract.", UserWarning, stacklevel=3)
 
     # If not as_indexer and regex.groups == 0, this returns empty lists
     # and is basically useless, so we will not warn.

@@ -677,7 +677,7 @@ class TestDataFrameGroupByPlots(TestPlotBase):
                                     expected_keys=['height', 'weight', 'category'])
 
         # now for groupby
-        with tm.assert_produces_warning(FutureWarning):
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             result = df.groupby('gender').boxplot()
         self._check_box_return_type(result, 'dict', expected_keys=['Male', 'Female'])
 

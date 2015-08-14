@@ -414,7 +414,7 @@ class Categorical(PandasObject):
 
         Deprecated, use .codes!
         """
-        warn("'labels' is deprecated. Use 'codes' instead", FutureWarning, stacklevel=3)
+        warn("'labels' is deprecated. Use 'codes' instead", FutureWarning, stacklevel=2)
         return self.codes
 
     labels = property(fget=_get_labels, fset=_set_codes)
@@ -456,7 +456,7 @@ class Categorical(PandasObject):
                 # NaNs in cats deprecated in 0.17, remove in 0.18 or 0.19 GH 10748
                 msg = ('\nSetting NaNs in `categories` is deprecated and '
                        'will be removed in a future version of pandas.')
-                warn(msg, FutureWarning, stacklevel=5)
+                warn(msg, FutureWarning, stacklevel=3)
 
             # categories must be unique
 
@@ -491,12 +491,12 @@ class Categorical(PandasObject):
 
     def _set_levels(self, levels):
         """ set new levels (deprecated, use "categories") """
-        warn("Assigning to 'levels' is deprecated, use 'categories'", FutureWarning, stacklevel=3)
+        warn("Assigning to 'levels' is deprecated, use 'categories'", FutureWarning, stacklevel=2)
         self.categories = levels
 
     def _get_levels(self):
         """ Gets the levels (deprecated, use "categories") """
-        warn("Accessing 'levels' is deprecated, use 'categories'", FutureWarning, stacklevel=3)
+        warn("Accessing 'levels' is deprecated, use 'categories'", FutureWarning, stacklevel=2)
         return self.categories
 
     # TODO: Remove after deprecation period in 2017/ after 0.18
@@ -507,7 +507,7 @@ class Categorical(PandasObject):
     def _set_ordered(self, value):
         """ Sets the ordered attribute to the boolean value """
         warn("Setting 'ordered' directly is deprecated, use 'set_ordered'", FutureWarning,
-             stacklevel=3)
+             stacklevel=2)
         self.set_ordered(value, inplace=True)
 
     def set_ordered(self, value, inplace=False):
@@ -1200,7 +1200,7 @@ class Categorical(PandasObject):
         Category.sort
         """
         warn("order is deprecated, use sort_values(...)",
-             FutureWarning, stacklevel=3)
+             FutureWarning, stacklevel=2)
         return self.sort_values(inplace=inplace, ascending=ascending, na_position=na_position)
 
     def sort(self, inplace=True, ascending=True, na_position='last'):
