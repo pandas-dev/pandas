@@ -411,6 +411,12 @@ class TestIndexing(tm.TestCase):
             df.iloc[30]
         self.assertRaises(IndexError, lambda : df.iloc[-30])
 
+        # GH10779 
+        # single positive/negative indexer exceeding Series bounds should raise an IndexError
+        with tm.assertRaisesRegexp(IndexError, 'single positional indexer is out-of-bounds'):
+            s.iloc[30]
+        self.assertRaises(IndexError, lambda : s.iloc[-30])
+
         # slices are ok
         result = df.iloc[:,4:10]  # 0 < start < len < stop
         expected = df.iloc[:,4:]
@@ -471,7 +477,6 @@ class TestIndexing(tm.TestCase):
         self.assertRaises(IndexError, lambda : dfl.iloc[[4,5,6]])
         self.assertRaises(IndexError, lambda : dfl.iloc[:,4])
 
-
     def test_iloc_getitem_int(self):
 
         # integer
@@ -496,6 +501,33 @@ class TestIndexing(tm.TestCase):
         self.check_result('array int', 'iloc', np.array([0,1,2]), 'ix', { 0 : [0,2,4], 1 : [0,3,6], 2: [0,4,8] }, typs = ['ints'])
         self.check_result('array int', 'iloc', np.array([2]), 'ix', { 0 : [4], 1 : [6], 2: [8] }, typs = ['ints'])
         self.check_result('array int', 'iloc', np.array([0,1,2]), 'indexer', [0,1,2], typs = ['labels','mixed','ts','floats','empty'], fails = IndexError)
+
+    def test_iloc_getitem_neg_int_can_reach_first_index(self):
+        # GH10547 and GH10779
+        # negative integers should be able to reach index 0
+        df = DataFrame({'A': [2, 3, 5], 'B': [7, 11, 13]})
+        s = df['A']
+
+        expected = df.iloc[0]
+        result = df.iloc[-3]
+        assert_series_equal(result, expected)
+
+        expected = df.iloc[[0]]
+        result = df.iloc[[-3]]
+        assert_frame_equal(result, expected)
+
+        expected = s.iloc[0]
+        result = s.iloc[-3]
+        self.assertEqual(result, expected)
+
+        expected = s.iloc[[0]]
+        result = s.iloc[[-3]]
+        assert_series_equal(result, expected)
+
+        # check the length 1 Series case highlighted in GH10547
+        expected = pd.Series(['a'], index=['A'])
+        result = expected.iloc[[-1]]
+        assert_series_equal(result, expected)
 
     def test_iloc_getitem_dups(self):
 
