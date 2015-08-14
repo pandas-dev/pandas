@@ -90,12 +90,21 @@ The string format is as the python standard library and details can be found `he
 Support for SAS XPORT files
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-:meth:`~pandas.io.read_sas` provides support for reading SAS XPORT format files:
+:meth:`~pandas.io.read_sas` provides support for reading *SAS XPORT* format files. (:issue:`4052`).
+
+.. code-block:: python
 
     df = pd.read_sas('sas_xport.xpt')
 
 It is also possible to obtain an iterator and read an XPORT file
 incrementally.
+
+.. code-block:: python
+
+    for df in pd.read_sas('sas_xport.xpt', chunksize=10000)
+        do_something(df)
+
+See the :ref:`docs <io.sas>` for more details.
 
 .. _whatsnew_0170.enhancements.other:
 
@@ -647,5 +656,5 @@ Bug Fixes
 - Bug in ``pd.DataFrame`` when constructing an empty DataFrame with a string dtype (:issue:`9428`)
 - Bug in ``pd.unique`` for arrays with the ``datetime64`` or ``timedelta64`` dtype that meant an array with object dtype was returned instead the original dtype (:issue: `9431`)
 - Bug in ``DatetimeIndex.take`` and ``TimedeltaIndex.take`` may not raise ``IndexError`` against invalid index (:issue:`10295`)
-- Bug in ``Series([np.nan]).astype('M8[ms]')``, which now returns ``Series([pd.NaT])`` (:issue:`10747`) 
+- Bug in ``Series([np.nan]).astype('M8[ms]')``, which now returns ``Series([pd.NaT])`` (:issue:`10747`)
 - Bug in ``PeriodIndex.order`` reset freq (:issue:`10295`)
