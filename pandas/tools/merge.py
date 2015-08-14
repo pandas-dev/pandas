@@ -1,7 +1,6 @@
 """
 SQL-style merge routines
 """
-import types
 
 import numpy as np
 from pandas.compat import range, long, lrange, lzip, zip, map, filter
@@ -17,11 +16,9 @@ from pandas.core.internals import (items_overlap_with_suffix,
                                    concatenate_block_managers)
 from pandas.util.decorators import Appender, Substitution
 from pandas.core.common import ABCSeries
-from pandas.io.parsers import TextFileReader
 
 import pandas.core.common as com
 
-import pandas.lib as lib
 import pandas.algos as algos
 import pandas.hashtable as _hash
 
