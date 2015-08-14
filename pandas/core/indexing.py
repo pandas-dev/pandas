@@ -1388,7 +1388,8 @@ class _iLocIndexer(_LocationIndexer):
         # return a boolean if we have a valid integer indexer
 
         ax = self.obj._get_axis(axis)
-        if key > len(ax):
+        l = len(ax)
+        if key >= l or key < -l:
             raise IndexError("single positional indexer is out-of-bounds")
         return True
 
@@ -1400,7 +1401,7 @@ class _iLocIndexer(_LocationIndexer):
         arr = np.array(key)
         ax = self.obj._get_axis(axis)
         l = len(ax)
-        if len(arr) and (arr.max() >= l or arr.min() <= -l):
+        if len(arr) and (arr.max() >= l or arr.min() < -l):
             raise IndexError("positional indexers are out-of-bounds")
 
         return True
