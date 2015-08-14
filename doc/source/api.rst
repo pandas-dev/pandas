@@ -82,6 +82,15 @@ HDFStore: PyTables (HDF5)
    HDFStore.get
    HDFStore.select
 
+SAS
+~~~
+
+.. autosummary::
+   :toctree: generated/
+
+   read_sas
+   XportReader
+
 SQL
 ~~~
 
