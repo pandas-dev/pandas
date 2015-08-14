@@ -3670,14 +3670,14 @@ def test_get_standard_freq():
     assert fstr == get_standard_freq('1w')
     assert fstr == get_standard_freq(('W', 1))
 
-    with tm.assert_produces_warning(FutureWarning):
+    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
         result = get_standard_freq('WeEk')
     assert fstr == result
 
     fstr = get_standard_freq('5Q')
     assert fstr == get_standard_freq('5q')
 
-    with tm.assert_produces_warning(FutureWarning):
+    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
         result = get_standard_freq('5QuarTer')
     assert fstr == result
 

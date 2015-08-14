@@ -1440,7 +1440,8 @@ class CheckIndexing(object):
         df = DataFrame(np.random.randn(5, 5), index=index)
 
         # positional slicing only via iloc!
-        with tm.assert_produces_warning(FutureWarning):
+        # stacklevel=False -> needed stacklevel depends on index type
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             result = df.iloc[1.0:5]
 
         expected = df.reindex([2.5, 3.5, 4.5, 5.0])

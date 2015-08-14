@@ -1884,7 +1884,7 @@ class TestCategoricalIndex(Base, tm.TestCase):
         self.assertFalse(0 in ci)
         self.assertFalse(1 in ci)
 
-        with tm.assert_produces_warning(FutureWarning):
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             ci = CategoricalIndex(list('aabbca'), categories=list('cabdef') + [np.nan])
         self.assertFalse(np.nan in ci)
 
@@ -2101,7 +2101,7 @@ class TestCategoricalIndex(Base, tm.TestCase):
         # tests
         # make sure that we are testing for category inclusion properly
         self.assertTrue(CategoricalIndex(list('aabca'),categories=['c','a','b']).equals(list('aabca')))
-        with tm.assert_produces_warning(FutureWarning):
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             self.assertTrue(CategoricalIndex(list('aabca'),categories=['c','a','b',np.nan]).equals(list('aabca')))
 
         self.assertFalse(CategoricalIndex(list('aabca') + [np.nan],categories=['c','a','b']).equals(list('aabca')))

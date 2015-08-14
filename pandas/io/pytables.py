@@ -1596,7 +1596,7 @@ class IndexCol(StringMixin):
                 # frequency/name just warn
                 if key in ['freq', 'index_name']:
                     ws = attribute_conflict_doc % (key, existing_value, value)
-                    warnings.warn(ws, AttributeConflictWarning)
+                    warnings.warn(ws, AttributeConflictWarning, stacklevel=6)
 
                     # reset
                     idx[key] = None
@@ -2581,7 +2581,7 @@ class GenericFixed(Fixed):
                 except:
                     pass
                 ws = performance_doc % (inferred_type, key, items)
-                warnings.warn(ws, PerformanceWarning)
+                warnings.warn(ws, PerformanceWarning, stacklevel=7)
 
             vlarr = self._handle.create_vlarray(self.group, key,
                                                _tables().ObjectAtom())
@@ -3716,7 +3716,7 @@ class LegacyTable(Table):
                 objs.append(obj)
 
         else:
-            warnings.warn(duplicate_doc, DuplicateWarning)
+            warnings.warn(duplicate_doc, DuplicateWarning, stacklevel=5)
 
             # reconstruct
             long_index = MultiIndex.from_arrays(

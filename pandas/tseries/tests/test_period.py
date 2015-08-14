@@ -2715,7 +2715,7 @@ class TestPeriodIndex(tm.TestCase):
             prng = rng.to_period()
             self.assertEqual(prng.freq, 'M')
 
-        with tm.assert_produces_warning(FutureWarning):
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             rng = date_range('01-Jan-2012', periods=8, freq='EOM')
         prng = rng.to_period()
         self.assertEqual(prng.freq, 'M')

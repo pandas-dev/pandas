@@ -1896,10 +1896,8 @@ class TestStringMethods(tm.TestCase):
 
         pat = pattern = r'([A-Z0-9._%+-]+)@([A-Z0-9.-]+)\.([A-Z]{2,4})'
 
-        with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter('always')
+        with tm.assert_produces_warning(FutureWarning):
             result = data.str.match(pat, flags=re.IGNORECASE)
-            assert issubclass(w[-1].category, UserWarning)
         self.assertEqual(result[0], ('dave', 'google', 'com'))
 
         result = data.str.findall(pat, flags=re.IGNORECASE)
@@ -1908,10 +1906,8 @@ class TestStringMethods(tm.TestCase):
         result = data.str.count(pat, flags=re.IGNORECASE)
         self.assertEqual(result[0], 1)
 
-        with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter('always')
+        with tm.assert_produces_warning(UserWarning):
             result = data.str.contains(pat, flags=re.IGNORECASE)
-            assert issubclass(w[-1].category, UserWarning)
         self.assertEqual(result[0], True)
 
     def test_encode_decode(self):

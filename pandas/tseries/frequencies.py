@@ -525,12 +525,12 @@ def get_offset(name):
         if name in _rule_aliases:
             new = _rule_aliases[name]
             warnings.warn(_LEGACY_FREQ_WARNING.format(name, new),
-                          FutureWarning)
+                          FutureWarning, stacklevel=2)
             name = new
         elif name.lower() in _rule_aliases:
             new = _rule_aliases[name.lower()]
             warnings.warn(_LEGACY_FREQ_WARNING.format(name, new),
-                          FutureWarning)
+                          FutureWarning, stacklevel=2)
             name = new
 
         name = _lite_rule_alias.get(name, name)
@@ -540,7 +540,7 @@ def get_offset(name):
         if name in _rule_aliases:
             new = _rule_aliases[name]
             warnings.warn(_LEGACY_FREQ_WARNING.format(name, new),
-                          FutureWarning)
+                          FutureWarning, stacklevel=2)
             name = new
         name = _lite_rule_alias.get(name, name)
 
@@ -784,7 +784,7 @@ def _period_str_to_code(freqstr):
     if freqstr in _rule_aliases:
         new = _rule_aliases[freqstr]
         warnings.warn(_LEGACY_FREQ_WARNING.format(freqstr, new),
-                      FutureWarning)
+                      FutureWarning, stacklevel=6)
         freqstr = new
     freqstr = _lite_rule_alias.get(freqstr, freqstr)
 
@@ -793,7 +793,7 @@ def _period_str_to_code(freqstr):
         if lower in _rule_aliases:
             new = _rule_aliases[lower]
             warnings.warn(_LEGACY_FREQ_WARNING.format(lower, new),
-                          FutureWarning)
+                          FutureWarning, stacklevel=6)
             freqstr = new
         freqstr = _lite_rule_alias.get(lower, freqstr)
 
@@ -805,7 +805,7 @@ def _period_str_to_code(freqstr):
         try:
             alias = _period_alias_dict[freqstr]
             warnings.warn(_LEGACY_FREQ_WARNING.format(freqstr, alias),
-                          FutureWarning)
+                          FutureWarning, stacklevel=3)
         except KeyError:
             raise ValueError("Unknown freqstr: %s" % freqstr)
 

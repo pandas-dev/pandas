@@ -328,7 +328,7 @@ def read_sql_table(table_name, con, schema=None, index_col=None,
     read_sql
 
     """
-    
+
     con = _engine_builder(con)
     if not _is_sqlalchemy_connectable(con):
         raise NotImplementedError("read_sql_table only supported for "
@@ -364,7 +364,7 @@ def read_sql_query(sql, con, index_col=None, coerce_float=True, params=None,
     ----------
     sql : string
         SQL query to be executed
-    con : SQLAlchemy connectable(engine/connection) or database string URI 
+    con : SQLAlchemy connectable(engine/connection) or database string URI
         or sqlite3 DBAPI2 connection
         Using SQLAlchemy makes it possible to use any DB supported by that
         library.
@@ -618,7 +618,7 @@ def pandasSQL_builder(con, flavor=None, schema=None, meta=None,
         return SQLDatabase(con, schema=schema, meta=meta)
     else:
         if flavor == 'mysql':
-            warnings.warn(_MYSQL_WARNING, FutureWarning, stacklevel=2)
+            warnings.warn(_MYSQL_WARNING, FutureWarning, stacklevel=3)
         return SQLiteDatabase(con, flavor, is_cursor=is_cursor)
 
 
@@ -957,7 +957,7 @@ class SQLTable(PandasObject):
         if col_type == 'timedelta64':
             warnings.warn("the 'timedelta' type is not supported, and will be "
                           "written as integer values (ns frequency) to the "
-                          "database.", UserWarning)
+                          "database.", UserWarning, stacklevel=8)
             return BigInteger
         elif col_type == 'floating':
             if col.dtype == 'float32':
@@ -1409,7 +1409,7 @@ class SQLiteTable(SQLTable):
         pat = re.compile('\s+')
         column_names = [col_name for col_name, _, _ in column_names_and_types]
         if any(map(pat.search, column_names)):
-            warnings.warn(_SAFE_NAMES_WARNING)
+            warnings.warn(_SAFE_NAMES_WARNING, stacklevel=6)
 
         flv = self.pd_sql.flavor
         escape = _SQL_GET_IDENTIFIER[flv]
@@ -1450,7 +1450,7 @@ class SQLiteTable(SQLTable):
         if col_type == 'timedelta64':
             warnings.warn("the 'timedelta' type is not supported, and will be "
                           "written as integer values (ns frequency) to the "
-                          "database.", UserWarning)
+                          "database.", UserWarning, stacklevel=8)
             col_type = "integer"
 
         elif col_type == "datetime64":

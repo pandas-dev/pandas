@@ -1968,7 +1968,8 @@ def assert_produces_warning(expected_warning=Warning, filter_level="always",
                                                 expected_warning)):
                 saw_warning = True
 
-                if check_stacklevel:
+                if check_stacklevel and issubclass(actual_warning.category,
+                                                   (FutureWarning, DeprecationWarning)):
                     from inspect import getframeinfo, stack
                     caller = getframeinfo(stack()[2][0])
                     msg = ("Warning not set with correct stacklevel. File were warning"
