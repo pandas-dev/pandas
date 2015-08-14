@@ -13,6 +13,7 @@ from pandas.util.testing import (
     assert_index_equal, assert_series_equal, assert_frame_equal,
     assert_numpy_array_equal, assert_isinstance, RNGContext
 )
+from pandas.compat import is_platform_windows
 
 # let's get meta.
 
@@ -136,6 +137,9 @@ class TestUtilTesting(tm.TestCase):
 class TestAssertNumpyArrayEqual(tm.TestCase):
 
     def test_numpy_array_equal_message(self):
+
+        if is_platform_windows():
+            raise nose.SkipTest("windows has incomparable line-endings and uses L on the shape")
 
         expected = """numpy array are different
 
