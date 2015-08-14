@@ -186,7 +186,7 @@ class DatetimeIndexOpsMixin(object):
         maybe_slice = lib.maybe_indices_to_slice(indices, len(self))
         if isinstance(maybe_slice, slice):
             return self[maybe_slice]
-        taken = self.asi8.take(indices)
+        taken = self.asi8.take(com._ensure_platform_int(indices))
         return self._shallow_copy(taken, freq=None)
 
     def get_duplicates(self):
