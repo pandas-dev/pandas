@@ -20,7 +20,7 @@ Highlights include:
   if they are all ``NaN``, see :ref:`here <whatsnew_0170.api_breaking.hdf_dropna>`
 - Support for ``Series.dt.strftime`` to generate formatted strings for datetime-likes, see :ref:`here <whatsnew_0170.strftime>`
 - Development installed versions of pandas will now have ``PEP440`` compliant version strings (:issue:`9518`)
-- Support for reading SAS xport files, see :meth:`~pandas.io.read_sas`.
+- Support for reading SAS xport files, see :ref:`here <whatsnew_0170.enhancements.sas_xport>`
 
 Check the :ref:`API Changes <whatsnew_0170.api>` and :ref:`deprecations <whatsnew_0170.deprecations>` before updating.
 
@@ -85,6 +85,18 @@ We are now supporting a ``Series.dt.strftime`` method for datetime-likes to gene
 
 The string format is as the python standard library and details can be found `here <https://docs.python.org/2/library/datetime.html#strftime-and-strptime-behavior>`_
 
+.. _whatsnew_0170.enhancements.sas_xport:
+
+Support for SAS XPORT files
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:meth:`~pandas.io.read_sas` provides support for reading SAS XPORT format files:
+
+    df = pd.read_sas('sas_xport.xpt')
+
+It is also possible to obtain an iterator and read an XPORT file
+incrementally.
+
 .. _whatsnew_0170.enhancements.other:
 
 Other enhancements
@@ -93,13 +105,6 @@ Other enhancements
 - `read_sql` and `to_sql` can accept database URI as con parameter (:issue:`10214`)
 
 - Enable `read_hdf` to be used without specifying a key when the HDF file contains a single dataset (:issue:`10443`)
-
-- :meth:`~pandas.io.read_sas` provides support for reading SAS XPORT format files:
-
-    df = pd.read_sas('sas_xport.xpt')
-
-It is also possible to obtain an iterator and read an XPORT file
-incrementally.
 
 - ``DatetimeIndex`` can be instantiated using strings contains ``NaT`` (:issue:`7599`)
 - The string parsing of ``to_datetime``, ``Timestamp`` and ``DatetimeIndex`` has been made consistent. (:issue:`7599`)
