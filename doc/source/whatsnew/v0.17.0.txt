@@ -654,6 +654,8 @@ Bug Fixes
 - Bug in vectorised setting of timestamp columns with python ``datetime.date`` and numpy ``datetime64`` (:issue:`10408`, :issue:`10412`)
 - Bug in ``Index.take`` may add unnecessary ``freq`` attribute (:issue:`10791`)
 
+- Bug in ``read_csv`` when using the ``nrows`` or ``chunksize`` parameters if file contains only a header line (:issue:`9535`)
+
 - Bug in ``pd.DataFrame`` when constructing an empty DataFrame with a string dtype (:issue:`9428`)
 - Bug in ``pd.unique`` for arrays with the ``datetime64`` or ``timedelta64`` dtype that meant an array with object dtype was returned instead the original dtype (:issue: `9431`)
 - Bug in ``DatetimeIndex.take`` and ``TimedeltaIndex.take`` may not raise ``IndexError`` against invalid index (:issue:`10295`)
