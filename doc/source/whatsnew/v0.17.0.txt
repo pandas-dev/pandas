@@ -525,6 +525,7 @@ Other API Changes
    ``return np.datetime64('NaT')``     ``to_datetime64`` (unchanged)
    ``raise ValueError``                All other public methods (names not beginning with underscores)
    ===============================     ===============================================================
+- Improved error message when concatenating an empty iterable of dataframes (:issue:`9157`)
 
 - Improved error message when concatenating an empty iterable of dataframes (:issue:`9157`)
 
