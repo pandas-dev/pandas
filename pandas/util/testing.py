@@ -241,6 +241,12 @@ def _skip_if_no_cday():
         raise nose.SkipTest("CustomBusinessDay not available.")
 
 
+def _skip_if_python26():
+    if sys.version_info[:2] == (2, 6):
+        import nose
+        raise nose.SkipTest("skipping on python2.6")
+
+
 #------------------------------------------------------------------------------
 # locale utilities
 
