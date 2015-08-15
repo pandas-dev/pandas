@@ -1579,7 +1579,11 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing,
         assert_frame_equal(result, expected)
 
         wp.iloc[0, 0].iloc[0] = np.nan  # BUG on setting. GH #5773
-        result = wp.to_frame()
+
+        with tm.assert_produces_warning(FutureWarning):
+            setattr(panelm, '__warningregistry__', {}) 
+            result = wp.to_frame()
+
         assert_frame_equal(result, expected[1:])
 
         idx = MultiIndex.from_tuples([(1, 'two'), (1, 'one'), (2, 'one'),

@@ -8,6 +8,7 @@ from pandas.compat import (map, zip, range, lrange, lmap, u, OrderedDict,
 from pandas import compat
 import warnings
 import numpy as np
+import warnings
 from pandas.core.common import (PandasError, _try_sort, _default_index,
                                 _infer_dtype_from_scalar, notnull, is_list_like)
 from pandas.core.categorical import Categorical
@@ -870,6 +871,7 @@ class Panel(NDFrame):
         filter_observations : boolean, default True
             Drop (major, minor) pairs without a complete set of observations
             across all the items
+            Default will be changed to False in future versions
 
         Returns
         -------
@@ -882,6 +884,13 @@ class Panel(NDFrame):
             mask = com.notnull(self.values).all(axis=0)
             # size = mask.sum()
             selector = mask.ravel()
+            if not selector.all():
+                warnings.warn("Panel to_frame method discards entries with "
+                              "NaN/None in the data by default, use "
+                              "filter_observations = False to save them. "
+                              "This will be default behaviour "
+                              "in future versions.",
+                              FutureWarning)
         else:
             # size = N * K
             selector = slice(None, None)
