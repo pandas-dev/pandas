@@ -802,6 +802,8 @@ class ParserBase(object):
 
         self._name_processed = False
 
+        self._first_chunk = True
+
     @property
     def _has_complex_date_col(self):
         return (isinstance(self.parse_dates, dict) or
@@ -1164,20 +1166,24 @@ class CParserWrapper(ParserBase):
         self._reader.set_error_bad_lines(int(status))
 
     def read(self, nrows=None):
-        if self.as_recarray:
-            # what to do if there are leading columns?
-            return self._reader.read(nrows)
-
         try:
             data = self._reader.read(nrows)
         except StopIteration:
-            if nrows is None:
+            if self._first_chunk:
+                self._first_chunk = False
                 return _get_empty_meta(self.orig_names,
                                        self.index_col,
                                        self.index_names,
                                        dtype=self.kwds.get('dtype'))
             else:
                 raise
+
+        # Done with first read, next time raise StopIteration
+        self._first_chunk = False
+
+        if self.as_recarray:
+            # what to do if there are leading columns?
+            return data
 
         names = self.names
 
@@ -1454,7 +1460,6 @@ class PythonParser(ParserBase):
             self._name_processed = True
             if self.index_names is None:
                 self.index_names = index_names
-        self._first_chunk = True
 
         if self.parse_dates:
             self._no_thousands_columns = self._set_no_thousands_columns()
