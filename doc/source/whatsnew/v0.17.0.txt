@@ -501,6 +501,7 @@ Other API Changes
 - Enable serialization of lists and dicts to strings in ExcelWriter (:issue:`8188`)
 - Allow passing `kwargs` to the interpolation methods (:issue:`10378`).
 - Serialize metadata properties of subclasses of pandas objects (:issue:`10553`).
+- Allow ``DataFrame`` with ``MultiIndex`` columns to be written to Excel (:issue: `10564`). This was changed in 0.16.2 as the read-back method could not always guarantee perfect fidelity (:issue:`9794`).
 - ``Categorical.unique`` now returns new ``Categorical`` which ``categories`` and ``codes`` are unique, rather than returning ``np.array`` (:issue:`10508`)
 
    - unordered category: values and categories are sorted by appearance order.
