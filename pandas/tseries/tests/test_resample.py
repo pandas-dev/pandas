@@ -11,6 +11,7 @@ from pandas import (Series, TimeSeries, DataFrame, Panel, Index,
 
 from pandas.core.groupby import DataError
 from pandas.tseries.index import date_range
+from pandas.tseries.tdi import timedelta_range
 from pandas.tseries.offsets import Minute, BDay
 from pandas.tseries.period import period_range, PeriodIndex, Period
 from pandas.tseries.resample import DatetimeIndex, TimeGrouper
@@ -626,6 +627,19 @@ class TestResample(tm.TestCase):
         exp_rng = date_range('12/31/1999 23:57:00', '1/1/2000 01:57',
                              freq='5min')
         self.assertTrue(resampled.index.equals(exp_rng))
+
+    def test_resample_base_with_timedeltaindex(self):
+        rng = timedelta_range(start = '0s', periods = 25, freq = 's')
+        ts = Series(np.random.randn(len(rng)), index = rng)
+        
+        with_base = ts.resample('2s', base = 5)
+        without_base = ts.resample('2s')
+
+        exp_without_base = timedelta_range(start = '0s', end = '25s', freq = '2s')
+        exp_with_base = timedelta_range(start = '5s', end = '29s', freq = '2s')
+
+        self.assertTrue(without_base.index.equals(exp_without_base))
+        self.assertTrue(with_base.index.equals(exp_with_base))
 
     def test_resample_daily_anchored(self):
         rng = date_range('1/1/2000 0:00:00', periods=10000, freq='T')
