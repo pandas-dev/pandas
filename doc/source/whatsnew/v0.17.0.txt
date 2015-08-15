@@ -494,8 +494,7 @@ Other API Changes
 ^^^^^^^^^^^^^^^^^
 
 - Line and kde plot with ``subplots=True`` now uses default colors, not all black. Specify ``color='k'`` to draw all lines in black (:issue:`9894`)
-- Calling the ``.value_counts`` method on a Series with ``categorical`` dtype now returns a
-Series with a ``CategoricalIndex`` (:issue:`10704`)
+- Calling the ``.value_counts`` method on a Series with ``categorical`` dtype now returns a Series with a ``CategoricalIndex`` (:issue:`10704`)
 - Enable writing Excel files in :ref:`memory <_io.excel_writing_buffer>` using StringIO/BytesIO (:issue:`7074`)
 - Enable serialization of lists and dicts to strings in ExcelWriter (:issue:`8188`)
 - Allow passing `kwargs` to the interpolation methods (:issue:`10378`).
