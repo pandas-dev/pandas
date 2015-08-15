@@ -217,6 +217,9 @@ class _MergeOperation(object):
                 if left_indexer is not None and right_indexer is not None:
 
                     if name in self.left:
+                        if len(self.left) == 0:
+                            continue
+
                         na_indexer = (left_indexer == -1).nonzero()[0]
                         if len(na_indexer) == 0:
                             continue
@@ -226,6 +229,9 @@ class _MergeOperation(object):
                             na_indexer, com.take_1d(self.right_join_keys[i],
                                                     right_na_indexer))
                     elif name in self.right:
+                        if len(self.right) == 0:
+                            continue
+
                         na_indexer = (right_indexer == -1).nonzero()[0]
                         if len(na_indexer) == 0:
                             continue
@@ -270,9 +276,17 @@ class _MergeOperation(object):
                                                  sort=self.sort, how=self.how)
 
             if self.right_index:
-                join_index = self.left.index.take(left_indexer)
+                if len(self.left) > 0:
+                    join_index = self.left.index.take(left_indexer)
+                else:
+                    join_index = self.right.index.take(right_indexer)
+                    left_indexer = np.array([-1] * len(join_index))
             elif self.left_index:
-                join_index = self.right.index.take(right_indexer)
+                if len(self.right) > 0:
+                    join_index = self.right.index.take(right_indexer)
+                else:
+                    join_index = self.left.index.take(left_indexer)
+                    right_indexer = np.array([-1] * len(join_index))
             else:
                 join_index = Index(np.arange(len(left_indexer)))
 

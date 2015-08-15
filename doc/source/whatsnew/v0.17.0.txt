@@ -660,6 +660,8 @@ Bug Fixes
 - Bug in ``io.common.get_filepath_or_buffer`` which caused reading of valid S3 files to fail if the bucket also contained keys for which the user does not have read permission (:issue:`10604`)
 - Bug in vectorised setting of timestamp columns with python ``datetime.date`` and numpy ``datetime64`` (:issue:`10408`, :issue:`10412`)
 - Bug in ``Index.take`` may add unnecessary ``freq`` attribute (:issue:`10791`)
+- Bug in ``merge`` with empty ``DataFrame`` may raise ``IndexError`` (:issue:`10824`)
+
 
 - Bug in ``read_csv`` when using the ``nrows`` or ``chunksize`` parameters if file contains only a header line (:issue:`9535`)
 
