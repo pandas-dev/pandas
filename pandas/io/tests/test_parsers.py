@@ -2415,6 +2415,25 @@ MyColumn
             expected = pd.DataFrame([str(x)])
             tm.assert_frame_equal(result, expected)
 
+    def test_empty_with_nrows_chunksize(self):
+        # GH 9535
+        expected = pd.DataFrame([], columns=['foo', 'bar'])
+
+        result = self.read_csv(StringIO('foo,bar\n'), nrows=10)
+        tm.assert_frame_equal(result, expected)
+
+        result = next(iter(pd.read_csv(StringIO('foo,bar\n'), chunksize=10)))
+        tm.assert_frame_equal(result, expected)
+
+        result = pd.read_csv(StringIO('foo,bar\n'), nrows=10, as_recarray=True)
+        result = pd.DataFrame(result[2], columns=result[1], index=result[0])
+        tm.assert_frame_equal(pd.DataFrame.from_records(result), expected)
+
+        result = next(iter(pd.read_csv(StringIO('foo,bar\n'), chunksize=10, as_recarray=True)))
+        result = pd.DataFrame(result[2], columns=result[1], index=result[0])
+        tm.assert_frame_equal(pd.DataFrame.from_records(result), expected)
+
+
 
 class TestPythonParser(ParserTests, tm.TestCase):
     def test_negative_skipfooter_raises(self):
