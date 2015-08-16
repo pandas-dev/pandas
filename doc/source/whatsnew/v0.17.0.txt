@@ -591,8 +591,6 @@ Performance Improvements
 
 Bug Fixes
 ~~~~~~~~~
-
-
 - Bug in ``DataFrame.to_html(index=False)`` renders unnecessary ``name`` row (:issue:`10344`)
 - Bug in ``DataFrame.apply`` when function returns categorical series. (:issue:`9573`)
 - Bug in ``to_datetime`` with invalid dates and formats supplied (:issue:`10154`)
@@ -607,6 +605,7 @@ Bug Fixes
 - Bug in ``pd.rolling_*`` where ``Series.name`` would be lost in the output (:issue:`10565`)
 - Bug in ``stack`` when index or columns are not unique. (:issue:`10417`)
 - Bug in setting a Panel when an axis has a multi-index (:issue:`10360`)
+- Bug in ``USFederalHolidayCalendar`` where ``USMemorialDay`` and ``USMartinLutherKingJr`` were incorrect (:issue:`10278` and :issue:`9760` )
 
 
 

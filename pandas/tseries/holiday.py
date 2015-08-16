@@ -405,15 +405,15 @@ class AbstractHolidayCalendar(object):
         else:
             return holidays
 
-USMemorialDay = Holiday('MemorialDay', month=5, day=24,
-                        offset=DateOffset(weekday=MO(1)))
+USMemorialDay = Holiday('MemorialDay', month=5, day=31,
+                        offset=DateOffset(weekday=MO(-1)))
 USLaborDay = Holiday('Labor Day', month=9, day=1,
                      offset=DateOffset(weekday=MO(1)))
 USColumbusDay = Holiday('Columbus Day', month=10, day=1,
                         offset=DateOffset(weekday=MO(2)))
 USThanksgivingDay = Holiday('Thanksgiving', month=11, day=1,
                             offset=DateOffset(weekday=TH(4)))
-USMartinLutherKingJr = Holiday('Dr. Martin Luther King Jr.', month=1, day=1,
+USMartinLutherKingJr = Holiday('Dr. Martin Luther King Jr.', start_date=datetime(1986,1,1), month=1, day=1,
                                offset=DateOffset(weekday=MO(3)))
 USPresidentsDay = Holiday('President''s Day', month=2, day=1,
                           offset=DateOffset(weekday=MO(3)))
