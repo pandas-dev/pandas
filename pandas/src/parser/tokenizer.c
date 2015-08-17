@@ -1413,9 +1413,9 @@ int tokenize_whitespace(parser_t *self, size_t line_limit)
                     self->state = EAT_CRNL;
                 break;
             } else if (IS_WHITESPACE(c)) {
-                /*if (self->skip_empty_lines)
+                if (self->skip_empty_lines)
                     self->state = WHITESPACE_LINE;
-                    else*/
+                else
                     self->state = EAT_WHITESPACE;
                 break;
             } else if (c == self->commentchar) {
@@ -1643,34 +1643,44 @@ linelimit:
 
 static int parser_handle_eof(parser_t *self) {
     TRACE(("handling eof, datalen: %d, pstate: %d\n", self->datalen, self->state))
-    if (self->datalen == 0 && (self->state != START_RECORD)) {
-        // test cases needed here
-        // TODO: empty field at end of line
-        TRACE(("handling eof\n"));
 
-        if (self->state == IN_FIELD || self->state == START_FIELD) {
-            if (end_field(self) < 0)
-                return -1;
-        } else if (self->state == QUOTE_IN_QUOTED_FIELD) {
-            if (end_field(self) < 0)
-                return -1;
-        } else if (self->state == IN_QUOTED_FIELD) {
-            self->error_msg = (char*) malloc(100);
-            sprintf(self->error_msg, "EOF inside string starting at line %d",
-                    self->file_lines);
-            return -1;
-        }
+    if (self->datalen != 0)
+        return -1;
 
-        if (end_line(self) < 0)
-            return -1;
-
+    switch (self->state) {
+    case START_RECORD:
+    case WHITESPACE_LINE:
+    case EAT_CRNL_NOP:
+    case EAT_LINE_COMMENT:
         return 0;
-    }
-    else if (self->datalen == 0 && (self->state == START_RECORD)) {
-        return 0;
+
+    case ESCAPE_IN_QUOTED_FIELD:
+    case IN_QUOTED_FIELD:
+        self->error_msg = (char*)malloc(100);
+        sprintf(self->error_msg, "EOF inside string starting at line %d",
+                self->file_lines);
+        return -1;
+
+    case ESCAPED_CHAR:
+        self->error_msg = (char*)malloc(100);
+        sprintf(self->error_msg, "EOF following escape character");
+        return -1;
+
+    case IN_FIELD:
+    case START_FIELD:
+    case QUOTE_IN_QUOTED_FIELD:
+        if (end_field(self) < 0)
+            return -1;
+        break;
+
+    default:
+        break;
     }
 
-    return -1;
+    if (end_line(self) < 0)
+        return -1;
+    else
+        return 0;
 }
 
 int parser_consume_rows(parser_t *self, size_t nrows) {
