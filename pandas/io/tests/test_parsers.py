@@ -2433,6 +2433,75 @@ MyColumn
         result = pd.DataFrame(result[2], columns=result[1], index=result[0])
         tm.assert_frame_equal(pd.DataFrame.from_records(result), expected)
 
+    def test_eof_states(self):
+        # GH 10728 and 10548
+
+        ## With skip_blank_lines = True
+        expected = pd.DataFrame([[4, 5, 6]], columns=['a', 'b', 'c'])
+
+        # GH 10728
+        # WHITESPACE_LINE
+        data = 'a,b,c\n4,5,6\n '
+        result = self.read_csv(StringIO(data))
+        tm.assert_frame_equal(result, expected)
+
+        # GH 10548
+        # EAT_LINE_COMMENT
+        data = 'a,b,c\n4,5,6\n#comment'
+        result = self.read_csv(StringIO(data), comment='#')
+        tm.assert_frame_equal(result, expected)
+
+        # EAT_CRNL_NOP
+        data = 'a,b,c\n4,5,6\n\r'
+        result = self.read_csv(StringIO(data))
+        tm.assert_frame_equal(result, expected)
+
+        # EAT_COMMENT
+        data = 'a,b,c\n4,5,6#comment'
+        result = self.read_csv(StringIO(data), comment='#')
+        tm.assert_frame_equal(result, expected)
+
+        # SKIP_LINE
+        data = 'a,b,c\n4,5,6\nskipme'
+        result = self.read_csv(StringIO(data), skiprows=[2])
+        tm.assert_frame_equal(result, expected)
+
+        ## With skip_blank_lines = False
+
+        # EAT_LINE_COMMENT
+        data = 'a,b,c\n4,5,6\n#comment'
+        result = self.read_csv(StringIO(data), comment='#', skip_blank_lines=False)
+        expected = pd.DataFrame([[4, 5, 6]], columns=['a', 'b', 'c'])
+        tm.assert_frame_equal(result, expected)
+
+        # IN_FIELD
+        data = 'a,b,c\n4,5,6\n '
+        result = self.read_csv(StringIO(data), skip_blank_lines=False)
+        expected = pd.DataFrame([['4', 5, 6], [' ', None, None]], columns=['a', 'b', 'c'])
+        tm.assert_frame_equal(result, expected)
+
+        # EAT_CRNL
+        data = 'a,b,c\n4,5,6\n\r'
+        result = self.read_csv(StringIO(data), skip_blank_lines=False)
+        expected = pd.DataFrame([[4, 5, 6], [None, None, None]], columns=['a', 'b', 'c'])
+        tm.assert_frame_equal(result, expected)
+
+        ## Should produce exceptions
+
+        # ESCAPED_CHAR
+        data = "a,b,c\n4,5,6\n\\"
+        self.assertRaises(Exception, self.read_csv, StringIO(data), escapechar='\\')
+
+        # ESCAPE_IN_QUOTED_FIELD
+        data = 'a,b,c\n4,5,6\n"\\'
+        self.assertRaises(Exception, self.read_csv, StringIO(data), escapechar='\\')
+
+        # IN_QUOTED_FIELD
+        # Python 2.6 won't throw an exception for this case (see http://bugs.python.org/issue16013)
+        tm._skip_if_python26()
+        data = 'a,b,c\n4,5,6\n"'
+        self.assertRaises(Exception, self.read_csv, StringIO(data), escapechar='\\')
+
 
 
 class TestPythonParser(ParserTests, tm.TestCase):
