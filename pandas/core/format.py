@@ -1985,8 +1985,6 @@ class GenericArrayFormatter(object):
                 return self.na_rep
             elif isinstance(x, PandasObject):
                 return '%s' % x
-            elif isinstance(x,np.ndarray):
-                return str(x).replace('\n',',')
             else:
                 # object dtype
                 return '%s' % formatter(x)
