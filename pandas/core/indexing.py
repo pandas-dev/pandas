@@ -201,6 +201,7 @@ class _NDFrameIndexer(object):
 
         # also has the side effect of consolidating in-place
         from pandas import Panel, DataFrame, Series
+        info_axis = self.obj._info_axis_number
 
         # maybe partial set
         take_split_path = self.obj._is_mixed_type
@@ -212,6 +213,16 @@ class _NDFrameIndexer(object):
             if 1 < blk.ndim:  # in case of dict, keys are indices
                 val = list(value.values()) if isinstance(value,dict) else value
                 take_split_path = not blk._can_hold_element(val)
+
+        if isinstance(indexer, tuple) and len(indexer) == len(self.obj.axes):
+
+            for i, ax in zip(indexer, self.obj.axes):
+
+                # if we have any multi-indexes that have non-trivial slices (not null slices)
+                # then we must take the split path, xref GH 10360
+                if isinstance(ax, MultiIndex) and not (is_integer(i) or is_null_slice(i)):
+                    take_split_path = True
+                    break
 
         if isinstance(indexer, tuple):
             nindexer = []
@@ -328,13 +339,7 @@ class _NDFrameIndexer(object):
                     return self.obj.__setitem__(indexer, value)
 
         # set
-        info_axis = self.obj._info_axis_number
         item_labels = self.obj._get_axis(info_axis)
-
-        # if we have a complicated setup, take the split path
-        if (isinstance(indexer, tuple) and
-                any([isinstance(ax, MultiIndex) for ax in self.obj.axes])):
-            take_split_path = True
 
         # align and set the values
         if take_split_path:

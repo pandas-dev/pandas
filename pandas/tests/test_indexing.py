@@ -411,7 +411,7 @@ class TestIndexing(tm.TestCase):
             df.iloc[30]
         self.assertRaises(IndexError, lambda : df.iloc[-30])
 
-        # GH10779 
+        # GH10779
         # single positive/negative indexer exceeding Series bounds should raise an IndexError
         with tm.assertRaisesRegexp(IndexError, 'single positional indexer is out-of-bounds'):
             s.iloc[30]
@@ -2651,6 +2651,44 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
             p.loc[idx,:,:] = replace
         tm.assert_panel_equal(p, expected)
 
+
+    def test_panel_setitem_with_multiindex(self):
+
+        # 10360
+        # failing with a multi-index
+        arr = np.array([[[1,2,3],[0,0,0]],[[0,0,0],[0,0,0]]],dtype=np.float64)
+
+        # reg index
+        axes = dict(items=['A', 'B'], major_axis=[0, 1], minor_axis=['X', 'Y' ,'Z'])
+        p1 = Panel(0., **axes)
+        p1.iloc[0, 0, :] = [1, 2, 3]
+        expected = Panel(arr, **axes)
+        tm.assert_panel_equal(p1, expected)
+
+        # multi-indexes
+        axes['items'] = pd.MultiIndex.from_tuples([('A','a'), ('B','b')])
+        p2 = Panel(0., **axes)
+        p2.iloc[0, 0, :] = [1, 2, 3]
+        expected = Panel(arr, **axes)
+        tm.assert_panel_equal(p2, expected)
+
+        axes['major_axis']=pd.MultiIndex.from_tuples([('A',1),('A',2)])
+        p3 = Panel(0., **axes)
+        p3.iloc[0, 0, :] = [1, 2, 3]
+        expected = Panel(arr, **axes)
+        tm.assert_panel_equal(p3, expected)
+
+        axes['minor_axis']=pd.MultiIndex.from_product([['X'],range(3)])
+        p4 = Panel(0., **axes)
+        p4.iloc[0, 0, :] = [1, 2, 3]
+        expected = Panel(arr, **axes)
+        tm.assert_panel_equal(p4, expected)
+
+        arr = np.array([[[1,0,0],[2,0,0]],[[0,0,0],[0,0,0]]],dtype=np.float64)
+        p5 = Panel(0., **axes)
+        p5.iloc[0, :, 0] = [1, 2]
+        expected = Panel(arr, **axes)
+        tm.assert_panel_equal(p5, expected)
 
     def test_panel_assignment(self):
 
