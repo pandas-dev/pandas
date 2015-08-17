@@ -4325,6 +4325,8 @@ class TimeConversionFormats(tm.TestCase):
             self.assertEqual(to_datetime(s, format=format), dt)
 
     def test_to_datetime_with_non_exact(self):
+        # GH 10834
+        _skip_if_has_locale()
 
         # 8904
         # exact kw
