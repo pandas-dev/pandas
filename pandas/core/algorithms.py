@@ -245,6 +245,9 @@ def value_counts(values, sort=True, ascending=False, normalize=False,
         elif com.is_integer_dtype(dtype):
             values = com._ensure_int64(values)
             keys, counts = htable.value_count_int64(values)
+        elif com.is_float_dtype(dtype):
+            values = com._ensure_float64(values)
+            keys, counts = htable.value_count_float64(values, dropna)
 
         else:
             values = com._ensure_object(values)
