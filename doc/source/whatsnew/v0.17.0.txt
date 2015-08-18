@@ -172,6 +172,8 @@ Other enhancements
 
 - ``drop_duplicates`` and ``duplicated`` now accept ``keep`` keyword to target first, last, and all duplicates. ``take_last`` keyword is deprecated, see :ref:`deprecations <whatsnew_0170.deprecations>` (:issue:`6511`, :issue:`8505`)
 
+- ``msgpack`` submodule has been updated to 0.4.6 with backward compatibility (:issue:`10581`)
+
 .. ipython :: python
 
    s = pd.Series(['A', 'B', 'C', 'A', 'B', 'D'])
@@ -670,4 +672,5 @@ Bug Fixes
 - Bug in ``Series([np.nan]).astype('M8[ms]')``, which now returns ``Series([pd.NaT])`` (:issue:`10747`)
 - Bug in ``PeriodIndex.order`` reset freq (:issue:`10295`)
 - Bug in ``iloc`` allowing memory outside bounds of a Series to be accessed with negative integers (:issue:`10779`)
+- Bug in ``read_msgpack`` where encoding is not respected (:issue:`10580`)
 - Bug preventing access to the first index when using ``iloc`` with a list containing the appropriate negative integer (:issue:`10547`, :issue:`10779`)
