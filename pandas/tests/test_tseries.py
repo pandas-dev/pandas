@@ -9,10 +9,8 @@ from pandas.compat import range, lrange, zip
 import pandas.lib as lib
 import pandas._period as period
 import pandas.algos as algos
-from pandas.tseries.holiday import Holiday, SA, next_monday,USMartinLutherKingJr,USMemorialDay,AbstractHolidayCalendar 
+from pandas.tseries.holiday import Holiday, SA, next_monday,USMartinLutherKingJr,USMemorialDay,AbstractHolidayCalendar
 import datetime
-
-
 from pandas import DateOffset
 
 
@@ -378,9 +376,9 @@ def test_get_reverse_indexer():
 
 
 def test_pad_backfill_object_segfault():
-    from datetime import datetime
+
     old = np.array([], dtype='O')
-    new = np.array([datetime(2010, 12, 31)], dtype='O')
+    new = np.array([datetime.datetime(2010, 12, 31)], dtype='O')
 
     result = algos.pad_object(old, new)
     expected = np.array([-1], dtype=np.int64)
@@ -644,13 +642,13 @@ class TestTypeInference(tm.TestCase):
         pass
 
     def test_datetime(self):
-        import datetime
+
         dates = [datetime.datetime(2012, 1, x) for x in range(1, 20)]
         index = Index(dates)
         self.assertEqual(index.inferred_type, 'datetime64')
 
     def test_date(self):
-        import datetime
+
         dates = [datetime.date(2012, 1, x) for x in range(1, 20)]
         index = Index(dates)
         self.assertEqual(index.inferred_type, 'date')
@@ -755,6 +753,7 @@ class TestPeriodField(tm.TestCase):
         self.assertRaises(ValueError, period.get_period_field_arr, -1, np.empty(1), 0)
 
 class TestFederalHolidayCalendar(tm.TestCase):
+
     # Test for issue 10278
     def test_no_mlk_before_1984(self):
         class MLKCalendar(AbstractHolidayCalendar):
@@ -768,11 +767,11 @@ class TestFederalHolidayCalendar(tm.TestCase):
             rules=[USMemorialDay]
         holidays = MemorialDay().holidays(start='1971', end='1980').to_pydatetime().tolist()
         # Fixes 5/31 error and checked manually against wikipedia
-        self.assertEqual(holidays, [datetime.datetime(1971, 5, 31, 0, 0), datetime.datetime(1972, 5, 29, 0, 0), 
-            datetime.datetime(1973, 5, 28, 0, 0), datetime.datetime(1974, 5, 27, 0, 0), 
-            datetime.datetime(1975, 5, 26, 0, 0), datetime.datetime(1976, 5, 31, 0, 0), 
-            datetime.datetime(1977, 5, 30, 0, 0), datetime.datetime(1978, 5, 29, 0, 0), 
-            datetime.datetime(1979, 5, 28, 0, 0)]) 
+        self.assertEqual(holidays, [datetime.datetime(1971, 5, 31, 0, 0), datetime.datetime(1972, 5, 29, 0, 0),
+            datetime.datetime(1973, 5, 28, 0, 0), datetime.datetime(1974, 5, 27, 0, 0),
+            datetime.datetime(1975, 5, 26, 0, 0), datetime.datetime(1976, 5, 31, 0, 0),
+            datetime.datetime(1977, 5, 30, 0, 0), datetime.datetime(1978, 5, 29, 0, 0),
+            datetime.datetime(1979, 5, 28, 0, 0)])
 
 
 
