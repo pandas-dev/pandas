@@ -6497,6 +6497,13 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         actual = s.reindex_like(actual, method='nearest')
         assert_series_equal(expected, actual)
 
+        actual = s.reindex_like(actual, method='nearest', tolerance=1)
+        assert_series_equal(expected, actual)
+
+        actual = s.reindex(target, method='nearest', tolerance=0.2)
+        expected = Series([0, 1, np.nan, 2], target)
+        assert_series_equal(expected, actual)
+
     def test_reindex_backfill(self):
         pass
 

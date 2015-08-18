@@ -2518,33 +2518,36 @@ class DataFrame(NDFrame):
     #----------------------------------------------------------------------
     # Reindexing and alignment
 
-    def _reindex_axes(self, axes, level, limit, method, fill_value, copy):
+    def _reindex_axes(self, axes, level, limit, tolerance, method,
+                      fill_value, copy):
         frame = self
 
         columns = axes['columns']
         if columns is not None:
             frame = frame._reindex_columns(columns, copy, level, fill_value,
-                                           limit)
+                                           limit, tolerance)
 
         index = axes['index']
         if index is not None:
             frame = frame._reindex_index(index, method, copy, level,
-                                         fill_value, limit)
+                                         fill_value, limit, tolerance)
 
         return frame
 
     def _reindex_index(self, new_index, method, copy, level, fill_value=NA,
-                       limit=None):
+                       limit=None, tolerance=None):
         new_index, indexer = self.index.reindex(new_index, method, level,
-                                                limit=limit)
+                                                limit=limit,
+                                                tolerance=tolerance)
         return self._reindex_with_indexers({0: [new_index, indexer]},
                                            copy=copy, fill_value=fill_value,
                                            allow_dups=False)
 
     def _reindex_columns(self, new_columns, copy, level, fill_value=NA,
-                         limit=None):
+                         limit=None, tolerance=None):
         new_columns, indexer = self.columns.reindex(new_columns, level=level,
-                                                    limit=limit)
+                                                    limit=limit,
+                                                    tolerance=tolerance)
         return self._reindex_with_indexers({1: [new_columns, indexer]},
                                            copy=copy, fill_value=fill_value,
                                            allow_dups=False)
