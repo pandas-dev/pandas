@@ -1051,17 +1051,6 @@ class TestMaybe(tm.TestCase):
         tm.assert_numpy_array_equal(result, np.array(['x', 2], dtype=object))
         self.assertTrue(result.dtype == object)
 
-
-def test_dict_compat():
-    data_datetime64 = {np.datetime64('1990-03-15'): 1,
-                       np.datetime64('2015-03-15'): 2}
-    data_unchanged = {1: 2, 3: 4, 5: 6}
-    expected = {Timestamp('1990-3-15'): 1, Timestamp('2015-03-15'): 2}
-    assert(com._dict_compat(data_datetime64) == expected)
-    assert(com._dict_compat(expected) == expected)
-    assert(com._dict_compat(data_unchanged) == data_unchanged)
-
-
 def test_possibly_convert_objects_copy():
     values = np.array([1, 2])
 
@@ -1077,7 +1066,17 @@ def test_possibly_convert_objects_copy():
 
     out = com._possibly_convert_objects(values, copy=True)
     assert_true(values is not out)
-    
+
+
+def test_dict_compat():
+    data_datetime64 = {np.datetime64('1990-03-15'): 1,
+                       np.datetime64('2015-03-15'): 2}
+    data_unchanged = {1: 2, 3: 4, 5: 6}
+    expected = {Timestamp('1990-3-15'): 1, Timestamp('2015-03-15'): 2}
+    assert(com._dict_compat(data_datetime64) == expected)
+    assert(com._dict_compat(expected) == expected)
+    assert(com._dict_compat(data_unchanged) == data_unchanged)
+
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],

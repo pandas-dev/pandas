@@ -1517,14 +1517,34 @@ class ObjectBlock(Block):
         """
         return lib.is_bool_array(self.values.ravel())
 
-    def convert(self, datetime=True, numeric=True, timedelta=True, coerce=False,
-                copy=True, by_item=True):
+    # TODO: Refactor when convert_objects is removed since there will be 1 path
+    def convert(self, *args, **kwargs):
         """ attempt to coerce any object types to better types
             return a copy of the block (if copy = True)
             by definition we ARE an ObjectBlock!!!!!
 
             can return multiple blocks!
             """
+        if args:
+            raise NotImplementedError
+        by_item = True if 'by_item' not in kwargs else kwargs['by_item']
+
+        new_inputs = ['coerce','datetime','numeric','timedelta']
+        new_style = False
+        for kw in new_inputs:
+            new_style |= kw in kwargs
+
+        if new_style:
+            fn = com._soft_convert_objects
+            fn_inputs = new_inputs + ['copy']
+        else:
+            fn = com._possibly_convert_objects
+            fn_inputs = ['convert_dates','convert_numeric','convert_timedeltas']
+
+        fn_kwargs = {}
+        for key in fn_inputs:
+            if key in kwargs:
+                fn_kwargs[key] = kwargs[key]
 
         # attempt to create new type blocks
         blocks = []
@@ -1533,30 +1553,14 @@ class ObjectBlock(Block):
             for i, rl in enumerate(self.mgr_locs):
                 values = self.iget(i)
 
-                values = com._possibly_convert_objects(
-                    values.ravel(),
-                    datetime=datetime,
-                    numeric=numeric,
-                    timedelta=timedelta,
-                    coerce=coerce,
-                    copy=copy
-                ).reshape(values.shape)
+                values = fn(values.ravel(), **fn_kwargs).reshape(values.shape)
                 values = _block_shape(values, ndim=self.ndim)
-                newb = self.make_block(values,
-                                       placement=[rl])
+                newb = make_block(values, ndim=self.ndim, placement=[rl])
                 blocks.append(newb)
 
         else:
-
-            values = com._possibly_convert_objects(
-                self.values.ravel(),
-                datetime=datetime,
-                numeric=numeric,
-                timedelta=timedelta,
-                coerce=coerce,
-                copy=copy
-            ).reshape(self.values.shape)
-            blocks.append(self.make_block(values))
+            values = fn(self.values.ravel(), **fn_kwargs).reshape(self.values.shape)
+            blocks.append(make_block(values, ndim=self.ndim, placement=self.mgr_locs))
 
         return blocks
 
@@ -1597,8 +1601,7 @@ class ObjectBlock(Block):
         # split and convert the blocks
         result_blocks = []
         for blk in blocks:
-            result_blocks.extend(blk.convert(datetime=True,
-                                             numeric=False))
+            result_blocks.extend(blk.convert(datetime=True, numeric=False))
         return result_blocks
 
     def _can_hold_element(self, element):

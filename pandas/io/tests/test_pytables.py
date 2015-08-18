@@ -408,7 +408,7 @@ class TestHDFStore(Base, tm.TestCase):
             df['datetime1']  = datetime.datetime(2001,1,2,0,0)
             df['datetime2']  = datetime.datetime(2001,1,3,0,0)
             df.ix[3:6,['obj1']] = np.nan
-            df = df.consolidate().convert_objects(datetime=True)
+            df = df.consolidate()._convert(datetime=True)
 
             warnings.filterwarnings('ignore', category=PerformanceWarning)
             store['df'] = df
@@ -736,7 +736,7 @@ class TestHDFStore(Base, tm.TestCase):
         df['datetime1'] = datetime.datetime(2001, 1, 2, 0, 0)
         df['datetime2'] = datetime.datetime(2001, 1, 3, 0, 0)
         df.ix[3:6, ['obj1']] = np.nan
-        df = df.consolidate().convert_objects(datetime=True)
+        df = df.consolidate()._convert(datetime=True)
 
         with ensure_clean_store(self.path) as store:
             _maybe_remove(store, 'df')
@@ -1456,7 +1456,7 @@ class TestHDFStore(Base, tm.TestCase):
             df_dc.ix[7:9, 'string'] = 'bar'
             df_dc['string2'] = 'cool'
             df_dc['datetime'] = Timestamp('20010102')
-            df_dc = df_dc.convert_objects(datetime=True)
+            df_dc = df_dc._convert(datetime=True)
             df_dc.ix[3:5, ['A', 'B', 'datetime']] = np.nan
 
             _maybe_remove(store, 'df_dc')
@@ -1918,7 +1918,7 @@ class TestHDFStore(Base, tm.TestCase):
         df['datetime1'] = datetime.datetime(2001, 1, 2, 0, 0)
         df['datetime2'] = datetime.datetime(2001, 1, 3, 0, 0)
         df.ix[3:6, ['obj1']] = np.nan
-        df = df.consolidate().convert_objects(datetime=True)
+        df = df.consolidate()._convert(datetime=True)
 
         with ensure_clean_store(self.path) as store:
             store.append('df1_mixed', df)
@@ -1974,7 +1974,7 @@ class TestHDFStore(Base, tm.TestCase):
         df['obj1'] = 'foo'
         df['obj2'] = 'bar'
         df['datetime1'] = datetime.date(2001, 1, 2)
-        df = df.consolidate().convert_objects(datetime=True)
+        df = df.consolidate()._convert(datetime=True)
 
         with ensure_clean_store(self.path) as store:
             # this fails because we have a date in the object block......

@@ -417,7 +417,7 @@ class TestStata(tm.TestCase):
         expected = self.read_csv(self.csv14)
         cols = ['byte_', 'int_', 'long_', 'float_', 'double_']
         for col in cols:
-            expected[col] = expected[col].convert_objects(datetime=True, numeric=True)
+            expected[col] = expected[col]._convert(datetime=True, numeric=True)
         expected['float_'] = expected['float_'].astype(np.float32)
         expected['date_td'] = pd.to_datetime(expected['date_td'], errors='coerce')
 
