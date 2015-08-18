@@ -2159,6 +2159,8 @@ class Index(IndexOpsMixin, PandasObject):
             if self_is_mi:
                 self, other = other, self
                 flip_order = True
+                # flip if join method is right or left
+                how = {'right': 'left', 'left': 'right'}.get(how, how)
 
             level = other.names.index(jl)
             result = self._join_level(other, level, how=how,

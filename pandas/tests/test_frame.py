@@ -4749,6 +4749,33 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
 
         self.assertEqual(len(tst.columns), 3)
 
+    def test_join_multiindex_leftright(self):
+        # GH 10741
+        df1 = pd.DataFrame([['a', 'x', 0.471780], ['a','y', 0.774908],
+                            ['a', 'z', 0.563634], ['b', 'x', -0.353756],
+                            ['b', 'y', 0.368062], ['b', 'z', -1.721840],
+                            ['c', 'x', 1], ['c', 'y', 2], ['c', 'z', 3]],
+                           columns=['first', 'second', 'value1']).set_index(['first', 'second'])
+        df2 = pd.DataFrame([['a', 10], ['b', 20]], columns=['first', 'value2']).set_index(['first'])
+
+        exp = pd.DataFrame([[0.471780, 10], [0.774908, 10], [0.563634, 10],
+                            [-0.353756, 20], [0.368062, 20], [-1.721840, 20],
+                            [1.000000, np.nan], [2.000000, np.nan], [3.000000, np.nan]],
+                           index=df1.index, columns=['value1', 'value2'])
+
+        # these must be the same results (but columns are flipped)
+        tm.assert_frame_equal(df1.join(df2, how='left'), exp)
+        tm.assert_frame_equal(df2.join(df1, how='right'), exp[['value2', 'value1']])
+
+        exp_idx = pd.MultiIndex.from_product([['a', 'b'], ['x', 'y', 'z']],
+                                             names=['first', 'second'])
+        exp = pd.DataFrame([[0.471780, 10], [0.774908, 10], [0.563634, 10],
+                            [-0.353756, 20], [0.368062, 20], [-1.721840, 20]],
+                           index=exp_idx, columns=['value1', 'value2'])
+
+        tm.assert_frame_equal(df1.join(df2, how='right'), exp)
+        tm.assert_frame_equal(df2.join(df1, how='left'), exp[['value2', 'value1']])
+
     def test_from_records_sequencelike(self):
         df = DataFrame({'A' : np.array(np.random.randn(6), dtype = np.float64),
                         'A1': np.array(np.random.randn(6), dtype = np.float64),
@@ -10099,6 +10126,39 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         result = df1 - df1.mean()
         expected = df2 - df2.mean()
         assert_frame_equal(result, expected)
+
+    def test_align_multiindex(self):
+        # GH 10665
+        # same test cases as test_align_multiindex in test_series.py
+
+        midx = pd.MultiIndex.from_product([range(2), range(3), range(2)],
+                                 names=('a', 'b', 'c'))
+        idx = pd.Index(range(2), name='b')
+        df1 = pd.DataFrame(np.arange(12), index=midx)
+        df2 = pd.DataFrame(np.arange(2), index=idx)
+
+        # these must be the same results (but flipped)
+        res1l, res1r = df1.align(df2, join='left')
+        res2l, res2r = df2.align(df1, join='right')
+
+        expl = df1
+        tm.assert_frame_equal(expl, res1l)
+        tm.assert_frame_equal(expl, res2r)
+        expr = pd.DataFrame([0, 0, 1, 1, np.nan, np.nan] * 2, index=midx)
+        tm.assert_frame_equal(expr, res1r)
+        tm.assert_frame_equal(expr, res2l)
+
+        res1l, res1r = df1.align(df2, join='right')
+        res2l, res2r = df2.align(df1, join='left')
+
+        exp_idx = pd.MultiIndex.from_product([range(2), range(2), range(2)],
+                                             names=('a', 'b', 'c'))
+        expl = pd.DataFrame([0, 1, 2, 3, 6, 7, 8, 9], index=exp_idx)
+        tm.assert_frame_equal(expl, res1l)
+        tm.assert_frame_equal(expl, res2r)
+        expr = pd.DataFrame([0, 0, 1, 1] * 2, index=exp_idx)
+        tm.assert_frame_equal(expr, res1r)
+        tm.assert_frame_equal(expr, res2l)
 
     def test_where(self):
         default_frame = DataFrame(np.random.randn(5, 3),columns=['A','B','C'])
