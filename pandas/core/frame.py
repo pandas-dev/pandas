@@ -4232,10 +4232,11 @@ class DataFrame(NDFrame):
 
         Parameters
         ----------
-        method : {'pearson', 'kendall', 'spearman'}
+        method : {'pearson', 'kendall', 'spearman', 'bicor'}
             * pearson : standard correlation coefficient
             * kendall : Kendall Tau correlation coefficient
             * spearman : Spearman rank correlation
+            * bicor : Biweight midcorrelation, a median-based similarity metric
         min_periods : int, optional
             Minimum number of observations required per pair of columns
             to have a valid result. Currently only available for pearson
