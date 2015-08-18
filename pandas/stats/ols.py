@@ -614,7 +614,8 @@ class MovingOLS(OLS):
         size of window (for rolling/expanding OLS)
     min_periods : int
         Threshold of non-null data points to require.
-        If None, defaults to size of window.
+        If None, defaults to size of window for window_type='rolling' and 1
+        otherwise
     intercept : bool
         True if you want an intercept.
     nw_lags : None or int
