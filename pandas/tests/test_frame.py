@@ -1929,6 +1929,12 @@ class CheckIndexing(object):
             actual = df.reindex(target, method=method)
             assert_frame_equal(expected, actual)
 
+            actual = df.reindex_like(df, method=method, tolerance=0)
+            assert_frame_equal(df, actual)
+
+            actual = df.reindex(target, method=method, tolerance=1)
+            assert_frame_equal(expected, actual)
+
             e2 = expected[::-1]
             actual = df.reindex(target[::-1], method=method)
             assert_frame_equal(e2, actual)
@@ -1943,6 +1949,10 @@ class CheckIndexing(object):
                                else method)
             actual = df[::-1].reindex(target, method=switched_method)
             assert_frame_equal(expected, actual)
+
+        expected = pd.DataFrame({'x': [0, 1, 1, np.nan]}, index=target)
+        actual = df.reindex(target, method='nearest', tolerance=0.2)
+        assert_frame_equal(expected, actual)
 
     def test_non_monotonic_reindex_methods(self):
         dr = pd.date_range('2013-08-01', periods=6, freq='B')

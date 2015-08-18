@@ -1602,28 +1602,38 @@ class Index(IndexOpsMixin, PandasObject):
             attribs['freq'] = None
         return self._shallow_copy(the_diff, infer=True, **attribs)
 
-    def get_loc(self, key, method=None):
+    def get_loc(self, key, method=None, tolerance=None):
         """
         Get integer location for requested label
 
         Parameters
         ----------
         key : label
-        method : {None, 'pad'/'ffill', 'backfill'/'bfill', 'nearest'}
+        method : {None, 'pad'/'ffill', 'backfill'/'bfill', 'nearest'}, optional
             * default: exact matches only.
             * pad / ffill: find the PREVIOUS index value if no exact match.
             * backfill / bfill: use NEXT index value if no exact match
             * nearest: use the NEAREST index value if no exact match. Tied
               distances are broken by preferring the larger index value.
+        tolerance : optional
+            Maximum distance from index value for inexact matches. The value of
+            the index at the matching location most satisfy the equation
+            ``abs(index[loc] - key) <= tolerance``.
+
+            .. versionadded:: 0.17.0
 
         Returns
         -------
         loc : int if unique index, possibly slice or mask if not
         """
         if method is None:
+            if tolerance is not None:
+                raise ValueError('tolerance argument only valid if using pad, '
+                                 'backfill or nearest lookups')
             return self._engine.get_loc(_values_from_object(key))
 
-        indexer = self.get_indexer([key], method=method)
+        indexer = self.get_indexer([key], method=method,
+                                   tolerance=tolerance)
         if indexer.ndim > 1 or indexer.size > 1:
             raise TypeError('get_loc requires scalar valued input')
         loc = indexer.item()
@@ -1692,7 +1702,7 @@ class Index(IndexOpsMixin, PandasObject):
         self._validate_index_level(level)
         return self
 
-    def get_indexer(self, target, method=None, limit=None):
+    def get_indexer(self, target, method=None, limit=None, tolerance=None):
         """
         Compute indexer and mask for new index given the current index. The
         indexer should be then used as an input to ndarray.take to align the
@@ -1701,15 +1711,21 @@ class Index(IndexOpsMixin, PandasObject):
         Parameters
         ----------
         target : Index
-        method : {None, 'pad'/'ffill', 'backfill'/'bfill', 'nearest'}
+        method : {None, 'pad'/'ffill', 'backfill'/'bfill', 'nearest'}, optional
             * default: exact matches only.
             * pad / ffill: find the PREVIOUS index value if no exact match.
             * backfill / bfill: use NEXT index value if no exact match
             * nearest: use the NEAREST index value if no exact match. Tied
               distances are broken by preferring the larger index value.
-        limit : int
-            Maximum number of consecuctive labels in ``target`` to match for
+        limit : int, optional
+            Maximum number of consecutive labels in ``target`` to match for
             inexact matches.
+        tolerance : optional
+            Maximum distance between original and new labels for inexact
+            matches. The values of the index at the matching locations most
+            satisfy the equation ``abs(index[indexer] - target) <= tolerance``.
+
+            .. versionadded:: 0.17.0
 
         Examples
         --------
@@ -1725,36 +1741,54 @@ class Index(IndexOpsMixin, PandasObject):
         """
         method = com._clean_reindex_fill_method(method)
         target = _ensure_index(target)
+        if tolerance is not None:
+            tolerance = self._convert_tolerance(tolerance)
 
         pself, ptarget = self._possibly_promote(target)
         if pself is not self or ptarget is not target:
-            return pself.get_indexer(ptarget, method=method, limit=limit)
+            return pself.get_indexer(ptarget, method=method, limit=limit,
+                                     tolerance=tolerance)
 
-        if not is_dtype_equal(self.dtype,target.dtype):
+        if not is_dtype_equal(self.dtype, target.dtype):
             this = self.astype(object)
             target = target.astype(object)
-            return this.get_indexer(target, method=method, limit=limit)
+            return this.get_indexer(target, method=method, limit=limit,
+                                    tolerance=tolerance)
 
         if not self.is_unique:
             raise InvalidIndexError('Reindexing only valid with uniquely'
                                     ' valued Index objects')
 
         if method == 'pad' or method == 'backfill':
-            indexer = self._get_fill_indexer(target, method, limit)
+            indexer = self._get_fill_indexer(target, method, limit, tolerance)
         elif method == 'nearest':
-            indexer = self._get_nearest_indexer(target, limit)
+            indexer = self._get_nearest_indexer(target, limit, tolerance)
         else:
+            if tolerance is not None:
+                raise ValueError('tolerance argument only valid if doing pad, '
+                                 'backfill or nearest reindexing')
+            if limit is not None:
+                raise ValueError('limit argument only valid if doing pad, '
+                                 'backfill or nearest reindexing')
+
             indexer = self._engine.get_indexer(target.values)
 
         return com._ensure_platform_int(indexer)
 
-    def _get_fill_indexer(self, target, method, limit=None):
+    def _convert_tolerance(self, tolerance):
+        # override this method on subclasses
+        return tolerance
+
+    def _get_fill_indexer(self, target, method, limit=None, tolerance=None):
         if self.is_monotonic_increasing and target.is_monotonic_increasing:
             method = (self._engine.get_pad_indexer if method == 'pad'
                       else self._engine.get_backfill_indexer)
             indexer = method(target.values, limit)
         else:
             indexer = self._get_fill_indexer_searchsorted(target, method, limit)
+        if tolerance is not None:
+            indexer = self._filter_indexer_tolerance(
+                target.values, indexer, tolerance)
         return indexer
 
     def _get_fill_indexer_searchsorted(self, target, method, limit=None):
@@ -1787,7 +1821,7 @@ class Index(IndexOpsMixin, PandasObject):
             indexer[indexer == len(self)] = -1
         return indexer
 
-    def _get_nearest_indexer(self, target, limit):
+    def _get_nearest_indexer(self, target, limit, tolerance):
         """
         Get the indexer for the nearest index labels; requires an index with
         values that can be subtracted from each other (e.g., not strings or
@@ -1804,6 +1838,14 @@ class Index(IndexOpsMixin, PandasObject):
         indexer = np.where(op(left_distances, right_distances)
                            | (right_indexer == -1),
                            left_indexer, right_indexer)
+        if tolerance is not None:
+            indexer = self._filter_indexer_tolerance(
+                target, indexer, tolerance)
+        return indexer
+
+    def _filter_indexer_tolerance(self, target, indexer, tolerance):
+        distance = abs(self.values[indexer] - target)
+        indexer = np.where(distance <= tolerance, indexer, -1)
         return indexer
 
     def get_indexer_non_unique(self, target):
@@ -1911,7 +1953,8 @@ class Index(IndexOpsMixin, PandasObject):
         if not self.is_unique and len(indexer):
             raise ValueError("cannot reindex from a duplicate axis")
 
-    def reindex(self, target, method=None, level=None, limit=None):
+    def reindex(self, target, method=None, level=None, limit=None,
+                tolerance=None):
         """
         Create index with target's values (move/add/delete values as necessary)
 
@@ -1951,7 +1994,8 @@ class Index(IndexOpsMixin, PandasObject):
             else:
                 if self.is_unique:
                     indexer = self.get_indexer(target, method=method,
-                                               limit=limit)
+                                               limit=limit,
+                                               tolerance=tolerance)
                 else:
                     if method is not None or limit is not None:
                         raise ValueError("cannot reindex a non-unique index "
@@ -3100,7 +3144,8 @@ class CategoricalIndex(Index, PandasDelegate):
         """ always allow reindexing """
         pass
 
-    def reindex(self, target, method=None, level=None, limit=None):
+    def reindex(self, target, method=None, level=None, limit=None,
+                tolerance=None):
         """
         Create index with target's values (move/add/delete values as necessary)
 
@@ -3169,7 +3214,7 @@ class CategoricalIndex(Index, PandasDelegate):
 
         return new_target, indexer, new_indexer
 
-    def get_indexer(self, target, method=None, limit=None):
+    def get_indexer(self, target, method=None, limit=None, tolerance=None):
         """
         Compute indexer and mask for new index given the current index. The
         indexer should be then used as an input to ndarray.take to align the
@@ -3417,6 +3462,14 @@ class NumericIndex(Index):
             self._invalid_indexer('slice',label)
 
         return label
+
+    def _convert_tolerance(self, tolerance):
+        try:
+            return float(tolerance)
+        except ValueError:
+            raise ValueError('tolerance argument for %s must be numeric: %r'
+                             % (type(self).__name__, tolerance))
+
 
 class Int64Index(NumericIndex):
 
@@ -3674,7 +3727,7 @@ class Float64Index(NumericIndex):
         except:
             return False
 
-    def get_loc(self, key, method=None):
+    def get_loc(self, key, method=None, tolerance=None):
         try:
             if np.all(np.isnan(key)):
                 nan_idxs = self._nan_idxs
@@ -3686,7 +3739,8 @@ class Float64Index(NumericIndex):
                     return nan_idxs
         except (TypeError, NotImplementedError):
             pass
-        return super(Float64Index, self).get_loc(key, method=method)
+        return super(Float64Index, self).get_loc(key, method=method,
+                                                 tolerance=tolerance)
 
     @property
     def is_all_dates(self):
@@ -4908,7 +4962,7 @@ class MultiIndex(Index):
 
         return new_index, indexer
 
-    def get_indexer(self, target, method=None, limit=None):
+    def get_indexer(self, target, method=None, limit=None, tolerance=None):
         """
         Compute indexer and mask for new index given the current index. The
         indexer should be then used as an input to ndarray.take to align the
@@ -4954,6 +5008,9 @@ class MultiIndex(Index):
         self_index = self._tuple_index
 
         if method == 'pad' or method == 'backfill':
+            if tolerance is not None:
+                raise NotImplementedError("tolerance not implemented yet "
+                                          'for MultiIndex')
             indexer = self_index._get_fill_indexer(target, method, limit)
         elif method == 'nearest':
             raise NotImplementedError("method='nearest' not implemented yet "
@@ -4963,7 +5020,8 @@ class MultiIndex(Index):
 
         return com._ensure_platform_int(indexer)
 
-    def reindex(self, target, method=None, level=None, limit=None):
+    def reindex(self, target, method=None, level=None, limit=None,
+                tolerance=None):
         """
         Create index with target's values (move/add/delete values as necessary)
 
@@ -5002,7 +5060,8 @@ class MultiIndex(Index):
             else:
                 if self.is_unique:
                     indexer = self.get_indexer(target, method=method,
-                                               limit=limit)
+                                               limit=limit,
+                                               tolerance=tolerance)
                 else:
                     raise Exception(
                         "cannot handle a non-unique multi-index!")
