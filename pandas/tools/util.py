@@ -48,3 +48,49 @@ def compose(*funcs):
     """Compose 2 or more callables"""
     assert len(funcs) > 1, 'At least 2 callables must be passed to compose'
     return reduce(_compose2, funcs)
+
+
+def to_numeric(arg, errors='raise', box=True, coerce=None):
+    """
+    Convert argument to a numeric type.
+
+    Parameters
+    ----------
+    arg : string, datetime, array of strings (with possible NAs)
+    errors : {'ignore', 'raise', 'coerce'}, default 'raise'
+        - If 'raise', then invalid parsing will raise an exception
+        - If 'coerce', then invalid parsing will be set as NaT
+        - If 'ignore', then invalid parsing will return the input
+    box : boolean, default True
+        - If True returns a Series
+        - If False returns ndarray of values.
+
+    Returns
+    -------
+    ret : numeric if parsing succeeded.
+        Return type depends on box
+
+
+    Examples
+    --------
+    Take separate series and convert to datetime
+
+    >>> import pandas as pd
+    >>> df = pd.DataFrame(['1.0', '2', -3])
+    >>> pd.to_numeric(df)
+    >>> df = pd.DataFrame(['apple', '1.0', '2', -3])
+    >>> pd.to_numeric(df, errors='ignore')
+    >>> pd.to_numeric(df, errors='coerce')
+    """
+    #TODO: Fix examples
+
+    coerce_numeric = False if errors in ('ignore', 'raise') else True
+    if errors == 'ignore':
+        try:
+            values = lib.maybe_convert_numeric(arg,
+                                               set(),
+                                               coerce_numeric=coerce_numeric)
+            return values
+        except:
+            return arg
+    return lib.maybe_convert_numeric(arg, set(), coerce_numeric=coerce_numeric)
