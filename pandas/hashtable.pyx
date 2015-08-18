@@ -866,26 +866,47 @@ cdef class Int64Factorizer:
         self.count = len(self.uniques)
         return labels
 
+ctypedef fused kh_scalar64:
+    kh_int64_t
+    kh_float64_t
+
 @cython.boundscheck(False)
-cdef build_count_table_float64(float64_t[:] values, kh_float64_t *table, bint dropna):
+cdef build_count_table_scalar64(sixty_four_bit_scalar[:] values,
+                                kh_scalar64 *table, bint dropna):
     cdef:
         khiter_t k
         Py_ssize_t i, n = len(values)
-        float64_t val
+        sixty_four_bit_scalar val
         int ret = 0
 
-    with nogil:
-        kh_resize_float64(table, n)
+    if sixty_four_bit_scalar is float64_t and kh_scalar64 is kh_float64_t:
+        with nogil:
+            kh_resize_float64(table, n)
 
-        for i in range(n):
-            val = values[i]
-            if val == val or not dropna:
-                k = kh_get_float64(table, val)
+            for i in range(n):
+                val = values[i]
+                if val == val or not dropna:
+                    k = kh_get_float64(table, val)
+                    if k != table.n_buckets:
+                        table.vals[k] += 1
+                    else:
+                        k = kh_put_float64(table, val, &ret)
+                        table.vals[k] = 1
+    elif sixty_four_bit_scalar is int64_t and kh_scalar64 is kh_int64_t:
+        with nogil:
+            kh_resize_int64(table, n)
+
+            for i in range(n):
+                val = values[i]
+                k = kh_get_int64(table, val)
                 if k != table.n_buckets:
                     table.vals[k] += 1
                 else:
-                    k = kh_put_float64(table, val, &ret)
+                    k = kh_put_int64(table, val, &ret)
                     table.vals[k] = 1
+    else:
+        raise ValueError("Table type must match scalar type.")
+
 
 
 @cython.boundscheck(False)
@@ -902,7 +923,7 @@ cpdef value_count_scalar64(sixty_four_bit_scalar[:] values, bint dropna):
 
     if sixty_four_bit_scalar is float64_t:
         ftable = kh_init_float64()
-        build_count_table_float64(values, ftable, dropna)
+        build_count_table_scalar64(values, ftable, dropna)
 
         result_keys = np.empty(ftable.n_occupied, dtype=np.float64)
         result_counts = np.zeros(ftable.n_occupied, dtype=np.int64)
@@ -917,7 +938,7 @@ cpdef value_count_scalar64(sixty_four_bit_scalar[:] values, bint dropna):
 
     elif sixty_four_bit_scalar is int64_t:
         itable = kh_init_int64()
-        build_count_table_int64(values, itable)
+        build_count_table_scalar64(values, itable, dropna)
 
         result_keys = np.empty(itable.n_occupied, dtype=np.int64)
         result_counts = np.zeros(itable.n_occupied, dtype=np.int64)
@@ -931,26 +952,6 @@ cpdef value_count_scalar64(sixty_four_bit_scalar[:] values, bint dropna):
         kh_destroy_int64(itable)
 
     return np.asarray(result_keys), np.asarray(result_counts)
-
-@cython.boundscheck(False)
-cdef build_count_table_int64(int64_t[:] values, kh_int64_t *table):
-    cdef:
-        khiter_t k
-        Py_ssize_t i, n = len(values)
-        int64_t val
-        int ret = 0
-
-    with nogil:
-        kh_resize_int64(table, n)
-
-        for i in range(n):
-            val = values[i]
-            k = kh_get_int64(table, val)
-            if k != table.n_buckets:
-                table.vals[k] += 1
-            else:
-                k = kh_put_int64(table, val, &ret)
-                table.vals[k] = 1
 
 
 cdef build_count_table_object(ndarray[object] values,
@@ -1040,7 +1041,7 @@ def mode_int64(int64_t[:] values):
 
     table = kh_init_int64()
 
-    build_count_table_int64(values, table)
+    build_count_table_scalar64(values, table, 0)
 
     modes = np.empty(table.n_buckets, dtype=np.int64)
 
