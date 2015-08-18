@@ -1,21 +1,18 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-from pandas import compat
-from pandas.compat import u
+import io
 import pandas.msgpack as msgpack
 
-binarydata = [chr(i) for i in range(256)]
-binarydata = "".join(binarydata)
-if compat.PY3:
-    binarydata = binarydata.encode('utf-8')
+
+binarydata = bytes(bytearray(range(256)))
 
 def gen_binary_data(idx):
-    data = binarydata[:idx % 300]
-    return data
+    return binarydata[:idx % 300]
+
 
 def test_exceeding_unpacker_read_size():
-    dumpf = compat.BytesIO()
+    dumpf = io.BytesIO()
 
     packer = msgpack.Packer()
 
@@ -30,7 +27,7 @@ def test_exceeding_unpacker_read_size():
         data = gen_binary_data(idx)
         dumpf.write(packer.pack(data))
 
-    f = compat.BytesIO(dumpf.getvalue())
+    f = io.BytesIO(dumpf.getvalue())
     dumpf.close()
 
     unpacker = msgpack.Unpacker(f, read_size=read_size, use_list=1)
