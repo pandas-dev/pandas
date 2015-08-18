@@ -194,6 +194,15 @@ s = Series(np.tile(uniques, N // K))
 series_value_counts_strings = Benchmark('s.value_counts()', setup,
                                         start_date=datetime(2011, 10, 21))
 
+#value_counts on float dtype
+
+setup = common_setup + """
+s = Series(np.random.randint(0, 1000, size=100000)).astype(float)
+"""
+
+series_value_counts_float64 = Benchmark('s.value_counts()', setup,
+                                      start_date=datetime(2015, 8, 17))
+
 #----------------------------------------------------------------------
 # pivot_table
 
