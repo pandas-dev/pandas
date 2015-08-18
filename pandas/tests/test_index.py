@@ -4616,6 +4616,37 @@ class TestMultiIndex(Base, tm.TestCase):
             joined = res.join(res, how=kind)
             self.assertIs(res, joined)
 
+    def test_join_multi(self):
+        # GH 10665
+        midx = pd.MultiIndex.from_product([np.arange(4), np.arange(4)], names=['a', 'b'])
+        idx = pd.Index([1, 2, 5], name='b')
+
+        # inner
+        jidx, lidx, ridx = midx.join(idx, how='inner', return_indexers=True)
+        exp_idx = pd.MultiIndex.from_product([np.arange(4), [1, 2]], names=['a', 'b'])
+        exp_lidx = np.array([1, 2, 5, 6, 9, 10, 13, 14])
+        exp_ridx = np.array([0, 1, 0, 1, 0, 1, 0, 1])
+        self.assert_index_equal(jidx, exp_idx)
+        self.assert_numpy_array_equal(lidx, exp_lidx)
+        self.assert_numpy_array_equal(ridx, exp_ridx)
+        # flip
+        jidx, ridx, lidx = idx.join(midx, how='inner', return_indexers=True)
+        self.assert_index_equal(jidx, exp_idx)
+        self.assert_numpy_array_equal(lidx, exp_lidx)
+        self.assert_numpy_array_equal(ridx, exp_ridx)
+
+        # keep MultiIndex
+        jidx, lidx, ridx = midx.join(idx, how='left', return_indexers=True)
+        exp_ridx = np.array([-1, 0, 1, -1, -1, 0, 1, -1, -1, 0, 1, -1, -1, 0, 1, -1])
+        self.assert_index_equal(jidx, midx)
+        self.assertIsNone(lidx)
+        self.assert_numpy_array_equal(ridx, exp_ridx)
+        # flip
+        jidx, ridx, lidx = idx.join(midx, how='right', return_indexers=True)
+        self.assert_index_equal(jidx, midx)
+        self.assertIsNone(lidx)
+        self.assert_numpy_array_equal(ridx, exp_ridx)
+
     def test_reindex(self):
         result, indexer = self.index.reindex(list(self.index[:4]))
         tm.assertIsInstance(result, MultiIndex)

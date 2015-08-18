@@ -648,6 +648,8 @@ Bug Fixes
 - Bug in line and kde plot cannot accept multiple colors when ``subplots=True`` (:issue:`9894`)
 - Bug in ``DataFrame.plot`` raises ``ValueError`` when color name is specified by multiple characters (:issue:`10387`)
 
+- Bug in left and right ``align`` of ``Series`` with ``MultiIndex`` may be inverted (:issue:`10665`)
+- Bug in left and right ``join`` of with ``MultiIndex`` may be inverted (:issue:`10741`)
 
 - Bug in ``read_stata`` when reading a file with a different order set in ``columns`` (:issue:`10757`)
 - Bug in ``Categorical`` may not representing properly when category contains ``tz`` or ``Period`` (:issue:`10713`)
