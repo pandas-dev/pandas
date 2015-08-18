@@ -866,7 +866,52 @@ cdef class Int64Factorizer:
         self.count = len(self.uniques)
         return labels
 
+@cython.boundscheck(False)
+cdef build_count_table_float64(float64_t[:] values, kh_float64_t *table, bint dropna):
+    cdef:
+        khiter_t k
+        Py_ssize_t i, n = len(values)
+        float64_t val
+        int ret = 0
 
+    with nogil:
+        kh_resize_float64(table, n)
+
+        for i in range(n):
+            val = values[i]
+            if val == val or not dropna:
+                k = kh_get_float64(table, val)
+                if k != table.n_buckets:
+                    table.vals[k] += 1
+                else:
+                    k = kh_put_float64(table, val, &ret)
+                    table.vals[k] = 1
+
+@cython.boundscheck(False)
+cpdef value_count_float64(float64_t[:] values, bint dropna):
+    cdef:
+        Py_ssize_t i
+        kh_float64_t * table
+        float64_t[:] result_keys
+        int64_t[:] result_counts
+        int k
+
+    table = kh_init_float64()
+    build_count_table_float64(values, table, dropna)
+
+    i = 0
+    result_keys = np.empty(table.n_occupied, dtype=np.float64)
+    result_counts = np.zeros(table.n_occupied, dtype=np.int64)
+
+    with nogil:
+        for k in range(table.n_buckets):
+            if kh_exist_float64(table, k):
+                result_keys[i] = table.keys[k]
+                result_counts[i] = table.vals[k]
+                i += 1
+    kh_destroy_float64(table)
+
+    return np.asarray(result_keys), np.asarray(result_counts)
 
 @cython.boundscheck(False)
 cdef build_count_table_int64(int64_t[:] values, kh_int64_t *table):
