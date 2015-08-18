@@ -1030,7 +1030,7 @@ class Categorical(PandasObject):
         from pandas.core.index import CategoricalIndex
 
         cat = self.dropna() if dropna else self
-        keys, counts = htable.value_count_int64(com._ensure_int64(cat._codes))
+        keys, counts = htable.value_count_scalar64(com._ensure_int64(cat._codes), dropna)
         result = Series(counts, index=keys)
 
         ix = np.arange(len(cat.categories), dtype='int64')

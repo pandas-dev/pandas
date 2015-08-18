@@ -232,7 +232,7 @@ def value_counts(values, sort=True, ascending=False, normalize=False,
                 values = PeriodIndex(values, name=name)
 
             values = values.view(np.int64)
-            keys, counts = htable.value_count_int64(values)
+            keys, counts = htable.value_count_scalar64(values, dropna)
 
             if dropna:
                 from pandas.tslib import iNaT
@@ -244,10 +244,10 @@ def value_counts(values, sort=True, ascending=False, normalize=False,
 
         elif com.is_integer_dtype(dtype):
             values = com._ensure_int64(values)
-            keys, counts = htable.value_count_int64(values)
+            keys, counts = htable.value_count_scalar64(values, dropna)
         elif com.is_float_dtype(dtype):
             values = com._ensure_float64(values)
-            keys, counts = htable.value_count_float64(values, dropna)
+            keys, counts = htable.value_count_scalar64(values, dropna)
 
         else:
             values = com._ensure_object(values)

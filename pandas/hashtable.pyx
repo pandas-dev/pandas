@@ -887,29 +887,48 @@ cdef build_count_table_float64(float64_t[:] values, kh_float64_t *table, bint dr
                     k = kh_put_float64(table, val, &ret)
                     table.vals[k] = 1
 
+
 @cython.boundscheck(False)
-cpdef value_count_float64(float64_t[:] values, bint dropna):
+cpdef value_count_scalar64(sixty_four_bit_scalar[:] values, bint dropna):
     cdef:
         Py_ssize_t i
-        kh_float64_t * table
-        float64_t[:] result_keys
+        kh_float64_t *ftable
+        kh_int64_t *itable
+        sixty_four_bit_scalar[:] result_keys
         int64_t[:] result_counts
         int k
 
-    table = kh_init_float64()
-    build_count_table_float64(values, table, dropna)
-
     i = 0
-    result_keys = np.empty(table.n_occupied, dtype=np.float64)
-    result_counts = np.zeros(table.n_occupied, dtype=np.int64)
 
-    with nogil:
-        for k in range(table.n_buckets):
-            if kh_exist_float64(table, k):
-                result_keys[i] = table.keys[k]
-                result_counts[i] = table.vals[k]
-                i += 1
-    kh_destroy_float64(table)
+    if sixty_four_bit_scalar is float64_t:
+        ftable = kh_init_float64()
+        build_count_table_float64(values, ftable, dropna)
+
+        result_keys = np.empty(ftable.n_occupied, dtype=np.float64)
+        result_counts = np.zeros(ftable.n_occupied, dtype=np.int64)
+
+        with nogil:
+            for k in range(ftable.n_buckets):
+                if kh_exist_float64(ftable, k):
+                    result_keys[i] = ftable.keys[k]
+                    result_counts[i] = ftable.vals[k]
+                    i += 1
+        kh_destroy_float64(ftable)
+
+    elif sixty_four_bit_scalar is int64_t:
+        itable = kh_init_int64()
+        build_count_table_int64(values, itable)
+
+        result_keys = np.empty(itable.n_occupied, dtype=np.int64)
+        result_counts = np.zeros(itable.n_occupied, dtype=np.int64)
+
+        with nogil:
+            for k in range(itable.n_buckets):
+                if kh_exist_int64(itable, k):
+                    result_keys[i] = itable.keys[k]
+                    result_counts[i] = itable.vals[k]
+                    i += 1
+        kh_destroy_int64(itable)
 
     return np.asarray(result_keys), np.asarray(result_counts)
 
@@ -932,32 +951,6 @@ cdef build_count_table_int64(int64_t[:] values, kh_int64_t *table):
             else:
                 k = kh_put_int64(table, val, &ret)
                 table.vals[k] = 1
-
-
-@cython.boundscheck(False)
-cpdef value_count_int64(int64_t[:] values):
-    cdef:
-        Py_ssize_t i
-        kh_int64_t *table
-        int64_t[:] result_keys, result_counts
-        int k
-
-    table = kh_init_int64()
-    build_count_table_int64(values, table)
-
-    i = 0
-    result_keys = np.empty(table.n_occupied, dtype=np.int64)
-    result_counts = np.zeros(table.n_occupied, dtype=np.int64)
-
-    with nogil:
-        for k in range(table.n_buckets):
-            if kh_exist_int64(table, k):
-                result_keys[i] = table.keys[k]
-                result_counts[i] = table.vals[k]
-                i += 1
-    kh_destroy_int64(table)
-
-    return np.asarray(result_keys), np.asarray(result_counts)
 
 
 cdef build_count_table_object(ndarray[object] values,
