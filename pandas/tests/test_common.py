@@ -104,8 +104,6 @@ def test_abc_types():
     assert(isinstance(period, com.ABCPeriod))
 
 
-
-
 def test_notnull():
     assert notnull(1.)
     assert not notnull(None)
