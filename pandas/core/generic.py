@@ -2004,9 +2004,14 @@ class NDFrame(PandasObject):
             Sample with or without replacement. Default = False.
         weights : str or ndarray-like, optional
             Default 'None' results in equal probability weighting.
+            If passed a Series, will align with target object on index. Index 
+            values in weights not found in sampled object will be ignored and
+            index values in sampled object not in weights will be assigned 
+            weights of zero. 
             If called on a DataFrame, will accept the name of a column
             when axis = 0.
-            Weights must be same length as axis being sampled.
+            Unless weights are a Series, weights must be same length as axis 
+            being sampled.
             If weights do not sum to 1, they will be normalized to sum to 1.
             Missing values in the weights column will be treated as zero.
             inf and -inf values not allowed.
@@ -2019,7 +2024,7 @@ class NDFrame(PandasObject):
 
         Returns
         -------
-        Same type as caller.
+        A new object of same type as caller.
         """
 
         if axis is None:
@@ -2033,6 +2038,10 @@ class NDFrame(PandasObject):
 
         # Check weights for compliance
         if weights is not None:
+
+            # If a series, align with frame
+            if isinstance(weights, pd.Series):                
+                weights = weights.reindex(self.axes[axis])                
 
             # Strings acceptable if a dataframe and axis = 0
             if isinstance(weights, string_types):
@@ -2063,7 +2072,10 @@ class NDFrame(PandasObject):
 
             # Renormalize if don't sum to 1
             if weights.sum() != 1:
-                weights = weights / weights.sum()
+                if weights.sum() != 0:
+                    weights = weights / weights.sum()
+                else:
+                    raise ValueError("Invalid weights: weights sum to zero")
 
             weights = weights.values
 
@@ -2082,7 +2094,8 @@ class NDFrame(PandasObject):
             raise ValueError("A negative number of rows requested. Please provide positive value.")
 
         locs = rs.choice(axis_length, size=n, replace=replace, p=weights)
-        return self.take(locs, axis=axis)
+        return self.take(locs, axis=axis, is_copy=False)
+
 
     _shared_docs['pipe'] = ("""
         Apply func(self, \*args, \*\*kwargs)
