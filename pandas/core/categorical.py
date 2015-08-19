@@ -177,7 +177,7 @@ class Categorical(PandasObject):
     [a, b, c, a, b, c]
     Categories (3, object): [a < b < c]
 
-    >>> a = Categorical(['a','b','c','a','b','c'], ['c', 'b', 'a'])
+    >>> a = Categorical(['a','b','c','a','b','c'], ['c', 'b', 'a'], ordered=True)
     >>> a.min()
     'c'
     """
