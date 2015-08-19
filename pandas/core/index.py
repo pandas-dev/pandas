@@ -2910,7 +2910,7 @@ class CategoricalIndex(Index, PandasDelegate):
 
     _typ = 'categoricalindex'
     _engine_type = _index.Int64Engine
-    _attributes = ['name','categories','ordered']
+    _attributes = ['name']
 
     def __new__(cls, data=None, categories=None, ordered=None, dtype=None, copy=False, name=None, fastpath=False, **kwargs):
 
