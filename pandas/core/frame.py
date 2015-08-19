@@ -760,6 +760,8 @@ class DataFrame(NDFrame):
               [{column -> value}, ... , {column -> value}]
             - index : dict like {index -> {column -> value}}
 
+            .. versionadded:: 0.17.0
+
             Abbreviations are allowed. `s` indicates `series` and `sp`
             indicates `split`.
 
