@@ -260,6 +260,7 @@ class CheckSDist(sdist_class):
                  'pandas/index.pyx',
                  'pandas/algos.pyx',
                  'pandas/parser.pyx',
+                 'pandas/src/period.pyx',
                  'pandas/src/sparse.pyx',
                  'pandas/src/testing.pyx']
 
