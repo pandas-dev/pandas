@@ -84,7 +84,6 @@ def test_abc_types():
     sparse_series = series.to_sparse()
     sparse_array = pd.SparseArray(np.random.randn(10))
     period = pd.Period('2012', freq='A-DEC')
-
     assert(isinstance(index, com.ABCIndex))
     assert(isinstance(int64_index, com.ABCInt64Index))
     assert(isinstance(float64_index, com.ABCFloat64Index))
