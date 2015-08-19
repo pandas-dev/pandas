@@ -92,7 +92,7 @@ packers_write_hdf_store = Benchmark("df2.to_hdf(f,'df')", setup, cleanup="remove
 # hdf table
 
 setup = common_setup + """
-df2.to_hdf(f,'df',table=True)
+df2.to_hdf(f,'df',format='table')
 """
 
 packers_read_hdf_table = Benchmark("pd.read_hdf(f,'df')", setup, start_date=start_date)
