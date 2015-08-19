@@ -834,6 +834,9 @@ ignore_index is needed in pandas < v0.13, and depending on df construction
 `Join with a criteria based on the values
 <http://stackoverflow.com/questions/15581829/how-to-perform-an-inner-or-outer-join-of-dataframes-with-pandas-on-non-simplisti>`__
 
+`Using searchsorted to merge based on values inside a range
+<http://stackoverflow.com/questions/25125626/pandas-merge-with-logic/2512764>`__
+
 .. _cookbook.plotting:
 
 Plotting
@@ -988,7 +991,13 @@ The :ref:`Excel <io.excel>` docs
 `Reading from a filelike handle
 <http://stackoverflow.com/questions/15588713/sheets-of-excel-workbook-from-a-url-into-a-pandas-dataframe>`__
 
+`Modifying formatting in XlsxWriter output
+<http://pbpython.com/improve-pandas-excel-output.html>`__
+
 .. _cookbook.html:
+
+HTML
+****
 
 `Reading HTML tables from a server that cannot handle the default request
 header <http://stackoverflow.com/a/18939272/564538>`__
