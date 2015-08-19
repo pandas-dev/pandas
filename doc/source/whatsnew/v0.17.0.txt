@@ -628,6 +628,8 @@ Bug Fixes
 - Bug in ``stack`` when index or columns are not unique. (:issue:`10417`)
 - Bug in setting a Panel when an axis has a multi-index (:issue:`10360`)
 - Bug in ``USFederalHolidayCalendar`` where ``USMemorialDay`` and ``USMartinLutherKingJr`` were incorrect (:issue:`10278` and :issue:`9760` )
+- Bug in ``.sample()`` where returned object, if set, gives unnecessary ``SettingWithCopyWarning`` (:issue:`10738`)
+- Bug in ``.sample()`` where weights passed as Series were not aligned along axis before being treated positionally, potentially causing problems if weight indices were not aligned with sampled object. (:issue:`10738`)
 
 
 
