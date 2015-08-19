@@ -79,6 +79,10 @@ scikits
 *.c
 *.cpp
 
+# Performance Testing #
+#######################
+asv_bench/
+
 # Documentation generated files #
 #################################
 doc/source/generated
