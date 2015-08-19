@@ -6357,8 +6357,8 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         midx = pd.MultiIndex.from_product([range(2), range(3), range(2)],
                                  names=('a', 'b', 'c'))
         idx = pd.Index(range(2), name='b')
-        s1 = pd.Series(np.arange(12), index=midx)
-        s2 = pd.Series(np.arange(2), index=idx)
+        s1 = pd.Series(np.arange(12,dtype='int64'), index=midx)
+        s2 = pd.Series(np.arange(2,dtype='int64'), index=idx)
 
         # these must be the same results (but flipped)
         res1l, res1r = s1.align(s2, join='left')

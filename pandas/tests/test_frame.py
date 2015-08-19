@@ -10144,8 +10144,8 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         midx = pd.MultiIndex.from_product([range(2), range(3), range(2)],
                                  names=('a', 'b', 'c'))
         idx = pd.Index(range(2), name='b')
-        df1 = pd.DataFrame(np.arange(12), index=midx)
-        df2 = pd.DataFrame(np.arange(2), index=idx)
+        df1 = pd.DataFrame(np.arange(12,dtype='int64'), index=midx)
+        df2 = pd.DataFrame(np.arange(2,dtype='int64'), index=idx)
 
         # these must be the same results (but flipped)
         res1l, res1r = df1.align(df2, join='left')

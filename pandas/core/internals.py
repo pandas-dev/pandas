@@ -676,7 +676,9 @@ class Block(PandasObject):
             # direction, then explictly repeat and reshape new instead
             if getattr(new, 'ndim', 0) >= 1:
                 if self.ndim - 1 == new.ndim and axis == 1:
-                    new = np.repeat(new, new_values.shape[-1]).reshape(self.shape)
+                    new = np.repeat(new, new_values.shape[-1]).reshape(
+                        self.shape)
+                new = new.astype(new_values.dtype)
 
             np.putmask(new_values, mask, new)
 
