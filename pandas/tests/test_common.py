@@ -8,7 +8,7 @@ from nose.tools import assert_equal, assert_true
 import numpy as np
 import pandas as pd
 from pandas.tslib import iNaT, NaT
-from pandas import Series, DataFrame, date_range, DatetimeIndex, Timestamp
+from pandas import Series, DataFrame, date_range, DatetimeIndex, Timestamp, Float64Index
 from pandas import compat
 from pandas.compat import range, long, lrange, lmap, u
 from pandas.core.common import notnull, isnull, array_equivalent
@@ -63,45 +63,37 @@ def test_get_callable_name():
     assert getname(somecall()) == 'somecall'
     assert getname(1) is None
 
-
-def test_abc_types():
-    tuples = [('bar', 'one'), ('bar', 'two')]
-    names = ['first', 'second']
-    values = [1, 2, 3, 4]
-    index = pd.Index(['a', 'b', 'c'])
-    int64_index = pd.Int64Index([1, 2, 3])
-    float64_index = pd.Float64Index([1, 2, 3])
-    multi_index = pd.MultiIndex.from_tuples(tuples, names=names)
+#Issue 10859
+class TestABCClasses(tm.TestCase):
+    tuples = [[1, 2, 2], ['red', 'blue', 'red']]
+    multi_index = pd.MultiIndex.from_arrays(tuples, names=('number', 'color'))
     datetime_index = pd.to_datetime(['2000/1/1', '2010/1/1'])
     timedelta_index = pd.to_timedelta(np.arange(5), unit='s')
     period_index = pd.period_range('2000/1/1', '2010/1/1/', freq='M')
-    categorical = pd.Categorical([1, 2, 3, 4], categories=[4, 2, 3, 1])
-    categorical_df = pd.DataFrame({"values": values}, index=categorical)
-    categorical_index = categorical_df.index
-    series = pd.Series(values)
-    df = pd.DataFrame({"names": names}, index=multi_index)
-    panel = df.to_panel()
-    sparse_series = series.to_sparse()
+    categorical = pd.Categorical([1, 2, 3], categories=[2, 3, 1])
+    categorical_df = pd.DataFrame({"values": [1, 2, 3]}, index=categorical)
+    df = pd.DataFrame({'names': ['a', 'b', 'c']}, index=multi_index)
+    sparse_series = pd.Series([1, 2, 3]).to_sparse()
     sparse_array = pd.SparseArray(np.random.randn(10))
-    period = pd.Period('2012', freq='A-DEC')
 
-    assert(isinstance(index, com.ABCIndex))
-    assert(isinstance(int64_index, com.ABCInt64Index))
-    assert(isinstance(float64_index, com.ABCFloat64Index))
-    assert(isinstance(multi_index, com.ABCMultiIndex))
-    assert(isinstance(datetime_index, com.ABCDatetimeIndex))
-    assert(isinstance(timedelta_index, com.ABCTimedeltaIndex))
-    assert(isinstance(period_index, com.ABCPeriodIndex))
-    assert(isinstance(categorical_index, com.ABCCategoricalIndex))
-    assert(isinstance(index, com.ABCIndexClass))
-    assert(isinstance(int64_index, com.ABCIndexClass))
-    assert(isinstance(series, com.ABCSeries))
-    assert(isinstance(df, com.ABCDataFrame))
-    assert(isinstance(panel, com.ABCPanel))
-    assert(isinstance(sparse_series, com.ABCSparseSeries))
-    assert(isinstance(sparse_array, com.ABCSparseArray))
-    assert(isinstance(categorical, com.ABCCategorical))
-    assert(isinstance(period, com.ABCPeriod))
+    def test_abc_types(self):
+        self.assertIsInstance(pd.Index(['a', 'b', 'c']), com.ABCIndex)
+        self.assertIsInstance(pd.Int64Index([1, 2, 3]), com.ABCInt64Index)
+        self.assertIsInstance(pd.Float64Index([1, 2, 3]), com.ABCFloat64Index)
+        self.assertIsInstance(self.multi_index, com.ABCMultiIndex)
+        self.assertIsInstance(self.datetime_index, com.ABCDatetimeIndex)
+        self.assertIsInstance(self.timedelta_index, com.ABCTimedeltaIndex)
+        self.assertIsInstance(self.period_index, com.ABCPeriodIndex)
+        self.assertIsInstance(self.categorical_df.index, com.ABCCategoricalIndex)
+        self.assertIsInstance(pd.Index(['a', 'b', 'c']), com.ABCIndexClass)
+        self.assertIsInstance(pd.Int64Index([1, 2, 3]), com.ABCIndexClass)
+        self.assertIsInstance(pd.Series([1, 2, 3]), com.ABCSeries)
+        self.assertIsInstance(self.df, com.ABCDataFrame)
+        self.assertIsInstance(self.df.to_panel(), com.ABCPanel)
+        self.assertIsInstance(self.sparse_series, com.ABCSparseSeries)
+        self.assertIsInstance(self.sparse_array, com.ABCSparseArray)
+        self.assertIsInstance(self.categorical, com.ABCCategorical)
+        self.assertIsInstance(pd.Period('2012', freq='A-DEC'), com.ABCPeriod)
 
 
 def test_notnull():
@@ -272,6 +264,8 @@ def test_array_equivalent():
     assert not array_equivalent(np.array([np.nan, 1, np.nan]),
                                 np.array([np.nan, 2, np.nan]))
     assert not array_equivalent(np.array(['a', 'b', 'c', 'd']), np.array(['e', 'e']))
+    assert array_equivalent(Float64Index([0, np.nan]), Float64Index([0, np.nan]))
+    assert not array_equivalent(Float64Index([0, np.nan]), Float64Index([1, np.nan]))
     assert array_equivalent(DatetimeIndex([0, np.nan]), DatetimeIndex([0, np.nan]))
     assert not array_equivalent(DatetimeIndex([0, np.nan]), DatetimeIndex([1, np.nan]))
 
