@@ -288,7 +288,7 @@ Some other important things to know about the docs:
 #### Requirements
 
 To build the *pandas* docs there are some extra requirements: you will
-need to have `sphinx` and `ipython` installed.
+need to have `sphinx`, `ipython` and `ipython-notebook` installed.
 [numpydoc](https://github.com/numpy/numpydoc) is used to parse the
 docstrings that follow the Numpy Docstring Standard (see above), but you
 don't need to install this because a local copy of `numpydoc` is
@@ -298,7 +298,7 @@ It is easiest to
 create a development environment \<contributing-dev\_env\>, then
 install:
 
-    conda install -n pandas_dev sphinx ipython
+    conda install -n pandas_dev sphinx ipython ipython-notebook
 
 Furthermore, it is recommended to have all [optional
 dependencies](http://pandas.pydata.org/pandas-docs/dev/install.html#optional-dependencies)
