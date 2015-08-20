@@ -53,11 +53,6 @@ def _create_sp_frame():
     return SparseDataFrame(data, index=dates)
 
 
-def _create_period():
-
-    return Period('2000Q1')
-
-
 def create_data():
     """ create the pickle/msgpack data """
 
