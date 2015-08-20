@@ -198,6 +198,8 @@ Other enhancements
 
   ``tolerance`` is also exposed by the lower level ``Index.get_indexer`` and ``Index.get_loc`` methods.
 
+- Support pickling of ``Period`` objects (:issue:`10439`)
+
 .. _whatsnew_0170.api:
 
 .. _whatsnew_0170.api_breaking:

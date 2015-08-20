@@ -48,7 +48,7 @@ class TestPickle():
             comparator = getattr(test_sparse,"assert_%s_equal" % typ)
             comparator(result,expected,exact_indices=False)
         else:
-            comparator = getattr(tm,"assert_%s_equal" % typ)
+            comparator = getattr(tm,"assert_%s_equal" % typ,tm.assert_almost_equal)
             comparator(result,expected)
 
     def compare(self, vf):

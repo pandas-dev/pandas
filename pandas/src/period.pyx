@@ -969,6 +969,14 @@ cdef class Period(object):
         value = ("%s" % formatted)
         return value
 
+    def __setstate__(self, state):
+        self.freq=state[1]
+        self.ordinal=state[2]
+
+    def __reduce__(self):
+        object_state = None, self.freq, self.ordinal
+        return (Period, object_state)
+
     def strftime(self, fmt):
         """
         Returns the string representation of the :class:`Period`, depending

@@ -4,7 +4,8 @@ from distutils.version import LooseVersion
 from pandas import (Series, TimeSeries, DataFrame, Panel,
                     SparseSeries, SparseTimeSeries, SparseDataFrame, SparsePanel,
                     Index, MultiIndex, PeriodIndex, bdate_range, to_msgpack,
-                    date_range, period_range, bdate_range, Timestamp, Categorical)
+                    date_range, period_range, bdate_range, Timestamp, Categorical,
+                    Period)
 import os
 import sys
 import numpy as np
@@ -63,6 +64,10 @@ def create_data():
         'E': [0., 1, Timestamp('20100101'), 'foo', 2.]
     }
 
+    scalars = dict(timestamp=Timestamp('20130101'))
+    if LooseVersion(pandas.__version__) >= '0.17.0':
+        scalars['period'] = Period('2012','M')
+
     index = dict(int=Index(np.arange(10)),
                  date=date_range('20130101', periods=10),
                  period=period_range('2013-01-01', freq='M', periods=10))
@@ -79,6 +84,8 @@ def create_data():
                                                          names=['one', 'two'])),
                   dup=Series(np.arange(5).astype(np.float64), index=['A', 'B', 'C', 'D', 'A']),
                   cat=Series(Categorical(['foo', 'bar', 'baz'])))
+    if LooseVersion(pandas.__version__) >= '0.17.0':
+        series['period'] = Series([Period('2000Q1')] * 5)
 
     mixed_dup_df = DataFrame(data)
     mixed_dup_df.columns = list("ABCDA")
@@ -107,6 +114,7 @@ def create_data():
                 frame=frame,
                 panel=panel,
                 index=index,
+                scalars=scalars,
                 mi=mi,
                 sp_series=dict(float=_create_sp_series(),
                                ts=_create_sp_tsseries()),
