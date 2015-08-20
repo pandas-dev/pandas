@@ -2541,13 +2541,11 @@ class TestPeriodIndex(tm.TestCase):
 
     def test_round_trip(self):
 
+        import pickle
         p = Period('2000Q1')
-        pickle_path = os.path.join(tm.get_data_path(),
-                                   'period.pickle')
 
-        with open(pickle_path, 'wb') as f: pickle.dump(p, f)
-
-        self.assertEqual(p, pd.read_pickle(pickle_path))
+        new_p = self.round_trip_pickle(p)
+        self.assertEqual(new_p, p)
 
 def _permute(obj):
     return obj.take(np.random.permutation(len(obj)))
