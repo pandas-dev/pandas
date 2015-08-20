@@ -2471,7 +2471,6 @@ class TestPeriodIndex(tm.TestCase):
 
     def test_pickle_freq(self):
         # GH2891
-        import pickle
         prng = period_range('1/1/2011', '1/1/2012', freq='M')
         new_prng = self.round_trip_pickle(prng)
         self.assertEqual(new_prng.freq,'M')
@@ -2535,6 +2534,12 @@ class TestPeriodIndex(tm.TestCase):
         self.assertRaisesRegexp(
             ValueError, 'Different period frequency: H',
             lambda: pidx.searchsorted(pd.Period('2014-01-01', freq='H')))
+
+    def test_round_trip(self):
+
+        p = Period('2000Q1')
+        new_p = self.round_trip_pickle(p)
+        self.assertEqual(new_p, p)
 
 def _permute(obj):
     return obj.take(np.random.permutation(len(obj)))
