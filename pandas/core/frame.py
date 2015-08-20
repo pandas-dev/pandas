@@ -1254,7 +1254,8 @@ class DataFrame(NDFrame):
     def to_excel(self, excel_writer, sheet_name='Sheet1', na_rep='',
                  float_format=None, columns=None, header=True, index=True,
                  index_label=None, startrow=0, startcol=0, engine=None,
-                 merge_cells=True, encoding=None, inf_rep='inf'):
+                 merge_cells=True, encoding=None, inf_rep='inf',
+                 verbose=True):
         """
         Write DataFrame to a excel sheet
 
@@ -1295,6 +1296,9 @@ class DataFrame(NDFrame):
         inf_rep : string, default 'inf'
             Representation for infinity (there is no native representation for
             infinity in Excel)
+        verbose: boolean, default True
+             If True, warn user that the resulting output file may not be
+             re-read or parsed directly by pandas.
 
         Notes
         -----
@@ -1311,12 +1315,8 @@ class DataFrame(NDFrame):
         strings before writing.
         """
         from pandas.io.excel import ExcelWriter
-        if self.columns.nlevels > 1:
-            raise NotImplementedError("Writing as Excel with a MultiIndex is "
-                                      "not yet implemented.")
-
         need_save = False
-        if encoding == None:
+        if encoding is None:
             encoding = 'ascii'
 
         if isinstance(excel_writer, compat.string_types):
@@ -1331,7 +1331,7 @@ class DataFrame(NDFrame):
                                        index=index,
                                        index_label=index_label,
                                        merge_cells=merge_cells,
-                                       inf_rep=inf_rep)
+                                       inf_rep=inf_rep, verbose=verbose)
         formatted_cells = formatter.get_formatted_cells()
         excel_writer.write_cells(formatted_cells, sheet_name,
                                  startrow=startrow, startcol=startcol)

@@ -4,6 +4,7 @@ from distutils.version import LooseVersion
 # pylint: disable=W0141
 
 import sys
+import warnings
 
 from pandas.core.base import PandasObject
 from pandas.core.common import adjoin, notnull
@@ -1640,11 +1641,14 @@ class ExcelFormatter(object):
     inf_rep : string, default `'inf'`
         representation for np.inf values (which aren't representable in Excel)
         A `'-'` sign will be added in front of -inf.
+    verbose: boolean, default True
+        If True, warn user that the resulting output file may not be
+        re-read or parsed directly by pandas.
     """
 
     def __init__(self, df, na_rep='', float_format=None, cols=None,
                  header=True, index=True, index_label=None, merge_cells=False,
-                 inf_rep='inf'):
+                 inf_rep='inf', verbose=True):
         self.df = df
         self.rowcounter = 0
         self.na_rep = na_rep
@@ -1657,6 +1661,7 @@ class ExcelFormatter(object):
         self.header = header
         self.merge_cells = merge_cells
         self.inf_rep = inf_rep
+        self.verbose = verbose
 
     def _format_value(self, val):
         if lib.checknull(val):
@@ -1671,6 +1676,17 @@ class ExcelFormatter(object):
         return val
 
     def _format_header_mi(self):
+
+        if self.columns.nlevels > 1:
+            if not self.index:
+                raise NotImplementedError("Writing to Excel with MultiIndex"
+                                          " columns and no index ('index'=False) "
+                                          "is not yet implemented.")
+            elif self.index and self.verbose:
+                warnings.warn("Writing to Excel with MultiIndex columns is a"
+                              " one way serializable operation. You will not"
+                              " be able to re-read or parse the output file.")
+
         has_aliases = isinstance(self.header, (tuple, list, np.ndarray, Index))
         if not(has_aliases or self.header):
             return
