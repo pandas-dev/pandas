@@ -741,7 +741,7 @@ Bug Fixes
 - Bug in ``ExcelReader`` when worksheet is empty (:issue:`6403`)
 - Bug in ``BinGrouper.group_info`` where returned values are not compatible with base class (:issue:`10914`)
 - Bug in clearing the cache on ``DataFrame.pop`` and a subsequent inplace op (:issue:`10912`)
-
+- Bug in indexing with a mixed-integer ``Index`` causing an ``ImportError`` (:issue:`10610`)
 - Bug causing ``DataFrame.where`` to not respect the ``axis`` parameter when the frame has a symmetric shape. (:issue:`9736`)
 
 - Bug in ``Table.select_column`` where name is not preserved (:issue:`10392`)
