@@ -2537,7 +2537,17 @@ class TestPeriodIndex(tm.TestCase):
 
     def test_round_trip(self):
 
+<<<<<<< HEAD
+<<<<<<< HEAD
         p = Period('2000Q1')
+=======
+        import pickle
+        p = Period('2000Q1')
+
+>>>>>>> 0525684... ENH: pickle support for Period #10439
+=======
+        p = Period('2000Q1')
+>>>>>>> aa04812... update legacy_storage for pickles
         new_p = self.round_trip_pickle(p)
         self.assertEqual(new_p, p)
 
