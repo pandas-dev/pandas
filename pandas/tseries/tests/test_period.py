@@ -6,6 +6,9 @@ Parts derived from scikits.timeseries code, original authors:
 
 """
 
+import pickle
+import os
+
 from datetime import datetime, date, timedelta
 
 from numpy.ma.testutils import assert_equal
@@ -2535,6 +2538,14 @@ class TestPeriodIndex(tm.TestCase):
         self.assertRaisesRegexp(
             ValueError, 'Different period frequency: H',
             lambda: pidx.searchsorted(pd.Period('2014-01-01', freq='H')))
+
+    def test_round_trip(self):
+
+        import pickle
+        p = Period('2000Q1')
+
+        new_p = self.round_trip_pickle(p)
+        self.assertEqual(new_p, p)
 
 def _permute(obj):
     return obj.take(np.random.permutation(len(obj)))
