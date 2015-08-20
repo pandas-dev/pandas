@@ -374,7 +374,7 @@ class Generic(object):
 
             self._compare(o.sample(frac=0.7,random_state=np.random.RandomState(test)),
                           o.sample(frac=0.7, random_state=np.random.RandomState(test)))
- 
+
 
         # Check for error when random_state argument invalid.
         with tm.assertRaises(ValueError):
@@ -418,7 +418,7 @@ class Generic(object):
         with tm.assertRaises(ValueError):
             bad_weight_series = Series([0,0,0.2])
             o.sample(n=4, weights=bad_weight_series)
-            
+
         # Check won't accept negative weights
         with tm.assertRaises(ValueError):
             bad_weights = [-0.1]*10
@@ -545,7 +545,7 @@ class Generic(object):
         s = Series([1,0,0], index=[3,5,9])
         assert_frame_equal(df.loc[[3]], df.sample(1, weights=s))
 
-        # Weights have index values to be dropped because not in 
+        # Weights have index values to be dropped because not in
         # sampled DataFrame
         s2 = Series([0.001,0,10000], index=[3,5,10])
         assert_frame_equal(df.loc[[3]], df.sample(1, weights=s2))
@@ -1422,6 +1422,27 @@ class TestDataFrame(tm.TestCase, Generic):
         s = Series([1, 2, np.nan, 4, 5.1, np.nan, 7])
         self.assertNotEqual(s.interpolate(method='spline', order=3, s=0)[5],
                             s.interpolate(method='spline', order=3)[5])
+
+    def test_spline_interpolation(self):
+        tm._skip_if_no_scipy()
+
+        s = Series(np.arange(10)**2)
+        s[np.random.randint(0,9,3)] = np.nan
+        result1 = s.interpolate(method='spline', order=1)
+        expected1 = s.interpolate(method='spline', order=1)
+        assert_series_equal(result1, expected1)
+
+    # GH #10633
+    def test_spline_error(self):
+        tm._skip_if_no_scipy()
+
+        s = pd.Series(np.arange(10)**2)
+        s[np.random.randint(0,9,3)] = np.nan
+        with tm.assertRaises(ValueError):
+            s.interpolate(method='spline')
+
+        with tm.assertRaises(ValueError):
+            s.interpolate(method='spline', order=0)
 
     def test_metadata_propagation_indiv(self):
 
