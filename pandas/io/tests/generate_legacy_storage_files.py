@@ -4,7 +4,8 @@ from distutils.version import LooseVersion
 from pandas import (Series, TimeSeries, DataFrame, Panel,
                     SparseSeries, SparseTimeSeries, SparseDataFrame, SparsePanel,
                     Index, MultiIndex, PeriodIndex, bdate_range, to_msgpack,
-                    date_range, period_range, bdate_range, Timestamp, Categorical)
+                    date_range, period_range, bdate_range, Timestamp, Categorical,
+                    Period)
 import os
 import sys
 import numpy as np
@@ -50,6 +51,11 @@ def _create_sp_frame():
 
     dates = bdate_range('1/1/2011', periods=10)
     return SparseDataFrame(data, index=dates)
+
+
+def _create_period():
+
+    return Period('2000Q1')
 
 
 def create_data():
