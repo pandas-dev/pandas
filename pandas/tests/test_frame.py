@@ -4474,6 +4474,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
 
         tm.assert_almost_equal(recons_data, expected_records)
 
+        # GH10844
         recons_data = DataFrame(test_data).to_dict("i")
 
         for k, v in compat.iteritems(test_data):

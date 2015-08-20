@@ -174,7 +174,7 @@ Other enhancements
 
 - ``msgpack`` submodule has been updated to 0.4.6 with backward compatibility (:issue:`10581`)
 
-- ``DataFrame.to_dict`` now accepts the *index* option in ``orient`` keyword argument.
+- ``DataFrame.to_dict`` now accepts the *index* option in ``orient`` keyword argument (:issue:`10844`).
 
 .. ipython :: python
 
