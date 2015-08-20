@@ -973,9 +973,12 @@ class Index(IndexOpsMixin, PandasObject):
                 indexer = self.get_indexer(keyarr)
                 if (indexer >= 0).all():
                     return indexer
-
-                from pandas.core.indexing import _maybe_convert_indices
-                return _maybe_convert_indices(indexer, len(self))
+                # missing values are flagged as -1 by get_indexer and negative indices are already
+                # converted to positive indices in the above if-statement, so the negative flags are changed to
+                # values outside the range of indices so as to trigger an IndexError in maybe_convert_indices
+                indexer[indexer < 0] = len(self)
+                from pandas.core.indexing import maybe_convert_indices
+                return maybe_convert_indices(indexer, len(self))
 
             elif not self.inferred_type == 'integer':
                 return keyarr

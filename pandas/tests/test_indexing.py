@@ -2535,6 +2535,12 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
 
         #if I look at df, then element [0,2] equals '_'. If instead I type df.ix[idx,'test'], I get '-----', finally by typing df.iloc[0,2] I get '_'.
 
+    def test_multitype_list_index_access(self):
+        #GH 10610
+        df = pd.DataFrame(np.random.random((10, 5)), columns=["a"] + [20, 21, 22, 23])
+        with self.assertRaises(IndexError):
+            vals = df[[22, 26, -8]]
+        self.assertEqual(df[21].shape[0], df.shape[0])
 
     def test_set_index_nan(self):
 
