@@ -1723,6 +1723,11 @@ class TestIndex(Base, tm.TestCase):
             df.index == index_a
         tm.assert_numpy_array_equal(index_a == mi3, np.array([False, False, False]))
 
+    def test_multitype_list_index_access(self):
+        df = pd.DataFrame(np.random.random((10, 5)), columns=["a"] + [20, 21, 22, 23])
+        with self.assertRaises(IndexError):
+            vals = df[[22, 26, -8]]
+        self.assertEqual(df[21].shape[0], df.shape[0])
 
 class TestCategoricalIndex(Base, tm.TestCase):
     _holder = CategoricalIndex
