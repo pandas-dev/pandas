@@ -16,7 +16,8 @@ from distutils.version import LooseVersion
 
 from pandas.compat import(
     map, zip, range, long, lrange, lmap, lzip,
-    OrderedDict, u, StringIO, string_types
+    OrderedDict, u, StringIO, string_types,
+    is_platform_windows
 )
 from pandas import compat
 
@@ -13894,7 +13895,11 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         # these work (though results may be unexpected)
         f('int64')
         f('float64')
-        f('M8[ns]')
+
+        # 10822
+        # invalid error message on dt inference
+        if not is_platform_windows():
+            f('M8[ns]')
 
     def test_assign_columns(self):
         self.frame['hi'] = 'there'

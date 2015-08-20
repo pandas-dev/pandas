@@ -15,6 +15,7 @@ from pandas.tseries.tools import to_datetime
 import pandas.tseries.offsets as offsets
 from pandas.tseries.period import PeriodIndex
 import pandas.compat as compat
+from pandas.compat import is_platform_windows
 
 import pandas.util.testing as tm
 from pandas import Timedelta
@@ -500,9 +501,12 @@ class TestFrequencyInference(tm.TestCase):
                    tm.makePeriodIndex(10) ]:
             self.assertRaises(TypeError, lambda : frequencies.infer_freq(i))
 
-        for i in [ tm.makeStringIndex(10),
-                   tm.makeUnicodeIndex(10) ]:
-            self.assertRaises(ValueError, lambda : frequencies.infer_freq(i))
+        # GH 10822
+        # odd error message on conversions to datetime for unicode
+        if not is_platform_windows():
+            for i in [ tm.makeStringIndex(10),
+                       tm.makeUnicodeIndex(10) ]:
+                self.assertRaises(ValueError, lambda : frequencies.infer_freq(i))
 
     def test_string_datetimelike_compat(self):
 
