@@ -590,17 +590,17 @@ class TestnanopsDataFrame(tm.TestCase):
         b_median = np.median(b)
 
         # Median absolute deviation
-        a_mad = np.median(np.abs(self.arr_float_1d - a_median))
-        b_mad = np.median(np.abs(self.arr_float1_1d - b_median))
+        a_mad = np.median(np.abs(a - a_median))
+        b_mad = np.median(np.abs(b - b_median))
 
-        u = (self.arr_float_1d - a_median) / (9 * a_mad)
-        v = (self.arr_float1_1d - b_median) / (9 * b_mad)
+        u = (a - a_median) / (9 * a_mad)
+        v = (b - b_median) / (9 * b_mad)
 
         w_a = np.square(1 - np.square(u)) * ((1 - np.abs(u)) > 0)
         w_b = np.square(1 - np.square(v)) * ((1 - np.abs(v)) > 0)
 
-        a_item = (self.arr_float_1d - a_median) * w_a
-        b_item = (self.arr_float1_1d - b_median) * w_b
+        a_item = (a - a_median) * w_a
+        b_item = (b - b_median) * w_b
 
         targ0 = (a_item * b_item).sum() / (
             np.sqrt(np.square(a_item).sum()) *
@@ -612,17 +612,17 @@ class TestnanopsDataFrame(tm.TestCase):
         b_median = np.median(b)
 
         # Median absolute deviation
-        a_mad = np.median(np.abs(self.arr_float_1d - a_median))
-        b_mad = np.median(np.abs(self.arr_float1_1d - b_median))
+        a_mad = np.median(np.abs(a - a_median))
+        b_mad = np.median(np.abs(b - b_median))
 
-        u = (self.arr_float_1d - a_median) / (9 * a_mad)
-        v = (self.arr_float1_1d - b_median) / (9 * b_mad)
+        u = (a - a_median) / (9 * a_mad)
+        v = (b - b_median) / (9 * b_mad)
 
         w_a = np.square(1 - np.square(u)) * ((1 - np.abs(u)) > 0)
         w_b = np.square(1 - np.square(v)) * ((1 - np.abs(v)) > 0)
 
-        a_item = (self.arr_float_1d - a_median) * w_a
-        b_item = (self.arr_float1_1d - b_median) * w_b
+        a_item = (a - a_median) * w_a
+        b_item = (b - b_median) * w_b
 
         targ1 = (a_item * b_item).sum() / (
             np.sqrt(np.square(a_item).sum()) *
@@ -635,17 +635,17 @@ class TestnanopsDataFrame(tm.TestCase):
         b_median = np.median(b)
 
         # Median absolute deviation
-        a_mad = np.median(np.abs(self.arr_float_2d - a_median))
-        b_mad = np.median(np.abs(self.arr_float1_2d - b_median))
+        a_mad = np.median(np.abs(a - a_median))
+        b_mad = np.median(np.abs(b - b_median))
 
-        u = (self.arr_float_2d - a_median) / (9 * a_mad)
-        v = (self.arr_float1_2d - b_median) / (9 * b_mad)
+        u = (a - a_median) / (9 * a_mad)
+        v = (b - b_median) / (9 * b_mad)
 
         w_a = np.square(1 - np.square(u)) * ((1 - np.abs(u)) > 0)
         w_b = np.square(1 - np.square(v)) * ((1 - np.abs(v)) > 0)
 
-        a_item = (self.arr_float_2d - a_median) * w_a
-        b_item = (self.arr_float1_2d - b_median) * w_b
+        a_item = (a - a_median) * w_a
+        b_item = (b - b_median) * w_b
 
         targ0 = (a_item * b_item).sum() / (
             np.sqrt(np.square(a_item).sum()) *
@@ -657,17 +657,17 @@ class TestnanopsDataFrame(tm.TestCase):
         b_median = np.median(b)
 
         # Median absolute deviation
-        a_mad = np.median(np.abs(self.arr_float_2d - a_median))
-        b_mad = np.median(np.abs(self.arr_float1_2d - b_median))
+        a_mad = np.median(np.abs(a - a_median))
+        b_mad = np.median(np.abs(b - b_median))
 
-        u = (self.arr_float_2d - a_median) / (9 * a_mad)
-        v = (self.arr_float1_2d - b_median) / (9 * b_mad)
+        u = (a - a_median) / (9 * a_mad)
+        v = (b - b_median) / (9 * b_mad)
 
         w_a = np.square(1 - np.square(u)) * ((1 - np.abs(u)) > 0)
         w_b = np.square(1 - np.square(v)) * ((1 - np.abs(v)) > 0)
 
-        a_item = (self.arr_float_2d - a_median) * w_a
-        b_item = (self.arr_float1_2d - b_median) * w_b
+        a_item = (a - a_median) * w_a
+        b_item = (b - b_median) * w_b
 
         targ1 = (a_item * b_item).sum() / (
             np.sqrt(np.square(a_item).sum()) *
