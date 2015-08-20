@@ -737,6 +737,88 @@ class TestMerge(tm.TestCase):
         result = merge(right, left, on='key', how='right')
         assert_frame_equal(result, left)
 
+    def test_merge_left_empty_right_empty(self):
+        # GH 10824
+        left = pd.DataFrame([], columns=['a', 'b', 'c'])
+        right = pd.DataFrame([], columns=['x', 'y', 'z'])
+
+        exp_in = pd.DataFrame([], columns=['a', 'b', 'c', 'x', 'y', 'z'],
+                              dtype=object)
+
+        for kwarg in [dict(left_index=True, right_index=True),
+                      dict(left_index=True, right_on='x'),
+                      dict(left_on='a', right_index=True),
+                      dict(left_on='a', right_on='x')]:
+
+            result = pd.merge(left, right, how='inner', **kwarg)
+            tm.assert_frame_equal(result, exp_in)
+            result = pd.merge(left, right, how='left', **kwarg)
+            tm.assert_frame_equal(result, exp_in)
+            result = pd.merge(left, right, how='right', **kwarg)
+            tm.assert_frame_equal(result, exp_in)
+            result = pd.merge(left, right, how='outer', **kwarg)
+            tm.assert_frame_equal(result, exp_in)
+
+    def test_merge_left_empty_right_notempty(self):
+        # GH 10824
+        left = pd.DataFrame([], columns=['a', 'b', 'c'])
+        right = pd.DataFrame([[1, 2, 3], [4, 5, 6], [7, 8, 9]],
+                             columns=['x', 'y', 'z'])
+
+        exp_out = pd.DataFrame({'a': np.array([np.nan]*3, dtype=object),
+                                'b': np.array([np.nan]*3, dtype=object),
+                                'c': np.array([np.nan]*3, dtype=object),
+                                'x': [1, 4, 7],
+                                'y': [2, 5, 8],
+                                'z': [3, 6, 9]},
+                               columns=['a', 'b', 'c', 'x', 'y', 'z'])
+        exp_in = exp_out[0:0] # make empty DataFrame keeping dtype
+
+        for kwarg in [dict(left_index=True, right_index=True),
+                      dict(left_index=True, right_on='x'),
+                      dict(left_on='a', right_index=True),
+                      dict(left_on='a', right_on='x')]:
+
+            result = pd.merge(left, right, how='inner', **kwarg)
+            tm.assert_frame_equal(result, exp_in)
+            result = pd.merge(left, right, how='left', **kwarg)
+            tm.assert_frame_equal(result, exp_in)
+
+            result = pd.merge(left, right, how='right', **kwarg)
+            tm.assert_frame_equal(result, exp_out)
+            result = pd.merge(left, right, how='outer', **kwarg)
+            tm.assert_frame_equal(result, exp_out)
+
+    def test_merge_left_notempty_right_empty(self):
+        # GH 10824
+        left = pd.DataFrame([[1, 2, 3], [4, 5, 6], [7, 8, 9]],
+                            columns=['a', 'b', 'c'])
+        right = pd.DataFrame([], columns=['x', 'y', 'z'])
+
+        exp_out = pd.DataFrame({'a': [1, 4, 7],
+                                'b': [2, 5, 8],
+                                'c': [3, 6, 9],
+                                'x': np.array([np.nan]*3, dtype=object),
+                                'y': np.array([np.nan]*3, dtype=object),
+                                'z': np.array([np.nan]*3, dtype=object)},
+                               columns=['a', 'b', 'c', 'x', 'y', 'z'])
+        exp_in = exp_out[0:0] # make empty DataFrame keeping dtype
+
+        for kwarg in [dict(left_index=True, right_index=True),
+                      dict(left_index=True, right_on='x'),
+                      dict(left_on='a', right_index=True),
+                      dict(left_on='a', right_on='x')]:
+
+            result = pd.merge(left, right, how='inner', **kwarg)
+            tm.assert_frame_equal(result, exp_in)
+            result = pd.merge(left, right, how='right', **kwarg)
+            tm.assert_frame_equal(result, exp_in)
+
+            result = pd.merge(left, right, how='left', **kwarg)
+            tm.assert_frame_equal(result, exp_out)
+            result = pd.merge(left, right, how='outer', **kwarg)
+            tm.assert_frame_equal(result, exp_out)
+
     def test_merge_nosort(self):
         # #2098, anything to do?
 
