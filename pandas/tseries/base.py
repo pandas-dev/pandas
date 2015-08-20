@@ -17,6 +17,29 @@ from pandas.tseries.frequencies import infer_freq, to_offset, Resolution
 import pandas.algos as _algos
 
 
+
+class DatelikeOps(object):
+    """ common ops for DatetimeIndex/PeriodIndex, but not TimedeltaIndex """
+
+    def strftime(self, date_format):
+        """
+        Return an array of formatted strings specified by date_format, which
+        supports the same string format as the python standard library. Details
+        of the string format can be found in the `python string format doc
+        <https://docs.python.org/2/library/datetime.html#strftime-and-strptime-behavior>`__
+
+        Parameters
+        ----------
+        date_format : str
+            date format string (e.g. "%Y-%m-%d")
+
+        Returns
+        -------
+        ndarray of formatted strings
+        """
+        return np.asarray(self.format(date_format=date_format))
+
+
 class DatetimeIndexOpsMixin(object):
     """ common ops mixin to support a unified inteface datetimelike Index """
 
@@ -140,20 +163,31 @@ class DatetimeIndexOpsMixin(object):
             return sorted_index, _as
         else:
             sorted_values = np.sort(self.values)
+            attribs = self._get_attributes_dict()
+            freq = attribs['freq']
+            from pandas.tseries.period import PeriodIndex
+            if freq is not None and not isinstance(self, PeriodIndex):
+                if freq.n > 0 and not ascending:
+                    freq = freq * -1
+                elif freq.n < 0 and ascending:
+                    freq = freq * -1
+            attribs['freq'] = freq
+
             if not ascending:
                 sorted_values = sorted_values[::-1]
-            attribs = self._get_attributes_dict()
-            attribs['freq'] = None
+
             return self._simple_new(sorted_values, **attribs)
 
     def take(self, indices, axis=0):
         """
         Analogous to ndarray.take
         """
-        maybe_slice = lib.maybe_indices_to_slice(com._ensure_int64(indices))
+        indices = com._ensure_int64(indices)
+        maybe_slice = lib.maybe_indices_to_slice(indices, len(self))
         if isinstance(maybe_slice, slice):
             return self[maybe_slice]
-        return super(DatetimeIndexOpsMixin, self).take(indices, axis)
+        taken = self.asi8.take(com._ensure_platform_int(indices))
+        return self._shallow_copy(taken, freq=None)
 
     def get_duplicates(self):
         values = Index.get_duplicates(self)
@@ -168,6 +202,14 @@ class DatetimeIndexOpsMixin(object):
     def asobject(self):
         from pandas.core.index import Index
         return Index(self._box_values(self.asi8), name=self.name, dtype=object)
+
+    def _convert_tolerance(self, tolerance):
+        try:
+            return tslib.Timedelta(tolerance).to_timedelta64()
+        except ValueError:
+            raise ValueError('tolerance argument for %s must be convertible '
+                             'to Timedelta: %r'
+                             % (type(self).__name__, tolerance))
 
     def _maybe_mask_results(self, result, fill_value=None, convert=None):
         """

@@ -31,15 +31,15 @@ try:
 except:
     pass
 
-df = DataFrame({'data1' : np.random.randn(100000),
+df = pd.DataFrame({'data1' : np.random.randn(100000),
                 'data2' : np.random.randn(100000),
                 'key1' : key1,
                 'key2' : key2})
 
 
-df_key1 = DataFrame(np.random.randn(len(level1), 4), index=level1,
+df_key1 = pd.DataFrame(np.random.randn(len(level1), 4), index=level1,
                     columns=['A', 'B', 'C', 'D'])
-df_key2 = DataFrame(np.random.randn(len(level2), 4), index=level2,
+df_key2 = pd.DataFrame(np.random.randn(len(level2), 4), index=level2,
                     columns=['A', 'B', 'C', 'D'])
 
 df_shuf = df.reindex(df.index[shuf])
@@ -69,10 +69,10 @@ join_dataframe_index_multi = \
 #----------------------------------------------------------------------
 # Joins on integer keys
 setup = common_setup + """
-df = DataFrame({'key1': np.tile(np.arange(500).repeat(10), 2),
+df = pd.DataFrame({'key1': np.tile(np.arange(500).repeat(10), 2),
                 'key2': np.tile(np.arange(250).repeat(10), 4),
                 'value': np.random.randn(10000)})
-df2 = DataFrame({'key1': np.arange(500), 'value2': randn(500)})
+df2 = pd.DataFrame({'key1': np.arange(500), 'value2': randn(500)})
 df3 = df[:5000]
 """
 
@@ -96,9 +96,9 @@ indices2 = tm.makeStringIndex(N).values
 key = np.tile(indices[:8000], 10)
 key2 = np.tile(indices2[:8000], 10)
 
-left = DataFrame({'key' : key, 'key2':key2,
+left = pd.DataFrame({'key' : key, 'key2':key2,
                   'value' : np.random.randn(80000)})
-right = DataFrame({'key': indices[2000:], 'key2':indices2[2000:],
+right = pd.DataFrame({'key': indices[2000:], 'key2':indices2[2000:],
                    'value2' : np.random.randn(8000)})
 """
 
@@ -112,7 +112,7 @@ merge_2intkey_sort = Benchmark('merge(left, right, sort=True)', setup,
 # Appending DataFrames
 
 setup = common_setup + """
-df1 = DataFrame(np.random.randn(10000, 4), columns=['A', 'B', 'C', 'D'])
+df1 = pd.DataFrame(np.random.randn(10000, 4), columns=['A', 'B', 'C', 'D'])
 df2 = df1.copy()
 df2.index = np.arange(10000, 20000)
 mdf1 = df1.copy()
@@ -180,7 +180,7 @@ concat_series_axis1 = Benchmark('concat(pieces, axis=1)', setup,
                                 start_date=datetime(2012, 2, 27))
 
 setup = common_setup + """
-df = DataFrame(randn(5, 4))
+df = pd.DataFrame(randn(5, 4))
 """
 
 concat_small_frames = Benchmark('concat([df] * 1000)', setup,
@@ -191,8 +191,8 @@ concat_small_frames = Benchmark('concat([df] * 1000)', setup,
 # Concat empty
 
 setup = common_setup + """
-df = DataFrame(dict(A = range(10000)),index=date_range('20130101',periods=10000,freq='s'))
-empty = DataFrame()
+df = pd.DataFrame(dict(A = range(10000)),index=date_range('20130101',periods=10000,freq='s'))
+empty = pd.DataFrame()
 """
 
 concat_empty_frames1 = Benchmark('concat([df,empty])', setup,
@@ -207,11 +207,11 @@ concat_empty_frames2 = Benchmark('concat([empty,df])', setup,
 setup = common_setup + """
 groups = tm.makeStringIndex(10).values
 
-left = DataFrame({'group': groups.repeat(5000),
+left = pd.DataFrame({'group': groups.repeat(5000),
                   'key' : np.tile(np.arange(0, 10000, 2), 10),
                   'lvalue': np.random.randn(50000)})
 
-right = DataFrame({'key' : np.arange(10000),
+right = pd.DataFrame({'key' : np.arange(10000),
                    'rvalue' : np.random.randn(10000)})
 
 """
@@ -242,10 +242,10 @@ setup = common_setup + '''
 np.random.seed(2718281)
 n = 50000
 
-left = DataFrame(np.random.randint(1, n/500, (n, 2)),
+left = pd.DataFrame(np.random.randint(1, n/500, (n, 2)),
         columns=['jim', 'joe'])
 
-right = DataFrame(np.random.randint(1, n/500, (n, 2)),
+right = pd.DataFrame(np.random.randint(1, n/500, (n, 2)),
         columns=['jolie', 'jolia']).set_index('jolie')
 '''
 
@@ -255,7 +255,7 @@ left_outer_join_index = Benchmark("left.join(right, on='jim')", setup,
 
 setup = common_setup + """
 low, high, n = -1 << 10, 1 << 10, 1 << 20
-left = DataFrame(np.random.randint(low, high, (n, 7)),
+left = pd.DataFrame(np.random.randint(low, high, (n, 7)),
                     columns=list('ABCDEFG'))
 left['left'] = left.sum(axis=1)
 

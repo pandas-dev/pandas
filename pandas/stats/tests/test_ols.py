@@ -41,7 +41,7 @@ def _check_repr(obj):
 
 
 def _compare_ols_results(model1, model2):
-    tm.assert_isinstance(model1, type(model2))
+    tm.assertIsInstance(model1, type(model2))
 
     if hasattr(model1, '_window_type'):
         _compare_moving_ols(model1, model2)
@@ -370,7 +370,7 @@ class TestOLSMisc(tm.TestCase):
         y = lp.pop('ItemA')
         model = ols(y=y, x=lp, entity_effects=True, window=20)
         self.assertTrue(notnull(model.beta.values).all())
-        tm.assert_isinstance(model, PanelOLS)
+        tm.assertIsInstance(model, PanelOLS)
         model.summary
 
     def test_series_rhs(self):
@@ -394,7 +394,7 @@ class TestOLSMisc(tm.TestCase):
 
         for attr in series_attrs:
             value = getattr(model, attr)
-            tm.assert_isinstance(value, Series)
+            tm.assertIsInstance(value, Series)
 
         # works
         model._results

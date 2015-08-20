@@ -172,7 +172,7 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
     result : Series or DataFrame
     """
 
-    filepath_or_buffer, _ = get_filepath_or_buffer(path_or_buf)
+    filepath_or_buffer, _, _ = get_filepath_or_buffer(path_or_buf)
     if isinstance(filepath_or_buffer, compat.string_types):
         try:
             exists = os.path.exists(filepath_or_buffer)

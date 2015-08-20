@@ -49,6 +49,18 @@ reindex_multi = Benchmark(statement, setup,
 #----------------------------------------------------------------------
 # Pad / backfill
 
+def pad(source_series, target_index):
+    try:
+        source_series.reindex(target_index, method='pad')
+    except:
+        source_series.reindex(target_index, fillMethod='pad')
+
+def backfill(source_series, target_index):
+    try:
+        source_series.reindex(target_index, method='backfill')
+    except:
+        source_series.reindex(target_index, fillMethod='backfill')
+
 setup = common_setup + """
 rng = date_range('1/1/2000', periods=100000, freq=datetools.Minute())
 
@@ -57,23 +69,23 @@ ts2 = ts[::2]
 ts3 = ts2.reindex(ts.index)
 ts4 = ts3.astype('float32')
 
-def pad():
+def pad(source_series, target_index):
     try:
-        ts2.reindex(ts.index, method='pad')
+        source_series.reindex(target_index, method='pad')
     except:
-        ts2.reindex(ts.index, fillMethod='pad')
-def backfill():
+        source_series.reindex(target_index, fillMethod='pad')
+def backfill(source_series, target_index):
     try:
-        ts2.reindex(ts.index, method='backfill')
+        source_series.reindex(target_index, method='backfill')
     except:
-        ts2.reindex(ts.index, fillMethod='backfill')
+        source_series.reindex(target_index, fillMethod='backfill')
 """
 
-statement = "pad()"
+statement = "pad(ts2, ts.index)"
 reindex_daterange_pad = Benchmark(statement, setup,
                                   name="reindex_daterange_pad")
 
-statement = "backfill()"
+statement = "backfill(ts2, ts.index)"
 reindex_daterange_backfill = Benchmark(statement, setup,
                                        name="reindex_daterange_backfill")
 

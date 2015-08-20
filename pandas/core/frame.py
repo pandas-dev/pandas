@@ -184,7 +184,6 @@ class DataFrame(NDFrame):
     DataFrame.from_items : from sequence of (key, value) pairs
     pandas.read_csv, pandas.read_table, pandas.read_clipboard
     """
-    _auto_consolidate = True
 
     @property
     def _constructor(self):
@@ -321,6 +320,8 @@ class DataFrame(NDFrame):
 
                     if dtype is None:
                         # 1783
+                        v = np.empty(len(index), dtype=object)
+                    elif np.issubdtype(dtype, np.flexible):
                         v = np.empty(len(index), dtype=object)
                     else:
                         v = np.empty(len(index), dtype=dtype)
@@ -545,35 +546,63 @@ class DataFrame(NDFrame):
             return None
 
     def iteritems(self):
-        """Iterator over (column, series) pairs"""
+        """
+        Iterator over (column name, Series) pairs.
+
+        See also
+        --------
+        iterrows : Iterate over the rows of a DataFrame as (index, Series) pairs.
+        itertuples : Iterate over the rows of a DataFrame as tuples of the values.
+
+        """
         if self.columns.is_unique and hasattr(self, '_item_cache'):
             for k in self.columns:
                 yield k, self._get_item_cache(k)
         else:
             for i, k in enumerate(self.columns):
-                yield k, self.icol(i)
+                yield k, self._ixs(i,axis=1)
 
     def iterrows(self):
         """
-        Iterate over rows of DataFrame as (index, Series) pairs.
+        Iterate over the rows of a DataFrame as (index, Series) pairs.
 
         Notes
         -----
 
-        * ``iterrows`` does **not** preserve dtypes across the rows (dtypes
-          are preserved across columns for DataFrames). For example,
+        1. Because ``iterrows` returns a Series for each row,
+           it does **not** preserve dtypes across the rows (dtypes are
+           preserved across columns for DataFrames). For example,
 
-            >>> df = DataFrame([[1, 1.0]], columns=['x', 'y'])
-            >>> row = next(df.iterrows())[1]
-            >>> print(row['x'].dtype)
-            float64
-            >>> print(df['x'].dtype)
-            int64
+           >>> df = pd.DataFrame([[1, 1.5]], columns=['int', 'float'])
+           >>> row = next(df.iterrows())[1]
+           >>> row
+           int      1.0
+           float    1.5
+           Name: 0, dtype: float64
+           >>> print(row['int'].dtype)
+           float64
+           >>> print(df['int'].dtype)
+           int64
+
+           To preserve dtypes while iterating over the rows, it is better
+           to use :meth:`itertuples` which returns tuples of the values
+           and which is generally faster as ``iterrows``.
+
+        2. You should **never modify** something you are iterating over.
+           This is not guaranteed to work in all cases. Depending on the
+           data types, the iterator returns a copy and not a view, and writing
+           to it will have no effect.
 
         Returns
         -------
         it : generator
             A generator that iterates over the rows of the frame.
+
+        See also
+        --------
+        itertuples : Iterate over the rows of a DataFrame as tuples of the values.
+        iteritems : Iterate over (column name, Series) pairs.
+
         """
         columns = self.columns
         for k, v in zip(self.index, self.values):
@@ -582,8 +611,32 @@ class DataFrame(NDFrame):
 
     def itertuples(self, index=True):
         """
-        Iterate over rows of DataFrame as tuples, with index value
-        as first element of the tuple
+        Iterate over the rows of DataFrame as tuples, with index value
+        as first element of the tuple.
+
+        Parameters
+        ----------
+        index : boolean, default True
+            If True, return the index as the first element of the tuple.
+
+        See also
+        --------
+        iterrows : Iterate over the rows of a DataFrame as (index, Series) pairs.
+        iteritems : Iterate over (column name, Series) pairs.
+
+        Examples
+        --------
+
+        >>> df = pd.DataFrame({'col1': [1, 2], 'col2': [0.1, 0.2]}, index=['a', 'b'])
+        >>> df
+           col1  col2
+        a     1   0.1
+        b     2   0.2
+        >>> for row in df.itertuples():
+        ...     print(row)
+        ('a', 1, 0.10000000000000001)
+        ('b', 2, 0.20000000000000001)
+
         """
         arrays = []
         if index:
@@ -1114,14 +1167,14 @@ class DataFrame(NDFrame):
                quotechar='"', line_terminator='\n', chunksize=None,
                tupleize_cols=False, date_format=None, doublequote=True,
                escapechar=None, decimal='.', **kwds):
-        r"""Write DataFrame to a comma-separated values (csv) file
+        """Write DataFrame to a comma-separated values (csv) file
 
         Parameters
         ----------
         path_or_buf : string or file handle, default None
             File path or object, if None is provided the result is returned as
             a string.
-        sep : character, default ","
+        sep : character, default ','
             Field delimiter for the output file.
         na_rep : string, default ''
             Missing data representation
@@ -1152,7 +1205,7 @@ class DataFrame(NDFrame):
             file
         quoting : optional constant from csv module
             defaults to csv.QUOTE_MINIMAL
-        quotechar : string (length 1), default '"'
+        quotechar : string (length 1), default '\"'
             character used to quote fields
         doublequote : boolean, default True
             Control quoting of `quotechar` inside a field
@@ -1696,9 +1749,20 @@ class DataFrame(NDFrame):
             return self
 
     def irow(self, i, copy=False):
+        """
+        DEPRECATED. Use ``.iloc[i]`` instead
+        """
+
+        warnings.warn("irow(i) is deprecated. Please use .iloc[i]",
+                      FutureWarning, stacklevel=2)
         return self._ixs(i, axis=0)
 
     def icol(self, i):
+        """
+        DEPRECATED. Use ``.iloc[:, i]`` instead
+        """
+        warnings.warn("icol(i) is deprecated. Please use .iloc[:,i]",
+                      FutureWarning, stacklevel=2)
         return self._ixs(i, axis=1)
 
     def _ixs(self, i, axis=0):
@@ -1772,6 +1836,11 @@ class DataFrame(NDFrame):
                 return result
 
     def iget_value(self, i, j):
+        """
+        DEPRECATED. Use ``.iat[i, j]`` instead
+        """
+        warnings.warn("iget_value(i, j) is deprecated. Please use .iat[i, j]",
+                      FutureWarning, stacklevel=2)
         return self.iat[i, j]
 
     def __getitem__(self, key):
@@ -2169,16 +2238,11 @@ class DataFrame(NDFrame):
         ensure that if we don't have an index, that we can create one from the
         passed value
         """
-        if not len(self.index):
-
-            # GH5632, make sure that we are a Series convertible
-            if is_list_like(value):
+        # GH5632, make sure that we are a Series convertible
+        if not len(self.index) and is_list_like(value):
                 try:
                     value = Series(value)
                 except:
-                    pass
-
-                if not isinstance(value, Series):
                     raise ValueError('Cannot set a frame with no defined index '
                                      'and a value that cannot be converted to a '
                                      'Series')
@@ -2186,11 +2250,6 @@ class DataFrame(NDFrame):
                 self._data = self._data.reindex_axis(value.index.copy(), axis=1,
                                                      fill_value=np.nan)
 
-            # we are a scalar
-            # noop
-            else:
-
-                pass
 
     def _set_item(self, key, value):
         """
@@ -2459,33 +2518,36 @@ class DataFrame(NDFrame):
     #----------------------------------------------------------------------
     # Reindexing and alignment
 
-    def _reindex_axes(self, axes, level, limit, method, fill_value, copy):
+    def _reindex_axes(self, axes, level, limit, tolerance, method,
+                      fill_value, copy):
         frame = self
 
         columns = axes['columns']
         if columns is not None:
             frame = frame._reindex_columns(columns, copy, level, fill_value,
-                                           limit)
+                                           limit, tolerance)
 
         index = axes['index']
         if index is not None:
             frame = frame._reindex_index(index, method, copy, level,
-                                         fill_value, limit)
+                                         fill_value, limit, tolerance)
 
         return frame
 
     def _reindex_index(self, new_index, method, copy, level, fill_value=NA,
-                       limit=None):
+                       limit=None, tolerance=None):
         new_index, indexer = self.index.reindex(new_index, method, level,
-                                                limit=limit)
+                                                limit=limit,
+                                                tolerance=tolerance)
         return self._reindex_with_indexers({0: [new_index, indexer]},
                                            copy=copy, fill_value=fill_value,
                                            allow_dups=False)
 
     def _reindex_columns(self, new_columns, copy, level, fill_value=NA,
-                         limit=None):
+                         limit=None, tolerance=None):
         new_columns, indexer = self.columns.reindex(new_columns, level=level,
-                                                    limit=limit)
+                                                    limit=limit,
+                                                    tolerance=tolerance)
         return self._reindex_with_indexers({1: [new_columns, indexer]},
                                            copy=copy, fill_value=fill_value,
                                            allow_dups=False)
@@ -2807,8 +2869,9 @@ class DataFrame(NDFrame):
         else:
             return result
 
+    @deprecate_kwarg('take_last', 'keep', mapping={True: 'last', False: 'first'})
     @deprecate_kwarg(old_arg_name='cols', new_arg_name='subset')
-    def drop_duplicates(self, subset=None, take_last=False, inplace=False):
+    def drop_duplicates(self, subset=None, keep='first', inplace=False):
         """
         Return DataFrame with duplicate rows removed, optionally only
         considering certain columns
@@ -2818,8 +2881,11 @@ class DataFrame(NDFrame):
         subset : column label or sequence of labels, optional
             Only consider certain columns for identifying duplicates, by
             default use all of the columns
-        take_last : boolean, default False
-            Take the last observed row in a row. Defaults to the first row
+        keep : {'first', 'last', False}, default 'first'
+            - ``first`` : Drop duplicates except for the first occurrence.
+            - ``last`` : Drop duplicates except for the last occurrence.
+            - False : Drop all duplicates.
+        take_last : deprecated
         inplace : boolean, default False
             Whether to drop duplicates in place or to return a copy
         cols : kwargs only argument of subset [deprecated]
@@ -2828,7 +2894,7 @@ class DataFrame(NDFrame):
         -------
         deduplicated : DataFrame
         """
-        duplicated = self.duplicated(subset, take_last=take_last)
+        duplicated = self.duplicated(subset, keep=keep)
 
         if inplace:
             inds, = (-duplicated).nonzero()
@@ -2837,8 +2903,9 @@ class DataFrame(NDFrame):
         else:
             return self[-duplicated]
 
+    @deprecate_kwarg('take_last', 'keep', mapping={True: 'last', False: 'first'})
     @deprecate_kwarg(old_arg_name='cols', new_arg_name='subset')
-    def duplicated(self, subset=None, take_last=False):
+    def duplicated(self, subset=None, keep='first'):
         """
         Return boolean Series denoting duplicate rows, optionally only
         considering certain columns
@@ -2848,9 +2915,13 @@ class DataFrame(NDFrame):
         subset : column label or sequence of labels, optional
             Only consider certain columns for identifying duplicates, by
             default use all of the columns
-        take_last : boolean, default False
-            For a set of distinct duplicate rows, flag all but the last row as
-            duplicated. Default is for all but the first row to be flagged
+        keep : {'first', 'last', False}, default 'first'
+            - ``first`` : Mark duplicates as ``True`` except for the
+              first occurrence.
+            - ``last`` : Mark duplicates as ``True`` except for the
+              last occurrence.
+            - False : Mark all duplicates as ``True``.
+        take_last : deprecated
         cols : kwargs only argument of subset [deprecated]
 
         Returns
@@ -2876,7 +2947,7 @@ class DataFrame(NDFrame):
         labels, shape = map(list, zip( * map(f, vals)))
 
         ids = get_group_index(labels, shape, sort=False, xnull=False)
-        return Series(duplicated_int64(ids, take_last), index=self.index)
+        return Series(duplicated_int64(ids, keep), index=self.index)
 
     #----------------------------------------------------------------------
     # Sorting
@@ -3067,6 +3138,79 @@ class DataFrame(NDFrame):
             return self._update_inplace(new_data)
         else:
             return self._constructor(new_data).__finalize__(self)
+
+    def _nsorted(self, columns, n, method, take_last):
+        if not com.is_list_like(columns):
+            columns = [columns]
+        columns = list(columns)
+        ser = getattr(self[columns[0]], method)(n, take_last=take_last)
+        ascending = dict(nlargest=False, nsmallest=True)[method]
+        return self.loc[ser.index].sort(columns, ascending=ascending,
+                                        kind='mergesort')
+
+    def nlargest(self, n, columns, take_last=False):
+        """Get the rows of a DataFrame sorted by the `n` largest
+        values of `columns`.
+
+        .. versionadded:: 0.17.0
+
+        Parameters
+        ----------
+        n : int
+            Number of items to retrieve
+        columns : list or str
+            Column name or names to order by
+        take_last : bool, optional
+            Where there are duplicate values, take the last duplicate
+
+        Returns
+        -------
+        DataFrame
+
+        Examples
+        --------
+        >>> df = DataFrame({'a': [1, 10, 8, 11, -1],
+        ...                 'b': list('abdce'),
+        ...                 'c': [1.0, 2.0, np.nan, 3.0, 4.0]})
+        >>> df.nlargest(3, 'a')
+            a  b   c
+        3  11  c   3
+        1  10  b   2
+        2   8  d NaN
+        """
+        return self._nsorted(columns, n, 'nlargest', take_last)
+
+    def nsmallest(self, n, columns, take_last=False):
+        """Get the rows of a DataFrame sorted by the `n` smallest
+        values of `columns`.
+
+        .. versionadded:: 0.17.0
+
+        Parameters
+        ----------
+        n : int
+            Number of items to retrieve
+        columns : list or str
+            Column name or names to order by
+        take_last : bool, optional
+            Where there are duplicate values, take the last duplicate
+
+        Returns
+        -------
+        DataFrame
+
+        Examples
+        --------
+        >>> df = DataFrame({'a': [1, 10, 8, 11, -1],
+        ...                 'b': list('abdce'),
+        ...                 'c': [1.0, 2.0, np.nan, 3.0, 4.0]})
+        >>> df.nsmallest(3, 'a')
+           a  b   c
+        4 -1  e   4
+        0  1  a   1
+        2  8  d NaN
+        """
+        return self._nsorted(columns, n, 'nsmallest', take_last)
 
     def swaplevel(self, i, j, axis=0):
         """
@@ -3351,7 +3495,7 @@ class DataFrame(NDFrame):
         return self._constructor(result,
                                  index=new_index,
                                  columns=new_columns).convert_objects(
-            convert_dates=True,
+            datetime=True,
             copy=False)
 
     def combine_first(self, other):
@@ -3469,8 +3613,9 @@ class DataFrame(NDFrame):
 
         Parameters
         ----------
-        index : string or object
-            Column name to use to make new frame's index
+        index : string or object, optional
+            Column name to use to make new frame's index. If None, uses
+            existing index.
         columns : string or object
             Column name to use to make new frame's columns
         values : string or object, optional
@@ -3777,7 +3922,7 @@ class DataFrame(NDFrame):
 
         dtype = object if self._is_mixed_type else None
         if axis == 0:
-            series_gen = (self.icol(i) for i in range(len(self.columns)))
+            series_gen = (self._ixs(i,axis=1) for i in range(len(self.columns)))
             res_index = self.columns
             res_columns = self.index
         elif axis == 1:
@@ -3830,7 +3975,9 @@ class DataFrame(NDFrame):
 
             if axis == 1:
                 result = result.T
-            result = result.convert_objects(copy=False)
+            result = result.convert_objects(datetime=True,
+                                            timedelta=True,
+                                            copy=False)
 
         else:
 
@@ -3958,7 +4105,10 @@ class DataFrame(NDFrame):
             combined_columns = self.columns.tolist() + self.columns.union(other.index).difference(self.columns).tolist()
             other = other.reindex(combined_columns, copy=False)
             other = DataFrame(other.values.reshape((1, len(other))),
-                              index=index, columns=combined_columns).convert_objects()
+                              index=index,
+                              columns=combined_columns)
+            other = other.convert_objects(datetime=True, timedelta=True)
+
             if not self.columns.equals(combined_columns):
                 self = self.reindex(columns=combined_columns)
         elif isinstance(other, list) and not isinstance(other[0], DataFrame):
@@ -4487,7 +4637,7 @@ class DataFrame(NDFrame):
         q : float or array-like, default 0.5 (50% quantile)
             0 <= q <= 1, the quantile(s) to compute
         axis : {0, 1, 'index', 'columns'} (default 0)
-            0 or 'index' for row-wise, 1 or 'columns' for column-wise 
+            0 or 'index' for row-wise, 1 or 'columns' for column-wise
 
 
         Returns
@@ -4753,6 +4903,8 @@ class DataFrame(NDFrame):
 
     def combineAdd(self, other):
         """
+        DEPRECATED. Use ``DataFrame.add(other, fill_value=0.)`` instead.
+
         Add two DataFrame objects and do not propagate
         NaN values, so if for a (column, time) one frame is missing a
         value, it will default to the other frame's value (which might
@@ -4765,11 +4917,21 @@ class DataFrame(NDFrame):
         Returns
         -------
         DataFrame
+
+        See also
+        --------
+        DataFrame.add
+
         """
+        warnings.warn("'combineAdd' is deprecated. Use "
+                      "'DataFrame.add(other, fill_value=0.)' instead",
+                      FutureWarning, stacklevel=2)
         return self.add(other, fill_value=0.)
 
     def combineMult(self, other):
         """
+        DEPRECATED. Use ``DataFrame.mul(other, fill_value=1.)`` instead.
+
         Multiply two DataFrame objects and do not propagate NaN values, so if
         for a (column, time) one frame is missing a value, it will default to
         the other frame's value (which might be NaN as well)
@@ -4781,7 +4943,15 @@ class DataFrame(NDFrame):
         Returns
         -------
         DataFrame
+
+        See also
+        --------
+        DataFrame.mul
+
         """
+        warnings.warn("'combineMult' is deprecated. Use "
+                      "'DataFrame.mul(other, fill_value=1.)' instead",
+                      FutureWarning, stacklevel=2)
         return self.mul(other, fill_value=1.)
 
 
@@ -4903,11 +5073,11 @@ def _to_arrays(data, columns, coerce_float=False, dtype=None):
     """
     if isinstance(data, DataFrame):
         if columns is not None:
-            arrays = [data.icol(i).values for i, col in enumerate(data.columns)
+            arrays = [data._ixs(i,axis=1).values for i, col in enumerate(data.columns)
                       if col in columns]
         else:
             columns = data.columns
-            arrays = [data.icol(i).values for i in range(len(columns))]
+            arrays = [data._ixs(i,axis=1).values for i in range(len(columns))]
 
         return arrays, columns
 

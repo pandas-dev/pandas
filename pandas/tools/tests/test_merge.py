@@ -737,6 +737,88 @@ class TestMerge(tm.TestCase):
         result = merge(right, left, on='key', how='right')
         assert_frame_equal(result, left)
 
+    def test_merge_left_empty_right_empty(self):
+        # GH 10824
+        left = pd.DataFrame([], columns=['a', 'b', 'c'])
+        right = pd.DataFrame([], columns=['x', 'y', 'z'])
+
+        exp_in = pd.DataFrame([], columns=['a', 'b', 'c', 'x', 'y', 'z'],
+                              dtype=object)
+
+        for kwarg in [dict(left_index=True, right_index=True),
+                      dict(left_index=True, right_on='x'),
+                      dict(left_on='a', right_index=True),
+                      dict(left_on='a', right_on='x')]:
+
+            result = pd.merge(left, right, how='inner', **kwarg)
+            tm.assert_frame_equal(result, exp_in)
+            result = pd.merge(left, right, how='left', **kwarg)
+            tm.assert_frame_equal(result, exp_in)
+            result = pd.merge(left, right, how='right', **kwarg)
+            tm.assert_frame_equal(result, exp_in)
+            result = pd.merge(left, right, how='outer', **kwarg)
+            tm.assert_frame_equal(result, exp_in)
+
+    def test_merge_left_empty_right_notempty(self):
+        # GH 10824
+        left = pd.DataFrame([], columns=['a', 'b', 'c'])
+        right = pd.DataFrame([[1, 2, 3], [4, 5, 6], [7, 8, 9]],
+                             columns=['x', 'y', 'z'])
+
+        exp_out = pd.DataFrame({'a': np.array([np.nan]*3, dtype=object),
+                                'b': np.array([np.nan]*3, dtype=object),
+                                'c': np.array([np.nan]*3, dtype=object),
+                                'x': [1, 4, 7],
+                                'y': [2, 5, 8],
+                                'z': [3, 6, 9]},
+                               columns=['a', 'b', 'c', 'x', 'y', 'z'])
+        exp_in = exp_out[0:0] # make empty DataFrame keeping dtype
+
+        for kwarg in [dict(left_index=True, right_index=True),
+                      dict(left_index=True, right_on='x'),
+                      dict(left_on='a', right_index=True),
+                      dict(left_on='a', right_on='x')]:
+
+            result = pd.merge(left, right, how='inner', **kwarg)
+            tm.assert_frame_equal(result, exp_in)
+            result = pd.merge(left, right, how='left', **kwarg)
+            tm.assert_frame_equal(result, exp_in)
+
+            result = pd.merge(left, right, how='right', **kwarg)
+            tm.assert_frame_equal(result, exp_out)
+            result = pd.merge(left, right, how='outer', **kwarg)
+            tm.assert_frame_equal(result, exp_out)
+
+    def test_merge_left_notempty_right_empty(self):
+        # GH 10824
+        left = pd.DataFrame([[1, 2, 3], [4, 5, 6], [7, 8, 9]],
+                            columns=['a', 'b', 'c'])
+        right = pd.DataFrame([], columns=['x', 'y', 'z'])
+
+        exp_out = pd.DataFrame({'a': [1, 4, 7],
+                                'b': [2, 5, 8],
+                                'c': [3, 6, 9],
+                                'x': np.array([np.nan]*3, dtype=object),
+                                'y': np.array([np.nan]*3, dtype=object),
+                                'z': np.array([np.nan]*3, dtype=object)},
+                               columns=['a', 'b', 'c', 'x', 'y', 'z'])
+        exp_in = exp_out[0:0] # make empty DataFrame keeping dtype
+
+        for kwarg in [dict(left_index=True, right_index=True),
+                      dict(left_index=True, right_on='x'),
+                      dict(left_on='a', right_index=True),
+                      dict(left_on='a', right_on='x')]:
+
+            result = pd.merge(left, right, how='inner', **kwarg)
+            tm.assert_frame_equal(result, exp_in)
+            result = pd.merge(left, right, how='right', **kwarg)
+            tm.assert_frame_equal(result, exp_in)
+
+            result = pd.merge(left, right, how='left', **kwarg)
+            tm.assert_frame_equal(result, exp_out)
+            result = pd.merge(left, right, how='outer', **kwarg)
+            tm.assert_frame_equal(result, exp_out)
+
     def test_merge_nosort(self):
         # #2098, anything to do?
 
@@ -790,7 +872,7 @@ class TestMerge(tm.TestCase):
         nad = NotADataFrame(self.df)
         result = nad.merge(self.df2, on='key1')
 
-        tm.assert_isinstance(result, NotADataFrame)
+        tm.assertIsInstance(result, NotADataFrame)
 
     def test_append_dtype_coerce(self):
 
@@ -843,7 +925,6 @@ class TestMerge(tm.TestCase):
         assert_frame_equal(result, expected)
 
     def test_overlapping_columns_error_message(self):
-        # #2649
         df = DataFrame({'key': [1, 2, 3],
                         'v1': [4, 5, 6],
                         'v2': [7, 8, 9]})
@@ -853,7 +934,16 @@ class TestMerge(tm.TestCase):
 
         df.columns = ['key', 'foo', 'foo']
         df2.columns = ['key', 'bar', 'bar']
+        expected = DataFrame({'key': [1, 2, 3],
+                         'v1': [4, 5, 6],
+                         'v2': [7, 8, 9],
+                         'v3': [4, 5, 6],
+                         'v4': [7, 8, 9]})
+        expected.columns = ['key', 'foo', 'foo', 'bar', 'bar']
+        assert_frame_equal(merge(df, df2), expected)
 
+        # #2649, #10639
+        df2.columns = ['key1', 'foo', 'foo']
         self.assertRaises(ValueError, merge, df, df2)
 
 def _check_merge(x, y):
@@ -1994,6 +2084,13 @@ class TestConcatenate(tm.TestCase):
         result = df.append(df)
         assert_frame_equal(result, expected)
 
+    def test_with_mixed_tuples(self):
+        # 10697
+        # columns have mixed tuples, so handle properly
+        df1 = DataFrame({ u'A' : 'foo', (u'B',1) : 'bar' },index=range(2))
+        df2 = DataFrame({ u'B' : 'foo', (u'B',1) : 'bar' },index=range(2))
+        result = concat([df1,df2])
+
     def test_join_dups(self):
 
         # joining dups
@@ -2535,8 +2632,25 @@ class TestOrderedMerge(tm.TestCase):
         nad = NotADataFrame(self.left)
         result = nad.merge(self.right, on='key')
 
-        tm.assert_isinstance(result, NotADataFrame)
+        tm.assertIsInstance(result, NotADataFrame)
 
+    def test_empty_sequence_concat(self):
+        # GH 9157
+        empty_pat = "[Nn]o objects"
+        none_pat = "objects.*None"
+        test_cases = [
+            ((), empty_pat),
+            ([], empty_pat),
+            ({}, empty_pat),
+            ([None], none_pat),
+            ([None, None], none_pat)
+        ]
+        for df_seq, pattern in test_cases:
+            assertRaisesRegexp(ValueError, pattern, pd.concat, df_seq)
+
+        pd.concat([pd.DataFrame()])
+        pd.concat([None, pd.DataFrame()])
+        pd.concat([pd.DataFrame(), None])
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],

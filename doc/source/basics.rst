@@ -240,14 +240,14 @@ way to summarize a boolean result.
 
 .. ipython:: python
 
-   (df>0).all()
-   (df>0).any()
+   (df > 0).all()
+   (df > 0).any()
 
 You can reduce to a final boolean value.
 
 .. ipython:: python
 
-   (df>0).any().any()
+   (df > 0).any().any()
 
 You can test if a pandas object is empty, via the :attr:`~DataFrame.empty` property.
 
@@ -330,6 +330,48 @@ equality to be True:
    df1.equals(df2)
    df1.equals(df2.sort())
 
+Comparing array-like objects
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+You can conveniently do element-wise comparisons when comparing a pandas
+data structure with a scalar value:
+
+.. ipython:: python
+
+   pd.Series(['foo', 'bar', 'baz']) == 'foo'
+   pd.Index(['foo', 'bar', 'baz']) == 'foo'
+
+Pandas also handles element-wise comparisons between different array-like
+objects of the same length:
+
+.. ipython:: python
+
+    pd.Series(['foo', 'bar', 'baz']) == pd.Index(['foo', 'bar', 'qux'])
+    pd.Series(['foo', 'bar', 'baz']) == np.array(['foo', 'bar', 'qux'])
+
+Trying to compare ``Index`` or ``Series`` objects of different lengths will
+raise a ValueError:
+
+.. code-block:: python
+
+    In [55]: pd.Series(['foo', 'bar', 'baz']) == pd.Series(['foo', 'bar'])
+    ValueError: Series lengths must match to compare
+
+    In [56]: pd.Series(['foo', 'bar', 'baz']) == pd.Series(['foo'])
+    ValueError: Series lengths must match to compare
+
+Note that this is different from the numpy behavior where a comparison can
+be broadcast:
+
+.. ipython:: python
+
+    np.array([1, 2, 3]) == np.array([2])
+
+or it can return False if broadcasting can not be done:
+
+.. ipython:: python
+
+    np.array([1, 2, 3]) == np.array([1, 2])
 
 Combining overlapping data sets
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1058,6 +1100,30 @@ Note that the same result could have been achieved using
 increasing or descreasing. :meth:`~Series.fillna` and :meth:`~Series.interpolate`
 will not make any checks on the order of the index.
 
+.. _basics.limits_on_reindex_fill:
+
+Limits on filling while reindexing
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The ``limit`` and ``tolerance`` arguments provide additional control over
+filling while reindexing. Limit specifies the maximum count of consecutive
+matches:
+
+.. ipython:: python
+
+   ts2.reindex(ts.index, method='ffill', limit=1)
+
+In contrast, tolerance specifies the maximum distance between the index and
+indexer values:
+
+.. ipython:: python
+
+   ts2.reindex(ts.index, method='ffill', tolerance='1 day')
+
+Notice that when used on a ``DatetimeIndex``, ``TimedeltaIndex`` or
+``PeriodIndex``, ``tolerance`` will coerced into a ``Timedelta`` if possible.
+This allows you to specify tolerance with appropriate strings.
+
 .. _basics.drop:
 
 Dropping labels from an axis
@@ -1109,24 +1175,81 @@ parameter that is by default ``False`` and copies the underlying data. Pass
 The Panel class has a related :meth:`~Panel.rename_axis` class which can rename
 any of its three axes.
 
+.. _basics.iteration:
+
 Iteration
 ---------
 
-Because Series is array-like, basic iteration produces the values. Other data
-structures follow the dict-like convention of iterating over the "keys" of the
-objects. In short:
+The behavior of basic iteration over pandas objects depends on the type.
+When iterating over a Series, it is regarded as array-like, and basic iteration
+produces the values. Other data structures, like DataFrame and Panel,
+follow the dict-like convention of iterating over the "keys" of the
+objects.
 
-  * **Series**: values
-  * **DataFrame**: column labels
-  * **Panel**: item labels
+In short, basic iteration (``for i in object``) produces:
 
-Thus, for example:
+* **Series**: values
+* **DataFrame**: column labels
+* **Panel**: item labels
+
+Thus, for example, iterating over a DataFrame gives you the column names:
 
 .. ipython::
 
-   In [0]: for col in df:
-      ...:     print(col)
-      ...:
+    In [0]: df = pd.DataFrame({'col1' : np.random.randn(3), 'col2' : np.random.randn(3)},
+       ...:                   index=['a', 'b', 'c'])
+
+    In [0]: for col in df:
+       ...:     print(col)
+       ...:
+
+Pandas objects also have the dict-like :meth:`~DataFrame.iteritems` method to
+iterate over the (key, value) pairs.
+
+To iterate over the rows of a DataFrame, you can use the following methods:
+
+* :meth:`~DataFrame.iterrows`: Iterate over the rows of a DataFrame as (index, Series) pairs.
+  This converts the rows to Series objects, which can change the dtypes and has some
+  performance implications.
+* :meth:`~DataFrame.itertuples`: Iterate over the rows of a DataFrame as tuples of the values.
+  This is a lot faster as :meth:`~DataFrame.iterrows`, and is in most cases preferable to
+  use to iterate over the values of a DataFrame.
+
+.. warning::
+
+  Iterating through pandas objects is generally **slow**. In many cases,
+  iterating manually over the rows is not needed and can be avoided with
+  one of the following approaches:
+
+  * Look for a *vectorized* solution: many operations can be performed using
+    built-in methods or numpy functions, (boolean) indexing, ...
+
+  * When you have a function that cannot work on the full DataFrame/Series
+    at once, it is better to use :meth:`~DataFrame.apply` instead of iterating
+    over the values. See the docs on :ref:`function application <basics.apply>`.
+
+  * If you need to do iterative manipulations on the values but performance is
+    important, consider writing the inner loop using e.g. cython or numba.
+    See the :ref:`enhancing performance <enhancingperf>` section for some
+    examples of this approach.
+
+.. warning::
+
+  You should **never modify** something you are iterating over.
+  This is not guaranteed to work in all cases. Depending on the
+  data types, the iterator returns a copy and not a view, and writing
+  to it will have no effect!
+
+  For example, in the following case setting the value has no effect:
+
+  .. ipython:: python
+
+    df = pd.DataFrame({'a': [1, 2, 3], 'b': ['a', 'b', 'c']})
+
+    for index, row in df.iterrows():
+        row['a'] = 10
+
+    df
 
 iteritems
 ~~~~~~~~~
@@ -1134,9 +1257,9 @@ iteritems
 Consistent with the dict-like interface, :meth:`~DataFrame.iteritems` iterates
 through key-value pairs:
 
-  * **Series**: (index, scalar value) pairs
-  * **DataFrame**: (column, Series) pairs
-  * **Panel**: (item, DataFrame) pairs
+* **Series**: (index, scalar value) pairs
+* **DataFrame**: (column, Series) pairs
+* **Panel**: (item, DataFrame) pairs
 
 For example:
 
@@ -1147,21 +1270,45 @@ For example:
       ...:     print(frame)
       ...:
 
-
 .. _basics.iterrows:
 
 iterrows
 ~~~~~~~~
 
-New in v0.7 is the ability to iterate efficiently through rows of a
-DataFrame with :meth:`~DataFrame.iterrows`. It returns an iterator yielding each
+:meth:`~DataFrame.iterrows` allows you to iterate through the rows of a
+DataFrame as Series objects. It returns an iterator yielding each
 index value along with a Series containing the data in each row:
 
 .. ipython::
 
-   In [0]: for row_index, row in df2.iterrows():
+   In [0]: for row_index, row in df.iterrows():
       ...:     print('%s\n%s' % (row_index, row))
       ...:
+
+.. note::
+
+   Because :meth:`~DataFrame.iterrows` returns a Series for each row,
+   it does **not** preserve dtypes across the rows (dtypes are
+   preserved across columns for DataFrames). For example,
+
+   .. ipython:: python
+
+      df_orig = pd.DataFrame([[1, 1.5]], columns=['int', 'float'])
+      df_orig.dtypes
+      row = next(df_orig.iterrows())[1]
+      row
+
+   All values in ``row``, returned as a Series, are now upcasted
+   to floats, also the original integer value in column `x`:
+
+   .. ipython:: python
+
+      row['int'].dtype
+      df_orig['int'].dtype
+
+   To preserve dtypes while iterating over the rows, it is better
+   to use :meth:`~DataFrame.itertuples` which returns tuples of the values
+   and which is generally much faster as ``iterrows``.
 
 For instance, a contrived way to transpose the DataFrame would be:
 
@@ -1174,45 +1321,38 @@ For instance, a contrived way to transpose the DataFrame would be:
    df2_t = pd.DataFrame(dict((idx,values) for idx, values in df2.iterrows()))
    print(df2_t)
 
-.. note::
-
-   ``iterrows`` does **not** preserve dtypes across the rows (dtypes are
-   preserved across columns for DataFrames). For example,
-
-    .. ipython:: python
-
-      df_iter = pd.DataFrame([[1, 1.0]], columns=['x', 'y'])
-      row = next(df_iter.iterrows())[1]
-      print(row['x'].dtype)
-      print(df_iter['x'].dtype)
-
 itertuples
 ~~~~~~~~~~
 
-The :meth:`~DataFrame.itertuples` method will return an iterator yielding a tuple for each row in the
-DataFrame. The first element of the tuple will be the row's corresponding index
-value, while the remaining values are the row values proper.
+The :meth:`~DataFrame.itertuples` method will return an iterator
+yielding a tuple for each row in the DataFrame. The first element
+of the tuple will be the row's corresponding index value,
+while the remaining values are the row values.
 
 For instance,
 
 .. ipython:: python
 
-   for r in df2.itertuples():
-       print(r)
+   for row in df.itertuples():
+       print(row)
+
+This method does not convert the row to a Series object but just returns the
+values inside a tuple. Therefore, :meth:`~DataFrame.itertuples` preserves the
+data type of the values and is generally faster as :meth:`~DataFrame.iterrows`.
 
 .. _basics.dt_accessors:
 
 .dt accessor
-~~~~~~~~~~~~
+------------
 
 ``Series`` has an accessor to succinctly return datetime like properties for the
-*values* of the Series, if its a datetime/period like Series.
+*values* of the Series, if it is a datetime/period like Series.
 This will return a Series, indexed like the existing Series.
 
 .. ipython:: python
 
    # datetime
-   s = pd.Series(pd.date_range('20130101 09:10:12',periods=4))
+   s = pd.Series(pd.date_range('20130101 09:10:12', periods=4))
    s
    s.dt.hour
    s.dt.second
@@ -1238,12 +1378,29 @@ You can also chain these types of operations:
 
    s.dt.tz_localize('UTC').dt.tz_convert('US/Eastern')
 
+You can also format datetime values as strings with :meth:`Series.dt.strftime` which
+supports the same format as the standard :meth:`~datetime.datetime.strftime`.
+
+.. ipython:: python
+
+   # DatetimeIndex
+   s = pd.Series(pd.date_range('20130101', periods=4))
+   s
+   s.dt.strftime('%Y/%m/%d')
+
+.. ipython:: python
+
+   # PeriodIndex
+   s = pd.Series(pd.period_range('20130101', periods=4))
+   s
+   s.dt.strftime('%Y/%m/%d')
+
 The ``.dt`` accessor works for period and timedelta dtypes.
 
 .. ipython:: python
 
    # period
-   s = pd.Series(pd.period_range('20130101', periods=4,freq='D'))
+   s = pd.Series(pd.period_range('20130101', periods=4, freq='D'))
    s
    s.dt.year
    s.dt.day
@@ -1251,7 +1408,7 @@ The ``.dt`` accessor works for period and timedelta dtypes.
 .. ipython:: python
 
    # timedelta
-   s = pd.Series(pd.timedelta_range('1 day 00:00:05',periods=4,freq='s'))
+   s = pd.Series(pd.timedelta_range('1 day 00:00:05', periods=4, freq='s'))
    s
    s.dt.days
    s.dt.seconds
@@ -1363,6 +1520,20 @@ faster than sorting the entire Series and calling ``head(n)`` on the result.
    s.order()
    s.nsmallest(3)
    s.nlargest(3)
+
+.. versionadded:: 0.17.0
+
+``DataFrame`` also has the ``nlargest`` and ``nsmallest`` methods.
+
+.. ipython:: python
+
+   df = pd.DataFrame({'a': [-2, -1, 1, 10, 8, 11, -1],
+                      'b': list('abdceff'),
+                      'c': [1.0, 2.0, 4.0, 3.2, np.nan, 3.0, 4.0]})
+   df.nlargest(3, 'a')
+   df.nlargest(5, ['a', 'c'])
+   df.nsmallest(3, 'a')
+   df.nsmallest(5, ['a', 'c'])
 
 
 .. _basics.multi-index_sorting:
@@ -1522,26 +1693,36 @@ then the more *general* one will be used as the result of the operation.
 object conversion
 ~~~~~~~~~~~~~~~~~
 
-:meth:`~DataFrame.convert_objects` is a method to try to force conversion of types from the ``object`` dtype to other types.
-To force conversion of specific types that are *number like*, e.g. could be a string that represents a number,
-pass ``convert_numeric=True``. This will force strings and numbers alike to be numbers if possible, otherwise
-they will be set to ``np.nan``.
+.. note::
+
+    The syntax of :meth:`~DataFrame.convert_objects`  changed in 0.17.0. See
+    :ref:`API changes <whatsnew_0170.api_breaking.convert_objects>`
+    for more details.
+
+:meth:`~DataFrame.convert_objects` is a method that converts columns from
+the ``object`` dtype to datetimes, timedeltas or floats. For example, to
+attempt conversion of object data that are *number like*, e.g. could be a
+string that represents a number, pass ``numeric=True``. By default, this will
+attempt a soft conversion and so will only succeed if the entire column is
+convertible. To force the conversion, add the keyword argument ``coerce=True``.
+This will force strings and number-like objects to be numbers if
+possible, and other values will be set to ``np.nan``.
 
 .. ipython:: python
 
    df3['D'] = '1.'
    df3['E'] = '1'
-   df3.convert_objects(convert_numeric=True).dtypes
+   df3.convert_objects(numeric=True).dtypes
 
    # same, but specific dtype conversion
    df3['D'] = df3['D'].astype('float16')
    df3['E'] = df3['E'].astype('int32')
    df3.dtypes
 
-To force conversion to ``datetime64[ns]``, pass ``convert_dates='coerce'``.
+To force conversion to ``datetime64[ns]``, pass ``datetime=True`` and ``coerce=True``.
 This will convert any datetime-like object to dates, forcing other values to ``NaT``.
 This might be useful if you are reading in data which is mostly dates,
-but occasionally has non-dates intermixed and you want to represent as missing.
+but occasionally contains non-dates that you wish to represent as missing.
 
 .. ipython:: python
 
@@ -1550,10 +1731,15 @@ but occasionally has non-dates intermixed and you want to represent as missing.
                  'foo', 1.0, 1, pd.Timestamp('20010104'),
                  '20010105'], dtype='O')
    s
-   s.convert_objects(convert_dates='coerce')
+   s.convert_objects(datetime=True, coerce=True)
 
-In addition, :meth:`~DataFrame.convert_objects` will attempt the *soft* conversion of any *object* dtypes, meaning that if all
+Without passing ``coerce=True``, :meth:`~DataFrame.convert_objects` will attempt
+*soft* conversion of any *object* dtypes, meaning that if all
 the objects in a Series are of the same type, the Series will have that dtype.
+Note that setting ``coerce=True`` does not *convert* arbitrary types to either
+``datetime64[ns]`` or ``timedelta64[ns]``. For example, a series containing string
+dates will not be converted to a series of datetimes. To convert between types,
+see :ref:`converting to timestamps <timeseries.converting>`.
 
 gotchas
 ~~~~~~~

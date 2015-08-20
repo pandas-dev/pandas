@@ -194,6 +194,15 @@ s = Series(np.tile(uniques, N // K))
 series_value_counts_strings = Benchmark('s.value_counts()', setup,
                                         start_date=datetime(2011, 10, 21))
 
+#value_counts on float dtype
+
+setup = common_setup + """
+s = Series(np.random.randint(0, 1000, size=100000)).astype(float)
+"""
+
+series_value_counts_float64 = Benchmark('s.value_counts()', setup,
+                                      start_date=datetime(2015, 8, 17))
+
 #----------------------------------------------------------------------
 # pivot_table
 
@@ -212,7 +221,7 @@ df = DataFrame({'key1': fac1.take(ind1),
 'value3' : np.random.randn(100000)})
 """
 
-stmt = "df.pivot_table(rows='key1', cols=['key2', 'key3'])"
+stmt = "df.pivot_table(index='key1', columns=['key2', 'key3'])"
 groupby_pivot_table = Benchmark(stmt, setup, start_date=datetime(2011, 12, 15))
 
 
@@ -243,13 +252,13 @@ labels = labels.take(np.random.permutation(len(labels)))
 """
 
 groupby_first_float64 = Benchmark('data.groupby(labels).first()', setup,
-                          start_date=datetime(2012, 5, 1))
+                                  start_date=datetime(2012, 5, 1))
 
 groupby_first_float32 = Benchmark('data2.groupby(labels).first()', setup,
                                   start_date=datetime(2013, 1, 1))
 
 groupby_last_float64 = Benchmark('data.groupby(labels).last()', setup,
-                         start_date=datetime(2012, 5, 1))
+                                 start_date=datetime(2012, 5, 1))
 
 groupby_last_float32 = Benchmark('data2.groupby(labels).last()', setup,
                                  start_date=datetime(2013, 1, 1))
@@ -259,7 +268,7 @@ groupby_nth_float64_none = Benchmark('data.groupby(labels).nth(0)', setup,
 groupby_nth_float32_none = Benchmark('data2.groupby(labels).nth(0)', setup,
                                      start_date=datetime(2013, 1, 1))
 groupby_nth_float64_any = Benchmark('data.groupby(labels).nth(0,dropna="all")', setup,
-                                     start_date=datetime(2012, 5, 1))
+                                    start_date=datetime(2012, 5, 1))
 groupby_nth_float32_any = Benchmark('data2.groupby(labels).nth(0,dropna="all")', setup,
                                     start_date=datetime(2013, 1, 1))
 
@@ -269,9 +278,9 @@ df = DataFrame({'a' : date_range('1/1/2011',periods=100000,freq='s'),'b' : range
 """
 
 groupby_first_datetimes = Benchmark('df.groupby("b").first()', setup,
-                                 start_date=datetime(2013, 5, 1))
+                                    start_date=datetime(2013, 5, 1))
 groupby_last_datetimes = Benchmark('df.groupby("b").last()', setup,
-                                 start_date=datetime(2013, 5, 1))
+                                   start_date=datetime(2013, 5, 1))
 groupby_nth_datetimes_none = Benchmark('df.groupby("b").nth(0)', setup,
                                        start_date=datetime(2013, 5, 1))
 groupby_nth_datetimes_any = Benchmark('df.groupby("b").nth(0,dropna="all")', setup,

@@ -411,6 +411,12 @@ class TestIndexing(tm.TestCase):
             df.iloc[30]
         self.assertRaises(IndexError, lambda : df.iloc[-30])
 
+        # GH10779
+        # single positive/negative indexer exceeding Series bounds should raise an IndexError
+        with tm.assertRaisesRegexp(IndexError, 'single positional indexer is out-of-bounds'):
+            s.iloc[30]
+        self.assertRaises(IndexError, lambda : s.iloc[-30])
+
         # slices are ok
         result = df.iloc[:,4:10]  # 0 < start < len < stop
         expected = df.iloc[:,4:]
@@ -471,7 +477,6 @@ class TestIndexing(tm.TestCase):
         self.assertRaises(IndexError, lambda : dfl.iloc[[4,5,6]])
         self.assertRaises(IndexError, lambda : dfl.iloc[:,4])
 
-
     def test_iloc_getitem_int(self):
 
         # integer
@@ -496,6 +501,33 @@ class TestIndexing(tm.TestCase):
         self.check_result('array int', 'iloc', np.array([0,1,2]), 'ix', { 0 : [0,2,4], 1 : [0,3,6], 2: [0,4,8] }, typs = ['ints'])
         self.check_result('array int', 'iloc', np.array([2]), 'ix', { 0 : [4], 1 : [6], 2: [8] }, typs = ['ints'])
         self.check_result('array int', 'iloc', np.array([0,1,2]), 'indexer', [0,1,2], typs = ['labels','mixed','ts','floats','empty'], fails = IndexError)
+
+    def test_iloc_getitem_neg_int_can_reach_first_index(self):
+        # GH10547 and GH10779
+        # negative integers should be able to reach index 0
+        df = DataFrame({'A': [2, 3, 5], 'B': [7, 11, 13]})
+        s = df['A']
+
+        expected = df.iloc[0]
+        result = df.iloc[-3]
+        assert_series_equal(result, expected)
+
+        expected = df.iloc[[0]]
+        result = df.iloc[[-3]]
+        assert_frame_equal(result, expected)
+
+        expected = s.iloc[0]
+        result = s.iloc[-3]
+        self.assertEqual(result, expected)
+
+        expected = s.iloc[[0]]
+        result = s.iloc[[-3]]
+        assert_series_equal(result, expected)
+
+        # check the length 1 Series case highlighted in GH10547
+        expected = pd.Series(['a'], index=['A'])
+        result = expected.iloc[[-1]]
+        assert_series_equal(result, expected)
 
     def test_iloc_getitem_dups(self):
 
@@ -559,16 +591,17 @@ class TestIndexing(tm.TestCase):
 
     def test_iloc_getitem_multiindex(self):
 
-        df = DataFrame(np.random.randn(3, 3),
+        arr = np.random.randn(3, 3)
+        df = DataFrame(arr,
                        columns=[[2,2,4],[6,8,10]],
                        index=[[4,4,8],[8,10,12]])
 
         rs = df.iloc[2]
-        xp = df.irow(2)
+        xp = Series(arr[2],index=df.columns)
         assert_series_equal(rs, xp)
 
         rs = df.iloc[:,2]
-        xp = df.icol(2)
+        xp = Series(arr[:, 2],index=df.index)
         assert_series_equal(rs, xp)
 
         rs = df.iloc[2,2]
@@ -813,8 +846,8 @@ class TestIndexing(tm.TestCase):
         # GH6394
         # Regression in chained getitem indexing with embedded list-like from 0.12
         def check(result, expected):
-            self.assert_numpy_array_equal(result,expected)
-            tm.assert_isinstance(result, np.ndarray)
+            tm.assert_numpy_array_equal(result,expected)
+            tm.assertIsInstance(result, np.ndarray)
 
 
         df = DataFrame({'A': 5*[np.zeros(3)], 'B':5*[np.ones(3)]})
@@ -2619,6 +2652,44 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         tm.assert_panel_equal(p, expected)
 
 
+    def test_panel_setitem_with_multiindex(self):
+
+        # 10360
+        # failing with a multi-index
+        arr = np.array([[[1,2,3],[0,0,0]],[[0,0,0],[0,0,0]]],dtype=np.float64)
+
+        # reg index
+        axes = dict(items=['A', 'B'], major_axis=[0, 1], minor_axis=['X', 'Y' ,'Z'])
+        p1 = Panel(0., **axes)
+        p1.iloc[0, 0, :] = [1, 2, 3]
+        expected = Panel(arr, **axes)
+        tm.assert_panel_equal(p1, expected)
+
+        # multi-indexes
+        axes['items'] = pd.MultiIndex.from_tuples([('A','a'), ('B','b')])
+        p2 = Panel(0., **axes)
+        p2.iloc[0, 0, :] = [1, 2, 3]
+        expected = Panel(arr, **axes)
+        tm.assert_panel_equal(p2, expected)
+
+        axes['major_axis']=pd.MultiIndex.from_tuples([('A',1),('A',2)])
+        p3 = Panel(0., **axes)
+        p3.iloc[0, 0, :] = [1, 2, 3]
+        expected = Panel(arr, **axes)
+        tm.assert_panel_equal(p3, expected)
+
+        axes['minor_axis']=pd.MultiIndex.from_product([['X'],range(3)])
+        p4 = Panel(0., **axes)
+        p4.iloc[0, 0, :] = [1, 2, 3]
+        expected = Panel(arr, **axes)
+        tm.assert_panel_equal(p4, expected)
+
+        arr = np.array([[[1,0,0],[2,0,0]],[[0,0,0],[0,0,0]]],dtype=np.float64)
+        p5 = Panel(0., **axes)
+        p5.iloc[0, :, 0] = [1, 2]
+        expected = Panel(arr, **axes)
+        tm.assert_panel_equal(p5, expected)
+
     def test_panel_assignment(self):
 
         # GH3777
@@ -3060,7 +3131,8 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         assert_frame_equal(df,expected)
 
         df = df_orig.copy()
-        df.iloc[:,0:2] = df.iloc[:,0:2].convert_objects(convert_numeric=True)
+        df.iloc[:,0:2] = df.iloc[:,0:2].convert_objects(datetime=True,
+                                                        numeric=True)
         expected =  DataFrame([[1,2,'3','.4',5,6.,'foo']],columns=list('ABCDEFG'))
         assert_frame_equal(df,expected)
 
@@ -4102,9 +4174,12 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
 
         def check_iloc_compat(s):
             # invalid type for iloc (but works with a warning)
-            self.assert_produces_warning(FutureWarning, lambda : s.iloc[6.0:8])
-            self.assert_produces_warning(FutureWarning, lambda : s.iloc[6.0:8.0])
-            self.assert_produces_warning(FutureWarning, lambda : s.iloc[6:8.0])
+            with self.assert_produces_warning(FutureWarning):
+                s.iloc[6.0:8]
+            with self.assert_produces_warning(FutureWarning):
+                s.iloc[6.0:8.0]
+            with self.assert_produces_warning(FutureWarning):
+                s.iloc[6:8.0]
 
         def check_slicing_positional(index):
 
@@ -4764,7 +4839,7 @@ class TestSeriesNoneCoercion(tm.TestCase):
             expected_series = Series(expected_result)
 
             assert_attr_equal('dtype', start_series, expected_series)
-            self.assert_numpy_array_equivalent(
+            tm.assert_numpy_array_equal(
                 start_series.values,
                 expected_series.values, strict_nan=True)
 
@@ -4776,7 +4851,7 @@ class TestSeriesNoneCoercion(tm.TestCase):
             expected_series = Series(expected_result)
 
             assert_attr_equal('dtype', start_series, expected_series)
-            self.assert_numpy_array_equivalent(
+            tm.assert_numpy_array_equal(
                 start_series.values,
                 expected_series.values, strict_nan=True)
 
@@ -4788,7 +4863,7 @@ class TestSeriesNoneCoercion(tm.TestCase):
             expected_series = Series(expected_result)
 
             assert_attr_equal('dtype', start_series, expected_series)
-            self.assert_numpy_array_equivalent(
+            tm.assert_numpy_array_equal(
                 start_series.values,
                 expected_series.values, strict_nan=True)
 
@@ -4800,7 +4875,7 @@ class TestSeriesNoneCoercion(tm.TestCase):
             expected_series = Series(expected_result)
 
             assert_attr_equal('dtype', start_series, expected_series)
-            self.assert_numpy_array_equivalent(
+            tm.assert_numpy_array_equal(
                 start_series.values,
                 expected_series.values, strict_nan=True)
 
@@ -4827,7 +4902,7 @@ class TestDataframeNoneCoercion(tm.TestCase):
             expected_dataframe = DataFrame({'foo': expected_result})
 
             assert_attr_equal('dtype', start_dataframe['foo'], expected_dataframe['foo'])
-            self.assert_numpy_array_equivalent(
+            tm.assert_numpy_array_equal(
                 start_dataframe['foo'].values,
                 expected_dataframe['foo'].values, strict_nan=True)
 
@@ -4839,7 +4914,7 @@ class TestDataframeNoneCoercion(tm.TestCase):
             expected_dataframe = DataFrame({'foo': expected_result})
 
             assert_attr_equal('dtype', start_dataframe['foo'], expected_dataframe['foo'])
-            self.assert_numpy_array_equivalent(
+            tm.assert_numpy_array_equal(
                 start_dataframe['foo'].values,
                 expected_dataframe['foo'].values, strict_nan=True)
 
@@ -4851,7 +4926,7 @@ class TestDataframeNoneCoercion(tm.TestCase):
             expected_dataframe = DataFrame({'foo': expected_result})
 
             assert_attr_equal('dtype', start_dataframe['foo'], expected_dataframe['foo'])
-            self.assert_numpy_array_equivalent(
+            tm.assert_numpy_array_equal(
                 start_dataframe['foo'].values,
                 expected_dataframe['foo'].values, strict_nan=True)
 
@@ -4871,7 +4946,7 @@ class TestDataframeNoneCoercion(tm.TestCase):
 
         for column in expected_dataframe.columns:
             assert_attr_equal('dtype', start_dataframe[column], expected_dataframe[column])
-            self.assert_numpy_array_equivalent(
+            tm.assert_numpy_array_equal(
                 start_dataframe[column].values,
                 expected_dataframe[column].values, strict_nan=True)
 

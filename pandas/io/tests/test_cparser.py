@@ -186,6 +186,30 @@ class TestCParser(tm.TestCase):
                 '1,2,3\n'
                 '4,5,6')
 
+        reader = TextReader(StringIO(data), delimiter=',', header=2)
+        header = reader.header
+        expected = [['a', 'b', 'c']]
+        self.assertEqual(header, expected)
+
+        recs = reader.read()
+        expected = {0 : [1, 4], 1 : [2, 5], 2 : [3, 6]}
+        assert_array_dicts_equal(expected, recs)
+
+        # not enough rows
+        self.assertRaises(parser.CParserError, TextReader, StringIO(data),
+                          delimiter=',', header=5, as_recarray=True)
+
+    def test_header_not_enough_lines_as_recarray(self):
+
+        if compat.is_platform_windows():
+            raise nose.SkipTest("segfaults on win-64, only when all tests are run")
+
+        data = ('skip this\n'
+                'skip this\n'
+                'a,b,c\n'
+                '1,2,3\n'
+                '4,5,6')
+
         reader = TextReader(StringIO(data), delimiter=',', header=2,
                             as_recarray=True)
         header = reader.header
@@ -245,6 +269,21 @@ aaaaa,5"""
         ex_values = np.array(['a', 'aa', 'aaa', 'aaaa', 'aaaa'], dtype='S4')
         self.assertTrue((result[0] == ex_values).all())
         self.assertEqual(result[1].dtype, 'S4')
+
+    def test_numpy_string_dtype_as_recarray(self):
+        data = """\
+a,1
+aa,2
+aaa,3
+aaaa,4
+aaaaa,5"""
+
+        if compat.is_platform_windows():
+            raise nose.SkipTest("segfaults on win-64, only when all tests are run")
+
+        def _make_reader(**kwds):
+            return TextReader(StringIO(data), delimiter=',', header=None,
+                              **kwds)
 
         reader = _make_reader(dtype='S4', as_recarray=True)
         result = reader.read()

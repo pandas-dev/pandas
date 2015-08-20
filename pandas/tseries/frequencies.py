@@ -314,14 +314,12 @@ _offset_to_period_map = {
 }
 
 need_suffix = ['QS', 'BQ', 'BQS', 'AS', 'BA', 'BAS']
-_months = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP',
-           'OCT', 'NOV', 'DEC']
 for __prefix in need_suffix:
-    for _m in _months:
+    for _m in tslib._MONTHS:
         _offset_to_period_map['%s-%s' % (__prefix, _m)] = \
             _offset_to_period_map[__prefix]
 for __prefix in ['A', 'Q']:
-    for _m in _months:
+    for _m in tslib._MONTHS:
         _alias = '%s-%s' % (__prefix, _m)
         _offset_to_period_map[_alias] = _alias
 
@@ -1188,12 +1186,7 @@ def is_superperiod(source, target):
         return target in ['N']
 
 
-def _get_rule_month(source, default='DEC'):
-    source = source.upper()
-    if '-' not in source:
-        return default
-    else:
-        return source.split('-')[1]
+_get_rule_month = tslib._get_rule_month
 
 
 def _is_annual(rule):
@@ -1224,15 +1217,10 @@ def _is_weekly(rule):
 
 DAYS = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN']
 
-MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL',
-          'AUG', 'SEP', 'OCT', 'NOV', 'DEC']
-
-_month_numbers = dict((k, i) for i, k in enumerate(MONTHS))
-
-
+MONTHS = tslib._MONTHS
+_month_numbers = tslib._MONTH_NUMBERS
+_month_aliases = tslib._MONTH_ALIASES
 _weekday_rule_aliases = dict((k, v) for k, v in enumerate(DAYS))
-_month_aliases = dict((k + 1, v) for k, v in enumerate(MONTHS))
-
 
 def _is_multiple(us, mult):
     return us % mult == 0

@@ -4,7 +4,7 @@ import numpy as np
 import pandas.tseries.frequencies as frequencies
 from pandas.tseries.frequencies import get_freq_code as _gfc
 from pandas.tseries.index import DatetimeIndex, Int64Index, Index
-from pandas.tseries.base import DatetimeIndexOpsMixin
+from pandas.tseries.base import DatelikeOps, DatetimeIndexOpsMixin
 from pandas.tseries.tools import parse_time_string
 import pandas.tseries.offsets as offsets
 
@@ -19,8 +19,10 @@ from pandas._period import (
 import pandas.core.common as com
 from pandas.core.common import (isnull, _INT64_DTYPE, _maybe_box,
                                 _values_from_object, ABCSeries,
-                                is_integer, is_float)
+                                is_integer, is_float, is_object_dtype)
 from pandas import compat
+from pandas.util.decorators import cache_readonly
+
 from pandas.lib import Timestamp, Timedelta
 import pandas.lib as lib
 import pandas.tslib as tslib
@@ -92,7 +94,7 @@ def _period_index_cmp(opname, nat_result=False):
     return wrapper
 
 
-class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
+class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
     """
     Immutable ndarray holding ordinal values indicating regular periods in
     time such as particular years, quarters, months, etc. A value of 1 is the
@@ -259,12 +261,35 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
 
     @classmethod
     def _simple_new(cls, values, name=None, freq=None, **kwargs):
+        if not getattr(values,'dtype',None):
+            values = np.array(values,copy=False)
+        if is_object_dtype(values):
+            return PeriodIndex(values, name=name, freq=freq, **kwargs)
+
         result = object.__new__(cls)
         result._data = values
         result.name = name
+
+        if freq is None:
+            raise ValueError('freq not specified')
         result.freq = freq
+
         result._reset_identity()
         return result
+
+    def _shallow_copy(self, values=None, infer=False, **kwargs):
+        """ we always want to return a PeriodIndex """
+        return super(PeriodIndex, self)._shallow_copy(values=values, infer=False, **kwargs)
+
+    def _coerce_scalar_to_index(self, item):
+        """
+        we need to coerce a scalar to a compat for our index type
+
+        Parameters
+        ----------
+        item : scalar item to coerce
+        """
+        return PeriodIndex([item], **self._get_attributes_dict())
 
     @property
     def _na_value(self):
@@ -477,21 +502,25 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
         new_data = period.periodarr_to_dt64arr(new_data.values, base)
         return DatetimeIndex(new_data, freq='infer', name=self.name)
 
-    def _add_delta(self, other):
+    def _maybe_convert_timedelta(self, other):
         if isinstance(other, (timedelta, np.timedelta64, offsets.Tick, Timedelta)):
             offset = frequencies.to_offset(self.freq)
             if isinstance(offset, offsets.Tick):
                 nanos = tslib._delta_to_nanoseconds(other)
                 offset_nanos = tslib._delta_to_nanoseconds(offset)
                 if nanos % offset_nanos == 0:
-                    return self.shift(nanos // offset_nanos)
+                    return nanos // offset_nanos
         elif isinstance(other, offsets.DateOffset):
             freqstr = frequencies.get_standard_freq(other)
             base = frequencies.get_base_alias(freqstr)
 
             if base == self.freq:
-                return self.shift(other.n)
+                return other.n
         raise ValueError("Input has different freq from PeriodIndex(freq={0})".format(self.freq))
+
+    def _add_delta(self, other):
+        ordinal_delta = self._maybe_convert_timedelta(other)
+        return self.shift(ordinal_delta)
 
     def shift(self, n):
         """
@@ -510,6 +539,11 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
         values = self.values + n
         values[mask] = tslib.iNaT
         return PeriodIndex(data=values, name=self.name, freq=self.freq)
+
+    @cache_readonly
+    def dtype_str(self):
+        """ return the dtype str of the underlying data """
+        return self.inferred_type
 
     @property
     def inferred_type(self):
@@ -556,13 +590,13 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
             key = Period(key, self.freq).ordinal
             return _maybe_box(self, self._engine.get_value(s, key), series, key)
 
-    def get_indexer(self, target, method=None, limit=None):
+    def get_indexer(self, target, method=None, limit=None, tolerance=None):
         if hasattr(target, 'freq') and target.freq != self.freq:
             raise ValueError('target and index have different freq: '
                              '(%s, %s)' % (target.freq, self.freq))
-        return Index.get_indexer(self, target, method, limit)
+        return Index.get_indexer(self, target, method, limit, tolerance)
 
-    def get_loc(self, key, method=None):
+    def get_loc(self, key, method=None, tolerance=None):
         """
         Get integer location for requested label
 
@@ -584,7 +618,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
 
             key = Period(key, self.freq)
             try:
-                return Index.get_loc(self, key.ordinal, method=method)
+                return Index.get_loc(self, key.ordinal, method, tolerance)
             except KeyError:
                 raise KeyError(key)
 
@@ -664,6 +698,10 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
         return slice(self.searchsorted(t1.ordinal, side='left'),
                      self.searchsorted(t2.ordinal, side='right'))
 
+    def _convert_tolerance(self, tolerance):
+        tolerance = DatetimeIndexOpsMixin._convert_tolerance(self, tolerance)
+        return self._maybe_convert_timedelta(tolerance)
+
     def join(self, other, how='left', level=None, return_indexers=False):
         """
         See Index.join
@@ -718,14 +756,18 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
 
             return PeriodIndex(result, name=self.name, freq=self.freq)
 
-    def _format_native_types(self, na_rep=u('NaT'), **kwargs):
+    def _format_native_types(self, na_rep=u('NaT'), date_format=None, **kwargs):
 
         values = np.array(list(self), dtype=object)
         mask = isnull(self.values)
         values[mask] = na_rep
-
         imask = ~mask
-        values[imask] = np.array([u('%s') % dt for dt in values[imask]])
+
+        if date_format:
+            formatter = lambda dt: dt.strftime(date_format)
+        else:
+            formatter = lambda dt: u('%s') % dt
+        values[imask] = np.array([formatter(dt) for dt in values[imask]])
         return values
 
     def __array_finalize__(self, obj):

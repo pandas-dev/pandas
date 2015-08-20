@@ -55,11 +55,39 @@ cpdef assert_dict_equal(a, b, bint compare_keys=True):
 
     return True
 
-cpdef assert_almost_equal(a, b, bint check_less_precise=False):
+cpdef assert_almost_equal(a, b, bint check_less_precise=False,
+                          obj=None, lobj=None, robj=None):
+    """Check that left and right objects are almost equal.
+
+    Parameters
+    ----------
+    a : object
+    b : object
+    check_less_precise : bool, default False
+        Specify comparison precision.
+        5 digits (False) or 3 digits (True) after decimal points are compared.
+    obj : str, default None
+        Specify object name being compared, internally used to show appropriate
+        assertion message
+    lobj : str, default None
+        Specify left object name being compared, internally used to show
+        appropriate assertion message
+    robj : str, default None
+        Specify right object name being compared, internally used to show
+        appropriate assertion message
+    """
+
     cdef:
         int decimal
+        double diff = 0.0
         Py_ssize_t i, na, nb
         double fa, fb
+        bint is_unequal = False
+
+    if lobj is None:
+        lobj = a
+    if robj is None:
+        robj = b
 
     if isinstance(a, dict) or isinstance(b, dict):
         return assert_dict_equal(a, b)
@@ -70,33 +98,62 @@ cpdef assert_almost_equal(a, b, bint check_less_precise=False):
         return True
 
     if isiterable(a):
-        assert isiterable(b), (
-            "First object is iterable, second isn't: %r != %r" % (a, b)
-        )
+
+        if not isiterable(b):
+            from pandas.util.testing import raise_assert_detail
+            if obj is None:
+                obj = 'Iterable'
+            msg = "First object is iterable, second isn't"
+            raise_assert_detail(obj, msg, a, b)
+
         assert has_length(a) and has_length(b), (
             "Can't compare objects without length, one or both is invalid: "
             "(%r, %r)" % (a, b)
         )
 
-        na, nb = len(a), len(b)
-        assert na == nb, (
-            "Length of two iterators not the same: %r != %r" % (na, nb)
-        )
         if isinstance(a, np.ndarray) and isinstance(b, np.ndarray):
+            if obj is None:
+                obj = 'numpy array'
+            na, nb = a.size, b.size
+            if a.shape != b.shape:
+                from pandas.util.testing import raise_assert_detail
+                raise_assert_detail(obj, '{0} shapes are different'.format(obj),
+                                    a.shape, b.shape)
             try:
                 if np.array_equal(a, b):
                     return True
             except:
                 pass
+        else:
+            if obj is None:
+                obj = 'Iterable'
+            na, nb = len(a), len(b)
 
-        for i in xrange(na):
-            assert_almost_equal(a[i], b[i], check_less_precise)
+        if na != nb:
+            from pandas.util.testing import raise_assert_detail
+            raise_assert_detail(obj, '{0} length are different'.format(obj),
+                                na, nb)
+
+        for i in xrange(len(a)):
+            try:
+                assert_almost_equal(a[i], b[i], check_less_precise)
+            except AssertionError:
+                is_unequal = True
+                diff += 1
+
+        if is_unequal:
+            from pandas.util.testing import raise_assert_detail
+            msg = '{0} values are different ({1} %)'.format(obj, np.round(diff * 100.0 / na, 5))
+            raise_assert_detail(obj, msg, lobj, robj)
 
         return True
+
     elif isiterable(b):
-        assert False, (
-            "Second object is iterable, first isn't: %r != %r" % (a, b)
-        )
+        from pandas.util.testing import raise_assert_detail
+        if obj is None:
+            obj = 'Iterable'
+        msg = "Second object is iterable, first isn't"
+        raise_assert_detail(obj, msg, a, b)
 
     if isnull(a):
         assert isnull(b), (

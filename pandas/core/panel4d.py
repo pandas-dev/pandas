@@ -12,7 +12,9 @@ Panel4D = create_nd_panel_factory(
     aliases={'major': 'major_axis', 'minor': 'minor_axis'},
     stat_axis=2,
     ns=dict(__doc__="""
-    Represents a 4 dimensional structured
+    Panel4D is a 4-Dimensional named container very much like a Panel, but 
+    having 4 named dimensions. It is intended as a test bed for more 
+    N-Dimensional named containers.
 
     Parameters
     ----------

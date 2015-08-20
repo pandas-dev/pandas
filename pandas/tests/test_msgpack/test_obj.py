@@ -44,13 +44,13 @@ class TestObj(unittest.TestCase):
         assert unpacked[1] == prod_sum
 
     def test_only_one_obj_hook(self):
-        self.assertRaises(ValueError, unpackb, b'', object_hook=lambda x: x, object_pairs_hook=lambda x: x)
+        self.assertRaises(TypeError, unpackb, b'', object_hook=lambda x: x, object_pairs_hook=lambda x: x)
 
     def test_bad_hook(self):
         def f():
             packed = packb([3, 1+2j], default=lambda o: o)
             unpacked = unpackb(packed, use_list=1)
-        self.assertRaises(ValueError, f)
+        self.assertRaises(TypeError, f)
 
     def test_array_hook(self):
         packed = packb([1,2,3])

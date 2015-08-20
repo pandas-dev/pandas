@@ -1,2 +1,2 @@
 @echo off
-%PYTHON% setup.py install --quiet
+%PYTHON% setup.py install

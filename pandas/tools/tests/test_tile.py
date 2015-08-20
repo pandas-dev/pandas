@@ -13,8 +13,6 @@ from pandas.core.algorithms import quantile
 from pandas.tools.tile import cut, qcut
 import pandas.tools.tile as tmod
 
-from numpy.testing import assert_equal, assert_almost_equal
-
 
 class TestCut(tm.TestCase):
 
@@ -22,31 +20,31 @@ class TestCut(tm.TestCase):
         data = np.ones(5)
         result = cut(data, 4, labels=False)
         desired = [1, 1, 1, 1, 1]
-        assert_equal(result, desired)
+        tm.assert_numpy_array_equal(result, desired)
 
     def test_bins(self):
         data = np.array([.2, 1.4, 2.5, 6.2, 9.7, 2.1])
         result, bins = cut(data, 3, retbins=True)
-        assert_equal(result.codes, [0, 0, 0, 1, 2, 0])
-        assert_almost_equal(bins, [0.1905, 3.36666667, 6.53333333, 9.7])
+        tm.assert_numpy_array_equal(result.codes, [0, 0, 0, 1, 2, 0])
+        tm.assert_almost_equal(bins, [0.1905, 3.36666667, 6.53333333, 9.7])
 
     def test_right(self):
         data = np.array([.2, 1.4, 2.5, 6.2, 9.7, 2.1, 2.575])
         result, bins = cut(data, 4, right=True, retbins=True)
-        assert_equal(result.codes, [0, 0, 0, 2, 3, 0, 0])
-        assert_almost_equal(bins, [0.1905, 2.575, 4.95, 7.325, 9.7])
+        tm.assert_numpy_array_equal(result.codes, [0, 0, 0, 2, 3, 0, 0])
+        tm.assert_almost_equal(bins, [0.1905, 2.575, 4.95, 7.325, 9.7])
 
     def test_noright(self):
         data = np.array([.2, 1.4, 2.5, 6.2, 9.7, 2.1, 2.575])
         result, bins = cut(data, 4, right=False, retbins=True)
-        assert_equal(result.codes, [0, 0, 0, 2, 3, 0, 1])
-        assert_almost_equal(bins, [0.2, 2.575, 4.95, 7.325, 9.7095])
+        tm.assert_numpy_array_equal(result.codes, [0, 0, 0, 2, 3, 0, 1])
+        tm.assert_almost_equal(bins, [0.2, 2.575, 4.95, 7.325, 9.7095])
 
     def test_arraylike(self):
         data = [.2, 1.4, 2.5, 6.2, 9.7, 2.1]
         result, bins = cut(data, 3, retbins=True)
-        assert_equal(result.codes, [0, 0, 0, 1, 2, 0])
-        assert_almost_equal(bins, [0.1905, 3.36666667, 6.53333333, 9.7])
+        tm.assert_numpy_array_equal(result.codes, [0, 0, 0, 1, 2, 0])
+        tm.assert_almost_equal(bins, [0.1905, 3.36666667, 6.53333333, 9.7])
 
     def test_bins_not_monotonic(self):
         data = [.2, 1.4, 2.5, 6.2, 9.7, 2.1]
@@ -68,7 +66,7 @@ class TestCut(tm.TestCase):
         s = Series([0, -1, 0, 1, -3])
         ind = cut(s, [0, 1], labels=False)
         exp = [np.nan, np.nan, np.nan, 0, np.nan]
-        assert_almost_equal(ind, exp)
+        tm.assert_almost_equal(ind, exp)
 
     def test_labels(self):
         arr = np.tile(np.arange(0, 1.01, 0.1), 4)
@@ -122,8 +120,8 @@ class TestCut(tm.TestCase):
 
         ex_categories = ['(-inf, 2]', '(2, 4]', '(4, inf]']
 
-        np.testing.assert_array_equal(result.categories, ex_categories)
-        np.testing.assert_array_equal(result_ser.cat.categories, ex_categories)
+        tm.assert_numpy_array_equal(result.categories, ex_categories)
+        tm.assert_numpy_array_equal(result_ser.cat.categories, ex_categories)
         self.assertEqual(result[5], '(4, inf]')
         self.assertEqual(result[0], '(-inf, 2]')
         self.assertEqual(result_ser[5], '(4, inf]')
@@ -134,7 +132,7 @@ class TestCut(tm.TestCase):
 
         labels, bins = qcut(arr, 4, retbins=True)
         ex_bins = quantile(arr, [0, .25, .5, .75, 1.])
-        assert_almost_equal(bins, ex_bins)
+        tm.assert_almost_equal(bins, ex_bins)
 
         ex_levels = cut(arr, ex_bins, include_lowest=True)
         self.assert_numpy_array_equal(labels, ex_levels)
@@ -252,12 +250,12 @@ class TestCut(tm.TestCase):
         # GH 8589
         s = Series(np.arange(4))
         result, bins = cut(s, 2, retbins=True)
-        assert_equal(result.cat.codes.values, [0, 0, 1, 1])
-        assert_almost_equal(bins, [-0.003, 1.5, 3])
+        tm.assert_numpy_array_equal(result.cat.codes.values, [0, 0, 1, 1])
+        tm.assert_almost_equal(bins, [-0.003, 1.5, 3])
 
         result, bins = qcut(s, 2, retbins=True)
-        assert_equal(result.cat.codes.values, [0, 0, 1, 1])
-        assert_almost_equal(bins, [0, 1.5, 3])
+        tm.assert_numpy_array_equal(result.cat.codes.values, [0, 0, 1, 1])
+        tm.assert_almost_equal(bins, [0, 1.5, 3])
 
 
 def curpath():

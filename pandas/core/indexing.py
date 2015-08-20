@@ -201,6 +201,7 @@ class _NDFrameIndexer(object):
 
         # also has the side effect of consolidating in-place
         from pandas import Panel, DataFrame, Series
+        info_axis = self.obj._info_axis_number
 
         # maybe partial set
         take_split_path = self.obj._is_mixed_type
@@ -212,6 +213,16 @@ class _NDFrameIndexer(object):
             if 1 < blk.ndim:  # in case of dict, keys are indices
                 val = list(value.values()) if isinstance(value,dict) else value
                 take_split_path = not blk._can_hold_element(val)
+
+        if isinstance(indexer, tuple) and len(indexer) == len(self.obj.axes):
+
+            for i, ax in zip(indexer, self.obj.axes):
+
+                # if we have any multi-indexes that have non-trivial slices (not null slices)
+                # then we must take the split path, xref GH 10360
+                if isinstance(ax, MultiIndex) and not (is_integer(i) or is_null_slice(i)):
+                    take_split_path = True
+                    break
 
         if isinstance(indexer, tuple):
             nindexer = []
@@ -328,13 +339,7 @@ class _NDFrameIndexer(object):
                     return self.obj.__setitem__(indexer, value)
 
         # set
-        info_axis = self.obj._info_axis_number
         item_labels = self.obj._get_axis(info_axis)
-
-        # if we have a complicated setup, take the split path
-        if (isinstance(indexer, tuple) and
-                any([isinstance(ax, MultiIndex) for ax in self.obj.axes])):
-            take_split_path = True
 
         # align and set the values
         if take_split_path:
@@ -431,8 +436,8 @@ class _NDFrameIndexer(object):
 
                 return False
 
-            # we need an interable, with a ndim of at least 1
-            # eg. don't pass thru np.array(0)
+            # we need an iterable, with a ndim of at least 1
+            # eg. don't pass through np.array(0)
             if is_list_like_indexer(value) and getattr(value,'ndim',1) > 0:
 
                 # we have an equal len Frame
@@ -1388,7 +1393,8 @@ class _iLocIndexer(_LocationIndexer):
         # return a boolean if we have a valid integer indexer
 
         ax = self.obj._get_axis(axis)
-        if key > len(ax):
+        l = len(ax)
+        if key >= l or key < -l:
             raise IndexError("single positional indexer is out-of-bounds")
         return True
 
@@ -1400,7 +1406,7 @@ class _iLocIndexer(_LocationIndexer):
         arr = np.array(key)
         ax = self.obj._get_axis(axis)
         l = len(ax)
-        if len(arr) and (arr.max() >= l or arr.min() <= -l):
+        if len(arr) and (arr.max() >= l or arr.min() < -l):
             raise IndexError("positional indexers are out-of-bounds")
 
         return True

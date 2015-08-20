@@ -33,7 +33,6 @@ from pandas.tseries.index import date_range
 import pandas.tseries.tools as tools
 
 from numpy.testing.decorators import slow
-from numpy.testing import assert_array_equal
 
 import pandas.parser
 
@@ -163,7 +162,7 @@ g,7,seven
 
     def test_read_csv(self):
         if not compat.PY3:
-            if 'win' in sys.platform:
+            if compat.is_platform_windows():
                 prefix = u("file:///")
             else:
                 prefix = u("file://")
@@ -276,7 +275,7 @@ c,3
         expected = Series([1, 2, 3], name=1, index=idx)
         result = self.read_table(StringIO(data), sep=',', index_col=0,
                                  header=None, squeeze=True)
-        tm.assert_isinstance(result, Series)
+        tm.assertIsInstance(result, Series)
         tm.assert_series_equal(result, expected)
 
     def test_squeeze_no_view(self):
@@ -747,7 +746,7 @@ Klosterdruckerei\tKlosterdruckerei <Kempten> (1609-1805)\tHochfurstliche Buchhan
         _NA_VALUES = set(['-1.#IND', '1.#QNAN', '1.#IND', '-1.#QNAN',
                           '#N/A','N/A', 'NA', '#NA', 'NULL', 'NaN',
                           'nan', '-NaN', '-nan', '#N/A N/A',''])
-        assert_array_equal (_NA_VALUES, parsers._NA_VALUES)
+        self.assertEqual(_NA_VALUES, parsers._NA_VALUES)
         nv = len(_NA_VALUES)
         def f(i, v):
             if i == 0:
@@ -1016,7 +1015,7 @@ c,4,5
         expected['aux_date'] = to_datetime(expected['aux_date'],
                                            dayfirst=True)
         expected['aux_date'] = lmap(Timestamp, expected['aux_date'])
-        tm.assert_isinstance(expected['aux_date'][0], datetime)
+        tm.assertIsInstance(expected['aux_date'][0], datetime)
 
         df = self.read_csv(StringIO(data), sep=";", index_col=lrange(4),
                            parse_dates=[0, 5], dayfirst=True)
@@ -1117,7 +1116,7 @@ baz,7,8,9
     def test_read_table_unicode(self):
         fin = BytesIO(u('\u0141aski, Jan;1').encode('utf-8'))
         df1 = read_table(fin, sep=";", encoding="utf-8", header=None)
-        tm.assert_isinstance(df1[0].values[0], compat.text_type)
+        tm.assertIsInstance(df1[0].values[0], compat.text_type)
 
     def test_read_table_wrong_num_columns(self):
         # too few!
@@ -1300,7 +1299,7 @@ baz,7,8,9
 
             treader = self.read_table(StringIO(self.data1), sep=',', index_col=0,
                                       iterator=True)
-            tm.assert_isinstance(treader, TextFileReader)
+            tm.assertIsInstance(treader, TextFileReader)
 
             # stopping iteration when on chunksize is specified, GH 3967
             data = """A,B,C
@@ -1601,7 +1600,7 @@ c,4,5,01/03/2009
         expected = self.read_csv(StringIO(data))
         expected['D'] = expected['D'].map(parse_date)
 
-        tm.assert_isinstance(result['D'][0], (datetime, Timestamp))
+        tm.assertIsInstance(result['D'][0], (datetime, Timestamp))
         tm.assert_frame_equal(result, expected)
         tm.assert_frame_equal(result2, expected)
 
@@ -2301,6 +2300,81 @@ MyColumn
         expected = DataFrame([], columns=['y'], index=Index([], name='x'))
         tm.assert_frame_equal(result, expected)
 
+    def test_emtpy_with_multiindex(self):
+        # GH 10467
+        data = 'x,y,z'
+        result = self.read_csv(StringIO(data), index_col=['x', 'y'])
+        expected = DataFrame([], columns=['z'],
+                             index=MultiIndex.from_arrays([[]] * 2, names=['x', 'y']))
+        tm.assert_frame_equal(result, expected)
+
+    def test_empty_with_reversed_multiindex(self):
+        data = 'x,y,z'
+        result = self.read_csv(StringIO(data), index_col=[1, 0])
+        expected = DataFrame([], columns=['z'],
+                             index=MultiIndex.from_arrays([[]] * 2, names=['y', 'x']))
+        tm.assert_frame_equal(result, expected)
+
+    def test_empty_index_col_scenarios(self):
+        data = 'x,y,z'
+
+        # None, no index
+        index_col, expected = None, DataFrame([], columns=list('xyz')),
+        tm.assert_frame_equal(self.read_csv(StringIO(data), index_col=index_col), expected)
+
+        # False, no index
+        index_col, expected = False, DataFrame([], columns=list('xyz')),
+        tm.assert_frame_equal(self.read_csv(StringIO(data), index_col=index_col), expected)
+
+        # int, first column
+        index_col, expected = 0, DataFrame([], columns=['y', 'z'], index=Index([], name='x'))
+        tm.assert_frame_equal(self.read_csv(StringIO(data), index_col=index_col), expected)
+
+        # int, not first column
+        index_col, expected = 1, DataFrame([], columns=['x', 'z'], index=Index([], name='y'))
+        tm.assert_frame_equal(self.read_csv(StringIO(data), index_col=index_col), expected)
+
+        # str, first column
+        index_col, expected = 'x', DataFrame([], columns=['y', 'z'], index=Index([], name='x'))
+        tm.assert_frame_equal(self.read_csv(StringIO(data), index_col=index_col), expected)
+
+        # str, not the first column
+        index_col, expected = 'y', DataFrame([], columns=['x', 'z'], index=Index([], name='y'))
+        tm.assert_frame_equal(self.read_csv(StringIO(data), index_col=index_col), expected)
+
+        # list of int
+        index_col, expected = [0, 1], DataFrame([], columns=['z'],
+                                                index=MultiIndex.from_arrays([[]] * 2, names=['x', 'y']))
+        tm.assert_frame_equal(self.read_csv(StringIO(data), index_col=index_col), expected)
+
+        # list of str
+        index_col, expected = (
+            ['x', 'y'],
+            DataFrame([], columns=['z'], index=MultiIndex.from_arrays([[]] * 2, names=['x', 'y']))
+        )
+        tm.assert_frame_equal(self.read_csv(StringIO(data), index_col=index_col), expected)
+
+        # list of int, reversed sequence
+        index_col, expected = (
+            [1, 0],
+            DataFrame([], columns=['z'], index=MultiIndex.from_arrays([[]] * 2, names=['y', 'x']))
+        )
+        tm.assert_frame_equal(self.read_csv(StringIO(data), index_col=index_col), expected)
+
+        # list of str, reversed sequence
+        index_col, expected = (
+            ['y', 'x'],
+            DataFrame([], columns=['z'], index=MultiIndex.from_arrays([[]] * 2, names=['y', 'x']))
+        )
+        tm.assert_frame_equal(self.read_csv(StringIO(data), index_col=index_col), expected)
+
+    def test_empty_with_index_col_false(self):
+        # GH 10413
+        data = 'x,y'
+        result = self.read_csv(StringIO(data), index_col=False)
+        expected = DataFrame([], columns=['x', 'y'])
+        tm.assert_frame_equal(result, expected)
+
     def test_float_parser(self):
         # GH 9565
         data = '45e-1,4.5,45.,inf,-inf'
@@ -2340,6 +2414,94 @@ MyColumn
             result = pd.read_csv(StringIO(str(x)), header=None)
             expected = pd.DataFrame([str(x)])
             tm.assert_frame_equal(result, expected)
+
+    def test_empty_with_nrows_chunksize(self):
+        # GH 9535
+        expected = pd.DataFrame([], columns=['foo', 'bar'])
+
+        result = self.read_csv(StringIO('foo,bar\n'), nrows=10)
+        tm.assert_frame_equal(result, expected)
+
+        result = next(iter(pd.read_csv(StringIO('foo,bar\n'), chunksize=10)))
+        tm.assert_frame_equal(result, expected)
+
+        result = pd.read_csv(StringIO('foo,bar\n'), nrows=10, as_recarray=True)
+        result = pd.DataFrame(result[2], columns=result[1], index=result[0])
+        tm.assert_frame_equal(pd.DataFrame.from_records(result), expected)
+
+        result = next(iter(pd.read_csv(StringIO('foo,bar\n'), chunksize=10, as_recarray=True)))
+        result = pd.DataFrame(result[2], columns=result[1], index=result[0])
+        tm.assert_frame_equal(pd.DataFrame.from_records(result), expected)
+
+    def test_eof_states(self):
+        # GH 10728 and 10548
+
+        ## With skip_blank_lines = True
+        expected = pd.DataFrame([[4, 5, 6]], columns=['a', 'b', 'c'])
+
+        # GH 10728
+        # WHITESPACE_LINE
+        data = 'a,b,c\n4,5,6\n '
+        result = self.read_csv(StringIO(data))
+        tm.assert_frame_equal(result, expected)
+
+        # GH 10548
+        # EAT_LINE_COMMENT
+        data = 'a,b,c\n4,5,6\n#comment'
+        result = self.read_csv(StringIO(data), comment='#')
+        tm.assert_frame_equal(result, expected)
+
+        # EAT_CRNL_NOP
+        data = 'a,b,c\n4,5,6\n\r'
+        result = self.read_csv(StringIO(data))
+        tm.assert_frame_equal(result, expected)
+
+        # EAT_COMMENT
+        data = 'a,b,c\n4,5,6#comment'
+        result = self.read_csv(StringIO(data), comment='#')
+        tm.assert_frame_equal(result, expected)
+
+        # SKIP_LINE
+        data = 'a,b,c\n4,5,6\nskipme'
+        result = self.read_csv(StringIO(data), skiprows=[2])
+        tm.assert_frame_equal(result, expected)
+
+        ## With skip_blank_lines = False
+
+        # EAT_LINE_COMMENT
+        data = 'a,b,c\n4,5,6\n#comment'
+        result = self.read_csv(StringIO(data), comment='#', skip_blank_lines=False)
+        expected = pd.DataFrame([[4, 5, 6]], columns=['a', 'b', 'c'])
+        tm.assert_frame_equal(result, expected)
+
+        # IN_FIELD
+        data = 'a,b,c\n4,5,6\n '
+        result = self.read_csv(StringIO(data), skip_blank_lines=False)
+        expected = pd.DataFrame([['4', 5, 6], [' ', None, None]], columns=['a', 'b', 'c'])
+        tm.assert_frame_equal(result, expected)
+
+        # EAT_CRNL
+        data = 'a,b,c\n4,5,6\n\r'
+        result = self.read_csv(StringIO(data), skip_blank_lines=False)
+        expected = pd.DataFrame([[4, 5, 6], [None, None, None]], columns=['a', 'b', 'c'])
+        tm.assert_frame_equal(result, expected)
+
+        ## Should produce exceptions
+
+        # ESCAPED_CHAR
+        data = "a,b,c\n4,5,6\n\\"
+        self.assertRaises(Exception, self.read_csv, StringIO(data), escapechar='\\')
+
+        # ESCAPE_IN_QUOTED_FIELD
+        data = 'a,b,c\n4,5,6\n"\\'
+        self.assertRaises(Exception, self.read_csv, StringIO(data), escapechar='\\')
+
+        # IN_QUOTED_FIELD
+        # Python 2.6 won't throw an exception for this case (see http://bugs.python.org/issue16013)
+        tm._skip_if_python26()
+        data = 'a,b,c\n4,5,6\n"'
+        self.assertRaises(Exception, self.read_csv, StringIO(data), escapechar='\\')
+
 
 
 class TestPythonParser(ParserTests, tm.TestCase):
@@ -2579,6 +2741,25 @@ c   1   2   3   4
             res = df.loc[:,c]
             self.assertTrue(len(res))
 
+    def test_fwf_for_uint8(self):
+        data = """1421302965.213420    PRI=3 PGN=0xef00      DST=0x17 SRC=0x28    04 154 00 00 00 00 00 127
+1421302964.226776    PRI=6 PGN=0xf002               SRC=0x47    243 00 00 255 247 00 00 71"""
+        df = read_fwf(StringIO(data),
+                colspecs=[(0,17),(25,26),(33,37),(49,51),(58,62),(63,1000)],
+                names=['time','pri','pgn','dst','src','data'],
+                converters={
+                        'pgn':lambda x: int(x,16),
+                        'src':lambda x: int(x,16),
+                        'dst':lambda x: int(x,16),
+                        'data':lambda x: len(x.split(' '))})
+
+        expected = DataFrame([[1421302965.213420,3,61184,23,40,8],
+                [1421302964.226776,6,61442,None, 71,8]],
+                columns = ["time", "pri", "pgn", "dst", "src","data"])
+        expected["dst"] = expected["dst"].astype(object)
+
+        tm.assert_frame_equal(df, expected)
+
     def test_fwf_compression(self):
         try:
             import gzip
@@ -2727,7 +2908,7 @@ eight,1,2,3"""
 
         treader = self.read_table(StringIO(self.data1), sep=',', index_col=0,
                                   iterator=True)
-        tm.assert_isinstance(treader, TextFileReader)
+        tm.assertIsInstance(treader, TextFileReader)
 
         # stopping iteration when on chunksize is specified, GH 3967
         data = """A,B,C
@@ -2995,6 +3176,7 @@ A,B,C
         df = self.read_csv(StringIO(data))
         tm.assert_almost_equal(df.values, expected)
 
+
 class TestFwfColspaceSniffing(tm.TestCase):
     def test_full_file(self):
         # File with all values
@@ -3110,6 +3292,9 @@ class TestCParserHighMemory(ParserTests, tm.TestCase):
         return read_table(*args, **kwds)
 
     def test_compact_ints(self):
+        if compat.is_platform_windows():
+            raise nose.SkipTest("segfaults on win-64, only when all tests are run")
+
         data = ('0,1,0,0\n'
                 '1,1,0,0\n'
                 '0,1,0,1')
@@ -3422,6 +3607,25 @@ class TestCParserLowMemory(ParserTests, tm.TestCase):
                 '0,1,0,1')
 
         result = read_csv(StringIO(data), delimiter=',', header=None,
+                          compact_ints=True)
+        ex_dtype = np.dtype([(str(i), 'i1') for i in range(4)])
+        self.assertEqual(result.to_records(index=False).dtype, ex_dtype)
+
+        result = read_csv(StringIO(data), delimiter=',', header=None,
+			  compact_ints=True,
+                          use_unsigned=True)
+        ex_dtype = np.dtype([(str(i), 'u1') for i in range(4)])
+        self.assertEqual(result.to_records(index=False).dtype, ex_dtype)
+
+    def test_compact_ints_as_recarray(self):
+        if compat.is_platform_windows():
+            raise nose.SkipTest("segfaults on win-64, only when all tests are run")
+
+        data = ('0,1,0,0\n'
+                '1,1,0,0\n'
+                '0,1,0,1')
+
+        result = read_csv(StringIO(data), delimiter=',', header=None,
                           compact_ints=True, as_recarray=True)
         ex_dtype = np.dtype([(str(i), 'i1') for i in range(4)])
         self.assertEqual(result.dtype, ex_dtype)
@@ -3460,10 +3664,83 @@ one,two
 3,4.5
 4,5.5"""
 
+        result = self.read_csv(StringIO(data), dtype={'one': 'u1', 1: 'S1'})
+        self.assertEqual(result['one'].dtype, 'u1')
+        self.assertEqual(result['two'].dtype, 'object')
+
+    def test_pass_dtype_as_recarray(self):
+        data = """\
+one,two
+1,2.5
+2,3.5
+3,4.5
+4,5.5"""
+
+        if compat.is_platform_windows():
+            raise nose.SkipTest("segfaults on win-64, only when all tests are run")
+
         result = self.read_csv(StringIO(data), dtype={'one': 'u1', 1: 'S1'},
                                as_recarray=True)
         self.assertEqual(result['one'].dtype, 'u1')
         self.assertEqual(result['two'].dtype, 'S1')
+
+    def test_empty_pass_dtype(self):
+        data = 'one,two'
+        result = self.read_csv(StringIO(data), dtype={'one': 'u1'})
+
+        expected = DataFrame({'one': np.empty(0, dtype='u1'),
+                              'two': np.empty(0, dtype=np.object)})
+        tm.assert_frame_equal(result, expected)
+
+    def test_empty_with_index_pass_dtype(self):
+        data = 'one,two'
+        result = self.read_csv(StringIO(data), index_col=['one'],
+                               dtype={'one': 'u1', 1: 'f'})
+
+        expected = DataFrame({'two': np.empty(0, dtype='f')},
+                             index=Index([], dtype='u1', name='one'))
+        tm.assert_frame_equal(result, expected)
+
+    def test_empty_with_multiindex_pass_dtype(self):
+        data = 'one,two,three'
+        result = self.read_csv(StringIO(data), index_col=['one', 'two'],
+                               dtype={'one': 'u1', 1: 'f8'})
+
+        expected = DataFrame({'three': np.empty(0, dtype=np.object)}, index=MultiIndex.from_arrays(
+            [np.empty(0, dtype='u1'), np.empty(0, dtype='O')],
+            names=['one', 'two'])
+            )
+        tm.assert_frame_equal(result, expected)
+
+    def test_empty_with_mangled_column_pass_dtype_by_names(self):
+        data = 'one,one'
+        result = self.read_csv(StringIO(data), dtype={'one': 'u1', 'one.1': 'f'})
+
+        expected = DataFrame({'one': np.empty(0, dtype='u1'), 'one.1': np.empty(0, dtype='f')})
+        tm.assert_frame_equal(result, expected)
+
+    def test_empty_with_mangled_column_pass_dtype_by_indexes(self):
+        data = 'one,one'
+        result = self.read_csv(StringIO(data), dtype={0: 'u1', 1: 'f'})
+
+        expected = DataFrame({'one': np.empty(0, dtype='u1'), 'one.1': np.empty(0, dtype='f')})
+        tm.assert_frame_equal(result, expected)
+
+    def test_empty_with_dup_column_pass_dtype_by_names(self):
+        data = 'one,one'
+        result = self.read_csv(StringIO(data), mangle_dupe_cols=False, dtype={'one': 'u1'})
+        expected = pd.concat([Series([], name='one', dtype='u1')] * 2, axis=1)
+        tm.assert_frame_equal(result, expected)
+
+    def test_empty_with_dup_column_pass_dtype_by_indexes(self):
+        ### FIXME in GH9424
+        raise nose.SkipTest("GH 9424; known failure read_csv with duplicate columns")
+
+        data = 'one,one'
+        result = self.read_csv(StringIO(data), mangle_dupe_cols=False, dtype={0: 'u1', 1: 'f'})
+        expected = pd.concat([Series([], name='one', dtype='u1'),
+                              Series([], name='one', dtype='f')], axis=1)
+        tm.assert_frame_equal(result, expected)
 
     def test_usecols_dtypes(self):
         data = """\
@@ -3471,6 +3748,7 @@ one,two
 4,5,6
 7,8,9
 10,11,12"""
+
         result = self.read_csv(StringIO(data), usecols=(0, 1, 2),
                                names=('a', 'b', 'c'),
                                header=None,
@@ -3927,6 +4205,25 @@ class TestParseSQL(tm.TestCase):
         assert_same_values_and_dtype(result, expected)
 
 
+class TestUrlGz(tm.TestCase):
+    def setUp(self):
+        dirpath = tm.get_data_path()
+        localtable = os.path.join(dirpath, 'salary.table')
+        self.local_table = read_table(localtable)
+
+    @tm.network
+    def test_url_gz(self):
+        url = 'https://raw.github.com/pydata/pandas/master/pandas/io/tests/data/salary.table.gz'
+        url_table = read_table(url, compression="gzip", engine="python")
+        tm.assert_frame_equal(url_table, self.local_table)
+
+    @tm.network
+    def test_url_gz_infer(self):
+        url = ('https://s3.amazonaws.com/pandas-test/salary.table.gz')
+        url_table = read_table(url, compression="infer", engine="python")
+        tm.assert_frame_equal(url_table, self.local_table)
+
+
 class TestS3(tm.TestCase):
     def setUp(self):
         try:
@@ -3942,6 +4239,12 @@ class TestS3(tm.TestCase):
         nt.assert_false(df.empty)
         tm.assert_frame_equal(pd.read_csv(tm.get_data_path('tips.csv')), df)
 
+        # Read public file from bucket with not-public contents
+        df = pd.read_csv('s3://cant_get_it/tips.csv')
+        nt.assert_true(isinstance(df, pd.DataFrame))
+        nt.assert_false(df.empty)
+        tm.assert_frame_equal(pd.read_csv(tm.get_data_path('tips.csv')), df)
+
     @tm.network
     def test_s3_fails(self):
         import boto
@@ -3949,9 +4252,11 @@ class TestS3(tm.TestCase):
                                 'S3ResponseError: 404 Not Found'):
             pd.read_csv('s3://nyqpug/asdf.csv')
 
+        # Receive a permission error when trying to read a private bucket.
+        # It's irrelevant here that this isn't actually a table.
         with tm.assertRaisesRegexp(boto.exception.S3ResponseError,
-                                'S3ResponseError: 403 Forbidden'):
-            pd.read_csv('s3://cant_get_it/tips.csv')
+                                   'S3ResponseError: 403 Forbidden'):
+            pd.read_csv('s3://cant_get_it/')
 
 
 def assert_same_values_and_dtype(res, exp):

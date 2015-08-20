@@ -821,7 +821,7 @@ class CheckIndexing(object):
 
         # resize
         res = self.panel.set_value('ItemE', 'foo', 'bar', 1.5)
-        tm.assert_isinstance(res, Panel)
+        tm.assertIsInstance(res, Panel)
         self.assertIsNot(res, self.panel)
         self.assertEqual(res.get_value('ItemE', 'foo', 'bar'), 1.5)
 
@@ -1119,7 +1119,7 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing,
         # GH 4937
         p = Panel(dict(A = dict(a = ['1','1.0'])))
         expected = Panel(dict(A = dict(a = [1,1.0])))
-        result = p.convert_objects(convert_numeric='force')
+        result = p.convert_objects(numeric=True, coerce=True)
         assert_panel_equal(result, expected)
 
     def test_dtypes(self):

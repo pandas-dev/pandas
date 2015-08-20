@@ -8,13 +8,13 @@ import os
 import nose
 
 from pandas import DataFrame, Series
+from pandas.core.sparse import SparseDataFrame
 import pandas as pd
 
 from numpy import nan
 import numpy as np
 
 from pandas.util.testing import assert_frame_equal
-from numpy.testing import assert_array_equal
 
 from pandas.core.reshape import (melt, lreshape, get_dummies,
                                  wide_to_long)
@@ -171,6 +171,33 @@ class TestGetDummies(tm.TestCase):
         expected.index = list('ABC')
         assert_frame_equal(get_dummies(s_series_index, sparse=self.sparse), expected)
 
+    def test_basic_types(self):
+        # GH 10531
+        s_list = list('abc')
+        s_series = Series(s_list)
+        s_df = DataFrame({'a': [0, 1, 0, 1, 2],
+                          'b': ['A', 'A', 'B', 'C', 'C'],
+                          'c': [2, 3, 3, 3, 2]})
+
+        if not self.sparse:
+            exp_df_type = DataFrame 
+            exp_blk_type = pd.core.internals.FloatBlock
+        else:
+            exp_df_type = SparseDataFrame
+            exp_blk_type = pd.core.internals.SparseBlock
+
+        self.assertEqual(type(get_dummies(s_list, sparse=self.sparse)), exp_df_type)
+        self.assertEqual(type(get_dummies(s_series, sparse=self.sparse)), exp_df_type)
+
+        r = get_dummies(s_df, sparse=self.sparse, columns=s_df.columns)
+        self.assertEqual(type(r), exp_df_type)
+
+        r = get_dummies(s_df, sparse=self.sparse, columns=['a'])
+        self.assertEqual(type(r[['a_0']]._data.blocks[0]), exp_blk_type)
+        self.assertEqual(type(r[['a_1']]._data.blocks[0]), exp_blk_type)
+        self.assertEqual(type(r[['a_2']]._data.blocks[0]), exp_blk_type)
+
+
     def test_just_na(self):
         just_na_list = [np.nan]
         just_na_series = Series(just_na_list)
@@ -206,7 +233,7 @@ class TestGetDummies(tm.TestCase):
 
         res_just_na = get_dummies([nan], dummy_na=True, sparse=self.sparse)
         exp_just_na = DataFrame(Series(1.0,index=[0]),columns=[nan])
-        assert_array_equal(res_just_na.values, exp_just_na.values)
+        tm.assert_numpy_array_equal(res_just_na.values, exp_just_na.values)
 
     def test_unicode(self):  # See GH 6885 - get_dummies chokes on unicode values
         import unicodedata

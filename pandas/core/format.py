@@ -68,22 +68,15 @@ docstring_to_string = """
 class CategoricalFormatter(object):
 
     def __init__(self, categorical, buf=None, length=True,
-                 na_rep='NaN', name=False, footer=True):
+                 na_rep='NaN', footer=True):
         self.categorical = categorical
         self.buf = buf if buf is not None else StringIO(u(""))
-        self.name = name
         self.na_rep = na_rep
         self.length = length
         self.footer = footer
 
     def _get_footer(self):
         footer = ''
-
-        if self.name:
-            name = com.pprint_thing(self.categorical.name,
-                                    escape_chars=('\t', '\r', '\n'))
-            footer += ('Name: %s' % name if self.categorical.name is not None
-                       else '')
 
         if self.length:
             if footer:
@@ -214,7 +207,7 @@ class SeriesFormatter(object):
         return fmt_index, have_header
 
     def _get_formatted_values(self):
-        return format_array(self.tr_series.get_values(), None,
+        return format_array(self.tr_series.values, None,
                             float_format=self.float_format,
                             na_rep=self.na_rep)
 
@@ -688,7 +681,7 @@ class DataFrameFormatter(TableFormatter):
         frame = self.tr_frame
         formatter = self._get_formatter(i)
         return format_array(
-            (frame.iloc[:, i]).get_values(),
+            frame.iloc[:, i].values,
             formatter, float_format=self.float_format, na_rep=self.na_rep,
             space=self.col_space
         )
@@ -1044,7 +1037,7 @@ class HTMLFormatter(TableFormatter):
             self.write_tr(col_row, indent, self.indent_delta, header=True,
                           align=align)
 
-        if self.fmt.has_index_names:
+        if self.fmt.has_index_names and self.fmt.index:
             row = [
                 x if x is not None else '' for x in self.frame.index.names
             ] + [''] * min(len(self.columns), self.max_cols)
@@ -1902,8 +1895,13 @@ class ExcelFormatter(object):
 
 def format_array(values, formatter, float_format=None, na_rep='NaN',
                  digits=None, space=None, justify='right'):
-    if com.is_float_dtype(values.dtype):
+
+    if com.is_categorical_dtype(values):
+        fmt_klass = CategoricalArrayFormatter
+    elif com.is_float_dtype(values.dtype):
         fmt_klass = FloatArrayFormatter
+    elif com.is_period_arraylike(values):
+        fmt_klass = PeriodArrayFormatter
     elif com.is_integer_dtype(values.dtype):
         fmt_klass = IntArrayFormatter
     elif com.is_datetime64_dtype(values.dtype):
@@ -1970,6 +1968,8 @@ class GenericArrayFormatter(object):
                 return '%s' % formatter(x)
 
         vals = self.values
+        if isinstance(vals, Index):
+            vals = vals.values
 
         is_float = lib.map_infer(vals, com.is_float) & notnull(vals)
         leading_space = is_float.any()
@@ -2021,7 +2021,7 @@ class FloatArrayFormatter(GenericArrayFormatter):
         if self.formatter is not None:
             fmt_values = [self.formatter(x) for x in self.values]
         else:
-            fmt_str = '%% .%df' % (self.digits - 1)
+            fmt_str = '%% .%df' % self.digits
             fmt_values = self._format_with(fmt_str)
 
             if len(fmt_values) > 0:
@@ -2029,20 +2029,20 @@ class FloatArrayFormatter(GenericArrayFormatter):
             else:
                 maxlen = 0
 
-            too_long = maxlen > self.digits + 5
+            too_long = maxlen > self.digits + 6
 
             abs_vals = np.abs(self.values)
 
             # this is pretty arbitrary for now
             has_large_values = (abs_vals > 1e8).any()
-            has_small_values = ((abs_vals < 10 ** (-self.digits+1)) &
+            has_small_values = ((abs_vals < 10 ** (-self.digits)) &
                                 (abs_vals > 0)).any()
 
             if too_long and has_large_values:
-                fmt_str = '%% .%de' % (self.digits - 1)
+                fmt_str = '%% .%de' % self.digits
                 fmt_values = self._format_with(fmt_str)
             elif has_small_values:
-                fmt_str = '%% .%de' % (self.digits - 1)
+                fmt_str = '%% .%de' % self.digits
                 fmt_values = self._format_with(fmt_str)
 
         return fmt_values
@@ -2083,8 +2083,30 @@ class Datetime64Formatter(GenericArrayFormatter):
             values = values.asobject
             is_dates_only = _is_dates_only(values)
             formatter = (self.formatter or _get_format_datetime64(is_dates_only, values, date_format=self.date_format))
-            fmt_values = [ formatter(x) for x in self.values ]
+            fmt_values = [ formatter(x) for x in values ]
 
+        return fmt_values
+
+
+class PeriodArrayFormatter(IntArrayFormatter):
+
+    def _format_strings(self):
+        values = np.array(self.values.to_native_types(), dtype=object)
+        formatter = self.formatter or (lambda x: '%s' % x)
+        fmt_values = [formatter(x) for x in values]
+        return fmt_values
+
+
+class CategoricalArrayFormatter(GenericArrayFormatter):
+
+    def __init__(self, values, *args, **kwargs):
+        GenericArrayFormatter.__init__(self, values, *args, **kwargs)
+
+    def _format_strings(self):
+        fmt_values = format_array(self.values.get_values(), self.formatter,
+                                  float_format=self.float_format,
+                                  na_rep=self.na_rep, digits=self.digits,
+                                  space=self.space, justify=self.justify)
         return fmt_values
 
 

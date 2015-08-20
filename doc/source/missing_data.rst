@@ -68,26 +68,41 @@ detect this value with data of different types: floating point, integer,
 boolean, and general object. In many cases, however, the Python ``None`` will
 arise and we wish to also consider that "missing" or "null".
 
-Prior to version v0.10.0 ``inf`` and ``-inf`` were also
-considered to be "null" in computations. This is no longer the case by
-default; use the ``mode.use_inf_as_null`` option to recover it.
+.. note::
+
+   Prior to version v0.10.0 ``inf`` and ``-inf`` were also
+   considered to be "null" in computations. This is no longer the case by
+   default; use the ``mode.use_inf_as_null`` option to recover it.
 
 .. _missing.isnull:
 
 To make detecting missing values easier (and across different array dtypes),
 pandas provides the :func:`~pandas.core.common.isnull` and
 :func:`~pandas.core.common.notnull` functions, which are also methods on
-``Series`` objects:
+``Series`` and ``DataFrame`` objects:
 
 .. ipython:: python
 
    df2['one']
-   isnull(df2['one'])
+   pd.isnull(df2['one'])
    df2['four'].notnull()
+   df2.isnull()
 
-**Summary:** ``NaN`` and ``None`` (in object arrays) are considered
-missing by the ``isnull`` and ``notnull`` functions. ``inf`` and
-``-inf`` are no longer considered missing by default.
+.. warning::
+
+   One has to be mindful that in python (and numpy), the ``nan's`` don't compare equal, but ``None's`` **do**.
+   Note that Pandas/numpy uses the fact that ``np.nan != np.nan``, and treats ``None`` like ``np.nan``.
+
+   .. ipython:: python
+
+      None == None
+      np.nan == np.nan
+
+   So as compared to above, a scalar equality comparison versus a ``None/np.nan`` doesn't provide useful information.
+
+   .. ipython:: python
+
+      df2['one'] == np.nan
 
 Datetimes
 ---------
@@ -99,7 +114,7 @@ pandas objects provide intercompatibility between ``NaT`` and ``NaN``.
 .. ipython:: python
 
    df2 = df.copy()
-   df2['timestamp'] = Timestamp('20120101')
+   df2['timestamp'] = pd.Timestamp('20120101')
    df2
    df2.ix[['a','c','h'],['one','timestamp']] = np.nan
    df2
@@ -174,7 +189,12 @@ NA values in GroupBy
 ~~~~~~~~~~~~~~~~~~~~
 
 NA groups in GroupBy are automatically excluded. This behavior is consistent
-with R, for example.
+with R, for example:
+
+.. ipython:: python
+
+    df
+    df.groupby('one').mean()
 
 See the groupby section :ref:`here <groupby.missing>` for more information.
 
@@ -255,7 +275,7 @@ use case of this is to fill a DataFrame with the mean of that column.
 
 .. ipython:: python
 
-        dff = pd.DataFrame(np.random.randn(10,3),columns=list('ABC'))
+        dff = pd.DataFrame(np.random.randn(10,3), columns=list('ABC'))
         dff.iloc[3:5,0] = np.nan
         dff.iloc[4:6,1] = np.nan
         dff.iloc[5:8,2] = np.nan
@@ -271,7 +291,7 @@ a Series in this case.
 
 .. ipython:: python
 
-        dff.where(notnull(dff),dff.mean(),axis='columns')
+        dff.where(pd.notnull(dff), dff.mean(), axis='columns')
 
 
 .. _missing_data.dropna:
@@ -316,7 +336,7 @@ performs linear interpolation at missing datapoints.
    :suppress:
 
    np.random.seed(123456)
-   idx = date_range('1/1/2000', periods=100, freq='BM')
+   idx = pd.date_range('1/1/2000', periods=100, freq='BM')
    ts = pd.Series(np.random.randn(100), index=idx)
    ts[1:20] = np.nan
    ts[60:80] = np.nan
@@ -363,7 +383,7 @@ You can also interpolate with a DataFrame:
 .. ipython:: python
 
    df = pd.DataFrame({'A': [1, 2.1, np.nan, 4.7, 5.6, 6.8],
-                   'B': [.25, np.nan, np.nan, 4, 12.2, 14.4]})
+                      'B': [.25, np.nan, np.nan, 4, 12.2, 14.4]})
    df
    df.interpolate()
 
@@ -420,7 +440,7 @@ at the new values.
    ser = pd.Series(np.sort(np.random.uniform(size=100)))
 
    # interpolate at new_index
-   new_index = ser.index | Index([49.25, 49.5, 49.75, 50.25, 50.5, 50.75])
+   new_index = ser.index | pd.Index([49.25, 49.5, 49.75, 50.25, 50.5, 50.75])
    interp_s = ser.reindex(new_index).interpolate(method='pchip')
    interp_s[49:51]
 

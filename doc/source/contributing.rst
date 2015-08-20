@@ -247,6 +247,8 @@ just checked out.  There are two primary methods of doing this.
    from your development directory. Thus, you can always be using the development
    version on your system without being inside the clone directory.
 
+.. _contributing.documentation:
+
 Contributing to the documentation
 =================================
 
@@ -315,6 +317,13 @@ Some other important things to know about the docs:
   This means that almost all code examples in the docs are always run (and the
   output saved) during the doc build. This way, they will always be up to date,
   but it makes the doc building a bit more complex.
+
+The utility script ``scripts/api_rst_coverage.py`` can be used to compare
+the list of methods documented in ``doc/source/api.rst`` (which is used to generate
+the `API Reference <http://pandas.pydata.org/pandas-docs/stable/api.html>`_ page)
+and the actual public methods.
+It will identify methods documented in in ``doc/source/api.rst`` that are not actually
+class methods, and existing methods that are not documented in ``doc/source/api.rst``.
 
 
 How to build the pandas documentation
@@ -536,10 +545,23 @@ Documenting your code
 Changes should be reflected in the release notes located in `doc/source/whatsnew/vx.y.z.txt`.
 This file contains an ongoing change log for each release.  Add an entry to this file to
 document your fix, enhancement or (unavoidable) breaking change.  Make sure to include the
-GitHub issue number when adding your entry.
+GitHub issue number when adding your entry (using `` :issue:`1234` `` where `1234` is the
+issue/pull request number).
 
-If your code is an enhancement, it is most likely necessary to add usage examples to the
-existing documentation.  This can be done following the section regarding documentation.
+If your code is an enhancement, it is most likely necessary to add usage
+examples to the existing documentation.  This can be done following the section
+regarding documentation :ref:`above <contributing.documentation>`.
+Further, to let users know when this feature was added, the ``versionadded``
+directive is used. The sphinx syntax for that is:
+
+.. code-block:: rst
+
+  .. versionadded:: 0.17.0
+
+This will put the text *New in version 0.17.0* wherever you put the sphinx
+directive. This should also be put in the docstring when adding a new function
+or method (`example <https://github.com/pydata/pandas/blob/v0.16.2/pandas/core/generic.py#L1959>`__)
+or a new keyword argument (`example <https://github.com/pydata/pandas/blob/v0.16.2/pandas/core/frame.py#L1171>`__).
 
 Contributing your changes to *pandas*
 =====================================

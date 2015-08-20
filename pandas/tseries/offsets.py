@@ -4,6 +4,8 @@ from pandas import compat
 import numpy as np
 
 from pandas.tseries.tools import to_datetime
+from pandas.tseries.timedeltas import to_timedelta
+from pandas.core.common import ABCSeries, ABCDatetimeIndex
 
 # import after tools, dateutil check
 from dateutil.relativedelta import relativedelta, weekday
@@ -92,6 +94,15 @@ def apply_wraps(func):
         return result
     return wrapper
 
+
+def apply_index_wraps(func):
+    @functools.wraps(func)
+    def wrapper(self, other):
+        result = func(self, other)
+        if self.normalize:
+            result  = result.to_period('D').to_timestamp()
+        return result
+    return wrapper
 
 def _is_normalized(dt):
     if (dt.hour != 0 or dt.minute != 0 or dt.second != 0
@@ -221,6 +232,67 @@ class DateOffset(object):
         else:
             return other + timedelta(self.n)
 
+    @apply_index_wraps
+    def apply_index(self, i):
+        """
+        Vectorized apply of DateOffset to DatetimeIndex,
+        raises NotImplentedError for offsets without a
+        vectorized implementation
+
+        .. versionadded:: 0.17.0
+
+        Parameters
+        ----------
+        i : DatetimeIndex
+
+        Returns
+        -------
+        y : DatetimeIndex
+        """
+
+        if not type(self) is DateOffset:
+            raise NotImplementedError("DateOffset subclass %s "
+                                     "does not have a vectorized "
+                                     "implementation"
+                                     % (self.__class__.__name__,))
+        relativedelta_fast = set(['years', 'months', 'weeks',
+                                'days', 'hours', 'minutes',
+                                'seconds', 'microseconds'])
+        # relativedelta/_offset path only valid for base DateOffset
+        if (self._use_relativedelta and
+            set(self.kwds).issubset(relativedelta_fast)):
+            months = ((self.kwds.get('years', 0) * 12
+                        + self.kwds.get('months', 0)) * self.n)
+            if months:
+                base = (i.to_period('M') + months).to_timestamp()
+                time = i.to_perioddelta('D')
+                days = i.to_perioddelta('M') - time
+                # minimum prevents month-end from wrapping
+                day_offset = np.minimum(days,
+                                        to_timedelta(base.days_in_month - 1, unit='D'))
+                i = base + day_offset + time
+
+            weeks = (self.kwds.get('weeks', 0)) * self.n
+            if weeks:
+                i = (i.to_period('W') + weeks).to_timestamp() + i.to_perioddelta('W')
+
+            timedelta_kwds = dict((k,v) for k,v in self.kwds.items()
+                                    if k in ['days','hours','minutes',
+                                            'seconds','microseconds'])
+            if timedelta_kwds:
+                delta = Timedelta(**timedelta_kwds)
+                i = i + (self.n * delta)
+            return i
+        elif not self._use_relativedelta and hasattr(self, '_offset'):
+            # timedelta
+            return i + (self._offset * self.n)
+        else:
+            # relativedelta with other keywords
+            raise NotImplementedError("DateOffset with relativedelta "
+                                      "keyword(s) %s not able to be "
+                                      "applied vectorized" %
+                                      (set(self.kwds) - relativedelta_fast),)
+
     def isAnchored(self):
         return (self.n == 1)
 
@@ -307,6 +379,8 @@ class DateOffset(object):
         return self.apply(other)
 
     def __add__(self, other):
+        if isinstance(other, (ABCDatetimeIndex, ABCSeries)):
+            return other + self
         try:
             return self.apply(other)
         except ApplyTypeError:
@@ -324,6 +398,8 @@ class DateOffset(object):
             return NotImplemented
 
     def __rsub__(self, other):
+        if isinstance(other, (ABCDatetimeIndex, ABCSeries)):
+            return other - self
         return self.__class__(-self.n, normalize=self.normalize, **self.kwds) + other
 
     def __mul__(self, someInt):
@@ -362,6 +438,37 @@ class DateOffset(object):
         a = dt
         b = ((dt + self) - self)
         return a == b
+
+    # helpers for vectorized offsets
+    def _beg_apply_index(self, i, freq):
+        """Offsets index to beginning of Period frequency"""
+
+        off = i.to_perioddelta('D')
+        base_period = i.to_period(freq)
+        if self.n < 0:
+            # when subtracting, dates on start roll to prior
+            roll = np.where(base_period.to_timestamp() == i - off,
+                            self.n, self.n + 1)
+        else:
+            roll = self.n
+
+        base = (base_period + roll).to_timestamp()
+        return base + off
+
+    def _end_apply_index(self, i, freq):
+        """Offsets index to end of Period frequency"""
+
+        off = i.to_perioddelta('D')
+        base_period = i.to_period(freq)
+        if self.n > 0:
+            # when adding, dtates on end roll to next
+            roll = np.where(base_period.to_timestamp(how='end') == i - off,
+                            self.n, self.n - 1)
+        else:
+            roll = self.n
+
+        base = (base_period + roll).to_timestamp(how='end')
+        return base + off
 
     # way to get around weirdness with rule_code
     @property
@@ -528,6 +635,19 @@ class BusinessDay(BusinessMixin, SingleConstructorOffset):
         else:
             raise ApplyTypeError('Only know how to combine business day with '
                                  'datetime or timedelta.')
+
+    @apply_index_wraps
+    def apply_index(self, i):
+        time = i.to_perioddelta('D')
+        # to_period rolls forward to next BDay; track and
+        # reduce n where it does when rolling forward
+        shifted = (i.to_perioddelta('B') - time).asi8 != 0
+        if self.n > 0:
+            roll = np.where(shifted, self.n - 1, self.n)
+        else:
+            roll = self.n
+
+        return (i.to_period('B') + roll).to_timestamp() + time
 
     def onOffset(self, dt):
         if self.normalize and not _is_normalized(dt):
@@ -902,6 +1022,9 @@ class CustomBusinessDay(BusinessDay):
             raise ApplyTypeError('Only know how to combine trading day with '
                                  'datetime, datetime64 or timedelta.')
 
+    def apply_index(self, i):
+        raise NotImplementedError
+
     @staticmethod
     def _to_dt64(dt, dtype='datetime64'):
         # Currently
@@ -949,6 +1072,10 @@ class MonthEnd(MonthOffset):
         other = other + relativedelta(months=n, day=31)
         return other
 
+    @apply_index_wraps
+    def apply_index(self, i):
+        return self._end_apply_index(i, 'M')
+
     def onOffset(self, dt):
         if self.normalize and not _is_normalized(dt):
             return False
@@ -969,6 +1096,10 @@ class MonthBegin(MonthOffset):
             n += 1
 
         return other + relativedelta(months=n, day=1)
+
+    @apply_index_wraps
+    def apply_index(self, i):
+        return self._beg_apply_index(i, 'M')
 
     def onOffset(self, dt):
         if self.normalize and not _is_normalized(dt):
@@ -1210,6 +1341,13 @@ class Week(DateOffset):
         other = datetime(other.year, other.month, other.day,
                          base.hour, base.minute, base.second, base.microsecond)
         return other
+
+    @apply_index_wraps
+    def apply_index(self, i):
+        if self.weekday is None:
+            return (i.to_period('W') + self.n).to_timestamp() + i.to_perioddelta('W')
+        else:
+            return self._end_apply_index(i, self.freqstr)
 
     def onOffset(self, dt):
         if self.normalize and not _is_normalized(dt):
@@ -1508,22 +1646,7 @@ class BQuarterEnd(QuarterOffset):
         modMonth = (dt.month - self.startingMonth) % 3
         return BMonthEnd().onOffset(dt) and modMonth == 0
 
-
-_int_to_month = {
-    1: 'JAN',
-    2: 'FEB',
-    3: 'MAR',
-    4: 'APR',
-    5: 'MAY',
-    6: 'JUN',
-    7: 'JUL',
-    8: 'AUG',
-    9: 'SEP',
-    10: 'OCT',
-    11: 'NOV',
-    12: 'DEC'
-}
-
+_int_to_month = tslib._MONTH_ALIASES
 _month_to_int = dict((v, k) for k, v in _int_to_month.items())
 
 
@@ -1602,6 +1725,10 @@ class QuarterEnd(QuarterOffset):
         other = other + relativedelta(months=monthsToGo + 3 * n, day=31)
         return other
 
+    @apply_index_wraps
+    def apply_index(self, i):
+        return self._end_apply_index(i, self.freqstr)
+
     def onOffset(self, dt):
         if self.normalize and not _is_normalized(dt):
             return False
@@ -1636,6 +1763,11 @@ class QuarterBegin(QuarterOffset):
         other = other + relativedelta(months=3 * n - monthsSince, day=1)
         return other
 
+    @apply_index_wraps
+    def apply_index(self, i):
+        freq_month = 12 if self.startingMonth == 1 else self.startingMonth - 1
+        freqstr =  'Q-%s' % (_int_to_month[freq_month],)
+        return self._beg_apply_index(i, freqstr)
 
 class YearOffset(DateOffset):
     """DateOffset that just needs a month"""
@@ -1779,6 +1911,11 @@ class YearEnd(YearOffset):
             result = _rollf(result)
         return result
 
+    @apply_index_wraps
+    def apply_index(self, i):
+        # convert month anchor to annual period tuple
+        return self._end_apply_index(i, self.freqstr)
+
     def onOffset(self, dt):
         if self.normalize and not _is_normalized(dt):
             return False
@@ -1823,6 +1960,12 @@ class YearBegin(YearOffset):
             # n == 0, roll forward
             result = _rollf(result)
         return result
+
+    @apply_index_wraps
+    def apply_index(self, i):
+        freq_month = 12 if self.month == 1 else self.month - 1
+        freqstr =  'A-%s' % (_int_to_month[freq_month],)
+        return self._beg_apply_index(i, freqstr)
 
     def onOffset(self, dt):
         if self.normalize and not _is_normalized(dt):
@@ -2326,6 +2469,7 @@ class Tick(SingleConstructorOffset):
 
     _prefix = 'undefined'
 
+
     def isAnchored(self):
         return False
 
@@ -2450,12 +2594,12 @@ def generate_range(start=None, end=None, periods=None,
     if start and not offset.onOffset(start):
         start = offset.rollforward(start)
 
-    if end and not offset.onOffset(end):
+    elif end and not offset.onOffset(end):
         end = offset.rollback(end)
 
-        if periods is None and end < start:
-            end = None
-            periods = 0
+    if periods is None and end < start:
+        end = None
+        periods = 0
 
     if end is None:
         end = start + (periods - 1) * offset
@@ -2465,7 +2609,6 @@ def generate_range(start=None, end=None, periods=None,
 
     cur = start
 
-    next_date = cur
     while cur <= end:
         yield cur
 
