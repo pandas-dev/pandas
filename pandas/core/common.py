@@ -1718,6 +1718,9 @@ def _interpolate_scipy_wrapper(x, y, new_x, method, fill_value=None,
                                     bounds_error=bounds_error)
         new_y = terp(new_x)
     elif method == 'spline':
+        # GH #10633
+        if not order:
+            raise ValueError("order needs to be specified and greater than 0")
         terp = interpolate.UnivariateSpline(x, y, k=order, **kwargs)
         new_y = terp(new_x)
     else:
