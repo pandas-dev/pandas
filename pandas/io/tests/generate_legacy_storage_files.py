@@ -83,9 +83,20 @@ def create_data():
                             index=MultiIndex.from_tuples(tuple(zip(*[[1, 1, 2, 2, 2], [3, 4, 3, 4, 5]])),
                                                          names=['one', 'two'])),
                   dup=Series(np.arange(5).astype(np.float64), index=['A', 'B', 'C', 'D', 'A']),
+<<<<<<< HEAD
+<<<<<<< HEAD
                   cat=Series(Categorical(['foo', 'bar', 'baz'])))
     if LooseVersion(pandas.__version__) >= '0.17.0':
         series['period'] = Series([Period('2000Q1')] * 5)
+=======
+                  cat=Series(Categorical(['foo', 'bar', 'baz'])),
+                  per=Series([Period('2000Q1')] * 5))
+>>>>>>> 0525684... ENH: pickle support for Period #10439
+=======
+                  cat=Series(Categorical(['foo', 'bar', 'baz'])))
+    if LooseVersion(pandas.__version__) >= '0.17.0':
+        series['period'] = Series([Period('2000Q1')] * 5)
+>>>>>>> aa04812... update legacy_storage for pickles
 
     mixed_dup_df = DataFrame(data)
     mixed_dup_df.columns = list("ABCDA")

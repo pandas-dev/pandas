@@ -6,9 +6,8 @@
 
    import numpy as np
    np.random.seed(123456)
-   from numpy import nan
-   from pandas import *
-   options.display.max_rows=15
+   import pandas as pd
+   pd.options.display.max_rows=15
    randn = np.random.randn
    np.set_printoptions(precision=4, suppress=True)
 
@@ -43,26 +42,26 @@ a simple example:
 
 .. ipython:: python
 
-   df1 = DataFrame({'A': ['A0', 'A1', 'A2', 'A3'],
+   df1 = pd.DataFrame({'A': ['A0', 'A1', 'A2', 'A3'],
                     'B': ['B0', 'B1', 'B2', 'B3'],
                     'C': ['C0', 'C1', 'C2', 'C3'],
                     'D': ['D0', 'D1', 'D2', 'D3']},
                    index=[0, 1, 2, 3])
 
-   df2 = DataFrame({'A': ['A4', 'A5', 'A6', 'A7'],
+   df2 = pd.DataFrame({'A': ['A4', 'A5', 'A6', 'A7'],
                     'B': ['B4', 'B5', 'B6', 'B7'],
                     'C': ['C4', 'C5', 'C6', 'C7'],
                     'D': ['D4', 'D5', 'D6', 'D7']},
                    index=[4, 5, 6, 7])
 
-   df3 = DataFrame({'A': ['A8', 'A9', 'A10', 'A11'],
+   df3 = pd.DataFrame({'A': ['A8', 'A9', 'A10', 'A11'],
                     'B': ['B8', 'B9', 'B10', 'B11'],
                     'C': ['C8', 'C9', 'C10', 'C11'],
                     'D': ['D8', 'D9', 'D10', 'D11']},
                    index=[8, 9, 10, 11])
 
    frames = [df1, df2, df3]
-   result = concat(frames)
+   result = pd.concat(frames)
 
 .. ipython:: python
    :suppress:
@@ -78,7 +77,7 @@ some configurable handling of "what to do with the other axes":
 
 ::
 
-    concat(objs, axis=0, join='outer', join_axes=None, ignore_index=False,
+    pd.concat(objs, axis=0, join='outer', join_axes=None, ignore_index=False,
            keys=None, levels=None, names=None, verify_integrity=False)
 
 - ``objs``: list or dict of Series, DataFrame, or Panel objects. If a dict is
@@ -112,7 +111,7 @@ this using the ``keys`` argument:
 
 .. ipython:: python
 
-   result = concat(frames, keys=['x', 'y', 'z'])
+   result = pd.concat(frames, keys=['x', 'y', 'z'])
 
 .. ipython:: python
    :suppress:
@@ -163,11 +162,11 @@ behavior:
 
 .. ipython:: python
 
-   df4 = DataFrame({'B': ['B2', 'B3', 'B6', 'B7'],
+   df4 = pd.DataFrame({'B': ['B2', 'B3', 'B6', 'B7'],
                     'D': ['D2', 'D3', 'D6', 'D7'],
                     'F': ['F2', 'F3', 'F6', 'F7']},
                    index=[2, 3, 6, 7])
-   result = concat([df1, df4], axis=1)
+   result = pd.concat([df1, df4], axis=1)
 
 
 .. ipython:: python
@@ -183,7 +182,7 @@ with ``join='inner'``:
 
 .. ipython:: python
 
-   result = concat([df1, df4], axis=1, join='inner')
+   result = pd.concat([df1, df4], axis=1, join='inner')
 
 .. ipython:: python
    :suppress:
@@ -198,7 +197,7 @@ DataFrame:
 
 .. ipython:: python
 
-   result = concat([df1, df4], axis=1, join_axes=[df1.index])
+   result = pd.concat([df1, df4], axis=1, join_axes=[df1.index])
 
 .. ipython:: python
    :suppress:
@@ -275,7 +274,7 @@ To do this, use the ``ignore_index`` argument:
 
 .. ipython:: python
 
-   result = concat([df1, df4], ignore_index=True)
+   result = pd.concat([df1, df4], ignore_index=True)
 
 .. ipython:: python
    :suppress:
@@ -310,8 +309,8 @@ the name of the Series.
 
 .. ipython:: python
 
-   s1 = Series(['X0', 'X1', 'X2', 'X3'], name='X')
-   result = concat([df1, s1], axis=1)
+   s1 = pd.Series(['X0', 'X1', 'X2', 'X3'], name='X')
+   result = pd.concat([df1, s1], axis=1)
 
 .. ipython:: python
    :suppress:
@@ -325,8 +324,8 @@ If unnamed Series are passed they will be numbered consecutively.
 
 .. ipython:: python
 
-   s2 = Series(['_0', '_1', '_2', '_3'])
-   result = concat([df1, s2, s2, s2], axis=1)
+   s2 = pd.Series(['_0', '_1', '_2', '_3'])
+   result = pd.concat([df1, s2, s2, s2], axis=1)
 
 .. ipython:: python
    :suppress:
@@ -340,7 +339,7 @@ Passing ``ignore_index=True`` will drop all name references.
 
 .. ipython:: python
 
-   result = concat([df1, s1], axis=1, ignore_index=True)
+   result = pd.concat([df1, s1], axis=1, ignore_index=True)
 
 .. ipython:: python
    :suppress:
@@ -357,7 +356,7 @@ Let's consider a variation on the first example presented:
 
 .. ipython:: python
 
-   result = concat(frames, keys=['x', 'y', 'z'])
+   result = pd.concat(frames, keys=['x', 'y', 'z'])
 
 .. ipython:: python
    :suppress:
@@ -373,7 +372,7 @@ for the ``keys`` argument (unless other keys are specified):
 .. ipython:: python
 
    pieces = {'x': df1, 'y': df2, 'z': df3}
-   result = concat(pieces)
+   result = pd.concat(pieces)
 
 .. ipython:: python
    :suppress:
@@ -385,7 +384,7 @@ for the ``keys`` argument (unless other keys are specified):
 
 .. ipython:: python
 
-   result = concat(pieces, keys=['z', 'y'])
+   result = pd.concat(pieces, keys=['z', 'y'])
 
 .. ipython:: python
    :suppress:
@@ -407,7 +406,7 @@ do so using the ``levels`` argument:
 
 .. ipython:: python
 
-   result = concat(pieces, keys=['x', 'y', 'z'],
+   result = pd.concat(pieces, keys=['x', 'y', 'z'],
                    levels=[['z', 'y', 'x', 'w']],
                    names=['group_key'])
 
@@ -437,7 +436,7 @@ which returns a new DataFrame as above.
 
 .. ipython:: python
 
-   s2 = Series(['X0', 'X1', 'X2', 'X3'], index=['A', 'B', 'C', 'D'])
+   s2 = pd.Series(['X0', 'X1', 'X2', 'X3'], index=['A', 'B', 'C', 'D'])
    result = df1.append(s2, ignore_index=True)
 
 .. ipython:: python
@@ -464,7 +463,7 @@ You can also pass a list of dicts or Series:
    :suppress:
 
    @savefig merging_append_dits.png
-   p.plot([df1, DataFrame(dicts)], result,
+   p.plot([df1, pd.DataFrame(dicts)], result,
           labels=['df1', 'dicts'], vertical=True);
    plt.close('all');
 
@@ -490,9 +489,9 @@ standard database join operations between DataFrame objects:
 
 ::
 
-    merge(left, right, how='inner', on=None, left_on=None, right_on=None,
-          left_index=False, right_index=False, sort=True,
-          suffixes=('_x', '_y'), copy=True)
+    pd.merge(left, right, how='inner', on=None, left_on=None, right_on=None,
+             left_index=False, right_index=False, sort=True,
+             suffixes=('_x', '_y'), copy=True)
 
 Here's a description of what each argument is for:
 
@@ -566,14 +565,14 @@ key combination:
 
 .. ipython:: python
 
-   left = DataFrame({'key': ['K0', 'K1', 'K2', 'K3'],
-                     'A': ['A0', 'A1', 'A2', 'A3'],
-                     'B': ['B0', 'B1', 'B2', 'B3']})
+   left = pd.DataFrame({'key': ['K0', 'K1', 'K2', 'K3'],
+                        'A': ['A0', 'A1', 'A2', 'A3'],
+                        'B': ['B0', 'B1', 'B2', 'B3']})
 
-   right = DataFrame({'key': ['K0', 'K1', 'K2', 'K3'],
-                      'C': ['C0', 'C1', 'C2', 'C3'],
-                      'D': ['D0', 'D1', 'D2', 'D3']})
-   result = merge(left, right, on='key')
+   right = pd.DataFrame({'key': ['K0', 'K1', 'K2', 'K3'],
+                         'C': ['C0', 'C1', 'C2', 'C3'],
+                         'D': ['D0', 'D1', 'D2', 'D3']})
+   result = pd.merge(left, right, on='key')
 
 .. ipython:: python
    :suppress:
@@ -587,17 +586,17 @@ Here is a more complicated example with multiple join keys:
 
 .. ipython:: python
 
-   left = DataFrame({'key1': ['K0', 'K0', 'K1', 'K2'],
-                     'key2': ['K0', 'K1', 'K0', 'K1'],
-                     'A': ['A0', 'A1', 'A2', 'A3'],
-                     'B': ['B0', 'B1', 'B2', 'B3']})
+   left = pd.DataFrame({'key1': ['K0', 'K0', 'K1', 'K2'],
+                        'key2': ['K0', 'K1', 'K0', 'K1'],
+                        'A': ['A0', 'A1', 'A2', 'A3'],
+                        'B': ['B0', 'B1', 'B2', 'B3']})
 
-   right = DataFrame({'key1': ['K0', 'K1', 'K1', 'K2'],
-                      'key2': ['K0', 'K0', 'K0', 'K0'],
-                      'C': ['C0', 'C1', 'C2', 'C3'],
-                      'D': ['D0', 'D1', 'D2', 'D3']})
+   right = pd.DataFrame({'key1': ['K0', 'K1', 'K1', 'K2'],
+                         'key2': ['K0', 'K0', 'K0', 'K0'],
+                         'C': ['C0', 'C1', 'C2', 'C3'],
+                         'D': ['D0', 'D1', 'D2', 'D3']})
 
-   result = merge(left, right, on=['key1', 'key2'])
+   result = pd.merge(left, right, on=['key1', 'key2'])
 
 .. ipython:: python
    :suppress:
@@ -623,7 +622,7 @@ either the left or right tables, the values in the joined table will be
 
 .. ipython:: python
 
-   result = merge(left, right, how='left', on=['key1', 'key2'])
+   result = pd.merge(left, right, how='left', on=['key1', 'key2'])
 
 .. ipython:: python
    :suppress:
@@ -635,7 +634,7 @@ either the left or right tables, the values in the joined table will be
 
 .. ipython:: python
 
-   result = merge(left, right, how='right', on=['key1', 'key2'])
+   result = pd.merge(left, right, how='right', on=['key1', 'key2'])
 
 .. ipython:: python
    :suppress:
@@ -646,7 +645,7 @@ either the left or right tables, the values in the joined table will be
 
 .. ipython:: python
 
-   result = merge(left, right, how='outer', on=['key1', 'key2'])
+   result = pd.merge(left, right, how='outer', on=['key1', 'key2'])
 
 .. ipython:: python
    :suppress:
@@ -658,7 +657,7 @@ either the left or right tables, the values in the joined table will be
 
 .. ipython:: python
 
-   result = merge(left, right, how='inner', on=['key1', 'key2'])
+   result = pd.merge(left, right, how='inner', on=['key1', 'key2'])
 
 .. ipython:: python
    :suppress:
@@ -679,13 +678,13 @@ is a very basic example:
 
 .. ipython:: python
 
-   left = DataFrame({'A': ['A0', 'A1', 'A2'],
-                     'B': ['B0', 'B1', 'B2']},
-                    index=['K0', 'K1', 'K2'])
+   left = pd.DataFrame({'A': ['A0', 'A1', 'A2'],
+                        'B': ['B0', 'B1', 'B2']},
+                        index=['K0', 'K1', 'K2'])
 
-   right = DataFrame({'C': ['C0', 'C2', 'C3'],
-                      'D': ['D0', 'D2', 'D3']},
-                     index=['K0', 'K2', 'K3'])
+   right = pd.DataFrame({'C': ['C0', 'C2', 'C3'],
+                         'D': ['D0', 'D2', 'D3']},
+                         index=['K0', 'K2', 'K3'])
 
    result = left.join(right)
 
@@ -727,7 +726,7 @@ indexes:
 
 .. ipython:: python
 
-   result = merge(left, right, left_index=True, right_index=True, how='outer')
+   result = pd.merge(left, right, left_index=True, right_index=True, how='outer')
 
 .. ipython:: python
    :suppress:
@@ -739,7 +738,7 @@ indexes:
 
 .. ipython:: python
 
-   result = merge(left, right, left_index=True, right_index=True, how='inner');
+   result = pd.merge(left, right, left_index=True, right_index=True, how='inner');
 
 .. ipython:: python
    :suppress:
@@ -760,7 +759,7 @@ equivalent:
 ::
 
     left.join(right, on=key_or_keys)
-    merge(left, right, left_on=key_or_keys, right_index=True,
+    pd.merge(left, right, left_on=key_or_keys, right_index=True,
           how='left', sort=False)
 
 Obviously you can choose whichever form you find more convenient. For
@@ -769,13 +768,13 @@ key), using ``join`` may be more convenient. Here is a simple example:
 
 .. ipython:: python
 
-   left = DataFrame({'A': ['A0', 'A1', 'A2', 'A3'],
-                     'B': ['B0', 'B1', 'B2', 'B3'],
-                     'key': ['K0', 'K1', 'K0', 'K1']})
+   left = pd.DataFrame({'A': ['A0', 'A1', 'A2', 'A3'],
+                        'B': ['B0', 'B1', 'B2', 'B3'],
+                        'key': ['K0', 'K1', 'K0', 'K1']})
 
-   right = DataFrame({'C': ['C0', 'C1'],
-                      'D': ['D0', 'D1']},
-                     index=['K0', 'K1'])
+   right = pd.DataFrame({'C': ['C0', 'C1'],
+                         'D': ['D0', 'D1']},
+                         index=['K0', 'K1'])
 
    result = left.join(right, on='key')
 
@@ -789,8 +788,8 @@ key), using ``join`` may be more convenient. Here is a simple example:
 
 .. ipython:: python
 
-   result = merge(left, right, left_on='key', right_index=True,
-                  how='left', sort=False);
+   result = pd.merge(left, right, left_on='key', right_index=True,
+                     how='left', sort=False);
 
 .. ipython:: python
    :suppress:
@@ -806,14 +805,14 @@ To join on multiple keys, the passed DataFrame must have a ``MultiIndex``:
 
 .. ipython:: python
 
-   left = DataFrame({'A': ['A0', 'A1', 'A2', 'A3'],
-                     'B': ['B0', 'B1', 'B2', 'B3'],
-                     'key1': ['K0', 'K0', 'K1', 'K2'],
-                     'key2': ['K0', 'K1', 'K0', 'K1']})
+   left = pd.DataFrame({'A': ['A0', 'A1', 'A2', 'A3'],
+                        'B': ['B0', 'B1', 'B2', 'B3'],
+                        'key1': ['K0', 'K0', 'K1', 'K2'],
+                        'key2': ['K0', 'K1', 'K0', 'K1']})
 
-   index = MultiIndex.from_tuples([('K0', 'K0'), ('K1', 'K0'),
-                                   ('K2', 'K0'), ('K2', 'K1')])
-   right = DataFrame({'C': ['C0', 'C1', 'C2', 'C3'],
+   index = pd.MultiIndex.from_tuples([('K0', 'K0'), ('K1', 'K0'),
+                                     ('K2', 'K0'), ('K2', 'K1')])
+   right = pd.DataFrame({'C': ['C0', 'C1', 'C2', 'C3'],
                       'D': ['D0', 'D1', 'D2', 'D3']},
                      index=index)
 
@@ -865,16 +864,16 @@ a level name of the multi-indexed frame.
 
 ..  ipython:: python
 
-   left = DataFrame({'A': ['A0', 'A1', 'A2'],
-                     'B': ['B0', 'B1', 'B2']},
-                    index=Index(['K0', 'K1', 'K2'], name='key'))
+   left = pd.DataFrame({'A': ['A0', 'A1', 'A2'],
+                        'B': ['B0', 'B1', 'B2']},
+                        index=Index(['K0', 'K1', 'K2'], name='key'))
 
-   index = MultiIndex.from_tuples([('K0', 'Y0'), ('K1', 'Y1'),
-                                   ('K2', 'Y2'), ('K2', 'Y3')],
-                                  names=['key', 'Y'])
-   right = DataFrame({'C': ['C0', 'C1', 'C2', 'C3'],
-                      'D': ['D0', 'D1', 'D2', 'D3']},
-                     index=index)
+   index = pd.MultiIndex.from_tuples([('K0', 'Y0'), ('K1', 'Y1'),
+                                     ('K2', 'Y2'), ('K2', 'Y3')],
+                                      names=['key', 'Y'])
+   right = pd.DataFrame({'C': ['C0', 'C1', 'C2', 'C3'],
+                         'D': ['D0', 'D1', 'D2', 'D3']},
+                         index=index)
 
    result = left.join(right, how='inner')
 
@@ -890,7 +889,7 @@ This is equivalent but less verbose and more memory efficient / faster than this
 
 ..  ipython:: python
 
-    result = merge(left.reset_index(), right.reset_index(),
+    result = pd.merge(left.reset_index(), right.reset_index(),
           on=['key'], how='inner').set_index(['key','Y'])
 
 .. ipython:: python
@@ -908,15 +907,15 @@ This is not Implemented via ``join`` at-the-moment, however it can be done using
 
 .. ipython:: python
 
-   index = MultiIndex.from_tuples([('K0', 'X0'), ('K0', 'X1'),
-                                   ('K1', 'X2')],
-                                  names=['key', 'X'])
-   left = DataFrame({'A': ['A0', 'A1', 'A2'],
-                     'B': ['B0', 'B1', 'B2']},
-                    index=index)
+   index = pd.MultiIndex.from_tuples([('K0', 'X0'), ('K0', 'X1'),
+                                      ('K1', 'X2')],
+                                       names=['key', 'X'])
+   left = pd.DataFrame({'A': ['A0', 'A1', 'A2'],
+                        'B': ['B0', 'B1', 'B2']},
+                         index=index)
 
-   result = merge(left.reset_index(), right.reset_index(),
-                  on=['key'], how='inner').set_index(['key','X','Y'])
+   result = pd.merge(left.reset_index(), right.reset_index(),
+                     on=['key'], how='inner').set_index(['key','X','Y'])
 
 .. ipython:: python
    :suppress:
@@ -935,10 +934,10 @@ columns:
 
 .. ipython:: python
 
-   left = DataFrame({'k': ['K0', 'K1', 'K2'], 'v': [1, 2, 3]})
-   right = DataFrame({'k': ['K0', 'K0', 'K3'], 'v': [4, 5, 6]})
+   left = pd.DataFrame({'k': ['K0', 'K1', 'K2'], 'v': [1, 2, 3]})
+   right = pd.DataFrame({'k': ['K0', 'K0', 'K3'], 'v': [4, 5, 6]})
 
-   result = merge(left, right, on='k')
+   result = pd.merge(left, right, on='k')
 
 .. ipython:: python
    :suppress:
@@ -950,7 +949,7 @@ columns:
 
 .. ipython:: python
 
-   result = merge(left, right, on='k', suffixes=['_l', '_r'])
+   result = pd.merge(left, right, on='k', suffixes=['_l', '_r'])
 
 .. ipython:: python
    :suppress:
@@ -987,7 +986,7 @@ them together on their indexes. The same is true for ``Panel.join``.
 
 .. ipython:: python
 
-   right2 = DataFrame({'v': [7, 8, 9]}, index=['K1', 'K1', 'K2'])
+   right2 = pd.DataFrame({'v': [7, 8, 9]}, index=['K1', 'K1', 'K2'])
    result = left.join([right, right2])
 
 .. ipython:: python
@@ -1037,10 +1036,10 @@ object from values for matching indices in the other. Here is an example:
 
 .. ipython:: python
 
-   df1 = DataFrame([[nan, 3., 5.], [-4.6, np.nan, nan],
-                    [nan, 7., nan]])
-   df2 = DataFrame([[-42.6, np.nan, -8.2], [-5., 1.6, 4]],
-                   index=[1, 2])
+   df1 = pd.DataFrame([[np.nan, 3., 5.], [-4.6, np.nan, np.nan],
+                      [np.nan, 7., np.nan]])
+   df2 = pd.DataFrame([[-42.6, np.nan, -8.2], [-5., 1.6, 4]],
+                      index=[1, 2])
 
 For this, use the ``combine_first`` method:
 

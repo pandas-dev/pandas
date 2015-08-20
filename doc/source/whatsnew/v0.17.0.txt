@@ -724,15 +724,40 @@ Performance Improvements
 
 Bug Fixes
 ~~~~~~~~~
-
 - Bug in incorrection computation of ``.mean()`` on ``timedelta64[ns]`` because of overflow (:issue:`9442`)
+=======
+BUG: 10633 and 10800 fix
+=======
+ENH: pickle support for Period #10439
+=======
+BUG: 10633 and 10800 fix
+=======
+ENH: pickle support for Period #10439
 - Bug in ``DataFrame.to_html(index=False)`` renders unnecessary ``name`` row (:issue:`10344`)
+=======
+
+
+- Bug in ``DataFrame.to_html(index=False)`` renders unnecessary ``name`` row (:issue:`10344`) updating examples and the bug fix
+=======
+- Bug in ``DataFrame.to_html(index=False)`` renders unnecessary ``name`` row (:issue:`10344`) 
+ENH: pickle support for Period #10439
+=======
+- Bug in ``DataFrame.to_html(index=False)`` renders unnecessary ``name`` row (:issue:`10344`) 
+
+updating examples and the bug fix
+BUG: 10633 and 10800 fix
+=======
+ENH: pickle support for Period #10439
 - Bug in ``DataFrame.apply`` when function returns categorical series. (:issue:`9573`)
 - Bug in ``to_datetime`` with invalid dates and formats supplied (:issue:`10154`)
 - Bug in ``Index.drop_duplicates`` dropping name(s) (:issue:`10115`)
 - Bug in ``Series.quantile`` dropping name (:issue:`10881`)
 - Bug in ``pd.Series`` when setting a value on an empty ``Series`` whose index has a frequency. (:issue:`10193`)
+
 - Bug in ``pd.Series.interpolate`` with invalid ``order`` keyword values. (:issue:`10633`)
+=======
+- Bug in ``pd.Series.interpolate`` when setting no order value on  ``Series.interpolate`` this needs to be at least 1. (:issue:`10633`) and (:issue:`10800`)
+BUG: 10633 and 10800 fix
 - Bug in ``DataFrame.plot`` raises ``ValueError`` when color name is specified by multiple characters (:issue:`10387`)
 - Bug in ``Index`` construction with a mixed list of tuples (:issue:`10697`)
 - Bug in ``DataFrame.reset_index`` when index contains ``NaT``. (:issue:`10388`)

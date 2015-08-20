@@ -2537,6 +2537,8 @@ class TestPeriodIndex(tm.TestCase):
 
     def test_round_trip(self):
 
+
+        import pickle
         p = Period('2000Q1')
         new_p = self.round_trip_pickle(p)
         self.assertEqual(new_p, p)
