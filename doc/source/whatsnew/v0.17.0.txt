@@ -674,13 +674,11 @@ Performance Improvements
 
 Bug Fixes
 ~~~~~~~~~
-<<<<<<< HEAD
 - Bug in ``DataFrame.to_html(index=False)`` renders unnecessary ``name`` row (:issue:`10344`)
 =======
 
 
 - Bug in ``DataFrame.to_html(index=False)`` renders unnecessary ``name`` row (:issue:`10344`) 
->>>>>>> updating examples and the bug fix
 - Bug in ``DataFrame.apply`` when function returns categorical series. (:issue:`9573`)
 - Bug in ``to_datetime`` with invalid dates and formats supplied (:issue:`10154`)
 - Bug in ``Index.drop_duplicates`` dropping name(s) (:issue:`10115`)
