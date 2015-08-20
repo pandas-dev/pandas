@@ -14188,7 +14188,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
             assert_frame_equal(result, expected)
 
     def test_iterkv_deprecation(self):
-        with tm.assert_produces_warning(DeprecationWarning):
+        with tm.assert_produces_warning(FutureWarning):
             self.mixed_float.iterkv()
 
     def test_iterkv_names(self):
