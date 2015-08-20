@@ -23,6 +23,15 @@ from pandas.tseries.offsets import MonthEnd
 from pandas.util.testing import _network_error_classes
 from pandas.io.html import read_html
 
+warnings.warn("\n"
+              "The pandas.io.data module is moved to a separate package "
+              "(pandas-datareader) and will be removed from pandas in a "
+              "future version.\nAfter installing the pandas-datareader package "
+              "(https://github.com/pydata/pandas-datareader), you can change "
+              "the import ``from pandas.io import data, wb`` to "
+              "``from pandas_datareader import data, wb``.",
+              FutureWarning)
+
 class SymbolWarning(UserWarning):
     pass
 
