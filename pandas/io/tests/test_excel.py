@@ -316,7 +316,6 @@ class ExcelReaderTests(SharedItems, tm.TestCase):
 
         tm.assert_frame_equal(url_table, local_table)
 
-
     def test_xlsx_table(self):
         _skip_if_no_xlrd()
         _skip_if_no_openpyxl()
@@ -1145,10 +1144,10 @@ class ExcelWriterBase(SharedItems):
         # ensure limited functionality in 0.10
         # override of #2370 until sorted out in 0.11
 
-        def roundtrip(df, header=True, parser_hdr=0):
+        def roundtrip(df, header=True, parser_hdr=0, index=True):
 
             with ensure_clean(self.ext) as path:
-                df.to_excel(path, header=header, merge_cells=self.merge_cells)
+                df.to_excel(path, header=header, merge_cells=self.merge_cells, index=index)
                 xf = pd.ExcelFile(path)
                 res = xf.parse(xf.sheet_names[0], header=parser_hdr)
                 return res
@@ -1164,7 +1163,7 @@ class ExcelWriterBase(SharedItems):
                     #is implemented for now fixing #9794
                     if j>1:
                         with tm.assertRaises(NotImplementedError):
-                            res = roundtrip(df, use_headers)
+                            res = roundtrip(df, use_headers, index=False)
                     else:
                         res = roundtrip(df, use_headers)
 
@@ -1186,6 +1185,33 @@ class ExcelWriterBase(SharedItems):
         res = roundtrip(DataFrame([0]), False, None)
         self.assertEqual(res.shape, (1, 2))
         self.assertTrue(res.ix[0, 0] is not np.nan)
+
+    def test_excel_010_hemstring_raises_NotImplementedError(self):
+        # This test was failing only for j>1 and header=False,
+        # So I reproduced a simple test.
+        _skip_if_no_xlrd()
+
+        if self.merge_cells:
+            raise nose.SkipTest('Skip tests for merged MI format.')
+
+        from pandas.util.testing import makeCustomDataframe as mkdf
+        # ensure limited functionality in 0.10
+        # override of #2370 until sorted out in 0.11
+
+        def roundtrip2(df, header=True, parser_hdr=0, index=True):
+
+            with ensure_clean(self.ext) as path:
+                df.to_excel(path, header=header, merge_cells=self.merge_cells, index=index)
+                xf = pd.ExcelFile(path)
+                res = xf.parse(xf.sheet_names[0], header=parser_hdr)
+                return res
+
+        nrows = 5; ncols = 3
+        j = 2; i = 1
+        df = mkdf(nrows, ncols, r_idx_nlevels=i, c_idx_nlevels=j)
+        with tm.assertRaises(NotImplementedError):
+            res = roundtrip2(df, header=False, index=False)
+
 
     def test_duplicated_columns(self):
         # Test for issue #5235.
@@ -1439,28 +1465,36 @@ class XlwtTests(ExcelWriterBase, tm.TestCase):
     engine_name = 'xlwt'
     check_skip = staticmethod(_skip_if_no_xlwt)
 
-    def test_excel_raise_not_implemented_error_on_multiindex_columns(self):
+    def test_excel_raise_error_on_multiindex_columns_and_no_index(self):
         _skip_if_no_xlwt()
-        #MultiIndex as columns is not yet implemented 9794
-        cols = pd.MultiIndex.from_tuples([('site',''),
-                                          ('2014','height'),
-                                          ('2014','weight')])
-        df = pd.DataFrame(np.random.randn(10,3), columns=cols)
+        # MultiIndex as columns is not yet implemented 9794
+        cols = pd.MultiIndex.from_tuples([('site', ''),
+                                          ('2014', 'height'),
+                                          ('2014', 'weight')])
+        df = pd.DataFrame(np.random.randn(10, 3), columns=cols)
         with tm.assertRaises(NotImplementedError):
             with ensure_clean(self.ext) as path:
                 df.to_excel(path, index=False)
 
+    def test_excel_warns_verbosely_on_multiindex_columns_and_index_true(self):
+        _skip_if_no_xlwt()
+        cols = pd.MultiIndex.from_tuples([('site', ''),
+                                          ('2014', 'height'),
+                                          ('2014', 'weight')])
+        df = pd.DataFrame(np.random.randn(10, 3), columns=cols)
+        with tm.assert_produces_warning(UserWarning):
+            with ensure_clean(self.ext) as path:
+                df.to_excel(path, index=True)
+
     def test_excel_multiindex_index(self):
         _skip_if_no_xlwt()
-        #MultiIndex as index works so assert no error #9794
-        cols = pd.MultiIndex.from_tuples([('site',''),
-                                          ('2014','height'),
-                                          ('2014','weight')])
-        df = pd.DataFrame(np.random.randn(3,10), index=cols)
+        # MultiIndex as index works so assert no error #9794
+        cols = pd.MultiIndex.from_tuples([('site', ''),
+                                          ('2014', 'height'),
+                                          ('2014', 'weight')])
+        df = pd.DataFrame(np.random.randn(3, 10), index=cols)
         with ensure_clean(self.ext) as path:
             df.to_excel(path, index=False)
-
-
 
     def test_to_excel_styleconverter(self):
         _skip_if_no_xlwt()
