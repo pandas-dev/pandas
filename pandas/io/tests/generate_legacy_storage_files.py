@@ -4,8 +4,7 @@ from distutils.version import LooseVersion
 from pandas import (Series, TimeSeries, DataFrame, Panel,
                     SparseSeries, SparseTimeSeries, SparseDataFrame, SparsePanel,
                     Index, MultiIndex, PeriodIndex, bdate_range, to_msgpack,
-                    date_range, period_range, bdate_range, Timestamp, Categorical,
-                    Period)
+                    date_range, period_range, bdate_range, Timestamp, Categorical)
 import os
 import sys
 import numpy as np
@@ -79,7 +78,8 @@ def create_data():
                             index=MultiIndex.from_tuples(tuple(zip(*[[1, 1, 2, 2, 2], [3, 4, 3, 4, 5]])),
                                                          names=['one', 'two'])),
                   dup=Series(np.arange(5).astype(np.float64), index=['A', 'B', 'C', 'D', 'A']),
-                  cat=Series(Categorical(['foo', 'bar', 'baz'])))
+                  cat=Series(Categorical(['foo', 'bar', 'baz'])),
+                  per=Series([Period('2000Q1')] * 5))
 
     mixed_dup_df = DataFrame(data)
     mixed_dup_df.columns = list("ABCDA")
