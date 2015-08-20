@@ -3210,6 +3210,7 @@ class TestDataFramePlots(TestPlotBase):
         self._check_has_errorbars(ax, xerr=0, yerr=1)
         _check_errorbar_color(ax.containers, 'green', has_err='has_yerr')
 
+    @slow
     def test_sharex_and_ax(self):
         # https://github.com/pydata/pandas/issues/9737
         # using gridspec, the axis in fig.get_axis() are sorted differently than pandas expected
@@ -3218,68 +3219,96 @@ class TestDataFramePlots(TestPlotBase):
         plt.close('all')
         gs, axes = _generate_4_axes_via_gridspec()
 
-        df = DataFrame({"a":[1,2,3,4,5,6], "b":[1,2,3,4,5,6]})
+        df = DataFrame({"a": [1, 2, 3, 4, 5, 6],
+                        "b": [1, 2, 3, 4, 5, 6],
+                        "c": [1, 2, 3, 4, 5, 6],
+                        "d": [1, 2, 3, 4, 5, 6]})
+
+        def _check(axes):
+            for ax in axes:
+                self.assertEqual(len(ax.lines), 1)
+                self._check_visible(ax.get_yticklabels(), visible=True)
+            for ax in [axes[0], axes[2]]:
+                self._check_visible(ax.get_xticklabels(), visible=False)
+                self._check_visible(ax.get_xticklabels(minor=True), visible=False)
+            for ax in [axes[1], axes[3]]:
+                self._check_visible(ax.get_xticklabels(), visible=True)
+                self._check_visible(ax.get_xticklabels(minor=True), visible=True)
 
         for ax in axes:
             df.plot(x="a", y="b", title="title", ax=ax, sharex=True)
-
         gs.tight_layout(plt.gcf())
-        for ax in plt.gcf().get_axes():
-            for label in ax.get_xticklabels():
-                self.assertEqual(label.get_visible(), ax.is_last_row(),
-                                 "x ticklabel has wrong visiblity")
-            self.assertEqual(ax.xaxis.get_label().get_visible(), ax.is_last_row(),
-                            "x label has wrong visiblity")
+        _check(axes)
+        tm.close()
 
-        plt.close('all')
+        gs, axes = _generate_4_axes_via_gridspec()
+        with tm.assert_produces_warning(UserWarning):
+            axes = df.plot(subplots=True, ax=axes, sharex=True)
+        _check(axes)
+        tm.close()
+
         gs, axes = _generate_4_axes_via_gridspec()
         # without sharex, no labels should be touched!
         for ax in axes:
             df.plot(x="a", y="b", title="title", ax=ax)
 
         gs.tight_layout(plt.gcf())
-        for ax in plt.gcf().get_axes():
-            for label in ax.get_xticklabels():
-                self.assertTrue(label.get_visible(), "x ticklabel is invisible but shouldn't")
-            self.assertTrue(ax.xaxis.get_label().get_visible(),
-                            "x label is invisible but shouldn't")
+        for ax in axes:
+            self.assertEqual(len(ax.lines), 1)
+            self._check_visible(ax.get_yticklabels(), visible=True)
+            self._check_visible(ax.get_xticklabels(), visible=True)
+            self._check_visible(ax.get_xticklabels(minor=True), visible=True)
+        tm.close()
 
-
+    @slow
     def test_sharey_and_ax(self):
         # https://github.com/pydata/pandas/issues/9737
         # using gridspec, the axis in fig.get_axis() are sorted differently than pandas expected
         # them, so make sure that only the right ones are removed
         import matplotlib.pyplot as plt
 
-        plt.close('all')
         gs, axes = _generate_4_axes_via_gridspec()
 
-        df = DataFrame({"a":[1,2,3,4,5,6], "b":[1,2,3,4,5,6]})
+        df = DataFrame({"a": [1, 2, 3, 4, 5, 6],
+                        "b": [1, 2, 3, 4, 5, 6],
+                        "c": [1, 2, 3, 4, 5, 6],
+                        "d": [1, 2, 3, 4, 5, 6]})
+
+        def _check(axes):
+            for ax in axes:
+                self.assertEqual(len(ax.lines), 1)
+                self._check_visible(ax.get_xticklabels(), visible=True)
+                self._check_visible(ax.get_xticklabels(minor=True), visible=True)
+            for ax in [axes[0], axes[1]]:
+                self._check_visible(ax.get_yticklabels(), visible=True)
+            for ax in [axes[2], axes[3]]:
+                self._check_visible(ax.get_yticklabels(), visible=False)
 
         for ax in axes:
             df.plot(x="a", y="b", title="title", ax=ax, sharey=True)
+        gs.tight_layout(plt.gcf())
+        _check(axes)
+        tm.close()
+
+        gs, axes = _generate_4_axes_via_gridspec()
+        with tm.assert_produces_warning(UserWarning):
+            axes = df.plot(subplots=True, ax=axes, sharey=True)
 
         gs.tight_layout(plt.gcf())
-        for ax in plt.gcf().get_axes():
-            for label in ax.get_yticklabels():
-                self.assertEqual(label.get_visible(), ax.is_first_col(),
-                                 "y ticklabel has wrong visiblity")
-            self.assertEqual(ax.yaxis.get_label().get_visible(), ax.is_first_col(),
-                            "y label has wrong visiblity")
+        _check(axes)
+        tm.close()
 
-        plt.close('all')
         gs, axes = _generate_4_axes_via_gridspec()
-
         # without sharex, no labels should be touched!
         for ax in axes:
             df.plot(x="a", y="b", title="title", ax=ax)
 
         gs.tight_layout(plt.gcf())
-        for ax in plt.gcf().get_axes():
-            for label in ax.get_yticklabels():
-                self.assertTrue(label.get_visible(), "y ticklabel is invisible but shouldn't")
-            self.assertTrue(ax.yaxis.get_label().get_visible(),
-                             "y label is invisible but shouldn't")
+        for ax in axes:
+            self.assertEqual(len(ax.lines), 1)
+            self._check_visible(ax.get_yticklabels(), visible=True)
+            self._check_visible(ax.get_xticklabels(), visible=True)
+            self._check_visible(ax.get_xticklabels(minor=True), visible=True)
 
     def test_memory_leak(self):
         """ Check that every plot type gets properly collected. """
@@ -3310,6 +3339,172 @@ class TestDataFramePlots(TestPlotBase):
             with tm.assertRaises(ReferenceError):
                 # need to actually access something to get an error
                 results[key].lines
+
+    @slow
+    def test_df_subplots_patterns_minorticks(self):
+        # GH 10657
+        import matplotlib.pyplot as plt
+
+        df = DataFrame(np.random.randn(10, 2),
+                       index=date_range('1/1/2000', periods=10),
+                       columns=list('AB'))
+
+        # shared subplots
+        fig, axes = plt.subplots(2, 1, sharex=True)
+        axes = df.plot(subplots=True, ax=axes)
+        for ax in axes:
+            self.assertEqual(len(ax.lines), 1)
+            self._check_visible(ax.get_yticklabels(), visible=True)
+        # xaxis of 1st ax must be hidden
+        self._check_visible(axes[0].get_xticklabels(), visible=False)
+        self._check_visible(axes[0].get_xticklabels(minor=True), visible=False)
+        self._check_visible(axes[1].get_xticklabels(), visible=True)
+        self._check_visible(axes[1].get_xticklabels(minor=True), visible=True)
+        tm.close()
+
+        fig, axes = plt.subplots(2, 1)
+        with tm.assert_produces_warning(UserWarning):
+            axes = df.plot(subplots=True, ax=axes, sharex=True)
+        for ax in axes:
+            self.assertEqual(len(ax.lines), 1)
+            self._check_visible(ax.get_yticklabels(), visible=True)
+        # xaxis of 1st ax must be hidden
+        self._check_visible(axes[0].get_xticklabels(), visible=False)
+        self._check_visible(axes[0].get_xticklabels(minor=True), visible=False)
+        self._check_visible(axes[1].get_xticklabels(), visible=True)
+        self._check_visible(axes[1].get_xticklabels(minor=True), visible=True)
+        tm.close()
+
+        # not shared
+        fig, axes = plt.subplots(2, 1)
+        axes = df.plot(subplots=True, ax=axes)
+        for ax in axes:
+            self.assertEqual(len(ax.lines), 1)
+            self._check_visible(ax.get_yticklabels(), visible=True)
+            self._check_visible(ax.get_xticklabels(), visible=True)
+            self._check_visible(ax.get_xticklabels(minor=True), visible=True)
+        tm.close()
+
+    @slow
+    def test_df_gridspec_patterns(self):
+        # GH 10819
+        import matplotlib.pyplot as plt
+        import matplotlib.gridspec as gridspec
+
+        ts = Series(np.random.randn(10),
+                    index=date_range('1/1/2000', periods=10))
+
+        df = DataFrame(np.random.randn(10, 2), index=ts.index,
+                       columns=list('AB'))
+
+        def _get_vertical_grid():
+            gs = gridspec.GridSpec(3, 1)
+            fig = plt.figure()
+            ax1 = fig.add_subplot(gs[:2, :])
+            ax2 = fig.add_subplot(gs[2, :])
+            return ax1, ax2
+
+        def _get_horizontal_grid():
+            gs = gridspec.GridSpec(1, 3)
+            fig = plt.figure()
+            ax1 = fig.add_subplot(gs[:, :2])
+            ax2 = fig.add_subplot(gs[:, 2])
+            return ax1, ax2
+
+        for ax1, ax2 in [_get_vertical_grid(), _get_horizontal_grid()]:
+            ax1 = ts.plot(ax=ax1)
+            self.assertEqual(len(ax1.lines), 1)
+            ax2 = df.plot(ax=ax2)
+            self.assertEqual(len(ax2.lines), 2)
+            for ax in [ax1, ax2]:
+                self._check_visible(ax.get_yticklabels(), visible=True)
+                self._check_visible(ax.get_xticklabels(), visible=True)
+                self._check_visible(ax.get_xticklabels(minor=True), visible=True)
+            tm.close()
+
+        # subplots=True
+        for ax1, ax2 in [_get_vertical_grid(), _get_horizontal_grid()]:
+            axes = df.plot(subplots=True, ax=[ax1, ax2])
+            self.assertEqual(len(ax1.lines), 1)
+            self.assertEqual(len(ax2.lines), 1)
+            for ax in axes:
+                self._check_visible(ax.get_yticklabels(), visible=True)
+                self._check_visible(ax.get_xticklabels(), visible=True)
+                self._check_visible(ax.get_xticklabels(minor=True), visible=True)
+            tm.close()
+
+        # vertical / subplots / sharex=True / sharey=True
+        ax1, ax2 = _get_vertical_grid()
+        with tm.assert_produces_warning(UserWarning):
+            axes = df.plot(subplots=True, ax=[ax1, ax2],
+                           sharex=True, sharey=True)
+        self.assertEqual(len(axes[0].lines), 1)
+        self.assertEqual(len(axes[1].lines), 1)
+        for ax in [ax1, ax2]:
+            # yaxis are visible because there is only one column
+            self._check_visible(ax.get_yticklabels(), visible=True)
+        # xaxis of axes0 (top) are hidden
+        self._check_visible(axes[0].get_xticklabels(), visible=False)
+        self._check_visible(axes[0].get_xticklabels(minor=True), visible=False)
+        self._check_visible(axes[1].get_xticklabels(), visible=True)
+        self._check_visible(axes[1].get_xticklabels(minor=True), visible=True)
+        tm.close()
+
+        # horizontal / subplots / sharex=True / sharey=True
+        ax1, ax2 = _get_horizontal_grid()
+        with tm.assert_produces_warning(UserWarning):
+            axes = df.plot(subplots=True, ax=[ax1, ax2],
+                           sharex=True, sharey=True)
+        self.assertEqual(len(axes[0].lines), 1)
+        self.assertEqual(len(axes[1].lines), 1)
+        self._check_visible(axes[0].get_yticklabels(), visible=True)
+        # yaxis of axes1 (right) are hidden
+        self._check_visible(axes[1].get_yticklabels(), visible=False)
+        for ax in [ax1, ax2]:
+            # xaxis are visible because there is only one column
+            self._check_visible(ax.get_xticklabels(), visible=True)
+            self._check_visible(ax.get_xticklabels(minor=True), visible=True)
+        tm.close()
+
+        # boxed
+        def _get_boxed_grid():
+            gs = gridspec.GridSpec(3,3)
+            fig = plt.figure()
+            ax1 = fig.add_subplot(gs[:2, :2])
+            ax2 = fig.add_subplot(gs[:2, 2])
+            ax3 = fig.add_subplot(gs[2, :2])
+            ax4 = fig.add_subplot(gs[2, 2])
+            return ax1, ax2, ax3, ax4
+
+        axes = _get_boxed_grid()
+        df = DataFrame(np.random.randn(10, 4),
+                      index=ts.index, columns=list('ABCD'))
+        axes = df.plot(subplots=True, ax=axes)
+        for ax in axes:
+            self.assertEqual(len(ax.lines), 1)
+            # axis are visible because these are not shared
+            self._check_visible(ax.get_yticklabels(), visible=True)
+            self._check_visible(ax.get_xticklabels(), visible=True)
+            self._check_visible(ax.get_xticklabels(minor=True), visible=True)
+        tm.close()
+
+        # subplots / sharex=True / sharey=True
+        axes = _get_boxed_grid()
+        with tm.assert_produces_warning(UserWarning):
+            axes = df.plot(subplots=True, ax=axes, sharex=True, sharey=True)
+        for ax in axes:
+            self.assertEqual(len(ax.lines), 1)
+        for ax in [axes[0], axes[2]]: # left column
+            self._check_visible(ax.get_yticklabels(), visible=True)
+        for ax in [axes[1], axes[3]]: # right column
+            self._check_visible(ax.get_yticklabels(), visible=False)
+        for ax in [axes[0], axes[1]]: # top row
+            self._check_visible(ax.get_xticklabels(), visible=False)
+            self._check_visible(ax.get_xticklabels(minor=True), visible=False)
+        for ax in [axes[2], axes[3]]: # bottom row
+            self._check_visible(ax.get_xticklabels(), visible=True)
+            self._check_visible(ax.get_xticklabels(minor=True), visible=True)
+        tm.close()
 
     @slow
     def test_df_grid_settings(self):

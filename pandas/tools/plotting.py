@@ -3278,63 +3278,64 @@ def _subplots(naxes=None, sharex=False, sharey=False, squeeze=True,
 
     return fig, axes
 
-def _remove_xlabels_from_axis(ax):
-    for label in ax.get_xticklabels():
-        label.set_visible(False)
+
+def _remove_labels_from_axis(axis):
+    for t in axis.get_majorticklabels():
+        t.set_visible(False)
+
     try:
         # set_visible will not be effective if
         # minor axis has NullLocator and NullFormattor (default)
         import matplotlib.ticker as ticker
-
-        if isinstance(ax.xaxis.get_minor_locator(), ticker.NullLocator):
-            ax.xaxis.set_minor_locator(ticker.AutoLocator())
-        if isinstance(ax.xaxis.get_minor_formatter(), ticker.NullFormatter):
-            ax.xaxis.set_minor_formatter(ticker.FormatStrFormatter(''))
-        for label in ax.get_xticklabels(minor=True):
-            label.set_visible(False)
+        if isinstance(axis.get_minor_locator(), ticker.NullLocator):
+            axis.set_minor_locator(ticker.AutoLocator())
+        if isinstance(axis.get_minor_formatter(), ticker.NullFormatter):
+            axis.set_minor_formatter(ticker.FormatStrFormatter(''))
+        for t in axis.get_minorticklabels():
+            t.set_visible(False)
     except Exception:   # pragma no cover
-        pass
-    ax.xaxis.get_label().set_visible(False)
+        raise
+    axis.get_label().set_visible(False)
 
-def _remove_ylables_from_axis(ax):
-    for label in ax.get_yticklabels():
-        label.set_visible(False)
-    try:
-        import matplotlib.ticker as ticker
-        if isinstance(ax.yaxis.get_minor_locator(), ticker.NullLocator):
-            ax.yaxis.set_minor_locator(ticker.AutoLocator())
-        if isinstance(ax.yaxis.get_minor_formatter(), ticker.NullFormatter):
-            ax.yaxis.set_minor_formatter(ticker.FormatStrFormatter(''))
-        for label in ax.get_yticklabels(minor=True):
-            label.set_visible(False)
-    except Exception:   # pragma no cover
-        pass
-    ax.yaxis.get_label().set_visible(False)
 
 def _handle_shared_axes(axarr, nplots, naxes, nrows, ncols, sharex, sharey):
     if nplots > 1:
 
-        # first find out the ax layout, so that we can correctly handle 'gaps"
-        layout = np.zeros((nrows+1,ncols+1), dtype=np.bool)
-        for ax in axarr:
-            layout[ax.rowNum, ax.colNum] = ax.get_visible()
+        if nrows > 1:
+            try:
+                # first find out the ax layout,
+                # so that we can correctly handle 'gaps"
+                layout = np.zeros((nrows+1,ncols+1), dtype=np.bool)
+                for ax in axarr:
+                    layout[ax.rowNum, ax.colNum] = ax.get_visible()
 
-        if sharex and nrows > 1:
-            for ax in axarr:
-                # only the last row of subplots should get x labels -> all other off
-                # layout handles the case that the subplot is the last in the column,
-                # because below is no subplot/gap.
-                if not layout[ax.rowNum+1, ax.colNum]:
-                    continue
-                _remove_xlabels_from_axis(ax)
-        if sharey and ncols > 1:
+                for ax in axarr:
+                    # only the last row of subplots should get x labels -> all
+                    # other off layout handles the case that the subplot is
+                    # the last in the column, because below is no subplot/gap.
+                    if not layout[ax.rowNum+1, ax.colNum]:
+                        continue
+                    if sharex or len(ax.get_shared_x_axes().get_siblings(ax)) > 1:
+                        _remove_labels_from_axis(ax.xaxis)
+
+            except IndexError:
+                # if gridspec is used, ax.rowNum and ax.colNum may different
+                # from layout shape. in this case, use last_row logic
+                for ax in axarr:
+                    if ax.is_last_row():
+                        continue
+                    if sharex or len(ax.get_shared_x_axes().get_siblings(ax)) > 1:
+                        _remove_labels_from_axis(ax.xaxis)
+
+        if ncols > 1:
             for ax in axarr:
                 # only the first column should get y labels -> set all other to off
                 # as we only have labels in teh first column and we always have a subplot there,
                 # we can skip the layout test
                 if ax.is_first_col():
                     continue
-                _remove_ylables_from_axis(ax)
+                if sharey or len(ax.get_shared_y_axes().get_siblings(ax)) > 1:
+                    _remove_labels_from_axis(ax.yaxis)
 
 
 
