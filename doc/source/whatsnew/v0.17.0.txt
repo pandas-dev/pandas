@@ -11,6 +11,21 @@ users upgrade to this version.
 
    pandas >= 0.17.0 will no longer support compatibility with Python version 3.2 (:issue:`9118`)
 
+.. warning::
+
+   The ``pandas.io.data`` package is deprecated and will be replaced by the
+   `pandas-datareader package <https://github.com/pydata/pandas-datareader>`_.
+   This will allow the data modules to be independently updated to your pandas
+   installation. The API for ``pandas-datareader v0.1.1`` is exactly the same
+   as in ``pandas v0.17.0`` (:issue:`8961`, :issue:`10861`).
+
+   After installing pandas-datareader, you can easily change your imports:
+
+   .. code-block:: Python
+
+     from pandas.io import data, wb # becomes
+     from pandas_datareader import data, wb
+
 Highlights include:
 
 - Release the Global Interpreter Lock (GIL) on some cython operations, see :ref:`here <whatsnew_0170.gil>`
