@@ -24,8 +24,8 @@ class TestPickle():
 
     1. Install pandas version intended to output the pickle.
 
-    2. Execute "generate_legacy_pkcles.py" to create the pickle.
-    $ python generate_legacy_pickles.py <version> <output_dir>
+    2. Execute "generate_legacy_storage_files.py" to create the pickle.
+    $ python generate_legacy_storage_files.py <output_dir> pickle
 
     3. Move the created pickle to "data/legacy_pickle/<version>" directory.
 
@@ -35,8 +35,8 @@ class TestPickle():
     _multiprocess_can_split_ = True
 
     def setUp(self):
-        from pandas.io.tests.generate_legacy_pickles import create_data
-        self.data = create_data()
+        from pandas.io.tests.generate_legacy_storage_files import create_pickle_data
+        self.data = create_pickle_data()
         self.path = u('__%s__.pickle' % tm.rands(10))
 
     def compare_element(self, typ, result, expected):

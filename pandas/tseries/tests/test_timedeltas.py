@@ -112,6 +112,20 @@ class TestTimedeltas(tm.TestCase):
         # only leading neg signs are allowed
         self.assertRaises(ValueError, lambda : Timedelta('10 days -1 h 1.5m 1s 3us'))
 
+        # no units specified
+        self.assertRaises(ValueError, lambda : Timedelta('3.1415'))
+
+        # invalid construction
+        tm.assertRaisesRegexp(ValueError,
+                              "cannot construct a TimeDelta",
+                              lambda : Timedelta())
+        tm.assertRaisesRegexp(ValueError,
+                              "unit abbreviation w/o a number",
+                              lambda : Timedelta('foo'))
+        tm.assertRaisesRegexp(ValueError,
+                              "cannot construct a TimeDelta from the passed arguments, allowed keywords are ",
+                              lambda : Timedelta(day=10))
+
         # roundtripping both for string and value
         for v in ['1s',
                   '-1s',
@@ -148,17 +162,6 @@ class TestTimedeltas(tm.TestCase):
         self.assertEqual(to_timedelta(pd.offsets.Hour(2)),Timedelta('0 days, 02:00:00'))
         self.assertEqual(Timedelta(pd.offsets.Hour(2)),Timedelta('0 days, 02:00:00'))
         self.assertEqual(Timedelta(pd.offsets.Second(2)),Timedelta('0 days, 00:00:02'))
-
-        # invalid
-        tm.assertRaisesRegexp(ValueError,
-                              "cannot construct a TimeDelta",
-                              lambda : Timedelta())
-        tm.assertRaisesRegexp(ValueError,
-                              "unit abbreviation w/o a number",
-                              lambda : Timedelta('foo'))
-        tm.assertRaisesRegexp(ValueError,
-                              "cannot construct a TimeDelta from the passed arguments, allowed keywords are ",
-                              lambda : Timedelta(day=10))
 
     def test_repr(self):
 
@@ -604,12 +607,22 @@ class TestTimedeltas(tm.TestCase):
         # ms
         testit('L',lambda x: 'ms')
 
+    def test_to_timedelta_invalid(self):
+
         # these will error
         self.assertRaises(ValueError, lambda : to_timedelta([1,2],unit='foo'))
         self.assertRaises(ValueError, lambda : to_timedelta(1,unit='foo'))
 
         # time not supported ATM
         self.assertRaises(ValueError, lambda :to_timedelta(time(second=1)))
+        self.assertTrue(to_timedelta(time(second=1), errors='coerce') is pd.NaT)
+
+        self.assertRaises(ValueError, lambda : to_timedelta(['foo','bar']))
+        tm.assert_index_equal(TimedeltaIndex([pd.NaT,pd.NaT]),
+                              to_timedelta(['foo','bar'], errors='coerce'))
+
+        tm.assert_index_equal(TimedeltaIndex(['1 day', pd.NaT, '1 min']),
+                              to_timedelta(['1 day','bar','1 min'], errors='coerce'))
 
     def test_to_timedelta_via_apply(self):
         # GH 5458
@@ -874,7 +887,7 @@ class TestTimedeltaIndex(tm.TestCase):
         idx = Index(['a', 'b', 'c', 'd'])
 
         result = rng.append(idx)
-        tm.assert_isinstance(result[0], Timedelta)
+        tm.assertIsInstance(result[0], Timedelta)
 
         # it works
         rng.join(idx, how='outer')
@@ -1100,7 +1113,7 @@ class TestTimedeltaIndex(tm.TestCase):
 
         rng = timedelta_range('1 day', periods=5)
         result = rng.groupby(rng.days)
-        tm.assert_isinstance(list(result.values())[0][0], Timedelta)
+        tm.assertIsInstance(list(result.values())[0][0], Timedelta)
 
         idx = TimedeltaIndex(['3d','1d','2d'])
         self.assertTrue(idx.equals(list(idx)))
@@ -1306,7 +1319,7 @@ class TestTimedeltaIndex(tm.TestCase):
 
         for taken in [taken1, taken2]:
             self.assertTrue(taken.equals(expected))
-            tm.assert_isinstance(taken, TimedeltaIndex)
+            tm.assertIsInstance(taken, TimedeltaIndex)
             self.assertIsNone(taken.freq)
             self.assertEqual(taken.name, expected.name)
 
@@ -1388,7 +1401,7 @@ class TestSlicing(tm.TestCase):
         assert_series_equal(result, expected)
 
         result = s['6 days, 23:11:12']
-        self.assertEqual(result, s.irow(133))
+        self.assertEqual(result, s.iloc[133])
 
         self.assertRaises(KeyError, s.__getitem__, '50 days')
 
@@ -1407,7 +1420,7 @@ class TestSlicing(tm.TestCase):
         assert_series_equal(result, expected)
 
         result = s['1 days, 10:11:12.001001']
-        self.assertEqual(result, s.irow(1001))
+        self.assertEqual(result, s.iloc[1001])
 
     def test_slice_with_negative_step(self):
         ts = Series(np.arange(20),

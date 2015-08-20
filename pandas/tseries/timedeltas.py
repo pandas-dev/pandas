@@ -9,8 +9,11 @@ from pandas import compat
 from pandas.core.common import (ABCSeries, is_integer_dtype,
                                 is_timedelta64_dtype, is_list_like,
                                 isnull, _ensure_object)
+from pandas.util.decorators import deprecate_kwarg
 
-def to_timedelta(arg, unit='ns', box=True, coerce=False):
+@deprecate_kwarg(old_arg_name='coerce', new_arg_name='errors',
+                 mapping={True: 'coerce', False: 'raise'})
+def to_timedelta(arg, unit='ns', box=True, errors='raise', coerce=None):
     """
     Convert argument to timedelta
 
@@ -19,9 +22,12 @@ def to_timedelta(arg, unit='ns', box=True, coerce=False):
     arg : string, timedelta, array of strings (with possible NAs)
     unit : unit of the arg (D,h,m,s,ms,us,ns) denote the unit, which is an integer/float number
     box : boolean, default True
-        If True returns a Timedelta/TimedeltaIndex of the results
-        if False returns a np.timedelta64 or ndarray of values of dtype timedelta64[ns]
-    coerce : force errors to NaT (False by default)
+        - If True returns a Timedelta/TimedeltaIndex of the results
+        - if False returns a np.timedelta64 or ndarray of values of dtype timedelta64[ns]
+    errors : {'ignore', 'raise', 'coerce'}, default 'raise'
+        - If 'raise', then invalid parsing will raise an exception
+        - If 'coerce', then invalid parsing will be set as NaT
+        - If 'ignore', then invalid parsing will return the input
 
     Returns
     -------
@@ -40,7 +46,7 @@ def to_timedelta(arg, unit='ns', box=True, coerce=False):
         elif is_integer_dtype(arg):
             value = arg.astype('timedelta64[{0}]'.format(unit)).astype('timedelta64[ns]', copy=False)
         else:
-            value = tslib.array_to_timedelta64(_ensure_object(arg), unit=unit, coerce=coerce)
+            value = tslib.array_to_timedelta64(_ensure_object(arg), unit=unit, errors=errors)
             value = value.astype('timedelta64[ns]', copy=False)
 
         if box:
@@ -58,7 +64,7 @@ def to_timedelta(arg, unit='ns', box=True, coerce=False):
         return _convert_listlike(arg, box=box, unit=unit)
 
     # ...so it must be a scalar value. Return scalar.
-    return _coerce_scalar_to_timedelta_type(arg, unit=unit, box=box, coerce=coerce)
+    return _coerce_scalar_to_timedelta_type(arg, unit=unit, box=box, errors=errors)
 
 _unit_map = {
     'Y' : 'Y',
@@ -96,10 +102,10 @@ def _validate_timedelta_unit(arg):
             return 'ns'
         raise ValueError("invalid timedelta unit {0} provided".format(arg))
 
-def _coerce_scalar_to_timedelta_type(r, unit='ns', box=True, coerce=False):
+def _coerce_scalar_to_timedelta_type(r, unit='ns', box=True, errors='raise'):
     """ convert strings to timedelta; coerce to Timedelta (if box), else np.timedelta64"""
 
-    result = tslib.convert_to_timedelta(r,unit,coerce)
+    result = tslib.convert_to_timedelta(r,unit,errors)
     if box:
         result = tslib.Timedelta(result)
 

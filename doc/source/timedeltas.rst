@@ -97,6 +97,8 @@ It will construct Series if the input is a Series, a scalar if the input is scal
    to_timedelta(np.arange(5),unit='s')
    to_timedelta(np.arange(5),unit='d')
 
+.. _timedeltas.operations:
+
 Operations
 ----------
 

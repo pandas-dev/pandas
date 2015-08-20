@@ -60,7 +60,7 @@ from pandas.io.common import get_filepath_or_buffer
 from pandas.core.internals import BlockManager, make_block
 import pandas.core.internals as internals
 
-from pandas.msgpack import Unpacker as _Unpacker, Packer as _Packer
+from pandas.msgpack import Unpacker as _Unpacker, Packer as _Packer, ExtType
 
 # until we can pass this into our conversion functions,
 # this is pretty hacky
@@ -126,12 +126,12 @@ def read_msgpack(path_or_buf, iterator=False, **kwargs):
     obj : type of object stored in file
 
     """
-    path_or_buf, _ = get_filepath_or_buffer(path_or_buf)
+    path_or_buf, _, _ = get_filepath_or_buffer(path_or_buf)
     if iterator:
         return Iterator(path_or_buf)
 
     def read(fh):
-        l = list(unpack(fh))
+        l = list(unpack(fh, **kwargs))
         if len(l) == 1:
             return l[0]
         return l
@@ -141,34 +141,44 @@ def read_msgpack(path_or_buf, iterator=False, **kwargs):
 
         try:
             exists = os.path.exists(path_or_buf)
-        except (TypeError,ValueError):
+        except (TypeError, ValueError):
             exists = False
 
         if exists:
             with open(path_or_buf, 'rb') as fh:
                 return read(fh)
 
-    # treat as a string-like
-    if not hasattr(path_or_buf, 'read'):
-
+    # treat as a binary-like
+    if isinstance(path_or_buf, compat.binary_type):
+        fh = None
         try:
             fh = compat.BytesIO(path_or_buf)
             return read(fh)
         finally:
-            fh.close()
+            if fh is not None:
+                fh.close()
 
     # a buffer like
-    return read(path_or_buf)
+    if hasattr(path_or_buf, 'read') and compat.callable(path_or_buf.read):
+        return read(path_or_buf)
+
+    raise ValueError('path_or_buf needs to be a string file path or file-like')
 
 dtype_dict = {21: np.dtype('M8[ns]'),
               u('datetime64[ns]'): np.dtype('M8[ns]'),
               u('datetime64[us]'): np.dtype('M8[us]'),
               22: np.dtype('m8[ns]'),
               u('timedelta64[ns]'): np.dtype('m8[ns]'),
-              u('timedelta64[us]'): np.dtype('m8[us]')}
+              u('timedelta64[us]'): np.dtype('m8[us]'),
+
+              # this is platform int, which we need to remap to np.int64
+              # for compat on windows platforms
+              7: np.dtype('int64'),
+}
 
 
 def dtype_for(t):
+    """ return my dtype mapping, whether number or name """
     if t in dtype_dict:
         return dtype_dict[t]
     return np.typeDict[t]
@@ -212,7 +222,7 @@ def convert(values):
         # convert to a bytes array
         v = v.tostring()
         import zlib
-        return zlib.compress(v)
+        return ExtType(0, zlib.compress(v))
 
     elif compressor == 'blosc':
 
@@ -223,18 +233,24 @@ def convert(values):
         # convert to a bytes array
         v = v.tostring()
         import blosc
-        return blosc.compress(v, typesize=dtype.itemsize)
+        return ExtType(0, blosc.compress(v, typesize=dtype.itemsize))
 
     # ndarray (on original dtype)
-    return v.tostring()
+    return ExtType(0, v.tostring())
 
 
 def unconvert(values, dtype, compress=None):
 
+    as_is_ext = isinstance(values, ExtType) and values.code == 0
+
+    if as_is_ext:
+        values = values.data
+
     if dtype == np.object_:
         return np.array(values, dtype=object)
 
-    values = values.encode('latin1')
+    if not as_is_ext:
+        values = values.encode('latin1')
 
     if compress == 'zlib':
         import zlib
@@ -262,7 +278,7 @@ def encode(obj):
                     'klass': obj.__class__.__name__,
                     'name': getattr(obj, 'name', None),
                     'freq': getattr(obj, 'freqstr', None),
-                    'dtype': obj.dtype.num,
+                    'dtype': obj.dtype.name,
                     'data': convert(obj.asi8),
                     'compress': compressor}
         elif isinstance(obj, DatetimeIndex):
@@ -275,7 +291,7 @@ def encode(obj):
             return {'typ': 'datetime_index',
                     'klass': obj.__class__.__name__,
                     'name': getattr(obj, 'name', None),
-                    'dtype': obj.dtype.num,
+                    'dtype': obj.dtype.name,
                     'data': convert(obj.asi8),
                     'freq': getattr(obj, 'freqstr', None),
                     'tz': tz,
@@ -284,14 +300,14 @@ def encode(obj):
             return {'typ': 'multi_index',
                     'klass': obj.__class__.__name__,
                     'names': getattr(obj, 'names', None),
-                    'dtype': obj.dtype.num,
+                    'dtype': obj.dtype.name,
                     'data': convert(obj.values),
                     'compress': compressor}
         else:
             return {'typ': 'index',
                     'klass': obj.__class__.__name__,
                     'name': getattr(obj, 'name', None),
-                    'dtype': obj.dtype.num,
+                    'dtype': obj.dtype.name,
                     'data': convert(obj.values),
                     'compress': compressor}
     elif isinstance(obj, Series):
@@ -301,7 +317,7 @@ def encode(obj):
             )
             #d = {'typ': 'sparse_series',
             #     'klass': obj.__class__.__name__,
-            #     'dtype': obj.dtype.num,
+            #     'dtype': obj.dtype.name,
             #     'index': obj.index,
             #     'sp_index': obj.sp_index,
             #     'sp_values': convert(obj.sp_values),
@@ -314,7 +330,7 @@ def encode(obj):
                     'klass': obj.__class__.__name__,
                     'name': getattr(obj, 'name', None),
                     'index': obj.index,
-                    'dtype': obj.dtype.num,
+                    'dtype': obj.dtype.name,
                     'data': convert(obj.values),
                     'compress': compressor}
     elif issubclass(tobj, NDFrame):
@@ -353,9 +369,10 @@ def encode(obj):
                     'klass': obj.__class__.__name__,
                     'axes': data.axes,
                     'blocks': [{'items': data.items.take(b.mgr_locs),
+                                'locs': b.mgr_locs.as_array,
                                 'values': convert(b.values),
                                 'shape': b.values.shape,
-                                'dtype': b.dtype.num,
+                                'dtype': b.dtype.name,
                                 'klass': b.__class__.__name__,
                                 'compress': compressor
                                 } for b in data.blocks]}
@@ -408,7 +425,7 @@ def encode(obj):
         return {'typ': 'ndarray',
                 'shape': obj.shape,
                 'ndim': obj.ndim,
-                'dtype': obj.dtype.num,
+                'dtype': obj.dtype.name,
                 'data': convert(obj),
                 'compress': compressor}
     elif isinstance(obj, np.number):
@@ -444,11 +461,12 @@ def decode(obj):
         return Period(ordinal=obj['ordinal'], freq=obj['freq'])
     elif typ == 'index':
         dtype = dtype_for(obj['dtype'])
-        data = unconvert(obj['data'], np.typeDict[obj['dtype']],
+        data = unconvert(obj['data'], dtype,
                          obj.get('compress'))
         return globals()[obj['klass']](data, dtype=dtype, name=obj['name'])
     elif typ == 'multi_index':
-        data = unconvert(obj['data'], np.typeDict[obj['dtype']],
+        dtype = dtype_for(obj['dtype'])
+        data = unconvert(obj['data'], dtype,
                          obj.get('compress'))
         data = [tuple(x) for x in data]
         return globals()[obj['klass']].from_tuples(data, names=obj['names'])
@@ -481,9 +499,15 @@ def decode(obj):
         def create_block(b):
             values = unconvert(b['values'], dtype_for(b['dtype']),
                                b['compress']).reshape(b['shape'])
+
+            # locs handles duplicate column names, and should be used instead of items; see GH 9618
+            if 'locs' in b:
+                placement = b['locs']
+            else:
+                placement = axes[0].get_indexer(b['items'])
             return make_block(values=values,
                               klass=getattr(internals, b['klass']),
-                              placement=axes[0].get_indexer(b['items']))
+                              placement=placement)
 
         blocks = [create_block(b) for b in obj['blocks']]
         return globals()[obj['klass']](BlockManager(blocks, axes))
@@ -540,19 +564,23 @@ def decode(obj):
 
 
 def pack(o, default=encode,
-         encoding='latin1', unicode_errors='strict', use_single_float=False):
+         encoding='latin1', unicode_errors='strict', use_single_float=False,
+         autoreset=1, use_bin_type=1):
     """
     Pack an object and return the packed bytes.
     """
 
     return Packer(default=default, encoding=encoding,
                   unicode_errors=unicode_errors,
-                  use_single_float=use_single_float).pack(o)
+                  use_single_float=use_single_float,
+                  autoreset=autoreset,
+                  use_bin_type=use_bin_type).pack(o)
 
 
 def unpack(packed, object_hook=decode,
            list_hook=None, use_list=False, encoding='latin1',
-           unicode_errors='strict', object_pairs_hook=None):
+           unicode_errors='strict', object_pairs_hook=None,
+           max_buffer_size=0, ext_hook=ExtType):
     """
     Unpack a packed object, return an iterator
     Note: packed lists will be returned as tuples
@@ -562,7 +590,9 @@ def unpack(packed, object_hook=decode,
                     list_hook=list_hook,
                     use_list=use_list, encoding=encoding,
                     unicode_errors=unicode_errors,
-                    object_pairs_hook=object_pairs_hook)
+                    object_pairs_hook=object_pairs_hook,
+                    max_buffer_size=max_buffer_size,
+                    ext_hook=ext_hook)
 
 
 class Packer(_Packer):
@@ -570,11 +600,15 @@ class Packer(_Packer):
     def __init__(self, default=encode,
                  encoding='latin1',
                  unicode_errors='strict',
-                 use_single_float=False):
+                 use_single_float=False,
+                 autoreset=1,
+                 use_bin_type=1):
         super(Packer, self).__init__(default=default,
                                      encoding=encoding,
                                      unicode_errors=unicode_errors,
-                                     use_single_float=use_single_float)
+                                     use_single_float=use_single_float,
+                                     autoreset=autoreset,
+                                     use_bin_type=use_bin_type)
 
 
 class Unpacker(_Unpacker):
@@ -582,7 +616,7 @@ class Unpacker(_Unpacker):
     def __init__(self, file_like=None, read_size=0, use_list=False,
                  object_hook=decode,
                  object_pairs_hook=None, list_hook=None, encoding='latin1',
-                 unicode_errors='strict', max_buffer_size=0):
+                 unicode_errors='strict', max_buffer_size=0, ext_hook=ExtType):
         super(Unpacker, self).__init__(file_like=file_like,
                                        read_size=read_size,
                                        use_list=use_list,
@@ -591,7 +625,8 @@ class Unpacker(_Unpacker):
                                        list_hook=list_hook,
                                        encoding=encoding,
                                        unicode_errors=unicode_errors,
-                                       max_buffer_size=max_buffer_size)
+                                       max_buffer_size=max_buffer_size,
+                                       ext_hook=ext_hook)
 
 
 class Iterator(object):

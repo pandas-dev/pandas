@@ -13,24 +13,20 @@ import warnings
 import re
 from distutils.version import LooseVersion
 
-# may need to work around setuptools bug by providing a fake Pyrex
+# versioning
+import versioneer
+cmdclass = versioneer.get_cmdclass()
+
 min_cython_ver = '0.19.1'
 try:
     import Cython
-    sys.path.insert(0, os.path.join(os.path.dirname(__file__), "fake_pyrex"))
     ver = Cython.__version__
     _CYTHON_INSTALLED = ver >= LooseVersion(min_cython_ver)
 except ImportError:
     _CYTHON_INSTALLED = False
 
-# try bootstrapping setuptools if it doesn't exist
 try:
     import pkg_resources
-    try:
-        pkg_resources.require("setuptools>=0.6c5")
-    except pkg_resources.VersionConflict:
-        from ez_setup import use_setuptools
-        use_setuptools(version="0.6c5")
     from setuptools import setup, Command
     _have_setuptools = True
 except ImportError:
@@ -74,14 +70,12 @@ else:
 
 from distutils.extension import Extension
 from distutils.command.build import build
-from distutils.command.sdist import sdist
 from distutils.command.build_ext import build_ext as _build_ext
 
 try:
     if not _CYTHON_INSTALLED:
         raise ImportError('No supported version of Cython installed.')
     from Cython.Distutils import build_ext as _build_ext
-    # from Cython.Distutils import Extension # to get pyrex debugging symbols
     cython = True
 except ImportError:
     cython = False
@@ -191,76 +185,6 @@ CLASSIFIERS = [
     'Topic :: Scientific/Engineering',
 ]
 
-MAJOR = 0
-MINOR = 16
-MICRO = 2
-ISRELEASED = False
-VERSION = '%d.%d.%d' % (MAJOR, MINOR, MICRO)
-QUALIFIER = ''
-
-FULLVERSION = VERSION
-write_version = True
-
-if not ISRELEASED:
-    import subprocess
-    FULLVERSION += '.dev'
-
-    pipe = None
-    for cmd in ['git','git.cmd']:
-        try:
-            pipe = subprocess.Popen([cmd, "describe", "--always", "--match", "v[0-9]*"],
-                                stdout=subprocess.PIPE)
-            (so,serr) = pipe.communicate()
-            if pipe.returncode == 0:
-                break
-        except:
-            pass
-
-    if pipe is None or pipe.returncode != 0:
-        # no git, or not in git dir
-        if os.path.exists('pandas/version.py'):
-            warnings.warn("WARNING: Couldn't get git revision, using existing pandas/version.py")
-            write_version = False
-        else:
-            warnings.warn("WARNING: Couldn't get git revision, using generic version string")
-    else:
-      # have git, in git dir, but may have used a shallow clone (travis does this)
-      rev = so.strip()
-      # makes distutils blow up on Python 2.7
-      if sys.version_info[0] >= 3:
-          rev = rev.decode('ascii')
-
-      if not rev.startswith('v') and re.match("[a-zA-Z0-9]{7,9}",rev):
-          # partial clone, manually construct version string
-          # this is the format before we started using git-describe
-          # to get an ordering on dev version strings.
-          rev ="v%s.dev-%s" % (VERSION, rev)
-
-      # Strip leading v from tags format "vx.y.z" to get th version string
-      FULLVERSION = rev.lstrip('v')
-
-else:
-    FULLVERSION += QUALIFIER
-
-
-def write_version_py(filename=None):
-    cnt = """\
-version = '%s'
-short_version = '%s'
-"""
-    if not filename:
-        filename = os.path.join(
-            os.path.dirname(__file__), 'pandas', 'version.py')
-
-    a = open(filename, 'w')
-    try:
-        a.write(cnt % (FULLVERSION, VERSION))
-    finally:
-        a.close()
-
-if write_version:
-    write_version_py()
-
 class CleanCommand(Command):
     """Custom distutils command to clean the .so and .pyc files."""
 
@@ -323,7 +247,11 @@ class CleanCommand(Command):
                 pass
 
 
-class CheckSDist(sdist):
+# we need to inherit from the versioneer
+# class as it encodes the version info
+sdist_class = cmdclass['sdist']
+
+class CheckSDist(sdist_class):
     """Custom sdist that ensures Cython has compiled all pyx files to c."""
 
     _pyxfiles = ['pandas/lib.pyx',
@@ -332,11 +260,12 @@ class CheckSDist(sdist):
                  'pandas/index.pyx',
                  'pandas/algos.pyx',
                  'pandas/parser.pyx',
+                 'pandas/src/period.pyx',
                  'pandas/src/sparse.pyx',
                  'pandas/src/testing.pyx']
 
     def initialize_options(self):
-        sdist.initialize_options(self)
+        sdist_class.initialize_options(self)
 
         '''
         self._pyxfiles = []
@@ -355,7 +284,7 @@ class CheckSDist(sdist):
                 msg = "C-source file '%s' not found." % (cfile) +\
                     " Run 'setup.py cython' before sdist."
                 assert os.path.isfile(cfile), msg
-        sdist.run(self)
+        sdist_class.run(self)
 
 
 class CheckingBuildExt(build_ext):
@@ -397,9 +326,8 @@ class DummyBuildSrc(Command):
     def run(self):
         pass
 
-cmdclass = {'clean': CleanCommand,
-            'build': build,
-            'sdist': CheckSDist}
+cmdclass.update({'clean': CleanCommand,
+                 'build': build})
 
 try:
     from wheel.bdist_wheel import bdist_wheel
@@ -529,16 +457,22 @@ if sys.byteorder == 'big':
 else:
     macros = [('__LITTLE_ENDIAN__', '1')]
 
-msgpack_ext = Extension('pandas.msgpack',
-                        sources = [srcpath('msgpack',
+packer_ext = Extension('pandas.msgpack._packer',
+                        sources = [srcpath('_packer',
                                    suffix=suffix if suffix == '.pyx' else '.cpp',
-                                   subdir='')],
+                                   subdir='msgpack')],
                         language='c++',
-                        include_dirs=common_include,
+                        include_dirs=['pandas/src/msgpack'] + common_include,
                         define_macros=macros)
-
-extensions.append(msgpack_ext)
-
+unpacker_ext = Extension('pandas.msgpack._unpacker',
+                        sources = [srcpath('_unpacker',
+                                   suffix=suffix if suffix == '.pyx' else '.cpp',
+                                   subdir='msgpack')],
+                        language='c++',
+                        include_dirs=['pandas/src/msgpack'] + common_include,
+                        define_macros=macros)
+extensions.append(packer_ext)
+extensions.append(unpacker_ext)
 # if not ISRELEASED:
 #     extensions.extend([sandbox_ext])
 
@@ -575,8 +509,8 @@ if _have_setuptools:
 # if you change something, be careful.
 
 setup(name=DISTNAME,
-      version=FULLVERSION,
       maintainer=AUTHOR,
+      version=versioneer.get_version(),
       packages=['pandas',
                 'pandas.compat',
                 'pandas.computation',
@@ -598,10 +532,13 @@ setup(name=DISTNAME,
                 'pandas.io.tests',
                 'pandas.io.tests.test_json',
                 'pandas.stats.tests',
+                'pandas.msgpack'
                 ],
       package_data={'pandas.io': ['tests/data/legacy_hdf/*.h5',
                                   'tests/data/legacy_pickle/*/*.pickle',
+                                  'tests/data/legacy_msgpack/*/*.msgpack',
                                   'tests/data/*.csv*',
+                                  'tests/data/*.XPT',
                                   'tests/data/*.dta',
                                   'tests/data/*.txt',
                                   'tests/data/*.xls',

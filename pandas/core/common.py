@@ -47,7 +47,7 @@ class AbstractMethodError(NotImplementedError):
         self.class_instance = class_instance
 
     def __str__(self):
-        return "This method must be defined on the concrete class of " \
+        return "This method must be defined in the concrete class of " \
                + self.class_instance.__class__.__name__
 
 _POSSIBLY_CAST_DTYPES = set([np.dtype(t).name
@@ -112,30 +112,6 @@ class _ABCGeneric(type):
 
 ABCGeneric = _ABCGeneric("ABCGeneric", tuple(), {})
 
-
-def bind_method(cls, name, func):
-    """Bind a method to class, python 2 and python 3 compatible.
-
-    Parameters
-    ----------
-
-    cls : type
-        class to receive bound method
-    name : basestring
-        name of method on class instance
-    func : function
-        function to be bound as method
-
-
-    Returns
-    -------
-    None
-    """
-    # only python 2 has bound/unbound method issue
-    if not compat.PY3:
-        setattr(cls, name, types.MethodType(func, None, cls))
-    else:
-        setattr(cls, name, func)
 
 class CategoricalDtypeType(type):
     """
@@ -462,6 +438,10 @@ def array_equivalent(left, right, strict_nan=False):
     if issubclass(left.dtype.type, (np.floating, np.complexfloating)):
         return ((left == right) | (np.isnan(left) & np.isnan(right))).all()
 
+    # numpy will will not allow this type of datetimelike vs integer comparison
+    elif is_datetimelike_v_numeric(left, right):
+        return False
+
     # NaNs cannot occur otherwise.
     return np.array_equal(left, right)
 
@@ -782,6 +762,11 @@ def take_nd(arr, indexer, axis=0, out=None, fill_value=np.nan,
         will be done.  This short-circuits computation of a mask.  Result is
         undefined if allow_fill == False and -1 is present in indexer.
     """
+
+    if is_categorical(arr):
+        return arr.take_nd(indexer, fill_value=fill_value,
+                           allow_fill=allow_fill)
+
     if indexer is None:
         indexer = np.arange(arr.shape[axis], dtype=np.int64)
         dtype, fill_value = arr.dtype, arr.dtype.type()
@@ -839,7 +824,6 @@ def take_nd(arr, indexer, axis=0, out=None, fill_value=np.nan,
 
     func = _get_take_nd_function(arr.ndim, arr.dtype, out.dtype,
                                  axis=axis, mask_info=mask_info)
-
     indexer = _ensure_int64(indexer)
     func(arr, indexer, out, fill_value)
 
@@ -1588,7 +1572,8 @@ def backfill_2d(values, limit=None, mask=None, dtype=None):
     return values
 
 
-def _clean_interp_method(method, order=None):
+def _clean_interp_method(method, **kwargs):
+    order = kwargs.get('order')
     valid = ['linear', 'time', 'index', 'values', 'nearest', 'zero', 'slinear',
              'quadratic', 'cubic', 'barycentric', 'polynomial',
              'krogh', 'piecewise_polynomial',
@@ -1603,7 +1588,7 @@ def _clean_interp_method(method, order=None):
 
 
 def interpolate_1d(xvalues, yvalues, method='linear', limit=None,
-                   fill_value=None, bounds_error=False, order=None):
+                   fill_value=None, bounds_error=False, order=None, **kwargs):
     """
     Logic for the 1-d interpolation.  The result should be 1-d, inputs
     xvalues and yvalues will each be 1-d arrays of the same length.
@@ -1682,18 +1667,17 @@ def interpolate_1d(xvalues, yvalues, method='linear', limit=None,
                   'piecewise_polynomial', 'pchip']
     if method in sp_methods:
         new_x = new_x[firstIndex:]
-        xvalues = xvalues[firstIndex:]
 
         result[firstIndex:][invalid] = _interpolate_scipy_wrapper(
             valid_x, valid_y, new_x, method=method, fill_value=fill_value,
-            bounds_error=bounds_error, order=order)
+            bounds_error=bounds_error, order=order, **kwargs)
         if limit:
             result[violate_limit] = np.nan
         return result
 
 
 def _interpolate_scipy_wrapper(x, y, new_x, method, fill_value=None,
-                               bounds_error=False, order=None):
+                               bounds_error=False, order=None, **kwargs):
     """
     passed off to scipy.interpolate.interp1d. method is scipy's kind.
     Returns an array interpolated at new_x.  Add any new methods to
@@ -1734,7 +1718,7 @@ def _interpolate_scipy_wrapper(x, y, new_x, method, fill_value=None,
                                     bounds_error=bounds_error)
         new_y = terp(new_x)
     elif method == 'spline':
-        terp = interpolate.UnivariateSpline(x, y, k=order)
+        terp = interpolate.UnivariateSpline(x, y, k=order, **kwargs)
         new_y = terp(new_x)
     else:
         # GH 7295: need to be able to write for some reason
@@ -1746,7 +1730,7 @@ def _interpolate_scipy_wrapper(x, y, new_x, method, fill_value=None,
         if not new_x.flags.writeable:
             new_x = new_x.copy()
         method = alt_methods[method]
-        new_y = method(x, y, new_x)
+        new_y = method(x, y, new_x, **kwargs)
     return new_y
 
 
@@ -1883,65 +1867,68 @@ def _maybe_box_datetimelike(value):
 
 _values_from_object = lib.values_from_object
 
-def _possibly_convert_objects(values, convert_dates=True,
-                              convert_numeric=True,
-                              convert_timedeltas=True):
+
+def _possibly_convert_objects(values,
+                              datetime=True,
+                              numeric=True,
+                              timedelta=True,
+                              coerce=False,
+                              copy=True):
     """ if we have an object dtype, try to coerce dates and/or numbers """
 
-    # if we have passed in a list or scalar
+    conversion_count = sum((datetime, numeric, timedelta))
+    if conversion_count == 0:
+        import warnings
+        warnings.warn('Must explicitly pass type for conversion. Defaulting to '
+                      'pre-0.17 behavior where datetime=True, numeric=True, '
+                      'timedelta=True and coerce=False', DeprecationWarning)
+        datetime = numeric = timedelta = True
+        coerce = False
+
     if isinstance(values, (list, tuple)):
+        # List or scalar
         values = np.array(values, dtype=np.object_)
-    if not hasattr(values, 'dtype'):
+    elif not hasattr(values, 'dtype'):
         values = np.array([values], dtype=np.object_)
+    elif not is_object_dtype(values.dtype):
+        # If not object, do not attempt conversion
+        values = values.copy() if copy else values
+        return values
 
-    # convert dates
-    if convert_dates and values.dtype == np.object_:
+    # If 1 flag is coerce, ensure 2 others are False
+    if coerce:
+        if conversion_count > 1:
+            raise ValueError("Only one of 'datetime', 'numeric' or "
+                             "'timedelta' can be True when when coerce=True.")
 
-        # we take an aggressive stance and convert to datetime64[ns]
-        if convert_dates == 'coerce':
-            new_values = _possibly_cast_to_datetime(
-                values, 'M8[ns]', coerce=True)
+        # Immediate return if coerce
+        if datetime:
+            return pd.to_datetime(values, errors='coerce', box=False)
+        elif timedelta:
+            return pd.to_timedelta(values, errors='coerce', box=False)
+        elif numeric:
+            return lib.maybe_convert_numeric(values, set(), coerce_numeric=True)
 
-            # if we are all nans then leave me alone
-            if not isnull(new_values).all():
-                values = new_values
+    # Soft conversions
+    if datetime:
+        values = lib.maybe_convert_objects(values,
+                                           convert_datetime=datetime)
 
-        else:
-            values = lib.maybe_convert_objects(
-                values, convert_datetime=convert_dates)
+    if timedelta and is_object_dtype(values.dtype):
+        # Object check to ensure only run if previous did not convert
+        values = lib.maybe_convert_objects(values,
+                                           convert_timedelta=timedelta)
 
-    # convert timedeltas
-    if convert_timedeltas and values.dtype == np.object_:
-
-        if convert_timedeltas == 'coerce':
-            from pandas.tseries.timedeltas import to_timedelta
-            values = to_timedelta(values, coerce=True)
-
-            # if we are all nans then leave me alone
-            if not isnull(new_values).all():
-                values = new_values
-
-        else:
-            values = lib.maybe_convert_objects(
-                values, convert_timedelta=convert_timedeltas)
-
-    # convert to numeric
-    if values.dtype == np.object_:
-        if convert_numeric:
-            try:
-                new_values = lib.maybe_convert_numeric(
-                    values, set(), coerce_numeric=True)
-
-                # if we are all nans then leave me alone
-                if not isnull(new_values).all():
-                    values = new_values
-
-            except:
-                pass
-        else:
-
-            # soft-conversion
-            values = lib.maybe_convert_objects(values)
+    if numeric and is_object_dtype(values.dtype):
+        try:
+            converted = lib.maybe_convert_numeric(values,
+                                                   set(),
+                                                   coerce_numeric=True)
+            # If all NaNs, then do not-alter
+            values = converted if not isnull(converted).all() else values
+            values = values.copy() if copy else values
+        except:
+            pass
 
     return values
 
@@ -1971,7 +1958,7 @@ def _possibly_convert_platform(values):
     return values
 
 
-def _possibly_cast_to_datetime(value, dtype, coerce=False):
+def _possibly_cast_to_datetime(value, dtype, errors='raise'):
     """ try to cast the array/value to a datetimelike dtype, converting float
     nan to iNaT
     """
@@ -2015,9 +2002,9 @@ def _possibly_cast_to_datetime(value, dtype, coerce=False):
                 elif np.prod(value.shape) and value.dtype != dtype:
                     try:
                         if is_datetime64:
-                            value = to_datetime(value, coerce=coerce).values
+                            value = to_datetime(value, errors=errors).values
                         elif is_timedelta64:
-                            value = to_timedelta(value, coerce=coerce).values
+                            value = to_timedelta(value, errors=errors).values
                     except (AttributeError, ValueError):
                         pass
 
@@ -2079,7 +2066,7 @@ def _possibly_infer_to_datetimelike(value, convert_dates=False):
         def _try_datetime(v):
             # safe coerce to datetime64
             try:
-                return tslib.array_to_datetime(v, raise_=True).reshape(shape)
+                return tslib.array_to_datetime(v, errors='raise').reshape(shape)
             except:
                 return v
 
@@ -2497,6 +2484,10 @@ def is_integer_dtype(arr_or_dtype):
     return (issubclass(tipo, np.integer) and
             not issubclass(tipo, (np.datetime64, np.timedelta64)))
 
+def is_int64_dtype(arr_or_dtype):
+    tipo = _get_dtype_type(arr_or_dtype)
+    return issubclass(tipo, np.int64)
+
 
 def is_int_or_datetime_dtype(arr_or_dtype):
     tipo = _get_dtype_type(arr_or_dtype)
@@ -2527,6 +2518,26 @@ def is_datetime_or_timedelta_dtype(arr_or_dtype):
     tipo = _get_dtype_type(arr_or_dtype)
     return issubclass(tipo, (np.datetime64, np.timedelta64))
 
+
+def is_datetimelike_v_numeric(a, b):
+    # return if we have an i8 convertible and numeric comparision
+    if not hasattr(a,'dtype'):
+        a = np.asarray(a)
+    if not hasattr(b, 'dtype'):
+        b = np.asarray(b)
+    f = lambda x: is_integer_dtype(x) or is_float_dtype(x)
+    return (needs_i8_conversion(a) and f(b)) or (
+        needs_i8_conversion(b) and f(a))
+
+def is_datetimelike_v_object(a, b):
+    # return if we have an i8 convertible and object comparision
+    if not hasattr(a,'dtype'):
+        a = np.asarray(a)
+    if not hasattr(b, 'dtype'):
+        b = np.asarray(b)
+    f = lambda x: is_object_dtype(x)
+    return (needs_i8_conversion(a) and f(b)) or (
+        needs_i8_conversion(b) and f(a))
 
 needs_i8_conversion = is_datetime_or_timedelta_dtype
 
@@ -2605,9 +2616,14 @@ def is_list_like(arg):
             not isinstance(arg, compat.string_and_binary_types))
 
 def is_null_slice(obj):
+    """ we have a null slice """
     return (isinstance(obj, slice) and obj.start is None and
             obj.stop is None and obj.step is None)
 
+def is_full_slice(obj, l):
+    """ we have a full length slice """
+    return (isinstance(obj, slice) and obj.start == 0 and
+            obj.stop == l and obj.step is None)
 
 def is_hashable(arg):
     """Return True if hash(arg) will succeed, False otherwise.

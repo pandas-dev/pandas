@@ -504,7 +504,7 @@ _FAMAFRENCH_URL = 'http://mba.tuck.dartmouth.edu/pages/faculty/ken.french/ftp'
 
 def get_data_famafrench(name):
     # path of zip files
-    zip_file_path = '{0}/{1}.zip'.format(_FAMAFRENCH_URL, name)
+    zip_file_path = '{0}/{1}_TXT.zip'.format(_FAMAFRENCH_URL, name)
 
     with urlopen(zip_file_path) as url:
         raw = url.read()

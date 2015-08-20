@@ -117,26 +117,26 @@ class TestMultiLevel(tm.TestCase):
         multi = DataFrame(np.random.randn(4, 4),
                           index=[np.array(['a', 'a', 'b', 'b']),
                                  np.array(['x', 'y', 'x', 'y'])])
-        tm.assert_isinstance(multi.index, MultiIndex)
+        tm.assertIsInstance(multi.index, MultiIndex)
         self.assertNotIsInstance(multi.columns, MultiIndex)
 
         multi = DataFrame(np.random.randn(4, 4),
                           columns=[['a', 'a', 'b', 'b'],
                                    ['x', 'y', 'x', 'y']])
-        tm.assert_isinstance(multi.columns, MultiIndex)
+        tm.assertIsInstance(multi.columns, MultiIndex)
 
     def test_series_constructor(self):
         multi = Series(1., index=[np.array(['a', 'a', 'b', 'b']),
                                   np.array(['x', 'y', 'x', 'y'])])
-        tm.assert_isinstance(multi.index, MultiIndex)
+        tm.assertIsInstance(multi.index, MultiIndex)
 
         multi = Series(1., index=[['a', 'a', 'b', 'b'],
                                   ['x', 'y', 'x', 'y']])
-        tm.assert_isinstance(multi.index, MultiIndex)
+        tm.assertIsInstance(multi.index, MultiIndex)
 
         multi = Series(lrange(4), index=[['a', 'a', 'b', 'b'],
                                         ['x', 'y', 'x', 'y']])
-        tm.assert_isinstance(multi.index, MultiIndex)
+        tm.assertIsInstance(multi.index, MultiIndex)
 
     def test_reindex_level(self):
         # axis=0
@@ -702,7 +702,7 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         s = dft['foo', 'two']
         dft['foo', 'two'] = s > s.median()
         assert_series_equal(dft['foo', 'two'], s > s.median())
-        # tm.assert_isinstance(dft._data.blocks[1].items, MultiIndex)
+        # tm.assertIsInstance(dft._data.blocks[1].items, MultiIndex)
 
         reindexed = dft.reindex(columns=[('foo', 'two')])
         assert_series_equal(reindexed['foo', 'two'], s > s.median())
@@ -798,12 +798,12 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         self.assertEqual(len(deleveled.columns), len(self.ymd.columns))
 
         deleveled = self.series.reset_index()
-        tm.assert_isinstance(deleveled, DataFrame)
+        tm.assertIsInstance(deleveled, DataFrame)
         self.assertEqual(len(deleveled.columns),
                          len(self.series.index.levels) + 1)
 
         deleveled = self.series.reset_index(drop=True)
-        tm.assert_isinstance(deleveled, Series)
+        tm.assertIsInstance(deleveled, Series)
 
     def test_sortlevel_by_name(self):
         self.frame.index.names = ['first', 'second']
@@ -963,6 +963,44 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         # stack with negative number
         result = self.ymd.unstack(0).stack(-2)
         expected = self.ymd.unstack(0).stack(0)
+
+        # GH10417
+        def check(left, right):
+            assert_series_equal(left, right)
+            self.assertFalse(left.index.is_unique)
+            li, ri = left.index, right.index
+            for i in range(ri.nlevels):
+                tm.assert_numpy_array_equal(li.levels[i], ri.levels[i])
+                tm.assert_numpy_array_equal(li.labels[i], ri.labels[i])
+
+        df = DataFrame(np.arange(12).reshape(4, 3),
+                       index=list('abab'),
+                       columns=['1st', '2nd', '3rd'])
+
+        mi = MultiIndex(levels=[['a', 'b'], ['1st', '2nd', '3rd']],
+                        labels=[np.tile(np.arange(2).repeat(3), 2),
+                                np.tile(np.arange(3), 4)])
+
+        left, right = df.stack(), Series(np.arange(12), index=mi)
+        check(left, right)
+
+        df.columns = ['1st', '2nd', '1st']
+        mi = MultiIndex(levels=[['a', 'b'], ['1st', '2nd']],
+                        labels=[np.tile(np.arange(2).repeat(3), 2),
+                                np.tile([0, 1, 0], 4)])
+
+        left, right = df.stack(), Series(np.arange(12), index=mi)
+        check(left, right)
+
+        tpls = ('a', 2), ('b', 1), ('a', 1), ('b', 2)
+        df.index = MultiIndex.from_tuples(tpls)
+        mi = MultiIndex(levels=[['a', 'b'], [1, 2], ['1st', '2nd']],
+                        labels=[np.tile(np.arange(2).repeat(3), 2),
+                                np.repeat([1, 0, 1], [3, 6, 3]),
+                                np.tile([0, 1, 0], 4)])
+
+        left, right = df.stack(), Series(np.arange(12), index=mi)
+        check(left, right)
 
     def test_unstack_odd_failure(self):
         data = """day,time,smoker,sum,len
@@ -1325,7 +1363,7 @@ Thur,Lunch,Yes,51.51,17"""
     def test_insert_index(self):
         df = self.ymd[:5].T
         df[2000, 1, 10] = df[2000, 1, 7]
-        tm.assert_isinstance(df.columns, MultiIndex)
+        tm.assertIsInstance(df.columns, MultiIndex)
         self.assertTrue((df[2000, 1, 10] == df[2000, 1, 7]).all())
 
     def test_alignment(self):
@@ -1993,8 +2031,8 @@ Thur,Lunch,Yes,51.51,17"""
                           columns=columns)
 
         result = frame.ix[:, 1]
-        exp = frame.icol(1)
-        tm.assert_isinstance(result, Series)
+        exp = frame.loc[:, ('Ohio', 'Red')]
+        tm.assertIsInstance(result, Series)
         assert_series_equal(result, exp)
 
     def test_nonunique_assignment_1750(self):
@@ -2098,11 +2136,28 @@ Thur,Lunch,Yes,51.51,17"""
         tm.assert_index_equal(idx.drop_duplicates(), expected)
 
         expected = np.array([True, False, False, False, False, False])
-        duplicated = idx.duplicated(take_last=True)
+        duplicated = idx.duplicated(keep='last')
         tm.assert_numpy_array_equal(duplicated, expected)
         self.assertTrue(duplicated.dtype == bool)
         expected = MultiIndex.from_arrays(([2, 3, 1, 2 ,3], [1, 1, 1, 2, 2]))
-        tm.assert_index_equal(idx.drop_duplicates(take_last=True), expected)
+        tm.assert_index_equal(idx.drop_duplicates(keep='last'), expected)
+
+        expected = np.array([True, False, False, True, False, False])
+        duplicated = idx.duplicated(keep=False)
+        tm.assert_numpy_array_equal(duplicated, expected)
+        self.assertTrue(duplicated.dtype == bool)
+        expected = MultiIndex.from_arrays(([2, 3, 2 ,3], [1, 1, 2, 2]))
+        tm.assert_index_equal(idx.drop_duplicates(keep=False), expected)
+
+        # deprecate take_last
+        expected = np.array([True, False, False, False, False, False])
+        with tm.assert_produces_warning(FutureWarning):
+            duplicated = idx.duplicated(take_last=True)
+        tm.assert_numpy_array_equal(duplicated, expected)
+        self.assertTrue(duplicated.dtype == bool)
+        expected = MultiIndex.from_arrays(([2, 3, 1, 2 ,3], [1, 1, 1, 2, 2]))
+        with tm.assert_produces_warning(FutureWarning):
+            tm.assert_index_equal(idx.drop_duplicates(take_last=True), expected)
 
     def test_multiindex_set_index(self):
         # segfault in #3308

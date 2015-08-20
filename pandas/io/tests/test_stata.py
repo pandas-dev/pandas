@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # pylint: disable=E1101
 
 from datetime import datetime
@@ -21,6 +22,7 @@ from pandas.io.stata import (read_stata, StataReader, InvalidColumnName,
 import pandas.util.testing as tm
 from pandas.tslib import NaT
 from pandas import compat
+
 
 class TestStata(tm.TestCase):
 
@@ -76,6 +78,8 @@ class TestStata(tm.TestCase):
         self.dta20_117 = os.path.join(self.dirpath, 'stata11_117.dta')
 
         self.dta21_117 = os.path.join(self.dirpath, 'stata12_117.dta')
+
+        self.dta22_118 = os.path.join(self.dirpath, 'stata14_118.dta')
 
     def read_dta(self, file):
         # Legacy default reader configuration
@@ -180,9 +184,9 @@ class TestStata(tm.TestCase):
         # buggy test because of the NaT comparison on certain platforms
         # Format 113 test fails since it does not support tc and tC formats
         # tm.assert_frame_equal(parsed_113, expected)
-        tm.assert_frame_equal(parsed_114, expected)
-        tm.assert_frame_equal(parsed_115, expected)
-        tm.assert_frame_equal(parsed_117, expected)
+        tm.assert_frame_equal(parsed_114, expected, check_datetimelike_compat=True)
+        tm.assert_frame_equal(parsed_115, expected, check_datetimelike_compat=True)
+        tm.assert_frame_equal(parsed_117, expected, check_datetimelike_compat=True)
 
     def test_read_dta3(self):
         parsed_113 = self.read_dta(self.dta3_113)
@@ -243,6 +247,36 @@ class TestStata(tm.TestCase):
             columns=['x', 'y', 'z'])
 
         tm.assert_frame_equal(parsed_117, expected, check_dtype=False)
+
+
+    def test_read_dta18(self):
+        parsed_118 = self.read_dta(self.dta22_118)
+        parsed_118["Bytes"] = parsed_118["Bytes"].astype('O')
+        expected = DataFrame.from_records(
+            [['Cat', 'Bogota', u'Bogotá', 1, 1.0, u'option b Ünicode', 1.0],
+             ['Dog', 'Boston', u'Uzunköprü', np.nan, np.nan, np.nan, np.nan],
+             ['Plane', 'Rome', u'Tromsø', 0, 0.0, 'option a', 0.0],
+             ['Potato', 'Tokyo', u'Elâzığ', -4, 4.0, 4, 4],
+             ['', '', '', 0, 0.3332999, 'option a', 1/3.]
+             ],
+            columns=['Things', 'Cities', 'Unicode_Cities_Strl', 'Ints', 'Floats', 'Bytes', 'Longs'])
+        expected["Floats"] = expected["Floats"].astype(np.float32)
+        for col in parsed_118.columns:
+            tm.assert_almost_equal(parsed_118[col], expected[col])
+
+        rdr = StataReader(self.dta22_118)
+        vl = rdr.variable_labels()
+        vl_expected = {u'Unicode_Cities_Strl': u'Here are some strls with Ünicode chars',
+                       u'Longs': u'long data',
+                       u'Things': u'Here are some things',
+                       u'Bytes': u'byte data',
+                       u'Ints': u'int data',
+                       u'Cities': u'Here are some cities',
+                       u'Floats': u'float data'}
+        tm.assert_dict_equal(vl, vl_expected)
+
+        self.assertEqual(rdr.data_label, u'This is a  Ünicode data label')
+
 
     def test_read_write_dta5(self):
         original = DataFrame([(np.nan, np.nan, np.nan, np.nan, np.nan)],
@@ -383,9 +417,9 @@ class TestStata(tm.TestCase):
         expected = self.read_csv(self.csv14)
         cols = ['byte_', 'int_', 'long_', 'float_', 'double_']
         for col in cols:
-            expected[col] = expected[col].convert_objects(convert_numeric=True)
+            expected[col] = expected[col].convert_objects(datetime=True, numeric=True)
         expected['float_'] = expected['float_'].astype(np.float32)
-        expected['date_td'] = pd.to_datetime(expected['date_td'], coerce=True)
+        expected['date_td'] = pd.to_datetime(expected['date_td'], errors='coerce')
 
         parsed_113 = self.read_dta(self.dta14_113)
         parsed_113.index.name = 'index'
@@ -430,20 +464,19 @@ class TestStata(tm.TestCase):
         data_label = 'This is a data file.'
         with tm.ensure_clean() as path:
             original.to_stata(path, time_stamp=time_stamp, data_label=data_label)
-            reader = StataReader(path)
-            parsed_time_stamp = dt.datetime.strptime(reader.time_stamp, ('%d %b %Y %H:%M'))
-            assert parsed_time_stamp == time_stamp
-            assert reader.data_label == data_label
+
+            with StataReader(path) as reader:
+                parsed_time_stamp = dt.datetime.strptime(reader.time_stamp, ('%d %b %Y %H:%M'))
+                assert parsed_time_stamp == time_stamp
+                assert reader.data_label == data_label
 
     def test_numeric_column_names(self):
         original = DataFrame(np.reshape(np.arange(25.0), (5, 5)))
         original.index.name = 'index'
         with tm.ensure_clean() as path:
             # should get a warning for that format.
-            with warnings.catch_warnings(record=True) as w:
-                tm.assert_produces_warning(original.to_stata(path), InvalidColumnName)
-            # should produce a single warning
-            tm.assert_equal(len(w), 1)
+            with tm.assert_produces_warning(InvalidColumnName):
+                original.to_stata(path)
 
             written_and_read_again = self.read_dta(path)
             written_and_read_again = written_and_read_again.set_index('index')
@@ -495,11 +528,8 @@ class TestStata(tm.TestCase):
         original = DataFrame({'s0': s0, 's1': s1, 's2': s2, 's3': s3})
         original.index.name = 'index'
         with tm.ensure_clean() as path:
-            with warnings.catch_warnings(record=True) as w:
-                tm.assert_produces_warning(original.to_stata(path),
-                                           PossiblePrecisionLoss)
-            # should produce a single warning
-            tm.assert_equal(len(w), 1)
+            with tm.assert_produces_warning(PossiblePrecisionLoss):
+                original.to_stata(path)
 
             written_and_read_again = self.read_dta(path)
             modified = original.copy()
@@ -513,10 +543,8 @@ class TestStata(tm.TestCase):
         original = DataFrame([datetime(2006, 11, 19, 23, 13, 20)])
         original.index.name = 'index'
         with tm.ensure_clean() as path:
-            with warnings.catch_warnings(record=True) as w:
-                tm.assert_produces_warning(original.to_stata(path, {0: 'tc'}),
-                                           InvalidColumnName)
-            tm.assert_equal(len(w), 1)
+            with tm.assert_produces_warning(InvalidColumnName):
+                original.to_stata(path, {0: 'tc'})
 
             written_and_read_again = self.read_dta(path)
             modified = original.copy()
@@ -599,13 +627,14 @@ class TestStata(tm.TestCase):
         original = DataFrame(s)
         with tm.ensure_clean() as path:
             original.to_stata(path, write_index=False)
-            sr = StataReader(path)
-            typlist = sr.typlist
-            variables = sr.varlist
-            formats = sr.fmtlist
-            for variable, fmt, typ in zip(variables, formats, typlist):
-                self.assertTrue(int(variable[1:]) == int(fmt[1:-1]))
-                self.assertTrue(int(variable[1:]) == typ)
+
+            with StataReader(path) as sr:
+                typlist = sr.typlist
+                variables = sr.varlist
+                formats = sr.fmtlist
+                for variable, fmt, typ in zip(variables, formats, typlist):
+                    self.assertTrue(int(variable[1:]) == int(fmt[1:-1]))
+                    self.assertTrue(int(variable[1:]) == typ)
 
     def test_excessively_long_string(self):
         str_lens = (1, 244, 500)
@@ -684,6 +713,7 @@ class TestStata(tm.TestCase):
         expected.append([NaT] * 7)
         columns = ['date_tc', 'date_td', 'date_tw', 'date_tm', 'date_tq',
                    'date_th', 'date_ty']
+
         # Fixes for weekly, quarterly,half,year
         expected[2][2] = datetime(9999,12,24)
         expected[2][3] = datetime(9999,12,1)
@@ -696,11 +726,10 @@ class TestStata(tm.TestCase):
         expected[5][5] = expected[5][6] = datetime(1678,1,1)
 
         expected = DataFrame(expected, columns=columns, dtype=np.object)
-
         parsed_115 = read_stata(self.dta18_115)
         parsed_117 = read_stata(self.dta18_117)
-        tm.assert_frame_equal(expected, parsed_115)
-        tm.assert_frame_equal(expected, parsed_117)
+        tm.assert_frame_equal(expected, parsed_115, check_datetimelike_compat=True)
+        tm.assert_frame_equal(expected, parsed_117, check_datetimelike_compat=True)
 
         date_conversion =  dict((c, c[-2:]) for c in columns)
         #{c : c[-2:] for c in columns}
@@ -709,7 +738,8 @@ class TestStata(tm.TestCase):
             expected.to_stata(path, date_conversion)
             written_and_read_again = self.read_dta(path)
             tm.assert_frame_equal(written_and_read_again.set_index('index'),
-                                  expected)
+                                  expected,
+                                  check_datetimelike_compat=True)
 
     def test_dtype_conversion(self):
         expected = self.read_csv(self.csv15)
@@ -752,6 +782,14 @@ class TestStata(tm.TestCase):
                              columns=columns)
 
         tm.assert_frame_equal(expected, dropped)
+
+        # See PR 10757
+        columns = ['int_', 'long_', 'byte_']
+        expected = expected[columns]
+        reordered = read_stata(self.dta15_117, convert_dates=True,
+                               columns=columns)
+        tm.assert_frame_equal(expected, reordered)
+
         with tm.assertRaises(ValueError):
             columns = ['byte_', 'byte_']
             read_stata(self.dta15_117, convert_dates=True, columns=columns)
@@ -912,7 +950,8 @@ class TestStata(tm.TestCase):
                             warnings.simplefilter("always")
                             parsed = read_stata(fname, convert_categoricals=convert_categoricals,
                                                 convert_dates=convert_dates)
-                        itr = read_stata(fname, iterator=True)
+                        itr = read_stata(fname, iterator=True, convert_categoricals=convert_categoricals,
+                                         convert_dates=convert_dates)
 
                         pos = 0
                         for j in range(5):
@@ -923,12 +962,10 @@ class TestStata(tm.TestCase):
                                 except StopIteration:
                                     break
                             from_frame = parsed.iloc[pos:pos+chunksize, :]
-                            try:
-                                tm.assert_frame_equal(from_frame, chunk, check_dtype=False)
-                            except AssertionError:
-                                # datetime.datetime and pandas.tslib.Timestamp may hold
-                                # equivalent values but fail assert_frame_equal
-                                assert(all([x == y for x, y in zip(from_frame, chunk)]))
+                            tm.assert_frame_equal(from_frame,
+                                                  chunk,
+                                                  check_dtype=False,
+                                                  check_datetimelike_compat=True)
 
                             pos += chunksize
 
@@ -966,13 +1003,15 @@ class TestStata(tm.TestCase):
                 for convert_categoricals in False, True:
                     for convert_dates in False, True:
 
+                        # Read the whole file
                         with warnings.catch_warnings(record=True) as w:
                             warnings.simplefilter("always")
                             parsed = read_stata(fname, convert_categoricals=convert_categoricals,
                                                 convert_dates=convert_dates)
-                        itr = read_stata(fname, iterator=True,
-                                         convert_categoricals=convert_categoricals)
 
+                        # Compare to what we get when reading by chunk
+                        itr = read_stata(fname, iterator=True, convert_dates=convert_dates,
+                                         convert_categoricals=convert_categoricals)
                         pos = 0
                         for j in range(5):
                             with warnings.catch_warnings(record=True) as w:
@@ -982,12 +1021,10 @@ class TestStata(tm.TestCase):
                                 except StopIteration:
                                     break
                             from_frame = parsed.iloc[pos:pos+chunksize, :]
-                            try:
-                                tm.assert_frame_equal(from_frame, chunk, check_dtype=False)
-                            except AssertionError:
-                                # datetime.datetime and pandas.tslib.Timestamp may hold
-                                # equivalent values but fail assert_frame_equal
-                                assert(all([x == y for x, y in zip(from_frame, chunk)]))
+                            tm.assert_frame_equal(from_frame,
+                                                  chunk,
+                                                  check_dtype=False,
+                                                  check_datetimelike_compat=True)
 
                             pos += chunksize
 
@@ -1011,4 +1048,3 @@ class TestStata(tm.TestCase):
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
                    exit=False)
-

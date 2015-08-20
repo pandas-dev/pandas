@@ -126,8 +126,8 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, Int64Index):
 
     _engine_type = _index.TimedeltaEngine
 
-    _comparables = ['name','freq']
-    _attributes = ['name','freq']
+    _comparables = ['name', 'freq']
+    _attributes = ['name', 'freq']
     _is_numeric_dtype = True
     freq = None
 
@@ -645,7 +645,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, Int64Index):
         values = self._engine.get_value(_values_from_object(series), key)
         return _maybe_box(self, values, series, key)
 
-    def get_loc(self, key, method=None):
+    def get_loc(self, key, method=None, tolerance=None):
         """
         Get integer location for requested label
 
@@ -653,12 +653,17 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, Int64Index):
         -------
         loc : int
         """
+        if tolerance is not None:
+            # try converting tolerance now, so errors don't get swallowed by
+            # the try/except clauses below
+            tolerance = self._convert_tolerance(tolerance)
+
         if _is_convertible_to_td(key):
             key = Timedelta(key)
-            return Index.get_loc(self, key, method=method)
+            return Index.get_loc(self, key, method, tolerance)
 
         try:
-            return Index.get_loc(self, key, method=method)
+            return Index.get_loc(self, key, method, tolerance)
         except (KeyError, ValueError, TypeError):
             try:
                 return self._get_string_slice(key)
@@ -667,7 +672,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, Int64Index):
 
             try:
                 stamp = Timedelta(key)
-                return Index.get_loc(self, stamp, method=method)
+                return Index.get_loc(self, stamp, method, tolerance)
             except (KeyError, ValueError):
                 raise KeyError(key)
 
@@ -853,7 +858,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, Int64Index):
                 freq = self.freq
         else:
             if com.is_list_like(loc):
-                loc = lib.maybe_indices_to_slice(com._ensure_int64(np.array(loc)))
+                loc = lib.maybe_indices_to_slice(com._ensure_int64(np.array(loc)), len(self))
             if isinstance(loc, slice) and loc.step in (1, None):
                 if (loc.start in (0, None) or loc.stop in (len(self), None)):
                     freq = self.freq

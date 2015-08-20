@@ -9,7 +9,6 @@ from numpy.random import randn
 
 import operator
 import numpy as np
-from numpy.testing import assert_array_equal
 
 from pandas.core.api import DataFrame, Panel
 from pandas.computation import expressions as expr
@@ -98,7 +97,7 @@ class TestExpressions(tm.TestCase):
     def test_integer_arithmetic(self):
         self.run_arithmetic_test(self.integer, self.integer,
                                  assert_frame_equal)
-        self.run_arithmetic_test(self.integer.icol(0), self.integer.icol(0),
+        self.run_arithmetic_test(self.integer.iloc[:,0], self.integer.iloc[:, 0],
                                  assert_series_equal, check_dtype=True)
 
     @nose.tools.nottest
@@ -183,7 +182,7 @@ class TestExpressions(tm.TestCase):
         self.run_frame(self.integer, self.integer)
 
     def test_integer_arithmetic_series(self):
-        self.run_series(self.integer.icol(0), self.integer.icol(0))
+        self.run_series(self.integer.iloc[:, 0], self.integer.iloc[:, 0])
 
     @slow
     def test_integer_panel(self):
@@ -193,7 +192,7 @@ class TestExpressions(tm.TestCase):
         self.run_frame(self.frame2, self.frame2)
 
     def test_float_arithmetic_series(self):
-        self.run_series(self.frame2.icol(0), self.frame2.icol(0))
+        self.run_series(self.frame2.iloc[:, 0], self.frame2.iloc[:, 0])
 
     @slow
     def test_float_panel(self):
@@ -221,7 +220,7 @@ class TestExpressions(tm.TestCase):
 
     def test_float_arithemtic(self):
         self.run_arithmetic_test(self.frame, self.frame, assert_frame_equal)
-        self.run_arithmetic_test(self.frame.icol(0), self.frame.icol(0),
+        self.run_arithmetic_test(self.frame.iloc[:, 0], self.frame.iloc[:, 0],
                                  assert_series_equal, check_dtype=True)
 
     def test_mixed_arithmetic(self):
@@ -233,7 +232,7 @@ class TestExpressions(tm.TestCase):
     def test_integer_with_zeros(self):
         self.integer *= np.random.randint(0, 2, size=np.shape(self.integer))
         self.run_arithmetic_test(self.integer, self.integer, assert_frame_equal)
-        self.run_arithmetic_test(self.integer.icol(0), self.integer.icol(0),
+        self.run_arithmetic_test(self.integer.iloc[:, 0], self.integer.iloc[:, 0],
                                  assert_series_equal)
 
     def test_invalid(self):
@@ -271,7 +270,7 @@ class TestExpressions(tm.TestCase):
 
                         result   = expr.evaluate(op, op_str, f, f, use_numexpr=True)
                         expected = expr.evaluate(op, op_str, f, f, use_numexpr=False)
-                        assert_array_equal(result,expected.values)
+                        tm.assert_numpy_array_equal(result,expected.values)
 
                         result   = expr._can_use_numexpr(op, op_str, f2, f2, 'evaluate')
                         self.assertFalse(result)
@@ -306,7 +305,7 @@ class TestExpressions(tm.TestCase):
 
                     result   = expr.evaluate(op, op_str, f11, f12, use_numexpr=True)
                     expected = expr.evaluate(op, op_str, f11, f12, use_numexpr=False)
-                    assert_array_equal(result,expected.values)
+                    tm.assert_numpy_array_equal(result,expected.values)
 
                     result   = expr._can_use_numexpr(op, op_str, f21, f22, 'evaluate')
                     self.assertFalse(result)
@@ -331,7 +330,7 @@ class TestExpressions(tm.TestCase):
                     c.fill(cond)
                     result   = expr.where(c, f.values, f.values+1)
                     expected = np.where(c, f.values, f.values+1)
-                    assert_array_equal(result,expected)
+                    tm.assert_numpy_array_equal(result,expected)
 
         expr.set_use_numexpr(False)
         testit()

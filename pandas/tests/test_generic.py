@@ -374,7 +374,7 @@ class Generic(object):
 
             self._compare(o.sample(frac=0.7,random_state=np.random.RandomState(test)),
                           o.sample(frac=0.7, random_state=np.random.RandomState(test)))
-
+ 
 
         # Check for error when random_state argument invalid.
         with tm.assertRaises(ValueError):
@@ -415,6 +415,10 @@ class Generic(object):
             bad_weights = [0.5]*11
             o.sample(n=3, weights=bad_weights)
 
+        with tm.assertRaises(ValueError):
+            bad_weight_series = Series([0,0,0.2])
+            o.sample(n=4, weights=bad_weight_series)
+            
         # Check won't accept negative weights
         with tm.assertRaises(ValueError):
             bad_weights = [-0.1]*10
@@ -430,6 +434,16 @@ class Generic(object):
             weights_with_ninf = [0.1]*10
             weights_with_ninf[0] =  -np.inf
             o.sample(n=3, weights=weights_with_ninf)
+
+        # All zeros raises errors
+        zero_weights = [0]*10
+        with tm.assertRaises(ValueError):
+            o.sample(n=3, weights=zero_weights)
+
+        # All missing weights
+        nan_weights = [np.nan]*10
+        with tm.assertRaises(ValueError):
+            o.sample(n=3, weights=nan_weights)
 
 
         # A few dataframe test with degenerate weights.
@@ -496,7 +510,6 @@ class Generic(object):
         assert_frame_equal(df.sample(n=1, axis='index', weights=weight),
                            df.iloc[5:6])
 
-
         # Check out of range axis values
         with tm.assertRaises(ValueError):
             df.sample(n=1, axis=2)
@@ -526,6 +539,26 @@ class Generic(object):
         p = pd.Panel(items = ['a','b','c'], major_axis=[2,4,6], minor_axis=[1,3,5])
         assert_panel_equal(p.sample(n=3, random_state=42), p.sample(n=3, axis=1, random_state=42))
         assert_frame_equal(df.sample(n=3, random_state=42), df.sample(n=3, axis=0, random_state=42))
+
+        # Test that function aligns weights with frame
+        df = DataFrame({'col1':[5,6,7], 'col2':['a','b','c'], }, index = [9,5,3])
+        s = Series([1,0,0], index=[3,5,9])
+        assert_frame_equal(df.loc[[3]], df.sample(1, weights=s))
+
+        # Weights have index values to be dropped because not in 
+        # sampled DataFrame
+        s2 = Series([0.001,0,10000], index=[3,5,10])
+        assert_frame_equal(df.loc[[3]], df.sample(1, weights=s2))
+
+        # Weights have empty values to be filed with zeros
+        s3 = Series([0.01,0], index=[3,5])
+        assert_frame_equal(df.loc[[3]], df.sample(1, weights=s3))
+
+        # No overlap in weight and sampled DataFrame indices
+        s4 = Series([1,0], index=[1,2])
+        with tm.assertRaises(ValueError):
+            df.sample(1, weights=s4)
+
 
     def test_size_compat(self):
         # GH8846
@@ -1372,6 +1405,23 @@ class TestDataFrame(tm.TestCase, Generic):
         result = s.interpolate(method='spline', order=1)
         expected = Series([1., 2., 3., 4., 5., 6., 7.])
         assert_series_equal(result, expected)
+
+    def test_spline_extrapolate(self):
+        tm.skip_if_no_package('scipy', '0.15', 'setting ext on scipy.interpolate.UnivariateSpline')
+        s = Series([1, 2, 3, 4, np.nan, 6, np.nan])
+        result3 = s.interpolate(method='spline', order=1, ext=3)
+        expected3 = Series([1., 2., 3., 4., 5., 6., 6.])
+        assert_series_equal(result3, expected3)
+
+        result1 = s.interpolate(method='spline', order=1, ext=0)
+        expected1 = Series([1., 2., 3., 4., 5., 6., 7.])
+        assert_series_equal(result1, expected1)
+
+    def test_spline_smooth(self):
+        tm._skip_if_no_scipy()
+        s = Series([1, 2, np.nan, 4, 5.1, np.nan, 7])
+        self.assertNotEqual(s.interpolate(method='spline', order=3, s=0)[5],
+                            s.interpolate(method='spline', order=3)[5])
 
     def test_metadata_propagation_indiv(self):
 

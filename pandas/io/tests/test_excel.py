@@ -424,27 +424,27 @@ class ExcelReaderTests(SharedItems, tm.TestCase):
         for path in (xls_path, xlsx_path):
             actual = read_excel(path, 'Sheet1', converters=converters)
             tm.assert_frame_equal(actual, expected)
-    
+
     def test_reading_all_sheets(self):
         # Test reading all sheetnames by setting sheetname to None,
         # Ensure a dict is returned.
         # See PR #9450
-    
+
         _skip_if_no_xlrd()
-        
+
         dfs = read_excel(self.multisheet,sheetname=None)
         expected_keys = ['Alpha','Beta','Charlie']
         tm.assert_contains_all(expected_keys,dfs.keys())
 
     def test_reading_multiple_specific_sheets(self):
-        # Test reading specific sheetnames by specifying a mixed list 
+        # Test reading specific sheetnames by specifying a mixed list
         # of integers and strings, and confirm that duplicated sheet
         # references (positions/names) are removed properly.
-        
+
         # Ensure a dict is returned
         # See PR #9450
         _skip_if_no_xlrd()
-        
+
         #Explicitly request duplicates.  Only the set should be returned.
         expected_keys = [2,'Charlie','Charlie']
         dfs = read_excel(self.multisheet,sheetname=expected_keys)
@@ -456,19 +456,19 @@ class ExcelReaderTests(SharedItems, tm.TestCase):
         # Test reading multiple sheets, from a runtime created excel file
         # with multiple sheets.
         # See PR #9450
-    
+
         _skip_if_no_xlrd()
         _skip_if_no_xlwt()
-               
+
         def tdf(sheetname):
             d, i = [11,22,33], [1,2,3]
             return DataFrame(d,i,columns=[sheetname])
-        
+
         sheets = ['AAA','BBB','CCC']
-        
+
         dfs = [tdf(s) for s in sheets]
         dfs = dict(zip(sheets,dfs))
-  
+
         with ensure_clean('.xlsx') as pth:
             with ExcelWriter(pth) as ew:
                 for sheetname, df in iteritems(dfs):
@@ -476,7 +476,7 @@ class ExcelReaderTests(SharedItems, tm.TestCase):
             dfs_returned = pd.read_excel(pth,sheetname=sheets)
             for s in sheets:
                 tm.assert_frame_equal(dfs[s],dfs_returned[s])
-    
+
     def test_reader_seconds(self):
         # Test reading times with and without milliseconds. GH5945.
         _skip_if_no_xlrd()
@@ -1575,12 +1575,12 @@ class ExcelWriterEngineTests(tm.TestCase):
 
         with ensure_clean('.xlsx') as path:
             writer = ExcelWriter(path)
-            tm.assert_isinstance(writer, writer_klass)
+            tm.assertIsInstance(writer, writer_klass)
 
         _skip_if_no_xlwt()
         with ensure_clean('.xls') as path:
             writer = ExcelWriter(path)
-            tm.assert_isinstance(writer, _XlwtWriter)
+            tm.assertIsInstance(writer, _XlwtWriter)
 
     def test_register_writer(self):
         # some awkward mocking to test out dispatch and such actually works
@@ -1608,7 +1608,7 @@ class ExcelWriterEngineTests(tm.TestCase):
 
         register_writer(DummyClass)
         writer = ExcelWriter('something.test')
-        tm.assert_isinstance(writer, DummyClass)
+        tm.assertIsInstance(writer, DummyClass)
         df = tm.makeCustomDataframe(1, 1)
         panel = tm.makePanel()
         func = lambda: df.to_excel('something.test')

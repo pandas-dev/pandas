@@ -2,13 +2,15 @@
 from pandas.compat import range
 
 import numpy as np
+from numpy.random import RandomState
 
-from pandas.core.api import Series, Categorical
+from pandas.core.api import Series, Categorical, CategoricalIndex
 import pandas as pd
 
 import pandas.core.algorithms as algos
 import pandas.util.testing as tm
 import pandas.hashtable as hashtable
+
 
 class TestMatch(tm.TestCase):
     _multiprocess_can_split_ = True
@@ -166,6 +168,38 @@ class TestFactorize(tm.TestCase):
             _test_vector_resize(tbl(), vect(), dtype, 0)
             _test_vector_resize(tbl(), vect(), dtype, 10)
 
+class TestIndexer(tm.TestCase):
+    _multiprocess_can_split_ = True
+
+    def test_outer_join_indexer(self):
+        typemap = [('int32', algos.algos.outer_join_indexer_int32),
+                   ('int64', algos.algos.outer_join_indexer_int64),
+                   ('float32', algos.algos.outer_join_indexer_float32),
+                   ('float64', algos.algos.outer_join_indexer_float64),
+                   ('object', algos.algos.outer_join_indexer_object)]
+
+        for dtype, indexer in typemap:
+            left = np.arange(3, dtype = dtype)
+            right = np.arange(2,5, dtype = dtype)
+            empty = np.array([], dtype = dtype)
+
+            result, lindexer, rindexer = indexer(left, right)
+            tm.assertIsInstance(result, np.ndarray)
+            tm.assertIsInstance(lindexer, np.ndarray)
+            tm.assertIsInstance(rindexer, np.ndarray)
+            tm.assert_numpy_array_equal(result, np.arange(5, dtype = dtype))
+            tm.assert_numpy_array_equal(lindexer, np.array([0, 1, 2, -1, -1]))
+            tm.assert_numpy_array_equal(rindexer, np.array([-1, -1, 0, 1, 2]))
+
+            result, lindexer, rindexer = indexer(empty, right)
+            tm.assert_numpy_array_equal(result, right)
+            tm.assert_numpy_array_equal(lindexer, np.array([-1, -1, -1]))
+            tm.assert_numpy_array_equal(rindexer, np.array([0, 1, 2]))
+
+            result, lindexer, rindexer = indexer(left, empty)
+            tm.assert_numpy_array_equal(result, left)
+            tm.assert_numpy_array_equal(lindexer, np.array([0, 1, 2]))
+            tm.assert_numpy_array_equal(rindexer, np.array([-1, -1, -1]))
 
 class TestUnique(tm.TestCase):
     _multiprocess_can_split_ = True
@@ -174,13 +208,13 @@ class TestUnique(tm.TestCase):
         arr = np.random.randint(0, 100, size=50)
 
         result = algos.unique(arr)
-        tm.assert_isinstance(result, np.ndarray)
+        tm.assertIsInstance(result, np.ndarray)
 
     def test_objects(self):
         arr = np.random.randint(0, 100, size=50).astype('O')
 
         result = algos.unique(arr)
-        tm.assert_isinstance(result, np.ndarray)
+        tm.assertIsInstance(result, np.ndarray)
 
     def test_object_refcount_bug(self):
         lst = ['A', 'B', 'C', 'D', 'E']
@@ -201,6 +235,50 @@ class TestUnique(tm.TestCase):
 
         tm.assert_almost_equal(result, expected)
 
+    def test_datetime64_dtype_array_returned(self):
+        # GH 9431
+        expected = np.array(['2015-01-03T00:00:00.000000000+0000',
+                             '2015-01-01T00:00:00.000000000+0000'], dtype='M8[ns]')
+
+        dt_index = pd.to_datetime(['2015-01-03T00:00:00.000000000+0000',
+                                   '2015-01-01T00:00:00.000000000+0000',
+                                   '2015-01-01T00:00:00.000000000+0000'])
+        result = algos.unique(dt_index)
+        tm.assert_numpy_array_equal(result, expected)
+        self.assertEqual(result.dtype, expected.dtype)
+
+        s = pd.Series(dt_index)
+        result = algos.unique(s)
+        tm.assert_numpy_array_equal(result, expected)
+        self.assertEqual(result.dtype, expected.dtype)
+
+        arr = s.values
+        result = algos.unique(arr)
+        tm.assert_numpy_array_equal(result, expected)
+        self.assertEqual(result.dtype, expected.dtype)
+
+
+    def test_timedelta64_dtype_array_returned(self):
+        # GH 9431
+        expected = np.array([31200, 45678, 10000], dtype='m8[ns]')
+
+        td_index = pd.to_timedelta([31200, 45678, 31200, 10000, 45678])
+        result = algos.unique(td_index)
+        tm.assert_numpy_array_equal(result, expected)
+        self.assertEqual(result.dtype, expected.dtype)
+
+        s = pd.Series(td_index)
+        result = algos.unique(s)
+        tm.assert_numpy_array_equal(result, expected)
+        self.assertEqual(result.dtype, expected.dtype)
+
+        arr = s.values
+        result = algos.unique(arr)
+        tm.assert_numpy_array_equal(result, expected)
+        self.assertEqual(result.dtype, expected.dtype)
+
+
+
 class TestValueCounts(tm.TestCase):
     _multiprocess_can_split_ = True
 
@@ -211,10 +289,16 @@ class TestValueCounts(tm.TestCase):
         arr = np.random.randn(4)
         factor = cut(arr, 4)
 
-        tm.assert_isinstance(factor, Categorical)
-
+        tm.assertIsInstance(factor, Categorical)
         result = algos.value_counts(factor)
-        expected = algos.value_counts(np.asarray(factor))
+        cats = ['(-1.194, -0.535]',
+                '(-0.535, 0.121]',
+                '(0.121, 0.777]',
+                '(0.777, 1.433]'
+        ]
+        expected_index = CategoricalIndex(cats, cats, ordered=True)
+        expected = Series([1, 1, 1, 1],
+                          index=expected_index)
         tm.assert_series_equal(result.sort_index(), expected.sort_index())
 
     def test_value_counts_bins(self):
@@ -254,6 +338,57 @@ class TestValueCounts(tm.TestCase):
         tm.assert_series_equal(algos.value_counts(dt), exp_dt)
         # TODO same for (timedelta)
 
+    def test_categorical(self):
+        s = Series(pd.Categorical(list('aaabbc')))
+        result = s.value_counts()
+        expected = pd.Series([3, 2, 1], index=pd.CategoricalIndex(['a', 'b', 'c']))
+        tm.assert_series_equal(result, expected, check_index_type=True)
+
+        # preserve order?
+        s = s.cat.as_ordered()
+        result = s.value_counts()
+        expected.index = expected.index.as_ordered()
+        tm.assert_series_equal(result, expected, check_index_type=True)
+
+    def test_categorical_nans(self):
+        s = Series(pd.Categorical(list('aaaaabbbcc'))) # 4,3,2,1 (nan)
+        s.iloc[1] = np.nan
+        result = s.value_counts()
+        expected = pd.Series([4, 3, 2],
+                             index=pd.CategoricalIndex(['a', 'b', 'c'],
+                                                       categories=['a', 'b', 'c']))
+        tm.assert_series_equal(result, expected, check_index_type=True)
+        result = s.value_counts(dropna=False)
+        expected = pd.Series([4, 3, 2, 1], index=pd.CategoricalIndex(
+            ['a', 'b',  'c', np.nan]))
+        tm.assert_series_equal(result, expected, check_index_type=True)
+
+        # out of order
+        s = Series(pd.Categorical(list('aaaaabbbcc'),
+                                  ordered=True, categories=['b', 'a', 'c']))
+        s.iloc[1] = np.nan
+        result = s.value_counts()
+        expected = pd.Series([4, 3, 2],
+                             index=pd.CategoricalIndex(['a', 'b', 'c'],
+                                                       categories=['b', 'a', 'c'],
+                                                       ordered=True))
+        tm.assert_series_equal(result, expected, check_index_type=True)
+
+        result = s.value_counts(dropna=False)
+        expected = pd.Series([4, 3, 2, 1], index=pd.CategoricalIndex(
+            ['a', 'b',  'c', np.nan], categories=['b', 'a', 'c'], ordered=True))
+        tm.assert_series_equal(result, expected, check_index_type=True)
+
+    def test_categorical_zeroes(self):
+        # keep the `d` category with 0
+        s = Series(pd.Categorical(list('bbbaac'), categories=list('abcd'),
+                                  ordered=True))
+        result = s.value_counts()
+        expected = Series([3, 2, 1, 0], index=pd.Categorical(
+            ['b', 'a', 'c', 'd'], categories=list('abcd'), ordered=True))
+        tm.assert_series_equal(result, expected, check_index_type=True)
+
+
     def test_dropna(self):
         # https://github.com/pydata/pandas/issues/9443#issuecomment-73719328
 
@@ -285,6 +420,125 @@ class TestValueCounts(tm.TestCase):
             pd.Series([10.3, 5., 5., None]).value_counts(dropna=False),
             pd.Series([2, 1, 1], index=[5., 10.3, np.nan]))
 
+
+class GroupVarTestMixin(object):
+
+    def test_group_var_generic_1d(self):
+        prng = RandomState(1234)
+
+        out = (np.nan * np.ones((5, 1))).astype(self.dtype)
+        counts = np.zeros(5, dtype='int64')
+        values = 10 * prng.rand(15, 1).astype(self.dtype)
+        labels = np.tile(np.arange(5), (3, )).astype('int64')
+
+        expected_out = (np.squeeze(values)
+                        .reshape((5, 3), order='F')
+                        .std(axis=1, ddof=1) ** 2)[:, np.newaxis]
+        expected_counts = counts + 3
+
+        self.algo(out, counts, values, labels)
+        np.testing.assert_allclose(out, expected_out, self.rtol)
+        tm.assert_numpy_array_equal(counts, expected_counts)
+
+    def test_group_var_generic_1d_flat_labels(self):
+        prng = RandomState(1234)
+
+        out = (np.nan * np.ones((1, 1))).astype(self.dtype)
+        counts = np.zeros(1, dtype='int64')
+        values = 10 * prng.rand(5, 1).astype(self.dtype)
+        labels = np.zeros(5, dtype='int64')
+
+        expected_out = np.array([[values.std(ddof=1) ** 2]])
+        expected_counts = counts + 5
+
+        self.algo(out, counts, values, labels)
+
+        np.testing.assert_allclose(out, expected_out, self.rtol)
+        tm.assert_numpy_array_equal(counts, expected_counts)
+
+    def test_group_var_generic_2d_all_finite(self):
+        prng = RandomState(1234)
+
+        out = (np.nan * np.ones((5, 2))).astype(self.dtype)
+        counts = np.zeros(5, dtype='int64')
+        values = 10 * prng.rand(10, 2).astype(self.dtype)
+        labels = np.tile(np.arange(5), (2, )).astype('int64')
+
+        expected_out = np.std(
+            values.reshape(2, 5, 2), ddof=1, axis=0) ** 2
+        expected_counts = counts + 2
+
+        self.algo(out, counts, values, labels)
+        np.testing.assert_allclose(out, expected_out, self.rtol)
+        tm.assert_numpy_array_equal(counts, expected_counts)
+
+    def test_group_var_generic_2d_some_nan(self):
+        prng = RandomState(1234)
+
+        out = (np.nan * np.ones((5, 2))).astype(self.dtype)
+        counts = np.zeros(5, dtype='int64')
+        values = 10 * prng.rand(10, 2).astype(self.dtype)
+        values[:, 1] = np.nan
+        labels = np.tile(np.arange(5), (2, )).astype('int64')
+
+        expected_out = np.vstack([
+            values[:, 0].reshape(5, 2, order='F').std(ddof=1, axis=1) ** 2,
+            np.nan * np.ones(5)
+        ]).T
+        expected_counts = counts + 2
+
+        self.algo(out, counts, values, labels)
+        np.testing.assert_allclose(out, expected_out, self.rtol)
+        tm.assert_numpy_array_equal(counts, expected_counts)
+
+    def test_group_var_constant(self):
+        # Regression test from GH 10448.
+
+        out = np.array([[np.nan]], dtype=self.dtype)
+        counts = np.array([0],dtype='int64')
+        values = 0.832845131556193 * np.ones((3, 1), dtype=self.dtype)
+        labels = np.zeros(3, dtype='int64')
+
+        self.algo(out, counts, values, labels)
+
+        self.assertEqual(counts[0], 3)
+        self.assertTrue(out[0, 0] >= 0)  # Python 2.6 has no assertGreaterEqual
+        tm.assert_almost_equal(out[0, 0], 0.0)
+
+
+class TestGroupVarFloat64(tm.TestCase, GroupVarTestMixin):
+    __test__ = True
+    _multiprocess_can_split_ = True
+
+    algo = algos.algos.group_var_float64
+    dtype = np.float64
+    rtol = 1e-5
+
+    def test_group_var_large_inputs(self):
+
+        prng = RandomState(1234)
+
+        out = np.array([[np.nan]], dtype=self.dtype)
+        counts = np.array([0],dtype='int64')
+        values = (prng.rand(10 ** 6) + 10 ** 12).astype(self.dtype)
+        values.shape = (10 ** 6, 1)
+        labels = np.zeros(10 ** 6, dtype='int64')
+
+        self.algo(out, counts, values, labels)
+
+        self.assertEqual(counts[0], 10 ** 6)
+        tm.assert_almost_equal(out[0, 0], 1.0 / 12, check_less_precise=True)
+
+
+class TestGroupVarFloat32(tm.TestCase, GroupVarTestMixin):
+    __test__ = True
+    _multiprocess_can_split_ = True
+
+    algo = algos.algos.group_var_float32
+    dtype = np.float32
+    rtol = 1e-2
+
+
 def test_quantile():
     s = Series(np.random.randn(100))
 
@@ -300,12 +554,12 @@ def test_unique_label_indices():
     left = unique_label_indices(a)
     right = np.unique(a, return_index=True)[1]
 
-    tm.assert_array_equal(left, right)
+    tm.assert_numpy_array_equal(left, right)
 
     a[np.random.choice(len(a), 10)] = -1
     left= unique_label_indices(a)
     right = np.unique(a, return_index=True)[1][1:]
-    tm.assert_array_equal(left, right)
+    tm.assert_numpy_array_equal(left, right)
 
 if __name__ == '__main__':
     import nose

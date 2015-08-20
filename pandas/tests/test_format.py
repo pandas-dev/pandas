@@ -395,7 +395,7 @@ class TestDataFrameFormatting(tm.TestCase):
         buf.getvalue()
 
         result = self.frame.to_string()
-        tm.assert_isinstance(result, compat.text_type)
+        tm.assertIsInstance(result, compat.text_type)
 
     def test_to_string_utf8_columns(self):
         n = u("\u05d0").encode('utf-8')
@@ -630,6 +630,10 @@ class TestDataFrameFormatting(tm.TestCase):
     </tr>
   </tbody>
 </table>"""
+        self.assertEqual(result, expected)
+
+        df.index = Index(df.index.values, name='idx')
+        result = df.to_html(index=False)
         self.assertEqual(result, expected)
 
     def test_to_html_multiindex_sparsify_false_multi_sparse(self):
@@ -990,7 +994,7 @@ class TestDataFrameFormatting(tm.TestCase):
 </table>
 <p>20 rows × 20 columns</p>
 </div>'''.format(div_style)
-        if sys.version_info[0] < 3:
+        if compat.PY2:
             expected = expected.decode('utf-8')
         self.assertEqual(result, expected)
 
@@ -1106,7 +1110,7 @@ class TestDataFrameFormatting(tm.TestCase):
 </table>
 <p>8 rows × 8 columns</p>
 </div>'''.format(div_style)
-        if sys.version_info[0] < 3:
+        if compat.PY2:
             expected = expected.decode('utf-8')
         self.assertEqual(result, expected)
 
@@ -1216,7 +1220,7 @@ class TestDataFrameFormatting(tm.TestCase):
 </table>
 <p>8 rows × 8 columns</p>
 </div>'''.format(div_style)
-        if sys.version_info[0] < 3:
+        if compat.PY2:
             expected = expected.decode('utf-8')
         self.assertEqual(result, expected)
 
@@ -1470,7 +1474,7 @@ class TestDataFrameFormatting(tm.TestCase):
         self.assertIsNone(retval)
         self.assertEqual(buf.getvalue(), s)
 
-        tm.assert_isinstance(s, compat.string_types)
+        tm.assertIsInstance(s, compat.string_types)
 
         # print in right order
         result = biggie.to_string(columns=['B', 'A'], col_space=17,
@@ -1523,7 +1527,7 @@ class TestDataFrameFormatting(tm.TestCase):
 
     def test_to_string_float_formatting(self):
         self.reset_display_options()
-        fmt.set_option('display.precision', 6, 'display.column_space',
+        fmt.set_option('display.precision', 5, 'display.column_space',
                        12, 'display.notebook_repr_html', False)
 
         df = DataFrame({'x': [0, 0.25, 3456.000, 12e+45, 1.64e+6,
@@ -1554,7 +1558,7 @@ class TestDataFrameFormatting(tm.TestCase):
         self.assertEqual(df_s, expected)
 
         self.reset_display_options()
-        self.assertEqual(get_option("display.precision"), 7)
+        self.assertEqual(get_option("display.precision"), 6)
 
         df = DataFrame({'x': [1e9, 0.2512]})
         df_s = df.to_string()
@@ -1719,7 +1723,7 @@ c  10  11  12  13  14\
         self.assertIsNone(retval)
         self.assertEqual(buf.getvalue(), s)
 
-        tm.assert_isinstance(s, compat.string_types)
+        tm.assertIsInstance(s, compat.string_types)
 
         biggie.to_html(columns=['B', 'A'], col_space=17)
         biggie.to_html(columns=['B', 'A'],
@@ -1922,15 +1926,195 @@ c  10  11  12  13  14\
                            'C': ['one', 'two', np.NaN]},
                           columns=['A', 'B', 'C'],
                           index=index)
+        expected_with_index = ('<table border="1" class="dataframe">\n'
+                               '  <thead>\n'
+                               '    <tr style="text-align: right;">\n'
+                               '      <th></th>\n'
+                               '      <th>A</th>\n'
+                               '      <th>B</th>\n'
+                               '      <th>C</th>\n'
+                               '    </tr>\n'
+                               '  </thead>\n'
+                               '  <tbody>\n'
+                               '    <tr>\n'
+                               '      <th>foo</th>\n'
+                               '      <td>1</td>\n'
+                               '      <td>1.2</td>\n'
+                               '      <td>one</td>\n'
+                               '    </tr>\n'
+                               '    <tr>\n'
+                               '      <th>bar</th>\n'
+                               '      <td>2</td>\n'
+                               '      <td>3.4</td>\n'
+                               '      <td>two</td>\n'
+                               '    </tr>\n'
+                               '    <tr>\n'
+                               '      <th>baz</th>\n'
+                               '      <td>3</td>\n'
+                               '      <td>5.6</td>\n'
+                               '      <td>NaN</td>\n'
+                               '    </tr>\n'
+                               '  </tbody>\n'
+                               '</table>')
+        self.assertEqual(df.to_html(), expected_with_index)
+
+        expected_without_index = ('<table border="1" class="dataframe">\n'
+                                  '  <thead>\n'
+                                  '    <tr style="text-align: right;">\n'
+                                  '      <th>A</th>\n'
+                                  '      <th>B</th>\n'
+                                  '      <th>C</th>\n'
+                                  '    </tr>\n'
+                                  '  </thead>\n'
+                                  '  <tbody>\n'
+                                  '    <tr>\n'
+                                  '      <td>1</td>\n'
+                                  '      <td>1.2</td>\n'
+                                  '      <td>one</td>\n'
+                                  '    </tr>\n'
+                                  '    <tr>\n'
+                                  '      <td>2</td>\n'
+                                  '      <td>3.4</td>\n'
+                                  '      <td>two</td>\n'
+                                  '    </tr>\n'
+                                  '    <tr>\n'
+                                  '      <td>3</td>\n'
+                                  '      <td>5.6</td>\n'
+                                  '      <td>NaN</td>\n'
+                                  '    </tr>\n'
+                                  '  </tbody>\n'
+                                  '</table>')
         result = df.to_html(index=False)
         for i in index:
             self.assertNotIn(i, result)
+        self.assertEqual(result, expected_without_index)
+        df.index = Index(['foo', 'bar', 'baz'], name='idx')
+        expected_with_index = ('<table border="1" class="dataframe">\n'
+                               '  <thead>\n'
+                               '    <tr style="text-align: right;">\n'
+                               '      <th></th>\n'
+                               '      <th>A</th>\n'
+                               '      <th>B</th>\n'
+                               '      <th>C</th>\n'
+                               '    </tr>\n'
+                               '    <tr>\n'
+                               '      <th>idx</th>\n'
+                               '      <th></th>\n'
+                               '      <th></th>\n'
+                               '      <th></th>\n'
+                               '    </tr>\n'
+                               '  </thead>\n'
+                               '  <tbody>\n'
+                               '    <tr>\n'
+                               '      <th>foo</th>\n'
+                               '      <td>1</td>\n'
+                               '      <td>1.2</td>\n'
+                               '      <td>one</td>\n'
+                               '    </tr>\n'
+                               '    <tr>\n'
+                               '      <th>bar</th>\n'
+                               '      <td>2</td>\n'
+                               '      <td>3.4</td>\n'
+                               '      <td>two</td>\n'
+                               '    </tr>\n'
+                               '    <tr>\n'
+                               '      <th>baz</th>\n'
+                               '      <td>3</td>\n'
+                               '      <td>5.6</td>\n'
+                               '      <td>NaN</td>\n'
+                               '    </tr>\n'
+                               '  </tbody>\n'
+                               '</table>')
+        self.assertEqual(df.to_html(), expected_with_index)
+        self.assertEqual(df.to_html(index=False), expected_without_index)
 
         tuples = [('foo', 'car'), ('foo', 'bike'), ('bar', 'car')]
         df.index = MultiIndex.from_tuples(tuples)
+
+        expected_with_index = ('<table border="1" class="dataframe">\n'
+                               '  <thead>\n'
+                               '    <tr style="text-align: right;">\n'
+                               '      <th></th>\n'
+                               '      <th></th>\n'
+                               '      <th>A</th>\n'
+                               '      <th>B</th>\n'
+                               '      <th>C</th>\n'
+                               '    </tr>\n'
+                               '  </thead>\n'
+                               '  <tbody>\n'
+                               '    <tr>\n'
+                               '      <th rowspan="2" valign="top">foo</th>\n'
+                               '      <th>car</th>\n'
+                               '      <td>1</td>\n'
+                               '      <td>1.2</td>\n'
+                               '      <td>one</td>\n'
+                               '    </tr>\n'
+                               '    <tr>\n'
+                               '      <th>bike</th>\n'
+                               '      <td>2</td>\n'
+                               '      <td>3.4</td>\n'
+                               '      <td>two</td>\n'
+                               '    </tr>\n'
+                               '    <tr>\n'
+                               '      <th>bar</th>\n'
+                               '      <th>car</th>\n'
+                               '      <td>3</td>\n'
+                               '      <td>5.6</td>\n'
+                               '      <td>NaN</td>\n'
+                               '    </tr>\n'
+                               '  </tbody>\n'
+                               '</table>')
+        self.assertEqual(df.to_html(), expected_with_index)
+
         result = df.to_html(index=False)
         for i in ['foo', 'bar', 'car', 'bike']:
             self.assertNotIn(i, result)
+        # must be the same result as normal index
+        self.assertEqual(result, expected_without_index)
+
+        df.index = MultiIndex.from_tuples(tuples, names=['idx1', 'idx2'])
+        expected_with_index = ('<table border="1" class="dataframe">\n'
+                               '  <thead>\n'
+                               '    <tr style="text-align: right;">\n'
+                               '      <th></th>\n'
+                               '      <th></th>\n'
+                               '      <th>A</th>\n'
+                               '      <th>B</th>\n'
+                               '      <th>C</th>\n'
+                               '    </tr>\n'
+                               '    <tr>\n'
+                               '      <th>idx1</th>\n'
+                               '      <th>idx2</th>\n'
+                               '      <th></th>\n'
+                               '      <th></th>\n'
+                               '      <th></th>\n'
+                               '    </tr>\n'
+                               '  </thead>\n'
+                               '  <tbody>\n'
+                               '    <tr>\n'
+                               '      <th rowspan="2" valign="top">foo</th>\n'
+                               '      <th>car</th>\n'
+                               '      <td>1</td>\n'
+                               '      <td>1.2</td>\n'
+                               '      <td>one</td>\n'
+                               '    </tr>\n'
+                               '    <tr>\n'
+                               '      <th>bike</th>\n'
+                               '      <td>2</td>\n'
+                               '      <td>3.4</td>\n'
+                               '      <td>two</td>\n'
+                               '    </tr>\n'
+                               '    <tr>\n'
+                               '      <th>bar</th>\n'
+                               '      <th>car</th>\n'
+                               '      <td>3</td>\n'
+                               '      <td>5.6</td>\n'
+                               '      <td>NaN</td>\n'
+                               '    </tr>\n'
+                               '  </tbody>\n'
+                               '</table>')
+        self.assertEqual(df.to_html(), expected_with_index)
+        self.assertEqual(df.to_html(index=False), expected_without_index)
 
     def test_repr_html(self):
         self.frame._repr_html_()
@@ -3055,7 +3239,7 @@ class TestFloatArrayFormatter(tm.TestCase):
         # Issue #9764
 
         # In case default display precision changes:
-        with pd.option_context('display.precision', 7):
+        with pd.option_context('display.precision', 6):
             # DataFrame example from issue #9764
             d=pd.DataFrame({'col1':[9.999e-8, 1e-7, 1.0001e-7, 2e-7, 4.999e-7, 5e-7, 5.0001e-7, 6e-7, 9.999e-7, 1e-6, 1.0001e-6, 2e-6, 4.999e-6, 5e-6, 5.0001e-6, 6e-6]})
 
@@ -3069,6 +3253,17 @@ class TestFloatArrayFormatter(tm.TestCase):
 
             for (start, stop), v in expected_output.items():
                 self.assertEqual(str(d[start:stop]), v)
+
+    def test_too_long(self):
+        # GH 10451
+        with pd.option_context('display.precision', 4):
+            # need both a number > 1e8 and something that normally formats to having length > display.precision + 6
+            df = pd.DataFrame(dict(x=[12345.6789]))
+            self.assertEqual(str(df), '            x\n0  12345.6789')
+            df = pd.DataFrame(dict(x=[2e8]))
+            self.assertEqual(str(df), '           x\n0  200000000')
+            df = pd.DataFrame(dict(x=[12345.6789, 2e8]))
+            self.assertEqual(str(df), '            x\n0  1.2346e+04\n1  2.0000e+08')
 
 
 class TestRepr_timedelta64(tm.TestCase):

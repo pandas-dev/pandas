@@ -36,7 +36,7 @@ def match(to_match, values, na_sentinel=-1):
         values = np.array(values, dtype='O')
 
     f = lambda htype, caster: _match_generic(to_match, values, htype, caster)
-    result = _hashtable_algo(f, values.dtype)
+    result = _hashtable_algo(f, values.dtype, np.int64)
 
     if na_sentinel != -1:
 
@@ -66,7 +66,7 @@ def unique(values):
     return _hashtable_algo(f, values.dtype)
 
 
-def _hashtable_algo(f, dtype):
+def _hashtable_algo(f, dtype, return_dtype=None):
     """
     f(HashTable, type_caster) -> result
     """
@@ -74,6 +74,12 @@ def _hashtable_algo(f, dtype):
         return f(htable.Float64HashTable, com._ensure_float64)
     elif com.is_integer_dtype(dtype):
         return f(htable.Int64HashTable, com._ensure_int64)
+    elif com.is_datetime64_dtype(dtype):
+        return_dtype = return_dtype or 'M8[ns]'
+        return f(htable.Int64HashTable, com._ensure_int64).view(return_dtype)
+    elif com.is_timedelta64_dtype(dtype):
+        return_dtype = return_dtype or 'm8[ns]'
+        return f(htable.Int64HashTable, com._ensure_int64).view(return_dtype)
     else:
         return f(htable.PyObjectHashTable, com._ensure_object)
 
@@ -202,6 +208,7 @@ def value_counts(values, sort=True, ascending=False, normalize=False,
     from pandas.tools.tile import cut
     from pandas.tseries.period import PeriodIndex
 
+    name = getattr(values, 'name', None)
     values = Series(values).values
 
     if bins is not None:
@@ -222,10 +229,10 @@ def value_counts(values, sort=True, ascending=False, normalize=False,
         if com.is_datetime_or_timedelta_dtype(dtype) or is_period:
 
             if is_period:
-                values = PeriodIndex(values)
+                values = PeriodIndex(values, name=name)
 
             values = values.view(np.int64)
-            keys, counts = htable.value_count_int64(values)
+            keys, counts = htable.value_count_scalar64(values, dropna)
 
             if dropna:
                 from pandas.tslib import iNaT
@@ -237,7 +244,10 @@ def value_counts(values, sort=True, ascending=False, normalize=False,
 
         elif com.is_integer_dtype(dtype):
             values = com._ensure_int64(values)
-            keys, counts = htable.value_count_int64(values)
+            keys, counts = htable.value_count_scalar64(values, dropna)
+        elif com.is_float_dtype(dtype):
+            values = com._ensure_float64(values)
+            keys, counts = htable.value_count_scalar64(values, dropna)
 
         else:
             values = com._ensure_object(values)
@@ -247,7 +257,7 @@ def value_counts(values, sort=True, ascending=False, normalize=False,
                 keys = np.insert(keys, 0, np.NaN)
                 counts = np.insert(counts, 0, mask.sum())
 
-        result = Series(counts, index=com._values_from_object(keys))
+        result = Series(counts, index=com._values_from_object(keys), name=name)
 
         if bins is not None:
             # TODO: This next line should be more efficient

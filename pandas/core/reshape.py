@@ -319,11 +319,17 @@ def pivot(self, index=None, columns=None, values=None):
     See DataFrame.pivot
     """
     if values is None:
-        indexed = self.set_index([index, columns])
+        cols = [columns] if index is None else [index, columns]
+        append = index is None
+        indexed = self.set_index(cols, append=append)
         return indexed.unstack(columns)
     else:
+        if index is None:
+            index = self.index
+        else:
+            index = self[index]
         indexed = Series(self[values].values,
-                         index=MultiIndex.from_arrays([self[index],
+                         index=MultiIndex.from_arrays([index,
                                                        self[columns]]))
         return indexed.unstack(columns)
 
@@ -455,6 +461,12 @@ def stack(frame, level=-1, dropna=True):
     -------
     stacked : Series
     """
+    def factorize(index):
+        if index.is_unique:
+            return index, np.arange(len(index))
+        cat = Categorical(index, ordered=True)
+        return cat.categories, cat.codes
+
     N, K = frame.shape
     if isinstance(frame.columns, MultiIndex):
         if frame.columns._reference_duplicate_name(level):
@@ -469,20 +481,22 @@ def stack(frame, level=-1, dropna=True):
         return _stack_multi_columns(frame, level_num=level_num, dropna=dropna)
     elif isinstance(frame.index, MultiIndex):
         new_levels = list(frame.index.levels)
-        new_levels.append(frame.columns)
-
         new_labels = [lab.repeat(K) for lab in frame.index.labels]
-        new_labels.append(np.tile(np.arange(K), N).ravel())
+
+        clev, clab = factorize(frame.columns)
+        new_levels.append(clev)
+        new_labels.append(np.tile(clab, N).ravel())
 
         new_names = list(frame.index.names)
         new_names.append(frame.columns.name)
         new_index = MultiIndex(levels=new_levels, labels=new_labels,
                                names=new_names, verify_integrity=False)
     else:
-        ilabels = np.arange(N).repeat(K)
-        clabels = np.tile(np.arange(K), N).ravel()
-        new_index = MultiIndex(levels=[frame.index, frame.columns],
-                               labels=[ilabels, clabels],
+        levels, (ilab, clab) = \
+                zip(*map(factorize, (frame.index, frame.columns)))
+        labels = ilab.repeat(K), np.tile(clab, N).ravel()
+        new_index = MultiIndex(levels=levels,
+                               labels=labels,
                                names=[frame.index.name, frame.columns.name],
                                verify_integrity=False)
 
@@ -957,13 +971,15 @@ def get_dummies(data, prefix=None, prefix_sep='_', dummy_na=False,
         If `columns` is None then all the columns with
         `object` or `category` dtype will be converted.
     sparse : bool, default False
-        Whether the returned DataFrame should be sparse or not.
+        Whether the dummy columns should be sparse or not.  Returns
+        SparseDataFrame if `data` is a Series or if all columns are included.
+        Otherwise returns a DataFrame with some SparseBlocks.
 
         .. versionadded:: 0.16.1
 
     Returns
     -------
-    dummies : DataFrame
+    dummies : DataFrame or SparseDataFrame
 
     Examples
     --------
@@ -1042,8 +1058,11 @@ def get_dummies(data, prefix=None, prefix_sep='_', dummy_na=False,
         elif isinstance(prefix_sep, dict):
             prefix_sep = [prefix_sep[col] for col in columns_to_encode]
 
-        result = data.drop(columns_to_encode, axis=1)
-        with_dummies = [result]
+        if set(columns_to_encode) == set(data.columns):
+            with_dummies = []
+        else:
+            with_dummies = [data.drop(columns_to_encode, axis=1)]
+
         for (col, pre, sep) in zip(columns_to_encode, prefix, prefix_sep):
 
             dummy = _get_dummies_1d(data[col], prefix=pre, prefix_sep=sep,

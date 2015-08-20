@@ -5,8 +5,8 @@
 .. ipython:: python
    :suppress:
 
-   from pandas import *
-   options.display.max_rows=15
+   import pandas as pd
+   pd.options.display.max_rows = 15
 
 
 ******************
@@ -136,10 +136,8 @@ DataFrames into the equivalent R object (that is, **data.frame**):
 
 .. ipython:: python
 
-   from pandas import DataFrame
-
-   df = DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6], 'C':[7,8,9]},
-                  index=["one", "two", "three"])
+   df = pd.DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6], 'C':[7,8,9]},
+                     index=["one", "two", "three"])
    r_dataframe = com.convert_to_r_dataframe(df)
 
    print(type(r_dataframe))

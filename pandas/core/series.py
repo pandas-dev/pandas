@@ -19,6 +19,7 @@ from pandas.core.common import (isnull, notnull, is_bool_indexer,
                                 is_list_like, _values_from_object,
                                 _possibly_cast_to_datetime, _possibly_castable,
                                 _possibly_convert_platform, _try_sort,
+                                is_int64_dtype,
                                 ABCSparseArray, _maybe_match_name,
                                 _coerce_to_dtype, SettingWithCopyError,
                                 _maybe_box_datetimelike, ABCDataFrame,
@@ -45,7 +46,7 @@ import pandas.core.common as com
 import pandas.core.datetools as datetools
 import pandas.core.format as fmt
 import pandas.core.nanops as nanops
-from pandas.util.decorators import Appender, cache_readonly
+from pandas.util.decorators import Appender, cache_readonly, deprecate_kwarg
 
 import pandas.lib as lib
 import pandas.tslib as tslib
@@ -188,8 +189,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             elif isinstance(data, Categorical):
                 if dtype is not None:
                     raise ValueError("cannot specify a dtype with a Categorical")
-                if name is None:
-                    name = data.name
             elif (isinstance(data, types.GeneratorType) or
                   (compat.PY3 and isinstance(data, map))):
                 data = list(data)
@@ -436,10 +435,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     __float__ = _coerce_method(float)
     __long__ = _coerce_method(int)
     __int__ = _coerce_method(int)
-
-    # we are preserving name here
-    def __getstate__(self):
-        return dict(_data=self._data, name=self.name)
 
     def _unpickle_series_compat(self, state):
         if isinstance(state, dict):
@@ -786,9 +781,30 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         return self.values.reshape(shape, **kwargs)
 
-    iget_value = _ixs
-    iget = _ixs
-    irow = _ixs
+    def iget_value(self, i, axis=0):
+        """
+        DEPRECATED. Use ``.iloc[i]`` or ``.iat[i]`` instead
+        """
+        warnings.warn("iget_value(i) is deprecated. Please use .iloc[i] or .iat[i]",
+                      FutureWarning, stacklevel=2)
+        return self._ixs(i)
+
+    def iget(self, i, axis=0):
+        """
+        DEPRECATED. Use ``.iloc[i]`` or ``.iat[i]`` instead
+        """
+
+        warnings.warn("iget(i) is deprecated. Please use .iloc[i]",
+                      FutureWarning, stacklevel=2)
+        return self._ixs(i)
+
+    def irow(self, i, axis=0):
+        """
+        DEPRECATED. Use ``.iloc[i]`` or ``.iat[i]`` instead
+        """
+        warnings.warn("irow(i) is deprecated. Please use .iloc[i] or iat[i]",
+                      FutureWarning, stacklevel=2)
+        return self._ixs(i)
 
     def get_value(self, label, takeable=False):
         """
@@ -1139,14 +1155,15 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         from pandas.core.algorithms import mode
         return mode(self)
 
+    @deprecate_kwarg('take_last', 'keep', mapping={True: 'last', False: 'first'})
     @Appender(base._shared_docs['drop_duplicates'] % _shared_doc_kwargs)
-    def drop_duplicates(self, take_last=False, inplace=False):
-        return super(Series, self).drop_duplicates(take_last=take_last,
-                                                   inplace=inplace)
+    def drop_duplicates(self, keep='first', inplace=False):
+        return super(Series, self).drop_duplicates(keep=keep, inplace=inplace)
 
+    @deprecate_kwarg('take_last', 'keep', mapping={True: 'last', False: 'first'})
     @Appender(base._shared_docs['duplicated'] % _shared_doc_kwargs)
-    def duplicated(self, take_last=False):
-        return super(Series, self).duplicated(take_last=take_last)
+    def duplicated(self, keep='first'):
+        return super(Series, self).duplicated(keep=keep)
 
     def idxmin(self, axis=None, out=None, skipna=True):
         """
@@ -2250,17 +2267,22 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         # may need i8 conversion for proper membership testing
         comps = _values_from_object(self)
+        f = lib.ismember
         if com.is_datetime64_dtype(self):
             from pandas.tseries.tools import to_datetime
             values = Series(to_datetime(values)).values.view('i8')
             comps = comps.view('i8')
+            f = lib.ismember_int64
         elif com.is_timedelta64_dtype(self):
             from pandas.tseries.timedeltas import to_timedelta
             values = Series(to_timedelta(values)).values.view('i8')
             comps = comps.view('i8')
+            f = lib.ismember_int64
+        elif is_int64_dtype(self):
+            f = lib.ismember_int64
 
         value_set = set(values)
-        result = lib.ismember(comps, value_set)
+        result = f(comps, value_set)
         return self._constructor(result, index=self.index).__finalize__(self)
 
     def between(self, left, right, inclusive=True):
@@ -2323,8 +2345,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                                 sep=sep, parse_dates=parse_dates,
                                 encoding=encoding,
                                 infer_datetime_format=infer_datetime_format)
-        result = df.icol(0)
-        result.index.name = result.name = None
+        result = df.iloc[:,0]
+        if header is None:
+            result.index.name = result.name = None
+
         return result
 
     def to_csv(self, path, index=True, sep=",", na_rep='',

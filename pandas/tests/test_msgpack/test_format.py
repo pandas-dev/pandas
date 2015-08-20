@@ -7,7 +7,7 @@ def check(src, should, use_list=0):
     assert unpackb(src, use_list=use_list) == should
 
 def testSimpleValue():
-    check(b"\x93\xc0\xc2\xc3",
+    check(b"\x93\xc0\xc2\xc3", 
             (None, False, True,))
 
 def testFixnum():

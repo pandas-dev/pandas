@@ -26,7 +26,7 @@
 extern "C" {
 #endif
 
-#ifdef _MSC_VER
+#if defined(_MSC_VER) && (_MSC_VER < 1900)
 #define inline __inline
 #endif
 
@@ -34,18 +34,18 @@ typedef struct msgpack_packer {
     char *buf;
     size_t length;
     size_t buf_size;
+    bool use_bin_type;
 } msgpack_packer;
 
 typedef struct Packer Packer;
 
-static inline int msgpack_pack_short(msgpack_packer* pk, short d);
 static inline int msgpack_pack_int(msgpack_packer* pk, int d);
 static inline int msgpack_pack_long(msgpack_packer* pk, long d);
 static inline int msgpack_pack_long_long(msgpack_packer* pk, long long d);
 static inline int msgpack_pack_unsigned_short(msgpack_packer* pk, unsigned short d);
 static inline int msgpack_pack_unsigned_int(msgpack_packer* pk, unsigned int d);
 static inline int msgpack_pack_unsigned_long(msgpack_packer* pk, unsigned long d);
-static inline int msgpack_pack_unsigned_long_long(msgpack_packer* pk, unsigned long long d);
+//static inline int msgpack_pack_unsigned_long_long(msgpack_packer* pk, unsigned long long d);
 
 static inline int msgpack_pack_uint8(msgpack_packer* pk, uint8_t d);
 static inline int msgpack_pack_uint16(msgpack_packer* pk, uint16_t d);
@@ -68,7 +68,10 @@ static inline int msgpack_pack_array(msgpack_packer* pk, unsigned int n);
 static inline int msgpack_pack_map(msgpack_packer* pk, unsigned int n);
 
 static inline int msgpack_pack_raw(msgpack_packer* pk, size_t l);
+static inline int msgpack_pack_bin(msgpack_packer* pk, size_t l);
 static inline int msgpack_pack_raw_body(msgpack_packer* pk, const void* b, size_t l);
+
+static inline int msgpack_pack_ext(msgpack_packer* pk, char typecode, size_t l);
 
 static inline int msgpack_pack_write(msgpack_packer* pk, const char *data, size_t l)
 {
@@ -89,14 +92,6 @@ static inline int msgpack_pack_write(msgpack_packer* pk, const char *data, size_
     pk->length = len;
     return 0;
 }
-
-#define msgpack_pack_inline_func(name) \
-	static inline int msgpack_pack ## name
-
-#define msgpack_pack_inline_func_cint(name) \
-	static inline int msgpack_pack ## name
-
-#define msgpack_pack_user msgpack_packer*
 
 #define msgpack_pack_append_buffer(user, buf, len) \
         return msgpack_pack_write(user, (const char*)buf, len)

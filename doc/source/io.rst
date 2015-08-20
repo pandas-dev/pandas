@@ -41,6 +41,7 @@ object.
     * :ref:`read_html<io.read_html>`
     * :ref:`read_gbq<io.bigquery>` (experimental)
     * :ref:`read_stata<io.stata_reader>`
+    * :ref:`read_sas<io.sas_reader>`
     * :ref:`read_clipboard<io.clipboard>`
     * :ref:`read_pickle<io.pickle>`
 
@@ -115,7 +116,7 @@ They can take a number of arguments:
     as the index.
   - ``names``: List of column names to use as column names. To replace header
     existing in file, explicitly pass ``header=0``.
-  - ``na_values``: optional list of strings to recognize as NaN (missing
+  - ``na_values``: optional string or list of strings to recognize as NaN (missing
     values), either in addition to or in lieu of the default set.
   - ``true_values``: list of strings to recognize as ``True``
   - ``false_values``: list of strings to recognize as ``False``
@@ -723,7 +724,8 @@ NA Values
 ~~~~~~~~~
 
 To control which values are parsed as missing values (which are signified by ``NaN``), specifiy a
-list of strings in ``na_values``. If you specify a number (a ``float``, like ``5.0`` or an ``integer`` like ``5``),
+string in ``na_values``. If you specify a list of strings, then all values in
+it are considered to be missing values. If you specify a number (a ``float``, like ``5.0`` or an ``integer`` like ``5``),
 the corresponding equivalent values will also imply a missing value (in this case effectively
 ``[5.0,5]`` are recognized as ``NaN``.
 
@@ -2184,12 +2186,12 @@ argument to ``to_excel`` and to ``ExcelWriter``. The built-in engines are:
 
    df.to_excel('path_to_file.xlsx', sheet_name='Sheet1')
 
+.. _io.excel_writing_buffer:
+
 Writing Excel Files to Memory
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. versionadded:: 0.17
-
-.. _io.excel_writing_buffer
 
 Pandas supports writing Excel files to buffer-like objects such as ``StringIO`` or
 ``BytesIO`` using :class:`~pandas.io.excel.ExcelWriter`.
@@ -2406,8 +2408,12 @@ for some advanced strategies
    As of version 0.15.0, pandas requires ``PyTables`` >= 3.0.0. Stores written with prior versions of pandas / ``PyTables`` >= 2.3 are fully compatible (this was the previous minimum ``PyTables`` required version).
 
 .. warning::
-   
+
    There is a ``PyTables`` indexing bug which may appear when querying stores using an index.  If you see a subset of results being returned, upgrade to ``PyTables`` >= 3.2.  Stores created previously will need to be rewritten using the updated version.
+
+.. warning::
+
+   As of version 0.17.0, ``HDFStore`` will not drop rows that have all missing values by default. Previously, if all values (except the index) were missing, ``HDFStore`` would not write those rows to disk.
 
 .. ipython:: python
    :suppress:
@@ -2485,6 +2491,8 @@ Closing a Store, Context Manager
    import os
    os.remove('store.h5')
 
+
+
 Read/Write API
 ~~~~~~~~~~~~~~
 
@@ -2502,6 +2510,65 @@ similar to how ``read_csv`` and ``to_csv`` work. (new in 0.11.0)
    :okexcept:
 
    os.remove('store_tl.h5')
+
+
+As of version 0.17.0, HDFStore will no longer drop rows that are all missing by default. This behavior can be enabled by setting ``dropna=True``.
+
+.. ipython:: python
+   :suppress:
+
+   import os
+
+.. ipython:: python
+
+   df_with_missing = pd.DataFrame({'col1':[0, np.nan, 2],
+                                   'col2':[1, np.nan, np.nan]})
+   df_with_missing
+
+   df_with_missing.to_hdf('file.h5', 'df_with_missing',
+                           format = 'table', mode='w')
+
+   pd.read_hdf('file.h5', 'df_with_missing')
+
+   df_with_missing.to_hdf('file.h5', 'df_with_missing',
+                           format = 'table', mode='w', dropna=True)
+   pd.read_hdf('file.h5', 'df_with_missing')
+
+
+.. ipython:: python
+   :suppress:
+
+   os.remove('file.h5')
+
+This is also true for the major axis of a ``Panel``:
+
+.. ipython:: python
+
+   matrix = [[[np.nan, np.nan, np.nan],[1,np.nan,np.nan]],
+          [[np.nan, np.nan, np.nan], [np.nan,5,6]],
+          [[np.nan, np.nan, np.nan],[np.nan,3,np.nan]]]
+
+   panel_with_major_axis_all_missing = Panel(matrix,
+           items=['Item1', 'Item2','Item3'],
+           major_axis=[1,2],
+           minor_axis=['A', 'B', 'C'])
+
+   panel_with_major_axis_all_missing
+
+   panel_with_major_axis_all_missing.to_hdf('file.h5', 'panel',
+                                           dropna = True,
+                                           format='table',
+                                           mode='w')
+   reloaded = read_hdf('file.h5', 'panel')
+   reloaded
+
+
+.. ipython:: python
+   :suppress:
+
+   os.remove('file.h5')
+
+
 
 .. _io.hdf5-fixed:
 
@@ -3158,8 +3225,7 @@ Notes & Caveats
      ``PyTables`` only supports concurrent reads (via threading or
      processes). If you need reading and writing *at the same time*, you
      need to serialize these operations in a single thread in a single
-     process. You will corrupt your data otherwise. See the issue
-     (:`2397`) for more information.
+     process. You will corrupt your data otherwise. See the (:issue:`2397`) for more information.
    - If you use locks to manage write access between multiple processes, you
      may want to use :py:func:`~os.fsync` before releasing write locks. For
      convenience you can use ``store.flush(fsync=True)`` to do this for you.
@@ -3178,9 +3244,10 @@ Notes & Caveats
 .. warning::
 
    ``PyTables`` will show a ``NaturalNameWarning`` if a  column name
-   cannot be used as an attribute selector. Generally identifiers that
-   have spaces, start with numbers, or ``_``, or have ``-`` embedded are not considered
-   *natural*. These types of identifiers cannot be used in a ``where`` clause
+   cannot be used as an attribute selector.
+   *Natural* identifiers contain only letters, numbers, and underscores,
+   and may not begin with a number.
+   Other identifiers cannot be used in a ``where`` clause
    and are generally a bad idea.
 
 DataTypes
@@ -3189,34 +3256,19 @@ DataTypes
 ``HDFStore`` will map an object dtype to the ``PyTables`` underlying
 dtype. This means the following types are known to work:
 
-    - floating : ``float64, float32, float16`` *(using* ``np.nan`` *to
-      represent invalid values)*
-    - integer : ``int64, int32, int8, uint64, uint32, uint8``
-    - bool
-    - datetime64[ns] *(using* ``NaT`` *to represent invalid values)*
-    - object : ``strings`` *(using* ``np.nan`` *to represent invalid
-      values)*
+======================================================  =========================
+Type                                                    Represents missing values
+======================================================  =========================
+floating : ``float64, float32, float16``                ``np.nan``
+integer : ``int64, int32, int8, uint64,uint32, uint8``
+boolean
+``datetime64[ns]``                                      ``NaT``
+``timedelta64[ns]``                                     ``NaT``
+categorical : see the section below
+object : ``strings``                                    ``np.nan``
+======================================================  =========================
 
-Currently, ``unicode`` and ``datetime`` columns (represented with a
-dtype of ``object``), **WILL FAIL**. In addition, even though a column
-may look like a ``datetime64[ns]``, if it contains ``np.nan``, this
-**WILL FAIL**. You can try to convert datetimelike columns to proper
-``datetime64[ns]`` columns, that possibly contain ``NaT`` to represent
-invalid values. (Some of these issues have been addressed and these
-conversion may not be necessary in future versions of pandas)
-
-    .. ipython:: python
-
-       import datetime
-       df = DataFrame(dict(datelike=Series([datetime.datetime(2001, 1, 1),
-                                            datetime.datetime(2001, 1, 2), np.nan])))
-       df
-       df.dtypes
-
-       # to convert
-       df['datelike'] = Series(df['datelike'].values, dtype='M8[ns]')
-       df
-       df.dtypes
+``unicode`` columns are not supported, and **WILL FAIL**.
 
 .. _io.hdf5-categorical:
 
@@ -3554,8 +3606,15 @@ below and the SQLAlchemy `documentation <http://docs.sqlalchemy.org/en/rel_0_9/c
 .. ipython:: python
 
    from sqlalchemy import create_engine
-   # Create your connection.
+   # Create your engine.
    engine = create_engine('sqlite:///:memory:')
+
+If you want to manage your own connections you can pass one of those instead:
+
+.. code-block:: python
+
+   with engine.connect() as conn, conn.begin():
+       data = pd.read_sql_table('data', conn)
 
 Writing DataFrames
 ~~~~~~~~~~~~~~~~~~
@@ -3739,22 +3798,22 @@ connecting to.
 
 .. code-block:: python
 
-  from sqlalchemy import create_engine
+   from sqlalchemy import create_engine
 
-  engine = create_engine('postgresql://scott:tiger@localhost:5432/mydatabase')
+   engine = create_engine('postgresql://scott:tiger@localhost:5432/mydatabase')
 
-  engine = create_engine('mysql+mysqldb://scott:tiger@localhost/foo')
+   engine = create_engine('mysql+mysqldb://scott:tiger@localhost/foo')
 
-  engine = create_engine('oracle://scott:tiger@127.0.0.1:1521/sidname')
+   engine = create_engine('oracle://scott:tiger@127.0.0.1:1521/sidname')
 
-  engine = create_engine('mssql+pyodbc://mydsn')
+   engine = create_engine('mssql+pyodbc://mydsn')
 
-  # sqlite://<nohostname>/<path>
-  # where <path> is relative:
-  engine = create_engine('sqlite:///foo.db')
+   # sqlite://<nohostname>/<path>
+   # where <path> is relative:
+   engine = create_engine('sqlite:///foo.db')
 
-  # or absolute, starting with a slash:
-  engine = create_engine('sqlite:////absolute/path/to/foo.db')
+   # or absolute, starting with a slash:
+   engine = create_engine('sqlite:////absolute/path/to/foo.db')
 
 For more information see the examples the SQLAlchemy `documentation <http://docs.sqlalchemy.org/en/rel_0_9/core/engines.html>`__
 
@@ -3865,8 +3924,8 @@ will produce the dictionary representation of the schema.
 
 .. code-block:: python
 
-    df = pandas.DataFrame({'A': [1.0]})
-    gbq.generate_bq_schema(df, default_type='STRING')
+   df = pandas.DataFrame({'A': [1.0]})
+   gbq.generate_bq_schema(df, default_type='STRING')
 
 .. warning::
 
@@ -3980,8 +4039,11 @@ missing values are represented as ``np.nan``.  If ``True``, missing values are
 represented using ``StataMissingValue`` objects, and columns containing missing
 values will have ``object`` data type.
 
-:func:`~pandas.read_stata` and :class:`~pandas.io.stata.StataReader` supports .dta
-formats 104, 105, 108, 113-115 (Stata 10-12) and 117 (Stata 13+).
+.. note::
+
+   :func:`~pandas.read_stata` and
+   :class:`~pandas.io.stata.StataReader` support .dta formats 113-115
+   (Stata 10-12), 117 (Stata 13), and 118 (Stata 14).
 
 .. note::
 
@@ -4059,6 +4121,46 @@ easy conversion to and from pandas.
 
 .. _xray: http://xray.readthedocs.org/
 
+.. _io.sas:
+
+SAS Format
+----------
+
+.. versionadded:: 0.17.0
+
+The top-level function :function:`read_sas` currently can read (but
+not write) SAS xport (.XPT) format files.  Pandas cannot currently
+handle SAS7BDAT files.
+
+XPORT files only contain two value types: ASCII text and double
+precision numeric values.  There is no automatic type conversion to
+integers, dates, or categoricals.  By default the whole file is read
+and returned as a ``DataFrame``.
+
+Specify a ``chunksize`` or use ``iterator=True`` to obtain an
+``XportReader`` object for incrementally reading the file.  The
+``XportReader`` object also has attributes that contain additional
+information about the file and its variables.
+
+Read a SAS XPORT file:
+
+.. code-block:: python
+
+    df = pd.read_sas('sas_xport.xpt')
+
+Obtain an iterator and read an XPORT file 100,000 lines at a time:
+
+.. code-block:: python
+
+    rdr = pd.read_sas('sas_xport.xpt', chunk=100000)
+    for chunk in rdr:
+        do_something(chunk)
+
+The specification_ for the xport file format is available from the SAS
+web site.
+
+.. _specification: https://support.sas.com/techsup/technote/ts140.pdf
+
 .. _io.perf:
 
 Performance Considerations
@@ -4068,14 +4170,16 @@ This is an informal comparison of various IO methods, using pandas 0.13.1.
 
 .. code-block:: python
 
-   In [3]: df = DataFrame(randn(1000000,2),columns=list('AB'))
+   In [1]: df = DataFrame(randn(1000000,2),columns=list('AB'))
+
+   In [2]: df.info()
    <class 'pandas.core.frame.DataFrame'>
    Int64Index: 1000000 entries, 0 to 999999
    Data columns (total 2 columns):
-   A    1000000  non-null values
-   B    1000000  non-null values
+   A    1000000 non-null float64
+   B    1000000 non-null float64
    dtypes: float64(2)
-
+   memory usage: 22.9 MB
 
 Writing
 

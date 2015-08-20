@@ -6,15 +6,10 @@
    :suppress:
 
    import numpy as np
-   import random
    np.random.seed(123456)
-   from pandas import *
-   options.display.max_rows=15
-   import pandas as pd
-   randn = np.random.randn
-   randint = np.random.randint
    np.set_printoptions(precision=4, suppress=True)
-   from pandas.compat import range, zip
+   import pandas as pd
+   pd.options.display.max_rows = 15
 
 *********
 Internals
@@ -40,7 +35,7 @@ containers for the axis labels:
 - ``TimedeltaIndex``: An Index object with ``Timedelta`` boxed elements (impl are the in64 values)
 - ``PeriodIndex``: An Index object with Period elements
 
-These are range generates to make the creation of a regular index easy:
+There are functions that make the creation of a regular index easy:
 
 - ``date_range``: fixed frequency date range generated from a time rule or
   DateOffset. An ndarray of Python datetime objects
@@ -81,7 +76,7 @@ integer **labels**, and the level **names**:
 
 .. ipython:: python
 
-   index = MultiIndex.from_product([range(3), ['one', 'two']], names=['first', 'second'])
+   index = pd.MultiIndex.from_product([range(3), ['one', 'two']], names=['first', 'second'])
    index
    index.levels
    index.labels
@@ -198,7 +193,7 @@ Below example shows how to define ``SubclassedSeries`` and ``SubclassedDataFrame
 Define Original Properties
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-To let original data structures have additional properties, you should let ``pandas`` knows what properties are added. ``pandas`` maps unknown properties to data names overriding ``__getattribute__``. Defining original properties can be done in one of 2 ways:
+To let original data structures have additional properties, you should let ``pandas`` know what properties are added. ``pandas`` maps unknown properties to data names overriding ``__getattribute__``. Defining original properties can be done in one of 2 ways:
 
 1. Define ``_internal_names`` and ``_internal_names_set`` for temporary properties which WILL NOT be passed to manipulation results.
 2. Define ``_metadata`` for normal properties which will be passed to manipulation results.
@@ -210,7 +205,7 @@ Below is an example to define 2 original properties, "internal_cache" as a tempo
    class SubclassedDataFrame2(DataFrame):
 
        # temporary properties
-       _internal_names = DataFrame._internal_names + ['internal_cache']
+       _internal_names = pd.DataFrame._internal_names + ['internal_cache']
        _internal_names_set = set(_internal_names)
 
        # normal properties
@@ -244,5 +239,3 @@ Below is an example to define 2 original properties, "internal_cache" as a tempo
    # properties defined in _metadata are retained
    >>> df[['A', 'B']].added_property
    property
-
-

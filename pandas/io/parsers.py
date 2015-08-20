@@ -26,6 +26,7 @@ import pandas.lib as lib
 import pandas.tslib as tslib
 import pandas.parser as _parser
 
+
 class ParserWarning(Warning):
     pass
 
@@ -86,7 +87,7 @@ names : array-like
     should explicitly pass header=None
 prefix : string, default None
     Prefix to add to column numbers when no header, e.g 'X' for X0, X1, ...
-na_values : list-like or dict, default None
+na_values : str, list-like or dict, default None
     Additional strings to recognize as NA/NaN. If dict passed, specific
     per-column NA values
 true_values : list
@@ -234,8 +235,10 @@ def _read(filepath_or_buffer, kwds):
     if skipfooter is not None:
         kwds['skip_footer'] = skipfooter
 
-    filepath_or_buffer, _ = get_filepath_or_buffer(filepath_or_buffer,
-                                                   encoding)
+    filepath_or_buffer, _, compression = get_filepath_or_buffer(filepath_or_buffer,
+                                                                encoding,
+                                                                compression=kwds.get('compression', None))
+    kwds['compression'] = compression
 
     if kwds.get('date_parser', None) is not None:
         if isinstance(kwds['parse_dates'], bool):
@@ -355,7 +358,6 @@ def _make_parser_function(name, sep=','):
                  skipfooter=None,
                  skip_footer=0,
                  na_values=None,
-                 na_fvalues=None,
                  true_values=None,
                  false_values=None,
                  delimiter=None,
@@ -403,8 +405,9 @@ def _make_parser_function(name, sep=','):
             delimiter = sep
 
         if delim_whitespace and delimiter is not default_sep:
-            raise ValueError("Specified a delimiter with both sep and"\
-                    " delim_whitespace=True; you can only specify one.")
+            raise ValueError("Specified a delimiter with both sep and"
+                             " delim_whitespace=True; you can only"
+                             " specify one.")
 
         if engine is not None:
             engine_specified = True
@@ -431,7 +434,6 @@ def _make_parser_function(name, sep=','):
                     prefix=prefix,
                     skiprows=skiprows,
                     na_values=na_values,
-                    na_fvalues=na_fvalues,
                     true_values=true_values,
                     false_values=false_values,
                     keep_default_na=keep_default_na,
@@ -800,6 +802,8 @@ class ParserBase(object):
 
         self._name_processed = False
 
+        self._first_chunk = True
+
     @property
     def _has_complex_date_col(self):
         return (isinstance(self.parse_dates, dict) or
@@ -997,7 +1001,7 @@ class ParserBase(object):
                 try:
                     values = lib.map_infer(values, conv_f)
                 except ValueError:
-                    mask = lib.ismember(values, na_values).view(np.uin8)
+                    mask = lib.ismember(values, na_values).view(np.uint8)
                     values = lib.map_infer_mask(values, conv_f, mask)
                 coerce_type = False
 
@@ -1162,19 +1166,24 @@ class CParserWrapper(ParserBase):
         self._reader.set_error_bad_lines(int(status))
 
     def read(self, nrows=None):
-        if self.as_recarray:
-            # what to do if there are leading columns?
-            return self._reader.read(nrows)
-
         try:
             data = self._reader.read(nrows)
         except StopIteration:
-            if nrows is None:
+            if self._first_chunk:
+                self._first_chunk = False
                 return _get_empty_meta(self.orig_names,
                                        self.index_col,
-                                       self.index_names)
+                                       self.index_names,
+                                       dtype=self.kwds.get('dtype'))
             else:
                 raise
+
+        # Done with first read, next time raise StopIteration
+        self._first_chunk = False
+
+        if self.as_recarray:
+            # what to do if there are leading columns?
+            return data
 
         names = self.names
 
@@ -1451,7 +1460,6 @@ class PythonParser(ParserBase):
             self._name_processed = True
             if self.index_names is None:
                 self.index_names = index_names
-        self._first_chunk = True
 
         if self.parse_dates:
             self._no_thousands_columns = self._set_no_thousands_columns()
@@ -1712,7 +1720,7 @@ class PythonParser(ParserBase):
             num_original_columns = ncols
             if not names:
                 if self.prefix:
-                    columns = [['%s%d' % (self.prefix,i) for i in range(ncols)]]
+                    columns = [['%s%d' % (self.prefix, i) for i in range(ncols)]]
                 else:
                     columns = [lrange(ncols)]
                 columns = self._handle_usecols(columns, columns[0])
@@ -2047,12 +2055,14 @@ def _make_date_converter(date_parser=None, dayfirst=False,
     def converter(*date_cols):
         if date_parser is None:
             strs = _concat_date_cols(date_cols)
+
             try:
-                return tools.to_datetime(
+                return tools._to_datetime(
                     com._ensure_object(strs),
                     utc=None,
                     box=False,
                     dayfirst=dayfirst,
+                    errors='ignore',
                     infer_datetime_format=infer_datetime_format
                 )
             except:
@@ -2060,7 +2070,7 @@ def _make_date_converter(date_parser=None, dayfirst=False,
                     lib.try_parse_dates(strs, dayfirst=dayfirst))
         else:
             try:
-                result = tools.to_datetime(date_parser(*date_cols))
+                result = tools.to_datetime(date_parser(*date_cols), errors='ignore')
                 if isinstance(result, datetime.datetime):
                     raise Exception('scalar parser')
                 return result
@@ -2069,7 +2079,8 @@ def _make_date_converter(date_parser=None, dayfirst=False,
                     return tools.to_datetime(
                         lib.try_parse_dates(_concat_date_cols(date_cols),
                                             parser=date_parser,
-                                            dayfirst=dayfirst))
+                                            dayfirst=dayfirst),
+                        errors='ignore')
                 except Exception:
                     return generic_parser(date_parser, *date_cols)
 
@@ -2220,18 +2231,30 @@ def _clean_index_names(columns, index_col):
     return index_names, columns, index_col
 
 
-def _get_empty_meta(columns, index_col, index_names):
+def _get_empty_meta(columns, index_col, index_names, dtype=None):
     columns = list(columns)
 
-    if index_col is not None:
-        index = MultiIndex.from_arrays([[]] * len(index_col),
-                                       names=index_names)
-        for n in index_col:
-            columns.pop(n)
+    if dtype is None:
+        dtype = {}
     else:
-        index = Index([])
+        # Convert column indexes to column names.
+        dtype = dict((columns[k] if com.is_integer(k) else k, v)
+                     for k, v in compat.iteritems(dtype))
 
-    return index, columns, {}
+    if index_col is None or index_col is False:
+        index = Index([])
+    else:
+        index = [np.empty(0, dtype=dtype.get(index_name, np.object))
+                  for index_name in index_names]
+        index = MultiIndex.from_arrays(index, names=index_names)
+        index_col.sort()
+        for i, n in enumerate(index_col):
+            columns.pop(n-i)
+
+    col_dict = dict((col_name, np.empty(0, dtype=dtype.get(col_name, np.object)))
+                    for col_name in columns)
+
+    return index, columns, col_dict
 
 
 def _floatify_na_values(na_values):

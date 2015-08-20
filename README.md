@@ -1,8 +1,45 @@
 # pandas: powerful Python data analysis toolkit
 
-[![Build Status](https://travis-ci.org/pydata/pandas.svg?branch=master)](https://travis-ci.org/pydata/pandas)
-[![Join the chat at
-https://gitter.im/pydata/pandas](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/pydata/pandas?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+<table>
+<tr>
+  <td>Latest Release</td>
+  <td><img src="https://img.shields.io/pypi/v/pandas.svg" alt="latest release" /></td>
+</tr>
+<tr>
+  <td>Package Status</td>
+  <td><img src="https://img.shields.io/pypi/status/pandas.svg" alt="status" /></td>
+</tr>
+<tr>
+  <td>License</td>
+  <td><img src="https://img.shields.io/pypi/l/pandas.svg" alt="license" /></td>
+</tr>
+<tr>
+  <td>Build Status</td>
+  <td>
+    <a href="https://travis-ci.org/pydata/pandas">
+    <img src="https://travis-ci.org/pydata/pandas.svg?branch=master" alt="build status" />
+    </a>
+  </td>
+</tr>
+<tr>
+  <td>Conda</td>
+  <td>
+    <a href="http://pandas.pydata.org">
+    <img src="http://pubbadges.s3-website-us-east-1.amazonaws.com/pkgs-downloads-pandas.png" alt="conda downloads" />
+    </a>
+  </td>
+</tr>
+<tr>
+  <td>PyPI</td>
+  <td>
+    <a href="https://pypi.python.org/pypi/pandas/">
+    <img src="https://img.shields.io/pypi/dm/pandas.svg" alt="pypi downloads" />
+    </a>
+  </td>
+</tr>
+</table>
+
+[![https://gitter.im/pydata/pandas](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/pydata/pandas?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
 ## What is it
 

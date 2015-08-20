@@ -21,6 +21,7 @@ from cpython cimport (PyDict_New, PyDict_GetItem, PyDict_SetItem,
                       PyTuple_SetItem,
                       PyTuple_New,
                       PyObject_SetAttrString,
+                      PyObject_RichCompareBool,
                       PyBytes_GET_SIZE,
                       PyUnicode_GET_SIZE)
 
@@ -153,6 +154,31 @@ def ismember(ndarray arr, set values):
     for i in range(n):
         val = util.get_value_at(arr, i)
         result[i] = val in values
+
+    return result.view(np.bool_)
+
+def ismember_int64(ndarray[int64_t] arr, set values):
+    '''
+    Checks whether
+
+    Parameters
+    ----------
+    arr : ndarray of int64
+    values : set
+
+    Returns
+    -------
+    ismember : ndarray (boolean dtype)
+    '''
+    cdef:
+        Py_ssize_t i, n
+        ndarray[uint8_t] result
+        int64_t v
+
+    n = len(arr)
+    result = np.empty(n, dtype=np.uint8)
+    for i in range(n):
+        result[i] = arr[i] in values
 
     return result.view(np.bool_)
 
@@ -347,19 +373,19 @@ def isnullobj2d_old(ndarray[object, ndim=2] arr):
                 result[i, j] = 1
     return result.view(np.bool_)
 
-def list_to_object_array(list obj):
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+cpdef ndarray[object] list_to_object_array(list obj):
     '''
-    Convert list to object ndarray. Seriously can't believe I had to write this
+    Convert list to object ndarray. Seriously can\'t believe I had to write this
     function
     '''
     cdef:
-        Py_ssize_t i, n
-        ndarray[object] arr
+        Py_ssize_t i, n = len(obj)
+        ndarray[object] arr = np.empty(n, dtype=object)
 
-    n = len(obj)
-    arr = np.empty(n, dtype=object)
-
-    for i from 0 <= i < n:
+    for i in range(n):
         arr[i] = obj[i]
 
     return arr
@@ -607,17 +633,42 @@ def convert_timestamps(ndarray values):
 
     return out
 
-def maybe_indices_to_slice(ndarray[int64_t] indices):
+
+def maybe_indices_to_slice(ndarray[int64_t] indices, int max_len):
     cdef:
         Py_ssize_t i, n = len(indices)
+        int k, vstart, vlast, v
 
-    if not n or indices[0] < 0:
+    if n == 0:
+        return slice(0, 0)
+
+    vstart = indices[0]
+    if vstart < 0 or max_len <= vstart:
         return indices
 
-    for i in range(1, n):
-        if indices[i] - indices[i - 1] != 1:
-            return indices
-    return slice(indices[0], indices[n - 1] + 1)
+    if n == 1:
+        return slice(vstart, vstart + 1)
+
+    vlast = indices[n - 1]
+    if vlast < 0 or max_len <= vlast:
+        return indices
+
+    k = indices[1] - indices[0]
+    if k == 0:
+        return indices
+    else:
+        for i in range(2, n):
+            v = indices[i]
+            if v - indices[i - 1] != k:
+                return indices
+
+        if k > 0:
+            return slice(vstart, vlast + 1, k)
+        else:
+            if vlast == 0:
+                return slice(vstart, None, k)
+            else:
+                return slice(vstart, vlast - 1, k)
 
 
 def maybe_booleans_to_slice(ndarray[uint8_t] mask):
@@ -656,6 +707,7 @@ def scalar_compare(ndarray[object] values, object val, object op):
     cdef:
         Py_ssize_t i, n = len(values)
         ndarray[uint8_t, cast=True] result
+        bint isnull_val
         int flag
         object x
 
@@ -675,11 +727,14 @@ def scalar_compare(ndarray[object] values, object val, object op):
         raise ValueError('Unrecognized operator')
 
     result = np.empty(n, dtype=bool).view(np.uint8)
+    isnull_val = _checknull(val)
 
     if flag == cpython.Py_NE:
         for i in range(n):
             x = values[i]
             if _checknull(x):
+                result[i] = True
+            elif isnull_val:
                 result[i] = True
             else:
                 try:
@@ -690,6 +745,8 @@ def scalar_compare(ndarray[object] values, object val, object op):
         for i in range(n):
             x = values[i]
             if _checknull(x):
+                result[i] = False
+            elif isnull_val:
                 result[i] = False
             else:
                 try:
@@ -702,33 +759,32 @@ def scalar_compare(ndarray[object] values, object val, object op):
             x = values[i]
             if _checknull(x):
                 result[i] = False
+            elif isnull_val:
+                result[i] = False
             else:
                 result[i] = cpython.PyObject_RichCompareBool(x, val, flag)
 
     return result.view(bool)
 
+
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def array_equivalent_object(ndarray[object] left, ndarray[object] right):
+cpdef bint array_equivalent_object(object[:] left, object[:] right):
     """ perform an element by element comparion on 1-d object arrays
         taking into account nan positions """
-    cdef Py_ssize_t i, n
-    cdef object x, y
+    cdef:
+        Py_ssize_t i, n = left.shape[0]
+        object x, y
 
-    n = len(left)
-    for i from 0 <= i < n:
+    for i in range(n):
         x = left[i]
         y = right[i]
 
         # we are either not equal or both nan
         # I think None == None will be true here
-        if cpython.PyObject_RichCompareBool(x, y, cpython.Py_EQ):
-            continue
-        elif _checknull(x) and _checknull(y):
-            continue
-        else:
+        if not (PyObject_RichCompareBool(x, y, cpython.Py_EQ) or
+                _checknull(x) and _checknull(y)):
             return False
-
     return True
 
 
@@ -1292,34 +1348,46 @@ def fast_zip_fillna(list ndarrays, fill_value=pandas_null):
 
     return result
 
-def duplicated(ndarray[object] values, take_last=False):
+
+def duplicated(ndarray[object] values, object keep='first'):
     cdef:
         Py_ssize_t i, n
-        set seen = set()
+        dict seen = dict()
         object row
 
     n = len(values)
     cdef ndarray[uint8_t] result = np.zeros(n, dtype=np.uint8)
 
-    if take_last:
+    if keep == 'last':
         for i from n > i >= 0:
             row = values[i]
-
             if row in seen:
                 result[i] = 1
             else:
-                seen.add(row)
+                seen[row] = i
                 result[i] = 0
-    else:
+    elif keep == 'first':
         for i from 0 <= i < n:
             row = values[i]
             if row in seen:
                 result[i] = 1
             else:
-                seen.add(row)
+                seen[row] = i
                 result[i] = 0
+    elif keep is False:
+        for i from 0 <= i < n:
+            row = values[i]
+            if row in seen:
+                result[i] = 1
+                result[seen[row]] = 1
+            else:
+                seen[row] = i
+                result[i] = 0
+    else:
+        raise ValueError('keep must be either "first", "last" or False')
 
     return result.view(np.bool_)
+
 
 def generate_slices(ndarray[int64_t] labels, Py_ssize_t ngroups):
     cdef:

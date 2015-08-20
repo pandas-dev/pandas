@@ -6,18 +6,16 @@
 
    import numpy as np
    np.random.seed(123456)
-   from pandas import *
-   options.display.max_rows=15
-   randn = np.random.randn
    np.set_printoptions(precision=4, suppress=True)
-   import matplotlib.pyplot as plt
-   plt.close('all')
+   import pandas as pd
+   pd.options.display.max_rows = 15
    import matplotlib
    try:
       matplotlib.style.use('ggplot')
    except AttributeError:
-      options.display.mpl_style = 'default'
-   from pandas.compat import zip
+      pd.options.display.mpl_style = 'default'
+   import matplotlib.pyplot as plt
+   plt.close('all')
 
 *****************************
 Group By: split-apply-combine
@@ -105,11 +103,12 @@ consider the following DataFrame:
 
 .. ipython:: python
 
-   df = DataFrame({'A' : ['foo', 'bar', 'foo', 'bar',
-                          'foo', 'bar', 'foo', 'foo'],
-                   'B' : ['one', 'one', 'two', 'three',
-                          'two', 'two', 'one', 'three'],
-                   'C' : randn(8), 'D' : randn(8)})
+   df = pd.DataFrame({'A' : ['foo', 'bar', 'foo', 'bar',
+                             'foo', 'bar', 'foo', 'foo'],
+                      'B' : ['one', 'one', 'two', 'three',
+                             'two', 'two', 'one', 'three'],
+                      'C' : np.random.randn(8),
+                      'D' : np.random.randn(8)})
    df
 
 We could naturally group by either the ``A`` or ``B`` columns or both:
@@ -142,7 +141,7 @@ output of aggregation functions will only contain unique index values:
 
    lst = [1, 2, 3, 1, 2, 3]
 
-   s = Series([1, 2, 3, 10, 20, 30], lst)
+   s = pd.Series([1, 2, 3, 10, 20, 30], lst)
 
    grouped = s.groupby(level=0)
 
@@ -189,7 +188,7 @@ however pass ``sort=False`` for potential speedups:
 
 .. ipython:: python
 
-   df2 = DataFrame({'X' : ['B', 'B', 'A', 'A'], 'Y' : [1, 2, 3, 4]})
+   df2 = pd.DataFrame({'X' : ['B', 'B', 'A', 'A'], 'Y' : [1, 2, 3, 4]})
    df2.groupby(['X'], sort=True).sum()
    df2.groupby(['X'], sort=False).sum()
 
@@ -203,10 +202,10 @@ however pass ``sort=False`` for potential speedups:
    n = 10
    weight = np.random.normal(166, 20, size=n)
    height = np.random.normal(60, 10, size=n)
-   time = date_range('1/1/2000', periods=n)
+   time = pd.date_range('1/1/2000', periods=n)
    gender = tm.choice(['male', 'female'], size=n)
-   df = DataFrame({'height': height, 'weight': weight,
-                           'gender': gender}, index=time)
+   df = pd.DataFrame({'height': height, 'weight': weight,
+                      'gender': gender}, index=time)
 
 .. ipython:: python
 
@@ -226,11 +225,12 @@ however pass ``sort=False`` for potential speedups:
 .. ipython:: python
    :suppress:
 
-   df = DataFrame({'A' : ['foo', 'bar', 'foo', 'bar',
-                          'foo', 'bar', 'foo', 'foo'],
-                   'B' : ['one', 'one', 'two', 'three',
-                          'two', 'two', 'one', 'three'],
-                   'C' : randn(8), 'D' : randn(8)})
+   df = pd.DataFrame({'A' : ['foo', 'bar', 'foo', 'bar',
+                             'foo', 'bar', 'foo', 'foo'],
+                      'B' : ['one', 'one', 'two', 'three',
+                             'two', 'two', 'one', 'three'],
+                      'C' : np.random.randn(8),
+                      'D' : np.random.randn(8)})
 
 .. _groupby.multiindex:
 
@@ -248,8 +248,8 @@ natural to group by one of the levels of the hierarchy.
              ['one', 'two', 'one', 'two', 'one', 'two', 'one', 'two']]
    tuples = list(zip(*arrays))
    tuples
-   index = MultiIndex.from_tuples(tuples, names=['first', 'second'])
-   s = Series(randn(8), index=index)
+   index = pd.MultiIndex.from_tuples(tuples, names=['first', 'second'])
+   s = pd.Series(np.random.randn(8), index=index)
 
 .. ipython:: python
 
@@ -281,13 +281,13 @@ Also as of v0.6, grouping with multiple levels is supported.
              ['doo', 'doo', 'bee', 'bee', 'bop', 'bop', 'bop', 'bop'],
              ['one', 'two', 'one', 'two', 'one', 'two', 'one', 'two']]
    tuples = list(zip(*arrays))
-   index = MultiIndex.from_tuples(tuples, names=['first', 'second', 'third'])
-   s = Series(randn(8), index=index)
+   index = pd.MultiIndex.from_tuples(tuples, names=['first', 'second', 'third'])
+   s = pd.Series(np.random.randn(8), index=index)
 
 .. ipython:: python
 
    s
-   s.groupby(level=['first','second']).sum()
+   s.groupby(level=['first', 'second']).sum()
 
 More on the ``sum`` function and aggregation later.
 
@@ -499,9 +499,9 @@ to standardize the data within each group:
 
 .. ipython:: python
 
-   index = date_range('10/1/1999', periods=1100)
-   ts = Series(np.random.normal(0.5, 2, 1100), index)
-   ts = rolling_mean(ts, 100, 100).dropna()
+   index = pd.date_range('10/1/1999', periods=1100)
+   ts = pd.Series(np.random.normal(0.5, 2, 1100), index)
+   ts = pd.rolling_mean(ts, 100, 100).dropna()
 
    ts.head()
    ts.tail()
@@ -528,7 +528,7 @@ We can also visually compare the original and transformed data sets.
 
 .. ipython:: python
 
-   compare = DataFrame({'Original': ts, 'Transformed': transformed})
+   compare = pd.DataFrame({'Original': ts, 'Transformed': transformed})
 
    @savefig groupby_transform_plot.png
    compare.plot()
@@ -539,11 +539,11 @@ Another common data transform is to replace missing data with the group mean.
    :suppress:
 
    cols = ['A', 'B', 'C']
-   values = randn(1000, 3)
+   values = np.random.randn(1000, 3)
    values[np.random.randint(0, 1000, 100), 0] = np.nan
    values[np.random.randint(0, 1000, 50), 1] = np.nan
    values[np.random.randint(0, 1000, 200), 2] = np.nan
-   data_df = DataFrame(values, columns=cols)
+   data_df = pd.DataFrame(values, columns=cols)
 
 .. ipython:: python
 
@@ -599,7 +599,7 @@ than 2.
 
 .. ipython:: python
 
-   sf = Series([1, 1, 2, 3, 3, 3])
+   sf = pd.Series([1, 1, 2, 3, 3, 3])
    sf.groupby(sf).filter(lambda x: x.sum() > 2)
 
 The argument of ``filter`` must be a function that, applied to the group as a
@@ -610,7 +610,7 @@ with only a couple members.
 
 .. ipython:: python
 
-   dff = DataFrame({'A': np.arange(8), 'B': list('aabbbbcc')})
+   dff = pd.DataFrame({'A': np.arange(8), 'B': list('aabbbbcc')})
    dff.groupby('B').filter(lambda x: len(x) > 2)
 
 Alternatively, instead of dropping the offending groups, we can return a
@@ -672,9 +672,9 @@ next). This enables some operations to be carried out rather succinctly:
 
 .. ipython:: python
 
-   tsdf = DataFrame(randn(1000, 3),
-                    index=date_range('1/1/2000', periods=1000),
-                    columns=['A', 'B', 'C'])
+   tsdf = pd.DataFrame(np.random.randn(1000, 3),
+                       index=pd.date_range('1/1/2000', periods=1000),
+                       columns=['A', 'B', 'C'])
    tsdf.ix[::2] = np.nan
    grouped = tsdf.groupby(lambda x: x.year)
    grouped.fillna(method='pad')
@@ -689,8 +689,8 @@ The ``nlargest`` and ``nsmallest`` methods work on ``Series`` style groupbys:
 
 .. ipython:: python
 
-   s = Series([9, 8, 7, 5, 19, 1, 4.2, 3.3])
-   g = Series(list('abababab'))
+   s = pd.Series([9, 8, 7, 5, 19, 1, 4.2, 3.3])
+   g = pd.Series(list('abababab'))
    gb = s.groupby(g)
    gb.nlargest(3)
    gb.nsmallest(3)
@@ -721,8 +721,8 @@ The dimension of the returned result can also change:
     In [8]: grouped = df.groupby('A')['C']
 
     In [10]: def f(group):
-       ....:     return DataFrame({'original' : group,
-       ....:                       'demeaned' : group - group.mean()})
+       ....:     return pd.DataFrame({'original' : group,
+       ....:                          'demeaned' : group - group.mean()})
        ....:
 
     In [11]: grouped.apply(f)
@@ -732,8 +732,8 @@ The dimension of the returned result can also change:
 .. ipython:: python
 
     def f(x):
-      return Series([ x, x**2 ], index = ['x', 'x^s'])
-    s = Series(np.random.rand(5))
+      return pd.Series([ x, x**2 ], index = ['x', 'x^s'])
+    s = pd.Series(np.random.rand(5))
     s
     s.apply(f)
 
@@ -754,7 +754,7 @@ The dimension of the returned result can also change:
 
     .. ipython:: python
 
-        d = DataFrame({"a":["x", "y"], "b":[1,2]})
+        d = pd.DataFrame({"a":["x", "y"], "b":[1,2]})
         def identity(df):
             print df
             return df
@@ -784,6 +784,8 @@ will be (silently) dropped. Thus, this does not pose any problems:
 
    df.groupby('A').std()
 
+.. _groupby.missing:
+
 NA and NaT group handling
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -800,9 +802,9 @@ can be used as group keys. If so, the order of the levels will be preserved:
 
 .. ipython:: python
 
-   data = Series(np.random.randn(100))
+   data = pd.Series(np.random.randn(100))
 
-   factor = qcut(data, [0, .25, .5, .75, 1.])
+   factor = pd.qcut(data, [0, .25, .5, .75, 1.])
 
    data.groupby(factor).mean()
 
@@ -811,27 +813,28 @@ can be used as group keys. If so, the order of the levels will be preserved:
 Grouping with a Grouper specification
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Your may need to specify a bit more data to properly group. You can
+You may need to specify a bit more data to properly group. You can
 use the ``pd.Grouper`` to provide this local control.
 
 .. ipython:: python
 
-   import datetime as DT
+   import datetime
 
-   df = DataFrame({
-          'Branch' : 'A A A A A A A B'.split(),
-          'Buyer': 'Carl Mark Carl Carl Joe Joe Joe Carl'.split(),
-          'Quantity': [1,3,5,1,8,1,9,3],
-          'Date' : [
-                DT.datetime(2013,1,1,13,0),
-                DT.datetime(2013,1,1,13,5),
-                DT.datetime(2013,10,1,20,0),
-                DT.datetime(2013,10,2,10,0),
-                DT.datetime(2013,10,1,20,0),
-                DT.datetime(2013,10,2,10,0),
-                DT.datetime(2013,12,2,12,0),
-                DT.datetime(2013,12,2,14,0),
-                ]})
+   df = pd.DataFrame({
+            'Branch' : 'A A A A A A A B'.split(),
+            'Buyer': 'Carl Mark Carl Carl Joe Joe Joe Carl'.split(),
+            'Quantity': [1,3,5,1,8,1,9,3],
+            'Date' : [
+                datetime.datetime(2013,1,1,13,0),
+                datetime.datetime(2013,1,1,13,5),
+                datetime.datetime(2013,10,1,20,0),
+                datetime.datetime(2013,10,2,10,0),
+                datetime.datetime(2013,10,1,20,0),
+                datetime.datetime(2013,10,2,10,0),
+                datetime.datetime(2013,12,2,12,0),
+                datetime.datetime(2013,12,2,14,0),
+                ]
+            })
 
    df
 
@@ -860,7 +863,7 @@ Just like for a DataFrame or Series you can call head and tail on a groupby:
 
 .. ipython:: python
 
-   df = DataFrame([[1, 2], [1, 4], [5, 6]], columns=['A', 'B'])
+   df = pd.DataFrame([[1, 2], [1, 4], [5, 6]], columns=['A', 'B'])
    df
 
    g = df.groupby('A')
@@ -892,7 +895,7 @@ To select from a DataFrame or Series the nth item, use the nth method. This is a
 
 .. ipython:: python
 
-   df = DataFrame([[1, np.nan], [1, 4], [5, 6]], columns=['A', 'B'])
+   df = pd.DataFrame([[1, np.nan], [1, 4], [5, 6]], columns=['A', 'B'])
    g = df.groupby('A')
 
    g.nth(0)
@@ -917,7 +920,7 @@ As with other methods, passing ``as_index=False``, will achieve a filtration, wh
 
 .. ipython:: python
 
-   df = DataFrame([[1, np.nan], [1, 4], [5, 6]], columns=['A', 'B'])
+   df = pd.DataFrame([[1, np.nan], [1, 4], [5, 6]], columns=['A', 'B'])
    g = df.groupby('A',as_index=False)
 
    g.nth(0)
@@ -927,8 +930,8 @@ You can also select multiple rows from each group by specifying multiple nth val
 
 .. ipython:: python
 
-   business_dates = date_range(start='4/1/2014', end='6/30/2014', freq='B')
-   df = DataFrame(1, index=business_dates, columns=['a', 'b'])
+   business_dates = pd.date_range(start='4/1/2014', end='6/30/2014', freq='B')
+   df = pd.DataFrame(1, index=business_dates, columns=['a', 'b'])
    # get the first, 4th, and last date index for each month
    df.groupby((df.index.year, df.index.month)).nth([0, 3, -1])
 
@@ -959,7 +962,7 @@ the values in column 1 where the group is "B" are 3 higher on average.
 .. ipython:: python
 
    np.random.seed(1234)
-   df = DataFrame(np.random.randn(50, 2))
+   df = pd.DataFrame(np.random.randn(50, 2))
    df['g'] = np.random.choice(['A', 'B'], size=50)
    df.loc[df['g'] == 'B', 1] += 3
 
@@ -1008,11 +1011,11 @@ column index name will be used as the name of the inserted column:
 .. ipython:: python
 
    df = pd.DataFrame({
-        'a':  [0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2],
-        'b':  [0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1],
-        'c':  [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0],
-        'd':  [0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1],
-        })
+            'a':  [0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2],
+            'b':  [0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1],
+            'c':  [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0],
+            'd':  [0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1],
+            })
 
    def compute_metrics(x):
        result = {'b_sum': x['b'].sum(), 'c_mean': x['c'].mean()}
