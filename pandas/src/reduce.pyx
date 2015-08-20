@@ -6,6 +6,18 @@ from distutils.version import LooseVersion
 
 is_numpy_prior_1_6_2 = LooseVersion(np.__version__) < '1.6.2'
 
+cdef _get_result_array(object obj,
+                       Py_ssize_t size,
+                       Py_ssize_t cnt):
+
+    if isinstance(obj, np.ndarray) \
+            or isinstance(obj, list) and len(obj) == cnt \
+            or getattr(obj, 'shape', None) == (cnt,):
+        raise ValueError('function does not reduce')
+
+    return np.empty(size, dtype='O')
+
+
 cdef class Reducer:
     '''
     Performs generic reduction operation on a C or Fortran-contiguous ndarray
@@ -124,7 +136,9 @@ cdef class Reducer:
                 if hasattr(res,'values'):
                     res = res.values
                 if i == 0:
-                    result = self._get_result_array(res)
+                    result = _get_result_array(res,
+                                               self.nresults,
+                                               len(self.dummy))
                     it = <flatiter> PyArray_IterNew(result)
 
                 PyArray_SETITEM(result, PyArray_ITER_DATA(it), res)
@@ -141,17 +155,6 @@ cdef class Reducer:
         if result.dtype == np.object_:
             result = maybe_convert_objects(result)
 
-        return result
-
-    def _get_result_array(self, object res):
-        try:
-            assert(not isinstance(res, np.ndarray))
-            assert(not (isinstance(res, list) and len(res) == len(self.dummy)))
-
-            result = np.empty(self.nresults, dtype='O')
-            result[0] = res
-        except Exception:
-            raise ValueError('function does not reduce')
         return result
 
 
@@ -257,8 +260,10 @@ cdef class SeriesBinGrouper:
                 res = self.f(cached_typ)
                 res = _extract_result(res)
                 if not initialized:
-                    result = self._get_result_array(res)
                     initialized = 1
+                    result = _get_result_array(res,
+                                               self.ngroups,
+                                               len(self.dummy_arr))
 
                 util.assign_value_1d(result, i, res)
 
@@ -276,16 +281,6 @@ cdef class SeriesBinGrouper:
             result = maybe_convert_objects(result)
 
         return result, counts
-
-    def _get_result_array(self, object res):
-        try:
-            assert(not isinstance(res, np.ndarray))
-            assert(not (isinstance(res, list) and len(res) == len(self.dummy_arr)))
-
-            result = np.empty(self.ngroups, dtype='O')
-        except Exception:
-            raise ValueError('function does not reduce')
-        return result
 
 
 cdef class SeriesGrouper:
@@ -388,8 +383,10 @@ cdef class SeriesGrouper:
                     res = self.f(cached_typ)
                     res = _extract_result(res)
                     if not initialized:
-                        result = self._get_result_array(res)
                         initialized = 1
+                        result = _get_result_array(res,
+                                                   self.ngroups,
+                                                   len(self.dummy_arr))
 
                     util.assign_value_1d(result, lab, res)
                     counts[lab] = group_size
@@ -410,15 +407,6 @@ cdef class SeriesGrouper:
 
         return result, counts
 
-    def _get_result_array(self, object res):
-        try:
-            assert(not isinstance(res, np.ndarray))
-            assert(not (isinstance(res, list) and len(res) == len(self.dummy_arr)))
-
-            result = np.empty(self.ngroups, dtype='O')
-        except Exception:
-            raise ValueError('function does not reduce')
-        return result
 
 cdef inline _extract_result(object res):
     ''' extract the result object, it might be a 0-dim ndarray

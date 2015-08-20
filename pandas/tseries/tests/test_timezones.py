@@ -1,7 +1,5 @@
 # pylint: disable-msg=E1101,W0612
 from datetime import datetime, timedelta, tzinfo, date
-import sys
-import os
 import nose
 
 import numpy as np
@@ -238,7 +236,7 @@ class TestTimeZoneSupportPytz(tm.TestCase):
         expected = utc.tz_convert(self.tzstr('US/Eastern'))
         result = utc.astimezone(self.tzstr('US/Eastern'))
         self.assertEqual(expected, result)
-        tm.assert_isinstance(result, Timestamp)
+        tm.assertIsInstance(result, Timestamp)
 
     def test_create_with_tz(self):
         stamp = Timestamp('3/11/2012 05:00', tz=self.tzstr('US/Eastern'))
@@ -837,8 +835,8 @@ class TestTimeZoneSupportDateutil(TestTimeZoneSupportPytz):
         return x.replace(tzinfo=tz)
 
     def test_utc_with_system_utc(self):
-        if sys.platform == 'win32':
-            raise nose.SkipTest('Skipped on win32 due to dateutil bug.')
+        # Skipped on win32 due to dateutil bug
+        tm._skip_if_windows()
 
         from pandas.tslib import maybe_get_tz
 
@@ -1045,11 +1043,11 @@ class TestTimeZones(tm.TestCase):
 
         for how in ['inner', 'outer', 'left', 'right']:
             result = left.join(left[:-5], how=how)
-            tm.assert_isinstance(result, DatetimeIndex)
+            tm.assertIsInstance(result, DatetimeIndex)
             self.assertEqual(result.tz, left.tz)
 
             result = left.join(right[:-5], how=how)
-            tm.assert_isinstance(result, DatetimeIndex)
+            tm.assertIsInstance(result, DatetimeIndex)
             self.assertEqual(result.tz.zone, 'UTC')
 
     def test_join_aware(self):

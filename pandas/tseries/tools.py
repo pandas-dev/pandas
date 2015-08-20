@@ -9,12 +9,10 @@ import pandas.tslib as tslib
 import pandas.core.common as com
 from pandas.compat import StringIO, callable
 import pandas.compat as compat
+from pandas.util.decorators import deprecate_kwarg
 
 try:
     import dateutil
-    from dateutil.parser import parse, DEFAULTPARSER
-    from dateutil.relativedelta import relativedelta
-
     # raise exception if dateutil 2.0 install on 2.x platform
     if (sys.version_info[0] == 2 and
             dateutil.__version__ == '2.0'):  # pragma: no cover
@@ -173,37 +171,47 @@ def _guess_datetime_format_for_array(arr, **kwargs):
     if len(non_nan_elements):
         return _guess_datetime_format(arr[non_nan_elements[0]], **kwargs)
 
-def to_datetime(arg, errors='ignore', dayfirst=False, utc=None, box=True,
-                format=None, exact=True, coerce=False, unit='ns',
-                infer_datetime_format=False):
+
+@deprecate_kwarg(old_arg_name='coerce', new_arg_name='errors',
+                 mapping={True: 'coerce', False: 'raise'})
+def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
+                utc=None, box=True, format=None, exact=True, coerce=None,
+                unit='ns', infer_datetime_format=False):
     """
     Convert argument to datetime.
 
     Parameters
     ----------
     arg : string, datetime, array of strings (with possible NAs)
-    errors : {'ignore', 'raise'}, default 'ignore'
-        Errors are ignored by default (values left untouched)
+    errors : {'ignore', 'raise', 'coerce'}, default 'raise'
+        - If 'raise', then invalid parsing will raise an exception
+        - If 'coerce', then invalid parsing will be set as NaT
+        - If 'ignore', then invalid parsing will return the input
     dayfirst : boolean, default False
-        If True parses dates with the day first, eg 20/01/2005
+        Specify a date parse order if `arg` is str or its list-likes.
+        If True, parses dates with the day first, eg 10/11/12 is parsed as 2012-11-10.
         Warning: dayfirst=True is not strict, but will prefer to parse
-        with day first (this is a known bug).
+        with day first (this is a known bug, based on dateutil behavior).
+    yearfirst : boolean, default False
+        Specify a date parse order if `arg` is str or its list-likes.
+        - If True parses dates with the year first, eg 10/11/12 is parsed as 2010-11-12.
+        - If both dayfirst and yearfirst are True, yearfirst is preceded (same as dateutil).
+        Warning: yearfirst=True is not strict, but will prefer to parse
+        with year first (this is a known bug, based on dateutil beahavior).
     utc : boolean, default None
         Return UTC DatetimeIndex if True (converting any tz-aware
-        datetime.datetime objects as well)
+        datetime.datetime objects as well).
     box : boolean, default True
-        If True returns a DatetimeIndex, if False returns ndarray of values
+        - If True returns a DatetimeIndex
+        - If False returns ndarray of values.
     format : string, default None
         strftime to parse time, eg "%d/%m/%Y", note that "%f" will parse
-        all the way up to nanoseconds
+        all the way up to nanoseconds.
     exact : boolean, True by default
-        If True, require an exact format match.
-        If False, allow the format to match anywhere in the target string.
-    coerce : force errors to NaT (False by default)
-        Timestamps outside the interval between Timestamp.min and Timestamp.max
-        (approximately 1677-09-22 to 2262-04-11) will be also forced to NaT.
+        - If True, require an exact format match.
+        - If False, allow the format to match anywhere in the target string.
     unit : unit of the arg (D,s,ms,us,ns) denote the unit in epoch
-        (e.g. a unix timestamp), which is an integer/float number
+        (e.g. a unix timestamp), which is an integer/float number.
     infer_datetime_format : boolean, default False
         If no `format` is given, try to infer the format based on the first
         datetime string. Provides a large speed-up in many cases.
@@ -251,10 +259,21 @@ def to_datetime(arg, errors='ignore', dayfirst=False, utc=None, box=True,
 
     >>> pd.to_datetime('13000101', format='%Y%m%d')
     datetime.datetime(1300, 1, 1, 0, 0)
-    >>> pd.to_datetime('13000101', format='%Y%m%d', coerce=True)
+    >>> pd.to_datetime('13000101', format='%Y%m%d', errors='coerce')
     NaT
     """
-    from pandas import Timestamp
+    return _to_datetime(arg, errors=errors, dayfirst=dayfirst, yearfirst=yearfirst,
+                        utc=utc, box=box, format=format, exact=exact,
+                        unit=unit, infer_datetime_format=infer_datetime_format)
+
+
+def _to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
+                 utc=None, box=True, format=None, exact=True,
+                 unit='ns', freq=None, infer_datetime_format=False):
+    """
+    Same as to_datetime, but accept freq for
+    DatetimeIndex internal construction
+    """
     from pandas.core.series import Series
     from pandas.tseries.index import DatetimeIndex
 
@@ -263,6 +282,7 @@ def to_datetime(arg, errors='ignore', dayfirst=False, utc=None, box=True,
         if isinstance(arg, (list,tuple)):
             arg = np.array(arg, dtype='O')
 
+        # these are shortcutable
         if com.is_datetime64_ns_dtype(arg):
             if box and not isinstance(arg, DatetimeIndex):
                 try:
@@ -271,23 +291,32 @@ def to_datetime(arg, errors='ignore', dayfirst=False, utc=None, box=True,
                     pass
 
             return arg
+        elif format is None and com.is_integer_dtype(arg) and unit=='ns':
+            result = arg.astype('datetime64[ns]')
+            if box:
+                return DatetimeIndex(result, tz='utc' if utc else None)
+
+            return result
 
         arg = com._ensure_object(arg)
+        require_iso8601 = False
 
         if infer_datetime_format and format is None:
             format = _guess_datetime_format_for_array(arg, dayfirst=dayfirst)
 
-            if format is not None:
-                # There is a special fast-path for iso8601 formatted
-                # datetime strings, so in those cases don't use the inferred
-                # format because this path makes process slower in this
-                # special case
-                format_is_iso8601 = (
-                    '%Y-%m-%dT%H:%M:%S.%f'.startswith(format) or
-                    '%Y-%m-%d %H:%M:%S.%f'.startswith(format)
-                )
-                if format_is_iso8601:
-                    format = None
+        if format is not None:
+            # There is a special fast-path for iso8601 formatted
+            # datetime strings, so in those cases don't use the inferred
+            # format because this path makes process slower in this
+            # special case
+            format_is_iso8601 = (
+                ('%Y-%m-%dT%H:%M:%S.%f'.startswith(format) or
+                '%Y-%m-%d %H:%M:%S.%f'.startswith(format)) and
+				format != '%Y'
+            )
+            if format_is_iso8601:
+                require_iso8601 = not infer_datetime_format
+                format = None
 
         try:
             result = None
@@ -296,7 +325,7 @@ def to_datetime(arg, errors='ignore', dayfirst=False, utc=None, box=True,
                 # shortcut formatting here
                 if format == '%Y%m%d':
                     try:
-                        result = _attempt_YYYYMMDD(arg, coerce=coerce)
+                        result = _attempt_YYYYMMDD(arg, errors=errors)
                     except:
                         raise ValueError("cannot convert the input to '%Y%m%d' date format")
 
@@ -304,22 +333,26 @@ def to_datetime(arg, errors='ignore', dayfirst=False, utc=None, box=True,
                 if result is None:
                     try:
                         result = tslib.array_strptime(
-                            arg, format, exact=exact, coerce=coerce
-                        )
+                            arg, format, exact=exact, errors=errors)
                     except (tslib.OutOfBoundsDatetime):
                         if errors == 'raise':
                             raise
                         result = arg
                     except ValueError:
-                        # Only raise this error if the user provided the
-                        # datetime format, and not when it was inferred
+                        # if format was inferred, try falling back
+                        # to array_to_datetime - terminate here
+                        # for specified formats
                         if not infer_datetime_format:
-                            raise
+                            if errors == 'raise':
+                                raise
+                            result = arg
 
             if result is None and (format is None or infer_datetime_format):
-                result = tslib.array_to_datetime(arg, raise_=errors == 'raise',
+                result = tslib.array_to_datetime(arg, errors=errors,
                                                  utc=utc, dayfirst=dayfirst,
-                                                 coerce=coerce, unit=unit)
+                                                 yearfirst=yearfirst, freq=freq,
+                                                 unit=unit,
+                                                 require_iso8601=require_iso8601)
 
             if com.is_datetime64_dtype(result) and box:
                 result = DatetimeIndex(result, tz='utc' if utc else None)
@@ -334,7 +367,7 @@ def to_datetime(arg, errors='ignore', dayfirst=False, utc=None, box=True,
 
     if arg is None:
         return arg
-    elif isinstance(arg, Timestamp):
+    elif isinstance(arg, tslib.Timestamp):
         return arg
     elif isinstance(arg, Series):
         values = _convert_listlike(arg.values, False, format)
@@ -344,17 +377,21 @@ def to_datetime(arg, errors='ignore', dayfirst=False, utc=None, box=True,
 
     return _convert_listlike(np.array([ arg ]), box, format)[0]
 
-class DateParseError(ValueError):
-    pass
 
-def _attempt_YYYYMMDD(arg, coerce):
+def _attempt_YYYYMMDD(arg, errors):
     """ try to parse the YYYYMMDD/%Y%m%d format, try to deal with NaT-like,
-        arg is a passed in as an object dtype, but could really be ints/strings with nan-like/or floats (e.g. with nan) """
+        arg is a passed in as an object dtype, but could really be ints/strings with nan-like/or floats (e.g. with nan)
+
+        Parameters
+        ----------
+        arg : passed value
+        errors : 'raise','ignore','coerce'
+        """
 
     def calc(carg):
         # calculate the actual result
         carg = carg.astype(object)
-        return tslib.array_to_datetime(lib.try_parse_year_month_day(carg/10000,carg/100 % 100, carg % 100), coerce=coerce)
+        return tslib.array_to_datetime(lib.try_parse_year_month_day(carg/10000,carg/100 % 100, carg % 100), errors=errors)
 
     def calc_with_mask(carg,mask):
         result = np.empty(carg.shape, dtype='M8[ns]')
@@ -385,14 +422,6 @@ def _attempt_YYYYMMDD(arg, coerce):
 
     return None
 
-# patterns for quarters like '4Q2005', '05Q1'
-qpat1full = re.compile(r'(\d)Q-?(\d\d\d\d)')
-qpat2full = re.compile(r'(\d\d\d\d)-?Q(\d)')
-qpat1 = re.compile(r'(\d)Q-?(\d\d)')
-qpat2 = re.compile(r'(\d\d)-?Q(\d)')
-ypat = re.compile(r'(\d\d\d\d)$')
-has_time = re.compile('(.+)([\s]|T)+(.+)')
-
 
 def parse_time_string(arg, freq=None, dayfirst=None, yearfirst=None):
     """
@@ -414,183 +443,19 @@ def parse_time_string(arg, freq=None, dayfirst=None, yearfirst=None):
     datetime, datetime/dateutil.parser._result, str
     """
     from pandas.core.config import get_option
-    from pandas.tseries.offsets import DateOffset
-    from pandas.tseries.frequencies import (_get_rule_month, _month_numbers,
-                                            _get_freq_str)
-
     if not isinstance(arg, compat.string_types):
         return arg
-
-    arg = arg.upper()
-
-    default = datetime(1, 1, 1).replace(hour=0, minute=0,
-                                        second=0, microsecond=0)
-
-    # special handling for possibilities eg, 2Q2005, 2Q05, 2005Q1, 05Q1
-    if len(arg) in [4, 5, 6, 7]:
-        m = ypat.match(arg)
-        if m:
-            ret = default.replace(year=int(m.group(1)))
-            return ret, ret, 'year'
-
-        add_century = False
-        if len(arg) > 5:
-            qpats = [(qpat1full, 1), (qpat2full, 0)]
-        else:
-            add_century = True
-            qpats = [(qpat1, 1), (qpat2, 0)]
-
-        for pat, yfirst in qpats:
-            qparse = pat.match(arg)
-            if qparse is not None:
-                if yfirst:
-                    yi, qi = 1, 2
-                else:
-                    yi, qi = 2, 1
-                q = int(qparse.group(yi))
-                y_str = qparse.group(qi)
-                y = int(y_str)
-                if add_century:
-                    y += 2000
-
-                if freq is not None:
-                    # hack attack, #1228
-                    mnum = _month_numbers[_get_rule_month(freq)] + 1
-                    month = (mnum + (q - 1) * 3) % 12 + 1
-                    if month > mnum:
-                        y -= 1
-                else:
-                    month = (q - 1) * 3 + 1
-
-                ret = default.replace(year=y, month=month)
-                return ret, ret, 'quarter'
-
-        is_mo_str = freq is not None and freq == 'M'
-        is_mo_off = getattr(freq, 'rule_code', None) == 'M'
-        is_monthly = is_mo_str or is_mo_off
-        if len(arg) == 6 and is_monthly:
-            try:
-                ret = _try_parse_monthly(arg)
-                if ret is not None:
-                    return ret, ret, 'month'
-            except Exception:
-                pass
-
-    # montly f7u12
-    mresult = _attempt_monthly(arg)
-    if mresult:
-        return mresult
 
     if dayfirst is None:
         dayfirst = get_option("display.date_dayfirst")
     if yearfirst is None:
         yearfirst = get_option("display.date_yearfirst")
 
-    try:
-        parsed, reso = dateutil_parse(arg, default, dayfirst=dayfirst,
-                                      yearfirst=yearfirst)
-    except Exception as e:
-        # TODO: allow raise of errors within instead
-        raise DateParseError(e)
-
-    if parsed is None:
-        raise DateParseError("Could not parse %s" % arg)
-
-    return parsed, parsed, reso  # datetime, resolution
+    return tslib.parse_datetime_string_with_reso(arg, freq=freq, dayfirst=dayfirst,
+                                                 yearfirst=yearfirst)
 
 
-def dateutil_parse(timestr, default,
-                   ignoretz=False, tzinfos=None,
-                   **kwargs):
-    """ lifted from dateutil to get resolution"""
-    from dateutil import tz
-    import time
-    fobj = StringIO(str(timestr))
-
-    res = DEFAULTPARSER._parse(fobj, **kwargs)
-
-    # dateutil 2.2 compat
-    if isinstance(res, tuple):
-        res, _ = res
-
-    if res is None:
-        raise ValueError("unknown string format")
-
-    repl = {}
-    reso = None
-    for attr in ["year", "month", "day", "hour",
-                 "minute", "second", "microsecond"]:
-        value = getattr(res, attr)
-        if value is not None:
-            repl[attr] = value
-            reso = attr
-
-    if reso is None:
-        raise ValueError("Cannot parse date.")
-
-    if reso == 'microsecond':
-        if repl['microsecond'] == 0:
-            reso = 'second'
-        elif repl['microsecond'] % 1000 == 0:
-            reso = 'millisecond'
-
-    ret = default.replace(**repl)
-    if res.weekday is not None and not res.day:
-        ret = ret + relativedelta.relativedelta(weekday=res.weekday)
-    if not ignoretz:
-        if callable(tzinfos) or tzinfos and res.tzname in tzinfos:
-            if callable(tzinfos):
-                tzdata = tzinfos(res.tzname, res.tzoffset)
-            else:
-                tzdata = tzinfos.get(res.tzname)
-            if isinstance(tzdata, datetime.tzinfo):
-                tzinfo = tzdata
-            elif isinstance(tzdata, compat.string_types):
-                tzinfo = tz.tzstr(tzdata)
-            elif isinstance(tzdata, int):
-                tzinfo = tz.tzoffset(res.tzname, tzdata)
-            else:
-                raise ValueError("offset must be tzinfo subclass, "
-                                 "tz string, or int offset")
-            ret = ret.replace(tzinfo=tzinfo)
-        elif res.tzname and res.tzname in time.tzname:
-            ret = ret.replace(tzinfo=tz.tzlocal())
-        elif res.tzoffset == 0:
-            ret = ret.replace(tzinfo=tz.tzutc())
-        elif res.tzoffset:
-            ret = ret.replace(tzinfo=tz.tzoffset(res.tzname, res.tzoffset))
-    return ret, reso
-
-
-def _attempt_monthly(val):
-    pats = ['%Y-%m', '%m-%Y', '%b %Y', '%b-%Y']
-    for pat in pats:
-        try:
-            ret = datetime.strptime(val, pat)
-            return ret, ret, 'month'
-        except Exception:
-            pass
-
-
-def _try_parse_monthly(arg):
-    base = 2000
-    add_base = False
-    default = datetime(1, 1, 1).replace(hour=0, minute=0, second=0,
-                                        microsecond=0)
-
-    if len(arg) == 4:
-        add_base = True
-        y = int(arg[:2])
-        m = int(arg[2:4])
-    elif len(arg) >= 6:  # 201201
-        y = int(arg[:4])
-        m = int(arg[4:6])
-    if add_base:
-        y += base
-    ret = default.replace(year=y, month=m)
-    return ret
-
-
+DateParseError = tslib.DateParseError
 normalize_date = tslib.normalize_date
 
 

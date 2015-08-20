@@ -418,8 +418,8 @@ frame_dtypes = Benchmark('df.dtypes', setup,
 #----------------------------------------------------------------------
 # equals
 setup = common_setup + """
-def make_pair(name):
-    df = globals()[name]
+def make_pair(frame):
+    df = frame
     df2 = df.copy()
     df2.ix[-1,-1] = np.nan
     return df, df2
@@ -437,8 +437,8 @@ object_df = DataFrame([['foo']*1000]*1000)
 nonunique_cols = object_df.copy()
 nonunique_cols.columns = ['A']*len(nonunique_cols.columns)
 
-pairs = dict([(name,make_pair(name))
-         for name in ('float_df', 'object_df', 'nonunique_cols')])
+pairs = dict([(name, make_pair(frame))
+         for name, frame in (('float_df', float_df), ('object_df', object_df), ('nonunique_cols', nonunique_cols))])
 """
 frame_float_equal = Benchmark('test_equal("float_df")', setup)
 frame_object_equal = Benchmark('test_equal("object_df")', setup)

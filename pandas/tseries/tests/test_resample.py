@@ -9,7 +9,9 @@ import numpy as np
 from pandas import (Series, TimeSeries, DataFrame, Panel, Index,
                     isnull, notnull, Timestamp)
 
+from pandas.core.groupby import DataError
 from pandas.tseries.index import date_range
+from pandas.tseries.tdi import timedelta_range
 from pandas.tseries.offsets import Minute, BDay
 from pandas.tseries.period import period_range, PeriodIndex, Period
 from pandas.tseries.resample import DatetimeIndex, TimeGrouper
@@ -239,47 +241,47 @@ class TestResample(tm.TestCase):
 
         self.assertEqual(len(result), 3)
         self.assertTrue((result.index.dayofweek == [6, 6, 6]).all())
-        self.assertEqual(result.irow(0), s['1/2/2005'])
-        self.assertEqual(result.irow(1), s['1/9/2005'])
-        self.assertEqual(result.irow(2), s.irow(-1))
+        self.assertEqual(result.iloc[0], s['1/2/2005'])
+        self.assertEqual(result.iloc[1], s['1/9/2005'])
+        self.assertEqual(result.iloc[2], s.iloc[-1])
 
         result = s.resample('W-MON', how='last')
         self.assertEqual(len(result), 2)
         self.assertTrue((result.index.dayofweek == [0, 0]).all())
-        self.assertEqual(result.irow(0), s['1/3/2005'])
-        self.assertEqual(result.irow(1), s['1/10/2005'])
+        self.assertEqual(result.iloc[0], s['1/3/2005'])
+        self.assertEqual(result.iloc[1], s['1/10/2005'])
 
         result = s.resample('W-TUE', how='last')
         self.assertEqual(len(result), 2)
         self.assertTrue((result.index.dayofweek == [1, 1]).all())
-        self.assertEqual(result.irow(0), s['1/4/2005'])
-        self.assertEqual(result.irow(1), s['1/10/2005'])
+        self.assertEqual(result.iloc[0], s['1/4/2005'])
+        self.assertEqual(result.iloc[1], s['1/10/2005'])
 
         result = s.resample('W-WED', how='last')
         self.assertEqual(len(result), 2)
         self.assertTrue((result.index.dayofweek == [2, 2]).all())
-        self.assertEqual(result.irow(0), s['1/5/2005'])
-        self.assertEqual(result.irow(1), s['1/10/2005'])
+        self.assertEqual(result.iloc[0], s['1/5/2005'])
+        self.assertEqual(result.iloc[1], s['1/10/2005'])
 
         result = s.resample('W-THU', how='last')
         self.assertEqual(len(result), 2)
         self.assertTrue((result.index.dayofweek == [3, 3]).all())
-        self.assertEqual(result.irow(0), s['1/6/2005'])
-        self.assertEqual(result.irow(1), s['1/10/2005'])
+        self.assertEqual(result.iloc[0], s['1/6/2005'])
+        self.assertEqual(result.iloc[1], s['1/10/2005'])
 
         result = s.resample('W-FRI', how='last')
         self.assertEqual(len(result), 2)
         self.assertTrue((result.index.dayofweek == [4, 4]).all())
-        self.assertEqual(result.irow(0), s['1/7/2005'])
-        self.assertEqual(result.irow(1), s['1/10/2005'])
+        self.assertEqual(result.iloc[0], s['1/7/2005'])
+        self.assertEqual(result.iloc[1], s['1/10/2005'])
 
         # to biz day
         result = s.resample('B', how='last')
         self.assertEqual(len(result), 7)
         self.assertTrue((result.index.dayofweek == [4, 0, 1, 2, 3, 4, 0]).all())
-        self.assertEqual(result.irow(0), s['1/2/2005'])
-        self.assertEqual(result.irow(1), s['1/3/2005'])
-        self.assertEqual(result.irow(5), s['1/9/2005'])
+        self.assertEqual(result.iloc[0], s['1/2/2005'])
+        self.assertEqual(result.iloc[1], s['1/3/2005'])
+        self.assertEqual(result.iloc[5], s['1/9/2005'])
         self.assertEqual(result.index.name, 'index')
 
     def test_resample_upsampling_picked_but_not_correct(self):
@@ -406,13 +408,13 @@ class TestResample(tm.TestCase):
         self.assertEqual(len(result), len(expect))
         self.assertEqual(len(result.columns), 4)
 
-        xs = result.irow(-2)
+        xs = result.iloc[-2]
         self.assertEqual(xs['open'], s[-6])
         self.assertEqual(xs['high'], s[-6:-1].max())
         self.assertEqual(xs['low'], s[-6:-1].min())
         self.assertEqual(xs['close'], s[-2])
 
-        xs = result.irow(0)
+        xs = result.iloc[0]
         self.assertEqual(xs['open'], s[0])
         self.assertEqual(xs['high'], s[:5].max())
         self.assertEqual(xs['low'], s[:5].min())
@@ -462,7 +464,7 @@ class TestResample(tm.TestCase):
         bs = s.resample('B', closed='right', label='right')
         result = bs.resample('8H')
         self.assertEqual(len(result), 22)
-        tm.assert_isinstance(result.index.freq, offsets.DateOffset)
+        tm.assertIsInstance(result.index.freq, offsets.DateOffset)
         self.assertEqual(result.index.freq, offsets.Hour(8))
 
     def test_resample_timestamp_to_period(self):
@@ -626,6 +628,21 @@ class TestResample(tm.TestCase):
                              freq='5min')
         self.assertTrue(resampled.index.equals(exp_rng))
 
+    def test_resample_base_with_timedeltaindex(self):
+
+        # GH 10530
+        rng = timedelta_range(start = '0s', periods = 25, freq = 's')
+        ts = Series(np.random.randn(len(rng)), index = rng)
+
+        with_base = ts.resample('2s', base = 5)
+        without_base = ts.resample('2s')
+
+        exp_without_base = timedelta_range(start = '0s', end = '25s', freq = '2s')
+        exp_with_base = timedelta_range(start = '5s', end = '29s', freq = '2s')
+
+        self.assertTrue(without_base.index.equals(exp_without_base))
+        self.assertTrue(with_base.index.equals(exp_with_base))
+
     def test_resample_daily_anchored(self):
         rng = date_range('1/1/2000 0:00:00', periods=10000, freq='T')
         ts = Series(np.random.randn(len(rng)), index=rng)
@@ -659,6 +676,20 @@ class TestResample(tm.TestCase):
         xp = DataFrame()
         rs = xp.resample('A')
         assert_frame_equal(xp, rs)
+
+        # Empty series were sometimes causing a segfault (for the functions
+        # with Cython bounds-checking disabled) or an IndexError.  We just run
+        # them to ensure they no longer do.  (GH #10228)
+        for index in tm.all_timeseries_index_generator(0):
+            for dtype in (np.float, np.int, np.object, 'datetime64[ns]'):
+                for how in ('count', 'mean', 'min', 'ohlc', 'last', 'prod'):
+                    empty_series = pd.Series([], index, dtype)
+                    try:
+                        empty_series.resample('d', how)
+                    except DataError:
+                        # Ignore these since some combinations are invalid
+                        # (ex: doing mean with dtype of np.object)
+                        pass
 
     def test_weekly_resample_buglet(self):
         # #1327
@@ -774,7 +805,7 @@ class TestResample(tm.TestCase):
         ts = Series(np.random.randn(len(rng)), index=rng)
 
         result = ts.resample('20min', how=['mean', 'sum'])
-        tm.assert_isinstance(result, DataFrame)
+        tm.assertIsInstance(result, DataFrame)
 
     def test_resample_not_monotonic(self):
         rng = pd.date_range('2012-06-12', periods=200, freq='h')

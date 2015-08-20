@@ -6,7 +6,7 @@ import pandas.compat as compat
 import pandas.core.common as com
 from pandas.core.common import (is_bool_indexer, is_integer_dtype,
                                 _asarray_tuplesafe, is_list_like, isnull,
-                                is_null_slice,
+                                is_null_slice, is_full_slice,
                                 ABCSeries, ABCDataFrame, ABCPanel, is_float,
                                 _values_from_object, _infer_fill_value, is_integer)
 import numpy as np
@@ -201,6 +201,7 @@ class _NDFrameIndexer(object):
 
         # also has the side effect of consolidating in-place
         from pandas import Panel, DataFrame, Series
+        info_axis = self.obj._info_axis_number
 
         # maybe partial set
         take_split_path = self.obj._is_mixed_type
@@ -212,6 +213,16 @@ class _NDFrameIndexer(object):
             if 1 < blk.ndim:  # in case of dict, keys are indices
                 val = list(value.values()) if isinstance(value,dict) else value
                 take_split_path = not blk._can_hold_element(val)
+
+        if isinstance(indexer, tuple) and len(indexer) == len(self.obj.axes):
+
+            for i, ax in zip(indexer, self.obj.axes):
+
+                # if we have any multi-indexes that have non-trivial slices (not null slices)
+                # then we must take the split path, xref GH 10360
+                if isinstance(ax, MultiIndex) and not (is_integer(i) or is_null_slice(i)):
+                    take_split_path = True
+                    break
 
         if isinstance(indexer, tuple):
             nindexer = []
@@ -328,13 +339,7 @@ class _NDFrameIndexer(object):
                     return self.obj.__setitem__(indexer, value)
 
         # set
-        info_axis = self.obj._info_axis_number
         item_labels = self.obj._get_axis(info_axis)
-
-        # if we have a complicated setup, take the split path
-        if (isinstance(indexer, tuple) and
-                any([isinstance(ax, MultiIndex) for ax in self.obj.axes])):
-            take_split_path = True
 
         # align and set the values
         if take_split_path:
@@ -399,10 +404,10 @@ class _NDFrameIndexer(object):
                 pi = plane_indexer[0] if lplane_indexer == 1 else plane_indexer
 
                 # perform the equivalent of a setitem on the info axis
-                # as we have a null slice which means essentially reassign to the columns
-                # of a multi-dim object
-                # GH6149
-                if isinstance(pi, tuple) and all(is_null_slice(idx) for idx in pi):
+                # as we have a null slice or a slice with full bounds
+                # which means essentially reassign to the columns of a multi-dim object
+                # GH6149 (null slice), GH10408 (full bounds)
+                if isinstance(pi, tuple) and all(is_null_slice(idx) or is_full_slice(idx, len(self.obj)) for idx in pi):
                     s = v
                 else:
                     # set the item, possibly having a dtype change
@@ -431,8 +436,8 @@ class _NDFrameIndexer(object):
 
                 return False
 
-            # we need an interable, with a ndim of at least 1
-            # eg. don't pass thru np.array(0)
+            # we need an iterable, with a ndim of at least 1
+            # eg. don't pass through np.array(0)
             if is_list_like_indexer(value) and getattr(value,'ndim',1) > 0:
 
                 # we have an equal len Frame
@@ -509,7 +514,7 @@ class _NDFrameIndexer(object):
 
     def _align_series(self, indexer, ser):
         # indexer to assign Series can be tuple, slice, scalar
-        if isinstance(indexer, (slice, np.ndarray, list)):
+        if isinstance(indexer, (slice, np.ndarray, list, Index)):
             indexer = tuple([indexer])
 
         if isinstance(indexer, tuple):
@@ -1388,7 +1393,8 @@ class _iLocIndexer(_LocationIndexer):
         # return a boolean if we have a valid integer indexer
 
         ax = self.obj._get_axis(axis)
-        if key > len(ax):
+        l = len(ax)
+        if key >= l or key < -l:
             raise IndexError("single positional indexer is out-of-bounds")
         return True
 
@@ -1400,7 +1406,7 @@ class _iLocIndexer(_LocationIndexer):
         arr = np.array(key)
         ax = self.obj._get_axis(axis)
         l = len(ax)
-        if len(arr) and (arr.max() >= l or arr.min() <= -l):
+        if len(arr) and (arr.max() >= l or arr.min() < -l):
             raise IndexError("positional indexers are out-of-bounds")
 
         return True
@@ -1719,7 +1725,7 @@ def maybe_convert_ix(*args):
 
     ixify = True
     for arg in args:
-        if not isinstance(arg, (np.ndarray, list, ABCSeries)):
+        if not isinstance(arg, (np.ndarray, list, ABCSeries, Index)):
             ixify = False
 
     if ixify:

@@ -17,7 +17,7 @@ boto=2.36.0
 bottleneck=0.8.0
 psycopg2=2.5.2
 patsy
-pymysql=0.6.1
+pymysql=0.6.3
 html5lib=1.0b2
 beautiful-soup=4.2.1
 httplib2=0.8

@@ -193,7 +193,7 @@ def str_contains(arr, pat, case=True, flags=0, na=np.nan, regex=True):
 
     See Also
     --------
-    match : analagous, but stricter, relying on re.match instead of re.search
+    match : analogous, but stricter, relying on re.match instead of re.search
 
     """
     if regex:
@@ -1270,11 +1270,11 @@ class StringMethods(object):
     def center(self, width, fillchar=' '):
         return self.pad(width, side='both', fillchar=fillchar)
 
-    @Appender(_shared_docs['str_pad'] % dict(side='right', method='right'))
+    @Appender(_shared_docs['str_pad'] % dict(side='right', method='ljust'))
     def ljust(self, width, fillchar=' '):
         return self.pad(width, side='right', fillchar=fillchar)
 
-    @Appender(_shared_docs['str_pad'] % dict(side='left', method='left'))
+    @Appender(_shared_docs['str_pad'] % dict(side='left', method='rjust'))
     def rjust(self, width, fillchar=' '):
         return self.pad(width, side='left', fillchar=fillchar)
 

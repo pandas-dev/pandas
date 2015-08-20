@@ -82,6 +82,15 @@ HDFStore: PyTables (HDF5)
    HDFStore.get
    HDFStore.select
 
+SAS
+~~~
+
+.. autosummary::
+   :toctree: generated/
+
+   read_sas
+   XportReader
+
 SQL
 ~~~
 
@@ -509,6 +518,7 @@ These can be accessed like ``Series.dt.<property>``.
    Series.dt.tz_localize
    Series.dt.tz_convert
    Series.dt.normalize
+   Series.dt.strftime
 
 **Timedelta Properties**
 
@@ -798,9 +808,7 @@ Binary operator functions
    DataFrame.ne
    DataFrame.eq
    DataFrame.combine
-   DataFrame.combineAdd
    DataFrame.combine_first
-   DataFrame.combineMult
 
 Function application, GroupBy
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -903,6 +911,8 @@ Reshaping, sorting, transposing
    DataFrame.sort
    DataFrame.sort_index
    DataFrame.sortlevel
+   DataFrame.nlargest
+   DataFrame.nsmallest
    DataFrame.swaplevel
    DataFrame.stack
    DataFrame.unstack
@@ -1443,6 +1453,7 @@ Conversion
 
    DatetimeIndex.to_datetime
    DatetimeIndex.to_period
+   DatetimeIndex.to_perioddelta
    DatetimeIndex.to_pydatetime
    DatetimeIndex.to_series
 
@@ -1558,7 +1569,6 @@ application to columns of a specific data type.
    DataFrameGroupBy.hist
    DataFrameGroupBy.idxmax
    DataFrameGroupBy.idxmin
-   DataFrameGroupBy.irow
    DataFrameGroupBy.mad
    DataFrameGroupBy.pct_change
    DataFrameGroupBy.plot

@@ -294,7 +294,7 @@ def _parse_entry(field_value, field_type):
     return field_value
 
 
-def read_gbq(query, project_id = None, index_col=None, col_order=None, reauth=False):
+def read_gbq(query, project_id=None, index_col=None, col_order=None, reauth=False):
     """Load data from Google BigQuery.
 
     THIS IS AN EXPERIMENTAL LIBRARY

@@ -131,18 +131,18 @@ def compat_assert_produces_warning(w,f):
             f()
 
 
-class TestHDFStore(tm.TestCase):
+class Base(tm.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        super(TestHDFStore, cls).setUpClass()
+        super(Base, cls).setUpClass()
 
         # Pytables 3.0.0 deprecates lots of things
         tm.reset_testing_mode()
 
     @classmethod
     def tearDownClass(cls):
-        super(TestHDFStore, cls).tearDownClass()
+        super(Base, cls).tearDownClass()
 
         # Pytables 3.0.0 deprecates lots of things
         tm.set_testing_mode()
@@ -154,6 +154,9 @@ class TestHDFStore(tm.TestCase):
 
     def tearDown(self):
         pass
+
+
+class TestHDFStore(Base):
 
     def test_factory_fun(self):
         path = create_tempfile(self.path)
@@ -400,7 +403,7 @@ class TestHDFStore(tm.TestCase):
             df['datetime1']  = datetime.datetime(2001,1,2,0,0)
             df['datetime2']  = datetime.datetime(2001,1,3,0,0)
             df.ix[3:6,['obj1']] = np.nan
-            df = df.consolidate().convert_objects()
+            df = df.consolidate().convert_objects(datetime=True)
 
             warnings.filterwarnings('ignore', category=PerformanceWarning)
             store['df'] = df
@@ -725,7 +728,7 @@ class TestHDFStore(tm.TestCase):
         df['datetime1'] = datetime.datetime(2001, 1, 2, 0, 0)
         df['datetime2'] = datetime.datetime(2001, 1, 3, 0, 0)
         df.ix[3:6, ['obj1']] = np.nan
-        df = df.consolidate().convert_objects()
+        df = df.consolidate().convert_objects(datetime=True)
 
         with ensure_clean_store(self.path) as store:
             _maybe_remove(store, 'df')
@@ -1036,6 +1039,28 @@ class TestHDFStore(tm.TestCase):
             store.append('df2', df[:10], dropna=False)
             store.append('df2', df[10:], dropna=False)
             tm.assert_frame_equal(store['df2'], df)
+
+        # Test to make sure defaults are to not drop. 
+        # Corresponding to Issue 9382
+        df_with_missing = DataFrame({'col1':[0, np.nan, 2], 'col2':[1, np.nan,  np.nan]})
+
+        with ensure_clean_path(self.path) as path:
+            df_with_missing.to_hdf(path, 'df_with_missing', format = 'table')
+            reloaded = read_hdf(path, 'df_with_missing')
+            tm.assert_frame_equal(df_with_missing, reloaded)
+
+        matrix = [[[np.nan, np.nan, np.nan],[1,np.nan,np.nan]],
+            [[np.nan, np.nan, np.nan], [np.nan,5,6]],
+            [[np.nan, np.nan, np.nan],[np.nan,3,np.nan]]]
+
+        panel_with_missing = Panel(matrix, items=['Item1', 'Item2','Item3'],
+                   major_axis=[1,2],
+                   minor_axis=['A', 'B', 'C'])
+
+        with ensure_clean_path(self.path) as path:
+           panel_with_missing.to_hdf(path, 'panel_with_missing', format='table')
+           reloaded_panel = read_hdf(path, 'panel_with_missing') 
+           tm.assert_panel_equal(panel_with_missing, reloaded_panel)
 
     def test_append_frame_column_oriented(self):
 
@@ -1378,7 +1403,7 @@ class TestHDFStore(tm.TestCase):
             df_dc.ix[7:9, 'string'] = 'bar'
             df_dc['string2'] = 'cool'
             df_dc['datetime'] = Timestamp('20010102')
-            df_dc = df_dc.convert_objects()
+            df_dc = df_dc.convert_objects(datetime=True)
             df_dc.ix[3:5, ['A', 'B', 'datetime']] = np.nan
 
             _maybe_remove(store, 'df_dc')
@@ -1840,7 +1865,7 @@ class TestHDFStore(tm.TestCase):
         df['datetime1'] = datetime.datetime(2001, 1, 2, 0, 0)
         df['datetime2'] = datetime.datetime(2001, 1, 3, 0, 0)
         df.ix[3:6, ['obj1']] = np.nan
-        df = df.consolidate().convert_objects()
+        df = df.consolidate().convert_objects(datetime=True)
 
         with ensure_clean_store(self.path) as store:
             store.append('df1_mixed', df)
@@ -1896,7 +1921,7 @@ class TestHDFStore(tm.TestCase):
         df['obj1'] = 'foo'
         df['obj2'] = 'bar'
         df['datetime1'] = datetime.date(2001, 1, 2)
-        df = df.consolidate().convert_objects()
+        df = df.consolidate().convert_objects(datetime=True)
 
         with ensure_clean_store(self.path) as store:
             # this fails because we have a date in the object block......
@@ -2067,9 +2092,8 @@ class TestHDFStore(tm.TestCase):
         # GH2852
         # issue storing datetime.date with a timezone as it resets when read back in a new timezone
 
-        import platform
-        if platform.system() == "Windows":
-            raise nose.SkipTest("timezone setting not supported on windows")
+        # timezone setting not supported on windows
+        tm._skip_if_windows()
 
         import datetime
         import time
@@ -3766,7 +3790,7 @@ class TestHDFStore(tm.TestCase):
             # valid
             result = store.select_column('df', 'index')
             tm.assert_almost_equal(result.values, Series(df.index).values)
-            self.assertIsInstance(result,Series)
+            self.assertIsInstance(result, Series)
 
             # not a data indexable column
             self.assertRaises(
@@ -3805,6 +3829,14 @@ class TestHDFStore(tm.TestCase):
 
             result = store.select_column('df3', 'string', start=-2, stop=2)
             tm.assert_almost_equal(result.values, df3['string'].values[-2:2])
+
+            # GH 10392 - make sure column name is preserved
+            df4 = DataFrame({'A': np.random.randn(10), 'B': 'foo'})
+            store.append('df4', df4, data_columns=True)
+            expected = df4['B']
+            result = store.select_column('df4', 'B')
+            tm.assert_series_equal(result, expected)
+
 
     def test_coordinates(self):
         df = tm.makeTimeDataFrame()
@@ -4724,6 +4756,156 @@ class TestHDFStore(tm.TestCase):
                        columns=list('ABCDE'))
         with ensure_clean_path(self.path) as path:
             self.assertRaises(ValueError, df.to_hdf, path, 'df', complib='blosc:zlib')
+    # GH10443
+    def test_read_nokey(self):
+        df = DataFrame(np.random.rand(4, 5),
+                       index=list('abcd'),
+                       columns=list('ABCDE'))
+        with ensure_clean_path(self.path) as path:
+            df.to_hdf(path, 'df', mode='a')
+            reread = read_hdf(path)
+            assert_frame_equal(df, reread)
+            df.to_hdf(path, 'df2', mode='a')
+            self.assertRaises(ValueError, read_hdf, path)
+
+
+class TestHDFComplexValues(Base):
+    # GH10447
+    def test_complex_fixed(self):
+        df = DataFrame(np.random.rand(4, 5).astype(np.complex64),
+                       index=list('abcd'),
+                       columns=list('ABCDE'))
+
+        with ensure_clean_path(self.path) as path:
+            df.to_hdf(path, 'df')
+            reread = read_hdf(path, 'df')
+            assert_frame_equal(df, reread)
+
+        df = DataFrame(np.random.rand(4, 5).astype(np.complex128),
+                       index=list('abcd'),
+                       columns=list('ABCDE'))
+        with ensure_clean_path(self.path) as path:
+            df.to_hdf(path, 'df')
+            reread = read_hdf(path, 'df')
+            assert_frame_equal(df, reread)
+
+    def test_complex_table(self):
+        df = DataFrame(np.random.rand(4, 5).astype(np.complex64),
+                       index=list('abcd'),
+                       columns=list('ABCDE'))
+
+        with ensure_clean_path(self.path) as path:
+            df.to_hdf(path, 'df', format='table')
+            reread = read_hdf(path, 'df')
+            assert_frame_equal(df, reread)
+
+        df = DataFrame(np.random.rand(4, 5).astype(np.complex128),
+                       index=list('abcd'),
+                       columns=list('ABCDE'))
+
+        with ensure_clean_path(self.path) as path:
+            df.to_hdf(path, 'df', format='table', mode='w')
+            reread = read_hdf(path, 'df')
+            assert_frame_equal(df, reread)
+
+    def test_complex_mixed_fixed(self):
+        complex64 = np.array([1.0 + 1.0j, 1.0 + 1.0j, 1.0 + 1.0j, 1.0 + 1.0j], dtype=np.complex64)
+        complex128 = np.array([1.0 + 1.0j, 1.0 + 1.0j, 1.0 + 1.0j, 1.0 + 1.0j],
+                              dtype=np.complex128)
+        df = DataFrame({'A': [1, 2, 3, 4],
+                        'B': ['a', 'b', 'c', 'd'],
+                        'C': complex64,
+                        'D': complex128,
+                        'E': [1.0, 2.0, 3.0, 4.0]},
+                       index=list('abcd'))
+        with ensure_clean_path(self.path) as path:
+            df.to_hdf(path, 'df')
+            reread = read_hdf(path, 'df')
+            assert_frame_equal(df, reread)
+
+    def test_complex_mixed_table(self):
+        complex64 = np.array([1.0 + 1.0j, 1.0 + 1.0j, 1.0 + 1.0j, 1.0 + 1.0j], dtype=np.complex64)
+        complex128 = np.array([1.0 + 1.0j, 1.0 + 1.0j, 1.0 + 1.0j, 1.0 + 1.0j],
+                              dtype=np.complex128)
+        df = DataFrame({'A': [1, 2, 3, 4],
+                        'B': ['a', 'b', 'c', 'd'],
+                        'C': complex64,
+                        'D': complex128,
+                        'E': [1.0, 2.0, 3.0, 4.0]},
+                       index=list('abcd'))
+
+        with ensure_clean_store(self.path) as store:
+            store.append('df', df, data_columns=['A', 'B'])
+            result = store.select('df', where=Term('A>2'))
+            assert_frame_equal(df.loc[df.A > 2], result)
+
+        with ensure_clean_path(self.path) as path:
+            df.to_hdf(path, 'df', format='table')
+            reread = read_hdf(path, 'df')
+            assert_frame_equal(df, reread)
+
+    def test_complex_across_dimensions_fixed(self):
+        complex128 = np.array([1.0 + 1.0j, 1.0 + 1.0j, 1.0 + 1.0j, 1.0 + 1.0j])
+        s = Series(complex128, index=list('abcd'))
+        df = DataFrame({'A': s, 'B': s})
+        p = Panel({'One': df, 'Two': df})
+
+        objs = [s, df, p]
+        comps = [tm.assert_series_equal, tm.assert_frame_equal,
+                 tm.assert_panel_equal]
+        for obj, comp in zip(objs, comps):
+            with ensure_clean_path(self.path) as path:
+                obj.to_hdf(path, 'obj', format='fixed')
+                reread = read_hdf(path, 'obj')
+                comp(obj, reread)
+
+    def test_complex_across_dimensions(self):
+        complex128 = np.array([1.0 + 1.0j, 1.0 + 1.0j, 1.0 + 1.0j, 1.0 + 1.0j])
+        s = Series(complex128, index=list('abcd'))
+        df = DataFrame({'A': s, 'B': s})
+        p = Panel({'One': df, 'Two': df})
+        p4d = pd.Panel4D({'i': p, 'ii': p})
+
+        objs = [df, p, p4d]
+        comps = [tm.assert_frame_equal, tm.assert_panel_equal,
+                 tm.assert_panel4d_equal]
+        for obj, comp in zip(objs, comps):
+            with ensure_clean_path(self.path) as path:
+                obj.to_hdf(path, 'obj', format='table')
+                reread = read_hdf(path, 'obj')
+                comp(obj, reread)
+
+    def test_complex_indexing_error(self):
+        complex128 = np.array([1.0 + 1.0j, 1.0 + 1.0j, 1.0 + 1.0j, 1.0 + 1.0j],
+                              dtype=np.complex128)
+        df = DataFrame({'A': [1, 2, 3, 4],
+                        'B': ['a', 'b', 'c', 'd'],
+                        'C': complex128},
+                       index=list('abcd'))
+        with ensure_clean_store(self.path) as store:
+            self.assertRaises(TypeError, store.append, 'df', df, data_columns=['C'])
+
+    def test_complex_series_error(self):
+        complex128 = np.array([1.0 + 1.0j, 1.0 + 1.0j, 1.0 + 1.0j, 1.0 + 1.0j])
+        s = Series(complex128, index=list('abcd'))
+
+        with ensure_clean_path(self.path) as path:
+            self.assertRaises(TypeError, s.to_hdf, path, 'obj', format='t')
+
+        with ensure_clean_path(self.path) as path:
+            s.to_hdf(path, 'obj', format='t', index=False)
+            reread = read_hdf(path, 'obj')
+            tm.assert_series_equal(s, reread)
+
+    def test_complex_append(self):
+        df = DataFrame({'a': np.random.randn(100).astype(np.complex128),
+                        'b': np.random.randn(100)})
+
+        with ensure_clean_store(self.path) as store:
+            store.append('df', df, data_columns=['b'])
+            store.append('df', df)
+            result = store.select('df')
+            assert_frame_equal(pd.concat([df, df], 0), result)
 
 def _test_sort(obj):
     if isinstance(obj, DataFrame):

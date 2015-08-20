@@ -549,7 +549,7 @@ class TestGroupBy(tm.TestCase):
             return dataf["val2"]  - dataf["val2"].mean()
 
         result = df1.groupby("val1", squeeze=True).apply(func)
-        tm.assert_isinstance(result,Series)
+        tm.assertIsInstance(result,Series)
 
         df2 = DataFrame([{"val1": 1, "val2" : 20}, {"val1":1, "val2": 19},
                          {"val1":1, "val2": 27}, {"val1":1, "val2": 12}])
@@ -557,12 +557,12 @@ class TestGroupBy(tm.TestCase):
             return dataf["val2"]  - dataf["val2"].mean()
 
         result = df2.groupby("val1", squeeze=True).apply(func)
-        tm.assert_isinstance(result,Series)
+        tm.assertIsInstance(result,Series)
 
         # GH3596, return a consistent type (regression in 0.11 from 0.10.1)
         df = DataFrame([[1,1],[1,1]],columns=['X','Y'])
         result = df.groupby('X',squeeze=False).count()
-        tm.assert_isinstance(result,DataFrame)
+        tm.assertIsInstance(result,DataFrame)
 
         # GH5592
         # inconcistent return type
@@ -601,7 +601,7 @@ class TestGroupBy(tm.TestCase):
             return grp.iloc[0]
         result = df.groupby('A').apply(f)[['C']]
         e = df.groupby('A').first()[['C']]
-        e.loc['Pony'] = np.nan
+        e.loc['Pony'] = pd.NaT
         assert_frame_equal(result,e)
 
         # scalar outputs
@@ -670,7 +670,7 @@ class TestGroupBy(tm.TestCase):
         prng = period_range('2012-1-1', freq='M', periods=3)
         df = DataFrame(np.random.randn(3, 2), index=prng)
         rs = df.groupby(level=0).sum()
-        tm.assert_isinstance(rs.index, PeriodIndex)
+        tm.assertIsInstance(rs.index, PeriodIndex)
 
         # GH 3579
         index = period_range(start='1999-01', periods=5, freq='M')
@@ -912,7 +912,7 @@ class TestGroupBy(tm.TestCase):
         def aggfun(ser):
             return ser.size
         result = DataFrame().groupby(self.df.A).agg(aggfun)
-        tm.assert_isinstance(result, DataFrame)
+        tm.assertIsInstance(result, DataFrame)
         self.assertEqual(len(result), 0)
 
     def test_agg_item_by_item_raise_typeerror(self):
@@ -1642,22 +1642,22 @@ class TestGroupBy(tm.TestCase):
 
         result = grouped['C'].agg(np.sum)
         expected = grouped.agg(np.sum).ix[:, ['A', 'C']]
-        tm.assert_isinstance(result, DataFrame)
+        tm.assertIsInstance(result, DataFrame)
         assert_frame_equal(result, expected)
 
         result2 = grouped2['C'].agg(np.sum)
         expected2 = grouped2.agg(np.sum).ix[:, ['A', 'B', 'C']]
-        tm.assert_isinstance(result2, DataFrame)
+        tm.assertIsInstance(result2, DataFrame)
         assert_frame_equal(result2, expected2)
 
         result = grouped['C'].sum()
         expected = grouped.sum().ix[:, ['A', 'C']]
-        tm.assert_isinstance(result, DataFrame)
+        tm.assertIsInstance(result, DataFrame)
         assert_frame_equal(result, expected)
 
         result2 = grouped2['C'].sum()
         expected2 = grouped2.sum().ix[:, ['A', 'B', 'C']]
-        tm.assert_isinstance(result2, DataFrame)
+        tm.assertIsInstance(result2, DataFrame)
         assert_frame_equal(result2, expected2)
 
         # corner case
@@ -2023,7 +2023,7 @@ class TestGroupBy(tm.TestCase):
 
         keys = [np.array([0, 0, 1]), np.array([0, 0, 1])]
         agged = df.groupby(keys).agg(np.mean)
-        tm.assert_isinstance(agged.columns, MultiIndex)
+        tm.assertIsInstance(agged.columns, MultiIndex)
 
         def aggfun(ser):
             if ser.name == ('foo', 'one'):
@@ -2181,7 +2181,7 @@ class TestGroupBy(tm.TestCase):
         grouped = ts.groupby(lambda x: x.month)
         result = grouped.apply(f)
 
-        tm.assert_isinstance(result, DataFrame)
+        tm.assertIsInstance(result, DataFrame)
         self.assertTrue(result.index.equals(ts.index))
 
     def test_apply_series_yield_constant(self):
@@ -2779,11 +2779,11 @@ class TestGroupBy(tm.TestCase):
 
         result = grouped.agg(convert_fast)
         self.assertEqual(result.dtype, np.object_)
-        tm.assert_isinstance(result[0], Decimal)
+        tm.assertIsInstance(result[0], Decimal)
 
         result = grouped.agg(convert_force_pure)
         self.assertEqual(result.dtype, np.object_)
-        tm.assert_isinstance(result[0], Decimal)
+        tm.assertIsInstance(result[0], Decimal)
 
     def test_fast_apply(self):
         # make sure that fast apply is correctly called
@@ -3225,7 +3225,7 @@ class TestGroupBy(tm.TestCase):
         result = self.df.groupby('A')['C'].apply(f)
         expected = self.df.groupby('A')['C'].apply(g)
 
-        tm.assert_isinstance(result, Series)
+        tm.assertIsInstance(result, Series)
         assert_series_equal(result, expected)
 
     def test_getitem_list_of_columns(self):
@@ -3413,7 +3413,8 @@ class TestGroupBy(tm.TestCase):
 
         col = 'range'
         assert_frame_equal(result_sort, df.groupby(col, sort=True).first())
-        assert_frame_equal(result_nosort, df.groupby(col, sort=False).first())
+        # when categories is ordered, group is ordered by category's order
+        assert_frame_equal(result_sort, df.groupby(col, sort=False).first())
 
         df['range'] = Categorical(df['range'],ordered=False)
         index = Index(['(0, 2.5]', '(2.5, 5]', '(5, 7.5]', '(7.5, 10]'], dtype='object')
@@ -3428,6 +3429,55 @@ class TestGroupBy(tm.TestCase):
         col = 'range'
 
         #### this is an unordered categorical, but we allow this ####
+        assert_frame_equal(result_sort, df.groupby(col, sort=True).first())
+        assert_frame_equal(result_nosort, df.groupby(col, sort=False).first())
+
+    def test_groupby_sort_categorical_datetimelike(self):
+        # GH10505
+
+        # use same data as test_groupby_sort_categorical, which category is
+        # corresponding to datetime.month
+        df = DataFrame({'dt': [datetime(2011, 7, 1), datetime(2011, 7, 1),
+                               datetime(2011, 2, 1), datetime(2011, 5, 1),
+                               datetime(2011, 2, 1), datetime(2011, 1, 1),
+                               datetime(2011, 5, 1)],
+                        'foo': [10, 8, 5, 6, 4, 1, 7],
+                        'bar': [10, 20, 30, 40, 50, 60, 70]},
+                       columns=['dt', 'foo', 'bar'])
+
+        # ordered=True
+        df['dt'] = Categorical(df['dt'], ordered=True)
+        index = [datetime(2011, 1, 1), datetime(2011, 2, 1),
+                 datetime(2011, 5, 1), datetime(2011, 7, 1)]
+        result_sort = DataFrame([[1, 60], [5, 30], [6, 40], [10, 10]], columns=['foo', 'bar'])
+        result_sort.index = CategoricalIndex(index, name='dt', ordered=True)
+
+        index = [datetime(2011, 7, 1), datetime(2011, 2, 1),
+                 datetime(2011, 5, 1), datetime(2011, 1, 1)]
+        result_nosort = DataFrame([[10, 10], [5, 30], [6, 40], [1, 60]],
+                                  columns=['foo', 'bar'])
+        result_nosort.index = CategoricalIndex(index, categories=index,
+                                               name='dt', ordered=True)
+
+        col = 'dt'
+        assert_frame_equal(result_sort, df.groupby(col, sort=True).first())
+        # when categories is ordered, group is ordered by category's order
+        assert_frame_equal(result_sort, df.groupby(col, sort=False).first())
+
+        # ordered = False
+        df['dt'] = Categorical(df['dt'], ordered=False)
+        index = [datetime(2011, 1, 1), datetime(2011, 2, 1),
+                 datetime(2011, 5, 1), datetime(2011, 7, 1)]
+        result_sort = DataFrame([[1, 60], [5, 30], [6, 40], [10, 10]], columns=['foo', 'bar'])
+        result_sort.index = CategoricalIndex(index, name='dt')
+
+        index = [datetime(2011, 7, 1), datetime(2011, 2, 1),
+                 datetime(2011, 5, 1), datetime(2011, 1, 1)]
+        result_nosort = DataFrame([[10, 10], [5, 30], [6, 40], [1, 60]],
+                                  columns=['foo', 'bar'])
+        result_nosort.index = CategoricalIndex(index, categories=index, name='dt')
+
+        col = 'dt'
         assert_frame_equal(result_sort, df.groupby(col, sort=True).first())
         assert_frame_equal(result_nosort, df.groupby(col, sort=False).first())
 
@@ -3453,7 +3503,7 @@ class TestGroupBy(tm.TestCase):
         levels = ['foo', 'bar', 'baz', 'qux']
         codes = np.random.randint(0, 4, size=100)
 
-        cats = Categorical.from_codes(codes, levels, name='myfactor', ordered=True)
+        cats = Categorical.from_codes(codes, levels, ordered=True)
 
         data = DataFrame(np.random.randn(100, 4))
 
@@ -3461,10 +3511,8 @@ class TestGroupBy(tm.TestCase):
 
         expected = data.groupby(np.asarray(cats)).mean()
         expected = expected.reindex(levels)
-        expected.index.name = 'myfactor'
 
         assert_frame_equal(result, expected)
-        self.assertEqual(result.index.name, cats.name)
 
         grouped = data.groupby(cats)
         desc_result = grouped.describe()
@@ -3473,35 +3521,52 @@ class TestGroupBy(tm.TestCase):
         ord_labels = np.asarray(cats).take(idx)
         ord_data = data.take(idx)
         expected = ord_data.groupby(ord_labels, sort=False).describe()
-        expected.index.names = ['myfactor', None]
+        expected.index.names = [None, None]
         assert_frame_equal(desc_result, expected)
+
+        # GH 10460
+        expc = Categorical.from_codes(np.arange(4).repeat(8), levels, ordered=True)
+        exp = CategoricalIndex(expc)
+        self.assert_index_equal(desc_result.index.get_level_values(0), exp)
+        exp = Index(['count', 'mean', 'std', 'min', '25%', '50%', '75%', 'max'] * 4)
+        self.assert_index_equal(desc_result.index.get_level_values(1), exp)
 
     def test_groupby_datetime_categorical(self):
         # GH9049: ensure backward compatibility
         levels = pd.date_range('2014-01-01', periods=4)
         codes = np.random.randint(0, 4, size=100)
 
-        cats = Categorical.from_codes(codes, levels, name='myfactor', ordered=True)
+        cats = Categorical.from_codes(codes, levels, ordered=True)
 
         data = DataFrame(np.random.randn(100, 4))
         result = data.groupby(cats).mean()
 
         expected = data.groupby(np.asarray(cats)).mean()
         expected = expected.reindex(levels)
-        expected.index = CategoricalIndex(expected.index,categories=expected.index,name='myfactor',ordered=True)
+        expected.index = CategoricalIndex(expected.index, categories=expected.index,
+                                          ordered=True)
 
         assert_frame_equal(result, expected)
-        self.assertEqual(result.index.name, cats.name)
 
         grouped = data.groupby(cats)
         desc_result = grouped.describe()
 
         idx = cats.codes.argsort()
-        ord_labels = np.asarray(cats).take(idx)
+        ord_labels = cats.take_nd(idx)
         ord_data = data.take(idx)
-        expected = ord_data.groupby(ord_labels, sort=False).describe()
-        expected.index.names = ['myfactor', None]
+        expected = ord_data.groupby(ord_labels).describe()
+        expected.index.names = [None, None]
         assert_frame_equal(desc_result, expected)
+        tm.assert_index_equal(desc_result.index, expected.index)
+        tm.assert_index_equal(desc_result.index.get_level_values(0), expected.index.get_level_values(0))
+
+        # GH 10460
+        expc = Categorical.from_codes(np.arange(4).repeat(8), levels, ordered=True)
+        exp = CategoricalIndex(expc)
+        self.assert_index_equal(desc_result.index.get_level_values(0), exp)
+        exp = Index(['count', 'mean', 'std', 'min', '25%', '50%', '75%', 'max'] * 4)
+        self.assert_index_equal(desc_result.index.get_level_values(1), exp)
+
 
     def test_groupby_categorical_index(self):
 
@@ -3534,7 +3599,7 @@ class TestGroupBy(tm.TestCase):
 
         # it works!
         groups = grouped.groups
-        tm.assert_isinstance(list(groups.keys())[0], datetime)
+        tm.assertIsInstance(list(groups.keys())[0], datetime)
 
     def test_groupby_groups_datetimeindex_tz(self):
         # GH 3950
@@ -3670,7 +3735,7 @@ class TestGroupBy(tm.TestCase):
         result = data.groupby("b").mean()
         result = result["a"].values
         exp = np.array([1,2,4,np.nan])
-        self.assert_numpy_array_equivalent(result, exp)
+        self.assert_numpy_array_equal(result, exp)
 
     def test_groupby_non_arithmetic_agg_types(self):
         # GH9311, GH6620
@@ -4412,6 +4477,32 @@ class TestGroupBy(tm.TestCase):
         expected = s.iloc[[1, 2, 4, 7]]
         assert_series_equal(actual, expected)
 
+    def test_filter_multiple_timestamp(self):
+        # GH 10114
+        df = DataFrame({'A' : np.arange(5,dtype='int64'),
+                        'B' : ['foo','bar','foo','bar','bar'],
+                        'C' : Timestamp('20130101') })
+
+        grouped = df.groupby(['B', 'C'])
+
+        result = grouped['A'].filter(lambda x: True)
+        assert_series_equal(df['A'], result)
+
+        result = grouped['A'].transform(len)
+        expected = Series([2, 3, 2, 3, 3], name='A')
+        assert_series_equal(result, expected)
+
+        result = grouped.filter(lambda x: True)
+        assert_frame_equal(df, result)
+
+        result = grouped.transform('sum')
+        expected = DataFrame({'A' : [2, 8, 2, 8, 8]})
+        assert_frame_equal(result, expected)
+
+        result = grouped.transform(len)
+        expected = DataFrame({'A' : [2, 3, 2, 3, 3]})
+        assert_frame_equal(result, expected)
+
     def test_filter_and_transform_with_non_unique_int_index(self):
         # GH4620
         index = [1, 1, 1, 2, 1, 1, 0, 1]
@@ -4793,7 +4884,7 @@ class TestGroupBy(tm.TestCase):
             'fillna',
             'mad',
             'any', 'all',
-            'irow', 'take',
+            'take',
             'idxmax', 'idxmin',
             'shift', 'tshift',
             'ffill', 'bfill',
@@ -4814,7 +4905,7 @@ class TestGroupBy(tm.TestCase):
             'fillna',
             'mad',
             'any', 'all',
-            'irow', 'take',
+            'take',
             'idxmax', 'idxmin',
             'shift', 'tshift',
             'ffill', 'bfill',
@@ -4838,6 +4929,20 @@ class TestGroupBy(tm.TestCase):
     AGG_FUNCTIONS = ['sum', 'prod', 'min', 'max', 'median', 'mean', 'skew',
                      'mad', 'std', 'var', 'sem']
     AGG_FUNCTIONS_WITH_SKIPNA = ['skew', 'mad']
+
+    def test_groupby_whitelist_deprecations(self):
+        from string import ascii_lowercase
+        letters = np.array(list(ascii_lowercase))
+        N = 10
+        random_letters = letters.take(np.random.randint(0, 26, N))
+        df = DataFrame({'floats': N / 10 * Series(np.random.random(N)),
+                        'letters': Series(random_letters)})
+
+        # 10711 deprecated
+        with tm.assert_produces_warning(FutureWarning):
+            df.groupby('letters').irow(0)
+        with tm.assert_produces_warning(FutureWarning):
+            df.groupby('letters').floats.irow(0)
 
     def test_regression_whitelist_methods(self) :
 
@@ -4909,16 +5014,17 @@ class TestGroupBy(tm.TestCase):
         grp = self.mframe.groupby(level='second')
         results = set([v for v in dir(grp) if not v.startswith('_')])
         expected = set(['A','B','C',
-            'agg','aggregate','apply','boxplot','filter','first','get_group',
-            'groups','hist','indices','last','max','mean','median',
-            'min','name','ngroups','nth','ohlc','plot', 'prod',
-            'size', 'std', 'sum', 'transform', 'var', 'sem', 'count', 'head',
-            'describe', 'cummax', 'quantile', 'rank', 'cumprod', 'tail',
-            'resample', 'cummin', 'fillna', 'cumsum', 'cumcount',
-            'all', 'shift', 'skew', 'bfill', 'irow', 'ffill',
-            'take', 'tshift', 'pct_change', 'any', 'mad', 'corr', 'corrwith',
-            'cov', 'dtypes', 'diff', 'idxmax', 'idxmin'
-        ])
+                        'agg','aggregate','apply','boxplot','filter','first','get_group',
+                        'groups','hist','indices','last','max','mean','median',
+                        'min','name','ngroups','nth','ohlc','plot', 'prod',
+                        'size', 'std', 'sum', 'transform', 'var', 'sem', 'count', 'head',
+                        'irow',
+                        'describe', 'cummax', 'quantile', 'rank', 'cumprod', 'tail',
+                        'resample', 'cummin', 'fillna', 'cumsum', 'cumcount',
+                        'all', 'shift', 'skew', 'bfill', 'ffill',
+                        'take', 'tshift', 'pct_change', 'any', 'mad', 'corr', 'corrwith',
+                        'cov', 'dtypes', 'diff', 'idxmax', 'idxmin'
+                        ])
         self.assertEqual(results, expected)
 
     def test_lexsort_indexer(self):

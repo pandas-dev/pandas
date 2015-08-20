@@ -1074,7 +1074,8 @@ cdef class TextReader:
                                           na_filter, na_hashset)
             if user_dtype and na_count is not None:
                 if na_count > 0:
-                    raise Exception('Integer column has NA values')
+                    raise Exception("Integer column has NA values in "
+                                    "column {column}".format(column=i))
 
             if result is not None and dtype[1:] != 'i8':
                 result = result.astype(dtype)

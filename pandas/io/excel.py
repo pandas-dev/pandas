@@ -9,11 +9,13 @@ import datetime
 import abc
 import numpy as np
 
+from pandas.core.frame import DataFrame
 from pandas.io.parsers import TextParser
 from pandas.io.common import _is_url, _urlopen
 from pandas.tseries.period import Period
 from pandas import json
-from pandas.compat import map, zip, reduce, range, lrange, u, add_metaclass
+from pandas.compat import (map, zip, reduce, range, lrange, u, add_metaclass,
+                           BytesIO, string_types)
 from pandas.core import config
 from pandas.core.common import pprint_thing
 import pandas.compat as compat
@@ -417,10 +419,13 @@ class ExcelFile(object):
                     if parse_cols is None or should_parse[j]:
                         row.append(_parse_cell(value,typ))
                 data.append(row)
-    
+
+            if sheet.nrows == 0:
+                return DataFrame()
+
             if header is not None:
                 data[header] = _trim_excel_header(data[header])
-    
+
             parser = TextParser(data, header=header, index_col=index_col,
                                 has_index_names=has_index_names,
                                 na_values=na_values,
@@ -474,6 +479,8 @@ def _conv_value(val):
         val = bool(val)
     elif isinstance(val, Period):
         val = "%s" % val
+    elif com.is_list_like(val):
+        val = str(val)
 
     return val
 
@@ -497,6 +504,11 @@ class ExcelWriter(object):
     datetime_format : string, default None
         Format string for datetime objects written into Excel files
         (e.g. 'YYYY-MM-DD HH:MM:SS')
+
+    Notes
+    -----
+    For compatibility with CSV writers, ExcelWriter serializes lists
+    and dicts to strings before writing.
     """
     # Defining an ExcelWriter implementation (see abstract methods for more...)
 
@@ -521,9 +533,13 @@ class ExcelWriter(object):
     # ExcelWriter.
     def __new__(cls, path, engine=None, **kwargs):
         # only switch class if generic(ExcelWriter)
-        if cls == ExcelWriter:
+        if issubclass(cls, ExcelWriter):
             if engine is None:
-                ext = os.path.splitext(path)[-1][1:]
+                if isinstance(path, string_types):
+                    ext = os.path.splitext(path)[-1][1:]
+                else:
+                    ext = 'xlsx'
+
                 try:
                     engine = config.get_option('io.excel.%s.writer' % ext)
                 except KeyError:
@@ -574,7 +590,11 @@ class ExcelWriter(object):
     def __init__(self, path, engine=None,
                  date_format=None, datetime_format=None, **engine_kwargs):
         # validate that this engine can handle the extension
-        ext = os.path.splitext(path)[-1]
+        if isinstance(path, string_types):
+            ext = os.path.splitext(path)[-1]
+        else:
+            ext = 'xls' if engine == 'xlwt' else 'xlsx'
+
         self.check_extension(ext)
 
         self.path = path
@@ -1159,7 +1179,7 @@ class _XlwtWriter(ExcelWriter):
     def __init__(self, path, engine=None, encoding=None, **engine_kwargs):
         # Use the xlwt module as the Excel writer.
         import xlwt
-
+        engine_kwargs['engine'] = engine
         super(_XlwtWriter, self).__init__(path, **engine_kwargs)
 
         if encoding is None:
@@ -1311,6 +1331,8 @@ class _XlsxWriter(ExcelWriter):
         style_dict = {}
 
         for cell in cells:
+            val = _conv_value(cell.val)
+
             num_format_str = None
             if isinstance(cell.val, datetime.datetime):
                 num_format_str = self.datetime_format
@@ -1336,7 +1358,7 @@ class _XlsxWriter(ExcelWriter):
             else:
                 wks.write(startrow + cell.row,
                           startcol + cell.col,
-                          cell.val, style)
+                          val, style)
 
     def _convert_to_style(self, style_dict, num_format_str=None):
         """

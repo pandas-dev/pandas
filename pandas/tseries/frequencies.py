@@ -32,6 +32,8 @@ class FreqGroup(object):
 
 class Resolution(object):
 
+    # defined in period.pyx
+    # note that these are different from freq codes
     RESO_US = period.US_RESO
     RESO_MS = period.MS_RESO
     RESO_SEC = period.S_RESO
@@ -65,30 +67,104 @@ class Resolution(object):
 
     @classmethod
     def get_str(cls, reso):
+        """
+        Return resolution str against resolution code.
+
+        Example
+        -------
+        >>> Resolution.get_str(Resolution.RESO_SEC)
+        'second'
+        """
         return cls._reso_str_map.get(reso, 'day')
 
     @classmethod
     def get_reso(cls, resostr):
+        """
+        Return resolution str against resolution code.
+
+        Example
+        -------
+        >>> Resolution.get_reso('second')
+        2
+
+        >>> Resolution.get_reso('second') == Resolution.RESO_SEC
+        True
+        """
         return cls._str_reso_map.get(resostr, cls.RESO_DAY)
 
     @classmethod
+    def get_freq_group(cls, resostr):
+        """
+        Return frequency str against resolution str.
+
+        Example
+        -------
+        >>> f.Resolution.get_freq_group('day')
+        4000
+        """
+        return get_freq_group(cls.get_freq(resostr))
+
+    @classmethod
     def get_freq(cls, resostr):
+        """
+        Return frequency str against resolution str.
+
+        Example
+        -------
+        >>> f.Resolution.get_freq('day')
+        'D'
+        """
         return cls._reso_freq_map[resostr]
 
     @classmethod
     def get_str_from_freq(cls, freq):
+        """
+        Return resolution str against frequency str.
+
+        Example
+        -------
+        >>> Resolution.get_str_from_freq('H')
+        'hour'
+        """
         return cls._freq_reso_map.get(freq, 'day')
 
     @classmethod
     def get_reso_from_freq(cls, freq):
+        """
+        Return resolution code against frequency str.
+
+        Example
+        -------
+        >>> Resolution.get_reso_from_freq('H')
+        4
+
+        >>> Resolution.get_reso_from_freq('H') == Resolution.RESO_HR
+        True
+        """
         return cls.get_reso(cls.get_str_from_freq(freq))
 
 
-def get_reso_string(reso):
-    return Resolution.get_str(reso)
-
-
 def get_to_timestamp_base(base):
+    """
+    Return frequency code group used for base of to_timestamp against
+    frequency code.
+
+    Example
+    -------
+    # Return day freq code against longer freq than day
+    >>> get_to_timestamp_base(get_freq_code('D')[0])
+    6000
+    >>> get_to_timestamp_base(get_freq_code('W')[0])
+    6000
+    >>> get_to_timestamp_base(get_freq_code('M')[0])
+    6000
+
+    # Return second freq code against hour between second
+    >>> get_to_timestamp_base(get_freq_code('H')[0])
+    9000
+    >>> get_to_timestamp_base(get_freq_code('S')[0])
+    9000
+    """
     if base < FreqGroup.FR_BUS:
         return FreqGroup.FR_DAY
     if FreqGroup.FR_HR <= base <= FreqGroup.FR_SEC:
@@ -97,6 +173,17 @@ def get_to_timestamp_base(base):
 
 
 def get_freq_group(freq):
+    """
+    Return frequency code group of given frequency str.
+
+    Example
+    -------
+    >>> get_freq_group('W-MON')
+    4000
+
+    >>> get_freq_group('W-FRI')
+    4000
+    """
     if isinstance(freq, compat.string_types):
         base, mult = get_freq_code(freq)
         freq = base
@@ -104,6 +191,18 @@ def get_freq_group(freq):
 
 
 def get_freq(freq):
+    """
+    Return frequency code of given frequency str.
+    If input is not string, return input as it is.
+
+    Example
+    -------
+    >>> get_freq('A')
+    1000
+
+    >>> get_freq('3A')
+    1000
+    """
     if isinstance(freq, compat.string_types):
         base, mult = get_freq_code(freq)
         freq = base
@@ -112,15 +211,29 @@ def get_freq(freq):
 
 def get_freq_code(freqstr):
     """
+    Return freq str or tuple to freq code and stride (mult)
 
     Parameters
     ----------
+    freqstr : str or tuple
 
     Returns
     -------
+    return : tuple of base frequency code and stride (mult)
+
+    Example
+    -------
+    >>> get_freq_code('3D')
+    (6000, 3)
+
+    >>> get_freq_code('D')
+    (6000, 1)
+
+    >>> get_freq_code(('D', 3))
+    (6000, 3)
     """
     if isinstance(freqstr, DateOffset):
-        freqstr = (get_offset_name(freqstr), freqstr.n)
+        freqstr = (freqstr.rule_code, freqstr.n)
 
     if isinstance(freqstr, tuple):
         if (com.is_integer(freqstr[0]) and
@@ -201,14 +314,12 @@ _offset_to_period_map = {
 }
 
 need_suffix = ['QS', 'BQ', 'BQS', 'AS', 'BA', 'BAS']
-_months = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP',
-           'OCT', 'NOV', 'DEC']
 for __prefix in need_suffix:
-    for _m in _months:
+    for _m in tslib._MONTHS:
         _offset_to_period_map['%s-%s' % (__prefix, _m)] = \
             _offset_to_period_map[__prefix]
 for __prefix in ['A', 'Q']:
-    for _m in _months:
+    for _m in tslib._MONTHS:
         _alias = '%s-%s' % (__prefix, _m)
         _offset_to_period_map[_alias] = _alias
 
@@ -385,6 +496,7 @@ def get_base_alias(freqstr):
     Returns the base frequency alias, e.g., '5D' -> 'D'
     """
     return _base_and_stride(freqstr)[0]
+
 
 _dont_uppercase = set(('MS', 'ms'))
 
@@ -637,14 +749,6 @@ def _period_alias_dictionary():
     return alias_dict
 
 
-def _infer_period_group(freqstr):
-    return _period_group(Resolution._reso_freq_map[freqstr])
-
-
-def _period_group(freqstr):
-    base, mult = get_freq_code(freqstr)
-    return base // 1000 * 1000
-
 _period_alias_dict = _period_alias_dictionary()
 
 
@@ -671,7 +775,7 @@ def _period_str_to_code(freqstr):
 def infer_freq(index, warn=True):
     """
     Infer the most likely frequency given the input index. If the frequency is
-    uncertain, a warning will be printed. 
+    uncertain, a warning will be printed.
 
     Parameters
     ----------
@@ -1082,12 +1186,7 @@ def is_superperiod(source, target):
         return target in ['N']
 
 
-def _get_rule_month(source, default='DEC'):
-    source = source.upper()
-    if '-' not in source:
-        return default
-    else:
-        return source.split('-')[1]
+_get_rule_month = tslib._get_rule_month
 
 
 def _is_annual(rule):
@@ -1118,15 +1217,10 @@ def _is_weekly(rule):
 
 DAYS = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN']
 
-MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL',
-          'AUG', 'SEP', 'OCT', 'NOV', 'DEC']
-
-_month_numbers = dict((k, i) for i, k in enumerate(MONTHS))
-
-
+MONTHS = tslib._MONTHS
+_month_numbers = tslib._MONTH_NUMBERS
+_month_aliases = tslib._MONTH_ALIASES
 _weekday_rule_aliases = dict((k, v) for k, v in enumerate(DAYS))
-_month_aliases = dict((k + 1, v) for k, v in enumerate(MONTHS))
-
 
 def _is_multiple(us, mult):
     return us % mult == 0

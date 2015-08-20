@@ -11,7 +11,7 @@ randn = np.random.randn
 
 from pandas import (Index, Series, TimeSeries, DataFrame,
                     isnull, date_range, Timestamp, Period, DatetimeIndex,
-                    Int64Index, to_datetime, bdate_range, Float64Index, TimedeltaIndex)
+                    Int64Index, to_datetime, bdate_range, Float64Index, TimedeltaIndex, NaT)
 
 import pandas.core.datetools as datetools
 import pandas.tseries.offsets as offsets
@@ -28,10 +28,10 @@ import pandas.tslib as tslib
 
 import pandas.index as _index
 
-from pandas.compat import range, long, StringIO, lrange, lmap, zip, product, PY3_2
+from pandas.compat import range, long, StringIO, lrange, lmap, zip, product
 from numpy.random import rand
-from numpy.testing import assert_array_equal
 from pandas.util.testing import assert_frame_equal
+from pandas.io.common import PerformanceWarning
 import pandas.compat as compat
 import pandas.core.common as com
 from pandas import concat
@@ -45,14 +45,6 @@ def _skip_if_has_locale():
     lang, _ = locale.getlocale()
     if lang is not None:
         raise nose.SkipTest("Specific locale is set {0}".format(lang))
-
-def _skip_if_windows_python_3():
-    if sys.version_info > (3,) and sys.platform == 'win32':
-        raise nose.SkipTest("not used on python 3/win32")
-
-def _skip_if_not_windows_python_3():
-    if sys.version_info < (3,) or sys.platform != 'win32':
-        raise nose.SkipTest("only run on python 3/win32")
 
 
 class TestTimeSeriesDuplicates(tm.TestCase):
@@ -68,8 +60,8 @@ class TestTimeSeriesDuplicates(tm.TestCase):
         self.dups = Series(np.random.randn(len(dates)), index=dates)
 
     def test_constructor(self):
-        tm.assert_isinstance(self.dups, TimeSeries)
-        tm.assert_isinstance(self.dups.index, DatetimeIndex)
+        tm.assertIsInstance(self.dups, TimeSeries)
+        tm.assertIsInstance(self.dups.index, DatetimeIndex)
 
     def test_is_unique_monotonic(self):
         self.assertFalse(self.dups.index.is_unique)
@@ -369,13 +361,13 @@ class TestTimeSeries(tm.TestCase):
         rng = date_range('20090415', '20090519', freq='B')
         s = Series(rng)
 
-        tm.assert_isinstance(s[5], Timestamp)
+        tm.assertIsInstance(s[5], Timestamp)
 
         rng = date_range('20090415', '20090519', freq='B')
         s = Series(rng, index=rng)
-        tm.assert_isinstance(s[5], Timestamp)
+        tm.assertIsInstance(s[5], Timestamp)
 
-        tm.assert_isinstance(s.iget_value(5), Timestamp)
+        tm.assertIsInstance(s.iat[5], Timestamp)
 
     def test_date_range_ambiguous_arguments(self):
         # #2538
@@ -417,7 +409,7 @@ class TestTimeSeries(tm.TestCase):
         self.assertEqual(stamp.tzinfo, dtval.tzinfo)
 
     def test_timestamp_to_datetime_explicit_dateutil(self):
-        _skip_if_windows_python_3()
+        tm._skip_if_windows_python_3()
         tm._skip_if_no_dateutil()
         from pandas.tslib import _dateutil_gettz as gettz
         rng = date_range('20090415', '20090519',
@@ -433,9 +425,9 @@ class TestTimeSeries(tm.TestCase):
 
         def _check_rng(rng):
             converted = rng.to_pydatetime()
-            tm.assert_isinstance(converted, np.ndarray)
+            tm.assertIsInstance(converted, np.ndarray)
             for x, stamp in zip(converted, rng):
-                tm.assert_isinstance(x, datetime)
+                tm.assertIsInstance(x, datetime)
                 self.assertEqual(x, stamp.to_pydatetime())
                 self.assertEqual(x.tzinfo, stamp.tzinfo)
 
@@ -453,9 +445,9 @@ class TestTimeSeries(tm.TestCase):
 
         def _check_rng(rng):
             converted = rng.to_pydatetime()
-            tm.assert_isinstance(converted, np.ndarray)
+            tm.assertIsInstance(converted, np.ndarray)
             for x, stamp in zip(converted, rng):
-                tm.assert_isinstance(x, datetime)
+                tm.assertIsInstance(x, datetime)
                 self.assertEqual(x, stamp.to_pydatetime())
                 self.assertEqual(x.tzinfo, stamp.tzinfo)
 
@@ -473,9 +465,9 @@ class TestTimeSeries(tm.TestCase):
 
         def _check_rng(rng):
             converted = rng.to_pydatetime()
-            tm.assert_isinstance(converted, np.ndarray)
+            tm.assertIsInstance(converted, np.ndarray)
             for x, stamp in zip(converted, rng):
-                tm.assert_isinstance(x, datetime)
+                tm.assertIsInstance(x, datetime)
                 self.assertEqual(x, stamp.to_pydatetime())
                 self.assertEqual(x.tzinfo, stamp.tzinfo)
 
@@ -856,12 +848,16 @@ class TestTimeSeries(tm.TestCase):
         assert_almost_equal(result, expected)
 
         result2 = to_datetime(strings)
-        tm.assert_isinstance(result2, DatetimeIndex)
-        self.assert_numpy_array_equal(result, result2)
+        tm.assertIsInstance(result2, DatetimeIndex)
+        tm.assert_numpy_array_equal(result, result2)
 
         malformed = np.array(['1/100/2000', np.nan], dtype=object)
-        result = to_datetime(malformed)
-        self.assert_numpy_array_equal(result, malformed)
+
+        # GH 10636, default is now 'raise'
+        self.assertRaises(ValueError, lambda : to_datetime(malformed, errors='raise'))
+
+        result = to_datetime(malformed, errors='ignore')
+        tm.assert_numpy_array_equal(result, malformed)
 
         self.assertRaises(ValueError, to_datetime, malformed,
                           errors='raise')
@@ -927,11 +923,11 @@ class TestTimeSeries(tm.TestCase):
         assert_series_equal(result, expected)
 
         td = pd.Series(['May 04', 'Jun 02', ''], index=[1,2,3])
-        self.assertRaises(ValueError, lambda : pd.to_datetime(td,format='%b %y'))
-        self.assertRaises(ValueError, lambda : td.apply(pd.to_datetime, format='%b %y'))
-        expected = pd.to_datetime(td, format='%b %y', coerce=True)
+        self.assertRaises(ValueError, lambda : pd.to_datetime(td,format='%b %y', errors='raise'))
+        self.assertRaises(ValueError, lambda : td.apply(pd.to_datetime, format='%b %y', errors='raise'))
+        expected = pd.to_datetime(td, format='%b %y', errors='coerce')
 
-        result = td.apply(lambda x: pd.to_datetime(x, format='%b %y', coerce=True))
+        result = td.apply(lambda x: pd.to_datetime(x, format='%b %y', errors='coerce'))
         assert_series_equal(result, expected)
 
     def test_nat_vector_field_access(self):
@@ -944,17 +940,39 @@ class TestTimeSeries(tm.TestCase):
             result = getattr(idx, field)
             expected = [getattr(x, field) if x is not NaT else np.nan
                         for x in idx]
-            self.assert_numpy_array_equivalent(result, np.array(expected))
+            self.assert_numpy_array_equal(result, np.array(expected))
 
     def test_nat_scalar_field_access(self):
         fields = ['year', 'quarter', 'month', 'day', 'hour',
                   'minute', 'second', 'microsecond', 'nanosecond',
-                  'week', 'dayofyear', 'days_in_month']
+                  'week', 'dayofyear', 'days_in_month', 'daysinmonth',
+                  'dayofweek']
         for field in fields:
             result = getattr(NaT, field)
             self.assertTrue(np.isnan(result))
 
-        self.assertTrue(np.isnan(NaT.weekday()))
+    def test_NaT_methods(self):
+        # GH 9513
+        raise_methods = ['astimezone', 'combine', 'ctime', 'dst', 'fromordinal',
+                         'fromtimestamp', 'isocalendar', 'isoformat',
+                         'strftime', 'strptime',
+                         'time', 'timestamp', 'timetuple', 'timetz',
+                         'toordinal', 'tzname', 'utcfromtimestamp',
+                         'utcnow', 'utcoffset', 'utctimetuple']
+        nat_methods = ['date', 'now', 'replace', 'to_datetime', 'today']
+        nan_methods = ['weekday', 'isoweekday']
+
+        for method in raise_methods:
+            if hasattr(NaT, method):
+                self.assertRaises(ValueError, getattr(NaT, method))
+
+        for method in nan_methods:
+            if hasattr(NaT, method):
+                self.assertTrue(np.isnan(getattr(NaT, method)()))
+
+        for method in nat_methods:
+            if hasattr(NaT, method):
+                self.assertIs(getattr(NaT, method)(), NaT)
 
     def test_to_datetime_types(self):
 
@@ -989,7 +1007,7 @@ class TestTimeSeries(tm.TestCase):
     def test_to_datetime_unprocessable_input(self):
         # GH 4928
         self.assert_numpy_array_equal(
-            to_datetime([1, '1']),
+            to_datetime([1, '1'], errors='ignore'),
             np.array([1, '1'], dtype='O')
         )
         self.assertRaises(TypeError, to_datetime, [1, '1'], errors='raise')
@@ -1035,7 +1053,7 @@ class TestTimeSeries(tm.TestCase):
         for dt in oob_dts:
             self.assertRaises(ValueError, pd.to_datetime, dt, errors='raise')
             self.assertRaises(ValueError, tslib.Timestamp, dt)
-            self.assertIs(pd.to_datetime(dt, coerce=True), NaT)
+            self.assertIs(pd.to_datetime(dt, errors='coerce'), NaT)
 
     def test_to_datetime_array_of_dt64s(self):
         dts = [
@@ -1057,12 +1075,11 @@ class TestTimeSeries(tm.TestCase):
             ValueError,
             pd.to_datetime,
             dts_with_oob,
-            coerce=False,
             errors='raise'
         )
 
         self.assert_numpy_array_equal(
-            pd.to_datetime(dts_with_oob, box=False, coerce=True),
+            pd.to_datetime(dts_with_oob, box=False, errors='coerce'),
             np.array(
                     [
                         Timestamp(dts_with_oob[0]).asm8,
@@ -1073,11 +1090,11 @@ class TestTimeSeries(tm.TestCase):
             )
         )
 
-        # With coerce=False and errors='ignore', out of bounds datetime64s
+        # With errors='ignore', out of bounds datetime64s
         # are converted to their .item(), which depending on the version of
         # numpy is either a python datetime.datetime or datetime.date
         self.assert_numpy_array_equal(
-            pd.to_datetime(dts_with_oob, box=False, coerce=False),
+            pd.to_datetime(dts_with_oob, box=False, errors='ignore'),
             np.array(
                     [dt.item() for dt in dts_with_oob],
                     dtype='O'
@@ -1439,6 +1456,25 @@ class TestTimeSeries(tm.TestCase):
 
         rng2 = DatetimeIndex(rng)
         self.assertEqual(rng.freq, rng2.freq)
+
+    def test_dti_constructor_years_only(self):
+        # GH 6961
+        for tz in [None, 'UTC', 'Asia/Tokyo', 'dateutil/US/Pacific']:
+            rng1 = date_range('2014', '2015', freq='M', tz=tz)
+            expected1 = date_range('2014-01-31', '2014-12-31', freq='M', tz=tz)
+
+            rng2 = date_range('2014', '2015', freq='MS', tz=tz)
+            expected2 = date_range('2014-01-01', '2015-01-01', freq='MS', tz=tz)
+
+            rng3 = date_range('2014', '2020', freq='A', tz=tz)
+            expected3 = date_range('2014-12-31', '2019-12-31', freq='A', tz=tz)
+
+            rng4 = date_range('2014', '2020', freq='AS', tz=tz)
+            expected4 = date_range('2014-01-01', '2020-01-01', freq='AS', tz=tz)
+
+            for rng, expected in [(rng1, expected1), (rng2, expected2),
+                                  (rng3, expected3), (rng4, expected4)]:
+                tm.assert_index_equal(rng, expected)
 
     def test_normalize(self):
         rng = date_range('1/1/2000 9:30', periods=10, freq='D')
@@ -2092,7 +2128,7 @@ class TestDatetimeIndex(tm.TestCase):
         idx = Index(['a', 'b', 'c', 'd'])
 
         result = rng.append(idx)
-        tm.assert_isinstance(result[0], Timestamp)
+        tm.assertIsInstance(result[0], Timestamp)
 
         # it works
         rng.join(idx, how='outer')
@@ -2147,6 +2183,15 @@ class TestDatetimeIndex(tm.TestCase):
 
         # NumPy string array
         strings = np.array(['2000-01-01', '2000-01-02', '2000-01-03'])
+        result = DatetimeIndex(strings)
+        expected = DatetimeIndex(strings.astype('O'))
+        self.assertTrue(result.equals(expected))
+
+        from_ints = DatetimeIndex(expected.asi8)
+        self.assertTrue(from_ints.equals(expected))
+
+        # string with NaT
+        strings = np.array(['2000-01-01', '2000-01-02', 'NaT'])
         result = DatetimeIndex(strings)
         expected = DatetimeIndex(strings.astype('O'))
         self.assertTrue(result.equals(expected))
@@ -2225,8 +2270,6 @@ class TestDatetimeIndex(tm.TestCase):
         self.assert_numpy_array_equal(result, exp)
 
     def test_comparisons_nat(self):
-        if PY3_2:
-            raise nose.SkipTest('nat comparisons on 3.2 broken')
 
         fidx1 = pd.Index([1.0, np.nan, 3.0, np.nan, 5.0, 7.0])
         fidx2 = pd.Index([2.0, 3.0, np.nan, np.nan, 6.0, 7.0])
@@ -2323,7 +2366,7 @@ class TestDatetimeIndex(tm.TestCase):
         f = lambda x: x.strftime('%Y%m%d')
         result = rng.map(f)
         exp = [f(x) for x in rng]
-        self.assert_numpy_array_equal(result, exp)
+        tm.assert_almost_equal(result, exp)
 
 
     def test_iteration_preserves_tz(self):
@@ -2359,7 +2402,7 @@ class TestDatetimeIndex(tm.TestCase):
     def test_misc_coverage(self):
         rng = date_range('1/1/2000', periods=5)
         result = rng.groupby(rng.day)
-        tm.assert_isinstance(list(result.values())[0][0], Timestamp)
+        tm.assertIsInstance(list(result.values())[0][0], Timestamp)
 
         idx = DatetimeIndex(['2000-01-03', '2000-01-01', '2000-01-02'])
         self.assertTrue(idx.equals(list(idx)))
@@ -2412,6 +2455,91 @@ class TestDatetimeIndex(tm.TestCase):
         result = index_1 & index_2
         self.assertEqual(len(result), 0)
 
+    # GH 10699
+    def test_datetime64_with_DateOffset(self):
+        for klass, assert_func in zip([Series, DatetimeIndex],
+                                      [self.assert_series_equal,
+                                       tm.assert_index_equal]):
+            s = klass(date_range('2000-01-01', '2000-01-31'))
+            result = s + pd.DateOffset(years=1)
+            result2 = pd.DateOffset(years=1) + s
+            exp = klass(date_range('2001-01-01', '2001-01-31'))
+            assert_func(result, exp)
+            assert_func(result2, exp)
+
+            result = s - pd.DateOffset(years=1)
+            exp = klass(date_range('1999-01-01', '1999-01-31'))
+            assert_func(result, exp)
+
+            s = klass([Timestamp('2000-01-15 00:15:00', tz='US/Central'),
+                       pd.Timestamp('2000-02-15', tz='US/Central')])
+            result = s + pd.offsets.MonthEnd()
+            result2 = pd.offsets.MonthEnd() + s
+            exp = klass([Timestamp('2000-01-31 00:15:00', tz='US/Central'),
+                         Timestamp('2000-02-29', tz='US/Central')])
+            assert_func(result, exp)
+            assert_func(result2, exp)
+
+            # array of offsets - valid for Series only
+            if klass is Series:
+                with tm.assert_produces_warning(PerformanceWarning):
+                    s = klass([Timestamp('2000-1-1'), Timestamp('2000-2-1')])
+                    result = s + Series([pd.offsets.DateOffset(years=1),
+                                        pd.offsets.MonthEnd()])
+                    exp = klass([Timestamp('2001-1-1'), Timestamp('2000-2-29')])
+                    assert_func(result, exp)
+
+                    # same offset
+                    result = s + Series([pd.offsets.DateOffset(years=1),
+                                         pd.offsets.DateOffset(years=1)])
+                    exp = klass([Timestamp('2001-1-1'), Timestamp('2001-2-1')])
+                    assert_func(result, exp)
+
+            s = klass([Timestamp('2000-01-05 00:15:00'), Timestamp('2000-01-31 00:23:00'),
+                       Timestamp('2000-01-01'), Timestamp('2000-02-29'), Timestamp('2000-12-31')])
+
+            #DateOffset relativedelta fastpath
+            relative_kwargs = [('years', 2), ('months', 5), ('days', 3),
+                            ('hours', 5), ('minutes', 10), ('seconds', 2),
+                            ('microseconds', 5)]
+            for i, kwd in enumerate(relative_kwargs):
+                op = pd.DateOffset(**dict([kwd]))
+                assert_func(klass([x + op for x in s]), s + op)
+                assert_func(klass([x - op for x in s]), s - op)
+                op = pd.DateOffset(**dict(relative_kwargs[:i+1]))
+                assert_func(klass([x + op for x in s]), s + op)
+                assert_func(klass([x - op for x in s]), s - op)
+
+
+            # split by fast/slow path to test perf warning
+            off = {False:
+                   ['YearBegin', ('YearBegin', {'month': 5}),
+                    'YearEnd', ('YearEnd', {'month': 5}),
+                    'MonthBegin', 'MonthEnd', 'Week', ('Week', {'weekday': 3}),
+                    'BusinessDay', 'BDay', 'QuarterEnd', 'QuarterBegin'],
+                   PerformanceWarning:
+                   ['CustomBusinessDay', 'CDay', 'CBMonthEnd','CBMonthBegin',
+                    'BMonthBegin', 'BMonthEnd', 'BusinessHour', 'BYearBegin',
+                    'BYearEnd','BQuarterBegin', ('LastWeekOfMonth', {'weekday':2}),
+                    ('FY5253Quarter', {'qtr_with_extra_week': 1, 'startingMonth': 1,
+                                       'weekday': 2, 'variation': 'nearest'}),
+                    ('FY5253',{'weekday': 0, 'startingMonth': 2, 'variation': 'nearest'}),
+                    ('WeekOfMonth', {'weekday': 2, 'week': 2}), 'Easter',
+                    ('DateOffset', {'day': 4}), ('DateOffset', {'month': 5})]}
+
+            for normalize in (True, False):
+                for warning, offsets in off.items():
+                    for do in offsets:
+                        if isinstance(do, tuple):
+                            do, kwargs = do
+                        else:
+                            do = do
+                            kwargs = {}
+                        op = getattr(pd.offsets,do)(5, normalize=normalize, **kwargs)
+                        with tm.assert_produces_warning(warning):
+                            assert_func(klass([x + op for x in s]), s + op)
+                            assert_func(klass([x - op for x in s]), s - op)
+                            assert_func(klass([op + x for x in s]), op + s)
     # def test_add_timedelta64(self):
     #     rng = date_range('1/1/2000', periods=5)
     #     delta = rng.values[3] - rng.values[1]
@@ -2645,7 +2773,7 @@ class TestDatetimeIndex(tm.TestCase):
 
             for taken in [taken1, taken2]:
                 self.assertTrue(taken.equals(expected))
-                tm.assert_isinstance(taken, DatetimeIndex)
+                tm.assertIsInstance(taken, DatetimeIndex)
                 self.assertIsNone(taken.freq)
                 self.assertEqual(taken.tz, expected.tz)
                 self.assertEqual(taken.name, expected.name)
@@ -2664,7 +2792,7 @@ class TestDatetimeIndex(tm.TestCase):
         monthly_group = df.groupby(lambda x: (x.year, x.month))
 
         result = monthly_group.mean()
-        tm.assert_isinstance(result.index[0], tuple)
+        tm.assertIsInstance(result.index[0], tuple)
 
     def test_append_numpy_bug_1681(self):
         # another datetime64 bug
@@ -2718,7 +2846,7 @@ class TestDatetimeIndex(tm.TestCase):
         joined = cols.join(df.columns)
         self.assertEqual(cols.dtype, np.dtype('O'))
         self.assertEqual(cols.dtype, joined.dtype)
-        assert_array_equal(cols.values, joined.values)
+        tm.assert_numpy_array_equal(cols.values, joined.values)
 
     def test_slice_keeps_name(self):
         # GH4226
@@ -3139,11 +3267,11 @@ class TestDatetime64(tm.TestCase):
         empty = Index([])
 
         result = dti.union(empty)
-        tm.assert_isinstance(result, DatetimeIndex)
+        tm.assertIsInstance(result, DatetimeIndex)
         self.assertIs(result, result)
 
         result = dti.join(empty)
-        tm.assert_isinstance(result, DatetimeIndex)
+        tm.assertIsInstance(result, DatetimeIndex)
 
     def test_series_set_value(self):
         # #1561
@@ -3248,6 +3376,12 @@ class TestSeriesDatetime64(tm.TestCase):
 
         series[2] = val
         self.assertTrue(com.isnull(series[2]))
+
+    def test_NaT_cast(self):
+        # GH10747
+        result = Series([np.nan]).astype('M8[ns]')
+        expected = Series([NaT])
+        assert_series_equal(result, expected)
 
     def test_set_none_nan(self):
         self.series[3] = None
@@ -3500,6 +3634,9 @@ class TestTimestamp(tm.TestCase):
         self.assertIs(result, NaT)
 
         result = Timestamp(NaT)
+        self.assertIs(result, NaT)
+
+        result = Timestamp('NaT')
         self.assertIs(result, NaT)
 
     def test_roundtrip(self):
@@ -3809,7 +3946,7 @@ class TestSlicing(tm.TestCase):
         assert_series_equal(result, expected)
 
         result = s['2005-1-1']
-        self.assertEqual(result, s.irow(0))
+        self.assertEqual(result, s.iloc[0])
 
         self.assertRaises(Exception, s.__getitem__, '2004-12-31')
 
@@ -4005,8 +4142,8 @@ class TestSlicing(tm.TestCase):
 
         the_min = rng2.min()
         the_max = rng2.max()
-        tm.assert_isinstance(the_min, Timestamp)
-        tm.assert_isinstance(the_max, Timestamp)
+        tm.assertIsInstance(the_min, Timestamp)
+        tm.assertIsInstance(the_max, Timestamp)
         self.assertEqual(the_min, rng[0])
         self.assertEqual(the_max, rng[-1])
 
@@ -4020,12 +4157,12 @@ class TestSlicing(tm.TestCase):
                         'L': lvls})
 
         result = df.TS.max()
-        exp = Timestamp(df.TS.iget(-1))
+        exp = Timestamp(df.TS.iat[-1])
         self.assertTrue(isinstance(result, Timestamp))
         self.assertEqual(result, exp)
 
         result = df.TS.min()
-        exp = Timestamp(df.TS.iget(0))
+        exp = Timestamp(df.TS.iat[0])
         self.assertTrue(isinstance(result, Timestamp))
         self.assertEqual(result, exp)
 
@@ -4146,12 +4283,26 @@ class TimeConversionFormats(tm.TestCase):
         # coercion
         # GH 7930
         s = Series([20121231, 20141231, 99991231])
-        result = pd.to_datetime(s,format='%Y%m%d')
+        result = pd.to_datetime(s,format='%Y%m%d',errors='ignore')
         expected = np.array([ datetime(2012,12,31), datetime(2014,12,31), datetime(9999,12,31) ], dtype=object)
         self.assert_numpy_array_equal(result, expected)
 
-        result = pd.to_datetime(s,format='%Y%m%d', coerce=True)
+        result = pd.to_datetime(s,format='%Y%m%d', errors='coerce')
         expected = Series(['20121231','20141231','NaT'],dtype='M8[ns]')
+        assert_series_equal(result, expected)
+
+    # GH 10178
+    def test_to_datetime_format_integer(self):
+        s = Series([2000, 2001, 2002])
+        expected = Series([ Timestamp(x) for x in s.apply(str) ])
+
+        result = to_datetime(s,format='%Y')
+        assert_series_equal(result, expected)
+
+        s = Series([200001, 200105, 200206])
+        expected = Series([ Timestamp(x[:4] + '-' + x[4:]) for x in s.apply(str) ])
+
+        result = to_datetime(s,format='%Y%m')
         assert_series_equal(result, expected)
 
     def test_to_datetime_format_microsecond(self):
@@ -4163,17 +4314,19 @@ class TimeConversionFormats(tm.TestCase):
 
     def test_to_datetime_format_time(self):
         data = [
-                ['01/10/2010 15:20', '%m/%d/%Y %H:%M', Timestamp('2010-01-10 15:20')],
-	            ['01/10/2010 05:43', '%m/%d/%Y %I:%M', Timestamp('2010-01-10 05:43')],
-	            ['01/10/2010 13:56:01', '%m/%d/%Y %H:%M:%S', Timestamp('2010-01-10 13:56:01')]#,
-	            #['01/10/2010 08:14 PM', '%m/%d/%Y %I:%M %p', Timestamp('2010-01-10 20:14')],
-	            #['01/10/2010 07:40 AM', '%m/%d/%Y %I:%M %p', Timestamp('2010-01-10 07:40')],
-	            #['01/10/2010 09:12:56 AM', '%m/%d/%Y %I:%M:%S %p', Timestamp('2010-01-10 09:12:56')]
+               ['01/10/2010 15:20', '%m/%d/%Y %H:%M', Timestamp('2010-01-10 15:20')],
+             ['01/10/2010 05:43', '%m/%d/%Y %I:%M', Timestamp('2010-01-10 05:43')],
+             ['01/10/2010 13:56:01', '%m/%d/%Y %H:%M:%S', Timestamp('2010-01-10 13:56:01')]#,
+             #['01/10/2010 08:14 PM', '%m/%d/%Y %I:%M %p', Timestamp('2010-01-10 20:14')],
+             #['01/10/2010 07:40 AM', '%m/%d/%Y %I:%M %p', Timestamp('2010-01-10 07:40')],
+             #['01/10/2010 09:12:56 AM', '%m/%d/%Y %I:%M:%S %p', Timestamp('2010-01-10 09:12:56')]
             ]
         for s, format, dt in data:
             self.assertEqual(to_datetime(s, format=format), dt)
 
     def test_to_datetime_with_non_exact(self):
+        # GH 10834
+        _skip_if_has_locale()
 
         # 8904
         # exact kw
@@ -4462,6 +4615,40 @@ class TestDateTimeIndexToJulianDate(tm.TestCase):
                         freq='S').to_julian_date()
         self.assertIsInstance(r2, Float64Index)
         tm.assert_index_equal(r1, r2)
+
+class TestDaysInMonth(tm.TestCase):
+
+    def test_coerce_deprecation(self):
+
+        # deprecation of coerce
+        with tm.assert_produces_warning(FutureWarning):
+            to_datetime('2015-02-29', coerce=True)
+        with tm.assert_produces_warning(FutureWarning):
+            self.assertRaises(ValueError, lambda : to_datetime('2015-02-29', coerce=False))
+
+        # multiple arguments
+        for e, c in zip(['raise','ignore','coerce'],[True,False]):
+            with tm.assert_produces_warning(FutureWarning):
+                self.assertRaises(TypeError, lambda : to_datetime('2015-02-29', errors=e, coerce=c))
+
+    # tests for issue #10154
+    def test_day_not_in_month_coerce(self):
+        self.assertTrue(isnull(to_datetime('2015-02-29', errors='coerce')))
+        self.assertTrue(isnull(to_datetime('2015-02-29', format="%Y-%m-%d", errors='coerce')))
+        self.assertTrue(isnull(to_datetime('2015-02-32', format="%Y-%m-%d", errors='coerce')))
+        self.assertTrue(isnull(to_datetime('2015-04-31', format="%Y-%m-%d", errors='coerce')))
+
+    def test_day_not_in_month_raise(self):
+        self.assertRaises(ValueError, to_datetime, '2015-02-29', errors='raise')
+        self.assertRaises(ValueError, to_datetime, '2015-02-29', errors='raise', format="%Y-%m-%d")
+        self.assertRaises(ValueError, to_datetime, '2015-02-32', errors='raise', format="%Y-%m-%d")
+        self.assertRaises(ValueError, to_datetime, '2015-04-31', errors='raise', format="%Y-%m-%d")
+
+    def test_day_not_in_month_ignore(self):
+        self.assertEqual(to_datetime('2015-02-29', errors='ignore'), '2015-02-29')
+        self.assertEqual(to_datetime('2015-02-29', errors='ignore', format="%Y-%m-%d"), '2015-02-29')
+        self.assertEqual(to_datetime('2015-02-32', errors='ignore', format="%Y-%m-%d"), '2015-02-32')
+        self.assertEqual(to_datetime('2015-04-31', errors='ignore', format="%Y-%m-%d"), '2015-04-31')
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],

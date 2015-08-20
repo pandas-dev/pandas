@@ -192,4 +192,3 @@ typedef unsigned int _msgpack_atomic_counter_t;
 
 
 #endif /* msgpack/sysdep.h */
-

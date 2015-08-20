@@ -134,6 +134,32 @@ def _get_standard_colors(num_colors=None, colormap=None, color_type='default',
         else:
             raise ValueError("color_type must be either 'default' or 'random'")
 
+    if isinstance(colors, compat.string_types):
+        import matplotlib.colors
+        conv = matplotlib.colors.ColorConverter()
+        def _maybe_valid_colors(colors):
+            try:
+                [conv.to_rgba(c) for c in colors]
+                return True
+            except ValueError:
+                return False
+
+        # check whether the string can be convertable to single color
+        maybe_single_color = _maybe_valid_colors([colors])
+        # check whether each character can be convertable to colors
+        maybe_color_cycle = _maybe_valid_colors(list(colors))
+        if maybe_single_color and maybe_color_cycle and len(colors) > 1:
+            msg = ("'{0}' can be parsed as both single color and "
+                   "color cycle. Specify each color using a list "
+                   "like ['{0}'] or {1}")
+            raise ValueError(msg.format(colors, list(colors)))
+        elif maybe_single_color:
+            colors = [colors]
+        else:
+            # ``colors`` is regarded as color cycle.
+            # mpl will raise error any of them is invalid
+            pass
+
     if len(colors) != num_colors:
         multiple = num_colors//len(colors) - 1
         mod = num_colors % len(colors)
@@ -748,6 +774,7 @@ class MPLPlot(object):
     data :
 
     """
+    _kind = 'base'
     _layout_type = 'vertical'
     _default_rot = 0
     orientation = None
@@ -804,10 +831,7 @@ class MPLPlot(object):
             self._rot_set = True
         else:
             self._rot_set = False
-            if isinstance(self._default_rot, dict):
-                self.rot = self._default_rot[self.kind]
-            else:
-                self.rot = self._default_rot
+            self.rot = self._default_rot
 
         if grid is None:
             grid = False if secondary_y else self.plt.rcParams['axes.grid']
@@ -1004,7 +1028,7 @@ class MPLPlot(object):
                 label = 'None'
             data = data.to_frame(name=label)
 
-        numeric_data = data.convert_objects()._get_numeric_data()
+        numeric_data = data.convert_objects(datetime=True)._get_numeric_data()
 
         try:
             is_empty = numeric_data.empty
@@ -1191,34 +1215,25 @@ class MPLPlot(object):
 
         return x
 
-    def _is_datetype(self):
-        index = self.data.index
-        return (isinstance(index, (PeriodIndex, DatetimeIndex)) or
-                index.inferred_type in ('datetime', 'date', 'datetime64',
-                                        'time'))
+    @classmethod
+    def _plot(cls, ax, x, y, style=None, is_errorbar=False, **kwds):
+        mask = com.isnull(y)
+        if mask.any():
+            y = np.ma.array(y)
+            y = np.ma.masked_where(mask, y)
 
-    def _get_plot_function(self):
-        '''
-        Returns the matplotlib plotting function (plot or errorbar) based on
-        the presence of errorbar keywords.
-        '''
-        errorbar = any(e is not None for e in self.errors.values())
-        def plotf(ax, x, y, style=None, **kwds):
-            mask = com.isnull(y)
-            if mask.any():
-                y = np.ma.array(y)
-                y = np.ma.masked_where(mask, y)
+        if isinstance(x, Index):
+            x = x._mpl_repr()
 
-            if errorbar:
-                return self.plt.Axes.errorbar(ax, x, y, **kwds)
+        if is_errorbar:
+            return ax.errorbar(x, y, **kwds)
+        else:
+            # prevent style kwarg from going to errorbar, where it is unsupported
+            if style is not None:
+                args = (x, y, style)
             else:
-                # prevent style kwarg from going to errorbar, where it is unsupported
-                if style is not None:
-                    args = (ax, x, y, style)
-                else:
-                    args = (ax, x, y)
-                return self.plt.Axes.plot(*args, **kwds)
-        return plotf
+                args = (x, y)
+            return ax.plot(*args, **kwds)
 
     def _get_index_name(self):
         if isinstance(self.data.index, MultiIndex):
@@ -1262,23 +1277,28 @@ class MPLPlot(object):
         if isinstance(self.secondary_y, (tuple, list, np.ndarray, Index)):
             return self.data.columns[i] in self.secondary_y
 
-    def _get_style(self, i, col_name):
-        style = ''
-        if self.subplots:
-            style = 'k'
-
+    def _apply_style_colors(self, colors, kwds, col_num, label):
+        """
+        Manage style and color based on column number and its label.
+        Returns tuple of appropriate style and kwds which "color" may be added.
+        """
+        style = None
         if self.style is not None:
             if isinstance(self.style, list):
                 try:
-                    style = self.style[i]
+                    style = self.style[col_num]
                 except IndexError:
                     pass
             elif isinstance(self.style, dict):
-                style = self.style.get(col_name, style)
+                style = self.style.get(label, style)
             else:
                 style = self.style
 
-        return style or None
+        has_color = 'color' in kwds or self.colormap is not None
+        nocolor_style = style is None or re.match('[a-z]+', style) is None
+        if (has_color or self.subplots) and nocolor_style:
+            kwds['color'] = colors[col_num % len(colors)]
+        return style, kwds
 
     def _get_colors(self, num_colors=None, color_kwds='color'):
         if num_colors is None:
@@ -1287,11 +1307,6 @@ class MPLPlot(object):
         return _get_standard_colors(num_colors=num_colors,
                                     colormap=self.colormap,
                                     color=self.kwds.get(color_kwds))
-
-    def _maybe_add_color(self, colors, kwds, style, i):
-        has_color = 'color' in kwds or self.colormap is not None
-        if has_color and (style is None or re.match('[a-z]+', style) is None):
-            kwds['color'] = colors[i % len(colors)]
 
     def _parse_errorbars(self, label, err):
         '''
@@ -1405,6 +1420,7 @@ class MPLPlot(object):
         return (len(y_set), len(x_set))
 
 class ScatterPlot(MPLPlot):
+    _kind = 'scatter'
     _layout_type = 'single'
 
     def __init__(self, data, x, y, c=None, **kwargs):
@@ -1483,6 +1499,7 @@ class ScatterPlot(MPLPlot):
 
 
 class HexBinPlot(MPLPlot):
+    _kind = 'hexbin'
     _layout_type = 'single'
 
     def __init__(self, data, x, y, C=None, **kwargs):
@@ -1538,7 +1555,7 @@ class HexBinPlot(MPLPlot):
 
 
 class LinePlot(MPLPlot):
-
+    _kind = 'line'
     _default_rot = 0
     orientation = 'vertical'
 
@@ -1550,71 +1567,35 @@ class LinePlot(MPLPlot):
         if 'x_compat' in self.kwds:
             self.x_compat = bool(self.kwds.pop('x_compat'))
 
-    def _index_freq(self):
-        freq = getattr(self.data.index, 'freq', None)
-        if freq is None:
-            freq = getattr(self.data.index, 'inferred_freq', None)
-            if freq == 'B':
-                weekdays = np.unique(self.data.index.dayofweek)
-                if (5 in weekdays) or (6 in weekdays):
-                    freq = None
-        return freq
-
-    def _is_dynamic_freq(self, freq):
-        if isinstance(freq, DateOffset):
-            freq = freq.rule_code
-        else:
-            freq = frequencies.get_base_alias(freq)
-        freq = frequencies.get_period_alias(freq)
-        return freq is not None and self._no_base(freq)
-
-    def _no_base(self, freq):
-        # hack this for 0.10.1, creating more technical debt...sigh
-        if isinstance(self.data.index, DatetimeIndex):
-            base = frequencies.get_freq(freq)
-            x = self.data.index
-            if (base <= frequencies.FreqGroup.FR_DAY):
-                return x[:1].is_normalized
-
-            return Period(x[0], freq).to_timestamp(tz=x.tz) == x[0]
-        return True
-
-    def _use_dynamic_x(self):
-        freq = self._index_freq()
-
-        ax = self._get_ax(0)
-        ax_freq = getattr(ax, 'freq', None)
-        if freq is None:  # convert irregular if axes has freq info
-            freq = ax_freq
-        else:  # do not use tsplot if irregular was plotted first
-            if (ax_freq is None) and (len(ax.get_lines()) > 0):
-                return False
-
-        return (freq is not None) and self._is_dynamic_freq(freq)
-
     def _is_ts_plot(self):
         # this is slightly deceptive
         return not self.x_compat and self.use_index and self._use_dynamic_x()
 
-    def _make_plot(self):
-        self._initialize_prior(len(self.data))
+    def _use_dynamic_x(self):
+        from pandas.tseries.plotting import _use_dynamic_x
+        return _use_dynamic_x(self._get_ax(0), self.data)
 
+    def _make_plot(self):
         if self._is_ts_plot():
-            data = self._maybe_convert_index(self.data)
+            from pandas.tseries.plotting import _maybe_convert_index
+            data = _maybe_convert_index(self._get_ax(0), self.data)
+
             x = data.index      # dummy, not used
-            plotf = self._get_ts_plot_function()
+            plotf = self._ts_plot
             it = self._iter_data(data=data, keep_index=True)
         else:
             x = self._get_xticks(convert_period=True)
-            plotf = self._get_plot_function()
+            plotf = self._plot
             it = self._iter_data()
+
+        stacking_id = self._get_stacking_id()
+        is_errorbar = any(e is not None for e in self.errors.values())
 
         colors = self._get_colors()
         for i, (label, y) in enumerate(it):
             ax = self._get_ax(i)
-            style = self._get_style(i, label)
             kwds = self.kwds.copy()
-            self._maybe_add_color(colors, kwds, style, i)
+            style, kwds = self._apply_style_colors(colors, kwds, i, label)
 
             errors = self._get_errorbars(label=label, index=i)
             kwds = dict(kwds, **errors)
@@ -1622,84 +1603,87 @@ class LinePlot(MPLPlot):
             label = com.pprint_thing(label)  # .encode('utf-8')
             kwds['label'] = label
 
-            newlines = plotf(ax, x, y, style=style, column_num=i, **kwds)
+            newlines = plotf(ax, x, y, style=style, column_num=i,
+                             stacking_id=stacking_id,
+                             is_errorbar=is_errorbar,
+                             **kwds)
             self._add_legend_handle(newlines[0], label, index=i)
 
             lines = _get_all_lines(ax)
             left, right = _get_xlim(lines)
             ax.set_xlim(left, right)
 
-    def _get_stacked_values(self, y, label):
+    @classmethod
+    def _plot(cls, ax, x, y, style=None, column_num=None,
+              stacking_id=None, **kwds):
+        # column_num is used to get the target column from protf in line and area plots
+        if column_num == 0:
+            cls._initialize_stacker(ax, stacking_id, len(y))
+        y_values = cls._get_stacked_values(ax, stacking_id, y, kwds['label'])
+        lines = MPLPlot._plot(ax, x, y_values, style=style, **kwds)
+        cls._update_stacker(ax, stacking_id, y)
+        return lines
+
+    @classmethod
+    def _ts_plot(cls, ax, x, data, style=None, **kwds):
+        from pandas.tseries.plotting import (_maybe_resample,
+                                             _decorate_axes,
+                                             format_dateaxis)
+        # accept x to be consistent with normal plot func,
+        # x is not passed to tsplot as it uses data.index as x coordinate
+        # column_num must be in kwds for stacking purpose
+        freq, data = _maybe_resample(data, ax, kwds)
+
+        # Set ax with freq info
+        _decorate_axes(ax, freq, kwds)
+        ax._plot_data.append((data, cls._kind, kwds))
+
+        lines = cls._plot(ax, data.index, data.values, style=style, **kwds)
+        # set date formatter, locators and rescale limits
+        format_dateaxis(ax, ax.freq)
+        return lines
+
+    def _get_stacking_id(self):
         if self.stacked:
-            if (y >= 0).all():
-                return self._pos_prior + y
-            elif (y <= 0).all():
-                return self._neg_prior + y
-            else:
-                raise ValueError('When stacked is True, each column must be either all positive or negative.'
-                                 '{0} contains both positive and negative values'.format(label))
+            return id(self.data)
         else:
-            return y
+            return None
 
-    def _get_plot_function(self):
-        f = MPLPlot._get_plot_function(self)
-        def plotf(ax, x, y, style=None, column_num=None, **kwds):
-            # column_num is used to get the target column from protf in line and area plots
-            if column_num == 0:
-                self._initialize_prior(len(self.data))
-            y_values = self._get_stacked_values(y, kwds['label'])
-            lines = f(ax, x, y_values, style=style, **kwds)
-            self._update_prior(y)
-            return lines
-        return plotf
+    @classmethod
+    def _initialize_stacker(cls, ax, stacking_id, n):
+        if stacking_id is None:
+            return
+        if not hasattr(ax, '_stacker_pos_prior'):
+            ax._stacker_pos_prior = {}
+        if not hasattr(ax, '_stacker_neg_prior'):
+            ax._stacker_neg_prior = {}
+        ax._stacker_pos_prior[stacking_id] = np.zeros(n)
+        ax._stacker_neg_prior[stacking_id] = np.zeros(n)
 
-    def _get_ts_plot_function(self):
-        from pandas.tseries.plotting import tsplot
-        plotf = self._get_plot_function()
-        def _plot(ax, x, data, style=None, **kwds):
-            # accept x to be consistent with normal plot func,
-            # x is not passed to tsplot as it uses data.index as x coordinate
-            lines = tsplot(data, plotf, ax=ax, style=style, **kwds)
-            return lines
-        return _plot
+    @classmethod
+    def _get_stacked_values(cls, ax, stacking_id, values, label):
+        if stacking_id is None:
+            return values
+        if not hasattr(ax, '_stacker_pos_prior'):
+            # stacker may not be initialized for subplots
+            cls._initialize_stacker(ax, stacking_id, len(values))
 
-    def _initialize_prior(self, n):
-        self._pos_prior = np.zeros(n)
-        self._neg_prior = np.zeros(n)
+        if (values >= 0).all():
+            return ax._stacker_pos_prior[stacking_id] + values
+        elif (values <= 0).all():
+            return ax._stacker_neg_prior[stacking_id] + values
 
-    def _update_prior(self, y):
-        if self.stacked and not self.subplots:
-            # tsplot resample may changedata length
-            if len(self._pos_prior) != len(y):
-                self._initialize_prior(len(y))
-            if (y >= 0).all():
-                self._pos_prior += y
-            elif (y <= 0).all():
-                self._neg_prior += y
+        raise ValueError('When stacked is True, each column must be either all positive or negative.'
+                         '{0} contains both positive and negative values'.format(label))
 
-    def _maybe_convert_index(self, data):
-        # tsplot converts automatically, but don't want to convert index
-        # over and over for DataFrames
-        if isinstance(data.index, DatetimeIndex):
-            freq = getattr(data.index, 'freq', None)
-
-            if freq is None:
-                freq = getattr(data.index, 'inferred_freq', None)
-            if isinstance(freq, DateOffset):
-                freq = freq.rule_code
-
-            if freq is None:
-                ax = self._get_ax(0)
-                freq = getattr(ax, 'freq', None)
-
-            if freq is None:
-                raise ValueError('Could not get frequency alias for plotting')
-
-            freq = frequencies.get_base_alias(freq)
-            freq = frequencies.get_period_alias(freq)
-
-            data.index = data.index.to_period(freq=freq)
-        return data
+    @classmethod
+    def _update_stacker(cls, ax, stacking_id, values):
+        if stacking_id is None:
+            return
+        if (values >= 0).all():
+            ax._stacker_pos_prior[stacking_id] += values
+        elif (values <= 0).all():
+            ax._stacker_neg_prior[stacking_id] += values
 
     def _post_plot_logic(self):
         df = self.data
@@ -1724,6 +1708,7 @@ class LinePlot(MPLPlot):
 
 
 class AreaPlot(LinePlot):
+    _kind = 'area'
 
     def __init__(self, data, **kwargs):
         kwargs.setdefault('stacked', True)
@@ -1734,35 +1719,36 @@ class AreaPlot(LinePlot):
             # use smaller alpha to distinguish overlap
             self.kwds.setdefault('alpha', 0.5)
 
-    def _get_plot_function(self):
         if self.logy or self.loglog:
             raise ValueError("Log-y scales are not supported in area plot")
+
+    @classmethod
+    def _plot(cls, ax, x, y, style=None, column_num=None,
+              stacking_id=None, is_errorbar=False, **kwds):
+        if column_num == 0:
+            cls._initialize_stacker(ax, stacking_id, len(y))
+        y_values = cls._get_stacked_values(ax, stacking_id, y, kwds['label'])
+        lines = MPLPlot._plot(ax, x, y_values, style=style, **kwds)
+
+        # get data from the line to get coordinates for fill_between
+        xdata, y_values = lines[0].get_data(orig=False)
+
+        # unable to use ``_get_stacked_values`` here to get starting point
+        if stacking_id is None:
+            start = np.zeros(len(y))
+        elif (y >= 0).all():
+            start = ax._stacker_pos_prior[stacking_id]
+        elif (y <= 0).all():
+            start = ax._stacker_neg_prior[stacking_id]
         else:
-            f = MPLPlot._get_plot_function(self)
-            def plotf(ax, x, y, style=None, column_num=None, **kwds):
-                if column_num == 0:
-                    self._initialize_prior(len(self.data))
-                y_values = self._get_stacked_values(y, kwds['label'])
-                lines = f(ax, x, y_values, style=style, **kwds)
+            start = np.zeros(len(y))
 
-                # get data from the line to get coordinates for fill_between
-                xdata, y_values = lines[0].get_data(orig=False)
+        if not 'color' in kwds:
+            kwds['color'] = lines[0].get_color()
 
-                if (y >= 0).all():
-                    start = self._pos_prior
-                elif (y <= 0).all():
-                    start = self._neg_prior
-                else:
-                    start = np.zeros(len(y))
-
-                if not 'color' in kwds:
-                    kwds['color'] = lines[0].get_color()
-
-                self.plt.Axes.fill_between(ax, xdata, start, y_values, **kwds)
-                self._update_prior(y)
-                return lines
-
-        return plotf
+        ax.fill_between(xdata, start, y_values, **kwds)
+        cls._update_stacker(ax, stacking_id, y)
+        return lines
 
     def _add_legend_handle(self, handle, label, index=None):
         from matplotlib.patches import Rectangle
@@ -1785,8 +1771,9 @@ class AreaPlot(LinePlot):
 
 
 class BarPlot(MPLPlot):
-
-    _default_rot = {'bar': 90, 'barh': 0}
+    _kind = 'bar'
+    _default_rot = 90
+    orientation = 'vertical'
 
     def __init__(self, data, **kwargs):
         self.bar_width = kwargs.pop('width', 0.5)
@@ -1823,20 +1810,13 @@ class BarPlot(MPLPlot):
         if com.is_list_like(self.left):
             self.left = np.array(self.left)
 
-    def _get_plot_function(self):
-        if self.kind == 'bar':
-            def f(ax, x, y, w, start=None, **kwds):
-                start = start + self.bottom
-                return ax.bar(x, y, w, bottom=start, log=self.log, **kwds)
-        elif self.kind == 'barh':
+    @classmethod
+    def _plot(cls, ax, x, y, w, start=0, log=False, **kwds):
+        return ax.bar(x, y, w, bottom=start, log=log, **kwds)
 
-            def f(ax, x, y, w, start=None, log=self.log, **kwds):
-                start = start + self.left
-                return ax.barh(x, y, w, left=start, log=self.log, **kwds)
-        else:
-            raise ValueError("BarPlot kind must be either 'bar' or 'barh'")
-
-        return f
+    @property
+    def _start_base(self):
+        return self.bottom
 
     def _make_plot(self):
         import matplotlib as mpl
@@ -1844,7 +1824,6 @@ class BarPlot(MPLPlot):
         colors = self._get_colors()
         ncolors = len(colors)
 
-        bar_f = self._get_plot_function()
         pos_prior = neg_prior = np.zeros(len(self.data))
         K = self.nseries
 
@@ -1865,24 +1844,25 @@ class BarPlot(MPLPlot):
             start = 0
             if self.log and (y >= 1).all():
                 start = 1
+            start = start + self._start_base
 
             if self.subplots:
                 w = self.bar_width / 2
-                rect = bar_f(ax, self.ax_pos + w, y, self.bar_width,
-                             start=start, label=label, **kwds)
+                rect = self._plot(ax, self.ax_pos + w, y, self.bar_width,
+                                  start=start, label=label, log=self.log, **kwds)
                 ax.set_title(label)
             elif self.stacked:
                 mask = y > 0
-                start = np.where(mask, pos_prior, neg_prior)
+                start = np.where(mask, pos_prior, neg_prior) + self._start_base
                 w = self.bar_width / 2
-                rect = bar_f(ax, self.ax_pos + w, y, self.bar_width,
-                             start=start, label=label, **kwds)
+                rect = self._plot(ax, self.ax_pos + w, y, self.bar_width,
+                                  start=start, label=label, log=self.log, **kwds)
                 pos_prior = pos_prior + np.where(mask, y, 0)
                 neg_prior = neg_prior + np.where(mask, 0, y)
             else:
                 w = self.bar_width / K
-                rect = bar_f(ax, self.ax_pos + (i + 0.5) * w, y, w,
-                             start=start, label=label, **kwds)
+                rect = self._plot(ax, self.ax_pos + (i + 0.5) * w, y, w,
+                                  start=start, label=label, log=self.log, **kwds)
             self._add_legend_handle(rect, label, index=i)
 
     def _post_plot_logic(self):
@@ -1897,33 +1877,40 @@ class BarPlot(MPLPlot):
             s_edge = self.ax_pos[0] - 0.25 + self.lim_offset
             e_edge = self.ax_pos[-1] + 0.25 + self.bar_width + self.lim_offset
 
-            if self.kind == 'bar':
-                ax.set_xlim((s_edge, e_edge))
-                ax.set_xticks(self.tick_pos)
-                ax.set_xticklabels(str_index)
-                if name is not None and self.use_index:
-                    ax.set_xlabel(name)
-            elif self.kind == 'barh':
-                # horizontal bars
-                ax.set_ylim((s_edge, e_edge))
-                ax.set_yticks(self.tick_pos)
-                ax.set_yticklabels(str_index)
-                if name is not None and self.use_index:
-                    ax.set_ylabel(name)
-            else:
-                raise NotImplementedError(self.kind)
+            self._decorate_ticks(ax, name, str_index, s_edge, e_edge)
+
+    def _decorate_ticks(self, ax, name, ticklabels, start_edge, end_edge):
+        ax.set_xlim((start_edge, end_edge))
+        ax.set_xticks(self.tick_pos)
+        ax.set_xticklabels(ticklabels)
+        if name is not None and self.use_index:
+            ax.set_xlabel(name)
+
+
+class BarhPlot(BarPlot):
+    _kind = 'barh'
+    _default_rot = 0
+    orientation = 'horizontal'
 
     @property
-    def orientation(self):
-        if self.kind == 'bar':
-            return 'vertical'
-        elif self.kind == 'barh':
-            return 'horizontal'
-        else:
-            raise NotImplementedError(self.kind)
+    def _start_base(self):
+        return self.left
+
+    @classmethod
+    def _plot(cls, ax, x, y, w, start=0, log=False, **kwds):
+        return ax.barh(x, y, w, left=start, log=log, **kwds)
+
+    def _decorate_ticks(self, ax, name, ticklabels, start_edge, end_edge):
+        # horizontal bars
+        ax.set_ylim((start_edge, end_edge))
+        ax.set_yticks(self.tick_pos)
+        ax.set_yticklabels(ticklabels)
+        if name is not None and self.use_index:
+            ax.set_ylabel(name)
 
 
 class HistPlot(LinePlot):
+    _kind = 'hist'
 
     def __init__(self, data, bins=10, bottom=0, **kwargs):
         self.bins = bins        # use mpl default
@@ -1934,7 +1921,8 @@ class HistPlot(LinePlot):
     def _args_adjust(self):
         if com.is_integer(self.bins):
             # create common bin edge
-            values = self.data.convert_objects()._get_numeric_data()
+            values = (self.data.convert_objects(datetime=True)
+                      ._get_numeric_data())
             values = np.ravel(values)
             values = values[~com.isnull(values)]
 
@@ -1945,44 +1933,55 @@ class HistPlot(LinePlot):
         if com.is_list_like(self.bottom):
             self.bottom = np.array(self.bottom)
 
-    def _get_plot_function(self):
-        def plotf(ax, y, style=None, column_num=None, **kwds):
-            if column_num == 0:
-                self._initialize_prior(len(self.bins) - 1)
-            y = y[~com.isnull(y)]
-            bottom = self._pos_prior + self.bottom
-            # ignore style
-            n, bins, patches = self.plt.Axes.hist(ax, y, bins=self.bins,
-                                                  bottom=bottom, **kwds)
-            self._update_prior(n)
-            return patches
-        return plotf
+    @classmethod
+    def _plot(cls, ax, y, style=None, bins=None, bottom=0, column_num=0,
+              stacking_id=None, **kwds):
+        if column_num == 0:
+            cls._initialize_stacker(ax, stacking_id, len(bins) - 1)
+        y = y[~com.isnull(y)]
+
+        base = np.zeros(len(bins) - 1)
+        bottom = bottom + cls._get_stacked_values(ax, stacking_id, base, kwds['label'])
+        # ignore style
+        n, bins, patches = ax.hist(y, bins=bins, bottom=bottom, **kwds)
+        cls._update_stacker(ax, stacking_id, n)
+        return patches
 
     def _make_plot(self):
-        plotf = self._get_plot_function()
         colors = self._get_colors()
+        stacking_id = self._get_stacking_id()
+
         for i, (label, y) in enumerate(self._iter_data()):
             ax = self._get_ax(i)
-            style = self._get_style(i, label)
-            label = com.pprint_thing(label)
 
             kwds = self.kwds.copy()
-            kwds['label'] = label
-            self._maybe_add_color(colors, kwds, style, i)
 
+            label = com.pprint_thing(label)
+            kwds['label'] = label
+
+            style, kwds = self._apply_style_colors(colors, kwds, i, label)
             if style is not None:
                 kwds['style'] = style
 
-            artists = plotf(ax, y, column_num=i, **kwds)
+            kwds = self._make_plot_keywords(kwds, y)
+            artists = self._plot(ax, y, column_num=i,
+                                 stacking_id=stacking_id, **kwds)
             self._add_legend_handle(artists[0], label, index=i)
+
+    def _make_plot_keywords(self, kwds, y):
+        """merge BoxPlot/KdePlot properties to passed kwds"""
+        # y is required for KdePlot
+        kwds['bottom'] = self.bottom
+        kwds['bins'] = self.bins
+        return kwds
 
     def _post_plot_logic(self):
         if self.orientation == 'horizontal':
             for ax in self.axes:
-                ax.set_xlabel('Degree')
+                ax.set_xlabel('Frequency')
         else:
             for ax in self.axes:
-                ax.set_ylabel('Degree')
+                ax.set_ylabel('Frequency')
 
     @property
     def orientation(self):
@@ -1993,6 +1992,7 @@ class HistPlot(LinePlot):
 
 
 class KdePlot(HistPlot):
+    _kind = 'kde'
     orientation = 'vertical'
 
     def __init__(self, data, bw_method=None, ind=None, **kwargs):
@@ -2012,26 +2012,31 @@ class KdePlot(HistPlot):
             ind = self.ind
         return ind
 
-    def _get_plot_function(self):
+    @classmethod
+    def _plot(cls, ax, y, style=None, bw_method=None, ind=None,
+              column_num=None, stacking_id=None, **kwds):
         from scipy.stats import gaussian_kde
         from scipy import __version__ as spv
-        f = MPLPlot._get_plot_function(self)
-        def plotf(ax, y, style=None, column_num=None, **kwds):
-            y = remove_na(y)
-            if LooseVersion(spv) >= '0.11.0':
-                gkde = gaussian_kde(y, bw_method=self.bw_method)
-            else:
-                gkde = gaussian_kde(y)
-                if self.bw_method is not None:
-                    msg = ('bw_method was added in Scipy 0.11.0.' +
-                           ' Scipy version in use is %s.' % spv)
-                    warnings.warn(msg)
 
-            ind = self._get_ind(y)
-            y = gkde.evaluate(ind)
-            lines = f(ax, ind, y, style=style, **kwds)
-            return lines
-        return plotf
+        y = remove_na(y)
+
+        if LooseVersion(spv) >= '0.11.0':
+            gkde = gaussian_kde(y, bw_method=bw_method)
+        else:
+            gkde = gaussian_kde(y)
+            if bw_method is not None:
+                msg = ('bw_method was added in Scipy 0.11.0.' +
+                       ' Scipy version in use is %s.' % spv)
+                warnings.warn(msg)
+
+        y = gkde.evaluate(ind)
+        lines = MPLPlot._plot(ax, ind, y, style=style, **kwds)
+        return lines
+
+    def _make_plot_keywords(self, kwds, y):
+        kwds['bw_method'] = self.bw_method
+        kwds['ind'] = self._get_ind(y)
+        return kwds
 
     def _post_plot_logic(self):
         for ax in self.axes:
@@ -2039,6 +2044,7 @@ class KdePlot(HistPlot):
 
 
 class PiePlot(MPLPlot):
+    _kind = 'pie'
     _layout_type = 'horizontal'
 
     def __init__(self, data, kind=None, **kwargs):
@@ -2057,8 +2063,8 @@ class PiePlot(MPLPlot):
         pass
 
     def _make_plot(self):
-        self.kwds.setdefault('colors', self._get_colors(num_colors=len(self.data),
-                                                        color_kwds='colors'))
+        colors = self._get_colors(num_colors=len(self.data), color_kwds='colors')
+        self.kwds.setdefault('colors', colors)
 
         for i, (label, y) in enumerate(self._iter_data()):
             ax = self._get_ax(i)
@@ -2103,6 +2109,7 @@ class PiePlot(MPLPlot):
 
 
 class BoxPlot(LinePlot):
+    _kind = 'box'
     _layout_type = 'horizontal'
 
     _valid_return_types = (None, 'axes', 'dict', 'both')
@@ -2125,25 +2132,24 @@ class BoxPlot(LinePlot):
             else:
                 self.sharey = False
 
-    def _get_plot_function(self):
-        def plotf(ax, y, column_num=None, **kwds):
-            if y.ndim == 2:
-                y = [remove_na(v) for v in y]
-                # Boxplot fails with empty arrays, so need to add a NaN
-                #   if any cols are empty
-                # GH 8181
-                y = [v if v.size > 0 else np.array([np.nan]) for v in y]
-            else:
-                y = remove_na(y)
-            bp = ax.boxplot(y, **kwds)
+    @classmethod
+    def _plot(cls, ax, y, column_num=None, return_type=None, **kwds):
+        if y.ndim == 2:
+            y = [remove_na(v) for v in y]
+            # Boxplot fails with empty arrays, so need to add a NaN
+            #   if any cols are empty
+            # GH 8181
+            y = [v if v.size > 0 else np.array([np.nan]) for v in y]
+        else:
+            y = remove_na(y)
+        bp = ax.boxplot(y, **kwds)
 
-            if self.return_type == 'dict':
-                return bp, bp
-            elif self.return_type == 'both':
-                return self.BP(ax=ax, lines=bp), bp
-            else:
-                return ax, bp
-        return plotf
+        if return_type == 'dict':
+            return bp, bp
+        elif return_type == 'both':
+            return cls.BP(ax=ax, lines=bp), bp
+        else:
+            return ax, bp
 
     def _validate_color_args(self):
         if 'color' in self.kwds:
@@ -2197,7 +2203,6 @@ class BoxPlot(LinePlot):
         setp(bp['caps'], color=caps, alpha=1)
 
     def _make_plot(self):
-        plotf = self._get_plot_function()
         if self.subplots:
             self._return_obj = compat.OrderedDict()
 
@@ -2205,7 +2210,8 @@ class BoxPlot(LinePlot):
                 ax = self._get_ax(i)
                 kwds = self.kwds.copy()
 
-                ret, bp = plotf(ax, y, column_num=i, **kwds)
+                ret, bp = self._plot(ax, y, column_num=i,
+                                     return_type=self.return_type, **kwds)
                 self.maybe_color_bp(bp)
                 self._return_obj[label] = ret
 
@@ -2216,7 +2222,8 @@ class BoxPlot(LinePlot):
             ax = self._get_ax(0)
             kwds = self.kwds.copy()
 
-            ret, bp = plotf(ax, y, column_num=0, **kwds)
+            ret, bp = self._plot(ax, y, column_num=0,
+                                 return_type=self.return_type, **kwds)
             self.maybe_color_bp(bp)
             self._return_obj = ret
 
@@ -2261,10 +2268,12 @@ _dataframe_kinds = ['scatter', 'hexbin']
 _series_kinds = ['pie']
 _all_kinds = _common_kinds + _dataframe_kinds + _series_kinds
 
-_plot_klass = {'line': LinePlot, 'bar': BarPlot, 'barh': BarPlot,
-               'kde': KdePlot, 'hist': HistPlot, 'box': BoxPlot,
-               'scatter': ScatterPlot, 'hexbin': HexBinPlot,
-               'area': AreaPlot, 'pie': PiePlot}
+_klasses = [LinePlot, BarPlot, BarhPlot, KdePlot, HistPlot, BoxPlot,
+            ScatterPlot, HexBinPlot, AreaPlot, PiePlot]
+
+_plot_klass = {}
+for klass in _klasses:
+    _plot_klass[klass._kind] = klass
 
 
 def _plot(data, x=None, y=None, subplots=False,

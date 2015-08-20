@@ -50,9 +50,30 @@ frame_ctor_nested_dict_int64 = Benchmark("DataFrame(data)", setup)
 # offset times 1000 can easily go out of Timestamp bounds and raise errors.
 dynamic_benchmarks = {}
 n_steps = [1, 2]
+offset_kwargs = {'WeekOfMonth': {'weekday': 1, 'week': 1},
+                 'LastWeekOfMonth': {'weekday': 1, 'week': 1},
+                 'FY5253': {'startingMonth': 1, 'weekday': 1},
+                 'FY5253Quarter': {'qtr_with_extra_week': 1, 'startingMonth': 1, 'weekday': 1}}
+
+offset_extra_cases = {'FY5253': {'variation': ['nearest', 'last']},
+                      'FY5253Quarter': {'variation': ['nearest', 'last']}}
+
 for offset in offsets.__all__:
     for n in n_steps:
-        setup = common_setup + """
+        kwargs = {}
+        if offset in offset_kwargs:
+            kwargs = offset_kwargs[offset]
+
+        if offset in offset_extra_cases:
+            extras = offset_extra_cases[offset]
+        else:
+            extras = {'': ['']}
+
+        for extra_arg in extras:
+            for extra in extras[extra_arg]:
+                if extra:
+                    kwargs[extra_arg] = extra
+                setup = common_setup + """
 
 def get_period_count(start_date, off):
     ten_offsets_in_days = ((start_date + off * 10) - start_date).days
@@ -69,12 +90,14 @@ def get_index_for_offset(off):
                       periods=min(1000, get_period_count(start_date, off)),
                       freq=off)
 
-idx = get_index_for_offset({}({}))
+idx = get_index_for_offset({}({}, **{}))
 df = DataFrame(np.random.randn(len(idx),10), index=idx)
 d = dict([ (col,df[col]) for col in df.columns ])
-""".format(offset, n)
-        key = 'frame_ctor_dtindex_{}x{}'.format(offset, n)
-        dynamic_benchmarks[key] = Benchmark("DataFrame(d)", setup, name=key)
+""".format(offset, n, kwargs)
+                key = 'frame_ctor_dtindex_{}x{}'.format(offset, n)
+                if extra:
+                    key += '__{}_{}'.format(extra_arg, extra)
+                dynamic_benchmarks[key] = Benchmark("DataFrame(d)", setup, name=key)
 
 # Have to stuff them in globals() so vbench detects them
 globals().update(dynamic_benchmarks)

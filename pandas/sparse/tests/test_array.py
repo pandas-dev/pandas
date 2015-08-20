@@ -129,19 +129,19 @@ class TestSparseArray(tm.TestCase):
             res = op(first, second)
             exp = SparseArray(op(first.values, second.values),
                               fill_value=first.fill_value)
-            tm.assert_isinstance(res, SparseArray)
+            tm.assertIsInstance(res, SparseArray)
             assert_almost_equal(res.values, exp.values)
 
             res2 = op(first, second.values)
-            tm.assert_isinstance(res2, SparseArray)
+            tm.assertIsInstance(res2, SparseArray)
             assert_sp_array_equal(res, res2)
 
             res3 = op(first.values, second)
-            tm.assert_isinstance(res3, SparseArray)
+            tm.assertIsInstance(res3, SparseArray)
             assert_sp_array_equal(res, res3)
 
             res4 = op(first, 4)
-            tm.assert_isinstance(res4, SparseArray)
+            tm.assertIsInstance(res4, SparseArray)
 
             # ignore this if the actual op raises (e.g. pow)
             try:

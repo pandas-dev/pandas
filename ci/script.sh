@@ -15,8 +15,8 @@ fi
 if [ "$BUILD_TEST" ]; then
     echo "We are not running nosetests as this is simply a build test."
 else
-    echo nosetests --exe -A "$NOSE_ARGS" pandas --with-xunit --xunit-file=/tmp/nosetests.xml
-    nosetests --exe -A "$NOSE_ARGS" pandas --with-xunit --xunit-file=/tmp/nosetests.xml
+    echo nosetests --exe -A "$NOSE_ARGS" pandas --doctest-tests --with-xunit --xunit-file=/tmp/nosetests.xml
+    nosetests --exe -A "$NOSE_ARGS" pandas --doctest-tests --with-xunit --xunit-file=/tmp/nosetests.xml
 fi
 
 RET="$?"

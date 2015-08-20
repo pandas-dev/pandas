@@ -217,7 +217,7 @@ def _bins_to_cuts(x, bins, right=True, labels=None, retbins=False,
 
         levels = np.asarray(levels, dtype=object)
         np.putmask(ids, na_mask, 0)
-        fac = Categorical(ids - 1, levels, ordered=True, name=name, fastpath=True)
+        fac = Categorical(ids - 1, levels, ordered=True, fastpath=True)
     else:
         fac = ids - 1
         if has_nas:
@@ -225,7 +225,7 @@ def _bins_to_cuts(x, bins, right=True, labels=None, retbins=False,
             np.putmask(fac, na_mask, np.nan)
 
     if x_is_series:
-        fac = Series(fac, index=series_index)
+        fac = Series(fac, index=series_index, name=name)
 
     if not retbins:
         return fac

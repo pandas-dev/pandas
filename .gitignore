@@ -17,6 +17,7 @@
 .idea
 .vagrant
 .noseids
+.ipynb_checkpoints
 
 # Compiled source #
 ###################
@@ -41,6 +42,8 @@ doc/_build
 dist
 # Egg metadata
 *.egg-info
+.eggs
+
 # tox testing tool
 .tox
 # rope
@@ -76,9 +79,9 @@ scikits
 *.c
 *.cpp
 
-# Things specific to this project #
-###################################
-pandas/version.py
+# Performance Testing #
+#######################
+asv_bench/
 
 # Documentation generated files #
 #################################
