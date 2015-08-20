@@ -6322,16 +6322,16 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         with ensure_clean() as path:
             # GH 10833 (TimedeltaIndex formatting)
             dt = pd.Timedelta(seconds=1)
-            df_orig = pd.DataFrame({'data': list(range(10))},
-                                   index=[i*dt for i in range(10)])
-            df_orig.index.rename('timestamp', inplace=True)
-            df_orig.to_csv(path)
+            df = pd.DataFrame({'dt_data': [i*dt for i in range(3)]},
+                              index=pd.Index([i*dt for i in range(3)],
+                                             name='dt_index'))
+            df.to_csv(path)
 
-            df_test = pd.read_csv(path, index_col='timestamp')
-            df_test.index = pd.to_timedelta(df_test.index)
-            df_test.index.rename('timestamp', inplace=True)
+            result = pd.read_csv(path, index_col='dt_index')
+            result.index = pd.to_timedelta(result.index)
+            result['dt_data'] = pd.to_timedelta(result['dt_data'])
 
-            self.assertTrue(df_test.equal(df_orig))
+            assert_frame_equal(df, result, check_index_type=True)
 
     def test_to_csv_cols_reordering(self):
         # GH3454
