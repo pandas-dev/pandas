@@ -2939,10 +2939,10 @@ class NDFrame(PandasObject):
             * 'index', 'values': use the actual numerical values of the index
             * 'nearest', 'zero', 'slinear', 'quadratic', 'cubic',
               'barycentric', 'polynomial' is passed to
-              `scipy.interpolate.interp1d` with the order given. Both
-              'polynomial' and 'spline' requre that you also specify and order
-              (int) e.g. df.interpolate(method='polynomial', order=4). These
-              use the actual numerical values of the index
+              ``scipy.interpolate.interp1d``. Both 'polynomial' and 'spline'
+              require that you also specify an `order` (int), 
+              e.g. df.interpolate(method='polynomial', order=4).
+              These use the actual numerical values of the index.
             * 'krogh', 'piecewise_polynomial', 'spline', and 'pchip' are all
               wrappers around the scipy interpolation methods of similar
               names. These use the actual numerical values of the index. See
