@@ -799,41 +799,15 @@ class TestSeries(tm.TestCase, Generic):
         tm._skip_if_no_scipy()
         result = s.interpolate(method='polynomial', order=1)
         assert_series_equal(result, expected)
-<<<<<<< HEAD
-<<<<<<< HEAD
     
     # GH #10633
-=======
-    # GH #10633: first attempt
->>>>>>> d992cd0... Updated test
-=======
-    
-    # GH #10633
->>>>>>> 5a5407e... updating examples and the bug fix
-    def test_interpolate_spline(self):
-        np.random.seed(1)
-        s = pd.Series(np.arange(10)**2)
-        s[np.random.randint(0,9,3)] = np.nan
-        with tm.assertRaises(ValueError):
-            s.interpolate(method='spline')
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> 027a5e7... Updating based on feedback
-
     def test_interpolate_spline(self):
         np.random.seed(1)
         t = pd.Series(np.arange(10)**2)
         t[np.random.randint(0,9,3)] = np.nan
         with tm.assertRaises(ValueError):
             t.interpolate(method='spline', order=0)
-<<<<<<< HEAD
-=======
->>>>>>> d992cd0... Updated test
-=======
->>>>>>> 027a5e7... Updating based on feedback
-        
-
+    
     def test_nan_irregular_index(self):
         s = Series([1, 2, np.nan, 4], index=[1, 3, 5, 9])
         result = s.interpolate()
