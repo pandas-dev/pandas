@@ -2482,6 +2482,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         If there is no good value, NaN is returned.
 
+        Note that this is really just a convenient shorthand for `Series.reindex`,
+        and is equivalent to `s.dropna().reindex(where, method='ffill')` for
+        an array of dates.
+
         Parameters
         ----------
         where : date or array of dates
@@ -2497,29 +2501,18 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         if isinstance(where, compat.string_types):
             where = datetools.to_datetime(where)
 
-        values = self.values
-
         if not hasattr(where, '__iter__'):
-            start = self.index[0]
-            if isinstance(self.index, PeriodIndex):
-                where = Period(where, freq=self.index.freq).ordinal
-                start = start.ordinal
+            is_scalar = True
+            where = [where]
+        else:
+            is_scalar = False
 
-            if where < start:
-                return np.nan
-            loc = self.index.searchsorted(where, side='right')
-            if loc > 0:
-                loc -= 1
-            while isnull(values[loc]) and loc > 0:
-                loc -= 1
-            return values[loc]
+        ret = self.dropna().reindex(where, method='ffill')
 
-        if not isinstance(where, Index):
-            where = Index(where)
-
-        locs = self.index.asof_locs(where, notnull(values))
-        new_values = com.take_1d(values, locs)
-        return self._constructor(new_values, index=where).__finalize__(self)
+        if is_scalar:
+            return ret.iloc[0]
+        else:
+            return ret
 
     def to_timestamp(self, freq=None, how='start', copy=True):
         """
