@@ -6329,6 +6329,8 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
 
             result = pd.read_csv(path, index_col='dt_index')
             result.index = pd.to_timedelta(result.index)
+            # TODO: remove renaming when GH 10875 is solved
+            result.index = result.index.rename('dt_index')
             result['dt_data'] = pd.to_timedelta(result['dt_data'])
 
             assert_frame_equal(df, result, check_index_type=True)
