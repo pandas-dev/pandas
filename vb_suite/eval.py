@@ -1,7 +1,7 @@
 from vbench.benchmark import Benchmark
 from datetime import datetime
 
-common_setup = """from pandas_vb_common import *
+common_setup = """from .pandas_vb_common import *
 import pandas as pd
 df  = DataFrame(np.random.randn(20000, 100))
 df2 = DataFrame(np.random.randn(20000, 100))
@@ -112,7 +112,7 @@ eval_frame_chained_cmp_one_thread = \
               start_date=datetime(2013, 7, 26))
 
 
-common_setup = """from pandas_vb_common import *
+common_setup = """from .pandas_vb_common import *
 """
 
 setup = common_setup + """

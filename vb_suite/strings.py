@@ -1,6 +1,6 @@
 from vbench.api import Benchmark
 
-common_setup = """from pandas_vb_common import *
+common_setup = """from .pandas_vb_common import *
 """
 
 setup = common_setup + """
@@ -9,11 +9,11 @@ import itertools as IT
 
 def make_series(letters, strlen, size):
     return Series(
-        np.fromiter(IT.cycle(letters), count=size*strlen, dtype='|S1')
-        .view('|S{}'.format(strlen)))
+        [str(x) for x in np.fromiter(IT.cycle(letters), count=size*strlen, dtype='|S1')
+        .view('|S{}'.format(strlen))])
 
-many = make_series('matchthis'+string.uppercase, strlen=19, size=10000) # 31% matches
-few = make_series('matchthis'+string.uppercase*42, strlen=19, size=10000) # 1% matches
+many = make_series('matchthis'+string.ascii_uppercase, strlen=19, size=10000) # 31% matches
+few = make_series('matchthis'+string.ascii_uppercase*42, strlen=19, size=10000) # 1% matches
 """
 
 strings_cat = Benchmark("many.str.cat(sep=',')", setup)
@@ -47,7 +47,7 @@ strings_rstrip = Benchmark("many.str.rstrip('matchthis')", setup)
 strings_get = Benchmark("many.str.get(0)", setup)
 
 setup = setup + """
-s = make_series(string.uppercase, strlen=10, size=10000).str.join('|')
+s = make_series(string.ascii_uppercase, strlen=10, size=10000).str.join('|')
 """
 strings_get_dummies = Benchmark("s.str.get_dummies('|')", setup)
 

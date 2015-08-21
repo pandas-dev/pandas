@@ -7,6 +7,10 @@ from numpy.random import permutation
 import pandas.util.testing as tm
 import random
 import numpy as np
+try:
+    from pandas.compat import range
+except ImportError:
+    pass
 
 np.random.seed(1234)
 try:

@@ -1,4 +1,4 @@
-from pandas_vb_common import *
+from .pandas_vb_common import *
 try:
     from pandas.tseries.offsets import *
 except:
@@ -1657,7 +1657,7 @@ class frame_ctor_nested_dict_int64(object):
     goal_time = 0.2
 
     def setup(self):
-        self.data = dict(((i, dict(((j, float(j)) for j in xrange(100)))) for i in xrange(2000)))
+        self.data = dict(((i, dict(((j, float(j)) for j in range(100)))) for i in xrange(2000)))
 
     def time_frame_ctor_nested_dict_int64(self):
         DataFrame(self.data)

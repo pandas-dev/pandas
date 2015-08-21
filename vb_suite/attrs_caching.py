@@ -1,6 +1,6 @@
 from vbench.benchmark import Benchmark
 
-common_setup = """from pandas_vb_common import *
+common_setup = """from .pandas_vb_common import *
 """
 
 #----------------------------------------------------------------------

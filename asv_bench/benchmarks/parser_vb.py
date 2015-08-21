@@ -1,7 +1,10 @@
-from cStringIO import StringIO
-from pandas_vb_common import *
+from .pandas_vb_common import *
 import os
 from pandas import read_csv, read_table
+try:
+    from cStringIO import StringIO
+except ImportError:
+    from io import StringIO
 
 
 class read_csv_comment2(object):

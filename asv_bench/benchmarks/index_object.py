@@ -1,4 +1,4 @@
-from pandas_vb_common import *
+from .pandas_vb_common import *
 
 
 class datetime_index_intersection(object):
@@ -248,7 +248,7 @@ class multiindex_from_product(object):
     goal_time = 0.2
 
     def setup(self):
-        self.iterables = [tm.makeStringIndex(10000), xrange(20)]
+        self.iterables = [tm.makeStringIndex(10000), range(20)]
 
     def time_multiindex_from_product(self):
         MultiIndex.from_product(self.iterables)

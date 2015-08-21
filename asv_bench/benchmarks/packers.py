@@ -1,9 +1,9 @@
+from .pandas_vb_common import *
 from numpy.random import randint
 import pandas as pd
 from collections import OrderedDict
 from pandas.compat import BytesIO
 import sqlite3
-from pandas_vb_common import *
 import os
 from sqlalchemy import create_engine
 import numpy as np

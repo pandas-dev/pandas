@@ -1,6 +1,9 @@
-from pandas_vb_common import *
+from .pandas_vb_common import *
 from pandas import concat, Timestamp
-from StringIO import StringIO
+try:
+    from StringIO import StringIO
+except ImportError:
+    from io import StringIO
 
 
 class frame_to_csv(object):
@@ -53,7 +56,7 @@ class frame_to_csv_mixed(object):
         self.df.to_csv('__test__.csv')
 
     def create_cols(self, name):
-        return [('%s%03d' % (name, i)) for i in xrange(5)]
+        return [('%s%03d' % (name, i)) for i in range(5)]
 
 
 class read_csv_infer_datetime_format_custom(object):

@@ -1,4 +1,4 @@
-from pandas_vb_common import *
+from .pandas_vb_common import *
 from pandas.core import common as com
 try:
     from pandas.util.testing import test_parallel

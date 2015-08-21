@@ -1,6 +1,6 @@
-from pandas_vb_common import *
-from itertools import product
+from .pandas_vb_common import *
 from string import ascii_letters, digits
+from itertools import product
 
 
 class groupby_agg_builtins1(object):
@@ -1535,12 +1535,12 @@ class groupby_transform(object):
         self.secid_max = int('F0000000', 16)
         self.step = ((self.secid_max - self.secid_min) // (self.n_securities - 1))
         self.security_ids = map((lambda x: hex(x)[2:10].upper()), range(self.secid_min, (self.secid_max + 1), self.step))
-        self.data_index = MultiIndex(levels=[self.dates.values, self.security_ids], labels=[[i for i in xrange(self.n_dates) for _ in xrange(self.n_securities)], (range(self.n_securities) * self.n_dates)], names=['date', 'security_id'])
+        self.data_index = MultiIndex(levels=[self.dates.values, self.security_ids], labels=[[i for i in range(self.n_dates) for _ in xrange(self.n_securities)], (range(self.n_securities) * self.n_dates)], names=['date', 'security_id'])
         self.n_data = len(self.data_index)
-        self.columns = Index(['factor{}'.format(i) for i in xrange(1, (self.n_columns + 1))])
+        self.columns = Index(['factor{}'.format(i) for i in range(1, (self.n_columns + 1))])
         self.data = DataFrame(np.random.randn(self.n_data, self.n_columns), index=self.data_index, columns=self.columns)
         self.step = int((self.n_data * self.share_na))
-        for column_index in xrange(self.n_columns):
+        for column_index in range(self.n_columns):
             self.index = column_index
             while (self.index < self.n_data):
                 self.data.set_value(self.data_index[self.index], self.columns[column_index], np.nan)
@@ -1644,12 +1644,12 @@ class groupby_transform_ufunc(object):
         self.secid_max = int('F0000000', 16)
         self.step = ((self.secid_max - self.secid_min) // (self.n_securities - 1))
         self.security_ids = map((lambda x: hex(x)[2:10].upper()), range(self.secid_min, (self.secid_max + 1), self.step))
-        self.data_index = MultiIndex(levels=[self.dates.values, self.security_ids], labels=[[i for i in xrange(self.n_dates) for _ in xrange(self.n_securities)], (range(self.n_securities) * self.n_dates)], names=['date', 'security_id'])
+        self.data_index = MultiIndex(levels=[self.dates.values, self.security_ids], labels=[[i for i in range(self.n_dates) for _ in xrange(self.n_securities)], (range(self.n_securities) * self.n_dates)], names=['date', 'security_id'])
         self.n_data = len(self.data_index)
-        self.columns = Index(['factor{}'.format(i) for i in xrange(1, (self.n_columns + 1))])
+        self.columns = Index(['factor{}'.format(i) for i in range(1, (self.n_columns + 1))])
         self.data = DataFrame(np.random.randn(self.n_data, self.n_columns), index=self.data_index, columns=self.columns)
         self.step = int((self.n_data * self.share_na))
-        for column_index in xrange(self.n_columns):
+        for column_index in range(self.n_columns):
             self.index = column_index
             while (self.index < self.n_data):
                 self.data.set_value(self.data_index[self.index], self.columns[column_index], np.nan)
