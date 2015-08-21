@@ -747,7 +747,7 @@ class DataFrame(NDFrame):
 
         Parameters
         ----------
-        orient : str {'dict', 'list', 'series', 'split', 'records'}
+        orient : str {'dict', 'list', 'series', 'split', 'records', 'index'}
             Determines the type of the values of the dictionary.
 
             - dict (default) : dict like {column -> {index -> value}}
@@ -757,6 +757,9 @@ class DataFrame(NDFrame):
               {index -> [index], columns -> [columns], data -> [values]}
             - records : list like
               [{column -> value}, ... , {column -> value}]
+            - index : dict like {index -> {column -> value}}
+
+            .. versionadded:: 0.17.0
 
             Abbreviations are allowed. `s` indicates `series` and `sp`
             indicates `split`.
@@ -781,6 +784,8 @@ class DataFrame(NDFrame):
         elif orient.lower().startswith('r'):
             return [dict((k, v) for k, v in zip(self.columns, row))
                     for row in self.values]
+        elif orient.lower().startswith('i'):
+            return dict((k, v.to_dict()) for k, v in self.iterrows())
         else:
             raise ValueError("orient '%s' not understood" % orient)
 
