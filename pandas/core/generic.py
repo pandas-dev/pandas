@@ -701,7 +701,7 @@ class NDFrame(PandasObject):
         "iteritems alias used to get around 2to3. Deprecated"
         warnings.warn("iterkv is deprecated and will be removed in a future "
                       "release, use ``iteritems`` instead.",
-                      DeprecationWarning)
+                      FutureWarning)
         return self.iteritems(*args, **kwargs)
 
     def __len__(self):
@@ -2004,13 +2004,13 @@ class NDFrame(PandasObject):
             Sample with or without replacement. Default = False.
         weights : str or ndarray-like, optional
             Default 'None' results in equal probability weighting.
-            If passed a Series, will align with target object on index. Index 
+            If passed a Series, will align with target object on index. Index
             values in weights not found in sampled object will be ignored and
-            index values in sampled object not in weights will be assigned 
-            weights of zero. 
+            index values in sampled object not in weights will be assigned
+            weights of zero.
             If called on a DataFrame, will accept the name of a column
             when axis = 0.
-            Unless weights are a Series, weights must be same length as axis 
+            Unless weights are a Series, weights must be same length as axis
             being sampled.
             If weights do not sum to 1, they will be normalized to sum to 1.
             Missing values in the weights column will be treated as zero.
@@ -2040,8 +2040,8 @@ class NDFrame(PandasObject):
         if weights is not None:
 
             # If a series, align with frame
-            if isinstance(weights, pd.Series):                
-                weights = weights.reindex(self.axes[axis])                
+            if isinstance(weights, pd.Series):
+                weights = weights.reindex(self.axes[axis])
 
             # Strings acceptable if a dataframe and axis = 0
             if isinstance(weights, string_types):
