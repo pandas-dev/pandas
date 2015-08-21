@@ -352,7 +352,24 @@ Passing ``ignore_index=True`` will drop all name references.
 More concatenating with group keys
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Let's consider a variation on the first example presented:
+A fairly common use of the ``keys`` argument is to override the column names when creating a new DataFrame based on existing Series.
+Notice how the default behaviour consists on letting the resulting DataFrame inherits the parent Series' name, when these existed.
+
+.. ipython:: python
+
+   s3 = pd.Series([0, 1, 2, 3], name='foo')
+   s4 = pd.Series([0, 1, 2, 3])
+   s5 = pd.Series([0, 1, 4, 5])
+
+   pd.concat([s3, s4, s5], axis=1)
+
+Through the ``keys`` argument we can override the existing column names.
+
+.. ipython:: python
+
+   pd.concat([s3, s4, s5], axis=1, keys=['red','blue','yellow'])
+
+Let's consider now a variation on the very first example presented:
 
 .. ipython:: python
 
