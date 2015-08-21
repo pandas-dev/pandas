@@ -1484,7 +1484,13 @@ be set to ``False`` if you need to preserve string-like numbers (e.g. '1', '2') 
 
 .. note::
 
-  Large integer values may be converted to dates if ``convert_dates=True`` and the data and / or column labels appear 'date-like'. The exact threshold depends on the ``date_unit`` specified.
+  Large integer values may be converted to dates if ``convert_dates=True`` and the data and / or column labels appear 'date-like'. The exact threshold depends on the ``date_unit`` specified. 'date-like' means that the column label meets one of the following criteria:
+
+     * it ends with ``'_at'``     
+     * it ends with ``'_time'``
+     * it begins with ``'timestamp'``    
+     * it is ``'modified'``
+     * it is ``'date'``
 
 .. warning::
 
