@@ -1,4 +1,4 @@
-from pandas_vb_common import *
+from .pandas_vb_common import *
 
 
 class append_frame_single_homogenous(object):

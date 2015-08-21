@@ -3,7 +3,7 @@ from datetime import datetime
 
 SECTION = 'Indexing and scalar value access'
 
-common_setup = """from pandas_vb_common import *
+common_setup = """from .pandas_vb_common import *
 """
 
 #----------------------------------------------------------------------

@@ -1,6 +1,6 @@
-from pandas_vb_common import *
-import pandas.computation.expressions as expr
+from .pandas_vb_common import *
 import pandas as pd
+import pandas.computation.expressions as expr
 
 
 class eval_frame_add_all_threads(object):

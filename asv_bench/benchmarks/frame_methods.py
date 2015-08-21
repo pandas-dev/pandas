@@ -1,4 +1,4 @@
-from pandas_vb_common import *
+from .pandas_vb_common import *
 
 
 class frame_apply_axis_1(object):
@@ -398,7 +398,7 @@ class frame_from_records_generator(object):
         self.df = DataFrame.from_records(self.get_data())
 
     def get_data(self, n=100000):
-        return ((x, (x * 20), (x * 100)) for x in xrange(n))
+        return ((x, (x * 20), (x * 100)) for x in range(n))
 
 
 class frame_from_records_generator_nrows(object):
@@ -408,7 +408,7 @@ class frame_from_records_generator_nrows(object):
         self.df = DataFrame.from_records(self.get_data(), nrows=1000)
 
     def get_data(self, n=100000):
-        return ((x, (x * 20), (x * 100)) for x in xrange(n))
+        return ((x, (x * 20), (x * 100)) for x in range(n))
 
 
 class frame_get_dtype_counts(object):
@@ -443,11 +443,11 @@ class frame_getitem_single_column(object):
             pass
 
     def h(self):
-        for i in xrange(10000):
+        for i in range(10000):
             self.df2['A']
 
     def j(self):
-        for i in xrange(10000):
+        for i in range(10000):
             self.df3[0]
 
 
@@ -473,11 +473,11 @@ class frame_getitem_single_column2(object):
             pass
 
     def h(self):
-        for i in xrange(10000):
+        for i in range(10000):
             self.df2['A']
 
     def j(self):
-        for i in xrange(10000):
+        for i in range(10000):
             self.df3[0]
 
 
@@ -607,11 +607,11 @@ class frame_iteritems(object):
             pass
 
     def h(self):
-        for i in xrange(10000):
+        for i in range(10000):
             self.df2['A']
 
     def j(self):
-        for i in xrange(10000):
+        for i in range(10000):
             self.df3[0]
 
 
@@ -637,11 +637,11 @@ class frame_iteritems_cached(object):
             pass
 
     def h(self):
-        for i in xrange(10000):
+        for i in range(10000):
             self.df2['A']
 
     def j(self):
-        for i in xrange(10000):
+        for i in range(10000):
             self.df3[0]
 
 

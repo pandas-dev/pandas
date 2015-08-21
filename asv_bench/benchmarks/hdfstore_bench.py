@@ -1,4 +1,4 @@
-from pandas_vb_common import *
+from .pandas_vb_common import *
 import os
 
 
@@ -152,7 +152,7 @@ class read_store_table_panel(object):
 
     def setup(self):
         self.f = '__test__.h5'
-        self.p = Panel(randn(20, 1000, 25), items=[('Item%03d' % i) for i in xrange(20)], major_axis=date_range('1/1/2000', periods=1000), minor_axis=[('E%03d' % i) for i in xrange(25)])
+        self.p = Panel(randn(20, 1000, 25), items=[('Item%03d' % i) for i in range(20)], major_axis=date_range('1/1/2000', periods=1000), minor_axis=[('E%03d' % i) for i in range(25)])
         self.remove(self.f)
         self.store = HDFStore(self.f)
         self.store.append('p1', self.p)
@@ -267,7 +267,7 @@ class write_store_table_dc(object):
 
     def setup(self):
         self.f = '__test__.h5'
-        self.df = DataFrame(np.random.randn(10000, 10), columns=[('C%03d' % i) for i in xrange(10)])
+        self.df = DataFrame(np.random.randn(10000, 10), columns=[('C%03d' % i) for i in range(10)])
         self.remove(self.f)
         self.store = HDFStore(self.f)
 
@@ -312,7 +312,7 @@ class write_store_table_panel(object):
 
     def setup(self):
         self.f = '__test__.h5'
-        self.p = Panel(randn(20, 1000, 25), items=[('Item%03d' % i) for i in xrange(20)], major_axis=date_range('1/1/2000', periods=1000), minor_axis=[('E%03d' % i) for i in xrange(25)])
+        self.p = Panel(randn(20, 1000, 25), items=[('Item%03d' % i) for i in range(20)], major_axis=date_range('1/1/2000', periods=1000), minor_axis=[('E%03d' % i) for i in range(25)])
         self.remove(self.f)
         self.store = HDFStore(self.f)
 

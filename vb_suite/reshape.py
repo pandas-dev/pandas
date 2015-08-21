@@ -1,7 +1,7 @@
 from vbench.api import Benchmark
 from datetime import datetime
 
-common_setup = """from pandas_vb_common import *
+common_setup = """from .pandas_vb_common import *
 index = MultiIndex.from_arrays([np.arange(100).repeat(100),
                                np.roll(np.tile(np.arange(100), 100), 25)])
 df = DataFrame(np.random.randn(10000, 4), index=index)

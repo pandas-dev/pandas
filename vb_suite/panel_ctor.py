@@ -1,7 +1,7 @@
 from vbench.benchmark import Benchmark
 from datetime import datetime
 
-common_setup = """from pandas_vb_common import *
+common_setup = """from .pandas_vb_common import *
 """
 
 #----------------------------------------------------------------------
@@ -14,7 +14,7 @@ setup_same_index = common_setup + """
 dr = np.asarray(DatetimeIndex(start=datetime(1990,1,1), end=datetime(2012,1,1),
                               freq=datetools.Day(1)))
 data_frames = {}
-for x in xrange(100):
+for x in range(100):
    df = DataFrame({"a": [0]*len(dr), "b": [1]*len(dr),
                    "c": [2]*len(dr)}, index=dr)
    data_frames[x] = df
@@ -27,7 +27,7 @@ panel_from_dict_same_index = \
 
 setup_equiv_indexes = common_setup + """
 data_frames = {}
-for x in xrange(100):
+for x in range(100):
    dr = np.asarray(DatetimeIndex(start=datetime(1990,1,1), end=datetime(2012,1,1),
                                  freq=datetools.Day(1)))
    df = DataFrame({"a": [0]*len(dr), "b": [1]*len(dr),
@@ -44,7 +44,7 @@ setup_all_different_indexes = common_setup + """
 data_frames = {}
 start = datetime(1990,1,1)
 end = datetime(2012,1,1)
-for x in xrange(100):
+for x in range(100):
    end += timedelta(days=1)
    dr = np.asarray(date_range(start, end))
    df = DataFrame({"a": [0]*len(dr), "b": [1]*len(dr),
@@ -61,7 +61,7 @@ setup_two_different_indexes = common_setup + """
 data_frames = {}
 start = datetime(1990,1,1)
 end = datetime(2012,1,1)
-for x in xrange(100):
+for x in range(100):
    if x == 50:
        end += timedelta(days=1)
    dr = np.asarray(date_range(start, end))

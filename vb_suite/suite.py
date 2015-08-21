@@ -136,7 +136,7 @@ Performance Benchmarks
 These historical benchmark graphs were produced with `vbench
 <http://github.com/pydata/vbench>`__.
 
-The ``pandas_vb_common`` setup script can be found here_
+The ``.pandas_vb_common`` setup script can be found here_
 
 .. _here: https://github.com/pydata/pandas/tree/master/vb_suite
 

@@ -1,8 +1,8 @@
 from vbench.api import Benchmark
 from datetime import datetime
 
-common_setup = """from pandas_vb_common import *
-from StringIO import StringIO
+common_setup = """from .pandas_vb_common import *
+from io import StringIO
 """
 
 #----------------------------------------------------------------------
@@ -77,7 +77,7 @@ setup = common_setup + """
 from pandas import concat, Timestamp
 
 def create_cols(name):
-    return [ "%s%03d" % (name,i) for i in xrange(5) ]
+    return [ "%s%03d" % (name,i) for i in range(5) ]
 df_float  = DataFrame(np.random.randn(5000, 5),dtype='float64',columns=create_cols('float'))
 df_int    = DataFrame(np.random.randn(5000, 5),dtype='int64',columns=create_cols('int'))
 df_bool   = DataFrame(True,index=df_float.index,columns=create_cols('bool'))

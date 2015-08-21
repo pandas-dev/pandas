@@ -1,7 +1,7 @@
 from vbench.api import Benchmark
 from datetime import datetime
 
-common_setup = """from pandas_vb_common import *
+common_setup = """from .pandas_vb_common import *
 from pandas import read_csv, read_table
 """
 
@@ -44,7 +44,11 @@ read_csv_comment2 = Benchmark(stmt, setup,
                               start_date=datetime(2011, 11, 1))
 
 setup = common_setup + """
-from cStringIO import StringIO
+try:
+    from cStringIO import StringIO
+except ImportError:
+    from io import StringIO
+
 import os
 N = 10000
 K = 8
@@ -63,7 +67,11 @@ sdate = datetime(2012, 5, 7)
 read_table_multiple_date = Benchmark(cmd, setup, start_date=sdate)
 
 setup = common_setup + """
-from cStringIO import StringIO
+try:
+    from cStringIO import StringIO
+except ImportError:
+    from io import StringIO
+
 import os
 N = 10000
 K = 8
@@ -81,7 +89,11 @@ sdate = datetime(2012, 5, 7)
 read_table_multiple_date_baseline = Benchmark(cmd, setup, start_date=sdate)
 
 setup = common_setup + """
-from cStringIO import StringIO
+try:
+    from cStringIO import StringIO
+except ImportError:
+    from io import StringIO
+
 data = '''\
 0.1213700904466425978256438611,0.0525708283766902484401839501,0.4174092731488769913994474336
 0.4096341697147408700274695547,0.1587830198973579909349496119,0.1292545832485494372576795285

@@ -11,7 +11,7 @@ except NameError:
         return DatetimeIndex(start=start, end=end, periods=periods, offset=freq)
 
 
-common_setup = """from pandas_vb_common import *
+common_setup = """from .pandas_vb_common import *
 from datetime import timedelta
 N = 100000
 

@@ -1,7 +1,7 @@
 from vbench.api import Benchmark
 from datetime import datetime
 
-common_setup = """from pandas_vb_common import *
+common_setup = """from .pandas_vb_common import *
 """
 
 #----------------------------------------------------------------------
@@ -98,11 +98,11 @@ def g():
         pass
 
 def h():
-    for i in xrange(10000):
+    for i in range(10000):
         df2['A']
 
 def j():
-    for i in xrange(10000):
+    for i in range(10000):
         df3[0]
 
 """
@@ -494,7 +494,7 @@ frame_shift_axis1 = Benchmark('df.shift(1,axis=1)', setup,
 
 setup = common_setup + """
 def get_data(n=100000):
-    return ((x, x*20, x*100) for x in xrange(n))
+    return ((x, x*20, x*100) for x in range(n))
 """
 
 frame_from_records_generator = Benchmark('df = DataFrame.from_records(get_data())',
