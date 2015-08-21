@@ -1406,23 +1406,6 @@ class TestDataFrame(tm.TestCase, Generic):
             s.interpolate(method='polynomial')
         with tm.assertRaises(ValueError):
             s.interpolate(method='spline')
-    
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
-    # GH #10633
-    def test_order_spline_interpolation(self):
-        tm._skip_if_no_scipy()
-        np.random.seed(1)
-        s = Series(np.arange(10)**2)
-        s[np.random.randint(0,9,3)] = np.nan
-        result1 = s.interpolate(method='spline', order=1)
-        expected1 = s.interpolate(method='spline', order=1)
-        assert_series_equal(result1, expected1)
->>>>>>> 5a5407e... updating examples and the bug fix
-=======
->>>>>>> 027a5e7... Updating based on feedback
-
 
     def test_spline(self):
         tm._skip_if_no_scipy()
