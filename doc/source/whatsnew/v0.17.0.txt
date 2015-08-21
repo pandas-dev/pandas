@@ -654,6 +654,7 @@ Removal of prior version deprecations/changes
 
 - Remove use of some deprecated numpy comparison operations, mainly in tests. (:issue:`10569`)
 - Removal of ``na_last`` parameters from ``Series.order()`` and ``Series.sort()``, in favor of ``na_position``, xref (:issue:`5231`)
+- Remove of ``percentile_width`` from ``.describe()``, in favor of ``percentiles``. (:issue:`7088`)
 
 .. _whatsnew_0170.performance:
 
@@ -678,6 +679,7 @@ Bug Fixes
 - Bug in ``DataFrame.apply`` when function returns categorical series. (:issue:`9573`)
 - Bug in ``to_datetime`` with invalid dates and formats supplied (:issue:`10154`)
 - Bug in ``Index.drop_duplicates`` dropping name(s) (:issue:`10115`)
+- Bug in ``Series.quantile`` dropping name (:issue:`10881`)
 - Bug in ``pd.Series`` when setting a value on an empty ``Series`` whose index has a frequency. (:issue:`10193`)
 - Bug in ``pd.Series.interpolate`` with invalid ``order`` keyword values. (:issue:`10633`)
 - Bug in ``DataFrame.plot`` raises ``ValueError`` when color name is specified by multiple characters (:issue:`10387`)

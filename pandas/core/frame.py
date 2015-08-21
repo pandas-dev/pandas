@@ -4684,6 +4684,7 @@ class DataFrame(NDFrame):
         0.1  1.3   3.7
         0.5  2.5  55.0
         """
+        self._check_percentile(q)
         per = np.asarray(q) * 100
 
         if not com.is_list_like(per):
@@ -4718,7 +4719,9 @@ class DataFrame(NDFrame):
 
         quantiles = [[f(vals, x) for x in per]
                      for (_, vals) in data.iteritems()]
-        result = DataFrame(quantiles, index=data._info_axis, columns=q).T
+
+        result = self._constructor(quantiles, index=data._info_axis,
+                                   columns=q).T
         if len(is_dt_col) > 0:
             result[is_dt_col] = result[is_dt_col].applymap(lib.Timestamp)
         if squeeze:

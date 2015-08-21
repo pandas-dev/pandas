@@ -909,17 +909,6 @@ class TestSeries(tm.TestCase, Generic):
         _ = self.series.describe()
         _ = self.ts.describe()
 
-    def test_describe_percentiles(self):
-        with tm.assert_produces_warning(FutureWarning):
-            desc = self.series.describe(percentile_width=50)
-        assert '75%' in desc.index
-        assert '25%' in desc.index
-
-        with tm.assert_produces_warning(FutureWarning):
-            desc = self.series.describe(percentile_width=95)
-        assert '97.5%' in desc.index
-        assert '2.5%' in desc.index
-
     def test_describe_objects(self):
         s = Series(['a', 'b', 'b', np.nan, np.nan, np.nan, 'c', 'd', 'a', 'a'])
         result = s.describe()
@@ -1181,26 +1170,18 @@ class TestDataFrame(tm.TestCase, Generic):
         desc = tm.makeMixedDataFrame().describe()
         desc = tm.makeTimeDataFrame().describe()
 
-    def test_describe_percentiles(self):
-        with tm.assert_produces_warning(FutureWarning):
-            desc = tm.makeDataFrame().describe(percentile_width=50)
-        assert '75%' in desc.index
-        assert '25%' in desc.index
-
-        with tm.assert_produces_warning(FutureWarning):
-            desc = tm.makeDataFrame().describe(percentile_width=95)
-        assert '97.5%' in desc.index
-        assert '2.5%' in desc.index
-
-    def test_describe_quantiles_both(self):
-        with tm.assertRaises(ValueError):
-            tm.makeDataFrame().describe(percentile_width=50,
-                                        percentiles=[25, 75])
-
     def test_describe_percentiles_percent_or_raw(self):
+        msg = 'percentiles should all be in the interval \\[0, 1\\]'
+
         df = tm.makeDataFrame()
-        with tm.assertRaises(ValueError):
+        with tm.assertRaisesRegexp(ValueError, msg):
             df.describe(percentiles=[10, 50, 100])
+
+        with tm.assertRaisesRegexp(ValueError, msg):
+            df.describe(percentiles=[2])
+
+        with tm.assertRaisesRegexp(ValueError, msg):
+            df.describe(percentiles=[-2])
 
     def test_describe_percentiles_equivalence(self):
         df = tm.makeDataFrame()
@@ -1213,16 +1194,29 @@ class TestDataFrame(tm.TestCase, Generic):
         d1 = df.describe(percentiles=[.25, .75])
         d2 = df.describe(percentiles=[.25, .5, .75])
         assert_frame_equal(d1, d2)
+        self.assertTrue('25%' in d1.index)
+        self.assertTrue('75%' in d2.index)
 
         # none above
         d1 = df.describe(percentiles=[.25, .45])
         d2 = df.describe(percentiles=[.25, .45, .5])
         assert_frame_equal(d1, d2)
+        self.assertTrue('25%' in d1.index)
+        self.assertTrue('45%' in d2.index)
 
         # none below
         d1 = df.describe(percentiles=[.75, 1])
         d2 = df.describe(percentiles=[.5, .75, 1])
         assert_frame_equal(d1, d2)
+        self.assertTrue('75%' in d1.index)
+        self.assertTrue('100%' in d2.index)
+
+        # edge
+        d1 = df.describe(percentiles=[0, 1])
+        d2 = df.describe(percentiles=[0, .5, 1])
+        assert_frame_equal(d1, d2)
+        self.assertTrue('0%' in d1.index)
+        self.assertTrue('100%' in d2.index)
 
     def test_describe_no_numeric(self):
         df = DataFrame({'A': ['foo', 'foo', 'bar'] * 8,
