@@ -2155,6 +2155,9 @@ def _mut_exclusive(**kwargs):
         return val2
 
 
+def _not_none(*args):
+    return (arg for arg in args if arg is not None)
+
 def _any_none(*args):
     for arg in args:
         if arg is None:

@@ -23,7 +23,7 @@ from numpy import nan as NA
 import numpy as np
 import numpy.ma as ma
 
-from pandas.core.common import (isnull, notnull, PandasError, _try_sort,
+from pandas.core.common import (isnull, notnull, PandasError, _try_sort, _not_none,
                                 _default_index, _maybe_upcast, is_sequence,
                                 _infer_dtype_from_scalar, _values_from_object,
                                 is_list_like, _maybe_box_datetimelike,
@@ -2973,9 +2973,71 @@ class DataFrame(NDFrame):
     #----------------------------------------------------------------------
     # Sorting
 
+    @Appender(_shared_docs['sort_values'] % _shared_doc_kwargs)
+    def sort_values(self, by, axis=0, ascending=True, inplace=False,
+                    kind='quicksort', na_position='last'):
+
+        axis = self._get_axis_number(axis)
+        labels = self._get_axis(axis)
+
+        if axis != 0:
+            raise ValueError('When sorting by column, axis must be 0 '
+                             '(rows)')
+        if not isinstance(by, list):
+            by = [by]
+        if com.is_sequence(ascending) and len(by) != len(ascending):
+            raise ValueError('Length of ascending (%d) != length of by'
+                             ' (%d)' % (len(ascending), len(by)))
+        if len(by) > 1:
+            from pandas.core.groupby import _lexsort_indexer
+
+            def trans(v):
+                if com.needs_i8_conversion(v):
+                    return v.view('i8')
+                return v
+            keys = []
+            for x in by:
+                k = self[x].values
+                if k.ndim == 2:
+                    raise ValueError('Cannot sort by duplicate column %s' % str(x))
+                keys.append(trans(k))
+            indexer = _lexsort_indexer(keys, orders=ascending,
+                                       na_position=na_position)
+            indexer = com._ensure_platform_int(indexer)
+        else:
+            from pandas.core.groupby import _nargsort
+
+            by = by[0]
+            k = self[by].values
+            if k.ndim == 2:
+
+                # try to be helpful
+                if isinstance(self.columns, MultiIndex):
+                    raise ValueError('Cannot sort by column %s in a multi-index'
+                                     '  you need to explicity provide all the levels'
+                                     % str(by))
+
+                raise ValueError('Cannot sort by duplicate column %s'
+                                 % str(by))
+            if isinstance(ascending, (tuple, list)):
+                ascending = ascending[0]
+
+            indexer = _nargsort(k, kind=kind, ascending=ascending,
+                                na_position=na_position)
+
+        new_data = self._data.take(indexer, axis=self._get_block_manager_axis(axis),
+                                   convert=False, verify=False)
+
+        if inplace:
+            return self._update_inplace(new_data)
+        else:
+            return self._constructor(new_data).__finalize__(self)
+
     def sort(self, columns=None, axis=0, ascending=True,
              inplace=False, kind='quicksort', na_position='last'):
         """
+        DEPRECATED: use :meth:`DataFrame.sort_values`
+
         Sort DataFrame either by labels (along either axis) or by the values in
         column(s)
 
@@ -3006,93 +3068,41 @@ class DataFrame(NDFrame):
         -------
         sorted : DataFrame
         """
-        return self.sort_index(by=columns, axis=axis, ascending=ascending,
-                               inplace=inplace, kind=kind, na_position=na_position)
 
-    def sort_index(self, axis=0, by=None, ascending=True, inplace=False,
-                   kind='quicksort', na_position='last'):
-        """
-        Sort DataFrame either by labels (along either axis) or by the values in
-        a column
+        if columns is None:
+            warnings.warn("sort(....) is deprecated, use sort_index(.....)",
+                          FutureWarning, stacklevel=2)
+            return self.sort_index(axis=axis, ascending=ascending, inplace=inplace)
 
-        Parameters
-        ----------
-        axis : {0 or 'index', 1 or 'columns'}, default 0
-            Sort index/rows versus columns
-        by : object
-            Column name(s) in frame. Accepts a column name or a list
-            for a nested sort. A tuple will be interpreted as the
-            levels of a multi-index.
-        ascending : boolean or list, default True
-            Sort ascending vs. descending. Specify list for multiple sort
-            orders
-        inplace : boolean, default False
-            Sort the DataFrame without creating a new instance
-        na_position : {'first', 'last'} (optional, default='last')
-            'first' puts NaNs at the beginning
-            'last' puts NaNs at the end
-        kind : {'quicksort', 'mergesort', 'heapsort'}, optional
-            This option is only applied when sorting on a single column or label.
+        warnings.warn("sort(columns=....) is deprecated, use sort_values(by=.....)",
+                      FutureWarning, stacklevel=2)
+        return self.sort_values(by=columns, axis=axis, ascending=ascending,
+                                inplace=inplace, kind=kind, na_position=na_position)
 
-        Examples
-        --------
-        >>> result = df.sort_index(by=['A', 'B'], ascending=[True, False])
+    @Appender(_shared_docs['sort_index'] % _shared_doc_kwargs)
+    def sort_index(self, axis=0, level=None, ascending=True, inplace=False,
+                   kind='quicksort', na_position='last', sort_remaining=True, by=None):
 
-        Returns
-        -------
-        sorted : DataFrame
-        """
+        # 10726
+        if by is not None:
+            warnings.warn("by argument to sort_index is deprecated, pls use .sort_values(by=...)",
+                          FutureWarning, stacklevel=2)
+            if level is not None:
+                raise ValueError("unable to simultaneously sort by and level")
+            return self.sort_values(by, axis=axis, ascending=ascending, inplace=inplace)
 
-        from pandas.core.groupby import _lexsort_indexer, _nargsort
+
         axis = self._get_axis_number(axis)
-        if axis not in [0, 1]:  # pragma: no cover
-            raise AssertionError('Axis must be 0 or 1, got %s' % str(axis))
-
         labels = self._get_axis(axis)
 
-        if by is not None:
-            if axis != 0:
-                raise ValueError('When sorting by column, axis must be 0 '
-                                 '(rows)')
-            if not isinstance(by, list):
-                by = [by]
-            if com.is_sequence(ascending) and len(by) != len(ascending):
-                raise ValueError('Length of ascending (%d) != length of by'
-                                 ' (%d)' % (len(ascending), len(by)))
-            if len(by) > 1:
-                def trans(v):
-                    if com.needs_i8_conversion(v):
-                        return v.view('i8')
-                    return v
-                keys = []
-                for x in by:
-                    k = self[x].values
-                    if k.ndim == 2:
-                        raise ValueError('Cannot sort by duplicate column %s' % str(x))
-                    keys.append(trans(k))
-                indexer = _lexsort_indexer(keys, orders=ascending,
-                                           na_position=na_position)
-                indexer = com._ensure_platform_int(indexer)
-            else:
-                by = by[0]
-                k = self[by].values
-                if k.ndim == 2:
+        # sort by the index
+        if level is not None:
 
-                    # try to be helpful
-                    if isinstance(self.columns, MultiIndex):
-                        raise ValueError('Cannot sort by column %s in a multi-index'
-                                         '  you need to explicity provide all the levels'
-                                         % str(by))
-
-                    raise ValueError('Cannot sort by duplicate column %s'
-                                     % str(by))
-                if isinstance(ascending, (tuple, list)):
-                    ascending = ascending[0]
-
-                indexer = _nargsort(k, kind=kind, ascending=ascending,
-                                    na_position=na_position)
+            new_axis, indexer = labels.sortlevel(level, ascending=ascending,
+                                                 sort_remaining=sort_remaining)
 
         elif isinstance(labels, MultiIndex):
+            from pandas.core.groupby import _lexsort_indexer
 
             # make sure that the axis is lexsorted to start
             # if not we need to reconstruct to get the correct indexer
@@ -3101,13 +3111,13 @@ class DataFrame(NDFrame):
 
             indexer = _lexsort_indexer(labels.labels, orders=ascending,
                                        na_position=na_position)
-            indexer = com._ensure_platform_int(indexer)
         else:
+            from pandas.core.groupby import _nargsort
+
             indexer = _nargsort(labels, kind=kind, ascending=ascending,
                                 na_position=na_position)
 
-        bm_axis = self._get_block_manager_axis(axis)
-        new_data = self._data.take(indexer, axis=bm_axis,
+        new_data = self._data.take(indexer, axis=self._get_block_manager_axis(axis),
                                    convert=False, verify=False)
 
         if inplace:
@@ -3135,30 +3145,15 @@ class DataFrame(NDFrame):
         Returns
         -------
         sorted : DataFrame
+
+        See Also
+        --------
+        DataFrame.sort_index(level=...)
+
         """
-        axis = self._get_axis_number(axis)
-        the_axis = self._get_axis(axis)
-        if not isinstance(the_axis, MultiIndex):
-            raise TypeError('can only sort by level with a hierarchical index')
+        return self.sort_index(level=level, axis=axis, ascending=ascending,
+                               inplace=inplace, sort_remaining=sort_remaining)
 
-        new_axis, indexer = the_axis.sortlevel(level, ascending=ascending,
-                                               sort_remaining=sort_remaining)
-
-        if self._is_mixed_type and not inplace:
-            ax = 'index' if axis == 0 else 'columns'
-
-            if new_axis.is_unique:
-                return self.reindex(**{ax: new_axis})
-            else:
-                return self.take(indexer, axis=axis, convert=False)
-
-        bm_axis = self._get_block_manager_axis(axis)
-        new_data = self._data.take(indexer, axis=bm_axis,
-                                   convert=False, verify=False)
-        if inplace:
-            return self._update_inplace(new_data)
-        else:
-            return self._constructor(new_data).__finalize__(self)
 
     def _nsorted(self, columns, n, method, take_last):
         if not com.is_list_like(columns):
@@ -3166,8 +3161,8 @@ class DataFrame(NDFrame):
         columns = list(columns)
         ser = getattr(self[columns[0]], method)(n, take_last=take_last)
         ascending = dict(nlargest=False, nsmallest=True)[method]
-        return self.loc[ser.index].sort(columns, ascending=ascending,
-                                        kind='mergesort')
+        return self.loc[ser.index].sort_values(columns, ascending=ascending,
+                                               kind='mergesort')
 
     def nlargest(self, n, columns, take_last=False):
         """Get the rows of a DataFrame sorted by the `n` largest
