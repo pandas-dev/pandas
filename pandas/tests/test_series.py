@@ -9,6 +9,7 @@ from inspect import getargspec
 from itertools import product, starmap
 from distutils.version import LooseVersion
 import warnings
+import random
 
 import nose
 
@@ -2234,7 +2235,7 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
                           inds + ['foo'], 5)
 
     def test_get_set_boolean_different_order(self):
-        ordered = self.series.order()
+        ordered = self.series.sort_values()
 
         # setting
         copy = self.series.copy()
@@ -4869,43 +4870,45 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
             sc.drop_duplicates(keep=False, inplace=True)
             assert_series_equal(sc, s[~expected])
 
-    def test_sort(self):
+    def test_sort_values(self):
+
         ts = self.ts.copy()
-        ts.sort()
 
-        self.assert_numpy_array_equal(ts, self.ts.order())
-        self.assert_numpy_array_equal(ts.index, self.ts.order().index)
+        # 9816 deprecated
+        with tm.assert_produces_warning(FutureWarning):
+            ts.sort()
 
-        ts.sort(ascending=False)
-        self.assert_numpy_array_equal(ts, self.ts.order(ascending=False))
+        self.assert_numpy_array_equal(ts, self.ts.sort_values())
+        self.assert_numpy_array_equal(ts.index, self.ts.sort_values().index)
+
+        ts.sort_values(ascending=False, inplace=True)
+        self.assert_numpy_array_equal(ts, self.ts.sort_values(ascending=False))
         self.assert_numpy_array_equal(ts.index,
-                                      self.ts.order(ascending=False).index)
+                                      self.ts.sort_values(ascending=False).index)
 
         # GH 5856/5853
-        # Series.sort operating on a view
+        # Series.sort_values operating on a view
         df = DataFrame(np.random.randn(10,4))
         s = df.iloc[:,0]
         def f():
-            s.sort()
+            s.sort_values(inplace=True)
         self.assertRaises(ValueError, f)
 
         # test order/sort inplace
         # GH6859
         ts1 = self.ts.copy()
-        ts1.sort(ascending=False)
+        ts1.sort_values(ascending=False, inplace=True)
         ts2 = self.ts.copy()
-        ts2.order(ascending=False,inplace=True)
+        ts2.sort_values(ascending=False, inplace=True)
         assert_series_equal(ts1,ts2)
 
         ts1 = self.ts.copy()
-        ts1 = ts1.sort(ascending=False,inplace=False)
+        ts1 = ts1.sort_values(ascending=False, inplace=False)
         ts2 = self.ts.copy()
-        ts2 = ts.order(ascending=False)
+        ts2 = ts.sort_values(ascending=False)
         assert_series_equal(ts1,ts2)
 
     def test_sort_index(self):
-        import random
-
         rindex = list(self.ts.index)
         random.shuffle(rindex)
 
@@ -4918,29 +4921,65 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         assert_series_equal(sorted_series,
                             self.ts.reindex(self.ts.index[::-1]))
 
+    def test_sort_API(self):
+
+        # API for 9816
+
+        # sortlevel
+        mi = MultiIndex.from_tuples([[1, 1, 3], [1, 1, 1]], names=list('ABC'))
+        s = Series([1, 2], mi)
+        backwards = s.iloc[[1, 0]]
+
+        res = s.sort_index(level='A')
+        assert_series_equal(backwards, res)
+
+        # sort_index
+        rindex = list(self.ts.index)
+        random.shuffle(rindex)
+
+        random_order = self.ts.reindex(rindex)
+        sorted_series = random_order.sort_index(level=0)
+        assert_series_equal(sorted_series, self.ts)
+
+        # compat on axis
+        sorted_series = random_order.sort_index(axis=0)
+        assert_series_equal(sorted_series, self.ts)
+
+        self.assertRaises(ValueError, lambda : random_order.sort_values(axis=1))
+
+        sorted_series = random_order.sort_index(level=0, axis=0)
+        assert_series_equal(sorted_series, self.ts)
+
+        self.assertRaises(ValueError, lambda : random_order.sort_index(level=0, axis=1))
+
     def test_order(self):
+
+        # 9816 deprecated
+        with tm.assert_produces_warning(FutureWarning):
+            self.ts.order()
+
         ts = self.ts.copy()
         ts[:5] = np.NaN
         vals = ts.values
 
-        result = ts.order()
+        result = ts.sort_values()
         self.assertTrue(np.isnan(result[-5:]).all())
         self.assert_numpy_array_equal(result[:-5], np.sort(vals[5:]))
 
-        result = ts.order(na_position='first')
+        result = ts.sort_values(na_position='first')
         self.assertTrue(np.isnan(result[:5]).all())
         self.assert_numpy_array_equal(result[5:], np.sort(vals[5:]))
 
         # something object-type
         ser = Series(['A', 'B'], [1, 2])
         # no failure
-        ser.order()
+        ser.sort_values()
 
         # ascending=False
-        ordered = ts.order(ascending=False)
+        ordered = ts.sort_values(ascending=False)
         expected = np.sort(ts.valid().values)[::-1]
         assert_almost_equal(expected, ordered.valid().values)
-        ordered = ts.order(ascending=False, na_position='first')
+        ordered = ts.sort_values(ascending=False, na_position='first')
         assert_almost_equal(expected, ordered.valid().values)
 
     def test_nsmallest_nlargest(self):
@@ -4996,8 +5035,8 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
             assert_series_equal(s.nlargest(0), empty)
             assert_series_equal(s.nlargest(-1), empty)
 
-            assert_series_equal(s.nsmallest(len(s)), s.order())
-            assert_series_equal(s.nsmallest(len(s) + 1), s.order())
+            assert_series_equal(s.nsmallest(len(s)), s.sort_values())
+            assert_series_equal(s.nsmallest(len(s) + 1), s.sort_values())
             assert_series_equal(s.nlargest(len(s)), s.iloc[[4, 0, 1, 3, 2]])
             assert_series_equal(s.nlargest(len(s) + 1),
                                 s.iloc[[4, 0, 1, 3, 2]])
@@ -7438,7 +7477,7 @@ class TestSeriesNonUnique(tm.TestCase):
 
     def test_unique_data_ownership(self):
         # it works! #1807
-        Series(Series(["a", "c", "b"]).unique()).sort()
+        Series(Series(["a", "c", "b"]).unique()).sort_values()
 
     def test_datetime_timedelta_quantiles(self):
         # covers #9694

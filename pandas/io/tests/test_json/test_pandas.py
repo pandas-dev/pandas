@@ -137,9 +137,9 @@ class TestPandasContainer(tm.TestCase):
                           convert_axes=True, check_dtype=True, raise_ok=None,
                           sort=None):
             if sort is not None:
-                df = df.sort(sort)
+                df = df.sort_values(sort)
             else:
-                df = df.sort()
+                df = df.sort_index()
 
             # if we are not unique, then check that we are raising ValueError
             # for the appropriate orients
@@ -162,9 +162,9 @@ class TestPandasContainer(tm.TestCase):
                     raise
 
             if sort is not None and sort in unser.columns:
-                unser = unser.sort(sort)
+                unser = unser.sort_values(sort)
             else:
-                unser = unser.sort()
+                unser = unser.sort_index()
 
             if dtype is False:
                 check_dtype=False
@@ -188,7 +188,7 @@ class TestPandasContainer(tm.TestCase):
                 unser.columns = [str(i) for i in unser.columns]
 
                 if sort is None:
-                    unser = unser.sort()
+                    unser = unser.sort_index()
                 assert_almost_equal(df.values, unser.values)
             else:
                 if convert_axes:

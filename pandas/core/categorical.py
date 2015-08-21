@@ -1083,7 +1083,7 @@ class Categorical(PandasObject):
             result = result[::-1]
         return result
 
-    def order(self, inplace=False, ascending=True, na_position='last'):
+    def sort_values(self, inplace=False, ascending=True, na_position='last'):
         """ Sorts the Category by category value returning a new Categorical by default.
 
         Only ordered Categoricals can be sorted!
@@ -1092,10 +1092,10 @@ class Categorical(PandasObject):
 
         Parameters
         ----------
-        ascending : boolean, default True
-            Sort ascending. Passing False sorts descending
         inplace : boolean, default False
             Do operation in place.
+        ascending : boolean, default True
+            Sort ascending. Passing False sorts descending
         na_position : {'first', 'last'} (optional, default='last')
             'first' puts NaNs at the beginning
             'last' puts NaNs at the end
@@ -1139,6 +1139,37 @@ class Categorical(PandasObject):
             return Categorical(values=codes,categories=self.categories, ordered=self.ordered,
                                fastpath=True)
 
+    def order(self, inplace=False, ascending=True, na_position='last'):
+        """
+        DEPRECATED: use :meth:`Categorical.sort_values`
+
+        Sorts the Category by category value returning a new Categorical by default.
+
+        Only ordered Categoricals can be sorted!
+
+        Categorical.sort is the equivalent but sorts the Categorical inplace.
+
+        Parameters
+        ----------
+        inplace : boolean, default False
+            Do operation in place.
+        ascending : boolean, default True
+            Sort ascending. Passing False sorts descending
+        na_position : {'first', 'last'} (optional, default='last')
+            'first' puts NaNs at the beginning
+            'last' puts NaNs at the end
+
+        Returns
+        -------
+        y : Category or None
+
+        See Also
+        --------
+        Category.sort
+        """
+        warn("order is deprecated, use sort_values(...)",
+             FutureWarning, stacklevel=2)
+        return self.sort_values(inplace=inplace, ascending=ascending, na_position=na_position)
 
     def sort(self, inplace=True, ascending=True, na_position='last'):
         """ Sorts the Category inplace by category value.
@@ -1163,10 +1194,10 @@ class Categorical(PandasObject):
 
         See Also
         --------
-        Category.order
+        Category.sort_values
         """
-        return self.order(inplace=inplace, ascending=ascending,
-                na_position=na_position)
+        return self.sort_values(inplace=inplace, ascending=ascending,
+                                na_position=na_position)
 
     def ravel(self, order='C'):
         """ Return a flattened (numpy) array.
