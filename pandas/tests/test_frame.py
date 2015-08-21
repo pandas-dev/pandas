@@ -6312,7 +6312,6 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
                               header=['AA', 'X'])
 
         with ensure_clean(pname) as path:
-            import pandas as pd
             df1 = DataFrame(np.random.randn(3, 1))
             df2 = DataFrame(np.random.randn(3, 1))
 
@@ -6323,6 +6322,22 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
             rs.columns = lmap(int,rs.columns)
             xp.columns = lmap(int,xp.columns)
             assert_frame_equal(xp,rs)
+
+        with ensure_clean() as path:
+            # GH 10833 (TimedeltaIndex formatting)
+            dt = pd.Timedelta(seconds=1)
+            df = pd.DataFrame({'dt_data': [i*dt for i in range(3)]},
+                              index=pd.Index([i*dt for i in range(3)],
+                                             name='dt_index'))
+            df.to_csv(path)
+
+            result = pd.read_csv(path, index_col='dt_index')
+            result.index = pd.to_timedelta(result.index)
+            # TODO: remove renaming when GH 10875 is solved
+            result.index = result.index.rename('dt_index')
+            result['dt_data'] = pd.to_timedelta(result['dt_data'])
+
+            assert_frame_equal(df, result, check_index_type=True)
 
     def test_to_csv_cols_reordering(self):
         # GH3454
