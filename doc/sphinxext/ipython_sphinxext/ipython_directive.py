@@ -461,10 +461,6 @@ class EmbeddedSphinxShell(object):
 
         self.cout.seek(0)
         output = self.cout.read()
-        if not is_suppress and not is_semicolon:
-            ret.append(output)
-        elif is_semicolon: # get spacing right
-            ret.append('')
 
         # context information
         filename = self.state.document.current_source
@@ -493,6 +489,16 @@ class EmbeddedSphinxShell(object):
                                          w.filename, w.lineno, w.line)
                 sys.stdout.write(s)
                 sys.stdout.write('<<<' + ('-' * 73) + '\n')
+
+        # if :okexcept: has been specified, display shorter traceback
+        if is_okexcept and "Traceback" in output:
+            traceback = output.split('\n\n')
+            output = traceback[-1]
+
+        if not is_suppress and not is_semicolon:
+            ret.append(output)
+        elif is_semicolon: # get spacing right
+            ret.append('')
 
         self.cout.truncate(0)
         return (ret, input_lines, output, is_doctest, decorator, image_file,
