@@ -1660,6 +1660,16 @@ class groupby_transform_ufunc(object):
         self.data.groupby(level='date').transform(np.max)
 
 
+class series_value_counts_float64(object):
+    goal_time = 0.2
+
+    def setup(self):
+        self.s = Series(np.random.randint(0, 1000, size=100000)).astype(float)
+
+    def time_series_value_counts_float64(self):
+        self.s.value_counts()
+
+
 class series_value_counts_int64(object):
     goal_time = 0.2
 
