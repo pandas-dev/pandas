@@ -18,6 +18,7 @@ from pandas.core.common import (isnull, notnull, _values_from_object,
                                 is_float, is_integer, is_complex,
                                 is_float_dtype,
                                 is_complex_dtype, is_integer_dtype,
+                                is_unsigned_integer_dtype,
                                 is_bool_dtype, is_object_dtype,
                                 is_datetime64_dtype, is_timedelta64_dtype,
                                 is_datetime_or_timedelta_dtype, _get_dtype,
@@ -67,21 +68,7 @@ class bottleneck_switch(object):
                     if k not in kwds:
                         kwds[k] = v
             try:
-                if self.zero_value is not None and values.size == 0:
-                    if values.ndim == 1:
-
-                        # wrap the 0's if needed
-                        if is_timedelta64_dtype(values):
-                            return lib.Timedelta(0)
-                        return 0
-                    else:
-                        result_shape = (values.shape[:axis] +
-                                        values.shape[axis + 1:])
-                        result = np.empty(result_shape)
-                        result.fill(0)
-                        return result
-
-                if _USE_BOTTLENECK and skipna and _bn_ok_dtype(values.dtype,
+                if values.size != 0 and _USE_BOTTLENECK and skipna and _bn_ok_dtype(values.dtype,
                                                                bn_name):
                     result = bn_func(values, axis=axis, **kwds)
 
@@ -187,7 +174,10 @@ def _get_values(values, skipna, fill_value=None, fill_value_typ=None,
     # return a platform independent precision dtype
     dtype_max = dtype
     if is_integer_dtype(dtype) or is_bool_dtype(dtype):
-        dtype_max = np.int64
+        if is_unsigned_integer_dtype(dtype):
+            dtype_max = np.uint64
+        else:
+            dtype_max = np.int64
     elif is_float_dtype(dtype):
         dtype_max = np.float64
 
@@ -241,14 +231,14 @@ def nanall(values, axis=None, skipna=True):
 
 
 @disallow('M8')
-@bottleneck_switch(zero_value=0)
+@bottleneck_switch()
 def nansum(values, axis=None, skipna=True):
     values, mask, dtype, dtype_max = _get_values(values, skipna, 0)
     dtype_sum = dtype_max
     if is_float_dtype(dtype):
         dtype_sum = dtype
     the_sum = values.sum(axis, dtype=dtype_sum)
-    the_sum = _maybe_null_out(the_sum, axis, mask)
+    the_sum = _maybe_null_out(the_sum, axis, mask, False)
 
     return _wrap_results(the_sum, dtype)
 
@@ -414,7 +404,7 @@ def nanmin(values, axis=None, skipna=True):
             result = values.min(axis)
 
     result = _wrap_results(result, dtype)
-    return _maybe_null_out(result, axis, mask)
+    return _maybe_null_out(result, axis, mask, True)
 
 
 @bottleneck_switch()
@@ -445,7 +435,7 @@ def nanmax(values, axis=None, skipna=True):
             result = values.max(axis)
 
     result = _wrap_results(result, dtype)
-    return _maybe_null_out(result, axis, mask)
+    return _maybe_null_out(result, axis, mask, True)
 
 
 def nanargmax(values, axis=None, skipna=True):
@@ -554,7 +544,7 @@ def nanprod(values, axis=None, skipna=True):
         values = values.copy()
         values[mask] = 1
     result = values.prod(axis)
-    return _maybe_null_out(result, axis, mask)
+    return _maybe_null_out(result, axis, mask, False)
 
 
 def _maybe_arg_null_out(result, axis, mask, skipna):
@@ -588,9 +578,11 @@ def _get_counts(mask, axis, dtype=float):
         return np.array(count, dtype=dtype)
 
 
-def _maybe_null_out(result, axis, mask):
+def _maybe_null_out(result, axis, mask, null_on_empty):
     if axis is not None and getattr(result, 'ndim', False):
         null_mask = (mask.shape[axis] - mask.sum(axis)) == 0
+        if not null_on_empty:
+            null_mask = null_mask & (mask.shape[axis] > 0)
         if np.any(null_mask):
             if np.iscomplexobj(result):
                 result = result.astype('c16')
@@ -599,9 +591,8 @@ def _maybe_null_out(result, axis, mask):
             result[null_mask] = np.nan
     else:
         null_mask = mask.size - mask.sum()
-        if null_mask == 0:
-            result = np.nan
-
+        if null_mask == 0 and (mask.size > 0 or null_on_empty):
+            return np.nan
     return result
 
 
