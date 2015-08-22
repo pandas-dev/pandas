@@ -666,6 +666,12 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
             self.assertEqual(astyped.dtype, dtype)
             self.assertEqual(astyped.name, s.name)
 
+    def test_TimeSeries_deprecation(self):
+
+        # deprecation TimeSeries, #10890
+        with tm.assert_produces_warning(FutureWarning):
+            pd.TimeSeries(1,index=date_range('20130101',periods=3))
+
     def test_constructor(self):
         # Recognize TimeSeries
         self.assertTrue(self.ts.is_time_series)

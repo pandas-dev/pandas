@@ -28,7 +28,7 @@ def pivot_annual(series, freq=None):
 
     Parameters
     ----------
-    series : TimeSeries
+    series : Series
     freq : string or None, default None
 
     Returns

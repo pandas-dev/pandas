@@ -15,7 +15,7 @@ from numpy.random import randint
 
 from pandas.compat import range, lrange, u, unichr
 import pandas.compat as compat
-from pandas import (Index, Series, TimeSeries, DataFrame, isnull, notnull,
+from pandas import (Index, Series, DataFrame, isnull, notnull,
                     bdate_range, date_range, MultiIndex)
 import pandas.core.common as com
 

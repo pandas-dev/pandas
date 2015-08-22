@@ -1,8 +1,8 @@
 """ self-contained to write legacy storage (pickle/msgpack) files """
 from __future__ import print_function
 from distutils.version import LooseVersion
-from pandas import (Series, TimeSeries, DataFrame, Panel,
-                    SparseSeries, SparseTimeSeries, SparseDataFrame, SparsePanel,
+from pandas import (Series, DataFrame, Panel,
+                    SparseSeries, SparseDataFrame, SparsePanel,
                     Index, MultiIndex, PeriodIndex, bdate_range, to_msgpack,
                     date_range, period_range, bdate_range, Timestamp, Categorical,
                     Period)
@@ -36,7 +36,7 @@ def _create_sp_tsseries():
     arr[-1:] = nan
 
     date_index = bdate_range('1/1/2011', periods=len(arr))
-    bseries = SparseTimeSeries(arr, index=date_index, kind='block')
+    bseries = SparseSeries(arr, index=date_index, kind='block')
     bseries.name = 'btsseries'
     return bseries
 
@@ -78,7 +78,7 @@ def create_data():
     series = dict(float=Series(data['A']),
                   int=Series(data['B']),
                   mixed=Series(data['E']),
-                  ts=TimeSeries(np.arange(10).astype(np.int64), index=date_range('20130101',periods=10)),
+                  ts=Series(np.arange(10).astype(np.int64), index=date_range('20130101',periods=10)),
                   mi=Series(np.arange(5).astype(np.float64),
                             index=MultiIndex.from_tuples(tuple(zip(*[[1, 1, 2, 2, 2], [3, 4, 3, 4, 5]])),
                                                          names=['one', 'two'])),

@@ -502,9 +502,8 @@ class TestGroupBy(tm.TestCase):
         self.assertRaises(AssertionError, pd.algos.groupby_object,a, b)
 
     def test_groupby_grouper_f_sanity_checked(self):
-        import pandas as pd
         dates = date_range('01-Jan-2013', periods=12, freq='MS')
-        ts = pd.TimeSeries(np.random.randn(12), index=dates)
+        ts = Series(np.random.randn(12), index=dates)
 
         # GH3035
         # index.map is used to apply grouper to the index

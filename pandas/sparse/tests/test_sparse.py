@@ -30,7 +30,7 @@ from pandas.tools.util import cartesian_product
 import pandas.sparse.frame as spf
 
 from pandas._sparse import BlockIndex, IntIndex
-from pandas.sparse.api import (SparseSeries, SparseTimeSeries,
+from pandas.sparse.api import (SparseSeries,
                                SparseDataFrame, SparsePanel,
                                SparseArray)
 import pandas.tests.test_frame as test_frame
@@ -160,6 +160,12 @@ class TestSparseSeries(tm.TestCase,
         [x for x in self.bseries]
         str(self.bseries)
 
+    def test_TimeSeries_deprecation(self):
+
+        # deprecation TimeSeries, #10890
+        with tm.assert_produces_warning(FutureWarning):
+            pd.SparseTimeSeries(1,index=pd.date_range('20130101',periods=3))
+
     def test_construct_DataFrame_with_sp_series(self):
         # it works!
         df = DataFrame({'col': self.bseries})
@@ -258,7 +264,7 @@ class TestSparseSeries(tm.TestCase,
         # Sparse time series works
         date_index = bdate_range('1/1/2000', periods=len(self.bseries))
         s5 = SparseSeries(self.bseries, index=date_index)
-        tm.assertIsInstance(s5, SparseTimeSeries)
+        tm.assertIsInstance(s5, SparseSeries)
 
         # pass Series
         bseries2 = SparseSeries(self.bseries.to_dense())
