@@ -11,7 +11,8 @@ import copy
 import itertools
 import warnings
 import os
-
+from six import string_types
+from tables.exceptions import NoSuchNodeError
 import numpy as np
 from pandas import (Series, TimeSeries, DataFrame, Panel, Panel4D, Index,
                     MultiIndex, Int64Index, Timestamp)
@@ -1478,6 +1479,7 @@ class IndexCol(StringMixin):
         """infer this column from the table: create and return a new object"""
         table = handler.table
         new_self = self.copy()
+        new_self._handle = handler._handle
         new_self.set_table(table)
         new_self.get_attr()
         new_self.read_metadata(handler)
@@ -1557,6 +1559,7 @@ class IndexCol(StringMixin):
         pass
 
     def validate_and_set(self, handler, append, **kwargs):
+        self._handle = handler._handle
         self.set_table(handler.table)
         self.validate_col()
         self.validate_attr(append)
@@ -2094,14 +2097,22 @@ class DataCol(IndexCol):
     def get_attr(self):
         """ get the data for this colummn """
         self.values = getattr(self.attrs, self.kind_attr, None)
+        if self.values is None:
+            try:
+                self.values = self._handle.get_node(self.attrs._v_node._v_parent,
+                                                    self.kind_attr)[:].tolist()
+            except NoSuchNodeError:
+                pass
         self.dtype = getattr(self.attrs, self.dtype_attr, None)
         self.meta = getattr(self.attrs, self.meta_attr, None)
         self.set_kind()
 
     def set_attr(self):
         """ set the data for this colummn """
-        import pdb;pdb.set_trace()
-        setattr(self.attrs, self.kind_attr, self.values)
+        #setattr(self.attrs, self.kind_attr, self.values)
+        self._handle.create_carray(self.attrs._v_node._v_parent,
+                                   self.kind_attr,
+                                   obj=np.array(self.values))
         setattr(self.attrs, self.meta_attr, self.meta)
         if self.dtype is not None:
             setattr(self.attrs, self.dtype_attr, self.dtype)
@@ -3063,9 +3074,21 @@ class Table(Fixed):
         self.attrs.info = self.info
 
     def set_non_index_axes(self):
+        replacement = []
         for dim, flds in  self.non_index_axes:
             name = "non_index_axes_%d" %  dim
-            self._handle.create_carray(self.attrs._v_node._v_pathname, name, obj=np.array(flds))
+            self._handle.create_carray(self.attrs._v_node, name, obj=np.array(flds))
+            replacement.append((dim, name))
+        self.attrs.non_index_axes = replacement
+
+    def get_non_index_axes(self):
+        non_index_axes = getattr(self.attrs, 'non_index_axes', [])
+        new = []
+        for dim, flds in non_index_axes:
+            if isinstance(flds, string_types):
+                flds = self._handle.get_node(self.attrs._v_node, flds)[:].tolist()
+            new.append((dim, flds))
+        return new
 
     def set_attrs(self):
         """ set our table type & indexables """
@@ -3084,8 +3107,7 @@ class Table(Fixed):
 
     def get_attrs(self):
         """ retrieve our attributes """
-        self.non_index_axes = getattr(
-            self.attrs, 'non_index_axes', None) or []
+        self.non_index_axes = self.get_non_index_axes()
         self.data_columns = getattr(
             self.attrs, 'data_columns', None) or []
         self.info = getattr(
