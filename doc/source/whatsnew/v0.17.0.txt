@@ -675,11 +675,19 @@ Performance Improvements
 Bug Fixes
 ~~~~~~~~~
 - Bug in ``DataFrame.to_html(index=False)`` renders unnecessary ``name`` row (:issue:`10344`)
+=======
+
+
+- Bug in ``DataFrame.to_html(index=False)`` renders unnecessary ``name`` row (:issue:`10344`) 
 - Bug in ``DataFrame.apply`` when function returns categorical series. (:issue:`9573`)
 - Bug in ``to_datetime`` with invalid dates and formats supplied (:issue:`10154`)
 - Bug in ``Index.drop_duplicates`` dropping name(s) (:issue:`10115`)
 - Bug in ``pd.Series`` when setting a value on an empty ``Series`` whose index has a frequency. (:issue:`10193`)
+<<<<<<< HEAD
+- Bug in ``pd.Series.interpolate`` when setting no order value on  ``Series.interpolate`` this needs to be at least 1. (:issue:`10633`) and (:issue:`10800`)
+=======
 - Bug in ``pd.Series.interpolate`` with invalid ``order`` keyword values. (:issue:`10633`)
+>>>>>>> upstream/master
 - Bug in ``DataFrame.plot`` raises ``ValueError`` when color name is specified by multiple characters (:issue:`10387`)
 - Bug in ``Index`` construction with a mixed list of tuples (:issue:`10697`)
 - Bug in ``DataFrame.reset_index`` when index contains `NaT`. (:issue:`10388`)
