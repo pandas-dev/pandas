@@ -7933,6 +7933,141 @@ def group_max_int64(ndarray[int64_t, ndim=2] out,
                     out[i, j] = maxx[i, j]
 
 
+
+def group_median_float64(ndarray[float64_t, ndim=2] out,
+                         ndarray[int64_t] counts,
+                         ndarray[float64_t, ndim=2] values,
+                         ndarray[int64_t] labels):
+    '''
+    Only aggregates on axis=0
+    '''
+    cdef:
+        Py_ssize_t i, j, N, K, ngroups, size
+        ndarray[int64_t] _counts
+        ndarray data
+        float64_t* ptr
+    ngroups = len(counts)
+    N, K = (<object> values).shape
+
+    indexer, _counts = groupsort_indexer(labels, ngroups)
+    counts[:] = _counts[1:]
+
+    data = np.empty((K, N), dtype=np.float64)
+    ptr = <float64_t*> data.data
+
+    take_2d_axis1_float64_float64(values.T, indexer, out=data)
+
+    for i in range(K):
+        # exclude NA group
+        ptr += _counts[0]
+        for j in range(ngroups):
+            size = _counts[j + 1]
+            out[j, i] = _median_linear(ptr, size)
+            ptr += size
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def group_cumprod_float64(float64_t[:,:] out,
+                          float64_t[:,:] values,
+                          int64_t[:] labels,
+                          float64_t[:,:] accum):
+    '''
+    Only transforms on axis=0
+    '''
+    cdef:
+        Py_ssize_t i, j, N, K, size
+        float64_t val
+        int64_t lab
+
+    N, K = (<object> values).shape
+    accum = np.ones_like(accum)
+
+    with nogil:
+        for i in range(N):
+            lab = labels[i]
+
+            if lab < 0:
+                continue
+            for j in range(K):
+                val = values[i, j]
+                if val == val:
+                    accum[lab, j] *= val
+                    out[i, j] = accum[lab, j]
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def group_cumsum(numeric[:,:] out,
+                 numeric[:,:] values,
+                 int64_t[:] labels,
+                 numeric[:,:] accum):
+    '''
+    Only transforms on axis=0
+    '''
+    cdef:
+        Py_ssize_t i, j, N, K, size
+        numeric val
+        int64_t lab
+
+    N, K = (<object> values).shape
+    accum = np.zeros_like(accum)
+
+    with nogil:
+        for i in range(N):
+            lab = labels[i]
+
+            if lab < 0:
+                continue
+            for j in range(K):
+                val = values[i,j]
+                if val == val:
+                    accum[lab,j] += val
+                    out[i,j] = accum[lab,j]
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def group_shift_indexer(int64_t[:] out, int64_t[:] labels,
+                        int ngroups, int periods):
+    cdef:
+        Py_ssize_t N, i, j, ii
+        int offset, sign
+        int64_t lab, idxer, idxer_slot
+        int64_t[:] label_seen = np.zeros(ngroups, dtype=np.int64)
+        int64_t[:,:] label_indexer
+
+    N, = (<object> labels).shape
+
+    if periods < 0:
+        periods = -periods
+        offset = N - 1
+        sign = -1
+    elif periods > 0:
+        offset = 0
+        sign = 1
+
+    if periods == 0:
+        with nogil:
+            for i in range(N):
+                out[i] = i
+    else:
+        # array of each previous indexer seen
+        label_indexer = np.zeros((ngroups, periods), dtype=np.int64)
+        with nogil:
+            for i in range(N):
+                ## reverse iterator if shifting backwards
+                ii = offset + sign * i
+                lab = labels[ii]
+                label_seen[lab] += 1
+
+                idxer_slot = label_seen[lab] % periods
+                idxer = label_indexer[lab, idxer_slot]
+
+                if label_seen[lab] > periods:
+                    out[ii] = idxer
+                else:
+                    out[ii] = -1
+
+                label_indexer[lab, idxer_slot] = ii
+
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def left_join_indexer_unique_float64(ndarray[float64_t] left,

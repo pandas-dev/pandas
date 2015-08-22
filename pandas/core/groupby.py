@@ -4,6 +4,7 @@ import numpy as np
 import datetime
 import collections
 import warnings
+import copy
 
 from pandas.compat import(
     zip, builtins, range, long, lzip,
@@ -88,6 +89,7 @@ _series_apply_whitelist = \
 _dataframe_apply_whitelist = \
     _common_apply_whitelist | frozenset(['dtypes', 'corrwith'])
 
+_cython_transforms = frozenset(['cumprod', 'cumsum', 'shift'])
 
 class GroupByError(Exception):
     pass
@@ -1021,6 +1023,45 @@ class GroupBy(PandasObject):
         cumcounts = self._cumcount_array(ascending=ascending)
         return Series(cumcounts, index)
 
+    def cumprod(self, axis=0):
+        """
+        Cumulative product for each group
+
+        """
+        if axis != 0:
+            return self.apply(lambda x: x.cumprod(axis=axis))
+
+        return self._cython_transform('cumprod')
+
+    def cumsum(self, axis=0):
+        """
+        Cumulative sum for each group
+
+        """
+        if axis != 0:
+            return self.apply(lambda x: x.cumprod(axis=axis))
+
+        return self._cython_transform('cumsum')
+
+    def shift(self, periods=1, freq=None, axis=0):
+        """
+        Shift each group by periods observations
+        """
+
+        if freq is not None or axis != 0:
+            return self.apply(lambda x: x.shift(periods, freq, axis))
+
+        labels, _,  ngroups = self.grouper.group_info
+        # filled in by Cython
+        indexer = np.zeros_like(labels)
+        _algos.group_shift_indexer(indexer, labels, ngroups, periods)
+
+        output = {}
+        for name, obj in self._iterate_slices():
+            output[name] = com.take_nd(obj.values, indexer)
+
+        return self._wrap_transformed_output(output)
+
     def head(self, n=5):
         """
         Returns first n rows of each group.
@@ -1138,6 +1179,24 @@ class GroupBy(PandasObject):
             result = _possibly_downcast_to_dtype(result, dtype)
 
         return result
+
+    def _cython_transform(self, how, numeric_only=True):
+        output = {}
+        for name, obj in self._iterate_slices():
+            is_numeric = is_numeric_dtype(obj.dtype)
+            if numeric_only and not is_numeric:
+                continue
+
+            try:
+                result, names = self.grouper.transform(obj.values, how)
+            except AssertionError as e:
+                raise GroupByError(str(e))
+            output[name] = self._try_cast(result, obj)
+
+        if len(output) == 0:
+            raise DataError('No numeric types to aggregate')
+
+        return self._wrap_transformed_output(output, names)
 
     def _cython_agg_general(self, how, numeric_only=True):
         output = {}
@@ -1468,20 +1527,27 @@ class BaseGrouper(object):
     # Aggregation functions
 
     _cython_functions = {
-        'add': 'group_add',
-        'prod': 'group_prod',
-        'min': 'group_min',
-        'max': 'group_max',
-        'mean': 'group_mean',
-        'median': {
-            'name': 'group_median'
-        },
-        'var': 'group_var',
-        'first': {
-            'name': 'group_nth',
-            'f': lambda func, a, b, c, d: func(a, b, c, d, 1)
-        },
-        'last': 'group_last',
+        'aggregate': {
+            'add': 'group_add',
+            'prod': 'group_prod',
+            'min': 'group_min',
+            'max': 'group_max',
+            'mean': 'group_mean',
+            'median': {
+                'name': 'group_median'
+            },
+            'var': 'group_var',
+            'first': {
+                'name': 'group_nth',
+                'f': lambda func, a, b, c, d: func(a, b, c, d, 1)
+            },
+            'last': 'group_last',
+            },
+
+        'transform': {
+            'cumprod' : 'group_cumprod',
+            'cumsum' : 'group_cumsum',
+            }
     }
 
     _cython_arity = {
@@ -1490,22 +1556,24 @@ class BaseGrouper(object):
 
     _name_functions = {}
 
-    def _get_aggregate_function(self, how, values):
+    def _get_cython_function(self, kind, how, values, is_numeric):
 
         dtype_str = values.dtype.name
 
         def get_func(fname):
-            # find the function, or use the object function, or return a
-            # generic
+            # see if there is a fused-type version of function
+            # only valid for numeric
+            f = getattr(_algos, fname, None)
+            if f is not None and is_numeric:
+                return f
+
+            # otherwise find dtype-specific version, falling back to object
             for dt in [dtype_str, 'object']:
                 f = getattr(_algos, "%s_%s" % (fname, dtype_str), None)
                 if f is not None:
                     return f
 
-            if dtype_str == 'float64':
-                return getattr(_algos, fname, None)
-
-        ftype = self._cython_functions[how]
+        ftype = self._cython_functions[kind][how]
 
         if isinstance(ftype, dict):
             func = afunc = get_func(ftype['name'])
@@ -1529,7 +1597,9 @@ class BaseGrouper(object):
                                       (how, dtype_str))
         return func, dtype_str
 
-    def aggregate(self, values, how, axis=0):
+    def _cython_operation(self, kind, values, how, axis):
+        assert kind in ['transform', 'aggregate']
+
         arity = self._cython_arity.get(how, 1)
 
         vdim = values.ndim
@@ -1561,11 +1631,11 @@ class BaseGrouper(object):
             values = values.astype(object)
 
         try:
-            agg_func, dtype_str = self._get_aggregate_function(how, values)
+            func, dtype_str = self._get_cython_function(kind, how, values, is_numeric)
         except NotImplementedError:
             if is_numeric:
                 values = _algos.ensure_float64(values)
-                agg_func, dtype_str = self._get_aggregate_function(how, values)
+                func, dtype_str = self._get_cython_function(kind, how, values, is_numeric)
             else:
                 raise
 
@@ -1574,19 +1644,26 @@ class BaseGrouper(object):
         else:
             out_dtype = 'object'
 
-        # will be filled in Cython function
-        result = np.empty(out_shape, dtype=out_dtype)
-        result.fill(np.nan)
-        counts = np.zeros(self.ngroups, dtype=np.int64)
+        labels, _, _ = self.group_info
 
-        result = self._aggregate(result, counts, values, agg_func, is_numeric)
+        if kind == 'aggregate':
+            result = np.empty(out_shape, dtype=out_dtype)
+            result.fill(np.nan)
+            counts = np.zeros(self.ngroups, dtype=np.int64)
+            result = self._aggregate(result, counts, values, labels, func, is_numeric)
+        elif kind == 'transform':
+            result = np.empty_like(values, dtype=out_dtype)
+            result.fill(np.nan)
+            # temporary storange for running-total type tranforms
+            accum = np.empty(out_shape, dtype=out_dtype)
+            result = self._transform(result, accum, values, labels, func, is_numeric)
 
         if com.is_integer_dtype(result):
             if len(result[result == tslib.iNaT]) > 0:
                 result = result.astype('float64')
                 result[result == tslib.iNaT] = np.nan
 
-        if self._filter_empty_groups and not counts.all():
+        if kind == 'aggregate' and self._filter_empty_groups and not counts.all():
             if result.ndim == 2:
                 try:
                     result = lib.row_bool_subset(
@@ -1612,8 +1689,13 @@ class BaseGrouper(object):
 
         return result, names
 
-    def _aggregate(self, result, counts, values, agg_func, is_numeric):
-        comp_ids, _, ngroups = self.group_info
+    def aggregate(self, values, how, axis=0):
+        return self._cython_operation('aggregate', values, how, axis)
+
+    def transform(self, values, how, axis=0):
+        return self._cython_operation('transform', values, how, axis)
+
+    def _aggregate(self, result, counts, values, comp_ids, agg_func, is_numeric):
         if values.ndim > 3:
             # punting for now
             raise NotImplementedError("number of dimensions is currently "
@@ -1625,6 +1707,22 @@ class BaseGrouper(object):
                 agg_func(result[:, :, i], counts, chunk, comp_ids)
         else:
             agg_func(result, counts, values, comp_ids)
+
+        return result
+
+    def _transform(self, result, accum, values, comp_ids, transform_func, is_numeric):
+        comp_ids, _, ngroups = self.group_info
+        if values.ndim > 3:
+            # punting for now
+            raise NotImplementedError("number of dimensions is currently "
+                                      "limited to 3")
+        elif values.ndim > 2:
+            for i, chunk in enumerate(values.transpose(2, 0, 1)):
+
+                chunk = chunk.squeeze()
+                agg_func(result[:, :, i], values, comp_ids, accum)
+        else:
+            transform_func(result, values, comp_ids, accum)
 
         return result
 
@@ -1848,9 +1946,9 @@ class BinGrouper(BaseGrouper):
     #----------------------------------------------------------------------
     # cython aggregation
 
-    _cython_functions = {'ohlc': 'group_ohlc'}
-    _cython_functions.update(BaseGrouper._cython_functions)
-    _cython_functions.pop('median')
+    _cython_functions = copy.deepcopy(BaseGrouper._cython_functions)
+    _cython_functions['aggregate']['ohlc'] = 'group_ohlc'
+    _cython_functions['aggregate'].pop('median')
 
     _name_functions = {
         'ohlc': lambda *args: ['open', 'high', 'low', 'close']
@@ -2380,10 +2478,9 @@ class SeriesGroupBy(GroupBy):
 
         return DataFrame(results, columns=columns)
 
-    def _wrap_aggregated_output(self, output, names=None):
-        # sort of a kludge
+    def _wrap_output(self, output, index, names=None):
+        """ common agg/transform wrapping logic """
         output = output[self.name]
-        index = self.grouper.result_index
 
         if names is not None:
             return DataFrame(output, index=index, columns=names)
@@ -2392,6 +2489,16 @@ class SeriesGroupBy(GroupBy):
             if name is None:
                 name = self._selected_obj.name
             return Series(output, index=index, name=name)
+
+    def _wrap_aggregated_output(self, output, names=None):
+        return self._wrap_output(output=output,
+                                 index=self.grouper.result_index,
+                                 names=names)
+
+    def _wrap_transformed_output(self, output, names=None):
+        return self._wrap_output(output=output,
+                                 index=self.obj.index,
+                                 names=names)
 
     def _wrap_applied_output(self, keys, values, not_indexed_same=False):
         if len(keys) == 0:
@@ -2452,14 +2559,16 @@ class SeriesGroupBy(GroupBy):
         transformed : Series
         """
 
+        func = _intercept_cython(func) or func
+
         # if string function
         if isinstance(func, compat.string_types):
-            return self._transform_fast(lambda : getattr(self, func)(*args, **kwargs))
-
-        # do we have a cython function
-        cyfunc = _intercept_cython(func)
-        if cyfunc and not args and not kwargs:
-            return self._transform_fast(cyfunc)
+            if func in _cython_transforms:
+                # cythonized transform
+                return getattr(self, func)(*args, **kwargs)
+            else:
+                # cythonized aggregation and merge
+                return self._transform_fast(lambda : getattr(self, func)(*args, **kwargs))
 
         # reg transform
         dtype = self._selected_obj.dtype
@@ -3208,24 +3317,23 @@ class NDFrameGroupBy(GroupBy):
         >>> grouped.transform(lambda x: (x - x.mean()) / x.std())
         """
 
-        # try to do a fast transform via merge if possible
-        try:
-            obj = self._obj_with_exclusions
-            if isinstance(func, compat.string_types):
-                result = getattr(self, func)(*args, **kwargs)
+        # optimized transforms
+        func = _intercept_cython(func) or func
+        if isinstance(func, compat.string_types):
+            if func in _cython_transforms:
+                # cythonized transform
+                return getattr(self, func)(*args, **kwargs)
             else:
-                cyfunc = _intercept_cython(func)
-                if cyfunc and not args and not kwargs:
-                    result = getattr(self, cyfunc)()
-                else:
-                    return self._transform_general(func, *args, **kwargs)
-        except:
+                # cythonized aggregation and merge
+                result = getattr(self, func)(*args, **kwargs)
+        else:
             return self._transform_general(func, *args, **kwargs)
 
         # a reduction transform
         if not isinstance(result, DataFrame):
             return self._transform_general(func, *args, **kwargs)
 
+        obj = self._obj_with_exclusions
         # nuiscance columns
         if not result.columns.equals(obj.columns):
             return self._transform_general(func, *args, **kwargs)
@@ -3436,6 +3544,9 @@ class DataFrameGroupBy(NDFrameGroupBy):
             result = result.T
 
         return self._reindex_output(result)._convert(datetime=True)
+
+    def _wrap_transformed_output(self, output, names=None):
+        return DataFrame(output, index=self.obj.index)
 
     def _wrap_agged_blocks(self, items, blocks):
         if not self.as_index:
@@ -4069,7 +4180,9 @@ _cython_table = {
     np.var: 'var',
     np.median: 'median',
     np.max: 'max',
-    np.min: 'min'
+    np.min: 'min',
+    np.cumprod: 'cumprod',
+    np.cumsum: 'cumsum'
 }
 
 

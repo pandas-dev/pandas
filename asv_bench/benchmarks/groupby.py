@@ -772,3 +772,19 @@ class groupby_transform_series2(object):
 
     def time_groupby_transform_series2(self):
         self.df.groupby('id')['val'].transform(np.mean)
+
+class groupby_transform_cythonized(object):
+    goal_time = 0.2
+
+    def setup(self):
+        np.random.seed(0)
+        self.df = DataFrame({'id': (np.arange(100000) / 3), 'val': np.random.randn(100000), })
+
+    def time_groupby_transform_cumprod(self):
+        self.df.groupby('id').cumprod()
+
+    def time_groupby_transform_cumsum(self):
+        self.df.groupby('id').cumsum()
+
+    def time_groupby_transform_shift(self):
+        self.df.groupby('id').shift()

@@ -105,6 +105,8 @@ Performance Improvements
 - Performance bug in repr of ``Categorical`` categories, which was rendering the strings before chopping them for display (:issue:`11305`)
 - Improved performance of ``Series`` constructor with no data and ``DatetimeIndex`` (:issue:`11433`)
 
+- Improved performance of ``shift``, ``cumprod``, and ``cumsum`` with groupby (:issue:`4095`)
+
 .. _whatsnew_0171.bug_fixes:
 
 
