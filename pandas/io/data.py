@@ -23,6 +23,12 @@ from pandas.tseries.offsets import MonthEnd
 from pandas.util.testing import _network_error_classes
 from pandas.io.html import read_html
 
+warnings.warn("\n"
+              "The pandas.io.data module is deprecated and will be "
+              "removed in a future version.\nThis is being replaced by the "
+              "pandas-datareader package, found here: https://github.com/pydata/pandas-datareader",
+              FutureWarning)
+
 class SymbolWarning(UserWarning):
     pass
 
