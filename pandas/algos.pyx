@@ -50,7 +50,6 @@ cdef np.float64_t MAXfloat64 = np.inf
 cdef double NaN = <double> np.NaN
 cdef double nan = NaN
 
-
 cdef inline int int_max(int a, int b): return a if a >= b else b
 cdef inline int int_min(int a, int b): return a if a <= b else b
 
@@ -2265,43 +2264,6 @@ def group_last_bin_object(ndarray[object, ndim=2] out,
                 out[i, j] = nan
             else:
                 out[i, j] = resx[i, j]
-
-
-
-#----------------------------------------------------------------------
-# median
-
-def group_median(ndarray[float64_t, ndim=2] out,
-                 ndarray[int64_t] counts,
-                 ndarray[float64_t, ndim=2] values,
-                 ndarray[int64_t] labels):
-    '''
-    Only aggregates on axis=0
-    '''
-    cdef:
-        Py_ssize_t i, j, N, K, ngroups, size
-        ndarray[int64_t] _counts
-        ndarray data
-        float64_t* ptr
-    ngroups = len(counts)
-    N, K = (<object> values).shape
-
-    indexer, _counts = groupsort_indexer(labels, ngroups)
-    counts[:] = _counts[1:]
-
-    data = np.empty((K, N), dtype=np.float64)
-    ptr = <float64_t*> data.data
-
-    take_2d_axis1_float64_float64(values.T, indexer, out=data)
-
-    for i in range(K):
-        # exclude NA group
-        ptr += _counts[0]
-        for j in range(ngroups):
-            size = _counts[j + 1]
-            out[j, i] = _median_linear(ptr, size)
-            ptr += size
-
 
 cdef inline float64_t _median_linear(float64_t* a, int n):
     cdef int i, j, na_count = 0

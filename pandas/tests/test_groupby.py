@@ -2636,7 +2636,7 @@ class TestGroupBy(tm.TestCase):
         result = df.groupby('A').cumsum()
         assert_frame_equal(result,expected)
 
-        expected = DataFrame([[1, 2, np.nan], [2, np.nan, 9], [3, 4, 9]], columns=['A', 'B', 'C']).astype('float64')
+        # GH 5755 - cumsum is a transformer and should ignore as_index
         result = df.groupby('A', as_index=False).cumsum()
         assert_frame_equal(result,expected)
 
@@ -5359,6 +5359,156 @@ class TestGroupBy(tm.TestCase):
             except BaseException as exc:
                 exc.args += ('operation: %s' % op,)
                 raise
+
+    def test_cython_group_transform_algos(self):
+        #GH 4095
+        dtypes = [np.int8, np.int16, np.int32, np.int64,
+                  np.uint8, np.uint32, np.uint64,
+                  np.float32, np.float64]
+
+        ops = [(pd.algos.group_cumprod_float64, np.cumproduct, [np.float64]),
+               (pd.algos.group_cumsum, np.cumsum, dtypes)]
+
+        for pd_op, np_op, dtypes in ops:
+            for dtype in dtypes:
+                data = np.array([[1],[2],[3],[4]], dtype=dtype)
+                ans = np.zeros_like(data)
+                accum = np.array([[0]], dtype=dtype)
+                labels = np.array([0,0,0,0], dtype=np.int64)
+                pd_op(ans, data, labels, accum)
+                self.assert_numpy_array_equal(np_op(data), ans[:,0])
+
+
+
+        # with nans
+        labels = np.array([0,0,0,0,0], dtype=np.int64)
+
+        data = np.array([[1],[2],[3],[np.nan],[4]], dtype='float64')
+        accum = np.array([[0.0]])
+        actual = np.zeros_like(data)
+        actual.fill(np.nan)
+        pd.algos.group_cumprod_float64(actual, data, labels, accum)
+        expected = np.array([1, 2, 6, np.nan, 24], dtype='float64')
+        self.assert_numpy_array_equal(actual[:, 0], expected)
+
+        accum = np.array([[0.0]])
+        actual = np.zeros_like(data)
+        actual.fill(np.nan)
+        pd.algos.group_cumsum(actual, data, labels, accum)
+        expected = np.array([1, 3, 6, np.nan, 10], dtype='float64')
+        self.assert_numpy_array_equal(actual[:, 0], expected)
+
+        # timedelta
+        data = np.array([np.timedelta64(1, 'ns')] * 5, dtype='m8[ns]')[:, None]
+        accum = np.array([[0]], dtype='int64')
+        actual = np.zeros_like(data, dtype='int64')
+        actual.fill(np.nan)
+        pd.algos.group_cumsum(actual, data.view('int64'), labels, accum)
+        expected = np.array(
+            [np.timedelta64(1, 'ns'), np.timedelta64(2, 'ns'),
+             np.timedelta64(3, 'ns'), np.timedelta64(4, 'ns'),
+             np.timedelta64(5, 'ns')])
+        self.assert_numpy_array_equal(actual[:, 0].view('m8[ns]'), expected)
+
+
+
+    def test_cython_transform(self):
+        # GH 4095
+        ops = [(('cumprod', ()), lambda x: x.cumprod()),
+               (('cumsum', ()), lambda x: x.cumsum()),
+               (('shift', (-1,)), lambda x: x.shift(-1)),
+               (('shift', (1,)), lambda x: x.shift())]
+
+        s = Series(np.random.randn(1000))
+        s_missing = s.copy()
+        s_missing.iloc[2:10] = np.nan
+        labels = np.random.randint(0, 50, size=1000).astype(float)
+
+        #series
+        for (op, args), targop in ops:
+            for data in [s, s_missing]:
+                # print(data.head())
+                expected = data.groupby(labels).transform(targop)
+
+                tm.assert_series_equal(expected,
+                                       data.groupby(labels).transform(op, *args))
+                tm.assert_series_equal(expected,
+                                       getattr(data.groupby(labels), op)(*args))
+
+        strings = list('qwertyuiopasdfghjklz')
+        strings_missing = strings[:]
+        strings_missing[5] = np.nan
+        df = DataFrame({'float': s,
+                        'float_missing': s_missing,
+                        'int': [1,1,1,1,2] * 200,
+                        'datetime': pd.date_range('1990-1-1', periods=1000),
+                        'timedelta': pd.timedelta_range(1, freq='s', periods=1000),
+                        'string': strings * 50,
+                        'string_missing': strings_missing * 50})
+        df['cat'] = df['string'].astype('category')
+
+        df2 = df.copy()
+        df2.index = pd.MultiIndex.from_product([range(100), range(10)])
+
+        #DataFrame - Single and MultiIndex,
+        #group by values, index level, columns
+        for df in [df, df2]:
+            for gb_target in [dict(by=labels),  dict(level=0),
+                              dict(by='string')]: # dict(by='string_missing')]:
+                             # dict(by=['int','string'])]:
+
+                gb = df.groupby(**gb_target)
+                # whitelisted methods set the selection before applying
+                # bit a of hack to make sure the cythonized shift
+                # is equivalent to pre 0.17.1 behavior
+                if op == 'shift':
+                    gb._set_selection_from_grouper()
+
+                for (op, args), targop in ops:
+                    if op != 'shift' and 'int' not in gb_target:
+                        # numeric apply fastpath promotes dtype so have
+                        # to apply seperately and concat
+                        i = gb[['int']].apply(targop)
+                        f = gb[['float','float_missing']].apply(targop)
+                        expected = pd.concat([f,i], axis=1)
+                    else:
+                        expected = gb.apply(targop)
+
+                    expected = expected.sort_index(axis=1)
+                    tm.assert_frame_equal(expected,
+                                        gb.transform(op, *args).sort_index(axis=1))
+                    tm.assert_frame_equal(expected,
+                                        getattr(gb, op)(*args))
+                    # individual columns
+                    for c in df:
+                        if c not in ['float', 'int', 'float_missing'] and op != 'shift':
+                            self.assertRaises(DataError, gb[c].transform, op)
+                            self.assertRaises(DataError, getattr(gb[c], op))
+                        else:
+                            expected = gb[c].apply(targop)
+                            expected.name = c
+                            tm.assert_series_equal(expected,
+                                                   gb[c].transform(op, *args))
+                            tm.assert_series_equal(expected,
+                                                   getattr(gb[c], op)(*args))
+    def test_groupby_cumprod(self):
+        # GH 4095
+        df = pd.DataFrame({'key': ['b'] * 10, 'value': 2})
+
+        actual = df.groupby('key')['value'].cumprod()
+        expected = df.groupby('key')['value'].apply(lambda x: x.cumprod())
+        expected.name = 'value'
+        tm.assert_series_equal(actual, expected)
+
+        df = pd.DataFrame({'key': ['b'] * 100, 'value': 2})
+        actual = df.groupby('key')['value'].cumprod()
+        # if overflows, groupby product casts to float
+        # while numpy passes back invalid values
+        df['value'] = df['value'].astype(float)
+        expected = df.groupby('key')['value'].apply(lambda x: x.cumprod())
+        expected.name = 'value'
+        tm.assert_series_equal(actual, expected)
+
 
     def test_ops_general(self):
         ops = [('mean', np.mean),
