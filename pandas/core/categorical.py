@@ -1025,25 +1025,28 @@ class Categorical(PandasObject):
         -------
         counts : Series
         """
-        import pandas.hashtable as htable
+        from numpy import bincount
+        from pandas.core.common import isnull
         from pandas.core.series import Series
         from pandas.core.index import CategoricalIndex
 
-        cat = self.dropna() if dropna else self
-        keys, counts = htable.value_count_scalar64(com._ensure_int64(cat._codes), dropna)
-        result = Series(counts, index=keys)
+        obj = self.remove_categories([np.nan]) \
+                if dropna and isnull(self.categories).any() else self
 
-        ix = np.arange(len(cat.categories), dtype='int64')
-        if not dropna and -1 in keys:
+        code, cat = obj._codes, obj.categories
+        ncat, mask = len(cat), 0 <= code
+        ix, clean = np.arange(ncat), mask.all()
+
+        if dropna or clean:
+            count = bincount(code if clean else code[mask], minlength=ncat)
+        else:
+            count = bincount(np.where(mask, code, ncat))
             ix = np.append(ix, -1)
-        result = result.reindex(ix, fill_value=0)
-        index = (np.append(cat.categories, np.nan)
-            if not dropna and -1 in keys
-            else cat.categories)
 
-        result.index = CategoricalIndex(index, self.categories, self.ordered)
+        ix = Categorical(ix, categories=cat,
+                ordered=obj.ordered, fastpath=True)
 
-        return result
+        return Series(count, index=CategoricalIndex(ix))
 
     def get_values(self):
         """ Return the values.
