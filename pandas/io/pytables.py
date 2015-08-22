@@ -2100,6 +2100,7 @@ class DataCol(IndexCol):
 
     def set_attr(self):
         """ set the data for this colummn """
+        import pdb;pdb.set_trace()
         setattr(self.attrs, self.kind_attr, self.values)
         setattr(self.attrs, self.meta_attr, self.meta)
         if self.dtype is not None:
@@ -3061,12 +3062,19 @@ class Table(Fixed):
         """ update our table index info """
         self.attrs.info = self.info
 
+    def set_non_index_axes(self):
+        for dim, flds in  self.non_index_axes:
+            name = "non_index_axes_%d" %  dim
+            self._handle.create_carray(self.attrs._v_node._v_pathname, name, obj=np.array(flds))
+
     def set_attrs(self):
         """ set our table type & indexables """
         self.attrs.table_type = str(self.table_type)
         self.attrs.index_cols = self.index_cols()
         self.attrs.values_cols = self.values_cols()
-        self.attrs.non_index_axes = self.non_index_axes
+
+        #self.attrs.non_index_axes = self.non_index_axes
+        self.set_non_index_axes()
         self.attrs.data_columns = self.data_columns
         self.attrs.nan_rep = self.nan_rep
         self.attrs.encoding = self.encoding
