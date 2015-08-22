@@ -232,6 +232,12 @@ class Base(object):
         for ind in self.indices.values():
             self.assertRaises(TypeError, ind.sort)
 
+    def test_order(self):
+        for ind in self.indices.values():
+            # 9816 deprecated
+            with tm.assert_produces_warning(FutureWarning):
+                ind.order()
+
     def test_mutability(self):
         for ind in self.indices.values():
             if not len(ind):

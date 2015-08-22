@@ -746,14 +746,11 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
     def test_sortlevel(self):
         df = self.frame.copy()
         df.index = np.arange(len(df))
-        assertRaisesRegexp(TypeError, 'hierarchical index', df.sortlevel, 0)
 
         # axis=1
 
         # series
         a_sorted = self.frame['A'].sortlevel(0)
-        with assertRaisesRegexp(TypeError, 'hierarchical index'):
-            self.frame.reset_index()['A'].sortlevel()
 
         # preserve names
         self.assertEqual(a_sorted.index.names, self.frame.index.names)
@@ -935,7 +932,7 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
 
         # columns unsorted
         unstacked = self.ymd.unstack()
-        unstacked = unstacked.sort(axis=1, ascending=False)
+        unstacked = unstacked.sort_index(axis=1, ascending=False)
         restacked = unstacked.stack()
         assert_frame_equal(restacked, self.ymd)
 
