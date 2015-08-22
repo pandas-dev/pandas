@@ -923,8 +923,8 @@ class TestTimeSeries(tm.TestCase):
         assert_series_equal(result, expected)
 
         td = pd.Series(['May 04', 'Jun 02', ''], index=[1,2,3])
-        self.assertRaises(ValueError, 'Unknown string format. You can coerce errors to NaT by passing coerce', lambda : pd.to_datetime(td,format='%b %y', errors='raise'))
-        self.assertRaises(ValueError, 'Unknown string format. You can coerce errors to NaT by passing coerce',lambda : td.apply(pd.to_datetime, format='%b %y', errors='raise'))
+        self.assertRaisesRegexp(ValueError, 'Unknown string format. You can coerce errors to NaT by passing coerce', lambda : pd.to_datetime(td,format='%b %y', errors='raise'))
+        self.assertRaisesRegexp(ValueError, 'Unknown string format. You can coerce errors to NaT by passing coerce',lambda : td.apply(pd.to_datetime, format='%b %y', errors='raise'))
         expected = pd.to_datetime(td, format='%b %y', errors='coerce')
 
         result = td.apply(lambda x: pd.to_datetime(x, format='%b %y', errors='coerce'))
