@@ -261,6 +261,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         is_all_dates = labels.is_all_dates
         if is_all_dates:
+
             if not isinstance(labels, (DatetimeIndex, PeriodIndex, TimedeltaIndex)):
                 labels = DatetimeIndex(labels)
 
@@ -2779,7 +2780,14 @@ def _sanitize_array(data, index, dtype=None, copy=False,
     return subarr
 
 # backwards compatiblity
-TimeSeries = Series
+class TimeSeries(Series):
+
+    def __init__(self, *args, **kwargs):
+        # deprecation TimeSeries, #10890
+        warnings.warn("TimeSeries is deprecated. Please use Series",
+                      FutureWarning, stacklevel=2)
+
+        super(TimeSeries, self).__init__(*args, **kwargs)
 
 #----------------------------------------------------------------------
 # Add plotting methods to Series
