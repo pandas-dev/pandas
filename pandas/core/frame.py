@@ -3354,16 +3354,7 @@ class DataFrame(NDFrame):
             return self._constructor(data=self._series, index=self.index,
                                      columns=self.columns)
 
-        # teeny hack because one does DataFrame + TimeSeries all the time
-        if self.index.is_all_dates and other.index.is_all_dates:
-            warnings.warn(("TimeSeries broadcasting along DataFrame index "
-                           "by default is deprecated. Please use "
-                           "DataFrame.<op> to explicitly broadcast arithmetic "
-                           "operations along the index"),
-                          FutureWarning)
-            return self._combine_match_index(other, func, level=level, fill_value=fill_value)
-        else:
-            return self._combine_match_columns(other, func, level=level, fill_value=fill_value)
+        return self._combine_match_columns(other, func, level=level, fill_value=fill_value)
 
     def _combine_match_index(self, other, func, level=None, fill_value=None):
         left, right = self.align(other, join='outer', axis=0, level=level, copy=False)
