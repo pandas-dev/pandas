@@ -1396,7 +1396,7 @@ class DataFrame(NDFrame):
         writer.write_file()
 
     @Appender(fmt.docstring_to_string, indents=1)
-    def to_string(self, buf=None, columns=None, col_space=None, colSpace=None,
+    def to_string(self, buf=None, columns=None, col_space=None,
                   header=True, index=True, na_rep='NaN', formatters=None,
                   float_format=None, sparsify=None, index_names=True,
                   justify=None, line_width=None, max_rows=None, max_cols=None,
@@ -1404,11 +1404,6 @@ class DataFrame(NDFrame):
         """
         Render a DataFrame to a console-friendly tabular output.
         """
-
-        if colSpace is not None:  # pragma: no cover
-            warnings.warn("colSpace is deprecated, use col_space",
-                          FutureWarning)
-            col_space = colSpace
 
         formatter = fmt.DataFrameFormatter(self, buf=buf, columns=columns,
                                            col_space=col_space, na_rep=na_rep,
