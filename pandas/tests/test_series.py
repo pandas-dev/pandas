@@ -4515,10 +4515,10 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         # rpow does not work with DataFrame
         df = DataFrame({'A': self.ts})
 
-        tm.assert_almost_equal(self.ts + self.ts, (self.ts + df)['A'])
-        tm.assert_almost_equal(self.ts ** self.ts, (self.ts ** df)['A'])
-        tm.assert_almost_equal(self.ts < self.ts, (self.ts < df)['A'])
-        tm.assert_almost_equal(self.ts / self.ts, (self.ts / df)['A'])
+        tm.assert_almost_equal(self.ts + self.ts, self.ts + df['A'])
+        tm.assert_almost_equal(self.ts ** self.ts, self.ts ** df['A'])
+        tm.assert_almost_equal(self.ts < self.ts, self.ts < df['A'])
+        tm.assert_almost_equal(self.ts / self.ts, self.ts / df['A'])
 
     def test_operators_combine(self):
         def _check_fill(meth, op, a, b, fill_value=0):
