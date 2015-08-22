@@ -490,6 +490,18 @@ class TestDateRange(tm.TestCase):
         self.assertEqual(dr[0], datetime(2014, 1, 31))
         self.assertEqual(dr[-1], datetime(2014, 12, 31))
 
+    def test_freq_divides_end_in_nanos(self):
+        # GH 10885
+        result_1 = date_range('2005-01-12 10:00', '2005-01-12 16:00',
+                              freq='345min')
+        result_2 = date_range('2005-01-13 10:00', '2005-01-13 16:00',
+                              freq='345min')
+        expected_1 = DatetimeIndex(['2005-01-12 10:00:00', '2005-01-12 15:45:00'],
+                                   dtype='datetime64[ns]', freq='345T', tz=None)
+        expected_2 = DatetimeIndex(['2005-01-13 10:00:00', '2005-01-13 15:45:00'],
+                                   dtype='datetime64[ns]', freq='345T', tz=None)
+        self.assertTrue(result_1.equals(expected_1))
+        self.assertTrue(result_2.equals(expected_2))
 
 class TestCustomDateRange(tm.TestCase):
 
