@@ -4390,11 +4390,23 @@ def _unconvert_index_legacy(data, kind, legacy=False, encoding=None):
 
 
 def _convert_string_array(data, encoding, itemsize=None):
+    """
+    we take a string-like that is object dtype and coerce to a fixed size string type
+
+    Parameters
+    ----------
+    data : a numpy array of object dtype
+    encoding : None or string-encoding
+    itemsize : integer, optional, defaults to the max length of the strings
+
+    Returns
+    -------
+    data in a fixed-length string dtype, encoded to bytes if needed
+    """
 
     # encode if needed
     if encoding is not None and len(data):
-        f = np.vectorize(lambda x: x.encode(encoding), otypes=[np.object])
-        data = f(data)
+        data = Series(data.ravel()).str.encode(encoding).values.reshape(data.shape)
 
     # create the sized dtype
     if itemsize is None:
@@ -4404,7 +4416,20 @@ def _convert_string_array(data, encoding, itemsize=None):
     return data
 
 def _unconvert_string_array(data, nan_rep=None, encoding=None):
-    """ deserialize a string array, possibly decoding """
+    """
+    inverse of _convert_string_array
+
+    Parameters
+    ----------
+    data : fixed length string dtyped array
+    nan_rep : the storage repr of NaN, optional
+    encoding : the encoding of the data, optional
+
+    Returns
+    -------
+    an object array of the decoded data
+
+    """
     shape = data.shape
     data = np.asarray(data.ravel(), dtype=object)
 
@@ -4413,19 +4438,16 @@ def _unconvert_string_array(data, nan_rep=None, encoding=None):
     encoding = _ensure_encoding(encoding)
     if encoding is not None and len(data):
 
-        try:
-            itemsize = lib.max_len_string_array(com._ensure_object(data.ravel()))
-            if compat.PY3:
-                dtype = "U{0}".format(itemsize)
-            else:
-                dtype = "S{0}".format(itemsize)
-            # fix? issue #10366
-            data = _convert_string_array(data, _ensure_encoding(encoding),
-                    itemsize=itemsize)
+        itemsize = lib.max_len_string_array(com._ensure_object(data))
+        if compat.PY3:
+            dtype = "U{0}".format(itemsize)
+        else:
+            dtype = "S{0}".format(itemsize)
+
+        if isinstance(data[0], compat.binary_type):
+            data = Series(data).str.decode(encoding).values
+        else:
             data = data.astype(dtype, copy=False).astype(object, copy=False)
-        except (Exception) as e:
-            f = np.vectorize(lambda x: x.decode(encoding), otypes=[np.object])
-            data = f(data)
 
     if nan_rep is None:
         nan_rep = 'nan'
