@@ -33,45 +33,22 @@ def _check_google_client_version():
 logger = logging.getLogger('pandas.io.gbq')
 logger.setLevel(logging.ERROR)
 
-class InvalidPageToken(PandasError, IOError):
-    """
-    Raised when Google BigQuery fails to return,
-    or returns a duplicate page token.
-    """
-    pass
 
-class InvalidQueryException(PandasError, IOError):
-    """
-    Raised when a malformed query is given to read_gbq.
-    """
-    pass
-
-class AccessDeniedException(PandasError, IOError):
+class AccessDenied(PandasError, ValueError):
     """
     Raised when invalid credentials are provided, or tokens have expired.
     """
     pass
 
-class NotFoundException(PandasError, IOError):
-    """
-    Raised when the project_id/table provided in the query could not be found.
-    """
-    pass
 
-class TermsOfServiceNotAcceptedException(PandasError, IOError):
-    """
-    Raised when the terms of service were not accepted or have been unaccepted.
-    """
-    pass
-
-class UnknownGBQException(PandasError, IOError):
+class GenericGBQException(PandasError, ValueError):
     """
     Raised when an unrecognized Google API Error occurs.
     """
     pass
 
 
-class InvalidColumnOrder(PandasError, IOError):
+class InvalidColumnOrder(PandasError, ValueError):
     """
     Raised when the provided column order for output
     results DataFrame does not match the schema
@@ -79,23 +56,71 @@ class InvalidColumnOrder(PandasError, IOError):
     """
     pass
 
+
+class InvalidPageToken(PandasError, ValueError):
+    """
+    Raised when Google BigQuery fails to return,
+    or returns a duplicate page token.
+    """
+    pass
+
+
+
+class InvalidSchema(PandasError, ValueError):
+    """
+    Raised when the provided DataFrame does
+    not match the schema of the destination
+    table in BigQuery.
+    """
+    pass
+
+
+class NotFoundException(PandasError, ValueError):
+    """
+    Raised when the project_id, table or dataset provided in the query could not be found.
+    """
+    pass
+
+
+class StreamingInsertError(PandasError, ValueError):
+    """
+    Raised when BigQuery reports a streaming insert error.
+    For more information see `Streaming Data Into BigQuery <https://cloud.google.com/bigquery/streaming-data-into-bigquery>`__
+    """
+
+
+class TableCreationError(PandasError, ValueError):
+    """
+    Raised when the create table method fails
+    """
+    pass
+
+
 class GbqConnector(object):
 
     def __init__(self, project_id, reauth=False):
+        self.test_google_api_imports()
+        self.project_id = project_id
+        self.reauth = reauth
+        self.credentials = self.get_credentials()
+        self.service = self.get_service(self.credentials)
 
-        self.project_id     = project_id
-        self.reauth         = reauth
-        self.credentials    = self.get_credentials()
-        self.service        = self.get_service(self.credentials)
-
-    def get_credentials(self):
+    def test_google_api_imports(self):
         try:
+            import httplib2
+            from apiclient.discovery import build
+            from apiclient.errors import HttpError
+            from oauth2client.client import AccessTokenRefreshError
             from oauth2client.client import OAuth2WebServerFlow
             from oauth2client.file import Storage
             from oauth2client.tools import run_flow, argparser
+        except ImportError as e:
+            raise ImportError("Missing module required for Google BigQuery support: {0}".format(str(e)))
 
-        except ImportError:
-            raise ImportError('Could not import Google API Client.')
+    def get_credentials(self):
+        from oauth2client.client import OAuth2WebServerFlow
+        from oauth2client.file import Storage
+        from oauth2client.tools import run_flow, argparser
 
         _check_google_client_version()
 
@@ -113,17 +138,8 @@ class GbqConnector(object):
         return credentials
 
     def get_service(self, credentials):
-        try:
-            import httplib2
-
-        except ImportError:
-            raise ImportError("pandas requires httplib2 for Google BigQuery support")
-
-        try:
-            from apiclient.discovery import build
-
-        except ImportError:
-            raise ImportError('Could not import Google API Client.')
+        import httplib2
+        from apiclient.discovery import build
 
         _check_google_client_version()
 
@@ -133,13 +149,41 @@ class GbqConnector(object):
 
         return bigquery_service
 
-    def run_query(self, query):
-        try:
-            from apiclient.errors import HttpError
-            from oauth2client.client import AccessTokenRefreshError
+    def process_http_error(self, ex):
+        # See `BigQuery Troubleshooting Errors <https://cloud.google.com/bigquery/troubleshooting-errors>`__
 
-        except ImportError:
-            raise ImportError('Could not import Google API Client.')
+        status = json.loads(ex.content)['error']
+        errors = status.get('errors', None)
+
+        if errors:
+            for error in errors:
+                reason = error['reason']
+                message = error['message']
+
+                raise GenericGBQException("Reason: {0}, Message: {1}".format(reason, message))
+
+        raise GenericGBQException(errors)
+
+    def process_insert_errors(self, insert_errors, verbose):
+        for insert_error in insert_errors:
+            row = insert_error['index']
+            errors = insert_error.get('errors', None)
+            for error in errors:
+                reason = error['reason']
+                message = error['message']
+                error_message = 'Error at Row: {0}, Reason: {1}, Message: {2}'.format(row, reason, message)
+
+                # Report all error messages if verbose is set
+                if verbose:
+                    print(error_message)
+                else:
+                    raise StreamingInsertError(error_message + '\nEnable verbose logging to see all errors')
+
+        raise StreamingInsertError
+
+    def run_query(self, query, verbose=True):
+        from apiclient.errors import HttpError
+        from oauth2client.client import AccessTokenRefreshError
 
         _check_google_client_version()
 
@@ -148,122 +192,201 @@ class GbqConnector(object):
             'configuration': {
                 'query': {
                     'query': query
-                    #'allowLargeResults', 'createDisposition', 'preserveNulls', destinationTable, useQueryCache
+                    # 'allowLargeResults', 'createDisposition', 'preserveNulls', destinationTable, useQueryCache
                 }
             }
         }
 
         try:
-            query_reply = job_collection.insert(projectId=self.project_id,
-                                           body=job_data).execute()
-            status = query_reply['status']
+            query_reply = job_collection.insert(projectId=self.project_id, body=job_data).execute()
         except AccessTokenRefreshError:
-            raise AccessDeniedException("The credentials have been revoked or expired, please re-run"
-                "the application to re-authorize")
+            raise AccessDenied("The credentials have been revoked or expired, please re-run the application "
+                                        "to re-authorize")
         except HttpError as ex:
-            status = json.loads(ex.content)['error']
-
-
-        errors = status.get('errors', None)
-
-        if errors:
-            reasons = [error['reason'] for error in errors]
-            if 'accessDenied' in reasons:
-                raise AccessDeniedException
-            if 'invalidQuery' in reasons:
-                raise InvalidQueryException
-            if 'notFound' in reasons:
-                raise NotFoundException
-            if 'termsOfServiceNotAccepted' in reasons:
-                raise TermsOfServiceNotAcceptedException
-            else:
-                raise UnknownGBQException(errors)
+            self.process_http_error(ex)
 
         job_reference = query_reply['jobReference']
 
-        while(not query_reply.get('jobComplete', False)):
-            print('Job not yet complete...')
-            query_reply = job_collection.getQueryResults(
-                            projectId=job_reference['projectId'],
-                            jobId=job_reference['jobId']).execute()
+        while not query_reply.get('jobComplete', False):
+            if verbose:
+                print('Waiting for job to complete...')
+            try:
+                query_reply = job_collection.getQueryResults(projectId=job_reference['projectId'],
+                                                             jobId=job_reference['jobId']).execute()
+            except HttpError as ex:
+                self.process_http_error(ex)
 
         total_rows = int(query_reply['totalRows'])
         result_pages = list()
         seen_page_tokens = list()
         current_row = 0
-        #Only read schema on first page
+        # Only read schema on first page
         schema = query_reply['schema']
 
         # Loop through each page of data
-        while('rows' in query_reply and current_row < total_rows):
+        while 'rows' in query_reply and current_row < total_rows:
             page = query_reply['rows']
             result_pages.append(page)
             current_row += len(page)
             page_token = query_reply.get('pageToken', None)
 
             if not page_token and current_row < total_rows:
-                raise InvalidPageToken("Required pageToken was missing. Recieved {0} of {1} rows".format(current_row,total_rows))
+                raise InvalidPageToken("Required pageToken was missing. Recieved {0} of {1} rows".format(current_row, total_rows))
 
             elif page_token in seen_page_tokens:
                 raise InvalidPageToken("A duplicate pageToken was returned")
 
             seen_page_tokens.append(page_token)
-            query_reply = job_collection.getQueryResults(
-                            projectId = job_reference['projectId'],
-                            jobId = job_reference['jobId'],
-                            pageToken = page_token).execute()
 
-        if (current_row < total_rows):
+            try:
+                query_reply = job_collection.getQueryResults(
+                                projectId=job_reference['projectId'],
+                                jobId=job_reference['jobId'],
+                                pageToken=page_token).execute()
+            except HttpError as ex:
+                self.process_http_error(ex)
+
+        if current_row < total_rows:
             raise InvalidPageToken()
 
         return schema, result_pages
 
     def load_data(self, dataframe, dataset_id, table_id, chunksize, verbose):
+        from apiclient.errors import HttpError
+
         job_id = uuid.uuid4().hex
         rows = []
         remaining_rows = len(dataframe)
 
         if verbose:
             total_rows = remaining_rows
-            sys.stdout.write("\n\n")
-            sys.stdout.flush()
+            print("\n\n")
 
         for index, row in dataframe.reset_index(drop=True).iterrows():
             row_dict = dict()
-            row_dict['json'] = json.loads(row.to_json(force_ascii = False,
-                                                      date_unit = 's',
-                                                      date_format = 'iso'))
+            row_dict['json'] = json.loads(row.to_json(force_ascii=False,
+                                                      date_unit='s',
+                                                      date_format='iso'))
             row_dict['insertId'] = job_id + str(index)
             rows.append(row_dict)
             remaining_rows -= 1
 
             if (len(rows) % chunksize == 0) or (remaining_rows == 0):
                 if verbose:
-                    sys.stdout.write("\rStreaming Insert is {0}% Complete".format(((total_rows - remaining_rows) * 100) / total_rows))
-                    sys.stdout.flush()
+                    print("\rStreaming Insert is {0}% Complete".format(((total_rows - remaining_rows) * 100) / total_rows))
 
                 body = {'rows': rows}
-                response = self.service.tabledata().insertAll(
-                                                        projectId = self.project_id,
-                                                        datasetId = dataset_id,
-                                                        tableId = table_id,
-                                                        body = body).execute()
-                if 'insertErrors' in response:
-                    raise UnknownGBQException(response)
 
-                sleep(1) # Maintains the inserts "per second" rate per API
+                try:
+                    response = self.service.tabledata().insertAll(
+                                                            projectId = self.project_id,
+                                                            datasetId = dataset_id,
+                                                            tableId = table_id,
+                                                            body = body).execute()
+                except HttpError as ex:
+                    self.process_http_error(ex)
+
+                # For streaming inserts, even if you receive a success HTTP response code, you'll need to check the
+                # insertErrors property of the response to determine if the row insertions were successful, because
+                # it's possible that BigQuery was only partially successful at inserting the rows.
+                # See the `Success HTTP Response Codes <https://cloud.google.com/bigquery/streaming-data-into-bigquery#troubleshooting>`__
+                # section
+
+                insert_errors = response.get('insertErrors', None)
+                if insert_errors:
+                    self.process_insert_errors(insert_errors, verbose)
+
+                sleep(1)  # Maintains the inserts "per second" rate per API
                 rows = []
 
         if verbose:
-            sys.stdout.write("\n")
-            sys.stdout.flush()
+            print("\n")
+
+    def table_exists(self, dataset_id, table_id):
+        from apiclient.errors import HttpError
+
+        try:
+            self.service.tables().get(
+                projectId=self.project_id,
+                datasetId=dataset_id,
+                tableId=table_id).execute()
+            return True
+        except HttpError as ex:
+            if ex.resp.status == 404:
+                return False
+            else:
+                self.process_http_error(ex)
+
+    def verify_schema(self, dataset_id, table_id, schema):
+        from apiclient.errors import HttpError
+
+        try:
+            return (self.service.tables().get(
+                projectId=self.project_id,
+                datasetId=dataset_id,
+                tableId=table_id
+            ).execute()['schema']) == schema
+
+        except HttpError as ex:
+            self.process_http_error(ex)
+
+    def create_table(self, dataset_id, table_id, schema):
+        from apiclient.errors import HttpError
+
+        body = {
+            'schema': schema,
+            'tableReference': {
+                'tableId': table_id,
+                'projectId': self.project_id,
+                'datasetId': dataset_id
+            }
+        }
+
+        try:
+            self.service.tables().insert(
+                projectId=self.project_id,
+                datasetId=dataset_id,
+                body=body
+            ).execute()
+        except HttpError as ex:
+            self.process_http_error(ex)
+
+    def delete_table(self, dataset_id, table_id):
+        from apiclient.errors import HttpError
+
+        try:
+            self.service.tables().delete(
+                datasetId=dataset_id,
+                projectId=self.project_id,
+                tableId=table_id
+            ).execute()
+
+        except HttpError as ex:
+            self.process_http_error(ex)
+
+    def delete_and_recreate_table(self, dataset_id, table_id, table_schema, verbose):
+        delay = 0
+
+        # Changes to table schema may take up to 2 minutes as of May 2015
+        # See `Issue 191 <https://code.google.com/p/google-bigquery/issues/detail?id=191>`__
+        # Compare previous schema with new schema to determine if there should be a 120 second delay
+
+        if not self.verify_schema(dataset_id, table_id, table_schema):
+            if verbose:
+                print('The existing table has a different schema. Please wait 2 minutes. See Google BigQuery issue #191')
+            delay = 120
+
+        self.delete_table(dataset_id, table_id)
+        self.create_table(dataset_id, table_id, table_schema)
+
+        sleep(delay)
+
 
 def _parse_data(schema, rows):
     # see: http://pandas.pydata.org/pandas-docs/dev/missing_data.html#missing-data-casting-rules-and-indexing
     dtype_map = {'INTEGER': np.dtype(float),
                  'FLOAT': np.dtype(float),
-                 'TIMESTAMP': 'M8[ns]'}     # This seems to be buggy without
-                                            # nanosecond indicator
+                 'TIMESTAMP': 'M8[ns]'}     # This seems to be buggy without nanosecond indicator
 
     fields = schema['fields']
     col_types = [field['type'] for field in fields]
@@ -281,6 +404,7 @@ def _parse_data(schema, rows):
 
     return DataFrame(page_array, columns=col_names)
 
+
 def _parse_entry(field_value, field_type):
     if field_value is None or field_value == 'null':
         return None
@@ -294,7 +418,7 @@ def _parse_entry(field_value, field_type):
     return field_value
 
 
-def read_gbq(query, project_id=None, index_col=None, col_order=None, reauth=False):
+def read_gbq(query, project_id=None, index_col=None, col_order=None, reauth=False, verbose=True):
     """Load data from Google BigQuery.
 
     THIS IS AN EXPERIMENTAL LIBRARY
@@ -319,6 +443,8 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None, reauth=Fals
     reauth : boolean (default False)
         Force Google BigQuery to reauthenticate the user. This is useful
         if multiple accounts are used.
+    verbose : boolean (default True)
+        Verbose output
 
     Returns
     -------
@@ -327,12 +453,11 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None, reauth=Fals
 
     """
 
-
     if not project_id:
         raise TypeError("Missing required parameter: project_id")
 
-    connector = GbqConnector(project_id, reauth = reauth)
-    schema, pages = connector.run_query(query)
+    connector = GbqConnector(project_id, reauth=reauth)
+    schema, pages = connector.run_query(query, verbose=verbose)
     dataframe_list = []
     while len(pages) > 0:
         page = pages.pop()
@@ -346,7 +471,7 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None, reauth=Fals
     # Reindex the DataFrame on the provided column
     if index_col is not None:
         if index_col in final_df.columns:
-            final_df.set_index(index_col, inplace = True)
+            final_df.set_index(index_col, inplace=True)
         else:
             raise InvalidColumnOrder(
                 'Index column "{0}" does not exist in DataFrame.'
@@ -368,20 +493,12 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None, reauth=Fals
     final_df._data = final_df._data.downcast(dtypes='infer')
     return final_df
 
-def to_gbq(dataframe, destination_table, project_id=None, chunksize=10000,
-           verbose=True, reauth=False):
+
+def to_gbq(dataframe, destination_table, project_id, chunksize=10000,
+           verbose=True, reauth=False, if_exists='fail'):
     """Write a DataFrame to a Google BigQuery table.
 
     THIS IS AN EXPERIMENTAL LIBRARY
-
-    If the table exists, the dataframe will be written to the table using
-    the defined table schema and column types. For simplicity, this method
-    uses the Google BigQuery streaming API. The to_gbq method chunks data
-    into a default chunk size of 10,000. Failures return the complete error
-    response which can be quite long depending on the size of the insert.
-    There are several important limitations of the Google streaming API
-    which are detailed at:
-    https://developers.google.com/bigquery/streaming-data-into-bigquery.
 
     Parameters
     ----------
@@ -398,22 +515,41 @@ def to_gbq(dataframe, destination_table, project_id=None, chunksize=10000,
     reauth : boolean (default False)
         Force Google BigQuery to reauthenticate the user. This is useful
         if multiple accounts are used.
-
+    if_exists : {'fail', 'replace', 'append'}, default 'fail'
+        'fail': If table exists, do nothing.
+        'replace': If table exists, drop it, recreate it, and insert data.
+        'append': If table exists, insert data. Create if does not exist.
     """
 
-    if not project_id:
-        raise TypeError("Missing required parameter: project_id")
+    if if_exists not in ('fail', 'replace', 'append'):
+        raise ValueError("'{0}' is not valid for if_exists".format(if_exists))
 
-    if not '.' in destination_table:
+    if '.' not in destination_table:
         raise NotFoundException("Invalid Table Name. Should be of the form 'datasetId.tableId' ")
 
-    connector = GbqConnector(project_id, reauth = reauth)
-    dataset_id, table_id = destination_table.rsplit('.',1)
+    connector = GbqConnector(project_id, reauth=reauth)
+    dataset_id, table_id = destination_table.rsplit('.', 1)
+
+    table_schema = generate_bq_schema(dataframe)
+
+    # If table exists, check if_exists parameter
+    if connector.table_exists(dataset_id, table_id):
+        if if_exists == 'fail':
+            raise TableCreationError("Could not create the table because it already exists. "
+                                     "Change the if_exists parameter to append or replace data.")
+        elif if_exists == 'replace':
+            connector.delete_and_recreate_table(dataset_id, table_id, table_schema, verbose)
+        elif if_exists == 'append':
+            if not connector.verify_schema(dataset_id, table_id, table_schema):
+                raise InvalidSchema("The schema of the destination table does not match")
+    else:
+        connector.create_table(dataset_id, table_id, table_schema)
 
     connector.load_data(dataframe, dataset_id, table_id, chunksize, verbose)
 
+
 def generate_bq_schema(df, default_type='STRING'):
-    """ Given a passed df, generate the associated big query schema.
+    """ Given a passed df, generate the associated Google BigQuery schema.
 
     Parameters
     ----------
@@ -439,3 +575,76 @@ def generate_bq_schema(df, default_type='STRING'):
                        'type': type_mapping.get(dtype.kind, default_type)})
 
     return {'fields': fields}
+
+
+def table_exists(table, project_id):
+    """ Check if a table exists in Google BigQuery given a table and project id
+
+    .. versionadded:: 0.17.0
+
+    Parameters
+    ----------
+    table : str
+        Name of table to be verified, in the form 'dataset.tablename'
+    project_id : str
+        Google BigQuery Account project ID.
+
+    Returns
+    -------
+    boolean
+        true if table exists, otherwise false
+    """
+
+    if '.' not in table:
+        raise NotFoundException("Invalid Table Name. Should be of the form 'datasetId.tableId' ")
+
+    connector = GbqConnector(project_id)
+    dataset_id, table_id = table.rsplit('.', 1)
+
+    return connector.table_exists(dataset_id, table_id)
+
+
+def create_table(table, schema, project_id):
+    """ Create a table in Google BigQuery given a table, schema and project id
+
+    .. versionadded:: 0.17.0
+
+    Parameters
+    ----------
+    table : str
+        Name of table to be written, in the form 'dataset.tablename'
+    schema : str
+        Use the generate_bq_schema to generate your table schema from a dataframe.
+    project_id : str
+        Google BigQuery Account project ID.
+    """
+
+    if table_exists(table, project_id):
+        raise TableCreationError("The table could not be created because it already exists")
+
+    connector = GbqConnector(project_id)
+    dataset_id, table_id = table.rsplit('.', 1)
+
+    return connector.create_table(dataset_id, table_id, schema)
+
+
+def delete_table(table, project_id):
+    """ Delete a table in Google BigQuery given a table and project id
+
+    .. versionadded:: 0.17.0
+
+    Parameters
+    ----------
+    table : str
+        Name of table to be written, in the form 'dataset.tablename'
+    project_id : str
+        Google BigQuery Account project ID.
+    """
+
+    if not table_exists(table, project_id):
+        raise NotFoundException("Table does not exist")
+
+    connector = GbqConnector(project_id)
+    dataset_id, table_id = table.rsplit('.', 1)
+
+    return connector.delete_table(dataset_id, table_id)

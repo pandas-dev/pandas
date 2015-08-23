@@ -3951,14 +3951,35 @@ The :mod:`pandas.io.gbq` module provides a wrapper for Google's BigQuery
 analytics web service to simplify retrieving results from BigQuery tables
 using SQL-like queries. Result sets are parsed into a pandas
 DataFrame with a shape and data types derived from the source table.
-Additionally, DataFrames can be appended to existing BigQuery tables if
-the destination table is the same shape as the DataFrame.
+Additionally, DataFrames can be inserted into new BigQuery tables or appended
+to existing tables.
 
-For specifics on the service itself, see `here <https://developers.google.com/bigquery/>`__
+.. warning::
 
-As an example, suppose you want to load all data from an existing BigQuery
-table : `test_dataset.test_table` into a DataFrame using the :func:`~pandas.io.read_gbq`
-function.
+   To use this module, you will need a valid BigQuery account. Refer to the
+   `BigQuery Documentation <https://developers.google.com/bigquery/>`__ for details on the service itself.
+
+The key functions are:
+
+.. currentmodule:: pandas.io.gbq
+
+.. autosummary::
+    :toctree: generated/
+
+    read_gbq
+    to_gbq
+    generate_bq_schema
+    create_table
+    delete_table
+    table_exists
+
+.. currentmodule:: pandas
+
+Querying
+''''''''
+
+Suppose you want to load all data from an existing BigQuery table : `test_dataset.test_table`
+into a DataFrame using the :func:`~pandas.io.gbq.read_gbq` function.
 
 .. code-block:: python
 
@@ -3966,14 +3987,14 @@ function.
    # Can be found in the Google web console
    projectid = "xxxxxxxx"
 
-   data_frame = pd.read_gbq('SELECT * FROM test_dataset.test_table', project_id = projectid)
+   data_frame = pd.read_gbq('SELECT * FROM test_dataset.test_table', projectid)
 
 You will then be authenticated to the specified BigQuery account
 via Google's Oauth2 mechanism. In general, this is as simple as following the
 prompts in a browser window which will be opened for you. Should the browser not
 be available, or fail to launch, a code will be provided to complete the process
 manually.  Additional information on the authentication mechanism can be found
-`here <https://developers.google.com/accounts/docs/OAuth2#clientside/>`__
+`here <https://developers.google.com/accounts/docs/OAuth2#clientside/>`__.
 
 You can define which column from BigQuery to use as an index in the
 destination DataFrame as well as a preferred column order as follows:
@@ -3982,56 +4003,167 @@ destination DataFrame as well as a preferred column order as follows:
 
    data_frame = pd.read_gbq('SELECT * FROM test_dataset.test_table',
                              index_col='index_column_name',
-                             col_order=['col1', 'col2', 'col3'], project_id = projectid)
+                             col_order=['col1', 'col2', 'col3'], projectid)
 
-Finally, you can append data to a BigQuery table from a pandas DataFrame
-using the :func:`~pandas.io.to_gbq` function. This function uses the
-Google streaming API which requires that your destination table exists in
-BigQuery. Given the BigQuery table already exists, your DataFrame should
-match the destination table in column order, structure, and data types.
-DataFrame indexes are not supported. By default, rows are streamed to
-BigQuery in chunks of 10,000 rows, but you can pass other chuck values
-via the ``chunksize`` argument. You can also see the progess of your
-post via the ``verbose`` flag which defaults to ``True``. The http
-response code of Google BigQuery can be successful (200) even if the
-append failed. For this reason, if there is a failure to append to the
-table, the complete error response from BigQuery is returned which
-can be quite long given it provides a status for each row. You may want
-to start with smaller chunks to test that the size and types of your
-dataframe match your destination table to make debugging simpler.
+.. note::
 
-.. code-block:: python
+   You can find your project id in the `BigQuery management console <https://code.google.com/apis/console/b/0/?noredirect>`__.
 
-   df = pandas.DataFrame({'string_col_name' : ['hello'],
-         'integer_col_name' : [1],
-         'boolean_col_name' : [True]})
-   df.to_gbq('my_dataset.my_table', project_id = projectid)
 
-The BigQuery SQL query language has some oddities, see `here <https://developers.google.com/bigquery/query-reference>`__
+.. note::
 
-While BigQuery uses SQL-like syntax, it has some important differences
-from traditional databases both in functionality, API limitations (size and
-quantity of queries or uploads), and how Google charges for use of the service.
-You should refer to Google documentation often as the service seems to
-be changing and evolving. BiqQuery is best for analyzing large sets of
-data quickly, but it is not a direct replacement for a transactional database.
+   You can toggle the verbose output via the ``verbose`` flag which defaults to ``True``.
 
-You can access the management console to determine project id's by:
-<https://code.google.com/apis/console/b/0/?noredirect>
+Writing DataFrames
+''''''''''''''''''
 
-As of 0.15.2, the gbq module has a function ``generate_bq_schema`` which
-will produce the dictionary representation of the schema.
+Assume we want to write a DataFrame ``df`` into a BigQuery table using :func:`~pandas.DataFrame.to_gbq`.
+
+.. ipython:: python
+
+   df = pd.DataFrame({'my_string': list('abc'),
+                      'my_int64': list(range(1, 4)),
+                      'my_float64': np.arange(4.0, 7.0),
+                      'my_bool1': [True, False, True],
+                      'my_bool2': [False, True, False],
+                      'my_dates': pd.date_range('now', periods=3)})
+
+   df
+   df.dtypes
 
 .. code-block:: python
 
-   df = pandas.DataFrame({'A': [1.0]})
-   gbq.generate_bq_schema(df, default_type='STRING')
+   df.to_gbq('my_dataset.my_table', projectid)
 
-.. warning::
+.. note::
 
-   To use this module, you will need a valid BigQuery account. See
-   <https://cloud.google.com/products/big-query> for details on the
-   service.
+   If the destination table does not exist, a new table will be created. The
+   destination dataset id must already exist in order for a new table to be created.
+
+The ``if_exists`` argument can be used to dictate whether to ``'fail'``, ``'replace'``
+or ``'append'`` if the destination table already exists. The default value is ``'fail'``.
+
+For example, assume that ``if_exists`` is set to ``'fail'``. The following snippet will raise
+a ``TableCreationError`` if the destination table already exists.
+
+.. code-block:: python
+
+   df.to_gbq('my_dataset.my_table', projectid, if_exists='fail')
+
+.. note::
+
+   If the ``if_exists`` argument is set to ``'append'``, the destination dataframe will
+   be written to the table using the defined table schema and column types. The
+   dataframe must match the destination table in column order, structure, and
+   data types.
+   If the ``if_exists`` argument is set to ``'replace'``, and the existing table has a
+   different schema, a delay of 2 minutes will be forced to ensure that the new schema
+   has propagated in the Google environment. See
+   `Google BigQuery issue 191 <https://code.google.com/p/google-bigquery/issues/detail?id=191>`__.
+
+Writing large DataFrames can result in errors due to size limitations being exceeded.
+This can be avoided by setting the ``chunksize`` argument when calling :func:`~pandas.DataFrame.to_gbq`.
+For example, the following writes ``df`` to a BigQuery table in batches of 10000 rows at a time:
+
+.. code-block:: python
+
+   df.to_gbq('my_dataset.my_table', projectid, chunksize=10000)
+
+You can also see the progress of your post via the ``verbose`` flag which defaults to ``True``.
+For example:
+
+.. code-block:: python
+
+   In [8]: df.to_gbq('my_dataset.my_table', projectid, chunksize=10000, verbose=True)
+
+           Streaming Insert is 10% Complete
+           Streaming Insert is 20% Complete
+           Streaming Insert is 30% Complete
+           Streaming Insert is 40% Complete
+           Streaming Insert is 50% Complete
+           Streaming Insert is 60% Complete
+           Streaming Insert is 70% Complete
+           Streaming Insert is 80% Complete
+           Streaming Insert is 90% Complete
+           Streaming Insert is 100% Complete
+
+.. note::
+
+   If an error occurs while streaming data to BigQuery, see
+   `Troubleshooting BigQuery Errors <https://cloud.google.com/bigquery/troubleshooting-errors>`__.
+
+.. note::
+
+   The BigQuery SQL query language has some oddities, see the
+   `BigQuery Query Reference Documentation <https://developers.google.com/bigquery/query-reference>`__.
+
+.. note::
+
+   While BigQuery uses SQL-like syntax, it has some important differences from traditional
+   databases both in functionality, API limitations (size and quantity of queries or uploads),
+   and how Google charges for use of the service. You should refer to `Google BigQuery documentation <https://developers.google.com/bigquery/>`__
+   often as the service seems to be changing and evolving. BiqQuery is best for analyzing large
+   sets of data quickly, but it is not a direct replacement for a transactional database.
+
+
+Creating BigQuery Tables
+''''''''''''''''''''''''
+
+As of 0.17.0, the gbq module has a function :func:`~pandas.io.gbq.create_table` which allows users
+to create a table in BigQuery. The only requirement is that the dataset must already exist.
+The schema may be generated from a pandas DataFrame using the :func:`~pandas.io.gbq.generate_bq_schema` function below.
+
+For example:
+
+.. code-block:: python
+
+   gbq.create_table('my_dataset.my_table', schema, projectid)
+
+As of 0.15.2, the gbq module has a function :func:`~pandas.io.gbq.generate_bq_schema` which will
+produce the dictionary representation schema of the specified pandas DataFrame.
+
+.. code-block:: python
+
+   In [10]: gbq.generate_bq_schema(df, default_type='STRING')
+
+   Out[10]: {'fields': [{'name': 'my_bool1', 'type': 'BOOLEAN'},
+            {'name': 'my_bool2', 'type': 'BOOLEAN'},
+            {'name': 'my_dates', 'type': 'TIMESTAMP'},
+            {'name': 'my_float64', 'type': 'FLOAT'},
+            {'name': 'my_int64', 'type': 'INTEGER'},
+            {'name': 'my_string', 'type': 'STRING'}]}
+
+Deleting BigQuery Tables
+''''''''''''''''''''''''
+
+As of 0.17.0, the gbq module has a function :func:`~pandas.io.gbq.delete_table` which allows users to delete a table
+in Google BigQuery.
+
+For example:
+
+.. code-block:: python
+
+   gbq.delete_table('my_dataset.my_table', projectid)
+
+The following function can be used to check whether a table exists prior to calling ``table_exists``:
+
+:func:`~pandas.io.gbq.table_exists`.
+
+The return value will be of type boolean.
+
+For example:
+
+.. code-block:: python
+
+   In [12]: gbq.table_exists('my_dataset.my_table', projectid)
+   Out[12]: True
+
+.. note::
+
+   If you delete and re-create a BigQuery table with the same name, but different table schema,
+   you must wait 2 minutes before streaming data into the table. As a workaround, consider creating
+   the new table with a different name. Refer to
+   `Google BigQuery issue 191 <https://code.google.com/p/google-bigquery/issues/detail?id=191>`__.
 
 .. _io.stata:
 

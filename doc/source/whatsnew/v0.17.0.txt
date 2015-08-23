@@ -319,6 +319,15 @@ has been changed to make this keyword unnecessary - the change is shown below.
    Excel files saved in version 0.16.2 or prior that had index names will still able to be read in,
    but the ``has_index_names`` argument must specified to ``True``.
 
+.. _whatsnew_0170.gbq:
+
+Google BigQuery Enhancements
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+- Added ability to automatically create a table using the :func:`pandas.io.gbq.to_gbq` function if destination table does not exist. (:issue:`8325`).
+- Added ability to replace an existing table and schema when calling the :func:`pandas.io.gbq.to_gbq` function via the ``if_exists`` argument. See the :ref:`docs <io.bigquery>` for more details (:issue:`8325`).
+- Added the following functions to the gbq module: :func:`pandas.io.gbq.table_exists`, :func:`pandas.io.gbq.create_table`, and :func:`pandas.io.gbq.delete_table`. See the :ref:`docs <io.bigquery>` for more details (:issue:`8325`).
+- ``InvalidColumnOrder`` and ``InvalidPageToken`` in the gbq module will raise ``ValueError`` instead of ``IOError``.
+
 .. _whatsnew_0170.enhancements.other:
 
 Other enhancements
