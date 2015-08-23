@@ -5385,10 +5385,10 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         self.assertRaises(ValueError, ps.shift, freq='D')
 
         # legacy support
-        shifted4 = ps.shift(1, timeRule='B')
+        shifted4 = ps.shift(1, freq='B')
         assert_series_equal(shifted2, shifted4)
 
-        shifted5 = ps.shift(1, offset=datetools.bday)
+        shifted5 = ps.shift(1, freq=datetools.bday)
         assert_series_equal(shifted5, shifted4)
 
         # 32-bit taking

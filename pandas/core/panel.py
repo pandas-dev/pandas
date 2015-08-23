@@ -1210,8 +1210,8 @@ class Panel(NDFrame):
 
         return super(Panel, self).slice_shift(periods, axis=axis)
 
-    def tshift(self, periods=1, freq=None, axis='major', **kwds):
-        return super(Panel, self).tshift(periods, freq, axis, **kwds)
+    def tshift(self, periods=1, freq=None, axis='major'):
+        return super(Panel, self).tshift(periods, freq, axis)
 
     def join(self, other, how='left', lsuffix='', rsuffix=''):
         """
