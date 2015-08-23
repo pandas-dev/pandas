@@ -705,6 +705,13 @@ Removal of prior version deprecations/changes
 
       df.add(df.A,axis='index')
 
+
+
+
+- Remove the ``table`` keyword in ``HDFStore.put/append``, in favor of using ``format=`` (:issue:`4645`)
+
+
+
 .. _whatsnew_0170.performance:
 
 Performance Improvements
