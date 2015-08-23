@@ -137,12 +137,10 @@ class TestReadHtml(tm.TestCase, ReadHtmlMixin):
         assert_framelist_equal(df1, df2)
 
     def test_spam_no_types(self):
-        with tm.assert_produces_warning(FutureWarning):
-            df1 = self.read_html(self.spam_data, '.*Water.*',
-                                 infer_types=False)
-        with tm.assert_produces_warning(FutureWarning):
-            df2 = self.read_html(self.spam_data, 'Unit', infer_types=False)
 
+        # infer_types removed in #10892
+        df1 = self.read_html(self.spam_data, '.*Water.*')
+        df2 = self.read_html(self.spam_data, 'Unit')
         assert_framelist_equal(df1, df2)
 
         self.assertEqual(df1[0].ix[0, 0], 'Proximates')
@@ -230,12 +228,9 @@ class TestReadHtml(tm.TestCase, ReadHtmlMixin):
         assert_framelist_equal(df1, df2)
 
     def test_header_and_index_no_types(self):
-        with tm.assert_produces_warning(FutureWarning):
-            df1 = self.read_html(self.spam_data, '.*Water.*', header=1,
-                                 index_col=0, infer_types=False)
-        with tm.assert_produces_warning(FutureWarning):
-            df2 = self.read_html(self.spam_data, 'Unit', header=1, index_col=0,
-                                 infer_types=False)
+        df1 = self.read_html(self.spam_data, '.*Water.*', header=1,
+                             index_col=0)
+        df2 = self.read_html(self.spam_data, 'Unit', header=1, index_col=0)
         assert_framelist_equal(df1, df2)
 
     def test_header_and_index_with_types(self):
@@ -245,18 +240,10 @@ class TestReadHtml(tm.TestCase, ReadHtmlMixin):
         assert_framelist_equal(df1, df2)
 
     def test_infer_types(self):
-        with tm.assert_produces_warning(FutureWarning):
-            df1 = self.read_html(self.spam_data, '.*Water.*', index_col=0,
-                                 infer_types=False)
-        with tm.assert_produces_warning(FutureWarning):
-            df2 = self.read_html(self.spam_data, 'Unit', index_col=0,
-                                 infer_types=False)
-        assert_framelist_equal(df1, df2)
 
-        with tm.assert_produces_warning(FutureWarning):
-            df2 = self.read_html(self.spam_data, 'Unit', index_col=0,
-                                 infer_types=True)
-
+        # 10892 infer_types removed
+        df1 = self.read_html(self.spam_data, '.*Water.*', index_col=0)
+        df2 = self.read_html(self.spam_data, 'Unit', index_col=0)
         assert_framelist_equal(df1, df2)
 
     def test_string_io(self):
@@ -641,8 +628,7 @@ class TestReadHtml(tm.TestCase, ReadHtmlMixin):
         with tm.assertRaisesRegexp(CParserError, r"Passed header=\[0,1\] are "
                                    "too many rows for this multi_index "
                                    "of columns"):
-            with tm.assert_produces_warning(FutureWarning):
-                self.read_html(data, infer_types=False, header=[0, 1])
+            self.read_html(data, header=[0, 1])
 
     def test_wikipedia_states_table(self):
         data = os.path.join(DATA_PATH, 'wikipedia_states.html')
@@ -751,8 +737,7 @@ class TestReadHtmlLxml(tm.TestCase, ReadHtmlMixin):
 
     def test_computer_sales_page(self):
         data = os.path.join(DATA_PATH, 'computer_sales_page.html')
-        with tm.assert_produces_warning(FutureWarning):
-            self.read_html(data, infer_types=False, header=[0, 1])
+        self.read_html(data, header=[0, 1])
 
 
 def test_invalid_flavor():
