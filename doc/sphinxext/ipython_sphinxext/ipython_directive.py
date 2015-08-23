@@ -127,7 +127,11 @@ from docutils import nodes
 from sphinx.util.compat import Directive
 
 # Our own
-from IPython import Config, InteractiveShell
+try:
+    from traitlets.config import Config
+except ImportError:
+    from IPython import Config
+from IPython import InteractiveShell
 from IPython.core.profiledir import ProfileDir
 from IPython.utils import io
 from IPython.utils.py3compat import PY3
