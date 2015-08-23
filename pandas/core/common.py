@@ -3313,46 +3313,6 @@ def console_encode(object, **kwds):
     return pprint_thing_encoded(object,
                                 get_option("display.encoding"))
 
-
-def load(path):  # TODO remove in 0.13
-    """
-    Load pickled pandas object (or any other pickled object) from the specified
-    file path
-
-    Warning: Loading pickled data received from untrusted sources can be
-    unsafe. See: http://docs.python.org/2.7/library/pickle.html
-
-    Parameters
-    ----------
-    path : string
-        File path
-
-    Returns
-    -------
-    unpickled : type of object stored in file
-    """
-    import warnings
-    warnings.warn("load is deprecated, use read_pickle", FutureWarning)
-    from pandas.io.pickle import read_pickle
-    return read_pickle(path)
-
-
-def save(obj, path):  # TODO remove in 0.13
-    """
-    Pickle (serialize) object to input file path
-
-    Parameters
-    ----------
-    obj : any object
-    path : string
-        File path
-    """
-    import warnings
-    warnings.warn("save is deprecated, use obj.to_pickle", FutureWarning)
-    from pandas.io.pickle import to_pickle
-    return to_pickle(obj, path)
-
-
 def _maybe_match_name(a, b):
     a_has = hasattr(a, 'name')
     b_has = hasattr(b, 'name')
