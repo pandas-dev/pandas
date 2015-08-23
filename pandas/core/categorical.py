@@ -1046,7 +1046,7 @@ class Categorical(PandasObject):
         ix = Categorical(ix, categories=cat,
                 ordered=obj.ordered, fastpath=True)
 
-        return Series(count, index=CategoricalIndex(ix))
+        return Series(count, index=CategoricalIndex(ix), dtype='int64')
 
     def get_values(self):
         """ Return the values.
