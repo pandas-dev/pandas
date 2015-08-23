@@ -1006,20 +1006,6 @@ class NDFrame(PandasObject):
         from pandas.io.pickle import to_pickle
         return to_pickle(self, path)
 
-    def save(self, path):  # TODO remove in 0.14
-        "Deprecated. Use to_pickle instead"
-        import warnings
-        from pandas.io.pickle import to_pickle
-        warnings.warn("save is deprecated, use to_pickle", FutureWarning)
-        return to_pickle(self, path)
-
-    def load(self, path):  # TODO remove in 0.14
-        "Deprecated. Use read_pickle instead."
-        import warnings
-        from pandas.io.pickle import read_pickle
-        warnings.warn("load is deprecated, use pd.read_pickle", FutureWarning)
-        return read_pickle(path)
-
     def to_clipboard(self, excel=None, sep=None, **kwargs):
         """
         Attempt to write text representation of object to the system clipboard
