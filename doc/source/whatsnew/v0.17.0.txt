@@ -665,6 +665,7 @@ Deprecations
   ``DataFrame.add(other, fill_value=0)`` and ``DataFrame.mul(other, fill_value=1.)``
   (:issue:`10735`).
 - ``TimeSeries`` deprecated in favor of ``Series`` (note that this has been alias since 0.13.0), (:issue:`10890`)
+- ``WidePanel`` deprecated in favor of ``Panel``, ``LongPanel`` in favor of ``DataFrame`` (note these have been aliases since < 0.11.0), (:issue:`10892`)
 
 .. _whatsnew_0170.prior_deprecations:
 

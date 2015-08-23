@@ -12,13 +12,11 @@ from pandas.core.index import Index, CategoricalIndex, Int64Index, Float64Index,
 
 from pandas.core.series import Series, TimeSeries
 from pandas.core.frame import DataFrame
-from pandas.core.panel import Panel
+from pandas.core.panel import Panel, WidePanel
 from pandas.core.panel4d import Panel4D
 from pandas.core.groupby import groupby
 from pandas.core.reshape import (pivot_simple as pivot, get_dummies,
                                  lreshape, wide_to_long)
-
-WidePanel = Panel
 
 from pandas.core.indexing import IndexSlice
 from pandas.tseries.offsets import DateOffset
