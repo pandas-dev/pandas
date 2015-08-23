@@ -711,7 +711,7 @@ Removal of prior version deprecations/changes
 - Remove ``table`` keyword in ``HDFStore.put/append``, in favor of using ``format=`` (:issue:`4645`)
 - Remove ``kind`` in ``read_excel/ExcelFile`` as its unused (:issue:`4712`)
 - Remove ``infer_type`` keyword from ``pd.read_html`` as its unused (:issue:`4770`, :issue:`7032`)
-
+- Remove ``offset`` and ``timeRule`` keywords from ``Series.tshift/shift``, in favor of ``freq`` (:issue:`4853`, :issue:`4864`)
 
 .. _whatsnew_0170.performance:
 
