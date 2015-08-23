@@ -12837,6 +12837,12 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
                              index=[0.5], columns=[0, 1])
         assert_frame_equal(result, expected)
 
+    def test_quantile_invalid(self):
+        msg = 'percentiles should all be in the interval \\[0, 1\\]'
+        for invalid in [-1, 2, [0.5, -1], [0.5, 2]]:
+            with tm.assertRaisesRegexp(ValueError, msg):
+                self.tsframe.quantile(invalid)
+
     def test_cumsum(self):
         self.tsframe.ix[5:10, 0] = nan
         self.tsframe.ix[10:15, 1] = nan

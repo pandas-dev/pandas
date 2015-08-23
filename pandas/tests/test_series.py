@@ -2854,6 +2854,11 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         result = Series([np.timedelta64('NaT')]).sum()
         self.assertTrue(result is pd.NaT)
 
+        msg = 'percentiles should all be in the interval \\[0, 1\\]'
+        for invalid in [-1, 2, [0.5, -1], [0.5, 2]]:
+            with tm.assertRaisesRegexp(ValueError, msg):
+                self.ts.quantile(invalid)
+
     def test_quantile_multi(self):
         from numpy import percentile
 
@@ -2861,14 +2866,20 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         result = self.ts.quantile(qs)
         expected = pd.Series([percentile(self.ts.valid(), 10),
                               percentile(self.ts.valid(), 90)],
-                             index=qs)
+                             index=qs, name=self.ts.name)
         assert_series_equal(result, expected)
 
         dts = self.ts.index.to_series()
+        dts.name = 'xxx'
         result = dts.quantile((.2, .2))
-        assert_series_equal(result, Series([Timestamp('2000-01-10 19:12:00'),
-                                            Timestamp('2000-01-10 19:12:00')],
-                                           index=[.2, .2]))
+        expected = Series([Timestamp('2000-01-10 19:12:00'),
+                           Timestamp('2000-01-10 19:12:00')],
+                          index=[.2, .2], name='xxx')
+        assert_series_equal(result, expected)
+
+        result = self.ts.quantile([])
+        expected = pd.Series([], name=self.ts.name)
+        assert_series_equal(result, expected)
 
     def test_append(self):
         appendedSeries = self.series.append(self.objSeries)

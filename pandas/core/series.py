@@ -1266,11 +1266,12 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         dtype: float64
         """
         valid = self.dropna()
+        self._check_percentile(q)
 
         def multi(values, qs):
             if com.is_list_like(qs):
-                return Series([_quantile(values, x*100)
-                               for x in qs], index=qs)
+                values = [_quantile(values, x*100) for x in qs]
+                return self._constructor(values, index=qs, name=self.name)
             else:
                 return _quantile(values, qs*100)
 
