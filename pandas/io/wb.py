@@ -9,10 +9,20 @@ import pandas
 import numpy as np
 import warnings
 
+warnings.warn("\n"
+              "The pandas.io.wb module is moved to a separate package "
+              "(pandas-datareader) and will be removed from pandas in a "
+              "future version.\nAfter installing the pandas-datareader package "
+              "(https://github.com/pydata/pandas-datareader), you can change "
+              "the import ``from pandas.io import data, wb`` to "
+              "``from pandas_datareader import data, wb``.",
+              FutureWarning)
+
+
 # This list of country codes was pulled from wikipedia during October 2014.
 # While some exceptions do exist, it is the best proxy for countries supported
-# by World Bank.  It is an aggregation of the 2-digit ISO 3166-1 alpha-2, and 
-# 3-digit ISO 3166-1 alpha-3, codes, with 'all', 'ALL', and 'All' appended ot 
+# by World Bank.  It is an aggregation of the 2-digit ISO 3166-1 alpha-2, and
+# 3-digit ISO 3166-1 alpha-3, codes, with 'all', 'ALL', and 'All' appended ot
 # the end.
 
 country_codes = ['AD', 'AE', 'AF', 'AG', 'AI', 'AL', 'AM', 'AO', 'AQ', 'AR', \
@@ -83,35 +93,35 @@ def download(country=['MX', 'CA', 'US'], indicator=['NY.GDP.MKTP.CD', 'NY.GNS.IC
 
     indicator: string or list of strings
         taken from the ``id`` field in ``WDIsearch()``
-        
+
     country: string or list of strings.
         ``all`` downloads data for all countries
         2 or 3 character ISO country codes select individual
         countries (e.g.``US``,``CA``) or (e.g.``USA``,``CAN``).  The codes
         can be mixed.
-            
+
         The two ISO lists of countries, provided by wikipedia, are hardcoded
         into pandas as of 11/10/2014.
-        
+
     start: int
         First year of the data series
-        
+
     end: int
         Last year of the data series (inclusive)
-    
+
     errors: str {'ignore', 'warn', 'raise'}, default 'warn'
         Country codes are validated against a hardcoded list.  This controls
         the outcome of that validation, and attempts to also apply
         to the results from world bank.
-        
+
         errors='raise', will raise a ValueError on a bad country code.
-    
+
     Returns
     -------
 
-    ``pandas`` DataFrame with columns: country, iso_code, year, 
+    ``pandas`` DataFrame with columns: country, iso_code, year,
     indicator value.
-    
+
     """
 
     if type(country) == str:
@@ -130,7 +140,7 @@ def download(country=['MX', 'CA', 'US'], indicator=['NY.GDP.MKTP.CD', 'NY.GNS.IC
     # Work with a list of indicators
     if type(indicator) == str:
         indicator = [indicator]
-        
+
     # Download
     data = []
     bad_indicators = {}
@@ -165,12 +175,12 @@ def download(country=['MX', 'CA', 'US'], indicator=['NY.GDP.MKTP.CD', 'NY.GNS.IC
 
 def _get_data(indicator="NY.GNS.ICTR.GN.ZS", country='US',
               start=2002, end=2005):
-    
+
     if type(country) == str:
         country = [country]
-    
+
     countries = ';'.join(country)
-        
+
     # Build URL for api call
     url = ("http://api.worldbank.org/countries/" + countries + "/indicators/" +
            indicator + "?date=" + str(start) + ":" + str(end) +
@@ -195,11 +205,11 @@ def _get_data(indicator="NY.GNS.ICTR.GN.ZS", country='US',
                 wb_err += msg['value']
         error_msg = "Problem with a World Bank Query \n %s"
         return None, error_msg % wb_err
-    
+
     if 'total' in possible_message.keys():
         if possible_message['total'] == 0:
             return None, "No results from world bank."
-            
+
     # Parse JSON file
     data = json.loads(data)[1]
     country = [x['country']['value'] for x in data]
@@ -296,4 +306,3 @@ def search(string='gdp.*capi', field='name', case=False):
     idx = data.str.contains(string, case=case)
     out = _cached_series.ix[idx].dropna()
     return out
-
