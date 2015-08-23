@@ -3570,7 +3570,7 @@ class TestGroupBy(tm.TestCase):
 
         levels = ['foo', 'bar', 'baz', 'qux']
         codes = np.random.randint(0, 4, size=20)
-        cats = Categorical.from_codes(codes, levels, name='myfactor', ordered=True)
+        cats = Categorical.from_codes(codes, levels, ordered=True)
         df = DataFrame(np.repeat(np.arange(20),4).reshape(-1,4), columns=list('abcd'))
         df['cats'] = cats
 
