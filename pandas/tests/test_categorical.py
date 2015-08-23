@@ -1207,6 +1207,8 @@ class TestCategorical(tm.TestCase):
         self.assertFalse(LooseVersion(pd.__version__) >= '0.18')
 
     def test_removed_names_produces_warning(self):
+
+        # 10482
         with tm.assert_produces_warning(UserWarning):
             Categorical([0,1], name="a")
 
@@ -3580,9 +3582,13 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
         self.assertFalse(hasattr(invalid, 'cat'))
 
     def test_pickle_v0_14_1(self):
-        cat = pd.Categorical(values=['a', 'b', 'c'],
-                             categories=['a', 'b', 'c', 'd'],
-                             name='foobar', ordered=False)
+
+        # we have the name warning
+        # 10482
+        with tm.assert_produces_warning(UserWarning):
+            cat = pd.Categorical(values=['a', 'b', 'c'],
+                                 categories=['a', 'b', 'c', 'd'],
+                                 name='foobar', ordered=False)
         pickle_path = os.path.join(tm.get_data_path(),
                                    'categorical_0_14_1.pickle')
         # This code was executed once on v0.14.1 to generate the pickle:
@@ -3597,9 +3603,12 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
         # ordered -> _ordered
         # GH 9347
 
-        cat = pd.Categorical(values=['a', 'b', 'c'],
-                             categories=['a', 'b', 'c', 'd'],
-                             name='foobar', ordered=False)
+        # we have the name warning
+        # 10482
+        with tm.assert_produces_warning(UserWarning):
+            cat = pd.Categorical(values=['a', 'b', 'c'],
+                                 categories=['a', 'b', 'c', 'd'],
+                                 name='foobar', ordered=False)
         pickle_path = os.path.join(tm.get_data_path(),
                                    'categorical_0_15_2.pickle')
         # This code was executed once on v0.15.2 to generate the pickle:
