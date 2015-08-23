@@ -85,19 +85,19 @@ Support strftime for Datetimelikes
 
 We are now supporting a ``Series.dt.strftime`` method for datetime-likes to generate a formatted string (:issue:`10110`). Examples:
 
-  .. ipython:: python
+.. ipython:: python
 
-     # DatetimeIndex
-     s = pd.Series(pd.date_range('20130101', periods=4))
-     s
-     s.dt.strftime('%Y/%m/%d')
+   # DatetimeIndex
+   s = pd.Series(pd.date_range('20130101', periods=4))
+   s
+   s.dt.strftime('%Y/%m/%d')
 
-  .. ipython:: python
+.. ipython:: python
 
-     # PeriodIndex
-     s = pd.Series(pd.period_range('20130101', periods=4))
-     s
-     s.dt.strftime('%Y/%m/%d')
+   # PeriodIndex
+   s = pd.Series(pd.period_range('20130101', periods=4))
+   s
+   s.dt.strftime('%Y/%m/%d')
 
 The string format is as the python standard library and details can be found `here <https://docs.python.org/2/library/datetime.html#strftime-and-strptime-behavior>`_
 
@@ -186,19 +186,18 @@ Other enhancements
 
 - ``read_sql_table`` will now allow reading from views (:issue:`10750`).
 
-- ``drop_duplicates`` and ``duplicated`` now accept ``keep`` keyword to target first, last, and all duplicates. ``take_last`` keyword is deprecated, see :ref:`deprecations <whatsnew_0170.deprecations>` (:issue:`6511`, :issue:`8505`)
-
 - ``msgpack`` submodule has been updated to 0.4.6 with backward compatibility (:issue:`10581`)
 
 - ``DataFrame.to_dict`` now accepts the *index* option in ``orient`` keyword argument (:issue:`10844`).
 
-.. ipython :: python
+- ``drop_duplicates`` and ``duplicated`` now accept ``keep`` keyword to target first, last, and all duplicates. ``take_last`` keyword is deprecated, see :ref:`deprecations <whatsnew_0170.deprecations>` (:issue:`6511`, :issue:`8505`)
 
-   s = pd.Series(['A', 'B', 'C', 'A', 'B', 'D'])
-   s.drop_duplicates()
-   s.drop_duplicates(keep='last')
-   s.drop_duplicates(keep=False)
+  .. ipython :: python
 
+     s = pd.Series(['A', 'B', 'C', 'A', 'B', 'D'])
+     s.drop_duplicates()
+     s.drop_duplicates(keep='last')
+     s.drop_duplicates(keep=False)
 
 - Reindex now has a ``tolerance`` argument that allows for finer control of :ref:`basics.limits_on_reindex_fill`:
 
@@ -331,13 +330,13 @@ Changes to convert_objects
 
 ``DataFrame.convert_objects`` keyword arguments have been shortened. (:issue:`10265`)
 
-  =====================   =============
-  Old                     New
-  =====================   =============
-  ``convert_dates``       ``datetime``
-  ``convert_numeric``     ``numeric``
-  ``convert_timedelta``   ``timedelta``
-  =====================   =============
+=====================   =============
+Old                     New
+=====================   =============
+``convert_dates``       ``datetime``
+``convert_numeric``     ``numeric``
+``convert_timedelta``   ``timedelta``
+=====================   =============
 
 Coercing types with ``DataFrame.convert_objects`` is now implemented using the
 keyword argument ``coerce=True``.  Previously types were coerced by setting a
@@ -598,7 +597,7 @@ Other API Changes
 - Enable serialization of lists and dicts to strings in ExcelWriter (:issue:`8188`)
 - Allow passing `kwargs` to the interpolation methods (:issue:`10378`).
 - Serialize metadata properties of subclasses of pandas objects (:issue:`10553`).
-- Allow ``DataFrame`` with ``MultiIndex`` columns to be written to Excel (:issue: `10564`). This was changed in 0.16.2 as the read-back method could not always guarantee perfect fidelity (:issue:`9794`).
+- Allow ``DataFrame`` with ``MultiIndex`` columns to be written to Excel (:issue:`10564`). This was changed in 0.16.2 as the read-back method could not always guarantee perfect fidelity (:issue:`9794`).
 - ``Categorical.unique`` now returns new ``Categorical`` which ``categories`` and ``codes`` are unique, rather than returning ``np.array`` (:issue:`10508`)
 
    - unordered category: values and categories are sorted by appearance order.
@@ -606,11 +605,14 @@ Other API Changes
 
    .. ipython :: python
 
-      cat = pd.Categorical(['C', 'A', 'B', 'C'], categories=['A', 'B', 'C'], ordered=True)
+      cat = pd.Categorical(['C', 'A', 'B', 'C'],
+                           categories=['A', 'B', 'C'],
+                           ordered=True)
       cat
       cat.unique()
 
-      cat = pd.Categorical(['C', 'A', 'B', 'C'], categories=['A', 'B', 'C'])
+      cat = pd.Categorical(['C', 'A', 'B', 'C'],
+                           categories=['A', 'B', 'C'])
       cat
       cat.unique()
 
@@ -775,7 +777,7 @@ Bug Fixes
 - Bug in ``read_csv`` when using the ``nrows`` or ``chunksize`` parameters if file contains only a header line (:issue:`9535`)
 
 - Bug in ``pd.DataFrame`` when constructing an empty DataFrame with a string dtype (:issue:`9428`)
-- Bug in ``pd.unique`` for arrays with the ``datetime64`` or ``timedelta64`` dtype that meant an array with object dtype was returned instead the original dtype (:issue: `9431`)
+- Bug in ``pd.unique`` for arrays with the ``datetime64`` or ``timedelta64`` dtype that meant an array with object dtype was returned instead the original dtype (:issue:`9431`)
 - Bug in ``DatetimeIndex.take`` and ``TimedeltaIndex.take`` may not raise ``IndexError`` against invalid index (:issue:`10295`)
 - Bug in ``Series([np.nan]).astype('M8[ms]')``, which now returns ``Series([pd.NaT])`` (:issue:`10747`)
 - Bug in ``PeriodIndex.order`` reset freq (:issue:`10295`)
