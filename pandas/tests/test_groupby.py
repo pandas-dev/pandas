@@ -1617,6 +1617,40 @@ class TestGroupBy(tm.TestCase):
 
             assert_frame_equal(left, right)
 
+    def test_series_groupby_nunique(self):
+        from itertools import product
+        from string import ascii_lowercase
+
+        def check_nunique(df, keys):
+            for sort, dropna in product((False, True), repeat=2):
+                gr = df.groupby(keys, sort=sort)
+                left = gr['julie'].nunique(dropna=dropna)
+
+                gr = df.groupby(keys, sort=sort)
+                right = gr['julie'].apply(Series.nunique, dropna=dropna)
+
+                assert_series_equal(left, right)
+
+        days = date_range('2015-08-23', periods=10)
+
+        for n, m in product(10**np.arange(2, 6), (10, 100, 1000)):
+            frame = DataFrame({
+                'jim':np.random.choice(list(ascii_lowercase), n),
+                'joe':np.random.choice(days, n),
+                'julie':np.random.randint(0, m, n)})
+
+            check_nunique(frame, ['jim'])
+            check_nunique(frame, ['jim', 'joe'])
+
+            frame.loc[1::17, 'jim'] = None
+            frame.loc[3::37, 'joe'] = None
+            frame.loc[7::19, 'julie'] = None
+            frame.loc[8::19, 'julie'] = None
+            frame.loc[9::19, 'julie'] = None
+
+            check_nunique(frame, ['jim'])
+            check_nunique(frame, ['jim', 'joe'])
+
     def test_mulitindex_passthru(self):
 
         # GH 7997
@@ -4913,7 +4947,7 @@ class TestGroupBy(tm.TestCase):
             'corr', 'cov',
             'value_counts',
             'diff',
-            'unique', 'nunique',
+            'unique',
             'nlargest', 'nsmallest',
         ])
 
