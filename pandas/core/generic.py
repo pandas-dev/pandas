@@ -2989,7 +2989,7 @@ class NDFrame(PandasObject):
             * 'nearest', 'zero', 'slinear', 'quadratic', 'cubic',
               'barycentric', 'polynomial' is passed to
               ``scipy.interpolate.interp1d``. Both 'polynomial' and 'spline'
-              require that you also specify an `order` (int), 
+              require that you also specify an `order` (int),
               e.g. df.interpolate(method='polynomial', order=4).
               These use the actual numerical values of the index.
             * 'krogh', 'piecewise_polynomial', 'spline', and 'pchip' are all
@@ -4096,11 +4096,6 @@ class NDFrame(PandasObject):
 
         Parameters
         ----------
-        percentile_width : float, deprecated
-            The ``percentile_width`` argument will be removed in a future
-            version. Use ``percentiles`` instead.
-            width of the desired uncertainty interval, default is 50,
-            which corresponds to lower=25, upper=75
         percentiles : array-like, optional
             The percentiles to include in the output. Should all
             be in the interval [0, 1]. By default `percentiles` is
@@ -4149,36 +4144,17 @@ class NDFrame(PandasObject):
         """
 
     @Appender(_shared_docs['describe'] % _shared_doc_kwargs)
-    def describe(self, percentile_width=None, percentiles=None, include=None, exclude=None ):
+    def describe(self, percentiles=None, include=None, exclude=None ):
         if self.ndim >= 3:
             msg = "describe is not implemented on on Panel or PanelND objects."
             raise NotImplementedError(msg)
 
-        if percentile_width is not None and percentiles is not None:
-            msg = "Cannot specify both 'percentile_width' and 'percentiles.'"
-            raise ValueError(msg)
         if percentiles is not None:
             # get them all to be in [0, 1]
+            self._check_percentile(percentiles)
             percentiles = np.asarray(percentiles)
-            if (percentiles > 1).any():
-                percentiles = percentiles / 100.0
-                msg = ("percentiles should all be in the interval [0, 1]. "
-                       "Try {0} instead.")
-                raise ValueError(msg.format(list(percentiles)))
         else:
-            # only warn if they change the default
-            if percentile_width is not None:
-                do_warn = True
-            else:
-                do_warn = False
-            percentile_width = percentile_width or 50
-            lb = .5 * (1. - percentile_width / 100.)
-            ub = 1. - lb
-            percentiles = np.array([lb, 0.5, ub])
-            if do_warn:
-                msg = ("The `percentile_width` keyword is deprecated. "
-                       "Use percentiles={0} instead".format(list(percentiles)))
-                warnings.warn(msg, FutureWarning)
+            percentiles = np.array([0.25, 0.5, 0.75])
 
         # median should always be included
         if (percentiles != 0.5).all():  # median isn't included
@@ -4255,6 +4231,20 @@ class NDFrame(PandasObject):
                     names.append(name)
         d = pd.concat(ldesc, join_axes=pd.Index([names]), axis=1)
         return d
+
+    def _check_percentile(self, q):
+        """ Validate percentiles. Used by describe and quantile """
+
+        msg = ("percentiles should all be in the interval [0, 1]. "
+               "Try {0} instead.")
+        q = np.asarray(q)
+        if q.ndim == 0:
+            if not 0 <= q <= 1:
+                raise ValueError(msg.format(q / 100.0))
+        else:
+            if not all(0 <= qs <= 1 for qs in q):
+                raise ValueError(msg.format(q / 100.0))
+        return q
 
     _shared_docs['pct_change'] = """
         Percent change over given number of periods.
