@@ -1040,7 +1040,7 @@ class TestHDFStore(Base):
             store.append('df2', df[10:], dropna=False)
             tm.assert_frame_equal(store['df2'], df)
 
-        # Test to make sure defaults are to not drop. 
+        # Test to make sure defaults are to not drop.
         # Corresponding to Issue 9382
         df_with_missing = DataFrame({'col1':[0, np.nan, 2], 'col2':[1, np.nan,  np.nan]})
 
@@ -1059,7 +1059,7 @@ class TestHDFStore(Base):
 
         with ensure_clean_path(self.path) as path:
            panel_with_missing.to_hdf(path, 'panel_with_missing', format='table')
-           reloaded_panel = read_hdf(path, 'panel_with_missing') 
+           reloaded_panel = read_hdf(path, 'panel_with_missing')
            tm.assert_panel_equal(panel_with_missing, reloaded_panel)
 
     def test_append_frame_column_oriented(self):
@@ -2440,9 +2440,9 @@ class TestHDFStore(Base):
             p4d = tm.makePanel4D()
             wpneg = Panel.fromDict({-1: tm.makeDataFrame(), 0: tm.makeDataFrame(),
                                     1: tm.makeDataFrame()})
-            store.put('wp', wp, table=True)
-            store.put('p4d', p4d, table=True)
-            store.put('wpneg', wpneg, table=True)
+            store.put('wp', wp, format='table')
+            store.put('p4d', p4d, format='table')
+            store.put('wpneg', wpneg, format='table')
 
             # panel
             result = store.select('wp', [Term(
@@ -2607,7 +2607,7 @@ class TestHDFStore(Base):
 
             import pandas as pd
             df  = DataFrame(np.random.randn(20, 2),index=pd.date_range('20130101',periods=20))
-            store.put('df', df, table=True)
+            store.put('df', df, format='table')
             expected = df[df.index>pd.Timestamp('20130105')]
 
             import datetime
@@ -3608,7 +3608,7 @@ class TestHDFStore(Base):
         df.loc[df.index[0:4],'string'] = 'bar'
 
         with ensure_clean_store(self.path) as store:
-            store.put('df', df, table=True, data_columns=['string'])
+            store.put('df', df, format='table', data_columns=['string'])
 
             # empty
             result = store.select('df', 'index>df.index[3] & string="bar"')
@@ -3717,7 +3717,7 @@ class TestHDFStore(Base):
         df = tm.makeTimeDataFrame()
 
         with ensure_clean_store(self.path) as store:
-            store.put('df', df, table=True)
+            store.put('df', df, format='table')
 
             # not implemented
             self.assertRaises(NotImplementedError, store.select, 'df', "columns=['A'] | columns=['B']")
