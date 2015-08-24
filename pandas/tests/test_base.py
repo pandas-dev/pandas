@@ -295,14 +295,11 @@ class TestIndexOps(Ops):
                 self.assertFalse(result.iat[0])
                 self.assertFalse(result.iat[1])
 
-                if _np_version_under1p9:
-                    # fails as this tries not __eq__ which
-                    # is not valid for numpy
-                    pass
-                else:
-                    result = None != o
-                    self.assertTrue(result.iat[0])
-                    self.assertTrue(result.iat[1])
+                # this fails for numpy < 1.9
+                # and oddly for *some* platforms
+                #result = None != o
+                #self.assertTrue(result.iat[0])
+                #self.assertTrue(result.iat[1])
 
                 result = None > o
                 self.assertFalse(result.iat[0])
@@ -510,10 +507,8 @@ class TestIndexOps(Ops):
             self.assert_numpy_array_equal(s.unique(), np.unique(s_values))
             self.assertEqual(s.nunique(), 4)
             # don't sort, have to sort after the fact as not sorting is platform-dep
-            hist = s.value_counts(sort=False)
-            hist.sort()
-            expected = Series([3, 1, 4, 2], index=list('acbd'))
-            expected.sort()
+            hist = s.value_counts(sort=False).sort_values()
+            expected = Series([3, 1, 4, 2], index=list('acbd')).sort_values()
             tm.assert_series_equal(hist, expected)
 
             # sort ascending
@@ -653,7 +648,7 @@ class TestIndexOps(Ops):
 
             # sort by value, and create duplicates
             if isinstance(o, Series):
-                o.sort()
+                o = o.sort_values()
                 n = o.iloc[5:].append(o)
             else:
                 indexer = o.argsort()

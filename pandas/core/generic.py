@@ -701,7 +701,7 @@ class NDFrame(PandasObject):
         "iteritems alias used to get around 2to3. Deprecated"
         warnings.warn("iterkv is deprecated and will be removed in a future "
                       "release, use ``iteritems`` instead.",
-                      DeprecationWarning)
+                      FutureWarning)
         return self.iteritems(*args, **kwargs)
 
     def __len__(self):
@@ -1690,24 +1690,73 @@ class NDFrame(PandasObject):
         new_data = self._data.add_suffix(suffix)
         return self._constructor(new_data).__finalize__(self)
 
-    def sort_index(self, axis=0, ascending=True):
+    _shared_docs['sort_values'] = """
+        Sort by the values along either axis
+
+        .. versionadded:: 0.17.0
+
+        Parameters
+        ----------
+        by : string name or list of names which refer to the axis items
+        axis : %(axes)s to direct sorting
+        ascending : bool or list of bool
+             Sort ascending vs. descending. Specify list for multiple sort orders.
+             If this is a list of bools, must match the length of the by
+        inplace : bool
+             if True, perform operation in-place
+        kind : {`quicksort`, `mergesort`, `heapsort`}
+             Choice of sorting algorithm. See also ndarray.np.sort for more information.
+             `mergesort` is the only stable algorithm. For DataFrames, this option is
+             only applied when sorting on a single column or label.
+        na_position : {'first', 'last'}
+             `first` puts NaNs at the beginning, `last` puts NaNs at the end
+
+        Returns
+        -------
+        sorted_obj : %(klass)s
         """
+    def sort_values(self, by, axis=0, ascending=True, inplace=False,
+                    kind='quicksort', na_position='last'):
+        raise AbstractMethodError(self)
+
+    _shared_docs['sort_index'] = """
         Sort object by labels (along an axis)
 
         Parameters
         ----------
-        axis : {0, 1}
-            Sort index/rows versus columns
+        axis : %(axes)s to direct sorting
+        level : int or level name or list of ints or list of level names
+            if not None, sort on values in specified index level(s)
         ascending : boolean, default True
             Sort ascending vs. descending
+        inplace : bool
+            if True, perform operation in-place
+        kind : {`quicksort`, `mergesort`, `heapsort`}
+             Choice of sorting algorithm. See also ndarray.np.sort for more information.
+             `mergesort` is the only stable algorithm. For DataFrames, this option is
+             only applied when sorting on a single column or label.
+        na_position : {'first', 'last'}
+             `first` puts NaNs at the beginning, `last` puts NaNs at the end
+        sort_remaining : bool
+            if true and sorting by level and index is multilevel, sort by other levels
+            too (in order) after sorting by specified level
 
         Returns
         -------
-        sorted_obj : type of caller
+        sorted_obj : %(klass)s
         """
+
+    @Appender(_shared_docs['sort_index'] % dict(axes="axes", klass="NDFrame"))
+    def sort_index(self, axis=0, level=None, ascending=True, inplace=False,
+                   kind='quicksort', na_position='last', sort_remaining=True):
         axis = self._get_axis_number(axis)
         axis_name = self._get_axis_name(axis)
         labels = self._get_axis(axis)
+
+        if level is not None:
+            raise NotImplementedError("level is not implemented")
+        if inplace:
+            raise NotImplementedError("inplace is not implemented")
 
         sort_index = labels.argsort()
         if not ascending:
@@ -2004,13 +2053,13 @@ class NDFrame(PandasObject):
             Sample with or without replacement. Default = False.
         weights : str or ndarray-like, optional
             Default 'None' results in equal probability weighting.
-            If passed a Series, will align with target object on index. Index 
+            If passed a Series, will align with target object on index. Index
             values in weights not found in sampled object will be ignored and
-            index values in sampled object not in weights will be assigned 
-            weights of zero. 
+            index values in sampled object not in weights will be assigned
+            weights of zero.
             If called on a DataFrame, will accept the name of a column
             when axis = 0.
-            Unless weights are a Series, weights must be same length as axis 
+            Unless weights are a Series, weights must be same length as axis
             being sampled.
             If weights do not sum to 1, they will be normalized to sum to 1.
             Missing values in the weights column will be treated as zero.
@@ -2040,8 +2089,8 @@ class NDFrame(PandasObject):
         if weights is not None:
 
             # If a series, align with frame
-            if isinstance(weights, pd.Series):                
-                weights = weights.reindex(self.axes[axis])                
+            if isinstance(weights, pd.Series):
+                weights = weights.reindex(self.axes[axis])
 
             # Strings acceptable if a dataframe and axis = 0
             if isinstance(weights, string_types):
@@ -2940,7 +2989,7 @@ class NDFrame(PandasObject):
             * 'nearest', 'zero', 'slinear', 'quadratic', 'cubic',
               'barycentric', 'polynomial' is passed to
               ``scipy.interpolate.interp1d``. Both 'polynomial' and 'spline'
-              require that you also specify an `order` (int), 
+              require that you also specify an `order` (int),
               e.g. df.interpolate(method='polynomial', order=4).
               These use the actual numerical values of the index.
             * 'krogh', 'piecewise_polynomial', 'spline', and 'pchip' are all
@@ -4047,11 +4096,6 @@ class NDFrame(PandasObject):
 
         Parameters
         ----------
-        percentile_width : float, deprecated
-            The ``percentile_width`` argument will be removed in a future
-            version. Use ``percentiles`` instead.
-            width of the desired uncertainty interval, default is 50,
-            which corresponds to lower=25, upper=75
         percentiles : array-like, optional
             The percentiles to include in the output. Should all
             be in the interval [0, 1]. By default `percentiles` is
@@ -4100,36 +4144,17 @@ class NDFrame(PandasObject):
         """
 
     @Appender(_shared_docs['describe'] % _shared_doc_kwargs)
-    def describe(self, percentile_width=None, percentiles=None, include=None, exclude=None ):
+    def describe(self, percentiles=None, include=None, exclude=None ):
         if self.ndim >= 3:
             msg = "describe is not implemented on on Panel or PanelND objects."
             raise NotImplementedError(msg)
 
-        if percentile_width is not None and percentiles is not None:
-            msg = "Cannot specify both 'percentile_width' and 'percentiles.'"
-            raise ValueError(msg)
         if percentiles is not None:
             # get them all to be in [0, 1]
+            self._check_percentile(percentiles)
             percentiles = np.asarray(percentiles)
-            if (percentiles > 1).any():
-                percentiles = percentiles / 100.0
-                msg = ("percentiles should all be in the interval [0, 1]. "
-                       "Try {0} instead.")
-                raise ValueError(msg.format(list(percentiles)))
         else:
-            # only warn if they change the default
-            if percentile_width is not None:
-                do_warn = True
-            else:
-                do_warn = False
-            percentile_width = percentile_width or 50
-            lb = .5 * (1. - percentile_width / 100.)
-            ub = 1. - lb
-            percentiles = np.array([lb, 0.5, ub])
-            if do_warn:
-                msg = ("The `percentile_width` keyword is deprecated. "
-                       "Use percentiles={0} instead".format(list(percentiles)))
-                warnings.warn(msg, FutureWarning)
+            percentiles = np.array([0.25, 0.5, 0.75])
 
         # median should always be included
         if (percentiles != 0.5).all():  # median isn't included
@@ -4206,6 +4231,20 @@ class NDFrame(PandasObject):
                     names.append(name)
         d = pd.concat(ldesc, join_axes=pd.Index([names]), axis=1)
         return d
+
+    def _check_percentile(self, q):
+        """ Validate percentiles. Used by describe and quantile """
+
+        msg = ("percentiles should all be in the interval [0, 1]. "
+               "Try {0} instead.")
+        q = np.asarray(q)
+        if q.ndim == 0:
+            if not 0 <= q <= 1:
+                raise ValueError(msg.format(q / 100.0))
+        else:
+            if not all(0 <= qs <= 1 for qs in q):
+                raise ValueError(msg.format(q / 100.0))
+        return q
 
     _shared_docs['pct_change'] = """
         Percent change over given number of periods.

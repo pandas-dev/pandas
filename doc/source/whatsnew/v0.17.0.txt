@@ -11,9 +11,25 @@ users upgrade to this version.
 
    pandas >= 0.17.0 will no longer support compatibility with Python version 3.2 (:issue:`9118`)
 
+.. warning::
+
+   The ``pandas.io.data`` package is deprecated and will be replaced by the
+   `pandas-datareader package <https://github.com/pydata/pandas-datareader>`_.
+   This will allow the data modules to be independently updated to your pandas
+   installation. The API for ``pandas-datareader v0.1.1`` is exactly the same
+   as in ``pandas v0.17.0`` (:issue:`8961`, :issue:`10861`).
+
+   After installing pandas-datareader, you can easily change your imports:
+
+   .. code-block:: Python
+
+     from pandas.io import data, wb # becomes
+     from pandas_datareader import data, wb
+
 Highlights include:
 
 - Release the Global Interpreter Lock (GIL) on some cython operations, see :ref:`here <whatsnew_0170.gil>`
+- The sorting API has been revamped to remove some long-time inconsistencies, see :ref:`here <whatsnew_0170.api_breaking.sorting>`
 - The default for ``to_datetime`` will now be to ``raise`` when presented with unparseable formats,
   previously this would return the original input, see :ref:`here <whatsnew_0170.api_breaking.to_datetime>`
 - The default for ``dropna`` in ``HDFStore`` has changed to ``False``, to store by default all rows even
@@ -69,19 +85,19 @@ Support strftime for Datetimelikes
 
 We are now supporting a ``Series.dt.strftime`` method for datetime-likes to generate a formatted string (:issue:`10110`). Examples:
 
-  .. ipython:: python
+.. ipython:: python
 
-     # DatetimeIndex
-     s = pd.Series(pd.date_range('20130101', periods=4))
-     s
-     s.dt.strftime('%Y/%m/%d')
+   # DatetimeIndex
+   s = pd.Series(pd.date_range('20130101', periods=4))
+   s
+   s.dt.strftime('%Y/%m/%d')
 
-  .. ipython:: python
+.. ipython:: python
 
-     # PeriodIndex
-     s = pd.Series(pd.period_range('20130101', periods=4))
-     s
-     s.dt.strftime('%Y/%m/%d')
+   # PeriodIndex
+   s = pd.Series(pd.period_range('20130101', periods=4))
+   s
+   s.dt.strftime('%Y/%m/%d')
 
 The string format is as the python standard library and details can be found `here <https://docs.python.org/2/library/datetime.html#strftime-and-strptime-behavior>`_
 
@@ -170,17 +186,18 @@ Other enhancements
 
 - ``read_sql_table`` will now allow reading from views (:issue:`10750`).
 
-- ``drop_duplicates`` and ``duplicated`` now accept ``keep`` keyword to target first, last, and all duplicates. ``take_last`` keyword is deprecated, see :ref:`deprecations <whatsnew_0170.deprecations>` (:issue:`6511`, :issue:`8505`)
-
 - ``msgpack`` submodule has been updated to 0.4.6 with backward compatibility (:issue:`10581`)
 
-.. ipython :: python
+- ``DataFrame.to_dict`` now accepts the *index* option in ``orient`` keyword argument (:issue:`10844`).
 
-   s = pd.Series(['A', 'B', 'C', 'A', 'B', 'D'])
-   s.drop_duplicates()
-   s.drop_duplicates(keep='last')
-   s.drop_duplicates(keep=False)
+- ``drop_duplicates`` and ``duplicated`` now accept ``keep`` keyword to target first, last, and all duplicates. ``take_last`` keyword is deprecated, see :ref:`deprecations <whatsnew_0170.deprecations>` (:issue:`6511`, :issue:`8505`)
 
+  .. ipython :: python
+
+     s = pd.Series(['A', 'B', 'C', 'A', 'B', 'D'])
+     s.drop_duplicates()
+     s.drop_duplicates(keep='last')
+     s.drop_duplicates(keep=False)
 
 - Reindex now has a ``tolerance`` argument that allows for finer control of :ref:`basics.limits_on_reindex_fill`:
 
@@ -206,6 +223,65 @@ Other enhancements
 
 Backwards incompatible API changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. _whatsnew_0170.api_breaking.sorting:
+
+Changes to sorting API
+^^^^^^^^^^^^^^^^^^^^^^
+
+The sorting API has had some longtime inconsistencies. (:issue:`9816`,:issue:`8239`).
+
+Here is a summary of the **prior** to 0.17.0 API
+
+- ``Series.sort`` is **INPLACE** while ``DataFrame.sort`` returns a new object.
+- ``Series.order`` returned a new object
+- It was possible to use ``Series/DataFrame.sort_index`` to sort by **values** by passing the ``by`` keyword.
+- ``Series/DataFrame.sortlevel`` worked only on a ``MultiIndex`` for sorting by index.
+
+To address these issues, we have revamped the API:
+
+- We have introduced a new method, :meth:`DataFrame.sort_values`, which is the merger of ``DataFrame.sort()``, ``Series.sort()``,
+  and ``Series.order``, to handle sorting of **values**.
+- The existing method ``Series.sort()`` has been deprecated and will be removed in a
+  future version of pandas.
+- The ``by`` argument of ``DataFrame.sort_index()`` has been deprecated and will be removed in a future version of pandas.
+- The methods ``DataFrame.sort()``, ``Series.order()``, will not be recommended to use and will carry a deprecation warning
+  in the doc-string.
+- The existing method ``.sort_index()`` will gain the ``level`` keyword to enable level sorting.
+
+We now have two distinct and non-overlapping methods of sorting. A ``*`` marks items that
+will show a ``FutureWarning``.
+
+To sort by the **values**:
+
+=================================     ====================================
+Previous                              Replacement
+=================================     ====================================
+\*``Series.order()``                   ``Series.sort_values()``
+\*``Series.sort()``                    ``Series.sort_values(inplace=True)``
+\*``DataFrame.sort(columns=...)``      ``DataFrame.sort_values(by=...)``
+=================================     ====================================
+
+To sort by the **index**:
+
+=================================     ====================================
+Previous                              Equivalent
+=================================     ====================================
+``Series.sort_index()``               ``Series.sort_index()``
+``Series.sortlevel(level=...)``       ``Series.sort_index(level=...``)
+``DataFrame.sort_index()``            ``DataFrame.sort_index()``
+``DataFrame.sortlevel(level=...)``    ``DataFrame.sort_index(level=...)``
+\*``DataFrame.sort()``                 ``DataFrame.sort_index()``
+==================================    ====================================
+
+We have also deprecated and changed similar methods in two Series-like classes, ``Index`` and ``Categorical``.
+
+==================================    ====================================
+Previous                              Replacement
+==================================    ====================================
+\*``Index.order()``                     ``Index.sort_values()``
+\*``Categorical.order()``               ``Categorical.sort_values``
+==================================    ====================================
 
 .. _whatsnew_0170.api_breaking.to_datetime:
 
@@ -254,13 +330,13 @@ Changes to convert_objects
 
 ``DataFrame.convert_objects`` keyword arguments have been shortened. (:issue:`10265`)
 
-  =====================   =============
-  Old                     New
-  =====================   =============
-  ``convert_dates``       ``datetime``
-  ``convert_numeric``     ``numeric``
-  ``convert_timedelta``   ``timedelta``
-  =====================   =============
+=====================   =============
+Old                     New
+=====================   =============
+``convert_dates``       ``datetime``
+``convert_numeric``     ``numeric``
+``convert_timedelta``   ``timedelta``
+=====================   =============
 
 Coercing types with ``DataFrame.convert_objects`` is now implemented using the
 keyword argument ``coerce=True``.  Previously types were coerced by setting a
@@ -521,7 +597,7 @@ Other API Changes
 - Enable serialization of lists and dicts to strings in ExcelWriter (:issue:`8188`)
 - Allow passing `kwargs` to the interpolation methods (:issue:`10378`).
 - Serialize metadata properties of subclasses of pandas objects (:issue:`10553`).
-- Allow ``DataFrame`` with ``MultiIndex`` columns to be written to Excel (:issue: `10564`). This was changed in 0.16.2 as the read-back method could not always guarantee perfect fidelity (:issue:`9794`).
+- Allow ``DataFrame`` with ``MultiIndex`` columns to be written to Excel (:issue:`10564`). This was changed in 0.16.2 as the read-back method could not always guarantee perfect fidelity (:issue:`9794`).
 - ``Categorical.unique`` now returns new ``Categorical`` which ``categories`` and ``codes`` are unique, rather than returning ``np.array`` (:issue:`10508`)
 
    - unordered category: values and categories are sorted by appearance order.
@@ -529,11 +605,14 @@ Other API Changes
 
    .. ipython :: python
 
-      cat = pd.Categorical(['C', 'A', 'B', 'C'], categories=['A', 'B', 'C'], ordered=True)
+      cat = pd.Categorical(['C', 'A', 'B', 'C'],
+                           categories=['A', 'B', 'C'],
+                           ordered=True)
       cat
       cat.unique()
 
-      cat = pd.Categorical(['C', 'A', 'B', 'C'], categories=['A', 'B', 'C'])
+      cat = pd.Categorical(['C', 'A', 'B', 'C'],
+                           categories=['A', 'B', 'C'])
       cat
       cat.unique()
 
@@ -591,13 +670,15 @@ Removal of prior version deprecations/changes
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 - Remove use of some deprecated numpy comparison operations, mainly in tests. (:issue:`10569`)
-
+- Removal of ``na_last`` parameters from ``Series.order()`` and ``Series.sort()``, in favor of ``na_position``, xref (:issue:`5231`)
+- Remove of ``percentile_width`` from ``.describe()``, in favor of ``percentiles``. (:issue:`7088`)
 
 .. _whatsnew_0170.performance:
 
 Performance Improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 - Added vbench benchmarks for alternative ExcelWriter engines and reading Excel files (:issue:`7171`)
+- Performance improvements in ``Categorical.value_counts`` (:issue:`10804`)
 
 - 4x improvement in ``timedelta`` string parsing (:issue:`6755`, :issue:`10426`)
 - 8x improvement in ``timedelta64`` and ``datetime64`` ops (:issue:`6755`)
@@ -616,7 +697,9 @@ Bug Fixes
 - Bug in ``DataFrame.apply`` when function returns categorical series. (:issue:`9573`)
 - Bug in ``to_datetime`` with invalid dates and formats supplied (:issue:`10154`)
 - Bug in ``Index.drop_duplicates`` dropping name(s) (:issue:`10115`)
+- Bug in ``Series.quantile`` dropping name (:issue:`10881`)
 - Bug in ``pd.Series`` when setting a value on an empty ``Series`` whose index has a frequency. (:issue:`10193`)
+- Bug in ``pd.Series.interpolate`` with invalid ``order`` keyword values. (:issue:`10633`)
 - Bug in ``DataFrame.plot`` raises ``ValueError`` when color name is specified by multiple characters (:issue:`10387`)
 - Bug in ``Index`` construction with a mixed list of tuples (:issue:`10697`)
 - Bug in ``DataFrame.reset_index`` when index contains `NaT`. (:issue:`10388`)
@@ -694,11 +777,13 @@ Bug Fixes
 - Bug in ``read_csv`` when using the ``nrows`` or ``chunksize`` parameters if file contains only a header line (:issue:`9535`)
 
 - Bug in ``pd.DataFrame`` when constructing an empty DataFrame with a string dtype (:issue:`9428`)
-- Bug in ``pd.unique`` for arrays with the ``datetime64`` or ``timedelta64`` dtype that meant an array with object dtype was returned instead the original dtype (:issue: `9431`)
+- Bug in ``pd.unique`` for arrays with the ``datetime64`` or ``timedelta64`` dtype that meant an array with object dtype was returned instead the original dtype (:issue:`9431`)
 - Bug in ``DatetimeIndex.take`` and ``TimedeltaIndex.take`` may not raise ``IndexError`` against invalid index (:issue:`10295`)
 - Bug in ``Series([np.nan]).astype('M8[ms]')``, which now returns ``Series([pd.NaT])`` (:issue:`10747`)
 - Bug in ``PeriodIndex.order`` reset freq (:issue:`10295`)
+- Bug in ``date_range`` when ``freq`` divides ``end`` as nanos (:issue:`10885`)
 - Bug in ``iloc`` allowing memory outside bounds of a Series to be accessed with negative integers (:issue:`10779`)
 - Bug in ``read_msgpack`` where encoding is not respected (:issue:`10580`)
 - Bug preventing access to the first index when using ``iloc`` with a list containing the appropriate negative integer (:issue:`10547`, :issue:`10779`)
 - Bug in ``pd.Index`` when using passing a list of indices to a  mixed-integer index (:issue:`10610`)
+- Bug in ``TimedeltaIndex`` formatter causing error while trying to save ``DataFrame`` with ``TimedeltaIndex`` using ``to_csv`` (:issue:`10833`)

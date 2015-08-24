@@ -1335,7 +1335,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         return result
 
-    def order(self, return_indexer=False, ascending=True):
+    def sort_values(self, return_indexer=False, ascending=True):
         """
         Return sorted copy of Index
         """
@@ -1350,8 +1350,38 @@ class Index(IndexOpsMixin, PandasObject):
         else:
             return sorted_index
 
+    def order(self, return_indexer=False, ascending=True):
+        """
+        Return sorted copy of Index
+
+        DEPRECATED: use :meth:`Index.sort_values`
+        """
+        warnings.warn("order is deprecated, use sort_values(...)",
+                      FutureWarning, stacklevel=2)
+        return self.sort_values(return_indexer=return_indexer, ascending=ascending)
+
     def sort(self, *args, **kwargs):
-        raise TypeError('Cannot sort an %r object' % self.__class__.__name__)
+        raise TypeError("cannot sort an Index object in-place, use sort_values instead")
+
+    def sortlevel(self, level=None, ascending=True, sort_remaining=None):
+        """
+
+        For internal compatibility with with the Index API
+
+        Sort the Index. This is for compat with MultiIndex
+
+        Parameters
+        ----------
+        ascending : boolean, default True
+            False to sort in descending order
+
+        level, sort_remaining are compat paramaters
+
+        Returns
+        -------
+        sorted_index : Index
+        """
+        return self.sort_values(return_indexer=True, ascending=ascending)
 
     def shift(self, periods=1, freq=None):
         """
@@ -4923,6 +4953,7 @@ class MultiIndex(Index):
             If list-like must be names or ints of levels.
         ascending : boolean, default True
             False to sort in descending order
+            Can also be a list to specify a directed ordering
         sort_remaining : sort by the remaining levels after level.
 
         Returns
@@ -4931,30 +4962,41 @@ class MultiIndex(Index):
         """
         from pandas.core.groupby import _indexer_from_factorized
 
-        labels = list(self.labels)
-        shape = list(self.levshape)
-
         if isinstance(level, (compat.string_types, int)):
             level = [level]
         level = [self._get_level_number(lev) for lev in level]
+        sortorder = None
 
-        # partition labels and shape
-        primary = tuple(labels.pop(lev - i) for i, lev in enumerate(level))
-        primshp = tuple(shape.pop(lev - i) for i, lev in enumerate(level))
+        # we have a directed ordering via ascending
+        if isinstance(ascending, list):
+            if not len(level) == len(ascending):
+                raise ValueError("level must have same length as ascending")
 
-        if sort_remaining:
-            primary += primary + tuple(labels)
-            primshp += primshp + tuple(shape)
-            sortorder = None
+            from pandas.core.groupby import _lexsort_indexer
+            indexer = _lexsort_indexer(self.labels, orders=ascending)
+
+        # level ordering
         else:
-            sortorder = level[0]
 
-        indexer = _indexer_from_factorized(primary,
-                                           primshp,
-                                           compress=False)
+            labels = list(self.labels)
+            shape = list(self.levshape)
 
-        if not ascending:
-            indexer = indexer[::-1]
+            # partition labels and shape
+            primary = tuple(labels.pop(lev - i) for i, lev in enumerate(level))
+            primshp = tuple(shape.pop(lev - i) for i, lev in enumerate(level))
+
+            if sort_remaining:
+                primary += primary + tuple(labels)
+                primshp += primshp + tuple(shape)
+            else:
+                sortorder = level[0]
+
+            indexer = _indexer_from_factorized(primary,
+                                               primshp,
+                                               compress=False)
+
+            if not ascending:
+                indexer = indexer[::-1]
 
         indexer = com._ensure_platform_int(indexer)
         new_labels = [lab.take(indexer) for lab in self.labels]

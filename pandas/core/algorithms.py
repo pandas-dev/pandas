@@ -265,9 +265,7 @@ def value_counts(values, sort=True, ascending=False, normalize=False,
             result.index = bins[:-1]
 
     if sort:
-        result.sort()
-        if not ascending:
-            result = result[::-1]
+        result = result.sort_values(ascending=ascending)
 
     if normalize:
         result = result / float(values.size)
@@ -500,7 +498,7 @@ def select_n_slow(dropped, n, take_last, method):
     reverse_it = take_last or method == 'nlargest'
     ascending = method == 'nsmallest'
     slc = np.s_[::-1] if reverse_it else np.s_[:]
-    return dropped[slc].order(ascending=ascending).head(n)
+    return dropped[slc].sort_values(ascending=ascending).head(n)
 
 
 _select_methods = {'nsmallest': nsmallest, 'nlargest': nlargest}

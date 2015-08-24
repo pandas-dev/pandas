@@ -1,13 +1,12 @@
 # pylint: disable-msg=W0612,E1101
 from pandas.compat import range, lrange, StringIO, OrderedDict
-from pandas import compat
 import os
 
 import numpy as np
-from pandas import Series, DataFrame, DatetimeIndex, Timestamp, CategoricalIndex
+from pandas import (Series, DataFrame, DatetimeIndex, Timestamp, CategoricalIndex,
+                    read_json, compat)
 from datetime import timedelta
 import pandas as pd
-read_json = pd.read_json
 
 from pandas.util.testing import (assert_almost_equal, assert_frame_equal,
                                  assert_series_equal, network,
@@ -137,9 +136,9 @@ class TestPandasContainer(tm.TestCase):
                           convert_axes=True, check_dtype=True, raise_ok=None,
                           sort=None):
             if sort is not None:
-                df = df.sort(sort)
+                df = df.sort_values(sort)
             else:
-                df = df.sort()
+                df = df.sort_index()
 
             # if we are not unique, then check that we are raising ValueError
             # for the appropriate orients
@@ -162,9 +161,9 @@ class TestPandasContainer(tm.TestCase):
                     raise
 
             if sort is not None and sort in unser.columns:
-                unser = unser.sort(sort)
+                unser = unser.sort_values(sort)
             else:
-                unser = unser.sort()
+                unser = unser.sort_index()
 
             if dtype is False:
                 check_dtype=False
@@ -188,7 +187,7 @@ class TestPandasContainer(tm.TestCase):
                 unser.columns = [str(i) for i in unser.columns]
 
                 if sort is None:
-                    unser = unser.sort()
+                    unser = unser.sort_index()
                 assert_almost_equal(df.values, unser.values)
             else:
                 if convert_axes:
@@ -573,6 +572,16 @@ class TestPandasContainer(tm.TestCase):
         json = ts.to_json()
         result = read_json(json, typ='series')
         assert_series_equal(result, ts)
+
+    def test_convert_dates_infer(self):
+        #GH10747
+        infer_words = ['trade_time', 'date', 'datetime', 'sold_at',
+                       'modified', 'timestamp', 'timestamps']
+        for infer_word in infer_words:
+            data = [{'id': 1, infer_word: 1036713600000}, {'id': 2}]
+            expected = DataFrame([[1, Timestamp('2002-11-08')], [2, pd.NaT]], columns=['id', infer_word])
+            result = read_json(pd.json.dumps(data))[['id', infer_word]]
+            assert_frame_equal(result, expected)
 
     def test_date_format_frame(self):
         df = self.tsframe.copy()

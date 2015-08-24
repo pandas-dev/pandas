@@ -533,10 +533,8 @@ class TestGroupBy(tm.TestCase):
             return group.ix[group['value'].idxmax()]
 
         applied = df.groupby('A').apply(max_value)
-        result = applied.get_dtype_counts()
-        result.sort()
-        expected = Series({ 'object' : 2, 'float64' : 2, 'int64' : 1 })
-        expected.sort()
+        result = applied.get_dtype_counts().sort_values()
+        expected = Series({ 'object' : 2, 'float64' : 2, 'int64' : 1 }).sort_values()
         assert_series_equal(result,expected)
 
     def test_groupby_return_type(self):
@@ -2197,11 +2195,11 @@ class TestGroupBy(tm.TestCase):
 
     def test_apply_frame_concat_series(self):
         def trans(group):
-            return group.groupby('B')['C'].sum().order()[:2]
+            return group.groupby('B')['C'].sum().sort_values()[:2]
 
         def trans2(group):
             grouped = group.groupby(df.reindex(group.index)['B'])
-            return grouped.sum().order()[:2]
+            return grouped.sum().sort_values()[:2]
 
         df = DataFrame({'A': np.random.randint(0, 5, 1000),
                         'B': np.random.randint(0, 5, 1000),
@@ -2223,7 +2221,7 @@ class TestGroupBy(tm.TestCase):
                                         lambda x: x.month])
 
         def f(group):
-            return group.sort('A')[-5:]
+            return group.sort_values('A')[-5:]
 
         result = grouped.apply(f)
         for key, group in grouped:
@@ -2284,7 +2282,7 @@ class TestGroupBy(tm.TestCase):
 
         # it works! #2605
         grouped = df.groupby(['name', 'name2'])
-        grouped.apply(lambda x: x.sort('value'))
+        grouped.apply(lambda x: x.sort_values('value',inplace=True))
 
     def test_groupby_series_indexed_differently(self):
         s1 = Series([5.0, -9.0, 4.0, 100., -5., 55., 6.7],
@@ -3164,21 +3162,21 @@ class TestGroupBy(tm.TestCase):
         tsf = tm.makeTimeDataFrame()
 
         grouped = tsf.groupby(lambda x: x.month, group_keys=False)
-        result = grouped.apply(lambda x: x.sort_index(by='A')[:3])
+        result = grouped.apply(lambda x: x.sort_values(by='A')[:3])
 
         pieces = []
         for key, group in grouped:
-            pieces.append(group.sort_index(by='A')[:3])
+            pieces.append(group.sort_values(by='A')[:3])
 
         expected = concat(pieces)
         assert_frame_equal(result, expected)
 
         grouped = tsf['A'].groupby(lambda x: x.month, group_keys=False)
-        result = grouped.apply(lambda x: x.order()[:3])
+        result = grouped.apply(lambda x: x.sort_values()[:3])
 
         pieces = []
         for key, group in grouped:
-            pieces.append(group.order()[:3])
+            pieces.append(group.sort_values()[:3])
 
         expected = concat(pieces)
         assert_series_equal(result, expected, check_names=False)
@@ -3572,7 +3570,7 @@ class TestGroupBy(tm.TestCase):
 
         levels = ['foo', 'bar', 'baz', 'qux']
         codes = np.random.randint(0, 4, size=20)
-        cats = Categorical.from_codes(codes, levels, name='myfactor', ordered=True)
+        cats = Categorical.from_codes(codes, levels, ordered=True)
         df = DataFrame(np.repeat(np.arange(20),4).reshape(-1,4), columns=list('abcd'))
         df['cats'] = cats
 
@@ -3924,7 +3922,7 @@ class TestGroupBy(tm.TestCase):
                 ]})
 
         # GH 6908 change target column's order
-        df_reordered = df_original.sort(columns='Quantity')
+        df_reordered = df_original.sort_values(by='Quantity')
 
         for df in [df_original, df_reordered]:
             df = df.set_index(['Date'])
@@ -3962,7 +3960,7 @@ class TestGroupBy(tm.TestCase):
                 DT.datetime(2013,12,2,14,0),
                 ]})
 
-        df_sorted = df_original.sort(columns='Quantity', ascending=False)
+        df_sorted = df_original.sort_values(by='Quantity', ascending=False)
 
         for df in [df_original, df_sorted]:
             df = df.set_index('Date', drop=False)
@@ -3995,7 +3993,7 @@ class TestGroupBy(tm.TestCase):
                 DT.datetime(2013,12,2,14,0),
                 ]}).set_index('Date')
 
-        df_sorted = df_original.sort(columns='Quantity', ascending=False)
+        df_sorted = df_original.sort_values(by='Quantity', ascending=False)
 
         for df in [df_original, df_sorted]:
             expected = DataFrame({
@@ -4037,7 +4035,7 @@ class TestGroupBy(tm.TestCase):
                 DT.datetime(2013,10,2,14,0),
                 ]}).set_index('Date')
 
-        df_sorted = df_original.sort(columns='Quantity', ascending=False)
+        df_sorted = df_original.sort_values(by='Quantity', ascending=False)
         for df in [df_original, df_sorted]:
 
             expected = DataFrame({
@@ -4146,7 +4144,7 @@ class TestGroupBy(tm.TestCase):
             'Date' : [datetime(2013,9,1,13,0), datetime(2013,9,1,13,5),
                       datetime(2013,10,1,20,0), datetime(2013,10,3,10,0),
                       datetime(2013,12,2,12,0), datetime(2013,9,2,14,0),]})
-        df_reordered = df_original.sort(columns='Quantity')
+        df_reordered = df_original.sort_values(by='Quantity')
 
         # single grouping
         expected_list = [df_original.iloc[[0, 1, 5]], df_original.iloc[[2, 3]],
@@ -4174,7 +4172,7 @@ class TestGroupBy(tm.TestCase):
 
         # with index
         df_original = df_original.set_index('Date')
-        df_reordered = df_original.sort(columns='Quantity')
+        df_reordered = df_original.sort_values(by='Quantity')
 
         expected_list = [df_original.iloc[[0, 1, 5]], df_original.iloc[[2, 3]],
                          df_original.iloc[[4]]]
@@ -4369,7 +4367,7 @@ class TestGroupBy(tm.TestCase):
         f = lambda x: x.mean() > 10
         old_way = s[grouped.transform(f).astype('bool')]
         new_way = grouped.filter(f)
-        assert_series_equal(new_way.order(), old_way.order())
+        assert_series_equal(new_way.sort_values(), old_way.sort_values())
 
         # Series of floats
         s = 100*Series(np.random.random(1000))
@@ -4378,7 +4376,7 @@ class TestGroupBy(tm.TestCase):
         f = lambda x: x.mean() > 10
         old_way = s[grouped.transform(f).astype('bool')]
         new_way = grouped.filter(f)
-        assert_series_equal(new_way.order(), old_way.order())
+        assert_series_equal(new_way.sort_values(), old_way.sort_values())
 
         # Set up DataFrame of ints, floats, strings.
         from string import ascii_lowercase

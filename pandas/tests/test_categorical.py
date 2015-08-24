@@ -1045,22 +1045,22 @@ class TestCategorical(tm.TestCase):
 
         # unordered cats are sortable
         cat = Categorical(["a","b","b","a"], ordered=False)
-        cat.order()
+        cat.sort_values()
         cat.sort()
 
         cat = Categorical(["a","c","b","d"], ordered=True)
 
-        # order
-        res = cat.order()
+        # sort_values
+        res = cat.sort_values()
         exp = np.array(["a","b","c","d"],dtype=object)
         self.assert_numpy_array_equal(res.__array__(), exp)
 
         cat = Categorical(["a","c","b","d"], categories=["a","b","c","d"], ordered=True)
-        res = cat.order()
+        res = cat.sort_values()
         exp = np.array(["a","b","c","d"],dtype=object)
         self.assert_numpy_array_equal(res.__array__(), exp)
 
-        res = cat.order(ascending=False)
+        res = cat.sort_values(ascending=False)
         exp = np.array(["d","c","b","a"],dtype=object)
         self.assert_numpy_array_equal(res.__array__(), exp)
 
@@ -1207,6 +1207,8 @@ class TestCategorical(tm.TestCase):
         self.assertFalse(LooseVersion(pd.__version__) >= '0.18')
 
     def test_removed_names_produces_warning(self):
+
+        # 10482
         with tm.assert_produces_warning(UserWarning):
             Categorical([0,1], name="a")
 
@@ -1249,7 +1251,7 @@ class TestCategoricalAsBlock(tm.TestCase):
         df = DataFrame({'value': np.random.randint(0, 10000, 100)})
         labels = [ "{0} - {1}".format(i, i + 499) for i in range(0, 10000, 500) ]
 
-        df = df.sort(columns=['value'], ascending=True)
+        df = df.sort_values(by=['value'], ascending=True)
         df['value_group'] = pd.cut(df.value, range(0, 10500, 500), right=False, labels=labels)
         self.cat = df
 
@@ -1665,7 +1667,7 @@ class TestCategoricalAsBlock(tm.TestCase):
         df = DataFrame({'value': np.array(np.random.randint(0, 10000, 100),dtype='int32')})
         labels = [ "{0} - {1}".format(i, i + 499) for i in range(0, 10000, 500) ]
 
-        df = df.sort(columns=['value'], ascending=True)
+        df = df.sort_values(by=['value'], ascending=True)
         s = pd.cut(df.value, range(0, 10500, 500), right=False, labels=labels)
         d = s.values
         df['D'] = d
@@ -2548,25 +2550,29 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
 
     def test_sort(self):
 
-        cat = Series(Categorical(["a","b","b","a"], ordered=False))
+        c = Categorical(["a","b","b","a"], ordered=False)
+        cat = Series(c)
+
+        # 9816 deprecated
+        with tm.assert_produces_warning(FutureWarning):
+            c.order()
 
         # sort in the categories order
         expected = Series(Categorical(["a","a","b","b"], ordered=False),index=[0,3,1,2])
-        result = cat.order()
+        result = cat.sort_values()
         tm.assert_series_equal(result, expected)
 
         cat = Series(Categorical(["a","c","b","d"], ordered=True))
-
-        res = cat.order()
+        res = cat.sort_values()
         exp = np.array(["a","b","c","d"])
         self.assert_numpy_array_equal(res.__array__(), exp)
 
         cat = Series(Categorical(["a","c","b","d"], categories=["a","b","c","d"], ordered=True))
-        res = cat.order()
+        res = cat.sort_values()
         exp = np.array(["a","b","c","d"])
         self.assert_numpy_array_equal(res.__array__(), exp)
 
-        res = cat.order(ascending=False)
+        res = cat.sort_values(ascending=False)
         exp = np.array(["d","c","b","a"])
         self.assert_numpy_array_equal(res.__array__(), exp)
 
@@ -2576,19 +2582,19 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
         df = DataFrame({"unsort":raw_cat1,"sort":raw_cat2, "string":s, "values":[1,2,3,4]})
 
         # Cats must be sorted in a dataframe
-        res = df.sort(columns=["string"], ascending=False)
+        res = df.sort_values(by=["string"], ascending=False)
         exp = np.array(["d", "c", "b", "a"])
         self.assert_numpy_array_equal(res["sort"].values.__array__(), exp)
         self.assertEqual(res["sort"].dtype, "category")
 
-        res = df.sort(columns=["sort"], ascending=False)
-        exp = df.sort(columns=["string"], ascending=True)
+        res = df.sort_values(by=["sort"], ascending=False)
+        exp = df.sort_values(by=["string"], ascending=True)
         self.assert_numpy_array_equal(res["values"], exp["values"])
         self.assertEqual(res["sort"].dtype, "category")
         self.assertEqual(res["unsort"].dtype, "category")
 
         # unordered cat, but we allow this
-        df.sort(columns=["unsort"], ascending=False)
+        df.sort_values(by=["unsort"], ascending=False)
 
         # multi-columns sort
         # GH 7848
@@ -2597,18 +2603,18 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
         df['grade'] = df['grade'].cat.set_categories(['b', 'e', 'a'])
 
         # sorts 'grade' according to the order of the categories
-        result = df.sort(columns=['grade'])
+        result = df.sort_values(by=['grade'])
         expected = df.iloc[[1,2,5,0,3,4]]
         tm.assert_frame_equal(result,expected)
 
         # multi
-        result = df.sort(columns=['grade', 'id'])
+        result = df.sort_values(by=['grade', 'id'])
         expected = df.iloc[[2,1,5,4,3,0]]
         tm.assert_frame_equal(result,expected)
 
         # reverse
         cat = Categorical(["a","c","c","b","d"], ordered=True)
-        res = cat.order(ascending=False)
+        res = cat.sort_values(ascending=False)
         exp_val = np.array(["d","c", "c", "b","a"],dtype=object)
         exp_categories = np.array(["a","b","c","d"],dtype=object)
         self.assert_numpy_array_equal(res.__array__(), exp_val)
@@ -2617,28 +2623,28 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
         # some NaN positions
 
         cat = Categorical(["a","c","b","d", np.nan], ordered=True)
-        res = cat.order(ascending=False, na_position='last')
+        res = cat.sort_values(ascending=False, na_position='last')
         exp_val = np.array(["d","c","b","a", np.nan],dtype=object)
         exp_categories = np.array(["a","b","c","d"],dtype=object)
         self.assert_numpy_array_equal(res.__array__(), exp_val)
         self.assert_numpy_array_equal(res.categories, exp_categories)
 
         cat = Categorical(["a","c","b","d", np.nan], ordered=True)
-        res = cat.order(ascending=False, na_position='first')
+        res = cat.sort_values(ascending=False, na_position='first')
         exp_val = np.array([np.nan, "d","c","b","a"],dtype=object)
         exp_categories = np.array(["a","b","c","d"],dtype=object)
         self.assert_numpy_array_equal(res.__array__(), exp_val)
         self.assert_numpy_array_equal(res.categories, exp_categories)
 
         cat = Categorical(["a","c","b","d", np.nan], ordered=True)
-        res = cat.order(ascending=False, na_position='first')
+        res = cat.sort_values(ascending=False, na_position='first')
         exp_val = np.array([np.nan, "d","c","b","a"],dtype=object)
         exp_categories = np.array(["a","b","c","d"],dtype=object)
         self.assert_numpy_array_equal(res.__array__(), exp_val)
         self.assert_numpy_array_equal(res.categories, exp_categories)
 
         cat = Categorical(["a","c","b","d", np.nan], ordered=True)
-        res = cat.order(ascending=False, na_position='last')
+        res = cat.sort_values(ascending=False, na_position='last')
         exp_val = np.array(["d","c","b","a",np.nan],dtype=object)
         exp_categories = np.array(["a","b","c","d"],dtype=object)
         self.assert_numpy_array_equal(res.__array__(), exp_val)
@@ -3576,9 +3582,13 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
         self.assertFalse(hasattr(invalid, 'cat'))
 
     def test_pickle_v0_14_1(self):
-        cat = pd.Categorical(values=['a', 'b', 'c'],
-                             categories=['a', 'b', 'c', 'd'],
-                             name='foobar', ordered=False)
+
+        # we have the name warning
+        # 10482
+        with tm.assert_produces_warning(UserWarning):
+            cat = pd.Categorical(values=['a', 'b', 'c'],
+                                 categories=['a', 'b', 'c', 'd'],
+                                 name='foobar', ordered=False)
         pickle_path = os.path.join(tm.get_data_path(),
                                    'categorical_0_14_1.pickle')
         # This code was executed once on v0.14.1 to generate the pickle:
@@ -3593,9 +3603,12 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
         # ordered -> _ordered
         # GH 9347
 
-        cat = pd.Categorical(values=['a', 'b', 'c'],
-                             categories=['a', 'b', 'c', 'd'],
-                             name='foobar', ordered=False)
+        # we have the name warning
+        # 10482
+        with tm.assert_produces_warning(UserWarning):
+            cat = pd.Categorical(values=['a', 'b', 'c'],
+                                 categories=['a', 'b', 'c', 'd'],
+                                 name='foobar', ordered=False)
         pickle_path = os.path.join(tm.get_data_path(),
                                    'categorical_0_15_2.pickle')
         # This code was executed once on v0.15.2 to generate the pickle:

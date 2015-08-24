@@ -906,8 +906,8 @@ class TestStata(tm.TestCase):
         parsed_115 = read_stata(self.dta20_115)
         parsed_117 = read_stata(self.dta20_117)
         # Sort based on codes, not strings
-        parsed_115 = parsed_115.sort("srh")
-        parsed_117 = parsed_117.sort("srh")
+        parsed_115 = parsed_115.sort_values("srh")
+        parsed_117 = parsed_117.sort_values("srh")
         # Don't sort index
         parsed_115.index = np.arange(parsed_115.shape[0])
         parsed_117.index = np.arange(parsed_117.shape[0])

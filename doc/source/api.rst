@@ -434,9 +434,8 @@ Reshaping, sorting
    :toctree: generated/
 
    Series.argsort
-   Series.order
    Series.reorder_levels
-   Series.sort
+   Series.sort_values
    Series.sort_index
    Series.sortlevel
    Series.swaplevel
@@ -908,7 +907,7 @@ Reshaping, sorting, transposing
 
    DataFrame.pivot
    DataFrame.reorder_levels
-   DataFrame.sort
+   DataFrame.sort_values
    DataFrame.sort_index
    DataFrame.sortlevel
    DataFrame.nlargest
@@ -1293,7 +1292,6 @@ Modifying and Computations
    Index.insert
    Index.min
    Index.max
-   Index.order
    Index.reindex
    Index.repeat
    Index.take
@@ -1319,8 +1317,7 @@ Sorting
    :toctree: generated/
 
    Index.argsort
-   Index.order
-   Index.sort
+   Index.sort_values
 
 Time-specific operations
 ~~~~~~~~~~~~~~~~~~~~~~~~

@@ -1718,6 +1718,9 @@ def _interpolate_scipy_wrapper(x, y, new_x, method, fill_value=None,
                                     bounds_error=bounds_error)
         new_y = terp(new_x)
     elif method == 'spline':
+        # GH #10633
+        if not order:
+            raise ValueError("order needs to be specified and greater than 0")
         terp = interpolate.UnivariateSpline(x, y, k=order, **kwargs)
         new_y = terp(new_x)
     else:
@@ -2154,6 +2157,9 @@ def _mut_exclusive(**kwargs):
     else:
         return val2
 
+
+def _not_none(*args):
+    return (arg for arg in args if arg is not None)
 
 def _any_none(*args):
     for arg in args:
