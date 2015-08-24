@@ -1,4 +1,5 @@
 # pylint: disable=E1101
+from __future__ import division
 import operator
 import warnings
 from datetime import time, datetime
@@ -1793,8 +1794,9 @@ def _generate_regular_range(start, end, periods, offset):
         stride = offset.nanos
         if periods is None:
             b = Timestamp(start).value
-            e = Timestamp(end).value
-            e += stride - e % stride
+            # cannot just use e = Timestamp(end) + 1 because arange breaks when
+            # stride is too large, see GH10887
+            e = b + (Timestamp(end).value - b)//stride * stride + stride//2
             # end.tz == start.tz by this point due to _generate implementation
             tz = start.tz
         elif start is not None:
