@@ -1117,17 +1117,6 @@ class HDFStore(StringMixin):
         """ validate / deprecate formats; return the new kwargs """
         kwargs = kwargs.copy()
 
-        # table arg
-        table = kwargs.pop('table', None)
-
-        if table is not None:
-            warnings.warn(format_deprecate_doc, FutureWarning)
-
-            if table:
-                format = 'table'
-            else:
-                format = 'fixed'
-
         # validate
         try:
             kwargs['format'] = _FORMAT_MAP[format.lower()]

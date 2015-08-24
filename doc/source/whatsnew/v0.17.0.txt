@@ -665,6 +665,7 @@ Deprecations
   ``DataFrame.add(other, fill_value=0)`` and ``DataFrame.mul(other, fill_value=1.)``
   (:issue:`10735`).
 - ``TimeSeries`` deprecated in favor of ``Series`` (note that this has been alias since 0.13.0), (:issue:`10890`)
+- ``WidePanel`` deprecated in favor of ``Panel``, ``LongPanel`` in favor of ``DataFrame`` (note these have been aliases since < 0.11.0), (:issue:`10892`)
 
 .. _whatsnew_0170.prior_deprecations:
 
@@ -704,6 +705,15 @@ Removal of prior version deprecations/changes
    .. ipython :: python
 
       df.add(df.A,axis='index')
+
+
+
+
+- Remove ``table`` keyword in ``HDFStore.put/append``, in favor of using ``format=`` (:issue:`4645`)
+- Remove ``kind`` in ``read_excel/ExcelFile`` as its unused (:issue:`4712`)
+- Remove ``infer_type`` keyword from ``pd.read_html`` as its unused (:issue:`4770`, :issue:`7032`)
+- Remove ``offset`` and ``timeRule`` keywords from ``Series.tshift/shift``, in favor of ``freq`` (:issue:`4853`, :issue:`4864`)
+- Remove ``pd.load/pd.save`` aliases in favor of ``pd.to_pickle/pd.read_pickle`` (:issue:`3787`)
 
 .. _whatsnew_0170.performance:
 

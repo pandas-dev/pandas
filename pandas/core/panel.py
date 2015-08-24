@@ -1210,8 +1210,8 @@ class Panel(NDFrame):
 
         return super(Panel, self).slice_shift(periods, axis=axis)
 
-    def tshift(self, periods=1, freq=None, axis='major', **kwds):
-        return super(Panel, self).tshift(periods, freq, axis, **kwds)
+    def tshift(self, periods=1, freq=None, axis='major'):
+        return super(Panel, self).tshift(periods, freq, axis)
 
     def join(self, other, how='left', lsuffix='', rsuffix=''):
         """
@@ -1509,5 +1509,23 @@ ops.add_special_arithmetic_methods(Panel, **ops.panel_special_funcs)
 Panel._add_aggregate_operations()
 Panel._add_numeric_operations()
 
-WidePanel = Panel
-LongPanel = DataFrame
+# legacy
+class WidePanel(Panel):
+
+    def __init__(self, *args, **kwargs):
+
+        # deprecation, #10892
+        warnings.warn("WidePanel is deprecated. Please use Panel",
+                      FutureWarning, stacklevel=2)
+
+        super(WidePanel, self).__init__(*args, **kwargs)
+
+class LongPanel(DataFrame):
+
+    def __init__(self, *args, **kwargs):
+
+        # deprecation, #10892
+        warnings.warn("LongPanel is deprecated. Please use DataFrame",
+                      FutureWarning, stacklevel=2)
+
+        super(LongPanel, self).__init__(*args, **kwargs)

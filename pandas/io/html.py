@@ -604,7 +604,7 @@ def _expand_elements(body):
         body[ind] += empty * (lens_max - length)
 
 
-def _data_to_frame(data, header, index_col, skiprows, infer_types,
+def _data_to_frame(data, header, index_col, skiprows,
                    parse_dates, tupleize_cols, thousands):
     head, body, foot = data
 
@@ -707,7 +707,7 @@ def _validate_flavor(flavor):
     return flavor
 
 
-def _parse(flavor, io, match, header, index_col, skiprows, infer_types,
+def _parse(flavor, io, match, header, index_col, skiprows,
            parse_dates, tupleize_cols, thousands, attrs, encoding):
     flavor = _validate_flavor(flavor)
     compiled_match = re.compile(match)  # you can pass a compiled regex here
@@ -730,15 +730,20 @@ def _parse(flavor, io, match, header, index_col, skiprows, infer_types,
     ret = []
     for table in tables:
         try:
-            ret.append(_data_to_frame(table, header, index_col, skiprows,
-                        infer_types, parse_dates, tupleize_cols, thousands))
+            ret.append(_data_to_frame(data=table,
+                                      header=header,
+                                      index_col=index_col,
+                                      skiprows=skiprows,
+                                      parse_dates=parse_dates,
+                                      tupleize_cols=tupleize_cols,
+                                      thousands=thousands))
         except StopIteration: # empty table
             continue
     return ret
 
 
 def read_html(io, match='.+', flavor=None, header=None, index_col=None,
-              skiprows=None, infer_types=None, attrs=None, parse_dates=False,
+              skiprows=None, attrs=None, parse_dates=False,
               tupleize_cols=False, thousands=',', encoding=None):
     r"""Read HTML tables into a ``list`` of ``DataFrame`` objects.
 
@@ -775,9 +780,6 @@ def read_html(io, match='.+', flavor=None, header=None, index_col=None,
         sequence of integers or a slice is given, will skip the rows indexed by
         that sequence.  Note that a single element sequence means 'skip the nth
         row' whereas an integer means 'skip n rows'.
-
-    infer_types : None, optional
-        This has no effect since 0.15.0. It is here for backwards compatibility.
 
     attrs : dict or None, optional
         This is a dictionary of attributes that you can pass to use to identify
@@ -853,13 +855,11 @@ def read_html(io, match='.+', flavor=None, header=None, index_col=None,
     pandas.read_csv
     """
     _importers()
-    if infer_types is not None:
-        warnings.warn("infer_types has no effect since 0.15", FutureWarning)
 
     # Type check here. We don't want to parse only to fail because of an
     # invalid value of an integer skiprows.
     if isinstance(skiprows, numbers.Integral) and skiprows < 0:
         raise ValueError('cannot skip rows starting from the end of the '
                          'data (you passed a negative value)')
-    return _parse(flavor, io, match, header, index_col, skiprows, infer_types,
+    return _parse(flavor, io, match, header, index_col, skiprows,
                   parse_dates, tupleize_cols, thousands, attrs, encoding)

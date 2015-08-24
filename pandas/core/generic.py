@@ -1006,20 +1006,6 @@ class NDFrame(PandasObject):
         from pandas.io.pickle import to_pickle
         return to_pickle(self, path)
 
-    def save(self, path):  # TODO remove in 0.14
-        "Deprecated. Use to_pickle instead"
-        import warnings
-        from pandas.io.pickle import to_pickle
-        warnings.warn("save is deprecated, use to_pickle", FutureWarning)
-        return to_pickle(self, path)
-
-    def load(self, path):  # TODO remove in 0.14
-        "Deprecated. Use read_pickle instead."
-        import warnings
-        from pandas.io.pickle import read_pickle
-        warnings.warn("load is deprecated, use pd.read_pickle", FutureWarning)
-        return read_pickle(path)
-
     def to_clipboard(self, excel=None, sep=None, **kwargs):
         """
         Attempt to write text representation of object to the system clipboard
@@ -3806,15 +3792,15 @@ class NDFrame(PandasObject):
         shifted : %(klass)s
     """)
     @Appender(_shared_docs['shift'] % _shared_doc_kwargs)
-    def shift(self, periods=1, freq=None, axis=0, **kwargs):
+    def shift(self, periods=1, freq=None, axis=0):
         if periods == 0:
             return self
 
         block_axis = self._get_block_manager_axis(axis)
-        if freq is None and not len(kwargs):
+        if freq is None:
             new_data = self._data.shift(periods=periods, axis=block_axis)
         else:
-            return self.tshift(periods, freq, **kwargs)
+            return self.tshift(periods, freq)
 
         return self._constructor(new_data).__finalize__(self)
 
@@ -3854,7 +3840,7 @@ class NDFrame(PandasObject):
 
         return new_obj.__finalize__(self)
 
-    def tshift(self, periods=1, freq=None, axis=0, **kwargs):
+    def tshift(self, periods=1, freq=None, axis=0):
         """
         Shift the time index, using the index's frequency if available
 
@@ -3877,7 +3863,6 @@ class NDFrame(PandasObject):
         -------
         shifted : NDFrame
         """
-        from pandas.core.datetools import _resolve_offset
 
         index = self._get_axis(axis)
         if freq is None:
@@ -3893,24 +3878,22 @@ class NDFrame(PandasObject):
         if periods == 0:
             return self
 
-        offset = _resolve_offset(freq, kwargs)
-
-        if isinstance(offset, string_types):
-            offset = datetools.to_offset(offset)
+        if isinstance(freq, string_types):
+            freq = datetools.to_offset(freq)
 
         block_axis = self._get_block_manager_axis(axis)
         if isinstance(index, PeriodIndex):
-            orig_offset = datetools.to_offset(index.freq)
-            if offset == orig_offset:
+            orig_freq = datetools.to_offset(index.freq)
+            if freq == orig_freq:
                 new_data = self._data.copy()
                 new_data.axes[block_axis] = index.shift(periods)
             else:
                 msg = ('Given freq %s does not match PeriodIndex freq %s' %
-                       (offset.rule_code, orig_offset.rule_code))
+                       (freq.rule_code, orig_freq.rule_code))
                 raise ValueError(msg)
         else:
             new_data = self._data.copy()
-            new_data.axes[block_axis] = index.shift(periods, offset)
+            new_data.axes[block_axis] = index.shift(periods, freq)
 
         return self._constructor(new_data).__finalize__(self)
 
