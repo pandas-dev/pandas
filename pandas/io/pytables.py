@@ -13,7 +13,8 @@ import warnings
 import os
 
 import numpy as np
-from pandas import (Series, TimeSeries, DataFrame, Panel, Panel4D, Index,
+import pandas as pd
+from pandas import (Series, DataFrame, Panel, Panel4D, Index,
                     MultiIndex, Int64Index, Timestamp)
 from pandas.sparse.api import SparseSeries, SparseDataFrame, SparsePanel
 from pandas.sparse.array import BlockIndex, IntIndex
@@ -164,7 +165,7 @@ _TYPE_MAP = {
 
     Series: u('series'),
     SparseSeries: u('sparse_series'),
-    TimeSeries: u('series'),
+    pd.TimeSeries: u('series'),
     DataFrame: u('frame'),
     SparseDataFrame: u('sparse_frame'),
     Panel: u('wide'),

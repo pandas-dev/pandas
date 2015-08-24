@@ -30,7 +30,7 @@ from pandas.tools.util import cartesian_product
 import pandas.sparse.frame as spf
 
 from pandas._sparse import BlockIndex, IntIndex
-from pandas.sparse.api import (SparseSeries, SparseTimeSeries,
+from pandas.sparse.api import (SparseSeries,
                                SparseDataFrame, SparsePanel,
                                SparseArray)
 import pandas.tests.test_frame as test_frame
@@ -160,6 +160,12 @@ class TestSparseSeries(tm.TestCase,
         [x for x in self.bseries]
         str(self.bseries)
 
+    def test_TimeSeries_deprecation(self):
+
+        # deprecation TimeSeries, #10890
+        with tm.assert_produces_warning(FutureWarning):
+            pd.SparseTimeSeries(1,index=pd.date_range('20130101',periods=3))
+
     def test_construct_DataFrame_with_sp_series(self):
         # it works!
         df = DataFrame({'col': self.bseries})
@@ -258,7 +264,7 @@ class TestSparseSeries(tm.TestCase,
         # Sparse time series works
         date_index = bdate_range('1/1/2000', periods=len(self.bseries))
         s5 = SparseSeries(self.bseries, index=date_index)
-        tm.assertIsInstance(s5, SparseTimeSeries)
+        tm.assertIsInstance(s5, SparseSeries)
 
         # pass Series
         bseries2 = SparseSeries(self.bseries.to_dense())
@@ -1189,14 +1195,19 @@ class TestSparseDataFrame(tm.TestCase, test_frame.SafeForSparse):
                   frame['A'].reindex(fidx[::2]),
                   SparseSeries([], index=[])]
 
-        for op in ops:
+        for op in opnames:
             _compare_to_dense(frame, frame[::2], frame.to_dense(),
-                              frame[::2].to_dense(), op)
+                              frame[::2].to_dense(), getattr(operator, op))
+
+            # 2304, no auto-broadcasting
             for i, s in enumerate(series):
+                f = lambda a, b: getattr(a,op)(b,axis='index')
                 _compare_to_dense(frame, s, frame.to_dense(),
-                                  s.to_dense(), op)
-                _compare_to_dense(s, frame, s.to_dense(),
-                                  frame.to_dense(), op)
+                                  s.to_dense(), f)
+
+                # rops are not implemented
+                #_compare_to_dense(s, frame, s.to_dense(),
+                #                  frame.to_dense(), f)
 
         # cross-sectional operations
         series = [frame.xs(fidx[0]),

@@ -7,7 +7,7 @@ with float64 data
 
 from numpy import nan, ndarray
 import numpy as np
-
+import warnings
 import operator
 
 from pandas.core.common import isnull, _values_from_object, _maybe_match_name
@@ -770,4 +770,11 @@ ops.add_special_arithmetic_methods(SparseSeries, _arith_method,
                                    bool_method=None, use_numexpr=False, force=True)
 
 # backwards compatiblity
-SparseTimeSeries = SparseSeries
+class SparseTimeSeries(SparseSeries):
+
+    def __init__(self, *args, **kwargs):
+        # deprecation TimeSeries, #10890
+        warnings.warn("SparseTimeSeries is deprecated. Please use SparseSeries",
+                      FutureWarning, stacklevel=2)
+
+        super(SparseTimeSeries, self).__init__(*args, **kwargs)

@@ -1396,7 +1396,7 @@ class DataFrame(NDFrame):
         writer.write_file()
 
     @Appender(fmt.docstring_to_string, indents=1)
-    def to_string(self, buf=None, columns=None, col_space=None, colSpace=None,
+    def to_string(self, buf=None, columns=None, col_space=None,
                   header=True, index=True, na_rep='NaN', formatters=None,
                   float_format=None, sparsify=None, index_names=True,
                   justify=None, line_width=None, max_rows=None, max_cols=None,
@@ -1404,11 +1404,6 @@ class DataFrame(NDFrame):
         """
         Render a DataFrame to a console-friendly tabular output.
         """
-
-        if colSpace is not None:  # pragma: no cover
-            warnings.warn("colSpace is deprecated, use col_space",
-                          FutureWarning)
-            col_space = colSpace
 
         formatter = fmt.DataFrameFormatter(self, buf=buf, columns=columns,
                                            col_space=col_space, na_rep=na_rep,
@@ -3359,16 +3354,7 @@ class DataFrame(NDFrame):
             return self._constructor(data=self._series, index=self.index,
                                      columns=self.columns)
 
-        # teeny hack because one does DataFrame + TimeSeries all the time
-        if self.index.is_all_dates and other.index.is_all_dates:
-            warnings.warn(("TimeSeries broadcasting along DataFrame index "
-                           "by default is deprecated. Please use "
-                           "DataFrame.<op> to explicitly broadcast arithmetic "
-                           "operations along the index"),
-                          FutureWarning)
-            return self._combine_match_index(other, func, level=level, fill_value=fill_value)
-        else:
-            return self._combine_match_columns(other, func, level=level, fill_value=fill_value)
+        return self._combine_match_columns(other, func, level=level, fill_value=fill_value)
 
     def _combine_match_index(self, other, func, level=None, fill_value=None):
         left, right = self.align(other, join='outer', axis=0, level=level, copy=False)

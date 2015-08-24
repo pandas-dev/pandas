@@ -8,7 +8,7 @@ import nose
 import numpy as np
 randn = np.random.randn
 
-from pandas import (Index, Series, TimeSeries, DataFrame,
+from pandas import (Index, Series, DataFrame,
                     isnull, date_range, Timestamp, DatetimeIndex,
                     Int64Index, to_datetime, bdate_range)
 
