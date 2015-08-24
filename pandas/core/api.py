@@ -12,13 +12,11 @@ from pandas.core.index import Index, CategoricalIndex, Int64Index, Float64Index,
 
 from pandas.core.series import Series, TimeSeries
 from pandas.core.frame import DataFrame
-from pandas.core.panel import Panel
+from pandas.core.panel import Panel, WidePanel
 from pandas.core.panel4d import Panel4D
 from pandas.core.groupby import groupby
 from pandas.core.reshape import (pivot_simple as pivot, get_dummies,
                                  lreshape, wide_to_long)
-
-WidePanel = Panel
 
 from pandas.core.indexing import IndexSlice
 from pandas.tseries.offsets import DateOffset
@@ -29,7 +27,6 @@ from pandas.tseries.tdi import TimedeltaIndex, Timedelta
 from pandas.tseries.period import Period, PeriodIndex
 
 # legacy
-from pandas.core.common import save, load  # deprecated, remove in 0.13
 import pandas.core.datetools as datetools
 
 from pandas.core.config import (get_option, set_option, reset_option,
