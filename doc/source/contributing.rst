@@ -512,9 +512,49 @@ entire suite.  This is done using one of the following constructs:
 
 Running the performance test suite
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Performance matters and it is worth considering that your code has not introduced
+performance regressions.  *pandas* is in the process of migrating to the
+`asv library <https://github.com/spacetelescope/asv>`__
+to enable easy monitoring of the performance of critical *pandas* operations.
+These benchmarks are all found in the ``pandas/asv_bench`` directory.  *asv*
+supports both python2 and python3. 
+
+.. note::
+
+    The *asv* benchmark suite was translated from the previous framework, vbench,
+    so many stylistic issues are likely a result of automated transformation of the
+    code.
+
+To install asv::
+
+    pip install git+https://github.com/spacetelescope/asv
+
+If you need to run a benchmark, change your directory to asv_bench/ and run
+the following if you have been developing on master::
+
+    asv continuous master
+
+Otherwise, if you are working on another branch, either of the following can be used::
+
+    asv continuous master HEAD
+    asv continuous master your_branch
+
+This will checkout the master revision and run the suite on both master and
+your commit.  Running the full test suite can take up to one hour and use up
+to 3GB of RAM.  Usually it is sufficient to paste a subset of the results in
+to the Pull Request to show that the committed changes do not cause unexpected
+performance regressions.
+
+You can run specific benchmarks using the *-b* flag which takes a regular expression.
+
+Information on how to write a benchmark can be found in
+`*asv*'s documentation http://asv.readthedocs.org/en/latest/writing_benchmarks.html`.
+
+Running the vbench performance test suite (phasing out)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Performance matters and it is worth considering that your code has not introduced
-performance regressions.  Currently *pandas* uses the `vbench library <https://github.com/pydata/vbench>`__
+performance regressions.  Historically, *pandas* used `vbench library <https://github.com/pydata/vbench>`__
 to enable easy monitoring of the performance of critical *pandas* operations.
 These benchmarks are all found in the ``pandas/vb_suite`` directory.  vbench
 currently only works on python2.
@@ -530,7 +570,7 @@ using pip.  If you need to run a benchmark, change your directory to the *pandas
 
 This will checkout the master revision and run the suite on both master and
 your commit.  Running the full test suite can take up to one hour and use up
-to 3GB of RAM.  Usually it is sufficient to past a subset of the results in
+to 3GB of RAM.  Usually it is sufficient to paste a subset of the results in
 to the Pull Request to show that the committed changes do not cause unexpected
 performance regressions.
 
