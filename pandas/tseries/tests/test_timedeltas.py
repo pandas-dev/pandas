@@ -1137,7 +1137,7 @@ class TestTimedeltaIndex(tm.TestCase):
     def test_union_coverage(self):
 
         idx = TimedeltaIndex(['3d','1d','2d'])
-        ordered = TimedeltaIndex(idx.order(), freq='infer')
+        ordered = TimedeltaIndex(idx.sort_values(), freq='infer')
         result = ordered.union(idx)
         self.assertTrue(result.equals(ordered))
 
@@ -1200,21 +1200,21 @@ class TestTimedeltaIndex(tm.TestCase):
         self.assertEqual(idx.argmin(), 1)
         self.assertEqual(idx.argmax(), 0)
 
-    def test_order(self):
+    def test_sort_values(self):
 
         idx = TimedeltaIndex(['4d','1d','2d'])
 
-        ordered = idx.order()
+        ordered = idx.sort_values()
         self.assertTrue(ordered.is_monotonic)
 
-        ordered = idx.order(ascending=False)
+        ordered = idx.sort_values(ascending=False)
         self.assertTrue(ordered[::-1].is_monotonic)
 
-        ordered, dexer = idx.order(return_indexer=True)
+        ordered, dexer = idx.sort_values(return_indexer=True)
         self.assertTrue(ordered.is_monotonic)
         self.assert_numpy_array_equal(dexer, [1, 2, 0])
 
-        ordered, dexer = idx.order(return_indexer=True, ascending=False)
+        ordered, dexer = idx.sort_values(return_indexer=True, ascending=False)
         self.assertTrue(ordered[::-1].is_monotonic)
         self.assert_numpy_array_equal(dexer, [0, 2, 1])
 

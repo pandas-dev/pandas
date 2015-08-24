@@ -438,7 +438,8 @@ class TestTimeZoneSupportPytz(tm.TestCase):
         di = DatetimeIndex(times)
         localized = di.tz_localize(tz, ambiguous='infer')
         self.assert_numpy_array_equal(dr, localized)
-        localized_old = di.tz_localize(tz, infer_dst=True)
+        with tm.assert_produces_warning(FutureWarning):
+            localized_old = di.tz_localize(tz, infer_dst=True)
         self.assert_numpy_array_equal(dr, localized_old)
         self.assert_numpy_array_equal(dr, DatetimeIndex(times, tz=tz, ambiguous='infer'))
 
@@ -448,7 +449,8 @@ class TestTimeZoneSupportPytz(tm.TestCase):
         localized = dr.tz_localize(tz)
         localized_infer = dr.tz_localize(tz, ambiguous='infer')
         self.assert_numpy_array_equal(localized, localized_infer)
-        localized_infer_old = dr.tz_localize(tz, infer_dst=True)
+        with tm.assert_produces_warning(FutureWarning):
+            localized_infer_old = dr.tz_localize(tz, infer_dst=True)
         self.assert_numpy_array_equal(localized, localized_infer_old)
 
     def test_ambiguous_flags(self):

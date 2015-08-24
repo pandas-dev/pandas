@@ -992,8 +992,8 @@ class TestMergeMulti(tm.TestCase):
         assert_frame_equal(joined, expected.ix[:, joined.columns])
 
         left = self.data.join(self.to_join, on=['key1', 'key2'], sort=True)
-        right = expected.ix[:, joined.columns].sort(['key1', 'key2'],
-                                                    kind='mergesort')
+        right = expected.ix[:, joined.columns].sort_values(['key1', 'key2'],
+                                                           kind='mergesort')
         assert_frame_equal(left, right)
 
     def test_left_join_multi_index(self):
@@ -1019,7 +1019,7 @@ class TestMergeMulti(tm.TestCase):
 
                 if sort:
                     tm.assert_frame_equal(res,
-                                          res.sort(icols, kind='mergesort'))
+                                          res.sort_values(icols, kind='mergesort'))
 
                 out = merge(left, right.reset_index(), on=icols,
                             sort=sort, how='left')
@@ -1099,7 +1099,7 @@ class TestMergeMulti(tm.TestCase):
         expected.loc[(expected.k1 == 1) & (expected.k2 == 'foo'),'v2'] = 7
 
         tm.assert_frame_equal(result, expected)
-        tm.assert_frame_equal(result.sort(['k1', 'k2'], kind='mergesort'),
+        tm.assert_frame_equal(result.sort_values(['k1', 'k2'], kind='mergesort'),
                               left.join(right, on=['k1', 'k2'], sort=True))
 
         # test join with multi dtypes blocks
@@ -1119,7 +1119,7 @@ class TestMergeMulti(tm.TestCase):
         expected.loc[(expected.k1 == 1) & (expected.k2 == 'foo'),'v2'] = 7
 
         tm.assert_frame_equal(result, expected)
-        tm.assert_frame_equal(result.sort(['k1', 'k2'], kind='mergesort'),
+        tm.assert_frame_equal(result.sort_values(['k1', 'k2'], kind='mergesort'),
                               left.join(right, on=['k1', 'k2'], sort=True))
 
         # do a right join for an extra test
@@ -1186,7 +1186,7 @@ class TestMergeMulti(tm.TestCase):
                            how='left', sort=True)
 
         tm.assert_frame_equal(result,
-                expected.sort(['cola', 'colb', 'colc'], kind='mergesort'))
+                expected.sort_values(['cola', 'colb', 'colc'], kind='mergesort'))
 
         # GH7331 - maintain left frame order in left merge
         right.reset_index(inplace=True)
@@ -1233,7 +1233,7 @@ class TestMergeMulti(tm.TestCase):
         tm.assert_frame_equal(result, expected)
 
         result = left.join(right, on='tag', how='left', sort=True)
-        tm.assert_frame_equal(result, expected.sort('tag', kind='mergesort'))
+        tm.assert_frame_equal(result, expected.sort_values('tag', kind='mergesort'))
 
         # GH7331 - maintain left frame order in left merge
         result = merge(left, right.reset_index(), how='left', on='tag')
@@ -1264,7 +1264,7 @@ class TestMergeMulti(tm.TestCase):
             tm.assert_frame_equal(result, expected)
 
             result = left.join(right, on=['k1', 'k2'], sort=True)
-            expected.sort(['k1', 'k2'], kind='mergesort', inplace=True)
+            expected.sort_values(['k1', 'k2'], kind='mergesort', inplace=True)
             tm.assert_frame_equal(result, expected)
 
         for d1 in [np.int64,np.int32,np.int16,np.int8,np.uint8]:
@@ -1347,7 +1347,7 @@ class TestMergeMulti(tm.TestCase):
         assert_series_equal(out['left'], result, check_names=False)
         self.assertTrue(result.name is None)
 
-        out.sort(out.columns.tolist(), inplace=True)
+        out.sort_values(out.columns.tolist(), inplace=True)
         out.index = np.arange(len(out))
         for how in ['left', 'right', 'outer', 'inner']:
             assert_frame_equal(out, merge(left, right, how=how, sort=True))
@@ -1411,14 +1411,14 @@ class TestMergeMulti(tm.TestCase):
                     vals.append(k + tuple([np.nan, rv]))
 
         def align(df):
-            df = df.sort(df.columns.tolist())
+            df = df.sort_values(df.columns.tolist())
             df.index = np.arange(len(df))
             return df
 
         def verify_order(df):
             kcols = list('ABCDEFG')
             assert_frame_equal(df[kcols].copy(),
-                               df[kcols].sort(kcols, kind='mergesort'))
+                               df[kcols].sort_values(kcols, kind='mergesort'))
 
         out = DataFrame(vals, columns=list('ABCDEFG') + ['left', 'right'])
         out = align(out)

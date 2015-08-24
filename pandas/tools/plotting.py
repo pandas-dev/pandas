@@ -1194,7 +1194,7 @@ class MPLPlot(object):
 
         if self.use_index:
             if convert_period and isinstance(index, PeriodIndex):
-                self.data = self.data.reindex(index=index.order())
+                self.data = self.data.reindex(index=index.sort_values())
                 x = self.data.index.to_timestamp()._mpl_repr()
             elif index.is_numeric():
                 """
