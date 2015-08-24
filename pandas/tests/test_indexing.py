@@ -1761,7 +1761,8 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         key = 4.0, 2012
 
         # emits a PerformanceWarning, ok
-        tm.assert_frame_equal(df.ix[key], df.iloc[2:])
+        with self.assert_produces_warning(PerformanceWarning):
+            tm.assert_frame_equal(df.ix[key], df.iloc[2:])
 
         # this is ok
         df.sortlevel(inplace=True)

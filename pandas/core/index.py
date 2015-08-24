@@ -842,14 +842,14 @@ class Index(IndexOpsMixin, PandasObject):
             elif is_float(key):
                 key = to_int()
                 warnings.warn("scalar indexers for index type {0} should be integers and not floating point".format(
-                    type(self).__name__),FutureWarning)
+                    type(self).__name__),FutureWarning, stacklevel=8)
                 return key
             return self._invalid_indexer('label', key)
 
         if is_float(key):
             if not self.is_floating():
                 warnings.warn("scalar indexers for index type {0} should be integers and not floating point".format(
-                    type(self).__name__),FutureWarning)
+                    type(self).__name__),FutureWarning, stacklevel=8)
             return to_int()
 
         return key
@@ -1488,7 +1488,9 @@ class Index(IndexOpsMixin, PandasObject):
                     self.values[0] < other_diff[0]
                 except TypeError as e:
                     warnings.warn("%s, sort order is undefined for "
-                                  "incomparable objects" % e, RuntimeWarning)
+                                  "incomparable objects" % e,
+                                  RuntimeWarning,
+                                  stacklevel=3)
                 else:
                     types = frozenset((self.inferred_type,
                                        other.inferred_type))
@@ -1502,7 +1504,9 @@ class Index(IndexOpsMixin, PandasObject):
                     result = np.sort(result)
                 except TypeError as e:
                     warnings.warn("%s, sort order is undefined for "
-                                  "incomparable objects" % e, RuntimeWarning)
+                                  "incomparable objects" % e,
+                                  RuntimeWarning,
+                                  stacklevel=3)
 
         # for subclasses
         return self._wrap_union_result(other, result)
@@ -5268,7 +5272,7 @@ class MultiIndex(Index):
             return slice(start, stop)
 
         warnings.warn('indexing past lexsort depth may impact performance.',
-                PerformanceWarning)
+                      PerformanceWarning, stacklevel=10)
 
         loc = np.arange(start, stop, dtype='int64')
 

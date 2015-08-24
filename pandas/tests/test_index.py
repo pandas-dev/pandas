@@ -971,7 +971,8 @@ class TestIndex(Base, tm.TestCase):
         with tm.assert_produces_warning():
             self.strIndex.tolist() + self.strIndex
 
-        firstCat = self.strIndex.union(self.dateIndex)
+        with tm.assert_produces_warning(RuntimeWarning):
+            firstCat = self.strIndex.union(self.dateIndex)
         secondCat = self.strIndex.union(self.strIndex)
 
         if self.dateIndex.dtype == np.object_:
@@ -1635,9 +1636,11 @@ class TestIndex(Base, tm.TestCase):
 
         with tm.assert_produces_warning(RuntimeWarning):
             joined = left_idx.join(right_idx, how='outer')
+
         # right_idx in this case because DatetimeIndex has join precedence over
         # Int64Index
-        expected = right_idx.astype(object).union(left_idx.astype(object))
+        with tm.assert_produces_warning(RuntimeWarning):
+            expected = right_idx.astype(object).union(left_idx.astype(object))
         tm.assert_index_equal(joined, expected)
 
     def test_nan_first_take_datetime(self):

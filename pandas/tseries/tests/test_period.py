@@ -2312,7 +2312,7 @@ class TestPeriodIndex(tm.TestCase):
         # not in order
         left = _permute(index[:-5])
         right = _permute(index[10:])
-        result = left.intersection(right).order()
+        result = left.intersection(right).sort_values()
         self.assertTrue(result.equals(index[10:-5]))
 
         # raise if different frequencies

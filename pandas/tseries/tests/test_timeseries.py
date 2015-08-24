@@ -1929,13 +1929,13 @@ class TestTimeSeries(tm.TestCase):
         # #1698
         index = pd.date_range('1/1/2012', periods=4, freq='12D')
         ts = pd.Series([0, 12, 24, 36], index)
-        new_index = index.append(index + pd.DateOffset(days=1)).order()
+        new_index = index.append(index + pd.DateOffset(days=1)).sort_values()
 
         exp = ts.reindex(new_index).interpolate(method='time')
 
         index = pd.date_range('1/1/2012', periods=4, freq='12H')
         ts = pd.Series([0, 12, 24, 36], index)
-        new_index = index.append(index + pd.DateOffset(hours=1)).order()
+        new_index = index.append(index + pd.DateOffset(hours=1)).sort_values()
         result = ts.reindex(new_index).interpolate(method='time')
 
         self.assert_numpy_array_equal(result.values, exp.values)
@@ -2412,7 +2412,7 @@ class TestDatetimeIndex(tm.TestCase):
 
     def test_union_coverage(self):
         idx = DatetimeIndex(['2000-01-03', '2000-01-01', '2000-01-02'])
-        ordered = DatetimeIndex(idx.order(), freq='infer')
+        ordered = DatetimeIndex(idx.sort_values(), freq='infer')
         result = ordered.union(idx)
         self.assertTrue(result.equals(ordered))
 
@@ -2561,20 +2561,20 @@ class TestDatetimeIndex(tm.TestCase):
         self.assertEqual(idx.argmin(), 1)
         self.assertEqual(idx.argmax(), 0)
 
-    def test_order(self):
+    def test_sort_values(self):
         idx = DatetimeIndex(['2000-01-04', '2000-01-01', '2000-01-02'])
 
-        ordered = idx.order()
+        ordered = idx.sort_values()
         self.assertTrue(ordered.is_monotonic)
 
-        ordered = idx.order(ascending=False)
+        ordered = idx.sort_values(ascending=False)
         self.assertTrue(ordered[::-1].is_monotonic)
 
-        ordered, dexer = idx.order(return_indexer=True)
+        ordered, dexer = idx.sort_values(return_indexer=True)
         self.assertTrue(ordered.is_monotonic)
         self.assert_numpy_array_equal(dexer, [1, 2, 0])
 
-        ordered, dexer = idx.order(return_indexer=True, ascending=False)
+        ordered, dexer = idx.sort_values(return_indexer=True, ascending=False)
         self.assertTrue(ordered[::-1].is_monotonic)
         self.assert_numpy_array_equal(dexer, [0, 2, 1])
 
