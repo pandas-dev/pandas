@@ -24,7 +24,7 @@ import numpy as np
 from numpy.random import randn
 from pandas.compat import range, lrange, lmap, zip
 
-from pandas import Series, TimeSeries, DataFrame, _np_version_under1p9
+from pandas import Series, DataFrame, _np_version_under1p9
 from pandas import tslib
 from pandas.util.testing import(assert_series_equal, assert_almost_equal,
                                 assertRaisesRegexp)
@@ -1191,7 +1191,7 @@ class TestPeriodIndex(tm.TestCase):
     def test_make_time_series(self):
         index = PeriodIndex(freq='A', start='1/1/2001', end='12/1/2009')
         series = Series(1, index=index)
-        tm.assertIsInstance(series, TimeSeries)
+        tm.assertIsInstance(series, Series)
 
     def test_astype(self):
         idx = period_range('1990', '2009', freq='A')

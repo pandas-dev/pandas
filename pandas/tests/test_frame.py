@@ -6039,46 +6039,47 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         #added = self.mixed_int + (100*series).astype('int32')
         #_check_mixed_int(added, dtype = dict(A = 'int32', B = 'float64', C = 'int32', D = 'int64'))
 
+
         # TimeSeries
-        buf = StringIO()
-        tmp = sys.stderr
-        sys.stderr = buf
+        ts = self.tsframe['A']
 
-        try:
-            ts = self.tsframe['A']
-            added = self.tsframe + ts
+        # 10890
+        # we no longer allow auto timeseries broadcasting
+        # and require explict broadcasting
+        added = self.tsframe.add(ts, axis='index')
 
-            for key, col in compat.iteritems(self.tsframe):
-                result = col + ts
-                assert_series_equal(added[key], result, check_names=False)
-                self.assertEqual(added[key].name, key)
-                if col.name == ts.name:
-                    self.assertEqual(result.name, 'A')
-                else:
-                    self.assertTrue(result.name is None)
+        for key, col in compat.iteritems(self.tsframe):
+            result = col + ts
+            assert_series_equal(added[key], result, check_names=False)
+            self.assertEqual(added[key].name, key)
+            if col.name == ts.name:
+                self.assertEqual(result.name, 'A')
+            else:
+                self.assertTrue(result.name is None)
 
-            smaller_frame = self.tsframe[:-5]
-            smaller_added = smaller_frame + ts
+        smaller_frame = self.tsframe[:-5]
+        smaller_added = smaller_frame.add(ts, axis='index')
 
-            self.assertTrue(smaller_added.index.equals(self.tsframe.index))
+        self.assertTrue(smaller_added.index.equals(self.tsframe.index))
 
-            smaller_ts = ts[:-5]
-            smaller_added2 = self.tsframe + smaller_ts
-            assert_frame_equal(smaller_added, smaller_added2)
+        smaller_ts = ts[:-5]
+        smaller_added2 = self.tsframe.add(smaller_ts, axis='index')
+        assert_frame_equal(smaller_added, smaller_added2)
 
-            # length 0
-            result = self.tsframe + ts[:0]
+        # length 0, result is all-nan
+        result = self.tsframe.add(ts[:0], axis='index')
+        expected = DataFrame(np.nan,index=self.tsframe.index,columns=self.tsframe.columns)
+        assert_frame_equal(result, expected)
 
-            # Frame is length 0
-            result = self.tsframe[:0] + ts
-            self.assertEqual(len(result), 0)
+        # Frame is all-nan
+        result = self.tsframe[:0].add(ts, axis='index')
+        expected = DataFrame(np.nan,index=self.tsframe.index,columns=self.tsframe.columns)
+        assert_frame_equal(result, expected)
 
-            # empty but with non-empty index
-            frame = self.tsframe[:1].reindex(columns=[])
-            result = frame * ts
-            self.assertEqual(len(result), len(ts))
-        finally:
-            sys.stderr = tmp
+        # empty but with non-empty index
+        frame = self.tsframe[:1].reindex(columns=[])
+        result = frame.mul(ts,axis='index')
+        self.assertEqual(len(result), len(ts))
 
     def test_combineFunc(self):
         result = self.frame * 2

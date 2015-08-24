@@ -9,7 +9,7 @@ import nose
 import numpy as np
 randn = np.random.randn
 
-from pandas import (Index, Series, TimeSeries, DataFrame,
+from pandas import (Index, Series, DataFrame,
                     isnull, date_range, Timestamp, Period, DatetimeIndex,
                     Int64Index, to_datetime, bdate_range, Float64Index, TimedeltaIndex, NaT)
 
@@ -60,7 +60,7 @@ class TestTimeSeriesDuplicates(tm.TestCase):
         self.dups = Series(np.random.randn(len(dates)), index=dates)
 
     def test_constructor(self):
-        tm.assertIsInstance(self.dups, TimeSeries)
+        tm.assertIsInstance(self.dups, Series)
         tm.assertIsInstance(self.dups.index, DatetimeIndex)
 
     def test_is_unique_monotonic(self):

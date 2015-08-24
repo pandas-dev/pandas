@@ -980,7 +980,7 @@ def _simple_ts(start, end, freq='D'):
 
 def _simple_pts(start, end, freq='D'):
     rng = period_range(start, end, freq=freq)
-    return TimeSeries(np.random.randn(len(rng)), index=rng)
+    return Series(np.random.randn(len(rng)), index=rng)
 
 
 class TestResamplePeriodIndex(tm.TestCase):
@@ -1177,7 +1177,7 @@ class TestResamplePeriodIndex(tm.TestCase):
     def test_resample_fill_missing(self):
         rng = PeriodIndex([2000, 2005, 2007, 2009], freq='A')
 
-        s = TimeSeries(np.random.randn(4), index=rng)
+        s = Series(np.random.randn(4), index=rng)
 
         stamps = s.to_timestamp()
 
@@ -1191,12 +1191,12 @@ class TestResamplePeriodIndex(tm.TestCase):
 
     def test_cant_fill_missing_dups(self):
         rng = PeriodIndex([2000, 2005, 2005, 2007, 2007], freq='A')
-        s = TimeSeries(np.random.randn(5), index=rng)
+        s = Series(np.random.randn(5), index=rng)
         self.assertRaises(Exception, s.resample, 'A')
 
     def test_resample_5minute(self):
         rng = period_range('1/1/2000', '1/5/2000', freq='T')
-        ts = TimeSeries(np.random.randn(len(rng)), index=rng)
+        ts = Series(np.random.randn(len(rng)), index=rng)
 
         result = ts.resample('5min')
         expected = ts.to_timestamp().resample('5min')
@@ -1402,7 +1402,7 @@ class TestResamplePeriodIndex(tm.TestCase):
               'COOP_DLY_TRN_QT': 30, 'COOP_DLY_SLS_AMT': 20}] * 28 +
             [{'REST_KEY': 2, 'DLY_TRN_QT': 70, 'DLY_SLS_AMT': 10,
               'COOP_DLY_TRN_QT': 50, 'COOP_DLY_SLS_AMT': 20}] * 28,
-            index=index.append(index)).sort()
+            index=index.append(index)).sort_index()
 
         index = date_range('2001-5-4',periods=4,freq='7D')
         expected = DataFrame(
@@ -1430,7 +1430,7 @@ class TestTimeGrouper(tm.TestCase):
 
         grouped = self.ts.groupby(grouper)
 
-        f = lambda x: x.order()[-3:]
+        f = lambda x: x.sort_values()[-3:]
 
         applied = grouped.apply(f)
         expected = self.ts.groupby(lambda x: x.year).apply(f)
