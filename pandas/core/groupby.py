@@ -82,8 +82,7 @@ _common_apply_whitelist = frozenset([
 
 _series_apply_whitelist = \
     (_common_apply_whitelist - set(['boxplot'])) | \
-    frozenset(['dtype', 'value_counts', 'unique', 'nunique',
-               'nlargest', 'nsmallest'])
+    frozenset(['dtype', 'value_counts', 'unique', 'nlargest', 'nsmallest'])
 
 _dataframe_apply_whitelist = \
     _common_apply_whitelist | frozenset(['dtypes', 'corrwith'])
@@ -2557,6 +2556,32 @@ class SeriesGroupBy(GroupBy):
 
         filtered = self._apply_filter(indices, dropna)
         return filtered
+
+    def nunique(self, dropna=True):
+        ids, _, _ = self.grouper.group_info
+        val = self.obj.get_values()
+
+        sorter = np.lexsort((val, ids))
+        ids, val = ids[sorter], val[sorter]
+
+        # group boundries are where group ids change
+        # unique observations are where sorted values change
+        idx = np.r_[0, 1 + np.nonzero(ids[1:] != ids[:-1])[0]]
+        inc = np.r_[1, val[1:] != val[:-1]]
+
+        # 1st item of each group is a new unique observation
+        mask = isnull(val)
+        if dropna:
+            inc[idx] = 1
+            inc[mask] = 0
+        else:
+            inc[mask & np.r_[False, mask[:-1]]] = 0
+            inc[idx] = 1
+
+        out = np.add.reduceat(inc, idx)
+        return Series(out if ids[0] != -1 else out[1:],
+                      index=self.grouper.result_index,
+                      name=self.name)
 
     def _apply_to_column_groupbys(self, func):
         """ return a pass thru """

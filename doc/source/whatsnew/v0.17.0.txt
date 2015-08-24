@@ -721,6 +721,7 @@ Performance Improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 - Added vbench benchmarks for alternative ExcelWriter engines and reading Excel files (:issue:`7171`)
 - Performance improvements in ``Categorical.value_counts`` (:issue:`10804`)
+- Performance improvements in ``SeriesGroupBy.nunique`` (:issue:`10820`)
 
 - 4x improvement in ``timedelta`` string parsing (:issue:`6755`, :issue:`10426`)
 - 8x improvement in ``timedelta64`` and ``datetime64`` ops (:issue:`6755`)
