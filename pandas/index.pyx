@@ -143,6 +143,11 @@ cdef class IndexEngine:
                 return self._get_loc_duplicates(val)
             values = self._get_index_values()
             loc = _bin_search(values, val) # .searchsorted(val, side='left')
+
+            # GH10675
+            if len(values) <= loc or 0 > loc:
+                raise KeyError(val)
+
             if util.get_value_at(values, loc) != val:
                 raise KeyError(val)
             return loc
