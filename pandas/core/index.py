@@ -971,11 +971,12 @@ class Index(IndexOpsMixin, PandasObject):
 
             if self.inferred_type == 'mixed-integer':
                 indexer = self.get_indexer(keyarr)
-                if not np.all(np.in1d(indexer, self.values)):
-                    raise IndexError("At least one item not found in index.")
                 if (indexer >= 0).all():
                     return indexer
-
+                # missing values are flagged as -1 by get_indexer and negative indices are already
+                # converted to positive indices in the above if-statement, so the negative flags are changed to
+                # values outside the range of indices so as to trigger an IndexError in maybe_convert_indices
+                indexer[indexer < 0] = len(self)
                 from pandas.core.indexing import maybe_convert_indices
                 return maybe_convert_indices(indexer, len(self))
 
