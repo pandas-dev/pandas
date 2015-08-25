@@ -16,9 +16,12 @@ from pandas.computation.scope import _DEFAULT_GLOBALS
 
 
 _reductions = 'sum', 'prod'
-_mathops = ('sin', 'cos', 'exp', 'log', 'expm1', 'log1p', 'pow', 'div', 'sqrt',
-            'inv', 'sinh', 'cosh', 'tanh', 'arcsin', 'arccos', 'arctan',
-            'arccosh', 'arcsinh', 'arctanh', 'arctan2', 'abs')
+
+_unary_math_ops = ('sin', 'cos', 'exp', 'log', 'expm1', 'log1p',
+                   'sqrt', 'sinh', 'cosh', 'tanh', 'arcsin', 'arccos',
+                   'arctan', 'arccosh', 'arcsinh', 'arctanh', 'abs')
+_binary_math_ops = ('arctan2',)
+_mathops = _unary_math_ops + _binary_math_ops
 
 
 _LOCAL_TAG = '__pd_eval_local_'
@@ -498,3 +501,28 @@ class UnaryOp(Op):
             (operand.op in _cmp_ops_dict or operand.op in _bool_ops_dict)):
             return np.dtype('bool')
         return np.dtype('int')
+
+
+class MathCall(Op):
+    def __init__(self, func, args):
+        super(MathCall, self).__init__(func.name, args)
+        self.func = func
+
+    def __call__(self, env):
+        operands = [op(env) for op in self.operands]
+        return self.func.func(*operands)
+
+    def __unicode__(self):
+        operands = map(str, self.operands)
+        return com.pprint_thing('{0}({1})'.format(self.op, ','.join(operands)))
+
+
+class FuncNode(object):
+    def __init__(self, name):
+        if name not in _mathops:
+            raise ValueError("\"{0}\" is not a supported function".format(name))
+        self.name = name
+        self.func = getattr(np, name)
+
+    def __call__(self, *args):
+        return MathCall(self, args)

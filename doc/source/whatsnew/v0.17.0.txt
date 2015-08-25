@@ -38,6 +38,7 @@ Highlights include:
 - Development installed versions of pandas will now have ``PEP440`` compliant version strings (:issue:`9518`)
 - Support for reading SAS xport files, see :ref:`here <whatsnew_0170.enhancements.sas_xport>`
 - Removal of the automatic TimeSeries broadcasting, deprecated since 0.8.0, see :ref:`here <whatsnew_0170.prior_deprecations>`
+- Support for math functions in .eval(), see :ref:`here <whatsnew_0170.matheval>`
 
 Check the :ref:`API Changes <whatsnew_0170.api>` and :ref:`deprecations <whatsnew_0170.deprecations>` before updating.
 
@@ -122,6 +123,25 @@ incrementally.
         do_something(df)
 
 See the :ref:`docs <io.sas>` for more details.
+
+.. _whatsnew_0170.matheval:
+
+Support for Math Functions in .eval()
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:meth:`~pandas.eval` now supports calling math functions.
+
+.. code-block:: python
+
+    df = pd.DataFrame({'a': np.random.randn(10)})
+    df.eval("b = sin(a)")
+
+The support math functions are `sin`, `cos`, `exp`, `log`, `expm1`, `log1p`,
+`sqrt`, `sinh`, `cosh`, `tanh`, `arcsin`, `arccos`, `arctan`, `arccosh`,
+`arcsinh`, `arctanh`, `abs` and `arctan2`.
+
+These functions map to the intrinsics for the NumExpr engine.  For Python
+engine, they are mapped to NumPy calls.
 
 .. _whatsnew_0170.enhancements.other:
 
