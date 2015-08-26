@@ -296,14 +296,14 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
         return self._box_func(tslib.iNaT)
 
     def __contains__(self, key):
+        # if key isn't a Period of the same freq, rely on `get_loc` for the coercion.
         if not isinstance(key, Period) or key.freq != self.freq:
-            if isinstance(key, compat.string_types):
-                try:
-                    self.get_loc(key)
-                    return True
-                except Exception:
-                    return False
-            return False
+            try:
+                self.get_loc(key)
+                return True
+            except Exception:
+                return False
+        # If it is a Period of the same freq, go straight to the _engine
         return key.ordinal in self._engine
 
     @property

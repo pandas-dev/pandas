@@ -1295,6 +1295,12 @@ class DatetimeIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
                                           'when key is a time object')
             return self.indexer_at_time(key)
 
+        # check if it's a Period and the frequencies are the same - otherwise a monthly period would match for
+        # a daily timestamp at the beginning of the month. NB: 'B' and 'D' therefore won't match
+        if isinstance(key, com.ABCPeriod) and key.freq == self.freq:
+            key =  key.to_timestamp()
+            return Index.get_loc(self, key, method=method)
+
         try:
             return Index.get_loc(self, key, method, tolerance)
         except (KeyError, ValueError, TypeError):

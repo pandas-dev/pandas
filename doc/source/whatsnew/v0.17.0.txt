@@ -785,6 +785,7 @@ Bug Fixes
 - Bug that caused segfault when resampling an empty Series (:issue:`10228`)
 - Bug in ``DatetimeIndex`` and ``PeriodIndex.value_counts`` resets name from its result, but retains in result's ``Index``. (:issue:`10150`)
 - Bug in ``pd.eval`` using ``numexpr`` engine coerces 1 element numpy array to scalar (:issue:`10546`)
+- Bug in ``PeriodIndex.__contains__`` & ``DatetimeIndex.__contains__`` that always returned False for each other's objects (:issue:`10798`)
 - Bug in ``pd.concat`` with ``axis=0`` when column is of dtype ``category`` (:issue:`10177`)
 - Bug in ``read_msgpack`` where input type is not always checked (:issue:`10369`, :issue:`10630`)
 - Bug in ``pd.read_csv`` with kwargs ``index_col=False``, ``index_col=['a', 'b']`` or ``dtype``
