@@ -862,7 +862,8 @@ class Panel(NDFrame):
         axis = self._get_axis_number(axis)
         return PanelGroupBy(self, function, axis=axis)
 
-    def to_frame(self, filter_observations=True):
+    @deprecate_kwarg(old_arg_name='filter_observations', new_arg_name='dropna')
+    def to_frame(self, dropna=False):
         """
         Transform wide format into long (stacked) format as DataFrame whose
         columns are the Panel's items and whose index is a MultiIndex formed
@@ -870,7 +871,11 @@ class Panel(NDFrame):
 
         Parameters
         ----------
-        filter_observations : boolean, default True
+        dropna : boolean, default False
+            Drop (major, minor) pairs without a complete set of observations
+            across all the items
+
+        filter_observations : boolean, default False, [deprecated]
             Drop (major, minor) pairs without a complete set of observations
             across all the items
 
@@ -880,7 +885,7 @@ class Panel(NDFrame):
         """
         _, N, K = self.shape
 
-        if filter_observations:
+        if dropna is True:
             # shaped like the return DataFrame
             mask = com.notnull(self.values).all(axis=0)
             # size = mask.sum()

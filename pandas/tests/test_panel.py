@@ -1525,19 +1525,19 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing,
 
     def test_to_frame(self):
         # filtered
-        filtered = self.panel.to_frame()
+        filtered = self.panel.to_frame(dropna=True)
         expected = self.panel.to_frame().dropna(how='any')
         assert_frame_equal(filtered, expected)
 
         # unfiltered
-        unfiltered = self.panel.to_frame(filter_observations=False)
+        unfiltered = self.panel.to_frame(dropna=False)
         assert_panel_equal(unfiltered.to_panel(), self.panel)
 
         # names
         self.assertEqual(unfiltered.index.names, ('major', 'minor'))
 
         # unsorted, round trip
-        df = self.panel.to_frame(filter_observations=False)
+        df = self.panel.to_frame(dropna=False)
         unsorted = df.take(np.random.permutation(len(df)))
         pan = unsorted.to_panel()
         assert_panel_equal(pan, self.panel)
@@ -1553,6 +1553,10 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing,
         rdf = df.to_panel().to_frame()
         self.assertEqual(rdf.index.names, df.index.names)
         self.assertEqual(rdf.columns.names, df.columns.names)
+
+        # test kw filter_observations deprecation
+        with tm.assert_produces_warning(Warning):
+            filtered = self.panel.to_frame(filter_observations=True)
 
     def test_to_frame_mixed(self):
         panel = self.panel.fillna(0)
@@ -1597,7 +1601,7 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing,
         assert_frame_equal(result, expected)
 
         wp.iloc[0, 0].iloc[0] = np.nan  # BUG on setting. GH #5773
-        result = wp.to_frame()
+        result = wp.to_frame(dropna=True)
         assert_frame_equal(result, expected[1:])
 
         idx = MultiIndex.from_tuples([(1, 'two'), (1, 'one'), (2, 'one'),
@@ -1651,7 +1655,7 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing,
         idx = MultiIndex.from_tuples([(1, 'one'), (2, 'one'), (2, 'two')])
         df = DataFrame({'A': [np.nan, 1, 2]}, index=idx)
         wp = Panel({'i1': df, 'i2': df})
-        result = wp.to_frame()
+        result = wp.to_frame(dropna=True)
         exp_idx = MultiIndex.from_tuples([(2, 'one', 'A'), (2, 'two', 'A')],
                                          names=[None, None, 'minor'])
         expected = DataFrame({'i1': [1., 2], 'i2': [1., 2]}, index=exp_idx)
@@ -2210,7 +2214,7 @@ class TestLongPanel(tm.TestCase):
         tm.add_nans(panel)
 
         self.panel = panel.to_frame()
-        self.unfiltered_panel = panel.to_frame(filter_observations=False)
+        self.unfiltered_panel = panel.to_frame(dropna=False)
 
     def test_ops_differently_indexed(self):
         # trying to set non-identically indexed panel
