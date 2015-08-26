@@ -358,12 +358,16 @@ class TestReadHtml(tm.TestCase, ReadHtmlMixin):
 
     @network
     def test_multiple_matches(self):
+        raise nose.SkipTest("pythonxy link seems to have changed")
+
         url = 'http://code.google.com/p/pythonxy/wiki/StandardPlugins'
         dfs = self.read_html(url, match='Python', attrs={'class': 'wikitable'})
         self.assertTrue(len(dfs) > 1)
 
     @network
     def test_pythonxy_plugins_table(self):
+        raise nose.SkipTest("pythonxy link seems to have changed")
+
         url = 'http://code.google.com/p/pythonxy/wiki/StandardPlugins'
         dfs = self.read_html(url, match='Python', attrs={'class': 'wikitable'})
         zz = [df.iloc[0, 0] for df in dfs]
