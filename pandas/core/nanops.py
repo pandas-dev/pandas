@@ -651,10 +651,32 @@ def get_corr_func(method):
     def _spearman(a, b):
         return spearmanr(a, b)[0]
 
+    def _biweight_midcorrelation(a, b):
+        a_median = np.median(a)
+        b_median = np.median(b)
+
+        # Median absolute deviation
+        a_mad = np.median(np.abs(a - a_median))
+        b_mad = np.median(np.abs(b - b_median))
+
+        u = (a - a_median) / (9 * a_mad)
+        v = (b - b_median) / (9 * b_mad)
+
+        w_a = np.square(1 - np.square(u)) * ((1 - np.abs(u)) > 0)
+        w_b = np.square(1 - np.square(v)) * ((1 - np.abs(v)) > 0)
+
+        a_item = (a - a_median) * w_a
+        b_item = (b - b_median) * w_b
+
+        return (a_item * b_item).sum() / (
+            np.sqrt(np.square(a_item).sum()) *
+            np.sqrt(np.square(b_item).sum()))
+
     _cor_methods = {
         'pearson': _pearson,
         'kendall': _kendall,
-        'spearman': _spearman
+        'spearman': _spearman,
+        'bicor': _biweight_midcorrelation
     }
     return _cor_methods[method]
 

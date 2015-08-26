@@ -583,6 +583,103 @@ class TestnanopsDataFrame(tm.TestCase):
         self.check_nancorr_nancov_1d(nanops.nancorr, targ0, targ1,
                                      method='spearman')
 
+    def test_nancorr_bicor(self):
+        a = self.arr_float_2d
+        b = self.arr_float1_2d
+        a_median = np.median(a)
+        b_median = np.median(b)
+
+        # Median absolute deviation
+        a_mad = np.median(np.abs(a - a_median))
+        b_mad = np.median(np.abs(b - b_median))
+
+        u = (a - a_median) / (9 * a_mad)
+        v = (b - b_median) / (9 * b_mad)
+
+        w_a = np.square(1 - np.square(u)) * ((1 - np.abs(u)) > 0)
+        w_b = np.square(1 - np.square(v)) * ((1 - np.abs(v)) > 0)
+
+        a_item = (a - a_median) * w_a
+        b_item = (b - b_median) * w_b
+
+        targ0 = (a_item * b_item).sum() / (
+            np.sqrt(np.square(a_item).sum()) *
+            np.sqrt(np.square(b_item).sum()))
+
+        a = self.arr_float_2d.flat
+        b = self.arr_float1_2d.flat
+        a_median = np.median(a)
+        b_median = np.median(b)
+
+        # Median absolute deviation
+        a_mad = np.median(np.abs(a - a_median))
+        b_mad = np.median(np.abs(b - b_median))
+
+        u = (a - a_median) / (9 * a_mad)
+        v = (b - b_median) / (9 * b_mad)
+
+        w_a = np.square(1 - np.square(u)) * ((1 - np.abs(u)) > 0)
+        w_b = np.square(1 - np.square(v)) * ((1 - np.abs(v)) > 0)
+
+        a_item = (a - a_median) * w_a
+        b_item = (b - b_median) * w_b
+
+        targ1 = (a_item * b_item).sum() / (
+            np.sqrt(np.square(a_item).sum()) *
+            np.sqrt(np.square(b_item).sum()))
+        self.check_nancorr_nancov_2d(nanops.nancorr, targ0, targ1,
+                                     method='bicor')
+        a = self.arr_float_1d
+        b = self.arr_float1_1d
+        a_median = np.median(a)
+        b_median = np.median(b)
+
+        # Median absolute deviation
+        a_mad = np.median(np.abs(a - a_median))
+        b_mad = np.median(np.abs(b - b_median))
+
+        u = (a - a_median) / (9 * a_mad)
+        v = (b - b_median) / (9 * b_mad)
+
+        w_a = np.square(1 - np.square(u)) * ((1 - np.abs(u)) > 0)
+        w_b = np.square(1 - np.square(v)) * ((1 - np.abs(v)) > 0)
+
+        a_item = (a - a_median) * w_a
+        b_item = (b - b_median) * w_b
+
+        targ0 = (a_item * b_item).sum() / (
+            np.sqrt(np.square(a_item).sum()) *
+            np.sqrt(np.square(b_item).sum()))
+
+        a = self.arr_float_1d.flat
+        b = self.arr_float1_1d.flat
+        a_median = np.median(a)
+        b_median = np.median(b)
+
+        # Median absolute deviation
+        a_mad = np.median(np.abs(a - a_median))
+        b_mad = np.median(np.abs(b - b_median))
+
+        u = (a - a_median) / (9 * a_mad)
+        v = (b - b_median) / (9 * b_mad)
+
+        w_a = np.square(1 - np.square(u)) * ((1 - np.abs(u)) > 0)
+        w_b = np.square(1 - np.square(v)) * ((1 - np.abs(v)) > 0)
+
+        a_item = (a - a_median) * w_a
+        b_item = (b - b_median) * w_b
+
+        targ1 = (a_item * b_item).sum() / (
+            np.sqrt(np.square(a_item).sum()) *
+            np.sqrt(np.square(b_item).sum()))
+        self.check_nancorr_nancov_1d(nanops.nancorr, targ0, targ1,
+                                     method='bicor')
+
+        # targ0 = spearmanr(self.arr_float_1d, self.arr_float1_1d)
+        # targ1 = spearmanr(self.arr_float_1d.flat, self.arr_float1_1d.flat)
+        # self.check_nancorr_nancov_1d(nanops.nancorr, targ0, targ1,
+        #                              method='bicor')
+
     def test_nancov(self):
         targ0 = np.cov(self.arr_float_2d, self.arr_float1_2d)[0, 1]
         targ1 = np.cov(self.arr_float_2d.flat, self.arr_float1_2d.flat)[0, 1]

@@ -54,6 +54,9 @@ New features
 - SQL io functions now accept a SQLAlchemy connectable. (:issue:`7877`)
 - Enable writing complex values to HDF stores when using table format (:issue:`10447`)
 - Enable reading gzip compressed files via URL, either by explicitly setting the compression parameter or by inferring from the presence of the HTTP Content-Encoding header in the response (:issue:`8685`)
+- ``Series.corr()`` and ``DataFrame.corr()`` now supports `Biweight Midcorrelation`_, a median-based correlation metric, a robust alternative to Pearson's R. (:issue:`9826`)
+
+_Biweight Midcorrelation: http://www.ncbi.nlm.nih.gov/pmc/articles/PMC3465711/
 
 .. _whatsnew_0170.gil:
 
