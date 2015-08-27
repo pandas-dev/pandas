@@ -4997,7 +4997,7 @@ class TestGroupBy(tm.TestCase):
             'corr', 'cov',
             'diff',
             'unique',
-            'nlargest', 'nsmallest',
+            # 'nlargest', 'nsmallest',
         ])
 
         for obj, whitelist in zip((df, s),
@@ -5316,6 +5316,16 @@ class TestGroupBy(tm.TestCase):
                                                  [3, 2, 1, 9, 5, 8]]))
         tm.assert_series_equal(r, e)
 
+
+        a = Series([1, 1, 3, 2, 0, 3, 3, 2, 1, 0])
+        gb = a.groupby(b)
+        e = Series([3, 2, 1, 3, 3, 2],
+                   index=MultiIndex.from_arrays([list('aaabbb'),
+                                                 [2, 3, 1, 6, 5, 7]]))
+        assert_series_equal(gb.nlargest(3, keep='last'), e)
+        with tm.assert_produces_warning(FutureWarning):
+            assert_series_equal(gb.nlargest(3, take_last=True), e)
+
     def test_nsmallest(self):
         a = Series([1, 3, 5, 7, 2, 9, 0, 4, 6, 10])
         b = Series(list('a' * 5 + 'b' * 5))
@@ -5325,6 +5335,15 @@ class TestGroupBy(tm.TestCase):
                    index=MultiIndex.from_arrays([list('aaabbb'),
                                                  [0, 4, 1, 6, 7, 8]]))
         tm.assert_series_equal(r, e)
+
+        a = Series([1, 1, 3, 2, 0, 3, 3, 2, 1, 0])
+        gb = a.groupby(b)
+        e = Series([0, 1, 1, 0, 1, 2],
+                   index=MultiIndex.from_arrays([list('aaabbb'),
+                                                 [4, 1, 0, 9, 8, 7]]))
+        assert_series_equal(gb.nsmallest(3, keep='last'), e)
+        with tm.assert_produces_warning(FutureWarning):
+            assert_series_equal(gb.nsmallest(3, take_last=True), e)
 
     def test_transform_doesnt_clobber_ints(self):
         # GH 7972
