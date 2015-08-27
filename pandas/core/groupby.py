@@ -19,7 +19,8 @@ from pandas.core.index import Index, MultiIndex, CategoricalIndex, _ensure_index
 from pandas.core.internals import BlockManager, make_block
 from pandas.core.series import Series
 from pandas.core.panel import Panel
-from pandas.util.decorators import cache_readonly, Appender, make_signature
+from pandas.util.decorators import (cache_readonly, Appender, make_signature,
+                                    deprecate_kwarg)
 import pandas.core.algorithms as algos
 import pandas.core.common as com
 from pandas.core.common import(_possibly_downcast_to_dtype, isnull,
@@ -82,7 +83,7 @@ _common_apply_whitelist = frozenset([
 
 _series_apply_whitelist = \
     (_common_apply_whitelist - set(['boxplot'])) | \
-    frozenset(['dtype', 'unique', 'nlargest', 'nsmallest'])
+    frozenset(['dtype', 'unique'])
 
 _dataframe_apply_whitelist = \
     _common_apply_whitelist | frozenset(['dtypes', 'corrwith'])
@@ -2582,6 +2583,19 @@ class SeriesGroupBy(GroupBy):
         return Series(out if ids[0] != -1 else out[1:],
                       index=self.grouper.result_index,
                       name=self.name)
+
+    @deprecate_kwarg('take_last', 'keep', mapping={True: 'last', False: 'first'})
+    @Appender(Series.nlargest.__doc__)
+    def nlargest(self, n=5, keep='first'):
+        # ToDo: When we remove deprecate_kwargs, we can remote these methods
+        # and inlucde nlargest and nsmallest to _series_apply_whitelist
+        return self.apply(lambda x: x.nlargest(n=n, keep=keep))
+
+
+    @deprecate_kwarg('take_last', 'keep', mapping={True: 'last', False: 'first'})
+    @Appender(Series.nsmallest.__doc__)
+    def nsmallest(self, n=5, keep='first'):
+        return self.apply(lambda x: x.nsmallest(n=n, keep=keep))
 
     def value_counts(self, normalize=False, sort=True, ascending=False,
                      bins=None, dropna=True):

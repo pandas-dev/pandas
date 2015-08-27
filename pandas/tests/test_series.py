@@ -5040,11 +5040,16 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         for s in s_list:
 
             assert_series_equal(s.nsmallest(2), s.iloc[[2, 1]])
-            assert_series_equal(s.nsmallest(2, take_last=True), s.iloc[[2, 3]])
+
+            assert_series_equal(s.nsmallest(2, keep='last'), s.iloc[[2, 3]])
+            with tm.assert_produces_warning(FutureWarning):
+                assert_series_equal(s.nsmallest(2, take_last=True), s.iloc[[2, 3]])
 
             assert_series_equal(s.nlargest(3), s.iloc[[4, 0, 1]])
-            assert_series_equal(s.nlargest(3, take_last=True),
-                                s.iloc[[4, 0, 3]])
+
+            assert_series_equal(s.nlargest(3, keep='last'), s.iloc[[4, 0, 3]])
+            with tm.assert_produces_warning(FutureWarning):
+                assert_series_equal(s.nlargest(3, take_last=True), s.iloc[[4, 0, 3]])
 
             empty = s.iloc[0:0]
             assert_series_equal(s.nsmallest(0), empty)
@@ -5061,6 +5066,12 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         s = Series([3., np.nan, 1, 2, 5])
         assert_series_equal(s.nlargest(), s.iloc[[4, 0, 3, 2]])
         assert_series_equal(s.nsmallest(), s.iloc[[2, 3, 0, 4]])
+
+        msg = 'keep must be either "first", "last"'
+        with tm.assertRaisesRegexp(ValueError, msg):
+            s.nsmallest(keep='invalid')
+        with tm.assertRaisesRegexp(ValueError, msg):
+            s.nlargest(keep='invalid')
 
     def test_rank(self):
         tm._skip_if_no_scipy()
