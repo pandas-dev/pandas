@@ -2962,7 +2962,13 @@ class DataFrame(NDFrame):
         from pandas.hashtable import duplicated_int64, _SIZE_HINT_LIMIT
 
         def f(vals):
-            labels, shape = factorize(vals, size_hint=min(len(self), _SIZE_HINT_LIMIT))
+
+            # if we have integers we can directly index with these
+            if com.is_integer_dtype(vals):
+                from pandas.core.nanops import unique1d
+                labels, shape = vals, unique1d(vals)
+            else:
+                labels, shape = factorize(vals, size_hint=min(len(self), _SIZE_HINT_LIMIT))
             return labels.astype('i8',copy=False), len(shape)
 
         if subset is None:
