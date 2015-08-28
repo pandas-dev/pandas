@@ -205,9 +205,9 @@ Invalid Data
 Pass ``errors='coerce'`` to convert invalid data to ``NaT`` (not a time):
 
 .. ipython:: python
+   :okexcept:
 
    # this is the default, raise when unparseable
-   @okexcept
    to_datetime(['2009/07/31', 'asd'], errors='raise')
 
    # return the original input when unparseable
@@ -656,7 +656,7 @@ apply the offset to each element.
    rng + DateOffset(months=2)
    s + DateOffset(months=2)
    s - DateOffset(months=2)
-
+   
 If the offset class maps directly to a ``Timedelta`` (``Day``, ``Hour``,
 ``Minute``, ``Second``, ``Micro``, ``Milli``, ``Nano``) it can be
 used exactly like a ``Timedelta`` - see the
@@ -670,7 +670,7 @@ used exactly like a ``Timedelta`` - see the
    td + Minute(15)
 
 Note that some offsets (such as ``BQuarterEnd``) do not have a
-vectorized implementation.  They can still be used but may
+vectorized implementation.  They can still be used but may 
 calculate signficantly slower and will raise a ``PerformanceWarning``
 
 .. ipython:: python
@@ -1702,13 +1702,13 @@ the top example will fail as it contains ambiguous times and the bottom will
 infer the right offset.
 
 .. ipython:: python
+   :okexcept:
 
    rng_hourly = DatetimeIndex(['11/06/2011 00:00', '11/06/2011 01:00',
                                '11/06/2011 01:00', '11/06/2011 02:00',
                                '11/06/2011 03:00'])
 
    # This will fail as there are ambiguous times
-   @okexcept
    rng_hourly.tz_localize('US/Eastern')
    rng_hourly_eastern = rng_hourly.tz_localize('US/Eastern', ambiguous='infer')
    rng_hourly_eastern.tolist()
