@@ -1790,8 +1790,10 @@ class BinGrouper(BaseGrouper):
 
     @cache_readonly
     def group_info(self):
-        # for compat
-        return self.bins, self.binlabels, self.ngroups
+        ngroups = self.ngroups
+        obs_group_ids = np.arange(ngroups)
+        comp_ids = np.repeat(np.arange(ngroups), np.diff(np.r_[0, self.bins]))
+        return comp_ids, obs_group_ids, ngroups
 
     @cache_readonly
     def ngroups(self):

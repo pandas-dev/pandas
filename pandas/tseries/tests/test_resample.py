@@ -916,6 +916,31 @@ class TestResample(tm.TestCase):
             result = df.groupby(pd.Grouper(freq='M', key='A')).count()
             assert_frame_equal(result, expected)
 
+    def test_resample_group_info(self):  # GH10914
+        for n, k in product((10000, 100000), (10, 100, 1000)):
+            dr = date_range(start='2015-08-27', periods=n // 10, freq='T')
+            ts = Series(np.random.randint(0, n // k, n),
+                        index=np.random.choice(dr, n))
+
+            left = ts.resample('30T', how='nunique')
+            ix = date_range(start=ts.index.min(),
+                            end=ts.index.max(),
+                            freq='30T')
+
+            vals = ts.values
+            bins = np.searchsorted(ix.values, ts.index, side='right')
+
+            sorter = np.lexsort((vals, bins))
+            vals, bins = vals[sorter], bins[sorter]
+
+            mask = np.r_[True, vals[1:] != vals[:-1]]
+            mask |= np.r_[True, bins[1:] != bins[:-1]]
+
+            arr = np.bincount(bins[mask] - 1, minlength=len(ix))
+            right = Series(arr, index=ix)
+
+            assert_series_equal(left, right)
+
     def test_resmaple_dst_anchor(self):
         # 5172
         dti = DatetimeIndex([datetime(2012, 11, 4, 23)], tz='US/Eastern')
