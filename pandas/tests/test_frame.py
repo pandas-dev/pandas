@@ -5177,6 +5177,20 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         self.assertNotIn('foo', self.frame)
         # TODO self.assertEqual(self.frame.columns.name, 'baz')
 
+        # 10912
+        # inplace ops cause caching issue
+        a = DataFrame([[1,2,3],[4,5,6]], columns=['A','B','C'], index=['X','Y'])
+        b = a.pop('B')
+        b += 1
+
+        # original frame
+        expected = DataFrame([[1,3],[4,6]], columns=['A','C'], index=['X','Y'])
+        assert_frame_equal(a, expected)
+
+        # result
+        expected = Series([2,5],index=['X','Y'],name='B')+1
+        assert_series_equal(b, expected)
+
     def test_pop_non_unique_cols(self):
         df = DataFrame({0: [0, 1], 1: [0, 1], 2: [4, 5]})
         df.columns = ["a", "b", "a"]
