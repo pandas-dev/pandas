@@ -1,7 +1,7 @@
 .. _whatsnew_0170:
 
-v0.17.0 (???)
--------------
+v0.17.0 (September ??, 2015)
+----------------------------
 
 This is a major release from 0.16.2 and includes a small number of API changes, several new features,
 enhancements, and performance improvements along with a large number of bug fixes. We recommend that all
@@ -232,24 +232,22 @@ Backwards incompatible API changes
 Changes to sorting API
 ^^^^^^^^^^^^^^^^^^^^^^
 
-The sorting API has had some longtime inconsistencies. (:issue:`9816`,:issue:`8239`).
+The sorting API has had some longtime inconsistencies. (:issue:`9816`, :issue:`8239`).
 
-Here is a summary of the **prior** to 0.17.0 API
+Here is a summary of the **PRIOR** to 0.17.0:
 
 - ``Series.sort`` is **INPLACE** while ``DataFrame.sort`` returns a new object.
-- ``Series.order`` returned a new object
+- ``Series.order`` returns a new object
 - It was possible to use ``Series/DataFrame.sort_index`` to sort by **values** by passing the ``by`` keyword.
 - ``Series/DataFrame.sortlevel`` worked only on a ``MultiIndex`` for sorting by index.
 
 To address these issues, we have revamped the API:
 
 - We have introduced a new method, :meth:`DataFrame.sort_values`, which is the merger of ``DataFrame.sort()``, ``Series.sort()``,
-  and ``Series.order``, to handle sorting of **values**.
-- The existing method ``Series.sort()`` has been deprecated and will be removed in a
+  and ``Series.order()``, to handle sorting of **values**.
+- The existing methods ``Series.sort()``, ``Series.order()``, and ``DataFrame.sort()`` has been deprecated and will be removed in a
   future version of pandas.
 - The ``by`` argument of ``DataFrame.sort_index()`` has been deprecated and will be removed in a future version of pandas.
-- The methods ``DataFrame.sort()``, ``Series.order()``, will not be recommended to use and will carry a deprecation warning
-  in the doc-string.
 - The existing method ``.sort_index()`` will gain the ``level`` keyword to enable level sorting.
 
 We now have two distinct and non-overlapping methods of sorting. A ``*`` marks items that
@@ -260,9 +258,9 @@ To sort by the **values**:
 =================================     ====================================
 Previous                              Replacement
 =================================     ====================================
-\*``Series.order()``                   ``Series.sort_values()``
-\*``Series.sort()``                    ``Series.sort_values(inplace=True)``
-\*``DataFrame.sort(columns=...)``      ``DataFrame.sort_values(by=...)``
+\* ``Series.order()``                   ``Series.sort_values()``
+\* ``Series.sort()``                    ``Series.sort_values(inplace=True)``
+\* ``DataFrame.sort(columns=...)``      ``DataFrame.sort_values(by=...)``
 =================================     ====================================
 
 To sort by the **index**:
@@ -274,7 +272,7 @@ Previous                              Equivalent
 ``Series.sortlevel(level=...)``       ``Series.sort_index(level=...``)
 ``DataFrame.sort_index()``            ``DataFrame.sort_index()``
 ``DataFrame.sortlevel(level=...)``    ``DataFrame.sort_index(level=...)``
-\*``DataFrame.sort()``                 ``DataFrame.sort_index()``
+\* ``DataFrame.sort()``                 ``DataFrame.sort_index()``
 ==================================    ====================================
 
 We have also deprecated and changed similar methods in two Series-like classes, ``Index`` and ``Categorical``.
@@ -282,8 +280,8 @@ We have also deprecated and changed similar methods in two Series-like classes, 
 ==================================    ====================================
 Previous                              Replacement
 ==================================    ====================================
-\*``Index.order()``                     ``Index.sort_values()``
-\*``Categorical.order()``               ``Categorical.sort_values``
+\* ``Index.order()``                     ``Index.sort_values()``
+\* ``Categorical.order()``               ``Categorical.sort_values``
 ==================================    ====================================
 
 .. _whatsnew_0170.api_breaking.to_datetime:
@@ -334,7 +332,7 @@ Changes to convert_objects
 ``DataFrame.convert_objects`` keyword arguments have been shortened. (:issue:`10265`)
 
 =====================   =============
-Old                     New
+Previous                Replacement
 =====================   =============
 ``convert_dates``       ``datetime``
 ``convert_numeric``     ``numeric``
@@ -392,7 +390,7 @@ in the method call.
 Changes to Index Comparisons
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Operator equal on Index should behavior similarly to Series (:issue:`9947`, :issue:`10637`)
+Operator equal on ``Index`` should behavior similarly to ``Series`` (:issue:`9947`, :issue:`10637`)
 
 Starting in v0.17.0, comparing ``Index`` objects of different lengths will raise
 a ``ValueError``. This is to be consistent with the behavior of ``Series``.
@@ -410,19 +408,6 @@ Previous behavior:
    In [4]: pd.Index([1, 2, 3]) == pd.Index([1, 2])
    Out[4]: False
 
-   In [5]: pd.Series([1, 2, 3]) == pd.Series([1, 4, 5])
-   Out[5]:
-   0     True
-   1    False
-   2    False
-   dtype: bool
-
-   In [6]: pd.Series([1, 2, 3]) == pd.Series([2])
-   ValueError: Series lengths must match to compare
-
-   In [7]: pd.Series([1, 2, 3]) == pd.Series([1, 2])
-   ValueError: Series lengths must match to compare
-
 New behavior:
 
 .. code-block:: python
@@ -435,19 +420,6 @@ New behavior:
 
    In [10]: pd.Index([1, 2, 3]) == pd.Index([1, 2])
    ValueError: Lengths must match to compare
-
-   In [11]: pd.Series([1, 2, 3]) == pd.Series([1, 4, 5])
-   Out[11]:
-   0     True
-   1    False
-   2    False
-   dtype: bool
-
-   In [12]: pd.Series([1, 2, 3]) == pd.Series([2])
-   ValueError: Series lengths must match to compare
-
-   In [13]: pd.Series([1, 2, 3]) == pd.Series([1, 2])
-   ValueError: Series lengths must match to compare
 
 Note that this is different from the ``numpy`` behavior where a comparison can
 be broadcast:
@@ -522,7 +494,10 @@ Previously:
 .. code-block:: python
 
    In [28]:
-   df_with_missing.to_hdf('file.h5', 'df_with_missing', format='table', mode='w')
+   df_with_missing.to_hdf('file.h5',
+                          'df_with_missing',
+                          format='table',
+                          mode='w')
 
    pd.read_hdf('file.h5', 'df_with_missing')
 
@@ -551,6 +526,8 @@ New behavior:
    os.remove('file.h5')
 
 See :ref:`documentation <io.hdf5>` for more details.
+
+.. _whatsnew_0170.api_breaking.display_precision:
 
 Changes to ``display.precision`` option
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -588,6 +565,29 @@ from ``7``.
 
   pd.set_option('display.precision', 6)
 
+.. _whatsnew_0170.api_breaking.categorical_unique:
+
+Changes to ``Categorical.unique``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+``Categorical.unique`` now returns new ``Categorical`` which ``categories`` and ``codes`` that are unique, rather than returning ``np.array`` (:issue:`10508`)
+
+- unordered category: values and categories are sorted by appearance order.
+- ordered category: values are sorted by appearance order, categories keeps existing order.
+
+.. ipython :: python
+
+   cat = pd.Categorical(['C', 'A', 'B', 'C'],
+                        categories=['A', 'B', 'C'],
+                        ordered=True)
+   cat
+   cat.unique()
+
+   cat = pd.Categorical(['C', 'A', 'B', 'C'],
+                        categories=['A', 'B', 'C'])
+   cat
+   cat.unique()
+
 
 .. _whatsnew_0170.api_breaking.other:
 
@@ -601,35 +601,17 @@ Other API Changes
 - Allow passing `kwargs` to the interpolation methods (:issue:`10378`).
 - Serialize metadata properties of subclasses of pandas objects (:issue:`10553`).
 - Allow ``DataFrame`` with ``MultiIndex`` columns to be written to Excel (:issue:`10564`). This was changed in 0.16.2 as the read-back method could not always guarantee perfect fidelity (:issue:`9794`).
-- ``Categorical.unique`` now returns new ``Categorical`` which ``categories`` and ``codes`` are unique, rather than returning ``np.array`` (:issue:`10508`)
-
-   - unordered category: values and categories are sorted by appearance order.
-   - ordered category: values are sorted by appearance order, categories keeps existing order.
-
-   .. ipython :: python
-
-      cat = pd.Categorical(['C', 'A', 'B', 'C'],
-                           categories=['A', 'B', 'C'],
-                           ordered=True)
-      cat
-      cat.unique()
-
-      cat = pd.Categorical(['C', 'A', 'B', 'C'],
-                           categories=['A', 'B', 'C'])
-      cat
-      cat.unique()
-
 - ``groupby`` using ``Categorical`` follows the same rule as ``Categorical.unique`` described above  (:issue:`10508`)
 - ``NaT``'s methods now either raise ``ValueError``, or return ``np.nan`` or ``NaT`` (:issue:`9513`)
 
-   ===============================     ===============================================================
-   Behavior                            Methods
-   ===============================     ===============================================================
-   ``return np.nan``                   ``weekday``, ``isoweekday``
-   ``return NaT``                      ``date``, ``now``, ``replace``, ``to_datetime``, ``today``
-   ``return np.datetime64('NaT')``     ``to_datetime64`` (unchanged)
-   ``raise ValueError``                All other public methods (names not beginning with underscores)
-   ===============================     ===============================================================
+  ===============================     ===============================================================
+  Behavior                            Methods
+  ===============================     ===============================================================
+  ``return np.nan``                   ``weekday``, ``isoweekday``
+  ``return NaT``                      ``date``, ``now``, ``replace``, ``to_datetime``, ``today``
+  ``return np.datetime64('NaT')``     ``to_datetime64`` (unchanged)
+  ``raise ValueError``                All other public methods (names not beginning with underscores)
+  ===============================     ===============================================================
 
 - Improved error message when concatenating an empty iterable of dataframes (:issue:`9157`)
 
@@ -680,35 +662,33 @@ Removal of prior version deprecations/changes
 - Removal of ``colSpace`` parameter from ``DataFrame.to_string()``, in favor of ``col_space``, circa 0.8.0 version.
 - Removal of automatic time-series broadcasting (:issue:`2304`)
 
-   .. ipython :: python
+  .. ipython :: python
 
-      np.random.seed(1234)
-      df = DataFrame(np.random.randn(5,2),columns=list('AB'),index=date_range('20130101',periods=5))
-      df
+     np.random.seed(1234)
+     df = DataFrame(np.random.randn(5,2),columns=list('AB'),index=date_range('20130101',periods=5))
+     df
 
-   Previously
+  Previously
 
-   .. code-block:: python
+  .. code-block:: python
 
-      In [3]: df + df.A
-      FutureWarning: TimeSeries broadcasting along DataFrame index by default is deprecated.
-      Please use DataFrame.<op> to explicitly broadcast arithmetic operations along the index
+     In [3]: df + df.A
+     FutureWarning: TimeSeries broadcasting along DataFrame index by default is deprecated.
+     Please use DataFrame.<op> to explicitly broadcast arithmetic operations along the index
 
-      Out[3]:
+     Out[3]:
                          A         B
-      2013-01-01  0.942870 -0.719541
-      2013-01-02  2.865414  1.120055
-      2013-01-03 -1.441177  0.166574
-      2013-01-04  1.719177  0.223065
-      2013-01-05  0.031393 -2.226989
+     2013-01-01  0.942870 -0.719541
+     2013-01-02  2.865414  1.120055
+     2013-01-03 -1.441177  0.166574
+     2013-01-04  1.719177  0.223065
+     2013-01-05  0.031393 -2.226989
 
-   Current
+  Current
 
-   .. ipython :: python
+  .. ipython :: python
 
-      df.add(df.A,axis='index')
-
-
+     df.add(df.A,axis='index')
 
 
 - Remove ``table`` keyword in ``HDFStore.put/append``, in favor of using ``format=`` (:issue:`4645`)
@@ -747,7 +727,7 @@ Bug Fixes
 - Bug in ``pd.Series.interpolate`` with invalid ``order`` keyword values. (:issue:`10633`)
 - Bug in ``DataFrame.plot`` raises ``ValueError`` when color name is specified by multiple characters (:issue:`10387`)
 - Bug in ``Index`` construction with a mixed list of tuples (:issue:`10697`)
-- Bug in ``DataFrame.reset_index`` when index contains `NaT`. (:issue:`10388`)
+- Bug in ``DataFrame.reset_index`` when index contains ``NaT``. (:issue:`10388`)
 - Bug in ``ExcelReader`` when worksheet is empty (:issue:`6403`)
 - Bug in ``BinGrouper.group_info`` where returned values are not compatible with base class (:issue:`10914`)
 - Bug in clearing the cache on ``DataFrame.pop`` and a subsequent inplace op (:issue:`10912`)
@@ -758,10 +738,10 @@ Bug Fixes
 - Bug in ``offsets.generate_range`` where ``start`` and ``end`` have finer precision than ``offset`` (:issue:`9907`)
 - Bug in ``pd.rolling_*`` where ``Series.name`` would be lost in the output (:issue:`10565`)
 - Bug in ``stack`` when index or columns are not unique. (:issue:`10417`)
-- Bug in setting a Panel when an axis has a multi-index (:issue:`10360`)
+- Bug in setting a ``Panel`` when an axis has a multi-index (:issue:`10360`)
 - Bug in ``USFederalHolidayCalendar`` where ``USMemorialDay`` and ``USMartinLutherKingJr`` were incorrect (:issue:`10278` and :issue:`9760` )
 - Bug in ``.sample()`` where returned object, if set, gives unnecessary ``SettingWithCopyWarning`` (:issue:`10738`)
-- Bug in ``.sample()`` where weights passed as Series were not aligned along axis before being treated positionally, potentially causing problems if weight indices were not aligned with sampled object. (:issue:`10738`)
+- Bug in ``.sample()`` where weights passed as ``Series`` were not aligned along axis before being treated positionally, potentially causing problems if weight indices were not aligned with sampled object. (:issue:`10738`)
 
 
 
@@ -832,4 +812,4 @@ Bug Fixes
 - Bug in ``read_msgpack`` where encoding is not respected (:issue:`10580`)
 - Bug preventing access to the first index when using ``iloc`` with a list containing the appropriate negative integer (:issue:`10547`, :issue:`10779`)
 - Bug in ``TimedeltaIndex`` formatter causing error while trying to save ``DataFrame`` with ``TimedeltaIndex`` using ``to_csv`` (:issue:`10833`)
-- BUG in ``DataFrame.where`` when handling Series slicing (:issue:`10218`, :issue:`9558`)
+- Bug in ``DataFrame.where`` when handling Series slicing (:issue:`10218`, :issue:`9558`)

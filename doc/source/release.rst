@@ -45,6 +45,23 @@ analysis / manipulation tool available in any language.
 * Binary installers on PyPI: http://pypi.python.org/pypi/pandas
 * Documentation: http://pandas.pydata.org
 
+pandas 0.17.0
+-------------
+
+**Release date:** (September ??, 2015)
+
+This is a major release from 0.16.2 and includes a small number of API changes, several new features,
+enhancements, and performance improvements along with a large number of bug fixes. We recommend that all
+users upgrade to this version.
+
+Highlights include:
+
+See the :ref:`v0.17.0 Whatsnew <whatsnew_0170>` overview for an extensive list
+of all enhancements and bugs that have been fixed in 0.17.0.
+
+Thanks
+~~~~~~
+
 pandas 0.16.2
 -------------
 
