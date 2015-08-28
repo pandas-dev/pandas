@@ -61,6 +61,19 @@ class frame_drop_duplicates(object):
         self.df.drop_duplicates(['key1', 'key2'])
 
 
+class frame_drop_duplicates_int(object):
+
+    def setup(self):
+        np.random.seed(1234)
+        self.N = 1000000
+        self.K = 10000
+        self.key1 = np.random.randint(0,self.K,size=self.N)
+        self.df = DataFrame({'key1': self.key1})
+
+    def time_frame_drop_duplicates_int(self):
+        self.df.drop_duplicates()
+
+
 class frame_drop_duplicates_na(object):
     goal_time = 0.2
 

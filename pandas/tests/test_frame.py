@@ -7975,6 +7975,22 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
             expected = df2.drop_duplicates(['AAA', 'B'], take_last=True)
         assert_frame_equal(result, expected)
 
+        # integers
+        result = df.drop_duplicates('C')
+        expected = df.iloc[[0,2]]
+        assert_frame_equal(result, expected)
+        result = df.drop_duplicates('C',keep='last')
+        expected = df.iloc[[-2,-1]]
+        assert_frame_equal(result, expected)
+
+        df['E'] = df['C'].astype('int8')
+        result = df.drop_duplicates('E')
+        expected = df.iloc[[0,2]]
+        assert_frame_equal(result, expected)
+        result = df.drop_duplicates('E',keep='last')
+        expected = df.iloc[[-2,-1]]
+        assert_frame_equal(result, expected)
+
     def test_drop_duplicates_for_take_all(self):
         df = DataFrame({'AAA': ['foo', 'bar', 'baz', 'bar',
                                 'foo', 'bar', 'qux', 'foo'],
