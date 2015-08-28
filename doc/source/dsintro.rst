@@ -143,10 +143,10 @@ label:
 
 If a label is not contained, an exception is raised:
 
-.. ipython:: python
-    :okexcept:
+.. code-block:: python
 
-    s['f']
+    >>> s['f']
+    KeyError: 'f'
 
 Using the ``get`` method, a missing label will return None or specified default:
 
