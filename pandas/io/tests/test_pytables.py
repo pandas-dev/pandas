@@ -930,6 +930,51 @@ class TestHDFStore(Base):
             result = store.select('df',Term('columns=A',encoding='ascii'))
             tm.assert_frame_equal(result,expected)
 
+    def test_latin_encoding(self):
+
+        if compat.PY2:
+            self.assertRaisesRegexp(TypeError, '\[unicode\] is not implemented as a table column')
+            return
+
+        values = [[b'E\xc9, 17', b'', b'a', b'b', b'c'],
+                  [b'E\xc9, 17', b'a', b'b', b'c'],
+                  [b'EE, 17', b'', b'a', b'b', b'c'],
+                  [b'E\xc9, 17', b'\xf8\xfc', b'a', b'b', b'c'],
+                  [b'', b'a', b'b', b'c'],
+                  [b'\xf8\xfc', b'a', b'b', b'c'],
+                  [b'A\xf8\xfc', b'', b'a', b'b', b'c'],
+                  [np.nan, b'', b'b', b'c'],
+                  [b'A\xf8\xfc', np.nan, b'', b'b', b'c']]
+
+        def _try_decode(x, encoding='latin-1'):
+            try:
+                return x.decode(encoding)
+            except AttributeError:
+                return x
+        # not sure how to remove latin-1 from code in python 2 and 3
+        values = [[_try_decode(x) for x in y] for y in values]
+
+        examples = []
+        for dtype in ['category', object]:
+            for val in values:
+                examples.append(pandas.Series(val, dtype=dtype))
+
+        def roundtrip(s, key='data', encoding='latin-1', nan_rep=''):
+            with ensure_clean_path(self.path) as store:
+                s.to_hdf(store, key, format='table', encoding=encoding,
+                        nan_rep=nan_rep)
+                retr = read_hdf(store, key)
+                s_nan = s.replace(nan_rep, np.nan)
+                assert_series_equal(s_nan, retr)
+
+        for s in examples:
+            roundtrip(s)
+
+        # fails:
+        # for x in examples:
+        #     roundtrip(s, nan_rep=b'\xf8\xfc')
+
+
     def test_append_some_nans(self):
 
         with ensure_clean_store(self.path) as store:
