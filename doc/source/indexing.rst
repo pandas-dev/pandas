@@ -293,10 +293,10 @@ Selection By Label
      dfl = pd.DataFrame(np.random.randn(5,4), columns=list('ABCD'), index=pd.date_range('20130101',periods=5))
      dfl
 
-  .. ipython:: python
-     :okexcept:
+  .. code-block:: python
 
-     dfl.loc[2:3]
+     In [4]: dfl.loc[2:3]
+     TypeError: cannot do slice indexing on <class 'pandas.tseries.index.DatetimeIndex'> with these indexers [2] of <type 'int'>
 
   String likes in slicing *can* be convertible to the type of the index and lead to natural slicing.
 
@@ -475,11 +475,13 @@ A single indexer that is out of bounds will raise an ``IndexError``.
 A list of indexers where any element is out of bounds will raise an
 ``IndexError``
 
-.. ipython:: python
-   :okexcept:
+.. code-block:: python
 
    dfl.iloc[[4,5,6]]
+   IndexError: positional indexers are out-of-bounds
+
    dfl.iloc[:,4]
+   IndexError: single positional indexer is out-of-bounds
 
 .. _indexing.basics.partial_setting:
 
