@@ -501,6 +501,11 @@ class NDFrame(PandasObject):
         """
         result = self[item]
         del self[item]
+        try:
+            result._reset_cacher()
+        except AttributeError:
+            pass
+
         return result
 
     def squeeze(self):
@@ -1094,6 +1099,11 @@ class NDFrame(PandasObject):
             a weakref to cacher """
         self._cacher = (item, weakref.ref(cacher))
 
+    def _reset_cacher(self):
+        """ reset the cacher """
+        if hasattr(self,'_cacher'):
+            del self._cacher
+
     def _iget_item_cache(self, item):
         """ return the cached item, item represents a positional indexer """
         ax = self._info_axis
@@ -1330,6 +1340,7 @@ class NDFrame(PandasObject):
             # exception:
             self._data.delete(key)
 
+        # delete from the caches
         try:
             del self._item_cache[key]
         except KeyError:
