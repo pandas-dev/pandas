@@ -56,6 +56,18 @@ users upgrade to this version.
 
 Highlights include:
 
+- Release the Global Interpreter Lock (GIL) on some cython operations, see :ref:`here <whatsnew_0170.gil>`
+- The sorting API has been revamped to remove some long-time inconsistencies, see :ref:`here <whatsnew_0170.api_breaking.sorting>`
+- The default for ``to_datetime`` will now be to ``raise`` when presented with unparseable formats,
+  previously this would return the original input, see :ref:`here <whatsnew_0170.api_breaking.to_datetime>`
+- The default for ``dropna`` in ``HDFStore`` has changed to ``False``, to store by default all rows even
+  if they are all ``NaN``, see :ref:`here <whatsnew_0170.api_breaking.hdf_dropna>`
+- Support for ``Series.dt.strftime`` to generate formatted strings for datetime-likes, see :ref:`here <whatsnew_0170.strftime>`
+- Development installed versions of pandas will now have ``PEP440`` compliant version strings (:issue:`9518`)
+- Development support for benchmarking with the `Air Speed Velocity library <https://github.com/spacetelescope/asv/>`_ (:issue:`8316`)
+- Support for reading SAS xport files, see :ref:`here <whatsnew_0170.enhancements.sas_xport>`
+- Removal of the automatic TimeSeries broadcasting, deprecated since 0.8.0, see :ref:`here <whatsnew_0170.prior_deprecations>`
+
 See the :ref:`v0.17.0 Whatsnew <whatsnew_0170>` overview for an extensive list
 of all enhancements and bugs that have been fixed in 0.17.0.
 
