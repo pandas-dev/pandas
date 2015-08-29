@@ -632,41 +632,35 @@ Missing Data
 
 pandas primarily uses the value `np.nan` to represent missing data. It is by
 default not included in computations. See the :ref:`Missing Data section
-<missing_data>`
+<missing_data>`.
 
-There are two ways a `np.nan` can be represented in categorical data: either the value is not
-available ("missing value") or `np.nan` is a valid category.
+Missing values should **not** be included in the Categorical's ``categories``,
+only in the ``values``.
+Instead, it is understood that NaN is different, and is always a possibility.
+When working with the Categorical's ``codes``, missing values will always have
+a code of ``-1``.
 
 .. ipython:: python
 
     s = pd.Series(["a","b",np.nan,"a"], dtype="category")
     # only two categories
     s
-    s2 = pd.Series(["a","b","c","a"], dtype="category")
-    s2.cat.categories = [1,2,np.nan]
-    # three categories, np.nan included
-    s2
+    s.codes
 
-.. note::
-    As integer `Series` can't include NaN, the categories were converted to `object`.
 
-.. note::
-    Missing value methods like ``isnull`` and ``fillna`` will take both missing values as well as
-    `np.nan` categories into account:
+Methods for working with missing data, e.g. :meth:`~Series.isnull`, :meth:`~Series.fillna`,
+:meth:`~Series.dropna`, all work normally:
 
 .. ipython:: python
 
     c = pd.Series(["a","b",np.nan], dtype="category")
-    c.cat.set_categories(["a","b",np.nan], inplace=True)
-    # will be inserted as a NA category:
-    c[0] = np.nan
     s = pd.Series(c)
     s
     pd.isnull(s)
     s.fillna("a")
 
 Differences to R's `factor`
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
+---------------------------
 
 The following differences to R's factor functions can be observed:
 
@@ -677,6 +671,9 @@ The following differences to R's factor functions can be observed:
 * In contrast to R's `factor` function, using categorical data as the sole input to create a
   new categorical series will *not* remove unused categories but create a new categorical series
   which is equal to the passed in one!
+* R allows for missing values to be included in its `levels` (pandas' `categories`). Pandas
+  does not allow `NaN` categories, but missing values can still be in the `values`.
+
 
 Gotchas
 -------

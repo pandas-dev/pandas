@@ -443,12 +443,18 @@ class Categorical(PandasObject):
             raise ValueError('Categorical categories must be unique')
         return categories
 
-    def _set_categories(self, categories):
+    def _set_categories(self, categories, validate=True):
         """ Sets new categories """
-        categories = self._validate_categories(categories)
-        if not self._categories is None and len(categories) != len(self._categories):
-            raise ValueError("new categories need to have the same number of items than the old "
-                             "categories!")
+        if validate:
+            categories = self._validate_categories(categories)
+            if not self._categories is None and len(categories) != len(self._categories):
+                raise ValueError("new categories need to have the same number of items than the old "
+                                 "categories!")
+        if np.any(isnull(categories)):
+            # NaNs in cats deprecated in 0.17, remove in 0.18 or 0.19 GH 10748
+            msg = ('\nSetting NaNs in `categories` is deprecated and '
+                   'will be removed in a future version of pandas.')
+            warn(msg, FutureWarning, stacklevel=9)
         self._categories = categories
 
     def _get_categories(self):
@@ -581,11 +587,11 @@ class Categorical(PandasObject):
             if not cat._categories is None and len(new_categories) < len(cat._categories):
                 # remove all _codes which are larger and set to -1/NaN
                 self._codes[self._codes >= len(new_categories)] = -1
-            cat._categories = new_categories
+            cat._set_categories(new_categories, validate=False)
         else:
             values = cat.__array__()
             cat._codes = _get_codes_for_values(values, new_categories)
-            cat._categories = new_categories
+            cat._set_categories(new_categories, validate=False)
 
         if ordered is None:
             ordered = self.ordered
@@ -708,7 +714,7 @@ class Categorical(PandasObject):
         new_categories = list(self._categories) + list(new_categories)
         new_categories = self._validate_categories(new_categories)
         cat = self if inplace else self.copy()
-        cat._categories = new_categories
+        cat._set_categories(new_categories, validate=False)
         cat._codes = _coerce_indexer_dtype(cat._codes, new_categories)
         if not inplace:
             return cat
@@ -791,7 +797,7 @@ class Categorical(PandasObject):
         from pandas.core.index import _ensure_index
         new_categories = _ensure_index(new_categories)
         cat._codes = _get_codes_for_values(cat.__array__(), new_categories)
-        cat._categories = new_categories
+        cat._set_categories(new_categories, validate=False)
         if not inplace:
             return cat
 
@@ -1171,7 +1177,7 @@ class Categorical(PandasObject):
         Category.sort
         """
         warn("order is deprecated, use sort_values(...)",
-             FutureWarning, stacklevel=2)
+             FutureWarning, stacklevel=3)
         return self.sort_values(inplace=inplace, ascending=ascending, na_position=na_position)
 
     def sort(self, inplace=True, ascending=True, na_position='last'):
