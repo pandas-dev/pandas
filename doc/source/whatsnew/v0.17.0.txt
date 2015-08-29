@@ -130,11 +130,10 @@ Other enhancements
 ^^^^^^^^^^^^^^^^^^
 
 - `read_sql` and `to_sql` can accept database URI as con parameter (:issue:`10214`)
-
 - Enable `read_hdf` to be used without specifying a key when the HDF file contains a single dataset (:issue:`10443`)
-
+- Enable writing Excel files in :ref:`memory <_io.excel_writing_buffer>` using StringIO/BytesIO (:issue:`7074`)
+- Enable serialization of lists and dicts to strings in ExcelWriter (:issue:`8188`)
 - Added functionality to use the ``base`` argument when resampling a ``TimeDeltaIndex`` (:issue:`10530`)
-
 - ``DatetimeIndex`` can be instantiated using strings contains ``NaT`` (:issue:`7599`)
 - The string parsing of ``to_datetime``, ``Timestamp`` and ``DatetimeIndex`` has been made consistent. (:issue:`7599`)
 
@@ -235,7 +234,7 @@ Changes to sorting API
 
 The sorting API has had some longtime inconsistencies. (:issue:`9816`, :issue:`8239`).
 
-Here is a summary of the **PRIOR** to 0.17.0:
+Here is a summary of the API **PRIOR** to 0.17.0:
 
 - ``Series.sort`` is **INPLACE** while ``DataFrame.sort`` returns a new object.
 - ``Series.order`` returns a new object
@@ -256,19 +255,19 @@ will show a ``FutureWarning``.
 
 To sort by the **values**:
 
-=================================     ====================================
+==================================    ====================================
 Previous                              Replacement
-=================================     ====================================
-\* ``Series.order()``                   ``Series.sort_values()``
-\* ``Series.sort()``                    ``Series.sort_values(inplace=True)``
-\* ``DataFrame.sort(columns=...)``      ``DataFrame.sort_values(by=...)``
-=================================     ====================================
+==================================    ====================================
+\* ``Series.order()``                 ``Series.sort_values()``
+\* ``Series.sort()``                  ``Series.sort_values(inplace=True)``
+\* ``DataFrame.sort(columns=...)``    ``DataFrame.sort_values(by=...)``
+==================================    ====================================
 
 To sort by the **index**:
 
-=================================     ====================================
-Previous                              Equivalent
-=================================     ====================================
+==================================    ====================================
+Previous                              Replacement
+==================================    ====================================
 ``Series.sort_index()``               ``Series.sort_index()``
 ``Series.sortlevel(level=...)``       ``Series.sort_index(level=...``)
 ``DataFrame.sort_index()``            ``DataFrame.sort_index()``
@@ -281,8 +280,8 @@ We have also deprecated and changed similar methods in two Series-like classes, 
 ==================================    ====================================
 Previous                              Replacement
 ==================================    ====================================
-\* ``Index.order()``                     ``Index.sort_values()``
-\* ``Categorical.order()``               ``Categorical.sort_values``
+\* ``Index.order()``                  ``Index.sort_values()``
+\* ``Categorical.order()``            ``Categorical.sort_values``
 ==================================    ====================================
 
 .. _whatsnew_0170.api_breaking.to_datetime:
@@ -351,7 +350,7 @@ keyword argument to ``'coerce'`` instead of ``True``, as in ``convert_dates='coe
                       's': ['apple','banana']})
    df
 
-The old usage of ``DataFrame.convert_objects`` used `'coerce'` along with the
+The old usage of ``DataFrame.convert_objects`` used ``'coerce'`` along with the
 type.
 
 .. code-block:: python
@@ -366,8 +365,7 @@ Now the ``coerce`` keyword must be explicitly used.
 
 In earlier versions of pandas, ``DataFrame.convert_objects`` would not coerce
 numeric types when there were no values convertible to a numeric type. This returns
-the original DataFrame with no conversion. This change alters
-this behavior so that converts all non-number-like strings to ``NaN``.
+the original DataFrame with no conversion.
 
 .. code-block:: python
 
@@ -377,6 +375,9 @@ this behavior so that converts all non-number-like strings to ``NaN``.
           s
        0  a
        1  b
+
+THe new behavior will convert all non-number-like strings to ``NaN``,
+when ``coerce=True`` is passed explicity.
 
 .. ipython:: python
 
@@ -517,7 +518,10 @@ New behavior:
 
 .. ipython:: python
 
-   df_with_missing.to_hdf('file.h5', 'df_with_missing', format = 'table', mode='w')
+   df_with_missing.to_hdf('file.h5',
+                          'df_with_missing',
+                           format='table',
+                           mode='w')
 
    pd.read_hdf('file.h5', 'df_with_missing')
 
@@ -571,10 +575,10 @@ from ``7``.
 Changes to ``Categorical.unique``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-``Categorical.unique`` now returns new ``Categorical`` which ``categories`` and ``codes`` that are unique, rather than returning ``np.array`` (:issue:`10508`)
+``Categorical.unique`` now returns new ``Categoricals`` with ``categories`` and ``codes`` that are unique, rather than returning ``np.array`` (:issue:`10508`)
 
 - unordered category: values and categories are sorted by appearance order.
-- ordered category: values are sorted by appearance order, categories keeps existing order.
+- ordered category: values are sorted by appearance order, categories keep existing order.
 
 .. ipython :: python
 
@@ -597,24 +601,22 @@ Other API Changes
 
 - Line and kde plot with ``subplots=True`` now uses default colors, not all black. Specify ``color='k'`` to draw all lines in black (:issue:`9894`)
 - Calling the ``.value_counts`` method on a Series with ``categorical`` dtype now returns a Series with a ``CategoricalIndex`` (:issue:`10704`)
-- Enable writing Excel files in :ref:`memory <_io.excel_writing_buffer>` using StringIO/BytesIO (:issue:`7074`)
-- Enable serialization of lists and dicts to strings in ExcelWriter (:issue:`8188`)
 - Allow passing `kwargs` to the interpolation methods (:issue:`10378`).
-- Serialize metadata properties of subclasses of pandas objects (:issue:`10553`).
+- The metadata properties of subclasses of pandas objects will now be serialized (:issue:`10553`).
 - Allow ``DataFrame`` with ``MultiIndex`` columns to be written to Excel (:issue:`10564`). This was changed in 0.16.2 as the read-back method could not always guarantee perfect fidelity (:issue:`9794`).
 - ``groupby`` using ``Categorical`` follows the same rule as ``Categorical.unique`` described above  (:issue:`10508`)
+- Improved error message when concatenating an empty iterable of dataframes (:issue:`9157`)
+
 - ``NaT``'s methods now either raise ``ValueError``, or return ``np.nan`` or ``NaT`` (:issue:`9513`)
 
   ===============================     ===============================================================
   Behavior                            Methods
   ===============================     ===============================================================
-  ``return np.nan``                   ``weekday``, ``isoweekday``
-  ``return NaT``                      ``date``, ``now``, ``replace``, ``to_datetime``, ``today``
-  ``return np.datetime64('NaT')``     ``to_datetime64`` (unchanged)
-  ``raise ValueError``                All other public methods (names not beginning with underscores)
+  return ``np.nan``                   ``weekday``, ``isoweekday``
+  return ``NaT``                      ``date``, ``now``, ``replace``, ``to_datetime``, ``today``
+  return ``np.datetime64('NaT')``     ``to_datetime64`` (unchanged)
+  raise ``ValueError``                All other public methods (names not beginning with underscores)
   ===============================     ===============================================================
-
-- Improved error message when concatenating an empty iterable of dataframes (:issue:`9157`)
 
 .. _whatsnew_0170.deprecations:
 
@@ -703,6 +705,8 @@ Removal of prior version deprecations/changes
 
 Performance Improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
+
+- Development support for benchmarking with the `Air Speed Velocity library <https://github.com/spacetelescope/asv/>`_ (:issue:`8316`)
 - Added vbench benchmarks for alternative ExcelWriter engines and reading Excel files (:issue:`7171`)
 - Performance improvements in ``Categorical.value_counts`` (:issue:`10804`)
 - Performance improvements in ``SeriesGroupBy.nunique`` and ``SeriesGroupBy.value_counts`` (:issue:`10820`)
@@ -720,6 +724,7 @@ Performance Improvements
 
 Bug Fixes
 ~~~~~~~~~
+
 - Bug in ``DataFrame.to_html(index=False)`` renders unnecessary ``name`` row (:issue:`10344`)
 - Bug in ``DataFrame.apply`` when function returns categorical series. (:issue:`9573`)
 - Bug in ``to_datetime`` with invalid dates and formats supplied (:issue:`10154`)
