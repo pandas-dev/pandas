@@ -21,7 +21,8 @@ from pandas.core.common import (isnull, notnull, _values_from_object,
                                 is_bool_dtype, is_object_dtype,
                                 is_datetime64_dtype, is_timedelta64_dtype,
                                 is_datetime_or_timedelta_dtype, _get_dtype,
-                                is_int_or_datetime_dtype, is_any_int_dtype)
+                                is_int_or_datetime_dtype, is_any_int_dtype,
+                                _int64_max)
 
 
 class disallow(object):
@@ -145,7 +146,7 @@ def _get_fill_value(dtype, fill_value=None, fill_value_typ=None):
         else:
             if fill_value_typ == '+inf':
                 # need the max int here
-                return np.iinfo(np.int64).max
+                return _int64_max
             else:
                 return tslib.iNaT
 
@@ -223,7 +224,12 @@ def _wrap_results(result, dtype):
             result = result.view(dtype)
     elif is_timedelta64_dtype(dtype):
         if not isinstance(result, np.ndarray):
-            result = lib.Timedelta(result)
+
+            # raise if we have a timedelta64[ns] which is too large
+            if np.fabs(result) > _int64_max:
+                raise ValueError("overflow in timedelta operation")
+
+            result = lib.Timedelta(result, unit='ns')
         else:
             result = result.astype('i8').view(dtype)
 
@@ -247,6 +253,8 @@ def nansum(values, axis=None, skipna=True):
     dtype_sum = dtype_max
     if is_float_dtype(dtype):
         dtype_sum = dtype
+    elif is_timedelta64_dtype(dtype):
+        dtype_sum = np.float64
     the_sum = values.sum(axis, dtype=dtype_sum)
     the_sum = _maybe_null_out(the_sum, axis, mask)
 
@@ -260,7 +268,7 @@ def nanmean(values, axis=None, skipna=True):
 
     dtype_sum = dtype_max
     dtype_count = np.float64
-    if is_integer_dtype(dtype):
+    if is_integer_dtype(dtype) or is_timedelta64_dtype(dtype):
         dtype_sum = np.float64
     elif is_float_dtype(dtype):
         dtype_sum = dtype
