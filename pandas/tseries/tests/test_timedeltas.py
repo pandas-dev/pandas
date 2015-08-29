@@ -686,6 +686,25 @@ class TestTimedeltas(tm.TestCase):
         s = Series([Timestamp('2015-02-03'), Timestamp('2015-02-07'), Timestamp('2015-02-15')])
         self.assertEqual(s.diff().median(), timedelta(days=6))
 
+    def test_overflow(self):
+        # GH 9442
+        s = Series(pd.date_range('20130101',periods=100000,freq='H'))
+        s[0] += pd.Timedelta('1s 1ms')
+
+        # mean
+        result = (s-s.min()).mean()
+        expected = pd.Timedelta((pd.DatetimeIndex((s-s.min())).asi8/len(s)).sum())
+
+        # the computation is converted to float so might be some loss of precision
+        self.assertTrue(np.allclose(result.value/1000, expected.value/1000))
+
+        # sum
+        self.assertRaises(ValueError, lambda : (s-s.min()).sum())
+        s1 = s[0:10000]
+        self.assertRaises(ValueError, lambda : (s1-s1.min()).sum())
+        s2 = s[0:1000]
+        result = (s2-s2.min()).sum()
+
     def test_timedelta_ops_scalar(self):
         # GH 6808
         base = pd.to_datetime('20130101 09:01:12.123456')
