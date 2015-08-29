@@ -652,6 +652,7 @@ Deprecations
   =====================  =================================
 
 - ``Categorical.name`` was deprecated to make ``Categorical`` more ``numpy.ndarray`` like. Use ``Series(cat, name="whatever")`` instead (:issue:`10482`).
+- Setting missing values (NaN) in a ``Categorical``'s ``categories`` will issue a warning (:issue:`10748`). You can still have missing values in the ``values``.
 - ``drop_duplicates`` and ``duplicated``'s ``take_last`` keyword was deprecated in favor of ``keep``. (:issue:`6511`, :issue:`8505`)
 - ``Series.nsmallest`` and ``nlargest``'s ``take_last`` keyword was deprecated in favor of ``keep``. (:issue:`10792`)
 - ``DataFrame.combineAdd`` and ``DataFrame.combineMult`` are deprecated. They
