@@ -5436,6 +5436,32 @@ class TestGroupBy(tm.TestCase):
         assert_frame_equal(grouped_ref.first(),grouped_test.first())
         assert_frame_equal(grouped_ref.last(),grouped_test.last())
 
+    def test_groupby_preserves_sort(self):
+        # Test to ensure that groupby always preserves sort order of original
+        # object. Issue #8588 and #9651
+        
+        df = DataFrame({'int_groups':[3,1,0,1,0,3,3,3], 
+                        'string_groups':['z','a','z','a','a','g','g','g'], 
+                        'ints':[8,7,4,5,2,9,1,1],
+                        'floats':[2.3,5.3,6.2,-2.4,2.2,1.1,1.1,5],
+                        'strings':['z','d','a','e','word','word2','42','47']})
+
+        # Try sorting on different types and with different group types
+        for sort_column in ['ints', 'floats', 'strings', ['ints','floats'], 
+                  ['ints','strings']]:
+            for group_column in ['int_groups', 'string_groups', 
+                                 ['int_groups','string_groups']]:
+
+                df = df.sort_values(by=sort_column)
+
+                g = df.groupby(group_column)
+                
+                def test_sort(x):
+                    assert_frame_equal(x, x.sort_values(by=sort_column))
+    
+                g.apply(test_sort)
+
+
 def assert_fp_equal(a, b):
     assert (np.abs(a - b) < 1e-12).all()
 
