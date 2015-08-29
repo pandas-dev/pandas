@@ -168,20 +168,20 @@ class reindex_daterange_backfill(object):
         self.ts3 = self.ts2.reindex(self.ts.index)
         self.ts4 = self.ts3.astype('float32')
 
-        def pad(source_series, target_index):
-            try:
-                source_series.reindex(target_index, method='pad')
-            except:
-                source_series.reindex(target_index, fillMethod='pad')
-
-        def backfill(source_series, target_index):
-            try:
-                source_series.reindex(target_index, method='backfill')
-            except:
-                source_series.reindex(target_index, fillMethod='backfill')
-
     def time_reindex_daterange_backfill(self):
-        backfill(self.ts2, self.ts.index)
+        self.backfill(self.ts2, self.ts.index)
+
+    def pad(self, source_series, target_index):
+        try:
+            source_series.reindex(target_index, method='pad')
+        except:
+            source_series.reindex(target_index, fillMethod='pad')
+
+    def backfill(self, source_series, target_index):
+        try:
+            source_series.reindex(target_index, method='backfill')
+        except:
+            source_series.reindex(target_index, fillMethod='backfill')
 
 
 class reindex_daterange_pad(object):
@@ -194,20 +194,20 @@ class reindex_daterange_pad(object):
         self.ts3 = self.ts2.reindex(self.ts.index)
         self.ts4 = self.ts3.astype('float32')
 
-        def pad(source_series, target_index):
-            try:
-                source_series.reindex(target_index, method='pad')
-            except:
-                source_series.reindex(target_index, fillMethod='pad')
-
-        def backfill(source_series, target_index):
-            try:
-                source_series.reindex(target_index, method='backfill')
-            except:
-                source_series.reindex(target_index, fillMethod='backfill')
-
     def time_reindex_daterange_pad(self):
-        pad(self.ts2, self.ts.index)
+        self.pad(self.ts2, self.ts.index)
+
+    def pad(self, source_series, target_index):
+        try:
+            source_series.reindex(target_index, method='pad')
+        except:
+            source_series.reindex(target_index, fillMethod='pad')
+
+    def backfill(self, source_series, target_index):
+        try:
+            source_series.reindex(target_index, method='backfill')
+        except:
+            source_series.reindex(target_index, fillMethod='backfill')
 
 
 class reindex_fillna_backfill(object):
@@ -220,20 +220,20 @@ class reindex_fillna_backfill(object):
         self.ts3 = self.ts2.reindex(self.ts.index)
         self.ts4 = self.ts3.astype('float32')
 
-        def pad(source_series, target_index):
-            try:
-                source_series.reindex(target_index, method='pad')
-            except:
-                source_series.reindex(target_index, fillMethod='pad')
-
-        def backfill(source_series, target_index):
-            try:
-                source_series.reindex(target_index, method='backfill')
-            except:
-                source_series.reindex(target_index, fillMethod='backfill')
-
     def time_reindex_fillna_backfill(self):
         self.ts3.fillna(method='backfill')
+
+    def pad(self, source_series, target_index):
+        try:
+            source_series.reindex(target_index, method='pad')
+        except:
+            source_series.reindex(target_index, fillMethod='pad')
+
+    def backfill(self, source_series, target_index):
+        try:
+            source_series.reindex(target_index, method='backfill')
+        except:
+            source_series.reindex(target_index, fillMethod='backfill')
 
 
 class reindex_fillna_backfill_float32(object):
@@ -246,20 +246,20 @@ class reindex_fillna_backfill_float32(object):
         self.ts3 = self.ts2.reindex(self.ts.index)
         self.ts4 = self.ts3.astype('float32')
 
-        def pad(source_series, target_index):
-            try:
-                source_series.reindex(target_index, method='pad')
-            except:
-                source_series.reindex(target_index, fillMethod='pad')
-
-        def backfill(source_series, target_index):
-            try:
-                source_series.reindex(target_index, method='backfill')
-            except:
-                source_series.reindex(target_index, fillMethod='backfill')
-
     def time_reindex_fillna_backfill_float32(self):
         self.ts4.fillna(method='backfill')
+
+    def pad(self, source_series, target_index):
+        try:
+            source_series.reindex(target_index, method='pad')
+        except:
+            source_series.reindex(target_index, fillMethod='pad')
+
+    def backfill(self, source_series, target_index):
+        try:
+            source_series.reindex(target_index, method='backfill')
+        except:
+            source_series.reindex(target_index, fillMethod='backfill')
 
 
 class reindex_fillna_pad(object):
@@ -272,20 +272,20 @@ class reindex_fillna_pad(object):
         self.ts3 = self.ts2.reindex(self.ts.index)
         self.ts4 = self.ts3.astype('float32')
 
-        def pad(source_series, target_index):
-            try:
-                source_series.reindex(target_index, method='pad')
-            except:
-                source_series.reindex(target_index, fillMethod='pad')
-
-        def backfill(source_series, target_index):
-            try:
-                source_series.reindex(target_index, method='backfill')
-            except:
-                source_series.reindex(target_index, fillMethod='backfill')
-
     def time_reindex_fillna_pad(self):
         self.ts3.fillna(method='pad')
+
+    def pad(self, source_series, target_index):
+        try:
+            source_series.reindex(target_index, method='pad')
+        except:
+            source_series.reindex(target_index, fillMethod='pad')
+
+    def backfill(self, source_series, target_index):
+        try:
+            source_series.reindex(target_index, method='backfill')
+        except:
+            source_series.reindex(target_index, fillMethod='backfill')
 
 
 class reindex_fillna_pad_float32(object):
@@ -298,20 +298,20 @@ class reindex_fillna_pad_float32(object):
         self.ts3 = self.ts2.reindex(self.ts.index)
         self.ts4 = self.ts3.astype('float32')
 
-        def pad(source_series, target_index):
-            try:
-                source_series.reindex(target_index, method='pad')
-            except:
-                source_series.reindex(target_index, fillMethod='pad')
-
-        def backfill(source_series, target_index):
-            try:
-                source_series.reindex(target_index, method='backfill')
-            except:
-                source_series.reindex(target_index, fillMethod='backfill')
-
     def time_reindex_fillna_pad_float32(self):
         self.ts4.fillna(method='pad')
+
+    def pad(self, source_series, target_index):
+        try:
+            source_series.reindex(target_index, method='pad')
+        except:
+            source_series.reindex(target_index, fillMethod='pad')
+
+    def backfill(self, source_series, target_index):
+        try:
+            source_series.reindex(target_index, method='backfill')
+        except:
+            source_series.reindex(target_index, fillMethod='backfill')
 
 
 class reindex_frame_level_align(object):
@@ -362,17 +362,17 @@ class series_align_irregular_string(object):
     def setup(self):
         self.n = 50000
         self.indices = tm.makeStringIndex(self.n)
-
-        def sample(values, k):
-            self.sampler = np.arange(len(values))
-            shuffle(self.sampler)
-            return values.take(self.sampler[:k])
         self.subsample_size = 40000
         self.x = Series(np.random.randn(50000), self.indices)
-        self.y = Series(np.random.randn(self.subsample_size), index=sample(self.indices, self.subsample_size))
+        self.y = Series(np.random.randn(self.subsample_size), index=self.sample(self.indices, self.subsample_size))
 
     def time_series_align_irregular_string(self):
         (self.x + self.y)
+
+    def sample(self, values, k):
+        self.sampler = np.arange(len(values))
+        shuffle(self.sampler)
+        return values.take(self.sampler[:k])
 
 
 class series_drop_duplicates_int(object):

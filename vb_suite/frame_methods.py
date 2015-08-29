@@ -126,8 +126,8 @@ frame_getitem_single_column2 = Benchmark('j()', setup,
 setup = common_setup + """
 idx = date_range('1/1/2000', periods=100000, freq='D')
 df = DataFrame(randn(100000, 1),columns=['A'],index=idx)
-def f(x):
-    x = x.copy()
+def f(df):
+    x = df.copy()
     x['date'] = x.index
 """
 

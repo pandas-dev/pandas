@@ -128,11 +128,11 @@ class groupby_frame_apply(object):
         self.labels2 = np.random.randint(0, 3, size=self.N)
         self.df = DataFrame({'key': self.labels, 'key2': self.labels2, 'value1': randn(self.N), 'value2': (['foo', 'bar', 'baz', 'qux'] * (self.N / 4)), })
 
-        def f(g):
-            return 1
-
     def time_groupby_frame_apply(self):
-        self.df.groupby(['key', 'key2']).apply(f)
+        self.df.groupby(['key', 'key2']).apply(self.f)
+
+    def f(self, g):
+        return 1
 
 
 class groupby_frame_apply_overhead(object):
@@ -144,11 +144,11 @@ class groupby_frame_apply_overhead(object):
         self.labels2 = np.random.randint(0, 3, size=self.N)
         self.df = DataFrame({'key': self.labels, 'key2': self.labels2, 'value1': randn(self.N), 'value2': (['foo', 'bar', 'baz', 'qux'] * (self.N / 4)), })
 
-        def f(g):
-            return 1
-
     def time_groupby_frame_apply_overhead(self):
-        self.df.groupby('key').apply(f)
+        self.df.groupby('key').apply(self.f)
+
+    def f(self, g):
+        return 1
 
 
 class groupby_frame_cython_many_columns(object):
@@ -330,23 +330,23 @@ class groupby_multi_cython(object):
     def setup(self):
         self.N = 100000
         self.ngroups = 100
-
-        def get_test_data(ngroups=100, n=self.N):
-            self.unique_groups = range(self.ngroups)
-            self.arr = np.asarray(np.tile(self.unique_groups, (n / self.ngroups)), dtype=object)
-            if (len(self.arr) < n):
-                self.arr = np.asarray((list(self.arr) + self.unique_groups[:(n - len(self.arr))]), dtype=object)
-            random.shuffle(self.arr)
-            return self.arr
-        self.df = DataFrame({'key1': get_test_data(ngroups=self.ngroups), 'key2': get_test_data(ngroups=self.ngroups), 'data1': np.random.randn(self.N), 'data2': np.random.randn(self.N), })
-
-        def f():
-            self.df.groupby(['key1', 'key2']).agg((lambda x: x.values.sum()))
+        self.df = DataFrame({'key1': self.get_test_data(ngroups=self.ngroups), 'key2': self.get_test_data(ngroups=self.ngroups), 'data1': np.random.randn(self.N), 'data2': np.random.randn(self.N), })
         self.simple_series = Series(np.random.randn(self.N))
         self.key1 = self.df['key1']
 
     def time_groupby_multi_cython(self):
         self.df.groupby(['key1', 'key2']).sum()
+
+    def get_test_data(self, ngroups=100, n=100000):
+        self.unique_groups = range(self.ngroups)
+        self.arr = np.asarray(np.tile(self.unique_groups, (n / self.ngroups)), dtype=object)
+        if (len(self.arr) < n):
+            self.arr = np.asarray((list(self.arr) + self.unique_groups[:(n - len(self.arr))]), dtype=object)
+        random.shuffle(self.arr)
+        return self.arr
+
+    def f(self):
+        self.df.groupby(['key1', 'key2']).agg((lambda x: x.values.sum()))
 
 
 class groupby_multi_different_functions(object):
@@ -395,23 +395,23 @@ class groupby_multi_python(object):
     def setup(self):
         self.N = 100000
         self.ngroups = 100
-
-        def get_test_data(ngroups=100, n=self.N):
-            self.unique_groups = range(self.ngroups)
-            self.arr = np.asarray(np.tile(self.unique_groups, (n / self.ngroups)), dtype=object)
-            if (len(self.arr) < n):
-                self.arr = np.asarray((list(self.arr) + self.unique_groups[:(n - len(self.arr))]), dtype=object)
-            random.shuffle(self.arr)
-            return self.arr
-        self.df = DataFrame({'key1': get_test_data(ngroups=self.ngroups), 'key2': get_test_data(ngroups=self.ngroups), 'data1': np.random.randn(self.N), 'data2': np.random.randn(self.N), })
-
-        def f():
-            self.df.groupby(['key1', 'key2']).agg((lambda x: x.values.sum()))
+        self.df = DataFrame({'key1': self.get_test_data(ngroups=self.ngroups), 'key2': self.get_test_data(ngroups=self.ngroups), 'data1': np.random.randn(self.N), 'data2': np.random.randn(self.N), })
         self.simple_series = Series(np.random.randn(self.N))
         self.key1 = self.df['key1']
 
     def time_groupby_multi_python(self):
         self.df.groupby(['key1', 'key2'])['data1'].agg((lambda x: x.values.sum()))
+
+    def get_test_data(self, ngroups=100, n=100000):
+        self.unique_groups = range(self.ngroups)
+        self.arr = np.asarray(np.tile(self.unique_groups, (n / self.ngroups)), dtype=object)
+        if (len(self.arr) < n):
+            self.arr = np.asarray((list(self.arr) + self.unique_groups[:(n - len(self.arr))]), dtype=object)
+        random.shuffle(self.arr)
+        return self.arr
+
+    def f(self):
+        self.df.groupby(['key1', 'key2']).agg((lambda x: x.values.sum()))
 
 
 class groupby_multi_series_op(object):
@@ -420,23 +420,23 @@ class groupby_multi_series_op(object):
     def setup(self):
         self.N = 100000
         self.ngroups = 100
-
-        def get_test_data(ngroups=100, n=self.N):
-            self.unique_groups = range(self.ngroups)
-            self.arr = np.asarray(np.tile(self.unique_groups, (n / self.ngroups)), dtype=object)
-            if (len(self.arr) < n):
-                self.arr = np.asarray((list(self.arr) + self.unique_groups[:(n - len(self.arr))]), dtype=object)
-            random.shuffle(self.arr)
-            return self.arr
-        self.df = DataFrame({'key1': get_test_data(ngroups=self.ngroups), 'key2': get_test_data(ngroups=self.ngroups), 'data1': np.random.randn(self.N), 'data2': np.random.randn(self.N), })
-
-        def f():
-            self.df.groupby(['key1', 'key2']).agg((lambda x: x.values.sum()))
+        self.df = DataFrame({'key1': self.get_test_data(ngroups=self.ngroups), 'key2': self.get_test_data(ngroups=self.ngroups), 'data1': np.random.randn(self.N), 'data2': np.random.randn(self.N), })
         self.simple_series = Series(np.random.randn(self.N))
         self.key1 = self.df['key1']
 
     def time_groupby_multi_series_op(self):
         self.df.groupby(['key1', 'key2'])['data1'].agg(np.std)
+
+    def get_test_data(self, ngroups=100, n=100000):
+        self.unique_groups = range(self.ngroups)
+        self.arr = np.asarray(np.tile(self.unique_groups, (n / self.ngroups)), dtype=object)
+        if (len(self.arr) < n):
+            self.arr = np.asarray((list(self.arr) + self.unique_groups[:(n - len(self.arr))]), dtype=object)
+        random.shuffle(self.arr)
+        return self.arr
+
+    def f(self):
+        self.df.groupby(['key1', 'key2']).agg((lambda x: x.values.sum()))
 
 
 class groupby_multi_size(object):
@@ -1468,23 +1468,23 @@ class groupby_series_simple_cython(object):
     def setup(self):
         self.N = 100000
         self.ngroups = 100
-
-        def get_test_data(ngroups=100, n=self.N):
-            self.unique_groups = range(self.ngroups)
-            self.arr = np.asarray(np.tile(self.unique_groups, (n / self.ngroups)), dtype=object)
-            if (len(self.arr) < n):
-                self.arr = np.asarray((list(self.arr) + self.unique_groups[:(n - len(self.arr))]), dtype=object)
-            random.shuffle(self.arr)
-            return self.arr
-        self.df = DataFrame({'key1': get_test_data(ngroups=self.ngroups), 'key2': get_test_data(ngroups=self.ngroups), 'data1': np.random.randn(self.N), 'data2': np.random.randn(self.N), })
-
-        def f():
-            self.df.groupby(['key1', 'key2']).agg((lambda x: x.values.sum()))
+        self.df = DataFrame({'key1': self.get_test_data(ngroups=self.ngroups), 'key2': self.get_test_data(ngroups=self.ngroups), 'data1': np.random.randn(self.N), 'data2': np.random.randn(self.N), })
         self.simple_series = Series(np.random.randn(self.N))
         self.key1 = self.df['key1']
 
     def time_groupby_series_simple_cython(self):
         self.df.groupby('key1').rank(pct=True)
+
+    def get_test_data(self, ngroups=100, n=100000):
+        self.unique_groups = range(self.ngroups)
+        self.arr = np.asarray(np.tile(self.unique_groups, (n / self.ngroups)), dtype=object)
+        if (len(self.arr) < n):
+            self.arr = np.asarray((list(self.arr) + self.unique_groups[:(n - len(self.arr))]), dtype=object)
+        random.shuffle(self.arr)
+        return self.arr
+
+    def f(self):
+        self.df.groupby(['key1', 'key2']).agg((lambda x: x.values.sum()))
 
 
 class groupby_simple_compress_timing(object):

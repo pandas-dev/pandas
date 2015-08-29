@@ -1,5 +1,8 @@
-from pandas_vb_common import *
-import pandas.computation.expressions as expr
+from .pandas_vb_common import *
+try:
+    import pandas.computation.expressions as expr
+except:
+    expr = None
 
 
 class dataframe_getitem_scalar(object):
@@ -121,6 +124,8 @@ class indexing_dataframe_boolean_no_ne(object):
     goal_time = 0.2
 
     def setup(self):
+        if (expr is None):
+            raise NotImplementedError
         self.df = DataFrame(np.random.randn(50000, 100))
         self.df2 = DataFrame(np.random.randn(50000, 100))
         expr.set_use_numexpr(False)
@@ -160,6 +165,8 @@ class indexing_dataframe_boolean_st(object):
     goal_time = 0.2
 
     def setup(self):
+        if (expr is None):
+            raise NotImplementedError
         self.df = DataFrame(np.random.randn(50000, 100))
         self.df2 = DataFrame(np.random.randn(50000, 100))
         expr.set_numexpr_threads(1)

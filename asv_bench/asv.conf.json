@@ -18,7 +18,7 @@
     // If missing or the empty string, the tool will be automatically
     // determined by looking for tools on the PATH environment
     // variable.
-    "environment_type": "conda",
+    "environment_type": "",
 
     // the base URL to show a commit for the project.
     "show_commit_url": "https://github.com/pydata/pandas/commit/",
@@ -41,7 +41,10 @@
         "sqlalchemy": [],
         "scipy": [],
         "numexpr": [],
-        "pytables": [],
+        "tables": [],
+	"openpyxl": [],
+	"xlrd": [],
+	"xlwt": []
     },
 
     // The directory (relative to the current directory) that benchmarks are

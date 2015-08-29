@@ -8,7 +8,7 @@ setup = common_setup + """
 N = 100000
 ngroups = 100
 
-def get_test_data(ngroups=100, n=N):
+def get_test_data(ngroups=100, n=100000):
     unique_groups = range(ngroups)
     arr = np.asarray(np.tile(unique_groups, n / ngroups), dtype=object)
 
