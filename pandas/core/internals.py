@@ -2414,7 +2414,7 @@ class BlockManager(PandasObject):
                                  'tot_items: {1}'.format(len(self.items),
                                                          tot_items))
 
-    def apply(self, f, axes=None, filter=None, do_integrity_check=False, **kwargs):
+    def apply(self, f, axes=None, filter=None, do_integrity_check=False, consolidate=True, **kwargs):
         """
         iterate over the blocks, collect and create a new block manager
 
@@ -2442,6 +2442,9 @@ class BlockManager(PandasObject):
                 filter = None
             else:
                 kwargs['filter'] = filter_locs
+
+        if consolidate:
+            self._consolidate_inplace()
 
         if f == 'where':
             align_copy = True

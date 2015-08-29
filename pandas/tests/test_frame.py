@@ -10771,6 +10771,12 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         assert_series_equal(the_diff['A'],
                             tf['A'] - tf['A'].shift(1))
 
+        df = pd.DataFrame({'x': pd.Series([1]),'y': pd.Series([2]), 'z': pd.Series([3])})
+        result = df.diff(axis=1).astype(float)
+        expected = pd.DataFrame({'x':np.nan, 'y':pd.Series(1), 'z':pd.Series(1)}).astype(float)
+        self.assert_frame_equal(result, expected)
+
+
     def test_diff_timedelta(self):
         # GH 4533
         df = DataFrame(dict(time=[Timestamp('20130101 9:01'),
