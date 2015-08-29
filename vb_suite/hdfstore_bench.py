@@ -3,7 +3,7 @@ from datetime import datetime
 
 start_date = datetime(2012, 7, 1)
 
-common_setup = """from pandas_vb_common import *
+common_setup = """from .pandas_vb_common import *
 import os
 
 f = '__test__.h5'
@@ -234,8 +234,8 @@ query_store_table = Benchmark(
 # select from a panel table
 
 setup13 = common_setup + """
-p = Panel(randn(20, 1000, 25), items= [ 'Item%03d' % i for i in xrange(20) ],
-                   major_axis=date_range('1/1/2000', periods=1000), minor_axis = [ 'E%03d' % i for i in xrange(25) ])
+p = Panel(randn(20, 1000, 25), items= [ 'Item%03d' % i for i in range(20) ],
+                   major_axis=date_range('1/1/2000', periods=1000), minor_axis = [ 'E%03d' % i for i in range(25) ])
 
 remove(f)
 store = HDFStore(f)
@@ -251,8 +251,8 @@ read_store_table_panel = Benchmark(
 # write to a panel table
 
 setup14 = common_setup + """
-p = Panel(randn(20, 1000, 25), items= [ 'Item%03d' % i for i in xrange(20) ],
-                   major_axis=date_range('1/1/2000', periods=1000), minor_axis = [ 'E%03d' % i for i in xrange(25) ])
+p = Panel(randn(20, 1000, 25), items= [ 'Item%03d' % i for i in range(20) ],
+                   major_axis=date_range('1/1/2000', periods=1000), minor_axis = [ 'E%03d' % i for i in range(25) ])
 
 remove(f)
 store = HDFStore(f)
@@ -266,7 +266,7 @@ write_store_table_panel = Benchmark(
 # write to a table (data_columns)
 
 setup15 = common_setup + """
-df = DataFrame(np.random.randn(10000,10),columns = [ 'C%03d' % i for i in xrange(10) ])
+df = DataFrame(np.random.randn(10000,10),columns = [ 'C%03d' % i for i in range(10) ])
 
 remove(f)
 store = HDFStore(f)

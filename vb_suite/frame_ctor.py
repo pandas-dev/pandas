@@ -5,7 +5,7 @@ try:
 except:
     import pandas.core.datetools as offsets
 
-common_setup = """from pandas_vb_common import *
+common_setup = """from .pandas_vb_common import *
 try:
     from pandas.tseries.offsets import *
 except:
@@ -40,7 +40,7 @@ series_ctor_from_dict = Benchmark("Series(some_dict)", setup)
 
 # nested dict, integer indexes, regression described in #621
 setup = common_setup + """
-data = dict((i,dict((j,float(j)) for j in xrange(100))) for i in xrange(2000))
+data = dict((i,dict((j,float(j)) for j in range(100))) for i in xrange(2000))
 """
 frame_ctor_nested_dict_int64 = Benchmark("DataFrame(data)", setup)
 

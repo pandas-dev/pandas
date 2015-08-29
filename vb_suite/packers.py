@@ -3,7 +3,7 @@ from datetime import datetime
 
 start_date = datetime(2013, 5, 1)
 
-common_setup = """from pandas_vb_common import *
+common_setup = """from .pandas_vb_common import *
 import os
 import pandas as pd
 from pandas.core import common as com

@@ -1,5 +1,8 @@
-from pandas_vb_common import *
-import pandas.computation.expressions as expr
+from .pandas_vb_common import *
+try:
+    import pandas.computation.expressions as expr
+except:
+    expr = None
 
 
 class dataframe_getitem_scalar(object):
@@ -121,6 +124,8 @@ class indexing_dataframe_boolean_no_ne(object):
     goal_time = 0.2
 
     def setup(self):
+        if (expr is None):
+            raise NotImplementedError
         self.df = DataFrame(np.random.randn(50000, 100))
         self.df2 = DataFrame(np.random.randn(50000, 100))
         expr.set_use_numexpr(False)
@@ -160,6 +165,8 @@ class indexing_dataframe_boolean_st(object):
     goal_time = 0.2
 
     def setup(self):
+        if (expr is None):
+            raise NotImplementedError
         self.df = DataFrame(np.random.randn(50000, 100))
         self.df2 = DataFrame(np.random.randn(50000, 100))
         expr.set_numexpr_threads(1)
@@ -419,6 +426,30 @@ class series_loc_slice(object):
 
     def time_series_loc_slice(self):
         self.s.loc[:800000]
+
+
+class series_take_dtindex(object):
+    goal_time = 0.2
+
+    def setup(self):
+        self.s = Series(np.random.rand(100000))
+        self.ts = Series(np.random.rand(100000), index=date_range('2011-01-01', freq='S', periods=100000))
+        self.indexer = ([True, False, True, True, False] * 20000)
+
+    def time_series_take_dtindex(self):
+        self.ts.take(self.indexer)
+
+
+class series_take_intindex(object):
+    goal_time = 0.2
+
+    def setup(self):
+        self.s = Series(np.random.rand(100000))
+        self.ts = Series(np.random.rand(100000), index=date_range('2011-01-01', freq='S', periods=100000))
+        self.indexer = ([True, False, True, True, False] * 20000)
+
+    def time_series_take_intindex(self):
+        self.s.take(self.indexer)
 
 
 class series_xs_mi_ix(object):

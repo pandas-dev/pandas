@@ -4,7 +4,7 @@ import sys
 
 # from GH 7332
 
-setup = """from pandas_vb_common import *
+setup = """from .pandas_vb_common import *
 import pandas as pd
 N = 500000
 df_int64 = DataFrame(dict(A = np.arange(N,dtype='int64'), B = np.arange(N,dtype='int64')))

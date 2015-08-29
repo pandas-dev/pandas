@@ -1,14 +1,14 @@
 from vbench.api import Benchmark
 from datetime import datetime
 
-common_setup = """from pandas_vb_common import *
+common_setup = """from .pandas_vb_common import *
 """
 
 setup = common_setup + """
 N = 100000
 ngroups = 100
 
-def get_test_data(ngroups=100, n=N):
+def get_test_data(ngroups=100, n=100000):
     unique_groups = range(ngroups)
     arr = np.asarray(np.tile(unique_groups, n / ngroups), dtype=object)
 
@@ -429,16 +429,16 @@ step = (secid_max - secid_min) // (n_securities - 1)
 security_ids = map(lambda x: hex(x)[2:10].upper(), range(secid_min, secid_max + 1, step))
 
 data_index = MultiIndex(levels=[dates.values, security_ids],
-    labels=[[i for i in xrange(n_dates) for _ in xrange(n_securities)], range(n_securities) * n_dates],
+    labels=[[i for i in range(n_dates) for _ in xrange(n_securities)], range(n_securities) * n_dates],
     names=['date', 'security_id'])
 n_data = len(data_index)
 
-columns = Index(['factor{}'.format(i) for i in xrange(1, n_columns + 1)])
+columns = Index(['factor{}'.format(i) for i in range(1, n_columns + 1)])
 
 data = DataFrame(np.random.randn(n_data, n_columns), index=data_index, columns=columns)
 
 step = int(n_data * share_na)
-for column_index in xrange(n_columns):
+for column_index in range(n_columns):
     index = column_index
     while index < n_data:
         data.set_value(data_index[index], columns[column_index], np.nan)

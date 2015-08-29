@@ -1,10 +1,13 @@
 from pandas.tseries.converter import DatetimeConverter
+from .pandas_vb_common import *
 import pandas as pd
 from datetime import timedelta
 import datetime as dt
-from pandas_vb_common import *
+try:
+    import pandas.tseries.holiday
+except ImportError:
+    pass
 from pandas.tseries.frequencies import infer_freq
-import pandas.tseries.holiday
 import numpy as np
 
 
@@ -631,6 +634,63 @@ class timeseries_custom_bmonthend_incr_n(object):
         (self.date + (10 * self.cme))
 
 
+class timeseries_datetimeindex_offset_delta(object):
+    goal_time = 0.2
+
+    def setup(self):
+        self.N = 100000
+        self.rng = date_range(start='1/1/2000', periods=self.N, freq='T')
+        if hasattr(Series, 'convert'):
+            Series.resample = Series.convert
+        self.ts = Series(np.random.randn(self.N), index=self.rng)
+        self.N = 100000
+        self.idx1 = date_range(start='20140101', freq='T', periods=self.N)
+        self.delta_offset = pd.offsets.Day()
+        self.fast_offset = pd.offsets.DateOffset(months=2, days=2)
+        self.slow_offset = pd.offsets.BusinessDay()
+
+    def time_timeseries_datetimeindex_offset_delta(self):
+        (self.idx1 + self.delta_offset)
+
+
+class timeseries_datetimeindex_offset_fast(object):
+    goal_time = 0.2
+
+    def setup(self):
+        self.N = 100000
+        self.rng = date_range(start='1/1/2000', periods=self.N, freq='T')
+        if hasattr(Series, 'convert'):
+            Series.resample = Series.convert
+        self.ts = Series(np.random.randn(self.N), index=self.rng)
+        self.N = 100000
+        self.idx1 = date_range(start='20140101', freq='T', periods=self.N)
+        self.delta_offset = pd.offsets.Day()
+        self.fast_offset = pd.offsets.DateOffset(months=2, days=2)
+        self.slow_offset = pd.offsets.BusinessDay()
+
+    def time_timeseries_datetimeindex_offset_fast(self):
+        (self.idx1 + self.fast_offset)
+
+
+class timeseries_datetimeindex_offset_slow(object):
+    goal_time = 0.2
+
+    def setup(self):
+        self.N = 100000
+        self.rng = date_range(start='1/1/2000', periods=self.N, freq='T')
+        if hasattr(Series, 'convert'):
+            Series.resample = Series.convert
+        self.ts = Series(np.random.randn(self.N), index=self.rng)
+        self.N = 100000
+        self.idx1 = date_range(start='20140101', freq='T', periods=self.N)
+        self.delta_offset = pd.offsets.Day()
+        self.fast_offset = pd.offsets.DateOffset(months=2, days=2)
+        self.slow_offset = pd.offsets.BusinessDay()
+
+    def time_timeseries_datetimeindex_offset_slow(self):
+        (self.idx1 + self.slow_offset)
+
+
 class timeseries_day_apply(object):
     goal_time = 0.2
 
@@ -723,15 +783,15 @@ class timeseries_iter_datetimeindex(object):
         self.idx1 = date_range(start='20140101', freq='T', periods=self.N)
         self.idx2 = period_range(start='20140101', freq='T', periods=self.N)
 
-        def iter_n(iterable, n=None):
-            self.i = 0
-            for _ in iterable:
-                self.i += 1
-                if ((n is not None) and (self.i > n)):
-                    break
-
     def time_timeseries_iter_datetimeindex(self):
-        iter_n(self.idx1)
+        self.iter_n(self.idx1)
+
+    def iter_n(self, iterable, n=None):
+        self.i = 0
+        for _ in iterable:
+            self.i += 1
+            if ((n is not None) and (self.i > n)):
+                break
 
 
 class timeseries_iter_datetimeindex_preexit(object):
@@ -748,15 +808,15 @@ class timeseries_iter_datetimeindex_preexit(object):
         self.idx1 = date_range(start='20140101', freq='T', periods=self.N)
         self.idx2 = period_range(start='20140101', freq='T', periods=self.N)
 
-        def iter_n(iterable, n=None):
-            self.i = 0
-            for _ in iterable:
-                self.i += 1
-                if ((n is not None) and (self.i > n)):
-                    break
-
     def time_timeseries_iter_datetimeindex_preexit(self):
-        iter_n(self.idx1, self.M)
+        self.iter_n(self.idx1, self.M)
+
+    def iter_n(self, iterable, n=None):
+        self.i = 0
+        for _ in iterable:
+            self.i += 1
+            if ((n is not None) and (self.i > n)):
+                break
 
 
 class timeseries_iter_periodindex(object):
@@ -773,15 +833,15 @@ class timeseries_iter_periodindex(object):
         self.idx1 = date_range(start='20140101', freq='T', periods=self.N)
         self.idx2 = period_range(start='20140101', freq='T', periods=self.N)
 
-        def iter_n(iterable, n=None):
-            self.i = 0
-            for _ in iterable:
-                self.i += 1
-                if ((n is not None) and (self.i > n)):
-                    break
-
     def time_timeseries_iter_periodindex(self):
-        iter_n(self.idx2)
+        self.iter_n(self.idx2)
+
+    def iter_n(self, iterable, n=None):
+        self.i = 0
+        for _ in iterable:
+            self.i += 1
+            if ((n is not None) and (self.i > n)):
+                break
 
 
 class timeseries_iter_periodindex_preexit(object):
@@ -798,15 +858,15 @@ class timeseries_iter_periodindex_preexit(object):
         self.idx1 = date_range(start='20140101', freq='T', periods=self.N)
         self.idx2 = period_range(start='20140101', freq='T', periods=self.N)
 
-        def iter_n(iterable, n=None):
-            self.i = 0
-            for _ in iterable:
-                self.i += 1
-                if ((n is not None) and (self.i > n)):
-                    break
-
     def time_timeseries_iter_periodindex_preexit(self):
-        iter_n(self.idx2, self.M)
+        self.iter_n(self.idx2, self.M)
+
+    def iter_n(self, iterable, n=None):
+        self.i = 0
+        for _ in iterable:
+            self.i += 1
+            if ((n is not None) and (self.i > n)):
+                break
 
 
 class timeseries_large_lookup_value(object):
@@ -857,6 +917,63 @@ class timeseries_resample_datetime64(object):
 
     def time_timeseries_resample_datetime64(self):
         self.ts.resample('1S', how='last')
+
+
+class timeseries_series_offset_delta(object):
+    goal_time = 0.2
+
+    def setup(self):
+        self.N = 100000
+        self.rng = date_range(start='1/1/2000', periods=self.N, freq='T')
+        if hasattr(Series, 'convert'):
+            Series.resample = Series.convert
+        self.ts = Series(np.random.randn(self.N), index=self.rng)
+        self.N = 100000
+        self.s = Series(date_range(start='20140101', freq='T', periods=self.N))
+        self.delta_offset = pd.offsets.Day()
+        self.fast_offset = pd.offsets.DateOffset(months=2, days=2)
+        self.slow_offset = pd.offsets.BusinessDay()
+
+    def time_timeseries_series_offset_delta(self):
+        (self.s + self.delta_offset)
+
+
+class timeseries_series_offset_fast(object):
+    goal_time = 0.2
+
+    def setup(self):
+        self.N = 100000
+        self.rng = date_range(start='1/1/2000', periods=self.N, freq='T')
+        if hasattr(Series, 'convert'):
+            Series.resample = Series.convert
+        self.ts = Series(np.random.randn(self.N), index=self.rng)
+        self.N = 100000
+        self.s = Series(date_range(start='20140101', freq='T', periods=self.N))
+        self.delta_offset = pd.offsets.Day()
+        self.fast_offset = pd.offsets.DateOffset(months=2, days=2)
+        self.slow_offset = pd.offsets.BusinessDay()
+
+    def time_timeseries_series_offset_fast(self):
+        (self.s + self.fast_offset)
+
+
+class timeseries_series_offset_slow(object):
+    goal_time = 0.2
+
+    def setup(self):
+        self.N = 100000
+        self.rng = date_range(start='1/1/2000', periods=self.N, freq='T')
+        if hasattr(Series, 'convert'):
+            Series.resample = Series.convert
+        self.ts = Series(np.random.randn(self.N), index=self.rng)
+        self.N = 100000
+        self.s = Series(date_range(start='20140101', freq='T', periods=self.N))
+        self.delta_offset = pd.offsets.Day()
+        self.fast_offset = pd.offsets.DateOffset(months=2, days=2)
+        self.slow_offset = pd.offsets.BusinessDay()
+
+    def time_timeseries_series_offset_slow(self):
+        (self.s + self.slow_offset)
 
 
 class timeseries_slice_minutely(object):

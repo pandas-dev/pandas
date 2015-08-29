@@ -3,7 +3,7 @@ from datetime import datetime
 
 SECTION = 'Indexing and scalar value access'
 
-common_setup = """from pandas_vb_common import *
+common_setup = """from .pandas_vb_common import *
 """
 
 #----------------------------------------------------------------------
@@ -140,7 +140,13 @@ indexing_dataframe_boolean = \
               start_date=datetime(2012, 1, 1))
 
 setup = common_setup + """
-import pandas.computation.expressions as expr
+try:
+    import pandas.computation.expressions as expr
+except:
+    expr = None
+
+if expr is None:
+    raise NotImplementedError
 df  = DataFrame(np.random.randn(50000, 100))
 df2 = DataFrame(np.random.randn(50000, 100))
 expr.set_numexpr_threads(1)
@@ -152,7 +158,13 @@ indexing_dataframe_boolean_st = \
 
 
 setup = common_setup + """
-import pandas.computation.expressions as expr
+try:
+    import pandas.computation.expressions as expr
+except:
+    expr = None
+
+if expr is None:
+    raise NotImplementedError
 df  = DataFrame(np.random.randn(50000, 100))
 df2 = DataFrame(np.random.randn(50000, 100))
 expr.set_use_numexpr(False)

@@ -1,7 +1,7 @@
 from vbench.api import Benchmark
 from datetime import datetime
 
-common_setup = """from pandas_vb_common import *
+common_setup = """from .pandas_vb_common import *
 from datetime import timedelta
 
 N = 1000000
@@ -15,7 +15,7 @@ except NameError:
 ts = Series(np.random.randn(N), index=rng)
 """
 
-large_dict_setup = """from pandas_vb_common import *
+large_dict_setup = """from .pandas_vb_common import *
 from pandas.compat import range
 n = 10 ** 6
 start_value = 10 ** 5
