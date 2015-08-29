@@ -7,6 +7,7 @@ from numpy.random import permutation
 import pandas.util.testing as tm
 import random
 import numpy as np
+import threading
 try:
     from pandas.compat import range
 except ImportError:
