@@ -63,6 +63,7 @@ _DATELIKE_DTYPES = set([np.dtype(t) for t in ['M8[ns]', '<M8[ns]', '>M8[ns]',
 _int8_max = np.iinfo(np.int8).max
 _int16_max = np.iinfo(np.int16).max
 _int32_max = np.iinfo(np.int32).max
+_int64_max = np.iinfo(np.int64).max
 
 # define abstract base classes to enable isinstance type checking on our
 # objects
