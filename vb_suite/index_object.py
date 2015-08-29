@@ -4,7 +4,7 @@ from datetime import datetime
 SECTION = "Index / MultiIndex objects"
 
 
-common_setup = """from pandas_vb_common import *
+common_setup = """from .pandas_vb_common import *
 """
 
 #----------------------------------------------------------------------
@@ -111,7 +111,7 @@ index_float64_div = Benchmark('idx / 2', setup, name='index_float64_div',
 #
 
 setup = common_setup + """
-iterables = [tm.makeStringIndex(10000), xrange(20)]
+iterables = [tm.makeStringIndex(10000), range(20)]
 """
 
 multiindex_from_product = Benchmark('MultiIndex.from_product(iterables)',

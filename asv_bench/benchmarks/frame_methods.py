@@ -1,4 +1,4 @@
-from pandas_vb_common import *
+from .pandas_vb_common import *
 
 
 class frame_apply_axis_1(object):
@@ -69,12 +69,12 @@ class frame_assign_timeseries_index(object):
         self.idx = date_range('1/1/2000', periods=100000, freq='D')
         self.df = DataFrame(randn(100000, 1), columns=['A'], index=self.idx)
 
-        def f(x):
-            self.x = self.x.copy()
-            self.x['date'] = self.x.index
-
     def time_frame_assign_timeseries_index(self):
-        f(self.df)
+        self.f(self.df)
+
+    def f(self, df):
+        self.x = self.df.copy()
+        self.x['date'] = self.x.index
 
 
 class frame_boolean_row_select(object):
@@ -339,80 +339,76 @@ class frame_float_equal(object):
     goal_time = 0.2
 
     def setup(self):
-
-        def make_pair(frame):
-            self.df = frame
-            self.df2 = self.df.copy()
-            self.df2.ix[((-1), (-1))] = np.nan
-            return (self.df, self.df2)
-
-        def test_equal(name):
-            (self.df, self.df2) = pairs[name]
-            return self.df.equals(self.df)
-
-        def test_unequal(name):
-            (self.df, self.df2) = pairs[name]
-            return self.df.equals(self.df2)
         self.float_df = DataFrame(np.random.randn(1000, 1000))
         self.object_df = DataFrame(([(['foo'] * 1000)] * 1000))
         self.nonunique_cols = self.object_df.copy()
         self.nonunique_cols.columns = (['A'] * len(self.nonunique_cols.columns))
-        self.pairs = dict([(name, make_pair(frame)) for (name, frame) in (('float_df', self.float_df), ('object_df', self.object_df), ('nonunique_cols', self.nonunique_cols))])
+        self.pairs = dict([(name, self.make_pair(frame)) for (name, frame) in (('float_df', self.float_df), ('object_df', self.object_df), ('nonunique_cols', self.nonunique_cols))])
 
     def time_frame_float_equal(self):
-        test_equal('float_df')
+        self.test_equal('float_df')
+
+    def make_pair(self, frame):
+        self.df = frame
+        self.df2 = self.df.copy()
+        self.df2.ix[((-1), (-1))] = np.nan
+        return (self.df, self.df2)
+
+    def test_equal(self, name):
+        (self.df, self.df2) = self.pairs[name]
+        return self.df.equals(self.df)
+
+    def test_unequal(self, name):
+        (self.df, self.df2) = self.pairs[name]
+        return self.df.equals(self.df2)
 
 
 class frame_float_unequal(object):
     goal_time = 0.2
 
     def setup(self):
-
-        def make_pair(frame):
-            self.df = frame
-            self.df2 = self.df.copy()
-            self.df2.ix[((-1), (-1))] = np.nan
-            return (self.df, self.df2)
-
-        def test_equal(name):
-            (self.df, self.df2) = pairs[name]
-            return self.df.equals(self.df)
-
-        def test_unequal(name):
-            (self.df, self.df2) = pairs[name]
-            return self.df.equals(self.df2)
         self.float_df = DataFrame(np.random.randn(1000, 1000))
         self.object_df = DataFrame(([(['foo'] * 1000)] * 1000))
         self.nonunique_cols = self.object_df.copy()
         self.nonunique_cols.columns = (['A'] * len(self.nonunique_cols.columns))
-        self.pairs = dict([(name, make_pair(frame)) for (name, frame) in (('float_df', self.float_df), ('object_df', self.object_df), ('nonunique_cols', self.nonunique_cols))])
+        self.pairs = dict([(name, self.make_pair(frame)) for (name, frame) in (('float_df', self.float_df), ('object_df', self.object_df), ('nonunique_cols', self.nonunique_cols))])
 
     def time_frame_float_unequal(self):
-        test_unequal('float_df')
+        self.test_unequal('float_df')
+
+    def make_pair(self, frame):
+        self.df = frame
+        self.df2 = self.df.copy()
+        self.df2.ix[((-1), (-1))] = np.nan
+        return (self.df, self.df2)
+
+    def test_equal(self, name):
+        (self.df, self.df2) = self.pairs[name]
+        return self.df.equals(self.df)
+
+    def test_unequal(self, name):
+        (self.df, self.df2) = self.pairs[name]
+        return self.df.equals(self.df2)
 
 
 class frame_from_records_generator(object):
     goal_time = 0.2
 
-    def setup(self):
-
-        def get_data(n=100000):
-            return ((x, (x * 20), (x * 100)) for x in xrange(n))
-
     def time_frame_from_records_generator(self):
-        self.df = DataFrame.from_records(get_data())
+        self.df = DataFrame.from_records(self.get_data())
+
+    def get_data(self, n=100000):
+        return ((x, (x * 20), (x * 100)) for x in range(n))
 
 
 class frame_from_records_generator_nrows(object):
     goal_time = 0.2
 
-    def setup(self):
-
-        def get_data(n=100000):
-            return ((x, (x * 20), (x * 100)) for x in xrange(n))
-
     def time_frame_from_records_generator_nrows(self):
-        self.df = DataFrame.from_records(get_data(), nrows=1000)
+        self.df = DataFrame.from_records(self.get_data(), nrows=1000)
+
+    def get_data(self, n=100000):
+        return ((x, (x * 20), (x * 100)) for x in range(n))
 
 
 class frame_get_dtype_counts(object):
@@ -433,26 +429,26 @@ class frame_getitem_single_column(object):
         self.df2 = DataFrame(randn(3000, 1), columns=['A'])
         self.df3 = DataFrame(randn(3000, 1))
 
-        def f():
-            if hasattr(self.df, '_item_cache'):
-                self.df._item_cache.clear()
-            for (name, col) in self.df.iteritems():
-                pass
-
-        def g():
-            for (name, col) in self.df.iteritems():
-                pass
-
-        def h():
-            for i in xrange(10000):
-                self.df2['A']
-
-        def j():
-            for i in xrange(10000):
-                self.df3[0]
-
     def time_frame_getitem_single_column(self):
-        h()
+        self.h()
+
+    def f(self):
+        if hasattr(self.df, '_item_cache'):
+            self.df._item_cache.clear()
+        for (name, col) in self.df.iteritems():
+            pass
+
+    def g(self):
+        for (name, col) in self.df.iteritems():
+            pass
+
+    def h(self):
+        for i in range(10000):
+            self.df2['A']
+
+    def j(self):
+        for i in range(10000):
+            self.df3[0]
 
 
 class frame_getitem_single_column2(object):
@@ -463,26 +459,26 @@ class frame_getitem_single_column2(object):
         self.df2 = DataFrame(randn(3000, 1), columns=['A'])
         self.df3 = DataFrame(randn(3000, 1))
 
-        def f():
-            if hasattr(self.df, '_item_cache'):
-                self.df._item_cache.clear()
-            for (name, col) in self.df.iteritems():
-                pass
-
-        def g():
-            for (name, col) in self.df.iteritems():
-                pass
-
-        def h():
-            for i in xrange(10000):
-                self.df2['A']
-
-        def j():
-            for i in xrange(10000):
-                self.df3[0]
-
     def time_frame_getitem_single_column2(self):
-        j()
+        self.j()
+
+    def f(self):
+        if hasattr(self.df, '_item_cache'):
+            self.df._item_cache.clear()
+        for (name, col) in self.df.iteritems():
+            pass
+
+    def g(self):
+        for (name, col) in self.df.iteritems():
+            pass
+
+    def h(self):
+        for i in range(10000):
+            self.df2['A']
+
+    def j(self):
+        for i in range(10000):
+            self.df3[0]
 
 
 class frame_html_repr_trunc_mi(object):
@@ -517,14 +513,14 @@ class frame_insert_100_columns_begin(object):
     def setup(self):
         self.N = 1000
 
-        def f(K=100):
-            self.df = DataFrame(index=range(self.N))
-            self.new_col = np.random.randn(self.N)
-            for i in range(K):
-                self.df.insert(0, i, self.new_col)
-
     def time_frame_insert_100_columns_begin(self):
-        f()
+        self.f()
+
+    def f(self, K=100):
+        self.df = DataFrame(index=range(self.N))
+        self.new_col = np.random.randn(self.N)
+        for i in range(K):
+            self.df.insert(0, i, self.new_col)
 
 
 class frame_insert_500_columns_end(object):
@@ -533,14 +529,14 @@ class frame_insert_500_columns_end(object):
     def setup(self):
         self.N = 1000
 
-        def f(K=500):
-            self.df = DataFrame(index=range(self.N))
-            self.new_col = np.random.randn(self.N)
-            for i in range(K):
-                self.df[i] = self.new_col
-
     def time_frame_insert_500_columns_end(self):
-        f()
+        self.f()
+
+    def f(self, K=500):
+        self.df = DataFrame(index=range(self.N))
+        self.new_col = np.random.randn(self.N)
+        for i in range(K):
+            self.df[i] = self.new_col
 
 
 class frame_interpolate(object):
@@ -597,26 +593,26 @@ class frame_iteritems(object):
         self.df2 = DataFrame(randn(3000, 1), columns=['A'])
         self.df3 = DataFrame(randn(3000, 1))
 
-        def f():
-            if hasattr(self.df, '_item_cache'):
-                self.df._item_cache.clear()
-            for (name, col) in self.df.iteritems():
-                pass
-
-        def g():
-            for (name, col) in self.df.iteritems():
-                pass
-
-        def h():
-            for i in xrange(10000):
-                self.df2['A']
-
-        def j():
-            for i in xrange(10000):
-                self.df3[0]
-
     def time_frame_iteritems(self):
-        f()
+        self.f()
+
+    def f(self):
+        if hasattr(self.df, '_item_cache'):
+            self.df._item_cache.clear()
+        for (name, col) in self.df.iteritems():
+            pass
+
+    def g(self):
+        for (name, col) in self.df.iteritems():
+            pass
+
+    def h(self):
+        for i in range(10000):
+            self.df2['A']
+
+    def j(self):
+        for i in range(10000):
+            self.df3[0]
 
 
 class frame_iteritems_cached(object):
@@ -627,26 +623,26 @@ class frame_iteritems_cached(object):
         self.df2 = DataFrame(randn(3000, 1), columns=['A'])
         self.df3 = DataFrame(randn(3000, 1))
 
-        def f():
-            if hasattr(self.df, '_item_cache'):
-                self.df._item_cache.clear()
-            for (name, col) in self.df.iteritems():
-                pass
-
-        def g():
-            for (name, col) in self.df.iteritems():
-                pass
-
-        def h():
-            for i in xrange(10000):
-                self.df2['A']
-
-        def j():
-            for i in xrange(10000):
-                self.df3[0]
-
     def time_frame_iteritems_cached(self):
-        g()
+        self.g()
+
+    def f(self):
+        if hasattr(self.df, '_item_cache'):
+            self.df._item_cache.clear()
+        for (name, col) in self.df.iteritems():
+            pass
+
+    def g(self):
+        for (name, col) in self.df.iteritems():
+            pass
+
+    def h(self):
+        for i in range(10000):
+            self.df2['A']
+
+    def j(self):
+        for i in range(10000):
+            self.df3[0]
 
 
 class frame_mask_bools(object):
@@ -681,112 +677,112 @@ class frame_nonunique_equal(object):
     goal_time = 0.2
 
     def setup(self):
-
-        def make_pair(frame):
-            self.df = frame
-            self.df2 = self.df.copy()
-            self.df2.ix[((-1), (-1))] = np.nan
-            return (self.df, self.df2)
-
-        def test_equal(name):
-            (self.df, self.df2) = pairs[name]
-            return self.df.equals(self.df)
-
-        def test_unequal(name):
-            (self.df, self.df2) = pairs[name]
-            return self.df.equals(self.df2)
         self.float_df = DataFrame(np.random.randn(1000, 1000))
         self.object_df = DataFrame(([(['foo'] * 1000)] * 1000))
         self.nonunique_cols = self.object_df.copy()
         self.nonunique_cols.columns = (['A'] * len(self.nonunique_cols.columns))
-        self.pairs = dict([(name, make_pair(frame)) for (name, frame) in (('float_df', self.float_df), ('object_df', self.object_df), ('nonunique_cols', self.nonunique_cols))])
+        self.pairs = dict([(name, self.make_pair(frame)) for (name, frame) in (('float_df', self.float_df), ('object_df', self.object_df), ('nonunique_cols', self.nonunique_cols))])
 
     def time_frame_nonunique_equal(self):
-        test_equal('nonunique_cols')
+        self.test_equal('nonunique_cols')
+
+    def make_pair(self, frame):
+        self.df = frame
+        self.df2 = self.df.copy()
+        self.df2.ix[((-1), (-1))] = np.nan
+        return (self.df, self.df2)
+
+    def test_equal(self, name):
+        (self.df, self.df2) = self.pairs[name]
+        return self.df.equals(self.df)
+
+    def test_unequal(self, name):
+        (self.df, self.df2) = self.pairs[name]
+        return self.df.equals(self.df2)
 
 
 class frame_nonunique_unequal(object):
     goal_time = 0.2
 
     def setup(self):
-
-        def make_pair(frame):
-            self.df = frame
-            self.df2 = self.df.copy()
-            self.df2.ix[((-1), (-1))] = np.nan
-            return (self.df, self.df2)
-
-        def test_equal(name):
-            (self.df, self.df2) = pairs[name]
-            return self.df.equals(self.df)
-
-        def test_unequal(name):
-            (self.df, self.df2) = pairs[name]
-            return self.df.equals(self.df2)
         self.float_df = DataFrame(np.random.randn(1000, 1000))
         self.object_df = DataFrame(([(['foo'] * 1000)] * 1000))
         self.nonunique_cols = self.object_df.copy()
         self.nonunique_cols.columns = (['A'] * len(self.nonunique_cols.columns))
-        self.pairs = dict([(name, make_pair(frame)) for (name, frame) in (('float_df', self.float_df), ('object_df', self.object_df), ('nonunique_cols', self.nonunique_cols))])
+        self.pairs = dict([(name, self.make_pair(frame)) for (name, frame) in (('float_df', self.float_df), ('object_df', self.object_df), ('nonunique_cols', self.nonunique_cols))])
 
     def time_frame_nonunique_unequal(self):
-        test_unequal('nonunique_cols')
+        self.test_unequal('nonunique_cols')
+
+    def make_pair(self, frame):
+        self.df = frame
+        self.df2 = self.df.copy()
+        self.df2.ix[((-1), (-1))] = np.nan
+        return (self.df, self.df2)
+
+    def test_equal(self, name):
+        (self.df, self.df2) = self.pairs[name]
+        return self.df.equals(self.df)
+
+    def test_unequal(self, name):
+        (self.df, self.df2) = self.pairs[name]
+        return self.df.equals(self.df2)
 
 
 class frame_object_equal(object):
     goal_time = 0.2
 
     def setup(self):
-
-        def make_pair(frame):
-            self.df = frame
-            self.df2 = self.df.copy()
-            self.df2.ix[((-1), (-1))] = np.nan
-            return (self.df, self.df2)
-
-        def test_equal(name):
-            (self.df, self.df2) = pairs[name]
-            return self.df.equals(self.df)
-
-        def test_unequal(name):
-            (self.df, self.df2) = pairs[name]
-            return self.df.equals(self.df2)
         self.float_df = DataFrame(np.random.randn(1000, 1000))
         self.object_df = DataFrame(([(['foo'] * 1000)] * 1000))
         self.nonunique_cols = self.object_df.copy()
         self.nonunique_cols.columns = (['A'] * len(self.nonunique_cols.columns))
-        self.pairs = dict([(name, make_pair(frame)) for (name, frame) in (('float_df', self.float_df), ('object_df', self.object_df), ('nonunique_cols', self.nonunique_cols))])
+        self.pairs = dict([(name, self.make_pair(frame)) for (name, frame) in (('float_df', self.float_df), ('object_df', self.object_df), ('nonunique_cols', self.nonunique_cols))])
 
     def time_frame_object_equal(self):
-        test_equal('object_df')
+        self.test_equal('object_df')
+
+    def make_pair(self, frame):
+        self.df = frame
+        self.df2 = self.df.copy()
+        self.df2.ix[((-1), (-1))] = np.nan
+        return (self.df, self.df2)
+
+    def test_equal(self, name):
+        (self.df, self.df2) = self.pairs[name]
+        return self.df.equals(self.df)
+
+    def test_unequal(self, name):
+        (self.df, self.df2) = self.pairs[name]
+        return self.df.equals(self.df2)
 
 
 class frame_object_unequal(object):
     goal_time = 0.2
 
     def setup(self):
-
-        def make_pair(frame):
-            self.df = frame
-            self.df2 = self.df.copy()
-            self.df2.ix[((-1), (-1))] = np.nan
-            return (self.df, self.df2)
-
-        def test_equal(name):
-            (self.df, self.df2) = pairs[name]
-            return self.df.equals(self.df)
-
-        def test_unequal(name):
-            (self.df, self.df2) = pairs[name]
-            return self.df.equals(self.df2)
         self.float_df = DataFrame(np.random.randn(1000, 1000))
         self.object_df = DataFrame(([(['foo'] * 1000)] * 1000))
         self.nonunique_cols = self.object_df.copy()
         self.nonunique_cols.columns = (['A'] * len(self.nonunique_cols.columns))
-        self.pairs = dict([(name, make_pair(frame)) for (name, frame) in (('float_df', self.float_df), ('object_df', self.object_df), ('nonunique_cols', self.nonunique_cols))])
+        self.pairs = dict([(name, self.make_pair(frame)) for (name, frame) in (('float_df', self.float_df), ('object_df', self.object_df), ('nonunique_cols', self.nonunique_cols))])
 
     def time_frame_object_unequal(self):
-        test_unequal('object_df')
+        self.test_unequal('object_df')
+
+    def make_pair(self, frame):
+        self.df = frame
+        self.df2 = self.df.copy()
+        self.df2.ix[((-1), (-1))] = np.nan
+        return (self.df, self.df2)
+
+    def test_equal(self, name):
+        (self.df, self.df2) = self.pairs[name]
+        return self.df.equals(self.df)
+
+    def test_unequal(self, name):
+        (self.df, self.df2) = self.pairs[name]
+        return self.df.equals(self.df2)
 
 
 class frame_reindex_axis0(object):

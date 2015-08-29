@@ -1,4 +1,4 @@
-from pandas_vb_common import *
+from .pandas_vb_common import *
 from pandas.core.reshape import melt
 
 
@@ -22,18 +22,18 @@ class reshape_pivot_time_series(object):
     def setup(self):
         self.index = MultiIndex.from_arrays([np.arange(100).repeat(100), np.roll(np.tile(np.arange(100), 100), 25)])
         self.df = DataFrame(np.random.randn(10000, 4), index=self.index)
-
-        def unpivot(frame):
-            (N, K) = frame.shape
-            self.data = {'value': frame.values.ravel('F'), 'variable': np.asarray(frame.columns).repeat(N), 'date': np.tile(np.asarray(frame.index), K), }
-            return DataFrame(self.data, columns=['date', 'variable', 'value'])
         self.index = date_range('1/1/2000', periods=10000, freq='h')
         self.df = DataFrame(randn(10000, 50), index=self.index, columns=range(50))
-        self.pdf = unpivot(self.df)
+        self.pdf = self.unpivot(self.df)
         self.f = (lambda : self.pdf.pivot('date', 'variable', 'value'))
 
     def time_reshape_pivot_time_series(self):
         self.f()
+
+    def unpivot(self, frame):
+        (N, K) = frame.shape
+        self.data = {'value': frame.values.ravel('F'), 'variable': np.asarray(frame.columns).repeat(N), 'date': np.tile(np.asarray(frame.index), K), }
+        return DataFrame(self.data, columns=['date', 'variable', 'value'])
 
 
 class reshape_stack_simple(object):

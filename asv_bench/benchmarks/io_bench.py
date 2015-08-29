@@ -1,6 +1,9 @@
-from pandas_vb_common import *
+from .pandas_vb_common import *
 from pandas import concat, Timestamp
-from StringIO import StringIO
+try:
+    from StringIO import StringIO
+except ImportError:
+    from io import StringIO
 
 
 class frame_to_csv(object):
@@ -41,19 +44,19 @@ class frame_to_csv_mixed(object):
     goal_time = 0.2
 
     def setup(self):
-
-        def create_cols(name):
-            return [('%s%03d' % (name, i)) for i in xrange(5)]
-        self.df_float = DataFrame(np.random.randn(5000, 5), dtype='float64', columns=create_cols('float'))
-        self.df_int = DataFrame(np.random.randn(5000, 5), dtype='int64', columns=create_cols('int'))
-        self.df_bool = DataFrame(True, index=self.df_float.index, columns=create_cols('bool'))
-        self.df_object = DataFrame('foo', index=self.df_float.index, columns=create_cols('object'))
-        self.df_dt = DataFrame(Timestamp('20010101'), index=self.df_float.index, columns=create_cols('date'))
+        self.df_float = DataFrame(np.random.randn(5000, 5), dtype='float64', columns=self.create_cols('float'))
+        self.df_int = DataFrame(np.random.randn(5000, 5), dtype='int64', columns=self.create_cols('int'))
+        self.df_bool = DataFrame(True, index=self.df_float.index, columns=self.create_cols('bool'))
+        self.df_object = DataFrame('foo', index=self.df_float.index, columns=self.create_cols('object'))
+        self.df_dt = DataFrame(Timestamp('20010101'), index=self.df_float.index, columns=self.create_cols('date'))
         self.df_float.ix[30:500, 1:3] = np.nan
         self.df = concat([self.df_float, self.df_int, self.df_bool, self.df_object, self.df_dt], axis=1)
 
     def time_frame_to_csv_mixed(self):
         self.df.to_csv('__test__.csv')
+
+    def create_cols(self, name):
+        return [('%s%03d' % (name, i)) for i in range(5)]
 
 
 class read_csv_infer_datetime_format_custom(object):

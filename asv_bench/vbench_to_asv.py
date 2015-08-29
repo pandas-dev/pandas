@@ -43,7 +43,29 @@ class AssignToSelf(ast.NodeTransformer):
     def visit_ClassDef(self, node):
         self.transforms = {}
         self.in_class_define = True
+
+        functions_to_promote = []
+        setup_func = None
+
+        for class_func in ast.iter_child_nodes(node):
+            if isinstance(class_func, ast.FunctionDef):
+                if class_func.name == 'setup':
+                    setup_func = class_func
+                    for anon_func in ast.iter_child_nodes(class_func):
+                        if isinstance(anon_func, ast.FunctionDef):
+                            functions_to_promote.append(anon_func)
+
+        if setup_func:
+            for func in functions_to_promote:
+                setup_func.body.remove(func)
+                func.args.args.insert(0, ast.Name(id='self', ctx=ast.Load()))
+                node.body.append(func)
+                self.transforms[func.name] = 'self.' + func.name
+
+            ast.fix_missing_locations(node)
+
         self.generic_visit(node)
+
         return node
 
     def visit_TryExcept(self, node):
@@ -81,17 +103,7 @@ class AssignToSelf(ast.NodeTransformer):
         """Delete functions that are empty due to imports being moved"""
         self.in_class_define = False
 
-        if self.in_setup:
-            node.col_offset -= 4
-            ast.increment_lineno(node, -1)
-
-        if node.name == 'setup':
-            self.in_setup = True
-
         self.generic_visit(node)
-
-        if node.name == 'setup':
-            self.in_setup = False
 
         if node.body:
             return node

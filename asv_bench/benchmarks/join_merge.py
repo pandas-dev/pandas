@@ -1,4 +1,4 @@
-from pandas_vb_common import *
+from .pandas_vb_common import *
 
 
 class append_frame_single_homogenous(object):
@@ -322,20 +322,20 @@ class series_align_int64_index(object):
 
     def setup(self):
         self.n = 1000000
-
-        def sample(values, k):
-            self.sampler = np.random.permutation(len(values))
-            return values.take(self.sampler[:k])
         self.sz = 500000
         self.rng = np.arange(0, 10000000000000, 10000000)
         self.stamps = (np.datetime64(datetime.now()).view('i8') + self.rng)
-        self.idx1 = np.sort(sample(self.stamps, self.sz))
-        self.idx2 = np.sort(sample(self.stamps, self.sz))
+        self.idx1 = np.sort(self.sample(self.stamps, self.sz))
+        self.idx2 = np.sort(self.sample(self.stamps, self.sz))
         self.ts1 = Series(np.random.randn(self.sz), self.idx1)
         self.ts2 = Series(np.random.randn(self.sz), self.idx2)
 
     def time_series_align_int64_index(self):
         (self.ts1 + self.ts2)
+
+    def sample(self, values, k):
+        self.sampler = np.random.permutation(len(values))
+        return values.take(self.sampler[:k])
 
 
 class series_align_left_monotonic(object):
@@ -343,17 +343,17 @@ class series_align_left_monotonic(object):
 
     def setup(self):
         self.n = 1000000
-
-        def sample(values, k):
-            self.sampler = np.random.permutation(len(values))
-            return values.take(self.sampler[:k])
         self.sz = 500000
         self.rng = np.arange(0, 10000000000000, 10000000)
         self.stamps = (np.datetime64(datetime.now()).view('i8') + self.rng)
-        self.idx1 = np.sort(sample(self.stamps, self.sz))
-        self.idx2 = np.sort(sample(self.stamps, self.sz))
+        self.idx1 = np.sort(self.sample(self.stamps, self.sz))
+        self.idx2 = np.sort(self.sample(self.stamps, self.sz))
         self.ts1 = Series(np.random.randn(self.sz), self.idx1)
         self.ts2 = Series(np.random.randn(self.sz), self.idx2)
 
     def time_series_align_left_monotonic(self):
         self.ts1.align(self.ts2, join='left')
+
+    def sample(self, values, k):
+        self.sampler = np.random.permutation(len(values))
+        return values.take(self.sampler[:k])

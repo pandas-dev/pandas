@@ -1,7 +1,7 @@
-from pandas_vb_common import *
-from sqlalchemy import create_engine
-import sqlite3
 import sqlalchemy
+from .pandas_vb_common import *
+import sqlite3
+from sqlalchemy import create_engine
 
 
 class sql_datetime_read_and_parse_sqlalchemy(object):

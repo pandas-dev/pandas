@@ -1,6 +1,6 @@
-from pandas_vb_common import *
-import scipy.sparse
+from .pandas_vb_common import *
 import pandas.sparse.series
+import scipy.sparse
 from pandas.core.sparse import SparseSeries, SparseDataFrame
 from pandas.core.sparse import SparseDataFrame
 

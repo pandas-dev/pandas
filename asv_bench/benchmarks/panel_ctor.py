@@ -1,4 +1,4 @@
-from pandas_vb_common import *
+from .pandas_vb_common import *
 
 
 class panel_from_dict_all_different_indexes(object):
@@ -8,7 +8,7 @@ class panel_from_dict_all_different_indexes(object):
         self.data_frames = {}
         self.start = datetime(1990, 1, 1)
         self.end = datetime(2012, 1, 1)
-        for x in xrange(100):
+        for x in range(100):
             self.end += timedelta(days=1)
             self.dr = np.asarray(date_range(self.start, self.end))
             self.df = DataFrame({'a': ([0] * len(self.dr)), 'b': ([1] * len(self.dr)), 'c': ([2] * len(self.dr)), }, index=self.dr)
@@ -23,7 +23,7 @@ class panel_from_dict_equiv_indexes(object):
 
     def setup(self):
         self.data_frames = {}
-        for x in xrange(100):
+        for x in range(100):
             self.dr = np.asarray(DatetimeIndex(start=datetime(1990, 1, 1), end=datetime(2012, 1, 1), freq=datetools.Day(1)))
             self.df = DataFrame({'a': ([0] * len(self.dr)), 'b': ([1] * len(self.dr)), 'c': ([2] * len(self.dr)), }, index=self.dr)
             self.data_frames[x] = self.df
@@ -38,7 +38,7 @@ class panel_from_dict_same_index(object):
     def setup(self):
         self.dr = np.asarray(DatetimeIndex(start=datetime(1990, 1, 1), end=datetime(2012, 1, 1), freq=datetools.Day(1)))
         self.data_frames = {}
-        for x in xrange(100):
+        for x in range(100):
             self.df = DataFrame({'a': ([0] * len(self.dr)), 'b': ([1] * len(self.dr)), 'c': ([2] * len(self.dr)), }, index=self.dr)
             self.data_frames[x] = self.df
 
@@ -53,7 +53,7 @@ class panel_from_dict_two_different_indexes(object):
         self.data_frames = {}
         self.start = datetime(1990, 1, 1)
         self.end = datetime(2012, 1, 1)
-        for x in xrange(100):
+        for x in range(100):
             if (x == 50):
                 self.end += timedelta(days=1)
             self.dr = np.asarray(date_range(self.start, self.end))
