@@ -4257,8 +4257,11 @@ class TestMultiIndex(Base, tm.TestCase):
         self.check_level_names(self.index, new_names)
 
     def test_duplicate_names(self):
+        # GH 9399
         self.index.names = ['foo', 'foo']
-        assertRaisesRegexp(KeyError, 'Level foo not found',
+        assertRaisesRegexp(KeyError, 'Level bar not found',
+                           self.index._get_level_number, 'bar')
+        assertRaisesRegexp(ValueError, 'The name foo occurs multiple times, use a level number',
                            self.index._get_level_number, 'foo')
 
     def test_get_level_number_integer(self):
@@ -4419,7 +4422,6 @@ class TestMultiIndex(Base, tm.TestCase):
         assert_almost_equal(exp, exp2)
 
     def test_legacy_v2_unpickle(self):
-
         # 0.7.3 -> 0.8.0 format manage
         path = tm.get_data_path('mindex_073.pickle')
         obj = pd.read_pickle(path)
@@ -4438,7 +4440,6 @@ class TestMultiIndex(Base, tm.TestCase):
         assert_almost_equal(exp, exp2)
 
     def test_roundtrip_pickle_with_tz(self):
-
         # GH 8367
         # round-trip of timezone
         index=MultiIndex.from_product([[1,2],['a','b'],date_range('20130101',periods=3,tz='US/Eastern')],names=['one','two','three'])

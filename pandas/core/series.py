@@ -1983,7 +1983,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         unstacked : DataFrame
         """
         from pandas.core.reshape import unstack
-        return unstack(self, level)
+
+        level_nums = self.index._get_level_numbers(level, allow_mixed_names_and_numbers=False)
+        return unstack(self, level_nums)
 
     #----------------------------------------------------------------------
     # function application

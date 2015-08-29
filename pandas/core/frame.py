@@ -3718,7 +3718,7 @@ class DataFrame(NDFrame):
         from pandas.core.reshape import pivot
         return pivot(self, index=index, columns=columns, values=values)
 
-    def stack(self, level=-1, dropna=True):
+    def stack(self, level=-1, dropna=True, sequentially=True):
         """
         Pivot a level of the (possibly hierarchical) column labels, returning a
         DataFrame (or Series in the case of an object with a single level of
@@ -3728,11 +3728,15 @@ class DataFrame(NDFrame):
 
         Parameters
         ----------
-        level : int, string, or list of these, default last level
-            Level(s) to stack, can pass level name
+        level : int, string, list of these, or None; default -1 (last level)
+            Level(s) to stack, can pass level name(s).
+            None specifies all column levels, i.e. list(range(columns.nlevels)).
         dropna : boolean, default True
             Whether to drop rows in the resulting Frame/Series with no valid
             values
+        sequentially : boolean, default True
+            When level is a list (or None), whether the multiple column levels
+            should be stacked sequentially (if True) or simultaneously (if False).
 
         Examples
         ----------
@@ -3751,14 +3755,20 @@ class DataFrame(NDFrame):
         -------
         stacked : DataFrame or Series
         """
-        from pandas.core.reshape import stack, stack_multiple
+        from pandas.core.reshape import stack_levels_sequentially, stack_multi_levels_simultaneously
 
-        if isinstance(level, (tuple, list)):
-            return stack_multiple(self, level, dropna=dropna)
+        level_nums = self.columns._get_level_numbers(level, allow_mixed_names_and_numbers=False)
+        if level_nums == []:
+            if dropna:
+                return self.dropna(axis=0, how='all')
+            else:
+                return self
+        elif (not sequentially) and isinstance(self.columns, MultiIndex):
+                return stack_multi_levels_simultaneously(self, level_nums, dropna=dropna)
         else:
-            return stack(self, level, dropna=dropna)
+            return stack_levels_sequentially(self, level_nums, dropna=dropna)
 
-    def unstack(self, level=-1):
+    def unstack(self, level=-1, dropna=False, sequentially=False):
         """
         Pivot a level of the (necessarily hierarchical) index labels, returning
         a DataFrame having a new level of column labels whose inner-most level
@@ -3769,8 +3779,15 @@ class DataFrame(NDFrame):
 
         Parameters
         ----------
-        level : int, string, or list of these, default -1 (last level)
-            Level(s) of index to unstack, can pass level name
+        level : int, string, list of these, or None; default -1 (last level)
+            Level(s) of index to unstack, can pass level name(s).
+            None specifies all index levels, i.e. list(range(index.nlevels)).
+        dropna : boolean, default False
+            Whether to drop columns in the resulting Frame/Series with no valid
+            values
+        sequentially : boolean, default True
+            When level is a list (or None), whether the multiple index levels
+            should be stacked sequentially (if True) or simultaneously (if False).
 
         See also
         --------
@@ -3812,7 +3829,44 @@ class DataFrame(NDFrame):
         unstacked : DataFrame or Series
         """
         from pandas.core.reshape import unstack
-        return unstack(self, level)
+
+        level_nums = self.index._get_level_numbers(level, allow_mixed_names_and_numbers=False)
+        if level_nums == []:
+            if dropna:
+                return self.dropna(axis=1, how='all')
+            else:
+                return self
+        if sequentially and isinstance(level_nums, list) and (len(level_nums) > 1):
+            result = self
+            # Adjust level_nums to account for the fact that levels move "up"
+            # as a result of stacking of earlier levels.
+            adjusted_level_nums = [x - sum((y < x) for y in level_nums[:i])
+                                   for i, x in enumerate(level_nums)]
+            for level_num in adjusted_level_nums:
+                result = unstack(result, level_num)
+        else:
+            result = unstack(self, level_nums)
+
+        if isinstance(result, DataFrame):
+            # fix dtypes, if necessary
+            desired_dtypes = self.dtypes.values.repeat(len(result.columns) // len(self.columns))
+            result_dtypes = result.dtypes.values
+            for i, c in enumerate(result.columns):
+                if result_dtypes[i] != desired_dtypes[i]:
+                    if result_dtypes[i] == np.object:
+                        # use default Series constructor to set type
+                        result[c] = Series(result[c].values.tolist(), index=result.index)
+                    else:
+                        # try to convert type directly
+                        result[c] = result[c].astype(desired_dtypes[i], raise_on_error=False)
+            # drop empty columns, if necessary
+            if dropna:
+                result = result.dropna(axis=1, how='all')
+        else:
+            if dropna:
+                result = result.dropna()
+
+        return result
 
     #----------------------------------------------------------------------
     # Time series-related

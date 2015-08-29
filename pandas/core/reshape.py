@@ -21,6 +21,8 @@ import pandas.core.common as com
 import pandas.algos as algos
 
 from pandas.core.index import MultiIndex, _get_na_value
+from pandas.core.algorithms import factorize, unique
+from pandas.tslib import NaTType
 
 
 class _Unstacker(object):
@@ -61,8 +63,25 @@ class _Unstacker(object):
     unstacked : DataFrame
     """
 
-    def __init__(self, values, index, level=-1, value_columns=None):
+    def __init__(self, values, index, level_num, value_columns=None):
+        """
+        Initializes _Unstacker object.
 
+        Parameters
+        ----------
+        values : ndarray
+            Values to use for populating new frame's values
+        index : ndarray
+            Labels to use to make new frame's index
+        level_num : int
+            Level to unstack, must be an integer in the range [0, len(index))
+        value_columns : ndarray
+            Labels to use to make new frame's columns
+
+        Notes
+        -----
+        Obviously, values, index, and values_columns must have the same length
+        """
         self.is_categorical = None
         if values.ndim == 1:
             if isinstance(values, Categorical):
@@ -77,13 +96,7 @@ class _Unstacker(object):
 
         self.index = index
 
-        if isinstance(self.index, MultiIndex):
-            if index._reference_duplicate_name(level):
-                msg = ("Ambiguous reference to {0}. The index "
-                       "names are not unique.".format(level))
-                raise ValueError(msg)
-
-        self.level = self.index._get_level_number(level)
+        self.level = level_num
 
         # when index includes `nan`, need to lift levels/strides by 1
         self.lift = 1 if -1 in self.index.labels[self.level] else 0
@@ -239,6 +252,26 @@ class _Unstacker(object):
                           verify_integrity=False)
 
 
+def _make_new_index(lev, lab):
+    from pandas.core.index import Index, _get_na_value
+
+    nan = _get_na_value(lev.dtype.type)
+    vals = lev.values.astype('object')
+    vals = np.insert(vals, 0, nan) if lab is None else \
+           np.insert(vals, len(vals), nan).take(lab)
+
+    if com.is_datetime_or_timedelta_dtype(lev.dtype):
+        nan_indices = [0] if lab is None else (np.array(lab) == -1)
+        vals[nan_indices] = None
+
+    try:
+        vals = vals.astype(lev.dtype, subok=False, copy=False)
+    except ValueError:
+        return Index(vals, **lev._get_attributes_dict())
+
+    return lev._shallow_copy(vals)
+
+
 def _unstack_multiple(data, clocs):
     from pandas.core.groupby import decons_obs_group_ids
 
@@ -248,8 +281,6 @@ def _unstack_multiple(data, clocs):
     # NOTE: This doesn't deal with hierarchical columns yet
 
     index = data.index
-
-    clocs = [index._get_level_number(i) for i in clocs]
 
     rlocs = [i for i in range(index.nlevels) if i not in clocs]
 
@@ -395,26 +426,30 @@ def _slow_pivot(index, columns, values):
     return DataFrame(tree)
 
 
-def unstack(obj, level):
-    if isinstance(level, (tuple, list)):
-        return _unstack_multiple(obj, level)
+def unstack(obj, level_num):
+    if isinstance(level_num, (tuple, list)):
+        if len(level_num) == 1:
+            level_num = level_num[0]
+        else:
+            return _unstack_multiple(obj, level_num)
 
     if isinstance(obj, DataFrame):
         if isinstance(obj.index, MultiIndex):
-            return _unstack_frame(obj, level)
+            return _unstack_frame(obj, level_num)
         else:
-            return obj.T.stack(dropna=False)
+            #return obj.T.stack(dropna=False)
+            return stack_single_level(obj.T, 0, dropna=False)
     else:
-        unstacker = _Unstacker(obj.values, obj.index, level=level)
+        unstacker = _Unstacker(obj.values, obj.index, level_num=level_num)
         return unstacker.get_result()
 
 
-def _unstack_frame(obj, level):
+def _unstack_frame(obj, level_num):
     from pandas.core.internals import BlockManager, make_block
 
     if obj._is_mixed_type:
         unstacker = _Unstacker(np.empty(obj.shape, dtype=bool),  # dummy
-                               obj.index, level=level,
+                               obj.index, level_num=level_num,
                                value_columns=obj.columns)
         new_columns = unstacker.get_new_columns()
         new_index = unstacker.get_new_index()
@@ -424,7 +459,7 @@ def _unstack_frame(obj, level):
         mask_blocks = []
         for blk in obj._data.blocks:
             blk_items = obj._data.items[blk.mgr_locs.indexer]
-            bunstacker = _Unstacker(blk.values.T, obj.index, level=level,
+            bunstacker = _Unstacker(blk.values.T, obj.index, level_num=level_num,
                                     value_columns=blk_items)
             new_items = bunstacker.get_new_columns()
             new_placement = new_columns.get_indexer(new_items)
@@ -440,7 +475,7 @@ def _unstack_frame(obj, level):
         mask_frame = DataFrame(BlockManager(mask_blocks, new_axes))
         return result.ix[:, mask_frame.sum(0) > 0]
     else:
-        unstacker = _Unstacker(obj.values, obj.index, level=level,
+        unstacker = _Unstacker(obj.values, obj.index, level_num=level_num,
                                value_columns=obj.columns)
         return unstacker.get_result()
 
@@ -452,54 +487,45 @@ def get_compressed_ids(labels, sizes):
     return _compress_group_index(ids, sort=True)
 
 
-def stack(frame, level=-1, dropna=True):
+def stack_single_level(frame, level_num, dropna=True):
     """
-    Convert DataFrame to Series with multi-level Index. Columns become the
-    second level of the resulting hierarchical index
+    Convert DataFrame to DataFrame or Series with multi-level Index.
+    Columns become the second level of the resulting hierarchical index
+
+        Parameters
+        ----------
+        frame : DataFrame
+            DataFrame to be unstacked
+        level_num : int
+            Column level to unstack, must be an integer in the range [0, len(index))
+        dropna : boolean, default True
+            Whether to drop rows in the resulting Frame/Series with no valid
+            values
 
     Returns
     -------
-    stacked : Series
+    stacked : DataFrame or Series
     """
-    def factorize(index):
-        if index.is_unique:
-            return index, np.arange(len(index))
-        cat = Categorical(index, ordered=True)
-        return cat.categories, cat.codes
+    if isinstance(frame.columns, MultiIndex):
+        return stack_multi_levels_simultaneously(frame, level_nums=[level_num], dropna=dropna)
 
+    # frame.columns is a simple Index (not a MultiIndex)
     N, K = frame.shape
-    if isinstance(frame.columns, MultiIndex):
-        if frame.columns._reference_duplicate_name(level):
-            msg = ("Ambiguous reference to {0}. The column "
-                   "names are not unique.".format(level))
-            raise ValueError(msg)
-
-    # Will also convert negative level numbers and check if out of bounds.
-    level_num = frame.columns._get_level_number(level)
-
-    if isinstance(frame.columns, MultiIndex):
-        return _stack_multi_columns(frame, level_num=level_num, dropna=dropna)
-    elif isinstance(frame.index, MultiIndex):
+    if isinstance(frame.index, MultiIndex):
         new_levels = list(frame.index.levels)
         new_labels = [lab.repeat(K) for lab in frame.index.labels]
-
-        clev, clab = factorize(frame.columns)
-        new_levels.append(clev)
-        new_labels.append(np.tile(clab, N).ravel())
-
         new_names = list(frame.index.names)
-        new_names.append(frame.columns.name)
-        new_index = MultiIndex(levels=new_levels, labels=new_labels,
-                               names=new_names, verify_integrity=False)
     else:
-        levels, (ilab, clab) = \
-                zip(*map(factorize, (frame.index, frame.columns)))
-        labels = ilab.repeat(K), np.tile(clab, N).ravel()
-        new_index = MultiIndex(levels=levels,
-                               labels=labels,
-                               names=[frame.index.name, frame.columns.name],
-                               verify_integrity=False)
-
+        idx_labels, new_levels = factorize(frame.index)
+        new_levels = [new_levels]
+        new_labels = [idx_labels.repeat(K)]
+        new_names = [frame.index.name]
+    col_labels, col_levels = factorize(frame.columns)
+    new_levels.append(col_levels)
+    new_labels.append(np.tile(col_labels, N).ravel())
+    new_names.append(frame.columns.name)
+    new_index = MultiIndex(levels=new_levels, labels=new_labels,
+                           names=new_names, verify_integrity=False)
     new_values = frame.values.ravel()
     if dropna:
         mask = notnull(new_values)
@@ -508,46 +534,29 @@ def stack(frame, level=-1, dropna=True):
     return Series(new_values, index=new_index)
 
 
-def stack_multiple(frame, level, dropna=True):
-    # If all passed levels match up to column names, no
-    # ambiguity about what to do
-    if all(lev in frame.columns.names for lev in level):
-        result = frame
-        for lev in level:
-            result = stack(result, lev, dropna=dropna)
+def stack_levels_sequentially(frame, level_nums, dropna=True):
+    """
+    Stack multiple levels of frame.columns -- which may be a MultiIndex or a simple Index -- sequentially.
+    """
+    if isinstance(level_nums, int):
+        return stack_single_level(frame, level_nums, dropna=dropna)
 
-    # Otherwise, level numbers may change as each successive level is stacked
-    elif all(isinstance(lev, int) for lev in level):
-        # As each stack is done, the level numbers decrease, so we need
-        #  to account for that when level is a sequence of ints
-        result = frame
-        # _get_level_number() checks level numbers are in range and converts
-        # negative numbers to positive
-        level = [frame.columns._get_level_number(lev) for lev in level]
-
-        # Can't iterate directly through level as we might need to change
-        # values as we go
-        for index in range(len(level)):
-            lev = level[index]
-            result = stack(result, lev, dropna=dropna)
-            # Decrement all level numbers greater than current, as these
-            # have now shifted down by one
-            updated_level = []
-            for other in level:
-                if other > lev:
-                    updated_level.append(other - 1)
-                else:
-                    updated_level.append(other)
-            level = updated_level
-
-    else:
-        raise ValueError("level should contain all level names or all level numbers, "
-                         "not a mixture of the two.")
+    result = frame
+    # Adjust level_nums to account for the fact that levels move "up"
+    # as a result of stacking of earlier levels.
+    adjusted_level_nums = [x - sum((y < x) for y in level_nums[:i])
+                           for i, x in enumerate(level_nums)]
+    for level_num in adjusted_level_nums:
+        result = stack_single_level(result, level_num, dropna=dropna)
 
     return result
 
 
-def _stack_multi_columns(frame, level_num=-1, dropna=True):
+def stack_multi_levels_simultaneously(frame, level_nums, dropna=True):
+    """
+    Stack multiple levels of frame.columns -- which must be a MultiIndex -- simultaneously.
+    """
+
     def _convert_level_number(level_num, columns):
         """
         Logic for converting the level number to something
@@ -565,70 +574,39 @@ def _stack_multi_columns(frame, level_num=-1, dropna=True):
             else:
                 return columns.names[level_num]
 
+    if isinstance(level_nums, int):
+        level_nums = [level_nums]
+
     this = frame.copy()
 
     # this makes life much simpler
-    if level_num != frame.columns.nlevels - 1:
-        # roll levels to put selected level at end
-        roll_columns = this.columns
-        for i in range(level_num, frame.columns.nlevels - 1):
+    # roll levels to put selected level(s) at end
+    roll_columns = this.columns
+    for j, level_num in enumerate(reversed(level_nums)):
+        for i in range(level_num, frame.columns.nlevels - (j + 1)):
             # Need to check if the ints conflict with level names
             lev1 = _convert_level_number(i, roll_columns)
             lev2 = _convert_level_number(i + 1, roll_columns)
             roll_columns = roll_columns.swaplevel(lev1, lev2)
-        this.columns = roll_columns
+    this.columns = roll_columns
 
     if not this.columns.is_lexsorted():
         # Workaround the edge case where 0 is one of the column names,
-        # which interferes with trying to sort based on the first
-        # level
+        # which interferes with trying to sort based on the first level
         level_to_sort = _convert_level_number(0, this.columns)
         this = this.sortlevel(level_to_sort, axis=1)
 
-    # tuple list excluding level for grouping columns
-    if len(frame.columns.levels) > 2:
-        tuples = list(zip(*[
-            lev.take(lab) for lev, lab in
-            zip(this.columns.levels[:-1], this.columns.labels[:-1])
-        ]))
-        unique_groups = [key for key, _ in itertools.groupby(tuples)]
-        new_names = this.columns.names[:-1]
-        new_columns = MultiIndex.from_tuples(unique_groups, names=new_names)
-    else:
-        new_columns = unique_groups = this.columns.levels[0]
-
-    # time to ravel the values
-    new_data = {}
-    level_vals = this.columns.levels[-1]
-    level_labels = sorted(set(this.columns.labels[-1]))
-    level_vals_used = level_vals[level_labels]
+    num_levels_to_stack = len(level_nums)
+    level_vals = this.columns.levels[-num_levels_to_stack:]
+    level_labels = sorted(set(zip(*this.columns.labels[-num_levels_to_stack:])))
+    level_vals_used = MultiIndex.from_tuples([tuple(np.nan if lab == -1 else level_vals[i][lab]
+                                                    for i, lab in enumerate(label))
+                                              for label in level_labels],
+                                             names=this.columns.names[-num_levels_to_stack:])
     levsize = len(level_labels)
-    drop_cols = []
-    for key in unique_groups:
-        loc = this.columns.get_loc(key)
-        slice_len = loc.stop - loc.start
-        # can make more efficient?
 
-        if slice_len == 0:
-            drop_cols.append(key)
-            continue
-        elif slice_len != levsize:
-            chunk = this.ix[:, this.columns[loc]]
-            chunk.columns = level_vals.take(chunk.columns.labels[-1])
-            value_slice = chunk.reindex(columns=level_vals_used).values
-        else:
-            if frame._is_mixed_type:
-                value_slice = this.ix[:, this.columns[loc]].values
-            else:
-                value_slice = this.values[:, loc]
-
-        new_data[key] = value_slice.ravel()
-
-    if len(drop_cols) > 0:
-        new_columns = new_columns.difference(drop_cols)
-
+    # construct new_index
     N = len(this)
-
     if isinstance(this.index, MultiIndex):
         new_levels = list(this.index.levels)
         new_names = list(this.index.names)
@@ -637,15 +615,55 @@ def _stack_multi_columns(frame, level_num=-1, dropna=True):
         new_levels = [this.index]
         new_labels = [np.arange(N).repeat(levsize)]
         new_names = [this.index.name]  # something better?
-
-    new_levels.append(frame.columns.levels[level_num])
-    new_labels.append(np.tile(level_labels, N))
-    new_names.append(frame.columns.names[level_num])
-
+    new_levels += level_vals
+    new_labels += [np.tile(labels, N) for labels in zip(*level_labels)]
+    new_names += level_vals_used.names
     new_index = MultiIndex(levels=new_levels, labels=new_labels,
                            names=new_names, verify_integrity=False)
 
-    result = DataFrame(new_data, index=new_index, columns=new_columns)
+    # if stacking all levels in columns, result will be a Series
+    if len(this.columns.levels) == num_levels_to_stack:
+        new_data = this.values.ravel()
+        if dropna:
+            mask = notnull(new_data)
+            new_data = new_data[mask]
+            new_index = new_index[mask]
+        return Series(new_data, index=new_index)
+
+    # result will be a DataFrame
+
+    # construct new_columns
+    new_columns = this.columns.droplevel(list(range(this.columns.nlevels - num_levels_to_stack,
+                                                    this.columns.nlevels)), True).drop_duplicates()
+
+    # construct new_data
+    new_data = {}
+    unique_group_levels = this.columns.nlevels - num_levels_to_stack
+    unique_label_groups = unique(zip(*this.columns.labels[:unique_group_levels]))
+
+    for i, unique_label_group in enumerate(unique_label_groups):
+        loc = np.array([True] * len(this.columns))
+        for level_num in range(unique_group_levels):
+            loc &= (this.columns.labels[level_num] == unique_label_group[level_num])
+        slice_len = loc.sum()
+        if slice_len != levsize:
+            chunk = this.iloc[:, loc]
+            chunk.columns = MultiIndex.from_arrays([_make_new_index(vals, labels) for vals, labels
+                                                    in zip(level_vals, chunk.columns.labels[-num_levels_to_stack:])],
+                                                   names=chunk.columns.names[-num_levels_to_stack:])
+            value_slice = chunk.reindex(columns=level_vals_used).values
+        else:
+            if frame._is_mixed_type:
+                value_slice = this.iloc[:, loc].values
+            else:
+                value_slice = this.values[:, loc]
+
+        new_data[i] = value_slice.ravel()
+
+    # construct DataFrame with dummy columns, since construction from a dict
+    # doesn't handle NaNs correctly
+    result = DataFrame(new_data, index=new_index, columns=list(range(len(new_columns))))
+    result.columns = new_columns
 
     # more efficient way to go about this? can do the whole masking biz but
     # will only save a small amount of time...
