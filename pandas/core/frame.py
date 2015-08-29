@@ -3169,16 +3169,16 @@ class DataFrame(NDFrame):
                                inplace=inplace, sort_remaining=sort_remaining)
 
 
-    def _nsorted(self, columns, n, method, take_last):
+    def _nsorted(self, columns, n, method, keep):
         if not com.is_list_like(columns):
             columns = [columns]
         columns = list(columns)
-        ser = getattr(self[columns[0]], method)(n, take_last=take_last)
+        ser = getattr(self[columns[0]], method)(n, keep=keep)
         ascending = dict(nlargest=False, nsmallest=True)[method]
         return self.loc[ser.index].sort_values(columns, ascending=ascending,
                                                kind='mergesort')
 
-    def nlargest(self, n, columns, take_last=False):
+    def nlargest(self, n, columns, keep='first'):
         """Get the rows of a DataFrame sorted by the `n` largest
         values of `columns`.
 
@@ -3190,8 +3190,10 @@ class DataFrame(NDFrame):
             Number of items to retrieve
         columns : list or str
             Column name or names to order by
-        take_last : bool, optional
-            Where there are duplicate values, take the last duplicate
+        keep : {'first', 'last', False}, default 'first'
+            Where there are duplicate values:
+            - ``first`` : take the first occurrence.
+            - ``last`` : take the last occurrence.
 
         Returns
         -------
@@ -3208,9 +3210,9 @@ class DataFrame(NDFrame):
         1  10  b   2
         2   8  d NaN
         """
-        return self._nsorted(columns, n, 'nlargest', take_last)
+        return self._nsorted(columns, n, 'nlargest', keep)
 
-    def nsmallest(self, n, columns, take_last=False):
+    def nsmallest(self, n, columns, keep='first'):
         """Get the rows of a DataFrame sorted by the `n` smallest
         values of `columns`.
 
@@ -3222,8 +3224,10 @@ class DataFrame(NDFrame):
             Number of items to retrieve
         columns : list or str
             Column name or names to order by
-        take_last : bool, optional
-            Where there are duplicate values, take the last duplicate
+        keep : {'first', 'last', False}, default 'first'
+            Where there are duplicate values:
+            - ``first`` : take the first occurrence.
+            - ``last`` : take the last occurrence.
 
         Returns
         -------
@@ -3240,7 +3244,7 @@ class DataFrame(NDFrame):
         0  1  a   1
         2  8  d NaN
         """
-        return self._nsorted(columns, n, 'nsmallest', take_last)
+        return self._nsorted(columns, n, 'nsmallest', keep)
 
     def swaplevel(self, i, j, axis=0):
         """

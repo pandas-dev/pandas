@@ -453,24 +453,24 @@ def group_position(*args):
 _dtype_map = {'datetime64[ns]': 'int64', 'timedelta64[ns]': 'int64'}
 
 
-def _finalize_nsmallest(arr, kth_val, n, take_last, narr):
+def _finalize_nsmallest(arr, kth_val, n, keep, narr):
     ns, = np.nonzero(arr <= kth_val)
     inds = ns[arr[ns].argsort(kind='mergesort')][:n]
-
-    if take_last:
+    if keep == 'last':
         # reverse indices
         return narr - 1 - inds
-    return inds
+    else:
+        return inds
 
 
-def nsmallest(arr, n, take_last=False):
+def nsmallest(arr, n, keep='first'):
     '''
     Find the indices of the n smallest values of a numpy array.
 
     Note: Fails silently with NaN.
 
     '''
-    if take_last:
+    if keep == 'last':
         arr = arr[::-1]
 
     narr = len(arr)
@@ -480,10 +480,10 @@ def nsmallest(arr, n, take_last=False):
     arr = arr.view(_dtype_map.get(sdtype, sdtype))
 
     kth_val = algos.kth_smallest(arr.copy(), n - 1)
-    return _finalize_nsmallest(arr, kth_val, n, take_last, narr)
+    return _finalize_nsmallest(arr, kth_val, n, keep, narr)
 
 
-def nlargest(arr, n, take_last=False):
+def nlargest(arr, n, keep='first'):
     """
     Find the indices of the n largest values of a numpy array.
 
@@ -491,11 +491,11 @@ def nlargest(arr, n, take_last=False):
     """
     sdtype = str(arr.dtype)
     arr = arr.view(_dtype_map.get(sdtype, sdtype))
-    return nsmallest(-arr, n, take_last=take_last)
+    return nsmallest(-arr, n, keep=keep)
 
 
-def select_n_slow(dropped, n, take_last, method):
-    reverse_it = take_last or method == 'nlargest'
+def select_n_slow(dropped, n, keep, method):
+    reverse_it = (keep == 'last' or method == 'nlargest')
     ascending = method == 'nsmallest'
     slc = np.s_[::-1] if reverse_it else np.s_[:]
     return dropped[slc].sort_values(ascending=ascending).head(n)
@@ -504,13 +504,13 @@ def select_n_slow(dropped, n, take_last, method):
 _select_methods = {'nsmallest': nsmallest, 'nlargest': nlargest}
 
 
-def select_n(series, n, take_last, method):
+def select_n(series, n, keep, method):
     """Implement n largest/smallest.
 
     Parameters
     ----------
     n : int
-    take_last : bool
+    keep : {'first', 'last'}, default 'first'
     method : str, {'nlargest', 'nsmallest'}
 
     Returns
@@ -522,15 +522,18 @@ def select_n(series, n, take_last, method):
                                    np.timedelta64)):
         raise TypeError("Cannot use method %r with dtype %s" % (method, dtype))
 
+    if keep not in ('first', 'last'):
+        raise ValueError('keep must be either "first", "last"')
+
     if n <= 0:
         return series[[]]
 
     dropped = series.dropna()
 
     if n >= len(series):
-        return select_n_slow(dropped, n, take_last, method)
+        return select_n_slow(dropped, n, keep, method)
 
-    inds = _select_methods[method](dropped.values, n, take_last)
+    inds = _select_methods[method](dropped.values, n, keep)
     return dropped.iloc[inds]
 
 
