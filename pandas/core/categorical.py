@@ -207,7 +207,7 @@ class Categorical(PandasObject):
         if fastpath:
             # fast path
             self._codes = _coerce_indexer_dtype(values, categories)
-            self.categories = categories
+            self._categories = self._validate_categories(categories, fastpath=isinstance(categories, ABCIndexClass))
             self._ordered = ordered
             return
 
@@ -274,6 +274,8 @@ class Categorical(PandasObject):
                 ### FIXME ####
                 raise NotImplementedError("> 1 ndim Categorical are not supported at this time")
 
+            categories = self._validate_categories(categories)
+
         else:
             # there were two ways if categories are present
             # - the old one, where each value is a int pointer to the levels array -> not anymore
@@ -282,7 +284,6 @@ class Categorical(PandasObject):
 
             # make sure that we always have the same type here, no matter what we get passed in
             categories = self._validate_categories(categories)
-
             codes = _get_codes_for_values(values, categories)
 
             # TODO: check for old style usage. These warnings should be removes after 0.18/ in 2016
@@ -295,7 +296,7 @@ class Categorical(PandasObject):
                      "'Categorical.from_codes(codes, categories)'?", RuntimeWarning, stacklevel=2)
 
         self.set_ordered(ordered or False, inplace=True)
-        self.categories = categories
+        self._categories = categories
         self._codes = _coerce_indexer_dtype(codes, categories)
 
     def copy(self):
@@ -421,9 +422,15 @@ class Categorical(PandasObject):
     _categories = None
 
     @classmethod
-    def _validate_categories(cls, categories):
+    def _validate_categories(cls, categories, fastpath=False):
         """
         Validates that we have good categories
+
+        Parameters
+        ----------
+        fastpath : boolean (default: False)
+           Don't perform validation of the categories for uniqueness or nulls
+
         """
         if not isinstance(categories, ABCIndexClass):
             dtype = None
@@ -439,22 +446,40 @@ class Categorical(PandasObject):
 
             from pandas import Index
             categories = Index(categories, dtype=dtype)
-        if not categories.is_unique:
-            raise ValueError('Categorical categories must be unique')
+
+        if not fastpath:
+
+            # check properties of the categories
+            # we don't allow NaNs in the categories themselves
+
+            if categories.hasnans:
+                # NaNs in cats deprecated in 0.17, remove in 0.18 or 0.19 GH 10748
+                msg = ('\nSetting NaNs in `categories` is deprecated and '
+                       'will be removed in a future version of pandas.')
+                warn(msg, FutureWarning, stacklevel=5)
+
+            # categories must be unique
+
+            if not categories.is_unique:
+                raise ValueError('Categorical categories must be unique')
+
         return categories
 
-    def _set_categories(self, categories, validate=True):
-        """ Sets new categories """
-        if validate:
-            categories = self._validate_categories(categories)
-            if not self._categories is None and len(categories) != len(self._categories):
-                raise ValueError("new categories need to have the same number of items than the old "
-                                 "categories!")
-        if np.any(isnull(categories)):
-            # NaNs in cats deprecated in 0.17, remove in 0.18 or 0.19 GH 10748
-            msg = ('\nSetting NaNs in `categories` is deprecated and '
-                   'will be removed in a future version of pandas.')
-            warn(msg, FutureWarning, stacklevel=9)
+    def _set_categories(self, categories, fastpath=False):
+        """ Sets new categories
+
+        Parameters
+        ----------
+        fastpath : boolean (default: False)
+           Don't perform validation of the categories for uniqueness or nulls
+
+        """
+
+        categories = self._validate_categories(categories, fastpath=fastpath)
+        if not fastpath and not self._categories is None and len(categories) != len(self._categories):
+            raise ValueError("new categories need to have the same number of items than the old "
+                             "categories!")
+
         self._categories = categories
 
     def _get_categories(self):
@@ -587,11 +612,10 @@ class Categorical(PandasObject):
             if not cat._categories is None and len(new_categories) < len(cat._categories):
                 # remove all _codes which are larger and set to -1/NaN
                 self._codes[self._codes >= len(new_categories)] = -1
-            cat._set_categories(new_categories, validate=False)
         else:
             values = cat.__array__()
             cat._codes = _get_codes_for_values(values, new_categories)
-            cat._set_categories(new_categories, validate=False)
+        cat._categories = new_categories
 
         if ordered is None:
             ordered = self.ordered
@@ -712,9 +736,8 @@ class Categorical(PandasObject):
             msg = "new categories must not include old categories: %s" % str(already_included)
             raise ValueError(msg)
         new_categories = list(self._categories) + list(new_categories)
-        new_categories = self._validate_categories(new_categories)
         cat = self if inplace else self.copy()
-        cat._set_categories(new_categories, validate=False)
+        cat._categories = self._validate_categories(new_categories)
         cat._codes = _coerce_indexer_dtype(cat._codes, new_categories)
         if not inplace:
             return cat
@@ -797,7 +820,7 @@ class Categorical(PandasObject):
         from pandas.core.index import _ensure_index
         new_categories = _ensure_index(new_categories)
         cat._codes = _get_codes_for_values(cat.__array__(), new_categories)
-        cat._set_categories(new_categories, validate=False)
+        cat._categories = new_categories
         if not inplace:
             return cat
 
