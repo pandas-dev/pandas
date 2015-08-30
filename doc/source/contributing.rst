@@ -517,7 +517,7 @@ performance regressions.  *pandas* is in the process of migrating to the
 `asv library <https://github.com/spacetelescope/asv>`__
 to enable easy monitoring of the performance of critical *pandas* operations.
 These benchmarks are all found in the ``pandas/asv_bench`` directory.  *asv*
-supports both python2 and python3. 
+supports both python2 and python3.
 
 .. note::
 
@@ -525,7 +525,10 @@ supports both python2 and python3.
     so many stylistic issues are likely a result of automated transformation of the
     code.
 
-To install asv::
+To use ''asv'' you will need either ''conda'' or ''virtualenv''. For more details
+please check installation webpage http://asv.readthedocs.org/en/latest/installing.html
+
+To install ''asv''::
 
     pip install git+https://github.com/spacetelescope/asv
 
@@ -546,6 +549,25 @@ to the Pull Request to show that the committed changes do not cause unexpected
 performance regressions.
 
 You can run specific benchmarks using the *-b* flag which takes a regular expression.
+For example this will only run tests from a ``pandas/asv_bench/benchmarks/groupby.py``
+file::
+
+    asv continuous master -b groupby
+
+If you want to run only some specific group of tests from a file you can do it
+using ``.`` as a separator. For example::
+
+    asv continuous master -b groupby.groupby_agg_builtins1
+
+will only run a ``groupby_agg_builtins1`` test defined in a ``groupby`` file.
+
+It is also useful to run tests in your current environment. You can simply do it by::
+
+    asv dev
+
+which would be equivalent to ``asv run --quick --show-stderr --python=same``. This
+will launch every test only once, display stderr from the benchmarks and use your
+local ``python'' that comes from your $PATH.
 
 Information on how to write a benchmark can be found in
 `*asv*'s documentation http://asv.readthedocs.org/en/latest/writing_benchmarks.html`.
