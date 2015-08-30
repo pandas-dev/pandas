@@ -2684,6 +2684,15 @@ class SeriesGroupBy(GroupBy):
 
         return Series(out, index=mi)
 
+    def count(self):
+        ids, _, ngroups = self.grouper.group_info
+        val = self.obj.get_values()
+
+        mask = (ids != -1) & ~isnull(val)
+        out = np.bincount(ids[mask], minlength=ngroups) if ngroups != 0 else []
+
+        return Series(out, index=self.grouper.result_index, name=self.name)
+
     def _apply_to_column_groupbys(self, func):
         """ return a pass thru """
         return func(self)
