@@ -642,6 +642,10 @@ class NaTType(_NaT):
 
     def __reduce__(self):
         return (__nat_unpickle, (None, ))
+    
+    def total_seconds(self):
+        # GH 10939
+        return np.nan
 
 
 fields = ['year', 'quarter', 'month', 'day', 'hour',
@@ -673,7 +677,7 @@ def _make_nan_func(func_name):
 
 _nat_methods = ['date', 'now', 'replace', 'to_datetime', 'today']
 
-_nan_methods = ['weekday', 'isoweekday']
+_nan_methods = ['weekday', 'isoweekday', 'total_seconds']
 
 _implemented_methods = ['to_datetime64']
 _implemented_methods.extend(_nat_methods)
@@ -2412,6 +2416,12 @@ class Timedelta(_Timedelta):
         """
         self._ensure_components()
         return self._ns
+    
+    def total_seconds(self):
+        """
+        Total duration of timedelta in seconds (to ns precision)
+        """
+        return 1e-9*self.value
 
     def __setstate__(self, state):
         (value) = state

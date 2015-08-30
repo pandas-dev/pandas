@@ -161,7 +161,7 @@ TimedeltaProperties._add_delegate_accessors(delegate=TimedeltaIndex,
                                             accessors=TimedeltaIndex._datetimelike_ops,
                                             typ='property')
 TimedeltaProperties._add_delegate_accessors(delegate=TimedeltaIndex,
-                                            accessors=["to_pytimedelta"],
+                                            accessors=["to_pytimedelta", "total_seconds"],
                                             typ='method')
 
 class PeriodProperties(Properties):
