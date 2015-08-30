@@ -799,6 +799,14 @@ class TestSeries(tm.TestCase, Generic):
         tm._skip_if_no_scipy()
         result = s.interpolate(method='polynomial', order=1)
         assert_series_equal(result, expected)
+    # GH #10633: first attempt
+    def test_interpolate_spline(self):
+        np.random.seed(1)
+        s = pd.Series(np.arange(10)**2)
+        s[np.random.randint(0,9,3)] = np.nan
+        with tm.assertRaises(ValueError):
+            s.interpolate(method='spline')
+        
 
     def test_nan_irregular_index(self):
         s = Series([1, 2, np.nan, 4], index=[1, 3, 5, 9])
