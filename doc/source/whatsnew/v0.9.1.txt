@@ -21,6 +21,7 @@ New features
     specified in a per-column manner to support multiple sort orders (:issue:`928`)
 
     .. ipython:: python
+        :okwarning:
 
         df = DataFrame(np.random.randint(0, 2, (6, 3)), columns=['A', 'B', 'C'])
 
@@ -66,7 +67,7 @@ New features
 	.. ipython:: python
 
 	   df[df>0]
-	
+
 	   df.where(df>0)
 
 	   df.where(df>0,-df)

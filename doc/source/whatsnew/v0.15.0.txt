@@ -67,7 +67,8 @@ For full docs, see the :ref:`categorical introduction <categorical>` and the
 :ref:`API documentation <api.categorical>`.
 
 .. ipython:: python
-
+    :okwarning:
+    
     df = DataFrame({"id":[1,2,3,4,5,6], "raw_grade":['a', 'b', 'b', 'a', 'a', 'e']})
 
     df["grade"] = df["raw_grade"].astype("category")
