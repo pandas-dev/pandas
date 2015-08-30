@@ -1142,27 +1142,24 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         -------
         nobs : int or Series (if level specified)
         """
-        if level is not None:
-            mask = notnull(self._values)
+        from pandas.core.index import _get_na_value
 
-            if isinstance(level, compat.string_types):
-                level = self.index._get_level_number(level)
+        if level is None:
+            return notnull(_values_from_object(self)).sum()
 
-            level_index = self.index.levels[level]
+        if isinstance(level, compat.string_types):
+            level = self.index._get_level_number(level)
 
-            if len(self) == 0:
-                return self._constructor(0, index=level_index)\
-                           .__finalize__(self)
+        lev = self.index.levels[level]
+        lab = np.array(self.index.labels[level], subok=False, copy=True)
 
-            # call cython function
-            max_bin = len(level_index)
-            labels = com._ensure_int64(self.index.labels[level])
-            counts = lib.count_level_1d(mask.view(np.uint8),
-                                        labels, max_bin)
-            return self._constructor(counts,
-                                     index=level_index).__finalize__(self)
+        mask = lab == -1
+        if mask.any():
+            lab[mask] = cnt = len(lev)
+            lev = lev.insert(cnt, _get_na_value(lev.dtype.type))
 
-        return notnull(_values_from_object(self)).sum()
+        out = np.bincount(lab[notnull(self.values)], minlength=len(lev))
+        return self._constructor(out, index=lev).__finalize__(self)
 
     def mode(self):
         """Returns the mode(s) of the dataset.
@@ -2104,7 +2101,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         >>> import pandas as pd
         >>> import numpy as np
-        >>> series = pd.Series([20, 21, 12], index=['London', 
+        >>> series = pd.Series([20, 21, 12], index=['London',
         ... 'New York','Helsinki'])
         London      20
         New York    21
@@ -2132,7 +2129,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         dtype: int64
 
         Define a custom function that needs additional positional
-        arguments and pass these additional arguments using the 
+        arguments and pass these additional arguments using the
         ``args`` keyword.
 
         >>> def subtract_custom_value(x, custom_value):
@@ -2158,7 +2155,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Helsinki    87
         dtype: int64
 
-        Use a function from the Numpy library. 
+        Use a function from the Numpy library.
 
         >>> series.apply(np.log)
         London      2.995732
