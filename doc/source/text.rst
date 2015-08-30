@@ -5,7 +5,7 @@
    :suppress:
 
    import numpy as np
-   from pandas import *
+   import pandas as pd
    randn = np.random.randn
    np.set_printoptions(precision=4, suppress=True)
    from pandas.compat import lrange
@@ -25,14 +25,14 @@ the equivalent (scalar) built-in string methods:
 
 .. ipython:: python
 
-   s = Series(['A', 'B', 'C', 'Aaba', 'Baca', np.nan, 'CABA', 'dog', 'cat'])
+   s = pd.Series(['A', 'B', 'C', 'Aaba', 'Baca', np.nan, 'CABA', 'dog', 'cat'])
    s.str.lower()
    s.str.upper()
    s.str.len()
 
 .. ipython:: python
 
-   idx = Index([' jack', 'jill ', ' jesse ', 'frank'])
+   idx = pd.Index([' jack', 'jill ', ' jesse ', 'frank'])
    idx.str.strip()
    idx.str.lstrip()
    idx.str.rstrip()
@@ -43,8 +43,8 @@ leading or trailing whitespace:
 
 .. ipython:: python
 
-   df = DataFrame(randn(3, 2), columns=[' Column A ', ' Column B '],
-                  index=range(3))
+   df = pd.DataFrame(randn(3, 2), columns=[' Column A ', ' Column B '],
+                     index=range(3))
    df
 
 Since ``df.columns`` is an Index object, we can use the ``.str`` accessor
@@ -72,7 +72,7 @@ Methods like ``split`` return a Series of lists:
 
 .. ipython:: python
 
-   s2 = Series(['a_b_c', 'c_d_e', np.nan, 'f_g_h'])
+   s2 = pd.Series(['a_b_c', 'c_d_e', np.nan, 'f_g_h'])
    s2.str.split('_')
 
 Elements in the split lists can be accessed using ``get`` or ``[]`` notation:
@@ -106,8 +106,8 @@ Methods like ``replace`` and ``findall`` take `regular expressions
 
 .. ipython:: python
 
-   s3 = Series(['A', 'B', 'C', 'Aaba', 'Baca',
-               '', np.nan, 'CABA', 'dog', 'cat'])
+   s3 = pd.Series(['A', 'B', 'C', 'Aaba', 'Baca',
+                  '', np.nan, 'CABA', 'dog', 'cat'])
    s3
    s3.str.replace('^.a|dog', 'XX-XX ', case=False)
 
@@ -118,7 +118,7 @@ following code will cause trouble because of the regular expression meaning of
 .. ipython:: python
 
    # Consider the following badly formatted financial data
-   dollars = Series(['12', '-$10', '$10,000'])
+   dollars = pd.Series(['12', '-$10', '$10,000'])
 
    # This does what you'd naively expect:
    dollars.str.replace('$', '')
@@ -140,8 +140,8 @@ of the string, the result will be a ``NaN``.
 
 .. ipython:: python
 
-   s = Series(['A', 'B', 'C', 'Aaba', 'Baca', np.nan,
-               'CABA', 'dog', 'cat'])
+   s = pd.Series(['A', 'B', 'C', 'Aaba', 'Baca', np.nan,
+                  'CABA', 'dog', 'cat'])
 
    s.str[0]
    s.str[1]
@@ -157,14 +157,14 @@ regular expression with one group returns a Series of strings.
 
 .. ipython:: python
 
-   Series(['a1', 'b2', 'c3']).str.extract('[ab](\d)')
+   pd.Series(['a1', 'b2', 'c3']).str.extract('[ab](\d)')
 
 Elements that do not match return ``NaN``. Extracting a regular expression
 with more than one group returns a DataFrame with one column per group.
 
 .. ipython:: python
 
-   Series(['a1', 'b2', 'c3']).str.extract('([ab])(\d)')
+   pd.Series(['a1', 'b2', 'c3']).str.extract('([ab])(\d)')
 
 Elements that do not match return a row filled with ``NaN``.
 Thus, a Series of messy strings can be "converted" into a
@@ -178,13 +178,13 @@ Named groups like
 
 .. ipython:: python
 
-   Series(['a1', 'b2', 'c3']).str.extract('(?P<letter>[ab])(?P<digit>\d)')
+   pd.Series(['a1', 'b2', 'c3']).str.extract('(?P<letter>[ab])(?P<digit>\d)')
 
 and optional groups like
 
 .. ipython:: python
 
-   Series(['a1', 'b2', '3']).str.extract('(?P<letter>[ab])?(?P<digit>\d)')
+   pd.Series(['a1', 'b2', '3']).str.extract('(?P<letter>[ab])?(?P<digit>\d)')
 
 can also be used.
 
@@ -196,14 +196,14 @@ You can check whether elements contain a pattern:
 .. ipython:: python
 
    pattern = r'[a-z][0-9]'
-   Series(['1', '2', '3a', '3b', '03c']).str.contains(pattern)
+   pd.Series(['1', '2', '3a', '3b', '03c']).str.contains(pattern)
 
 or match a pattern:
 
 
 .. ipython:: python
 
-   Series(['1', '2', '3a', '3b', '03c']).str.match(pattern, as_indexer=True)
+   pd.Series(['1', '2', '3a', '3b', '03c']).str.match(pattern, as_indexer=True)
 
 The distinction between ``match`` and ``contains`` is strictness: ``match``
 relies on strict ``re.match``, while ``contains`` relies on ``re.search``.
@@ -225,7 +225,7 @@ Methods like ``match``, ``contains``, ``startswith``, and ``endswith`` take
 
 .. ipython:: python
 
-   s4 = Series(['A', 'B', 'C', 'Aaba', 'Baca', np.nan, 'CABA', 'dog', 'cat'])
+   s4 = pd.Series(['A', 'B', 'C', 'Aaba', 'Baca', np.nan, 'CABA', 'dog', 'cat'])
    s4.str.contains('A', na=False)
 
 Creating Indicator Variables
@@ -236,7 +236,7 @@ For example if they are separated by a ``'|'``:
 
   .. ipython:: python
 
-      s = Series(['a', 'a|b', np.nan, 'a|c'])
+      s = pd.Series(['a', 'a|b', np.nan, 'a|c'])
       s.str.get_dummies(sep='|')
 
 See also :func:`~pandas.get_dummies`.

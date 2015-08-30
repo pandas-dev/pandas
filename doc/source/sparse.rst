@@ -6,9 +6,8 @@
 
    import numpy as np
    np.random.seed(123456)
-   from pandas import *
+   import pandas as pd
    import pandas.util.testing as tm
-   randn = np.random.randn
    np.set_printoptions(precision=4, suppress=True)
    options.display.max_rows = 15
 
@@ -26,7 +25,7 @@ method:
 
 .. ipython:: python
 
-   ts = Series(randn(10))
+   ts = pd.Series(randn(10))
    ts[2:-2] = np.nan
    sts = ts.to_sparse()
    sts
@@ -44,7 +43,7 @@ large, mostly NA DataFrame:
 
 .. ipython:: python
 
-   df = DataFrame(randn(10000, 4))
+   df = pd.DataFrame(randn(10000, 4))
    df.ix[:9998] = np.nan
    sdf = df.to_sparse()
    sdf
@@ -75,7 +74,7 @@ distinct from the ``fill_value``:
 
    arr = np.random.randn(10)
    arr[2:5] = np.nan; arr[7:8] = np.nan
-   sparr = SparseArray(arr)
+   sparr = pd.SparseArray(arr)
    sparr
 
 Like the indexed objects (SparseSeries, SparseDataFrame, SparsePanel), a
@@ -97,7 +96,7 @@ a ``fill_value`` (defaulting to ``NaN``):
 
 .. ipython:: python
 
-   spl = SparseList()
+   spl = pd.SparseList()
    spl
 
 The two important methods are ``append`` and ``to_array``. ``append`` can
@@ -108,8 +107,7 @@ accept scalar values or any 1-dimensional sequence:
 
 .. ipython:: python
 
-   from numpy import nan
-   spl.append(np.array([1., nan, nan, 2., 3.]))
+   spl.append(np.array([1., np.nan, np.nan, 2., 3.]))
    spl.append(5)
    spl.append(sparr)
    spl
@@ -149,15 +147,14 @@ The method requires a ``MultiIndex`` with two or more levels.
 
 .. ipython:: python
 
-   from numpy import nan
-   s = Series([3.0, nan, 1.0, 3.0, nan, nan])
-   s.index = MultiIndex.from_tuples([(1, 2, 'a', 0),
-                                     (1, 2, 'a', 1),
-                                     (1, 1, 'b', 0),
-                                     (1, 1, 'b', 1),
-                                     (2, 1, 'b', 0),
-                                     (2, 1, 'b', 1)],
-                                     names=['A', 'B', 'C', 'D'])
+   s = pd.Series([3.0, np.nan, 1.0, 3.0, np.nan, np.nan])
+   s.index = pd.MultiIndex.from_tuples([(1, 2, 'a', 0),
+                                        (1, 2, 'a', 1),
+                                        (1, 1, 'b', 0),
+                                        (1, 1, 'b', 1),
+                                        (2, 1, 'b', 0),
+                                        (2, 1, 'b', 1)],
+                                        names=['A', 'B', 'C', 'D'])
 
    s
    # SparseSeries
@@ -199,7 +196,7 @@ A convenience method :meth:`SparseSeries.from_coo` is implemented for creating a
 
    from scipy import sparse
    A = sparse.coo_matrix(([3.0, 1.0, 2.0], ([1, 0, 0], [0, 2, 3])),
-                               shape=(3, 4))
+                         shape=(3, 4))
    A
    A.todense()
 
@@ -208,7 +205,7 @@ only the non-null entries.
 
 .. ipython:: python
 
-   ss = SparseSeries.from_coo(A)
+   ss = pd.SparseSeries.from_coo(A)
    ss
 
 Specifying ``dense_index=True`` will result in an index that is the Cartesian product of the
@@ -217,5 +214,5 @@ row and columns coordinates of the matrix. Note that this will consume a signifi
 
 .. ipython:: python
 
-   ss_dense = SparseSeries.from_coo(A, dense_index=True)
+   ss_dense = pd.SparseSeries.from_coo(A, dense_index=True)
    ss_dense
