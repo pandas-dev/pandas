@@ -1719,35 +1719,9 @@ def _interpolate_scipy_wrapper(x, y, new_x, method, fill_value=None,
                                     bounds_error=bounds_error)
         new_y = terp(new_x)
     elif method == 'spline':
-<<<<<<< HEAD
-<<<<<<< HEAD
         # GH #10633
         if not order:
             raise ValueError("order needs to be specified and greater than 0")
-=======
-<<<<<<< HEAD
-
-        # GH #10633: first attempt
-<<<<<<< HEAD
-
-        if not order:
-            raise ValueError("order needs to be specified and greater than 0")
-
-=======
-        if order is None:
-            raise ValueError("order needs to be specified, use 1, 2, or 3")
->>>>>>> 1561f91... small changes
-=======
-        # GH #10633
-        if not order:
-            raise ValueError("order needs to be specified and greater than 0")
->>>>>>> 5a5407e... updating examples and the bug fix
->>>>>>> BUG: 10633 and 10800 fix
-=======
-        # GH #10633
-        if not order:
-            raise ValueError("order needs to be specified and greater than 0")
->>>>>>> BUG: 10633 - some last errors removed
         terp = interpolate.UnivariateSpline(x, y, k=order, **kwargs)
         new_y = terp(new_x)
     else:
