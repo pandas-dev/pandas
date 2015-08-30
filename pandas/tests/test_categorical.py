@@ -129,7 +129,8 @@ class TestCategorical(tm.TestCase):
             Categorical(["a","b"], ["a","b","b"])
         self.assertRaises(ValueError, f)
         def f():
-            Categorical([1,2], [1,2,np.nan, np.nan])
+            with tm.assert_produces_warning(FutureWarning):
+                Categorical([1,2], [1,2,np.nan, np.nan])
         self.assertRaises(ValueError, f)
 
         # The default should be unordered
@@ -879,15 +880,18 @@ class TestCategorical(tm.TestCase):
                 base = Categorical([], with_null)
             expected = Categorical([], without)
 
-            with tm.assert_produces_warning(FutureWarning):
-                for nullval in null_values:
-                    result = base.remove_categories(nullval)
-                self.assert_categorical_equal(result, expected)
+            for nullval in null_values:
+                result = base.remove_categories(nullval)
+            self.assert_categorical_equal(result, expected)
 
         # Different null values are indistinguishable
         for i, j in [(0, 1), (0, 2), (1, 2)]:
             nulls = [null_values[i], null_values[j]]
-            self.assertRaises(ValueError, lambda: Categorical([], categories=nulls))
+
+            def f():
+                with tm.assert_produces_warning(FutureWarning):
+                    Categorical([], categories=nulls)
+            self.assertRaises(ValueError, f)
 
 
     def test_isnull(self):
@@ -3488,8 +3492,8 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
         c[0] = np.nan
         df = pd.DataFrame({"cats":c, "vals":[1,2,3]})
         df_exp = pd.DataFrame({"cats": Categorical(["a","b","a"]), "vals": [1,2,3]})
-        with tm.assert_produces_warning(FutureWarning):
-            res = df.fillna("a")
+
+        res = df.fillna("a")
         tm.assert_frame_equal(res, df_exp)
 
 
