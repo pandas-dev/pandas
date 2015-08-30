@@ -3615,7 +3615,6 @@ def test_get_offset():
              ('Bm', BMonthEnd()), ('W-MON', Week(weekday=0)),
              ('W-TUE', Week(weekday=1)), ('W-WED', Week(weekday=2)),
              ('W-THU', Week(weekday=3)), ('W-FRI', Week(weekday=4)),
-             ('w@Sat', Week(weekday=5)),
              ("RE-N-DEC-MON", makeFY5253NearestEndMonth(weekday=0, startingMonth=12)),
              ("RE-L-DEC-TUE", makeFY5253LastOfMonth(weekday=1, startingMonth=12)),
              ("REQ-L-MAR-TUE-4", makeFY5253LastOfMonthQuarter(weekday=1, startingMonth=3, qtr_with_extra_week=4)),
@@ -3628,6 +3627,13 @@ def test_get_offset():
         assert offset == expected, ("Expected %r to yield %r (actual: %r)" %
                                     (name, expected, offset))
 
+def test_get_offset_legacy():
+    pairs = [('w@Sat', Week(weekday=5))]
+    for name, expected in pairs:
+        with tm.assert_produces_warning(FutureWarning):
+            offset = get_offset(name)
+        assert offset == expected, ("Expected %r to yield %r (actual: %r)" %
+                                    (name, expected, offset))
 
 class TestParseTimeString(tm.TestCase):
 
@@ -3663,11 +3669,18 @@ def test_get_standard_freq():
     assert fstr == get_standard_freq('w')
     assert fstr == get_standard_freq('1w')
     assert fstr == get_standard_freq(('W', 1))
-    assert fstr == get_standard_freq('WeEk')
+
+    with tm.assert_produces_warning(FutureWarning):
+        result = get_standard_freq('WeEk')
+    assert fstr == result
 
     fstr = get_standard_freq('5Q')
     assert fstr == get_standard_freq('5q')
-    assert fstr == get_standard_freq('5QuarTer')
+
+    with tm.assert_produces_warning(FutureWarning):
+        result = get_standard_freq('5QuarTer')
+    assert fstr == result
+
     assert fstr == get_standard_freq(('q', 5))
 
 

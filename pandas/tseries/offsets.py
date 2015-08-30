@@ -2650,14 +2650,13 @@ prefix_mapping = dict((offset._prefix, offset) for offset in [
 
 prefix_mapping['N'] = Nano
 
-
 def _make_offset(key):
     """Gets offset based on key. KeyError if prefix is bad, ValueError if
     suffix is bad. All handled by `get_offset` in tseries/frequencies. Not
     public."""
     if key is None:
         return None
-    split = key.replace('@', '-').split('-')
+    split = key.split('-')
     klass = prefix_mapping[split[0]]
     # handles case where there's no suffix (and will TypeError if too many '-')
     obj = klass._from_name(*split[1:])

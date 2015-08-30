@@ -656,7 +656,7 @@ apply the offset to each element.
    rng + DateOffset(months=2)
    s + DateOffset(months=2)
    s - DateOffset(months=2)
-   
+
 If the offset class maps directly to a ``Timedelta`` (``Day``, ``Hour``,
 ``Minute``, ``Second``, ``Micro``, ``Milli``, ``Nano``) it can be
 used exactly like a ``Timedelta`` - see the
@@ -670,7 +670,7 @@ used exactly like a ``Timedelta`` - see the
    td + Minute(15)
 
 Note that some offsets (such as ``BQuarterEnd``) do not have a
-vectorized implementation.  They can still be used but may 
+vectorized implementation.  They can still be used but may
 calculate signficantly slower and will raise a ``PerformanceWarning``
 
 .. ipython:: python
@@ -882,10 +882,10 @@ frequencies. We will refer to these aliases as *offset aliases*
     "BAS", "business year start frequency"
     "BH", "business hour frequency"
     "H", "hourly frequency"
-    "T", "minutely frequency"
+    "T, min", "minutely frequency"
     "S", "secondly frequency"
-    "L", "milliseonds"
-    "U", "microseconds"
+    "L, ms", "milliseonds"
+    "U, us", "microseconds"
     "N", "nanoseconds"
 
 Combining Aliases
@@ -953,11 +953,12 @@ These can be used as arguments to ``date_range``, ``bdate_range``, constructors
 for ``DatetimeIndex``, as well as various other timeseries-related functions
 in pandas.
 
+.. _timeseries.legacyaliases:
+
 Legacy Aliases
 ~~~~~~~~~~~~~~
-Note that prior to v0.8.0, time rules had a slightly different look. pandas
-will continue to support the legacy time rules for the time being but it is
-strongly recommended that you switch to using the new offset aliases.
+Note that prior to v0.8.0, time rules had a slightly different look. These are
+deprecated in v0.17.0, and removed in future version.
 
 .. csv-table::
     :header: "Legacy Time Rule", "Offset Alias"
@@ -987,9 +988,7 @@ strongly recommended that you switch to using the new offset aliases.
     "A\@OCT", "BA\-OCT"
     "A\@NOV", "BA\-NOV"
     "A\@DEC", "BA\-DEC"
-    "min", "T"
-    "ms", "L"
-    "us", "U"
+
 
 As you can see, legacy quarterly and annual frequencies are business quarters
 and business year ends. Please also note the legacy time rule for milliseconds
