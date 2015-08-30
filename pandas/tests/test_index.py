@@ -1732,6 +1732,11 @@ class TestIndex(Base, tm.TestCase):
             df.index == index_a
         tm.assert_numpy_array_equal(index_a == mi3, np.array([False, False, False]))
 
+    def test_conversion_preserves_name(self):
+        #GH 10875
+        i = pd.Index(['01:02:03', '01:02:04'], name='label')
+        self.assertEqual(i.name, pd.to_datetime(i).name)
+        self.assertEqual(i.name, pd.to_timedelta(i).name)
 
 class TestCategoricalIndex(Base, tm.TestCase):
     _holder = CategoricalIndex

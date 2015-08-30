@@ -770,7 +770,7 @@ Bug Fixes
 - Bug in ``filter`` (regression from 0.16.0) and ``transform`` when grouping on multiple keys, one of which is datetime-like (:issue:`10114`)
 
 
-
+- Bug in ``to_datetime`` and ``to_timedelta`` causing ``Index`` name to be lost (:issue:`10875`)
 
 
 - Bug that caused segfault when resampling an empty Series (:issue:`10228`)
