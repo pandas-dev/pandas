@@ -23,7 +23,8 @@ Other Enhancements
   reflect changes from the `Pandas-GBQ library version 0.5.0
   <https://pandas-gbq.readthedocs.io/en/latest/changelog.html#changelog-0-5-0>`__.
   (:issue:`21627`)
-
+- New method :meth:`HDFStore.walk` will recursively walk the group hierarchy of an HDF5 file (:issue:`10932`)
+-
 
 .. _whatsnew_0240.api_breaking:
 
