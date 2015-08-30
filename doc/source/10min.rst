@@ -157,7 +157,7 @@ Sorting by values
 
 .. ipython:: python
 
-   df.sort(columns='B')
+   df.sort_values(by='B')
 
 Selection
 ---------
@@ -680,7 +680,7 @@ Sorting is per order in the categories, not lexical order.
 
 .. ipython:: python
 
-    df.sort("grade")
+    df.sort_values(by="grade")
 
 Grouping by a categorical column shows also empty categories.
 
