@@ -164,9 +164,9 @@ will result in a **sorted** copy of the original DataFrame or Series:
    index = pd.MultiIndex.from_product([[2,1], ['a', 'b']])
    df = pd.DataFrame(np.random.randn(4), index=index, columns=['A'])
    df
-   all(df.unstack().stack() == df.sort())
+   all(df.unstack().stack() == df.sort_index())
 
-while the above code will raise a ``TypeError`` if the call to ``sort`` is
+while the above code will raise a ``TypeError`` if the call to ``sort_index`` is
 removed.
 
 .. _reshaping.stack_multiple:
@@ -206,7 +206,7 @@ Missing Data
 These functions are intelligent about handling missing data and do not expect
 each subgroup within the hierarchical index to have the same set of labels.
 They also can handle the index being unsorted (but you can make it sorted by
-calling ``sortlevel``, of course). Here is a more complex example:
+calling ``sort_index``, of course). Here is a more complex example:
 
 .. ipython:: python
 

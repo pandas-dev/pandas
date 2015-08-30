@@ -437,7 +437,6 @@ Reshaping, sorting
    Series.reorder_levels
    Series.sort_values
    Series.sort_index
-   Series.sortlevel
    Series.swaplevel
    Series.unstack
    Series.searchsorted

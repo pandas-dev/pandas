@@ -309,7 +309,7 @@ Method 2 : sort then take first of each
 
 .. ipython:: python
 
-   df.sort("BBB").groupby("AAA", as_index=False).first()
+   df.sort_values(by="BBB").groupby("AAA", as_index=False).first()
 
 Notice the same results, with the exception of the index.
 
@@ -410,7 +410,7 @@ Sorting
 
 .. ipython:: python
 
-   df.sort(('Labs', 'II'), ascending=False)
+   df.sort_values(by=('Labs', 'II'), ascending=False)
 
 `Partial Selection, the need for sortedness;
 <https://github.com/pydata/pandas/issues/2995>`__
@@ -547,7 +547,7 @@ Unlike agg, apply's callable is passed a sub-DataFrame which gives you access to
 
    code_groups = df.groupby('code')
 
-   agg_n_sort_order = code_groups[['data']].transform(sum).sort('data')
+   agg_n_sort_order = code_groups[['data']].transform(sum).sort_values(by='data')
 
    sorted_df = df.ix[agg_n_sort_order.index]
 
