@@ -212,7 +212,7 @@ class groupby_indices(object):
     def setup(self):
         try:
             self.rng = date_range('1/1/2000', '12/31/2005', freq='H')
-            (year, month, day) = (self.rng.year, self.rng.month, self.rng.day)
+            (self.year, self.month, self.day) = (self.rng.year, self.rng.month, self.rng.day)
         except:
             self.rng = date_range('1/1/2000', '12/31/2000', offset=datetools.Hour())
             self.year = self.rng.map((lambda x: x.year))
