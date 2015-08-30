@@ -5,21 +5,13 @@
 .. ipython:: python
    :suppress:
 
-   import os
-   import csv
-   from pandas.compat import StringIO
    import pandas as pd
-   ExcelWriter = pd.ExcelWriter
-
    import numpy as np
    np.random.seed(123456)
-   randn = np.random.randn
    np.set_printoptions(precision=4, suppress=True)
-
    import matplotlib.pyplot as plt
    plt.close('all')
 
-   from pandas import *
    options.display.max_rows=15
    import pandas.util.testing as tm
 
@@ -1998,9 +1990,9 @@ Improvements to existing features
 
   .. ipython:: python
 
-     p = Panel(randn(3,4,4),items=['ItemA','ItemB','ItemC'],
-                        major_axis=date_range('20010102',periods=4),
-                        minor_axis=['A','B','C','D'])
+     p = pd.Panel(np.random.randn(3,4,4),items=['ItemA','ItemB','ItemC'],
+                  major_axis=pd.date_range('20010102',periods=4),
+                  minor_axis=['A','B','C','D'])
      p
      p.reindex(items=['ItemA']).squeeze()
      p.reindex(items=['ItemA'],minor=['B']).squeeze()
@@ -2016,11 +2008,11 @@ Improvements to existing features
 
   .. ipython:: python
 
-      idx = date_range("2001-10-1", periods=5, freq='M')
-      ts = Series(np.random.rand(len(idx)),index=idx)
+      idx = pd.date_range("2001-10-1", periods=5, freq='M')
+      ts = pd.Series(np.random.rand(len(idx)),index=idx)
       ts['2001']
 
-      df = DataFrame(dict(A = ts))
+      df = pd.DataFrame(dict(A = ts))
       df['2001']
 
 - added option `display.mpl_style` providing a sleeker visual style for plots. Based on https://gist.github.com/huyng/816622 (:issue:`3075`).
