@@ -2425,6 +2425,7 @@ class BlockManager(PandasObject):
         filter : list, if supplied, only call the block if the filter is in
                  the block
         do_integrity_check : boolean, default False. Do the block manager integrity check
+        consolidate: boolean, default True. Join together blocks having same dtype
 
         Returns
         -------

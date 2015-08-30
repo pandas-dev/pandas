@@ -10771,9 +10771,11 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         assert_series_equal(the_diff['A'],
                             tf['A'] - tf['A'].shift(1))
 
-        df = pd.DataFrame({'x': pd.Series([1]),'y': pd.Series([2]), 'z': pd.Series([3])})
-        result = df.diff(axis=1).astype(float)
-        expected = pd.DataFrame({'x':np.nan, 'y':pd.Series(1), 'z':pd.Series(1)}).astype(float)
+        # issue 10907
+        df = pd.DataFrame({'y': pd.Series([2]), 'z': pd.Series([3])})
+        df.insert(0, 'x', 1)
+        result = df.diff(axis=1)
+        expected = pd.DataFrame({'x':np.nan, 'y':pd.Series(1), 'z':pd.Series(1)}).astype('float64')
         self.assert_frame_equal(result, expected)
 
 
