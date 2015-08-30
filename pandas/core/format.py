@@ -584,7 +584,6 @@ class DataFrameFormatter(TableFormatter):
         """
         self.escape = self.kwds.get('escape', True)
 
-        # TODO: column_format is not settable in df.to_latex
         def get_col_type(dtype):
             if issubclass(dtype.type, np.number):
                 return 'r'
