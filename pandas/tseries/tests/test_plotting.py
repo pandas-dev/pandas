@@ -22,7 +22,7 @@ from pandas.tests.test_graphics import _skip_if_no_scipy_gaussian_kde
 @tm.mplskip
 class TestTSPlot(tm.TestCase):
     def setUp(self):
-        freq = ['S', 'T', 'H', 'D', 'W', 'M', 'Q', 'Y']
+        freq = ['S', 'T', 'H', 'D', 'W', 'M', 'Q', 'A']
         idx = [period_range('12/31/1999', freq=x, periods=100) for x in freq]
         self.period_ser = [Series(np.random.randn(len(x)), x) for x in idx]
         self.period_df = [DataFrame(np.random.randn(len(x), 3), index=x,
