@@ -8,7 +8,7 @@ import pandas.tslib as tslib
 from pandas import compat
 from pandas.core.common import (ABCSeries, is_integer_dtype,
                                 is_timedelta64_dtype, is_list_like,
-                                isnull, _ensure_object)
+                                isnull, _ensure_object, ABCIndexClass)
 from pandas.util.decorators import deprecate_kwarg
 
 @deprecate_kwarg(old_arg_name='coerce', new_arg_name='errors',
@@ -35,7 +35,7 @@ def to_timedelta(arg, unit='ns', box=True, errors='raise', coerce=None):
     """
     unit = _validate_timedelta_unit(unit)
 
-    def _convert_listlike(arg, box, unit):
+    def _convert_listlike(arg, box, unit, name=None):
 
         if isinstance(arg, (list,tuple)) or ((hasattr(arg,'__iter__') and not hasattr(arg,'dtype'))):
             arg = np.array(list(arg), dtype='O')
@@ -51,7 +51,7 @@ def to_timedelta(arg, unit='ns', box=True, errors='raise', coerce=None):
 
         if box:
             from pandas import TimedeltaIndex
-            value = TimedeltaIndex(value,unit='ns')
+            value = TimedeltaIndex(value,unit='ns', name=name)
         return value
 
     if arg is None:
@@ -60,6 +60,8 @@ def to_timedelta(arg, unit='ns', box=True, errors='raise', coerce=None):
         from pandas import Series
         values = _convert_listlike(arg.values, box=False, unit=unit)
         return Series(values, index=arg.index, name=arg.name, dtype='m8[ns]')
+    elif isinstance(arg, ABCIndexClass):
+        return _convert_listlike(arg, box=box, unit=unit, name=arg.name)
     elif is_list_like(arg):
         return _convert_listlike(arg, box=box, unit=unit)
 
