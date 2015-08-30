@@ -4740,6 +4740,16 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
 
         self.assertEqual(self.ts.count(), np.isfinite(self.ts).sum())
 
+        mi = MultiIndex.from_arrays([list('aabbcc'), [1, 2, 2, nan, 1, 2]])
+        ts = Series(np.arange(len(mi)), index=mi)
+
+        left = ts.count(level=1)
+        right = Series([2, 3, 1], index=[1, 2, nan])
+        assert_series_equal(left, right)
+
+        ts.iloc[[0, 3, 5]] = nan
+        assert_series_equal(ts.count(level=1), right - 1)
+
     def test_dtype(self):
 
         self.assertEqual(self.ts.dtype, np.dtype('float64'))
