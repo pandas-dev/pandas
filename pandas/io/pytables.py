@@ -1038,6 +1038,38 @@ class HDFStore(StringMixin):
                  g._v_name != u('table')))
         ]
 
+    def walk(self):
+        """ Walk the pytables group hierarchy yielding the group name and dataframe names
+        for each group.
+
+        Returns
+        -------
+        A generator yielding tuples (`path`, `groups`, `frames`) where:
+
+        - `path` is the full path to a group,
+        - `groups` is a list of group names contained in `path`
+        - `frames` is a list of dataframe names contained in `path`
+
+        """
+        _tables()
+        self._check_if_open()
+        for g in self._handle.walk_groups():
+            if (getattr(g, '_v_name', None) is None
+                or getattr(g._v_attrs, 'pandas_type', None) == 'frame'):
+                continue
+
+            groups = []
+            frames = []
+            for child in g._v_children.values():
+                pandas_type = getattr(child._v_attrs, 'pandas_type', None)
+                if (getattr(child._v_attrs, 'CLASS', None) == 'GROUP'
+                    and pandas_type is None):
+                    groups.append(child._v_name)
+                elif pandas_type == 'frame':
+                    frames.append(child._v_name)
+            yield (g._v_pathname, groups, frames)
+
+
     def get_node(self, key):
         """ return the node with the key or None if it does not exist """
         self._check_if_open()
