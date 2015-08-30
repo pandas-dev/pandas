@@ -479,6 +479,8 @@ Other enhancements
 
 - In ``pd.read_csv``, recognize "s3n://" and "s3a://" URLs as designating S3 file storage (:issue:`11070`, :issue:`11071`).
 
+- Read CSV files from AWS S3 incrementally, instead of first downloading the entire file. (Full file download still required for compressed files in Python 2.) (:issue:`11070`, :issue:`11073`)
+
 .. _whatsnew_0170.api:
 
 .. _whatsnew_0170.api_breaking:
