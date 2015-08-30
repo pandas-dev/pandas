@@ -19,6 +19,7 @@ from pandas.util.testing import (assert_series_equal,
                                  assert_almost_equal,
                                  assert_index_equal,
                                  ensure_clean)
+from numpy.testing import assert_allclose
 from pandas.tseries.offsets import Day, Second, Hour
 import pandas.util.testing as tm
 from numpy.random import rand, randn
@@ -944,6 +945,36 @@ class TestTimedeltaIndex(tm.TestCase):
 
         tm.assert_series_equal(s.dt.days,Series([1,np.nan],index=[0,1]))
         tm.assert_series_equal(s.dt.seconds,Series([10*3600+11*60+12,np.nan],index=[0,1]))
+
+    def test_total_seconds(self):
+        # GH 10939
+        # test index
+        rng = timedelta_range('1 days, 10:11:12.100123456', periods=2, freq='s')
+        expt = [1*86400+10*3600+11*60+12+100123456./1e9,1*86400+10*3600+11*60+13+100123456./1e9]
+        assert_allclose(rng.total_seconds(), expt, atol=1e-10, rtol=0)
+        
+        # test Series
+        s = Series(rng)
+        s_expt = Series(expt,index=[0,1])
+        tm.assert_series_equal(s.dt.total_seconds(),s_expt)
+
+        # with nat
+        s[1] = np.nan
+        s_expt = Series([1*86400+10*3600+11*60+12+100123456./1e9,np.nan],index=[0,1])
+        tm.assert_series_equal(s.dt.total_seconds(),s_expt)
+        
+        # with both nat
+        s = Series([np.nan,np.nan], dtype='timedelta64[ns]')
+        tm.assert_series_equal(s.dt.total_seconds(),Series([np.nan,np.nan],index=[0,1]))
+
+    def test_total_seconds_scalar(self):
+        # GH 10939
+        rng = Timedelta('1 days, 10:11:12.100123456')
+        expt = 1*86400+10*3600+11*60+12+100123456./1e9
+        assert_allclose(rng.total_seconds(), expt, atol=1e-10, rtol=0)
+        
+        rng = Timedelta(np.nan)
+        self.assertTrue(np.isnan(rng.total_seconds()))
 
     def test_components(self):
         rng = timedelta_range('1 days, 10:11:12', periods=2, freq='s')

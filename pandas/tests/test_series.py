@@ -89,7 +89,7 @@ class CheckNameIntegration(object):
                                    'is_quarter_end', 'is_year_start', 'is_year_end', 'tz']
         ok_for_dt_methods = ['to_period','to_pydatetime','tz_localize','tz_convert', 'normalize', 'strftime']
         ok_for_td = ['days','seconds','microseconds','nanoseconds']
-        ok_for_td_methods = ['components','to_pytimedelta']
+        ok_for_td_methods = ['components','to_pytimedelta','total_seconds']
 
         def get_expected(s, name):
             result = getattr(Index(s.values),prop)
@@ -157,6 +157,10 @@ class CheckNameIntegration(object):
             result = s.dt.to_pytimedelta()
             self.assertIsInstance(result,np.ndarray)
             self.assertTrue(result.dtype == object)
+            
+            result = s.dt.total_seconds()
+            self.assertIsInstance(result,pd.Series)
+            self.assertTrue(result.dtype == 'float64')
 
             freq_result = s.dt.freq
             self.assertEqual(freq_result, TimedeltaIndex(s.values, freq='infer').freq)
