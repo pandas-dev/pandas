@@ -260,7 +260,7 @@ class PandasSQLTest(unittest.TestCase):
 
         self.assertTrue(
             issubclass(pytype, np.floating), 'Loaded frame has incorrect type')
-        tm.equalContents(row.values, [5.1, 3.5, 1.4, 0.2, 'Iris-setosa'])
+        self.assertTrue(tm.equalContents(row.values, [5.1, 3.5, 1.4, 0.2, 'Iris-setosa']))
 
     def _load_test1_data(self):
         columns = ['index', 'A', 'B', 'C', 'D']
@@ -434,7 +434,7 @@ class PandasSQLTest(unittest.TestCase):
         # drop_sql = "DROP TABLE IF EXISTS test"  # should already be done
         iris_results = self.pandasSQL.execute("SELECT * FROM iris")
         row = iris_results.fetchone()
-        tm.equalContents(row, [5.1, 3.5, 1.4, 0.2, 'Iris-setosa'])
+        self.assertTrue(tm.equalContents(row, [5.1, 3.5, 1.4, 0.2, 'Iris-setosa']))
 
     def _to_sql_save_index(self):
         df = DataFrame.from_records([(1,2.1,'line1'), (2,1.5,'line2')],
@@ -616,7 +616,7 @@ class _TestSQLApi(PandasSQLTest):
         # drop_sql = "DROP TABLE IF EXISTS test"  # should already be done
         iris_results = sql.execute("SELECT * FROM iris", con=self.conn)
         row = iris_results.fetchone()
-        tm.equalContents(row, [5.1, 3.5, 1.4, 0.2, 'Iris-setosa'])
+        self.assertTrue(tm.equalContents(row, [5.1, 3.5, 1.4, 0.2, 'Iris-setosa']))
 
     def test_date_parsing(self):
         # Test date parsing in read_sq
@@ -1031,7 +1031,7 @@ class TestSQLiteFallbackApi(SQLiteMixIn, _TestSQLApi):
         with tm.assert_produces_warning(FutureWarning):
             iris_results = sql.tquery("SELECT * FROM iris", con=self.conn)
         row = iris_results[0]
-        tm.equalContents(row, [5.1, 3.5, 1.4, 0.2, 'Iris-setosa'])
+        self.assertTrue(tm.equalContents(row, [5.1, 3.5, 1.4, 0.2, 'Iris-setosa']))
 
     def test_uquery(self):
         with tm.assert_produces_warning(FutureWarning):
@@ -1179,8 +1179,8 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
     def test_read_table_columns(self):
         iris_frame = sql.read_sql_table(
             "iris", con=self.conn, columns=['SepalLength', 'SepalLength'])
-        tm.equalContents(
-            iris_frame.columns.values, ['SepalLength', 'SepalLength'])
+        self.assertTrue(tm.equalContents(
+            iris_frame.columns.values, ['SepalLength', 'SepalLength']))
 
     def test_read_table_absent(self):
         self.assertRaises(
