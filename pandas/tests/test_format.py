@@ -2380,6 +2380,24 @@ c  10  11  12  13  14\
 """
         self.assertEqual(withoutindex_result, withoutindex_expected)
 
+    def test_to_latex_format(self):
+        # it works!
+        self.frame.to_latex(column_format='ccc')
+
+        df = DataFrame({'a': [1, 2],
+                        'b': ['b1', 'b2']})
+        withindex_result = df.to_latex(column_format='ccc')
+        withindex_expected = r"""\begin{tabular}{ccc}
+\toprule
+{} &  a &   b \\
+\midrule
+0 &  1 &  b1 \\
+1 &  2 &  b2 \\
+\bottomrule
+\end{tabular}
+"""
+        self.assertEqual(withindex_result, withindex_expected)
+
     def test_to_latex_multiindex(self):
         df = DataFrame({('x', 'y'): ['a']})
         result = df.to_latex()
