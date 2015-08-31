@@ -4815,38 +4815,44 @@ class TestHDFStore(Base):
 
     # GH10143
     def test_walk(self):
+
+        objs = {
+            'df1': pd.DataFrame([1,2,3]),
+            'df2': pd.DataFrame([4,5,6]),
+            'df3': pd.DataFrame([6,7,8]),
+            'df4': pd.DataFrame([9,10,11]),
+            's1': pd.Series([10,9,8]),
+            'a1': np.array([[1,2,3], [4,5,6]])
+            }
+
         with tm.ensure_clean('walk_groups.hdf') as filename:
             store = HDFStore(filename, 'w')
 
-            dfs = {
-                'df1': pd.DataFrame([1,2,3]),
-                'df2': pd.DataFrame([4,5,6]),
-                'df3': pd.DataFrame([6,7,8]),
-                'df4': pd.DataFrame([9,10,11]),
-                }
-
-            store.put('/first_group/df1', dfs['df1'])
-            store.put('/first_group/df2', dfs['df2'])
-            store.put('/second_group/df3', dfs['df3'])
-            store.put('/second_group/third_group/df4', dfs['df4'])
+            store.put('/first_group/df1', objs['df1'])
+            store.put('/first_group/df2', objs['df2'])
+            store.put('/second_group/df3', objs['df3'])
+            store.put('/second_group/s1', objs['s1'])
+            store.put('/second_group/third_group/df4', objs['df4'])
+            g1 = store._handle.get_node('/first_group')
+            store._handle.create_array(g1, 'a1', objs['a1'])
 
             expect = {
                 '/': (set(['first_group', 'second_group']), set()),
                 '/first_group': (set(), set(['df1', 'df2'])),
-                '/second_group': (set(['third_group']), set(['df3'])),
+                '/second_group': (set(['third_group']), set(['df3', 's1'])),
                 '/second_group/third_group': (set(), set(['df4'])),
             }
 
-            for path, groups, frames in store.walk():
+            for path, groups, leaves in store.walk():
                 self.assertIn(path, expect)
                 expect_groups, expect_frames = expect[path]
 
                 self.assertEqual(expect_groups, set(groups))
-                self.assertEqual(expect_frames, set(frames))
-                for frame in frames:
-                    frame_path = '/'.join([path, frame])
+                self.assertEqual(expect_frames, set(leaves))
+                for leaf in leaves:
+                    frame_path = '/'.join([path, leaf])
                     df = store.get(frame_path)
-                    self.assert_(df.equals(dfs[frame]))
+                    self.assert_(df.equals(objs[leaf]))
 
 
 class TestHDFComplexValues(Base):
