@@ -8,6 +8,7 @@ import pandas.lib as lib
 import pandas.tslib as tslib
 import pandas.core.common as com
 from pandas.compat import StringIO, callable
+from pandas.core.common import ABCIndexClass
 import pandas.compat as compat
 from pandas.util.decorators import deprecate_kwarg
 
@@ -277,7 +278,7 @@ def _to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
     from pandas.core.series import Series
     from pandas.tseries.index import DatetimeIndex
 
-    def _convert_listlike(arg, box, format):
+    def _convert_listlike(arg, box, format, name=None):
 
         if isinstance(arg, (list,tuple)):
             arg = np.array(arg, dtype='O')
@@ -286,7 +287,7 @@ def _to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
         if com.is_datetime64_ns_dtype(arg):
             if box and not isinstance(arg, DatetimeIndex):
                 try:
-                    return DatetimeIndex(arg, tz='utc' if utc else None)
+                    return DatetimeIndex(arg, tz='utc' if utc else None, name=name)
                 except ValueError:
                     pass
 
@@ -294,7 +295,7 @@ def _to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
         elif format is None and com.is_integer_dtype(arg) and unit=='ns':
             result = arg.astype('datetime64[ns]')
             if box:
-                return DatetimeIndex(result, tz='utc' if utc else None)
+                return DatetimeIndex(result, tz='utc' if utc else None, name=name)
 
             return result
 
@@ -355,13 +356,13 @@ def _to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
                                                  require_iso8601=require_iso8601)
 
             if com.is_datetime64_dtype(result) and box:
-                result = DatetimeIndex(result, tz='utc' if utc else None)
+                result = DatetimeIndex(result, tz='utc' if utc else None, name=name)
             return result
 
         except ValueError as e:
             try:
                 values, tz = tslib.datetime_to_datetime64(arg)
-                return DatetimeIndex._simple_new(values, None, tz=tz)
+                return DatetimeIndex._simple_new(values, name=name, tz=tz)
             except (ValueError, TypeError):
                 raise e
 
@@ -372,6 +373,8 @@ def _to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
     elif isinstance(arg, Series):
         values = _convert_listlike(arg.values, False, format)
         return Series(values, index=arg.index, name=arg.name)
+    elif isinstance(arg, ABCIndexClass):
+        return _convert_listlike(arg, box, format, name=arg.name)
     elif com.is_list_like(arg):
         return _convert_listlike(arg, box, format)
 
