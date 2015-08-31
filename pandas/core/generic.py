@@ -2993,8 +2993,8 @@ class NDFrame(PandasObject):
               wrappers around the scipy interpolation methods of similar
               names. These use the actual numerical values of the index. See
               the scipy documentation for more on their behavior
-              `here <http://docs.scipy.org/doc/scipy/reference/interpolate.html#univariate-interpolation>`_
-              `and here <http://docs.scipy.org/doc/scipy/reference/tutorial/interpolate.html>`_
+              `here <http://docs.scipy.org/doc/scipy/reference/interpolate.html#univariate-interpolation>`__
+              `and here <http://docs.scipy.org/doc/scipy/reference/tutorial/interpolate.html>`__
 
         axis : {0, 1}, default 0
             * 0: fill column-by-column
