@@ -83,6 +83,7 @@ When calling ``apply`` on a grouped Series, the return value will also be a
 Series, to be more consistent with the ``groupby`` behavior with DataFrame:
 
 .. ipython:: python
+    :okwarning:
 
     df = DataFrame({'A' : ['foo', 'bar', 'foo', 'bar',
                         'foo', 'bar', 'foo', 'foo'],
@@ -93,4 +94,3 @@ Series, to be more consistent with the ``groupby`` behavior with DataFrame:
     grouped = df.groupby('A')['C']
     grouped.describe()
     grouped.apply(lambda x: x.order()[-2:]) # top 2 values
-
