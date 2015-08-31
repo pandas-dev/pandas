@@ -801,7 +801,7 @@ class DataFrame(NDFrame):
         into a default chunk size of 10,000. Failures return the complete error
         response which can be quite long depending on the size of the insert.
         There are several important limitations of the Google streaming API
-        which are `here <https://developers.google.com/bigquery/streaming-data-into-bigquery>`_
+        which are `here <https://developers.google.com/bigquery/streaming-data-into-bigquery>`__
 
         Parameters
         ----------
@@ -1488,7 +1488,7 @@ class DataFrame(NDFrame):
             Make the row labels bold in the output
         column_format : str, default None
             The columns format as specified in `LaTeX table format
-            <https://en.wikibooks.org/wiki/LaTeX/Tables>`_ e.g 'rcl' for 3 columns
+            <https://en.wikibooks.org/wiki/LaTeX/Tables>`__ e.g 'rcl' for 3 columns
         longtable : boolean, default False
             Use a longtable environment instead of tabular. Requires adding
             a \\usepackage{longtable} to your LaTeX preamble.
@@ -2113,7 +2113,7 @@ class DataFrame(NDFrame):
         * To select strings you must use the ``object`` dtype, but note that
           this will return *all* object dtype columns
         * See the `numpy dtype hierarchy
-          <http://docs.scipy.org/doc/numpy/reference/arrays.scalars.html>`_
+          <http://docs.scipy.org/doc/numpy/reference/arrays.scalars.html>`__
         * To select Pandas categorical dtypes, use 'category'
 
         Examples
