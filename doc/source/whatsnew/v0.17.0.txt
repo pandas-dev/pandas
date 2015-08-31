@@ -836,3 +836,4 @@ Bug Fixes
 - Bug in ``to_json`` which was causing segmentation fault when serializing 0-rank ndarray (:issue:`9576`)
 - Bug in plotting functions may raise ``IndexError`` when plotted on ``GridSpec`` (:issue:`10819`)
 - Bug in plot result may show unnecessary minor ticklabels (:issue:`10657`)
+- Bug when constructing ``DataFrame`` where passing a dictionary with only scalar values and specifying columns did not raise an error (:issue:`10856`)
