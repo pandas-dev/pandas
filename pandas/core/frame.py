@@ -1513,7 +1513,7 @@ class DataFrame(NDFrame):
                                            sparsify=sparsify,
                                            index_names=index_names,
                                            escape=escape)
-        formatter.to_latex(column_format=column_format, longtable=longtable)
+        formatter.to_latex(longtable=longtable)
 
         if buf is None:
             return formatter.buf.getvalue()
