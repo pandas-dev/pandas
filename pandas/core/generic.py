@@ -2964,7 +2964,7 @@ class NDFrame(PandasObject):
             return self._constructor(new_data).__finalize__(self)
 
     def interpolate(self, method='linear', axis=0, limit=None, inplace=False,
-                    downcast=None, **kwargs):
+                    limit_direction='forward', downcast=None, **kwargs):
         """
         Interpolate values according to different methods.
 
@@ -3001,6 +3001,12 @@ class NDFrame(PandasObject):
             * 1: fill row-by-row
         limit : int, default None.
             Maximum number of consecutive NaNs to fill.
+        limit_direction : {'forward', 'backward', 'both'}, defaults to 'forward'
+            If limit is specified, consecutive NaNs will be filled in this
+            direction.
+
+            .. versionadded:: 0.17.0
+
         inplace : bool, default False
             Update the NDFrame in place if possible.
         downcast : optional, 'infer' or None, defaults to None
@@ -3071,6 +3077,7 @@ class NDFrame(PandasObject):
             index=index,
             values=_maybe_transposed_self,
             limit=limit,
+            limit_direction=limit_direction,
             inplace=inplace,
             downcast=downcast,
             **kwargs

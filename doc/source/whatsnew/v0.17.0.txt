@@ -55,6 +55,12 @@ New features
 - SQL io functions now accept a SQLAlchemy connectable. (:issue:`7877`)
 - Enable writing complex values to HDF stores when using table format (:issue:`10447`)
 - Enable reading gzip compressed files via URL, either by explicitly setting the compression parameter or by inferring from the presence of the HTTP Content-Encoding header in the response (:issue:`8685`)
+- Add a ``limit_direction`` keyword argument that works with ``limit`` to enable ``interpolate`` to fill ``NaN`` values forward, backward, or both (:issue:`9218` and :issue:`10420`)
+
+  .. ipython:: python
+
+     ser = pd.Series([np.nan, np.nan, 5, np.nan, np.nan, np.nan, 13])
+     ser.interpolate(limit=1, limit_direction='both')
 
 .. _whatsnew_0170.gil:
 
