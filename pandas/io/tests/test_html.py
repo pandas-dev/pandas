@@ -358,20 +358,16 @@ class TestReadHtml(tm.TestCase, ReadHtmlMixin):
 
     @network
     def test_multiple_matches(self):
-        raise nose.SkipTest("pythonxy link seems to have changed")
-
-        url = 'http://code.google.com/p/pythonxy/wiki/StandardPlugins'
-        dfs = self.read_html(url, match='Python', attrs={'class': 'wikitable'})
+        url = 'https://docs.python.org/2/'
+        dfs = self.read_html(url, match='Python')
         self.assertTrue(len(dfs) > 1)
 
     @network
-    def test_pythonxy_plugins_table(self):
-        raise nose.SkipTest("pythonxy link seems to have changed")
-
-        url = 'http://code.google.com/p/pythonxy/wiki/StandardPlugins'
-        dfs = self.read_html(url, match='Python', attrs={'class': 'wikitable'})
-        zz = [df.iloc[0, 0] for df in dfs]
-        self.assertEqual(sorted(zz), sorted(['Python', 'SciTE']))
+    def test_python_docs_table(self):
+        url = 'https://docs.python.org/2/'
+        dfs = self.read_html(url, match='Python')
+        zz = [df.iloc[0, 0][0:4] for df in dfs]
+        self.assertEqual(sorted(zz), sorted(['Repo', 'What']))
 
     @slow
     def test_thousands_macau_stats(self):
