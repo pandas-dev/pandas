@@ -2265,9 +2265,8 @@ class Timedelta(_Timedelta):
            return "m"
         elif self._h:
            return "h"
-        elif self._d:
+        else:
            return "D"
-        raise ValueError("invalid resolution")
 
     def round(self, reso):
         """
