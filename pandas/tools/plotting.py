@@ -920,11 +920,11 @@ class MPLPlot(object):
         else:
             columns = data.columns
 
-        for col in columns:
+        for col, values in data.iteritems():
             if keep_index is True:
-                yield col, data[col]
+                yield col, values
             else:
-                yield col, data[col].values
+                yield col, values.values
 
     @property
     def nseries(self):
