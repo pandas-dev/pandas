@@ -3,6 +3,7 @@ import warnings
 import operator
 import weakref
 import gc
+import inspect
 import numpy as np
 import pandas.lib as lib
 
@@ -21,8 +22,7 @@ from pandas.compat import map, zip, lrange, string_types, isidentifier
 from pandas.core.common import (isnull, notnull, is_list_like,
                                 _values_from_object, _maybe_promote,
                                 _maybe_box_datetimelike, ABCSeries,
-                                SettingWithCopyError, SettingWithCopyWarning,
-                                AbstractMethodError)
+                                AbstractMethodError, SettingWithCopyError)
 import pandas.core.nanops as nanops
 from pandas.util.decorators import Appender, Substitution, deprecate_kwarg
 from pandas.core import config
@@ -79,12 +79,13 @@ class NDFrame(PandasObject):
     copy : boolean, default False
     """
     _internal_names = ['_data', '_cacher', '_item_cache', '_cache',
-                       'is_copy', '_subtyp', '_index',
+                       'is_copy', '_subtyp', '_index', '_allow_copy_on_write',
                        '_default_kind', '_default_fill_value', '_metadata',
                        '__array_struct__', '__array_interface__']
     _internal_names_set = set(_internal_names)
     _accessors = frozenset([])
     _metadata = []
+    _allow_copy_on_write = True
     is_copy = None
 
     def __init__(self, data, axes=None, copy=False, dtype=None,
@@ -1173,7 +1174,7 @@ class NDFrame(PandasObject):
                     pass
 
         if verify_is_copy:
-            self._check_setitem_copy(stacklevel=5, t='referant')
+            self._check_copy_on_write()
 
         if clear:
             self._clear_item_cache()
@@ -1202,6 +1203,8 @@ class NDFrame(PandasObject):
         return result
 
     def _set_item(self, key, value):
+
+        self._check_copy_on_write()
         self._data.set(key, value)
         self._clear_item_cache()
 
@@ -1214,10 +1217,54 @@ class NDFrame(PandasObject):
             else:
                 self.is_copy = None
 
+    def _check_copy_on_write(self):
+
+        # we could have a copy-on-write scenario
+        if self.is_copy and self._allow_copy_on_write:
+
+            # we have an exception
+            if isinstance(self.is_copy, Exception):
+                raise self.is_copy
+
+            def get_names_for_obj(__really_unused_name__342424__):
+                """Returns all named references for self"""
+
+                removals = set(["__really_unused_name__342424__", "__really_unused_name__xxxxx__", "self"])
+                refs = gc.get_referrers(__really_unused_name__342424__)
+
+                names = []
+                for ref in refs:
+                    if inspect.isframe(ref):
+                        for name, __really_unused_name__xxxxx__ in ref.f_locals.iteritems():
+                            if __really_unused_name__xxxxx__ is __really_unused_name__342424__:
+                                names.append(name)
+
+                for name, __really_unused_name__xxxxx__ in globals().iteritems():
+                    if __really_unused_name__xxxxx__ is __really_unused_name__342424__:
+                        names.append(name)
+
+                return set(names) - removals
+
+            # collect garbage
+            # if we don't have references, then we have a reassignment case
+            #    e.g. df = df.ix[....]; since the reference is gone
+            #    we can just copy and be done
+
+            # otherwise we have chained indexing, raise and error
+            gc.collect(2)
+            if self.is_copy() is not None:
+                names = get_names_for_obj(self)
+                if not len(names):
+                    raise SettingWithCopyError("chained indexing detected, you can fix this ......")
+
+            # provide copy-on-write
+            self._data = self._data.copy()
+            self.is_copy = None
+
     def _check_is_chained_assignment_possible(self):
         """
         check if we are a view, have a cacher, and are of mixed type
-        if so, then force a setitem_copy check
+        if so, then force a copy_on_write check
 
         should be called just near setting a value
 
@@ -1227,90 +1274,11 @@ class NDFrame(PandasObject):
         if self._is_view and self._is_cached:
             ref = self._get_cacher()
             if ref is not None and ref._is_mixed_type:
-                self._check_setitem_copy(stacklevel=4, t='referant', force=True)
+                self._check_copy_on_write()
             return True
         elif self.is_copy:
-            self._check_setitem_copy(stacklevel=4, t='referant')
+            self._check_copy_on_write()
         return False
-
-    def _check_setitem_copy(self, stacklevel=4, t='setting', force=False):
-        """
-
-        Parameters
-        ----------
-        stacklevel : integer, default 4
-           the level to show of the stack when the error is output
-        t : string, the type of setting error
-        force : boolean, default False
-           if True, then force showing an error
-
-        validate if we are doing a settitem on a chained copy.
-
-        If you call this function, be sure to set the stacklevel such that the
-        user will see the error *at the level of setting*
-
-        It is technically possible to figure out that we are setting on
-        a copy even WITH a multi-dtyped pandas object. In other words, some blocks
-        may be views while other are not. Currently _is_view will ALWAYS return False
-        for multi-blocks to avoid having to handle this case.
-
-        df = DataFrame(np.arange(0,9), columns=['count'])
-        df['group'] = 'b'
-
-        # this technically need not raise SettingWithCopy if both are view (which is not
-        # generally guaranteed but is usually True
-        # however, this is in general not a good practice and we recommend using .loc
-        df.iloc[0:5]['group'] = 'a'
-
-        """
-
-        if force or self.is_copy:
-
-            value = config.get_option('mode.chained_assignment')
-            if value is None:
-                return
-
-            # see if the copy is not actually refererd; if so, then disolve
-            # the copy weakref
-            try:
-                gc.collect(2)
-                if not gc.get_referents(self.is_copy()):
-                    self.is_copy = None
-                    return
-            except:
-                pass
-
-            # we might be a false positive
-            try:
-                if self.is_copy().shape == self.shape:
-                    self.is_copy = None
-                    return
-            except:
-                pass
-
-            # a custom message
-            if isinstance(self.is_copy, string_types):
-                t = self.is_copy
-
-            elif t == 'referant':
-                t = ("\n"
-                     "A value is trying to be set on a copy of a slice from a "
-                     "DataFrame\n\n"
-                     "See the caveats in the documentation: "
-                     "http://pandas.pydata.org/pandas-docs/stable/indexing.html#indexing-view-versus-copy")
-
-            else:
-                t = ("\n"
-                     "A value is trying to be set on a copy of a slice from a "
-                     "DataFrame.\n"
-                     "Try using .loc[row_indexer,col_indexer] = value instead\n\n"
-                     "See the caveats in the documentation: "
-                     "http://pandas.pydata.org/pandas-docs/stable/indexing.html#indexing-view-versus-copy")
-
-            if value == 'raise':
-                raise SettingWithCopyError(t)
-            elif value == 'warn':
-                warnings.warn(t, SettingWithCopyWarning, stacklevel=stacklevel)
 
     def __delitem__(self, key):
         """
@@ -3376,11 +3344,11 @@ class NDFrame(PandasObject):
             For frequencies that evenly subdivide 1 day, the "origin" of the
             aggregated intervals. For example, for '5min' frequency, base could
             range from 0 through 4. Defaults to 0
-        
+
 
         Examples
         --------
-        
+
         Start by creating a series with 9 one minute timestamps.
 
         >>> index = pd.date_range('1/1/2000', periods=9, freq='T')
@@ -3409,11 +3377,11 @@ class NDFrame(PandasObject):
         Downsample the series into 3 minute bins as above, but label each
         bin using the right edge instead of the left. Please note that the
         value in the bucket used as the label is not included in the bucket,
-        which it labels. For example, in the original series the 
+        which it labels. For example, in the original series the
         bucket ``2000-01-01 00:03:00`` contains the value 3, but the summed
-        value in the resampled bucket with the label``2000-01-01 00:03:00`` 
+        value in the resampled bucket with the label``2000-01-01 00:03:00``
         does not include 3 (if it did, the summed value would be 6, not 3).
-        To include this value close the right side of the bin interval as 
+        To include this value close the right side of the bin interval as
         illustrated in the example below this one.
 
         >>> series.resample('3T', how='sum', label='right')
@@ -3424,7 +3392,7 @@ class NDFrame(PandasObject):
 
         Downsample the series into 3 minute bins as above, but close the right
         side of the bin interval.
-        
+
         >>> series.resample('3T', how='sum', label='right', closed='right')
         2000-01-01 00:00:00     0
         2000-01-01 00:03:00     6
@@ -3453,7 +3421,7 @@ class NDFrame(PandasObject):
         2000-01-01 00:02:00    2
         Freq: 30S, dtype: int64
 
-        Upsample the series into 30 second bins and fill the 
+        Upsample the series into 30 second bins and fill the
         ``NaN`` values using the ``bfill`` method.
 
         >>> series.resample('30S', fill_method='bfill')[0:5]
@@ -3468,7 +3436,7 @@ class NDFrame(PandasObject):
 
         >>> def custom_resampler(array_like):
         ...     return np.sum(array_like)+5
-        
+
         >>> series.resample('3T', how=custom_resampler)
         2000-01-01 00:00:00     8
         2000-01-01 00:03:00    17

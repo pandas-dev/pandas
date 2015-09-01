@@ -21,7 +21,7 @@ from pandas.core.common import (isnull, notnull, is_bool_indexer,
                                 _possibly_convert_platform, _try_sort,
                                 is_int64_dtype,
                                 ABCSparseArray, _maybe_match_name,
-                                _coerce_to_dtype, SettingWithCopyError,
+                                _coerce_to_dtype, SettingImmutableError,
                                 _maybe_box_datetimelike, ABCDataFrame,
                                 _dict_compat)
 from pandas.core.index import (Index, MultiIndex, InvalidIndexError,
@@ -635,7 +635,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             try:
                 self._set_with_engine(key, value)
                 return
-            except (SettingWithCopyError):
+            except (SettingImmutableError):
                 raise
             except (KeyError, ValueError):
                 values = self.values

@@ -539,11 +539,9 @@ class TestMultiLevel(tm.TestCase):
         # this is a copy in 0.14
         result = self.frame.xs('two', level='second')
 
-        # setting this will give a SettingWithCopyError
-        # as we are trying to write a view
-        def f(x):
-            x[:] = 10
-        self.assertRaises(com.SettingWithCopyError, f, result)
+        # this is copy-on-write
+        result[:] = 10
+        self.assertTrue((result.values == 10).all())
 
     def test_xs_level_multiple(self):
         from pandas import read_table
@@ -562,11 +560,9 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         # this is a copy in 0.14
         result = df.xs(('a', 4), level=['one', 'four'])
 
-        # setting this will give a SettingWithCopyError
-        # as we are trying to write a view
-        def f(x):
-            x[:] = 10
-        self.assertRaises(com.SettingWithCopyError, f, result)
+        # copy-on-write
+        result[:] = 10
+        self.assertTrue((result.values == 10).all())
 
         # GH2107
         dates = lrange(20111201, 20111205)
@@ -1412,7 +1408,7 @@ Thur,Lunch,Yes,51.51,17"""
         df['foo', 'four'] = 'foo'
         df = df.sortlevel(0, axis=1)
 
-        # this will work, but will raise/warn as its chained assignment
+        # chained assignment
         def f():
             df['foo']['one'] = 2
             return df

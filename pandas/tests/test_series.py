@@ -204,11 +204,10 @@ class CheckNameIntegration(object):
         with tm.assertRaisesRegexp(ValueError, "modifications"):
             s.dt.hour = 5
 
-        # trying to set a copy
-        with pd.option_context('chained_assignment','raise'):
-            def f():
-                s.dt.hour[0] = 5
-            self.assertRaises(com.SettingWithCopyError, f)
+        # trying to set an immutable
+        def f():
+            s.dt.hour[0] = 5
+        self.assertRaises(com.SettingImmutableError, f)
 
     def test_strftime(self):
         # GH 10086
@@ -4447,7 +4446,6 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
 
         # GH 3970
         # these are chained assignments as well
-        pd.set_option('chained_assignment',None)
         df = DataFrame({ "aa":range(5), "bb":[2.2]*5})
         df["cc"] = 0.0
         ck = [True]*len(df)
@@ -4455,7 +4453,6 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         df_tmp = df.iloc[ck]
         df["bb"].iloc[0] = .15
         self.assertEqual(df['bb'].iloc[0], 0.15)
-        pd.set_option('chained_assignment','raise')
 
         # GH 3217
         df = DataFrame(dict(a = [1,3], b = [np.nan, 2]))

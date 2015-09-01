@@ -2744,10 +2744,9 @@ class TestGroupBy(tm.TestCase):
         self.assertEqual(result['d'].dtype, np.float64)
 
         # this is by definition a mutating operation!
-        with option_context('mode.chained_assignment',None):
-            for key, group in grouped:
-                res = f(group)
-                assert_frame_equal(res, result.ix[key])
+        for key, group in grouped:
+            res = f(group)
+            assert_frame_equal(res, result.ix[key])
 
     def test_groupby_wrong_multi_labels(self):
         from pandas import read_csv

@@ -2851,12 +2851,10 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         assert_frame_equal(df,expected)
 
         # ok, but chained assignments are dangerous
-        # if we turn off chained assignement it will work
-        with option_context('chained_assignment',None):
-            df = pd.DataFrame({'a': lrange(4) })
-            df['b'] = np.nan
-            df['b'].ix[[1,3]] = [100,-100]
-            assert_frame_equal(df,expected)
+        df = pd.DataFrame({'a': lrange(4) })
+        df['b'] = np.nan
+        df['b'].ix[[1,3]] = [100,-100]
+        assert_frame_equal(df,expected)
 
     def test_ix_get_set_consistency(self):
 
@@ -3672,25 +3670,22 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
 
     def test_slice_consolidate_invalidate_item_cache(self):
 
-        # this is chained assignment, but will 'work'
-        with option_context('chained_assignment',None):
+        # #3970
+        df = DataFrame({ "aa":lrange(5), "bb":[2.2]*5})
 
-            # #3970
-            df = DataFrame({ "aa":lrange(5), "bb":[2.2]*5})
+        # Creates a second float block
+        df["cc"] = 0.0
 
-            # Creates a second float block
-            df["cc"] = 0.0
+        # caches a reference to the 'bb' series
+        df["bb"]
 
-            # caches a reference to the 'bb' series
-            df["bb"]
+        # repr machinery triggers consolidation
+        repr(df)
 
-            # repr machinery triggers consolidation
-            repr(df)
-
-            # Assignment to wrong series
-            df['bb'].iloc[0] = 0.17
-            df._clear_item_cache()
-            self.assertAlmostEqual(df['bb'][0], 0.17)
+        # Assignment to wrong series
+        df['bb'].iloc[0] = 0.17
+        df._clear_item_cache()
+        self.assertAlmostEqual(df['bb'][0], 0.17)
 
     def test_setitem_cache_updating(self):
         # GH 5424
@@ -3776,9 +3771,32 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         result = df.head()
         assert_frame_equal(result, expected)
 
-    def test_detect_chained_assignment(self):
+    def test_chain_assignment_yields_copy_on_write(self):
 
-        pd.set_option('chained_assignment','raise')
+        # 10954
+        df = DataFrame({'col1':[1,2], 'col2':[3,4]})
+        intermediate = df.loc[1:1,]
+        intermediate['col1'] = -99
+
+        # reference is broken
+        self.assertIsNone(df.is_copy)
+
+        # local assignment
+        expected = DataFrame([[-99,4]],index=[1],columns=['col1','col2'])
+        assert_frame_equal(intermediate, expected)
+
+        # unchanged
+        expected = DataFrame({'col1':[1,2], 'col2':[3,4]})
+        assert_frame_equal(df, expected)
+
+        # chained assignment
+        df = pd.DataFrame({'col1':[1,2], 'col2':[3,4]})
+
+        def f():
+            df.loc[1:1,]['col1'] = -99
+        self.assertRaises(com.SettingWithCopyError, f)
+
+    def test_detect_chained_assignment(self):
 
         # work with the chain
         expected = DataFrame([[-5,1],[-6,3]],columns=list('AB'))
@@ -3791,12 +3809,8 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         # test with the chaining
         df = DataFrame({ 'A' : Series(range(2),dtype='int64'), 'B' : np.array(np.arange(2,4),dtype=np.float64)})
         self.assertIsNone(df.is_copy)
-        def f():
-            df['A'][0] = -5
-        self.assertRaises(com.SettingWithCopyError, f)
-        def f():
-            df['A'][1] = np.nan
-        self.assertRaises(com.SettingWithCopyError, f)
+        df['A'][0] = -5
+        df['A'][1] = np.nan
         self.assertIsNone(df['A'].is_copy)
 
         # using a copy (the chain), fails
@@ -3821,9 +3835,7 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
 
         expected = DataFrame({'A':[111,'bbb','ccc'],'B':[1,2,3]})
         df = DataFrame({'A':['aaa','bbb','ccc'],'B':[1,2,3]})
-        def f():
-            df['A'][0] = 111
-        self.assertRaises(com.SettingWithCopyError, f)
+        df['A'][0] = 111
         def f():
             df.loc[0]['A'] = 111
         self.assertRaises(com.SettingWithCopyError, f)
@@ -3942,8 +3954,13 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         def f():
             df.ix[2]['C'] = 'foo'
         self.assertRaises(com.SettingWithCopyError, f)
+        df['C'][2] = 'foo'
+
+    def test_detect_chained_assignment2(self):
+
+        df = DataFrame({'A':['aaa','bbb','ccc'],'B':[1,2,3]})
         def f():
-            df['C'][2] = 'foo'
+            df.loc[0]['A'] = 111
         self.assertRaises(com.SettingWithCopyError, f)
 
     def test_setting_with_copy_bug(self):
@@ -3963,14 +3980,6 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
 
         # this should not raise
         df2['y'] = ['g', 'h', 'i']
-
-    def test_detect_chained_assignment_warnings(self):
-
-        # warnings
-        with option_context('chained_assignment','warn'):
-            df = DataFrame({'A':['aaa','bbb','ccc'],'B':[1,2,3]})
-            with tm.assert_produces_warning(expected_warning=com.SettingWithCopyWarning):
-                df.loc[0]['A'] = 111
 
     def test_float64index_slicing_bug(self):
         # GH 5557, related to slicing a float index
