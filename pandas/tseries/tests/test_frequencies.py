@@ -529,8 +529,12 @@ class TestFrequencyInference(tm.TestCase):
         self.assertRaises(ValueError, lambda : frequencies.infer_freq(Series(['foo','bar'])))
 
         # cannot infer on PeriodIndex
-        for freq in [None, 'L', 'Y']:
+        for freq in [None, 'L']:
             s = Series(period_range('2013',periods=10,freq=freq))
+            self.assertRaises(TypeError, lambda : frequencies.infer_freq(s))
+        for freq in ['Y']:
+            with tm.assert_produces_warning(FutureWarning):
+                s = Series(period_range('2013',periods=10,freq=freq))
             self.assertRaises(TypeError, lambda : frequencies.infer_freq(s))
 
         # DateTimeIndex
@@ -542,6 +546,19 @@ class TestFrequencyInference(tm.TestCase):
         s = Series(date_range('20130101','20130110'))
         inferred = frequencies.infer_freq(s)
         self.assertEqual(inferred,'D')
+
+    def test_legacy_offset_warnings(self):
+        for k, v in compat.iteritems(frequencies._rule_aliases):
+            with tm.assert_produces_warning(FutureWarning):
+                result = frequencies.get_offset(k)
+            exp = frequencies.get_offset(v)
+            self.assertEqual(result, exp)
+
+            with tm.assert_produces_warning(FutureWarning):
+                idx = date_range('2011-01-01', periods=5, freq=k)
+            exp = date_range('2011-01-01', periods=5, freq=v)
+            self.assert_index_equal(idx, exp)
+
 
 MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP',
           'OCT', 'NOV', 'DEC']

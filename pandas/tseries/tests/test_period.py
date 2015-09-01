@@ -437,7 +437,7 @@ class TestPeriodProperties(tm.TestCase):
 
     def test_properties_weekly(self):
         # Test properties on Periods with daily frequency.
-        w_date = Period(freq='WK', year=2007, month=1, day=7)
+        w_date = Period(freq='W', year=2007, month=1, day=7)
         #
         assert_equal(w_date.year, 2007)
         assert_equal(w_date.quarter, 1)
@@ -445,7 +445,22 @@ class TestPeriodProperties(tm.TestCase):
         assert_equal(w_date.week, 1)
         assert_equal((w_date - 1).week, 52)
         assert_equal(w_date.days_in_month, 31)
-        assert_equal(Period(freq='WK', year=2012, month=2, day=1).days_in_month, 29)
+        assert_equal(Period(freq='W', year=2012, month=2, day=1).days_in_month, 29)
+
+    def test_properties_weekly_legacy(self):
+        # Test properties on Periods with daily frequency.
+        with tm.assert_produces_warning(FutureWarning):
+            w_date = Period(freq='WK', year=2007, month=1, day=7)
+        #
+        assert_equal(w_date.year, 2007)
+        assert_equal(w_date.quarter, 1)
+        assert_equal(w_date.month, 1)
+        assert_equal(w_date.week, 1)
+        assert_equal((w_date - 1).week, 52)
+        assert_equal(w_date.days_in_month, 31)
+        with tm.assert_produces_warning(FutureWarning):
+            exp = Period(freq='WK', year=2012, month=2, day=1)
+        assert_equal(exp.days_in_month, 29)
 
     def test_properties_daily(self):
         # Test properties on Periods with daily frequency.
@@ -613,8 +628,8 @@ class TestFreqConversion(tm.TestCase):
         ival_A_to_Q_end = Period(freq='Q', year=2007, quarter=4)
         ival_A_to_M_start = Period(freq='M', year=2007, month=1)
         ival_A_to_M_end = Period(freq='M', year=2007, month=12)
-        ival_A_to_W_start = Period(freq='WK', year=2007, month=1, day=1)
-        ival_A_to_W_end = Period(freq='WK', year=2007, month=12, day=31)
+        ival_A_to_W_start = Period(freq='W', year=2007, month=1, day=1)
+        ival_A_to_W_end = Period(freq='W', year=2007, month=12, day=31)
         ival_A_to_B_start = Period(freq='B', year=2007, month=1, day=1)
         ival_A_to_B_end = Period(freq='B', year=2007, month=12, day=31)
         ival_A_to_D_start = Period(freq='D', year=2007, month=1, day=1)
@@ -643,8 +658,8 @@ class TestFreqConversion(tm.TestCase):
         assert_equal(ival_A.asfreq('Q', 'e'), ival_A_to_Q_end)
         assert_equal(ival_A.asfreq('M', 's'), ival_A_to_M_start)
         assert_equal(ival_A.asfreq('M', 'E'), ival_A_to_M_end)
-        assert_equal(ival_A.asfreq('WK', 'S'), ival_A_to_W_start)
-        assert_equal(ival_A.asfreq('WK', 'E'), ival_A_to_W_end)
+        assert_equal(ival_A.asfreq('W', 'S'), ival_A_to_W_start)
+        assert_equal(ival_A.asfreq('W', 'E'), ival_A_to_W_end)
         assert_equal(ival_A.asfreq('B', 'S'), ival_A_to_B_start)
         assert_equal(ival_A.asfreq('B', 'E'), ival_A_to_B_end)
         assert_equal(ival_A.asfreq('D', 'S'), ival_A_to_D_start)
@@ -681,8 +696,8 @@ class TestFreqConversion(tm.TestCase):
         ival_Q_to_A = Period(freq='A', year=2007)
         ival_Q_to_M_start = Period(freq='M', year=2007, month=1)
         ival_Q_to_M_end = Period(freq='M', year=2007, month=3)
-        ival_Q_to_W_start = Period(freq='WK', year=2007, month=1, day=1)
-        ival_Q_to_W_end = Period(freq='WK', year=2007, month=3, day=31)
+        ival_Q_to_W_start = Period(freq='W', year=2007, month=1, day=1)
+        ival_Q_to_W_end = Period(freq='W', year=2007, month=3, day=31)
         ival_Q_to_B_start = Period(freq='B', year=2007, month=1, day=1)
         ival_Q_to_B_end = Period(freq='B', year=2007, month=3, day=30)
         ival_Q_to_D_start = Period(freq='D', year=2007, month=1, day=1)
@@ -711,8 +726,8 @@ class TestFreqConversion(tm.TestCase):
 
         assert_equal(ival_Q.asfreq('M', 'S'), ival_Q_to_M_start)
         assert_equal(ival_Q.asfreq('M', 'E'), ival_Q_to_M_end)
-        assert_equal(ival_Q.asfreq('WK', 'S'), ival_Q_to_W_start)
-        assert_equal(ival_Q.asfreq('WK', 'E'), ival_Q_to_W_end)
+        assert_equal(ival_Q.asfreq('W', 'S'), ival_Q_to_W_start)
+        assert_equal(ival_Q.asfreq('W', 'E'), ival_Q_to_W_end)
         assert_equal(ival_Q.asfreq('B', 'S'), ival_Q_to_B_start)
         assert_equal(ival_Q.asfreq('B', 'E'), ival_Q_to_B_end)
         assert_equal(ival_Q.asfreq('D', 'S'), ival_Q_to_D_start)
@@ -739,8 +754,8 @@ class TestFreqConversion(tm.TestCase):
         ival_M_end_of_quarter = Period(freq='M', year=2007, month=3)
         ival_M_to_A = Period(freq='A', year=2007)
         ival_M_to_Q = Period(freq='Q', year=2007, quarter=1)
-        ival_M_to_W_start = Period(freq='WK', year=2007, month=1, day=1)
-        ival_M_to_W_end = Period(freq='WK', year=2007, month=1, day=31)
+        ival_M_to_W_start = Period(freq='W', year=2007, month=1, day=1)
+        ival_M_to_W_end = Period(freq='W', year=2007, month=1, day=31)
         ival_M_to_B_start = Period(freq='B', year=2007, month=1, day=1)
         ival_M_to_B_end = Period(freq='B', year=2007, month=1, day=31)
         ival_M_to_D_start = Period(freq='D', year=2007, month=1, day=1)
@@ -763,8 +778,8 @@ class TestFreqConversion(tm.TestCase):
         assert_equal(ival_M.asfreq('Q'), ival_M_to_Q)
         assert_equal(ival_M_end_of_quarter.asfreq('Q'), ival_M_to_Q)
 
-        assert_equal(ival_M.asfreq('WK', 'S'), ival_M_to_W_start)
-        assert_equal(ival_M.asfreq('WK', 'E'), ival_M_to_W_end)
+        assert_equal(ival_M.asfreq('W', 'S'), ival_M_to_W_start)
+        assert_equal(ival_M.asfreq('W', 'E'), ival_M_to_W_end)
         assert_equal(ival_M.asfreq('B', 'S'), ival_M_to_B_start)
         assert_equal(ival_M.asfreq('B', 'E'), ival_M_to_B_end)
         assert_equal(ival_M.asfreq('D', 'S'), ival_M_to_D_start)
@@ -781,15 +796,15 @@ class TestFreqConversion(tm.TestCase):
     def test_conv_weekly(self):
         # frequency conversion tests: from Weekly Frequency
 
-        ival_W = Period(freq='WK', year=2007, month=1, day=1)
+        ival_W = Period(freq='W', year=2007, month=1, day=1)
 
-        ival_WSUN = Period(freq='WK', year=2007, month=1, day=7)
-        ival_WSAT = Period(freq='WK-SAT', year=2007, month=1, day=6)
-        ival_WFRI = Period(freq='WK-FRI', year=2007, month=1, day=5)
-        ival_WTHU = Period(freq='WK-THU', year=2007, month=1, day=4)
-        ival_WWED = Period(freq='WK-WED', year=2007, month=1, day=3)
-        ival_WTUE = Period(freq='WK-TUE', year=2007, month=1, day=2)
-        ival_WMON = Period(freq='WK-MON', year=2007, month=1, day=1)
+        ival_WSUN = Period(freq='W', year=2007, month=1, day=7)
+        ival_WSAT = Period(freq='W-SAT', year=2007, month=1, day=6)
+        ival_WFRI = Period(freq='W-FRI', year=2007, month=1, day=5)
+        ival_WTHU = Period(freq='W-THU', year=2007, month=1, day=4)
+        ival_WWED = Period(freq='W-WED', year=2007, month=1, day=3)
+        ival_WTUE = Period(freq='W-TUE', year=2007, month=1, day=2)
+        ival_WMON = Period(freq='W-MON', year=2007, month=1, day=1)
 
         ival_WSUN_to_D_start = Period(freq='D', year=2007, month=1, day=1)
         ival_WSUN_to_D_end = Period(freq='D', year=2007, month=1, day=7)
@@ -806,9 +821,9 @@ class TestFreqConversion(tm.TestCase):
         ival_WMON_to_D_start = Period(freq='D', year=2006, month=12, day=26)
         ival_WMON_to_D_end = Period(freq='D', year=2007, month=1, day=1)
 
-        ival_W_end_of_year = Period(freq='WK', year=2007, month=12, day=31)
-        ival_W_end_of_quarter = Period(freq='WK', year=2007, month=3, day=31)
-        ival_W_end_of_month = Period(freq='WK', year=2007, month=1, day=31)
+        ival_W_end_of_year = Period(freq='W', year=2007, month=12, day=31)
+        ival_W_end_of_quarter = Period(freq='W', year=2007, month=3, day=31)
+        ival_W_end_of_month = Period(freq='W', year=2007, month=1, day=31)
         ival_W_to_A = Period(freq='A', year=2007)
         ival_W_to_Q = Period(freq='Q', year=2007, quarter=1)
         ival_W_to_M = Period(freq='M', year=2007, month=1)
@@ -885,7 +900,128 @@ class TestFreqConversion(tm.TestCase):
         assert_equal(ival_W.asfreq('S', 'S'), ival_W_to_S_start)
         assert_equal(ival_W.asfreq('S', 'E'), ival_W_to_S_end)
 
-        assert_equal(ival_W.asfreq('WK'), ival_W)
+        assert_equal(ival_W.asfreq('W'), ival_W)
+
+    def test_conv_weekly_legacy(self):
+        # frequency conversion tests: from Weekly Frequency
+
+        with tm.assert_produces_warning(FutureWarning):
+            ival_W = Period(freq='WK', year=2007, month=1, day=1)
+
+        with tm.assert_produces_warning(FutureWarning):
+            ival_WSUN = Period(freq='WK', year=2007, month=1, day=7)
+        with tm.assert_produces_warning(FutureWarning):
+            ival_WSAT = Period(freq='WK-SAT', year=2007, month=1, day=6)
+        with tm.assert_produces_warning(FutureWarning):
+            ival_WFRI = Period(freq='WK-FRI', year=2007, month=1, day=5)
+        with tm.assert_produces_warning(FutureWarning):
+            ival_WTHU = Period(freq='WK-THU', year=2007, month=1, day=4)
+        with tm.assert_produces_warning(FutureWarning):
+            ival_WWED = Period(freq='WK-WED', year=2007, month=1, day=3)
+        with tm.assert_produces_warning(FutureWarning):
+            ival_WTUE = Period(freq='WK-TUE', year=2007, month=1, day=2)
+        with tm.assert_produces_warning(FutureWarning):
+            ival_WMON = Period(freq='WK-MON', year=2007, month=1, day=1)
+
+        ival_WSUN_to_D_start = Period(freq='D', year=2007, month=1, day=1)
+        ival_WSUN_to_D_end = Period(freq='D', year=2007, month=1, day=7)
+        ival_WSAT_to_D_start = Period(freq='D', year=2006, month=12, day=31)
+        ival_WSAT_to_D_end = Period(freq='D', year=2007, month=1, day=6)
+        ival_WFRI_to_D_start = Period(freq='D', year=2006, month=12, day=30)
+        ival_WFRI_to_D_end = Period(freq='D', year=2007, month=1, day=5)
+        ival_WTHU_to_D_start = Period(freq='D', year=2006, month=12, day=29)
+        ival_WTHU_to_D_end = Period(freq='D', year=2007, month=1, day=4)
+        ival_WWED_to_D_start = Period(freq='D', year=2006, month=12, day=28)
+        ival_WWED_to_D_end = Period(freq='D', year=2007, month=1, day=3)
+        ival_WTUE_to_D_start = Period(freq='D', year=2006, month=12, day=27)
+        ival_WTUE_to_D_end = Period(freq='D', year=2007, month=1, day=2)
+        ival_WMON_to_D_start = Period(freq='D', year=2006, month=12, day=26)
+        ival_WMON_to_D_end = Period(freq='D', year=2007, month=1, day=1)
+
+        with tm.assert_produces_warning(FutureWarning):
+            ival_W_end_of_year = Period(freq='WK', year=2007, month=12, day=31)
+        with tm.assert_produces_warning(FutureWarning):
+            ival_W_end_of_quarter = Period(freq='WK', year=2007, month=3, day=31)
+        with tm.assert_produces_warning(FutureWarning):
+            ival_W_end_of_month = Period(freq='WK', year=2007, month=1, day=31)
+        ival_W_to_A = Period(freq='A', year=2007)
+        ival_W_to_Q = Period(freq='Q', year=2007, quarter=1)
+        ival_W_to_M = Period(freq='M', year=2007, month=1)
+
+        if Period(freq='D', year=2007, month=12, day=31).weekday == 6:
+            ival_W_to_A_end_of_year = Period(freq='A', year=2007)
+        else:
+            ival_W_to_A_end_of_year = Period(freq='A', year=2008)
+
+        if Period(freq='D', year=2007, month=3, day=31).weekday == 6:
+            ival_W_to_Q_end_of_quarter = Period(freq='Q', year=2007,
+                                                quarter=1)
+        else:
+            ival_W_to_Q_end_of_quarter = Period(freq='Q', year=2007,
+                                                quarter=2)
+
+        if Period(freq='D', year=2007, month=1, day=31).weekday == 6:
+            ival_W_to_M_end_of_month = Period(freq='M', year=2007, month=1)
+        else:
+            ival_W_to_M_end_of_month = Period(freq='M', year=2007, month=2)
+
+        ival_W_to_B_start = Period(freq='B', year=2007, month=1, day=1)
+        ival_W_to_B_end = Period(freq='B', year=2007, month=1, day=5)
+        ival_W_to_D_start = Period(freq='D', year=2007, month=1, day=1)
+        ival_W_to_D_end = Period(freq='D', year=2007, month=1, day=7)
+        ival_W_to_H_start = Period(freq='H', year=2007, month=1, day=1,
+                                   hour=0)
+        ival_W_to_H_end = Period(freq='H', year=2007, month=1, day=7,
+                                 hour=23)
+        ival_W_to_T_start = Period(freq='Min', year=2007, month=1, day=1,
+                                   hour=0, minute=0)
+        ival_W_to_T_end = Period(freq='Min', year=2007, month=1, day=7,
+                                 hour=23, minute=59)
+        ival_W_to_S_start = Period(freq='S', year=2007, month=1, day=1,
+                                   hour=0, minute=0, second=0)
+        ival_W_to_S_end = Period(freq='S', year=2007, month=1, day=7,
+                                 hour=23, minute=59, second=59)
+
+        assert_equal(ival_W.asfreq('A'), ival_W_to_A)
+        assert_equal(ival_W_end_of_year.asfreq('A'),
+                     ival_W_to_A_end_of_year)
+        assert_equal(ival_W.asfreq('Q'), ival_W_to_Q)
+        assert_equal(ival_W_end_of_quarter.asfreq('Q'),
+                     ival_W_to_Q_end_of_quarter)
+        assert_equal(ival_W.asfreq('M'), ival_W_to_M)
+        assert_equal(ival_W_end_of_month.asfreq('M'),
+                     ival_W_to_M_end_of_month)
+
+        assert_equal(ival_W.asfreq('B', 'S'), ival_W_to_B_start)
+        assert_equal(ival_W.asfreq('B', 'E'), ival_W_to_B_end)
+
+        assert_equal(ival_W.asfreq('D', 'S'), ival_W_to_D_start)
+        assert_equal(ival_W.asfreq('D', 'E'), ival_W_to_D_end)
+
+        assert_equal(ival_WSUN.asfreq('D', 'S'), ival_WSUN_to_D_start)
+        assert_equal(ival_WSUN.asfreq('D', 'E'), ival_WSUN_to_D_end)
+        assert_equal(ival_WSAT.asfreq('D', 'S'), ival_WSAT_to_D_start)
+        assert_equal(ival_WSAT.asfreq('D', 'E'), ival_WSAT_to_D_end)
+        assert_equal(ival_WFRI.asfreq('D', 'S'), ival_WFRI_to_D_start)
+        assert_equal(ival_WFRI.asfreq('D', 'E'), ival_WFRI_to_D_end)
+        assert_equal(ival_WTHU.asfreq('D', 'S'), ival_WTHU_to_D_start)
+        assert_equal(ival_WTHU.asfreq('D', 'E'), ival_WTHU_to_D_end)
+        assert_equal(ival_WWED.asfreq('D', 'S'), ival_WWED_to_D_start)
+        assert_equal(ival_WWED.asfreq('D', 'E'), ival_WWED_to_D_end)
+        assert_equal(ival_WTUE.asfreq('D', 'S'), ival_WTUE_to_D_start)
+        assert_equal(ival_WTUE.asfreq('D', 'E'), ival_WTUE_to_D_end)
+        assert_equal(ival_WMON.asfreq('D', 'S'), ival_WMON_to_D_start)
+        assert_equal(ival_WMON.asfreq('D', 'E'), ival_WMON_to_D_end)
+
+        assert_equal(ival_W.asfreq('H', 'S'), ival_W_to_H_start)
+        assert_equal(ival_W.asfreq('H', 'E'), ival_W_to_H_end)
+        assert_equal(ival_W.asfreq('Min', 'S'), ival_W_to_T_start)
+        assert_equal(ival_W.asfreq('Min', 'E'), ival_W_to_T_end)
+        assert_equal(ival_W.asfreq('S', 'S'), ival_W_to_S_start)
+        assert_equal(ival_W.asfreq('S', 'E'), ival_W_to_S_end)
+
+        with tm.assert_produces_warning(FutureWarning):
+            assert_equal(ival_W.asfreq('WK'), ival_W)
 
     def test_conv_business(self):
         # frequency conversion tests: from Business Frequency"
@@ -899,7 +1035,7 @@ class TestFreqConversion(tm.TestCase):
         ival_B_to_A = Period(freq='A', year=2007)
         ival_B_to_Q = Period(freq='Q', year=2007, quarter=1)
         ival_B_to_M = Period(freq='M', year=2007, month=1)
-        ival_B_to_W = Period(freq='WK', year=2007, month=1, day=7)
+        ival_B_to_W = Period(freq='W', year=2007, month=1, day=7)
         ival_B_to_D = Period(freq='D', year=2007, month=1, day=1)
         ival_B_to_H_start = Period(freq='H', year=2007, month=1, day=1,
                                    hour=0)
@@ -920,8 +1056,8 @@ class TestFreqConversion(tm.TestCase):
         assert_equal(ival_B_end_of_quarter.asfreq('Q'), ival_B_to_Q)
         assert_equal(ival_B.asfreq('M'), ival_B_to_M)
         assert_equal(ival_B_end_of_month.asfreq('M'), ival_B_to_M)
-        assert_equal(ival_B.asfreq('WK'), ival_B_to_W)
-        assert_equal(ival_B_end_of_week.asfreq('WK'), ival_B_to_W)
+        assert_equal(ival_B.asfreq('W'), ival_B_to_W)
+        assert_equal(ival_B_end_of_week.asfreq('W'), ival_B_to_W)
 
         assert_equal(ival_B.asfreq('D'), ival_B_to_D)
 
@@ -962,7 +1098,7 @@ class TestFreqConversion(tm.TestCase):
         ival_D_to_QEDEC = Period(freq="Q-DEC", year=2007, quarter=1)
 
         ival_D_to_M = Period(freq='M', year=2007, month=1)
-        ival_D_to_W = Period(freq='WK', year=2007, month=1, day=7)
+        ival_D_to_W = Period(freq='W', year=2007, month=1, day=7)
 
         ival_D_to_H_start = Period(freq='H', year=2007, month=1, day=1,
                                    hour=0)
@@ -993,8 +1129,8 @@ class TestFreqConversion(tm.TestCase):
         assert_equal(ival_D.asfreq("Q-DEC"), ival_D_to_QEDEC)
         assert_equal(ival_D.asfreq('M'), ival_D_to_M)
         assert_equal(ival_D_end_of_month.asfreq('M'), ival_D_to_M)
-        assert_equal(ival_D.asfreq('WK'), ival_D_to_W)
-        assert_equal(ival_D_end_of_week.asfreq('WK'), ival_D_to_W)
+        assert_equal(ival_D.asfreq('W'), ival_D_to_W)
+        assert_equal(ival_D_end_of_week.asfreq('W'), ival_D_to_W)
 
         assert_equal(ival_D_friday.asfreq('B'), ival_B_friday)
         assert_equal(ival_D_saturday.asfreq('B', 'S'), ival_B_friday)
@@ -1031,7 +1167,7 @@ class TestFreqConversion(tm.TestCase):
         ival_H_to_A = Period(freq='A', year=2007)
         ival_H_to_Q = Period(freq='Q', year=2007, quarter=1)
         ival_H_to_M = Period(freq='M', year=2007, month=1)
-        ival_H_to_W = Period(freq='WK', year=2007, month=1, day=7)
+        ival_H_to_W = Period(freq='W', year=2007, month=1, day=7)
         ival_H_to_D = Period(freq='D', year=2007, month=1, day=1)
         ival_H_to_B = Period(freq='B', year=2007, month=1, day=1)
 
@@ -1050,8 +1186,8 @@ class TestFreqConversion(tm.TestCase):
         assert_equal(ival_H_end_of_quarter.asfreq('Q'), ival_H_to_Q)
         assert_equal(ival_H.asfreq('M'), ival_H_to_M)
         assert_equal(ival_H_end_of_month.asfreq('M'), ival_H_to_M)
-        assert_equal(ival_H.asfreq('WK'), ival_H_to_W)
-        assert_equal(ival_H_end_of_week.asfreq('WK'), ival_H_to_W)
+        assert_equal(ival_H.asfreq('W'), ival_H_to_W)
+        assert_equal(ival_H_end_of_week.asfreq('W'), ival_H_to_W)
         assert_equal(ival_H.asfreq('D'), ival_H_to_D)
         assert_equal(ival_H_end_of_day.asfreq('D'), ival_H_to_D)
         assert_equal(ival_H.asfreq('B'), ival_H_to_B)
@@ -1087,7 +1223,7 @@ class TestFreqConversion(tm.TestCase):
         ival_T_to_A = Period(freq='A', year=2007)
         ival_T_to_Q = Period(freq='Q', year=2007, quarter=1)
         ival_T_to_M = Period(freq='M', year=2007, month=1)
-        ival_T_to_W = Period(freq='WK', year=2007, month=1, day=7)
+        ival_T_to_W = Period(freq='W', year=2007, month=1, day=7)
         ival_T_to_D = Period(freq='D', year=2007, month=1, day=1)
         ival_T_to_B = Period(freq='B', year=2007, month=1, day=1)
         ival_T_to_H = Period(freq='H', year=2007, month=1, day=1, hour=0)
@@ -1103,8 +1239,8 @@ class TestFreqConversion(tm.TestCase):
         assert_equal(ival_T_end_of_quarter.asfreq('Q'), ival_T_to_Q)
         assert_equal(ival_T.asfreq('M'), ival_T_to_M)
         assert_equal(ival_T_end_of_month.asfreq('M'), ival_T_to_M)
-        assert_equal(ival_T.asfreq('WK'), ival_T_to_W)
-        assert_equal(ival_T_end_of_week.asfreq('WK'), ival_T_to_W)
+        assert_equal(ival_T.asfreq('W'), ival_T_to_W)
+        assert_equal(ival_T_end_of_week.asfreq('W'), ival_T_to_W)
         assert_equal(ival_T.asfreq('D'), ival_T_to_D)
         assert_equal(ival_T_end_of_day.asfreq('D'), ival_T_to_D)
         assert_equal(ival_T.asfreq('B'), ival_T_to_B)
@@ -1142,7 +1278,7 @@ class TestFreqConversion(tm.TestCase):
         ival_S_to_A = Period(freq='A', year=2007)
         ival_S_to_Q = Period(freq='Q', year=2007, quarter=1)
         ival_S_to_M = Period(freq='M', year=2007, month=1)
-        ival_S_to_W = Period(freq='WK', year=2007, month=1, day=7)
+        ival_S_to_W = Period(freq='W', year=2007, month=1, day=7)
         ival_S_to_D = Period(freq='D', year=2007, month=1, day=1)
         ival_S_to_B = Period(freq='B', year=2007, month=1, day=1)
         ival_S_to_H = Period(freq='H', year=2007, month=1, day=1,
@@ -1156,8 +1292,8 @@ class TestFreqConversion(tm.TestCase):
         assert_equal(ival_S_end_of_quarter.asfreq('Q'), ival_S_to_Q)
         assert_equal(ival_S.asfreq('M'), ival_S_to_M)
         assert_equal(ival_S_end_of_month.asfreq('M'), ival_S_to_M)
-        assert_equal(ival_S.asfreq('WK'), ival_S_to_W)
-        assert_equal(ival_S_end_of_week.asfreq('WK'), ival_S_to_W)
+        assert_equal(ival_S.asfreq('W'), ival_S_to_W)
+        assert_equal(ival_S_end_of_week.asfreq('W'), ival_S_to_W)
         assert_equal(ival_S.asfreq('D'), ival_S_to_D)
         assert_equal(ival_S_end_of_day.asfreq('D'), ival_S_to_D)
         assert_equal(ival_S.asfreq('B'), ival_S_to_B)
@@ -2171,11 +2307,16 @@ class TestPeriodIndex(tm.TestCase):
             self.assertEqual(prng.freq, 'A-DEC')
 
     def test_to_period_monthish(self):
-        offsets = ['MS', 'EOM', 'BM']
+        offsets = ['MS', 'BM']
         for off in offsets:
             rng = date_range('01-Jan-2012', periods=8, freq=off)
             prng = rng.to_period()
             self.assertEqual(prng.freq, 'M')
+
+        with tm.assert_produces_warning(FutureWarning):
+            rng = date_range('01-Jan-2012', periods=8, freq='EOM')
+        prng = rng.to_period()
+        self.assertEqual(prng.freq, 'M')
 
     def test_no_multiples(self):
         self.assertRaises(ValueError, period_range, '1989Q3', periods=10,
