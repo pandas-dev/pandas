@@ -404,6 +404,13 @@ class TestTimedeltas(tm.TestCase):
         result = timedelta_range('0 days',freq='30T',periods=50)
         tm.assert_index_equal(result, expected)
 
+        # issue10583
+        df = pd.DataFrame(np.random.normal(size=(10,4)))
+        df.index = pd.timedelta_range(start='0s', periods=10, freq='s')
+        expected = df.loc[pd.Timedelta('0s'):,:]
+        result = df.loc['0s':,:]
+        assert_frame_equal(expected, result)
+
     def test_numeric_conversions(self):
         self.assertEqual(ct(0), np.timedelta64(0,'ns'))
         self.assertEqual(ct(10), np.timedelta64(10,'ns'))
@@ -685,6 +692,25 @@ class TestTimedeltas(tm.TestCase):
 
         s = Series([Timestamp('2015-02-03'), Timestamp('2015-02-07'), Timestamp('2015-02-15')])
         self.assertEqual(s.diff().median(), timedelta(days=6))
+
+    def test_overflow(self):
+        # GH 9442
+        s = Series(pd.date_range('20130101',periods=100000,freq='H'))
+        s[0] += pd.Timedelta('1s 1ms')
+
+        # mean
+        result = (s-s.min()).mean()
+        expected = pd.Timedelta((pd.DatetimeIndex((s-s.min())).asi8/len(s)).sum())
+
+        # the computation is converted to float so might be some loss of precision
+        self.assertTrue(np.allclose(result.value/1000, expected.value/1000))
+
+        # sum
+        self.assertRaises(ValueError, lambda : (s-s.min()).sum())
+        s1 = s[0:10000]
+        self.assertRaises(ValueError, lambda : (s1-s1.min()).sum())
+        s2 = s[0:1000]
+        result = (s2-s2.min()).sum()
 
     def test_timedelta_ops_scalar(self):
         # GH 6808
