@@ -747,6 +747,7 @@ class Block(PandasObject):
 
     def interpolate(self, method='pad', axis=0, index=None,
                     values=None, inplace=False, limit=None,
+                    limit_direction='forward',
                     fill_value=None, coerce=False, downcast=None, **kwargs):
 
         def check_int_bool(self, inplace):
@@ -790,6 +791,7 @@ class Block(PandasObject):
                                      values=values,
                                      axis=axis,
                                      limit=limit,
+                                     limit_direction=limit_direction,
                                      fill_value=fill_value,
                                      inplace=inplace,
                                      downcast=downcast,
@@ -829,6 +831,7 @@ class Block(PandasObject):
 
     def _interpolate(self, method=None, index=None, values=None,
                      fill_value=None, axis=0, limit=None,
+                     limit_direction='forward',
                      inplace=False, downcast=None, **kwargs):
         """ interpolate using scipy wrappers """
 
@@ -855,6 +858,7 @@ class Block(PandasObject):
             # should the axis argument be handled below in apply_along_axis?
             # i.e. not an arg to com.interpolate_1d
             return com.interpolate_1d(index, x, method=method, limit=limit,
+                                      limit_direction=limit_direction,
                                       fill_value=fill_value,
                                       bounds_error=False, **kwargs)
 
