@@ -250,7 +250,8 @@ Optional Dependencies
 * `matplotlib <http://matplotlib.sourceforge.net/>`__: for plotting
 * `statsmodels <http://statsmodels.sourceforge.net/>`__
    * Needed for parts of :mod:`pandas.stats`
-* `openpyxl <http://packages.python.org/openpyxl/>`__, `xlrd/xlwt <http://www.python-excel.org/>`__
+* `openpyxl <http://packages.python.org/openpyxl/>`__, `xlrd/xlwt <http://www.python-excel.org/>`__, `ezodf <https://pypi.python.org/pypi/ezodf/>`__
+   * ezodf supports Open Document Format spreadsheets (ods)
    * Needed for Excel I/O
 * `XlsxWriter <https://pypi.python.org/pypi/XlsxWriter>`__
    * Alternative Excel writer
