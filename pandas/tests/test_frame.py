@@ -6238,7 +6238,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         self.assertTrue(df0._data.blocks[0].dtype !=
                         df1._data.blocks[0].dtype)
         # do the real tests
-        self.assert_frame_equal(df0, df1)
+        assert_frame_equal(df0, df1)
         self.assertTrue(df0.equals(df1))
         self.assertTrue(df1.equals(df0))
 
@@ -10776,7 +10776,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         df.insert(0, 'x', 1)
         result = df.diff(axis=1)
         expected = pd.DataFrame({'x':np.nan, 'y':pd.Series(1), 'z':pd.Series(1)}).astype('float64')
-        self.assert_frame_equal(result, expected)
+        assert_frame_equal(result, expected)
 
 
     def test_diff_timedelta(self):
@@ -11382,11 +11382,11 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         df = DataFrame(0., index=[0, 1, 2], columns=['A1', 1, 'B', 2, 'C'])
         expected = DataFrame(0., index=[0, 1, 2], columns=[1, 2])
         filtered = df.filter(regex='^[0-9]+$')
-        self.assert_frame_equal(filtered, expected)
+        assert_frame_equal(filtered, expected)
 
         expected = DataFrame(0., index=[0, 1, 2], columns=[0, '0', 1, '1'])
         filtered = expected.filter(regex='^[0-9]+$')  # shouldn't remove anything
-        self.assert_frame_equal(filtered, expected)
+        assert_frame_equal(filtered, expected)
 
         # pass in None
         with assertRaisesRegexp(TypeError, 'Must pass'):
@@ -13438,7 +13438,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
                                 index=expected_mi,
                                 columns=pd.Index(['a', 'b'], name='third'))
 
-        self.assert_frame_equal(result, expected)
+        assert_frame_equal(result, expected)
 
     def test_unstack_to_series(self):
         # check reversibility
