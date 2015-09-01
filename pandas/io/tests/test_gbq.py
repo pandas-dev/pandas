@@ -9,6 +9,7 @@ import subprocess
 import sys
 import platform
 from time import sleep
+from io import StringIO
 
 import numpy as np
 
@@ -39,47 +40,43 @@ def missing_bq():
         return True
 
 def _test_imports():
-    if not compat.PY3:
+    required_version = '1.4.0' if compat.PY3 else '1.2.0'
 
-        global _GOOGLE_API_CLIENT_INSTALLED, _GOOGLE_API_CLIENT_VALID_VERSION, \
-               _HTTPLIB2_INSTALLED, _SETUPTOOLS_INSTALLED
+    global _GOOGLE_API_CLIENT_INSTALLED, _GOOGLE_API_CLIENT_VALID_VERSION, \
+           _HTTPLIB2_INSTALLED, _SETUPTOOLS_INSTALLED
+
+    try:
+        import pkg_resources
+        _SETUPTOOLS_INSTALLED = True
+    except ImportError:
+        _SETUPTOOLS_INSTALLED = False
+
+    if _SETUPTOOLS_INSTALLED:
+        try:
+            from apiclient.discovery import build
+            from apiclient.errors import HttpError
+
+            from oauth2client.client import OAuth2WebServerFlow
+            from oauth2client.client import AccessTokenRefreshError
+
+            from oauth2client.file import Storage
+            from oauth2client.tools import run_flow
+            _GOOGLE_API_CLIENT_INSTALLED=True
+            _GOOGLE_API_CLIENT_VERSION = pkg_resources.get_distribution('google-api-python-client').version
+
+            if LooseVersion(_GOOGLE_API_CLIENT_VERSION) >= required_version:
+                _GOOGLE_API_CLIENT_VALID_VERSION = True
+
+        except ImportError:
+            _GOOGLE_API_CLIENT_INSTALLED = False
+
 
         try:
-            import pkg_resources
-            _SETUPTOOLS_INSTALLED = True
+            import httplib2
+            _HTTPLIB2_INSTALLED = True
         except ImportError:
-            _SETUPTOOLS_INSTALLED = False
-
-        if _SETUPTOOLS_INSTALLED:
-            try:
-                from apiclient.discovery import build
-                from apiclient.errors import HttpError
-
-                from oauth2client.client import OAuth2WebServerFlow
-                from oauth2client.client import AccessTokenRefreshError
-
-                from oauth2client.file import Storage
-                from oauth2client.tools import run_flow
-                _GOOGLE_API_CLIENT_INSTALLED=True
-                _GOOGLE_API_CLIENT_VERSION = pkg_resources.get_distribution('google-api-python-client').version
-
-                if LooseVersion(_GOOGLE_API_CLIENT_VERSION) >= '1.2.0':
-                    _GOOGLE_API_CLIENT_VALID_VERSION = True
-
-            except ImportError:
-                _GOOGLE_API_CLIENT_INSTALLED = False
-
-
-            try:
-                import httplib2
-                _HTTPLIB2_INSTALLED = True
-            except ImportError:
-                _HTTPLIB2_INSTALLED = False
+            _HTTPLIB2_INSTALLED = False
     
-
-    if compat.PY3:
-        raise NotImplementedError("Google's libraries do not support Python 3 yet")
-
     if not _SETUPTOOLS_INSTALLED:
         raise ImportError('Could not import pkg_resources (setuptools).')
 
@@ -87,7 +84,7 @@ def _test_imports():
         raise ImportError('Could not import Google API Client.')
 
     if not _GOOGLE_API_CLIENT_VALID_VERSION:
-        raise ImportError("pandas requires google-api-python-client >= 1.2.0 for Google "
+        raise ImportError("pandas requires google-api-python-client >= " + required_version + " for Google "
                           "BigQuery support, current version " + _GOOGLE_API_CLIENT_VERSION)
 
     if not _HTTPLIB2_INSTALLED:
@@ -295,6 +292,14 @@ class TestReadGBQIntegration(tm.TestCase):
         # http://stackoverflow.com/questions/19145587/bq-py-not-paging-results
         df = gbq.read_gbq("SELECT id FROM [publicdata:samples.wikipedia] GROUP EACH BY id ORDER BY id ASC LIMIT 200005", project_id=PROJECT_ID)
         self.assertEqual(len(df.drop_duplicates()), 200005)
+    
+    def test_silent_option_true(self):
+        stdout = sys.stdout
+        sys.stdout = StringIO()
+        gbq.read_gbq("SELECT 3", project_id = PROJECT_ID, silent = True)
+        output = sys.stdout.getvalue()
+        sys.stdout = stdout
+        tm.assert_equal(output, "")
 
     def test_zero_rows(self):
         # Bug fix for https://github.com/pydata/pandas/issues/10273

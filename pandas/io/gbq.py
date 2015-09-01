@@ -15,9 +15,6 @@ from pandas.core.common import PandasError
 
 
 def _check_google_client_version():
-    if compat.PY3:
-        raise NotImplementedError("Google's libraries do not support Python 3 yet")
-
     try:
         import pkg_resources
 
@@ -26,8 +23,9 @@ def _check_google_client_version():
 
     _GOOGLE_API_CLIENT_VERSION = pkg_resources.get_distribution('google-api-python-client').version
 
-    if LooseVersion(_GOOGLE_API_CLIENT_VERSION) < '1.2.0':
-        raise ImportError("pandas requires google-api-python-client >= 1.2.0 for Google "
+    required_version = '1.4.0' if compat.PY3 else '1.2.0'
+    if LooseVersion(_GOOGLE_API_CLIENT_VERSION) < required_version:
+        raise ImportError("pandas requires google-api-python-client >= " + required_version + " for Google "
                           "BigQuery support, current version " + _GOOGLE_API_CLIENT_VERSION)
 
 logger = logging.getLogger('pandas.io.gbq')
@@ -133,7 +131,7 @@ class GbqConnector(object):
 
         return bigquery_service
 
-    def run_query(self, query):
+    def run_query(self, query, silent):
         try:
             from apiclient.errors import HttpError
             from oauth2client.client import AccessTokenRefreshError
@@ -182,7 +180,8 @@ class GbqConnector(object):
         job_reference = query_reply['jobReference']
 
         while(not query_reply.get('jobComplete', False)):
-            print('Job not yet complete...')
+            if not silent:
+                print('Job is not yet complete...')
             query_reply = job_collection.getQueryResults(
                             projectId=job_reference['projectId'],
                             jobId=job_reference['jobId']).execute()
@@ -267,10 +266,10 @@ def _parse_data(schema, rows):
 
     fields = schema['fields']
     col_types = [field['type'] for field in fields]
-    col_names = [field['name'].encode('ascii', 'ignore') for field in fields]
+    col_names = [field['name'] for field in fields]
     col_dtypes = [dtype_map.get(field['type'], object) for field in fields]
     page_array = np.zeros((len(rows),),
-                          dtype=zip(col_names, col_dtypes))
+                          dtype=list(zip(col_names, col_dtypes)))
 
     for row_num, raw_row in enumerate(rows):
         entries = raw_row.get('f', [])
@@ -294,7 +293,7 @@ def _parse_entry(field_value, field_type):
     return field_value
 
 
-def read_gbq(query, project_id=None, index_col=None, col_order=None, reauth=False):
+def read_gbq(query, project_id=None, index_col=None, col_order=None, reauth=False, silent = False):
     """Load data from Google BigQuery.
 
     THIS IS AN EXPERIMENTAL LIBRARY
@@ -319,6 +318,8 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None, reauth=Fals
     reauth : boolean (default False)
         Force Google BigQuery to reauthenticate the user. This is useful
         if multiple accounts are used.
+    silent : boolean (default False)
+        Do not print status messages during query execution if True
 
     Returns
     -------
@@ -332,7 +333,7 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None, reauth=Fals
         raise TypeError("Missing required parameter: project_id")
 
     connector = GbqConnector(project_id, reauth = reauth)
-    schema, pages = connector.run_query(query)
+    schema, pages = connector.run_query(query, silent = silent)
     dataframe_list = []
     while len(pages) > 0:
         page = pages.pop()
