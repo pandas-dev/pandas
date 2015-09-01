@@ -404,6 +404,14 @@ class TestTimedeltas(tm.TestCase):
         result = timedelta_range('0 days',freq='30T',periods=50)
         tm.assert_index_equal(result, expected)
 
+        # issue10583
+        df = pd.DataFrame(np.random.normal(size=(10,4)))
+        df.index = pd.timedelta_range(start='0s', periods=10, freq='s')
+        expected = df.loc[pd.Timedelta('0s'):,:]
+        result = df.loc['0s':,:]
+        assert_frame_equal(expected, result)
+
+
     def test_numeric_conversions(self):
         self.assertEqual(ct(0), np.timedelta64(0,'ns'))
         self.assertEqual(ct(10), np.timedelta64(10,'ns'))
