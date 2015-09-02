@@ -299,3 +299,24 @@ class nogil_take1d_int64(object):
     @test_parallel(num_threads=2)
     def take_1d_pg2_float64(self):
         com.take_1d(self.df.float64.values, self.indexer)
+
+
+class nogil_kth_smallest(object):
+    number = 1
+    repeat = 5
+
+    def setup(self):
+        if (not have_real_test_parallel):
+            raise NotImplementedError
+        np.random.seed(1234)
+        self.N = 10000000
+        self.k = 500000
+        self.a = np.random.randn(self.N)
+        self.b = self.a.copy()
+        self.kwargs_list = [{'arr': self.a}, {'arr': self.b}]
+
+    def time_nogil_kth_smallest(self):
+        @test_parallel(num_threads=2, kwargs_list=self.kwargs_list)
+        def run(arr):
+            algos.kth_smallest(arr, self.k)
+        run()

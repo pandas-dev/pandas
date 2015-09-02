@@ -740,7 +740,7 @@ ctypedef fused numeric:
     float64_t
 
 
-cdef inline Py_ssize_t swap(numeric *a, numeric *b) except -1:
+cdef inline Py_ssize_t swap(numeric *a, numeric *b) nogil except -1:
     cdef numeric t
 
     # cython doesn't allow pointer dereference so use array syntax
@@ -756,27 +756,27 @@ cpdef numeric kth_smallest(numeric[:] a, Py_ssize_t k):
     cdef:
         Py_ssize_t i, j, l, m, n = a.size
         numeric x
+    with nogil:
+        l = 0
+        m = n - 1
 
-    l = 0
-    m = n - 1
+        while l < m:
+            x = a[k]
+            i = l
+            j = m
 
-    while l < m:
-        x = a[k]
-        i = l
-        j = m
+            while 1:
+                while a[i] < x: i += 1
+                while x < a[j]: j -= 1
+                if i <= j:
+                    swap(&a[i], &a[j])
+                    i += 1; j -= 1
 
-        while 1:
-            while a[i] < x: i += 1
-            while x < a[j]: j -= 1
-            if i <= j:
-                swap(&a[i], &a[j])
-                i += 1; j -= 1
+                if i > j: break
 
-            if i > j: break
-
-        if j < k: l = i
-        if k < i: m = j
-    return a[k]
+            if j < k: l = i
+            if k < i: m = j
+        return a[k]
 
 
 cdef inline kth_smallest_c(float64_t* a, Py_ssize_t k, Py_ssize_t n):
