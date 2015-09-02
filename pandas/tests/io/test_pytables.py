@@ -5007,13 +5007,11 @@ class TestHDFStore(Base):
             'df2': pd.DataFrame([4, 5, 6]),
             'df3': pd.DataFrame([6, 7, 8]),
             'df4': pd.DataFrame([9, 10, 11]),
-            's1': pd.Series([10,9,8]),
-            'a1': np.array([[1,2,3], [4,5,6]])
+            's1': pd.Series([10, 9, 8]),
+            'a1': np.array([[1, 2, 3], [4, 5, 6]])
             }
 
-        with tm.ensure_clean('walk_groups.hdf') as filename:
-            store = HDFStore(filename, 'w')
-
+        with ensure_clean_store('walk_groups.hdf', mode='w') as store:
             store.put('/first_group/df1', objs['df1'])
             store.put('/first_group/df2', objs['df2'])
             store.put('/second_group/df3', objs['df3'])
@@ -5023,7 +5021,7 @@ class TestHDFStore(Base):
             store._handle.create_array(g1, 'a1', objs['a1'])
 
             expect = {
-                '/': (set(['first_group', 'second_group']), set()),
+                '': (set(['first_group', 'second_group']), set()),
                 '/first_group': (set(), set(['df1', 'df2'])),
                 '/second_group': (set(['third_group']), set(['df3', 's1'])),
                 '/second_group/third_group': (set(), set(['df4'])),

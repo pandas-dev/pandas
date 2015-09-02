@@ -3554,6 +3554,22 @@ everything in the sub-store and **below**, so be *careful*.
    store.remove('food')
    store
 
+
+You can walk through the group hierarchy using the ``walk`` method which
+will yield a tuple for each group key along with the relative keys of its contents.
+
+.. ipython:: python
+
+   for (path, subgroups, subkeys) in store.walk():
+       for subgroup in subgroups:
+           print('GROUP: {}/{}'.format(path, subgroup))
+       for subkey in subkeys:
+           key = '/'.join([path, subkey])
+           print('KEY: {}'.format(key))
+           print(store.get(key))
+
+   
+   
 .. warning::
 
     Hierarchical keys cannot be retrieved as dotted (attribute) access as described above for items stored under the root node.
