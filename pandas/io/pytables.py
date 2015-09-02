@@ -1044,7 +1044,7 @@ class HDFStore(StringMixin):
 
         Returns
         -------
-        A generator yielding tuples (`path`, `groups`, `frames`) where:
+        A generator yielding tuples (`path`, `groups`, `leaves`) where:
 
         - `path` is the full path to a group,
         - `groups` is a list of group names contained in `path`
@@ -1066,7 +1066,8 @@ class HDFStore(StringMixin):
                         groups.append(child._v_name)
                 else:
                     leaves.append(child._v_name)
-            yield (g._v_pathname, groups, leaves)
+
+            yield (g._v_pathname.rstrip('/'), groups, leaves)
 
 
     def get_node(self, key):

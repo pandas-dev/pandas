@@ -255,6 +255,8 @@ Other enhancements
 
     pd.concat([foo, bar, baz], 1)
 
+- New method ``HDFStore.walk`` will recursively walk the group hierarchy of a HDF5 file (:issue:`10932`)
+
 .. _whatsnew_0170.api:
 
 .. _whatsnew_0170.api_breaking:
