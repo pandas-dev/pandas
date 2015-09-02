@@ -1884,10 +1884,11 @@ class TestCategoricalIndex(Base, tm.TestCase):
         self.assertFalse(0 in ci)
         self.assertFalse(1 in ci)
 
-        ci = CategoricalIndex(list('aabbca'), categories=list('cabdef') + [np.nan])
+        with tm.assert_produces_warning(FutureWarning):
+            ci = CategoricalIndex(list('aabbca'), categories=list('cabdef') + [np.nan])
         self.assertFalse(np.nan in ci)
 
-        ci = CategoricalIndex(list('aabbca') + [np.nan], categories=list('cabdef') + [np.nan])
+        ci = CategoricalIndex(list('aabbca') + [np.nan], categories=list('cabdef'))
         self.assertTrue(np.nan in ci)
 
     def test_min_max(self):
@@ -2052,7 +2053,7 @@ class TestCategoricalIndex(Base, tm.TestCase):
 
     def test_isin(self):
 
-        ci = CategoricalIndex(list('aabca') + [np.nan],categories=['c','a','b',np.nan])
+        ci = CategoricalIndex(list('aabca') + [np.nan],categories=['c','a','b'])
         tm.assert_numpy_array_equal(ci.isin(['c']),np.array([False,False,False,True,False,False]))
         tm.assert_numpy_array_equal(ci.isin(['c','a','b']),np.array([True]*5 + [False]))
         tm.assert_numpy_array_equal(ci.isin(['c','a','b',np.nan]),np.array([True]*6))
@@ -2100,10 +2101,11 @@ class TestCategoricalIndex(Base, tm.TestCase):
         # tests
         # make sure that we are testing for category inclusion properly
         self.assertTrue(CategoricalIndex(list('aabca'),categories=['c','a','b']).equals(list('aabca')))
-        self.assertTrue(CategoricalIndex(list('aabca'),categories=['c','a','b',np.nan]).equals(list('aabca')))
+        with tm.assert_produces_warning(FutureWarning):
+            self.assertTrue(CategoricalIndex(list('aabca'),categories=['c','a','b',np.nan]).equals(list('aabca')))
 
-        self.assertFalse(CategoricalIndex(list('aabca') + [np.nan],categories=['c','a','b',np.nan]).equals(list('aabca')))
-        self.assertTrue(CategoricalIndex(list('aabca') + [np.nan],categories=['c','a','b',np.nan]).equals(list('aabca') + [np.nan]))
+        self.assertFalse(CategoricalIndex(list('aabca') + [np.nan],categories=['c','a','b']).equals(list('aabca')))
+        self.assertTrue(CategoricalIndex(list('aabca') + [np.nan],categories=['c','a','b']).equals(list('aabca') + [np.nan]))
 
 
 class Numeric(Base):
