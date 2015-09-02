@@ -3657,8 +3657,7 @@ def form_blocks(arrays, names, axes):
         blocks.extend(float_blocks)
 
     if len(complex_items):
-        complex_blocks = _simple_blockify(
-            complex_items, np.complex128)
+        complex_blocks = _multi_blockify(complex_items)
         blocks.extend(complex_blocks)
 
     if len(int_items):
