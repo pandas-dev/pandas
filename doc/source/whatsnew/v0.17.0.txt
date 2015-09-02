@@ -641,6 +641,7 @@ Other API Changes
 - Allow ``DataFrame`` with ``MultiIndex`` columns to be written to Excel (:issue:`10564`). This was changed in 0.16.2 as the read-back method could not always guarantee perfect fidelity (:issue:`9794`).
 - ``groupby`` using ``Categorical`` follows the same rule as ``Categorical.unique`` described above  (:issue:`10508`)
 - Improved error message when concatenating an empty iterable of dataframes (:issue:`9157`)
+- When constructing ``DataFrame`` with an array of ``complex64`` dtype that meant the corresponding column was automatically promoted to the ``complex128`` dtype. Pandas will now preserve the itemsize of the input for complex data (:issue:`10952`)
 
 - ``NaT``'s methods now either raise ``ValueError``, or return ``np.nan`` or ``NaT`` (:issue:`9513`)
 
@@ -866,4 +867,3 @@ Bug Fixes
 - Bug in plotting functions may raise ``IndexError`` when plotted on ``GridSpec`` (:issue:`10819`)
 - Bug in plot result may show unnecessary minor ticklabels (:issue:`10657`)
 - Bug in ``groupby`` incorrect computation for aggregation on ``DataFrame`` with ``NaT`` (E.g ``first``, ``last``, ``min``). (:issue:`10590`)
-- Bug when constructing ``DataFrame`` where passing a dictionary with only scalar values and specifying columns did not raise an error (:issue:`10856`)
