@@ -298,13 +298,18 @@ class DataFrame(NDFrame):
         if columns is not None:
             columns = _ensure_index(columns)
 
-            # prefilter if columns passed
+            # GH10856
+            # raise ValueError if only scalars in dict
+            if index is None:
+                extract_index(list(data.values()))
 
+            # prefilter if columns passed
             data = dict((k, v) for k, v in compat.iteritems(data)
                         if k in columns)
 
             if index is None:
                 index = extract_index(list(data.values()))
+
             else:
                 index = _ensure_index(index)
 
@@ -330,6 +335,7 @@ class DataFrame(NDFrame):
                     v = data[k]
                 data_names.append(k)
                 arrays.append(v)
+
         else:
             keys = list(data.keys())
             if not isinstance(data, OrderedDict):

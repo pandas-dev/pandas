@@ -2762,6 +2762,17 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         frame = DataFrame({'A': [], 'B': []}, columns=['A', 'B'])
         self.assertTrue(frame.index.equals(Index([])))
 
+        # GH10856
+        # dict with scalar values should raise error, even if columns passed
+        with tm.assertRaises(ValueError):
+            DataFrame({'a': 0.7})
+
+        with tm.assertRaises(ValueError):
+            DataFrame({'a': 0.7}, columns=['a'])
+
+        with tm.assertRaises(ValueError):
+            DataFrame({'a': 0.7}, columns=['b'])
+
     def test_constructor_multi_index(self):
         # GH 4078
         # construction error with mi and all-nan frame
