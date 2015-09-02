@@ -1269,7 +1269,7 @@ class DataFrame(NDFrame):
         if path_or_buf is None:
             return formatter.path_or_buf.getvalue()
 
-    def to_excel(self, excel_writer, sheet_name='Sheet1', na_rep='',
+    def to_excel(self, excel_writer, sheetname='Sheet1', na_rep='',
                  float_format=None, columns=None, header=True, index=True,
                  index_label=None, startrow=0, startcol=0, engine=None,
                  merge_cells=True, encoding=None, inf_rep='inf',
@@ -1281,7 +1281,7 @@ class DataFrame(NDFrame):
         ----------
         excel_writer : string or ExcelWriter object
             File path or existing ExcelWriter
-        sheet_name : string, default 'Sheet1'
+        sheetname : string, default 'Sheet1'
             Name of sheet which will contain DataFrame
         na_rep : string, default ''
             Missing data representation
@@ -1351,7 +1351,7 @@ class DataFrame(NDFrame):
                                        merge_cells=merge_cells,
                                        inf_rep=inf_rep, verbose=verbose)
         formatted_cells = formatter.get_formatted_cells()
-        excel_writer.write_cells(formatted_cells, sheet_name,
+        excel_writer.write_cells(formatted_cells, sheetname,
                                  startrow=startrow, startcol=startcol)
         if need_save:
             excel_writer.save()

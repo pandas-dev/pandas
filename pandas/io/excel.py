@@ -382,7 +382,7 @@ class ExcelFile(object):
             sheets = sheetname
             ret_dict = True
         elif sheetname is None:
-            sheets = self.sheet_names
+            sheets = self.sheetnames
             ret_dict = True
         else:
             sheets = [sheetname]
@@ -441,8 +441,8 @@ class ExcelFile(object):
 
 
     @property
-    def sheet_names(self):
-        return self.book.sheet_names()
+    def sheetnames(self):
+        return self.book.sheetnames()
 
     def close(self):
         """close io if necessary"""
@@ -508,7 +508,7 @@ class ExcelWriter(object):
     # Defining an ExcelWriter implementation (see abstract methods for more...)
 
     # - Mandatory
-    #   - ``write_cells(self, cells, sheet_name=None, startrow=0, startcol=0)``
+    #   - ``write_cells(self, cells, sheetname=None, startrow=0, startcol=0)``
     #     --> called to write additional DataFrames to disk
     #   - ``supported_extensions`` (tuple of supported extensions), used to
     #      check that engine supports the given extension.
@@ -560,7 +560,7 @@ class ExcelWriter(object):
         pass
 
     @abc.abstractmethod
-    def write_cells(self, cells, sheet_name=None, startrow=0, startcol=0):
+    def write_cells(self, cells, sheetname=None, startrow=0, startcol=0):
         """
         Write given formated cells into Excel an excel sheet
 
@@ -568,7 +568,7 @@ class ExcelWriter(object):
         ----------
         cells : generator
             cell of formated data to save to Excel sheet
-        sheet_name : string, default None
+        sheetname : string, default None
             Name of Excel sheet, if None, then use self.cur_sheet
         startrow: upper left cell row to dump data frame
         startcol: upper left cell column to dump data frame
@@ -605,13 +605,13 @@ class ExcelWriter(object):
         else:
             self.datetime_format = datetime_format
 
-    def _get_sheet_name(self, sheet_name):
-        if sheet_name is None:
-            sheet_name = self.cur_sheet
-        if sheet_name is None:  # pragma: no cover
-            raise ValueError('Must pass explicit sheet_name or set '
+    def _get_sheetname(self, sheetname):
+        if sheetname is None:
+            sheetname = self.cur_sheet
+        if sheetname is None:  # pragma: no cover
+            raise ValueError('Must pass explicit sheetname or set '
                              'cur_sheet property')
-        return sheet_name
+        return sheetname
 
     @classmethod
     def check_extension(cls, ext):
@@ -665,18 +665,18 @@ class _Openpyxl1Writer(ExcelWriter):
         """
         return self.book.save(self.path)
 
-    def write_cells(self, cells, sheet_name=None, startrow=0, startcol=0):
+    def write_cells(self, cells, sheetname=None, startrow=0, startcol=0):
         # Write the frame cells using openpyxl.
         from openpyxl.cell import get_column_letter
 
-        sheet_name = self._get_sheet_name(sheet_name)
+        sheetname = self._get_sheetname(sheetname)
 
-        if sheet_name in self.sheets:
-            wks = self.sheets[sheet_name]
+        if sheetname in self.sheets:
+            wks = self.sheets[sheetname]
         else:
             wks = self.book.create_sheet()
-            wks.title = sheet_name
-            self.sheets[sheet_name] = wks
+            wks.title = sheetname
+            self.sheets[sheetname] = wks
 
         for cell in cells:
             colletter = get_column_letter(startcol + cell.col + 1)
@@ -759,18 +759,18 @@ class _Openpyxl2Writer(_Openpyxl1Writer):
     engine = 'openpyxl2'
     openpyxl_majorver = 2
 
-    def write_cells(self, cells, sheet_name=None, startrow=0, startcol=0):
+    def write_cells(self, cells, sheetname=None, startrow=0, startcol=0):
         # Write the frame cells using openpyxl.
         from openpyxl.cell import get_column_letter
 
-        sheet_name = self._get_sheet_name(sheet_name)
+        sheetname = self._get_sheetname(sheetname)
 
-        if sheet_name in self.sheets:
-            wks = self.sheets[sheet_name]
+        if sheetname in self.sheets:
+            wks = self.sheets[sheetname]
         else:
             wks = self.book.create_sheet()
-            wks.title = sheet_name
-            self.sheets[sheet_name] = wks
+            wks.title = sheetname
+            self.sheets[sheetname] = wks
 
         for cell in cells:
             colletter = get_column_letter(startcol + cell.col + 1)
@@ -1189,16 +1189,16 @@ class _XlwtWriter(ExcelWriter):
         """
         return self.book.save(self.path)
 
-    def write_cells(self, cells, sheet_name=None, startrow=0, startcol=0):
+    def write_cells(self, cells, sheetname=None, startrow=0, startcol=0):
         # Write the frame cells using xlwt.
 
-        sheet_name = self._get_sheet_name(sheet_name)
+        sheetname = self._get_sheetname(sheetname)
 
-        if sheet_name in self.sheets:
-            wks = self.sheets[sheet_name]
+        if sheetname in self.sheets:
+            wks = self.sheets[sheetname]
         else:
-            wks = self.book.add_sheet(sheet_name)
-            self.sheets[sheet_name] = wks
+            wks = self.book.add_sheet(sheetname)
+            self.sheets[sheetname] = wks
 
         style_dict = {}
 
@@ -1312,16 +1312,16 @@ class _XlsxWriter(ExcelWriter):
         """
         return self.book.close()
 
-    def write_cells(self, cells, sheet_name=None, startrow=0, startcol=0):
+    def write_cells(self, cells, sheetname=None, startrow=0, startcol=0):
         # Write the frame cells using xlsxwriter.
 
-        sheet_name = self._get_sheet_name(sheet_name)
+        sheetname = self._get_sheetname(sheetname)
 
-        if sheet_name in self.sheets:
-            wks = self.sheets[sheet_name]
+        if sheetname in self.sheets:
+            wks = self.sheets[sheetname]
         else:
-            wks = self.book.add_worksheet(sheet_name)
-            self.sheets[sheet_name] = wks
+            wks = self.book.add_worksheet(sheetname)
+            self.sheets[sheetname] = wks
 
         style_dict = {}
 

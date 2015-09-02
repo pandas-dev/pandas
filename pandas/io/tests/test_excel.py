@@ -743,9 +743,9 @@ class ExcelWriterBase(SharedItems):
             tm.assert_frame_equal(self.frame, recons)
             recons = reader.parse('test2', index_col=0)
             tm.assert_frame_equal(self.tsframe, recons)
-            np.testing.assert_equal(2, len(reader.sheet_names))
-            np.testing.assert_equal('test1', reader.sheet_names[0])
-            np.testing.assert_equal('test2', reader.sheet_names[1])
+            np.testing.assert_equal(2, len(reader.sheetnames))
+            np.testing.assert_equal('test1', reader.sheetnames[0])
+            np.testing.assert_equal('test2', reader.sheetnames[1])
 
     def test_colaliases(self):
         _skip_if_no_xlrd()
@@ -842,7 +842,7 @@ class ExcelWriterBase(SharedItems):
             df.to_excel(path, merge_cells=self.merge_cells)
 
             xf = ExcelFile(path)
-            result = xf.parse(xf.sheet_names[0],
+            result = xf.parse(xf.sheetnames[0],
                               index_col=0,
                               has_index_names=self.merge_cells)
 
@@ -1006,7 +1006,7 @@ class ExcelWriterBase(SharedItems):
                         index=[u('A\u0192'), 'B'], columns=[u('X\u0193'), 'Y', 'Z'])
 
         with ensure_clean(filename) as filename:
-            df.to_excel(filename, sheet_name='TestSheet', encoding='utf8')
+            df.to_excel(filename, sheetname='TestSheet', encoding='utf8')
             result = read_excel(filename, 'TestSheet', encoding='utf8')
             tm.assert_frame_equal(result, df)
 
@@ -1065,7 +1065,7 @@ class ExcelWriterBase(SharedItems):
 
     #     wbk = xlrd.open_workbook(filename,
     #                              formatting_info=True)
-    #     self.assertEqual(["test1"], wbk.sheet_names())
+    #     self.assertEqual(["test1"], wbk.sheetnames())
     #     ws = wbk.sheet_by_name('test1')
     #     self.assertEqual([(0, 1, 5, 7), (0, 1, 3, 5), (0, 1, 1, 3)],
     #                       ws.merged_cells)
@@ -1111,7 +1111,7 @@ class ExcelWriterBase(SharedItems):
     #     filename = '__tmp_to_excel_header_styling_xlsx__.xlsx'
     #     pdf.to_excel(filename, 'test1')
     #     wbk = openpyxl.load_workbook(filename)
-    #     self.assertEqual(["test1"], wbk.get_sheet_names())
+    #     self.assertEqual(["test1"], wbk.get_sheetnames())
     #     ws = wbk.get_sheet_by_name('test1')
     #     xlsaddrs = ["%s2" % chr(i) for i in range(ord('A'), ord('H'))]
     #     xlsaddrs += ["A%s" % i for i in range(1, 6)]
@@ -1149,7 +1149,7 @@ class ExcelWriterBase(SharedItems):
             with ensure_clean(self.ext) as path:
                 df.to_excel(path, header=header, merge_cells=self.merge_cells, index=index)
                 xf = pd.ExcelFile(path)
-                res = xf.parse(xf.sheet_names[0], header=parser_hdr)
+                res = xf.parse(xf.sheetnames[0], header=parser_hdr)
                 return res
 
         nrows = 5
@@ -1203,7 +1203,7 @@ class ExcelWriterBase(SharedItems):
             with ensure_clean(self.ext) as path:
                 df.to_excel(path, header=header, merge_cells=self.merge_cells, index=index)
                 xf = pd.ExcelFile(path)
-                res = xf.parse(xf.sheet_names[0], header=parser_hdr)
+                res = xf.parse(xf.sheetnames[0], header=parser_hdr)
                 return res
 
         nrows = 5; ncols = 3
@@ -1430,7 +1430,7 @@ class Openpyxl2Tests(ExcelWriterBase, tm.TestCase):
         from pandas.core.format import ExcelCell
         from openpyxl import styles
 
-        sheet_name='merge_styled'
+        sheetname='merge_styled'
 
         sty_b1 = {'font': {'color': '00FF0000'}}
         sty_a2 = {'font': {'color': '0000FF00'}}
@@ -1450,10 +1450,10 @@ class Openpyxl2Tests(ExcelWriterBase, tm.TestCase):
 
         with ensure_clean('.xlsx') as path:
             writer = _Openpyxl2Writer(path)
-            writer.write_cells(initial_cells, sheet_name=sheet_name)
-            writer.write_cells(merge_cells, sheet_name=sheet_name)
+            writer.write_cells(initial_cells, sheetname=sheetname)
+            writer.write_cells(merge_cells, sheetname=sheetname)
 
-            wks = writer.sheets[sheet_name]
+            wks = writer.sheets[sheetname]
             xcell_b1 = wks.cell('B1')
             xcell_a2 = wks.cell('A2')
             self.assertEqual(xcell_b1.style, openpyxl_sty_merged)
