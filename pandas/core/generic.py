@@ -1196,10 +1196,9 @@ class NDFrame(PandasObject):
         result = self._constructor(self._data.get_slice(slobj, axis=axis))
         result = result.__finalize__(self)
 
-        # this could be a view
-        # but only in a single-dtyped view slicable case
-        is_copy = axis!=0 or result._is_view
-        result._set_is_copy(self, copy=is_copy)
+        # mark this as a copy if we are not axis=0
+        is_copy = axis!=0
+        result._set_is_copy(self)
         return result
 
     def _set_item(self, key, value):
@@ -1235,11 +1234,15 @@ class NDFrame(PandasObject):
                 names = []
                 for ref in refs:
                     if inspect.isframe(ref):
-                        for name, __really_unused_name__xxxxx__ in ref.f_locals.iteritems():
+                        for name, __really_unused_name__xxxxx__ in compat.iteritems(ref.f_locals):
+                            if __really_unused_name__xxxxx__ is __really_unused_name__342424__:
+                                names.append(name)
+                    elif isinstance(ref, dict):
+                        for name, __really_unused_name__xxxxx__ in compat.iteritems(ref):
                             if __really_unused_name__xxxxx__ is __really_unused_name__342424__:
                                 names.append(name)
 
-                for name, __really_unused_name__xxxxx__ in globals().iteritems():
+                for name, __really_unused_name__xxxxx__ in compat.iteritems(globals()):
                     if __really_unused_name__xxxxx__ is __really_unused_name__342424__:
                         names.append(name)
 
@@ -1271,9 +1274,9 @@ class NDFrame(PandasObject):
         will return a boolean if it we are a view and are cached, but a single-dtype
         meaning that the cacher should be updated following setting
         """
-        if self._is_view and self._is_cached:
+        if self._is_cached:
             ref = self._get_cacher()
-            if ref is not None and ref._is_mixed_type:
+            if ref is not None:
                 self._check_copy_on_write()
             return True
         elif self.is_copy:
@@ -1482,9 +1485,7 @@ class NDFrame(PandasObject):
             result = self.iloc[loc]
             result.index = new_index
 
-        # this could be a view
-        # but only in a single-dtyped view slicable case
-        result._set_is_copy(self, copy=not result._is_view)
+        result._set_is_copy(self)
         return result
 
     _xs = xs

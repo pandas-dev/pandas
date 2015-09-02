@@ -2293,8 +2293,19 @@ class DataFrame(NDFrame):
         """
 
         self._ensure_valid_index(value)
-        value = self._sanitize_column(key, value)
-        NDFrame._set_item(self, key, value)
+        svalue = self._sanitize_column(key, value)
+        try:
+            NDFrame._set_item(self, key, svalue)
+        except com.SettingWithCopyError:
+
+            # if we have a multi-index (which potentially has dropped levels)
+            # need to raise
+            if isinstance(self.is_copy().columns, MultiIndex):
+                raise
+
+            # we have a chained assignment
+            # assign back to the original
+            self.is_copy().loc[self.index,key] = value
 
     def insert(self, loc, column, value, allow_duplicates=False):
         """

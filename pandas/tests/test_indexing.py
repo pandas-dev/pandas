@@ -3780,6 +3780,7 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
 
         # reference is broken
         self.assertIsNone(df.is_copy)
+        self.assertIsNone(intermediate.is_copy)
 
         # local assignment
         expected = DataFrame([[-99,4]],index=[1],columns=['col1','col2'])
@@ -3790,11 +3791,31 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         assert_frame_equal(df, expected)
 
         # chained assignment
+        # but one that we can deal with
         df = pd.DataFrame({'col1':[1,2], 'col2':[3,4]})
+        df.loc[1:1,]['col1'] = -99
+        expected = DataFrame({'col1':[1,-99], 'col2':[3,4]})
+        assert_frame_equal(df, expected)
 
-        def f():
-            df.loc[1:1,]['col1'] = -99
-        self.assertRaises(com.SettingWithCopyError, f)
+        df = pd.DataFrame({'col1':[1,2], 'col2':[3,4]})
+        df.loc[1]['col1'] = -99
+        assert_frame_equal(df, expected)
+
+        # changed via a scalar accessor
+        df = DataFrame({'col1':[1,2], 'col2':[3,4]})
+        expected = df.copy()
+
+        s2 = df.loc[0]
+        s2.iloc[0] = -99
+        assert_frame_equal(df, expected)
+        expected = Series([-99,3],index=['col1','col2'],name=0)
+        assert_series_equal(s2, expected)
+
+        # change dtype
+        df = pd.DataFrame({'col1':[1,2], 'col2':[3,4]})
+        expected = DataFrame({'col1':[1, 2], 'col2':[3,'foo']})
+        df.loc[1]['col2'] = 'foo'
+        assert_frame_equal(df, expected)
 
     def test_detect_chained_assignment(self):
 
@@ -3815,9 +3836,8 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
 
         # using a copy (the chain), fails
         df = DataFrame({ 'A' : Series(range(2),dtype='int64'), 'B' : np.array(np.arange(2,4),dtype=np.float64)})
-        def f():
-            df.loc[0]['A'] = -5
-        self.assertRaises(com.SettingWithCopyError, f)
+        df.loc[0]['A'] = -5
+        self.assertEqual(df.loc[0,'A'], -5)
 
         # doc example
         df = DataFrame({'a' : ['one', 'one', 'two',
@@ -3828,18 +3848,20 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
                                      'three', 'two', 'one', 'six'],
                               'c' : [42,42,2,3,4,42,6]})
 
-        def f():
-            indexer = df.a.str.startswith('o')
-            df[indexer]['c'] = 42
-        self.assertRaises(com.SettingWithCopyError, f)
+        indexer = df.a.str.startswith('o')
+        df[indexer]['c'] = 42
+        assert_frame_equal(df, expected)
 
         expected = DataFrame({'A':[111,'bbb','ccc'],'B':[1,2,3]})
         df = DataFrame({'A':['aaa','bbb','ccc'],'B':[1,2,3]})
         df['A'][0] = 111
-        def f():
-            df.loc[0]['A'] = 111
-        self.assertRaises(com.SettingWithCopyError, f)
+        assert_frame_equal(df, expected)
 
+        df = DataFrame({'A':['aaa','bbb','ccc'],'B':[1,2,3]})
+        df.loc[0]['A'] = 111
+        assert_frame_equal(df,expected)
+
+        df = DataFrame({'A':['aaa','bbb','ccc'],'B':[1,2,3]})
         df.loc[0,'A'] = 111
         assert_frame_equal(df,expected)
 
@@ -3940,28 +3962,22 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         # from SO: http://stackoverflow.com/questions/24054495/potential-bug-setting-value-for-undefined-column-using-iloc
         df = DataFrame(np.arange(0,9), columns=['count'])
         df['group'] = 'b'
-        def f():
-            df.iloc[0:5]['group'] = 'a'
-        self.assertRaises(com.SettingWithCopyError, f)
+        df.iloc[0:5]['group'] = 'a'
 
         # mixed type setting
         # same dtype & changing dtype
         df = DataFrame(dict(A=date_range('20130101',periods=5),B=np.random.randn(5),C=np.arange(5,dtype='int64'),D=list('abcde')))
+        df.ix[2]['D'] = 'foo'
 
-        def f():
-            df.ix[2]['D'] = 'foo'
-        self.assertRaises(com.SettingWithCopyError, f)
-        def f():
-            df.ix[2]['C'] = 'foo'
-        self.assertRaises(com.SettingWithCopyError, f)
+        df = DataFrame(dict(A=date_range('20130101',periods=5),B=np.random.randn(5),C=np.arange(5,dtype='int64'),D=list('abcde')))
+        df.ix[2]['C'] = 'foo'
+
+        df = DataFrame(dict(A=date_range('20130101',periods=5),B=np.random.randn(5),C=np.arange(5,dtype='int64'),D=list('abcde')))
         df['C'][2] = 'foo'
 
-    def test_detect_chained_assignment2(self):
-
         df = DataFrame({'A':['aaa','bbb','ccc'],'B':[1,2,3]})
-        def f():
-            df.loc[0]['A'] = 111
-        self.assertRaises(com.SettingWithCopyError, f)
+        df.loc[0]['A'] = 111
+        self.assertEqual(df.loc[0,'A'],111)
 
     def test_setting_with_copy_bug(self):
 

@@ -21,7 +21,8 @@ from pandas.core.common import (isnull, notnull, is_bool_indexer,
                                 _possibly_convert_platform, _try_sort,
                                 is_int64_dtype,
                                 ABCSparseArray, _maybe_match_name,
-                                _coerce_to_dtype, SettingImmutableError,
+                                _coerce_to_dtype,
+                                SettingImmutableError, SettingWithCopyError,
                                 _maybe_box_datetimelike, ABCDataFrame,
                                 _dict_compat)
 from pandas.core.index import (Index, MultiIndex, InvalidIndexError,
@@ -683,7 +684,15 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             self._set_with(key, value)
 
         # do the setitem
-        cacher_needs_updating = self._check_is_chained_assignment_possible()
+        try:
+            cacher_needs_updating = self._check_is_chained_assignment_possible()
+        except (SettingWithCopyError):
+
+            # we have a chained assignment
+            # assign back to the original
+            self.is_copy().loc[self.name,key] = value
+            return
+
         setitem(key, value)
         if cacher_needs_updating:
             self._maybe_update_cacher()
