@@ -4,7 +4,6 @@ from distutils.version import LooseVersion
 # pylint: disable=W0141
 
 import sys
-import warnings
 
 from pandas.core.base import PandasObject
 from pandas.core.common import adjoin, notnull
@@ -1641,14 +1640,11 @@ class ExcelFormatter(object):
     inf_rep : string, default `'inf'`
         representation for np.inf values (which aren't representable in Excel)
         A `'-'` sign will be added in front of -inf.
-    verbose: boolean, default True
-        If True, warn user that the resulting output file may not be
-        re-read or parsed directly by pandas.
     """
 
     def __init__(self, df, na_rep='', float_format=None, cols=None,
                  header=True, index=True, index_label=None, merge_cells=False,
-                 inf_rep='inf', verbose=True):
+                 inf_rep='inf'):
         self.df = df
         self.rowcounter = 0
         self.na_rep = na_rep
@@ -1661,7 +1657,6 @@ class ExcelFormatter(object):
         self.header = header
         self.merge_cells = merge_cells
         self.inf_rep = inf_rep
-        self.verbose = verbose
 
     def _format_value(self, val):
         if lib.checknull(val):
@@ -1682,10 +1677,6 @@ class ExcelFormatter(object):
                 raise NotImplementedError("Writing to Excel with MultiIndex"
                                           " columns and no index ('index'=False) "
                                           "is not yet implemented.")
-            elif self.index and self.verbose:
-                warnings.warn("Writing to Excel with MultiIndex columns is a"
-                              " one way serializable operation. You will not"
-                              " be able to re-read or parse the output file.")
 
         has_aliases = isinstance(self.header, (tuple, list, np.ndarray, Index))
         if not(has_aliases or self.header):
@@ -1796,18 +1787,14 @@ class ExcelFormatter(object):
             else:
                 index_label = self.df.index.names[0]
 
+            if isinstance(self.columns, MultiIndex):
+                self.rowcounter += 1
+
             if index_label and self.header is not False:
-                if self.merge_cells:
-                    yield ExcelCell(self.rowcounter,
-                                    0,
-                                    index_label,
-                                    header_style)
-                    self.rowcounter += 1
-                else:
-                    yield ExcelCell(self.rowcounter - 1,
-                                    0,
-                                    index_label,
-                                    header_style)
+                yield ExcelCell(self.rowcounter - 1,
+                                0,
+                                index_label,
+                                header_style)
 
             # write index_values
             index_values = self.df.index
@@ -1841,19 +1828,21 @@ class ExcelFormatter(object):
                                                (list, tuple, np.ndarray, Index)):
                 index_labels = self.index_label
 
+            # MultiIndex columns require an extra row
+            # with index names (blank if None) for
+            # unambigous round-trip
+            if isinstance(self.columns, MultiIndex):
+                self.rowcounter += 1
+
             # if index labels are not empty go ahead and dump
             if (any(x is not None for x in index_labels)
                     and self.header is not False):
 
-                if not self.merge_cells:
-                    self.rowcounter -= 1
-
                 for cidx, name in enumerate(index_labels):
-                    yield ExcelCell(self.rowcounter,
+                    yield ExcelCell(self.rowcounter - 1,
                                     cidx,
                                     name,
                                     header_style)
-                self.rowcounter += 1
 
             if self.merge_cells:
                 # Format hierarchical rows as merged cells.

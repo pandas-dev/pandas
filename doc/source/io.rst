@@ -1989,6 +1989,46 @@ advanced strategies
 Reading Excel Files
 '''''''''''''''''''
 
+.. versionadded:: 0.17
+
+``read_excel`` can read a ``MultiIndex`` index, by passing a list of columns to ``index_col``
+and a ``MultiIndex`` column by passing a list of rows to ``header``.  If either the ``index``
+or ``columns`` have serialized level names those will be read in as well by specifying
+the rows/columns that make up the levels.
+
+.. ipython:: python
+
+   # MultiIndex index - no names
+   df = pd.DataFrame({'a':[1,2,3,4], 'b':[5,6,7,8]},
+                     index=pd.MultiIndex.from_product([['a','b'],['c','d']]))
+   df.to_excel('path_to_file.xlsx')
+   df = pd.read_excel('path_to_file.xlsx', index_col=[0,1])
+   df
+
+   # MultiIndex index - with names
+   df.index = df.index.set_names(['lvl1', 'lvl2'])
+   df.to_excel('path_to_file.xlsx')
+   df = pd.read_excel('path_to_file.xlsx', index_col=[0,1])
+   df
+
+   # MultiIndex index and column - with names
+   df.columns = pd.MultiIndex.from_product([['a'],['b', 'd']], names=['c1', 'c2'])
+   df.to_excel('path_to_file.xlsx')
+   df = pd.read_excel('path_to_file.xlsx',
+                       index_col=[0,1], header=[0,1])
+   df
+
+.. ipython:: python
+   :suppress:
+
+   import os
+   os.remove('path_to_file.xlsx')
+
+.. warning::
+
+   Excel files saved in version 0.16.2 or prior that had index names will still able to be read in,
+   but the ``has_index_names`` argument must specified to ``True``.
+
 .. versionadded:: 0.16
 
 ``read_excel`` can read more than one sheet, by setting ``sheetname`` to either

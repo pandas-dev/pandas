@@ -1336,9 +1336,6 @@ class DataFrame(NDFrame):
         inf_rep : string, default 'inf'
             Representation for infinity (there is no native representation for
             infinity in Excel)
-        verbose: boolean, default True
-             If True, warn user that the resulting output file may not be
-             re-read or parsed directly by pandas.
 
         Notes
         -----
@@ -1371,7 +1368,7 @@ class DataFrame(NDFrame):
                                        index=index,
                                        index_label=index_label,
                                        merge_cells=merge_cells,
-                                       inf_rep=inf_rep, verbose=verbose)
+                                       inf_rep=inf_rep)
         formatted_cells = formatter.get_formatted_cells()
         excel_writer.write_cells(formatted_cells, sheet_name,
                                  startrow=startrow, startcol=startcol)
