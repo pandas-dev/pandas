@@ -54,7 +54,7 @@ skipinitialspace : boolean, default False
     Skip spaces after delimiter
 escapechar : string (length 1), default None
     One-character string used to escape delimiter when quoting is QUOTE_NONE.
-dtype : Type name or dict of column -> type
+dtype : Type name or dict of column -> type, default None
     Data type for data or columns. E.g. {'a': np.float64, 'b': np.int32}
     (Unsupported with engine='python')
 compression : {'gzip', 'bz2', 'infer', None}, default 'infer'
@@ -65,7 +65,7 @@ compression : {'gzip', 'bz2', 'infer', None}, default 'infer'
 dialect : string or csv.Dialect instance, default None
     If None defaults to Excel dialect. Ignored if sep longer than 1 char
     See csv.Dialect documentation for more details
-header : int, list of ints
+header : int, list of ints, default 'infer'
     Row number(s) to use as the column names, and the start of the
     data.  Defaults to 0 if no ``names`` passed, otherwise ``None``. Explicitly
     pass ``header=0`` to be able to replace existing names. The header can be
@@ -74,7 +74,7 @@ header : int, list of ints
     skipped (e.g. 2 in this example are skipped). Note that this parameter
     ignores commented lines and empty lines if ``skip_blank_lines=True``, so header=0
     denotes the first line of data rather than the first line of the file.
-skiprows : list-like or integer
+skiprows : list-like or integer, default None
     Line numbers to skip (0-indexed) or number of lines to skip (int)
     at the start of the file
 index_col : int or sequence or False, default None
@@ -82,7 +82,7 @@ index_col : int or sequence or False, default None
     MultiIndex is used. If you have a malformed file with delimiters at the end
     of each line, you might consider index_col=False to force pandas to _not_
     use the first column as the index (row names)
-names : array-like
+names : array-like, default None
     List of column names to use. If file contains no header row, then you
     should explicitly pass header=None
 prefix : string, default None
@@ -90,14 +90,14 @@ prefix : string, default None
 na_values : str, list-like or dict, default None
     Additional strings to recognize as NA/NaN. If dict passed, specific
     per-column NA values
-true_values : list
+true_values : list, default None
     Values to consider as True
-false_values : list
+false_values : list, default None
     Values to consider as False
 keep_default_na : bool, default True
     If na_values are specified and keep_default_na is False the default NaN
     values are overridden, otherwise they're appended to
-parse_dates : boolean, list of ints or names, list of lists, or dict
+parse_dates : boolean, list of ints or names, list of lists, or dict, default False
     If True -> try parsing the index.
     If [1, 2, 3] -> try parsing columns 1, 2, 3 each as a separate date column.
     If [[1, 3]] -> combine columns 1 and 3 and parse as a single date column.
@@ -106,7 +106,7 @@ parse_dates : boolean, list of ints or names, list of lists, or dict
 keep_date_col : boolean, default False
     If True and parse_dates specifies combining multiple columns then
     keep the original columns.
-date_parser : function
+date_parser : function, default None
     Function to use for converting a sequence of string columns to an
     array of datetime instances. The default uses dateutil.parser.parser
     to do the conversion. Pandas will try to call date_parser in three different
@@ -154,7 +154,7 @@ na_filter : boolean, default True
     Detect missing value markers (empty strings and the value of na_values). In
     data without any NAs, passing na_filter=False can improve the performance
     of reading a large file
-usecols : array-like
+usecols : array-like, default None
     Return a subset of the columns.
     Results in much faster parsing time and lower memory usage.
 mangle_dupe_cols : boolean, default True
