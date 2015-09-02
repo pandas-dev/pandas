@@ -391,6 +391,10 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, Int64Index):
             result = result.astype('int64')
         return result
 
+    def total_seconds(self):
+        """ Total duration of each element expressed in seconds. """
+        return self._maybe_mask_results(1e-9*self.asi8)
+
     def to_pytimedelta(self):
         """
         Return TimedeltaIndex as object ndarray of datetime.timedelta objects
