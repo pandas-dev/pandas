@@ -2668,6 +2668,15 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         df     = _make_mixed_dtypes_df('int')
         _check_mixed_dtypes(df)
 
+    def test_constructor_complex_dtypes(self):
+        # GH10952
+        a = np.random.rand(10).astype(np.complex64)
+        b = np.random.rand(10).astype(np.complex128)
+
+        df = DataFrame({'a': a, 'b': b})
+        self.assertEqual(a.dtype, df.a.dtype)
+        self.assertEqual(b.dtype, df.b.dtype)
+
     def test_constructor_rec(self):
         rec = self.frame.to_records(index=False)
 
