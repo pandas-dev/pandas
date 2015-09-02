@@ -3,7 +3,7 @@ SQL-style merge routines
 """
 
 import numpy as np
-from pandas.compat import range, long, lrange, lzip, zip, map, filter
+from pandas.compat import range, lrange, lzip, zip, map, filter
 import pandas.compat as compat
 from pandas.core.categorical import Categorical
 from pandas.core.frame import DataFrame, _merge_doc
@@ -15,7 +15,7 @@ from pandas.core.index import (Index, MultiIndex, _get_combined_index,
 from pandas.core.internals import (items_overlap_with_suffix,
                                    concatenate_block_managers)
 from pandas.util.decorators import Appender, Substitution
-from pandas.core.common import ABCSeries
+from pandas.core.common import ABCSeries, isnull
 
 import pandas.core.common as com
 
@@ -912,8 +912,14 @@ class _Concatenator(object):
                 data = dict(zip(range(len(self.objs)), self.objs))
                 index, columns = self.new_axes
                 tmpdf = DataFrame(data, index=index)
-                if columns is not None:
-                    tmpdf.columns = columns
+                # checks if the column variable already stores valid column names (because set via the 'key' argument
+                # in the 'concat' function call. If that's not the case, use the series names as column names
+                if columns.equals(Index(np.arange(len(self.objs)))) and not self.ignore_index:
+                    columns = np.array([ data[i].name for i in range(len(data)) ], dtype='object')
+                    indexer = isnull(columns)
+                    if indexer.any():
+                        columns[indexer] = np.arange(len(indexer[indexer]))
+                tmpdf.columns = columns
                 return tmpdf.__finalize__(self, method='concat')
 
         # combine block managers
