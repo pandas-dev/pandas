@@ -77,7 +77,7 @@ class Properties(PandasDelegate):
         result = Series(result, index=self.index)
 
         # setting this object will show a ValueError if accessed
-        result.is_copy = SettingImmutableError("modifications to a property of a datetimelike object are not "
+        result._parent = SettingImmutableError("modifications to a property of a datetimelike object are not "
                                                "supported and are discarded. Change values on the original.")
 
 
@@ -99,7 +99,7 @@ class Properties(PandasDelegate):
         result = Series(result, index=self.index)
 
         # setting this object will show a SettingImmutableError
-        result.is_copy = SettingImmutableError("modifications to a method of a datetimelike object are not "
+        result._parent = SettingImmutableError("modifications to a method of a datetimelike object are not "
                                                "supported and are discarded. Change values on the original.")
 
         return result

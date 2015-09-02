@@ -514,7 +514,7 @@ class CheckIndexing(object):
         # mixed-type
         self.panel4d['strings'] = 'foo'
         result = self.panel4d.xs('D', axis=3)
-        self.assertIsNotNone(result.is_copy)
+        self.assertIsNotNone(result._parent)
 
     def test_getitem_fancy_labels(self):
         panel4d = self.panel4d

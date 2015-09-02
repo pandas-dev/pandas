@@ -78,15 +78,15 @@ class NDFrame(PandasObject):
     axes : list
     copy : boolean, default False
     """
-    _internal_names = ['_data', '_cacher', '_item_cache', '_cache',
-                       'is_copy', '_subtyp', '_index', '_allow_copy_on_write',
+    _internal_names = ['_data', '_cacher', '_item_cache', '_cache', '_parent',
+                       '_subtyp', '_index', '_parent_copy_on_write',
                        '_default_kind', '_default_fill_value', '_metadata',
                        '__array_struct__', '__array_interface__']
     _internal_names_set = set(_internal_names)
     _accessors = frozenset([])
     _metadata = []
-    _allow_copy_on_write = True
-    is_copy = None
+    _parent_copy_on_write = True
+    _parent = None
 
     def __init__(self, data, axes=None, copy=False, dtype=None,
                  fastpath=False):
@@ -101,9 +101,21 @@ class NDFrame(PandasObject):
                 for i, ax in enumerate(axes):
                     data = data.reindex_axis(ax, axis=i)
 
-        object.__setattr__(self, 'is_copy', None)
+        object.__setattr__(self, '_parent', None)
         object.__setattr__(self, '_data', data)
         object.__setattr__(self, '_item_cache', {})
+
+    def _get_is_copy(self):
+        warnings.warn("is_copy is deprecated will be removed in a future release",
+                      FutureWarning)
+        return None
+
+    def _set_is_copy(self, v):
+        warnings.warn("is_copy is deprecated will be removed in a future release",
+                      FutureWarning)
+        pass
+
+    is_copy = property(fget=_get_is_copy, fset=_set_is_copy)
 
     def _validate_dtype(self, dtype):
         """ validate the passed dtype """
@@ -1092,7 +1104,7 @@ class NDFrame(PandasObject):
             res._set_as_cached(item, self)
 
             # for a chain
-            res.is_copy = self.is_copy
+            res._parent = self._parent
         return res
 
     def _set_as_cached(self, item, cacher):
@@ -1144,7 +1156,7 @@ class NDFrame(PandasObject):
         """ boolean : return if I am a view of another array """
         return self._data.is_view
 
-    def _maybe_update_cacher(self, clear=False, verify_is_copy=True):
+    def _maybe_update_cacher(self, clear=False, verify_parent=True):
         """
 
         see if we need to update our parent cacher
@@ -1154,8 +1166,8 @@ class NDFrame(PandasObject):
         ----------
         clear : boolean, default False
             clear the item cache
-        verify_is_copy : boolean, default True
-            provide is_copy checks
+        verify_parent : boolean, default True
+            provide parent checks
 
         """
 
@@ -1173,7 +1185,7 @@ class NDFrame(PandasObject):
                 except:
                     pass
 
-        if verify_is_copy:
+        if verify_parent:
             self._check_copy_on_write()
 
         if clear:
@@ -1197,8 +1209,8 @@ class NDFrame(PandasObject):
         result = result.__finalize__(self)
 
         # mark this as a copy if we are not axis=0
-        is_copy = axis!=0
-        result._set_is_copy(self)
+        parent = axis!=0
+        result._set_parent(self)
         return result
 
     def _set_item(self, key, value):
@@ -1207,23 +1219,23 @@ class NDFrame(PandasObject):
         self._data.set(key, value)
         self._clear_item_cache()
 
-    def _set_is_copy(self, ref=None, copy=True):
+    def _set_parent(self, ref=None, copy=True):
         if not copy:
-            self.is_copy = None
+            self._parent = None
         else:
             if ref is not None:
-                self.is_copy = weakref.ref(ref)
+                self._parent = weakref.ref(ref)
             else:
-                self.is_copy = None
+                self._parent = None
 
     def _check_copy_on_write(self):
 
         # we could have a copy-on-write scenario
-        if self.is_copy and self._allow_copy_on_write:
+        if self._parent and self._parent_copy_on_write:
 
             # we have an exception
-            if isinstance(self.is_copy, Exception):
-                raise self.is_copy
+            if isinstance(self._parent, Exception):
+                raise self._parent
 
             def get_names_for_obj(__really_unused_name__342424__):
                 """Returns all named references for self"""
@@ -1255,14 +1267,14 @@ class NDFrame(PandasObject):
 
             # otherwise we have chained indexing, raise and error
             gc.collect(2)
-            if self.is_copy() is not None:
+            if self._parent() is not None:
                 names = get_names_for_obj(self)
                 if not len(names):
                     raise SettingWithCopyError("chained indexing detected, you can fix this ......")
 
             # provide copy-on-write
             self._data = self._data.copy()
-            self.is_copy = None
+            self._parent = None
 
     def _check_is_chained_assignment_possible(self):
         """
@@ -1279,7 +1291,7 @@ class NDFrame(PandasObject):
             if ref is not None:
                 self._check_copy_on_write()
             return True
-        elif self.is_copy:
+        elif self._parent:
             self._check_copy_on_write()
         return False
 
@@ -1342,7 +1354,7 @@ class NDFrame(PandasObject):
         # maybe set copy if we didn't actually change the index
         if is_copy:
             if not result._get_axis(axis).equals(self._get_axis(axis)):
-                result._set_is_copy(self)
+                result._set_parent(self)
 
         return result
 
@@ -1485,7 +1497,7 @@ class NDFrame(PandasObject):
             result = self.iloc[loc]
             result.index = new_index
 
-        result._set_is_copy(self)
+        result._set_parent(self)
         return result
 
     _xs = xs
@@ -1608,14 +1620,14 @@ class NDFrame(PandasObject):
         else:
             return result
 
-    def _update_inplace(self, result, verify_is_copy=True):
+    def _update_inplace(self, result, verify_parent=True):
         """
         replace self internals with result.
 
         Parameters
         ----------
-        verify_is_copy : boolean, default True
-            provide is_copy checks
+        verify_parent : boolean, default True
+            provide parent checks
 
         """
         # NOTE: This does *not* call __finalize__ and that's an explicit
@@ -1624,7 +1636,7 @@ class NDFrame(PandasObject):
         self._reset_cache()
         self._clear_item_cache()
         self._data = getattr(result,'_data',result)
-        self._maybe_update_cacher(verify_is_copy=verify_is_copy)
+        self._maybe_update_cacher(verify_parent=verify_parent)
 
     def add_prefix(self, prefix):
         """

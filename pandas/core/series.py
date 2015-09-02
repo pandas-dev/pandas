@@ -690,7 +690,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
             # we have a chained assignment
             # assign back to the original
-            self.is_copy().loc[self.name,key] = value
+            self._parent().loc[self.name,key] = value
             return
 
         setitem(key, value)

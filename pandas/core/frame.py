@@ -1825,7 +1825,7 @@ class DataFrame(NDFrame):
                     copy = isinstance(new_values,np.ndarray) and new_values.base is None
                     result = Series(new_values, index=self.columns,
                                     name=self.index[i], dtype=new_values.dtype)
-                result._set_is_copy(self, copy=copy)
+                result._set_parent(self, copy=copy)
                 return result
 
         # icol
@@ -1957,7 +1957,7 @@ class DataFrame(NDFrame):
                     if isinstance(result, Series):
                         result = self._constructor_sliced(result, index=self.index, name=key)
 
-            result._set_is_copy(self)
+            result._set_parent(self)
             return result
         else:
             return self._get_item_cache(key)
@@ -2300,12 +2300,12 @@ class DataFrame(NDFrame):
 
             # if we have a multi-index (which potentially has dropped levels)
             # need to raise
-            if isinstance(self.is_copy().columns, MultiIndex):
+            if isinstance(self._parent().columns, MultiIndex):
                 raise
 
             # we have a chained assignment
             # assign back to the original
-            self.is_copy().loc[self.index,key] = value
+            self._parent().loc[self.index,key] = value
 
     def insert(self, loc, column, value, allow_duplicates=False):
         """

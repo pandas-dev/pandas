@@ -695,7 +695,7 @@ class GroupBy(PandasObject):
 
         keys, values, mutated = self.grouper.apply(f, self._selected_obj,
                                                    self.axis)
-        self._selected_obj._allow_copy_on_write = True
+        self._selected_obj._parent_copy_on_write = True
 
         return self._wrap_applied_output(keys, values,
                                          not_indexed_same=mutated)
@@ -3596,7 +3596,7 @@ class DataSplitter(object):
     def _set_cow(self, data):
         # we may mutate, so don't allow cow
         try:
-            data._allow_copy_on_write=False
+            data._parent_copy_on_write=False
         except AttributeError:
             pass
         return data
