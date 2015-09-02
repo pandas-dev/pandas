@@ -474,78 +474,19 @@ class TestBinGroupers(tm.TestCase):
         self.assertRaises(ValueError, generate_bins_generic,
                           values, [-3, -1], 'right')
 
-    def test_group_bin_functions(self):
-
-        dtypes = ['float32','float64']
-        funcs  = ['add', 'mean', 'prod', 'min', 'max', 'var']
-
-        np_funcs = {
-            'add': np.sum,
-            'mean': np.mean,
-            'prod': np.prod,
-            'min': np.min,
-            'max': np.max,
-            'var': lambda x: x.var(ddof=1) if len(x) >= 2 else np.nan
-        }
-
-        for fname in funcs:
-            for d in dtypes:
-                check_less_precise = False
-                if d == 'float32':
-                    check_less_precise = True
-                args = [getattr(algos, 'group_%s_%s' % (fname,d)),
-                        getattr(algos, 'group_%s_bin_%s' % (fname,d)),
-                        np_funcs[fname],
-                        d,
-                        check_less_precise]
-                self._check_versions(*args)
-
-    def _check_versions(self, irr_func, bin_func, np_func, dtype, check_less_precise):
-        obj = self.obj.astype(dtype)
-
-        cts = np.zeros(3, dtype=np.int64)
-        exp = np.zeros((3, 1), dtype)
-        irr_func(exp, cts, obj, self.labels)
-
-        # bin-based version
-        bins = np.array([3, 6], dtype=np.int64)
-        out = np.zeros((3, 1), dtype)
-        counts = np.zeros(len(out), dtype=np.int64)
-        bin_func(out, counts, obj, bins)
-
-        assert_almost_equal(out, exp, check_less_precise=check_less_precise)
-
-        bins = np.array([3, 9, 10], dtype=np.int64)
-        out = np.zeros((3, 1), dtype)
-        counts = np.zeros(len(out), dtype=np.int64)
-        bin_func(out, counts, obj, bins)
-        exp = np.array([np_func(obj[:3]), np_func(obj[3:9]),
-                        np_func(obj[9:])],
-                       dtype=dtype)
-        assert_almost_equal(out.squeeze(), exp, check_less_precise=check_less_precise)
-
-        # duplicate bins
-        bins = np.array([3, 6, 10, 10], dtype=np.int64)
-        out = np.zeros((4, 1), dtype)
-        counts = np.zeros(len(out), dtype=np.int64)
-        bin_func(out, counts, obj, bins)
-        exp = np.array([np_func(obj[:3]), np_func(obj[3:6]),
-                        np_func(obj[6:10]), np.nan],
-                       dtype=dtype)
-        assert_almost_equal(out.squeeze(), exp, check_less_precise=check_less_precise)
-
 
 def test_group_ohlc():
 
     def _check(dtype):
         obj = np.array(np.random.randn(20),dtype=dtype)
 
-        bins = np.array([6, 12], dtype=np.int64)
+        bins = np.array([6, 12, 20], dtype=np.int64)
         out = np.zeros((3, 4), dtype)
         counts = np.zeros(len(out), dtype=np.int64)
+        labels = np.repeat(np.arange(3), np.diff(np.r_[0, bins]))
 
         func = getattr(algos,'group_ohlc_%s' % dtype)
-        func(out, counts, obj[:, None], bins)
+        func(out, counts, obj[:, None], labels)
 
         def _ohlc(group):
             if isnull(group).all():
@@ -559,7 +500,7 @@ def test_group_ohlc():
         assert_almost_equal(counts, [6, 6, 8])
 
         obj[:6] = nan
-        func(out, counts, obj[:, None], bins)
+        func(out, counts, obj[:, None], labels)
         expected[0] = nan
         assert_almost_equal(out, expected)
 
