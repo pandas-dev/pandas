@@ -69,14 +69,15 @@ Releasing the GIL
 
 We are releasing the global-interpreter-lock (GIL) on some cython operations.
 This will allow other threads to run simultaneously during computation, potentially allowing performance improvements
-from multi-threading. Notably ``groupby`` and some indexing operations are a benefit from this. (:issue:`8882`)
+from multi-threading. Notably ``groupby``, ``nsmallest`` and some indexing operations benefit from this. (:issue:`8882`)
 
 For example the groupby expression in the following code will have the GIL released during the factorization step, e.g. ``df.groupby('key')``
 as well as the ``.sum()`` operation.
 
 .. code-block:: python
 
-   N = 1e6
+   N = 1000000
+   ngroups = 10
    df = DataFrame({'key' : np.random.randint(0,ngroups,size=N),
                    'data' : np.random.randn(N) })
    df.groupby('key')['data'].sum()

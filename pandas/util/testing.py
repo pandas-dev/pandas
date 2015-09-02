@@ -2044,14 +2044,16 @@ for name, obj in inspect.getmembers(sys.modules[__name__]):
     if inspect.isfunction(obj) and name.startswith('assert'):
         setattr(TestCase, name, staticmethod(obj))
 
-def test_parallel(num_threads=2):
+
+def test_parallel(num_threads=2, kwargs_list=None):
     """Decorator to run the same function multiple times in parallel.
 
     Parameters
     ----------
     num_threads : int, optional
         The number of times the function is run in parallel.
-
+    kwargs_list : list of dicts, optional
+        The list of kwargs to update original function kwargs on different threads.
     Notes
     -----
     This decorator does not pass the return value of the decorated function.
@@ -2061,14 +2063,23 @@ def test_parallel(num_threads=2):
     """
 
     assert num_threads > 0
+    has_kwargs_list = kwargs_list is not None
+    if has_kwargs_list:
+        assert len(kwargs_list) == num_threads
     import threading
 
     def wrapper(func):
         @wraps(func)
         def inner(*args, **kwargs):
+            if has_kwargs_list:
+                update_kwargs = lambda i: dict(kwargs, **kwargs_list[i])
+            else:
+                update_kwargs = lambda i: kwargs
             threads = []
             for i in range(num_threads):
-                thread = threading.Thread(target=func, args=args, kwargs=kwargs)
+                updated_kwargs = update_kwargs(i)
+                thread = threading.Thread(target=func, args=args,
+                                          kwargs=updated_kwargs)
                 threads.append(thread)
             for thread in threads:
                 thread.start()
