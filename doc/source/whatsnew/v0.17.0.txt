@@ -120,6 +120,32 @@ We are now supporting a ``Series.dt.strftime`` method for datetime-likes to gene
 
 The string format is as the python standard library and details can be found `here <https://docs.python.org/2/library/datetime.html#strftime-and-strptime-behavior>`_
 
+.. _whatsnew_0170.periodfreq:
+
+Period Frequency Enhancement
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+``Period``, ``PeriodIndex`` and ``period_range`` can now accept multiplied freq. Also, ``Period.freq`` and ``PeriodIndex.freq`` are now stored as ``DateOffset`` instance like ``DatetimeIndex``, not ``str`` (:issue:`7811`)
+
+Multiplied freq represents a span of corresponding length. Below example creates a period of 3 days. Addition and subtraction will shift the period by its span.
+
+.. ipython:: python
+
+   p = pd.Period('2015-08-01', freq='3D')
+   p
+   p + 1
+   p - 2
+   p.to_timestamp()
+   p.to_timestamp(how='E')
+
+You can use multiplied freq in ``PeriodIndex`` and ``period_range``.
+
+.. ipython:: python
+
+   idx = pd.period_range('2015-08-01', periods=4, freq='2D')
+   idx
+   idx + 1
+
 .. _whatsnew_0170.enhancements.sas_xport:
 
 Support for SAS XPORT files
@@ -198,7 +224,6 @@ Other enhancements
 - ``pd.Timedelta.total_seconds()`` now returns Timedelta duration to ns precision (previously microsecond precision) (:issue: `10939`)
 
 - ``.as_blocks`` will now take a ``copy`` optional argument to return a copy of the data, default is to copy (no change in behavior from prior versions), (:issue:`9607`)
-
 - ``regex`` argument to ``DataFrame.filter`` now handles numeric column names instead of raising ``ValueError`` (:issue:`10384`).
 - ``pd.read_stata`` will now read Stata 118 type files. (:issue:`9882`)
 

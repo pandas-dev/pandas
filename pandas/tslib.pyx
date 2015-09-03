@@ -1803,6 +1803,19 @@ _MONTH_ALIASES = dict((k + 1, v) for k, v in enumerate(_MONTHS))
 
 
 cpdef object _get_rule_month(object source, object default='DEC'):
+    """
+    Return starting month of given freq, default is December.
+
+    Example
+    -------
+    >>> _get_rule_month('D')
+    'DEC'
+
+    >>> _get_rule_month('A-JAN')
+    'JAN'
+    """
+    if hasattr(source, 'freqstr'):
+        source = source.freqstr
     source = source.upper()
     if '-' not in source:
         return default

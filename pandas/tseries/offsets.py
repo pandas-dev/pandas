@@ -444,7 +444,10 @@ class DateOffset(object):
         """Offsets index to beginning of Period frequency"""
 
         off = i.to_perioddelta('D')
-        base_period = i.to_period(freq)
+
+        from pandas.tseries.frequencies import get_freq_code
+        base, mult = get_freq_code(freq)
+        base_period = i.to_period(base)
         if self.n < 0:
             # when subtracting, dates on start roll to prior
             roll = np.where(base_period.to_timestamp() == i - off,
@@ -459,7 +462,11 @@ class DateOffset(object):
         """Offsets index to end of Period frequency"""
 
         off = i.to_perioddelta('D')
-        base_period = i.to_period(freq)
+
+        import pandas.tseries.frequencies as frequencies
+        from pandas.tseries.frequencies import get_freq_code
+        base, mult = get_freq_code(freq)
+        base_period = i.to_period(base)
         if self.n > 0:
             # when adding, dtates on end roll to next
             roll = np.where(base_period.to_timestamp(how='end') == i - off,

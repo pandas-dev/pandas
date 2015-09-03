@@ -17,6 +17,8 @@ from pandas import compat
 from pandas.compat import u
 from pandas.util.misc import is_little_endian
 import pandas
+from pandas.tseries.offsets import Day, MonthEnd
+
 
 class TestPickle():
     """
@@ -90,6 +92,10 @@ class TestPickle():
                 if 'ts' in data['series']:
                     self._validate_timeseries(data['series']['ts'], self.data['series']['ts'])
                     self._validate_frequency(data['series']['ts'])
+            if 'index' in data:
+                if 'period' in data['index']:
+                    self._validate_periodindex(data['index']['period'],
+                                               self.data['index']['period'])
             n += 1
         assert n > 0, 'Pickle files are not tested'
 
@@ -162,7 +168,6 @@ class TestPickle():
 
     def _validate_frequency(self, pickled):
         # GH 9291
-        from pandas.tseries.offsets import Day
         freq = pickled.index.freq
         result = freq + Day(1)
         tm.assert_equal(result, Day(2))
@@ -174,6 +179,13 @@ class TestPickle():
         result = freq + pandas.Timedelta(nanoseconds=1)
         tm.assert_equal(isinstance(result, pandas.Timedelta), True)
         tm.assert_equal(result, pandas.Timedelta(days=1, nanoseconds=1))
+
+    def _validate_periodindex(self, pickled, current):
+        tm.assert_index_equal(pickled, current)
+        tm.assertIsInstance(pickled.freq, MonthEnd)
+        tm.assert_equal(pickled.freq, MonthEnd())
+        tm.assert_equal(pickled.freqstr, 'M')
+        tm.assert_index_equal(pickled.shift(2), current.shift(2))
 
 
 if __name__ == '__main__':
