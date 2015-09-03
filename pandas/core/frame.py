@@ -2300,12 +2300,13 @@ class DataFrame(NDFrame):
 
             # if we have a multi-index (which potentially has dropped levels)
             # need to raise
-            if isinstance(self._parent().columns, MultiIndex):
-                raise
+            for p in self._parent:
+                if isinstance(getattr(p(),'columns',None), MultiIndex):
+                    raise
 
             # we have a chained assignment
             # assign back to the original
-            self._parent().loc[self.index,key] = value
+            self._parent[0]().loc[self.index,key] = value
 
     def insert(self, loc, column, value, allow_duplicates=False):
         """

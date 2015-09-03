@@ -528,7 +528,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                     if not self.index.is_unique:
                         result = self._constructor(result,
                                                    index=[key]*len(result)
-                                                   ,dtype=self.dtype).__finalize__(self)
+                                                   ,dtype=self.dtype)._set_parent(self).__finalize__(self)
 
             return result
         except InvalidIndexError:
@@ -621,12 +621,12 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         # If key is contained, would have returned by now
         indexer, new_index = self.index.get_loc_level(key)
         return self._constructor(self.values[indexer],
-                                 index=new_index).__finalize__(self)
+                                 index=new_index)._set_parent(self).__finalize__(self)
 
     def _get_values(self, indexer):
         try:
             return self._constructor(self._data.get_slice(indexer),
-                                     fastpath=True).__finalize__(self)
+                                     fastpath=True)._set_parent(self).__finalize__(self)
         except Exception:
             return self.values[indexer]
 
@@ -690,7 +690,11 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
             # we have a chained assignment
             # assign back to the original
-            self._parent().loc[self.name,key] = value
+            obj = self._parent[0]()
+            if isinstance(obj, Series):
+                obj.loc[key] = value
+            else:
+                obj.loc[self.name,key] = value
             return
 
         setitem(key, value)

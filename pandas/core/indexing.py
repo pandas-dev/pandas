@@ -273,7 +273,7 @@ class _NDFrameIndexer(object):
                     labels = index.insert(len(index),key)
                     self.obj._data = self.obj.reindex_axis(labels, i)._data
                     self.obj._maybe_update_cacher(clear=True)
-                    self.obj._parent=None
+                    self.obj._parent=[]
 
                     nindexer.append(labels.get_loc(key))
 

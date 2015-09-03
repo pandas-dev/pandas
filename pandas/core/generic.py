@@ -86,7 +86,7 @@ class NDFrame(PandasObject):
     _accessors = frozenset([])
     _metadata = []
     _parent_copy_on_write = True
-    _parent = None
+    _parent = []
 
     def __init__(self, data, axes=None, copy=False, dtype=None,
                  fastpath=False):
@@ -101,7 +101,7 @@ class NDFrame(PandasObject):
                 for i, ax in enumerate(axes):
                     data = data.reindex_axis(ax, axis=i)
 
-        object.__setattr__(self, '_parent', None)
+        object.__setattr__(self, '_parent', [])
         object.__setattr__(self, '_data', data)
         object.__setattr__(self, '_item_cache', {})
 
@@ -1104,7 +1104,7 @@ class NDFrame(PandasObject):
             res._set_as_cached(item, self)
 
             # for a chain
-            res._parent = self._parent
+            res._set_parent(self)
         return res
 
     def _set_as_cached(self, item, cacher):
@@ -1205,13 +1205,8 @@ class NDFrame(PandasObject):
 
         """
         axis = self._get_block_manager_axis(axis)
-        result = self._constructor(self._data.get_slice(slobj, axis=axis))
-        result = result.__finalize__(self)
-
-        # mark this as a copy if we are not axis=0
-        parent = axis!=0
-        result._set_parent(self)
-        return result
+        data = self._data.get_slice(slobj, axis=axis)
+        return self._constructor(data)._set_parent(self).__finalize__(self)
 
     def _set_item(self, key, value):
 
@@ -1220,13 +1215,10 @@ class NDFrame(PandasObject):
         self._clear_item_cache()
 
     def _set_parent(self, ref=None, copy=True):
-        if not copy:
-            self._parent = None
-        else:
-            if ref is not None:
-                self._parent = weakref.ref(ref)
-            else:
-                self._parent = None
+        if ref is not None:
+            self._parent.extend(ref._parent)
+            self._parent.append(weakref.ref(ref))
+        return self
 
     def _check_copy_on_write(self):
 
@@ -1266,15 +1258,22 @@ class NDFrame(PandasObject):
             #    we can just copy and be done
 
             # otherwise we have chained indexing, raise and error
+            def error():
+                raise SettingWithCopyError("chained indexing detected, you can fix this ......")
+
             gc.collect(2)
-            if self._parent() is not None:
+            if len(self._parent) > 1:
+                error()
+
+            p = self._parent[0]()
+            if p is not None:
                 names = get_names_for_obj(self)
                 if not len(names):
-                    raise SettingWithCopyError("chained indexing detected, you can fix this ......")
+                    error()
 
             # provide copy-on-write
             self._data = self._data.copy()
-            self._parent = None
+            self._parent = []
 
     def _check_is_chained_assignment_possible(self):
         """

@@ -157,7 +157,7 @@ class CheckNameIntegration(object):
             result = s.dt.to_pytimedelta()
             self.assertIsInstance(result,np.ndarray)
             self.assertTrue(result.dtype == object)
-            
+
             result = s.dt.total_seconds()
             self.assertIsInstance(result,pd.Series)
             self.assertTrue(result.dtype == 'float64')
@@ -1235,9 +1235,9 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         expected = s.ix[2:4]
         assert_series_equal(result, expected)
 
-        # test slice is a view
+        # this is copy-on-write
         result[:] = 0
-        self.assertTrue((s[1:3] == 0).all())
+        self.assertTrue((s[1:3] != 0).all())
 
         # list of integers
         result = s.iloc[[0, 2, 3, 4, 5]]
@@ -1473,10 +1473,10 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         self.assertTrue(tm.equalContents(numSliceEnd,
                                          np.array(self.series)[-10:]))
 
-        # test return view
+        # copy-on-write
         sl = self.series[10:20]
         sl[:] = 0
-        self.assertTrue((self.series[10:20] == 0).all())
+        self.assertTrue((self.series[10:20] != 0).all())
 
     def test_slice_can_reorder_not_uniquely_indexed(self):
         s = Series(1, index=['a', 'a', 'b', 'b', 'c'])

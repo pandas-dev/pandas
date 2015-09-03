@@ -3776,11 +3776,15 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         # 10954
         df = DataFrame({'col1':[1,2], 'col2':[3,4]})
         intermediate = df.loc[1:1,]
+
+        # refrence created
+        self.assertFalse(len(df._parent))
+        self.assertTrue(len(intermediate._parent) == 1)
         intermediate['col1'] = -99
 
         # reference is broken
-        self.assertIsNone(df._parent)
-        self.assertIsNone(intermediate._parent)
+        self.assertFalse(len(df._parent))
+        self.assertFalse(len(intermediate._parent))
 
         # local assignment
         expected = DataFrame([[-99,4]],index=[1],columns=['col1','col2'])
@@ -3822,17 +3826,17 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         # work with the chain
         expected = DataFrame([[-5,1],[-6,3]],columns=list('AB'))
         df = DataFrame(np.arange(4).reshape(2,2),columns=list('AB'),dtype='int64')
-        self.assertIsNone(df._parent)
+        self.assertFalse(len(df._parent))
         df['A'][0] = -5
         df['A'][1] = -6
         assert_frame_equal(df, expected)
 
         # test with the chaining
         df = DataFrame({ 'A' : Series(range(2),dtype='int64'), 'B' : np.array(np.arange(2,4),dtype=np.float64)})
-        self.assertIsNone(df._parent)
+        self.assertFalse(len(df._parent))
         df['A'][0] = -5
         df['A'][1] = np.nan
-        self.assertIsNone(df['A']._parent)
+        self.assertFalse(len(df['A']._parent))
 
         # using a copy (the chain), fails
         df = DataFrame({ 'A' : Series(range(2),dtype='int64'), 'B' : np.array(np.arange(2,4),dtype=np.float64)})
@@ -3843,7 +3847,7 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         df = DataFrame({'a' : ['one', 'one', 'two',
                                'three', 'two', 'one', 'six'],
                         'c' : Series(range(7),dtype='int64') })
-        self.assertIsNone(df._parent)
+        self.assertFalse(len(df._parent))
         expected = DataFrame({'a' : ['one', 'one', 'two',
                                      'three', 'two', 'one', 'six'],
                               'c' : [42,42,2,3,4,42,6]})
@@ -3868,7 +3872,7 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         # make sure that is_copy is picked up reconstruction
         # GH5475
         df = DataFrame({"A": [1,2]})
-        self.assertIsNone(df._parent)
+        self.assertFalse(len(df._parent))
         with tm.ensure_clean('__tmp__pickle') as path:
             df.to_pickle(path)
             df2 = pd.read_pickle(path)
@@ -3899,7 +3903,7 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         # explicity copy
         indexer = df.letters.apply(lambda x : len(x) > 10)
         df = df.ix[indexer].copy()
-        self.assertIsNone(df._parent)
+        self.assertFalse(len(df._parent))
         df['letters'] = df['letters'].apply(str.lower)
 
         # implicity take
@@ -3917,9 +3921,9 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         df.loc[:,'letters'] = df['letters'].apply(str.lower)
 
         # should be ok even though it's a copy!
-        self.assertIsNone(df._parent)
+        self.assertFalse(len(df._parent))
         df['letters'] = df['letters'].apply(str.lower)
-        self.assertIsNone(df._parent)
+        self.assertFalse(len(df._parent))
 
         df = random_text(100000)
         indexer = df.letters.apply(lambda x : len(x) > 10)
@@ -3927,7 +3931,7 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
 
         # an identical take, so no copy
         df = DataFrame({'a' : [1]}).dropna()
-        self.assertIsNone(df._parent)
+        self.assertFalse(len(df._parent))
         df['a'] += 1
 
         # inplace ops
