@@ -2106,7 +2106,7 @@ class Datetime64Formatter(GenericArrayFormatter):
 class PeriodArrayFormatter(IntArrayFormatter):
 
     def _format_strings(self):
-        values = np.array(self.values.to_native_types(), dtype=object)
+        values = PeriodIndex(self.values).to_native_types()
         formatter = self.formatter or (lambda x: '%s' % x)
         fmt_values = [formatter(x) for x in values]
         return fmt_values
