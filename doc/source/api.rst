@@ -853,6 +853,7 @@ Computations / Descriptive Stats
    DataFrame.prod
    DataFrame.quantile
    DataFrame.rank
+   DataFrame.round
    DataFrame.sem
    DataFrame.skew
    DataFrame.sum
