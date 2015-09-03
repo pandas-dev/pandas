@@ -139,6 +139,51 @@ class TestDatetimeIndexOps(Ops):
                     result = getattr(idx, func)()
                     self.assertEqual(result, expected)
 
+    def test_representation_to_series(self):
+        idx1 = DatetimeIndex([], freq='D')
+        idx2 = DatetimeIndex(['2011-01-01'], freq='D')
+        idx3 = DatetimeIndex(['2011-01-01', '2011-01-02'], freq='D')
+        idx4 = DatetimeIndex(['2011-01-01', '2011-01-02', '2011-01-03'], freq='D')
+        idx5 = DatetimeIndex(['2011-01-01 09:00', '2011-01-01 10:00', '2011-01-01 11:00'],
+                             freq='H', tz='Asia/Tokyo')
+        idx6 = DatetimeIndex(['2011-01-01 09:00', '2011-01-01 10:00', pd.NaT],
+                             tz='US/Eastern')
+        idx7 = DatetimeIndex(['2011-01-01 09:00', '2011-01-02 10:15'])
+
+        exp1 = """Series([], dtype: datetime64[ns])"""
+
+        exp2 = """0   2011-01-01
+dtype: datetime64[ns]"""
+
+        exp3 = """0   2011-01-01
+1   2011-01-02
+dtype: datetime64[ns]"""
+
+        exp4 = """0   2011-01-01
+1   2011-01-02
+2   2011-01-03
+dtype: datetime64[ns]"""
+
+        exp5 = """0    2011-01-01 09:00:00+09:00
+1    2011-01-01 10:00:00+09:00
+2    2011-01-01 11:00:00+09:00
+dtype: object"""
+
+        exp6 = """0    2011-01-01 09:00:00-05:00
+1    2011-01-01 10:00:00-05:00
+2                          NaN
+dtype: object"""
+
+        exp7 = """0   2011-01-01 09:00:00
+1   2011-01-02 10:15:00
+dtype: datetime64[ns]"""
+
+        with pd.option_context('display.width', 300):
+            for idx, expected in zip([idx1, idx2, idx3, idx4, idx5, idx6, idx7],
+                                     [exp1, exp2, exp3, exp4, exp5, exp6, exp7]):
+                result = repr(Series(idx))
+                self.assertEqual(result, expected)
+
     def test_summary(self):
         # GH9116
         idx1 = DatetimeIndex([], freq='D')
@@ -535,6 +580,38 @@ class TestTimedeltaIndexOps(Ops):
                 for func in ['__repr__', '__unicode__', '__str__']:
                     result = getattr(idx, func)()
                     self.assertEqual(result, expected)
+
+    def test_representation_to_series(self):
+        idx1 = TimedeltaIndex([], freq='D')
+        idx2 = TimedeltaIndex(['1 days'], freq='D')
+        idx3 = TimedeltaIndex(['1 days', '2 days'], freq='D')
+        idx4 = TimedeltaIndex(['1 days', '2 days', '3 days'], freq='D')
+        idx5 = TimedeltaIndex(['1 days 00:00:01', '2 days', '3 days'])
+
+        exp1 = """Series([], dtype: timedelta64[ns])"""
+
+        exp2 = """0   1 days
+dtype: timedelta64[ns]"""
+
+        exp3 = """0   1 days
+1   2 days
+dtype: timedelta64[ns]"""
+
+        exp4 = """0   1 days
+1   2 days
+2   3 days
+dtype: timedelta64[ns]"""
+
+        exp5 = """0   1 days 00:00:01
+1   2 days 00:00:00
+2   3 days 00:00:00
+dtype: timedelta64[ns]"""
+
+        with pd.option_context('display.width',300):
+            for idx, expected in zip([idx1, idx2, idx3, idx4, idx5],
+                                     [exp1, exp2, exp3, exp4, exp5]):
+                result = repr(pd.Series(idx))
+                self.assertEqual(result, expected)
 
     def test_summary(self):
         # GH9116
@@ -1144,6 +1221,60 @@ class TestPeriodIndexOps(Ops):
             for func in ['__repr__', '__unicode__', '__str__']:
                 result = getattr(idx, func)()
                 self.assertEqual(result, expected)
+
+    def test_representation_to_series(self):
+        # GH 10971
+        idx1 = PeriodIndex([], freq='D')
+        idx2 = PeriodIndex(['2011-01-01'], freq='D')
+        idx3 = PeriodIndex(['2011-01-01', '2011-01-02'], freq='D')
+        idx4 = PeriodIndex(['2011-01-01', '2011-01-02', '2011-01-03'], freq='D')
+        idx5 = PeriodIndex(['2011', '2012', '2013'], freq='A')
+        idx6 = PeriodIndex(['2011-01-01 09:00', '2012-02-01 10:00', 'NaT'], freq='H')
+
+        idx7 = pd.period_range('2013Q1', periods=1, freq="Q")
+        idx8 = pd.period_range('2013Q1', periods=2, freq="Q")
+        idx9 = pd.period_range('2013Q1', periods=3, freq="Q")
+
+        exp1 = """Series([], dtype: object)"""
+
+        exp2 = """0   2011-01-01
+dtype: object"""
+
+        exp3 = """0   2011-01-01
+1   2011-01-02
+dtype: object"""
+
+        exp4 = """0   2011-01-01
+1   2011-01-02
+2   2011-01-03
+dtype: object"""
+
+        exp5 = """0   2011
+1   2012
+2   2013
+dtype: object"""
+
+        exp6 = """0   2011-01-01 09:00
+1   2012-02-01 10:00
+2                NaT
+dtype: object"""
+
+        exp7 = """0   2013Q1
+dtype: object"""
+
+        exp8 = """0   2013Q1
+1   2013Q2
+dtype: object"""
+
+        exp9 = """0   2013Q1
+1   2013Q2
+2   2013Q3
+dtype: object"""
+
+        for idx, expected in zip([idx1, idx2, idx3, idx4, idx5, idx6, idx7, idx8, idx9],
+                                 [exp1, exp2, exp3, exp4, exp5, exp6, exp7, exp8, exp9]):
+            result = repr(pd.Series(idx))
+            self.assertEqual(result, expected)
 
     def test_summary(self):
         # GH9116
