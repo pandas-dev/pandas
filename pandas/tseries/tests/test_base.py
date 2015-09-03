@@ -1535,10 +1535,10 @@ Freq: Q-DEC"""
         self.assertEqual(result.freq, 'D')
 
     def test_order(self):
-        idx1 = PeriodIndex(['2011-01-01', '2011-01-02', '2011-01-03'],
-                           freq='D', name='idx')
+        for freq in ['D', '2D', '4D']:
+            idx = PeriodIndex(['2011-01-01', '2011-01-02', '2011-01-03'],
+                              freq=freq, name='idx')
 
-        for idx in [idx1]:
             ordered = idx.sort_values()
             self.assert_index_equal(ordered, idx)
             self.assertEqual(ordered.freq, idx.freq)
@@ -1546,18 +1546,21 @@ Freq: Q-DEC"""
             ordered = idx.sort_values(ascending=False)
             expected = idx[::-1]
             self.assert_index_equal(ordered, expected)
-            self.assertEqual(ordered.freq, 'D')
+            self.assertEqual(ordered.freq, expected.freq)
+            self.assertEqual(ordered.freq, freq)
 
             ordered, indexer = idx.sort_values(return_indexer=True)
             self.assert_index_equal(ordered, idx)
             self.assert_numpy_array_equal(indexer, np.array([0, 1, 2]))
-            self.assertEqual(ordered.freq, 'D')
+            self.assertEqual(ordered.freq, idx.freq)
+            self.assertEqual(ordered.freq, freq)
 
             ordered, indexer = idx.sort_values(return_indexer=True, ascending=False)
             expected = idx[::-1]
             self.assert_index_equal(ordered, expected)
             self.assert_numpy_array_equal(indexer, np.array([2, 1, 0]))
-            self.assertEqual(ordered.freq, 'D')
+            self.assertEqual(ordered.freq, expected.freq)
+            self.assertEqual(ordered.freq, freq)
 
         idx1 = PeriodIndex(['2011-01-01', '2011-01-03', '2011-01-05',
                             '2011-01-02', '2011-01-01'], freq='D', name='idx1')
@@ -1610,6 +1613,7 @@ Freq: Q-DEC"""
                                        name='idx')
             self.assert_index_equal(result, expected)
             self.assertEqual(result.freq, expected.freq)
+            self.assertEqual(result.freq, 'D')
 
             result = idx[0:10:2]
             expected = pd.PeriodIndex(['2011-01-01', '2011-01-03', '2011-01-05',
@@ -1617,6 +1621,7 @@ Freq: Q-DEC"""
                                       freq='D', name='idx')
             self.assert_index_equal(result, expected)
             self.assertEqual(result.freq, expected.freq)
+            self.assertEqual(result.freq, 'D')
 
             result = idx[-20:-5:3]
             expected = pd.PeriodIndex(['2011-01-12', '2011-01-15', '2011-01-18',
@@ -1624,6 +1629,7 @@ Freq: Q-DEC"""
                                       freq='D', name='idx')
             self.assert_index_equal(result, expected)
             self.assertEqual(result.freq, expected.freq)
+            self.assertEqual(result.freq, 'D')
 
             result = idx[4::-1]
             expected = PeriodIndex(['2011-01-05', '2011-01-04', '2011-01-03',
@@ -1631,6 +1637,7 @@ Freq: Q-DEC"""
                                    freq='D', name='idx')
             self.assert_index_equal(result, expected)
             self.assertEqual(result.freq, expected.freq)
+            self.assertEqual(result.freq, 'D')
 
     def test_take(self):
         #GH 10295
@@ -1647,6 +1654,7 @@ Freq: Q-DEC"""
             expected = pd.period_range('2011-01-01', '2011-01-03', freq='D',
                                        name='idx')
             self.assert_index_equal(result, expected)
+            self.assertEqual(result.freq, 'D')
             self.assertEqual(result.freq, expected.freq)
 
             result = idx.take([0, 2, 4])
@@ -1654,24 +1662,28 @@ Freq: Q-DEC"""
                                       freq='D', name='idx')
             self.assert_index_equal(result, expected)
             self.assertEqual(result.freq, expected.freq)
+            self.assertEqual(result.freq, 'D')
 
             result = idx.take([7, 4, 1])
             expected = pd.PeriodIndex(['2011-01-08', '2011-01-05', '2011-01-02'],
                                       freq='D', name='idx')
             self.assert_index_equal(result, expected)
             self.assertEqual(result.freq, expected.freq)
+            self.assertEqual(result.freq, 'D')
 
             result = idx.take([3, 2, 5])
             expected = PeriodIndex(['2011-01-04', '2011-01-03', '2011-01-06'],
                                    freq='D', name='idx')
             self.assert_index_equal(result, expected)
             self.assertEqual(result.freq, expected.freq)
+            self.assertEqual(result.freq, 'D')
 
             result = idx.take([-3, 2, 5])
             expected = PeriodIndex(['2011-01-29', '2011-01-03', '2011-01-06'],
                                    freq='D', name='idx')
             self.assert_index_equal(result, expected)
             self.assertEqual(result.freq, expected.freq)
+            self.assertEqual(result.freq, 'D')
 
 
 if __name__ == '__main__':
