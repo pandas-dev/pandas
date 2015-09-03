@@ -62,6 +62,16 @@ New features
      ser = pd.Series([np.nan, np.nan, 5, np.nan, np.nan, np.nan, 13])
      ser.interpolate(limit=1, limit_direction='both')
 
+- Round DataFrame to variable number of decimal places (:issue:`10568`).
+
+   .. ipython :: python
+
+    df = pd.DataFrame(np.random.random([3, 3]), columns=['A', 'B', 'C'],
+    index=['first', 'second', 'third'])
+    df
+    df.round(2)
+    df.round({'A': 0, 'C': 2})
+    
 .. _whatsnew_0170.gil:
 
 Releasing the GIL
