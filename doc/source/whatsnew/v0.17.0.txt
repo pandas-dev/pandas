@@ -790,7 +790,7 @@ Bug Fixes
 - Bug in ``.sample()`` where returned object, if set, gives unnecessary ``SettingWithCopyWarning`` (:issue:`10738`)
 - Bug in ``.sample()`` where weights passed as ``Series`` were not aligned along axis before being treated positionally, potentially causing problems if weight indices were not aligned with sampled object. (:issue:`10738`)
 
-
+- Regression fixed in (:issue:`9311`, :issue: `6620`, :issue:`9345`), where groupby with a datetime-like converting to float with certain aggregators (:issue:`10979`)
 
 - Bug in ``DataFrame.interpolate`` with ``axis=1`` and ``inplace=True`` (:issue:`10395`)
 - Bug in ``io.sql.get_schema`` when specifying multiple columns as primary
