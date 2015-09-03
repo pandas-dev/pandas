@@ -1793,17 +1793,25 @@ class BinGrouper(BaseGrouper):
     def group_info(self):
         ngroups = self.ngroups
         obs_group_ids = np.arange(ngroups)
-        comp_ids = np.repeat(np.arange(ngroups), np.diff(np.r_[0, self.bins]))
+        rep = np.diff(np.r_[0, self.bins])
+
+        if ngroups == len(self.bins):
+            comp_ids = np.repeat(np.arange(ngroups), rep)
+        else:
+            comp_ids = np.repeat(np.r_[-1, np.arange(ngroups)], rep)
+
         return comp_ids, obs_group_ids, ngroups
 
     @cache_readonly
     def ngroups(self):
-        return len(self.binlabels)
+        return len(self.result_index)
 
     @cache_readonly
     def result_index(self):
-        mask = self.binlabels.asi8 == tslib.iNaT
-        return self.binlabels[~mask]
+        if len(self.binlabels) != 0 and isnull(self.binlabels[0]):
+            return self.binlabels[1:]
+
+        return self.binlabels
 
     @property
     def levels(self):
@@ -1839,39 +1847,13 @@ class BinGrouper(BaseGrouper):
     #----------------------------------------------------------------------
     # cython aggregation
 
-    _cython_functions = {
-        'add': 'group_add_bin',
-        'prod': 'group_prod_bin',
-        'mean': 'group_mean_bin',
-        'min': 'group_min_bin',
-        'max': 'group_max_bin',
-        'var': 'group_var_bin',
-        'ohlc': 'group_ohlc',
-        'first': {
-            'name': 'group_nth_bin',
-            'f': lambda func, a, b, c, d: func(a, b, c, d, 1)
-        },
-        'last': 'group_last_bin',
-        'count': 'group_count_bin',
-    }
+    _cython_functions = {'ohlc': 'group_ohlc'}
+    _cython_functions.update(BaseGrouper._cython_functions)
+    _cython_functions.pop('median')
 
     _name_functions = {
         'ohlc': lambda *args: ['open', 'high', 'low', 'close']
     }
-
-    def _aggregate(self, result, counts, values, agg_func, is_numeric=True):
-
-        if values.ndim > 3:
-            # punting for now
-            raise NotImplementedError("number of dimensions is currently "
-                                      "limited to 3")
-        elif values.ndim > 2:
-            for i, chunk in enumerate(values.transpose(2, 0, 1)):
-                agg_func(result[:, :, i], counts, chunk, self.bins)
-        else:
-            agg_func(result, counts, values, self.bins)
-
-        return result
 
     def agg_series(self, obj, func):
         dummy = obj[:0]
