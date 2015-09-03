@@ -12434,10 +12434,10 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         assert_series_equal(result, expected)
 
     def test_sum(self):
-        self._check_stat_op('sum', np.sum, has_numeric_only=True)
+        self._check_stat_op('sum', np.sum, has_numeric_only=True, fillna=0.0)
 
         # mixed types (with upcasting happening)
-        self._check_stat_op('sum', np.sum, frame=self.mixed_float.astype('float32'),
+        self._check_stat_op('sum', np.sum, frame=self.mixed_float.astype('float32'), fillna=0.0,
                             has_numeric_only=True, check_dtype=False, check_less_precise=True)
 
     def test_stat_operators_attempt_obj_array(self):
@@ -12451,23 +12451,32 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         df1 = DataFrame(data, index=['foo', 'bar', 'baz'],
                         dtype='O')
         methods = ['sum', 'mean', 'prod', 'var', 'std', 'skew', 'min', 'max']
+        fills = [0.0, np.nan, 1.0, np.nan, np.nan, np.nan, np.nan, np.nan]
 
         # GH #676
         df2 = DataFrame({0: [np.nan, 2], 1: [np.nan, 3],
                         2: [np.nan, 4]}, dtype=object)
 
         for df in [df1, df2]:
-            for meth in methods:
+            for meth, fill in zip(methods, fills):
                 self.assertEqual(df.values.dtype, np.object_)
                 result = getattr(df, meth)(1)
+
+                # 9422
+                # all-NaN object array is still NaN, while floats are not :<
                 expected = getattr(df.astype('f8'), meth)(1)
+                if not np.isnan(fill):
+                    mask = df.isnull().all(1)
+                    if mask.any():
+                        expected[mask] = np.nan
+
                 assert_series_equal(result, expected)
 
     def test_mean(self):
         self._check_stat_op('mean', np.mean, check_dates=True)
 
     def test_product(self):
-        self._check_stat_op('product', np.prod)
+        self._check_stat_op('product', np.prod, fillna=1.0)
 
     def test_median(self):
         def wrapper(x):
@@ -12639,7 +12648,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
 
     def _check_stat_op(self, name, alternative, frame=None, has_skipna=True,
                        has_numeric_only=False, check_dtype=True, check_dates=False,
-                       check_less_precise=False):
+                       check_less_precise=False, fillna=None):
         if frame is None:
             frame = self.frame
             # set some NAs
@@ -12682,11 +12691,20 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
             wrapper = alternative
 
         result0 = f(axis=0)
-        result1 = f(axis=1)
-        assert_series_equal(result0, frame.apply(skipna_wrapper),
+        expected0 = frame.apply(skipna_wrapper)
+        assert_series_equal(result0, expected0,
                             check_dtype=check_dtype,
                             check_less_precise=check_less_precise)
-        assert_series_equal(result1, frame.apply(skipna_wrapper, axis=1),
+
+        result1 = f(axis=1)
+
+        # 9422
+        # all-nan rows get the fillna
+        expected1 = frame.apply(skipna_wrapper, axis=1)
+        if fillna is not None:
+            expected1[isnull(frame).all(axis=1)] = fillna
+
+        assert_series_equal(result1, expected1,
                             check_dtype=False,
                             check_less_precise=check_less_precise)
 
@@ -12717,8 +12735,14 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
             all_na = self.frame * np.NaN
             r0 = getattr(all_na, name)(axis=0)
             r1 = getattr(all_na, name)(axis=1)
-            self.assertTrue(np.isnan(r0).all())
-            self.assertTrue(np.isnan(r1).all())
+
+            # 9422
+            if fillna is not None:
+                self.assertTrue((r0==fillna).all())
+                self.assertTrue((r1==fillna).all())
+            else:
+                self.assertTrue(np.isnan(r0).all())
+                self.assertTrue(np.isnan(r1).all())
 
     def test_mode(self):
         df = pd.DataFrame({"A": [12, 12, 11, 12, 19, 11],

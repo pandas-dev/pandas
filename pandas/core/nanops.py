@@ -9,7 +9,7 @@ except ImportError:  # pragma: no cover
     _USE_BOTTLENECK = False
 
 import pandas.hashtable as _hash
-from pandas import compat, lib, algos, tslib
+from pandas import compat, lib, algos, tslib, _np_version_under1p10
 from pandas.compat import builtins
 from pandas.core.common import (isnull, notnull, _values_from_object,
                                 _maybe_upcast_putmask,
@@ -249,6 +249,7 @@ def nanall(values, axis=None, skipna=True):
 @disallow('M8')
 @bottleneck_switch(zero_value=0)
 def nansum(values, axis=None, skipna=True):
+    dtype = values.dtype
     values, mask, dtype, dtype_max = _get_values(values, skipna, 0)
     dtype_sum = dtype_max
     if is_float_dtype(dtype):
@@ -256,7 +257,8 @@ def nansum(values, axis=None, skipna=True):
     elif is_timedelta64_dtype(dtype):
         dtype_sum = np.float64
     the_sum = values.sum(axis, dtype=dtype_sum)
-    the_sum = _maybe_null_out(the_sum, axis, mask)
+    the_sum = _maybe_null_out(the_sum, axis, mask, allow_all_null=not skipna,
+                              dtype=dtype, fill_value=0)
 
     return _wrap_results(the_sum, dtype)
 
@@ -557,12 +559,14 @@ def nankurt(values, axis=None, skipna=True):
 
 @disallow('M8','m8')
 def nanprod(values, axis=None, skipna=True):
+    dtype = values.dtype
     mask = isnull(values)
     if skipna and not is_any_int_dtype(values):
         values = values.copy()
         values[mask] = 1
     result = values.prod(axis)
-    return _maybe_null_out(result, axis, mask)
+    return _maybe_null_out(result, axis, mask, allow_all_null=not skipna, dtype=dtype,
+                           fill_value=1)
 
 
 def _maybe_arg_null_out(result, axis, mask, skipna):
@@ -596,7 +600,29 @@ def _get_counts(mask, axis, dtype=float):
         return np.array(count, dtype=dtype)
 
 
-def _maybe_null_out(result, axis, mask):
+def _maybe_null_out(result, axis, mask, allow_all_null=True, dtype=None, fill_value=None):
+
+
+    # 9422
+    # if we have all nulls we normally return a
+    # null, but for numpy >= 1.8.2 and bottleneck >= 1.0
+    # nansum/nanprod are set to be the fill_values
+    if not allow_all_null and dtype is not None:
+
+        if is_complex_dtype(dtype) or not is_float_dtype(dtype):
+
+            # we don't mask complex
+            # object or non-floats
+            # if numpy changes this, we will as well
+
+            # IOW, np.nansum(np.array([np.nan],dtype='object')) is np.nan
+            # https://github.com/numpy/numpy/issues/6209
+            allow_all_null = True
+            fill_value = np.nan
+
+    else:
+        fill_value = np.nan
+
     if axis is not None and getattr(result, 'ndim', False):
         null_mask = (mask.shape[axis] - mask.sum(axis)) == 0
         if np.any(null_mask):
@@ -604,11 +630,19 @@ def _maybe_null_out(result, axis, mask):
                 result = result.astype('c16')
             else:
                 result = result.astype('f8')
+
+            # mark nans
             result[null_mask] = np.nan
+
+            # masker if for only all nan
+            if not allow_all_null:
+                null_mask = mask.all(axis)
+                if null_mask.any():
+                    result[null_mask] = fill_value
     else:
         null_mask = mask.size - mask.sum()
-        if null_mask == 0:
-            result = np.nan
+        if null_mask == 0 and (mask.size > 0 or allow_all_null):
+            result = fill_value
 
     return result
 

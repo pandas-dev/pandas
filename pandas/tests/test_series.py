@@ -2773,7 +2773,9 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
                     self.assertTrue(bn.__version__ >= LooseVersion('1.0'))
                     self.assertEqual(f(allna),0.0)
                 except:
-                    self.assertTrue(np.isnan(f(allna)))
+
+                    # 10815 pandas does as well
+                    self.assertEqual(f(allna),0.0)
 
             # dtype=object with None, it works!
             s = Series([1, 2, 3, None, 5])

@@ -4,17 +4,27 @@ from __future__ import division, print_function
 from functools import partial
 
 import numpy as np
-from pandas import Series
+from pandas import Series, _np_version_under1p10
+
 from pandas.core.common import isnull, is_integer_dtype
 import pandas.core.nanops as nanops
 import pandas.util.testing as tm
 
-nanops._USE_BOTTLENECK = False
+_USE_BOTTLENECK = nanops._USE_BOTTLENECK
 
+class Base(object):
 
-class TestnanopsDataFrame(tm.TestCase):
     def setUp(self):
+        nanops._USE_BOTTLENECK = False
         np.random.seed(11235)
+
+    def tearDown(self):
+        nanops._USE_BOTTLENECK = _USE_BOTTLENECK
+
+class TestnanopsDataFrame(Base, tm.TestCase):
+
+    def setUp(self):
+        super(TestnanopsDataFrame, self).setUp()
 
         self.arr_shape = (11, 7, 5)
 
@@ -172,15 +182,29 @@ class TestnanopsDataFrame(tm.TestCase):
             tm.assert_almost_equal(targ.imag, res.imag)
 
     def check_fun_data(self, testfunc, targfunc,
-                       testarval, targarval, targarnanval, **kwargs):
+                       testarval, targarval, targarnanval, nanfunc=None, **kwargs):
+
+        otargfunc = targfunc
         for axis in list(range(targarval.ndim))+[None]:
             for skipna in [False, True]:
+
                 targartempval = targarval if skipna else targarnanval
                 try:
+
+                    # we need a different comp function if
+                    # we have a provided nanfunc (e.g. nansum)
+                    # and we are skipna=False
+                    if nanfunc is not None:
+                        if skipna:
+                            targfunc = nanfunc
+                        else:
+                            targfunc = otargfunc
+
                     targ = targfunc(targartempval, axis=axis, **kwargs)
                     res = testfunc(testarval, axis=axis, skipna=skipna,
                                    **kwargs)
                     self.check_results(targ, res, axis)
+
                     if skipna:
                         res = testfunc(testarval, axis=axis)
                         self.check_results(targ, res, axis)
@@ -205,9 +229,9 @@ class TestnanopsDataFrame(tm.TestCase):
             targarnanval2 = np.take(targarnanval, 0, axis=-1)
         except ValueError:
             return
-        self.check_fun_data(testfunc, targfunc,
+        self.check_fun_data(testfunc, otargfunc,
                             testarval2, targarval2, targarnanval2,
-                            **kwargs)
+                            nanfunc=nanfunc, **kwargs)
 
     def check_fun(self, testfunc, targfunc,
                   testar, targar=None, targarnan=None,
@@ -228,7 +252,7 @@ class TestnanopsDataFrame(tm.TestCase):
                          'targarnan: %s' % targarnan)
             raise
 
-    def check_funs(self, testfunc, targfunc,
+    def check_funs(self, testfunc, targfunc, nanfunc=None,
                    allow_complex=True, allow_all_nan=True, allow_str=True,
                    allow_date=True, allow_tdelta=True, allow_obj=True,
                    **kwargs):
@@ -242,7 +266,7 @@ class TestnanopsDataFrame(tm.TestCase):
                 self.arr_bool.astype('O')]
 
         if allow_all_nan:
-            self.check_fun(testfunc, targfunc, 'arr_nan', **kwargs)
+            self.check_fun(testfunc, targfunc, 'arr_nan', nanfunc=nanfunc, **kwargs)
 
         if allow_complex:
             self.check_fun(testfunc, targfunc, 'arr_complex', **kwargs)
@@ -315,8 +339,14 @@ class TestnanopsDataFrame(tm.TestCase):
                         allow_all_nan=False, allow_str=False, allow_date=False, allow_tdelta=False)
 
     def test_nansum(self):
-        self.check_funs(nanops.nansum, np.sum,
+        self.check_funs(nanops.nansum, np.sum, nanfunc=np.nansum,
                         allow_str=False, allow_date=False, allow_tdelta=True)
+
+        # validate that nansum of all nans is 0, True for numpy >= 1.8.2 & bottleneck >= 1.0
+        # 9422
+        s = Series([np.nan])
+        self.assertEqual(s.sum(skipna=True),0.0)
+        self.assertIs(s.sum(skipna=False),np.nan)
 
     def test_nanmean(self):
         self.check_funs(nanops.nanmean, np.mean,
@@ -450,8 +480,29 @@ class TestnanopsDataFrame(tm.TestCase):
                         allow_complex=False, allow_str=False, allow_date=False, allow_tdelta=False)
 
     def test_nanprod(self):
-        self.check_funs(nanops.nanprod, np.prod,
+
+        # use nanprod if it exists
+        # otherwise by construction
+        nanfunc = getattr(np,'nanprod',None)
+        if nanfunc is None:
+            def nanprod(x, axis, **kwargs):
+                result = x.prod(axis=axis)
+                if np.isnan(result).all():
+                    if np.isscalar(result):
+                        result = 1
+                    else:
+                        result[np.isnan(result)] = 1
+                return result
+            nanfunc = nanprod
+
+        self.check_funs(nanops.nanprod, np.prod, nanfunc=nanfunc,
                         allow_str=False, allow_date=False, allow_tdelta=False)
+
+        # validate that nanprod of all nans is 1.0
+        # 9422
+        s = Series([np.nan])
+        self.assertEqual(s.prod(skipna=True),1.0)
+        self.assertIs(s.prod(skipna=False),np.nan)
 
     def check_nancorr_nancov_2d(self, checkfun, targ0, targ1, **kwargs):
         res00 = checkfun(self.arr_float_2d, self.arr_float1_2d,
@@ -769,7 +820,8 @@ class TestnanopsDataFrame(tm.TestCase):
         self.assertFalse(nanops._bn_ok_dtype(self.arr_obj.dtype, 'test'))
 
 
-class TestEnsureNumeric(tm.TestCase):
+class TestEnsureNumeric(Base, tm.TestCase):
+
     def test_numeric_values(self):
         # Test integer
         self.assertEqual(nanops._ensure_numeric(1), 1, 'Failed for int')

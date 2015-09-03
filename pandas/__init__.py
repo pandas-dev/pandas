@@ -27,6 +27,7 @@ from distutils.version import LooseVersion
 _np_version = np.version.short_version
 _np_version_under1p8 = LooseVersion(_np_version) < '1.8'
 _np_version_under1p9 = LooseVersion(_np_version) < '1.9'
+_np_version_under1p10 = LooseVersion(_np_version) < '1.10'
 
 
 from pandas.info import __doc__
