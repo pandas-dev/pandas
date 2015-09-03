@@ -5413,6 +5413,24 @@ class TestGroupBy(tm.TestCase):
         expected = DataFrame()
         tm.assert_frame_equal(result, expected)
 
+    def test_first_last_max_min_on_time_data(self):
+        # GH 10295
+        # Verify that NaT is not in the result of max, min, first and last on
+        # Dataframe with datetime or timedelta values.
+        from datetime import timedelta as td
+        df_test=DataFrame({'dt':[nan,'2015-07-24 10:10','2015-07-25 11:11','2015-07-23 12:12',nan],
+                           'td':[nan,td(days=1),td(days=2),td(days=3),nan]})
+        df_test.dt=pd.to_datetime(df_test.dt)
+        df_test['group']='A'
+        df_ref=df_test[df_test.dt.notnull()]
+
+        grouped_test=df_test.groupby('group')
+        grouped_ref=df_ref.groupby('group')
+
+        assert_frame_equal(grouped_ref.max(),grouped_test.max())
+        assert_frame_equal(grouped_ref.min(),grouped_test.min())
+        assert_frame_equal(grouped_ref.first(),grouped_test.first())
+        assert_frame_equal(grouped_ref.last(),grouped_test.last())
 
 def assert_fp_equal(a, b):
     assert (np.abs(a - b) < 1e-12).all()
