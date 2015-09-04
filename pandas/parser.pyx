@@ -1838,7 +1838,7 @@ def _concatenate_chunks(list chunks):
         warning_message = " ".join(["Columns (%s) have mixed types." % warning_names,
             "Specify dtype option on import or set low_memory=False."
           ])
-        warnings.warn(warning_message, DtypeWarning)
+        warnings.warn(warning_message, DtypeWarning, stacklevel=8)
     return result
 
 #----------------------------------------------------------------------

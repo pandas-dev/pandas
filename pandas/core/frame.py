@@ -1468,7 +1468,7 @@ class DataFrame(NDFrame):
 
         if colSpace is not None:  # pragma: no cover
             warnings.warn("colSpace is deprecated, use col_space",
-                          FutureWarning)
+                          FutureWarning, stacklevel=2)
             col_space = colSpace
 
         formatter = fmt.DataFrameFormatter(self, buf=buf, columns=columns,
@@ -1517,7 +1517,7 @@ class DataFrame(NDFrame):
 
         if colSpace is not None:  # pragma: no cover
             warnings.warn("colSpace is deprecated, use col_space",
-                          FutureWarning)
+                          FutureWarning, stacklevel=2)
             col_space = colSpace
 
         formatter = fmt.DataFrameFormatter(self, buf=buf, columns=columns,
@@ -2919,7 +2919,7 @@ class DataFrame(NDFrame):
             return result
 
     @deprecate_kwarg('take_last', 'keep', mapping={True: 'last', False: 'first'})
-    @deprecate_kwarg(old_arg_name='cols', new_arg_name='subset')
+    @deprecate_kwarg(old_arg_name='cols', new_arg_name='subset', stacklevel=3)
     def drop_duplicates(self, subset=None, keep='first', inplace=False):
         """
         Return DataFrame with duplicate rows removed, optionally only
@@ -2953,7 +2953,7 @@ class DataFrame(NDFrame):
             return self[-duplicated]
 
     @deprecate_kwarg('take_last', 'keep', mapping={True: 'last', False: 'first'})
-    @deprecate_kwarg(old_arg_name='cols', new_arg_name='subset')
+    @deprecate_kwarg(old_arg_name='cols', new_arg_name='subset', stacklevel=3)
     def duplicated(self, subset=None, keep='first'):
         """
         Return boolean Series denoting duplicate rows, optionally only

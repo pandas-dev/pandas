@@ -647,7 +647,7 @@ class TextFileReader(object):
             warnings.warn(("Falling back to the 'python' engine because"
                            " {0}; you can avoid this warning by specifying"
                            " engine='python'.").format(fallback_reason),
-                          ParserWarning)
+                          ParserWarning, stacklevel=5)
 
         index_col = options['index_col']
         names = options['names']

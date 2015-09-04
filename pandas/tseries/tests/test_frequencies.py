@@ -589,7 +589,7 @@ class TestFrequencyInference(tm.TestCase):
             s = Series(period_range('2013',periods=10,freq=freq))
             self.assertRaises(TypeError, lambda : frequencies.infer_freq(s))
         for freq in ['Y']:
-            with tm.assert_produces_warning(FutureWarning):
+            with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
                 s = Series(period_range('2013',periods=10,freq=freq))
             self.assertRaises(TypeError, lambda : frequencies.infer_freq(s))
 
@@ -610,7 +610,7 @@ class TestFrequencyInference(tm.TestCase):
             exp = frequencies.get_offset(v)
             self.assertEqual(result, exp)
 
-            with tm.assert_produces_warning(FutureWarning):
+            with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
                 idx = date_range('2011-01-01', periods=5, freq=k)
             exp = date_range('2011-01-01', periods=5, freq=v)
             self.assert_index_equal(idx, exp)

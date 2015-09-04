@@ -535,7 +535,7 @@ class Expr(expr.Expr):
                 w, op, value = w
             warnings.warn("passing a tuple into Expr is deprecated, "
                           "pass the where as a single string",
-                          DeprecationWarning)
+                          DeprecationWarning, stacklevel=10)
 
         if op is not None:
             if not isinstance(w, string_types):
