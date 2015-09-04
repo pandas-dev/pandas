@@ -170,7 +170,8 @@ def _add_margins(table, data, values, rows, cols, aggfunc):
             return _convert(ind)
 
     table.index = convert_categorical(table.index)
-    table.columns = convert_categorical(table.columns)
+    if hasattr(table, 'columns'):
+        table.columns = convert_categorical(table.columns)
 
     if not values and isinstance(table, Series):
         # If there are no values and the table is a series, then there is only
