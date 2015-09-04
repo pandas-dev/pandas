@@ -483,7 +483,7 @@ def test_group_ohlc():
         bins = np.array([6, 12, 20], dtype=np.int64)
         out = np.zeros((3, 4), dtype)
         counts = np.zeros(len(out), dtype=np.int64)
-        labels = np.repeat(np.arange(3), np.diff(np.r_[0, bins]))
+        labels = np.repeat(np.arange(3, dtype='int64'), np.diff(np.r_[0, bins]))
 
         func = getattr(algos,'group_ohlc_%s' % dtype)
         func(out, counts, obj[:, None], labels)
