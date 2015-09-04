@@ -246,6 +246,38 @@ def _skip_if_python26():
         import nose
         raise nose.SkipTest("skipping on python2.6")
 
+def _incompat_bottleneck_version(method):
+    """ skip if we have bottleneck installed
+    and its >= 1.0
+    as we don't match the nansum/nanprod behavior for all-nan
+    ops, see GH9422
+    """
+    if method not in ['sum','prod']:
+        return False
+    try:
+        import bottleneck as bn
+        return bn.__version__ >= LooseVersion('1.0')
+    except ImportError:
+        return False
+
+def skip_if_no_ne(engine='numexpr'):
+    import nose
+    _USE_NUMEXPR = pd.computation.expressions._USE_NUMEXPR
+
+    if engine == 'numexpr':
+        try:
+            import numexpr as ne
+        except ImportError:
+            raise nose.SkipTest("numexpr not installed")
+
+        if not _USE_NUMEXPR:
+            raise nose.SkipTest("numexpr disabled")
+
+        if ne.__version__ < LooseVersion('2.0'):
+            raise nose.SkipTest("numexpr version too low: "
+                                "%s" % ne.__version__)
+
+
 
 #------------------------------------------------------------------------------
 # locale utilities
@@ -1984,24 +2016,6 @@ def assert_produces_warning(expected_warning=Warning, filter_level="always",
                                  % expected_warning.__name__)
         assert not extra_warnings, ("Caused unexpected warning(s): %r."
                                     % extra_warnings)
-
-
-def skip_if_no_ne(engine='numexpr'):
-    import nose
-    _USE_NUMEXPR = pd.computation.expressions._USE_NUMEXPR
-
-    if engine == 'numexpr':
-        try:
-            import numexpr as ne
-        except ImportError:
-            raise nose.SkipTest("numexpr not installed")
-
-        if not _USE_NUMEXPR:
-            raise nose.SkipTest("numexpr disabled")
-
-        if ne.__version__ < LooseVersion('2.0'):
-            raise nose.SkipTest("numexpr version too low: "
-                                "%s" % ne.__version__)
 
 
 def disabled(t):
