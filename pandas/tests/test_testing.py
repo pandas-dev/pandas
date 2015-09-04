@@ -597,22 +597,22 @@ class TestDeprecatedTests(tm.TestCase):
 
     def test_warning(self):
 
-        with tm.assert_produces_warning(FutureWarning):
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             self.assertEquals(1, 1)
 
-        with tm.assert_produces_warning(FutureWarning):
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             self.assertNotEquals(1, 2)
 
-        with tm.assert_produces_warning(FutureWarning):
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             self.assert_(True)
 
-        with tm.assert_produces_warning(FutureWarning):
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             self.assertAlmostEquals(1.0, 1.0000000001)
 
-        with tm.assert_produces_warning(FutureWarning):
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             self.assertNotAlmostEquals(1, 2)
 
-        with tm.assert_produces_warning(FutureWarning):
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             tm.assert_isinstance(Series([1, 2]), Series, msg='xxx')
 
 

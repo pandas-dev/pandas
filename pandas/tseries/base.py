@@ -398,7 +398,7 @@ class DatetimeIndexOpsMixin(object):
                 raise TypeError("cannot add TimedeltaIndex and {typ}".format(typ=type(other)))
             elif isinstance(other, Index):
                 warnings.warn("using '+' to provide set union with datetimelike Indexes is deprecated, "
-                              "use .union()",FutureWarning)
+                              "use .union()",FutureWarning, stacklevel=2)
                 return self.union(other)
             elif isinstance(other, (DateOffset, timedelta, np.timedelta64, tslib.Timedelta)):
                 return self._add_delta(other)
@@ -423,7 +423,7 @@ class DatetimeIndexOpsMixin(object):
                 return self._add_delta(-other)
             elif isinstance(other, Index):
                 warnings.warn("using '-' to provide set differences with datetimelike Indexes is deprecated, "
-                              "use .difference()",FutureWarning)
+                              "use .difference()",FutureWarning, stacklevel=2)
                 return self.difference(other)
             elif isinstance(other, (DateOffset, timedelta, np.timedelta64, tslib.Timedelta)):
                 return self._add_delta(-other)

@@ -122,7 +122,7 @@ average of [x, None, y] are (1-alpha)**2 and 1 (if adjust is True), and
 
 When ignore_na is True (reproducing pre-0.15.0 behavior), weights are based on
 relative positions. For example, the weights of x and y used in calculating
-the final weighted average of [x, None, y] are 1-alpha and 1 (if adjust is 
+the final weighted average of [x, None, y] are 1-alpha and 1 (if adjust is
 True), and 1-alpha and alpha (if adjust is False).
 """
 
@@ -344,7 +344,8 @@ def _flex_binary_moment(arg1, arg2, f, pairwise=False):
 def rolling_corr_pairwise(df1, df2=None, window=None, min_periods=None,
                           freq=None, center=False):
     import warnings
-    warnings.warn("rolling_corr_pairwise is deprecated, use rolling_corr(..., pairwise=True)", FutureWarning)
+    msg = "rolling_corr_pairwise is deprecated, use rolling_corr(..., pairwise=True)"
+    warnings.warn(msg, FutureWarning, stacklevel=2)
     return rolling_corr(df1, df2, window=window, min_periods=min_periods,
                         freq=freq, center=center,
                         pairwise=True)
@@ -399,7 +400,7 @@ def _rolling_moment(arg, window, func, minp, axis=0, freq=None, center=False,
 
     if center:
         result = _center_window(result, window, axis)
-    
+
     return return_hook(result)
 
 
@@ -998,7 +999,8 @@ def expanding_corr(arg1, arg2=None, min_periods=1, freq=None, pairwise=None):
 @Appender(_doc_template)
 def expanding_corr_pairwise(df1, df2=None, min_periods=1, freq=None):
     import warnings
-    warnings.warn("expanding_corr_pairwise is deprecated, use expanding_corr(..., pairwise=True)", FutureWarning)
+    msg = "expanding_corr_pairwise is deprecated, use expanding_corr(..., pairwise=True)"
+    warnings.warn(msg, FutureWarning, stacklevel=2)
     return expanding_corr(df1, df2, min_periods=min_periods,
                           freq=freq, pairwise=True)
 
