@@ -309,6 +309,9 @@ class ExcelFile(object):
                     cols.append(_excel2num(rng))
             return cols
 
+        if len(parse_cols) != len(set(parse_cols)):
+            warn('You have duplicate column names. Consider re-name them. ')
+
         if isinstance(parse_cols, int):
             return i <= parse_cols
         elif isinstance(parse_cols, compat.string_types):
