@@ -2014,9 +2014,9 @@ Specifying Sheets
 
 .. _io.specifying_sheets:
 
-.. note :: The second argument is ``sheetname``, not to be confused with ``ExcelFile.sheet_names``
+.. note :: The second argument is ``sheetname``, not to be confused with ``ExcelFile.sheetnames``
 
-.. note :: An ExcelFile's attribute ``sheet_names`` provides access to a list of sheets.
+.. note :: An ExcelFile's attribute ``sheetnames`` provides access to a list of sheets.
 
 - The arguments ``sheetname`` allows specifying the sheet or sheets to read.
 - The default value for ``sheetname`` is 0, indicating to read the first sheet
@@ -2113,7 +2113,7 @@ written.  For example:
 
 .. code-block:: python
 
-   df.to_excel('path_to_file.xlsx', sheet_name='Sheet1')
+   df.to_excel('path_to_file.xlsx', sheetname='Sheet1')
 
 Files with a ``.xls`` extension will be written using ``xlwt`` and those with a
 ``.xlsx`` extension will be written using ``xlsxwriter`` (if available) or
@@ -2137,8 +2137,8 @@ one can pass an :class:`~pandas.io.excel.ExcelWriter`.
 .. code-block:: python
 
    with ExcelWriter('path_to_file.xlsx') as writer:
-       df1.to_excel(writer, sheet_name='Sheet1')
-       df2.to_excel(writer, sheet_name='Sheet2')
+       df1.to_excel(writer, sheetname='Sheet1')
+       df2.to_excel(writer, sheetname='Sheet2')
 
 .. note::
 
@@ -2183,7 +2183,7 @@ argument to ``to_excel`` and to ``ExcelWriter``. The built-in engines are:
 .. code-block:: python
 
    # By setting the 'engine' in the DataFrame and Panel 'to_excel()' methods.
-   df.to_excel('path_to_file.xlsx', sheet_name='Sheet1', engine='xlsxwriter')
+   df.to_excel('path_to_file.xlsx', sheetname='Sheet1', engine='xlsxwriter')
 
    # By setting the 'engine' in the ExcelWriter constructor.
    writer = ExcelWriter('path_to_file.xlsx', engine='xlsxwriter')
@@ -2192,7 +2192,7 @@ argument to ``to_excel`` and to ``ExcelWriter``. The built-in engines are:
    from pandas import options
    options.io.excel.xlsx.writer = 'xlsxwriter'
 
-   df.to_excel('path_to_file.xlsx', sheet_name='Sheet1')
+   df.to_excel('path_to_file.xlsx', sheetname='Sheet1')
 
 .. _io.excel_writing_buffer:
 
@@ -2216,7 +2216,7 @@ Pandas supports writing Excel files to buffer-like objects such as ``StringIO`` 
 
    # By setting the 'engine' in the ExcelWriter constructor.
    writer = ExcelWriter(bio, engine='xlsxwriter')
-   df.to_excel(writer, sheet_name='Sheet1')
+   df.to_excel(writer, sheetname='Sheet1')
 
    # Save the workbook
    writer.save()

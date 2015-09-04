@@ -774,7 +774,7 @@ Writing to an excel file
 
 .. ipython:: python
 
-   df.to_excel('foo.xlsx', sheet_name='Sheet1')
+   df.to_excel('foo.xlsx', sheetname='Sheet1')
 
 Reading from an excel file
 
