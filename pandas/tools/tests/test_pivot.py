@@ -719,6 +719,20 @@ class TestCrosstab(tm.TestCase):
                                     ('two', 'dull'), ('two', 'shiny')])
         assert_equal(res.columns.values, m.values)
 
+    def test_categorical_margins(self):
+        # GH 10989
+        data = pd.DataFrame({'x': np.arange(8),
+                             'y': np.arange(8) // 4,
+                             'z': np.arange(8) % 2})
+        data.y = data.y.astype('category')
+        data.z = data.z.astype('category')
+        table = data.pivot_table('x', 'y', 'z', margins=True)
+        assert_equal(table.values, [[1, 2, 1.5],
+                                    [5, 6, 5.5],
+                                    [3, 4, 3.5]])
+                                    
+        
+
 if __name__ == '__main__':
     import nose
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],

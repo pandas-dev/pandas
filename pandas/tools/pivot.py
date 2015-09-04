@@ -159,6 +159,20 @@ def _add_margins(table, data, values, rows, cols, aggfunc):
 
     grand_margin = _compute_grand_margin(data, values, aggfunc)
 
+    # categorical index or columns will fail below when 'All' is added
+    # here we'll convert all categorical indices to object
+    def convert_categorical(ind):
+        _convert = lambda ind: (ind.astype('object')
+                                if ind.dtype.name == 'category' else ind)
+        if isinstance(ind, MultiIndex):
+            return ind.set_levels([_convert(lev) for lev in ind.levels])
+        else:
+            return _convert(ind)
+
+    table.index = convert_categorical(table.index)
+    if hasattr(table, 'columns'):
+        table.columns = convert_categorical(table.columns)
+
     if not values and isinstance(table, Series):
         # If there are no values and the table is a series, then there is only
         # one column in the data. Compute grand margin and return it.
