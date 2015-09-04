@@ -12471,7 +12471,9 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
                 self.assertEqual(df.values.dtype, np.object_)
                 result = getattr(df, meth)(1)
                 expected = getattr(df.astype('f8'), meth)(1)
-                assert_series_equal(result, expected)
+
+                if not tm._incompat_bottleneck_version(meth):
+                    assert_series_equal(result, expected)
 
     def test_mean(self):
         self._check_stat_op('mean', np.mean, check_dates=True)
@@ -12696,9 +12698,10 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         assert_series_equal(result0, frame.apply(skipna_wrapper),
                             check_dtype=check_dtype,
                             check_less_precise=check_less_precise)
-        assert_series_equal(result1, frame.apply(skipna_wrapper, axis=1),
-                            check_dtype=False,
-                            check_less_precise=check_less_precise)
+        if not tm._incompat_bottleneck_version(name):
+            assert_series_equal(result1, frame.apply(skipna_wrapper, axis=1),
+                                check_dtype=False,
+                                check_less_precise=check_less_precise)
 
         # check dtypes
         if check_dtype:
@@ -12727,8 +12730,9 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
             all_na = self.frame * np.NaN
             r0 = getattr(all_na, name)(axis=0)
             r1 = getattr(all_na, name)(axis=1)
-            self.assertTrue(np.isnan(r0).all())
-            self.assertTrue(np.isnan(r1).all())
+            if not tm._incompat_bottleneck_version(name):
+                self.assertTrue(np.isnan(r0).all())
+                self.assertTrue(np.isnan(r1).all())
 
     def test_mode(self):
         df = pd.DataFrame({"A": [12, 12, 11, 12, 19, 11],
