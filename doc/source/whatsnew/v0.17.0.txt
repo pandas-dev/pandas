@@ -51,7 +51,7 @@ Check the :ref:`API Changes <whatsnew_0170.api>` and :ref:`deprecations <whatsne
 New features
 ~~~~~~~~~~~~
 
-- ``merge`` now accepts the argument ``indicator`` which adds a Categorical-type column (by default called ``_merge``) to the output object that takes on the values:
+- ``merge`` now accepts the argument ``indicator`` which adds a Categorical-type column (by default called ``_merge``) to the output object that takes on the values (:issue:`8790`)
 
   ===================================   ================
   Observation Origin                    ``_merge`` value
@@ -61,18 +61,15 @@ New features
   Merge key in both frames              ``both``
   ===================================   ================
 
-For more, see the :ref:`updated docs <merging.indicator>`
-
   .. ipython:: python
 
     df1 = pd.DataFrame({'col1':[0,1], 'col_left':['a','b']})
     df2 = pd.DataFrame({'col1':[1,2,2],'col_right':[2,2,2]})
     pd.merge(df1, df2, on='col1', how='outer', indicator=True)
 
+  For more, see the :ref:`updated docs <merging.indicator>`
 
-
-
-- ``DataFrame`` has the ``nlargest`` and ``nsmallest`` methods (:issue:`10393`)
+- ``DataFrame`` has gained the ``nlargest`` and ``nsmallest`` methods (:issue:`10393`)
 - SQL io functions now accept a SQLAlchemy connectable. (:issue:`7877`)
 - Enable writing complex values to HDF stores when using table format (:issue:`10447`)
 - Enable reading gzip compressed files via URL, either by explicitly setting the compression parameter or by inferring from the presence of the HTTP Content-Encoding header in the response (:issue:`8685`)
@@ -85,14 +82,14 @@ For more, see the :ref:`updated docs <merging.indicator>`
 
 - Round DataFrame to variable number of decimal places (:issue:`10568`).
 
-   .. ipython :: python
+  .. ipython :: python
 
-    df = pd.DataFrame(np.random.random([3, 3]), columns=['A', 'B', 'C'],
-    index=['first', 'second', 'third'])
-    df
-    df.round(2)
-    df.round({'A': 0, 'C': 2})
-    
+     df = pd.DataFrame(np.random.random([3, 3]), columns=['A', 'B', 'C'],
+     index=['first', 'second', 'third'])
+     df
+     df.round(2)
+     df.round({'A': 0, 'C': 2})
+
 .. _whatsnew_0170.gil:
 
 Releasing the GIL
@@ -193,10 +190,10 @@ See the :ref:`docs <io.sas>` for more details.
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
 
-- `read_sql` and `to_sql` can accept database URI as con parameter (:issue:`10214`)
-- Enable `read_hdf` to be used without specifying a key when the HDF file contains a single dataset (:issue:`10443`)
+- ``pd.read_sql`` and ``to_sql`` can accept database URI as con parameter (:issue:`10214`)
+- Enable ``pd.read_hdf`` to be used without specifying a key when the HDF file contains a single dataset (:issue:`10443`)
 - Enable writing Excel files in :ref:`memory <_io.excel_writing_buffer>` using StringIO/BytesIO (:issue:`7074`)
-- Enable serialization of lists and dicts to strings in ExcelWriter (:issue:`8188`)
+- Enable serialization of lists and dicts to strings in ``ExcelWriter`` (:issue:`8188`)
 - Added functionality to use the ``base`` argument when resampling a ``TimeDeltaIndex`` (:issue:`10530`)
 - ``DatetimeIndex`` can be instantiated using strings contains ``NaT`` (:issue:`7599`)
 - The string parsing of ``to_datetime``, ``Timestamp`` and ``DatetimeIndex`` has been made consistent. (:issue:`7599`)
@@ -467,7 +464,7 @@ the original DataFrame with no conversion.
        0  a
        1  b
 
-THe new behavior will convert all non-number-like strings to ``NaN``,
+The new behavior will convert all non-number-like strings to ``NaN``,
 when ``coerce=True`` is passed explicity.
 
 .. ipython:: python
@@ -530,7 +527,7 @@ or it can return False if broadcasting can not be done:
 Changes to Boolean Comparisons vs. None
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Boolean comparisons of a ``Series`` vs ``None`` will now be equivalent to comparing with ``np.nan``, rather than raise ``TypeError``. xref (:issue:`1079`).
+Boolean comparisons of a ``Series`` vs ``None`` will now be equivalent to comparing with ``np.nan``, rather than raise ``TypeError``. (:issue:`1079`).
 
 .. ipython:: python
 
