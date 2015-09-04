@@ -237,9 +237,9 @@ Other enhancements
 
 - ``pandas.tseries.offsets`` larger than the ``Day`` offset can now be used with with ``Series`` for addition/subtraction (:issue:`10699`).  See the :ref:`Documentation <timeseries.offsetseries>` for more details.
 
-- ``pd.Series`` of type ``timedelta64`` has new method ``.dt.total_seconds()`` returning the duration of the timedelta in seconds (:issue: `10817`)
+- ``pd.Series`` of type ``timedelta64`` has new method ``.dt.total_seconds()`` returning the duration of the timedelta in seconds (:issue:`10817`)
 
-- ``pd.Timedelta.total_seconds()`` now returns Timedelta duration to ns precision (previously microsecond precision) (:issue: `10939`)
+- ``pd.Timedelta.total_seconds()`` now returns Timedelta duration to ns precision (previously microsecond precision) (:issue:`10939`)
 
 - ``.as_blocks`` will now take a ``copy`` optional argument to return a copy of the data, default is to copy (no change in behavior from prior versions), (:issue:`9607`)
 - ``regex`` argument to ``DataFrame.filter`` now handles numeric column names instead of raising ``ValueError`` (:issue:`10384`).
@@ -264,19 +264,24 @@ Other enhancements
      s.drop_duplicates(keep='last')
      s.drop_duplicates(keep=False)
 
-- Reindex now has a ``tolerance`` argument that allows for finer control of :ref:`basics.limits_on_reindex_fill`:
+- Reindex now has a ``tolerance`` argument that allows for finer control of :ref:`basics.limits_on_reindex_fill` (:issue:`10411`):
 
   .. ipython:: python
 
-     df = pd.DataFrame({'x': range(5), 't': pd.date_range('2000-01-01', periods=5)})
-     df.reindex([0.1, 1.9, 3.5], method='nearest', tolerance=0.2)
+     df = pd.DataFrame({'x': range(5),
+                        't': pd.date_range('2000-01-01', periods=5)})
+     df.reindex([0.1, 1.9, 3.5],
+                method='nearest',
+                tolerance=0.2)
 
   When used on a ``DatetimeIndex``, ``TimedeltaIndex`` or ``PeriodIndex``, ``tolerance`` will coerced into a ``Timedelta`` if possible. This allows you to specify tolerance with a string:
 
   .. ipython:: python
 
      df = df.set_index('t')
-     df.reindex(pd.to_datetime(['1999-12-31']), method='nearest', tolerance='1 day')
+     df.reindex(pd.to_datetime(['1999-12-31']),
+                method='nearest',
+                tolerance='1 day')
 
   ``tolerance`` is also exposed by the lower level ``Index.get_indexer`` and ``Index.get_loc`` methods.
 
