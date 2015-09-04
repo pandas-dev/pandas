@@ -144,7 +144,8 @@ class SafeForLongAndSparse(object):
 
         for i in range(obj.ndim):
             result = f(axis=i)
-            assert_panel_equal(result, obj.apply(skipna_wrapper, axis=i))
+            if not tm._incompat_bottleneck_version(name):
+                assert_panel_equal(result, obj.apply(skipna_wrapper, axis=i))
 
         self.assertRaises(Exception, f, axis=obj.ndim)
 

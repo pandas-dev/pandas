@@ -2014,7 +2014,10 @@ class TestGroupBy(tm.TestCase):
         df = DataFrame(data)
         df.loc[2:10:2,'C'] = nan
 
-        def _testit(op):
+        def _testit(name):
+
+            op = lambda x: getattr(x,name)()
+
             # single column
             grouped = df.drop(['B'], axis=1).groupby('A')
             exp = {}
@@ -2035,18 +2038,19 @@ class TestGroupBy(tm.TestCase):
             exp.name = 'C'
 
             result = op(grouped)['C']
-            assert_series_equal(result, exp)
+            if not tm._incompat_bottleneck_version(name):
+                assert_series_equal(result, exp)
 
-        _testit(lambda x: x.count())
-        _testit(lambda x: x.sum())
-        _testit(lambda x: x.std())
-        _testit(lambda x: x.var())
-        _testit(lambda x: x.sem())
-        _testit(lambda x: x.mean())
-        _testit(lambda x: x.median())
-        _testit(lambda x: x.prod())
-        _testit(lambda x: x.min())
-        _testit(lambda x: x.max())
+        _testit('count')
+        _testit('sum')
+        _testit('std')
+        _testit('var')
+        _testit('sem')
+        _testit('mean')
+        _testit('median')
+        _testit('prod')
+        _testit('min')
+        _testit('max')
 
     def test_max_min_non_numeric(self):
         # #2700
