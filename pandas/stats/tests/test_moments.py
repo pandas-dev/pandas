@@ -842,6 +842,44 @@ def _create_consistency_data():
 _consistency_data = _create_consistency_data()
 
 class TestMomentsConsistency(Base):
+    base_functions = [
+        (lambda v: Series(v).count(), None, 'count'),
+        (lambda v: Series(v).max(), None, 'max'),
+        (lambda v: Series(v).min(), None, 'min'),
+        (lambda v: Series(v).sum(), None, 'sum'),
+        (lambda v: Series(v).mean(), None, 'mean'),
+        (lambda v: Series(v).std(), 1, 'std'),
+        (lambda v: Series(v).cov(Series(v)), None, 'cov'),
+        (lambda v: Series(v).corr(Series(v)), None, 'corr'),
+        (lambda v: Series(v).var(), 1, 'var'),
+        #(lambda v: Series(v).skew(), 3, 'skew'), # restore once GH 8086 is fixed
+        #(lambda v: Series(v).kurt(), 4, 'kurt'), # restore once GH 8086 is fixed
+        #(lambda x, min_periods: mom.expanding_quantile(x, 0.3, min_periods=min_periods, 'quantile'),
+        # lambda v: Series(v).quantile(0.3), None, 'quantile'), # restore once GH 8084 is fixed
+        (lambda v: Series(v).median(), None ,'median'),
+        (np.nanmax, 1, 'max'),
+        (np.nanmin, 1, 'min'),
+        (np.nansum, 1, 'sum'),
+        ]
+    if np.__version__ >= LooseVersion('1.8.0'):
+        base_functions += [
+            (np.nanmean, 1, 'mean'),
+            (lambda v: np.nanstd(v, ddof=1), 1 ,'std'),
+            (lambda v: np.nanvar(v, ddof=1), 1 ,'var'),
+        ]
+    if np.__version__ >= LooseVersion('1.9.0'):
+        base_functions += [
+            (np.nanmedian, 1, 'median'),
+            ]
+    no_nan_functions = [
+        (np.max, None, 'max'),
+        (np.min, None, 'min'),
+        (np.sum, None, 'sum'),
+        (np.mean, None, 'mean'),
+        (lambda v: np.std(v, ddof=1), 1 ,'std'),
+        (lambda v: np.var(v, ddof=1), 1 ,'var'),
+        (np.median, None, 'median'),
+    ]
 
     def _create_data(self):
         super(TestMomentsConsistency, self)._create_data()
@@ -877,9 +915,11 @@ class TestMomentsConsistency(Base):
             # self.assertTrue(_non_null_values(corr_x_x).issubset(set([1.]))) # restore once rolling_cov(x, x) is identically equal to var(x)
 
             if is_constant:
+                exp = x.max() if isinstance(x, Series) else x.max().max()
+
                 # check mean of constant series
                 expected = x * np.nan
-                expected[count_x >= max(min_periods, 1)] = x.max().max()
+                expected[count_x >= max(min_periods, 1)] = exp
                 assert_equal(mean_x, expected)
 
                 # check correlation of constant series with itself is NaN
@@ -1030,44 +1070,6 @@ class TestMomentsConsistency(Base):
 
     @slow
     def test_expanding_consistency(self):
-        base_functions = [
-            (mom.expanding_count, lambda v: Series(v).count(), None),
-            (mom.expanding_max, lambda v: Series(v).max(), None),
-            (mom.expanding_min, lambda v: Series(v).min(), None),
-            (mom.expanding_sum, lambda v: Series(v).sum(), None),
-            (mom.expanding_mean, lambda v: Series(v).mean(), None),
-            (mom.expanding_std, lambda v: Series(v).std(), 1),
-            (mom.expanding_cov, lambda v: Series(v).cov(Series(v)), None),
-            (mom.expanding_corr, lambda v: Series(v).corr(Series(v)), None),
-            (mom.expanding_var, lambda v: Series(v).var(), 1),
-            #(mom.expanding_skew, lambda v: Series(v).skew(), 3), # restore once GH 8086 is fixed
-            #(mom.expanding_kurt, lambda v: Series(v).kurt(), 4), # restore once GH 8086 is fixed
-            #(lambda x, min_periods: mom.expanding_quantile(x, 0.3, min_periods=min_periods),
-            # lambda v: Series(v).quantile(0.3), None), # restore once GH 8084 is fixed
-            (mom.expanding_median, lambda v: Series(v).median(), None),
-            (mom.expanding_max, np.nanmax, 1),
-            (mom.expanding_min, np.nanmin, 1),
-            (mom.expanding_sum, np.nansum, 1),
-            ]
-        if np.__version__ >= LooseVersion('1.8.0'):
-            base_functions += [
-                (mom.expanding_mean, np.nanmean, 1),
-                (mom.expanding_std, lambda v: np.nanstd(v, ddof=1), 1),
-                (mom.expanding_var, lambda v: np.nanvar(v, ddof=1), 1),
-            ]
-            if np.__version__ >= LooseVersion('1.9.0'):
-                base_functions += [
-                    (mom.expanding_median, np.nanmedian, 1),
-                ]
-        no_nan_functions = [
-            (mom.expanding_max, np.max, None),
-            (mom.expanding_min, np.min, None),
-            (mom.expanding_sum, np.sum, None),
-            (mom.expanding_mean, np.mean, None),
-            (mom.expanding_std, lambda v: np.std(v, ddof=1), 1),
-            (mom.expanding_var, lambda v: np.var(v, ddof=1), 1),
-            (mom.expanding_median, np.median, None),
-            ]
 
         # suppress warnings about empty slices, as we are deliberately testing with empty/0-length Series/DataFrames
         with warnings.catch_warnings():
@@ -1095,12 +1097,14 @@ class TestMomentsConsistency(Base):
                 #                                                  or (b) expanding_apply of np.nanxyz()
                 for (x, is_constant, no_nans) in self.data:
                     assert_equal = assert_series_equal if isinstance(x, Series) else assert_frame_equal
-                    functions = base_functions
+                    functions = self.base_functions
 
                     # GH 8269
                     if no_nans:
-                        functions = base_functions + no_nan_functions
-                    for (expanding_f, f, require_min_periods) in functions:
+                        functions = self.base_functions + self.no_nan_functions
+                    for (f, require_min_periods, name) in functions:
+                        expanding_f = getattr(mom,'expanding_{0}'.format(name))
+
                         if require_min_periods and (min_periods is not None) and (min_periods < require_min_periods):
                             continue
 
@@ -1113,7 +1117,9 @@ class TestMomentsConsistency(Base):
                             else:
                                 expanding_f_result = expanding_f(x, min_periods=min_periods)
                             expanding_apply_f_result = mom.expanding_apply(x, func=f, min_periods=min_periods)
-                        assert_equal(expanding_f_result, expanding_apply_f_result)
+
+                        if not tm._incompat_bottleneck_version(name):
+                            assert_equal(expanding_f_result, expanding_apply_f_result)
 
                         if (expanding_f in [mom.expanding_cov, mom.expanding_corr]) and isinstance(x, DataFrame):
                             # test pairwise=True
@@ -1126,45 +1132,6 @@ class TestMomentsConsistency(Base):
 
     @slow
     def test_rolling_consistency(self):
-
-        base_functions = [
-            (mom.rolling_count, lambda v: Series(v).count(), None),
-            (mom.rolling_max, lambda v: Series(v).max(), None),
-            (mom.rolling_min, lambda v: Series(v).min(), None),
-            (mom.rolling_sum, lambda v: Series(v).sum(), None),
-            (mom.rolling_mean, lambda v: Series(v).mean(), None),
-            (mom.rolling_std, lambda v: Series(v).std(), 1),
-            (mom.rolling_cov, lambda v: Series(v).cov(Series(v)), None),
-            (mom.rolling_corr, lambda v: Series(v).corr(Series(v)), None),
-            (mom.rolling_var, lambda v: Series(v).var(), 1),
-            #(mom.rolling_skew, lambda v: Series(v).skew(), 3), # restore once GH 8086 is fixed
-            #(mom.rolling_kurt, lambda v: Series(v).kurt(), 4), # restore once GH 8086 is fixed
-            #(lambda x, window, min_periods, center: mom.rolling_quantile(x, window, 0.3, min_periods=min_periods, center=center),
-            # lambda v: Series(v).quantile(0.3), None), # restore once GH 8084 is fixed
-            (mom.rolling_median, lambda v: Series(v).median(), None),
-            (mom.rolling_max, np.nanmax, 1),
-            (mom.rolling_min, np.nanmin, 1),
-            (mom.rolling_sum, np.nansum, 1),
-            ]
-        if np.__version__ >= LooseVersion('1.8.0'):
-            base_functions += [
-                (mom.rolling_mean, np.nanmean, 1),
-                (mom.rolling_std, lambda v: np.nanstd(v, ddof=1), 1),
-                (mom.rolling_var, lambda v: np.nanvar(v, ddof=1), 1),
-            ]
-            if np.__version__ >= LooseVersion('1.9.0'):
-                base_functions += [
-                    (mom.rolling_median, np.nanmedian, 1),
-                ]
-        no_nan_functions = [
-            (mom.rolling_max, np.max, None),
-            (mom.rolling_min, np.min, None),
-            (mom.rolling_sum, np.sum, None),
-            (mom.rolling_mean, np.mean, None),
-            (mom.rolling_std, lambda v: np.std(v, ddof=1), 1),
-            (mom.rolling_var, lambda v: np.var(v, ddof=1), 1),
-            (mom.rolling_median, np.median, None),
-            ]
 
         for window in [1, 2, 3, 10, 20]:
             for min_periods in set([0, 1, 2, 3, 4, window]):
@@ -1195,11 +1162,14 @@ class TestMomentsConsistency(Base):
                     for (x, is_constant, no_nans) in self.data:
 
                         assert_equal = assert_series_equal if isinstance(x, Series) else assert_frame_equal
-                        functions = base_functions
+                        functions = self.base_functions
+
                         # GH 8269
                         if no_nans:
-                            functions = base_functions + no_nan_functions
-                        for (rolling_f, f, require_min_periods) in functions:
+                            functions = self.base_functions + self.no_nan_functions
+                        for (f, require_min_periods, name) in functions:
+                            rolling_f = getattr(mom,'rolling_{0}'.format(name))
+
                             if require_min_periods and (min_periods is not None) and (min_periods < require_min_periods):
                                 continue
 
@@ -1214,7 +1184,8 @@ class TestMomentsConsistency(Base):
                                     rolling_f_result = rolling_f(x, window=window, min_periods=min_periods, center=center)
                                 rolling_apply_f_result = mom.rolling_apply(x, window=window, func=f,
                                                                            min_periods=min_periods, center=center)
-                            assert_equal(rolling_f_result, rolling_apply_f_result)
+                            if not tm._incompat_bottleneck_version(name):
+                                assert_equal(rolling_f_result, rolling_apply_f_result)
 
                             if (rolling_f in [mom.rolling_cov, mom.rolling_corr]) and isinstance(x, DataFrame):
                                 # test pairwise=True
