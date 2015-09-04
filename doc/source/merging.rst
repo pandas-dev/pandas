@@ -506,9 +506,9 @@ standard database join operations between DataFrame objects:
 
 ::
 
-    pd.merge(left, right, how='inner', on=None, left_on=None, right_on=None,
-             left_index=False, right_index=False, sort=True,
-             suffixes=('_x', '_y'), copy=True)
+    merge(left, right, how='inner', on=None, left_on=None, right_on=None,
+          left_index=False, right_index=False, sort=True,
+          suffixes=('_x', '_y'), copy=True, indicator=False)
 
 Here's a description of what each argument is for:
 
@@ -539,6 +539,15 @@ Here's a description of what each argument is for:
     cases but may improve performance / memory usage. The cases where copying
     can be avoided are somewhat pathological but this option is provided
     nonetheless.
+  - ``indicator``: Add a column to the output DataFrame called ``_merge``
+    with information on the source of each row. ``_merge`` is Categorical-type 
+    and takes on a value of ``left_only`` for observations whose merge key 
+    only appears in ``'left'`` DataFrame, ``right_only`` for observations whose 
+    merge key only appears in ``'right'`` DataFrame, and ``both`` if the 
+    observation's merge key is found in both. 
+    
+    .. versionadded:: 0.17.0
+
 
 The return type will be the same as ``left``. If ``left`` is a ``DataFrame``
 and ``right`` is a subclass of DataFrame, the return type will still be
@@ -683,6 +692,36 @@ either the left or right tables, the values in the joined table will be
    p.plot([left, right], result,
           labels=['left', 'right'], vertical=False);
    plt.close('all');
+
+.. _merging.indicator:
+
+The merge indicator
+~~~~~~~~~~~~~~~~~~~
+
+.. versionadded:: 0.17.0
+
+``merge`` now accepts the argument ``indicator``. If ``True``, a Categorical-type column called ``_merge`` will be added to the output object that takes on values:
+
+  ===================================   ================
+  Observation Origin                    ``_merge`` value
+  ===================================   ================
+  Merge key only in ``'left'`` frame    ``left_only``
+  Merge key only in ``'right'`` frame   ``right_only``
+  Merge key in both frames              ``both``
+  ===================================   ================
+
+.. ipython:: python
+
+   df1 = DataFrame({'col1':[0,1], 'col_left':['a','b']})
+   df2 = DataFrame({'col1':[1,2,2],'col_right':[2,2,2]})
+   merge(df1, df2, on='col1', how='outer', indicator=True)
+
+The ``indicator`` argument will also accept string arguments, in which case the indicator function will use the value of the passed string as the name for the indicator column. 
+
+.. ipython:: python
+
+   merge(df1, df2, on='col1', how='outer', indicator='indicator_column')
+
 
 .. _merging.join.index:
 

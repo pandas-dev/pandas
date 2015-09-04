@@ -51,6 +51,27 @@ Check the :ref:`API Changes <whatsnew_0170.api>` and :ref:`deprecations <whatsne
 New features
 ~~~~~~~~~~~~
 
+- ``merge`` now accepts the argument ``indicator`` which adds a Categorical-type column (by default called ``_merge``) to the output object that takes on the values:
+
+  ===================================   ================
+  Observation Origin                    ``_merge`` value
+  ===================================   ================
+  Merge key only in ``'left'`` frame    ``left_only``
+  Merge key only in ``'right'`` frame   ``right_only``
+  Merge key in both frames              ``both``
+  ===================================   ================
+
+For more, see the :ref:`updated docs <merging.indicator>`
+
+  .. ipython:: python
+
+    df1 = pd.DataFrame({'col1':[0,1], 'col_left':['a','b']})
+    df2 = pd.DataFrame({'col1':[1,2,2],'col_right':[2,2,2]})
+    pd.merge(df1, df2, on='col1', how='outer', indicator=True)
+
+
+
+
 - ``DataFrame`` has the ``nlargest`` and ``nsmallest`` methods (:issue:`10393`)
 - SQL io functions now accept a SQLAlchemy connectable. (:issue:`7877`)
 - Enable writing complex values to HDF stores when using table format (:issue:`10447`)
