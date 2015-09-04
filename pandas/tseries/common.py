@@ -9,7 +9,7 @@ from pandas.tseries.tdi import TimedeltaIndex
 from pandas import tslib
 from pandas.core.common import (_NS_DTYPE, _TD_DTYPE, is_period_arraylike,
                                 is_datetime_arraylike, is_integer_dtype, is_list_like,
-                                get_dtype_kinds)
+                                get_dtype_kinds, SettingImmutableError)
 
 def is_datetimelike(data):
     """ return a boolean if we can be successfully converted to a datetimelike """
@@ -76,15 +76,16 @@ class Properties(PandasDelegate):
         # return the result as a Series, which is by definition a copy
         result = Series(result, index=self.index)
 
-        # setting this object will show a SettingWithCopyWarning/Error
-        result.is_copy = ("modifications to a property of a datetimelike object are not "
-                          "supported and are discarded. Change values on the original.")
+        # setting this object will show a ValueError if accessed
+        result._parent = SettingImmutableError("modifications to a property of a datetimelike object are not "
+                                               "supported and are discarded. Change values on the original.")
+
 
         return result
 
     def _delegate_property_set(self, name, value, *args, **kwargs):
-        raise ValueError("modifications to a property of a datetimelike object are not "
-                         "supported. Change values on the original.")
+        raise SettingImmutableError("modifications to a property of a datetimelike object are not "
+                                    "supported. Change values on the original.")
 
     def _delegate_method(self, name, *args, **kwargs):
         from pandas import Series
@@ -97,9 +98,9 @@ class Properties(PandasDelegate):
 
         result = Series(result, index=self.index)
 
-        # setting this object will show a SettingWithCopyWarning/Error
-        result.is_copy = ("modifications to a method of a datetimelike object are not "
-                          "supported and are discarded. Change values on the original.")
+        # setting this object will show a SettingImmutableError
+        result._parent = SettingImmutableError("modifications to a method of a datetimelike object are not "
+                                               "supported and are discarded. Change values on the original.")
 
         return result
 

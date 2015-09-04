@@ -2851,12 +2851,10 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         assert_frame_equal(df,expected)
 
         # ok, but chained assignments are dangerous
-        # if we turn off chained assignement it will work
-        with option_context('chained_assignment',None):
-            df = pd.DataFrame({'a': lrange(4) })
-            df['b'] = np.nan
-            df['b'].ix[[1,3]] = [100,-100]
-            assert_frame_equal(df,expected)
+        df = pd.DataFrame({'a': lrange(4) })
+        df['b'] = np.nan
+        df['b'].ix[[1,3]] = [100,-100]
+        assert_frame_equal(df,expected)
 
     def test_ix_get_set_consistency(self):
 
@@ -3672,25 +3670,22 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
 
     def test_slice_consolidate_invalidate_item_cache(self):
 
-        # this is chained assignment, but will 'work'
-        with option_context('chained_assignment',None):
+        # #3970
+        df = DataFrame({ "aa":lrange(5), "bb":[2.2]*5})
 
-            # #3970
-            df = DataFrame({ "aa":lrange(5), "bb":[2.2]*5})
+        # Creates a second float block
+        df["cc"] = 0.0
 
-            # Creates a second float block
-            df["cc"] = 0.0
+        # caches a reference to the 'bb' series
+        df["bb"]
 
-            # caches a reference to the 'bb' series
-            df["bb"]
+        # repr machinery triggers consolidation
+        repr(df)
 
-            # repr machinery triggers consolidation
-            repr(df)
-
-            # Assignment to wrong series
-            df['bb'].iloc[0] = 0.17
-            df._clear_item_cache()
-            self.assertAlmostEqual(df['bb'][0], 0.17)
+        # Assignment to wrong series
+        df['bb'].iloc[0] = 0.17
+        df._clear_item_cache()
+        self.assertAlmostEqual(df['bb'][0], 0.17)
 
     def test_setitem_cache_updating(self):
         # GH 5424
@@ -3776,65 +3771,108 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         result = df.head()
         assert_frame_equal(result, expected)
 
-    def test_detect_chained_assignment(self):
+    def test_chain_assignment_yields_copy_on_write(self):
 
-        pd.set_option('chained_assignment','raise')
+        # 10954
+        df = DataFrame({'col1':[1,2], 'col2':[3,4]})
+        intermediate = df.loc[1:1,]
+
+        # refrence created
+        self.assertFalse(len(df._parent))
+        self.assertTrue(len(intermediate._parent) == 1)
+        intermediate['col1'] = -99
+
+        # reference is broken
+        self.assertFalse(len(df._parent))
+        self.assertFalse(len(intermediate._parent))
+
+        # local assignment
+        expected = DataFrame([[-99,4]],index=[1],columns=['col1','col2'])
+        assert_frame_equal(intermediate, expected)
+
+        # unchanged
+        expected = DataFrame({'col1':[1,2], 'col2':[3,4]})
+        assert_frame_equal(df, expected)
+
+        # chained assignment
+        # but one that we can deal with
+        df = pd.DataFrame({'col1':[1,2], 'col2':[3,4]})
+        df.loc[1:1,]['col1'] = -99
+        expected = DataFrame({'col1':[1,-99], 'col2':[3,4]})
+        assert_frame_equal(df, expected)
+
+        df = pd.DataFrame({'col1':[1,2], 'col2':[3,4]})
+        df.loc[1]['col1'] = -99
+        assert_frame_equal(df, expected)
+
+        # changed via a scalar accessor
+        df = DataFrame({'col1':[1,2], 'col2':[3,4]})
+        expected = df.copy()
+
+        s2 = df.loc[0]
+        s2.iloc[0] = -99
+        assert_frame_equal(df, expected)
+        expected = Series([-99,3],index=['col1','col2'],name=0)
+        assert_series_equal(s2, expected)
+
+        # change dtype
+        df = pd.DataFrame({'col1':[1,2], 'col2':[3,4]})
+        expected = DataFrame({'col1':[1, 2], 'col2':[3,'foo']})
+        df.loc[1]['col2'] = 'foo'
+        assert_frame_equal(df, expected)
+
+    def test_detect_chained_assignment(self):
 
         # work with the chain
         expected = DataFrame([[-5,1],[-6,3]],columns=list('AB'))
         df = DataFrame(np.arange(4).reshape(2,2),columns=list('AB'),dtype='int64')
-        self.assertIsNone(df.is_copy)
+        self.assertFalse(len(df._parent))
         df['A'][0] = -5
         df['A'][1] = -6
         assert_frame_equal(df, expected)
 
         # test with the chaining
         df = DataFrame({ 'A' : Series(range(2),dtype='int64'), 'B' : np.array(np.arange(2,4),dtype=np.float64)})
-        self.assertIsNone(df.is_copy)
-        def f():
-            df['A'][0] = -5
-        self.assertRaises(com.SettingWithCopyError, f)
-        def f():
-            df['A'][1] = np.nan
-        self.assertRaises(com.SettingWithCopyError, f)
-        self.assertIsNone(df['A'].is_copy)
+        self.assertFalse(len(df._parent))
+        df['A'][0] = -5
+        df['A'][1] = np.nan
+        self.assertFalse(len(df['A']._parent))
 
         # using a copy (the chain), fails
         df = DataFrame({ 'A' : Series(range(2),dtype='int64'), 'B' : np.array(np.arange(2,4),dtype=np.float64)})
-        def f():
-            df.loc[0]['A'] = -5
-        self.assertRaises(com.SettingWithCopyError, f)
+        df.loc[0]['A'] = -5
+        self.assertEqual(df.loc[0,'A'], -5)
 
         # doc example
         df = DataFrame({'a' : ['one', 'one', 'two',
                                'three', 'two', 'one', 'six'],
                         'c' : Series(range(7),dtype='int64') })
-        self.assertIsNone(df.is_copy)
+        self.assertFalse(len(df._parent))
         expected = DataFrame({'a' : ['one', 'one', 'two',
                                      'three', 'two', 'one', 'six'],
                               'c' : [42,42,2,3,4,42,6]})
 
-        def f():
-            indexer = df.a.str.startswith('o')
-            df[indexer]['c'] = 42
-        self.assertRaises(com.SettingWithCopyError, f)
+        indexer = df.a.str.startswith('o')
+        df[indexer]['c'] = 42
+        assert_frame_equal(df, expected)
 
         expected = DataFrame({'A':[111,'bbb','ccc'],'B':[1,2,3]})
         df = DataFrame({'A':['aaa','bbb','ccc'],'B':[1,2,3]})
-        def f():
-            df['A'][0] = 111
-        self.assertRaises(com.SettingWithCopyError, f)
-        def f():
-            df.loc[0]['A'] = 111
-        self.assertRaises(com.SettingWithCopyError, f)
+        df['A'][0] = 111
+        assert_frame_equal(df, expected)
 
+        df = DataFrame({'A':['aaa','bbb','ccc'],'B':[1,2,3]})
+        df.loc[0]['A'] = 111
+        assert_frame_equal(df,expected)
+
+        df = DataFrame({'A':['aaa','bbb','ccc'],'B':[1,2,3]})
         df.loc[0,'A'] = 111
         assert_frame_equal(df,expected)
 
         # make sure that is_copy is picked up reconstruction
         # GH5475
         df = DataFrame({"A": [1,2]})
-        self.assertIsNone(df.is_copy)
+        self.assertFalse(len(df._parent))
         with tm.ensure_clean('__tmp__pickle') as path:
             df.to_pickle(path)
             df2 = pd.read_pickle(path)
@@ -3858,34 +3896,34 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
 
         # always a copy
         x = df.iloc[[0,1,2]]
-        self.assertIsNotNone(x.is_copy)
+        self.assertIsNotNone(x._parent)
         x = df.iloc[[0,1,2,4]]
-        self.assertIsNotNone(x.is_copy)
+        self.assertIsNotNone(x._parent)
 
         # explicity copy
         indexer = df.letters.apply(lambda x : len(x) > 10)
         df = df.ix[indexer].copy()
-        self.assertIsNone(df.is_copy)
+        self.assertFalse(len(df._parent))
         df['letters'] = df['letters'].apply(str.lower)
 
         # implicity take
         df = random_text(100000)
         indexer = df.letters.apply(lambda x : len(x) > 10)
         df = df.ix[indexer]
-        self.assertIsNotNone(df.is_copy)
+        self.assertIsNotNone(df._parent)
         df['letters'] = df['letters'].apply(str.lower)
 
         # implicity take 2
         df = random_text(100000)
         indexer = df.letters.apply(lambda x : len(x) > 10)
         df = df.ix[indexer]
-        self.assertIsNotNone(df.is_copy)
+        self.assertIsNotNone(df._parent)
         df.loc[:,'letters'] = df['letters'].apply(str.lower)
 
         # should be ok even though it's a copy!
-        self.assertIsNone(df.is_copy)
+        self.assertFalse(len(df._parent))
         df['letters'] = df['letters'].apply(str.lower)
-        self.assertIsNone(df.is_copy)
+        self.assertFalse(len(df._parent))
 
         df = random_text(100000)
         indexer = df.letters.apply(lambda x : len(x) > 10)
@@ -3893,7 +3931,7 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
 
         # an identical take, so no copy
         df = DataFrame({'a' : [1]}).dropna()
-        self.assertIsNone(df.is_copy)
+        self.assertFalse(len(df._parent))
         df['a'] += 1
 
         # inplace ops
@@ -3928,23 +3966,22 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         # from SO: http://stackoverflow.com/questions/24054495/potential-bug-setting-value-for-undefined-column-using-iloc
         df = DataFrame(np.arange(0,9), columns=['count'])
         df['group'] = 'b'
-        def f():
-            df.iloc[0:5]['group'] = 'a'
-        self.assertRaises(com.SettingWithCopyError, f)
+        df.iloc[0:5]['group'] = 'a'
 
         # mixed type setting
         # same dtype & changing dtype
         df = DataFrame(dict(A=date_range('20130101',periods=5),B=np.random.randn(5),C=np.arange(5,dtype='int64'),D=list('abcde')))
+        df.ix[2]['D'] = 'foo'
 
-        def f():
-            df.ix[2]['D'] = 'foo'
-        self.assertRaises(com.SettingWithCopyError, f)
-        def f():
-            df.ix[2]['C'] = 'foo'
-        self.assertRaises(com.SettingWithCopyError, f)
-        def f():
-            df['C'][2] = 'foo'
-        self.assertRaises(com.SettingWithCopyError, f)
+        df = DataFrame(dict(A=date_range('20130101',periods=5),B=np.random.randn(5),C=np.arange(5,dtype='int64'),D=list('abcde')))
+        df.ix[2]['C'] = 'foo'
+
+        df = DataFrame(dict(A=date_range('20130101',periods=5),B=np.random.randn(5),C=np.arange(5,dtype='int64'),D=list('abcde')))
+        df['C'][2] = 'foo'
+
+        df = DataFrame({'A':['aaa','bbb','ccc'],'B':[1,2,3]})
+        df.loc[0]['A'] = 111
+        self.assertEqual(df.loc[0,'A'],111)
 
     def test_setting_with_copy_bug(self):
 
@@ -3963,14 +4000,6 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
 
         # this should not raise
         df2['y'] = ['g', 'h', 'i']
-
-    def test_detect_chained_assignment_warnings(self):
-
-        # warnings
-        with option_context('chained_assignment','warn'):
-            df = DataFrame({'A':['aaa','bbb','ccc'],'B':[1,2,3]})
-            with tm.assert_produces_warning(expected_warning=com.SettingWithCopyWarning):
-                df.loc[0]['A'] = 111
 
     def test_float64index_slicing_bug(self):
         # GH 5557, related to slicing a float index

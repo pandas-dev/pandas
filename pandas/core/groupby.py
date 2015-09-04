@@ -688,13 +688,14 @@ class GroupBy(PandasObject):
         def f(g):
             return func(g, *args, **kwargs)
 
-        # ignore SettingWithCopy here in case the user mutates
-        with option_context('mode.chained_assignment',None):
-            return self._python_apply_general(f)
+        return self._python_apply_general(f)
+
 
     def _python_apply_general(self, f):
+
         keys, values, mutated = self.grouper.apply(f, self._selected_obj,
                                                    self.axis)
+        self._selected_obj._parent_copy_on_write = True
 
         return self._wrap_applied_output(keys, values,
                                          not_indexed_same=mutated)
@@ -3572,6 +3573,15 @@ class DataSplitter(object):
         # Counting sort indexer
         return _get_group_index_sorter(self.labels, self.ngroups)
 
+
+    def _set_cow(self, data):
+        # we may mutate, so don't allow cow
+        try:
+            data._parent_copy_on_write=False
+        except AttributeError:
+            pass
+        return data
+
     def __iter__(self):
         sdata = self._get_sorted_data()
 
@@ -3593,7 +3603,7 @@ class DataSplitter(object):
         return self.data.take(self.sort_idx, axis=self.axis, convert=False)
 
     def _chop(self, sdata, slice_obj):
-        return sdata.iloc[slice_obj]
+        return self._set_cow(sdata.iloc[slice_obj])
 
     def apply(self, f):
         raise AbstractMethodError(self)
@@ -3606,7 +3616,7 @@ class ArraySplitter(DataSplitter):
 class SeriesSplitter(DataSplitter):
 
     def _chop(self, sdata, slice_obj):
-        return sdata._get_values(slice_obj).to_dense()
+        return self._set_cow(sdata._get_values(slice_obj).to_dense())
 
 
 class FrameSplitter(DataSplitter):
@@ -3629,9 +3639,9 @@ class FrameSplitter(DataSplitter):
 
     def _chop(self, sdata, slice_obj):
         if self.axis == 0:
-            return sdata.iloc[slice_obj]
+            return self._set_cow(sdata.iloc[slice_obj])
         else:
-            return sdata._slice(slice_obj, axis=1)  # ix[:, slice_obj]
+            return self._set_cow(sdata._slice(slice_obj, axis=1)) # ix[:, slice_obj]
 
 
 class NDFrameSplitter(DataSplitter):
@@ -3652,7 +3662,7 @@ class NDFrameSplitter(DataSplitter):
         return sorted_data
 
     def _chop(self, sdata, slice_obj):
-        return self.factory(sdata.get_slice(slice_obj, axis=self.axis))
+        return self._set_cow(self.factory(sdata.get_slice(slice_obj, axis=self.axis)))
 
 
 def get_splitter(data, *args, **kwargs):

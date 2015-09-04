@@ -3534,10 +3534,10 @@ class TestMultiIndex(Base, tm.TestCase):
             columns=['one', 'two', 'three', 'four'],
             index=idx)
         df = df.sortlevel()
-        self.assertIsNone(df.is_copy)
+        self.assertIsNone(df._parent)
         self.assertEqual(df.index.names, ('Name', 'Number'))
         df = df.set_value(('grethe', '4'), 'one', 99.34)
-        self.assertIsNone(df.is_copy)
+        self.assertIsNone(df._parent)
         self.assertEqual(df.index.names, ('Name', 'Number'))
 
     def test_names(self):

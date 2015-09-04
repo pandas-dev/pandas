@@ -552,12 +552,10 @@ class CheckIndexing(object):
         self.frame['col8'] = 'foo'
         assert((self.frame['col8'] == 'foo').all())
 
-        # this is partially a view (e.g. some blocks are view)
-        # so raise/warn
+        # this is copy-on-write
         smaller = self.frame[:2]
-        def f():
-            smaller['col10'] = ['1', '2']
-        self.assertRaises(com.SettingWithCopyError, f)
+        smaller['col10'] = ['1', '2']
+
         self.assertEqual(smaller['col10'].dtype, np.object_)
         self.assertTrue((smaller['col10'] == ['1', '2']).all())
 
@@ -999,13 +997,11 @@ class CheckIndexing(object):
         sliced = self.mixed_frame.ix[:, -3:]
         self.assertEqual(sliced['D'].dtype, np.float64)
 
-        # get view with single block
-        # setting it triggers setting with copy
+        # this is copy-on-write
         sliced = self.frame.ix[:, -3:]
-        def f():
-            sliced['C'] = 4.
-        self.assertRaises(com.SettingWithCopyError, f)
-        self.assertTrue((self.frame['C'] == 4).all())
+        sliced['C'] = 4.
+        self.assertFalse((self.frame['C'] == 4).all())
+        self.assertTrue((sliced['C'] == 4).all())
 
     def test_fancy_setitem_int_labels(self):
         # integer index defers to label-based indexing
@@ -1799,14 +1795,10 @@ class CheckIndexing(object):
         expected = df.ix[8:14]
         assert_frame_equal(result, expected)
 
-        # verify slice is view
-        # setting it makes it raise/warn
-        def f():
-            result[2] = 0.
-        self.assertRaises(com.SettingWithCopyError, f)
-        exp_col = df[2].copy()
-        exp_col[4:8] = 0.
-        assert_series_equal(df[2], exp_col)
+        # copy-on-write for a slice
+        result[2] = 0.
+        self.assertFalse((df[2] == 0).all())
+        self.assertTrue((result[2] == 0).all())
 
         # list of integers
         result = df.iloc[[1, 2, 4, 6]]
@@ -1834,12 +1826,10 @@ class CheckIndexing(object):
         expected = df.ix[:, 8:14]
         assert_frame_equal(result, expected)
 
-        # verify slice is view
-        # and that we are setting a copy
-        def f():
-            result[8] = 0.
-        self.assertRaises(com.SettingWithCopyError, f)
-        self.assertTrue((df[8] == 0).all())
+        # we have a slice, but copy-on-write
+        result[8] = 0.
+        self.assertFalse((df[8] == 0).all())
+        self.assertTrue((result[8] == 0).all())
 
         # list of integers
         result = df.iloc[:, [1, 2, 4, 6]]
@@ -14501,16 +14491,15 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
     def test_stale_cached_series_bug_473(self):
 
         # this is chained, but ok
-        with option_context('chained_assignment',None):
-            Y = DataFrame(np.random.random((4, 4)), index=('a', 'b', 'c', 'd'),
-                          columns=('e', 'f', 'g', 'h'))
-            repr(Y)
-            Y['e'] = Y['e'].astype('object')
-            Y['g']['c'] = np.NaN
-            repr(Y)
-            result = Y.sum()
-            exp = Y['g'].sum()
-            self.assertTrue(isnull(Y['g']['c']))
+        Y = DataFrame(np.random.random((4, 4)), index=('a', 'b', 'c', 'd'),
+                      columns=('e', 'f', 'g', 'h'))
+        repr(Y)
+        Y['e'] = Y['e'].astype('object')
+        Y['g']['c'] = np.NaN
+        repr(Y)
+        result = Y.sum()
+        exp = Y['g'].sum()
+        self.assertTrue(isnull(Y['g']['c']))
 
     def test_index_namedtuple(self):
         from collections import namedtuple

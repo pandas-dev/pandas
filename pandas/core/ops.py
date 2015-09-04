@@ -191,7 +191,7 @@ def add_special_arithmetic_methods(cls, arith_method=None, radd_func=None,
             # this makes sure that we are aligned like the input
             # we are updating inplace so we want to ignore is_copy
             self._update_inplace(result.reindex_like(self,copy=False)._data,
-                                 verify_is_copy=False)
+                                 verify_parent=False)
 
             return self
         return f

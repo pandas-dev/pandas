@@ -26,14 +26,11 @@ from pandas.core.config import get_option
 class PandasError(Exception):
     pass
 
+class SettingImmutableError(ValueError):
+    pass
 
 class SettingWithCopyError(ValueError):
     pass
-
-
-class SettingWithCopyWarning(Warning):
-    pass
-
 
 class AmbiguousIndexError(PandasError, KeyError):
     pass

@@ -64,7 +64,7 @@ class TestCase(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        pd.set_option('chained_assignment', 'raise')
+        pass
 
     @classmethod
     def tearDownClass(cls):

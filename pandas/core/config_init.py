@@ -321,13 +321,12 @@ with cf.config_prefix('mode'):
 # user warnings
 chained_assignment = """
 : string
-    Raise an exception, warn, or no action if trying to use chained assignment,
-    The default is warn
+  this option has been deprecated and has no effect
 """
 
-with cf.config_prefix('mode'):
-    cf.register_option('chained_assignment', 'warn', chained_assignment,
-                       validator=is_one_of_factory([None, 'warn', 'raise']))
+cf.register_option('mode.chained_assignment', 'warn', chained_assignment,
+                   validator=is_one_of_factory([None, 'warn', 'raise']))
+cf.deprecate_option('mode.chained_assignment', chained_assignment)
 
 
 # Set up the io.excel specific configuration.

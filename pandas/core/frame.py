@@ -1836,7 +1836,7 @@ class DataFrame(NDFrame):
                     copy = isinstance(new_values,np.ndarray) and new_values.base is None
                     result = Series(new_values, index=self.columns,
                                     name=self.index[i], dtype=new_values.dtype)
-                result._set_is_copy(self, copy=copy)
+                result._set_parent(self, copy=copy)
                 return result
 
         # icol
@@ -1968,7 +1968,7 @@ class DataFrame(NDFrame):
                     if isinstance(result, Series):
                         result = self._constructor_sliced(result, index=self.index, name=key)
 
-            result._set_is_copy(self)
+            result._set_parent(self)
             return result
         else:
             return self._get_item_cache(key)
@@ -2240,7 +2240,7 @@ class DataFrame(NDFrame):
             self._set_item(key, value)
 
     def _setitem_slice(self, key, value):
-        self._check_setitem_copy()
+        self._check_copy_on_write()
         self.ix._setitem_with_indexer(key, value)
 
     def _setitem_array(self, key, value):
@@ -2251,7 +2251,7 @@ class DataFrame(NDFrame):
                                  (len(key), len(self.index)))
             key = check_bool_indexer(self.index, key)
             indexer = key.nonzero()[0]
-            self._check_setitem_copy()
+            self._check_copy_on_write()
             self.ix._setitem_with_indexer(indexer, value)
         else:
             if isinstance(value, DataFrame):
@@ -2261,7 +2261,7 @@ class DataFrame(NDFrame):
                     self[k1] = value[k2]
             else:
                 indexer = self.ix._convert_to_indexer(key, axis=1)
-                self._check_setitem_copy()
+                self._check_copy_on_write()
                 self.ix._setitem_with_indexer((slice(None), indexer), value)
 
     def _setitem_frame(self, key, value):
@@ -2271,7 +2271,7 @@ class DataFrame(NDFrame):
             raise TypeError('Must pass DataFrame with boolean values only')
 
         self._check_inplace_setting(value)
-        self._check_setitem_copy()
+        self._check_copy_on_write()
         self.where(-key, value, inplace=True)
 
     def _ensure_valid_index(self, value):
@@ -2304,14 +2304,20 @@ class DataFrame(NDFrame):
         """
 
         self._ensure_valid_index(value)
-        value = self._sanitize_column(key, value)
-        NDFrame._set_item(self, key, value)
+        svalue = self._sanitize_column(key, value)
+        try:
+            NDFrame._set_item(self, key, svalue)
+        except com.SettingWithCopyError:
 
-        # check if we are modifying a copy
-        # try to set first as we want an invalid
-        # value exeption to occur first
-        if len(self):
-            self._check_setitem_copy()
+            # if we have a multi-index (which potentially has dropped levels)
+            # need to raise
+            for p in self._parent:
+                if isinstance(getattr(p(),'columns',None), MultiIndex):
+                    raise
+
+            # we have a chained assignment
+            # assign back to the original
+            self._parent[0]().loc[self.index,key] = value
 
     def insert(self, loc, column, value, allow_duplicates=False):
         """

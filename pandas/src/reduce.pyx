@@ -488,6 +488,7 @@ def apply_frame_axis0(object frame, object f, object names,
     # Need to infer if our low-level mucking is going to cause a segfault
     if n > 0:
         chunk = frame.iloc[starts[0]:ends[0]]
+        chunk._parent_copy_on_write = False
         shape_before = chunk.shape
         try:
             result = f(chunk)
@@ -508,6 +509,7 @@ def apply_frame_axis0(object frame, object f, object names,
             item_cache.clear() # ugh
 
             object.__setattr__(slider.dummy, 'name', names[i])
+            object.__setattr__(slider.dummy, '_parent_copy_on_write', False)
             piece = f(slider.dummy)
 
             # I'm paying the price for index-sharing, ugh
