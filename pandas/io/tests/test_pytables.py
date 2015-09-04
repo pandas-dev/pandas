@@ -13,6 +13,7 @@ import pandas as pd
 from pandas import (Series, DataFrame, Panel, MultiIndex, Categorical, bdate_range,
                     date_range, timedelta_range, Index, DatetimeIndex, TimedeltaIndex, isnull)
 
+from pandas.compat import is_platform_windows, PY3
 from pandas.io.pytables import _tables, TableIterator
 try:
     _tables()
@@ -47,6 +48,10 @@ _default_compressor = LooseVersion(tables.__version__) >= '2.2' \
     and 'blosc' or 'zlib'
 
 _multiprocess_can_split_ = False
+
+# testing on windows/py3 seems to fault
+# for using compression
+skip_compression = PY3 and is_platform_windows()
 
 # contextmanager to ensure the file cleanup
 def safe_remove(path):
@@ -698,6 +703,9 @@ class TestHDFStore(Base):
 
     def test_put_compression_blosc(self):
         tm.skip_if_no_package('tables', '2.2', app='blosc support')
+        if skip_compression:
+            raise nose.SkipTest("skipping on windows/PY3")
+
         df = tm.makeTimeDataFrame()
 
         with ensure_clean_store(self.path) as store:
@@ -2819,15 +2827,18 @@ class TestHDFStore(Base):
         self._check_roundtrip_table(df, tm.assert_frame_equal)
         self._check_roundtrip(df, tm.assert_frame_equal)
 
-        self._check_roundtrip_table(df, tm.assert_frame_equal,
-                                    compression=True)
-        self._check_roundtrip(df, tm.assert_frame_equal,
-                              compression=True)
+        if not skip_compression:
+            self._check_roundtrip_table(df, tm.assert_frame_equal,
+                                        compression=True)
+            self._check_roundtrip(df, tm.assert_frame_equal,
+                                  compression=True)
 
         tdf = tm.makeTimeDataFrame()
         self._check_roundtrip(tdf, tm.assert_frame_equal)
-        self._check_roundtrip(tdf, tm.assert_frame_equal,
-                              compression=True)
+
+        if not skip_compression:
+            self._check_roundtrip(tdf, tm.assert_frame_equal,
+                                  compression=True)
 
         with ensure_clean_store(self.path) as store:
             # not consolidated
@@ -2950,15 +2961,15 @@ class TestHDFStore(Base):
         self._check_roundtrip(df1['bool1'], tm.assert_series_equal)
         self._check_roundtrip(df1['int1'], tm.assert_series_equal)
 
-        # try with compression
-        self._check_roundtrip(df1['obj1'], tm.assert_series_equal,
-                              compression=True)
-        self._check_roundtrip(df1['bool1'], tm.assert_series_equal,
-                              compression=True)
-        self._check_roundtrip(df1['int1'], tm.assert_series_equal,
-                              compression=True)
-        self._check_roundtrip(df1, tm.assert_frame_equal,
-                              compression=True)
+        if not skip_compression:
+            self._check_roundtrip(df1['obj1'], tm.assert_series_equal,
+                                  compression=True)
+            self._check_roundtrip(df1['bool1'], tm.assert_series_equal,
+                                  compression=True)
+            self._check_roundtrip(df1['int1'], tm.assert_series_equal,
+                                  compression=True)
+            self._check_roundtrip(df1, tm.assert_frame_equal,
+                                  compression=True)
 
     def test_wide(self):
 
