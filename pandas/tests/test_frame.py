@@ -12589,11 +12589,11 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
             expected = getattr(df2[['bar', 'baz']], meth)(axis=1)
             assert_series_equal(expected, result)
 
-            assertRaisesRegexp(TypeError, 'float',
-                               getattr(df1, meth), axis=1, numeric_only=False)
-
-            assertRaisesRegexp(TypeError, 'float',
-                               getattr(df2, meth), axis=1, numeric_only=False)
+            try:
+                getattr(df1, meth)(axis=1, numeric_only=False)
+                getattr(df2, meth)(axis=1, numeric_only=False)
+            except (TypeError, ValueError) as e:
+                self.assertIn('float', str(e))
 
     def test_sem(self):
         alt = lambda x: np.std(x, ddof=1)/np.sqrt(len(x))
