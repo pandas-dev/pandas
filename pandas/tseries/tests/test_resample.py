@@ -919,7 +919,7 @@ class TestResample(tm.TestCase):
     def test_resample_group_info(self):  # GH10914
         for n, k in product((10000, 100000), (10, 100, 1000)):
             dr = date_range(start='2015-08-27', periods=n // 10, freq='T')
-            ts = Series(np.random.randint(0, n // k, n),
+            ts = Series(np.random.randint(0, n // k, n).astype('int64'),
                         index=np.random.choice(dr, n))
 
             left = ts.resample('30T', how='nunique')
@@ -1585,7 +1585,7 @@ class TestTimeGrouper(tm.TestCase):
         # check TimeGrouper's aggregation is identical as normal groupby
 
         n = 20
-        data = np.random.randn(n, 4)
+        data = np.random.randn(n, 4).astype('int64')
         normal_df = DataFrame(data, columns=['A', 'B', 'C', 'D'])
         normal_df['key'] = [1, 2, np.nan, 4, 5] * 4
 
