@@ -107,7 +107,7 @@ See the package overview for more detail about what's in the library.
 
 
 .. toctree::
-    :maxdepth: 3
+    :maxdepth: 4
 
     {% if single -%}
     {{ single }}
