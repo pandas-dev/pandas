@@ -1793,13 +1793,13 @@ class BinGrouper(BaseGrouper):
     @cache_readonly
     def group_info(self):
         ngroups = self.ngroups
-        obs_group_ids = np.arange(ngroups)
+        obs_group_ids = np.arange(ngroups, dtype='int64')
         rep = np.diff(np.r_[0, self.bins])
 
         if ngroups == len(self.bins):
-            comp_ids = np.repeat(np.arange(ngroups), rep)
+            comp_ids = np.repeat(np.arange(ngroups, dtype='int64'), rep)
         else:
-            comp_ids = np.repeat(np.r_[-1, np.arange(ngroups)], rep)
+            comp_ids = np.repeat(np.r_[-1, np.arange(ngroups, dtype='int64')], rep)
 
         return comp_ids, obs_group_ids, ngroups
 
@@ -2552,8 +2552,8 @@ class SeriesGroupBy(GroupBy):
 
         # group boundries are where group ids change
         # unique observations are where sorted values change
-        idx = np.r_[0, 1 + np.nonzero(ids[1:] != ids[:-1])[0]]
-        inc = np.r_[1, val[1:] != val[:-1]]
+        idx = com._ensure_int64(np.r_[0, 1 + np.nonzero(ids[1:] != ids[:-1])[0]])
+        inc = com._ensure_int64(np.r_[1, val[1:] != val[:-1]])
 
         # 1st item of each group is a new unique observation
         mask = isnull(val)
