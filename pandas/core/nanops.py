@@ -602,6 +602,8 @@ def _get_counts(mask, axis, dtype=float):
         return dtype.type(mask.size - mask.sum())
 
     count = mask.shape[axis] - mask.sum(axis)
+    if np.isscalar(count):
+        return dtype.type(count)
     try:
         return count.astype(dtype)
     except AttributeError:
