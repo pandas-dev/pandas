@@ -9,12 +9,13 @@ from pandas.core.common import isnull, is_integer_dtype
 import pandas.core.nanops as nanops
 import pandas.util.testing as tm
 
-nanops._USE_BOTTLENECK = False
-
+use_bn = nanops._USE_BOTTLENECK
 
 class TestnanopsDataFrame(tm.TestCase):
+
     def setUp(self):
         np.random.seed(11235)
+        nanops._USE_BOTTLENECK = False
 
         self.arr_shape = (11, 7, 5)
 
@@ -115,6 +116,9 @@ class TestnanopsDataFrame(tm.TestCase):
         self.arr_nan_inf_1d = self.arr_nan_inf[:, 0, 0]
         self.arr_float_nan_inf_1d = self.arr_float_nan_inf[:, 0, 0]
         self.arr_nan_nan_inf_1d = self.arr_nan_nan_inf[:, 0, 0]
+
+    def tearDown(self):
+        nanops._USE_BOTTLENECK = use_bn
 
     def check_results(self, targ, res, axis):
         res = getattr(res, 'asm8', res)
