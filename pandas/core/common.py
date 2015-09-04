@@ -87,6 +87,7 @@ ABCPeriodIndex = create_pandas_abc_type("ABCPeriodIndex", "_typ", ("periodindex"
 ABCCategoricalIndex = create_pandas_abc_type("ABCCategoricalIndex", "_typ", ("categoricalindex",))
 ABCIndexClass = create_pandas_abc_type("ABCIndexClass", "_typ", ("index",
                                                                  "int64index",
+                                                                 "rangeindex",
                                                                  "float64index",
                                                                  "multiindex",
                                                                  "datetimeindex",
@@ -2156,10 +2157,8 @@ def is_bool_indexer(key):
 
 
 def _default_index(n):
-    from pandas.core.index import Int64Index
-    values = np.arange(n, dtype=np.int64)
-    result = Int64Index(values,name=None)
-    result.is_unique = True
+    from pandas.core.index import RangeIndex
+    result = RangeIndex(0, int(n), name=None)
     return result
 
 
@@ -2513,6 +2512,11 @@ def is_integer_dtype(arr_or_dtype):
     tipo = _get_dtype_type(arr_or_dtype)
     return (issubclass(tipo, np.integer) and
             not issubclass(tipo, (np.datetime64, np.timedelta64)))
+
+def is_int64_dtype(arr_or_dtype):
+    tipo = _get_dtype_type(arr_or_dtype)
+    return issubclass(tipo, np.int64)
+
 
 def is_int64_dtype(arr_or_dtype):
     tipo = _get_dtype_type(arr_or_dtype)

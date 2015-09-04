@@ -7,6 +7,7 @@ from functools import partial
 from pandas.compat import range, zip, lrange, lzip, u, reduce, filter, map
 from pandas import compat
 import numpy as np
+from math import ceil, floor
 
 from sys import getsizeof
 import pandas.tslib as tslib
@@ -21,7 +22,7 @@ import pandas.core.common as com
 from pandas.core.common import (isnull, array_equivalent, is_dtype_equal, is_object_dtype,
                                 _values_from_object, is_float, is_integer, is_iterator, is_categorical_dtype,
                                 ABCSeries, ABCCategorical, _ensure_object, _ensure_int64, is_bool_indexer,
-                                is_list_like, is_bool_dtype, is_null_slice, is_integer_dtype)
+                                is_list_like, is_bool_dtype, is_null_slice, is_integer_dtype, is_int64_dtype)
 from pandas.core.config import get_option
 from pandas.io.common import PerformanceWarning
 
@@ -113,9 +114,23 @@ class Index(IndexOpsMixin, PandasObject):
         if fastpath:
             return cls._simple_new(data, name)
 
+        if isinstance(data, int) and isinstance(dtype, int):
+            if copy == False:
+                copy = None
+                range_constructor = True
+            elif isinstance(copy, int):
+                range_constructor = True
+
+            if range_constructor:
+                return RangeIndex(data, dtype, copy, name)
+
         from pandas.tseries.period import PeriodIndex
         if isinstance(data, (np.ndarray, Index, ABCSeries)):
-            if issubclass(data.dtype.type, np.datetime64):
+            if (isinstance(data, RangeIndex) and 
+                    (dtype is None or is_int64_dtype(dtype))):
+                # copy passed-in RangeIndex
+                return data.copy(name=name)
+            elif issubclass(data.dtype.type, np.datetime64):
                 from pandas.tseries.index import DatetimeIndex
                 result = DatetimeIndex(data, copy=copy, name=name, **kwargs)
                 if dtype is not None and _o_dtype == dtype:
@@ -248,7 +263,7 @@ class Index(IndexOpsMixin, PandasObject):
         True if both have same underlying data, False otherwise : bool
         """
         # use something other than None to be clearer
-        return self._id is getattr(other, '_id', Ellipsis)
+        return self._id is getattr(other, '_id', Ellipsis) and self._id is not None
 
     def _reset_identity(self):
         """Initializes or resets ``_id`` attribute with new object"""
@@ -2013,7 +2028,9 @@ class Index(IndexOpsMixin, PandasObject):
 
         # GH7774: preserve dtype/tz if target is empty and not an Index.
         target = _ensure_has_len(target)  # target may be an iterator
-        if not isinstance(target, Index) and len(target) == 0:
+        if isinstance(self, RangeIndex) and len(target) == 0:
+            target = self._simple_new(0, 0, 1, name=self.name)
+        elif not isinstance(target, Index) and len(target) == 0:
             attrs = self._get_attributes_dict()
             attrs.pop('freq', None)  # don't preserve freq
             target = self._simple_new(np.empty(0, dtype=self.dtype), **attrs)
@@ -3616,6 +3633,411 @@ Int64Index._add_numeric_methods()
 Int64Index._add_logical_methods()
 
 
+class RangeIndex(Int64Index):
+
+    """
+    Immutable Index implementing an monotonic range. RangeIndex is a 
+    memory-saving special case of `Int64Index` limited to representing 
+    monotonic ranges.
+
+    Parameters
+    ----------
+    start : int (default: 0)
+    stop : int (default: 0)
+    step : int (default: 1)
+    name : object, optional
+        Name to be stored in the index
+    """
+
+    _typ = 'rangeindex'
+    _engine_type = _index.Int64Engine
+    _attributes = ['name', 'start', 'stop', 'step']
+
+    def __new__(cls, start=None, stop=None, step=None, name=None, fastpath=False, **kwargs):
+        if fastpath:
+            return cls._simple_new(start, stop, step, name=name)
+
+        # cheap check for array input
+        if len(kwargs) > 0:
+            return cls._data_passthrough(start, stop, step, name, fastpath, **kwargs)
+
+        # RangeIndex() constructor
+        if start is None and stop is None and step is None:
+            return cls._simple_new(0, 0, 1, name=name)
+
+        new_start, new_stop, new_step = None, None, None
+        # sort the arguments depending on which are provided
+        if step is None:
+            new_step = 1
+        if stop is None:
+            new_stop = start
+            new_start = 0
+
+        try:
+            # check validity of inputs
+            new_start = start if new_start is None else new_start
+            new_stop = stop if new_stop is None else new_stop
+            new_step = step if new_step is None else new_step
+            new_start = cls._ensure_int(new_start)
+            new_stop = cls._ensure_int(new_stop)
+            new_step = cls._ensure_int(new_step)
+            if new_step == 0:
+                raise ValueError("Step must not be zero")
+            return cls._simple_new(new_start, new_stop, new_step, name)
+        except TypeError:
+            # pass all invalid inputs to Int64Index to handle
+            return cls._data_passthrough(start, stop, step, name, fastpath, **kwargs)
+
+    @classmethod
+    def _simple_new(cls, start, stop, step, name=None):
+        result = object.__new__(cls)
+        result._start = start
+        result._stop = stop
+        result._step = step
+        result.name = name
+        return result
+
+    @classmethod
+    def _data_passthrough(cls, data, dtype, copy, name, fastpath, **kwargs):
+        kwargs.setdefault('data', data)
+        kwargs.setdefault('dtype', dtype)
+        if copy is not None:
+            kwargs.setdefault('copy', copy)
+        kwargs.setdefault('name', name)
+        kwargs.setdefault('fastpath', fastpath)
+        return Int64Index(**kwargs)
+
+    @classmethod
+    def _ensure_int(cls, value):
+        try:
+            int_value = int(value)
+            # don't allow casting 1-element arrays to int!
+            if int_value != value or hasattr(value, '__len__'):
+                raise Exception
+        except Exception:
+            raise TypeError("Need to pass integral values")
+        return int_value
+
+    @cache_readonly
+    def _data(self):
+        return np.arange(self.start, self.stop, self.step, dtype=np.int64)
+
+    @cache_readonly
+    def _int64index(self):
+        return Int64Index(self._data, name=self.name, fastpath=True)
+
+    @property
+    def dtype(self):
+        return np.dtype(np.int64)
+
+    @property
+    def start(self):
+        return self._start
+
+    @property
+    def stop(self):
+        return self._stop
+
+    @property
+    def step(self):
+        return self._step
+
+    @property
+    def is_unique(self):
+        """ return if the index has unique values """
+        return True
+
+    @property
+    def has_duplicates(self):
+        return False
+
+    def tolist(self):
+        return lrange(self.start, self.stop, self.step)
+
+    def _shallow_copy(self, values=None, **kwargs):
+        """ create a new Index, don't copy the data, use the same object attributes
+            with passed in attributes taking precedence """
+        if values is None:
+            return RangeIndex(self.start, self.stop, self.step, 
+                              name=self.name, fastpath=True)
+        else:
+            kwargs.setdefault('name', self.name)
+            return self._int64index._shallow_copy(values, **kwargs)
+
+    def copy(self, names=None, name=None, dtype=None, deep=False):
+        """
+        Make a copy of this object.  Name and dtype sets those attributes on
+        the new object.
+
+        Parameters
+        ----------
+        name : string, optional
+        dtype : numpy dtype or pandas type
+
+        Returns
+        -------
+        copy : Index
+
+        Notes
+        -----
+        In most cases, there should be no functional difference from using
+        ``deep``, but if ``deep`` is passed it will attempt to deepcopy.
+        """
+        if dtype is not None and not is_int64_dtype(dtype):
+            return super(RangeIndex, self).copy(names, name, dtype, deep)
+
+        if name is None:
+            name = self.name
+        return RangeIndex(self.start, self.stop, self.step, name, fastpath=True)
+
+    def argsort(self, *args, **kwargs):
+        """
+        return an ndarray indexer of the underlying data
+
+        See also
+        --------
+        numpy.ndarray.argsort
+        """
+        if self.step > 0:
+            return np.arange(len(self))
+        else:
+            return np.arange(len(self)-1, -1, -1)
+
+    def __repr__(self):
+        attrs = [('start', default_pprint(self.start)),
+                 ('stop', default_pprint(self.stop)),
+                 ('step', default_pprint(self.step)),
+                 ('name', default_pprint(self.name))]
+
+        prepr = u(", ").join([u("%s=%s") % (k, v)
+                                          for k, v in attrs])
+        res = u("%s(%s)") % (self.__class__.__name__, prepr)
+
+        if not compat.PY3:
+            # needs to be str in Python 2
+            encoding = get_option('display.encoding')
+            res = res.encode(encoding)
+        return res
+
+    def __unicode__(self):
+        """
+        Return a string representation for this object.
+
+        Invoked by unicode(df) in py2 only. Yields a Unicode String in both
+        py2/py3.
+        """
+        if self.start != 0 or self.step != 1:
+            start = u('%s, ') % default_pprint(self.start)
+        else:
+            start = u('')
+        stop = default_pprint(self.stop)
+        step = u('') if self.step == 1 else u(', %s') % default_pprint(self.step)
+        if self.name is None:
+            name = u('')
+        else:
+            name = u(', name=%s') % default_pprint(self.name)
+
+        res = u("%s(%s%s%s%s)") % (self.__class__.__name__, 
+                                   start, stop, step, name)
+        return res
+
+    def equals(self, other):
+        """
+        Determines if two Index objects contain the same elements.
+        """
+        if isinstance(other, RangeIndex):
+            return (len(self) == len(other) == 0
+                    or (self.start == other.start and
+                        self.stop == other.stop and
+                        self.step == other.step)
+                    )
+
+        return super(RangeIndex, self).equals(other)
+
+    def __reduce__(self):
+        d = self._get_attributes_dict()
+        return _new_Index, (self.__class__, d), None
+
+    def view(self, cls=None):
+        if cls is None or hasattr(cls,'_typ') or is_int64_dtype(cls):
+            result = self._shallow_copy()
+        else:
+            result = self._data.view(cls)
+        if isinstance(result, Index):
+            result._id = self._id
+        return result
+
+    def intersection(self, other):
+        """
+        Form the intersection of two Index objects. Sortedness of the result is
+        not guaranteed
+
+        Parameters
+        ----------
+        other : Index or array-like
+
+        Returns
+        -------
+        intersection : Index
+        """
+        if not isinstance(other, RangeIndex):
+            return super(RangeIndex, self).intersection(other)
+
+        # check whether intervals intersect
+        # deals with in- and decreasing ranges
+        int_low = max(min(self.start, self.stop+1), 
+                      min(other.start, other.stop+1))
+        int_high = min(max(self.stop, self.start+1), 
+                       max(other.stop, other.start+1))
+        if int_high <= int_low:
+            return RangeIndex()
+
+        ### Method hint: linear Diophantine equation
+        # solve intersection problem
+        # performance hint: for identical step sizes, could use cheaper alternative
+        gcd, s, t = self._extended_gcd(self.step, other.step)
+        
+        # check whether element sets intersect
+        if (self.start - other.start) % gcd:
+            return RangeIndex()
+        
+        # calculate parameters for the RangeIndex describing the intersection
+        # disregarding the lower bounds
+        tmp_start = self.start + (other.start-self.start)*self.step//gcd*s
+        new_step = self.step * other.step // gcd
+        new_index = RangeIndex(tmp_start, int_high, new_step, fastpath=True)
+
+        # adjust index to limiting interval
+        new_index._start = new_index._min_fitting_element(int_low)
+        return new_index
+
+    def _min_fitting_element(self, lower_limit):
+        """Returns the value of the smallest element greater than the limit"""
+        round = ceil if self.step > 0 else floor
+        no_steps = round( (float(lower_limit)-self.start) / self.step )
+        return self.start + self.step * no_steps
+
+    def _max_fitting_element(self, upper_limit):
+        """Returns the value of the largest element smaller than the limit"""
+        round = floor if self.step > 0 else ceil
+        no_steps = round( (float(upper_limit)-self.start) / self.step )
+        return self.start + self.step * no_steps
+
+    def _extended_gcd(self, a, b):
+        """
+        Extended Euclidean algorithms to solve Bezout's identity:
+           a*x + b*y = gcd(x, y)
+        Finds one particular solution for x, y: s, t
+        Returns: gcd, s, t
+        """
+        s, old_s = 0, 1
+        t, old_t = 1, 0
+        r, old_r = b, a
+        while r:
+            quotient = old_r // r
+            old_r, r = r, old_r - quotient * r
+            old_s, s = s, old_s - quotient * s
+            old_t, t = t, old_t - quotient * t
+        return old_r, old_s, old_t
+
+    def union(self, other):
+        """
+        Form the union of two Index objects and sorts if possible
+
+        Parameters
+        ----------
+        other : Index or array-like
+
+        Returns
+        -------
+        union : Index
+        """
+        # note: could return a RangeIndex in some circumstances
+        return self._int64index.union(other)
+
+    def join(self, other, how='left', level=None, return_indexers=False):
+        """
+        *this is an internal non-public method*
+
+        Compute join_index and indexers to conform data
+        structures to the new index.
+
+        Parameters
+        ----------
+        other : Index
+        how : {'left', 'right', 'inner', 'outer'}
+        level : int or level name, default None
+        return_indexers : boolean, default False
+
+        Returns
+        -------
+        join_index, (left_indexer, right_indexer)
+        """
+        if how == 'outer' and self is not other:
+            # note: could return RangeIndex in more circumstances
+            return self._int64index.join(other, how, level, return_indexers)
+
+        return super(RangeIndex, self).join(other, how, level, return_indexers)
+
+    def _mul(self, other):
+        "__mul__() implementation"
+        try:
+            int_input = other == int(other)
+            if int_input:
+                other = int(other)
+        except Exception:
+            int_input = False
+
+        if int_input == True and other != 0:
+            return RangeIndex(self.start*other, self.stop*other, self.step*other,
+                              fastpath=True)
+        else:
+            return super(RangeIndex, self).__mul__(other)
+
+    def __len__(self):
+        """
+        return the length of the RangeIndex
+        """
+        return max(0, (self.stop-self.start) // self.step)
+
+    @property
+    def size(self):
+        return len(self)
+
+    def __getitem__(self, key):
+        """
+        Conserve RangeIndex type for scalar and slice keys.
+        """
+        super_getitem = super(RangeIndex, self).__getitem__
+
+        if np.isscalar(key):
+            n = int(key)
+            if n != key:
+                return super_getitem(key)
+            if n < 0:
+                n = len(self) + key
+            if n < 0 or n > len(self)-1:
+                raise IndexError('index %d is out of bounds for axis 0 with size %d' % (key, len(self)))
+            return self.start + n * self.step
+
+        if isinstance(key, slice):
+            start, stop, step = key.indices(len(self))
+            
+            # convert indexes to values
+            start = self.start + self.step * start
+            stop = self.start + self.step * stop
+            step = self.step * step
+
+            return RangeIndex(start, stop, step, self.name, fastpath=True)
+
+        # fall back to Int64Index
+        return super_getitem(key)
+
+RangeIndex._add_numeric_methods()
+RangeIndex.__mul__ = RangeIndex.__rmul__ = RangeIndex._mul
+RangeIndex._add_logical_methods()
+
+
 class Float64Index(NumericIndex):
 
     """
@@ -4409,9 +4831,13 @@ class MultiIndex(Index):
         unique = self.levels[num]  # .values
         labels = self.labels[num]
         filled = com.take_1d(unique.values, labels, fill_value=unique._na_value)
-        values = unique._simple_new(filled, self.names[num],
-                                    freq=getattr(unique, 'freq', None),
-                                    tz=getattr(unique, 'tz', None))
+        if isinstance(unique, RangeIndex):
+            _simple_new = Int64Index._simple_new
+        else:
+            _simple_new = unique._simple_new
+        values = _simple_new(filled, self.names[num],
+                             freq=getattr(unique, 'freq', None),
+                             tz=getattr(unique, 'tz', None))
         return values
 
     def format(self, space=2, sparsify=None, adjoin=True, names=False,

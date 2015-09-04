@@ -10,7 +10,7 @@ import numpy as np
 
 import pandas
 import pandas as pd
-from pandas import (Series, DataFrame, Panel, MultiIndex, Categorical, bdate_range,
+from pandas import (Series, DataFrame, Panel, MultiIndex, Int64Index, RangeIndex, Categorical, bdate_range,
                     date_range, timedelta_range, Index, DatetimeIndex, TimedeltaIndex, isnull)
 
 from pandas.compat import is_platform_windows, PY3
@@ -1620,14 +1620,17 @@ class TestHDFStore(Base):
 
         index = MultiIndex.from_tuples([('A','a'), ('A','b'), ('B','a'), ('B','b')], names=['first','second'])
         df = DataFrame(np.arange(12).reshape(3,4), columns=index)
+        expected = df.copy()
+        if isinstance(expected.index, RangeIndex):
+            expected.index = Int64Index(expected.index)
 
         with ensure_clean_store(self.path) as store:
 
             store.put('df',df)
-            tm.assert_frame_equal(store['df'],df,check_index_type=True,check_column_type=True)
+            tm.assert_frame_equal(store['df'],expected,check_index_type=True,check_column_type=True)
 
             store.put('df1',df,format='table')
-            tm.assert_frame_equal(store['df1'],df,check_index_type=True,check_column_type=True)
+            tm.assert_frame_equal(store['df1'],expected,check_index_type=True,check_column_type=True)
 
             self.assertRaises(ValueError, store.put, 'df2',df,format='table',data_columns=['A'])
             self.assertRaises(ValueError, store.put, 'df3',df,format='table',data_columns=True)
@@ -1641,11 +1644,14 @@ class TestHDFStore(Base):
 
         # non_index_axes name
         df = DataFrame(np.arange(12).reshape(3,4), columns=Index(list('ABCD'),name='foo'))
-
+        expected = df.copy()
+        if isinstance(expected.index, RangeIndex):
+                expected.index = Int64Index(expected.index)
+            
         with ensure_clean_store(self.path) as store:
 
             store.put('df1',df,format='table')
-            tm.assert_frame_equal(store['df1'],df,check_index_type=True,check_column_type=True)
+            tm.assert_frame_equal(store['df1'],expected,check_index_type=True,check_column_type=True)
 
     def test_store_multiindex(self):
 
