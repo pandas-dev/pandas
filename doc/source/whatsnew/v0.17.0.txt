@@ -894,7 +894,7 @@ Bug Fixes
 - Bug in clearing the cache on ``DataFrame.pop`` and a subsequent inplace op (:issue:`10912`)
 - Bug in indexing with a mixed-integer ``Index`` causing an ``ImportError`` (:issue:`10610`)
 - Bug in ``Series.count`` when index has nulls (:issue:`10946`)
-
+- Bug in pickling of a non-regular freq ``DatetimeIndex`` (:issue:`11002`)
 - Bug causing ``DataFrame.where`` to not respect the ``axis`` parameter when the frame has a symmetric shape. (:issue:`9736`)
 
 - Bug in ``Table.select_column`` where name is not preserved (:issue:`10392`)
