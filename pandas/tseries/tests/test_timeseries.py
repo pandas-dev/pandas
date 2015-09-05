@@ -2142,8 +2142,8 @@ class TestTimeSeries(tm.TestCase):
 
 
     def test_pickle(self):
-        #GH4606
 
+        # GH4606
         p = self.round_trip_pickle(NaT)
         self.assertTrue(p is NaT)
 
@@ -2153,6 +2153,11 @@ class TestTimeSeries(tm.TestCase):
         self.assertTrue(idx_p[1] is NaT)
         self.assertTrue(idx_p[2] == idx[2])
 
+        # GH11002
+        # don't infer freq
+        idx = date_range('1750-1-1', '2050-1-1', freq='7D')
+        idx_p = self.round_trip_pickle(idx)
+        tm.assert_index_equal(idx, idx_p)
 
 def _simple_ts(start, end, freq='D'):
     rng = date_range(start, end, freq=freq)
