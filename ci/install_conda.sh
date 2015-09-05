@@ -78,16 +78,20 @@ conda config --set ssl_verify false || exit 1
 # Useful for debugging any issues with conda
 conda info -a || exit 1
 
+REQ="ci/requirements-${TRAVIS_PYTHON_VERSION}${JOB_TAG}.txt"
 conda create -n pandas python=$TRAVIS_PYTHON_VERSION || exit 1
-conda install -n pandas --file=ci/requirements-${TRAVIS_PYTHON_VERSION}${JOB_TAG}.txt || exit 1
+conda install -n pandas --file=${REQ} || exit 1
 
 conda install -n pandas pip setuptools nose || exit 1
 conda remove -n pandas pandas
 
 source activate pandas
 
-pip install -U blosc  # See https://github.com/pydata/pandas/pull/9783
-python -c 'import blosc; blosc.print_versions()'
+# we may have additional pip installs
+REQ="ci/requirements-${TRAVIS_PYTHON_VERSION}${JOB_TAG}.pip"
+if [ -e ${REQ} ]; then
+    pip install -r $REQ
+fi
 
 # set the compiler cache to work
 if [ "$IRON_TOKEN" ]; then
