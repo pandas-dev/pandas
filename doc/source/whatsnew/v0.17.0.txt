@@ -1033,7 +1033,7 @@ Bug Fixes
 - Bug in vectorised setting of timestamp columns with python ``datetime.date`` and numpy ``datetime64`` (:issue:`10408`, :issue:`10412`)
 - Bug in ``Index.take`` may add unnecessary ``freq`` attribute (:issue:`10791`)
 - Bug in ``merge`` with empty ``DataFrame`` may raise ``IndexError`` (:issue:`10824`)
-
+- Bug in ``to_latex`` where unexpected keyword argument for some documented arguments (:issue:`10888`)
 
 - Bug in ``read_csv`` when using the ``nrows`` or ``chunksize`` parameters if file contains only a header line (:issue:`9535`)
 - Bug in serialization of ``category`` types in HDF5 in presence of alternate encodings. (:issue:`10366`)
