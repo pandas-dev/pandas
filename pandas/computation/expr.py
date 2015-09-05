@@ -20,7 +20,7 @@ from pandas.computation.ops import (_cmp_ops_syms, _bool_ops_syms,
                                     _arith_ops_syms, _unary_ops_syms, is_term)
 from pandas.computation.ops import _reductions, _mathops, _LOCAL_TAG
 from pandas.computation.ops import Op, BinOp, UnaryOp, Term, Constant, Div
-from pandas.computation.ops import UndefinedVariableError
+from pandas.computation.ops import UndefinedVariableError, FuncNode
 from pandas.computation.scope import Scope, _ensure_scope
 
 
@@ -524,27 +524,48 @@ class BaseExprVisitor(ast.NodeVisitor):
         elif not isinstance(node.func, ast.Name):
             raise TypeError("Only named functions are supported")
         else:
-            res = self.visit(node.func)
+            try:
+                res = self.visit(node.func)
+            except UndefinedVariableError:
+                # Check if this is a supported function name
+                try:
+                    res = FuncNode(node.func.id)
+                except ValueError:
+                    # Raise original error
+                    raise
 
         if res is None:
             raise ValueError("Invalid function call {0}".format(node.func.id))
         if hasattr(res, 'value'):
             res = res.value
 
-        args = [self.visit(targ).value for targ in node.args]
-        if node.starargs is not None:
-            args += self.visit(node.starargs).value
+        if isinstance(res, FuncNode):
+            args = [self.visit(targ) for targ in node.args]
 
-        keywords = {}
-        for key in node.keywords:
-            if not isinstance(key, ast.keyword):
-                raise ValueError("keyword error in function call "
-                                 "'{0}'".format(node.func.id))
-            keywords[key.arg] = self.visit(key.value).value
-        if node.kwargs is not None:
-            keywords.update(self.visit(node.kwargs).value)
+            if node.starargs is not None:
+                args += self.visit(node.starargs)
 
-        return self.const_type(res(*args, **keywords), self.env)
+            if node.keywords or node.kwargs:
+                raise TypeError("Function \"{0}\" does not support keyword "
+                                "arguments".format(res.name))
+
+            return res(*args, **kwargs)
+
+        else:
+            args = [self.visit(targ).value for targ in node.args]
+            if node.starargs is not None:
+                args += self.visit(node.starargs).value
+
+            keywords = {}
+            for key in node.keywords:
+                if not isinstance(key, ast.keyword):
+                    raise ValueError("keyword error in function call "
+                                     "'{0}'".format(node.func.id))
+                keywords[key.arg] = self.visit(key.value).value
+            if node.kwargs is not None:
+                keywords.update(self.visit(node.kwargs).value)
+
+            return self.const_type(res(*args, **keywords), self.env)
 
     def translate_In(self, op):
         return op
@@ -587,7 +608,7 @@ class BaseExprVisitor(ast.NodeVisitor):
         return reduce(visitor, operands)
 
 
-_python_not_supported = frozenset(['Dict', 'Call', 'BoolOp', 'In', 'NotIn'])
+_python_not_supported = frozenset(['Dict', 'BoolOp', 'In', 'NotIn'])
 _numexpr_supported_calls = frozenset(_reductions + _mathops)
 
 
