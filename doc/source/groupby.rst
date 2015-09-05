@@ -160,6 +160,31 @@ only verifies that you've passed a valid mapping.
    GroupBy operations (though can't be guaranteed to be the most
    efficient). You can get quite creative with the label mapping functions.
 
+.. _groupby.sorting:
+
+GroupBy sorting
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+By default the group keys are sorted during the ``groupby`` operation. You may however pass ``sort=False`` for potential speedups:
+
+.. ipython:: python
+
+   df2 = pd.DataFrame({'X' : ['B', 'B', 'A', 'A'], 'Y' : [1, 2, 3, 4]})
+   df2.groupby(['X']).sum()
+   df2.groupby(['X'], sort=False).sum()
+
+
+Note that ``groupby`` will preserve the order in which *observations* are sorted *within* each group. For example, the groups created by ``groupby()`` below are in the order the appeared in the original ``DataFrame``:
+
+.. ipython:: python
+
+   df3 = pd.DataFrame({'X' : ['A', 'B', 'A', 'B'], 'Y' : [1, 4, 3, 2]})
+   df3.groupby(['X']).get_group('A')
+
+   df3.groupby(['X']).get_group('B')
+
+
+
 .. _groupby.attributes:
 
 GroupBy object attributes
@@ -183,14 +208,6 @@ the length of the ``groups`` dict, so it is largely just a convenience:
    grouped.groups
    len(grouped)
 
-By default the group keys are sorted during the groupby operation. You may
-however pass ``sort=False`` for potential speedups:
-
-.. ipython:: python
-
-   df2 = pd.DataFrame({'X' : ['B', 'B', 'A', 'A'], 'Y' : [1, 2, 3, 4]})
-   df2.groupby(['X'], sort=True).sum()
-   df2.groupby(['X'], sort=False).sum()
 
 .. _groupby.tabcompletion:
 
