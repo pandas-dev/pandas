@@ -420,7 +420,7 @@ Sometimes comments or meta data may be included in a file:
 
    print(open('tmp.csv').read())
 
-By default, the parse includes the comments in the output:
+By default, the parser includes the comments in the output:
 
 .. ipython:: python
 
