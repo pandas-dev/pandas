@@ -387,6 +387,7 @@ The existing interface ``DataFrame.boxplot`` to plot boxplot still can be used.
    np.random.seed(123456)
 
 .. ipython:: python
+   :okwarning:
 
    df = pd.DataFrame(np.random.rand(10,5))
    plt.figure();
