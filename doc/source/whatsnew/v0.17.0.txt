@@ -927,3 +927,4 @@ Bug Fixes
 - Bug in ``groupby`` incorrect computation for aggregation on ``DataFrame`` with ``NaT`` (E.g ``first``, ``last``, ``min``). (:issue:`10590`)
 - Bug when constructing ``DataFrame`` where passing a dictionary with only scalar values and specifying columns did not raise an error (:issue:`10856`)
 - Bug in ``.var()`` causing roundoff errors for highly similar values (:issue:`10242`)
+- Bug in ``DataFrame.plot(subplots=True)`` with duplicated columns outputs incorrect result (:issue:`10962`)
