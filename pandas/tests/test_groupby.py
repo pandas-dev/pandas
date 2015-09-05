@@ -2481,6 +2481,30 @@ class TestGroupBy(tm.TestCase):
             self.assertEqual(result[key], len(group))
 
     def test_count(self):
+        from string import ascii_lowercase
+        n = 1 << 15
+        dr = date_range('2015-08-30', periods=n // 10, freq='T')
+
+        df = DataFrame({
+                '1st':np.random.choice(list(ascii_lowercase), n),
+                '2nd':np.random.randint(0, 5, n),
+                '3rd':np.random.randn(n).round(3),
+                '4th':np.random.randint(-10, 10, n),
+                '5th':np.random.choice(dr, n),
+                '6th':np.random.randn(n).round(3),
+                '7th':np.random.randn(n).round(3),
+                '8th':np.random.choice(dr, n) - np.random.choice(dr, 1),
+                '9th':np.random.choice(list(ascii_lowercase), n)})
+
+        for col in df.columns.drop(['1st', '2nd', '4th']):
+            df.loc[np.random.choice(n, n // 10), col] = np.nan
+
+        df['9th'] = df['9th'].astype('category')
+
+        for key in '1st', '2nd', ['1st', '2nd']:
+            left = df.groupby(key).count()
+            right = df.groupby(key).apply(DataFrame.count).drop(key, axis=1)
+            assert_frame_equal(left, right)
 
         # GH5610
         # count counts non-nulls
@@ -4966,7 +4990,7 @@ class TestGroupBy(tm.TestCase):
             'cumsum', 'cumprod', 'cummin', 'cummax', 'cumcount',
             'resample',
             'describe',
-            'rank', 'quantile', 'count',
+            'rank', 'quantile',
             'fillna',
             'mad',
             'any', 'all',
@@ -4987,7 +5011,7 @@ class TestGroupBy(tm.TestCase):
             'cumsum', 'cumprod', 'cummin', 'cummax', 'cumcount',
             'resample',
             'describe',
-            'rank', 'quantile', 'count',
+            'rank', 'quantile',
             'fillna',
             'mad',
             'any', 'all',
@@ -5253,7 +5277,6 @@ class TestGroupBy(tm.TestCase):
                ('max', np.max),
                ('first', lambda x: x.iloc[0]),
                ('last', lambda x: x.iloc[-1]),
-               ('count', np.size),
                ]
         df = DataFrame(np.random.randn(1000))
         labels = np.random.randint(0, 50, size=1000).astype(float)
@@ -5439,26 +5462,26 @@ class TestGroupBy(tm.TestCase):
     def test_groupby_preserves_sort(self):
         # Test to ensure that groupby always preserves sort order of original
         # object. Issue #8588 and #9651
-        
-        df = DataFrame({'int_groups':[3,1,0,1,0,3,3,3], 
-                        'string_groups':['z','a','z','a','a','g','g','g'], 
+
+        df = DataFrame({'int_groups':[3,1,0,1,0,3,3,3],
+                        'string_groups':['z','a','z','a','a','g','g','g'],
                         'ints':[8,7,4,5,2,9,1,1],
                         'floats':[2.3,5.3,6.2,-2.4,2.2,1.1,1.1,5],
                         'strings':['z','d','a','e','word','word2','42','47']})
 
         # Try sorting on different types and with different group types
-        for sort_column in ['ints', 'floats', 'strings', ['ints','floats'], 
+        for sort_column in ['ints', 'floats', 'strings', ['ints','floats'],
                   ['ints','strings']]:
-            for group_column in ['int_groups', 'string_groups', 
+            for group_column in ['int_groups', 'string_groups',
                                  ['int_groups','string_groups']]:
 
                 df = df.sort_values(by=sort_column)
 
                 g = df.groupby(group_column)
-                
+
                 def test_sort(x):
                     assert_frame_equal(x, x.sort_values(by=sort_column))
-    
+
                 g.apply(test_sort)
 
 
