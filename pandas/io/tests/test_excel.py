@@ -415,11 +415,8 @@ class XlrdTests(ReadingTestsBase):
 
     @tm.network
     def test_read_from_http_url(self):
-        # TODO: remove this when merging into master
-        url = ('https://raw.github.com/davidovitch/pandas/master/'
+        url = ('https://raw.github.com/pydata/pandas/master/'
                'pandas/io/tests/data/test1' + self.ext)
-#        url = ('https://raw.github.com/pydata/pandas/master/'
-#               'pandas/io/tests/data/test' + self.ext)
         url_table = read_excel(url)
         local_table = self.get_exceldf('test1')
         tm.assert_frame_equal(url_table, local_table)
