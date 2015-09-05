@@ -18,6 +18,7 @@ from pandas.core.common import (_possibly_downcast_to_dtype, isnull,
                                 array_equivalent, _maybe_convert_string_to_object,
                                 is_categorical, needs_i8_conversion, is_datetimelike_v_numeric,
                                 is_internal_type)
+from pandas.core.dtypes import DatetimeTZDtype
 
 from pandas.core.index import Index, MultiIndex, _ensure_index
 from pandas.core.indexing import maybe_convert_indices, length_of_indexer
@@ -1867,6 +1868,26 @@ class DatetimeBlock(Block):
         super(DatetimeBlock, self).__init__(values,
                                             fastpath=True, placement=placement,
                                             **kwargs)
+
+    def _astype(self, dtype, **kwargs):
+        """
+        these automatically copy, so copy=True has no effect
+        raise on an except if raise == True
+        """
+
+        # if we are passed a datetime64[ns, tz]
+        if com.is_datetime64tz_dtype(dtype):
+            dtype = DatetimeTZDtype(dtype)
+
+            values = self.values
+            if getattr(values,'tz',None) is None:
+                values = DatetimeIndex(values).tz_localize('UTC')
+            values = values.tz_convert(dtype.tz)
+            return self.make_block(values)
+
+        # delegate
+        return super(DatetimeBlock, self)._astype(dtype=dtype, **kwargs)
+
 
     def _can_hold_element(self, element):
         if is_list_like(element):

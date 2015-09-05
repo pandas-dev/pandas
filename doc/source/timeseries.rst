@@ -1774,6 +1774,17 @@ TZ aware Dtypes
 Both of these ``Series`` can be manipulated via the ``.dt`` accessor, see :ref:`here <basics.dt_accessors>`.
 See the :ref:`docs <timeseries.dtypes>` for more details.
 
+Further more you can ``.astype(...)`` timezone aware (and naive).
+
+.. ipython:: python
+
+   # make this naive
+   s_aware.astype('datetime64[ns]')
+
+   # convert
+   s_aware.astype('datetime64[ns, CET]')
+   s_naive.astype('datetime64[ns, CET]')
+
 .. note::
 
    Using the ``.values`` accessor on a ``Series``, returns an numpy array of the data.
