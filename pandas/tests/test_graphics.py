@@ -1646,6 +1646,28 @@ class TestDataFramePlots(TestPlotBase):
         for ax in axes.ravel():
             self._check_visible(ax.get_yticklabels(), visible=True)
 
+    @slow
+    def test_subplots_dup_columns(self):
+        # GH 10962
+        df = DataFrame(np.random.rand(5, 5), columns=list('aaaaa'))
+        axes = df.plot(subplots=True)
+        for ax in axes:
+            self._check_legend_labels(ax, labels=['a'])
+            self.assertEqual(len(ax.lines), 1)
+        tm.close()
+
+        axes = df.plot(subplots=True, secondary_y='a')
+        for ax in axes:
+            # (right) is only attached when subplots=False
+            self._check_legend_labels(ax, labels=['a'])
+            self.assertEqual(len(ax.lines), 1)
+        tm.close()
+
+        ax = df.plot(secondary_y='a')
+        self._check_legend_labels(ax, labels=['a (right)'] * 5)
+        self.assertEqual(len(ax.lines), 0)
+        self.assertEqual(len(ax.right_ax.lines), 5)
+
     def test_negative_log(self):
         df = - DataFrame(rand(6, 4),
                        index=list(string.ascii_letters[:6]),
