@@ -1753,22 +1753,45 @@ TZ aware Dtypes
 
 .. versionadded:: 0.17.0
 
-``Series/DatetimeIndex`` with a timezone naive value are represented with a dtype of ``datetime64[ns]``.
+``Series/DatetimeIndex`` with a timezone **naive** value are represented with a dtype of ``datetime64[ns]``.
 
 .. ipython:: python
 
-   dr = pd.date_range('20130101',periods=3)
-   dr
-   s = Series(dr)
-   s
+   dr_naive = pd.date_range('20130101',periods=3)
+   dr_naive
+   s_naive = Series(dr_naive)
+   s_naive
 
-``Series/DatetimeIndex`` with a timezone aware value are represented with a dtype of ``datetime64[ns, tz]``.
+``Series/DatetimeIndex`` with a timezone **aware** value are represented with a dtype of ``datetime64[ns, tz]``.
 
 .. ipython:: python
 
-   dr = pd.date_range('20130101',periods=3,tz='US/Eastern')
-   dr
-   s = Series(dr)
-   s
+   dr_aware = pd.date_range('20130101',periods=3,tz='US/Eastern')
+   dr_aware
+   s_aware = Series(dr_aware)
+   s_aware
 
-Both of these ``Series`` can be manipulated via the ``.dt`` accessor, see the :ref:`docs <basics.dt_accessors>` as well.
+Both of these ``Series`` can be manipulated via the ``.dt`` accessor, see :ref:`here <basics.dt_accessors>`.
+See the :ref:`docs <timeseries.dtypes>` for more details.
+
+.. note::
+
+   Using the ``.values`` accessor on a ``Series``, returns an numpy array of the data.
+   These values are converted to UTC, as numpy does not currently support timezones (even though it is *printing* in the local timezone!).
+
+   .. ipython:: python
+
+      s_naive.values
+      s_aware.values
+
+   Further note that once converted to a numpy array these would lose the tz tenor.
+
+   .. ipython:: python
+
+      Series(s_aware.values)
+
+   However, these can be easily converted
+
+   .. ipython:: python
+
+      Series(s_aware).dt.tz_localize('UTC').dt.tz_convert('US/Eastern')
