@@ -4562,7 +4562,7 @@ class DataFrame(NDFrame):
 
         level_index = count_axis.levels[level]
         labels = com._ensure_int64(count_axis.labels[level])
-        counts = lib.count_level_2d(mask, labels, len(level_index))
+        counts = lib.count_level_2d(mask, labels, len(level_index), axis=0)
 
         result = DataFrame(counts, index=level_index,
                            columns=agg_axis)

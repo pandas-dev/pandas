@@ -971,44 +971,6 @@ def group_var_%(name)s(ndarray[%(dest_type2)s, ndim=2] out,
 
 """
 
-group_count_template = """@cython.boundscheck(False)
-@cython.wraparound(False)
-def group_count_%(name)s(ndarray[%(dest_type2)s, ndim=2] out,
-                         ndarray[int64_t] counts,
-                         ndarray[%(c_type)s, ndim=2] values,
-                         ndarray[int64_t] labels):
-    '''
-    Only aggregates on axis=0
-    '''
-    cdef:
-        Py_ssize_t i, j, lab, ncounts = len(counts)
-        Py_ssize_t N = values.shape[0], K = values.shape[1]
-        %(c_type)s val
-        ndarray[int64_t, ndim=2] nobs = np.zeros((out.shape[0], out.shape[1]),
-                                                 dtype=np.int64)
-
-    if len(values) != len(labels):
-        raise AssertionError("len(index) != len(labels)")
-
-
-    %(nogil)s
-    %(tab)sfor i in range(N):
-    %(tab)s    lab = labels[i]
-    %(tab)s    if lab < 0:
-    %(tab)s        continue
-
-    %(tab)s    counts[lab] += 1
-    %(tab)s    for j in range(K):
-    %(tab)s        val = values[i, j]
-
-    %(tab)s        # not nan
-    %(tab)s        nobs[lab, j] += val == val and val != iNaT
-
-    %(tab)sfor i in range(ncounts):
-    %(tab)s    for j in range(K):
-    %(tab)s        out[i, j] = nobs[i, j]
-"""
-
 # add passing bin edges, instead of labels
 
 
@@ -1995,8 +1957,6 @@ groupby_selection = [group_last_template,
 groupby_min_max = [group_min_template,
                    group_max_template]
 
-groupby_count = [group_count_template]
-
 templates_1d = [map_indices_template,
                 pad_template,
                 backfill_template,
@@ -2050,12 +2010,6 @@ def generate_take_cython_file():
         for template in groupby_min_max:
             print(generate_put_min_max_template(template, use_ints=True),
                   file=f)
-
-        for template in groupby_count:
-            print(generate_put_selection_template(template, use_ints=True,
-                                                  use_datelikes=True,
-                                                  use_objects=True),
-                                                  file=f)
 
         for template in nobool_1d_templates:
             print(generate_from_template(template, exclude=['bool']), file=f)

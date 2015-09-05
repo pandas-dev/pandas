@@ -69,7 +69,7 @@ _common_apply_whitelist = frozenset([
     'cumsum', 'cumprod', 'cummin', 'cummax', 'cumcount',
     'resample',
     'describe',
-    'rank', 'quantile', 'count',
+    'rank', 'quantile',
     'fillna',
     'mad',
     'any', 'all',
@@ -148,9 +148,6 @@ def _last_compat(x, axis=0):
     else:
         return _last(x)
 
-
-def _count_compat(x, axis=0):
-    return x.count()  # .size != .count(); count excludes nan
 
 class Grouper(object):
     """
@@ -801,11 +798,6 @@ class GroupBy(PandasObject):
                               numeric_only=False, _convert=True)
     last = _groupby_function('last', 'last', _last_compat, numeric_only=False,
                              _convert=True)
-    _count = _groupby_function('_count', 'count', _count_compat,
-                               numeric_only=False)
-
-    def count(self, axis=0):
-        return self._count().astype('int64')
 
     def ohlc(self):
         """
@@ -1463,7 +1455,6 @@ class BaseGrouper(object):
             'f': lambda func, a, b, c, d: func(a, b, c, d, 1)
         },
         'last': 'group_last',
-        'count': 'group_count',
     }
 
     _cython_arity = {
@@ -3467,6 +3458,24 @@ class DataFrameGroupBy(NDFrameGroupBy):
             (func(col_groupby) for _, col_groupby
              in self._iterate_column_groupbys()),
             keys=self._selected_obj.columns, axis=1)
+
+    def count(self):
+        from functools import partial
+        from pandas.lib import count_level_2d
+        from pandas.core.common import _isnull_ndarraylike as isnull
+
+        data, _ = self._get_data_to_aggregate()
+        ids, _, ngroups = self.grouper.group_info
+        mask = ids != -1
+
+        val = ((mask & ~isnull(blk.get_values())) for blk in data.blocks)
+        loc = (blk.mgr_locs for blk in data.blocks)
+
+        counter = partial(count_level_2d, labels=ids, max_bin=ngroups, axis=1)
+        blk = map(make_block, map(counter, val), loc)
+
+        return self._wrap_agged_blocks(data.items, list(blk))
+
 
 from pandas.tools.plotting import boxplot_frame_groupby
 DataFrameGroupBy.boxplot = boxplot_frame_groupby

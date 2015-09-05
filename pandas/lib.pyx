@@ -1253,19 +1253,32 @@ def lookup_values(ndarray[object] values, dict mapping):
     return maybe_convert_objects(result)
 
 
+@cython.boundscheck(False)
+@cython.wraparound(False)
 def count_level_2d(ndarray[uint8_t, ndim=2, cast=True] mask,
-                   ndarray[int64_t] labels, Py_ssize_t max_bin):
+                   ndarray[int64_t, ndim=1] labels,
+                   Py_ssize_t max_bin,
+                   int axis):
     cdef:
         Py_ssize_t i, j, k, n
         ndarray[int64_t, ndim=2] counts
 
+    assert(axis == 0 or axis == 1)
     n, k = (<object> mask).shape
-    counts = np.zeros((max_bin, k), dtype='i8')
 
-    for i from 0 <= i < n:
-        for j from 0 <= j < k:
-            if mask[i, j]:
-                counts[labels[i], j] += 1
+    if axis == 0:
+        counts = np.zeros((max_bin, k), dtype='i8')
+        with nogil:
+            for i from 0 <= i < n:
+                for j from 0 <= j < k:
+                    counts[labels[i], j] += mask[i, j]
+
+    else:  # axis == 1
+        counts = np.zeros((n, max_bin), dtype='i8')
+        with nogil:
+            for i from 0 <= i < n:
+                for j from 0 <= j < k:
+                    counts[i, labels[j]] += mask[i, j]
 
     return counts
 
