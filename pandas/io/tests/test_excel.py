@@ -372,6 +372,16 @@ class ReadingTestsBase(SharedItems):
         tm.assert_contains_all(expected_keys, dfs.keys())
         assert len(expected_keys) == len(dfs.keys())
 
+    # GH6403
+    def test_read_excel_blank(self):
+        actual = self.get_exceldf('blank', 'Sheet1')
+        tm.assert_frame_equal(actual, DataFrame())
+
+    def test_read_excel_blank_with_header(self):
+        expected = DataFrame(columns=['col_1', 'col_2'])
+        actual = self.get_exceldf('blank_with_header', 'Sheet1')
+        tm.assert_frame_equal(actual, expected)
+
 
 class XlrdTests(ReadingTestsBase):
     """
@@ -506,16 +516,6 @@ class XlrdTests(ReadingTestsBase):
         tm.assert_frame_equal(actual, expected)
 
         actual = self.get_exceldf('times_1904', 'Sheet1')
-        tm.assert_frame_equal(actual, expected)
-
-    # GH6403
-    def test_read_excel_blank(self):
-        actual = self.get_exceldf('blank', 'Sheet1')
-        tm.assert_frame_equal(actual, DataFrame())
-
-    def test_read_excel_blank_with_header(self):
-        expected = DataFrame(columns=['col_1', 'col_2'])
-        actual = self.get_exceldf('blank_with_header', 'Sheet1')
         tm.assert_frame_equal(actual, expected)
 
 
