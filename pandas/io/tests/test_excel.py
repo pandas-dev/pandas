@@ -24,7 +24,6 @@ from pandas.io.common import URLError
 from pandas.util.testing import ensure_clean
 from pandas.core.config import set_option, get_option
 import pandas.util.testing as tm
-import pandas as pd
 
 
 def _skip_if_no_xlrd():
@@ -466,7 +465,7 @@ class XlrdTests(ReadingTestsBase):
             with ExcelWriter(pth) as ew:
                 for sheetname, df in iteritems(dfs):
                     df.to_excel(ew,sheetname)
-            dfs_returned = pd.read_excel(pth,sheetname=sheets)
+            dfs_returned = read_excel(pth,sheetname=sheets)
             for s in sheets:
                 tm.assert_frame_equal(dfs[s],dfs_returned[s])
 
@@ -956,11 +955,11 @@ class ExcelWriterBase(SharedItems):
         # Test writing and re-reading a MI witout the index. GH 5616.
 
         # Initial non-MI frame.
-        frame1 = pd.DataFrame({'a': [10, 20], 'b': [30, 40], 'c': [50, 60]})
+        frame1 = DataFrame({'a': [10, 20], 'b': [30, 40], 'c': [50, 60]})
 
         # Add a MI.
         frame2 = frame1.copy()
-        multi_index = pd.MultiIndex.from_tuples([(70, 80), (90, 100)])
+        multi_index = MultiIndex.from_tuples([(70, 80), (90, 100)])
         frame2.index = multi_index
 
         with ensure_clean(self.ext) as path:
@@ -1143,7 +1142,7 @@ class ExcelWriterBase(SharedItems):
 
             with ensure_clean(self.ext) as path:
                 df.to_excel(path, header=header, merge_cells=self.merge_cells, index=index)
-                xf = pd.ExcelFile(path)
+                xf = ExcelFile(path)
                 res = xf.parse(xf.sheet_names[0], header=parser_hdr)
                 return res
 
@@ -1197,7 +1196,7 @@ class ExcelWriterBase(SharedItems):
 
             with ensure_clean(self.ext) as path:
                 df.to_excel(path, header=header, merge_cells=self.merge_cells, index=index)
-                xf = pd.ExcelFile(path)
+                xf = ExcelFile(path)
                 res = xf.parse(xf.sheet_names[0], header=parser_hdr)
                 return res
 
@@ -1272,16 +1271,16 @@ class ExcelWriterBase(SharedItems):
         df.to_excel(writer)
         writer.save()
         bio.seek(0)
-        reread_df = pd.read_excel(bio)
+        reread_df = read_excel(bio)
         tm.assert_frame_equal(df, reread_df)
 
     # GH8188
     def test_write_lists_dict(self):
         _skip_if_no_xlrd()
 
-        df = pd.DataFrame({'mixed': ['a', ['b', 'c'], {'d': 'e', 'f': 2}],
-                           'numeric': [1, 2, 3.0],
-                           'str': ['apple', 'banana', 'cherry']})
+        df = DataFrame({'mixed': ['a', ['b', 'c'], {'d': 'e', 'f': 2}],
+                        'numeric': [1, 2, 3.0],
+                        'str': ['apple', 'banana', 'cherry']})
         expected = df.copy()
         expected.mixed = expected.mixed.apply(str)
         expected.numeric = expected.numeric.astype('int64')
@@ -1468,20 +1467,20 @@ class XlwtTests(ExcelWriterBase, tm.TestCase):
     def test_excel_raise_error_on_multiindex_columns_and_no_index(self):
         _skip_if_no_xlwt()
         # MultiIndex as columns is not yet implemented 9794
-        cols = pd.MultiIndex.from_tuples([('site', ''),
+        cols = MultiIndex.from_tuples([('site', ''),
                                           ('2014', 'height'),
                                           ('2014', 'weight')])
-        df = pd.DataFrame(np.random.randn(10, 3), columns=cols)
+        df = DataFrame(np.random.randn(10, 3), columns=cols)
         with tm.assertRaises(NotImplementedError):
             with ensure_clean(self.ext) as path:
                 df.to_excel(path, index=False)
 
     def test_excel_warns_verbosely_on_multiindex_columns_and_index_true(self):
         _skip_if_no_xlwt()
-        cols = pd.MultiIndex.from_tuples([('site', ''),
+        cols = MultiIndex.from_tuples([('site', ''),
                                           ('2014', 'height'),
                                           ('2014', 'weight')])
-        df = pd.DataFrame(np.random.randn(10, 3), columns=cols)
+        df = DataFrame(np.random.randn(10, 3), columns=cols)
         with tm.assert_produces_warning(UserWarning):
             with ensure_clean(self.ext) as path:
                 df.to_excel(path, index=True)
@@ -1489,10 +1488,10 @@ class XlwtTests(ExcelWriterBase, tm.TestCase):
     def test_excel_multiindex_index(self):
         _skip_if_no_xlwt()
         # MultiIndex as index works so assert no error #9794
-        cols = pd.MultiIndex.from_tuples([('site', ''),
+        cols = MultiIndex.from_tuples([('site', ''),
                                           ('2014', 'height'),
                                           ('2014', 'weight')])
-        df = pd.DataFrame(np.random.randn(3, 10), index=cols)
+        df = DataFrame(np.random.randn(3, 10), index=cols)
         with ensure_clean(self.ext) as path:
             df.to_excel(path, index=False)
 
