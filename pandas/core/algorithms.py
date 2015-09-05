@@ -206,7 +206,7 @@ def value_counts(values, sort=True, ascending=False, normalize=False,
     """
     from pandas.core.series import Series
     from pandas.tools.tile import cut
-    from pandas.tseries.period import PeriodIndex
+    from pandas import Index, PeriodIndex, DatetimeIndex
 
     name = getattr(values, 'name', None)
     values = Series(values).values
@@ -225,11 +225,15 @@ def value_counts(values, sort=True, ascending=False, normalize=False,
 
         dtype = values.dtype
         is_period = com.is_period_arraylike(values)
+        is_datetimetz = com.is_datetimetz(values)
 
-        if com.is_datetime_or_timedelta_dtype(dtype) or is_period:
+        if com.is_datetime_or_timedelta_dtype(dtype) or is_period or is_datetimetz:
 
             if is_period:
-                values = PeriodIndex(values, name=name)
+                values = PeriodIndex(values)
+            elif is_datetimetz:
+                tz = getattr(values, 'tz', None)
+                values = DatetimeIndex(values).tz_localize(None)
 
             values = values.view(np.int64)
             keys, counts = htable.value_count_scalar64(values, dropna)
@@ -239,8 +243,14 @@ def value_counts(values, sort=True, ascending=False, normalize=False,
                 msk = keys != iNaT
                 keys, counts = keys[msk], counts[msk]
 
+            # localize to the original tz if necessary
+            if is_datetimetz:
+                keys = DatetimeIndex(keys).tz_localize(tz)
+
             # convert the keys back to the dtype we came in
-            keys = keys.astype(dtype)
+            else:
+                keys = keys.astype(dtype)
+
 
         elif com.is_integer_dtype(dtype):
             values = com._ensure_int64(values)
@@ -257,7 +267,9 @@ def value_counts(values, sort=True, ascending=False, normalize=False,
                 keys = np.insert(keys, 0, np.NaN)
                 counts = np.insert(counts, 0, mask.sum())
 
-        result = Series(counts, index=com._values_from_object(keys), name=name)
+        if not isinstance(keys, Index):
+            keys = Index(keys)
+        result = Series(counts, index=keys, name=name)
 
         if bins is not None:
             # TODO: This next line should be more efficient

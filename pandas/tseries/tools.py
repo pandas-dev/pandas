@@ -292,6 +292,14 @@ def _to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
                     pass
 
             return arg
+
+        elif com.is_datetime64tz_dtype(arg):
+            if not isinstance(arg, DatetimeIndex):
+                return DatetimeIndex(arg, tz='utc' if utc else None)
+            if utc:
+                arg = arg.tz_convert(None)
+            return arg
+
         elif format is None and com.is_integer_dtype(arg) and unit=='ns':
             result = arg.astype('datetime64[ns]')
             if box:
@@ -371,7 +379,7 @@ def _to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
     elif isinstance(arg, tslib.Timestamp):
         return arg
     elif isinstance(arg, Series):
-        values = _convert_listlike(arg.values, False, format)
+        values = _convert_listlike(arg._values, False, format)
         return Series(values, index=arg.index, name=arg.name)
     elif isinstance(arg, ABCIndexClass):
         return _convert_listlike(arg, box, format, name=arg.name)

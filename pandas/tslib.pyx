@@ -1979,12 +1979,15 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
         for i in range(n):
             val = values[i]
 
-            # set as nan if is even a datetime NaT
+            # set as nan except if its a NaT
             if _checknull_with_nat(val):
-                oresult[i] = np.nan
+                if val is np_NaT or val.view('i8') == iNaT:
+                    oresult[i] = NaT
+                else:
+                    oresult[i] = np.nan
             elif util.is_datetime64_object(val):
                 if val is np_NaT or val.view('i8') == iNaT:
-                    oresult[i] = np.nan
+                    oresult[i] = NaT
                 else:
                     oresult[i] = val.item()
             else:
@@ -3318,7 +3321,7 @@ except:
 
 def tz_convert(ndarray[int64_t] vals, object tz1, object tz2):
     cdef:
-        ndarray[int64_t] utc_dates, result, trans, deltas
+        ndarray[int64_t] utc_dates, tt, result, trans, deltas
         Py_ssize_t i, pos, n = len(vals)
         int64_t v, offset
         pandas_datetimestruct dts
@@ -3337,27 +3340,38 @@ def tz_convert(ndarray[int64_t] vals, object tz1, object tz2):
         if _is_tzlocal(tz1):
             for i in range(n):
                 v = vals[i]
-                pandas_datetime_to_datetimestruct(v, PANDAS_FR_ns, &dts)
-                dt = datetime(dts.year, dts.month, dts.day, dts.hour,
-                              dts.min, dts.sec, dts.us, tz1)
-                delta = (int(total_seconds(_get_utcoffset(tz1, dt)))
-                         * 1000000000)
-                utc_dates[i] = v - delta
+                if v == iNaT:
+                    utc_dates[i] = iNaT
+                else:
+                    pandas_datetime_to_datetimestruct(v, PANDAS_FR_ns, &dts)
+                    dt = datetime(dts.year, dts.month, dts.day, dts.hour,
+                                  dts.min, dts.sec, dts.us, tz1)
+                    delta = (int(total_seconds(_get_utcoffset(tz1, dt)))
+                             * 1000000000)
+                    utc_dates[i] = v - delta
         else:
             trans, deltas, typ = _get_dst_info(tz1)
 
+            # all-NaT
+            tt = vals[vals!=iNaT]
+            if not len(tt):
+                return vals
+
             trans_len = len(trans)
-            pos = trans.searchsorted(vals[0]) - 1
+            pos = trans.searchsorted(tt[0]) - 1
             if pos < 0:
                 raise ValueError('First time before start of DST info')
 
             offset = deltas[pos]
             for i in range(n):
                 v = vals[i]
-                while pos + 1 < trans_len and v >= trans[pos + 1]:
-                    pos += 1
-                    offset = deltas[pos]
-                utc_dates[i] = v - offset
+                if v == iNaT:
+                    utc_dates[i] = iNaT
+                else:
+                    while pos + 1 < trans_len and v >= trans[pos + 1]:
+                        pos += 1
+                        offset = deltas[pos]
+                    utc_dates[i] = v - offset
     else:
         utc_dates = vals
 
@@ -3368,18 +3382,26 @@ def tz_convert(ndarray[int64_t] vals, object tz1, object tz2):
     if _is_tzlocal(tz2):
         for i in range(n):
             v = utc_dates[i]
-            pandas_datetime_to_datetimestruct(v, PANDAS_FR_ns, &dts)
-            dt = datetime(dts.year, dts.month, dts.day, dts.hour,
-                          dts.min, dts.sec, dts.us, tz2)
-            delta = int(total_seconds(_get_utcoffset(tz2, dt))) * 1000000000
-            result[i] = v + delta
+            if v == iNaT:
+                result[i] = iNaT
+            else:
+                pandas_datetime_to_datetimestruct(v, PANDAS_FR_ns, &dts)
+                dt = datetime(dts.year, dts.month, dts.day, dts.hour,
+                              dts.min, dts.sec, dts.us, tz2)
+                delta = int(total_seconds(_get_utcoffset(tz2, dt))) * 1000000000
+                result[i] = v + delta
             return result
 
     # Convert UTC to other timezone
     trans, deltas, typ = _get_dst_info(tz2)
     trans_len = len(trans)
 
-    pos = trans.searchsorted(utc_dates[0]) - 1
+    # use first non-NaT element
+    # if all-NaT, return all-NaT
+    if (result==iNaT).all():
+        return result
+
+    pos = trans.searchsorted(utc_dates[utc_dates!=iNaT][0]) - 1
     if pos < 0:
         raise ValueError('First time before start of DST info')
 
@@ -3387,7 +3409,7 @@ def tz_convert(ndarray[int64_t] vals, object tz1, object tz2):
     offset = deltas[pos]
     for i in range(n):
         v = utc_dates[i]
-        if vals[i] == NPY_NAT:
+        if vals[i] == iNaT:
             result[i] = vals[i]
         else:
             while pos + 1 < trans_len and v >= trans[pos + 1]:
@@ -3434,6 +3456,7 @@ def tz_convert_single(int64_t val, object tz1, object tz2):
                       dts.min, dts.sec, dts.us, tz2)
         delta = int(total_seconds(_get_utcoffset(tz2, dt))) * 1000000000
         return utc_date + delta
+
     # Convert UTC to other timezone
     trans, deltas, typ = _get_dst_info(tz2)
 

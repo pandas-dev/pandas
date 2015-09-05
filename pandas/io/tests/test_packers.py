@@ -45,7 +45,6 @@ def check_arbitrary(a, b):
     else:
         assert(a == b)
 
-
 class TestPackers(tm.TestCase):
 
     def setUp(self):
@@ -575,7 +574,7 @@ TestPackers
             for kind in v:
                 assert kind in data[typ], '"{0}" not found in data["{1}"]'.format(kind, typ)
 
-    def compare(self, vf):
+    def compare(self, vf, version):
         data = read_msgpack(vf)
         self.check_min_structure(data)
         for typ, dv in data.items():
@@ -586,9 +585,34 @@ TestPackers
                     expected = self.data[typ][dt]
                 except KeyError:
                     continue
-                check_arbitrary(result, expected)
+
+                # use a specific comparator
+                # if available
+                comparator = getattr(self,"compare_{typ}_{dt}".format(typ=typ,dt=dt), None)
+                if comparator is not None:
+                    comparator(result, expected, typ, version)
+                else:
+                    check_arbitrary(result, expected)
 
         return data
+
+    def compare_series_dt_tz(self, result, expected, typ, version):
+        # 8260
+        # dtype is object < 0.17.0
+        if LooseVersion(version) < '0.17.0':
+            expected = expected.astype(object)
+            tm.assert_series_equal(result, expected)
+        else:
+            tm.assert_series_equal(result, expected)
+
+    def compare_frame_dt_mixed_tzs(self, result, expected, typ, version):
+        # 8260
+        # dtype is object < 0.17.0
+        if LooseVersion(version) < '0.17.0':
+            expected = expected.astype(object)
+            tm.assert_frame_equal(result, expected)
+        else:
+            tm.assert_frame_equal(result, expected)
 
     def read_msgpacks(self, version):
 
@@ -596,7 +620,7 @@ TestPackers
         n = 0
         for f in os.listdir(pth):
             vf = os.path.join(pth, f)
-            self.compare(vf)
+            self.compare(vf, version)
             n += 1
         assert n > 0, 'Msgpack files are not tested'
 

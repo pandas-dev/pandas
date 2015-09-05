@@ -2188,6 +2188,21 @@ Thur,Lunch,Yes,51.51,17"""
             self.assertIsInstance(index.levels[0],pd.DatetimeIndex)
             self.assertIsInstance(index.levels[1],pd.DatetimeIndex)
 
+    def test_constructor_with_tz(self):
+
+        index = pd.DatetimeIndex(['2013/01/01 09:00', '2013/01/02 09:00'],
+                                 name='dt1', tz='US/Pacific')
+        columns = pd.DatetimeIndex(['2014/01/01 09:00', '2014/01/02 09:00'],
+                                   name='dt2', tz='Asia/Tokyo')
+
+        result = MultiIndex.from_arrays([index, columns])
+        tm.assert_index_equal(result.levels[0], index)
+        tm.assert_index_equal(result.levels[1], columns)
+
+        result = MultiIndex.from_arrays([Series(index), Series(columns)])
+        tm.assert_index_equal(result.levels[0], index)
+        tm.assert_index_equal(result.levels[1], columns)
+
     def test_set_index_datetime(self):
         # GH 3950
         df = pd.DataFrame({'label':['a', 'a', 'a', 'b', 'b', 'b'],

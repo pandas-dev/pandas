@@ -28,6 +28,7 @@ from pandas.core.common import (isnull, notnull, PandasError, _try_sort, _not_no
                                 _infer_dtype_from_scalar, _values_from_object,
                                 is_list_like, _maybe_box_datetimelike,
                                 is_categorical_dtype, is_object_dtype,
+                                is_internal_type, is_datetimetz,
                                 _possibly_infer_to_datetimelike, _dict_compat)
 from pandas.core.generic import NDFrame, _shared_docs
 from pandas.core.index import Index, MultiIndex, _ensure_index
@@ -116,14 +117,14 @@ suffixes : 2-length sequence (tuple, list, ...)
 copy : boolean, default True
     If False, do not copy data unnecessarily
 indicator : boolean or string, default False
-    If True, adds a column to output DataFrame called "_merge" with 
-    information on the source of each row. 
-    If string, column with information on source of each row will be added to 
-    output DataFrame, and column will be named value of string. 
-    Information column is Categorical-type and takes on a value of "left_only" 
-    for observations whose merge key only appears in 'left' DataFrame, 
-    "right_only" for observations whose merge key only appears in 'right' 
-    DataFrame, and "both" if the observation's merge key is found in both. 
+    If True, adds a column to output DataFrame called "_merge" with
+    information on the source of each row.
+    If string, column with information on source of each row will be added to
+    output DataFrame, and column will be named value of string.
+    Information column is Categorical-type and takes on a value of "left_only"
+    for observations whose merge key only appears in 'left' DataFrame,
+    "right_only" for observations whose merge key only appears in 'right'
+    DataFrame, and "both" if the observation's merge key is found in both.
 
     .. versionadded:: 0.17.0
 
@@ -402,6 +403,9 @@ class DataFrame(NDFrame):
             index, columns = _get_axes(len(values),1)
             return _arrays_to_mgr([ values ], columns, index, columns,
                                   dtype=dtype)
+        elif is_datetimetz(values):
+            return self._init_dict({ 0 : values }, index, columns,
+                                   dtype=dtype)
 
         # by definition an array here
         # the dtypes will be coerced to a single dtype
@@ -871,6 +875,7 @@ class DataFrame(NDFrame):
         -------
         df : DataFrame
         """
+
         # Make a copy of the input columns so we can modify it
         if columns is not None:
             columns = _ensure_index(columns)
@@ -1749,7 +1754,7 @@ class DataFrame(NDFrame):
 
         if takeable:
             series = self._iget_item_cache(col)
-            return _maybe_box_datetimelike(series.values[index])
+            return _maybe_box_datetimelike(series._values[index])
 
         series = self._get_item_cache(col)
         engine = self.index._engine
@@ -1779,7 +1784,7 @@ class DataFrame(NDFrame):
 
             series = self._get_item_cache(col)
             engine = self.index._engine
-            engine.set_value(series.values, index, value)
+            engine.set_value(series._values, index, value)
             return self
         except (KeyError, TypeError):
 
@@ -1831,6 +1836,8 @@ class DataFrame(NDFrame):
                     copy=True
                 else:
                     new_values = self._data.fast_xs(i)
+                    if lib.isscalar(new_values):
+                        return new_values
 
                     # if we are a copy, mark as such
                     copy = isinstance(new_values,np.ndarray) and new_values.base is None
@@ -2423,7 +2430,7 @@ class DataFrame(NDFrame):
             # reindex if necessary
 
             if value.index.equals(self.index) or not len(self.index):
-                value = value.values.copy()
+                value = value._values.copy()
             else:
 
                 # GH 4107
@@ -2475,7 +2482,7 @@ class DataFrame(NDFrame):
 
             # possibly infer to datetimelike
             if is_object_dtype(value.dtype):
-                value = _possibly_infer_to_datetimelike(value.ravel()).reshape(value.shape)
+                value = _possibly_infer_to_datetimelike(value)
 
         else:
             # upcast the scalar
@@ -2483,8 +2490,8 @@ class DataFrame(NDFrame):
             value = np.repeat(value, len(self.index)).astype(dtype)
             value = com._possibly_cast_to_datetime(value, dtype)
 
-        # return unconsolidatables directly
-        if isinstance(value, (Categorical, SparseArray)):
+        # return internal types directly
+        if is_internal_type(value):
             return value
 
         # broadcast across multiple columns if necessary
@@ -2718,7 +2725,7 @@ class DataFrame(NDFrame):
                 level = col
                 names.append(None)
             else:
-                level = frame[col].values
+                level = frame[col]._values
                 names.append(col)
                 if drop:
                     to_remove.append(col)
@@ -2782,7 +2789,7 @@ class DataFrame(NDFrame):
                 values = index.asobject.values
             elif (isinstance(index, DatetimeIndex) and
                   index.tz is not None):
-                values = index.asobject
+                values = index
             else:
                 values = index.values
                 if values.dtype == np.object_:

@@ -573,7 +573,7 @@ class TestIndex(Base, tm.TestCase):
         # corner case
         self.assertRaises(TypeError, Index, 0)
 
-    def test_consruction_list_mixed_tuples(self):
+    def test_construction_list_mixed_tuples(self):
         # 10697
         # if we are constructing from a mixed list of tuples, make sure that we
         # are independent of the sorting order
@@ -2861,9 +2861,7 @@ class DatetimeLike(Base):
 
         if hasattr(idx,'tz'):
             if idx.tz is not None:
-                self.assertTrue("tz='%s'" % idx.tz in str(idx))
-            else:
-                self.assertTrue("tz=None" in str(idx))
+                self.assertTrue(idx.tz in str(idx))
         if hasattr(idx,'freq'):
             self.assertTrue("freq='%s'" % idx.freqstr in str(idx))
 
@@ -2890,6 +2888,24 @@ class TestDatetimeIndex(DatetimeLike, tm.TestCase):
 
     def create_index(self):
         return date_range('20130101', periods=5)
+
+    def test_construction_with_alt(self):
+
+        i = pd.date_range('20130101',periods=5,freq='H',tz='US/Eastern')
+        i2 = DatetimeIndex(i, dtype=i.dtype)
+        self.assert_index_equal(i, i2)
+
+        i2 = DatetimeIndex(i.tz_localize(None).asi8, tz=i.dtype.tz)
+        self.assert_index_equal(i, i2)
+
+        i2 = DatetimeIndex(i.tz_localize(None).asi8, dtype=i.dtype)
+        self.assert_index_equal(i, i2)
+
+        i2 = DatetimeIndex(i.tz_localize(None).asi8, dtype=i.dtype, tz=i.dtype.tz)
+        self.assert_index_equal(i, i2)
+
+        # incompat tz/dtype
+        self.assertRaises(ValueError, lambda : DatetimeIndex(i.tz_localize(None).asi8, dtype=i.dtype, tz='US/Pacific'))
 
     def test_pickle_compat_construction(self):
         pass
