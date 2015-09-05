@@ -1231,6 +1231,9 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing,
         dfb = DataFrame(np.array(np.arange(10, 22, dtype='int64')).reshape(4,3), columns=list("ABC"), index=index)
         p = Panel({'f':dfa, 'g':dfb})
         result = p.apply(lambda x: x.sum(), axis=0)
+
+        # on windows this will be in32
+        result = result.astype('int64')
         expected = p.sum(0)
         assert_frame_equal(result,expected)
 
