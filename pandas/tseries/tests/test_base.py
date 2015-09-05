@@ -111,32 +111,32 @@ class TestDatetimeIndexOps(Ops):
             self.assertTrue(pd.isnull(getattr(obj, op)()))
 
     def test_representation(self):
-        idx1 = DatetimeIndex([], freq='D')
-        idx2 = DatetimeIndex(['2011-01-01'], freq='D')
-        idx3 = DatetimeIndex(['2011-01-01', '2011-01-02'], freq='D')
-        idx4 = DatetimeIndex(['2011-01-01', '2011-01-02', '2011-01-03'], freq='D')
-        idx5 = DatetimeIndex(['2011-01-01 09:00', '2011-01-01 10:00', '2011-01-01 11:00'],
-                             freq='H', tz='Asia/Tokyo')
-        idx6 = DatetimeIndex(['2011-01-01 09:00', '2011-01-01 10:00', pd.NaT],
-                             tz='US/Eastern')
 
-        exp1 = """DatetimeIndex([], dtype='datetime64[ns]', freq='D', tz=None)"""
+        idx = []
+        idx.append(DatetimeIndex([], freq='D'))
+        idx.append(DatetimeIndex(['2011-01-01'], freq='D'))
+        idx.append(DatetimeIndex(['2011-01-01', '2011-01-02'], freq='D'))
+        idx.append(DatetimeIndex(['2011-01-01', '2011-01-02', '2011-01-03'], freq='D'))
+        idx.append(DatetimeIndex(['2011-01-01 09:00', '2011-01-01 10:00', '2011-01-01 11:00'],
+                                 freq='H', tz='Asia/Tokyo'))
+        idx.append(DatetimeIndex(['2011-01-01 09:00', '2011-01-01 10:00', pd.NaT],
+                                 tz='US/Eastern'))
+        idx.append(DatetimeIndex(['2011-01-01 09:00', '2011-01-01 10:00', pd.NaT],
+                                 tz='UTC'))
 
-        exp2 = """DatetimeIndex(['2011-01-01'], dtype='datetime64[ns]', freq='D', tz=None)"""
-
-        exp3 = """DatetimeIndex(['2011-01-01', '2011-01-02'], dtype='datetime64[ns]', freq='D', tz=None)"""
-
-        exp4 = """DatetimeIndex(['2011-01-01', '2011-01-02', '2011-01-03'], dtype='datetime64[ns]', freq='D', tz=None)"""
-
-        exp5 = """DatetimeIndex(['2011-01-01 09:00:00+09:00', '2011-01-01 10:00:00+09:00', '2011-01-01 11:00:00+09:00'], dtype='datetime64[ns]', freq='H', tz='Asia/Tokyo')"""
-
-        exp6 = """DatetimeIndex(['2011-01-01 09:00:00-05:00', '2011-01-01 10:00:00-05:00', 'NaT'], dtype='datetime64[ns]', freq=None, tz='US/Eastern')"""
+        exp = []
+        exp.append("""DatetimeIndex([], dtype='datetime64[ns]', freq='D')""")
+        exp.append("""DatetimeIndex(['2011-01-01'], dtype='datetime64[ns]', freq='D')""")
+        exp.append("""DatetimeIndex(['2011-01-01', '2011-01-02'], dtype='datetime64[ns]', freq='D')""")
+        exp.append("""DatetimeIndex(['2011-01-01', '2011-01-02', '2011-01-03'], dtype='datetime64[ns]', freq='D')""")
+        exp.append("""DatetimeIndex(['2011-01-01 09:00:00+09:00', '2011-01-01 10:00:00+09:00', '2011-01-01 11:00:00+09:00'], dtype='datetime64[ns, Asia/Tokyo]', freq='H')""")
+        exp.append("""DatetimeIndex(['2011-01-01 09:00:00-05:00', '2011-01-01 10:00:00-05:00', 'NaT'], dtype='datetime64[ns, US/Eastern]', freq=None)""")
+        exp.append("""DatetimeIndex(['2011-01-01 09:00:00+00:00', '2011-01-01 10:00:00+00:00', 'NaT'], dtype='datetime64[ns, UTC]', freq=None)""")
 
         with pd.option_context('display.width', 300):
-            for idx, expected in zip([idx1, idx2, idx3, idx4, idx5, idx6],
-                                     [exp1, exp2, exp3, exp4, exp5, exp6]):
+            for indx, expected in zip(idx, exp):
                 for func in ['__repr__', '__unicode__', '__str__']:
-                    result = getattr(idx, func)()
+                    result = getattr(indx, func)()
                     self.assertEqual(result, expected)
 
     def test_representation_to_series(self):
@@ -164,15 +164,15 @@ dtype: datetime64[ns]"""
 2   2011-01-03
 dtype: datetime64[ns]"""
 
-        exp5 = """0    2011-01-01 09:00:00+09:00
-1    2011-01-01 10:00:00+09:00
-2    2011-01-01 11:00:00+09:00
-dtype: object"""
+        exp5 = """0   2011-01-01 09:00:00+09:00
+1   2011-01-01 10:00:00+09:00
+2   2011-01-01 11:00:00+09:00
+dtype: datetime64[ns, Asia/Tokyo]"""
 
-        exp6 = """0    2011-01-01 09:00:00-05:00
-1    2011-01-01 10:00:00-05:00
-2                          NaN
-dtype: object"""
+        exp6 = """0   2011-01-01 09:00:00-05:00
+1   2011-01-01 10:00:00-05:00
+2                         NaT
+dtype: datetime64[ns, US/Eastern]"""
 
         exp7 = """0   2011-01-01 09:00:00
 1   2011-01-02 10:15:00

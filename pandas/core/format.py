@@ -19,6 +19,7 @@ import pandas.lib as lib
 from pandas.tslib import iNaT, Timestamp, Timedelta, format_array_from_datetime
 from pandas.tseries.index import DatetimeIndex
 from pandas.tseries.period import PeriodIndex
+import pandas as pd
 import numpy as np
 
 import itertools
@@ -188,7 +189,7 @@ class SeriesFormatter(object):
         # level infos are added to the end and in a new line, like it is done for Categoricals
         # Only added when we request a name
         if name and com.is_categorical_dtype(self.tr_series.dtype):
-            level_info = self.tr_series.values._repr_categories_info()
+            level_info = self.tr_series._values._repr_categories_info()
             if footer:
                 footer += "\n"
             footer += level_info
@@ -208,7 +209,7 @@ class SeriesFormatter(object):
         return fmt_index, have_header
 
     def _get_formatted_values(self):
-        return format_array(self.tr_series.values, None,
+        return format_array(self.tr_series._values, None,
                             float_format=self.float_format,
                             na_rep=self.na_rep)
 
@@ -615,7 +616,7 @@ class DataFrameFormatter(TableFormatter):
                 strcols.insert(i, lev3)
 
         if column_format is None:
-            dtypes = self.frame.dtypes.values
+            dtypes = self.frame.dtypes._values
             column_format = ''.join(map(get_col_type, dtypes))
             if self.index:
                 index_format = 'l' * self.frame.index.nlevels
@@ -681,7 +682,7 @@ class DataFrameFormatter(TableFormatter):
         frame = self.tr_frame
         formatter = self._get_formatter(i)
         return format_array(
-            frame.iloc[:, i].values,
+            frame.iloc[:, i]._values,
             formatter, float_format=self.float_format, na_rep=self.na_rep,
             space=self.col_space
         )
@@ -720,7 +721,7 @@ class DataFrameFormatter(TableFormatter):
         if isinstance(columns, MultiIndex):
             fmt_columns = columns.format(sparsify=False, adjoin=False)
             fmt_columns = lzip(*fmt_columns)
-            dtypes = self.frame.dtypes.values
+            dtypes = self.frame.dtypes._values
 
             # if we have a Float level, they don't use leading space at all
             restrict_formatting = any([l.is_floating for l in columns.levels])
@@ -1401,7 +1402,7 @@ class CSVFormatter(object):
 
         series = {}
         for k, v in compat.iteritems(values._series):
-            series[k] = v.values
+            series[k] = v._values
 
         nlevels = getattr(data_index, 'nlevels', 1)
         for j, idx in enumerate(data_index):
@@ -1919,6 +1920,8 @@ def format_array(values, formatter, float_format=None, na_rep='NaN',
         fmt_klass = PeriodArrayFormatter
     elif com.is_integer_dtype(values.dtype):
         fmt_klass = IntArrayFormatter
+    elif com.is_datetimetz(values):
+        fmt_klass = Datetime64TZFormatter
     elif com.is_datetime64_dtype(values.dtype):
         fmt_klass = Datetime64Formatter
     elif com.is_timedelta64_dtype(values.dtype):
@@ -1975,6 +1978,8 @@ class GenericArrayFormatter(object):
             if self.na_rep is not None and lib.checknull(x):
                 if x is None:
                     return 'None'
+                elif x is pd.NaT:
+                    return 'NaT'
                 return self.na_rep
             elif isinstance(x, PandasObject):
                 return '%s' % x
@@ -1984,7 +1989,7 @@ class GenericArrayFormatter(object):
 
         vals = self.values
         if isinstance(vals, Index):
-            vals = vals.values
+            vals = vals._values
 
         is_float = lib.map_infer(vals, com.is_float) & notnull(vals)
         leading_space = is_float.any()
@@ -2067,9 +2072,7 @@ class IntArrayFormatter(GenericArrayFormatter):
 
     def _format_strings(self):
         formatter = self.formatter or (lambda x: '% d' % x)
-
         fmt_values = [formatter(x) for x in self.values]
-
         return fmt_values
 
 
@@ -2080,27 +2083,16 @@ class Datetime64Formatter(GenericArrayFormatter):
         self.date_format = date_format
 
     def _format_strings(self):
+        """ we by definition have DO NOT have a TZ """
 
-        # we may have a tz, if so, then need to process element-by-element
-        # when DatetimeBlockWithTimezones is a reality this could be fixed
         values = self.values
         if not isinstance(values, DatetimeIndex):
             values = DatetimeIndex(values)
 
-        if values.tz is None:
-            fmt_values = format_array_from_datetime(values.asi8.ravel(),
-                                                    format=_get_format_datetime64_from_values(values, self.date_format),
-                                                    na_rep=self.nat_rep).reshape(values.shape)
-            fmt_values = fmt_values.tolist()
-
-        else:
-
-            values = values.asobject
-            is_dates_only = _is_dates_only(values)
-            formatter = (self.formatter or _get_format_datetime64(is_dates_only, values, date_format=self.date_format))
-            fmt_values = [ formatter(x) for x in values ]
-
-        return fmt_values
+        fmt_values = format_array_from_datetime(values.asi8.ravel(),
+                                                format=_get_format_datetime64_from_values(values, self.date_format),
+                                                na_rep=self.nat_rep).reshape(values.shape)
+        return fmt_values.tolist()
 
 
 class PeriodArrayFormatter(IntArrayFormatter):
@@ -2178,6 +2170,18 @@ def _get_format_datetime64_from_values(values, date_format):
         return date_format or "%Y-%m-%d"
     return date_format
 
+
+class Datetime64TZFormatter(Datetime64Formatter):
+
+    def _format_strings(self):
+        """ we by definition have a TZ """
+
+        values = self.values.asobject
+        is_dates_only = _is_dates_only(values)
+        formatter = (self.formatter or _get_format_datetime64(is_dates_only, date_format=self.date_format))
+        fmt_values = [ formatter(x) for x in values ]
+
+        return fmt_values
 
 class Timedelta64Formatter(GenericArrayFormatter):
 

@@ -30,6 +30,7 @@ Highlights include:
 
 - Release the Global Interpreter Lock (GIL) on some cython operations, see :ref:`here <whatsnew_0170.gil>`
 - The sorting API has been revamped to remove some long-time inconsistencies, see :ref:`here <whatsnew_0170.api_breaking.sorting>`
+- Support for a ``datetime64[ns]`` with timezones as a first-class dtype, see :ref:`here <whatsnew_0170.tz>`
 - The default for ``to_datetime`` will now be to ``raise`` when presented with unparseable formats,
   previously this would return the original input, see :ref:`here <whatsnew_0170.api_breaking.to_datetime>`
 - The default for ``dropna`` in ``HDFStore`` has changed to ``False``, to store by default all rows even
@@ -416,6 +417,58 @@ To keep the previous behaviour, you can use ``errors='ignore'``:
 
 Furthermore, ``pd.to_timedelta`` has gained a similar API, of ``errors='raise'|'ignore'|'coerce'``, and the ``coerce`` keyword
 has been deprecated in favor of ``errors='coerce'``.
+
+.. _whatsnew_0170.tz:
+
+Datetime with TZ
+~~~~~~~~~~~~~~~~
+
+We are adding an implementation that natively supports datetime with timezones. A ``Series`` or a ``DataFrame`` column previously
+*could* be assigned a datetime with timezones, and would work as an ``object`` dtype. This had performance issues with a large
+number rows. (:issue:`8260`, :issue:`10763`)
+
+The new implementation allows for having a single-timezone across all rows, and operating on it in a performant manner.
+
+.. ipython:: python
+
+   df = DataFrame({'A' : date_range('20130101',periods=3),
+                   'B' : date_range('20130101',periods=3,tz='US/Eastern'),
+                   'C' : date_range('20130101',periods=3,tz='CET')})
+   df
+   df.dtypes
+
+.. ipython:: python
+
+   df.B
+   df.B.dt.tz_localize(None)
+
+This uses a new-dtype representation as well, that is very similar in look-and-feel to its numpy cousin ``datetime64[ns]``
+
+.. ipython:: python
+
+   df['B'].dtype
+   type(df['B']).dtype
+
+.. note::
+
+   There is a slightly different string repr for the underlying ``DatetimeIndex`` as a result of the dtype changes, but
+   functionally these are the same.
+
+   .. code-block:: python
+
+      In [1]: pd.date_range('20130101',periods=3,tz='US/Eastern')
+      Out[1]: DatetimeIndex(['2013-01-01 00:00:00-05:00', '2013-01-02 00:00:00-05:00',
+                             '2013-01-03 00:00:00-05:00'],
+                            dtype='datetime64[ns]', freq='D', tz='US/Eastern')
+
+      In [2]: pd.date_range('20130101',periods=3,tz='US/Eastern').dtype
+      Out[2]: dtype('<M8[ns]')
+
+   .. ipython:: python
+
+      pd.date_range('20130101',periods=3,tz='US/Eastern')
+      pd.date_range('20130101',periods=3,tz='US/Eastern').dtype
+
 
 .. _whatsnew_0170.api_breaking.convert_objects:
 
@@ -824,6 +877,9 @@ Bug Fixes
 - Bug in incorrection computation of ``.mean()`` on ``timedelta64[ns]`` because of overflow (:issue:`9442`)
 - Bug in ``DataFrame.to_html(index=False)`` renders unnecessary ``name`` row (:issue:`10344`)
 - Bug in ``DataFrame.to_latex()`` the ``column_format`` argument could not be passed (:issue:`9402`)
+- Bug in ``DatetimeIndex`` when localizing with ``NaT`` (:issue:`10477`)
+- Bug in ``Series.dt`` ops in preserving meta-data (:issue:`10477`)
+- Bug in preserving ``NaT`` when passed in an otherwise invalid ``to_datetime`` construction (:issue:`10477`)
 - Bug in ``DataFrame.apply`` when function returns categorical series. (:issue:`9573`)
 - Bug in ``to_datetime`` with invalid dates and formats supplied (:issue:`10154`)
 - Bug in ``Index.drop_duplicates`` dropping name(s) (:issue:`10115`)

@@ -878,7 +878,7 @@ class TestTslib(tm.TestCase):
 
     def test_period_ordinal_start_values(self):
         # information for 1.1.1970
-        self.assertEqual(0, period_ordinal(1970, 1, 1, 0, 0, 0, 0, 0, get_freq('Y')))
+        self.assertEqual(0, period_ordinal(1970, 1, 1, 0, 0, 0, 0, 0, get_freq('A')))
         self.assertEqual(0, period_ordinal(1970, 1, 1, 0, 0, 0, 0, 0, get_freq('M')))
         self.assertEqual(1, period_ordinal(1970, 1, 1, 0, 0, 0, 0, 0, get_freq('W')))
         self.assertEqual(0, period_ordinal(1970, 1, 1, 0, 0, 0, 0, 0, get_freq('D')))
@@ -942,6 +942,12 @@ class TestTslib(tm.TestCase):
                                   tslib.maybe_get_tz('US/Eastern'),
                                   tslib.maybe_get_tz('Asia/Tokyo'))
         self.assert_numpy_array_equal(result, np.array([], dtype=np.int64))
+
+        # Check all-NaT array
+        result = tslib.tz_convert(np.array([tslib.iNaT], dtype=np.int64),
+                                  tslib.maybe_get_tz('US/Eastern'),
+                                  tslib.maybe_get_tz('Asia/Tokyo'))
+        self.assert_numpy_array_equal(result, np.array([tslib.iNaT], dtype=np.int64))
 
 class TestTimestampOps(tm.TestCase):
     def test_timestamp_and_datetime(self):

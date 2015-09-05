@@ -1732,7 +1732,7 @@ cdef class BlockPlacement:
             self._as_array = arr
             self._has_array = True
 
-    def __unicode__(self):
+    def __str__(self):
         cdef slice s = self._ensure_has_slice()
         if s is not None:
             v = self._as_slice
@@ -1740,6 +1740,8 @@ cdef class BlockPlacement:
             v = self._as_array
 
         return '%s(%r)' % (self.__class__.__name__, v)
+
+    __repr__ = __str__
 
     def __len__(self):
         cdef slice s = self._ensure_has_slice()

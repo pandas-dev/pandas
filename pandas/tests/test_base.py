@@ -7,6 +7,7 @@ import pandas.compat as compat
 import pandas as pd
 from pandas.compat import u, StringIO
 from pandas.core.base import FrozenList, FrozenNDArray, PandasDelegate
+import pandas.core.common as com
 from pandas.tseries.base import DatetimeIndexOpsMixin
 from pandas.util.testing import assertRaisesRegexp, assertIsInstance
 from pandas.tseries.common import is_datetimelike
@@ -315,9 +316,10 @@ class TestIndexOps(Ops):
         for o in self.objs:
 
             # check that we work
-            for p in ['shape', 'dtype', 'base', 'flags', 'T',
+            for p in ['shape', 'dtype', 'flags', 'T',
                       'strides', 'itemsize', 'nbytes']:
                 self.assertIsNotNone(getattr(o, p, None))
+            self.assertTrue(hasattr(o, 'base'))
 
             # if we have a datetimelike dtype then needs a view to work
             # but the user is responsible for that
@@ -401,22 +403,35 @@ class TestIndexOps(Ops):
                 # freq must be specified because repeat makes freq ambiguous
 
                 # resets name from Index
-                expected_index = pd.Index(o[::-1], name=None)
+                expected_index = pd.Index(o[::-1])
 
                 # attach name to klass
-                o = klass(np.repeat(values, range(1, len(o) + 1)), freq=o.freq, name='a')
+                o = o.repeat(range(1, len(o) + 1))
+                o.name = 'a'
+
+            elif isinstance(o, DatetimeIndex):
+
+                # resets name from Index
+                expected_index = pd.Index(o[::-1])
+
+                # attach name to klass
+                o = o.repeat(range(1, len(o) + 1))
+                o.name = 'a'
+
             # don't test boolean
             elif isinstance(o,Index) and o.is_boolean():
                 continue
             elif isinstance(o, Index):
-                expected_index = pd.Index(values[::-1], name=None)
-                o = klass(np.repeat(values, range(1, len(o) + 1)), name='a')
+                expected_index = pd.Index(values[::-1])
+                o = o.repeat(range(1, len(o) + 1))
+                o.name = 'a'
             else:
-                expected_index = pd.Index(values[::-1], name=None)
-                idx = np.repeat(o.index.values, range(1, len(o) + 1))
+                expected_index = pd.Index(values[::-1])
+                idx = o.index.repeat(range(1, len(o) + 1))
                 o = klass(np.repeat(values, range(1, len(o) + 1)), index=idx, name='a')
 
             expected_s = Series(range(10, 0, -1), index=expected_index, dtype='int64', name='a')
+
             result = o.value_counts()
             tm.assert_series_equal(result, expected_s)
             self.assertTrue(result.index.name is None)
@@ -447,7 +462,16 @@ class TestIndexOps(Ops):
                     continue
 
                 # special assign to the numpy array
-                if o.values.dtype == 'datetime64[ns]' or isinstance(o, PeriodIndex):
+                if com.is_datetimetz(o):
+                    if isinstance(o, DatetimeIndex):
+                        v = o.asi8
+                        v[0:2] = pd.tslib.iNaT
+                        values = o._shallow_copy(v)
+                    else:
+                        o = o.copy()
+                        o[0:2] = pd.tslib.iNaT
+                        values = o.values
+                elif o.values.dtype == 'datetime64[ns]' or isinstance(o, PeriodIndex):
                     values[0:2] = pd.tslib.iNaT
                 else:
                     values[0:2] = null_obj
@@ -558,17 +582,19 @@ class TestIndexOps(Ops):
             self.assertEqual(s.nunique(), 0)
 
             # GH 3002, datetime64[ns]
+            # don't test names though
             txt = "\n".join(['xxyyzz20100101PIE', 'xxyyzz20100101GUM', 'xxyyzz20100101EGG',
                              'xxyyww20090101EGG', 'foofoo20080909PIE', 'foofoo20080909GUM'])
             f = StringIO(txt)
             df = pd.read_fwf(f, widths=[6, 8, 3], names=["person_id", "dt", "food"],
                              parse_dates=["dt"])
 
-            s = klass(df['dt'].copy(), name='dt')
+            s = klass(df['dt'].copy())
+            s.name = None
 
             idx = pd.to_datetime(['2010-01-01 00:00:00Z', '2008-09-09 00:00:00Z',
                                   '2009-01-01 00:00:00X'])
-            expected_s = Series([3, 2, 1], index=idx, name='dt')
+            expected_s = Series([3, 2, 1], index=idx)
             tm.assert_series_equal(s.value_counts(), expected_s)
 
             expected = np.array(['2010-01-01 00:00:00Z', '2009-01-01 00:00:00Z',
@@ -583,7 +609,7 @@ class TestIndexOps(Ops):
 
             # with NaT
             s = df['dt'].copy()
-            s = klass([v for v in s.values] + [pd.NaT], name='dt')
+            s = klass([v for v in s.values] + [pd.NaT])
 
             result = s.value_counts()
             self.assertEqual(result.index.dtype, 'datetime64[ns]')
@@ -595,6 +621,7 @@ class TestIndexOps(Ops):
 
             unique = s.unique()
             self.assertEqual(unique.dtype, 'datetime64[ns]')
+
             # numpy_array_equal cannot compare pd.NaT
             self.assert_numpy_array_equal(unique[:3], expected)
             self.assertTrue(unique[3] is pd.NaT or unique[3].astype('int64') == pd.tslib.iNaT)
@@ -753,7 +780,7 @@ class TestIndexOps(Ops):
                 self.assertFalse(result is original)
 
                 idx = original.index[list(range(len(original))) + [5, 3]]
-                values = original.values[list(range(len(original))) + [5, 3]]
+                values = original._values[list(range(len(original))) + [5, 3]]
                 s = Series(values, index=idx, name='a')
 
                 expected = Series([False] * len(original) + [True, True],

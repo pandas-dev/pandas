@@ -58,7 +58,7 @@ def to_timedelta(arg, unit='ns', box=True, errors='raise', coerce=None):
         return arg
     elif isinstance(arg, ABCSeries):
         from pandas import Series
-        values = _convert_listlike(arg.values, box=False, unit=unit)
+        values = _convert_listlike(arg._values, box=False, unit=unit)
         return Series(values, index=arg.index, name=arg.name, dtype='m8[ns]')
     elif isinstance(arg, ABCIndexClass):
         return _convert_listlike(arg, box=box, unit=unit, name=arg.name)

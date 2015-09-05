@@ -9,6 +9,8 @@ from pandas.tseries.tdi import TimedeltaIndex
 from pandas import tslib
 from pandas.core.common import (_NS_DTYPE, _TD_DTYPE, is_period_arraylike,
                                 is_datetime_arraylike, is_integer_dtype, is_list_like,
+                                is_datetime64_dtype, is_datetime64tz_dtype,
+                                is_timedelta64_dtype,
                                 get_dtype_kinds)
 
 def is_datetimelike(data):
@@ -43,23 +45,24 @@ def maybe_to_datetimelike(data, copy=False):
         raise TypeError("cannot convert an object of type {0} to a datetimelike index".format(type(data)))
 
     index = data.index
-    if issubclass(data.dtype.type, np.datetime64):
-        return DatetimeProperties(DatetimeIndex(data, copy=copy, freq='infer'), index)
-    elif issubclass(data.dtype.type, np.timedelta64):
-        return TimedeltaProperties(TimedeltaIndex(data, copy=copy, freq='infer'), index)
+    if is_datetime64_dtype(data.dtype) or is_datetime64tz_dtype(data.dtype):
+        return DatetimeProperties(DatetimeIndex(data, copy=copy, freq='infer'), index, name=data.name)
+    elif is_timedelta64_dtype(data.dtype):
+        return TimedeltaProperties(TimedeltaIndex(data, copy=copy, freq='infer'), index, name=data.name)
     else:
         if is_period_arraylike(data):
-            return PeriodProperties(PeriodIndex(data, copy=copy), index)
+            return PeriodProperties(PeriodIndex(data, copy=copy), index, name=data.name)
         if is_datetime_arraylike(data):
-            return DatetimeProperties(DatetimeIndex(data, copy=copy, freq='infer'), index)
+            return DatetimeProperties(DatetimeIndex(data, copy=copy, freq='infer'), index, name=data.name)
 
     raise TypeError("cannot convert an object of type {0} to a datetimelike index".format(type(data)))
 
 class Properties(PandasDelegate):
 
-    def __init__(self, values, index):
+    def __init__(self, values, index, name):
         self.values = values
         self.index = index
+        self.name = name
 
     def _delegate_property_get(self, name):
         from pandas import Series
@@ -74,7 +77,7 @@ class Properties(PandasDelegate):
             return result
 
         # return the result as a Series, which is by definition a copy
-        result = Series(result, index=self.index)
+        result = Series(result, index=self.index, name=self.name)
 
         # setting this object will show a SettingWithCopyWarning/Error
         result.is_copy = ("modifications to a property of a datetimelike object are not "
@@ -95,7 +98,7 @@ class Properties(PandasDelegate):
         if not com.is_list_like(result):
             return result
 
-        result = Series(result, index=self.index)
+        result = Series(result, index=self.index, name=self.name)
 
         # setting this object will show a SettingWithCopyWarning/Error
         result.is_copy = ("modifications to a method of a datetimelike object are not "
@@ -196,7 +199,7 @@ class CombinedDatetimelikeProperties(DatetimeProperties, TimedeltaProperties):
 def _concat_compat(to_concat, axis=0):
     """
     provide concatenation of an datetimelike array of arrays each of which is a single
-    M8[ns], or m8[ns] dtype
+    M8[ns], datetimet64[ns, tz] or m8[ns] dtype
 
     Parameters
     ----------
@@ -211,6 +214,10 @@ def _concat_compat(to_concat, axis=0):
     def convert_to_pydatetime(x, axis):
         # coerce to an object dtype
         if x.dtype == _NS_DTYPE:
+
+            if hasattr(x, 'tz'):
+                x = x.asobject
+
             shape = x.shape
             x = tslib.ints_to_pydatetime(x.view(np.int64).ravel())
             x = x.reshape(shape)
@@ -218,9 +225,18 @@ def _concat_compat(to_concat, axis=0):
             shape = x.shape
             x = tslib.ints_to_pytimedelta(x.view(np.int64).ravel())
             x = x.reshape(shape)
+
         return x
 
     typs = get_dtype_kinds(to_concat)
+
+    # datetimetz
+    if 'datetimetz' in typs:
+
+        # we require ALL of the same tz for datetimetz
+        tzs = set([ getattr(x,'tz',None) for x in to_concat ])-set([None])
+        if len(tzs) == 1:
+            return DatetimeIndex(np.concatenate([ x.tz_localize(None).asi8 for x in to_concat ]), tz=list(tzs)[0])
 
     # single dtype
     if len(typs) == 1:

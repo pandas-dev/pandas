@@ -1718,12 +1718,14 @@ class _TestPostgreSQLAlchemy(object):
             tm.assert_frame_equal(res1, res2)
 
     def test_datetime_with_time_zone(self):
+
         # Test to see if we read the date column with timezones that
         # the timezone information is converted to utc and into a
         # np.datetime64 (GH #7139)
+
         df = sql.read_sql_table("types_test_data", self.conn)
         self.assertTrue(issubclass(df.DateColWithTz.dtype.type, np.datetime64),
-                        "DateColWithTz loaded with incorrect type")
+                        "DateColWithTz loaded with incorrect type -> {0}".format(df.DateColWithTz.dtype))
 
         # "2000-01-01 00:00:00-08:00" should convert to "2000-01-01 08:00:00"
         self.assertEqual(df.DateColWithTz[0], Timestamp('2000-01-01 08:00:00'))

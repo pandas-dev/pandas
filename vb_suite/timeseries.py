@@ -110,7 +110,7 @@ timeseries_asof_nan = Benchmark('ts.asof(dates)', setup,
                                 start_date=datetime(2012, 4, 27))
 
 #----------------------------------------------------------------------
-# Time zone stuff
+# Time zone
 
 setup = common_setup + """
 rng = date_range(start='1/1/2000', end='3/1/2000', tz='US/Eastern')
