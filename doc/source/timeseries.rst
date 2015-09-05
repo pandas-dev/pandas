@@ -1278,17 +1278,12 @@ frequency. Arithmetic is not allowed between ``Period`` with different ``freq`` 
 .. ipython:: python
 
    p = Period('2012', freq='A-DEC')
-
    p + 1
-
    p - 3
-
    p = Period('2012-01', freq='2M')
-
    p + 2
-
    p - 1
-
+   @okexcept
    p == Period('2012-01', freq='3M')
 
 

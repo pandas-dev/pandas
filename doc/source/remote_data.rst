@@ -62,6 +62,7 @@ Yahoo! Finance
 --------------
 
 .. ipython:: python
+   :okwarning:
 
     import pandas.io.data as web
     import datetime
