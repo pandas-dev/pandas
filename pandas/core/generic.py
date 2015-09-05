@@ -3252,11 +3252,13 @@ class NDFrame(PandasObject):
             index. Only relevant for DataFrame input. as_index=False is
             effectively "SQL-style" grouped output
         sort : boolean, default True
-            Sort group keys. Get better performance by turning this off
+            Sort group keys. Get better performance by turning this off.
+            Note this does not influence the order of observations within each group. 
+            groupby preserves the order of rows within each group. 
         group_keys : boolean, default True
             When calling apply, add group keys to index to identify pieces
         squeeze : boolean, default False
-            reduce the dimensionaility of the return type if possible,
+            reduce the dimensionality of the return type if possible,
             otherwise return a consistent type
 
         Examples
