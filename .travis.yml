@@ -12,6 +12,10 @@ env:
   # pandas-docs-bot GH
   - secure: "PCzUFR8CHmw9lH84p4ygnojdF7Z8U5h7YfY0RyT+5K/aiQ1ZTU3ZkDTPI0/rR5FVMxsEEKEQKMcc5fvqW0PeD7Q2wRmluloKgT9w4EVEJ1ppKf7lITPcvZR2QgVOvjv4AfDtibLHFNiaSjzoqyJVjM4igjOu8WTlF3JfZcmOQjQ="
 
+git:
+    # for cloning
+    depth: 100
+
 matrix:
     fast_finish: true
     include:
