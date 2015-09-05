@@ -81,15 +81,29 @@ class SharedItems(object):
         self.tsframe = _tsframe.copy()
         self.mixed_frame = _mixed_frame.copy()
 
-    def read_csv(self, *args, **kwds):
-        kwds = kwds.copy()
-        kwds['engine'] = 'python'
-        return read_csv(*args, **kwds)
-
-    def get_data(self, basename, csv=True):
+    def get_csv_refdf(self, basename):
         """
-        Return a DataFrame as read by the Python csv engine and a DataFrame
-        as read by the ExcelFile engine. Test data path is defined by
+        Obtain the reference data from read_csv with the Python engine.
+        Test data path is defined by pandas.util.testing.get_data_path()
+
+        Parameters
+        ----------
+
+        basename : str
+            File base name, excluding file extension.
+
+        Returns
+        -------
+
+        dfref : DataFrame
+        """
+        pref = os.path.join(self.dirpath, basename + '.csv')
+        dfref = read_csv(pref, index_col=0, parse_dates=True, engine='python')
+        return dfref
+
+    def get_excel(self, basename):
+        """
+        Return test data ExcelFile instance. Test data path is defined by
         pandas.util.testing.get_data_path()
 
         Parameters
@@ -98,18 +112,12 @@ class SharedItems(object):
         basename : str
             File base name, excluding file extension.
 
-        csv : boolean, default=True
-            When True, basename.csv is returned
-        """
+        Returns
+        -------
 
-        excel = ExcelFile(os.path.join(self.dirpath, basename + self.ext))
-        if csv:
-            # the reference is obtained form read_csv with Python engine
-            pref = os.path.join(self.dirpath, basename + '.csv')
-            dfref = self.read_csv(pref, index_col=0, parse_dates=True)
-            return dfref, excel
-        else:
-            return excel
+        excel : io.excel.ExcelFile
+        """
+        return ExcelFile(os.path.join(self.dirpath, basename + self.ext))
 
 
 class ReadingTestsBase(SharedItems):
@@ -130,7 +138,8 @@ class ReadingTestsBase(SharedItems):
 
     def test_parse_cols_int(self):
 
-        dfref, excel = self.get_data('test1')
+        dfref = self.get_csv_refdf('test1')
+        excel = self.get_excel('test1')
         dfref = dfref.reindex(columns=['A', 'B', 'C'])
         df1 = excel.parse('Sheet1', index_col=0, parse_dates=True,
                          parse_cols=3)
@@ -142,7 +151,8 @@ class ReadingTestsBase(SharedItems):
 
     def test_parse_cols_list(self):
 
-        dfref, excel = self.get_data('test1')
+        excel = self.get_excel('test1')
+        dfref = self.get_csv_refdf('test1')
         dfref = dfref.reindex(columns=['B', 'C'])
         df1 = excel.parse('Sheet1', index_col=0, parse_dates=True,
                          parse_cols=[0, 2, 3])
@@ -155,7 +165,8 @@ class ReadingTestsBase(SharedItems):
 
     def test_parse_cols_str(self):
 
-        dfref, excel = self.get_data('test1')
+        excel = self.get_excel('test1')
+        dfref = self.get_csv_refdf('test1')
 
         df1 = dfref.reindex(columns=['A', 'B', 'C'])
         df2 = excel.parse('Sheet1', index_col=0, parse_dates=True,
@@ -187,7 +198,7 @@ class ReadingTestsBase(SharedItems):
 
     def test_excel_stop_iterator(self):
 
-        excel = self.get_data('test2', csv=False)
+        excel = self.get_excel('test2')
 
         parsed = excel.parse('Sheet1')
         expected = DataFrame([['aaaa', 'bbbbb']], columns=['Test', 'Test1'])
@@ -195,7 +206,7 @@ class ReadingTestsBase(SharedItems):
 
     def test_excel_cell_error_na(self):
 
-        excel = self.get_data('test3', csv=False)
+        excel = self.get_excel('test3')
 
         parsed = excel.parse('Sheet1')
         expected = DataFrame([[np.nan]], columns=['Test'])
@@ -203,7 +214,7 @@ class ReadingTestsBase(SharedItems):
 
     def test_excel_passes_na(self):
 
-        excel = self.get_data('test4', csv=False)
+        excel = self.get_excel('test4')
 
         parsed = excel.parse('Sheet1', keep_default_na=False,
                              na_values=['apple'])
@@ -219,7 +230,8 @@ class ReadingTestsBase(SharedItems):
 
     def test_excel_table_sheet_by_index(self):
 
-        dfref, excel = self.get_data('test1')
+        excel = self.get_excel('test1')
+        dfref = self.get_csv_refdf('test1')
 
         df1 = excel.parse(0, index_col=0, parse_dates=True)
         df2 = excel.parse(1, skiprows=[1], index_col=0, parse_dates=True)
@@ -236,7 +248,8 @@ class ReadingTestsBase(SharedItems):
 
     def test_excel_table(self):
 
-        dfref, excel = self.get_data('test1')
+        excel = self.get_excel('test1')
+        dfref = self.get_csv_refdf('test1')
 
         df1 = excel.parse('Sheet1', index_col=0, parse_dates=True)
         df2 = excel.parse('Sheet2', skiprows=[1], index_col=0,
