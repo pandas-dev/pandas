@@ -120,7 +120,8 @@ def _new_DatetimeIndex(cls, d):
     # data are already in UTC
     # so need to localize
     tz = d.pop('tz',None)
-    result = cls.__new__(cls, **d)
+
+    result = cls.__new__(cls, verify_integrity=False, **d)
     if tz is not None:
         result = result.tz_localize('UTC').tz_convert(tz)
     return result
