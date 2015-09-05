@@ -31,7 +31,7 @@ div.bodywrapper {
 /* ugly hack, probably not attractive with other font size for re*/
     margin: 0 0 0 {{ theme_sidebarwidth|toint}}px;
     min-width: 540px;
-    max-width: 720px;
+    max-width: 800px;
 }
 
 
