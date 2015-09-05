@@ -149,8 +149,8 @@ Using ``.describe()`` on categorical data will produce similar output to a `Seri
 
 .. ipython:: python
 
-    cat = pd.Categorical(["a","c","c",np.nan], categories=["b","a","c",np.nan] )
-    df = pd.DataFrame({"cat":cat, "s":["a","c","c",np.nan]})
+    cat = pd.Categorical(["a", "c", "c", np.nan], categories=["b", "a", "c"])
+    df = pd.DataFrame({"cat":cat, "s":["a", "c", "c", np.nan]})
     df.describe()
     df["cat"].describe()
 
@@ -642,10 +642,10 @@ a code of ``-1``.
 
 .. ipython:: python
 
-    s = pd.Series(["a","b",np.nan,"a"], dtype="category")
+    s = pd.Series(["a", "b", np.nan, "a"], dtype="category")
     # only two categories
     s
-    s.codes
+    s.cat.codes
 
 
 Methods for working with missing data, e.g. :meth:`~Series.isnull`, :meth:`~Series.fillna`,
@@ -653,8 +653,7 @@ Methods for working with missing data, e.g. :meth:`~Series.isnull`, :meth:`~Seri
 
 .. ipython:: python
 
-    c = pd.Series(["a","b",np.nan], dtype="category")
-    s = pd.Series(c)
+    s = pd.Series(["a", "b", np.nan], dtype="category")
     s
     pd.isnull(s)
     s.fillna("a")
