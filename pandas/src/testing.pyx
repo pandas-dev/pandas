@@ -1,7 +1,7 @@
 import numpy as np
 
 from pandas import compat
-from pandas.core.common import isnull
+from pandas.core.common import isnull, array_equivalent
 
 cdef NUMERIC_TYPES = (
     bool,
@@ -120,7 +120,7 @@ cpdef assert_almost_equal(a, b, bint check_less_precise=False,
                 raise_assert_detail(obj, '{0} shapes are different'.format(obj),
                                     a.shape, b.shape)
             try:
-                if np.array_equal(a, b):
+                if array_equivalent(a, b, strict_nan=True):
                     return True
             except:
                 pass
