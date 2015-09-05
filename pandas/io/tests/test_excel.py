@@ -101,7 +101,7 @@ class SharedItems(object):
         dfref = read_csv(pref, index_col=0, parse_dates=True, engine='python')
         return dfref
 
-    def get_excel(self, basename):
+    def get_excelfile(self, basename):
         """
         Return test data ExcelFile instance. Test data path is defined by
         pandas.util.testing.get_data_path()
@@ -118,6 +118,25 @@ class SharedItems(object):
         excel : io.excel.ExcelFile
         """
         return ExcelFile(os.path.join(self.dirpath, basename + self.ext))
+
+    def get_exceldf(self, basename, *args, **kwds):
+        """
+        Return test data DataFrame. Test data path is defined by
+        pandas.util.testing.get_data_path()
+
+        Parameters
+        ----------
+
+        basename : str
+            File base name, excluding file extension.
+
+        Returns
+        -------
+
+        df : DataFrame
+        """
+        pth = os.path.join(self.dirpath, basename + self.ext)
+        return read_excel(pth, *args, **kwds)
 
 
 class ReadingTestsBase(SharedItems):
@@ -279,40 +298,40 @@ class ReadingTestsBase(SharedItems):
                          datetime(2015, 3, 14)])
         ])
 
-        pth = os.path.join(self.dirpath, 'test_types' + self.ext)
+        basename = 'test_types'
 
         # should read in correctly and infer types
-        actual = read_excel(pth, 'Sheet1')
+        actual = self.get_exceldf(basename, 'Sheet1')
         tm.assert_frame_equal(actual, expected)
 
         # if not coercing number, then int comes in as float
         float_expected = expected.copy()
         float_expected["IntCol"] = float_expected["IntCol"].astype(float)
         float_expected.loc[1, "Str2Col"] = 3.0
-        actual = read_excel(pth, 'Sheet1', convert_float=False)
+        actual = self.get_exceldf(basename, 'Sheet1', convert_float=False)
         tm.assert_frame_equal(actual, float_expected)
 
         # check setting Index (assuming xls and xlsx are the same here)
         for icol, name in enumerate(expected.columns):
-            actual = read_excel(pth, 'Sheet1', index_col=icol)
+            actual = self.get_exceldf(basename, 'Sheet1', index_col=icol)
             exp = expected.set_index(name)
             tm.assert_frame_equal(actual, exp)
 
         # convert_float and converters should be different but both accepted
         expected["StrCol"] = expected["StrCol"].apply(str)
-        actual = read_excel(pth, 'Sheet1', converters={"StrCol": str})
+        actual = self.get_exceldf(basename, 'Sheet1', converters={"StrCol": str})
         tm.assert_frame_equal(actual, expected)
 
         no_convert_float = float_expected.copy()
         no_convert_float["StrCol"] = no_convert_float["StrCol"].apply(str)
-        actual = read_excel(pth, 'Sheet1', converters={"StrCol": str},
-                           convert_float=False)
+        actual = self.get_exceldf(basename, 'Sheet1', convert_float=False,
+                                  converters={"StrCol": str})
         tm.assert_frame_equal(actual, no_convert_float)
 
     # GH8212 - support for converters and missing values
     def test_reader_converters(self):
 
-        pth = os.path.join(self.dirpath, 'test_converters' + self.ext)
+        basename = 'test_converters'
 
         expected = DataFrame.from_items([
             ("IntCol", [1, 2, -3, -1000, 0]),
@@ -328,15 +347,15 @@ class ReadingTestsBase(SharedItems):
                       }
 
         # should read in correctly and set types of single cells (not array dtypes)
-        actual = read_excel(pth, 'Sheet1', converters=converters)
+        actual = self.get_exceldf(basename, 'Sheet1', converters=converters)
         tm.assert_frame_equal(actual, expected)
 
     def test_reading_all_sheets(self):
         # Test reading all sheetnames by setting sheetname to None,
         # Ensure a dict is returned.
         # See PR #9450
-        pth = os.path.join(self.dirpath, 'test_multisheet' + self.ext)
-        dfs = read_excel(pth, sheetname=None)
+        basename = 'test_multisheet'
+        dfs = self.get_exceldf(basename, sheetname=None)
         expected_keys = ['Alpha', 'Beta', 'Charlie']
         tm.assert_contains_all(expected_keys, dfs.keys())
 
@@ -346,10 +365,10 @@ class ReadingTestsBase(SharedItems):
         # references (positions/names) are removed properly.
         # Ensure a dict is returned
         # See PR #9450
-        pth = os.path.join(self.dirpath, 'test_multisheet' + self.ext)
+        basename = 'test_multisheet'
         # Explicitly request duplicates. Only the set should be returned.
         expected_keys = [2, 'Charlie', 'Charlie']
-        dfs = read_excel(pth, sheetname=expected_keys)
+        dfs = self.get_exceldf(basename, sheetname=expected_keys)
         expected_keys = list(set(expected_keys))
         tm.assert_contains_all(expected_keys, dfs.keys())
         assert len(expected_keys) == len(dfs.keys())
@@ -393,9 +412,7 @@ class XlrdTests(ReadingTestsBase):
 #        url = ('https://raw.github.com/pydata/pandas/master/'
 #               'pandas/io/tests/data/test' + self.ext)
         url_table = read_excel(url)
-        dirpath = tm.get_data_path()
-        localtable = os.path.join(dirpath, 'test1' + self.ext)
-        local_table = read_excel(localtable)
+        local_table = self.get_exceldf('test1')
         tm.assert_frame_equal(url_table, local_table)
 
     @slow
@@ -404,8 +421,8 @@ class XlrdTests(ReadingTestsBase):
         # FILE
         if sys.version_info[:2] < (2, 6):
             raise nose.SkipTest("file:// not supported with Python < 2.6")
-        dirpath = tm.get_data_path()
-        localtable = os.path.join(dirpath, 'test1' + self.ext)
+
+        localtable = os.path.join(self.dirpath, 'test1' + self.ext)
         local_table = read_excel(localtable)
 
         try:
@@ -486,38 +503,22 @@ class XlrdTests(ReadingTestsBase):
                                                time(16, 37, 1),
                                                time(18, 20, 54)])])
 
-        epoch_1900 = os.path.join(self.dirpath, 'times_1900' + self.ext)
-        epoch_1904 = os.path.join(self.dirpath, 'times_1904' + self.ext)
-
-        actual = read_excel(epoch_1900, 'Sheet1')
+        actual = self.get_exceldf('times_1900', 'Sheet1')
         tm.assert_frame_equal(actual, expected)
 
-        actual = read_excel(epoch_1904, 'Sheet1')
+        actual = self.get_exceldf('times_1904', 'Sheet1')
         tm.assert_frame_equal(actual, expected)
 
     # GH6403
     def test_read_excel_blank(self):
-        _skip_if_no_xlrd()
-
-        blank = os.path.join(self.dirpath, 'blank.xls')
-        actual = read_excel(blank, 'Sheet1')
-        tm.assert_frame_equal(actual, DataFrame())
-
-        blank = os.path.join(self.dirpath, 'blank.xlsx')
-        actual = read_excel(blank, 'Sheet1')
+        actual = self.get_exceldf('blank', 'Sheet1')
         tm.assert_frame_equal(actual, DataFrame())
 
     def test_read_excel_blank_with_header(self):
-        _skip_if_no_xlrd()
-
         expected = DataFrame(columns=['col_1', 'col_2'])
-        blank = os.path.join(self.dirpath, 'blank_with_header.xls')
-        actual = read_excel(blank, 'Sheet1')
+        actual = self.get_exceldf('blank_with_header', 'Sheet1')
         tm.assert_frame_equal(actual, expected)
 
-        blank = os.path.join(self.dirpath, 'blank_with_header.xlsx')
-        actual = read_excel(blank, 'Sheet1')
-        tm.assert_frame_equal(actual, expected)
 
 class XlsReaderTests(XlrdTests, tm.TestCase):
     ext = '.xls'
