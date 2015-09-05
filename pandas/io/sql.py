@@ -143,8 +143,8 @@ def execute(sql, con, cur=None, params=None):
         Using SQLAlchemy makes it possible to use any DB supported by that
         library.
         If a DBAPI2 object, only sqlite3 is supported.
-    cur : deprecated, cursor is obtained from connection
-    params : list or tuple, optional
+    cur : deprecated, cursor is obtained from connection, default: None
+    params : list or tuple, optional, default: None
         List of parameters to pass to execute method.
 
     Returns
@@ -189,8 +189,9 @@ def tquery(sql, con=None, cur=None, retry=True):
     ----------
     sql: string
         SQL query to be executed
-    con: DBAPI2 connection
-    cur: deprecated, cursor is obtained from connection
+    con: DBAPI2 connection, default: None
+    cur: deprecated, cursor is obtained from connection, default: None
+    retry: boolean value to specify whether to retry after failure, default: True
 
     Returns
     -------
@@ -242,9 +243,10 @@ def uquery(sql, con=None, cur=None, retry=True, params=None):
     ----------
     sql: string
         SQL query to be executed
-    con: DBAPI2 connection
-    cur: deprecated, cursor is obtained from connection
-    params: list or tuple, optional
+    con: DBAPI2 connection, default: None
+    cur: deprecated, cursor is obtained from connection, default: None
+    retry: boolean value to specify whether to retry after failure, default: True
+    params: list or tuple, optional, default: None
         List of parameters to pass to execute method.
 
     Returns
@@ -294,12 +296,12 @@ def read_sql_table(table_name, con, schema=None, index_col=None,
     schema : string, default None
         Name of SQL schema in database to query (if database flavor
         supports this). If None, use default schema (default).
-    index_col : string, optional
+    index_col : string, optional, default: None
         Column to set as index
     coerce_float : boolean, default True
         Attempt to convert values to non-string, non-numeric objects (like
         decimal.Decimal) to floating point. Can result in loss of Precision.
-    parse_dates : list or dict
+    parse_dates : list or dict, default: None
         - List of column names to parse as dates
         - Dict of ``{column_name: format string}`` where format string is
           strftime compatible in case of parsing string times or is one of
@@ -308,7 +310,7 @@ def read_sql_table(table_name, con, schema=None, index_col=None,
           to the keyword arguments of :func:`pandas.to_datetime`
           Especially useful with databases without native Datetime support,
           such as SQLite
-    columns : list
+    columns : list, default: None
         List of column names to select from sql table
     chunksize : int, default None
         If specified, return an iterator where `chunksize` is the number of
@@ -369,18 +371,18 @@ def read_sql_query(sql, con, index_col=None, coerce_float=True, params=None,
         Using SQLAlchemy makes it possible to use any DB supported by that
         library.
         If a DBAPI2 object, only sqlite3 is supported.
-    index_col : string, optional
+    index_col : string, optional, default: None
         Column name to use as index for the returned DataFrame object.
     coerce_float : boolean, default True
         Attempt to convert values to non-string, non-numeric objects (like
         decimal.Decimal) to floating point, useful for SQL result sets
-    params : list, tuple or dict, optional
+    params : list, tuple or dict, optional, default: None
         List of parameters to pass to execute method.  The syntax used
         to pass parameters is database driver dependent. Check your
         database driver documentation for which of the five syntax styles,
         described in PEP 249's paramstyle, is supported.
         Eg. for psycopg2, uses %(name)s so use params={'name' : 'value'}
-    parse_dates : list or dict
+    parse_dates : list or dict, default: None
         - List of column names to parse as dates
         - Dict of ``{column_name: format string}`` where format string is
           strftime compatible in case of parsing string times or is one of
@@ -428,18 +430,18 @@ def read_sql(sql, con, index_col=None, coerce_float=True, params=None,
         Using SQLAlchemy makes it possible to use any DB supported by that
         library.
         If a DBAPI2 object, only sqlite3 is supported.
-    index_col : string, optional
+    index_col : string, optional, default: None
         column name to use as index for the returned DataFrame object.
     coerce_float : boolean, default True
         Attempt to convert values to non-string, non-numeric objects (like
         decimal.Decimal) to floating point, useful for SQL result sets
-    params : list, tuple or dict, optional
+    params : list, tuple or dict, optional, default: None
         List of parameters to pass to execute method.  The syntax used
         to pass parameters is database driver dependent. Check your
         database driver documentation for which of the five syntax styles,
         described in PEP 249's paramstyle, is supported.
         Eg. for psycopg2, uses %(name)s so use params={'name' : 'value'}
-    parse_dates : list or dict
+    parse_dates : list or dict, default: None
         - List of column names to parse as dates
         - Dict of ``{column_name: format string}`` where format string is
           strftime compatible in case of parsing string times or is one of
@@ -448,7 +450,7 @@ def read_sql(sql, con, index_col=None, coerce_float=True, params=None,
           to the keyword arguments of :func:`pandas.to_datetime`
           Especially useful with databases without native Datetime support,
           such as SQLite
-    columns : list
+    columns : list, default: None
         List of column names to select from sql table (only used when reading
         a table).
     chunksize : int, default None
@@ -1061,13 +1063,13 @@ class SQLDatabase(PandasSQL):
         ----------
         table_name : string
             Name of SQL table in database
-        index_col : string, optional
+        index_col : string, optional, default: None
             Column to set as index
         coerce_float : boolean, default True
             Attempt to convert values to non-string, non-numeric objects
             (like decimal.Decimal) to floating point. This can result in
             loss of precision.
-        parse_dates : list or dict
+        parse_dates : list or dict, default: None
             - List of column names to parse as dates
             - Dict of ``{column_name: format string}`` where format string is
               strftime compatible in case of parsing string times or is one of
@@ -1076,7 +1078,7 @@ class SQLDatabase(PandasSQL):
               to the keyword arguments of :func:`pandas.to_datetime`.
               Especially useful with databases without native Datetime support,
               such as SQLite
-        columns : list
+        columns : list, default: None
             List of column names to select from sql table
         schema : string, default None
             Name of SQL schema in database to query (if database flavor
@@ -1123,18 +1125,18 @@ class SQLDatabase(PandasSQL):
         ----------
         sql : string
             SQL query to be executed
-        index_col : string, optional
+        index_col : string, optional, default: None
             Column name to use as index for the returned DataFrame object.
         coerce_float : boolean, default True
             Attempt to convert values to non-string, non-numeric objects (like
             decimal.Decimal) to floating point, useful for SQL result sets
-        params : list, tuple or dict, optional
+        params : list, tuple or dict, optional, default: None
             List of parameters to pass to execute method.  The syntax used
             to pass parameters is database driver dependent. Check your
             database driver documentation for which of the five syntax styles,
             described in PEP 249's paramstyle, is supported.
             Eg. for psycopg2, uses %(name)s so use params={'name' : 'value'}
-        parse_dates : list or dict
+        parse_dates : list or dict, default: None
             - List of column names to parse as dates
             - Dict of ``{column_name: format string}`` where format string is
               strftime compatible in case of parsing string times or is one of
@@ -1143,6 +1145,9 @@ class SQLDatabase(PandasSQL):
               to the keyword arguments of :func:`pandas.to_datetime`
               Especially useful with databases without native Datetime support,
               such as SQLite
+        chunksize : int, default None
+            If specified, return an iterator where `chunksize` is the number
+            of rows to include in each chunk.
 
         Returns
         -------
@@ -1650,11 +1655,11 @@ def get_schema(frame, name, flavor='sqlite', keys=None, con=None, dtype=None):
         The flavor of SQL to use. Ignored when using SQLAlchemy connectable.
         'mysql' is deprecated and will be removed in future versions, but it
         will be further supported through SQLAlchemy engines.
-    keys : string or sequence
+    keys : string or sequence, default: None
         columns to use a primary key
     con: an open SQL database connection object or a SQLAlchemy connectable
         Using SQLAlchemy makes it possible to use any DB supported by that
-        library.
+        library, default: None
         If a DBAPI2 object, only sqlite3 is supported.
     dtype : dict of column name to SQL type, default None
         Optional specifying the datatype for columns. The SQL type should
