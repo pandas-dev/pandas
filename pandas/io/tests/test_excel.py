@@ -157,7 +157,7 @@ class ReadingTestsBase(SharedItems):
     def test_parse_cols_int(self):
 
         dfref = self.get_csv_refdf('test1')
-        excel = self.get_excel('test1')
+        excel = self.get_excelfile('test1')
         dfref = dfref.reindex(columns=['A', 'B', 'C'])
         df1 = excel.parse('Sheet1', index_col=0, parse_dates=True,
                          parse_cols=3)
@@ -169,7 +169,7 @@ class ReadingTestsBase(SharedItems):
 
     def test_parse_cols_list(self):
 
-        excel = self.get_excel('test1')
+        excel = self.get_excelfile('test1')
         dfref = self.get_csv_refdf('test1')
         dfref = dfref.reindex(columns=['B', 'C'])
         df1 = excel.parse('Sheet1', index_col=0, parse_dates=True,
@@ -183,7 +183,7 @@ class ReadingTestsBase(SharedItems):
 
     def test_parse_cols_str(self):
 
-        excel = self.get_excel('test1')
+        excel = self.get_excelfile('test1')
         dfref = self.get_csv_refdf('test1')
 
         df1 = dfref.reindex(columns=['A', 'B', 'C'])
@@ -216,7 +216,7 @@ class ReadingTestsBase(SharedItems):
 
     def test_excel_stop_iterator(self):
 
-        excel = self.get_excel('test2')
+        excel = self.get_excelfile('test2')
 
         parsed = excel.parse('Sheet1')
         expected = DataFrame([['aaaa', 'bbbbb']], columns=['Test', 'Test1'])
@@ -224,7 +224,7 @@ class ReadingTestsBase(SharedItems):
 
     def test_excel_cell_error_na(self):
 
-        excel = self.get_excel('test3')
+        excel = self.get_excelfile('test3')
 
         parsed = excel.parse('Sheet1')
         expected = DataFrame([[np.nan]], columns=['Test'])
@@ -232,7 +232,7 @@ class ReadingTestsBase(SharedItems):
 
     def test_excel_passes_na(self):
 
-        excel = self.get_excel('test4')
+        excel = self.get_excelfile('test4')
 
         parsed = excel.parse('Sheet1', keep_default_na=False,
                              na_values=['apple'])
@@ -248,7 +248,7 @@ class ReadingTestsBase(SharedItems):
 
     def test_excel_table_sheet_by_index(self):
 
-        excel = self.get_excel('test1')
+        excel = self.get_excelfile('test1')
         dfref = self.get_csv_refdf('test1')
 
         df1 = excel.parse(0, index_col=0, parse_dates=True)
@@ -266,7 +266,7 @@ class ReadingTestsBase(SharedItems):
 
     def test_excel_table(self):
 
-        excel = self.get_excel('test1')
+        excel = self.get_excelfile('test1')
         dfref = self.get_csv_refdf('test1')
 
         df1 = excel.parse('Sheet1', index_col=0, parse_dates=True)
