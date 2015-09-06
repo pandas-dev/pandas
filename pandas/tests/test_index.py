@@ -509,6 +509,56 @@ class Base(object):
             tm.assert_numpy_array_equal(index_a == item, expected3)
             tm.assert_numpy_array_equal(series_a == item, expected3)
 
+    def test_numpy_ufuncs(self):
+        # test ufuncs of numpy 1.9.2. see:
+        # http://docs.scipy.org/doc/numpy/reference/ufuncs.html
+
+        # some functions are skipped because it may return different result
+        # for unicode input depending on numpy version
+
+        for name, idx in compat.iteritems(self.indices):
+            for func in [np.exp, np.exp2, np.expm1, np.log, np.log2, np.log10,
+                         np.log1p, np.sqrt, np.sin, np.cos,
+                         np.tan, np.arcsin, np.arccos, np.arctan,
+                         np.sinh, np.cosh, np.tanh, np.arcsinh, np.arccosh,
+                         np.arctanh, np.deg2rad, np.rad2deg]:
+                if isinstance(idx, pd.tseries.base.DatetimeIndexOpsMixin):
+                    # raise TypeError or ValueError (PeriodIndex)
+                    # PeriodIndex behavior should be changed in future version
+                    with tm.assertRaises(Exception):
+                        func(idx)
+                elif isinstance(idx, (Float64Index, Int64Index)):
+                    # coerces to float (e.g. np.sin)
+                    result = func(idx)
+                    exp = Index(func(idx.values), name=idx.name)
+                    self.assert_index_equal(result, exp)
+                    self.assertIsInstance(result, pd.Float64Index)
+                else:
+                    # raise AttributeError or TypeError
+                    if len(idx) == 0:
+                        continue
+                    else:
+                        with tm.assertRaises(Exception):
+                            func(idx)
+
+            for func in [np.isfinite, np.isinf, np.isnan, np.signbit]:
+                if isinstance(idx, pd.tseries.base.DatetimeIndexOpsMixin):
+                    # raise TypeError or ValueError (PeriodIndex)
+                    with tm.assertRaises(Exception):
+                        func(idx)
+                elif isinstance(idx, (Float64Index, Int64Index)):
+                    # results in bool array
+                    result = func(idx)
+                    exp = func(idx.values)
+                    self.assertIsInstance(result, np.ndarray)
+                    tm.assertNotIsInstance(result, Index)
+                else:
+                    if len(idx) == 0:
+                        continue
+                    else:
+                        with tm.assertRaises(Exception):
+                            func(idx)
+
 
 class TestIndex(Base, tm.TestCase):
     _holder = Index
@@ -2848,6 +2898,41 @@ class TestInt64Index(Numeric, tm.TestCase):
         idx = Int64Index([1, 2], name='asdf')
         self.assertEqual(idx.name, idx[1:].name)
 
+    def test_ufunc_coercions(self):
+        idx = pd.Int64Index([1, 2, 3, 4, 5], name='x')
+
+        result = np.sqrt(idx)
+        tm.assertIsInstance(result, Float64Index)
+        exp = pd.Float64Index(np.sqrt(np.array([1, 2, 3, 4, 5])), name='x')
+        tm.assert_index_equal(result, exp)
+
+        result = np.divide(idx, 2.)
+        tm.assertIsInstance(result, Float64Index)
+        exp = pd.Float64Index([0.5, 1., 1.5, 2., 2.5], name='x')
+        tm.assert_index_equal(result, exp)
+
+        # _evaluate_numeric_binop
+        result = idx + 2.
+        tm.assertIsInstance(result, Float64Index)
+        exp = pd.Float64Index([3., 4., 5., 6., 7.], name='x')
+        tm.assert_index_equal(result, exp)
+
+        result = idx - 2.
+        tm.assertIsInstance(result, Float64Index)
+        exp = pd.Float64Index([-1., 0., 1., 2., 3.], name='x')
+        tm.assert_index_equal(result, exp)
+
+        result = idx * 1.
+        tm.assertIsInstance(result, Float64Index)
+        exp = pd.Float64Index([1., 2., 3., 4., 5.], name='x')
+        tm.assert_index_equal(result, exp)
+
+        result = idx / 2.
+        tm.assertIsInstance(result, Float64Index)
+        exp = pd.Float64Index([0.5, 1., 1.5, 2., 2.5], name='x')
+        tm.assert_index_equal(result, exp)
+
+
 class DatetimeLike(Base):
 
     def test_str(self):
@@ -3101,7 +3186,9 @@ class TestPeriodIndex(DatetimeLike, tm.TestCase):
                                      tolerance=timedelta(1)), 1)
         with tm.assertRaisesRegexp(ValueError, 'must be convertible'):
             idx.get_loc('2000-01-10', method='nearest', tolerance='foo')
-        with tm.assertRaisesRegexp(ValueError, 'different freq'):
+
+        msg = 'Input has different freq from PeriodIndex\\(freq=D\\)'
+        with tm.assertRaisesRegexp(ValueError, msg):
             idx.get_loc('2000-01-10', method='nearest', tolerance='1 hour')
         with tm.assertRaises(KeyError):
             idx.get_loc('2000-01-10', method='nearest', tolerance='1 day')
@@ -3119,7 +3206,8 @@ class TestPeriodIndex(DatetimeLike, tm.TestCase):
             idx.get_indexer(target, 'nearest', tolerance='1 hour'),
             [0, -1, 1])
 
-        with self.assertRaisesRegexp(ValueError, 'different freq'):
+        msg = 'Input has different freq from PeriodIndex\\(freq=H\\)'
+        with self.assertRaisesRegexp(ValueError, msg):
             idx.get_indexer(target, 'nearest', tolerance='1 minute')
 
         tm.assert_numpy_array_equal(
@@ -3214,6 +3302,44 @@ class TestTimedeltaIndex(DatetimeLike, tm.TestCase):
 
     def test_pickle_compat_construction(self):
         pass
+
+    def test_ufunc_coercions(self):
+        # normal ops are also tested in tseries/test_timedeltas.py
+        idx = TimedeltaIndex(['2H', '4H', '6H', '8H', '10H'],
+                                freq='2H', name='x')
+
+        for result in [idx * 2, np.multiply(idx, 2)]:
+            tm.assertIsInstance(result, TimedeltaIndex)
+            exp = TimedeltaIndex(['4H', '8H', '12H', '16H', '20H'],
+                                 freq='4H', name='x')
+            tm.assert_index_equal(result, exp)
+            self.assertEqual(result.freq, '4H')
+
+        for result in [idx / 2, np.divide(idx, 2)]:
+            tm.assertIsInstance(result, TimedeltaIndex)
+            exp = TimedeltaIndex(['1H', '2H', '3H', '4H', '5H'],
+                                 freq='H', name='x')
+            tm.assert_index_equal(result, exp)
+            self.assertEqual(result.freq, 'H')
+
+        idx = TimedeltaIndex(['2H', '4H', '6H', '8H', '10H'],
+                                freq='2H', name='x')
+        for result in [ - idx, np.negative(idx)]:
+            tm.assertIsInstance(result, TimedeltaIndex)
+            exp = TimedeltaIndex(['-2H', '-4H', '-6H', '-8H', '-10H'],
+                                 freq='-2H', name='x')
+            tm.assert_index_equal(result, exp)
+            self.assertEqual(result.freq, None)
+
+        idx = TimedeltaIndex(['-2H', '-1H', '0H', '1H', '2H'],
+                                freq='H', name='x')
+        for result in [ abs(idx), np.absolute(idx)]:
+            tm.assertIsInstance(result, TimedeltaIndex)
+            exp = TimedeltaIndex(['2H', '1H', '0H', '1H', '2H'],
+                                 freq=None, name='x')
+            tm.assert_index_equal(result, exp)
+            self.assertEqual(result.freq, None)
+
 
 class TestMultiIndex(Base, tm.TestCase):
     _holder = MultiIndex
