@@ -26,11 +26,14 @@ requirements:
     - pytz
 
 test:
-  requires:
-    - nose
+  imports:
+    - pandas
 
-  commands:
-    - nosetests --exe -A "not slow and not network and not disabled" pandas
+  #requires:
+  #  - nose
+
+  #commands:
+  #  - nosetests --exe -A "not slow and not network and not disabled" pandas
 
 about:
   home: http://pandas.pydata.org

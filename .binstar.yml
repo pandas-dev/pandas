@@ -15,7 +15,7 @@ platform:
   - win-64
 engine:
   - python=2.7
-  #- python=3.4
+  - python=3.4
 script:
   - conda build conda.recipe --quiet
 
