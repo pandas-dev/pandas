@@ -2321,6 +2321,17 @@ class TestPeriodIndex(tm.TestCase):
         self.assertTrue(result.equals(expected))
         self.assertEqual(result.name, expected.name)
 
+    def test_shift_ndarray(self):
+        idx = PeriodIndex(['2011-01', '2011-02', 'NaT', '2011-04'], freq='M', name='idx')
+        result = idx.shift(np.array([1, 2, 3, 4]))
+        expected = PeriodIndex(['2011-02', '2011-04', 'NaT', '2011-08'], freq='M', name='idx')
+        self.assertTrue(result.equals(expected))
+
+        idx = PeriodIndex(['2011-01', '2011-02', 'NaT', '2011-04'], freq='M', name='idx')
+        result = idx.shift(np.array([1, -2, 3, -4]))
+        expected = PeriodIndex(['2011-02', '2010-12', 'NaT', '2010-12'], freq='M', name='idx')
+        self.assertTrue(result.equals(expected))
+
     def test_asfreq(self):
         pi1 = PeriodIndex(freq='A', start='1/1/2001', end='1/1/2001')
         pi2 = PeriodIndex(freq='Q', start='1/1/2001', end='1/1/2001')
@@ -3336,6 +3347,53 @@ class TestMethods(tm.TestCase):
         msg = "unsupported operand type\(s\)"
         with tm.assertRaisesRegexp(TypeError, msg):
             idx + "str"
+
+    def test_pi_ops_array(self):
+        idx = PeriodIndex(['2011-01', '2011-02', 'NaT', '2011-04'], freq='M', name='idx')
+        result = idx + np.array([1, 2, 3, 4])
+        exp = PeriodIndex(['2011-02', '2011-04', 'NaT', '2011-08'], freq='M', name='idx')
+        self.assert_index_equal(result, exp)
+
+        result = np.add(idx, np.array([4, -1, 1, 2]))
+        exp = PeriodIndex(['2011-05', '2011-01', 'NaT', '2011-06'], freq='M', name='idx')
+        self.assert_index_equal(result, exp)
+
+        result = idx - np.array([1, 2, 3, 4])
+        exp = PeriodIndex(['2010-12', '2010-12', 'NaT', '2010-12'], freq='M', name='idx')
+        self.assert_index_equal(result, exp)
+
+        result = np.subtract(idx, np.array([3, 2, 3, -2]))
+        exp = PeriodIndex(['2010-10', '2010-12', 'NaT', '2011-06'], freq='M', name='idx')
+        self.assert_index_equal(result, exp)
+
+        # incompatible freq
+        msg = "Input has different freq from PeriodIndex\(freq=M\)"
+        with tm.assertRaisesRegexp(ValueError, msg):
+            idx + np.array([np.timedelta64(1, 'D')] * 4)
+
+        idx = PeriodIndex(['2011-01-01 09:00', '2011-01-01 10:00', 'NaT',
+                           '2011-01-01 12:00'], freq='H', name='idx')
+        result = idx + np.array([np.timedelta64(1, 'D')] * 4)
+        exp = PeriodIndex(['2011-01-02 09:00', '2011-01-02 10:00', 'NaT',
+                           '2011-01-02 12:00'], freq='H', name='idx')
+        self.assert_index_equal(result, exp)
+
+        result = idx - np.array([np.timedelta64(1, 'h')] * 4)
+        exp = PeriodIndex(['2011-01-01 08:00', '2011-01-01 09:00', 'NaT',
+                           '2011-01-01 11:00'], freq='H', name='idx')
+        self.assert_index_equal(result, exp)
+
+        msg = "Input has different freq from PeriodIndex\(freq=H\)"
+        with tm.assertRaisesRegexp(ValueError, msg):
+            idx + np.array([np.timedelta64(1, 's')] * 4)
+
+        idx = PeriodIndex(['2011-01-01 09:00:00', '2011-01-01 10:00:00', 'NaT',
+                           '2011-01-01 12:00:00'], freq='S', name='idx')
+        result = idx + np.array([np.timedelta64(1, 'h'), np.timedelta64(30, 's'),
+                                 np.timedelta64(2, 'h'), np.timedelta64(15, 'm')])
+        exp = PeriodIndex(['2011-01-01 10:00:00', '2011-01-01 10:00:30', 'NaT',
+                           '2011-01-01 12:15:00'], freq='S', name='idx')
+        self.assert_index_equal(result, exp)
 
 
 class TestPeriodRepresentation(tm.TestCase):

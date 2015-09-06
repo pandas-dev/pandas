@@ -1088,6 +1088,8 @@ cdef class _NaT(_Timestamp):
 
 
 def _delta_to_nanoseconds(delta):
+    if isinstance(delta, np.ndarray):
+        return delta.astype('m8[ns]').astype('int64')
     if hasattr(delta, 'nanos'):
         return delta.nanos
     if hasattr(delta, 'delta'):

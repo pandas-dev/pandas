@@ -278,6 +278,14 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, Int64Index):
             raise Exception("invalid pickle state")
     _unpickle_compat = __setstate__
 
+    def _maybe_update_attributes(self, attrs):
+        """ Update Index attributes (e.g. freq) depending on op """
+        freq = attrs.get('freq', None)
+        if freq is not None:
+            # no need to infer if freq is None
+            attrs['freq'] = 'infer'
+        return attrs
+
     def _add_delta(self, delta):
         if isinstance(delta, (Tick, timedelta, np.timedelta64)):
             new_values = self._add_delta_td(delta)
@@ -559,14 +567,6 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, Int64Index):
             return self._shallow_copy(dates)
         else:
             return left
-
-    def __array_finalize__(self, obj):
-        if self.ndim == 0:  # pragma: no cover
-            return self.item()
-
-        self.name = getattr(obj, 'name', None)
-        self.freq = getattr(obj, 'freq', None)
-        self._reset_identity()
 
     def _wrap_union_result(self, other, result):
         name = self.name if self.name == other.name else None

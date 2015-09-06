@@ -613,7 +613,8 @@ def _arith_method_SERIES(op, name, str_rep, fill_zeros=None,
         else:
             # scalars
             if hasattr(lvalues, 'values') and not isinstance(lvalues, pd.DatetimeIndex):
-                 lvalues = lvalues.values
+                lvalues = lvalues.values
+
             return left._constructor(wrap_results(na_op(lvalues, rvalues)),
                                      index=left.index, name=left.name,
                                      dtype=dtype)
