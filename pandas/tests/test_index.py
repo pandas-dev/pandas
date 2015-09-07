@@ -3329,7 +3329,7 @@ class TestTimedeltaIndex(DatetimeLike, tm.TestCase):
             exp = TimedeltaIndex(['-2H', '-4H', '-6H', '-8H', '-10H'],
                                  freq='-2H', name='x')
             tm.assert_index_equal(result, exp)
-            self.assertEqual(result.freq, None)
+            self.assertEqual(result.freq, '-2H')
 
         idx = TimedeltaIndex(['-2H', '-1H', '0H', '1H', '2H'],
                                 freq='H', name='x')
