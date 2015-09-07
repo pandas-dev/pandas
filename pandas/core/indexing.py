@@ -442,11 +442,15 @@ class _NDFrameIndexer(object):
 
                 # we have an equal len Frame
                 if isinstance(value, ABCDataFrame) and value.ndim > 1:
+                    sub_indexer = list(indexer)
 
                     for item in labels:
-                        # align to
-                        v = np.nan if item not in value else \
-                                self._align_series(indexer[0], value[item])
+                        if item in value:
+                            sub_indexer[info_axis] = item
+                            v = self._align_series(tuple(sub_indexer), value[item])
+                        else:
+                            v = np.nan
+
                         setter(item, v)
 
                 # we have an equal len ndarray/convertible to our labels
