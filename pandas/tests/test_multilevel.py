@@ -829,7 +829,7 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
             index = frame._get_axis(axis)
             for i in range(index.nlevels):
                 result = frame.count(axis=axis, level=i)
-                expected = frame.groupby(axis=axis, level=i).count(axis=axis)
+                expected = frame.groupby(axis=axis, level=i).count()
                 expected = expected.reindex_like(result).astype('i8')
                 assert_frame_equal(result, expected)
 
