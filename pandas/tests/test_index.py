@@ -651,6 +651,11 @@ class TestIndex(Base, tm.TestCase):
         df = pd.DataFrame(np.random.rand(5,3))
         df['date'] = ['1-1-1990', '2-1-1990', '3-1-1990', '4-1-1990', '5-1-1990']
         result = DatetimeIndex(df['date'], freq='MS')
+        self.assertTrue(result.equals(expected))
+        self.assertEqual(df['date'].dtype, object)
+
+        exp = pd.Series(['1-1-1990', '2-1-1990', '3-1-1990', '4-1-1990', '5-1-1990'], name='date')
+        self.assert_series_equal(df['date'], exp)
 
         # GH 6274
         # infer freq of same
@@ -692,6 +697,55 @@ class TestIndex(Base, tm.TestCase):
         idx = Index(['A', 'B', 'C', np.nan], name='obj')
         result = idx._simple_new(idx, 'obj')
         self.assertTrue(result.equals(idx))
+
+    def test_constructor_dtypes(self):
+
+        for idx in [Index(np.array([1, 2, 3], dtype=int)),
+                    Index(np.array([1, 2, 3], dtype=int), dtype=int),
+                    Index(np.array([1., 2., 3.], dtype=float), dtype=int),
+                    Index([1, 2, 3], dtype=int),
+                    Index([1., 2., 3.], dtype=int)]:
+            self.assertIsInstance(idx, Int64Index)
+
+        for idx in [Index(np.array([1., 2., 3.], dtype=float)),
+                    Index(np.array([1, 2, 3], dtype=int), dtype=float),
+                    Index(np.array([1., 2., 3.], dtype=float), dtype=float),
+                    Index([1, 2, 3], dtype=float),
+                    Index([1., 2., 3.], dtype=float)]:
+            self.assertIsInstance(idx, Float64Index)
+
+        for idx in [Index(np.array([True, False, True], dtype=bool)),
+                    Index([True, False, True]),
+                    Index(np.array([True, False, True], dtype=bool), dtype=bool),
+                    Index([True, False, True], dtype=bool)]:
+            self.assertIsInstance(idx, Index)
+            self.assertEqual(idx.dtype, object)
+
+        for idx in [Index(np.array([1, 2, 3], dtype=int), dtype='category'),
+                    Index([1, 2, 3], dtype='category'),
+                    Index(np.array([np.datetime64('2011-01-01'), np.datetime64('2011-01-02')]), dtype='category'),
+                    Index([datetime(2011, 1, 1), datetime(2011, 1, 2)], dtype='category')]:
+            self.assertIsInstance(idx, CategoricalIndex)
+
+        for idx in [Index(np.array([np.datetime64('2011-01-01'), np.datetime64('2011-01-02')])),
+                    Index([datetime(2011, 1, 1), datetime(2011, 1, 2)])]:
+            self.assertIsInstance(idx, DatetimeIndex)
+
+        for idx in [Index(np.array([np.datetime64('2011-01-01'), np.datetime64('2011-01-02')]), dtype=object),
+                    Index([datetime(2011, 1, 1), datetime(2011, 1, 2)], dtype=object)]:
+            self.assertNotIsInstance(idx, DatetimeIndex)
+            self.assertIsInstance(idx, Index)
+            self.assertEqual(idx.dtype, object)
+
+        for idx in [Index(np.array([np.timedelta64(1, 'D'), np.timedelta64(1, 'D')])),
+                    Index([timedelta(1), timedelta(1)])]:
+            self.assertIsInstance(idx, TimedeltaIndex)
+
+        for idx in [Index(np.array([np.timedelta64(1, 'D'), np.timedelta64(1, 'D')]), dtype=object),
+                    Index([timedelta(1), timedelta(1)], dtype=object)]:
+            self.assertNotIsInstance(idx, TimedeltaIndex)
+            self.assertIsInstance(idx, Index)
+            self.assertEqual(idx.dtype, object)
 
     def test_view_with_args(self):
 
