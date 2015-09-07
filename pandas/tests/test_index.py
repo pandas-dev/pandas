@@ -3254,6 +3254,14 @@ class TestPeriodIndex(DatetimeLike, tm.TestCase):
         self.assert_index_equal(res, exp)
         self.assertEqual(res.freqstr, 'D')
 
+    def test_period_index_indexer(self):
+
+        #GH4125
+        idx = pd.period_range('2002-01','2003-12', freq='M')
+        df = pd.DataFrame(pd.np.random.randn(24,10), index=idx)
+        self.assert_frame_equal(df, df.ix[idx])
+        self.assert_frame_equal(df, df.ix[list(idx)])
+
 
 class TestTimedeltaIndex(DatetimeLike, tm.TestCase):
     _holder = TimedeltaIndex

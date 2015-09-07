@@ -2,18 +2,18 @@
 import datetime
 import warnings
 import operator
-
 from functools import partial
-from pandas.compat import range, zip, lrange, lzip, u, reduce, filter, map
-from pandas import compat
-import numpy as np
-
 from sys import getsizeof
+
+import numpy as np
 import pandas.tslib as tslib
 import pandas.lib as lib
 import pandas.algos as _algos
 import pandas.index as _index
 from pandas.lib import Timestamp, Timedelta, is_datetime_array
+
+from pandas.compat import range, zip, lrange, lzip, u, map
+from pandas import compat
 from pandas.core.base import PandasObject, FrozenList, FrozenNDArray, IndexOpsMixin, _shared_docs, PandasDelegate
 from pandas.util.decorators import (Appender, Substitution, cache_readonly,
                                     deprecate, deprecate_kwarg)
@@ -25,6 +25,9 @@ from pandas.core.common import (isnull, array_equivalent, is_dtype_equal, is_obj
                                 is_list_like, is_bool_dtype, is_null_slice, is_integer_dtype)
 from pandas.core.config import get_option
 from pandas.io.common import PerformanceWarning
+
+
+
 
 # simplify
 default_pprint = lambda x, max_seq_items=None: com.pprint_thing(x,
@@ -973,7 +976,9 @@ class Index(IndexOpsMixin, PandasObject):
         and we have a mixed index (e.g. number/labels). figure out
         the indexer. return None if we can't help
         """
-        if (kind is None or kind in ['iloc','ix']) and (is_integer_dtype(keyarr) and not self.is_floating()):
+        if (kind is None or kind in ['iloc', 'ix']) and (
+            is_integer_dtype(keyarr) and not self.is_floating() and not com.is_period_arraylike(keyarr)):
+
             if self.inferred_type != 'integer':
                 keyarr = np.where(keyarr < 0,
                                   len(self) + keyarr, keyarr)
