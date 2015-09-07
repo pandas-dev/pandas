@@ -1539,8 +1539,7 @@ class TestSlicing(tm.TestCase):
         result = - rng
         exp = timedelta_range('-2 days', periods=5, freq='-2D', name='x')
         tm.assert_index_equal(result, exp)
-        # tdi doesn't infer negative freq
-        self.assertEqual(result.freq, None)
+        self.assertEqual(result.freq, '-2D')
 
         rng = pd.timedelta_range('-2 days', periods=5, freq='D', name='x')
 
@@ -1548,7 +1547,6 @@ class TestSlicing(tm.TestCase):
         exp = TimedeltaIndex(['2 days', '1 days', '0 days', '1 days',
                               '2 days'], name='x')
         tm.assert_index_equal(result, exp)
-        # tdi doesn't infer negative freq
         self.assertEqual(result.freq, None)
 
 

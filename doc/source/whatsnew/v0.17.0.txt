@@ -1011,4 +1011,6 @@ Bug Fixes
 - Bug in ``.var()`` causing roundoff errors for highly similar values (:issue:`10242`)
 - Bug in ``DataFrame.plot(subplots=True)`` with duplicated columns outputs incorrect result (:issue:`10962`)
 - Bug in ``Index`` arithmetic may result in incorrect class (:issue:`10638`)
+- Bug in ``date_range`` results in empty if freq is negative annualy, quarterly and monthly (:issue:`11018`)
+- Bug in ``DatetimeIndex`` cannot infer negative freq (:issue:`11018`)
 

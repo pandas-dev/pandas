@@ -1260,6 +1260,18 @@ class TestTimeSeries(tm.TestCase):
         rng = date_range('1/1/2000 00:00', '1/1/2000 00:18', freq='5min')
         self.assertEqual(len(rng), 4)
 
+    def test_date_range_negative_freq(self):
+        # GH 11018
+        rng = date_range('2011-12-31', freq='-2A', periods=3)
+        exp = pd.DatetimeIndex(['2011-12-31', '2009-12-31', '2007-12-31'], freq='-2A')
+        self.assert_index_equal(rng, exp)
+        self.assertEqual(rng.freq, '-2A')
+
+        rng = date_range('2011-01-31', freq='-2M', periods=3)
+        exp = pd.DatetimeIndex(['2011-01-31', '2010-11-30', '2010-09-30'], freq='-2M')
+        self.assert_index_equal(rng, exp)
+        self.assertEqual(rng.freq, '-2M')
+
     def test_first_subset(self):
         ts = _simple_ts('1/1/2000', '1/1/2010', freq='12h')
         result = ts.first('10d')
