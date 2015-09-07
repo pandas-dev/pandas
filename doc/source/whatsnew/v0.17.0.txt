@@ -964,6 +964,8 @@ Bug Fixes
 
 - Bug causes memory leak in time-series line and area plot (:issue:`9003`)
 
+- Bug when setting a ``Panel`` sliced along the major or minor axes when the right-hand side is a ``DataFrame`` (:issue:`11014`)
+
 
 - Bug in line and kde plot cannot accept multiple colors when ``subplots=True`` (:issue:`9894`)
 - Bug in ``DataFrame.plot`` raises ``ValueError`` when color name is specified by multiple characters (:issue:`10387`)
