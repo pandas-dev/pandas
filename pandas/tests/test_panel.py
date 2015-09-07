@@ -506,6 +506,20 @@ class CheckIndexing(object):
 
         assert_almost_equal(P[key].values, data)
 
+    def test_set_minor_major(self):
+        # GH 11014
+        df1 = DataFrame(['a', 'a', 'a', np.nan, 'a', np.nan])
+        df2 = DataFrame([1.0, np.nan, 1.0, np.nan, 1.0, 1.0])
+        panel = Panel({'Item1' : df1, 'Item2': df2})
+
+        newminor = notnull(panel.iloc[:, :, 0])
+        panel.loc[:, :, 'NewMinor'] = newminor
+        assert_frame_equal(panel.loc[:, :, 'NewMinor'], newminor.astype(object))
+
+        newmajor = notnull(panel.iloc[:, 0, :])
+        panel.loc[:, 'NewMajor', :] = newmajor
+        assert_frame_equal(panel.loc[:, 'NewMajor', :], newmajor.astype(object))
+
     def test_major_xs(self):
         ref = self.panel['ItemA']
 
