@@ -1072,6 +1072,20 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         expected = Series(DatetimeIndex(s._values).asobject)
         assert_series_equal(result, expected)
 
+        result = Series(s.values).dt.tz_localize('UTC').dt.tz_convert(s.dt.tz)
+        assert_series_equal(result, s)
+
+        # astype - datetime64[ns, tz]
+        result = Series(s.values).astype('datetime64[ns, US/Eastern]')
+        assert_series_equal(result, s)
+
+        result = Series(s.values).astype(s.dtype)
+        assert_series_equal(result, s)
+
+        result = s.astype('datetime64[ns, CET]')
+        expected = Series(date_range('20130101 06:00:00',periods=3,tz='CET'))
+        assert_series_equal(result, expected)
+
         # short str
         self.assertTrue('datetime64[ns, US/Eastern]' in str(s))
 

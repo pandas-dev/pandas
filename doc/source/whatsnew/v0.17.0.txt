@@ -447,9 +447,9 @@ Datetime with TZ
 
 We are adding an implementation that natively supports datetime with timezones. A ``Series`` or a ``DataFrame`` column previously
 *could* be assigned a datetime with timezones, and would work as an ``object`` dtype. This had performance issues with a large
-number rows. (:issue:`8260`, :issue:`10763`)
+number rows. See the :ref:`docs <timeseries.timezone_series>` for more details. (:issue:`8260`, :issue:`10763`).
 
-The new implementation allows for having a single-timezone across all rows, and operating on it in a performant manner.
+The new implementation allows for having a single-timezone across all rows, with operations in a performant manner.
 
 .. ipython:: python
 
@@ -469,12 +469,14 @@ This uses a new-dtype representation as well, that is very similar in look-and-f
 .. ipython:: python
 
    df['B'].dtype
-   type(df['B']).dtype
+   type(df['B'].dtype)
 
 .. note::
 
    There is a slightly different string repr for the underlying ``DatetimeIndex`` as a result of the dtype changes, but
    functionally these are the same.
+
+   Previous Behavior:
 
    .. code-block:: python
 
@@ -486,11 +488,12 @@ This uses a new-dtype representation as well, that is very similar in look-and-f
       In [2]: pd.date_range('20130101',periods=3,tz='US/Eastern').dtype
       Out[2]: dtype('<M8[ns]')
 
+   New Behavior:
+
    .. ipython:: python
 
       pd.date_range('20130101',periods=3,tz='US/Eastern')
       pd.date_range('20130101',periods=3,tz='US/Eastern').dtype
-
 
 .. _whatsnew_0170.api_breaking.convert_objects:
 
