@@ -2615,15 +2615,24 @@ def generate_range(start=None, end=None, periods=None,
         start = end - (periods - 1) * offset
 
     cur = start
+    if offset.n >= 0:
+        while cur <= end:
+            yield cur
 
-    while cur <= end:
-        yield cur
+            # faster than cur + offset
+            next_date = offset.apply(cur)
+            if next_date <= cur:
+                raise ValueError('Offset %s did not increment date' % offset)
+            cur = next_date
+    else:
+        while cur >= end:
+            yield cur
 
-        # faster than cur + offset
-        next_date = offset.apply(cur)
-        if next_date <= cur:
-            raise ValueError('Offset %s did not increment date' % offset)
-        cur = next_date
+            # faster than cur + offset
+            next_date = offset.apply(cur)
+            if next_date >= cur:
+                raise ValueError('Offset %s did not decrement date' % offset)
+            cur = next_date
 
 prefix_mapping = dict((offset._prefix, offset) for offset in [
     YearBegin,                # 'AS'

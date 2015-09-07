@@ -494,6 +494,15 @@ Freq: H"""
             self.assert_index_equal(result, expected)
             self.assertIsNone(result.freq)
 
+    def test_infer_freq(self):
+        # GH 11018
+        for freq in ['A', '2A', '-2A', 'Q', '-1Q', 'M', '-1M', 'D', '3D', '-3D',
+                     'W', '-1W', 'H', '2H', '-2H', 'T', '2T', 'S', '-3S']:
+            idx = pd.date_range('2011-01-01 09:00:00', freq=freq, periods=10)
+            result = pd.DatetimeIndex(idx.asi8, freq='infer')
+            tm.assert_index_equal(idx, result)
+            self.assertEqual(result.freq, freq)
+
 
 class TestTimedeltaIndexOps(Ops):
 
@@ -1107,6 +1116,14 @@ Freq: D"""
             expected = TimedeltaIndex(['29 day', '3 day', '6 day'], name='idx')
             self.assert_index_equal(result, expected)
             self.assertIsNone(result.freq)
+
+    def test_infer_freq(self):
+        # GH 11018
+        for freq in ['D', '3D', '-3D', 'H', '2H', '-2H', 'T', '2T', 'S', '-3S']:
+            idx = pd.timedelta_range('1', freq=freq, periods=10)
+            result = pd.TimedeltaIndex(idx.asi8, freq='infer')
+            tm.assert_index_equal(idx, result)
+            self.assertEqual(result.freq, freq)
 
 
 class TestPeriodIndexOps(Ops):

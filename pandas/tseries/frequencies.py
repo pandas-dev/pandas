@@ -887,7 +887,8 @@ class _FrequencyInferer(object):
         if len(index) < 3:
             raise ValueError('Need at least 3 dates to infer frequency')
 
-        self.is_monotonic = self.index.is_monotonic
+        self.is_monotonic = (self.index.is_monotonic_increasing or
+                             self.index.is_monotonic_decreasing)
 
     @cache_readonly
     def deltas(self):
@@ -971,7 +972,6 @@ class _FrequencyInferer(object):
 
         from calendar import monthrange
         for y, m, d, wd in zip(years, months, days, weekdays):
-            wd = datetime(y, m, d).weekday()
 
             if calendar_start:
                 calendar_start &= d == 1
@@ -1025,7 +1025,7 @@ class _FrequencyInferer(object):
 
         monthly_rule = self._get_monthly_rule()
         if monthly_rule:
-            return monthly_rule
+            return _maybe_add_count(monthly_rule, self.mdiffs[0])
 
         if self.is_unique:
             days = self.deltas[0] / _ONE_DAY
@@ -1111,7 +1111,7 @@ class _TimedeltaFrequencyInferer(_FrequencyInferer):
 
 
 def _maybe_add_count(base, count):
-    if count > 1:
+    if count != 1:
         return '%d%s' % (count, base)
     else:
         return base

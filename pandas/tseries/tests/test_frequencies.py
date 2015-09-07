@@ -539,7 +539,7 @@ class TestFrequencyInference(tm.TestCase):
     def test_not_monotonic(self):
         rng = _dti(['1/31/2000', '1/31/2001', '1/31/2002'])
         rng = rng[::-1]
-        self.assertIsNone(rng.inferred_freq)
+        self.assertEqual(rng.inferred_freq, '-1A-JAN')
 
     def test_non_datetimeindex(self):
         rng = _dti(['1/31/2000', '1/31/2001', '1/31/2002'])
