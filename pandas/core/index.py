@@ -117,7 +117,9 @@ class Index(IndexOpsMixin, PandasObject):
         if fastpath:
             return cls._simple_new(data, name)
 
-        from pandas.tseries.period import PeriodIndex
+        if is_categorical_dtype(data) or is_categorical_dtype(dtype):
+            return CategoricalIndex(data, copy=copy, name=name, **kwargs)
+
         if isinstance(data, (np.ndarray, Index, ABCSeries)):
             if issubclass(data.dtype.type, np.datetime64) or is_datetimetz(data):
                 from pandas.tseries.index import DatetimeIndex
@@ -137,10 +139,11 @@ class Index(IndexOpsMixin, PandasObject):
             if dtype is not None:
                 try:
                     data = np.array(data, dtype=dtype, copy=copy)
-                except TypeError:
+                except (TypeError, ValueError):
                     pass
 
             # maybe coerce to a sub-class
+            from pandas.tseries.period import PeriodIndex
             if isinstance(data, PeriodIndex):
                 return PeriodIndex(data, copy=copy, name=name, **kwargs)
             if issubclass(data.dtype.type, np.integer):
@@ -149,8 +152,6 @@ class Index(IndexOpsMixin, PandasObject):
                 return Float64Index(data, copy=copy, dtype=dtype, name=name)
             elif issubclass(data.dtype.type, np.bool) or is_bool_dtype(data):
                 subarr = data.astype('object')
-            elif is_categorical_dtype(data) or is_categorical_dtype(dtype):
-                return CategoricalIndex(data, copy=copy, name=name, **kwargs)
             else:
                 subarr = com._asarray_tuplesafe(data, dtype=object)
 
@@ -159,8 +160,28 @@ class Index(IndexOpsMixin, PandasObject):
             if copy:
                 subarr = subarr.copy()
 
-        elif is_categorical_dtype(data) or is_categorical_dtype(dtype):
-            return CategoricalIndex(data, copy=copy, name=name, **kwargs)
+            if dtype is None:
+                inferred = lib.infer_dtype(subarr)
+                if inferred == 'integer':
+                    return Int64Index(subarr.astype('i8'), copy=copy, name=name)
+                elif inferred in ['floating', 'mixed-integer-float']:
+                    return Float64Index(subarr, copy=copy, name=name)
+                elif inferred == 'boolean':
+                    # don't support boolean explicity ATM
+                    pass
+                elif inferred != 'string':
+                    if (inferred.startswith('datetime') or
+                        tslib.is_timestamp_array(subarr)):
+                        from pandas.tseries.index import DatetimeIndex
+                        return DatetimeIndex(subarr, copy=copy, name=name, **kwargs)
+                    elif (inferred.startswith('timedelta') or
+                          lib.is_timedelta_array(subarr)):
+                        from pandas.tseries.tdi import TimedeltaIndex
+                        return TimedeltaIndex(subarr, copy=copy, name=name, **kwargs)
+                    elif inferred == 'period':
+                        return PeriodIndex(subarr, name=name, **kwargs)
+            return cls._simple_new(subarr, name)
+
         elif hasattr(data, '__array__'):
             return Index(np.asarray(data), dtype=dtype, copy=copy, name=name,
                          **kwargs)
@@ -172,9 +193,7 @@ class Index(IndexOpsMixin, PandasObject):
                 # we must be all tuples, otherwise don't construct
                 # 10697
                 if all( isinstance(e, tuple) for e in data ):
-
                     try:
-
                         # must be orderable in py3
                         if compat.PY3:
                             sorted(data)
@@ -183,32 +202,9 @@ class Index(IndexOpsMixin, PandasObject):
                     except (TypeError, KeyError):
                         # python2 - MultiIndex fails on mixed types
                         pass
-
             # other iterable of some kind
             subarr = com._asarray_tuplesafe(data, dtype=object)
-
-        if dtype is None:
-            inferred = lib.infer_dtype(subarr)
-            if inferred == 'integer':
-                return Int64Index(subarr.astype('i8'), copy=copy, name=name)
-            elif inferred in ['floating', 'mixed-integer-float']:
-                return Float64Index(subarr, copy=copy, name=name)
-            elif inferred == 'boolean':
-                # don't support boolean explicity ATM
-                pass
-            elif inferred != 'string':
-                if (inferred.startswith('datetime') or
-                        tslib.is_timestamp_array(subarr)):
-                    from pandas.tseries.index import DatetimeIndex
-                    return DatetimeIndex(subarr, copy=copy, name=name, **kwargs)
-                elif (inferred.startswith('timedelta') or
-                        lib.is_timedelta_array(subarr)):
-                    from pandas.tseries.tdi import TimedeltaIndex
-                    return TimedeltaIndex(subarr, copy=copy, name=name, **kwargs)
-                elif inferred == 'period':
-                    return PeriodIndex(subarr, name=name, **kwargs)
-
-        return cls._simple_new(subarr, name)
+            return Index(subarr, dtype=dtype, copy=copy, name=name, **kwargs)
 
     @classmethod
     def _simple_new(cls, values, name=None, dtype=None, **kwargs):
