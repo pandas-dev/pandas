@@ -739,7 +739,7 @@ def group_last_%(name)s(ndarray[%(dest_type2)s, ndim=2] out,
                 val = values[i, j]
 
                 # not nan
-                if val == val:
+                if val == val and val != %(nan_val)s:
                     nobs[lab, j] += 1
                     resx[lab, j] = val
 
@@ -785,7 +785,7 @@ def group_nth_%(name)s(ndarray[%(dest_type2)s, ndim=2] out,
                 val = values[i, j]
 
                 # not nan
-                if val == val:
+                if val == val and val != %(nan_val)s:
                     nobs[lab, j] += 1
                     if nobs[lab, j] == rank:
                         resx[lab, j] = val
@@ -1013,7 +1013,7 @@ def group_max_%(name)s(ndarray[%(dest_type2)s, ndim=2] out,
                     val = values[i, j]
 
                     # not nan
-                    if val == val:
+                    if val == val and val != %(nan_val)s:
                         nobs[lab, j] += 1
                         if val > maxx[lab, j]:
                             maxx[lab, j] = val
@@ -1027,7 +1027,7 @@ def group_max_%(name)s(ndarray[%(dest_type2)s, ndim=2] out,
                 val = values[i, 0]
 
                 # not nan
-                if val == val:
+                if val == val and val != %(nan_val)s:
                     nobs[lab, 0] += 1
                     if val > maxx[lab, 0]:
                         maxx[lab, 0] = val
@@ -1076,7 +1076,8 @@ def group_min_%(name)s(ndarray[%(dest_type2)s, ndim=2] out,
                     val = values[i, j]
 
                     # not nan
-                    if val == val:
+                    if val == val and val != %(nan_val)s:
+
                         nobs[lab, j] += 1
                         if val < minx[lab, j]:
                             minx[lab, j] = val
@@ -1090,7 +1091,7 @@ def group_min_%(name)s(ndarray[%(dest_type2)s, ndim=2] out,
                 val = values[i, 0]
 
                 # not nan
-                if val == val:
+                if val == val and val != %(nan_val)s:
                     nobs[lab, 0] += 1
                     if val < minx[lab, 0]:
                         minx[lab, 0] = val
