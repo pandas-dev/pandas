@@ -1757,33 +1757,39 @@ TZ aware Dtypes
 
 .. ipython:: python
 
-   dr_naive = pd.date_range('20130101',periods=3)
-   dr_naive
-   s_naive = Series(dr_naive)
+   s_naive = pd.Series(pd.date_range('20130101',periods=3))
    s_naive
 
 ``Series/DatetimeIndex`` with a timezone **aware** value are represented with a dtype of ``datetime64[ns, tz]``.
 
 .. ipython:: python
 
-   dr_aware = pd.date_range('20130101',periods=3,tz='US/Eastern')
-   dr_aware
-   s_aware = Series(dr_aware)
+   s_aware = pd.Series(pd.date_range('20130101',periods=3,tz='US/Eastern'))
    s_aware
 
 Both of these ``Series`` can be manipulated via the ``.dt`` accessor, see :ref:`here <basics.dt_accessors>`.
 See the :ref:`docs <timeseries.dtypes>` for more details.
 
-Further more you can ``.astype(...)`` timezone aware (and naive).
+For example, to localize and convert a naive stamp to timezone aware.
 
 .. ipython:: python
 
-   # make this naive
+   s_naive.dt.tz_localize('UTC').dt.tz_convert('US/Eastern')
+
+
+Further more you can ``.astype(...)`` timezone aware (and naive). This operation is effectively a localize AND convert on a naive stamp, and
+a convert on an aware stamp.
+
+.. ipython:: python
+
+   # localize and convert a naive timezone
+   s_naive.astype('datetime64[ns, US/Eastern]')
+
+   # make an aware tz naive
    s_aware.astype('datetime64[ns]')
 
-   # convert
+   # convert to a new timezone
    s_aware.astype('datetime64[ns, CET]')
-   s_naive.astype('datetime64[ns, CET]')
 
 .. note::
 
@@ -1805,4 +1811,4 @@ Further more you can ``.astype(...)`` timezone aware (and naive).
 
    .. ipython:: python
 
-      Series(s_aware).dt.tz_localize('UTC').dt.tz_convert('US/Eastern')
+      pd.Series(s_aware.values).dt.tz_localize('UTC').dt.tz_convert('US/Eastern')
