@@ -684,7 +684,8 @@ class DataFrameFormatter(TableFormatter):
         return format_array(
             frame.iloc[:, i]._values,
             formatter, float_format=self.float_format, na_rep=self.na_rep,
-            space=self.col_space
+            space=self.col_space,
+            justify=getattr(formatter,'justify','right')
         )
 
     def to_html(self, classes=None, notebook=False):
@@ -820,7 +821,8 @@ class HTMLFormatter(TableFormatter):
         self.elements = []
         self.bold_rows = self.fmt.kwds.get('bold_rows', False)
         self.escape = self.fmt.kwds.get('escape', True)
-
+        if self.fmt.formatters is not None and len(self.fmt.formatters):
+            self.escape = tuple(getattr(f,'escape',self.escape) for f in self.fmt.formatters)
         self.max_rows = max_rows or len(self.fmt.frame)
         self.max_cols = max_cols or len(self.fmt.columns)
         self.show_dimensions = self.fmt.show_dimensions
@@ -840,16 +842,16 @@ class HTMLFormatter(TableFormatter):
 
         return self._write_cell(s, kind='th', indent=indent, tags=tags)
 
-    def write_td(self, s, indent=0, tags=None):
-        return self._write_cell(s, kind='td', indent=indent, tags=tags)
+    def write_td(self, s, indent=0, tags=None,column=None):
+        return self._write_cell(s, kind='td', indent=indent, tags=tags, column=column)
 
-    def _write_cell(self, s, kind='td', indent=0, tags=None):
+    def _write_cell(self, s, kind='td', indent=0, tags=None, column=None):
         if tags is not None:
             start_tag = '<%s %s>' % (kind, tags)
         else:
             start_tag = '<%s>' % kind
-
-        if self.escape:
+                      
+        if (self.escape if column is None or not isinstance(self.escape, tuple) else self.escape[column]):
             # escape & first to prevent double escaping of &
             esc = OrderedDict(
                 [('&', r'&amp;'), ('<', r'&lt;'), ('>', r'&gt;')]
@@ -861,7 +863,7 @@ class HTMLFormatter(TableFormatter):
             '%s%s</%s>' % (start_tag, rs, kind), indent)
 
     def write_tr(self, line, indent=0, indent_delta=4, header=False,
-                 align=None, tags=None, nindex_levels=0):
+                 align=None, tags=None, nindex_levels=0, escape=None):
         if tags is None:
             tags = {}
 
@@ -876,7 +878,7 @@ class HTMLFormatter(TableFormatter):
             if header or (self.bold_rows and i < nindex_levels):
                 self.write_th(s, indent, tags=val_tag)
             else:
-                self.write_td(s, indent, tags=val_tag)
+                self.write_td(s, indent, tags=val_tag, column=i-nindex_levels)
 
         indent -= indent_delta
         self.write('</tr>', indent)
