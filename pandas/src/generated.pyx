@@ -7315,7 +7315,7 @@ def group_last_float64(ndarray[float64_t, ndim=2] out,
                 val = values[i, j]
 
                 # not nan
-                if val == val:
+                if val == val and val != NAN:
                     nobs[lab, j] += 1
                     resx[lab, j] = val
 
@@ -7360,7 +7360,7 @@ def group_last_float32(ndarray[float32_t, ndim=2] out,
                 val = values[i, j]
 
                 # not nan
-                if val == val:
+                if val == val and val != NAN:
                     nobs[lab, j] += 1
                     resx[lab, j] = val
 
@@ -7405,7 +7405,7 @@ def group_last_int64(ndarray[int64_t, ndim=2] out,
                 val = values[i, j]
 
                 # not nan
-                if val == val:
+                if val == val and val != iNaT:
                     nobs[lab, j] += 1
                     resx[lab, j] = val
 
@@ -7451,7 +7451,7 @@ def group_nth_float64(ndarray[float64_t, ndim=2] out,
                 val = values[i, j]
 
                 # not nan
-                if val == val:
+                if val == val and val != NAN:
                     nobs[lab, j] += 1
                     if nobs[lab, j] == rank:
                         resx[lab, j] = val
@@ -7497,7 +7497,7 @@ def group_nth_float32(ndarray[float32_t, ndim=2] out,
                 val = values[i, j]
 
                 # not nan
-                if val == val:
+                if val == val and val != NAN:
                     nobs[lab, j] += 1
                     if nobs[lab, j] == rank:
                         resx[lab, j] = val
@@ -7543,7 +7543,7 @@ def group_nth_int64(ndarray[int64_t, ndim=2] out,
                 val = values[i, j]
 
                 # not nan
-                if val == val:
+                if val == val and val != iNaT:
                     nobs[lab, j] += 1
                     if nobs[lab, j] == rank:
                         resx[lab, j] = val
@@ -7592,7 +7592,8 @@ def group_min_float64(ndarray[float64_t, ndim=2] out,
                     val = values[i, j]
 
                     # not nan
-                    if val == val:
+                    if val == val and val != NAN:
+
                         nobs[lab, j] += 1
                         if val < minx[lab, j]:
                             minx[lab, j] = val
@@ -7606,7 +7607,7 @@ def group_min_float64(ndarray[float64_t, ndim=2] out,
                 val = values[i, 0]
 
                 # not nan
-                if val == val:
+                if val == val and val != NAN:
                     nobs[lab, 0] += 1
                     if val < minx[lab, 0]:
                         minx[lab, 0] = val
@@ -7654,7 +7655,8 @@ def group_min_float32(ndarray[float32_t, ndim=2] out,
                     val = values[i, j]
 
                     # not nan
-                    if val == val:
+                    if val == val and val != NAN:
+
                         nobs[lab, j] += 1
                         if val < minx[lab, j]:
                             minx[lab, j] = val
@@ -7668,7 +7670,7 @@ def group_min_float32(ndarray[float32_t, ndim=2] out,
                 val = values[i, 0]
 
                 # not nan
-                if val == val:
+                if val == val and val != NAN:
                     nobs[lab, 0] += 1
                     if val < minx[lab, 0]:
                         minx[lab, 0] = val
@@ -7716,7 +7718,8 @@ def group_min_int64(ndarray[int64_t, ndim=2] out,
                     val = values[i, j]
 
                     # not nan
-                    if val == val:
+                    if val == val and val != iNaT:
+
                         nobs[lab, j] += 1
                         if val < minx[lab, j]:
                             minx[lab, j] = val
@@ -7730,7 +7733,7 @@ def group_min_int64(ndarray[int64_t, ndim=2] out,
                 val = values[i, 0]
 
                 # not nan
-                if val == val:
+                if val == val and val != iNaT:
                     nobs[lab, 0] += 1
                     if val < minx[lab, 0]:
                         minx[lab, 0] = val
@@ -7779,7 +7782,7 @@ def group_max_float64(ndarray[float64_t, ndim=2] out,
                     val = values[i, j]
 
                     # not nan
-                    if val == val:
+                    if val == val and val != NAN:
                         nobs[lab, j] += 1
                         if val > maxx[lab, j]:
                             maxx[lab, j] = val
@@ -7793,7 +7796,7 @@ def group_max_float64(ndarray[float64_t, ndim=2] out,
                 val = values[i, 0]
 
                 # not nan
-                if val == val:
+                if val == val and val != NAN:
                     nobs[lab, 0] += 1
                     if val > maxx[lab, 0]:
                         maxx[lab, 0] = val
@@ -7841,7 +7844,7 @@ def group_max_float32(ndarray[float32_t, ndim=2] out,
                     val = values[i, j]
 
                     # not nan
-                    if val == val:
+                    if val == val and val != NAN:
                         nobs[lab, j] += 1
                         if val > maxx[lab, j]:
                             maxx[lab, j] = val
@@ -7855,7 +7858,7 @@ def group_max_float32(ndarray[float32_t, ndim=2] out,
                 val = values[i, 0]
 
                 # not nan
-                if val == val:
+                if val == val and val != NAN:
                     nobs[lab, 0] += 1
                     if val > maxx[lab, 0]:
                         maxx[lab, 0] = val
@@ -7903,7 +7906,7 @@ def group_max_int64(ndarray[int64_t, ndim=2] out,
                     val = values[i, j]
 
                     # not nan
-                    if val == val:
+                    if val == val and val != iNaT:
                         nobs[lab, j] += 1
                         if val > maxx[lab, j]:
                             maxx[lab, j] = val
@@ -7917,7 +7920,7 @@ def group_max_int64(ndarray[int64_t, ndim=2] out,
                 val = values[i, 0]
 
                 # not nan
-                if val == val:
+                if val == val and val != iNaT:
                     nobs[lab, 0] += 1
                     if val > maxx[lab, 0]:
                         maxx[lab, 0] = val
