@@ -1769,6 +1769,7 @@ class TestDataFramePlots(TestPlotBase):
             self.assertFalse(hasattr(ax, 'right_ax'))
             xmin, xmax = ax.get_xlim()
             lines = ax.get_lines()
+            self.assertTrue(hasattr(ax, 'left_ax'))
             self.assertEqual(xmin, lines[0].get_data()[0][0])
             self.assertEqual(xmax, lines[0].get_data()[0][-1])
 
@@ -1793,7 +1794,6 @@ class TestDataFramePlots(TestPlotBase):
     @slow
     def test_bar_colors(self):
         import matplotlib.pyplot as plt
-
         default_colors = plt.rcParams.get('axes.color_cycle')
 
         df = DataFrame(randn(5, 5))
@@ -2986,7 +2986,6 @@ class TestDataFramePlots(TestPlotBase):
     @slow
     def test_no_color_bar(self):
         df = self.hexbin_df
-
         ax = df.plot(kind='hexbin', x='A', y='B', colorbar=None)
         self.assertIs(ax.collections[0].colorbar, None)
 
@@ -3552,6 +3551,11 @@ class TestDataFramePlots(TestPlotBase):
 @tm.mplskip
 class TestDataFrameGroupByPlots(TestPlotBase):
 
+    def setUp(self):
+        self.df = DataFrame(np.random.rand(30, 5), columns=['A', 'B', 'C', 'D', 'E'])
+        self.df['by'] = ['Group {0}'.format(i) for i in [0]*10 + [1]*10 + [2]*10]
+        self.grouped = self.df.groupby(by='by')
+
     def test_series_groupby_plotting_nominally_works(self):
         n = 10
         weight = Series(np.random.normal(166, 20, size=n))
@@ -3585,6 +3589,378 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         df["Mark"].hist(by=df["ByCol"], bins=bins)
         df = DataFrame({"Name": ["AAA"], "ByCol": [1], "Mark": [85]})
         df["Mark"].hist(by=df["ByCol"], bins=bins)
+
+    def test_line_groupby(self):
+        import matplotlib.pyplot as plt
+        default_colors = plt.rcParams.get('axes.color_cycle')
+
+        grouped = self.grouped
+
+        # SeriesGroupBy
+        sgb = grouped['A']
+        ax = _check_plot_works(sgb.plot, color=['r', 'g', 'b'])
+        self._check_legend_labels(ax, labels=['Group 0', 'Group 1', 'Group 2'])
+        self._check_colors(ax.get_lines(), linecolors=['r', 'g', 'b'])
+        self._check_text_labels(ax.title, 'A')
+        tm.close()
+
+        axes = _check_plot_works(sgb.plot, subplots=True)
+        self._check_axes_shape(axes, axes_num=3, layout=(3, 1))
+        for ax, group in zip(axes, ['Group 0', 'Group 1', 'Group 2']):
+            self._check_legend_labels(ax, labels=[group])
+            self._check_text_labels(ax.title, group)
+        tm.close()
+
+        # DataFrameGroupBy
+        axes = _check_plot_works(grouped.plot, subplots=True)
+        self._check_axes_shape(axes, axes_num=3, layout=(3, 1))
+        for ax, title in zip(axes, ['Group 0', 'Group 1', 'Group 2']):
+            self._check_legend_labels(ax, labels=['A', 'B', 'C', 'D', 'E'])
+            self._check_colors(ax.get_lines(), linecolors=default_colors[:5])
+            self._check_text_labels(ax.title, title)
+        tm.close()
+
+        axes = _check_plot_works(grouped.plot, subplots=True, axis=1)
+        self._check_axes_shape(axes, axes_num=5, layout=(5, 1))
+        for ax, title in zip(axes, ['A', 'B', 'C', 'D', 'E']):
+            self._check_legend_labels(ax, labels=['Group 0', 'Group 1', 'Group 2'])
+            self._check_colors(ax.get_lines(), linecolors=default_colors[:3])
+            self._check_text_labels(ax.title, title)
+        tm.close()
+
+    def test_area_groupby(self):
+        from matplotlib.collections import PolyCollection
+        import matplotlib.pyplot as plt
+        default_colors = plt.rcParams.get('axes.color_cycle')
+
+        grouped = self.grouped
+
+        # SeriesGroupBy
+        sgb = grouped['A']
+        ax = _check_plot_works(sgb.plot, kind='area', color=['r', 'g', 'b'])
+        self._check_legend_labels(ax, labels=['Group 0', 'Group 1', 'Group 2'])
+        self._check_colors(ax.get_lines(), linecolors=['r', 'g', 'b'])
+        poly = [o for o in ax.get_children() if isinstance(o, PolyCollection)]
+        self._check_colors(poly, facecolors=['r', 'g', 'b'])
+        self._check_text_labels(ax.title, 'A')
+        tm.close()
+
+        axes = _check_plot_works(sgb.plot, kind='area', subplots=True)
+        self._check_axes_shape(axes, axes_num=3, layout=(3, 1))
+        for ax, group in zip(axes, ['Group 0', 'Group 1', 'Group 2']):
+            self._check_legend_labels(ax, labels=[group])
+            self._check_text_labels(ax.title, group)
+        tm.close()
+
+        # DataFrameGroupBy
+        axes = _check_plot_works(grouped.plot, kind='area', subplots=True)
+        self._check_axes_shape(axes, axes_num=3, layout=(3, 1))
+        for ax, title in zip(axes, ['Group 0', 'Group 1', 'Group 2']):
+            self._check_legend_labels(ax, labels=['A', 'B', 'C', 'D', 'E'])
+            self._check_colors(ax.get_lines(), linecolors=default_colors[:5])
+            poly = [o for o in ax.get_children() if isinstance(o, PolyCollection)]
+            self._check_colors(poly, facecolors=default_colors[:5])
+            self._check_text_labels(ax.title, title)
+        tm.close()
+
+        axes = _check_plot_works(grouped.plot, kind='area', subplots=True, axis=1)
+        self._check_axes_shape(axes, axes_num=5, layout=(5, 1))
+        for ax, title in zip(axes, ['A', 'B', 'C', 'D', 'E']):
+            self._check_legend_labels(ax, labels=['Group 0', 'Group 1', 'Group 2'])
+            self._check_colors(ax.get_lines(), linecolors=default_colors[:3])
+            poly = [o for o in ax.get_children() if isinstance(o, PolyCollection)]
+            self._check_colors(poly, facecolors=default_colors[:3])
+            self._check_text_labels(ax.title, title)
+        tm.close()
+
+    def test_line_groupby_layout(self):
+        import matplotlib.pyplot as plt
+        default_colors = plt.rcParams.get('axes.color_cycle')
+
+        grouped = self.grouped
+
+        # SeriesGroupBy
+        sgb = grouped['A']
+        axes = sgb.plot(subplots=True, layout=(2, 2))
+        self._check_axes_shape(axes, axes_num=3, layout=(2, 2))
+
+        axes = self._flatten_visible(axes)
+        for ax, group in zip(axes, ['Group 0', 'Group 1', 'Group 2']):
+            self._check_legend_labels(ax, labels=[group])
+            self._check_text_labels(ax.title, group)
+        tm.close()
+
+        # DataFrameGroupBy
+        axes = grouped.plot(subplots=True, layout=(3, 2))
+        self._check_axes_shape(axes, axes_num=3, layout=(3, 2))
+
+        axes = self._flatten_visible(axes)
+        for ax, title in zip(axes, ['Group 0', 'Group 1', 'Group 2']):
+            self._check_legend_labels(ax, labels=['A', 'B', 'C', 'D', 'E'])
+            self._check_colors(ax.get_lines(), linecolors=default_colors[:5])
+            self._check_text_labels(ax.title, title)
+        tm.close()
+
+    def test_bar_groupby(self):
+        import matplotlib.pyplot as plt
+        default_colors = plt.rcParams.get('axes.color_cycle')
+
+        grouped = self.grouped
+
+        # SeriesGroupBy
+        sgb = grouped['A']
+        ax = sgb.plot(kind='bar', color=['r', 'g', 'b'])
+        self._check_legend_labels(ax, labels=['Group 0', 'Group 1', 'Group 2'])
+        self._check_colors(ax.patches[::30], facecolors=['r', 'g', 'b'])
+        self._check_text_labels(ax.title, 'A')
+        tm.close()
+
+        axes = sgb.plot(kind='bar', subplots=True)
+        self._check_axes_shape(axes, axes_num=3, layout=(3, 1))
+        for ax, group in zip(axes, ['Group 0', 'Group 1', 'Group 2']):
+            self._check_legend_labels(ax, labels=[group])
+            self._check_text_labels(ax.title, group)
+        self._check_colors([axes[0].patches[0]], facecolors=default_colors[0])
+        self._check_colors([axes[1].patches[0]], facecolors=default_colors[0])
+        self._check_colors([axes[2].patches[0]], facecolors=default_colors[0])
+        tm.close()
+
+        # DataFrameGroupBy
+        axes = grouped.plot(kind='bar', subplots=True)
+        self._check_axes_shape(axes, axes_num=3, layout=(3, 1))
+        for ax, title in zip(axes, ['Group 0', 'Group 1', 'Group 2']):
+            self._check_legend_labels(ax, labels=['A', 'B', 'C', 'D', 'E'])
+            self._check_text_labels(ax.title, title)
+        self._check_colors(axes[0].patches[::10], facecolors=default_colors[:5])
+        self._check_colors(axes[1].patches[::10], facecolors=default_colors[:5])
+        self._check_colors(axes[2].patches[::10], facecolors=default_colors[:5])
+        tm.close()
+
+        axes = grouped.plot(kind='bar', subplots=True, axis=1)
+        self._check_axes_shape(axes, axes_num=5, layout=(5, 1))
+        for ax, title in zip(axes, ['A', 'B', 'C', 'D', 'E']):
+            self._check_legend_labels(ax, labels=['Group 0', 'Group 1', 'Group 2'])
+            self._check_colors(ax.patches[::30], facecolors=['b', 'g', 'r'])
+            self._check_text_labels(ax.title, title)
+        tm.close()
+
+    def test_hist_groupby(self):
+        import matplotlib.pyplot as plt
+        default_colors = plt.rcParams.get('axes.color_cycle')
+
+        grouped = self.grouped
+
+        # SeriesGroupBy
+        sgb = grouped['A']
+        ax = sgb.plot(kind='hist', color=['r', 'g', 'b'])
+        self._check_legend_labels(ax, labels=['Group 0', 'Group 1', 'Group 2'])
+        self._check_colors(ax.patches[::10], facecolors=['r', 'g', 'b'])
+        self._check_text_labels(ax.title, 'A')
+        tm.close()
+
+        axes = sgb.plot(kind='hist', subplots=True)
+        self._check_axes_shape(axes, axes_num=3, layout=(3, 1))
+        for ax, group in zip(axes, ['Group 0', 'Group 1', 'Group 2']):
+            self._check_legend_labels(ax, labels=[group])
+            self._check_text_labels(ax.title, group)
+        self._check_colors([axes[0].patches[0]], facecolors=default_colors[0])
+        self._check_colors([axes[1].patches[0]], facecolors=default_colors[1])
+        self._check_colors([axes[2].patches[0]], facecolors=default_colors[2])
+        tm.close()
+
+        # DataFrameGroupBy
+        axes = grouped.plot(kind='hist', subplots=True)
+        self._check_axes_shape(axes, axes_num=3, layout=(3, 1))
+        for ax, title in zip(axes, ['Group 0', 'Group 1', 'Group 2']):
+            self._check_legend_labels(ax, labels=['A', 'B', 'C', 'D', 'E'])
+            self._check_text_labels(ax.title, title)
+        self._check_colors(axes[0].patches[::10], facecolors=default_colors[:5])
+        self._check_colors(axes[1].patches[::10], facecolors=default_colors[:5])
+        self._check_colors(axes[2].patches[::10], facecolors=default_colors[:5])
+        tm.close()
+
+        axes = grouped.plot(kind='hist', subplots=True, axis=1)
+        self._check_axes_shape(axes, axes_num=5, layout=(5, 1))
+        for ax, title in zip(axes, ['A', 'B', 'C', 'D', 'E']):
+            self._check_legend_labels(ax, labels=['Group 0', 'Group 1', 'Group 2'])
+            self._check_colors(ax.patches[::10], facecolors=['b', 'g', 'r'])
+            self._check_text_labels(ax.title, title)
+        tm.close()
+
+    def test_kde_groupby(self):
+        import matplotlib.pyplot as plt
+        default_colors = plt.rcParams.get('axes.color_cycle')
+
+        grouped = self.grouped
+
+        # SeriesGroupBy
+        sgb = grouped['A']
+        ax = sgb.plot(kind='kde', color=['r', 'g', 'b'])
+        self._check_legend_labels(ax, labels=['Group 0', 'Group 1', 'Group 2'])
+        self._check_colors(ax.lines, linecolors=['r', 'g', 'b'])
+        self._check_text_labels(ax.title, 'A')
+        tm.close()
+
+        axes = sgb.plot(kind='kde', subplots=True)
+        self._check_axes_shape(axes, axes_num=3, layout=(3, 1))
+        for ax, group in zip(axes, ['Group 0', 'Group 1', 'Group 2']):
+            self._check_legend_labels(ax, labels=[group])
+            self._check_text_labels(ax.title, group)
+        self._check_colors(axes[0].lines, linecolors=default_colors[0])
+        self._check_colors(axes[1].lines, linecolors=default_colors[1])
+        self._check_colors(axes[2].lines, linecolors=default_colors[2])
+        tm.close()
+
+        # DataFrameGroupBy
+        axes = grouped.plot(kind='kde', subplots=True)
+        self._check_axes_shape(axes, axes_num=3, layout=(3, 1))
+        for ax, title in zip(axes, ['Group 0', 'Group 1', 'Group 2']):
+            self._check_legend_labels(ax, labels=['A', 'B', 'C', 'D', 'E'])
+            self._check_text_labels(ax.title, title)
+        self._check_colors(axes[0].lines, linecolors=default_colors[:5])
+        self._check_colors(axes[1].lines, linecolors=default_colors[:5])
+        self._check_colors(axes[2].lines, linecolors=default_colors[:5])
+        tm.close()
+
+        axes = grouped.plot(kind='kde', subplots=True, axis=1)
+        self._check_axes_shape(axes, axes_num=5, layout=(5, 1))
+        for ax, title in zip(axes, ['A', 'B', 'C', 'D', 'E']):
+            self._check_legend_labels(ax, labels=['Group 0', 'Group 1', 'Group 2'])
+            self._check_colors(ax.lines, linecolors=['b', 'g', 'r'])
+            self._check_text_labels(ax.title, title)
+        tm.close()
+
+    def test_box_groupby(self):
+        import matplotlib.pyplot as plt
+        default_colors = plt.rcParams.get('axes.color_cycle')
+
+        grouped = self.grouped
+
+        # SeriesGroupBy
+        sgb = grouped['A']
+        ax = sgb.plot(kind='box', color=['r', 'g', 'b'])
+        self.assertIsNone(ax.get_legend())
+        self._check_text_labels(ax.title, 'A')
+        tm.close()
+
+        axes = sgb.plot(kind='box', subplots=True)
+        self._check_axes_shape(axes, axes_num=3, layout=(1, 3))
+        for ax, group in zip(axes, ['Group 0', 'Group 1', 'Group 2']):
+            self.assertIsNone(ax.get_legend())
+            self._check_text_labels(ax.title, group)
+        tm.close()
+
+        # DataFrameGroupBy
+        axes = grouped.plot(kind='box', subplots=True)
+        self._check_axes_shape(axes, axes_num=3, layout=(1, 3))
+        for ax, title in zip(axes, ['Group 0', 'Group 1', 'Group 2']):
+            self.assertIsNone(ax.get_legend())
+            self._check_text_labels(ax.title, title)
+        tm.close()
+
+        axes = grouped.plot(kind='box', subplots=True, axis=1)
+        self._check_axes_shape(axes, axes_num=5, layout=(1, 5))
+        for ax, title in zip(axes, ['A', 'B', 'C', 'D', 'E']):
+            self.assertIsNone(ax.get_legend())
+            self._check_text_labels(ax.title, title)
+        tm.close()
+
+    def test_pie_groupby(self):
+        df = DataFrame({'by': ['Group 0', 'Group 1', 'Group 2'] * 3,
+                        'A': [2, 3, 4, 1, 2, 3, 2, 1, 3]},
+                       index=list('abcdefghi'))
+        grouped = df.groupby('by')
+
+        # SeriesGroupBy
+        sgb = grouped['A']
+        msg = "To plot SeriesGroupBy, specify 'suplots=True'"
+        with tm.assertRaisesRegexp(ValueError, msg):
+            sgb.plot(kind='pie', subplots=False)
+
+        axes = sgb.plot(kind='pie', colors=['r', 'g', 'b'], subplots=True)
+        self._check_axes_shape(axes, axes_num=3, layout=(1, 3))
+        for ax, labels, title in zip(axes, ['adg', 'beh', 'cfi'],
+                                     ['Group 0', 'Group 1', 'Group 2']):
+            self._check_legend_labels(ax, labels=list(labels))
+            self._check_colors(ax.patches, facecolors=['r', 'g', 'b'])
+            self._check_text_labels(ax.title, title)
+        tm.close()
+
+        import matplotlib.pyplot as plt
+        default_colors = plt.rcParams.get('axes.color_cycle')
+        axes = sgb.plot(kind='pie', subplots=True)
+        self._check_axes_shape(axes, axes_num=3, layout=(1, 3))
+        for ax, labels, title in zip(axes, ['adg', 'beh', 'cfi'],
+                                     ['Group 0', 'Group 1', 'Group 2']):
+            self._check_legend_labels(ax, labels=list(labels))
+            self._check_colors(ax.patches, facecolors=default_colors[:3])
+            self._check_text_labels(ax.title, title)
+        tm.close()
+
+        # DataFrameGroupBy
+        msg = "plot kind pie cannot be used for DataFrameGroupBy"
+        with tm.assertRaisesRegexp(ValueError, msg):
+            grouped.plot(kind='pie', subplots=False)
+
+    def test_scatter_groupby(self):
+        grouped = self.grouped
+
+        ax = _check_plot_works(grouped.plot, kind='scatter', x='A', y='B', subplots=False)
+        self._check_legend_labels(ax, labels=['Group 0', 'Group 1', 'Group 2'])
+        self._check_text_labels(ax.title, '')
+        tm.close()
+
+        # use title
+        ax = _check_plot_works(grouped.plot, kind='scatter', x='A', y='B',
+                               subplots=False, title='xx')
+        self._check_legend_labels(ax, labels=['Group 0', 'Group 1', 'Group 2'])
+        self._check_text_labels(ax.title, 'xx')
+        tm.close()
+
+        axes = _check_plot_works(grouped.plot, kind='scatter', x='A', y='B', subplots=True)
+        self._check_axes_shape(axes, axes_num=3, layout=(1, 3))
+        for ax, group in zip(axes, ['Group 0', 'Group 1', 'Group 2']):
+            self._check_legend_labels(ax, labels=[group])
+            self._check_text_labels(ax.title, group)
+        tm.close()
+
+    def test_scatter_groupby_layout(self):
+        grouped = self.grouped
+        axes = grouped.plot(kind='scatter', x='A', y='B',
+                            subplots=True, layout=(2, 2))
+        self._check_axes_shape(axes, axes_num=3, layout=(2, 2))
+
+        axes = self._flatten_visible(axes)
+        for ax, group in zip(axes, ['Group 0', 'Group 1', 'Group 2']):
+            self._check_legend_labels(ax, labels=[group])
+            self._check_text_labels(ax.title, group)
+        tm.close()
+
+    def test_hexbin_groupby(self):
+        grouped = self.grouped
+
+        msg = "To plot DataFrameGroupBy, specify 'suplots=True'"
+        with tm.assertRaisesRegexp(ValueError, msg):
+            grouped.plot(kind='hexbin', x='A', y='B', subplots=False)
+
+        axes = _check_plot_works(grouped.plot, kind='hexbin', x='A', y='B', subplots=True)
+        self._check_axes_shape(axes, axes_num=3, layout=(1, 3))
+        self._check_axes_shape(axes, axes_num=3, layout=(1, 3))
+        for ax, group in zip(axes, ['Group 0', 'Group 1', 'Group 2']):
+            self._check_text_labels(ax.title, group)
+        tm.close()
+
+    @slow
+    def test_groupby_errorbar(self):
+        grouped = self.grouped
+
+        msg = 'Error bars are not supported in groupby plots'
+        with tm.assertRaisesRegexp(NotImplementedError, msg):
+            grouped.plot(xerr=1)
+
+        msg = 'Error bars are not supported in groupby plots'
+        with tm.assertRaisesRegexp(NotImplementedError, msg):
+            grouped.plot(yerr=1)
 
 
 def assert_is_valid_plot_return_object(objs):

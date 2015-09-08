@@ -782,7 +782,8 @@ class MPLPlot(object):
 
     _layout_type = 'vertical'
     _default_rot = 0
-    orientation = None
+    _fillna = None
+    orientation = 'vertical'
 
     _pop_attributes = ['label', 'style', 'logy', 'logx', 'loglog',
                        'mark_right', 'stacked']
@@ -796,10 +797,11 @@ class MPLPlot(object):
                  xticks=None, yticks=None,
                  sort_columns=False, fontsize=None,
                  secondary_y=False, colormap=None,
-                 table=False, layout=None, **kwds):
+                 table=False, layout=None, axis=0, **kwds):
 
         self.data = data
         self.by = by
+        self.axis = axis
 
         self.kind = kind
 
@@ -843,8 +845,6 @@ class MPLPlot(object):
 
         self.grid = grid
         self.legend = legend
-        self.legend_handles = []
-        self.legend_labels = []
 
         for attr in self._pop_attributes:
             value = kwds.pop(attr, self._attr_defaults.get(attr, None))
@@ -875,9 +875,7 @@ class MPLPlot(object):
             self.colormap = colormap
 
         self.table = table
-
         self.kwds = kwds
-
         self._validate_color_args()
 
     def _validate_color_args(self):
@@ -909,44 +907,163 @@ class MPLPlot(object):
                                      " use one or the other or pass 'style' "
                                      "without a color symbol")
 
-    def _iter_data(self, data=None, keep_index=False, fillna=None):
-        if data is None:
+    def _map_axes_to_data(self):
+        """
+        Iterate over target axes and corresponding data to be plotted on the axes
+
+        Returns:
+        -----------
+        ax: Matplotlib axis object
+        name: str
+            name to be used for axes title
+        data: Series, DataFrame or SeriesGroupBy
+            data to be drawn on axes
+        """
+        from pandas.core.frame import DataFrame
+        from pandas.core.groupby import DataFrameGroupBy, SeriesGroupBy
+
+        def _to_frame(data):
+            """Convert SeriesGroupBy to DataFrame"""
+            groups = {}
+            for name, group in data:
+                groups[name] = group
+            return DataFrame(groups)
+
+        data = self.data
+
+        if isinstance(data, Series):
+            label = self.label
+            if label is None and data.name is None:
+                label = 'None'
+            data = data.to_frame(name=label)
+            yield self.axes[0], label, data
+        elif isinstance(data, DataFrame):
+            data = self._compute_plot_data(data)
+            if self.subplots:
+                for i, (name, column) in enumerate(data.iteritems()):
+                    # return DataFrame
+                    yield self.axes[i], name, column.to_frame()
+            else:
+                yield self.axes[0], None, data
+        elif isinstance(data, SeriesGroupBy):
+            if self.subplots:
+                for i, (name, group) in enumerate(data):
+                    # overwrite column name with group name
+                    group.name = name
+                    # return DataFrame
+                    yield self.axes[i], name, group.to_frame()
+            else:
+                yield self.axes[0], data.obj.name, _to_frame(data)
+
+        elif isinstance(data, DataFrameGroupBy):
+            if self.subplots:
+                if self.axis == 0:
+                    for i, (name, group) in enumerate(data):
+                        yield self.axes[i], name, group
+                elif self.axis == 1:
+                    data.obj = self._compute_plot_data(data.obj)
+                    for i, col in enumerate(self.columns):
+                        yield self.axes[i], col, _to_frame(data[col])
+            else:
+                raise ValueError("To plot DataFrameGroupBy, specify 'suplots=True'")
+        else:   # pragma no cover
+            raise NotImplementedError(type(data))
+
+    @cache_readonly
+    def columns(self):
+        from pandas.core.frame import DataFrame
+        from pandas.core.groupby import DataFrameGroupBy, SeriesGroupBy
+
+        if isinstance(self.data, Series):
+            data = self.data.to_frame()
+        elif isinstance(self.data, SeriesGroupBy):
+            data = self.data.obj.to_frame()
+        elif isinstance(self.data, DataFrame):
             data = self.data
-        if fillna is not None:
-            data = data.fillna(fillna)
+        elif isinstance(self.data, DataFrameGroupBy):
+            data = self.data.obj
+        else:
+            return None
+
+        data = self._compute_plot_data(data)
 
         if self.sort_columns:
             columns = com._try_sort(data.columns)
         else:
             columns = data.columns
+        return columns
 
-        for col, values in data.iteritems():
-            if keep_index is True:
-                yield col, values
+    @property
+    def ndim(self):
+        """
+        Return a tuple of (number of subplots, number of unique series)
+        """
+        from pandas.core.frame import DataFrame
+        from pandas.core.groupby import DataFrameGroupBy, SeriesGroupBy
+        if isinstance(self.data, Series):
+            ndim = (1, 1)
+        elif isinstance(self.data, DataFrame):
+            columns = len(self.columns)
+            ndim = (1, columns)
+        elif isinstance(self.data, SeriesGroupBy):
+            ngroups = self.data.ngroups
+            ndim = (1, ngroups)
+        elif isinstance(self.data, DataFrameGroupBy):
+            columns = len(self.columns)
+            ngroups = self.data.ngroups
+            if self.axis == 0:
+                ndim = (ngroups, columns)
+            elif self.axis == 1:
+                ndim = (columns, ngroups)
             else:
-                yield col, values.values
+                msg = 'In {0}, axis must be 0 (subplot by group) or 1 (subplot by index)'
+                raise ValueError(msg.format(self.kind))
+        else:
+            raise NotImplementedError
+        return ndim
+
+    @property
+    def nplots(self):
+        """
+        Number of required subplots
+        """
+        nplots = self.ndim[0]
+        if self.subplots and nplots == 1:
+            # subplot by series
+            nplots = self.ndim[1]
+        if nplots > 1 and not self.subplots:
+            raise ValueError("Input data requires {0} subplots, specify 'subplots=True'")
+        return nplots
 
     @property
     def nseries(self):
-        if self.data.ndim == 1:
-            return 1
-        else:
-            return self.data.shape[1]
+        """
+        Number of total unique series (lines, bars, etc) in all the axes
+        Used to define the number of unique colors / styles in a plot
+        """
+        return self.ndim[1]
 
     def draw(self):
         self.plt.draw_if_interactive()
 
     def generate(self):
         self._args_adjust()
-        self._compute_plot_data()
         self._setup_subplots()
-        self._make_plot()
-        self._add_table()
-        self._make_legend()
 
-        for ax in self.axes:
-            self._post_plot_logic_common(ax, self.data)
-            self._post_plot_logic(ax, self.data)
+        for i, (ax, title, data) in enumerate(self._map_axes_to_data()):
+            data = self._compute_plot_data(data)
+            self._make_plot(ax, data, axes_num=i, title=title)
+
+            if title is not None:
+                ax.set_title(title)
+
+            self._add_table(ax, data)
+            self._make_legend(ax, data)
+            # post process for each axes
+            self._post_plot_logic_common(ax, data)
+            self._post_plot_logic(ax, data)
+
+        # post process for figure
         self._adorn_subplots()
 
     def _args_adjust(self):
@@ -956,33 +1073,37 @@ class MPLPlot(object):
         """check whether ax has data"""
         return (len(ax.lines) != 0 or
                 len(ax.artists) != 0 or
-                len(ax.containers) != 0)
+                len(ax.containers) != 0 or
+                len(ax.patches) != 0)
 
-    def _maybe_right_yaxis(self, ax, axes_num):
-        if not self.on_right(axes_num):
-            # secondary axes may be passed via ax kw
-            return self._get_ax_layer(ax)
-
-        if hasattr(ax, 'right_ax'):
-            # if it has right_ax proparty, ``ax`` must be left axes
-            return ax.right_ax
-        elif hasattr(ax, 'left_ax'):
-            # if it has left_ax proparty, ``ax`` must be right axes
-            return ax
+    def _get_ax_by_label(self, ax, label=None):
+        if not self.on_right(label):
+            # secondary axes may be passed as axes
+            ax = self._get_ax_layer(ax)
         else:
-            # otherwise, create twin axes
-            orig_ax, new_ax = ax, ax.twinx()
-            new_ax._get_lines.color_cycle = orig_ax._get_lines.color_cycle
+            # do not use _get_ax_layer here to create twinx if it isn't exists
+            if hasattr(ax, 'right_ax'):
+                # if it has right_ax proparty, ``ax`` must be left axes
+                ax = ax.right_ax
+            elif hasattr(ax, 'left_ax'):
+                # if it has left_ax proparty, ``ax`` must be right axes
+                pass
+                # otherwise, create twin axes
+            else:
+                new_ax = ax.twinx()
+                new_ax._get_lines.color_cycle = ax._get_lines.color_cycle
+                ax.right_ax = new_ax
+                new_ax.left_ax = ax
+                if not self._has_plotted_object(ax):  # no data on left y
+                    ax.get_yaxis().set_visible(False)
+                ax = new_ax
 
-            orig_ax.right_ax, new_ax.left_ax = new_ax, orig_ax
-
-            if not self._has_plotted_object(orig_ax):  # no data on left y
-                orig_ax.get_yaxis().set_visible(False)
-            return new_ax
+        ax.get_yaxis().set_visible(True)
+        return ax
 
     def _setup_subplots(self):
         if self.subplots:
-            fig, axes = _subplots(naxes=self.nseries,
+            fig, axes = _subplots(naxes=self.nplots,
                                   sharex=self.sharex, sharey=self.sharey,
                                   figsize=self.figsize, ax=self.ax,
                                   layout=self.layout,
@@ -1013,6 +1134,10 @@ class MPLPlot(object):
         Return result axes
         """
         if self.subplots:
+            for i in range(self.nplots):
+                ax = self.axes[i]
+                if not self._has_plotted_object(ax):
+                    self.axes[i] = self._get_ax_layer(ax, primary=False)
             if self.layout is not None and not com.is_list_like(self.ax):
                 return self.axes.reshape(*self.layout)
             else:
@@ -1021,46 +1146,54 @@ class MPLPlot(object):
             sec_true = isinstance(self.secondary_y, bool) and self.secondary_y
             all_sec = (com.is_list_like(self.secondary_y) and
                        len(self.secondary_y) == self.nseries)
+
             if (sec_true or all_sec):
                 # if all data is plotted on secondary, return right axes
                 return self._get_ax_layer(self.axes[0], primary=False)
             else:
                 return self.axes[0]
 
-    def _compute_plot_data(self):
-        data = self.data
+    def _compute_plot_data(self, data):
+        """Filter non-numeric values, raise TypeError when no numerics"""
+        from pandas.core.frame import DataFrame
+        assert isinstance(data, DataFrame), type(data)
 
-        if isinstance(data, Series):
-            label = self.label
-            if label is None and data.name is None:
-                label = 'None'
-            data = data.to_frame(name=label)
-
-        numeric_data = data.convert_objects(datetime=True)._get_numeric_data()
-
+        data = data.convert_objects(datetime=True)._get_numeric_data()
         try:
-            is_empty = numeric_data.empty
+            is_empty = data.empty
         except AttributeError:
-            is_empty = not len(numeric_data)
-
+            is_empty = not len(data)
         # no empty frames or series allowed
         if is_empty:
             raise TypeError('Empty {0!r}: no numeric data to '
-                            'plot'.format(numeric_data.__class__.__name__))
+                            'plot'.format(data.__class__.__name__))
+        if self._fillna is not None:
+            data = data.fillna(value=self._fillna)
+        return data
 
-        self.data = numeric_data
+    def _make_plot(self, ax, data, axes_num=0, title=None):
+        raise NotImplementedError
 
-    def _make_plot(self):
-        raise AbstractMethodError(self)
+    def _iter_data(self, data, keep_index=False):
+        if self.sort_columns:
+            columns = com._try_sort(data.columns)
+        else:
+            columns = data.columns
 
-    def _add_table(self):
+        for col in columns:
+            if keep_index is True:
+                yield col, data[col]
+            else:
+                yield col, data[col].values
+
+    def _add_table(self, ax, data):
         if self.table is False:
             return
         elif self.table is True:
-            data = self.data.transpose()
+            data = data
         else:
             data = self.table
-        ax = self._get_ax(0)
+        ax = self._get_ax_layer(ax)
         table(ax, data)
 
     def _post_plot_logic_common(self, ax, data):
@@ -1068,7 +1201,7 @@ class MPLPlot(object):
         labels = [com.pprint_thing(key) for key in data.index]
         labels = dict(zip(range(len(data.index)), labels))
 
-        if self.orientation == 'vertical' or self.orientation is None:
+        if self.orientation == 'vertical':
             if self._need_to_set_index:
                 xticklabels = [labels.get(x, '') for x in ax.get_xticks()]
                 ax.set_xticklabels(xticklabels)
@@ -1130,66 +1263,70 @@ class MPLPlot(object):
 
     @property
     def legend_title(self):
-        if not isinstance(self.data.columns, MultiIndex):
-            name = self.data.columns.name
+        if not isinstance(self.columns, MultiIndex):
+            name = self.columns.name
             if name is not None:
                 name = com.pprint_thing(name)
             return name
         else:
-            stringified = map(com.pprint_thing,
-                              self.data.columns.names)
+            stringified = map(com.pprint_thing, self.columns.names)
             return ','.join(stringified)
 
-    def _add_legend_handle(self, handle, label, index=None):
+    def _add_legend_handle(self, ax, handle, label):
+        # always attach legend data to left ax
+        ax = self._get_ax_layer(ax)
+        if not hasattr(ax, '_pd_legend_handles'):
+            ax._pd_legend_handles = []
+            ax._pd_legend_labels = []
+
         if not label is None:
-            if self.mark_right and index is not None:
-                if self.on_right(index):
-                    label = label + ' (right)'
-            self.legend_handles.append(handle)
-            self.legend_labels.append(label)
+            if self.mark_right and self.on_right(label):
+                label = label + ' (right)'
+            ax._pd_legend_handles.append(handle)
+            ax._pd_legend_labels.append(label)
 
-    def _make_legend(self):
-        ax, leg = self._get_ax_legend(self.axes[0])
+    def _make_legend(self, ax, data):
+        if not ax.get_visible():
+            return
 
-        handles = []
-        labels = []
-        title = ''
+        legax, leg = self._get_ax_legend(ax)
+        if not leg is None:
+            title = leg.get_title().get_text()
+            handles = leg.legendHandles
+            labels = [x.get_text() for x in leg.get_texts()]
+        else:
+            handles = []
+            labels = []
+            title = ''
 
-        if not self.subplots:
-            if not leg is None:
-                title = leg.get_title().get_text()
-                handles = leg.legendHandles
-                labels = [x.get_text() for x in leg.get_texts()]
+        if self.legend:
+            ax = self._get_ax_layer(ax)
+            if self.legend == 'reverse':
+                ax._pd_legend_handles = reversed(ax._pd_legend_handles)
+                ax._pd_legend_labels = reversed(ax._pd_legend_labels)
 
-            if self.legend:
-                if self.legend == 'reverse':
-                    self.legend_handles = reversed(self.legend_handles)
-                    self.legend_labels = reversed(self.legend_labels)
-
-                handles += self.legend_handles
-                labels += self.legend_labels
-                if not self.legend_title is None:
-                    title = self.legend_title
-
-            if len(handles) > 0:
-                ax.legend(handles, labels, loc='best', title=title)
-
-        elif self.subplots and self.legend:
-            for ax in self.axes:
-                if ax.get_visible():
-                    ax.legend(loc='best')
+            handles += ax._pd_legend_handles
+            labels += ax._pd_legend_labels
+            if not self.legend_title is None:
+                title = self.legend_title
+        if len(handles) > 0:
+            legax.legend(handles, labels, loc='best', title=title)
+        # remove axes properties of drawn legends
+        ax._pd_legend_handles = []
+        ax._pd_legend_labels = []
 
     def _get_ax_legend(self, ax):
-        leg = ax.get_legend()
-        other_ax = (getattr(ax, 'left_ax', None) or
-                    getattr(ax, 'right_ax', None))
-        other_leg = None
-        if other_ax is not None:
-            other_leg = other_ax.get_legend()
-        if leg is None and other_leg is not None:
-            leg = other_leg
-            ax = other_ax
-        return ax, leg
+        left_ax = self._get_ax_layer(ax)
+        right_ax = self._get_ax_layer(ax, primary=False)
+
+        axes = [left_ax, right_ax]
+        for ax in axes:
+            # search existing legend
+            leg = ax.get_legend()
+            if leg is not None:
+                return ax, leg
+        # if no legend, draw on left axes
+        return left_ax, None
 
     @cache_readonly
     def plt(self):
@@ -1198,15 +1335,15 @@ class MPLPlot(object):
 
     _need_to_set_index = False
 
-    def _get_xticks(self, convert_period=False):
-        index = self.data.index
+    def _get_xticks(self, data, convert_period=False):
+        index = data.index
         is_datetype = index.inferred_type in ('datetime', 'date',
                                               'datetime64', 'time')
 
         if self.use_index:
             if convert_period and isinstance(index, PeriodIndex):
-                self.data = self.data.reindex(index=index.sort_values())
-                x = self.data.index.to_timestamp()._mpl_repr()
+                data = data.reindex(index=index.sort_values())
+                x = data.index.to_timestamp()._mpl_repr()
             elif index.is_numeric():
                 """
                 Matplotlib supports numeric values or datetime objects as
@@ -1216,15 +1353,14 @@ class MPLPlot(object):
                 """
                 x = index._mpl_repr()
             elif is_datetype:
-                self.data = self.data.sort_index()
-                x = self.data.index._mpl_repr()
+                data = data.sort_index()
+                x = data.index._mpl_repr()
             else:
                 self._need_to_set_index = True
                 x = lrange(len(index))
         else:
             x = lrange(len(index))
-
-        return x
+        return data, x
 
     @classmethod
     def _plot(cls, ax, x, y, style=None, is_errorbar=False, **kwds):
@@ -1246,18 +1382,17 @@ class MPLPlot(object):
                 args = (x, y)
             return ax.plot(*args, **kwds)
 
-    def _get_index_name(self):
-        if isinstance(self.data.index, MultiIndex):
-            name = self.data.index.names
+    def _get_index_name(self, data):
+        if isinstance(data.index, MultiIndex):
+            name = data.index.names
             if any(x is not None for x in name):
                 name = ','.join([com.pprint_thing(x) for x in name])
             else:
                 name = None
         else:
-            name = self.data.index.name
+            name = data.index.name
             if name is not None:
                 name = com.pprint_thing(name)
-
         return name
 
     @classmethod
@@ -1268,25 +1403,14 @@ class MPLPlot(object):
         else:
             return getattr(ax, 'right_ax', ax)
 
-    def _get_ax(self, i):
-        # get the twinx ax if appropriate
-        if self.subplots:
-            ax = self.axes[i]
-            ax = self._maybe_right_yaxis(ax, i)
-            self.axes[i] = ax
-        else:
-            ax = self.axes[0]
-            ax = self._maybe_right_yaxis(ax, i)
-
-        ax.get_yaxis().set_visible(True)
-        return ax
-
-    def on_right(self, i):
+    def on_right(self, label):
         if isinstance(self.secondary_y, bool):
             return self.secondary_y
 
         if isinstance(self.secondary_y, (tuple, list, np.ndarray, Index)):
-            return self.data.columns[i] in self.secondary_y
+            if label is None:
+                return False
+            return label in self.secondary_y
 
     def _apply_style_colors(self, colors, kwds, col_num, label):
         """
@@ -1337,6 +1461,11 @@ class MPLPlot(object):
             return None
 
         from pandas import DataFrame, Series
+        from pandas.core.groupby import DataFrameGroupBy, SeriesGroupBy
+
+        if isinstance(self.data, (DataFrameGroupBy, SeriesGroupBy)):
+            # seems no good way to map error bar to each groups...
+            raise NotImplementedError('Error bars are not supported in groupby plots')
 
         def match_labels(data, e):
             e = e.reindex_axis(data.index)
@@ -1344,7 +1473,6 @@ class MPLPlot(object):
 
         # key-matched DataFrame
         if isinstance(err, DataFrame):
-
             err = match_labels(self.data, err)
         # key-matched dict
         elif isinstance(err, dict):
@@ -1436,24 +1564,94 @@ class PlanePlot(MPLPlot):
     Abstract class for plotting on plane, currently scatter and hexbin.
     """
 
-    _layout_type = 'single'
+    _kind = 'plane'
+    _layout_type = 'horizontal'
 
     def __init__(self, data, x, y, **kwargs):
         MPLPlot.__init__(self, data, **kwargs)
         if x is None or y is None:
             raise ValueError(self._kind + ' requires and x and y column')
-        if com.is_integer(x) and not self.data.columns.holds_integer():
-            x = self.data.columns[x]
-        if com.is_integer(y) and not self.data.columns.holds_integer():
-            y = self.data.columns[y]
+
+        if com.is_integer(x) and not self.columns.holds_integer():
+            x = self.columns[x]
+        if com.is_integer(y) and not self.columns.holds_integer():
+            y = self.columns[y]
+
         self.x = x
         self.y = y
 
     @property
-    def nseries(self):
-        return 1
+    def ndim(self):
+        """
+        Return a tuple of (number of subplots, number of unique series)
+        """
+        from pandas.core.frame import DataFrame
+        from pandas.core.groupby import DataFrameGroupBy
+        if isinstance(self.data, DataFrame):
+            ndim = (1, 1)
+        elif isinstance(self.data, DataFrameGroupBy):
+            ngroups = self.data.ngroups
+            if self.subplots:
+                if self.axis == 0:
+                    ndim = (ngroups, ngroups)
+                else:
+                    msg = 'In {0}, axis must be 0 (subplot by group)'
+                    raise ValueError(msg.format(self.kind))
+            else:
+                ndim = (1, ngroups)
+        else:   # pragma no cover
+            raise NotImplementedError
+        return ndim
+
+    def _map_axes_to_data(self):
+        """
+        Iterate over target axes and corresponding data to be plotted on the axes
+
+        Returns:
+        -----------
+        ax: Matplotlib axis object
+        name: str
+            name to be used for axes title
+        data: Series, DataFrame or SeriesGroupBy
+            data to be drawn on axes
+        """
+        from pandas.core.frame import DataFrame
+        from pandas.core.groupby import DataFrameGroupBy
+
+        data = self.data
+        if isinstance(data, DataFrame):
+            label = getattr(self, 'label', None)
+            yield self.axes[0], label, data
+        elif isinstance(data, DataFrameGroupBy):
+            if self.subplots:
+                if self.axis == 0:
+                    for i, (name, group) in enumerate(data):
+                        group = self._compute_plot_data(group)
+                        yield self.axes[i], name, group
+                else:
+                    msg = 'In {0}, axis must be 0 (subplot by group)'
+                    raise ValueError(msg.format(self.kind))
+            else:
+                for i, (name, group) in enumerate(data):
+                    group = self._compute_plot_data(group)
+                    yield self.axes[0], name, group
+        else:   # pragma no cover
+            raise NotImplementedError
+
+    def _get_colors(self, num_colors=None):
+        if num_colors is None:
+            num_colors = self.nseries
+        return _get_standard_colors(num_colors=num_colors,
+                                    colormap=self.colormap,
+                                    color=self.c)
 
     def _post_plot_logic(self, ax, data):
+        if not self.subplots:
+            # in subplots, use each group name as title
+            if self.title is None:
+                ax.set_title('')
+            else:
+                ax.set_title(self.title)
         x, y = self.x, self.y
         ax.set_ylabel(com.pprint_thing(y))
         ax.set_xlabel(com.pprint_thing(x))
@@ -1463,19 +1661,17 @@ class ScatterPlot(PlanePlot):
     _kind = 'scatter'
 
     def __init__(self, data, x, y, c=None, **kwargs):
-        super(ScatterPlot, self).__init__(data, x, y, **kwargs)
-        if com.is_integer(c) and not self.data.columns.holds_integer():
-            c = self.data.columns[c]
+        PlanePlot.__init__(self, data, x, y, **kwargs)
+        if com.is_integer(c) and not self.columns.holds_integer():
+            c = self.columns[c]
         self.c = c
 
-    def _make_plot(self):
+    def _make_plot(self, ax, data, axes_num=0, title=None):
         import matplotlib as mpl
         mpl_ge_1_3_1 = str(mpl.__version__) >= LooseVersion('1.3.1')
 
-        x, y, c, data = self.x, self.y, self.c, self.data
-        ax = self.axes[0]
-
-        c_is_column = com.is_hashable(c) and c in self.data.columns
+        x, y, c = self.x, self.y, self.c
+        c_is_column = com.is_hashable(c) and c in data.columns
 
         # plot a colorbar only if a colormap is provided or necessary
         cb = self.kwds.pop('colorbar', self.colormap or c_is_column)
@@ -1484,19 +1680,26 @@ class ScatterPlot(PlanePlot):
         cmap = self.colormap or 'Greys'
         cmap = self.plt.cm.get_cmap(cmap)
 
-        if c is None:
-            c_values = self.plt.rcParams['patch.facecolor']
-        elif c_is_column:
+        if c_is_column:
             c_values = self.data[c].values
+        elif self.nseries > 1 or self.c is None:
+            colors = self._get_colors(num_colors=self.nseries)
+            c_values = colors[axes_num % len(colors)]
         else:
-            c_values = c
+            # when nseries == 1 and have passed color, use it as it is
+            # it is because passed color may be a list of float values
+            c_values = self.c
 
-        if self.legend and hasattr(self, 'label'):
-            label = self.label
-        else:
-            label = None
+        if hasattr(self, 'label'):
+            if com.is_list_like(self.label):
+                title = self.label[axes_num]
+            else:
+                if self.nseries == 1:
+                    title = self.label
+
+        # title will be a group label of scatters
         scatter = ax.scatter(data[x].values, data[y].values, c=c_values,
-                             label=label, cmap=cmap, **self.kwds)
+                             label=title, cmap=cmap, **self.kwds)
         if cb:
             img = ax.collections[0]
             kws = dict(ax=ax)
@@ -1504,8 +1707,8 @@ class ScatterPlot(PlanePlot):
                 kws['label'] = c if c_is_column else ''
             self.fig.colorbar(img, **kws)
 
-        if label is not None:
-            self._add_legend_handle(scatter, label)
+        if title is not None:
+            self._add_legend_handle(ax, scatter, label=title)
         else:
             self.legend = False
 
@@ -1514,6 +1717,8 @@ class ScatterPlot(PlanePlot):
         if len(errors_x) > 0 or len(errors_y) > 0:
             err_kwds = dict(errors_x, **errors_y)
             err_kwds['ecolor'] = scatter.get_facecolor()[0]
+            if 'color' in self.kwds:
+                err_kwds['color'] = self.kwds['color']
             ax.errorbar(data[x].values, data[y].values, linestyle='none', **err_kwds)
 
 
@@ -1526,13 +1731,19 @@ class HexBinPlot(PlanePlot):
             C = self.data.columns[C]
         self.C = C
 
-    def _make_plot(self):
-        x, y, data, C = self.x, self.y, self.data, self.C
-        ax = self.axes[0]
+        from pandas.core.groupby import DataFrameGroupBy
+        if isinstance(data, DataFrameGroupBy) and not self.subplots:
+            raise ValueError("To plot DataFrameGroupBy, specify 'suplots=True'")
+
+    def _make_plot(self, ax, data, axes_num=0, title=None):
+        x, y, C = self.x, self.y, self.C
+
         # pandas uses colormap, matplotlib uses cmap.
         cmap = self.colormap or 'BuGn'
         cmap = self.plt.cm.get_cmap(cmap)
-        cb = self.kwds.pop('colorbar', True)
+
+        kwds = self.kwds.copy()
+        cb = kwds.pop('colorbar', True)
 
         if C is None:
             c_values = None
@@ -1540,12 +1751,12 @@ class HexBinPlot(PlanePlot):
             c_values = data[C].values
 
         ax.hexbin(data[x].values, data[y].values, C=c_values, cmap=cmap,
-                  **self.kwds)
+                  **kwds)
         if cb:
             img = ax.collections[0]
             self.fig.colorbar(img, ax=ax)
 
-    def _make_legend(self):
+    def _make_legend(self, ax, data):
         pass
 
 
@@ -1556,41 +1767,48 @@ class LinePlot(MPLPlot):
 
     def __init__(self, data, **kwargs):
         MPLPlot.__init__(self, data, **kwargs)
-        if self.stacked:
-            self.data = self.data.fillna(value=0)
         self.x_compat = plot_params['x_compat']
         if 'x_compat' in self.kwds:
             self.x_compat = bool(self.kwds.pop('x_compat'))
 
-    def _is_ts_plot(self):
+    @property
+    def _fillna(self):
+        if self.stacked:
+            return 0
+        else:
+            return None
+
+    def _is_ts_plot(self, ax, data):
         # this is slightly deceptive
-        return not self.x_compat and self.use_index and self._use_dynamic_x()
-
-    def _use_dynamic_x(self):
         from pandas.tseries.plotting import _use_dynamic_x
-        return _use_dynamic_x(self._get_ax(0), self.data)
+        return (not self.x_compat and self.use_index and
+                _use_dynamic_x(ax, data))
 
-    def _make_plot(self):
-        if self._is_ts_plot():
+    def _make_plot(self, ax, data, axes_num=0, title=None):
+        if self._is_ts_plot(ax, data):
             from pandas.tseries.plotting import _maybe_convert_index
-            data = _maybe_convert_index(self._get_ax(0), self.data)
-
+            data = _maybe_convert_index(ax, data)
             x = data.index      # dummy, not used
             plotf = self._ts_plot
-            it = self._iter_data(data=data, keep_index=True)
+            it = self._iter_data(data, keep_index=True)
         else:
-            x = self._get_xticks(convert_period=True)
+            data, x = self._get_xticks(data, convert_period=True)
             plotf = self._plot
-            it = self._iter_data()
+            it = self._iter_data(data)
 
         stacking_id = self._get_stacking_id()
         is_errorbar = any(e is not None for e in self.errors.values())
 
         colors = self._get_colors()
+
         for i, (label, y) in enumerate(it):
-            ax = self._get_ax(i)
+            ax = self._get_ax_by_label(ax, label=label)
             kwds = self.kwds.copy()
-            style, kwds = self._apply_style_colors(colors, kwds, i, label)
+
+            if len(data.shape) > 1 and data.shape[1] == 1:
+                style, kwds = self._apply_style_colors(colors, kwds, axes_num, label)
+            else:
+                style, kwds = self._apply_style_colors(colors, kwds, i, label)
 
             errors = self._get_errorbars(label=label, index=i)
             kwds = dict(kwds, **errors)
@@ -1602,7 +1820,7 @@ class LinePlot(MPLPlot):
                              stacking_id=stacking_id,
                              is_errorbar=is_errorbar,
                              **kwds)
-            self._add_legend_handle(newlines[0], label, index=i)
+            self._add_legend_handle(ax, newlines[0], label=label)
 
             lines = _get_all_lines(ax)
             left, right = _get_xlim(lines)
@@ -1681,12 +1899,13 @@ class LinePlot(MPLPlot):
             ax._stacker_neg_prior[stacking_id] += values
 
     def _post_plot_logic(self, ax, data):
-        condition = (not self._use_dynamic_x()
+        from pandas.tseries.plotting import _use_dynamic_x
+        condition = (not _use_dynamic_x(ax, data)
                      and data.index.is_all_dates
                      and not self.subplots
                      or (self.subplots and self.sharex))
 
-        index_name = self._get_index_name()
+        index_name = self._get_index_name(data)
 
         if condition:
             # irregular TS rotated 30 deg. by default
@@ -1701,12 +1920,11 @@ class LinePlot(MPLPlot):
 
 class AreaPlot(LinePlot):
     _kind = 'area'
+    _fillna = 0
 
     def __init__(self, data, **kwargs):
         kwargs.setdefault('stacked', True)
-        data = data.fillna(value=0)
-        LinePlot.__init__(self, data, **kwargs)
-
+        super(AreaPlot, self).__init__(data, **kwargs)
         if not self.stacked:
             # use smaller alpha to distinguish overlap
             self.kwds.setdefault('alpha', 0.5)
@@ -1742,17 +1960,16 @@ class AreaPlot(LinePlot):
         cls._update_stacker(ax, stacking_id, y)
         return lines
 
-    def _add_legend_handle(self, handle, label, index=None):
+    def _add_legend_handle(self, ax, handle, label):
         from matplotlib.patches import Rectangle
         # Because fill_between isn't supported in legend,
         # specifically add Rectangle handle here
         alpha = self.kwds.get('alpha', None)
         handle = Rectangle((0, 0), 1, 1, fc=handle.get_color(), alpha=alpha)
-        LinePlot._add_legend_handle(self, handle, label, index=index)
+        super(AreaPlot, self)._add_legend_handle(ax, handle, label=label)
 
     def _post_plot_logic(self, ax, data):
-        LinePlot._post_plot_logic(self, ax, data)
-
+        super(AreaPlot, self)._post_plot_logic(ax, data)
         if self.ylim is None:
             if (data >= 0).all().all():
                 ax.set_ylim(0, None)
@@ -1764,12 +1981,12 @@ class BarPlot(MPLPlot):
     _kind = 'bar'
     _default_rot = 90
     orientation = 'vertical'
+    _fillna = 0
 
     def __init__(self, data, **kwargs):
         self.bar_width = kwargs.pop('width', 0.5)
         pos = kwargs.pop('position', 0.5)
         kwargs.setdefault('align', 'center')
-        self.tick_pos = np.arange(len(data))
 
         self.bottom = kwargs.pop('bottom', 0)
         self.left = kwargs.pop('left', 0)
@@ -1792,8 +2009,6 @@ class BarPlot(MPLPlot):
                 self.tickoffset = self.bar_width * pos
                 self.lim_offset = 0
 
-        self.ax_pos = self.tick_pos - self.tickoffset
-
     def _args_adjust(self):
         if com.is_list_like(self.bottom):
             self.bottom = np.array(self.bottom)
@@ -1808,17 +2023,20 @@ class BarPlot(MPLPlot):
     def _start_base(self):
         return self.bottom
 
-    def _make_plot(self):
+    def _make_plot(self, ax, data, axes_num=0, title=None):
         import matplotlib as mpl
 
         colors = self._get_colors()
         ncolors = len(colors)
 
-        pos_prior = neg_prior = np.zeros(len(self.data))
+        pos_prior = neg_prior = np.zeros(len(data))
         K = self.nseries
 
-        for i, (label, y) in enumerate(self._iter_data(fillna=0)):
-            ax = self._get_ax(i)
+        tick_pos = np.arange(len(data))
+        ax_pos = tick_pos - self.tickoffset
+
+        for i, (label, y) in enumerate(self._iter_data(data)):
+            ax = self._get_ax_by_label(ax, label=label)
             kwds = self.kwds.copy()
             kwds['color'] = colors[i % ncolors]
 
@@ -1838,41 +2056,46 @@ class BarPlot(MPLPlot):
 
             if self.subplots:
                 w = self.bar_width / 2
-                rect = self._plot(ax, self.ax_pos + w, y, self.bar_width,
+                rect = self._plot(ax, ax_pos + w, y, self.bar_width,
                                   start=start, label=label, log=self.log, **kwds)
                 ax.set_title(label)
             elif self.stacked:
                 mask = y > 0
                 start = np.where(mask, pos_prior, neg_prior) + self._start_base
                 w = self.bar_width / 2
-                rect = self._plot(ax, self.ax_pos + w, y, self.bar_width,
+                rect = self._plot(ax, ax_pos + w, y, self.bar_width,
                                   start=start, label=label, log=self.log, **kwds)
                 pos_prior = pos_prior + np.where(mask, y, 0)
                 neg_prior = neg_prior + np.where(mask, 0, y)
             else:
                 w = self.bar_width / K
-                rect = self._plot(ax, self.ax_pos + (i + 0.5) * w, y, w,
+                rect = self._plot(ax, ax_pos + (i + 0.5) * w, y, w,
                                   start=start, label=label, log=self.log, **kwds)
-            self._add_legend_handle(rect, label, index=i)
+            self._add_legend_handle(ax, rect, label=label)
 
     def _post_plot_logic(self, ax, data):
         if self.use_index:
             str_index = [com.pprint_thing(key) for key in data.index]
         else:
-            str_index = [com.pprint_thing(key) for key in range(data.shape[0])]
-        name = self._get_index_name()
+            str_index = [com.pprint_thing(key) for key in range(len(data))]
 
-        s_edge = self.ax_pos[0] - 0.25 + self.lim_offset
-        e_edge = self.ax_pos[-1] + 0.25 + self.bar_width + self.lim_offset
+        name = self._get_index_name(data)
 
-        self._decorate_ticks(ax, name, str_index, s_edge, e_edge)
+        tick_pos = np.arange(len(data))
+        ax_pos = tick_pos - self.tickoffset
 
-    def _decorate_ticks(self, ax, name, ticklabels, start_edge, end_edge):
+        s_edge = ax_pos[0] - 0.25 + self.lim_offset
+        e_edge = ax_pos[-1] + 0.25 + self.bar_width + self.lim_offset
+
+        self._decorate_ticks(ax, name, str_index, tick_pos, s_edge, e_edge)
+
+    def _decorate_ticks(self, ax, axis_label, ticklabels, tick_pos,
+                        start_edge, end_edge):
         ax.set_xlim((start_edge, end_edge))
-        ax.set_xticks(self.tick_pos)
+        ax.set_xticks(tick_pos)
         ax.set_xticklabels(ticklabels)
-        if name is not None and self.use_index:
-            ax.set_xlabel(name)
+        if axis_label is not None and self.use_index:
+            ax.set_xlabel(axis_label)
 
 
 class BarhPlot(BarPlot):
@@ -1888,13 +2111,14 @@ class BarhPlot(BarPlot):
     def _plot(cls, ax, x, y, w, start=0, log=False, **kwds):
         return ax.barh(x, y, w, left=start, log=log, **kwds)
 
-    def _decorate_ticks(self, ax, name, ticklabels, start_edge, end_edge):
+    def _decorate_ticks(self, ax, axis_label, ticklabels, tick_pos,
+                        start_edge, end_edge):
         # horizontal bars
         ax.set_ylim((start_edge, end_edge))
-        ax.set_yticks(self.tick_pos)
+        ax.set_yticks(tick_pos)
         ax.set_yticklabels(ticklabels)
-        if name is not None and self.use_index:
-            ax.set_ylabel(name)
+        if axis_label is not None and self.use_index:
+            ax.set_ylabel(axis_label)
 
 
 class HistPlot(LinePlot):
@@ -1909,14 +2133,20 @@ class HistPlot(LinePlot):
     def _args_adjust(self):
         if com.is_integer(self.bins):
             # create common bin edge
-            values = (self.data.convert_objects(datetime=True)
-                      ._get_numeric_data())
+            from pandas.core.groupby import SeriesGroupBy, DataFrameGroupBy
+            if isinstance(self.data, (SeriesGroupBy, DataFrameGroupBy)):
+                data = self.data.obj
+            else:
+                data = self.data
+            data = data.convert_objects(datetime=True)
+            values = data._get_numeric_data().values
             values = np.ravel(values)
             values = values[~com.isnull(values)]
 
+            range = self.kwds.get('range', None)
+            weights = self.kwds.get('weights', None)
             hist, self.bins = np.histogram(values, bins=self.bins,
-                                        range=self.kwds.get('range', None),
-                                        weights=self.kwds.get('weights', None))
+                                           range=range, weights=weights)
 
         if com.is_list_like(self.bottom):
             self.bottom = np.array(self.bottom)
@@ -1926,7 +2156,6 @@ class HistPlot(LinePlot):
               stacking_id=None, **kwds):
         if column_num == 0:
             cls._initialize_stacker(ax, stacking_id, len(bins) - 1)
-        y = y[~com.isnull(y)]
 
         base = np.zeros(len(bins) - 1)
         bottom = bottom + cls._get_stacked_values(ax, stacking_id, base, kwds['label'])
@@ -1935,26 +2164,32 @@ class HistPlot(LinePlot):
         cls._update_stacker(ax, stacking_id, n)
         return patches
 
-    def _make_plot(self):
+    def _make_plot(self, ax, data, axes_num=0, title=None):
         colors = self._get_colors()
         stacking_id = self._get_stacking_id()
 
-        for i, (label, y) in enumerate(self._iter_data()):
-            ax = self._get_ax(i)
-
+        for i, (label, y) in enumerate(self._iter_data(data)):
+            ax = self._get_ax_by_label(ax, label=label)
             kwds = self.kwds.copy()
 
             label = com.pprint_thing(label)
             kwds['label'] = label
 
-            style, kwds = self._apply_style_colors(colors, kwds, i, label)
+            if data.shape[1] == 1:
+                # temp until GH 9894
+                style, kwds = self._apply_style_colors(colors, kwds, axes_num, label)
+            else:
+                style, kwds = self._apply_style_colors(colors, kwds, i, label)
+
             if style is not None:
                 kwds['style'] = style
 
+            # remove na here before calculate kde ind
+            y = remove_na(y)
             kwds = self._make_plot_keywords(kwds, y)
             artists = self._plot(ax, y, column_num=i,
                                  stacking_id=stacking_id, **kwds)
-            self._add_legend_handle(artists[0], label, index=i)
+            self._add_legend_handle(ax, artists[0], label)
 
     def _make_plot_keywords(self, kwds, y):
         """merge BoxPlot/KdePlot properties to passed kwds"""
@@ -2004,8 +2239,6 @@ class KdePlot(HistPlot):
         from scipy.stats import gaussian_kde
         from scipy import __version__ as spv
 
-        y = remove_na(y)
-
         if LooseVersion(spv) >= '0.11.0':
             gkde = gaussian_kde(y, bw_method=bw_method)
         else:
@@ -2031,12 +2264,17 @@ class KdePlot(HistPlot):
 class PiePlot(MPLPlot):
     _kind = 'pie'
     _layout_type = 'horizontal'
+    _fillna = 0
 
-    def __init__(self, data, kind=None, **kwargs):
-        data = data.fillna(value=0)
-        if (data < 0).any().any():
-            raise ValueError("{0} doesn't allow negative values".format(kind))
-        MPLPlot.__init__(self, data, kind=kind, **kwargs)
+    def __init__(self, data, **kwargs):
+        MPLPlot.__init__(self, data, **kwargs)
+
+        from pandas.core.groupby import DataFrameGroupBy, SeriesGroupBy
+        if isinstance(data, SeriesGroupBy) and not self.subplots:
+            raise ValueError("To plot SeriesGroupBy, specify 'suplots=True'")
+        if isinstance(data, DataFrameGroupBy):
+            msg = "plot kind {0} cannot be used for DataFrameGroupBy".format(self._kind)
+            raise ValueError(msg)
 
     def _args_adjust(self):
         self.grid = False
@@ -2044,28 +2282,37 @@ class PiePlot(MPLPlot):
         self.logx = False
         self.loglog = False
 
+    @property
+    def ndim(self):
+        """
+        Return a tuple of (number of subplots, number of unique series)
+        """
+        ndim = super(PiePlot, self).ndim
+        # subplots by series
+        return ndim[1], ndim[1]
+
     def _validate_color_args(self):
         pass
 
-    def _make_plot(self):
+    def _make_plot(self, ax, data, axes_num=0, title=None):
         colors = self._get_colors(num_colors=len(self.data), color_kwds='colors')
-        self.kwds.setdefault('colors', colors)
+        self.kwds.setdefault('colors', self._get_colors(num_colors=len(data),
+                                                        color_kwds='colors'))
 
-        for i, (label, y) in enumerate(self._iter_data()):
-            ax = self._get_ax(i)
+        def blank_labeler(label, value):
+            return '' if value == 0 else label
+
+        for i, (label, y) in enumerate(self._iter_data(data)):
+            if (y < 0).any():
+                raise ValueError("{0} doesn't allow negative values".format(self.kind))
+            ax = self._get_ax_by_label(ax, label=label)
             if label is not None:
                 label = com.pprint_thing(label)
                 ax.set_ylabel(label)
 
             kwds = self.kwds.copy()
 
-            def blank_labeler(label, value):
-                if value == 0:
-                    return ''
-                else:
-                    return label
-
-            idx = [com.pprint_thing(v) for v in self.data.index]
+            idx = [com.pprint_thing(v) for v in data.index]
             labels = kwds.pop('labels', idx)
             # labels is used for each wedge's labels
             # Blank out labels for values of 0 so they don't overlap
@@ -2089,14 +2336,18 @@ class PiePlot(MPLPlot):
 
             # leglabels is used for legend labels
             leglabels = labels if labels is not None else idx
-            for p, l in zip(patches, leglabels):
-                self._add_legend_handle(p, l)
+            if blabels is None:
+                for p, l in zip(patches, leglabels):
+                    self._add_legend_handle(ax, p, label=l)
+            else:
+                for p, l in zip(patches, leglabels):
+                    if l in blabels:
+                        self._add_legend_handle(ax, p, label=l)
 
 
 class BoxPlot(LinePlot):
     _kind = 'box'
     _layout_type = 'horizontal'
-
     _valid_return_types = (None, 'axes', 'dict', 'both')
     # namedtuple to hold results
     BP = namedtuple("Boxplot", ['ax', 'lines'])
@@ -2108,6 +2359,8 @@ class BoxPlot(LinePlot):
 
         self.return_type = return_type
         MPLPlot.__init__(self, data, **kwargs)
+
+        self._return_obj = compat.OrderedDict()
 
     def _args_adjust(self):
         if self.subplots:
@@ -2187,36 +2440,28 @@ class BoxPlot(LinePlot):
         setp(bp['medians'], color=medians, alpha=1)
         setp(bp['caps'], color=caps, alpha=1)
 
-    def _make_plot(self):
+    def _make_plot(self, ax, data, axes_num=0, title=None):
+        # Boxplot doesn't use _iter_data, thus called explicitly
+        data = self._compute_plot_data(data)
+
+        y = data.values.T
+        ax = self._get_ax_by_label(ax, 0)
+        kwds = self.kwds.copy()
+
+        ret, bp = self._plot(ax, y, column_num=0,
+                             return_type=self.return_type,**kwds)
+        self.maybe_color_bp(bp)
+
         if self.subplots:
-            self._return_obj = compat.OrderedDict()
-
-            for i, (label, y) in enumerate(self._iter_data()):
-                ax = self._get_ax(i)
-                kwds = self.kwds.copy()
-
-                ret, bp = self._plot(ax, y, column_num=i,
-                                     return_type=self.return_type, **kwds)
-                self.maybe_color_bp(bp)
-                self._return_obj[label] = ret
-
-                label = [com.pprint_thing(label)]
-                self._set_ticklabels(ax, label)
+            self._return_obj[title] = ret
         else:
-            y = self.data.values.T
-            ax = self._get_ax(0)
-            kwds = self.kwds.copy()
-
-            ret, bp = self._plot(ax, y, column_num=0,
-                                 return_type=self.return_type, **kwds)
-            self.maybe_color_bp(bp)
             self._return_obj = ret
 
-            labels = [l for l, y in self._iter_data()]
-            labels = [com.pprint_thing(l) for l in labels]
-            if not self.use_index:
-                labels = [com.pprint_thing(key) for key in range(len(labels))]
-            self._set_ticklabels(ax, labels)
+        labels = [l for l, y in self._iter_data(data)]
+        labels = [com.pprint_thing(l) for l in labels]
+        if not self.use_index:
+            labels = [com.pprint_thing(key) for key in range(len(labels))]
+        self._set_ticklabels(ax, labels)
 
     def _set_ticklabels(self, ax, labels):
         if self.orientation == 'vertical':
@@ -2224,7 +2469,7 @@ class BoxPlot(LinePlot):
         else:
             ax.set_yticklabels(labels)
 
-    def _make_legend(self):
+    def _make_legend(self, ax, data):
         pass
 
     def _post_plot_logic(self, ax, data):
@@ -2275,7 +2520,7 @@ def _plot(data, x=None, y=None, subplots=False,
             plot_obj = klass(data, x=x, y=y, subplots=subplots, ax=ax,
                              kind=kind, **kwds)
         else:
-            raise ValueError("plot kind %r can only be used for data frames"
+            raise ValueError("plot kind %r can only be used for DataFrame"
                              % kind)
 
     elif kind in _series_kinds:
@@ -2512,6 +2757,68 @@ def plot_series(data, kind='line', ax=None,                    # Series unique
                  label=label, secondary_y=secondary_y,
                  **kwds)
 
+@Appender(_shared_docs['plot'] % _shared_doc_series_kwargs)
+def plot_grouped_series(grouped=None, subplots=False, sharex=True,
+                        sharey=False, use_index=True, figsize=None, grid=None,
+                        legend=True, rot=None, ax=None, style=None, title=None,
+                        xlim=None, ylim=None, logx=False, logy=False, xticks=None,
+                        yticks=None, kind='line', sort_columns=False, fontsize=None,
+                        secondary_y=False, transpose=False, **kwds):
+
+    kind = _get_standard_kind(kind.lower().strip())
+    if kind in _all_kinds:
+        klass = _plot_klass[kind]
+    else:
+        raise ValueError('Invalid chart type given %s' % kind)
+
+    plot_obj = klass(grouped, kind=kind, subplots=subplots, rot=rot,
+                     legend=legend, ax=ax, style=style, fontsize=fontsize,
+                     use_index=use_index, sharex=sharex, sharey=sharey,
+                     xticks=xticks, yticks=yticks, xlim=xlim, ylim=ylim,
+                     title=title, grid=grid, figsize=figsize, logx=logx,
+                     logy=logy, sort_columns=sort_columns,
+                     secondary_y=secondary_y, **kwds)
+
+    plot_obj.generate()
+    plot_obj.draw()
+    return plot_obj.result
+
+
+@Appender(_shared_docs['plot'] % _shared_doc_df_kwargs)
+def plot_grouped_frame(grouped=None, x=None, y=None, subplots=True, sharex=True,
+                        sharey=False, use_index=True, figsize=None, grid=None,
+                        legend=True, rot=None, ax=None, style=None, title=None,
+                        xlim=None, ylim=None, logx=False, logy=False, xticks=None,
+                        yticks=None, kind='line', sort_columns=False, fontsize=None,
+                        secondary_y=False, transpose=False, **kwds):
+
+    kind = _get_standard_kind(kind.lower().strip())
+    if kind in _all_kinds:
+        klass = _plot_klass[kind]
+    else:
+        raise ValueError('Invalid chart type given %s' % kind)
+
+    if kind in _dataframe_kinds:
+        plot_obj = klass(grouped, x=x, y=y, kind=kind, subplots=subplots,
+                         rot=rot,legend=legend, ax=ax, style=style,
+                         fontsize=fontsize, use_index=use_index, sharex=sharex,
+                         sharey=sharey, xticks=xticks, yticks=yticks,
+                         xlim=xlim, ylim=ylim, title=title, grid=grid,
+                         figsize=figsize, logx=logx, logy=logy,
+                         sort_columns=sort_columns, secondary_y=secondary_y,
+                         **kwds)
+    else:
+        plot_obj = klass(grouped, kind=kind, subplots=subplots, rot=rot,
+                         legend=legend, ax=ax, style=style, fontsize=fontsize,
+                         use_index=use_index, sharex=sharex, sharey=sharey,
+                         xticks=xticks, yticks=yticks, xlim=xlim, ylim=ylim,
+                         title=title, grid=grid, figsize=figsize, logx=logx,
+                         logy=logy, sort_columns=sort_columns,
+                         secondary_y=secondary_y, **kwds)
+
+    plot_obj.generate()
+    plot_obj.draw()
+    return plot_obj.result
 
 _shared_docs['boxplot'] = """
     Make a box plot from DataFrame column optionally grouped by some columns or
