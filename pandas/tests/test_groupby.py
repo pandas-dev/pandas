@@ -3753,6 +3753,29 @@ class TestGroupBy(tm.TestCase):
         result = df.groupby(level=0).sum()
         assert_frame_equal(result, expected)
 
+    def test_groupby_multi_timezone(self):
+
+        # combining multiple / different timezones yields UTC
+
+        data="""0,2000-01-28 16:47:00,America/Chicago
+1,2000-01-29 16:48:00,America/Chicago
+2,2000-01-30 16:49:00,America/Los_Angeles
+3,2000-01-31 16:50:00,America/Chicago
+4,2000-01-01 16:50:00,America/New_York"""
+
+        df = pd.read_csv(StringIO(data),header=None, names=['value','date','tz'])
+        result = df.groupby('tz').date.apply(lambda x: pd.to_datetime(x).dt.tz_localize(x.name))
+
+        expected = pd.to_datetime(Series(['2000-01-28 22:47:00', '2000-01-29 22:48:00', '2000-01-31 00:49:00', '2000-01-31 22:50:00', '2000-01-01 21:50:00']))
+        assert_series_equal(result, expected)
+
+        tz = 'America/Chicago'
+        result = pd.to_datetime(df.groupby('tz').date.get_group(tz)).dt.tz_localize(tz)
+        expected = pd.to_datetime(Series(['2000-01-28 16:47:00', '2000-01-29 16:48:00','2000-01-31 16:50:00'],
+                                         index=[0,1,3],
+                                         name='date')).dt.tz_localize(tz)
+        assert_series_equal(result, expected)
+
     def test_groupby_reindex_inside_function(self):
         from pandas.tseries.api import DatetimeIndex
 
