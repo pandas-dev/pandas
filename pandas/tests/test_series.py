@@ -1044,6 +1044,7 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         self.assertTrue(s.dtype.name == 'datetime64[ns, US/Eastern]')
         self.assertTrue(s.dtype == 'datetime64[ns, US/Eastern]')
         self.assertTrue(com.is_datetime64tz_dtype(s.dtype))
+        self.assertTrue('datetime64[ns, US/Eastern]' in str(s))
 
         # export
         result = s.values
