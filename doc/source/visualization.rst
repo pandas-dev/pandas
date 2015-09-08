@@ -375,7 +375,7 @@ For example, horizontal and custom-positioned boxplot can be drawn by
 
 
 See the :meth:`boxplot <matplotlib.axes.Axes.boxplot>` method and the
-`matplotlib boxplot documenation <http://matplotlib.org/api/pyplot_api.html#matplotlib.pyplot.boxplot>`__ for more.
+`matplotlib boxplot documentation <http://matplotlib.org/api/pyplot_api.html#matplotlib.pyplot.boxplot>`__ for more.
 
 
 The existing interface ``DataFrame.boxplot`` to plot boxplot still can be used.
@@ -601,7 +601,7 @@ Below example shows a bubble chart using a dataframe column values as bubble siz
    plt.close('all')
 
 See the :meth:`scatter <matplotlib.axes.Axes.scatter>` method and the
-`matplotlib scatter documenation <http://matplotlib.org/api/pyplot_api.html#matplotlib.pyplot.scatter>`__ for more.
+`matplotlib scatter documentation <http://matplotlib.org/api/pyplot_api.html#matplotlib.pyplot.scatter>`__ for more.
 
 .. _visualization.hexbin:
 
@@ -665,7 +665,7 @@ given by column ``z``. The bins are aggregated with numpy's ``max`` function.
    plt.close('all')
 
 See the :meth:`hexbin <matplotlib.axes.Axes.hexbin>` method and the
-`matplotlib hexbin documenation <http://matplotlib.org/api/pyplot_api.html#matplotlib.pyplot.hexbin>`__ for more.
+`matplotlib hexbin documentation <http://matplotlib.org/api/pyplot_api.html#matplotlib.pyplot.hexbin>`__ for more.
 
 .. _visualization.pie:
 
@@ -761,7 +761,7 @@ If you pass values whose sum total is less than 1.0, matplotlib draws a semicirc
    @savefig series_pie_plot_semi.png
    series.plot(kind='pie', figsize=(6, 6))
 
-See the `matplotlib pie documenation <http://matplotlib.org/api/pyplot_api.html#matplotlib.pyplot.pie>`__ for more.
+See the `matplotlib pie documentation <http://matplotlib.org/api/pyplot_api.html#matplotlib.pyplot.pie>`__ for more.
 
 .. ipython:: python
     :suppress:
@@ -1445,7 +1445,7 @@ Finally, there is a helper function ``pandas.tools.plotting.table`` to create a 
 
    plt.close('all')
 
-**Note**: You can get table instances on the axes using ``axes.tables`` property for further decorations. See the `matplotlib table documenation <http://matplotlib.org/api/axes_api.html#matplotlib.axes.Axes.table>`__ for more.
+**Note**: You can get table instances on the axes using ``axes.tables`` property for further decorations. See the `matplotlib table documentation <http://matplotlib.org/api/axes_api.html#matplotlib.axes.Axes.table>`__ for more.
 
 .. _visualization.colormaps:
 
