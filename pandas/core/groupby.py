@@ -3483,8 +3483,10 @@ class DataFrameGroupBy(NDFrameGroupBy):
         return self._wrap_agged_blocks(data.items, list(blk))
 
 
-from pandas.tools.plotting import boxplot_frame_groupby
-DataFrameGroupBy.boxplot = boxplot_frame_groupby
+import pandas.tools.plotting as plotting
+DataFrameGroupBy.boxplot = plotting.boxplot_frame_groupby
+SeriesGroupBy.plot = plotting.plot_grouped_series
+DataFrameGroupBy.plot = plotting.plot_grouped_frame
 
 
 class PanelGroupBy(NDFrameGroupBy):

@@ -590,12 +590,6 @@ class TestDataFrameGroupByPlots(TestPlotBase):
             gender = tm.choice(['male', 'female'], size=n)
         df = DataFrame({'height': height, 'weight': weight, 'gender': gender})
         gb = df.groupby('gender')
-
-        res = gb.plot()
-        self.assertEqual(len(self.plt.get_fignums()), 2)
-        self.assertEqual(len(res), 2)
-        tm.close()
-
         res = gb.boxplot(return_type='axes')
         self.assertEqual(len(self.plt.get_fignums()), 1)
         self.assertEqual(len(res), 2)

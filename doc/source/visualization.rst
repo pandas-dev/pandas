@@ -265,50 +265,7 @@ You can pass other keywords supported by matplotlib ``hist``. For example, horiz
 See the :meth:`hist <matplotlib.axes.Axes.hist>` method and the
 `matplotlib hist documentation <http://matplotlib.org/api/pyplot_api.html#matplotlib.pyplot.hist>`__ for more.
 
-
-The existing interface ``DataFrame.hist`` to plot histogram still can be used.
-
-.. ipython:: python
-
-   plt.figure();
-
-   @savefig hist_plot_ex.png
-   df['A'].diff().hist()
-
-.. ipython:: python
-   :suppress:
-
-   plt.close('all')
-
-:meth:`DataFrame.hist` plots the histograms of the columns on multiple
-subplots:
-
-.. ipython:: python
-
-   plt.figure()
-
-   @savefig frame_hist_ex.png
-   df.diff().hist(color='k', alpha=0.5, bins=50)
-
-
-.. versionadded:: 0.10.0
-
-The ``by`` keyword can be specified to plot grouped histograms:
-
-.. ipython:: python
-   :suppress:
-
-   plt.close('all')
-   plt.figure()
-   np.random.seed(123456)
-
-.. ipython:: python
-
-   data = pd.Series(np.random.randn(1000))
-
-   @savefig grouped_hist.png
-   data.hist(by=np.random.randint(0, 4, 1000), figsize=(6, 4))
-
+.. note:: The existing interface ``DataFrame.hist`` to plot histogram still can be used.
 
 .. _visualization.box:
 
@@ -377,69 +334,7 @@ For example, horizontal and custom-positioned boxplot can be drawn by
 See the :meth:`boxplot <matplotlib.axes.Axes.boxplot>` method and the
 `matplotlib boxplot documentation <http://matplotlib.org/api/pyplot_api.html#matplotlib.pyplot.boxplot>`__ for more.
 
-
-The existing interface ``DataFrame.boxplot`` to plot boxplot still can be used.
-
-.. ipython:: python
-   :suppress:
-
-   plt.close('all')
-   np.random.seed(123456)
-
-.. ipython:: python
-   :okwarning:
-
-   df = pd.DataFrame(np.random.rand(10,5))
-   plt.figure();
-
-   @savefig box_plot_ex.png
-   bp = df.boxplot()
-
-You can create a stratified boxplot using the ``by`` keyword argument to create
-groupings.  For instance,
-
-.. ipython:: python
-   :suppress:
-
-   plt.close('all')
-   np.random.seed(123456)
-
-.. ipython:: python
-   :okwarning:
-
-   df = pd.DataFrame(np.random.rand(10,2), columns=['Col1', 'Col2'] )
-   df['X'] = pd.Series(['A','A','A','A','A','B','B','B','B','B'])
-
-   plt.figure();
-
-   @savefig box_plot_ex2.png
-   bp = df.boxplot(by='X')
-
-You can also pass a subset of columns to plot, as well as group by multiple
-columns:
-
-.. ipython:: python
-   :suppress:
-
-   plt.close('all')
-   np.random.seed(123456)
-
-.. ipython:: python
-   :okwarning:
-
-   df = pd.DataFrame(np.random.rand(10,3), columns=['Col1', 'Col2', 'Col3'])
-   df['X'] = pd.Series(['A','A','A','A','A','B','B','B','B','B'])
-   df['Y'] = pd.Series(['A','B','A','B','A','B','A','B','A','B'])
-
-   plt.figure();
-
-   @savefig box_plot_ex3.png
-   bp = df.boxplot(column=['Col1','Col2'], by=['X','Y'])
-
-.. ipython:: python
-   :suppress:
-
-    plt.close('all')
+.. note:: The existing interface ``DataFrame.boxplot`` to plot boxplot still can be used.
 
 .. _visualization.box.return:
 
@@ -455,45 +350,8 @@ When ``subplots=False`` / ``by`` is ``None``:
 * if ``return_type`` is ``'both'`` a namedtuple containging the :class:`matplotlib Axes <matplotlib.axes.Axes>`
    and :class:`matplotlib Lines <matplotlib.lines.Line2D>` is returned
 
-When ``subplots=True`` / ``by`` is some column of the DataFrame:
-
-* A dict of ``return_type`` is returned, where the keys are the columns
-  of the DataFrame. The plot has a facet for each column of
-  the DataFrame, with a separate box for each value of ``by``.
-
-Finally, when calling boxplot on a :class:`Groupby` object, a dict of ``return_type``
-is returned, where the keys are the same as the Groupby object. The plot has a
-facet for each key, with each facet containing a box for each column of the
-DataFrame.
-
-.. ipython:: python
-   :okwarning:
-
-   np.random.seed(1234)
-   df_box = pd.DataFrame(np.random.randn(50, 2))
-   df_box['g'] = np.random.choice(['A', 'B'], size=50)
-   df_box.loc[df_box['g'] == 'B', 1] += 3
-
-   @savefig boxplot_groupby.png
-   bp = df_box.boxplot(by='g')
-
-.. ipython:: python
-   :suppress:
-
-   plt.close('all')
-
-Compare to:
-
-.. ipython:: python
-   :okwarning:
-
-   @savefig groupby_boxplot_vis.png
-   bp = df_box.groupby('g').boxplot()
-
-.. ipython:: python
-   :suppress:
-
-   plt.close('all')
+When ``subplots=True``, a dict of ``return_type`` is returned, where the keys
+are the columns of the DataFrame.
 
 .. _visualization.area_plot:
 
@@ -805,6 +663,142 @@ If any of these defaults are not what you want, or if you want to be
 explicit about how missing values are handled, consider using
 :meth:`~pandas.DataFrame.fillna` or :meth:`~pandas.DataFrame.dropna`
 before plotting.
+
+.. _visualization.groupby:
+
+Plotting with Grouped Data
+--------------------------
+
+.. versionadded:: 0.17
+
+You can plot grouped data easily by using ``GroupBy.plot`` method. It draws
+each column as line categorized by groups.
+
+.. ipython:: python
+
+   dfg = pd.DataFrame(np.random.rand(45, 4), columns=['A', 'B', 'C', 'D'])
+   dfg['by'] = ['Group 0', 'Group 1', 'Group 2'] * 15
+   grouped = dfg.groupby(by='by')
+
+   @savefig dfgropuby_line.png
+   grouped.plot();
+
+.. ipython:: python
+   :suppress:
+
+   plt.close('all')
+
+``SeriesGroupBy`` also supports plotting. It outputs each group in a single axes
+by default. It supports ``line``, ``bar``, ``barh``, ``hist``, ``kde``,
+``area``, ``box`` and ``pie`` charts.
+
+.. ipython:: python
+
+   @savefig sgropuby_bar.png
+   grouped['A'].plot(kind='bar');
+
+.. ipython:: python
+   :suppress:
+
+   plt.close('all')
+
+.. ipython:: python
+
+   @savefig sgropuby_kde.png
+   grouped['A'].plot(kind='kde');
+
+.. ipython:: python
+   :suppress:
+
+   plt.close('all')
+
+Specify ``subplots=True`` to output in separate axes.
+
+.. ipython:: python
+
+   @savefig sgropuby_box_subplots.png
+   grouped['A'].plot(kind='box', subplots=True);
+
+.. ipython:: python
+   :suppress:
+
+   plt.close('all')
+
+``layout`` keyword allows to specify the lauyout.
+
+.. ipython:: python
+
+   @savefig sgropuby_pie_subplots.png
+   grouped['A'].plot(kind='pie', subplots=True, legend=False, layout=(2, 2));
+
+.. ipython:: python
+   :suppress:
+
+   plt.close('all')
+
+``DataFrameGroupBy.plot`` supports ``line``, ``bar``, ``barh``, ``hist``,
+``kde``, ``area``, ``box``, ``scatter`` and ``hexbin`` plots.
+Except ``scatter``, plots are outputs as subplots.
+
+Following example shows stacked bar chart categorized by group.
+Note that you can pass keywords which is supported in normal plots.
+
+.. ipython:: python
+
+   @savefig dfgropuby_bar.png
+   grouped.plot(kind='bar', stacked=True);
+
+.. ipython:: python
+   :suppress:
+
+   plt.close('all')
+
+If you want to subplot by column, specify ``axis=1`` keyword.
+
+.. ipython:: python
+
+   @savefig dfgropuby_bar_axis1.png
+   grouped.plot(kind='bar', axis=1);
+
+.. ipython:: python
+   :suppress:
+
+   plt.close('all')
+
+Scatter plot can be drawn in a single axes specifying ``subplots=False``.
+Each group is colorized by separated colors.
+
+.. note:: Hexbin cannot be plotted in a single axes.
+
+.. ipython:: python
+
+   @savefig dfgropuby_scatter.png
+   grouped.plot(kind='scatter', x='A', y='B', subplots=False);
+
+.. ipython:: python
+   :suppress:
+
+   plt.close('all')
+
+Otherwise, it is drawn as subplots.
+
+.. ipython:: python
+
+   @savefig dfgropuby_scatter_subplots.png
+   grouped.plot(kind='scatter', x='A', y='B', layout=(2, 2));
+
+.. ipython:: python
+   :suppress:
+
+   plt.close('all')
+
+.. note:: Prior to 0.17, ``GroupBy.plot`` results in each group to be plotted
+   on separate figures. To output the same result, you can do:
+
+.. code-block:: python
+
+    for name, group in grouped:
+        group.plot()
 
 .. _visualization.tools:
 
