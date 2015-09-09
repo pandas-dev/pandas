@@ -1023,7 +1023,7 @@ Bug Fixes
 - Bug in ``read_stata`` when reading a file with a different order set in ``columns`` (:issue:`10757`)
 - Bug in ``Categorical`` may not representing properly when category contains ``tz`` or ``Period`` (:issue:`10713`)
 - Bug in ``Categorical.__iter__`` may not returning correct ``datetime`` and ``Period`` (:issue:`10713`)
-
+- Bug in indexing with a ``PeriodIndex`` on an object with a ``PeriodIndex`` (:issue:`4125`)
 - Bug in ``read_csv`` with ``engine='c'``: EOF preceded by a comment, blank line, etc. was not handled correctly (:issue:`10728`, :issue:`10548`)
 
 - Reading "famafrench" data via ``DataReader`` results in HTTP 404 error because of the website url is changed (:issue:`10591`).

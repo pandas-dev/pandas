@@ -19,9 +19,9 @@ from pandas.util.decorators import (Appender, Substitution, cache_readonly,
                                     deprecate, deprecate_kwarg)
 import pandas.core.common as com
 from pandas.core.common import (isnull, array_equivalent, is_dtype_equal, is_object_dtype,
-                                is_datetimetz,
+                                is_datetimetz, ABCSeries, ABCCategorical, ABCPeriodIndex,
                                 _values_from_object, is_float, is_integer, is_iterator, is_categorical_dtype,
-                                ABCSeries, ABCCategorical, _ensure_object, _ensure_int64, is_bool_indexer,
+                                _ensure_object, _ensure_int64, is_bool_indexer,
                                 is_list_like, is_bool_dtype, is_null_slice, is_integer_dtype)
 from pandas.core.config import get_option
 from pandas.io.common import PerformanceWarning
@@ -976,8 +976,8 @@ class Index(IndexOpsMixin, PandasObject):
         and we have a mixed index (e.g. number/labels). figure out
         the indexer. return None if we can't help
         """
-        if (kind is None or kind in ['iloc', 'ix']) and (
-            is_integer_dtype(keyarr) and not self.is_floating() and not com.is_period_arraylike(keyarr)):
+        if kind in [None, 'iloc', 'ix'] and is_integer_dtype(keyarr) \
+           and not self.is_floating() and not isinstance(keyarr, ABCPeriodIndex):
 
             if self.inferred_type != 'integer':
                 keyarr = np.where(keyarr < 0,
