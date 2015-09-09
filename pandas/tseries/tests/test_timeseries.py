@@ -2152,7 +2152,6 @@ class TestTimeSeries(tm.TestCase):
         expected = pd.Series(1, index=expected_index)
         assert_series_equal(result, expected)
 
-
     def test_pickle(self):
 
         # GH4606
@@ -2170,6 +2169,26 @@ class TestTimeSeries(tm.TestCase):
         idx = date_range('1750-1-1', '2050-1-1', freq='7D')
         idx_p = self.round_trip_pickle(idx)
         tm.assert_index_equal(idx, idx_p)
+
+    def test_timestamp_equality(self):
+
+        # GH 11034
+        s = Series([Timestamp('2000-01-29 01:59:00'),'NaT'])
+        result = s != s
+        assert_series_equal(result, Series([False,True]))
+        result = s != s[0]
+        assert_series_equal(result, Series([False,True]))
+        result = s != s[1]
+        assert_series_equal(result, Series([True,True]))
+
+        result = s == s
+        assert_series_equal(result, Series([True,False]))
+        result = s == s[0]
+        assert_series_equal(result, Series([True,False]))
+        result = s == s[1]
+        assert_series_equal(result, Series([False,False]))
+
+
 
 def _simple_ts(start, end, freq='D'):
     rng = date_range(start, end, freq=freq)

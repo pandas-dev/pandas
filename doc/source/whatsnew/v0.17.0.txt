@@ -227,7 +227,7 @@ See the :ref:`documentation <io.excel>` for more details.
 
    df = pd.read_excel('test.xlsx', header=[0,1], index_col=[0,1])
    df
-    
+
 .. ipython:: python
    :suppress:
 
@@ -494,7 +494,7 @@ Datetime with TZ
 
 We are adding an implementation that natively supports datetime with timezones. A ``Series`` or a ``DataFrame`` column previously
 *could* be assigned a datetime with timezones, and would work as an ``object`` dtype. This had performance issues with a large
-number rows. See the :ref:`docs <timeseries.timezone_series>` for more details. (:issue:`8260`, :issue:`10763`).
+number rows. See the :ref:`docs <timeseries.timezone_series>` for more details. (:issue:`8260`, :issue:`10763`, :issue:`11034`).
 
 The new implementation allows for having a single-timezone across all rows, with operations in a performant manner.
 
@@ -966,7 +966,6 @@ Bug Fixes
 - Bug in ``Series.count`` when index has nulls (:issue:`10946`)
 - Bug in pickling of a non-regular freq ``DatetimeIndex`` (:issue:`11002`)
 - Bug causing ``DataFrame.where`` to not respect the ``axis`` parameter when the frame has a symmetric shape. (:issue:`9736`)
-
 - Bug in ``Table.select_column`` where name is not preserved (:issue:`10392`)
 - Bug in ``offsets.generate_range`` where ``start`` and ``end`` have finer precision than ``offset`` (:issue:`9907`)
 - Bug in ``pd.rolling_*`` where ``Series.name`` would be lost in the output (:issue:`10565`)
