@@ -3261,7 +3261,9 @@ class TestPeriodIndex(DatetimeLike, tm.TestCase):
         df = pd.DataFrame(pd.np.random.randn(24,10), index=idx)
         self.assert_frame_equal(df, df.ix[idx])
         self.assert_frame_equal(df, df.ix[list(idx)])
-
+        self.assert_frame_equal(df, df.loc[list(idx)])
+        self.assert_frame_equal(df.iloc[0:5], df.loc[idx[0:5]])
+        self.assert_frame_equal(df, df.loc[list(idx)])
 
 class TestTimedeltaIndex(DatetimeLike, tm.TestCase):
     _holder = TimedeltaIndex
