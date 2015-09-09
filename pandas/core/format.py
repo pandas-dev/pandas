@@ -191,8 +191,7 @@ class SeriesFormatter(object):
                 footer += 'dtype: %s' % com.pprint_thing(name)
 
         # level infos are added to the end and in a new line, like it is done for Categoricals
-        # Only added when we request a name
-        if name and com.is_categorical_dtype(self.tr_series.dtype):
+        if com.is_categorical_dtype(self.tr_series.dtype):
             level_info = self.tr_series._values._repr_categories_info()
             if footer:
                 footer += "\n"
