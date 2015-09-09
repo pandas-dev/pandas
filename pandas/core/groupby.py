@@ -400,7 +400,7 @@ class GroupBy(PandasObject):
         self.exclusions = set(exclusions) if exclusions else set()
 
     def __len__(self):
-        return len(self.indices)
+        return len(self.groups)
 
     def __unicode__(self):
         # TODO: Better unicode/repr for GroupBy object

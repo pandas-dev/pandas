@@ -837,6 +837,12 @@ class TestGroupBy(tm.TestCase):
         expected = len(set([(x.year, x.month) for x in df.index]))
         self.assertEqual(len(grouped), expected)
 
+        # issue 11016
+        df = pd.DataFrame(dict(a=[np.nan]*3, b=[1,2,3]))
+        self.assertEqual(len(df.groupby(('a'))), 0)
+        self.assertEqual(len(df.groupby(('b'))), 3)
+        self.assertEqual(len(df.groupby(('a', 'b'))), 3)
+
     def test_groups(self):
         grouped = self.df.groupby(['A'])
         groups = grouped.groups
