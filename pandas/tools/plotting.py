@@ -2848,7 +2848,7 @@ def hist_series(self, by=None, ax=None, grid=True, xlabelsize=None,
     return axes
 
 
-def grouped_hist(data, column=None, weights=weights, by=None, ax=None, bins=50, figsize=None,
+def grouped_hist(data, column=None, weights=None, by=None, ax=None, bins=50, figsize=None,
                  layout=None, sharex=False, sharey=False, rot=90, grid=True,
                  xlabelsize=None, xrot=None, ylabelsize=None, yrot=None,
                  **kwargs):
