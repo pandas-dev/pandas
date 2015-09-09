@@ -951,7 +951,7 @@ Bug Fixes
 
 
 - Bug in ``to_datetime`` and ``to_timedelta`` causing ``Index`` name to be lost (:issue:`10875`)
-
+- Bug in ``len(DataFrame.groupby)`` causing IndexError when there's a column containing only NaNs (:issue: `11016`)
 
 - Bug that caused segfault when resampling an empty Series (:issue:`10228`)
 - Bug in ``DatetimeIndex`` and ``PeriodIndex.value_counts`` resets name from its result, but retains in result's ``Index``. (:issue:`10150`)
