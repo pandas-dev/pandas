@@ -3151,6 +3151,39 @@ class TestDatetimeIndex(DatetimeLike, tm.TestCase):
         self.assertIs(DatetimeIndex([np.nan])[0], pd.NaT)
 
 
+    def test_ufunc_coercions(self):
+        idx = date_range('2011-01-01', periods=3, freq='2D', name='x')
+
+        delta = np.timedelta64(1, 'D')
+        for result in [idx + delta, np.add(idx, delta)]:
+            tm.assertIsInstance(result, DatetimeIndex)
+            exp = date_range('2011-01-02', periods=3, freq='2D', name='x')
+            tm.assert_index_equal(result, exp)
+            self.assertEqual(result.freq, '2D')
+
+        for result in [idx - delta, np.subtract(idx, delta)]:
+            tm.assertIsInstance(result, DatetimeIndex)
+            exp = date_range('2010-12-31', periods=3, freq='2D', name='x')
+            tm.assert_index_equal(result, exp)
+            self.assertEqual(result.freq, '2D')
+
+        delta = np.array([np.timedelta64(1, 'D'), np.timedelta64(2, 'D'),
+                          np.timedelta64(3, 'D')])
+        for result in [idx + delta, np.add(idx, delta)]:
+            tm.assertIsInstance(result, DatetimeIndex)
+            exp = DatetimeIndex(['2011-01-02', '2011-01-05', '2011-01-08'],
+                                freq='3D', name='x')
+            tm.assert_index_equal(result, exp)
+            self.assertEqual(result.freq, '3D')
+
+        for result in [idx - delta, np.subtract(idx, delta)]:
+            tm.assertIsInstance(result, DatetimeIndex)
+            exp = DatetimeIndex(['2010-12-31', '2011-01-01', '2011-01-02'],
+                                freq='D', name='x')
+            tm.assert_index_equal(result, exp)
+            self.assertEqual(result.freq, 'D')
+
+
 class TestPeriodIndex(DatetimeLike, tm.TestCase):
     _holder = PeriodIndex
     _multiprocess_can_split_ = True
@@ -3306,7 +3339,7 @@ class TestTimedeltaIndex(DatetimeLike, tm.TestCase):
     def test_ufunc_coercions(self):
         # normal ops are also tested in tseries/test_timedeltas.py
         idx = TimedeltaIndex(['2H', '4H', '6H', '8H', '10H'],
-                                freq='2H', name='x')
+                              freq='2H', name='x')
 
         for result in [idx * 2, np.multiply(idx, 2)]:
             tm.assertIsInstance(result, TimedeltaIndex)
@@ -3323,7 +3356,7 @@ class TestTimedeltaIndex(DatetimeLike, tm.TestCase):
             self.assertEqual(result.freq, 'H')
 
         idx = TimedeltaIndex(['2H', '4H', '6H', '8H', '10H'],
-                                freq='2H', name='x')
+                             freq='2H', name='x')
         for result in [ - idx, np.negative(idx)]:
             tm.assertIsInstance(result, TimedeltaIndex)
             exp = TimedeltaIndex(['-2H', '-4H', '-6H', '-8H', '-10H'],
@@ -3332,7 +3365,7 @@ class TestTimedeltaIndex(DatetimeLike, tm.TestCase):
             self.assertEqual(result.freq, '-2H')
 
         idx = TimedeltaIndex(['-2H', '-1H', '0H', '1H', '2H'],
-                                freq='H', name='x')
+                             freq='H', name='x')
         for result in [ abs(idx), np.absolute(idx)]:
             tm.assertIsInstance(result, TimedeltaIndex)
             exp = TimedeltaIndex(['2H', '1H', '0H', '1H', '2H'],
