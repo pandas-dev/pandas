@@ -3002,7 +3002,11 @@ def _grouped_plot(plotf, data, column=None, weights=None, by=None, numeric_only=
             group = group._get_numeric_data()
             if weight is not None:
                 weight = weight._get_numeric_data()
-        plotf(group, ax, weight, **kwargs)
+        if weight is not None:
+            plotf(group, ax, weight, **kwargs)
+        else:
+            # scatterplot etc has not the weight implemented in plotf
+            plotf(group, ax, **kwargs)
         ax.set_title(com.pprint_thing(key))
 
     return fig, axes
