@@ -131,6 +131,79 @@ These changes conform sparse handling to return the correct types and work to ma
 - Bug in ``pd.concat()`` of ``SparseDataFrame`` may raise ``AttributeError`` (:issue:`12174`)
 - Bug in ``SparseArray.shift()`` may raise ``NameError`` or ``TypeError`` (:issue:`12908`)
 
+.. _whatsnew_0181.api.groubynth:
+
+``.groupby(..).nth()`` changes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The index in ``.groupby(..).nth()`` output is now more consistent when the ``as_index`` argument is passed (:issue:`11039`):
+
+.. ipython:: python
+
+   df = DataFrame({'A' : ['a', 'b', 'a'],
+                   'B' : [1, 2, 3]})
+   df
+
+Previous Behavior:
+
+.. code-block:: ipython
+
+   In [3]: df.groupby('A', as_index=True)['B'].nth(0)
+   Out[3]:
+   0    1
+   1    2
+   Name: B, dtype: int64
+
+   In [4]: df.groupby('A', as_index=False)['B'].nth(0)
+   Out[4]:
+   0    1
+   1    2
+   Name: B, dtype: int64
+
+New Behavior:
+
+.. ipython:: ipython
+
+    df.groupby('A', as_index=True)['B'].nth(0)
+    df.groupby('A', as_index=False)['B'].nth(0)
+
+Furthermore, previously, a ``.groupby`` would always sort, regardless if ``sort=False`` was passed with ``.nth()``.
+
+.. ipython:: python
+
+   np.random.seed(1234)
+   df = pd.DataFrame(np.random.randn(100, 2), columns=['a', 'b'])
+   df['c'] = np.random.randint(0, 4, 100)
+
+Previous Behavior:
+
+.. code-block:: ipython
+
+   In [4]: df.groupby('c', sort=True).nth(1)
+   Out[4]:
+             a         b
+   c
+   0 -0.334077  0.002118
+   1  0.036142 -2.074978
+   2 -0.720589  0.887163
+   3  0.859588 -0.636524
+
+   In [5]: df.groupby('c', sort=False).nth(1)
+   Out[5]:
+             a         b
+   c
+   0 -0.334077  0.002118
+   1  0.036142 -2.074978
+   2 -0.720589  0.887163
+   3  0.859588 -0.636524
+
+New Behavior:
+
+.. ipython:: python
+
+   df.groupby('c', sort=True).nth(1)
+   df.groupby('c', sort=False).nth(1)
+
 .. _whatsnew_0181.api:
 
 API changes
@@ -255,6 +328,8 @@ Performance Improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 - Improved speed of SAS reader (:issue:`12656`)
+- Performance improvements in ``.groupby(..).cumcount()`` (:issue:`11039`)
+
 
 - Improved performance of ``DataFrame.to_sql`` when checking case sensitivity for tables. Now only checks if table has been created correctly when table name is not lower case. (:issue:`12876`)
 
