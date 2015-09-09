@@ -653,37 +653,37 @@ class _GroupBy(PandasObject, SelectionMixin):
     def transform(self, func, *args, **kwargs):
         raise AbstractMethodError(self)
 
-    def _cumcount_array(self, arr=None, ascending=True):
+    def _cumcount_array(self, ascending=True):
         """
-        arr is where cumcount gets its values from
+        Parameters
+        ----------
+        ascending : bool, default True
+            If False, number in reverse, from length of group - 1 to 0.
 
         Note
         ----
         this is currently implementing sort=False
         (though the default is sort=True) for groupby in general
         """
-        if arr is None:
-            arr = np.arange(self.grouper._max_groupsize, dtype='int64')
+        ids, _, ngroups = self.grouper.group_info
+        sorter = _get_group_index_sorter(ids, ngroups)
+        ids, count = ids[sorter], len(ids)
 
-        len_index = len(self._selected_obj.index)
-        cumcounts = np.zeros(len_index, dtype=arr.dtype)
-        if not len_index:
-            return cumcounts
+        if count == 0:
+            return np.empty(0, dtype=np.int64)
 
-        indices, values = [], []
-        for v in self.indices.values():
-            indices.append(v)
+        run = np.r_[True, ids[:-1] != ids[1:]]
+        rep = np.diff(np.r_[np.nonzero(run)[0], count])
+        out = (~run).cumsum()
 
-            if ascending:
-                values.append(arr[:len(v)])
-            else:
-                values.append(arr[len(v) - 1::-1])
+        if ascending:
+            out -= np.repeat(out[run], rep)
+        else:
+            out = np.repeat(out[np.r_[run[1:], True]], rep) - out
 
-        indices = np.concatenate(indices)
-        values = np.concatenate(values)
-        cumcounts[indices] = values
-
-        return cumcounts
+        rev = np.empty(count, dtype=np.intp)
+        rev[sorter] = np.arange(count, dtype=np.intp)
+        return out[rev].astype(np.int64, copy=False)
 
     def _index_with_as_index(self, b):
         """
@@ -1170,47 +1170,21 @@ class GroupBy(_GroupBy):
         else:
             raise TypeError("n needs to be an int or a list/set/tuple of ints")
 
-        m = self.grouper._max_groupsize
-        # filter out values that are outside [-m, m)
-        pos_nth_values = [i for i in nth_values if i >= 0 and i < m]
-        neg_nth_values = [i for i in nth_values if i < 0 and i >= -m]
-
+        nth_values = np.array(nth_values, dtype=np.intp)
         self._set_selection_from_grouper()
-        if not dropna:  # good choice
-            if not pos_nth_values and not neg_nth_values:
-                # no valid nth values
-                return self._selected_obj.loc[[]]
 
-            rng = np.zeros(m, dtype=bool)
-            for i in pos_nth_values:
-                rng[i] = True
-            is_nth = self._cumcount_array(rng)
+        if not dropna:
+            mask = np.in1d(self._cumcount_array(), nth_values) | \
+                np.in1d(self._cumcount_array(ascending=False) + 1, -nth_values)
 
-            if neg_nth_values:
-                rng = np.zeros(m, dtype=bool)
-                for i in neg_nth_values:
-                    rng[- i - 1] = True
-                is_nth |= self._cumcount_array(rng, ascending=False)
+            out = self._selected_obj[mask]
+            if not self.as_index:
+                return out
 
-            result = self._selected_obj[is_nth]
+            ids, _, _ = self.grouper.group_info
+            out.index = self.grouper.result_index[ids[mask]]
 
-            # the result index
-            if self.as_index:
-                ax = self.obj._info_axis
-                names = self.grouper.names
-                if self.obj.ndim == 1:
-                    # this is a pass-thru
-                    pass
-                elif all([x in ax for x in names]):
-                    indicies = [self.obj[name][is_nth] for name in names]
-                    result.index = MultiIndex.from_arrays(
-                        indicies).set_names(names)
-                elif self._group_selection is not None:
-                    result.index = self.obj._get_axis(self.axis)[is_nth]
-
-                result = result.sort_index()
-
-            return result
+            return out.sort_index() if self.sort else out
 
         if isinstance(self._selected_obj, DataFrame) and \
            dropna not in ['any', 'all']:
@@ -1241,8 +1215,8 @@ class GroupBy(_GroupBy):
                                          axis=self.axis, level=self.level,
                                          sort=self.sort)
 
-        sizes = dropped.groupby(grouper).size()
-        result = dropped.groupby(grouper).nth(n)
+        grb = dropped.groupby(grouper, as_index=self.as_index, sort=self.sort)
+        sizes, result = grb.size(), grb.nth(n)
         mask = (sizes < max_len).values
 
         # set the results which don't meet the criteria
@@ -1380,11 +1354,8 @@ class GroupBy(_GroupBy):
         0  1  2
         2  5  6
         """
-
-        obj = self._selected_obj
-        in_head = self._cumcount_array() < n
-        head = obj[in_head]
-        return head
+        mask = self._cumcount_array() < n
+        return self._selected_obj[mask]
 
     @Substitution(name='groupby')
     @Appender(_doc_template)
@@ -1409,12 +1380,8 @@ class GroupBy(_GroupBy):
         0  a  1
         2  b  1
         """
-
-        obj = self._selected_obj
-        rng = np.arange(0, -self.grouper._max_groupsize, -1, dtype='int64')
-        in_tail = self._cumcount_array(rng, ascending=False) > -n
-        tail = obj[in_tail]
-        return tail
+        mask = self._cumcount_array(ascending=False) < n
+        return self._selected_obj[mask]
 
 
 @Appender(GroupBy.__doc__)
