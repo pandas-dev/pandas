@@ -954,7 +954,7 @@ Bug Fixes
 - Bug in ``Categorical.__iter__`` may not returning correct ``datetime`` and ``Period`` (:issue:`10713`)
 
 - Bug in ``read_csv`` with ``engine='c'``: EOF preceded by a comment, blank line, etc. was not handled correctly (:issue:`10728`, :issue:`10548`)
-
+- Bug in ``len(DataFrame.groupby)`` causing IndexError when there's a column containing only NaNs (:issue: `11016`)
 - Reading "famafrench" data via ``DataReader`` results in HTTP 404 error because of the website url is changed (:issue:`10591`).
 - Bug in ``read_msgpack`` where DataFrame to decode has duplicate column names (:issue:`9618`)
 - Bug in ``io.common.get_filepath_or_buffer`` which caused reading of valid S3 files to fail if the bucket also contained keys for which the user does not have read permission (:issue:`10604`)
@@ -986,4 +986,4 @@ Bug Fixes
 - Bug when constructing ``DataFrame`` where passing a dictionary with only scalar values and specifying columns did not raise an error (:issue:`10856`)
 - Bug in ``.var()`` causing roundoff errors for highly similar values (:issue:`10242`)
 - Bug in ``DataFrame.plot(subplots=True)`` with duplicated columns outputs incorrect result (:issue:`10962`)
-- Bug in ``len(DataFrame.groupby)`` causing IndexError when there's a column containing only NaNs (:issue: `11016`)
+
