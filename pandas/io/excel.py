@@ -18,6 +18,7 @@ from pandas.compat import (map, zip, reduce, range, lrange, u, add_metaclass,
                            BytesIO, string_types)
 from pandas.core import config
 from pandas.core.common import pprint_thing
+from pandas.util.decorators import Appender
 import pandas.compat as compat
 import pandas.compat.openpyxl_compat as openpyxl_compat
 import pandas.core.common as com
@@ -68,15 +69,11 @@ def get_writer(engine_name):
         raise ValueError("No Excel writer '%s'" % engine_name)
 
 
-def read_excel(io, sheetname=0, **kwds):
-    """Read an Excel table into a pandas DataFrame
+excel_doc_common = """
+    Read an Excel table into a pandas DataFrame
 
     Parameters
-    ----------
-    io : string, file-like object, or xlrd workbook.
-        The string could be a URL. Valid URL schemes include http, ftp, s3,
-        and file. For file URLs, a host is expected. For instance, a local
-        file could be file://localhost/path/to/workbook.xlsx
+    ----------%(io)s
     sheetname : string, int, mixed list of strings/ints, or None, default 0
 
         Strings are used for sheet names, Integers are used in zero-indexed sheet
@@ -97,20 +94,23 @@ def read_excel(io, sheetname=0, **kwds):
         * [0,1,"Sheet5"] -> 1st, 2nd & 5th sheet as a dictionary of DataFrames
         * None -> All sheets as a dictionary of DataFrames
 
-    header : int, default 0
-        Row to use for the column labels of the parsed DataFrame
+    header : int, list of ints, default 0
+        Row (0-indexed) to use for the column labels of the parsed
+        DataFrame. If a list of integers is passed those row positions will
+        be combined into a ``MultiIndex``
     skiprows : list-like
         Rows to skip at the beginning (0-indexed)
     skip_footer : int, default 0
         Rows at the end to skip (0-indexed)
+    index_col : int, list of ints, default None
+        Column (0-indexed) to use as the row labels of the DataFrame.
+        Pass None if there is no such column.  If a list is passed,
+        those columns will be combined into a ``MultiIndex``
     converters : dict, default None
         Dict of functions for converting values in certain columns. Keys can
         either be integers or column labels, values are functions that take one
         input argument, the Excel cell content, and return the transformed
         content.
-    index_col : int, default None
-        Column to use as the row labels of the DataFrame. Pass None if
-        there is no such column
     parse_cols : int or list, default None
         * If None then parse all columns,
         * If int then indicates last column to be parsed
@@ -119,22 +119,21 @@ def read_excel(io, sheetname=0, **kwds):
           column ranges (e.g. "A:E" or "A,C,E:F")
     na_values : list-like, default None
         List of additional strings to recognize as NA/NaN
+    thousands : str, default None
+        Thousands separator
     keep_default_na : bool, default True
         If na_values are specified and keep_default_na is False the default NaN
         values are overridden, otherwise they're appended to
     verbose : boolean, default False
-        Indicate number of NA values placed in non-numeric columns
-    engine: string, default None
-        If io is not a buffer or path, this must be set to identify io.
-        Acceptable values are None or xlrd
+        Indicate number of NA values placed in non-numeric columns%(eng)s
     convert_float : boolean, default True
         convert integral floats to int (i.e., 1.0 --> 1). If False, all numeric
         data will be read in as floats: Excel stores all numbers as floats
         internally
-    has_index_names : boolean, default False
-        True if the cols defined in index_col have an index name and are
-        not in the header. Index name will be placed on a separate line below
-        the header.
+    has_index_names : boolean, default None
+        DEPCRECATED: for version 0.17+ index names will be automatically inferred
+        based on index_col.  To read Excel output from 0.16.2 and prior that
+        had saved index names, use True.
 
     Returns
     -------
@@ -143,6 +142,19 @@ def read_excel(io, sheetname=0, **kwds):
         for more information on when a Dict of Dataframes is returned.
 
     """
+read_excel_kwargs = dict()
+read_excel_kwargs['io'] = """
+    io : string, file-like object, or xlrd workbook.
+        The string could be a URL. Valid URL schemes include http, ftp, s3,
+        and file. For file URLs, a host is expected. For instance, a local
+        file could be file://localhost/path/to/workbook.xlsx"""
+read_excel_kwargs['eng'] = """
+    engine: string, default None
+        If io is not a buffer or path, this must be set to identify io.
+        Acceptable values are None or xlrd"""
+
+@Appender(excel_doc_common % read_excel_kwargs)
+def read_excel(io, sheetname=0, **kwds):
     engine = kwds.pop('engine', None)
 
     return ExcelFile(io, engine=engine).parse(sheetname=sheetname, **kwds)
@@ -193,82 +205,22 @@ class ExcelFile(object):
             raise ValueError('Must explicitly set engine if not passing in'
                              ' buffer or path for io.')
 
+    @Appender(excel_doc_common % dict(io='', eng=''))
     def parse(self, sheetname=0, header=0, skiprows=None, skip_footer=0,
               index_col=None, parse_cols=None, parse_dates=False,
               date_parser=None, na_values=None, thousands=None, chunksize=None,
-              convert_float=True, has_index_names=False, converters=None, **kwds):
-        """Read an Excel table into DataFrame
+              convert_float=True, has_index_names=None, converters=None, **kwds):
 
-        Parameters
-        ----------
-        sheetname : string, int, mixed list of strings/ints, or None, default 0
-
-            Strings are used for sheet names, Integers are used in zero-indexed sheet
-            positions.
-
-            Lists of strings/integers are used to request multiple sheets.
-
-            Specify None to get all sheets.
-
-            str|int -> DataFrame is returned.
-            list|None -> Dict of DataFrames is returned, with keys representing sheets.
-
-            Available Cases
-
-            * Defaults to 0 -> 1st sheet as a DataFrame
-            * 1 -> 2nd sheet as a DataFrame
-            * "Sheet1" -> 1st sheet as a DataFrame
-            * [0,1,"Sheet5"] -> 1st, 2nd & 5th sheet as a dictionary of DataFrames
-            * None -> All sheets as a dictionary of DataFrames
-        header : int, default 0
-            Row to use for the column labels of the parsed DataFrame
-        skiprows : list-like
-            Rows to skip at the beginning (0-indexed)
-        skip_footer : int, default 0
-            Rows at the end to skip (0-indexed)
-        converters : dict, default None
-            Dict of functions for converting values in certain columns. Keys can
-            either be integers or column labels
-        index_col : int, default None
-            Column to use as the row labels of the DataFrame. Pass None if
-            there is no such column
-        parse_cols : int or list, default None
-            * If None then parse all columns
-            * If int then indicates last column to be parsed
-            * If list of ints then indicates list of column numbers to be
-              parsed
-            * If string then indicates comma separated list of column names and
-              column ranges (e.g. "A:E" or "A,C,E:F")
-        parse_dates : boolean, default False
-            Parse date Excel values,
-        date_parser : function default None
-            Date parsing function
-        na_values : list-like, default None
-            List of additional strings to recognize as NA/NaN
-        thousands : str, default None
-            Thousands separator
-        chunksize : int, default None
-            Size of file chunk to read for lazy evaluation.
-        convert_float : boolean, default True
-            convert integral floats to int (i.e., 1.0 --> 1). If False, all
-            numeric data will be read in as floats: Excel stores all numbers as
-            floats internally.
-        has_index_names : boolean, default False
-            True if the cols defined in index_col have an index name and are
-            not in the header
-        verbose : boolean, default False
-            Set to True to print a single statement when reading each
-            excel sheet.
-
-        Returns
-        -------
-        parsed : DataFrame or Dict of DataFrames
-            DataFrame from the passed in Excel file.  See notes in sheetname argument
-            for more information on when a Dict of Dataframes is returned.
-        """
         skipfooter = kwds.pop('skipfooter', None)
         if skipfooter is not None:
             skip_footer = skipfooter
+
+        if has_index_names is not None:
+            warn("\nThe has_index_names argument is deprecated; index names "
+                 "will be automatically inferred based on index_col.\n"
+                 "This argmument is still necessary if reading Excel output "
+                 "from 0.16.2 or prior with index names.", FutureWarning,
+                 stacklevel=3)
 
         return self._parse_excel(sheetname=sheetname, header=header,
                                  skiprows=skiprows,
@@ -418,8 +370,40 @@ class ExcelFile(object):
             if sheet.nrows == 0:
                 return DataFrame()
 
+            if com.is_list_like(header) and len(header) == 1:
+                header = header[0]
+
+            # forward fill and pull out names for MultiIndex column
+            header_names = None
             if header is not None:
-                data[header] = _trim_excel_header(data[header])
+                if com.is_list_like(header):
+                    header_names = []
+                    for row in header:
+                        if com.is_integer(skiprows):
+                            row += skiprows
+                        data[row] = _fill_mi_header(data[row])
+                        header_name, data[row] = _pop_header_name(data[row], index_col)
+                        header_names.append(header_name)
+                else:
+                    data[header] = _trim_excel_header(data[header])
+
+            if com.is_list_like(index_col):
+                # forward fill values for MultiIndex index
+                if not com.is_list_like(header):
+                    offset = 1 + header
+                else:
+                    offset = 1 + max(header)
+
+                for col in index_col:
+                    last = data[offset][col]
+                    for row in range(offset + 1, len(data)):
+                        if data[row][col] == '' or data[row][col] is None:
+                            data[row][col] = last
+                        else:
+                            last = data[row][col]
+
+            if com.is_list_like(header) and len(header) > 1:
+                has_index_names = True
 
             parser = TextParser(data, header=header, index_col=index_col,
                                 has_index_names=has_index_names,
@@ -433,6 +417,7 @@ class ExcelFile(object):
                                 **kwds)
 
             output[asheetname] = parser.read()
+            output[asheetname].columns = output[asheetname].columns.set_names(header_names)
 
         if ret_dict:
             return output
@@ -463,6 +448,29 @@ def _trim_excel_header(row):
         row = row[1:]
     return row
 
+def _fill_mi_header(row):
+    # forward fill blanks entries
+    # from headers if parsing as MultiIndex
+    last = row[0]
+    for i in range(1, len(row)):
+        if row[i] == '' or row[i] is None:
+            row[i] = last
+        else:
+            last = row[i]
+    return row
+
+# fill blank if index_col not None
+def _pop_header_name(row, index_col):
+    """ (header, new_data) for header rows in MultiIndex parsing"""
+    none_fill = lambda x: None if x == '' else x
+
+    if index_col is None:
+        # no index col specified, trim data for inference path
+        return none_fill(row[0]), row[1:]
+    else:
+        # pop out header name and fill w/ blank
+        i = index_col if not com.is_list_like(index_col) else max(index_col)
+        return none_fill(row[i]), row[:i] + [''] + row[i+1:]
 
 def _conv_value(val):
     # Convert numpy types to Python types for the Excel writers.

@@ -205,6 +205,53 @@ The support math functions are `sin`, `cos`, `exp`, `log`, `expm1`, `log1p`,
 These functions map to the intrinsics for the NumExpr engine.  For Python
 engine, they are mapped to NumPy calls.
 
+Changes to Excel with ``MultiIndex``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+In version 0.16.2 a ``DataFrame`` with ``MultiIndex`` columns could not be written to Excel via ``to_excel``.
+That functionality has been added (:issue:`10564`), along with updating  ``read_excel`` so that the data can
+be read back with no loss of information by specifying which columns/rows make up the ``MultiIndex``
+in the ``header`` and ``index_col`` parameters (:issue:`4679`)
+
+See the :ref:`documentation <io.excel>` for more details.
+
+.. ipython:: python
+
+   df = pd.DataFrame([[1,2,3,4], [5,6,7,8]],
+                     columns = pd.MultiIndex.from_product([['foo','bar'],['a','b']],
+                                                          names = ['col1', 'col2']),
+                     index = pd.MultiIndex.from_product([['j'], ['l', 'k']],
+                                                        names = ['i1', 'i2']))
+
+   df
+   df.to_excel('test.xlsx')
+
+   df = pd.read_excel('test.xlsx', header=[0,1], index_col=[0,1])
+   df
+    
+.. ipython:: python
+   :suppress:
+
+   import os
+   os.remove('test.xlsx')
+
+Previously, it was necessary to specify the ``has_index_names`` argument in ``read_excel``
+if the serialized data had index names.  For version 0.17 the ouptput format of ``to_excel``
+has been changed to make this keyword unnecessary - the change is shown below.
+
+**Old**
+
+.. image:: _static/old-excel-index.png
+
+**New**
+
+.. image:: _static/new-excel-index.png
+
+.. warning::
+
+   Excel files saved in version 0.16.2 or prior that had index names will still able to be read in,
+   but the ``has_index_names`` argument must specified to ``True``.
+
+
 .. _whatsnew_0170.enhancements.other:
 
 Other enhancements
@@ -764,7 +811,6 @@ Changes to ``Categorical.unique``
    cat
    cat.unique()
 
-
 .. _whatsnew_0170.api_breaking.other:
 
 Other API Changes
@@ -774,7 +820,6 @@ Other API Changes
 - Calling the ``.value_counts`` method on a Series with ``categorical`` dtype now returns a Series with a ``CategoricalIndex`` (:issue:`10704`)
 - Allow passing `kwargs` to the interpolation methods (:issue:`10378`).
 - The metadata properties of subclasses of pandas objects will now be serialized (:issue:`10553`).
-- Allow ``DataFrame`` with ``MultiIndex`` columns to be written to Excel (:issue:`10564`). This was changed in 0.16.2 as the read-back method could not always guarantee perfect fidelity (:issue:`9794`).
 - ``groupby`` using ``Categorical`` follows the same rule as ``Categorical.unique`` described above  (:issue:`10508`)
 - Improved error message when concatenating an empty iterable of dataframes (:issue:`9157`)
 - When constructing ``DataFrame`` with an array of ``complex64`` dtype that meant the corresponding column was automatically promoted to the ``complex128`` dtype. Pandas will now preserve the itemsize of the input for complex data (:issue:`10952`)
