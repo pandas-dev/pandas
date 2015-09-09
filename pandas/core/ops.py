@@ -672,10 +672,7 @@ def _comp_method_SERIES(op, name, str_rep, masker=False):
                 else:
                     y = y.view('i8')
 
-                if name == '__ne__':
-                    mask = notnull(x)
-                else:
-                    mask = isnull(x)
+                mask = isnull(x)
 
                 x = x.view('i8')
 
