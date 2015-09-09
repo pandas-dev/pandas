@@ -14,6 +14,7 @@ from numpy import nan
 import numpy as np
 from numpy.testing.decorators import slow
 
+import pandas as pd
 from pandas import DataFrame, Index, MultiIndex
 from pandas.io.parsers import read_csv
 from pandas.io.excel import (
@@ -21,7 +22,7 @@ from pandas.io.excel import (
     _Openpyxl2Writer, register_writer, _XlsxWriter
 )
 from pandas.io.common import URLError
-from pandas.util.testing import ensure_clean
+from pandas.util.testing import ensure_clean, makeCustomDataframe as mkdf
 from pandas.core.config import set_option, get_option
 import pandas.util.testing as tm
 
@@ -415,11 +416,8 @@ class XlrdTests(ReadingTestsBase):
 
     @tm.network
     def test_read_from_http_url(self):
-        # TODO: remove this when merging into master
-        url = ('https://raw.github.com/davidovitch/pandas/master/'
+        url = ('https://raw.github.com/pydata/pandas/master/'
                'pandas/io/tests/data/test1' + self.ext)
-#        url = ('https://raw.github.com/pydata/pandas/master/'
-#               'pandas/io/tests/data/test' + self.ext)
         url_table = read_excel(url)
         local_table = self.get_exceldf('test1')
         tm.assert_frame_equal(url_table, local_table)
@@ -518,6 +516,132 @@ class XlrdTests(ReadingTestsBase):
         actual = self.get_exceldf('times_1904', 'Sheet1')
         tm.assert_frame_equal(actual, expected)
 
+    def test_read_excel_multiindex(self):
+        #GH 4679
+        mi = MultiIndex.from_product([['foo','bar'],['a','b']])
+        mi_file = os.path.join(self.dirpath, 'testmultiindex' + self.ext)
+
+        expected = DataFrame([[1, 2.5, pd.Timestamp('2015-01-01'), True],
+                            [2, 3.5, pd.Timestamp('2015-01-02'), False],
+                            [3, 4.5, pd.Timestamp('2015-01-03'), False],
+                            [4, 5.5, pd.Timestamp('2015-01-04'), True]],
+                            columns = mi)
+
+        actual = read_excel(mi_file, 'mi_column', header=[0,1])
+        tm.assert_frame_equal(actual, expected)
+        actual = read_excel(mi_file, 'mi_column', header=[0,1], index_col=0)
+        tm.assert_frame_equal(actual, expected)
+
+        expected.columns = ['a', 'b', 'c', 'd']
+        expected.index = mi
+        actual = read_excel(mi_file, 'mi_index', index_col=[0,1])
+        tm.assert_frame_equal(actual, expected, check_names=False)
+
+        expected.columns = mi
+        actual = read_excel(mi_file, 'both', index_col=[0,1], header=[0,1])
+        tm.assert_frame_equal(actual, expected, check_names=False)
+
+        expected.index = mi.set_names(['ilvl1', 'ilvl2'])
+        expected.columns = ['a', 'b', 'c', 'd']
+        actual = read_excel(mi_file, 'mi_index_name', index_col=[0,1])
+        tm.assert_frame_equal(actual, expected)
+
+        expected.index = list(range(4))
+        expected.columns = mi.set_names(['c1', 'c2'])
+        actual = read_excel(mi_file, 'mi_column_name', header=[0,1], index_col=0)
+        tm.assert_frame_equal(actual, expected)
+
+        expected.index = mi.set_names(['ilvl1', 'ilvl2'])
+        actual = read_excel(mi_file, 'both_name', index_col=[0,1], header=[0,1])
+        tm.assert_frame_equal(actual, expected)
+
+        actual = read_excel(mi_file, 'both_name', index_col=[0,1], header=[0,1])
+        tm.assert_frame_equal(actual, expected)
+
+        actual = read_excel(mi_file, 'both_name_skiprows', index_col=[0,1],
+                            header=[0,1],  skiprows=2)
+        tm.assert_frame_equal(actual, expected)
+
+
+    def test_excel_multindex_roundtrip(self):
+        #GH 4679
+        _skip_if_no_xlsxwriter()
+        with ensure_clean('.xlsx') as pth:
+            for c_idx_names in [True, False]:
+                for r_idx_names in [True, False]:
+                    for c_idx_levels in [1, 3]:
+                        for r_idx_levels in [1, 3]:
+                            # column index name can't be serialized unless MultiIndex
+                            if (c_idx_levels == 1 and c_idx_names):
+                                continue
+
+                            # empty name case current read in as unamed levels, not Nones
+                            check_names = True
+                            if not r_idx_names and r_idx_levels > 1:
+                                check_names = False
+
+                            df = mkdf(5, 5, c_idx_names,
+                                        r_idx_names, c_idx_levels,
+                                        r_idx_levels)
+                            df.to_excel(pth)
+                            act = pd.read_excel(pth, index_col=list(range(r_idx_levels)),
+                                                header=list(range(c_idx_levels)))
+                            tm.assert_frame_equal(df, act, check_names=check_names)
+
+                            df.iloc[0, :] = np.nan
+                            df.to_excel(pth)
+                            act = pd.read_excel(pth, index_col=list(range(r_idx_levels)),
+                                                header=list(range(c_idx_levels)))
+                            tm.assert_frame_equal(df, act, check_names=check_names)
+
+                            df.iloc[-1, :] = np.nan
+                            df.to_excel(pth)
+                            act = pd.read_excel(pth, index_col=list(range(r_idx_levels)),
+                                                header=list(range(c_idx_levels)))
+                            tm.assert_frame_equal(df, act, check_names=check_names)
+
+    def test_excel_oldindex_format(self):
+        #GH 4679
+        data = np.array([['R0C0', 'R0C1', 'R0C2', 'R0C3', 'R0C4'],
+                         ['R1C0', 'R1C1', 'R1C2', 'R1C3', 'R1C4'],
+                         ['R2C0', 'R2C1', 'R2C2', 'R2C3', 'R2C4'],
+                         ['R3C0', 'R3C1', 'R3C2', 'R3C3', 'R3C4'],
+                         ['R4C0', 'R4C1', 'R4C2', 'R4C3', 'R4C4']])
+        columns = ['C_l0_g0', 'C_l0_g1', 'C_l0_g2', 'C_l0_g3', 'C_l0_g4']
+        mi = MultiIndex(levels=[['R_l0_g0', 'R_l0_g1', 'R_l0_g2', 'R_l0_g3', 'R_l0_g4'],
+                                ['R_l1_g0', 'R_l1_g1', 'R_l1_g2', 'R_l1_g3', 'R_l1_g4']],
+                        labels=[[0, 1, 2, 3, 4], [0, 1, 2, 3, 4]],
+                        names=['R0', 'R1'])
+        si = Index(['R_l0_g0', 'R_l0_g1', 'R_l0_g2', 'R_l0_g3', 'R_l0_g4'],  name='R0')
+
+        in_file = os.path.join(self.dirpath, 'test_index_name_pre17' + self.ext)
+
+        expected = pd.DataFrame(data, index=si, columns=columns)
+        with tm.assert_produces_warning(FutureWarning):
+            actual = pd.read_excel(in_file, 'single_names', has_index_names=True)
+        tm.assert_frame_equal(actual, expected)
+
+        expected.index.name = None
+        actual = pd.read_excel(in_file, 'single_no_names')
+        tm.assert_frame_equal(actual, expected)
+        with tm.assert_produces_warning(FutureWarning):
+            actual = pd.read_excel(in_file, 'single_no_names', has_index_names=False)
+        tm.assert_frame_equal(actual, expected)
+
+        expected.index = mi
+        with tm.assert_produces_warning(FutureWarning):
+            actual = pd.read_excel(in_file, 'multi_names', has_index_names=True)
+        tm.assert_frame_equal(actual, expected)
+
+        expected.index.names = [None, None]
+        actual = pd.read_excel(in_file, 'multi_no_names', index_col=[0,1])
+        tm.assert_frame_equal(actual, expected, check_names=False)
+        with tm.assert_produces_warning(FutureWarning):
+            actual = pd.read_excel(in_file, 'multi_no_names', index_col=[0,1],
+                                   has_index_names=False)
+        tm.assert_frame_equal(actual, expected, check_names=False)
+
+
 
 class XlsReaderTests(XlrdTests, tm.TestCase):
     ext = '.xls'
@@ -535,6 +659,8 @@ class XlsmReaderTests(XlrdTests, tm.TestCase):
     ext = '.xlsm'
     engine_name = 'xlrd'
     check_skip = staticmethod(_skip_if_no_xlrd)
+
+
 
 
 class ExcelWriterBase(SharedItems):
@@ -781,7 +907,6 @@ class ExcelWriterBase(SharedItems):
             reader = ExcelFile(path)
             recons = reader.parse('test1',
                                   index_col=0,
-                                  has_index_names=self.merge_cells
                                   ).astype(np.int64)
             frame.index.names = ['test']
             self.assertEqual(frame.index.names, recons.index.names)
@@ -794,7 +919,6 @@ class ExcelWriterBase(SharedItems):
             reader = ExcelFile(path)
             recons = reader.parse('test1',
                                   index_col=0,
-                                  has_index_names=self.merge_cells
                                   ).astype(np.int64)
             frame.index.names = ['test']
             self.assertEqual(frame.index.names, recons.index.names)
@@ -807,7 +931,6 @@ class ExcelWriterBase(SharedItems):
             reader = ExcelFile(path)
             recons = reader.parse('test1',
                                   index_col=0,
-                                  has_index_names=self.merge_cells
                                   ).astype(np.int64)
             frame.index.names = ['test']
             tm.assert_frame_equal(frame, recons.astype(bool))
@@ -837,8 +960,7 @@ class ExcelWriterBase(SharedItems):
 
             xf = ExcelFile(path)
             result = xf.parse(xf.sheet_names[0],
-                              index_col=0,
-                              has_index_names=self.merge_cells)
+                              index_col=0)
 
             tm.assert_frame_equal(result, df)
             self.assertEqual(result.index.name, 'foo')
@@ -925,8 +1047,7 @@ class ExcelWriterBase(SharedItems):
             frame.to_excel(path, 'test1', merge_cells=self.merge_cells)
             reader = ExcelFile(path)
             df = reader.parse('test1', index_col=[0, 1],
-                              parse_dates=False,
-                              has_index_names=self.merge_cells)
+                              parse_dates=False)
             tm.assert_frame_equal(frame, df)
             self.assertEqual(frame.index.names, df.index.names)
 
@@ -943,8 +1064,7 @@ class ExcelWriterBase(SharedItems):
             tsframe.to_excel(path, 'test1', merge_cells=self.merge_cells)
             reader = ExcelFile(path)
             recons = reader.parse('test1',
-                                  index_col=[0, 1],
-                                  has_index_names=self.merge_cells)
+                                  index_col=[0, 1])
 
             tm.assert_frame_equal(tsframe, recons)
             self.assertEqual(recons.index.names, ('time', 'foo'))
@@ -1475,15 +1595,14 @@ class XlwtTests(ExcelWriterBase, tm.TestCase):
             with ensure_clean(self.ext) as path:
                 df.to_excel(path, index=False)
 
-    def test_excel_warns_verbosely_on_multiindex_columns_and_index_true(self):
+    def test_excel_multiindex_columns_and_index_true(self):
         _skip_if_no_xlwt()
         cols = MultiIndex.from_tuples([('site', ''),
                                           ('2014', 'height'),
                                           ('2014', 'weight')])
-        df = DataFrame(np.random.randn(10, 3), columns=cols)
-        with tm.assert_produces_warning(UserWarning):
-            with ensure_clean(self.ext) as path:
-                df.to_excel(path, index=True)
+        df = pd.DataFrame(np.random.randn(10, 3), columns=cols)
+        with ensure_clean(self.ext) as path:
+            df.to_excel(path, index=True)
 
     def test_excel_multiindex_index(self):
         _skip_if_no_xlwt()
