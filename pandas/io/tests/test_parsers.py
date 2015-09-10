@@ -4342,6 +4342,15 @@ class TestS3(tm.TestCase):
             tm.assert_frame_equal(pd.read_csv(tm.get_data_path('tips.csv')), df)
 
     @tm.network
+    def test_infer_s3_compression(self):
+        for ext in ['', '.gz', '.bz2']:
+            df = pd.read_csv('s3://pandas-test/tips.csv' + ext,
+                             engine='python', compression='infer')
+            self.assertTrue(isinstance(df, pd.DataFrame))
+            self.assertFalse(df.empty)
+            tm.assert_frame_equal(pd.read_csv(tm.get_data_path('tips.csv')), df)
+
+    @tm.network
     def test_parse_public_s3_bucket_nrows_python(self):
         for ext, comp in [('', None), ('.gz', 'gzip'), ('.bz2', 'bz2')]:
             df = pd.read_csv('s3://pandas-test/tips.csv' + ext, engine='python',

@@ -235,10 +235,25 @@ def _read(filepath_or_buffer, kwds):
     if skipfooter is not None:
         kwds['skip_footer'] = skipfooter
 
+    # If the input could be a filename, check for a recognizable compression extension.
+    # If we're reading from a URL, the `get_filepath_or_buffer` will use header info
+    # to determine compression, so use what it finds in that case.
+    inferred_compression = kwds.get('compression')
+    if inferred_compression == 'infer':
+        if isinstance(filepath_or_buffer, compat.string_types):
+            if filepath_or_buffer.endswith('.gz'):
+                inferred_compression = 'gzip'
+            elif filepath_or_buffer.endswith('.bz2'):
+                inferred_compression = 'bz2'
+            else:
+                inferred_compression = None
+        else:
+            inferred_compression = None
+
     filepath_or_buffer, _, compression = get_filepath_or_buffer(filepath_or_buffer,
                                                                 encoding,
                                                                 compression=kwds.get('compression', None))
-    kwds['compression'] = compression
+    kwds['compression'] = inferred_compression if compression == 'infer' else compression
 
     if kwds.get('date_parser', None) is not None:
         if isinstance(kwds['parse_dates'], bool):
@@ -301,7 +316,7 @@ _parser_defaults = {
     'verbose': False,
     'encoding': None,
     'squeeze': False,
-    'compression': 'infer',
+    'compression': None,
     'mangle_dupe_cols': True,
     'tupleize_cols': False,
     'infer_datetime_format': False,
@@ -1401,17 +1416,6 @@ class PythonParser(ParserBase):
         self.thousands = kwds['thousands']
         self.comment = kwds['comment']
         self._comment_lines = []
-
-        if self.compression == 'infer':
-            if isinstance(f, compat.string_types):
-                if f.endswith('.gz'):
-                    self.compression = 'gzip'
-                elif f.endswith('.bz2'):
-                    self.compression = 'bz2'
-                else:
-                    self.compression = None
-            else:
-                self.compression = None
 
         if isinstance(f, compat.string_types):
             f = com._get_handle(f, 'r', encoding=self.encoding,

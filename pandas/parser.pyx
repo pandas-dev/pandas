@@ -541,17 +541,6 @@ cdef class TextReader:
         self.parser.cb_io = NULL
         self.parser.cb_cleanup = NULL
 
-        if self.compression == 'infer':
-            if isinstance(source, basestring):
-                if source.endswith('.gz'):
-                    self.compression = 'gzip'
-                elif source.endswith('.bz2'):
-                    self.compression = 'bz2'
-                else:
-                    self.compression = None
-            else:
-                self.compression = None
-
         if self.compression:
             if self.compression == 'gzip':
                 import gzip
