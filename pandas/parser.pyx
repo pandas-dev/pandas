@@ -561,10 +561,10 @@ cdef class TextReader:
                     source = gzip.GzipFile(fileobj=source)
             elif self.compression == 'bz2':
                 import bz2
-                if isinstance(source, basestring):
+                if isinstance(source, basestring) or PY3:
                     source = bz2.BZ2File(source, 'rb')
                 else:
-                    raise ValueError('Python cannot read bz2 from open file '
+                    raise ValueError('Python 2 cannot read bz2 from open file '
                                      'handle')
             else:
                 raise ValueError('Unrecognized compression type: %s' %
