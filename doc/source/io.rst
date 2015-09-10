@@ -79,9 +79,10 @@ for some advanced strategies
 
 They can take a number of arguments:
 
-  - ``filepath_or_buffer``: Either a string path to a file, URL
+  - ``filepath_or_buffer``: Either a path to a file (a :class:`python:str`,
+    :class:`python:pathlib.Path`, or :class:`py:py._path.local.LocalPath`), URL
     (including http, ftp, and S3 locations), or any object with a ``read``
-    method (such as an open file or ``StringIO``).
+    method (such as an open file or :class:`~python:io.StringIO`).
   - ``sep`` or ``delimiter``: A delimiter / separator to split fields
     on. With ``sep=None``, ``read_csv`` will try to infer the delimiter
     automatically in some cases by "sniffing".

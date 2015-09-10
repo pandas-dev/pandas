@@ -255,6 +255,23 @@ def _skip_if_python26():
         import nose
         raise nose.SkipTest("skipping on python2.6")
 
+
+def _skip_if_no_pathlib():
+    try:
+        from pathlib import Path
+    except ImportError:
+        import nose
+        raise nose.SkipTest("pathlib not available")
+
+
+def _skip_if_no_localpath():
+    try:
+        from py.path import local as LocalPath
+    except ImportError:
+        import nose
+        raise nose.SkipTest("py.path not installed")
+
+
 def _incompat_bottleneck_version(method):
     """ skip if we have bottleneck installed
     and its >= 1.0
