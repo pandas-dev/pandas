@@ -1344,12 +1344,13 @@ def _wrap_compressed(f, compression, encoding=None):
     elif compression == 'bz2':
         import bz2
 
-        # bz2 module can't take file objects, so have to run through decompress
-        # manually
-        data = bz2.decompress(f.read())
         if compat.PY3:
-            data = data.decode(encoding)
-        f = StringIO(data)
+            f = bz2.open(f, 'rt', encoding=encoding)
+        else:
+            # Python 2's bz2 module can't take file objects, so have to
+            # run through decompress manually
+            data = bz2.decompress(f.read())
+            f = StringIO(data)
         return f
     else:
         raise ValueError('do not recognize compression method %s'
