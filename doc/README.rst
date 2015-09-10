@@ -114,7 +114,7 @@ Often it will be necessary to rebuild the C extension after updating::
 Building the documentation
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-So how do you build the docs? Navigate to your local  the folder
+So how do you build the docs? Navigate to your local folder
 ``pandas/doc/`` directory in the console and run::
 
     python make.py html
