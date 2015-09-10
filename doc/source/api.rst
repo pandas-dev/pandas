@@ -672,11 +672,33 @@ the Categorical back to a numpy array, so levels and order information is not pr
 Plotting
 ~~~~~~~~
 
+``Series.plot`` is both a callable method and a namespace attribute for
+specific plotting methods of the form ``Series.plot.<kind>``.
+
+.. autosummary::
+   :toctree: generated/
+   :template: autosummary/accessor_callable.rst
+
+   Series.plot
+
+.. autosummary::
+   :toctree: generated/
+   :template: autosummary/accessor_method.rst
+
+   Series.plot.area
+   Series.plot.bar
+   Series.plot.barh
+   Series.plot.box
+   Series.plot.density
+   Series.plot.hist
+   Series.plot.kde
+   Series.plot.line
+   Series.plot.pie
+
 .. autosummary::
    :toctree: generated/
 
    Series.hist
-   Series.plot
 
 Serialization / IO / Conversion
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -946,14 +968,41 @@ Time series-related
    DataFrame.tz_convert
    DataFrame.tz_localize
 
+.. _api.dataframe.plotting:
+
 Plotting
 ~~~~~~~~
+
+``DataFrame.plot`` is both a callable method and a namespace attribute for
+specific plotting methods of the form ``DataFrame.plot.<kind>``.
+
+.. autosummary::
+   :toctree: generated/
+   :template: autosummary/accessor_plot.rst
+
+   DataFrame.plot
+
+.. autosummary::
+   :toctree: generated/
+   :template: autosummary/accessor_method.rst
+
+   DataFrame.plot.area
+   DataFrame.plot.bar
+   DataFrame.plot.barh
+   DataFrame.plot.box
+   DataFrame.plot.density
+   DataFrame.plot.hexbin
+   DataFrame.plot.hist
+   DataFrame.plot.kde
+   DataFrame.plot.line
+   DataFrame.plot.pie
+   DataFrame.plot.scatter
+
 .. autosummary::
    :toctree: generated/
 
    DataFrame.boxplot
    DataFrame.hist
-   DataFrame.plot
 
 Serialization / IO / Conversion
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
