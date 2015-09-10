@@ -1600,7 +1600,8 @@ _network_error_messages = (
     'HTTP Error 403',
     'Temporary failure in name resolution',
     'Name or service not known',
-    )
+    'Connection refused',
+)
 
 # or this e.errno/e.reason.errno
 _network_errno_vals = (
