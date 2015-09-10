@@ -149,7 +149,8 @@ They can take a number of arguments:
     Quoted items can include the delimiter and it will be ignored.
   - ``quoting`` : int,
     Controls whether quotes should be recognized. Values are taken from `csv.QUOTE_*` values.
-    Acceptable values are 0, 1, 2, and 3 for QUOTE_MINIMAL, QUOTE_ALL, QUOTE_NONE, and QUOTE_NONNUMERIC, respectively.
+    Acceptable values are 0, 1, 2, and 3 for QUOTE_MINIMAL, QUOTE_ALL,
+    QUOTE_NONNUMERIC and QUOTE_NONE, respectively.
   - ``skipinitialspace`` : boolean, default ``False``, Skip spaces after delimiter
   - ``escapechar`` : string, to specify how to escape quoted data
   - ``comment``: Indicates remainder of line should not be parsed. If found at the
