@@ -4727,7 +4727,7 @@ class MultiIndex(Index):
         try:
             self.get_loc(key)
             return True
-        except KeyError:
+        except LookupError:
             return False
 
     def __reduce__(self):
