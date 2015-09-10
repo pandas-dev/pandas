@@ -4602,7 +4602,17 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         assert_series_equal(df2.loc[:,'a'], df2.iloc[:,0])
         assert_series_equal(df2.loc[:,'a'], df2.ix[:,0])
 
+    def test_large_dataframe_indexing(self):
+        #GH10692
+        result = DataFrame({'x': range(10**6)})
+        result.loc[len(result)] = len(result) + 1
+        expected = DataFrame({'x': range(10**6 + 1)})
+        assert_frame_equal(result, expected)
 
+    def test_large_mi_dataframe_indexing(self):
+        #GH10645
+        result = MultiIndex.from_arrays([range(10**6), range(10**6)])
+        assert(not (10**6, 0) in result)
 
 class TestCategoricalIndex(tm.TestCase):
 
