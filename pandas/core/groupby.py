@@ -218,7 +218,6 @@ class Grouper(object):
         self.obj=None
         self.indexer=None
         self.binner=None
-        self.grouper=None
 
     @property
     def ax(self):
@@ -424,7 +423,7 @@ class GroupBy(PandasObject):
         """ safe get multiple indices, translate keys for datelike to underlying repr """
 
         def get_converter(s):
-            # possibly convert to they actual key types
+            # possibly convert to the actual key types
             # in the indices, could be a Timestamp or a np.datetime64
             if isinstance(s, (Timestamp,datetime.datetime)):
                 return lambda key: Timestamp(key)

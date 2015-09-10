@@ -297,7 +297,7 @@ concise means of selecting data from a pandas object:
    df
    df.ix[['b', 'c', 'e']]
 
-This is, of course, completely equivalent *in this case* to using th
+This is, of course, completely equivalent *in this case* to using the
 ``reindex`` method:
 
 .. ipython:: python
@@ -455,7 +455,7 @@ parse HTML tables in the top-level pandas io function ``read_html``.
 
    * Drawbacks
 
-     * |lxml|_ does *not* make any guarantees about the results of it's parse
+     * |lxml|_ does *not* make any guarantees about the results of its parse
        *unless* it is given |svm|_.
 
      * In light of the above, we have chosen to allow you, the user, to use the
