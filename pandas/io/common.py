@@ -66,9 +66,9 @@ def _is_url(url):
 
 
 def _is_s3_url(url):
-    """Check for an s3 url"""
+    """Check for an s3, s3n, or s3a url"""
     try:
-        return parse_url(url).scheme == 's3'
+        return parse_url(url).scheme in ['s3', 's3n', 's3a']
     except:
         return False
 
