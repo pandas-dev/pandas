@@ -1040,7 +1040,7 @@ class _NDFrameIndexer(object):
         # if we are a label return me
         try:
             return labels.get_loc(obj)
-        except KeyError:
+        except LookupError:
             if isinstance(obj, tuple) and isinstance(labels, MultiIndex):
                 if is_setter and len(obj) == labels.nlevels:
                     return {'key': obj}
@@ -1125,7 +1125,7 @@ class _NDFrameIndexer(object):
         else:
             try:
                 return labels.get_loc(obj)
-            except KeyError:
+            except LookupError:
                 # allow a not found key only if we are a setter
                 if not is_list_like_indexer(obj) and is_setter:
                     return {'key': obj}

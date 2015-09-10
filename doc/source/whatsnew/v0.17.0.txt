@@ -1033,7 +1033,7 @@ Bug Fixes
 - Bug in ``Index.take`` may add unnecessary ``freq`` attribute (:issue:`10791`)
 - Bug in ``merge`` with empty ``DataFrame`` may raise ``IndexError`` (:issue:`10824`)
 - Bug in ``to_latex`` where unexpected keyword argument for some documented arguments (:issue:`10888`)
-
+- Bug in indexing of large ``DataFrame`` where ``IndexError`` is uncaught (:issue:`10645` and :issue:`10692`)
 - Bug in ``read_csv`` when using the ``nrows`` or ``chunksize`` parameters if file contains only a header line (:issue:`9535`)
 - Bug in serialization of ``category`` types in HDF5 in presence of alternate encodings. (:issue:`10366`)
 - Bug in ``pd.DataFrame`` when constructing an empty DataFrame with a string dtype (:issue:`9428`)
