@@ -217,6 +217,8 @@ def get_filepath_or_buffer(filepath_or_buffer, encoding=None,
             content_encoding = req.headers.get('Content-Encoding', None)
             if content_encoding == 'gzip':
                 compression = 'gzip'
+            else:
+                compression = None
         # cat on the compression to the tuple returned by the function
         to_return = list(maybe_read_encoded_stream(req, encoding, compression)) + \
                     [compression]
@@ -237,7 +239,9 @@ def get_filepath_or_buffer(filepath_or_buffer, encoding=None,
             conn = boto.connect_s3(anon=True)
 
         b = conn.get_bucket(parsed_url.netloc, validate=False)
-        if compat.PY2 and compression == 'gzip':
+        if compat.PY2 and (compression == 'gzip' or
+                           (compression == 'infer' and
+                            filepath_or_buffer.endswith(".gz"))):
             k = boto.s3.key.Key(b, parsed_url.path)
             filepath_or_buffer = BytesIO(k.get_contents_as_string(
                 encoding=encoding))
