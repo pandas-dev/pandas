@@ -23,6 +23,10 @@ Enhancements
 Other Enhancements
 ^^^^^^^^^^^^^^^^^^
 
+- :func:`~pandas.io.parsers.read_csv` and :func:`~pandas.io.parsers.read_table` now
+  also accept :class:`python:pathlib.Path`, or :class:`py:py._path.local.LocalPath`
+  for the ``filepath_or_buffer`` argument. (:issue:`11051`)
+
 .. _whatsnew_0171.api:
 
 API changes

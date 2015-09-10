@@ -5,8 +5,22 @@ import os
 import zipfile
 from contextlib import contextmanager, closing
 
-from pandas.compat import StringIO, string_types, BytesIO
+from pandas.compat import StringIO, BytesIO, string_types, text_type
 from pandas import compat
+
+
+try:
+    import pathlib
+    _PATHLIB_INSTALLED = True
+except ImportError:
+    _PATHLIB_INSTALLED = False
+
+
+try:
+    from py.path import local as LocalPath
+    _PY_PATH_INSTALLED = True
+except:
+    _PY_PATH_INSTALLED = False
 
 
 if compat.PY3:
@@ -201,6 +215,25 @@ def _validate_header_arg(header):
                         "header=int or list-like of ints to specify "
                         "the row(s) making up the column names")
 
+def _stringify_path(filepath_or_buffer):
+    """Return the argument coerced to a string if it was a pathlib.Path
+       or a py.path.local
+
+    Parameters
+    ----------
+    filepath_or_buffer : object to be converted
+
+    Returns
+    -------
+    str_filepath_or_buffer : a the string version of the input path
+    """
+    if _PATHLIB_INSTALLED and isinstance(filepath_or_buffer, pathlib.Path):
+        return text_type(filepath_or_buffer)
+    if _PY_PATH_INSTALLED and isinstance(filepath_or_buffer, LocalPath):
+        return filepath_or_buffer.strpath
+    return filepath_or_buffer
+
+
 def get_filepath_or_buffer(filepath_or_buffer, encoding=None,
                            compression=None):
     """
@@ -209,7 +242,8 @@ def get_filepath_or_buffer(filepath_or_buffer, encoding=None,
 
     Parameters
     ----------
-    filepath_or_buffer : a url, filepath, or buffer
+    filepath_or_buffer : a url, filepath (str, py.path.local or pathlib.Path),
+                         or buffer
     encoding : the encoding to use to decode py3 bytes, default is 'utf-8'
 
     Returns
@@ -257,6 +291,8 @@ def get_filepath_or_buffer(filepath_or_buffer, encoding=None,
             filepath_or_buffer = k
         return filepath_or_buffer, None, compression
 
+    # It is a pathlib.Path/py.path.local or string
+    filepath_or_buffer = _stringify_path(filepath_or_buffer)
     return _expand_user(filepath_or_buffer), None, compression
 
 
