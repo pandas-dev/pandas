@@ -199,6 +199,9 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
         - If both dayfirst and yearfirst are True, yearfirst is preceded (same as dateutil).
         Warning: yearfirst=True is not strict, but will prefer to parse
         with year first (this is a known bug, based on dateutil beahavior).
+
+        .. versionadded: 0.16.1
+
     utc : boolean, default None
         Return UTC DatetimeIndex if True (converting any tz-aware
         datetime.datetime objects as well).

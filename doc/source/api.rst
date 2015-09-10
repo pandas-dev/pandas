@@ -488,7 +488,6 @@ These can be accessed like ``Series.dt.<property>``.
    Series.dt.second
    Series.dt.microsecond
    Series.dt.nanosecond
-   Series.dt.second
    Series.dt.week
    Series.dt.weekofyear
    Series.dt.dayofweek
@@ -538,6 +537,7 @@ These can be accessed like ``Series.dt.<property>``.
    :template: autosummary/accessor_method.rst
 
    Series.dt.to_pytimedelta
+   Series.dt.total_seconds
 
 String handling
 ~~~~~~~~~~~~~~~
@@ -1439,6 +1439,7 @@ Time-specific operations
    :toctree: generated/
 
    DatetimeIndex.normalize
+   DatetimeIndex.strftime
    DatetimeIndex.snap
    DatetimeIndex.tz_convert
    DatetimeIndex.tz_localize

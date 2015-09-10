@@ -257,7 +257,7 @@ has been changed to make this keyword unnecessary - the change is shown below.
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
 
-- ``pd.read_sql`` and ``to_sql`` can accept database URI as con parameter (:issue:`10214`)
+- ``pd.read_sql`` and ``to_sql`` can accept database URI as ``con`` parameter (:issue:`10214`)
 - Enable ``pd.read_hdf`` to be used without specifying a key when the HDF file contains a single dataset (:issue:`10443`)
 - Enable writing Excel files in :ref:`memory <_io.excel_writing_buffer>` using StringIO/BytesIO (:issue:`7074`)
 - Enable serialization of lists and dicts to strings in ``ExcelWriter`` (:issue:`8188`)
@@ -444,7 +444,7 @@ We have also deprecated and changed similar methods in two Series-like classes, 
 Previous                              Replacement
 ==================================    ====================================
 \* ``Index.order()``                  ``Index.sort_values()``
-\* ``Categorical.order()``            ``Categorical.sort_values``
+\* ``Categorical.order()``            ``Categorical.sort_values()``
 ==================================    ====================================
 
 .. _whatsnew_0170.api_breaking.to_datetime:
@@ -817,7 +817,7 @@ Other API Changes
 ^^^^^^^^^^^^^^^^^
 
 - Line and kde plot with ``subplots=True`` now uses default colors, not all black. Specify ``color='k'`` to draw all lines in black (:issue:`9894`)
-- Calling the ``.value_counts`` method on a Series with ``categorical`` dtype now returns a Series with a ``CategoricalIndex`` (:issue:`10704`)
+- Calling the ``.value_counts()`` method on a Series with ``categorical`` dtype now returns a Series with a ``CategoricalIndex`` (:issue:`10704`)
 - Allow passing `kwargs` to the interpolation methods (:issue:`10378`).
 - The metadata properties of subclasses of pandas objects will now be serialized (:issue:`10553`).
 - ``groupby`` using ``Categorical`` follows the same rule as ``Categorical.unique`` described above  (:issue:`10508`)
@@ -848,7 +848,7 @@ Deprecations
   Deprecated Function    Replacement
   =====================  =================================
   ``.irow(i)``           ``.iloc[i]`` or ``.iat[i]``
-  ``.iget(i)``           ``.iloc[i]``
+  ``.iget(i)``           ``.iloc[i]`` or ``.iat[i]``
   ``.iget_value(i)``     ``.iloc[i]`` or ``.iat[i]``
   =====================  =================================
 
@@ -987,7 +987,7 @@ Bug Fixes
 - Bug in ``Series.shift`` and ``DataFrame.shift`` not supporting categorical data (:issue:`9416`)
 - Bug in ``Series.map`` using categorical ``Series`` raises ``AttributeError`` (:issue:`10324`)
 - Bug in ``MultiIndex.get_level_values`` including ``Categorical`` raises ``AttributeError`` (:issue:`10460`)
-- Bug in ``pd.get_dummies`` with `sparse=True` not returning ``SparseDataFrame`` (:issue:`10531`)
+- Bug in ``pd.get_dummies`` with ``sparse=True`` not returning ``SparseDataFrame`` (:issue:`10531`)
 - Bug in ``Index`` subtypes (such as ``PeriodIndex``) not returning their own type for ``.drop`` and ``.insert`` methods (:issue:`10620`)
 - Bug in ``algos.outer_join_indexer`` when ``right`` array is empty (:issue:`10618`)
 
