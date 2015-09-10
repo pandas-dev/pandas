@@ -2472,6 +2472,8 @@ class NDFrame(PandasObject):
         ----------
         copy : boolean, default True
 
+               .. versionadded: 0.16.1
+
         Returns
         -------
         values : a dict of dtype -> Constructor Types
@@ -3275,8 +3277,8 @@ class NDFrame(PandasObject):
             effectively "SQL-style" grouped output
         sort : boolean, default True
             Sort group keys. Get better performance by turning this off.
-            Note this does not influence the order of observations within each group. 
-            groupby preserves the order of rows within each group. 
+            Note this does not influence the order of observations within each group.
+            groupby preserves the order of rows within each group.
         group_keys : boolean, default True
             When calling apply, add group keys to index to identify pieces
         squeeze : boolean, default False

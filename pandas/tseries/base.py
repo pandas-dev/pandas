@@ -28,6 +28,8 @@ class DatelikeOps(object):
         of the string format can be found in the `python string format doc
         <https://docs.python.org/2/library/datetime.html#strftime-and-strptime-behavior>`__
 
+        .. versionadded:: 0.17.0
+
         Parameters
         ----------
         date_format : str
