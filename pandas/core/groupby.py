@@ -1229,7 +1229,7 @@ class GroupBy(PandasObject):
         else:
             indices = np.sort(np.concatenate(indices))
         if dropna:
-            filtered = self._selected_obj.take(indices)
+            filtered = self._selected_obj.take(indices, axis = self.axis)
         else:
             mask = np.empty(len(self._selected_obj.index), dtype=bool)
             mask.fill(False)
