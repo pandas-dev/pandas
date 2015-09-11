@@ -1460,7 +1460,7 @@ class DataFrame(NDFrame):
         classes : str or list or tuple, default None
             CSS class(es) to apply to the resulting html table
         escape : boolean, default True
-            Convert the characters <, >, and & to HTML-safe sequences.=
+            Convert the characters <, >, and & to HTML-safe sequences.
         max_rows : int, optional
             Maximum number of rows to show before truncating. If None, show
             all.
