@@ -330,7 +330,8 @@ class TestStata(tm.TestCase):
         df = pd.DataFrame(np.random.randn(5,4), columns=list('abcd'))
         df.ix[2, 'a':'c'] = np.nan
         df_copy = df.copy()
-        df.to_stata('test.dta', write_index=False)
+        with tm.ensure_clean() as path:
+            df.to_stata(path, write_index=False)
         tm.assert_frame_equal(df, df_copy)
 
     def test_encoding(self):
