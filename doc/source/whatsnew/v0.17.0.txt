@@ -1021,7 +1021,7 @@ Bug Fixes
   key (:issue:`10385`).
 
 - Bug in ``groupby(sort=False)`` with datetime-like ``Categorical`` raises ``ValueError`` (:issue:`10505`)
-
+- Bug in ``groupby(axis=1)`` with ``filter()`` throws ``IndexError`` (:issue:`11041`)
 - Bug in ``test_categorical`` on big-endian builds (:issue:`10425`)
 - Bug in ``Series.shift`` and ``DataFrame.shift`` not supporting categorical data (:issue:`9416`)
 - Bug in ``Series.map`` using categorical ``Series`` raises ``AttributeError`` (:issue:`10324`)
