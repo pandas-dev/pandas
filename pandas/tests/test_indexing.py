@@ -4604,9 +4604,9 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
 
     def test_large_dataframe_indexing(self):
         #GH10692
-        result = DataFrame({'x': range(10**6)})
+        result = DataFrame({'x': range(10**6)},dtype='int64')
         result.loc[len(result)] = len(result) + 1
-        expected = DataFrame({'x': range(10**6 + 1)})
+        expected = DataFrame({'x': range(10**6 + 1)},dtype='int64')
         assert_frame_equal(result, expected)
 
     def test_large_mi_dataframe_indexing(self):
