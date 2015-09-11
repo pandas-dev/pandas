@@ -47,13 +47,14 @@ from pandas.compat import(range, zip, lrange, lmap, lzip, StringIO, u,
                           OrderedDict, raise_with_traceback)
 from pandas import compat
 from pandas.sparse.array import SparseArray
-from pandas.util.decorators import deprecate, Appender, Substitution, \
-    deprecate_kwarg
+from pandas.util.decorators import (cache_readonly, deprecate, Appender,
+                                    Substitution, deprecate_kwarg)
 
 from pandas.tseries.period import PeriodIndex
 from pandas.tseries.index import DatetimeIndex
 
 import pandas.core.algorithms as algos
+import pandas.core.base as base
 import pandas.core.common as com
 import pandas.core.format as fmt
 import pandas.core.nanops as nanops
@@ -5432,7 +5433,7 @@ def _put_str(s, space):
 
 import pandas.tools.plotting as gfx
 
-DataFrame.plot = gfx.plot_frame
+DataFrame.plot = base.AccessorProperty(gfx.FramePlotMethods, gfx.FramePlotMethods)
 DataFrame.hist = gfx.hist_frame
 
 

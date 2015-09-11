@@ -295,6 +295,28 @@ class Grouper(object):
     def groups(self):
         return self.grouper.groups
 
+
+class GroupByPlot(PandasObject):
+    """
+    Class implementing the .plot attribute for groupby objects
+    """
+    def __init__(self, groupby):
+        self._groupby = groupby
+
+    def __call__(self, *args, **kwargs):
+        def f(self, *args, **kwargs):
+            return self.plot(*args, **kwargs)
+        f.__name__ = 'plot'
+        return self._groupby.apply(f)
+
+    def __getattr__(self, name):
+        def attr(*args, **kwargs):
+            def f(self):
+                return getattr(self.plot, name)(*args, **kwargs)
+            return self._groupby.apply(f)
+        return attr
+
+
 class GroupBy(PandasObject):
 
     """
@@ -536,6 +558,8 @@ class GroupBy(PandasObject):
 
     def __getitem__(self, key):
         raise NotImplementedError('Not implemented: %s' % key)
+
+    plot = property(GroupByPlot)
 
     def _make_wrapper(self, name):
         if name not in self._apply_whitelist:

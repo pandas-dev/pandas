@@ -29,6 +29,7 @@ users upgrade to this version.
 Highlights include:
 
 - Release the Global Interpreter Lock (GIL) on some cython operations, see :ref:`here <whatsnew_0170.gil>`
+- Plotting methods are now available as attributes of the ``.plot`` accessor, see :ref:`here <whatsnew_0170.plot>`
 - The sorting API has been revamped to remove some long-time inconsistencies, see :ref:`here <whatsnew_0170.api_breaking.sorting>`
 - Support for a ``datetime64[ns]`` with timezones as a first-class dtype, see :ref:`here <whatsnew_0170.tz>`
 - The default for ``to_datetime`` will now be to ``raise`` when presented with unparseable formats,
@@ -115,6 +116,35 @@ Releasing of the GIL could benefit an application that uses threads for user int
 
 .. _dask: https://dask.readthedocs.org/en/latest/
 .. _QT: https://wiki.python.org/moin/PyQt
+
+.. _whatsnew_0170.plot:
+
+Plot submethods
+^^^^^^^^^^^^^^^
+
+The Series and DataFrame ``.plot()`` method allows for customizing :ref:`plot types<visualization.other>` by supplying the ``kind`` keyword arguments. Unfortunately, many of these kinds of plots use different required and optional keyword arguments, which makes it difficult to discover what any given plot kind uses out of the dozens of possible arguments.
+
+To alleviate this issue, we have added a new, optional plotting interface, which exposes each kind of plot as a method of the ``.plot`` attribute. Instead of writing ``series.plot(kind=<kind>, ...)``, you can now also use ``series.plot.<kind>(...)``:
+
+.. ipython::
+  :verbatim:
+
+    In [13]: df = pd.DataFrame(np.random.rand(10, 2), columns=['a', 'b'])
+
+    In [14]: df.plot.bar()
+
+.. image:: _static/whatsnew_plot_submethods.png
+
+As a result of this change, these methods are now all discoverable via tab-completion:
+
+.. ipython::
+    :verbatim:
+
+    In [15]: df.plot.<TAB>
+    df.plot.area     df.plot.barh     df.plot.density  df.plot.hist     df.plot.line     df.plot.scatter
+    df.plot.bar      df.plot.box      df.plot.hexbin   df.plot.kde      df.plot.pie
+
+Each method signature only includes relevant arguments. Currently, these are limited to required arguments, but in the future these will include optional arguments, as well. For an overview, see the new :ref:`api.dataframe.plotting` API documentation.
 
 .. _whatsnew_0170.strftime:
 
@@ -250,7 +280,6 @@ has been changed to make this keyword unnecessary - the change is shown below.
 
    Excel files saved in version 0.16.2 or prior that had index names will still able to be read in,
    but the ``has_index_names`` argument must specified to ``True``.
-
 
 .. _whatsnew_0170.enhancements.other:
 
