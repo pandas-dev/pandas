@@ -21,9 +21,14 @@ users upgrade to this version.
 
    After installing pandas-datareader, you can easily change your imports:
 
-   .. code-block:: Python
+   .. code-block:: python
 
-     from pandas.io import data, wb # becomes
+     from pandas.io import data, wb
+
+   becomes
+
+   .. code-block:: python
+
      from pandas_datareader import data, wb
 
 Highlights include:
@@ -53,44 +58,60 @@ Check the :ref:`API Changes <whatsnew_0170.api>` and :ref:`deprecations <whatsne
 New features
 ~~~~~~~~~~~~
 
-- ``merge`` now accepts the argument ``indicator`` which adds a Categorical-type column (by default called ``_merge``) to the output object that takes on the values (:issue:`8790`)
+.. _whatsnew_0170.tz:
 
-  ===================================   ================
-  Observation Origin                    ``_merge`` value
-  ===================================   ================
-  Merge key only in ``'left'`` frame    ``left_only``
-  Merge key only in ``'right'`` frame   ``right_only``
-  Merge key in both frames              ``both``
-  ===================================   ================
+Datetime with TZ
+^^^^^^^^^^^^^^^^
 
-  .. ipython:: python
+We are adding an implementation that natively supports datetime with timezones. A ``Series`` or a ``DataFrame`` column previously
+*could* be assigned a datetime with timezones, and would work as an ``object`` dtype. This had performance issues with a large
+number rows. See the :ref:`docs <timeseries.timezone_series>` for more details. (:issue:`8260`, :issue:`10763`, :issue:`11034`).
 
-    df1 = pd.DataFrame({'col1':[0,1], 'col_left':['a','b']})
-    df2 = pd.DataFrame({'col1':[1,2,2],'col_right':[2,2,2]})
-    pd.merge(df1, df2, on='col1', how='outer', indicator=True)
+The new implementation allows for having a single-timezone across all rows, with operations in a performant manner.
 
-  For more, see the :ref:`updated docs <merging.indicator>`
+.. ipython:: python
 
-- ``DataFrame`` has gained the ``nlargest`` and ``nsmallest`` methods (:issue:`10393`)
-- SQL io functions now accept a SQLAlchemy connectable. (:issue:`7877`)
-- Enable writing complex values to HDF stores when using table format (:issue:`10447`)
-- Enable reading gzip compressed files via URL, either by explicitly setting the compression parameter or by inferring from the presence of the HTTP Content-Encoding header in the response (:issue:`8685`)
-- Add a ``limit_direction`` keyword argument that works with ``limit`` to enable ``interpolate`` to fill ``NaN`` values forward, backward, or both (:issue:`9218` and :issue:`10420`)
+   df = DataFrame({'A' : date_range('20130101',periods=3),
+                   'B' : date_range('20130101',periods=3,tz='US/Eastern'),
+                   'C' : date_range('20130101',periods=3,tz='CET')})
+   df
+   df.dtypes
 
-  .. ipython:: python
+.. ipython:: python
 
-     ser = pd.Series([np.nan, np.nan, 5, np.nan, np.nan, np.nan, 13])
-     ser.interpolate(limit=1, limit_direction='both')
+   df.B
+   df.B.dt.tz_localize(None)
 
-- Round DataFrame to variable number of decimal places (:issue:`10568`).
+This uses a new-dtype representation as well, that is very similar in look-and-feel to its numpy cousin ``datetime64[ns]``
 
-  .. ipython :: python
+.. ipython:: python
 
-     df = pd.DataFrame(np.random.random([3, 3]), columns=['A', 'B', 'C'],
-     index=['first', 'second', 'third'])
-     df
-     df.round(2)
-     df.round({'A': 0, 'C': 2})
+   df['B'].dtype
+   type(df['B'].dtype)
+
+.. note::
+
+   There is a slightly different string repr for the underlying ``DatetimeIndex`` as a result of the dtype changes, but
+   functionally these are the same.
+
+   Previous Behavior:
+
+   .. code-block:: python
+
+      In [1]: pd.date_range('20130101',periods=3,tz='US/Eastern')
+      Out[1]: DatetimeIndex(['2013-01-01 00:00:00-05:00', '2013-01-02 00:00:00-05:00',
+                             '2013-01-03 00:00:00-05:00'],
+                            dtype='datetime64[ns]', freq='D', tz='US/Eastern')
+
+      In [2]: pd.date_range('20130101',periods=3,tz='US/Eastern').dtype
+      Out[2]: dtype('<M8[ns]')
+
+   New Behavior:
+
+   .. ipython:: python
+
+      pd.date_range('20130101',periods=3,tz='US/Eastern')
+      pd.date_range('20130101',periods=3,tz='US/Eastern').dtype
 
 .. _whatsnew_0170.gil:
 
@@ -286,6 +307,46 @@ has been changed to make this keyword unnecessary - the change is shown below.
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
 
+
+- ``merge`` now accepts the argument ``indicator`` which adds a Categorical-type column (by default called ``_merge``) to the output object that takes on the values (:issue:`8790`)
+
+  ===================================   ================
+  Observation Origin                    ``_merge`` value
+  ===================================   ================
+  Merge key only in ``'left'`` frame    ``left_only``
+  Merge key only in ``'right'`` frame   ``right_only``
+  Merge key in both frames              ``both``
+  ===================================   ================
+
+  .. ipython:: python
+
+    df1 = pd.DataFrame({'col1':[0,1], 'col_left':['a','b']})
+    df2 = pd.DataFrame({'col1':[1,2,2],'col_right':[2,2,2]})
+    pd.merge(df1, df2, on='col1', how='outer', indicator=True)
+
+  For more, see the :ref:`updated docs <merging.indicator>`
+
+- ``DataFrame`` has gained the ``nlargest`` and ``nsmallest`` methods (:issue:`10393`)
+- SQL io functions now accept a SQLAlchemy connectable. (:issue:`7877`)
+- Enable writing complex values to HDF stores when using table format (:issue:`10447`)
+- Enable reading gzip compressed files via URL, either by explicitly setting the compression parameter or by inferring from the presence of the HTTP Content-Encoding header in the response (:issue:`8685`)
+- Add a ``limit_direction`` keyword argument that works with ``limit`` to enable ``interpolate`` to fill ``NaN`` values forward, backward, or both (:issue:`9218` and :issue:`10420`)
+
+  .. ipython:: python
+
+     ser = pd.Series([np.nan, np.nan, 5, np.nan, np.nan, np.nan, 13])
+     ser.interpolate(limit=1, limit_direction='both')
+
+- Round DataFrame to variable number of decimal places (:issue:`10568`).
+
+  .. ipython :: python
+
+     df = pd.DataFrame(np.random.random([3, 3]), columns=['A', 'B', 'C'],
+     index=['first', 'second', 'third'])
+     df
+     df.round(2)
+     df.round({'A': 0, 'C': 2})
+
 - ``pd.read_sql`` and ``to_sql`` can accept database URI as ``con`` parameter (:issue:`10214`)
 - Enable ``pd.read_hdf`` to be used without specifying a key when the HDF file contains a single dataset (:issue:`10443`)
 - Enable writing Excel files in :ref:`memory <_io.excel_writing_buffer>` using StringIO/BytesIO (:issue:`7074`)
@@ -321,13 +382,15 @@ Other enhancements
      Timestamp('2014')
      DatetimeIndex(['2012Q2', '2014'])
 
-  .. note:: If you want to perform calculations based on today's date, use ``Timestamp.now()`` and ``pandas.tseries.offsets``.
+  .. note::
 
-  .. ipython:: python
+     If you want to perform calculations based on today's date, use ``Timestamp.now()`` and ``pandas.tseries.offsets``.
 
-     import pandas.tseries.offsets as offsets
-     Timestamp.now()
-     Timestamp.now() + offsets.DateOffset(years=1)
+     .. ipython:: python
+
+        import pandas.tseries.offsets as offsets
+        Timestamp.now()
+        Timestamp.now() + offsets.DateOffset(years=1)
 
 - ``to_datetime`` can now accept ``yearfirst`` keyword (:issue:`7599`)
 
@@ -410,6 +473,9 @@ Other enhancements
   .. ipython:: python
 
     pd.concat([foo, bar, baz], 1)
+
+- Allow passing `kwargs` to the interpolation methods (:issue:`10378`).
+- Improved error message when concatenating an empty iterable of dataframes (:issue:`9157`)
 
 
 .. _whatsnew_0170.api:
@@ -516,60 +582,6 @@ To keep the previous behaviour, you can use ``errors='ignore'``:
 Furthermore, ``pd.to_timedelta`` has gained a similar API, of ``errors='raise'|'ignore'|'coerce'``, and the ``coerce`` keyword
 has been deprecated in favor of ``errors='coerce'``.
 
-.. _whatsnew_0170.tz:
-
-Datetime with TZ
-~~~~~~~~~~~~~~~~
-
-We are adding an implementation that natively supports datetime with timezones. A ``Series`` or a ``DataFrame`` column previously
-*could* be assigned a datetime with timezones, and would work as an ``object`` dtype. This had performance issues with a large
-number rows. See the :ref:`docs <timeseries.timezone_series>` for more details. (:issue:`8260`, :issue:`10763`, :issue:`11034`).
-
-The new implementation allows for having a single-timezone across all rows, with operations in a performant manner.
-
-.. ipython:: python
-
-   df = DataFrame({'A' : date_range('20130101',periods=3),
-                   'B' : date_range('20130101',periods=3,tz='US/Eastern'),
-                   'C' : date_range('20130101',periods=3,tz='CET')})
-   df
-   df.dtypes
-
-.. ipython:: python
-
-   df.B
-   df.B.dt.tz_localize(None)
-
-This uses a new-dtype representation as well, that is very similar in look-and-feel to its numpy cousin ``datetime64[ns]``
-
-.. ipython:: python
-
-   df['B'].dtype
-   type(df['B'].dtype)
-
-.. note::
-
-   There is a slightly different string repr for the underlying ``DatetimeIndex`` as a result of the dtype changes, but
-   functionally these are the same.
-
-   Previous Behavior:
-
-   .. code-block:: python
-
-      In [1]: pd.date_range('20130101',periods=3,tz='US/Eastern')
-      Out[1]: DatetimeIndex(['2013-01-01 00:00:00-05:00', '2013-01-02 00:00:00-05:00',
-                             '2013-01-03 00:00:00-05:00'],
-                            dtype='datetime64[ns]', freq='D', tz='US/Eastern')
-
-      In [2]: pd.date_range('20130101',periods=3,tz='US/Eastern').dtype
-      Out[2]: dtype('<M8[ns]')
-
-   New Behavior:
-
-   .. ipython:: python
-
-      pd.date_range('20130101',periods=3,tz='US/Eastern')
-      pd.date_range('20130101',periods=3,tz='US/Eastern').dtype
 
 .. _whatsnew_0170.api_breaking.convert_objects:
 
@@ -847,11 +859,10 @@ Other API Changes
 
 - Line and kde plot with ``subplots=True`` now uses default colors, not all black. Specify ``color='k'`` to draw all lines in black (:issue:`9894`)
 - Calling the ``.value_counts()`` method on a Series with ``categorical`` dtype now returns a Series with a ``CategoricalIndex`` (:issue:`10704`)
-- Allow passing `kwargs` to the interpolation methods (:issue:`10378`).
 - The metadata properties of subclasses of pandas objects will now be serialized (:issue:`10553`).
 - ``groupby`` using ``Categorical`` follows the same rule as ``Categorical.unique`` described above  (:issue:`10508`)
-- Improved error message when concatenating an empty iterable of dataframes (:issue:`9157`)
-- When constructing ``DataFrame`` with an array of ``complex64`` dtype that meant the corresponding column was automatically promoted to the ``complex128`` dtype. Pandas will now preserve the itemsize of the input for complex data (:issue:`10952`)
+- When constructing ``DataFrame`` with an array of ``complex64`` dtype previously meant the corresponding column
+  was automatically promoted to the ``complex128`` dtype. Pandas will now preserve the itemsize of the input for complex data (:issue:`10952`)
 
 - ``NaT``'s methods now either raise ``ValueError``, or return ``np.nan`` or ``NaT`` (:issue:`9513`)
 
@@ -868,8 +879,6 @@ Other API Changes
 
 Deprecations
 ^^^^^^^^^^^^
-
-.. note:: These indexing function have been deprecated in the documentation since 0.11.0.
 
 - For ``Series`` the following indexing functions are deprecated (:issue:`10177`).
 
@@ -891,6 +900,8 @@ Deprecations
   ``.icol(j)``           ``.iloc[:, j]``
   =====================  =================================
 
+.. note:: These indexing function have been deprecated in the documentation since 0.11.0.
+
 - ``Categorical.name`` was deprecated to make ``Categorical`` more ``numpy.ndarray`` like. Use ``Series(cat, name="whatever")`` instead (:issue:`10482`).
 - Setting missing values (NaN) in a ``Categorical``'s ``categories`` will issue a warning (:issue:`10748`). You can still have missing values in the ``values``.
 - ``drop_duplicates`` and ``duplicated``'s ``take_last`` keyword was deprecated in favor of ``keep``. (:issue:`6511`, :issue:`8505`)
@@ -908,7 +919,6 @@ Deprecations
 Removal of prior version deprecations/changes
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-- Remove use of some deprecated numpy comparison operations, mainly in tests. (:issue:`10569`)
 - Removal of ``na_last`` parameters from ``Series.order()`` and ``Series.sort()``, in favor of ``na_position``, xref (:issue:`5231`)
 - Remove of ``percentile_width`` from ``.describe()``, in favor of ``percentiles``. (:issue:`7088`)
 - Removal of ``colSpace`` parameter from ``DataFrame.to_string()``, in favor of ``col_space``, circa 0.8.0 version.
@@ -1089,3 +1099,4 @@ Bug Fixes
 - Bug in ``Index`` arithmetic may result in incorrect class (:issue:`10638`)
 - Bug in ``date_range`` results in empty if freq is negative annualy, quarterly and monthly (:issue:`11018`)
 - Bug in ``DatetimeIndex`` cannot infer negative freq (:issue:`11018`)
+- Remove use of some deprecated numpy comparison operations, mainly in tests. (:issue:`10569`)
