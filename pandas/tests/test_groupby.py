@@ -494,7 +494,6 @@ class TestGroupBy(tm.TestCase):
         assert_series_equal(result, expected2)
 
     def test_groupby_bounds_check(self):
-        import pandas as pd
         # groupby_X is code-generated, so if one variant
         # does, the rest probably do to
         a = np.array([1,2],dtype='object')
@@ -3979,7 +3978,6 @@ class TestGroupBy(tm.TestCase):
         assert_series_equal(result,expected)
 
     def test_groupby_categorical_unequal_len(self):
-        import pandas as pd
         #GH3011
         series = Series([np.nan, np.nan, 1, 1, 2, 2, 3, 3, 4, 4])
         # The raises only happens with categorical, not with series of types category
@@ -4037,7 +4035,6 @@ class TestGroupBy(tm.TestCase):
         no_toes = df_grouped.apply(lambda x: noddy(x.value, x.weight ))
 
     def test_groupby_with_empty(self):
-        import pandas as pd
         index = pd.DatetimeIndex(())
         data = ()
         series = pd.Series(data, index)
@@ -4376,7 +4373,6 @@ class TestGroupBy(tm.TestCase):
         assert_series_equal(expected, sg.cumcount())
 
     def test_filter_series(self):
-        import pandas as pd
         s = pd.Series([1, 3, 20, 5, 22, 24, 7])
         expected_odd = pd.Series([1, 3, 5, 7], index=[0, 1, 3, 6])
         expected_even = pd.Series([20, 22, 24], index=[2, 4, 5])
@@ -4395,7 +4391,6 @@ class TestGroupBy(tm.TestCase):
             expected_even.reindex(s.index))
 
     def test_filter_single_column_df(self):
-        import pandas as pd
         df = pd.DataFrame([1, 3, 20, 5, 22, 24, 7])
         expected_odd = pd.DataFrame([1, 3, 5, 7], index=[0, 1, 3, 6])
         expected_even = pd.DataFrame([20, 22, 24], index=[2, 4, 5])
@@ -4414,7 +4409,6 @@ class TestGroupBy(tm.TestCase):
                            expected_even.reindex(df.index))
 
     def test_filter_multi_column_df(self):
-        import pandas as pd
         df = pd.DataFrame({'A': [1, 12, 12, 1], 'B': [1, 1, 1, 1]})
         grouper = df['A'].apply(lambda x: x % 2)
         grouped = df.groupby(grouper)
@@ -4423,7 +4417,6 @@ class TestGroupBy(tm.TestCase):
             grouped.filter(lambda x: x['A'].sum() - x['B'].sum() > 10), expected)
 
     def test_filter_mixed_df(self):
-        import pandas as pd
         df = pd.DataFrame({'A': [1, 12, 12, 1], 'B': 'a b c d'.split()})
         grouper = df['A'].apply(lambda x: x % 2)
         grouped = df.groupby(grouper)
@@ -4433,7 +4426,6 @@ class TestGroupBy(tm.TestCase):
             grouped.filter(lambda x: x['A'].sum() > 10), expected)
 
     def test_filter_out_all_groups(self):
-        import pandas as pd
         s = pd.Series([1, 3, 20, 5, 22, 24, 7])
         grouper = s.apply(lambda x: x % 2)
         grouped = s.groupby(grouper)
@@ -4446,7 +4438,6 @@ class TestGroupBy(tm.TestCase):
             grouped.filter(lambda x: x['A'].sum() > 1000), df.ix[[]])
 
     def test_filter_out_no_groups(self):
-        import pandas as pd
         s = pd.Series([1, 3, 20, 5, 22, 24, 7])
         grouper = s.apply(lambda x: x % 2)
         grouped = s.groupby(grouper)
@@ -4459,7 +4450,6 @@ class TestGroupBy(tm.TestCase):
         assert_frame_equal(filtered, df)
 
     def test_filter_condition_raises(self):
-        import pandas as pd
         def raise_if_sum_is_zero(x):
             if x.sum() == 0:
                 raise ValueError
