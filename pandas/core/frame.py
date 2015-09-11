@@ -566,10 +566,11 @@ class DataFrame(NDFrame):
             max_rows = get_option("display.max_rows")
             max_cols = get_option("display.max_columns")
             show_dimensions = get_option("display.show_dimensions")
+            escape_html = get_option("display.escape_notebook_repr_html")
 
             return self.to_html(max_rows=max_rows, max_cols=max_cols,
                                 show_dimensions=show_dimensions,
-                                notebook=True)
+                                notebook=True, escape=escape_html)
         else:
             return None
 
