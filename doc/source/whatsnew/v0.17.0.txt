@@ -1084,7 +1084,7 @@ Bug Fixes
 - Bug in ``PeriodIndex.order`` reset freq (:issue:`10295`)
 - Bug in ``date_range`` when ``freq`` divides ``end`` as nanos (:issue:`10885`)
 - Bug in ``iloc`` allowing memory outside bounds of a Series to be accessed with negative integers (:issue:`10779`)
-- Bug in ``read_msgpack`` where encoding is not respected (:issue:`10580`)
+- Bug in ``read_msgpack`` where encoding is not respected (:issue:`10581`)
 - Bug preventing access to the first index when using ``iloc`` with a list containing the appropriate negative integer (:issue:`10547`, :issue:`10779`)
 - Bug in ``TimedeltaIndex`` formatter causing error while trying to save ``DataFrame`` with ``TimedeltaIndex`` using ``to_csv`` (:issue:`10833`)
 - Bug in ``DataFrame.where`` when handling Series slicing (:issue:`10218`, :issue:`9558`)
