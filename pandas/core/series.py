@@ -2882,7 +2882,7 @@ class TimeSeries(Series):
 
 import pandas.tools.plotting as _gfx
 
-Series.plot = _gfx.plot_series
+Series.plot = base.AccessorProperty(_gfx.SeriesPlotMethods, _gfx.SeriesPlotMethods)
 Series.hist = _gfx.hist_series
 
 # Add arithmetic!

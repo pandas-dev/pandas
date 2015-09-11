@@ -121,8 +121,9 @@ You can plot one column versus another using the `x` and `y` keywords in
 Other Plots
 -----------
 
-The ``kind`` keyword argument of :meth:`~DataFrame.plot` accepts
-a handful of values for plots other than the default Line plot.
+Plotting methods allow for a handful of plot styles other than the
+default Line plot. These methods can be provided as the ``kind``
+keyword argument to :meth:`~DataFrame.plot`.
 These include:
 
 * :ref:`'bar' <visualization.barplot>` or :ref:`'barh' <visualization.barplot>` for bar plots
@@ -133,6 +134,19 @@ These include:
 * :ref:`'scatter' <visualization.scatter>` for scatter plots
 * :ref:`'hexbin' <visualization.hexbin>` for hexagonal bin plots
 * :ref:`'pie' <visualization.pie>` for pie plots
+
+.. versionadded:: 0.17
+
+You can also create these other plots using the methods ``DataFrame.plot.<kind>`` instead of providing the ``kind`` keyword argument. This makes it easier to discover plot methods and the specific arguments they use:
+
+.. ipython::
+    :verbatim:
+
+    In [14]: df = pd.DataFrame()
+
+    In [15]: df.plot.<TAB>
+    df.plot.area     df.plot.barh     df.plot.density  df.plot.hist     df.plot.line     df.plot.scatter
+    df.plot.bar      df.plot.box      df.plot.hexbin   df.plot.kde      df.plot.pie
 
 In addition to these ``kind`` s, there are  the :ref:`DataFrame.hist() <visualization.hist>`,
 and :ref:`DataFrame.boxplot() <visualization.box>` methods, which use a separate interface.

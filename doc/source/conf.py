@@ -214,7 +214,7 @@ html_static_path = ['_static']
 # template names.
 
 # Add redirect for previously existing API pages (which are now included in
-# the API pages as top-level functions) based on a template (GH9911) 
+# the API pages as top-level functions) based on a template (GH9911)
 moved_api_pages = [
     'pandas.core.common.isnull', 'pandas.core.common.notnull', 'pandas.core.reshape.get_dummies',
     'pandas.tools.merge.concat', 'pandas.tools.merge.merge', 'pandas.tools.pivot.pivot_table',
@@ -327,6 +327,7 @@ ipython_exec_lines = [
 
 from sphinx.util import rpartition
 from sphinx.ext.autodoc import Documenter, MethodDocumenter, AttributeDocumenter
+from sphinx.ext.autosummary import Autosummary
 
 
 class AccessorLevelDocumenter(Documenter):
@@ -388,6 +389,44 @@ class AccessorMethodDocumenter(AccessorLevelDocumenter, MethodDocumenter):
     directivetype = 'method'
 
 
+class AccessorCallableDocumenter(AccessorLevelDocumenter, MethodDocumenter):
+    """
+    This documenter lets us removes .__call__ from the method signature for
+    callable accessors like Series.plot
+    """
+    objtype = 'accessorcallable'
+    directivetype = 'method'
+
+    # lower than MethodDocumenter; otherwise the doc build prints warnings
+    priority = 0.5
+
+    def format_name(self):
+        return MethodDocumenter.format_name(self).rstrip('.__call__')
+
+
+class PandasAutosummary(Autosummary):
+    """
+    This alternative autosummary class lets us override the table summary for
+    Series.plot and DataFrame.plot in the API docs.
+    """
+
+    def _replace_pandas_items(self, display_name, sig, summary, real_name):
+        # this a hack: ideally we should extract the signature from the
+        # .__call__ method instead of hard coding this
+        if display_name == 'DataFrame.plot':
+            sig = '([x, y, kind, ax, ....])'
+            summary = 'DataFrame plotting accessor and method'
+        elif display_name == 'Series.plot':
+            sig = '([kind, ax, figsize, ....])'
+            summary = 'Series plotting accessor and method'
+        return (display_name, sig, summary, real_name)
+
+    def get_items(self, names):
+        items = Autosummary.get_items(self, names)
+        items = [self._replace_pandas_items(*item) for item in items]
+        return items
+
+
 # remove the docstring of the flags attribute (inherited from numpy ndarray)
 # because these give doc build errors (see GH issue 5331)
 def remove_flags_docstring(app, what, name, obj, options, lines):
@@ -398,3 +437,5 @@ def setup(app):
     app.connect("autodoc-process-docstring", remove_flags_docstring)
     app.add_autodocumenter(AccessorAttributeDocumenter)
     app.add_autodocumenter(AccessorMethodDocumenter)
+    app.add_autodocumenter(AccessorCallableDocumenter)
+    app.add_directive('autosummary', PandasAutosummary)
