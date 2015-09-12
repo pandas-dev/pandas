@@ -5511,6 +5511,22 @@ class TestGroupBy(tm.TestCase):
 
                 g.apply(test_sort)
 
+    def test_nunique_with_object(self):
+        # GH 11077
+        data = pd.DataFrame(
+            [[100, 1, 'Alice'],
+             [200, 2, 'Bob'],
+             [300, 3, 'Charlie'],
+             [-400, 4, 'Dan'],
+             [500, 5, 'Edith']],
+            columns=['amount', 'id', 'name']
+        )
+
+        result = data.groupby(['id', 'amount'])['name'].nunique()
+        index = MultiIndex.from_arrays([data.id, data.amount])
+        expected = pd.Series([1] * 5, name='name', index=index)
+        tm.assert_series_equal(result, expected)
+
 
 def assert_fp_equal(a, b):
     assert (np.abs(a - b) < 1e-12).all()
