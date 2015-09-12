@@ -2565,7 +2565,17 @@ class SeriesGroupBy(GroupBy):
         ids, _, _ = self.grouper.group_info
         val = self.obj.get_values()
 
-        sorter = np.lexsort((val, ids))
+        try:
+            sorter = np.lexsort((val, ids))
+        except TypeError:  # catches object dtypes
+            assert val.dtype == object, \
+                'val.dtype must be object, got %s' % val.dtype
+            val, _ = algos.factorize(val, sort=False)
+            sorter = np.lexsort((val, ids))
+            isnull = lambda a: a == -1
+        else:
+            isnull = com.isnull
+
         ids, val = ids[sorter], val[sorter]
 
         # group boundries are where group ids change

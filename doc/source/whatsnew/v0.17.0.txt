@@ -1014,7 +1014,7 @@ Performance Improvements
 - Development support for benchmarking with the `Air Speed Velocity library <https://github.com/spacetelescope/asv/>`_ (:issue:`8316`)
 - Added vbench benchmarks for alternative ExcelWriter engines and reading Excel files (:issue:`7171`)
 - Performance improvements in ``Categorical.value_counts`` (:issue:`10804`)
-- Performance improvements in ``SeriesGroupBy.nunique`` and ``SeriesGroupBy.value_counts`` (:issue:`10820`)
+- Performance improvements in ``SeriesGroupBy.nunique`` and ``SeriesGroupBy.value_counts`` (:issue:`10820`, :issue:`11077`)
 - Performance improvements in ``DataFrame.drop_duplicates`` with integer dtypes (:issue:`10917`)
 - 4x improvement in ``timedelta`` string parsing (:issue:`6755`, :issue:`10426`)
 - 8x improvement in ``timedelta64`` and ``datetime64`` ops (:issue:`6755`)
