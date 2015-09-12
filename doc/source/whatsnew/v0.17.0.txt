@@ -150,7 +150,7 @@ The Series and DataFrame ``.plot()`` method allows for customizing :ref:`plot ty
 To alleviate this issue, we have added a new, optional plotting interface, which exposes each kind of plot as a method of the ``.plot`` attribute. Instead of writing ``series.plot(kind=<kind>, ...)``, you can now also use ``series.plot.<kind>(...)``:
 
 .. ipython::
-  :verbatim:
+    :verbatim:
 
     In [13]: df = pd.DataFrame(np.random.rand(10, 2), columns=['a', 'b'])
 
