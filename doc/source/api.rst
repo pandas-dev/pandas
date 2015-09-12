@@ -982,7 +982,7 @@ specific plotting methods of the form ``DataFrame.plot.<kind>``.
 
 .. autosummary::
    :toctree: generated/
-   :template: autosummary/accessor_plot.rst
+   :template: autosummary/accessor_callable.rst
 
    DataFrame.plot
 
