@@ -42,7 +42,6 @@ matrix:
       - FULL_DEPS=true
       - CLIPBOARD_GUI=gtk2
       - BUILD_TYPE=conda
-      - DOC_BUILD=true # if rst files were changed, build docs in parallel with tests
     - python: 3.4
       env:
       - JOB_NAME: "34_nslow"
@@ -103,6 +102,13 @@ matrix:
       - NUMPY_BUILD=master
       - BUILD_TYPE=pydata
       - PANDAS_TESTING_MODE="deprecate"
+    - python: 2.7
+      env:
+      - JOB_NAME: "doc_build"
+      - FULL_DEPS=true
+      - BUILD_TYPE=conda
+      - DOC_BUILD=true # if rst files were changed, build docs in parallel with tests
+      - JOB_TAG=_DOC_BUILD
     allow_failures:
       - python: 3.3
         env:
@@ -150,6 +156,13 @@ matrix:
         - FULL_DEPS=true
         - BUILD_TYPE=pydata
         - BUILD_TEST=true
+      - python: 2.7
+        env:
+        - JOB_NAME: "doc_build"
+        - FULL_DEPS=true
+        - BUILD_TYPE=conda
+        - DOC_BUILD=true
+        - JOB_TAG=_DOC_BUILD
 
 before_install:
   - echo "before_install"
@@ -178,7 +191,7 @@ before_script:
 
 script:
   - echo "script"
-  - ci/run_build_docs.sh &
+  - ci/run_build_docs.sh
   - ci/script.sh
 # nothing here, or failed tests won't fail travis
 
