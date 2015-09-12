@@ -49,13 +49,16 @@ users upgrade to this version.
 Highlights include:
 
 - Release the Global Interpreter Lock (GIL) on some cython operations, see :ref:`here <whatsnew_0170.gil>`
+- Plotting methods are now available as attributes of the ``.plot`` accessor, see :ref:`here <whatsnew_0170.plot>`
 - The sorting API has been revamped to remove some long-time inconsistencies, see :ref:`here <whatsnew_0170.api_breaking.sorting>`
 - Support for a ``datetime64[ns]`` with timezones as a first-class dtype, see :ref:`here <whatsnew_0170.tz>`
 - The default for ``to_datetime`` will now be to ``raise`` when presented with unparseable formats,
-  previously this would return the original input, see :ref:`here <whatsnew_0170.api_breaking.to_datetime>`
+  previously this would return the original input. Also, date parse
+  functions now return consistent results. See :ref:`here <whatsnew_0170.api_breaking.to_datetime>`
 - The default for ``dropna`` in ``HDFStore`` has changed to ``False``, to store by default all rows even
   if they are all ``NaN``, see :ref:`here <whatsnew_0170.api_breaking.hdf_dropna>`
-- Support for ``Series.dt.strftime`` to generate formatted strings for datetime-likes, see :ref:`here <whatsnew_0170.strftime>`
+- Datetime accessor (``dt``) now supports ``Series.dt.strftime`` to generate formatted strings for datetime-likes, and ``Series.dt.total_seconds`` to generate each duration of the timedelta in seconds. See :ref:`here <whatsnew_0170.strftime>`
+- ``Period`` and ``PeriodIndex`` can handle multiplied freq like ``3D``, which corresponding to 3 days span. See :ref:`here <whatsnew_0170.periodfreq>`
 - Development installed versions of pandas will now have ``PEP440`` compliant version strings (:issue:`9518`)
 - Development support for benchmarking with the `Air Speed Velocity library <https://github.com/spacetelescope/asv/>`_ (:issue:`8316`)
 - Support for reading SAS xport files, see :ref:`here <whatsnew_0170.enhancements.sas_xport>`
