@@ -42,7 +42,6 @@ matrix:
       - NOSE_ARGS="not slow and not disabled"
       - FULL_DEPS=true
       - CLIPBOARD_GUI=gtk2
-      - DOC_BUILD=true # if rst files were changed, build docs in parallel with tests
     - python: 3.4
       env:
       - JOB_NAME: "34_nslow"
@@ -88,6 +87,13 @@ matrix:
       - JOB_TAG=_NUMPY_DEV
       - NOSE_ARGS="not slow and not network and not disabled"
       - PANDAS_TESTING_MODE="deprecate"
+    - python: 2.7
+      env:
+      - JOB_NAME: "doc_build"
+      - FULL_DEPS=true
+      - BUILD_TYPE=conda
+      - DOC_BUILD=true # if rst files were changed, build docs in parallel with tests
+      - JOB_TAG=_DOC_BUILD
     allow_failures:
       - python: 2.7
         env:
@@ -121,6 +127,13 @@ matrix:
         - JOB_TAG=_NUMPY_DEV
         - NOSE_ARGS="not slow and not network and not disabled"
         - PANDAS_TESTING_MODE="deprecate"
+      - python: 2.7
+        env:
+        - JOB_NAME: "doc_build"
+        - FULL_DEPS=true
+        - BUILD_TYPE=conda
+        - DOC_BUILD=true
+        - JOB_TAG=_DOC_BUILD
 
 before_install:
   - echo "before_install"
@@ -149,13 +162,12 @@ before_script:
 
 script:
   - echo "script"
-  - ci/run_build_docs.sh &
+  - ci/run_build_docs.sh
   - ci/script.sh
 # nothing here, or failed tests won't fail travis
 
 after_script:
   - ci/install_test.sh
-  - if [ -f /tmp/doc.log ]; then cat /tmp/doc.log; fi
   - source activate pandas && ci/print_versions.py
   - ci/print_skipped.py /tmp/nosetests.xml
   - ci/lint.sh
