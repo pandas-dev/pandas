@@ -38,10 +38,12 @@ Highlights include:
 - The sorting API has been revamped to remove some long-time inconsistencies, see :ref:`here <whatsnew_0170.api_breaking.sorting>`
 - Support for a ``datetime64[ns]`` with timezones as a first-class dtype, see :ref:`here <whatsnew_0170.tz>`
 - The default for ``to_datetime`` will now be to ``raise`` when presented with unparseable formats,
-  previously this would return the original input, see :ref:`here <whatsnew_0170.api_breaking.to_datetime>`
+  previously this would return the original input. Also, date parse
+  functions now return consistent results. See :ref:`here <whatsnew_0170.api_breaking.to_datetime>`
 - The default for ``dropna`` in ``HDFStore`` has changed to ``False``, to store by default all rows even
   if they are all ``NaN``, see :ref:`here <whatsnew_0170.api_breaking.hdf_dropna>`
-- Support for ``Series.dt.strftime`` to generate formatted strings for datetime-likes, see :ref:`here <whatsnew_0170.strftime>`
+- Datetime accessor (``dt``) now supports ``Series.dt.strftime`` to generate formatted strings for datetime-likes, and ``Series.dt.total_seconds`` to generate each duration of the timedelta in seconds. See :ref:`here <whatsnew_0170.strftime>`
+- ``Period`` and ``PeriodIndex`` can handle multiplied freq like ``3D``, which corresponding to 3 days span. See :ref:`here <whatsnew_0170.periodfreq>`
 - Development installed versions of pandas will now have ``PEP440`` compliant version strings (:issue:`9518`)
 - Development support for benchmarking with the `Air Speed Velocity library <https://github.com/spacetelescope/asv/>`_ (:issue:`8316`)
 - Support for reading SAS xport files, see :ref:`here <whatsnew_0170.enhancements.sas_xport>`
@@ -169,8 +171,11 @@ Each method signature only includes relevant arguments. Currently, these are lim
 
 .. _whatsnew_0170.strftime:
 
-Support strftime for Datetimelikes
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Additional methods for ``dt`` accessor
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+strftime
+""""""""
 
 We are now supporting a ``Series.dt.strftime`` method for datetime-likes to generate a formatted string (:issue:`10110`). Examples:
 
@@ -189,6 +194,18 @@ We are now supporting a ``Series.dt.strftime`` method for datetime-likes to gene
    s.dt.strftime('%Y/%m/%d')
 
 The string format is as the python standard library and details can be found `here <https://docs.python.org/2/library/datetime.html#strftime-and-strptime-behavior>`_
+
+total_seconds
+"""""""""""""
+
+``pd.Series`` of type ``timedelta64`` has new method ``.dt.total_seconds()`` returning the duration of the timedelta in seconds (:issue:`10817`)
+
+.. ipython:: python
+
+   # TimedeltaIndex
+   s = pd.Series(pd.timedelta_range('1 minutes', periods=4))
+   s
+   s.dt.total_seconds()
 
 .. _whatsnew_0170.periodfreq:
 
@@ -240,7 +257,7 @@ See the :ref:`docs <io.sas>` for more details.
 .. _whatsnew_0170.matheval:
 
 Support for Math Functions in .eval()
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 :meth:`~pandas.eval` now supports calling math functions (:issue:`4893`)
 
@@ -307,7 +324,6 @@ has been changed to make this keyword unnecessary - the change is shown below.
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
 
-
 - ``merge`` now accepts the argument ``indicator`` which adds a Categorical-type column (by default called ``_merge``) to the output object that takes on the values (:issue:`8790`)
 
   ===================================   ================
@@ -326,10 +342,36 @@ Other enhancements
 
   For more, see the :ref:`updated docs <merging.indicator>`
 
+- ``pd.merge`` will now allow duplicate column names if they are not merged upon (:issue:`10639`).
+
+- ``pd.pivot`` will now allow passing index as ``None`` (:issue:`3962`).
+
+- ``concat`` will now use existing Series names if provided (:issue:`10698`).
+
+  .. ipython:: python
+
+     foo = pd.Series([1,2], name='foo')
+     bar = pd.Series([1,2])
+     baz = pd.Series([4,5])
+
+  Previous Behavior:
+
+  .. code-block:: python
+
+     In [1] pd.concat([foo, bar, baz], 1)
+     Out[1]:
+           0  1  2
+        0  1  1  4
+        1  2  2  5
+
+  New Behavior:
+
+  .. ipython:: python
+
+    pd.concat([foo, bar, baz], 1)
+
 - ``DataFrame`` has gained the ``nlargest`` and ``nsmallest`` methods (:issue:`10393`)
-- SQL io functions now accept a SQLAlchemy connectable. (:issue:`7877`)
-- Enable writing complex values to HDF stores when using table format (:issue:`10447`)
-- Enable reading gzip compressed files via URL, either by explicitly setting the compression parameter or by inferring from the presence of the HTTP Content-Encoding header in the response (:issue:`8685`)
+
 - Add a ``limit_direction`` keyword argument that works with ``limit`` to enable ``interpolate`` to fill ``NaN`` values forward, backward, or both (:issue:`9218` and :issue:`10420`)
 
   .. ipython:: python
@@ -346,73 +388,6 @@ Other enhancements
      df
      df.round(2)
      df.round({'A': 0, 'C': 2})
-
-- ``pd.read_sql`` and ``to_sql`` can accept database URI as ``con`` parameter (:issue:`10214`)
-- Enable ``pd.read_hdf`` to be used without specifying a key when the HDF file contains a single dataset (:issue:`10443`)
-- Enable writing Excel files in :ref:`memory <_io.excel_writing_buffer>` using StringIO/BytesIO (:issue:`7074`)
-- Enable serialization of lists and dicts to strings in ``ExcelWriter`` (:issue:`8188`)
-- Added functionality to use the ``base`` argument when resampling a ``TimeDeltaIndex`` (:issue:`10530`)
-- ``DatetimeIndex`` can be instantiated using strings contains ``NaT`` (:issue:`7599`)
-- The string parsing of ``to_datetime``, ``Timestamp`` and ``DatetimeIndex`` has been made consistent. (:issue:`7599`)
-
-  Prior to v0.17.0, ``Timestamp`` and ``to_datetime`` may parse year-only datetime-string incorrectly using today's date, otherwise ``DatetimeIndex``
-  uses the beginning of the year. ``Timestamp`` and ``to_datetime`` may raise ``ValueError`` in some types of datetime-string which ``DatetimeIndex``
-  can parse, such as a quarterly string.
-
-  Previous Behavior
-
-  .. code-block:: python
-
-     In [1]: Timestamp('2012Q2')
-     Traceback
-        ...
-     ValueError: Unable to parse 2012Q2
-
-     # Results in today's date.
-     In [2]: Timestamp('2014')
-     Out [2]: 2014-08-12 00:00:00
-
-  v0.17.0 can parse them as below. It works on ``DatetimeIndex`` also.
-
-  New Behaviour
-
-  .. ipython:: python
-
-     Timestamp('2012Q2')
-     Timestamp('2014')
-     DatetimeIndex(['2012Q2', '2014'])
-
-  .. note::
-
-     If you want to perform calculations based on today's date, use ``Timestamp.now()`` and ``pandas.tseries.offsets``.
-
-     .. ipython:: python
-
-        import pandas.tseries.offsets as offsets
-        Timestamp.now()
-        Timestamp.now() + offsets.DateOffset(years=1)
-
-- ``to_datetime`` can now accept ``yearfirst`` keyword (:issue:`7599`)
-
-- ``pandas.tseries.offsets`` larger than the ``Day`` offset can now be used with with ``Series`` for addition/subtraction (:issue:`10699`).  See the :ref:`Documentation <timeseries.offsetseries>` for more details.
-
-- ``pd.Series`` of type ``timedelta64`` has new method ``.dt.total_seconds()`` returning the duration of the timedelta in seconds (:issue:`10817`)
-
-- ``pd.Timedelta.total_seconds()`` now returns Timedelta duration to ns precision (previously microsecond precision) (:issue:`10939`)
-
-- ``.as_blocks`` will now take a ``copy`` optional argument to return a copy of the data, default is to copy (no change in behavior from prior versions), (:issue:`9607`)
-- ``regex`` argument to ``DataFrame.filter`` now handles numeric column names instead of raising ``ValueError`` (:issue:`10384`).
-- ``pd.read_stata`` will now read Stata 118 type files. (:issue:`9882`)
-
-- ``pd.merge`` will now allow duplicate column names if they are not merged upon (:issue:`10639`).
-
-- ``pd.pivot`` will now allow passing index as ``None`` (:issue:`3962`).
-
-- ``read_sql_table`` will now allow reading from views (:issue:`10750`).
-
-- ``msgpack`` submodule has been updated to 0.4.6 with backward compatibility (:issue:`10581`)
-
-- ``DataFrame.to_dict`` now accepts the *index* option in ``orient`` keyword argument (:issue:`10844`).
 
 - ``drop_duplicates`` and ``duplicated`` now accept ``keep`` keyword to target first, last, and all duplicates. ``take_last`` keyword is deprecated, see :ref:`deprecations <whatsnew_0170.deprecations>` (:issue:`6511`, :issue:`8505`)
 
@@ -444,37 +419,50 @@ Other enhancements
 
   ``tolerance`` is also exposed by the lower level ``Index.get_indexer`` and ``Index.get_loc`` methods.
 
-- Support pickling of ``Period`` objects (:issue:`10439`)
+- Added functionality to use the ``base`` argument when resampling a ``TimeDeltaIndex`` (:issue:`10530`)
 
-- ``DataFrame.apply`` will return a Series of dicts if the passed function returns a dict and ``reduce=True`` (:issue:`8735`).
+- ``DatetimeIndex`` can be instantiated using strings contains ``NaT`` (:issue:`7599`)
+
+- ``to_datetime`` can now accept ``yearfirst`` keyword (:issue:`7599`)
+
+- ``pandas.tseries.offsets`` larger than the ``Day`` offset can now be used with with ``Series`` for addition/subtraction (:issue:`10699`).  See the :ref:`Documentation <timeseries.offsetseries>` for more details.
+
+- ``pd.Timedelta.total_seconds()`` now returns Timedelta duration to ns precision (previously microsecond precision) (:issue:`10939`)
 
 - ``PeriodIndex`` now supports arithmetic with ``np.ndarray`` (:issue:`10638`)
 
-- ``concat`` will now use existing Series names if provided (:issue:`10698`).
+- Support pickling of ``Period`` objects (:issue:`10439`)
 
-  .. ipython:: python
+- ``.as_blocks`` will now take a ``copy`` optional argument to return a copy of the data, default is to copy (no change in behavior from prior versions), (:issue:`9607`)
 
-     foo = pd.Series([1,2], name='foo')
-     bar = pd.Series([1,2])
-     baz = pd.Series([4,5])
+- ``regex`` argument to ``DataFrame.filter`` now handles numeric column names instead of raising ``ValueError`` (:issue:`10384`).
 
-  Previous Behavior:
+- Enable reading gzip compressed files via URL, either by explicitly setting the compression parameter or by inferring from the presence of the HTTP Content-Encoding header in the response (:issue:`8685`)
 
-  .. code-block:: python
+- Enable writing Excel files in :ref:`memory <_io.excel_writing_buffer>` using StringIO/BytesIO (:issue:`7074`)
 
-     In [1] pd.concat([foo, bar, baz], 1)
-     Out[1]:
-           0  1  2
-        0  1  1  4
-        1  2  2  5
+- Enable serialization of lists and dicts to strings in ``ExcelWriter`` (:issue:`8188`)
 
-  New Behavior:
+- SQL io functions now accept a SQLAlchemy connectable. (:issue:`7877`)
 
-  .. ipython:: python
+- ``pd.read_sql`` and ``to_sql`` can accept database URI as ``con`` parameter (:issue:`10214`)
 
-    pd.concat([foo, bar, baz], 1)
+- ``read_sql_table`` will now allow reading from views (:issue:`10750`).
+
+- Enable writing complex values to HDF stores when using table format (:issue:`10447`)
+
+- Enable ``pd.read_hdf`` to be used without specifying a key when the HDF file contains a single dataset (:issue:`10443`)
+
+- ``pd.read_stata`` will now read Stata 118 type files. (:issue:`9882`)
+
+- ``msgpack`` submodule has been updated to 0.4.6 with backward compatibility (:issue:`10581`)
+
+- ``DataFrame.to_dict`` now accepts the *index* option in ``orient`` keyword argument (:issue:`10844`).
+
+- ``DataFrame.apply`` will return a Series of dicts if the passed function returns a dict and ``reduce=True`` (:issue:`8735`).
 
 - Allow passing `kwargs` to the interpolation methods (:issue:`10378`).
+
 - Improved error message when concatenating an empty iterable of dataframes (:issue:`9157`)
 
 
@@ -547,9 +535,13 @@ Previous                              Replacement
 Changes to to_datetime and to_timedelta
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The default for ``pd.to_datetime`` error handling has changed to ``errors='raise'``. In prior versions it was ``errors='ignore'``.
-Furthermore, the ``coerce`` argument has been deprecated in favor of ``errors='coerce'``. This means that invalid parsing will raise rather that return the original
-input as in previous versions. (:issue:`10636`)
+Error handling
+""""""""""""""
+
+The default for ``pd.to_datetime`` error handling has changed to ``errors='raise'``.
+In prior versions it was ``errors='ignore'``. Furthermore, the ``coerce`` argument
+has been deprecated in favor of ``errors='coerce'``. This means that invalid parsing
+will raise rather that return the original input as in previous versions. (:issue:`10636`)
 
 Previous Behavior:
 
@@ -573,7 +565,7 @@ Of course you can coerce this as well.
 
    to_datetime(['2009-07-31', 'asd'], errors='coerce')
 
-To keep the previous behaviour, you can use ``errors='ignore'``:
+To keep the previous behavior, you can use ``errors='ignore'``:
 
 .. ipython:: python
 
@@ -582,6 +574,48 @@ To keep the previous behaviour, you can use ``errors='ignore'``:
 Furthermore, ``pd.to_timedelta`` has gained a similar API, of ``errors='raise'|'ignore'|'coerce'``, and the ``coerce`` keyword
 has been deprecated in favor of ``errors='coerce'``.
 
+Consistent Parsing
+""""""""""""""""""
+
+The string parsing of ``to_datetime``, ``Timestamp`` and ``DatetimeIndex`` has
+been made consistent. (:issue:`7599`)
+
+Prior to v0.17.0, ``Timestamp`` and ``to_datetime`` may parse year-only datetime-string incorrectly using today's date, otherwise ``DatetimeIndex``
+uses the beginning of the year. ``Timestamp`` and ``to_datetime`` may raise ``ValueError`` in some types of datetime-string which ``DatetimeIndex``
+can parse, such as a quarterly string.
+
+Previous Behavior:
+
+.. code-block:: python
+
+   In [1]: Timestamp('2012Q2')
+   Traceback
+      ...
+   ValueError: Unable to parse 2012Q2
+
+   # Results in today's date.
+   In [2]: Timestamp('2014')
+   Out [2]: 2014-08-12 00:00:00
+
+v0.17.0 can parse them as below. It works on ``DatetimeIndex`` also.
+
+New Behavior:
+
+.. ipython:: python
+
+   Timestamp('2012Q2')
+   Timestamp('2014')
+   DatetimeIndex(['2012Q2', '2014'])
+
+.. note::
+
+   If you want to perform calculations based on today's date, use ``Timestamp.now()`` and ``pandas.tseries.offsets``.
+
+   .. ipython:: python
+
+      import pandas.tseries.offsets as offsets
+      Timestamp.now()
+      Timestamp.now() + offsets.DateOffset(years=1)
 
 .. _whatsnew_0170.api_breaking.convert_objects:
 
@@ -656,7 +690,7 @@ Operator equal on ``Index`` should behavior similarly to ``Series`` (:issue:`994
 Starting in v0.17.0, comparing ``Index`` objects of different lengths will raise
 a ``ValueError``. This is to be consistent with the behavior of ``Series``.
 
-Previous behavior:
+Previous Behavior:
 
 .. code-block:: python
 
@@ -669,7 +703,7 @@ Previous behavior:
    In [4]: pd.Index([1, 2, 3]) == pd.Index([1, 2])
    Out[4]: False
 
-New behavior:
+New Behavior:
 
 .. code-block:: python
 
@@ -706,14 +740,14 @@ Boolean comparisons of a ``Series`` vs ``None`` will now be equivalent to compar
    s.iloc[1] = None
    s
 
-Previous behavior:
+Previous Behavior:
 
 .. code-block:: python
 
    In [5]: s==None
    TypeError: Could not compare <type 'NoneType'> type with Series
 
-New behavior:
+New Behavior:
 
 .. ipython:: python
 
@@ -742,7 +776,7 @@ HDFStore dropna behavior
 
 The default behavior for HDFStore write functions with ``format='table'`` is now to keep rows that are all missing. Previously, the behavior was to drop rows that were all missing save the index. The previous behavior can be replicated using the ``dropna=True`` option. (:issue:`9382`)
 
-Previously:
+Previous Behavior:
 
 .. ipython:: python
 
@@ -768,7 +802,7 @@ Previously:
      2     2   NaN
 
 
-New behavior:
+New Behavior:
 
 .. ipython:: python
    :suppress:
