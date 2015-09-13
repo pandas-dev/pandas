@@ -47,6 +47,7 @@ Highlights include:
 - Development installed versions of pandas will now have ``PEP440`` compliant version strings (:issue:`9518`)
 - Development support for benchmarking with the `Air Speed Velocity library <https://github.com/spacetelescope/asv/>`_ (:issue:`8316`)
 - Support for reading SAS xport files, see :ref:`here <whatsnew_0170.enhancements.sas_xport>`
+- Documentation comparing SAS to *pandas*, see :ref:`here <compare_with_sas>`
 - Removal of the automatic TimeSeries broadcasting, deprecated since 0.8.0, see :ref:`here <whatsnew_0170.prior_deprecations>`
 
 Check the :ref:`API Changes <whatsnew_0170.api>` and :ref:`deprecations <whatsnew_0170.deprecations>` before updating.

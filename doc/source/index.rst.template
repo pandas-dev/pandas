@@ -145,6 +145,7 @@ See the package overview for more detail about what's in the library.
     ecosystem
     comparison_with_r
     comparison_with_sql
+    comparison_with_sas
     {% endif -%}
     {% if api -%}
     api
