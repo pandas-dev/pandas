@@ -888,6 +888,20 @@ class TestGroupBy(tm.TestCase):
                                           lambda x: x.weekday()])
         _check_results(by_mwkday)
 
+    # issue 10355
+    def test_std(self):
+        df = pd.DataFrame({
+                'a' : [1,1,1,2,2,2,3,3,3],
+                'b' : [1,2,3,4,5,6,7,8,9],
+        })
+        result = df.groupby('a',as_index=False).std()
+        expected = pd.DataFrame({
+                'a' : [1, 2, 3], 
+                'b' : [1, 1, 1]
+        })
+        assert_frame_equal(result, expected)
+
+
     def test_aggregate_item_by_item(self):
 
         df = self.df.copy()
