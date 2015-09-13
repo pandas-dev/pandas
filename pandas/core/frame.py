@@ -1414,7 +1414,7 @@ class DataFrame(NDFrame):
                              write_index=write_index)
         writer.write_file()
 
-    @Appender(fmt.common_docstring + fmt.justify_docstring + fmt.return_docstring, indents=1)
+    @Appender(fmt.docstring_to_string, indents=1)
     def to_string(self, buf=None, columns=None, col_space=None,
                   header=True, index=True, na_rep='NaN', formatters=None,
                   float_format=None, sparsify=None, index_names=True,
@@ -1442,7 +1442,7 @@ class DataFrame(NDFrame):
             result = formatter.buf.getvalue()
             return result
 
-    @Appender(fmt.common_docstring + fmt.justify_docstring + fmt.return_docstring, indents=1)
+    @Appender(fmt.docstring_to_string, indents=1)
     def to_html(self, buf=None, columns=None, col_space=None, colSpace=None,
                 header=True, index=True, na_rep='NaN', formatters=None,
                 float_format=None, sparsify=None, index_names=True,

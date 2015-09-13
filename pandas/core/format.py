@@ -58,18 +58,13 @@ justify_docstring  = """
         the print configuration (controlled by set_option), 'right' out
         of the box."""
 
-force_unicode_docstring = """
-    force_unicode : bool, default False
-        Always return a unicode result. Deprecated in v0.10.0 as string
-        formatting is now rendered to unicode by default."""
-
 return_docstring = """
 
     Returns
     -------
     formatted : string (or unicode, depending on data and options)"""
 
-docstring_to_string = common_docstring + justify_docstring + force_unicode_docstring + return_docstring
+docstring_to_string = common_docstring + justify_docstring + return_docstring
 
 class CategoricalFormatter(object):
 
@@ -300,7 +295,7 @@ class DataFrameFormatter(TableFormatter):
     """
 
     __doc__ = __doc__ if __doc__ else ''
-    __doc__ += docstring_to_string
+    __doc__ += common_docstring + justify_docstring + return_docstring
 
     def __init__(self, frame, buf=None, columns=None, col_space=None,
                  header=True, index=True, na_rep='NaN', formatters=None,
