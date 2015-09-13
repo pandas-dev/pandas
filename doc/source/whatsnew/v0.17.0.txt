@@ -465,6 +465,8 @@ Other enhancements
 
 - Improved error message when concatenating an empty iterable of dataframes (:issue:`9157`)
 
+- ``pd.read_csv`` can now read bz2-compressed files incrementally, and the C parser can read bz2-compressed files from AWS S3 (:issue:`11070`, :issue:`11072`).
+
 
 .. _whatsnew_0170.api:
 

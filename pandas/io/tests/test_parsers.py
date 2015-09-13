@@ -3836,6 +3836,14 @@ one,two
             self.assertRaises(ValueError, self.read_csv,
                               path, compression='bz3')
 
+            with open(path, 'rb') as fin:
+                if compat.PY3:
+                    result = self.read_csv(fin, compression='bz2')
+                    tm.assert_frame_equal(result, expected)
+                else:
+                    self.assertRaises(ValueError, self.read_csv,
+                                      fin, compression='bz2')
+
     def test_decompression_regex_sep(self):
         try:
             import gzip
