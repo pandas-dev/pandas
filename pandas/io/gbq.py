@@ -7,7 +7,7 @@ import uuid
 
 import numpy as np
 
-from distutils.version import LooseVersion
+from distutils.version import StrictVersion
 from pandas import compat
 from pandas.core.api import DataFrame
 from pandas.tools.merge import concat
@@ -26,7 +26,7 @@ def _check_google_client_version():
 
     _GOOGLE_API_CLIENT_VERSION = pkg_resources.get_distribution('google-api-python-client').version
 
-    if LooseVersion(_GOOGLE_API_CLIENT_VERSION) < '1.2.0':
+    if StrictVersion(_GOOGLE_API_CLIENT_VERSION) < StrictVersion('1.2.0'):
         raise ImportError("pandas requires google-api-python-client >= 1.2.0 for Google "
                           "BigQuery support, current version " + _GOOGLE_API_CLIENT_VERSION)
 
