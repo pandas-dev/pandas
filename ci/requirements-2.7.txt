@@ -20,6 +20,4 @@ patsy
 pymysql=0.6.3
 html5lib=1.0b2
 beautiful-soup=4.2.1
-httplib2=0.8
 python-gflags=2.0
-google-api-python-client=1.2
