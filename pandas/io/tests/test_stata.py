@@ -98,19 +98,19 @@ class TestStata(tm.TestCase):
 
     def test_data_method(self):
         # Minimal testing of legacy data method
-        reader_114 = StataReader(self.dta1_114)
-        with warnings.catch_warnings(record=True) as w:
-            parsed_114_data = reader_114.data()
+        with StataReader(self.dta1_114) as rdr:
+            with warnings.catch_warnings(record=True) as w:
+                parsed_114_data = rdr.data()
 
-        reader_114 = StataReader(self.dta1_114)
-        parsed_114_read = reader_114.read()
+        with StataReader(self.dta1_114) as rdr:
+            parsed_114_read = rdr.read()
         tm.assert_frame_equal(parsed_114_data, parsed_114_read)
 
     def test_read_dta1(self):
-        reader_114 = StataReader(self.dta1_114)
-        parsed_114 = reader_114.read()
-        reader_117 = StataReader(self.dta1_117)
-        parsed_117 = reader_117.read()
+
+        parsed_114 = self.read_dta(self.dta1_114)
+        parsed_117 = self.read_dta(self.dta1_117)
+
         # Pandas uses np.nan as missing value.
         # Thus, all columns will be of type float, regardless of their name.
         expected = DataFrame([(np.nan, np.nan, np.nan, np.nan, np.nan)],
@@ -264,19 +264,18 @@ class TestStata(tm.TestCase):
         for col in parsed_118.columns:
             tm.assert_almost_equal(parsed_118[col], expected[col])
 
-        rdr = StataReader(self.dta22_118)
-        vl = rdr.variable_labels()
-        vl_expected = {u'Unicode_Cities_Strl': u'Here are some strls with Ünicode chars',
-                       u'Longs': u'long data',
-                       u'Things': u'Here are some things',
-                       u'Bytes': u'byte data',
-                       u'Ints': u'int data',
-                       u'Cities': u'Here are some cities',
-                       u'Floats': u'float data'}
-        tm.assert_dict_equal(vl, vl_expected)
+        with StataReader(self.dta22_118) as rdr:
+            vl = rdr.variable_labels()
+            vl_expected = {u'Unicode_Cities_Strl': u'Here are some strls with Ünicode chars',
+                           u'Longs': u'long data',
+                           u'Things': u'Here are some things',
+                           u'Bytes': u'byte data',
+                           u'Ints': u'int data',
+                           u'Cities': u'Here are some cities',
+                           u'Floats': u'float data'}
+            tm.assert_dict_equal(vl, vl_expected)
 
-        self.assertEqual(rdr.data_label, u'This is a  Ünicode data label')
-
+            self.assertEqual(rdr.data_label, u'This is a  Ünicode data label')
 
     def test_read_write_dta5(self):
         original = DataFrame([(np.nan, np.nan, np.nan, np.nan, np.nan)],
@@ -610,8 +609,10 @@ class TestStata(tm.TestCase):
             tm.assert_frame_equal(written_and_read_again, expected)
 
     def test_variable_labels(self):
-        sr_115 = StataReader(self.dta16_115).variable_labels()
-        sr_117 = StataReader(self.dta16_117).variable_labels()
+        with StataReader(self.dta16_115) as rdr:
+            sr_115 = rdr.variable_labels()
+        with StataReader(self.dta16_117) as rdr:
+            sr_117 = rdr.variable_labels()
         keys = ('var1', 'var2', 'var3')
         labels = ('label1', 'label2', 'label3')
         for k,v in compat.iteritems(sr_115):
@@ -652,7 +653,8 @@ class TestStata(tm.TestCase):
         df = DataFrame([[0.0]],columns=['float_'])
         with tm.ensure_clean() as path:
             df.to_stata(path)
-            valid_range = StataReader(path).VALID_RANGE
+            with StataReader(path) as rdr:
+                valid_range = rdr.VALID_RANGE
         expected_values = ['.' + chr(97 + i) for i in range(26)]
         expected_values.insert(0, '.')
         for t in types:
