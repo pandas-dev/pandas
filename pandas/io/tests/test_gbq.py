@@ -12,7 +12,7 @@ from time import sleep
 
 import numpy as np
 
-from distutils.version import LooseVersion
+from distutils.version import StrictVersion
 from pandas import compat
 
 from pandas import NaT
@@ -65,7 +65,7 @@ def _test_imports():
                 _GOOGLE_API_CLIENT_INSTALLED=True
                 _GOOGLE_API_CLIENT_VERSION = pkg_resources.get_distribution('google-api-python-client').version
 
-                if LooseVersion(_GOOGLE_API_CLIENT_VERSION) >= '1.2.0':
+                if StrictVersion(_GOOGLE_API_CLIENT_VERSION) >= StrictVersion('1.2.0'):
                     _GOOGLE_API_CLIENT_VALID_VERSION = True
 
             except ImportError:
