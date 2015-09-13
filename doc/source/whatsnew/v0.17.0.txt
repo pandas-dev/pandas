@@ -1077,6 +1077,7 @@ Bug Fixes
 - Bug in ``algos.outer_join_indexer`` when ``right`` array is empty (:issue:`10618`)
 
 - Bug in ``filter`` (regression from 0.16.0) and ``transform`` when grouping on multiple keys, one of which is datetime-like (:issue:`10114`)
+- Bug in ``groupby(as_index=False)`` with ``std`` accidentally modifying target column at the same time (:issue:`10355`)
 
 
 - Bug in ``to_datetime`` and ``to_timedelta`` causing ``Index`` name to be lost (:issue:`10875`)

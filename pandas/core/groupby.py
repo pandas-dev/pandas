@@ -788,8 +788,9 @@ class GroupBy(PandasObject):
 
         For multiple groupings, the result index will be a MultiIndex
         """
-        # todo, implement at cython level?
-        return np.sqrt(self.var(ddof=ddof))
+        self._set_selection_from_grouper()
+        f = lambda x: np.sqrt(x.var(ddof=ddof))
+        return self._python_agg_general(f)
 
     def var(self, ddof=1):
         """
