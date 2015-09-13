@@ -1,1 +1,3 @@
 blosc
+httplib2
+google-api-python-client == 1.2

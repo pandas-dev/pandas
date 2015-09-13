@@ -110,6 +110,10 @@ Google BigQuery
 
    read_gbq
    to_gbq
+   generate_bq_schema
+   create_table
+   delete_table
+   table_exists
 
 .. currentmodule:: pandas
 
