@@ -449,12 +449,15 @@ These operations are supported by :func:`pandas.eval`:
 - Attribute access, e.g., ``df.a``
 - Subscript expressions, e.g., ``df[0]``
 - Simple variable evaluation, e.g., ``pd.eval('df')`` (this is not very useful)
+- Math functions, `sin`, `cos`, `exp`, `log`, `expm1`, `log1p`,
+  `sqrt`, `sinh`, `cosh`, `tanh`, `arcsin`, `arccos`, `arctan`, `arccosh`,
+  `arcsinh`, `arctanh`, `abs` and `arctan2`.
 
 This Python syntax is **not** allowed:
 
 * Expressions
 
-  - Function calls
+  - Function calls other than math functions.
   - ``is``/``is not`` operations
   - ``if`` expressions
   - ``lambda`` expressions
