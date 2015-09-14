@@ -30,10 +30,9 @@ _QUERY_PARAMS = """metrics : list of str
 dimensions : list of str
     Un-prefixed dimension variable names
 start_date : str/date/datetime
-end_date : str/date/datetime, optional
-    Defaults to today
-segment : list of str, optional
-filters : list of str, optional
+end_date : str/date/datetime, optional, default is None but internally set as today
+segment : list of str, optional, default: None
+filters : list of str, optional, default: None
 start_index : int, default 1
 max_results : int, default 10000
     If >10000, must specify chunksize or ValueError will be raised"""
@@ -58,21 +57,21 @@ sort : bool/list, default True
     Sort output by index or list of columns
 chunksize : int, optional
     If max_results >10000, specifies the number of rows per iteration
-index_col : str/list of str/dict, optional
+index_col : str/list of str/dict, optional, default: None
     If unspecified then dimension variables are set as index
-parse_dates : bool/list/dict, default True
-keep_date_col : boolean, default False
-date_parser : optional
-na_values : optional
-converters : optional
+parse_dates : bool/list/dict, default: True
+keep_date_col : boolean, default: False
+date_parser : optional, default: None
+na_values : optional, default: None
+converters : optional, default: None
 dayfirst : bool, default False
     Informs date parsing
-account_name : str, optional
-account_id : str, optional
-property_name : str, optional
-property_id : str, optional
-profile_name : str, optional
-profile_id : str, optional
+account_name : str, optional, default: None
+account_id : str, optional, default: None
+property_name : str, optional, default: None
+property_id : str, optional, default: None
+profile_name : str, optional, default: None
+profile_id : str, optional, default: None
 %%(extras)s
 Returns
 -------
@@ -192,8 +191,8 @@ class GDataReader(OAuthDataReader):
 
         Parameters
         ----------
-        name : str, optional
-        id : str, optional
+        name : str, optional, default: None
+        id : str, optional, default: None
         """
         accounts = self.service.management().accounts().list().execute()
         return _get_match(accounts, name, id, **kwargs)
@@ -205,9 +204,9 @@ class GDataReader(OAuthDataReader):
 
         Parameters
         ----------
-        account_id : str, optional
-        name : str, optional
-        id : str, optional
+        account_id : str, optional, default: None
+        name : str, optional, default: None
+        id : str, optional, default: None
         """
         prop_store = self.service.management().webproperties()
         kwds = {}
@@ -225,10 +224,10 @@ class GDataReader(OAuthDataReader):
 
         Parameters
         ----------
-        account_id : str, optional
-        web_property_id : str, optional
-        name : str, optional
-        id : str, optional
+        account_id : str, optional, default: None
+        web_property_id : str, optional, default: None
+        name : str, optional, default: None
+        id : str, optional, default: None
         """
         profile_store = self.service.management().profiles()
         kwds = {}
