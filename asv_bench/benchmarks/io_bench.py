@@ -1,9 +1,10 @@
 from .pandas_vb_common import *
-from pandas import concat, Timestamp
+from pandas import concat, Timestamp, compat
 try:
     from StringIO import StringIO
 except ImportError:
     from io import StringIO
+import timeit
 
 
 class frame_to_csv(object):
@@ -136,3 +137,35 @@ class write_csv_standard(object):
 
     def time_write_csv_standard(self):
         self.df.to_csv('__test__.csv')
+
+
+class read_csv_from_s3(object):
+    # Make sure that we can read part of a file from S3 without
+    # needing to download the entire thing. Use the timeit.default_timer
+    # to measure wall time instead of CPU time -- we want to see
+    # how long it takes to download the data.
+    timer = timeit.default_timer
+    params = ([None, "gzip", "bz2"], ["python", "c"])
+    param_names = ["compression", "engine"]
+
+    def setup(self, compression, engine):
+        if compression == "bz2" and engine == "c" and compat.PY2:
+            # The Python 2 C parser can't read bz2 from open files.
+            raise NotImplementedError
+        try:
+            import boto
+        except ImportError:
+            # Skip these benchmarks if `boto` is not installed.
+            raise NotImplementedError
+
+        self.big_fname = "s3://pandas-test/large_random.csv"
+
+    def time_read_nrows(self, compression, engine):
+        # Read a small number of rows from a huge (100,000 x 50) table.
+        ext = ""
+        if compression == "gzip":
+            ext = ".gz"
+        elif compression == "bz2":
+            ext = ".bz2"
+        pd.read_csv(self.big_fname + ext, nrows=10,
+                    compression=compression, engine=engine)
