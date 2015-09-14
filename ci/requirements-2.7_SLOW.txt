@@ -20,4 +20,3 @@ psycopg2
 pymysql
 html5lib
 beautiful-soup
-python-gflags
