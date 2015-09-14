@@ -477,6 +477,7 @@ Other enhancements
 
 - ``pd.read_csv`` can now read bz2-compressed files incrementally, and the C parser can read bz2-compressed files from AWS S3 (:issue:`11070`, :issue:`11072`).
 
+- In ``pd.read_csv``, recognize "s3n://" and "s3a://" URLs as designating S3 file storage (:issue:`11070`, :issue:`11071`).
 
 .. _whatsnew_0170.api:
 

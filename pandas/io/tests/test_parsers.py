@@ -4254,6 +4254,22 @@ class TestS3(tm.TestCase):
         tm.assert_frame_equal(pd.read_csv(tm.get_data_path('tips.csv')), df)
 
     @tm.network
+    def test_parse_public_s3n_bucket(self):
+        # Read from AWS s3 as "s3n" URL
+        df = pd.read_csv('s3n://pandas-test/tips.csv', nrows=10)
+        self.assertTrue(isinstance(df, pd.DataFrame))
+        self.assertFalse(df.empty)
+        tm.assert_frame_equal(pd.read_csv(tm.get_data_path('tips.csv')).iloc[:10], df)
+
+    @tm.network
+    def test_parse_public_s3a_bucket(self):
+        # Read from AWS s3 as "s3a" URL
+        df = pd.read_csv('s3a://pandas-test/tips.csv', nrows=10)
+        self.assertTrue(isinstance(df, pd.DataFrame))
+        self.assertFalse(df.empty)
+        tm.assert_frame_equal(pd.read_csv(tm.get_data_path('tips.csv')).iloc[:10], df)
+
+    @tm.network
     def test_s3_fails(self):
         import boto
         with tm.assertRaisesRegexp(boto.exception.S3ResponseError,
