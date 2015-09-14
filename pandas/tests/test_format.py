@@ -521,11 +521,12 @@ class TestDataFrameFormatting(tm.TestCase):
         self.assertTrue("rowspan" not in res)
 
     def test_to_html_unicode(self):
-        # it works!
         df = DataFrame({u('\u03c3'): np.arange(10.)})
-        df.to_html()
+        expected = u'<table border="1" class="dataframe">\n  <thead>\n    <tr style="text-align: right;">\n      <th></th>\n      <th>\u03c3</th>\n    </tr>\n  </thead>\n  <tbody>\n    <tr>\n      <th>0</th>\n      <td>0</td>\n    </tr>\n    <tr>\n      <th>1</th>\n      <td>1</td>\n    </tr>\n    <tr>\n      <th>2</th>\n      <td>2</td>\n    </tr>\n    <tr>\n      <th>3</th>\n      <td>3</td>\n    </tr>\n    <tr>\n      <th>4</th>\n      <td>4</td>\n    </tr>\n    <tr>\n      <th>5</th>\n      <td>5</td>\n    </tr>\n    <tr>\n      <th>6</th>\n      <td>6</td>\n    </tr>\n    <tr>\n      <th>7</th>\n      <td>7</td>\n    </tr>\n    <tr>\n      <th>8</th>\n      <td>8</td>\n    </tr>\n    <tr>\n      <th>9</th>\n      <td>9</td>\n    </tr>\n  </tbody>\n</table>'
+        self.assertEqual(df.to_html(), expected)
         df = DataFrame({'A': [u('\u03c3')]})
-        df.to_html()
+        expected = u'<table border="1" class="dataframe">\n  <thead>\n    <tr style="text-align: right;">\n      <th></th>\n      <th>A</th>\n    </tr>\n  </thead>\n  <tbody>\n    <tr>\n      <th>0</th>\n      <td>\u03c3</td>\n    </tr>\n  </tbody>\n</table>'
+        self.assertEqual(df.to_html(), expected)
 
     def test_to_html_escaped(self):
         a = 'str<ing1 &amp;'
