@@ -679,6 +679,10 @@ class Panel(NDFrame):
             return self._combine_frame(other, func, axis=axis)
         elif np.isscalar(other):
             return self._combine_const(other, func)
+        else:
+            raise NotImplementedError(str(type(other)) + 
+                ' is not supported in combine operation with ' + 
+                str(type(self)))
 
     def _combine_const(self, other, func):
         new_values = func(self.values, other)

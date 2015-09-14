@@ -7,6 +7,7 @@ import operator
 import nose
 
 import numpy as np
+import pandas as pd
 
 from pandas import Series, DataFrame, Index, isnull, notnull, pivot, MultiIndex
 from pandas.core.datetools import bday
@@ -353,6 +354,16 @@ class SafeForSparse(object):
 
     def test_neg(self):
         self.assert_panel_equal(-self.panel, self.panel * -1)
+
+    # issue 7692
+    def test_raise_when_not_implemented(self):
+        p = Panel(np.arange(3*4*5).reshape(3,4,5), items=['ItemA','ItemB','ItemC'], 
+            major_axis=pd.date_range('20130101',periods=4),minor_axis=list('ABCDE'))
+        d = p.sum(axis=1).ix[0]
+        ops = ['add', 'sub', 'mul', 'truediv', 'floordiv', 'div', 'mod', 'pow']
+        for op in ops:
+            with self.assertRaises(NotImplementedError):
+                getattr(p,op)(d, axis=0)
 
     def test_select(self):
         p = self.panel
