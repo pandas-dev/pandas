@@ -328,8 +328,8 @@ has been changed to make this keyword unnecessary - the change is shown below.
 Google BigQuery Enhancements
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 - Added ability to automatically create a table using the :func:`pandas.io.gbq.to_gbq` function if destination table does not exist. (:issue:`8325`).
+- Added ability to automatically create a dataset using the :func:`pandas.io.gbq.to_gbq` function if destination dataset does not exist. (:issue:`11121`).
 - Added ability to replace an existing table and schema when calling the :func:`pandas.io.gbq.to_gbq` function via the ``if_exists`` argument. See the :ref:`docs <io.bigquery>` for more details (:issue:`8325`).
-- Added the following functions to the gbq module: :func:`pandas.io.gbq.table_exists`, :func:`pandas.io.gbq.create_table`, and :func:`pandas.io.gbq.delete_table`. See the :ref:`docs <io.bigquery>` for more details (:issue:`8325`).
 - ``InvalidColumnOrder`` and ``InvalidPageToken`` in the gbq module will raise ``ValueError`` instead of ``IOError``.
 
 .. _whatsnew_0170.enhancements.other:
