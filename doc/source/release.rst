@@ -64,6 +64,7 @@ Highlights include:
 - Support for reading SAS xport files, see :ref:`here <whatsnew_0170.enhancements.sas_xport>`
 - Documentation comparing SAS to *pandas*, see :ref:`here <compare_with_sas>`
 - Removal of the automatic TimeSeries broadcasting, deprecated since 0.8.0, see :ref:`here <whatsnew_0170.prior_deprecations>`
+- Compatibility with Python 3.5
 
 See the :ref:`v0.17.0 Whatsnew <whatsnew_0170>` overview for an extensive list
 of all enhancements and bugs that have been fixed in 0.17.0.

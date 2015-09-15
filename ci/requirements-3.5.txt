@@ -10,3 +10,15 @@ cython
 scipy
 numexpr
 pytables
+html5lib
+lxml
+
+# currently causing some warnings
+#sqlalchemy
+#pymysql
+#psycopg2
+
+# not available from conda
+#beautiful-soup
+#bottleneck
+#matplotlib
