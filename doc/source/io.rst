@@ -4005,14 +4005,10 @@ The key functions are:
 .. currentmodule:: pandas.io.gbq
 
 .. autosummary::
-    :toctree: generated/
+   :toctree: generated/
 
-    read_gbq
-    to_gbq
-    generate_bq_schema
-    create_table
-    delete_table
-    table_exists
+   read_gbq
+   to_gbq
 
 .. currentmodule:: pandas
 
@@ -4078,8 +4074,7 @@ Assume we want to write a DataFrame ``df`` into a BigQuery table using :func:`~p
 
 .. note::
 
-   If the destination table does not exist, a new table will be created. The
-   destination dataset id must already exist in order for a new table to be created.
+   The destination table and destination dataset will automatically be created if they do not already exist.
 
 The ``if_exists`` argument can be used to dictate whether to ``'fail'``, ``'replace'``
 or ``'append'`` if the destination table already exists. The default value is ``'fail'``.
@@ -4146,19 +4141,13 @@ For example:
    often as the service seems to be changing and evolving. BiqQuery is best for analyzing large
    sets of data quickly, but it is not a direct replacement for a transactional database.
 
-
 Creating BigQuery Tables
 ''''''''''''''''''''''''
 
-As of 0.17.0, the gbq module has a function :func:`~pandas.io.gbq.create_table` which allows users
-to create a table in BigQuery. The only requirement is that the dataset must already exist.
-The schema may be generated from a pandas DataFrame using the :func:`~pandas.io.gbq.generate_bq_schema` function below.
+.. warning::
 
-For example:
-
-.. code-block:: python
-
-   gbq.create_table('my_dataset.my_table', schema, projectid)
+   As of 0.17, the function :func:`~pandas.io.gbq.generate_bq_schema` has been deprecated and will be
+   removed in a future version.
 
 As of 0.15.2, the gbq module has a function :func:`~pandas.io.gbq.generate_bq_schema` which will
 produce the dictionary representation schema of the specified pandas DataFrame.
@@ -4173,31 +4162,6 @@ produce the dictionary representation schema of the specified pandas DataFrame.
             {'name': 'my_float64', 'type': 'FLOAT'},
             {'name': 'my_int64', 'type': 'INTEGER'},
             {'name': 'my_string', 'type': 'STRING'}]}
-
-Deleting BigQuery Tables
-''''''''''''''''''''''''
-
-As of 0.17.0, the gbq module has a function :func:`~pandas.io.gbq.delete_table` which allows users to delete a table
-in Google BigQuery.
-
-For example:
-
-.. code-block:: python
-
-   gbq.delete_table('my_dataset.my_table', projectid)
-
-The following function can be used to check whether a table exists prior to calling ``table_exists``:
-
-:func:`~pandas.io.gbq.table_exists`.
-
-The return value will be of type boolean.
-
-For example:
-
-.. code-block:: python
-
-   In [12]: gbq.table_exists('my_dataset.my_table', projectid)
-   Out[12]: True
 
 .. note::
 
