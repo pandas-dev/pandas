@@ -13,10 +13,9 @@ from pandas.core.api import DataFrame
 from pandas.tools.merge import concat
 from pandas.core.common import PandasError
 from pandas.util.decorators import deprecate
+from pandas.compat import lzip, bytes_to_str
 
 def _check_google_client_version():
-    if compat.PY3:
-        raise NotImplementedError("Google's libraries do not support Python 3 yet")
 
     try:
         import pkg_resources
@@ -24,11 +23,16 @@ def _check_google_client_version():
     except ImportError:
         raise ImportError('Could not import pkg_resources (setuptools).')
 
+    if compat.PY3:
+        google_api_minimum_version = '1.4.1'
+    else:
+        google_api_minimum_version = '1.2.0'
+
     _GOOGLE_API_CLIENT_VERSION = pkg_resources.get_distribution('google-api-python-client').version
 
-    if StrictVersion(_GOOGLE_API_CLIENT_VERSION) < StrictVersion('1.2.0'):
-        raise ImportError("pandas requires google-api-python-client >= 1.2.0 for Google "
-                          "BigQuery support, current version " + _GOOGLE_API_CLIENT_VERSION)
+    if StrictVersion(_GOOGLE_API_CLIENT_VERSION) < StrictVersion(google_api_minimum_version):
+        raise ImportError("pandas requires google-api-python-client >= {0} for Google BigQuery support, "
+                          "current version {1}".format(google_api_minimum_version, _GOOGLE_API_CLIENT_VERSION))
 
 logger = logging.getLogger('pandas.io.gbq')
 logger.setLevel(logging.ERROR)
@@ -161,7 +165,7 @@ class GbqConnector(object):
     def process_http_error(ex):
         # See `BigQuery Troubleshooting Errors <https://cloud.google.com/bigquery/troubleshooting-errors>`__
 
-        status = json.loads(ex.content)['error']
+        status = json.loads(bytes_to_str(ex.content))['error']
         errors = status.get('errors', None)
 
         if errors:
@@ -353,10 +357,10 @@ def _parse_data(schema, rows):
 
     fields = schema['fields']
     col_types = [field['type'] for field in fields]
-    col_names = [field['name'].encode('ascii', 'ignore') for field in fields]
+    col_names = [str(field['name']) for field in fields]
     col_dtypes = [dtype_map.get(field['type'], object) for field in fields]
     page_array = np.zeros((len(rows),),
-                          dtype=zip(col_names, col_dtypes))
+                          dtype=lzip(col_names, col_dtypes))
 
     for row_num, raw_row in enumerate(rows):
         entries = raw_row.get('f', [])
