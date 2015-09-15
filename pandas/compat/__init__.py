@@ -36,9 +36,9 @@ from itertools import product
 import sys
 import types
 
-PY3 = (sys.version_info[0] >= 3)
 PY2 = sys.version_info[0] == 2
-
+PY3 = (sys.version_info[0] >= 3)
+PY35 = (sys.version_info >= (3, 5))
 
 try:
     import __builtin__ as builtins

@@ -2573,7 +2573,9 @@ class TestHDFStore(Base, tm.TestCase):
         idx = [(0., 1.), (2., 3.), (4., 5.)]
         data = np.random.randn(30).reshape((3, 10))
         DF = DataFrame(data, index=idx, columns=col)
-        with tm.assert_produces_warning(expected_warning=PerformanceWarning):
+
+        expected_warning = Warning if compat.PY35 else PerformanceWarning
+        with tm.assert_produces_warning(expected_warning=expected_warning, check_stacklevel=False):
             self._check_roundtrip(DF, tm.assert_frame_equal)
 
     def test_index_types(self):
@@ -2585,23 +2587,25 @@ class TestHDFStore(Base, tm.TestCase):
                                                    check_index_type=True,
                                                    check_series_type=True)
 
-        with tm.assert_produces_warning(expected_warning=PerformanceWarning):
+        # nose has a deprecation warning in 3.5
+        expected_warning = Warning if compat.PY35 else PerformanceWarning
+        with tm.assert_produces_warning(expected_warning=expected_warning, check_stacklevel=False):
             ser = Series(values, [0, 'y'])
             self._check_roundtrip(ser, func)
 
-        with tm.assert_produces_warning(expected_warning=PerformanceWarning):
+        with tm.assert_produces_warning(expected_warning=expected_warning, check_stacklevel=False):
             ser = Series(values, [datetime.datetime.today(), 0])
             self._check_roundtrip(ser, func)
 
-        with tm.assert_produces_warning(expected_warning=PerformanceWarning):
+        with tm.assert_produces_warning(expected_warning=expected_warning, check_stacklevel=False):
             ser = Series(values, ['y', 0])
             self._check_roundtrip(ser, func)
 
-        with tm.assert_produces_warning(expected_warning=PerformanceWarning):
+        with tm.assert_produces_warning(expected_warning=expected_warning, check_stacklevel=False):
             ser = Series(values, [datetime.date.today(), 'a'])
             self._check_roundtrip(ser, func)
 
-        with tm.assert_produces_warning(expected_warning=PerformanceWarning):
+        with tm.assert_produces_warning(expected_warning=expected_warning, check_stacklevel=False):
             ser = Series(values, [1.23, 'b'])
             self._check_roundtrip(ser, func)
 
@@ -3377,7 +3381,8 @@ class TestHDFStore(Base, tm.TestCase):
 
         with ensure_clean_path(self.path) as path:
 
-            with tm.assert_produces_warning(expected_warning=AttributeConflictWarning):
+            expected_warning = Warning if compat.PY35 else AttributeConflictWarning
+            with tm.assert_produces_warning(expected_warning=expected_warning, check_stacklevel=False):
 
                 df  = DataFrame(dict(A = Series(lrange(3), index=date_range('2000-1-1',periods=3,freq='H'))))
                 df.to_hdf(path,'data',mode='w',append=True)
@@ -3391,7 +3396,7 @@ class TestHDFStore(Base, tm.TestCase):
 
             self.assertEqual(read_hdf(path,'data').index.name, 'foo')
 
-            with tm.assert_produces_warning(expected_warning=AttributeConflictWarning):
+            with tm.assert_produces_warning(expected_warning=expected_warning, check_stacklevel=False):
 
                 idx2 = date_range('2001-1-1',periods=3,freq='H')
                 idx2.name = 'bar'
