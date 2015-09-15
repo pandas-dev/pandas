@@ -27,6 +27,13 @@ def _skip_if_no_lxml():
     except ImportError:
         raise nose.SkipTest("no lxml")
 
+def _skip_if_no_bs():
+    try:
+        import bs4
+        import html5lib
+    except ImportError:
+        raise nose.SkipTest("no html5lib/bs4")
+
 
 def assert_n_failed_equals_n_null_columns(wngs, obj, cls=SymbolWarning):
     all_nan_cols = pd.Series(dict((k, pd.isnull(v).all()) for k, v in
@@ -288,6 +295,7 @@ class TestYahooOptions(tm.TestCase):
     def setUpClass(cls):
         super(TestYahooOptions, cls).setUpClass()
         _skip_if_no_lxml()
+        _skip_if_no_bs()
 
         # aapl has monthlies
         cls.aapl = web.Options('aapl', 'yahoo')

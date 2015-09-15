@@ -43,13 +43,6 @@ matrix:
       - CLIPBOARD_GUI=gtk2
       - BUILD_TYPE=conda
       - DOC_BUILD=true # if rst files were changed, build docs in parallel with tests
-    - python: 3.3
-      env:
-      - JOB_NAME: "33_nslow"
-      - NOSE_ARGS="not slow and not disabled"
-      - FULL_DEPS=true
-      - CLIPBOARD=xsel
-      - BUILD_TYPE=conda
     - python: 3.4
       env:
       - JOB_NAME: "34_nslow"
@@ -61,6 +54,13 @@ matrix:
       env:
       - JOB_NAME: "35_nslow"
       - NOSE_ARGS="not slow and not network and not disabled"
+      - FULL_DEPS=true
+      - CLIPBOARD=xsel
+      - BUILD_TYPE=conda
+    - python: 3.3
+      env:
+      - JOB_NAME: "33_nslow"
+      - NOSE_ARGS="not slow and not disabled"
       - FULL_DEPS=true
       - CLIPBOARD=xsel
       - BUILD_TYPE=conda
@@ -104,10 +104,10 @@ matrix:
       - BUILD_TYPE=pydata
       - PANDAS_TESTING_MODE="deprecate"
     allow_failures:
-      - python: 3.5
+      - python: 3.3
         env:
-        - JOB_NAME: "35_nslow"
-        - NOSE_ARGS="not slow and not network and not disabled"
+        - JOB_NAME: "33_nslow"
+        - NOSE_ARGS="not slow and not disabled"
         - FULL_DEPS=true
         - CLIPBOARD=xsel
         - BUILD_TYPE=conda
