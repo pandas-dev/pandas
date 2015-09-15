@@ -12,6 +12,7 @@ scipy
 numexpr=2.4.4
 pytables
 matplotlib
+cycler
 lxml
 sqlalchemy
 bottleneck
