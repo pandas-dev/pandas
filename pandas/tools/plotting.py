@@ -3674,10 +3674,10 @@ class FramePlotMethods(BasePlotMethods):
         .. versionadded:: 0.17.0
 
         Parameters
-        ---------
+        ----------
         by : string or sequence
             Column in the DataFrame to group by.
-        **kwds : optional
+        \*\*kwds : optional
             Keyword arguments to pass on to :py:meth:`pandas.DataFrame.plot`.
 
         Returns
