@@ -446,7 +446,7 @@ class TestSparseSeries(tm.TestCase,
                           [0, len(self.bseries) + 1])
 
         # Corner case
-        sp = SparseSeries(np.ones(10.) * nan)
+        sp = SparseSeries(np.ones(10) * nan)
         assert_almost_equal(sp.take([0, 1, 2, 3, 4]), np.repeat(nan, 5))
 
     def test_setitem(self):
