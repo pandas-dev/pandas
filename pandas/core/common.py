@@ -1582,13 +1582,10 @@ def interpolate_1d(xvalues, yvalues, method='linear', limit=None,
         method = 'values'
 
     def _interp_limit(invalid, fw_limit, bw_limit):
-        "Get idx of values that won't be forward-filled b/c they exceed the limit."
-        all_nans = np.where(invalid)[0]
-        if all_nans.size == 0: # no nans anyway
-            return []
-        violate = [invalid[max(0, x - bw_limit):x + fw_limit + 1] for x in all_nans]
-        violate = np.array([x.all() & (x.size > bw_limit + fw_limit) for x in violate])
-        return all_nans[violate] + fw_limit - bw_limit
+        "Get idx of values that won't be filled b/c they exceed the limits."
+        for x in np.where(invalid)[0]:
+            if invalid[max(0, x - fw_limit):x + bw_limit + 1].all():
+                yield x
 
     valid_limit_directions = ['forward', 'backward', 'both']
     limit_direction = limit_direction.lower()
@@ -1624,7 +1621,7 @@ def interpolate_1d(xvalues, yvalues, method='linear', limit=None,
         if limit_direction == 'backward':
             violate_limit = sorted(end_nans | set(_interp_limit(invalid, 0, limit)))
         if limit_direction == 'both':
-            violate_limit = _interp_limit(invalid, limit, limit)
+            violate_limit = sorted(_interp_limit(invalid, limit, limit))
 
     xvalues = getattr(xvalues, 'values', xvalues)
     yvalues = getattr(yvalues, 'values', yvalues)

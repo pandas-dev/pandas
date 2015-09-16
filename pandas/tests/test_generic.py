@@ -878,7 +878,6 @@ class TestSeries(tm.TestCase, Generic):
 
     def test_interp_limit_bad_direction(self):
         s = Series([1, 3, np.nan, np.nan, np.nan, 11])
-        expected = Series([1., 3., 5., 7., 9., 11.])
 
         self.assertRaises(ValueError, s.interpolate,
                           method='linear', limit=2,
@@ -928,6 +927,25 @@ class TestSeries(tm.TestCase, Generic):
         expected = Series([5., 5., 5., 7., 9., 9.])
         result = s.interpolate(
             method='linear', limit=2, limit_direction='both')
+        assert_series_equal(result, expected)
+
+    def test_interp_limit_before_ends(self):
+        # These test are for issue #11115 -- limit ends properly.
+        s = Series([np.nan, np.nan, 5, 7, np.nan, np.nan])
+
+        expected = Series([np.nan, np.nan, 5., 7., 7., np.nan])
+        result = s.interpolate(
+            method='linear', limit=1, limit_direction='forward')
+        assert_series_equal(result, expected)
+
+        expected = Series([np.nan, 5., 5., 7., np.nan, np.nan])
+        result = s.interpolate(
+            method='linear', limit=1, limit_direction='backward')
+        assert_series_equal(result, expected)
+
+        expected = Series([np.nan, 5., 5., 7., 7., np.nan])
+        result = s.interpolate(
+            method='linear', limit=1, limit_direction='both')
         assert_series_equal(result, expected)
 
     def test_interp_all_good(self):
