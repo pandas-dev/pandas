@@ -1,11 +1,10 @@
 python-dateutil
 pytz=2013b
+numpy=1.8.0
 openpyxl=1.6.2
 xlsxwriter=0.4.6
 xlrd=0.9.2
 html5lib=1.0b2
-numpy=1.8.0
-cython=0.19.1
 numexpr
 pytables
 bottleneck=0.8.0

@@ -90,7 +90,8 @@ fi
 # Force virtualenv to accept system_site_packages
 rm -f $VIRTUAL_ENV/lib/python$TRAVIS_PYTHON_VERSION/no-global-site-packages.txt
 
-time pip install $PIP_ARGS -r ci/requirements-${wheel_box}.txt
+# build deps
+time pip install $PIP_ARGS -r ci/requirements-${wheel_box}.build
 
 # Need to enable for locale testing. The location of the locale file(s) is
 # distro specific. For example, on Arch Linux all of the locales are in a
@@ -146,6 +147,9 @@ else
     python setup.py build_ext --inplace
     python setup.py develop
 fi
+
+# install the run libs
+time pip install $PIP_ARGS -r ci/requirements-${wheel_box}.run
 
 # restore cython (if not numpy building)
 if [ -z "$NUMPY_BUILD" ]; then
