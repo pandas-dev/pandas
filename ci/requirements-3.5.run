@@ -1,12 +1,11 @@
 python-dateutil
 pytz
+numpy
 openpyxl
 xlsxwriter
 xlrd
 xlwt
 patsy
-numpy
-cython
 scipy
 numexpr
 pytables
