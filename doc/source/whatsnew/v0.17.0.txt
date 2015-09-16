@@ -1154,3 +1154,4 @@ Bug Fixes
 - Remove use of some deprecated numpy comparison operations, mainly in tests. (:issue:`10569`)
 - Bug in ``Index`` dtype may not applied properly (:issue:`11017`)
 - Bug in ``io.gbq`` when testing for minimum google api client version (:issue:`10652`)
+- Bug in ``DataFrame`` construction from nested ``dict`` with ``timedelta`` keys (:issue:`11129`)
