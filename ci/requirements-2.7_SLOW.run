@@ -1,7 +1,6 @@
 python-dateutil
 pytz
 numpy
-cython
 matplotlib
 scipy
 patsy

@@ -1,5 +1,6 @@
 python-dateutil
 pytz
+numpy
 openpyxl
 xlsxwriter
 xlrd
@@ -7,14 +8,13 @@ xlwt
 html5lib
 patsy
 beautiful-soup
-numpy
-cython
 scipy
 numexpr
 pytables
-matplotlib=1.3.1
+matplotlib
 lxml
 sqlalchemy
 bottleneck
 pymysql
 psycopg2
+statsmodels

@@ -1,0 +1,4 @@
+numpy=1.7.0
+cython=0.19.1
+dateutil=1.5
+pytz=2013b
