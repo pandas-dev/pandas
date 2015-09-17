@@ -53,12 +53,17 @@ def DataReader(name, data_source=None, start=None, end=None,
     name : str or list of strs
         the name of the dataset. Some data sources (yahoo, google, fred) will
         accept a list of names.
-    data_source: str
+    data_source: str, default: None
         the data source ("yahoo", "google", "fred", or "ff")
-    start : {datetime, None}
+    start : datetime, default: None
         left boundary for range (defaults to 1/1/2010)
-    end : {datetime, None}
+    end : datetime, default: None
         right boundary for range (defaults to today)
+    retry_count : int, default 3
+        Number of times to retry query request.
+    pause : numeric, default 0.001
+        Time, in seconds, to pause between consecutive queries of chunks. If
+        single value given for symbol, represents the pause between retries.
 
     Examples
     ----------
@@ -398,28 +403,28 @@ def get_data_yahoo(symbols=None, start=None, end=None, retry_count=3,
 
     Parameters
     ----------
-    symbols : string, array-like object (list, tuple, Series), or DataFrame
+    symbols : string, array-like object (list, tuple, Series), or DataFrame, default: None
         Single stock symbol (ticker), array-like object of symbols or
-        DataFrame with index containing stock symbols.
+        DataFrame with index containing stock symbols
     start : string, (defaults to '1/1/2010')
         Starting date, timestamp. Parses many different kind of date
         representations (e.g., 'JAN-01-2010', '1/1/10', 'Jan, 1, 1980')
     end : string, (defaults to today)
         Ending date, timestamp. Same format as starting date.
-    retry_count : int, default 3
+    retry_count : int, default: 3
         Number of times to retry query request.
-    pause : int, default 0
+    pause : numeric, default: 0.001
         Time, in seconds, to pause between consecutive queries of chunks. If
         single value given for symbol, represents the pause between retries.
-    adjust_price : bool, default False
+    adjust_price : bool, default: False
         If True, adjusts all prices in hist_data ('Open', 'High', 'Low',
         'Close') based on 'Adj Close' price. Adds 'Adj_Ratio' column and drops
         'Adj Close'.
-    ret_index : bool, default False
+    ret_index : bool, default: False
         If True, includes a simple return index 'Ret_Index' in hist_data.
-    chunksize : int, default 25
+    chunksize : int, default: 25
         Number of symbols to download consecutively before intiating pause.
-    interval : string, default 'd'
+    interval : string, default: 'd'
         Time interval code, valid values are 'd' for daily, 'w' for weekly,
         'm' for monthly and 'v' for dividend.
 
@@ -451,13 +456,15 @@ def get_data_google(symbols=None, start=None, end=None, retry_count=3,
         representations (e.g., 'JAN-01-2010', '1/1/10', 'Jan, 1, 1980')
     end : string, (defaults to today)
         Ending date, timestamp. Same format as starting date.
-    retry_count : int, default 3
+    retry_count : int, default: 3
         Number of times to retry query request.
-    pause : int, default 0
+    pause : numeric, default: 0.001
         Time, in seconds, to pause between consecutive queries of chunks. If
         single value given for symbol, represents the pause between retries.
-    chunksize : int, default 25
+    chunksize : int, default: 25
         Number of symbols to download consecutively before intiating pause.
+    ret_index : bool, default: False
+        If True, includes a simple return index 'Ret_Index' in hist_data.
 
     Returns
     -------
@@ -903,10 +910,10 @@ class Options(object):
             The number of strike prices above and below the stock price that
             should be taken
 
-        call : bool
+        call : bool, default: True
             Tells the function whether or not it should be using calls
 
-        put : bool
+        put : bool, default: False
             Tells the function weather or not it should be using puts
 
         month : number, int, optional(default=None)
