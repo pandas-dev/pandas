@@ -2293,6 +2293,13 @@ MyColumn
         result = self.read_csv(StringIO(data), header=None)
         self.assertEqual(len(result), 2)
 
+        # GH 9735
+        chunk1 = 'a' * (1024 * 256 - 2) + '\na'
+        chunk2 = '\n a'
+        result = pd.read_csv(StringIO(chunk1 + chunk2), header=None)
+        expected = pd.DataFrame(['a' * (1024 * 256 - 2), 'a', ' a'])
+        tm.assert_frame_equal(result, expected)
+
     def test_empty_with_index(self):
         # GH 10184
         data = 'x,y'
