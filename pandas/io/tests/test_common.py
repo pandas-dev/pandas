@@ -3,6 +3,7 @@
 """
 from pandas.compat import StringIO
 import os
+from os.path import isabs
 
 import pandas.util.testing as tm
 
@@ -16,7 +17,7 @@ class TestCommonIOCapabilities(tm.TestCase):
         expanded_name = common._expand_user(filename)
 
         self.assertNotEqual(expanded_name, filename)
-        self.assertNotIn('~', expanded_name)
+        self.assertTrue(isabs(expanded_name))
         self.assertEqual(os.path.expanduser(filename), expanded_name)
 
     def test_expand_user_normal_path(self):
@@ -24,14 +25,13 @@ class TestCommonIOCapabilities(tm.TestCase):
         expanded_name = common._expand_user(filename)
 
         self.assertEqual(expanded_name, filename)
-        self.assertNotIn('~', expanded_name)
         self.assertEqual(os.path.expanduser(filename), expanded_name)
 
     def test_get_filepath_or_buffer_with_path(self):
         filename = '~/sometest'
         filepath_or_buffer, _, _ = common.get_filepath_or_buffer(filename)
         self.assertNotEqual(filepath_or_buffer, filename)
-        self.assertNotIn('~', filepath_or_buffer)
+        self.assertTrue(isabs(filepath_or_buffer))
         self.assertEqual(os.path.expanduser(filename), filepath_or_buffer)
 
     def test_get_filepath_or_buffer_with_buffer(self):
