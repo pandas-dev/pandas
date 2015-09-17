@@ -885,6 +885,24 @@ class TestTimedeltas(tm.TestCase):
         v_p = self.round_trip_pickle(v)
         self.assertEqual(v,v_p)
 
+    def test_timedelta_hash_equality(self):
+        #GH 11129
+        v = Timedelta(1, 'D')
+        td = timedelta(days=1)
+        self.assertEqual(hash(v), hash(td))
+
+        d = {td: 2}
+        self.assertEqual(d[v], 2)
+
+        tds = timedelta_range('1 second', periods=20)
+        self.assertTrue(
+            all(hash(td) == hash(td.to_pytimedelta()) for td in tds))
+
+        # python timedeltas drop ns resolution
+        ns_td = Timedelta(1, 'ns')
+        self.assertNotEqual(hash(ns_td), hash(ns_td.to_pytimedelta()))
+
+
 class TestTimedeltaIndex(tm.TestCase):
     _multiprocess_can_split_ = True
 
