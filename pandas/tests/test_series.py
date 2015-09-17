@@ -2912,6 +2912,10 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
                 exp = alternate(s)
                 self.assertEqual(res, exp)
 
+            # check on string data
+            if name not in ['sum','min','max']:
+                self.assertRaises(TypeError, f, Series(list('abc')))
+
             # Invalid axis.
             self.assertRaises(ValueError, f, self.series, axis=1)
 

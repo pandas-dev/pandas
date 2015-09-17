@@ -12792,7 +12792,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
 
             # df1 has all numbers, df2 has a letter inside
             self.assertRaises(TypeError, lambda : getattr(df1, meth)(axis=1, numeric_only=False))
-            self.assertRaises(ValueError, lambda : getattr(df2, meth)(axis=1, numeric_only=False))
+            self.assertRaises(TypeError, lambda : getattr(df2, meth)(axis=1, numeric_only=False))
 
     def test_sem(self):
         alt = lambda x: np.std(x, ddof=1)/np.sqrt(len(x))

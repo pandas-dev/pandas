@@ -43,7 +43,16 @@ class disallow(object):
                 raise TypeError('reduction operation {0!r} not allowed for '
                                 'this dtype'.format(f.__name__.replace('nan',
                                                                        '')))
-            return f(*args, **kwargs)
+            try:
+                return f(*args, **kwargs)
+            except ValueError as e:
+                # we want to transform an object array
+                # ValueError message to the more typical TypeError
+                # e.g. this is normally a disallowed function on
+                # object arrays that contain strings
+                if is_object_dtype(args[0]):
+                    raise TypeError(e)
+                raise
         return _f
 
 
@@ -93,7 +102,17 @@ class bottleneck_switch(object):
                 else:
                     result = alt(values, axis=axis, skipna=skipna, **kwds)
             except Exception:
-                result = alt(values, axis=axis, skipna=skipna, **kwds)
+                try:
+                    result = alt(values, axis=axis, skipna=skipna, **kwds)
+                except ValueError as e:
+                    # we want to transform an object array
+                    # ValueError message to the more typical TypeError
+                    # e.g. this is normally a disallowed function on
+                    # object arrays that contain strings
+
+                    if is_object_dtype(values):
+                        raise TypeError(e)
+                    raise
 
             return result
 
@@ -371,7 +390,6 @@ def nanvar(values, axis=None, skipna=True, ddof=1):
     if skipna:
         values = values.copy()
         np.putmask(values, mask, 0)
-
 
     # xref GH10242
     # Compute variance via two-pass algorithm, which is stable against
