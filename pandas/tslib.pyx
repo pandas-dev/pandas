@@ -2061,7 +2061,10 @@ cdef class _Timedelta(timedelta):
         int64_t _sign, _d, _h, _m, _s, _ms, _us, _ns
 
     def __hash__(_Timedelta self):
-        return hash(self.value)
+        if self._has_ns():
+            return hash(self.value)
+        else:
+            return timedelta.__hash__(self)
 
     def __richcmp__(_Timedelta self, object other, int op):
         cdef:
@@ -2110,63 +2113,63 @@ cdef class _Timedelta(timedelta):
         cdef float64_t frac
 
         if self.is_populated:
-           return
+            return
 
         # put frac in seconds
-        frac   = float(ivalue)/1e9
+        frac = float(ivalue)/1e9
         if frac < 0:
-           self._sign = -1
+            self._sign = -1
 
-           # even fraction
-           if int(-frac/86400) != -frac/86400.0:
-               self._d = int(-frac/86400.0+1)
-               frac += 86400*self._d
-           else:
-               frac = -frac
+            # even fraction
+            if int(-frac/86400) != -frac/86400.0:
+                self._d = int(-frac/86400.0+1)
+                frac += 86400*self._d
+            else:
+                frac = -frac
         else:
-           self._sign = 1
-           self._d = 0
+            self._sign = 1
+            self._d = 0
 
         if frac >= 86400:
-           self._d += int(frac / 86400)
-           frac   -= self._d * 86400
+            self._d += int(frac / 86400)
+            frac   -= self._d * 86400
 
         if frac >= 3600:
-           self._h  = int(frac / 3600)
-           frac    -= self._h * 3600
+            self._h  = int(frac / 3600)
+            frac    -= self._h * 3600
         else:
-           self._h = 0
+            self._h = 0
 
         if frac >= 60:
-           self._m = int(frac / 60)
-           frac   -= self._m * 60
+            self._m = int(frac / 60)
+            frac   -= self._m * 60
         else:
-           self._m = 0
+            self._m = 0
 
         if frac >= 0:
-           self._s = int(frac)
-           frac   -= self._s
+            self._s = int(frac)
+            frac   -= self._s
         else:
-           self._s = 0
+            self._s = 0
 
         if frac != 0:
 
-           # reset so we don't lose precision
-           sfrac = int((self._h*3600 + self._m*60 + self._s)*1e9)
-           if self._sign < 0:
-               ifrac = ivalue + self._d*DAY_NS - sfrac
-           else:
-               ifrac = ivalue - (self._d*DAY_NS + sfrac)
+            # reset so we don't lose precision
+            sfrac = int((self._h*3600 + self._m*60 + self._s)*1e9)
+            if self._sign < 0:
+                ifrac = ivalue + self._d*DAY_NS - sfrac
+            else:
+                ifrac = ivalue - (self._d*DAY_NS + sfrac)
 
-           self._ms = int(ifrac/1e6)
-           ifrac -= self._ms*1000*1000
-           self._us = int(ifrac/1e3)
-           ifrac -= self._us*1000
-           self._ns = ifrac
+            self._ms = int(ifrac/1e6)
+            ifrac -= self._ms*1000*1000
+            self._us = int(ifrac/1e3)
+            ifrac -= self._us*1000
+            self._ns = ifrac
         else:
-           self._ms = 0
-           self._us = 0
-           self._ns = 0
+            self._ms = 0
+            self._us = 0
+            self._ns = 0
 
         self.is_populated = 1
 
@@ -2176,6 +2179,9 @@ cdef class _Timedelta(timedelta):
         note: we lose nanosecond resolution if any
         """
         return timedelta(microseconds=int(self.value)/1000)
+
+    cpdef bint _has_ns(self):
+        return self.value % 1000 != 0
 
 # components named tuple
 Components = collections.namedtuple('Components',['days','hours','minutes','seconds','milliseconds','microseconds','nanoseconds'])
@@ -2433,7 +2439,7 @@ class Timedelta(_Timedelta):
         """
         self._ensure_components()
         return self._ns
-    
+
     def total_seconds(self):
         """
         Total duration of timedelta in seconds (to ns precision)
