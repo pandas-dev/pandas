@@ -251,7 +251,11 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     @property
     def is_time_series(self):
-        return self._subtyp in ['time_series', 'sparse_time_series']
+        msg = "is_time_series is deprecated. Please use Series.index.is_all_dates"
+        warnings.warn(msg, FutureWarning, stacklevel=2)
+        # return self._subtyp in ['time_series', 'sparse_time_series']
+        return self.index.is_all_dates
+
 
     _index = None
 
