@@ -4337,16 +4337,19 @@ class TestHDFStore(Base, tm.TestCase):
         with ensure_clean_store(self.path) as store:
 
             # basic
+            _maybe_remove(store, 's')
             s = Series(Categorical(['a', 'b', 'b', 'a', 'a', 'c'], categories=['a','b','c','d'], ordered=False))
             store.append('s', s, format='table')
             result = store.select('s')
             tm.assert_series_equal(s, result)
 
+            _maybe_remove(store, 's_ordered')
             s = Series(Categorical(['a', 'b', 'b', 'a', 'a', 'c'], categories=['a','b','c','d'], ordered=True))
             store.append('s_ordered', s, format='table')
             result = store.select('s_ordered')
             tm.assert_series_equal(s, result)
 
+            _maybe_remove(store, 'df')
             df = DataFrame({"s":s, "vals":[1,2,3,4,5,6]})
             store.append('df', df, format='table')
             result = store.select('df')
