@@ -2,6 +2,7 @@
 Misc tools for implementing data structures
 """
 
+import warnings
 import re
 import collections
 import numbers
@@ -1868,7 +1869,12 @@ def _possibly_convert_objects(values,
 
     conversion_count = sum((datetime, numeric, timedelta))
     if conversion_count == 0:
-        import warnings
+
+        if coerce:
+            raise ValueError("coerce=True was provided, with no options for conversions."
+                             "excatly one of 'datetime', 'numeric' or "
+                             "'timedelta' must be True when when coerce=True.")
+
         warnings.warn('Must explicitly pass type for conversion. Defaulting to '
                       'pre-0.17 behavior where datetime=True, numeric=True, '
                       'timedelta=True and coerce=False', DeprecationWarning)
