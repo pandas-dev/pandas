@@ -703,11 +703,15 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
 
     def test_constructor(self):
         # Recognize TimeSeries
-        self.assertTrue(self.ts.is_time_series)
+        with tm.assert_produces_warning(FutureWarning):
+            self.assertTrue(self.ts.is_time_series)
+        self.assertTrue(self.ts.index.is_all_dates)
 
         # Pass in Series
         derived = Series(self.ts)
-        self.assertTrue(derived.is_time_series)
+        with tm.assert_produces_warning(FutureWarning):
+            self.assertTrue(derived.is_time_series)
+        self.assertTrue(derived.index.is_all_dates)
 
         self.assertTrue(tm.equalContents(derived.index, self.ts.index))
         # Ensure new index is not created
@@ -718,9 +722,12 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         self.assertEqual(mixed.dtype, np.object_)
         self.assertIs(mixed[1], np.NaN)
 
-        self.assertFalse(self.empty.is_time_series)
-        self.assertFalse(Series({}).is_time_series)
-
+        with tm.assert_produces_warning(FutureWarning):
+            self.assertFalse(self.empty.is_time_series)
+        self.assertFalse(self.empty.index.is_all_dates)
+        with tm.assert_produces_warning(FutureWarning):
+            self.assertFalse(Series({}).is_time_series)
+        self.assertFalse(Series({}).index.is_all_dates)
         self.assertRaises(Exception, Series, np.random.randn(3, 3),
                           index=np.arange(3))
 
@@ -7693,12 +7700,16 @@ class TestSeriesNonUnique(tm.TestCase):
         s = Series(lrange(10))
         s.index = idx
 
-        self.assertTrue(s.is_time_series == True)
+        with tm.assert_produces_warning(FutureWarning):
+            self.assertTrue(s.is_time_series == True)
+        self.assertTrue(s.index.is_all_dates == True)
 
     def test_timeseries_coercion(self):
         idx = tm.makeDateIndex(10000)
         ser = Series(np.random.randn(len(idx)), idx.astype(object))
-        self.assertTrue(ser.is_time_series)
+        with tm.assert_produces_warning(FutureWarning):
+            self.assertTrue(ser.is_time_series)
+        self.assertTrue(ser.index.is_all_dates)
         self.assertIsInstance(ser.index, DatetimeIndex)
 
     def test_replace(self):
