@@ -86,20 +86,21 @@ def _guess_datetime_format(dt_str, dayfirst=False,
     if not isinstance(dt_str, compat.string_types):
         return None
 
-    day_attribute_and_format = (('day',), '%d')
+    day_attribute_and_format = (('day',), '%d', 2)
 
+    # attr name, format, padding (if any)
     datetime_attrs_to_format = [
-        (('year', 'month', 'day'), '%Y%m%d'),
-        (('year',), '%Y'),
-        (('month',), '%B'),
-        (('month',), '%b'),
-        (('month',), '%m'),
+        (('year', 'month', 'day'), '%Y%m%d', 0),
+        (('year',), '%Y', 0),
+        (('month',), '%B', 0),
+        (('month',), '%b', 0),
+        (('month',), '%m', 2),
         day_attribute_and_format,
-        (('hour',), '%H'),
-        (('minute',), '%M'),
-        (('second',), '%S'),
-        (('microsecond',), '%f'),
-        (('second', 'microsecond'), '%S.%f'),
+        (('hour',), '%H', 2),
+        (('minute',), '%M', 2),
+        (('second',), '%S', 2),
+        (('microsecond',), '%f', 6),
+        (('second', 'microsecond'), '%S.%f', 0),
     ]
 
     if dayfirst:
@@ -125,7 +126,7 @@ def _guess_datetime_format(dt_str, dayfirst=False,
     format_guess = [None] * len(tokens)
     found_attrs = set()
 
-    for attrs, attr_format in datetime_attrs_to_format:
+    for attrs, attr_format, padding in datetime_attrs_to_format:
         # If a given attribute has been placed in the format string, skip
         # over other formats for that same underlying attribute (IE, month
         # can be represented in multiple different ways)
@@ -134,9 +135,11 @@ def _guess_datetime_format(dt_str, dayfirst=False,
 
         if all(getattr(parsed_datetime, attr) is not None for attr in attrs):
             for i, token_format in enumerate(format_guess):
+                token_filled = tokens[i].zfill(padding)
                 if (token_format is None and
-                        tokens[i] == parsed_datetime.strftime(attr_format)):
+                        token_filled == parsed_datetime.strftime(attr_format)):
                     format_guess[i] = attr_format
+                    tokens[i] = token_filled
                     found_attrs.update(attrs)
                     break
 
@@ -163,6 +166,8 @@ def _guess_datetime_format(dt_str, dayfirst=False,
 
     guessed_format = ''.join(output_format)
 
+    # rebuild string, capturing any inferred padding
+    dt_str = ''.join(tokens)
     if parsed_datetime.strftime(guessed_format) == dt_str:
         return guessed_format
 
