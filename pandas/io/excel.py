@@ -57,8 +57,10 @@ def get_writer(engine_name):
             # make sure we make the intelligent choice for the user
             if LooseVersion(openpyxl.__version__) < '2.0.0':
                  return _writers['openpyxl1']
-            else:
-                 return _writers['openpyxl2']
+            elif LooseVersion(openpyxl.__version__) < '2.2.0':
+                 return _writers['openpyxl20']
+            elif LooseVersion(openpyxl.__version__) < '2.2.0':
+                 return _writers['openpyxl22']
         except ImportError:
             # fall through to normal exception handling below
             pass
@@ -760,11 +762,11 @@ class _OpenpyxlWriter(_Openpyxl1Writer):
 register_writer(_OpenpyxlWriter)
 
 
-class _Openpyxl2Writer(_Openpyxl1Writer):
+class _Openpyxl20Writer(_Openpyxl1Writer):
     """
     Note: Support for OpenPyxl v2 is currently EXPERIMENTAL (GH7565).
     """
-    engine = 'openpyxl2'
+    engine = 'openpyxl20'
     openpyxl_majorver = 2
 
     def write_cells(self, cells, sheet_name=None, startrow=0, startcol=0):
@@ -1172,8 +1174,75 @@ class _Openpyxl2Writer(_Openpyxl1Writer):
         return Protection(**protection_dict)
 
 
-register_writer(_Openpyxl2Writer)
+register_writer(_Openpyxl20Writer)
 
+class _Openpyxl22Writer(_Openpyxl20Writer):
+    """
+    Note: Support for OpenPyxl v2.2 is currently EXPERIMENTAL (GH7565).
+    """
+    engine = 'openpyxl22'
+    openpyxl_majorver = 2
+
+    def write_cells(self, cells, sheet_name=None, startrow=0, startcol=0):
+        # Write the frame cells using openpyxl.
+        from openpyxl.cell import get_column_letter
+
+        sheet_name = self._get_sheet_name(sheet_name)
+
+        if sheet_name in self.sheets:
+            wks = self.sheets[sheet_name]
+        else:
+            wks = self.book.create_sheet()
+            wks.title = sheet_name
+            self.sheets[sheet_name] = wks
+
+        for cell in cells:
+            colletter = get_column_letter(startcol + cell.col + 1)
+            xcell = wks.cell("%s%s" % (colletter, startrow + cell.row + 1))
+            xcell.value = _conv_value(cell.val)
+            style_kwargs = {}
+
+            # Apply format codes before cell.style to allow override
+            if isinstance(cell.val, datetime.datetime):
+                style_kwargs.update(self._convert_to_style_kwargs({
+                        'number_format':{'format_code': self.datetime_format}}))
+            elif isinstance(cell.val, datetime.date):
+                style_kwargs.update(self._convert_to_style_kwargs({
+                        'number_format':{'format_code': self.date_format}}))
+
+            if cell.style:
+                style_kwargs.update(self._convert_to_style_kwargs(cell.style))
+
+            if style_kwargs:
+                xcell.style = xcell.style.copy(**style_kwargs)
+
+            if cell.mergestart is not None and cell.mergeend is not None:
+                cletterstart = get_column_letter(startcol + cell.col + 1)
+                cletterend = get_column_letter(startcol + cell.mergeend + 1)
+
+                wks.merge_cells('%s%s:%s%s' % (cletterstart,
+                                               startrow + cell.row + 1,
+                                               cletterend,
+                                               startrow + cell.mergestart + 1))
+
+                # Excel requires that the format of the first cell in a merged
+                # range is repeated in the rest of the merged range.
+                if style_kwargs:
+                    first_row = startrow + cell.row + 1
+                    last_row = startrow + cell.mergestart + 1
+                    first_col = startcol + cell.col + 1
+                    last_col = startcol + cell.mergeend + 1
+
+                    for row in range(first_row, last_row + 1):
+                        for col in range(first_col, last_col + 1):
+                            if row == first_row and col == first_col:
+                                # Ignore first cell. It is already handled.
+                                continue
+                            colletter = get_column_letter(col)
+                            xcell = wks.cell("%s%s" % (colletter, row))
+                            xcell.style = xcell.style.copy(**style_kwargs)
+
+register_writer(_Openpyxl22Writer)
 
 class _XlwtWriter(ExcelWriter):
     engine = 'xlwt'

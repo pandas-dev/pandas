@@ -19,7 +19,7 @@ from pandas import DataFrame, Index, MultiIndex
 from pandas.io.parsers import read_csv
 from pandas.io.excel import (
     ExcelFile, ExcelWriter, read_excel, _XlwtWriter, _Openpyxl1Writer,
-    _Openpyxl2Writer, register_writer, _XlsxWriter
+    _Openpyxl20Writer, _Openpyxl22Writer, register_writer, _XlsxWriter
 )
 from pandas.io.common import URLError
 from pandas.util.testing import ensure_clean, makeCustomDataframe as mkdf
@@ -1471,9 +1471,9 @@ class OpenpyxlTests(ExcelWriterBase, tm.TestCase):
 
 
 @raise_on_incompat_version(2)
-class Openpyxl2Tests(ExcelWriterBase, tm.TestCase):
+class Openpyxl20Tests(ExcelWriterBase, tm.TestCase):
     ext = '.xlsx'
-    engine_name = 'openpyxl2'
+    engine_name = 'openpyxl20'
     check_skip = staticmethod(lambda *args, **kwargs: None)
 
     def test_to_excel_styleconverter(self):
@@ -1532,7 +1532,7 @@ class Openpyxl2Tests(ExcelWriterBase, tm.TestCase):
 
         protection = styles.Protection(locked=True, hidden=False)
 
-        kw = _Openpyxl2Writer._convert_to_style_kwargs(hstyle)
+        kw = _Openpyxl20Writer._convert_to_style_kwargs(hstyle)
         self.assertEqual(kw['font'], font)
         self.assertEqual(kw['border'], border)
         self.assertEqual(kw['alignment'], alignment)
@@ -1560,7 +1560,7 @@ class Openpyxl2Tests(ExcelWriterBase, tm.TestCase):
         ]
 
         sty_merged = {'font': { 'color': '000000FF', 'bold': True }}
-        sty_kwargs = _Openpyxl2Writer._convert_to_style_kwargs(sty_merged)
+        sty_kwargs = _Openpyxl20Writer._convert_to_style_kwargs(sty_merged)
         openpyxl_sty_merged = styles.Style(**sty_kwargs)
         merge_cells = [
             ExcelCell(col=0, row=0, val='pandas',
@@ -1568,7 +1568,112 @@ class Openpyxl2Tests(ExcelWriterBase, tm.TestCase):
         ]
 
         with ensure_clean('.xlsx') as path:
-            writer = _Openpyxl2Writer(path)
+            writer = _Openpyxl20Writer(path)
+            writer.write_cells(initial_cells, sheet_name=sheet_name)
+            writer.write_cells(merge_cells, sheet_name=sheet_name)
+
+            wks = writer.sheets[sheet_name]
+            xcell_b1 = wks.cell('B1')
+            xcell_a2 = wks.cell('A2')
+            self.assertEqual(xcell_b1.style, openpyxl_sty_merged)
+            self.assertEqual(xcell_a2.style, openpyxl_sty_merged)
+
+@raise_on_incompat_version(2)
+class Openpyxl22Tests(ExcelWriterBase, tm.TestCase):
+    ext = '.xlsx'
+    engine_name = 'openpyxl22'
+    check_skip = staticmethod(lambda *args, **kwargs: None)
+
+    def test_to_excel_styleconverter(self):
+        _skip_if_no_openpyxl()
+        if not openpyxl_compat.is_compat(major_ver=2):
+            raise nose.SkipTest('incompatiable openpyxl version')
+
+        import openpyxl
+        from openpyxl import styles
+
+        hstyle = {
+            "font": {
+                "color": '00FF0000',
+                "bold": True,
+            },
+            "borders": {
+                "top": "thin",
+                "right": "thin",
+                "bottom": "thin",
+                "left": "thin",
+            },
+            "alignment": {
+                "horizontal": "center",
+                "vertical": "top",
+            },
+            "fill": {
+                "patternType": 'solid',
+                'fgColor': {
+                    'rgb': '006666FF',
+                    'tint': 0.3,
+                },
+            },
+            "number_format": {
+                "format_code": "0.00"
+            },
+            "protection": {
+                "locked": True,
+                "hidden": False,
+            },
+        }
+
+        font_color = styles.Color('00FF0000')
+        font = styles.Font(bold=True, color=font_color)
+        side = styles.Side(style=styles.borders.BORDER_THIN)
+        border = styles.Border(top=side, right=side, bottom=side, left=side)
+        alignment = styles.Alignment(horizontal='center', vertical='top')
+        fill_color = styles.Color(rgb='006666FF', tint=0.3)
+        fill = styles.PatternFill(patternType='solid', fgColor=fill_color)
+
+        # ahh openpyxl API changes
+        ver = openpyxl.__version__
+        number_format = '0.00' # XXX: Only works with openpyxl-2.1.0
+
+        protection = styles.Protection(locked=True, hidden=False)
+
+        kw = _Openpyxl22Writer._convert_to_style_kwargs(hstyle)
+        self.assertEqual(kw['font'], font)
+        self.assertEqual(kw['border'], border)
+        self.assertEqual(kw['alignment'], alignment)
+        self.assertEqual(kw['fill'], fill)
+        self.assertEqual(kw['number_format'], number_format)
+        self.assertEqual(kw['protection'], protection)
+
+
+    def test_write_cells_merge_styled(self):
+        _skip_if_no_openpyxl()
+        if not openpyxl_compat.is_compat(major_ver=2):
+            raise nose.SkipTest('incompatiable openpyxl version')
+
+        from pandas.core.format import ExcelCell
+        from openpyxl import styles
+
+        sheet_name='merge_styled'
+
+        sty_b1 = {'font': {'color': '00FF0000'}}
+        sty_a2 = {'font': {'color': '0000FF00'}}
+
+        initial_cells = [
+            ExcelCell(col=1, row=0, val=42, style=sty_b1),
+            ExcelCell(col=0, row=1, val=99, style=sty_a2),
+        ]
+
+        sty_merged = {'font': { 'color': '000000FF', 'bold': True }}
+        sty_kwargs = _Openpyxl22Writer._convert_to_style_kwargs(sty_merged)
+        openpyxl_sty_merged = styles.Style(**sty_kwargs)
+        merge_cells = [
+            ExcelCell(col=0, row=0, val='pandas',
+                    mergestart=1, mergeend=1, style=sty_merged),
+        ]
+
+        with ensure_clean('.xlsx') as path:
+            writer = _Openpyxl22Writer(path)
             writer.write_cells(initial_cells, sheet_name=sheet_name)
             writer.write_cells(merge_cells, sheet_name=sheet_name)
 
