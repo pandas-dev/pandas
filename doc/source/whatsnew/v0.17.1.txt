@@ -44,4 +44,29 @@ Bug Fixes
 ~~~~~~~~~
 
 - Bug in ``.to_latex()`` output broken when the index has a name (:issue: `10660`)
+
+
+
+
+
+
+
+
+
+
+
+
 - Bug in ``squeeze()`` with zero length arrays (:issue:`11230`, :issue:`8999`)
+
+
+
+
+
+
+
+
+
+
+
+
+- Bug in ``DataFrame.to_latex()`` produces an extra rule when ``header=False`` (:issue:`7124`)
