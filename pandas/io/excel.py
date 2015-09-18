@@ -59,7 +59,7 @@ def get_writer(engine_name):
                  return _writers['openpyxl1']
             elif LooseVersion(openpyxl.__version__) < '2.2.0':
                  return _writers['openpyxl20']
-            elif LooseVersion(openpyxl.__version__) < '2.2.0':
+            else:
                  return _writers['openpyxl22']
         except ImportError:
             # fall through to normal exception handling below
@@ -1185,7 +1185,7 @@ class _Openpyxl22Writer(_Openpyxl20Writer):
 
     def write_cells(self, cells, sheet_name=None, startrow=0, startcol=0):
         # Write the frame cells using openpyxl.
-        from openpyxl.cell import get_column_letter
+        from openpyxl import styles
 
         sheet_name = self._get_sheet_name(sheet_name)
 
@@ -1197,36 +1197,35 @@ class _Openpyxl22Writer(_Openpyxl20Writer):
             self.sheets[sheet_name] = wks
 
         for cell in cells:
-            colletter = get_column_letter(startcol + cell.col + 1)
-            xcell = wks.cell("%s%s" % (colletter, startrow + cell.row + 1))
+            xcell = wks.cell(row=startrow + cell.row + 1, column=startcol + cell.col + 1)
             xcell.value = _conv_value(cell.val)
-            style_kwargs = {}
 
             # Apply format codes before cell.style to allow override
             if isinstance(cell.val, datetime.datetime):
-                style_kwargs.update(self._convert_to_style_kwargs({
-                        'number_format':{'format_code': self.datetime_format}}))
-            elif isinstance(cell.val, datetime.date):
-                style_kwargs.update(self._convert_to_style_kwargs({
-                        'number_format':{'format_code': self.date_format}}))
+                xcell.number_format = self.datetime_format
 
+            elif isinstance(cell.val, datetime.date):
+                xcell.number_format = self.date_format
+
+            style_kwargs = {}
             if cell.style:
-                style_kwargs.update(self._convert_to_style_kwargs(cell.style))
+                style_kwargs = self._convert_to_style_kwargs(cell.style)
 
             if style_kwargs:
-                xcell.style = xcell.style.copy(**style_kwargs)
+                for k, v in style_kwargs.items():
+                    setattr(xcell, k, v)
 
             if cell.mergestart is not None and cell.mergeend is not None:
-                cletterstart = get_column_letter(startcol + cell.col + 1)
-                cletterend = get_column_letter(startcol + cell.mergeend + 1)
 
-                wks.merge_cells('%s%s:%s%s' % (cletterstart,
-                                               startrow + cell.row + 1,
-                                               cletterend,
-                                               startrow + cell.mergestart + 1))
+                wks.merge_cells(
+                        start_row=startrow + cell.row + 1,
+                        start_column=startcol + cell.col + 1,
+                        end_column=startcol + cell.mergeend + 1,
+                        end_row=startrow + cell.mergeend + 1
+                        )
 
-                # Excel requires that the format of the first cell in a merged
-                # range is repeated in the rest of the merged range.
+                # When cells are merged only the top-left cell is preserved
+                # The behaviour of the other cells in a merged range is undefined
                 if style_kwargs:
                     first_row = startrow + cell.row + 1
                     last_row = startrow + cell.mergestart + 1
@@ -1238,9 +1237,9 @@ class _Openpyxl22Writer(_Openpyxl20Writer):
                             if row == first_row and col == first_col:
                                 # Ignore first cell. It is already handled.
                                 continue
-                            colletter = get_column_letter(col)
-                            xcell = wks.cell("%s%s" % (colletter, row))
-                            xcell.style = xcell.style.copy(**style_kwargs)
+                            xcell = wks.cell(column=col, row=row)
+                            for k, v in style_kwargs.items():
+                                setattr(xcell, k, v)
 
 register_writer(_Openpyxl22Writer)
 
