@@ -74,13 +74,22 @@ class TestPlotBase(tm.TestCase):
                                       'weight': random.normal(161, 32, size=n),
                                       'category': random.randint(4, size=n)})
 
-        if str(mpl.__version__) >= LooseVersion('1.4'):
+        self.mpl_le_1_2_1 = plotting._mpl_le_1_2_1()
+        self.mpl_ge_1_3_1 = plotting._mpl_ge_1_3_1()
+        self.mpl_ge_1_4_0 = plotting._mpl_ge_1_4_0()
+        self.mpl_ge_1_5_0 = plotting._mpl_ge_1_5_0()
+
+        if self.mpl_ge_1_4_0:
             self.bp_n_objects = 7
         else:
             self.bp_n_objects = 8
+        if self.mpl_ge_1_5_0:
+            # 1.5 added PolyCollections to legend handler
+            # so we have twice as many items.
+            self.polycollection_factor = 2
+        else:
+            self.polycollection_factor = 1
 
-        self.mpl_le_1_2_1 = str(mpl.__version__) <= LooseVersion('1.2.1')
-        self.mpl_ge_1_3_1 = str(mpl.__version__) >= LooseVersion('1.3.1')
 
     def tearDown(self):
         tm.close()
@@ -183,7 +192,7 @@ class TestPlotBase(tm.TestCase):
         """
 
         from matplotlib.lines import Line2D
-        from matplotlib.collections import Collection
+        from matplotlib.collections import Collection, PolyCollection
         conv = self.colorconverter
         if linecolors is not None:
 
@@ -197,6 +206,8 @@ class TestPlotBase(tm.TestCase):
                     result = patch.get_color()
                     # Line2D may contains string color expression
                     result = conv.to_rgba(result)
+                elif isinstance(patch, PolyCollection):
+                    result = tuple(patch.get_edgecolor()[0])
                 else:
                     result = patch.get_edgecolor()
 
@@ -472,6 +483,21 @@ class TestPlotBase(tm.TestCase):
                 obj.plot(kind=kind, grid=True, **kws)
                 self.assertTrue(is_grid_on())
 
+    def _maybe_unpack_cycler(self, rcParams, field='color'):
+        """
+        Compat layer for MPL 1.5 change to color cycle
+
+        Before: plt.rcParams['axes.color_cycle'] -> ['b', 'g', 'r'...]
+        After : plt.rcParams['axes.prop_cycle'] -> cycler(...)
+        """
+        if self.mpl_ge_1_5_0:
+            cyl = rcParams['axes.prop_cycle']
+            colors = [v[field] for v in cyl]
+        else:
+            colors = rcParams['axes.color_cycle']
+        return colors
+
+
 @tm.mplskip
 class TestSeriesPlots(TestPlotBase):
 
@@ -536,9 +562,13 @@ class TestSeriesPlots(TestPlotBase):
 
     def test_dont_modify_rcParams(self):
         # GH 8242
-        colors = self.plt.rcParams['axes.color_cycle']
+        if self.mpl_ge_1_5_0:
+            key = 'axes.prop_cycle'
+        else:
+            key = 'axes.color_cycle'
+        colors = self.plt.rcParams[key]
         Series([1, 2, 3]).plot()
-        self.assertEqual(colors, self.plt.rcParams['axes.color_cycle'])
+        self.assertEqual(colors, self.plt.rcParams[key])
 
     def test_ts_line_lim(self):
         ax = self.ts.plot()
@@ -1109,7 +1139,8 @@ class TestSeriesPlots(TestPlotBase):
             s.plot(yerr=np.arange(11))
 
         s_err = ['zzz']*10
-        with tm.assertRaises(TypeError):
+        # in mpl 1.5+ this is a TypeError
+        with tm.assertRaises((ValueError, TypeError)):
             s.plot(yerr=s_err)
 
     def test_table(self):
@@ -1183,7 +1214,10 @@ class TestSeriesPlots(TestPlotBase):
     def test_time_series_plot_color_with_empty_kwargs(self):
         import matplotlib as mpl
 
-        def_colors = mpl.rcParams['axes.color_cycle']
+        if self.mpl_ge_1_5_0:
+            def_colors = self._maybe_unpack_cycler(mpl.rcParams)
+        else:
+            def_colors = mpl.rcParams['axes.color_cycle']
         index = date_range('1/1/2000', periods=12)
         s = Series(np.arange(1, 13), index=index)
 
@@ -1292,7 +1326,11 @@ class TestDataFramePlots(TestPlotBase):
         fig, ax = self.plt.subplots()
         axes = df.plot.bar(subplots=True, ax=ax)
         self.assertEqual(len(axes), 1)
-        self.assertIs(ax.get_axes(), axes[0])
+        if self.mpl_ge_1_5_0:
+            result = ax.axes
+        else:
+            result = ax.get_axes()  # deprecated
+        self.assertIs(result, axes[0])
 
     def test_color_and_style_arguments(self):
         df = DataFrame({'x': [1, 2], 'y': [3, 4]})
@@ -1802,8 +1840,7 @@ class TestDataFramePlots(TestPlotBase):
     @slow
     def test_bar_colors(self):
         import matplotlib.pyplot as plt
-
-        default_colors = plt.rcParams.get('axes.color_cycle')
+        default_colors = self._maybe_unpack_cycler(plt.rcParams)
 
         df = DataFrame(randn(5, 5))
         ax = df.plot.bar()
@@ -2326,6 +2363,7 @@ class TestDataFramePlots(TestPlotBase):
 
     @slow
     def test_hist_df(self):
+        from matplotlib.patches import Rectangle
         if self.mpl_le_1_2_1:
             raise nose.SkipTest("not supported in matplotlib <= 1.2.x")
 
@@ -2346,11 +2384,14 @@ class TestDataFramePlots(TestPlotBase):
 
         ax = series.plot.hist(normed=True, cumulative=True, bins=4)
         # height of last bin (index 5) must be 1.0
-        self.assertAlmostEqual(ax.get_children()[5].get_height(), 1.0)
+        rects = [x for x in ax.get_children() if isinstance(x, Rectangle)]
+        self.assertAlmostEqual(rects[-1].get_height(), 1.0)
         tm.close()
 
         ax = series.plot.hist(cumulative=True, bins=4)
-        self.assertAlmostEqual(ax.get_children()[5].get_height(), 100.0)
+        rects = [x for x in ax.get_children() if isinstance(x, Rectangle)]
+
+        self.assertAlmostEqual(rects[-2].get_height(), 100.0)
         tm.close()
 
         # if horizontal, yticklabels are rotated
@@ -2626,7 +2667,7 @@ class TestDataFramePlots(TestPlotBase):
     def test_line_colors_and_styles_subplots(self):
         # GH 9894
         from matplotlib import cm
-        default_colors = self.plt.rcParams.get('axes.color_cycle')
+        default_colors = self._maybe_unpack_cycler(self.plt.rcParams)
 
         df = DataFrame(randn(5, 5))
 
@@ -2698,7 +2739,8 @@ class TestDataFramePlots(TestPlotBase):
 
         handles, labels = ax.get_legend_handles_labels()
         # legend is stored as Line2D, thus check linecolors
-        self._check_colors(handles, linecolors=custom_colors)
+        linehandles = [x for x in handles if not isinstance(x, PolyCollection)]
+        self._check_colors(linehandles, linecolors=custom_colors)
         for h in handles:
             self.assertTrue(h.get_alpha() is None)
         tm.close()
@@ -2710,12 +2752,13 @@ class TestDataFramePlots(TestPlotBase):
         self._check_colors(poly, facecolors=jet_colors)
 
         handles, labels = ax.get_legend_handles_labels()
-        self._check_colors(handles, linecolors=jet_colors)
+        linehandles = [x for x in handles if not isinstance(x, PolyCollection)]
+        self._check_colors(linehandles, linecolors=jet_colors)
         for h in handles:
             self.assertTrue(h.get_alpha() is None)
         tm.close()
 
-        # When stacked=True, alpha is set to 0.5
+        # When stacked=False, alpha is set to 0.5
         ax = df.plot.area(colormap=cm.jet, stacked=False)
         self._check_colors(ax.get_lines(), linecolors=jet_colors)
         poly = [o for o in ax.get_children() if isinstance(o, PolyCollection)]
@@ -2724,13 +2767,13 @@ class TestDataFramePlots(TestPlotBase):
 
         handles, labels = ax.get_legend_handles_labels()
         # Line2D can't have alpha in its linecolor
-        self._check_colors(handles, linecolors=jet_colors)
+        self._check_colors(handles[:len(jet_colors)], linecolors=jet_colors)
         for h in handles:
             self.assertEqual(h.get_alpha(), 0.5)
 
     @slow
     def test_hist_colors(self):
-        default_colors = self.plt.rcParams.get('axes.color_cycle')
+        default_colors = self._maybe_unpack_cycler(self.plt.rcParams)
 
         df = DataFrame(randn(5, 5))
         ax = df.plot.hist()
@@ -2791,7 +2834,7 @@ class TestDataFramePlots(TestPlotBase):
         _skip_if_no_scipy_gaussian_kde()
 
         from matplotlib import cm
-        default_colors = self.plt.rcParams.get('axes.color_cycle')
+        default_colors = self._maybe_unpack_cycler(self.plt.rcParams)
 
         df = DataFrame(randn(5, 5))
 
@@ -2853,7 +2896,7 @@ class TestDataFramePlots(TestPlotBase):
             self._check_colors(bp['fliers'], linecolors=[fliers_c] * len(bp['fliers']))
             self._check_colors(bp['caps'], linecolors=[caps_c] * len(bp['caps']))
 
-        default_colors = self.plt.rcParams.get('axes.color_cycle')
+        default_colors = self._maybe_unpack_cycler(self.plt.rcParams)
 
         df = DataFrame(randn(5, 5))
         bp = df.plot.box(return_type='dict')
@@ -2900,12 +2943,17 @@ class TestDataFramePlots(TestPlotBase):
 
     def test_default_color_cycle(self):
         import matplotlib.pyplot as plt
-        plt.rcParams['axes.color_cycle'] = list('rgbk')
+        colors = list('rgbk')
+        if self.mpl_ge_1_5_0:
+            import cycler
+            plt.rcParams['axes.prop_cycle'] = cycler.cycler('color', colors)
+        else:
+            plt.rcParams['axes.color_cycle'] = colors
 
         df = DataFrame(randn(5, 3))
         ax = df.plot()
 
-        expected = plt.rcParams['axes.color_cycle'][:3]
+        expected = self._maybe_unpack_cycler(plt.rcParams)[:3]
         self._check_colors(ax.get_lines(), linecolors=expected)
 
     def test_unordered_ts(self):
@@ -3125,7 +3173,7 @@ class TestDataFramePlots(TestPlotBase):
             df.plot(yerr=np.random.randn(11))
 
         df_err = DataFrame({'x': ['zzz']*12, 'y': ['zzz']*12})
-        with tm.assertRaises(TypeError):
+        with tm.assertRaises((ValueError, TypeError)):
             df.plot(yerr=df_err)
 
     @slow

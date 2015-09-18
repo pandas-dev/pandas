@@ -607,6 +607,8 @@ class TestDataFrameGroupByPlots(TestPlotBase):
 
     @slow
     def test_grouped_hist_legacy(self):
+        from matplotlib.patches import Rectangle
+
         df = DataFrame(randn(500, 2), columns=['A', 'B'])
         df['C'] = np.random.randint(0, 4, 500)
         df['D'] = ['X'] * 500
@@ -633,7 +635,8 @@ class TestDataFrameGroupByPlots(TestPlotBase):
                                      xlabelsize=xf, xrot=xrot, ylabelsize=yf, yrot=yrot)
         # height of last bin (index 5) must be 1.0
         for ax in axes.ravel():
-            height = ax.get_children()[5].get_height()
+            rects = [x for x in ax.get_children() if isinstance(x, Rectangle)]
+            height = rects[-1].get_height()
             self.assertAlmostEqual(height, 1.0)
         self._check_ticks_props(axes, xlabelsize=xf, xrot=xrot,
                                 ylabelsize=yf, yrot=yrot)
