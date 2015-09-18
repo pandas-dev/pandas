@@ -672,7 +672,7 @@ class DataFrameFormatter(TableFormatter):
             if any(frame.index.names):
                 nlevels += 1
             for i, row in enumerate(zip(*strcols)):
-                if i == nlevels:
+                if i == nlevels and self.header:
                     buf.write('\\midrule\n')  # End of header
                     if longtable:
                         buf.write('\\endhead\n')
