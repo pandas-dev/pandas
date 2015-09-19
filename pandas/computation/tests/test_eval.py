@@ -663,6 +663,13 @@ class TestEvalNumexprPandas(tm.TestCase):
         tm.assert_numpy_array_equal(result, np.array([False]))
         self.assertEqual(result.shape, (1, ))
 
+    def test_line_continuation(self):
+        # GH 11149
+        exp = """1 + 2 * \
+        5 - 1 + 2 """
+        result = pd.eval(exp, engine=self.engine, parser=self.parser)
+        self.assertEqual(result, 12)
+
 
 class TestEvalNumexprPython(TestEvalNumexprPandas):
 
@@ -1220,21 +1227,21 @@ class TestOperationsNumExprPandas(tm.TestCase):
         expected = orig_df.copy()
         expected['a'] = expected['a'] + expected['b']
         df = orig_df.copy()
-        df.eval('a = a + b')
+        df.eval('a = a + b', inplace=True)
         assert_frame_equal(df, expected)
 
         # single assignment - new variable
         expected = orig_df.copy()
         expected['c'] = expected['a'] + expected['b']
         df = orig_df.copy()
-        df.eval('c = a + b')
+        df.eval('c = a + b', inplace=True)
         assert_frame_equal(df, expected)
 
         # with a local name overlap
         def f():
             df = orig_df.copy()
-            a = 1
-            df.eval('a = 1 + b')
+            a = 1  # noqa
+            df.eval('a = 1 + b', inplace=True)
             return df
 
         df = f()
@@ -1245,9 +1252,9 @@ class TestOperationsNumExprPandas(tm.TestCase):
         df = orig_df.copy()
 
         def f():
-            a = 1
+            a = 1  # noqa
             old_a = df.a.copy()
-            df.eval('a = a + b')
+            df.eval('a = a + b', inplace=True)
             result = old_a + df.b
             assert_series_equal(result, df.a, check_names=False)
             self.assertTrue(result.name is None)
@@ -1256,12 +1263,13 @@ class TestOperationsNumExprPandas(tm.TestCase):
 
         # multiple assignment
         df = orig_df.copy()
-        df.eval('c = a + b')
+        df.eval('c = a + b', inplace=True)
         self.assertRaises(SyntaxError, df.eval, 'c = a = b')
 
         # explicit targets
         df = orig_df.copy()
-        self.eval('c = df.a + df.b', local_dict={'df': df}, target=df)
+        self.eval('c = df.a + df.b', local_dict={'df': df},
+                  target=df, inplace=True)
         expected = orig_df.copy()
         expected['c'] = expected['a'] + expected['b']
         assert_frame_equal(df, expected)
@@ -1272,6 +1280,88 @@ class TestOperationsNumExprPandas(tm.TestCase):
         result = df.eval('a in [11, -32]')
         expected = Series([True])
         assert_series_equal(result, expected)
+
+    def assignment_not_inplace(self):
+        # GH 9297
+        tm.skip_if_no_ne('numexpr')
+        df = DataFrame(np.random.randn(5, 2), columns=list('ab'))
+
+        actual = df.eval('c = a + b', inplace=False)  # noqa
+        expected = df.copy()
+        expected['c'] = expected['a'] + expected['b']
+        assert_frame_equal(df, expected)
+
+        # default for inplace will change
+        with tm.assert_produces_warnings(FutureWarning):
+            df.eval('c = a + b')
+
+        # but don't warn without assignment
+        with tm.assert_produces_warnings(None):
+            df.eval('a + b')
+
+    def test_multi_line_expression(self):
+        # GH 11149
+        tm.skip_if_no_ne('numexpr')
+        df = pd.DataFrame({'a': [1, 2, 3], 'b': [4, 5, 6]})
+        expected = df.copy()
+
+        expected['c'] = expected['a'] + expected['b']
+        expected['d'] = expected['c'] + expected['b']
+        ans = df.eval("""
+        c = a + b
+        d = c + b""", inplace=True)
+        assert_frame_equal(expected, df)
+        self.assertIsNone(ans)
+
+        expected['a'] = expected['a'] - 1
+        expected['e'] = expected['a'] + 2
+        ans = df.eval("""
+        a = a - 1
+        e = a + 2""", inplace=True)
+        assert_frame_equal(expected, df)
+        self.assertIsNone(ans)
+
+        # multi-line not valid if not all assignments
+        with tm.assertRaises(ValueError):
+            df.eval("""
+            a = b + 2
+            b - 2""", inplace=False)
+
+    def test_multi_line_expression_not_inplace(self):
+        # GH 11149
+        tm.skip_if_no_ne('numexpr')
+        df = pd.DataFrame({'a': [1, 2, 3], 'b': [4, 5, 6]})
+        expected = df.copy()
+
+        expected['c'] = expected['a'] + expected['b']
+        expected['d'] = expected['c'] + expected['b']
+        df = df.eval("""
+        c = a + b
+        d = c + b""", inplace=False)
+        assert_frame_equal(expected, df)
+
+        expected['a'] = expected['a'] - 1
+        expected['e'] = expected['a'] + 2
+        df = df.eval("""
+        a = a - 1
+        e = a + 2""", inplace=False)
+        assert_frame_equal(expected, df)
+
+    def test_assignment_in_query(self):
+        # GH 8664
+        df = pd.DataFrame({'a': [1, 2, 3], 'b': [4, 5, 6]})
+        df_orig = df.copy()
+        with tm.assertRaises(ValueError):
+            df.query('a = 1')
+        assert_frame_equal(df, df_orig)
+
+    def query_inplace(self):
+        # GH 11149
+        df = pd.DataFrame({'a': [1, 2, 3], 'b': [4, 5, 6]})
+        expected = df.copy()
+        expected = expected[expected['a'] == 2]
+        df.query('a == 2', inplace=True)
+        assert_frame_equal(expected, df)
 
     def test_basic_period_index_boolean_expression(self):
         df = mkdf(2, 2, data_gen_f=f, c_idx_type='p', r_idx_type='i')
@@ -1502,7 +1592,7 @@ class TestMathPythonPython(tm.TestCase):
                         'b': np.random.randn(10)})
         df.eval("e = arctan2(sin(a), b)",
                 engine=self.engine,
-                parser=self.parser)
+                parser=self.parser, inplace=True)
         got = df.e
         expect = np.arctan2(np.sin(df.a), df.b)
         pd.util.testing.assert_almost_equal(got, expect)
@@ -1512,7 +1602,7 @@ class TestMathPythonPython(tm.TestCase):
                         'b': np.random.randn(10)})
         df.eval("e = sin(a + b)",
                 engine=self.engine,
-                parser=self.parser)
+                parser=self.parser, inplace=True)
         got = df.e
         expect = np.sin(df.a + df.b)
         pd.util.testing.assert_almost_equal(got, expect)
@@ -1522,7 +1612,7 @@ class TestMathPythonPython(tm.TestCase):
         self.assertEqual(df.a.dtype, dtype)
         df.eval("b = sin(a)",
                 engine=self.engine,
-                parser=self.parser)
+                parser=self.parser, inplace=True)
         got = df.b
         expect = np.sin(df.a)
         self.assertEqual(expect.dtype, got.dtype)
