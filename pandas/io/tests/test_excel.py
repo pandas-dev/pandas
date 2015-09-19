@@ -1796,9 +1796,9 @@ class XlsxWriterTests(ExcelWriterBase, tm.TestCase):
             cell = read_worksheet.cell('B2')
 
             try:
-                read_num_format = cell.style.number_format._format_code
+                read_num_format = cell.number_format
             except:
-                read_num_format = cell.style.number_format
+                read_num_format = cell.style.number_format._format_code
 
             self.assertEqual(read_num_format, num_format)
 
