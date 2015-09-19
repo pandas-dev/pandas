@@ -71,3 +71,23 @@ class series_nsmallest2(object):
     def time_series_nsmallest2(self):
         self.s2.nsmallest(3, take_last=True)
         self.s2.nsmallest(3, take_last=False)
+
+
+class series_dropna_int64(object):
+    goal_time = 0.2
+
+    def setup(self):
+        self.s = Series(np.random.randint(1, 10, 1000000))
+
+    def time_series_dropna_int64(self):
+        self.s.dropna()
+
+class series_dropna_datetime(object):
+    goal_time = 0.2
+
+    def setup(self):
+        self.s = Series(pd.date_range('2000-01-01', freq='S', periods=1000000))
+        self.s[np.random.randint(1, 1000000, 100)] = pd.NaT
+
+    def time_series_dropna_datetime(self):
+        self.s.dropna()
