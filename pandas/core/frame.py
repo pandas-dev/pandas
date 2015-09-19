@@ -2051,7 +2051,7 @@ class DataFrame(NDFrame):
             raise ValueError('Must pass DataFrame with boolean values only')
         return self.where(key)
 
-    def query(self, expr, **kwargs):
+    def query(self, expr, inplace=False, **kwargs):
         """Query the columns of a frame with a boolean expression.
 
         .. versionadded:: 0.13
@@ -2062,6 +2062,12 @@ class DataFrame(NDFrame):
             The query string to evaluate.  You can refer to variables
             in the environment by prefixing them with an '@' character like
             ``@a + b``.
+        inplace : bool
+            Whether the query should modify the data in place or return
+            a modified copy
+
+            .. versionadded:: 0.18.0
+
         kwargs : dict
             See the documentation for :func:`pandas.eval` for complete details
             on the keyword arguments accepted by :meth:`DataFrame.query`.
@@ -2118,16 +2124,22 @@ class DataFrame(NDFrame):
         >>> df[df.a > df.b]  # same result as the previous expression
         """
         kwargs['level'] = kwargs.pop('level', 0) + 1
+        kwargs['target'] = None
         res = self.eval(expr, **kwargs)
 
         try:
-            return self.loc[res]
+            new_data = self.loc[res]
         except ValueError:
             # when res is multi-dimensional loc raises, but this is sometimes a
             # valid query
-            return self[res]
+            new_data = self[res]
 
-    def eval(self, expr, **kwargs):
+        if inplace:
+            self._update_inplace(new_data)
+        else:
+            return new_data
+
+    def eval(self, expr, inplace=None, **kwargs):
         """Evaluate an expression in the context of the calling DataFrame
         instance.
 
@@ -2135,6 +2147,16 @@ class DataFrame(NDFrame):
         ----------
         expr : string
             The expression string to evaluate.
+        inplace : bool
+            If the expression contains an assignment, whether to return a new
+            DataFrame or mutate the existing.
+
+            WARNING: inplace=None currently falls back to to True, but
+            in a future version, will default to False.  Use inplace=True
+            explicitly rather than relying on the default.
+
+            .. versionadded:: 0.18.0
+
         kwargs : dict
             See the documentation for :func:`~pandas.eval` for complete details
             on the keyword arguments accepted by
@@ -2147,6 +2169,7 @@ class DataFrame(NDFrame):
         See Also
         --------
         pandas.DataFrame.query
+        pandas.DataFrame.assign
         pandas.eval
 
         Notes
@@ -2168,9 +2191,10 @@ class DataFrame(NDFrame):
         if resolvers is None:
             index_resolvers = self._get_index_resolvers()
             resolvers = dict(self.iteritems()), index_resolvers
-        kwargs['target'] = self
+        if 'target' not in kwargs:
+            kwargs['target'] = self
         kwargs['resolvers'] = kwargs.get('resolvers', ()) + resolvers
-        return _eval(expr, **kwargs)
+        return _eval(expr, inplace=inplace, **kwargs)
 
     def select_dtypes(self, include=None, exclude=None):
         """Return a subset of a DataFrame including/excluding columns based on

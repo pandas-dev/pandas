@@ -570,17 +570,50 @@ prefix the name of the :class:`~pandas.DataFrame` to the column(s) you're
 interested in evaluating.
 
 In addition, you can perform assignment of columns within an expression.
-This allows for *formulaic evaluation*. Only a single assignment is permitted.
-The assignment target can be a new column name or an existing column name, and
-it must be a valid Python identifier.
+This allows for *formulaic evaluation*.  The assignment target can be a
+new column name or an existing column name, and it must be a valid Python
+identifier.
+
+.. versionadded:: 0.18.0
+
+The ``inplace`` keyword determines whether this assignment will performed
+on the original ``DataFrame`` or return a copy with the new column.
+
+.. warning::
+
+   For backwards compatability, ``inplace`` defaults to ``True`` if not
+   specified. This will change in a future version of pandas - if your
+   code depends on an inplace assignment you should update to explicitly
+   set ``inplace=True``
 
 .. ipython:: python
 
    df = pd.DataFrame(dict(a=range(5), b=range(5, 10)))
-   df.eval('c = a + b')
-   df.eval('d = a + b + c')
-   df.eval('a = 1')
+   df.eval('c = a + b', inplace=True)
+   df.eval('d = a + b + c', inplace=True)
+   df.eval('a = 1', inplace=True)
    df
+
+When ``inplace`` is set to ``False``, a copy of the ``DataFrame`` with the
+new or modified columns is returned and the original frame is unchanged.
+
+.. ipython:: python
+
+   df
+   df.eval('e = a - c', inplace=False)
+   df
+
+.. versionadded:: 0.18.0
+
+As a convenience, multiple assignments can be performed by using a
+multi-line string.
+
+.. ipython:: python
+
+   df.eval("""
+   c = a + b
+   d = a + b + c
+   a = 1""", inplace=False)
 
 The equivalent in standard Python would be
 
@@ -591,6 +624,23 @@ The equivalent in standard Python would be
    df['d'] = df.a + df.b + df.c
    df['a'] = 1
    df
+
+.. versionadded:: 0.18.0
+
+The ``query`` method gained the ``inplace`` keyword which determines
+whether the query modifies the original frame.
+
+.. ipython:: python
+
+   df = pd.DataFrame(dict(a=range(5), b=range(5, 10)))
+   df.query('a > 2')
+   df.query('a > 2', inplace=True)
+   df
+
+.. warning::
+
+   Unlike with ``eval``, the default value for ``inplace`` for ``query``
+   is ``False``.  This is consistent with prior versions of pandas.
 
 Local Variables
 ~~~~~~~~~~~~~~~

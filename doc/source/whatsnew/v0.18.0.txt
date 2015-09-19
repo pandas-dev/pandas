@@ -295,15 +295,60 @@ date strings is no longer supported and raises a ``ValueError``. (:issue:`11818`
 
 - ``.memory_usage`` now includes values in the index, as does memory_usage in ``.info`` (:issue:`11597`)
 
+Changes to eval
+^^^^^^^^^^^^^^^
 
+In prior versions, new columns assignments in an ``eval`` expression resulted
+in an inplace change to the ``DataFrame``. (:issue:`9297`)
 
+.. ipython:: python
 
+   df = pd.DataFrame({'a': np.linspace(0, 10, 5), 'b': range(5)})
+   df.eval('c = a + b')
+   df
 
+In version 0.18.0, a new ``inplace`` keyword was added to choose whether the
+assignment should be done inplace or return a copy.
 
+.. ipython:: python
 
+   df
+   df.eval('d = c - b', inplace=False)
+   df
+   df.eval('d = c - b', inplace=True)
+   df
 
+.. warning::
 
+   For backwards compatability, ``inplace`` defaults to ``True`` if not specified.
+   This will change in a future version of pandas - if your code depends on an
+   inplace assignment you should update to explicitly set ``inplace=True``
 
+The ``inplace`` keyword parameter was also added the ``query`` method.  
+
+.. ipython:: python
+
+   df.query('a > 5')
+   df.query('a > 5', inplace=True)
+   df
+
+.. warning::
+
+   Note that the default value for ``inplace`` in a ``query``
+   is ``False``, which is consistent with prior verions.
+
+``eval`` has also been updated to allow multi-line expressions for multiple
+assignments.  These expressions will be evaluated one at a time in order.  Only
+assginments are valid for multi-line expressions.
+
+.. ipython:: python
+
+   df
+   df.eval("""
+   e = d + a
+   f = e - 22
+   g = f / 2.0""", inplace=True)
+   df
 
 .. _whatsnew_0180.deprecations:
 
@@ -412,7 +457,7 @@ Bug Fixes
 - Bug in ``pd.read_clipboard`` and ``pd.to_clipboard`` functions not supporting Unicode; upgrade included ``pyperclip`` to v1.5.15 (:issue:`9263`)
 
 
-
+- Bug in ``DataFrame.query`` containing an assignment (:issue:`8664`)
 
 
 
