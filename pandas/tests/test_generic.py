@@ -1851,6 +1851,26 @@ class TestNDFrame(tm.TestCase):
         with tm.assertRaises(ValueError):
             result = wp.pipe((f, 'y'), x=1, y=1)
 
+    def test_pct_change_frame(self):
+        pnl = DataFrame([np.arange(0, 40, 10), np.arange(0, 40, 10), np.arange(0, 40, 10)]).astype(np.float64)
+        pnl.iat[1,0] = np.nan
+        pnl.iat[1,1] = np.nan
+        pnl.iat[2,3] = 60
+        
+        mask = pnl.isnull()
+
+        expected_axis0 = pnl.ffill(axis=0)/pnl.ffill(axis=0).shift(axis=0) - 1
+        expected_axis0[mask] = np.nan
+        result_axis0 = pnl.pct_change(axis=0, fill_method='pad')
+
+        self.assert_frame_equal(result_axis0, expected_axis0)
+
+        expected_axis1 = pnl.ffill(axis=1)/pnl.ffill(axis=1).shift(axis=1) - 1
+        expected_axis1[mask] = np.nan
+        result_axis1 = pnl.pct_change(axis=1, fill_method='pad')
+
+        self.assert_frame_equal(result_axis1, expected_axis1)
+
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
                    exit=False)

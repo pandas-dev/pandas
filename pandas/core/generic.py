@@ -4440,7 +4440,7 @@ class NDFrame(PandasObject):
         if fill_method is None:
             data = self
         else:
-            data = self.fillna(method=fill_method, limit=limit)
+            data = self.fillna(method=fill_method, limit=limit, axis=axis)
 
         rs = (data.div(data.shift(periods=periods, freq=freq,
                                   axis=axis, **kwargs)) - 1)
