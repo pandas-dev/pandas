@@ -1947,20 +1947,42 @@ class DatetimeBlock(Block):
     def fillna(self, value, limit=None,
                inplace=False, downcast=None):
 
-        # straight putmask here
-        values = self.values if inplace else self.values.copy()
         mask = isnull(self.values)
         value = self._try_fill(value)
+
         if limit is not None:
             if self.ndim > 2:
                 raise NotImplementedError("number of dimensions for 'fillna' "
                                           "is currently limited to 2")
             mask[mask.cumsum(self.ndim-1)>limit]=False
 
-        np.putmask(values, mask, value)
-        return [self if inplace else
-                self.make_block(values,
-                                fastpath=True)]
+        if mask.any():
+            try:
+                return self._fillna_mask(mask, value, inplace=inplace)
+            except TypeError:
+                pass
+            # _fillna_mask raises TypeError when it fails
+            # cannot perform inplace op because of object coercion
+            values = self.get_values(dtype=object)
+            np.putmask(values, mask, value)
+            return [self.make_block(values, fastpath=True)]
+        else:
+            return [self if inplace else self.copy()]
+
+    def _fillna_mask(self, mask, value, inplace=False):
+        if getattr(value, 'tzinfo', None) is None:
+            # Series comes to this path
+            values = self.values
+            if not inplace:
+                values = values.copy()
+            try:
+                np.putmask(values, mask, value)
+                return [self if inplace else
+                        self.make_block(values, fastpath=True)]
+            except (ValueError, TypeError):
+                # scalar causes ValueError, and array causes TypeError
+                pass
+        raise TypeError
 
     def to_native_types(self, slicer=None, na_rep=None, date_format=None,
                         quoting=None, **kwargs):
@@ -2032,6 +2054,29 @@ class DatetimeTZBlock(NonConsolidatableMixIn, DatetimeBlock):
             return lib.map_infer(self.values.ravel(), lambda x: lib.Timestamp(x,tz=self.values.tz))\
                       .reshape(self.values.shape)
         return self.values
+
+    def _fillna_mask(self, mask, value, inplace=False):
+        # cannot perform inplace op for internal DatetimeIndex
+        my_tz = tslib.get_timezone(self.values.tz)
+        value_tz = tslib.get_timezone(getattr(value, 'tzinfo', None))
+
+        if (my_tz == value_tz or self.dtype == getattr(value, 'dtype', None)):
+            if my_tz == value_tz:
+                # hack for PY2.6 / numpy 1.7.1.
+                # Other versions can directly use self.values.putmask
+                # --------------------------------------
+                try:
+                    value = value.asm8
+                except AttributeError:
+                    value = tslib.Timestamp(value).asm8
+                ### ------------------------------------
+
+            try:
+                values = self.values.putmask(mask, value)
+                return [self.make_block(values, fastpath=True)]
+            except ValueError:
+                pass
+        raise TypeError
 
     def _slice(self, slicer):
         """ return a slice of my values """
