@@ -44,6 +44,7 @@ API changes
   Legacy Python syntax (``set([x, y])``) (:issue:`11215`)
 - Indexing with a null key will raise a ``TypeError``, instead of a ``ValueError`` (:issue:`11356`)
 - ``Series.sort_index()`` now correctly handles the ``inplace`` option (:issue:`11402`)
+
 - ``DataFrame.itertuples()`` now returns ``namedtuple`` objects, when possible. (:issue:`11269`)
 
 .. _whatsnew_0171.deprecations:
@@ -83,6 +84,7 @@ Bug Fixes
 - Bug in ``HDFStore.append`` with strings whose encoded length exceded the max unencoded length (:issue:`11234`)
 - Bug in merging ``datetime64[ns, tz]`` dtypes (:issue:`11405`)
 - Bug in ``HDFStore.select`` when comparing with a numpy scalar in a where clause (:issue:`11283`)
+
 - Bug in using ``DataFrame.ix`` with a multi-index indexer(:issue:`11372`)
 
 
@@ -107,11 +109,12 @@ Bug Fixes
 
 
 
-
+- Bug in ``DataFrame.pct_change()`` not propagating ``axis`` keyword on ``.fillna`` method (:issue:`11150`)
 
 
 
 - Fix regression in setting of ``xticks`` in ``plot`` (:issue:`11529`).
+
 
 
 

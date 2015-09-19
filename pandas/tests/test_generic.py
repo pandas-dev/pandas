@@ -1699,6 +1699,21 @@ class TestDataFrame(tm.TestCase, Generic):
         assert_equal(df.y, 5)
         assert_series_equal(df['y'], Series([2, 4, 6], name='y'))
 
+    def test_pct_change(self):
+        # GH 11150
+        pnl = DataFrame([np.arange(0, 40, 10), np.arange(0, 40, 10), np.arange(0, 40, 10)]).astype(np.float64)
+        pnl.iat[1,0] = np.nan
+        pnl.iat[1,1] = np.nan
+        pnl.iat[2,3] = 60
+
+        mask = pnl.isnull()
+
+        for axis in range(2):
+            expected = pnl.ffill(axis=axis)/pnl.ffill(axis=axis).shift(axis=axis) - 1
+            expected[mask] = np.nan
+            result = pnl.pct_change(axis=axis, fill_method='pad')
+
+            self.assert_frame_equal(result, expected)
 
 class TestPanel(tm.TestCase, Generic):
     _typ = Panel
@@ -1877,6 +1892,7 @@ class TestNDFrame(tm.TestCase):
 
         with tm.assertRaises(ValueError):
             result = wp.pipe((f, 'y'), x=1, y=1)
+
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
