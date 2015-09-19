@@ -941,6 +941,20 @@ class TestResample(tm.TestCase):
 
             assert_series_equal(left, right)
 
+    def test_resample_size(self):
+        n = 10000
+        dr = date_range('2015-09-19', periods=n, freq='T')
+        ts = Series(np.random.randn(n), index=np.random.choice(dr, n))
+
+        left = ts.resample('7T', how='size')
+        ix = date_range(start=left.index.min(), end=ts.index.max(), freq='7T')
+
+        bins = np.searchsorted(ix.values, ts.index.values, side='right')
+        val = np.bincount(bins, minlength=len(ix) + 1)[1:]
+
+        right = Series(val, index=ix)
+        assert_series_equal(left, right)
+
     def test_resmaple_dst_anchor(self):
         # 5172
         dti = DatetimeIndex([datetime(2012, 11, 4, 23)], tz='US/Eastern')
