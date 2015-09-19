@@ -53,6 +53,7 @@ Performance Improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 - Checking monotonic-ness before sorting on an index (:issue:`11080`)
+- ``Series.dropna`` performance improvement when its dtype can't contain ``NaN`` (:issue:`11159`)
 
 .. _whatsnew_0171.bug_fixes:
 

@@ -2501,11 +2501,19 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                     'argument "{0}"'.format(list(kwargs.keys())[0]))
 
         axis = self._get_axis_number(axis or 0)
-        result = remove_na(self)
-        if inplace:
-            self._update_inplace(result)
+
+        if self._can_hold_na:
+            result = remove_na(self)
+            if inplace:
+                self._update_inplace(result)
+            else:
+                return result
         else:
-            return result
+            if inplace:
+                # do nothing
+                pass
+            else:
+                return self.copy()
 
     valid = lambda self, inplace=False, **kwargs: self.dropna(inplace=inplace,
                                                               **kwargs)

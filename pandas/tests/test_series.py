@@ -5117,7 +5117,6 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         # invalid axis
         self.assertRaises(ValueError, s.dropna, axis=1)
 
-
     def test_datetime64_tz_dropna(self):
         # DatetimeBlock
         s = Series([Timestamp('2011-01-01 10:00'), pd.NaT,
@@ -5139,6 +5138,18 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
                           index=[0, 2])
         self.assertEqual(result.dtype, 'datetime64[ns, Asia/Tokyo]')
         self.assert_series_equal(result, expected)
+
+    def test_dropna_no_nan(self):
+        for s in [Series([1, 2, 3], name='x'),
+                  Series([False, True, False], name='x')]:
+
+            result = s.dropna()
+            self.assert_series_equal(result, s)
+            self.assertFalse(result is s)
+
+            s2 = s.copy()
+            s2.dropna(inplace=True)
+            self.assert_series_equal(s2, s)
 
     def test_axis_alias(self):
         s = Series([1, 2, np.nan])
