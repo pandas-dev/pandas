@@ -1535,9 +1535,13 @@ class ScatterPlot(PlanePlot):
         # pandas uses colormap, matplotlib uses cmap.
         cmap = self.colormap or 'Greys'
         cmap = self.plt.cm.get_cmap(cmap)
-
-        if c is None:
+        color = self.kwds.pop("color", None)
+        if c is not None and color is not None:
+            raise TypeError('Specify exactly one of `c` and `color`')
+        elif c is None and color is None:
             c_values = self.plt.rcParams['patch.facecolor']
+        elif color is not None:
+            c_values = color
         elif c_is_column:
             c_values = self.data[c].values
         else:
