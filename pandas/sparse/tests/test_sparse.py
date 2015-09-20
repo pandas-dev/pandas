@@ -1793,6 +1793,11 @@ class TestSparsePanel(tm.TestCase,
                                    "input must be a dict, a 'list' was passed"):
             SparsePanel(['a', 'b', 'c'])
 
+    # deprecation GH11157
+    def test_deprecation(self):
+        with tm.assert_produces_warning(FutureWarning):
+            SparsePanel()
+
     # GH 9272
     def test_constructor_empty(self):
         sp = SparsePanel()
