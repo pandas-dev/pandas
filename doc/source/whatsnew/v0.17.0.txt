@@ -1031,6 +1031,7 @@ Performance Improvements
 - 20x improvement in ``concat`` of Categoricals when categories are identical (:issue:`10587`)
 - Improved performance of ``to_datetime`` when specified format string is ISO8601 (:issue:`10178`)
 - 2x improvement of ``Series.value_counts`` for float dtype (:issue:`10821`)
+- Enable ``infer_datetime_format`` in ``to_datetime`` when date components do not have 0 padding (:issue:`11142`)
 
 .. _whatsnew_0170.bug_fixes:
 
