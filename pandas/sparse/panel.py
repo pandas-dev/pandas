@@ -5,6 +5,7 @@ with float64 data
 
 # pylint: disable=E1101,E1103,W0231
 
+import warnings
 from pandas.compat import range, lrange, zip
 from pandas import compat
 import numpy as np
@@ -68,6 +69,10 @@ class SparsePanel(Panel):
     def __init__(self, frames=None, items=None, major_axis=None, minor_axis=None,
                  default_fill_value=np.nan, default_kind='block',
                  copy=False):
+
+        # deprecation #11157
+        warnings.warn("SparsePanel is deprecated and will be removed in a future version",
+                      FutureWarning, stacklevel=2)
 
         if frames is None:
             frames = {}
