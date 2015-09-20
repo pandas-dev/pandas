@@ -52,6 +52,8 @@ from pandas.util.decorators import (cache_readonly, deprecate, Appender,
 
 from pandas.tseries.period import PeriodIndex
 from pandas.tseries.index import DatetimeIndex
+from pandas.tseries.tdi import TimedeltaIndex
+
 
 import pandas.core.algorithms as algos
 import pandas.core.base as base
@@ -5400,8 +5402,13 @@ def _homogenize(data, index, dtype=None):
                 v = v.reindex(index, copy=False)
         else:
             if isinstance(v, dict):
-                v = _dict_compat(v)
-                oindex = index.astype('O')
+                if oindex is None:
+                    oindex = index.astype('O')
+
+                if isinstance(index, (DatetimeIndex, TimedeltaIndex)):
+                    v = _dict_compat(v)
+                else:
+                    v = dict(v)
                 v = lib.fast_multiget(v, oindex.values, default=NA)
             v = _sanitize_array(v, index, dtype=dtype, copy=False,
                                 raise_cast_failure=False)
