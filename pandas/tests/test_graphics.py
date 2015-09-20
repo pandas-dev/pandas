@@ -2062,6 +2062,19 @@ class TestDataFramePlots(TestPlotBase):
         float_array = np.array([0.0, 1.0])
         df.plot.scatter(x='A', y='B', c=float_array, cmap='spring')
 
+    def test_scatter_colors(self):
+        df = DataFrame({'a': [1, 2, 3], 'b': [1, 2, 3], 'c': [1, 2, 3]})
+        with tm.assertRaises(TypeError):
+            df.plot.scatter(x='a', y='b', c='c', color='green')
+
+        ax = df.plot.scatter(x='a', y='b', c='c')
+        tm.assert_numpy_array_equal(ax.collections[0].get_facecolor()[0],
+                                    (0, 0, 1, 1))
+
+        ax = df.plot.scatter(x='a', y='b', color='white')
+        tm.assert_numpy_array_equal(ax.collections[0].get_facecolor()[0],
+                                    (1, 1, 1, 1))
+
     @slow
     def test_plot_bar(self):
         df = DataFrame(randn(6, 4),
