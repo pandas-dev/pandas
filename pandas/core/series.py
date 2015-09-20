@@ -2566,7 +2566,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     def asof(self, where):
         """
-        Return last good (non-NaN) value in TimeSeries if value is NaN for
+        Return last good (non-NaN) value in Series if value is NaN for
         requested date.
 
         If there is no good value, NaN is returned.
@@ -2624,7 +2624,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Returns
         -------
-        ts : TimeSeries with DatetimeIndex
+        ts : Series with DatetimeIndex
         """
         new_values = self._values
         if copy:
@@ -2636,7 +2636,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     def to_period(self, freq=None, copy=True):
         """
-        Convert TimeSeries from DatetimeIndex to PeriodIndex with desired
+        Convert Series from DatetimeIndex to PeriodIndex with desired
         frequency (inferred from index if not passed)
 
         Parameters
@@ -2645,7 +2645,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Returns
         -------
-        ts : TimeSeries with PeriodIndex
+        ts : Series with PeriodIndex
         """
         new_values = self._values
         if copy:
