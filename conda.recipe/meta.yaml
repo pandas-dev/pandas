@@ -16,12 +16,12 @@ requirements:
     - libpython # [py2k and win]
     - setuptools
     - pytz
-    - dateutil
+    - python-dateutil
 
   run:
     - python
     - numpy
-    - dateutil
+    - python-dateutil
     - pytz
 
 test:
