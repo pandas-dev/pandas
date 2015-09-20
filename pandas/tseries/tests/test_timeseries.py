@@ -4615,6 +4615,24 @@ class TestGuessDatetimeFormat(tm.TestCase):
         for invalid_dt in invalid_dts:
             self.assertTrue(tools._guess_datetime_format(invalid_dt) is None)
 
+    def test_guess_datetime_format_nopadding(self):
+        # GH 11142
+        dt_string_to_format = (
+            ('2011-1-1', '%Y-%m-%d'),
+            ('30-1-2011', '%d-%m-%Y'),
+            ('1/1/2011', '%m/%d/%Y'),
+            ('2011-1-1 00:00:00', '%Y-%m-%d %H:%M:%S'),
+            ('2011-1-1 0:0:0', '%Y-%m-%d %H:%M:%S'),
+            ('2011-1-3T00:00:0', '%Y-%m-%dT%H:%M:%S')
+        )
+
+        for dt_string, dt_format in dt_string_to_format:
+            self.assertEqual(
+                tools._guess_datetime_format(dt_string),
+                dt_format
+            )
+
+
     def test_guess_datetime_format_for_array(self):
         expected_format = '%Y-%m-%d %H:%M:%S.%f'
         dt_string = datetime(2011, 12, 30, 0, 0, 0).strftime(expected_format)
