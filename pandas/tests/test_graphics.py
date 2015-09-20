@@ -800,8 +800,8 @@ class TestSeriesPlots(TestPlotBase):
         _check_plot_works(self.ts.hist)
         _check_plot_works(self.ts.hist, grid=False)
         _check_plot_works(self.ts.hist, figsize=(8, 10))
-        _check_plot_works(self.ts.hist, by=self.ts.index.month)
-        _check_plot_works(self.ts.hist, by=self.ts.index.month, bins=5)
+        _check_plot_works(self.ts.hist, filterwarnings='ignore', by=self.ts.index.month)
+        _check_plot_works(self.ts.hist, filterwarnings='ignore', by=self.ts.index.month, bins=5)
 
         fig, ax = self.plt.subplots(1, 1)
         _check_plot_works(self.ts.hist, ax=ax)
@@ -835,25 +835,32 @@ class TestSeriesPlots(TestPlotBase):
     def test_hist_layout_with_by(self):
         df = self.hist_df
 
-        axes = _check_plot_works(df.height.hist, by=df.gender, layout=(2, 1))
+        axes = _check_plot_works(df.height.hist, filterwarnings='ignore',
+                                 by=df.gender, layout=(2, 1))
         self._check_axes_shape(axes, axes_num=2, layout=(2, 1))
 
-        axes = _check_plot_works(df.height.hist, by=df.gender, layout=(3, -1))
+        axes = _check_plot_works(df.height.hist, filterwarnings='ignore',
+                                 by=df.gender, layout=(3, -1))
         self._check_axes_shape(axes, axes_num=2, layout=(3, 1))
 
-        axes = _check_plot_works(df.height.hist, by=df.category, layout=(4, 1))
+        axes = _check_plot_works(df.height.hist, filterwarnings='ignore',
+                                 by=df.category, layout=(4, 1))
         self._check_axes_shape(axes, axes_num=4, layout=(4, 1))
 
-        axes = _check_plot_works(df.height.hist, by=df.category, layout=(2, -1))
+        axes = _check_plot_works(df.height.hist, filterwarnings='ignore',
+                                 by=df.category, layout=(2, -1))
         self._check_axes_shape(axes, axes_num=4, layout=(2, 2))
 
-        axes = _check_plot_works(df.height.hist, by=df.category, layout=(3, -1))
+        axes = _check_plot_works(df.height.hist, filterwarnings='ignore',
+                                 by=df.category, layout=(3, -1))
         self._check_axes_shape(axes, axes_num=4, layout=(3, 2))
 
-        axes = _check_plot_works(df.height.hist, by=df.category, layout=(-1, 4))
+        axes = _check_plot_works(df.height.hist, filterwarnings='ignore',
+                                 by=df.category, layout=(-1, 4))
         self._check_axes_shape(axes, axes_num=4, layout=(1, 4))
 
-        axes = _check_plot_works(df.height.hist, by=df.classroom, layout=(2, 2))
+        axes = _check_plot_works(df.height.hist, filterwarnings='ignore',
+                                 by=df.classroom, layout=(2, 2))
         self._check_axes_shape(axes, axes_num=3, layout=(2, 2))
 
         axes = df.height.hist(by=df.category, layout=(4, 2), figsize=(12, 7))
@@ -1247,14 +1254,16 @@ class TestDataFramePlots(TestPlotBase):
     @slow
     def test_plot(self):
         df = self.tdf
-        _check_plot_works(df.plot, grid=False)
-        axes = _check_plot_works(df.plot, subplots=True)
+        _check_plot_works(df.plot, filterwarnings='ignore', grid=False)
+        axes = _check_plot_works(df.plot, filterwarnings='ignore', subplots=True)
         self._check_axes_shape(axes, axes_num=4, layout=(4, 1))
 
-        axes = _check_plot_works(df.plot, subplots=True, layout=(-1, 2))
+        axes = _check_plot_works(df.plot, filterwarnings='ignore',
+                                 subplots=True, layout=(-1, 2))
         self._check_axes_shape(axes, axes_num=4, layout=(2, 2))
 
-        axes = _check_plot_works(df.plot, subplots=True, use_index=False)
+        axes = _check_plot_works(df.plot, filterwarnings='ignore',
+                                 subplots=True, use_index=False)
         self._check_axes_shape(axes, axes_num=4, layout=(4, 1))
 
         df = DataFrame({'x': [1, 2], 'y': [3, 4]})
@@ -1263,13 +1272,14 @@ class TestDataFramePlots(TestPlotBase):
 
         df = DataFrame(np.random.rand(10, 3),
                        index=list(string.ascii_letters[:10]))
+
         _check_plot_works(df.plot, use_index=True)
         _check_plot_works(df.plot, sort_columns=False)
         _check_plot_works(df.plot, yticks=[1, 5, 10])
         _check_plot_works(df.plot, xticks=[1, 5, 10])
         _check_plot_works(df.plot, ylim=(-100, 100), xlim=(-100, 100))
 
-        _check_plot_works(df.plot, subplots=True, title='blah')
+        _check_plot_works(df.plot, filterwarnings='ignore', subplots=True, title='blah')
         # We have to redo it here because _check_plot_works does two plots, once without an ax
         # kwarg and once with an ax kwarg and the new sharex behaviour does not remove the
         # visibility of the latter axis (as ax is present).
@@ -2083,7 +2093,7 @@ class TestDataFramePlots(TestPlotBase):
 
         _check_plot_works(df.plot.bar)
         _check_plot_works(df.plot.bar, legend=False)
-        _check_plot_works(df.plot.bar, subplots=True)
+        _check_plot_works(df.plot.bar, filterwarnings='ignore', subplots=True)
         _check_plot_works(df.plot.bar, stacked=True)
 
         df = DataFrame(randn(10, 15),
@@ -2300,7 +2310,7 @@ class TestDataFramePlots(TestPlotBase):
         self._check_text_labels(ax.get_yticklabels(), labels)
         self.assertEqual(len(ax.lines), self.bp_n_objects * len(numeric_cols))
 
-        axes = _check_plot_works(df.plot.box, subplots=True,
+        axes = _check_plot_works(df.plot.box, filterwarnings='ignore', subplots=True,
                                  vert=False, logx=True)
         self._check_axes_shape(axes, axes_num=3, layout=(1, 3))
         self._check_ax_scales(axes, xaxis='log')
@@ -2360,7 +2370,7 @@ class TestDataFramePlots(TestPlotBase):
         ax = df.plot(kind='kde', rot=20, fontsize=5)
         self._check_ticks_props(ax, xrot=20, xlabelsize=5, ylabelsize=5)
 
-        axes = _check_plot_works(df.plot, kind='kde', subplots=True)
+        axes = _check_plot_works(df.plot, filterwarnings='ignore', kind='kde', subplots=True)
         self._check_axes_shape(axes, axes_num=4, layout=(4, 1))
 
         axes = df.plot(kind='kde', logy=True, subplots=True)
@@ -2387,7 +2397,7 @@ class TestDataFramePlots(TestPlotBase):
         expected = [com.pprint_thing(c) for c in df.columns]
         self._check_legend_labels(ax, labels=expected)
 
-        axes = _check_plot_works(df.plot.hist, subplots=True, logy=True)
+        axes = _check_plot_works(df.plot.hist, filterwarnings='ignore', subplots=True, logy=True)
         self._check_axes_shape(axes, axes_num=4, layout=(4, 1))
         self._check_ax_scales(axes, yaxis='log')
 
@@ -3093,7 +3103,7 @@ class TestDataFramePlots(TestPlotBase):
         ax = _check_plot_works(df.plot.pie, y=2)
         self._check_text_labels(ax.texts, df.index)
 
-        axes = _check_plot_works(df.plot.pie, subplots=True)
+        axes = _check_plot_works(df.plot.pie, filterwarnings='ignore', subplots=True)
         self.assertEqual(len(axes), len(df.columns))
         for ax in axes:
             self._check_text_labels(ax.texts, df.index)
@@ -3102,7 +3112,7 @@ class TestDataFramePlots(TestPlotBase):
 
         labels = ['A', 'B', 'C', 'D', 'E']
         color_args = ['r', 'g', 'b', 'c', 'm']
-        axes = _check_plot_works(df.plot.pie, subplots=True,
+        axes = _check_plot_works(df.plot.pie, filterwarnings='ignore', subplots=True,
                                  labels=labels, colors=color_args)
         self.assertEqual(len(axes), len(df.columns))
 
@@ -3156,7 +3166,8 @@ class TestDataFramePlots(TestPlotBase):
             self._check_has_errorbars(ax, xerr=2, yerr=2)
             ax = _check_plot_works(df.plot, xerr=0.2, yerr=0.2, kind=kind)
             self._check_has_errorbars(ax, xerr=2, yerr=2)
-            axes = _check_plot_works(df.plot, yerr=df_err, xerr=df_err, subplots=True, kind=kind)
+            axes = _check_plot_works(df.plot, filterwarnings='ignore', yerr=df_err,
+                                     xerr=df_err, subplots=True, kind=kind)
             self._check_has_errorbars(axes, xerr=1, yerr=1)
 
         ax = _check_plot_works((df+1).plot, yerr=df_err, xerr=df_err, kind='bar', log=True)
@@ -3245,7 +3256,8 @@ class TestDataFramePlots(TestPlotBase):
             self._check_has_errorbars(ax, xerr=0, yerr=1)
             ax = _check_plot_works(tdf.plot, yerr=tdf_err, kind=kind)
             self._check_has_errorbars(ax, xerr=0, yerr=2)
-            axes = _check_plot_works(tdf.plot, kind=kind, yerr=tdf_err, subplots=True)
+            axes = _check_plot_works(tdf.plot, filterwarnings='ignore', kind=kind,
+                                     yerr=tdf_err, subplots=True)
             self._check_has_errorbars(axes, xerr=0, yerr=1)
 
     def test_errorbar_asymmetrical(self):
@@ -3690,37 +3702,38 @@ def assert_is_valid_plot_return_object(objs):
                  ''.format(objs.__class__.__name__))
 
 
-def _check_plot_works(f, *args, **kwargs):
+def _check_plot_works(f, filterwarnings='always', **kwargs):
     import matplotlib.pyplot as plt
     ret = None
-
-    try:
+    with warnings.catch_warnings():
+        warnings.simplefilter(filterwarnings)
         try:
-            fig = kwargs['figure']
-        except KeyError:
-            fig = plt.gcf()
+            try:
+                fig = kwargs['figure']
+            except KeyError:
+                fig = plt.gcf()
 
-        plt.clf()
+            plt.clf()
 
-        ax = kwargs.get('ax', fig.add_subplot(211))
-        ret = f(*args, **kwargs)
+            ax = kwargs.get('ax', fig.add_subplot(211))
+            ret = f(**kwargs)
 
-        assert_is_valid_plot_return_object(ret)
-
-        try:
-            kwargs['ax'] = fig.add_subplot(212)
-            ret = f(*args, **kwargs)
-        except Exception:
-            pass
-        else:
             assert_is_valid_plot_return_object(ret)
 
-        with ensure_clean(return_filelike=True) as path:
-            plt.savefig(path)
-    finally:
-        tm.close(fig)
+            try:
+                kwargs['ax'] = fig.add_subplot(212)
+                ret = f(**kwargs)
+            except Exception:
+                pass
+            else:
+                assert_is_valid_plot_return_object(ret)
 
-    return ret
+            with ensure_clean(return_filelike=True) as path:
+                plt.savefig(path)
+        finally:
+            tm.close(fig)
+
+        return ret
 
 def _generate_4_axes_via_gridspec():
     import matplotlib.pyplot as plt
