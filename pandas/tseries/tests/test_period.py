@@ -2075,26 +2075,6 @@ class TestPeriodIndex(tm.TestCase):
         df = df.set_index(idx2)
         self.assertTrue(df.index.equals(idx2))
 
-    def test_nested_dict_frame_constructor(self):
-        rng = period_range('1/1/2000', periods=5)
-        df = DataFrame(randn(10, 5), columns=rng)
-
-        data = {}
-        for col in df.columns:
-            for row in df.index:
-                data.setdefault(col, {})[row] = df.get_value(row, col)
-
-        result = DataFrame(data, columns=rng)
-        tm.assert_frame_equal(result, df)
-
-        data = {}
-        for col in df.columns:
-            for row in df.index:
-                data.setdefault(row, {})[col] = df.get_value(row, col)
-
-        result = DataFrame(data, index=rng).T
-        tm.assert_frame_equal(result, df)
-
     def test_frame_to_time_stamp(self):
         K = 5
         index = PeriodIndex(freq='A', start='1/1/2001', end='12/1/2009')
