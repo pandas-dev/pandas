@@ -2485,6 +2485,12 @@ class TestGroupBy(tm.TestCase):
         for key, group in grouped:
             self.assertEqual(result[key], len(group))
 
+        df = DataFrame(np.random.choice(20, (1000, 3)), columns=list('abc'))
+        for sort, key in cart_product((False, True), ('a', 'b', ['a', 'b'])):
+            left = df.groupby(key, sort=sort).size()
+            right = df.groupby(key, sort=sort)['c'].apply(lambda a: a.shape[0])
+            assert_series_equal(left, right, check_names=False)
+
     def test_count(self):
         from string import ascii_lowercase
         n = 1 << 15
