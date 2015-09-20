@@ -3937,6 +3937,89 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         result = s.fillna(method='backfill')
         assert_series_equal(result, expected)
 
+    def test_datetime64_tz_fillna(self):
+        for tz in ['US/Eastern', 'Asia/Tokyo']:
+            # DatetimeBlock
+            s = Series([Timestamp('2011-01-01 10:00'), pd.NaT,
+                        Timestamp('2011-01-03 10:00'), pd.NaT])
+            result = s.fillna(pd.Timestamp('2011-01-02 10:00'))
+            expected = Series([Timestamp('2011-01-01 10:00'), Timestamp('2011-01-02 10:00'),
+                               Timestamp('2011-01-03 10:00'), Timestamp('2011-01-02 10:00')])
+            self.assert_series_equal(expected, result)
+
+            result = s.fillna(pd.Timestamp('2011-01-02 10:00', tz=tz))
+            expected = Series([Timestamp('2011-01-01 10:00'),
+                               Timestamp('2011-01-02 10:00', tz=tz),
+                               Timestamp('2011-01-03 10:00'),
+                               Timestamp('2011-01-02 10:00', tz=tz)])
+            self.assert_series_equal(expected, result)
+
+            result = s.fillna('AAA')
+            expected = Series([Timestamp('2011-01-01 10:00'), 'AAA',
+                               Timestamp('2011-01-03 10:00'), 'AAA'], dtype=object)
+            self.assert_series_equal(expected, result)
+
+            result = s.fillna({1: pd.Timestamp('2011-01-02 10:00', tz=tz),
+                               3: pd.Timestamp('2011-01-04 10:00')})
+            expected = Series([Timestamp('2011-01-01 10:00'),
+                               Timestamp('2011-01-02 10:00', tz=tz),
+                               Timestamp('2011-01-03 10:00'),
+                               Timestamp('2011-01-04 10:00')])
+            self.assert_series_equal(expected, result)
+
+            result = s.fillna({1: pd.Timestamp('2011-01-02 10:00'),
+                               3: pd.Timestamp('2011-01-04 10:00')})
+            expected = Series([Timestamp('2011-01-01 10:00'), Timestamp('2011-01-02 10:00'),
+                               Timestamp('2011-01-03 10:00'), Timestamp('2011-01-04 10:00')])
+            self.assert_series_equal(expected, result)
+
+            # DatetimeBlockTZ
+            idx = pd.DatetimeIndex(['2011-01-01 10:00', pd.NaT,
+                                    '2011-01-03 10:00', pd.NaT], tz=tz)
+            s = pd.Series(idx)
+            result = s.fillna(pd.Timestamp('2011-01-02 10:00'))
+            expected = Series([Timestamp('2011-01-01 10:00', tz=tz),
+                               Timestamp('2011-01-02 10:00'),
+                               Timestamp('2011-01-03 10:00', tz=tz),
+                               Timestamp('2011-01-02 10:00')])
+            self.assert_series_equal(expected, result)
+
+            result = s.fillna(pd.Timestamp('2011-01-02 10:00', tz=tz))
+            idx = pd.DatetimeIndex(['2011-01-01 10:00', '2011-01-02 10:00',
+                                    '2011-01-03 10:00', '2011-01-02 10:00'],
+                                   tz=tz)
+            expected = Series(idx)
+            self.assert_series_equal(expected, result)
+
+            result = s.fillna(pd.Timestamp('2011-01-02 10:00', tz=tz).to_pydatetime())
+            idx = pd.DatetimeIndex(['2011-01-01 10:00', '2011-01-02 10:00',
+                                    '2011-01-03 10:00', '2011-01-02 10:00'],
+                                   tz=tz)
+            expected = Series(idx)
+            self.assert_series_equal(expected, result)
+
+            result = s.fillna('AAA')
+            expected = Series([Timestamp('2011-01-01 10:00', tz=tz), 'AAA',
+                               Timestamp('2011-01-03 10:00', tz=tz), 'AAA'],
+                              dtype=object)
+            self.assert_series_equal(expected, result)
+
+            result = s.fillna({1: pd.Timestamp('2011-01-02 10:00', tz=tz),
+                               3: pd.Timestamp('2011-01-04 10:00')})
+            expected = Series([Timestamp('2011-01-01 10:00', tz=tz),
+                               Timestamp('2011-01-02 10:00', tz=tz),
+                               Timestamp('2011-01-03 10:00', tz=tz),
+                               Timestamp('2011-01-04 10:00')])
+            self.assert_series_equal(expected, result)
+
+            result = s.fillna({1: pd.Timestamp('2011-01-02 10:00', tz=tz),
+                               3: pd.Timestamp('2011-01-04 10:00', tz=tz)})
+            expected = Series([Timestamp('2011-01-01 10:00', tz=tz),
+                               Timestamp('2011-01-02 10:00', tz=tz),
+                               Timestamp('2011-01-03 10:00', tz=tz),
+                               Timestamp('2011-01-04 10:00', tz=tz)])
+            self.assert_series_equal(expected, result)
+
     def test_fillna_int(self):
         s = Series(np.random.randint(-100, 100, 50))
         s.fillna(method='ffill', inplace=True)
@@ -5021,6 +5104,29 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
 
         # invalid axis
         self.assertRaises(ValueError, s.dropna, axis=1)
+
+
+    def test_datetime64_tz_dropna(self):
+        # DatetimeBlock
+        s = Series([Timestamp('2011-01-01 10:00'), pd.NaT,
+                    Timestamp('2011-01-03 10:00'), pd.NaT])
+        result = s.dropna()
+        expected = Series([Timestamp('2011-01-01 10:00'),
+                           Timestamp('2011-01-03 10:00')], index=[0, 2])
+        self.assert_series_equal(result, expected)
+
+        # DatetimeBlockTZ
+        idx = pd.DatetimeIndex(['2011-01-01 10:00', pd.NaT,
+                                '2011-01-03 10:00', pd.NaT],
+                               tz='Asia/Tokyo')
+        s = pd.Series(idx)
+        self.assertEqual(s.dtype, 'datetime64[ns, Asia/Tokyo]')
+        result = s.dropna()
+        expected = Series([Timestamp('2011-01-01 10:00', tz='Asia/Tokyo'),
+                           Timestamp('2011-01-03 10:00', tz='Asia/Tokyo')],
+                          index=[0, 2])
+        self.assertEqual(result.dtype, 'datetime64[ns, Asia/Tokyo]')
+        self.assert_series_equal(result, expected)
 
     def test_axis_alias(self):
         s = Series([1, 2, np.nan])
