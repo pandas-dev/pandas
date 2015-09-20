@@ -2512,13 +2512,19 @@ class SeriesGroupBy(GroupBy):
         if isinstance(func, compat.string_types):
             func = getattr(self,func)
 
-        values = func().values
-        counts = self.size().fillna(0).values
-        values = np.repeat(values, com._ensure_platform_int(counts))
-        if any(counts == 0):
-            values = self._try_cast(values, self._selected_obj)
+        ids, _, ngroup = self.grouper.group_info
+        mask = ids != -1
 
-        return self._set_result_index_ordered(Series(values))
+        out = func().values[ids]
+        if not mask.all():
+            out = np.where(mask, out, np.nan)
+
+        obs = np.zeros(ngroup, dtype='bool')
+        obs[ids[mask]] = True
+        if not obs.all():
+            out = self._try_cast(out, self._selected_obj)
+
+        return Series(out, index=self.obj.index)
 
     def filter(self, func, dropna=True, *args, **kwargs):
         """
