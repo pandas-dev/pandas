@@ -452,7 +452,7 @@ def extract_ordinals(ndarray[object] values, freq):
         p = values[i]
         ordinals[i] = p.ordinal
         if p.freqstr != freqstr:
-            raise ValueError("%s is wrong freq" % p)
+            raise ValueError(_DIFFERENT_FREQ_INDEX.format(freqstr, p.freqstr))
 
     return ordinals
 
@@ -624,8 +624,8 @@ cdef ndarray[int64_t] localize_dt64arr_to_period(ndarray[int64_t] stamps,
     return result
 
 
-_DIFFERENT_FREQ_ERROR = "Input has different freq={1} from Period(freq={0})"
-
+_DIFFERENT_FREQ = "Input has different freq={1} from Period(freq={0})"
+_DIFFERENT_FREQ_INDEX = "Input has different freq={1} from PeriodIndex(freq={0})"
 
 cdef class Period(object):
     """
@@ -766,7 +766,7 @@ cdef class Period(object):
         if isinstance(other, Period):
             from pandas.tseries.frequencies import get_freq_code as _gfc
             if other.freq != self.freq:
-                msg = _DIFFERENT_FREQ_ERROR.format(self.freqstr, other.freqstr)
+                msg = _DIFFERENT_FREQ.format(self.freqstr, other.freqstr)
                 raise ValueError(msg)
             if self.ordinal == tslib.iNaT or other.ordinal == tslib.iNaT:
                 return _nat_scalar_rules[op]
@@ -807,7 +807,7 @@ cdef class Period(object):
                 else:
                     ordinal = self.ordinal + other.n
                 return Period(ordinal=ordinal, freq=self.freq)
-            msg = _DIFFERENT_FREQ_ERROR.format(self.freqstr, other.freqstr)
+            msg = _DIFFERENT_FREQ.format(self.freqstr, other.freqstr)
             raise ValueError(msg)
         else: # pragma no cover
             return NotImplemented

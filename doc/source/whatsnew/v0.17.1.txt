@@ -26,6 +26,12 @@ Enhancements
 - ``DataFrame`` now uses the fields of a ``namedtuple`` as columns, if columns are not supplied (:issue:`11181`)
 - Improve the error message displayed in :func:`pandas.io.gbq.to_gbq` when the DataFrame does not match the schema of the destination table (:issue:`11359`)
 
+- ``Index`` now has ``fillna`` method (:issue:`10089`)
+
+.. ipython:: python
+
+   pd.Index([1, np.nan, 3]).fillna(2)
+
 .. _whatsnew_0171.api:
 
 API changes

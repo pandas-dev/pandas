@@ -182,6 +182,15 @@ class TestPandasDelegate(tm.TestCase):
 
 
 class Ops(tm.TestCase):
+
+    def _allow_na_ops(self, obj):
+        """Whether to skip test cases including NaN"""
+        if (isinstance(obj, Index) and
+            (obj.is_boolean() or not obj._can_hold_na)):
+            # don't test boolean / int64 index
+            return False
+        return True
+
     def setUp(self):
         self.bool_index    = tm.makeBoolIndex(10, name='a')
         self.int_index     = tm.makeIntIndex(10, name='a')
@@ -452,13 +461,7 @@ class TestIndexOps(Ops):
                 klass = type(o)
                 values = o.values
 
-                if isinstance(o,Index) and o.is_boolean():
-                    # don't test boolean
-                    continue
-
-                if ((isinstance(o, Int64Index) and not isinstance(o,
-                    (DatetimeIndex, PeriodIndex)))):
-                    # skips int64 because it doesn't allow to include nan or None
+                if not self._allow_na_ops(o):
                     continue
 
                 # special assign to the numpy array
@@ -814,6 +817,64 @@ class TestIndexOps(Ops):
 
                 s.drop_duplicates(inplace=True)
                 tm.assert_series_equal(s, original)
+
+    def test_fillna(self):
+        # # GH 11343
+        # though Index.fillna and Series.fillna has separate impl,
+        # test here to confirm these works as the same
+        def get_fill_value(obj):
+            if isinstance(obj, pd.tseries.base.DatetimeIndexOpsMixin):
+                return obj.asobject.values[0]
+            else:
+                return obj.values[0]
+
+        for o in self.objs:
+            klass = type(o)
+            values = o.values
+
+            # values will not be changed
+            result = o.fillna(get_fill_value(o))
+            if isinstance(o, Index):
+                self.assert_index_equal(o, result)
+            else:
+                self.assert_series_equal(o, result)
+            # check shallow_copied
+            self.assertFalse(o is result)
+
+        for null_obj in [np.nan, None]:
+            for o in self.objs:
+                klass = type(o)
+                values = o.values.copy()
+
+                if not self._allow_na_ops(o):
+                    continue
+
+                # value for filling
+                fill_value = get_fill_value(o)
+
+                # special assign to the numpy array
+                if o.values.dtype == 'datetime64[ns]' or isinstance(o, PeriodIndex):
+                    values[0:2] = pd.tslib.iNaT
+                else:
+                    values[0:2] = null_obj
+
+                if isinstance(o, PeriodIndex):
+                    # freq must be specified because repeat makes freq ambiguous
+                    expected = [fill_value.ordinal] * 2 + list(values[2:])
+                    expected = klass(ordinal=expected, freq=o.freq)
+                    o = klass(ordinal=values, freq=o.freq)
+                else:
+                    expected = [fill_value] * 2 + list(values[2:])
+                    expected = klass(expected)
+                    o = klass(values)
+
+                result = o.fillna(fill_value)
+                if isinstance(o, Index):
+                    self.assert_index_equal(result, expected)
+                else:
+                    self.assert_series_equal(result, expected)
+                # check shallow_copied
+                self.assertFalse(o is result)
 
 
 class TestFloat64HashTable(tm.TestCase):

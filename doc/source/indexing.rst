@@ -1367,6 +1367,31 @@ with duplicates dropped.
    idx1.sym_diff(idx2)
    idx1 ^ idx2
 
+Missing values
+~~~~~~~~~~~~~~
+
+.. _indexing.missing:
+
+.. versionadded:: 0.17.1
+
+.. important::
+
+   Even though ``Index`` can hold missing values (``NaN``), it should be avoided
+   if you do not want any unexpected results. For example, some operations
+   exclude missing values implicitly.
+
+``Index.fillna`` fills missing values with specified scalar value.
+
+.. ipython:: python
+
+   idx1 = pd.Index([1, np.nan, 3, 4])
+   idx1
+   idx1.fillna(2)
+
+   idx2 = pd.DatetimeIndex([pd.Timestamp('2011-01-01'), pd.NaT, pd.Timestamp('2011-01-03')])
+   idx2
+   idx2.fillna(pd.Timestamp('2011-01-02'))
+
 Set / Reset Index
 -----------------
 

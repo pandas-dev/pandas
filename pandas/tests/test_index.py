@@ -559,6 +559,81 @@ class Base(object):
                         with tm.assertRaises(Exception):
                             func(idx)
 
+    def test_hasnans_isnans(self):
+        # GH 11343, added tests for hasnans / isnans
+        for name, index in self.indices.items():
+            if isinstance(index, MultiIndex):
+                pass
+            else:
+                idx = index.copy()
+
+                # cases in indices doesn't include NaN
+                expected = np.array([False] * len(idx), dtype=bool)
+                self.assert_numpy_array_equal(idx._isnan, expected)
+                self.assertFalse(idx.hasnans)
+
+                idx = index.copy()
+                values = idx.values
+
+                if len(index) == 0:
+                    continue
+                elif isinstance(index, pd.tseries.base.DatetimeIndexOpsMixin):
+                    values[1] = pd.tslib.iNaT
+                elif isinstance(index, Int64Index):
+                    continue
+                else:
+                    values[1] = np.nan
+
+                if isinstance(index, PeriodIndex):
+                    idx = index.__class__(values, freq=index.freq)
+                else:
+                    idx = index.__class__(values)
+
+                expected = np.array([False] * len(idx), dtype=bool)
+                expected[1] = True
+                self.assert_numpy_array_equal(idx._isnan, expected)
+                self.assertTrue(idx.hasnans)
+
+    def test_fillna(self):
+        # GH 11343
+        for name, index in self.indices.items():
+            if len(index) == 0:
+                pass
+            elif isinstance(index, MultiIndex):
+                idx = index.copy()
+                msg = "isnull is not defined for MultiIndex"
+                with self.assertRaisesRegexp(NotImplementedError, msg):
+                    idx.fillna(idx[0])
+            else:
+                idx = index.copy()
+                result = idx.fillna(idx[0])
+                self.assert_index_equal(result, idx)
+                self.assertFalse(result is idx)
+
+                msg = "'value' must be a scalar, passed: "
+                with self.assertRaisesRegexp(TypeError, msg):
+                    idx.fillna([idx[0]])
+
+                idx = index.copy()
+                values = idx.values
+
+                if isinstance(index, pd.tseries.base.DatetimeIndexOpsMixin):
+                    values[1] = pd.tslib.iNaT
+                elif isinstance(index, Int64Index):
+                    continue
+                else:
+                    values[1] = np.nan
+
+                if isinstance(index, PeriodIndex):
+                    idx = index.__class__(values, freq=index.freq)
+                else:
+                    idx = index.__class__(values)
+
+                expected = np.array([False] * len(idx), dtype=bool)
+                expected[1] = True
+                self.assert_numpy_array_equal(idx._isnan, expected)
+                self.assertTrue(idx.hasnans)
+
 
 class TestIndex(Base, tm.TestCase):
     _holder = Index
@@ -2516,6 +2591,17 @@ class TestCategoricalIndex(Base, tm.TestCase):
                  categories=[u'あ', u'い', u'う', u'え', u'お', u'か', u'き', u'く', ...], ordered=False, dtype='category')"""
                 self.assertEqual(unicode(idx), expected)
 
+    def test_fillna_categorical(self):
+        # GH 11343
+        idx = CategoricalIndex([1.0, np.nan, 3.0, 1.0], name='x')
+        # fill by value in categories
+        exp = CategoricalIndex([1.0, 1.0, 3.0, 1.0], name='x')
+        self.assert_index_equal(idx.fillna(1.0), exp)
+
+        # fill by value not in categories raises ValueError
+        with tm.assertRaisesRegexp(ValueError, 'fill value must be in categories'):
+            idx.fillna(2.0)
+
 
 class Numeric(Base):
 
@@ -2797,6 +2883,21 @@ class TestFloat64Index(Numeric, tm.TestCase):
         expected = Float64Index([1.0, np.nan, 0.2])
         tm.assert_equal(result.dtype, expected.dtype)
         tm.assert_index_equal(result, expected)
+
+    def test_fillna_float64(self):
+        # GH 11343
+        idx = Index([1.0, np.nan, 3.0], dtype=float, name='x')
+        # can't downcast
+        exp = Index([1.0, 0.1, 3.0], name='x')
+        self.assert_index_equal(idx.fillna(0.1), exp)
+
+        # downcast
+        exp = Int64Index([1, 2, 3], name='x')
+        self.assert_index_equal(idx.fillna(2), exp)
+
+        # object
+        exp = Index([1, 'obj', 3], name='x')
+        self.assert_index_equal(idx.fillna('obj'), exp)
 
 
 class TestInt64Index(Numeric, tm.TestCase):
@@ -3551,6 +3652,39 @@ class TestDatetimeIndex(DatetimeLike, tm.TestCase):
             tm.assert_index_equal(result, exp)
             self.assertEqual(result.freq, 'D')
 
+    def test_fillna_datetime64(self):
+        # GH 11343
+        for tz in ['US/Eastern', 'Asia/Tokyo']:
+            idx = pd.DatetimeIndex(['2011-01-01 09:00', pd.NaT, '2011-01-01 11:00'])
+
+            exp = pd.DatetimeIndex(['2011-01-01 09:00', '2011-01-01 10:00', '2011-01-01 11:00'])
+            self.assert_index_equal(idx.fillna(pd.Timestamp('2011-01-01 10:00')), exp)
+
+            # tz mismatch
+            exp = pd.Index([pd.Timestamp('2011-01-01 09:00'), pd.Timestamp('2011-01-01 10:00', tz=tz),
+                            pd.Timestamp('2011-01-01 11:00')], dtype=object)
+            self.assert_index_equal(idx.fillna(pd.Timestamp('2011-01-01 10:00', tz=tz)), exp)
+
+            # object
+            exp = pd.Index([pd.Timestamp('2011-01-01 09:00'), 'x',
+                            pd.Timestamp('2011-01-01 11:00')], dtype=object)
+            self.assert_index_equal(idx.fillna('x'), exp)
+
+
+            idx = pd.DatetimeIndex(['2011-01-01 09:00', pd.NaT, '2011-01-01 11:00'], tz=tz)
+
+            exp = pd.DatetimeIndex(['2011-01-01 09:00', '2011-01-01 10:00', '2011-01-01 11:00'], tz=tz)
+            self.assert_index_equal(idx.fillna(pd.Timestamp('2011-01-01 10:00', tz=tz)), exp)
+
+            exp = pd.Index([pd.Timestamp('2011-01-01 09:00', tz=tz), pd.Timestamp('2011-01-01 10:00'),
+                            pd.Timestamp('2011-01-01 11:00', tz=tz)], dtype=object)
+            self.assert_index_equal(idx.fillna(pd.Timestamp('2011-01-01 10:00')), exp)
+
+            # object
+            exp = pd.Index([pd.Timestamp('2011-01-01 09:00', tz=tz), 'x',
+                            pd.Timestamp('2011-01-01 11:00', tz=tz)], dtype=object)
+            self.assert_index_equal(idx.fillna('x'), exp)
+
 
 class TestPeriodIndex(DatetimeLike, tm.TestCase):
     _holder = PeriodIndex
@@ -3632,6 +3766,21 @@ class TestPeriodIndex(DatetimeLike, tm.TestCase):
         self.assert_frame_equal(df, df.loc[list(idx)])
         self.assert_frame_equal(df.iloc[0:5], df.loc[idx[0:5]])
         self.assert_frame_equal(df, df.loc[list(idx)])
+
+    def test_fillna_period(self):
+        # GH 11343
+        idx = pd.PeriodIndex(['2011-01-01 09:00', pd.NaT, '2011-01-01 11:00'], freq='H')
+
+        exp = pd.PeriodIndex(['2011-01-01 09:00', '2011-01-01 10:00', '2011-01-01 11:00'], freq='H')
+        self.assert_index_equal(idx.fillna(pd.Period('2011-01-01 10:00', freq='H')), exp)
+
+        exp = pd.Index([pd.Period('2011-01-01 09:00', freq='H'), 'x',
+                        pd.Period('2011-01-01 11:00', freq='H')], dtype=object)
+        self.assert_index_equal(idx.fillna('x'), exp)
+
+        with tm.assertRaisesRegexp(ValueError, 'Input has different freq=D from PeriodIndex\\(freq=H\\)'):
+            idx.fillna(pd.Period('2011-01-01', freq='D'))
+
 
 class TestTimedeltaIndex(DatetimeLike, tm.TestCase):
     _holder = TimedeltaIndex
@@ -3750,6 +3899,19 @@ class TestTimedeltaIndex(DatetimeLike, tm.TestCase):
                                  freq=None, name='x')
             tm.assert_index_equal(result, exp)
             self.assertEqual(result.freq, None)
+
+    def test_fillna_timedelta(self):
+        # GH 11343
+        idx = pd.TimedeltaIndex(['1 day', pd.NaT, '3 day'])
+
+        exp = pd.TimedeltaIndex(['1 day', '2 day', '3 day'])
+        self.assert_index_equal(idx.fillna(pd.Timedelta('2 day')), exp)
+
+        exp = pd.TimedeltaIndex(['1 day', '3 hour', '3 day'])
+        idx.fillna(pd.Timedelta('3 hour'))
+
+        exp = pd.Index([pd.Timedelta('1 day'), 'x', pd.Timedelta('3 day')], dtype=object)
+        self.assert_index_equal(idx.fillna('x'), exp)
 
 
 class TestMultiIndex(Base, tm.TestCase):
