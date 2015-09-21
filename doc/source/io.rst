@@ -2230,6 +2230,8 @@ Writing Excel Files to Memory
 Pandas supports writing Excel files to buffer-like objects such as ``StringIO`` or
 ``BytesIO`` using :class:`~pandas.io.excel.ExcelWriter`.
 
+.. versionadded:: 0.17
+
 Added support for Openpyxl >= 2.2
 
 .. code-block:: python
