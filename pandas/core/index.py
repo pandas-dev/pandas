@@ -15,7 +15,8 @@ from pandas.lib import Timestamp, Timedelta, is_datetime_array
 from pandas.compat import range, zip, lrange, lzip, u, map
 from pandas import compat
 from pandas.core import algorithms
-from pandas.core.base import PandasObject, FrozenList, FrozenNDArray, IndexOpsMixin, _shared_docs, PandasDelegate
+from pandas.core.base import PandasObject, FrozenList, FrozenNDArray, IndexOpsMixin, PandasDelegate
+import pandas.core.base as base
 from pandas.util.decorators import (Appender, Substitution, cache_readonly,
                                     deprecate, deprecate_kwarg)
 import pandas.core.common as com
@@ -27,8 +28,6 @@ from pandas.core.common import (isnull, array_equivalent, is_dtype_equal, is_obj
                                 is_list_like, is_bool_dtype, is_null_slice, is_integer_dtype)
 from pandas.core.config import get_option
 from pandas.io.common import PerformanceWarning
-
-
 
 
 # simplify
@@ -45,6 +44,7 @@ _unsortable_types = frozenset(('mixed', 'mixed-integer'))
 
 _index_doc_kwargs = dict(klass='Index', inplace='',
                          duplicated='np.array')
+_index_shared_docs = dict()
 
 
 def _try_get_item(x):
@@ -108,6 +108,7 @@ class Index(IndexOpsMixin, PandasObject):
     _allow_datetime_index_ops = False
     _allow_period_index_ops = False
     _is_numeric_dtype = False
+    _can_hold_na = True
 
     _engine_type = _index.ObjectEngine
 
@@ -1236,6 +1237,43 @@ class Index(IndexOpsMixin, PandasObject):
         taken = self.values.take(indices)
         return self._shallow_copy(taken)
 
+    @cache_readonly
+    def _isnan(self):
+        """ return if each value is nan"""
+        if self._can_hold_na:
+            return isnull(self)
+        else:
+            # shouldn't reach to this condition by checking hasnans beforehand
+            values = np.empty(len(self), dtype=np.bool_)
+            values.fill(False)
+            return values
+
+    @cache_readonly
+    def _nan_idxs(self):
+        if self._can_hold_na:
+            w, = self._isnan.nonzero()
+            return w
+        else:
+            return np.array([], dtype=np.int64)
+
+    @cache_readonly
+    def hasnans(self):
+        """ return if I have any nans; enables various perf speedups """
+        if self._can_hold_na:
+            return self._isnan.any()
+        else:
+            return False
+
+    def _convert_for_op(self, value):
+        """ Convert value to be insertable to ndarray """
+        return value
+
+    def _assert_can_do_op(self, value):
+        """ Check value is valid for scalar op """
+        if not lib.isscalar(value):
+            msg = "'value' must be a scalar, passed: {0}"
+            raise TypeError(msg.format(type(value).__name__))
+
     def putmask(self, mask, value):
         """
         return a new Index of the values set with the mask
@@ -1245,8 +1283,12 @@ class Index(IndexOpsMixin, PandasObject):
         numpy.ndarray.putmask
         """
         values = self.values.copy()
-        np.putmask(values, mask, value)
-        return self._shallow_copy(values)
+        try:
+            np.putmask(values, mask, self._convert_for_op(value))
+            return self._shallow_copy(values)
+        except (ValueError, TypeError):
+            # coerces to object
+            return self.astype(object).putmask(mask, value)
 
     def format(self, name=False, formatter=None, **kwargs):
         """
@@ -2766,14 +2808,44 @@ class Index(IndexOpsMixin, PandasObject):
         return self.delete(indexer)
 
     @deprecate_kwarg('take_last', 'keep', mapping={True: 'last', False: 'first'})
-    @Appender(_shared_docs['drop_duplicates'] % _index_doc_kwargs)
+    @Appender(base._shared_docs['drop_duplicates'] % _index_doc_kwargs)
     def drop_duplicates(self, keep='first'):
         return super(Index, self).drop_duplicates(keep=keep)
 
     @deprecate_kwarg('take_last', 'keep', mapping={True: 'last', False: 'first'})
-    @Appender(_shared_docs['duplicated'] % _index_doc_kwargs)
+    @Appender(base._shared_docs['duplicated'] % _index_doc_kwargs)
     def duplicated(self, keep='first'):
         return super(Index, self).duplicated(keep=keep)
+
+    _index_shared_docs['fillna'] = """
+        Fill NA/NaN values with the specified value
+
+        Parameters
+        ----------
+        value : scalar
+            Scalar value to use to fill holes (e.g. 0).
+            This value cannot be a list-likes.
+        downcast : dict, default is None
+            a dict of item->dtype of what to downcast if possible,
+            or the string 'infer' which will try to downcast to an appropriate
+            equal type (e.g. float64 to int64 if possible)
+
+        Returns
+        -------
+        filled : Index
+        """
+
+    @Appender(_index_shared_docs['fillna'])
+    def fillna(self, value=None, downcast=None):
+        self._assert_can_do_op(value)
+        if self.hasnans:
+            result = self.putmask(self._isnan, value)
+            if downcast is None:
+                # no need to care metadata other than name
+                # because it can't have freq if
+                return Index(result, name=self.name)
+
+        return self._shallow_copy()
 
     def _evaluate_with_timedelta_like(self, other, op, opstr):
         raise TypeError("can only perform ops with timedelta like values")
@@ -3200,6 +3272,16 @@ class CategoricalIndex(Index, PandasDelegate):
         """ the array interface, return my values """
         return np.array(self._data, dtype=dtype)
 
+    @cache_readonly
+    def _isnan(self):
+        """ return if each value is nan"""
+        return self._data.codes == -1
+
+    @Appender(_index_shared_docs['fillna'])
+    def fillna(self, value, downcast=None):
+        self._assert_can_do_op(value)
+        return CategoricalIndex(self._data.fillna(value), name=self.name)
+
     def argsort(self, *args, **kwargs):
         return self.values.argsort(*args, **kwargs)
 
@@ -3214,7 +3296,7 @@ class CategoricalIndex(Index, PandasDelegate):
         return not self.duplicated().any()
 
     @deprecate_kwarg('take_last', 'keep', mapping={True: 'last', False: 'first'})
-    @Appender(_shared_docs['duplicated'] % _index_doc_kwargs)
+    @Appender(base._shared_docs['duplicated'] % _index_doc_kwargs)
     def duplicated(self, keep='first'):
         from pandas.hashtable import duplicated_int64
         return duplicated_int64(self.codes.astype('i8'), keep)
@@ -3612,6 +3694,8 @@ class Int64Index(NumericIndex):
     _inner_indexer = _algos.inner_join_indexer_int64
     _outer_indexer = _algos.outer_join_indexer_int64
 
+    _can_hold_na = False
+
     _engine_type = _index.Int64Engine
 
     def __new__(cls, data=None, dtype=None, copy=False, name=None, fastpath=False, **kwargs):
@@ -3645,11 +3729,6 @@ class Int64Index(NumericIndex):
     @property
     def inferred_type(self):
         return 'integer'
-
-    @cache_readonly
-    def hasnans(self):
-        # by definition
-        return False
 
     @property
     def asi8(self):
@@ -3871,19 +3950,6 @@ class Float64Index(NumericIndex):
         Checks that all the labels are datetime objects
         """
         return False
-
-    @cache_readonly
-    def _nan_idxs(self):
-        w, = self._isnan.nonzero()
-        return w
-
-    @cache_readonly
-    def _isnan(self):
-        return np.isnan(self.values)
-
-    @cache_readonly
-    def hasnans(self):
-        return self._isnan.any()
 
     @cache_readonly
     def is_unique(self):
@@ -4409,7 +4475,7 @@ class MultiIndex(Index):
         return not self.duplicated().any()
 
     @deprecate_kwarg('take_last', 'keep', mapping={True: 'last', False: 'first'})
-    @Appender(_shared_docs['duplicated'] % _index_doc_kwargs)
+    @Appender(base._shared_docs['duplicated'] % _index_doc_kwargs)
     def duplicated(self, keep='first'):
         from pandas.core.groupby import get_group_index
         from pandas.hashtable import duplicated_int64
@@ -4418,6 +4484,11 @@ class MultiIndex(Index):
         ids = get_group_index(self.labels, shape, sort=False, xnull=False)
 
         return duplicated_int64(ids, keep)
+
+    @Appender(_index_shared_docs['fillna'])
+    def fillna(self, value=None, downcast=None):
+        # isnull is not implemented for MultiIndex
+        raise NotImplementedError('isnull is not defined for MultiIndex')
 
     def get_value(self, series, key):
         # somewhat broken encapsulation
