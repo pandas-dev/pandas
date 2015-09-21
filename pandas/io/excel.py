@@ -1197,7 +1197,10 @@ class _Openpyxl22Writer(_Openpyxl20Writer):
             self.sheets[sheet_name] = wks
 
         for cell in cells:
-            xcell = wks.cell(row=startrow + cell.row + 1, column=startcol + cell.col + 1)
+            xcell = wks.cell(
+                        row=startrow + cell.row + 1,
+                        column=startcol + cell.col + 1
+                        )
             xcell.value = _conv_value(cell.val)
 
             style_kwargs = {}
