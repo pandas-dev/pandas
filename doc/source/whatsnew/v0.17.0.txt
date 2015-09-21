@@ -1033,6 +1033,7 @@ Performance Improvements
 - Improved performance of ``to_datetime`` when specified format string is ISO8601 (:issue:`10178`)
 - 2x improvement of ``Series.value_counts`` for float dtype (:issue:`10821`)
 - Enable ``infer_datetime_format`` in ``to_datetime`` when date components do not have 0 padding (:issue:`11142`)
+- Regression from 0.16.1 in constructing ``DataFrame`` from nested dictionary (:issue:`11084`)
 
 .. _whatsnew_0170.bug_fixes:
 
