@@ -51,7 +51,7 @@ _version = '0.15.2'
 _default_encoding = 'UTF-8'
 
 def _ensure_decoded(s):
-    """ if we have bytes, decode them to unicde """
+    """ if we have bytes, decode them to unicode """
     if isinstance(s, np.bytes_):
         s = s.decode('UTF-8')
     return s

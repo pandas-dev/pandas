@@ -2551,6 +2551,15 @@ class TestDatetimeIndex(tm.TestCase):
         result = index_1 & index_2
         self.assertEqual(len(result), 0)
 
+    def test_union_freq_both_none(self):
+        #GH11086
+        expected = bdate_range('20150101', periods=10)
+        expected.freq = None
+
+        result = expected.union(expected)
+        tm.assert_index_equal(result, expected)
+        self.assertIsNone(result.freq)
+
     # GH 10699
     def test_datetime64_with_DateOffset(self):
         for klass, assert_func in zip([Series, DatetimeIndex],

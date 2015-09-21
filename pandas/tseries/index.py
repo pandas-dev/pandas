@@ -895,7 +895,8 @@ class DatetimeIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
             result = Index.union(this, other)
             if isinstance(result, DatetimeIndex):
                 result.tz = this.tz
-                if result.freq is None:
+                if (result.freq is None and
+                        (this.freq is not None or other.freq is not None)):
                     result.offset = to_offset(result.inferred_freq)
             return result
 
