@@ -34,7 +34,7 @@ import pandas.core.datetools as datetools
 from pandas import (DataFrame, Index, Series, Panel, notnull, isnull,
                     MultiIndex, DatetimeIndex, Timestamp, date_range,
                     read_csv, timedelta_range, Timedelta, CategoricalIndex,
-                    option_context)
+                    option_context, period_range)
 from pandas.core.dtypes import DatetimeTZDtype
 import pandas as pd
 from pandas.parser import CParserError
@@ -3060,6 +3060,27 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         assert_frame_equal(result_timedelta64, expected)
         assert_frame_equal(result_timedelta, expected)
         assert_frame_equal(result_Timedelta, expected)
+
+    def test_nested_dict_frame_constructor(self):
+        rng = period_range('1/1/2000', periods=5)
+        df = DataFrame(randn(10, 5), columns=rng)
+
+        data = {}
+        for col in df.columns:
+            for row in df.index:
+                data.setdefault(col, {})[row] = df.get_value(row, col)
+
+        result = DataFrame(data, columns=rng)
+        tm.assert_frame_equal(result, df)
+
+        data = {}
+        for col in df.columns:
+            for row in df.index:
+                data.setdefault(row, {})[col] = df.get_value(row, col)
+
+        result = DataFrame(data, index=rng).T
+        tm.assert_frame_equal(result, df)
+
 
     def _check_basic_constructor(self, empty):
         "mat: 2d matrix with shpae (3, 2) to input. empty - makes sized objects"
