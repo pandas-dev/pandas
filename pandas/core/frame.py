@@ -597,7 +597,7 @@ class DataFrame(NDFrame):
         Notes
         -----
 
-        1. Because ``iterrows` returns a Series for each row,
+        1. Because ``iterrows`` returns a Series for each row,
            it does **not** preserve dtypes across the rows (dtypes are
            preserved across columns for DataFrames). For example,
 

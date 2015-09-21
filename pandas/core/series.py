@@ -333,7 +333,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         [a, a, b, c]
         Categories (3, object): [a, b, c]
 
-        # this is converted to UTC
+        Timezone aware datetime data is converted to UTC:
+
         >>> pd.Series(pd.date_range('20130101',periods=3,tz='US/Eastern')).values
         array(['2013-01-01T00:00:00.000000000-0500',
                '2013-01-02T00:00:00.000000000-0500',
