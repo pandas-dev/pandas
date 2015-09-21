@@ -1200,13 +1200,6 @@ class _Openpyxl22Writer(_Openpyxl20Writer):
             xcell = wks.cell(row=startrow + cell.row + 1, column=startcol + cell.col + 1)
             xcell.value = _conv_value(cell.val)
 
-            # Apply format codes before cell.style to allow override
-            if isinstance(cell.val, datetime.datetime):
-                xcell.number_format = self.datetime_format
-
-            elif isinstance(cell.val, datetime.date):
-                xcell.number_format = self.date_format
-
             style_kwargs = {}
             if cell.style:
                 style_kwargs = self._convert_to_style_kwargs(cell.style)
