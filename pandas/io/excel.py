@@ -1189,6 +1189,8 @@ class _Openpyxl22Writer(_Openpyxl20Writer):
 
         sheet_name = self._get_sheet_name(sheet_name)
 
+        _style_cache = {}
+
         if sheet_name in self.sheets:
             wks = self.sheets[sheet_name]
         else:
@@ -1205,7 +1207,11 @@ class _Openpyxl22Writer(_Openpyxl20Writer):
 
             style_kwargs = {}
             if cell.style:
-                style_kwargs = self._convert_to_style_kwargs(cell.style)
+                key = str(cell.style)
+                style_kwargs = _style_cache.get(key)
+                if style_kwargs is None:
+                    style_kwargs = self._convert_to_style_kwargs(cell.style)
+                    _style_cache[key] = style_kwargs
 
             if style_kwargs:
                 for k, v in style_kwargs.items():
