@@ -1478,8 +1478,8 @@ def skip_openpyxl_gt21(cls):
         _skip_if_no_openpyxl()
         import openpyxl
         ver = openpyxl.__version__
-        if not (ver >= LooseVersion('2.0.0') and ver < LooseVersion('2.2.0')):
-            raise nose.SkipTest("openpyxl >= 2.2")
+        if not (LooseVersion(ver) >= LooseVersion('2.0.0') and LooseVersion(ver) < LooseVersion('2.2.0')):
+            raise nose.SkipTest("openpyxl %s >= 2.2" % str(ver))
 
     cls.setUpClass = setUpClass
     return cls
@@ -1593,8 +1593,8 @@ def skip_openpyxl_lt22(cls):
         _skip_if_no_openpyxl()
         import openpyxl
         ver = openpyxl.__version__
-        if ver < LooseVersion('2.2.0'):
-            raise nose.SkipTest("openpyxl < 2.2")
+        if LooseVersion(ver) < LooseVersion('2.2.0'):
+            raise nose.SkipTest("openpyxl %s < 2.2" % str(ver))
 
     cls.setUpClass = setUpClass
     return cls
