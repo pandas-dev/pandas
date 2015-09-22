@@ -379,6 +379,7 @@ Or for an object grouped on multiple columns:
 Aggregation
 -----------
 
+Note the Aggregation section requires the installation of NumPY.
 Once the GroupBy object has been created, several methods are available to
 perform a computation on the grouped data.
 
