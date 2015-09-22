@@ -278,6 +278,7 @@ engine, they are mapped to NumPy calls.
 
 Changes to Excel with ``MultiIndex``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 In version 0.16.2 a ``DataFrame`` with ``MultiIndex`` columns could not be written to Excel via ``to_excel``.
 That functionality has been added (:issue:`10564`), along with updating  ``read_excel`` so that the data can
 be read back with no loss of information by specifying which columns/rows make up the ``MultiIndex``
@@ -336,6 +337,7 @@ Google BigQuery Enhancements
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
 
+- Support for ``openpyxl`` >= 2.2. The API for style support is now stable (:issue:`10125`)
 - ``merge`` now accepts the argument ``indicator`` which adds a Categorical-type column (by default called ``_merge``) to the output object that takes on the values (:issue:`8790`)
 
   ===================================   ================
