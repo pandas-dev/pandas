@@ -3918,6 +3918,42 @@ connecting to.
 For more information see the examples the SQLAlchemy `documentation <http://docs.sqlalchemy.org/en/rel_0_9/core/engines.html>`__
 
 
+Advanced SQLAlchemy queries
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+You can use SQLAlchemy constructs to describe your query.
+
+Use :func:`sqlalchemy.text` to specify query parameters in a backend-neutral way
+
+.. ipython:: python
+
+   import sqlalchemy as sa
+   pd.read_sql(sa.text('SELECT * FROM data where Col_1=:col1'), engine, params={'col1': 'X'})
+
+If you have an SQLAlchemy description of your database you can express where conditions using SQLAlchemy expressions
+
+.. ipython:: python
+
+   metadata = sa.MetaData()
+   data_table = sa.Table('data', metadata,
+       sa.Column('index', sa.Integer),
+       sa.Column('Date', sa.DateTime),
+       sa.Column('Col_1', sa.String),
+       sa.Column('Col_2', sa.Float),
+       sa.Column('Col_3', sa.Boolean),
+   )
+
+   pd.read_sql(sa.select([data_table]).where(data_table.c.Col_3 == True), engine)
+
+You can combine SQLAlchemy expressions with parameters passed to :func:`read_sql` using :func:`sqlalchemy.bindparam`
+
+.. ipython:: python
+
+    import datetime as dt
+    expr = sa.select([data_table]).where(data_table.c.Date > sa.bindparam('date'))
+    pd.read_sql(expr, engine, params={'date': dt.datetime(2010, 10, 18)})
+
+
 Sqlite fallback
 '''''''''''''''
 

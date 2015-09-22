@@ -364,9 +364,9 @@ def read_sql_query(sql, con, index_col=None, coerce_float=True, params=None,
 
     Parameters
     ----------
-    sql : string
-        SQL query to be executed
-    con : SQLAlchemy connectable(engine/connection) or database string URI
+    sql : string SQL query or SQLAlchemy Selectable (select or text object)
+        to be executed.
+    con : SQLAlchemy connectable(engine/connection) or database string URI 
         or sqlite3 DBAPI2 connection
         Using SQLAlchemy makes it possible to use any DB supported by that
         library.
@@ -423,8 +423,8 @@ def read_sql(sql, con, index_col=None, coerce_float=True, params=None,
 
     Parameters
     ----------
-    sql : string
-        SQL query to be executed or database table name.
+    sql : string SQL query or SQLAlchemy Selectable (select or text object)
+        to be executed, or database table name.
     con : SQLAlchemy connectable(engine/connection) or database string URI
         or DBAPI2 connection (fallback mode)
         Using SQLAlchemy makes it possible to use any DB supported by that

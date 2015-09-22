@@ -951,6 +951,35 @@ class TestSQLApi(SQLAlchemyMixIn, _TestSQLApi):
         tm.assert_frame_equal(test_frame1, test_frame3)
         tm.assert_frame_equal(test_frame1, test_frame4)
 
+    def _make_iris_table_metadata(self):
+        sa = sqlalchemy
+        metadata = sa.MetaData()
+        iris = sa.Table('iris', metadata,
+            sa.Column('SepalLength', sa.REAL),
+            sa.Column('SepalWidth', sa.REAL),
+            sa.Column('PetalLength', sa.REAL),
+            sa.Column('PetalWidth', sa.REAL),
+            sa.Column('Name', sa.TEXT)
+        )
+
+        return iris
+
+    def test_query_by_text_obj(self):
+        # WIP : GH10846
+        name_text = sqlalchemy.text('select * from iris where name=:name')
+        iris_df = sql.read_sql(name_text, self.conn, params={'name': 'Iris-versicolor'})
+        all_names = set(iris_df['Name'])
+        self.assertEqual(all_names, set(['Iris-versicolor']))
+
+    def test_query_by_select_obj(self):
+        # WIP : GH10846
+        iris = self._make_iris_table_metadata()
+
+        name_select = sqlalchemy.select([iris]).where(iris.c.Name == sqlalchemy.bindparam('name'))
+        iris_df = sql.read_sql(name_select, self.conn, params={'name': 'Iris-setosa'})
+        all_names = set(iris_df['Name'])
+        self.assertEqual(all_names, set(['Iris-setosa']))
+
 
 class _EngineToConnMixin(object):
     """
