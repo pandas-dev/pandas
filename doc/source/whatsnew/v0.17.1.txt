@@ -60,6 +60,7 @@ API changes
 - ``Series.sort_index()`` now correctly handles the ``inplace`` option (:issue:`11402`)
 
 - ``DataFrame.itertuples()`` now returns ``namedtuple`` objects, when possible. (:issue:`11269`)
+- ``Series.ptp`` will now ignore missing values by default (:issue:`11163`)
 
 .. _whatsnew_0171.deprecations:
 

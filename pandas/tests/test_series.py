@@ -5949,6 +5949,31 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         ser = Series(arr)
         self.assertEqual(np.ptp(ser), np.ptp(arr))
 
+        # GH11163
+        s = Series([3, 5, np.nan, -3, 10])
+        self.assertEqual(s.ptp(), 13)
+        self.assertTrue(pd.isnull(s.ptp(skipna=False)))
+
+        mi = pd.MultiIndex.from_product([['a','b'], [1,2,3]])
+        s = pd.Series([1, np.nan, 7, 3, 5, np.nan], index=mi)
+
+        expected = pd.Series([6, 2], index=['a', 'b'], dtype=np.float64)
+        self.assert_series_equal(s.ptp(level=0), expected)
+
+        expected = pd.Series([np.nan, np.nan], index=['a', 'b'])
+        self.assert_series_equal(s.ptp(level=0, skipna=False), expected)
+
+        with self.assertRaises(ValueError):
+            s.ptp(axis=1)
+
+        s = pd.Series(['a', 'b', 'c', 'd', 'e'])
+        with self.assertRaises(TypeError):
+            s.ptp()
+
+        with self.assertRaises(NotImplementedError):
+            s.ptp(numeric_only=True)
+
+
     def test_asof(self):
         # array or list or dates
         N = 50
