@@ -2564,24 +2564,11 @@ class NDFrame(PandasObject):
         converted : same as input object
         """
 
-        # Deprecation code to handle usage change
-        issue_warning = False
-        if datetime == 'coerce':
-            datetime = coerce = True
-            numeric = timedelta = False
-            issue_warning = True
-        elif numeric == 'coerce':
-            numeric = coerce = True
-            datetime = timedelta = False
-            issue_warning = True
-        elif timedelta == 'coerce':
-            timedelta = coerce = True
-            datetime = numeric = False
-            issue_warning = True
-        if issue_warning:
-            warnings.warn("The use of 'coerce' as an input is deprecated. "
-                          "Instead set coerce=True.",
-                          FutureWarning)
+        # passing 'coerce' is deprecated, but we don't want to accidently
+        # force conversions
+        if datetime == 'coerce' or numeric == 'coerce' or timedelta == 'coerce':
+            raise ValueError("The use of 'coerce' as an input is deprecated. "
+                             "Instead set coerce=True.")
 
         return self._constructor(
             self._data.convert(datetime=datetime,
