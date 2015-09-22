@@ -3602,7 +3602,7 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
         ok_for_cat = ['categories','codes','ordered','set_categories',
                       'add_categories', 'remove_categories', 'rename_categories',
                       'reorder_categories', 'remove_unused_categories',
-                      'as_ordered', 'as_unordered']
+                      'as_ordered', 'as_unordered', 'density']
         def get_dir(s):
             results = [ r for r in s.cat.__dir__() if not r.startswith('_') ]
             return list(sorted(set(results)))
@@ -3678,6 +3678,12 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
 
         tm.assert_frame_equal(df_expected, df_concat)
 
+    def test_density(self):
+        s1 = Series(list('aabbcccc')).astype('category')
+        self.assertEqual(0.375, s1.cat.density)
+
+        s2 = Series([]).astype('category')
+        self.assertTrue(np.isnan(s2.cat.density))
 
 
 if __name__ == '__main__':

@@ -1753,6 +1753,11 @@ class CategoricalAccessor(PandasDelegate):
         from pandas import Series
         return Series(self.categorical.codes, index=self.index)
 
+    @property
+    def density(self):
+        """The cardinality ratio of this categorical."""
+        return np.divide(float(len(self.categorical.categories)), len(self.categorical))
+
     def _delegate_method(self, name, *args, **kwargs):
         from pandas import Series
         method = getattr(self.categorical, name)

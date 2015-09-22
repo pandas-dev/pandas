@@ -643,6 +643,7 @@ following usable methods and properties:
    Series.cat.categories
    Series.cat.ordered
    Series.cat.codes
+   Series.cat.density
 
 .. autosummary::
    :toctree: generated/
