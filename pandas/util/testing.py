@@ -196,6 +196,14 @@ def mplskip(cls):
     return cls
 
 
+def _skip_if_mpl_1_5():
+    import matplotlib
+    v = matplotlib.__version__
+    if v > LooseVersion('1.4.3') or v[0] == '0':
+        import nose
+        raise nose.SkipTest("matplotlib 1.5")
+
+
 def _skip_if_no_scipy():
     try:
         import scipy.stats

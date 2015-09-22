@@ -161,8 +161,8 @@ class TestSeriesPlots(TestPlotBase):
     @slow
     def test_autocorrelation_plot(self):
         from pandas.tools.plotting import autocorrelation_plot
-        _check_plot_works(autocorrelation_plot, self.ts)
-        _check_plot_works(autocorrelation_plot, self.ts.values)
+        _check_plot_works(autocorrelation_plot, series=self.ts)
+        _check_plot_works(autocorrelation_plot, series=self.ts.values)
 
         ax = autocorrelation_plot(self.ts, label='Test')
         self._check_legend_labels(ax, labels=['Test'])
@@ -170,13 +170,13 @@ class TestSeriesPlots(TestPlotBase):
     @slow
     def test_lag_plot(self):
         from pandas.tools.plotting import lag_plot
-        _check_plot_works(lag_plot, self.ts)
-        _check_plot_works(lag_plot, self.ts, lag=5)
+        _check_plot_works(lag_plot, series=self.ts)
+        _check_plot_works(lag_plot, series=self.ts, lag=5)
 
     @slow
     def test_bootstrap_plot(self):
         from pandas.tools.plotting import bootstrap_plot
-        _check_plot_works(bootstrap_plot, self.ts, size=10)
+        _check_plot_works(bootstrap_plot, series=self.ts, size=10)
 
 
 @tm.mplskip
@@ -210,7 +210,7 @@ class TestDataFramePlots(TestPlotBase):
         _check_plot_works(df.boxplot, column='one', by=['indic', 'indic2'])
         _check_plot_works(df.boxplot, by='indic')
         _check_plot_works(df.boxplot, by=['indic', 'indic2'])
-        _check_plot_works(plotting.boxplot, df['one'], return_type='dict')
+        _check_plot_works(plotting.boxplot, data=df['one'], return_type='dict')
         _check_plot_works(df.boxplot, notch=1, return_type='dict')
         _check_plot_works(df.boxplot, by='indic', notch=1)
 
@@ -304,6 +304,7 @@ class TestDataFramePlots(TestPlotBase):
 
     @slow
     def test_hist_df_legacy(self):
+        from matplotlib.patches import Rectangle
         _check_plot_works(self.hist_df.hist)
 
         # make sure layout is handled
@@ -347,7 +348,8 @@ class TestDataFramePlots(TestPlotBase):
         # make sure kwargs to hist are handled
         ax = ser.hist(normed=True, cumulative=True, bins=4)
         # height of last bin (index 5) must be 1.0
-        self.assertAlmostEqual(ax.get_children()[5].get_height(), 1.0)
+        rects = [x for x in ax.get_children() if isinstance(x, Rectangle)]
+        self.assertAlmostEqual(rects[-1].get_height(), 1.0)
 
         tm.close()
         ax = ser.hist(log=True)
@@ -413,9 +415,9 @@ class TestDataFramePlots(TestPlotBase):
         def scat2(x, y, by=None, ax=None, figsize=None):
             return plotting.scatter_plot(df, x, y, by, ax, figsize=None)
 
-        _check_plot_works(scat2, 0, 1)
+        _check_plot_works(scat2, x=0, y=1)
         grouper = Series(np.repeat([1, 2, 3, 4, 5], 20), df.index)
-        _check_plot_works(scat2, 0, 1, by=grouper)
+        _check_plot_works(scat2, x=0, y=1, by=grouper)
 
     def test_scatter_matrix_axis(self):
         tm._skip_if_no_scipy()
@@ -424,7 +426,8 @@ class TestDataFramePlots(TestPlotBase):
         with tm.RNGContext(42):
             df = DataFrame(randn(100, 3))
 
-        axes = _check_plot_works(scatter_matrix, df, range_padding=.1)
+        axes = _check_plot_works(scatter_matrix, filterwarnings='always', frame=df,
+                                 range_padding=.1)
         axes0_labels = axes[0][0].yaxis.get_majorticklabels()
         # GH 5662
         expected = ['-2', '-1', '0', '1', '2']
@@ -432,7 +435,8 @@ class TestDataFramePlots(TestPlotBase):
         self._check_ticks_props(axes, xlabelsize=8, xrot=90, ylabelsize=8, yrot=0)
 
         df[0] = ((df[0] - 2) / 3)
-        axes = _check_plot_works(scatter_matrix, df, range_padding=.1)
+        axes = _check_plot_works(scatter_matrix, filterwarnings='always', frame=df,
+                                 range_padding=.1)
         axes0_labels = axes[0][0].yaxis.get_majorticklabels()
         expected = ['-1.2', '-1.0', '-0.8', '-0.6', '-0.4', '-0.2', '0.0']
         self._check_text_labels(axes0_labels, expected)
@@ -445,17 +449,17 @@ class TestDataFramePlots(TestPlotBase):
 
         df = self.iris
 
-        _check_plot_works(andrews_curves, df, 'Name')
+        _check_plot_works(andrews_curves, frame=df, class_column='Name')
 
         rgba = ('#556270', '#4ECDC4', '#C7F464')
-        ax = _check_plot_works(andrews_curves, df, 'Name', color=rgba)
+        ax = _check_plot_works(andrews_curves, frame=df, class_column='Name', color=rgba)
         self._check_colors(ax.get_lines()[:10], linecolors=rgba, mapping=df['Name'][:10])
 
         cnames = ['dodgerblue', 'aquamarine', 'seagreen']
-        ax = _check_plot_works(andrews_curves, df, 'Name', color=cnames)
+        ax = _check_plot_works(andrews_curves, frame=df, class_column='Name', color=cnames)
         self._check_colors(ax.get_lines()[:10], linecolors=cnames, mapping=df['Name'][:10])
 
-        ax = _check_plot_works(andrews_curves, df, 'Name', colormap=cm.jet)
+        ax = _check_plot_works(andrews_curves, frame=df, class_column='Name', colormap=cm.jet)
         cmaps = lmap(cm.jet, np.linspace(0, 1, df['Name'].nunique()))
         self._check_colors(ax.get_lines()[:10], linecolors=cmaps, mapping=df['Name'][:10])
 
@@ -478,23 +482,23 @@ class TestDataFramePlots(TestPlotBase):
 
         df = self.iris
 
-        ax = _check_plot_works(parallel_coordinates, df, 'Name')
+        ax = _check_plot_works(parallel_coordinates, frame=df, class_column='Name')
         nlines = len(ax.get_lines())
         nxticks = len(ax.xaxis.get_ticklabels())
 
         rgba = ('#556270', '#4ECDC4', '#C7F464')
-        ax = _check_plot_works(parallel_coordinates, df, 'Name', color=rgba)
+        ax = _check_plot_works(parallel_coordinates, frame=df, class_column='Name', color=rgba)
         self._check_colors(ax.get_lines()[:10], linecolors=rgba, mapping=df['Name'][:10])
 
         cnames = ['dodgerblue', 'aquamarine', 'seagreen']
-        ax = _check_plot_works(parallel_coordinates, df, 'Name', color=cnames)
+        ax = _check_plot_works(parallel_coordinates, frame=df, class_column='Name', color=cnames)
         self._check_colors(ax.get_lines()[:10], linecolors=cnames, mapping=df['Name'][:10])
 
-        ax = _check_plot_works(parallel_coordinates, df, 'Name', colormap=cm.jet)
+        ax = _check_plot_works(parallel_coordinates, frame=df, class_column='Name', colormap=cm.jet)
         cmaps = lmap(cm.jet, np.linspace(0, 1, df['Name'].nunique()))
         self._check_colors(ax.get_lines()[:10], linecolors=cmaps, mapping=df['Name'][:10])
 
-        ax = _check_plot_works(parallel_coordinates, df, 'Name', axvlines=False)
+        ax = _check_plot_works(parallel_coordinates, frame=df, class_column='Name', axvlines=False)
         assert len(ax.get_lines()) == (nlines - nxticks)
 
         colors = ['b', 'g', 'r']
@@ -517,20 +521,20 @@ class TestDataFramePlots(TestPlotBase):
         from matplotlib import cm
 
         df = self.iris
-        _check_plot_works(radviz, df, 'Name')
+        _check_plot_works(radviz, frame=df, class_column='Name')
 
         rgba = ('#556270', '#4ECDC4', '#C7F464')
-        ax = _check_plot_works(radviz, df, 'Name', color=rgba)
+        ax = _check_plot_works(radviz, frame=df, class_column='Name', color=rgba)
         # skip Circle drawn as ticks
         patches = [p for p in ax.patches[:20] if p.get_label() != '']
         self._check_colors(patches[:10], facecolors=rgba, mapping=df['Name'][:10])
 
         cnames = ['dodgerblue', 'aquamarine', 'seagreen']
-        _check_plot_works(radviz, df, 'Name', color=cnames)
+        _check_plot_works(radviz, frame=df, class_column='Name', color=cnames)
         patches = [p for p in ax.patches[:20] if p.get_label() != '']
         self._check_colors(patches, facecolors=cnames, mapping=df['Name'][:10])
 
-        _check_plot_works(radviz, df, 'Name', colormap=cm.jet)
+        _check_plot_works(radviz, frame=df, class_column='Name', colormap=cm.jet)
         cmaps = lmap(cm.jet, np.linspace(0, 1, df['Name'].nunique()))
         patches = [p for p in ax.patches[:20] if p.get_label() != '']
         self._check_colors(patches, facecolors=cmaps, mapping=df['Name'][:10])
@@ -607,6 +611,8 @@ class TestDataFrameGroupByPlots(TestPlotBase):
 
     @slow
     def test_grouped_hist_legacy(self):
+        from matplotlib.patches import Rectangle
+
         df = DataFrame(randn(500, 2), columns=['A', 'B'])
         df['C'] = np.random.randint(0, 4, 500)
         df['D'] = ['X'] * 500
@@ -633,7 +639,8 @@ class TestDataFrameGroupByPlots(TestPlotBase):
                                      xlabelsize=xf, xrot=xrot, ylabelsize=yf, yrot=yrot)
         # height of last bin (index 5) must be 1.0
         for ax in axes.ravel():
-            height = ax.get_children()[5].get_height()
+            rects = [x for x in ax.get_children() if isinstance(x, Rectangle)]
+            height = rects[-1].get_height()
             self.assertAlmostEqual(height, 1.0)
         self._check_ticks_props(axes, xlabelsize=xf, xrot=xrot,
                                 ylabelsize=yf, yrot=yrot)
