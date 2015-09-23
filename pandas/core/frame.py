@@ -1941,8 +1941,8 @@ class DataFrame(NDFrame):
                 warnings.warn("Boolean Series key will be reindexed to match "
                               "DataFrame index.", UserWarning)
             elif len(key) != len(self.index):
-                raise ValueError('Item wrong length %d instead of %d.' %
-                                 (len(key), len(self.index)))
+                indexer = self.ix._convert_to_indexer(key, axis=1)
+                return self.take(indexer, axis=1, convert=True)
             # check_bool_indexer will throw exception if Series key cannot
             # be reindexed to match DataFrame rows
             key = check_bool_indexer(self.index, key)

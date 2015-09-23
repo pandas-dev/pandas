@@ -943,6 +943,12 @@ class TestIndex(Base, tm.TestCase):
         subIndex = self.strIndex[list(boolIdx)]
         for i, val in enumerate(subIndex):
             self.assertEqual(subIndex.get_loc(val), i)
+    
+    def test_booleanLabel(self):
+        df = pd.DataFrame({True: [1,2,5,9],
+                            False: [6,1,13,8]})
+        self.assert_frame_equal(df[df[True]>3], df[2:])
+        self.assert_frame_equal(df[[False,True]], df)
 
     def test_fancy(self):
         sl = self.strIndex[[1, 2, 3]]
