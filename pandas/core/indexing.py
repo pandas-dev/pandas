@@ -1076,7 +1076,8 @@ class _NDFrameIndexer(object):
         elif is_nested_tuple(obj, labels):
             return labels.get_locs(obj)
         elif is_list_like_indexer(obj):
-            if is_bool_indexer(obj):
+            if (is_bool_indexer(obj) and (len(labels) == len(self.obj.index)
+                                     or not is_bool_indexer(list(labels)))):
                 obj = check_bool_indexer(labels, obj)
                 inds, = obj.nonzero()
                 return inds
