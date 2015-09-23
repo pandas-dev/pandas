@@ -3739,10 +3739,17 @@ def get_group_index(labels, shape, sort, xnull):
     An array of type int64 where two elements are equal if their corresponding
     labels are equal at all location.
     """
+    def _int64_cut_off(shape):
+        acc = long(1)
+        for i, mul in enumerate(shape):
+            acc *= long(mul)
+            if not acc < _INT64_MAX:
+                return i
+        return len(shape)
+
     def loop(labels, shape):
         # how many levels can be done without overflow:
-        pred = lambda i: not _int64_overflow_possible(shape[:i])
-        nlev = next(filter(pred, range(len(shape), 0, -1)))
+        nlev = _int64_cut_off(shape)
 
         # compute flat ids for the first `nlev` levels
         stride = np.prod(shape[1:nlev], dtype='i8')
