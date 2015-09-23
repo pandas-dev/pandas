@@ -1044,6 +1044,7 @@ Performance Improvements
 - Performance improvements in ``Categorical.value_counts`` (:issue:`10804`)
 - Performance improvements in ``SeriesGroupBy.nunique`` and ``SeriesGroupBy.value_counts`` and ``SeriesGroupby.transform`` (:issue:`10820`, :issue:`11077`)
 - Performance improvements in ``DataFrame.drop_duplicates`` with integer dtypes (:issue:`10917`)
+- Performance improvements in ``DataFrame.duplicated`` with wide frames. (:issue:`11180`)
 - 4x improvement in ``timedelta`` string parsing (:issue:`6755`, :issue:`10426`)
 - 8x improvement in ``timedelta64`` and ``datetime64`` ops (:issue:`6755`)
 - Significantly improved performance of indexing ``MultiIndex`` with slicers (:issue:`10287`)
