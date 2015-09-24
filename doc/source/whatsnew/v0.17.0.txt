@@ -907,6 +907,23 @@ Changes to ``Categorical.unique``
    cat
    cat.unique()
 
+Changes to ``bool`` passed as ``header`` in Parsers
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+In earlier versions of pandas, if a bool was passed the ``header`` argument of
+``read_csv``, ``read_excel``, or ``read_html`` it was implicitly converted to
+an integer, resulting in ``header=0`` for ``False`` and ``header=1`` for ``True``
+(:issue:`6113`)
+
+A ``bool`` input to ``header`` will now raise a ``TypeError``
+
+.. code-block :: python
+
+   In [29]: df = pd.read_csv('data.csv', header=False)
+   TypeError: Passing a bool to header is invalid. Use header=None for no header or
+   header=int or list-like of ints to specify the row(s) making up the column names
+
+
 .. _whatsnew_0170.api_breaking.other:
 
 Other API Changes
