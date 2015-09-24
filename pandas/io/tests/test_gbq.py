@@ -120,13 +120,19 @@ def make_mixed_dataframe_v2(test_size):
                       index=range(test_size))
 
 
+def test_generate_bq_schema_deprecated():
+    # 11121 Deprecation of generate_bq_schema
+    with tm.assert_produces_warning(FutureWarning):
+        df = make_mixed_dataframe_v2(10)
+        gbq.generate_bq_schema(df)
+
 class TestGBQConnectorIntegration(tm.TestCase):
     def setUp(self):
         test_requirements()
 
         if not PROJECT_ID:
             raise nose.SkipTest("Cannot run integration tests without a project id")
-        
+
         self.sut = gbq.GbqConnector(PROJECT_ID)
 
     def test_should_be_able_to_make_a_connector(self):

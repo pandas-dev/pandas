@@ -1,3 +1,4 @@
+import warnings
 from datetime import datetime
 import json
 import logging
@@ -513,6 +514,14 @@ def to_gbq(dataframe, destination_table, project_id, chunksize=10000,
     connector.load_data(dataframe, dataset_id, table_id, chunksize, verbose)
 
 
+def generate_bq_schema(df, default_type='STRING'):
+
+    # deprecation TimeSeries, #11121
+    warnings.warn("generate_bq_schema is deprecated and will be removed in a future version",
+                  FutureWarning, stacklevel=2)
+
+    return _generate_bq_schema(df, default_type=default_type)
+
 def _generate_bq_schema(df, default_type='STRING'):
     """ Given a passed df, generate the associated Google BigQuery schema.
 
@@ -540,9 +549,6 @@ def _generate_bq_schema(df, default_type='STRING'):
                        'type': type_mapping.get(dtype.kind, default_type)})
 
     return {'fields': fields}
-
-generate_bq_schema = deprecate('generate_bq_schema', _generate_bq_schema)
-
 
 class _Table(GbqConnector):
 
@@ -794,4 +800,3 @@ class _Dataset(GbqConnector):
             return table_list
         except self.http_error as ex:
             self.process_http_error(ex)
-
