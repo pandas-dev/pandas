@@ -1090,7 +1090,7 @@ decreasing.
 
 Note that the same result could have been achieved using
 :ref:`fillna <missing_data.fillna>` (except for ``method='nearest'``) or
-:ref:`interpolate <missing_data.interpolation>`:
+:ref:`interpolate <missing_data.interpolate>`:
 
 .. ipython:: python
 

@@ -179,7 +179,7 @@ To install pandas for Python 3 you may need to use the package ``python3-pandas`
 Installing from source
 ~~~~~~~~~~~~~~~~~~~~~~
 
-See the :ref:`contributing documentation <contributing>` for complete instructions on building from the git source tree. Further, see :ref:`creating a devevlopment environment <contributing-dev_env>` if you wish to create a *pandas* development environment.
+See the :ref:`contributing documentation <contributing>` for complete instructions on building from the git source tree. Further, see :ref:`creating a development environment <contributing.dev_env>` if you wish to create a *pandas* development environment.
 
 Running the test suite
 ~~~~~~~~~~~~~~~~~~~~~~

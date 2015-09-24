@@ -2075,10 +2075,10 @@ Equivalent class and function approaches to read multiple sheets:
     # For when Sheet1's format is identical to Sheet2
     data = read_excel('path_to_file.xls', ['Sheet1','Sheet2'], index_col=None, na_values=['NA'])
 
+.. _io.excel.specifying_sheets:
+
 Specifying Sheets
 +++++++++++++++++
-
-.. _io.specifying_sheets:
 
 .. note :: The second argument is ``sheetname``, not to be confused with ``ExcelFile.sheet_names``
 
@@ -3924,7 +3924,7 @@ For more information see the examples the SQLAlchemy `documentation <http://docs
 
 
 Advanced SQLAlchemy queries
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
+'''''''''''''''''''''''''''
 
 You can use SQLAlchemy constructs to describe your query.
 
