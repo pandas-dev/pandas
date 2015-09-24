@@ -154,8 +154,8 @@ Creating a Development Environment
 
 An easy way to create a *pandas* development environment is as follows.
 
-- Install either :ref:`Install Anaconda <install-anaconda>` or :ref:`Install miniconda <install-miniconda>`
-- Make sure that you have :ref:`cloned the repository <contributing-forking>`
+- Install either :ref:`Install Anaconda <install.anaconda>` or :ref:`Install miniconda <install.miniconda>`
+- Make sure that you have :ref:`cloned the repository <contributing.forking>`
 - ``cd`` to the pandas source directory
 
 Tell ``conda`` to create a new environment, named ``pandas_dev``, or any name you would like for this environment by running:
@@ -339,7 +339,7 @@ follow the Numpy Docstring Standard (see above), but you don't need to install
 this because a local copy of ``numpydoc`` is included in the *pandas* source
 code.
 
-It is easiest to :ref:`create a development environment <contributing-dev_env>`, then install:
+It is easiest to :ref:`create a development environment <contributing.dev_env>`, then install:
 
 ::
 
@@ -567,7 +567,7 @@ It is also useful to run tests in your current environment. You can simply do it
 
 which would be equivalent to ``asv run --quick --show-stderr --python=same``. This
 will launch every test only once, display stderr from the benchmarks and use your
-local ``python'' that comes from your $PATH.
+local ``python`` that comes from your $PATH.
 
 Information on how to write a benchmark can be found in
 `*asv*'s documentation http://asv.readthedocs.org/en/latest/writing_benchmarks.html`.
