@@ -17,7 +17,7 @@ import pandas.core.common as com
 from pandas.core.common import AbstractMethodError
 from pandas.core.config import get_option
 from pandas.io.date_converters import generic_parser
-from pandas.io.common import get_filepath_or_buffer
+from pandas.io.common import get_filepath_or_buffer, _validate_header_arg
 from pandas.tseries import tools
 
 from pandas.util.decorators import Appender
@@ -672,6 +672,8 @@ class TextFileReader(object):
 
         # really delete this one
         keep_default_na = result.pop('keep_default_na')
+
+        _validate_header_arg(options['header'])
 
         if index_col is True:
             raise ValueError("The value of index_col couldn't be 'True'")

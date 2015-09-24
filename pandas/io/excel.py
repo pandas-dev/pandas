@@ -11,7 +11,7 @@ import numpy as np
 
 from pandas.core.frame import DataFrame
 from pandas.io.parsers import TextParser
-from pandas.io.common import _is_url, _urlopen
+from pandas.io.common import _is_url, _urlopen, _validate_header_arg
 from pandas.tseries.period import Period
 from pandas import json
 from pandas.compat import (map, zip, reduce, range, lrange, u, add_metaclass,
@@ -217,6 +217,7 @@ class ExcelFile(object):
         if skipfooter is not None:
             skip_footer = skipfooter
 
+        _validate_header_arg(header)
         if has_index_names is not None:
             warn("\nThe has_index_names argument is deprecated; index names "
                  "will be automatically inferred based on index_col.\n"

@@ -384,6 +384,8 @@ class ReadingTestsBase(SharedItems):
         tm.assert_frame_equal(actual, expected)
 
 
+
+
 class XlrdTests(ReadingTestsBase):
     """
     This is the base class for the xlrd tests, and 3 different file formats
@@ -641,7 +643,12 @@ class XlrdTests(ReadingTestsBase):
                                    has_index_names=False)
         tm.assert_frame_equal(actual, expected, check_names=False)
 
-
+    def test_read_excel_bool_header_arg(self):
+        #GH 6114
+        for arg in [True, False]:
+            with tm.assertRaises(TypeError):
+                pd.read_excel(os.path.join(self.dirpath, 'test1' + self.ext),
+                              header=arg)
 
 class XlsReaderTests(XlrdTests, tm.TestCase):
     ext = '.xls'
