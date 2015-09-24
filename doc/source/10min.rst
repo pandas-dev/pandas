@@ -30,7 +30,7 @@
 This is a short introduction to pandas, geared mainly for new users.
 You can see more complex recipes in the :ref:`Cookbook<cookbook>`
 
-Customarily, we import as follows
+Customarily, we import as follows:
 
 .. ipython:: python
 
