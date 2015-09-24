@@ -194,6 +194,12 @@ def _expand_user(filepath_or_buffer):
         return os.path.expanduser(filepath_or_buffer)
     return filepath_or_buffer
 
+def _validate_header_arg(header):
+    if isinstance(header, bool):
+        raise TypeError("Passing a bool to header is invalid. "
+                        "Use header=None for no header or "
+                        "header=int or list-like of ints to specify "
+                        "the row(s) making up the column names")
 
 def get_filepath_or_buffer(filepath_or_buffer, encoding=None,
                            compression=None):

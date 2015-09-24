@@ -13,7 +13,7 @@ from distutils.version import LooseVersion
 
 import numpy as np
 
-from pandas.io.common import _is_url, urlopen, parse_url
+from pandas.io.common import _is_url, urlopen, parse_url, _validate_header_arg
 from pandas.io.parsers import TextParser
 from pandas.compat import (lrange, lmap, u, string_types, iteritems,
                            raise_with_traceback, binary_type)
@@ -861,5 +861,6 @@ def read_html(io, match='.+', flavor=None, header=None, index_col=None,
     if isinstance(skiprows, numbers.Integral) and skiprows < 0:
         raise ValueError('cannot skip rows starting from the end of the '
                          'data (you passed a negative value)')
+    _validate_header_arg(header)
     return _parse(flavor, io, match, header, index_col, skiprows,
                   parse_dates, tupleize_cols, thousands, attrs, encoding)

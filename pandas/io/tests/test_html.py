@@ -637,6 +637,11 @@ class TestReadHtml(tm.TestCase, ReadHtmlMixin):
         result = self.read_html(data, 'Arizona', header=1)[0]
         nose.tools.assert_equal(result['sq mi'].dtype, np.dtype('float64'))
 
+    def test_bool_header_arg(self):
+        #GH 6114
+        for arg in [True, False]:
+            with tm.assertRaises(TypeError):
+                read_html(self.spam_data, header=arg)
 
 def _lang_enc(filename):
     return os.path.splitext(os.path.basename(filename))[0].split('_')
