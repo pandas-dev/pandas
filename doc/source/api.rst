@@ -89,7 +89,6 @@ SAS
    :toctree: generated/
 
    read_sas
-   XportReader
 
 SQL
 ~~~
