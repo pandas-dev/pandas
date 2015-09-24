@@ -34,7 +34,7 @@ Data Structures
 ---------------
 
 General Terminology Translation
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. csv-table::
     :header: "pandas", "SAS"
