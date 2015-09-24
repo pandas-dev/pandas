@@ -18,6 +18,7 @@ git:
 
 matrix:
     fast_finish: true
+    fail_fast: true
     include:
     - python: 2.6
       env:
@@ -105,10 +106,9 @@ matrix:
     - python: 2.7
       env:
       - JOB_NAME: "doc_build"
-      - FULL_DEPS=true
+      - JOB_TAG=_DOC_BUILD
       - BUILD_TYPE=conda
       - DOC_BUILD=true # if rst files were changed, build docs in parallel with tests
-      - JOB_TAG=_DOC_BUILD
     allow_failures:
       - python: 3.3
         env:
@@ -159,10 +159,9 @@ matrix:
       - python: 2.7
         env:
         - JOB_NAME: "doc_build"
-        - FULL_DEPS=true
+        - JOB_TAG=_DOC_BUILD
         - BUILD_TYPE=conda
         - DOC_BUILD=true
-        - JOB_TAG=_DOC_BUILD
 
 before_install:
   - echo "before_install"

@@ -11,3 +11,7 @@ echo "inside $0"
 sudo apt-get update $APT_ARGS # run apt-get update for all versions
 
 true # never fail because bad things happened here
+
+if [ x"$DOC_BUILD" == x"" ]; then
+    exit 1
+fi
