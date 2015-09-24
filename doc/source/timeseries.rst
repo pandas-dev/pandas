@@ -1768,7 +1768,6 @@ TZ aware Dtypes
    s_aware
 
 Both of these ``Series`` can be manipulated via the ``.dt`` accessor, see :ref:`here <basics.dt_accessors>`.
-See the :ref:`docs <timeseries.dtypes>` for more details.
 
 For example, to localize and convert a naive stamp to timezone aware.
 

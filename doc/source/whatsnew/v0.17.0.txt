@@ -453,7 +453,7 @@ Other enhancements
 
 - Enable reading gzip compressed files via URL, either by explicitly setting the compression parameter or by inferring from the presence of the HTTP Content-Encoding header in the response (:issue:`8685`)
 
-- Enable writing Excel files in :ref:`memory <_io.excel_writing_buffer>` using StringIO/BytesIO (:issue:`7074`)
+- Enable writing Excel files in :ref:`memory <io.excel_writing_buffer>` using StringIO/BytesIO (:issue:`7074`)
 
 - Enable serialization of lists and dicts to strings in ``ExcelWriter`` (:issue:`8188`)
 
@@ -967,7 +967,7 @@ Deprecations
   ``DataFrame.add(other, fill_value=0)`` and ``DataFrame.mul(other, fill_value=1.)``
   (:issue:`10735`).
 - ``TimeSeries`` deprecated in favor of ``Series`` (note that this has been alias since 0.13.0), (:issue:`10890`)
-- ``SparsePanel`` deprecated and will be removed in a future version (:issue:``)
+- ``SparsePanel`` deprecated and will be removed in a future version (:issue:`11157`).
 - ``Series.is_time_series`` deprecated in favor of ``Series.index.is_all_dates`` (:issue:`11135`)
 - Legacy offsets (like ``'A@JAN'``) listed in :ref:`here <timeseries.legacyaliases>` are deprecated (note that this has been alias since 0.8.0), (:issue:`10878`)
 - ``WidePanel`` deprecated in favor of ``Panel``, ``LongPanel`` in favor of ``DataFrame`` (note these have been aliases since < 0.11.0), (:issue:`10892`)
