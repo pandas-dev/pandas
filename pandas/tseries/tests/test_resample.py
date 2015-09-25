@@ -936,7 +936,7 @@ class TestResample(tm.TestCase):
             mask = np.r_[True, vals[1:] != vals[:-1]]
             mask |= np.r_[True, bins[1:] != bins[:-1]]
 
-            arr = np.bincount(bins[mask] - 1, minlength=len(ix))
+            arr = np.bincount(bins[mask] - 1, minlength=len(ix)).astype('int64',copy=False)
             right = Series(arr, index=ix)
 
             assert_series_equal(left, right)
@@ -950,7 +950,7 @@ class TestResample(tm.TestCase):
         ix = date_range(start=left.index.min(), end=ts.index.max(), freq='7T')
 
         bins = np.searchsorted(ix.values, ts.index.values, side='right')
-        val = np.bincount(bins, minlength=len(ix) + 1)[1:]
+        val = np.bincount(bins, minlength=len(ix) + 1)[1:].astype('int64',copy=False)
 
         right = Series(val, index=ix)
         assert_series_equal(left, right)

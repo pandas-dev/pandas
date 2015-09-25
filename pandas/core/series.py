@@ -1137,7 +1137,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             lev = lev.insert(cnt, _get_na_value(lev.dtype.type))
 
         out = np.bincount(lab[notnull(self.values)], minlength=len(lev))
-        return self._constructor(out, index=lev).__finalize__(self)
+        return self._constructor(out, index=lev, dtype='int64').__finalize__(self)
 
     def mode(self):
         """Returns the mode(s) of the dataset.

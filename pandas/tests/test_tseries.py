@@ -9,6 +9,7 @@ from pandas.compat import range, lrange, zip
 import pandas.lib as lib
 import pandas._period as period
 import pandas.algos as algos
+from pandas.core import common as com
 from pandas.tseries.holiday import Holiday, SA, next_monday,USMartinLutherKingJr,USMemorialDay,AbstractHolidayCalendar
 import datetime
 from pandas import DateOffset
@@ -480,10 +481,10 @@ def test_group_ohlc():
     def _check(dtype):
         obj = np.array(np.random.randn(20),dtype=dtype)
 
-        bins = np.array([6, 12, 20], dtype=np.int64)
+        bins = np.array([6, 12, 20])
         out = np.zeros((3, 4), dtype)
         counts = np.zeros(len(out), dtype=np.int64)
-        labels = np.repeat(np.arange(3, dtype='int64'), np.diff(np.r_[0, bins]))
+        labels = com._ensure_int64(np.repeat(np.arange(3), np.diff(np.r_[0, bins])))
 
         func = getattr(algos,'group_ohlc_%s' % dtype)
         func(out, counts, obj[:, None], labels)
