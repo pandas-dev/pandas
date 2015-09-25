@@ -13,6 +13,7 @@ from pandas import compat
 from pandas.compat import range, long, lrange, lmap, u
 from pandas.core.common import notnull, isnull, array_equivalent
 import pandas.core.common as com
+import pandas.core.convert as convert
 import pandas.util.testing as tm
 import pandas.core.config as cf
 
@@ -1054,17 +1055,17 @@ class TestMaybe(tm.TestCase):
 def test_possibly_convert_objects_copy():
     values = np.array([1, 2])
 
-    out = com._possibly_convert_objects(values, copy=False)
+    out = convert._possibly_convert_objects(values, copy=False)
     assert_true(values is out)
 
-    out = com._possibly_convert_objects(values, copy=True)
+    out = convert._possibly_convert_objects(values, copy=True)
     assert_true(values is not out)
 
     values = np.array(['apply','banana'])
-    out = com._possibly_convert_objects(values, copy=False)
+    out = convert._possibly_convert_objects(values, copy=False)
     assert_true(values is out)
 
-    out = com._possibly_convert_objects(values, copy=True)
+    out = convert._possibly_convert_objects(values, copy=True)
     assert_true(values is not out)
 
 

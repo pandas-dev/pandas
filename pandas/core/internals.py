@@ -25,6 +25,7 @@ from pandas.core.indexing import maybe_convert_indices, length_of_indexer
 from pandas.core.categorical import Categorical, maybe_to_categorical
 from pandas.tseries.index import DatetimeIndex
 import pandas.core.common as com
+import pandas.core.convert as convert
 from pandas.sparse.array import _maybe_to_sparse, SparseArray
 import pandas.lib as lib
 import pandas.tslib as tslib
@@ -1535,11 +1536,12 @@ class ObjectBlock(Block):
             new_style |= kw in kwargs
 
         if new_style:
-            fn = com._soft_convert_objects
-            fn_inputs = new_inputs + ['copy']
+            fn = convert._soft_convert_objects
+            fn_inputs = new_inputs
         else:
-            fn = com._possibly_convert_objects
+            fn = convert._possibly_convert_objects
             fn_inputs = ['convert_dates','convert_numeric','convert_timedeltas']
+        fn_inputs += ['copy']
 
         fn_kwargs = {}
         for key in fn_inputs:
