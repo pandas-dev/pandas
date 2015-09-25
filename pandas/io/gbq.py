@@ -14,7 +14,6 @@ from pandas.tools.merge import concat
 from pandas.core.common import PandasError
 from pandas.util.decorators import deprecate
 
-
 def _check_google_client_version():
     if compat.PY3:
         raise NotImplementedError("Google's libraries do not support Python 3 yet")

@@ -10,7 +10,7 @@ from distutils.version import StrictVersion
 from pandas import compat
 
 from pandas import NaT
-from pandas.compat import u
+from pandas.compat import u, range
 from pandas.core.frame import DataFrame
 import pandas.io.gbq as gbq
 import pandas.util.testing as tm
@@ -111,7 +111,7 @@ def make_mixed_dataframe_v2(test_size):
     flts = np.random.randn(1, test_size)
     ints = np.random.randint(1, 10, size=(1, test_size))
     strs = np.random.randint(1, 10, size=(1, test_size)).astype(str)
-    times = [datetime.now(pytz.timezone('US/Arizona')) for t in xrange(test_size)]
+    times = [datetime.now(pytz.timezone('US/Arizona')) for t in range(test_size)]
     return DataFrame({'bools': bools[0],
                       'flts': flts[0],
                       'ints': ints[0],
