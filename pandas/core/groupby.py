@@ -1379,8 +1379,9 @@ class BaseGrouper(object):
 
         """
         ids, _, ngroup = self.group_info
+        ids = com._ensure_platform_int(ids)
         out = np.bincount(ids[ids != -1], minlength=ngroup)
-        return Series(out, index=self.result_index)
+        return Series(out, index=self.result_index, dtype='int64')
 
     @cache_readonly
     def _max_groupsize(self):
@@ -1808,15 +1809,17 @@ class BinGrouper(BaseGrouper):
     @cache_readonly
     def group_info(self):
         ngroups = self.ngroups
-        obs_group_ids = np.arange(ngroups, dtype='int64')
+        obs_group_ids = np.arange(ngroups)
         rep = np.diff(np.r_[0, self.bins])
 
+        rep = com._ensure_platform_int(rep)
         if ngroups == len(self.bins):
-            comp_ids = np.repeat(np.arange(ngroups, dtype='int64'), rep)
+            comp_ids = np.repeat(np.arange(ngroups), rep)
         else:
-            comp_ids = np.repeat(np.r_[-1, np.arange(ngroups, dtype='int64')], rep)
+            comp_ids = np.repeat(np.r_[-1, np.arange(ngroups)], rep)
 
-        return comp_ids, obs_group_ids, ngroups
+        return comp_ids.astype('int64', copy=False), \
+            obs_group_ids.astype('int64', copy=False), ngroups
 
     @cache_readonly
     def ngroups(self):
@@ -2565,8 +2568,8 @@ class SeriesGroupBy(GroupBy):
 
         # group boundries are where group ids change
         # unique observations are where sorted values change
-        idx = com._ensure_int64(np.r_[0, 1 + np.nonzero(ids[1:] != ids[:-1])[0]])
-        inc = com._ensure_int64(np.r_[1, val[1:] != val[:-1]])
+        idx = np.r_[0, 1 + np.nonzero(ids[1:] != ids[:-1])[0]]
+        inc = np.r_[1, val[1:] != val[:-1]]
 
         # 1st item of each group is a new unique observation
         mask = isnull(val)
@@ -2577,7 +2580,7 @@ class SeriesGroupBy(GroupBy):
             inc[mask & np.r_[False, mask[:-1]]] = 0
             inc[idx] = 1
 
-        out = np.add.reduceat(inc, idx)
+        out = np.add.reduceat(inc, idx).astype('int64', copy=False)
         return Series(out if ids[0] != -1 else out[1:],
                       index=self.grouper.result_index,
                       name=self.name)
@@ -2666,6 +2669,8 @@ class SeriesGroupBy(GroupBy):
             mi = MultiIndex(levels=levels, labels=labels, names=names,
                             verify_integrity=False)
 
+            if com.is_integer_dtype(out):
+                out = com._ensure_int64(out)
             return Series(out, index=mi)
 
         # for compat. with algos.value_counts need to ensure every
@@ -2695,6 +2700,8 @@ class SeriesGroupBy(GroupBy):
         mi = MultiIndex(levels=levels, labels=labels, names=names,
                         verify_integrity=False)
 
+        if com.is_integer_dtype(out):
+            out = com._ensure_int64(out)
         return Series(out, index=mi)
 
     def count(self):
@@ -2703,9 +2710,10 @@ class SeriesGroupBy(GroupBy):
         val = self.obj.get_values()
 
         mask = (ids != -1) & ~isnull(val)
+        ids = com._ensure_platform_int(ids)
         out = np.bincount(ids[mask], minlength=ngroups) if ngroups != 0 else []
 
-        return Series(out, index=self.grouper.result_index, name=self.name)
+        return Series(out, index=self.grouper.result_index, name=self.name, dtype='int64')
 
     def _apply_to_column_groupbys(self, func):
         """ return a pass thru """
