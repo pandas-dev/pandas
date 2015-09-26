@@ -19,6 +19,7 @@ class SphinxDocString(NumpyDocString):
     def load_config(self, config):
         self.use_plots = config.get('use_plots', False)
         self.class_members_toctree = config.get('class_members_toctree', True)
+        self.class_members_list = config.get('class_members_list', True)
 
     # string conversion routines
     def _str_header(self, name, symbol='`'):
@@ -95,7 +96,7 @@ class SphinxDocString(NumpyDocString):
 
         """
         out = []
-        if self[name]:
+        if self[name] and self.class_members_list:
             out += ['.. rubric:: %s' % name, '']
             prefix = getattr(self, '_name', '')
 
