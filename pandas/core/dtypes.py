@@ -86,7 +86,7 @@ class CategoricalDtypeType(type):
     pass
 
 class CategoricalDtype(ExtensionDtype):
-    __metaclass__ = CategoricalDtypeType
+
     """
     A np.dtype duck-typed class, suitable for holding a custom categorical dtype.
 
@@ -126,7 +126,7 @@ class DatetimeTZDtypeType(type):
     pass
 
 class DatetimeTZDtype(ExtensionDtype):
-    __metaclass__ = DatetimeTZDtypeType
+
     """
     A np.dtype duck-typed class, suitable for holding a custom datetime with tz dtype.
 
