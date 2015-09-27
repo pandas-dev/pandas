@@ -7,10 +7,13 @@ import nose
 import numpy as np
 
 import re
+import itertools
 from pandas import Index, MultiIndex, DataFrame, DatetimeIndex, Series, Categorical
 from pandas.compat import OrderedDict, lrange
 from pandas.sparse.array import SparseArray
-from pandas.core.internals import *
+from pandas.core.internals import (BlockPlacement, SingleBlockManager, make_block,
+                                   BlockManager)
+import pandas.core.common as com
 import pandas.core.internals as internals
 import pandas.util.testing as tm
 import pandas as pd
@@ -664,8 +667,8 @@ class TestBlockManager(tm.TestCase):
 
     def test_interleave_non_unique_cols(self):
         df = DataFrame([
-            [Timestamp('20130101'), 3.5],
-            [Timestamp('20130102'), 4.5]],
+            [pd.Timestamp('20130101'), 3.5],
+            [pd.Timestamp('20130102'), 4.5]],
             columns=['x', 'x'],
             index=[1, 2])
 
