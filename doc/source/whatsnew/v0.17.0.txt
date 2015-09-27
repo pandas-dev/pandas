@@ -332,6 +332,7 @@ Google BigQuery Enhancements
 - Added ability to replace an existing table and schema when calling the :func:`pandas.io.gbq.to_gbq` function via the ``if_exists`` argument. See the :ref:`docs <io.bigquery>` for more details (:issue:`8325`).
 - ``InvalidColumnOrder`` and ``InvalidPageToken`` in the gbq module will raise ``ValueError`` instead of ``IOError``.
 - The ``generate_bq_schema()`` function is now deprecated and will be removed in a future version (:issue:`11121`)
+- Update the gbq module to support Python 3 (:issue:`11094`).
 
 .. _whatsnew_0170.enhancements.other:
 

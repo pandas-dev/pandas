@@ -30,45 +30,44 @@ _SETUPTOOLS_INSTALLED = False
 
 
 def _test_imports():
-    if not compat.PY3:
+    global _GOOGLE_API_CLIENT_INSTALLED, _GOOGLE_API_CLIENT_VALID_VERSION, \
+           _HTTPLIB2_INSTALLED, _SETUPTOOLS_INSTALLED
 
-        global _GOOGLE_API_CLIENT_INSTALLED, _GOOGLE_API_CLIENT_VALID_VERSION, \
-               _HTTPLIB2_INSTALLED, _SETUPTOOLS_INSTALLED
-
-        try:
-            import pkg_resources
-            _SETUPTOOLS_INSTALLED = True
-        except ImportError:
-            _SETUPTOOLS_INSTALLED = False
-
-        if _SETUPTOOLS_INSTALLED:
-            try:
-                from apiclient.discovery import build
-                from apiclient.errors import HttpError
-
-                from oauth2client.client import OAuth2WebServerFlow
-                from oauth2client.client import AccessTokenRefreshError
-
-                from oauth2client.file import Storage
-                from oauth2client.tools import run_flow
-                _GOOGLE_API_CLIENT_INSTALLED=True
-                _GOOGLE_API_CLIENT_VERSION = pkg_resources.get_distribution('google-api-python-client').version
-
-                if StrictVersion(_GOOGLE_API_CLIENT_VERSION) >= StrictVersion('1.2.0'):
-                    _GOOGLE_API_CLIENT_VALID_VERSION = True
-
-            except ImportError:
-                _GOOGLE_API_CLIENT_INSTALLED = False
-
-
-            try:
-                import httplib2
-                _HTTPLIB2_INSTALLED = True
-            except ImportError:
-                _HTTPLIB2_INSTALLED = False
+    try:
+        import pkg_resources
+        _SETUPTOOLS_INSTALLED = True
+    except ImportError:
+        _SETUPTOOLS_INSTALLED = False
 
     if compat.PY3:
-        raise NotImplementedError("Google's libraries do not support Python 3 yet")
+        google_api_minimum_version = '1.4.1'
+    else:
+        google_api_minimum_version = '1.2.0'
+
+    if _SETUPTOOLS_INSTALLED:
+        try:
+            from apiclient.discovery import build
+            from apiclient.errors import HttpError
+
+            from oauth2client.client import OAuth2WebServerFlow
+            from oauth2client.client import AccessTokenRefreshError
+
+            from oauth2client.file import Storage
+            from oauth2client.tools import run_flow
+            _GOOGLE_API_CLIENT_INSTALLED=True
+            _GOOGLE_API_CLIENT_VERSION = pkg_resources.get_distribution('google-api-python-client').version
+
+            if StrictVersion(_GOOGLE_API_CLIENT_VERSION) >= StrictVersion(google_api_minimum_version):
+                _GOOGLE_API_CLIENT_VALID_VERSION = True
+
+        except ImportError:
+            _GOOGLE_API_CLIENT_INSTALLED = False
+
+        try:
+            import httplib2
+            _HTTPLIB2_INSTALLED = True
+        except ImportError:
+            _HTTPLIB2_INSTALLED = False
 
     if not _SETUPTOOLS_INSTALLED:
         raise ImportError('Could not import pkg_resources (setuptools).')
@@ -77,8 +76,8 @@ def _test_imports():
         raise ImportError('Could not import Google API Client.')
 
     if not _GOOGLE_API_CLIENT_VALID_VERSION:
-        raise ImportError("pandas requires google-api-python-client >= 1.2.0 for Google "
-                          "BigQuery support, current version " + _GOOGLE_API_CLIENT_VERSION)
+        raise ImportError("pandas requires google-api-python-client >= {0} for Google BigQuery support, "
+                          "current version {1}".format(google_api_minimum_version, _GOOGLE_API_CLIENT_VERSION))
 
     if not _HTTPLIB2_INSTALLED:
         raise ImportError("pandas requires httplib2 for Google BigQuery support")
@@ -299,7 +298,12 @@ class TestReadGBQIntegration(tm.TestCase):
             {'UNICODE_STRING': [u("\xe9\xfc")]}
         )
 
-        query = 'SELECT "\xc3\xa9\xc3\xbc" as UNICODE_STRING'
+        unicode_string = "\xc3\xa9\xc3\xbc"
+
+        if compat.PY3:
+            unicode_string = unicode_string.encode('latin-1').decode('utf8')
+
+        query = 'SELECT "{0}" as UNICODE_STRING'.format(unicode_string)
 
         df = gbq.read_gbq(query, project_id=PROJECT_ID)
         tm.assert_frame_equal(df, correct_test_datatype)
