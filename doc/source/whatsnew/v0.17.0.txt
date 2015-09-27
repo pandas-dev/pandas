@@ -938,6 +938,8 @@ Other API Changes
 - When constructing ``DataFrame`` with an array of ``complex64`` dtype previously meant the corresponding column
   was automatically promoted to the ``complex128`` dtype. Pandas will now preserve the itemsize of the input for complex data (:issue:`10952`)
 - some numeric reduction operators would return ``ValueError``, rather than ``TypeError`` on object types that includes strings and numbers (:issue:`11131`)
+- Passing currently unsupported ``chunksize`` argument to ``read_excel`` or ``ExcelFile.parse`` will now raise ``NotImplementedError`` (:issue:`8011`)
+- Allow an ``ExcelFile`` object to be passed into ``read_excel`` (:issue:`11198`)
 - ``DatetimeIndex.union`` does not infer ``freq`` if ``self`` and the input have ``None`` as ``freq`` (:issue:`11086`)
 - ``NaT``'s methods now either raise ``ValueError``, or return ``np.nan`` or ``NaT`` (:issue:`9513`)
 

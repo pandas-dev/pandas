@@ -158,76 +158,67 @@ class ReadingTestsBase(SharedItems):
     def test_parse_cols_int(self):
 
         dfref = self.get_csv_refdf('test1')
-        excel = self.get_excelfile('test1')
         dfref = dfref.reindex(columns=['A', 'B', 'C'])
-        df1 = excel.parse('Sheet1', index_col=0, parse_dates=True,
-                         parse_cols=3)
-        df2 = excel.parse('Sheet2', skiprows=[1], index_col=0,
-                          parse_dates=True, parse_cols=3)
+        df1 = self.get_exceldf('test1', 'Sheet1', index_col=0, parse_dates=True,
+                               parse_cols=3)
+        df2 = self.get_exceldf('test1', 'Sheet2', skiprows=[1], index_col=0,
+                               parse_dates=True, parse_cols=3)
         # TODO add index to xls file)
         tm.assert_frame_equal(df1, dfref, check_names=False)
         tm.assert_frame_equal(df2, dfref, check_names=False)
 
     def test_parse_cols_list(self):
 
-        excel = self.get_excelfile('test1')
         dfref = self.get_csv_refdf('test1')
         dfref = dfref.reindex(columns=['B', 'C'])
-        df1 = excel.parse('Sheet1', index_col=0, parse_dates=True,
-                         parse_cols=[0, 2, 3])
-        df2 = excel.parse('Sheet2', skiprows=[1], index_col=0,
-                          parse_dates=True,
-                          parse_cols=[0, 2, 3])
+        df1 = self.get_exceldf('test1', 'Sheet1', index_col=0, parse_dates=True,
+                               parse_cols=[0, 2, 3])
+        df2 = self.get_exceldf('test1', 'Sheet2', skiprows=[1], index_col=0,
+                               parse_dates=True,
+                               parse_cols=[0, 2, 3])
         # TODO add index to xls file)
         tm.assert_frame_equal(df1, dfref, check_names=False)
         tm.assert_frame_equal(df2, dfref, check_names=False)
 
     def test_parse_cols_str(self):
 
-        excel = self.get_excelfile('test1')
         dfref = self.get_csv_refdf('test1')
 
         df1 = dfref.reindex(columns=['A', 'B', 'C'])
-        df2 = excel.parse('Sheet1', index_col=0, parse_dates=True,
-                         parse_cols='A:D')
-        df3 = excel.parse('Sheet2', skiprows=[1], index_col=0,
-                          parse_dates=True, parse_cols='A:D')
+        df2 = self.get_exceldf('test1', 'Sheet1', index_col=0, parse_dates=True,
+                               parse_cols='A:D')
+        df3 = self.get_exceldf('test1', 'Sheet2', skiprows=[1], index_col=0,
+                               parse_dates=True, parse_cols='A:D')
         # TODO add index to xls, read xls ignores index name ?
         tm.assert_frame_equal(df2, df1, check_names=False)
         tm.assert_frame_equal(df3, df1, check_names=False)
 
         df1 = dfref.reindex(columns=['B', 'C'])
-        df2 = excel.parse('Sheet1', index_col=0, parse_dates=True,
-                         parse_cols='A,C,D')
-        df3 = excel.parse('Sheet2', skiprows=[1], index_col=0,
-                          parse_dates=True,
-                          parse_cols='A,C,D')
+        df2 = self.get_exceldf('test1', 'Sheet1', index_col=0, parse_dates=True,
+                               parse_cols='A,C,D')
+        df3 = self.get_exceldf('test1', 'Sheet2', skiprows=[1], index_col=0,
+                               parse_dates=True, parse_cols='A,C,D')
         # TODO add index to xls file
         tm.assert_frame_equal(df2, df1, check_names=False)
         tm.assert_frame_equal(df3, df1, check_names=False)
 
         df1 = dfref.reindex(columns=['B', 'C'])
-        df2 = excel.parse('Sheet1', index_col=0, parse_dates=True,
-                         parse_cols='A,C:D')
-        df3 = excel.parse('Sheet2', skiprows=[1], index_col=0,
-                          parse_dates=True,
-                          parse_cols='A,C:D')
+        df2 = self.get_exceldf('test1', 'Sheet1', index_col=0, parse_dates=True,
+                               parse_cols='A,C:D')
+        df3 = self.get_exceldf('test1', 'Sheet2', skiprows=[1], index_col=0,
+                               parse_dates=True, parse_cols='A,C:D')
         tm.assert_frame_equal(df2, df1, check_names=False)
         tm.assert_frame_equal(df3, df1, check_names=False)
 
     def test_excel_stop_iterator(self):
 
-        excel = self.get_excelfile('test2')
-
-        parsed = excel.parse('Sheet1')
+        parsed = self.get_exceldf('test2', 'Sheet1')
         expected = DataFrame([['aaaa', 'bbbbb']], columns=['Test', 'Test1'])
         tm.assert_frame_equal(parsed, expected)
 
     def test_excel_cell_error_na(self):
 
-        excel = self.get_excelfile('test3')
-
-        parsed = excel.parse('Sheet1')
+        parsed = self.get_exceldf('test3', 'Sheet1')
         expected = DataFrame([[np.nan]], columns=['Test'])
         tm.assert_frame_equal(parsed, expected)
 
@@ -235,13 +226,13 @@ class ReadingTestsBase(SharedItems):
 
         excel = self.get_excelfile('test4')
 
-        parsed = excel.parse('Sheet1', keep_default_na=False,
+        parsed = read_excel(excel, 'Sheet1', keep_default_na=False,
                              na_values=['apple'])
         expected = DataFrame([['NA'], [1], ['NA'], [np.nan], ['rabbit']],
                              columns=['Test'])
         tm.assert_frame_equal(parsed, expected)
 
-        parsed = excel.parse('Sheet1', keep_default_na=True,
+        parsed = read_excel(excel, 'Sheet1', keep_default_na=True,
                              na_values=['apple'])
         expected = DataFrame([[np.nan], [1], [np.nan], [np.nan], ['rabbit']],
                              columns=['Test'])
@@ -252,10 +243,20 @@ class ReadingTestsBase(SharedItems):
         excel = self.get_excelfile('test1')
         dfref = self.get_csv_refdf('test1')
 
+        df1 = read_excel(excel, 0, index_col=0, parse_dates=True)
+        df2 = read_excel(excel, 1, skiprows=[1], index_col=0, parse_dates=True)
+        tm.assert_frame_equal(df1, dfref, check_names=False)
+        tm.assert_frame_equal(df2, dfref, check_names=False)
+
         df1 = excel.parse(0, index_col=0, parse_dates=True)
         df2 = excel.parse(1, skiprows=[1], index_col=0, parse_dates=True)
         tm.assert_frame_equal(df1, dfref, check_names=False)
         tm.assert_frame_equal(df2, dfref, check_names=False)
+
+        df3 = read_excel(excel, 0, index_col=0, parse_dates=True, skipfooter=1)
+        df4 = read_excel(excel, 0, index_col=0, parse_dates=True, skip_footer=1)
+        tm.assert_frame_equal(df3, df1.ix[:-1])
+        tm.assert_frame_equal(df3, df4)
 
         df3 = excel.parse(0, index_col=0, parse_dates=True, skipfooter=1)
         df4 = excel.parse(0, index_col=0, parse_dates=True, skip_footer=1)
@@ -263,24 +264,24 @@ class ReadingTestsBase(SharedItems):
         tm.assert_frame_equal(df3, df4)
 
         import xlrd
-        self.assertRaises(xlrd.XLRDError, excel.parse, 'asdf')
+        with tm.assertRaises(xlrd.XLRDError):
+            read_excel(excel, 'asdf')
 
     def test_excel_table(self):
 
-        excel = self.get_excelfile('test1')
         dfref = self.get_csv_refdf('test1')
 
-        df1 = excel.parse('Sheet1', index_col=0, parse_dates=True)
-        df2 = excel.parse('Sheet2', skiprows=[1], index_col=0,
-                          parse_dates=True)
+        df1 = self.get_exceldf('test1', 'Sheet1', index_col=0, parse_dates=True)
+        df2 = self.get_exceldf('test1', 'Sheet2', skiprows=[1], index_col=0,
+                               parse_dates=True)
         # TODO add index to file
         tm.assert_frame_equal(df1, dfref, check_names=False)
         tm.assert_frame_equal(df2, dfref, check_names=False)
 
-        df3 = excel.parse('Sheet1', index_col=0, parse_dates=True,
-                          skipfooter=1)
-        df4 = excel.parse('Sheet1', index_col=0, parse_dates=True,
-                          skip_footer=1)
+        df3 = self.get_exceldf('test1', 'Sheet1', index_col=0, parse_dates=True,
+                               skipfooter=1)
+        df4 = self.get_exceldf('test1', 'Sheet1', index_col=0, parse_dates=True,
+                               skip_footer=1)
         tm.assert_frame_equal(df3, df1.ix[:-1])
         tm.assert_frame_equal(df3, df4)
 
@@ -384,8 +385,6 @@ class ReadingTestsBase(SharedItems):
         tm.assert_frame_equal(actual, expected)
 
 
-
-
 class XlrdTests(ReadingTestsBase):
     """
     This is the base class for the xlrd tests, and 3 different file formats
@@ -395,10 +394,15 @@ class XlrdTests(ReadingTestsBase):
     def test_excel_read_buffer(self):
 
         pth = os.path.join(self.dirpath, 'test1' + self.ext)
-        f = open(pth, 'rb')
-        xls = ExcelFile(f)
-        # it works
-        xls.parse('Sheet1', index_col=0, parse_dates=True)
+        expected = read_excel(pth, 'Sheet1', index_col=0, parse_dates=True)
+        with open(pth, 'rb') as f:
+            actual = read_excel(f, 'Sheet1', index_col=0, parse_dates=True)
+            tm.assert_frame_equal(expected, actual)
+
+        with open(pth, 'rb') as f:
+            xls = ExcelFile(f)
+            actual = read_excel(xls, 'Sheet1', index_col=0, parse_dates=True)
+            tm.assert_frame_equal(expected, actual)
 
     def test_read_xlrd_Book(self):
         _skip_if_no_xlwt()
@@ -410,7 +414,7 @@ class XlrdTests(ReadingTestsBase):
             book = xlrd.open_workbook(pth)
 
             with ExcelFile(book, engine="xlrd") as xl:
-                result = xl.parse("SheetA")
+                result = read_excel(xl, "SheetA")
                 tm.assert_frame_equal(df, result)
 
             result = read_excel(book, sheetname="SheetA", engine="xlrd")
@@ -450,7 +454,7 @@ class XlrdTests(ReadingTestsBase):
         f = open(pth, 'rb')
         with ExcelFile(f) as xlsx:
             # parses okay
-            xlsx.parse('Sheet1', index_col=0)
+            read_excel(xlsx, 'Sheet1', index_col=0)
 
         self.assertTrue(f.closed)
 
@@ -650,6 +654,12 @@ class XlrdTests(ReadingTestsBase):
                 pd.read_excel(os.path.join(self.dirpath, 'test1' + self.ext),
                               header=arg)
 
+    def test_read_excel_chunksize(self):
+        #GH 8011
+        with tm.assertRaises(NotImplementedError):
+            pd.read_excel(os.path.join(self.dirpath, 'test1' + self.ext),
+                          chunksize=100)
+
 class XlsReaderTests(XlrdTests, tm.TestCase):
     ext = '.xls'
     engine_name = 'xlrd'
@@ -700,10 +710,11 @@ class ExcelWriterBase(SharedItems):
             gt = DataFrame(np.random.randn(10, 2))
             gt.to_excel(pth)
             xl = ExcelFile(pth)
-            df = xl.parse(0)
+            df = read_excel(xl, 0)
             tm.assert_frame_equal(gt, df)
 
-            self.assertRaises(xlrd.XLRDError, xl.parse, '0')
+            with tm.assertRaises(xlrd.XLRDError):
+                read_excel(xl, '0')
 
     def test_excelwriter_contextmanager(self):
         _skip_if_no_xlrd()
@@ -714,8 +725,8 @@ class ExcelWriterBase(SharedItems):
                 self.frame2.to_excel(writer, 'Data2')
 
             with ExcelFile(pth) as reader:
-                found_df = reader.parse('Data1')
-                found_df2 = reader.parse('Data2')
+                found_df = read_excel(reader, 'Data1')
+                found_df2 = read_excel(reader, 'Data2')
                 tm.assert_frame_equal(found_df, self.frame)
                 tm.assert_frame_equal(found_df2, self.frame2)
 
@@ -769,7 +780,7 @@ class ExcelWriterBase(SharedItems):
         with ensure_clean(self.ext) as path:
             self.mixed_frame.to_excel(path, 'test1')
             reader = ExcelFile(path)
-            recons = reader.parse('test1', index_col=0)
+            recons = read_excel(reader, 'test1', index_col=0)
             tm.assert_frame_equal(self.mixed_frame, recons)
 
     def test_tsframe(self):
@@ -780,7 +791,7 @@ class ExcelWriterBase(SharedItems):
         with ensure_clean(self.ext) as path:
             df.to_excel(path, 'test1')
             reader = ExcelFile(path)
-            recons = reader.parse('test1')
+            recons = read_excel(reader, 'test1')
             tm.assert_frame_equal(df, recons)
 
     def test_basics_with_nan(self):
@@ -804,7 +815,7 @@ class ExcelWriterBase(SharedItems):
                                   dtype=np_type)
                 frame.to_excel(path, 'test1')
                 reader = ExcelFile(path)
-                recons = reader.parse('test1')
+                recons = read_excel(reader, 'test1')
                 int_frame = frame.astype(np.int64)
                 tm.assert_frame_equal(int_frame, recons)
                 recons2 = read_excel(path, 'test1')
@@ -824,7 +835,7 @@ class ExcelWriterBase(SharedItems):
                 frame = DataFrame(np.random.random_sample(10), dtype=np_type)
                 frame.to_excel(path, 'test1')
                 reader = ExcelFile(path)
-                recons = reader.parse('test1').astype(np_type)
+                recons = read_excel(reader, 'test1').astype(np_type)
                 tm.assert_frame_equal(frame, recons, check_dtype=False)
 
     def test_bool_types(self):
@@ -836,7 +847,7 @@ class ExcelWriterBase(SharedItems):
                 frame = (DataFrame([1, 0, True, False], dtype=np_type))
                 frame.to_excel(path, 'test1')
                 reader = ExcelFile(path)
-                recons = reader.parse('test1').astype(np_type)
+                recons = read_excel(reader, 'test1').astype(np_type)
                 tm.assert_frame_equal(frame, recons)
 
     def test_inf_roundtrip(self):
@@ -846,7 +857,7 @@ class ExcelWriterBase(SharedItems):
         with ensure_clean(self.ext) as path:
             frame.to_excel(path, 'test1')
             reader = ExcelFile(path)
-            recons = reader.parse('test1')
+            recons = read_excel(reader, 'test1')
             tm.assert_frame_equal(frame, recons)
 
     def test_sheets(self):
@@ -866,9 +877,9 @@ class ExcelWriterBase(SharedItems):
             self.tsframe.to_excel(writer, 'test2')
             writer.save()
             reader = ExcelFile(path)
-            recons = reader.parse('test1', index_col=0)
+            recons = read_excel(reader, 'test1', index_col=0)
             tm.assert_frame_equal(self.frame, recons)
-            recons = reader.parse('test2', index_col=0)
+            recons = read_excel(reader, 'test2', index_col=0)
             tm.assert_frame_equal(self.tsframe, recons)
             np.testing.assert_equal(2, len(reader.sheet_names))
             np.testing.assert_equal('test1', reader.sheet_names[0])
@@ -889,7 +900,7 @@ class ExcelWriterBase(SharedItems):
             col_aliases = Index(['AA', 'X', 'Y', 'Z'])
             self.frame2.to_excel(path, 'test1', header=col_aliases)
             reader = ExcelFile(path)
-            rs = reader.parse('test1', index_col=0)
+            rs = read_excel(reader, 'test1', index_col=0)
             xp = self.frame2.copy()
             xp.columns = col_aliases
             tm.assert_frame_equal(xp, rs)
@@ -912,7 +923,7 @@ class ExcelWriterBase(SharedItems):
                            index_label=['test'],
                            merge_cells=self.merge_cells)
             reader = ExcelFile(path)
-            recons = reader.parse('test1',
+            recons = read_excel(reader, 'test1',
                                   index_col=0,
                                   ).astype(np.int64)
             frame.index.names = ['test']
@@ -924,7 +935,7 @@ class ExcelWriterBase(SharedItems):
                            index_label=['test', 'dummy', 'dummy2'],
                            merge_cells=self.merge_cells)
             reader = ExcelFile(path)
-            recons = reader.parse('test1',
+            recons = read_excel(reader, 'test1',
                                   index_col=0,
                                   ).astype(np.int64)
             frame.index.names = ['test']
@@ -936,7 +947,7 @@ class ExcelWriterBase(SharedItems):
                            index_label='test',
                            merge_cells=self.merge_cells)
             reader = ExcelFile(path)
-            recons = reader.parse('test1',
+            recons = read_excel(reader, 'test1',
                                   index_col=0,
                                   ).astype(np.int64)
             frame.index.names = ['test']
@@ -953,7 +964,7 @@ class ExcelWriterBase(SharedItems):
             df = df.set_index(['A', 'B'])
 
             reader = ExcelFile(path)
-            recons = reader.parse('test1', index_col=[0, 1])
+            recons = read_excel(reader, 'test1', index_col=[0, 1])
             tm.assert_frame_equal(df, recons, check_less_precise=True)
 
     def test_excel_roundtrip_indexname(self):
@@ -966,7 +977,7 @@ class ExcelWriterBase(SharedItems):
             df.to_excel(path, merge_cells=self.merge_cells)
 
             xf = ExcelFile(path)
-            result = xf.parse(xf.sheet_names[0],
+            result = read_excel(xf, xf.sheet_names[0],
                               index_col=0)
 
             tm.assert_frame_equal(result, df)
@@ -982,7 +993,7 @@ class ExcelWriterBase(SharedItems):
             tsf.index = [x.date() for x in self.tsframe.index]
             tsf.to_excel(path, 'test1', merge_cells=self.merge_cells)
             reader = ExcelFile(path)
-            recons = reader.parse('test1')
+            recons = read_excel(reader, 'test1')
             tm.assert_frame_equal(self.tsframe, recons)
 
     # GH4133 - excel output format strings
@@ -1015,8 +1026,8 @@ class ExcelWriterBase(SharedItems):
                 reader1 = ExcelFile(filename1)
                 reader2 = ExcelFile(filename2)
 
-                rs1 = reader1.parse('test1', index_col=None)
-                rs2 = reader2.parse('test1', index_col=None)
+                rs1 = read_excel(reader1, 'test1', index_col=None)
+                rs2 = read_excel(reader2, 'test1', index_col=None)
 
                 tm.assert_frame_equal(rs1, rs2)
 
@@ -1034,7 +1045,7 @@ class ExcelWriterBase(SharedItems):
             xp.to_excel(path, 'sht1')
 
             reader = ExcelFile(path)
-            rs = reader.parse('sht1', index_col=0, parse_dates=True)
+            rs = read_excel(reader, 'sht1', index_col=0, parse_dates=True)
             tm.assert_frame_equal(xp, rs.to_period('M'))
 
     def test_to_excel_multiindex(self):
@@ -1053,7 +1064,7 @@ class ExcelWriterBase(SharedItems):
             # round trip
             frame.to_excel(path, 'test1', merge_cells=self.merge_cells)
             reader = ExcelFile(path)
-            df = reader.parse('test1', index_col=[0, 1],
+            df = read_excel(reader, 'test1', index_col=[0, 1],
                               parse_dates=False)
             tm.assert_frame_equal(frame, df)
             self.assertEqual(frame.index.names, df.index.names)
@@ -1070,7 +1081,7 @@ class ExcelWriterBase(SharedItems):
             tsframe.index.names = ['time', 'foo']
             tsframe.to_excel(path, 'test1', merge_cells=self.merge_cells)
             reader = ExcelFile(path)
-            recons = reader.parse('test1',
+            recons = read_excel(reader, 'test1',
                                   index_col=[0, 1])
 
             tm.assert_frame_equal(tsframe, recons)
@@ -1096,7 +1107,7 @@ class ExcelWriterBase(SharedItems):
 
             # Read it back in.
             reader = ExcelFile(path)
-            frame3 = reader.parse('test1')
+            frame3 = read_excel(reader, 'test1')
 
             # Test that it is the same as the initial frame.
             tm.assert_frame_equal(frame1, frame3)
@@ -1112,7 +1123,7 @@ class ExcelWriterBase(SharedItems):
             df.to_excel(filename, 'test1', float_format='%.2f')
 
             reader = ExcelFile(filename)
-            rs = reader.parse('test1', index_col=None)
+            rs = read_excel(reader, 'test1', index_col=None)
             xp = DataFrame([[0.12, 0.23, 0.57],
                             [12.32, 123123.20, 321321.20]],
                             index=['A', 'B'], columns=['X', 'Y', 'Z'])
@@ -1148,7 +1159,7 @@ class ExcelWriterBase(SharedItems):
             df.to_excel(filename, 'test1', float_format='%.2f')
 
             reader = ExcelFile(filename)
-            rs = reader.parse('test1', index_col=None)
+            rs = read_excel(reader, 'test1', index_col=None)
             xp = DataFrame([[0.12, 0.23, 0.57],
                             [12.32, 123123.20, 321321.20]],
                             index=['A', 'B'], columns=['X', 'Y', 'Z'])
@@ -1270,7 +1281,7 @@ class ExcelWriterBase(SharedItems):
             with ensure_clean(self.ext) as path:
                 df.to_excel(path, header=header, merge_cells=self.merge_cells, index=index)
                 xf = ExcelFile(path)
-                res = xf.parse(xf.sheet_names[0], header=parser_hdr)
+                res = read_excel(xf, xf.sheet_names[0], header=parser_hdr)
                 return res
 
         nrows = 5
@@ -1324,7 +1335,7 @@ class ExcelWriterBase(SharedItems):
             with ensure_clean(self.ext) as path:
                 df.to_excel(path, header=header, merge_cells=self.merge_cells, index=index)
                 xf = ExcelFile(path)
-                res = xf.parse(xf.sheet_names[0], header=parser_hdr)
+                res = read_excel(xf, xf.sheet_names[0], header=parser_hdr)
                 return res
 
         nrows = 5; ncols = 3

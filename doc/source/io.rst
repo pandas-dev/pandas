@@ -1980,9 +1980,10 @@ Excel files
 -----------
 
 The :func:`~pandas.read_excel` method can read Excel 2003 (``.xls``) and
-Excel 2007 (``.xlsx``) files using the ``xlrd`` Python
-module and use the same parsing code as the above to convert tabular data into
-a DataFrame. See the :ref:`cookbook<cookbook.excel>` for some
+Excel 2007+ (``.xlsx``) files using the ``xlrd`` Python
+module.  The :meth:`~DataFrame.to_excel` instance method is used for
+saving a ``DataFrame`` to Excel.  Generally the semantics are
+similar to working with :ref:`csv<io.read_csv_table>` data.  See the :ref:`cookbook<cookbook.excel>` for some
 advanced strategies
 
 .. _io.excel_reader:
@@ -1990,90 +1991,74 @@ advanced strategies
 Reading Excel Files
 '''''''''''''''''''
 
-.. versionadded:: 0.17
-
-``read_excel`` can read a ``MultiIndex`` index, by passing a list of columns to ``index_col``
-and a ``MultiIndex`` column by passing a list of rows to ``header``.  If either the ``index``
-or ``columns`` have serialized level names those will be read in as well by specifying
-the rows/columns that make up the levels.
-
-.. ipython:: python
-
-   # MultiIndex index - no names
-   df = pd.DataFrame({'a':[1,2,3,4], 'b':[5,6,7,8]},
-                     index=pd.MultiIndex.from_product([['a','b'],['c','d']]))
-   df.to_excel('path_to_file.xlsx')
-   df = pd.read_excel('path_to_file.xlsx', index_col=[0,1])
-   df
-
-   # MultiIndex index - with names
-   df.index = df.index.set_names(['lvl1', 'lvl2'])
-   df.to_excel('path_to_file.xlsx')
-   df = pd.read_excel('path_to_file.xlsx', index_col=[0,1])
-   df
-
-   # MultiIndex index and column - with names
-   df.columns = pd.MultiIndex.from_product([['a'],['b', 'd']], names=['c1', 'c2'])
-   df.to_excel('path_to_file.xlsx')
-   df = pd.read_excel('path_to_file.xlsx',
-                       index_col=[0,1], header=[0,1])
-   df
-
-.. ipython:: python
-   :suppress:
-
-   import os
-   os.remove('path_to_file.xlsx')
-
-.. warning::
-
-   Excel files saved in version 0.16.2 or prior that had index names will still able to be read in,
-   but the ``has_index_names`` argument must specified to ``True``.
-
-.. versionadded:: 0.16
-
-``read_excel`` can read more than one sheet, by setting ``sheetname`` to either
-a list of sheet names, a list of sheet positions, or ``None`` to read all sheets.
-
-.. versionadded:: 0.13
-
-Sheets can be specified by sheet index or sheet name, using an integer or string,
-respectively.
-
-.. versionadded:: 0.12
-
-``ExcelFile`` has been moved to the top level namespace.
-
-There are two approaches to reading an excel file.  The ``read_excel`` function
-and the ``ExcelFile`` class.  ``read_excel`` is for reading one file
-with file-specific arguments (ie. identical data formats across sheets).
-``ExcelFile`` is for reading one file with sheet-specific arguments (ie. various data
-formats across sheets).  Choosing the approach is largely a question of
-code readability and execution speed.
-
-Equivalent class and function approaches to read a single sheet:
+In the most basic use-case, ``read_excel`` takes a path to an Excel
+file, and the ``sheetname`` indicating which sheet to parse.
 
 .. code-block:: python
 
-    # using the ExcelFile class
-    xls = pd.ExcelFile('path_to_file.xls')
-    data = xls.parse('Sheet1', index_col=None, na_values=['NA'])
+   # Returns a DataFrame
+   read_excel('path_to_file.xls', sheetname='Sheet1')
 
-    # using the read_excel function
-    data = read_excel('path_to_file.xls', 'Sheet1', index_col=None, na_values=['NA'])
 
-Equivalent class and function approaches to read multiple sheets:
+.. _io.excel.excelfile_class:
+
+``ExcelFile`` class
++++++++++++++++++++
+
+To faciliate working with multiple sheets from the same file, the ``ExcelFile``
+class can be used to wrap the file and can be be passed into ``read_excel``
+There will be a performance benefit for reading multiple sheets as the file is
+read into memory only once.
+
+.. code-block:: python
+
+   xlsx = pd.ExcelFile('path_to_file.xls)
+   df = pd.read_excel(xlsx, 'Sheet1')
+
+The ``ExcelFile`` class can also be used as a context manager.
+
+.. code-block:: python
+
+   with pd.ExcelFile('path_to_file.xls') as xls:
+       df1 = pd.read_excel(xls, 'Sheet1')
+       df2 = pd.read_excel(xls, 'Sheet2')
+
+The ``sheet_names`` property will generate
+a list of the sheet names in the file.
+
+The primary use-case for an ``ExcelFile`` is parsing multiple sheets with
+different parameters
 
 .. code-block:: python
 
     data = {}
     # For when Sheet1's format differs from Sheet2
-    xls = pd.ExcelFile('path_to_file.xls')
-    data['Sheet1'] = xls.parse('Sheet1', index_col=None, na_values=['NA'])
-    data['Sheet2'] = xls.parse('Sheet2', index_col=1)
+    with pd.ExcelFile('path_to_file.xls') as xls:
+        data['Sheet1'] = pd.read_excel(xls, 'Sheet1', index_col=None, na_values=['NA'])
+        data['Sheet2'] = pd.read_excel(xls, 'Sheet2', index_col=1)
 
-    # For when Sheet1's format is identical to Sheet2
-    data = read_excel('path_to_file.xls', ['Sheet1','Sheet2'], index_col=None, na_values=['NA'])
+Note that if the same parsing parameters are used for all sheets, a list
+of sheet names can simply be passed to ``read_excel`` with no loss in performance.
+
+.. code-block:: python
+
+    # using the ExcelFile class
+    data = {}
+    with pd.ExcelFile('path_to_file.xls') as xls:
+        data['Sheet1'] = read_excel(xls, 'Sheet1', index_col=None, na_values=['NA'])
+        data['Sheet2'] = read_excel(xls, 'Sheet2', index_col=None, na_values=['NA'])
+
+    # equivalent using the read_excel function
+    data = read_excel('path_to_file.xls', ['Sheet1', 'Sheet2'], index_col=None, na_values=['NA'])
+
+.. versionadded:: 0.12
+
+``ExcelFile`` has been moved to the top level namespace.
+
+.. versionadded:: 0.17
+
+``read_excel`` can take an ``ExcelFile`` object as input
+
 
 .. _io.excel.specifying_sheets:
 
@@ -2124,6 +2109,72 @@ Using a list to get multiple sheets:
 
    # Returns the 1st and 4th sheet, as a dictionary of DataFrames.
    read_excel('path_to_file.xls',sheetname=['Sheet1',3])
+
+.. versionadded:: 0.16
+
+``read_excel`` can read more than one sheet, by setting ``sheetname`` to either
+a list of sheet names, a list of sheet positions, or ``None`` to read all sheets.
+
+.. versionadded:: 0.13
+
+Sheets can be specified by sheet index or sheet name, using an integer or string,
+respectively.
+
+.. _io.excel.reading_multiindex:
+
+Reading a ``MultiIndex``
+++++++++++++++++++++++++
+
+.. versionadded:: 0.17
+
+``read_excel`` can read a ``MultiIndex`` index, by passing a list of columns to ``index_col``
+and a ``MultiIndex`` column by passing a list of rows to ``header``.  If either the ``index``
+or ``columns`` have serialized level names those will be read in as well by specifying
+the rows/columns that make up the levels.
+
+For example, to read in a ``MultiIndex`` index without names:
+
+.. ipython:: python
+
+   df = pd.DataFrame({'a':[1,2,3,4], 'b':[5,6,7,8]},
+                     index=pd.MultiIndex.from_product([['a','b'],['c','d']]))
+   df.to_excel('path_to_file.xlsx')
+   df = pd.read_excel('path_to_file.xlsx', index_col=[0,1])
+   df
+
+If the index has level names, they will parsed as well, using the same
+parameters.
+
+.. ipython:: python
+
+   df.index = df.index.set_names(['lvl1', 'lvl2'])
+   df.to_excel('path_to_file.xlsx')
+   df = pd.read_excel('path_to_file.xlsx', index_col=[0,1])
+   df
+
+
+If the source file has both ``MultiIndex`` index and columns, lists specifying each
+should be passed to ``index_col`` and ``header``
+
+.. ipython:: python
+
+   df.columns = pd.MultiIndex.from_product([['a'],['b', 'd']], names=['c1', 'c2'])
+   df.to_excel('path_to_file.xlsx')
+   df = pd.read_excel('path_to_file.xlsx',
+                       index_col=[0,1], header=[0,1])
+   df
+
+.. ipython:: python
+   :suppress:
+
+   import os
+   os.remove('path_to_file.xlsx')
+
+.. warning::
+
+   Excel files saved in version 0.16.2 or prior that had index names will still able to be read in,
+   but the ``has_index_names`` argument must specified to ``True``.
+
 
 Parsing Specific Columns
 ++++++++++++++++++++++++
