@@ -949,6 +949,17 @@ class TestTslib(tm.TestCase):
                                   tslib.maybe_get_tz('Asia/Tokyo'))
         self.assert_numpy_array_equal(result, np.array([tslib.iNaT], dtype=np.int64))
 
+    def test_shift_months(self):
+        s = DatetimeIndex([Timestamp('2000-01-05 00:15:00'), Timestamp('2000-01-31 00:23:00'),
+                           Timestamp('2000-01-01'), Timestamp('2000-02-29'), Timestamp('2000-12-31')])
+        for years in [-1, 0, 1]:
+            for months in [-2, 0, 2]:
+                actual = DatetimeIndex(tslib.shift_months(s.asi8, years * 12 + months))
+                expected = DatetimeIndex([x + offsets.DateOffset(years=years, months=months) for x in s])
+                tm.assert_index_equal(actual, expected)
+
+
+
 class TestTimestampOps(tm.TestCase):
     def test_timestamp_and_datetime(self):
         self.assertEqual((Timestamp(datetime.datetime(2013, 10, 13)) - datetime.datetime(2013, 10, 12)).days, 1)
