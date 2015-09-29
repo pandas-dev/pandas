@@ -1184,3 +1184,4 @@ Bug Fixes
 - Bug in ``io.gbq`` when testing for minimum google api client version (:issue:`10652`)
 - Bug in ``DataFrame`` construction from nested ``dict`` with ``timedelta`` keys (:issue:`11129`)
 - Bug in ``.fillna`` against may raise ``TypeError`` when data contains datetime dtype (:issue:`7095`, :issue:`11153`)
+- Bug in ``.groupby`` when number of keys to group by is same as length of index (:issue:`11185`)

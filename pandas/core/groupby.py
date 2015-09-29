@@ -2111,6 +2111,7 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True):
     # what are we after, exactly?
     match_axis_length = len(keys) == len(group_axis)
     any_callable = any(callable(g) or isinstance(g, dict) for g in keys)
+    any_groupers = any(isinstance(g, Grouper) for g in keys)
     any_arraylike = any(isinstance(g, (list, tuple, Series, Index, np.ndarray))
                         for g in keys)
 
@@ -2123,7 +2124,8 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True):
         all_in_columns = False
 
     if (not any_callable and not all_in_columns
-        and not any_arraylike and match_axis_length
+        and not any_arraylike and not any_groupers
+            and match_axis_length
             and level is None):
         keys = [com._asarray_tuplesafe(keys)]
 
