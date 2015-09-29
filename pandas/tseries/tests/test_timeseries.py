@@ -2565,32 +2565,32 @@ class TestDatetimeIndex(tm.TestCase):
         for klass, assert_func in zip([Series, DatetimeIndex],
                                       [self.assert_series_equal,
                                        tm.assert_index_equal]):
-            s = klass(date_range('2000-01-01', '2000-01-31'))
+            s = klass(date_range('2000-01-01', '2000-01-31'), name='a')
             result = s + pd.DateOffset(years=1)
             result2 = pd.DateOffset(years=1) + s
-            exp = klass(date_range('2001-01-01', '2001-01-31'))
+            exp = klass(date_range('2001-01-01', '2001-01-31'), name='a')
             assert_func(result, exp)
             assert_func(result2, exp)
 
             result = s - pd.DateOffset(years=1)
-            exp = klass(date_range('1999-01-01', '1999-01-31'))
+            exp = klass(date_range('1999-01-01', '1999-01-31'), name='a')
             assert_func(result, exp)
 
             s = klass([Timestamp('2000-01-15 00:15:00', tz='US/Central'),
-                       pd.Timestamp('2000-02-15', tz='US/Central')])
+                       pd.Timestamp('2000-02-15', tz='US/Central')], name='a')
             result = s + pd.offsets.Day()
             result2 = pd.offsets.Day() + s
             exp = klass([Timestamp('2000-01-16 00:15:00', tz='US/Central'),
-                         Timestamp('2000-02-16', tz='US/Central')])
+                         Timestamp('2000-02-16', tz='US/Central')], name='a')
             assert_func(result, exp)
             assert_func(result2, exp)
 
             s = klass([Timestamp('2000-01-15 00:15:00', tz='US/Central'),
-                       pd.Timestamp('2000-02-15', tz='US/Central')])
+                       pd.Timestamp('2000-02-15', tz='US/Central')], name='a')
             result = s + pd.offsets.MonthEnd()
             result2 = pd.offsets.MonthEnd() + s
             exp = klass([Timestamp('2000-01-31 00:15:00', tz='US/Central'),
-                         Timestamp('2000-02-29', tz='US/Central')])
+                         Timestamp('2000-02-29', tz='US/Central')], name='a')
             assert_func(result, exp)
             assert_func(result2, exp)
 
