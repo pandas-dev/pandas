@@ -4175,7 +4175,7 @@ class DataFrame(NDFrame):
         return concat(to_concat, ignore_index=ignore_index,
                       verify_integrity=verify_integrity)
 
-    def join(self, other, on=None, how='left', lsuffix='', rsuffix='',
+    def join(self, other, on=None, left_on=None, right_on=None, how='left', lsuffix='', rsuffix='',
              sort=False):
         """
         Join columns with other DataFrame either on index or on a key
@@ -4193,6 +4193,10 @@ class DataFrame(NDFrame):
             columns given, the passed DataFrame must have a MultiIndex. Can
             pass an array as the join key if not already contained in the
             calling DataFrame. Like an Excel VLOOKUP operation
+        left_on : column name, tuple/list of column names, or array-like
+            Column(s) to use for joining, otherwise join on index.
+        right_on : column name, tuple/list of column names, or array-like
+            Column(s) to use for joining, otherwise join on index.    
         how : {'left', 'right', 'outer', 'inner'}
             How to handle indexes of the two objects. Default: 'left'
             for joining on index, None otherwise
@@ -4219,10 +4223,10 @@ class DataFrame(NDFrame):
         joined : DataFrame
         """
         # For SparseDataFrame's benefit
-        return self._join_compat(other, on=on, how=how, lsuffix=lsuffix,
+        return self._join_compat(other, on=on, left_on=None, right_on=None, how=how, lsuffix=lsuffix,
                                  rsuffix=rsuffix, sort=sort)
 
-    def _join_compat(self, other, on=None, how='left', lsuffix='', rsuffix='',
+    def _join_compat(self, other, on=None, left_on=None, right_on=None, how='left', lsuffix='', rsuffix='',
                      sort=False):
         from pandas.tools.merge import merge, concat
 
@@ -4232,8 +4236,9 @@ class DataFrame(NDFrame):
             other = DataFrame({other.name: other})
 
         if isinstance(other, DataFrame):
-            return merge(self, other, left_on=on, how=how,
-                         left_index=on is None, right_index=True,
+            return merge(self, other, left_on=on, right_on=on, how=how,
+                         left_index=((on is None) and (left_on is None)),
+                         right_index=((on is None and right_on is None)),
                          suffixes=(lsuffix, rsuffix), sort=sort)
         else:
             if on is not None:
