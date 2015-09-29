@@ -2989,6 +2989,18 @@ class TestGroupBy(tm.TestCase):
         result = df.groupby(['foo', 'bar']).mean()
         expected = df.groupby([df['foo'], df['bar']]).mean()[['val']]
 
+    def test_groupby_keys_same_size_as_index(self):
+        # GH 11185
+        freq = 's'
+        index = pd.date_range(start=np.datetime64(
+            '2015-09-29T11:34:44-0700'), periods=2, freq=freq)
+        df = pd.DataFrame([['A', 10], ['B', 15]], columns=[
+                          'metric', 'values'], index=index)
+        result = df.groupby([pd.Grouper(level=0, freq=freq), 'metric']).mean()
+        expected = df.set_index([df.index, 'metric'])
+
+        assert_frame_equal(result, expected)
+
     def test_groupby_nat_exclude(self):
         # GH 6992
         df = pd.DataFrame({'values': np.random.randn(8),
