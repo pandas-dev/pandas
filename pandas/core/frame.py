@@ -4223,7 +4223,7 @@ class DataFrame(NDFrame):
         joined : DataFrame
         """
         # For SparseDataFrame's benefit
-        return self._join_compat(other, on=on, left_on=None, right_on=None, how=how, lsuffix=lsuffix,
+        return self._join_compat(other, on=on, left_on=left_on, right_on=right_on, how=how, lsuffix=lsuffix,
                                  rsuffix=rsuffix, sort=sort)
 
     def _join_compat(self, other, on=None, left_on=None, right_on=None, how='left', lsuffix='', rsuffix='',
@@ -4236,9 +4236,12 @@ class DataFrame(NDFrame):
             other = DataFrame({other.name: other})
 
         if isinstance(other, DataFrame):
-            return merge(self, other, left_on=on, right_on=on, how=how,
+            if left_on  == None and on != None: left_on = on
+            if right_on == None and on != None: right_on = on
+
+            return merge(self, other, left_on=left_on, right_on=right_on, how=how,
                          left_index=((on is None) and (left_on is None)),
-                         right_index=((on is None and right_on is None)),
+                         right_index=((on is None) and (right_on is None)),
                          suffixes=(lsuffix, rsuffix), sort=sort)
         else:
             if on is not None:
