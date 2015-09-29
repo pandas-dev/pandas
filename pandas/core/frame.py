@@ -4240,6 +4240,12 @@ class DataFrame(NDFrame):
                 left_on = on
             if right_on == None and on != None:
                 right_on = on
+
+            '''Workaround to preserve the documented behavior of join()'''
+            if right_on == None and left_on == None and on != None:
+                left_on = on
+                on = None
+
             return merge(self, other, left_on=left_on, right_on=right_on, how=how,
                          left_index=((on is None) and (left_on is None)),
                          right_index=((on is None) and (right_on is None)),
