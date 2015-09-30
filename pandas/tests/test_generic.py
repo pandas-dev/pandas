@@ -1681,6 +1681,85 @@ class TestDataFrame(tm.TestCase, Generic):
         assert_equal(df.y, 5)
         assert_series_equal(df['y'], Series([2, 4, 6], name='y'))
 
+    def test_copy_on_write(self):
+
+        #######
+        # FORWARD PROPAGATION TESTS
+        #######
+        
+        ##
+        # Test children recorded from various slicing methods
+        ##
+        
+        df = pd.DataFrame({'col1':[1,2], 'col2':[3,4]})
+        self.assertTrue(len(df._children)==0)
+        
+        
+        views = dict()
+        
+        views['loc'] = df.loc[0:0,]
+        views['iloc'] = df.iloc[0:1,]
+        views['ix'] = df.ix[0:0,]
+        views['loc_of_loc'] = views['loc'].loc[0:0,]
+        
+        copies = dict()
+        for v in views.keys():    
+            self.assertTrue(views[v]._is_view)
+            copies[v] = views[v].copy()
+        
+        
+        
+        df.loc[0,'col1'] = -88
+        
+        for v in views.keys():
+            tm.assert_frame_equal(views[v], copies[v])
+            self.assertFalse(views[v]._is_view)
+        
+        ##
+        # Test views become copies 
+        # during different forms of value setting.
+        ##
+        
+        parent = dict()
+        views = dict()
+        copies = dict()
+        for v in ['loc', 'iloc', 'ix', 'column', 'attribute']:
+            parent[v] = pd.DataFrame({'col1':[1,2], 'col2':[3,4]})
+            views[v] = parent[v].loc[0:0,]
+            copies[v] = views[v].copy()
+            self.assertTrue( views[v]._is_view )
+        
+        parent['loc'].loc[0, 'col1'] = -88 
+        parent['iloc'].iloc[0, 0] = -88
+        parent['ix'].ix[0, 'col1'] = -88
+        parent['column']['col1'] = -88
+        parent['attribute'].col1 = -88
+        
+        
+        for v in views.keys():
+            tm.assert_frame_equal(views[v], copies[v])
+            self.assertFalse(views[v]._is_view)
+            
+            
+        
+        ########
+        # No Backward Propogation 
+        #######
+        df = pd.DataFrame({'col1':[1,2], 'col2':[3,4]})
+        df_copy = df.copy()
+        
+        views = dict()
+        
+        views['loc'] = df.loc[0:0,]
+        views['iloc'] = df.iloc[0:1,]
+        views['ix'] = df.ix[0:0,]
+        views['loc_of_loc'] = views['loc'].loc[0:0,]
+        
+        for v in views.keys():    
+            views[v].loc[0:0,] = -99
+                
+        tm.assert_frame_equal(df, df_copy)
+
 
 class TestPanel(tm.TestCase, Generic):
     _typ = Panel

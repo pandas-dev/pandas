@@ -714,10 +714,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             self._set_with(key, value)
 
         # do the setitem
-        cacher_needs_updating = self._check_is_chained_assignment_possible()
         setitem(key, value)
-        if cacher_needs_updating:
-            self._maybe_update_cacher()
 
     def _set_with_engine(self, key, value):
         values = self._values
