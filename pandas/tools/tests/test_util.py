@@ -2,14 +2,15 @@ import os
 import locale
 import codecs
 import nose
+from nose.tools import assert_raises, assert_true
 
 import numpy as np
 from numpy.testing import assert_equal
 
+import pandas as pd
 from pandas import date_range, Index
 import pandas.util.testing as tm
-from pandas.tools.util import cartesian_product
-
+from pandas.tools.util import cartesian_product, to_numeric
 
 CURRENT_LOCALE = locale.getlocale()
 LOCALE_OVERRIDE = os.environ.get('LOCALE_OVERRIDE', None)
@@ -89,6 +90,54 @@ class TestLocaleUtils(tm.TestCase):
         self.assertEqual(current_locale, CURRENT_LOCALE)
 
 
+class TestToNumeric(tm.TestCase):
+    def test_series(self):
+        s = pd.Series(['1', '-3.14', '7'])
+        res = to_numeric(s)
+        expected = pd.Series([1, -3.14, 7])
+        tm.assert_series_equal(res, expected)
+
+        s = pd.Series(['1', '-3.14', 7])
+        res = to_numeric(s)
+        tm.assert_series_equal(res, expected)
+
+    def test_error(self):
+        s = pd.Series([1, -3.14, 'apple'])
+        assert_raises(ValueError, to_numeric, s, errors='raise')
+
+        res = to_numeric(s, errors='ignore')
+        expected = pd.Series([1, -3.14, 'apple'])
+        tm.assert_series_equal(res, expected)
+
+        res = to_numeric(s, errors='coerce')
+        expected = pd.Series([1, -3.14, np.nan])
+        tm.assert_series_equal(res, expected)
+
+
+    def test_list(self):
+        s = ['1', '-3.14', '7']
+        res = to_numeric(s)
+        expected = np.array([1, -3.14, 7])
+        tm.assert_numpy_array_equal(res, expected)
+
+    def test_numeric(self):
+        s = pd.Series([1, -3.14, 7], dtype='O')
+        res = to_numeric(s)
+        expected = pd.Series([1, -3.14, 7])
+        tm.assert_series_equal(res, expected)
+
+        s = pd.Series([1, -3.14, 7])
+        res = to_numeric(s)
+        tm.assert_series_equal(res, expected)
+
+    def test_all_nan(self):
+        s = pd.Series(['a','b','c'])
+        res = to_numeric(s, errors='coerce')
+        expected = pd.Series([np.nan, np.nan, np.nan])
+        tm.assert_series_equal(res, expected)
+
+
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
                    exit=False)
+

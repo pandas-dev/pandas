@@ -106,7 +106,7 @@ def _soft_convert_objects(values, datetime=True, numeric=True, timedelta=True,
         elif timedelta:
             return pd.to_timedelta(values, errors='coerce', box=False)
         elif numeric:
-            return lib.maybe_convert_numeric(values, set(), coerce_numeric=True)
+            return pd.to_numeric(values, errors='coerce')
 
     # Soft conversions
     if datetime:

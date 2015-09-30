@@ -1,12 +1,10 @@
 # -*- coding: utf-8 -*-
-import warnings
-
 import nose
 
-import sys
-import pandas.util
 from pandas.util.decorators import deprecate_kwarg
 import pandas.util.testing as tm
+
+
 
 class TestDecorators(tm.TestCase):
     def setUp(self):
@@ -74,7 +72,6 @@ def test_rands_array():
     arr = tm.rands_array(7, size=(10, 10))
     assert(arr.shape == (10, 10))
     assert(len(arr[1, 1]) == 7)
-
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
