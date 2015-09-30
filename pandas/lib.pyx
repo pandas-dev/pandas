@@ -1,3 +1,4 @@
+# cython: profile=False
 cimport numpy as np
 cimport cython
 import numpy as np
@@ -54,7 +55,8 @@ from datetime import datetime as pydatetime
 # this is our tseries.pxd
 from datetime cimport *
 
-from tslib cimport convert_to_tsobject, convert_to_timedelta64
+from tslib cimport (convert_to_tsobject, convert_to_timedelta64,
+                    _check_all_nulls)
 import tslib
 from tslib import NaT, Timestamp, Timedelta
 
@@ -245,8 +247,6 @@ def time64_to_datetime(ndarray[int64_t, ndim=1] arr):
 
     return result
 
-cdef inline int64_t get_timedelta64_value(val):
-    return val.view('i8')
 
 #----------------------------------------------------------------------
 # isnull / notnull related
@@ -346,10 +346,10 @@ def isnullobj(ndarray[object] arr):
     cdef ndarray[uint8_t] result
 
     n = len(arr)
-    result = np.zeros(n, dtype=np.uint8)
+    result = np.empty(n, dtype=np.uint8)
     for i from 0 <= i < n:
         val = arr[i]
-        result[i] = val is NaT or _checknull(val)
+        result[i] = _check_all_nulls(val)
     return result.view(np.bool_)
 
 @cython.wraparound(False)

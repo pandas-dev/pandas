@@ -1,3 +1,4 @@
+# cython: profile=False
 from numpy cimport int64_t, int32_t, npy_int64, npy_int32, ndarray
 from cpython cimport PyObject
 
@@ -59,6 +60,7 @@ cdef extern from "numpy/ndarrayobject.h":
 
 cdef extern from "numpy_helper.h":
     npy_datetime get_datetime64_value(object o)
+    npy_timedelta get_timedelta64_value(object o)
 
 cdef extern from "numpy/npy_common.h":
 
