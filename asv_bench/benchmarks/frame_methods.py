@@ -582,11 +582,38 @@ class frame_interpolate_some_good_infer(object):
         self.df.interpolate(downcast='infer')
 
 
-class frame_isnull(object):
+class frame_isnull_floats_no_null(object):
     goal_time = 0.2
 
     def setup(self):
         self.data = np.random.randn(1000, 1000)
+        self.df = DataFrame(self.data)
+
+    def time_frame_isnull(self):
+        isnull(self.df)
+
+
+class frame_isnull_floats(object):
+    goal_time = 0.2
+
+    def setup(self):
+        np.random.seed(1234)
+        self.sample = np.array([np.nan, 1.0])
+        self.data = np.random.choice(self.sample, (1000, 1000))
+        self.df = DataFrame(self.data)
+
+    def time_frame_isnull(self):
+        isnull(self.df)
+
+
+class frame_isnull_obj(object):
+    goal_time = 0.2
+
+    def setup(self):
+        np.random.seed(1234)
+        self.sample = np.array([NaT, np.nan, None, np.datetime64('NaT'),
+                                np.timedelta64('NaT'), 0, 1, 2.0, '', 'abcd'])
+        self.data = np.random.choice(self.sample, (1000, 1000))
         self.df = DataFrame(self.data)
 
     def time_frame_isnull(self):
