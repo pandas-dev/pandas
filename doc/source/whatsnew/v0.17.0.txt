@@ -489,6 +489,9 @@ Other enhancements
 
 - ``pd.read_csv`` is now able to infer compression type for files read from AWS S3 storage (:issue:`11070`, :issue:`11074`).
 
+- ``GroupBy`` objects now have a ``pipe`` method, similar to the one on ``DataFrame`` and ``Series`` that allow for functions that take a ``GroupBy`` to be composed in a clean, readable syntax.  See the :ref:`documentation <groupby.pipe>` for more.
+
+
 .. _whatsnew_0170.api:
 
 .. _whatsnew_0170.api_breaking:

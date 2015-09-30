@@ -14,13 +14,14 @@ from pandas import compat
 from pandas.core.base import PandasObject
 from pandas.core.categorical import Categorical
 from pandas.core.frame import DataFrame
-from pandas.core.generic import NDFrame
+from pandas.core.generic import NDFrame, _pipe
 from pandas.core.index import Index, MultiIndex, CategoricalIndex, _ensure_index
 from pandas.core.internals import BlockManager, make_block
 from pandas.core.series import Series
 from pandas.core.panel import Panel
 from pandas.util.decorators import (cache_readonly, Appender, make_signature,
                                     deprecate_kwarg)
+from pandas.tools.util import _pipe
 import pandas.core.algorithms as algos
 import pandas.core.common as com
 from pandas.core.common import(_possibly_downcast_to_dtype, isnull,
@@ -1075,6 +1076,59 @@ class GroupBy(PandasObject):
         in_tail = self._cumcount_array(rng, ascending=False) > -n
         tail = obj[in_tail]
         return tail
+
+    def pipe(self, func, *args, **kwargs):
+        """ Apply a function with arguments to this GroupBy object
+
+        .. versionadded:: 0.17.0
+
+        Parameters
+        ----------
+        func : callable or tuple of (callable, string)
+               Function to apply to this GroupBy or, alternatively, a
+               ``(callable, data_keyword)`` tuple where ``data_keyword`` is a
+               string indicating the keyword of `callable`` that expects the
+               %(klass)s.
+        args : iterable, optional
+               positional arguments passed into ``func``.
+        kwargs : any, dictionary
+                 a dictionary of keyword arguments passed into ``func``.
+
+        Returns
+        -------
+        object : the return type of ``func``.
+
+        Notes
+        -----
+
+        Use ``.pipe`` when chaining together functions that expect
+        a GroupBy, or when alternating between functions that take
+        a DataFrame and a GroupBy.
+
+        Assuming that one has a function f that takes and returns
+        a DataFrameGroupBy, a function g that takes a DataFrameGroupBy
+        and returns a DataFrame, and a function h that takes a DataFrame,
+        instead of having to write:
+
+        >>> f(g(h(df.groupby('group')), arg1=a), arg2=b, arg3=c)
+
+        You can write
+
+        >>> (df
+        ...    .groupby('group')
+        ...    .pipe(f, arg1)
+        ...    .pipe(g, arg2)
+        ...    .pipe(h, arg3))
+
+
+        See Also
+        --------
+        pandas.Series.pipe
+        pandas.DataFrame.pipe
+        pandas.GroupBy.apply
+        """
+        return _pipe(self, func, *args, **kwargs)
+
 
     def _cumcount_array(self, arr=None, ascending=True):
         """

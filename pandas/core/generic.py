@@ -26,6 +26,7 @@ from pandas.core.common import (isnull, notnull, is_list_like,
                                 AbstractMethodError)
 import pandas.core.nanops as nanops
 from pandas.util.decorators import Appender, Substitution, deprecate_kwarg
+from pandas.tools.util import _pipe
 from pandas.core import config
 
 
@@ -2169,7 +2170,7 @@ class NDFrame(PandasObject):
         -----
 
         Use ``.pipe`` when chaining together functions that expect
-        on Series or DataFrames. Instead of writing
+        on Series,  DataFrames, or GroupBys. Instead of writing
 
         >>> f(g(h(df), arg1=a), arg2=b, arg3=c)
 
@@ -2191,6 +2192,7 @@ class NDFrame(PandasObject):
 
         See Also
         --------
+        pandas.GroupBy.pipe
         pandas.DataFrame.apply
         pandas.DataFrame.applymap
         pandas.Series.map
@@ -2198,15 +2200,7 @@ class NDFrame(PandasObject):
     )
     @Appender(_shared_docs['pipe'] % _shared_doc_kwargs)
     def pipe(self, func, *args, **kwargs):
-        if isinstance(func, tuple):
-            func, target = func
-            if target in kwargs:
-                msg = '%s is both the pipe target and a keyword argument' % target
-                raise ValueError(msg)
-            kwargs[target] = self
-            return func(*args, **kwargs)
-        else:
-            return func(self, *args, **kwargs)
+        return _pipe(self, func, *args, **kwargs)
 
     #----------------------------------------------------------------------
     # Attribute access

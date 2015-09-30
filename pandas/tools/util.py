@@ -48,3 +48,25 @@ def compose(*funcs):
     """Compose 2 or more callables"""
     assert len(funcs) > 1, 'At least 2 callables must be passed to compose'
     return reduce(_compose2, funcs)
+
+
+def _pipe(obj, func, *args, **kwargs):
+    """
+    Apply a function to a obj either by
+    passing the obj as the first argument
+    to the function or, in the case that
+    the func is a tuple, interpret the first
+    element of the tuple as a function and
+    pass the obj to that function as a keyword
+    arguemnt whose key is the value of the
+    second element of the tuple
+    """
+    if isinstance(func, tuple):
+        func, target = func
+        if target in kwargs:
+            msg = '%s is both the pipe target and a keyword argument' % target
+            raise ValueError(msg)
+        kwargs[target] = obj
+        return func(*args, **kwargs)
+    else:
+        return func(obj, *args, **kwargs)
