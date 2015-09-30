@@ -204,28 +204,32 @@ class TestReadGBQIntegration(tm.TestCase):
     @classmethod
     def setUpClass(cls):
         # - GLOBAL CLASS FIXTURES -
-        #   put here any instruction you want to execute only *ONCE* *BEFORE* executing *ALL* tests
-        #   described below.
+        # put here any instruction you want to execute only *ONCE* *BEFORE* executing *ALL* tests
+        # described below.
 
         if not PROJECT_ID:
             raise nose.SkipTest("Cannot run integration tests without a project id")
 
         test_requirements()
+        clean_gbq_environment()
+
+        gbq._Dataset(PROJECT_ID).create(DATASET_ID + "7")
 
     def setUp(self):
         # - PER-TEST FIXTURES -
-        #   put here any instruction you want to be run *BEFORE* *EVERY* test is executed.
+        # put here any instruction you want to be run *BEFORE* *EVERY* test is executed.
         pass
 
     @classmethod
     def tearDownClass(cls):
         # - GLOBAL CLASS FIXTURES -
         #   put here any instruction you want to execute only *ONCE* *AFTER* executing all tests.
-        pass
+
+        clean_gbq_environment()
 
     def tearDown(self):
         # - PER-TEST FIXTURES -
-        #   put here any instructions you want to be run *AFTER* *EVERY* test is executed.
+        # put here any instructions you want to be run *AFTER* *EVERY* test is executed.
         pass
 
     def test_should_properly_handle_valid_strings(self):
@@ -357,6 +361,77 @@ class TestReadGBQIntegration(tm.TestCase):
         expected_result = DataFrame(columns=['title', 'language'])
         self.assert_frame_equal(df, expected_result)
 
+    def test_redirect_query_results_to_destination_table_default(self):
+        destination_table =  "{0}.{1}".format(DATASET_ID + "7", TABLE_ID + "1")
+        test_size = 100
+
+        gbq.read_gbq("SELECT id FROM [publicdata:samples.wikipedia] LIMIT " + str(test_size), PROJECT_ID,
+                     destination_table=destination_table)
+        result = gbq.read_gbq("SELECT COUNT(*) as NUM_ROWS FROM {0}".format(destination_table), PROJECT_ID)
+        self.assertEqual(result['NUM_ROWS'][0], test_size)
+
+    def test_redirect_query_results_to_destination_table_if_table_exists_fail(self):
+        destination_table =  "{0}.{1}".format(DATASET_ID + "7", TABLE_ID + "2")
+        test_size = 100
+
+        # Test redirecting the query results to a destination table without specifying the if_exists parameter
+        gbq.read_gbq("SELECT id FROM [publicdata:samples.wikipedia] LIMIT " + str(test_size), PROJECT_ID,
+                     destination_table=destination_table)
+        result = gbq.read_gbq("SELECT COUNT(*) as NUM_ROWS FROM {0}".format(destination_table), PROJECT_ID)
+        self.assertEqual(result['NUM_ROWS'][0], test_size)
+
+        # Confirm that the default action is to to fail if the table exists and if_exists parameter is not provided
+        with tm.assertRaises(gbq.TableCreationError):
+            gbq.read_gbq("SELECT id FROM [publicdata:samples.wikipedia] LIMIT " + str(test_size), PROJECT_ID,
+                         destination_table=destination_table)
+
+        # Test the if_exists parameter with value 'fail'
+        with tm.assertRaises(gbq.TableCreationError):
+            gbq.read_gbq("SELECT id FROM [publicdata:samples.wikipedia] LIMIT " + str(test_size), PROJECT_ID,
+                         destination_table=destination_table, if_exists='fail')
+
+    def test_redirect_query_results_to_destination_table_if_table_exists_append(self):
+        destination_table =  "{0}.{1}".format(DATASET_ID + "7", TABLE_ID + "3")
+        test_size = 100
+
+        # Initialize table with sample data
+        gbq.read_gbq("SELECT id FROM [publicdata:samples.wikipedia] LIMIT " + str(test_size), PROJECT_ID,
+                     destination_table=destination_table)
+
+        # Test the if_exists parameter with value 'append'
+        gbq.read_gbq("SELECT id FROM [publicdata:samples.wikipedia] LIMIT " + str(test_size), PROJECT_ID,
+                     destination_table=destination_table, if_exists='append')
+
+        result = gbq.read_gbq("SELECT COUNT(*) as NUM_ROWS FROM {0}".format(destination_table), PROJECT_ID)
+        self.assertEqual(result['NUM_ROWS'][0], test_size * 2)
+
+        # Try redirecting data an existing table with different schema, confirm failure
+        with tm.assertRaises(gbq.GenericGBQException):
+            gbq.read_gbq("SELECT title FROM [publicdata:samples.wikipedia] LIMIT " + str(test_size), PROJECT_ID,
+                         destination_table=destination_table, if_exists='append')
+
+    def test_redirect_query_results_to_destination_table_if_table_exists_replace(self):
+        destination_table =  "{0}.{1}".format(DATASET_ID + "7", TABLE_ID + "4")
+        test_size = 100
+
+        # Initialize table with sample data
+        gbq.read_gbq("SELECT id FROM [publicdata:samples.wikipedia] LIMIT " + str(test_size), PROJECT_ID,
+                     destination_table=destination_table)
+
+        # Test the if_exists parameter with the value 'replace'
+        gbq.read_gbq("SELECT title FROM [publicdata:samples.wikipedia] LIMIT " + str(test_size), PROJECT_ID,
+                     destination_table=destination_table, if_exists='replace')
+
+        result = gbq.read_gbq("SELECT COUNT(*) as NUM_ROWS FROM {0}".format(destination_table), PROJECT_ID)
+        self.assertEqual(result['NUM_ROWS'][0], test_size)
+
+    def test_redirect_query_results_to_destination_table_dataset_does_not_exist(self):
+        destination_table = "{0}.{1}".format(DATASET_ID + "8", TABLE_ID + "5")
+        test_size = 100
+        gbq.read_gbq("SELECT id FROM [publicdata:samples.wikipedia] LIMIT " + str(test_size), PROJECT_ID,
+                     destination_table=destination_table)
+        result = gbq.read_gbq("SELECT COUNT(*) as NUM_ROWS FROM {0}".format(destination_table), PROJECT_ID)
+        self.assertEqual(result['NUM_ROWS'][0], test_size)
 
 class TestToGBQIntegration(tm.TestCase):
     # Changes to BigQuery table schema may take up to 2 minutes as of May 2015

@@ -333,6 +333,8 @@ Google BigQuery Enhancements
 - ``InvalidColumnOrder`` and ``InvalidPageToken`` in the gbq module will raise ``ValueError`` instead of ``IOError``.
 - The ``generate_bq_schema()`` function is now deprecated and will be removed in a future version (:issue:`11121`)
 - Update the gbq module to support Python 3 (:issue:`11094`).
+- Modify :func:`pandas.io.gbq.read_gbq()` to allow users to redirect the query results to a destination table via the `destination_table` parameter. See the :ref:`docs <io.bigquery>` for more details (:issue:`11209`)
+- Modify :func:`pandas.io.gbq.read_gbq()` to allow users to allow users to set the ``'allowLargeResults'`` option in the BigQuery job configuration via the ``allow_large_results`` parameter. (:issue:`11209`)
 
 .. _whatsnew_0170.enhancements.other:
 

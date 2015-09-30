@@ -4091,7 +4091,7 @@ destination DataFrame as well as a preferred column order as follows:
 
    data_frame = pd.read_gbq('SELECT * FROM test_dataset.test_table',
                              index_col='index_column_name',
-                             col_order=['col1', 'col2', 'col3'], projectid)
+                             col_order=['col1', 'col2', 'col3'], projectid=projectid)
 
 .. note::
 
@@ -4101,6 +4101,45 @@ destination DataFrame as well as a preferred column order as follows:
 .. note::
 
    You can toggle the verbose output via the ``verbose`` flag which defaults to ``True``.
+
+You can send the query results directly to a table in BigQuery by setting the ``destination_table`` argument.
+
+For example,
+
+.. code-block:: python
+
+   df.read_gbq('SELECT * FROM test_dataset.test_table', project_id=projectid, destination_table='my_dataset.my_table')
+
+.. note::
+
+   When the ``destination_table`` argument is set, an empty dataframe will be returned.
+
+.. note::
+
+   The destination table and destination dataset will automatically be created if they do not already exist.
+
+The ``if_exists`` argument can be used to dictate whether to ``'fail'``, ``'replace'``
+or ``'append'`` if the destination table already exists when using the ``destination_table`` argument.
+The default value is ``'fail'``.
+
+For example, assume that ``if_exists`` is set to ``'fail'``. The following snippet will raise
+a ``TableCreationError`` if the destination table already exists.
+
+.. code-block:: python
+
+   df.read_gbq('SELECT * FROM test_dataset.test_table',
+               project_id=projectid,
+               destination_table='my_dataset.my_table',
+               if_exists='fail')
+
+.. note::
+
+   If you plan to run a query that may return larger results, you can set the ``allow_large_results`` argument
+   which defaults to ``False``. Setting the ``allow_large_results`` argument will effectively set the BigQuery
+   ``'allowLargeResults'`` option to true in the BigQuery job configuration.
+
+   Queries that return large results will take longer to execute, even if the result set is small,
+   and are subject to `additional limitations <https://cloud.google.com/bigquery/querying-data?hl=en#largequeryresults>`__.
 
 Writing DataFrames
 ''''''''''''''''''
