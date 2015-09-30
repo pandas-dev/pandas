@@ -84,7 +84,7 @@ class NDFrame(PandasObject):
     _internal_names = ['_data', '_cacher', '_item_cache', '_cache',
                        'is_copy', '_subtyp', '_index',
                        '_default_kind', '_default_fill_value', '_metadata',
-                       '__array_struct__', '__array_interface__']
+                       '__array_struct__', '__array_interface__', '_children']
     _internal_names_set = set(_internal_names)
     _accessors = frozenset([])
     _metadata = []
@@ -106,6 +106,8 @@ class NDFrame(PandasObject):
         object.__setattr__(self, 'is_copy', None)
         object.__setattr__(self, '_data', data)
         object.__setattr__(self, '_item_cache', {})
+        object.__setattr__(self, '_children', [])
+
 
     def _validate_dtype(self, dtype):
         """ validate the passed dtype """
@@ -1175,9 +1177,6 @@ class NDFrame(PandasObject):
                 except:
                     pass
 
-        if verify_is_copy:
-            self._check_setitem_copy(stacklevel=5, t='referant')
-
         if clear:
             self._clear_item_cache()
 
@@ -1202,9 +1201,16 @@ class NDFrame(PandasObject):
         # but only in a single-dtyped view slicable case
         is_copy = axis!=0 or result._is_view
         result._set_is_copy(self, copy=is_copy)
+
+        self._children.append(weakref.ref(result))
+
         return result
 
     def _set_item(self, key, value):
+    
+        # If children are views, reset to copies before setting.
+        self._convert_views_to_copies()
+
         self._data.set(key, value)
         self._clear_item_cache()
 
@@ -1217,103 +1223,21 @@ class NDFrame(PandasObject):
             else:
                 self.is_copy = None
 
-    def _check_is_chained_assignment_possible(self):
-        """
-        check if we are a view, have a cacher, and are of mixed type
-        if so, then force a setitem_copy check
+    def _convert_views_to_copies(self):
+        # Don't set on views. 
+        if self._is_view:
+            self._data = self._data.copy()
 
-        should be called just near setting a value
+        # Before setting values, make sure children converted to copies. 
+        for child in self._children:
 
-        will return a boolean if it we are a view and are cached, but a single-dtype
-        meaning that the cacher should be updated following setting
-        """
-        if self._is_view and self._is_cached:
-            ref = self._get_cacher()
-            if ref is not None and ref._is_mixed_type:
-                self._check_setitem_copy(stacklevel=4, t='referant', force=True)
-            return True
-        elif self.is_copy:
-            self._check_setitem_copy(stacklevel=4, t='referant')
-        return False
-
-    def _check_setitem_copy(self, stacklevel=4, t='setting', force=False):
-        """
-
-        Parameters
-        ----------
-        stacklevel : integer, default 4
-           the level to show of the stack when the error is output
-        t : string, the type of setting error
-        force : boolean, default False
-           if True, then force showing an error
-
-        validate if we are doing a settitem on a chained copy.
-
-        If you call this function, be sure to set the stacklevel such that the
-        user will see the error *at the level of setting*
-
-        It is technically possible to figure out that we are setting on
-        a copy even WITH a multi-dtyped pandas object. In other words, some blocks
-        may be views while other are not. Currently _is_view will ALWAYS return False
-        for multi-blocks to avoid having to handle this case.
-
-        df = DataFrame(np.arange(0,9), columns=['count'])
-        df['group'] = 'b'
-
-        # this technically need not raise SettingWithCopy if both are view (which is not
-        # generally guaranteed but is usually True
-        # however, this is in general not a good practice and we recommend using .loc
-        df.iloc[0:5]['group'] = 'a'
-
-        """
-
-        if force or self.is_copy:
-
-            value = config.get_option('mode.chained_assignment')
-            if value is None:
-                return
-
-            # see if the copy is not actually refererd; if so, then disolve
-            # the copy weakref
-            try:
-                gc.collect(2)
-                if not gc.get_referents(self.is_copy()):
-                    self.is_copy = None
-                    return
-            except:
-                pass
-
-            # we might be a false positive
-            try:
-                if self.is_copy().shape == self.shape:
-                    self.is_copy = None
-                    return
-            except:
-                pass
-
-            # a custom message
-            if isinstance(self.is_copy, string_types):
-                t = self.is_copy
-
-            elif t == 'referant':
-                t = ("\n"
-                     "A value is trying to be set on a copy of a slice from a "
-                     "DataFrame\n\n"
-                     "See the caveats in the documentation: "
-                     "http://pandas.pydata.org/pandas-docs/stable/indexing.html#indexing-view-versus-copy")
-
-            else:
-                t = ("\n"
-                     "A value is trying to be set on a copy of a slice from a "
-                     "DataFrame.\n"
-                     "Try using .loc[row_indexer,col_indexer] = value instead\n\n"
-                     "See the caveats in the documentation: "
-                     "http://pandas.pydata.org/pandas-docs/stable/indexing.html#indexing-view-versus-copy")
-
-            if value == 'raise':
-                raise SettingWithCopyError(t)
-            elif value == 'warn':
-                warnings.warn(t, SettingWithCopyWarning, stacklevel=stacklevel)
+            # Make sure children of children converted. 
+            child()._convert_views_to_copies()
+            
+            if child()._is_view:
+                child()._data = child()._data.copy()
+                
+        self._children=[]
 
     def __delitem__(self, key):
         """
@@ -2365,6 +2289,7 @@ class NDFrame(PandasObject):
         # first try regular attribute access via __getattribute__, so that
         # e.g. ``obj.x`` and ``obj.x = 4`` will always reference/modify
         # the same attribute.
+
 
         try:
             object.__getattribute__(self, name)
