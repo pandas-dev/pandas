@@ -439,10 +439,12 @@ def extract_ordinals(ndarray[object] values, freq):
         ndarray[int64_t] ordinals = np.empty(n, dtype=np.int64)
         object p
 
+    freqstr = Period._maybe_convert_freq(freq).freqstr
+
     for i in range(n):
         p = values[i]
         ordinals[i] = p.ordinal
-        if p.freq != freq:
+        if p.freqstr != freqstr:
             raise ValueError("%s is wrong freq" % p)
 
     return ordinals
