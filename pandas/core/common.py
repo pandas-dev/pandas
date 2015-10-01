@@ -3193,7 +3193,7 @@ def _pprint_seq(seq, _nest_lvl=0, max_seq_items=None, **kwds):
     bounds length of printed sequence, depending on options
     """
     if isinstance(seq, set):
-        fmt = u("set([%s])")
+        fmt = u("{%s}")
     else:
         fmt = u("[%s]") if hasattr(seq, '__setitem__') else u("(%s)")
 
