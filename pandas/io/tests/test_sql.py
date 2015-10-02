@@ -26,6 +26,7 @@ import sys
 import nose
 import warnings
 import numpy as np
+import pandas as pd
 
 from datetime import datetime, date, time
 
@@ -33,6 +34,7 @@ from pandas import DataFrame, Series, Index, MultiIndex, isnull, concat
 from pandas import date_range, to_datetime, to_timedelta, Timestamp
 import pandas.compat as compat
 from pandas.compat import StringIO, range, lrange, string_types
+from pandas.core import common as com
 from pandas.core.datetools import format as date_format
 
 import pandas.io.sql as sql
@@ -1247,6 +1249,39 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         # MySQL SHOULD be converted.
         self.assertTrue(issubclass(df.DateCol.dtype.type, np.datetime64),
                         "DateCol loaded with incorrect type")
+
+    def test_datetime_with_timezone(self):
+        # edge case that converts postgresql datetime with time zone types
+        # to datetime64[ns,psycopg2.tz.FixedOffsetTimezone..], which is ok
+        # but should be more natural, so coerce to datetime64[ns] for now
+
+        # GH11216
+        df = pd.read_sql_query("select * from types_test_data", self.conn)
+        if not hasattr(df,'DateColWithTz'):
+            raise nose.SkipTest("no column with datetime with time zone")
+
+        # this is parsed on Travis (linux), but not on macosx for some reason
+        # even with the same versions of psycopg2 & sqlalchemy, possibly a Postgrsql server
+        # version difference
+        dtype = df.DateColWithTz.dtype
+        self.assertTrue(com.is_object_dtype(dtype) or com.is_datetime64_dtype(dtype),
+                        "DateCol loaded with incorrect type -> {0}".format(dtype))
+
+        df = pd.read_sql_query("select * from types_test_data", self.conn, parse_dates=['DateColWithTz'])
+        if not hasattr(df,'DateColWithTz'):
+            raise nose.SkipTest("no column with datetime with time zone")
+
+        dtype = df.DateColWithTz.dtype
+        self.assertTrue(com.is_datetime64_dtype(dtype),
+                        "DateCol loaded with incorrect type -> {0}".format(dtype))
+
+        df = pd.concat(list(pd.read_sql_query("select * from types_test_data",
+                                              self.conn,chunksize=1)),ignore_index=True)
+        dtype = df.DateColWithTz.dtype
+        self.assertTrue(com.is_datetime64_dtype(dtype),
+                        "DateCol loaded with incorrect type -> {0}".format(dtype))
+        expected = sql.read_sql_table("types_test_data", self.conn)
+        tm.assert_series_equal(df.DateColWithTz, expected.DateColWithTz)
 
     def test_date_parsing(self):
         # No Parsing
