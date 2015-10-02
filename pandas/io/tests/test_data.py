@@ -92,7 +92,7 @@ class TestGoogle(tm.TestCase):
         for locale in self.locales:
             sl = ['AAPL', 'AMZN', 'GOOG']
             with tm.set_locale(locale):
-                pan = web.get_data_google(sl, '2012')
+                pan = web.get_data_google(sl, '2012', '2013')
             ts = pan.Close.GOOG.index[pan.Close.AAPL < pan.Close.GOOG]
             if (hasattr(pan, 'Close') and hasattr(pan.Close, 'GOOG') and
                 hasattr(pan.Close, 'AAPL')):
