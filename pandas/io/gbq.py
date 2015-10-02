@@ -195,7 +195,7 @@ class GbqConnector(object):
 
         raise StreamingInsertError
 
-    def run_query(self, query, verbose=True):
+    def run_query(self, query, verbose=True, destination_table=None, if_exists='fail', allow_large_results=False):
         from apiclient.errors import HttpError
         from oauth2client.client import AccessTokenRefreshError
 
@@ -210,6 +210,48 @@ class GbqConnector(object):
                 }
             }
         }
+
+        if destination_table:
+            if if_exists not in ('fail', 'replace', 'append'):
+                raise ValueError("'{0}' is not valid for if_exists".format(if_exists))
+
+            if '.' not in destination_table:
+                raise NotFoundException("Invalid Table Name. Should be of the form 'datasetId.tableId' ")
+
+            dataset_id, table_id = destination_table.rsplit('.', 1)
+
+            job_data['configuration']['query'] = {
+                'query': query,
+                'destinationTable': {
+                    "projectId": self.project_id,
+                    "datasetId": dataset_id,
+                    "tableId": table_id,
+                },
+                'writeDisposition': 'WRITE_EMPTY',  # A 'duplicate' error is returned in the job result if table exists
+                'allowLargeResults': 'false'        # If true, allows the query to produce large result tables.
+            }
+
+            if allow_large_results:
+                job_data['configuration']['query']['allowLargeResults'] = 'true'
+
+            table = _Table(self.project_id, dataset_id)
+
+            if table.exists(table_id):
+                if if_exists == 'fail':
+                    raise TableCreationError("Could not create the table because it already exists. "
+                                             "Change the if_exists parameter to append or replace data.")
+                elif if_exists == 'replace':
+                    # If the table already exists, instruct BigQuery to overwrite the table data.
+                    job_data['configuration']['query']['writeDisposition'] = 'WRITE_TRUNCATE'
+                elif if_exists == 'append':
+                    # If the table already exists, instruct BigQuery to append to the table data.
+                    job_data['configuration']['query']['writeDisposition'] = 'WRITE_APPEND'
+
+            dataset = _Dataset(self.project_id)
+
+            # create the destination dataset if it does not already exist
+            if not dataset.exists(dataset_id):
+                dataset.create(dataset_id)
 
         try:
             query_reply = job_collection.insert(projectId=self.project_id, body=job_data).execute()
@@ -236,6 +278,9 @@ class GbqConnector(object):
         current_row = 0
         # Only read schema on first page
         schema = query_reply['schema']
+
+        if destination_table:
+            return schema, list()
 
         # Loop through each page of data
         while 'rows' in query_reply and current_row < total_rows:
@@ -385,7 +430,8 @@ def _parse_entry(field_value, field_type):
     return field_value
 
 
-def read_gbq(query, project_id=None, index_col=None, col_order=None, reauth=False, verbose=True):
+def read_gbq(query, project_id=None, index_col=None, col_order=None, reauth=False, verbose=True,
+             destination_table=None, if_exists='fail', allow_large_results=False):
     """Load data from Google BigQuery.
 
     THIS IS AN EXPERIMENTAL LIBRARY
@@ -412,6 +458,15 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None, reauth=Fals
         if multiple accounts are used.
     verbose : boolean (default True)
         Verbose output
+    destination_table : string
+        Name of table to be written, in the form 'dataset.tablename'
+    if_exists : {'fail', 'replace', 'append'}, default 'fail'
+        'fail': If table exists, do nothing.
+        'replace': If table exists, drop it, recreate it, and insert data.
+        'append': If table exists, insert data. Create if does not exist.
+    allow_large_results : boolean (default False)
+        Enables the Google BigQuery allowLargeResults option which is necessary for
+        queries that may return larger results.
 
     Returns
     -------
@@ -424,7 +479,11 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None, reauth=Fals
         raise TypeError("Missing required parameter: project_id")
 
     connector = GbqConnector(project_id, reauth=reauth)
-    schema, pages = connector.run_query(query, verbose=verbose)
+    schema, pages = connector.run_query(query,
+                                        verbose=verbose,
+                                        destination_table=destination_table,
+                                        if_exists=if_exists,
+                                        allow_large_results=allow_large_results)
     dataframe_list = []
     while len(pages) > 0:
         page = pages.pop()
