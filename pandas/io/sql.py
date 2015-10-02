@@ -113,6 +113,14 @@ def _parse_date_columns(data_frame, parse_dates):
             fmt = None
         data_frame[col_name] = _handle_date_column(df_col, format=fmt)
 
+
+    # we want to coerce datetime64_tz dtypes for now
+    # we could in theory do a 'nice' conversion from a FixedOffset tz
+    # GH11216
+    for col_name, df_col in data_frame.iteritems():
+        if com.is_datetime64tz_dtype(df_col):
+            data_frame[col_name] = _handle_date_column(df_col)
+
     return data_frame
 
 
@@ -366,7 +374,7 @@ def read_sql_query(sql, con, index_col=None, coerce_float=True, params=None,
     ----------
     sql : string SQL query or SQLAlchemy Selectable (select or text object)
         to be executed.
-    con : SQLAlchemy connectable(engine/connection) or database string URI 
+    con : SQLAlchemy connectable(engine/connection) or database string URI
         or sqlite3 DBAPI2 connection
         Using SQLAlchemy makes it possible to use any DB supported by that
         library.
