@@ -1259,7 +1259,7 @@ class CSVFormatter(object):
 
     def __init__(self, obj, path_or_buf=None, sep=",", na_rep='', float_format=None,
                  cols=None, header=True, index=True, index_label=None,
-                 mode='w', nanRep=None, encoding=None, quoting=None,
+                 mode='w', nanRep=None, encoding=None, compression=None, quoting=None,
                  line_terminator='\n', chunksize=None, engine=None,
                  tupleize_cols=False, quotechar='"', date_format=None,
                  doublequote=True, escapechar=None, decimal='.'):
@@ -1281,6 +1281,7 @@ class CSVFormatter(object):
         self.index_label = index_label
         self.mode = mode
         self.encoding = encoding
+        self.compression = compression
 
         if quoting is None:
             quoting = csv.QUOTE_MINIMAL
@@ -1470,7 +1471,8 @@ class CSVFormatter(object):
             close = False
         else:
             f = com._get_handle(self.path_or_buf, self.mode,
-                                encoding=self.encoding)
+                                encoding=self.encoding, 
+                                compression=self.compression)
             close = True
 
         try:

@@ -2846,11 +2846,10 @@ def _get_handle(path, mode, encoding=None, compression=None):
 
         if compression == 'gzip':
             import gzip
-            f = gzip.GzipFile(path, 'rb')
+            f = gzip.GzipFile(path, mode)
         elif compression == 'bz2':
             import bz2
-
-            f = bz2.BZ2File(path, 'rb')
+            f = bz2.BZ2File(path, mode)
         else:
             raise ValueError('Unrecognized compression type: %s' %
                              compression)
