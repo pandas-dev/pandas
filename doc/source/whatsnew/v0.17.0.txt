@@ -1059,6 +1059,7 @@ Performance Improvements
 - 2x improvement of ``Series.value_counts`` for float dtype (:issue:`10821`)
 - Enable ``infer_datetime_format`` in ``to_datetime`` when date components do not have 0 padding (:issue:`11142`)
 - Regression from 0.16.1 in constructing ``DataFrame`` from nested dictionary (:issue:`11084`)
+- Performance improvements in addition/subtraction operations for ``DateOffset`` with ``Series`` or ``DatetimeIndex``  (issue:`10744`, :issue:`11205`)
 
 .. _whatsnew_0170.bug_fixes:
 

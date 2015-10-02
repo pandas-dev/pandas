@@ -3847,6 +3847,7 @@ def get_time_micros(ndarray[int64_t] dtindex):
 
     return micros
 
+
 @cython.wraparound(False)
 def get_date_field(ndarray[int64_t] dtindex, object field):
     '''
@@ -4385,6 +4386,75 @@ cpdef normalize_date(object dt):
     else:
         raise TypeError('Unrecognized type: %s' % type(dt))
 
+
+cdef inline int _year_add_months(pandas_datetimestruct dts,
+                                 int months):
+    '''new year number after shifting pandas_datetimestruct number of months'''
+    return dts.year + (dts.month + months - 1) / 12
+
+cdef inline int _month_add_months(pandas_datetimestruct dts,
+                                  int months):
+    '''new month number after shifting pandas_datetimestruct number of months'''
+    cdef int new_month = (dts.month + months) % 12
+    return 12 if new_month == 0 else new_month
+
+@cython.wraparound(False)
+def shift_months(int64_t[:] dtindex, int months, object day=None):
+    '''
+    Given an int64-based datetime index, shift all elements
+    specified number of months using DateOffset semantics
+
+    day: {None, 'start', 'end'}
+       * None: day of month
+       * 'start' 1st day of month
+       * 'end' last day of month
+    '''
+    cdef:
+        Py_ssize_t i
+        int days_in_month
+        pandas_datetimestruct dts
+        int count = len(dtindex)
+        int64_t[:] out = np.empty(count, dtype='int64')
+
+    for i in range(count):
+        if dtindex[i] == NPY_NAT:
+            out[i] = NPY_NAT
+        else:
+            pandas_datetime_to_datetimestruct(dtindex[i], PANDAS_FR_ns, &dts)
+
+            if day is None:
+                dts.year = _year_add_months(dts, months)
+                dts.month = _month_add_months(dts, months)
+                #prevent day from wrapping around month end
+                days_in_month = days_per_month_table[is_leapyear(dts.year)][dts.month-1]
+                dts.day = min(dts.day, days_in_month)
+            elif day == 'start':
+                dts.year = _year_add_months(dts, months)
+                dts.month = _month_add_months(dts, months)
+
+                # offset semantics - when subtracting if at the start anchor
+                # point, shift back by one more month
+                if months <= 0 and dts.day == 1:
+                    dts.year = _year_add_months(dts, -1)
+                    dts.month = _month_add_months(dts, -1)
+                else:
+                    dts.day = 1
+            elif day == 'end':
+                days_in_month = days_per_month_table[is_leapyear(dts.year)][dts.month-1]
+                dts.year = _year_add_months(dts, months)
+                dts.month = _month_add_months(dts, months)
+
+                # similar semantics - when adding shift forward by one
+                # month if already at an end of month
+                if months >= 0 and dts.day == days_in_month:
+                    dts.year = _year_add_months(dts, 1)
+                    dts.month = _month_add_months(dts, 1)
+
+                days_in_month = days_per_month_table[is_leapyear(dts.year)][dts.month-1]
+                dts.day = days_in_month
+
+            out[i] = pandas_datetimestruct_to_datetime(PANDAS_FR_ns, &dts)
+    return np.asarray(out)
 
 #----------------------------------------------------------------------
 # Don't even ask
