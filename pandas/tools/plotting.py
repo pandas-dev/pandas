@@ -1079,7 +1079,7 @@ class MPLPlot(object):
                 label = 'None'
             data = data.to_frame(name=label)
 
-        numeric_data = data.convert_objects(datetime=True)._get_numeric_data()
+        numeric_data = data._convert(datetime=True)._get_numeric_data()
 
         try:
             is_empty = numeric_data.empty
@@ -1972,8 +1972,7 @@ class HistPlot(LinePlot):
     def _args_adjust(self):
         if com.is_integer(self.bins):
             # create common bin edge
-            values = (self.data.convert_objects(datetime=True)
-                      ._get_numeric_data())
+            values = (self.data._convert(datetime=True)._get_numeric_data())
             values = np.ravel(values)
             values = values[~com.isnull(values)]
 

@@ -112,7 +112,7 @@ def _groupby_function(name, alias, npfunc, numeric_only=True,
         except Exception:
             result = self.aggregate(lambda x: npfunc(x, axis=self.axis))
             if _convert:
-                result = result.convert_objects(datetime=True)
+                result = result._convert(datetime=True)
             return result
 
     f.__doc__ = "Compute %s of group values" % name
@@ -2882,7 +2882,7 @@ class NDFrameGroupBy(GroupBy):
             self._insert_inaxis_grouper_inplace(result)
             result.index = np.arange(len(result))
 
-        return result.convert_objects(datetime=True)
+        return result._convert(datetime=True)
 
     def _aggregate_multiple_funcs(self, arg):
         from pandas.tools.merge import concat
@@ -3123,14 +3123,14 @@ class NDFrameGroupBy(GroupBy):
                 # as we are stacking can easily have object dtypes here
                 if (self._selected_obj.ndim == 2 and
                         self._selected_obj.dtypes.isin(_DATELIKE_DTYPES).any()):
-                    result = result.convert_objects(numeric=True)
+                    result = result._convert(numeric=True)
                     date_cols = self._selected_obj.select_dtypes(
                         include=list(_DATELIKE_DTYPES)).columns
                     result[date_cols] = (result[date_cols]
-                                         .convert_objects(datetime=True,
+                                         ._convert(datetime=True,
                                                           coerce=True))
                 else:
-                    result = result.convert_objects(datetime=True)
+                    result = result._convert(datetime=True)
 
                 return self._reindex_output(result)
 
@@ -3138,7 +3138,7 @@ class NDFrameGroupBy(GroupBy):
                 # only coerce dates if we find at least 1 datetime
                 coerce = True if any([ isinstance(v,Timestamp) for v in values ]) else False
                 return (Series(values, index=key_index)
-                        .convert_objects(datetime=True,
+                        ._convert(datetime=True,
                                          coerce=coerce))
 
         else:
@@ -3243,7 +3243,7 @@ class NDFrameGroupBy(GroupBy):
             results = self._try_cast(results, obj[result.columns])
 
         return (DataFrame(results,columns=result.columns,index=obj.index)
-                .convert_objects(datetime=True))
+                ._convert(datetime=True))
 
     def _define_paths(self, func, *args, **kwargs):
         if isinstance(func, compat.string_types):
@@ -3436,7 +3436,7 @@ class DataFrameGroupBy(NDFrameGroupBy):
         if self.axis == 1:
             result = result.T
 
-        return self._reindex_output(result).convert_objects(datetime=True)
+        return self._reindex_output(result)._convert(datetime=True)
 
     def _wrap_agged_blocks(self, items, blocks):
         if not self.as_index:
@@ -3454,7 +3454,7 @@ class DataFrameGroupBy(NDFrameGroupBy):
         if self.axis == 1:
             result = result.T
 
-        return self._reindex_output(result).convert_objects(datetime=True)
+        return self._reindex_output(result)._convert(datetime=True)
 
     def _reindex_output(self, result):
         """

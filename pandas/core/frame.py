@@ -3543,9 +3543,8 @@ class DataFrame(NDFrame):
         # convert_objects just in case
         return self._constructor(result,
                                  index=new_index,
-                                 columns=new_columns).convert_objects(
-            datetime=True,
-            copy=False)
+                                 columns=new_columns)._convert(datetime=True,
+                                                               copy=False)
 
     def combine_first(self, other):
         """
@@ -4026,9 +4025,7 @@ class DataFrame(NDFrame):
 
             if axis == 1:
                 result = result.T
-            result = result.convert_objects(datetime=True,
-                                            timedelta=True,
-                                            copy=False)
+            result = result._convert(datetime=True, timedelta=True, copy=False)
 
         else:
 
@@ -4158,7 +4155,7 @@ class DataFrame(NDFrame):
             other = DataFrame(other.values.reshape((1, len(other))),
                               index=index,
                               columns=combined_columns)
-            other = other.convert_objects(datetime=True, timedelta=True)
+            other = other._convert(datetime=True, timedelta=True)
 
             if not self.columns.equals(combined_columns):
                 self = self.reindex(columns=combined_columns)

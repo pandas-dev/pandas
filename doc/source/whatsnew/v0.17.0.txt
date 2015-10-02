@@ -640,71 +640,6 @@ New Behavior:
       Timestamp.now()
       Timestamp.now() + offsets.DateOffset(years=1)
 
-.. _whatsnew_0170.api_breaking.convert_objects:
-
-Changes to convert_objects
-^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-``DataFrame.convert_objects`` keyword arguments have been shortened. (:issue:`10265`)
-
-=====================   =============
-Previous                Replacement
-=====================   =============
-``convert_dates``       ``datetime``
-``convert_numeric``     ``numeric``
-``convert_timedelta``   ``timedelta``
-=====================   =============
-
-Coercing types with ``DataFrame.convert_objects`` is now implemented using the
-keyword argument ``coerce=True``.  Previously types were coerced by setting a
-keyword argument to ``'coerce'`` instead of ``True``, as in ``convert_dates='coerce'``.
-
-.. ipython:: python
-
-   df = pd.DataFrame({'i': ['1','2'],
-                      'f': ['apple', '4.2'],
-                      's': ['apple','banana']})
-   df
-
-The old usage of ``DataFrame.convert_objects`` used ``'coerce'`` along with the
-type.
-
-.. code-block:: python
-
-   In [2]: df.convert_objects(convert_numeric='coerce')
-
-Now the ``coerce`` keyword must be explicitly used.
-
-.. ipython:: python
-
-   df.convert_objects(numeric=True, coerce=True)
-
-In earlier versions of pandas, ``DataFrame.convert_objects`` would not coerce
-numeric types when there were no values convertible to a numeric type. This returns
-the original DataFrame with no conversion.
-
-.. code-block:: python
-
-   In [1]: df = pd.DataFrame({'s': ['a','b']})
-   In [2]: df.convert_objects(convert_numeric='coerce')
-   Out[2]:
-          s
-       0  a
-       1  b
-
-The new behavior will convert all non-number-like strings to ``NaN``,
-when ``coerce=True`` is passed explicity.
-
-.. ipython:: python
-
-   pd.DataFrame({'s': ['a','b']})
-   df.convert_objects(numeric=True, coerce=True)
-
-In earlier versions of pandas, the default behavior was to try and convert
-datetimes and timestamps. The new default is for ``DataFrame.convert_objects``
-to do nothing, and so it is necessary to pass at least one conversion target
-in the method call.
-
 Changes to Index Comparisons
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -992,6 +927,7 @@ Deprecations
 - ``Series.is_time_series`` deprecated in favor of ``Series.index.is_all_dates`` (:issue:`11135`)
 - Legacy offsets (like ``'A@JAN'``) listed in :ref:`here <timeseries.legacyaliases>` are deprecated (note that this has been alias since 0.8.0), (:issue:`10878`)
 - ``WidePanel`` deprecated in favor of ``Panel``, ``LongPanel`` in favor of ``DataFrame`` (note these have been aliases since < 0.11.0), (:issue:`10892`)
+- ``DataFrame.convert_objects`` has been deprecated in favor of type-specific function ``pd.to_datetime``, ``pd.to_timestamp`` and ``pd.to_numeric`` (:issue:`11133`).
 
 .. _whatsnew_0170.prior_deprecations:
 
@@ -1188,3 +1124,5 @@ Bug Fixes
 - Bug in ``DataFrame`` construction from nested ``dict`` with ``timedelta`` keys (:issue:`11129`)
 - Bug in ``.fillna`` against may raise ``TypeError`` when data contains datetime dtype (:issue:`7095`, :issue:`11153`)
 - Bug in ``.groupby`` when number of keys to group by is same as length of index (:issue:`11185`)
+- Bug in ``convert_objects`` where converted values might not be returned if all null and ``coerce`` (:issue:`9589`)
+- Bug in ``convert_objects`` where ``copy`` keyword was not respected (:issue:`9589`)
