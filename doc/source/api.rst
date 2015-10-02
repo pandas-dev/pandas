@@ -164,6 +164,14 @@ Top-level missing data
    isnull
    notnull
 
+Top-level conversions
+~~~~~~~~~~~~~~~~~~~~~
+
+.. autosummary::
+   :toctree: generated/
+
+   to_numeric
+
 Top-level dealing with datetimelike
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
