@@ -6805,7 +6805,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         with ensure_clean('.csv') as pth:
             df=DataFrame(dict(a=s1,b=s2))
             df.to_csv(pth,chunksize=chunksize)
-            recons = DataFrame.from_csv(pth).convert_objects(datetime=True,
+            recons = DataFrame.from_csv(pth)._convert(datetime=True,
                                                              coerce=True)
             assert_frame_equal(df, recons,check_names=False,check_less_precise=True)
 
@@ -7516,7 +7516,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
     def test_convert_objects(self):
 
         oops = self.mixed_frame.T.T
-        converted = oops.convert_objects(datetime=True)
+        converted = oops._convert(datetime=True)
         assert_frame_equal(converted, self.mixed_frame)
         self.assertEqual(converted['A'].dtype, np.float64)
 
@@ -7529,8 +7529,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         self.mixed_frame['J'] = '1.'
         self.mixed_frame['K'] = '1'
         self.mixed_frame.ix[0:5,['J','K']] = 'garbled'
-        converted = self.mixed_frame.convert_objects(datetime=True,
-                                                     numeric=True)
+        converted = self.mixed_frame._convert(datetime=True, numeric=True)
         self.assertEqual(converted['H'].dtype, 'float64')
         self.assertEqual(converted['I'].dtype, 'int64')
         self.assertEqual(converted['J'].dtype, 'float64')
@@ -7552,14 +7551,14 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
 
         # mixed in a single column
         df = DataFrame(dict(s = Series([1, 'na', 3 ,4])))
-        result = df.convert_objects(datetime=True, numeric=True)
+        result = df._convert(datetime=True, numeric=True)
         expected = DataFrame(dict(s = Series([1, np.nan, 3 ,4])))
         assert_frame_equal(result, expected)
 
     def test_convert_objects_no_conversion(self):
         mixed1 = DataFrame(
             {'a': [1, 2, 3], 'b': [4.0, 5, 6], 'c': ['x', 'y', 'z']})
-        mixed2 = mixed1.convert_objects(datetime=True)
+        mixed2 = mixed1._convert(datetime=True)
         assert_frame_equal(mixed1, mixed2)
 
     def test_append_series_dict(self):
@@ -11551,7 +11550,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
                           'F': np.random.randn(11)})
 
         result = data.apply(lambda x: x, axis=1)
-        assert_frame_equal(result.convert_objects(datetime=True), data)
+        assert_frame_equal(result._convert(datetime=True), data)
 
     def test_apply_attach_name(self):
         result = self.frame.apply(lambda x: x.name)

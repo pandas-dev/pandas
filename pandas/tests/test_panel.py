@@ -1145,7 +1145,7 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing,
         # GH 4937
         p = Panel(dict(A = dict(a = ['1','1.0'])))
         expected = Panel(dict(A = dict(a = [1,1.0])))
-        result = p.convert_objects(numeric=True, coerce=True)
+        result = p._convert(numeric=True, coerce=True)
         assert_panel_equal(result, expected)
 
     def test_dtypes(self):

@@ -13,6 +13,7 @@ from pandas import compat
 from pandas.compat import range, long, lrange, lmap, u
 from pandas.core.common import notnull, isnull, array_equivalent
 import pandas.core.common as com
+import pandas.core.convert as convert
 import pandas.util.testing as tm
 import pandas.core.config as cf
 
@@ -1051,6 +1052,22 @@ class TestMaybe(tm.TestCase):
         tm.assert_numpy_array_equal(result, np.array(['x', 2], dtype=object))
         self.assertTrue(result.dtype == object)
 
+def test_possibly_convert_objects_copy():
+    values = np.array([1, 2])
+
+    out = convert._possibly_convert_objects(values, copy=False)
+    assert_true(values is out)
+
+    out = convert._possibly_convert_objects(values, copy=True)
+    assert_true(values is not out)
+
+    values = np.array(['apply','banana'])
+    out = convert._possibly_convert_objects(values, copy=False)
+    assert_true(values is out)
+
+    out = convert._possibly_convert_objects(values, copy=True)
+    assert_true(values is not out)
+
 
 def test_dict_compat():
     data_datetime64 = {np.datetime64('1990-03-15'): 1,
@@ -1061,23 +1078,6 @@ def test_dict_compat():
     assert(com._dict_compat(expected) == expected)
     assert(com._dict_compat(data_unchanged) == data_unchanged)
 
-
-def test_possibly_convert_objects_copy():
-    values = np.array([1, 2])
-
-    out = com._possibly_convert_objects(values, copy=False)
-    assert_true(values is out)
-
-    out = com._possibly_convert_objects(values, copy=True)
-    assert_true(values is not out)
-
-    values = np.array(['apply','banana'])
-    out = com._possibly_convert_objects(values, copy=False)
-    assert_true(values is out)
-
-    out = com._possibly_convert_objects(values, copy=True)
-    assert_true(values is not out)
-    
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
