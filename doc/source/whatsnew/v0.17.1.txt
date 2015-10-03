@@ -42,4 +42,6 @@ Performance Improvements
 
 Bug Fixes
 ~~~~~~~~~
-Bug in ``.to_latex()`` output broken when the index has a name (:issue: `10660`)
+
+- Bug in ``.to_latex()`` output broken when the index has a name (:issue: `10660`)
+- Bug in ``squeeze()`` with zero length arrays (:issue:`11230`, :issue:`8999`)
