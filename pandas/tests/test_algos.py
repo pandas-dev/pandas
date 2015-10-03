@@ -7,6 +7,7 @@ from numpy.random import RandomState
 from pandas.core.api import Series, Categorical, CategoricalIndex
 import pandas as pd
 
+from pandas import compat
 import pandas.core.algorithms as algos
 import pandas.util.testing as tm
 import pandas.hashtable as hashtable
@@ -405,7 +406,6 @@ class TestValueCounts(tm.TestCase):
         tm.assert_series_equal(
             pd.Series([True, True, False, None]).value_counts(dropna=False),
             pd.Series([2, 1, 1], index=[True, False, np.nan]))
-
         tm.assert_series_equal(
             pd.Series([10.3, 5., 5.]).value_counts(dropna=True),
             pd.Series([2, 1], index=[5., 10.3]))
@@ -416,9 +416,12 @@ class TestValueCounts(tm.TestCase):
         tm.assert_series_equal(
             pd.Series([10.3, 5., 5., None]).value_counts(dropna=True),
             pd.Series([2, 1], index=[5., 10.3]))
-        tm.assert_series_equal(
-            pd.Series([10.3, 5., 5., None]).value_counts(dropna=False),
-            pd.Series([2, 1, 1], index=[5., 10.3, np.nan]))
+
+        # 32-bit linux has a different ordering
+        if not compat.is_platform_32bit():
+            tm.assert_series_equal(
+                pd.Series([10.3, 5., 5., None]).value_counts(dropna=False),
+                pd.Series([2, 1, 1], index=[5., 10.3, np.nan]))
 
 
 class GroupVarTestMixin(object):

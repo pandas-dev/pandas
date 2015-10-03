@@ -36,6 +36,7 @@ from itertools import product
 import sys
 import types
 from unicodedata import east_asian_width
+import struct
 
 PY2 = sys.version_info[0] == 2
 PY3 = (sys.version_info[0] >= 3)
@@ -800,10 +801,11 @@ class OrderedDefaultdict(OrderedDict):
 def is_platform_windows():
     return sys.platform == 'win32' or sys.platform == 'cygwin'
 
-
 def is_platform_linux():
     return sys.platform == 'linux2'
 
-
 def is_platform_mac():
     return sys.platform == 'darwin'
+
+def is_platform_32bit():
+    return struct.calcsize("P") * 8 < 64
