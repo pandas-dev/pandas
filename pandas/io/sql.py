@@ -18,6 +18,7 @@ from pandas.compat import lzip, map, zip, raise_with_traceback, string_types
 from pandas.core.api import DataFrame, Series
 from pandas.core.common import isnull
 from pandas.core.base import PandasObject
+from pandas.core.dtypes import DatetimeTZDtype
 from pandas.tseries.tools import to_datetime
 from pandas.util.decorators import Appender
 
@@ -89,6 +90,10 @@ def _handle_date_column(col, format=None):
             # parse dates as timestamp
             format = 's' if format is None else format
             return to_datetime(col, errors='coerce', unit=format, utc=True)
+        elif com.is_datetime64tz_dtype(col):
+            # coerce to UTC timezone
+            # GH11216
+            return to_datetime(col,errors='coerce').astype('datetime64[ns, UTC]')
         else:
             return to_datetime(col, errors='coerce', format=format, utc=True)
 
@@ -112,6 +117,14 @@ def _parse_date_columns(data_frame, parse_dates):
         except TypeError:
             fmt = None
         data_frame[col_name] = _handle_date_column(df_col, format=fmt)
+
+
+    # we want to coerce datetime64_tz dtypes for now
+    # we could in theory do a 'nice' conversion from a FixedOffset tz
+    # GH11216
+    for col_name, df_col in data_frame.iteritems():
+        if com.is_datetime64tz_dtype(df_col):
+            data_frame[col_name] = _handle_date_column(df_col)
 
     return data_frame
 
@@ -366,7 +379,7 @@ def read_sql_query(sql, con, index_col=None, coerce_float=True, params=None,
     ----------
     sql : string SQL query or SQLAlchemy Selectable (select or text object)
         to be executed.
-    con : SQLAlchemy connectable(engine/connection) or database string URI 
+    con : SQLAlchemy connectable(engine/connection) or database string URI
         or sqlite3 DBAPI2 connection
         Using SQLAlchemy makes it possible to use any DB supported by that
         library.
@@ -898,11 +911,10 @@ class SQLTable(PandasObject):
             try:
                 df_col = self.frame[col_name]
                 # the type the dataframe column should have
-                col_type = self._numpy_type(sql_col.type)
+                col_type = self._get_dtype(sql_col.type)
 
-                if col_type is datetime or col_type is date:
-                    if not issubclass(df_col.dtype.type, np.datetime64):
-                        self.frame[col_name] = _handle_date_column(df_col)
+                if col_type is datetime or col_type is date or col_type is DatetimeTZDtype:
+                    self.frame[col_name] = _handle_date_column(df_col)
 
                 elif col_type is float:
                     # floats support NA, can always convert!
@@ -982,20 +994,25 @@ class SQLTable(PandasObject):
 
         return Text
 
-    def _numpy_type(self, sqltype):
-        from sqlalchemy.types import Integer, Float, Boolean, DateTime, Date
+    def _get_dtype(self, sqltype):
+        from sqlalchemy.types import Integer, Float, Boolean, DateTime, Date, TIMESTAMP
 
         if isinstance(sqltype, Float):
             return float
-        if isinstance(sqltype, Integer):
+        elif isinstance(sqltype, Integer):
             # TODO: Refine integer size.
             return np.dtype('int64')
-        if isinstance(sqltype, DateTime):
+        elif isinstance(sqltype, TIMESTAMP):
+            # we have a timezone capable type
+            if not sqltype.timezone:
+                return datetime
+            return DatetimeTZDtype
+        elif isinstance(sqltype, DateTime):
             # Caution: np.datetime64 is also a subclass of np.number.
             return datetime
-        if isinstance(sqltype, Date):
+        elif isinstance(sqltype, Date):
             return date
-        if isinstance(sqltype, Boolean):
+        elif isinstance(sqltype, Boolean):
             return bool
         return object
 
