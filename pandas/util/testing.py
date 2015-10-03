@@ -31,7 +31,7 @@ from pandas.core.common import (is_sequence, array_equivalent, is_list_like, is_
 import pandas.compat as compat
 from pandas.compat import(
     filter, map, zip, range, unichr, lrange, lmap, lzip, u, callable, Counter,
-    raise_with_traceback, httplib, is_platform_windows
+    raise_with_traceback, httplib, is_platform_windows, is_platform_32bit
 )
 
 from pandas.computation import expressions as expr
@@ -176,8 +176,7 @@ def close(fignum=None):
 
 def _skip_if_32bit():
     import nose
-    import struct
-    if struct.calcsize("P") * 8 < 64:
+    if is_platform_32bit():
         raise nose.SkipTest("skipping for 32 bit")
 
 def mplskip(cls):
