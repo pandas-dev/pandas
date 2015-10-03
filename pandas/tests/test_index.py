@@ -2,7 +2,7 @@
 # pylint: disable=E1101,E1103,W0232
 
 from datetime import datetime, timedelta, time
-from pandas.compat import range, lrange, lzip, u, zip
+from pandas.compat import range, lrange, lzip, u, zip, PY3
 import operator
 import re
 import nose
@@ -1842,6 +1842,137 @@ class TestIndex(Base, tm.TestCase):
         self.assertEqual(i.name, pd.to_datetime(i).name)
         self.assertEqual(i.name, pd.to_timedelta(i).name)
 
+    def test_string_index_repr(self):
+        # py3/py2 repr can differ because of "u" prefix
+        # which also affects to displayed element size
+
+        # short
+        idx = pd.Index(['a', 'bb', 'ccc'])
+        if PY3:
+            expected = u"""Index(['a', 'bb', 'ccc'], dtype='object')"""
+            self.assertEqual(repr(idx), expected)
+        else:
+            expected = u"""Index([u'a', u'bb', u'ccc'], dtype='object')"""
+            self.assertEqual(unicode(idx), expected)
+
+        # multiple lines
+        idx = pd.Index(['a', 'bb', 'ccc'] * 10)
+        if PY3:
+            expected = u"""Index(['a', 'bb', 'ccc', 'a', 'bb', 'ccc', 'a', 'bb', 'ccc', 'a', 'bb', 'ccc',
+       'a', 'bb', 'ccc', 'a', 'bb', 'ccc', 'a', 'bb', 'ccc', 'a', 'bb', 'ccc',
+       'a', 'bb', 'ccc', 'a', 'bb', 'ccc'],
+      dtype='object')"""
+            self.assertEqual(repr(idx), expected)
+        else:
+            expected = u"""Index([u'a', u'bb', u'ccc', u'a', u'bb', u'ccc', u'a', u'bb', u'ccc', u'a',
+       u'bb', u'ccc', u'a', u'bb', u'ccc', u'a', u'bb', u'ccc', u'a', u'bb',
+       u'ccc', u'a', u'bb', u'ccc', u'a', u'bb', u'ccc', u'a', u'bb', u'ccc'],
+      dtype='object')"""
+            self.assertEqual(unicode(idx), expected)
+
+        # truncated
+        idx = pd.Index(['a', 'bb', 'ccc'] * 100)
+        if PY3:
+            expected = u"""Index(['a', 'bb', 'ccc', 'a', 'bb', 'ccc', 'a', 'bb', 'ccc', 'a',
+       ...
+       'ccc', 'a', 'bb', 'ccc', 'a', 'bb', 'ccc', 'a', 'bb', 'ccc'],
+      dtype='object', length=300)"""
+            self.assertEqual(repr(idx), expected)
+        else:
+            expected = u"""Index([u'a', u'bb', u'ccc', u'a', u'bb', u'ccc', u'a', u'bb', u'ccc', u'a',
+       ...
+       u'ccc', u'a', u'bb', u'ccc', u'a', u'bb', u'ccc', u'a', u'bb', u'ccc'],
+      dtype='object', length=300)"""
+            self.assertEqual(unicode(idx), expected)
+
+        # short
+        idx = pd.Index([u'あ', u'いい', u'ううう'])
+        if PY3:
+            expected = u"""Index(['あ', 'いい', 'ううう'], dtype='object')"""
+            self.assertEqual(repr(idx), expected)
+        else:
+            expected = u"""Index([u'あ', u'いい', u'ううう'], dtype='object')"""
+            self.assertEqual(unicode(idx), expected)
+
+        # multiple lines
+        idx = pd.Index([u'あ', u'いい', u'ううう'] * 10)
+        if PY3:
+            expected = u"""Index(['あ', 'いい', 'ううう', 'あ', 'いい', 'ううう', 'あ', 'いい', 'ううう', 'あ', 'いい', 'ううう',
+       'あ', 'いい', 'ううう', 'あ', 'いい', 'ううう', 'あ', 'いい', 'ううう', 'あ', 'いい', 'ううう',
+       'あ', 'いい', 'ううう', 'あ', 'いい', 'ううう'],
+      dtype='object')"""
+            self.assertEqual(repr(idx), expected)
+        else:
+            expected = u"""Index([u'あ', u'いい', u'ううう', u'あ', u'いい', u'ううう', u'あ', u'いい', u'ううう', u'あ',
+       u'いい', u'ううう', u'あ', u'いい', u'ううう', u'あ', u'いい', u'ううう', u'あ', u'いい',
+       u'ううう', u'あ', u'いい', u'ううう', u'あ', u'いい', u'ううう', u'あ', u'いい', u'ううう'],
+      dtype='object')"""
+            self.assertEqual(unicode(idx), expected)
+
+        # truncated
+        idx = pd.Index([u'あ', u'いい', u'ううう'] * 100)
+        if PY3:
+            expected = u"""Index(['あ', 'いい', 'ううう', 'あ', 'いい', 'ううう', 'あ', 'いい', 'ううう', 'あ',
+       ...
+       'ううう', 'あ', 'いい', 'ううう', 'あ', 'いい', 'ううう', 'あ', 'いい', 'ううう'],
+      dtype='object', length=300)"""
+            self.assertEqual(repr(idx), expected)
+        else:
+            expected = u"""Index([u'あ', u'いい', u'ううう', u'あ', u'いい', u'ううう', u'あ', u'いい', u'ううう', u'あ',
+       ...
+       u'ううう', u'あ', u'いい', u'ううう', u'あ', u'いい', u'ううう', u'あ', u'いい', u'ううう'],
+      dtype='object', length=300)"""
+            self.assertEqual(unicode(idx), expected)
+
+        # Emable Unicode option -----------------------------------------
+        with cf.option_context('display.unicode.east_asian_width', True):
+
+            # short
+            idx = pd.Index([u'あ', u'いい', u'ううう'])
+            if PY3:
+                expected = u"""Index(['あ', 'いい', 'ううう'], dtype='object')"""
+                self.assertEqual(repr(idx), expected)
+            else:
+                expected = u"""Index([u'あ', u'いい', u'ううう'], dtype='object')"""
+                self.assertEqual(unicode(idx), expected)
+
+            # multiple lines
+            idx = pd.Index([u'あ', u'いい', u'ううう'] * 10)
+            if PY3:
+                expected = u"""Index(['あ', 'いい', 'ううう', 'あ', 'いい', 'ううう', 'あ', 'いい', 'ううう',
+       'あ', 'いい', 'ううう', 'あ', 'いい', 'ううう', 'あ', 'いい', 'ううう',
+       'あ', 'いい', 'ううう', 'あ', 'いい', 'ううう', 'あ', 'いい', 'ううう',
+       'あ', 'いい', 'ううう'],
+      dtype='object')"""
+                self.assertEqual(repr(idx), expected)
+            else:
+                expected = u"""Index([u'あ', u'いい', u'ううう', u'あ', u'いい', u'ううう', u'あ', u'いい',
+       u'ううう', u'あ', u'いい', u'ううう', u'あ', u'いい', u'ううう', u'あ',
+       u'いい', u'ううう', u'あ', u'いい', u'ううう', u'あ', u'いい',
+       u'ううう', u'あ', u'いい', u'ううう', u'あ', u'いい', u'ううう'],
+      dtype='object')"""
+                self.assertEqual(unicode(idx), expected)
+
+            # truncated
+            idx = pd.Index([u'あ', u'いい', u'ううう'] * 100)
+            if PY3:
+                expected = u"""Index(['あ', 'いい', 'ううう', 'あ', 'いい', 'ううう', 'あ', 'いい', 'ううう',
+       'あ',
+       ...
+       'ううう', 'あ', 'いい', 'ううう', 'あ', 'いい', 'ううう', 'あ', 'いい',
+       'ううう'],
+      dtype='object', length=300)"""
+                self.assertEqual(repr(idx), expected)
+            else:
+                expected = u"""Index([u'あ', u'いい', u'ううう', u'あ', u'いい', u'ううう', u'あ', u'いい',
+       u'ううう', u'あ',
+       ...
+       u'ううう', u'あ', u'いい', u'ううう', u'あ', u'いい', u'ううう', u'あ',
+       u'いい', u'ううう'],
+      dtype='object', length=300)"""
+                self.assertEqual(unicode(idx), expected)
+
+
 class TestCategoricalIndex(Base, tm.TestCase):
     _holder = CategoricalIndex
 
@@ -2210,6 +2341,180 @@ class TestCategoricalIndex(Base, tm.TestCase):
 
         self.assertFalse(CategoricalIndex(list('aabca') + [np.nan],categories=['c','a','b']).equals(list('aabca')))
         self.assertTrue(CategoricalIndex(list('aabca') + [np.nan],categories=['c','a','b']).equals(list('aabca') + [np.nan]))
+
+    def test_string_categorical_index_repr(self):
+        # short
+        idx = pd.CategoricalIndex(['a', 'bb', 'ccc'])
+        if PY3:
+            expected = u"""CategoricalIndex(['a', 'bb', 'ccc'], categories=['a', 'bb', 'ccc'], ordered=False, dtype='category')"""
+            self.assertEqual(repr(idx), expected)
+        else:
+            expected = u"""CategoricalIndex([u'a', u'bb', u'ccc'], categories=[u'a', u'bb', u'ccc'], ordered=False, dtype='category')"""
+            self.assertEqual(unicode(idx), expected)
+
+        # multiple lines
+        idx = pd.CategoricalIndex(['a', 'bb', 'ccc'] * 10)
+        if PY3:
+            expected = u"""CategoricalIndex(['a', 'bb', 'ccc', 'a', 'bb', 'ccc', 'a', 'bb', 'ccc', 'a',
+                  'bb', 'ccc', 'a', 'bb', 'ccc', 'a', 'bb', 'ccc', 'a', 'bb',
+                  'ccc', 'a', 'bb', 'ccc', 'a', 'bb', 'ccc', 'a', 'bb', 'ccc'],
+                 categories=['a', 'bb', 'ccc'], ordered=False, dtype='category')"""
+            self.assertEqual(repr(idx), expected)
+        else:
+            expected = u"""CategoricalIndex([u'a', u'bb', u'ccc', u'a', u'bb', u'ccc', u'a', u'bb',
+                  u'ccc', u'a', u'bb', u'ccc', u'a', u'bb', u'ccc', u'a',
+                  u'bb', u'ccc', u'a', u'bb', u'ccc', u'a', u'bb', u'ccc',
+                  u'a', u'bb', u'ccc', u'a', u'bb', u'ccc'],
+                 categories=[u'a', u'bb', u'ccc'], ordered=False, dtype='category')"""
+            self.assertEqual(unicode(idx), expected)
+
+        # truncated
+        idx = pd.CategoricalIndex(['a', 'bb', 'ccc'] * 100)
+        if PY3:
+            expected = u"""CategoricalIndex(['a', 'bb', 'ccc', 'a', 'bb', 'ccc', 'a', 'bb', 'ccc', 'a',
+                  ...
+                  'ccc', 'a', 'bb', 'ccc', 'a', 'bb', 'ccc', 'a', 'bb', 'ccc'],
+                 categories=['a', 'bb', 'ccc'], ordered=False, dtype='category', length=300)"""
+            self.assertEqual(repr(idx), expected)
+        else:
+            expected = u"""CategoricalIndex([u'a', u'bb', u'ccc', u'a', u'bb', u'ccc', u'a', u'bb',
+                  u'ccc', u'a',
+                  ...
+                  u'ccc', u'a', u'bb', u'ccc', u'a', u'bb', u'ccc', u'a',
+                  u'bb', u'ccc'],
+                 categories=[u'a', u'bb', u'ccc'], ordered=False, dtype='category', length=300)"""
+            self.assertEqual(unicode(idx), expected)
+
+        # larger categories
+        idx = pd.CategoricalIndex(list('abcdefghijklmmo'))
+        if PY3:
+            expected = u"""CategoricalIndex(['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l',
+                  'm', 'm', 'o'],
+                 categories=['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', ...], ordered=False, dtype='category')"""
+            self.assertEqual(repr(idx), expected)
+        else:
+            expected = u"""CategoricalIndex([u'a', u'b', u'c', u'd', u'e', u'f', u'g', u'h', u'i', u'j',
+                  u'k', u'l', u'm', u'm', u'o'],
+                 categories=[u'a', u'b', u'c', u'd', u'e', u'f', u'g', u'h', ...], ordered=False, dtype='category')"""
+
+            self.assertEqual(unicode(idx), expected)
+
+        # short
+        idx = pd.CategoricalIndex([u'あ', u'いい', u'ううう'])
+        if PY3:
+            expected = u"""CategoricalIndex(['あ', 'いい', 'ううう'], categories=['あ', 'いい', 'ううう'], ordered=False, dtype='category')"""
+            self.assertEqual(repr(idx), expected)
+        else:
+            expected = u"""CategoricalIndex([u'あ', u'いい', u'ううう'], categories=[u'あ', u'いい', u'ううう'], ordered=False, dtype='category')"""
+            self.assertEqual(unicode(idx), expected)
+
+        # multiple lines
+        idx = pd.CategoricalIndex([u'あ', u'いい', u'ううう'] * 10)
+        if PY3:
+            expected = u"""CategoricalIndex(['あ', 'いい', 'ううう', 'あ', 'いい', 'ううう', 'あ', 'いい', 'ううう', 'あ',
+                  'いい', 'ううう', 'あ', 'いい', 'ううう', 'あ', 'いい', 'ううう', 'あ', 'いい',
+                  'ううう', 'あ', 'いい', 'ううう', 'あ', 'いい', 'ううう', 'あ', 'いい', 'ううう'],
+                 categories=['あ', 'いい', 'ううう'], ordered=False, dtype='category')"""
+            self.assertEqual(repr(idx), expected)
+        else:
+            expected = u"""CategoricalIndex([u'あ', u'いい', u'ううう', u'あ', u'いい', u'ううう', u'あ', u'いい',
+                  u'ううう', u'あ', u'いい', u'ううう', u'あ', u'いい', u'ううう', u'あ',
+                  u'いい', u'ううう', u'あ', u'いい', u'ううう', u'あ', u'いい', u'ううう',
+                  u'あ', u'いい', u'ううう', u'あ', u'いい', u'ううう'],
+                 categories=[u'あ', u'いい', u'ううう'], ordered=False, dtype='category')"""
+            self.assertEqual(unicode(idx), expected)
+
+        # truncated
+        idx = pd.CategoricalIndex([u'あ', u'いい', u'ううう'] * 100)
+        if PY3:
+            expected = u"""CategoricalIndex(['あ', 'いい', 'ううう', 'あ', 'いい', 'ううう', 'あ', 'いい', 'ううう', 'あ',
+                  ...
+                  'ううう', 'あ', 'いい', 'ううう', 'あ', 'いい', 'ううう', 'あ', 'いい', 'ううう'],
+                 categories=['あ', 'いい', 'ううう'], ordered=False, dtype='category', length=300)"""
+            self.assertEqual(repr(idx), expected)
+        else:
+            expected = u"""CategoricalIndex([u'あ', u'いい', u'ううう', u'あ', u'いい', u'ううう', u'あ', u'いい',
+                  u'ううう', u'あ',
+                  ...
+                  u'ううう', u'あ', u'いい', u'ううう', u'あ', u'いい', u'ううう', u'あ',
+                  u'いい', u'ううう'],
+                 categories=[u'あ', u'いい', u'ううう'], ordered=False, dtype='category', length=300)"""
+            self.assertEqual(unicode(idx), expected)
+
+        # larger categories
+        idx = pd.CategoricalIndex(list(u'あいうえおかきくけこさしすせそ'))
+        if PY3:
+            expected = u"""CategoricalIndex(['あ', 'い', 'う', 'え', 'お', 'か', 'き', 'く', 'け', 'こ', 'さ', 'し',
+                  'す', 'せ', 'そ'],
+                 categories=['あ', 'い', 'う', 'え', 'お', 'か', 'き', 'く', ...], ordered=False, dtype='category')"""
+            self.assertEqual(repr(idx), expected)
+        else:
+            expected = u"""CategoricalIndex([u'あ', u'い', u'う', u'え', u'お', u'か', u'き', u'く', u'け', u'こ',
+                  u'さ', u'し', u'す', u'せ', u'そ'],
+                 categories=[u'あ', u'い', u'う', u'え', u'お', u'か', u'き', u'く', ...], ordered=False, dtype='category')"""
+            self.assertEqual(unicode(idx), expected)
+
+        # Emable Unicode option -----------------------------------------
+        with cf.option_context('display.unicode.east_asian_width', True):
+
+            # short
+            idx = pd.CategoricalIndex([u'あ', u'いい', u'ううう'])
+            if PY3:
+                expected = u"""CategoricalIndex(['あ', 'いい', 'ううう'], categories=['あ', 'いい', 'ううう'], ordered=False, dtype='category')"""
+                self.assertEqual(repr(idx), expected)
+            else:
+                expected = u"""CategoricalIndex([u'あ', u'いい', u'ううう'], categories=[u'あ', u'いい', u'ううう'], ordered=False, dtype='category')"""
+                self.assertEqual(unicode(idx), expected)
+
+            # multiple lines
+            idx = pd.CategoricalIndex([u'あ', u'いい', u'ううう'] * 10)
+            if PY3:
+                expected = u"""CategoricalIndex(['あ', 'いい', 'ううう', 'あ', 'いい', 'ううう', 'あ', 'いい',
+                  'ううう', 'あ', 'いい', 'ううう', 'あ', 'いい', 'ううう',
+                  'あ', 'いい', 'ううう', 'あ', 'いい', 'ううう', 'あ', 'いい',
+                  'ううう', 'あ', 'いい', 'ううう', 'あ', 'いい', 'ううう'],
+                 categories=['あ', 'いい', 'ううう'], ordered=False, dtype='category')"""
+                self.assertEqual(repr(idx), expected)
+            else:
+                expected = u"""CategoricalIndex([u'あ', u'いい', u'ううう', u'あ', u'いい', u'ううう', u'あ',
+                  u'いい', u'ううう', u'あ', u'いい', u'ううう', u'あ',
+                  u'いい', u'ううう', u'あ', u'いい', u'ううう', u'あ',
+                  u'いい', u'ううう', u'あ', u'いい', u'ううう', u'あ',
+                  u'いい', u'ううう', u'あ', u'いい', u'ううう'],
+                 categories=[u'あ', u'いい', u'ううう'], ordered=False, dtype='category')"""
+                self.assertEqual(unicode(idx), expected)
+
+            # truncated
+            idx = pd.CategoricalIndex([u'あ', u'いい', u'ううう'] * 100)
+            if PY3:
+                expected = u"""CategoricalIndex(['あ', 'いい', 'ううう', 'あ', 'いい', 'ううう', 'あ', 'いい',
+                  'ううう', 'あ',
+                  ...
+                  'ううう', 'あ', 'いい', 'ううう', 'あ', 'いい', 'ううう',
+                  'あ', 'いい', 'ううう'],
+                 categories=['あ', 'いい', 'ううう'], ordered=False, dtype='category', length=300)"""
+                self.assertEqual(repr(idx), expected)
+            else:
+                expected = u"""CategoricalIndex([u'あ', u'いい', u'ううう', u'あ', u'いい', u'ううう', u'あ',
+                  u'いい', u'ううう', u'あ',
+                  ...
+                  u'ううう', u'あ', u'いい', u'ううう', u'あ', u'いい',
+                  u'ううう', u'あ', u'いい', u'ううう'],
+                 categories=[u'あ', u'いい', u'ううう'], ordered=False, dtype='category', length=300)"""
+                self.assertEqual(unicode(idx), expected)
+
+            # larger categories
+            idx = pd.CategoricalIndex(list(u'あいうえおかきくけこさしすせそ'))
+            if PY3:
+                expected = u"""CategoricalIndex(['あ', 'い', 'う', 'え', 'お', 'か', 'き', 'く', 'け', 'こ',
+                  'さ', 'し', 'す', 'せ', 'そ'],
+                 categories=['あ', 'い', 'う', 'え', 'お', 'か', 'き', 'く', ...], ordered=False, dtype='category')"""
+                self.assertEqual(repr(idx), expected)
+            else:
+                expected = u"""CategoricalIndex([u'あ', u'い', u'う', u'え', u'お', u'か', u'き', u'く',
+                  u'け', u'こ', u'さ', u'し', u'す', u'せ', u'そ'],
+                 categories=[u'あ', u'い', u'う', u'え', u'お', u'か', u'き', u'く', ...], ordered=False, dtype='category')"""
+                self.assertEqual(unicode(idx), expected)
 
 
 class Numeric(Base):
