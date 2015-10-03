@@ -2,7 +2,7 @@
 # pylint: disable=E1101,E1103,W0232
 
 from datetime import datetime
-from pandas.compat import range, lrange, u
+from pandas.compat import range, lrange, u, PY3
 import os
 import pickle
 import re
@@ -533,6 +533,33 @@ class TestCategorical(tm.TestCase):
 
         with option_context("display.width", None):
             self.assertEqual(exp, repr(a))
+
+    def test_unicode_print(self):
+        if PY3:
+            _rep = repr
+        else:
+            _rep = unicode
+
+        c = pd.Categorical(['aaaaa', 'bb', 'cccc'] * 20)
+        expected = u"""[aaaaa, bb, cccc, aaaaa, bb, ..., bb, cccc, aaaaa, bb, cccc]
+Length: 60
+Categories (3, object): [aaaaa, bb, cccc]"""
+        self.assertEqual(_rep(c), expected)
+
+        c = pd.Categorical([u'ああああ', u'いいいいい', u'ううううううう'] * 20)
+        expected = u"""[ああああ, いいいいい, ううううううう, ああああ, いいいいい, ..., いいいいい, ううううううう, ああああ, いいいいい, ううううううう]
+Length: 60
+Categories (3, object): [ああああ, いいいいい, ううううううう]"""
+        self.assertEqual(_rep(c), expected)
+
+        # unicode option should not affect to Categorical, as it doesn't care the repr width
+        with option_context('display.unicode.east_asian_width', True):
+
+            c = pd.Categorical([u'ああああ', u'いいいいい', u'ううううううう'] * 20)
+            expected = u"""[ああああ, いいいいい, ううううううう, ああああ, いいいいい, ..., いいいいい, ううううううう, ああああ, いいいいい, ううううううう]
+Length: 60
+Categories (3, object): [ああああ, いいいいい, ううううううう]"""
+            self.assertEqual(_rep(c), expected)
 
     def test_periodindex(self):
         idx1 = PeriodIndex(['2014-01', '2014-01', '2014-02', '2014-02',
