@@ -1,0 +1,44 @@
+.. _whatsnew_0171:
+
+v0.17.1 (November ??, 2015)
+---------------------------
+
+This is a minor bug-fix release from 0.17.0 and includes a a large number of
+bug fixes along several new features, enhancements, and performance improvements.
+We recommend that all users upgrade to this version.
+
+Highlights include:
+
+.. contents:: What's new in v0.17.1
+    :local:
+    :backlinks: none
+
+.. _whatsnew_0171.enhancements:
+
+Enhancements
+~~~~~~~~~~~~
+
+.. _whatsnew_0171.enhancements.other:
+
+Other Enhancements
+^^^^^^^^^^^^^^^^^^
+
+.. _whatsnew_0171.api:
+
+API changes
+~~~~~~~~~~~
+
+.. _whatsnew_0171.deprecations:
+
+Deprecations
+^^^^^^^^^^^^
+
+.. _whatsnew_0171.performance:
+
+Performance Improvements
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. _whatsnew_0171.bug_fixes:
+
+Bug Fixes
+~~~~~~~~~
