@@ -1717,6 +1717,15 @@ class TestNDFrame(tm.TestCase):
         p4d = tm.makePanel4D().reindex(labels=['label1'],items=['ItemA'])
         tm.assert_frame_equal(p4d.squeeze(),p4d.ix['label1','ItemA'])
 
+        # don't fail with 0 length dimensions GH11229 & GH8999
+        empty_series=pd.Series([], name='five')
+        empty_frame=pd.DataFrame([empty_series])
+        empty_panel=pd.Panel({'six':empty_frame})
+
+        [tm.assert_series_equal(empty_series, higher_dim.squeeze())
+         for higher_dim in [empty_series, empty_frame, empty_panel]]
+
+
     def test_equals(self):
         s1 = pd.Series([1, 2, 3], index=[0, 2, 1])
         s2 = s1.copy()
