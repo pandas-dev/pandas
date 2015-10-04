@@ -2648,6 +2648,50 @@ c3 & 0 &  0 &  1 &  2 &  3 \\
 """
         self.assertEqual(result, expected)
 
+        # GH 10660
+        df = pd.DataFrame({'a':[0,0,1,1], 'b':list('abab'), 'c':[1,2,3,4]})
+        result = df.set_index(['a', 'b']).to_latex()
+        expected = r"""\begin{tabular}{llr}
+\toprule
+  &   &  c \\
+a & b &    \\
+\midrule
+0 & a &  1 \\
+  & b &  2 \\
+1 & a &  3 \\
+  & b &  4 \\
+\bottomrule
+\end{tabular}
+"""
+        self.assertEqual(result, expected)
+
+        result = df.groupby('a').describe().to_latex()
+        expected = r"""\begin{tabular}{llr}
+\toprule
+  &       &         c \\
+a & {} &           \\
+\midrule
+0 & count &  2.000000 \\
+  & mean &  1.500000 \\
+  & std &  0.707107 \\
+  & min &  1.000000 \\
+  & 25\% &  1.250000 \\
+  & 50\% &  1.500000 \\
+  & 75\% &  1.750000 \\
+  & max &  2.000000 \\
+1 & count &  2.000000 \\
+  & mean &  3.500000 \\
+  & std &  0.707107 \\
+  & min &  3.000000 \\
+  & 25\% &  3.250000 \\
+  & 50\% &  3.500000 \\
+  & 75\% &  3.750000 \\
+  & max &  4.000000 \\
+\bottomrule
+\end{tabular}
+"""
+        self.assertEqual(result, expected)
+
     def test_to_latex_escape(self):
         a = 'a'
         b = 'b'

@@ -636,11 +636,13 @@ class DataFrameFormatter(TableFormatter):
         if self.index and isinstance(self.frame.index, MultiIndex):
             clevels = self.frame.columns.nlevels
             strcols.pop(0)
-            name = any(self.frame.columns.names)
+            name = any(self.frame.index.names)
             for i, lev in enumerate(self.frame.index.levels):
-                lev2 = lev.format(name=name)
+                lev2 = lev.format()
                 blank = ' ' * len(lev2[0])
                 lev3 = [blank] * clevels
+                if name:
+                    lev3.append(lev.name)
                 for level_idx, group in itertools.groupby(
                         self.frame.index.labels[i]):
                     count = len(list(group))
@@ -667,6 +669,8 @@ class DataFrameFormatter(TableFormatter):
                 buf.write('\\toprule\n')
 
             nlevels = frame.columns.nlevels
+            if any(frame.index.names):
+                nlevels += 1
             for i, row in enumerate(zip(*strcols)):
                 if i == nlevels:
                     buf.write('\\midrule\n')  # End of header

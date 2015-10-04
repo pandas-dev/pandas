@@ -42,3 +42,4 @@ Performance Improvements
 
 Bug Fixes
 ~~~~~~~~~
+Bug in ``.to_latex()`` output broken when the index has a name (:issue: `10660`)
