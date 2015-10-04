@@ -44,7 +44,7 @@ Bug Fixes
 ~~~~~~~~~
 
 - Bug in ``.to_latex()`` output broken when the index has a name (:issue: `10660`)
-
+- Bug in ``HDFStore.append`` with strings whose encoded length exceded the max unencoded length (:issue:`11234`)
 
 
 
