@@ -5,6 +5,9 @@
   <td>Latest Release</td>
   <td><img src="https://img.shields.io/pypi/v/pandas.svg" alt="latest release" /></td>
 </tr>
+  <td></td>
+  <td><img src="https://anaconda.org/pandas/pandas/badges/version.svg" alt="latest release" /></td>
+</tr>
 <tr>
   <td>Package Status</td>
   <td><img src="https://img.shields.io/pypi/status/pandas.svg" alt="status" /></td>
