@@ -4292,6 +4292,22 @@ class TestHDFStore(Base, tm.TestCase):
 
         compat_assert_produces_warning(PerformanceWarning, f)
 
+
+    def test_unicode_longer_encoded(self):
+        # GH 11234
+        char = '\u0394'
+        df = pd.DataFrame({'A': [char]})
+        with ensure_clean_store(self.path) as store:
+            store.put('df', df, format='table', encoding='utf-8')
+            result = store.get('df')
+            tm.assert_frame_equal(result, df)
+
+        df = pd.DataFrame({'A': ['a', char], 'B': ['b', 'b']})
+        with ensure_clean_store(self.path) as store:
+            store.put('df', df, format='table', encoding='utf-8')
+            result = store.get('df')
+            tm.assert_frame_equal(result, df)
+
     def test_store_datetime_mixed(self):
 
         df = DataFrame(
