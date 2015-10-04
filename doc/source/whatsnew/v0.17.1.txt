@@ -42,3 +42,10 @@ Performance Improvements
 
 Bug Fixes
 ~~~~~~~~~
+
+
+- Bug in ``HDFStore.append`` with strings whose encoded length exceded the max unencoded length (:issue:`11234`)
+
+
+
+
