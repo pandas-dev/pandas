@@ -1050,6 +1050,29 @@ previous versions, resampling had to be done using a combination of
 function on the grouped object. This was not nearly convenient or performant as
 the new pandas timeseries API.
 
+Sparse timeseries
+~~~~~~~~~~~~~~~~~
+
+If your timeseries are sparse, be aware that upsampling will generate a lot of
+intermediate points filled with whatever passed as ``fill_method``. What
+``resample`` does is basically a group by and then applying an aggregation
+method on each of its groups, which can also be achieve with something like the
+following.
+
+.. ipython:: python
+
+    def round(t, freq):
+        # round a Timestamp to a specified freq
+        return Timestamp((t.value // freq.delta.value) * freq.delta.value)
+
+    from functools import partial
+
+    rng = date_range('1/1/2012', periods=100, freq='S')
+
+    ts = Series(randint(0, 500, len(rng)), index=rng)
+
+    ts.groupby(partial(round, freq=offsets.Minute(3))).sum()
+
 .. _timeseries.periods:
 
 Time Span Representation
