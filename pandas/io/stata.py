@@ -74,7 +74,7 @@ _read_stata_doc = """Read Stata file into DataFrame
 Parameters
 ----------
 filepath_or_buffer : string or file-like object
-    Path to .dta file or object implementing a binary read() functions
+    Path to .dta file or object implementing a binary read() and seek() functions
 %s
 %s
 %s
