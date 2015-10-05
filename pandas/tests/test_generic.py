@@ -1851,6 +1851,15 @@ class TestNDFrame(tm.TestCase):
         with tm.assertRaises(ValueError):
             result = wp.pipe((f, 'y'), x=1, y=1)
 
+    def test_pct_change(self):
+        pnl = DataFrame([np.arange(0, 40, 10), np.arange(0, 40, 10), np.arange(0, 40, 10)]).astype(np.float64)
+        pnl.iat[1,0] = np.nan
+        pnl.iat[1,1] = np.nan
+        
+        expected = pnl.ffill(axis=1).pct_change(axis=1, fill_method=None)
+        result = pnl.pct_change(axis=1, fill_method='pad')
+        self.assert_series_equal(result, expected
+
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
                    exit=False)
