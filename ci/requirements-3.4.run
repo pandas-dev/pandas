@@ -1,6 +1,6 @@
 python-dateutil
 pytz
-numpy
+numpy=1.8.1
 openpyxl
 xlsxwriter
 xlrd
