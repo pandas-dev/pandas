@@ -1850,6 +1850,15 @@ class TestNDFrame(tm.TestCase):
 
         with tm.assertRaises(ValueError):
             result = wp.pipe((f, 'y'), x=1, y=1)
+    
+    def test_pct_change(self):
+        pnl = Panel(np.random.rand(10, 10, 10))
+        pnl.iat[1,1,0] = np.nan
+        
+        expected = pnl.ffill(axis=1).pct_change(axis=1, fill_method=None)
+        result = pnl.pct_change(axis=1, fill_method='pad')
+        
+        assert_panel_equal(result, expected)
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
