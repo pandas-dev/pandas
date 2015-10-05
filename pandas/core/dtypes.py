@@ -138,7 +138,7 @@ class DatetimeTZDtype(ExtensionDtype):
     num = 101
     base = np.dtype('M8[ns]')
     _metadata = ['unit','tz']
-    _match = re.compile("datetime64\[(?P<unit>.+), (?P<tz>.+)\]")
+    _match = re.compile("(datetime64|M8)\[(?P<unit>.+), (?P<tz>.+)\]")
 
     def __init__(self, unit, tz=None):
         """

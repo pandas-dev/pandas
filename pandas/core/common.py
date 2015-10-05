@@ -1927,12 +1927,11 @@ def _possibly_cast_to_datetime(value, dtype, errors='raise'):
                     value = tslib.iNaT
 
                 # we have an array of datetime or timedeltas & nulls
-                elif np.prod(value.shape) and not is_dtype_equal(value.dtype, dtype):
+                elif np.prod(value.shape) or not is_dtype_equal(value.dtype, dtype):
                     try:
                         if is_datetime64:
                             value = to_datetime(value, errors=errors)._values
                         elif is_datetime64tz:
-
                             # input has to be UTC at this point, so just localize
                             value = to_datetime(value, errors=errors).tz_localize(dtype.tz)
                         elif is_timedelta64:
