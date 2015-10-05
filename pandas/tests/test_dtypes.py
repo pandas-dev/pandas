@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from itertools import product
 
 import nose
 import numpy as np
@@ -147,6 +148,15 @@ class TestDatetimeTZDtype(Base, tm.TestCase):
         s2 = Series(dr2, name='A')
         self.assertTrue(is_datetimetz(s2))
         self.assertEqual(s1.dtype, s2.dtype)
+
+    def test_parser(self):
+        # pr #11245
+        for tz, constructor in product(('UTC', 'US/Eastern'),
+                                       ('M8', 'datetime64')):
+            self.assertEqual(
+                DatetimeTZDtype('%s[ns, %s]' % (constructor, tz)),
+                DatetimeTZDtype('ns', tz),
+            )
 
 
 
