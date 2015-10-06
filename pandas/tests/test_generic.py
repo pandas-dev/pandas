@@ -354,6 +354,12 @@ class Generic(object):
             self._compare(o.head(-3), o.head(7))
             self._compare(o.tail(-3), o.tail(7))
 
+    def test_random_split(self):
+        o = self._construct(shape=10)
+        a, b = o.random_split((1,1))
+        self.assertTrue(len(a) == 5)
+        self.assertTrue(len(b) == 5)
+
     def test_sample(self):
         # Fixes issue: 2419
 

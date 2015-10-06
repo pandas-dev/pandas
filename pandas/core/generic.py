@@ -3,6 +3,8 @@ import warnings
 import operator
 import weakref
 import gc
+from numbers import Real
+from math import floor
 
 import numpy as np
 import pandas.lib as lib
@@ -2033,6 +2035,67 @@ class NDFrame(PandasObject):
         if l == 0 or n == 0:
             return self
         return self.iloc[-n:]
+
+
+    def random_split(self, weights=(50,50), random_state=None, axis=None):
+        """
+        Returns a random split from an axis of this object
+
+        Parameters
+        ----------
+        weights : weights: list or tuple or equivalent, optional
+            The passed collection of weights serves as relative sizes of the splits
+            of the returned datasets.
+            Default = (50,50).
+        random_state : int or numpy.random.RandomState, optional
+            Seed for the random number generator (if int), or numpy RandomState
+            object.
+        axis : int or string, optional
+            Axis to sample. Accepts axis number or name. Default is stat axis
+            for given data type (0 for Series and DataFrames, 1 for Panels).
+
+        Returns
+        -------
+        Multiple objects of the same type as original object. The number of returned objects
+        is the same as the number of weights provided as parameter.
+        """
+        if axis is None:
+            axis = self._stat_axis_number
+
+        axis = self._get_axis_number(axis)
+        axis_length = self.shape[axis]
+
+        # Process random_state argument
+        rs = com._random_state(random_state)
+
+        # check weight type
+        if len(weights) < 2:
+            return self
+        for w in weights:
+            if not isinstance(w, Real) or w <=0:
+                raise ValueError("weights must be strictly positive real numbers")
+
+        weights_total = reduce(lambda x,y: x+y, weights, 0)
+
+        # get the thresholds
+
+        thresholds = [0]
+        for w in weights[:-1]:
+            tdelta = int(floor(w*1.*axis_length/weights_total))
+            threshold = thresholds[-1] + tdelta
+            thresholds.append(threshold)
+
+        thresholds = thresholds + [axis_length]
+
+        idxs = range(axis_length)
+        rs.shuffle(idxs)
+
+        splits = []
+        for ti in range(1, len(thresholds)):
+            idxst = idxs[thresholds[ti-1]:thresholds[ti]]
+            splits.append(self.take(idxst, axis=axis, is_copy=False))
+        return tuple(splits)
+
 
 
     def sample(self, n=None, frac=None, replace=False, weights=None, random_state=None, axis=None):
