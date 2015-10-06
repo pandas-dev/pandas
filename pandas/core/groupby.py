@@ -2069,7 +2069,7 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True):
     Groupers enable local references to axis,level,sort, while
     the passed in axis, level, and sort are 'global'.
 
-    This routine tries to figure of what the passing in references
+    This routine tries to figure out what the passing in references
     are and then creates a Grouping for each one, combined into
     a BaseGrouper.
 
@@ -2077,7 +2077,7 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True):
 
     group_axis = obj._get_axis(axis)
 
-    # validate thatthe passed level is compatible with the passed
+    # validate that the passed level is compatible with the passed
     # axis of the object
     if level is not None:
         if not isinstance(group_axis, MultiIndex):
@@ -2091,7 +2091,7 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True):
             level = None
             key = group_axis
 
-    # a passed in Grouper, directly convert
+    # a passed-in Grouper, directly convert
     if isinstance(key, Grouper):
         binner, grouper, obj = key._get_grouper(obj)
         if key.key is None:
