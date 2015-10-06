@@ -5,22 +5,21 @@ class series_isin_int64(object):
     goal_time = 0.2
 
     def setup(self):
-        self.s1 = Series(np.random.randn(10000))
-        self.s2 = Series(np.random.randint(1, 10, 10000))
         self.s3 = Series(np.random.randint(1, 10, 100000)).astype('int64')
+        self.s4 = Series(np.random.randint(1, 100, 10000000)).astype('int64')
         self.values = [1, 2]
-        self.s4 = self.s3.astype('object')
 
     def time_series_isin_int64(self):
         self.s3.isin(self.values)
+
+    def time_series_isin_int64_large(self):
+        self.s4.isin(self.values)
 
 
 class series_isin_object(object):
     goal_time = 0.2
 
     def setup(self):
-        self.s1 = Series(np.random.randn(10000))
-        self.s2 = Series(np.random.randint(1, 10, 10000))
         self.s3 = Series(np.random.randint(1, 10, 100000)).astype('int64')
         self.values = [1, 2]
         self.s4 = self.s3.astype('object')

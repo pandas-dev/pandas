@@ -14,6 +14,7 @@ from pandas.lib import Timestamp, Timedelta, is_datetime_array
 
 from pandas.compat import range, zip, lrange, lzip, u, map
 from pandas import compat
+from pandas.core import algorithms
 from pandas.core.base import PandasObject, FrozenList, FrozenNDArray, IndexOpsMixin, _shared_docs, PandasDelegate
 from pandas.util.decorators import (Appender, Substitution, cache_readonly,
                                     deprecate, deprecate_kwarg)
@@ -108,7 +109,6 @@ class Index(IndexOpsMixin, PandasObject):
     _is_numeric_dtype = False
 
     _engine_type = _index.ObjectEngine
-    _isin_type = lib.ismember
 
     def __new__(cls, data=None, dtype=None, copy=False, name=None, fastpath=False,
                 tupleize_cols=True, **kwargs):
@@ -1443,7 +1443,7 @@ class Index(IndexOpsMixin, PandasObject):
         return Index(np.array(self) + other)
 
     def __radd__(self, other):
-        if com.is_list_like(other):
+        if is_list_like(other):
             warnings.warn("using '+' to provide set union with Indexes is deprecated, "
                           "use '|' or .union()", FutureWarning, stacklevel=2)
         return Index(other + np.array(self))
@@ -1995,10 +1995,9 @@ class Index(IndexOpsMixin, PandasObject):
         is_contained : ndarray (boolean dtype)
 
         """
-        value_set = set(values)
         if level is not None:
             self._validate_index_level(level)
-        return self._isin_type(np.array(self), value_set)
+        return algorithms.isin(np.array(self), values)
 
     def _can_reindex(self, indexer):
         """
@@ -3097,6 +3096,8 @@ class CategoricalIndex(Index, PandasDelegate):
                 raise TypeError("categories must match existing categories when appending")
         else:
             values = other
+            if not is_list_like(values):
+                values = [ values ]
             other = CategoricalIndex(self._create_categorical(self, other, categories=self.categories, ordered=self.ordered))
             if not other.isin(values).all():
                 raise TypeError("cannot append a non-category item to a CategoricalIndex")
@@ -3580,7 +3581,6 @@ class Int64Index(NumericIndex):
     _outer_indexer = _algos.outer_join_indexer_int64
 
     _engine_type = _index.Int64Engine
-    _isin_type = lib.ismember_int64
 
     def __new__(cls, data=None, dtype=None, copy=False, name=None, fastpath=False, **kwargs):
 
