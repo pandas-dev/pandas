@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 
 from pandas import compat
 import numpy as np
-from pandas.core import common as com
+from pandas.core import common as com, algorithms
 from pandas.core.common import is_integer, is_float, AbstractMethodError
 import pandas.tslib as tslib
 import pandas.lib as lib
@@ -486,8 +486,7 @@ class DatetimeIndexOpsMixin(object):
             except ValueError:
                 return self.asobject.isin(values)
 
-        value_set = set(values.asi8)
-        return lib.ismember_int64(self.asi8, value_set)
+        return algorithms.isin(self.asi8, values.asi8)
 
     def shift(self, n, freq=None):
         """
