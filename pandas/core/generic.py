@@ -2036,8 +2036,7 @@ class NDFrame(PandasObject):
             return self
         return self.iloc[-n:]
 
-
-    def random_split(self, weights=(50,50), random_state=None, axis=None):
+    def split(self, weights=(50, 50), random=False, axis=None):
         """
         Returns a random split from an axis of this object
 
@@ -2047,9 +2046,11 @@ class NDFrame(PandasObject):
             The passed collection of weights serves as relative sizes of the splits
             of the returned datasets.
             Default = (50,50).
-        random_state : int or numpy.random.RandomState, optional
-            Seed for the random number generator (if int), or numpy RandomState
-            object.
+        random : boolean or int or numpy.random.RandomState, optional
+            If False (=default value), makes consecutive splits from beginning to end.
+            If not False, a seed for the random number generator can be provided (if int) or
+            a numpy RandomState object. If True, default random behavior.
+            Default = False.
         axis : int or string, optional
             Axis to sample. Accepts axis number or name. Default is stat axis
             for given data type (0 for Series and DataFrames, 1 for Panels).
@@ -2066,7 +2067,12 @@ class NDFrame(PandasObject):
         axis_length = self.shape[axis]
 
         # Process random_state argument
-        rs = com._random_state(random_state)
+
+        if random is not None and random is not False:
+            random_state = random
+            if random_state is True:
+                random_state = None
+            rs = com._random_state(random_state)
 
         # check weight type
         if len(weights) < 2:
@@ -2088,8 +2094,10 @@ class NDFrame(PandasObject):
         thresholds = thresholds + [axis_length]
 
         idxs = range(axis_length)
-        rs.shuffle(idxs)
+        if random is not None and random is not False:
+            rs.shuffle(idxs)
 
+        # TODO: maybe more efficient way exists? maybe with generators?
         splits = []
         for ti in range(1, len(thresholds)):
             idxst = idxs[thresholds[ti-1]:thresholds[ti]]
