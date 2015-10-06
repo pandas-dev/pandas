@@ -242,7 +242,7 @@ class Grouper(object):
 
     def _set_grouper(self, obj, sort=False):
         """
-        given an object and the specifcations, setup the internal grouper for this particular specification
+        given an object and the specifications, setup the internal grouper for this particular specification
 
         Parameters
         ----------
@@ -1962,7 +1962,7 @@ class Grouping(object):
 
                         # technically we cannot group on an unordered Categorical
                         # but this a user convenience to do so; the ordering
-                        # is preserved and if its a reduction is doesnt't make any difference
+                        # is preserved and if it's a reduction it doesn't make any difference
                         pass
 
                 # fix bug #GH8868 sort=False being ignored in categorical groupby
@@ -2069,7 +2069,7 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True):
     Groupers enable local references to axis,level,sort, while
     the passed in axis, level, and sort are 'global'.
 
-    This routine tries to figure of what the passing in references
+    This routine tries to figure out what the passing in references
     are and then creates a Grouping for each one, combined into
     a BaseGrouper.
 
@@ -2077,7 +2077,7 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True):
 
     group_axis = obj._get_axis(axis)
 
-    # validate thatthe passed level is compatible with the passed
+    # validate that the passed level is compatible with the passed
     # axis of the object
     if level is not None:
         if not isinstance(group_axis, MultiIndex):
@@ -2091,7 +2091,7 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True):
             level = None
             key = group_axis
 
-    # a passed in Grouper, directly convert
+    # a passed-in Grouper, directly convert
     if isinstance(key, Grouper):
         binner, grouper, obj = key._get_grouper(obj)
         if key.key is None:
@@ -2568,7 +2568,7 @@ class SeriesGroupBy(GroupBy):
 
         ids, val = ids[sorter], val[sorter]
 
-        # group boundries are where group ids change
+        # group boundaries are where group ids change
         # unique observations are where sorted values change
         idx = np.r_[0, 1 + np.nonzero(ids[1:] != ids[:-1])[0]]
         inc = np.r_[1, val[1:] != val[:-1]]
@@ -2591,7 +2591,7 @@ class SeriesGroupBy(GroupBy):
     @Appender(Series.nlargest.__doc__)
     def nlargest(self, n=5, keep='first'):
         # ToDo: When we remove deprecate_kwargs, we can remote these methods
-        # and inlucde nlargest and nsmallest to _series_apply_whitelist
+        # and include nlargest and nsmallest to _series_apply_whitelist
         return self.apply(lambda x: x.nlargest(n=n, keep=keep))
 
 
@@ -2634,12 +2634,12 @@ class SeriesGroupBy(GroupBy):
         sorter = np.lexsort((lab, ids))
         ids, lab = ids[sorter], lab[sorter]
 
-        # group boundries are where group ids change
+        # group boundaries are where group ids change
         idx = np.r_[0, 1 + np.nonzero(ids[1:] != ids[:-1])[0]]
 
         # new values are where sorted labels change
         inc = np.r_[True, lab[1:] != lab[:-1]]
-        inc[idx] = True  # group boundries are also new values
+        inc[idx] = True  # group boundaries are also new values
         out = np.diff(np.nonzero(np.r_[inc, True])[0]) # value counts
 
         # num. of times each group should be repeated
@@ -2919,8 +2919,6 @@ class NDFrameGroupBy(GroupBy):
         if axis != obj._info_axis_number:
             try:
                 for name, data in self:
-                    # for name in self.indices:
-                    #     data = self.get_group(name, obj=obj)
                     result[name] = self._try_cast(func(data, *args, **kwargs),
                                                   data)
             except Exception:
@@ -3742,7 +3740,7 @@ def get_group_index(labels, shape, sort, xnull):
     sort: boolean
         If the ranks of returned ids should match lexical ranks of labels
     xnull: boolean
-        If true nulls are eXcluded. i.e. -1 values in the labels are
+        If true nulls are excluded. i.e. -1 values in the labels are
         passed through
     Returns
     -------
