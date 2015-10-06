@@ -278,7 +278,69 @@ class TestUnique(tm.TestCase):
         tm.assert_numpy_array_equal(result, expected)
         self.assertEqual(result.dtype, expected.dtype)
 
+class TestIsin(tm.TestCase):
+    _multiprocess_can_split_ = True
 
+    def test_invalid(self):
+
+        self.assertRaises(TypeError, lambda : algos.isin(1,1))
+        self.assertRaises(TypeError, lambda : algos.isin(1,[1]))
+        self.assertRaises(TypeError, lambda : algos.isin([1],1))
+
+    def test_basic(self):
+
+        result = algos.isin([1,2],[1])
+        expected = np.array([True,False])
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = algos.isin(np.array([1,2]),[1])
+        expected = np.array([True,False])
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = algos.isin(pd.Series([1,2]),[1])
+        expected = np.array([True,False])
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = algos.isin(pd.Series([1,2]),pd.Series([1]))
+        expected = np.array([True,False])
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = algos.isin(['a','b'],['a'])
+        expected = np.array([True,False])
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = algos.isin(pd.Series(['a','b']),pd.Series(['a']))
+        expected = np.array([True,False])
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = algos.isin(['a','b'],[1])
+        expected = np.array([False,False])
+        tm.assert_numpy_array_equal(result, expected)
+
+        arr = pd.date_range('20130101',periods=3).values
+        result = algos.isin(arr,[arr[0]])
+        expected = np.array([True,False,False])
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = algos.isin(arr,arr[0:2])
+        expected = np.array([True,True,False])
+        tm.assert_numpy_array_equal(result, expected)
+
+        arr = pd.timedelta_range('1 day',periods=3).values
+        result = algos.isin(arr,[arr[0]])
+        expected = np.array([True,False,False])
+        tm.assert_numpy_array_equal(result, expected)
+
+
+
+    def test_large(self):
+
+        s = pd.date_range('20000101',periods=2000000,freq='s').values
+        result = algos.isin(s,s[0:2])
+        expected = np.zeros(len(s),dtype=bool)
+        expected[0] = True
+        expected[1] = True
+        tm.assert_numpy_array_equal(result, expected)
 
 class TestValueCounts(tm.TestCase):
     _multiprocess_can_split_ = True
