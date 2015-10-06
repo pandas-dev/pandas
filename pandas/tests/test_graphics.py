@@ -462,6 +462,9 @@ class TestPlotBase(tm.TestCase):
 
         spndx=1
         for kind in kinds:
+            if not _ok_for_gaussian_kde(kind):
+                continue
+
             self.plt.subplot(1,4*len(kinds),spndx); spndx+=1
             mpl.rc('axes',grid=False)
             obj.plot(kind=kind, **kws)
@@ -3430,6 +3433,8 @@ class TestDataFramePlots(TestPlotBase):
 
         results = {}
         for kind in plotting._plot_klass.keys():
+            if not _ok_for_gaussian_kde(kind):
+                continue
             args = {}
             if kind in ['hexbin', 'scatter', 'pie']:
                 df = self.hexbin_df
