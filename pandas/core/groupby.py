@@ -1962,7 +1962,7 @@ class Grouping(object):
 
                         # technically we cannot group on an unordered Categorical
                         # but this a user convenience to do so; the ordering
-                        # is preserved and if its a reduction is doesnt't make any difference
+                        # is preserved and if it's a reduction it doesn't make any difference
                         pass
 
                 # fix bug #GH8868 sort=False being ignored in categorical groupby
