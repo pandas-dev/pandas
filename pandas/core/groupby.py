@@ -242,7 +242,7 @@ class Grouper(object):
 
     def _set_grouper(self, obj, sort=False):
         """
-        given an object and the specifcations, setup the internal grouper for this particular specification
+        given an object and the specifications, setup the internal grouper for this particular specification
 
         Parameters
         ----------
