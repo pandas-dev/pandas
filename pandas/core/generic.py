@@ -2595,7 +2595,7 @@ class NDFrame(PandasObject):
         """
         from warnings import warn
         warn("convert_objects is deprecated.  Use the data-type specific "
-             "converters pd.to_datetime, pd.to_timestamp and pd.to_numeric.",
+             "converters pd.to_datetime, pd.to_timedelta and pd.to_numeric.",
              FutureWarning, stacklevel=2)
 
         return self._constructor(
