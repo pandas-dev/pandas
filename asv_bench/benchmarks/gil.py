@@ -320,3 +320,49 @@ class nogil_kth_smallest(object):
         def run(arr):
             algos.kth_smallest(arr, self.k)
         run()
+
+class nogil_datetime_fields(object):
+    goal_time = 0.2
+
+    def setup(self):
+        self.N = 100000000
+        self.dti = pd.date_range('1900-01-01', periods=self.N, freq='D')
+        self.period = self.dti.to_period('D')
+        if (not have_real_test_parallel):
+            raise NotImplementedError
+
+    def time_datetime_field_year(self):
+        @test_parallel(num_threads=2)
+        def run(dti):
+            dti.year
+        run(self.dti)
+
+    def time_datetime_field_day(self):
+        @test_parallel(num_threads=2)
+        def run(dti):
+            dti.day
+        run(self.dti)
+
+    def time_datetime_field_daysinmonth(self):
+        @test_parallel(num_threads=2)
+        def run(dti):
+            dti.days_in_month
+        run(self.dti)
+
+    def time_datetime_field_normalize(self):
+        @test_parallel(num_threads=2)
+        def run(dti):
+            dti.normalize()
+        run(self.dti)
+
+    def time_datetime_to_period(self):
+        @test_parallel(num_threads=2)
+        def run(dti):
+            dti.to_period('S')
+        run(self.dti)
+
+    def time_period_to_datetime(self):
+        @test_parallel(num_threads=2)
+        def run(period):
+            period.to_timestamp()
+        run(self.period)

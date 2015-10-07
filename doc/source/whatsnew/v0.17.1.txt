@@ -55,6 +55,10 @@ Performance Improvements
 
 - Checking monotonic-ness before sorting on an index (:issue:`11080`)
 
+
+- Release the GIL on most datetime field operations (e.g. ``DatetimeIndex.year``, ``Series.dt.year``), normalization, and conversion to and from ``Period``, ``DatetimeIndex.to_period`` and ``PeriodIndex.to_timestamp`` (:issue:`11263`)
+
+
 .. _whatsnew_0171.bug_fixes:
 
 Bug Fixes
