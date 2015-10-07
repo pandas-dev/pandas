@@ -484,7 +484,7 @@ By default, "Ambiguous" character's width, "¡" (inverted exclamation) in below 
 
 .. image:: _static/option_unicode03.png
 
-Enabling ``display.unicode.ambiguous_as_wide`` lets pandas to regard these character's width as 2. Note that this option will be effective only when ``display.unicode.east_asian_width`` is enabled. Confirm starting position has been changed, but not aligned properly because the setting is mismatched with this environment.
+Enabling ``display.unicode.ambiguous_as_wide`` lets pandas to figure these character's width as 2. Note that this option will be effective only when ``display.unicode.east_asian_width`` is enabled. Confirm starting position has been changed, but is not aligned properly because the setting is mismatched with this environment.
 
 .. ipython:: python
 
