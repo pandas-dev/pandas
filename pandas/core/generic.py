@@ -2060,50 +2060,12 @@ class NDFrame(PandasObject):
         Multiple objects of the same type as original object. The number of returned objects
         is the same as the number of weights provided as parameter.
         """
-        if axis is None:
-            axis = self._stat_axis_number
-
-        axis = self._get_axis_number(axis)
-        axis_length = self.shape[axis]
-
-        # Process random_state argument
-
-        if random is not None and random is not False:
-            random_state = random
-            if random_state is True:
-                random_state = None
-            rs = com._random_state(random_state)
-
-        # check weight type
-        if len(weights) < 2:
-            return self
-        for w in weights:
-            if not isinstance(w, Real) or w <=0:
-                raise ValueError("weights must be strictly positive real numbers")
-
-        weights_total = reduce(lambda x,y: x+y, weights, 0)
-
-        # get the thresholds
-
-        thresholds = [0]
-        for w in weights[:-1]:
-            tdelta = int(floor(w*1.*axis_length/weights_total))
-            threshold = thresholds[-1] + tdelta
-            thresholds.append(threshold)
-
-        thresholds = thresholds + [axis_length]
-
-        idxs = range(axis_length)
-        if random is not None and random is not False:
-            rs.shuffle(idxs)
-
-        # TODO: maybe more efficient way exists? maybe with generators?
-        splits = []
-        for ti in range(1, len(thresholds)):
-            idxst = idxs[thresholds[ti-1]:thresholds[ti]]
-            splits.append(self.take(idxst, axis=axis, is_copy=False))
-        return tuple(splits)
-
+        g = pd.OrderedGrouper(weights, axis)
+        if random is not False and random is not None:
+            if random is True:
+                random = None
+            g = pd.RandomGrouper(weights, axis, random)
+        return self.groupby(g).split()
 
 
     def sample(self, n=None, frac=None, replace=False, weights=None, random_state=None, axis=None):
