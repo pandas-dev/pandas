@@ -2099,7 +2099,7 @@ class DatetimeTZBlock(NonConsolidatableMixIn, DatetimeBlock):
         if is_null_datelike_scalar(other):
             other = tslib.iNaT
         elif isinstance(other, self._holder):
-            if other.tz != self.tz:
+            if other.tz != self.values.tz:
                 raise ValueError("incompatible or non tz-aware value")
             other = other.tz_localize(None).asi8
         else:
