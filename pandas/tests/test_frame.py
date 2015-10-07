@@ -4322,30 +4322,6 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         result = result.set_index('foo')
         tm.assert_index_equal(df.index,idx)
 
-        # indexing
-        result = df2.iloc[1]
-        expected = Series([Timestamp('2013-01-02 00:00:00-0500', tz='US/Eastern'), np.nan, np.nan],
-                          index=list('ABC'), dtype='object', name=1)
-        assert_series_equal(result, expected)
-        result = df2.loc[1]
-        expected = Series([Timestamp('2013-01-02 00:00:00-0500', tz='US/Eastern'), np.nan, np.nan],
-                          index=list('ABC'), dtype='object', name=1)
-        assert_series_equal(result, expected)
-
-        # indexing - fast_xs
-        df = DataFrame({'a': date_range('2014-01-01', periods=10, tz='UTC')})
-        result = df.iloc[5]
-        expected = Timestamp('2014-01-06 00:00:00+0000', tz='UTC', offset='D')
-        self.assertEqual(result, expected)
-
-        result = df.loc[5]
-        self.assertEqual(result, expected)
-
-        # indexing - boolean
-        result = df[df.a > df.a[3]]
-        expected = df.iloc[4:]
-        assert_frame_equal(result, expected)
-
     def test_constructor_for_list_with_dtypes(self):
         intname = np.dtype(np.int_).name
         floatname = np.dtype(np.float_).name
