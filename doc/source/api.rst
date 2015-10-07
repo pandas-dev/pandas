@@ -611,7 +611,7 @@ strings and apply several methods to it. These can be acccessed like
 
 ..
     The following is needed to ensure the generated pages are created with the
-    correct template (otherwise they would be created in the Series class page)
+    correct template (otherwise they would be created in the Series/Index class page)
 
 ..
     .. autosummary::
@@ -621,6 +621,10 @@ strings and apply several methods to it. These can be acccessed like
        Series.str
        Series.cat
        Series.dt
+       Index.str
+       CategoricalIndex.str
+       DatetimeIndex.str
+       TimedeltaIndex.str
 
 
 .. _api.categorical:
