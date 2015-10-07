@@ -400,15 +400,12 @@ class TestGroupBy(tm.TestCase):
         assert_frame_equal(result, expected)
 
     def test_grouper_random(self):
-        print("testing random grouper")
         df = DataFrame({"A": [0,1,2,3,4,5], "b": [10,11,12,13,14,15]})
         g = df.groupby(pd.RandomGrouper((1,2)))
         a, b = g.split()
         assert_frame_equal(df, df)
 
     def test_grouper_creation_bug(self):
-        #self.test_grouper_random() # TODO remove
-
         # GH 8795
         df = DataFrame({'A':[0,0,1,1,2,2], 'B':[1,2,3,4,5,6]})
         g = df.groupby('A')

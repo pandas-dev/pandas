@@ -317,9 +317,6 @@ class OrderedGrouper(Grouper):
         super(OrderedGrouper, self).__init__()
 
     def _get_grouper(self, obj):
-        return self._go_get_grouper(obj)
-
-    def _go_get_grouper(self, obj):
         if self._axis is None:
             self._axis = obj._stat_axis_number
         self._axis = obj._get_axis_number(self._axis)
