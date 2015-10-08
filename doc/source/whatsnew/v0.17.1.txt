@@ -42,3 +42,5 @@ Performance Improvements
 
 Bug Fixes
 ~~~~~~~~~
+
+- Bug in ``DataFrame.to_latex()`` produces an extra rule when ``header=False`` (:issue:`7124`)

@@ -2749,6 +2749,30 @@ b &       b &     b \\
 """
         self.assertEqual(observed, expected)
 
+    def test_to_latex_no_header(self):
+        # GH 7124
+        df = DataFrame({'a': [1, 2],
+                        'b': ['b1', 'b2']})
+        withindex_result = df.to_latex(header=False)
+        withindex_expected = r"""\begin{tabular}{lrl}
+\toprule
+0 &  1 &  b1 \\
+1 &  2 &  b2 \\
+\bottomrule
+\end{tabular}
+"""
+        self.assertEqual(withindex_result, withindex_expected)
+
+        withoutindex_result = df.to_latex(index=False, header=False)
+        withoutindex_expected = r"""\begin{tabular}{rl}
+\toprule
+ 1 &  b1 \\
+ 2 &  b2 \\
+\bottomrule
+\end{tabular}
+"""
+        self.assertEqual(withoutindex_result, withoutindex_expected)
+
     def test_to_csv_quotechar(self):
         df = DataFrame({'col' : [1,2]})
         expected = """\
