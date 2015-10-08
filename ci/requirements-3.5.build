@@ -1,4 +1,4 @@
 python-dateutil
 pytz
-numpy
+numpy=1.9.3
 cython
