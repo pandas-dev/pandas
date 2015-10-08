@@ -97,7 +97,7 @@ ignore_na : boolean, default False
 _ewm_notes = r"""
 Notes
 -----
-Either center of mass or span must be specified
+Either center of mass, span or halflife must be specified
 
 EWMA is sometimes specified using a "span" parameter `s`, we have that the
 decay parameter :math:`\alpha` is related to the span as
