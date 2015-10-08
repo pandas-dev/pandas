@@ -1,6 +1,6 @@
 dateutil=2.1
 pytz=2013b
-numpy
+numpy=1.9.3
 xlwt=0.7.5
 numexpr
 pytables
