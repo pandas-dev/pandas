@@ -401,7 +401,7 @@ class TestGroupBy(tm.TestCase):
 
     def test_grouper_random(self):
         df = DataFrame({"A": [0,1,2,3,4,5], "b": [10,11,12,13,14,15]})
-        g = df.groupby(pd.RandomGrouper((1,2)))
+        g = df.groupby(pd.RandomPartitioner((1,2)))
         a, b = g.split()
         assert_frame_equal(df, df)
 

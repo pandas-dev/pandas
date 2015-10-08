@@ -2060,11 +2060,11 @@ class NDFrame(PandasObject):
         Multiple objects of the same type as original object. The number of returned objects
         is the same as the number of weights provided as parameter.
         """
-        g = pd.OrderedGrouper(weights, axis)
+        g = pd.Partitioner(weights, axis)
         if random is not False and random is not None:
             if random is True:
                 random = None
-            g = pd.RandomGrouper(weights, axis, random)
+            g = pd.RandomPartitioner(weights, axis, random)
         return self.groupby(g).split()
 
 

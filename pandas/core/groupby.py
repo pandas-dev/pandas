@@ -297,7 +297,10 @@ class Grouper(object):
         return self.grouper.groups
 
 
-class OrderedGrouper(Grouper):
+class Partitioner(Grouper):
+    '''
+
+    '''
 
     def __init__(self, proportions=(1,1), axis=None):
         self._proportions = proportions
@@ -307,14 +310,13 @@ class OrderedGrouper(Grouper):
         if len(self._proportions) < 2:
             raise ValueError("must split into more than 1 partition")
         for w in self._proportions:
-            if not isinstance(w, Real) or w <=0:
+            if not (com.is_float(w) or com.is_integer(w)) or w <=0:
                 raise ValueError("weights must be strictly positive real numbers")
 
-        weights_total = reduce(lambda x, y: x+y, self._proportions, 0)
-
         # compute proportions as fractions
-        self._proportions = [x*1./weights_total for x in self._proportions]
-        super(OrderedGrouper, self).__init__()
+        self._proportions = np.asarray(self._proportions, dtype="float64")
+        self._proportions = self._proportions/self._proportions.sum()
+        super(Partitioner, self).__init__()
 
     def _get_grouper(self, obj):
         if self._axis is None:
@@ -322,29 +324,32 @@ class OrderedGrouper(Grouper):
         self._axis = obj._get_axis_number(self._axis)
         axis_length = obj.shape[self._axis]
 
-        numbers = [int(round(prop*axis_length)) for prop in self._proportions]
+        numbers = np.rint(self._proportions * axis_length).astype("int32")
 
         newcol = reduce(lambda x, y: x + y, [[x]*numbers[x] for x in range(len(numbers))])
         while len(newcol) < axis_length:
             newcol.append(newcol[-1])
 
-        self._processidxs(newcol)
+        self._transform(newcol)
 
         grouping = Grouping(obj._get_axis(self._axis), grouper=Series(newcol), obj=obj, sort=True, in_axis=True)
 
         return None, BaseGrouper(self._axis, [grouping]), obj
 
-    def _processidxs(self, newcol):
+    def _transform(self, newcol):
         pass
 
-class RandomGrouper(OrderedGrouper):
+class RandomPartitioner(Partitioner):
+    '''
+    TODO
+    '''
 
     def __init__(self, proportions=(1,1), axis=None, random=None):
         # Process random_state argument
         self.rs = com._random_state(random)
-        super(RandomGrouper, self).__init__(proportions, axis)
+        super(RandomPartitioner, self).__init__(proportions, axis)
 
-    def _processidxs(self, newcol):
+    def _transform(self, newcol):
         self.rs.shuffle(newcol)
 
 
