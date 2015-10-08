@@ -117,6 +117,7 @@ Thanks
 - Joris Van den Bossche
 - Joris Vankerschaver
 - Josh Levy-Kramer
+- Julien Danjou
 - Ka Wo Chen
 - Karrie Kehoe
 - Kelsey Jordahl
