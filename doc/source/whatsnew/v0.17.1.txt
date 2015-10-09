@@ -42,3 +42,5 @@ Performance Improvements
 
 Bug Fixes
 ~~~~~~~~~
+
+- Bug in ``squeeze()`` with zero length arrays (:issue:`11230`, :issue:`8999`)
