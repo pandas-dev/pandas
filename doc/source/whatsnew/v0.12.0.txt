@@ -191,7 +191,7 @@ I/O Enhancements
         df = DataFrame({'a': range(3), 'b': list('abc')})
         print(df)
         html = df.to_html()
-        alist = pd.read_html(html, infer_types=True, index_col=0)
+        alist = pd.read_html(html, index_col=0)
         print(df == alist[0])
 
     Note that ``alist`` here is a Python ``list`` so ``pd.read_html()`` and
@@ -252,19 +252,31 @@ I/O Enhancements
   - Iterator support via ``read_hdf`` that automatically opens and closes the
     store when iteration is finished. This is only for *tables*
 
-    .. ipython:: python
-       :okwarning:
+    .. code-block:: python
 
-         path = 'store_iterator.h5'
-         DataFrame(randn(10,2)).to_hdf(path,'df',table=True)
-         for df in read_hdf(path,'df', chunksize=3):
-            print(df)
+        In [25]: path = 'store_iterator.h5'
 
-    .. ipython:: python
-         :suppress:
+        In [26]: DataFrame(randn(10,2)).to_hdf(path,'df',table=True)
 
-         import os
-         os.remove(path)
+        In [27]: for df in read_hdf(path,'df', chunksize=3):
+           ....:    print df
+           ....:
+                  0         1
+        0  0.713216 -0.778461
+        1 -0.661062  0.862877
+        2  0.344342  0.149565
+                  0         1
+        3 -0.626968 -0.875772
+        4 -0.930687 -0.218983
+        5  0.949965 -0.442354
+                  0         1
+        6 -0.402985  1.111358
+        7 -0.241527 -0.670477
+        8  0.049355  0.632633
+                  0         1
+        9 -1.502767 -1.225492
+
+
 
   - ``read_csv`` will now throw a more informative error message when a file
     contains no columns, e.g., all newline characters
