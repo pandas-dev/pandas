@@ -3906,7 +3906,7 @@ class MultiIndex(Index):
                 name = None
             return Index(levels[0], name=name, copy=True).take(labels[0])
 
-        result = object.__new__(MultiIndex)
+        result = object.__new__(cls)
 
         # we've already validated levels and labels, so shortcut here
         result._set_levels(levels, copy=copy, validate=False)
@@ -4184,12 +4184,12 @@ class MultiIndex(Index):
             levels = self.levels
             labels = self.labels
             names = self.names
-        return MultiIndex(levels=levels,
-                          labels=labels,
-                          names=names,
-                          sortorder=self.sortorder,
-                          verify_integrity=False,
-                          _set_identity=_set_identity)
+        return self.__class__(levels=levels,
+                              labels=labels,
+                              names=names,
+                              sortorder=self.sortorder,
+                              verify_integrity=False,
+                              _set_identity=_set_identity)
 
     def __array__(self, dtype=None):
         """ the array interface, return my values """
@@ -4205,7 +4205,7 @@ class MultiIndex(Index):
         if values is not None:
             if 'name' in kwargs:
                 kwargs['names'] = kwargs.pop('name',None)
-            return MultiIndex.from_tuples(values, **kwargs)
+            return self.__class__.from_tuples(values, **kwargs)
         return self.view()
 
     @cache_readonly
@@ -4285,16 +4285,16 @@ class MultiIndex(Index):
 
     @property
     def _constructor(self):
-        return MultiIndex.from_tuples
+        return self.__class__.from_tuples
 
     @cache_readonly
     def inferred_type(self):
         return 'mixed'
 
-    @staticmethod
-    def _from_elements(values, labels=None, levels=None, names=None,
+    @classmethod
+    def _from_elements(cls, values, labels=None, levels=None, names=None,
                        sortorder=None):
-        return MultiIndex(levels, labels, names, sortorder=sortorder)
+        return cls(levels, labels, names, sortorder=sortorder)
 
     def _get_level_number(self, level):
         try:
@@ -4552,7 +4552,7 @@ class MultiIndex(Index):
         # Assumes that each label is divisible by n_shuffle
         labels = [x.reshape(n_shuffle, -1).ravel(1) for x in labels]
         names = self.names
-        return MultiIndex(levels=levels, labels=labels, names=names)
+        return self.__class__(levels=levels, labels=labels, names=names)
 
     @property
     def is_all_dates(self):
@@ -4626,9 +4626,9 @@ class MultiIndex(Index):
         if names is None:
             names = [getattr(arr, "name", None) for arr in arrays]
 
-        return MultiIndex(levels=levels, labels=labels,
-                          sortorder=sortorder, names=names,
-                          verify_integrity=False)
+        return cls(levels=levels, labels=labels,
+                   sortorder=sortorder, names=names,
+                   verify_integrity=False)
 
     @classmethod
     def from_tuples(cls, tuples, sortorder=None, names=None):
@@ -4673,8 +4673,8 @@ class MultiIndex(Index):
         else:
             arrays = lzip(*tuples)
 
-        return MultiIndex.from_arrays(arrays, sortorder=sortorder,
-                                      names=names)
+        return cls.from_arrays(arrays, sortorder=sortorder,
+                               names=names)
 
     @classmethod
     def from_product(cls, iterables, sortorder=None, names=None):
@@ -4716,8 +4716,8 @@ class MultiIndex(Index):
         categoricals = [Categorical.from_array(it, ordered=True) for it in iterables]
         labels = cartesian_product([c.codes for c in categoricals])
 
-        return MultiIndex(levels=[c.categories for c in categoricals],
-                          labels=labels, sortorder=sortorder, names=names)
+        return cls(levels=[c.categories for c in categoricals],
+                   labels=labels, sortorder=sortorder, names=names)
 
     @property
     def nlevels(self):
@@ -4785,17 +4785,17 @@ class MultiIndex(Index):
 
             new_labels = [lab[key] for lab in self.labels]
 
-            return MultiIndex(levels=self.levels,
-                              labels=new_labels,
-                              names=self.names,
-                              sortorder=sortorder,
-                              verify_integrity=False)
+            return self.__class__(levels=self.levels,
+                                  labels=new_labels,
+                                  names=self.names,
+                                  sortorder=sortorder,
+                                  verify_integrity=False)
 
     def take(self, indexer, axis=None):
         indexer = com._ensure_platform_int(indexer)
         new_labels = [lab.take(indexer) for lab in self.labels]
-        return MultiIndex(levels=self.levels, labels=new_labels,
-                          names=self.names, verify_integrity=False)
+        return self.__class__(levels=self.levels, labels=new_labels,
+                              names=self.names, verify_integrity=False)
 
     def append(self, other):
         """
@@ -4818,14 +4818,14 @@ class MultiIndex(Index):
                 label = self.get_level_values(i)
                 appended = [o.get_level_values(i) for o in other]
                 arrays.append(label.append(appended))
-            return MultiIndex.from_arrays(arrays, names=self.names)
+            return self.__class__.from_arrays(arrays, names=self.names)
 
         to_concat = (self.values,) + tuple(k._values for k in other)
         new_tuples = np.concatenate(to_concat)
 
         # if all(isinstance(x, MultiIndex) for x in other):
         try:
-            return MultiIndex.from_tuples(new_tuples, names=self.names)
+            return self.__class__.from_tuples(new_tuples, names=self.names)
         except:
             return Index(new_tuples)
 
@@ -4833,11 +4833,11 @@ class MultiIndex(Index):
         return self.values.argsort(*args, **kwargs)
 
     def repeat(self, n):
-        return MultiIndex(levels=self.levels,
-                          labels=[label.view(np.ndarray).repeat(n) for label in self.labels],
-                          names=self.names,
-                          sortorder=self.sortorder,
-                          verify_integrity=False)
+        return self.__class__(levels=self.levels,
+                              labels=[label.view(np.ndarray).repeat(n) for label in self.labels],
+                              names=self.names,
+                              sortorder=self.sortorder,
+                              verify_integrity=False)
 
     def drop(self, labels, level=None, errors='raise'):
         """
@@ -4936,8 +4936,8 @@ class MultiIndex(Index):
             result.name = new_names[0]
             return result
         else:
-            return MultiIndex(levels=new_levels, labels=new_labels,
-                              names=new_names, verify_integrity=False)
+            return self.__class__(levels=new_levels, labels=new_labels,
+                                  names=new_names, verify_integrity=False)
 
     def swaplevel(self, i, j):
         """
@@ -4963,8 +4963,8 @@ class MultiIndex(Index):
         new_labels[i], new_labels[j] = new_labels[j], new_labels[i]
         new_names[i], new_names[j] = new_names[j], new_names[i]
 
-        return MultiIndex(levels=new_levels, labels=new_labels,
-                          names=new_names, verify_integrity=False)
+        return self.__class__(levels=new_levels, labels=new_labels,
+                              names=new_names, verify_integrity=False)
 
     def reorder_levels(self, order):
         """
@@ -4982,8 +4982,8 @@ class MultiIndex(Index):
         new_labels = [self.labels[i] for i in order]
         new_names = [self.names[i] for i in order]
 
-        return MultiIndex(levels=new_levels, labels=new_labels,
-                          names=new_names, verify_integrity=False)
+        return self.__class__(levels=new_levels, labels=new_labels,
+                              names=new_names, verify_integrity=False)
 
     def __getslice__(self, i, j):
         return self.__getitem__(slice(i, j))
@@ -5048,9 +5048,9 @@ class MultiIndex(Index):
         indexer = com._ensure_platform_int(indexer)
         new_labels = [lab.take(indexer) for lab in self.labels]
 
-        new_index = MultiIndex(labels=new_labels, levels=self.levels,
-                               names=self.names, sortorder=sortorder,
-                               verify_integrity=False)
+        new_index = self.__class__(labels=new_labels, levels=self.levels,
+                                   names=self.names, sortorder=sortorder,
+                                   verify_integrity=False)
 
         return new_index, indexer
 
@@ -5165,7 +5165,7 @@ class MultiIndex(Index):
                 target = self.take(indexer)
             else:
                 # hopefully?
-                target = MultiIndex.from_tuples(target)
+                target = self.__class__.from_tuples(target)
 
         if (preserve_names and target.nlevels == self.nlevels and
             target.names != self.names):
@@ -5665,8 +5665,8 @@ class MultiIndex(Index):
         new_labels = [lab[left:right] for lab in self.labels]
         new_labels[0] = new_labels[0] - i
 
-        return MultiIndex(levels=new_levels, labels=new_labels,
-                          verify_integrity=False)
+        return self.__class__(levels=new_levels, labels=new_labels,
+                              verify_integrity=False)
 
     def equals(self, other):
         """
@@ -5734,8 +5734,8 @@ class MultiIndex(Index):
             return self
 
         uniq_tuples = lib.fast_unique_multiple([self._values, other._values])
-        return MultiIndex.from_arrays(lzip(*uniq_tuples), sortorder=0,
-                                      names=result_names)
+        return self.__class__.from_arrays(lzip(*uniq_tuples), sortorder=0,
+                                          names=result_names)
 
     def intersection(self, other):
         """
@@ -5759,12 +5759,12 @@ class MultiIndex(Index):
         other_tuples = other._values
         uniq_tuples = sorted(set(self_tuples) & set(other_tuples))
         if len(uniq_tuples) == 0:
-            return MultiIndex(levels=[[]] * self.nlevels,
-                              labels=[[]] * self.nlevels,
-                              names=result_names, verify_integrity=False)
+            return self.__class__(levels=[[]] * self.nlevels,
+                                  labels=[[]] * self.nlevels,
+                                  names=result_names, verify_integrity=False)
         else:
-            return MultiIndex.from_arrays(lzip(*uniq_tuples), sortorder=0,
-                                          names=result_names)
+            return self.__class__.from_arrays(lzip(*uniq_tuples), sortorder=0,
+                                              names=result_names)
 
     def difference(self, other):
         """
@@ -5781,19 +5781,19 @@ class MultiIndex(Index):
                 return self
 
         if self.equals(other):
-            return MultiIndex(levels=[[]] * self.nlevels,
-                              labels=[[]] * self.nlevels,
-                              names=result_names, verify_integrity=False)
+            return self.__class__(levels=[[]] * self.nlevels,
+                                  labels=[[]] * self.nlevels,
+                                  names=result_names, verify_integrity=False)
 
         difference = sorted(set(self._values) - set(other._values))
 
         if len(difference) == 0:
-            return MultiIndex(levels=[[]] * self.nlevels,
-                              labels=[[]] * self.nlevels,
-                              names=result_names, verify_integrity=False)
+            return self.__class__(levels=[[]] * self.nlevels,
+                                  labels=[[]] * self.nlevels,
+                                  names=result_names, verify_integrity=False)
         else:
-            return MultiIndex.from_tuples(difference, sortorder=0,
-                                          names=result_names)
+            return self.__class__.from_tuples(difference, sortorder=0,
+                                              names=result_names)
 
     def astype(self, dtype):
         if not is_object_dtype(np.dtype(dtype)):
@@ -5806,13 +5806,13 @@ class MultiIndex(Index):
 
         if not hasattr(other, 'names'):
             if len(other) == 0:
-                other = MultiIndex(levels=[[]] * self.nlevels,
-                                   labels=[[]] * self.nlevels,
-                                   verify_integrity=False)
+                other = self.__class__(levels=[[]] * self.nlevels,
+                                       labels=[[]] * self.nlevels,
+                                       verify_integrity=False)
             else:
                 msg = 'other must be a MultiIndex or a list of tuples'
                 try:
-                    other = MultiIndex.from_tuples(other)
+                    other = self.__class__.from_tuples(other)
                 except:
                     raise TypeError(msg)
         else:
@@ -5856,8 +5856,8 @@ class MultiIndex(Index):
             new_levels.append(level)
             new_labels.append(np.insert(_ensure_int64(labels), loc, lev_loc))
 
-        return MultiIndex(levels=new_levels, labels=new_labels,
-                          names=self.names, verify_integrity=False)
+        return self.__class__(levels=new_levels, labels=new_labels,
+                              names=self.names, verify_integrity=False)
 
     def delete(self, loc):
         """
@@ -5868,8 +5868,8 @@ class MultiIndex(Index):
         new_index : MultiIndex
         """
         new_labels = [np.delete(lab, loc) for lab in self.labels]
-        return MultiIndex(levels=self.levels, labels=new_labels,
-                          names=self.names, verify_integrity=False)
+        return self.__class__(levels=self.levels, labels=new_labels,
+                              names=self.names, verify_integrity=False)
 
     get_major_bounds = slice_locs
 
@@ -5889,7 +5889,7 @@ class MultiIndex(Index):
 
     def _wrap_joined_index(self, joined, other):
         names = self.names if self.names == other.names else None
-        return MultiIndex.from_tuples(joined, names=names)
+        return self.__class__.from_tuples(joined, names=names)
 
     @Appender(Index.isin.__doc__)
     def isin(self, values, level=None):
