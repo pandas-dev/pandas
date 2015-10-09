@@ -5673,6 +5673,13 @@ class TestMultiIndex(Base, tm.TestCase):
         # GH9785
         self.assertTrue((self.index == self.index).all())
 
+    def test_subclassing(self):
+        # GH11267
+        class MyMultiIndex(MultiIndex):
+            pass
+        mi = MyMultiIndex([['a'], ['b']], [[0], [0]])
+        self.assertTrue(isinstance(mi, MyMultiIndex))
+
 
 def test_get_combined_index():
     from pandas.core.index import _get_combined_index
