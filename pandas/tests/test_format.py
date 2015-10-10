@@ -191,13 +191,14 @@ class TestDataFrameFormatting(tm.TestCase):
             self.assertEqual(repr(df),  '     0    1\n0  0.1  0.5\n1  0.5 -0.1')
 
     def test_repr_obeys_max_seq_limit(self):
-        import pandas.core.common as com
-
         with option_context("display.max_seq_items",2000):
             self.assertTrue(len(com.pprint_thing(lrange(1000))) > 1000)
 
         with option_context("display.max_seq_items",5):
-            self.assertTrue(len(com.pprint_thing(lrange(1000)))< 100)
+            self.assertTrue(len(com.pprint_thing(lrange(1000))) < 100)
+
+    def test_repr_set(self):
+        self.assertEqual(com.pprint_thing(set([1])), '{1}')
 
     def test_repr_is_valid_construction_code(self):
         # for the case of Index, where the repr is traditional rather then stylized

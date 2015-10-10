@@ -28,6 +28,9 @@ Other Enhancements
 API changes
 ~~~~~~~~~~~
 
+- Prettyprinting sets (e.g. in DataFrame cells) now uses set literal syntax (``{x, y}``) instead of
+  Legacy Python syntax (``set([x, y])``).
+
 .. _whatsnew_0171.deprecations:
 
 Deprecations
