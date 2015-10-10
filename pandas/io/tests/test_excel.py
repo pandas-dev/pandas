@@ -1346,7 +1346,7 @@ class ExcelWriterBase(SharedItems):
 
 
     def test_duplicated_columns(self):
-        # Test for issue #5235.
+        # Test for issue #5235
         _skip_if_no_xlrd()
 
         with ensure_clean(self.ext) as path:
@@ -1358,7 +1358,20 @@ class ExcelWriterBase(SharedItems):
 
             read_frame = read_excel(path, 'test1')
             read_frame.columns = colnames
+            tm.assert_frame_equal(write_frame, read_frame)
 
+            # 11007 / #10970
+            write_frame = DataFrame([[1,2,3,4],[5,6,7,8]],
+                                    columns=['A','B','A','B'])
+            write_frame.to_excel(path, 'test1')
+            read_frame = read_excel(path, 'test1')
+            read_frame.columns = ['A','B','A','B']
+            tm.assert_frame_equal(write_frame, read_frame)
+
+            # 10982
+            write_frame.to_excel(path, 'test1', index=False, header=False)
+            read_frame = read_excel(path, 'test1', header=None)
+            write_frame.columns = [0, 1, 2, 3]
             tm.assert_frame_equal(write_frame, read_frame)
 
     def test_swapped_columns(self):
@@ -1374,6 +1387,23 @@ class ExcelWriterBase(SharedItems):
 
             tm.assert_series_equal(write_frame['A'], read_frame['A'])
             tm.assert_series_equal(write_frame['B'], read_frame['B'])
+
+    def test_invalid_columns(self):
+        # 10982
+        _skip_if_no_xlrd()
+
+        with ensure_clean(self.ext) as path:
+            write_frame = DataFrame({'A': [1, 1, 1],
+                                     'B': [2, 2, 2]})
+
+            write_frame.to_excel(path, 'test1', columns=['B', 'C'])
+            expected = write_frame.loc[:, ['B','C']]
+            read_frame = read_excel(path, 'test1')
+            tm.assert_frame_equal(expected, read_frame)
+
+            with tm.assertRaises(KeyError):
+                write_frame.to_excel(path, 'test1', columns=['C', 'D'])
+
 
     def test_datetimes(self):
 
