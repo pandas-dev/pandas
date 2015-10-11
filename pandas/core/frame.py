@@ -4624,7 +4624,7 @@ class DataFrame(NDFrame):
                 values = self.values
             result = f(values)
 
-        if is_object_dtype(result.dtype):
+        if hasattr(result, 'dtype') and is_object_dtype(result.dtype):
             try:
                 if filter_type is None or filter_type == 'numeric':
                     result = result.astype(np.float64)

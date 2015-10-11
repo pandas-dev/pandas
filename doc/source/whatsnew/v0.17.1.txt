@@ -28,6 +28,9 @@ Other Enhancements
 API changes
 ~~~~~~~~~~~
 
+- min and max reductions on ``datetime64`` and ``timedelta64`` dtyped series now
+  result in ``NaT`` and not ``nan`` (:issue:`11245`).
+
 .. _whatsnew_0171.deprecations:
 
 Deprecations
@@ -74,3 +77,5 @@ Bug Fixes
 
 
 - Bugs in ``to_excel`` with duplicate columns (:issue:`11007`, :issue:`10982`, :issue:`10970`)
+- Fixed a bug that prevented the construction of an empty series of dtype
+  ``datetime64[ns, tz]`` (:issue:`11245`).
