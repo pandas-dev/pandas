@@ -1075,6 +1075,7 @@ Bug Fixes
 - Regression fixed in (:issue:`9311`, :issue:`6620`, :issue:`9345`), where groupby with a datetime-like converting to float with certain aggregators (:issue:`10979`)
 
 - Bug in ``DataFrame.interpolate`` with ``axis=1`` and ``inplace=True`` (:issue:`10395`)
+- Bug in adding a `DataFrame` to an empty `Panel` (:issue:`10445`)
 - Bug in ``io.sql.get_schema`` when specifying multiple columns as primary
   key (:issue:`10385`).
 
