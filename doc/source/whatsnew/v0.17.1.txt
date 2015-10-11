@@ -20,6 +20,8 @@ Enhancements
 
 .. _whatsnew_0171.enhancements.other:
 
+- Improve the error message in :func:`pandas.io.gbq.to_gbq` when a streaming insert fails (:issue:`11285`)
+
 Other Enhancements
 ^^^^^^^^^^^^^^^^^^
 
