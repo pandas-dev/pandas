@@ -185,7 +185,8 @@ class GbqConnector(object):
             for error in errors:
                 reason = error['reason']
                 message = error['message']
-                error_message = 'Error at Row: {0}, Reason: {1}, Message: {2}'.format(row, reason, message)
+                location = error['location']
+                error_message = 'Error at Row: {0}, Reason: {1}, Location: {2}, Message: {3}'.format(row, reason, location, message)
 
                 # Report all error messages if verbose is set
                 if verbose:
