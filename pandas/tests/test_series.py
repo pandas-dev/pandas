@@ -7960,6 +7960,12 @@ class TestSeriesNonUnique(tm.TestCase):
         self.assertTrue(pd.isnull(Series([],dtype='M8[ns]').quantile(.5)))
         self.assertTrue(pd.isnull(Series([],dtype='m8[ns]').quantile(.5)))
 
+    def test_empty_timeseries_redections_return_nat(self):
+        # covers #11245
+        for dtype in ('m8[ns]', 'm8[ns]', 'M8[ns]', 'M8[ns, UTC]'):
+            self.assertIs(Series([], dtype=dtype).min(), pd.NaT)
+            self.assertIs(Series([], dtype=dtype).max(), pd.NaT)
+
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
                    exit=False)
