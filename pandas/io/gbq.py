@@ -196,7 +196,7 @@ class GbqConnector(object):
 
         raise StreamingInsertError
 
-    def run_query(self, query, verbose=True):
+    def run_query(self, query, verbose=True, udf_uris=[]):
         from apiclient.errors import HttpError
         from oauth2client.client import AccessTokenRefreshError
 
@@ -211,6 +211,12 @@ class GbqConnector(object):
                 }
             }
         }
+
+        if len(udf_uris) > 0:
+            udf_resources = job_data['configuration']['query']['userDefinedFunctionResources'] = []
+            for uri in udf_uris:
+                uri_resource = {'resourceUri': uri}
+                udf_resources.append(uri_resource)
 
         try:
             query_reply = job_collection.insert(projectId=self.project_id, body=job_data).execute()
@@ -386,7 +392,7 @@ def _parse_entry(field_value, field_type):
     return field_value
 
 
-def read_gbq(query, project_id=None, index_col=None, col_order=None, reauth=False, verbose=True):
+def read_gbq(query, project_id=None, index_col=None, col_order=None, reauth=False, verbose=True, udf_uris=[]):
     """Load data from Google BigQuery.
 
     THIS IS AN EXPERIMENTAL LIBRARY
@@ -414,6 +420,10 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None, reauth=Fals
     verbose : boolean (default True)
         Verbose output
 
+    udf_uris : list(str) (optional)
+        List of Google Cloud Storage URIs for user defined functions (UDFs)
+        used in your query.
+
     Returns
     -------
     df: DataFrame
@@ -425,7 +435,7 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None, reauth=Fals
         raise TypeError("Missing required parameter: project_id")
 
     connector = GbqConnector(project_id, reauth=reauth)
-    schema, pages = connector.run_query(query, verbose=verbose)
+    schema, pages = connector.run_query(query, verbose=verbose, udf_uris=udf_uris)
     dataframe_list = []
     while len(pages) > 0:
         page = pages.pop()
