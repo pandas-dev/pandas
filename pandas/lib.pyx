@@ -1004,51 +1004,53 @@ def string_array_replace_from_nan_rep(ndarray[object, ndim=1] arr, object nan_re
 
     return arr
 
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def write_csv_rows(list data, ndarray data_index, int nlevels, ndarray cols, object writer):
+def write_csv_rows(list data, ndarray[object] data_index, int nlevels,
+                   ndarray[object] cols, object writer):
 
-    cdef int N, j, i, ncols
-    cdef list rows
-    cdef object val
+    cdef:
+        Py_ssize_t i, j
+        Py_ssize_t N = 100, ncols = cols.shape[0], nindex = data_index.shape[0]
+        list rows, row
 
-    # In crude testing, N>100 yields little marginal improvement
-    N=100
+    # In crude testing, N > 100 yields little marginal improvement
+    N = 100
 
-    # pre-allocate  rows
-    ncols = len(cols)
-    rows = [[None]*(nlevels+ncols) for x in range(N)]
+    # pre-allocate rows
+    rows = [[None] * (nlevels + ncols) for x in range(N)]
 
     j = -1
     if nlevels == 1:
-        for j in range(len(data_index)):
+        for j in range(nindex):
             row = rows[j % N]
             row[0] = data_index[j]
             for i in range(ncols):
-                row[1+i] = data[i][j]
+                row[i + 1] = data[i][j]
 
-            if j >= N-1 and j % N == N-1:
+            if j >= N - 1 and j % N == N - 1:
                 writer.writerows(rows)
     elif nlevels > 1:
-        for j in range(len(data_index)):
+        for j in range(nindex):
             row = rows[j % N]
             row[:nlevels] = list(data_index[j])
             for i in range(ncols):
-                row[nlevels+i] = data[i][j]
+                row[nlevels + i] = data[i][j]
 
-            if j >= N-1 and j % N == N-1:
+            if j >= N - 1 and j % N == N - 1:
                 writer.writerows(rows)
     else:
-        for j in range(len(data_index)):
+        for j in range(nindex):
             row = rows[j % N]
             for i in range(ncols):
                 row[i] = data[i][j]
 
-            if j >= N-1 and j % N == N-1:
+            if j >= N - 1 and j % N == N - 1:
                 writer.writerows(rows)
 
-    if  j >= 0 and (j < N-1 or (j % N) != N-1 ):
-        writer.writerows(rows[:((j+1) % N)])
+    if j >= 0 and (j < N - 1 or j % N != N - 1):
+        writer.writerows(rows[:(j + 1) % N])
 
 #-------------------------------------------------------------------------------
 # Groupby-related functions

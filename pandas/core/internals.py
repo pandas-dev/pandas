@@ -533,12 +533,7 @@ class Block(PandasObject):
         if slicer is not None:
             values = values[:, slicer]
         mask = isnull(values)
-
-        if not self.is_object and not quoting:
-            values = values.astype(str)
-        else:
-            values = np.array(values, dtype='object')
-
+        values = np.array(values, dtype=object)
         values[mask] = na_rep
         return values
 
@@ -1295,20 +1290,18 @@ class FloatBlock(FloatOrComplexBlock):
         values = self.values
         if slicer is not None:
             values = values[:, slicer]
+        values = np.array(values, object)
         mask = isnull(values)
+        values[mask] = na_rep
 
-        formatter = None
         if float_format and decimal != '.':
-            formatter = lambda v : (float_format % v).replace('.',decimal,1)
+            formatter = lambda v: (float_format % v).replace('.', decimal, 1)
         elif decimal != '.':
-            formatter = lambda v : ('%g' % v).replace('.',decimal,1)
+            formatter = lambda v: ('%g' % v).replace('.', decimal, 1)
         elif float_format:
-            formatter = lambda v : float_format % v
-
-        if formatter is None and not quoting:
-            values = values.astype(str)
+            formatter = lambda v: float_format % v
         else:
-            values = np.array(values, dtype='object')
+            formatter = None
 
         values[mask] = na_rep
         if formatter:

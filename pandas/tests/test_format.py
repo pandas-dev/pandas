@@ -4071,6 +4071,19 @@ class TestStringRepTimestamp(tm.TestCase):
         dt_datetime_us = datetime(2013, 1, 2, 12, 1, 3, 45, tzinfo=utc)
         self.assertEqual(str(dt_datetime_us), str(Timestamp(dt_datetime_us)))
 
+
+def test_float_formatting():
+    np.random.seed(0)
+    df = pd.DataFrame(dict(a=np.random.randn(10)))
+    sio = StringIO()
+    df.to_csv(sio, index=False, header=False)
+    raw = np.array([float(x) for x in sio.getvalue().splitlines()])
+    if sys.version_info[:2] == (2, 6):
+        np.testing.assert_array_almost_equal(df.a.values, raw)
+    else:
+        np.testing.assert_array_equal(df.a.values, raw)
+
+
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
                    exit=False)
