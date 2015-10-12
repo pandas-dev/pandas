@@ -52,6 +52,8 @@ Deprecations
 Performance Improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
+- Checking monotonic-ness before sorting on an index (:issue:`11080`)
+
 .. _whatsnew_0171.bug_fixes:
 
 Bug Fixes
