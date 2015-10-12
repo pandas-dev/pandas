@@ -17,6 +17,7 @@ Highlights include:
 
 Enhancements
 ~~~~~~~~~~~~
+- ``DatetimeIndex`` now supports conversion to strings with astype(str)(:issue:`10442`)
 
 - Support for ``compression`` (gzip/bz2) in :method:`DataFrame.to_csv` (:issue:`7615`)
 
