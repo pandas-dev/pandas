@@ -64,7 +64,7 @@ Bug Fixes
 
 
 
-
+- Bug in ``DataFrame.plot`` cannot use hex strings colors (:issue:`10299`)
 
 
 
