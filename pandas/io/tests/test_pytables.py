@@ -3049,6 +3049,18 @@ class TestHDFStore(Base, tm.TestCase):
             result = store.select(
                 'df4', where='values>2.0')
             tm.assert_frame_equal(expected, result)
+        
+        # test selection with comparison against numpy scalar
+        # GH 11283
+        with ensure_clean_store(self.path) as store:
+            df = tm.makeDataFrame()
+
+            expected = df[df['A']>0]
+
+            store.append('df', df, data_columns=True)
+            np_zero = np.float64(0)
+            result = store.select('df', where=["A>np_zero"])
+            tm.assert_frame_equal(expected, result)
 
     def test_select_with_many_inputs(self):
 
