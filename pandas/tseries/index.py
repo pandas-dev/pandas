@@ -756,6 +756,8 @@ class DatetimeIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
             return self.asi8.copy()
         elif dtype == _NS_DTYPE and self.tz is not None:
             return self.tz_convert('UTC').tz_localize(None)
+        elif dtype == str:
+            return self._shallow_copy(values=self.format(), infer=True)
         else:  # pragma: no cover
             raise ValueError('Cannot cast DatetimeIndex to dtype %s' % dtype)
 
