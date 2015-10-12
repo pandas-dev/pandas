@@ -789,7 +789,12 @@ class GroupBy(PandasObject):
         For multiple groupings, the result index will be a MultiIndex
         """
         # todo, implement at cython level?
-        return np.sqrt(self.var(ddof=ddof))
+        if ddof == 1:
+            return self._cython_agg_general('std')
+        else:
+            self._set_selection_from_grouper()
+            f = lambda x: x.std(ddof=ddof)
+            return self._python_agg_general(f)
 
     def var(self, ddof=1):
         """
@@ -1467,6 +1472,10 @@ class BaseGrouper(object):
     #------------------------------------------------------------
     # Aggregation functions
 
+    def _cython_std(group_var, out, b, c, d):
+        group_var(out, b, c, d)
+        out **= 0.5  # needs to be applied in place
+
     _cython_functions = {
         'add': 'group_add',
         'prod': 'group_prod',
@@ -1477,6 +1486,10 @@ class BaseGrouper(object):
             'name': 'group_median'
         },
         'var': 'group_var',
+        'std': {
+            'name': 'group_var',
+            'f': _cython_std,
+        },
         'first': {
             'name': 'group_nth',
             'f': lambda func, a, b, c, d: func(a, b, c, d, 1)
@@ -1512,7 +1525,7 @@ class BaseGrouper(object):
 
             # a sub-function
             f = ftype.get('f')
-            if f is not None:
+            if f is not None and afunc is not None:
 
                 def wrapper(*args, **kwargs):
                     return f(afunc, *args, **kwargs)
