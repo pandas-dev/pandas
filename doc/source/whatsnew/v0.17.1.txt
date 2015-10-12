@@ -18,6 +18,8 @@ Highlights include:
 Enhancements
 ~~~~~~~~~~~~
 
+- Support for ``compression`` (gzip/bz2) in :method:`DataFrame.to_csv` (:issue:`7615`)
+
 .. _whatsnew_0171.enhancements.other:
 
 - Improve the error message in :func:`pandas.io.gbq.to_gbq` when a streaming insert fails (:issue:`11285`)
