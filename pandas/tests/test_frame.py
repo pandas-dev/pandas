@@ -7328,6 +7328,63 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         recons = pd.read_csv(StringIO(csv_str), index_col=0)
         assert_frame_equal(self.frame, recons)
 
+    def test_to_csv_compression_gzip(self):
+        ## GH7615
+        ## use the compression kw in to_csv
+        df = DataFrame([[0.123456, 0.234567, 0.567567],
+                        [12.32112, 123123.2, 321321.2]],
+                       index=['A', 'B'], columns=['X', 'Y', 'Z'])
+
+        with ensure_clean() as filename:
+
+            df.to_csv(filename, compression="gzip")
+
+            # test the round trip - to_csv -> read_csv
+            rs = read_csv(filename, compression="gzip", index_col=0)
+            assert_frame_equal(df, rs)
+
+            # explicitly make sure file is gziped
+            import gzip
+            f = gzip.open(filename, 'rb')
+            text = f.read().decode('utf8')
+            f.close()
+            for col in df.columns:
+                self.assertIn(col, text)
+
+    def test_to_csv_compression_bz2(self):
+        ## GH7615
+        ## use the compression kw in to_csv
+        df = DataFrame([[0.123456, 0.234567, 0.567567],
+                        [12.32112, 123123.2, 321321.2]],
+                       index=['A', 'B'], columns=['X', 'Y', 'Z'])
+
+        with ensure_clean() as filename:
+
+            df.to_csv(filename, compression="bz2")
+
+            # test the round trip - to_csv -> read_csv
+            rs = read_csv(filename, compression="bz2", index_col=0)
+            assert_frame_equal(df, rs)
+
+            # explicitly make sure file is bz2ed
+            import bz2
+            f = bz2.BZ2File(filename, 'rb')
+            text = f.read().decode('utf8')
+            f.close()
+            for col in df.columns:
+                self.assertIn(col, text)
+
+    def test_to_csv_compression_value_error(self):
+        ## GH7615
+        ## use the compression kw in to_csv
+        df = DataFrame([[0.123456, 0.234567, 0.567567],
+                        [12.32112, 123123.2, 321321.2]],
+                       index=['A', 'B'], columns=['X', 'Y', 'Z'])
+
+        with ensure_clean() as filename:
+            # zip compression is not supported and should raise ValueError
+            self.assertRaises(ValueError, df.to_csv, filename, compression="zip")
+
     def test_info(self):
         io = StringIO()
         self.frame.info(buf=io)

@@ -1210,7 +1210,7 @@ class DataFrame(NDFrame):
 
     def to_csv(self, path_or_buf=None, sep=",", na_rep='', float_format=None,
                columns=None, header=True, index=True, index_label=None,
-               mode='w', encoding=None, quoting=None,
+               mode='w', encoding=None, compression=None, quoting=None, 
                quotechar='"', line_terminator='\n', chunksize=None,
                tupleize_cols=False, date_format=None, doublequote=True,
                escapechar=None, decimal='.', **kwds):
@@ -1247,6 +1247,10 @@ class DataFrame(NDFrame):
         encoding : string, optional
             A string representing the encoding to use in the output file,
             defaults to 'ascii' on Python 2 and 'utf-8' on Python 3.
+        compression : string, optional
+            a string representing the compression to use in the output file, 
+            allowed values are 'gzip', 'bz2',
+            only used when the first argument is a filename
         line_terminator : string, default '\\n'
             The newline character or character sequence to use in the output
             file
@@ -1275,6 +1279,7 @@ class DataFrame(NDFrame):
         formatter = fmt.CSVFormatter(self, path_or_buf,
                                      line_terminator=line_terminator,
                                      sep=sep, encoding=encoding,
+                                     compression=compression,
                                      quoting=quoting, na_rep=na_rep,
                                      float_format=float_format, cols=columns,
                                      header=header, index=index,
