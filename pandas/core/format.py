@@ -23,6 +23,7 @@ import numpy as np
 
 import itertools
 import csv
+import warnings
 
 common_docstring = """
     Parameters
@@ -1264,7 +1265,11 @@ class CSVFormatter(object):
                  tupleize_cols=False, quotechar='"', date_format=None,
                  doublequote=True, escapechar=None, decimal='.'):
 
-        self.engine = engine  # remove for 0.13
+        if engine is not None:
+            warnings.warn("'engine' keyword is deprecated and "
+                          "will be removed in a future version",
+                          FutureWarning, stacklevel=3)
+        self.engine = engine  # remove for 0.18
         self.obj = obj
 
         if path_or_buf is None:
