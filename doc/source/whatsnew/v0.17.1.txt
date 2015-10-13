@@ -40,6 +40,8 @@ API changes
 
 .. _whatsnew_0171.deprecations:
 
+- ``engine`` keyword is deprecated from ``.to_csv()`` and will be removed in a future version (:issue:`11274`)
+
 Deprecations
 ^^^^^^^^^^^^
 
