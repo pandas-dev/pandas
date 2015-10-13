@@ -44,6 +44,8 @@ Deprecations
 ^^^^^^^^^^^^
 
 - The ``pandas.io.ga`` module which implements ``google-analytics`` support is deprecated and will be removed in a future version (:issue:`11308`)
+- Deprecate the ``engine`` keyword from ``.to_csv()``, which will be removed in a future version (:issue:`11274`)
+
 
 .. _whatsnew_0171.performance:
 
