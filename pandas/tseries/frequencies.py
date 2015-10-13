@@ -851,10 +851,11 @@ def infer_freq(index, warn=True):
             raise TypeError("cannot infer freq from a non-convertible index type {0}".format(type(index)))
         index = index.values
 
-    try:
-        index = pd.DatetimeIndex(index)
-    except AmbiguousTimeError:
-        index = pd.DatetimeIndex(index.asi8)
+    if not isinstance(index, pd.DatetimeIndex):
+        try:
+            index = pd.DatetimeIndex(index)
+        except AmbiguousTimeError:
+            index = pd.DatetimeIndex(index.asi8)
 
     inferer = _FrequencyInferer(index, warn=warn)
     return inferer.get_freq()

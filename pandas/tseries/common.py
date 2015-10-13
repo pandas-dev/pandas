@@ -45,8 +45,10 @@ def maybe_to_datetimelike(data, copy=False):
         raise TypeError("cannot convert an object of type {0} to a datetimelike index".format(type(data)))
 
     index = data.index
-    if is_datetime64_dtype(data.dtype) or is_datetime64tz_dtype(data.dtype):
+    if is_datetime64_dtype(data.dtype):
         return DatetimeProperties(DatetimeIndex(data, copy=copy, freq='infer'), index, name=data.name)
+    elif is_datetime64tz_dtype(data.dtype):
+        return DatetimeProperties(DatetimeIndex(data, copy=copy, freq='infer', ambiguous='infer'), index, name=data.name)
     elif is_timedelta64_dtype(data.dtype):
         return TimedeltaProperties(TimedeltaIndex(data, copy=copy, freq='infer'), index, name=data.name)
     else:
