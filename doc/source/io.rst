@@ -3312,8 +3312,9 @@ the table using a ``where`` that selects all but the missing data.
 
    Please note that HDF5 **DOES NOT RECLAIM SPACE** in the h5 files
    automatically. Thus, repeatedly deleting (or removing nodes) and adding
-   again **WILL TEND TO INCREASE THE FILE SIZE**. To *clean* the file, use
-   :ref:`ptrepack <io.hdf5-ptrepack>`
+   again, **WILL TEND TO INCREASE THE FILE SIZE**.
+
+   To *repack and clean* the file, use :ref:`ptrepack <io.hdf5-ptrepack>`
 
 .. _io.hdf5-notes:
 
