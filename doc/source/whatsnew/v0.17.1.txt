@@ -3,7 +3,7 @@
 v0.17.1 (November ??, 2015)
 ---------------------------
 
-This is a minor bug-fix release from 0.17.0 and includes a a large number of
+This is a minor bug-fix release from 0.17.0 and includes a large number of
 bug fixes along several new features, enhancements, and performance improvements.
 We recommend that all users upgrade to this version.
 
@@ -64,8 +64,10 @@ Performance Improvements
 - Improved performance of ``rolling_median`` (:issue:`11450`)
 
 - Improved performance to ``to_excel`` (:issue:`11352`)
+- Performance bug in repr of ``Categorical`` categories, which was rendering the strings before chopping them for display (:issue:`11305`)
 
 .. _whatsnew_0171.bug_fixes:
+
 
 Bug Fixes
 ~~~~~~~~~
