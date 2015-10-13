@@ -135,7 +135,16 @@ These include:
 * :ref:`'hexbin' <visualization.hexbin>` for hexagonal bin plots
 * :ref:`'pie' <visualization.pie>` for pie plots
 
-.. versionadded:: 0.17
+For example, a bar plot can be created the following way:
+
+.. ipython:: python
+
+   plt.figure();
+
+   @savefig bar_plot_ex.png
+   df.ix[5].plot(kind='bar'); plt.axhline(0, color='k')
+
+.. versionadded:: 0.17.0
 
 You can also create these other plots using the methods ``DataFrame.plot.<kind>`` instead of providing the ``kind`` keyword argument. This makes it easier to discover plot methods and the specific arguments they use:
 
@@ -592,11 +601,9 @@ It is recommended to specify ``color`` and ``label`` keywords to distinguish eac
 
 .. ipython:: python
 
-   ax = df.plot.scatter(x='a', y='b',
-                color='DarkBlue', label='Group 1');
+   ax = df.plot.scatter(x='a', y='b', color='DarkBlue', label='Group 1');
    @savefig scatter_plot_repeated.png
-   df.plot.scatter(x='c', y='d',
-           color='DarkGreen', label='Group 2', ax=ax);
+   df.plot.scatter(x='c', y='d', color='DarkGreen', label='Group 2', ax=ax);
 
 .. ipython:: python
    :suppress:
@@ -782,7 +789,7 @@ Also, other keywords supported by :func:`matplotlib.pyplot.pie` can be used.
 
    @savefig series_pie_plot_options.png
    series.plot.pie(labels=['AA', 'BB', 'CC', 'DD'], colors=['r', 'g', 'b', 'c'],
-               autopct='%.2f', fontsize=20, figsize=(6, 6))
+                   autopct='%.2f', fontsize=20, figsize=(6, 6))
 
 If you pass values whose sum total is less than 1.0, matplotlib draws a semicircle.
 
