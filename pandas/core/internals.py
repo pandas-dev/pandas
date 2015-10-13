@@ -435,7 +435,15 @@ class Block(PandasObject):
             if values is None:
 
                 if issubclass(dtype.type, (compat.text_type, compat.string_types)):
-                    values = self.to_native_types()
+
+                    # use native type formatting for datetime/tz/timedelta
+                    if self.is_datelike:
+                        values = self.to_native_types()
+
+                    # astype formatting
+                    else:
+                        values = self.values
+
                 else:
                     values = self.get_values(dtype=dtype)
 

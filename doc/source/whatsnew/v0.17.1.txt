@@ -34,7 +34,7 @@ API changes
 
 - min and max reductions on ``datetime64`` and ``timedelta64`` dtyped series now
   result in ``NaT`` and not ``nan`` (:issue:`11245`).
-
+- Regression from 0.16.2 for output formatting of long floats/nan, restored in (:issue:`11302`)
 - Prettyprinting sets (e.g. in DataFrame cells) now uses set literal syntax (``{x, y}``) instead of
   Legacy Python syntax (``set([x, y])``) (:issue:`11215`)
 

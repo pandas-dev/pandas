@@ -4621,6 +4621,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
 
         df = DataFrame({'a' : a, 'b' : b, 'c' : c, 'd' : d, 'e' : e})
 
+        # datetimelike
         # Test str and unicode on python 2.x and just str on python 3.x
         for tt in set([str, compat.text_type]):
             result = df.astype(tt)
@@ -4633,6 +4634,18 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
                 'e' : list(map(tt, e._values)),
                 })
 
+            assert_frame_equal(result, expected)
+
+        # float/nan
+        # 11302
+        # consistency in astype(str)
+        for tt in set([str, compat.text_type]):
+            result = DataFrame([np.NaN]).astype(tt)
+            expected = DataFrame(['nan'])
+            assert_frame_equal(result, expected)
+
+            result = DataFrame([1.12345678901234567890]).astype(tt)
+            expected = DataFrame(['1.12345678901'])
             assert_frame_equal(result, expected)
 
     def test_array_interface(self):
