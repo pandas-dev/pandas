@@ -3376,6 +3376,14 @@ class TestDatetime64(tm.TestCase):
         df = df.reindex(idx2)
         self.assertTrue(df.index.equals(idx2))
 
+        # 11314
+        # with tz
+        index = date_range(datetime(2015, 10, 1), datetime(2015,10,1,23), freq='H', tz='US/Eastern')
+        df = DataFrame(np.random.randn(24, 1), columns=['a'], index=index)
+        new_index = date_range(datetime(2015, 10, 2), datetime(2015,10,2,23), freq='H', tz='US/Eastern')
+        result = df.set_index(new_index)
+        self.assertEqual(new_index.freq,index.freq)
+
     def test_datetimeindex_union_join_empty(self):
         dti = DatetimeIndex(start='1/1/2001', end='2/1/2001', freq='D')
         empty = Index([])
