@@ -4,6 +4,13 @@
 3. Goto APIs and register for OAuth2.0 for installed applications
 4. Download JSON secret file and move into same directory as this file
 """
+
+# GH11038
+import warnings
+warnings.warn("The pandas.io.ga module is deprecated and will be "
+              "removed in a future version.",
+              FutureWarning, stacklevel=2)
+
 from datetime import datetime
 import re
 from pandas import compat
