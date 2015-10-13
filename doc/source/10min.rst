@@ -169,7 +169,7 @@ Selection
    recommend the optimized pandas data access methods, ``.at``, ``.iat``,
    ``.loc``, ``.iloc`` and ``.ix``.
 
-See the indexing documentation :ref:`Indexing and Selecing Data <indexing>` and :ref:`MultiIndex / Advanced Indexing <advanced>`
+See the indexing documentation :ref:`Indexing and Selecting Data <indexing>` and :ref:`MultiIndex / Advanced Indexing <advanced>`
 
 Getting
 ~~~~~~~
