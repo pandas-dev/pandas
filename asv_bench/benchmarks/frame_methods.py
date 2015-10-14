@@ -930,6 +930,16 @@ class frame_xs_row(object):
         self.df.xs(50000)
 
 
+class frame_sort_index(object):
+    goal_time = 0.2
+
+    def setup(self):
+        self.df = DataFrame(randn(1000000, 2), columns=list('AB'))
+
+    def time_frame_sort_index(self):
+        self.df.sort_index()
+
+
 class series_string_vector_slice(object):
     goal_time = 0.2
 
