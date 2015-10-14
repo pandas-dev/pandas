@@ -873,10 +873,13 @@ class ParserBase(object):
         columns = lzip(*[extract(r) for r in header])
         names = ic + columns
 
+        def tostr(x):
+            return str(x) if not isinstance(x, compat.string_types) else x
+
         # if we find 'Unnamed' all of a single level, then our header was too
         # long
         for n in range(len(columns[0])):
-            if all(['Unnamed' in c[n] for c in columns]):
+            if all(['Unnamed' in tostr(c[n]) for c in columns]):
                 raise _parser.CParserError(
                     "Passed header=[%s] are too many rows for this "
                     "multi_index of columns"

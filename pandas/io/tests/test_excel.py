@@ -558,6 +558,12 @@ class XlrdTests(ReadingTestsBase):
         actual = read_excel(mi_file, 'mi_column_name', header=[0,1], index_col=0)
         tm.assert_frame_equal(actual, expected)
 
+        # Issue #11317
+        expected.columns = mi.set_levels([1,2],level=1).set_names(['c1', 'c2'])
+        actual = read_excel(mi_file, 'name_with_int', index_col=0, header=[0,1])
+        tm.assert_frame_equal(actual, expected)
+
+        expected.columns = mi.set_names(['c1', 'c2'])
         expected.index = mi.set_names(['ilvl1', 'ilvl2'])
         actual = read_excel(mi_file, 'both_name', index_col=[0,1], header=[0,1])
         tm.assert_frame_equal(actual, expected)
@@ -1083,7 +1089,38 @@ class ExcelWriterBase(SharedItems):
             df = read_excel(reader, 'test1', index_col=[0, 1],
                               parse_dates=False)
             tm.assert_frame_equal(frame, df)
-            self.assertEqual(frame.index.names, df.index.names)
+
+    # Test for Issue 11328. If column indices are integers, make
+    # sure they are handled correctly for either setting of
+    # merge_cells
+    def test_to_excel_multiindex_cols(self):
+        _skip_if_no_xlrd()
+
+        frame = self.frame
+        arrays = np.arange(len(frame.index) * 2).reshape(2, -1)
+        new_index = MultiIndex.from_arrays(arrays,
+                                           names=['first', 'second'])
+        frame.index = new_index
+
+        new_cols_index = MultiIndex.from_tuples([(40, 1), (40, 2),
+                                                 (50, 1), (50, 2)])
+        frame.columns = new_cols_index
+        header = [0, 1]
+        if not self.merge_cells:
+            header = 0
+
+        with ensure_clean(self.ext) as path:
+             # round trip
+            frame.to_excel(path, 'test1', merge_cells=self.merge_cells)
+            reader = ExcelFile(path)
+            df = read_excel(reader, 'test1', header=header,
+                            index_col=[0, 1],
+                            parse_dates=False)
+            if not self.merge_cells:
+                fm = frame.columns.format(sparsify=False,
+                                          adjoin=False, names=False)
+                frame.columns = [ ".".join(map(str, q)) for q in zip(*fm) ]
+            tm.assert_frame_equal(frame, df)
 
     def test_to_excel_multiindex_dates(self):
         _skip_if_no_xlrd()
