@@ -9953,6 +9953,25 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         result = df.replace(d)
         tm.assert_frame_equal(result, expected)
 
+    def test_replace_datetimetz(self):
+
+        # GH 11326
+        # behaving poorly when presented with a datetime64[ns, tz]
+        df = DataFrame({'A' : date_range('20130101',periods=3,tz='US/Eastern'),
+                        'B' : [0, np.nan, 2]})
+        result = df.replace(np.nan,1)
+        expected = DataFrame({'A' : date_range('20130101',periods=3,tz='US/Eastern'),
+                              'B' : Series([0, 1, 2],dtype='float64')})
+        assert_frame_equal(result, expected)
+
+        result = df.fillna(1)
+        assert_frame_equal(result, expected)
+
+        result = df.replace(0,np.nan)
+        expected = DataFrame({'A' : date_range('20130101',periods=3,tz='US/Eastern'),
+                              'B' : [np.nan, np.nan, 2]})
+        assert_frame_equal(result, expected)
+
     def test_combine_multiple_frames_dtypes(self):
 
         # GH 2759

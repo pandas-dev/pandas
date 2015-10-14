@@ -74,6 +74,8 @@ Bug Fixes
 
 - Bug in tz-conversions with an ambiguous time and ``.dt`` accessors (:issue:`11295`)
 - Bug in comparisons of Series vs list-likes (:issue:`11339`)
+- Bug in ``DataFrame.replace`` with a ``datetime64[ns, tz]`` and a non-compat to_replace (:issue:`11326`)
+
 
 - Bug in list-like indexing with a mixed-integer Index (:issue:`11320`)
 

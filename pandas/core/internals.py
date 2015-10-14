@@ -565,7 +565,8 @@ class Block(PandasObject):
         blocks here this is just a call to putmask. regex is not used here.
         It is used in ObjectBlocks.  It is here for API
         compatibility."""
-        mask = com.mask_missing(self.values, to_replace)
+        values, to_replace = self._try_coerce_args(self.values, to_replace)
+        mask = com.mask_missing(values, to_replace)
         if filter is not None:
             filtered_out = ~self.mgr_locs.isin(filter)
             mask[filtered_out.nonzero()[0]] = False
@@ -2110,7 +2111,7 @@ class DatetimeTZBlock(NonConsolidatableMixIn, DatetimeBlock):
             if other.tz != self.values.tz:
                 raise ValueError("incompatible or non tz-aware value")
             other = other.tz_localize(None).asi8
-        else:
+        elif isinstance(other, (np.datetime64, datetime)):
             other = lib.Timestamp(other)
             if not getattr(other, 'tz', None):
                 raise ValueError("incompatible or non tz-aware value")
