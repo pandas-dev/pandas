@@ -90,5 +90,3 @@ Bug Fixes
 - Bugs in ``to_excel`` with duplicate columns (:issue:`11007`, :issue:`10982`, :issue:`10970`)
 - Fixed a bug that prevented the construction of an empty series of dtype
   ``datetime64[ns, tz]`` (:issue:`11245`).
-
-- Bug in ``read_excel`` with multi-index containing integers (:issue:`11317`, :issue:`11328`)
