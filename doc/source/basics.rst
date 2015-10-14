@@ -1211,9 +1211,10 @@ To iterate over the rows of a DataFrame, you can use the following methods:
 * :meth:`~DataFrame.iterrows`: Iterate over the rows of a DataFrame as (index, Series) pairs.
   This converts the rows to Series objects, which can change the dtypes and has some
   performance implications.
-* :meth:`~DataFrame.itertuples`: Iterate over the rows of a DataFrame as tuples of the values.
-  This is a lot faster as :meth:`~DataFrame.iterrows`, and is in most cases preferable to
-  use to iterate over the values of a DataFrame.
+* :meth:`~DataFrame.itertuples`: Iterate over the rows of a DataFrame
+  as namedtuples of the values.  This is a lot faster as
+  :meth:`~DataFrame.iterrows`, and is in most cases preferable to use
+  to iterate over the values of a DataFrame.
 
 .. warning::
 
@@ -1307,7 +1308,7 @@ index value along with a Series containing the data in each row:
       df_orig['int'].dtype
 
    To preserve dtypes while iterating over the rows, it is better
-   to use :meth:`~DataFrame.itertuples` which returns tuples of the values
+   to use :meth:`~DataFrame.itertuples` which returns namedtuples of the values
    and which is generally much faster as ``iterrows``.
 
 For instance, a contrived way to transpose the DataFrame would be:
@@ -1325,9 +1326,9 @@ itertuples
 ~~~~~~~~~~
 
 The :meth:`~DataFrame.itertuples` method will return an iterator
-yielding a tuple for each row in the DataFrame. The first element
-of the tuple will be the row's corresponding index value,
-while the remaining values are the row values.
+yielding a namedtuple for each row in the DataFrame. The first element
+of the tuple will be the row's corresponding index value, while the
+remaining values are the row values.
 
 For instance,
 
@@ -1336,9 +1337,16 @@ For instance,
    for row in df.itertuples():
        print(row)
 
-This method does not convert the row to a Series object but just returns the
-values inside a tuple. Therefore, :meth:`~DataFrame.itertuples` preserves the
-data type of the values and is generally faster as :meth:`~DataFrame.iterrows`.
+This method does not convert the row to a Series object but just
+returns the values inside a namedtuple. Therefore,
+:meth:`~DataFrame.itertuples` preserves the data type of the values
+and is generally faster as :meth:`~DataFrame.iterrows`.
+
+.. note::
+
+   The columns names will be renamed to positional names if they are
+   invalid Python identifiers, repeated, or start with an underscore.
+   With a large number of columns (>255), regular tuples are returned.
 
 .. _basics.dt_accessors:
 
