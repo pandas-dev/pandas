@@ -488,6 +488,18 @@ class CheckIndexing(object):
         expected = df.ix[Index([1, 10], dtype=object)]
         assert_frame_equal(result, expected)
 
+        # 11320
+        df = pd.DataFrame({ "rna": (1.5,2.2,3.2,4.5),
+                            -1000: [11,21,36,40],
+                            0: [10,22,43,34],
+                            1000:[0, 10, 20, 30] },columns=['rna',-1000,0,1000])
+        result = df[[1000]]
+        expected = df.iloc[:,[3]]
+        assert_frame_equal(result, expected)
+        result = df[[-1000]]
+        expected = df.iloc[:,[1]]
+        assert_frame_equal(result, expected)
+
     def test_getitem_setitem_ix_negative_integers(self):
         result = self.frame.ix[:, -1]
         assert_series_equal(result, self.frame['D'])

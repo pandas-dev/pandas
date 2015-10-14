@@ -982,10 +982,6 @@ class Index(IndexOpsMixin, PandasObject):
         if kind in [None, 'iloc', 'ix'] and is_integer_dtype(keyarr) \
            and not self.is_floating() and not isinstance(keyarr, ABCPeriodIndex):
 
-            if self.inferred_type != 'integer':
-                keyarr = np.where(keyarr < 0,
-                                  len(self) + keyarr, keyarr)
-
             if self.inferred_type == 'mixed-integer':
                 indexer = self.get_indexer(keyarr)
                 if (indexer >= 0).all():
@@ -998,6 +994,8 @@ class Index(IndexOpsMixin, PandasObject):
                 return maybe_convert_indices(indexer, len(self))
 
             elif not self.inferred_type == 'integer':
+                keyarr = np.where(keyarr < 0,
+                                  len(self) + keyarr, keyarr)
                 return keyarr
 
         return None
