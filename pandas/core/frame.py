@@ -3157,6 +3157,15 @@ class DataFrame(NDFrame):
         else:
             from pandas.core.groupby import _nargsort
 
+            # GH11080 - Check monotonic-ness before sort an index
+            # if monotonic (already sorted), return None or copy() according to 'inplace'
+            if (ascending and labels.is_monotonic_increasing) or \
+               (not ascending and labels.is_monotonic_decreasing):
+                if inplace:
+                    return
+                else:
+                    return self.copy()
+
             indexer = _nargsort(labels, kind=kind, ascending=ascending,
                                 na_position=na_position)
 
