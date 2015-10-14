@@ -1461,12 +1461,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         -------
         shifted : Index
         """
-        if periods == 0:
-            # OK because immutable
-            return self
-
-        offset = periods * freq
-        return Index([idx + offset for idx in self], name=self.name)
+        raise NotImplementedError("Not supported for type %s" % type(self).__name__)
 
     def argsort(self, *args, **kwargs):
         """

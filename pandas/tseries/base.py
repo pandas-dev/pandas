@@ -516,9 +516,10 @@ class DatetimeIndexOpsMixin(object):
         if freq is not None and freq != self.freq:
             if isinstance(freq, compat.string_types):
                 freq = frequencies.to_offset(freq)
-            result = Index.shift(self, n, freq)
+            offset = n * freq
+            result = self + offset
 
-            if hasattr(self,'tz'):
+            if hasattr(self, 'tz'):
                 result.tz = self.tz
 
             return result

@@ -53,6 +53,13 @@ class Base(object):
         # need an object to create with
         self.assertRaises(TypeError, self._holder)
 
+    def test_shift_index(self):
+        # err8083 test the base class for shift
+        idx = self.create_index()
+        self.assertRaises(NotImplementedError, idx.shift, 1)
+
+        self.assertRaises(NotImplementedError, idx.shift, 1, 2)
+
     def test_numeric_compat(self):
 
         idx = self.create_index()
@@ -3425,6 +3432,32 @@ class TestDatetimeIndex(DatetimeLike, tm.TestCase):
     def create_index(self):
         return date_range('20130101', periods=5)
 
+    def test_shift(self):
+        # test shift for datetimeIndex and non datetimeIndex
+        # err8083
+
+        drange = self.create_index()
+        result = drange.shift(1)
+        expected = DatetimeIndex(['2013-01-02', '2013-01-03', '2013-01-04', '2013-01-05',
+               '2013-01-06'], freq='D')
+        self.assert_index_equal(result, expected)
+
+        result = drange.shift(0)
+        expected = DatetimeIndex(['2013-01-01', '2013-01-02', '2013-01-03', '2013-01-04',
+               '2013-01-05'], freq='D')
+        self.assert_index_equal(result, expected)
+
+        result = drange.shift(-1)
+        expected = DatetimeIndex(['2012-12-31','2013-01-01', '2013-01-02', '2013-01-03', '2013-01-04'],
+                                 freq='D')
+        self.assert_index_equal(result, expected)
+
+        result = drange.shift(3, freq='2D')
+        expected = DatetimeIndex(['2013-01-07', '2013-01-08', '2013-01-09', '2013-01-10',
+               '2013-01-11'],freq='D')
+        self.assert_index_equal(result, expected)
+
+
     def test_construction_with_alt(self):
 
         i = pd.date_range('20130101',periods=5,freq='H',tz='US/Eastern')
@@ -3688,6 +3721,16 @@ class TestPeriodIndex(DatetimeLike, tm.TestCase):
     def create_index(self):
         return period_range('20130101', periods=5, freq='D')
 
+    def test_shift(self):
+        # test shift for PeriodIndex
+        # err8083
+
+        drange = self.create_index()
+        result = drange.shift(1)
+        expected = PeriodIndex(['2013-01-02', '2013-01-03', '2013-01-04', '2013-01-05',
+             '2013-01-06'], freq='D')
+        self.assert_index_equal(result, expected)
+
     def test_pickle_compat_construction(self):
         pass
 
@@ -3783,6 +3826,21 @@ class TestTimedeltaIndex(DatetimeLike, tm.TestCase):
 
     def create_index(self):
         return pd.to_timedelta(range(5), unit='d') + pd.offsets.Hour(1)
+
+    def test_shift(self):
+        # test shift for TimedeltaIndex
+        # err8083
+
+        drange = self.create_index()
+        result = drange.shift(1)
+        expected = TimedeltaIndex(['1 days 01:00:00', '2 days 01:00:00', '3 days 01:00:00',
+                '4 days 01:00:00', '5 days 01:00:00'],freq='D')
+        self.assert_index_equal(result, expected)
+
+        result = drange.shift(3, freq='2D')
+        expected = TimedeltaIndex(['2 days 01:00:00', '3 days 01:00:00', '4 days 01:00:00',
+                '5 days 01:00:00', '6 days 01:00:00'],freq='D')
+        self.assert_index_equal(result, expected)
 
     def test_get_loc(self):
         idx = pd.to_timedelta(['0 days', '1 days', '2 days'])
