@@ -557,6 +557,12 @@ class XlrdTests(ReadingTestsBase):
         actual = read_excel(mi_file, 'mi_column_name', header=[0,1], index_col=0)
         tm.assert_frame_equal(actual, expected)
 
+        # Issue #11317
+        expected.columns = mi.set_levels(['1','2'],level=1).set_names(['c1', 'c2'])
+        actual = read_excel(mi_file, 'name_with_int', index_col=0, header=[0,1])
+        tm.assert_frame_equal(actual, expected)
+        
+        expected.columns = mi.set_names(['c1', 'c2'])
         expected.index = mi.set_names(['ilvl1', 'ilvl2'])
         actual = read_excel(mi_file, 'both_name', index_col=[0,1], header=[0,1])
         tm.assert_frame_equal(actual, expected)
