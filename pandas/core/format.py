@@ -1476,7 +1476,7 @@ class CSVFormatter(object):
             close = False
         else:
             f = com._get_handle(self.path_or_buf, self.mode,
-                                encoding=self.encoding, 
+                                encoding=self.encoding,
                                 compression=self.compression)
             close = True
 

@@ -6618,31 +6618,25 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         # GH3454
         import pandas as pd
 
-        def _check_df(df,cols=None):
-            with ensure_clean() as path:
-                df.to_csv(path,columns = cols,engine='python')
-                rs_p = pd.read_csv(path,index_col=0)
-                df.to_csv(path,columns = cols,chunksize=chunksize)
-                rs_c = pd.read_csv(path,index_col=0)
-
-            if cols:
-                df = df[cols]
-            assert (rs_c.columns==rs_p.columns).all()
-            assert_frame_equal(df,rs_c,check_names=False)
-
         chunksize=5
         N = int(chunksize*2.5)
 
         df= mkdf(N, 3)
         cs = df.columns
         cols = [cs[2],cs[0]]
-        _check_df(df,cols)
+
+        with ensure_clean() as path:
+            df.to_csv(path,columns = cols,chunksize=chunksize)
+            rs_c = pd.read_csv(path,index_col=0)
+
+        assert_frame_equal(df[cols],rs_c,check_names=False)
 
     def test_to_csv_legacy_raises_on_dupe_cols(self):
         df= mkdf(10, 3)
         df.columns = ['a','a','b']
         with ensure_clean() as path:
-            self.assertRaises(NotImplementedError,df.to_csv,path,engine='python')
+            with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+                self.assertRaises(NotImplementedError,df.to_csv,path,engine='python')
 
     def test_to_csv_new_dupe_cols(self):
         import pandas as pd
@@ -15198,10 +15192,14 @@ starting,ending,measure
         pname = '__tmp_to_csv_date_format__'
         with ensure_clean(pname) as path:
             for engine in [None, 'python']:
+                w = FutureWarning if engine == 'python' else None
+
                 dt_index = self.tsframe.index
                 datetime_frame = DataFrame({'A': dt_index, 'B': dt_index.shift(1)}, index=dt_index)
 
-                datetime_frame.to_csv(path, date_format='%Y%m%d', engine=engine)
+                with tm.assert_produces_warning(w, check_stacklevel=False):
+                    datetime_frame.to_csv(path, date_format='%Y%m%d', engine=engine)
+
                 # Check that the data was put in the specified format
                 test = read_csv(path, index_col=0)
 
@@ -15210,7 +15208,9 @@ starting,ending,measure
 
                 assert_frame_equal(test, datetime_frame_int)
 
-                datetime_frame.to_csv(path, date_format='%Y-%m-%d', engine=engine)
+                with tm.assert_produces_warning(w, check_stacklevel=False):
+                    datetime_frame.to_csv(path, date_format='%Y-%m-%d', engine=engine)
+
                 # Check that the data was put in the specified format
                 test = read_csv(path, index_col=0)
                 datetime_frame_str = datetime_frame.applymap(lambda x: x.strftime('%Y-%m-%d'))
@@ -15221,7 +15221,8 @@ starting,ending,measure
                 # Check that columns get converted
                 datetime_frame_columns = datetime_frame.T
 
-                datetime_frame_columns.to_csv(path, date_format='%Y%m%d', engine=engine)
+                with tm.assert_produces_warning(w, check_stacklevel=False):
+                    datetime_frame_columns.to_csv(path, date_format='%Y%m%d', engine=engine)
 
                 test = read_csv(path, index_col=0)
 
@@ -15235,7 +15236,8 @@ starting,ending,measure
                 nat_index = to_datetime(['NaT'] * 10 + ['2000-01-01', '1/1/2000', '1-1-2000'])
                 nat_frame = DataFrame({'A': nat_index}, index=nat_index)
 
-                nat_frame.to_csv(path, date_format='%Y-%m-%d', engine=engine)
+                with tm.assert_produces_warning(w, check_stacklevel=False):
+                    nat_frame.to_csv(path, date_format='%Y-%m-%d', engine=engine)
 
                 test = read_csv(path, parse_dates=[0, 1], index_col=0)
 
