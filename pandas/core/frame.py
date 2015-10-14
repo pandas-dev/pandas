@@ -584,7 +584,7 @@ class DataFrame(NDFrame):
         See also
         --------
         iterrows : Iterate over the rows of a DataFrame as (index, Series) pairs.
-        itertuples : Iterate over the rows of a DataFrame as tuples of the values.
+        itertuples : Iterate over the rows of a DataFrame as namedtuples of the values.
 
         """
         if self.columns.is_unique and hasattr(self, '_item_cache'):
@@ -617,7 +617,7 @@ class DataFrame(NDFrame):
            int64
 
            To preserve dtypes while iterating over the rows, it is better
-           to use :meth:`itertuples` which returns tuples of the values
+           to use :meth:`itertuples` which returns namedtuples of the values
            and which is generally faster as ``iterrows``.
 
         2. You should **never modify** something you are iterating over.
@@ -632,7 +632,7 @@ class DataFrame(NDFrame):
 
         See also
         --------
-        itertuples : Iterate over the rows of a DataFrame as tuples of the values.
+        itertuples : Iterate over the rows of a DataFrame as namedtuples of the values.
         iteritems : Iterate over (column name, Series) pairs.
 
         """
@@ -641,15 +641,23 @@ class DataFrame(NDFrame):
             s = Series(v, index=columns, name=k)
             yield k, s
 
-    def itertuples(self, index=True):
+    def itertuples(self, index=True, name="Pandas"):
         """
-        Iterate over the rows of DataFrame as tuples, with index value
+        Iterate over the rows of DataFrame as namedtuples, with index value
         as first element of the tuple.
 
         Parameters
         ----------
         index : boolean, default True
             If True, return the index as the first element of the tuple.
+        name : string, default "Pandas"
+            The name of the returned namedtuple.
+
+        Notes
+        -----
+        The columns names will be renamed to positional names if they are
+        invalid Python identifiers, repeated, or start with an underscore.
+        With a large number of columns (>255), regular tuples are returned.
 
         See also
         --------
@@ -666,16 +674,32 @@ class DataFrame(NDFrame):
         b     2   0.2
         >>> for row in df.itertuples():
         ...     print(row)
-        ('a', 1, 0.10000000000000001)
-        ('b', 2, 0.20000000000000001)
+        ...
+        Pandas(Index='a', col1=1, col2=0.10000000000000001)
+        Pandas(Index='b', col1=2, col2=0.20000000000000001)
 
         """
         arrays = []
+        fields = []
         if index:
             arrays.append(self.index)
+            fields.append("Index")
 
         # use integer indexing because of possible duplicate column names
         arrays.extend(self.iloc[:, k] for k in range(len(self.columns)))
+
+        # Python 3 supports at most 255 arguments to constructor, and
+        # things get slow with this many fields in Python 2
+        if len(self.columns) + index < 256:
+            # `rename` is unsupported in Python 2.6
+            try:
+                itertuple = collections.namedtuple(
+                    name, fields+list(self.columns), rename=True)
+                return (itertuple(*row) for row in zip(*arrays))
+            except:
+                pass
+
+        # fallback to regular tuples
         return zip(*arrays)
 
     if compat.PY3:  # pragma: no cover
@@ -1213,7 +1237,7 @@ class DataFrame(NDFrame):
 
     def to_csv(self, path_or_buf=None, sep=",", na_rep='', float_format=None,
                columns=None, header=True, index=True, index_label=None,
-               mode='w', encoding=None, compression=None, quoting=None, 
+               mode='w', encoding=None, compression=None, quoting=None,
                quotechar='"', line_terminator='\n', chunksize=None,
                tupleize_cols=False, date_format=None, doublequote=True,
                escapechar=None, decimal='.', **kwds):
@@ -1251,7 +1275,7 @@ class DataFrame(NDFrame):
             A string representing the encoding to use in the output file,
             defaults to 'ascii' on Python 2 and 'utf-8' on Python 3.
         compression : string, optional
-            a string representing the compression to use in the output file, 
+            a string representing the compression to use in the output file,
             allowed values are 'gzip', 'bz2',
             only used when the first argument is a filename
         line_terminator : string, default '\\n'
