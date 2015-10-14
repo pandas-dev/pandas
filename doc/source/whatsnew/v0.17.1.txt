@@ -67,7 +67,7 @@ Bug Fixes
 - Bug in tz-conversions with an ambiguous time and ``.dt`` accessors (:issues:`11295`)
 
 
-
+- Bug in list-like indexing with a mixed-integer Index (:issue:`11320`)
 
 
 
