@@ -865,12 +865,9 @@ class ParserBase(object):
 
         # extract the columns
         field_count = len(header[0])
-        
-        def tostr(x):
-            return str(x) if not isinstance(x, compat.string_types) else x
 
         def extract(r):
-            return tuple([tostr(r[i]) for i in range(field_count) if i not in sic])
+            return tuple([str(r[i]) for i in range(field_count) if i not in sic])
 
         columns = lzip(*[extract(r) for r in header])
         names = ic + columns
