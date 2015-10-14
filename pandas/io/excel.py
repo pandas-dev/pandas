@@ -708,7 +708,12 @@ class _Openpyxl1Writer(ExcelWriter):
         for cell in cells:
             colletter = get_column_letter(startcol + cell.col + 1)
             xcell = wks.cell("%s%s" % (colletter, startrow + cell.row + 1))
-            xcell.value = _conv_value(cell.val)
+            if (isinstance(cell.val, compat.string_types)
+                    and xcell.data_type_for_value(cell.val)
+                         != xcell.TYPE_STRING):
+                xcell.set_value_explicit(cell.val)
+            else:
+                xcell.value = _conv_value(cell.val)
             style = None
             if cell.style:
                 style = self._convert_to_style(cell.style)
@@ -1240,7 +1245,7 @@ class _Openpyxl22Writer(_Openpyxl20Writer):
                         start_row=startrow + cell.row + 1,
                         start_column=startcol + cell.col + 1,
                         end_column=startcol + cell.mergeend + 1,
-                        end_row=startrow + cell.mergeend + 1
+                        end_row=startrow + cell.mergestart + 1
                         )
 
                 # When cells are merged only the top-left cell is preserved
