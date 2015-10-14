@@ -5,8 +5,6 @@ Misc tools for implementing data structures
 import re
 import collections
 import numbers
-import codecs
-import csv
 import types
 from datetime import datetime, timedelta
 from functools import partial
@@ -19,7 +17,7 @@ import pandas.algos as algos
 import pandas.lib as lib
 import pandas.tslib as tslib
 from pandas import compat
-from pandas.compat import StringIO, BytesIO, range, long, u, zip, map, string_types, iteritems
+from pandas.compat import BytesIO, range, long, u, zip, map, string_types, iteritems
 from pandas.core.dtypes import CategoricalDtype, CategoricalDtypeType, DatetimeTZDtype, DatetimeTZDtypeType
 from pandas.core.config import get_option
 
@@ -446,14 +444,24 @@ def mask_missing(arr, values_to_mask):
     mask = None
     for x in nonna:
         if mask is None:
-            mask = arr == x
+
+            # numpy elementwise comparison warning
+            if is_numeric_v_string_like(arr, x):
+                mask = False
+            else:
+                mask = arr == x
 
             # if x is a string and arr is not, then we get False and we must
             # expand the mask to size arr.shape
             if np.isscalar(mask):
                 mask = np.zeros(arr.shape, dtype=bool)
         else:
-            mask |= arr == x
+
+            # numpy elementwise comparison warning
+            if is_numeric_v_string_like(arr, x):
+                mask |= False
+            else:
+                mask |= arr == x
 
     if na_mask.any():
         if mask is None:
@@ -2384,6 +2392,9 @@ is_float = lib.is_float
 is_complex = lib.is_complex
 
 
+def is_string_like(obj):
+    return isinstance(obj, (compat.text_type, compat.string_types))
+
 def is_iterator(obj):
     # python 3 generators have __next__ instead of next
     return hasattr(obj, 'next') or hasattr(obj, '__next__')
@@ -2526,6 +2537,27 @@ def is_datetime_or_timedelta_dtype(arr_or_dtype):
     tipo = _get_dtype_type(arr_or_dtype)
     return issubclass(tipo, (np.datetime64, np.timedelta64))
 
+
+def is_numeric_v_string_like(a, b):
+    """
+    numpy doesn't like to compare numeric arrays vs scalar string-likes
+
+    return a boolean result if this is the case for a,b or b,a
+
+    """
+    is_a_array = isinstance(a, np.ndarray)
+    is_b_array = isinstance(b, np.ndarray)
+
+    is_a_numeric_array = is_a_array and is_numeric_dtype(a)
+    is_b_numeric_array = is_b_array and is_numeric_dtype(b)
+
+    is_a_scalar_string_like = not is_a_array and is_string_like(a)
+    is_b_scalar_string_like = not is_b_array and is_string_like(b)
+
+    return (
+        is_a_numeric_array and is_b_scalar_string_like) or (
+        is_b_numeric_array and is_a_scalar_string_like
+        )
 
 def is_datetimelike_v_numeric(a, b):
     # return if we have an i8 convertible and numeric comparision
@@ -2806,154 +2838,6 @@ def _all_none(*args):
         if arg is not None:
             return False
     return True
-
-
-class UTF8Recoder:
-
-    """
-    Iterator that reads an encoded stream and reencodes the input to UTF-8
-    """
-
-    def __init__(self, f, encoding):
-        self.reader = codecs.getreader(encoding)(f)
-
-    def __iter__(self):
-        return self
-
-    def read(self, bytes=-1):
-        return self.reader.read(bytes).encode('utf-8')
-
-    def readline(self):
-        return self.reader.readline().encode('utf-8')
-
-    def next(self):
-        return next(self.reader).encode("utf-8")
-
-    # Python 3 iterator
-    __next__ = next
-
-
-def _get_handle(path, mode, encoding=None, compression=None):
-    """Gets file handle for given path and mode.
-    NOTE: Under Python 3.2, getting a compressed file handle means reading in
-    the entire file, decompressing it and decoding it to ``str`` all at once
-    and then wrapping it in a StringIO.
-    """
-    if compression is not None:
-        if encoding is not None and not compat.PY3:
-            msg = 'encoding + compression not yet supported in Python 2'
-            raise ValueError(msg)
-
-        if compression == 'gzip':
-            import gzip
-            f = gzip.GzipFile(path, mode)
-        elif compression == 'bz2':
-            import bz2
-            f = bz2.BZ2File(path, mode)
-        else:
-            raise ValueError('Unrecognized compression type: %s' %
-                             compression)
-        if compat.PY3:
-            from io import TextIOWrapper
-            f = TextIOWrapper(f, encoding=encoding)
-        return f
-    else:
-        if compat.PY3:
-            if encoding:
-                f = open(path, mode, encoding=encoding)
-            else:
-                f = open(path, mode, errors='replace')
-        else:
-            f = open(path, mode)
-
-    return f
-
-
-if compat.PY3:  # pragma: no cover
-    def UnicodeReader(f, dialect=csv.excel, encoding="utf-8", **kwds):
-        # ignore encoding
-        return csv.reader(f, dialect=dialect, **kwds)
-
-    def UnicodeWriter(f, dialect=csv.excel, encoding="utf-8", **kwds):
-        return csv.writer(f, dialect=dialect, **kwds)
-else:
-    class UnicodeReader:
-
-        """
-        A CSV reader which will iterate over lines in the CSV file "f",
-        which is encoded in the given encoding.
-
-        On Python 3, this is replaced (below) by csv.reader, which handles
-        unicode.
-        """
-
-        def __init__(self, f, dialect=csv.excel, encoding="utf-8", **kwds):
-            f = UTF8Recoder(f, encoding)
-            self.reader = csv.reader(f, dialect=dialect, **kwds)
-
-        def next(self):
-            row = next(self.reader)
-            return [compat.text_type(s, "utf-8") for s in row]
-
-        # python 3 iterator
-        __next__ = next
-
-        def __iter__(self):  # pragma: no cover
-            return self
-
-    class UnicodeWriter:
-
-        """
-        A CSV writer which will write rows to CSV file "f",
-        which is encoded in the given encoding.
-        """
-
-        def __init__(self, f, dialect=csv.excel, encoding="utf-8", **kwds):
-            # Redirect output to a queue
-            self.queue = StringIO()
-            self.writer = csv.writer(self.queue, dialect=dialect, **kwds)
-            self.stream = f
-            self.encoder = codecs.getincrementalencoder(encoding)()
-            self.quoting = kwds.get("quoting", None)
-
-        def writerow(self, row):
-            def _check_as_is(x):
-                return (self.quoting == csv.QUOTE_NONNUMERIC and
-                        is_number(x)) or isinstance(x, str)
-
-            row = [x if _check_as_is(x)
-                   else pprint_thing(x).encode('utf-8') for x in row]
-
-            self.writer.writerow([s for s in row])
-            # Fetch UTF-8 output from the queue ...
-            data = self.queue.getvalue()
-            data = data.decode("utf-8")
-            # ... and reencode it into the target encoding
-            data = self.encoder.encode(data)
-            # write to the target stream
-            self.stream.write(data)
-            # empty queue
-            self.queue.truncate(0)
-
-        def writerows(self, rows):
-            def _check_as_is(x):
-                return (self.quoting == csv.QUOTE_NONNUMERIC and
-                        is_number(x)) or isinstance(x, str)
-
-            for i, row in enumerate(rows):
-                rows[i] = [x if _check_as_is(x)
-                           else pprint_thing(x).encode('utf-8') for x in row]
-
-            self.writer.writerows([[s for s in row] for row in rows])
-            # Fetch UTF-8 output from the queue ...
-            data = self.queue.getvalue()
-            data = data.decode("utf-8")
-            # ... and reencode it into the target encoding
-            data = self.encoder.encode(data)
-            # write to the target stream
-            self.stream.write(data)
-            # empty queue
-            self.queue.truncate(0)
 
 
 def get_dtype_kinds(l):

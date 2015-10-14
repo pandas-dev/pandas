@@ -20,6 +20,7 @@ from pandas.util.testing import (assert_frame_equal, assert_series_equal,
 from pandas import isnull, DataFrame, Index, MultiIndex, Panel, Series, date_range, read_table, read_csv
 import pandas.algos as algos
 import pandas.util.testing as tm
+from numpy.testing.decorators import slow
 
 a_ = np.array
 
@@ -1410,6 +1411,7 @@ class TestMergeMulti(tm.TestCase):
 
         tm.assert_frame_equal(result, expected)
 
+    @slow
     def test_int64_overflow_issues(self):
         from itertools import product
         from collections import defaultdict

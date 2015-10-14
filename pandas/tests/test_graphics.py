@@ -2689,6 +2689,18 @@ class TestDataFramePlots(TestPlotBase):
         self._check_colors(ax.get_lines(), linecolors=['red'] * 5)
         tm.close()
 
+        # GH 10299
+        custom_colors = ['#FF0000', '#0000FF', '#FFFF00', '#000000', '#FFFFFF']
+        ax = df.plot(color=custom_colors)
+        self._check_colors(ax.get_lines(), linecolors=custom_colors)
+        tm.close()
+
+        with tm.assertRaises(ValueError):
+            # Color contains shorthand hex value results in ValueError
+            custom_colors = ['#F00', '#00F', '#FF0', '#000', '#FFF']
+            # Forced show plot
+            _check_plot_works(df.plot, color=custom_colors)
+
     @slow
     def test_line_colors_and_styles_subplots(self):
         # GH 9894
@@ -2724,6 +2736,20 @@ class TestDataFramePlots(TestPlotBase):
         for ax, c in zip(axes, list(custom_colors)):
             self._check_colors(ax.get_lines(), linecolors=[c])
         tm.close()
+
+        # GH 10299
+        custom_colors = ['#FF0000', '#0000FF', '#FFFF00', '#000000', '#FFFFFF']
+        axes = df.plot(color=custom_colors, subplots=True)
+        for ax, c in zip(axes, list(custom_colors)):
+            self._check_colors(ax.get_lines(), linecolors=[c])
+        tm.close()
+
+        with tm.assertRaises(ValueError):
+            # Color contains shorthand hex value results in ValueError
+            custom_colors = ['#F00', '#00F', '#FF0', '#000', '#FFF']
+            # Forced show plot
+            _check_plot_works(df.plot, color=custom_colors, subplots=True,
+                              filterwarnings='ignore')
 
         rgba_colors = lmap(cm.jet, np.linspace(0, 1, len(df)))
         for cmap in ['jet', cm.jet]:
@@ -3143,6 +3169,7 @@ class TestDataFramePlots(TestPlotBase):
                               ax.get_legend().get_texts()],
                              base_expected[:i] + base_expected[i+1:])
 
+    @slow
     def test_errorbar_plot(self):
         d = {'x': np.arange(12), 'y': np.arange(12, 0, -1)}
         df = DataFrame(d)

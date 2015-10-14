@@ -6,6 +6,7 @@ import sys
 import os
 from distutils.version import LooseVersion
 
+import warnings
 import operator
 import functools
 import nose
@@ -557,6 +558,12 @@ class XlrdTests(ReadingTestsBase):
         actual = read_excel(mi_file, 'mi_column_name', header=[0,1], index_col=0)
         tm.assert_frame_equal(actual, expected)
 
+        # Issue #11317
+        expected.columns = mi.set_levels([1,2],level=1).set_names(['c1', 'c2'])
+        actual = read_excel(mi_file, 'name_with_int', index_col=0, header=[0,1])
+        tm.assert_frame_equal(actual, expected)
+        
+        expected.columns = mi.set_names(['c1', 'c2'])
         expected.index = mi.set_names(['ilvl1', 'ilvl2'])
         actual = read_excel(mi_file, 'both_name', index_col=[0,1], header=[0,1])
         tm.assert_frame_equal(actual, expected)
@@ -659,6 +666,21 @@ class XlrdTests(ReadingTestsBase):
         with tm.assertRaises(NotImplementedError):
             pd.read_excel(os.path.join(self.dirpath, 'test1' + self.ext),
                           chunksize=100)
+
+    def test_read_excel_skiprows_list(self):
+        #GH 4903
+        actual = pd.read_excel(os.path.join(self.dirpath, 'testskiprows' + self.ext),
+                               'skiprows_list', skiprows=[0,2])
+        expected = DataFrame([[1, 2.5, pd.Timestamp('2015-01-01'), True],
+                              [2, 3.5, pd.Timestamp('2015-01-02'), False],
+                              [3, 4.5, pd.Timestamp('2015-01-03'), False],
+                              [4, 5.5, pd.Timestamp('2015-01-04'), True]],
+                             columns = ['a','b','c','d'])
+        tm.assert_frame_equal(actual, expected)
+
+        actual = pd.read_excel(os.path.join(self.dirpath, 'testskiprows' + self.ext),
+                               'skiprows_list', skiprows=np.array([0,2]))
+        tm.assert_frame_equal(actual, expected)
 
 class XlsReaderTests(XlrdTests, tm.TestCase):
     ext = '.xls'
@@ -1067,7 +1089,38 @@ class ExcelWriterBase(SharedItems):
             df = read_excel(reader, 'test1', index_col=[0, 1],
                               parse_dates=False)
             tm.assert_frame_equal(frame, df)
-            self.assertEqual(frame.index.names, df.index.names)
+
+    # Test for Issue 11328. If column indices are integers, make
+    # sure they are handled correctly for either setting of
+    # merge_cells
+    def test_to_excel_multiindex_cols(self):
+        _skip_if_no_xlrd()
+
+        frame = self.frame
+        arrays = np.arange(len(frame.index) * 2).reshape(2, -1)
+        new_index = MultiIndex.from_arrays(arrays,
+                                           names=['first', 'second'])
+        frame.index = new_index
+
+        new_cols_index = MultiIndex.from_tuples([(40, 1), (40, 2),
+                                                 (50, 1), (50, 2)])
+        frame.columns = new_cols_index
+        header = [0, 1]
+        if not self.merge_cells:
+            header = 0
+
+        with ensure_clean(self.ext) as path:
+             # round trip
+            frame.to_excel(path, 'test1', merge_cells=self.merge_cells)
+            reader = ExcelFile(path)
+            df = read_excel(reader, 'test1', header=header,
+                            index_col=[0, 1],
+                            parse_dates=False)
+            if not self.merge_cells:
+                fm = frame.columns.format(sparsify=False, 
+                                          adjoin=False, names=False)                
+                frame.columns = [ ".".join(map(str, q)) for q in zip(*fm) ]
+            tm.assert_frame_equal(frame, df)
 
     def test_to_excel_multiindex_dates(self):
         _skip_if_no_xlrd()
@@ -1814,7 +1867,6 @@ class XlsxWriterTests(ExcelWriterBase, tm.TestCase):
         # Applicable to xlsxwriter only.
         _skip_if_no_xlsxwriter()
 
-        import warnings
         with warnings.catch_warnings():
             # Ignore the openpyxl lxml warning.
             warnings.simplefilter("ignore")

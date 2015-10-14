@@ -39,8 +39,7 @@ class Generic(object):
     _multiprocess_can_split_ = True
 
     def setUp(self):
-        import warnings
-        warnings.filterwarnings(action='ignore', category=FutureWarning)
+        pass
 
     @property
     def _ndim(self):

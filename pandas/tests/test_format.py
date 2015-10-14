@@ -2952,6 +2952,12 @@ $1$,$2$
         self.assertEqual(df_day.to_csv(), expected_default_day)
         self.assertEqual(df_day.to_csv(date_format='%Y-%m-%d'), expected_default_day)
 
+    # deprecation GH11274
+    def test_to_csv_engine_kw_deprecation(self):
+        with tm.assert_produces_warning(FutureWarning):
+            df = DataFrame({'col1' : [1], 'col2' : ['a'], 'col3' : [10.1] })
+            df.to_csv(engine='python')
+
     def test_round_dataframe(self):
 
         # GH 2665

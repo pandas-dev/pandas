@@ -20,6 +20,12 @@ from apiclient.errors import HttpError
 from oauth2client.client import AccessTokenRefreshError
 from pandas.compat import zip, u
 
+# GH11038
+import warnings
+warnings.warn("The pandas.io.ga module is deprecated and will be "
+              "removed in a future version.",
+              FutureWarning, stacklevel=2)
+
 TYPE_MAP = {u('INTEGER'): int, u('FLOAT'): float, u('TIME'): int}
 
 NO_CALLBACK = auth.OOB_CALLBACK_URN
