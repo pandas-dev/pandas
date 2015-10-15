@@ -70,7 +70,7 @@ Bug Fixes
 - Bug in list-like indexing with a mixed-integer Index (:issue:`11320`)
 
 
-
+- Bug in ``DataFrame.plot`` cannot use hex strings colors (:issue:`10299`)
 
 
 
