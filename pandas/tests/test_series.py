@@ -4032,6 +4032,21 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
                                Timestamp('2011-01-04 10:00', tz=tz)])
             self.assert_series_equal(expected, result)
 
+            # filling with a naive/other zone, coerce to object
+            result = s.fillna(Timestamp('20130101'))
+            expected = Series([Timestamp('2011-01-01 10:00', tz=tz),
+                               Timestamp('2013-01-01'),
+                               Timestamp('2011-01-03 10:00', tz=tz),
+                               Timestamp('2013-01-01')])
+            self.assert_series_equal(expected, result)
+
+            result = s.fillna(Timestamp('20130101',tz='US/Pacific'))
+            expected = Series([Timestamp('2011-01-01 10:00', tz=tz),
+                               Timestamp('2013-01-01',tz='US/Pacific'),
+                               Timestamp('2011-01-03 10:00', tz=tz),
+                               Timestamp('2013-01-01',tz='US/Pacific')])
+            self.assert_series_equal(expected, result)
+
     def test_fillna_int(self):
         s = Series(np.random.randint(-100, 100, 50))
         s.fillna(method='ffill', inplace=True)

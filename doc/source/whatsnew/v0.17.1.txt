@@ -72,9 +72,13 @@ Bug Fixes
 
 - Bug in ``HDFStore.select`` when comparing with a numpy scalar in a where clause (:issue:`11283`)
 
+
 - Bug in tz-conversions with an ambiguous time and ``.dt`` accessors (:issue:`11295`)
 - Bug in comparisons of Series vs list-likes (:issue:`11339`)
-- Bug in ``DataFrame.replace`` with a ``datetime64[ns, tz]`` and a non-compat to_replace (:issue:`11326`)
+
+
+- Bug in ``DataFrame.replace`` with a ``datetime64[ns, tz]`` and a non-compat to_replace (:issue:`11326`, :issue:`11153`)
+
 
 
 - Bug in list-like indexing with a mixed-integer Index (:issue:`11320`)
