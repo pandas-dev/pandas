@@ -13,6 +13,7 @@ from pandas.compat import(StringIO, lzip, range, map, zip, reduce, u,
                           OrderedDict)
 from pandas.util.terminal import get_terminal_size
 from pandas.core.config import get_option, set_option
+from pandas.io.common import _get_handle, UnicodeWriter
 import pandas.core.common as com
 import pandas.lib as lib
 from pandas.tslib import iNaT, Timestamp, Timedelta, format_array_from_datetime
@@ -23,6 +24,7 @@ import numpy as np
 
 import itertools
 import csv
+import warnings
 
 common_docstring = """
     Parameters
@@ -1264,7 +1266,11 @@ class CSVFormatter(object):
                  tupleize_cols=False, quotechar='"', date_format=None,
                  doublequote=True, escapechar=None, decimal='.'):
 
-        self.engine = engine  # remove for 0.13
+        if engine is not None:
+            warnings.warn("'engine' keyword is deprecated and "
+                          "will be removed in a future version",
+                          FutureWarning, stacklevel=3)
+        self.engine = engine  # remove for 0.18
         self.obj = obj
 
         if path_or_buf is None:
@@ -1470,8 +1476,8 @@ class CSVFormatter(object):
             f = self.path_or_buf
             close = False
         else:
-            f = com._get_handle(self.path_or_buf, self.mode,
-                                encoding=self.encoding, 
+            f = _get_handle(self.path_or_buf, self.mode,
+                                encoding=self.encoding,
                                 compression=self.compression)
             close = True
 
@@ -1483,7 +1489,7 @@ class CSVFormatter(object):
                                  quotechar=self.quotechar)
             if self.encoding is not None:
                 writer_kwargs['encoding'] = self.encoding
-                self.writer = com.UnicodeWriter(f, **writer_kwargs)
+                self.writer = UnicodeWriter(f, **writer_kwargs)
             else:
                 self.writer = csv.writer(f, **writer_kwargs)
 

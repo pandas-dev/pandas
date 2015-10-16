@@ -802,11 +802,12 @@ class DataFrame(NDFrame):
         elif orient.lower().startswith('sp'):
             return {'index': self.index.tolist(),
                     'columns': self.columns.tolist(),
-                    'data': self.values.tolist()}
+                    'data': lib.map_infer(self.values.ravel(), _maybe_box_datetimelike)
+                    .reshape(self.values.shape).tolist()}
         elif orient.lower().startswith('s'):
-            return dict((k, v) for k, v in compat.iteritems(self))
+            return dict((k, _maybe_box_datetimelike(v)) for k, v in compat.iteritems(self))
         elif orient.lower().startswith('r'):
-            return [dict((k, v) for k, v in zip(self.columns, row))
+            return [dict((k, _maybe_box_datetimelike(v)) for k, v in zip(self.columns, row))
                     for row in self.values]
         elif orient.lower().startswith('i'):
             return dict((k, v.to_dict()) for k, v in self.iterrows())
@@ -3156,6 +3157,15 @@ class DataFrame(NDFrame):
                                        na_position=na_position)
         else:
             from pandas.core.groupby import _nargsort
+
+            # GH11080 - Check monotonic-ness before sort an index
+            # if monotonic (already sorted), return None or copy() according to 'inplace'
+            if (ascending and labels.is_monotonic_increasing) or \
+               (not ascending and labels.is_monotonic_decreasing):
+                if inplace:
+                    return
+                else:
+                    return self.copy()
 
             indexer = _nargsort(labels, kind=kind, ascending=ascending,
                                 na_position=na_position)

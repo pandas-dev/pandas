@@ -17,7 +17,8 @@ import pandas.core.common as com
 from pandas.core.common import AbstractMethodError
 from pandas.core.config import get_option
 from pandas.io.date_converters import generic_parser
-from pandas.io.common import get_filepath_or_buffer, _validate_header_arg
+from pandas.io.common import (get_filepath_or_buffer, _validate_header_arg,
+                              _get_handle, UnicodeReader, UTF8Recoder)
 from pandas.tseries import tools
 
 from pandas.util.decorators import Appender
@@ -1087,7 +1088,7 @@ class CParserWrapper(ParserBase):
         if 'utf-16' in (kwds.get('encoding') or ''):
             if isinstance(src, compat.string_types):
                 src = open(src, 'rb')
-            src = com.UTF8Recoder(src, kwds['encoding'])
+            src = UTF8Recoder(src, kwds['encoding'])
             kwds['encoding'] = 'utf-8'
 
         # #2442
@@ -1423,7 +1424,7 @@ class PythonParser(ParserBase):
         self._comment_lines = []
 
         if isinstance(f, compat.string_types):
-            f = com._get_handle(f, 'r', encoding=self.encoding,
+            f = _get_handle(f, 'r', encoding=self.encoding,
                                 compression=self.compression)
         elif self.compression:
             f = _wrap_compressed(f, self.compression, self.encoding)
@@ -1543,17 +1544,17 @@ class PythonParser(ParserBase):
                 dia.delimiter = sniffed.delimiter
                 if self.encoding is not None:
                     self.buf.extend(list(
-                        com.UnicodeReader(StringIO(line),
-                                          dialect=dia,
-                                          encoding=self.encoding)))
+                        UnicodeReader(StringIO(line),
+                                      dialect=dia,
+                                      encoding=self.encoding)))
                 else:
                     self.buf.extend(list(csv.reader(StringIO(line),
                                                     dialect=dia)))
 
             if self.encoding is not None:
-                reader = com.UnicodeReader(f, dialect=dia,
-                                           encoding=self.encoding,
-                                           strict=True)
+                reader = UnicodeReader(f, dialect=dia,
+                                       encoding=self.encoding,
+                                       strict=True)
             else:
                 reader = csv.reader(f, dialect=dia,
                                     strict=True)

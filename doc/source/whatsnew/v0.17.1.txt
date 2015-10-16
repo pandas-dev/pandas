@@ -43,10 +43,16 @@ API changes
 Deprecations
 ^^^^^^^^^^^^
 
+- The ``pandas.io.ga`` module which implements ``google-analytics`` support is deprecated and will be removed in a future version (:issue:`11308`)
+- Deprecate the ``engine`` keyword from ``.to_csv()``, which will be removed in a future version (:issue:`11274`)
+
+
 .. _whatsnew_0171.performance:
 
 Performance Improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
+
+- Checking monotonic-ness before sorting on an index (:issue:`11080`)
 
 .. _whatsnew_0171.bug_fixes:
 
@@ -61,10 +67,10 @@ Bug Fixes
 - Bug in tz-conversions with an ambiguous time and ``.dt`` accessors (:issues:`11295`)
 
 
+- Bug in list-like indexing with a mixed-integer Index (:issue:`11320`)
 
 
-
-
+- Bug in ``DataFrame.plot`` cannot use hex strings colors (:issue:`10299`)
 
 
 
@@ -92,3 +98,7 @@ Bug Fixes
   ``datetime64[ns, tz]`` (:issue:`11245`).
 
 - Bug in ``read_excel`` with multi-index containing integers (:issue:`11317`, :issue:`11328`)
+
+- Bug in ``DataFrame.to_dict()`` produces a ``np.datetime64`` object instead of ``Timestamp`` when only datetime is present in data (:issue:`11327`)
+
+
