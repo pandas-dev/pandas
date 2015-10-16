@@ -381,15 +381,11 @@ class CheckIndexing(object):
         assert_frame_equal(subframe_obj, subframe)
 
         # test that Series indexers reindex
-        import warnings
-        warnings.filterwarnings(action='ignore', category=UserWarning)
+        with tm.assert_produces_warning(UserWarning):
+            indexer_obj = indexer_obj.reindex(self.tsframe.index[::-1])
 
-        indexer_obj = indexer_obj.reindex(self.tsframe.index[::-1])
-
-        subframe_obj = self.tsframe[indexer_obj]
-        assert_frame_equal(subframe_obj, subframe)
-
-        warnings.filterwarnings(action='default', category=UserWarning)
+            subframe_obj = self.tsframe[indexer_obj]
+            assert_frame_equal(subframe_obj, subframe)
 
         # test df[df > 0]
         for df in [ self.tsframe, self.mixed_frame, self.mixed_float, self.mixed_int ]:

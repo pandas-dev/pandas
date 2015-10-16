@@ -45,6 +45,9 @@ class TestMoments(Base):
         self._create_data()
         warnings.simplefilter("ignore", category=FutureWarning)
 
+    def tearDown(self):
+        warnings.simplefilter("default", category=FutureWarning)
+
     def test_centered_axis_validation(self):
         # ok
         mom.rolling_mean(Series(np.ones(10)),3,center=True ,axis=0)
