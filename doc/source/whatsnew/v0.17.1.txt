@@ -64,8 +64,8 @@ Bug Fixes
 
 - Bug in ``HDFStore.select`` when comparing with a numpy scalar in a where clause (:issue:`11283`)
 
-- Bug in tz-conversions with an ambiguous time and ``.dt`` accessors (:issues:`11295`)
-
+- Bug in tz-conversions with an ambiguous time and ``.dt`` accessors (:issue:`11295`)
+- Bug in comparisons of Series vs list-likes (:issue:`11339`)
 
 - Bug in list-like indexing with a mixed-integer Index (:issue:`11320`)
 

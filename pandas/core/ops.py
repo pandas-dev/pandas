@@ -720,7 +720,7 @@ def _comp_method_SERIES(op, name, str_rep, masker=False):
             res = op(self.values, other)
         else:
             values = self.get_values()
-            if is_list_like(other):
+            if isinstance(other, (list, np.ndarray)):
                 other = np.asarray(other)
 
             res = na_op(values, other)

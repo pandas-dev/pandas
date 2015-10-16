@@ -4269,6 +4269,43 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         expected = -(s == 'a')
         assert_series_equal(result, expected)
 
+    def test_comparison_tuples(self):
+        # GH11339
+        # comparisons vs tuple
+        s = Series([(1,1),(1,2)])
+
+        result = s == (1,2)
+        expected = Series([False,True])
+        assert_series_equal(result, expected)
+
+        result = s != (1,2)
+        expected = Series([True, False])
+        assert_series_equal(result, expected)
+
+        result = s == (0,0)
+        expected = Series([False, False])
+        assert_series_equal(result, expected)
+
+        result = s != (0,0)
+        expected = Series([True, True])
+        assert_series_equal(result, expected)
+
+        s = Series([(1,1),(1,1)])
+
+        result = s == (1,1)
+        expected = Series([True, True])
+        assert_series_equal(result, expected)
+
+        result = s != (1,1)
+        expected = Series([False, False])
+        assert_series_equal(result, expected)
+
+        s = Series([frozenset([1]),frozenset([1,2])])
+
+        result = s == frozenset([1])
+        expected = Series([True, False])
+        assert_series_equal(result, expected)
+
     def test_comparison_operators_with_nas(self):
         s = Series(bdate_range('1/1/2000', periods=10), dtype=object)
         s[::2] = np.nan
