@@ -29,7 +29,7 @@ _HTTPLIB2_INSTALLED = False
 _SETUPTOOLS_INSTALLED = False
 
 
-def _test_imports():
+def validate_imports():
     global _GOOGLE_API_CLIENT_INSTALLED, _GOOGLE_API_CLIENT_VALID_VERSION, \
            _HTTPLIB2_INSTALLED, _SETUPTOOLS_INSTALLED
 
@@ -83,10 +83,19 @@ def _test_imports():
         raise ImportError("pandas requires httplib2 for Google BigQuery support")
 
 
-def test_requirements():
+def validate_requirements():
     try:
-        _test_imports()
+        validate_imports()
     except (ImportError, NotImplementedError) as import_exception:
+        raise nose.SkipTest(import_exception)
+
+
+def validate_authorization():
+    try:
+        gbq.GbqConnector(PROJECT_ID)
+    except gbq.AccessDenied:
+        gbq.authorize()
+    except ImportError as import_exception:
         raise nose.SkipTest(import_exception)
 
 
@@ -126,12 +135,20 @@ def test_generate_bq_schema_deprecated():
         gbq.generate_bq_schema(df)
 
 class TestGBQConnectorIntegration(tm.TestCase):
-    def setUp(self):
-        test_requirements()
+
+    @classmethod
+    def setUpClass(cls):
+        # - GLOBAL CLASS FIXTURES -
+        # put here any instruction you want to execute only *ONCE* *BEFORE* executing *ALL* tests
+        # described below.
 
         if not PROJECT_ID:
             raise nose.SkipTest("Cannot run integration tests without a project id")
 
+        validate_requirements()
+        validate_authorization()
+
+    def setUp(self):
         self.sut = gbq.GbqConnector(PROJECT_ID)
 
     def test_should_be_able_to_make_a_connector(self):
@@ -157,7 +174,7 @@ class TestGBQConnectorIntegration(tm.TestCase):
 
 class TestReadGBQUnitTests(tm.TestCase):
     def setUp(self):
-        test_requirements()
+        validate_requirements()
 
     def test_should_return_bigquery_integers_as_python_floats(self):
         result = gbq._parse_entry(1, 'INTEGER')
@@ -201,6 +218,7 @@ class TestReadGBQUnitTests(tm.TestCase):
 
 
 class TestReadGBQIntegration(tm.TestCase):
+
     @classmethod
     def setUpClass(cls):
         # - GLOBAL CLASS FIXTURES -
@@ -210,7 +228,7 @@ class TestReadGBQIntegration(tm.TestCase):
         if not PROJECT_ID:
             raise nose.SkipTest("Cannot run integration tests without a project id")
 
-        test_requirements()
+        validate_requirements()
 
     def setUp(self):
         # - PER-TEST FIXTURES -
@@ -373,7 +391,8 @@ class TestToGBQIntegration(tm.TestCase):
         if not PROJECT_ID:
             raise nose.SkipTest("Cannot run integration tests without a project id")
 
-        test_requirements()
+        validate_requirements()
+        validate_authorization()
         clean_gbq_environment()
 
         gbq._Dataset(PROJECT_ID).create(DATASET_ID + "1")

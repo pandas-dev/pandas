@@ -4059,12 +4059,29 @@ The key functions are:
 .. autosummary::
    :toctree: generated/
 
+   authorize
    read_gbq
    to_gbq
 
 .. currentmodule:: pandas
 
 .. _io.bigquery_reader:
+
+Authorization
+'''''''''''''
+
+Authorization is required in order to use the BigQuery API. You must call the
+:func:`~pandas.io.gbq.authorize` function to start the authorization process. In general,
+this is as simple as following the prompts in a browser. A code will be provided to complete
+the process. A credentials file will be saved to disk so that you only need to authorize once
+as long as the credentials have not been revoked. Additional information on the authentication
+can be found `here <https://cloud.google.com/bigquery/authentication?hl=en/>`__.
+
+To begin the authorization process, use the :func:`~pandas.io.gbq.authorize` function
+
+.. code-block:: python
+
+   gbq.authorize()
 
 Querying
 ''''''''
@@ -4079,13 +4096,6 @@ into a DataFrame using the :func:`~pandas.io.gbq.read_gbq` function.
    projectid = "xxxxxxxx"
 
    data_frame = pd.read_gbq('SELECT * FROM test_dataset.test_table', projectid)
-
-You will then be authenticated to the specified BigQuery account
-via Google's Oauth2 mechanism. In general, this is as simple as following the
-prompts in a browser window which will be opened for you. Should the browser not
-be available, or fail to launch, a code will be provided to complete the process
-manually.  Additional information on the authentication mechanism can be found
-`here <https://developers.google.com/accounts/docs/OAuth2#clientside/>`__.
 
 You can define which column from BigQuery to use as an index in the
 destination DataFrame as well as a preferred column order as follows:

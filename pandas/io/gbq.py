@@ -15,6 +15,8 @@ from pandas.core.common import PandasError
 from pandas.util.decorators import deprecate
 from pandas.compat import lzip, bytes_to_str
 
+CREDENTIALS_FILE = 'bigquery_credentials.dat'
+
 def _check_google_client_version():
 
     try:
@@ -109,7 +111,7 @@ class TableCreationError(PandasError, ValueError):
 
 class GbqConnector(object):
 
-    def __init__(self, project_id, reauth=False):
+    def __init__(self, project_id=None, reauth=False):
         self.test_google_api_imports()
         self.project_id = project_id
         self.reauth = reauth
@@ -128,23 +130,44 @@ class GbqConnector(object):
         except ImportError as e:
             raise ImportError("Missing module required for Google BigQuery support: {0}".format(str(e)))
 
-    def get_credentials(self):
+    def authorize(self):
         from oauth2client.client import OAuth2WebServerFlow
         from oauth2client.file import Storage
-        from oauth2client.tools import run_flow, argparser
 
         _check_google_client_version()
 
+        storage = Storage(CREDENTIALS_FILE)
         flow = OAuth2WebServerFlow(client_id='495642085510-k0tmvj2m941jhre2nbqka17vqpjfddtd.apps.googleusercontent.com',
                                    client_secret='kOc9wMptUtxkcIFbtZCcrEAc',
                                    scope='https://www.googleapis.com/auth/bigquery',
                                    redirect_uri='urn:ietf:wg:oauth:2.0:oob')
+        print('Please visit the following url to obtain an authorization code: {0}'.format(flow.step1_get_authorize_url()))
 
-        storage = Storage('bigquery_credentials.dat')
+        authorization_prompt_message = 'Enter authorization code and press enter: '
+
+        if compat.PY3:
+            code = eval(input(authorization_prompt_message))
+        else:
+            code = raw_input(authorization_prompt_message)
+
+        code.strip()
+        storage.put(flow.step2_exchange(code))
         credentials = storage.get()
 
-        if credentials is None or credentials.invalid or self.reauth:
-            credentials = run_flow(flow, storage, argparser.parse_args([]))
+        return credentials
+
+    def get_credentials(self):
+        from oauth2client.file import Storage
+
+        _check_google_client_version()
+
+        credentials = Storage(CREDENTIALS_FILE).get()
+
+        if self.reauth:
+            credentials = self.authorize()
+
+        if credentials is None or credentials.invalid:
+            raise AccessDenied("The credentials are missing or invalid. Please run gbq.authorize().")
 
         return credentials
 
@@ -215,8 +238,8 @@ class GbqConnector(object):
         try:
             query_reply = job_collection.insert(projectId=self.project_id, body=job_data).execute()
         except AccessTokenRefreshError:
-            raise AccessDenied("The credentials have been revoked or expired, please re-run the application "
-                               "to re-authorize")
+            raise AccessDenied("The credentials have been revoked or expired, please run gbq.authorize() "
+                               "to re-authorize.")
         except HttpError as ex:
             self.process_http_error(ex)
 
@@ -518,6 +541,12 @@ def to_gbq(dataframe, destination_table, project_id, chunksize=10000,
     connector.load_data(dataframe, dataset_id, table_id, chunksize, verbose)
 
 
+def authorize():
+    """ Allows users to create the credentials file required for BigQuery authorization """
+
+    GbqConnector(reauth=True)
+
+
 def generate_bq_schema(df, default_type='STRING'):
 
     # deprecation TimeSeries, #11121
@@ -525,6 +554,7 @@ def generate_bq_schema(df, default_type='STRING'):
                   FutureWarning, stacklevel=2)
 
     return _generate_bq_schema(df, default_type=default_type)
+
 
 def _generate_bq_schema(df, default_type='STRING'):
     """ Given a passed df, generate the associated Google BigQuery schema.
@@ -553,6 +583,7 @@ def _generate_bq_schema(df, default_type='STRING'):
                        'type': type_mapping.get(dtype.kind, default_type)})
 
     return {'fields': fields}
+
 
 class _Table(GbqConnector):
 
