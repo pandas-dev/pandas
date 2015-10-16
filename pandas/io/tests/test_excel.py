@@ -558,7 +558,7 @@ class XlrdTests(ReadingTestsBase):
         tm.assert_frame_equal(actual, expected)
 
         # Issue #11317
-        expected.columns = mi.set_levels(['1','2'],level=1).set_names(['c1', 'c2'])
+        expected.columns = mi.set_levels([1,2],level=1).set_names(['c1', 'c2'])
         actual = read_excel(mi_file, 'name_with_int', index_col=0, header=[0,1])
         tm.assert_frame_equal(actual, expected)
         
@@ -1071,6 +1071,31 @@ class ExcelWriterBase(SharedItems):
             frame.to_excel(path, 'test1', merge_cells=self.merge_cells)
             reader = ExcelFile(path)
             df = read_excel(reader, 'test1', index_col=[0, 1],
+                              parse_dates=False)
+            tm.assert_frame_equal(frame, df)
+            self.assertEqual(frame.index.names, df.index.names)
+            
+    def test_to_excel_multiindex_cols(self):
+        _skip_if_no_xlrd()
+        if not self.merge_cells:
+            raise nose.SkipTest('Skip tests MI on cols with no merging.')
+
+
+        frame = self.frame
+        arrays = np.arange(len(frame.index) * 2).reshape(2, -1)
+        new_index = MultiIndex.from_arrays(arrays,
+                                           names=['first', 'second'])
+        frame.index = new_index
+
+        new_cols_index = MultiIndex.from_tuples([(40,1),(40,2),(50,1),(50,2)])
+        frame.columns = new_cols_index
+
+        with ensure_clean(self.ext) as path:
+             # round trip
+            frame.to_excel(path, 'test1', merge_cells=self.merge_cells)
+            reader = ExcelFile(path)
+            df = read_excel(reader, 'test1', header=[0,1],
+                             index_col=[0, 1],
                               parse_dates=False)
             tm.assert_frame_equal(frame, df)
             self.assertEqual(frame.index.names, df.index.names)
