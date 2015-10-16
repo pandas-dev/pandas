@@ -59,7 +59,6 @@ def reset_testing_mode():
     if 'deprecate' in testing_mode:
         warnings.simplefilter('ignore', DeprecationWarning)
 
-
 set_testing_mode()
 
 class TestCase(unittest.TestCase):
@@ -1974,7 +1973,6 @@ class _AssertRaisesContextmanager(object):
                                    (self.regexp.pattern, str(val)))
                 raise_with_traceback(e, traceback)
         return True
-
 
 @contextmanager
 def assert_produces_warning(expected_warning=Warning, filter_level="always",
