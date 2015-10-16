@@ -660,6 +660,21 @@ class XlrdTests(ReadingTestsBase):
             pd.read_excel(os.path.join(self.dirpath, 'test1' + self.ext),
                           chunksize=100)
 
+    def test_read_excel_skiprows_list(self):
+        #GH 4903
+        actual = pd.read_excel(os.path.join(self.dirpath, 'testskiprows' + self.ext),
+                               'skiprows_list', skiprows=[0,2])
+        expected = DataFrame([[1, 2.5, pd.Timestamp('2015-01-01'), True],
+                              [2, 3.5, pd.Timestamp('2015-01-02'), False],
+                              [3, 4.5, pd.Timestamp('2015-01-03'), False],
+                              [4, 5.5, pd.Timestamp('2015-01-04'), True]],
+                             columns = ['a','b','c','d'])
+        tm.assert_frame_equal(actual, expected)
+
+        actual = pd.read_excel(os.path.join(self.dirpath, 'testskiprows' + self.ext),
+                               'skiprows_list', skiprows=np.array([0,2]))
+        tm.assert_frame_equal(actual, expected)
+
 class XlsReaderTests(XlrdTests, tm.TestCase):
     ext = '.xls'
     engine_name = 'xlrd'
