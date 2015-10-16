@@ -24,6 +24,8 @@ Enhancements
 .. _whatsnew_0171.enhancements.other:
 
 - Improve the error message in :func:`pandas.io.gbq.to_gbq` when a streaming insert fails (:issue:`11285`)
+- Added :func:`pandas.io.gbq.authorize` to allow users to authenticate with Google BigQuery.
+  See the :ref:`docs <io.bigquery>` for more details (:issue:`11141`).
 
 Other Enhancements
 ^^^^^^^^^^^^^^^^^^
@@ -98,3 +100,4 @@ Bug Fixes
 - Fixed a bug that prevented the construction of an empty series of dtype
   ``datetime64[ns, tz]`` (:issue:`11245`).
 - Bug in ``DataFrame.to_dict()`` produces a ``np.datetime64`` object instead of ``Timestamp`` when only datetime is present in data (:issue:`11327`)
+- Resolve the issue where authentication on remote servers fails silently when using the gbq module. (:issue:`11141`)
