@@ -62,6 +62,8 @@ Performance Improvements
 - Release the GIL on most datetime field operations (e.g. ``DatetimeIndex.year``, ``Series.dt.year``), normalization, and conversion to and from ``Period``, ``DatetimeIndex.to_period`` and ``PeriodIndex.to_timestamp`` (:issue:`11263`)
 
 
+- Improved performance to ``to_excel`` (:issue:`11352`)
+
 .. _whatsnew_0171.bug_fixes:
 
 Bug Fixes
