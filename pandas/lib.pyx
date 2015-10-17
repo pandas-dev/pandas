@@ -269,6 +269,18 @@ cpdef checknull_old(object val):
     else:
         return util._checknull(val)
 
+cpdef isposinf_scalar(object val):
+    if util.is_float_object(val) and val == INF:
+        return True
+    else:
+        return False
+
+cpdef isneginf_scalar(object val):
+    if util.is_float_object(val) and val == NEGINF:
+        return True
+    else:
+        return False
+
 def isscalar(object val):
     """
     Return True if given value is scalar.
