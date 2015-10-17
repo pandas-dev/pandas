@@ -1088,7 +1088,6 @@ class ExcelWriterBase(SharedItems):
             df = read_excel(reader, 'test1', index_col=[0, 1],
                               parse_dates=False)
             tm.assert_frame_equal(frame, df)
-            self.assertEqual(frame.index.names, df.index.names)
             
     def test_to_excel_multiindex_cols(self):
         _skip_if_no_xlrd()
@@ -1102,18 +1101,18 @@ class ExcelWriterBase(SharedItems):
                                            names=['first', 'second'])
         frame.index = new_index
 
-        new_cols_index = MultiIndex.from_tuples([(40,1),(40,2),(50,1),(50,2)])
+        new_cols_index = MultiIndex.from_tuples([(40, 1), (40, 2),
+                                                 (50, 1), (50, 2)])
         frame.columns = new_cols_index
 
         with ensure_clean(self.ext) as path:
              # round trip
             frame.to_excel(path, 'test1', merge_cells=self.merge_cells)
             reader = ExcelFile(path)
-            df = read_excel(reader, 'test1', header=[0,1],
-                             index_col=[0, 1],
-                              parse_dates=False)
+            df = read_excel(reader, 'test1', header=[0, 1],
+                            index_col=[0, 1],
+                            parse_dates=False)
             tm.assert_frame_equal(frame, df)
-            self.assertEqual(frame.index.names, df.index.names)
 
     def test_to_excel_multiindex_dates(self):
         _skip_if_no_xlrd()
