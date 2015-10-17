@@ -161,6 +161,19 @@ class TestMisc(tm.TestCase):
             self.assert_numpy_array_equal(maybe_slice, indices)
             self.assert_numpy_array_equal(target[indices], target[maybe_slice])
 
+    def test_isinf_scalar(self):
+        #GH 11352
+        self.assertTrue(lib.isposinf_scalar(float('inf')))
+        self.assertTrue(lib.isposinf_scalar(np.inf))
+        self.assertFalse(lib.isposinf_scalar(-np.inf))
+        self.assertFalse(lib.isposinf_scalar(1))
+        self.assertFalse(lib.isposinf_scalar('a'))
+
+        self.assertTrue(lib.isneginf_scalar(float('-inf')))
+        self.assertTrue(lib.isneginf_scalar(-np.inf))
+        self.assertFalse(lib.isneginf_scalar(np.inf))
+        self.assertFalse(lib.isneginf_scalar(1))
+        self.assertFalse(lib.isneginf_scalar('a'))
 
 class Testisscalar(tm.TestCase):
 
