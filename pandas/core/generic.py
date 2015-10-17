@@ -2999,8 +2999,6 @@ class NDFrame(PandasObject):
                            '{0!r}').format(type(to_replace).__name__)
                     raise TypeError(msg)  # pragma: no cover
 
-        new_data = new_data.convert(copy=not inplace, numeric=False)
-
         if inplace:
             self._update_inplace(new_data)
         else:
