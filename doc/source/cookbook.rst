@@ -1128,6 +1128,16 @@ Storing Attributes to a group node
    store.close()
    os.remove('test.h5')
 
+How to construct an index of a Pandas dataframe stored in HDF5 file. This operation is useful after you append multiple data to the dataframe without index creation. The index creation is purposely turned off during appending to save costly computation time
+.. ipython:: python
+
+   df = DataFrame(randn(10,2),columns=list('AB')).to_hdf('test.h5','df',data_columns=['B'],mode='w',table=True)
+   store = pd.HDFStore('test.h5')
+
+   # create index
+   store.create_table_index('df',columns=['B'],optlevel=9,kind='full')
+   store.close()
+
 
 .. _cookbook.binary:
 
