@@ -1839,7 +1839,9 @@ class DataCol(IndexCol):
                         nan_rep, encoding):
         # fill nan items with myself, don't disturb the blocks by
         # trying to downcast
-        block = block.fillna(nan_rep, downcast=False)[0]
+        block = block.fillna(nan_rep, downcast=False)
+        if isinstance(block, list):
+            block = block[0]
         data = block.values
 
         # see if we have a valid string type
