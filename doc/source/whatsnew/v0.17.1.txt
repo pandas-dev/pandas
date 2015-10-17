@@ -28,7 +28,7 @@ Enhancements
 Other Enhancements
 ^^^^^^^^^^^^^^^^^^
 
-- ``pd.read_*`` functions can now accept also accept :class:`python:pathlib.Path`, or :class:`py:py._path.local.LocalPath`
+- ``pd.read_*`` functions can now also accept :class:`python:pathlib.Path`, or :class:`py:py._path.local.LocalPath`
   objects for the ``filepath_or_buffer`` argument. (:issue:`11033`)
 
 .. _whatsnew_0171.api:
