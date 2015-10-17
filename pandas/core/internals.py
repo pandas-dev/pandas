@@ -1082,8 +1082,11 @@ class Block(PandasObject):
         # get the result, may need to transpose the other
         def get_result(other):
 
-            # compute
-            result = func(values, other)
+            # avoid numpy warning of comparisons again None
+            if other is None:
+                result = not func.__name__ == 'eq'
+            else:
+                result = func(values, other)
 
             # mask if needed
             if isinstance(values_mask, np.ndarray) and values_mask.any():
