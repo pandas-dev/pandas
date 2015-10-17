@@ -1873,8 +1873,8 @@ class ExcelFormatter(object):
 
             # MultiIndex columns require an extra row
             # with index names (blank if None) for
-            # unambigous round-trip, but only if merged
-            if isinstance(self.columns, MultiIndex) and not self.merge_cells:
+            # unambigous round-trip
+            if isinstance(self.columns, MultiIndex):
                 self.rowcounter += 1
 
             # if index labels are not empty go ahead and dump
