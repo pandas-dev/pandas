@@ -1708,9 +1708,9 @@ class ExcelFormatter(object):
         if lib.checknull(val):
             val = self.na_rep
         elif com.is_float(val):
-            if np.isposinf(val):
+            if lib.isposinf_scalar(val):
                 val = self.inf_rep
-            elif np.isneginf(val):
+            elif lib.isneginf_scalar(val):
                 val = '-%s' % self.inf_rep
             elif self.float_format is not None:
                 val = float(self.float_format % val)
