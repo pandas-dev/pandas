@@ -444,14 +444,24 @@ def mask_missing(arr, values_to_mask):
     mask = None
     for x in nonna:
         if mask is None:
-            mask = arr == x
+
+            # numpy elementwise comparison warning
+            if is_numeric_dtype(arr) and is_string_like(x):
+                mask = False
+            else:
+                mask = arr == x
 
             # if x is a string and arr is not, then we get False and we must
             # expand the mask to size arr.shape
             if np.isscalar(mask):
                 mask = np.zeros(arr.shape, dtype=bool)
         else:
-            mask |= arr == x
+
+            # numpy elementwise comparison warning
+            if is_numeric_dtype(arr) and is_string_like(x):
+                mask |= False
+            else:
+                mask |= arr == x
 
     if na_mask.any():
         if mask is None:
@@ -2381,6 +2391,9 @@ is_float = lib.is_float
 
 is_complex = lib.is_complex
 
+
+def is_string_like(obj):
+    return isinstance(obj, (compat.text_type, compat.string_types))
 
 def is_iterator(obj):
     # python 3 generators have __next__ instead of next
