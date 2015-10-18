@@ -4291,7 +4291,7 @@ class MultiIndex(Index):
         Returns True if the name refered to in self.names is duplicated.
         """
         # count the times name equals an element in self.names.
-        return np.sum(name == np.asarray(self.names)) > 1
+        return sum(name == n for n in self.names) > 1
 
     def _format_native_types(self, **kwargs):
         return self.values
