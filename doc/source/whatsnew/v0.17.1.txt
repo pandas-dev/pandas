@@ -41,6 +41,7 @@ API changes
 - Regression from 0.16.2 for output formatting of long floats/nan, restored in (:issue:`11302`)
 - Prettyprinting sets (e.g. in DataFrame cells) now uses set literal syntax (``{x, y}``) instead of
   Legacy Python syntax (``set([x, y])``) (:issue:`11215`)
+- Indexing with a null key will raise a ``TypeError``, instead of a ``ValueError`` (:issue:`11356`)
 
 .. _whatsnew_0171.deprecations:
 
