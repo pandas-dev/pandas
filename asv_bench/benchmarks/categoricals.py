@@ -57,4 +57,4 @@ class categorical_rendering(object):
         self.data = df[df.C == '20']
 
     def time_rendering(self):
-        str(data.C)
+        str(self.data.C)

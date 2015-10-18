@@ -50,12 +50,13 @@ Performance Improvements
 
 .. _whatsnew_0171.bug_fixes:
 
+- Performance bug in ``Categorical._repr_categories`` was rendering string before chopping them for display (:issue: `11305`)
+
 Bug Fixes
 ~~~~~~~~~
 
 - Bug in ``.to_latex()`` output broken when the index has a name (:issue: `10660`)
 - Bug in ``HDFStore.append`` with strings whose encoded length exceded the max unencoded length (:issue:`11234`)
-- Performance bug in ``Categorical._repr_categories`` was rendering string before chopping them for display (:issue: `11305`)
 
 
 
