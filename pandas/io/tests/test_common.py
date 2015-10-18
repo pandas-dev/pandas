@@ -43,12 +43,12 @@ class TestCommonIOCapabilities(tm.TestCase):
         rel_path = common._stringify_path(Path('.'))
         self.assertEqual(rel_path, '.')
         redundant_path = common._stringify_path(Path('foo//bar'))
-        self.assertEqual(redundant_path, 'foo/bar')
+        self.assertEqual(redundant_path, os.path.join('foo', 'bar'))
 
     def test_stringify_path_localpath(self):
         tm._skip_if_no_localpath()
 
-        path = 'foo/bar'
+        path = os.path.join('foo', 'bar')
         abs_path = os.path.abspath(path)
         lpath = LocalPath(path)
         self.assertEqual(common._stringify_path(lpath), abs_path)
