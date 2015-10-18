@@ -5839,7 +5839,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
 
                 def f():
                     df.loc[:,np.nan]
-                self.assertRaises(ValueError, f)
+                self.assertRaises(TypeError, f)
 
 
         df = DataFrame([[1,2,3],[4,5,6]], index=[1,np.nan])

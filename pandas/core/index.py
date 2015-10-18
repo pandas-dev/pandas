@@ -862,9 +862,10 @@ class Index(IndexOpsMixin, PandasObject):
             return self._invalid_indexer('label', key)
 
         if is_float(key):
-            if not self.is_floating():
-                warnings.warn("scalar indexers for index type {0} should be integers and not floating point".format(
-                    type(self).__name__), FutureWarning, stacklevel=3)
+            if isnull(key):
+                return self._invalid_indexer('label', key)
+            warnings.warn("scalar indexers for index type {0} should be integers and not floating point".format(
+                type(self).__name__), FutureWarning, stacklevel=3)
             return to_int()
 
         return key
@@ -3721,9 +3722,23 @@ class Float64Index(NumericIndex):
         return Index(self._values, name=self.name, dtype=dtype)
 
     def _convert_scalar_indexer(self, key, kind=None):
+        """
+        convert a scalar indexer
+
+        Parameters
+        ----------
+        key : label of the slice bound
+        kind : optional, type of the indexing operation (loc/ix/iloc/None)
+
+        right now we are converting
+        floats -> ints if the index supports it
+        """
+
         if kind == 'iloc':
-            return super(Float64Index, self)._convert_scalar_indexer(key,
-                                                                     kind=kind)
+            if is_integer(key):
+                return key
+            return super(Float64Index, self)._convert_scalar_indexer(key, kind=kind)
+
         return key
 
     def _convert_slice_indexer(self, key, kind=None):
@@ -4276,7 +4291,7 @@ class MultiIndex(Index):
         Returns True if the name refered to in self.names is duplicated.
         """
         # count the times name equals an element in self.names.
-        return np.sum(name == np.asarray(self.names)) > 1
+        return sum(name == n for n in self.names) > 1
 
     def _format_native_types(self, **kwargs):
         return self.values
