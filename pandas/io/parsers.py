@@ -158,6 +158,8 @@ na_filter : boolean, default True
 usecols : array-like, default None
     Return a subset of the columns.
     Results in much faster parsing time and lower memory usage.
+skipcols : array-like
+    Returns a subset of the columns excluding the columns specified in this parameter.
 mangle_dupe_cols : boolean, default True
     Duplicate columns will be specified as 'X.0'...'X.N', rather than 'X'...'X'
 tupleize_cols : boolean, default False
@@ -310,6 +312,7 @@ _parser_defaults = {
     'date_parser': None,
 
     'usecols': None,
+    'skipcols': None,
 
     # 'nrows': None,
     # 'iterator': False,
@@ -380,6 +383,7 @@ def _make_parser_function(name, sep=','):
                  converters=None,
                  dtype=None,
                  usecols=None,
+                 skipcols=None,
 
                  engine=None,
                  delim_whitespace=False,
@@ -469,6 +473,7 @@ def _make_parser_function(name, sep=','):
                     converters=converters,
                     dtype=dtype,
                     usecols=usecols,
+                    skipcols=skipcols,
                     verbose=verbose,
                     encoding=encoding,
                     squeeze=squeeze,
@@ -804,6 +809,9 @@ class ParserBase(object):
             if kwds.get('usecols'):
                 raise ValueError("cannot specify usecols when "
                                  "specifying a multi-index header")
+            if kwds.get('skipcols'):
+                raise ValueError("cannot specify skipcols when "
+                                "specifying a multi-index header")
             if kwds.get('names'):
                 raise ValueError("cannot specify names when "
                                  "specifying a multi-index header")
@@ -1095,6 +1103,7 @@ class CParserWrapper(ParserBase):
 
         # XXX
         self.usecols = self._reader.usecols
+        self.skipcols = self._reader.skipcols
 
         passed_names = self.names is None
 
@@ -1119,7 +1128,18 @@ class CParserWrapper(ParserBase):
             else:
                 self.names = lrange(self._reader.table_width)
 
-        # If the names were inferred (not passed by user) and usedcols is
+        # Convert skipcols into indices if skipcols is specified
+        if self.skipcols:
+            skip_indices = []
+            for u in self.skipcols:
+                if isinstance(u, string_types):
+                    skip_indices.append(self.names.index(u))
+                else:
+                    skip_indices.append(u)
+        else:
+            skip_indices = []
+
+        # If the names were inferred (not passed by user) and usecols is
         # defined, then ensure names refers to the used columns, not the
         # document's columns.
         if self.usecols and passed_names:
@@ -1129,10 +1149,23 @@ class CParserWrapper(ParserBase):
                     col_indices.append(self.names.index(u))
                 else:
                     col_indices.append(u)
+            if len(col_indices) < len(skip_indices):
+                raise ValueError("Usecols should be a larger set than Skipcols")
+            # Update col_indices with a difference between skipcols and usecols
+            col_indices = list(set(col_indices)^set(skip_indices))
             self.names = [n for i, n in enumerate(self.names)
                           if i in col_indices]
             if len(self.names) < len(self.usecols):
                 raise ValueError("Usecols do not match names.")
+
+        # If only skipcols is specified, excluding column indices in skip_indices
+        if self.usecols is None and self.skipcols:
+            self.names = [n for i, n in enumerate(self.names)
+                          if i not in skip_indices]
+            if len(self.names) < len(skipcols):
+                raise ValueError("Skipcols do not match names.")
+        # Update usecols by self.names (to ensure there won't be changes needed in other functions)
+        self.usecols = self.names
 
         self._set_noconvert_columns()
 
