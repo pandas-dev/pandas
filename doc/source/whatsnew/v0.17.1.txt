@@ -3,7 +3,7 @@
 v0.17.1 (November ??, 2015)
 ---------------------------
 
-This is a minor bug-fix release from 0.17.0 and includes a a large number of
+This is a minor bug-fix release from 0.17.0 and includes a large number of
 bug fixes along several new features, enhancements, and performance improvements.
 We recommend that all users upgrade to this version.
 
@@ -55,7 +55,7 @@ Bug Fixes
 
 - Bug in ``.to_latex()`` output broken when the index has a name (:issue: `10660`)
 - Bug in ``HDFStore.append`` with strings whose encoded length exceded the max unencoded length (:issue:`11234`)
-
+- Performance bug in ``Categorical._repr_categories`` was rendering string before chopping them for display (:issue: `11305`)
 
 
 
