@@ -4397,7 +4397,7 @@ class DataFrame(NDFrame):
             correl = np.empty((K, K), dtype=float)
             mask = np.isfinite(mat)
             for i, ac in enumerate(mat):
-                for j, bc in enumerate(mat):
+                for j, bc in enumerate(mat[i:], i):
                     valid = mask[i] & mask[j]
                     if valid.sum() < min_periods:
                         c = NA
