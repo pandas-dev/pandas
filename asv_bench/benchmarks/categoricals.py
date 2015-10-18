@@ -47,7 +47,7 @@ class categorical_constructor(object):
 
 
 class categorical_rendering(object):
-    goal_time = 2e-3
+    goal_time = 3e-3
 
     def setup(self):
         n = 1000
