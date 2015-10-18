@@ -528,10 +528,18 @@ In general, a weighted moving average is calculated as
 
     y_t = \frac{\sum_{i=0}^t w_i x_{t-i}}{\sum_{i=0}^t w_i},
 
-where :math:`x_t` is the input at :math:`y_t` is the result.
+where :math:`x_t` is the input and :math:`y_t` is the result.
 
-The EW functions support two variants of exponential weights:
-The default, ``adjust=True``, uses the weights :math:`w_i = (1 - \alpha)^i`.
+The EW functions support two variants of exponential weights.
+The default, ``adjust=True``, uses the weights :math:`w_i = (1 - \alpha)^i`
+which gives
+
+.. math::
+
+    y_t = \frac{x_t + (1 - \alpha)x_{t-1} + (1 - \alpha)^2 x_{t-2} + ... 
+    + (1 - \alpha)^t x_{0}}{1 + (1 - \alpha) + (1 - \alpha)^2 + ...
+    + (1 - \alpha)^t}
+
 When ``adjust=False`` is specified, moving averages are calculated as
 
 .. math::
@@ -555,6 +563,34 @@ which is equivalent to using weights
    .. math::
 
       y_t = \alpha' y_{t-1} + (1 - \alpha') x_t.
+
+The difference between the above two variants arises because we are
+dealing with series which have finite history. Consider a series of infinite
+history:
+
+.. math::
+
+    y_t = \frac{x_t + (1 - \alpha)x_{t-1} + (1 - \alpha)^2 x_{t-2} + ...}
+    {1 + (1 - \alpha) + (1 - \alpha)^2 + ...}
+
+Noting that the denominator is a geometric series with initial term equal to 1
+and a ratio of :math:`1 - \alpha` we have
+
+.. math::
+
+    y_t &= \frac{x_t + (1 - \alpha)x_{t-1} + (1 - \alpha)^2 x_{t-2} + ...}
+    {\frac{1}{1 - (1 - \alpha)}}\\
+    &= [x_t + (1 - \alpha)x_{t-1} + (1 - \alpha)^2 x_{t-2} + ...] \alpha \\
+    &= \alpha x_t + [(1-\alpha)x_{t-1} + (1 - \alpha)^2 x_{t-2} + ...]\alpha \\
+    &= \alpha x_t + (1 - \alpha)[x_{t-1} + (1 - \alpha) x_{t-2} + ...]\alpha\\
+    &= \alpha x_t + (1 - \alpha) y_{t-1}
+
+which shows the equivalence of the above two variants for infinite series.
+When ``adjust=True`` we have :math:`y_0 = x_0` and from the last
+representation above we have :math:`y_t = \alpha x_t + (1 - \alpha) y_{t-1}`,
+therefore there is an assumption that :math:`x_0` is not an ordinary value
+but rather an exponentially weighted moment of the infinite series up to that
+point.
 
 One must have :math:`0 < \alpha \leq 1`, but rather than pass :math:`\alpha`
 directly, it's easier to think about either the **span**, **center of mass
