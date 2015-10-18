@@ -446,7 +446,7 @@ def mask_missing(arr, values_to_mask):
         if mask is None:
 
             # numpy elementwise comparison warning
-            if is_numeric_dtype(arr) and is_string_like(x):
+            if is_numeric_v_string_like(arr, x):
                 mask = False
             else:
                 mask = arr == x
@@ -458,7 +458,7 @@ def mask_missing(arr, values_to_mask):
         else:
 
             # numpy elementwise comparison warning
-            if is_numeric_dtype(arr) and is_string_like(x):
+            if is_numeric_v_string_like(arr, x):
                 mask |= False
             else:
                 mask |= arr == x
@@ -2537,6 +2537,27 @@ def is_datetime_or_timedelta_dtype(arr_or_dtype):
     tipo = _get_dtype_type(arr_or_dtype)
     return issubclass(tipo, (np.datetime64, np.timedelta64))
 
+
+def is_numeric_v_string_like(a, b):
+    """
+    numpy doesn't like to compare numeric arrays vs scalar string-likes
+
+    return a boolean result if this is the case for a,b or b,a
+
+    """
+    is_a_array = isinstance(a, np.ndarray)
+    is_b_array = isinstance(b, np.ndarray)
+
+    is_a_numeric_array = is_a_array and is_numeric_dtype(a)
+    is_b_numeric_array = is_b_array and is_numeric_dtype(b)
+
+    is_a_scalar_string_like = not is_a_array and is_string_like(a)
+    is_b_scalar_string_like = not is_b_array and is_string_like(b)
+
+    return (
+        is_a_numeric_array and is_b_scalar_string_like) or (
+        is_b_numeric_array and is_a_scalar_string_like
+        )
 
 def is_datetimelike_v_numeric(a, b):
     # return if we have an i8 convertible and numeric comparision

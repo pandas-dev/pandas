@@ -17,7 +17,7 @@ from pandas.core.common import (_possibly_downcast_to_dtype, isnull,
                                 is_datetime64tz_dtype, is_datetimetz, is_sparse,
                                 array_equivalent, _maybe_convert_string_to_object,
                                 is_categorical, needs_i8_conversion, is_datetimelike_v_numeric,
-                                is_string_like, is_internal_type)
+                                is_numeric_v_string_like, is_internal_type)
 from pandas.core.dtypes import DatetimeTZDtype
 
 from pandas.core.index import Index, MultiIndex, _ensure_index
@@ -1087,7 +1087,7 @@ class Block(PandasObject):
                 result = not func.__name__ == 'eq'
 
             # avoid numpy warning of elementwise comparisons to object
-            elif self.is_numeric and is_string_like(other):
+            elif is_numeric_v_string_like(values, other):
                 result = False
 
             else:
@@ -4259,11 +4259,16 @@ def _possibly_compare(a, b, op):
 
     # numpy deprecation warning to have i8 vs integer comparisions
     if is_datetimelike_v_numeric(a, b):
-        res = False
-    else:
-        res = op(a, b)
+        result = False
 
-    if np.isscalar(res) and (is_a_array or is_b_array):
+    # numpy deprecation warning if comparing numeric vs string-like
+    elif is_numeric_v_string_like(a, b):
+        result = False
+
+    else:
+        result = op(a, b)
+
+    if lib.isscalar(result) and (is_a_array or is_b_array):
         type_names = [type(a).__name__, type(b).__name__]
 
         if is_a_array:
@@ -4273,7 +4278,7 @@ def _possibly_compare(a, b, op):
             type_names[1] = 'ndarray(dtype=%s)' % b.dtype
 
         raise TypeError("Cannot compare types %r and %r" % tuple(type_names))
-    return res
+    return result
 
 
 def _concat_indexes(indexes):
