@@ -17,7 +17,7 @@ from pandas.core.common import (_possibly_downcast_to_dtype, isnull,
                                 is_datetime64tz_dtype, is_datetimetz, is_sparse,
                                 array_equivalent, _maybe_convert_string_to_object,
                                 is_categorical, needs_i8_conversion, is_datetimelike_v_numeric,
-                                is_internal_type)
+                                is_string_like, is_internal_type)
 from pandas.core.dtypes import DatetimeTZDtype
 
 from pandas.core.index import Index, MultiIndex, _ensure_index
@@ -1085,6 +1085,11 @@ class Block(PandasObject):
             # avoid numpy warning of comparisons again None
             if other is None:
                 result = not func.__name__ == 'eq'
+
+            # avoid numpy warning of elementwise comparisons to object
+            elif self.is_numeric and is_string_like(other):
+                result = False
+
             else:
                 result = func(values, other)
 
