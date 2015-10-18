@@ -3217,7 +3217,7 @@ class BlockManager(PandasObject):
         else:
 
             if isnull(item):
-                raise ValueError("cannot label index with a null key")
+                raise TypeError("cannot label index with a null key")
 
             indexer = self.items.get_indexer_for([item])
             return self.reindex_indexer(new_axis=self.items[indexer],
