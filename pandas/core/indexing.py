@@ -1285,7 +1285,7 @@ class _LocIndexer(_LocationIndexer):
 
             def error():
                 if isnull(key):
-                    raise ValueError(
+                    raise TypeError(
                         "cannot use label indexing with a null key")
                 raise KeyError("the label [%s] is not in the [%s]" %
                                (key, self.obj._get_axis_name(axis)))
