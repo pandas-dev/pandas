@@ -3446,6 +3446,13 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
             expected = DataFrame({'one' : [100.0,200.0]},index=[dt1,dt2])
             assert_frame_equal(df, expected)
 
+    def test_loc_setitem_datetimetz(self):
+        # GH 11365
+        idx = pd.date_range('20130101',periods=3,tz='US/Eastern')
+        df = DataFrame({'A': idx})
+        df.loc[[True,False,True],'B'] = idx
+        self.assert_equal(df['A'].dtype, df['B'].dtype)
+
     def test_series_partial_set(self):
         # partial set with new index
         # Regression from GH4825
