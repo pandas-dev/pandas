@@ -2223,6 +2223,7 @@ class TestDatetimeIndex(tm.TestCase):
         # it works
         rng.join(idx, how='outer')
 
+
     def test_astype(self):
         rng = date_range('1/1/2000', periods=10)
 
@@ -2234,6 +2235,17 @@ class TestDatetimeIndex(tm.TestCase):
         result = rng.astype('datetime64[ns]')
         expected = date_range('1/1/2000', periods=10, tz='US/Eastern').tz_convert('UTC').tz_localize(None)
         tm.assert_index_equal(result, expected)
+
+        # BUG#10442 : testing astype(str) is correct for Series/DatetimeIndex
+        result = pd.Series(pd.date_range('2012-01-01', periods=3)).astype(str)
+        expected = pd.Series(['2012-01-01', '2012-01-02', '2012-01-03'], dtype=object)
+        tm.assert_series_equal(result, expected)
+
+        result = Series(pd.date_range('2012-01-01', periods=3, tz='US/Eastern')).astype(str)
+        expected = Series(['2012-01-01 00:00:00-05:00', '2012-01-02 00:00:00-05:00', '2012-01-03 00:00:00-05:00'],
+                          dtype=object)
+        tm.assert_series_equal(result, expected)
+
 
     def test_to_period_nofreq(self):
         idx = DatetimeIndex(['2000-01-01', '2000-01-02', '2000-01-04'])
