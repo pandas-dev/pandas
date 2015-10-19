@@ -721,17 +721,23 @@ class TestCrosstab(tm.TestCase):
 
     def test_categorical_margins(self):
         # GH 10989
-        data = pd.DataFrame({'x': np.arange(8),
-                             'y': np.arange(8) // 4,
-                             'z': np.arange(8) % 2})
+        df = pd.DataFrame({'x': np.arange(8),
+                           'y': np.arange(8) // 4,
+                           'z': np.arange(8) % 2})
+
+        expected = pd.DataFrame([[1.0, 2.0, 1.5],[5, 6, 5.5],[3, 4, 3.5]])
+        expected.index = Index([0,1,'All'],name='y')
+        expected.columns = Index([0,1,'All'],name='z')
+
+        data = df.copy()
+        table = data.pivot_table('x', 'y', 'z', margins=True)
+        tm.assert_frame_equal(table, expected)
+
+        data = df.copy()
         data.y = data.y.astype('category')
         data.z = data.z.astype('category')
         table = data.pivot_table('x', 'y', 'z', margins=True)
-        assert_equal(table.values, [[1, 2, 1.5],
-                                    [5, 6, 5.5],
-                                    [3, 4, 3.5]])
-                                    
-        
+        tm.assert_frame_equal(table, expected)
 
 if __name__ == '__main__':
     import nose
