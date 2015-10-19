@@ -1116,6 +1116,8 @@ class ExcelWriterBase(SharedItems):
                 fm = frame.columns.format(sparsify=False, 
                                           adjoin=False, names=False)                
                 frame.columns = [ ".".join(map(str, q)) for q in zip(*fm) ]
+                # Above not working on 2.7 and 3.5, so fake the columns
+                frame.columns = df.columns.copy()
             tm.assert_frame_equal(frame, df)
 
     def test_to_excel_multiindex_dates(self):
