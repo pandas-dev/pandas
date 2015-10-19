@@ -29,7 +29,7 @@ from pandas.computation.ops import (_binary_ops_dict,
 import pandas.computation.expr as expr
 import pandas.util.testing as tm
 from pandas.util.testing import (assert_frame_equal, randbool,
-                                 assertRaisesRegexp,
+                                 assertRaisesRegexp, assert_numpy_array_equal,
                                  assert_produces_warning, assert_series_equal)
 from pandas.compat import PY3, u, reduce
 
@@ -608,6 +608,16 @@ class TestEvalNumexprPandas(tm.TestCase):
             pd.eval('+True', parser=self.parser, engine=self.engine), +True)
         self.assertEqual(
             pd.eval('+False', parser=self.parser, engine=self.engine), +False)
+
+    def test_unary_in_array(self):
+        # GH 11235
+        assert_numpy_array_equal(
+            pd.eval('[-True, True, ~True, +True,'
+                    '-False, False, ~False, +False,'
+                    '-37, 37, ~37, +37]'),
+            np.array([-True, True, ~True, +True,
+             -False, False, ~False, +False,
+             -37, 37, ~37, +37]))
 
     def test_disallow_scalar_bool_ops(self):
         exprs = '1 or 2', '1 and 2'
@@ -1255,6 +1265,13 @@ class TestOperationsNumExprPandas(tm.TestCase):
         expected = orig_df.copy()
         expected['c'] = expected['a'] + expected['b']
         assert_frame_equal(df, expected)
+
+    def test_column_in(self):
+        # GH 11235
+        df = DataFrame({'a': [11], 'b': [-32]})
+        result = df.eval('a in [11, -32]')
+        expected = Series([True])
+        assert_series_equal(result, expected)
 
     def test_basic_period_index_boolean_expression(self):
         df = mkdf(2, 2, data_gen_f=f, c_idx_type='p', r_idx_type='i')

@@ -94,7 +94,7 @@ Bug Fixes
 
 
 
-
+- Bug in ``pd.eval`` where unary ops in a list error (:issue:`11235`)
 - Bug in ``squeeze()`` with zero length arrays (:issue:`11230`, :issue:`8999`)
 
 
