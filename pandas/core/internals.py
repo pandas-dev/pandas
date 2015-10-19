@@ -3427,6 +3427,9 @@ class BlockManager(PandasObject):
         if not isinstance(loc, int):
             raise TypeError("loc must be int")
 
+        # insert to the axis; this could possibly raise a TypeError
+        new_axis = self.items.insert(loc, item)
+
         block = make_block(values=value,
                            ndim=self.ndim,
                            placement=slice(loc, loc+1))
@@ -3449,8 +3452,7 @@ class BlockManager(PandasObject):
             self._blklocs = np.insert(self._blklocs, loc, 0)
             self._blknos = np.insert(self._blknos, loc, len(self.blocks))
 
-        self.axes[0] = self.items.insert(loc, item)
-
+        self.axes[0] = new_axis
         self.blocks += (block,)
         self._shape = None
 

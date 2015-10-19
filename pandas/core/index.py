@@ -627,6 +627,10 @@ class Index(IndexOpsMixin, PandasObject):
         return Index(self.values.astype(dtype), name=self.name,
                      dtype=dtype)
 
+    def _to_safe_for_reshape(self):
+        """ convert to object if we are a categorical """
+        return self
+
     def to_datetime(self, dayfirst=False):
         """
         For an Index containing strings or datetime.datetime objects, attempt
@@ -3190,6 +3194,10 @@ class CategoricalIndex(Index, PandasDelegate):
         from pandas.hashtable import duplicated_int64
         return duplicated_int64(self.codes.astype('i8'), keep)
 
+    def _to_safe_for_reshape(self):
+        """ convert to object if we are a categorical """
+        return self.astype('object')
+
     def get_loc(self, key, method=None):
         """
         Get integer location for requested label
@@ -4528,6 +4536,10 @@ class MultiIndex(Index):
             return adj.adjoin(space, *result_levels).split('\n')
         else:
             return result_levels
+
+    def _to_safe_for_reshape(self):
+        """ convert to object if we are a categorical """
+        return self.set_levels([ i._to_safe_for_reshape() for i in self.levels ])
 
     def to_hierarchical(self, n_repeat, n_shuffle=1):
         """
