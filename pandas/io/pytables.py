@@ -2989,7 +2989,6 @@ class Table(Fixed):
 
     def queryables(self):
         """ return a dict of the kinds allowable columns for this object """
-
         # compute the values_axes queryables
         return dict(
             [(a.cname, a) for a in self.index_axes] +
@@ -3090,6 +3089,13 @@ class Table(Fixed):
             return
 
         q = self.queryables()
+
+        if  ('index' in min_itemsize) and ('index' not in q):  # issue #11364
+            for axname in self.index_axes:
+                #print("axname:" , axname.name)
+                min_itemsize[ axname.name ] = min_itemsize['index']
+            del min_itemsize['index'] 
+
         for k, v in min_itemsize.items():
 
             # ok, apply generally
@@ -3099,6 +3105,7 @@ class Table(Fixed):
                 raise ValueError(
                     "min_itemsize has the key [%s] which is not an axis or "
                     "data_column" % k)
+        return min_itemsize
 
     @property
     def indexables(self):
@@ -3288,7 +3295,7 @@ class Table(Fixed):
 
         # map axes to numbers
         axes = [obj._get_axis_number(a) for a in axes]
-
+        
         # do we have an existing table (if so, use its axes & data_columns)
         if self.infer_axes():
             existing_table = self.copy()
@@ -3318,15 +3325,17 @@ class Table(Fixed):
 
         # create axes to index and non_index
         index_axes_map = dict()
+
         for i, a in enumerate(obj.axes):
 
             if i in axes:
-                name = obj._AXIS_NAMES[i]
+                name = getattr(obj, obj._AXIS_NAMES[i]).name  # obj._AXIS_NAMES[i]
+                if name is None:
+                    name = obj._AXIS_NAMES[i]
                 index_axes_map[i] = _convert_index(
                     a, self.encoding, self.format_type
                 ).set_name(name).set_axis(i)
             else:
-
                 # we might be able to change the axes on the appending data if
                 # necessary
                 append_axis = list(a)
@@ -3346,17 +3355,13 @@ class Table(Fixed):
 
                 self.non_index_axes.append((i, append_axis))
 
+
         # set axis positions (based on the axes)
         self.index_axes = [
             index_axes_map[a].set_pos(j).update_info(self.info)
             for j, a in enumerate(axes)
         ]
         j = len(self.index_axes)
-
-        # check for column conflicts
-        if validate:
-            for a in self.axes:
-                a.maybe_set_size(min_itemsize=min_itemsize)
 
         # reindex by our non_index_axes & compute data_columns
         for a in self.non_index_axes:
@@ -3455,16 +3460,22 @@ class Table(Fixed):
                     % (b.dtype.name, b_items, str(detail))
                 )
             j += 1
-
-        # validate our min_itemsize
-        self.validate_min_itemsize(min_itemsize)
-
+ 
         # validate our metadata
         self.validate_metadata(existing_table)
 
         # validate the axes if we have an existing table
         if validate:
             self.validate(existing_table)
+
+        # validate and correct our min_itemsize # issue #11364
+        min_itemsize = self.validate_min_itemsize(min_itemsize)
+
+       # check for column conflicts
+        if validate:
+            for a in self.axes:
+                a.maybe_set_size(min_itemsize=min_itemsize)
+
 
     def process_axes(self, obj, columns=None):
         """ process axes filters """
