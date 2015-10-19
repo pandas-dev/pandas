@@ -1091,9 +1091,6 @@ class ExcelWriterBase(SharedItems):
             
     def test_to_excel_multiindex_cols(self):
         _skip_if_no_xlrd()
-        if not self.merge_cells:
-            raise nose.SkipTest('Skip tests MI on cols with no merging.')
-
 
         frame = self.frame
         arrays = np.arange(len(frame.index) * 2).reshape(2, -1)
@@ -1104,14 +1101,21 @@ class ExcelWriterBase(SharedItems):
         new_cols_index = MultiIndex.from_tuples([(40, 1), (40, 2),
                                                  (50, 1), (50, 2)])
         frame.columns = new_cols_index
+        header = [0, 1]
+        if not self.merge_cells:
+            header = 0
 
         with ensure_clean(self.ext) as path:
              # round trip
             frame.to_excel(path, 'test1', merge_cells=self.merge_cells)
             reader = ExcelFile(path)
-            df = read_excel(reader, 'test1', header=[0, 1],
+            df = read_excel(reader, 'test1', header=header,
                             index_col=[0, 1],
                             parse_dates=False)
+            if not self.merge_cells:
+                fm = frame.columns.format(sparsify=False, 
+                                          adjoin=False, names=False)                
+                frame.columns = [ ".".join(map(str, q)) for q in zip(*fm) ]
             tm.assert_frame_equal(frame, df)
 
     def test_to_excel_multiindex_dates(self):
