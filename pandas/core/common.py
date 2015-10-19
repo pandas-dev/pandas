@@ -986,14 +986,15 @@ def _infer_fill_value(val):
     if we are a NaT, return the correct dtyped element to provide proper block construction
 
     """
-
     if not is_list_like(val):
         val = [val]
-    val = np.array(val,copy=False)
-    if is_datetimelike(val):
-        return np.array('NaT',dtype=val.dtype)
-    elif is_object_dtype(val.dtype):
-        dtype = lib.infer_dtype(_ensure_object(val))
+    v = np.array(val,copy=False)
+    if is_datetimelike(v):
+        if is_datetimetz(val):
+            return pd.DatetimeIndex(v, dtype=val.dtype)
+        return np.array('NaT',dtype=v.dtype)
+    elif is_object_dtype(v.dtype):
+        dtype = lib.infer_dtype(_ensure_object(v))
         if dtype in ['datetime','datetime64']:
             return np.array('NaT',dtype=_NS_DTYPE)
         elif dtype in ['timedelta','timedelta64']:
