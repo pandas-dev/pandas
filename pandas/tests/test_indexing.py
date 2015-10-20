@@ -1693,7 +1693,7 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
     @slow
     def test_multiindex_get_loc(self):  # GH7724, GH2646
 
-        with warnings.catch_warnings(PerformanceWarning):
+        with warnings.catch_warnings(record=True):
 
             # test indexing into a multi-index before & past the lexsort depth
             from numpy.random import randint, choice, randn
