@@ -6,6 +6,7 @@ import sys
 import os
 from distutils.version import LooseVersion
 
+import warnings
 import operator
 import functools
 import nose
@@ -1829,7 +1830,6 @@ class XlsxWriterTests(ExcelWriterBase, tm.TestCase):
         # Applicable to xlsxwriter only.
         _skip_if_no_xlsxwriter()
 
-        import warnings
         with warnings.catch_warnings():
             # Ignore the openpyxl lxml warning.
             warnings.simplefilter("ignore")

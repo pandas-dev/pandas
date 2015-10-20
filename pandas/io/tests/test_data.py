@@ -293,6 +293,7 @@ class TestYahoo(tm.TestCase):
 
 
 class TestYahooOptions(tm.TestCase):
+
     @classmethod
     def setUpClass(cls):
         super(TestYahooOptions, cls).setUpClass()

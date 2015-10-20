@@ -1,6 +1,7 @@
 import os
 from datetime import datetime
 
+import warnings
 import nose
 import pandas as pd
 from pandas import compat
@@ -13,7 +14,12 @@ if compat.PY3:
 
 try:
     import httplib2
-    import pandas.io.ga as ga
+    import apiclient
+
+    # deprecated
+    with warnings.catch_warnings(record=True):
+        import pandas.io.ga as ga
+
     from pandas.io.ga import GAnalytics, read_ga
     from pandas.io.auth import AuthenticationConfigError, reset_default_token_store
     from pandas.io import auth

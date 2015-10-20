@@ -6,6 +6,7 @@ import pandas as pd
 import numpy as np
 import unittest
 import nose
+import warnings
 import pandas.util.testing as tm
 
 try:
