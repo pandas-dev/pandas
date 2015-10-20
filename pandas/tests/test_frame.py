@@ -8082,7 +8082,9 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         b = b.reindex(columns=b.columns[::-1], index=b.index[::-1][10:])
         del b['B']
 
-        colcorr = a.corrwith(b, axis=0)
+        # strings/datetimes
+        with tm.assert_produces_warning(RuntimeWarning):
+            colcorr = a.corrwith(b, axis=0)
         assert_almost_equal(colcorr['A'], a['A'].corr(b['A']))
 
         rowcorr = a.corrwith(b, axis=1)
