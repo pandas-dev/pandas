@@ -1655,6 +1655,7 @@ class TestGroupBy(tm.TestCase):
             check_nunique(frame, ['jim'])
             check_nunique(frame, ['jim', 'joe'])
 
+    @slow
     def test_series_groupby_value_counts(self):
         from itertools import product
 
