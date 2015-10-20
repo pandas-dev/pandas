@@ -189,7 +189,13 @@ def _add_margins(table, data, values, rows, cols, aggfunc):
     margin_dummy = DataFrame(row_margin, columns=[key]).T
 
     row_names = result.index.names
-    result = result.append(margin_dummy)
+    try:
+        result = result.append(margin_dummy)
+    except TypeError:
+
+        # we cannot reshape, so coerce the axis
+        result.index = result.index._to_safe_for_reshape()
+        result = result.append(margin_dummy)
     result.index.names = row_names
 
     return result
@@ -218,6 +224,7 @@ def _compute_grand_margin(data, values, aggfunc):
 
 
 def _generate_marginal_results(table, data, values, rows, cols, aggfunc, grand_margin):
+
     if len(cols) > 0:
         # need to "interleave" the margins
         table_pieces = []
@@ -235,7 +242,13 @@ def _generate_marginal_results(table, data, values, rows, cols, aggfunc, grand_m
 
                 # we are going to mutate this, so need to copy!
                 piece = piece.copy()
-                piece[all_key] = margin[key]
+                try:
+                    piece[all_key] = margin[key]
+                except TypeError:
+
+                    # we cannot reshape, so coerce the axis
+                    piece.set_axis(cat_axis, piece._get_axis(cat_axis)._to_safe_for_reshape())
+                    piece[all_key] = margin[key]
 
                 table_pieces.append(piece)
                 margin_keys.append(all_key)
