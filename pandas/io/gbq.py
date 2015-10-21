@@ -511,7 +511,8 @@ def to_gbq(dataframe, destination_table, project_id, chunksize=10000,
             connector.delete_and_recreate_table(dataset_id, table_id, table_schema, verbose)
         elif if_exists == 'append':
             if not connector.verify_schema(dataset_id, table_id, table_schema):
-                raise InvalidSchema("The schema of the destination table does not match")
+                raise InvalidSchema("Please verify that the column order, structure and data types in the DataFrame "
+                                    "match the schema of the destination table.")
     else:
         table.create(table_id, table_schema)
 
