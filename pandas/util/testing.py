@@ -2020,6 +2020,7 @@ def assert_produces_warning(expected_warning=Warning, filter_level="always",
         warnings.simplefilter(filter_level)
         yield w
         extra_warnings = []
+
         for actual_warning in w:
             if (expected_warning and issubclass(actual_warning.category,
                                                 expected_warning)):
