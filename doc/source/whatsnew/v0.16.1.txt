@@ -21,6 +21,7 @@ Enhancements
 
 - ``DataFrame.mask()`` and ``Series.mask()`` now support same keywords as ``where`` (:issue:`8801`)
 
+- Added support for rendering DataFrames correctly when converting Jupyter/IPython notebooks to LaTeX (:issue:`9821`)
 
 
 

@@ -1430,6 +1430,11 @@ class DataFrame(NDFrame):
             return formatter.buf.getvalue()
     
     def _repr_latex_(self):
+        """
+        Used for rendering a DataFrame when converting a Jupyter/IPython notebook to LaTeX.
+        For other uses refer to the `to_latex` function.
+        See https://github.com/pydata/pandas/pull/9821 for aditional information.
+        """
         return self.to_latex()
     
     def info(self, verbose=None, buf=None, max_cols=None, memory_usage=None, null_counts=None):

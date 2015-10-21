@@ -4752,6 +4752,14 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         self.assertFalse("\t" in repr(df))
         self.assertFalse("\r" in repr(df))
         self.assertFalse("a\n" in repr(df))
+    
+    def test_repr_latex(self):
+        # #9821
+        
+        df = DataFrame({'A': [1., 2., 3.],
+                       'B': ['a', 'b', 'c']},
+                       index=np.arange(3))
+        self.assertEqual(df._repl_latex_(), df.to_latex())
 
     def test_repr_dimensions(self):
         df = DataFrame([[1, 2,], [3, 4]])
