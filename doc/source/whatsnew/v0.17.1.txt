@@ -30,6 +30,7 @@ Other Enhancements
 
 - ``pd.read_*`` functions can now also accept :class:`python:pathlib.Path`, or :class:`py:py._path.local.LocalPath`
   objects for the ``filepath_or_buffer`` argument. (:issue:`11033`)
+- Improve the error message displayed in :func:`pandas.io.gbq.to_gbq` when the DataFrame does not match the schema of the destination table (:issue:`11359`)
 
 .. _whatsnew_0171.api:
 
