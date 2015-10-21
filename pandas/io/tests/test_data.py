@@ -103,13 +103,15 @@ class TestGoogle(tm.TestCase):
     @network
     def test_get_multi_invalid(self):
         sl = ['AAPL', 'AMZN', 'INVALID']
-        pan = web.get_data_google(sl, '2012')
-        self.assertIn('INVALID', pan.minor_axis)
+        with tm.assert_produces_warning(SymbolWarning):
+            pan = web.get_data_google(sl, '2012')
+            self.assertIn('INVALID', pan.minor_axis)
 
     @network
     def test_get_multi_all_invalid(self):
         sl = ['INVALID', 'INVALID2', 'INVALID3']
-        self.assertRaises(RemoteDataError, web.get_data_google, sl, '2012')
+        with tm.assert_produces_warning(SymbolWarning):
+            self.assertRaises(RemoteDataError, web.get_data_google, sl, '2012')
 
     @network
     def test_get_multi2(self):
