@@ -71,7 +71,7 @@ wget http://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh -O mini
 bash miniconda.sh -b -p $HOME/miniconda || exit 1
 
 conda config --set always_yes yes --set changeps1 no || exit 1
-#conda update -q conda || exit 1
+conda update -q conda || exit 1
 conda config --add channels conda-forge || exit 1
 conda config --add channels http://conda.binstar.org/pandas || exit 1
 conda config --set ssl_verify false || exit 1
@@ -84,9 +84,7 @@ REQ="ci/requirements-${TRAVIS_PYTHON_VERSION}${JOB_TAG}.build"
 time conda create -n pandas python=$TRAVIS_PYTHON_VERSION nose || exit 1
 time conda install -n pandas --file=${REQ} || exit 1
 
-echo "activating pandas env: start"
 source activate pandas
-echo "activating pandas env: done"
 
 # set the compiler cache to work
 if [ "$IRON_TOKEN" ]; then
@@ -108,7 +106,6 @@ if [ "$BUILD_TEST" ]; then
 else
 
     # build but don't install
-    echo "starting build"
     time python setup.py build_ext --inplace || exit 1
 
     # we may have run installations
