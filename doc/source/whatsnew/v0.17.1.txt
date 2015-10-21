@@ -3,7 +3,7 @@
 v0.17.1 (November ??, 2015)
 ---------------------------
 
-This is a minor bug-fix release from 0.17.0 and includes a a large number of
+This is a minor bug-fix release from 0.17.0 and includes a large number of
 bug fixes along several new features, enhancements, and performance improvements.
 We recommend that all users upgrade to this version.
 
@@ -69,6 +69,8 @@ Performance Improvements
 
 .. _whatsnew_0171.bug_fixes:
 
+- Performance bug in ``Categorical._repr_categories`` was rendering string before chopping them for display (:issue: `11305`)
+
 Bug Fixes
 ~~~~~~~~~
 
@@ -90,7 +92,6 @@ Bug Fixes
 
 - Bug in ``pivot_table`` with ``margins=True`` when indexes are of ``Categorical`` dtype (:issue:`10993`)
 - Bug in ``DataFrame.plot`` cannot use hex strings colors (:issue:`10299`)
-
 
 
 
