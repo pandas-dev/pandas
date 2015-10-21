@@ -11,6 +11,7 @@ import sys
 import shutil
 import warnings
 import re
+import platform
 from distutils.version import LooseVersion
 
 # versioning
@@ -289,7 +290,10 @@ class CheckSDist(sdist_class):
 
 
 class CheckingBuildExt(build_ext):
-    """Subclass build_ext to get clearer report if Cython is necessary."""
+    """
+    Subclass build_ext to get clearer report if Cython is necessary.
+    Also, add some platform based compiler flags.
+    """
 
     def check_cython_extensions(self, extensions):
         for ext in extensions:
@@ -302,7 +306,26 @@ class CheckingBuildExt(build_ext):
 
     def build_extensions(self):
         self.check_cython_extensions(self.extensions)
+        self.add_gnu_inline_flag(self.extensions)
         build_ext.build_extensions(self)
+
+    def add_gnu_inline_flag(self, extensions):
+        '''
+        Add CFLAGS `-fgnu89-inline` for clang on FreeBSD 10+
+        '''
+        if not platform.system() == 'FreeBSD':
+            return
+
+        try:
+            bsd_release = float(platform.release().split('-')[0])
+        except ValueError:  # unknow freebsd version
+            return
+
+        if bsd_release < 10:  # 9 or earlier still using gcc42
+            return
+
+        for ext in extensions:
+            ext.extra_compile_args += ['-fgnu89-inline']
 
 
 class CythonCommand(build_ext):
