@@ -4431,7 +4431,7 @@ def shift_months(int64_t[:] dtindex, int months, object day=None):
         Py_ssize_t i
         pandas_datetimestruct dts
         int count = len(dtindex)
-        cdef int days_in_current_month
+        int days_in_current_month
         int64_t[:] out = np.empty(count, dtype='int64')
 
     if day is None:
