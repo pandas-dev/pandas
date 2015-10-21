@@ -1541,7 +1541,10 @@ class DataFrame(NDFrame):
 
         if buf is None:
             return formatter.buf.getvalue()
-
+    
+    def _repr_latex_(self):
+        return self.to_latex()
+    
     def info(self, verbose=None, buf=None, max_cols=None, memory_usage=None, null_counts=None):
         """
         Concise summary of a DataFrame.
