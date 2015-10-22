@@ -74,7 +74,7 @@ Bug Fixes
 
 - Bug in ``.to_latex()`` output broken when the index has a name (:issue: `10660`)
 - Bug in ``HDFStore.append`` with strings whose encoded length exceded the max unencoded length (:issue:`11234`)
-
+- Bug in merging ``datetime64[ns, tz]`` dtypes (:issue:`11405`)
 - Bug in ``HDFStore.select`` when comparing with a numpy scalar in a where clause (:issue:`11283`)
 
 
