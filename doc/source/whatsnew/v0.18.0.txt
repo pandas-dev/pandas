@@ -190,7 +190,7 @@ Bug Fixes
 
 
 
-
+ - Bug in vectorized ``DateOffset`` when ``n`` parameter is ``0`` (:issue:`11370`)
 
 
 
