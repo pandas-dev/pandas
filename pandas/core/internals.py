@@ -4114,7 +4114,7 @@ def _interleaved_dtype(blocks):
     if not len(blocks):
         return None
 
-    counts = defaultdict(lambda: [])
+    counts = defaultdict(list)
     for x in blocks:
         counts[type(x)].append(x)
 
@@ -4482,9 +4482,8 @@ def get_empty_dtype_and_na(join_units):
         else:
             dtypes[i] = unit.dtype
 
-    # dtypes = set()
-    upcast_classes = set()
-    null_upcast_classes = set()
+    upcast_classes = defaultdict(list)
+    null_upcast_classes = defaultdict(list)
     for dtype, unit in zip(dtypes, join_units):
         if dtype is None:
             continue
@@ -4508,9 +4507,9 @@ def get_empty_dtype_and_na(join_units):
         # are only null blocks, when same upcasting rules must be applied to
         # null upcast classes.
         if unit.is_null:
-            null_upcast_classes.add(upcast_cls)
+            null_upcast_classes[upcast_cls].append(dtype)
         else:
-            upcast_classes.add(upcast_cls)
+            upcast_classes[upcast_cls].append(dtype)
 
     if not upcast_classes:
         upcast_classes = null_upcast_classes
@@ -4528,7 +4527,8 @@ def get_empty_dtype_and_na(join_units):
     elif 'float' in upcast_classes:
         return np.dtype(np.float64), np.nan
     elif 'datetimetz' in upcast_classes:
-        return np.dtype('M8[ns]'), tslib.iNaT
+        dtype = upcast_classes['datetimetz']
+        return dtype[0], tslib.iNaT
     elif 'datetime' in upcast_classes:
         return np.dtype('M8[ns]'), tslib.iNaT
     elif 'timedelta' in upcast_classes:
@@ -4788,6 +4788,7 @@ class JoinUnit(object):
         return True
 
     def get_reindexed_values(self, empty_dtype, upcasted_na):
+
         if upcasted_na is None:
             # No upcasting is necessary
             fill_value = self.block.fill_value

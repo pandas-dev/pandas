@@ -1081,6 +1081,9 @@ def _maybe_promote(dtype, fill_value=np.nan):
                     fill_value = tslib.iNaT
             else:
                 fill_value = tslib.iNaT
+    elif is_datetimetz(dtype):
+        if isnull(fill_value):
+            fill_value = tslib.iNaT
     elif is_float(fill_value):
         if issubclass(dtype.type, np.bool_):
             dtype = np.object_
@@ -1107,7 +1110,9 @@ def _maybe_promote(dtype, fill_value=np.nan):
 
     # in case we have a string that looked like a number
     if is_categorical_dtype(dtype):
-        dtype = dtype
+        pass
+    elif is_datetimetz(dtype):
+        pass
     elif issubclass(np.dtype(dtype).type, compat.string_types):
         dtype = np.object_
 
@@ -2496,7 +2501,6 @@ def is_integer_dtype(arr_or_dtype):
 def is_int64_dtype(arr_or_dtype):
     tipo = _get_dtype_type(arr_or_dtype)
     return issubclass(tipo, np.int64)
-
 
 def is_int_or_datetime_dtype(arr_or_dtype):
     tipo = _get_dtype_type(arr_or_dtype)
