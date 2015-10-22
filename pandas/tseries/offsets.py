@@ -444,7 +444,7 @@ class DateOffset(object):
         from pandas.tseries.frequencies import get_freq_code
         base, mult = get_freq_code(freq)
         base_period = i.to_period(base)
-        if self.n < 0:
+        if self.n <= 0:
             # when subtracting, dates on start roll to prior
             roll = np.where(base_period.to_timestamp() == i - off,
                             self.n, self.n + 1)
@@ -464,7 +464,7 @@ class DateOffset(object):
         base, mult = get_freq_code(freq)
         base_period = i.to_period(base)
         if self.n > 0:
-            # when adding, dtates on end roll to next
+            # when adding, dates on end roll to next
             roll = np.where(base_period.to_timestamp(how='end') == i - off,
                             self.n, self.n - 1)
         else:
@@ -1081,8 +1081,7 @@ class MonthEnd(MonthOffset):
 
     @apply_index_wraps
     def apply_index(self, i):
-        months = self.n - 1 if self.n >= 0 else self.n
-        shifted = tslib.shift_months(i.asi8, months, 'end')
+        shifted = tslib.shift_months(i.asi8, self.n, 'end')
         return i._shallow_copy(shifted)
 
     def onOffset(self, dt):
@@ -1108,8 +1107,7 @@ class MonthBegin(MonthOffset):
 
     @apply_index_wraps
     def apply_index(self, i):
-        months = self.n + 1 if self.n < 0 else self.n
-        shifted = tslib.shift_months(i.asi8, months, 'start')
+        shifted = tslib.shift_months(i.asi8, self.n, 'start')
         return i._shallow_copy(shifted)
 
     def onOffset(self, dt):
@@ -1777,6 +1775,7 @@ class QuarterBegin(QuarterOffset):
     @apply_index_wraps
     def apply_index(self, i):
         freq_month = 12 if self.startingMonth == 1 else self.startingMonth - 1
+        # freq_month = self.startingMonth
         freqstr =  'Q-%s' % (_int_to_month[freq_month],)
         return self._beg_apply_index(i, freqstr)
 
