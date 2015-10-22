@@ -711,7 +711,7 @@ class _Openpyxl1Writer(ExcelWriter):
             new_data_type = xcell.data_type_for_value(cell.val)
             if (isinstance(cell.val, compat.string_types)
                     and new_data_type != xcell.TYPE_STRING):
-                xcell.set_explicit_value(cell.val)
+                xcell.set_value_explicit(cell.val)
             else:
                 xcell.value = _conv_value(cell.val)
             style = None
