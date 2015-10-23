@@ -116,7 +116,7 @@ Bug Fixes
 - Fixed a bug that prevented the construction of an empty series of dtype
   ``datetime64[ns, tz]`` (:issue:`11245`).
 
-- Bug in ``read_excel`` with multi-index containing integers (:issue:`11317`, :issue:`11328`)
+- Bug in ``read_excel`` with multi-index containing integers (:issue:`11317`)
 
 - Bug in ``to_excel`` with openpyxl 2.2+ and merging (:issue:`11408`)
 
