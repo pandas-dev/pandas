@@ -16,8 +16,7 @@ from distutils.version import LooseVersion
 
 from pandas.compat import(
     map, zip, range, long, lrange, lmap, lzip,
-    OrderedDict, u, StringIO, string_types,
-    is_platform_windows
+    OrderedDict, u, StringIO, is_platform_windows
 )
 from pandas import compat
 
@@ -33,8 +32,7 @@ import pandas.core.format as fmt
 import pandas.core.datetools as datetools
 from pandas import (DataFrame, Index, Series, Panel, notnull, isnull,
                     MultiIndex, DatetimeIndex, Timestamp, date_range,
-                    read_csv, timedelta_range, Timedelta, CategoricalIndex,
-                    option_context, period_range)
+                    read_csv, timedelta_range, Timedelta, option_context, period_range)
 from pandas.core.dtypes import DatetimeTZDtype
 import pandas as pd
 from pandas.parser import CParserError
@@ -2239,7 +2237,6 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
     _multiprocess_can_split_ = True
 
     def setUp(self):
-        import warnings
 
         self.frame = _frame.copy()
         self.frame2 = _frame2.copy()
@@ -3568,6 +3565,20 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         expected = DataFrame({'A': Series([(1, 2), (3, 4)])})
         assert_frame_equal(result, expected)
 
+    def test_constructor_namedtuples(self):
+        # GH11181
+        from collections import namedtuple
+        named_tuple = namedtuple("Pandas", list('ab'))
+        tuples = [named_tuple(1, 3), named_tuple(2, 4)]
+        expected = DataFrame({'a': [1, 2], 'b': [3, 4]})
+        result = DataFrame(tuples)
+        assert_frame_equal(result, expected)
+
+        # with columns
+        expected = DataFrame({'y': [1, 2], 'z': [3, 4]})
+        result = DataFrame(tuples, columns=['y', 'z'])
+        assert_frame_equal(result, expected)
+
     def test_constructor_orient(self):
         data_dict = self.mixed_frame.T._series
         recons = DataFrame.from_dict(data_dict, orient='index')
@@ -4418,7 +4429,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
 
     def test_operators_timedelta64(self):
 
-        from datetime import datetime, timedelta
+        from datetime import timedelta
         df = DataFrame(dict(A = date_range('2012-1-1', periods=3, freq='D'),
                             B = date_range('2012-1-2', periods=3, freq='D'),
                             C = Timestamp('20120101')-timedelta(minutes=5,seconds=5)))
@@ -9645,7 +9656,6 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         assert_frame_equal(result,expected)
 
         # test case from
-        from pandas.util.testing import makeCustomDataframe as mkdf
         df = DataFrame({'A' : Series([3,0],dtype='int64'), 'B' : Series([0,3],dtype='int64') })
         result = df.replace(3, df.mean().to_dict())
         expected = df.copy().astype('float64')
@@ -12227,7 +12237,6 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         assert_frame_equal(df, expected)
 
     def test_sort_index_different_sortorder(self):
-        import random
         A = np.arange(20).repeat(5)
         B = np.tile(np.arange(5), 20)
 
@@ -13301,7 +13310,6 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
 
     def test_quantile_axis_parameter(self):
         # GH 9543/9544
-        from numpy import percentile
 
         df = DataFrame({"A": [1, 2, 3], "B": [2, 3, 4]}, index=[1, 2, 3])
 
@@ -16093,8 +16101,6 @@ class TestDataFrameQueryNumExprPandas(tm.TestCase):
         n = m = 10
         df = DataFrame(np.random.randint(m, size=(n, 3)), columns=list('abc'))
 
-        from numpy import sin
-
         # we don't pick up the local 'sin'
         with tm.assertRaises(UndefinedVariableError):
             df.query('sin > 5', engine=engine, parser=parser)
@@ -16392,7 +16398,6 @@ class TestDataFrameQueryPythonPandas(TestDataFrameQueryNumExprPandas):
         cls.frame = _frame.copy()
 
     def test_query_builtin(self):
-        from pandas.computation.engines import NumExprClobberingError
         engine, parser = self.engine, self.parser
 
         n = m = 10
@@ -16413,7 +16418,6 @@ class TestDataFrameQueryPythonPython(TestDataFrameQueryNumExprPython):
         cls.frame = _frame.copy()
 
     def test_query_builtin(self):
-        from pandas.computation.engines import NumExprClobberingError
         engine, parser = self.engine, self.parser
 
         n = m = 10
