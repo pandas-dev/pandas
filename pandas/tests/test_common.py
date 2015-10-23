@@ -538,6 +538,15 @@ def test_is_list_like():
     for f in fails:
         assert not com.is_list_like(f)
 
+def test_is_named_tuple():
+    passes = (collections.namedtuple('Test',list('abc'))(1,2,3),)
+    fails = ((1,2,3), 'a', Series({'pi':3.14}))
+
+    for p in passes:
+        assert com.is_named_tuple(p)
+
+    for f in fails:
+        assert not com.is_named_tuple(f)
 
 def test_is_hashable():
 
