@@ -9,11 +9,14 @@ import os
 import numpy as np
 import pandas as pd
 from pandas import DataFrame, Timestamp
-from pandas.io import data as web
-from pandas.io.data import DataReader, SymbolWarning, RemoteDataError, _yahoo_codes
 from pandas.util.testing import (assert_series_equal, assert_produces_warning,
                                  network, assert_frame_equal)
 import pandas.util.testing as tm
+
+with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+    from pandas.io import data as web
+
+from pandas.io.data import DataReader, SymbolWarning, RemoteDataError, _yahoo_codes
 
 if compat.PY3:
     from urllib.error import HTTPError
@@ -103,13 +106,15 @@ class TestGoogle(tm.TestCase):
     @network
     def test_get_multi_invalid(self):
         sl = ['AAPL', 'AMZN', 'INVALID']
-        pan = web.get_data_google(sl, '2012')
-        self.assertIn('INVALID', pan.minor_axis)
+        with tm.assert_produces_warning(SymbolWarning):
+            pan = web.get_data_google(sl, '2012')
+            self.assertIn('INVALID', pan.minor_axis)
 
     @network
     def test_get_multi_all_invalid(self):
         sl = ['INVALID', 'INVALID2', 'INVALID3']
-        self.assertRaises(RemoteDataError, web.get_data_google, sl, '2012')
+        with tm.assert_produces_warning(SymbolWarning):
+            self.assertRaises(RemoteDataError, web.get_data_google, sl, '2012')
 
     @network
     def test_get_multi2(self):
@@ -291,6 +296,7 @@ class TestYahoo(tm.TestCase):
 
 
 class TestYahooOptions(tm.TestCase):
+
     @classmethod
     def setUpClass(cls):
         super(TestYahooOptions, cls).setUpClass()

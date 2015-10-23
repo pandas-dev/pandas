@@ -381,15 +381,11 @@ class CheckIndexing(object):
         assert_frame_equal(subframe_obj, subframe)
 
         # test that Series indexers reindex
-        import warnings
-        warnings.filterwarnings(action='ignore', category=UserWarning)
+        with tm.assert_produces_warning(UserWarning):
+            indexer_obj = indexer_obj.reindex(self.tsframe.index[::-1])
 
-        indexer_obj = indexer_obj.reindex(self.tsframe.index[::-1])
-
-        subframe_obj = self.tsframe[indexer_obj]
-        assert_frame_equal(subframe_obj, subframe)
-
-        warnings.filterwarnings(action='default', category=UserWarning)
+            subframe_obj = self.tsframe[indexer_obj]
+            assert_frame_equal(subframe_obj, subframe)
 
         # test df[df > 0]
         for df in [ self.tsframe, self.mixed_frame, self.mixed_float, self.mixed_int ]:
@@ -5843,7 +5839,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
 
                 def f():
                     df.loc[:,np.nan]
-                self.assertRaises(ValueError, f)
+                self.assertRaises(TypeError, f)
 
 
         df = DataFrame([[1,2,3],[4,5,6]], index=[1,np.nan])
@@ -7221,6 +7217,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
                 rs = read_csv(filename,index_col=0)
                 assert_frame_equal(rs, aa)
 
+    @slow
     def test_to_csv_wide_frame_formatting(self):
         # Issue #8621
         df = DataFrame(np.random.randn(1, 100010), columns=None, index=None)
@@ -9458,18 +9455,20 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
     def test_regex_replace_dict_nested_gh4115(self):
         df = pd.DataFrame({'Type':['Q','T','Q','Q','T'], 'tmp':2})
         expected = DataFrame({'Type': [0,1,0,0,1], 'tmp': 2})
-        assert_frame_equal(df.replace({'Type': {'Q':0,'T':1}}), expected)
+        result = df.replace({'Type': {'Q':0,'T':1}})
+        assert_frame_equal(result, expected)
 
     def test_regex_replace_list_to_scalar(self):
         mix = {'a': lrange(4), 'b': list('ab..'), 'c': ['a', 'b', nan, 'd']}
         df = DataFrame(mix)
+        expec = DataFrame({'a': mix['a'], 'b': np.array([nan] * 4),
+                           'c': [nan, nan, nan, 'd']})
+
         res = df.replace([r'\s*\.\s*', 'a|b'], nan, regex=True)
         res2 = df.copy()
         res3 = df.copy()
         res2.replace([r'\s*\.\s*', 'a|b'], nan, regex=True, inplace=True)
         res3.replace(regex=[r'\s*\.\s*', 'a|b'], value=nan, inplace=True)
-        expec = DataFrame({'a': mix['a'], 'b': np.array([nan] * 4),
-                           'c': [nan, nan, nan, 'd']})
         assert_frame_equal(res, expec)
         assert_frame_equal(res2, expec)
         assert_frame_equal(res3, expec)
@@ -9523,8 +9522,8 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
     def test_regex_replace_numeric_to_object_conversion(self):
         mix = {'a': lrange(4), 'b': list('ab..'), 'c': ['a', 'b', nan, 'd']}
         df = DataFrame(mix)
-        res = df.replace(0, 'a')
         expec = DataFrame({'a': ['a', 1, 2, 3], 'b': mix['b'], 'c': mix['c']})
+        res = df.replace(0, 'a')
         assert_frame_equal(res, expec)
         self.assertEqual(res.a.dtype, np.object_)
 
@@ -9952,6 +9951,56 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
                                         for k in df.fname.values]})
         result = df.replace(d)
         tm.assert_frame_equal(result, expected)
+
+    def test_replace_datetimetz(self):
+
+        # GH 11326
+        # behaving poorly when presented with a datetime64[ns, tz]
+        df = DataFrame({'A' : date_range('20130101',periods=3,tz='US/Eastern'),
+                        'B' : [0, np.nan, 2]})
+        result = df.replace(np.nan,1)
+        expected = DataFrame({'A' : date_range('20130101',periods=3,tz='US/Eastern'),
+                              'B' : Series([0, 1, 2],dtype='float64')})
+        assert_frame_equal(result, expected)
+
+        result = df.fillna(1)
+        assert_frame_equal(result, expected)
+
+        result = df.replace(0,np.nan)
+        expected = DataFrame({'A' : date_range('20130101',periods=3,tz='US/Eastern'),
+                              'B' : [np.nan, np.nan, 2]})
+        assert_frame_equal(result, expected)
+
+        result = df.replace(Timestamp('20130102',tz='US/Eastern'),Timestamp('20130104',tz='US/Eastern'))
+        expected = DataFrame({'A' : [Timestamp('20130101',tz='US/Eastern'),
+                                     Timestamp('20130104',tz='US/Eastern'),
+                                     Timestamp('20130103',tz='US/Eastern')],
+                              'B' : [0, np.nan, 2]})
+        assert_frame_equal(result, expected)
+
+        result = df.copy()
+        result.iloc[1,0] = np.nan
+        result = result.replace({'A' : pd.NaT }, Timestamp('20130104',tz='US/Eastern'))
+        assert_frame_equal(result, expected)
+
+        # coerce to object
+        result = df.copy()
+        result.iloc[1,0] = np.nan
+        result = result.replace({'A' : pd.NaT }, Timestamp('20130104',tz='US/Pacific'))
+        expected = DataFrame({'A' : [Timestamp('20130101',tz='US/Eastern'),
+                                     Timestamp('20130104',tz='US/Pacific'),
+                                     Timestamp('20130103',tz='US/Eastern')],
+                              'B' : [0, np.nan, 2]})
+        assert_frame_equal(result, expected)
+
+        result = df.copy()
+        result.iloc[1,0] = np.nan
+        result = result.replace({'A' : np.nan }, Timestamp('20130104'))
+        expected = DataFrame({'A' : [Timestamp('20130101',tz='US/Eastern'),
+                                     Timestamp('20130104'),
+                                     Timestamp('20130103',tz='US/Eastern')],
+                              'B' : [0, np.nan, 2]})
+        assert_frame_equal(result, expected)
 
     def test_combine_multiple_frames_dtypes(self):
 

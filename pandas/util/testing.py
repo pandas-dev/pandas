@@ -59,7 +59,6 @@ def reset_testing_mode():
     if 'deprecate' in testing_mode:
         warnings.simplefilter('ignore', DeprecationWarning)
 
-
 set_testing_mode()
 
 class TestCase(unittest.TestCase):
@@ -254,6 +253,23 @@ def _skip_if_python26():
     if sys.version_info[:2] == (2, 6):
         import nose
         raise nose.SkipTest("skipping on python2.6")
+
+
+def _skip_if_no_pathlib():
+    try:
+        from pathlib import Path
+    except ImportError:
+        import nose
+        raise nose.SkipTest("pathlib not available")
+
+
+def _skip_if_no_localpath():
+    try:
+        from py.path import local as LocalPath
+    except ImportError:
+        import nose
+        raise nose.SkipTest("py.path not installed")
+
 
 def _incompat_bottleneck_version(method):
     """ skip if we have bottleneck installed
@@ -1958,7 +1974,6 @@ class _AssertRaisesContextmanager(object):
                 raise_with_traceback(e, traceback)
         return True
 
-
 @contextmanager
 def assert_produces_warning(expected_warning=Warning, filter_level="always",
                             clear=None, check_stacklevel=True):
@@ -2005,6 +2020,7 @@ def assert_produces_warning(expected_warning=Warning, filter_level="always",
         warnings.simplefilter(filter_level)
         yield w
         extra_warnings = []
+
         for actual_warning in w:
             if (expected_warning and issubclass(actual_warning.category,
                                                 expected_warning)):

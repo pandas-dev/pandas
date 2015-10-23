@@ -2,3 +2,5 @@ blosc
 httplib2
 google-api-python-client == 1.2
 python-gflags == 2.0
+pathlib
+py

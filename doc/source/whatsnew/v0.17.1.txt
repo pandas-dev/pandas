@@ -28,6 +28,10 @@ Enhancements
 Other Enhancements
 ^^^^^^^^^^^^^^^^^^
 
+- ``pd.read_*`` functions can now also accept :class:`python:pathlib.Path`, or :class:`py:py._path.local.LocalPath`
+  objects for the ``filepath_or_buffer`` argument. (:issue:`11033`)
+- Improve the error message displayed in :func:`pandas.io.gbq.to_gbq` when the DataFrame does not match the schema of the destination table (:issue:`11359`)
+
 .. _whatsnew_0171.api:
 
 API changes
@@ -38,6 +42,7 @@ API changes
 - Regression from 0.16.2 for output formatting of long floats/nan, restored in (:issue:`11302`)
 - Prettyprinting sets (e.g. in DataFrame cells) now uses set literal syntax (``{x, y}``) instead of
   Legacy Python syntax (``set([x, y])``) (:issue:`11215`)
+- Indexing with a null key will raise a ``TypeError``, instead of a ``ValueError`` (:issue:`11356`)
 
 .. _whatsnew_0171.deprecations:
 
@@ -54,6 +59,13 @@ Performance Improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 - Checking monotonic-ness before sorting on an index (:issue:`11080`)
+- ``Series.dropna`` performance improvement when its dtype can't contain ``NaN`` (:issue:`11159`)
+
+
+- Release the GIL on most datetime field operations (e.g. ``DatetimeIndex.year``, ``Series.dt.year``), normalization, and conversion to and from ``Period``, ``DatetimeIndex.to_period`` and ``PeriodIndex.to_timestamp`` (:issue:`11263`)
+
+
+- Improved performance to ``to_excel`` (:issue:`11352`)
 
 .. _whatsnew_0171.bug_fixes:
 
@@ -65,12 +77,18 @@ Bug Fixes
 
 - Bug in ``HDFStore.select`` when comparing with a numpy scalar in a where clause (:issue:`11283`)
 
+
 - Bug in tz-conversions with an ambiguous time and ``.dt`` accessors (:issue:`11295`)
 - Bug in comparisons of Series vs list-likes (:issue:`11339`)
 
+
+- Bug in ``DataFrame.replace`` with a ``datetime64[ns, tz]`` and a non-compat to_replace (:issue:`11326`, :issue:`11153`)
+
+
+
 - Bug in list-like indexing with a mixed-integer Index (:issue:`11320`)
 
-
+- Bug in ``pivot_table`` with ``margins=True`` when indexes are of ``Categorical`` dtype (:issue:`10993`)
 - Bug in ``DataFrame.plot`` cannot use hex strings colors (:issue:`10299`)
 
 

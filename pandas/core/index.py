@@ -627,6 +627,10 @@ class Index(IndexOpsMixin, PandasObject):
         return Index(self.values.astype(dtype), name=self.name,
                      dtype=dtype)
 
+    def _to_safe_for_reshape(self):
+        """ convert to object if we are a categorical """
+        return self
+
     def to_datetime(self, dayfirst=False):
         """
         For an Index containing strings or datetime.datetime objects, attempt
@@ -862,9 +866,10 @@ class Index(IndexOpsMixin, PandasObject):
             return self._invalid_indexer('label', key)
 
         if is_float(key):
-            if not self.is_floating():
-                warnings.warn("scalar indexers for index type {0} should be integers and not floating point".format(
-                    type(self).__name__), FutureWarning, stacklevel=3)
+            if isnull(key):
+                return self._invalid_indexer('label', key)
+            warnings.warn("scalar indexers for index type {0} should be integers and not floating point".format(
+                type(self).__name__), FutureWarning, stacklevel=3)
             return to_int()
 
         return key
@@ -3189,6 +3194,10 @@ class CategoricalIndex(Index, PandasDelegate):
         from pandas.hashtable import duplicated_int64
         return duplicated_int64(self.codes.astype('i8'), keep)
 
+    def _to_safe_for_reshape(self):
+        """ convert to object if we are a categorical """
+        return self.astype('object')
+
     def get_loc(self, key, method=None):
         """
         Get integer location for requested label
@@ -3721,9 +3730,23 @@ class Float64Index(NumericIndex):
         return Index(self._values, name=self.name, dtype=dtype)
 
     def _convert_scalar_indexer(self, key, kind=None):
+        """
+        convert a scalar indexer
+
+        Parameters
+        ----------
+        key : label of the slice bound
+        kind : optional, type of the indexing operation (loc/ix/iloc/None)
+
+        right now we are converting
+        floats -> ints if the index supports it
+        """
+
         if kind == 'iloc':
-            return super(Float64Index, self)._convert_scalar_indexer(key,
-                                                                     kind=kind)
+            if is_integer(key):
+                return key
+            return super(Float64Index, self)._convert_scalar_indexer(key, kind=kind)
+
         return key
 
     def _convert_slice_indexer(self, key, kind=None):
@@ -4276,7 +4299,7 @@ class MultiIndex(Index):
         Returns True if the name refered to in self.names is duplicated.
         """
         # count the times name equals an element in self.names.
-        return np.sum(name == np.asarray(self.names)) > 1
+        return sum(name == n for n in self.names) > 1
 
     def _format_native_types(self, **kwargs):
         return self.values
@@ -4513,6 +4536,10 @@ class MultiIndex(Index):
             return adj.adjoin(space, *result_levels).split('\n')
         else:
             return result_levels
+
+    def _to_safe_for_reshape(self):
+        """ convert to object if we are a categorical """
+        return self.set_levels([ i._to_safe_for_reshape() for i in self.levels ])
 
     def to_hierarchical(self, n_repeat, n_shuffle=1):
         """

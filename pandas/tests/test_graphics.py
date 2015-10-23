@@ -3169,6 +3169,7 @@ class TestDataFramePlots(TestPlotBase):
                               ax.get_legend().get_texts()],
                              base_expected[:i] + base_expected[i+1:])
 
+    @slow
     def test_errorbar_plot(self):
         d = {'x': np.arange(12), 'y': np.arange(12, 0, -1)}
         df = DataFrame(d)
