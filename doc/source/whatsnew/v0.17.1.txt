@@ -100,6 +100,8 @@ Bug Fixes
 
 - Bug in ``read_excel`` with multi-index containing integers (:issue:`11317`, :issue:`11328`)
 
+- Bug in ``to_excel`` with openpyxl 2.2+ and merging (:issue:`11408`)
+
 - Bug in ``DataFrame.to_dict()`` produces a ``np.datetime64`` object instead of ``Timestamp`` when only datetime is present in data (:issue:`11327`)
 
 
