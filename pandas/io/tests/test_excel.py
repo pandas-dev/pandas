@@ -1089,7 +1089,10 @@ class ExcelWriterBase(SharedItems):
             df = read_excel(reader, 'test1', index_col=[0, 1],
                               parse_dates=False)
             tm.assert_frame_equal(frame, df)
-            
+
+    # Test for Issue 11328. If column indices are integers, make
+    # sure they are handled correctly for either setting of
+    # merge_cells
     def test_to_excel_multiindex_cols(self):
         _skip_if_no_xlrd()
 

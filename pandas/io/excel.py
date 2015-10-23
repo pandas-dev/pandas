@@ -708,9 +708,9 @@ class _Openpyxl1Writer(ExcelWriter):
         for cell in cells:
             colletter = get_column_letter(startcol + cell.col + 1)
             xcell = wks.cell("%s%s" % (colletter, startrow + cell.row + 1))
-            new_data_type = xcell.data_type_for_value(cell.val)
             if (isinstance(cell.val, compat.string_types)
-                    and new_data_type != xcell.TYPE_STRING):
+                    and xcell.data_type_for_value(cell.val)
+                         != xcell.TYPE_STRING):
                 xcell.set_value_explicit(cell.val)
             else:
                 xcell.value = _conv_value(cell.val)

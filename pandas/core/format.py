@@ -1874,7 +1874,7 @@ class ExcelFormatter(object):
             # MultiIndex columns require an extra row
             # with index names (blank if None) for
             # unambigous round-trip, unless not merging,
-            # in which case the names all go on one row
+            # in which case the names all go on one row Issue #11328
             if isinstance(self.columns, MultiIndex) and self.merge_cells:
                 self.rowcounter += 1
 
