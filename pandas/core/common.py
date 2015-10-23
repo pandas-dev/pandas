@@ -2676,6 +2676,9 @@ def is_list_like(arg):
      return (hasattr(arg, '__iter__') and
             not isinstance(arg, compat.string_and_binary_types))
 
+def is_named_tuple(arg):
+    return isinstance(arg, tuple) and hasattr(arg, '_fields')
+
 def is_null_slice(obj):
     """ we have a null slice """
     return (isinstance(obj, slice) and obj.start is None and
