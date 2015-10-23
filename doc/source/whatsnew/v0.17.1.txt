@@ -92,7 +92,7 @@ Bug Fixes
 - Bug in ``pivot_table`` with ``margins=True`` when indexes are of ``Categorical`` dtype (:issue:`10993`)
 - Bug in ``DataFrame.plot`` cannot use hex strings colors (:issue:`10299`)
 
-
+- Bug in ``DataFrame.drop_duplicates`` (regression from 0.16.2) causing some non-duplicate rows containing integer values to be dropped (:issue:`11376`)
 
 
 - Bug in ``pd.eval`` where unary ops in a list error (:issue:`11235`)

@@ -8380,6 +8380,25 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         expected = df.iloc[[-2,-1]]
         assert_frame_equal(result, expected)
 
+        # GH 11376
+        df = pd.DataFrame({'x': [7, 6, 3, 3, 4, 8, 0],
+                           'y': [0, 6, 5, 5, 9, 1, 2]})
+        expected = df.loc[df.index != 3]
+        assert_frame_equal(df.drop_duplicates(), expected)
+
+        df = pd.DataFrame([[1 , 0], [0, 2]])
+        assert_frame_equal(df.drop_duplicates(), df)
+
+        df = pd.DataFrame([[-2, 0], [0, -4]])
+        assert_frame_equal(df.drop_duplicates(), df)
+
+        x = np.iinfo(np.int64).max / 3 * 2
+        df = pd.DataFrame([[-x, x], [0, x + 4]])
+        assert_frame_equal(df.drop_duplicates(), df)
+
+        df = pd.DataFrame([[-x, x], [x, x + 4]])
+        assert_frame_equal(df.drop_duplicates(), df)
+
     def test_drop_duplicates_for_take_all(self):
         df = DataFrame({'AAA': ['foo', 'bar', 'baz', 'bar',
                                 'foo', 'bar', 'qux', 'foo'],
