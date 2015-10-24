@@ -672,6 +672,9 @@ Now you can commit your changes in your local repository::
 
     git commit -m
 
+Combining commits
+-----------------
+
 If you have multiple commits, it is common to want to combine them into one commit, often
 referred to as "squashing" or "rebasing".  This is a common request by package maintainers
 when submitting a Pull Request as it maintains a more compact commit history.  To rebase your commits::
@@ -680,6 +683,18 @@ when submitting a Pull Request as it maintains a more compact commit history.  T
 
 Where # is the number of commits you want to combine.  Then you can pick the relevant
 commit message and discard others.
+
+To squash to the master branch do::
+
+    git rebase -i master
+
+Use the ``s`` option on a commit to ``squash``, meaning to keep the commit messages,
+ or ``f`` to ``fixup``, meaning to merge the commit messages.
+
+Then you will need to push the branch (see below) forcefully to replace the current commits with the new ones::
+
+    git push origin shiny-new-feature -f
+
 
 Pushing your changes
 --------------------
