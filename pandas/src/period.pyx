@@ -20,6 +20,7 @@ from pandas import compat
 from pandas.tseries import offsets
 from pandas.tseries.tools import parse_time_string
 
+cimport cython
 from datetime cimport *
 cimport util
 cimport lib
@@ -124,6 +125,8 @@ cdef inline int64_t remove_mult(int64_t period_ord_w_mult, int64_t mult):
 
     return period_ord_w_mult * mult + 1;
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
 def dt64arr_to_periodarr(ndarray[int64_t] dtarr, int freq, tz=None):
     """
     Convert array of datetime64 values (passed in as 'i8' dtype) to a set of
@@ -151,6 +154,8 @@ def dt64arr_to_periodarr(ndarray[int64_t] dtarr, int freq, tz=None):
         out = localize_dt64arr_to_period(dtarr, freq, tz)
     return out
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
 def periodarr_to_dt64arr(ndarray[int64_t] periodarr, int freq):
     """
     Convert array to datetime64 values from a set of ordinals corresponding to
