@@ -1729,7 +1729,7 @@ class ExcelFormatter(object):
             return
 
         columns = self.columns
-        level_strs = columns.format(sparsify=True, adjoin=False, names=False)
+        level_strs = columns.format(sparsify=self.merge_cells, adjoin=False, names=False)
         level_lengths = _get_level_lengths(level_strs)
         coloffset = 0
         lnum = 0
@@ -1873,8 +1873,9 @@ class ExcelFormatter(object):
 
             # MultiIndex columns require an extra row
             # with index names (blank if None) for
-            # unambigous round-trip
-            if isinstance(self.columns, MultiIndex):
+            # unambigous round-trip, unless not merging,
+            # in which case the names all go on one row Issue #11328
+            if isinstance(self.columns, MultiIndex) and self.merge_cells:
                 self.rowcounter += 1
 
             # if index labels are not empty go ahead and dump
