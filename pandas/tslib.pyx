@@ -4240,6 +4240,8 @@ cdef inline int m8_weekday(int64_t val):
 cdef int64_t DAY_NS = 86400000000000LL
 
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
 def date_normalize(ndarray[int64_t] stamps, tz=None):
     cdef:
         Py_ssize_t i, n = len(stamps)
@@ -4262,6 +4264,8 @@ def date_normalize(ndarray[int64_t] stamps, tz=None):
 
     return result
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
 cdef _normalize_local(ndarray[int64_t] stamps, object tz):
     cdef:
         Py_ssize_t n = len(stamps)
