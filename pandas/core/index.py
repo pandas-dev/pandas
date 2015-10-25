@@ -1469,7 +1469,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     def union(self, other):
         """
-        Form the union of two Index objects and sorts if possible
+        Form the union of two Index objects and sorts if possible.
 
         Parameters
         ----------
@@ -1478,6 +1478,15 @@ class Index(IndexOpsMixin, PandasObject):
         Returns
         -------
         union : Index
+
+        Examples
+        --------
+
+        >>> idx1 = pd.Index([1, 2, 3, 4])
+        >>> idx2 = pd.Index([3, 4, 5, 6])
+        >>> idx1.union(idx2)
+        Int64Index([1, 2, 3, 4, 5, 6], dtype='int64')
+
         """
         self._assert_can_do_setop(other)
         other = _ensure_index(other)
@@ -1545,8 +1554,10 @@ class Index(IndexOpsMixin, PandasObject):
 
     def intersection(self, other):
         """
-        Form the intersection of two Index objects. Sortedness of the result is
-        not guaranteed
+        Form the intersection of two Index objects.
+
+        This returns a new Index with elements common to the index and `other`.
+        Sortedness of the result is not guaranteed.
 
         Parameters
         ----------
@@ -1555,6 +1566,15 @@ class Index(IndexOpsMixin, PandasObject):
         Returns
         -------
         intersection : Index
+
+        Examples
+        --------
+
+        >>> idx1 = pd.Index([1, 2, 3, 4])
+        >>> idx2 = pd.Index([3, 4, 5, 6])
+        >>> idx1.intersection(idx2)
+        Int64Index([3, 4], dtype='int64')
+
         """
         self._assert_can_do_setop(other)
         other = _ensure_index(other)
@@ -1589,7 +1609,9 @@ class Index(IndexOpsMixin, PandasObject):
 
     def difference(self, other):
         """
-        Compute sorted set difference of two Index objects
+        Return a new Index with elements from the index that are not in `other`.
+
+        This is the sorted set difference of two Index objects.
 
         Parameters
         ----------
@@ -1597,13 +1619,16 @@ class Index(IndexOpsMixin, PandasObject):
 
         Returns
         -------
-        diff : Index
+        difference : Index
 
-        Notes
-        -----
-        One can do either of these and achieve the same result
+        Examples
+        --------
 
-        >>> index.difference(index2)
+        >>> idx1 = pd.Index([1, 2, 3, 4])
+        >>> idx2 = pd.Index([3, 4, 5, 6])
+        >>> idx1.difference(idx2)
+        Int64Index([1, 2], dtype='int64')
+
         """
         self._assert_can_do_setop(other)
 
@@ -1623,7 +1648,6 @@ class Index(IndexOpsMixin, PandasObject):
 
         Parameters
         ----------
-
         other : Index or array-like
         result_name : str
 
