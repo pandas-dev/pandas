@@ -96,7 +96,7 @@ Bug Fixes
 
 
 
-
+- Bug in ``DataFrame.pct_change()`` was not propagating axis on fillna method (:issue:`11150`)
 
 
 
