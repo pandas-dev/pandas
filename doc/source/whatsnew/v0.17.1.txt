@@ -37,6 +37,7 @@ API changes
 - Prettyprinting sets (e.g. in DataFrame cells) now uses set literal syntax (``{x, y}``) instead of
   Legacy Python syntax (``set([x, y])``) (:issue:`11215`)
 - Indexing with a null key will raise a ``TypeError``, instead of a ``ValueError`` (:issue:`11356`)
+- ``Series.sort_index()`` now correctly handles the ``inplace`` option (:issue:`11402`)
 
 .. _whatsnew_0171.deprecations:
 

@@ -1676,8 +1676,12 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                                                    ascending=ascending)
 
         new_values = self._values.take(indexer)
-        return self._constructor(new_values,
-                                 index=new_index).__finalize__(self)
+        result =  self._constructor(new_values, index=new_index)
+
+        if inplace:
+            self._update_inplace(result)
+        else:
+            return result.__finalize__(self)
 
     def sort(self, axis=0, ascending=True, kind='quicksort', na_position='last', inplace=True):
         """
