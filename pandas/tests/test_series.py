@@ -5328,6 +5328,30 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         assert_series_equal(sorted_series,
                             self.ts.reindex(self.ts.index[::-1]))
 
+    def test_sort_index_inplace(self):
+
+        # For #11402
+        rindex = list(self.ts.index)
+        random.shuffle(rindex)
+
+        # descending
+        random_order = self.ts.reindex(rindex)
+        result = random_order.sort_index(ascending=False, inplace=True)
+        self.assertIs(result, None,
+                      msg='sort_index() inplace should return None')
+        assert_index_equal(random_order.index,
+                           self.ts.index[::-1])
+        assert_series_equal(random_order,
+                            self.ts.reindex(self.ts.index[::-1]))
+
+        # ascending
+        random_order = self.ts.reindex(rindex)
+        result = random_order.sort_index(ascending=True, inplace=True)
+        self.assertIs(result, None,
+                      msg='sort_index() inplace should return None')
+        assert_index_equal(random_order.index, self.ts.index)
+        assert_series_equal(random_order, self.ts)
+
     def test_sort_API(self):
 
         # API for 9816
