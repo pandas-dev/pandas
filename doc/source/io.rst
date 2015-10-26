@@ -39,7 +39,7 @@ object.
     * :ref:`read_json<io.json_reader>`
     * :ref:`read_msgpack<io.msgpack>` (experimental)
     * :ref:`read_html<io.read_html>`
-    * :ref:`read_gbq<io.bigquery>` (experimental)
+    * :ref:`read_gbq<io.bigquery_reader>` (experimental)
     * :ref:`read_stata<io.stata_reader>`
     * :ref:`read_sas<io.sas_reader>`
     * :ref:`read_clipboard<io.clipboard>`
@@ -54,7 +54,7 @@ The corresponding ``writer`` functions are object methods that are accessed like
     * :ref:`to_json<io.json_writer>`
     * :ref:`to_msgpack<io.msgpack>` (experimental)
     * :ref:`to_html<io.html>`
-    * :ref:`to_gbq<io.bigquery>` (experimental)
+    * :ref:`to_gbq<io.bigquery_writer>` (experimental)
     * :ref:`to_stata<io.stata_writer>`
     * :ref:`to_clipboard<io.clipboard>`
     * :ref:`to_pickle<io.pickle>`
@@ -79,9 +79,10 @@ for some advanced strategies
 
 They can take a number of arguments:
 
-  - ``filepath_or_buffer``: Either a string path to a file, URL
+  - ``filepath_or_buffer``: Either a path to a file (a :class:`python:str`,
+    :class:`python:pathlib.Path`, or :class:`py:py._path.local.LocalPath`), URL
     (including http, ftp, and S3 locations), or any object with a ``read``
-    method (such as an open file or ``StringIO``).
+    method (such as an open file or :class:`~python:io.StringIO`).
   - ``sep`` or ``delimiter``: A delimiter / separator to split fields
     on. With ``sep=None``, ``read_csv`` will try to infer the delimiter
     automatically in some cases by "sniffing".
@@ -1980,9 +1981,10 @@ Excel files
 -----------
 
 The :func:`~pandas.read_excel` method can read Excel 2003 (``.xls``) and
-Excel 2007 (``.xlsx``) files using the ``xlrd`` Python
-module and use the same parsing code as the above to convert tabular data into
-a DataFrame. See the :ref:`cookbook<cookbook.excel>` for some
+Excel 2007+ (``.xlsx``) files using the ``xlrd`` Python
+module.  The :meth:`~DataFrame.to_excel` instance method is used for
+saving a ``DataFrame`` to Excel.  Generally the semantics are
+similar to working with :ref:`csv<io.read_csv_table>` data.  See the :ref:`cookbook<cookbook.excel>` for some
 advanced strategies
 
 .. _io.excel_reader:
@@ -1990,95 +1992,79 @@ advanced strategies
 Reading Excel Files
 '''''''''''''''''''
 
-.. versionadded:: 0.17
-
-``read_excel`` can read a ``MultiIndex`` index, by passing a list of columns to ``index_col``
-and a ``MultiIndex`` column by passing a list of rows to ``header``.  If either the ``index``
-or ``columns`` have serialized level names those will be read in as well by specifying
-the rows/columns that make up the levels.
-
-.. ipython:: python
-
-   # MultiIndex index - no names
-   df = pd.DataFrame({'a':[1,2,3,4], 'b':[5,6,7,8]},
-                     index=pd.MultiIndex.from_product([['a','b'],['c','d']]))
-   df.to_excel('path_to_file.xlsx')
-   df = pd.read_excel('path_to_file.xlsx', index_col=[0,1])
-   df
-
-   # MultiIndex index - with names
-   df.index = df.index.set_names(['lvl1', 'lvl2'])
-   df.to_excel('path_to_file.xlsx')
-   df = pd.read_excel('path_to_file.xlsx', index_col=[0,1])
-   df
-
-   # MultiIndex index and column - with names
-   df.columns = pd.MultiIndex.from_product([['a'],['b', 'd']], names=['c1', 'c2'])
-   df.to_excel('path_to_file.xlsx')
-   df = pd.read_excel('path_to_file.xlsx',
-                       index_col=[0,1], header=[0,1])
-   df
-
-.. ipython:: python
-   :suppress:
-
-   import os
-   os.remove('path_to_file.xlsx')
-
-.. warning::
-
-   Excel files saved in version 0.16.2 or prior that had index names will still able to be read in,
-   but the ``has_index_names`` argument must specified to ``True``.
-
-.. versionadded:: 0.16
-
-``read_excel`` can read more than one sheet, by setting ``sheetname`` to either
-a list of sheet names, a list of sheet positions, or ``None`` to read all sheets.
-
-.. versionadded:: 0.13
-
-Sheets can be specified by sheet index or sheet name, using an integer or string,
-respectively.
-
-.. versionadded:: 0.12
-
-``ExcelFile`` has been moved to the top level namespace.
-
-There are two approaches to reading an excel file.  The ``read_excel`` function
-and the ``ExcelFile`` class.  ``read_excel`` is for reading one file
-with file-specific arguments (ie. identical data formats across sheets).
-``ExcelFile`` is for reading one file with sheet-specific arguments (ie. various data
-formats across sheets).  Choosing the approach is largely a question of
-code readability and execution speed.
-
-Equivalent class and function approaches to read a single sheet:
+In the most basic use-case, ``read_excel`` takes a path to an Excel
+file, and the ``sheetname`` indicating which sheet to parse.
 
 .. code-block:: python
 
-    # using the ExcelFile class
-    xls = pd.ExcelFile('path_to_file.xls')
-    data = xls.parse('Sheet1', index_col=None, na_values=['NA'])
+   # Returns a DataFrame
+   read_excel('path_to_file.xls', sheetname='Sheet1')
 
-    # using the read_excel function
-    data = read_excel('path_to_file.xls', 'Sheet1', index_col=None, na_values=['NA'])
 
-Equivalent class and function approaches to read multiple sheets:
+.. _io.excel.excelfile_class:
+
+``ExcelFile`` class
++++++++++++++++++++
+
+To faciliate working with multiple sheets from the same file, the ``ExcelFile``
+class can be used to wrap the file and can be be passed into ``read_excel``
+There will be a performance benefit for reading multiple sheets as the file is
+read into memory only once.
+
+.. code-block:: python
+
+   xlsx = pd.ExcelFile('path_to_file.xls)
+   df = pd.read_excel(xlsx, 'Sheet1')
+
+The ``ExcelFile`` class can also be used as a context manager.
+
+.. code-block:: python
+
+   with pd.ExcelFile('path_to_file.xls') as xls:
+       df1 = pd.read_excel(xls, 'Sheet1')
+       df2 = pd.read_excel(xls, 'Sheet2')
+
+The ``sheet_names`` property will generate
+a list of the sheet names in the file.
+
+The primary use-case for an ``ExcelFile`` is parsing multiple sheets with
+different parameters
 
 .. code-block:: python
 
     data = {}
     # For when Sheet1's format differs from Sheet2
-    xls = pd.ExcelFile('path_to_file.xls')
-    data['Sheet1'] = xls.parse('Sheet1', index_col=None, na_values=['NA'])
-    data['Sheet2'] = xls.parse('Sheet2', index_col=1)
+    with pd.ExcelFile('path_to_file.xls') as xls:
+        data['Sheet1'] = pd.read_excel(xls, 'Sheet1', index_col=None, na_values=['NA'])
+        data['Sheet2'] = pd.read_excel(xls, 'Sheet2', index_col=1)
 
-    # For when Sheet1's format is identical to Sheet2
-    data = read_excel('path_to_file.xls', ['Sheet1','Sheet2'], index_col=None, na_values=['NA'])
+Note that if the same parsing parameters are used for all sheets, a list
+of sheet names can simply be passed to ``read_excel`` with no loss in performance.
+
+.. code-block:: python
+
+    # using the ExcelFile class
+    data = {}
+    with pd.ExcelFile('path_to_file.xls') as xls:
+        data['Sheet1'] = read_excel(xls, 'Sheet1', index_col=None, na_values=['NA'])
+        data['Sheet2'] = read_excel(xls, 'Sheet2', index_col=None, na_values=['NA'])
+
+    # equivalent using the read_excel function
+    data = read_excel('path_to_file.xls', ['Sheet1', 'Sheet2'], index_col=None, na_values=['NA'])
+
+.. versionadded:: 0.12
+
+``ExcelFile`` has been moved to the top level namespace.
+
+.. versionadded:: 0.17
+
+``read_excel`` can take an ``ExcelFile`` object as input
+
+
+.. _io.excel.specifying_sheets:
 
 Specifying Sheets
 +++++++++++++++++
-
-.. _io.specifying_sheets:
 
 .. note :: The second argument is ``sheetname``, not to be confused with ``ExcelFile.sheet_names``
 
@@ -2124,6 +2110,72 @@ Using a list to get multiple sheets:
 
    # Returns the 1st and 4th sheet, as a dictionary of DataFrames.
    read_excel('path_to_file.xls',sheetname=['Sheet1',3])
+
+.. versionadded:: 0.16
+
+``read_excel`` can read more than one sheet, by setting ``sheetname`` to either
+a list of sheet names, a list of sheet positions, or ``None`` to read all sheets.
+
+.. versionadded:: 0.13
+
+Sheets can be specified by sheet index or sheet name, using an integer or string,
+respectively.
+
+.. _io.excel.reading_multiindex:
+
+Reading a ``MultiIndex``
+++++++++++++++++++++++++
+
+.. versionadded:: 0.17
+
+``read_excel`` can read a ``MultiIndex`` index, by passing a list of columns to ``index_col``
+and a ``MultiIndex`` column by passing a list of rows to ``header``.  If either the ``index``
+or ``columns`` have serialized level names those will be read in as well by specifying
+the rows/columns that make up the levels.
+
+For example, to read in a ``MultiIndex`` index without names:
+
+.. ipython:: python
+
+   df = pd.DataFrame({'a':[1,2,3,4], 'b':[5,6,7,8]},
+                     index=pd.MultiIndex.from_product([['a','b'],['c','d']]))
+   df.to_excel('path_to_file.xlsx')
+   df = pd.read_excel('path_to_file.xlsx', index_col=[0,1])
+   df
+
+If the index has level names, they will parsed as well, using the same
+parameters.
+
+.. ipython:: python
+
+   df.index = df.index.set_names(['lvl1', 'lvl2'])
+   df.to_excel('path_to_file.xlsx')
+   df = pd.read_excel('path_to_file.xlsx', index_col=[0,1])
+   df
+
+
+If the source file has both ``MultiIndex`` index and columns, lists specifying each
+should be passed to ``index_col`` and ``header``
+
+.. ipython:: python
+
+   df.columns = pd.MultiIndex.from_product([['a'],['b', 'd']], names=['c1', 'c2'])
+   df.to_excel('path_to_file.xlsx')
+   df = pd.read_excel('path_to_file.xlsx',
+                       index_col=[0,1], header=[0,1])
+   df
+
+.. ipython:: python
+   :suppress:
+
+   import os
+   os.remove('path_to_file.xlsx')
+
+.. warning::
+
+   Excel files saved in version 0.16.2 or prior that had index names will still able to be read in,
+   but the ``has_index_names`` argument must specified to ``True``.
+
 
 Parsing Specific Columns
 ++++++++++++++++++++++++
@@ -2230,6 +2282,10 @@ Writing Excel Files to Memory
 Pandas supports writing Excel files to buffer-like objects such as ``StringIO`` or
 ``BytesIO`` using :class:`~pandas.io.excel.ExcelWriter`.
 
+.. versionadded:: 0.17
+
+Added support for Openpyxl >= 2.2
+
 .. code-block:: python
 
    # Safe import for either Python 2.x or 3.x
@@ -2279,14 +2335,15 @@ config options <options>` ``io.excel.xlsx.writer`` and
 files if `Xlsxwriter`_ is not available.
 
 .. _XlsxWriter: http://xlsxwriter.readthedocs.org
-.. _openpyxl: http://packages.python.org/openpyxl/
+.. _openpyxl: http://openpyxl.readthedocs.org/
 .. _xlwt: http://www.python-excel.org
 
 To specify which writer you want to use, you can pass an engine keyword
 argument to ``to_excel`` and to ``ExcelWriter``. The built-in engines are:
 
-- ``openpyxl``: This includes stable support for OpenPyxl 1.6.1 up to but
-  not including 2.0.0, and experimental support for OpenPyxl 2.0.0 and later.
+- ``openpyxl``: This includes stable support for Openpyxl from 1.6.1. However,
+  it is advised to use version 2.2 and higher, especially when working with
+  styles.
 - ``xlsxwriter``
 - ``xlwt``
 
@@ -3256,8 +3313,9 @@ the table using a ``where`` that selects all but the missing data.
 
    Please note that HDF5 **DOES NOT RECLAIM SPACE** in the h5 files
    automatically. Thus, repeatedly deleting (or removing nodes) and adding
-   again **WILL TEND TO INCREASE THE FILE SIZE**. To *clean* the file, use
-   :ref:`ptrepack <io.hdf5-ptrepack>`
+   again, **WILL TEND TO INCREASE THE FILE SIZE**.
+
+   To *repack and clean* the file, use :ref:`ptrepack <io.hdf5-ptrepack>`
 
 .. _io.hdf5-notes:
 
@@ -3918,6 +3976,42 @@ connecting to.
 For more information see the examples the SQLAlchemy `documentation <http://docs.sqlalchemy.org/en/rel_0_9/core/engines.html>`__
 
 
+Advanced SQLAlchemy queries
+'''''''''''''''''''''''''''
+
+You can use SQLAlchemy constructs to describe your query.
+
+Use :func:`sqlalchemy.text` to specify query parameters in a backend-neutral way
+
+.. ipython:: python
+
+   import sqlalchemy as sa
+   pd.read_sql(sa.text('SELECT * FROM data where Col_1=:col1'), engine, params={'col1': 'X'})
+
+If you have an SQLAlchemy description of your database you can express where conditions using SQLAlchemy expressions
+
+.. ipython:: python
+
+   metadata = sa.MetaData()
+   data_table = sa.Table('data', metadata,
+       sa.Column('index', sa.Integer),
+       sa.Column('Date', sa.DateTime),
+       sa.Column('Col_1', sa.String),
+       sa.Column('Col_2', sa.Float),
+       sa.Column('Col_3', sa.Boolean),
+   )
+
+   pd.read_sql(sa.select([data_table]).where(data_table.c.Col_3 == True), engine)
+
+You can combine SQLAlchemy expressions with parameters passed to :func:`read_sql` using :func:`sqlalchemy.bindparam`
+
+.. ipython:: python
+
+    import datetime as dt
+    expr = sa.select([data_table]).where(data_table.c.Date > sa.bindparam('date'))
+    pd.read_sql(expr, engine, params={'date': dt.datetime(2010, 10, 18)})
+
+
 Sqlite fallback
 '''''''''''''''
 
@@ -3964,16 +4058,14 @@ The key functions are:
 .. currentmodule:: pandas.io.gbq
 
 .. autosummary::
-    :toctree: generated/
+   :toctree: generated/
 
-    read_gbq
-    to_gbq
-    generate_bq_schema
-    create_table
-    delete_table
-    table_exists
+   read_gbq
+   to_gbq
 
 .. currentmodule:: pandas
+
+.. _io.bigquery_reader:
 
 Querying
 ''''''''
@@ -4014,6 +4106,8 @@ destination DataFrame as well as a preferred column order as follows:
 
    You can toggle the verbose output via the ``verbose`` flag which defaults to ``True``.
 
+.. _io.bigquery_writer:
+
 Writing DataFrames
 ''''''''''''''''''
 
@@ -4037,8 +4131,7 @@ Assume we want to write a DataFrame ``df`` into a BigQuery table using :func:`~p
 
 .. note::
 
-   If the destination table does not exist, a new table will be created. The
-   destination dataset id must already exist in order for a new table to be created.
+   The destination table and destination dataset will automatically be created if they do not already exist.
 
 The ``if_exists`` argument can be used to dictate whether to ``'fail'``, ``'replace'``
 or ``'append'`` if the destination table already exists. The default value is ``'fail'``.
@@ -4105,19 +4198,13 @@ For example:
    often as the service seems to be changing and evolving. BiqQuery is best for analyzing large
    sets of data quickly, but it is not a direct replacement for a transactional database.
 
-
 Creating BigQuery Tables
 ''''''''''''''''''''''''
 
-As of 0.17.0, the gbq module has a function :func:`~pandas.io.gbq.create_table` which allows users
-to create a table in BigQuery. The only requirement is that the dataset must already exist.
-The schema may be generated from a pandas DataFrame using the :func:`~pandas.io.gbq.generate_bq_schema` function below.
+.. warning::
 
-For example:
-
-.. code-block:: python
-
-   gbq.create_table('my_dataset.my_table', schema, projectid)
+   As of 0.17, the function :func:`~pandas.io.gbq.generate_bq_schema` has been deprecated and will be
+   removed in a future version.
 
 As of 0.15.2, the gbq module has a function :func:`~pandas.io.gbq.generate_bq_schema` which will
 produce the dictionary representation schema of the specified pandas DataFrame.
@@ -4132,31 +4219,6 @@ produce the dictionary representation schema of the specified pandas DataFrame.
             {'name': 'my_float64', 'type': 'FLOAT'},
             {'name': 'my_int64', 'type': 'INTEGER'},
             {'name': 'my_string', 'type': 'STRING'}]}
-
-Deleting BigQuery Tables
-''''''''''''''''''''''''
-
-As of 0.17.0, the gbq module has a function :func:`~pandas.io.gbq.delete_table` which allows users to delete a table
-in Google BigQuery.
-
-For example:
-
-.. code-block:: python
-
-   gbq.delete_table('my_dataset.my_table', projectid)
-
-The following function can be used to check whether a table exists prior to calling ``table_exists``:
-
-:func:`~pandas.io.gbq.table_exists`.
-
-The return value will be of type boolean.
-
-For example:
-
-.. code-block:: python
-
-   In [12]: gbq.table_exists('my_dataset.my_table', projectid)
-   Out[12]: True
 
 .. note::
 

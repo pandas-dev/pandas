@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 
 from pandas import compat
 import numpy as np
-from pandas.core import common as com
+from pandas.core import common as com, algorithms
 from pandas.core.common import is_integer, is_float, AbstractMethodError
 import pandas.tslib as tslib
 import pandas.lib as lib
@@ -180,7 +180,7 @@ class DatetimeIndexOpsMixin(object):
 
             return self._simple_new(sorted_values, **attribs)
 
-    def take(self, indices, axis=0, **kwargs):
+    def take(self, indices, axis=0, allow_fill=True, fill_value=None):
         """
         Analogous to ndarray.take
         """
@@ -189,6 +189,12 @@ class DatetimeIndexOpsMixin(object):
         if isinstance(maybe_slice, slice):
             return self[maybe_slice]
         taken = self.asi8.take(com._ensure_platform_int(indices))
+
+        # only fill if we are passing a non-None fill_value
+        if allow_fill and fill_value is not None:
+            mask = indices == -1
+            if mask.any():
+                taken[mask] = tslib.iNaT
         return self._shallow_copy(taken, freq=None)
 
     def get_duplicates(self):
@@ -486,8 +492,7 @@ class DatetimeIndexOpsMixin(object):
             except ValueError:
                 return self.asobject.isin(values)
 
-        value_set = set(values.asi8)
-        return lib.ismember_int64(self.asi8, value_set)
+        return algorithms.isin(self.asi8, values.asi8)
 
     def shift(self, n, freq=None):
         """

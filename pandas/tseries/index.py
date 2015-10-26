@@ -194,7 +194,8 @@ class DatetimeIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
     _datetimelike_ops = ['year','month','day','hour','minute','second',
                          'weekofyear','week','dayofweek','weekday','dayofyear','quarter', 'days_in_month', 'daysinmonth',
                          'date','time','microsecond','nanosecond','is_month_start','is_month_end',
-                         'is_quarter_start','is_quarter_end','is_year_start','is_year_end','tz','freq']
+                         'is_quarter_start','is_quarter_end','is_year_start','is_year_end',
+                         'tz','freq']
     _is_numeric_dtype = False
 
 
@@ -269,14 +270,7 @@ class DatetimeIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
                                                      dayfirst=dayfirst,
                                                      yearfirst=yearfirst)
 
-        if is_datetimetz(data):
-            # extract the data whether a Series or Index
-            if isinstance(data, ABCSeries):
-                data = data._values
-            tz = data.tz
-            data = data.tz_localize(None, ambiguous='infer').values
-
-        if issubclass(data.dtype.type, np.datetime64):
+        if issubclass(data.dtype.type, np.datetime64) or is_datetimetz(data):
             if isinstance(data, ABCSeries):
                 data = data._values
             if isinstance(data, DatetimeIndex):
@@ -762,6 +756,8 @@ class DatetimeIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
             return self.asi8.copy()
         elif dtype == _NS_DTYPE and self.tz is not None:
             return self.tz_convert('UTC').tz_localize(None)
+        elif dtype == str:
+            return self._shallow_copy(values=self.format(), infer=True)
         else:  # pragma: no cover
             raise ValueError('Cannot cast DatetimeIndex to dtype %s' % dtype)
 
@@ -895,7 +891,8 @@ class DatetimeIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
             result = Index.union(this, other)
             if isinstance(result, DatetimeIndex):
                 result.tz = this.tz
-                if result.freq is None:
+                if (result.freq is None and
+                        (this.freq is not None or other.freq is not None)):
                     result.offset = to_offset(result.inferred_freq)
             return result
 

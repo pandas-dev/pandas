@@ -4117,6 +4117,22 @@ MyColumn
                                skipinitialspace=True)
         tm.assert_frame_equal(result, expected)
 
+    def test_bool_header_arg(self):
+        # GH 6114
+        data = """\
+MyColumn
+   a
+   b
+   a
+   b"""
+        for arg in [True, False]:
+            with tm.assertRaises(TypeError):
+                pd.read_csv(StringIO(data), header=arg)
+            with tm.assertRaises(TypeError):
+                pd.read_table(StringIO(data), header=arg)
+            with tm.assertRaises(TypeError):
+                pd.read_fwf(StringIO(data), header=arg)
+
 class TestMiscellaneous(tm.TestCase):
 
     # for tests that don't fit into any of the other classes, e.g. those that

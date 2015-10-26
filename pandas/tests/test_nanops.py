@@ -3,6 +3,7 @@ from __future__ import division, print_function
 
 from functools import partial
 
+import warnings
 import numpy as np
 from pandas import Series
 from pandas.core.common import isnull, is_integer_dtype
@@ -135,7 +136,7 @@ class TestnanopsDataFrame(tm.TestCase):
             return targ, res
 
         try:
-            if axis != 0 and hasattr(targ, 'shape') and targ.ndim:
+            if axis != 0 and hasattr(targ, 'shape') and targ.ndim and targ.shape != res.shape:
                 res = np.split(res, [targ.shape[0]], axis=0)[0]
         except:
             targ, res = _coerce_tds(targ, res)
@@ -364,10 +365,11 @@ class TestnanopsDataFrame(tm.TestCase):
                                     "return dtype expected from %s is %s, got %s instead" % (method, dtype, result.dtype))
 
     def test_nanmedian(self):
-        self.check_funs(nanops.nanmedian, np.median,
-                        allow_complex=False, allow_str=False, allow_date=False,
-                        allow_tdelta=True,
-                        allow_obj='convert')
+        with warnings.catch_warnings(record=True):
+            self.check_funs(nanops.nanmedian, np.median,
+                            allow_complex=False, allow_str=False, allow_date=False,
+                            allow_tdelta=True,
+                            allow_obj='convert')
 
     def test_nanvar(self):
         self.check_funs_ddof(nanops.nanvar, np.var,

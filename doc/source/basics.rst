@@ -1090,7 +1090,7 @@ decreasing.
 
 Note that the same result could have been achieved using
 :ref:`fillna <missing_data.fillna>` (except for ``method='nearest'``) or
-:ref:`interpolate <missing_data.interpolation>`:
+:ref:`interpolate <missing_data.interpolate>`:
 
 .. ipython:: python
 
@@ -1711,36 +1711,26 @@ then the more *general* one will be used as the result of the operation.
 object conversion
 ~~~~~~~~~~~~~~~~~
 
-.. note::
-
-    The syntax of :meth:`~DataFrame.convert_objects`  changed in 0.17.0. See
-    :ref:`API changes <whatsnew_0170.api_breaking.convert_objects>`
-    for more details.
-
-:meth:`~DataFrame.convert_objects` is a method that converts columns from
-the ``object`` dtype to datetimes, timedeltas or floats. For example, to
-attempt conversion of object data that are *number like*, e.g. could be a
-string that represents a number, pass ``numeric=True``. By default, this will
-attempt a soft conversion and so will only succeed if the entire column is
-convertible. To force the conversion, add the keyword argument ``coerce=True``.
-This will force strings and number-like objects to be numbers if
-possible, and other values will be set to ``np.nan``.
+:meth:`~DataFrame.convert_objects` is a method to try to force conversion of types from the ``object`` dtype to other types.
+To force conversion of specific types that are *number like*, e.g. could be a string that represents a number,
+pass ``convert_numeric=True``. This will force strings and numbers alike to be numbers if possible, otherwise
+they will be set to ``np.nan``.
 
 .. ipython:: python
 
    df3['D'] = '1.'
    df3['E'] = '1'
-   df3.convert_objects(numeric=True).dtypes
+   df3.convert_objects(convert_numeric=True).dtypes
 
    # same, but specific dtype conversion
    df3['D'] = df3['D'].astype('float16')
    df3['E'] = df3['E'].astype('int32')
    df3.dtypes
 
-To force conversion to ``datetime64[ns]``, pass ``datetime=True`` and ``coerce=True``.
+To force conversion to ``datetime64[ns]``, pass ``convert_dates='coerce'``.
 This will convert any datetime-like object to dates, forcing other values to ``NaT``.
 This might be useful if you are reading in data which is mostly dates,
-but occasionally contains non-dates that you wish to represent as missing.
+but occasionally has non-dates intermixed and you want to represent as missing.
 
 .. ipython:: python
 
@@ -1749,15 +1739,10 @@ but occasionally contains non-dates that you wish to represent as missing.
                  'foo', 1.0, 1, pd.Timestamp('20010104'),
                  '20010105'], dtype='O')
    s
-   s.convert_objects(datetime=True, coerce=True)
+   s.convert_objects(convert_dates='coerce')
 
-Without passing ``coerce=True``, :meth:`~DataFrame.convert_objects` will attempt
-*soft* conversion of any *object* dtypes, meaning that if all
+In addition, :meth:`~DataFrame.convert_objects` will attempt the *soft* conversion of any *object* dtypes, meaning that if all
 the objects in a Series are of the same type, the Series will have that dtype.
-Note that setting ``coerce=True`` does not *convert* arbitrary types to either
-``datetime64[ns]`` or ``timedelta64[ns]``. For example, a series containing string
-dates will not be converted to a series of datetimes. To convert between types,
-see :ref:`converting to timestamps <timeseries.converting>`.
 
 gotchas
 ~~~~~~~

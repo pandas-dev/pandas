@@ -86,7 +86,7 @@ class CategoricalDtypeType(type):
     pass
 
 class CategoricalDtype(ExtensionDtype):
-    __metaclass__ = CategoricalDtypeType
+
     """
     A np.dtype duck-typed class, suitable for holding a custom categorical dtype.
 
@@ -126,7 +126,7 @@ class DatetimeTZDtypeType(type):
     pass
 
 class DatetimeTZDtype(ExtensionDtype):
-    __metaclass__ = DatetimeTZDtypeType
+
     """
     A np.dtype duck-typed class, suitable for holding a custom datetime with tz dtype.
 
@@ -138,7 +138,7 @@ class DatetimeTZDtype(ExtensionDtype):
     num = 101
     base = np.dtype('M8[ns]')
     _metadata = ['unit','tz']
-    _match = re.compile("datetime64\[(?P<unit>.+), (?P<tz>.+)\]")
+    _match = re.compile("(datetime64|M8)\[(?P<unit>.+), (?P<tz>.+)\]")
 
     def __init__(self, unit, tz=None):
         """
@@ -181,7 +181,7 @@ class DatetimeTZDtype(ExtensionDtype):
 
     def __unicode__(self):
         # format the tz
-        return "datetime64[{unit}, {tz}]".format(unit=self.unit,tz=self.tz)
+        return "datetime64[{unit}, {tz}]".format(unit=self.unit, tz=self.tz)
 
     @property
     def name(self):

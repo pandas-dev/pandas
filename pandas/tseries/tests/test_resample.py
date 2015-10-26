@@ -936,10 +936,24 @@ class TestResample(tm.TestCase):
             mask = np.r_[True, vals[1:] != vals[:-1]]
             mask |= np.r_[True, bins[1:] != bins[:-1]]
 
-            arr = np.bincount(bins[mask] - 1, minlength=len(ix))
+            arr = np.bincount(bins[mask] - 1, minlength=len(ix)).astype('int64',copy=False)
             right = Series(arr, index=ix)
 
             assert_series_equal(left, right)
+
+    def test_resample_size(self):
+        n = 10000
+        dr = date_range('2015-09-19', periods=n, freq='T')
+        ts = Series(np.random.randn(n), index=np.random.choice(dr, n))
+
+        left = ts.resample('7T', how='size')
+        ix = date_range(start=left.index.min(), end=ts.index.max(), freq='7T')
+
+        bins = np.searchsorted(ix.values, ts.index.values, side='right')
+        val = np.bincount(bins, minlength=len(ix) + 1)[1:].astype('int64',copy=False)
+
+        right = Series(val, index=ix)
+        assert_series_equal(left, right)
 
     def test_resmaple_dst_anchor(self):
         # 5172

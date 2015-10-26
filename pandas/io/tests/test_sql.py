@@ -26,6 +26,7 @@ import sys
 import nose
 import warnings
 import numpy as np
+import pandas as pd
 
 from datetime import datetime, date, time
 
@@ -33,6 +34,7 @@ from pandas import DataFrame, Series, Index, MultiIndex, isnull, concat
 from pandas import date_range, to_datetime, to_timedelta, Timestamp
 import pandas.compat as compat
 from pandas.compat import StringIO, range, lrange, string_types
+from pandas.core import common as com
 from pandas.core.datetools import format as date_format
 
 import pandas.io.sql as sql
@@ -951,6 +953,35 @@ class TestSQLApi(SQLAlchemyMixIn, _TestSQLApi):
         tm.assert_frame_equal(test_frame1, test_frame3)
         tm.assert_frame_equal(test_frame1, test_frame4)
 
+    def _make_iris_table_metadata(self):
+        sa = sqlalchemy
+        metadata = sa.MetaData()
+        iris = sa.Table('iris', metadata,
+            sa.Column('SepalLength', sa.REAL),
+            sa.Column('SepalWidth', sa.REAL),
+            sa.Column('PetalLength', sa.REAL),
+            sa.Column('PetalWidth', sa.REAL),
+            sa.Column('Name', sa.TEXT)
+        )
+
+        return iris
+
+    def test_query_by_text_obj(self):
+        # WIP : GH10846
+        name_text = sqlalchemy.text('select * from iris where name=:name')
+        iris_df = sql.read_sql(name_text, self.conn, params={'name': 'Iris-versicolor'})
+        all_names = set(iris_df['Name'])
+        self.assertEqual(all_names, set(['Iris-versicolor']))
+
+    def test_query_by_select_obj(self):
+        # WIP : GH10846
+        iris = self._make_iris_table_metadata()
+
+        name_select = sqlalchemy.select([iris]).where(iris.c.Name == sqlalchemy.bindparam('name'))
+        iris_df = sql.read_sql(name_select, self.conn, params={'name': 'Iris-setosa'})
+        all_names = set(iris_df['Name'])
+        self.assertEqual(all_names, set(['Iris-setosa']))
+
 
 class _EngineToConnMixin(object):
     """
@@ -1218,6 +1249,66 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         # MySQL SHOULD be converted.
         self.assertTrue(issubclass(df.DateCol.dtype.type, np.datetime64),
                         "DateCol loaded with incorrect type")
+
+    def test_datetime_with_timezone(self):
+        # edge case that converts postgresql datetime with time zone types
+        # to datetime64[ns,psycopg2.tz.FixedOffsetTimezone..], which is ok
+        # but should be more natural, so coerce to datetime64[ns] for now
+
+        def check(col):
+            # check that a column is either datetime64[ns]
+            # or datetime64[ns, UTC]
+            if com.is_datetime64_dtype(col.dtype):
+
+                # "2000-01-01 00:00:00-08:00" should convert to "2000-01-01 08:00:00"
+                self.assertEqual(col[0], Timestamp('2000-01-01 08:00:00'))
+
+                # "2000-06-01 00:00:00-07:00" should convert to "2000-06-01 07:00:00"
+                self.assertEqual(col[1], Timestamp('2000-06-01 07:00:00'))
+
+            elif com.is_datetime64tz_dtype(col.dtype):
+                self.assertTrue(str(col.dt.tz) == 'UTC')
+
+                # "2000-01-01 00:00:00-08:00" should convert to "2000-01-01 08:00:00"
+                self.assertEqual(col[0], Timestamp('2000-01-01 08:00:00', tz='UTC'))
+
+                # "2000-06-01 00:00:00-07:00" should convert to "2000-06-01 07:00:00"
+                self.assertEqual(col[1], Timestamp('2000-06-01 07:00:00', tz='UTC'))
+
+            else:
+                raise AssertionError("DateCol loaded with incorrect type -> {0}".format(col.dtype))
+
+        # GH11216
+        df = pd.read_sql_query("select * from types_test_data", self.conn)
+        if not hasattr(df,'DateColWithTz'):
+            raise nose.SkipTest("no column with datetime with time zone")
+
+        # this is parsed on Travis (linux), but not on macosx for some reason
+        # even with the same versions of psycopg2 & sqlalchemy, possibly a Postgrsql server
+        # version difference
+        col = df.DateColWithTz
+        self.assertTrue(com.is_object_dtype(col.dtype) or com.is_datetime64_dtype(col.dtype) \
+                        or com.is_datetime64tz_dtype(col.dtype),
+                        "DateCol loaded with incorrect type -> {0}".format(col.dtype))
+
+        df = pd.read_sql_query("select * from types_test_data", self.conn, parse_dates=['DateColWithTz'])
+        if not hasattr(df,'DateColWithTz'):
+            raise nose.SkipTest("no column with datetime with time zone")
+        check(df.DateColWithTz)
+
+        df = pd.concat(list(pd.read_sql_query("select * from types_test_data",
+                                              self.conn,chunksize=1)),ignore_index=True)
+        col = df.DateColWithTz
+        self.assertTrue(com.is_datetime64tz_dtype(col.dtype),
+                        "DateCol loaded with incorrect type -> {0}".format(col.dtype))
+        self.assertTrue(str(col.dt.tz) == 'UTC')
+        expected = sql.read_sql_table("types_test_data", self.conn)
+        tm.assert_series_equal(df.DateColWithTz, expected.DateColWithTz.astype('datetime64[ns, UTC]'))
+
+        # xref #7139
+        # this might or might not be converted depending on the postgres driver
+        df = sql.read_sql_table("types_test_data", self.conn)
+        check(df.DateColWithTz)
 
     def test_date_parsing(self):
         # No Parsing
@@ -1716,23 +1807,6 @@ class _TestPostgreSQLAlchemy(object):
             res1 = sql.read_sql_table('test_schema_other2', self.conn, schema='other')
             res2 = pdsql.read_table('test_schema_other2')
             tm.assert_frame_equal(res1, res2)
-
-    def test_datetime_with_time_zone(self):
-
-        # Test to see if we read the date column with timezones that
-        # the timezone information is converted to utc and into a
-        # np.datetime64 (GH #7139)
-
-        df = sql.read_sql_table("types_test_data", self.conn)
-        self.assertTrue(issubclass(df.DateColWithTz.dtype.type, np.datetime64),
-                        "DateColWithTz loaded with incorrect type -> {0}".format(df.DateColWithTz.dtype))
-
-        # "2000-01-01 00:00:00-08:00" should convert to "2000-01-01 08:00:00"
-        self.assertEqual(df.DateColWithTz[0], Timestamp('2000-01-01 08:00:00'))
-
-        # "2000-06-01 00:00:00-07:00" should convert to "2000-06-01 07:00:00"
-        self.assertEqual(df.DateColWithTz[1], Timestamp('2000-06-01 07:00:00'))
-
 
 class TestMySQLAlchemy(_TestMySQLAlchemy, _TestSQLAlchemy):
     pass

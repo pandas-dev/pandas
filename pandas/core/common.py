@@ -5,8 +5,6 @@ Misc tools for implementing data structures
 import re
 import collections
 import numbers
-import codecs
-import csv
 import types
 from datetime import datetime, timedelta
 from functools import partial
@@ -19,7 +17,7 @@ import pandas.algos as algos
 import pandas.lib as lib
 import pandas.tslib as tslib
 from pandas import compat
-from pandas.compat import StringIO, BytesIO, range, long, u, zip, map, string_types, iteritems
+from pandas.compat import BytesIO, range, long, u, zip, map, string_types, iteritems
 from pandas.core.dtypes import CategoricalDtype, CategoricalDtypeType, DatetimeTZDtype, DatetimeTZDtypeType
 from pandas.core.config import get_option
 
@@ -446,14 +444,24 @@ def mask_missing(arr, values_to_mask):
     mask = None
     for x in nonna:
         if mask is None:
-            mask = arr == x
+
+            # numpy elementwise comparison warning
+            if is_numeric_v_string_like(arr, x):
+                mask = False
+            else:
+                mask = arr == x
 
             # if x is a string and arr is not, then we get False and we must
             # expand the mask to size arr.shape
             if np.isscalar(mask):
                 mask = np.zeros(arr.shape, dtype=bool)
         else:
-            mask |= arr == x
+
+            # numpy elementwise comparison warning
+            if is_numeric_v_string_like(arr, x):
+                mask |= False
+            else:
+                mask |= arr == x
 
     if na_mask.any():
         if mask is None:
@@ -1073,6 +1081,9 @@ def _maybe_promote(dtype, fill_value=np.nan):
                     fill_value = tslib.iNaT
             else:
                 fill_value = tslib.iNaT
+    elif is_datetimetz(dtype):
+        if isnull(fill_value):
+            fill_value = tslib.iNaT
     elif is_float(fill_value):
         if issubclass(dtype.type, np.bool_):
             dtype = np.object_
@@ -1099,7 +1110,9 @@ def _maybe_promote(dtype, fill_value=np.nan):
 
     # in case we have a string that looked like a number
     if is_categorical_dtype(dtype):
-        dtype = dtype
+        pass
+    elif is_datetimetz(dtype):
+        pass
     elif issubclass(np.dtype(dtype).type, compat.string_types):
         dtype = np.object_
 
@@ -1858,71 +1871,6 @@ def _maybe_box_datetimelike(value):
 _values_from_object = lib.values_from_object
 
 
-def _possibly_convert_objects(values,
-                              datetime=True,
-                              numeric=True,
-                              timedelta=True,
-                              coerce=False,
-                              copy=True):
-    """ if we have an object dtype, try to coerce dates and/or numbers """
-
-    conversion_count = sum((datetime, numeric, timedelta))
-    if conversion_count == 0:
-        import warnings
-        warnings.warn('Must explicitly pass type for conversion. Defaulting to '
-                      'pre-0.17 behavior where datetime=True, numeric=True, '
-                      'timedelta=True and coerce=False', DeprecationWarning)
-        datetime = numeric = timedelta = True
-        coerce = False
-
-    if isinstance(values, (list, tuple)):
-        # List or scalar
-        values = np.array(values, dtype=np.object_)
-    elif not hasattr(values, 'dtype'):
-        values = np.array([values], dtype=np.object_)
-    elif not is_object_dtype(values.dtype):
-        # If not object, do not attempt conversion
-        values = values.copy() if copy else values
-        return values
-
-    # If 1 flag is coerce, ensure 2 others are False
-    if coerce:
-        if conversion_count > 1:
-            raise ValueError("Only one of 'datetime', 'numeric' or "
-                             "'timedelta' can be True when when coerce=True.")
-
-        # Immediate return if coerce
-        if datetime:
-            return pd.to_datetime(values, errors='coerce', box=False)
-        elif timedelta:
-            return pd.to_timedelta(values, errors='coerce', box=False)
-        elif numeric:
-            return lib.maybe_convert_numeric(values, set(), coerce_numeric=True)
-
-    # Soft conversions
-    if datetime:
-        values = lib.maybe_convert_objects(values,
-                                           convert_datetime=datetime)
-
-    if timedelta and is_object_dtype(values.dtype):
-        # Object check to ensure only run if previous did not convert
-        values = lib.maybe_convert_objects(values,
-                                           convert_timedelta=timedelta)
-
-    if numeric and is_object_dtype(values.dtype):
-        try:
-            converted = lib.maybe_convert_numeric(values,
-                                                   set(),
-                                                   coerce_numeric=True)
-            # If all NaNs, then do not-alter
-            values = converted if not isnull(converted).all() else values
-            values = values.copy() if copy else values
-        except:
-            pass
-
-    return values
-
-
 def _possibly_castable(arr):
     # return False to force a non-fastpath
 
@@ -1992,12 +1940,11 @@ def _possibly_cast_to_datetime(value, dtype, errors='raise'):
                     value = tslib.iNaT
 
                 # we have an array of datetime or timedeltas & nulls
-                elif np.prod(value.shape) and not is_dtype_equal(value.dtype, dtype):
+                elif np.prod(value.shape) or not is_dtype_equal(value.dtype, dtype):
                     try:
                         if is_datetime64:
                             value = to_datetime(value, errors=errors)._values
                         elif is_datetime64tz:
-
                             # input has to be UTC at this point, so just localize
                             value = to_datetime(value, errors=errors).tz_localize(dtype.tz)
                         elif is_timedelta64:
@@ -2214,21 +2161,33 @@ def _count_not_none(*args):
 
 
 
-def adjoin(space, *lists):
+def adjoin(space, *lists, **kwargs):
     """
     Glues together two sets of strings using the amount of space requested.
     The idea is to prettify.
+
+    ----------
+    space : int
+        number of spaces for padding
+    lists : str
+        list of str which being joined
+    strlen : callable
+        function used to calculate the length of each str. Needed for unicode
+        handling.
+    justfunc : callable
+        function used to justify str. Needed for unicode handling.
     """
+    strlen = kwargs.pop('strlen', len)
+    justfunc = kwargs.pop('justfunc', _justify)
+
     out_lines = []
     newLists = []
-    lengths = [max(map(len, x)) + space for x in lists[:-1]]
-
+    lengths = [max(map(strlen, x)) + space for x in lists[:-1]]
     # not the last one
     lengths.append(max(map(len, lists[-1])))
-
     maxLen = max(map(len, lists))
     for i, lst in enumerate(lists):
-        nl = [x.ljust(lengths[i]) for x in lst]
+        nl = justfunc(lst, lengths[i], mode='left')
         nl.extend([' ' * lengths[i]] * (maxLen - len(lst)))
         newLists.append(nl)
     toJoin = zip(*newLists)
@@ -2236,6 +2195,16 @@ def adjoin(space, *lists):
         out_lines.append(_join_unicode(lines))
     return _join_unicode(out_lines, sep='\n')
 
+def _justify(texts, max_len, mode='right'):
+    """
+    Perform ljust, center, rjust against string or list-like
+    """
+    if mode == 'left':
+        return [x.ljust(max_len) for x in texts]
+    elif mode == 'center':
+        return [x.center(max_len) for x in texts]
+    else:
+        return [x.rjust(max_len) for x in texts]
 
 def _join_unicode(lines, sep=''):
     try:
@@ -2428,6 +2397,9 @@ is_float = lib.is_float
 is_complex = lib.is_complex
 
 
+def is_string_like(obj):
+    return isinstance(obj, (compat.text_type, compat.string_types))
+
 def is_iterator(obj):
     # python 3 generators have __next__ instead of next
     return hasattr(obj, 'next') or hasattr(obj, '__next__')
@@ -2530,7 +2502,6 @@ def is_int64_dtype(arr_or_dtype):
     tipo = _get_dtype_type(arr_or_dtype)
     return issubclass(tipo, np.int64)
 
-
 def is_int_or_datetime_dtype(arr_or_dtype):
     tipo = _get_dtype_type(arr_or_dtype)
     return (issubclass(tipo, np.integer) or
@@ -2570,6 +2541,27 @@ def is_datetime_or_timedelta_dtype(arr_or_dtype):
     tipo = _get_dtype_type(arr_or_dtype)
     return issubclass(tipo, (np.datetime64, np.timedelta64))
 
+
+def is_numeric_v_string_like(a, b):
+    """
+    numpy doesn't like to compare numeric arrays vs scalar string-likes
+
+    return a boolean result if this is the case for a,b or b,a
+
+    """
+    is_a_array = isinstance(a, np.ndarray)
+    is_b_array = isinstance(b, np.ndarray)
+
+    is_a_numeric_array = is_a_array and is_numeric_dtype(a)
+    is_b_numeric_array = is_b_array and is_numeric_dtype(b)
+
+    is_a_scalar_string_like = not is_a_array and is_string_like(a)
+    is_b_scalar_string_like = not is_b_array and is_string_like(b)
+
+    return (
+        is_a_numeric_array and is_b_scalar_string_like) or (
+        is_b_numeric_array and is_a_scalar_string_like
+        )
 
 def is_datetimelike_v_numeric(a, b):
     # return if we have an i8 convertible and numeric comparision
@@ -2683,6 +2675,9 @@ def is_re_compilable(obj):
 def is_list_like(arg):
      return (hasattr(arg, '__iter__') and
             not isinstance(arg, compat.string_and_binary_types))
+
+def is_named_tuple(arg):
+    return isinstance(arg, tuple) and hasattr(arg, '_fields')
 
 def is_null_slice(obj):
     """ we have a null slice """
@@ -2850,155 +2845,6 @@ def _all_none(*args):
         if arg is not None:
             return False
     return True
-
-
-class UTF8Recoder:
-
-    """
-    Iterator that reads an encoded stream and reencodes the input to UTF-8
-    """
-
-    def __init__(self, f, encoding):
-        self.reader = codecs.getreader(encoding)(f)
-
-    def __iter__(self):
-        return self
-
-    def read(self, bytes=-1):
-        return self.reader.read(bytes).encode('utf-8')
-
-    def readline(self):
-        return self.reader.readline().encode('utf-8')
-
-    def next(self):
-        return next(self.reader).encode("utf-8")
-
-    # Python 3 iterator
-    __next__ = next
-
-
-def _get_handle(path, mode, encoding=None, compression=None):
-    """Gets file handle for given path and mode.
-    NOTE: Under Python 3.2, getting a compressed file handle means reading in
-    the entire file, decompressing it and decoding it to ``str`` all at once
-    and then wrapping it in a StringIO.
-    """
-    if compression is not None:
-        if encoding is not None and not compat.PY3:
-            msg = 'encoding + compression not yet supported in Python 2'
-            raise ValueError(msg)
-
-        if compression == 'gzip':
-            import gzip
-            f = gzip.GzipFile(path, 'rb')
-        elif compression == 'bz2':
-            import bz2
-
-            f = bz2.BZ2File(path, 'rb')
-        else:
-            raise ValueError('Unrecognized compression type: %s' %
-                             compression)
-        if compat.PY3:
-            from io import TextIOWrapper
-            f = TextIOWrapper(f, encoding=encoding)
-        return f
-    else:
-        if compat.PY3:
-            if encoding:
-                f = open(path, mode, encoding=encoding)
-            else:
-                f = open(path, mode, errors='replace')
-        else:
-            f = open(path, mode)
-
-    return f
-
-
-if compat.PY3:  # pragma: no cover
-    def UnicodeReader(f, dialect=csv.excel, encoding="utf-8", **kwds):
-        # ignore encoding
-        return csv.reader(f, dialect=dialect, **kwds)
-
-    def UnicodeWriter(f, dialect=csv.excel, encoding="utf-8", **kwds):
-        return csv.writer(f, dialect=dialect, **kwds)
-else:
-    class UnicodeReader:
-
-        """
-        A CSV reader which will iterate over lines in the CSV file "f",
-        which is encoded in the given encoding.
-
-        On Python 3, this is replaced (below) by csv.reader, which handles
-        unicode.
-        """
-
-        def __init__(self, f, dialect=csv.excel, encoding="utf-8", **kwds):
-            f = UTF8Recoder(f, encoding)
-            self.reader = csv.reader(f, dialect=dialect, **kwds)
-
-        def next(self):
-            row = next(self.reader)
-            return [compat.text_type(s, "utf-8") for s in row]
-
-        # python 3 iterator
-        __next__ = next
-
-        def __iter__(self):  # pragma: no cover
-            return self
-
-    class UnicodeWriter:
-
-        """
-        A CSV writer which will write rows to CSV file "f",
-        which is encoded in the given encoding.
-        """
-
-        def __init__(self, f, dialect=csv.excel, encoding="utf-8", **kwds):
-            # Redirect output to a queue
-            self.queue = StringIO()
-            self.writer = csv.writer(self.queue, dialect=dialect, **kwds)
-            self.stream = f
-            self.encoder = codecs.getincrementalencoder(encoding)()
-            self.quoting = kwds.get("quoting", None)
-
-        def writerow(self, row):
-            def _check_as_is(x):
-                return (self.quoting == csv.QUOTE_NONNUMERIC and
-                        is_number(x)) or isinstance(x, str)
-
-            row = [x if _check_as_is(x)
-                   else pprint_thing(x).encode('utf-8') for x in row]
-
-            self.writer.writerow([s for s in row])
-            # Fetch UTF-8 output from the queue ...
-            data = self.queue.getvalue()
-            data = data.decode("utf-8")
-            # ... and reencode it into the target encoding
-            data = self.encoder.encode(data)
-            # write to the target stream
-            self.stream.write(data)
-            # empty queue
-            self.queue.truncate(0)
-
-        def writerows(self, rows):
-            def _check_as_is(x):
-                return (self.quoting == csv.QUOTE_NONNUMERIC and
-                        is_number(x)) or isinstance(x, str)
-
-            for i, row in enumerate(rows):
-                rows[i] = [x if _check_as_is(x)
-                           else pprint_thing(x).encode('utf-8') for x in row]
-
-            self.writer.writerows([[s for s in row] for row in rows])
-            # Fetch UTF-8 output from the queue ...
-            data = self.queue.getvalue()
-            data = data.decode("utf-8")
-            # ... and reencode it into the target encoding
-            data = self.encoder.encode(data)
-            # write to the target stream
-            self.stream.write(data)
-            # empty queue
-            self.queue.truncate(0)
 
 
 def get_dtype_kinds(l):
@@ -3237,7 +3083,7 @@ def _pprint_seq(seq, _nest_lvl=0, max_seq_items=None, **kwds):
     bounds length of printed sequence, depending on options
     """
     if isinstance(seq, set):
-        fmt = u("set([%s])")
+        fmt = u("{%s}")
     else:
         fmt = u("[%s]") if hasattr(seq, '__setitem__') else u("(%s)")
 

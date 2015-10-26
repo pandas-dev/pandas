@@ -112,7 +112,7 @@ def _groupby_function(name, alias, npfunc, numeric_only=True,
         except Exception:
             result = self.aggregate(lambda x: npfunc(x, axis=self.axis))
             if _convert:
-                result = result.convert_objects(datetime=True)
+                result = result._convert(datetime=True)
             return result
 
     f.__doc__ = "Compute %s of group values" % name
@@ -242,7 +242,7 @@ class Grouper(object):
 
     def _set_grouper(self, obj, sort=False):
         """
-        given an object and the specifcations, setup the internal grouper for this particular specification
+        given an object and the specifications, setup the internal grouper for this particular specification
 
         Parameters
         ----------
@@ -1378,12 +1378,10 @@ class BaseGrouper(object):
         Compute group sizes
 
         """
-        # TODO: better impl
-        labels, _, ngroups = self.group_info
-        bin_counts = algos.value_counts(labels, sort=False)
-        bin_counts = bin_counts.reindex(np.arange(ngroups))
-        bin_counts.index = self.result_index
-        return bin_counts
+        ids, _, ngroup = self.group_info
+        ids = com._ensure_platform_int(ids)
+        out = np.bincount(ids[ids != -1], minlength=ngroup)
+        return Series(out, index=self.result_index, dtype='int64')
 
     @cache_readonly
     def _max_groupsize(self):
@@ -1811,15 +1809,17 @@ class BinGrouper(BaseGrouper):
     @cache_readonly
     def group_info(self):
         ngroups = self.ngroups
-        obs_group_ids = np.arange(ngroups, dtype='int64')
+        obs_group_ids = np.arange(ngroups)
         rep = np.diff(np.r_[0, self.bins])
 
+        rep = com._ensure_platform_int(rep)
         if ngroups == len(self.bins):
-            comp_ids = np.repeat(np.arange(ngroups, dtype='int64'), rep)
+            comp_ids = np.repeat(np.arange(ngroups), rep)
         else:
-            comp_ids = np.repeat(np.r_[-1, np.arange(ngroups, dtype='int64')], rep)
+            comp_ids = np.repeat(np.r_[-1, np.arange(ngroups)], rep)
 
-        return comp_ids, obs_group_ids, ngroups
+        return comp_ids.astype('int64', copy=False), \
+            obs_group_ids.astype('int64', copy=False), ngroups
 
     @cache_readonly
     def ngroups(self):
@@ -1844,24 +1844,6 @@ class BinGrouper(BaseGrouper):
     def groupings(self):
         # for compat
         return None
-
-    def size(self):
-        """
-        Compute group sizes
-
-        """
-        index = self.result_index
-        base = Series(np.zeros(len(index), dtype=np.int64), index=index)
-        indices = self.indices
-        for k, v in compat.iteritems(indices):
-            indices[k] = len(v)
-        bin_counts = Series(indices, dtype=np.int64)
-        # make bin_counts.index to have same name to preserve it
-        bin_counts.index.name = index.name
-        result = base.add(bin_counts, fill_value=0)
-        # addition with fill_value changes dtype to float64
-        result = result.astype(np.int64)
-        return result
 
     #----------------------------------------------------------------------
     # cython aggregation
@@ -1980,7 +1962,7 @@ class Grouping(object):
 
                         # technically we cannot group on an unordered Categorical
                         # but this a user convenience to do so; the ordering
-                        # is preserved and if its a reduction is doesnt't make any difference
+                        # is preserved and if it's a reduction it doesn't make any difference
                         pass
 
                 # fix bug #GH8868 sort=False being ignored in categorical groupby
@@ -2087,7 +2069,7 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True):
     Groupers enable local references to axis,level,sort, while
     the passed in axis, level, and sort are 'global'.
 
-    This routine tries to figure of what the passing in references
+    This routine tries to figure out what the passing in references
     are and then creates a Grouping for each one, combined into
     a BaseGrouper.
 
@@ -2095,7 +2077,7 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True):
 
     group_axis = obj._get_axis(axis)
 
-    # validate thatthe passed level is compatible with the passed
+    # validate that the passed level is compatible with the passed
     # axis of the object
     if level is not None:
         if not isinstance(group_axis, MultiIndex):
@@ -2109,7 +2091,7 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True):
             level = None
             key = group_axis
 
-    # a passed in Grouper, directly convert
+    # a passed-in Grouper, directly convert
     if isinstance(key, Grouper):
         binner, grouper, obj = key._get_grouper(obj)
         if key.key is None:
@@ -2129,6 +2111,7 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True):
     # what are we after, exactly?
     match_axis_length = len(keys) == len(group_axis)
     any_callable = any(callable(g) or isinstance(g, dict) for g in keys)
+    any_groupers = any(isinstance(g, Grouper) for g in keys)
     any_arraylike = any(isinstance(g, (list, tuple, Series, Index, np.ndarray))
                         for g in keys)
 
@@ -2141,7 +2124,8 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True):
         all_in_columns = False
 
     if (not any_callable and not all_in_columns
-        and not any_arraylike and match_axis_length
+        and not any_arraylike and not any_groupers
+            and match_axis_length
             and level is None):
         keys = [com._asarray_tuplesafe(keys)]
 
@@ -2512,13 +2496,19 @@ class SeriesGroupBy(GroupBy):
         if isinstance(func, compat.string_types):
             func = getattr(self,func)
 
-        values = func().values
-        counts = self.size().fillna(0).values
-        values = np.repeat(values, com._ensure_platform_int(counts))
-        if any(counts == 0):
-            values = self._try_cast(values, self._selected_obj)
+        ids, _, ngroup = self.grouper.group_info
+        mask = ids != -1
 
-        return self._set_result_index_ordered(Series(values))
+        out = func().values[ids]
+        if not mask.all():
+            out = np.where(mask, out, np.nan)
+
+        obs = np.zeros(ngroup, dtype='bool')
+        obs[ids[mask]] = True
+        if not obs.all():
+            out = self._try_cast(out, self._selected_obj)
+
+        return Series(out, index=self.obj.index)
 
     def filter(self, func, dropna=True, *args, **kwargs):
         """
@@ -2578,10 +2568,10 @@ class SeriesGroupBy(GroupBy):
 
         ids, val = ids[sorter], val[sorter]
 
-        # group boundries are where group ids change
+        # group boundaries are where group ids change
         # unique observations are where sorted values change
-        idx = com._ensure_int64(np.r_[0, 1 + np.nonzero(ids[1:] != ids[:-1])[0]])
-        inc = com._ensure_int64(np.r_[1, val[1:] != val[:-1]])
+        idx = np.r_[0, 1 + np.nonzero(ids[1:] != ids[:-1])[0]]
+        inc = np.r_[1, val[1:] != val[:-1]]
 
         # 1st item of each group is a new unique observation
         mask = isnull(val)
@@ -2592,7 +2582,7 @@ class SeriesGroupBy(GroupBy):
             inc[mask & np.r_[False, mask[:-1]]] = 0
             inc[idx] = 1
 
-        out = np.add.reduceat(inc, idx)
+        out = np.add.reduceat(inc, idx).astype('int64', copy=False)
         return Series(out if ids[0] != -1 else out[1:],
                       index=self.grouper.result_index,
                       name=self.name)
@@ -2601,7 +2591,7 @@ class SeriesGroupBy(GroupBy):
     @Appender(Series.nlargest.__doc__)
     def nlargest(self, n=5, keep='first'):
         # ToDo: When we remove deprecate_kwargs, we can remote these methods
-        # and inlucde nlargest and nsmallest to _series_apply_whitelist
+        # and include nlargest and nsmallest to _series_apply_whitelist
         return self.apply(lambda x: x.nlargest(n=n, keep=keep))
 
 
@@ -2644,12 +2634,12 @@ class SeriesGroupBy(GroupBy):
         sorter = np.lexsort((lab, ids))
         ids, lab = ids[sorter], lab[sorter]
 
-        # group boundries are where group ids change
+        # group boundaries are where group ids change
         idx = np.r_[0, 1 + np.nonzero(ids[1:] != ids[:-1])[0]]
 
         # new values are where sorted labels change
         inc = np.r_[True, lab[1:] != lab[:-1]]
-        inc[idx] = True  # group boundries are also new values
+        inc[idx] = True  # group boundaries are also new values
         out = np.diff(np.nonzero(np.r_[inc, True])[0]) # value counts
 
         # num. of times each group should be repeated
@@ -2681,6 +2671,8 @@ class SeriesGroupBy(GroupBy):
             mi = MultiIndex(levels=levels, labels=labels, names=names,
                             verify_integrity=False)
 
+            if com.is_integer_dtype(out):
+                out = com._ensure_int64(out)
             return Series(out, index=mi)
 
         # for compat. with algos.value_counts need to ensure every
@@ -2710,6 +2702,8 @@ class SeriesGroupBy(GroupBy):
         mi = MultiIndex(levels=levels, labels=labels, names=names,
                         verify_integrity=False)
 
+        if com.is_integer_dtype(out):
+            out = com._ensure_int64(out)
         return Series(out, index=mi)
 
     def count(self):
@@ -2718,9 +2712,10 @@ class SeriesGroupBy(GroupBy):
         val = self.obj.get_values()
 
         mask = (ids != -1) & ~isnull(val)
+        ids = com._ensure_platform_int(ids)
         out = np.bincount(ids[mask], minlength=ngroups) if ngroups != 0 else []
 
-        return Series(out, index=self.grouper.result_index, name=self.name)
+        return Series(out, index=self.grouper.result_index, name=self.name, dtype='int64')
 
     def _apply_to_column_groupbys(self, func):
         """ return a pass thru """
@@ -2887,7 +2882,7 @@ class NDFrameGroupBy(GroupBy):
             self._insert_inaxis_grouper_inplace(result)
             result.index = np.arange(len(result))
 
-        return result.convert_objects(datetime=True)
+        return result._convert(datetime=True)
 
     def _aggregate_multiple_funcs(self, arg):
         from pandas.tools.merge import concat
@@ -2924,8 +2919,6 @@ class NDFrameGroupBy(GroupBy):
         if axis != obj._info_axis_number:
             try:
                 for name, data in self:
-                    # for name in self.indices:
-                    #     data = self.get_group(name, obj=obj)
                     result[name] = self._try_cast(func(data, *args, **kwargs),
                                                   data)
             except Exception:
@@ -3128,14 +3121,14 @@ class NDFrameGroupBy(GroupBy):
                 # as we are stacking can easily have object dtypes here
                 if (self._selected_obj.ndim == 2 and
                         self._selected_obj.dtypes.isin(_DATELIKE_DTYPES).any()):
-                    result = result.convert_objects(numeric=True)
+                    result = result._convert(numeric=True)
                     date_cols = self._selected_obj.select_dtypes(
                         include=list(_DATELIKE_DTYPES)).columns
                     result[date_cols] = (result[date_cols]
-                                         .convert_objects(datetime=True,
+                                         ._convert(datetime=True,
                                                           coerce=True))
                 else:
-                    result = result.convert_objects(datetime=True)
+                    result = result._convert(datetime=True)
 
                 return self._reindex_output(result)
 
@@ -3143,7 +3136,7 @@ class NDFrameGroupBy(GroupBy):
                 # only coerce dates if we find at least 1 datetime
                 coerce = True if any([ isinstance(v,Timestamp) for v in values ]) else False
                 return (Series(values, index=key_index)
-                        .convert_objects(datetime=True,
+                        ._convert(datetime=True,
                                          coerce=coerce))
 
         else:
@@ -3248,7 +3241,7 @@ class NDFrameGroupBy(GroupBy):
             results = self._try_cast(results, obj[result.columns])
 
         return (DataFrame(results,columns=result.columns,index=obj.index)
-                .convert_objects(datetime=True))
+                ._convert(datetime=True))
 
     def _define_paths(self, func, *args, **kwargs):
         if isinstance(func, compat.string_types):
@@ -3441,7 +3434,7 @@ class DataFrameGroupBy(NDFrameGroupBy):
         if self.axis == 1:
             result = result.T
 
-        return self._reindex_output(result).convert_objects(datetime=True)
+        return self._reindex_output(result)._convert(datetime=True)
 
     def _wrap_agged_blocks(self, items, blocks):
         if not self.as_index:
@@ -3459,7 +3452,7 @@ class DataFrameGroupBy(NDFrameGroupBy):
         if self.axis == 1:
             result = result.T
 
-        return self._reindex_output(result).convert_objects(datetime=True)
+        return self._reindex_output(result)._convert(datetime=True)
 
     def _reindex_output(self, result):
         """
@@ -3747,17 +3740,24 @@ def get_group_index(labels, shape, sort, xnull):
     sort: boolean
         If the ranks of returned ids should match lexical ranks of labels
     xnull: boolean
-        If true nulls are eXcluded. i.e. -1 values in the labels are
+        If true nulls are excluded. i.e. -1 values in the labels are
         passed through
     Returns
     -------
     An array of type int64 where two elements are equal if their corresponding
     labels are equal at all location.
     """
+    def _int64_cut_off(shape):
+        acc = long(1)
+        for i, mul in enumerate(shape):
+            acc *= long(mul)
+            if not acc < _INT64_MAX:
+                return i
+        return len(shape)
+
     def loop(labels, shape):
         # how many levels can be done without overflow:
-        pred = lambda i: not _int64_overflow_possible(shape[:i])
-        nlev = next(filter(pred, range(len(shape), 0, -1)))
+        nlev = _int64_cut_off(shape)
 
         # compute flat ids for the first `nlev` levels
         stride = np.prod(shape[1:nlev], dtype='i8')

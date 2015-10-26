@@ -513,7 +513,7 @@ class NDFrame(PandasObject):
     def squeeze(self):
         """ squeeze length 1 dimensions """
         try:
-            return self.ix[tuple([slice(None) if len(a) > 1 else a[0]
+            return self.iloc[tuple([0 if len(a) == 1 else slice(None)
                                   for a in self.axes])]
         except:
             return self
@@ -1777,7 +1777,9 @@ class NDFrame(PandasObject):
             New labels / index to conform to. Preferably an Index object to
             avoid duplicating data
         method : {None, 'backfill'/'bfill', 'pad'/'ffill', 'nearest'}, optional
-            Method to use for filling holes in reindexed DataFrame:
+            method to use for filling holes in reindexed DataFrame.
+            Please note: this is only  applicable to DataFrames/Series with a 
+            monotonically increasing/decreasing index.
               * default: don't fill gaps
               * pad / ffill: propagate last valid observation forward to next valid
               * backfill / bfill: use next valid observation to fill gap
@@ -1801,7 +1803,118 @@ class NDFrame(PandasObject):
 
         Examples
         --------
-        >>> df.reindex(index=[date1, date2, date3], columns=['A', 'B', 'C'])
+
+        Create a dataframe with some fictional data.
+
+        >>> index = ['Firefox', 'Chrome', 'Safari', 'IE10', 'Konqueror']
+        >>> df = pd.DataFrame({
+        ...      'http_status': [200,200,404,404,301],
+        ...      'response_time': [0.04, 0.02, 0.07, 0.08, 1.0]},
+        ...       index=index)
+        >>> df
+                    http_status  response_time
+        Firefox            200           0.04
+        Chrome             200           0.02
+        Safari             404           0.07
+        IE10               404           0.08
+        Konqueror          301           1.00
+
+        Create a new index and reindex the dataframe. By default
+        values in the new index that do not have corresponding
+        records in the dataframe are assigned ``NaN``. 
+
+        >>> new_index= ['Safari', 'Iceweasel', 'Comodo Dragon', 'IE10',
+        ...             'Chrome']
+        >>> df.reindex(new_index)
+                       http_status  response_time
+        Safari                 404           0.07
+        Iceweasel              NaN            NaN
+        Comodo Dragon          NaN            NaN
+        IE10                   404           0.08
+        Chrome                 200           0.02
+
+        We can fill in the missing values by passing a value to
+        the keyword ``fill_value``. Because the index is not monotonically
+        increasing or decreasing, we cannot use arguments to the keyword  
+        ``method`` to fill the ``NaN`` values. 
+
+        >>> df.reindex(new_index, fill_value=0)
+                       http_status  response_time
+        Safari                 404           0.07
+        Iceweasel                0           0.00
+        Comodo Dragon            0           0.00
+        IE10                   404           0.08
+        Chrome                 200           0.02
+
+        >>> df.reindex(new_index, fill_value='missing')
+                      http_status response_time
+        Safari                404          0.07
+        Iceweasel         missing       missing
+        Comodo Dragon     missing       missing
+        IE10                  404          0.08
+        Chrome                200          0.02
+
+        To further illustrate the filling functionality in 
+        ``reindex``, we will create a dataframe with a 
+        monotonically increasing index (for example, a sequence
+        of dates).
+
+        >>> date_index = pd.date_range('1/1/2010', periods=6, freq='D')
+        >>> df2 = pd.DataFrame({"prices": [100, 101, np.nan, 100, 89, 88]},
+                index=date_index)
+        >>> df2
+                    prices
+        2010-01-01     100
+        2010-01-02     101
+        2010-01-03     NaN
+        2010-01-04     100
+        2010-01-05      89
+        2010-01-06      88
+
+        Suppose we decide to expand the dataframe to cover a wider
+        date range. 
+
+        >>> date_index2 = pd.date_range('12/29/2009', periods=10, freq='D')
+        >>> df2.reindex(date_index2)
+                    prices
+        2009-12-29     NaN
+        2009-12-30     NaN
+        2009-12-31     NaN
+        2010-01-01     100
+        2010-01-02     101
+        2010-01-03     NaN
+        2010-01-04     100
+        2010-01-05      89
+        2010-01-06      88
+        2010-01-07     NaN
+
+        The index entries that did not have a value in the original data frame
+        (for example, '2009-12-29') are by default filled with ``NaN``. 
+        If desired, we can fill in the missing values using one of several
+        options. 
+        
+        For example, to backpropagate the last valid value to fill the ``NaN``
+        values, pass ``bfill`` as an argument to the ``method`` keyword.
+
+        >>> df2.reindex(date_index2, method='bfill')
+                    prices
+        2009-12-29     100
+        2009-12-30     100
+        2009-12-31     100
+        2010-01-01     100
+        2010-01-02     101
+        2010-01-03     NaN
+        2010-01-04     100
+        2010-01-05      89
+        2010-01-06      88
+        2010-01-07     NaN
+
+        Please note that the ``NaN`` value present in the original dataframe
+        (at index value 2010-01-03) will not be filled by any of the 
+        value propagation schemes. This is because filling while reindexing
+        does not look at dataframe values, but only compares the original and
+        desired indexes. If you do want to fill in the ``NaN`` values present
+        in the original dataframe, use the ``fillna()`` method.
 
         Returns
         -------
@@ -2534,11 +2647,8 @@ class NDFrame(PandasObject):
         data = self._data.copy(deep=deep)
         return self._constructor(data).__finalize__(self)
 
-    @deprecate_kwarg(old_arg_name='convert_dates', new_arg_name='datetime')
-    @deprecate_kwarg(old_arg_name='convert_numeric', new_arg_name='numeric')
-    @deprecate_kwarg(old_arg_name='convert_timedeltas', new_arg_name='timedelta')
-    def convert_objects(self, datetime=False, numeric=False,
-                        timedelta=False, coerce=False, copy=True):
+    def _convert(self, datetime=False, numeric=False, timedelta=False,
+                 coerce=False, copy=True):
         """
         Attempt to infer better dtype for object columns
 
@@ -2563,31 +2673,48 @@ class NDFrame(PandasObject):
         -------
         converted : same as input object
         """
-
-        # Deprecation code to handle usage change
-        issue_warning = False
-        if datetime == 'coerce':
-            datetime = coerce = True
-            numeric = timedelta = False
-            issue_warning = True
-        elif numeric == 'coerce':
-            numeric = coerce = True
-            datetime = timedelta = False
-            issue_warning = True
-        elif timedelta == 'coerce':
-            timedelta = coerce = True
-            datetime = numeric = False
-            issue_warning = True
-        if issue_warning:
-            warnings.warn("The use of 'coerce' as an input is deprecated. "
-                          "Instead set coerce=True.",
-                          FutureWarning)
-
         return self._constructor(
             self._data.convert(datetime=datetime,
-                               numeric=numeric,
-                               timedelta=timedelta,
-                               coerce=coerce,
+                                numeric=numeric,
+                                timedelta=timedelta,
+                                coerce=coerce,
+                                copy=copy)).__finalize__(self)
+
+    # TODO: Remove in 0.18 or 2017, which ever is sooner
+    def convert_objects(self, convert_dates=True, convert_numeric=False,
+                        convert_timedeltas=True, copy=True):
+        """
+        Attempt to infer better dtype for object columns
+
+        Parameters
+        ----------
+        convert_dates : boolean, default True
+            If True, convert to date where possible. If 'coerce', force
+            conversion, with unconvertible values becoming NaT.
+        convert_numeric : boolean, default False
+            If True, attempt to coerce to numbers (including strings), with
+            unconvertible values becoming NaN.
+        convert_timedeltas : boolean, default True
+            If True, convert to timedelta where possible. If 'coerce', force
+            conversion, with unconvertible values becoming NaT.
+        copy : boolean, default True
+            If True, return a copy even if no copy is necessary (e.g. no
+            conversion was done). Note: This is meant for internal use, and
+            should not be confused with inplace.
+
+        Returns
+        -------
+        converted : same as input object
+        """
+        from warnings import warn
+        warn("convert_objects is deprecated.  Use the data-type specific "
+             "converters pd.to_datetime, pd.to_timedelta and pd.to_numeric.",
+             FutureWarning, stacklevel=2)
+
+        return self._constructor(
+            self._data.convert(convert_dates=convert_dates,
+                               convert_numeric=convert_numeric,
+                               convert_timedeltas=convert_timedeltas,
                                copy=copy)).__finalize__(self)
 
     #----------------------------------------------------------------------
@@ -2984,8 +3111,6 @@ class NDFrame(PandasObject):
                     msg = ('Invalid "to_replace" type: '
                            '{0!r}').format(type(to_replace).__name__)
                     raise TypeError(msg)  # pragma: no cover
-
-        new_data = new_data.convert(copy=not inplace, numeric=False)
 
         if inplace:
             self._update_inplace(new_data)

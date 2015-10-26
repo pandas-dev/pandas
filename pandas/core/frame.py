@@ -52,6 +52,8 @@ from pandas.util.decorators import (cache_readonly, deprecate, Appender,
 
 from pandas.tseries.period import PeriodIndex
 from pandas.tseries.index import DatetimeIndex
+from pandas.tseries.tdi import TimedeltaIndex
+
 
 import pandas.core.algorithms as algos
 import pandas.core.base as base
@@ -259,6 +261,8 @@ class DataFrame(NDFrame):
                 data = list(data)
             if len(data) > 0:
                 if is_list_like(data[0]) and getattr(data[0], 'ndim', 1) == 1:
+                    if com.is_named_tuple(data[0]) and columns is None:
+                        columns = data[0]._fields
                     arrays, columns = _to_arrays(data, columns, dtype=dtype)
                     columns = _ensure_index(columns)
 
@@ -597,7 +601,7 @@ class DataFrame(NDFrame):
         Notes
         -----
 
-        1. Because ``iterrows` returns a Series for each row,
+        1. Because ``iterrows`` returns a Series for each row,
            it does **not** preserve dtypes across the rows (dtypes are
            preserved across columns for DataFrames). For example,
 
@@ -800,11 +804,12 @@ class DataFrame(NDFrame):
         elif orient.lower().startswith('sp'):
             return {'index': self.index.tolist(),
                     'columns': self.columns.tolist(),
-                    'data': self.values.tolist()}
+                    'data': lib.map_infer(self.values.ravel(), _maybe_box_datetimelike)
+                    .reshape(self.values.shape).tolist()}
         elif orient.lower().startswith('s'):
-            return dict((k, v) for k, v in compat.iteritems(self))
+            return dict((k, _maybe_box_datetimelike(v)) for k, v in compat.iteritems(self))
         elif orient.lower().startswith('r'):
-            return [dict((k, v) for k, v in zip(self.columns, row))
+            return [dict((k, _maybe_box_datetimelike(v)) for k, v in zip(self.columns, row))
                     for row in self.values]
         elif orient.lower().startswith('i'):
             return dict((k, v.to_dict()) for k, v in self.iterrows())
@@ -1208,7 +1213,7 @@ class DataFrame(NDFrame):
 
     def to_csv(self, path_or_buf=None, sep=",", na_rep='', float_format=None,
                columns=None, header=True, index=True, index_label=None,
-               mode='w', encoding=None, quoting=None,
+               mode='w', encoding=None, compression=None, quoting=None, 
                quotechar='"', line_terminator='\n', chunksize=None,
                tupleize_cols=False, date_format=None, doublequote=True,
                escapechar=None, decimal='.', **kwds):
@@ -1245,6 +1250,10 @@ class DataFrame(NDFrame):
         encoding : string, optional
             A string representing the encoding to use in the output file,
             defaults to 'ascii' on Python 2 and 'utf-8' on Python 3.
+        compression : string, optional
+            a string representing the compression to use in the output file, 
+            allowed values are 'gzip', 'bz2',
+            only used when the first argument is a filename
         line_terminator : string, default '\\n'
             The newline character or character sequence to use in the output
             file
@@ -1273,6 +1282,7 @@ class DataFrame(NDFrame):
         formatter = fmt.CSVFormatter(self, path_or_buf,
                                      line_terminator=line_terminator,
                                      sep=sep, encoding=encoding,
+                                     compression=compression,
                                      quoting=quoting, na_rep=na_rep,
                                      float_format=float_format, cols=columns,
                                      header=header, index=index,
@@ -1918,7 +1928,7 @@ class DataFrame(NDFrame):
         if self.columns.is_unique:
             return self._get_item_cache(key)
 
-        # duplicate columns & possible reduce dimensionaility
+        # duplicate columns & possible reduce dimensionality
         result = self._constructor(self._data.get(key))
         if result.columns.is_unique:
             result = result[key]
@@ -2984,13 +2994,7 @@ class DataFrame(NDFrame):
         from pandas.hashtable import duplicated_int64, _SIZE_HINT_LIMIT
 
         def f(vals):
-
-            # if we have integers we can directly index with these
-            if com.is_integer_dtype(vals):
-                from pandas.core.nanops import unique1d
-                labels, shape = vals, unique1d(vals)
-            else:
-                labels, shape = factorize(vals, size_hint=min(len(self), _SIZE_HINT_LIMIT))
+            labels, shape = factorize(vals, size_hint=min(len(self), _SIZE_HINT_LIMIT))
             return labels.astype('i8',copy=False), len(shape)
 
         if subset is None:
@@ -3149,6 +3153,15 @@ class DataFrame(NDFrame):
                                        na_position=na_position)
         else:
             from pandas.core.groupby import _nargsort
+
+            # GH11080 - Check monotonic-ness before sort an index
+            # if monotonic (already sorted), return None or copy() according to 'inplace'
+            if (ascending and labels.is_monotonic_increasing) or \
+               (not ascending and labels.is_monotonic_decreasing):
+                if inplace:
+                    return
+                else:
+                    return self.copy()
 
             indexer = _nargsort(labels, kind=kind, ascending=ascending,
                                 na_position=na_position)
@@ -3541,9 +3554,8 @@ class DataFrame(NDFrame):
         # convert_objects just in case
         return self._constructor(result,
                                  index=new_index,
-                                 columns=new_columns).convert_objects(
-            datetime=True,
-            copy=False)
+                                 columns=new_columns)._convert(datetime=True,
+                                                               copy=False)
 
     def combine_first(self, other):
         """
@@ -4024,9 +4036,7 @@ class DataFrame(NDFrame):
 
             if axis == 1:
                 result = result.T
-            result = result.convert_objects(datetime=True,
-                                            timedelta=True,
-                                            copy=False)
+            result = result._convert(datetime=True, timedelta=True, copy=False)
 
         else:
 
@@ -4156,7 +4166,7 @@ class DataFrame(NDFrame):
             other = DataFrame(other.values.reshape((1, len(other))),
                               index=index,
                               columns=combined_columns)
-            other = other.convert_objects(datetime=True, timedelta=True)
+            other = other._convert(datetime=True, timedelta=True)
 
             if not self.columns.equals(combined_columns):
                 self = self.reindex(columns=combined_columns)
@@ -4265,12 +4275,12 @@ class DataFrame(NDFrame):
     @Appender(_merge_doc, indents=2)
     def merge(self, right, how='inner', on=None, left_on=None, right_on=None,
               left_index=False, right_index=False, sort=False,
-              suffixes=('_x', '_y'), copy=True):
+              suffixes=('_x', '_y'), copy=True, indicator=False):
         from pandas.tools.merge import merge
         return merge(self, right, how=how, on=on,
                      left_on=left_on, right_on=right_on,
                      left_index=left_index, right_index=right_index, sort=sort,
-                     suffixes=suffixes, copy=copy)
+                     suffixes=suffixes, copy=copy, indicator=indicator)
 
     def round(self, decimals=0, out=None):
         """
@@ -4625,7 +4635,7 @@ class DataFrame(NDFrame):
                 values = self.values
             result = f(values)
 
-        if is_object_dtype(result.dtype):
+        if hasattr(result, 'dtype') and is_object_dtype(result.dtype):
             try:
                 if filter_type is None or filter_type == 'numeric':
                     result = result.astype(np.float64)
@@ -5400,8 +5410,13 @@ def _homogenize(data, index, dtype=None):
                 v = v.reindex(index, copy=False)
         else:
             if isinstance(v, dict):
-                v = _dict_compat(v)
-                oindex = index.astype('O')
+                if oindex is None:
+                    oindex = index.astype('O')
+
+                if isinstance(index, (DatetimeIndex, TimedeltaIndex)):
+                    v = _dict_compat(v)
+                else:
+                    v = dict(v)
                 v = lib.fast_multiget(v, oindex.values, default=NA)
             v = _sanitize_array(v, index, dtype=dtype, copy=False,
                                 raise_cast_failure=False)

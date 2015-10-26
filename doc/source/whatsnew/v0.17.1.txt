@@ -1,0 +1,117 @@
+.. _whatsnew_0171:
+
+v0.17.1 (November ??, 2015)
+---------------------------
+
+This is a minor bug-fix release from 0.17.0 and includes a a large number of
+bug fixes along several new features, enhancements, and performance improvements.
+We recommend that all users upgrade to this version.
+
+Highlights include:
+
+.. contents:: What's new in v0.17.1
+    :local:
+    :backlinks: none
+
+.. _whatsnew_0171.enhancements:
+
+Enhancements
+~~~~~~~~~~~~
+- ``DatetimeIndex`` now supports conversion to strings with astype(str) (:issue:`10442`)
+
+- Support for ``compression`` (gzip/bz2) in :meth:`pandas.DataFrame.to_csv` (:issue:`7615`)
+- Improve the error message in :func:`pandas.io.gbq.to_gbq` when a streaming insert fails (:issue:`11285`)
+- ``pd.read_*`` functions can now also accept :class:`python:pathlib.Path`, or :class:`py:py._path.local.LocalPath`
+  objects for the ``filepath_or_buffer`` argument. (:issue:`11033`)
+- ``DataFrame`` now uses the fields of a ``namedtuple`` as columns, if columns are not supplied (:issue:`11181`)
+- Improve the error message displayed in :func:`pandas.io.gbq.to_gbq` when the DataFrame does not match the schema of the destination table (:issue:`11359`)
+
+.. _whatsnew_0171.api:
+
+API changes
+~~~~~~~~~~~
+
+- min and max reductions on ``datetime64`` and ``timedelta64`` dtyped series now
+  result in ``NaT`` and not ``nan`` (:issue:`11245`).
+- Regression from 0.16.2 for output formatting of long floats/nan, restored in (:issue:`11302`)
+- Prettyprinting sets (e.g. in DataFrame cells) now uses set literal syntax (``{x, y}``) instead of
+  Legacy Python syntax (``set([x, y])``) (:issue:`11215`)
+- Indexing with a null key will raise a ``TypeError``, instead of a ``ValueError`` (:issue:`11356`)
+
+.. _whatsnew_0171.deprecations:
+
+Deprecations
+^^^^^^^^^^^^
+
+- The ``pandas.io.ga`` module which implements ``google-analytics`` support is deprecated and will be removed in a future version (:issue:`11308`)
+- Deprecate the ``engine`` keyword from ``.to_csv()``, which will be removed in a future version (:issue:`11274`)
+
+
+.. _whatsnew_0171.performance:
+
+Performance Improvements
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+- Checking monotonic-ness before sorting on an index (:issue:`11080`)
+- ``Series.dropna`` performance improvement when its dtype can't contain ``NaN`` (:issue:`11159`)
+
+
+- Release the GIL on most datetime field operations (e.g. ``DatetimeIndex.year``, ``Series.dt.year``), normalization, and conversion to and from ``Period``, ``DatetimeIndex.to_period`` and ``PeriodIndex.to_timestamp`` (:issue:`11263`)
+
+
+- Improved performance to ``to_excel`` (:issue:`11352`)
+
+.. _whatsnew_0171.bug_fixes:
+
+Bug Fixes
+~~~~~~~~~
+
+- Bug in ``.to_latex()`` output broken when the index has a name (:issue: `10660`)
+- Bug in ``HDFStore.append`` with strings whose encoded length exceded the max unencoded length (:issue:`11234`)
+- Bug in merging ``datetime64[ns, tz]`` dtypes (:issue:`11405`)
+- Bug in ``HDFStore.select`` when comparing with a numpy scalar in a where clause (:issue:`11283`)
+
+
+
+- Bug in tz-conversions with an ambiguous time and ``.dt`` accessors (:issue:`11295`)
+- Bug in comparisons of Series vs list-likes (:issue:`11339`)
+
+
+- Bug in ``DataFrame.replace`` with a ``datetime64[ns, tz]`` and a non-compat to_replace (:issue:`11326`, :issue:`11153`)
+
+- Bug in list-like indexing with a mixed-integer Index (:issue:`11320`)
+
+- Bug in ``pivot_table`` with ``margins=True`` when indexes are of ``Categorical`` dtype (:issue:`10993`)
+- Bug in ``DataFrame.plot`` cannot use hex strings colors (:issue:`10299`)
+
+- Bug in ``DataFrame.drop_duplicates`` (regression from 0.16.2) causing some non-duplicate rows containing integer values to be dropped (:issue:`11376`)
+
+
+- Bug in ``pd.eval`` where unary ops in a list error (:issue:`11235`)
+- Bug in ``squeeze()`` with zero length arrays (:issue:`11230`, :issue:`8999`)
+
+
+
+
+
+
+
+
+
+
+
+
+- Bug in ``DataFrame.to_latex()`` produces an extra rule when ``header=False`` (:issue:`7124`)
+
+
+- Bug in ``pandas.json`` when file to load is big (:issue:`11344`)
+- Bugs in ``to_excel`` with duplicate columns (:issue:`11007`, :issue:`10982`, :issue:`10970`)
+
+- Fixed a bug that prevented the construction of an empty series of dtype
+  ``datetime64[ns, tz]`` (:issue:`11245`).
+
+- Bug in ``read_excel`` with multi-index containing integers (:issue:`11317`)
+
+- Bug in ``to_excel`` with openpyxl 2.2+ and merging (:issue:`11408`)
+
+- Bug in ``DataFrame.to_dict()`` produces a ``np.datetime64`` object instead of ``Timestamp`` when only datetime is present in data (:issue:`11327`)

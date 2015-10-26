@@ -1,12 +1,6 @@
-import ast
 from datetime import datetime
-import json
 import nose
-import os
 import pytz
-import shutil
-import subprocess
-import sys
 import platform
 from time import sleep
 
@@ -16,12 +10,15 @@ from distutils.version import StrictVersion
 from pandas import compat
 
 from pandas import NaT
-from pandas.compat import u
+from pandas.compat import u, range
 from pandas.core.frame import DataFrame
 import pandas.io.gbq as gbq
 import pandas.util.testing as tm
 
 PROJECT_ID = None
+DATASET_ID = 'pydata_pandas_bq_testing'
+TABLE_ID = 'new_test'
+DESTINATION_TABLE = "{0}.{1}".format(DATASET_ID + "1", TABLE_ID)
 
 VERSION = platform.python_version()
 
@@ -32,54 +29,45 @@ _HTTPLIB2_INSTALLED = False
 _SETUPTOOLS_INSTALLED = False
 
 
-def missing_bq():
-    try:
-        subprocess.call(['bq', 'ls'])
-        return False
-    except OSError:
-        return True
-
-
 def _test_imports():
-    if not compat.PY3:
+    global _GOOGLE_API_CLIENT_INSTALLED, _GOOGLE_API_CLIENT_VALID_VERSION, \
+           _HTTPLIB2_INSTALLED, _SETUPTOOLS_INSTALLED
 
-        global _GOOGLE_API_CLIENT_INSTALLED, _GOOGLE_API_CLIENT_VALID_VERSION, \
-               _HTTPLIB2_INSTALLED, _SETUPTOOLS_INSTALLED
-
-        try:
-            import pkg_resources
-            _SETUPTOOLS_INSTALLED = True
-        except ImportError:
-            _SETUPTOOLS_INSTALLED = False
-
-        if _SETUPTOOLS_INSTALLED:
-            try:
-                from apiclient.discovery import build
-                from apiclient.errors import HttpError
-
-                from oauth2client.client import OAuth2WebServerFlow
-                from oauth2client.client import AccessTokenRefreshError
-
-                from oauth2client.file import Storage
-                from oauth2client.tools import run_flow
-                _GOOGLE_API_CLIENT_INSTALLED=True
-                _GOOGLE_API_CLIENT_VERSION = pkg_resources.get_distribution('google-api-python-client').version
-
-                if StrictVersion(_GOOGLE_API_CLIENT_VERSION) >= StrictVersion('1.2.0'):
-                    _GOOGLE_API_CLIENT_VALID_VERSION = True
-
-            except ImportError:
-                _GOOGLE_API_CLIENT_INSTALLED = False
-
-
-            try:
-                import httplib2
-                _HTTPLIB2_INSTALLED = True
-            except ImportError:
-                _HTTPLIB2_INSTALLED = False
+    try:
+        import pkg_resources
+        _SETUPTOOLS_INSTALLED = True
+    except ImportError:
+        _SETUPTOOLS_INSTALLED = False
 
     if compat.PY3:
-        raise NotImplementedError("Google's libraries do not support Python 3 yet")
+        google_api_minimum_version = '1.4.1'
+    else:
+        google_api_minimum_version = '1.2.0'
+
+    if _SETUPTOOLS_INSTALLED:
+        try:
+            from apiclient.discovery import build
+            from apiclient.errors import HttpError
+
+            from oauth2client.client import OAuth2WebServerFlow
+            from oauth2client.client import AccessTokenRefreshError
+
+            from oauth2client.file import Storage
+            from oauth2client.tools import run_flow
+            _GOOGLE_API_CLIENT_INSTALLED=True
+            _GOOGLE_API_CLIENT_VERSION = pkg_resources.get_distribution('google-api-python-client').version
+
+            if StrictVersion(_GOOGLE_API_CLIENT_VERSION) >= StrictVersion(google_api_minimum_version):
+                _GOOGLE_API_CLIENT_VALID_VERSION = True
+
+        except ImportError:
+            _GOOGLE_API_CLIENT_INSTALLED = False
+
+        try:
+            import httplib2
+            _HTTPLIB2_INSTALLED = True
+        except ImportError:
+            _HTTPLIB2_INSTALLED = False
 
     if not _SETUPTOOLS_INSTALLED:
         raise ImportError('Could not import pkg_resources (setuptools).')
@@ -88,8 +76,8 @@ def _test_imports():
         raise ImportError('Could not import Google API Client.')
 
     if not _GOOGLE_API_CLIENT_VALID_VERSION:
-        raise ImportError("pandas requires google-api-python-client >= 1.2.0 for Google "
-                          "BigQuery support, current version " + _GOOGLE_API_CLIENT_VERSION)
+        raise ImportError("pandas requires google-api-python-client >= {0} for Google BigQuery support, "
+                          "current version {1}".format(google_api_minimum_version, _GOOGLE_API_CLIENT_VERSION))
 
     if not _HTTPLIB2_INSTALLED:
         raise ImportError("pandas requires httplib2 for Google BigQuery support")
@@ -102,15 +90,40 @@ def test_requirements():
         raise nose.SkipTest(import_exception)
 
 
+def clean_gbq_environment():
+    dataset = gbq._Dataset(PROJECT_ID)
+
+    for i in range(1, 10):
+        if DATASET_ID + str(i) in dataset.datasets():
+            dataset_id = DATASET_ID + str(i)
+            table = gbq._Table(PROJECT_ID, dataset_id)
+            for j in range(1, 20):
+                if TABLE_ID + str(j) in dataset.tables(dataset_id):
+                    table.delete(TABLE_ID + str(j))
+
+            dataset.delete(dataset_id)
+
+
 def make_mixed_dataframe_v2(test_size):
     # create df to test for all BQ datatypes except RECORD
-    bools = np.random.randint(2, size=(1,test_size)).astype(bool)
+    bools = np.random.randint(2, size=(1, test_size)).astype(bool)
     flts = np.random.randn(1, test_size)
-    ints = np.random.randint(1, 10, size=(1,test_size))
-    strs = np.random.randint(1, 10, size=(1,test_size)).astype(str)
-    times = [datetime.now(pytz.timezone('US/Arizona')) for t in xrange(test_size)]
-    return DataFrame({'bools': bools[0], 'flts': flts[0], 'ints': ints[0], 'strs': strs[0], 'times': times[0]}, index=range(test_size))
+    ints = np.random.randint(1, 10, size=(1, test_size))
+    strs = np.random.randint(1, 10, size=(1, test_size)).astype(str)
+    times = [datetime.now(pytz.timezone('US/Arizona')) for t in range(test_size)]
+    return DataFrame({'bools': bools[0],
+                      'flts': flts[0],
+                      'ints': ints[0],
+                      'strs': strs[0],
+                      'times': times[0]},
+                      index=range(test_size))
 
+
+def test_generate_bq_schema_deprecated():
+    # 11121 Deprecation of generate_bq_schema
+    with tm.assert_produces_warning(FutureWarning):
+        df = make_mixed_dataframe_v2(10)
+        gbq.generate_bq_schema(df)
 
 class TestGBQConnectorIntegration(tm.TestCase):
     def setUp(self):
@@ -118,7 +131,7 @@ class TestGBQConnectorIntegration(tm.TestCase):
 
         if not PROJECT_ID:
             raise nose.SkipTest("Cannot run integration tests without a project id")
-        
+
         self.sut = gbq.GbqConnector(PROJECT_ID)
 
     def test_should_be_able_to_make_a_connector(self):
@@ -194,15 +207,10 @@ class TestReadGBQIntegration(tm.TestCase):
         #   put here any instruction you want to execute only *ONCE* *BEFORE* executing *ALL* tests
         #   described below.
 
-        test_requirements()
-
         if not PROJECT_ID:
             raise nose.SkipTest("Cannot run integration tests without a project id")
 
-        if missing_bq():
-            raise nose.SkipTest("Cannot run read_gbq tests without bq command line client")
-
-        subprocess.call(['bq', 'mk', PROJECT_ID + ':pydata_pandas_bq_testing'])
+        test_requirements()
 
     def setUp(self):
         # - PER-TEST FIXTURES -
@@ -213,13 +221,12 @@ class TestReadGBQIntegration(tm.TestCase):
     def tearDownClass(cls):
         # - GLOBAL CLASS FIXTURES -
         #   put here any instruction you want to execute only *ONCE* *AFTER* executing all tests.
-        subprocess.call(['bq', 'rm', '-f', PROJECT_ID + ':pydata_pandas_bq_testing'])
+        pass
 
     def tearDown(self):
         # - PER-TEST FIXTURES -
         #   put here any instructions you want to be run *AFTER* *EVERY* test is executed.
-        if gbq.table_exists('pydata_pandas_bq_testing.new_test', PROJECT_ID):
-            subprocess.call(['bq', 'rm', '-f', PROJECT_ID + ':pydata_pandas_bq_testing.new_test'])
+        pass
 
     def test_should_properly_handle_valid_strings(self):
         query = 'SELECT "PI" as VALID_STRING'
@@ -291,7 +298,12 @@ class TestReadGBQIntegration(tm.TestCase):
             {'UNICODE_STRING': [u("\xe9\xfc")]}
         )
 
-        query = 'SELECT "\xc3\xa9\xc3\xbc" as UNICODE_STRING'
+        unicode_string = "\xc3\xa9\xc3\xbc"
+
+        if compat.PY3:
+            unicode_string = unicode_string.encode('latin-1').decode('utf8')
+
+        query = 'SELECT "{0}" as UNICODE_STRING'.format(unicode_string)
 
         df = gbq.read_gbq(query, project_id=PROJECT_ID)
         tm.assert_frame_equal(df, correct_test_datatype)
@@ -331,14 +343,17 @@ class TestReadGBQIntegration(tm.TestCase):
             gbq.read_gbq("SELECT * FROM [publicdata:samples.nope]", project_id=PROJECT_ID)
 
     def test_download_dataset_larger_than_200k_rows(self):
+        test_size = 200005
         # Test for known BigQuery bug in datasets larger than 100k rows
         # http://stackoverflow.com/questions/19145587/bq-py-not-paging-results
-        df = gbq.read_gbq("SELECT id FROM [publicdata:samples.wikipedia] GROUP EACH BY id ORDER BY id ASC LIMIT 200005", project_id=PROJECT_ID)
-        self.assertEqual(len(df.drop_duplicates()), 200005)
+        df = gbq.read_gbq("SELECT id FROM [publicdata:samples.wikipedia] GROUP EACH BY id ORDER BY id ASC LIMIT {0}".format(test_size),
+                          project_id=PROJECT_ID)
+        self.assertEqual(len(df.drop_duplicates()), test_size)
 
     def test_zero_rows(self):
         # Bug fix for https://github.com/pydata/pandas/issues/10273
-        df = gbq.read_gbq("SELECT title, language  FROM [publicdata:samples.wikipedia] where timestamp=-9999999", project_id=PROJECT_ID)
+        df = gbq.read_gbq("SELECT title, language  FROM [publicdata:samples.wikipedia] where timestamp=-9999999",
+                          project_id=PROJECT_ID)
         expected_result = DataFrame(columns=['title', 'language'])
         self.assert_frame_equal(df, expected_result)
 
@@ -352,122 +367,118 @@ class TestToGBQIntegration(tm.TestCase):
     @classmethod
     def setUpClass(cls):
         # - GLOBAL CLASS FIXTURES -
-        #   put here any instruction you want to execute only *ONCE* *BEFORE* executing *ALL* tests
-        #   described below.
-
-        test_requirements()
+        # put here any instruction you want to execute only *ONCE* *BEFORE* executing *ALL* tests
+        # described below.
 
         if not PROJECT_ID:
             raise nose.SkipTest("Cannot run integration tests without a project id")
 
-        if missing_bq():
-            raise nose.SkipTest("Cannot run to_gbq tests without bq command line client")
+        test_requirements()
+        clean_gbq_environment()
 
-        subprocess.call(['bq', 'mk', PROJECT_ID + ':pydata_pandas_bq_testing'])
+        gbq._Dataset(PROJECT_ID).create(DATASET_ID + "1")
 
     def setUp(self):
         # - PER-TEST FIXTURES -
-        #   put here any instruction you want to be run *BEFORE* *EVERY* test is executed.
-        pass
+        # put here any instruction you want to be run *BEFORE* *EVERY* test is executed.
+
+        self.dataset = gbq._Dataset(PROJECT_ID)
+        self.table = gbq._Table(PROJECT_ID, DATASET_ID + "1")
 
     @classmethod
     def tearDownClass(cls):
         # - GLOBAL CLASS FIXTURES -
         #   put here any instruction you want to execute only *ONCE* *AFTER* executing all tests.
 
-        for i in range(1, 8):
-            if gbq.table_exists('pydata_pandas_bq_testing.new_test' + str(i), PROJECT_ID):
-                subprocess.call(['bq', 'rm', '-f', PROJECT_ID + ':pydata_pandas_bq_testing.new_test' + str(i)])
-
-        subprocess.call(['bq', 'rm', '-f', PROJECT_ID + ':pydata_pandas_bq_testing'])
+        clean_gbq_environment()
 
     def tearDown(self):
         # - PER-TEST FIXTURES -
-        #   put here any instructions you want to be run *AFTER* *EVERY* test is executed.
+        # put here any instructions you want to be run *AFTER* *EVERY* test is executed.
         pass
 
     def test_upload_data(self):
-        table_name = 'new_test1'
+        destination_table = DESTINATION_TABLE + "1"
 
         test_size = 1000001
         df = make_mixed_dataframe_v2(test_size)
 
-        gbq.to_gbq(df, "pydata_pandas_bq_testing." + table_name, PROJECT_ID, chunksize=10000)
+        gbq.to_gbq(df, destination_table, PROJECT_ID, chunksize=10000)
 
         sleep(60)  # <- Curses Google!!!
 
-        result = gbq.read_gbq("SELECT COUNT(*) as NUM_ROWS FROM pydata_pandas_bq_testing." + table_name, project_id=PROJECT_ID)
+        result = gbq.read_gbq("SELECT COUNT(*) as NUM_ROWS FROM {0}".format(destination_table),
+                              project_id=PROJECT_ID)
         self.assertEqual(result['NUM_ROWS'][0], test_size)
 
     def test_upload_data_if_table_exists_fail(self):
-        table_name = 'new_test2'
+        destination_table = DESTINATION_TABLE + "2"
 
         test_size = 10
         df = make_mixed_dataframe_v2(test_size)
-
-        gbq.create_table('pydata_pandas_bq_testing.' + table_name, gbq.generate_bq_schema(df), PROJECT_ID)
+        self.table.create(TABLE_ID + "2", gbq._generate_bq_schema(df))
 
         # Test the default value of if_exists is 'fail'
         with tm.assertRaises(gbq.TableCreationError):
-            gbq.to_gbq(df, "pydata_pandas_bq_testing." + table_name, PROJECT_ID)
+            gbq.to_gbq(df, destination_table, PROJECT_ID)
 
         # Test the if_exists parameter with value 'fail'
         with tm.assertRaises(gbq.TableCreationError):
-            gbq.to_gbq(df, "pydata_pandas_bq_testing." + table_name, PROJECT_ID, if_exists='fail')
+            gbq.to_gbq(df, destination_table, PROJECT_ID, if_exists='fail')
 
     def test_upload_data_if_table_exists_append(self):
-        table_name = 'new_test3'
+        destination_table = DESTINATION_TABLE + "3"
 
         test_size = 10
         df = make_mixed_dataframe_v2(test_size)
         df_different_schema = tm.makeMixedDataFrame()
 
         # Initialize table with sample data
-        gbq.to_gbq(df, "pydata_pandas_bq_testing." + table_name, PROJECT_ID, chunksize=10000)
+        gbq.to_gbq(df, destination_table, PROJECT_ID, chunksize=10000)
 
         # Test the if_exists parameter with value 'append'
-        gbq.to_gbq(df, "pydata_pandas_bq_testing." + table_name, PROJECT_ID, if_exists='append')
+        gbq.to_gbq(df, destination_table, PROJECT_ID, if_exists='append')
 
         sleep(60)  # <- Curses Google!!!
 
-        result = gbq.read_gbq("SELECT COUNT(*) as NUM_ROWS FROM pydata_pandas_bq_testing." + table_name, project_id=PROJECT_ID)
+        result = gbq.read_gbq("SELECT COUNT(*) as NUM_ROWS FROM {0}".format(destination_table), project_id=PROJECT_ID)
         self.assertEqual(result['NUM_ROWS'][0], test_size * 2)
 
         # Try inserting with a different schema, confirm failure
         with tm.assertRaises(gbq.InvalidSchema):
-            gbq.to_gbq(df_different_schema, "pydata_pandas_bq_testing." + table_name, PROJECT_ID, if_exists='append')
+            gbq.to_gbq(df_different_schema, destination_table, PROJECT_ID, if_exists='append')
 
     def test_upload_data_if_table_exists_replace(self):
-        table_name = 'new_test4'
+        destination_table = DESTINATION_TABLE + "4"
 
         test_size = 10
         df = make_mixed_dataframe_v2(test_size)
         df_different_schema = tm.makeMixedDataFrame()
 
         # Initialize table with sample data
-        gbq.to_gbq(df, "pydata_pandas_bq_testing." + table_name, PROJECT_ID, chunksize=10000)
+        gbq.to_gbq(df, destination_table, PROJECT_ID, chunksize=10000)
 
         # Test the if_exists parameter with the value 'replace'.
-        gbq.to_gbq(df_different_schema, "pydata_pandas_bq_testing." + table_name, PROJECT_ID, if_exists='replace')
+        gbq.to_gbq(df_different_schema, destination_table, PROJECT_ID, if_exists='replace')
 
         sleep(60)  # <- Curses Google!!!
 
-        result = gbq.read_gbq("SELECT COUNT(*) as NUM_ROWS FROM pydata_pandas_bq_testing." + table_name, project_id=PROJECT_ID)
+        result = gbq.read_gbq("SELECT COUNT(*) as NUM_ROWS FROM {0}".format(destination_table), project_id=PROJECT_ID)
         self.assertEqual(result['NUM_ROWS'][0], 5)
 
     def test_google_upload_errors_should_raise_exception(self):
-        table_name = 'new_test5'
+        destination_table = DESTINATION_TABLE + "5"
 
         test_timestamp = datetime.now(pytz.timezone('US/Arizona'))
         bad_df = DataFrame({'bools': [False, False], 'flts': [0.0, 1.0], 'ints': [0, '1'], 'strs': ['a', 1],
                             'times': [test_timestamp, test_timestamp]}, index=range(2))
 
         with tm.assertRaises(gbq.StreamingInsertError):
-            gbq.to_gbq(bad_df, 'pydata_pandas_bq_testing.' + table_name, PROJECT_ID, verbose=True)
+            gbq.to_gbq(bad_df, destination_table, PROJECT_ID, verbose=True)
 
-    def test_generate_bq_schema(self):
+    def test_generate_schema(self):
         df = tm.makeMixedDataFrame()
-        schema = gbq.generate_bq_schema(df)
+        schema = gbq._generate_bq_schema(df)
 
         test_schema = {'fields': [{'name': 'A', 'type': 'FLOAT'},
                                   {'name': 'B', 'type': 'FLOAT'},
@@ -476,40 +487,70 @@ class TestToGBQIntegration(tm.TestCase):
 
         self.assertEqual(schema, test_schema)
 
-    def test_create_bq_table(self):
-        table_name = 'new_test6'
-
+    def test_create_table(self):
+        destination_table = TABLE_ID + "6"
         test_schema = {'fields': [{'name': 'A', 'type': 'FLOAT'}, {'name': 'B', 'type': 'FLOAT'},
                                   {'name': 'C', 'type': 'STRING'}, {'name': 'D', 'type': 'TIMESTAMP'}]}
-
-        gbq.create_table('pydata_pandas_bq_testing.' + table_name, test_schema, PROJECT_ID)
-
-        self.assertTrue(gbq.table_exists('pydata_pandas_bq_testing.' + table_name, PROJECT_ID), 'Expected table to exist')
+        self.table.create(destination_table, test_schema)
+        self.assertTrue(self.table.exists(destination_table), 'Expected table to exist')
 
     def test_table_does_not_exist(self):
-        table_name = 'new_test7'
-        self.assertTrue(not gbq.table_exists('pydata_pandas_bq_testing.' + table_name, PROJECT_ID),
-                        'Expected table not to exist')
+        self.assertTrue(not self.table.exists(TABLE_ID + "7"), 'Expected table not to exist')
 
-    def test_delete_bq_table(self):
-        table_name = 'new_test8'
-
+    def test_delete_table(self):
+        destination_table = TABLE_ID + "8"
         test_schema = {'fields': [{'name': 'A', 'type': 'FLOAT'}, {'name': 'B', 'type': 'FLOAT'},
                                   {'name': 'C', 'type': 'STRING'}, {'name': 'D', 'type': 'TIMESTAMP'}]}
+        self.table.create(destination_table, test_schema)
+        self.table.delete(destination_table)
+        self.assertTrue(not self.table.exists(destination_table), 'Expected table not to exist')
 
-        gbq.create_table('pydata_pandas_bq_testing.' + table_name, test_schema, PROJECT_ID)
+    def test_list_table(self):
+        destination_table = TABLE_ID + "9"
+        test_schema = {'fields': [{'name': 'A', 'type': 'FLOAT'}, {'name': 'B', 'type': 'FLOAT'},
+                                  {'name': 'C', 'type': 'STRING'}, {'name': 'D', 'type': 'TIMESTAMP'}]}
+        self.table.create(destination_table, test_schema)
+        self.assertTrue(destination_table in self.dataset.tables(DATASET_ID + "1"),
+                        'Expected table list to contain table {0}'.format(destination_table))
 
-        gbq.delete_table('pydata_pandas_bq_testing.' + table_name, PROJECT_ID)
+    def test_list_dataset(self):
+        dataset_id = DATASET_ID + "1"
+        self.assertTrue(dataset_id in self.dataset.datasets(),
+                        'Expected dataset list to contain dataset {0}'.format(dataset_id))
 
-        self.assertTrue(not gbq.table_exists('pydata_pandas_bq_testing.' + table_name, PROJECT_ID),
-                        'Expected table not to exist')
+    def test_list_table_zero_results(self):
+        dataset_id = DATASET_ID + "2"
+        self.dataset.create(dataset_id)
+        table_list = gbq._Dataset(PROJECT_ID).tables(dataset_id)
+        self.assertEqual(len(table_list), 0, 'Expected gbq.list_table() to return 0')
 
-    def test_upload_data_dataset_not_found(self):
-        test_size = 10
-        df = make_mixed_dataframe_v2(test_size)
+    def test_create_dataset(self):
+        dataset_id = DATASET_ID + "3"
+        self.dataset.create(dataset_id)
+        self.assertTrue(dataset_id in self.dataset.datasets(), 'Expected dataset to exist')
 
-        with tm.assertRaises(gbq.GenericGBQException):
-            gbq.create_table('pydata_pandas_bq_testing2.new_test', gbq.generate_bq_schema(df), PROJECT_ID)
+    def test_delete_dataset(self):
+        dataset_id = DATASET_ID + "4"
+        self.dataset.create(dataset_id)
+        self.dataset.delete(dataset_id)
+        self.assertTrue(dataset_id not in self.dataset.datasets(), 'Expected dataset not to exist')
+
+    def test_dataset_exists(self):
+        dataset_id = DATASET_ID + "5"
+        self.dataset.create(dataset_id)
+        self.assertTrue(self.dataset.exists(dataset_id), 'Expected dataset to exist')
+
+    def create_table_data_dataset_does_not_exist(self):
+        dataset_id = DATASET_ID + "6"
+        table_id = TABLE_ID + "1"
+        table_with_new_dataset = gbq._Table(PROJECT_ID, dataset_id)
+        df = make_mixed_dataframe_v2(10)
+        table_with_new_dataset.create(table_id, gbq._generate_bq_schema(df))
+        self.assertTrue(self.dataset.exists(dataset_id), 'Expected dataset to exist')
+        self.assertTrue(table_with_new_dataset.exists(table_id), 'Expected dataset to exist')
+
+    def test_dataset_does_not_exist(self):
+        self.assertTrue(not self.dataset.exists(DATASET_ID + "_not_found"), 'Expected dataset not to exist')
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],

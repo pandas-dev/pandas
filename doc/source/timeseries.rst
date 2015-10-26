@@ -1157,13 +1157,15 @@ Converting to Python datetimes
 
 .. _timeseries.resampling:
 
-Up- and downsampling
---------------------
+Resampling
+----------
 
-With 0.8, pandas introduces simple, powerful, and efficient functionality for
+Pandas has a simple, powerful, and efficient functionality for
 performing resampling operations during frequency conversion (e.g., converting
 secondly data into 5-minutely data). This is extremely common in, but not
 limited to, financial applications.
+
+``resample`` is a time-based groupby, followed by a reduction method on each of its groups.
 
 See some :ref:`cookbook examples <cookbook.resample>` for some advanced strategies
 
@@ -1203,19 +1205,6 @@ end of the interval is closed:
 
    ts.resample('5Min', closed='left')
 
-For upsampling, the ``fill_method`` and ``limit`` parameters can be specified
-to interpolate over the gaps that are created:
-
-.. ipython:: python
-
-   # from secondly to every 250 milliseconds
-
-   ts[:2].resample('250L')
-
-   ts[:2].resample('250L', fill_method='pad')
-
-   ts[:2].resample('250L', fill_method='pad', limit=2)
-
 Parameters like ``label`` and ``loffset`` are used to manipulate the resulting
 labels. ``label`` specifies whether the result is labeled with the beginning or
 the end of the interval. ``loffset`` performs a time adjustment on the output
@@ -1240,11 +1229,58 @@ retains the input representation.
 (detail below). It specifies how low frequency periods are converted to higher
 frequency periods.
 
-Note that 0.8 marks a watershed in the timeseries functionality in pandas. In
-previous versions, resampling had to be done using a combination of
-``date_range``, ``groupby`` with ``asof``, and then calling an aggregation
-function on the grouped object. This was not nearly as convenient or performant
-as the new pandas timeseries API.
+
+Up Sampling
+~~~~~~~~~~~
+
+For upsampling, the ``fill_method`` and ``limit`` parameters can be specified
+to interpolate over the gaps that are created:
+
+.. ipython:: python
+
+   # from secondly to every 250 milliseconds
+
+   ts[:2].resample('250L')
+
+   ts[:2].resample('250L', fill_method='pad')
+
+   ts[:2].resample('250L', fill_method='pad', limit=2)
+
+Sparse Resampling
+~~~~~~~~~~~~~~~~~
+
+Sparse timeseries are ones where you have a lot fewer points relative
+to the amount of time you are looking to resample. Naively upsampling a sparse series can potentially
+generate lots of intermediate values. When you don't want to use a method to fill these values, e.g. ``fill_method`` is ``None``,
+then intermediate values will be filled with ``NaN``.
+
+Since ``resample`` is a time-based groupby, the following is a method to efficiently
+resample only the groups that are not all ``NaN``
+
+.. ipython:: python
+
+    rng = date_range('2014-1-1', periods=100, freq='D') + Timedelta('1s')
+    ts = Series(range(100), index=rng)
+
+If we want to resample to the full range of the series
+
+.. ipython:: python
+
+    ts.resample('3T',how='sum')
+
+We can instead only resample those groups where we have points as follows:
+
+.. ipython:: python
+
+    from functools import partial
+    from pandas.tseries.frequencies import to_offset
+
+    def round(t, freq):
+        # round a Timestamp to a specified freq
+        freq = to_offset(freq)
+        return Timestamp((t.value // freq.delta.value) * freq.delta.value)
+
+    ts.groupby(partial(round, freq='3T')).sum()
 
 .. _timeseries.periods:
 
@@ -1768,7 +1804,6 @@ TZ aware Dtypes
    s_aware
 
 Both of these ``Series`` can be manipulated via the ``.dt`` accessor, see :ref:`here <basics.dt_accessors>`.
-See the :ref:`docs <timeseries.dtypes>` for more details.
 
 For example, to localize and convert a naive stamp to timezone aware.
 

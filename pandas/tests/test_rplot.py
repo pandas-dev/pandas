@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
 from pandas.compat import range
-import pandas.tools.rplot as rplot
 import pandas.util.testing as tm
 from pandas import read_csv
 import os
-
 import nose
 
+with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+    import pandas.tools.rplot as rplot
 
 def curpath():
     pth, _ = os.path.split(os.path.abspath(__file__))

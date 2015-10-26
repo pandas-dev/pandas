@@ -31,7 +31,7 @@ from pandas.core.common import (is_sequence, array_equivalent, is_list_like, is_
 import pandas.compat as compat
 from pandas.compat import(
     filter, map, zip, range, unichr, lrange, lmap, lzip, u, callable, Counter,
-    raise_with_traceback, httplib, is_platform_windows
+    raise_with_traceback, httplib, is_platform_windows, is_platform_32bit
 )
 
 from pandas.computation import expressions as expr
@@ -58,7 +58,6 @@ def reset_testing_mode():
     testing_mode = os.environ.get('PANDAS_TESTING_MODE','None')
     if 'deprecate' in testing_mode:
         warnings.simplefilter('ignore', DeprecationWarning)
-
 
 set_testing_mode()
 
@@ -176,8 +175,7 @@ def close(fignum=None):
 
 def _skip_if_32bit():
     import nose
-    import struct
-    if struct.calcsize("P") * 8 < 64:
+    if is_platform_32bit():
         raise nose.SkipTest("skipping for 32 bit")
 
 def mplskip(cls):
@@ -194,6 +192,14 @@ def mplskip(cls):
 
     cls.setUpClass = setUpClass
     return cls
+
+
+def _skip_if_mpl_1_5():
+    import matplotlib
+    v = matplotlib.__version__
+    if v > LooseVersion('1.4.3') or v[0] == '0':
+        import nose
+        raise nose.SkipTest("matplotlib 1.5")
 
 
 def _skip_if_no_scipy():
@@ -247,6 +253,23 @@ def _skip_if_python26():
     if sys.version_info[:2] == (2, 6):
         import nose
         raise nose.SkipTest("skipping on python2.6")
+
+
+def _skip_if_no_pathlib():
+    try:
+        from pathlib import Path
+    except ImportError:
+        import nose
+        raise nose.SkipTest("pathlib not available")
+
+
+def _skip_if_no_localpath():
+    try:
+        from py.path import local as LocalPath
+    except ImportError:
+        import nose
+        raise nose.SkipTest("py.path not installed")
+
 
 def _incompat_bottleneck_version(method):
     """ skip if we have bottleneck installed
@@ -1951,7 +1974,6 @@ class _AssertRaisesContextmanager(object):
                 raise_with_traceback(e, traceback)
         return True
 
-
 @contextmanager
 def assert_produces_warning(expected_warning=Warning, filter_level="always",
                             clear=None, check_stacklevel=True):
@@ -1998,6 +2020,7 @@ def assert_produces_warning(expected_warning=Warning, filter_level="always",
         warnings.simplefilter(filter_level)
         yield w
         extra_warnings = []
+
         for actual_warning in w:
             if (expected_warning and issubclass(actual_warning.category,
                                                 expected_warning)):

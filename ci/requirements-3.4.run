@@ -1,6 +1,6 @@
 python-dateutil
 pytz
-numpy
+numpy=1.8.1
 openpyxl
 xlsxwriter
 xlrd
@@ -11,7 +11,6 @@ beautiful-soup
 scipy
 numexpr
 pytables
-matplotlib=1.3.1
 lxml
 sqlalchemy
 bottleneck

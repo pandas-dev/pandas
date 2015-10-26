@@ -1,7 +1,7 @@
 .. _whatsnew_0170:
 
-v0.17.0 (September ??, 2015)
-----------------------------
+v0.17.0 (October 9, 2015)
+-------------------------
 
 This is a major release from 0.16.2 and includes a small number of API changes, several new features,
 enhancements, and performance improvements along with a large number of bug fixes. We recommend that all
@@ -45,11 +45,13 @@ Highlights include:
 - Datetime accessor (``dt``) now supports ``Series.dt.strftime`` to generate formatted strings for datetime-likes, and ``Series.dt.total_seconds`` to generate each duration of the timedelta in seconds. See :ref:`here <whatsnew_0170.strftime>`
 - ``Period`` and ``PeriodIndex`` can handle multiplied freq like ``3D``, which corresponding to 3 days span. See :ref:`here <whatsnew_0170.periodfreq>`
 - Development installed versions of pandas will now have ``PEP440`` compliant version strings (:issue:`9518`)
-- Development support for benchmarking with the `Air Speed Velocity library <https://github.com/spacetelescope/asv/>`_ (:issue:`8316`)
+- Development support for benchmarking with the `Air Speed Velocity library <https://github.com/spacetelescope/asv/>`_ (:issue:`8361`)
 - Support for reading SAS xport files, see :ref:`here <whatsnew_0170.enhancements.sas_xport>`
 - Documentation comparing SAS to *pandas*, see :ref:`here <compare_with_sas>`
 - Removal of the automatic TimeSeries broadcasting, deprecated since 0.8.0, see :ref:`here <whatsnew_0170.prior_deprecations>`
+- Display format with plain text can optionally align with Unicode East Asian Width, see :ref:`here <whatsnew_0170.east_asian_width>`
 - Compatibility with Python 3.5 (:issue:`11097`)
+- Compatibility with matplotlib 1.5.0 (:issue:`11111`)
 
 Check the :ref:`API Changes <whatsnew_0170.api>` and :ref:`deprecations <whatsnew_0170.deprecations>` before updating.
 
@@ -124,7 +126,7 @@ Releasing the GIL
 
 We are releasing the global-interpreter-lock (GIL) on some cython operations.
 This will allow other threads to run simultaneously during computation, potentially allowing performance improvements
-from multi-threading. Notably ``groupby``, ``nsmallest`` and some indexing operations benefit from this. (:issue:`8882`)
+from multi-threading. Notably ``groupby``, ``nsmallest``, ``value_counts`` and some indexing operations benefit from this. (:issue:`8882`)
 
 For example the groupby expression in the following code will have the GIL released during the factorization step, e.g. ``df.groupby('key')``
 as well as the ``.sum()`` operation.
@@ -137,7 +139,7 @@ as well as the ``.sum()`` operation.
                    'data' : np.random.randn(N) })
    df.groupby('key')['data'].sum()
 
-Releasing of the GIL could benefit an application that uses threads for user interactions (e.g. QT_), or performaning multi-threaded computations. A nice example of a library that can handle these types of computation-in-parallel is the dask_ library.
+Releasing of the GIL could benefit an application that uses threads for user interactions (e.g. QT_), or performing multi-threaded computations. A nice example of a library that can handle these types of computation-in-parallel is the dask_ library.
 
 .. _dask: https://dask.readthedocs.org/en/latest/
 .. _QT: https://wiki.python.org/moin/PyQt
@@ -214,9 +216,9 @@ total_seconds
 Period Frequency Enhancement
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-``Period``, ``PeriodIndex`` and ``period_range`` can now accept multiplied freq. Also, ``Period.freq`` and ``PeriodIndex.freq`` are now stored as ``DateOffset`` instance like ``DatetimeIndex``, not ``str`` (:issue:`7811`)
+``Period``, ``PeriodIndex`` and ``period_range`` can now accept multiplied freq. Also, ``Period.freq`` and ``PeriodIndex.freq`` are now stored as a ``DateOffset`` instance like ``DatetimeIndex``, and not as ``str`` (:issue:`7811`)
 
-Multiplied freq represents a span of corresponding length. Below example creates a period of 3 days. Addition and subtraction will shift the period by its span.
+A multiplied freq represents a span of corresponding length. The example below creates a period of 3 days. Addition and subtraction will shift the period by its span.
 
 .. ipython:: python
 
@@ -227,7 +229,7 @@ Multiplied freq represents a span of corresponding length. Below example creates
    p.to_timestamp()
    p.to_timestamp(how='E')
 
-You can use multiplied freq in ``PeriodIndex`` and ``period_range``.
+You can use the multiplied freq in ``PeriodIndex`` and ``period_range``.
 
 .. ipython:: python
 
@@ -272,14 +274,15 @@ The support math functions are `sin`, `cos`, `exp`, `log`, `expm1`, `log1p`,
 `sqrt`, `sinh`, `cosh`, `tanh`, `arcsin`, `arccos`, `arctan`, `arccosh`,
 `arcsinh`, `arctanh`, `abs` and `arctan2`.
 
-These functions map to the intrinsics for the NumExpr engine.  For Python
-engine, they are mapped to NumPy calls.
+These functions map to the intrinsics for the ``NumExpr`` engine.  For the Python
+engine, they are mapped to ``NumPy`` calls.
 
 Changes to Excel with ``MultiIndex``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 In version 0.16.2 a ``DataFrame`` with ``MultiIndex`` columns could not be written to Excel via ``to_excel``.
 That functionality has been added (:issue:`10564`), along with updating  ``read_excel`` so that the data can
-be read back with no loss of information by specifying which columns/rows make up the ``MultiIndex``
+be read back with, no loss of information, by specifying which columns/rows make up the ``MultiIndex``
 in the ``header`` and ``index_col`` parameters (:issue:`4679`)
 
 See the :ref:`documentation <io.excel>` for more details.
@@ -304,8 +307,8 @@ See the :ref:`documentation <io.excel>` for more details.
    import os
    os.remove('test.xlsx')
 
-Previously, it was necessary to specify the ``has_index_names`` argument in ``read_excel``
-if the serialized data had index names.  For version 0.17 the ouptput format of ``to_excel``
+Previously, it was necessary to specify the ``has_index_names`` argument in ``read_excel``,
+if the serialized data had index names.  For version 0.17.0 the ouptput format of ``to_excel``
 has been changed to make this keyword unnecessary - the change is shown below.
 
 **Old**
@@ -325,16 +328,54 @@ has been changed to make this keyword unnecessary - the change is shown below.
 
 Google BigQuery Enhancements
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-- Added ability to automatically create a table using the :func:`pandas.io.gbq.to_gbq` function if destination table does not exist. (:issue:`8325`).
-- Added ability to replace an existing table and schema when calling the :func:`pandas.io.gbq.to_gbq` function via the ``if_exists`` argument. See the :ref:`docs <io.bigquery>` for more details (:issue:`8325`).
-- Added the following functions to the gbq module: :func:`pandas.io.gbq.table_exists`, :func:`pandas.io.gbq.create_table`, and :func:`pandas.io.gbq.delete_table`. See the :ref:`docs <io.bigquery>` for more details (:issue:`8325`).
+- Added ability to automatically create a table/dataset using the :func:`pandas.io.gbq.to_gbq` function if the destination table/dataset does not exist. (:issue:`8325`, :issue:`11121`).
+- Added ability to replace an existing table and schema when calling the :func:`pandas.io.gbq.to_gbq` function via the ``if_exists`` argument. See the :ref:`docs <io.bigquery_writer>` for more details (:issue:`8325`).
 - ``InvalidColumnOrder`` and ``InvalidPageToken`` in the gbq module will raise ``ValueError`` instead of ``IOError``.
+- The ``generate_bq_schema()`` function is now deprecated and will be removed in a future version (:issue:`11121`)
+- The gbq module will now support Python 3 (:issue:`11094`).
+
+.. _whatsnew_0170.east_asian_width:
+
+Display Alignment with Unicode East Asian Width
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. warning::
+
+   Enabling this option will affect the performance for printing of ``DataFrame`` and ``Series`` (about 2 times slower).
+   Use only when it is actually required.
+
+Some East Asian countries use Unicode characters its width is corresponding to 2 alphabets. If a ``DataFrame`` or ``Series`` contains these characters, the default output cannot be aligned properly. The following options are added to enable precise handling for these characters.
+
+- ``display.unicode.east_asian_width``: Whether to use the Unicode East Asian Width to calculate the display text width. (:issue:`2612`)
+- ``display.unicode.ambiguous_as_wide``: Whether to handle Unicode characters belong to Ambiguous as Wide. (:issue:`11102`)
+
+.. ipython:: python
+
+   df = pd.DataFrame({u'国籍': ['UK', u'日本'], u'名前': ['Alice', u'しのぶ']})
+   df;
+
+.. image:: _static/option_unicode01.png
+
+.. ipython:: python
+
+   pd.set_option('display.unicode.east_asian_width', True)
+   df;
+
+.. image:: _static/option_unicode02.png
+
+For further details, see :ref:`here <options.east_asian_width>`
+
+.. ipython:: python
+   :suppress:
+
+   pd.set_option('display.unicode.east_asian_width', False)
 
 .. _whatsnew_0170.enhancements.other:
 
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
 
+- Support for ``openpyxl`` >= 2.2. The API for style support is now stable (:issue:`10125`)
 - ``merge`` now accepts the argument ``indicator`` which adds a Categorical-type column (by default called ``_merge``) to the output object that takes on the values (:issue:`8790`)
 
   ===================================   ================
@@ -353,11 +394,13 @@ Other enhancements
 
   For more, see the :ref:`updated docs <merging.indicator>`
 
+- ``pd.to_numeric`` is a new function to coerce strings to numbers (possibly with coercion) (:issue:`11133`)
+
 - ``pd.merge`` will now allow duplicate column names if they are not merged upon (:issue:`10639`).
 
 - ``pd.pivot`` will now allow passing index as ``None`` (:issue:`3962`).
 
-- ``concat`` will now use existing Series names if provided (:issue:`10698`).
+- ``pd.concat`` will now use existing Series names if provided (:issue:`10698`).
 
   .. ipython:: python
 
@@ -390,7 +433,7 @@ Other enhancements
      ser = pd.Series([np.nan, np.nan, 5, np.nan, np.nan, np.nan, 13])
      ser.interpolate(limit=1, limit_direction='both')
 
-- Round DataFrame to variable number of decimal places (:issue:`10568`).
+- Added a ``DataFrame.round`` method to round the values to a variable number of decimal places (:issue:`10568`).
 
   .. ipython :: python
 
@@ -400,7 +443,7 @@ Other enhancements
      df.round(2)
      df.round({'A': 0, 'C': 2})
 
-- ``drop_duplicates`` and ``duplicated`` now accept ``keep`` keyword to target first, last, and all duplicates. ``take_last`` keyword is deprecated, see :ref:`deprecations <whatsnew_0170.deprecations>` (:issue:`6511`, :issue:`8505`)
+- ``drop_duplicates`` and ``duplicated`` now accept a ``keep`` keyword to target first, last, and all duplicates. The ``take_last`` keyword is deprecated, see :ref:`here <whatsnew_0170.deprecations>` (:issue:`6511`, :issue:`8505`)
 
   .. ipython :: python
 
@@ -434,9 +477,9 @@ Other enhancements
 
 - ``DatetimeIndex`` can be instantiated using strings contains ``NaT`` (:issue:`7599`)
 
-- ``to_datetime`` can now accept ``yearfirst`` keyword (:issue:`7599`)
+- ``to_datetime`` can now accept the ``yearfirst`` keyword (:issue:`7599`)
 
-- ``pandas.tseries.offsets`` larger than the ``Day`` offset can now be used with with ``Series`` for addition/subtraction (:issue:`10699`).  See the :ref:`Documentation <timeseries.offsetseries>` for more details.
+- ``pandas.tseries.offsets`` larger than the ``Day`` offset can now be used with a ``Series`` for addition/subtraction (:issue:`10699`).  See the :ref:`docs <timeseries.offsetseries>` for more details.
 
 - ``pd.Timedelta.total_seconds()`` now returns Timedelta duration to ns precision (previously microsecond precision) (:issue:`10939`)
 
@@ -450,7 +493,7 @@ Other enhancements
 
 - Enable reading gzip compressed files via URL, either by explicitly setting the compression parameter or by inferring from the presence of the HTTP Content-Encoding header in the response (:issue:`8685`)
 
-- Enable writing Excel files in :ref:`memory <_io.excel_writing_buffer>` using StringIO/BytesIO (:issue:`7074`)
+- Enable writing Excel files in :ref:`memory <io.excel_writing_buffer>` using StringIO/BytesIO (:issue:`7074`)
 
 - Enable serialization of lists and dicts to strings in ``ExcelWriter`` (:issue:`8188`)
 
@@ -460,7 +503,7 @@ Other enhancements
 
 - ``read_sql_table`` will now allow reading from views (:issue:`10750`).
 
-- Enable writing complex values to HDF stores when using table format (:issue:`10447`)
+- Enable writing complex values to ``HDFStores`` when using the ``table`` format (:issue:`10447`)
 
 - Enable ``pd.read_hdf`` to be used without specifying a key when the HDF file contains a single dataset (:issue:`10443`)
 
@@ -468,19 +511,19 @@ Other enhancements
 
 - ``msgpack`` submodule has been updated to 0.4.6 with backward compatibility (:issue:`10581`)
 
-- ``DataFrame.to_dict`` now accepts the *index* option in ``orient`` keyword argument (:issue:`10844`).
+- ``DataFrame.to_dict`` now accepts ``orient='index'`` keyword argument (:issue:`10844`).
 
 - ``DataFrame.apply`` will return a Series of dicts if the passed function returns a dict and ``reduce=True`` (:issue:`8735`).
 
 - Allow passing `kwargs` to the interpolation methods (:issue:`10378`).
 
-- Improved error message when concatenating an empty iterable of dataframes (:issue:`9157`)
+- Improved error message when concatenating an empty iterable of ``Dataframe`` objects (:issue:`9157`)
 
 - ``pd.read_csv`` can now read bz2-compressed files incrementally, and the C parser can read bz2-compressed files from AWS S3 (:issue:`11070`, :issue:`11072`).
 
-- In ``pd.read_csv``, recognize "s3n://" and "s3a://" URLs as designating S3 file storage (:issue:`11070`, :issue:`11071`).
+- In ``pd.read_csv``, recognize ``s3n://`` and ``s3a://`` URLs as designating S3 file storage (:issue:`11070`, :issue:`11071`).
 
-- Read CSV files from AWS S3 incrementally, instead of first downloading the entire file. (Full file download still required for compressed files in Python 2.) (:issue:`11070`, :issue:`11073`)
+- Read CSV files from AWS S3 incrementally, instead of first downloading the entire file. (Full file download still required for compressed files in Python 2.)  (:issue:`11070`, :issue:`11073`)
 
 - ``pd.read_csv`` is now able to infer compression type for files read from AWS S3 storage (:issue:`11070`, :issue:`11074`).
 
@@ -509,9 +552,9 @@ To address these issues, we have revamped the API:
 
 - We have introduced a new method, :meth:`DataFrame.sort_values`, which is the merger of ``DataFrame.sort()``, ``Series.sort()``,
   and ``Series.order()``, to handle sorting of **values**.
-- The existing methods ``Series.sort()``, ``Series.order()``, and ``DataFrame.sort()`` has been deprecated and will be removed in a
-  future version of pandas.
-- The ``by`` argument of ``DataFrame.sort_index()`` has been deprecated and will be removed in a future version of pandas.
+- The existing methods ``Series.sort()``, ``Series.order()``, and ``DataFrame.sort()`` have been deprecated and will be removed in a
+  future version.
+- The ``by`` argument of ``DataFrame.sort_index()`` has been deprecated and will be removed in a future version.
 - The existing method ``.sort_index()`` will gain the ``level`` keyword to enable level sorting.
 
 We now have two distinct and non-overlapping methods of sorting. A ``*`` marks items that
@@ -634,71 +677,6 @@ New Behavior:
       import pandas.tseries.offsets as offsets
       Timestamp.now()
       Timestamp.now() + offsets.DateOffset(years=1)
-
-.. _whatsnew_0170.api_breaking.convert_objects:
-
-Changes to convert_objects
-^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-``DataFrame.convert_objects`` keyword arguments have been shortened. (:issue:`10265`)
-
-=====================   =============
-Previous                Replacement
-=====================   =============
-``convert_dates``       ``datetime``
-``convert_numeric``     ``numeric``
-``convert_timedelta``   ``timedelta``
-=====================   =============
-
-Coercing types with ``DataFrame.convert_objects`` is now implemented using the
-keyword argument ``coerce=True``.  Previously types were coerced by setting a
-keyword argument to ``'coerce'`` instead of ``True``, as in ``convert_dates='coerce'``.
-
-.. ipython:: python
-
-   df = pd.DataFrame({'i': ['1','2'],
-                      'f': ['apple', '4.2'],
-                      's': ['apple','banana']})
-   df
-
-The old usage of ``DataFrame.convert_objects`` used ``'coerce'`` along with the
-type.
-
-.. code-block:: python
-
-   In [2]: df.convert_objects(convert_numeric='coerce')
-
-Now the ``coerce`` keyword must be explicitly used.
-
-.. ipython:: python
-
-   df.convert_objects(numeric=True, coerce=True)
-
-In earlier versions of pandas, ``DataFrame.convert_objects`` would not coerce
-numeric types when there were no values convertible to a numeric type. This returns
-the original DataFrame with no conversion.
-
-.. code-block:: python
-
-   In [1]: df = pd.DataFrame({'s': ['a','b']})
-   In [2]: df.convert_objects(convert_numeric='coerce')
-   Out[2]:
-          s
-       0  a
-       1  b
-
-The new behavior will convert all non-number-like strings to ``NaN``,
-when ``coerce=True`` is passed explicity.
-
-.. ipython:: python
-
-   pd.DataFrame({'s': ['a','b']})
-   df.convert_objects(numeric=True, coerce=True)
-
-In earlier versions of pandas, the default behavior was to try and convert
-datetimes and timestamps. The new default is for ``DataFrame.convert_objects``
-to do nothing, and so it is necessary to pass at least one conversion target
-in the method call.
 
 Changes to Index Comparisons
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -841,7 +819,7 @@ New Behavior:
 
    os.remove('file.h5')
 
-See :ref:`documentation <io.hdf5>` for more details.
+See the :ref:`docs <io.hdf5>` for more details.
 
 .. _whatsnew_0170.api_breaking.display_precision:
 
@@ -904,19 +882,38 @@ Changes to ``Categorical.unique``
    cat
    cat.unique()
 
+Changes to ``bool`` passed as ``header`` in Parsers
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+In earlier versions of pandas, if a bool was passed the ``header`` argument of
+``read_csv``, ``read_excel``, or ``read_html`` it was implicitly converted to
+an integer, resulting in ``header=0`` for ``False`` and ``header=1`` for ``True``
+(:issue:`6113`)
+
+A ``bool`` input to ``header`` will now raise a ``TypeError``
+
+.. code-block :: python
+
+   In [29]: df = pd.read_csv('data.csv', header=False)
+   TypeError: Passing a bool to header is invalid. Use header=None for no header or
+   header=int or list-like of ints to specify the row(s) making up the column names
+
+
 .. _whatsnew_0170.api_breaking.other:
 
 Other API Changes
 ^^^^^^^^^^^^^^^^^
 
 - Line and kde plot with ``subplots=True`` now uses default colors, not all black. Specify ``color='k'`` to draw all lines in black (:issue:`9894`)
-- Calling the ``.value_counts()`` method on a Series with ``categorical`` dtype now returns a Series with a ``CategoricalIndex`` (:issue:`10704`)
+- Calling the ``.value_counts()`` method on a Series with a ``categorical`` dtype now returns a Series with a ``CategoricalIndex`` (:issue:`10704`)
 - The metadata properties of subclasses of pandas objects will now be serialized (:issue:`10553`).
 - ``groupby`` using ``Categorical`` follows the same rule as ``Categorical.unique`` described above  (:issue:`10508`)
 - When constructing ``DataFrame`` with an array of ``complex64`` dtype previously meant the corresponding column
   was automatically promoted to the ``complex128`` dtype. Pandas will now preserve the itemsize of the input for complex data (:issue:`10952`)
 - some numeric reduction operators would return ``ValueError``, rather than ``TypeError`` on object types that includes strings and numbers (:issue:`11131`)
-
+- Passing currently unsupported ``chunksize`` argument to ``read_excel`` or ``ExcelFile.parse`` will now raise ``NotImplementedError`` (:issue:`8011`)
+- Allow an ``ExcelFile`` object to be passed into ``read_excel`` (:issue:`11198`)
+- ``DatetimeIndex.union`` does not infer ``freq`` if ``self`` and the input have ``None`` as ``freq`` (:issue:`11086`)
 - ``NaT``'s methods now either raise ``ValueError``, or return ``np.nan`` or ``NaT`` (:issue:`9513`)
 
   ===============================     ===============================================================
@@ -963,17 +960,19 @@ Deprecations
   can easily be replaced by using the ``add`` and ``mul`` methods:
   ``DataFrame.add(other, fill_value=0)`` and ``DataFrame.mul(other, fill_value=1.)``
   (:issue:`10735`).
-- ``TimeSeries`` deprecated in favor of ``Series`` (note that this has been alias since 0.13.0), (:issue:`10890`)
+- ``TimeSeries`` deprecated in favor of ``Series`` (note that this has been an alias since 0.13.0), (:issue:`10890`)
+- ``SparsePanel`` deprecated and will be removed in a future version (:issue:`11157`).
 - ``Series.is_time_series`` deprecated in favor of ``Series.index.is_all_dates`` (:issue:`11135`)
 - Legacy offsets (like ``'A@JAN'``) listed in :ref:`here <timeseries.legacyaliases>` are deprecated (note that this has been alias since 0.8.0), (:issue:`10878`)
 - ``WidePanel`` deprecated in favor of ``Panel``, ``LongPanel`` in favor of ``DataFrame`` (note these have been aliases since < 0.11.0), (:issue:`10892`)
+- ``DataFrame.convert_objects`` has been deprecated in favor of type-specific functions ``pd.to_datetime``, ``pd.to_timestamp`` and ``pd.to_numeric`` (new in 0.17.0) (:issue:`11133`).
 
 .. _whatsnew_0170.prior_deprecations:
 
 Removal of prior version deprecations/changes
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-- Removal of ``na_last`` parameters from ``Series.order()`` and ``Series.sort()``, in favor of ``na_position``, xref (:issue:`5231`)
+- Removal of ``na_last`` parameters from ``Series.order()`` and ``Series.sort()``, in favor of ``na_position``. (:issue:`5231`)
 - Remove of ``percentile_width`` from ``.describe()``, in favor of ``percentiles``. (:issue:`7088`)
 - Removal of ``colSpace`` parameter from ``DataFrame.to_string()``, in favor of ``col_space``, circa 0.8.0 version.
 - Removal of automatic time-series broadcasting (:issue:`2304`)
@@ -1018,11 +1017,12 @@ Removal of prior version deprecations/changes
 Performance Improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-- Development support for benchmarking with the `Air Speed Velocity library <https://github.com/spacetelescope/asv/>`_ (:issue:`8316`)
+- Development support for benchmarking with the `Air Speed Velocity library <https://github.com/spacetelescope/asv/>`_ (:issue:`8361`)
 - Added vbench benchmarks for alternative ExcelWriter engines and reading Excel files (:issue:`7171`)
 - Performance improvements in ``Categorical.value_counts`` (:issue:`10804`)
-- Performance improvements in ``SeriesGroupBy.nunique`` and ``SeriesGroupBy.value_counts`` (:issue:`10820`, :issue:`11077`)
+- Performance improvements in ``SeriesGroupBy.nunique`` and ``SeriesGroupBy.value_counts`` and ``SeriesGroupby.transform`` (:issue:`10820`, :issue:`11077`)
 - Performance improvements in ``DataFrame.drop_duplicates`` with integer dtypes (:issue:`10917`)
+- Performance improvements in ``DataFrame.duplicated`` with wide frames. (:issue:`10161`, :issue:`11180`)
 - 4x improvement in ``timedelta`` string parsing (:issue:`6755`, :issue:`10426`)
 - 8x improvement in ``timedelta64`` and ``datetime64`` ops (:issue:`6755`)
 - Significantly improved performance of indexing ``MultiIndex`` with slicers (:issue:`10287`)
@@ -1031,6 +1031,9 @@ Performance Improvements
 - 20x improvement in ``concat`` of Categoricals when categories are identical (:issue:`10587`)
 - Improved performance of ``to_datetime`` when specified format string is ISO8601 (:issue:`10178`)
 - 2x improvement of ``Series.value_counts`` for float dtype (:issue:`10821`)
+- Enable ``infer_datetime_format`` in ``to_datetime`` when date components do not have 0 padding (:issue:`11142`)
+- Regression from 0.16.1 in constructing ``DataFrame`` from nested dictionary (:issue:`11084`)
+- Performance improvements in addition/subtraction operations for ``DateOffset`` with ``Series`` or ``DatetimeIndex``  (:issue:`10744`, :issue:`11205`)
 
 .. _whatsnew_0170.bug_fixes:
 
@@ -1038,6 +1041,7 @@ Bug Fixes
 ~~~~~~~~~
 
 - Bug in incorrection computation of ``.mean()`` on ``timedelta64[ns]`` because of overflow (:issue:`9442`)
+- Bug in  ``.isin`` on older numpies (:issue: `11232`)
 - Bug in ``DataFrame.to_html(index=False)`` renders unnecessary ``name`` row (:issue:`10344`)
 - Bug in ``DataFrame.to_latex()`` the ``column_format`` argument could not be passed (:issue:`9402`)
 - Bug in ``DatetimeIndex`` when localizing with ``NaT`` (:issue:`10477`)
@@ -1068,7 +1072,7 @@ Bug Fixes
 - Bug in ``.sample()`` where returned object, if set, gives unnecessary ``SettingWithCopyWarning`` (:issue:`10738`)
 - Bug in ``.sample()`` where weights passed as ``Series`` were not aligned along axis before being treated positionally, potentially causing problems if weight indices were not aligned with sampled object. (:issue:`10738`)
 
-- Regression fixed in (:issue:`9311`, :issue: `6620`, :issue:`9345`), where groupby with a datetime-like converting to float with certain aggregators (:issue:`10979`)
+- Regression fixed in (:issue:`9311`, :issue:`6620`, :issue:`9345`), where groupby with a datetime-like converting to float with certain aggregators (:issue:`10979`)
 
 - Bug in ``DataFrame.interpolate`` with ``axis=1`` and ``inplace=True`` (:issue:`10395`)
 - Bug in ``io.sql.get_schema`` when specifying multiple columns as primary
@@ -1105,7 +1109,7 @@ Bug Fixes
 - Bug causes memory leak in time-series line and area plot (:issue:`9003`)
 
 - Bug when setting a ``Panel`` sliced along the major or minor axes when the right-hand side is a ``DataFrame`` (:issue:`11014`)
-
+- Bug that returns ``None`` and does not raise ``NotImplementedError`` when operator functions (e.g. ``.add``) of ``Panel`` are not implemented (:issue:`7692`)
 
 - Bug in line and kde plot cannot accept multiple colors when ``subplots=True`` (:issue:`9894`)
 - Bug in ``DataFrame.plot`` raises ``ValueError`` when color name is specified by multiple characters (:issue:`10387`)
@@ -1157,3 +1161,7 @@ Bug Fixes
 - Bug in ``Index`` dtype may not applied properly (:issue:`11017`)
 - Bug in ``io.gbq`` when testing for minimum google api client version (:issue:`10652`)
 - Bug in ``DataFrame`` construction from nested ``dict`` with ``timedelta`` keys (:issue:`11129`)
+- Bug in ``.fillna`` against may raise ``TypeError`` when data contains datetime dtype (:issue:`7095`, :issue:`11153`)
+- Bug in ``.groupby`` when number of keys to group by is same as length of index (:issue:`11185`)
+- Bug in ``convert_objects`` where converted values might not be returned if all null and ``coerce`` (:issue:`9589`)
+- Bug in ``convert_objects`` where ``copy`` keyword was not respected (:issue:`9589`)

@@ -7,6 +7,7 @@ from numpy.random import RandomState
 from pandas.core.api import Series, Categorical, CategoricalIndex
 import pandas as pd
 
+from pandas import compat
 import pandas.core.algorithms as algos
 import pandas.util.testing as tm
 import pandas.hashtable as hashtable
@@ -277,7 +278,69 @@ class TestUnique(tm.TestCase):
         tm.assert_numpy_array_equal(result, expected)
         self.assertEqual(result.dtype, expected.dtype)
 
+class TestIsin(tm.TestCase):
+    _multiprocess_can_split_ = True
 
+    def test_invalid(self):
+
+        self.assertRaises(TypeError, lambda : algos.isin(1,1))
+        self.assertRaises(TypeError, lambda : algos.isin(1,[1]))
+        self.assertRaises(TypeError, lambda : algos.isin([1],1))
+
+    def test_basic(self):
+
+        result = algos.isin([1,2],[1])
+        expected = np.array([True,False])
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = algos.isin(np.array([1,2]),[1])
+        expected = np.array([True,False])
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = algos.isin(pd.Series([1,2]),[1])
+        expected = np.array([True,False])
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = algos.isin(pd.Series([1,2]),pd.Series([1]))
+        expected = np.array([True,False])
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = algos.isin(['a','b'],['a'])
+        expected = np.array([True,False])
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = algos.isin(pd.Series(['a','b']),pd.Series(['a']))
+        expected = np.array([True,False])
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = algos.isin(['a','b'],[1])
+        expected = np.array([False,False])
+        tm.assert_numpy_array_equal(result, expected)
+
+        arr = pd.date_range('20130101',periods=3).values
+        result = algos.isin(arr,[arr[0]])
+        expected = np.array([True,False,False])
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = algos.isin(arr,arr[0:2])
+        expected = np.array([True,True,False])
+        tm.assert_numpy_array_equal(result, expected)
+
+        arr = pd.timedelta_range('1 day',periods=3).values
+        result = algos.isin(arr,[arr[0]])
+        expected = np.array([True,False,False])
+        tm.assert_numpy_array_equal(result, expected)
+
+
+
+    def test_large(self):
+
+        s = pd.date_range('20000101',periods=2000000,freq='s').values
+        result = algos.isin(s,s[0:2])
+        expected = np.zeros(len(s),dtype=bool)
+        expected[0] = True
+        expected[1] = True
+        tm.assert_numpy_array_equal(result, expected)
 
 class TestValueCounts(tm.TestCase):
     _multiprocess_can_split_ = True
@@ -405,7 +468,6 @@ class TestValueCounts(tm.TestCase):
         tm.assert_series_equal(
             pd.Series([True, True, False, None]).value_counts(dropna=False),
             pd.Series([2, 1, 1], index=[True, False, np.nan]))
-
         tm.assert_series_equal(
             pd.Series([10.3, 5., 5.]).value_counts(dropna=True),
             pd.Series([2, 1], index=[5., 10.3]))
@@ -416,9 +478,12 @@ class TestValueCounts(tm.TestCase):
         tm.assert_series_equal(
             pd.Series([10.3, 5., 5., None]).value_counts(dropna=True),
             pd.Series([2, 1], index=[5., 10.3]))
-        tm.assert_series_equal(
-            pd.Series([10.3, 5., 5., None]).value_counts(dropna=False),
-            pd.Series([2, 1, 1], index=[5., 10.3, np.nan]))
+
+        # 32-bit linux has a different ordering
+        if not compat.is_platform_32bit():
+            tm.assert_series_equal(
+                pd.Series([10.3, 5., 5., None]).value_counts(dropna=False),
+                pd.Series([2, 1, 1], index=[5., 10.3, np.nan]))
 
 
 class GroupVarTestMixin(object):

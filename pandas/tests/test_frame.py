@@ -16,8 +16,7 @@ from distutils.version import LooseVersion
 
 from pandas.compat import(
     map, zip, range, long, lrange, lmap, lzip,
-    OrderedDict, u, StringIO, string_types,
-    is_platform_windows
+    OrderedDict, u, StringIO, is_platform_windows
 )
 from pandas import compat
 
@@ -33,8 +32,7 @@ import pandas.core.format as fmt
 import pandas.core.datetools as datetools
 from pandas import (DataFrame, Index, Series, Panel, notnull, isnull,
                     MultiIndex, DatetimeIndex, Timestamp, date_range,
-                    read_csv, timedelta_range, Timedelta, CategoricalIndex,
-                    option_context)
+                    read_csv, timedelta_range, Timedelta, option_context, period_range)
 from pandas.core.dtypes import DatetimeTZDtype
 import pandas as pd
 from pandas.parser import CParserError
@@ -381,15 +379,11 @@ class CheckIndexing(object):
         assert_frame_equal(subframe_obj, subframe)
 
         # test that Series indexers reindex
-        import warnings
-        warnings.filterwarnings(action='ignore', category=UserWarning)
+        with tm.assert_produces_warning(UserWarning):
+            indexer_obj = indexer_obj.reindex(self.tsframe.index[::-1])
 
-        indexer_obj = indexer_obj.reindex(self.tsframe.index[::-1])
-
-        subframe_obj = self.tsframe[indexer_obj]
-        assert_frame_equal(subframe_obj, subframe)
-
-        warnings.filterwarnings(action='default', category=UserWarning)
+            subframe_obj = self.tsframe[indexer_obj]
+            assert_frame_equal(subframe_obj, subframe)
 
         # test df[df > 0]
         for df in [ self.tsframe, self.mixed_frame, self.mixed_float, self.mixed_int ]:
@@ -486,6 +480,18 @@ class CheckIndexing(object):
 
         result = df.ix[[1, 10]]
         expected = df.ix[Index([1, 10], dtype=object)]
+        assert_frame_equal(result, expected)
+
+        # 11320
+        df = pd.DataFrame({ "rna": (1.5,2.2,3.2,4.5),
+                            -1000: [11,21,36,40],
+                            0: [10,22,43,34],
+                            1000:[0, 10, 20, 30] },columns=['rna',-1000,0,1000])
+        result = df[[1000]]
+        expected = df.iloc[:,[3]]
+        assert_frame_equal(result, expected)
+        result = df[[-1000]]
+        expected = df.iloc[:,[1]]
         assert_frame_equal(result, expected)
 
     def test_getitem_setitem_ix_negative_integers(self):
@@ -2231,7 +2237,6 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
     _multiprocess_can_split_ = True
 
     def setUp(self):
-        import warnings
 
         self.frame = _frame.copy()
         self.frame2 = _frame2.copy()
@@ -3061,6 +3066,27 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         assert_frame_equal(result_timedelta, expected)
         assert_frame_equal(result_Timedelta, expected)
 
+    def test_nested_dict_frame_constructor(self):
+        rng = period_range('1/1/2000', periods=5)
+        df = DataFrame(randn(10, 5), columns=rng)
+
+        data = {}
+        for col in df.columns:
+            for row in df.index:
+                data.setdefault(col, {})[row] = df.get_value(row, col)
+
+        result = DataFrame(data, columns=rng)
+        tm.assert_frame_equal(result, df)
+
+        data = {}
+        for col in df.columns:
+            for row in df.index:
+                data.setdefault(row, {})[col] = df.get_value(row, col)
+
+        result = DataFrame(data, index=rng).T
+        tm.assert_frame_equal(result, df)
+
+
     def _check_basic_constructor(self, empty):
         "mat: 2d matrix with shpae (3, 2) to input. empty - makes sized objects"
         mat = empty((2, 3), dtype=float)
@@ -3537,6 +3563,20 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
     def test_constructor_tuples(self):
         result = DataFrame({'A': [(1, 2), (3, 4)]})
         expected = DataFrame({'A': Series([(1, 2), (3, 4)])})
+        assert_frame_equal(result, expected)
+
+    def test_constructor_namedtuples(self):
+        # GH11181
+        from collections import namedtuple
+        named_tuple = namedtuple("Pandas", list('ab'))
+        tuples = [named_tuple(1, 3), named_tuple(2, 4)]
+        expected = DataFrame({'a': [1, 2], 'b': [3, 4]})
+        result = DataFrame(tuples)
+        assert_frame_equal(result, expected)
+
+        # with columns
+        expected = DataFrame({'y': [1, 2], 'z': [3, 4]})
+        result = DataFrame(tuples, columns=['y', 'z'])
         assert_frame_equal(result, expected)
 
     def test_constructor_orient(self):
@@ -4301,30 +4341,6 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         result = result.set_index('foo')
         tm.assert_index_equal(df.index,idx)
 
-        # indexing
-        result = df2.iloc[1]
-        expected = Series([Timestamp('2013-01-02 00:00:00-0500', tz='US/Eastern'), np.nan, np.nan],
-                          index=list('ABC'), dtype='object', name=1)
-        assert_series_equal(result, expected)
-        result = df2.loc[1]
-        expected = Series([Timestamp('2013-01-02 00:00:00-0500', tz='US/Eastern'), np.nan, np.nan],
-                          index=list('ABC'), dtype='object', name=1)
-        assert_series_equal(result, expected)
-
-        # indexing - fast_xs
-        df = DataFrame({'a': date_range('2014-01-01', periods=10, tz='UTC')})
-        result = df.iloc[5]
-        expected = Timestamp('2014-01-06 00:00:00+0000', tz='UTC', offset='D')
-        self.assertEqual(result, expected)
-
-        result = df.loc[5]
-        self.assertEqual(result, expected)
-
-        # indexing - boolean
-        result = df[df.a > df.a[3]]
-        expected = df.iloc[4:]
-        assert_frame_equal(result, expected)
-
     def test_constructor_for_list_with_dtypes(self):
         intname = np.dtype(np.int_).name
         floatname = np.dtype(np.float_).name
@@ -4413,7 +4429,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
 
     def test_operators_timedelta64(self):
 
-        from datetime import datetime, timedelta
+        from datetime import timedelta
         df = DataFrame(dict(A = date_range('2012-1-1', periods=3, freq='D'),
                             B = date_range('2012-1-2', periods=3, freq='D'),
                             C = Timestamp('20120101')-timedelta(minutes=5,seconds=5)))
@@ -4624,6 +4640,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
 
         df = DataFrame({'a' : a, 'b' : b, 'c' : c, 'd' : d, 'e' : e})
 
+        # datetimelike
         # Test str and unicode on python 2.x and just str on python 3.x
         for tt in set([str, compat.text_type]):
             result = df.astype(tt)
@@ -4636,6 +4653,18 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
                 'e' : list(map(tt, e._values)),
                 })
 
+            assert_frame_equal(result, expected)
+
+        # float/nan
+        # 11302
+        # consistency in astype(str)
+        for tt in set([str, compat.text_type]):
+            result = DataFrame([np.NaN]).astype(tt)
+            expected = DataFrame(['nan'])
+            assert_frame_equal(result, expected)
+
+            result = DataFrame([1.12345678901234567890]).astype(tt)
+            expected = DataFrame(['1.12345678901'])
             assert_frame_equal(result, expected)
 
     def test_array_interface(self):
@@ -4705,6 +4734,58 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         for k, v in compat.iteritems(test_data):
             for k2, v2 in compat.iteritems(v):
                 self.assertEqual(v2, recons_data[k2][k])
+
+    def test_to_dict_timestamp(self):
+
+        # GH11247
+        # split/records producing np.datetime64 rather than Timestamps
+        # on datetime64[ns] dtypes only
+
+        tsmp = Timestamp('20130101')
+        test_data = DataFrame({'A': [tsmp, tsmp], 'B': [tsmp, tsmp]})
+        test_data_mixed = DataFrame({'A': [tsmp, tsmp], 'B': [1, 2]})
+
+        expected_records = [{'A': tsmp, 'B': tsmp},
+                            {'A': tsmp, 'B': tsmp}]
+        expected_records_mixed = [{'A': tsmp, 'B': 1},
+                            {'A': tsmp, 'B': 2}]
+
+        tm.assert_almost_equal(test_data.to_dict(
+            orient='records'), expected_records)
+        tm.assert_almost_equal(test_data_mixed.to_dict(
+            orient='records'), expected_records_mixed)
+
+        expected_series = {
+            'A': Series([tsmp, tsmp]),
+            'B': Series([tsmp, tsmp]),
+        }
+        expected_series_mixed = {
+            'A': Series([tsmp, tsmp]),
+            'B': Series([1, 2]),
+        }
+
+        tm.assert_almost_equal(test_data.to_dict(
+            orient='series'), expected_series)
+        tm.assert_almost_equal(test_data_mixed.to_dict(
+            orient='series'), expected_series_mixed)
+
+        expected_split = {
+            'index': [0, 1],
+            'data': [[tsmp, tsmp],
+                     [tsmp, tsmp]],
+            'columns': ['A', 'B']
+        }
+        expected_split_mixed = {
+            'index': [0, 1],
+            'data': [[tsmp, 1],
+                     [tsmp, 2]],
+            'columns': ['A', 'B']
+        }
+
+        tm.assert_almost_equal(test_data.to_dict(
+            orient='split'), expected_split)
+        tm.assert_almost_equal(test_data_mixed.to_dict(
+            orient='split'), expected_split_mixed)
 
     def test_to_dict_invalid_orient(self):
         df = DataFrame({'A':[0, 1]})
@@ -5769,7 +5850,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
 
                 def f():
                     df.loc[:,np.nan]
-                self.assertRaises(ValueError, f)
+                self.assertRaises(TypeError, f)
 
 
         df = DataFrame([[1,2,3],[4,5,6]], index=[1,np.nan])
@@ -6608,31 +6689,25 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         # GH3454
         import pandas as pd
 
-        def _check_df(df,cols=None):
-            with ensure_clean() as path:
-                df.to_csv(path,columns = cols,engine='python')
-                rs_p = pd.read_csv(path,index_col=0)
-                df.to_csv(path,columns = cols,chunksize=chunksize)
-                rs_c = pd.read_csv(path,index_col=0)
-
-            if cols:
-                df = df[cols]
-            assert (rs_c.columns==rs_p.columns).all()
-            assert_frame_equal(df,rs_c,check_names=False)
-
         chunksize=5
         N = int(chunksize*2.5)
 
         df= mkdf(N, 3)
         cs = df.columns
         cols = [cs[2],cs[0]]
-        _check_df(df,cols)
+
+        with ensure_clean() as path:
+            df.to_csv(path,columns = cols,chunksize=chunksize)
+            rs_c = pd.read_csv(path,index_col=0)
+
+        assert_frame_equal(df[cols],rs_c,check_names=False)
 
     def test_to_csv_legacy_raises_on_dupe_cols(self):
         df= mkdf(10, 3)
         df.columns = ['a','a','b']
         with ensure_clean() as path:
-            self.assertRaises(NotImplementedError,df.to_csv,path,engine='python')
+            with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+                self.assertRaises(NotImplementedError,df.to_csv,path,engine='python')
 
     def test_to_csv_new_dupe_cols(self):
         import pandas as pd
@@ -6784,7 +6859,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         with ensure_clean('.csv') as pth:
             df=DataFrame(dict(a=s1,b=s2))
             df.to_csv(pth,chunksize=chunksize)
-            recons = DataFrame.from_csv(pth).convert_objects(datetime=True,
+            recons = DataFrame.from_csv(pth)._convert(datetime=True,
                                                              coerce=True)
             assert_frame_equal(df, recons,check_names=False,check_less_precise=True)
 
@@ -7153,6 +7228,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
                 rs = read_csv(filename,index_col=0)
                 assert_frame_equal(rs, aa)
 
+    @slow
     def test_to_csv_wide_frame_formatting(self):
         # Issue #8621
         df = DataFrame(np.random.randn(1, 100010), columns=None, index=None)
@@ -7331,6 +7407,63 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         recons = pd.read_csv(StringIO(csv_str), index_col=0)
         assert_frame_equal(self.frame, recons)
 
+    def test_to_csv_compression_gzip(self):
+        ## GH7615
+        ## use the compression kw in to_csv
+        df = DataFrame([[0.123456, 0.234567, 0.567567],
+                        [12.32112, 123123.2, 321321.2]],
+                       index=['A', 'B'], columns=['X', 'Y', 'Z'])
+
+        with ensure_clean() as filename:
+
+            df.to_csv(filename, compression="gzip")
+
+            # test the round trip - to_csv -> read_csv
+            rs = read_csv(filename, compression="gzip", index_col=0)
+            assert_frame_equal(df, rs)
+
+            # explicitly make sure file is gziped
+            import gzip
+            f = gzip.open(filename, 'rb')
+            text = f.read().decode('utf8')
+            f.close()
+            for col in df.columns:
+                self.assertIn(col, text)
+
+    def test_to_csv_compression_bz2(self):
+        ## GH7615
+        ## use the compression kw in to_csv
+        df = DataFrame([[0.123456, 0.234567, 0.567567],
+                        [12.32112, 123123.2, 321321.2]],
+                       index=['A', 'B'], columns=['X', 'Y', 'Z'])
+
+        with ensure_clean() as filename:
+
+            df.to_csv(filename, compression="bz2")
+
+            # test the round trip - to_csv -> read_csv
+            rs = read_csv(filename, compression="bz2", index_col=0)
+            assert_frame_equal(df, rs)
+
+            # explicitly make sure file is bz2ed
+            import bz2
+            f = bz2.BZ2File(filename, 'rb')
+            text = f.read().decode('utf8')
+            f.close()
+            for col in df.columns:
+                self.assertIn(col, text)
+
+    def test_to_csv_compression_value_error(self):
+        ## GH7615
+        ## use the compression kw in to_csv
+        df = DataFrame([[0.123456, 0.234567, 0.567567],
+                        [12.32112, 123123.2, 321321.2]],
+                       index=['A', 'B'], columns=['X', 'Y', 'Z'])
+
+        with ensure_clean() as filename:
+            # zip compression is not supported and should raise ValueError
+            self.assertRaises(ValueError, df.to_csv, filename, compression="zip")
+
     def test_info(self):
         io = StringIO()
         self.frame.info(buf=io)
@@ -7495,7 +7628,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
     def test_convert_objects(self):
 
         oops = self.mixed_frame.T.T
-        converted = oops.convert_objects(datetime=True)
+        converted = oops._convert(datetime=True)
         assert_frame_equal(converted, self.mixed_frame)
         self.assertEqual(converted['A'].dtype, np.float64)
 
@@ -7508,8 +7641,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         self.mixed_frame['J'] = '1.'
         self.mixed_frame['K'] = '1'
         self.mixed_frame.ix[0:5,['J','K']] = 'garbled'
-        converted = self.mixed_frame.convert_objects(datetime=True,
-                                                     numeric=True)
+        converted = self.mixed_frame._convert(datetime=True, numeric=True)
         self.assertEqual(converted['H'].dtype, 'float64')
         self.assertEqual(converted['I'].dtype, 'int64')
         self.assertEqual(converted['J'].dtype, 'float64')
@@ -7531,14 +7663,14 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
 
         # mixed in a single column
         df = DataFrame(dict(s = Series([1, 'na', 3 ,4])))
-        result = df.convert_objects(datetime=True, numeric=True)
+        result = df._convert(datetime=True, numeric=True)
         expected = DataFrame(dict(s = Series([1, np.nan, 3 ,4])))
         assert_frame_equal(result, expected)
 
     def test_convert_objects_no_conversion(self):
         mixed1 = DataFrame(
             {'a': [1, 2, 3], 'b': [4.0, 5, 6], 'c': ['x', 'y', 'z']})
-        mixed2 = mixed1.convert_objects(datetime=True)
+        mixed2 = mixed1._convert(datetime=True)
         assert_frame_equal(mixed1, mixed2)
 
     def test_append_series_dict(self):
@@ -8248,6 +8380,25 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         expected = df.iloc[[-2,-1]]
         assert_frame_equal(result, expected)
 
+        # GH 11376
+        df = pd.DataFrame({'x': [7, 6, 3, 3, 4, 8, 0],
+                           'y': [0, 6, 5, 5, 9, 1, 2]})
+        expected = df.loc[df.index != 3]
+        assert_frame_equal(df.drop_duplicates(), expected)
+
+        df = pd.DataFrame([[1 , 0], [0, 2]])
+        assert_frame_equal(df.drop_duplicates(), df)
+
+        df = pd.DataFrame([[-2, 0], [0, -4]])
+        assert_frame_equal(df.drop_duplicates(), df)
+
+        x = np.iinfo(np.int64).max / 3 * 2
+        df = pd.DataFrame([[-x, x], [0, x + 4]])
+        assert_frame_equal(df.drop_duplicates(), df)
+
+        df = pd.DataFrame([[-x, x], [x, x + 4]])
+        assert_frame_equal(df.drop_duplicates(), df)
+
     def test_drop_duplicates_for_take_all(self):
         df = DataFrame({'AAA': ['foo', 'bar', 'baz', 'bar',
                                 'foo', 'bar', 'qux', 'foo'],
@@ -8739,6 +8890,34 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
             expected = df.replace(np.nan,v)
             result = df.fillna(v)
             assert_frame_equal(result, expected)
+
+    def test_fillna_datetime_columns(self):
+        # GH 7095
+        df = pd.DataFrame({'A': [-1, -2, np.nan],
+                           'B': date_range('20130101', periods=3),
+                           'C': ['foo', 'bar', None],
+                           'D': ['foo2', 'bar2', None]},
+                          index=date_range('20130110', periods=3))
+        result = df.fillna('?')
+        expected = pd.DataFrame({'A': [-1, -2, '?'],
+                                 'B': date_range('20130101', periods=3),
+                                 'C': ['foo', 'bar', '?'],
+                                 'D': ['foo2', 'bar2', '?']},
+                                index=date_range('20130110', periods=3))
+        self.assert_frame_equal(result, expected)
+
+        df = pd.DataFrame({'A': [-1, -2, np.nan],
+                           'B': [pd.Timestamp('2013-01-01'), pd.Timestamp('2013-01-02'), pd.NaT],
+                           'C': ['foo', 'bar', None],
+                           'D': ['foo2', 'bar2', None]},
+                          index=date_range('20130110', periods=3))
+        result = df.fillna('?')
+        expected = pd.DataFrame({'A': [-1, -2, '?'],
+                                 'B': [pd.Timestamp('2013-01-01'), pd.Timestamp('2013-01-02'), '?'],
+                                 'C': ['foo', 'bar', '?'],
+                                 'D': ['foo2', 'bar2', '?']},
+                                index=date_range('20130110', periods=3))
+        self.assert_frame_equal(result, expected)
 
     def test_ffill(self):
         self.tsframe['A'][:5] = nan
@@ -9306,18 +9485,20 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
     def test_regex_replace_dict_nested_gh4115(self):
         df = pd.DataFrame({'Type':['Q','T','Q','Q','T'], 'tmp':2})
         expected = DataFrame({'Type': [0,1,0,0,1], 'tmp': 2})
-        assert_frame_equal(df.replace({'Type': {'Q':0,'T':1}}), expected)
+        result = df.replace({'Type': {'Q':0,'T':1}})
+        assert_frame_equal(result, expected)
 
     def test_regex_replace_list_to_scalar(self):
         mix = {'a': lrange(4), 'b': list('ab..'), 'c': ['a', 'b', nan, 'd']}
         df = DataFrame(mix)
+        expec = DataFrame({'a': mix['a'], 'b': np.array([nan] * 4),
+                           'c': [nan, nan, nan, 'd']})
+
         res = df.replace([r'\s*\.\s*', 'a|b'], nan, regex=True)
         res2 = df.copy()
         res3 = df.copy()
         res2.replace([r'\s*\.\s*', 'a|b'], nan, regex=True, inplace=True)
         res3.replace(regex=[r'\s*\.\s*', 'a|b'], value=nan, inplace=True)
-        expec = DataFrame({'a': mix['a'], 'b': np.array([nan] * 4),
-                           'c': [nan, nan, nan, 'd']})
         assert_frame_equal(res, expec)
         assert_frame_equal(res2, expec)
         assert_frame_equal(res3, expec)
@@ -9371,8 +9552,8 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
     def test_regex_replace_numeric_to_object_conversion(self):
         mix = {'a': lrange(4), 'b': list('ab..'), 'c': ['a', 'b', nan, 'd']}
         df = DataFrame(mix)
-        res = df.replace(0, 'a')
         expec = DataFrame({'a': ['a', 1, 2, 3], 'b': mix['b'], 'c': mix['c']})
+        res = df.replace(0, 'a')
         assert_frame_equal(res, expec)
         self.assertEqual(res.a.dtype, np.object_)
 
@@ -9494,7 +9675,6 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         assert_frame_equal(result,expected)
 
         # test case from
-        from pandas.util.testing import makeCustomDataframe as mkdf
         df = DataFrame({'A' : Series([3,0],dtype='int64'), 'B' : Series([0,3],dtype='int64') })
         result = df.replace(3, df.mean().to_dict())
         expected = df.copy().astype('float64')
@@ -9800,6 +9980,56 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
                                         for k in df.fname.values]})
         result = df.replace(d)
         tm.assert_frame_equal(result, expected)
+
+    def test_replace_datetimetz(self):
+
+        # GH 11326
+        # behaving poorly when presented with a datetime64[ns, tz]
+        df = DataFrame({'A' : date_range('20130101',periods=3,tz='US/Eastern'),
+                        'B' : [0, np.nan, 2]})
+        result = df.replace(np.nan,1)
+        expected = DataFrame({'A' : date_range('20130101',periods=3,tz='US/Eastern'),
+                              'B' : Series([0, 1, 2],dtype='float64')})
+        assert_frame_equal(result, expected)
+
+        result = df.fillna(1)
+        assert_frame_equal(result, expected)
+
+        result = df.replace(0,np.nan)
+        expected = DataFrame({'A' : date_range('20130101',periods=3,tz='US/Eastern'),
+                              'B' : [np.nan, np.nan, 2]})
+        assert_frame_equal(result, expected)
+
+        result = df.replace(Timestamp('20130102',tz='US/Eastern'),Timestamp('20130104',tz='US/Eastern'))
+        expected = DataFrame({'A' : [Timestamp('20130101',tz='US/Eastern'),
+                                     Timestamp('20130104',tz='US/Eastern'),
+                                     Timestamp('20130103',tz='US/Eastern')],
+                              'B' : [0, np.nan, 2]})
+        assert_frame_equal(result, expected)
+
+        result = df.copy()
+        result.iloc[1,0] = np.nan
+        result = result.replace({'A' : pd.NaT }, Timestamp('20130104',tz='US/Eastern'))
+        assert_frame_equal(result, expected)
+
+        # coerce to object
+        result = df.copy()
+        result.iloc[1,0] = np.nan
+        result = result.replace({'A' : pd.NaT }, Timestamp('20130104',tz='US/Pacific'))
+        expected = DataFrame({'A' : [Timestamp('20130101',tz='US/Eastern'),
+                                     Timestamp('20130104',tz='US/Pacific'),
+                                     Timestamp('20130103',tz='US/Eastern')],
+                              'B' : [0, np.nan, 2]})
+        assert_frame_equal(result, expected)
+
+        result = df.copy()
+        result.iloc[1,0] = np.nan
+        result = result.replace({'A' : np.nan }, Timestamp('20130104'))
+        expected = DataFrame({'A' : [Timestamp('20130101',tz='US/Eastern'),
+                                     Timestamp('20130104'),
+                                     Timestamp('20130103',tz='US/Eastern')],
+                              'B' : [0, np.nan, 2]})
+        assert_frame_equal(result, expected)
 
     def test_combine_multiple_frames_dtypes(self):
 
@@ -11502,7 +11732,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
                           'F': np.random.randn(11)})
 
         result = data.apply(lambda x: x, axis=1)
-        assert_frame_equal(result.convert_objects(datetime=True), data)
+        assert_frame_equal(result._convert(datetime=True), data)
 
     def test_apply_attach_name(self):
         result = self.frame.apply(lambda x: x.name)
@@ -12026,7 +12256,6 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         assert_frame_equal(df, expected)
 
     def test_sort_index_different_sortorder(self):
-        import random
         A = np.arange(20).repeat(5)
         B = np.tile(np.arange(5), 20)
 
@@ -13100,7 +13329,6 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
 
     def test_quantile_axis_parameter(self):
         # GH 9543/9544
-        from numpy import percentile
 
         df = DataFrame({"A": [1, 2, 3], "B": [2, 3, 4]}, index=[1, 2, 3])
 
@@ -15104,10 +15332,14 @@ starting,ending,measure
         pname = '__tmp_to_csv_date_format__'
         with ensure_clean(pname) as path:
             for engine in [None, 'python']:
+                w = FutureWarning if engine == 'python' else None
+
                 dt_index = self.tsframe.index
                 datetime_frame = DataFrame({'A': dt_index, 'B': dt_index.shift(1)}, index=dt_index)
 
-                datetime_frame.to_csv(path, date_format='%Y%m%d', engine=engine)
+                with tm.assert_produces_warning(w, check_stacklevel=False):
+                    datetime_frame.to_csv(path, date_format='%Y%m%d', engine=engine)
+
                 # Check that the data was put in the specified format
                 test = read_csv(path, index_col=0)
 
@@ -15116,7 +15348,9 @@ starting,ending,measure
 
                 assert_frame_equal(test, datetime_frame_int)
 
-                datetime_frame.to_csv(path, date_format='%Y-%m-%d', engine=engine)
+                with tm.assert_produces_warning(w, check_stacklevel=False):
+                    datetime_frame.to_csv(path, date_format='%Y-%m-%d', engine=engine)
+
                 # Check that the data was put in the specified format
                 test = read_csv(path, index_col=0)
                 datetime_frame_str = datetime_frame.applymap(lambda x: x.strftime('%Y-%m-%d'))
@@ -15127,7 +15361,8 @@ starting,ending,measure
                 # Check that columns get converted
                 datetime_frame_columns = datetime_frame.T
 
-                datetime_frame_columns.to_csv(path, date_format='%Y%m%d', engine=engine)
+                with tm.assert_produces_warning(w, check_stacklevel=False):
+                    datetime_frame_columns.to_csv(path, date_format='%Y%m%d', engine=engine)
 
                 test = read_csv(path, index_col=0)
 
@@ -15141,7 +15376,8 @@ starting,ending,measure
                 nat_index = to_datetime(['NaT'] * 10 + ['2000-01-01', '1/1/2000', '1-1-2000'])
                 nat_frame = DataFrame({'A': nat_index}, index=nat_index)
 
-                nat_frame.to_csv(path, date_format='%Y-%m-%d', engine=engine)
+                with tm.assert_produces_warning(w, check_stacklevel=False):
+                    nat_frame.to_csv(path, date_format='%Y-%m-%d', engine=engine)
 
                 test = read_csv(path, parse_dates=[0, 1], index_col=0)
 
@@ -15884,8 +16120,6 @@ class TestDataFrameQueryNumExprPandas(tm.TestCase):
         n = m = 10
         df = DataFrame(np.random.randint(m, size=(n, 3)), columns=list('abc'))
 
-        from numpy import sin
-
         # we don't pick up the local 'sin'
         with tm.assertRaises(UndefinedVariableError):
             df.query('sin > 5', engine=engine, parser=parser)
@@ -16183,7 +16417,6 @@ class TestDataFrameQueryPythonPandas(TestDataFrameQueryNumExprPandas):
         cls.frame = _frame.copy()
 
     def test_query_builtin(self):
-        from pandas.computation.engines import NumExprClobberingError
         engine, parser = self.engine, self.parser
 
         n = m = 10
@@ -16204,7 +16437,6 @@ class TestDataFrameQueryPythonPython(TestDataFrameQueryNumExprPython):
         cls.frame = _frame.copy()
 
     def test_query_builtin(self):
-        from pandas.computation.engines import NumExprClobberingError
         engine, parser = self.engine, self.parser
 
         n = m = 10

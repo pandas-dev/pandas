@@ -34,7 +34,7 @@ Data Structures
 ---------------
 
 General Terminology Translation
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. csv-table::
     :header: "pandas", "SAS"
@@ -142,10 +142,10 @@ and did not have column names, the pandas command would be:
 
 .. code-block:: python
 
-   tips = pd.read_csv('tips.csv', sep='\t', header=False)
+   tips = pd.read_csv('tips.csv', sep='\t', header=None)
 
    # alternatively, read_table is an alias to read_csv with tab delimiter
-   tips = pd.read_table('tips.csv', header=False)
+   tips = pd.read_table('tips.csv', header=None)
 
 In addition to text/csv, pandas supports a variety of other data formats
 such as Excel, HDF5, and SQL databases.  These are all read via a ``pd.read_*``

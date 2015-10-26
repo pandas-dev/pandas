@@ -14,6 +14,7 @@ from pandas.lib import Timestamp, Timedelta, is_datetime_array
 
 from pandas.compat import range, zip, lrange, lzip, u, map
 from pandas import compat
+from pandas.core import algorithms
 from pandas.core.base import PandasObject, FrozenList, FrozenNDArray, IndexOpsMixin, _shared_docs, PandasDelegate
 from pandas.util.decorators import (Appender, Substitution, cache_readonly,
                                     deprecate, deprecate_kwarg)
@@ -108,7 +109,6 @@ class Index(IndexOpsMixin, PandasObject):
     _is_numeric_dtype = False
 
     _engine_type = _index.ObjectEngine
-    _isin_type = lib.ismember
 
     def __new__(cls, data=None, dtype=None, copy=False, name=None, fastpath=False,
                 tupleize_cols=True, **kwargs):
@@ -488,7 +488,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Return the formatted data as a unicode string
         """
-        from pandas.core.format import get_console_size
+        from pandas.core.format import get_console_size, _get_adjustment
         display_width, _ = get_console_size()
         if display_width is None:
             display_width = get_option('display.width') or 80
@@ -502,14 +502,19 @@ class Index(IndexOpsMixin, PandasObject):
         formatter = self._formatter_func
 
         # do we want to justify (only do so for non-objects)
-        is_justify = not (self.inferred_type == 'string' or self.inferred_type == 'categorical' and is_object_dtype(self.categories))
+        is_justify = not (self.inferred_type in ('string', 'unicode') or
+                          (self.inferred_type == 'categorical' and
+                           is_object_dtype(self.categories)))
 
         # are we a truncated display
         is_truncated = n > max_seq_items
 
+        # adj can optionaly handle unicode eastern asian width
+        adj = _get_adjustment()
+
         def _extend_line(s, line, value, display_width, next_line_prefix):
 
-            if len(line.rstrip()) + len(value.rstrip()) >= display_width:
+            if adj.len(line.rstrip()) + adj.len(value.rstrip()) >= display_width:
                 s += line.rstrip()
                 line = next_line_prefix
             line += value
@@ -517,7 +522,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         def best_len(values):
             if values:
-                return max([len(x) for x in values])
+                return max([adj.len(x) for x in values])
             else:
                 return 0
 
@@ -556,8 +561,10 @@ class Index(IndexOpsMixin, PandasObject):
                 word = head[i] + sep + ' '
                 summary, line = _extend_line(summary, line, word,
                                              display_width, space2)
+
             if is_truncated:
-                summary += line + space2 + '...'
+                # remove trailing space of last line
+                summary += line.rstrip() + space2 + '...'
                 line = space2
 
             for i in range(len(tail)-1):
@@ -619,6 +626,10 @@ class Index(IndexOpsMixin, PandasObject):
     def astype(self, dtype):
         return Index(self.values.astype(dtype), name=self.name,
                      dtype=dtype)
+
+    def _to_safe_for_reshape(self):
+        """ convert to object if we are a categorical """
+        return self
 
     def to_datetime(self, dayfirst=False):
         """
@@ -855,9 +866,10 @@ class Index(IndexOpsMixin, PandasObject):
             return self._invalid_indexer('label', key)
 
         if is_float(key):
-            if not self.is_floating():
-                warnings.warn("scalar indexers for index type {0} should be integers and not floating point".format(
-                    type(self).__name__), FutureWarning, stacklevel=3)
+            if isnull(key):
+                return self._invalid_indexer('label', key)
+            warnings.warn("scalar indexers for index type {0} should be integers and not floating point".format(
+                type(self).__name__), FutureWarning, stacklevel=3)
             return to_int()
 
         return key
@@ -975,10 +987,6 @@ class Index(IndexOpsMixin, PandasObject):
         if kind in [None, 'iloc', 'ix'] and is_integer_dtype(keyarr) \
            and not self.is_floating() and not isinstance(keyarr, ABCPeriodIndex):
 
-            if self.inferred_type != 'integer':
-                keyarr = np.where(keyarr < 0,
-                                  len(self) + keyarr, keyarr)
-
             if self.inferred_type == 'mixed-integer':
                 indexer = self.get_indexer(keyarr)
                 if (indexer >= 0).all():
@@ -991,6 +999,8 @@ class Index(IndexOpsMixin, PandasObject):
                 return maybe_convert_indices(indexer, len(self))
 
             elif not self.inferred_type == 'integer':
+                keyarr = np.where(keyarr < 0,
+                                  len(self) + keyarr, keyarr)
                 return keyarr
 
         return None
@@ -1436,7 +1446,7 @@ class Index(IndexOpsMixin, PandasObject):
         return Index(np.array(self) + other)
 
     def __radd__(self, other):
-        if com.is_list_like(other):
+        if is_list_like(other):
             warnings.warn("using '+' to provide set union with Indexes is deprecated, "
                           "use '|' or .union()", FutureWarning, stacklevel=2)
         return Index(other + np.array(self))
@@ -1459,7 +1469,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     def union(self, other):
         """
-        Form the union of two Index objects and sorts if possible
+        Form the union of two Index objects and sorts if possible.
 
         Parameters
         ----------
@@ -1468,6 +1478,15 @@ class Index(IndexOpsMixin, PandasObject):
         Returns
         -------
         union : Index
+
+        Examples
+        --------
+
+        >>> idx1 = pd.Index([1, 2, 3, 4])
+        >>> idx2 = pd.Index([3, 4, 5, 6])
+        >>> idx1.union(idx2)
+        Int64Index([1, 2, 3, 4, 5, 6], dtype='int64')
+
         """
         self._assert_can_do_setop(other)
         other = _ensure_index(other)
@@ -1535,8 +1554,10 @@ class Index(IndexOpsMixin, PandasObject):
 
     def intersection(self, other):
         """
-        Form the intersection of two Index objects. Sortedness of the result is
-        not guaranteed
+        Form the intersection of two Index objects.
+
+        This returns a new Index with elements common to the index and `other`.
+        Sortedness of the result is not guaranteed.
 
         Parameters
         ----------
@@ -1545,6 +1566,15 @@ class Index(IndexOpsMixin, PandasObject):
         Returns
         -------
         intersection : Index
+
+        Examples
+        --------
+
+        >>> idx1 = pd.Index([1, 2, 3, 4])
+        >>> idx2 = pd.Index([3, 4, 5, 6])
+        >>> idx1.intersection(idx2)
+        Int64Index([3, 4], dtype='int64')
+
         """
         self._assert_can_do_setop(other)
         other = _ensure_index(other)
@@ -1579,7 +1609,9 @@ class Index(IndexOpsMixin, PandasObject):
 
     def difference(self, other):
         """
-        Compute sorted set difference of two Index objects
+        Return a new Index with elements from the index that are not in `other`.
+
+        This is the sorted set difference of two Index objects.
 
         Parameters
         ----------
@@ -1587,13 +1619,16 @@ class Index(IndexOpsMixin, PandasObject):
 
         Returns
         -------
-        diff : Index
+        difference : Index
 
-        Notes
-        -----
-        One can do either of these and achieve the same result
+        Examples
+        --------
 
-        >>> index.difference(index2)
+        >>> idx1 = pd.Index([1, 2, 3, 4])
+        >>> idx2 = pd.Index([3, 4, 5, 6])
+        >>> idx1.difference(idx2)
+        Int64Index([1, 2], dtype='int64')
+
         """
         self._assert_can_do_setop(other)
 
@@ -1613,7 +1648,6 @@ class Index(IndexOpsMixin, PandasObject):
 
         Parameters
         ----------
-
         other : Index or array-like
         result_name : str
 
@@ -1988,10 +2022,9 @@ class Index(IndexOpsMixin, PandasObject):
         is_contained : ndarray (boolean dtype)
 
         """
-        value_set = set(values)
         if level is not None:
             self._validate_index_level(level)
-        return self._isin_type(np.array(self), value_set)
+        return algorithms.isin(np.array(self), values)
 
     def _can_reindex(self, indexer):
         """
@@ -3090,6 +3123,8 @@ class CategoricalIndex(Index, PandasDelegate):
                 raise TypeError("categories must match existing categories when appending")
         else:
             values = other
+            if not is_list_like(values):
+                values = [ values ]
             other = CategoricalIndex(self._create_categorical(self, other, categories=self.categories, ordered=self.ordered))
             if not other.isin(values).all():
                 raise TypeError("cannot append a non-category item to a CategoricalIndex")
@@ -3182,6 +3217,10 @@ class CategoricalIndex(Index, PandasDelegate):
     def duplicated(self, keep='first'):
         from pandas.hashtable import duplicated_int64
         return duplicated_int64(self.codes.astype('i8'), keep)
+
+    def _to_safe_for_reshape(self):
+        """ convert to object if we are a categorical """
+        return self.astype('object')
 
     def get_loc(self, key, method=None):
         """
@@ -3573,7 +3612,6 @@ class Int64Index(NumericIndex):
     _outer_indexer = _algos.outer_join_indexer_int64
 
     _engine_type = _index.Int64Engine
-    _isin_type = lib.ismember_int64
 
     def __new__(cls, data=None, dtype=None, copy=False, name=None, fastpath=False, **kwargs):
 
@@ -3716,9 +3754,23 @@ class Float64Index(NumericIndex):
         return Index(self._values, name=self.name, dtype=dtype)
 
     def _convert_scalar_indexer(self, key, kind=None):
+        """
+        convert a scalar indexer
+
+        Parameters
+        ----------
+        key : label of the slice bound
+        kind : optional, type of the indexing operation (loc/ix/iloc/None)
+
+        right now we are converting
+        floats -> ints if the index supports it
+        """
+
         if kind == 'iloc':
-            return super(Float64Index, self)._convert_scalar_indexer(key,
-                                                                     kind=kind)
+            if is_integer(key):
+                return key
+            return super(Float64Index, self)._convert_scalar_indexer(key, kind=kind)
+
         return key
 
     def _convert_slice_indexer(self, key, kind=None):
@@ -4271,7 +4323,7 @@ class MultiIndex(Index):
         Returns True if the name refered to in self.names is duplicated.
         """
         # count the times name equals an element in self.names.
-        return np.sum(name == np.asarray(self.names)) > 1
+        return sum(name == n for n in self.names) > 1
 
     def _format_native_types(self, **kwargs):
         return self.values
@@ -4501,10 +4553,17 @@ class MultiIndex(Index):
                                       start=int(names),
                                       sentinel=sentinel)
 
+
         if adjoin:
-            return com.adjoin(space, *result_levels).split('\n')
+            from pandas.core.format import  _get_adjustment
+            adj = _get_adjustment()
+            return adj.adjoin(space, *result_levels).split('\n')
         else:
             return result_levels
+
+    def _to_safe_for_reshape(self):
+        """ convert to object if we are a categorical """
+        return self.set_levels([ i._to_safe_for_reshape() for i in self.levels ])
 
     def to_hierarchical(self, n_repeat, n_shuffle=1):
         """

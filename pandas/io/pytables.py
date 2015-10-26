@@ -51,7 +51,7 @@ _version = '0.15.2'
 _default_encoding = 'UTF-8'
 
 def _ensure_decoded(s):
-    """ if we have bytes, decode them to unicde """
+    """ if we have bytes, decode them to unicode """
     if isinstance(s, np.bytes_):
         s = s.decode('UTF-8')
     return s
@@ -1839,7 +1839,9 @@ class DataCol(IndexCol):
                         nan_rep, encoding):
         # fill nan items with myself, don't disturb the blocks by
         # trying to downcast
-        block = block.fillna(nan_rep, downcast=False)[0]
+        block = block.fillna(nan_rep, downcast=False)
+        if isinstance(block, list):
+            block = block[0]
         data = block.values
 
         # see if we have a valid string type
@@ -1860,7 +1862,8 @@ class DataCol(IndexCol):
                     )
 
         # itemsize is the maximum length of a string (along any dimension)
-        itemsize = lib.max_len_string_array(com._ensure_object(data.ravel()))
+        data_converted = _convert_string_array(data, encoding)
+        itemsize = data_converted.itemsize
 
         # specified min_itemsize?
         if isinstance(min_itemsize, dict):
@@ -1877,10 +1880,7 @@ class DataCol(IndexCol):
         self.itemsize = itemsize
         self.kind = 'string'
         self.typ = self.get_atom_string(block, itemsize)
-        self.set_data(self.convert_string_data(data, itemsize, encoding))
-
-    def convert_string_data(self, data, itemsize, encoding):
-        return _convert_string_array(data, encoding, itemsize)
+        self.set_data(data_converted.astype('|S%d' % itemsize, copy=False))
 
     def get_atom_coltype(self, kind=None):
         """ return the PyTables column class for this column """

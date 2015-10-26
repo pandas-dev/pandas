@@ -39,10 +39,6 @@ import pandas.tests.test_series as test_series
 
 from pandas.sparse.tests.test_array import assert_sp_array_equal
 
-import warnings
-warnings.filterwarnings(action='ignore', category=FutureWarning)
-
-
 def _test_data1():
     # nan-based
     arr = np.arange(20, dtype=float)
@@ -502,15 +498,6 @@ class TestSparseSeries(tm.TestCase,
         # with dense
         result = self.bseries + self.bseries.to_dense()
         assert_sp_series_equal(result, self.bseries + self.bseries)
-
-    # @dec.knownfailureif(True, 'Known NumPy failer as of 1.5.1')
-    def test_operators_corner2(self):
-        raise nose.SkipTest('known failer on numpy 1.5.1')
-
-        # NumPy circumvents __r*__ operations
-        val = np.float64(3.0)
-        result = val - self.zbseries
-        assert_sp_series_equal(result, 3 - self.zbseries)
 
     def test_binary_operators(self):
 
@@ -1778,30 +1765,40 @@ class TestSparsePanel(tm.TestCase,
             'ItemC': panel_data3(),
             'ItemD': panel_data1(),
         }
-        self.panel = SparsePanel(self.data_dict)
+        with tm.assert_produces_warning(FutureWarning):
+            self.panel = SparsePanel(self.data_dict)
 
     @staticmethod
     def _test_op(panel, op):
         # arithmetic tests
-        result = op(panel, 1)
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            result = op(panel, 1)
         assert_sp_frame_equal(result['ItemA'], op(panel['ItemA'], 1))
 
     def test_constructor(self):
-        self.assertRaises(ValueError, SparsePanel, self.data_dict,
-                          items=['Item0', 'ItemA', 'ItemB'])
-        with tm.assertRaisesRegexp(TypeError,
-                                   "input must be a dict, a 'list' was passed"):
-            SparsePanel(['a', 'b', 'c'])
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            self.assertRaises(ValueError, SparsePanel, self.data_dict,
+                              items=['Item0', 'ItemA', 'ItemB'])
+            with tm.assertRaisesRegexp(TypeError,
+                                       "input must be a dict, a 'list' was passed"):
+                SparsePanel(['a', 'b', 'c'])
+
+    # deprecation GH11157
+    def test_deprecation(self):
+        with tm.assert_produces_warning(FutureWarning):
+            SparsePanel()
 
     # GH 9272
     def test_constructor_empty(self):
-        sp = SparsePanel()
+        with tm.assert_produces_warning(FutureWarning):
+            sp = SparsePanel()
         self.assertEqual(len(sp.items), 0)
         self.assertEqual(len(sp.major_axis), 0)
         self.assertEqual(len(sp.minor_axis), 0)
 
     def test_from_dict(self):
-        fd = SparsePanel.from_dict(self.data_dict)
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            fd = SparsePanel.from_dict(self.data_dict)
         assert_sp_panel_equal(fd, self.panel)
 
     def test_pickle(self):
@@ -1825,21 +1822,25 @@ class TestSparsePanel(tm.TestCase,
         assert_panel_equal(dwp, dwp2)
 
     def test_to_frame(self):
-        def _compare_with_dense(panel):
-            slp = panel.to_frame()
-            dlp = panel.to_dense().to_frame()
 
-            self.assert_numpy_array_equal(slp.values, dlp.values)
-            self.assertTrue(slp.index.equals(dlp.index))
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
 
-        _compare_with_dense(self.panel)
-        _compare_with_dense(self.panel.reindex(items=['ItemA']))
+            def _compare_with_dense(panel):
+                slp = panel.to_frame()
+                dlp = panel.to_dense().to_frame()
 
-        zero_panel = SparsePanel(self.data_dict, default_fill_value=0)
-        self.assertRaises(Exception, zero_panel.to_frame)
+                self.assert_numpy_array_equal(slp.values, dlp.values)
+                self.assertTrue(slp.index.equals(dlp.index))
 
-        self.assertRaises(Exception, self.panel.to_frame,
-                          filter_observations=False)
+            _compare_with_dense(self.panel)
+            _compare_with_dense(self.panel.reindex(items=['ItemA']))
+
+            with tm.assert_produces_warning(FutureWarning):
+                zero_panel = SparsePanel(self.data_dict, default_fill_value=0)
+            self.assertRaises(Exception, zero_panel.to_frame)
+
+            self.assertRaises(Exception, self.panel.to_frame,
+                              filter_observations=False)
 
     def test_long_to_wide_sparse(self):
         pass
@@ -1880,47 +1881,53 @@ class TestSparsePanel(tm.TestCase,
         self.assertRaises(KeyError, self.panel.__delitem__, 'ItemC')
 
     def test_copy(self):
-        cop = self.panel.copy()
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            cop = self.panel.copy()
         assert_sp_panel_equal(cop, self.panel)
 
     def test_reindex(self):
-        def _compare_with_dense(swp, items, major, minor):
-            swp_re = swp.reindex(items=items, major=major,
-                                 minor=minor)
-            dwp_re = swp.to_dense().reindex(items=items, major=major,
-                                            minor=minor)
-            assert_panel_equal(swp_re.to_dense(), dwp_re)
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
 
-        _compare_with_dense(self.panel, self.panel.items[:2],
-                            self.panel.major_axis[::2],
-                            self.panel.minor_axis[::2])
-        _compare_with_dense(self.panel, None,
-                            self.panel.major_axis[::2],
-                            self.panel.minor_axis[::2])
+            def _compare_with_dense(swp, items, major, minor):
+                swp_re = swp.reindex(items=items, major=major,
+                                     minor=minor)
+                dwp_re = swp.to_dense().reindex(items=items, major=major,
+                                                minor=minor)
+                assert_panel_equal(swp_re.to_dense(), dwp_re)
 
-        self.assertRaises(ValueError, self.panel.reindex)
+            _compare_with_dense(self.panel, self.panel.items[:2],
+                                self.panel.major_axis[::2],
+                                self.panel.minor_axis[::2])
+            _compare_with_dense(self.panel, None,
+                                self.panel.major_axis[::2],
+                                self.panel.minor_axis[::2])
 
-        # TODO: do something about this later...
-        self.assertRaises(Exception, self.panel.reindex,
-                          items=['item0', 'ItemA', 'ItemB'])
+            self.assertRaises(ValueError, self.panel.reindex)
 
-        # test copying
-        cp = self.panel.reindex(self.panel.major_axis, copy=True)
-        cp['ItemA']['E'] = cp['ItemA']['A']
-        self.assertNotIn('E', self.panel['ItemA'])
+            # TODO: do something about this later...
+            self.assertRaises(Exception, self.panel.reindex,
+                              items=['item0', 'ItemA', 'ItemB'])
+
+            # test copying
+            cp = self.panel.reindex(self.panel.major_axis, copy=True)
+            cp['ItemA']['E'] = cp['ItemA']['A']
+            self.assertNotIn('E', self.panel['ItemA'])
 
     def test_operators(self):
         def _check_ops(panel):
+
             def _dense_comp(op):
-                dense = panel.to_dense()
-                sparse_result = op(panel)
-                dense_result = op(dense)
-                assert_panel_equal(sparse_result.to_dense(), dense_result)
+                with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+                    dense = panel.to_dense()
+                    sparse_result = op(panel)
+                    dense_result = op(dense)
+                    assert_panel_equal(sparse_result.to_dense(), dense_result)
 
             def _mixed_comp(op):
-                result = op(panel, panel.to_dense())
-                expected = op(panel.to_dense(), panel.to_dense())
-                assert_panel_equal(result, expected)
+                with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+                    result = op(panel, panel.to_dense())
+                    expected = op(panel.to_dense(), panel.to_dense())
+                    assert_panel_equal(result, expected)
 
             op1 = lambda x: x + 2
 

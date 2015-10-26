@@ -37,10 +37,26 @@ analysis / manipulation tool available in any language.
 * Binary installers on PyPI: http://pypi.python.org/pypi/pandas
 * Documentation: http://pandas.pydata.org
 
+pandas 0.17.1
+-------------
+
+**Release date:** (November ??, 2015)
+
+This is a minor release from 0.17.0 and includes a large number of bug fixes
+along with several new features, enhancements, and performance improvements.
+
+Highlights include:
+
+See the :ref:`v0.17.1 Whatsnew <whatsnew_0171>` overview for an extensive list
+of all enhancements and bugs that have been fixed in 0.17.1.
+
+Thanks
+~~~~~~
+
 pandas 0.17.0
 -------------
 
-**Release date:** (September ??, 2015)
+**Release date:** (October 9, 2015)
 
 This is a major release from 0.16.2 and includes a small number of API changes, several new features,
 enhancements, and performance improvements along with a large number of bug fixes. We recommend that all
@@ -64,13 +80,126 @@ Highlights include:
 - Support for reading SAS xport files, see :ref:`here <whatsnew_0170.enhancements.sas_xport>`
 - Documentation comparing SAS to *pandas*, see :ref:`here <compare_with_sas>`
 - Removal of the automatic TimeSeries broadcasting, deprecated since 0.8.0, see :ref:`here <whatsnew_0170.prior_deprecations>`
-- Compatibility with Python 3.5
+- Display format with plain text can optionally align with Unicode East Asian Width, see :ref:`here <whatsnew_0170.east_asian_width>`
+- Compatibility with Python 3.5 (:issue:`11097`)
+- Compatibility with matplotlib 1.5.0 (:issue:`11111`)
 
 See the :ref:`v0.17.0 Whatsnew <whatsnew_0170>` overview for an extensive list
 of all enhancements and bugs that have been fixed in 0.17.0.
 
 Thanks
 ~~~~~~
+
+- Alex Rothberg
+- Andrea Bedini
+- Andrew Rosenfeld
+- Andy Li
+- Anthonios Partheniou
+- Artemy Kolchinsky
+- Bernard Willers
+- Charlie Clark
+- Chris
+- Chris Whelan
+- Christoph Gohlke
+- Christopher Whelan
+- Clark Fitzgerald
+- Clearfield Christopher
+- Dan Ringwalt
+- Daniel Ni
+- Data & Code Expert Experimenting with Code on Data
+- David Cottrell
+- David John Gagne
+- David Kelly
+- ETF
+- Eduardo Schettino
+- Egor
+- Egor Panfilov
+- Evan Wright
+- Frank Pinter
+- Gabriel Araujo
+- Garrett-R
+- Gianluca Rossi
+- Guillaume Gay
+- Guillaume Poulin
+- Harsh Nisar
+- Ian Henriksen
+- Ian Hoegen
+- Jaidev Deshpande
+- Jan Rudolph
+- Jan Schulz
+- Jason Swails
+- Jeff Reback
+- Jonas Buyl
+- Joris Van den Bossche
+- Joris Vankerschaver
+- Josh Levy-Kramer
+- Julien Danjou
+- Ka Wo Chen
+- Karrie Kehoe
+- Kelsey Jordahl
+- Kerby Shedden
+- Kevin Sheppard
+- Lars Buitinck
+- Leif Johnson
+- Luis Ortiz
+- Mac
+- Matt Gambogi
+- Matt Savoie
+- Matthew Gilbert
+- Maximilian Roos
+- Michelangelo D'Agostino
+- Mortada Mehyar
+- Nick Eubank
+- Nipun Batra
+- Ondřej Čertík
+- Phillip Cloud
+- Pratap Vardhan
+- Rafal Skolasinski
+- Richard Lewis
+- Rinoc Johnson
+- Rob Levy
+- Robert Gieseke
+- Safia Abdalla
+- Samuel Denny
+- Saumitra Shahapure
+- Sebastian Pölsterl
+- Sebastian Rubbert
+- Sheppard, Kevin
+- Sinhrks
+- Siu Kwan Lam
+- Skipper Seabold
+- Spencer Carrucciu
+- Stephan Hoyer
+- Stephen Hoover
+- Stephen Pascoe
+- Terry Santegoeds
+- Thomas Grainger
+- Tjerk Santegoeds
+- Tom Augspurger
+- Vincent Davis
+- Winterflower
+- Yaroslav Halchenko
+- Yuan Tang (Terry)
+- agijsberts
+- ajcr
+- behzad nouri
+- cel4
+- cyrusmaher
+- davidovitch
+- ganego
+- jreback
+- juricast
+- larvian
+- maximilianr
+- msund
+- rekcahpassyla
+- robertzk
+- scls19fr
+- seth-p
+- sinhrks
+- springcoil
+- terrytangyuan
+- tzinckgraf
 
 pandas 0.16.2
 -------------

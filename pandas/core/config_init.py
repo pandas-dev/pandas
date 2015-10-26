@@ -144,6 +144,17 @@ pc_line_width_doc = """
     Deprecated.
 """
 
+pc_east_asian_width_doc = """
+: boolean
+    Whether to use the Unicode East Asian Width to calculate the display text width
+    Enabling this may affect to the performance (default: False)
+"""
+pc_ambiguous_as_wide_doc = """
+: boolean
+    Whether to handle Unicode characters belong to Ambiguous as Wide (width=2)
+    (default: False)
+"""
+
 pc_line_width_deprecation_warning = """\
 line_width has been deprecated, use display.width instead (currently both are
 identical)
@@ -282,6 +293,10 @@ with cf.config_prefix('display'):
                        pc_line_width_doc)
     cf.register_option('memory_usage', True, pc_memory_usage_doc,
                         validator=is_instance_factory([type(None), bool]))
+    cf.register_option('unicode.east_asian_width', False,
+                       pc_east_asian_width_doc, validator=is_bool)
+    cf.register_option('unicode.ambiguous_as_wide', False,
+                       pc_east_asian_width_doc, validator=is_bool)
 
 cf.deprecate_option('display.line_width',
                     msg=pc_line_width_deprecation_warning,

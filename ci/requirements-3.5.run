@@ -1,6 +1,6 @@
 python-dateutil
 pytz
-numpy
+numpy=1.9.3
 openpyxl
 xlsxwriter
 xlrd
@@ -11,6 +11,7 @@ numexpr
 pytables
 html5lib
 lxml
+matplotlib
 
 # currently causing some warnings
 #sqlalchemy
@@ -20,4 +21,3 @@ lxml
 # not available from conda
 #beautiful-soup
 #bottleneck
-#matplotlib

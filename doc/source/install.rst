@@ -179,7 +179,7 @@ To install pandas for Python 3 you may need to use the package ``python3-pandas`
 Installing from source
 ~~~~~~~~~~~~~~~~~~~~~~
 
-See the :ref:`contributing documentation <contributing>` for complete instructions on building from the git source tree. Further, see :ref:`creating a devevlopment environment <contributing-dev_env>` if you wish to create a *pandas* development environment.
+See the :ref:`contributing documentation <contributing>` for complete instructions on building from the git source tree. Further, see :ref:`creating a development environment <contributing.dev_env>` if you wish to create a *pandas* development environment.
 
 Running the test suite
 ~~~~~~~~~~~~~~~~~~~~~~
@@ -214,7 +214,7 @@ Dependencies
 ------------
 
 * `setuptools <http://pythonhosted.org/setuptools>`__
-* `NumPy <http://www.numpy.org>`__: 1.7.0 or higher
+* `NumPy <http://www.numpy.org>`__: 1.7.1 or higher
 * `python-dateutil <http://labix.org/python-dateutil>`__ 1.5 or higher
 * `pytz <http://pytz.sourceforge.net/>`__
    * Needed for time zone support

@@ -408,7 +408,7 @@ class TestHDFStore(Base, tm.TestCase):
             df['datetime1']  = datetime.datetime(2001,1,2,0,0)
             df['datetime2']  = datetime.datetime(2001,1,3,0,0)
             df.ix[3:6,['obj1']] = np.nan
-            df = df.consolidate().convert_objects(datetime=True)
+            df = df.consolidate()._convert(datetime=True)
 
             warnings.filterwarnings('ignore', category=PerformanceWarning)
             store['df'] = df
@@ -736,7 +736,7 @@ class TestHDFStore(Base, tm.TestCase):
         df['datetime1'] = datetime.datetime(2001, 1, 2, 0, 0)
         df['datetime2'] = datetime.datetime(2001, 1, 3, 0, 0)
         df.ix[3:6, ['obj1']] = np.nan
-        df = df.consolidate().convert_objects(datetime=True)
+        df = df.consolidate()._convert(datetime=True)
 
         with ensure_clean_store(self.path) as store:
             _maybe_remove(store, 'df')
@@ -1456,7 +1456,7 @@ class TestHDFStore(Base, tm.TestCase):
             df_dc.ix[7:9, 'string'] = 'bar'
             df_dc['string2'] = 'cool'
             df_dc['datetime'] = Timestamp('20010102')
-            df_dc = df_dc.convert_objects(datetime=True)
+            df_dc = df_dc._convert(datetime=True)
             df_dc.ix[3:5, ['A', 'B', 'datetime']] = np.nan
 
             _maybe_remove(store, 'df_dc')
@@ -1918,7 +1918,7 @@ class TestHDFStore(Base, tm.TestCase):
         df['datetime1'] = datetime.datetime(2001, 1, 2, 0, 0)
         df['datetime2'] = datetime.datetime(2001, 1, 3, 0, 0)
         df.ix[3:6, ['obj1']] = np.nan
-        df = df.consolidate().convert_objects(datetime=True)
+        df = df.consolidate()._convert(datetime=True)
 
         with ensure_clean_store(self.path) as store:
             store.append('df1_mixed', df)
@@ -1974,7 +1974,7 @@ class TestHDFStore(Base, tm.TestCase):
         df['obj1'] = 'foo'
         df['obj2'] = 'bar'
         df['datetime1'] = datetime.date(2001, 1, 2)
-        df = df.consolidate().convert_objects(datetime=True)
+        df = df.consolidate()._convert(datetime=True)
 
         with ensure_clean_store(self.path) as store:
             # this fails because we have a date in the object block......
@@ -3048,6 +3048,18 @@ class TestHDFStore(Base, tm.TestCase):
             store.append('df4',df,data_columns=True)
             result = store.select(
                 'df4', where='values>2.0')
+            tm.assert_frame_equal(expected, result)
+        
+        # test selection with comparison against numpy scalar
+        # GH 11283
+        with ensure_clean_store(self.path) as store:
+            df = tm.makeDataFrame()
+
+            expected = df[df['A']>0]
+
+            store.append('df', df, data_columns=True)
+            np_zero = np.float64(0)
+            result = store.select('df', where=["A>np_zero"])
             tm.assert_frame_equal(expected, result)
 
     def test_select_with_many_inputs(self):
@@ -4291,6 +4303,22 @@ class TestHDFStore(Base, tm.TestCase):
             self._check_roundtrip(s, tm.assert_series_equal)
 
         compat_assert_produces_warning(PerformanceWarning, f)
+
+
+    def test_unicode_longer_encoded(self):
+        # GH 11234
+        char = '\u0394'
+        df = pd.DataFrame({'A': [char]})
+        with ensure_clean_store(self.path) as store:
+            store.put('df', df, format='table', encoding='utf-8')
+            result = store.get('df')
+            tm.assert_frame_equal(result, df)
+
+        df = pd.DataFrame({'A': ['a', char], 'B': ['b', 'b']})
+        with ensure_clean_store(self.path) as store:
+            store.put('df', df, format='table', encoding='utf-8')
+            result = store.get('df')
+            tm.assert_frame_equal(result, df)
 
     def test_store_datetime_mixed(self):
 

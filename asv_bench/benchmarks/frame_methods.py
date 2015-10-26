@@ -293,6 +293,14 @@ class frame_duplicated(object):
     def time_frame_duplicated(self):
         self.df.duplicated()
 
+class frame_duplicated_wide(object):
+    goal_time = 0.2
+
+    def setup(self):
+        self.df = DataFrame(np.random.randn(1000, 100).astype(str))
+
+    def time_frame_duplicated_wide(self):
+        self.df.T.duplicated()
 
 class frame_fancy_lookup(object):
     goal_time = 0.2
@@ -920,6 +928,16 @@ class frame_xs_row(object):
 
     def time_frame_xs_row(self):
         self.df.xs(50000)
+
+
+class frame_sort_index(object):
+    goal_time = 0.2
+
+    def setup(self):
+        self.df = DataFrame(randn(1000000, 2), columns=list('AB'))
+
+    def time_frame_sort_index(self):
+        self.df.sort_index()
 
 
 class series_string_vector_slice(object):

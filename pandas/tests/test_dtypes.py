@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from itertools import product
 
 import nose
 import numpy as np
@@ -136,6 +137,29 @@ class TestDatetimeTZDtype(Base, tm.TestCase):
         self.assertTrue(is_datetimetz(s.dtype))
         self.assertFalse(is_datetimetz(np.dtype('float64')))
         self.assertFalse(is_datetimetz(1.0))
+
+    def test_dst(self):
+
+        dr1 = date_range('2013-01-01', periods=3, tz='US/Eastern')
+        s1 = Series(dr1, name='A')
+        self.assertTrue(is_datetimetz(s1))
+
+        dr2 = date_range('2013-08-01', periods=3, tz='US/Eastern')
+        s2 = Series(dr2, name='A')
+        self.assertTrue(is_datetimetz(s2))
+        self.assertEqual(s1.dtype, s2.dtype)
+
+    def test_parser(self):
+        # pr #11245
+        for tz, constructor in product(('UTC', 'US/Eastern'),
+                                       ('M8', 'datetime64')):
+            self.assertEqual(
+                DatetimeTZDtype('%s[ns, %s]' % (constructor, tz)),
+                DatetimeTZDtype('ns', tz),
+            )
+
+
+
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],

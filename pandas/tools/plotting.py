@@ -24,12 +24,12 @@ from pandas.tseries.offsets import DateOffset
 from pandas.compat import range, lrange, lmap, map, zip, string_types
 import pandas.compat as compat
 from pandas.util.decorators import Appender
-
 try:  # mpl optional
     import pandas.tseries.converter as conv
     conv.register()  # needs to override so set_xlim works with str/number
 except ImportError:
     pass
+
 
 # Extracted from https://gist.github.com/huyng/816622
 # this is the rcParams set when setting display.with_mpl_style
@@ -96,6 +96,48 @@ mpl_stylesheet = {
      'ytick.minor.pad': 6.0,
      'ytick.minor.size': 0.0
 }
+
+
+def _mpl_le_1_2_1():
+    try:
+        import matplotlib as mpl
+        return (str(mpl.__version__) <= LooseVersion('1.2.1') and
+                str(mpl.__version__)[0] != '0')
+    except ImportError:
+        return False
+
+def _mpl_ge_1_3_1():
+    try:
+        import matplotlib
+        # The or v[0] == '0' is because their versioneer is
+        # messed up on dev
+        return (matplotlib.__version__ >= LooseVersion('1.3.1')
+                or matplotlib.__version__[0] == '0')
+    except ImportError:
+        return False
+
+def _mpl_ge_1_4_0():
+    try:
+        import matplotlib
+        return (matplotlib.__version__  >= LooseVersion('1.4')
+                or matplotlib.__version__[0] == '0')
+    except ImportError:
+        return False
+
+def _mpl_ge_1_5_0():
+    try:
+        import matplotlib
+        return (matplotlib.__version__  >= LooseVersion('1.5')
+                or matplotlib.__version__[0] == '0')
+    except ImportError:
+        return False
+
+if _mpl_ge_1_5_0():
+    # Compat with mp 1.5, which uses cycler.
+    import cycler
+    colors = mpl_stylesheet.pop('axes.color_cycle')
+    mpl_stylesheet['axes.prop_cycle'] = cycler.cycler('color_cycle', colors)
+
 
 def _get_standard_kind(kind):
     return {'density': 'kde'}.get(kind, kind)
@@ -784,7 +826,6 @@ class MPLPlot(object):
     _layout_type = 'vertical'
     _default_rot = 0
     orientation = None
-
     _pop_attributes = ['label', 'style', 'logy', 'logx', 'loglog',
                        'mark_right', 'stacked']
     _attr_defaults = {'logy': False, 'logx': False, 'loglog': False,
@@ -973,8 +1014,9 @@ class MPLPlot(object):
         else:
             # otherwise, create twin axes
             orig_ax, new_ax = ax, ax.twinx()
-            new_ax._get_lines.color_cycle = orig_ax._get_lines.color_cycle
-
+            # TODO: use Matplotlib public API when available
+            new_ax._get_lines = orig_ax._get_lines
+            new_ax._get_patches_for_fill = orig_ax._get_patches_for_fill
             orig_ax.right_ax, new_ax.left_ax = new_ax, orig_ax
 
             if not self._has_plotted_object(orig_ax):  # no data on left y
@@ -1037,7 +1079,7 @@ class MPLPlot(object):
                 label = 'None'
             data = data.to_frame(name=label)
 
-        numeric_data = data.convert_objects(datetime=True)._get_numeric_data()
+        numeric_data = data._convert(datetime=True)._get_numeric_data()
 
         try:
             is_empty = numeric_data.empty
@@ -1196,6 +1238,14 @@ class MPLPlot(object):
     def plt(self):
         import matplotlib.pyplot as plt
         return plt
+
+    @staticmethod
+    def mpl_ge_1_3_1():
+        return _mpl_ge_1_3_1()
+
+    @staticmethod
+    def mpl_ge_1_5_0():
+        return _mpl_ge_1_5_0()
 
     _need_to_set_index = False
 
@@ -1474,9 +1524,6 @@ class ScatterPlot(PlanePlot):
         self.c = c
 
     def _make_plot(self):
-        import matplotlib as mpl
-        mpl_ge_1_3_1 = str(mpl.__version__) >= LooseVersion('1.3.1')
-
         x, y, c, data = self.x, self.y, self.c, self.data
         ax = self.axes[0]
 
@@ -1488,9 +1535,13 @@ class ScatterPlot(PlanePlot):
         # pandas uses colormap, matplotlib uses cmap.
         cmap = self.colormap or 'Greys'
         cmap = self.plt.cm.get_cmap(cmap)
-
-        if c is None:
+        color = self.kwds.pop("color", None)
+        if c is not None and color is not None:
+            raise TypeError('Specify exactly one of `c` and `color`')
+        elif c is None and color is None:
             c_values = self.plt.rcParams['patch.facecolor']
+        elif color is not None:
+            c_values = color
         elif c_is_column:
             c_values = self.data[c].values
         else:
@@ -1505,7 +1556,7 @@ class ScatterPlot(PlanePlot):
         if cb:
             img = ax.collections[0]
             kws = dict(ax=ax)
-            if mpl_ge_1_3_1:
+            if self.mpl_ge_1_3_1():
                 kws['label'] = c if c_is_column else ''
             self.fig.colorbar(img, **kws)
 
@@ -1636,6 +1687,11 @@ class LinePlot(MPLPlot):
 
         # Set ax with freq info
         _decorate_axes(ax, freq, kwds)
+        # digging deeper
+        if hasattr(ax, 'left_ax'):
+            _decorate_axes(ax.left_ax, freq, kwds)
+        if hasattr(ax, 'right_ax'):
+            _decorate_axes(ax.right_ax, freq, kwds)
         ax._plot_data.append((data, cls._kind, kwds))
 
         lines = cls._plot(ax, data.index, data.values, style=style, **kwds)
@@ -1743,6 +1799,8 @@ class AreaPlot(LinePlot):
         if not 'color' in kwds:
             kwds['color'] = lines[0].get_color()
 
+        if cls.mpl_ge_1_5_0(): # mpl 1.5 added real support for poly legends
+            kwds.pop('label')
         ax.fill_between(xdata, start, y_values, **kwds)
         cls._update_stacker(ax, stacking_id, y)
         return lines
@@ -1914,8 +1972,7 @@ class HistPlot(LinePlot):
     def _args_adjust(self):
         if com.is_integer(self.bins):
             # create common bin edge
-            values = (self.data.convert_objects(datetime=True)
-                      ._get_numeric_data())
+            values = (self.data._convert(datetime=True)._get_numeric_data())
             values = np.ravel(values)
             values = values[~com.isnull(values)]
 
@@ -3674,10 +3731,10 @@ class FramePlotMethods(BasePlotMethods):
         .. versionadded:: 0.17.0
 
         Parameters
-        ---------
+        ----------
         by : string or sequence
             Column in the DataFrame to group by.
-        **kwds : optional
+        \*\*kwds : optional
             Keyword arguments to pass on to :py:meth:`pandas.DataFrame.plot`.
 
         Returns

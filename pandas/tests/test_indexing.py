@@ -25,6 +25,7 @@ from pandas.io.common import PerformanceWarning
 
 import pandas.util.testing as tm
 from pandas import date_range
+from numpy.testing.decorators import slow
 
 _verbose = False
 
@@ -787,6 +788,58 @@ class TestIndexing(tm.TestCase):
         df.loc[(t,n), 'X'] = np.array(3)
         result = df.loc[(t,n),'X']
         self.assertEqual(result,3)
+
+    def test_indexing_with_datetime_tz(self):
+
+        # 8260
+        # support datetime64 with tz
+
+        idx = Index(date_range('20130101',periods=3,tz='US/Eastern'),
+                    name='foo')
+        dr = date_range('20130110',periods=3)
+        df = DataFrame({'A' : idx, 'B' : dr})
+        df['C'] = idx
+        df.iloc[1,1] = pd.NaT
+        df.iloc[1,2] = pd.NaT
+
+        # indexing
+        result = df.iloc[1]
+        expected = Series([Timestamp('2013-01-02 00:00:00-0500', tz='US/Eastern'), np.nan, np.nan],
+                          index=list('ABC'), dtype='object', name=1)
+        assert_series_equal(result, expected)
+        result = df.loc[1]
+        expected = Series([Timestamp('2013-01-02 00:00:00-0500', tz='US/Eastern'), np.nan, np.nan],
+                          index=list('ABC'), dtype='object', name=1)
+        assert_series_equal(result, expected)
+
+        # indexing - fast_xs
+        df = DataFrame({'a': date_range('2014-01-01', periods=10, tz='UTC')})
+        result = df.iloc[5]
+        expected = Timestamp('2014-01-06 00:00:00+0000', tz='UTC', offset='D')
+        self.assertEqual(result, expected)
+
+        result = df.loc[5]
+        self.assertEqual(result, expected)
+
+        # indexing - boolean
+        result = df[df.a > df.a[3]]
+        expected = df.iloc[4:]
+        assert_frame_equal(result, expected)
+
+        # indexing - setting an element
+        df = DataFrame( data = pd.to_datetime(['2015-03-30 20:12:32','2015-03-12 00:11:11']) ,columns=['time'] )
+        df['new_col']=['new','old']
+        df.time=df.set_index('time').index.tz_localize('UTC')
+        v = df[df.new_col=='new'].set_index('time').index.tz_convert('US/Pacific')
+
+        # trying to set a single element on a part of a different timezone
+        def f():
+            df.loc[df.new_col=='new','time'] = v
+        self.assertRaises(ValueError, f)
+
+        v = df.loc[df.new_col=='new','time'] + pd.Timedelta('1s')
+        df.loc[df.new_col=='new','time'] = v
+        assert_series_equal(df.loc[df.new_col=='new','time'],v)
 
     def test_loc_setitem_dups(self):
 
@@ -1637,74 +1690,71 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         with tm.assert_produces_warning(PerformanceWarning):
             _ = df.loc[(0,)]
 
+    @slow
     def test_multiindex_get_loc(self):  # GH7724, GH2646
 
-        # ignore the warning here
-        warnings.simplefilter('ignore', PerformanceWarning)
+        with warnings.catch_warnings(record=True):
 
-        # test indexing into a multi-index before & past the lexsort depth
-        from numpy.random import randint, choice, randn
-        cols = ['jim', 'joe', 'jolie', 'joline', 'jolia']
+            # test indexing into a multi-index before & past the lexsort depth
+            from numpy.random import randint, choice, randn
+            cols = ['jim', 'joe', 'jolie', 'joline', 'jolia']
 
-        def validate(mi, df, key):
-            mask = np.ones(len(df)).astype('bool')
+            def validate(mi, df, key):
+                mask = np.ones(len(df)).astype('bool')
 
-            # test for all partials of this key
-            for i, k in enumerate(key):
-                mask &= df.iloc[:, i] == k
+                # test for all partials of this key
+                for i, k in enumerate(key):
+                    mask &= df.iloc[:, i] == k
 
-                if not mask.any():
-                    self.assertNotIn(key[:i+1], mi.index)
-                    continue
+                    if not mask.any():
+                        self.assertNotIn(key[:i+1], mi.index)
+                        continue
 
-                self.assertIn(key[:i+1], mi.index)
-                right = df[mask].copy()
+                    self.assertIn(key[:i+1], mi.index)
+                    right = df[mask].copy()
 
-                if i + 1 != len(key):  # partial key
-                    right.drop(cols[:i+1], axis=1, inplace=True)
-                    right.set_index(cols[i+1:-1], inplace=True)
-                    assert_frame_equal(mi.loc[key[:i+1]], right)
-
-                else:  # full key
-                    right.set_index(cols[:-1], inplace=True)
-                    if len(right) == 1:  # single hit
-                        right = Series(right['jolia'].values,
-                                name=right.index[0], index=['jolia'])
-                        assert_series_equal(mi.loc[key[:i+1]], right)
-                    else:  # multi hit
+                    if i + 1 != len(key):  # partial key
+                        right.drop(cols[:i+1], axis=1, inplace=True)
+                        right.set_index(cols[i+1:-1], inplace=True)
                         assert_frame_equal(mi.loc[key[:i+1]], right)
 
-        def loop(mi, df, keys):
-            for key in keys:
-                validate(mi, df, key)
+                    else:  # full key
+                        right.set_index(cols[:-1], inplace=True)
+                        if len(right) == 1:  # single hit
+                            right = Series(right['jolia'].values,
+                                           name=right.index[0], index=['jolia'])
+                            assert_series_equal(mi.loc[key[:i+1]], right)
+                        else:  # multi hit
+                            assert_frame_equal(mi.loc[key[:i+1]], right)
 
-        n, m = 1000, 50
+            def loop(mi, df, keys):
+                for key in keys:
+                    validate(mi, df, key)
 
-        vals = [randint(0, 10, n), choice(list('abcdefghij'), n),
-                choice(pd.date_range('20141009', periods=10).tolist(), n),
-                choice(list('ZYXWVUTSRQ'), n), randn(n)]
-        vals = list(map(tuple, zip(*vals)))
+            n, m = 1000, 50
 
-        # bunch of keys for testing
-        keys = [randint(0, 11, m), choice(list('abcdefghijk'), m),
-                choice(pd.date_range('20141009', periods=11).tolist(), m),
-                choice(list('ZYXWVUTSRQP'), m)]
-        keys = list(map(tuple, zip(*keys)))
-        keys += list(map(lambda t: t[:-1], vals[::n//m]))
+            vals = [randint(0, 10, n), choice(list('abcdefghij'), n),
+                    choice(pd.date_range('20141009', periods=10).tolist(), n),
+                    choice(list('ZYXWVUTSRQ'), n), randn(n)]
+            vals = list(map(tuple, zip(*vals)))
 
-        # covers both unique index and non-unique index
-        df = pd.DataFrame(vals, columns=cols)
-        a, b = pd.concat([df, df]), df.drop_duplicates(subset=cols[:-1])
+            # bunch of keys for testing
+            keys = [randint(0, 11, m), choice(list('abcdefghijk'), m),
+                    choice(pd.date_range('20141009', periods=11).tolist(), m),
+                    choice(list('ZYXWVUTSRQP'), m)]
+            keys = list(map(tuple, zip(*keys)))
+            keys += list(map(lambda t: t[:-1], vals[::n//m]))
 
-        for frame in a, b:
-            for i in range(5):  # lexsort depth
-                df = frame.copy() if i == 0 else frame.sort_values(by=cols[:i])
-                mi = df.set_index(cols[:-1])
-                assert not mi.index.lexsort_depth < i
-                loop(mi, df, keys)
+            # covers both unique index and non-unique index
+            df = pd.DataFrame(vals, columns=cols)
+            a, b = pd.concat([df, df]), df.drop_duplicates(subset=cols[:-1])
 
-        # restore
-        warnings.simplefilter('always', PerformanceWarning)
+            for frame in a, b:
+                for i in range(5):  # lexsort depth
+                    df = frame.copy() if i == 0 else frame.sort_values(by=cols[:i])
+                    mi = df.set_index(cols[:-1])
+                    assert not mi.index.lexsort_depth < i
+                    loop(mi, df, keys)
 
     def test_series_getitem_multiindex(self):
 
@@ -3138,8 +3188,7 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         assert_frame_equal(df,expected)
 
         df = df_orig.copy()
-        df.iloc[:,0:2] = df.iloc[:,0:2].convert_objects(datetime=True,
-                                                        numeric=True)
+        df.iloc[:,0:2] = df.iloc[:,0:2]._convert(datetime=True, numeric=True)
         expected =  DataFrame([[1,2,'3','.4',5,6.,'foo']],columns=list('ABCDEFG'))
         assert_frame_equal(df,expected)
 
@@ -4602,6 +4651,7 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         assert_series_equal(df2.loc[:,'a'], df2.iloc[:,0])
         assert_series_equal(df2.loc[:,'a'], df2.ix[:,0])
 
+    @slow
     def test_large_dataframe_indexing(self):
         #GH10692
         result = DataFrame({'x': range(10**6)},dtype='int64')
@@ -4609,6 +4659,7 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         expected = DataFrame({'x': range(10**6 + 1)},dtype='int64')
         assert_frame_equal(result, expected)
 
+    @slow
     def test_large_mi_dataframe_indexing(self):
         #GH10645
         result = MultiIndex.from_arrays([range(10**6), range(10**6)])
