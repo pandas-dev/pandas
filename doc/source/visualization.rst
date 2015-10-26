@@ -574,7 +574,7 @@ Scatter Plot
 
 .. versionadded:: 0.17.0
 
-Histogram can be drawn by using the :meth:`DataFrame.plot.scatter` and :meth:`Series.plot.scatter` methods.
+Scatter plot can be drawn by using the :meth:`DataFrame.plot.scatter` method.
 
 .. versionadded:: 0.13
 
