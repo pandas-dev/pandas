@@ -443,11 +443,14 @@ class _NDFrameIndexer(object):
                 # we have an equal len Frame
                 if isinstance(value, ABCDataFrame) and value.ndim > 1:
                     sub_indexer = list(indexer)
+                    multiindex_indexer = isinstance(labels, MultiIndex)
 
                     for item in labels:
                         if item in value:
                             sub_indexer[info_axis] = item
-                            v = self._align_series(tuple(sub_indexer), value[item])
+                            v = self._align_series(
+                                tuple(sub_indexer), value[item], multiindex_indexer
+                            )
                         else:
                             v = np.nan
 
@@ -516,8 +519,28 @@ class _NDFrameIndexer(object):
             self.obj._data = self.obj._data.setitem(indexer=indexer, value=value)
             self.obj._maybe_update_cacher(clear=True)
 
-    def _align_series(self, indexer, ser):
-        # indexer to assign Series can be tuple, slice, scalar
+    def _align_series(self, indexer, ser, multiindex_indexer=False):
+        """
+        Parameters
+        ----------
+        indexer : tuple, slice, scalar
+            The indexer used to get the locations that will be set to 
+            `ser`
+
+        ser : pd.Series
+            The values to assign to the locations specified by `indexer`
+
+        multiindex_indexer : boolean, optional
+            Defaults to False. Should be set to True if `indexer` was from
+            a `pd.MultiIndex`, to avoid unnecessary broadcasting. 
+
+
+        Returns:
+        --------
+        `np.array` of `ser` broadcast to the appropriate shape for assignment
+        to the locations selected by `indexer`
+
+        """
         if isinstance(indexer, (slice, np.ndarray, list, Index)):
             indexer = tuple([indexer])
 
@@ -555,7 +578,7 @@ class _NDFrameIndexer(object):
                 ser = ser.reindex(obj.axes[0][indexer[0]], copy=True)._values
 
                 # single indexer
-                if len(indexer) > 1:
+                if len(indexer) > 1 and not multiindex_indexer:
                     l = len(indexer[1])
                     ser = np.tile(ser, l).reshape(l, -1).T
 
