@@ -2949,16 +2949,15 @@ def grouped_hist(data, column=None, weights=None, by=None, ax=None, bins=50,
     def plot_group(group, ax, weights=None):
         if isinstance(group, np.ndarray) == False:
             group = group.values
+        inx_na = np.isnan(group)
         if weights is not None:
             # remove fields where we have nan in weights OR in group
             # for both data sets
             if isinstance(weights, np.ndarray) == False:
                 weights = weights.values
-            inx_na = (np.isnan(weights)) | (np.isnan(group))
+            inx_na |= (np.isnan(weights))
             weights = weights[~inx_na]
-            group = group[~inx_na]
-        else:
-            group = group.dropna()
+        group = group[~inx_na]
         if len(group) > 0:
             # if length is less than 0, we had only NaN's for this group
             # nothing to print!
@@ -3064,6 +3063,11 @@ def _grouped_plot(plotf, data, column=None, weights=None, by=None,
                       "size by tuple instead", FutureWarning, stacklevel=4)
         figsize = None
 
+    if isinstance(weights, np.ndarray):
+        # weights supplied as an array instead of a part of the dataframe
+        data['weights'] = weights
+        weights = 'weights'
+        
     grouped = data.groupby(by)
     if column is not None:
         if weights is not None:
