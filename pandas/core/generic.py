@@ -2777,6 +2777,7 @@ class NDFrame(PandasObject):
         axis = self._get_axis_number(axis)
         method = com._clean_fill_method(method)
 
+        from pandas import DataFrame
         if value is None:
             if method is None:
                 raise ValueError('must specify a fill method or value')
