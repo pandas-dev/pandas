@@ -231,6 +231,31 @@ class stats_rolling_mean(object):
 
     def setup(self):
         self.arr = np.random.randn(100000)
+        self.win = 100
 
-    def time_stats_rolling_mean(self):
-        rolling_mean(self.arr, 100)
+    def time_rolling_mean(self):
+        rolling_mean(self.arr, self.win)
+
+    def time_rolling_median(self):
+        rolling_median(self.arr, self.win)
+
+    def time_rolling_min(self):
+        rolling_min(self.arr, self.win)
+
+    def time_rolling_max(self):
+        rolling_max(self.arr, self.win)
+
+    def time_rolling_sum(self):
+        rolling_sum(self.arr, self.win)
+
+    def time_rolling_std(self):
+        rolling_std(self.arr, self.win)
+
+    def time_rolling_var(self):
+        rolling_var(self.arr, self.win)
+
+    def time_rolling_skew(self):
+        rolling_skew(self.arr, self.win)
+
+    def time_rolling_kurt(self):
+        rolling_kurt(self.arr, self.win)

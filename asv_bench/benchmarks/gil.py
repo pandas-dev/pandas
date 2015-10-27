@@ -366,3 +366,73 @@ class nogil_datetime_fields(object):
         def run(period):
             period.to_timestamp()
         run(self.period)
+
+
+class nogil_rolling_algos_slow(object):
+    goal_time = 0.2
+
+    def setup(self):
+        self.win = 100
+        np.random.seed(1234)
+        self.arr = np.random.rand(100000)
+        if (not have_real_test_parallel):
+            raise NotImplementedError
+
+    def time_nogil_rolling_median(self):
+        @test_parallel(num_threads=2)
+        def run(arr, win):
+            rolling_median(arr, win)
+        run(self.arr, self.win)
+
+
+class nogil_rolling_algos_fast(object):
+    goal_time = 0.2
+
+    def setup(self):
+        self.win = 100
+        np.random.seed(1234)
+        self.arr = np.random.rand(1000000)
+        if (not have_real_test_parallel):
+            raise NotImplementedError
+
+    def time_nogil_rolling_mean(self):
+        @test_parallel(num_threads=2)
+        def run(arr, win):
+            rolling_mean(arr, win)
+        run(self.arr, self.win)
+
+    def time_nogil_rolling_min(self):
+        @test_parallel(num_threads=2)
+        def run(arr, win):
+            rolling_min(arr, win)
+        run(self.arr, self.win)
+
+    def time_nogil_rolling_max(self):
+        @test_parallel(num_threads=2)
+        def run(arr, win):
+            rolling_max(arr, win)
+        run(self.arr, self.win)
+
+    def time_nogil_rolling_var(self):
+        @test_parallel(num_threads=2)
+        def run(arr, win):
+            rolling_var(arr, win)
+        run(self.arr, self.win)
+
+    def time_nogil_rolling_skew(self):
+        @test_parallel(num_threads=2)
+        def run(arr, win):
+            rolling_skew(arr, win)
+        run(self.arr, self.win)
+
+    def time_nogil_rolling_kurt(self):
+        @test_parallel(num_threads=2)
+        def run(arr, win):
+            rolling_kurt(arr, win)
+        run(self.arr, self.win)
+
+    def time_nogil_rolling_std(self):
+        @test_parallel(num_threads=2)
+        def run(arr, win):
+            rolling_std(arr, win)
+        run(self.arr, self.win)
