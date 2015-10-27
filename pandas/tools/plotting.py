@@ -2947,15 +2947,22 @@ def grouped_hist(data, column=None, weights=None, by=None, ax=None, bins=50,
     axes: collection of Matplotlib Axes
     """
     def plot_group(group, ax, weights=None):
+        if isinstance(group, np.ndarray) == False:
+            group = group.values
         if weights is not None:
             # remove fields where we have nan in weights OR in group
             # for both data sets
+            if isinstance(weights, np.ndarray) == False:
+                weights = weights.values
             inx_na = (np.isnan(weights)) | (np.isnan(group))
-            weights = weights.ix[~inx_na]
-            group = group.ix[~inx_na]
+            weights = weights[~inx_na]
+            group = group[~inx_na]
         else:
             group = group.dropna()
-        ax.hist(group.values, weights=weights.values, bins=bins, **kwargs)
+        if len(group) > 0:
+            # if length is less than 0, we had only NaN's for this group
+            # nothing to print!
+            ax.hist(group, weights=weights, bins=bins, **kwargs)
 
     xrot = xrot or rot
 
