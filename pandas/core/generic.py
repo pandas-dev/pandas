@@ -2798,7 +2798,7 @@ class NDFrame(PandasObject):
                                               inplace=inplace,
                                               coerce=True,
                                               downcast=downcast)
-      else:
+        else:
             if method is not None:
                 raise ValueError('cannot specify both a fill method and value')
 
