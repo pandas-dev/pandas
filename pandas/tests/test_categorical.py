@@ -87,11 +87,7 @@ class TestCategorical(tm.TestCase):
         self.assertFalse(factor.ordered)
 
         # this however will raise as cannot be sorted
-        # but fixed in newer versions of numpy
-        if LooseVersion(np.__version__) < "1.10":
-            self.assertRaises(TypeError, lambda :  Categorical.from_array(arr, ordered=True))
-        else:
-            Categorical.from_array(arr, ordered=True)
+        self.assertRaises(TypeError, lambda :  Categorical.from_array(arr, ordered=True))
 
     def test_is_equal_dtype(self):
 
