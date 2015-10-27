@@ -59,7 +59,8 @@ Performance Improvements
 
 
 - Release the GIL on most datetime field operations (e.g. ``DatetimeIndex.year``, ``Series.dt.year``), normalization, and conversion to and from ``Period``, ``DatetimeIndex.to_period`` and ``PeriodIndex.to_timestamp`` (:issue:`11263`)
-
+- Release the GIL on some srolling algos (``rolling_median``, ``rolling_mean``, ``rolling_max``, ``rolling_min``, ``rolling_var``, ``rolling_kurt``, `rolling_skew`` (:issue:`11450`)
+- Improved performance of ``rolling_median`` (:issue:`11450`)
 
 - Improved performance to ``to_excel`` (:issue:`11352`)
 
