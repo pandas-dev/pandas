@@ -909,12 +909,13 @@ class Block(PandasObject):
         values = self.values if inplace else self.values.copy()
         values, _, fill_value, _ = self._try_coerce_args(values, fill_value)
         values = self._try_operate(values)
-        values = com.interpolate_2d(values,
-                                    method=method,
-                                    axis=axis,
-                                    limit=limit,
-                                    fill_value=fill_value,
-                                    dtype=self.dtype)
+        interp_func = com.interpolate_nd if values.ndim > 2 else com.interpolate_2d
+        values = interp_func(values,
+                             method=method,
+                             axis=axis,
+                             limit=limit,
+                             fill_value=fill_value,
+                             dtype=self.dtype)
         values = self._try_coerce_result(values)
 
         blocks = [self.make_block(values,

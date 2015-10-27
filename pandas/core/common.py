@@ -1764,6 +1764,35 @@ def interpolate_2d(values, method='pad', axis=0, limit=None, fill_value=None, dt
     return values
 
 
+def interpolate_nd(values, method='pad', axis=0, limit=None, fill_value=None, dtype=None):
+
+    ndim = values.ndim
+    shape = values.shape
+
+    if ndim < 3:
+        raise AssertionError("This function should only be used on arrays of "
+                             "dimensionality 3 or higher")
+    func = interpolate_2d if ndim == 3 else interpolate_nd
+    method = partial(func, method=method, limit=limit, fill_value=fill_value, dtype=dtype)
+
+    if ndim == 3:
+        if axis == 0:
+            for n in range(shape[1]):
+                values[:,n] = method(values[:,n], axis=1)
+        else:
+            for n in range(shape[0]):
+                values[n] = method(values[n], axis=(1 if axis == 1 else 0))
+    else:
+        if axis == 0:
+            for n in range(shape[1]):
+                values[:,n] = method(values[:,n], axis=0)
+        else:
+            for n in range(shape[0]):
+                values[n] = method(values[n], axis=axis-1)
+        
+    return values
+
+
 def _consensus_name_attr(objs):
     name = objs[0].name
     for obj in objs[1:]:
