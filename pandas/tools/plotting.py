@@ -2770,9 +2770,10 @@ def scatter_plot(data, x, y, by=None, ax=None, figsize=None, grid=False,
     return fig
 
 
-def hist_frame(data, column=None, by=None, grid=True, xlabelsize=None,
-               xrot=None, ylabelsize=None, yrot=None, ax=None, sharex=False,
-               sharey=False, figsize=None, layout=None, bins=10, **kwds):
+def hist_frame(data, column=None, weights=None, by=None, grid=True,
+               xlabelsize=None, xrot=None, ylabelsize=None, yrot=None, ax=None,
+               sharex=False, sharey=False, figsize=None, layout=None, bins=10,
+               **kwds):
     """
     Draw histogram of the DataFrame's series using matplotlib / pylab.
 
@@ -2781,6 +2782,8 @@ def hist_frame(data, column=None, by=None, grid=True, xlabelsize=None,
     data : DataFrame
     column : string or sequence
         If passed, will be used to limit data to a subset of columns
+    weights : string or sequence
+        If passed, will be used to weight the data
     by : object, optional
         If passed, then used to form histograms for separate groups
     grid : boolean, default True
@@ -2812,7 +2815,7 @@ def hist_frame(data, column=None, by=None, grid=True, xlabelsize=None,
     """
 
     if by is not None:
-        axes = grouped_hist(data, column=column, by=by, ax=ax, grid=grid, figsize=figsize,
+        axes = grouped_hist(data, column=column, weights=weights, by=by, ax=ax, grid=grid, figsize=figsize,
                             sharex=sharex, sharey=sharey, layout=layout, bins=bins,
                             xlabelsize=xlabelsize, xrot=xrot, ylabelsize=ylabelsize, yrot=yrot,
                             **kwds)
@@ -2916,10 +2919,10 @@ def hist_series(self, by=None, ax=None, grid=True, xlabelsize=None,
     return axes
 
 
-def grouped_hist(data, column=None, by=None, ax=None, bins=50, figsize=None,
-                 layout=None, sharex=False, sharey=False, rot=90, grid=True,
-                 xlabelsize=None, xrot=None, ylabelsize=None, yrot=None,
-                 **kwargs):
+def grouped_hist(data, column=None, weights=None, by=None, ax=None, bins=50,
+                 figsize=None, layout=None, sharex=False, sharey=False, rot=90,
+                 grid=True, xlabelsize=None, xrot=None, ylabelsize=None,
+                 yrot=None, **kwargs):
     """
     Grouped histogram
 
@@ -2927,6 +2930,7 @@ def grouped_hist(data, column=None, by=None, ax=None, bins=50, figsize=None,
     ----------
     data: Series/DataFrame
     column: object, optional
+    weights: object, optional
     by: object, optional
     ax: axes, optional
     bins: int, default 50
@@ -2942,12 +2946,20 @@ def grouped_hist(data, column=None, by=None, ax=None, bins=50, figsize=None,
     -------
     axes: collection of Matplotlib Axes
     """
-    def plot_group(group, ax):
-        ax.hist(group.dropna().values, bins=bins, **kwargs)
+    def plot_group(group, ax, weights=None):
+        if weights is not None:
+            # remove fields where we have nan in weights OR in group
+            # for both data sets
+            inx_na = (np.isnan(weights)) | (np.isnan(group))
+            weights = weights.ix[~inx_na]
+            group = group.ix[~inx_na]
+        else:
+            group = group.dropna()
+        ax.hist(group.values, weights=weights.values, bins=bins, **kwargs)
 
     xrot = xrot or rot
 
-    fig, axes = _grouped_plot(plot_group, data, column=column,
+    fig, axes = _grouped_plot(plot_group, data, column=column, weights=weights,
                               by=by, sharex=sharex, sharey=sharey, ax=ax,
                               figsize=figsize, layout=layout, rot=rot)
 
@@ -3034,9 +3046,9 @@ def boxplot_frame_groupby(grouped, subplots=True, column=None, fontsize=None,
     return ret
 
 
-def _grouped_plot(plotf, data, column=None, by=None, numeric_only=True,
-                  figsize=None, sharex=True, sharey=True, layout=None,
-                  rot=0, ax=None, **kwargs):
+def _grouped_plot(plotf, data, column=None, weights=None, by=None,
+                  numeric_only=True, figsize=None, sharex=True, sharey=True,
+                  layout=None, rot=0, ax=None, **kwargs):
     from pandas import DataFrame
 
     if figsize == 'default':
@@ -3047,6 +3059,8 @@ def _grouped_plot(plotf, data, column=None, by=None, numeric_only=True,
 
     grouped = data.groupby(by)
     if column is not None:
+        if weights is not None:
+            weights = grouped[weights]
         grouped = grouped[column]
 
     naxes = len(grouped)
@@ -3056,11 +3070,20 @@ def _grouped_plot(plotf, data, column=None, by=None, numeric_only=True,
 
     _axes = _flatten(axes)
 
+    weight = None
     for i, (key, group) in enumerate(grouped):
         ax = _axes[i]
+        if weights is not None:
+            weight = weights.get_group(key)
         if numeric_only and isinstance(group, DataFrame):
             group = group._get_numeric_data()
-        plotf(group, ax, **kwargs)
+            if weight is not None:
+                weight = weight._get_numeric_data()
+        if weight is not None:
+            plotf(group, ax, weight, **kwargs)
+        else:
+            # scatterplot etc has not the weight implemented in plotf
+            plotf(group, ax, **kwargs)
         ax.set_title(com.pprint_thing(key))
 
     return fig, axes
