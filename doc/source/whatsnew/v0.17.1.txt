@@ -96,12 +96,6 @@ Bug Fixes
 - Bug in ``DataFrame.pct_change()`` was not propagating ``axis`` keyword on ``.fillna`` method (:issue:`11150`)
 
 
-
-- Bug in ``DataFrame.pct_change()`` was not propagating axis on fillna method (:issue:`11150`)
-
-
-
-
 - Bug in ``DataFrame.to_latex()`` produces an extra rule when ``header=False`` (:issue:`7124`)
 
 

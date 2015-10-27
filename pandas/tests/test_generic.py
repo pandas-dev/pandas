@@ -1873,7 +1873,7 @@ class TestNDFrame(tm.TestCase):
             expected[mask] = np.nan
             result = pnl.pct_change(axis=axis, fill_method='pad')
 
-            self.assert_frame_equal(result_axis0, expected_axis0)
+            self.assert_frame_equal(result, expected)
 
 
 if __name__ == '__main__':
