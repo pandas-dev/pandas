@@ -2813,7 +2813,6 @@ def hist_frame(data, column=None, weights=None, by=None, grid=True,
     kwds : other plotting keyword arguments
         To be passed to hist function
     """
-
     if by is not None:
         axes = grouped_hist(data, column=column, weights=weights, by=by, ax=ax, grid=grid, figsize=figsize,
                             sharex=sharex, sharey=sharey, layout=layout, bins=bins,
@@ -2821,11 +2820,28 @@ def hist_frame(data, column=None, weights=None, by=None, grid=True,
                             **kwds)
         return axes
 
+    inx_na = np.zeros(len(data), dtype=bool)
+    if weights is not None:
+        # first figure out if given my column name, or by an array
+        if isinstance(weights, str):
+            weights = data[weights]
+        if isinstance(weights, np.ndarray) == False:
+            weights = weights.values
+        # remove fields where we have nan in weights OR in group
+        # for both data sets
+        inx_na = (np.isnan(weights))
+
     if column is not None:
         if not isinstance(column, (list, np.ndarray, Index)):
             column = [column]
         data = data[column]
     data = data._get_numeric_data()
+    inx_na |= np.isnan(data.T.values)[0]
+
+    data = data.ix[~inx_na]
+    if weights is not None:
+        weights = weights[~inx_na]
+
     naxes = len(data.columns)
 
     fig, axes = _subplots(naxes=naxes, ax=ax, squeeze=False,
@@ -2835,7 +2851,7 @@ def hist_frame(data, column=None, weights=None, by=None, grid=True,
 
     for i, col in enumerate(com._try_sort(data.columns)):
         ax = _axes[i]
-        ax.hist(data[col].dropna().values, bins=bins, **kwds)
+        ax.hist(data[col].values, bins=bins, weights=weights, **kwds)
         ax.set_title(col)
         ax.grid(grid)
 
@@ -3063,16 +3079,21 @@ def _grouped_plot(plotf, data, column=None, weights=None, by=None,
                       "size by tuple instead", FutureWarning, stacklevel=4)
         figsize = None
 
+    added_weights_dummy_column = False
     if isinstance(weights, np.ndarray):
         # weights supplied as an array instead of a part of the dataframe
         data['weights'] = weights
         weights = 'weights'
+        added_weights_dummy_column = True
         
     grouped = data.groupby(by)
     if column is not None:
         if weights is not None:
             weights = grouped[weights]
         grouped = grouped[column]
+
+    if added_weights_dummy_column:
+        data = data.drop('weights', axis=1)
 
     naxes = len(grouped)
     fig, axes = _subplots(naxes=naxes, figsize=figsize,
