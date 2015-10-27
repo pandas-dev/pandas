@@ -16,7 +16,7 @@ from pandas.tseries.index import DatetimeIndex
 from pandas.tseries.period import PeriodIndex
 from pandas.core.internals import BlockManager
 import pandas.core.common as com
-import pandas.core.missing as mis
+import pandas.core.missing as missing
 import pandas.core.datetools as datetools
 from pandas import compat
 from pandas.compat import map, zip, lrange, string_types, isidentifier
@@ -51,7 +51,7 @@ def _single_replace(self, to_replace, method, inplace, limit):
 
     orig_dtype = self.dtype
     result = self if inplace else self.copy()
-    fill_f = mis._get_fill_func(method)
+    fill_f = missing._get_fill_func(method)
 
     mask = com.mask_missing(result.values, to_replace)
     values = fill_f(result.values, limit=limit, mask=mask)
@@ -1929,7 +1929,7 @@ class NDFrame(PandasObject):
 
         # construct the args
         axes, kwargs = self._construct_axes_from_arguments(args, kwargs)
-        method = mis._clean_reindex_fill_method(kwargs.pop('method', None))
+        method = missing._clean_reindex_fill_method(kwargs.pop('method', None))
         level = kwargs.pop('level', None)
         copy = kwargs.pop('copy', True)
         limit = kwargs.pop('limit', None)
@@ -2042,7 +2042,7 @@ class NDFrame(PandasObject):
 
         axis_name = self._get_axis_name(axis)
         axis_values = self._get_axis(axis_name)
-        method = mis._clean_reindex_fill_method(method)
+        method = missing._clean_reindex_fill_method(method)
         new_index, indexer = axis_values.reindex(labels, method, level,
                                                  limit=limit)
         return self._reindex_with_indexers(
@@ -2774,40 +2774,28 @@ class NDFrame(PandasObject):
         # set the default here, so functions examining the signaure
         # can detect if something was set (e.g. in groupby) (GH9221)
         if axis is None:
-            axis = 0
+            axis = self._stat_axis_name
         axis = self._get_axis_number(axis)
-        method = mis._clean_fill_method(method)
+        method = missing._clean_fill_method(method)
 
         from pandas import DataFrame
         if value is None:
             if method is None:
                 raise ValueError('must specify a fill method or value')
-            if self._is_mixed_type and axis == 1:
+            if self._is_mixed_type:
+                if (self.ndim > 2) and (axis == 0):
+                    raise NotImplementedError('cannot fill across axis 0 for mixed dtypes')
                 if inplace:
-                    raise NotImplementedError()
-                result = self.T.fillna(method=method, limit=limit).T
+                    raise NotImplementedError('cannot fill inplace for mixed dtypes')
+                elif (self.ndim == 2) and (axis == 1):
+                    result = self.T.fillna(method=method, limit=limit).T
 
-                # need to downcast here because of all of the transposes
-                result._data = result._data.downcast()
+                    # need to downcast here because of all of the transposes
+                    result._data = result._data.downcast()
 
-                return result
+                    return result
 
-            # > 3d
-            if self.ndim > 3:
-                raise NotImplementedError(
-                    'Cannot fillna with a method for > 3dims'
-                )
-
-            # 3d
-            elif self.ndim == 3:
-
-                # fill in 2d chunks
-                result = dict([(col, s.fillna(method=method, value=value))
-                               for col, s in compat.iteritems(self)])
-                return self._constructor.from_dict(result).__finalize__(self)
-
-            # 2d or less
-            method = mis._clean_fill_method(method)
+            method = missing._clean_fill_method(method)
             new_data = self._data.interpolate(method=method,
                                               axis=axis,
                                               limit=limit,
@@ -3750,7 +3738,7 @@ class NDFrame(PandasObject):
               fill_value=None, method=None, limit=None, fill_axis=0,
               broadcast_axis=None):
         from pandas import DataFrame, Series
-        method = mis._clean_fill_method(method)
+        method = missing._clean_fill_method(method)
 
         if broadcast_axis == 1 and self.ndim != other.ndim:
             if isinstance(self, Series):

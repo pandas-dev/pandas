@@ -49,9 +49,9 @@ def _clean_interp_method(method, **kwargs):
     return method
 
 
-def interpolate_1d(xvalues, yvalues, method='linear', limit=None,
-                   limit_direction='forward',
-                   fill_value=None, bounds_error=False, order=None, **kwargs):
+def interpolate(xvalues, yvalues, method='linear', limit=None,
+                limit_direction='forward',
+                fill_value=None, bounds_error=False, order=None, **kwargs):
     """
     Logic for the 1-d interpolation.  The result should be 1-d, inputs
     xvalues and yvalues will each be 1-d arrays of the same length.
@@ -219,20 +219,42 @@ def _interpolate_scipy_wrapper(x, y, new_x, method, fill_value=None,
     return new_y
 
 
-def interpolate_2d(values, method='pad', axis=0, limit=None, fill_value=None, dtype=None):
-    """ perform an actual interpolation of values, values will be make 2-d if
-    needed fills inplace, returns the result
+def pad(values, method='pad', axis=0, limit=None, fill_value=None, dtype=None):
+    """ 
+    Perform an actual interpolation of values. 1-d values will be made 2-d temporarily. 
+    Returns the result
     """
 
-    transf = (lambda x: x) if axis == 0 else (lambda x: x.T)
+    ndim = values.ndim
 
     # reshape a 1 dim if needed
-    ndim = values.ndim
-    if values.ndim == 1:
+    if ndim == 1:
         if axis != 0:  # pragma: no cover
             raise AssertionError("cannot interpolate on a ndim == 1 with "
                                  "axis != 0")
         values = values.reshape(tuple((1,) + values.shape))
+    # recursively slice n-dimension frames (n>2) into (n-1)-dimension frames
+    elif ndim > 2:
+        slice_axis = 1 if axis == 0 else 0
+        slicer = [slice(None)]*ndim
+
+        if ndim == 3:
+            axis = 0 if (axis > 1) else 1
+        else:
+            axis = axis - 1 if (axis > 0) else 0
+
+        for n in range(values.shape[slice_axis]):
+            slicer[slice_axis] = n            
+            values[slicer] = pad(values[slicer], 
+                                 method=method, 
+                                 axis=axis, 
+                                 limit=limit, 
+                                 fill_value=fill_value, 
+                                 dtype=dtype)
+
+        return values
+
+    transf = (lambda x: x) if axis == 0 else (lambda x: x.T)
 
     if fill_value is None:
         mask = None

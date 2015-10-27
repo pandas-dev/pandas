@@ -25,7 +25,7 @@ from pandas.core.indexing import maybe_convert_indices, length_of_indexer
 from pandas.core.categorical import Categorical, maybe_to_categorical
 from pandas.tseries.index import DatetimeIndex
 import pandas.core.common as com
-import pandas.core.missing as mis
+import pandas.core.missing as missing
 import pandas.core.convert as convert
 from pandas.sparse.array import _maybe_to_sparse, SparseArray
 import pandas.lib as lib
@@ -853,7 +853,7 @@ class Block(PandasObject):
 
         # a fill na type method
         try:
-            m = mis._clean_fill_method(method)
+            m = missing._clean_fill_method(method)
         except:
             m = None
 
@@ -871,7 +871,7 @@ class Block(PandasObject):
                                                mgr=mgr)
         # try an interp method
         try:
-            m = mis._clean_interp_method(method, **kwargs)
+            m = missing._clean_interp_method(method, **kwargs)
         except:
             m = None
 
@@ -910,12 +910,12 @@ class Block(PandasObject):
         values = self.values if inplace else self.values.copy()
         values, _, fill_value, _ = self._try_coerce_args(values, fill_value)
         values = self._try_operate(values)
-        values = mis.interpolate_2d(values,
-                                    method=method,
-                                    axis=axis,
-                                    limit=limit,
-                                    fill_value=fill_value,
-                                    dtype=self.dtype)
+        values = missing.pad(values,
+                         method=method,
+                         axis=axis,
+                         limit=limit,
+                         fill_value=fill_value,
+                         dtype=self.dtype)
         values = self._try_coerce_result(values)
 
         blocks = [self.make_block(values,
@@ -950,8 +950,8 @@ class Block(PandasObject):
 
             # process a 1-d slice, returning it
             # should the axis argument be handled below in apply_along_axis?
-            # i.e. not an arg to mis.interpolate_1d
-            return mis.interpolate_1d(index, x, method=method, limit=limit,
+            # i.e. not an arg to missing.interpolate
+            return missing.interpolate(index, x, method=method, limit=limit,
                                       limit_direction=limit_direction,
                                       fill_value=fill_value,
                                       bounds_error=False, **kwargs)
@@ -2358,7 +2358,7 @@ class SparseBlock(NonConsolidatableMixIn, Block):
     def interpolate(self, method='pad', axis=0, inplace=False,
                     limit=None, fill_value=None, **kwargs):
 
-        values = mis.interpolate_2d(
+        values = missing.pad(
             self.values.to_dense(), method, axis, limit, fill_value)
         return self.make_block_same_class(values=values,
                                           placement=self.mgr_locs)
@@ -3774,8 +3774,8 @@ class SingleBlockManager(BlockManager):
 
         # fill if needed
         if method is not None or limit is not None:
-            new_values = mis.interpolate_2d(new_values, method=method,
-                                            limit=limit, fill_value=fill_value)
+            new_values = missing.pad(new_values, method=method,
+                                     limit=limit, fill_value=fill_value)
 
         if self._block.is_sparse:
             make_block = self._block.make_block_same_class
