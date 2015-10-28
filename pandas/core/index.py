@@ -19,6 +19,7 @@ from pandas.core.base import PandasObject, FrozenList, FrozenNDArray, IndexOpsMi
 from pandas.util.decorators import (Appender, Substitution, cache_readonly,
                                     deprecate, deprecate_kwarg)
 import pandas.core.common as com
+from pandas.core.missing import _clean_reindex_fill_method
 from pandas.core.common import (isnull, array_equivalent, is_dtype_equal, is_object_dtype,
                                 is_datetimetz, ABCSeries, ABCCategorical, ABCPeriodIndex,
                                 _values_from_object, is_float, is_integer, is_iterator, is_categorical_dtype,
@@ -1832,7 +1833,7 @@ class Index(IndexOpsMixin, PandasObject):
             positions matches the corresponding target values. Missing values
             in the target are marked by -1.
         """
-        method = com._clean_reindex_fill_method(method)
+        method = _clean_reindex_fill_method(method)
         target = _ensure_index(target)
         if tolerance is not None:
             tolerance = self._convert_tolerance(tolerance)
@@ -3347,7 +3348,7 @@ class CategoricalIndex(Index, PandasDelegate):
         -------
         (indexer, mask) : (ndarray, ndarray)
         """
-        method = com._clean_reindex_fill_method(method)
+        method = _clean_reindex_fill_method(method)
         target = _ensure_index(target)
 
         if isinstance(target, CategoricalIndex):
@@ -5131,7 +5132,7 @@ class MultiIndex(Index):
         -------
         (indexer, mask) : (ndarray, ndarray)
         """
-        method = com._clean_reindex_fill_method(method)
+        method = _clean_reindex_fill_method(method)
 
         target = _ensure_index(target)
 
