@@ -5545,6 +5545,27 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         dfaa = df[['a', 'a']]
         self.assertEqual(list(dfaa.itertuples()), [(0, 1, 1), (1, 2, 2), (2, 3, 3)])
 
+        tup = next(df.itertuples(name='TestName'))
+
+        # no support for field renaming in Python 2.6, regular tuples are returned
+        if sys.version >= LooseVersion('2.7'):
+            self.assertEqual(tup._fields, ('Index', 'a', 'b'))
+            self.assertEqual((tup.Index, tup.a, tup.b), tup)
+            self.assertEqual(type(tup).__name__, 'TestName')
+
+        df.columns = ['def', 'return']
+        tup2 = next(df.itertuples(name='TestName'))
+        self.assertEqual(tup2, (0, 1, 4))
+
+        if sys.version >= LooseVersion('2.7'):
+            self.assertEqual(tup2._fields, ('Index', '_1', '_2'))
+
+        df3 = DataFrame(dict(('f'+str(i), [i]) for i in range(1024)))
+        # will raise SyntaxError if trying to create namedtuple
+        tup3 = next(df3.itertuples())
+        self.assertFalse(hasattr(tup3, '_fields'))
+        self.assertIsInstance(tup3, tuple)
+
     def test_len(self):
         self.assertEqual(len(self.frame), len(self.frame.index))
 
