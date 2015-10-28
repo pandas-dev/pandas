@@ -3124,6 +3124,7 @@ class NDFrameGroupBy(GroupBy):
                     result = result._convert(numeric=True)
                     date_cols = self._selected_obj.select_dtypes(
                         include=list(_DATELIKE_DTYPES)).columns
+                    date_cols = date_cols.intersection(result.columns)
                     result[date_cols] = (result[date_cols]
                                          ._convert(datetime=True,
                                                           coerce=True))
