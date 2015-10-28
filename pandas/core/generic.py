@@ -16,6 +16,7 @@ from pandas.tseries.index import DatetimeIndex
 from pandas.tseries.period import PeriodIndex
 from pandas.core.internals import BlockManager
 import pandas.core.common as com
+import pandas.core.missing as mis
 import pandas.core.datetools as datetools
 from pandas import compat
 from pandas.compat import map, zip, lrange, string_types, isidentifier
@@ -50,7 +51,7 @@ def _single_replace(self, to_replace, method, inplace, limit):
 
     orig_dtype = self.dtype
     result = self if inplace else self.copy()
-    fill_f = com._get_fill_func(method)
+    fill_f = mis._get_fill_func(method)
 
     mask = com.mask_missing(result.values, to_replace)
     values = fill_f(result.values, limit=limit, mask=mask)
@@ -1928,7 +1929,7 @@ class NDFrame(PandasObject):
 
         # construct the args
         axes, kwargs = self._construct_axes_from_arguments(args, kwargs)
-        method = com._clean_reindex_fill_method(kwargs.pop('method', None))
+        method = mis._clean_reindex_fill_method(kwargs.pop('method', None))
         level = kwargs.pop('level', None)
         copy = kwargs.pop('copy', True)
         limit = kwargs.pop('limit', None)
@@ -2041,7 +2042,7 @@ class NDFrame(PandasObject):
 
         axis_name = self._get_axis_name(axis)
         axis_values = self._get_axis(axis_name)
-        method = com._clean_reindex_fill_method(method)
+        method = mis._clean_reindex_fill_method(method)
         new_index, indexer = axis_values.reindex(labels, method, level,
                                                  limit=limit)
         return self._reindex_with_indexers(
@@ -2775,7 +2776,7 @@ class NDFrame(PandasObject):
         if axis is None:
             axis = 0
         axis = self._get_axis_number(axis)
-        method = com._clean_fill_method(method)
+        method = mis._clean_fill_method(method)
 
         from pandas import DataFrame
         if value is None:
@@ -2806,7 +2807,7 @@ class NDFrame(PandasObject):
                 return self._constructor.from_dict(result).__finalize__(self)
 
             # 2d or less
-            method = com._clean_fill_method(method)
+            method = mis._clean_fill_method(method)
             new_data = self._data.interpolate(method=method,
                                               axis=axis,
                                               limit=limit,
@@ -3749,7 +3750,7 @@ class NDFrame(PandasObject):
               fill_value=None, method=None, limit=None, fill_axis=0,
               broadcast_axis=None):
         from pandas import DataFrame, Series
-        method = com._clean_fill_method(method)
+        method = mis._clean_fill_method(method)
 
         if broadcast_axis == 1 and self.ndim != other.ndim:
             if isinstance(self, Series):
