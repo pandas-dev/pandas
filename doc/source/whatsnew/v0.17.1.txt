@@ -91,6 +91,7 @@ Bug Fixes
 - Bug in ``squeeze()`` with zero length arrays (:issue:`11230`, :issue:`8999`)
 
 
+- Bug in ``DataFrame.pct_change()`` was not propagating ``axis`` keyword on ``.fillna`` method (:issue:`11150`)
 
 
 

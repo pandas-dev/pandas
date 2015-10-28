@@ -11303,6 +11303,22 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         filled = self.tsframe.fillna(method='pad')
         assert_frame_equal(rs, filled / filled.shift(freq='5D') - 1)
 
+    # GH 11150
+    def test_pct_change_frame(self):
+        pnl = DataFrame([np.arange(0, 40, 10), np.arange(0, 40, 10), np.arange(0, 40, 10)]).astype(np.float64)
+        pnl.iat[1,0] = np.nan
+        pnl.iat[1,1] = np.nan
+        pnl.iat[2,3] = 60
+        
+        mask = pnl.isnull()
+
+        for axis in range(2):
+            expected = pnl.ffill(axis=axis)/pnl.ffill(axis=axis).shift(axis=axis) - 1
+            expected[mask] = np.nan
+            result = pnl.pct_change(axis=axis, fill_method='pad')
+
+            self.assert_frame_equal(result, expected)
+
     def test_pct_change_shift_over_nas(self):
         s = Series([1., 1.5, np.nan, 2.5, 3.])
 
