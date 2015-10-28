@@ -134,6 +134,7 @@ Bug Fixes
 
 
 - Bug in ``DataFrame.to_latex()`` produces an extra rule when ``header=False`` (:issue:`7124`)
+- Bug in ``df.groupby(...).apply(func)`` when a func returns a ``Series`` containing a new datetimelike column (:issue:`11324`)
 
 
 - Bug in ``pandas.json`` when file to load is big (:issue:`11344`)
@@ -147,6 +148,7 @@ Bug Fixes
 - Bug in ``to_excel`` with openpyxl 2.2+ and merging (:issue:`11408`)
 
 - Bug in ``DataFrame.to_dict()`` produces a ``np.datetime64`` object instead of ``Timestamp`` when only datetime is present in data (:issue:`11327`)
+
 
 - Bug in ``DataFrame.corr()`` raises exception when computes Kendall correlation for DataFrames with boolean and not boolean columns (:issue:`11560`)
 

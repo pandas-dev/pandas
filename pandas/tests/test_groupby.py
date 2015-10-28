@@ -824,6 +824,30 @@ class TestGroupBy(tm.TestCase):
         result = df.groupby('date').apply(lambda x: x['time'][x['value'].idxmax()])
         assert_series_equal(result, expected)
 
+    def test_time_field_bug(self):
+        # Test a fix for the following error related to GH issue 11324
+        # When non-key fields in a group-by dataframe contained time-based fields that
+        # were not returned by the apply function, an exception would be raised.
+
+        df = pd.DataFrame({'a': 1,'b': [datetime.now() for nn in range(10)]})
+
+        def func_with_no_date(batch):
+            return pd.Series({'c': 2})
+
+        def func_with_date(batch):
+            return pd.Series({'c': 2, 'b': datetime(2015, 1, 1)})
+
+        dfg_no_conversion = df.groupby(by=['a']).apply(func_with_no_date)
+        dfg_no_conversion_expected = pd.DataFrame({'c': 2}, index=[1])
+        dfg_no_conversion_expected.index.name = 'a'
+
+        dfg_conversion = df.groupby(by=['a']).apply(func_with_date)
+        dfg_conversion_expected = pd.DataFrame({'b': datetime(2015, 1, 1), 'c': 2}, index=[1])
+        dfg_conversion_expected.index.name = 'a'
+
+        self.assert_frame_equal(dfg_no_conversion, dfg_no_conversion_expected)
+        self.assert_frame_equal(dfg_conversion, dfg_conversion_expected)
+
     def test_len(self):
         df = tm.makeTimeDataFrame()
         grouped = df.groupby([lambda x: x.year,
