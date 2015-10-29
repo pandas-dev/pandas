@@ -910,7 +910,7 @@ class Block(PandasObject):
         values = self.values if inplace else self.values.copy()
         values, _, fill_value, _ = self._try_coerce_args(values, fill_value)
         values = self._try_operate(values)
-        interp_func = mis.interpolate_nd if values.ndim > 2 else mis.interpolate_2d
+        interp_func = mis.fill_nd if values.ndim > 2 else mis.fill_2d
         values = interp_func(values,
                              method=method,
                              axis=axis,
@@ -2359,7 +2359,7 @@ class SparseBlock(NonConsolidatableMixIn, Block):
     def interpolate(self, method='pad', axis=0, inplace=False,
                     limit=None, fill_value=None, **kwargs):
 
-        values = mis.interpolate_2d(
+        values = mis.fill_2d(
             self.values.to_dense(), method, axis, limit, fill_value)
         return self.make_block_same_class(values=values,
                                           placement=self.mgr_locs)
@@ -3775,7 +3775,7 @@ class SingleBlockManager(BlockManager):
 
         # fill if needed
         if method is not None or limit is not None:
-            new_values = mis.interpolate_2d(new_values, method=method,
+            new_values = mis.fill_2d(new_values, method=method,
                                             limit=limit, fill_value=fill_value)
 
         if self._block.is_sparse:
