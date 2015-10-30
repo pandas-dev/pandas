@@ -2793,7 +2793,7 @@ class NDFrame(PandasObject):
 
                     return result
 
-            method = com._clean_fill_method(method)
+            method = mis._clean_fill_method(method)
             new_data = self._data.interpolate(method=method,
                                               axis=axis,
                                               limit=limit,
