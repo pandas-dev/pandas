@@ -484,6 +484,7 @@ There are several time/date properties that one can access from ``Timestamp`` or
     dayofweek,"The day of the week with Monday=0, Sunday=6"
     weekday,"The day of the week with Monday=0, Sunday=6"
     quarter,"Quarter of the date: Jan=Mar = 1, Apr-Jun = 2, etc."
+    days_in_month,"The number of days in the month of the datetime"
     is_month_start,"Logical indicating if first day of month (defined by frequency)"
     is_month_end,"Logical indicating if last day of month (defined by frequency)"
     is_quarter_start,"Logical indicating if first day of quarter (defined by frequency)"
