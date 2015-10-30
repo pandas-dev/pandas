@@ -68,6 +68,7 @@ Performance Improvements
 Bug Fixes
 ~~~~~~~~~
 
+- Incorrectly distributed .c file in the build on ``PyPi`` when reading a csv of floats and passing ``na_values=<a scalar>`` would show an exception (:issue:`11374`)
 - Bug in ``.to_latex()`` output broken when the index has a name (:issue: `10660`)
 - Bug in ``HDFStore.append`` with strings whose encoded length exceded the max unencoded length (:issue:`11234`)
 - Bug in merging ``datetime64[ns, tz]`` dtypes (:issue:`11405`)
