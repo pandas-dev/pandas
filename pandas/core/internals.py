@@ -3774,7 +3774,7 @@ class SingleBlockManager(BlockManager):
 
         # fill if needed
         if method is not None or limit is not None:
-            new_values = mis.fill_2d(new_values, method=method,
+            new_values = mis.pad(new_values, method=method,
                                             limit=limit, fill_value=fill_value)
 
         if self._block.is_sparse:
