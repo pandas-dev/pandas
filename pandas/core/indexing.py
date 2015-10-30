@@ -57,6 +57,7 @@ class _NDFrameIndexer(object):
         raise NotImplementedError('ix is not iterable')
 
     def __getitem__(self, key):
+
         if type(key) is tuple:
             try:
                 values = self.obj.get_value(*key)

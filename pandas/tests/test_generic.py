@@ -1687,9 +1687,7 @@ class TestDataFrame(tm.TestCase, Generic):
         # FORWARD PROPAGATION TESTS
         #######
         
-        ##
-        # Test children recorded from various slicing methods
-        ##
+        # Test various slicing methods add to _children
         
         df = pd.DataFrame({'col1':[1,2], 'col2':[3,4]})
         self.assertTrue(len(df._children)==0)
@@ -1715,10 +1713,8 @@ class TestDataFrame(tm.TestCase, Generic):
             tm.assert_frame_equal(views[v], copies[v])
             self.assertFalse(views[v]._is_view)
         
-        ##
-        # Test views become copies 
-        # during different forms of value setting.
-        ##
+        # Test different forms of value setting 
+        # all trigger conversions
         
         parent = dict()
         views = dict()
@@ -1739,8 +1735,6 @@ class TestDataFrame(tm.TestCase, Generic):
         for v in views.keys():
             tm.assert_frame_equal(views[v], copies[v])
             self.assertFalse(views[v]._is_view)
-            
-            
         
         ########
         # No Backward Propogation 
@@ -1760,6 +1754,31 @@ class TestDataFrame(tm.TestCase, Generic):
                 
         tm.assert_frame_equal(df, df_copy)
 
+        ###
+        # Dictionary-like access to single columns SHOULD give views
+        ###
+        
+        # If change child, should back-propagate
+        df = pd.DataFrame({'col1':[1,2], 'col2':[3,4]})
+        v = df['col1']
+        self.assertTrue(v._is_view)
+        self.assertTrue(v._is_column_view)
+        v.loc[0]=-88
+        self.assertTrue(df.loc[0,'col1'] == -88)
+        self.assertTrue(v._is_view)
+        
+        # If change parent, should forward-propagate
+        df = pd.DataFrame({'col1':[1,2], 'col2':[3,4]})
+        v = df['col1']
+        self.assertTrue(v._is_view)
+        self.assertTrue(v._is_column_view)
+        df.loc[0, 'col1']=-88
+        self.assertTrue(v.loc[0] == -88)
+        self.assertTrue(v._is_view)
+
+
+
+    
 
 class TestPanel(tm.TestCase, Generic):
     _typ = Panel
