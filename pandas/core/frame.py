@@ -1949,7 +1949,9 @@ class DataFrame(NDFrame):
         is_mi_columns = isinstance(self.columns, MultiIndex)
         try:
             if key in self.columns and not is_mi_columns:
-                return self._getitem_column(key)
+                result = self._getitem_column(key)
+                result._is_column_view = True
+                return result
         except:
             pass
 

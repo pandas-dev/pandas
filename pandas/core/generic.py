@@ -84,7 +84,8 @@ class NDFrame(PandasObject):
     _internal_names = ['_data', '_cacher', '_item_cache', '_cache',
                        'is_copy', '_subtyp', '_index',
                        '_default_kind', '_default_fill_value', '_metadata',
-                       '__array_struct__', '__array_interface__', '_children']
+                       '__array_struct__', '__array_interface__', '_children',
+                       '_is_column_view']
     _internal_names_set = set(_internal_names)
     _accessors = frozenset([])
     _metadata = []
@@ -107,6 +108,7 @@ class NDFrame(PandasObject):
         object.__setattr__(self, '_data', data)
         object.__setattr__(self, '_item_cache', {})
         object.__setattr__(self, '_children', [])
+        object.__setattr__(self, '_is_column_view', False)
 
 
     def _validate_dtype(self, dtype):
@@ -1077,13 +1079,19 @@ class NDFrame(PandasObject):
         -------
         value : type of items contained in object
         """
+
         try:
             return self[key]
         except (KeyError, ValueError, IndexError):
             return default
 
     def __getitem__(self, item):
-        return self._get_item_cache(item)
+        result = self._get_item_cache(item)
+
+        if isinstance(item, str):
+            result._is_column_view = True 
+
+        return result
 
     def _get_item_cache(self, item):
         """ return the cached item, item represents a label indexer """
@@ -1225,7 +1233,7 @@ class NDFrame(PandasObject):
 
     def _convert_views_to_copies(self):
         # Don't set on views. 
-        if self._is_view:
+        if self._is_view and not self._is_column_view:
             self._data = self._data.copy()
 
         # Before setting values, make sure children converted to copies. 
@@ -1234,7 +1242,7 @@ class NDFrame(PandasObject):
             # Make sure children of children converted. 
             child()._convert_views_to_copies()
             
-            if child()._is_view:
+            if child()._is_view and not self._is_column_view:
                 child()._data = child()._data.copy()
                 
         self._children=[]
@@ -2267,6 +2275,7 @@ class NDFrame(PandasObject):
         return self
 
     def __getattr__(self, name):
+
         """After regular attribute access, try looking up the name
         This allows simpler access to columns for interactive use.
         """
