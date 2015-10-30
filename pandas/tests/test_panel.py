@@ -1539,6 +1539,11 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing,
         self.assertTrue(
             filled['ItemC']['C'][b_nan.diff(a_nan)].apply(np.isnan).all())
 
+        # limit not implemented when only value is specified
+        panel = self.panel.copy()
+        panel['str'] = 'foo'
+        self.assertRaises(NotImplementedError, lambda : panel.fillna(method='ffill', axis=0))        
+
     def test_ffill_bfill(self):
         assert_panel_equal(self.panel.ffill(),
                            self.panel.fillna(method='ffill'))
