@@ -2783,8 +2783,10 @@ class NDFrame(PandasObject):
             if method is None:
                 raise ValueError('must specify a fill method or value')
             if self._is_mixed_type:
-                if ((self.ndim > 2) and (axis == 0)) or inplace:
-                    raise NotImplementedError()
+                if (self.ndim > 2) and (axis == 0):
+                    raise NotImplementedError('cannot fill across axis 0 for mixed dtypes')
+                if inplace:
+                    raise NotImplementedError('cannot fill inplace for mixed dtypes')
                 elif (self.ndim == 2) and (axis == 1):
                     result = self.T.fillna(method=method, limit=limit).T
 

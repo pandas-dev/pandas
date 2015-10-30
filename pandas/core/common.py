@@ -1420,7 +1420,6 @@ def _fill_zeros(result, x, y, name, fill):
     return result
 
 
-
 def _consensus_name_attr(objs):
     name = objs[0].name
     for obj in objs[1:]:
