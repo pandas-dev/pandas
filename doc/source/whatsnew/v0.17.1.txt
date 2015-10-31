@@ -118,3 +118,7 @@ Bug Fixes
 - Bug in ``to_excel`` with openpyxl 2.2+ and merging (:issue:`11408`)
 
 - Bug in ``DataFrame.to_dict()`` produces a ``np.datetime64`` object instead of ``Timestamp`` when only datetime is present in data (:issue:`11327`)
+
+- Bug in ``Panel.fillna()`` does not fill across axis 0 (:issue:`8251`)
+
+- Bug in ``Panel.fillna()`` loses index names (:issue:`3570`)
