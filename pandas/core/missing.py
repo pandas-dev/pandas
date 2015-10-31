@@ -39,7 +39,7 @@ def _clean_interp_method(method, **kwargs):
     valid = ['linear', 'time', 'index', 'values', 'nearest', 'zero', 'slinear',
              'quadratic', 'cubic', 'barycentric', 'polynomial',
              'krogh', 'piecewise_polynomial',
-             'pchip', 'spline']
+             'pchip', 'spline', 'akima']
     if method in ('spline', 'polynomial') and order is None:
         raise ValueError("You must specify the order of the spline or "
                          "polynomial.")
@@ -144,7 +144,7 @@ def interpolate(xvalues, yvalues, method='linear', limit=None,
 
     sp_methods = ['nearest', 'zero', 'slinear', 'quadratic', 'cubic',
                   'barycentric', 'krogh', 'spline', 'polynomial',
-                  'piecewise_polynomial', 'pchip']
+                  'piecewise_polynomial', 'pchip', 'akima']
     if method in sp_methods:
         inds = np.asarray(xvalues)
         # hack for DatetimeIndex, #1646
@@ -156,6 +156,8 @@ def interpolate(xvalues, yvalues, method='linear', limit=None,
             bounds_error=bounds_error, order=order, **kwargs)
         result[violate_limit] = np.nan
         return result
+    else: 
+        raise ValueError('interpolation method not found')
 
 
 def _interpolate_scipy_wrapper(x, y, new_x, method, fill_value=None,
@@ -214,8 +216,16 @@ def _interpolate_scipy_wrapper(x, y, new_x, method, fill_value=None,
             y = y.copy()
         if not new_x.flags.writeable:
             new_x = new_x.copy()
-        method = alt_methods[method]
-        new_y = method(x, y, new_x, **kwargs)
+        if method == 'akima':
+            try:
+                interpolator = interpolate.Akima1DInterpolator(x, y)
+            except AttributeError:
+                raise ImportError("Your version of scipy does not support "
+                                  "Akima interpolation" )
+            new_y = interpolator(new_x)
+        else:
+            method = alt_methods[method]
+            new_y = method(x, y, new_x, **kwargs)
     return new_y
 
 

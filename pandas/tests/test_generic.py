@@ -1167,6 +1167,15 @@ class TestDataFrame(tm.TestCase, Generic):
         expected.ix[5,'A'] = 6.125
         assert_frame_equal(result, expected)
 
+        try:
+            from scipy.interpolate import Akima1DInterpolator
+        except ImportError:
+            raise nose.SkipTest('scipy.interpolate.Akima1DInterpolator missing')
+        result = df.interpolate(method='akima')
+        expected.ix[2,'A'] = 3
+        expected.ix[5,'A'] = 6
+        assert_frame_equal(result, expected)
+
     def test_interp_rowwise(self):
         df = DataFrame({0: [1, 2, np.nan, 4],
                         1: [2, 3, 4, np.nan],
