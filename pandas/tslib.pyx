@@ -396,9 +396,13 @@ class Timestamp(_Timestamp):
     def dayofweek(self):
         return self.weekday()
 
+    day_of_week = dayofweek
+
     @property
     def dayofyear(self):
         return self._get_field('doy')
+
+    day_of_year = dayofyear
 
     @property
     def week(self):
@@ -650,7 +654,8 @@ class NaTType(_NaT):
 
 fields = ['year', 'quarter', 'month', 'day', 'hour',
           'minute', 'second', 'millisecond', 'microsecond', 'nanosecond',
-          'week', 'dayofyear', 'days_in_month', 'daysinmonth', 'dayofweek']
+          'week', 'dayofyear', 'day_of_year', 'days_in_month', 'daysinmonth', 
+	  'dayofweek', 'day_of_week']
 for field in fields:
     prop = property(fget=lambda self: np.nan)
     setattr(NaTType, field, prop)

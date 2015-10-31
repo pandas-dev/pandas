@@ -31,6 +31,7 @@ Enhancements
 API changes
 ~~~~~~~~~~~
 
+- day_of_year and day_of_week accessors for timeseries now exist in addition to dayofyear and dayofweek (standardizes naming conventions) (:issue:`9606`)
 - min and max reductions on ``datetime64`` and ``timedelta64`` dtyped series now
   result in ``NaT`` and not ``nan`` (:issue:`11245`).
 - Regression from 0.16.2 for output formatting of long floats/nan, restored in (:issue:`11302`)

@@ -192,10 +192,12 @@ class DatetimeIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
     _comparables = ['name', 'freqstr', 'tz']
     _attributes = ['name', 'freq', 'tz']
     _datetimelike_ops = ['year','month','day','hour','minute','second',
-                         'weekofyear','week','dayofweek','weekday','dayofyear','quarter', 'days_in_month', 'daysinmonth',
-                         'date','time','microsecond','nanosecond','is_month_start','is_month_end',
-                         'is_quarter_start','is_quarter_end','is_year_start','is_year_end',
-                         'tz','freq']
+                         'weekofyear','week','dayofweek','day_of_week',
+                         'weekday','dayofyear','day_of_year','quarter',
+                         'days_in_month', 'daysinmonth','date',
+                         'time','microsecond','nanosecond','is_month_start',
+                         'is_month_end','is_quarter_start','is_quarter_end',
+                         'is_year_start','is_year_end','tz','freq']
     _is_numeric_dtype = False
 
 
@@ -1458,7 +1460,9 @@ class DatetimeIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
     dayofweek = _field_accessor('dayofweek', 'dow',
                                  "The day of the week with Monday=0, Sunday=6")
     weekday = dayofweek
+    day_of_week = dayofweek
     dayofyear = _field_accessor('dayofyear', 'doy', "The ordinal day of the year")
+    day_of_year = dayofyear
     quarter = _field_accessor('quarter', 'q', "The quarter of the date")
     days_in_month = _field_accessor('days_in_month', 'dim', "The number of days in the month\n\n.. versionadded:: 0.16.0")
     daysinmonth = days_in_month
