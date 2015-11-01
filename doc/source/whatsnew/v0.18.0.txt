@@ -185,8 +185,8 @@ Bug Fixes
 
 
 - Bug in timezone info lost when broadcasting scalar datetime to ``DataFrame`` (:issue:`11682`)
-
-
+- Bug in ``Index`` creation from ``Timestamp`` with mixed tz coerces to UTC (:issue:`11488`)
+- Bug in ``to_numeric`` where it does not raise if input is more than one dimension (:issue:`11776`)
 
 - Bug in parsing timezone offset strings with non-zero minutes (:issue:`11708`)
 
@@ -197,4 +197,3 @@ Bug Fixes
 - Bug in ``pd.rolling_median`` where memory allocation failed even with sufficient memory (:issue:`11696`)
 
 - Bug in ``df.replace`` while replacing value in mixed dtype ``Dataframe`` (:issue:`11698`)
-- Bug in ``to_numeric`` where it does not raise if input is more than one dimension (:issue:`11776`)
