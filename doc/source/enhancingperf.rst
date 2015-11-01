@@ -274,8 +274,8 @@ advanced cython techniques:
       ...:     return s * dx
       ...: @cython.boundscheck(False)
       ...: @cython.wraparound(False)
-      ...: cpdef np.ndarray[double] apply_integrate_f_wrap(np.ndarray[double] col_a, np.ndarray[double] col_b, np.ndarray[Py_ssize_t] col_N):
-      ...:     cdef Py_ssize_t i, n = len(col_N)
+      ...: cpdef np.ndarray[double] apply_integrate_f_wrap(np.ndarray[double] col_a, np.ndarray[double] col_b, np.ndarray[int] col_N):
+      ...:     cdef int i, n = len(col_N)
       ...:     assert len(col_a) == len(col_b) == n
       ...:     cdef np.ndarray[double] res = np.empty(n)
       ...:     for i in range(n):
