@@ -29,7 +29,6 @@ import pandas.core.nanops as nanops
 from pandas.util.decorators import Appender, Substitution, deprecate_kwarg
 from pandas.core import config
 
-
 # goal is to be able to define the docs close to function, while still being
 # able to share
 _shared_docs = dict()
@@ -4734,6 +4733,36 @@ class NDFrame(PandasObject):
                                       method ``ptp``.""", nanptp)
 
 
+    @classmethod
+    def _add_series_or_dataframe_operations(cls):
+        """ add the series or dataframe only operations to the cls; evaluate the doc strings again """
+
+        from pandas.core import window as rwindow
+
+        @Appender(rwindow.rolling.__doc__)
+        def rolling(self, window, min_periods=None, freq=None, center=False,
+                    how=None, win_type=None, axis=0):
+            axis = self._get_axis_number(axis)
+            return rwindow.rolling(self, window=window, min_periods=min_periods, freq=freq, center=center,
+                                   how=how, win_type=win_type, axis=axis)
+        cls.rolling = rolling
+
+        @Appender(rwindow.expanding.__doc__)
+        def expanding(self, min_periods=None, freq=None, center=False,
+                      how=None, axis=0):
+            axis = self._get_axis_number(axis)
+            return rwindow.expanding(self, min_periods=min_periods, freq=freq, center=center,
+                                     how=how, axis=axis)
+        cls.expanding = expanding
+
+        @Appender(rwindow.ewm.__doc__)
+        def ewm(self, com=None, span=None, halflife=None, min_periods=0, freq=None,
+                adjust=True, how=None, ignore_na=False, axis=0):
+            axis = self._get_axis_number(axis)
+            return rwindow.ewm(self, com=com, span=span, halflife=halflife, min_periods=min_periods,
+                               freq=freq, adjust=adjust, how=how, ignore_na=ignore_na, axis=axis)
+        cls.ewm = ewm
+
 def _doc_parms(cls):
     """ return a tuple of the doc parms """
     axis_descr = "{%s}" % ', '.join([
@@ -4916,6 +4945,6 @@ def _make_logical_function(name, name1, name2, axis_descr, desc, f):
     logical_func.__name__ = name
     return logical_func
 
-# install the indexerse
+# install the indexes
 for _name, _indexer in indexing.get_indexers_list():
     NDFrame._create_indexer(_name, _indexer)

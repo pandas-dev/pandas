@@ -12,7 +12,7 @@ from pandas.compat import(
 )
 from pandas import compat
 
-from pandas.core.base import PandasObject
+from pandas.core.base import PandasObject, SelectionMixin, GroupByError, DataError, SpecificationError
 from pandas.core.categorical import Categorical
 from pandas.core.frame import DataFrame
 from pandas.core.generic import NDFrame
@@ -36,28 +36,6 @@ from pandas.lib import Timestamp
 import pandas.tslib as tslib
 import pandas.algos as _algos
 import pandas.hashtable as _hash
-
-_agg_doc = """Aggregate using input function or dict of {column -> function}
-
-Parameters
-----------
-arg : function or dict
-    Function to use for aggregating groups. If a function, must either
-    work when passed a DataFrame or when passed to DataFrame.apply. If
-    passed a dict, the keys must be DataFrame column names.
-
-Notes
------
-Numpy functions mean/median/prod/sum/std/var are special cased so the
-default behavior is applying the function along axis=0
-(e.g., np.mean(arr_2d, axis=0)) as opposed to
-mimicking the default Numpy behavior (e.g., np.mean(arr_2d)).
-
-Returns
--------
-aggregated : DataFrame
-"""
-
 
 # special case to prevent duplicate plots when catching exceptions when
 # forwarding methods from NDFrames
@@ -90,18 +68,6 @@ _dataframe_apply_whitelist = \
     _common_apply_whitelist | frozenset(['dtypes', 'corrwith'])
 
 _cython_transforms = frozenset(['cumprod', 'cumsum', 'shift'])
-
-class GroupByError(Exception):
-    pass
-
-
-class DataError(GroupByError):
-    pass
-
-
-class SpecificationError(GroupByError):
-    pass
-
 
 def _groupby_function(name, alias, npfunc, numeric_only=True,
                       _convert=False):
@@ -319,7 +285,7 @@ class GroupByPlot(PandasObject):
         return attr
 
 
-class GroupBy(PandasObject):
+class GroupBy(PandasObject, SelectionMixin):
 
     """
     Class for grouping and aggregating relational data. See aggregate,
@@ -387,8 +353,6 @@ class GroupBy(PandasObject):
         Number of groups
     """
     _apply_whitelist = _common_apply_whitelist
-    _internal_names = ['_cache']
-    _internal_names_set = set(_internal_names)
     _group_selection = None
 
     def __init__(self, obj, keys=None, axis=0, level=None,
@@ -493,19 +457,6 @@ class GroupBy(PandasObject):
         """ safe get index, translate keys for datelike to underlying repr """
         return self._get_indices([name])[0]
 
-    @property
-    def name(self):
-        if self._selection is None:
-            return None  # 'result'
-        else:
-            return self._selection
-
-    @property
-    def _selection_list(self):
-        if not isinstance(self._selection, (list, tuple, Series, Index, np.ndarray)):
-            return [self._selection]
-        return self._selection
-
     @cache_readonly
     def _selected_obj(self):
 
@@ -557,9 +508,6 @@ class GroupBy(PandasObject):
 
         raise AttributeError("%r object has no attribute %r" %
                              (type(self).__name__, attr))
-
-    def __getitem__(self, key):
-        raise NotImplementedError('Not implemented: %s' % key)
 
     plot = property(GroupByPlot)
 
@@ -704,7 +652,7 @@ class GroupBy(PandasObject):
         -------
         applied : type depending on grouped object and function
         """
-        func = _intercept_function(func)
+        func = self._is_builtin_func(func)
 
         @wraps(func)
         def f(g):
@@ -720,13 +668,6 @@ class GroupBy(PandasObject):
 
         return self._wrap_applied_output(keys, values,
                                          not_indexed_same=mutated)
-
-    def aggregate(self, func, *args, **kwargs):
-        raise AbstractMethodError(self)
-
-    @Appender(_agg_doc)
-    def agg(self, func, *args, **kwargs):
-        return self.aggregate(func, *args, **kwargs)
 
     def _iterate_slices(self):
         yield self.name, self._selected_obj
@@ -1217,7 +1158,7 @@ class GroupBy(PandasObject):
         return self._wrap_aggregated_output(output, names)
 
     def _python_agg_general(self, func, *args, **kwargs):
-        func = _intercept_function(func)
+        func = self._is_builtin_func(func)
         f = lambda x: func(x, *args, **kwargs)
 
         # iterate through "columns" ex exclusions to populate output dict
@@ -1733,7 +1674,7 @@ class BaseGrouper(object):
             return self._aggregate_series_pure_python(obj, func)
 
     def _aggregate_series_fast(self, obj, func):
-        func = _intercept_function(func)
+        func = self._is_builtin_func(func)
 
         if obj.index._has_complex_internals:
             raise TypeError('Incompatible index for Cython grouper')
@@ -2427,7 +2368,7 @@ class SeriesGroupBy(GroupBy):
         if hasattr(func_or_funcs, '__iter__'):
             ret = self._aggregate_multiple_funcs(func_or_funcs)
         else:
-            cyfunc = _intercept_cython(func_or_funcs)
+            cyfunc = self._is_cython_func(func_or_funcs)
             if cyfunc and not args and not kwargs:
                 return getattr(self, cyfunc)()
 
@@ -2559,7 +2500,7 @@ class SeriesGroupBy(GroupBy):
         transformed : Series
         """
 
-        func = _intercept_cython(func) or func
+        func = self._is_cython_func(func) or func
 
         # if string function
         if isinstance(func, compat.string_types):
@@ -2912,68 +2853,16 @@ class NDFrameGroupBy(GroupBy):
             obj = obj.swapaxes(0, 1)
         return obj
 
-    @cache_readonly
-    def _obj_with_exclusions(self):
-        if self._selection is not None:
-            return self.obj.reindex(columns=self._selection_list)
-
-        if len(self.exclusions) > 0:
-            return self.obj.drop(self.exclusions, axis=1)
-        else:
-            return self.obj
-
-    @Appender(_agg_doc)
+    @Appender(SelectionMixin._agg_doc)
     def aggregate(self, arg, *args, **kwargs):
-        if isinstance(arg, compat.string_types):
-            return getattr(self, arg)(*args, **kwargs)
 
-        result = OrderedDict()
-        if isinstance(arg, dict):
-            if self.axis != 0:  # pragma: no cover
-                raise ValueError('Can only pass dict with axis=0')
+        result, how = self._aggregate(arg, *args, **kwargs)
+        if how is None:
+            return result
 
-            obj = self._selected_obj
+        if result is None:
 
-            if any(isinstance(x, (list, tuple, dict)) for x in arg.values()):
-                new_arg = OrderedDict()
-                for k, v in compat.iteritems(arg):
-                    if not isinstance(v, (tuple, list, dict)):
-                        new_arg[k] = [v]
-                    else:
-                        new_arg[k] = v
-                arg = new_arg
-
-            keys = []
-            if self._selection is not None:
-                subset = obj
-                if isinstance(subset, DataFrame):
-                    raise NotImplementedError("Aggregating on a DataFrame is "
-                                              "not supported")
-
-                for fname, agg_how in compat.iteritems(arg):
-                    colg = SeriesGroupBy(subset, selection=self._selection,
-                                         grouper=self.grouper)
-                    result[fname] = colg.aggregate(agg_how)
-                    keys.append(fname)
-            else:
-                for col, agg_how in compat.iteritems(arg):
-                    colg = SeriesGroupBy(obj[col], selection=col,
-                                         grouper=self.grouper)
-                    result[col] = colg.aggregate(agg_how)
-                    keys.append(col)
-
-            if isinstance(list(result.values())[0], DataFrame):
-                from pandas.tools.merge import concat
-                result = concat([result[k] for k in keys], keys=keys, axis=1)
-            else:
-                result = DataFrame(result)
-        elif isinstance(arg, list):
-            return self._aggregate_multiple_funcs(arg)
-        else:
-            cyfunc = _intercept_cython(arg)
-            if cyfunc and not args and not kwargs:
-                return getattr(self, cyfunc)()
-
+            # grouper specific aggregations
             if self.grouper.nkeys > 1:
                 return self._python_agg_general(arg, *args, **kwargs)
             else:
@@ -2992,30 +2881,6 @@ class NDFrameGroupBy(GroupBy):
             result.index = np.arange(len(result))
 
         return result._convert(datetime=True)
-
-    def _aggregate_multiple_funcs(self, arg):
-        from pandas.tools.merge import concat
-
-        if self.axis != 0:
-            raise NotImplementedError("axis other than 0 is not supported")
-
-        obj = self._obj_with_exclusions
-
-        results = []
-        keys = []
-        for col in obj:
-            try:
-                colg = SeriesGroupBy(obj[col], selection=col,
-                                     grouper=self.grouper)
-                results.append(colg.aggregate(arg))
-                keys.append(col)
-            except (TypeError, DataError):
-                pass
-            except SpecificationError:
-                raise
-        result = concat(results, keys=keys, axis=1)
-
-        return result
 
     def _aggregate_generic(self, func, *args, **kwargs):
         if self.grouper.nkeys != 1:
@@ -3318,7 +3183,7 @@ class NDFrameGroupBy(GroupBy):
         """
 
         # optimized transforms
-        func = _intercept_cython(func) or func
+        func = self._is_cython_func(func) or func
         if isinstance(func, compat.string_types):
             if func in _cython_transforms:
                 # cythonized transform
@@ -3463,35 +3328,34 @@ class DataFrameGroupBy(NDFrameGroupBy):
 
     _block_agg_axis = 1
 
-    def __getitem__(self, key):
-        if self._selection is not None:
-            raise Exception('Column(s) %s already selected' % self._selection)
+    def _gotitem(self, key, ndim, subset=None):
+        """
+        sub-classes to define
+        return a sliced object
 
-        if isinstance(key, (list, tuple, Series, Index, np.ndarray)):
-            if len(self.obj.columns.intersection(key)) != len(key):
-                bad_keys = list(set(key).difference(self.obj.columns))
-                raise KeyError("Columns not found: %s"
-                               % str(bad_keys)[1:-1])
-            return DataFrameGroupBy(self.obj, self.grouper, selection=key,
+        Parameters
+        ----------
+        key : string / list of selections
+        ndim : 1,2
+            requested ndim of result
+        subset : object, default None
+            subset to act on
+        """
+
+        if ndim == 2:
+            if subset is None:
+                subset = self.obj
+            return DataFrameGroupBy(subset, self.grouper, selection=key,
                                     grouper=self.grouper,
                                     exclusions=self.exclusions,
                                     as_index=self.as_index)
+        elif ndim == 1:
+            if subset is None:
+                subset = self.obj[key]
+            return SeriesGroupBy(subset, selection=key,
+                                 grouper=self.grouper)
 
-        elif not self.as_index:
-            if key not in self.obj.columns:
-                raise KeyError("Column not found: %s" % key)
-            return DataFrameGroupBy(self.obj, self.grouper, selection=key,
-                                    grouper=self.grouper,
-                                    exclusions=self.exclusions,
-                                    as_index=self.as_index)
-
-        else:
-            if key not in self.obj:
-                raise KeyError("Column not found: %s" % key)
-            # kind of a kludge
-            return SeriesGroupBy(self.obj[key], selection=key,
-                                 grouper=self.grouper,
-                                 exclusions=self.exclusions)
+        raise AssertionError("invalid ndim for _gotitem")
 
     def _wrap_generic_output(self, result, obj):
         result_index = self.grouper.levels[0]
@@ -4160,38 +4024,6 @@ def _reorder_by_uniques(uniques, labels):
     uniques = com.take_nd(uniques, sorter, allow_fill=False)
 
     return uniques, labels
-
-
-_func_table = {
-    builtins.sum: np.sum,
-    builtins.max: np.max,
-    builtins.min: np.min
-}
-
-
-_cython_table = {
-    builtins.sum: 'sum',
-    builtins.max: 'max',
-    builtins.min: 'min',
-    np.sum: 'sum',
-    np.mean: 'mean',
-    np.prod: 'prod',
-    np.std: 'std',
-    np.var: 'var',
-    np.median: 'median',
-    np.max: 'max',
-    np.min: 'min',
-    np.cumprod: 'cumprod',
-    np.cumsum: 'cumsum'
-}
-
-
-def _intercept_function(func):
-    return _func_table.get(func, func)
-
-
-def _intercept_cython(func):
-    return _cython_table.get(func)
 
 
 def _groupby_indices(values):
