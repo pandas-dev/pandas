@@ -1232,19 +1232,22 @@ class NDFrame(PandasObject):
                 self.is_copy = None
 
     def _convert_views_to_copies(self):
-        # Don't set on views. 
+           
+        # Don't set on views.         
         if self._is_view and not self._is_column_view:
             self._data = self._data.copy()
-
+    
         # Before setting values, make sure children converted to copies. 
         for child in self._children:
-
-            # Make sure children of children converted. 
-            child()._convert_views_to_copies()
             
-            if child()._is_view and not self._is_column_view:
-                child()._data = child()._data.copy()
+            if child() is not None:
                 
+                # Make sure children of children converted. 
+                child()._convert_views_to_copies()
+                
+                if child()._is_view and not self._is_column_view:
+                    child()._data = child()._data.copy()
+                    
         self._children=[]
 
     def __delitem__(self, key):
