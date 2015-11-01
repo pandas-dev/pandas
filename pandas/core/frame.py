@@ -1926,7 +1926,9 @@ class DataFrame(NDFrame):
         is_mi_columns = isinstance(self.columns, MultiIndex)
         try:
             if key in self.columns and not is_mi_columns:
-                return self._getitem_column(key)
+                result = self._getitem_column(key)
+                result._is_column_view = True
+                return result
         except:
             pass
 
@@ -2276,7 +2278,6 @@ class DataFrame(NDFrame):
             self._set_item(key, value)
 
     def _setitem_slice(self, key, value):
-        self._check_setitem_copy()
         self.ix._setitem_with_indexer(key, value)
 
     def _setitem_array(self, key, value):
@@ -2287,7 +2288,6 @@ class DataFrame(NDFrame):
                                  (len(key), len(self.index)))
             key = check_bool_indexer(self.index, key)
             indexer = key.nonzero()[0]
-            self._check_setitem_copy()
             self.ix._setitem_with_indexer(indexer, value)
         else:
             if isinstance(value, DataFrame):
@@ -2297,7 +2297,6 @@ class DataFrame(NDFrame):
                     self[k1] = value[k2]
             else:
                 indexer = self.ix._convert_to_indexer(key, axis=1)
-                self._check_setitem_copy()
                 self.ix._setitem_with_indexer((slice(None), indexer), value)
 
     def _setitem_frame(self, key, value):
@@ -2307,7 +2306,6 @@ class DataFrame(NDFrame):
             raise TypeError('Must pass DataFrame with boolean values only')
 
         self._check_inplace_setting(value)
-        self._check_setitem_copy()
         self.where(-key, value, inplace=True)
 
     def _ensure_valid_index(self, value):
@@ -2343,11 +2341,6 @@ class DataFrame(NDFrame):
         value = self._sanitize_column(key, value)
         NDFrame._set_item(self, key, value)
 
-        # check if we are modifying a copy
-        # try to set first as we want an invalid
-        # value exeption to occur first
-        if len(self):
-            self._check_setitem_copy()
 
     def insert(self, loc, column, value, allow_duplicates=False):
         """

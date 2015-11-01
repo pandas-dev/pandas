@@ -57,6 +57,7 @@ class _NDFrameIndexer(object):
         raise NotImplementedError('ix is not iterable')
 
     def __getitem__(self, key):
+
         if type(key) is tuple:
             try:
                 values = self.obj.get_value(*key)
@@ -111,6 +112,9 @@ class _NDFrameIndexer(object):
             raise IndexingError(key)
 
     def __setitem__(self, key, value):
+        # Make sure changes don't propagate to children
+        self.obj._convert_views_to_copies()
+
         indexer = self._get_setitem_indexer(key)
         self._setitem_with_indexer(indexer, value)
 
@@ -198,6 +202,7 @@ class _NDFrameIndexer(object):
 
     def _setitem_with_indexer(self, indexer, value):
         self._has_valid_setitem_indexer(indexer)
+
 
         # also has the side effect of consolidating in-place
         from pandas import Panel, DataFrame, Series
@@ -511,8 +516,6 @@ class _NDFrameIndexer(object):
             if isinstance(value, ABCPanel):
                 value = self._align_panel(indexer, value)
 
-            # check for chained assignment
-            self.obj._check_is_chained_assignment_possible()
 
             # actually do the set
             self.obj._consolidate_inplace()
