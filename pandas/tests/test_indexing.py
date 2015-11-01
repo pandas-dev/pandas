@@ -3516,44 +3516,163 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         # Regression from GH4825
         ser = Series([0.1, 0.2], index=[1, 2])
 
-        # ToDo: check_index_type can be True after GH 11497
-
         # loc
         expected = Series([np.nan, 0.2, np.nan], index=[3, 2, 3])
         result = ser.loc[[3, 2, 3]]
-        assert_series_equal(result, expected, check_index_type=False)
+        assert_series_equal(result, expected, check_index_type=True)
+
+        expected = Series([np.nan, 0.2, np.nan, np.nan], index=[3, 2, 3, 'x'])
+        result = ser.loc[[3, 2, 3, 'x']]
+        assert_series_equal(result, expected, check_index_type=True)
+
+        expected = Series([0.2, 0.2, 0.1], index=[2, 2, 1])
+        result = ser.loc[[2, 2, 1]]
+        assert_series_equal(result, expected, check_index_type=True)
+
+        expected = Series([0.2, 0.2, np.nan, 0.1], index=[2, 2, 'x', 1])
+        result = ser.loc[[2, 2, 'x', 1]]
+        assert_series_equal(result, expected, check_index_type=True)
 
         # raises as nothing in in the index
         self.assertRaises(KeyError, lambda : ser.loc[[3, 3, 3]])
 
         expected = Series([0.2, 0.2, np.nan], index=[2, 2, 3])
         result = ser.loc[[2, 2, 3]]
-        assert_series_equal(result, expected, check_index_type=False)
+        assert_series_equal(result, expected, check_index_type=True)
 
         expected = Series([0.3, np.nan, np.nan], index=[3, 4, 4])
         result = Series([0.1, 0.2, 0.3], index=[1, 2, 3]).loc[[3, 4, 4]]
-        assert_series_equal(result, expected, check_index_type=False)
+        assert_series_equal(result, expected, check_index_type=True)
 
         expected = Series([np.nan, 0.3, 0.3], index=[5, 3, 3])
         result = Series([0.1, 0.2, 0.3, 0.4], index=[1, 2, 3, 4]).loc[[5, 3, 3]]
-        assert_series_equal(result, expected, check_index_type=False)
+        assert_series_equal(result, expected, check_index_type=True)
 
         expected = Series([np.nan, 0.4, 0.4], index=[5, 4, 4])
         result = Series([0.1, 0.2, 0.3, 0.4], index=[1, 2, 3, 4]).loc[[5, 4, 4]]
-        assert_series_equal(result, expected, check_index_type=False)
+        assert_series_equal(result, expected, check_index_type=True)
 
         expected = Series([0.4, np.nan, np.nan], index=[7, 2, 2])
         result = Series([0.1, 0.2, 0.3, 0.4], index=[4, 5, 6, 7]).loc[[7, 2, 2]]
-        assert_series_equal(result, expected, check_index_type=False)
+        assert_series_equal(result, expected, check_index_type=True)
 
         expected = Series([0.4, np.nan, np.nan], index=[4, 5, 5])
         result = Series([0.1, 0.2, 0.3, 0.4], index=[1, 2, 3, 4]).loc[[4, 5, 5]]
-        assert_series_equal(result, expected, check_index_type=False)
+        assert_series_equal(result, expected, check_index_type=True)
 
         # iloc
         expected = Series([0.2, 0.2, 0.1, 0.1], index=[2, 2, 1, 1])
         result = ser.iloc[[1, 1, 0, 0]]
-        assert_series_equal(result, expected, check_index_type=False)
+        assert_series_equal(result, expected, check_index_type=True)
+
+    def test_series_partial_set_with_name(self):
+        # GH 11497
+
+        idx = Index([1, 2], dtype='int64', name='idx')
+        ser = Series([0.1, 0.2], index=idx, name='s')
+
+        # loc
+        exp_idx = Index([3, 2, 3], dtype='int64', name='idx')
+        expected = Series([np.nan, 0.2, np.nan], index=exp_idx, name='s')
+        result = ser.loc[[3, 2, 3]]
+        assert_series_equal(result, expected, check_index_type=True)
+
+        exp_idx = Index([3, 2, 3, 'x'], dtype='object', name='idx')
+        expected = Series([np.nan, 0.2, np.nan, np.nan], index=exp_idx, name='s')
+        result = ser.loc[[3, 2, 3, 'x']]
+        assert_series_equal(result, expected, check_index_type=True)
+
+        exp_idx = Index([2, 2, 1], dtype='int64', name='idx')
+        expected = Series([0.2, 0.2, 0.1], index=exp_idx, name='s')
+        result = ser.loc[[2, 2, 1]]
+        assert_series_equal(result, expected, check_index_type=True)
+
+        exp_idx = Index([2, 2, 'x', 1], dtype='object', name='idx')
+        expected = Series([0.2, 0.2, np.nan, 0.1], index=exp_idx, name='s')
+        result = ser.loc[[2, 2, 'x', 1]]
+        assert_series_equal(result, expected, check_index_type=True)
+
+        # raises as nothing in in the index
+        self.assertRaises(KeyError, lambda : ser.loc[[3, 3, 3]])
+
+        exp_idx = Index([2, 2, 3], dtype='int64', name='idx')
+        expected = Series([0.2, 0.2, np.nan], index=exp_idx, name='s')
+        result = ser.loc[[2, 2, 3]]
+        assert_series_equal(result, expected, check_index_type=True)
+
+        exp_idx = Index([3, 4, 4], dtype='int64', name='idx')
+        expected = Series([0.3, np.nan, np.nan], index=exp_idx, name='s')
+        idx = Index([1, 2, 3], dtype='int64', name='idx')
+        result = Series([0.1, 0.2, 0.3], index=idx, name='s').loc[[3, 4, 4]]
+        assert_series_equal(result, expected, check_index_type=True)
+
+        exp_idx = Index([5, 3, 3], dtype='int64', name='idx')
+        expected = Series([np.nan, 0.3, 0.3], index=exp_idx, name='s')
+        idx = Index([1, 2, 3, 4], dtype='int64', name='idx')
+        result = Series([0.1, 0.2, 0.3, 0.4], index=idx, name='s').loc[[5, 3, 3]]
+        assert_series_equal(result, expected, check_index_type=True)
+
+        exp_idx = Index([5, 4, 4], dtype='int64', name='idx')
+        expected = Series([np.nan, 0.4, 0.4], index=exp_idx, name='s')
+        idx = Index([1, 2, 3, 4], dtype='int64', name='idx')
+        result = Series([0.1, 0.2, 0.3, 0.4], index=idx, name='s').loc[[5, 4, 4]]
+        assert_series_equal(result, expected, check_index_type=True)
+
+        exp_idx = Index([7, 2, 2], dtype='int64', name='idx')
+        expected = Series([0.4, np.nan, np.nan], index=exp_idx, name='s')
+        idx = Index([4, 5, 6, 7], dtype='int64', name='idx')
+        result = Series([0.1, 0.2, 0.3, 0.4], index=idx, name='s').loc[[7, 2, 2]]
+        assert_series_equal(result, expected, check_index_type=True)
+
+        exp_idx = Index([4, 5, 5], dtype='int64', name='idx')
+        expected = Series([0.4, np.nan, np.nan], index=exp_idx, name='s')
+        idx = Index([1, 2, 3, 4], dtype='int64', name='idx')
+        result = Series([0.1, 0.2, 0.3, 0.4], index=idx, name='s').loc[[4, 5, 5]]
+        assert_series_equal(result, expected, check_index_type=True)
+
+        # iloc
+        exp_idx = Index([2, 2, 1, 1], dtype='int64', name='idx')
+        expected = Series([0.2, 0.2, 0.1, 0.1], index=exp_idx, name='s')
+        result = ser.iloc[[1,1,0,0]]
+        assert_series_equal(result, expected, check_index_type=True)
+
+    def test_series_partial_set_datetime(self):
+        # GH 11497
+
+        idx = date_range('2011-01-01', '2011-01-02', freq='D', name='idx')
+        ser = Series([0.1, 0.2], index=idx, name='s')
+
+        result = ser.loc[[Timestamp('2011-01-01'), Timestamp('2011-01-02')]]
+        exp = Series([0.1, 0.2], index=idx, name='s')
+        assert_series_equal(result, exp, check_index_type=True)
+
+        keys = [Timestamp('2011-01-02'), Timestamp('2011-01-02'), Timestamp('2011-01-01')]
+        exp = Series([0.2, 0.2, 0.1], index=pd.DatetimeIndex(keys, name='idx'), name='s')
+        assert_series_equal(ser.loc[keys], exp, check_index_type=True)
+
+        keys = [Timestamp('2011-01-03'), Timestamp('2011-01-02'), Timestamp('2011-01-03')]
+        exp = Series([np.nan, 0.2, np.nan], index=pd.DatetimeIndex(keys, name='idx'), name='s')
+        assert_series_equal(ser.loc[keys], exp, check_index_type=True)
+
+    def test_series_partial_set_period(self):
+        # GH 11497
+
+        idx = pd.period_range('2011-01-01', '2011-01-02', freq='D', name='idx')
+        ser = Series([0.1, 0.2], index=idx, name='s')
+
+        result = ser.loc[[pd.Period('2011-01-01', freq='D'), pd.Period('2011-01-02', freq='D')]]
+        exp = Series([0.1, 0.2], index=idx, name='s')
+        assert_series_equal(result, exp, check_index_type=True)
+
+        keys = [pd.Period('2011-01-02', freq='D'), pd.Period('2011-01-02', freq='D'),
+                pd.Period('2011-01-01', freq='D')]
+        exp = Series([0.2, 0.2, 0.1], index=pd.PeriodIndex(keys, name='idx'), name='s')
+        assert_series_equal(ser.loc[keys], exp, check_index_type=True)
+
+        keys = [pd.Period('2011-01-03', freq='D'), pd.Period('2011-01-02', freq='D'),
+                pd.Period('2011-01-03', freq='D')]
+        exp = Series([np.nan, 0.2, np.nan], index=pd.PeriodIndex(keys, name='idx'), name='s')
+        assert_series_equal(ser.loc[keys], exp, check_index_type=True)
 
     def test_partial_set_invalid(self):
 

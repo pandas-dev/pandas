@@ -197,7 +197,7 @@ class DatetimeIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
                          'is_quarter_start','is_quarter_end','is_year_start','is_year_end',
                          'tz','freq']
     _is_numeric_dtype = False
-
+    _infer_as_myclass = True
 
     @deprecate_kwarg(old_arg_name='infer_dst', new_arg_name='ambiguous',
                      mapping={True: 'infer', False: 'raise'})
@@ -778,7 +778,7 @@ class DatetimeIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
         elif dtype == _NS_DTYPE and self.tz is not None:
             return self.tz_convert('UTC').tz_localize(None)
         elif dtype == str:
-            return self._shallow_copy(values=self.format(), infer=True)
+            return Index(self.format(), name=self.name, dtype=object)
         else:  # pragma: no cover
             raise ValueError('Cannot cast DatetimeIndex to dtype %s' % dtype)
 
