@@ -718,7 +718,11 @@ def assert_attr_equal(attr, left, right, obj='Attributes'):
         # np.nan
         return True
 
-    result = left_attr == right_attr
+    try:
+        result = left_attr == right_attr
+    except TypeError:
+        # datetimetz on rhs may raise TypeError
+        result = False
     if not isinstance(result, bool):
         result = result.all()
 
