@@ -124,6 +124,9 @@ When ignore_na is True (reproducing pre-0.15.0 behavior), weights are based on
 relative positions. For example, the weights of x and y used in calculating
 the final weighted average of [x, None, y] are 1-alpha and 1 (if adjust is
 True), and 1-alpha and alpha (if adjust is False).
+
+More details can be found at
+http://pandas.pydata.org/pandas-docs/stable/computation.html#exponentially-weighted-moment-functions
 """
 
 _expanding_kw = """min_periods : int, default None
