@@ -179,8 +179,13 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
                 elif inferred != 'string':
                     if (inferred.startswith('datetime') or
                         tslib.is_timestamp_array(subarr)):
-                        from pandas.tseries.index import DatetimeIndex
-                        return DatetimeIndex(subarr, copy=copy, name=name, **kwargs)
+
+                        if (lib.is_datetime_with_singletz_array(subarr) or
+                            'tz' in kwargs):
+                            # only when subarr has the same tz
+                            from pandas.tseries.index import DatetimeIndex
+                            return DatetimeIndex(subarr, copy=copy, name=name, **kwargs)
+
                     elif (inferred.startswith('timedelta') or
                           lib.is_timedelta_array(subarr)):
                         from pandas.tseries.tdi import TimedeltaIndex
