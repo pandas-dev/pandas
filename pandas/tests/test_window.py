@@ -9,12 +9,14 @@ from numpy.testing.decorators import slow
 import numpy as np
 from distutils.version import LooseVersion
 
+import pandas as pd
 from pandas import Series, DataFrame, Panel, bdate_range, isnull, notnull, concat
 from pandas.util.testing import (
     assert_almost_equal, assert_series_equal, assert_frame_equal, assert_panel_equal, assert_index_equal
 )
 import pandas.core.datetools as datetools
 import pandas.stats.moments as mom
+import pandas.core.window as rwindow
 import pandas.util.testing as tm
 from pandas.compat import range, zip, PY3, StringIO
 
@@ -33,11 +35,86 @@ class Base(tm.TestCase):
 
         self.arr = arr
         self.rng = bdate_range(datetime(2009, 1, 1), periods=N)
-
         self.series = Series(arr.copy(), index=self.rng)
-
         self.frame = DataFrame(randn(N, K), index=self.rng,
                                columns=np.arange(K))
+
+class TestApi(Base):
+
+    def setUp(self):
+        self._create_data()
+
+    def test_getitem(self):
+
+        r = self.frame.rolling(window=5)
+        tm.assert_index_equal(r._selected_obj.columns,self.frame.columns)
+
+        r = self.frame.rolling(window=5)[1]
+        self.assertEqual(r._selected_obj.name,self.frame.columns[1])
+
+        r = self.frame.rolling(window=5)[1,3]
+        tm.assert_index_equal(r._selected_obj.columns,self.frame.columns[[1,3]])
+
+    def test_select_bad_cols(self):
+        df = DataFrame([[1, 2]], columns=['A', 'B'])
+        g = df.rolling(window=5)
+        self.assertRaises(KeyError, g.__getitem__, ['C'])  # g[['C']]
+
+        self.assertRaises(KeyError, g.__getitem__, ['A', 'C'])  # g[['A', 'C']]
+        with tm.assertRaisesRegexp(KeyError, '^[^A]+$'):
+            # A should not be referenced as a bad column...
+            # will have to rethink regex if you change message!
+            g[['A', 'C']]
+
+    def test_attribute_access(self):
+
+        df = DataFrame([[1, 2]], columns=['A', 'B'])
+        r = df.rolling(window=5)
+        tm.assert_series_equal(r.A.sum(),r['A'].sum())
+        self.assertRaises(AttributeError, lambda : r.F)
+
+    def tests_skip_nuiscance(self):
+
+        df = DataFrame({'A' : range(5), 'B' : range(5,10), 'C' : 'foo'})
+
+        r = df.rolling(window=3)
+        result = r[['A','B']].sum()
+        expected = DataFrame({'A' : [np.nan,np.nan,3,6,9],
+                              'B' : [np.nan,np.nan,18,21,24]},
+                             columns=list('AB'))
+        assert_frame_equal(result, expected)
+
+        expected = pd.concat([r[['A','B']].sum(),df[['C']]],axis=1)
+        result = r.sum()
+        assert_frame_equal(result, expected)
+
+    def test_timedeltas(self):
+
+        df = DataFrame({'A' : range(5), 'B' : pd.timedelta_range('1 day',periods=5)})
+        r = df.rolling(window=3)
+        result = r.sum()
+        expected = DataFrame({'A' : [np.nan,np.nan,3,6,9],
+                              'B' : pd.to_timedelta([pd.NaT,pd.NaT,'6 days','9 days','12 days'])},
+                             columns=list('AB'))
+        assert_frame_equal(result, expected)
+
+    def test_agg(self):
+        df = DataFrame({'A' : range(5),
+                        'B' : range(0,10,2)})
+
+        r = df.rolling(window=3)
+
+        import pdb; pdb.set_trace()
+        agged = r.aggregate([np.mean, np.std])
+        agged = r.aggregate({'A': np.mean,
+                             'B': np.std})
+        agged = r.aggregate({'A': ['mean','sum']})
+        agged = r['A'].aggregate(['mean','sum'])
+        agged = r.aggregate({'A': { 'mean' : 'mean', 'sum' : 'sum' } })
+        agged = r.aggregate({'A': { 'mean' : 'mean', 'sum' : 'sum' },
+                             'B': { 'mean2' : 'mean', 'sum2' : 'sum' }})
+        agged = r.aggregate({'r1': { 'A' : ['mean','sum'] },
+                             'r2' : { 'B' : ['mean','sum'] }})
 
 class TestMoments(Base):
 
@@ -57,17 +134,18 @@ class TestMoments(Base):
         self.assertRaises(ValueError, mom.rolling_mean,DataFrame(np.ones((10,10))),3,center=True ,axis=2)
 
     def test_rolling_sum(self):
-        self._check_moment_func(mom.rolling_sum, np.sum)
+        self._check_moment_func(mom.rolling_sum, np.sum, name='sum')
 
     def test_rolling_count(self):
         counter = lambda x: np.isfinite(x).astype(float).sum()
         self._check_moment_func(mom.rolling_count, counter,
+                                name='count',
                                 has_min_periods=False,
                                 preserve_nan=False,
                                 fill_value=0)
 
     def test_rolling_mean(self):
-        self._check_moment_func(mom.rolling_mean, np.mean)
+        self._check_moment_func(mom.rolling_mean, np.mean, name='mean')
 
     def test_cmov_mean(self):
         # GH 8238
@@ -99,6 +177,9 @@ class TestMoments(Base):
 
         xp = Series(rs)
         rs = mom.rolling_window(Series(vals), 5, 'boxcar', center=True)
+        assert_series_equal(xp, rs)
+
+        rs = Series(vals).rolling(5, win_type='boxcar', center=True).mean()
         assert_series_equal(xp, rs)
 
     def test_cmov_window_corner(self):
@@ -152,6 +233,27 @@ class TestMoments(Base):
         rs = mom.rolling_window(DataFrame(vals), 5, 'boxcar', center=True)
         assert_frame_equal(DataFrame(xp), rs)
 
+        rs = DataFrame(vals).rolling(5, win_type='boxcar', center=True).mean()
+        assert_frame_equal(DataFrame(xp), rs)
+
+        # invalid method
+        self.assertRaises(AttributeError, lambda : DataFrame(vals).rolling(5, win_type='boxcar', center=True).std())
+
+        # sum
+        xp = np.array([[ np.nan,  np.nan],
+                       [ np.nan,  np.nan],
+                       [  46.26,  46.96],
+                       [  43.22,  49.53],
+                       [  44.35,  51.04],
+                       [  34.05,  42.94],
+                       [  38.96,  43.22],
+                       [  45.25,  39.12],
+                       [ np.nan,  np.nan],
+                       [ np.nan,  np.nan]])
+
+        rs = DataFrame(vals).rolling(5, win_type='boxcar', center=True).sum()
+        assert_frame_equal(DataFrame(xp), rs)
+
     def test_cmov_window_na_min_periods(self):
         tm._skip_if_no_scipy()
 
@@ -162,7 +264,9 @@ class TestMoments(Base):
 
         xp = mom.rolling_mean(vals, 5, min_periods=4, center=True)
         rs = mom.rolling_window(vals, 5, 'boxcar', min_periods=4, center=True)
+        assert_series_equal(xp, rs)
 
+        rs = vals.rolling(5, win_type='boxcar', min_periods=4, center=True).mean()
         assert_series_equal(xp, rs)
 
     def test_cmov_window_regular(self):
@@ -197,6 +301,9 @@ class TestMoments(Base):
             rs = mom.rolling_window(Series(vals), 5, wt, center=True)
             assert_series_equal(xp, rs)
 
+            rs = Series(vals).rolling(5, win_type=wt, center=True).mean()
+            assert_series_equal(xp, rs)
+
     def test_cmov_window_regular_linear_range(self):
         # GH 8238
         tm._skip_if_no_scipy()
@@ -212,6 +319,9 @@ class TestMoments(Base):
 
         for wt in win_types:
             rs = mom.rolling_window(Series(vals), 5, wt, center=True)
+            assert_series_equal(xp, rs)
+
+            rs = Series(vals).rolling(5, win_type=wt, center=True).mean()
             assert_series_equal(xp, rs)
 
     def test_cmov_window_regular_missing_data(self):
@@ -248,6 +358,9 @@ class TestMoments(Base):
             rs = mom.rolling_window(Series(vals), 5, wt, min_periods=3)
             assert_series_equal(xp, rs)
 
+            rs = Series(vals).rolling(5, win_type=wt, min_periods=3).mean()
+            assert_series_equal(xp, rs)
+
     def test_cmov_window_special(self):
         # GH 8238
         tm._skip_if_no_scipy()
@@ -278,6 +391,9 @@ class TestMoments(Base):
                                     **k)
             assert_series_equal(xp, rs)
 
+            rs = Series(vals).rolling(5, win_type=wt, center=True).mean(**k)
+            assert_series_equal(xp, rs)
+
     def test_cmov_window_special_linear_range(self):
         # GH 8238
         tm._skip_if_no_scipy()
@@ -297,11 +413,14 @@ class TestMoments(Base):
                                     **k)
             assert_series_equal(xp, rs)
 
+            rs = Series(vals).rolling(5, win_type=wt, center=True).mean(**k)
+            assert_series_equal(xp, rs)
+
     def test_rolling_median(self):
-        self._check_moment_func(mom.rolling_median, np.median)
+        self._check_moment_func(mom.rolling_median, np.median, name='median')
 
     def test_rolling_min(self):
-        self._check_moment_func(mom.rolling_min, np.min)
+        self._check_moment_func(mom.rolling_min, np.min, name='min')
 
         a = np.array([1, 2, 3, 4, 5])
         b = mom.rolling_min(a, window=100, min_periods=1)
@@ -311,7 +430,7 @@ class TestMoments(Base):
                           2, 3]), window=3, min_periods=5)
 
     def test_rolling_max(self):
-        self._check_moment_func(mom.rolling_max, np.max)
+        self._check_moment_func(mom.rolling_max, np.max, name='max')
 
         a = np.array([1, 2, 3, 4, 5])
         b = mom.rolling_max(a, window=100, min_periods=1)
@@ -330,8 +449,8 @@ class TestMoments(Base):
             return values[int(idx)]
 
         for q in qs:
-            def f(x, window, min_periods=None, freq=None, center=False):
-                return mom.rolling_quantile(x, window, q,
+            def f(x, window, quantile, min_periods=None, freq=None, center=False):
+                return mom.rolling_quantile(x, window, quantile,
                                             min_periods=min_periods,
                                             freq=freq,
                                             center=center)
@@ -339,7 +458,7 @@ class TestMoments(Base):
             def alt(x):
                 return scoreatpercentile(x, q)
 
-            self._check_moment_func(f, alt)
+            self._check_moment_func(f, alt, name='quantile', quantile=q)
 
     def test_rolling_apply(self):
         # suppress warnings about empty slices, as we are deliberately testing with a 0-length Series
@@ -349,18 +468,22 @@ class TestMoments(Base):
             ser = Series([])
             assert_series_equal(ser, mom.rolling_apply(ser, 10, lambda x: x.mean()))
 
-            def roll_mean(x, window, min_periods=None, freq=None, center=False):
+            f = lambda x: x[np.isfinite(x)].mean()
+            def roll_mean(x, window, min_periods=None, freq=None, center=False, **kwargs):
                 return mom.rolling_apply(x, window,
-                                         lambda x: x[np.isfinite(x)].mean(),
+                                         func=f,
                                          min_periods=min_periods,
                                          freq=freq,
                                          center=center)
-            self._check_moment_func(roll_mean, np.mean)
+            self._check_moment_func(roll_mean, np.mean, name='apply', func=f)
 
         # GH 8080
         s = Series([None, None, None])
         result = mom.rolling_apply(s, 2, lambda x: len(x), min_periods=0)
         expected = Series([1., 2., 2.])
+        assert_series_equal(result, expected)
+
+        result = s.rolling(2, min_periods=0).apply(len)
         assert_series_equal(result, expected)
 
     def test_rolling_apply_out_of_bounds(self):
@@ -376,9 +499,12 @@ class TestMoments(Base):
 
     def test_rolling_std(self):
         self._check_moment_func(mom.rolling_std,
-                                lambda x: np.std(x, ddof=1))
-        self._check_moment_func(functools.partial(mom.rolling_std, ddof=0),
-                                lambda x: np.std(x, ddof=0))
+                                lambda x: np.std(x, ddof=1),
+                                name='std')
+        self._check_moment_func(mom.rolling_std,
+                                lambda x: np.std(x, ddof=0),
+                                name='std',
+                                ddof=0)
 
     def test_rolling_std_1obs(self):
         result = mom.rolling_std(np.array([1., 2., 3., 4., 5.]),
@@ -414,9 +540,12 @@ class TestMoments(Base):
     def test_rolling_var(self):
         self._check_moment_func(mom.rolling_var,
                                 lambda x: np.var(x, ddof=1),
-                                test_stable=True)
-        self._check_moment_func(functools.partial(mom.rolling_var, ddof=0),
-                                lambda x: np.var(x, ddof=0))
+                                test_stable=True,
+                                name='var')
+        self._check_moment_func(mom.rolling_var,
+                                lambda x: np.var(x, ddof=0),
+                                name='var',
+                                ddof=0)
 
     def test_rolling_skew(self):
         try:
@@ -424,7 +553,8 @@ class TestMoments(Base):
         except ImportError:
             raise nose.SkipTest('no scipy')
         self._check_moment_func(mom.rolling_skew,
-                                lambda x: skew(x, bias=False))
+                                lambda x: skew(x, bias=False),
+                                name='skew')
 
     def test_rolling_kurt(self):
         try:
@@ -432,7 +562,8 @@ class TestMoments(Base):
         except ImportError:
             raise nose.SkipTest('no scipy')
         self._check_moment_func(mom.rolling_kurt,
-                                lambda x: kurtosis(x, bias=False))
+                                lambda x: kurtosis(x, bias=False),
+                                name='kurt')
 
     def test_fperr_robustness(self):
         # TODO: remove this once python 2.5 out of picture
@@ -463,36 +594,55 @@ class TestMoments(Base):
         result = mom.rolling_mean(-arr, 1)
         self.assertTrue(result[-1] <= 0)
 
-    def _check_moment_func(self, func, static_comp, window=50,
+    def _check_moment_func(self, f, static_comp,
+                           name=None,
+                           window=50,
                            has_min_periods=True,
                            has_center=True,
                            has_time_rule=True,
                            preserve_nan=True,
                            fill_value=None,
-                           test_stable=False):
+                           test_stable=False,
+                           **kwargs):
 
-        self._check_ndarray(func, static_comp, window=window,
+        self._check_ndarray(f, static_comp, window=window,
                             has_min_periods=has_min_periods,
                             preserve_nan=preserve_nan,
                             has_center=has_center,
                             fill_value=fill_value,
-                            test_stable=test_stable)
+                            test_stable=test_stable,
+                            **kwargs)
 
-        self._check_structures(func, static_comp,
+        self._check_structures(f, static_comp,
                                has_min_periods=has_min_periods,
                                has_time_rule=has_time_rule,
                                fill_value=fill_value,
-                               has_center=has_center)
+                               has_center=has_center,
+                               **kwargs)
 
-    def _check_ndarray(self, func, static_comp, window=50,
+        # new API
+        if name is not None:
+            self._check_structures(f, static_comp,
+                                   name=name,
+                                   has_min_periods=has_min_periods,
+                                   has_time_rule=has_time_rule,
+                                   fill_value=fill_value,
+                                   has_center=has_center,
+                                   **kwargs)
+
+    def _check_ndarray(self, f, static_comp, window=50,
                        has_min_periods=True,
                        preserve_nan=True,
                        has_center=True,
                        fill_value=None,
                        test_stable=False,
-                       test_window=True):
+                       test_window=True,
+                       **kwargs):
 
-        result = func(self.arr, window)
+        def get_result(arr, window, min_periods=None, center=False):
+            return f(arr, window, min_periods=min_periods, center=center, **kwargs)
+
+        result = get_result(self.arr, window)
         assert_almost_equal(result[-1],
                             static_comp(self.arr[-50:]))
 
@@ -505,11 +655,11 @@ class TestMoments(Base):
         arr[-10:] = np.NaN
 
         if has_min_periods:
-            result = func(arr, 50, min_periods=30)
+            result = get_result(arr, 50, min_periods=30)
             assert_almost_equal(result[-1], static_comp(arr[10:-10]))
 
             # min_periods is working correctly
-            result = func(arr, 20, min_periods=15)
+            result = get_result(arr, 20, min_periods=15)
             self.assertTrue(np.isnan(result[23]))
             self.assertFalse(np.isnan(result[24]))
 
@@ -517,31 +667,31 @@ class TestMoments(Base):
             self.assertTrue(np.isnan(result[-5]))
 
             arr2 = randn(20)
-            result = func(arr2, 10, min_periods=5)
+            result = get_result(arr2, 10, min_periods=5)
             self.assertTrue(isnull(result[3]))
             self.assertTrue(notnull(result[4]))
 
             # min_periods=0
-            result0 = func(arr, 20, min_periods=0)
-            result1 = func(arr, 20, min_periods=1)
+            result0 = get_result(arr, 20, min_periods=0)
+            result1 = get_result(arr, 20, min_periods=1)
             assert_almost_equal(result0, result1)
         else:
-            result = func(arr, 50)
+            result = get_result(arr, 50)
             assert_almost_equal(result[-1], static_comp(arr[10:-10]))
 
         # GH 7925
         if has_center:
             if has_min_periods:
-                result = func(arr, 20, min_periods=15, center=True)
-                expected = func(np.concatenate((arr, np.array([np.NaN] * 9))), 20, min_periods=15)[9:]
+                result = get_result(arr, 20, min_periods=15, center=True)
+                expected = get_result(np.concatenate((arr, np.array([np.NaN] * 9))), 20, min_periods=15)[9:]
             else:
-                result = func(arr, 20, center=True)
-                expected = func(np.concatenate((arr, np.array([np.NaN] * 9))), 20)[9:]
+                result = get_result(arr, 20, center=True)
+                expected = get_result(np.concatenate((arr, np.array([np.NaN] * 9))), 20)[9:]
 
             self.assert_numpy_array_equal(result, expected)
 
         if test_stable:
-            result = func(self.arr + 1e9, window)
+            result = get_result(self.arr + 1e9, window)
             assert_almost_equal(result[-1],
                                 static_comp(self.arr[-50:] + 1e9))
 
@@ -549,16 +699,16 @@ class TestMoments(Base):
         if test_window:
             if has_min_periods:
                 for minp in (0, len(self.arr)-1, len(self.arr)):
-                    result = func(self.arr, len(self.arr)+1, min_periods=minp)
-                    expected = func(self.arr, len(self.arr), min_periods=minp)
+                    result = get_result(self.arr, len(self.arr)+1, min_periods=minp)
+                    expected = get_result(self.arr, len(self.arr), min_periods=minp)
                     nan_mask = np.isnan(result)
                     self.assertTrue(np.array_equal(nan_mask,
                                                    np.isnan(expected)))
                     nan_mask = ~nan_mask
                     assert_almost_equal(result[nan_mask], expected[nan_mask])
             else:
-                result = func(self.arr, len(self.arr)+1)
-                expected = func(self.arr, len(self.arr))
+                result = get_result(self.arr, len(self.arr)+1)
+                expected = get_result(self.arr, len(self.arr))
                 nan_mask = np.isnan(result)
                 self.assertTrue(np.array_equal(nan_mask, np.isnan(expected)))
                 nan_mask = ~nan_mask
@@ -567,15 +717,34 @@ class TestMoments(Base):
 
 
 
-    def _check_structures(self, func, static_comp,
+    def _check_structures(self, f, static_comp,
+                          name=None,
                           has_min_periods=True, has_time_rule=True,
                           has_center=True,
-                          fill_value=None):
+                          fill_value=None,
+                          **kwargs):
 
-        series_result = func(self.series, 50)
+        def get_result(obj, window, min_periods=None, freq=None, center=False):
+
+            # check via the API calls if name is provided
+            if name is not None:
+                return getattr(obj.rolling(window=window,
+                                           min_periods=min_periods,
+                                           freq=freq,
+                                           center=center),name)(**kwargs)
+
+            # check via the moments API
+            return f(obj,
+                     window=window,
+                     min_periods=min_periods,
+                     freq=freq,
+                     center=center,
+                     **kwargs)
+
+        series_result = get_result(self.series, window=50)
+        frame_result = get_result(self.frame, window=50)
+
         tm.assertIsInstance(series_result, Series)
-
-        frame_result = func(self.frame, 50)
         self.assertEqual(type(frame_result), DataFrame)
 
         # check time_rule works
@@ -584,13 +753,11 @@ class TestMoments(Base):
             minp = 10
 
             if has_min_periods:
-                series_result = func(self.series[::2], win, min_periods=minp,
-                                     freq='B')
-                frame_result = func(self.frame[::2], win, min_periods=minp,
-                                    freq='B')
+                series_result = get_result(self.series[::2], window=win, min_periods=minp, freq='B')
+                frame_result = get_result(self.frame[::2], window=win, min_periods=minp, freq='B')
             else:
-                series_result = func(self.series[::2], win, freq='B')
-                frame_result = func(self.frame[::2], win, freq='B')
+                series_result = get_result(self.series[::2], window=win, freq='B')
+                frame_result = get_result(self.frame[::2], window=win, freq='B')
 
             last_date = series_result.index[-1]
             prev_date = last_date - 24 * datetools.bday
@@ -605,22 +772,41 @@ class TestMoments(Base):
 
         # GH 7925
         if has_center:
+
+            # shifter index
+            s = ['x%d'%x for x in range(12)]
+
             if has_min_periods:
                 minp = 10
-                series_xp = func(self.series.reindex(list(self.series.index)+['x%d'%x for x in range(12)]), 25, min_periods=minp).shift(-12).reindex(self.series.index)
-                frame_xp = func(self.frame.reindex(list(self.frame.index)+['x%d'%x for x in range(12)]), 25, min_periods=minp).shift(-12).reindex(self.frame.index)
 
-                series_rs = func(self.series, 25, min_periods=minp,
-                                 center=True)
-                frame_rs = func(self.frame, 25, min_periods=minp,
-                                center=True)
+                series_xp = get_result(self.series.reindex(list(self.series.index)+s),
+                                       window=25,
+                                       min_periods=minp).shift(-12).reindex(self.series.index)
+                frame_xp = get_result(self.frame.reindex(list(self.frame.index)+s),
+                                      window=25,
+                                      min_periods=minp).shift(-12).reindex(self.frame.index)
+
+                series_rs = get_result(self.series,
+                                       window=25,
+                                       min_periods=minp,
+                                       center=True)
+                frame_rs = get_result(self.frame,
+                                      window=25,
+                                      min_periods=minp,
+                                      center=True)
 
             else:
-                series_xp = func(self.series.reindex(list(self.series.index)+['x%d'%x for x in range(12)]), 25).shift(-12).reindex(self.series.index)
-                frame_xp = func(self.frame.reindex(list(self.frame.index)+['x%d'%x for x in range(12)]), 25).shift(-12).reindex(self.frame.index)
+                series_xp = get_result(self.series.reindex(list(self.series.index)+s),
+                                       window=25).shift(-12).reindex(self.series.index)
+                frame_xp = get_result(self.frame.reindex(list(self.frame.index)+s),
+                                      window=25).shift(-12).reindex(self.frame.index)
 
-                series_rs = func(self.series, 25, center=True)
-                frame_rs = func(self.frame, 25, center=True)
+                series_rs = get_result(self.series,
+                                       window=25,
+                                       center=True)
+                frame_rs = get_result(self.frame,
+                                      window=25,
+                                      center=True)
 
             if fill_value is not None:
                 series_xp = series_xp.fillna(fill_value)
@@ -642,7 +828,10 @@ class TestMoments(Base):
         for f in [lambda s: mom.ewma(s, com=2.0, adjust=True),
                   lambda s: mom.ewma(s, com=2.0, adjust=True, ignore_na=False),
                   lambda s: mom.ewma(s, com=2.0, adjust=True, ignore_na=True),
-                 ]:
+                  lambda s: s.ewm(com=2.0, adjust=True).mean(),
+                  lambda s: s.ewm(com=2.0, adjust=True, ignore_na=False).mean(),
+                  lambda s: s.ewm(com=2.0, adjust=True, ignore_na=True).mean(),
+                  ]:
             result = f(s)
             assert_series_equal(result, expected)
 
@@ -650,6 +839,9 @@ class TestMoments(Base):
         for f in [lambda s: mom.ewma(s, com=2.0, adjust=False),
                   lambda s: mom.ewma(s, com=2.0, adjust=False, ignore_na=False),
                   lambda s: mom.ewma(s, com=2.0, adjust=False, ignore_na=True),
+                  lambda s: s.ewm(com=2.0, adjust=False).mean(),
+                  lambda s: s.ewm(com=2.0, adjust=False, ignore_na=False).mean(),
+                  lambda s: s.ewm(com=2.0, adjust=False, ignore_na=True).mean(),
                  ]:
             result = f(s)
             assert_series_equal(result, expected)
@@ -695,16 +887,20 @@ class TestMoments(Base):
             expected = simple_wma(s, Series(w))
             result = mom.ewma(s, com=com, adjust=adjust, ignore_na=ignore_na)
             assert_series_equal(result, expected)
+            result = s.ewm(com=com, adjust=adjust, ignore_na=ignore_na).mean()
+            assert_series_equal(result, expected)
             if ignore_na is False:
                 # check that ignore_na defaults to False
                 result = mom.ewma(s, com=com, adjust=adjust)
                 assert_series_equal(result, expected)
+                result = s.ewm(com=com, adjust=adjust).mean()
+                assert_series_equal(result, expected)
 
     def test_ewmvar(self):
-        self._check_ew(mom.ewmvar)
+        self._check_ew(mom.ewmvar, name='var')
 
     def test_ewmvol(self):
-        self._check_ew(mom.ewmvol)
+        self._check_ew(mom.ewmvol, name='vol')
 
     def test_ewma_span_com_args(self):
         A = mom.ewma(self.arr, com=9.5)
@@ -727,8 +923,14 @@ class TestMoments(Base):
     def test_moment_preserve_series_name(self):
         # GH 10565
         s = Series(np.arange(100), name='foo')
+
         s2 = mom.rolling_mean(s, 30)
         s3 = mom.rolling_sum(s, 20)
+        self.assertEqual(s2.name, 'foo')
+        self.assertEqual(s3.name, 'foo')
+
+        s2 = s.rolling(30).mean()
+        s3 = s.rolling(20).sum()
         self.assertEqual(s2.name, 'foo')
         self.assertEqual(s3.name, 'foo')
 
@@ -740,11 +942,11 @@ class TestMoments(Base):
             result = f(arr, 3)
             assert_almost_equal(result, arr)
 
-    def _check_ew(self, func):
-        self._check_ew_ndarray(func)
-        self._check_ew_structures(func)
+    def _check_ew(self, func, name=None):
+        self._check_ew_ndarray(func, name=name)
+        self._check_ew_structures(func, name=name)
 
-    def _check_ew_ndarray(self, func, preserve_nan=False):
+    def _check_ew_ndarray(self, func, preserve_nan=False, name=None):
         result = func(self.arr, com=10)
         if preserve_nan:
             assert(np.isnan(result[self._nan_locs]).all())
@@ -787,11 +989,18 @@ class TestMoments(Base):
         result2 = func(np.arange(50), span=10)
         self.assertEqual(result2.dtype, np.float_)
 
-    def _check_ew_structures(self, func):
+    def _check_ew_structures(self, func, name=None):
         series_result = func(self.series, com=10)
         tm.assertIsInstance(series_result, Series)
+        if name is not None:
+            series_result = getattr(self.series.ewm(com=10),name)()
+            tm.assertIsInstance(series_result, Series)
+
         frame_result = func(self.frame, com=10)
         self.assertEqual(type(frame_result), DataFrame)
+        if name is not None:
+            frame_result = getattr(self.frame.ewm(com=10),name)()
+            self.assertEqual(type(frame_result), DataFrame)
 
 # create the data only once as we are not setting it
 def _create_consistency_data():
@@ -1204,14 +1413,20 @@ class TestMomentsConsistency(Base):
         result = mom.rolling_cov(A, B, 50, min_periods=25)
         assert_almost_equal(result[-1], np.cov(A[-50:], B[-50:])[0, 1])
 
+        result = A.rolling(window=50, min_periods=25).cov(B)
+        assert_almost_equal(result[-1], np.cov(A[-50:], B[-50:])[0, 1])
+
     def test_rolling_cov_pairwise(self):
-        self._check_pairwise_moment(mom.rolling_cov, 10, min_periods=5)
+        self._check_pairwise_moment(mom.rolling_cov, window=10, min_periods=5, name='cov')
 
     def test_rolling_corr(self):
         A = self.series
         B = A + randn(len(A))
 
         result = mom.rolling_corr(A, B, 50, min_periods=25)
+        assert_almost_equal(result[-1], np.corrcoef(A[-50:], B[-50:])[0, 1])
+
+        result = A.rolling(window=50, min_periods=25).corr(B)
         assert_almost_equal(result[-1], np.corrcoef(A[-50:], B[-50:])[0, 1])
 
         # test for correct bias correction
@@ -1223,21 +1438,32 @@ class TestMomentsConsistency(Base):
         result = mom.rolling_corr(a, b, len(a), min_periods=1)
         assert_almost_equal(result[-1], a.corr(b))
 
+        result = a.rolling(window=len(a), min_periods=1).corr(b)
+        assert_almost_equal(result[-1], a.corr(b))
+
     def test_rolling_corr_pairwise(self):
-        self._check_pairwise_moment(mom.rolling_corr, 10, min_periods=5)
+        self._check_pairwise_moment(mom.rolling_corr, window=10, min_periods=5, name='corr')
 
-    def _check_pairwise_moment(self, func, *args, **kwargs):
-        panel = func(self.frame, *args, **kwargs)
+    def _check_pairwise_moment(self, func, name=None, **kwargs):
+        def get_result(obj, obj2=None):
+            return func(obj, obj2, **kwargs)
 
+        panel = get_result(self.frame)
         actual = panel.ix[:, 1, 5]
-        expected = func(self.frame[1], self.frame[5], *args, **kwargs)
+        expected = get_result(self.frame[1], self.frame[5])
         tm.assert_series_equal(actual, expected, check_names=False)
         self.assertEqual(actual.name, 5)
+
+        if name is not None:
+            panel = getattr(self.frame.rolling(**kwargs),name)()
+            actual = panel.ix[:, 1, 5]
+            tm.assert_series_equal(actual, expected, check_names=False)
+            self.assertEqual(actual.name, 5)
 
     def test_flex_binary_moment(self):
         # GH3155
         # don't blow the stack
-        self.assertRaises(TypeError, mom._flex_binary_moment,5,6,None)
+        self.assertRaises(TypeError, rwindow._flex_binary_moment,5,6,None)
 
     def test_corr_sanity(self):
         #GH 3155
@@ -1371,6 +1597,9 @@ class TestMomentsConsistency(Base):
 
     def test_expanding_count(self):
         result = mom.expanding_count(self.series)
+        assert_almost_equal(result, mom.rolling_count(self.series,
+                                                      len(self.series)))
+        result = self.series.expanding().count()
         assert_almost_equal(result, mom.rolling_count(self.series,
                                                       len(self.series)))
 
