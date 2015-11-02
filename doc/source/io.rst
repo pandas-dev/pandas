@@ -2006,7 +2006,7 @@ file, and the ``sheetname`` indicating which sheet to parse.
 ``ExcelFile`` class
 +++++++++++++++++++
 
-To faciliate working with multiple sheets from the same file, the ``ExcelFile``
+To facilitate working with multiple sheets from the same file, the ``ExcelFile``
 class can be used to wrap the file and can be be passed into ``read_excel``
 There will be a performance benefit for reading multiple sheets as the file is
 read into memory only once.
