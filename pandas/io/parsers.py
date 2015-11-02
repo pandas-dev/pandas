@@ -34,6 +34,9 @@ class ParserWarning(Warning):
 _parser_params = """Also supports optionally iterating or breaking of the file
 into chunks.
 
+Additional help can be found in the `online docs for IO Tools
+<http://pandas.pydata.org/pandas-docs/stable/io.html>`_.
+
 Parameters
 ----------
 filepath_or_buffer : string or file handle / StringIO
@@ -133,9 +136,12 @@ decimal : str, default '.'
 nrows : int, default None
     Number of rows of file to read. Useful for reading pieces of large files
 iterator : boolean, default False
-    Return TextFileReader object
+    Return TextFileReader object for iteration or getting chunks with ``get_chunk()``.
 chunksize : int, default None
-    Return TextFileReader object for iteration
+    Return TextFileReader object for iteration. `See IO Tools docs for more
+    information
+    <http://pandas.pydata.org/pandas-docs/stable/io.html#io-chunking>`_ on
+    ``iterator`` and ``chunksize``.
 skipfooter : int, default 0
     Number of lines at bottom of file to skip (Unsupported with engine='c')
 converters : dict, default None
