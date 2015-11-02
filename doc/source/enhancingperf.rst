@@ -699,7 +699,7 @@ ol' Python.
 .. note::
 
    Using the ``'python'`` engine is generally *not* useful, except for testing
-   other evaluation engines against it. You will acheive **no** performance
+   other evaluation engines against it. You will achieve **no** performance
    benefits using :func:`~pandas.eval` with ``engine='python'`` and in fact may
    incur a performance hit.
 

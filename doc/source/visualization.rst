@@ -1264,7 +1264,7 @@ with the ``subplots`` keyword:
 
    plt.close('all')
 
-Using Layout and Targetting Multiple Axes
+Using Layout and Targeting Multiple Axes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The layout of subplots can be specified by ``layout`` keyword. It can accept

@@ -97,7 +97,7 @@ of multi-axis indexing.
   axis is of integer type. ``.ix`` is the most general and will
   support any of the inputs in ``.loc`` and ``.iloc``. ``.ix`` also supports floating point
   label schemes. ``.ix`` is exceptionally useful when dealing with mixed positional
-  and label based hierachical indexes.
+  and label based hierarchical indexes.
 
   However, when an axis is integer based, ONLY
   label based access and not positional access is supported.
@@ -1585,5 +1585,5 @@ This will **not** work at all, and so should be avoided
 .. warning::
 
    The chained assignment warnings / exceptions are aiming to inform the user of a possibly invalid
-   assignment. There may be false positives; situations where a chained assignment is inadvertantly
+   assignment. There may be false positives; situations where a chained assignment is inadvertently
    reported.

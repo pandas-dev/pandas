@@ -220,7 +220,7 @@ Frequency Conversion
 .. versionadded:: 0.13
 
 Timedelta Series, ``TimedeltaIndex``, and ``Timedelta`` scalars can be converted to other 'frequencies' by dividing by another timedelta,
-or by astyping to a specific timedelta type. These operations yield Series and propogate ``NaT`` -> ``nan``.
+or by astyping to a specific timedelta type. These operations yield Series and propagate ``NaT`` -> ``nan``.
 Note that division by the numpy scalar is true division, while astyping is equivalent of floor division.
 
 .. ipython:: python
