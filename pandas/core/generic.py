@@ -1217,7 +1217,7 @@ class NDFrame(PandasObject):
     def _set_item(self, key, value):
     
         # If children are views, reset to copies before setting.
-        self._convert_views_to_copies()
+        self._execute_copy_on_write()
 
         self._data.set(key, value)
         self._clear_item_cache()
@@ -1231,23 +1231,13 @@ class NDFrame(PandasObject):
             else:
                 self.is_copy = None
 
-    def _convert_views_to_copies(self):
+    def _execute_copy_on_write(self):
            
         # Don't set on views.         
-        if self._is_view and not self._is_column_view:
+        if (self._is_view and not self._is_column_view) or len(self._children) is not 0:
             self._data = self._data.copy()
-    
-        
-        # Before setting values, make sure children converted to copies. 
-        for child in self._children.valuerefs():
-                
-                # Make sure children of children converted. 
-                child()._convert_views_to_copies()
-                
-                if child()._is_view and not child()._is_column_view:
-                    child()._data = child()._data.copy()
+            self._children = weakref.WeakValueDictionary()
                     
-        self._children = weakref.WeakValueDictionary()
             
     def _add_to_children(self, view_to_append):
         self._children[id(view_to_append)] = view_to_append

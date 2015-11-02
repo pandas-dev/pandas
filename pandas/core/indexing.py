@@ -115,7 +115,7 @@ class _NDFrameIndexer(object):
 
     def __setitem__(self, key, value):
         # Make sure changes don't propagate to children
-        self.obj._convert_views_to_copies()
+        self.obj._execute_copy_on_write()
 
         indexer = self._get_setitem_indexer(key)
         self._setitem_with_indexer(indexer, value)
