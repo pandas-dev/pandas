@@ -1745,7 +1745,6 @@ class TestDataFrame(tm.TestCase, Generic):
         
         for v in views.keys():
             tm.assert_frame_equal(views[v], copies[v])
-            self.assertFalse(views[v]._is_view)
         
         # Test different forms of value setting 
         # all trigger conversions
@@ -1768,7 +1767,6 @@ class TestDataFrame(tm.TestCase, Generic):
         
         for v in views.keys():
             tm.assert_frame_equal(views[v], copies[v])
-            self.assertFalse(views[v]._is_view)
         
         ########
         # No Backward Propogation 
