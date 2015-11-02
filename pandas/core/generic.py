@@ -107,7 +107,7 @@ class NDFrame(PandasObject):
         object.__setattr__(self, 'is_copy', None)
         object.__setattr__(self, '_data', data)
         object.__setattr__(self, '_item_cache', {})
-        object.__setattr__(self, '_children', [])
+        object.__setattr__(self, '_children', weakref.WeakValueDictionary())
         object.__setattr__(self, '_is_column_view', False)
 
 
@@ -1210,7 +1210,7 @@ class NDFrame(PandasObject):
         is_copy = axis!=0 or result._is_view
         result._set_is_copy(self, copy=is_copy)
 
-        self._children.append(weakref.ref(result))
+        self._add_to_children(result)
 
         return result
 
@@ -1237,18 +1237,21 @@ class NDFrame(PandasObject):
         if self._is_view and not self._is_column_view:
             self._data = self._data.copy()
     
+        
         # Before setting values, make sure children converted to copies. 
-        for child in self._children:
-            
-            if child() is not None:
+        for child in self._children.valuerefs():
                 
                 # Make sure children of children converted. 
                 child()._convert_views_to_copies()
                 
-                if child()._is_view and not self._is_column_view:
+                if child()._is_view and not child()._is_column_view:
                     child()._data = child()._data.copy()
                     
-        self._children=[]
+        self._children = weakref.WeakValueDictionary()
+            
+    def _add_to_children(self, view_to_append):
+        self._children[id(view_to_append)] = view_to_append
+
 
     def __delitem__(self, key):
         """
