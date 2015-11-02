@@ -718,7 +718,7 @@ Old style constructor usage
 
 In earlier versions than pandas 0.15, a `Categorical` could be constructed by passing in precomputed
 `codes` (called then `labels`) instead of values with categories. The `codes` were interpreted as
-pointers to the categories with `-1` as `NaN`. This type of constructor useage is replaced by
+pointers to the categories with `-1` as `NaN`. This type of constructor usage is replaced by
 the special constructor :func:`Categorical.from_codes`.
 
 Unfortunately, in some special cases, using code which assumes the old style constructor usage

@@ -686,7 +686,7 @@ values NOT in the categories, similarly to how you can reindex ANY pandas index.
 
 .. warning::
 
-   Reshaping and Comparision operations on a ``CategoricalIndex`` must have the same categories
+   Reshaping and Comparison operations on a ``CategoricalIndex`` must have the same categories
    or a ``TypeError`` will be raised.
 
    .. code-block:: python
