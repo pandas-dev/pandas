@@ -77,6 +77,12 @@ pc_nb_repr_h_doc = """
     pandas objects (if it is available).
 """
 
+pc_esc_nb_repr_h_doc = """
+: boolean
+    When True, IPython notebook will use HTML-safe sequences for
+    <, >, and & when representing pandas objects.
+"""
+
 pc_date_dayfirst_doc = """
 : boolean
     When True, prints and parses dates with the day first, eg 20/01/2005
@@ -265,6 +271,8 @@ with cf.config_prefix('display'):
     cf.register_option('colheader_justify', 'right', colheader_justify_doc,
                        validator=is_text)
     cf.register_option('notebook_repr_html', True, pc_nb_repr_h_doc,
+                       validator=is_bool)
+    cf.register_option('escape_notebook_repr_html', True, pc_esc_nb_repr_h_doc,
                        validator=is_bool)
     cf.register_option('date_dayfirst', False, pc_date_dayfirst_doc,
                        validator=is_bool)
