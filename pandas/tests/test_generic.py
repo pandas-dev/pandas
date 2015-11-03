@@ -1808,6 +1808,23 @@ class TestDataFrame(tm.TestCase, Generic):
         self.assertTrue(v.loc[0] == -88)
         self.assertTrue(v._is_view)
 
+        ###
+        # Make sure that no problems if view created on view and middle-view
+        # gets deleted
+        #
+        df = pd.DataFrame({'col1':[1,2], 'col2':[3,4]})
+        v1 = df.loc[0:0,]
+        self.assertTrue(len(df._children)==1)
+                
+        v2 = v1.loc[0:0,]
+        v2_copy = v2.copy()        
+        self.assertTrue(len(df._children)==2)
+        
+        del v1
+        
+        df.loc[0:0, 'col1'] = -88
+        
+        tm.assert_frame_equal(v2, v2_copy)
 
 
     
