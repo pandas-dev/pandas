@@ -789,7 +789,25 @@ class GroupBy(PandasObject):
         For multiple groupings, the result index will be a MultiIndex
         """
         # todo, implement at cython level?
-        return np.sqrt(self.var(ddof=ddof))
+        if self.as_index:
+            return np.sqrt(self.var(ddof=ddof))
+        else:
+            df = self.var(ddof=ddof)
+
+            # if we are selecting columns we musn't root them
+            try:
+                if type(self.keys) in (list, tuple) and all(k in df.columns for
+                                                            k in self.keys):
+                    to_root = [c for c in df.columns if c not in self.keys]
+                elif self.keys in df.columns:
+                    to_root = [c for c in df.columns if c != self.keys]
+                else:
+                    return np.sqrt(df)
+            except TypeError:
+                return np.sqrt(df)
+
+            df[to_root] = np.sqrt(df[to_root])
+            return df
 
     def var(self, ddof=1):
         """
