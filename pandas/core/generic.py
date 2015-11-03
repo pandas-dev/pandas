@@ -85,7 +85,7 @@ class NDFrame(PandasObject):
                        'is_copy', '_subtyp', '_index',
                        '_default_kind', '_default_fill_value', '_metadata',
                        '__array_struct__', '__array_interface__', '_children',
-                       '_is_column_view']
+                       '_is_column_view', '_original_parent']
     _internal_names_set = set(_internal_names)
     _accessors = frozenset([])
     _metadata = []
@@ -109,6 +109,7 @@ class NDFrame(PandasObject):
         object.__setattr__(self, '_item_cache', {})
         object.__setattr__(self, '_children', weakref.WeakValueDictionary())
         object.__setattr__(self, '_is_column_view', False)
+        object.__setattr__(self, '_original_parent', weakref.WeakValueDictionary())
 
 
     def _validate_dtype(self, dtype):
@@ -1242,7 +1243,11 @@ class NDFrame(PandasObject):
     def _add_to_children(self, view_to_append):
         self._children[id(view_to_append)] = view_to_append
 
-
+        if len(self._original_parent) is 0:
+            view_to_append._original_parent['parent'] = self
+        else:
+            self._original_parent['parent']._add_to_children(view_to_append)
+            
     def __delitem__(self, key):
         """
         Delete item
