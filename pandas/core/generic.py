@@ -1089,9 +1089,6 @@ class NDFrame(PandasObject):
     def __getitem__(self, item):
         result = self._get_item_cache(item)
 
-        if isinstance(item, str):
-            result._is_column_view = True 
-
         return result
 
     def _get_item_cache(self, item):
@@ -1216,10 +1213,14 @@ class NDFrame(PandasObject):
         return result
 
     def _set_item(self, key, value):
-    
-        # If children are views, reset to copies before setting.
-        self._execute_copy_on_write()
 
+        if hasattr(self, 'columns'):
+            if key in self.columns:
+                # If children are views, reset to copies before setting.
+                self._execute_copy_on_write()
+        else: 
+            self._execute_copy_on_write()
+        
         self._data.set(key, value)
         self._clear_item_cache()
 
@@ -2300,6 +2301,9 @@ class NDFrame(PandasObject):
         # e.g. ``obj.x`` and ``obj.x = 4`` will always reference/modify
         # the same attribute.
 
+        if hasattr(self, 'columns'):
+            if name in self.columns:
+                self._execute_copy_on_write()
 
         try:
             object.__getattribute__(self, name)
