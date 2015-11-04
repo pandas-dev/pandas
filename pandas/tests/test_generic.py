@@ -1740,7 +1740,6 @@ class TestDataFrame(tm.TestCase, Generic):
             copies[v] = views[v].copy()
         
         
-        
         df.loc[0,'col1'] = -88
         
         for v in views.keys():
@@ -1807,6 +1806,23 @@ class TestDataFrame(tm.TestCase, Generic):
         df.loc[0, 'col1']=-88
         self.assertTrue(v.loc[0] == -88)
         self.assertTrue(v._is_view)
+        
+        # Does NOT hold for multi-index (can't guarantee view behaviors --
+        # setting on multi-index creates new data somehow.)
+        index = pd.MultiIndex(levels=[['foo', 'bar', 'baz', 'qux'],
+                           ['one', 'two', 'three']],
+                   labels=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
+                           [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
+                   names=['first', 'second'])
+        frame = pd.DataFrame(np.random.randn(10, 3), index=index,
+                       columns=pd.Index(['A', 'B', 'C'], name='exp')).T
+                    
+        v = frame['foo','one']
+        self.assertTrue(v._is_view)
+        self.assertFalse(v._is_column_view)
+        frame.loc['A', ('foo','one')]=-88
+        self.assertFalse(v.loc['A'] == -88)
+
 
         ###
         # Make sure that no problems if view created on view and middle-view
@@ -1827,7 +1843,14 @@ class TestDataFrame(tm.TestCase, Generic):
         tm.assert_frame_equal(v2, v2_copy)
 
 
-    
+    def test_is_view_of_multiblocks(self):
+        # Ensure that if even if only one block of DF is view, 
+        # returns _is_view = True. 
+        df = pd.DataFrame({'col1':[1,2], 'col2':[3,4]})
+        s = pd.Series([0.5, 0.3, 0.4])
+        df['col3'] = s[0:1]
+        self.assertTrue(df['col3']._is_view)        
+        self.assertTrue(df._is_view)
 
 class TestPanel(tm.TestCase, Generic):
     _typ = Panel

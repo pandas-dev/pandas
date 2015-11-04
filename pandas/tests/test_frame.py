@@ -194,7 +194,6 @@ class CheckIndexing(object):
 
         assert_series_equal(self.frame['B'], data['A'], check_names=False)
         assert_series_equal(self.frame['A'], data['B'], check_names=False)
-
         with assertRaisesRegexp(ValueError, 'Columns must be same length as key'):
             data[['A']] = self.frame[['A', 'B']]
         with assertRaisesRegexp(ValueError, 'Length of values does not match '
@@ -561,14 +560,14 @@ class CheckIndexing(object):
         self.frame['col8'] = 'foo'
         assert((self.frame['col8'] == 'foo').all())
 
-        # this is partially a view (e.g. some blocks are view)
-        # so raise/warn
+        # Changes should not propageate
         smaller = self.frame[:2]
         def f():
-            smaller['col10'] = ['1', '2']
-        self.assertRaises(com.SettingWithCopyError, f)
-        self.assertEqual(smaller['col10'].dtype, np.object_)
-        self.assertTrue((smaller['col10'] == ['1', '2']).all())
+            smaller['col0'] = ['1', '2']
+        f()
+        self.assertEqual(smaller['col0'].dtype, np.object_)
+        self.assertTrue((smaller['col0'] == ['1', '2']).all())
+        self.assertNotEqual(self.frame[:2].col0.dtype, np.object_)
 
         # with a dtype
         for dtype in ['int32','int64','float32','float64']:
@@ -1022,13 +1021,11 @@ class CheckIndexing(object):
         sliced = self.mixed_frame.ix[:, -3:]
         self.assertEqual(sliced['D'].dtype, np.float64)
 
-        # get view with single block
-        # setting it triggers setting with copy
+        # Should never act as view due to copy on write
         sliced = self.frame.ix[:, -3:]
         def f():
-            sliced['C'] = 4.
-        self.assertRaises(com.SettingWithCopyError, f)
-        self.assertTrue((self.frame['C'] == 4).all())
+            sliced['C'] = 4
+        self.assertTrue((self.frame['C'] != 4).all())
 
     def test_fancy_setitem_int_labels(self):
         # integer index defers to label-based indexing
@@ -1827,14 +1824,12 @@ class CheckIndexing(object):
         expected = df.ix[8:14]
         assert_frame_equal(result, expected)
 
-        # verify slice is view
-        # setting it makes it raise/warn
+        # verify changes on slices never propogate
         def f():
             result[2] = 0.
-        self.assertRaises(com.SettingWithCopyError, f)
         exp_col = df[2].copy()
         exp_col[4:8] = 0.
-        assert_series_equal(df[2], exp_col)
+        self.assertFalse((df[2] == exp_col).all())
 
         # list of integers
         result = df.iloc[[1, 2, 4, 6]]
@@ -1862,12 +1857,10 @@ class CheckIndexing(object):
         expected = df.ix[:, 8:14]
         assert_frame_equal(result, expected)
 
-        # verify slice is view
-        # and that we are setting a copy
+        # Verify setting on view doesn't propogate
         def f():
             result[8] = 0.
-        self.assertRaises(com.SettingWithCopyError, f)
-        self.assertTrue((df[8] == 0).all())
+        self.assertTrue((df[8] != 0).all())
 
         # list of integers
         result = df.iloc[:, [1, 2, 4, 6]]
@@ -4343,12 +4336,6 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         assert_series_equal(df['D'],Series(idx,name='D'))
         del df['D']
 
-        # assert that A & C are not sharing the same base (e.g. they
-        # are copies)
-        b1 = df._data.blocks[1]
-        b2 = df._data.blocks[2]
-        self.assertTrue(b1.values.equals(b2.values))
-        self.assertFalse(id(b1.values.values.base) == id(b2.values.values.base))
 
         # with nan
         df2 = df.copy()

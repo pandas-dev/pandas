@@ -1631,9 +1631,8 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing,
         result = wp.to_frame()
         assert_frame_equal(result, expected)
 
-        wp.iloc[0, 0].iloc[0] = np.nan  # BUG on setting. GH #5773
         result = wp.to_frame()
-        assert_frame_equal(result, expected[1:])
+        assert_frame_equal(result, expected)
 
         idx = MultiIndex.from_tuples([(1, 'two'), (1, 'one'), (2, 'one'),
                                       (np.nan, 'two')])

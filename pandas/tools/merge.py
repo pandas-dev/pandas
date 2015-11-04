@@ -27,11 +27,11 @@ import pandas.hashtable as _hash
 @Appender(_merge_doc, indents=0)
 def merge(left, right, how='inner', on=None, left_on=None, right_on=None,
           left_index=False, right_index=False, sort=False,
-          suffixes=('_x', '_y'), copy=True, indicator=False):
+          suffixes=('_x', '_y'), indicator=False):
     op = _MergeOperation(left, right, how=how, on=on, left_on=left_on,
                          right_on=right_on, left_index=left_index,
                          right_index=right_index, sort=sort, suffixes=suffixes,
-                         copy=copy, indicator=indicator)
+                         indicator=indicator)
     return op.get_result()
 if __debug__:
     merge.__doc__ = _merge_doc % '\nleft : DataFrame'
@@ -157,7 +157,7 @@ class _MergeOperation(object):
     def __init__(self, left, right, how='inner', on=None,
                  left_on=None, right_on=None, axis=1,
                  left_index=False, right_index=False, sort=True,
-                 suffixes=('_x', '_y'), copy=True, indicator=False):
+                 suffixes=('_x', '_y'), indicator=False):
         self.left = self.orig_left = left
         self.right = self.orig_right = right
         self.how = how
@@ -167,7 +167,6 @@ class _MergeOperation(object):
         self.left_on = com._maybe_make_list(left_on)
         self.right_on = com._maybe_make_list(right_on)
 
-        self.copy = copy
         self.suffixes = suffixes
         self.sort = sort
 
@@ -207,7 +206,7 @@ class _MergeOperation(object):
         result_data = concatenate_block_managers(
             [(ldata, lindexers), (rdata, rindexers)],
             axes=[llabels.append(rlabels), join_index],
-            concat_axis=0, copy=self.copy)
+            concat_axis=0, copy=True)
 
         typ = self.left._constructor
         result = typ(result_data).__finalize__(self, method='merge')
@@ -569,7 +568,7 @@ class _OrderedMerge(_MergeOperation):
         result_data = concatenate_block_managers(
             [(ldata, lindexers), (rdata, rindexers)],
             axes=[llabels.append(rlabels), join_index],
-            concat_axis=0, copy=self.copy)
+            concat_axis=0, copy=True)
 
         typ = self.left._constructor
         result = typ(result_data).__finalize__(self, method='ordered_merge')
@@ -756,7 +755,7 @@ def _get_join_keys(llab, rlab, shape, sort):
 
 
 def concat(objs, axis=0, join='outer', join_axes=None, ignore_index=False,
-           keys=None, levels=None, names=None, verify_integrity=False, copy=True):
+           keys=None, levels=None, names=None, verify_integrity=False):
     """
     Concatenate pandas objects along a particular axis with optional set logic
     along the other axes. Can also add a layer of hierarchical indexing on the
@@ -794,8 +793,6 @@ def concat(objs, axis=0, join='outer', join_axes=None, ignore_index=False,
         concatenating objects where the concatenation axis does not have
         meaningful indexing information. Note the index values on the other
         axes are still respected in the join.
-    copy : boolean, default True
-        If False, do not copy data unnecessarily
 
     Notes
     -----
@@ -808,8 +805,7 @@ def concat(objs, axis=0, join='outer', join_axes=None, ignore_index=False,
     op = _Concatenator(objs, axis=axis, join_axes=join_axes,
                        ignore_index=ignore_index, join=join,
                        keys=keys, levels=levels, names=names,
-                       verify_integrity=verify_integrity,
-                       copy=copy)
+                       verify_integrity=verify_integrity)
     return op.get_result()
 
 
@@ -820,7 +816,7 @@ class _Concatenator(object):
 
     def __init__(self, objs, axis=0, join='outer', join_axes=None,
                  keys=None, levels=None, names=None,
-                 ignore_index=False, verify_integrity=False, copy=True):
+                 ignore_index=False, verify_integrity=False):
         if isinstance(objs, (NDFrame, compat.string_types)):
             raise TypeError('first argument must be an iterable of pandas '
                             'objects, you passed an object of type '
@@ -944,7 +940,6 @@ class _Concatenator(object):
 
         self.ignore_index = ignore_index
         self.verify_integrity = verify_integrity
-        self.copy = copy
 
         self.new_axes = self._get_new_axes()
 
@@ -992,9 +987,7 @@ class _Concatenator(object):
                 mgrs_indexers.append((obj._data, indexers))
 
             new_data = concatenate_block_managers(
-                mgrs_indexers, self.new_axes, concat_axis=self.axis, copy=self.copy)
-            if not self.copy:
-                new_data._consolidate_inplace()
+                mgrs_indexers, self.new_axes, concat_axis=self.axis, copy=True)
 
             return self.objs[0]._from_axes(new_data, self.new_axes).__finalize__(self, method='concat')
 
