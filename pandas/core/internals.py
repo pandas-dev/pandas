@@ -2950,10 +2950,10 @@ class BlockManager(PandasObject):
 
     @property
     def is_view(self):
-        """ return a boolean if we are a single block and are a view """
-        if len(self.blocks) == 1:
-            return self.blocks[0].is_view
-
+        """ return a boolean if any block is a view """
+        for b in self.blocks:
+            if b.is_view: return True
+                
         # It is technically possible to figure out which blocks are views
         # e.g. [ b.values.base is not None for b in self.blocks ]
         # but then we have the case of possibly some blocks being a view
