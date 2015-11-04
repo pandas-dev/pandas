@@ -1679,7 +1679,16 @@ class TestDataFrame(tm.TestCase, Generic):
 
         assert_equal(df.y, 5)
         assert_series_equal(df['y'], Series([2, 4, 6], name='y'))
+        
+    def test_is_view(self):
+        # Ensure that if even if only one block of DF is view, 
+        # returns _is_view = True. Test for PR #11518
+        df = pd.DataFrame({'col1':[1,2], 'col2':[3,4]})
+        s = pd.Series([0.5, 0.3, 0.4])
+        df['col3'] = s[0:1]
+        self.assertTrue(df._is_view )
 
+        
 
 class TestPanel(tm.TestCase, Generic):
     _typ = Panel
