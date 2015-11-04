@@ -1,15 +1,24 @@
 from .pandas_vb_common import *
 from pandas.core import common as com
+
+try:
+    from cStringIO import StringIO
+except ImportError:
+    from io import StringIO
+
 try:
     from pandas.util.testing import test_parallel
+
     have_real_test_parallel = True
 except ImportError:
     have_real_test_parallel = False
+
 
     def test_parallel(num_threads=1):
 
         def wrapper(fname):
             return fname
+
         return wrapper
 
 
@@ -321,6 +330,7 @@ class nogil_kth_smallest(object):
             algos.kth_smallest(arr, self.k)
         run()
 
+
 class nogil_datetime_fields(object):
     goal_time = 0.2
 
@@ -436,3 +446,46 @@ class nogil_rolling_algos_fast(object):
         def run(arr, win):
             rolling_std(arr, win)
         run(self.arr, self.win)
+
+
+class nogil_read_csv(object):
+    number = 1
+    repeat = 5
+
+    def setup(self):
+        if (not have_real_test_parallel):
+            raise NotImplementedError
+        # Using the values
+        self.df = DataFrame(np.random.randn(10000, 50))
+        self.df.to_csv('__test__.csv')
+
+        self.rng = date_range('1/1/2000', periods=10000)
+        self.df_date_time = DataFrame(np.random.randn(10000, 50), index=self.rng)
+        self.df_date_time.to_csv('__test_datetime__.csv')
+
+        self.df_object = DataFrame('foo', index=self.df.index, columns=self.create_cols('object'))
+        self.df_object.to_csv('__test_object__.csv')
+
+    def create_cols(self, name):
+        return [('%s%03d' % (name, i)) for i in range(5)]
+
+    @test_parallel(num_threads=2)
+    def pg_read_csv(self):
+        read_csv('__test__.csv', sep=',', header=None, float_precision=None)
+
+    def time_nogil_read_csv(self):
+        self.pg_read_csv()
+
+    @test_parallel(num_threads=2)
+    def pg_read_csv_object(self):
+        read_csv('__test_object__.csv', sep=',')
+
+    def time_nogil_read_csv_object(self):
+        self.pg_read_csv_object()
+
+    @test_parallel(num_threads=2)
+    def pg_read_csv_datetime(self):
+        read_csv('__test_datetime__.csv', sep=',', header=None)
+
+    def time_nogil_read_csv_datetime(self):
+        self.pg_read_csv_datetime()
