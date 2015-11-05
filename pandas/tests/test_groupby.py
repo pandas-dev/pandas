@@ -5546,6 +5546,36 @@ class TestGroupBy(tm.TestCase):
         expected = pd.Series([1] * 5, name='name', index=index)
         tm.assert_series_equal(result, expected)
 
+    def test_std_with_as_index_false(self):
+        # GH 10355
+        df = pd.DataFrame({
+            'a': [1, 1, 1, 2, 2, 2, 3, 3, 3],
+            'b': [1, 2, 3, 4, 5, 6, 7, 8, 9],
+        })
+        sd = df.groupby('a', as_index=False).std()
+
+        expected = pd.DataFrame({
+            'a': [1, 2, 3],
+            'b': [1, 1, 1],
+        })
+        tm.assert_frame_equal(expected, sd)
+
+    def test_std_with_ddof(self):
+        df = pd.DataFrame({
+            'a': [1, 1, 1, 2, 2, 2, 3, 3, 3],
+            'b': [1, 2, 3, 1, 5, 6, 7, 8, 10],
+        })
+        sd = df.groupby('a', as_index=False).std(ddof=0)
+
+        expected = pd.DataFrame({
+            'a': [1, 2, 3],
+            'b': [
+                np.std([1, 2, 3], ddof=0),
+                np.std([1, 5, 6], ddof=0),
+                np.std([7, 8, 10], ddof=0)],
+        })
+        tm.assert_frame_equal(expected, sd)
+
 
 def assert_fp_equal(a, b):
     assert (np.abs(a - b) < 1e-12).all()
