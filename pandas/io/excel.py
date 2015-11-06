@@ -127,6 +127,21 @@ def read_excel(io, sheetname=0, header=0, skiprows=None, skip_footer=0,
         * If list of ints then indicates list of column numbers to be parsed
         * If string then indicates comma separated list of column names and
           column ranges (e.g. "A:E" or "A,C,E:F")
+    parse_dates : boolean, list of ints or names, list of lists, or dict, default False
+        If True -> try parsing the index.
+        If [1, 2, 3] -> try parsing columns 1, 2, 3 each as a separate date column.
+        If [[1, 3]] -> combine columns 1 and 3 and parse as a single date column.
+        {'foo' : [1, 3]} -> parse columns 1, 3 as date and call result 'foo'
+        A fast-path exists for iso8601-formatted dates.
+    date_parser : function, default None
+        Function to use for converting a sequence of string columns to an
+        array of datetime instances. The default uses dateutil.parser.parser
+        to do the conversion. Pandas will try to call date_parser in three different
+        ways, advancing to the next if an exception occurs: 1) Pass one or more arrays
+        (as defined by parse_dates) as arguments; 2) concatenate (row-wise) the string
+        values from the columns defined by parse_dates into a single array and pass
+        that; and 3) call date_parser once for each row using one or more strings
+        (corresponding to the columns defined by parse_dates) as arguments.
     na_values : list-like, default None
         List of additional strings to recognize as NA/NaN
     thousands : str, default None
