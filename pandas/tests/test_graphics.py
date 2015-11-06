@@ -1237,6 +1237,13 @@ class TestSeriesPlots(TestPlotBase):
             ax = s.plot()
         self._check_colors(ax.get_lines(), linecolors=def_colors[:ncolors])
 
+    def test_xticklabels(self):
+        # GH11529
+        s = Series(np.arange(10), index=['P%02d' % i for i in range(10)])
+        ax = s.plot(xticks=[0,3,5,9])
+        exp = ['P%02d' % i for i in [0,3,5,9]]
+        self._check_text_labels(ax.get_xticklabels(), exp)
+
 
 @tm.mplskip
 class TestDataFramePlots(TestPlotBase):
