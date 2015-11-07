@@ -40,7 +40,7 @@ Bug reports must:
 1.  Include a short, self-contained Python snippet reproducing the
     problem. You can have the code formatted nicely by using [GitHub
     Flavored
-    Markdown](http://github.github.com/github-flavored-markdown/): :
+    Markdown](http://github.github.com/github-flavored-markdown/):
 
         ```python
         >>> from pandas import DataFrame
@@ -50,12 +50,12 @@ Bug reports must:
 
 2.  Include the full version string of *pandas* and its dependencies. In
     recent (\>0.12) versions of *pandas* you can use a built in
-    function: :
+    function:
 
         >>> from pandas.util.print_versions import show_versions
         >>> show_versions()
 
-    and in 0.13.1 onwards: :
+    and in 0.13.1 onwards:
 
         >>> pd.show_versions()
 
@@ -105,7 +105,7 @@ local repository and GitHub.
 
 You will need your own fork to work on the code. Go to the [pandas
 project page](https://github.com/pydata/pandas) and hit the *fork*
-button. You will want to clone your fork to your machine: :
+button. You will want to clone your fork to your machine:
 
     git clone git@github.com:your-user-name/pandas.git pandas-yourname
     cd pandas-yourname
@@ -438,7 +438,7 @@ the actual result to the expected correct result:
 #### Running the test suite
 
 The tests can then be run directly inside your git clone (without having
-to install *pandas*) by typing::
+to install *pandas*) by typing:
 
     nosetests pandas
 
@@ -507,11 +507,11 @@ Once you've made changes, you can see them by typing:
     git status
 
 If you've created a new file, it is not being tracked by git. Add it by
-typing :
+typing:
 
     git add path/to/file-to-be-added.py
 
-Doing 'git status' again should give something like :
+Doing 'git status' again should give something like:
 
     # On branch shiny-new-feature
     #
@@ -556,17 +556,17 @@ the relevant commit message and discard others.
 ### Pushing your changes
 
 When you want your changes to appear publicly on your GitHub page, push
-your forked feature branch's commits :
+your forked feature branch's commits:
 
     git push origin shiny-new-feature
 
 Here origin is the default name given to your remote repository on
-GitHub. You can see the remote repositories :
+GitHub. You can see the remote repositories:
 
     git remote -v
 
 If you added the upstream repository as described above you will see
-something like :
+something like:
 
     origin  git@github.com:yourname/pandas.git (fetch)
     origin  git@github.com:yourname/pandas.git (push)
@@ -622,7 +622,7 @@ and restart the Travis-CI tests.
 
 Once your feature branch is accepted into upstream, you'll probably want
 to get rid of the branch. First, merge upstream master into your branch
-so git knows it is safe to delete your branch :
+so git knows it is safe to delete your branch:
 
     git fetch upstream
     git checkout master
@@ -635,6 +635,6 @@ Then you can just do:
 Make sure you use a lower-case -d, or else git won't warn you if your
 feature branch has not actually been merged.
 
-The branch will still exist on GitHub, so to delete it there do :
+The branch will still exist on GitHub, so to delete it there do:
 
     git push origin --delete shiny-new-feature
