@@ -6074,7 +6074,7 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         assert_series_equal(result, ts)
 
     def test_getitem_setitem_datetime_tz_pytz(self):
-        tm._skip_if_no_pytz();
+        tm._skip_if_no_pytz()
         from pytz import timezone as tz
 
         from pandas import date_range
@@ -6110,7 +6110,7 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
 
 
     def test_getitem_setitem_datetime_tz_dateutil(self):
-        tm._skip_if_no_dateutil();
+        tm._skip_if_no_dateutil()
         from dateutil.tz import tzutc
         from pandas.tslib import _dateutil_gettz as gettz
 

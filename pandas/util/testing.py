@@ -1886,7 +1886,7 @@ def assertRaises(_exception, _callable=None, *args, **kwargs):
     In addition to using it as a contextmanager, you can also use it as a
     function, just like the normal assertRaises
 
-    >>> assertRaises(TypeError, ",".join, [1, 3, 5]);
+    >>> assertRaises(TypeError, ",".join, [1, 3, 5])
     """
     manager = _AssertRaisesContextmanager(exception=_exception)
     # don't return anything if used in function form
@@ -1907,18 +1907,18 @@ def assertRaisesRegexp(_exception, _regexp, _callable=None, *args, **kwargs):
 
     You can pass either a regular expression or a compiled regular expression object.
     >>> assertRaisesRegexp(ValueError, 'invalid literal for.*XYZ',
-    ...                                int, 'XYZ');
+    ...                                int, 'XYZ')
     >>> import re
-    >>> assertRaisesRegexp(ValueError, re.compile('literal'), int, 'XYZ');
+    >>> assertRaisesRegexp(ValueError, re.compile('literal'), int, 'XYZ')
 
     If an exception of a different type is raised, it bubbles up.
 
-    >>> assertRaisesRegexp(TypeError, 'literal', int, 'XYZ');
+    >>> assertRaisesRegexp(TypeError, 'literal', int, 'XYZ')
     Traceback (most recent call last):
         ...
     ValueError: invalid literal for int() with base 10: 'XYZ'
     >>> dct = dict()
-    >>> assertRaisesRegexp(KeyError, 'pear', dct.__getitem__, 'apple');
+    >>> assertRaisesRegexp(KeyError, 'pear', dct.__getitem__, 'apple')
     Traceback (most recent call last):
         ...
     AssertionError: "pear" does not match "'apple'"
