@@ -3542,9 +3542,9 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         df.copy()
 
     def test_constructor_mixed_dict_and_Series(self):
-        data = {}
-        data['A'] = {'foo': 1, 'bar': 2, 'baz': 3}
-        data['B'] = Series([4, 3, 2, 1], index=['bar', 'qux', 'baz', 'foo'])
+        data = {'A': {'foo': 1, 'bar': 2, 'baz': 3},
+                'B': Series([4, 3, 2, 1],
+                            index=['bar', 'qux', 'baz', 'foo'])}
 
         result = DataFrame(data)
         self.assertTrue(result.index.is_monotonic)
@@ -16115,9 +16115,8 @@ class TestDataFrameQueryNumExprPandas(tm.TestCase):
     def test_date_index_query_with_NaT_duplicates(self):
         engine, parser = self.engine, self.parser
         n = 10
-        d = {}
-        d['dates1'] = date_range('1/1/2012', periods=n)
-        d['dates3'] = date_range('1/1/2014', periods=n)
+        d = {'dates1': date_range('1/1/2012', periods=n),
+             'dates3': date_range('1/1/2014', periods=n)}
         df = DataFrame(d)
         df.loc[np.random.rand(n) > 0.5, 'dates1'] = pd.NaT
         df.set_index('dates1', inplace=True, drop=True)

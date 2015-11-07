@@ -22,19 +22,17 @@ class TestClipboard(tm.TestCase):
     @classmethod
     def setUpClass(cls):
         super(TestClipboard, cls).setUpClass()
-        cls.data = {}
-        cls.data['string'] = mkdf(5, 3, c_idx_type='s', r_idx_type='i',
-                                  c_idx_names=[None], r_idx_names=[None])
-        cls.data['int'] = mkdf(5, 3, data_gen_f=lambda *args: randint(2),
-                               c_idx_type='s', r_idx_type='i',
-                               c_idx_names=[None], r_idx_names=[None])
-        cls.data['float'] = mkdf(5, 3,
-                                 data_gen_f=lambda r, c: float(r) + 0.01,
-                                 c_idx_type='s', r_idx_type='i',
-                                 c_idx_names=[None], r_idx_names=[None])
-        cls.data['mixed'] = DataFrame({'a': np.arange(1.0, 6.0) + 0.01,
-                                       'b': np.arange(1, 6),
-                                       'c': list('abcde')})
+        cls.data = {'string': mkdf(5, 3, c_idx_type='s', r_idx_type='i',
+                                   c_idx_names=[None], r_idx_names=[None]),
+                    'int': mkdf(5, 3, data_gen_f=lambda *args: randint(2),
+                                c_idx_type='s', r_idx_type='i',
+                                c_idx_names=[None], r_idx_names=[None]),
+                    'float': mkdf(5, 3, data_gen_f=lambda r, c: float(r) + 0.01,
+                                  c_idx_type='s', r_idx_type='i',
+                                  c_idx_names=[None], r_idx_names=[None]),
+                    'mixed': DataFrame({'a': np.arange(1.0, 6.0) + 0.01,
+                                        'b': np.arange(1, 6),
+                                        'c': list('abcde')})}
 
         # Test columns exceeding "max_colwidth" (GH8305)
         _cw = get_option('display.max_colwidth') + 1
