@@ -1004,7 +1004,7 @@ class NumpyJSONTests(TestCase):
         assert_approx_equal(np.float64(ujson.decode(ujson.encode(num, double_precision=15))), num, 15)
 
     def testArrays(self):
-        arr = np.arange(100);
+        arr = np.arange(100)
 
         arr = arr.reshape((10, 10))
         tm.assert_numpy_array_equal(np.array(ujson.decode(ujson.encode(arr))), arr)
@@ -1018,7 +1018,7 @@ class NumpyJSONTests(TestCase):
         tm.assert_numpy_array_equal(np.array(ujson.decode(ujson.encode(arr))), arr)
         tm.assert_numpy_array_equal(ujson.decode(ujson.encode(arr), numpy=True), arr)
 
-        arr = np.arange(96);
+        arr = np.arange(96)
         arr = arr.reshape((2, 2, 2, 2, 3, 2))
         tm.assert_numpy_array_equal(np.array(ujson.decode(ujson.encode(arr))), arr)
         tm.assert_numpy_array_equal(ujson.decode(ujson.encode(arr), numpy=True), arr)
@@ -1028,7 +1028,7 @@ class NumpyJSONTests(TestCase):
         arr = np.array(l)
         tm.assert_numpy_array_equal(np.array(ujson.decode(ujson.encode(arr))), arr)
 
-        arr = np.arange(100.202, 200.202, 1, dtype=np.float32);
+        arr = np.arange(100.202, 200.202, 1, dtype=np.float32)
         arr = arr.reshape((5, 5, 4))
         outp = np.array(ujson.decode(ujson.encode(arr)), dtype=np.float32)
         assert_array_almost_equal_nulp(arr, outp)
