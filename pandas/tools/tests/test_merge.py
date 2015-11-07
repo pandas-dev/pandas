@@ -517,6 +517,23 @@ class TestMerge(tm.TestCase):
 
         assert_frame_equal(result, expected.ix[:, result.columns])
 
+        # GH 11519
+        df = DataFrame({'A': ['foo', 'bar', 'foo', 'bar',
+                              'foo', 'bar', 'foo', 'foo'],
+                        'B': ['one', 'one', 'two', 'three',
+                              'two', 'two', 'one', 'three'],
+                        'C': np.random.randn(8),
+                        'D': np.random.randn(8)})
+        s = Series(np.repeat(np.arange(8), 2),
+                   index=np.repeat(np.arange(8), 2), name='TEST')
+        inner = df.join(s, how='inner')
+        outer = df.join(s, how='outer')
+        left = df.join(s, how='left')
+        right = df.join(s, how='right')
+        assert_frame_equal(inner, outer)
+        assert_frame_equal(inner, left)
+        assert_frame_equal(inner, right)
+
     def test_merge_index_singlekey_right_vs_left(self):
         left = DataFrame({'key': ['a', 'b', 'c', 'd', 'e', 'e', 'a'],
                           'v1': np.random.randn(7)})

@@ -2490,7 +2490,7 @@ class Index(IndexOpsMixin, PandasObject):
             if how == 'left':
                 join_index, lidx, ridx = self._left_indexer(sv, ov)
             elif how == 'right':
-                join_index, ridx, lidx = self._left_indexer(other, self)
+                join_index, ridx, lidx = self._left_indexer(ov, sv)
             elif how == 'inner':
                 join_index, lidx, ridx = self._inner_indexer(sv, ov)
             elif how == 'outer':

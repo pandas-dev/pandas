@@ -1682,6 +1682,7 @@ class TestIndex(Base, tm.TestCase):
             for kind in kinds:
                 joined = res.join(res, how=kind)
                 self.assertIs(res, joined)
+
     def test_str_attribute(self):
         # GH9068
         methods = ['strip', 'rstrip', 'lstrip']
@@ -3056,17 +3057,15 @@ class TestInt64Index(Numeric, tm.TestCase):
         tm.assert_numpy_array_equal(ridx, eridx)
 
         # non-unique
-        """
-        idx = Index([1,1,2,5])
-        idx2 = Index([1,2,5,7,9])
+        idx = Index([1, 1, 2, 5])
+        idx2 = Index([1, 2, 5, 7, 9])
         res, lidx, ridx = idx2.join(idx, how='left', return_indexers=True)
-        eres = idx2
-        eridx = np.array([0, 2, 3, -1, -1])
-        elidx = np.array([0, 1, 2, 3, 4])
+        eres = Index([1, 1, 2, 5, 7, 9])  # 1 is in idx2, so it should be x2
+        eridx = np.array([0, 1, 2, 3, -1, -1])
+        elidx = np.array([0, 0, 1, 2, 3, 4])
         self.assertTrue(res.equals(eres))
         tm.assert_numpy_array_equal(lidx, elidx)
         tm.assert_numpy_array_equal(ridx, eridx)
-        """
 
     def test_join_right(self):
         other = Int64Index([7, 12, 25, 1, 2, 5])
@@ -3096,23 +3095,15 @@ class TestInt64Index(Numeric, tm.TestCase):
         self.assertIsNone(ridx)
 
         # non-unique
-        """
-        idx = Index([1,1,2,5])
-        idx2 = Index([1,2,5,7,9])
+        idx = Index([1, 1, 2, 5])
+        idx2 = Index([1, 2, 5, 7, 9])
         res, lidx, ridx = idx.join(idx2, how='right', return_indexers=True)
-        eres = idx2
-        elidx = np.array([0, 2, 3, -1, -1])
-        eridx = np.array([0, 1, 2, 3, 4])
+        eres = Index([1, 1, 2, 5, 7, 9])  # 1 is in idx2, so it should be x2
+        elidx = np.array([0, 1, 2, 3, -1, -1])
+        eridx = np.array([0, 0, 1, 2, 3, 4])
         self.assertTrue(res.equals(eres))
         tm.assert_numpy_array_equal(lidx, elidx)
         tm.assert_numpy_array_equal(ridx, eridx)
-
-        idx = Index([1,1,2,5])
-        idx2 = Index([1,2,5,9,7])
-        res = idx.join(idx2, how='right', return_indexers=False)
-        eres = idx2
-        self.assert(res.equals(eres))
-        """
 
     def test_join_non_int_index(self):
         other = Index([3, 6, 7, 8, 10], dtype=object)
