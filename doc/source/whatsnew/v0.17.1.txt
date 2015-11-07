@@ -75,6 +75,7 @@ Bug Fixes
 - Bug in merging ``datetime64[ns, tz]`` dtypes (:issue:`11405`)
 - Bug in ``HDFStore.select`` when comparing with a numpy scalar in a where clause (:issue:`11283`)
 - Bug in using ``DataFrame.ix`` with a multi-index indexer(:issue:`11372`)
+- Bug in ``groupby.var()`` when using ``DataFrame.groupby`` with as_index=False (:issue:`10355`)
 
 
 - Bug in tz-conversions with an ambiguous time and ``.dt`` accessors (:issue:`11295`)
