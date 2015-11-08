@@ -4327,7 +4327,12 @@ class MultiIndex(Index):
         return sum(name == n for n in self.names) > 1
 
     def _format_native_types(self, **kwargs):
-        return self.values
+        # we go through the levels and format them
+        levels = [level._format_native_types(**kwargs)
+                  for level in self.levels]
+        mi = MultiIndex(levels=levels, labels=self.labels, names=self.names,
+                        sortorder=self.sortorder, verify_integrity=False)
+        return mi.values
 
     @property
     def _constructor(self):
