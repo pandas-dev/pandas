@@ -2952,6 +2952,16 @@ $1$,$2$
         self.assertEqual(df_day.to_csv(), expected_default_day)
         self.assertEqual(df_day.to_csv(date_format='%Y-%m-%d'), expected_default_day)
 
+        # GH 7791
+        df_sec['B'] = 0
+        df_sec['C'] = 1
+        expected_ymd_sec = 'A,B,C\n2013-01-01,0,1\n'
+        df_sec_grouped = df_sec.groupby([pd.Grouper(key='A', freq='1h'), 'B'])
+        self.assertEqual(
+            df_sec_grouped.mean().to_csv(date_format='%Y-%m-%d'),
+            expected_ymd_sec
+        )
+
     # deprecation GH11274
     def test_to_csv_engine_kw_deprecation(self):
         with tm.assert_produces_warning(FutureWarning):
