@@ -3882,6 +3882,11 @@ class DataFrame(NDFrame):
         broadcast : boolean, default False
             For aggregation functions, return object of same size with values
             propagated
+        raw : boolean, default False
+            If False, convert each row or column into a Series. If raw=True the
+            passed function will receive ndarray objects instead. If you are
+            just applying a NumPy reduction function this will achieve much
+            better performance
         reduce : boolean or None, default None
             Try to apply reduction procedures. If the DataFrame is empty,
             apply will use reduce to determine whether the result should be a
@@ -3890,11 +3895,6 @@ class DataFrame(NDFrame):
             while guessing, exceptions raised by func will be ignored). If
             reduce is True a Series will always be returned, and if False a
             DataFrame will always be returned.
-        raw : boolean, default False
-            If False, convert each row or column into a Series. If raw=True the
-            passed function will receive ndarray objects instead. If you are
-            just applying a NumPy reduction function this will achieve much
-            better performance
         args : tuple
             Positional arguments to pass to function in addition to the
             array/series
