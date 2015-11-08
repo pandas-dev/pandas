@@ -4329,7 +4329,7 @@ class MultiIndex(Index):
     def _format_native_types(self, **kwargs):
         # we go through the levels and format them
         levels = [_._format_native_types(**kwargs) for _ in self.levels]
-        mi = MultiIndex(levels=levels, labels=self.labels,
+        mi = MultiIndex(levels=levels, labels=self.labels, names=self.names,
                         sortorder=self.sortorder, verify_integrity=False)
         return mi.values
 

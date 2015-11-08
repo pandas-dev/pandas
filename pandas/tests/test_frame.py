@@ -7341,6 +7341,13 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         df.to_csv(buf, encoding='utf-8', index=False)
         self.assertEqual(buf.getvalue(), text)
 
+        # testing if quoting parameter is passed through with multi-indexes
+        # related to issue #7791
+        df = pd.DataFrame({'a': [1, 2], 'b': [3, 4], 'c': [5, 6]})
+        df = df.set_index(['a', 'b'])
+        expected = '"a","b","c"\n"1","3","5"\n"2","4","6"\n'
+        self.assertEqual(df.to_csv(quoting=csv.QUOTE_ALL), expected)
+
     def test_to_csv_unicodewriter_quoting(self):
         df = DataFrame({'A': [1, 2, 3], 'B': ['foo', 'bar', 'baz']})
 

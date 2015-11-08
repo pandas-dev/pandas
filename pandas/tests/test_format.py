@@ -2953,6 +2953,8 @@ $1$,$2$
         self.assertEqual(df_day.to_csv(date_format='%Y-%m-%d'), expected_default_day)
 
         # GH 7791
+        # testing if date_format parameter is taken into account for
+        # multi-indexed dataframes
         df_sec['B'] = 0
         df_sec['C'] = 1
         expected_ymd_sec = 'A,B,C\n2013-01-01,0,1\n'
