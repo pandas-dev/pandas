@@ -149,12 +149,6 @@ class CheckIndexing(object):
             result = df.get(None)
             self.assertIsNone(result)
 
-        # GH 6703
-        df = DataFrame({'a': [1, 2, 3], 'b': [1, 2, 3], 'c': [1, 2, 3]})
-        x = df.set_index(['a', 'b'])
-        assert_series_equal(x.get((1, 1), axis=0), x.T.get((1, 1)))
-        assert_series_equal(x.get('c', axis=1), x.get('c'))
-
     def test_getitem_iterator(self):
         idx = iter(['A', 'B', 'C'])
         result = self.frame.ix[:, idx]

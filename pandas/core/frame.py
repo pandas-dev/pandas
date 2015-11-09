@@ -577,30 +577,6 @@ class DataFrame(NDFrame):
         else:
             return None
 
-    def get(self, key, default=None, axis='columns'):
-        """
-        Get item from object for given key (DataFrame column, Panel slice,
-        etc.) along the given axis. Returns default value if not found
-
-        Parameters
-        ----------
-        axis : {index (0), columns (1)}
-            Axis in which the key is to be found. Default is 'columns'
-        key : object
-
-        Returns
-        -------
-        value : type of items contained in object
-        """
-        df = self
-        axis = self._get_axis_number(axis)
-        if axis == 0:
-            df = self.T
-        try:
-            return df[key]
-        except (KeyError, ValueError, IndexError):
-            return default
-
     def iteritems(self):
         """
         Iterator over (column name, Series) pairs.
