@@ -3,6 +3,8 @@ import warnings
 import operator
 import weakref
 import gc
+from numbers import Real
+from math import floor
 
 import numpy as np
 import pandas.lib as lib
@@ -2147,6 +2149,37 @@ class NDFrame(PandasObject):
         if l == 0 or n == 0:
             return self
         return self.iloc[-n:]
+
+    def split(self, weights=(50, 50), random=False, axis=None):
+        """
+        Returns a random split from an axis of this object
+
+        Parameters
+        ----------
+        weights : weights: list or tuple or equivalent, optional
+            The passed collection of weights serves as relative sizes of the splits
+            of the returned datasets.
+            Default = (50,50).
+        random : boolean or int or numpy.random.RandomState, optional
+            If False (=default value), makes consecutive splits from beginning to end.
+            If not False, a seed for the random number generator can be provided (if int) or
+            a numpy RandomState object. If True, default random behavior.
+            Default = False.
+        axis : int or string, optional
+            Axis to sample. Accepts axis number or name. Default is stat axis
+            for given data type (0 for Series and DataFrames, 1 for Panels).
+
+        Returns
+        -------
+        Multiple objects of the same type as original object. The number of returned objects
+        is the same as the number of weights provided as parameter.
+        """
+        g = pd.Partitioner(weights, axis)
+        if random is not False and random is not None:
+            if random is True:
+                random = None
+            g = pd.RandomPartitioner(weights, axis, random)
+        return self.groupby(g).split()
 
 
     def sample(self, n=None, frac=None, replace=False, weights=None, random_state=None, axis=None):

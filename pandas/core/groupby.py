@@ -4,6 +4,7 @@ import numpy as np
 import datetime
 import collections
 import warnings
+from numbers import Real
 
 from pandas.compat import(
     zip, builtins, range, long, lzip,
@@ -294,6 +295,62 @@ class Grouper(object):
     @property
     def groups(self):
         return self.grouper.groups
+
+
+class Partitioner(Grouper):
+    '''
+
+    '''
+
+    def __init__(self, proportions=(1,1), axis=None):
+        self._proportions = proportions
+        self._axis = axis
+        self.key = None
+        # check weight type
+        if len(self._proportions) < 2:
+            raise ValueError("must split into more than 1 partition")
+        for w in self._proportions:
+            if not (com.is_float(w) or com.is_integer(w)) or w <=0:
+                raise ValueError("weights must be strictly positive real numbers")
+
+        # compute proportions as fractions
+        self._proportions = np.asarray(self._proportions, dtype="float64")
+        self._proportions = self._proportions/self._proportions.sum()
+        super(Partitioner, self).__init__()
+
+    def _get_grouper(self, obj):
+        if self._axis is None:
+            self._axis = obj._stat_axis_number
+        self._axis = obj._get_axis_number(self._axis)
+        axis_length = obj.shape[self._axis]
+
+        numbers = np.rint(self._proportions * axis_length).astype("int32")
+
+        newcol = reduce(lambda x, y: x + y, [[x]*numbers[x] for x in range(len(numbers))])
+        while len(newcol) < axis_length:
+            newcol.append(newcol[-1])
+
+        self._transform(newcol)
+
+        grouping = Grouping(obj._get_axis(self._axis), grouper=Series(newcol), obj=obj, sort=True, in_axis=True)
+
+        return None, BaseGrouper(self._axis, [grouping]), obj
+
+    def _transform(self, newcol):
+        pass
+
+class RandomPartitioner(Partitioner):
+    '''
+    TODO
+    '''
+
+    def __init__(self, proportions=(1,1), axis=None, random=None):
+        # Process random_state argument
+        self.rs = com._random_state(random)
+        super(RandomPartitioner, self).__init__(proportions, axis)
+
+    def _transform(self, newcol):
+        self.rs.shuffle(newcol)
 
 
 class GroupByPlot(PandasObject):
@@ -657,6 +714,10 @@ class GroupBy(PandasObject):
         for each group
         """
         return self.grouper.get_iterator(self.obj, axis=self.axis)
+
+    def split(self):
+        acc = [x for _, x in self]
+        return tuple(acc)
 
     def apply(self, func, *args, **kwargs):
         """
