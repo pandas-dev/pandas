@@ -101,7 +101,7 @@ Bug Fixes
 
 
 
-
+- Fix regression in setting of ``xticks`` in ``plot`` (:issue:`11529`).
 
 
 
