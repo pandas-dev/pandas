@@ -3104,13 +3104,6 @@ class TestInt64Index(Numeric, tm.TestCase):
         self.assertTrue(res.equals(eres))
         tm.assert_numpy_array_equal(lidx, elidx)
         tm.assert_numpy_array_equal(ridx, eridx)
-        """
-        idx = Index([1,1,2,5])
-        idx2 = Index([1,2,5,9,7])
-        res = idx.join(idx2, how='right', return_indexers=False)
-        eres = idx2
-        self.assert(res.equals(eres))
-        """
 
     def test_join_non_int_index(self):
         other = Index([3, 6, 7, 8, 10], dtype=object)
