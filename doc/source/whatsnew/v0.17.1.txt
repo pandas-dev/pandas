@@ -123,6 +123,6 @@ Bug Fixes
 
 - Bug in ``DataFrame.to_dict()`` produces a ``np.datetime64`` object instead of ``Timestamp`` when only datetime is present in data (:issue:`11327`)
 
-
+- Bug in ``DataFrame.corr()`` raises exception when computes Kendall correlation for DataFrames with boolean and not boolean columns (:issue:`11560`)
 
 - Bug in the link-time error caused by C ``inline`` functions on FreeBSD 10+ (with ``clang``) (:issue:`10510`)

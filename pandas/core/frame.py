@@ -4411,16 +4411,21 @@ class DataFrame(NDFrame):
         else:
             if min_periods is None:
                 min_periods = 1
-            mat = mat.T
+            mat = com._ensure_float64(mat).T
             corrf = nanops.get_corr_func(method)
             K = len(cols)
             correl = np.empty((K, K), dtype=float)
             mask = np.isfinite(mat)
             for i, ac in enumerate(mat):
                 for j, bc in enumerate(mat):
+                    if i > j:
+                        continue
+
                     valid = mask[i] & mask[j]
                     if valid.sum() < min_periods:
                         c = NA
+                    elif i == j:
+                        c = 1.
                     elif not valid.all():
                         c = corrf(ac[valid], bc[valid])
                     else:
