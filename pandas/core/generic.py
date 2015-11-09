@@ -1094,7 +1094,19 @@ class NDFrame(PandasObject):
         try:
             return self.loc[tuple(slices)]
         except (KeyError, ValueError, IndexError):
-            return default
+            pass
+        # Two possibilities:
+        # 1) the key is not present, and we should return default
+        # 2) self.loc does not like our slice (which we have to deal with the
+        #    axis parameter). This happens for instance with a series with a
+        #    string index and a negative key.
+        # To cover this last case, we revert to the previous implementation:
+        if axis == self._info_axis_number:
+            try:
+                return self[key]
+            except (KeyError, ValueError, IndexError):
+                pass
+        return default
 
     def __getitem__(self, item):
         return self._get_item_cache(item)
