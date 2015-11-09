@@ -39,7 +39,7 @@ def _clean_interp_method(method, **kwargs):
     valid = ['linear', 'time', 'index', 'values', 'nearest', 'zero', 'slinear',
              'quadratic', 'cubic', 'barycentric', 'polynomial',
              'krogh', 'piecewise_polynomial',
-             'pchip', 'spline']
+             'pchip', 'spline', 'akima']
     if method in ('spline', 'polynomial') and order is None:
         raise ValueError("You must specify the order of the spline or "
                          "polynomial.")
@@ -49,9 +49,9 @@ def _clean_interp_method(method, **kwargs):
     return method
 
 
-def interpolate_1d(xvalues, yvalues, method='linear', limit=None,
-                   limit_direction='forward',
-                   fill_value=None, bounds_error=False, order=None, **kwargs):
+def interpolate(xvalues, yvalues, method='linear', limit=None,
+                limit_direction='forward',
+                fill_value=None, bounds_error=False, order=None, **kwargs):
     """
     Logic for the 1-d interpolation.  The result should be 1-d, inputs
     xvalues and yvalues will each be 1-d arrays of the same length.
@@ -144,7 +144,7 @@ def interpolate_1d(xvalues, yvalues, method='linear', limit=None,
 
     sp_methods = ['nearest', 'zero', 'slinear', 'quadratic', 'cubic',
                   'barycentric', 'krogh', 'spline', 'polynomial',
-                  'piecewise_polynomial', 'pchip']
+                  'piecewise_polynomial', 'pchip', 'akima']
     if method in sp_methods:
         inds = np.asarray(xvalues)
         # hack for DatetimeIndex, #1646
@@ -156,6 +156,8 @@ def interpolate_1d(xvalues, yvalues, method='linear', limit=None,
             bounds_error=bounds_error, order=order, **kwargs)
         result[violate_limit] = np.nan
         return result
+    else: 
+        raise ValueError('interpolation method not found')
 
 
 def _interpolate_scipy_wrapper(x, y, new_x, method, fill_value=None,
@@ -214,20 +216,51 @@ def _interpolate_scipy_wrapper(x, y, new_x, method, fill_value=None,
             y = y.copy()
         if not new_x.flags.writeable:
             new_x = new_x.copy()
-        method = alt_methods[method]
-        new_y = method(x, y, new_x, **kwargs)
+        if method == 'akima':
+            try:
+                interpolator = interpolate.Akima1DInterpolator(x, y)
+            except AttributeError:
+                raise ImportError("Your version of scipy does not support "
+                                  "Akima interpolation" )
+            new_y = interpolator(new_x)
+        else:
+            method = alt_methods[method]
+            new_y = method(x, y, new_x, **kwargs)
     return new_y
 
 
-def interpolate_2d(values, method='pad', axis=0, limit=None, fill_value=None, dtype=None):
-    """ perform an actual interpolation of values, values will be make 2-d if
-    needed fills inplace, returns the result
+def pad(values, method='pad', axis=0, limit=None, fill_value=None, dtype=None):
+    """ 
+    Perform an actual interpolation of values. 1-d values will be made 2-d temporarily. 
+    Returns the result
     """
+
+    ndim = values.ndim
+    shape = values.shape
+
+    func = partial(pad, method=method, limit=limit, fill_value=fill_value, dtype=dtype)
+
+    if ndim > 2:
+        if ndim == 3:
+            if axis == 0:
+                for n in range(shape[1]):
+                    values[:,n] = func(values[:,n], axis=1)
+            else:
+                for n in range(shape[0]):
+                    values[n] = func(values[n], axis=(1 if axis == 1 else 0))
+        else:
+            if axis == 0:
+                for n in range(shape[1]):
+                    values[:,n] = func(values[:,n], axis=0)
+            else:
+                for n in range(shape[0]):
+                    values[n] = func(values[n], axis=axis-1)
+
+        return values
 
     transf = (lambda x: x) if axis == 0 else (lambda x: x.T)
 
     # reshape a 1 dim if needed
-    ndim = values.ndim
     if values.ndim == 1:
         if axis != 0:  # pragma: no cover
             raise AssertionError("cannot interpolate on a ndim == 1 with "

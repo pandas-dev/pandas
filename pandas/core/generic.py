@@ -2774,7 +2774,7 @@ class NDFrame(PandasObject):
         # set the default here, so functions examining the signaure
         # can detect if something was set (e.g. in groupby) (GH9221)
         if axis is None:
-            axis = 0
+            axis = self._stat_axis_name
         axis = self._get_axis_number(axis)
         method = mis._clean_fill_method(method)
 
@@ -2782,31 +2782,19 @@ class NDFrame(PandasObject):
         if value is None:
             if method is None:
                 raise ValueError('must specify a fill method or value')
-            if self._is_mixed_type and axis == 1:
+            if self._is_mixed_type:
+                if (self.ndim > 2) and (axis == 0):
+                    raise NotImplementedError('cannot fill across axis 0 for mixed dtypes')
                 if inplace:
-                    raise NotImplementedError()
-                result = self.T.fillna(method=method, limit=limit).T
+                    raise NotImplementedError('cannot fill inplace for mixed dtypes')
+                elif (self.ndim == 2) and (axis == 1):
+                    result = self.T.fillna(method=method, limit=limit).T
 
-                # need to downcast here because of all of the transposes
-                result._data = result._data.downcast()
+                    # need to downcast here because of all of the transposes
+                    result._data = result._data.downcast()
 
-                return result
+                    return result
 
-            # > 3d
-            if self.ndim > 3:
-                raise NotImplementedError(
-                    'Cannot fillna with a method for > 3dims'
-                )
-
-            # 3d
-            elif self.ndim == 3:
-
-                # fill in 2d chunks
-                result = dict([(col, s.fillna(method=method, value=value))
-                               for col, s in compat.iteritems(self)])
-                return self._constructor.from_dict(result).__finalize__(self)
-
-            # 2d or less
             method = mis._clean_fill_method(method)
             new_data = self._data.interpolate(method=method,
                                               axis=axis,

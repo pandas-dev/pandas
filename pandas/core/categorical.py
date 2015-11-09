@@ -10,7 +10,7 @@ from pandas.compat import u
 from pandas.core.algorithms import factorize
 from pandas.core.base import PandasObject, PandasDelegate
 import pandas.core.common as com
-from pandas.core.missing import interpolate_2d
+from pandas.core.missing import pad
 from pandas.util.decorators import cache_readonly, deprecate_kwarg
 
 from pandas.core.common import (ABCSeries, ABCIndexClass, ABCPeriodIndex, ABCCategoricalIndex,
@@ -1313,8 +1313,7 @@ class Categorical(PandasObject):
         if method is not None:
 
             values = self.to_dense().reshape(-1, len(self))
-            values = interpolate_2d(
-                values, method, 0, None, value).astype(self.categories.dtype)[0]
+            values = pad(values, method, 0, None, value).astype(self.categories.dtype)[0]
             values = _get_codes_for_values(values, self.categories)
 
         else:
