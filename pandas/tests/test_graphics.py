@@ -3678,6 +3678,35 @@ class TestDataFramePlots(TestPlotBase):
         with tm.assertRaises(ValueError):
             df.plot(colormap='invalid_colormap')
 
+    def test_plain_axes(self):
+
+        # supplied ax itself is a SubplotAxes, but figure contains also
+        # a plain Axes object (GH11556)
+        fig, ax = self.plt.subplots()
+        fig.add_axes([0.2, 0.2, 0.2, 0.2])
+        Series(rand(10)).plot(ax=ax)
+
+        # suppliad ax itself is a plain Axes, but because the cmap keyword
+        # a new ax is created for the colorbar -> also multiples axes (GH11520)
+        df = DataFrame({'a': randn(8), 'b': randn(8)})
+        fig = self.plt.figure()
+        ax = fig.add_axes((0,0,1,1))
+        df.plot(kind='scatter', ax=ax, x='a', y='b', c='a', cmap='hsv')
+
+        # other examples
+        fig, ax = self.plt.subplots()
+        from mpl_toolkits.axes_grid1 import make_axes_locatable
+        divider = make_axes_locatable(ax)
+        cax = divider.append_axes("right", size="5%", pad=0.05)
+        Series(rand(10)).plot(ax=ax)
+        Series(rand(10)).plot(ax=cax)
+
+        fig, ax = self.plt.subplots()
+        from mpl_toolkits.axes_grid.inset_locator import inset_axes
+        iax = inset_axes(ax, width="30%", height=1., loc=3)
+        Series(rand(10)).plot(ax=ax)
+        Series(rand(10)).plot(ax=iax)
+
 
 @tm.mplskip
 class TestDataFrameGroupByPlots(TestPlotBase):
