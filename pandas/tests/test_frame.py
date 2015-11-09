@@ -8002,12 +8002,14 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         # nothing in common
         for meth in ['pearson', 'kendall', 'spearman']:
             df = DataFrame({'A': [1, 1.5, 1, np.nan, np.nan, np.nan],
-                            'B': [np.nan, np.nan, np.nan, 1, 1.5, 1]})
+                            'B': [np.nan, np.nan, np.nan, 1, 1.5, 1],
+                            'C': [np.nan, np.nan, np.nan, np.nan, np.nan, np.nan]})
             rs = df.corr(meth)
             self.assertTrue(isnull(rs.ix['A', 'B']))
             self.assertTrue(isnull(rs.ix['B', 'A']))
             self.assertEqual(rs.ix['A', 'A'], 1)
             self.assertEqual(rs.ix['B', 'B'], 1)
+            self.assertTrue(isnull(rs.ix['C', 'C']))
 
     def test_corr_constant(self):
         tm._skip_if_no_scipy()
@@ -8027,6 +8029,18 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         # it works!
         df3.cov()
         df3.corr()
+
+    def test_corr_int_and_boolean(self):
+        tm._skip_if_no_scipy()
+
+        # when dtypes of pandas series are different
+        # then ndarray will have dtype=object,
+        # so it need to be properly handled
+        df = DataFrame({"a": [True, False], "b": [1, 0]})
+
+        expected = DataFrame(np.ones((2, 2)), index=['a', 'b'], columns=['a', 'b'])
+        for meth in ['pearson', 'kendall', 'spearman']:
+            assert_frame_equal(df.corr(meth), expected)
 
     def test_cov(self):
         # min_periods no NAs (corner case)
