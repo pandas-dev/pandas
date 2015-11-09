@@ -19,3 +19,5 @@ psycopg2
 pymysql
 html5lib
 beautiful-soup
+jinja2=2.8
+markupsafe=0.23

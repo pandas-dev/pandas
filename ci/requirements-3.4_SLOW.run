@@ -18,3 +18,5 @@ bottleneck
 pymysql
 psycopg2
 statsmodels
+jinja2=2.8
+markupsafe=0.23

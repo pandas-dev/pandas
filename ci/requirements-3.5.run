@@ -12,7 +12,8 @@ pytables
 html5lib
 lxml
 matplotlib
-
+jinja2
+markupsafe
 # currently causing some warnings
 #sqlalchemy
 #pymysql
