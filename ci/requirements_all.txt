@@ -20,3 +20,4 @@ lxml
 sqlalchemy
 bottleneck
 pymysql
+Jinja2
