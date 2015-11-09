@@ -140,6 +140,8 @@ Bug Fixes
 
 
 
+- Fix plotting issues when having plain ``Axes`` instances instead of
+  ``SubplotAxes`` (:issue:`11520`, :issue:`11556`).
 
 
 
