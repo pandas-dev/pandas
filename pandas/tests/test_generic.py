@@ -1471,6 +1471,25 @@ class TestDataFrame(tm.TestCase, Generic):
         self.assertTrue(G.describe(include=['number', 'object']).shape == (22, 3))
         self.assertTrue(G.describe(include='all').shape == (26, 4))
 
+    def test_describe_multi_index_df_column_names(self):
+        """ Test that column names persist after the describe operation."""
+
+        df = pd.DataFrame({'A': ['foo', 'bar', 'foo', 'bar', 'foo', 'bar', 'foo', 'foo'],
+                           'B': ['one', 'one', 'two', 'three', 'two', 'two', 'one', 'three'],
+                           'C': np.random.randn(8),
+                           'D': np.random.randn(8)})
+
+        # GH 11517
+        # test for hierarchical index
+        hierarchical_index_df = df.groupby(['A', 'B']).mean().T
+        self.assertTrue(hierarchical_index_df.columns.names == ['A', 'B'])
+        self.assertTrue(hierarchical_index_df.describe().columns.names == ['A', 'B'])
+
+        # test for non-hierarchical index
+        non_hierarchical_index_df = df.groupby(['A']).mean().T
+        self.assertTrue(non_hierarchical_index_df.columns.names == ['A'])
+        self.assertTrue(non_hierarchical_index_df.describe().columns.names == ['A'])
+
     def test_no_order(self):
         tm._skip_if_no_scipy()
         s = Series([0, 1, np.nan, 3])
