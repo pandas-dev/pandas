@@ -242,7 +242,7 @@ to sparse
         """
         Dense values
         """
-        output = np.empty(len(self), dtype=np.float64)
+        output = np.empty(len(self), dtype=self.dtype)
         int_index = self.sp_index.to_int_index()
         output.fill(self.fill_value)
         output.put(int_index.indices, self)
@@ -266,7 +266,8 @@ to sparse
         # fill the nans
         if fill is None:
             fill = self.fill_value
-        if not np.isnan(fill):
+        # nans can only occur arrays of floating scalars
+        if np.issubdtype(self.dtype, np.inexact) and not np.isnan(fill):
             values[np.isnan(values)] = fill
 
         return values

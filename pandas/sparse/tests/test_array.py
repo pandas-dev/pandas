@@ -27,6 +27,10 @@ class TestSparseArray(tm.TestCase):
     def setUp(self):
         self.arr_data = np.array([nan, nan, 1, 2, 3, nan, 4, 5, nan, 6])
         self.arr = SparseArray(self.arr_data)
+
+        self.barr_data = np.array([False, False, True, True, False, False])
+        self.barr = SparseArray(self.barr_data, fill_value=False, dtype=bool)
+
         self.zarr = SparseArray([0, 0, 1, 2, 3, 0, 4, 5, 0, 6], fill_value=0)
 
     def test_get_item(self):
@@ -62,6 +66,10 @@ class TestSparseArray(tm.TestCase):
         not_copy.sp_values[:3] = 0
         self.assertTrue((self.arr.sp_values[:3] == 0).all())
 
+    def test_constructor_match_dtype(self):
+        res = SparseArray(self.barr_data, dtype=bool)
+        self.assertEqual(res.dtype, bool)
+
     def test_astype(self):
         res = self.arr.astype('f8')
         res.sp_values[:3] = 27
@@ -81,9 +89,19 @@ class TestSparseArray(tm.TestCase):
         assert(_get_base(arr2) is _get_base(self.arr))
 
     def test_values_asarray(self):
-        assert_almost_equal(self.arr.values, self.arr_data)
-        assert_almost_equal(self.arr.to_dense(), self.arr_data)
-        assert_almost_equal(self.arr.sp_values, np.asarray(self.arr))
+        for arr, arr_data in ((self.arr, self.arr_data),
+                              (self.barr, self.barr_data)):
+            vals = arr.values
+            assert_almost_equal(vals, arr_data)
+            self.assertEqual(vals.dtype, arr_data.dtype)
+
+            dense = arr.to_dense()
+            assert_almost_equal(dense, arr_data)
+            self.assertEqual(dense.dtype, arr_data.dtype)
+
+            sp_vals = arr.sp_values
+            assert_almost_equal(sp_vals, np.asarray(arr))
+            self.assertEqual(sp_vals.dtype, arr_data.dtype)
 
     def test_getitem(self):
         def _checkit(i):
