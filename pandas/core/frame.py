@@ -1497,7 +1497,14 @@ class DataFrame(NDFrame):
         max_cols : int, optional
             Maximum number of columns to show before truncating. If None, show
             all.
-
+        formatters : callabable or dict/list/tuple of callables, optional
+            The keys to the dict are the column names, any missing or additional
+            names will be given defaults or ignored respectively. If list/tuple
+            the length should match the columns exactly.
+            Each callable can have an optional boolean `escape` attribute, 
+            and an optional string `justify` attribute. See `_make_fixed_width` 
+            function in `format.py` for meaning of `justify`.  If `escape` is
+            not provided the primary `escape` argument is used (see above).
         """
 
         if colSpace is not None:  # pragma: no cover
@@ -1505,6 +1512,23 @@ class DataFrame(NDFrame):
                           FutureWarning, stacklevel=2)
             col_space = colSpace
 
+        # convert dict/single callable to list
+        if isinstance(formatters,dict):
+            formatters_list = []
+            for cname in self.columns:
+                if cname in formatters:
+                    formatters_list.append(formatters[cname])
+                elif isinstance(cname,tuple):
+                    # look through all the names in tuple and take the first
+                    # matching name form the supplied formatters
+                    formatters_list.append(next((formatters[n] for n in cname\
+                                            if n in formatters),None))
+                else:
+                    formatters_list.append(None)
+            formatters = tuple(formatters_list)
+        elif callable(formatters):
+            formatters = (formatters,)*len(self.columns)
+                     
         formatter = fmt.DataFrameFormatter(self, buf=buf, columns=columns,
                                            col_space=col_space, na_rep=na_rep,
                                            formatters=formatters,
