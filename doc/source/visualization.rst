@@ -109,7 +109,7 @@ You can plot one column versus another using the `x` and `y` keywords in
 
 .. note::
 
-   For more formatting and sytling options, see :ref:`below <visualization.formatting>`.
+   For more formatting and styling options, see :ref:`below <visualization.formatting>`.
 
 .. ipython:: python
     :suppress:
