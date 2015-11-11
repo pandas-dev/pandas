@@ -3625,6 +3625,12 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
             invalid.cat
         self.assertFalse(hasattr(invalid, 'cat'))
 
+    def test_cat_accessor_no_new_attributes(self):
+        # https://github.com/pydata/pandas/issues/10673
+        c = Series(list('aabbcde')).astype('category')
+        with tm.assertRaisesRegexp(AttributeError, "You cannot add any new attribute"):
+            c.cat.xlabel = "a"
+
     def test_pickle_v0_14_1(self):
 
         # we have the name warning
