@@ -5546,6 +5546,60 @@ class TestGroupBy(tm.TestCase):
         expected = pd.Series([1] * 5, name='name', index=index)
         tm.assert_series_equal(result, expected)
 
+    def test_std_with_as_index_false_and_column_grouping(self):
+        # GH 10355
+        df = pd.DataFrame({
+            'a': [1, 1, 1, 2, 2, 2, 3, 3, 3],
+            'b': [1, 2, 3, 4, 5, 6, 7, 8, 9],
+        })
+        sd = df.groupby('a', as_index=False).std()
+        sd2 = df.groupby(['a'], as_index=False).std()
+        sd3 = df.groupby(('a'), as_index=False).std()
+
+        expected = pd.DataFrame({
+            'a': [1, 2, 3],
+            'b': [1.0, 1.0, 1.0],
+        })
+        tm.assert_frame_equal(expected, sd)
+        tm.assert_frame_equal(expected, sd2)
+        tm.assert_frame_equal(expected, sd3)
+
+    def test_std_with_as_index_false_and_index_grouping(self):
+        df = pd.DataFrame({
+            'a': [1, 1, 1, 2, 2, 2, 3, 4, 5],
+            'b': [1, 2, 3, 4, 5, 6, 7, 8, 9],
+        })
+        sd = df.groupby(lambda x: 1+int(x/3), as_index=False).std()
+        sd2 = df.groupby([1, 1, 1, 2, 2, 2, 3, 3, 3], as_index=False).std()
+        s = pd.Series([1, 1, 1, 2, 2, 2, 3, 3, 3])
+        sd3 = df.groupby(s, as_index=False).std()
+        sd4 = df.groupby(dict(s), as_index=False).std()
+
+        expected = pd.DataFrame({
+            'a': [0.0, 0.0, 1.0],
+            'b': [1.0, 1.0, 1.0],
+        })
+        tm.assert_frame_equal(expected, sd)
+        tm.assert_frame_equal(expected, sd2)
+        tm.assert_frame_equal(expected, sd3)
+        tm.assert_frame_equal(expected, sd4)
+
+    def test_std_with_as_index_false_and_ddof_zero(self):
+        df = pd.DataFrame({
+            1: [1, 1, 1, 2, 2, 2, 3, 3, 3],
+            2: [1, 2, 3, 1, 5, 6, 7, 8, 10],
+        })
+        sd = df.groupby(1, as_index=False).std(ddof=0)
+
+        expected = pd.DataFrame({
+            1: [1, 2, 3],
+            2: [
+                np.std([1, 2, 3], ddof=0),
+                np.std([1, 5, 6], ddof=0),
+                np.std([7, 8, 10], ddof=0)],
+        })
+        tm.assert_frame_equal(expected, sd)
+
 
 def assert_fp_equal(a, b):
     assert (np.abs(a - b) < 1e-12).all()
