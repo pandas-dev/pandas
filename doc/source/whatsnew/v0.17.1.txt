@@ -46,6 +46,8 @@ Enhancements
 
    pd.Index([1, np.nan, 3]).fillna(2)
 
+- ``pivot_table`` now has a ``margins_name`` argument so you can use something other than the default of 'All' (:issue:`3335`)
+
 .. _whatsnew_0171.api:
 
 API changes
