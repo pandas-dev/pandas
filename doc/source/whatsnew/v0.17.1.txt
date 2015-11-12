@@ -65,6 +65,8 @@ Enhancements
 
      pd.Index([1, np.nan, 3]).fillna(2)
 
+- Series of type ``"category"`` now make ``.str.<...>`` and ``.dt.<...>`` accessor methods / properties available, if the categories are of that type. (:issue:`10661`)
+
 - ``pivot_table`` now has a ``margins_name`` argument so you can use something other than the default of 'All' (:issue:`3335`)
 
 .. _whatsnew_0171.api:
