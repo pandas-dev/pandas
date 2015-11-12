@@ -2,7 +2,7 @@ import numpy as np
 
 from pandas.compat import zip
 from pandas.core.common import (isnull, _values_from_object, is_bool_dtype, is_list_like,
-                                is_categorical_dtype, is_object_dtype)
+                                is_categorical_dtype, is_object_dtype, take_1d)
 import pandas.compat as compat
 from pandas.core.base import AccessorProperty, NoNewAttributesMixin
 from pandas.util.decorators import Appender, deprecate_kwarg
@@ -1003,7 +1003,7 @@ def str_encode(arr, encoding, errors="strict"):
 
 def _noarg_wrapper(f, docstring=None, **kargs):
     def wrapper(self):
-        result = _na_map(f, self.series, **kargs)
+        result = _na_map(f, self._data, **kargs)
         return self._wrap_result(result)
 
     wrapper.__name__ = f.__name__
@@ -1017,15 +1017,15 @@ def _noarg_wrapper(f, docstring=None, **kargs):
 
 def _pat_wrapper(f, flags=False, na=False, **kwargs):
     def wrapper1(self, pat):
-        result = f(self.series, pat)
+        result = f(self._data, pat)
         return self._wrap_result(result)
 
     def wrapper2(self, pat, flags=0, **kwargs):
-        result = f(self.series, pat, flags=flags, **kwargs)
+        result = f(self._data, pat, flags=flags, **kwargs)
         return self._wrap_result(result)
 
     def wrapper3(self, pat, na=np.nan):
-        result = f(self.series, pat, na=na)
+        result = f(self._data, pat, na=na)
         return self._wrap_result(result)
 
     wrapper = wrapper3 if na else wrapper2 if flags else wrapper1
@@ -1059,8 +1059,11 @@ class StringMethods(NoNewAttributesMixin):
     >>> s.str.replace('_', '')
     """
 
-    def __init__(self, series):
-        self.series = series
+    def __init__(self, data):
+        self._is_categorical = is_categorical_dtype(data)
+        self._data = data.cat.categories if self._is_categorical else data
+        # save orig to blow up categoricals to the right type
+        self._orig = data
         self._freeze()
 
     def __getitem__(self, key):
@@ -1078,7 +1081,15 @@ class StringMethods(NoNewAttributesMixin):
             i += 1
             g = self.get(i)
 
-    def _wrap_result(self, result, **kwargs):
+    def _wrap_result(self, result, use_codes=True, name=None):
+
+        # for category, we do the stuff on the categories, so blow it up
+        # to the full series again
+        # But for some operations, we have to do the stuff on the full values,
+        # so make it possible to skip this step as the method already did this before
+        # the transformation...
+        if use_codes and self._is_categorical:
+            result = take_1d(result, self._orig.cat.codes)
 
         # leave as it is to keep extract and get_dummies results
         # can be merged to _wrap_result_expand in v0.17
@@ -1088,29 +1099,34 @@ class StringMethods(NoNewAttributesMixin):
 
         if not hasattr(result, 'ndim'):
             return result
-        name = kwargs.get('name') or getattr(result, 'name', None) or self.series.name
+        name = name or getattr(result, 'name', None) or self._orig.name
 
         if result.ndim == 1:
-            if isinstance(self.series, Index):
+            if isinstance(self._orig, Index):
                 # if result is a boolean np.array, return the np.array
                 # instead of wrapping it into a boolean Index (GH 8875)
                 if is_bool_dtype(result):
                     return result
                 return Index(result, name=name)
-            return Series(result, index=self.series.index, name=name)
+            return Series(result, index=self._orig.index, name=name)
         else:
             assert result.ndim < 3
-            return DataFrame(result, index=self.series.index)
+            return DataFrame(result, index=self._orig.index)
 
     def _wrap_result_expand(self, result, expand=False):
         if not isinstance(expand, bool):
             raise ValueError("expand must be True or False")
 
+        # for category, we do the stuff on the categories, so blow it up
+        # to the full series again
+        if self._is_categorical:
+            result = take_1d(result, self._orig.cat.codes)
+
         from pandas.core.index import Index, MultiIndex
         if not hasattr(result, 'ndim'):
             return result
 
-        if isinstance(self.series, Index):
+        if isinstance(self._orig, Index):
             name = getattr(result, 'name', None)
             # if result is a boolean np.array, return the np.array
             # instead of wrapping it into a boolean Index (GH 8875)
@@ -1123,36 +1139,38 @@ class StringMethods(NoNewAttributesMixin):
             else:
                 return Index(result, name=name)
         else:
-            index = self.series.index
+            index = self._orig.index
             if expand:
                 def cons_row(x):
                     if is_list_like(x):
                         return x
                     else:
                         return [ x ]
-                cons = self.series._constructor_expanddim
+                cons = self._orig._constructor_expanddim
                 data = [cons_row(x) for x in result]
                 return cons(data, index=index)
             else:
                 name = getattr(result, 'name', None)
-                cons = self.series._constructor
+                cons = self._orig._constructor
                 return cons(result, name=name, index=index)
 
     @copy(str_cat)
     def cat(self, others=None, sep=None, na_rep=None):
-        result = str_cat(self.series, others=others, sep=sep, na_rep=na_rep)
-        return self._wrap_result(result)
+        data = self._orig if self._is_categorical else self._data
+        result = str_cat(data, others=others, sep=sep, na_rep=na_rep)
+        return self._wrap_result(result, use_codes=(not self._is_categorical))
+
 
     @deprecate_kwarg('return_type', 'expand',
                      mapping={'series': False, 'frame': True})
     @copy(str_split)
     def split(self, pat=None, n=-1, expand=False):
-        result = str_split(self.series, pat, n=n)
+        result = str_split(self._data, pat, n=n)
         return self._wrap_result_expand(result, expand=expand)
 
     @copy(str_rsplit)
     def rsplit(self, pat=None, n=-1, expand=False):
-        result = str_rsplit(self.series, pat, n=n)
+        result = str_rsplit(self._data, pat, n=n)
         return self._wrap_result_expand(result, expand=expand)
 
     _shared_docs['str_partition'] = ("""
@@ -1203,7 +1221,7 @@ class StringMethods(NoNewAttributesMixin):
         'also': 'rpartition : Split the string at the last occurrence of `sep`'})
     def partition(self, pat=' ', expand=True):
         f = lambda x: x.partition(pat)
-        result = _na_map(f, self.series)
+        result = _na_map(f, self._data)
         return self._wrap_result_expand(result, expand=expand)
 
     @Appender(_shared_docs['str_partition'] % {'side': 'last',
@@ -1211,45 +1229,45 @@ class StringMethods(NoNewAttributesMixin):
         'also': 'partition : Split the string at the first occurrence of `sep`'})
     def rpartition(self, pat=' ', expand=True):
         f = lambda x: x.rpartition(pat)
-        result = _na_map(f, self.series)
+        result = _na_map(f, self._data)
         return self._wrap_result_expand(result, expand=expand)
 
     @copy(str_get)
     def get(self, i):
-        result = str_get(self.series, i)
+        result = str_get(self._data, i)
         return self._wrap_result(result)
 
     @copy(str_join)
     def join(self, sep):
-        result = str_join(self.series, sep)
+        result = str_join(self._data, sep)
         return self._wrap_result(result)
 
     @copy(str_contains)
     def contains(self, pat, case=True, flags=0, na=np.nan, regex=True):
-        result = str_contains(self.series, pat, case=case, flags=flags,
+        result = str_contains(self._data, pat, case=case, flags=flags,
                               na=na, regex=regex)
         return self._wrap_result(result)
 
     @copy(str_match)
     def match(self, pat, case=True, flags=0, na=np.nan, as_indexer=False):
-        result = str_match(self.series, pat, case=case, flags=flags,
+        result = str_match(self._data, pat, case=case, flags=flags,
                            na=na, as_indexer=as_indexer)
         return self._wrap_result(result)
 
     @copy(str_replace)
     def replace(self, pat, repl, n=-1, case=True, flags=0):
-        result = str_replace(self.series, pat, repl, n=n, case=case,
+        result = str_replace(self._data, pat, repl, n=n, case=case,
                              flags=flags)
         return self._wrap_result(result)
 
     @copy(str_repeat)
     def repeat(self, repeats):
-        result = str_repeat(self.series, repeats)
+        result = str_repeat(self._data, repeats)
         return self._wrap_result(result)
 
     @copy(str_pad)
     def pad(self, width, side='left', fillchar=' '):
-        result = str_pad(self.series, width, side=side, fillchar=fillchar)
+        result = str_pad(self._data, width, side=side, fillchar=fillchar)
         return self._wrap_result(result)
 
     _shared_docs['str_pad'] = ("""
@@ -1297,27 +1315,27 @@ class StringMethods(NoNewAttributesMixin):
         -------
         filled : Series/Index of objects
         """
-        result = str_pad(self.series, width, side='left', fillchar='0')
+        result = str_pad(self._data, width, side='left', fillchar='0')
         return self._wrap_result(result)
 
     @copy(str_slice)
     def slice(self, start=None, stop=None, step=None):
-        result = str_slice(self.series, start, stop, step)
+        result = str_slice(self._data, start, stop, step)
         return self._wrap_result(result)
 
     @copy(str_slice_replace)
     def slice_replace(self, start=None, stop=None, repl=None):
-        result = str_slice_replace(self.series, start, stop, repl)
+        result = str_slice_replace(self._data, start, stop, repl)
         return self._wrap_result(result)
 
     @copy(str_decode)
     def decode(self, encoding, errors="strict"):
-        result = str_decode(self.series, encoding, errors)
+        result = str_decode(self._data, encoding, errors)
         return self._wrap_result(result)
 
     @copy(str_encode)
     def encode(self, encoding, errors="strict"):
-        result = str_encode(self.series, encoding, errors)
+        result = str_encode(self._data, encoding, errors)
         return self._wrap_result(result)
 
     _shared_docs['str_strip'] = ("""
@@ -1332,34 +1350,37 @@ class StringMethods(NoNewAttributesMixin):
     @Appender(_shared_docs['str_strip'] % dict(side='left and right sides',
               method='strip'))
     def strip(self, to_strip=None):
-        result = str_strip(self.series, to_strip, side='both')
+        result = str_strip(self._data, to_strip, side='both')
         return self._wrap_result(result)
 
     @Appender(_shared_docs['str_strip'] % dict(side='left side',
               method='lstrip'))
     def lstrip(self, to_strip=None):
-        result = str_strip(self.series, to_strip, side='left')
+        result = str_strip(self._data, to_strip, side='left')
         return self._wrap_result(result)
 
     @Appender(_shared_docs['str_strip'] % dict(side='right side',
               method='rstrip'))
     def rstrip(self, to_strip=None):
-        result = str_strip(self.series, to_strip, side='right')
+        result = str_strip(self._data, to_strip, side='right')
         return self._wrap_result(result)
 
     @copy(str_wrap)
     def wrap(self, width, **kwargs):
-        result = str_wrap(self.series, width, **kwargs)
+        result = str_wrap(self._data, width, **kwargs)
         return self._wrap_result(result)
 
     @copy(str_get_dummies)
     def get_dummies(self, sep='|'):
-        result = str_get_dummies(self.series, sep)
-        return self._wrap_result(result)
+        # we need to cast to Series of strings as only that has all
+        # methods available for making the dummies...
+        data = self._orig.astype(str) if self._is_categorical else self._data
+        result = str_get_dummies(data, sep)
+        return self._wrap_result(result, use_codes=(not self._is_categorical))
 
     @copy(str_translate)
     def translate(self, table, deletechars=None):
-        result = str_translate(self.series, table, deletechars)
+        result = str_translate(self._data, table, deletechars)
         return self._wrap_result(result)
 
     count = _pat_wrapper(str_count, flags=True)
@@ -1369,7 +1390,7 @@ class StringMethods(NoNewAttributesMixin):
 
     @copy(str_extract)
     def extract(self, pat, flags=0):
-        result, name = str_extract(self.series, pat, flags=flags)
+        result, name = str_extract(self._data, pat, flags=flags)
         return self._wrap_result(result, name=name)
 
     _shared_docs['find'] = ("""
@@ -1398,13 +1419,13 @@ class StringMethods(NoNewAttributesMixin):
     @Appender(_shared_docs['find'] % dict(side='lowest', method='find',
               also='rfind : Return highest indexes in each strings'))
     def find(self, sub, start=0, end=None):
-        result = str_find(self.series, sub, start=start, end=end, side='left')
+        result = str_find(self._data, sub, start=start, end=end, side='left')
         return self._wrap_result(result)
 
     @Appender(_shared_docs['find'] % dict(side='highest', method='rfind',
               also='find : Return lowest indexes in each strings'))
     def rfind(self, sub, start=0, end=None):
-        result = str_find(self.series, sub, start=start, end=end, side='right')
+        result = str_find(self._data, sub, start=start, end=end, side='right')
         return self._wrap_result(result)
 
     def normalize(self, form):
@@ -1423,7 +1444,7 @@ class StringMethods(NoNewAttributesMixin):
         """
         import unicodedata
         f = lambda x: unicodedata.normalize(form, compat.u_safe(x))
-        result = _na_map(f, self.series)
+        result = _na_map(f, self._data)
         return self._wrap_result(result)
 
     _shared_docs['index'] = ("""
@@ -1453,13 +1474,13 @@ class StringMethods(NoNewAttributesMixin):
     @Appender(_shared_docs['index'] % dict(side='lowest', similar='find', method='index',
               also='rindex : Return highest indexes in each strings'))
     def index(self, sub, start=0, end=None):
-        result = str_index(self.series, sub, start=start, end=end, side='left')
+        result = str_index(self._data, sub, start=start, end=end, side='left')
         return self._wrap_result(result)
 
     @Appender(_shared_docs['index'] % dict(side='highest', similar='rfind', method='rindex',
               also='index : Return lowest indexes in each strings'))
     def rindex(self, sub, start=0, end=None):
-        result = str_index(self.series, sub, start=start, end=end, side='right')
+        result = str_index(self._data, sub, start=start, end=end, side='right')
         return self._wrap_result(result)
 
     _shared_docs['len'] = ("""
@@ -1553,9 +1574,14 @@ class StringAccessorMixin(object):
     def _make_str_accessor(self):
         from pandas.core.series import Series
         from pandas.core.index import Index
-        if isinstance(self, Series) and not is_object_dtype(self.dtype):
-            # this really should exclude all series with any non-string values,
-            # but that isn't practical for performance reasons until we have a
+        if isinstance(self, Series) and not(
+                    (is_categorical_dtype(self.dtype) and
+                     is_object_dtype(self.values.categories)) or
+                    (is_object_dtype(self.dtype))):
+            # it's neither a string series not a categorical series with strings
+            # inside the categories.
+            # this really should exclude all series with any non-string values (instead of test
+            # for object dtype), but that isn't practical for performance reasons until we have a
             # str dtype (GH 9343)
             raise AttributeError("Can only use .str accessor with string "
                                  "values, which use np.object_ dtype in "
