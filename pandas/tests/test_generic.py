@@ -99,6 +99,14 @@ class Generic(object):
 
         # multiple axes at once
 
+    def test_get(self):
+        # GH 6703
+        # testing the axis parameter
+        df = DataFrame({'a': [1, 2, 3], 'b': [1, 2, 3], 'c': [1, 2, 3]})
+        x = df.set_index(['a', 'b'])
+        assert_series_equal(x.get((1, 1), axis=0), x.T.get((1, 1)))
+        assert_series_equal(x.get('c', axis=1), x.get('c'))
+
     def test_get_numeric_data(self):
 
         n = 4

@@ -1062,23 +1062,51 @@ class NDFrame(PandasObject):
             # add to our internal names set
             cls._internal_names_set.add(iname)
 
-    def get(self, key, default=None):
+    def get(self, key, default=None, axis=None):
         """
         Get item from object for given key (DataFrame column, Panel slice,
-        etc.). Returns default value if not found
+        etc.) along the given axis. Returns default value if not found
 
         Parameters
         ----------
         key : object
+        default : object, optional
+            Value to return if key is not present
+        axis : int or None
+            The axis to filter on. By default this is the info axis. The "info
+            axis" is the axis that is used when indexing with ``[]``. For
+            example, ``df = DataFrame({'a': [1, 2, 3, 4]]})
 
         Returns
         -------
-        value : type of items contained in object
+        value : type of items contained in object, or default
         """
-        try:
-            return self[key]
-        except (KeyError, ValueError, IndexError):
+        # special case (GH 5652)
+        if key is None:
             return default
+        # general case
+        if axis is None:
+            axis = self._info_axis_number
+        else:
+            axis = self._get_axis_number(axis)
+        slices = [slice(None)] * self.ndim
+        slices[axis] = key
+        try:
+            return self.loc[tuple(slices)]
+        except (KeyError, ValueError, IndexError):
+            pass
+        # Two possibilities:
+        # 1) the key is not present, and we should return default
+        # 2) self.loc does not like our slice (which we have to deal with the
+        #    axis parameter). This happens for instance with a series with a
+        #    string index and a negative key.
+        # To cover this last case, we revert to the previous implementation:
+        if axis == self._info_axis_number:
+            try:
+                return self[key]
+            except (KeyError, ValueError, IndexError):
+                pass
+        return default
 
     def __getitem__(self, item):
         return self._get_item_cache(item)
@@ -1779,7 +1807,7 @@ class NDFrame(PandasObject):
             avoid duplicating data
         method : {None, 'backfill'/'bfill', 'pad'/'ffill', 'nearest'}, optional
             method to use for filling holes in reindexed DataFrame.
-            Please note: this is only  applicable to DataFrames/Series with a 
+            Please note: this is only  applicable to DataFrames/Series with a
             monotonically increasing/decreasing index.
               * default: don't fill gaps
               * pad / ffill: propagate last valid observation forward to next valid
@@ -1822,7 +1850,7 @@ class NDFrame(PandasObject):
 
         Create a new index and reindex the dataframe. By default
         values in the new index that do not have corresponding
-        records in the dataframe are assigned ``NaN``. 
+        records in the dataframe are assigned ``NaN``.
 
         >>> new_index= ['Safari', 'Iceweasel', 'Comodo Dragon', 'IE10',
         ...             'Chrome']
@@ -1836,8 +1864,8 @@ class NDFrame(PandasObject):
 
         We can fill in the missing values by passing a value to
         the keyword ``fill_value``. Because the index is not monotonically
-        increasing or decreasing, we cannot use arguments to the keyword  
-        ``method`` to fill the ``NaN`` values. 
+        increasing or decreasing, we cannot use arguments to the keyword
+        ``method`` to fill the ``NaN`` values.
 
         >>> df.reindex(new_index, fill_value=0)
                        http_status  response_time
@@ -1855,8 +1883,8 @@ class NDFrame(PandasObject):
         IE10                  404          0.08
         Chrome                200          0.02
 
-        To further illustrate the filling functionality in 
-        ``reindex``, we will create a dataframe with a 
+        To further illustrate the filling functionality in
+        ``reindex``, we will create a dataframe with a
         monotonically increasing index (for example, a sequence
         of dates).
 
@@ -1873,7 +1901,7 @@ class NDFrame(PandasObject):
         2010-01-06      88
 
         Suppose we decide to expand the dataframe to cover a wider
-        date range. 
+        date range.
 
         >>> date_index2 = pd.date_range('12/29/2009', periods=10, freq='D')
         >>> df2.reindex(date_index2)
@@ -1890,10 +1918,10 @@ class NDFrame(PandasObject):
         2010-01-07     NaN
 
         The index entries that did not have a value in the original data frame
-        (for example, '2009-12-29') are by default filled with ``NaN``. 
+        (for example, '2009-12-29') are by default filled with ``NaN``.
         If desired, we can fill in the missing values using one of several
-        options. 
-        
+        options.
+
         For example, to backpropagate the last valid value to fill the ``NaN``
         values, pass ``bfill`` as an argument to the ``method`` keyword.
 
@@ -1911,7 +1939,7 @@ class NDFrame(PandasObject):
         2010-01-07     NaN
 
         Please note that the ``NaN`` value present in the original dataframe
-        (at index value 2010-01-03) will not be filled by any of the 
+        (at index value 2010-01-03) will not be filled by any of the
         value propagation schemes. This is because filling while reindexing
         does not look at dataframe values, but only compares the original and
         desired indexes. If you do want to fill in the ``NaN`` values present
