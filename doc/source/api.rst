@@ -729,6 +729,7 @@ Serialization / IO / Conversion
    Series.to_json
    Series.to_sparse
    Series.to_dense
+   Series.to_html
    Series.to_string
    Series.to_clipboard
 

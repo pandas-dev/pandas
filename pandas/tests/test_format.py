@@ -3574,6 +3574,69 @@ class TestSeriesFormatting(tm.TestCase):
         exp = '0    0\n    ..\n9    9'
         self.assertEqual(res, exp)
 
+    def test_to_html(self):
+        expected_template = '''\
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>{column_name}</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>0</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>1</td>
+    </tr>
+  </tbody>
+</table>'''
+        column_representations = {
+            'foo': 'foo',
+            None: '',
+        }
+        for series_name, column_name in column_representations.items():
+            s = pd.Series(range(2), dtype='int64', name=series_name)
+            result = s.to_html()
+            expected = expected_template.format(column_name=column_name)
+            self.assertEqual(result, expected)
+
+    def test_repr_html(self):
+        s = pd.Series(range(5), dtype='int64', name='foo')
+        self.assertTrue(hasattr(s, '_repr_html_'))
+        fmt.set_option('display.max_rows', 2)
+        result = s._repr_html_()
+        expected = u'''\
+<div{div_style}>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>foo</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>0</td>
+    </tr>
+    <tr>
+      <th>...</th>
+      <td>...</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>4</td>
+    </tr>
+  </tbody>
+</table>
+<p>5 rows \xd7 1 columns</p>
+</div>'''.format(div_style=div_style)
+        self.assertEqual(result, expected)
+
 
 class TestEngFormatter(tm.TestCase):
     _multiprocess_can_split_ = True

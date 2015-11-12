@@ -952,6 +952,63 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         return result
 
+    def _repr_footer(self):
+
+        namestr = u("Name: %s, ") % com.pprint_thing(
+            self.name) if self.name is not None else ""
+
+        # time series
+        if self.is_time_series:
+            if self.index.freq is not None:
+                freqstr = u('Freq: %s, ') % self.index.freqstr
+            else:
+                freqstr = u('')
+
+            return u('%s%sLength: %d') % (freqstr, namestr, len(self))
+
+        # Categorical
+        if com.is_categorical_dtype(self.dtype):
+            level_info = self.values._repr_categories_info()
+            return u('%sLength: %d, dtype: %s\n%s') % (namestr,
+                                                       len(self),
+                                                       str(self.dtype.name),
+                                                       level_info)
+
+        # reg series
+        return u('%sLength: %d, dtype: %s') % (namestr,
+                                               len(self),
+                                               str(self.dtype.name))
+
+    def _repr_html_(self, *args, **kwargs):
+        df = self.to_frame()
+        if self.name is None:
+            df.columns = ['']
+        return df._repr_html_(*args, **kwargs)
+
+    def to_html(self, *args, **kwargs):
+        """
+        Render a Series as an HTML table.
+
+        `to_html`-specific options:
+
+        bold_rows : boolean, default True
+            Make the row labels bold in the output
+        classes : str or list or tuple, default None
+            CSS class(es) to apply to the resulting html table
+        escape : boolean, default True
+            Convert the characters <, >, and & to HTML-safe sequences.=
+        max_rows : int, optional
+            Maximum number of rows to show before truncating. If None, show
+            all.
+        max_cols : int, optional
+            Maximum number of columns to show before truncating. If None, show
+            all.
+        """
+        df = self.to_frame()
+        if self.name is None:
+            df.columns = ['']
+        return df.to_html(*args, **kwargs)
+
     def to_string(self, buf=None, na_rep='NaN', float_format=None, header=True,
                   length=False, dtype=False, name=False, max_rows=None):
         """
