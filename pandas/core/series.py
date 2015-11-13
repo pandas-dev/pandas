@@ -171,17 +171,22 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                         index = Index(_try_sort(data))
                 try:
                     if isinstance(index, DatetimeIndex):
-                        # coerce back to datetime objects for lookup
-                        data = _dict_compat(data)
-                        data = lib.fast_multiget(data, index.astype('O'),
-                                                 default=np.nan)
+                        if len(data):
+                            # coerce back to datetime objects for lookup
+                            data = _dict_compat(data)
+                            data = lib.fast_multiget(data, index.astype('O'),
+                                                     default=np.nan)
+                        else:
+                            data = np.nan
                     elif isinstance(index, PeriodIndex):
-                        data = [data.get(i, nan) for i in index]
+                        data = [data.get(i, nan)
+                                for i in index] if data else np.nan
                     else:
                         data = lib.fast_multiget(data, index.values,
                                                  default=np.nan)
                 except TypeError:
-                    data = [data.get(i, nan) for i in index]
+                    data = [data.get(i, nan)
+                            for i in index] if data else np.nan
 
             elif isinstance(data, SingleBlockManager):
                 if index is None:
