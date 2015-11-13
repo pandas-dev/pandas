@@ -17,7 +17,7 @@ Highlights include:
 
 Enhancements
 ~~~~~~~~~~~~
-- ``DatetimeIndex`` now supports conversion to strings with astype(str) (:issue:`10442`)
+- ``DatetimeIndex`` now supports conversion to strings with ``astype(str)`` (:issue:`10442`)
 
 - Support for ``compression`` (gzip/bz2) in :meth:`pandas.DataFrame.to_csv` (:issue:`7615`)
 - Improve the error message in :func:`pandas.io.gbq.to_gbq` when a streaming insert fails (:issue:`11285`)
@@ -40,7 +40,7 @@ Enhancements
    # we have an accurate memory assessment (but can be expensive to compute this)
    df.info(memory_usage='deep')
 
-- ``Index`` now has ``fillna`` method (:issue:`10089`)
+- ``Index`` now has a ``fillna`` method (:issue:`10089`)
 
 .. ipython:: python
 
@@ -67,7 +67,7 @@ Deprecations
 ^^^^^^^^^^^^
 
 - The ``pandas.io.ga`` module which implements ``google-analytics`` support is deprecated and will be removed in a future version (:issue:`11308`)
-- Deprecate the ``engine`` keyword from ``.to_csv()``, which will be removed in a future version (:issue:`11274`)
+- Deprecate the ``engine`` keyword in ``.to_csv()``, which will be removed in a future version (:issue:`11274`)
 
 
 .. _whatsnew_0171.performance:
@@ -80,7 +80,7 @@ Performance Improvements
 
 
 - Release the GIL on most datetime field operations (e.g. ``DatetimeIndex.year``, ``Series.dt.year``), normalization, and conversion to and from ``Period``, ``DatetimeIndex.to_period`` and ``PeriodIndex.to_timestamp`` (:issue:`11263`)
-- Release the GIL on some srolling algos (``rolling_median``, ``rolling_mean``, ``rolling_max``, ``rolling_min``, ``rolling_var``, ``rolling_kurt``, `rolling_skew`` (:issue:`11450`)
+- Release the GIL on some srolling algos (``rolling_median``, ``rolling_mean``, ``rolling_max``, ``rolling_min``, ``rolling_var``, ``rolling_kurt``, ``rolling_skew`` (:issue:`11450`)
 - Release the GIL when reading and parsing text files in ``read_csv``, ``read_table`` (:issue:`11272`)
 - Improved performance of ``rolling_median`` (:issue:`11450`)
 
