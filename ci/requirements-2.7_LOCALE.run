@@ -15,4 +15,3 @@ scipy=0.11.0
 beautiful-soup=4.2.1
 statsmodels=0.4.3
 bigquery=2.0.17
-jinja2=2.8
