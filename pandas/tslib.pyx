@@ -642,7 +642,7 @@ class NaTType(_NaT):
 
     def __reduce__(self):
         return (__nat_unpickle, (None, ))
-    
+
     def total_seconds(self):
         # GH 10939
         return np.nan
@@ -1749,7 +1749,8 @@ def dateutil_parse(object timestr, object default, ignoretz=False,
         res, _ = res
 
     if res is None:
-        raise ValueError("unknown string format")
+        msg = "Unknown datetime string format, unable to parse: {0}"
+        raise ValueError(msg.format(timestr))
 
     for attr in ["year", "month", "day", "hour",
                  "minute", "second", "microsecond"]:
@@ -1759,7 +1760,8 @@ def dateutil_parse(object timestr, object default, ignoretz=False,
             reso = attr
 
     if reso is None:
-        raise ValueError("Cannot parse date.")
+        msg = "Unable to parse datetime string: {0}"
+        raise ValueError(msg.format(timestr))
 
     if reso == 'microsecond':
         if repl['microsecond'] == 0:
