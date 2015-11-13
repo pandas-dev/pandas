@@ -999,13 +999,13 @@ Skip row between header and data
     01.01.1990 04:00;17;9;10;11
     01.01.1990 05:00;21;11;12;13
     """
-    
+
 Option 1: pass rows explicitly to skiprows
 """"""""""""""""""""""""""""""""""""""""""
 
 .. ipython:: python
 
-    pd.read_csv(StringIO(data.decode('UTF-8')), sep=';', skiprows=[11,12], 
+    pd.read_csv(StringIO(data.decode('UTF-8')), sep=';', skiprows=[11,12],
             index_col=0, parse_dates=True, header=10)
 
 Option 2: read column names and then data
@@ -1013,15 +1013,15 @@ Option 2: read column names and then data
 
 .. ipython:: python
 
-    pd.read_csv(StringIO(data.decode('UTF-8')), sep=';', 
+    pd.read_csv(StringIO(data.decode('UTF-8')), sep=';',
             header=10, parse_dates=True, nrows=10).columns
-    columns = pd.read_csv(StringIO(data.decode('UTF-8')), sep=';', 
+    columns = pd.read_csv(StringIO(data.decode('UTF-8')), sep=';',
                       header=10, parse_dates=True, nrows=10).columns
-    pd.read_csv(StringIO(data.decode('UTF-8')), sep=';', 
+    pd.read_csv(StringIO(data.decode('UTF-8')), sep=';',
                 header=12, parse_dates=True, names=columns)
 
 
-    
+
 .. _cookbook.sql:
 
 SQL
@@ -1127,17 +1127,6 @@ Storing Attributes to a group node
 
    store.close()
    os.remove('test.h5')
-
-How to construct an index of a Pandas dataframe stored in HDF5 file. This operation is useful after you append multiple data to the dataframe without index creation. The index creation is purposely turned off during appending to save costly computation time
-.. ipython:: python
-
-   df = DataFrame(randn(10,2),columns=list('AB')).to_hdf('test.h5','df',data_columns=['B'],mode='w',table=True)
-   store = pd.HDFStore('test.h5')
-
-   # create index
-   store.create_table_index('df',columns=['B'],optlevel=9,kind='full')
-   store.close()
-
 
 .. _cookbook.binary:
 

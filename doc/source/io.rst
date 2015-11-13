@@ -3071,6 +3071,33 @@ indexed dimension as the ``where``.
    i = store.root.df.table.cols.index.index
    i.optlevel, i.kind
 
+Ofentimes when appending large amounts of data to a store, it is useful to turn off index creation for each append, then recreate at the end.
+
+.. ipython:: python
+
+   df_1 = DataFrame(randn(10,2),columns=list('AB'))
+   df_2 = DataFrame(randn(10,2),columns=list('AB'))
+
+   st = pd.HDFStore('appends.h5',mode='w')
+   st.append('df', df_1, data_columns=['B'], index=False)
+   st.append('df', df_2, data_columns=['B'], index=False)
+   st.get_storer('df').table
+
+Then create the index when finished appending.
+
+.. ipython:: python
+
+   st.create_table_index('df', columns=['B'], optlevel=9, kind='full')
+   st.get_storer('df').table
+
+   st.close()
+
+.. ipython:: python
+   :suppress:
+   :okexcept:
+
+   os.remove('appends.h5')
+
 See `here <http://stackoverflow.com/questions/17893370/ptrepack-sortby-needs-full-index>`__ for how to create a completely-sorted-index (CSI) on an existing store.
 
 Query via Data Columns
