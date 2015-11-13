@@ -1582,11 +1582,12 @@ class DataFrame(NDFrame):
         max_cols : int, default None
             Determines whether full summary or short summary is printed.
             None follows the `display.max_info_columns` setting.
-        memory_usage : boolean, default None
+        memory_usage : boolean/string, default None
             Specifies whether total memory usage of the DataFrame
             elements (including index) should be displayed. None follows
             the `display.memory_usage` setting. True or False overrides
-            the `display.memory_usage` setting. Memory usage is shown in
+            the `display.memory_usage` setting. A value of 'deep' is equivalent
+            of True, with deep introspection. Memory usage is shown in
             human-readable units (base-2 representation).
         null_counts : boolean, default None
             Whether to show the non-null counts
@@ -1676,20 +1677,27 @@ class DataFrame(NDFrame):
         counts = self.get_dtype_counts()
         dtypes = ['%s(%d)' % k for k in sorted(compat.iteritems(counts))]
         lines.append('dtypes: %s' % ', '.join(dtypes))
+
         if memory_usage is None:
             memory_usage = get_option('display.memory_usage')
-        if memory_usage:  # append memory usage of df to display
-            # size_qualifier is just a best effort; not guaranteed to catch all
-            # cases (e.g., it misses categorical data even with object
-            # categories)
-            size_qualifier = ('+' if 'object' in counts
-                              or is_object_dtype(self.index) else '')
-            mem_usage = self.memory_usage(index=True).sum()
+        if memory_usage:
+            # append memory usage of df to display
+            size_qualifier = ''
+            if memory_usage == 'deep':
+                deep=True
+            else:
+                # size_qualifier is just a best effort; not guaranteed to catch all
+                # cases (e.g., it misses categorical data even with object
+                # categories)
+                deep=False
+                if 'object' in counts or is_object_dtype(self.index):
+                    size_qualifier = '+'
+            mem_usage = self.memory_usage(index=True, deep=deep).sum()
             lines.append("memory usage: %s\n" %
                             _sizeof_fmt(mem_usage, size_qualifier))
         _put_lines(buf, lines)
 
-    def memory_usage(self, index=False):
+    def memory_usage(self, index=False, deep=False):
         """Memory usage of DataFrame columns.
 
         Parameters
@@ -1698,6 +1706,9 @@ class DataFrame(NDFrame):
             Specifies whether to include memory usage of DataFrame's
             index in returned Series. If `index=True` (default is False)
             the first index of the Series is `Index`.
+        deep : bool
+            Introspect the data deeply, interrogate
+            `object` dtypes for system-level memory consumption
 
         Returns
         -------
@@ -1708,17 +1719,17 @@ class DataFrame(NDFrame):
         Notes
         -----
         Memory usage does not include memory consumed by elements that
-        are not components of the array.
+        are not components of the array if deep=False
 
         See Also
         --------
         numpy.ndarray.nbytes
         """
-        result = Series([ c.values.nbytes for col, c in self.iteritems() ],
+        result = Series([ c.memory_usage(index=False, deep=deep) for col, c in self.iteritems() ],
                         index=self.columns)
         if index:
-             result = Series(self.index.nbytes,
-                        index=['Index']).append(result)
+             result = Series(self.index.memory_usage(deep=deep),
+                             index=['Index']).append(result)
         return result
 
     def transpose(self):

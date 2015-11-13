@@ -284,6 +284,7 @@ Attributes
    Series.itemsize
    Series.base
    Series.T
+   Series.memory_usage
 
 Conversion
 ~~~~~~~~~~
@@ -772,6 +773,7 @@ Attributes and underlying data
    DataFrame.ndim
    DataFrame.size
    DataFrame.shape
+   DataFrame.memory_usage
 
 Conversion
 ~~~~~~~~~~
@@ -1333,6 +1335,7 @@ Attributes
    Index.itemsize
    Index.base
    Index.T
+   Index.memory_usage
 
 Modifying and Computations
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
