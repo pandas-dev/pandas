@@ -72,7 +72,6 @@ bash miniconda.sh -b -p $HOME/miniconda || exit 1
 
 conda config --set always_yes yes --set changeps1 no || exit 1
 conda update -q conda || exit 1
-conda config --add channels conda-forge || exit 1
 conda config --add channels http://conda.anaconda.org/pandas || exit 1
 conda config --set ssl_verify false || exit 1
 
