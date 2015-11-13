@@ -418,10 +418,9 @@ Performance Improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 - Improved performance of ``andrews_curves`` (:issue:`11534`)
-
 - Improved huge ``DatetimeIndex``, ``PeriodIndex`` and ``TimedeltaIndex``'s ops performance including ``NaT`` (:issue:`10277`)
 - Improved performance of ``pandas.concat`` (:issue:`11958`)
-
+- Improved performance of ``StataReader`` (:issue:`11591`)
 
 
 
@@ -442,6 +441,7 @@ Bug Fixes
 - Bug in consistency of passing nested dicts to ``.groupby(...).agg(...)`` (:issue:`9052`)
 - Accept unicode in ``Timedelta`` constructor (:issue:`11995`)
 
+- Bug in value label reading for ``StataReader`` when reading incrementally (:issue:`12014`)
 
 
 - Bug in vectorized ``DateOffset`` when ``n`` parameter is ``0`` (:issue:`11370`)
