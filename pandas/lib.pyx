@@ -182,6 +182,19 @@ def ismember_int64(ndarray[int64_t] arr, set values):
 
     return result.view(np.bool_)
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def memory_usage_of_objects(ndarray[object, ndim=1] arr):
+    """ return the memory usage of an object array in bytes,
+    does not include the actual bytes of the pointers """
+    cdef Py_ssize_t i, n
+    cdef int64_t s = 0
+
+    n = len(arr)
+    for i from 0 <= i < n:
+        s += arr[i].__sizeof__()
+    return s
+
 #----------------------------------------------------------------------
 # datetime / io related
 

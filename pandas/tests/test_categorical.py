@@ -1197,6 +1197,15 @@ Categories (3, object): [ああああ, いいいいい, ううううううう]""
         exp = cat._codes.nbytes + cat._categories.values.nbytes
         self.assertEqual(cat.nbytes, exp)
 
+    def test_memory_usage(self):
+        cat = pd.Categorical([1,2,3])
+        self.assertEqual(cat.nbytes, cat.memory_usage())
+        self.assertEqual(cat.nbytes, cat.memory_usage(deep=True))
+
+        cat = pd.Categorical(['foo','foo','bar'])
+        self.assertEqual(cat.nbytes, cat.memory_usage())
+        self.assertTrue(cat.memory_usage(deep=True) > cat.nbytes)
+
     def test_searchsorted(self):
         # https://github.com/pydata/pandas/issues/8420
         s1 = pd.Series(['apple', 'bread', 'bread', 'cheese', 'milk' ])

@@ -877,6 +877,28 @@ class TestIndexOps(Ops):
                 self.assertFalse(o is result)
 
 
+    def test_memory_usage(self):
+        for o in self.objs:
+            res = o.memory_usage()
+            res2 = o.memory_usage(deep=True)
+
+            if com.is_object_dtype(o):
+                self.assertTrue(res2 > res)
+            else:
+                self.assertEqual(res, res2)
+
+            if isinstance(o, Series):
+                res = o.memory_usage(index=True)
+                res2 = o.memory_usage(index=True, deep=True)
+                if com.is_object_dtype(o) or com.is_object_dtype(o.index):
+                    self.assertTrue(res2 > res)
+                else:
+                    self.assertEqual(res, res2)
+
+                self.assertEqual(o.memory_usage(index=False) + o.index.memory_usage(),
+                                 o.memory_usage(index=True))
+
+
 class TestFloat64HashTable(tm.TestCase):
     def test_lookup_nan(self):
         from pandas.hashtable import Float64HashTable
