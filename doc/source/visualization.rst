@@ -1638,7 +1638,7 @@ Trellis plotting interface
 .. note::
 
    The tips data set can be downloaded `here
-   <http://wesmckinney.com/files/tips.csv>`__. Once you download it execute
+   <https://raw.github.com/pydata/pandas/master/pandas/tests/data/tips.csv>`__. Once you download it execute
 
    .. code-block:: python
 
