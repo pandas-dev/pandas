@@ -1892,6 +1892,7 @@ class TestNDFrame(tm.TestCase):
 
         with tm.assertRaises(ValueError):
             result = wp.pipe((f, 'y'), x=1, y=1)
+    
 
 
 if __name__ == '__main__':
