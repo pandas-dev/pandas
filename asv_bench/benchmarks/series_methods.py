@@ -1,6 +1,20 @@
 from .pandas_vb_common import *
 
 
+class series_constructor_no_data_datetime_index(object):
+    goal_time = 0.2
+
+    def setup(self):
+        self.dr = pd.date_range(
+            start=datetime(2015,10,26),
+            end=datetime(2016,1,1),
+            freq='10s'
+        )  # ~500k long
+
+    def time_series_constructor_no_data_datetime_index(self):
+        Series(data=None, index=self.dr)
+
+
 class series_isin_int64(object):
     goal_time = 0.2
 
