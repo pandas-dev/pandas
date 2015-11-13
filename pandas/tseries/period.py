@@ -57,7 +57,7 @@ def dt64arr_to_periodarr(data, freq, tz):
 
 # --- Period index sketch
 
-_DIFFERENT_FREQ_ERROR = "Input has different freq={1} from PeriodIndex(freq={0})"
+_DIFFERENT_FREQ_INDEX = period._DIFFERENT_FREQ_INDEX
 
 def _period_index_cmp(opname, nat_result=False):
     """
@@ -68,13 +68,13 @@ def _period_index_cmp(opname, nat_result=False):
             func = getattr(self.values, opname)
             other_base, _ = _gfc(other.freq)
             if other.freq != self.freq:
-                msg = _DIFFERENT_FREQ_ERROR.format(self.freqstr, other.freqstr)
+                msg = _DIFFERENT_FREQ_INDEX.format(self.freqstr, other.freqstr)
                 raise ValueError(msg)
 
             result = func(other.ordinal)
         elif isinstance(other, PeriodIndex):
             if other.freq != self.freq:
-                msg = _DIFFERENT_FREQ_ERROR.format(self.freqstr, other.freqstr)
+                msg = _DIFFERENT_FREQ_INDEX.format(self.freqstr, other.freqstr)
                 raise ValueError(msg)
 
             result = getattr(self.values, opname)(other.values)
@@ -336,6 +336,10 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
     def _box_func(self):
         return lambda x: Period._from_ordinal(ordinal=x, freq=self.freq)
 
+    def _convert_for_op(self):
+        """ Convert value to be insertable to ndarray """
+        return self._box_func(value)
+
     def _to_embed(self, keep_tz=False):
         """ return an array repr of this object, potentially casting to object """
         return self.asobject.values
@@ -378,7 +382,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
     def searchsorted(self, key, side='left'):
         if isinstance(key, Period):
             if key.freq != self.freq:
-                msg = _DIFFERENT_FREQ_ERROR.format(self.freqstr, key.freqstr)
+                msg = _DIFFERENT_FREQ_INDEX.format(self.freqstr, key.freqstr)
                 raise ValueError(msg)
             key = key.ordinal
         elif isinstance(key, compat.string_types):
@@ -764,7 +768,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
             raise ValueError('can only call with other PeriodIndex-ed objects')
 
         if self.freq != other.freq:
-            msg = _DIFFERENT_FREQ_ERROR.format(self.freqstr, other.freqstr)
+            msg = _DIFFERENT_FREQ_INDEX.format(self.freqstr, other.freqstr)
             raise ValueError(msg)
 
     def _wrap_union_result(self, other, result):

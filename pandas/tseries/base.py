@@ -202,9 +202,14 @@ class DatetimeIndexOpsMixin(object):
         return self._simple_new(values)
 
     @cache_readonly
+    def _isnan(self):
+        """ return if each value is nan"""
+        return (self.asi8 == tslib.iNaT)
+
+    @cache_readonly
     def hasnans(self):
         """ return if I have any nans; enables various perf speedups """
-        return (self.asi8 == tslib.iNaT).any()
+        return self._isnan.any()
 
     @property
     def asobject(self):

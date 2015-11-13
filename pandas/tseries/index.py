@@ -499,6 +499,12 @@ class DatetimeIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
     def _box_func(self):
         return lambda x: Timestamp(x, offset=self.offset, tz=self.tz)
 
+    def _convert_for_op(self, value):
+        """ Convert value to be insertable to ndarray """
+        if self._has_same_tz(value):
+            return _to_m8(value)
+        raise ValueError('Passed item and index have different timezone')
+
     def _local_timestamps(self):
         utc = _utc()
 
@@ -547,6 +553,21 @@ class DatetimeIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
         Alias for tz attribute
         """
         return self.tz
+
+    @cache_readonly
+    def _timezone(self):
+        """ Comparable timezone both for pytz / dateutil"""
+        return tslib.get_timezone(self.tzinfo)
+
+    def _has_same_tz(self, other):
+        zzone = self._timezone
+
+        # vzone sholdn't be None if value is non-datetime like
+        if isinstance(other, np.datetime64):
+            # convert to Timestamp as np.datetime64 doesn't have tz attr
+            other = Timestamp(other)
+        vzone = tslib.get_timezone(getattr(other, 'tzinfo', '__no_tz__'))
+        return zzone == vzone
 
     @classmethod
     def _cached_range(cls, start=None, end=None, periods=None, offset=None,
@@ -680,7 +701,7 @@ class DatetimeIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
         other = Timestamp(other)
 
         # require tz compat
-        if tslib.get_timezone(self.tz) != tslib.get_timezone(other.tzinfo):
+        if not self._has_same_tz(other):
             raise TypeError("Timestamp subtraction must have the same timezones or no timezones")
 
         i8 = self.asi8
@@ -1552,17 +1573,9 @@ class DatetimeIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
             except:
                 return False
 
-        if self.tz is not None:
-            if other.tz is None:
-                return False
-            same_zone = tslib.get_timezone(
-                self.tz) == tslib.get_timezone(other.tz)
-        else:
-            if other.tz is not None:
-                return False
-            same_zone = True
-
-        return same_zone and np.array_equal(self.asi8, other.asi8)
+        if self._has_same_tz(other):
+            return np.array_equal(self.asi8, other.asi8)
+        return False
 
     def insert(self, loc, item):
         """
@@ -1581,10 +1594,10 @@ class DatetimeIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
         """
 
         freq = None
+
         if isinstance(item, (datetime, np.datetime64)):
-            zone = tslib.get_timezone(self.tz)
-            izone = tslib.get_timezone(getattr(item, 'tzinfo', None))
-            if zone != izone:
+            self._assert_can_do_op(item)
+            if not self._has_same_tz(item):
                 raise ValueError('Passed item and index have different timezone')
             # check freq can be preserved on edge cases
             if self.size and self.freq is not None:
