@@ -1,15 +1,17 @@
 
 from datetime import datetime
 import pandas.util.testing as tm
+from pandas import compat
 from pandas import DatetimeIndex
 from pandas.tseries.holiday import (
-    USFederalHolidayCalendar, USMemorialDay, USThanksgivingDay,
+    USFederalHolidayCalendar, USMemorialDay, USThanksgivingDay, 
     nearest_workday, next_monday_or_tuesday, next_monday,
     previous_friday, sunday_to_monday, Holiday, DateOffset,
     MO, Timestamp, AbstractHolidayCalendar, get_calendar,
     HolidayCalendarFactory, next_workday, previous_workday,
     before_nearest_workday, EasterMonday, GoodFriday,
-    after_nearest_workday, weekend_to_monday)
+    after_nearest_workday, weekend_to_monday, USLaborDay,
+    USColumbusDay, USMartinLutherKingJr, USPresidentsDay)
 from pytz import utc
 import nose
 
@@ -72,7 +74,20 @@ class TestCalendar(tm.TestCase):
             jan2.holidays(),
             DatetimeIndex(['02-Jan-2015'])
         )
-
+        
+    def test_calendar_observance_dates(self):
+        # Test for issue 11477
+        USFedCal = get_calendar('USFederalHolidayCalendar')
+        holidays0 = USFedCal.holidays(datetime(2015,7,3), datetime(2015,7,3)) # <-- same start and end dates
+        holidays1 = USFedCal.holidays(datetime(2015,7,3), datetime(2015,7,6)) # <-- different start and end dates
+        holidays2 = USFedCal.holidays(datetime(2015,7,3), datetime(2015,7,3)) # <-- same start and end dates
+        
+        tm.assert_index_equal(holidays0, holidays1)
+        tm.assert_index_equal(holidays0, holidays2)
+        
+    def test_rule_from_name(self):
+        USFedCal = get_calendar('USFederalHolidayCalendar')
+        self.assertEqual(USFedCal.rule_from_name('Thanksgiving'), USThanksgivingDay)
 
 class TestHoliday(tm.TestCase):
 
@@ -193,6 +208,52 @@ class TestHoliday(tm.TestCase):
                 datetime(2020, 11, 26),
             ],
         )
+        
+    def test_holidays_within_dates(self):
+        # Fix holiday behavior found in #11477
+        # where holiday.dates returned dates outside start/end date
+        # or observed rules could not be applied as the holiday
+        # was not in the original date range (e.g., 7/4/2015 -> 7/3/2015)
+        start_date = datetime(2015, 7, 1)
+        end_date = datetime(2015, 7, 1)
+         
+        calendar = get_calendar('USFederalHolidayCalendar')
+        new_years = calendar.rule_from_name('New Years Day')
+        july_4th = calendar.rule_from_name('July 4th')
+        veterans_day = calendar.rule_from_name('Veterans Day')
+        christmas = calendar.rule_from_name('Christmas')
+         
+        # Holiday: (start/end date, holiday)
+        holidays = {USMemorialDay:          ("2015-05-25", "2015-05-25"),
+                    USLaborDay:             ("2015-09-07", "2015-09-07"),
+                    USColumbusDay:          ("2015-10-12", "2015-10-12"),
+                    USThanksgivingDay:      ("2015-11-26", "2015-11-26"),
+                    USMartinLutherKingJr:   ("2015-01-19", "2015-01-19"),
+                    USPresidentsDay:        ("2015-02-16", "2015-02-16"),
+                    GoodFriday:             ("2015-04-03", "2015-04-03"),
+                    EasterMonday:           [("2015-04-06", "2015-04-06"),
+                                             ("2015-04-05", [])],
+                    new_years:              [("2015-01-01", "2015-01-01"),
+                                             ("2011-01-01", []),
+                                             ("2010-12-31", "2010-12-31")],
+                    july_4th:               [("2015-07-03", "2015-07-03"),
+                                             ("2015-07-04", [])],
+                    veterans_day:           [("2012-11-11", []),
+                                             ("2012-11-12", "2012-11-12")],
+                    christmas:              [("2011-12-25", []),
+                                             ("2011-12-26", "2011-12-26")]}
+         
+        for rule, dates in compat.iteritems(holidays):
+            empty_dates = rule.dates(start_date, end_date)
+            self.assertEqual(empty_dates.tolist(), [])
+             
+            if isinstance(dates, tuple):
+                dates = [dates]
+                
+            for start, expected in dates:
+                if len(expected):
+                    expected = [Timestamp(expected)]
+                self.check_results(rule, start, start, expected)
 
     def test_argument_types(self):
         holidays = USThanksgivingDay.dates(self.start_date,
@@ -206,8 +267,8 @@ class TestHoliday(tm.TestCase):
                         Timestamp(self.start_date),
                         Timestamp(self.end_date))
 
-        self.assertEqual(holidays, holidays_1)
-        self.assertEqual(holidays, holidays_2)
+        self.assert_index_equal(holidays, holidays_1)
+        self.assert_index_equal(holidays, holidays_2)
 
     def test_special_holidays(self):
         base_date = [datetime(2012, 5, 28)]
