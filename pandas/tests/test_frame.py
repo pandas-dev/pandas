@@ -7614,6 +7614,17 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         res = buf.getvalue().splitlines()
         self.assertTrue(re.match(r"memory usage: [^+]+\+", res[-1]))
 
+        df_with_object_index.info(buf=buf, memory_usage='deep')
+        res = buf.getvalue().splitlines()
+        self.assertTrue(re.match(r"memory usage: [^+]+$", res[-1]))
+
+        self.assertTrue(df_with_object_index.memory_usage(index=True, deep=True).sum() \
+                        > df_with_object_index.memory_usage(index=True).sum())
+
+        df_object = pd.DataFrame({'a': ['a']})
+        self.assertTrue(df_object.memory_usage(deep=True).sum() \
+                        > df_object.memory_usage().sum())
+
         # Test a DataFrame with duplicate columns
         dtypes = ['int64', 'int64', 'int64', 'float64']
         data = {}
@@ -7629,6 +7640,9 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         # Ensure number of cols in memory_usage is the same as df
         size_df = np.size(df.columns.values)  # index=False; default
         self.assertEqual(size_df, np.size(df.memory_usage()))
+
+        # assert deep works only on object
+        self.assertEqual(df.memory_usage().sum(),df.memory_usage(deep=True).sum())
 
         # test for validity
         DataFrame(1,index=['a'],columns=['A']).memory_usage(index=True)

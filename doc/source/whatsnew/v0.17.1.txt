@@ -27,6 +27,19 @@ Enhancements
 - Improve the error message displayed in :func:`pandas.io.gbq.to_gbq` when the DataFrame does not match the schema of the destination table (:issue:`11359`)
 - Added ``axvlines_kwds`` to parallel coordinates plot (:issue:`10709`)
 
+- Option to ``.info()`` and ``.memory_usage()`` to provide for deep introspection of memory consumption. Note that this can be expensive to compute and therefore is an optional parameter. (:issue:``11595``)
+
+.. ipython:: python
+
+   df = DataFrame({'A' : ['foo']*1000})
+   df['B'] = df['A'].astype('category')
+
+   # shows the '+' as we have object dtypes
+   df.info()
+
+   # we have an accurate memory assessment (but can be expensive to compute this)
+   df.info(memory_usage='deep')
+
 - ``Index`` now has ``fillna`` method (:issue:`10089`)
 
 .. ipython:: python

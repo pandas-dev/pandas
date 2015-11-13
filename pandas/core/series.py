@@ -2281,6 +2281,35 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             raise ValueError("cannot reindex series on non-zero axis!")
         return self.reindex(index=labels, **kwargs)
 
+    def memory_usage(self, index=False, deep=False):
+        """Memory usage of the Series
+
+        Parameters
+        ----------
+        index : bool
+            Specifies whether to include memory usage of Series index
+        deep : bool
+            Introspect the data deeply, interrogate
+            `object` dtypes for system-level memory consumption
+
+        Returns
+        -------
+        scalar bytes of memory consumed
+
+        Notes
+        -----
+        Memory usage does not include memory consumed by elements that
+        are not components of the array if deep=False
+
+        See Also
+        --------
+        numpy.ndarray.nbytes
+        """
+        v = super(Series, self).memory_usage(deep=deep)
+        if index:
+            v += self.index.memory_usage(deep=deep)
+        return v
+
     def take(self, indices, axis=0, convert=True, is_copy=False):
         """
         return Series corresponding to requested indices

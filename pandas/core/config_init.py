@@ -215,9 +215,9 @@ pc_mpl_style_doc = """
 """
 
 pc_memory_usage_doc = """
-: bool or None
+: bool, string or None
     This specifies if the memory usage of a DataFrame should be displayed when
-    df.info() is called.
+    df.info() is called. Valid values True,False,'deep'
 """
 
 style_backup = dict()
@@ -292,7 +292,7 @@ with cf.config_prefix('display'):
     cf.register_option('line_width', get_default_val('display.width'),
                        pc_line_width_doc)
     cf.register_option('memory_usage', True, pc_memory_usage_doc,
-                        validator=is_instance_factory([type(None), bool]))
+                        validator=is_one_of_factory([None, True, False, 'deep']))
     cf.register_option('unicode.east_asian_width', False,
                        pc_east_asian_width_doc, validator=is_bool)
     cf.register_option('unicode.ambiguous_as_wide', False,
