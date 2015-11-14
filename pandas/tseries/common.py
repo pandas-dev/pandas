@@ -1,7 +1,7 @@
 ## datetimelike delegation ##
 
 import numpy as np
-from pandas.core.base import PandasDelegate
+from pandas.core.base import PandasDelegate, NoNewAttributesMixin
 from pandas.core import common as com
 from pandas.tseries.index import DatetimeIndex
 from pandas.tseries.period import PeriodIndex
@@ -59,12 +59,13 @@ def maybe_to_datetimelike(data, copy=False):
 
     raise TypeError("cannot convert an object of type {0} to a datetimelike index".format(type(data)))
 
-class Properties(PandasDelegate):
+class Properties(PandasDelegate, NoNewAttributesMixin):
 
     def __init__(self, values, index, name):
         self.values = values
         self.index = index
         self.name = name
+        self._freeze()
 
     def _delegate_property_get(self, name):
         from pandas import Series

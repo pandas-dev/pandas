@@ -101,6 +101,8 @@ Bug Fixes
 - Bug in ``HDFStore.select`` when comparing with a numpy scalar in a where clause (:issue:`11283`)
 
 - Bug in using ``DataFrame.ix`` with a multi-index indexer(:issue:`11372`)
+- Prevent adding new attributes to the accessors ``.str``, ``.dt`` and ``.cat``. Retrieving such
+  a value was not possible, so error out on setting it. (:issue:`10673`)
 
 
 - Bug in tz-conversions with an ambiguous time and ``.dt`` accessors (:issue:`11295`)
