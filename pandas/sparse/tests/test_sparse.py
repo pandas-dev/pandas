@@ -770,6 +770,32 @@ class TestSparseSeries(tm.TestCase,
         assert_sp_series_equal(result, result2)
         assert_sp_series_equal(result, expected)
 
+class TestSparseHandlingMultiIndexes(tm.TestCase):
+
+    def setUp(self):
+        miindex = pd.MultiIndex.from_product([["x","y"], ["10","20"]],names=['row-foo', 'row-bar'])
+        micol = pd.MultiIndex.from_product([['a','b','c'], ["1","2"]],names=['col-foo', 'col-bar'])
+        dense_multiindex_frame = pd.DataFrame(index=miindex, columns=micol).sortlevel().sortlevel(axis=1)
+        self.dense_multiindex_frame = dense_multiindex_frame.fillna(value=3.14)
+
+    def test_to_sparse_preserve_multiindex_names_on_columns(self):
+        sparse_multiindex_frame = self.dense_multiindex_frame.to_sparse()
+        self.assertTrue(self.dense_multiindex_frame.columns.equals(sparse_multiindex_frame.columns))
+
+    def test_to_sparse_preserve_multiindex_names_on_rows(self):
+        sparse_multiindex_frame = self.dense_multiindex_frame.to_sparse()
+        self.assertTrue(self.dense_multiindex_frame.index.equals(sparse_multiindex_frame.index))
+
+    def test_round_trip_preserve_multiindex_names_on_columns(self):
+        sparse_multiindex_frame = self.dense_multiindex_frame.to_sparse()
+        round_trip_multiindex_frame = sparse_multiindex_frame.to_dense()
+        self.assertTrue(self.dense_multiindex_frame.columns.equals(round_trip_multiindex_frame.columns))
+
+    def test_round_trip_preserve_multiindex_names_on_rows(self):
+        sparse_multiindex_frame = self.dense_multiindex_frame.to_sparse()
+        round_trip_multiindex_frame = sparse_multiindex_frame.to_dense()
+        self.assertTrue(self.dense_multiindex_frame.index.equals(round_trip_multiindex_frame.index))
+
 
 class TestSparseSeriesScipyInteraction(tm.TestCase):
     # Issue 8048: add SparseSeries coo methods
