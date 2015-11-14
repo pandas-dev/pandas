@@ -4842,14 +4842,12 @@ class TestCategoricalIndex(tm.TestCase):
         # list of labels
         result = self.df.loc[['c','a']]
         expected = self.df.iloc[[4,0,1,5]]
-        assert_frame_equal(result, expected)
-
-        # ToDo: check_index_type can be True after GH XXX
+        assert_frame_equal(result, expected, check_index_type=True)
 
         result = self.df2.loc[['a','b','e']]
         exp_index = pd.CategoricalIndex(list('aaabbe'), categories=list('cabe'), name='B')
         expected = DataFrame({'A' : [0,1,5,2,3,np.nan]}, index=exp_index)
-        assert_frame_equal(result, expected, check_index_type=False)
+        assert_frame_equal(result, expected, check_index_type=True)
 
         # element in the categories but not in the values
         self.assertRaises(KeyError, lambda : self.df2.loc['e'])
@@ -4859,18 +4857,77 @@ class TestCategoricalIndex(tm.TestCase):
         df.loc['e'] = 20
         result = df.loc[['a','b','e']]
         exp_index = pd.CategoricalIndex(list('aaabbe'), categories=list('cabe'), name='B')
-        expected = DataFrame({'A' : [0,1,5,2,3,20]}, index=exp_index)
+        expected = DataFrame({'A' : [0, 1, 5, 2, 3, 20]}, index=exp_index)
         assert_frame_equal(result, expected)
 
         df = self.df2.copy()
         result = df.loc[['a','b','e']]
-        expected = DataFrame({'A' : [0,1,5,2,3,np.nan],
-                              'B' : Series(list('aaabbe')).astype('category',categories=list('cabe')) }).set_index('B')
-        assert_frame_equal(result, expected, check_index_type=False)
-
+        exp_index = pd.CategoricalIndex(list('aaabbe'), categories=list('cabe'), name='B')
+        expected = DataFrame({'A' : [0, 1, 5, 2, 3, np.nan]}, index=exp_index)
+        assert_frame_equal(result, expected, check_index_type=True)
 
         # not all labels in the categories
         self.assertRaises(KeyError, lambda : self.df2.loc[['a','d']])
+
+    def test_loc_listlike_dtypes(self):
+        # GH 11586
+
+        # unique categories and codes
+        index = pd.CategoricalIndex(['a', 'b', 'c'])
+        df = DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6]}, index=index)
+
+        # unique slice
+        res = df.loc[['a', 'b']]
+        exp = DataFrame({'A': [1, 2], 'B': [4, 5]}, index=pd.CategoricalIndex(['a', 'b']))
+        tm.assert_frame_equal(res, exp, check_index_type=True)
+
+        # duplicated slice
+        res = df.loc[['a', 'a', 'b']]
+        exp = DataFrame({'A': [1, 1, 2], 'B': [4, 4, 5]}, index=pd.CategoricalIndex(['a', 'a', 'b']))
+        tm.assert_frame_equal(res, exp, check_index_type=True)
+
+        with tm.assertRaisesRegexp(KeyError, 'a list-indexer must only include values that are in the categories'):
+            df.loc[['a', 'x']]
+
+        # duplicated categories and codes
+        index = pd.CategoricalIndex(['a', 'b', 'a'])
+        df = DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6]}, index=index)
+
+        # unique slice
+        res = df.loc[['a', 'b']]
+        exp = DataFrame({'A': [1, 3, 2], 'B': [4, 6, 5]}, index=pd.CategoricalIndex(['a', 'a', 'b']))
+        tm.assert_frame_equal(res, exp, check_index_type=True)
+
+        # duplicated slice
+        res = df.loc[['a', 'a', 'b']]
+        exp = DataFrame({'A': [1, 3, 1, 3, 2], 'B': [4, 6, 4, 6, 5]}, index=pd.CategoricalIndex(['a', 'a', 'a', 'a', 'b']))
+        tm.assert_frame_equal(res, exp, check_index_type=True)
+
+        with tm.assertRaisesRegexp(KeyError, 'a list-indexer must only include values that are in the categories'):
+            df.loc[['a', 'x']]
+
+        # contains unused category
+        index = pd.CategoricalIndex(['a', 'b', 'a', 'c'], categories=list('abcde'))
+        df = DataFrame({'A': [1, 2, 3, 4], 'B': [5, 6, 7, 8]}, index=index)
+
+        res = df.loc[['a', 'b']]
+        exp = DataFrame({'A': [1, 3, 2], 'B': [5, 7, 6]},
+                        index=pd.CategoricalIndex(['a', 'a', 'b'], categories=list('abcde')))
+        tm.assert_frame_equal(res, exp, check_index_type=True)
+
+        res = df.loc[['a', 'e']]
+        exp = DataFrame({'A': [1, 3, np.nan], 'B': [5, 7, np.nan]},
+                        index=pd.CategoricalIndex(['a', 'a', 'e'], categories=list('abcde')))
+        tm.assert_frame_equal(res, exp, check_index_type=True)
+
+        # duplicated slice
+        res = df.loc[['a', 'a', 'b']]
+        exp = DataFrame({'A': [1, 3, 1, 3, 2], 'B': [5, 7, 5, 7, 6]},
+                        index=pd.CategoricalIndex(['a', 'a', 'a', 'a', 'b'], categories=list('abcde')))
+        tm.assert_frame_equal(res, exp, check_index_type=True)
+
+        with tm.assertRaisesRegexp(KeyError, 'a list-indexer must only include values that are in the categories'):
+            df.loc[['a', 'x']]
 
     def test_read_only_source(self):
         # GH 10043
@@ -4898,22 +4955,22 @@ class TestCategoricalIndex(tm.TestCase):
         result = self.df2.reindex(['a','b','e'])
         expected = DataFrame({'A' : [0,1,5,2,3,np.nan],
                               'B' : Series(list('aaabbe')) }).set_index('B')
-        assert_frame_equal(result, expected)
+        assert_frame_equal(result, expected, check_index_type=True)
 
         result = self.df2.reindex(['a','b'])
         expected = DataFrame({'A' : [0,1,5,2,3],
                               'B' : Series(list('aaabb')) }).set_index('B')
-        assert_frame_equal(result, expected)
+        assert_frame_equal(result, expected, check_index_type=True)
 
         result = self.df2.reindex(['e'])
         expected = DataFrame({'A' : [np.nan],
                               'B' : Series(['e']) }).set_index('B')
-        assert_frame_equal(result, expected)
+        assert_frame_equal(result, expected, check_index_type=True)
 
         result = self.df2.reindex(['d'])
         expected = DataFrame({'A' : [np.nan],
                               'B' : Series(['d']) }).set_index('B')
-        assert_frame_equal(result, expected)
+        assert_frame_equal(result, expected, check_index_type=True)
 
         # since we are actually reindexing with a Categorical
         # then return a Categorical
@@ -4922,38 +4979,38 @@ class TestCategoricalIndex(tm.TestCase):
         result = self.df2.reindex(pd.Categorical(['a','d'],categories=cats))
         expected = DataFrame({'A' : [0,1,5,np.nan],
                               'B' : Series(list('aaad')).astype('category',categories=cats) }).set_index('B')
-        assert_frame_equal(result, expected)
+        assert_frame_equal(result, expected, check_index_type=True)
 
         result = self.df2.reindex(pd.Categorical(['a'],categories=cats))
         expected = DataFrame({'A' : [0,1,5],
                               'B' : Series(list('aaa')).astype('category',categories=cats) }).set_index('B')
-        assert_frame_equal(result, expected)
+        assert_frame_equal(result, expected, check_index_type=True)
 
         result = self.df2.reindex(['a','b','e'])
         expected = DataFrame({'A' : [0,1,5,2,3,np.nan],
                               'B' : Series(list('aaabbe')) }).set_index('B')
-        assert_frame_equal(result, expected)
+        assert_frame_equal(result, expected, check_index_type=True)
 
         result = self.df2.reindex(['a','b'])
         expected = DataFrame({'A' : [0,1,5,2,3],
                               'B' : Series(list('aaabb')) }).set_index('B')
-        assert_frame_equal(result, expected)
+        assert_frame_equal(result, expected, check_index_type=True)
 
         result = self.df2.reindex(['e'])
         expected = DataFrame({'A' : [np.nan],
                               'B' : Series(['e']) }).set_index('B')
-        assert_frame_equal(result, expected)
+        assert_frame_equal(result, expected, check_index_type=True)
 
         # give back the type of categorical that we received
         result = self.df2.reindex(pd.Categorical(['a','d'],categories=cats,ordered=True))
         expected = DataFrame({'A' : [0,1,5,np.nan],
                               'B' : Series(list('aaad')).astype('category',categories=cats,ordered=True) }).set_index('B')
-        assert_frame_equal(result, expected)
+        assert_frame_equal(result, expected, check_index_type=True)
 
         result = self.df2.reindex(pd.Categorical(['a','d'],categories=['a','d']))
         expected = DataFrame({'A' : [0,1,5,np.nan],
                               'B' : Series(list('aaad')).astype('category',categories=['a','d']) }).set_index('B')
-        assert_frame_equal(result, expected)
+        assert_frame_equal(result, expected, check_index_type=True)
 
         # passed duplicate indexers are not allowed
         self.assertRaises(ValueError, lambda : self.df2.reindex(['a','a']))

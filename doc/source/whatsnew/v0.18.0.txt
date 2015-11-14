@@ -105,3 +105,7 @@ Performance Improvements
 
 Bug Fixes
 ~~~~~~~~~
+
+
+
+- Bug in ``.loc`` against ``CategoricalIndex`` may result in normal ``Index`` (:issue:`11586`)
