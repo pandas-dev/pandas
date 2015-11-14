@@ -1137,7 +1137,7 @@ class MPLPlot(object):
     def _adorn_subplots(self):
         """Common post process unrelated to data"""
         if len(self.axes) > 0:
-            all_axes = self._get_axes()
+            all_axes = self._get_subplots()
             nrows, ncols = self._get_axes_layout()
             _handle_shared_axes(axarr=all_axes, nplots=len(all_axes),
                                 naxes=nrows * ncols, nrows=nrows,
@@ -1469,11 +1469,13 @@ class MPLPlot(object):
                     errors[kw] = err
         return errors
 
-    def _get_axes(self):
-        return self.axes[0].get_figure().get_axes()
+    def _get_subplots(self):
+        from matplotlib.axes import Subplot
+        return [ax for ax in self.axes[0].get_figure().get_axes()
+                    if isinstance(ax, Subplot)]
 
     def _get_axes_layout(self):
-        axes = self._get_axes()
+        axes = self._get_subplots()
         x_set = set()
         y_set = set()
         for ax in axes:

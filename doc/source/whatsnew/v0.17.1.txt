@@ -128,7 +128,8 @@ Bug Fixes
 
 
 - Fix regression in setting of ``xticks`` in ``plot`` (:issue:`11529`).
-
+- Fix plotting issues when having plain ``Axes`` instances instead of
+  ``SubplotAxes`` (:issue:`11520`, :issue:`11556`).
 
 
 
