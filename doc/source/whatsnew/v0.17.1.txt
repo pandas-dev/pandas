@@ -29,22 +29,22 @@ Enhancements
 
 - Option to ``.info()`` and ``.memory_usage()`` to provide for deep introspection of memory consumption. Note that this can be expensive to compute and therefore is an optional parameter. (:issue:``11595``)
 
-.. ipython:: python
+  .. ipython:: python
 
-   df = DataFrame({'A' : ['foo']*1000})
-   df['B'] = df['A'].astype('category')
+     df = DataFrame({'A' : ['foo']*1000})
+     df['B'] = df['A'].astype('category')
 
-   # shows the '+' as we have object dtypes
-   df.info()
+     # shows the '+' as we have object dtypes
+     df.info()
 
-   # we have an accurate memory assessment (but can be expensive to compute this)
-   df.info(memory_usage='deep')
+     # we have an accurate memory assessment (but can be expensive to compute this)
+     df.info(memory_usage='deep')
 
 - ``Index`` now has a ``fillna`` method (:issue:`10089`)
 
-.. ipython:: python
+  .. ipython:: python
 
-   pd.Index([1, np.nan, 3]).fillna(2)
+     pd.Index([1, np.nan, 3]).fillna(2)
 
 .. _whatsnew_0171.api:
 
@@ -95,7 +95,7 @@ Bug Fixes
 ~~~~~~~~~
 
 - Incorrectly distributed .c file in the build on ``PyPi`` when reading a csv of floats and passing ``na_values=<a scalar>`` would show an exception (:issue:`11374`)
-- Bug in ``.to_latex()`` output broken when the index has a name (:issue: `10660`)
+- Bug in ``.to_latex()`` output broken when the index has a name (:issue:`10660`)
 - Bug in ``HDFStore.append`` with strings whose encoded length exceded the max unencoded length (:issue:`11234`)
 - Bug in merging ``datetime64[ns, tz]`` dtypes (:issue:`11405`)
 - Bug in ``HDFStore.select`` when comparing with a numpy scalar in a where clause (:issue:`11283`)
