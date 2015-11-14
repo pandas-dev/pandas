@@ -9,6 +9,8 @@ import copy
 from collections import defaultdict
 
 try:
+    import warnings
+    warnings.warn("Importing jinja")
     from jinja2 import Template
     has_jinja = True
 except ImportError:
