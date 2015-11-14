@@ -1,24 +1,23 @@
+def setUpModule():
+    try:
+        import jinja2
+    except ImportError:
+        from nose import SkipTest
+        raise SkipTest("No jinja")
+
 import copy
 
-from nose import SkipTest
 import numpy as np
 import pandas as pd
 from pandas import DataFrame
 from pandas.util.testing import TestCase
 import pandas.util.testing as tm
-
-def setUpModele():
-    try:
-        import jinja2
-        from pandas.core.style import (Styler, _non_reducing_slice, has_jinja,
-                                       _maybe_numeric_slice)
-    except ImportError:
-        raise SkipTest("No jinja")
+from pandas.core.style import (Styler, _non_reducing_slice,
+                                _maybe_numeric_slice)
 
 
 class TestStyler(TestCase):
 
-    @tm.skip_if_no_package_deco('jinja2')
     def setUp(self):
         np.random.seed(24)
         self.s = DataFrame({'A': np.random.permutation(range(6))})
@@ -399,7 +398,6 @@ class TestStyler(TestCase):
 @tm.mplskip
 class TestStylerMatplotlibDep(TestCase):
 
-    @tm.skip_if_no_package_deco('jinja2')
     def test_background_gradient(self):
         df = pd.DataFrame([[1, 2], [2, 4]], columns=['A', 'B'])
         for axis in [0, 1, 'index', 'columns']:
