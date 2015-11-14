@@ -1043,10 +1043,14 @@ An example of how holidays and holiday calendars are defined:
     cal.holidays(datetime(2012, 1, 1), datetime(2012, 12, 31))
 
 Using this calendar, creating an index or doing offset arithmetic skips weekends
-and holidays (i.e., Memorial Day/July 4th).
+and holidays (i.e., Memorial Day/July 4th).  For example, the below defines
+a custom business day offset using the ``ExampleCalendar``.  Like any other offset,
+it can be used to create a ``DatetimeIndex`` or added to ``datetime`` 
+or ``Timestamp`` objects.
 
 .. ipython:: python
 
+    from pandas.tseries.offsets import CDay
     DatetimeIndex(start='7/1/2012', end='7/10/2012',
         freq=CDay(calendar=cal)).to_pydatetime()
     offset = CustomBusinessDay(calendar=cal)
