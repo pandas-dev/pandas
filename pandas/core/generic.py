@@ -4701,6 +4701,17 @@ This method returns the minimum of the values in the object. If you
 want the *index* of the minimum, use ``idxmin``. This is the
 equivalent of the ``numpy.ndarray`` method ``argmin``.""", nanops.nanmin)
 
+        if cls.__name__ == 'Series':
+            def nanptp(values, axis=0, skipna=True):
+                nmax = nanops.nanmax(values, axis, skipna)
+                nmin = nanops.nanmin(values, axis, skipna)
+                return nmax - nmin
+
+            cls.ptp = _make_stat_function('ptp', """
+Returns the difference between the maximum value and the minimum
+value in the object. This is the equivalent of the ``numpy.ndarray``
+method ``ptp``.""", nanptp)
+
         def _make_logical_function(name, desc, f):
 
             @Substitution(outname=name, desc=desc)

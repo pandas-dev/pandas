@@ -1277,9 +1277,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         return self._maybe_box(lambda values: multi(values, q), dropna=True)
 
-    def ptp(self, axis=None, out=None):
-        return _values_from_object(self).ptp(axis, out)
-
     def corr(self, other, method='pearson',
              min_periods=None):
         """
