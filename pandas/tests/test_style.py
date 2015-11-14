@@ -1,9 +1,19 @@
+import os
+from nose import SkipTest
+
 def setUpModule():
-    import os
     job_name = os.environ.get('JOB_NAME', None)
     if job_name == '27_slow_nnet_LOCALE':
-        from nose import SkipTest
         raise SkipTest("No jinja")
+    try:
+        import jinja2
+        from pandas.core.style import (Styler, _non_reducing_slice,
+                                       _maybe_numeric_slice)
+    except ImportError:
+        raise SkipTest("No Jinja2")
+    global Styler
+    global _non_reducing_slice
+    global _maybe_numeric_slice
 
 import copy
 
@@ -13,10 +23,6 @@ from pandas import DataFrame
 from pandas.util.testing import TestCase
 import pandas.util.testing as tm
 import warnings
-warnings.warn("Importing Styler")
-from pandas.core.style import (Styler, _non_reducing_slice,
-                                _maybe_numeric_slice)
-
 
 class TestStyler(TestCase):
 
