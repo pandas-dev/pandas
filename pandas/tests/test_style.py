@@ -1,7 +1,7 @@
 def setUpModule():
-    try:
-        import jinja2
-    except ImportError:
+    import os
+    job_name = os.environ.get('JOB_NAME', None)
+    if job_name == '27_slow_nnet_LOCALE':
         from nose import SkipTest
         raise SkipTest("No jinja")
 
