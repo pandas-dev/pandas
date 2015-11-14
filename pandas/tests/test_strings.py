@@ -2034,6 +2034,12 @@ class TestStringMethods(tm.TestCase):
         with self.assertRaisesRegexp(AttributeError, message):
             idx.str
 
+    def test_str_accessor_no_new_attributes(self):
+        # https://github.com/pydata/pandas/issues/10673
+        s = Series(list('aabbcde'))
+        with tm.assertRaisesRegexp(AttributeError, "You cannot add any new attribute"):
+            s.str.xlabel = "a"
+
     def test_method_on_bytes(self):
         lhs = Series(np.array(list('abc'), 'S1').astype(object))
         rhs = Series(np.array(list('def'), 'S1').astype(object))

@@ -1,8 +1,10 @@
 import numpy as np
 
 from pandas.compat import zip
-from pandas.core.common import isnull, _values_from_object, is_bool_dtype, is_list_like
+from pandas.core.common import (isnull, _values_from_object, is_bool_dtype, is_list_like,
+                                is_categorical_dtype, is_object_dtype)
 import pandas.compat as compat
+from pandas.core.base import AccessorProperty, NoNewAttributesMixin
 from pandas.util.decorators import Appender, deprecate_kwarg
 import re
 import pandas.lib as lib
@@ -1044,7 +1046,7 @@ def copy(source):
     return do_copy
 
 
-class StringMethods(object):
+class StringMethods(NoNewAttributesMixin):
 
     """
     Vectorized string functions for Series and Index. NAs stay NA unless
@@ -1059,6 +1061,7 @@ class StringMethods(object):
 
     def __init__(self, series):
         self.series = series
+        self._freeze()
 
     def __getitem__(self, key):
         if isinstance(key, slice):
@@ -1542,3 +1545,41 @@ class StringMethods(object):
     isdecimal = _noarg_wrapper(lambda x: compat.u_safe(x).isdecimal(),
                                docstring=_shared_docs['ismethods'] %
                                _shared_docs['isdecimal'])
+
+class StringAccessorMixin(object):
+    """ Mixin to add a `.str` acessor to the class."""
+
+    # string methods
+    def _make_str_accessor(self):
+        from pandas.core.series import Series
+        from pandas.core.index import Index
+        if isinstance(self, Series) and not is_object_dtype(self.dtype):
+            # this really should exclude all series with any non-string values,
+            # but that isn't practical for performance reasons until we have a
+            # str dtype (GH 9343)
+            raise AttributeError("Can only use .str accessor with string "
+                                 "values, which use np.object_ dtype in "
+                                 "pandas")
+        elif isinstance(self, Index):
+            # see scc/inferrence.pyx which can contain string values
+            allowed_types = ('string', 'unicode', 'mixed', 'mixed-integer')
+            if self.inferred_type not in allowed_types:
+                message = ("Can only use .str accessor with string values "
+                           "(i.e. inferred_type is 'string', 'unicode' or 'mixed')")
+                raise AttributeError(message)
+            if self.nlevels > 1:
+                message = "Can only use .str accessor with Index, not MultiIndex"
+                raise AttributeError(message)
+        return StringMethods(self)
+
+    str = AccessorProperty(StringMethods, _make_str_accessor)
+
+    def _dir_additions(self):
+        return set()
+
+    def _dir_deletions(self):
+        try:
+            getattr(self, 'str')
+        except AttributeError:
+            return set(['str'])
+        return set()

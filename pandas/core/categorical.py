@@ -8,7 +8,7 @@ from pandas import compat, lib
 from pandas.compat import u
 
 from pandas.core.algorithms import factorize
-from pandas.core.base import PandasObject, PandasDelegate
+from pandas.core.base import PandasObject, PandasDelegate, NoNewAttributesMixin
 import pandas.core.common as com
 from pandas.core.missing import interpolate_2d
 from pandas.util.decorators import cache_readonly, deprecate_kwarg
@@ -1743,7 +1743,7 @@ class Categorical(PandasObject):
 
 ##### The Series.cat accessor #####
 
-class CategoricalAccessor(PandasDelegate):
+class CategoricalAccessor(PandasDelegate, NoNewAttributesMixin):
     """
     Accessor object for categorical properties of the Series values.
 
@@ -1768,6 +1768,7 @@ class CategoricalAccessor(PandasDelegate):
     def __init__(self, values, index):
         self.categorical = values
         self.index = index
+        self._freeze()
 
     def _delegate_property_get(self, name):
         return getattr(self.categorical, name)

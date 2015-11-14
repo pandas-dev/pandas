@@ -32,6 +32,7 @@ from pandas.core.indexing import check_bool_indexer, maybe_convert_indices
 from pandas.core import generic, base
 from pandas.core.internals import SingleBlockManager
 from pandas.core.categorical import Categorical, CategoricalAccessor
+import pandas.core.strings as strings
 from pandas.tseries.common import (maybe_to_datetimelike,
                                    CombinedDatetimelikeProperties)
 from pandas.tseries.index import DatetimeIndex
@@ -85,7 +86,7 @@ def _coerce_method(converter):
 # Series class
 
 
-class Series(base.IndexOpsMixin, generic.NDFrame):
+class Series(base.IndexOpsMixin, strings.StringAccessorMixin, generic.NDFrame,):
 
     """
     One-dimensional ndarray with axis labels (including time series).

@@ -6,7 +6,7 @@ import numpy as np
 import pandas.compat as compat
 import pandas as pd
 from pandas.compat import u, StringIO
-from pandas.core.base import FrozenList, FrozenNDArray, PandasDelegate
+from pandas.core.base import FrozenList, FrozenNDArray, PandasDelegate, NoNewAttributesMixin
 import pandas.core.common as com
 from pandas.tseries.base import DatetimeIndexOpsMixin
 from pandas.util.testing import assertRaisesRegexp, assertIsInstance
@@ -906,6 +906,25 @@ class TestFloat64HashTable(tm.TestCase):
         m = Float64HashTable()
         m.map_locations(xs)
         self.assert_numpy_array_equal(m.lookup(xs), np.arange(len(xs)))
+
+
+class TestNoNewAttributesMixin(tm.TestCase):
+
+    def test_mixin(self):
+        class T(NoNewAttributesMixin):
+            pass
+
+        t = T()
+        self.assertFalse(hasattr(t, "__frozen"))
+        t.a = "test"
+        self.assertEqual(t.a, "test")
+        t._freeze()
+        #self.assertTrue("__frozen" not in dir(t))
+        self.assertIs(getattr(t, "__frozen"), True)
+        def f():
+            t.b = "test"
+        self.assertRaises(AttributeError, f)
+        self.assertFalse(hasattr(t, "b"))
 
 
 if __name__ == '__main__':

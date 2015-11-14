@@ -26,6 +26,7 @@ from pandas.core.common import (isnull, array_equivalent, is_dtype_equal, is_obj
                                 _values_from_object, is_float, is_integer, is_iterator, is_categorical_dtype,
                                 _ensure_object, _ensure_int64, is_bool_indexer,
                                 is_list_like, is_bool_dtype, is_null_slice, is_integer_dtype)
+from pandas.core.strings import StringAccessorMixin
 from pandas.core.config import get_option
 from pandas.io.common import PerformanceWarning
 
@@ -64,7 +65,7 @@ def _new_Index(cls, d):
         and breaks __new__ """
     return cls.__new__(cls, **d)
 
-class Index(IndexOpsMixin, PandasObject):
+class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
 
     """
     Immutable ndarray implementing an ordered, sliceable set. The basic object

@@ -247,6 +247,12 @@ class CheckNameIntegration(object):
                 s.dt.hour[0] = 5
             self.assertRaises(com.SettingWithCopyError, f)
 
+    def test_dt_accessor_no_new_attributes(self):
+        # https://github.com/pydata/pandas/issues/10673
+        s = Series(date_range('20130101',periods=5,freq='D'))
+        with tm.assertRaisesRegexp(AttributeError, "You cannot add any new attribute"):
+            s.dt.xlabel = "a"
+
     def test_strftime(self):
         # GH 10086
         s = Series(date_range('20130101', periods=5))
