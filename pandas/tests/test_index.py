@@ -2314,6 +2314,23 @@ class TestCategoricalIndex(Base, tm.TestCase):
             actual = ci.get_indexer(finder)
             tm.assert_numpy_array_equal(expected, actual)
 
+    def test_reindex_dtype(self):
+        res, indexer = CategoricalIndex(['a', 'b', 'c', 'a']).reindex(['a', 'c'])
+        tm.assert_index_equal(res, Index(['a', 'a', 'c']), exact=True)
+        tm.assert_numpy_array_equal(indexer, np.array([0, 3, 2]))
+
+        res, indexer = CategoricalIndex(['a', 'b', 'c', 'a']).reindex(Categorical(['a', 'c']))
+        tm.assert_index_equal(res, CategoricalIndex(['a', 'a', 'c'], categories=['a', 'c']), exact=True)
+        tm.assert_numpy_array_equal(indexer, np.array([0, 3, 2]))
+
+        res, indexer = CategoricalIndex(['a', 'b', 'c', 'a'], categories=['a', 'b', 'c', 'd']).reindex(['a', 'c'])
+        tm.assert_index_equal(res, Index(['a', 'a', 'c'], dtype='object'), exact=True)
+        tm.assert_numpy_array_equal(indexer, np.array([0, 3, 2]))
+
+        res, indexer = CategoricalIndex(['a', 'b', 'c', 'a'], categories=['a', 'b', 'c', 'd']).reindex(Categorical(['a', 'c']))
+        tm.assert_index_equal(res, CategoricalIndex(['a', 'a', 'c'], categories=['a', 'c']), exact=True)
+        tm.assert_numpy_array_equal(indexer, np.array([0, 3, 2]))
+
     def test_duplicates(self):
 
         idx = CategoricalIndex([0, 0, 0], name='foo')
