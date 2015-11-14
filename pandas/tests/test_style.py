@@ -1,22 +1,19 @@
 import copy
 
+from nose import SkipTest
 import numpy as np
 import pandas as pd
 from pandas import DataFrame
-from pandas.core.style import (Styler, _non_reducing_slice, has_jinja,
-                               _maybe_numeric_slice)
 from pandas.util.testing import TestCase
 import pandas.util.testing as tm
 
-
-def test_no_jinja():
-    # Separate so it isn't skipped by setUp
-    df = pd.DataFrame({'A': [1]})
-    if not has_jinja:
-        with tm.assertRaises(ImportError):
-            Styler(df)
-        with tm.assertRaises(ImportError):
-            df.style
+def setUpModele():
+    try:
+        import jinja2
+        from pandas.core.style import (Styler, _non_reducing_slice, has_jinja,
+                                       _maybe_numeric_slice)
+    except ImportError:
+        raise SkipTest("No jinja")
 
 
 class TestStyler(TestCase):
