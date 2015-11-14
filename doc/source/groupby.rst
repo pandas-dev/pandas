@@ -257,20 +257,21 @@ GroupBy with MultiIndex
 With :ref:`hierarchically-indexed data <advanced.hierarchical>`, it's quite
 natural to group by one of the levels of the hierarchy.
 
+Let's create a series with a two-level ``MultiIndex``.
+
 .. ipython:: python
-   :suppress:
 
 
    arrays = [['bar', 'bar', 'baz', 'baz', 'foo', 'foo', 'qux', 'qux'],
              ['one', 'two', 'one', 'two', 'one', 'two', 'one', 'two']]
-   tuples = list(zip(*arrays))
-   tuples
-   index = pd.MultiIndex.from_tuples(tuples, names=['first', 'second'])
+   index = pd.MultiIndex.from_arrays(arrays, names=['first', 'second'])
    s = pd.Series(np.random.randn(8), index=index)
+   s
+
+We can then group by one of the levels in ``s``.
 
 .. ipython:: python
 
-   s
    grouped = s.groupby(level=0)
    grouped.sum()
 
