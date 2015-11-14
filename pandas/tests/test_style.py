@@ -2,21 +2,14 @@ import os
 from nose import SkipTest
 
 def setUpModule():
-    job_name = os.environ.get('JOB_NAME', None)
-    if job_name == '27_slow_nnet_LOCALE':
-        raise SkipTest("No jinja")
     try:
         import jinja2
-        from pandas.core.style import (Styler, _non_reducing_slice,
-                                       _maybe_numeric_slice)
     except ImportError:
         raise SkipTest("No Jinja2")
-    global Styler
-    global _non_reducing_slice
-    global _maybe_numeric_slice
 
 import copy
-
+from pandas.core.style import (Styler, _non_reducing_slice,
+                                _maybe_numeric_slice)
 import numpy as np
 import pandas as pd
 from pandas import DataFrame
