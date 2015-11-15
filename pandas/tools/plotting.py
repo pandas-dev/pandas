@@ -3392,25 +3392,31 @@ def _handle_shared_axes(axarr, nplots, naxes, nrows, ncols, sharex, sharey):
                     if sharex or len(ax.get_shared_x_axes().get_siblings(ax)) > 1:
                         _remove_labels_from_axis(ax.xaxis)
 
-            except IndexError:
+            except (IndexError, AttributeError):
                 # if gridspec is used, ax.rowNum and ax.colNum may different
                 # from layout shape. in this case, use last_row logic
                 for ax in axarr:
-                    if ax.is_last_row():
-                        continue
-                    if sharex or len(ax.get_shared_x_axes().get_siblings(ax)) > 1:
-                        _remove_labels_from_axis(ax.xaxis)
+                    try:                    
+                        if ax.is_last_row():
+                            continue
+                        if sharex or len(ax.get_shared_x_axes().get_siblings(ax)) > 1:
+                            _remove_labels_from_axis(ax.xaxis)
+                    except AttributeError:
+                        pass
+
 
         if ncols > 1:
             for ax in axarr:
                 # only the first column should get y labels -> set all other to off
                 # as we only have labels in teh first column and we always have a subplot there,
                 # we can skip the layout test
-                if ax.is_first_col():
-                    continue
-                if sharey or len(ax.get_shared_y_axes().get_siblings(ax)) > 1:
-                    _remove_labels_from_axis(ax.yaxis)
-
+                try:
+                    if ax.is_first_col():
+                        continue
+                    if sharey or len(ax.get_shared_y_axes().get_siblings(ax)) > 1:
+                        _remove_labels_from_axis(ax.yaxis)
+                except AttributeError:
+                    pass
 
 
 def _flatten(axes):
