@@ -2637,35 +2637,32 @@ class TestDatetimeIndex(tm.TestCase):
                 assert_func(klass([x - op for x in s]), s - op)
 
 
-            # split by fast/slow path to test perf warning
-            off = {False:
-                   ['YearBegin', ('YearBegin', {'month': 5}),
-                    'YearEnd', ('YearEnd', {'month': 5}),
-                    'MonthBegin', 'MonthEnd', 'Week', ('Week', {'weekday': 3}),
-                    'BusinessDay', 'BDay', 'QuarterEnd', 'QuarterBegin'],
-                   PerformanceWarning:
-                   ['CustomBusinessDay', 'CDay', 'CBMonthEnd','CBMonthBegin',
-                    'BMonthBegin', 'BMonthEnd', 'BusinessHour', 'BYearBegin',
-                    'BYearEnd','BQuarterBegin', ('LastWeekOfMonth', {'weekday':2}),
-                    ('FY5253Quarter', {'qtr_with_extra_week': 1, 'startingMonth': 1,
-                                       'weekday': 2, 'variation': 'nearest'}),
-                    ('FY5253',{'weekday': 0, 'startingMonth': 2, 'variation': 'nearest'}),
-                    ('WeekOfMonth', {'weekday': 2, 'week': 2}), 'Easter',
-                    ('DateOffset', {'day': 4}), ('DateOffset', {'month': 5})]}
+            # assert these are equal on a piecewise basis
+            offsets = ['YearBegin', ('YearBegin', {'month': 5}),
+                       'YearEnd', ('YearEnd', {'month': 5}),
+                       'MonthBegin', 'MonthEnd', 'Week', ('Week', {'weekday': 3}),
+                       'BusinessDay', 'BDay', 'QuarterEnd', 'QuarterBegin',
+                       'CustomBusinessDay', 'CDay', 'CBMonthEnd','CBMonthBegin',
+                       'BMonthBegin', 'BMonthEnd', 'BusinessHour', 'BYearBegin',
+                       'BYearEnd','BQuarterBegin', ('LastWeekOfMonth', {'weekday':2}),
+                       ('FY5253Quarter', {'qtr_with_extra_week': 1, 'startingMonth': 1,
+                                          'weekday': 2, 'variation': 'nearest'}),
+                       ('FY5253',{'weekday': 0, 'startingMonth': 2, 'variation': 'nearest'}),
+                       ('WeekOfMonth', {'weekday': 2, 'week': 2}), 'Easter',
+                       ('DateOffset', {'day': 4}), ('DateOffset', {'month': 5})]
 
             for normalize in (True, False):
-                for warning, offsets in off.items():
-                    for do in offsets:
-                        if isinstance(do, tuple):
-                            do, kwargs = do
-                        else:
-                            do = do
-                            kwargs = {}
-                        op = getattr(pd.offsets,do)(5, normalize=normalize, **kwargs)
-                        with tm.assert_produces_warning(warning):
-                            assert_func(klass([x + op for x in s]), s + op)
-                            assert_func(klass([x - op for x in s]), s - op)
-                            assert_func(klass([op + x for x in s]), op + s)
+                for do in offsets:
+                    if isinstance(do, tuple):
+                        do, kwargs = do
+                    else:
+                        do = do
+                        kwargs = {}
+                    op = getattr(pd.offsets,do)(5, normalize=normalize, **kwargs)
+                    assert_func(klass([x + op for x in s]), s + op)
+                    assert_func(klass([x - op for x in s]), s - op)
+                    assert_func(klass([op + x for x in s]), op + s)
+
     # def test_add_timedelta64(self):
     #     rng = date_range('1/1/2000', periods=5)
     #     delta = rng.values[3] - rng.values[1]

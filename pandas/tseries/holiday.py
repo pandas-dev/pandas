@@ -1,3 +1,5 @@
+import warnings
+
 from pandas import DateOffset, DatetimeIndex, Series, Timestamp
 from pandas.compat import add_metaclass
 from datetime import datetime, timedelta
@@ -192,10 +194,10 @@ class Holiday(object):
         """
         start_date = Timestamp(start_date)
         end_date = Timestamp(end_date)
-        
-        filter_start_date = start_date 
+
+        filter_start_date = start_date
         filter_end_date = end_date
-        
+
         if self.year is not None:
             dt = Timestamp(datetime(self.year, self.month, self.day))
             if return_name:
@@ -208,22 +210,22 @@ class Holiday(object):
         if self.days_of_week is not None:
             holiday_dates = holiday_dates[np.in1d(holiday_dates.dayofweek,
                                                   self.days_of_week)]
-            
+
         if self.start_date is not None:
             filter_start_date = max(self.start_date.tz_localize(filter_start_date.tz), filter_start_date)
         if self.end_date is not None:
             filter_end_date = min(self.end_date.tz_localize(filter_end_date.tz), filter_end_date)
-        holiday_dates = holiday_dates[(holiday_dates >= filter_start_date) & 
+        holiday_dates = holiday_dates[(holiday_dates >= filter_start_date) &
                                       (holiday_dates <= filter_end_date)]
         if return_name:
             return Series(self.name, index=holiday_dates)
         return holiday_dates
-        
-        
+
+
     def _reference_dates(self, start_date, end_date):
         """
         Get reference dates for the holiday.
-        
+
         Return reference dates for the holiday also returning the year
         prior to the start_date and year following the end_date.  This ensures
         that any offsets to be applied will yield the holidays within
@@ -238,13 +240,13 @@ class Holiday(object):
         year_offset = DateOffset(years=1)
         reference_start_date = Timestamp(
             datetime(start_date.year-1, self.month, self.day))
-        
+
         reference_end_date = Timestamp(
             datetime(end_date.year+1, self.month, self.day))
         # Don't process unnecessary holidays
-        dates = DatetimeIndex(start=reference_start_date, end=reference_end_date, 
+        dates = DatetimeIndex(start=reference_start_date, end=reference_end_date,
                               freq=year_offset, tz=start_date.tz)
-        
+
         return dates
 
     def _apply_rule(self, dates):
@@ -269,7 +271,11 @@ class Holiday(object):
             else:
                 offsets = self.offset
             for offset in offsets:
-                dates += offset
+
+                # if we are adding a non-vectorized value
+                # ignore the PerformanceWarnings:
+                with warnings.catch_warnings(record=True):
+                    dates += offset
         return dates
 
 holiday_calendars = {}
@@ -327,12 +333,12 @@ class AbstractHolidayCalendar(object):
 
         if rules is not None:
             self.rules = rules
-            
+
     def rule_from_name(self, name):
         for rule in self.rules:
             if rule.name == name:
                 return rule
-            
+
         return None
 
     def holidays(self, start=None, end=None, return_name=False):
