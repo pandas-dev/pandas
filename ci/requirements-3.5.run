@@ -12,7 +12,7 @@ pytables
 html5lib
 lxml
 matplotlib
-
+jinja2
 # currently causing some warnings
 #sqlalchemy
 #pymysql

@@ -16,3 +16,4 @@ sqlalchemy
 bottleneck
 pymysql=0.6.3
 psycopg2
+jinja2=2.8
