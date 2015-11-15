@@ -40,12 +40,15 @@ analysis / manipulation tool available in any language.
 pandas 0.17.1
 -------------
 
-**Release date:** (November ??, 2015)
+**Release date:** (November 21, 2015)
 
 This is a minor release from 0.17.0 and includes a large number of bug fixes
 along with several new features, enhancements, and performance improvements.
 
 Highlights include:
+
+- Bug in ``DataFrame.drop_duplicates`` was a regression from 0.16.2, causing incorrect results on integer values (:issue:`11376`)
+- Releasing the GIL on the csv reader & other ops, see :ref:`here <whatsnew_0171.performance>`
 
 See the :ref:`v0.17.1 Whatsnew <whatsnew_0171>` overview for an extensive list
 of all enhancements and bugs that have been fixed in 0.17.1.
