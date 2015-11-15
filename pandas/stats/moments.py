@@ -1041,3 +1041,125 @@ def expanding_apply(arg, func, min_periods=1, freq=None,
     window = max(len(arg), min_periods) if min_periods else len(arg)
     return rolling_apply(arg, window, func, min_periods=min_periods, freq=freq,
                          args=args, kwargs=kwargs)
+
+#----------------------------------------------------------------------
+# Add all the methods to DataFrame and Series
+import sys
+thismodule = sys.modules[__name__]
+
+from pandas.core.base import AccessorProperty
+from functools import update_wrapper
+from pandas.core import common as com
+from pandas.core.base import PandasDelegate
+
+
+RollingMethods = type(
+    "RollingMethods",
+    (),
+    {
+        fct_name.replace("rolling_", ""): staticmethod(
+            getattr(thismodule, fct_name)
+        )
+        for fct_name in __all__
+        if fct_name.startswith("rolling_")
+    }
+)
+
+ExpandingMethods = type(
+    "ExpandingMethods",
+    (),
+    {
+        fct_name.replace("expanding_", ""): staticmethod(
+            getattr(thismodule, fct_name)
+        )
+        for fct_name in __all__
+        if fct_name.startswith("expanding_")
+    }
+)
+
+EwmMethods = type(
+    "EwmMethods",
+    (),
+    {
+        fct_name.replace("ewm", ""): staticmethod(
+            getattr(thismodule, fct_name)
+        )
+        for fct_name in __all__
+        if fct_name.startswith("ewm")
+    }
+)
+
+class MomentDelegator(PandasDelegate):
+    prefix = None
+    klass = None
+
+    def __init__(self, series, prefix, klass):
+        self.series = series
+    def _delegate_method(self, name, *args, **kwargs):
+        method = getattr(self.klass, name)
+        return method(self.series, *args, **kwargs)
+
+    @classmethod
+    def generate_make_moment_accessor(cls):
+        prefix = cls.prefix
+        klass = cls.klass
+        def moment_rolling_accessor(self):
+            check_dtype(self, prefix)
+            return cls(self, prefix, klass)
+        return moment_rolling_accessor
+
+class RollingDelegator(MomentDelegator):
+    prefix = "rolling_"
+    klass = RollingMethods
+
+RollingDelegator._add_delegate_accessors(
+    delegate=RollingMethods,
+    accessors=RollingMethods.__dict__.keys(),
+    typ='method'
+)
+
+class ExpandingDelegator(MomentDelegator):
+    prefix = "expanding_"
+    klass = ExpandingMethods
+
+ExpandingDelegator._add_delegate_accessors(
+    delegate=ExpandingMethods,
+    accessors=ExpandingMethods.__dict__.keys(),
+    typ='method'
+)
+
+class EwmDelegator(MomentDelegator):
+    prefix = "ewm"
+    klass = EwmMethods
+
+EwmDelegator._add_delegate_accessors(
+    delegate=EwmMethods,
+    accessors=EwmMethods.__dict__.keys(),
+    typ='method'
+)
+
+def check_dtype(self, name):
+    if isinstance(self, Series) \
+       and not (
+           com.is_float_dtype(self.dtype)
+           or
+           com.is_integer_dtype(self.dtype)
+       ):
+        raise AttributeError(
+            "Can only use .{} accessor with floats or int values".format(name)
+        )
+    if isinstance(self, DataFrame) \
+       and not True in [ # check whether there is one dtype float or integer
+           com.is_float_dtype(t) or com.is_integer_dtype(t)
+           for t in self.dtypes]:
+        raise AttributeError(
+            "Can only use .{}".format(name) +
+            " accessor if there exist at least one column of dtype floats or int"
+        )
+
+DataFrame.rolling = AccessorProperty(RollingDelegator, RollingDelegator.generate_make_moment_accessor())
+DataFrame.expanding = AccessorProperty(ExpandingDelegator, ExpandingDelegator.generate_make_moment_accessor())
+DataFrame.ewm = AccessorProperty(EwmDelegator, EwmDelegator.generate_make_moment_accessor())
+Series.rolling = AccessorProperty(RollingDelegator, RollingDelegator.generate_make_moment_accessor())
+Series.expanding = AccessorProperty(ExpandingDelegator, ExpandingDelegator.generate_make_moment_accessor())
+Series.ewm = AccessorProperty(EwmDelegator, EwmDelegator.generate_make_moment_accessor())
