@@ -130,6 +130,13 @@ Bug Fixes
 - Bug in ``squeeze()`` with zero length arrays (:issue:`11230`, :issue:`8999`)
 - Bug in ``describe()`` dropping column names for hierarchical indexes (:issue:`11517`)
 - Bug in ``DataFrame.pct_change()`` not propagating ``axis`` keyword on ``.fillna`` method (:issue:`11150`)
+
+
+
+
+
+
+- Bug in ``to_sql`` using unicode column names giving UnicodeEncodeError with (:issue:`11431`).
 - Fix regression in setting of ``xticks`` in ``plot`` (:issue:`11529`).
 - Bug in ``holiday.dates`` where observance rules could not be applied to holiday and doc enhancement (:issue:`11477`, :issue:`11533`)
 - Fix plotting issues when having plain ``Axes`` instances instead of ``SubplotAxes`` (:issue:`11520`, :issue:`11556`).
