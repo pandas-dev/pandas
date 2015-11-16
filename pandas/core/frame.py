@@ -2933,7 +2933,7 @@ class DataFrame(NDFrame):
         subset : array-like
             Labels along other axis to consider, e.g. if you are dropping rows
             these would be a list of columns to include
-        inplace : boolean, defalt False
+        inplace : boolean, default False
             If True, do operation inplace and return None.
 
         Returns
