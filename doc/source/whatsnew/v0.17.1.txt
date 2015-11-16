@@ -156,3 +156,4 @@ Bug Fixes
 - Bug in the link-time error caused by C ``inline`` functions on FreeBSD 10+ (with ``clang``) (:issue:`10510`)
 - Bug in ``DataFrame.to_csv`` in passing through arguments for formatting ``MultiIndexes``, including ``date_format`` (:issue:`7791`)
 - Bug in ``DataFrame.join()`` with ``how='right'`` producing a ``TypeError`` (:issue:`11519`)
+- Bug in ``DataFrame.to_sparse()`` loses column names for MultIndexes (:issue:`11600`)

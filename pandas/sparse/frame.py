@@ -246,7 +246,7 @@ class SparseDataFrame(DataFrame):
         df : DataFrame
         """
         data = dict((k, v.to_dense()) for k, v in compat.iteritems(self))
-        return DataFrame(data, index=self.index)
+        return DataFrame(data, index=self.index,columns=self.columns)
 
     def astype(self, dtype):
         raise NotImplementedError
