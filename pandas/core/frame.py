@@ -577,6 +577,19 @@ class DataFrame(NDFrame):
         else:
             return None
 
+    @property
+    def style(self):
+        """
+        Property returning a Styler object containing methods for
+        building a styled HTML representation fo the DataFrame.
+
+        See Also
+        --------
+        pandas.core.Styler
+        """
+        from pandas.core.style import Styler
+        return Styler(self)
+
     def iteritems(self):
         """
         Iterator over (column name, Series) pairs.
@@ -1518,6 +1531,7 @@ class DataFrame(NDFrame):
                                            max_rows=max_rows,
                                            max_cols=max_cols,
                                            show_dimensions=show_dimensions)
+        # TODO: a generic formatter wld b in DataFrameFormatter
         formatter.to_html(classes=classes, notebook=notebook)
 
         if buf is None:

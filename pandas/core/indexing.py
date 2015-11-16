@@ -524,7 +524,7 @@ class _NDFrameIndexer(object):
         Parameters
         ----------
         indexer : tuple, slice, scalar
-            The indexer used to get the locations that will be set to 
+            The indexer used to get the locations that will be set to
             `ser`
 
         ser : pd.Series
@@ -532,7 +532,7 @@ class _NDFrameIndexer(object):
 
         multiindex_indexer : boolean, optional
             Defaults to False. Should be set to True if `indexer` was from
-            a `pd.MultiIndex`, to avoid unnecessary broadcasting. 
+            a `pd.MultiIndex`, to avoid unnecessary broadcasting.
 
 
         Returns:
@@ -1806,3 +1806,46 @@ def maybe_droplevels(index, key):
             pass
 
     return index
+
+
+def _non_reducing_slice(slice_):
+    """
+    Ensurse that a slice doesn't reduce to a Series or Scalar.
+
+    Any user-paseed `subset` should have this called on it
+    to make sure we're always working with DataFrames.
+    """
+    # default to column slice, like DataFrame
+    # ['A', 'B'] -> IndexSlices[:, ['A', 'B']]
+    kinds = tuple(list(compat.string_types) +
+                  [ABCSeries, np.ndarray, Index, list])
+    if isinstance(slice_, kinds):
+        slice_ = IndexSlice[:, slice_]
+
+    def pred(part):
+        # true when slice does *not* reduce
+        return isinstance(part, slice) or com.is_list_like(part)
+
+    if not com.is_list_like(slice_):
+        if not isinstance(slice_, slice):
+            # a 1-d slice, like df.loc[1]
+            slice_ = [[slice_]]
+        else:
+            # slice(a, b, c)
+            slice_ = [slice_]  # to tuplize later
+    else:
+        slice_ = [part if pred(part) else [part] for part in slice_]
+    return tuple(slice_)
+
+
+def _maybe_numeric_slice(df, slice_, include_bool=False):
+    """
+    want nice defaults for background_gradient that don't break
+    with non-numeric data. But if slice_ is passed go with that.
+    """
+    if slice_ is None:
+        dtypes = [np.number]
+        if include_bool:
+            dtypes.append(bool)
+        slice_ = IndexSlice[:, df.select_dtypes(include=dtypes).columns]
+    return slice_

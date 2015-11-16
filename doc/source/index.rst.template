@@ -136,6 +136,7 @@ See the package overview for more detail about what's in the library.
     timedeltas
     categorical
     visualization
+    style
     io
     remote_data
     enhancingperf
