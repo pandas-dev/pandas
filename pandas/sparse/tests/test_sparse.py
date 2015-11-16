@@ -783,9 +783,10 @@ class TestSparseHandlingMultiIndexes(tm.TestCase):
         assert_index_equal(sparse_multiindex_frame.columns,self.dense_multiindex_frame.columns)
 
     def test_round_trip_preserve_multiindex_names(self):
-        sparse_multiindex_frame = self.dense_multiindex_frame.to_sparse().copy()
+        sparse_multiindex_frame = self.dense_multiindex_frame.to_sparse()
         round_trip_multiindex_frame = sparse_multiindex_frame.to_dense()
-        assert_frame_equal(self.dense_multiindex_frame,round_trip_multiindex_frame,check_column_type=True,check_names=True)
+        assert_frame_equal(self.dense_multiindex_frame,round_trip_multiindex_frame,
+                           check_column_type=True,check_names=True)
 
 
 class TestSparseSeriesScipyInteraction(tm.TestCase):
