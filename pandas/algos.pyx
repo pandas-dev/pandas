@@ -1820,9 +1820,11 @@ def roll_quantile(ndarray[float64_t, cast=True] input, int win,
 
     return output
 
+
 def roll_generic(ndarray[float64_t, cast=True] input,
                  int win, int minp, int offset,
-                 object func, object args, object kwargs):
+                 object func, object args, object kwargs,
+                 object array_to_roll=None):
     cdef ndarray[double_t] output, counts, bufarr
     cdef Py_ssize_t i, n
     cdef float64_t *buf
@@ -1837,32 +1839,41 @@ def roll_generic(ndarray[float64_t, cast=True] input,
 
     minp = _check_minp(win, minp, n, floor=0)
     output = np.empty(n, dtype=float)
-    counts = roll_sum(np.concatenate((np.isfinite(input).astype(float), np.array([0.] * offset))), win, minp)[offset:]
+    counts = roll_sum(np.concatenate((np.isfinite(input).astype(float),
+                                      np.array([0.] * offset))),
+                      win, minp)[offset:]
+
+    # default behavior is to roll over input array
+    if array_to_roll is None:
+        array_to_roll = input
 
     # truncated windows at the beginning, through first full-length window
     for i from 0 <= i < (int_min(win, n) - offset):
         if counts[i] >= minp:
-            output[i] = func(input[0 : (i + offset + 1)], *args, **kwargs)
+            output[i] = func(array_to_roll[0:(i + offset + 1)],
+                             *args,
+                             **kwargs)
         else:
             output[i] = NaN
 
     # remaining full-length windows
-    buf = <float64_t*> input.data
-    bufarr = np.empty(win, dtype=float)
-    oldbuf = <float64_t*> bufarr.data
+    # array_to_roll is a numpy array and doing a slice of contiguous data does
+    # not make a copy
     for i from (win - offset) <= i < (n - offset):
-        buf = buf + 1
-        bufarr.data = <char*> buf
         if counts[i] >= minp:
-            output[i] = func(bufarr, *args, **kwargs)
+            # full length windows will start at index 1 and be of length win
+            output[i] = \
+                func(array_to_roll[i - (win - offset) + 1:i + offset + 1],
+                     *args, **kwargs)
         else:
             output[i] = NaN
-    bufarr.data = <char*> oldbuf
 
     # truncated windows at the end
     for i from int_max(n - offset, 0) <= i < n:
         if counts[i] >= minp:
-            output[i] = func(input[int_max(i + offset - win + 1, 0) : n], *args, **kwargs)
+            output[i] = func(array_to_roll[int_max(i + offset - win + 1, 0):n],
+                             *args,
+                             **kwargs)
         else:
             output[i] = NaN
 
