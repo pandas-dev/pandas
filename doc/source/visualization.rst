@@ -17,9 +17,9 @@
    import matplotlib.pyplot as plt
    plt.close('all')
 
-********
-Plotting
-********
+*************
+Visualization
+*************
 
 We use the standard convention for referencing the matplotlib API:
 
