@@ -3712,6 +3712,81 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
             invalid.str
         self.assertFalse(hasattr(invalid, 'str'))
 
+    def test_dt_accessor_api_for_categorical(self):
+        # https://github.com/pydata/pandas/issues/10661
+        from pandas.tseries.common import Properties
+        from pandas.tseries.index import date_range, DatetimeIndex
+        from pandas.tseries.period import period_range, PeriodIndex
+        from pandas.tseries.tdi import timedelta_range, TimedeltaIndex
+
+        s_dr = Series(date_range('1/1/2015', periods=5, tz="MET"))
+        c_dr = s_dr.astype("category")
+
+        s_pr = Series(period_range('1/1/2015', freq='D', periods=5))
+        c_pr = s_pr.astype("category")
+
+        s_tdr = Series(timedelta_range('1 days','10 days'))
+        c_tdr = s_tdr.astype("category")
+
+        test_data = [
+            ("Datetime", DatetimeIndex._datetimelike_ops, s_dr, c_dr),
+            ("Period", PeriodIndex._datetimelike_ops, s_pr, c_pr),
+            ("Timedelta", TimedeltaIndex._datetimelike_ops, s_tdr, c_tdr)]
+
+        self.assertIsInstance(c_dr.dt, Properties)
+
+        special_func_defs = [
+            ('strftime', ("%Y-%m-%d",), {}),
+            ('tz_convert', ("EST",), {}),
+            #('tz_localize', ("UTC",), {}),
+        ]
+        _special_func_names = [f[0] for f in special_func_defs]
+
+        # the series is already localized
+        _ignore_names = ['tz_localize']
+
+        for name, attr_names, s, c in test_data:
+            func_names = [f for f in dir(s.dt) if not (f.startswith("_") or
+                                                       f in attr_names or
+                                                       f in _special_func_names or
+                                                       f in _ignore_names)]
+
+            func_defs = [(f, (), {}) for f in func_names]
+            for f_def in special_func_defs:
+                if f_def[0] in dir(s.dt):
+                    func_defs.append(f_def)
+
+            for func, args, kwargs in func_defs:
+                res = getattr(c.dt, func)(*args, **kwargs)
+                exp = getattr(s.dt, func)(*args, **kwargs)
+
+                if isinstance(res, pd.DataFrame):
+                    tm.assert_frame_equal(res, exp)
+                elif isinstance(res, pd.Series):
+                    tm.assert_series_equal(res, exp)
+                else:
+                    tm.assert_numpy_array_equal(res, exp)
+
+            for attr in attr_names:
+                try:
+                    res = getattr(c.dt, attr)
+                    exp = getattr(s.dt, attr)
+                except Exception as e:
+                    print(name, attr)
+                    raise e
+
+            if isinstance(res, pd.DataFrame):
+                tm.assert_frame_equal(res, exp)
+            elif isinstance(res, pd.Series):
+                tm.assert_series_equal(res, exp)
+            else:
+                tm.assert_numpy_array_equal(res, exp)
+
+        invalid = Series([1,2,3]).astype('category')
+        with tm.assertRaisesRegexp(AttributeError, "Can only use .dt accessor with datetimelike"):
+            invalid.dt
+        self.assertFalse(hasattr(invalid, 'str'))
+
     def test_pickle_v0_14_1(self):
 
         # we have the name warning
