@@ -3079,6 +3079,19 @@ $1$,$2$
         # Make sure this doesn't break existing Series.round
         tm.assert_series_equal(df['col1'].round(1), expected_rounded['col1'])
 
+    def test_round_issue(self):
+        # GH11611
+
+        df = pd.DataFrame(np.random.random([3, 3]), columns=['A', 'B', 'C'],
+                          index=['first', 'second', 'third'])
+
+        dfs = pd.concat((df, df), axis=1)
+        rounded = dfs.round()
+        self.assertTrue(rounded.index.equals(dfs.index))
+
+        decimals = pd.Series([1, 0, 2], index=['A', 'B', 'A'])
+        self.assertRaises(ValueError, df.round, decimals)
+
 class TestSeriesFormatting(tm.TestCase):
     _multiprocess_can_split_ = True
 

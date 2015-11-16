@@ -15859,7 +15859,6 @@ starting,ending,measure
                                    dtype='int64')
         tm.assert_panel_equal(result, expected)
 
-
 def skip_if_no_ne(engine='numexpr'):
     if engine == 'numexpr':
         try:
