@@ -11,7 +11,7 @@ import numpy as np
 import pandas as pd
 dec = np.testing.dec
 
-from pandas.util.testing import (assert_almost_equal, assert_series_equal,
+from pandas.util.testing import (assert_almost_equal, assert_series_equal, assert_index_equal,
                                  assert_frame_equal, assert_panel_equal, assertRaisesRegexp,
                                  assert_numpy_array_equal, assert_attr_equal)
 from numpy.testing import assert_equal
@@ -778,23 +778,14 @@ class TestSparseHandlingMultiIndexes(tm.TestCase):
         dense_multiindex_frame = pd.DataFrame(index=miindex, columns=micol).sortlevel().sortlevel(axis=1)
         self.dense_multiindex_frame = dense_multiindex_frame.fillna(value=3.14)
 
-    def test_to_sparse_preserve_multiindex_names_on_columns(self):
-        sparse_multiindex_frame = self.dense_multiindex_frame.to_sparse()
-        self.assertTrue(self.dense_multiindex_frame.columns.equals(sparse_multiindex_frame.columns))
+    def test_to_sparse_preserve_multiindex_names_columns(self):
+        sparse_multiindex_frame = self.dense_multiindex_frame.to_sparse().copy()
+        assert_index_equal(sparse_multiindex_frame.columns,self.dense_multiindex_frame.columns)
 
-    def test_to_sparse_preserve_multiindex_names_on_rows(self):
-        sparse_multiindex_frame = self.dense_multiindex_frame.to_sparse()
-        self.assertTrue(self.dense_multiindex_frame.index.equals(sparse_multiindex_frame.index))
-
-    def test_round_trip_preserve_multiindex_names_on_columns(self):
-        sparse_multiindex_frame = self.dense_multiindex_frame.to_sparse()
+    def test_round_trip_preserve_multiindex_names(self):
+        sparse_multiindex_frame = self.dense_multiindex_frame.to_sparse().copy()
         round_trip_multiindex_frame = sparse_multiindex_frame.to_dense()
-        self.assertTrue(self.dense_multiindex_frame.columns.equals(round_trip_multiindex_frame.columns))
-
-    def test_round_trip_preserve_multiindex_names_on_rows(self):
-        sparse_multiindex_frame = self.dense_multiindex_frame.to_sparse()
-        round_trip_multiindex_frame = sparse_multiindex_frame.to_dense()
-        self.assertTrue(self.dense_multiindex_frame.index.equals(round_trip_multiindex_frame.index))
+        assert_frame_equal(self.dense_multiindex_frame,round_trip_multiindex_frame,check_column_type=True,check_names=True)
 
 
 class TestSparseSeriesScipyInteraction(tm.TestCase):
