@@ -104,7 +104,7 @@ def clean():
 
 def html():
     check_build()
-    if os.system('sphinx-build -P -b html -d build/doctrees '
+    if os.system('sphinx-build -P -j 4 -b html -d build/doctrees '
                  'source build/html'):
         raise SystemExit("Building HTML failed.")
     try:
