@@ -8,8 +8,10 @@ bug fixes along several new features, enhancements, and performance improvements
 We recommend that all users upgrade to this version.
 
 Highlights include:
-  - Bug in ``DataFrame.drop_duplicates`` was a regression from 0.16.2, causing incorrect results on integer values (:issue:`11376`)
+
+  - Support for Conditional HTML Formatting, see :ref:`here <whatsnew_0171.style>`
   - Releasing the GIL on the csv reader & other ops, see :ref:`here <whatsnew_0171.performance>`
+  - Regression in ``DataFrame.drop_duplicates`` from 0.16.2, causing incorrect results on integer values (:issue:`11376`)
 
 .. contents:: What's new in v0.17.1
     :local:
@@ -127,7 +129,7 @@ Bug Fixes
 - Bug in list-like indexing with a mixed-integer Index (:issue:`11320`)
 - Bug in ``pivot_table`` with ``margins=True`` when indexes are of ``Categorical`` dtype (:issue:`10993`)
 - Bug in ``DataFrame.plot`` cannot use hex strings colors (:issue:`10299`)
-- Bug in ``DataFrame.drop_duplicates`` was a regression from 0.16.2, causing incorrect results on integer values (:issue:`11376`)
+- Regression in ``DataFrame.drop_duplicates`` from 0.16.2, causing incorrect results on integer values (:issue:`11376`)
 - Bug in ``pd.eval`` where unary ops in a list error (:issue:`11235`)
 - Bug in ``squeeze()`` with zero length arrays (:issue:`11230`, :issue:`8999`)
 - Bug in ``describe()`` dropping column names for hierarchical indexes (:issue:`11517`)

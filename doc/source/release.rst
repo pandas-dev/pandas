@@ -47,8 +47,9 @@ along with several new features, enhancements, and performance improvements.
 
 Highlights include:
 
-- Bug in ``DataFrame.drop_duplicates`` was a regression from 0.16.2, causing incorrect results on integer values (:issue:`11376`)
+- Support for Conditional HTML Formatting, see :ref:`here <whatsnew_0171.style>`
 - Releasing the GIL on the csv reader & other ops, see :ref:`here <whatsnew_0171.performance>`
+- Regression in ``DataFrame.drop_duplicates`` from 0.16.2, causing incorrect results on integer values (:issue:`11376`)
 
 See the :ref:`v0.17.1 Whatsnew <whatsnew_0171>` overview for an extensive list
 of all enhancements and bugs that have been fixed in 0.17.1.
