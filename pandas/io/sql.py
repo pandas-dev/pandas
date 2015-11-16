@@ -14,7 +14,7 @@ import numpy as np
 
 import pandas.lib as lib
 import pandas.core.common as com
-from pandas.compat import lzip, map, zip, raise_with_traceback, string_types
+from pandas.compat import lzip, map, zip, raise_with_traceback, string_types, text_type
 from pandas.core.api import DataFrame, Series
 from pandas.core.common import isnull
 from pandas.core.base import PandasObject
@@ -711,7 +711,7 @@ class SQLTable(PandasObject):
         else:
             temp = self.frame
 
-        column_names = list(map(str, temp.columns))
+        column_names = list(map(text_type, temp.columns))
         ncols = len(column_names)
         data_list = [None] * ncols
         blocks = temp._data.blocks
@@ -853,7 +853,7 @@ class SQLTable(PandasObject):
                 column_names_and_types.append((idx_label, idx_type, True))
 
         column_names_and_types += [
-            (str(self.frame.columns[i]),
+            (text_type(self.frame.columns[i]),
              dtype_mapper(self.frame.iloc[:, i]),
              False)
             for i in range(len(self.frame.columns))
@@ -1400,7 +1400,7 @@ class SQLiteTable(SQLTable):
                 conn.execute(stmt)
 
     def insert_statement(self):
-        names = list(map(str, self.frame.columns))
+        names = list(map(text_type, self.frame.columns))
         flv = self.pd_sql.flavor
         wld = _SQL_WILDCARD[flv]  # wildcard char
         escape = _SQL_GET_IDENTIFIER[flv]
