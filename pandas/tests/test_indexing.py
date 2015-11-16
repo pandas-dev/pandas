@@ -15,6 +15,7 @@ import numpy as np
 import pandas as pd
 import pandas.core.common as com
 from pandas import option_context
+from pandas.core.indexing import _non_reducing_slice, _maybe_numeric_slice
 from pandas.core.api import (DataFrame, Index, Series, Panel, isnull,
                              MultiIndex, Float64Index, Timestamp, Timedelta)
 from pandas.util.testing import (assert_almost_equal, assert_series_equal,
@@ -4727,6 +4728,49 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         #GH10645
         result = MultiIndex.from_arrays([range(10**6), range(10**6)])
         assert(not (10**6, 0) in result)
+
+    def test_non_reducing_slice(self):
+        df = pd.DataFrame([[0, 1], [2, 3]])
+
+        slices = [
+            # pd.IndexSlice[:, :],
+            pd.IndexSlice[:, 1],
+            pd.IndexSlice[1, :],
+            pd.IndexSlice[[1], [1]],
+            pd.IndexSlice[1, [1]],
+            pd.IndexSlice[[1], 1],
+            pd.IndexSlice[1],
+            pd.IndexSlice[1, 1],
+            slice(None, None, None),
+            [0, 1],
+            np.array([0, 1]),
+            pd.Series([0, 1])
+        ]
+        for slice_ in slices:
+            tslice_ = _non_reducing_slice(slice_)
+            self.assertTrue(isinstance(df.loc[tslice_], DataFrame))
+
+    def test_list_slice(self):
+        # like dataframe getitem
+        slices = [['A'], pd.Series(['A']), np.array(['A'])]
+        df = pd.DataFrame({'A': [1, 2], 'B': [3, 4]}, index=['A', 'B'])
+        expected = pd.IndexSlice[:, ['A']]
+        for subset in slices:
+            result = _non_reducing_slice(subset)
+            tm.assert_frame_equal(df.loc[result], df.loc[expected])
+
+    def test_maybe_numeric_slice(self):
+        df = pd.DataFrame({'A': [1, 2], 'B': ['c', 'd'], 'C': [True, False]})
+        result = _maybe_numeric_slice(df, slice_=None)
+        expected = pd.IndexSlice[:, ['A']]
+        self.assertEqual(result, expected)
+
+        result = _maybe_numeric_slice(df, None, include_bool=True)
+        expected = pd.IndexSlice[:, ['A', 'C']]
+        result = _maybe_numeric_slice(df, [1])
+        expected = [1]
+        self.assertEqual(result, expected)
+
 
 class TestCategoricalIndex(tm.TestCase):
 

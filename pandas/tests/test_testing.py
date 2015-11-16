@@ -11,7 +11,8 @@ import pandas.util.testing as tm
 from pandas.util.testing import (
     assert_almost_equal, assertRaisesRegexp, raise_with_traceback,
     assert_index_equal, assert_series_equal, assert_frame_equal,
-    assert_numpy_array_equal, assert_isinstance, RNGContext
+    assert_numpy_array_equal, assert_isinstance, RNGContext,
+    assertRaises, skip_if_no_package_deco
 )
 from pandas.compat import is_platform_windows
 
@@ -625,6 +626,23 @@ class TestLocale(tm.TestCase):
         #GH9744
         locales = tm.get_locales()
         self.assertTrue(len(locales) >= 1)
+
+
+def test_skiptest_deco():
+    from nose import SkipTest
+    @skip_if_no_package_deco("fakepackagename")
+    def f():
+        pass
+    with assertRaises(SkipTest):
+        f()
+
+    @skip_if_no_package_deco("numpy")
+    def f():
+        pass
+    # hack to ensure that SkipTest is *not* raised
+    with assertRaises(ValueError):
+        f()
+        raise ValueError
 
 
 if __name__ == '__main__':

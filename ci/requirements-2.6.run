@@ -14,3 +14,4 @@ psycopg2=2.5.1
 pymysql=0.6.0
 sqlalchemy=0.7.8
 xlsxwriter=0.4.6
+jinja2=2.8

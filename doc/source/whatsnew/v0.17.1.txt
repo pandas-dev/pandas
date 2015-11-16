@@ -15,6 +15,21 @@ Highlights include:
     :local:
     :backlinks: none
 
+New features
+~~~~~~~~~~~~
+
+.. _whatsnew_0171.style
+
+Conditional HTML Formatting
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+We've added *experimental* support for conditional HTML formatting,
+the visual styling of a DataFrame based on the data.
+The styling is accomplished with HTML and CSS.
+Acesses the styler class with :attr:`pandas.DataFrame.style`, attribute,
+an instance of :class:`~pandas.core.style.Styler` with your data attached.
+See the :ref:`example notebook <style>` for more.
+
 .. _whatsnew_0171.enhancements:
 
 Enhancements

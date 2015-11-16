@@ -19,3 +19,4 @@ pymysql=0.6.3
 html5lib=1.0b2
 beautiful-soup=4.2.1
 statsmodels
+jinja2=2.8
