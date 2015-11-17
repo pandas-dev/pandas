@@ -4909,15 +4909,26 @@ class TestTimezones(Base, tm.TestCase):
             result = store.select_column('frame', 'index')
             self.assertEqual(rng.tz, result.dt.tz)
 
-    def test_timezones(self):
-        rng = date_range('1/1/2000', '1/30/2000', tz='US/Eastern')
-        frame = DataFrame(np.random.randn(len(rng), 4), index=rng)
-
+    def test_timezones_fixed(self):
         with ensure_clean_store(self.path) as store:
-            store['frame'] = frame
-            recons = store['frame']
-            self.assertTrue(recons.index.equals(rng))
-            self.assertEqual(rng.tz, recons.index.tz)
+
+            # index
+            rng = date_range('1/1/2000', '1/30/2000', tz='US/Eastern')
+            df = DataFrame(np.random.randn(len(rng), 4), index=rng)
+            store['df'] = df
+            result = store['df']
+            assert_frame_equal(result, df)
+
+            # as data
+            # GH11411
+            _maybe_remove(store, 'df')
+            df = DataFrame({'A' : rng,
+                            'B' : rng.tz_convert('UTC').tz_localize(None),
+                            'C' : rng.tz_convert('CET'),
+                            'D' : range(len(rng))}, index=rng)
+            store['df'] = df
+            result = store['df']
+            assert_frame_equal(result, df)
 
     def test_fixed_offset_tz(self):
         rng = date_range('1/1/2000 00:00:00-07:00', '1/30/2000 00:00:00-07:00')
