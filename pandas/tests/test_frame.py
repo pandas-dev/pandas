@@ -1429,7 +1429,12 @@ class CheckIndexing(object):
         self.assertEqual(len(result), 4)
 
         result = df.ix[4:5]
-        expected = df.reindex([4, 5])
+        expected = df.reindex([4, 5]) # reindex with int
+        assert_frame_equal(result, expected, check_index_type=False)
+        self.assertEqual(len(result), 2)
+
+        result = df.ix[4:5]
+        expected = df.reindex([4.0, 5.0]) # reindex with float
         assert_frame_equal(result, expected)
         self.assertEqual(len(result), 2)
 
@@ -1978,29 +1983,33 @@ class CheckIndexing(object):
         from itertools import permutations
         icol = ['jim', 'joe', 'jolie']
 
-        def verify_first_level(df, level, idx):
+        def verify_first_level(df, level, idx, check_index_type=True):
             f = lambda val: np.nonzero(df[level] == val)[0]
             i = np.concatenate(list(map(f, idx)))
             left = df.set_index(icol).reindex(idx, level=level)
             right = df.iloc[i].set_index(icol)
-            assert_frame_equal(left, right)
+            assert_frame_equal(left, right, check_index_type=check_index_type)
 
-        def verify(df, level, idx, indexer):
+        def verify(df, level, idx, indexer, check_index_type=True):
             left = df.set_index(icol).reindex(idx, level=level)
             right = df.iloc[indexer].set_index(icol)
-            assert_frame_equal(left, right)
+            assert_frame_equal(left, right, check_index_type=check_index_type)
 
         df = pd.DataFrame({'jim':list('B' * 4 + 'A' * 2 + 'C' * 3),
                            'joe':list('abcdeabcd')[::-1],
                            'jolie':[10, 20, 30] * 3,
                            'joline': np.random.randint(0, 1000, 9)})
 
-        target = [['C', 'B', 'A'], ['F', 'C', 'A', 'D'], ['A'], ['D', 'F'],
+        target = [['C', 'B', 'A'], ['F', 'C', 'A', 'D'], ['A'],
                   ['A', 'B', 'C'], ['C', 'A', 'B'], ['C', 'B'], ['C', 'A'],
-                  ['A', 'B'], ['B', 'A', 'C'], ['A', 'C', 'B']]
+                  ['A', 'B'], ['B', 'A', 'C']]
 
         for idx in target:
             verify_first_level(df, 'jim', idx)
+
+        # reindex by these causes different MultiIndex levels
+        for idx in [['D', 'F'], ['A', 'C', 'B']]:
+            verify_first_level(df, 'jim', idx, check_index_type=False)
 
         verify(df, 'joe', list('abcde'), [3, 2, 1, 0, 5, 4, 8, 7, 6])
         verify(df, 'joe', list('abcd'),  [3, 2, 1, 0, 5, 8, 7, 6])
@@ -2009,7 +2018,7 @@ class CheckIndexing(object):
         verify(df, 'joe', list('edc'),   [0, 1, 4, 5, 6])
         verify(df, 'joe', list('eadbc'), [3, 0, 2, 1, 4, 5, 8, 7, 6])
         verify(df, 'joe', list('edwq'),  [0, 4, 5])
-        verify(df, 'joe', list('wq'),    [])
+        verify(df, 'joe', list('wq'),    [], check_index_type=False)
 
         df = DataFrame({'jim':['mid'] * 5 + ['btm'] * 8 + ['top'] * 7,
                         'joe':['3rd'] * 2 + ['1st'] * 3 + ['2nd'] * 3 +
@@ -10233,10 +10242,10 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         xs = df.xs(0)
         assert_almost_equal(xs, [1., 'foo', 2., 'bar', 3.])
 
-        # no columns but index
+        # no columns but Index(dtype=object)
         df = DataFrame(index=['a', 'b', 'c'])
         result = df.xs('a')
-        expected = Series([], name='a')
+        expected = Series([], name='a', index=pd.Index([], dtype=object))
         assert_series_equal(result, expected)
 
     def test_xs_duplicates(self):
@@ -10422,7 +10431,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         tm.assert_frame_equal(df.reindex(i), df.iloc[j])
 
         df.index = df.index.astype('object')
-        tm.assert_frame_equal(df.reindex(i), df.iloc[j])
+        tm.assert_frame_equal(df.reindex(i), df.iloc[j], check_index_type=False)
 
         # GH10388
         df = pd.DataFrame({'other':['a', 'b', np.nan, 'c'],
@@ -11555,13 +11564,13 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         result = self.empty.apply(x.append, axis=1, reduce=False)
         assert_frame_equal(result, self.empty)
         result = self.empty.apply(x.append, axis=1, reduce=True)
-        assert_series_equal(result, Series([]))
+        assert_series_equal(result, Series([], index=pd.Index([], dtype=object)))
 
         empty_with_cols = DataFrame(columns=['a', 'b', 'c'])
         result = empty_with_cols.apply(x.append, axis=1, reduce=False)
         assert_frame_equal(result, empty_with_cols)
         result = empty_with_cols.apply(x.append, axis=1, reduce=True)
-        assert_series_equal(result, Series([]))
+        assert_series_equal(result, Series([], index=pd.Index([], dtype=object)))
 
         # Ensure that x.append hasn't been called
         self.assertEqual(x, [])
@@ -11620,7 +11629,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         result = df[:0].apply(np.mean, axis=1)
         # the result here is actually kind of ambiguous, should it be a Series
         # or a DataFrame?
-        expected = Series(np.nan, index=[])
+        expected = Series(np.nan, index=pd.Index([], dtype=int))
         assert_series_equal(result, expected)
 
         df = DataFrame({'A': ['foo'],
@@ -11909,7 +11918,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         # regex with ints in column names
         # from PR #10384
         df = DataFrame(0., index=[0, 1, 2], columns=['A1', 1, 'B', 2, 'C'])
-        expected = DataFrame(0., index=[0, 1, 2], columns=[1, 2])
+        expected = DataFrame(0., index=[0, 1, 2], columns=pd.Index([1, 2], dtype=object))
         filtered = df.filter(regex='^[0-9]+$')
         assert_frame_equal(filtered, expected)
 

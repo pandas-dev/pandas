@@ -612,26 +612,26 @@ class TestSeries(tm.TestCase, Generic):
     def test_get_numeric_data_preserve_dtype(self):
 
         # get the numeric data
-        o = Series([1,2,3])
+        o = Series([1, 2, 3])
         result = o._get_numeric_data()
         self._compare(result, o)
 
-        o = Series([1,'2',3.])
+        o = Series([1, '2', 3.])
         result = o._get_numeric_data()
-        expected = Series([],dtype=object)
+        expected = Series([], dtype=object, index=pd.Index([], dtype=object))
         self._compare(result, expected)
 
-        o = Series([True,False,True])
+        o = Series([True, False, True])
         result = o._get_numeric_data()
         self._compare(result, o)
 
-        o = Series([True,False,True])
+        o = Series([True, False, True])
         result = o._get_bool_data()
         self._compare(result, o)
 
         o = Series(date_range('20130101',periods=3))
         result = o._get_numeric_data()
-        expected = Series([],dtype='M8[ns]')
+        expected = Series([],dtype='M8[ns]', index=pd.Index([], dtype=object))
         self._compare(result, expected)
 
     def test_nonzero_single_element(self):

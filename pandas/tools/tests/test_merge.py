@@ -762,6 +762,7 @@ class TestMerge(tm.TestCase):
         right = pd.DataFrame([], columns=['x', 'y', 'z'])
 
         exp_in = pd.DataFrame([], columns=['a', 'b', 'c', 'x', 'y', 'z'],
+                              index=pd.Index([], dtype=object),
                               dtype=object)
 
         for kwarg in [dict(left_index=True, right_index=True),
@@ -792,6 +793,8 @@ class TestMerge(tm.TestCase):
                                 'z': [3, 6, 9]},
                                columns=['a', 'b', 'c', 'x', 'y', 'z'])
         exp_in = exp_out[0:0] # make empty DataFrame keeping dtype
+        # result will have object dtype
+        exp_in.index = exp_in.index.astype(object)
 
         for kwarg in [dict(left_index=True, right_index=True),
                       dict(left_index=True, right_on='x'),
@@ -822,6 +825,8 @@ class TestMerge(tm.TestCase):
                                 'z': np.array([np.nan]*3, dtype=object)},
                                columns=['a', 'b', 'c', 'x', 'y', 'z'])
         exp_in = exp_out[0:0] # make empty DataFrame keeping dtype
+        # result will have object dtype
+        exp_in.index = exp_in.index.astype(object)
 
         for kwarg in [dict(left_index=True, right_index=True),
                       dict(left_index=True, right_on='x'),

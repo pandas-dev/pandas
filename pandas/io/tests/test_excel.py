@@ -846,7 +846,8 @@ class ExcelWriterBase(SharedItems):
                 # test with convert_float=False comes back as float
                 float_frame = frame.astype(float)
                 recons = read_excel(path, 'test1', convert_float=False)
-                tm.assert_frame_equal(recons, float_frame)
+                tm.assert_frame_equal(recons, float_frame,
+                                      check_index_type=False, check_column_type=False)
 
     def test_float_types(self):
         _skip_if_no_xlrd()
@@ -1186,9 +1187,11 @@ class ExcelWriterBase(SharedItems):
         _skip_if_no_xlrd()
         ext = self.ext
         filename = '__tmp_to_excel_float_format__.' + ext
-        df = DataFrame([[u('\u0192'), u('\u0193'), u('\u0194')],
-                        [u('\u0195'), u('\u0196'), u('\u0197')]],
-                        index=[u('A\u0192'), 'B'], columns=[u('X\u0193'), 'Y', 'Z'])
+
+        # avoid mixed inferred_type
+        df = DataFrame([[u'\u0192', u'\u0193', u'\u0194'],
+                        [u'\u0195', u'\u0196', u'\u0197']],
+                        index=[u'A\u0192', u'B'], columns=[u'X\u0193', u'Y', u'Z'])
 
         with ensure_clean(filename) as filename:
             df.to_excel(filename, sheet_name='TestSheet', encoding='utf8')
