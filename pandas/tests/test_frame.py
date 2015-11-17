@@ -5545,6 +5545,8 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         dfaa = df[['a', 'a']]
         self.assertEqual(list(dfaa.itertuples()), [(0, 1, 1), (1, 2, 2), (2, 3, 3)])
 
+        self.assertEqual(repr(list(df.itertuples(name=None))), '[(0, 1, 4), (1, 2, 5), (2, 3, 6)]')
+
         tup = next(df.itertuples(name='TestName'))
 
         # no support for field renaming in Python 2.6, regular tuples are returned

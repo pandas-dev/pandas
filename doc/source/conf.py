@@ -309,6 +309,8 @@ autosummary_generate = glob.glob("*.rst")
 # extlinks alias
 extlinks = {'issue': ('https://github.com/pydata/pandas/issues/%s',
                       'GH'),
+            'pr': ('https://github.com/pydata/pandas/pull/%s',
+                      'GH-PR'),
             'wiki': ('https://github.com/pydata/pandas/wiki/%s',
                      'wiki ')}
 
