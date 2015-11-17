@@ -502,6 +502,22 @@ class TestTimeZoneSupportPytz(tm.TestCase):
         localized_is_dst = dr.tz_localize(tz, ambiguous=is_dst)
         self.assert_numpy_array_equal(localized, localized_is_dst)
 
+        # construction with an ambiguous end-point
+        # GH 11626
+        tz=self.tzstr("Europe/London")
+
+        def f():
+            date_range("2013-10-26 23:00", "2013-10-27 01:00",
+                       tz="Europe/London",
+                       freq="H")
+            self.assertRaises(pytz.AmbiguousTimeError, f)
+        times = date_range("2013-10-26 23:00", "2013-10-27 01:00",
+                              freq="H",
+                              tz=tz,
+                              ambiguous='infer')
+        self.assertEqual(times[0],Timestamp('2013-10-26 23:00',tz=tz))
+        self.assertEqual(times[-1],Timestamp('2013-10-27 01:00',tz=tz))
+
     def test_ambiguous_nat(self):
         tz = self.tz('US/Eastern')
         times = ['11/06/2011 00:00', '11/06/2011 01:00',

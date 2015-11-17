@@ -120,7 +120,8 @@ Bug Fixes
 - Bug in ``HDFStore.append`` with strings whose encoded length exceded the max unencoded length (:issue:`11234`)
 - Bug in merging ``datetime64[ns, tz]`` dtypes (:issue:`11405`)
 - Bug in ``HDFStore.select`` when comparing with a numpy scalar in a where clause (:issue:`11283`)
-- Bug in using ``DataFrame.ix`` with a multi-index indexer(:issue:`11372`)
+- Bug in using ``DataFrame.ix`` with a multi-index indexer (:issue:`11372`)
+- Bug in ``date_range`` with ambigous endpoints (:issue:`11626`)
 - Prevent adding new attributes to the accessors ``.str``, ``.dt`` and ``.cat``. Retrieving such
   a value was not possible, so error out on setting it. (:issue:`10673`)
 - Bug in tz-conversions with an ambiguous time and ``.dt`` accessors (:issue:`11295`)
