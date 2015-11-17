@@ -93,7 +93,7 @@ class Styler(object):
         {% endfor %}
         </style>
 
-        <table id="T_{{uuid}}">
+        <table id="T_{{uuid}}" {{ table_attributes }}>
         {% if caption %}
             <caption>{{caption}}</caption>
         {% endif %}
@@ -125,7 +125,7 @@ class Styler(object):
         """)
 
     def __init__(self, data, precision=None, table_styles=None, uuid=None,
-                 caption=None):
+                 caption=None, table_attributes=None):
         self.ctx = defaultdict(list)
         self._todo = []
 
@@ -146,6 +146,7 @@ class Styler(object):
         if precision is None:
             precision = pd.options.display.precision
         self.precision = precision
+        self.table_attributes = table_attributes
 
     def _repr_html_(self):
         '''
@@ -230,7 +231,7 @@ class Styler(object):
 
         return dict(head=head, cellstyle=cellstyle, body=body, uuid=uuid,
                     precision=precision, table_styles=table_styles,
-                    caption=caption)
+                    caption=caption, table_attributes=self.table_attributes)
 
     def render(self):
         """
@@ -413,6 +414,25 @@ class Styler(object):
         self
         """
         self.precision = precision
+        return self
+
+    def set_table_attributes(self, attributes):
+        """
+        Set the table attributes. These are the items
+        that show up in the opening <table> tag in addition
+        to to automatic (by default) id.
+
+        .. versionadded:: 0.17.1
+
+        Parameters
+        ----------
+        precision: int
+
+        Returns
+        -------
+        self
+        """
+        self.table_attributes = attributes
         return self
 
     def export(self):
