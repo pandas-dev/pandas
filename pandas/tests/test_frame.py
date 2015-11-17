@@ -15448,6 +15448,26 @@ starting,ending,measure
 
                 assert_frame_equal(test, nat_frame)
 
+    def test_to_csv_with_dst_transitions(self):
+        pname = '__tmp_to_csv_date_format_with_dst__'
+        with ensure_clean(pname) as path:
+            # make sure we are not failing on transitions
+            times = pd.date_range("2013-10-26 23:00", "2013-10-27 01:00",
+                                  tz="Europe/London",
+                                  freq="H",
+                                  ambiguous='infer')
+
+            for i in [times, times+pd.Timedelta('10s')]:
+                df = DataFrame({'A' : range(len(i))}, index=i)
+                df.to_csv(path,index=True)
+
+                # we have to reconvert the index as we
+                # don't parse the tz's
+                result = read_csv(path,index_col=0)
+                result.index = pd.to_datetime(result.index).tz_localize('UTC').tz_convert('Europe/London')
+                assert_frame_equal(result,df)
+
+
     def test_concat_empty_dataframe_dtypes(self):
         df = DataFrame(columns=list("abc"))
         df['a'] = df['a'].astype(np.bool_)
