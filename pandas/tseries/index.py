@@ -355,7 +355,7 @@ class DatetimeIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
             if freq is not None and not freq_infer:
                 inferred = subarr.inferred_freq
                 if inferred != freq.freqstr:
-                    on_freq = cls._generate(subarr[0], None, len(subarr), None, freq, tz=tz)
+                    on_freq = cls._generate(subarr[0], None, len(subarr), None, freq, tz=tz, ambiguous=ambiguous)
                     if not np.array_equal(subarr.asi8, on_freq.asi8):
                         raise ValueError('Inferred frequency {0} from passed dates does not '
                                          'conform to passed frequency {1}'.format(inferred, freq.freqstr))
@@ -440,17 +440,17 @@ class DatetimeIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
             if inferred_tz is None and tz is not None:
                 # naive dates
                 if start is not None and start.tz is None:
-                    start = start.tz_localize(tz)
+                    start = start.tz_localize(tz, ambiguous=False)
 
                 if end is not None and end.tz is None:
-                    end = end.tz_localize(tz)
+                    end = end.tz_localize(tz, ambiguous=False)
 
             if start and end:
                 if start.tz is None and end.tz is not None:
-                    start = start.tz_localize(end.tz)
+                    start = start.tz_localize(end.tz, ambiguous=False)
 
                 if end.tz is None and start.tz is not None:
-                    end = end.tz_localize(start.tz)
+                    end = end.tz_localize(start.tz, ambiguous=False)
 
             if _use_cached_range(offset, _normalized, start, end):
                 index = cls._cached_range(start, end, periods=periods,
@@ -1884,7 +1884,7 @@ def _generate_regular_range(start, end, periods, offset):
 
 
 def date_range(start=None, end=None, periods=None, freq='D', tz=None,
-               normalize=False, name=None, closed=None):
+               normalize=False, name=None, closed=None, **kwargs):
     """
     Return a fixed frequency datetime index, with day (calendar) as the default
     frequency
@@ -1920,11 +1920,11 @@ def date_range(start=None, end=None, periods=None, freq='D', tz=None,
     """
     return DatetimeIndex(start=start, end=end, periods=periods,
                          freq=freq, tz=tz, normalize=normalize, name=name,
-                         closed=closed)
+                         closed=closed, **kwargs)
 
 
 def bdate_range(start=None, end=None, periods=None, freq='B', tz=None,
-                normalize=True, name=None, closed=None):
+                normalize=True, name=None, closed=None, **kwargs):
     """
     Return a fixed frequency datetime index, with business day as the default
     frequency
@@ -1961,7 +1961,7 @@ def bdate_range(start=None, end=None, periods=None, freq='B', tz=None,
 
     return DatetimeIndex(start=start, end=end, periods=periods,
                          freq=freq, tz=tz, normalize=normalize, name=name,
-                         closed=closed)
+                         closed=closed, **kwargs)
 
 
 def cdate_range(start=None, end=None, periods=None, freq='C', tz=None,
