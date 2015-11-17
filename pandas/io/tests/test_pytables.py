@@ -4988,6 +4988,21 @@ class TestTimezones(Base, tm.TestCase):
             result = store['df']
             assert_frame_equal(result, expected)
 
+    def test_dst_transitions(self):
+        # make sure we are not failing on transaitions
+        with ensure_clean_store(self.path) as store:
+            times = pd.date_range("2013-10-26 23:00", "2013-10-27 01:00",
+                                  tz="Europe/London",
+                                  freq="H",
+                                  ambiguous='infer')
+
+            for i in [times, times+pd.Timedelta('10min')]:
+                _maybe_remove(store, 'df')
+                df = DataFrame({'A' : range(len(i)), 'B' : i }, index=i)
+                store.append('df',df)
+                result = store.select('df')
+                assert_frame_equal(result, df)
+
 def _test_sort(obj):
     if isinstance(obj, DataFrame):
         return obj.reindex(sorted(obj.index))
