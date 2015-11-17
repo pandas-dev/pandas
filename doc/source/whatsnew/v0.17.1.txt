@@ -66,6 +66,7 @@ Enhancements
      pd.Index([1, np.nan, 3]).fillna(2)
 
 - ``pivot_table`` now has a ``margins_name`` argument so you can use something other than the default of 'All' (:issue:`3335`)
+- Implement export of ``datetime64[ns, tz]`` dtypes with a fixed HDF5 store (:issue:`11411`)
 
 .. _whatsnew_0171.api:
 
@@ -159,4 +160,3 @@ Bug Fixes
 - Bug in ``DataFrame.join()`` with ``how='right'`` producing a ``TypeError`` (:issue:`11519`)
 - Bug in ``Series.quantile`` with empty list results has ``Index`` with ``object`` dtype (:issue:`11588`)
 - Bug in ``pd.merge`` results in empty ``Int64Index`` rather than ``Index(dtype=object)`` when the merge result is empty (:issue:`11588`)
-
