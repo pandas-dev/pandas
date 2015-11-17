@@ -2506,7 +2506,7 @@ class TestHDFStore(Base, tm.TestCase):
 
         ts3 = Series(ts.values, Index(np.asarray(ts.index, dtype=object),
                                       dtype=object))
-        self._check_roundtrip(ts3, tm.assert_series_equal)
+        self._check_roundtrip(ts3, tm.assert_series_equal, check_index_type=False)
 
     def test_sparse_series(self):
 
@@ -3049,7 +3049,7 @@ class TestHDFStore(Base, tm.TestCase):
             result = store.select(
                 'df4', where='values>2.0')
             tm.assert_frame_equal(expected, result)
-        
+
         # test selection with comparison against numpy scalar
         # GH 11283
         with ensure_clean_store(self.path) as store:

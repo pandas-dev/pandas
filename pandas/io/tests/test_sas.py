@@ -60,17 +60,17 @@ class TestXport(tm.TestCase):
 
         # Read full file
         data = XportReader(self.file01, index="SEQN").read()
-        tm.assert_frame_equal(data, data_csv)
+        tm.assert_frame_equal(data, data_csv, check_index_type=False)
 
         # Test incremental read with `read` method.
         reader = XportReader(self.file01, index="SEQN")
         data = reader.read(10)
-        tm.assert_frame_equal(data, data_csv.iloc[0:10, :])
+        tm.assert_frame_equal(data, data_csv.iloc[0:10, :], check_index_type=False)
 
         # Test incremental read with `get_chunk` method.
         reader = XportReader(self.file01, index="SEQN", chunksize=10)
         data = reader.get_chunk()
-        tm.assert_frame_equal(data, data_csv.iloc[0:10, :])
+        tm.assert_frame_equal(data, data_csv.iloc[0:10, :], check_index_type=False)
 
 
     def test1_incremental(self):
@@ -85,7 +85,7 @@ class TestXport(tm.TestCase):
         all_data = [x for x in reader]
         data = pd.concat(all_data, axis=0)
 
-        tm.assert_frame_equal(data, data_csv)
+        tm.assert_frame_equal(data, data_csv, check_index_type=False)
 
 
     def test2(self):

@@ -1485,7 +1485,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         self.drop_table(tbl)
         self.conn.execute(create_sql)
         returned_df = sql.read_sql_table(tbl, self.conn)
-        tm.assert_frame_equal(returned_df, blank_test_df)
+        tm.assert_frame_equal(returned_df, blank_test_df, check_index_type=False)
         self.drop_table(tbl)
 
     def test_dtype(self):
