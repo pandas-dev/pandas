@@ -43,7 +43,7 @@ from pandas.core.categorical import Categorical
 import pandas.computation.expressions as expressions
 from pandas.computation.eval import eval as _eval
 from numpy import percentile as _quantile
-from pandas.compat import(range, zip, lrange, lmap, lzip, StringIO, u,
+from pandas.compat import(range, map, zip, lrange, lmap, lzip, StringIO, u,
                           OrderedDict, raise_with_traceback)
 from pandas import compat
 from pandas.sparse.array import SparseArray
@@ -664,7 +664,7 @@ class DataFrame(NDFrame):
         index : boolean, default True
             If True, return the index as the first element of the tuple.
         name : string, default "Pandas"
-            The name of the returned namedtuple.
+            The name of the returned namedtuples or None to return regular tuples.
 
         Notes
         -----
@@ -703,13 +703,13 @@ class DataFrame(NDFrame):
 
         # Python 3 supports at most 255 arguments to constructor, and
         # things get slow with this many fields in Python 2
-        if len(self.columns) + index < 256:
+        if name is not None and len(self.columns) + index < 256:
             # `rename` is unsupported in Python 2.6
             try:
                 itertuple = collections.namedtuple(
                     name, fields+list(self.columns), rename=True)
-                return (itertuple(*row) for row in zip(*arrays))
-            except:
+                return map(itertuple._make, zip(*arrays))
+            except Exception:
                 pass
 
         # fallback to regular tuples
