@@ -11629,7 +11629,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         result = df[:0].apply(np.mean, axis=1)
         # the result here is actually kind of ambiguous, should it be a Series
         # or a DataFrame?
-        expected = Series(np.nan, index=pd.Index([], dtype=int))
+        expected = Series(np.nan, index=pd.Index([], dtype='int64'))
         assert_series_equal(result, expected)
 
         df = DataFrame({'A': ['foo'],
@@ -15458,7 +15458,8 @@ starting,ending,measure
                                   ambiguous='infer')
 
             for i in [times, times+pd.Timedelta('10s')]:
-                df = DataFrame({'A' : range(len(i))}, index=i)
+                time_range = np.array(range(len(i)), dtype='int64')
+                df = DataFrame({'A' : time_range}, index=i)
                 df.to_csv(path,index=True)
 
                 # we have to reconvert the index as we
