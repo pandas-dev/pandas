@@ -4389,6 +4389,9 @@ class DataFrame(NDFrame):
                     yield vals
 
         if isinstance(decimals, (dict, Series)):
+            if isinstance(decimals, Series):
+                if not decimals.index.is_unique:
+                    raise ValueError("Index of decimals must be unique")
             new_cols = [col for col in _dict_round(self, decimals)]
         elif com.is_integer(decimals):
             # Dispatch to numpy.round
