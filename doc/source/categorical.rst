@@ -526,11 +526,13 @@ type:
 
 .. ipython:: python
 
-    str_cat = pd.Series(list('aabb')).astype('category')
+    str_s = pd.Series(list('aabb'))
+    str_cat = str_s.astype('category')
     str_cat
     str_cat.str.contains("a")
 
-    date_cat = pd.Series(pd.date_range('1/1/2015', periods=5)).astype('category')
+    date_s = pd.Series(pd.date_range('1/1/2015', periods=5))
+    date_cat = date_s.astype('category')
     date_cat
     date_cat.dt.day
 
