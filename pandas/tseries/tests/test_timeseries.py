@@ -3,7 +3,7 @@ import calendar
 from datetime import datetime, time, timedelta
 import sys
 import operator
-
+import warnings
 import nose
 
 import numpy as np
@@ -2651,17 +2651,18 @@ class TestDatetimeIndex(tm.TestCase):
                        ('WeekOfMonth', {'weekday': 2, 'week': 2}), 'Easter',
                        ('DateOffset', {'day': 4}), ('DateOffset', {'month': 5})]
 
-            for normalize in (True, False):
-                for do in offsets:
-                    if isinstance(do, tuple):
-                        do, kwargs = do
-                    else:
-                        do = do
-                        kwargs = {}
-                    op = getattr(pd.offsets,do)(5, normalize=normalize, **kwargs)
-                    assert_func(klass([x + op for x in s]), s + op)
-                    assert_func(klass([x - op for x in s]), s - op)
-                    assert_func(klass([op + x for x in s]), op + s)
+            with warnings.catch_warnings(record=True):
+                for normalize in (True, False):
+                    for do in offsets:
+                        if isinstance(do, tuple):
+                            do, kwargs = do
+                        else:
+                            do = do
+                            kwargs = {}
+                        op = getattr(pd.offsets,do)(5, normalize=normalize, **kwargs)
+                        assert_func(klass([x + op for x in s]), s + op)
+                        assert_func(klass([x - op for x in s]), s - op)
+                        assert_func(klass([op + x for x in s]), op + s)
 
     # def test_add_timedelta64(self):
     #     rng = date_range('1/1/2000', periods=5)
