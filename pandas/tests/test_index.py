@@ -53,11 +53,11 @@ class Base(object):
         # need an object to create with
         self.assertRaises(TypeError, self._holder)
 
-    def test_shift_index(self):
-        # err8083 test the base class for shift
+    def test_shift(self):
+
+        # GH8083 test the base class for shift
         idx = self.create_index()
         self.assertRaises(NotImplementedError, idx.shift, 1)
-
         self.assertRaises(NotImplementedError, idx.shift, 1, 2)
 
     def test_numeric_compat(self):
@@ -1056,19 +1056,6 @@ class TestIndex(Base, tm.TestCase):
         exp = _to_m8(exp)
 
         self.assertEqual(exp, arr[5])
-
-    def test_shift(self):
-        shifted = self.dateIndex.shift(0, timedelta(1))
-        self.assertIs(shifted, self.dateIndex)
-
-        shifted = self.dateIndex.shift(5, timedelta(1))
-        tm.assert_numpy_array_equal(shifted, self.dateIndex + timedelta(5))
-
-        shifted = self.dateIndex.shift(1, 'B')
-        tm.assert_numpy_array_equal(shifted, self.dateIndex + offsets.BDay())
-
-        shifted.name = 'shifted'
-        self.assertEqual(shifted.name, shifted.shift(1, 'D').name)
 
     def test_intersection(self):
         first = self.strIndex[:20]
@@ -3393,6 +3380,11 @@ class TestInt64Index(Numeric, tm.TestCase):
 
 class DatetimeLike(Base):
 
+    def test_shift_identity(self):
+
+        idx = self.create_index()
+        self.assert_index_equal(idx, idx.shift(0))
+
     def test_str(self):
 
         # test the string repr
@@ -3433,18 +3425,14 @@ class TestDatetimeIndex(DatetimeLike, tm.TestCase):
         return date_range('20130101', periods=5)
 
     def test_shift(self):
+
         # test shift for datetimeIndex and non datetimeIndex
-        # err8083
+        # GH8083
 
         drange = self.create_index()
         result = drange.shift(1)
         expected = DatetimeIndex(['2013-01-02', '2013-01-03', '2013-01-04', '2013-01-05',
                '2013-01-06'], freq='D')
-        self.assert_index_equal(result, expected)
-
-        result = drange.shift(0)
-        expected = DatetimeIndex(['2013-01-01', '2013-01-02', '2013-01-03', '2013-01-04',
-               '2013-01-05'], freq='D')
         self.assert_index_equal(result, expected)
 
         result = drange.shift(-1)
@@ -3722,9 +3710,9 @@ class TestPeriodIndex(DatetimeLike, tm.TestCase):
         return period_range('20130101', periods=5, freq='D')
 
     def test_shift(self):
-        # test shift for PeriodIndex
-        # err8083
 
+        # test shift for PeriodIndex
+        # GH8083
         drange = self.create_index()
         result = drange.shift(1)
         expected = PeriodIndex(['2013-01-02', '2013-01-03', '2013-01-04', '2013-01-05',
@@ -3837,9 +3825,9 @@ class TestTimedeltaIndex(DatetimeLike, tm.TestCase):
                 '4 days 01:00:00', '5 days 01:00:00'],freq='D')
         self.assert_index_equal(result, expected)
 
-        result = drange.shift(3, freq='2D')
-        expected = TimedeltaIndex(['2 days 01:00:00', '3 days 01:00:00', '4 days 01:00:00',
-                '5 days 01:00:00', '6 days 01:00:00'],freq='D')
+        result = drange.shift(3, freq='2D 1s')
+        expected = TimedeltaIndex(['6 days 01:00:03', '7 days 01:00:03', '8 days 01:00:03',
+                '9 days 01:00:03', '10 days 01:00:03'],freq='D')
         self.assert_index_equal(result, expected)
 
     def test_get_loc(self):
