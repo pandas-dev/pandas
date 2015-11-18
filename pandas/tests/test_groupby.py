@@ -392,7 +392,7 @@ class TestGroupBy(tm.TestCase):
         expected = df.reset_index().groupby([pd.Grouper(key='foo', freq='W'),
                                              pd.Grouper(key='bar', freq='W')]).sum()
         # reset index changes columns dtype to object
-        expected.columns = pd.Index([0], dtype=int)
+        expected.columns = pd.Index([0], dtype='int64')
 
         result = df.groupby([pd.Grouper(level='foo', freq='W'),
                              pd.Grouper(level='bar', freq='W')]).sum()
