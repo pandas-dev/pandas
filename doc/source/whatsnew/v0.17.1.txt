@@ -188,3 +188,5 @@ Bug Fixes
 - Bug in ``DataFrame.join()`` with ``how='right'`` producing a ``TypeError`` (:issue:`11519`)
 - Bug in ``Series.quantile`` with empty list results has ``Index`` with ``object`` dtype (:issue:`11588`)
 - Bug in ``pd.merge`` results in empty ``Int64Index`` rather than ``Index(dtype=object)`` when the merge result is empty (:issue:`11588`)
+- Bug in ``DataFrame.round()`` with non-unique column index producing a Fatal Python error (:issue:`11611`)
+- Bug in ``DataFrame.round()`` with ``decimals`` being a non-unique indexed Series producing extra columns (:issue:`11618`)
