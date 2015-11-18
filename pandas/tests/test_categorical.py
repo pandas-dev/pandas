@@ -844,6 +844,11 @@ Categories (3, object): [ああああ, いいいいい, ううううううう]""
         self.assert_numpy_array_equal(c.categories, exp_categories_dropped)
         self.assertIsNone(res)
 
+        # with NaN values (GH11599)
+        c = Categorical(["a","b","c",np.nan], categories=["a","b","c","d","e"])
+        res = c.remove_unused_categories()
+        self.assert_numpy_array_equal(res.categories, np.array(["a","b","c"]))
+        self.assert_numpy_array_equal(c.categories, exp_categories_all)
 
     def test_nan_handling(self):
 
