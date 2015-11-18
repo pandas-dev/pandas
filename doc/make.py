@@ -104,11 +104,14 @@ def clean():
 
 def html():
     check_build()
+    os.system('jupyter nbconvert --to=html --template=basic '
+              '--output=source/html-styling.html source/html-styling.ipynb')
     if os.system('sphinx-build -P -b html -d build/doctrees '
                  'source build/html'):
         raise SystemExit("Building HTML failed.")
     try:
         # remove stale file
+        os.system('rm source/html-styling.html')
         os.system('cd build; rm -f html/pandas.zip;')
     except:
         pass
