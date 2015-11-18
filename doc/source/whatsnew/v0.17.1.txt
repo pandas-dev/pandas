@@ -87,7 +87,7 @@ Enhancements
      s
      s.str.contains("a")
 
-     date = pd.Series(date_range('1/1/2015', periods=5)).astype('category')
+     date = pd.Series(pd.date_range('1/1/2015', periods=5)).astype('category')
      date
      date.dt.day
 

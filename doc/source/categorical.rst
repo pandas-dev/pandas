@@ -530,7 +530,7 @@ type:
     str_cat
     str_cat.str.contains("a")
 
-    date_cat = pd.Series(date_range('1/1/2015', periods=5)).astype('category')
+    date_cat = pd.Series(pd.date_range('1/1/2015', periods=5)).astype('category')
     date_cat
     date_cat.dt.day
 
