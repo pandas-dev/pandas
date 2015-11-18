@@ -4,6 +4,7 @@ import json
 import logging
 from time import sleep
 import uuid
+import pandas.json
 
 import numpy as np
 
@@ -109,9 +110,10 @@ class TableCreationError(PandasError, ValueError):
 
 class GbqConnector(object):
 
-    def __init__(self, project_id, reauth=False):
+    def __init__(self, project_id, key_file, reauth=False):
         self.test_google_api_imports()
         self.project_id = project_id
+        self.key_file = key_file
         self.reauth = reauth
         self.credentials = self.get_credentials()
         self.service = self.get_service(self.credentials)
@@ -129,22 +131,15 @@ class GbqConnector(object):
             raise ImportError("Missing module required for Google BigQuery support: {0}".format(str(e)))
 
     def get_credentials(self):
-        from oauth2client.client import OAuth2WebServerFlow
-        from oauth2client.file import Storage
-        from oauth2client.tools import run_flow, argparser
+        from oauth2client.client import SignedJwtAssertionCredentials
 
-        _check_google_client_version()
-
-        flow = OAuth2WebServerFlow(client_id='495642085510-k0tmvj2m941jhre2nbqka17vqpjfddtd.apps.googleusercontent.com',
-                                   client_secret='kOc9wMptUtxkcIFbtZCcrEAc',
-                                   scope='https://www.googleapis.com/auth/bigquery',
-                                   redirect_uri='urn:ietf:wg:oauth:2.0:oob')
-
-        storage = Storage('bigquery_credentials.dat')
-        credentials = storage.get()
-
-        if credentials is None or credentials.invalid or self.reauth:
-            credentials = run_flow(flow, storage, argparser.parse_args([]))
+        scope = 'https://www.googleapis.com/auth/bigquery'
+        with open(self.key_file) as key_file:
+            key = pandas.json.load(key_file)
+        credentials = SignedJwtAssertionCredentials(
+            key['client_email'],
+            key['private_key'],
+            scope)
 
         return credentials
 
@@ -185,8 +180,7 @@ class GbqConnector(object):
             for error in errors:
                 reason = error['reason']
                 message = error['message']
-                location = error['location']
-                error_message = 'Error at Row: {0}, Reason: {1}, Location: {2}, Message: {3}'.format(row, reason, location, message)
+                error_message = 'Error at Row: {0}, Reason: {1}, Message: {2}'.format(row, reason, message)
 
                 # Report all error messages if verbose is set
                 if verbose:
@@ -386,7 +380,7 @@ def _parse_entry(field_value, field_type):
     return field_value
 
 
-def read_gbq(query, project_id=None, index_col=None, col_order=None, reauth=False, verbose=True):
+def read_gbq(query, key_file, project_id=None, index_col=None, col_order=None, reauth=False, verbose=True):
     """Load data from Google BigQuery.
 
     THIS IS AN EXPERIMENTAL LIBRARY
@@ -424,7 +418,7 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None, reauth=Fals
     if not project_id:
         raise TypeError("Missing required parameter: project_id")
 
-    connector = GbqConnector(project_id, reauth=reauth)
+    connector = GbqConnector(project_id, key_file, reauth=reauth)
     schema, pages = connector.run_query(query, verbose=verbose)
     dataframe_list = []
     while len(pages) > 0:
@@ -462,7 +456,7 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None, reauth=Fals
     return final_df
 
 
-def to_gbq(dataframe, destination_table, project_id, chunksize=10000,
+def to_gbq(dataframe, destination_table, project_id, key_file, chunksize=10000,
            verbose=True, reauth=False, if_exists='fail'):
     """Write a DataFrame to a Google BigQuery table.
 
@@ -495,7 +489,7 @@ def to_gbq(dataframe, destination_table, project_id, chunksize=10000,
     if '.' not in destination_table:
         raise NotFoundException("Invalid Table Name. Should be of the form 'datasetId.tableId' ")
 
-    connector = GbqConnector(project_id, reauth=reauth)
+    connector = GbqConnector(project_id, key_file, reauth=reauth)
     dataset_id, table_id = destination_table.rsplit('.', 1)
 
     table = _Table(project_id, dataset_id, reauth=reauth)
