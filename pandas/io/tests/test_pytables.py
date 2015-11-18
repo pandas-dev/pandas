@@ -2506,7 +2506,7 @@ class TestHDFStore(Base, tm.TestCase):
 
         ts3 = Series(ts.values, Index(np.asarray(ts.index, dtype=object),
                                       dtype=object))
-        self._check_roundtrip(ts3, tm.assert_series_equal)
+        self._check_roundtrip(ts3, tm.assert_series_equal, check_index_type=False)
 
     def test_sparse_series(self):
 
@@ -3049,7 +3049,7 @@ class TestHDFStore(Base, tm.TestCase):
             result = store.select(
                 'df4', where='values>2.0')
             tm.assert_frame_equal(expected, result)
-        
+
         # test selection with comparison against numpy scalar
         # GH 11283
         with ensure_clean_store(self.path) as store:
@@ -4909,15 +4909,26 @@ class TestTimezones(Base, tm.TestCase):
             result = store.select_column('frame', 'index')
             self.assertEqual(rng.tz, result.dt.tz)
 
-    def test_timezones(self):
-        rng = date_range('1/1/2000', '1/30/2000', tz='US/Eastern')
-        frame = DataFrame(np.random.randn(len(rng), 4), index=rng)
-
+    def test_timezones_fixed(self):
         with ensure_clean_store(self.path) as store:
-            store['frame'] = frame
-            recons = store['frame']
-            self.assertTrue(recons.index.equals(rng))
-            self.assertEqual(rng.tz, recons.index.tz)
+
+            # index
+            rng = date_range('1/1/2000', '1/30/2000', tz='US/Eastern')
+            df = DataFrame(np.random.randn(len(rng), 4), index=rng)
+            store['df'] = df
+            result = store['df']
+            assert_frame_equal(result, df)
+
+            # as data
+            # GH11411
+            _maybe_remove(store, 'df')
+            df = DataFrame({'A' : rng,
+                            'B' : rng.tz_convert('UTC').tz_localize(None),
+                            'C' : rng.tz_convert('CET'),
+                            'D' : range(len(rng))}, index=rng)
+            store['df'] = df
+            result = store['df']
+            assert_frame_equal(result, df)
 
     def test_fixed_offset_tz(self):
         rng = date_range('1/1/2000 00:00:00-07:00', '1/30/2000 00:00:00-07:00')
@@ -4987,6 +4998,21 @@ class TestTimezones(Base, tm.TestCase):
         with ensure_clean_store(tm.get_data_path('legacy_hdf/datetimetz_object.h5'), mode='r') as store:
             result = store['df']
             assert_frame_equal(result, expected)
+
+    def test_dst_transitions(self):
+        # make sure we are not failing on transaitions
+        with ensure_clean_store(self.path) as store:
+            times = pd.date_range("2013-10-26 23:00", "2013-10-27 01:00",
+                                  tz="Europe/London",
+                                  freq="H",
+                                  ambiguous='infer')
+
+            for i in [times, times+pd.Timedelta('10min')]:
+                _maybe_remove(store, 'df')
+                df = DataFrame({'A' : range(len(i)), 'B' : i }, index=i)
+                store.append('df',df)
+                result = store.select('df')
+                assert_frame_equal(result, df)
 
 def _test_sort(obj):
     if isinstance(obj, DataFrame):

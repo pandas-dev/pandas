@@ -25,11 +25,25 @@ New features
 Conditional HTML Formatting
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-We've added *experimental* support for conditional HTML formatting,
+We've added *experimental* support for conditional HTML formatting:
 the visual styling of a DataFrame based on the data.
 The styling is accomplished with HTML and CSS.
 Acesses the styler class with :attr:`pandas.DataFrame.style`, attribute,
 an instance of :class:`~pandas.core.style.Styler` with your data attached.
+
+Here's a quick example:
+
+  .. ipython:: python
+
+    np.random.seed(123)
+    df = DataFrame(np.random.randn(10, 5), columns=list('abcde'))
+    html = df.style.background_gradient(cmap='viridis', low=.5)
+
+We can render the HTML to get the following table.
+
+.. raw:: html
+   :file: whatsnew_0171_html_table.html
+
 See the :ref:`example notebook <style>` for more.
 
 .. _whatsnew_0171.enhancements:
@@ -65,7 +79,10 @@ Enhancements
 
      pd.Index([1, np.nan, 3]).fillna(2)
 
+- Series of type ``"category"`` now make ``.str.<...>`` and ``.dt.<...>`` accessor methods / properties available, if the categories are of that type. (:issue:`10661`)
+
 - ``pivot_table`` now has a ``margins_name`` argument so you can use something other than the default of 'All' (:issue:`3335`)
+- Implement export of ``datetime64[ns, tz]`` dtypes with a fixed HDF5 store (:issue:`11411`)
 
 .. _whatsnew_0171.api:
 
@@ -79,6 +96,7 @@ API changes
   Legacy Python syntax (``set([x, y])``) (:issue:`11215`)
 - Indexing with a null key will raise a ``TypeError``, instead of a ``ValueError`` (:issue:`11356`)
 - ``Series.sort_index()`` now correctly handles the ``inplace`` option (:issue:`11402`)
+- ``SparseArray.__iter__()`` now does not cause ``PendingDeprecationWarning`` in Python 3.5 (:issue:`11622`)
 
 - ``DataFrame.itertuples()`` now returns ``namedtuple`` objects, when possible. (:issue:`11269`)
 - ``Series.ptp`` will now ignore missing values by default (:issue:`11163`)
@@ -120,7 +138,8 @@ Bug Fixes
 - Bug in ``HDFStore.append`` with strings whose encoded length exceded the max unencoded length (:issue:`11234`)
 - Bug in merging ``datetime64[ns, tz]`` dtypes (:issue:`11405`)
 - Bug in ``HDFStore.select`` when comparing with a numpy scalar in a where clause (:issue:`11283`)
-- Bug in using ``DataFrame.ix`` with a multi-index indexer(:issue:`11372`)
+- Bug in using ``DataFrame.ix`` with a multi-index indexer (:issue:`11372`)
+- Bug in ``date_range`` with ambigous endpoints (:issue:`11626`)
 - Prevent adding new attributes to the accessors ``.str``, ``.dt`` and ``.cat``. Retrieving such
   a value was not possible, so error out on setting it. (:issue:`10673`)
 - Bug in tz-conversions with an ambiguous time and ``.dt`` accessors (:issue:`11295`)
@@ -156,5 +175,7 @@ Bug Fixes
 - Bug in the link-time error caused by C ``inline`` functions on FreeBSD 10+ (with ``clang``) (:issue:`10510`)
 - Bug in ``DataFrame.to_csv`` in passing through arguments for formatting ``MultiIndexes``, including ``date_format`` (:issue:`7791`)
 - Bug in ``DataFrame.join()`` with ``how='right'`` producing a ``TypeError`` (:issue:`11519`)
+- Bug in ``Series.quantile`` with empty list results has ``Index`` with ``object`` dtype (:issue:`11588`)
+- Bug in ``pd.merge`` results in empty ``Int64Index`` rather than ``Index(dtype=object)`` when the merge result is empty (:issue:`11588`)
 - Bug in ``DataFrame.round()`` with non-unique column index producing a Fatal Python error (:issue:`11611`)
 - Bug in ``DataFrame.round()`` with ``decimals`` being a non-unique indexed Series producing extra columns (:issue:`11618`)

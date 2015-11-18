@@ -1779,7 +1779,7 @@ class NDFrame(PandasObject):
             avoid duplicating data
         method : {None, 'backfill'/'bfill', 'pad'/'ffill', 'nearest'}, optional
             method to use for filling holes in reindexed DataFrame.
-            Please note: this is only  applicable to DataFrames/Series with a 
+            Please note: this is only  applicable to DataFrames/Series with a
             monotonically increasing/decreasing index.
               * default: don't fill gaps
               * pad / ffill: propagate last valid observation forward to next valid
@@ -1822,7 +1822,7 @@ class NDFrame(PandasObject):
 
         Create a new index and reindex the dataframe. By default
         values in the new index that do not have corresponding
-        records in the dataframe are assigned ``NaN``. 
+        records in the dataframe are assigned ``NaN``.
 
         >>> new_index= ['Safari', 'Iceweasel', 'Comodo Dragon', 'IE10',
         ...             'Chrome']
@@ -1836,8 +1836,8 @@ class NDFrame(PandasObject):
 
         We can fill in the missing values by passing a value to
         the keyword ``fill_value``. Because the index is not monotonically
-        increasing or decreasing, we cannot use arguments to the keyword  
-        ``method`` to fill the ``NaN`` values. 
+        increasing or decreasing, we cannot use arguments to the keyword
+        ``method`` to fill the ``NaN`` values.
 
         >>> df.reindex(new_index, fill_value=0)
                        http_status  response_time
@@ -1855,8 +1855,8 @@ class NDFrame(PandasObject):
         IE10                  404          0.08
         Chrome                200          0.02
 
-        To further illustrate the filling functionality in 
-        ``reindex``, we will create a dataframe with a 
+        To further illustrate the filling functionality in
+        ``reindex``, we will create a dataframe with a
         monotonically increasing index (for example, a sequence
         of dates).
 
@@ -1873,7 +1873,7 @@ class NDFrame(PandasObject):
         2010-01-06      88
 
         Suppose we decide to expand the dataframe to cover a wider
-        date range. 
+        date range.
 
         >>> date_index2 = pd.date_range('12/29/2009', periods=10, freq='D')
         >>> df2.reindex(date_index2)
@@ -1890,10 +1890,10 @@ class NDFrame(PandasObject):
         2010-01-07     NaN
 
         The index entries that did not have a value in the original data frame
-        (for example, '2009-12-29') are by default filled with ``NaN``. 
+        (for example, '2009-12-29') are by default filled with ``NaN``.
         If desired, we can fill in the missing values using one of several
-        options. 
-        
+        options.
+
         For example, to backpropagate the last valid value to fill the ``NaN``
         values, pass ``bfill`` as an argument to the ``method`` keyword.
 
@@ -1911,7 +1911,7 @@ class NDFrame(PandasObject):
         2010-01-07     NaN
 
         Please note that the ``NaN`` value present in the original dataframe
-        (at index value 2010-01-03) will not be filled by any of the 
+        (at index value 2010-01-03) will not be filled by any of the
         value propagation schemes. This is because filling while reindexing
         does not look at dataframe values, but only compares the original and
         desired indexes. If you do want to fill in the ``NaN`` values present

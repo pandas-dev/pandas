@@ -362,11 +362,19 @@ class CheckNameIntegration(object):
         self.assertTrue('str' not in dir(s))
         self.assertTrue('cat' not in dir(s))
 
-        # similiarly for .cat
+        # similiarly for .cat, but with the twist that str and dt should be there
+        # if the categories are of that type
+        # first cat and str
         s = Series(list('abbcd'), dtype="category")
         self.assertTrue('cat' in dir(s))
-        self.assertTrue('str' not in dir(s))
+        self.assertTrue('str' in dir(s)) # as it is a string categorical
         self.assertTrue('dt' not in dir(s))
+
+        # similar to cat and str
+        s = Series(date_range('1/1/2015', periods=5)).astype("category")
+        self.assertTrue('cat' in dir(s))
+        self.assertTrue('str' not in dir(s))
+        self.assertTrue('dt' in dir(s)) # as it is a datetime categorical
 
     def test_binop_maybe_preserve_name(self):
         # names match, preserve
@@ -477,11 +485,20 @@ class CheckNameIntegration(object):
         # only 1 left, del, add, del
         s = Series(1)
         del s[0]
-        assert_series_equal(s, Series(dtype='int64'))
+        assert_series_equal(s, Series(dtype='int64', index=Index([], dtype='int64')))
         s[0] = 1
         assert_series_equal(s, Series(1))
         del s[0]
-        assert_series_equal(s, Series(dtype='int64'))
+        assert_series_equal(s, Series(dtype='int64', index=Index([], dtype='int64')))
+
+        # Index(dtype=object)
+        s = Series(1, index=['a'])
+        del s['a']
+        assert_series_equal(s, Series(dtype='int64', index=Index([], dtype='object')))
+        s['a'] = 1
+        assert_series_equal(s, Series(1, index=['a']))
+        del s['a']
+        assert_series_equal(s, Series(dtype='int64', index=Index([], dtype='object')))
 
     def test_getitem_preserve_name(self):
         result = self.ts[self.ts > 0]
@@ -761,7 +778,7 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
     def test_constructor_empty(self):
         empty = Series()
         empty2 = Series([])
-        assert_series_equal(empty, empty2)
+        assert_series_equal(empty, empty2, check_index_type=False)
 
         empty = Series(index=lrange(10))
         empty2 = Series(np.nan, index=lrange(10))
@@ -1454,7 +1471,7 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         assert_series_equal(result, expected)
 
         s = Series(['A', 'B'])
-        expected = Series(dtype=object)
+        expected = Series(dtype=object, index=Index([], dtype=int))
         result = s[Series([], dtype=object)]
         assert_series_equal(result, expected)
 
@@ -3037,7 +3054,7 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         assert_series_equal(result, expected)
 
         result = self.ts.quantile([])
-        expected = pd.Series([], name=self.ts.name)
+        expected = pd.Series([], name=self.ts.name, index=Index([], dtype=float))
         assert_series_equal(result, expected)
 
     def test_append(self):
@@ -4757,12 +4774,23 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
 
         # compress
         # GH 6658
-        s = Series([0,1.,-1],index=list('abc'))
-        result = np.compress(s>0,s)
-        assert_series_equal(result, Series([1.],index=['b']))
+        s = Series([0, 1., -1], index=list('abc'))
+        result = np.compress(s > 0, s)
+        assert_series_equal(result, Series([1.], index=['b']))
 
-        result = np.compress(s<-1,s)
-        assert_series_equal(result, Series([],dtype='float64'))
+        result = np.compress(s < -1, s)
+        # result empty Index(dtype=object) as the same as original
+        exp = Series([], dtype='float64', index=Index([], dtype='object'))
+        assert_series_equal(result, exp)
+
+        s = Series([0, 1., -1], index=[.1, .2, .3])
+        result = np.compress(s > 0, s)
+        assert_series_equal(result, Series([1.], index=[.2]))
+
+        result = np.compress(s < -1, s)
+        # result empty Float64Index as the same as original
+        exp = Series([], dtype='float64', index=Index([], dtype='float64'))
+        assert_series_equal(result, exp)
 
     def test_complexx(self):
 
@@ -7062,7 +7090,8 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         assert_series_equal(ts.reindex(i), ts.iloc[j])
 
         ts.index = ts.index.astype('object')
-        assert_series_equal(ts.reindex(i), ts.iloc[j])
+        # reindex coerces index.dtype to float, loc/iloc doesn't
+        assert_series_equal(ts.reindex(i), ts.iloc[j], check_index_type=False)
 
     def test_reindex_corner(self):
         # (don't forget to fix this) I think it's fixed

@@ -27,7 +27,7 @@ from pandas.core.common import (isnull, notnull, is_bool_indexer,
                                 _maybe_box_datetimelike, ABCDataFrame,
                                 _dict_compat)
 from pandas.core.index import (Index, MultiIndex, InvalidIndexError,
-                               _ensure_index)
+                               Float64Index, _ensure_index)
 from pandas.core.indexing import check_bool_indexer, maybe_convert_indices
 from pandas.core import generic, base
 from pandas.core.internals import SingleBlockManager
@@ -1277,6 +1277,8 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin, generic.NDFrame,):
         def multi(values, qs):
             if com.is_list_like(qs):
                 values = [_quantile(values, x*100) for x in qs]
+                # let empty result to be Float64Index
+                qs = Float64Index(qs)
                 return self._constructor(values, index=qs, name=self.name)
             else:
                 return _quantile(values, qs*100)
@@ -2704,12 +2706,10 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin, generic.NDFrame,):
 
     def _dir_additions(self):
         rv = set()
-        # these accessors are mutually exclusive, so break loop when one exists
         for accessor in self._accessors:
             try:
                 getattr(self, accessor)
                 rv.add(accessor)
-                break
             except AttributeError:
                 pass
         return rv
