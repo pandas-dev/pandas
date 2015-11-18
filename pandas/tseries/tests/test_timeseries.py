@@ -935,7 +935,8 @@ class TestTimeSeries(tm.TestCase):
 
         fields = ['year', 'quarter', 'month', 'day', 'hour',
                   'minute', 'second', 'microsecond', 'nanosecond',
-                  'week', 'dayofyear', 'days_in_month']
+                  'week', 'dayofyear', 'day_of_year', 'day_of_week',
+                  'days_in_month']
         for field in fields:
             result = getattr(idx, field)
             expected = [getattr(x, field) if x is not NaT else np.nan
@@ -945,8 +946,8 @@ class TestTimeSeries(tm.TestCase):
     def test_nat_scalar_field_access(self):
         fields = ['year', 'quarter', 'month', 'day', 'hour',
                   'minute', 'second', 'microsecond', 'nanosecond',
-                  'week', 'dayofyear', 'days_in_month', 'daysinmonth',
-                  'dayofweek']
+                  'week', 'dayofyear', 'day_of_year' 'days_in_month', 
+                  'daysinmonth', 'dayofweek', 'day_of_week']
         for field in fields:
             result = getattr(NaT, field)
             self.assertTrue(np.isnan(result))

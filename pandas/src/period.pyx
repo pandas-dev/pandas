@@ -959,9 +959,15 @@ cdef class Period(object):
     property weekday:
         def __get__(self):
             return self.dayofweek
+    property day_of_week:
+        def __get__(self):
+            return self.dayofweek
     property dayofyear:
         def __get__(self):
             return self._field(9)
+    property day_of_year:
+        def __get__(self):
+            return self.dayofyear
     property quarter:
         def __get__(self):
             return self._field(2)

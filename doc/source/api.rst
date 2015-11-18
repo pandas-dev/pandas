@@ -500,8 +500,10 @@ These can be accessed like ``Series.dt.<property>``.
    Series.dt.week
    Series.dt.weekofyear
    Series.dt.dayofweek
+   Series.dt.day_of_week
    Series.dt.weekday
    Series.dt.dayofyear
+   Series.dt.day_of_year
    Series.dt.quarter
    Series.dt.is_month_start
    Series.dt.is_month_end
@@ -1472,9 +1474,11 @@ Time/Date Components
    DatetimeIndex.date
    DatetimeIndex.time
    DatetimeIndex.dayofyear
+   DatetimeIndex.day_of_year
    DatetimeIndex.weekofyear
    DatetimeIndex.week
    DatetimeIndex.dayofweek
+   DatetimeIndex.day_of_week
    DatetimeIndex.weekday
    DatetimeIndex.quarter
    DatetimeIndex.tz

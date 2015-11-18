@@ -154,7 +154,10 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
     _typ = 'periodindex'
     _attributes = ['name','freq']
     _datetimelike_ops = ['year','month','day','hour','minute','second',
-                         'weekofyear','week','dayofweek','weekday','dayofyear','quarter', 'qyear', 'freq', 'days_in_month', 'daysinmonth']
+                         'weekofyear','week','dayofweek',
+                         'day_of_week','weekday','dayofyear','day_of_year',
+                         'quarter','qyear', 'freq', 'days_in_month', 
+                         'daysinmonth']
     _is_numeric_dtype = False
     freq = None
 
@@ -481,7 +484,9 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
     week = weekofyear
     dayofweek = _field_accessor('dayofweek', 10, "The day of the week with Monday=0, Sunday=6")
     weekday = dayofweek
+    day_of_week = dayofweek
     dayofyear = day_of_year = _field_accessor('dayofyear', 9, "The ordinal day of the year")
+    day_of_year = dayofyear
     quarter = _field_accessor('quarter', 2, "The quarter of the date")
     qyear = _field_accessor('qyear', 1)
     days_in_month = _field_accessor('days_in_month', 11, "The number of days in the month")
