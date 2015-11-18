@@ -363,6 +363,27 @@ class TestMoments(Base):
         expected = Series([1., 2., 2.])
         assert_series_equal(result, expected)
 
+    def test_rolling_apply_nonfloat(self):
+        '''
+        test rolling_apply now also works for non-float data types if coercion
+        is set to False. The return type is still float but the 'roll'
+        is applied to arg which no longer has to be a float
+        '''
+        # check rolling_apply with coercion set to False
+        orig = Series([ord('a'), ord('b'), ord('c')], dtype=float)
+        s = Series(['a', 'b', 'c'])
+
+        for min_p in (None, 0):
+            s_res = mom.rolling_apply(s, 2, lambda x: ord(x[-1]),
+                                      coercion=False, min_periods=min_p)
+            o_res = mom.rolling_apply(orig, 2, lambda x: x[-1],
+                                      coercion=False, min_periods=min_p)
+
+            # assert that NaN values appear at same place since min_periods
+            # defines the NaN values. Also assert that valid answers match
+            assert all(np.isfinite(s_res) == np.isfinite(o_res))
+            assert all(s_res[np.isfinite(s_res)] == o_res[np.isfinite(o_res)])
+
     def test_rolling_apply_out_of_bounds(self):
         # #1850
         arr = np.arange(4)

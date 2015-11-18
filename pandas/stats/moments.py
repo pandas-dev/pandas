@@ -355,7 +355,7 @@ def rolling_corr_pairwise(df1, df2=None, window=None, min_periods=None,
 
 
 def _rolling_moment(arg, window, func, minp, axis=0, freq=None, center=False,
-                    how=None, args=(), kwargs={}, **kwds):
+                    how=None, coercion=True, args=(), kwargs={}, **kwds):
     """
     Rolling statistical measure using supplied function. Designed to be
     used with passed-in Cython array-based functions.
@@ -374,6 +374,10 @@ def _rolling_moment(arg, window, func, minp, axis=0, freq=None, center=False,
         Whether the label should correspond with center of window
     how : string, default 'mean'
         Method for down- or re-sampling
+    coercion: bool flag with default True. It tries to coerce args to a float
+        to optimize for speed. If rolling_apply() is invoked on objects that
+        cannot be coerced into a float, it raises a ValueError. Be sure
+        to set coercion=False in this case.
     args : tuple
         Passed on to func
     kwargs : dict
@@ -385,7 +389,7 @@ def _rolling_moment(arg, window, func, minp, axis=0, freq=None, center=False,
     """
     arg = _conv_timerule(arg, freq, how)
 
-    return_hook, values = _process_data_structure(arg)
+    return_hook, values = _process_data_structure(arg, coercion=coercion)
 
     if values.size == 0:
         result = values.copy()
@@ -393,9 +397,18 @@ def _rolling_moment(arg, window, func, minp, axis=0, freq=None, center=False,
         # actually calculate the moment. Faster way to do this?
         offset = int((window - 1) / 2.) if center else 0
         additional_nans = np.array([np.NaN] * offset)
-        calc = lambda x: func(np.concatenate((x, additional_nans)) if center else x,
-                              window, minp=minp, args=args, kwargs=kwargs,
-                              **kwds)
+
+        if coercion:
+            calc = lambda x: func(np.concatenate((x, additional_nans)) if
+                                  center else x, window, minp=minp, args=args,
+                                  kwargs=kwargs, **kwds)
+        else:
+            p0 = np.arange(0, len(values), dtype=float)
+            calc = lambda x: func(np.concatenate((p0, additional_nans))
+                                      if center else p0, window, minp=minp,
+                                      args=args, kwargs=kwargs,
+                                      array_to_roll=x, **kwds)
+
         if values.ndim > 1:
             result = np.apply_along_axis(calc, axis, values)
         else:
@@ -423,7 +436,7 @@ def _center_window(rs, window, axis):
     return rs
 
 
-def _process_data_structure(arg, kill_inf=True):
+def _process_data_structure(arg, kill_inf=True, coercion=True):
     if isinstance(arg, DataFrame):
         return_hook = lambda v: type(arg)(v, index=arg.index,
                                           columns=arg.columns)
@@ -435,12 +448,13 @@ def _process_data_structure(arg, kill_inf=True):
         return_hook = lambda v: v
         values = arg
 
-    if not issubclass(values.dtype.type, float):
-        values = values.astype(float)
+    if coercion:
+        if not issubclass(values.dtype.type, float):
+            values = values.astype(float)
 
-    if kill_inf:
-        values = values.copy()
-        values[np.isinf(values)] = np.NaN
+        if kill_inf:
+            values = values.copy()
+            values[np.isinf(values)] = np.NaN
 
     return return_hook, values
 
@@ -712,7 +726,7 @@ def rolling_quantile(arg, window, quantile, min_periods=None, freq=None,
 
 
 def rolling_apply(arg, window, func, min_periods=None, freq=None,
-                  center=False, args=(), kwargs={}):
+                  center=False, coercion=True, args=(), kwargs={}):
     """Generic moving function application.
 
     Parameters
@@ -731,6 +745,10 @@ def rolling_apply(arg, window, func, min_periods=None, freq=None,
         as a frequency string or DateOffset object.
     center : boolean, default False
         Whether the label should correspond with center of window
+    coercion: bool flag with default True. It tries to coerce args to a float
+        to optimize for speed. If rolling_apply() is invoked on objects that
+        cannot be coerced into a float, it raises a ValueError. Be sure
+        to set coercion=False in this case.
     args : tuple
         Passed on to func
     kwargs : dict
@@ -750,11 +768,15 @@ def rolling_apply(arg, window, func, min_periods=None, freq=None,
     of :meth:`~pandas.Series.resample` (i.e. using the `mean`).
     """
     offset = int((window - 1) / 2.) if center else 0
-    def call_cython(arg, window, minp, args, kwargs):
+
+    def call_cython(arg, window, minp, args, kwargs, array_to_roll=None):
         minp = _use_window(minp, window)
-        return algos.roll_generic(arg, window, minp, offset, func, args, kwargs)
-    return _rolling_moment(arg, window, call_cython, min_periods, freq=freq,
-                           center=False, args=args, kwargs=kwargs)
+        return algos.roll_generic(arg, window, minp, offset, func, args,
+                                  kwargs, array_to_roll)
+
+    return _rolling_moment(arg, window, call_cython, min_periods,
+                           freq=freq, center=False, coercion=coercion,
+                           args=args, kwargs=kwargs)
 
 
 def rolling_window(arg, window=None, win_type=None, min_periods=None,
