@@ -15449,8 +15449,8 @@ starting,ending,measure
                 assert_frame_equal(test, nat_frame)
 
     def test_to_csv_with_dst_transitions(self):
-        pname = '__tmp_to_csv_date_format_with_dst__'
-        with ensure_clean(pname) as path:
+
+        with ensure_clean('csv_date_format_with_dst') as path:
             # make sure we are not failing on transitions
             times = pd.date_range("2013-10-26 23:00", "2013-10-27 01:00",
                                   tz="Europe/London",
@@ -15467,6 +15467,25 @@ starting,ending,measure
                 result = read_csv(path,index_col=0)
                 result.index = pd.to_datetime(result.index).tz_localize('UTC').tz_convert('Europe/London')
                 assert_frame_equal(result,df)
+
+        # GH11619
+        idx = pd.date_range('2015-01-01', '2015-12-31', freq = 'H', tz='Europe/Paris')
+        df = DataFrame({'values' : 1, 'idx' : idx},
+                       index=idx)
+        with ensure_clean('csv_date_format_with_dst') as path:
+            df.to_csv(path,index=True)
+            result = read_csv(path,index_col=0)
+            result.index = pd.to_datetime(result.index).tz_localize('UTC').tz_convert('Europe/Paris')
+            result['idx'] = pd.to_datetime(result['idx']).astype('datetime64[ns, Europe/Paris]')
+            assert_frame_equal(result,df)
+
+        # assert working
+        df.astype(str)
+
+        with ensure_clean('csv_date_format_with_dst') as path:
+            df.to_pickle(path)
+            result = pd.read_pickle(path)
+            assert_frame_equal(result,df)
 
 
     def test_concat_empty_dataframe_dtypes(self):

@@ -153,6 +153,7 @@ Bug Fixes
 - Prevent adding new attributes to the accessors ``.str``, ``.dt`` and ``.cat``. Retrieving such
   a value was not possible, so error out on setting it. (:issue:`10673`)
 - Bug in tz-conversions with an ambiguous time and ``.dt`` accessors (:issue:`11295`)
+- Bug in output formatting when using an index of ambiguous times (:issue:`11619`)
 - Bug in comparisons of Series vs list-likes (:issue:`11339`)
 - Bug in ``DataFrame.replace`` with a ``datetime64[ns, tz]`` and a non-compat to_replace (:issue:`11326`, :issue:`11153`)
 - Bug in list-like indexing with a mixed-integer Index (:issue:`11320`)
