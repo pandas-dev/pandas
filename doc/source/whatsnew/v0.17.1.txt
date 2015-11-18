@@ -156,3 +156,5 @@ Bug Fixes
 - Bug in the link-time error caused by C ``inline`` functions on FreeBSD 10+ (with ``clang``) (:issue:`10510`)
 - Bug in ``DataFrame.to_csv`` in passing through arguments for formatting ``MultiIndexes``, including ``date_format`` (:issue:`7791`)
 - Bug in ``DataFrame.join()`` with ``how='right'`` producing a ``TypeError`` (:issue:`11519`)
+- Bug in ``DataFrame.round()`` with non-unique column index producing a Fatal Python error (:issue:`11611`)
+- Bug in ``DataFrame.round()`` with ``decimals`` being a non-unique indexed Series producing extra columns (:issue:`11618`)

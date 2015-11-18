@@ -15791,6 +15791,19 @@ starting,ending,measure
                                    dtype='int64')
         tm.assert_panel_equal(result, expected)
 
+    def test_round(self):
+        # GH11611
+
+        df = pd.DataFrame(np.random.random([3, 3]), columns=['A', 'B', 'C'],
+                          index=['first', 'second', 'third'])
+
+        dfs = pd.concat((df, df), axis=1)
+        rounded = dfs.round()
+        self.assertTrue(rounded.index.equals(dfs.index))
+
+        decimals = pd.Series([1, 0, 2], index=['A', 'B', 'A'])
+        self.assertRaises(ValueError, df.round, decimals)
+
 
 def skip_if_no_ne(engine='numexpr'):
     if engine == 'numexpr':
