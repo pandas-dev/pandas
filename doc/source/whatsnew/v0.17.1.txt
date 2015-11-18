@@ -80,6 +80,7 @@ API changes
   Legacy Python syntax (``set([x, y])``) (:issue:`11215`)
 - Indexing with a null key will raise a ``TypeError``, instead of a ``ValueError`` (:issue:`11356`)
 - ``Series.sort_index()`` now correctly handles the ``inplace`` option (:issue:`11402`)
+- ``SparseArray.__iter__()`` now does not cause ``PendingDeprecationWarning`` in Python 3.5 (:issue:`11622`)
 
 - ``DataFrame.itertuples()`` now returns ``namedtuple`` objects, when possible. (:issue:`11269`)
 - ``Series.ptp`` will now ignore missing values by default (:issue:`11163`)
