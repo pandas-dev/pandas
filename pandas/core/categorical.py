@@ -817,6 +817,9 @@ class Categorical(PandasObject):
         """
         cat = self if inplace else self.copy()
         _used = sorted(np.unique(cat._codes))
+        if _used[0] == -1:
+            _used = _used[1:]
+
         new_categories = cat.categories.take(_ensure_platform_int(_used))
 
         from pandas.core.index import _ensure_index
