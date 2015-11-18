@@ -25,11 +25,25 @@ New features
 Conditional HTML Formatting
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-We've added *experimental* support for conditional HTML formatting,
+We've added *experimental* support for conditional HTML formatting:
 the visual styling of a DataFrame based on the data.
 The styling is accomplished with HTML and CSS.
 Acesses the styler class with :attr:`pandas.DataFrame.style`, attribute,
 an instance of :class:`~pandas.core.style.Styler` with your data attached.
+
+Here's a quick example:
+
+  .. ipython:: python
+
+    np.random.seed(123)
+    df = DataFrame(np.random.randn(10, 5), columns=list('abcde'))
+    html = df.style.background_gradient(cmap='viridis', low=.5)
+
+We can render the HTML to get the following table.
+
+.. raw:: html
+   :file: whatsnew_0171_html_table.html
+
 See the :ref:`example notebook <style>` for more.
 
 .. _whatsnew_0171.enhancements:

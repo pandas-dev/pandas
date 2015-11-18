@@ -277,6 +277,15 @@ class TestStyler(TestCase):
         self.assertTrue(styler is result)
         self.assertEqual(styler.table_styles, style)
 
+    def test_table_attributes(self):
+        attributes = 'class="foo" data-bar'
+        styler = Styler(self.df, table_attributes=attributes)
+        result = styler.render()
+        self.assertTrue('class="foo" data-bar' in result)
+
+        result = self.df.style.set_table_attributes(attributes).render()
+        self.assertTrue('class="foo" data-bar' in result)
+
     def test_precision(self):
         with pd.option_context('display.precision', 10):
             s = Styler(self.df)
