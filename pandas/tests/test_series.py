@@ -1471,7 +1471,7 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         assert_series_equal(result, expected)
 
         s = Series(['A', 'B'])
-        expected = Series(dtype=object, index=Index([], dtype=int))
+        expected = Series(dtype=object, index=Index([], dtype='int64'))
         result = s[Series([], dtype=object)]
         assert_series_equal(result, expected)
 

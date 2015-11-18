@@ -3623,7 +3623,7 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         # these work as they don't really change
         # anything but the index
         # GH5632
-        expected = DataFrame(columns=['foo'], index=pd.Index([], dtype=int))
+        expected = DataFrame(columns=['foo'], index=pd.Index([], dtype='int64'))
         def f():
             df = DataFrame()
             df['foo'] = Series([], dtype='object')
@@ -3640,7 +3640,7 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
             return df
         assert_frame_equal(f(), expected)
 
-        expected = DataFrame(columns=['foo'], index=pd.Index([], dtype=int))
+        expected = DataFrame(columns=['foo'], index=pd.Index([], dtype='int64'))
         expected['foo'] = expected['foo'].astype('float64')
         def f():
             df = DataFrame()
@@ -3682,7 +3682,7 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
 
         # GH5720, GH5744
         # don't create rows when empty
-        expected = DataFrame(columns=['A', 'B', 'New'], index=pd.Index([], dtype=int))
+        expected = DataFrame(columns=['A', 'B', 'New'], index=pd.Index([], dtype='int64'))
         expected['A'] = expected['A'].astype('int64')
         expected['B'] = expected['B'].astype('float64')
         expected['New'] = expected['New'].astype('float64')
@@ -3703,7 +3703,7 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         df = DataFrame({"A": [1, 2, 3], "B": [1.2, 4.2, 5.2]})
         y = df[df.A > 5]
         result = y.reindex(columns=['A','B','C'])
-        expected = DataFrame(columns=['A','B','C'], index=pd.Index([], dtype=int))
+        expected = DataFrame(columns=['A','B','C'], index=pd.Index([], dtype='int64'))
         expected['A'] = expected['A'].astype('int64')
         expected['B'] = expected['B'].astype('float64')
         expected['C'] = expected['C'].astype('float64')
@@ -4151,7 +4151,7 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
             assert_series_equal(s.loc[fancy_idx], expected)
             assert_series_equal(s.ix[fancy_idx], expected)
 
-        expected = Series([2, 0], index=Index([5, 0], dtype=int))
+        expected = Series([2, 0], index=Index([5, 0], dtype='int64'))
         for fancy_idx in [[5, 0], np.array([5, 0])]: #int
             assert_series_equal(s[fancy_idx], expected)
             assert_series_equal(s.loc[fancy_idx], expected)
