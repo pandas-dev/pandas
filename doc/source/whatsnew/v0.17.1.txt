@@ -81,6 +81,16 @@ Enhancements
 
 - Series of type ``"category"`` now make ``.str.<...>`` and ``.dt.<...>`` accessor methods / properties available, if the categories are of that type. (:issue:`10661`)
 
+  .. ipython:: python
+
+     s = pd.Series(list('aabb')).astype('category')
+     s
+     s.str.contains("a")
+
+     date = pd.Series(date_range('1/1/2015', periods=5)).astype('category')
+     date
+     date.dt.day
+
 - ``pivot_table`` now has a ``margins_name`` argument so you can use something other than the default of 'All' (:issue:`3335`)
 - Implement export of ``datetime64[ns, tz]`` dtypes with a fixed HDF5 store (:issue:`11411`)
 
