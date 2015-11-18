@@ -63,6 +63,23 @@ and replacing any remaining whitespaces with underscores:
    df.columns = df.columns.str.strip().str.lower().str.replace(' ', '_')
    df
 
+.. note::
+
+    If you have a ``Series`` where lots of elements are repeated
+    (i.e. the number of unique elements in the ``Series`` is a lot smaller than the length of the
+    ``Series``), it can be faster to convert the original ``Series`` to one of type
+    ``category`` and then use ``.str.<method>`` or ``.dt.<property>`` on that.
+    The performance difference comes from the fact that, for ``Series`` of type ``category``, the
+    string operations are done on the ``.categories`` and not on each element of the
+    ``Series``.
+
+    Please note that a ``Series`` of type ``category`` with string ``.categories`` has
+    some limitations in comparison of ``Series`` of type string (e.g. you can't add strings to
+    each other: ``s + " " + s`` won't work if ``s`` is a ``Series`` of type ``category``). Also,
+    ``.str`` methods which operate on elements of type ``list`` are not available on such a
+    ``Series``.
+
+
 Splitting and Replacing Strings
 -------------------------------
 

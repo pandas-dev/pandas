@@ -362,11 +362,19 @@ class CheckNameIntegration(object):
         self.assertTrue('str' not in dir(s))
         self.assertTrue('cat' not in dir(s))
 
-        # similiarly for .cat
+        # similiarly for .cat, but with the twist that str and dt should be there
+        # if the categories are of that type
+        # first cat and str
         s = Series(list('abbcd'), dtype="category")
         self.assertTrue('cat' in dir(s))
-        self.assertTrue('str' not in dir(s))
+        self.assertTrue('str' in dir(s)) # as it is a string categorical
         self.assertTrue('dt' not in dir(s))
+
+        # similar to cat and str
+        s = Series(date_range('1/1/2015', periods=5)).astype("category")
+        self.assertTrue('cat' in dir(s))
+        self.assertTrue('str' not in dir(s))
+        self.assertTrue('dt' in dir(s)) # as it is a datetime categorical
 
     def test_binop_maybe_preserve_name(self):
         # names match, preserve
