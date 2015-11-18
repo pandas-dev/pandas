@@ -850,6 +850,21 @@ Categories (3, object): [ああああ, いいいいい, ううううううう]""
         self.assert_numpy_array_equal(res.categories, np.array(["a","b","c"]))
         self.assert_numpy_array_equal(c.categories, exp_categories_all)
 
+        val = ['F', np.nan, 'D', 'B', 'D', 'F', np.nan]
+        cat = pd.Categorical(values=val, categories=list('ABCDEFG'))
+        out = cat.remove_unused_categories()
+        self.assert_numpy_array_equal(out.categories, ['B', 'D', 'F'])
+        self.assert_numpy_array_equal(out.codes, [ 2, -1,  1,  0,  1,  2, -1])
+        self.assertEqual(out.get_values().tolist(), val)
+
+        alpha = list('abcdefghijklmnopqrstuvwxyz')
+        val = np.random.choice(alpha[::2], 10000).astype('object')
+        val[np.random.choice(len(val), 100)] = np.nan
+
+        cat = pd.Categorical(values=val, categories=alpha)
+        out = cat.remove_unused_categories()
+        self.assertEqual(out.get_values().tolist(), val.tolist())
+
     def test_nan_handling(self):
 
         # Nans are represented as -1 in codes

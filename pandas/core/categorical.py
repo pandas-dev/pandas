@@ -816,16 +816,14 @@ class Categorical(PandasObject):
         set_categories
         """
         cat = self if inplace else self.copy()
-        _used = sorted(np.unique(cat._codes))
-        if _used[0] == -1:
-            _used = _used[1:]
+        idx, inv = np.unique(cat._codes, return_inverse=True)
 
-        new_categories = cat.categories.take(_ensure_platform_int(_used))
+        if idx.size != 0 and idx[0] == -1:  # na sentinel
+            idx, inv = idx[1:], inv - 1
 
-        from pandas.core.index import _ensure_index
-        new_categories = _ensure_index(new_categories)
-        cat._codes = _get_codes_for_values(cat.__array__(), new_categories)
-        cat._categories = new_categories
+        cat._codes = inv
+        cat._categories = cat.categories.take(idx)
+
         if not inplace:
             return cat
 

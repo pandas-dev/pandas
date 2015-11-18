@@ -133,6 +133,7 @@ Performance Improvements
 - Improved performance of ``rolling_median`` (:issue:`11450`)
 - Improved performance to ``to_excel`` (:issue:`11352`)
 - Performance bug in repr of ``Categorical`` categories, which was rendering the strings before chopping them for display (:issue:`11305`)
+- Performance improvement in ``Categorical.remove_unused_categories``, (:issue:`11643`).
 - Improved performance of ``Series`` constructor with no data and ``DatetimeIndex`` (:issue:`11433`)
 
 - Improved performance of ``shift``, ``cumprod``, and ``cumsum`` with groupby (:issue:`4095`)
@@ -188,5 +189,5 @@ Bug Fixes
 - Bug in ``DataFrame.join()`` with ``how='right'`` producing a ``TypeError`` (:issue:`11519`)
 - Bug in ``Series.quantile`` with empty list results has ``Index`` with ``object`` dtype (:issue:`11588`)
 - Bug in ``pd.merge`` results in empty ``Int64Index`` rather than ``Index(dtype=object)`` when the merge result is empty (:issue:`11588`)
-- Bug in ``remove_unused_categories`` when having ``NaN`` values (:issue:`11599`).
+- Bug in ``Categorical.remove_unused_categories`` when having ``NaN`` values (:issue:`11599`)
 - Bug in ``DataFrame.to_sparse()`` loses column names for MultiIndexes (:issue:`11600`)
