@@ -168,6 +168,7 @@ Bug Fixes
 - Bug in ``DataFrame.pct_change()`` not propagating ``axis`` keyword on ``.fillna`` method (:issue:`11150`)
 - Bug in ``.to_csv()`` when a mix of integer and string column names are passed as the ``columns`` parameter (:issue:`11637`)
 - Bug in indexing with a ``range``, (:issue:`11652`)
+- Bug in inference of numpy scalars and preserving dtype when setting columns (:issue:`11638`)
 - Bug in ``to_sql`` using unicode column names giving UnicodeEncodeError with (:issue:`11431`).
 - Fix regression in setting of ``xticks`` in ``plot`` (:issue:`11529`).
 - Bug in ``holiday.dates`` where observance rules could not be applied to holiday and doc enhancement (:issue:`11477`, :issue:`11533`)

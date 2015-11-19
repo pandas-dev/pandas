@@ -683,6 +683,13 @@ class CheckIndexing(object):
         expected = Series({'float64' : 3, 'object' : 1 }).sort_values()
         assert_series_equal(result, expected)
 
+        # Test that data type is preserved . #5782
+        df = DataFrame({'one': np.arange(6, dtype=np.int8)})
+        df.loc[1, 'one'] = 6
+        self.assertEqual(df.dtypes.one, np.dtype(np.int8))
+        df.one = np.int8(7)
+        self.assertEqual(df.dtypes.one, np.dtype(np.int8))
+
     def test_setitem_boolean_column(self):
         expected = self.frame.copy()
         mask = self.frame['A'] > 0
