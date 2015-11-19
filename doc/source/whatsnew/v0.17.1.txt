@@ -169,7 +169,7 @@ Bug Fixes
 
 
 
-
+- Bug in indexing with a ``range``, (:issue:`11652`)
 
 
 - Bug in ``to_sql`` using unicode column names giving UnicodeEncodeError with (:issue:`11431`).

@@ -104,6 +104,8 @@ class _NDFrameIndexer(object):
 
         if isinstance(key, tuple) and not self.ndim < len(key):
             return self._convert_tuple(key, is_setter=True)
+        if isinstance(key, range):
+            return self._convert_range(key, is_setter=True)
 
         try:
             return self._convert_to_indexer(key, is_setter=True)
@@ -155,6 +157,10 @@ class _NDFrameIndexer(object):
                 idx = self._convert_to_indexer(k, axis=i, is_setter=is_setter)
                 keyidx.append(idx)
         return tuple(keyidx)
+
+    def _convert_range(self, key, is_setter=False):
+        """ convert a range argument """
+        return list(key)
 
     def _convert_scalar_indexer(self, key, axis):
         # if we are accessing via lowered dim, use the last dim
