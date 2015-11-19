@@ -2717,6 +2717,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin, generic.NDFrame,):
 Series._setup_axes(['index'], info_axis=0, stat_axis=0,
                    aliases={'rows': 0})
 Series._add_numeric_operations()
+Series._add_series_only_operations()
 _INDEX_TYPES = ndarray, Index, list, tuple
 
 #------------------------------------------------------------------------------
