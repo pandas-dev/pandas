@@ -98,6 +98,37 @@ class TestABCClasses(tm.TestCase):
         self.assertIsInstance(pd.Period('2012', freq='A-DEC'), com.ABCPeriod)
 
 
+class TestInferDtype(tm.TestCase):
+    df = pd.DataFrame({'one': np.arange(6, dtype=np.int8)})
+
+    def test_preserves_correct_dtype(self):
+        # Test that data type is preserved . #5782
+
+        self.df.loc[1, 'one'] = 6
+        self.assertEqual(self.df.dtypes.one, np.dtype(np.int8))
+        self.df.one = np.int8(7)
+        self.assertEqual(self.df.dtypes.one, np.dtype(np.int8))
+
+    def test_infer_dtype_from_scalar(self):
+        # Test that _infer_dtype_from_scalar is returning correct dtype for int and float.
+
+        data = np.int8(12)
+        dtype, val = com._infer_dtype_from_scalar(data)
+        self.assertEqual(dtype, np.int8)
+
+        data = 12
+        dtype, val = com._infer_dtype_from_scalar(data)
+        self.assertEqual(dtype, np.int64)
+
+        data = np.float16(2.0)
+        dtype, val = com._infer_dtype_from_scalar(data)
+        self.assertEqual(dtype, np.float16)
+
+        data = np.float(12)
+        dtype, val = com._infer_dtype_from_scalar(data)
+        self.assertEqual(dtype, np.float64)
+
+
 def test_notnull():
     assert notnull(1.)
     assert not notnull(None)
