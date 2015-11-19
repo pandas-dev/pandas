@@ -4726,6 +4726,17 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         assert_series_equal(df2.loc[:,'a'], df2.iloc[:,0])
         assert_series_equal(df2.loc[:,'a'], df2.ix[:,0])
 
+    def test_range_in_series_indexing(self):
+        # range can cause an indexing error
+        # GH 11652
+        for x in [5, 999999, 1000000]:
+            s = pd.Series(index=range(x))
+            s.loc[range(1)] = 42
+            assert_series_equal(s.loc[range(1)],Series(42.0,index=[0]))
+
+            s.loc[range(2)] = 43
+            assert_series_equal(s.loc[range(2)],Series(43.0,index=[0,1]))
+
     @slow
     def test_large_dataframe_indexing(self):
         #GH10692
