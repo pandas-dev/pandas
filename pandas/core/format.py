@@ -1327,7 +1327,7 @@ class CSVFormatter(object):
                                             date_format=date_format,
                                             quoting=self.quoting)
             else:
-                cols = np.asarray(list(cols))
+                cols = list(cols)
             self.obj = self.obj.loc[:, cols]
 
         # update columns to include possible multiplicity of dupes
@@ -1339,7 +1339,7 @@ class CSVFormatter(object):
                                         date_format=date_format,
                                         quoting=self.quoting)
         else:
-            cols = np.asarray(list(cols))
+            cols = list(cols)
 
         # save it
         self.cols = cols
