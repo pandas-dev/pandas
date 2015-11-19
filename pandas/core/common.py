@@ -1002,8 +1002,7 @@ def _infer_fill_value(val):
 
 
 def _infer_dtype_from_scalar(val):
-    """ interpret the dtype from a scalar, upcast floats and ints
-        return the new value and the dtype """
+    """ interpret the dtype from a scalar """
 
     dtype = np.object_
 
@@ -1037,12 +1036,17 @@ def _infer_dtype_from_scalar(val):
     elif is_bool(val):
         dtype = np.bool_
 
-    # provide implicity upcast on scalars
     elif is_integer(val):
-        dtype = np.int64
+        if isinstance(val, int):
+            dtype = np.int64
+        else:
+            dtype = type(val)
 
     elif is_float(val):
-        dtype = np.float64
+        if isinstance(val, float):
+            dtype = np.float64
+        else:
+            dtype = type(val)
 
     elif is_complex(val):
         dtype = np.complex_
