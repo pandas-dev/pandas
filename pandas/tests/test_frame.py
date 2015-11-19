@@ -39,6 +39,7 @@ from pandas.parser import CParserError
 from pandas.util.misc import is_little_endian
 
 from pandas.util.testing import (assert_almost_equal,
+                                 assert_equal,
                                  assert_numpy_array_equal,
                                  assert_series_equal,
                                  assert_frame_equal,
@@ -6986,6 +6987,15 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
             df.to_csv(path, index=False)
             result = read_csv(path)
             assert_frame_equal(df,result)
+
+    def test_to_csv_with_mix_columns(self):
+        #GH11637, incorrect output when a mix of integer and string column
+        # names passed as columns parameter in to_csv
+
+        df = DataFrame({0: ['a', 'b', 'c'],
+                        1: ['aa', 'bb', 'cc']})
+        df['test'] = 'txt'
+        assert_equal(df.to_csv(), df.to_csv(columns=[0, 1, 'test']))
 
     def test_to_csv_headers(self):
         # GH6186, the presence or absence of `index` incorrectly
