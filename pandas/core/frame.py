@@ -53,7 +53,6 @@ from pandas.util.decorators import (cache_readonly, deprecate, Appender,
 from pandas.tseries.period import PeriodIndex
 from pandas.tseries.index import DatetimeIndex
 from pandas.tseries.tdi import TimedeltaIndex
-from pandas.io.common import _expand_user
 
 import pandas.core.algorithms as algos
 import pandas.core.base as base
@@ -1315,7 +1314,6 @@ class DataFrame(NDFrame):
             .. versionadded:: 0.16.0
 
         """
-        path_or_buf = _expand_user(path_or_buf)
         formatter = fmt.CSVFormatter(self, path_or_buf,
                                      line_terminator=line_terminator,
                                      sep=sep, encoding=encoding,
@@ -1518,7 +1516,6 @@ class DataFrame(NDFrame):
                           FutureWarning, stacklevel=2)
             col_space = colSpace
 
-        buf = _expand_user(buf)
         formatter = fmt.DataFrameFormatter(self, buf=buf, columns=columns,
                                            col_space=col_space, na_rep=na_rep,
                                            formatters=formatters,
@@ -1569,7 +1566,6 @@ class DataFrame(NDFrame):
                           FutureWarning, stacklevel=2)
             col_space = colSpace
 
-        buf = _expand_user(buf)
         formatter = fmt.DataFrameFormatter(self, buf=buf, columns=columns,
                                            col_space=col_space, na_rep=na_rep,
                                            header=header, index=index,

@@ -13,7 +13,7 @@ from pandas.compat import(StringIO, lzip, range, map, zip, reduce, u,
                           OrderedDict)
 from pandas.util.terminal import get_terminal_size
 from pandas.core.config import get_option, set_option
-from pandas.io.common import _get_handle, UnicodeWriter
+from pandas.io.common import _get_handle, UnicodeWriter, _expand_user
 import pandas.core.common as com
 import pandas.lib as lib
 from pandas.tslib import iNaT, Timestamp, Timedelta, format_array_from_datetime
@@ -343,7 +343,7 @@ class DataFrameFormatter(TableFormatter):
                  index_names=True, line_width=None, max_rows=None,
                  max_cols=None, show_dimensions=False, **kwds):
         self.frame = frame
-        self.buf = buf if buf is not None else StringIO()
+        self.buf = _expand_user(buf) if buf is not None else StringIO()
         self.show_index_names = index_names
 
         if sparsify is None:
@@ -1276,7 +1276,7 @@ class CSVFormatter(object):
         if path_or_buf is None:
             path_or_buf = StringIO()
 
-        self.path_or_buf = path_or_buf
+        self.path_or_buf = _expand_user(path_or_buf)
         self.sep = sep
         self.na_rep = na_rep
         self.float_format = float_format
