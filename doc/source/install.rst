@@ -224,7 +224,7 @@ Dependencies
 Recommended Dependencies
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-* `numexpr <http://code.google.com/p/numexpr/>`__: for accelerating certain numerical operations.
+* `numexpr <https://github.com/pydata/numexpr>`__: for accelerating certain numerical operations.
   ``numexpr`` uses multiple cores as well as smart chunking and caching to achieve large speedups.
   If installed, must be Version 2.1 or higher.
 
