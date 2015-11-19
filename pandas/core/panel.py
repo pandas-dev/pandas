@@ -1530,7 +1530,6 @@ ops.add_special_arithmetic_methods(Panel, **ops.panel_special_funcs)
 Panel._add_aggregate_operations()
 Panel._add_numeric_operations()
 
-
 # legacy
 class WidePanel(Panel):
     def __init__(self, *args, **kwargs):
