@@ -653,6 +653,16 @@ class frame_iteritems_cached(object):
             self.df3[0]
 
 
+class frame_itertuples(object):
+
+    def setup(self):
+        self.df = DataFrame(np.random.randn(50000, 10))
+
+    def time_frame_itertuples(self):
+        for row in self.df.itertuples():
+            pass
+
+
 class frame_mask_bools(object):
     goal_time = 0.2
 
