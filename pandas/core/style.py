@@ -6,6 +6,7 @@ from functools import partial
 from contextlib import contextmanager
 from uuid import uuid1
 import copy
+import numbers
 from collections import defaultdict
 
 try:
@@ -113,7 +114,13 @@ class Styler(object):
                 {% for c in r %}
                 <{{c.type}} id="T_{{uuid}}{{c.id}}" class="{{c.class}}">
                     {% if c.value is number %}
-                        {{c.value|round(precision)}}
+                        {% if c.precision is defined and c.precision is number %}
+                            {{c.value|round(c.precision)}}
+                        {% elif c.precision is defined and c.precision is string %}
+                            {{str.format(c.precision, c.value)}}
+                        {% else %}
+                            {{c.value|round(precision)}}
+                        {% endif %}
                     {% else %}
                         {{c.value}}
                     {% endif %}
@@ -144,7 +151,18 @@ class Styler(object):
         self.table_styles = table_styles
         self.caption = caption
         if precision is None:
-            precision = pd.options.display.precision
+            precision = {'__default__': pd.options.display.precision}
+        elif isinstance(precision, numbers.Integral):
+            precision = {'__default__': pd.options.display.precision}
+        elif isinstance(precision, dict):
+            precision = {k: precision[k] for k in precision} # prevent tampering
+            if '__default__' not in precision:
+                precision['__default__'] = pd.options.display.precision
+        else:
+            raise TypeError('Precision is of an unknown type, it has to be None,\
+                             an integer or a dict containing formats for specific\
+                             columns.')
+
         self.precision = precision
         self.table_attributes = table_attributes
 
@@ -214,8 +232,11 @@ class Styler(object):
             for c, col in enumerate(self.data.columns):
                 cs = [DATA_CLASS, "row%s" % r, "col%s" % c]
                 cs.extend(cell_context.get("data", {}).get(r, {}).get(c, []))
-                row_es.append({"type": "td", "value": self.data.iloc[r][c],
-                               "class": " ".join(cs), "id": "_".join(cs[1:])})
+                row_d = {"type": "td", "value": self.data.iloc[r][c],
+                         "class": " ".join(cs), "id": "_".join(cs[1:])}
+                if c in self.precision:
+                    row_d['precision'] = self.precision[c]
+                row_es.append(row_d)
                 props = []
                 for x in ctx[r, c]:
                     # have to handle empty styles like ['']
@@ -399,7 +420,7 @@ class Styler(object):
                           kwargs))
         return self
 
-    def set_precision(self, precision):
+    def set_precision(self, precision=None, **kwargs):
         """
         Set the precision used to render.
 
@@ -413,7 +434,20 @@ class Styler(object):
         -------
         self
         """
-        self.precision = precision
+        
+        if not kwargs and precision is None:
+            # reset everything
+            self.precision = {'__default__': pd.options.display.precision}
+            return self
+
+        if precision is None:
+            self.precision['__default__'] = pd.options.display.precision
+        elif isinstance(precision, types.Integral):
+            self.precision['__default__'] = precision
+
+        for k in kwargs:
+            self.precision[k] = kwargs[k]
+
         return self
 
     def set_table_attributes(self, attributes):
