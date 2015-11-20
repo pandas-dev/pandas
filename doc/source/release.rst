@@ -57,6 +57,68 @@ of all enhancements and bugs that have been fixed in 0.17.1.
 Thanks
 ~~~~~~
 
+- Aleksandr Drozd
+- Alex Chase
+- Anthonios Partheniou
+- BrenBarn
+- Brian J. McGuirk
+- Chris
+- Christian Berendt
+- Christian Perez
+- Cody Piersall
+- Data & Code Expert Experimenting with Code on Data
+- DrIrv
+- Evan Wright
+- Guillaume Gay
+- Hamed Saljooghinejad
+- Iblis Lin
+- Jake VanderPlas
+- Jan Schulz
+- Jean-Mathieu Deschenes
+- Jeff Reback
+- Jimmy Callin
+- Joris Van den Bossche
+- K.-Michael Aye
+- Ka Wo Chen
+- Loïc Séguin-C
+- Luo Yicheng
+- Magnus Jöud
+- Manuel Leonhardt
+- Matthew Gilbert
+- Maximilian Roos
+- Michael
+- Nicholas Stahl
+- Nicolas Bonnotte
+- Pastafarianist
+- Petra Chong
+- Phil Schaf
+- Philipp A
+- Rob deCarvalho
+- Roman Khomenko
+- Rémy Léone
+- Sebastian Bank
+- Thierry Moisan
+- Tom Augspurger
+- Tux1
+- Varun
+- Wieland Hoffmann
+- Winterflower
+- Yoav Ram
+- Younggun Kim
+- Zeke
+- ajcr
+- azuranski
+- behzad nouri
+- cel4
+- emilydolson
+- hironow
+- lexual
+- llllllllll
+- rockg
+- silentquasar
+- sinhrks
+- taeold
+
 pandas 0.17.0
 -------------
 

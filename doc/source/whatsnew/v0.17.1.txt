@@ -5,7 +5,7 @@ v0.17.1 (November 21, 2015)
 
 .. note::
 
-   We are proud to announce that *pandas* has become a sponsored project of the not-for-profit `NUMFocus organization`_. This will help ensure the success of development of *pandas* as a world-class open-source project.
+   We are proud to announce that *pandas* has become a sponsored project of the (`NUMFocus organization`_). This will help ensure the success of development of *pandas* as a world-class open-source project.
 
 :: _numfocus organization: http://numfocus.org/news/2015/10/09/numfocus-announces-new-fiscally-sponsored-project-pandas/
 
@@ -50,14 +50,14 @@ We can render the HTML to get the following table.
 .. raw:: html
    :file: whatsnew_0171_html_table.html
 
-See the :ref:`example notebook <style>` for more.
+See the :ref:`documentation <style>` for more.
 
 .. _whatsnew_0171.enhancements:
 
 Enhancements
 ~~~~~~~~~~~~
-- ``DatetimeIndex`` now supports conversion to strings with ``astype(str)`` (:issue:`10442`)
 
+- ``DatetimeIndex`` now supports conversion to strings with ``astype(str)`` (:issue:`10442`)
 - Support for ``compression`` (gzip/bz2) in :meth:`pandas.DataFrame.to_csv` (:issue:`7615`)
 - Improve the error message in :func:`pandas.io.gbq.to_gbq` when a streaming insert fails (:issue:`11285`)
 - ``pd.read_*`` functions can now also accept :class:`python:pathlib.Path`, or :class:`py:py._path.local.LocalPath`
@@ -65,7 +65,6 @@ Enhancements
 - ``DataFrame`` now uses the fields of a ``namedtuple`` as columns, if columns are not supplied (:issue:`11181`)
 - Improve the error message displayed in :func:`pandas.io.gbq.to_gbq` when the DataFrame does not match the schema of the destination table (:issue:`11359`)
 - Added ``axvlines_kwds`` to parallel coordinates plot (:issue:`10709`)
-
 - Option to ``.info()`` and ``.memory_usage()`` to provide for deep introspection of memory consumption. Note that this can be expensive to compute and therefore is an optional parameter. (:issue:`11595`)
 
   .. ipython:: python
@@ -85,7 +84,7 @@ Enhancements
 
      pd.Index([1, np.nan, 3]).fillna(2)
 
-- Series of type ``"category"`` now make ``.str.<...>`` and ``.dt.<...>`` accessor methods / properties available, if the categories are of that type. (:issue:`10661`)
+- Series of type ``category`` now make ``.str.<...>`` and ``.dt.<...>`` accessor methods / properties available, if the categories are of that type. (:issue:`10661`)
 
   .. ipython:: python
 
@@ -105,6 +104,7 @@ Enhancements
 
 API changes
 ~~~~~~~~~~~
+
 - raise ``NotImplementedError`` in ``Index.shift`` for non-supported index types (:issue:`8083`)
 - min and max reductions on ``datetime64`` and ``timedelta64`` dtyped series now
   result in ``NaT`` and not ``nan`` (:issue:`11245`).
@@ -114,7 +114,6 @@ API changes
 - Indexing with a null key will raise a ``TypeError``, instead of a ``ValueError`` (:issue:`11356`)
 - ``Series.sort_index()`` now correctly handles the ``inplace`` option (:issue:`11402`)
 - ``SparseArray.__iter__()`` now does not cause ``PendingDeprecationWarning`` in Python 3.5 (:issue:`11622`)
-
 - ``DataFrame.itertuples()`` now returns ``namedtuple`` objects, when possible. (:issue:`11269`, :issue:`11625`)
 - ``Series.ptp`` will now ignore missing values by default (:issue:`11163`)
 
@@ -126,7 +125,6 @@ Deprecations
 - The ``pandas.io.ga`` module which implements ``google-analytics`` support is deprecated and will be removed in a future version (:issue:`11308`)
 - Deprecate the ``engine`` keyword in ``.to_csv()``, which will be removed in a future version (:issue:`11274`)
 
-
 .. _whatsnew_0171.performance:
 
 Performance Improvements
@@ -135,18 +133,16 @@ Performance Improvements
 - Checking monotonic-ness before sorting on an index (:issue:`11080`)
 - ``Series.dropna`` performance improvement when its dtype can't contain ``NaN`` (:issue:`11159`)
 - Release the GIL on most datetime field operations (e.g. ``DatetimeIndex.year``, ``Series.dt.year``), normalization, and conversion to and from ``Period``, ``DatetimeIndex.to_period`` and ``PeriodIndex.to_timestamp`` (:issue:`11263`)
-- Release the GIL on some rolling algos (``rolling_median``, ``rolling_mean``, ``rolling_max``, ``rolling_min``, ``rolling_var``, ``rolling_kurt``, ``rolling_skew`` (:issue:`11450`)
+- Release the GIL on some rolling algos: ``rolling_median``, ``rolling_mean``, ``rolling_max``, ``rolling_min``, ``rolling_var``, ``rolling_kurt``, ``rolling_skew`` (:issue:`11450`)
 - Release the GIL when reading and parsing text files in ``read_csv``, ``read_table`` (:issue:`11272`)
 - Improved performance of ``rolling_median`` (:issue:`11450`)
-- Improved performance to ``to_excel`` (:issue:`11352`)
+- Improved performance of ``to_excel`` (:issue:`11352`)
 - Performance bug in repr of ``Categorical`` categories, which was rendering the strings before chopping them for display (:issue:`11305`)
 - Performance improvement in ``Categorical.remove_unused_categories``, (:issue:`11643`).
 - Improved performance of ``Series`` constructor with no data and ``DatetimeIndex`` (:issue:`11433`)
-
 - Improved performance of ``shift``, ``cumprod``, and ``cumsum`` with groupby (:issue:`4095`)
 
 .. _whatsnew_0171.bug_fixes:
-
 
 Bug Fixes
 ~~~~~~~~~
@@ -191,11 +187,9 @@ Bug Fixes
 - Bug in the link-time error caused by C ``inline`` functions on FreeBSD 10+ (with ``clang``) (:issue:`10510`)
 - Bug in ``DataFrame.to_csv`` in passing through arguments for formatting ``MultiIndexes``, including ``date_format`` (:issue:`7791`)
 - Bug in ``DataFrame.join()`` with ``how='right'`` producing a ``TypeError`` (:issue:`11519`)
-
 - Bug in ``Series.quantile`` with empty list results has ``Index`` with ``object`` dtype (:issue:`11588`)
 - Bug in ``pd.merge`` results in empty ``Int64Index`` rather than ``Index(dtype=object)`` when the merge result is empty (:issue:`11588`)
 - Bug in ``Categorical.remove_unused_categories`` when having ``NaN`` values (:issue:`11599`)
 - Bug in ``DataFrame.to_sparse()`` loses column names for MultiIndexes (:issue:`11600`)
-
 - Bug in ``DataFrame.round()`` with non-unique column index producing a Fatal Python error (:issue:`11611`)
 - Bug in ``DataFrame.round()`` with ``decimals`` being a non-unique indexed Series producing extra columns (:issue:`11618`)
