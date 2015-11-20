@@ -235,6 +235,13 @@ def test_isnull_nat():
     exp = np.array([True])
     assert(np.array_equal(result, exp))
 
+def test_isnull_numpy_nat():
+    arr = np.array([NaT, np.datetime64('NaT'), np.timedelta64('NaT'),
+                    np.datetime64('NaT', 's')])
+    result = isnull(arr)
+    expected = np.array([True] * 4)
+    tm.assert_numpy_array_equal(result, expected)
+
 def test_isnull_datetime():
     assert (not isnull(datetime.now()))
     assert notnull(datetime.now())

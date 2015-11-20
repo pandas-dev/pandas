@@ -168,6 +168,7 @@ Bug Fixes
 - Bug in output formatting when using an index of ambiguous times (:issue:`11619`)
 - Bug in comparisons of Series vs list-likes (:issue:`11339`)
 - Bug in ``DataFrame.replace`` with a ``datetime64[ns, tz]`` and a non-compat to_replace (:issue:`11326`, :issue:`11153`)
+- Bug in ``isnull`` where ``numpy.datetime64('NaT')`` in a ``numpy.array`` was not determined to be null(:issue:`11206`)
 - Bug in list-like indexing with a mixed-integer Index (:issue:`11320`)
 - Bug in ``pivot_table`` with ``margins=True`` when indexes are of ``Categorical`` dtype (:issue:`10993`)
 - Bug in ``DataFrame.plot`` cannot use hex strings colors (:issue:`10299`)
