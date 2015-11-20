@@ -17,7 +17,7 @@ Highlights include:
 
 - Support for Conditional HTML Formatting, see :ref:`here <whatsnew_0171.style>`
 - Releasing the GIL on the csv reader & other ops, see :ref:`here <whatsnew_0171.performance>`
-- Regression in ``DataFrame.drop_duplicates`` from 0.16.2, causing incorrect results on integer values (:issue:`11376`)
+- Fixed regression in ``DataFrame.drop_duplicates`` from 0.16.2, causing incorrect results on integer values (:issue:`11376`)
 
 .. contents:: What's new in v0.17.1
     :local:
@@ -59,11 +59,11 @@ Enhancements
 
 - ``DatetimeIndex`` now supports conversion to strings with ``astype(str)`` (:issue:`10442`)
 - Support for ``compression`` (gzip/bz2) in :meth:`pandas.DataFrame.to_csv` (:issue:`7615`)
-- Improve the error message in :func:`pandas.io.gbq.to_gbq` when a streaming insert fails (:issue:`11285`)
 - ``pd.read_*`` functions can now also accept :class:`python:pathlib.Path`, or :class:`py:py._path.local.LocalPath`
   objects for the ``filepath_or_buffer`` argument. (:issue:`11033`)
+  - The ``DataFrame`` and ``Series`` functions ``.to_csv()``, ``.to_html()`` and ``.to_latex()`` can now handle paths beginning with tildes (e.g. ``~/Documents/``) (:issue:`11438`)
 - ``DataFrame`` now uses the fields of a ``namedtuple`` as columns, if columns are not supplied (:issue:`11181`)
-- Improve the error message displayed in :func:`pandas.io.gbq.to_gbq` when the DataFrame does not match the schema of the destination table (:issue:`11359`)
+- ``DataFrame.itertuples()`` now returns ``namedtuple`` objects, when possible. (:issue:`11269`, :issue:`11625`)
 - Added ``axvlines_kwds`` to parallel coordinates plot (:issue:`10709`)
 - Option to ``.info()`` and ``.memory_usage()`` to provide for deep introspection of memory consumption. Note that this can be expensive to compute and therefore is an optional parameter. (:issue:`11595`)
 
@@ -98,23 +98,20 @@ Enhancements
 
 - ``pivot_table`` now has a ``margins_name`` argument so you can use something other than the default of 'All' (:issue:`3335`)
 - Implement export of ``datetime64[ns, tz]`` dtypes with a fixed HDF5 store (:issue:`11411`)
-- The ``DataFrame`` and ``Series`` functions ``.to_csv()``, ``.to_html()`` and ``.to_latex()`` can now handle paths beginning with tildes (e.g. ``~/Documents/``). (:issue:`11438`)
+- Pretty printing sets (e.g. in DataFrame cells) now uses set literal syntax (``{x, y}``) instead of
+  Legacy Python syntax (``set([x, y])``) (:issue:`11215`)
+- Improve the error message in :func:`pandas.io.gbq.to_gbq` when a streaming insert fails (:issue:`11285`)
+  and when the DataFrame does not match the schema of the destination table (:issue:`11359`)
 
 .. _whatsnew_0171.api:
 
 API changes
 ~~~~~~~~~~~
 
-- raise ``NotImplementedError`` in ``Index.shift`` for non-supported index types (:issue:`8083`)
-- min and max reductions on ``datetime64`` and ``timedelta64`` dtyped series now
+- raise ``NotImplementedError`` in ``Index.shift`` for non-supported index types (:issue:`8038`)
+- ``min`` and ``max`` reductions on ``datetime64`` and ``timedelta64`` dtyped series now
   result in ``NaT`` and not ``nan`` (:issue:`11245`).
-- Regression from 0.16.2 for output formatting of long floats/nan, restored in (:issue:`11302`)
-- Prettyprinting sets (e.g. in DataFrame cells) now uses set literal syntax (``{x, y}``) instead of
-  Legacy Python syntax (``set([x, y])``) (:issue:`11215`)
 - Indexing with a null key will raise a ``TypeError``, instead of a ``ValueError`` (:issue:`11356`)
-- ``Series.sort_index()`` now correctly handles the ``inplace`` option (:issue:`11402`)
-- ``SparseArray.__iter__()`` now does not cause ``PendingDeprecationWarning`` in Python 3.5 (:issue:`11622`)
-- ``DataFrame.itertuples()`` now returns ``namedtuple`` objects, when possible. (:issue:`11269`, :issue:`11625`)
 - ``Series.ptp`` will now ignore missing values by default (:issue:`11163`)
 
 .. _whatsnew_0171.deprecations:
@@ -147,6 +144,9 @@ Performance Improvements
 Bug Fixes
 ~~~~~~~~~
 
+- ``SparseArray.__iter__()`` now does not cause ``PendingDeprecationWarning`` in Python 3.5 (:issue:`11622`)
+- Regression from 0.16.2 for output formatting of long floats/nan, restored in (:issue:`11302`)
+- ``Series.sort_index()`` now correctly handles the ``inplace`` option (:issue:`11402`)
 - Incorrectly distributed .c file in the build on ``PyPi`` when reading a csv of floats and passing ``na_values=<a scalar>`` would show an exception (:issue:`11374`)
 - Bug in ``.to_latex()`` output broken when the index has a name (:issue:`10660`)
 - Bug in ``HDFStore.append`` with strings whose encoded length exceded the max unencoded length (:issue:`11234`)
