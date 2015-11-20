@@ -109,7 +109,7 @@ class TestInferDtype(tm.TestCase):
                         np.uint64, np.int64 ]:
             data = dtypec(12)
             dtype, val = com._infer_dtype_from_scalar(data)
-            self.assertEqual(dtype, dtypec)
+            self.assertEqual(dtype, type(data))
 
         data = 12
         dtype, val = com._infer_dtype_from_scalar(data)

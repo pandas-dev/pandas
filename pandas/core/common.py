@@ -1037,16 +1037,16 @@ def _infer_dtype_from_scalar(val):
         dtype = np.bool_
 
     elif is_integer(val):
-        if isinstance(val, int):
-            dtype = np.int64
-        else:
+        if isinstance(val, np.integer):
             dtype = type(val)
+        else:
+            dtype = np.int64
 
     elif is_float(val):
-        if isinstance(val, float):
-            dtype = np.float64
-        else:
+        if isinstance(val, np.floating):
             dtype = type(val)
+        else:
+            dtype = np.float64
 
     elif is_complex(val):
         dtype = np.complex_
