@@ -40,7 +40,11 @@ get_nat(void) {
 PANDAS_INLINE npy_datetime
 get_datetime64_value(PyObject* obj) {
   return ((PyDatetimeScalarObject*) obj)->obval;
+}
 
+PANDAS_INLINE npy_timedelta
+get_timedelta64_value(PyObject* obj) {
+  return ((PyTimedeltaScalarObject*) obj)->obval;
 }
 
 PANDAS_INLINE int

@@ -3,6 +3,7 @@
 cimport numpy as np
 from numpy cimport (int8_t, int32_t, int64_t, import_array, ndarray,
                     NPY_INT64, NPY_DATETIME, NPY_TIMEDELTA)
+from datetime cimport get_datetime64_value, get_timedelta64_value
 import numpy as np
 
 # GH3363
@@ -707,11 +708,27 @@ NaT = NaTType()
 
 iNaT = util.get_nat()
 
-
 cdef inline bint _checknull_with_nat(object val):
     """ utility to check if a value is a nat or not """
     return val is None or (
         PyFloat_Check(val) and val != val) or val is NaT
+
+cdef inline bint _check_all_nulls(object val):
+    """ utility to check if a value is any type of null """
+    cdef bint res
+    if PyFloat_Check(val):
+        res = val != val
+    elif val is NaT:
+        res = 1
+    elif val is None:
+        res = 1
+    elif is_datetime64_object(val):
+        res = get_datetime64_value(val) == NPY_NAT
+    elif is_timedelta64_object(val):
+        res = get_timedelta64_value(val) == NPY_NAT
+    else:
+        res = 0
+    return res
 
 cdef inline bint _cmp_nat_dt(_NaT lhs, _Timestamp rhs, int op) except -1:
     return _nat_scalar_rules[op]
