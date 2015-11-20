@@ -442,7 +442,7 @@ class Styler(object):
 
         if precision is None:
             self.precision['__default__'] = pd.options.display.precision
-        elif isinstance(precision, types.Integral):
+        elif isinstance(precision, numbers.Integral):
             self.precision['__default__'] = precision
 
         for k in kwargs:
