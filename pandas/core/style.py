@@ -234,8 +234,9 @@ class Styler(object):
                 cs.extend(cell_context.get("data", {}).get(r, {}).get(c, []))
                 row_d = {"type": "td", "value": self.data.iloc[r][c],
                          "class": " ".join(cs), "id": "_".join(cs[1:])}
-                if c in self.precision:
-                    row_d['precision'] = self.precision[c]
+                
+                if col in self.precision:
+                    row_d['precision'] = self.precision[col]
                 row_es.append(row_d)
                 props = []
                 for x in ctx[r, c]:
@@ -420,7 +421,7 @@ class Styler(object):
                           kwargs))
         return self
 
-    def set_precision(self, precision=None, **kwargs):
+    def set_precision(self, precision=None, column_formats={}):
         """
         Set the precision used to render.
 
@@ -435,7 +436,7 @@ class Styler(object):
         self
         """
         
-        if not kwargs and precision is None:
+        if not column_formats and precision is None:
             # reset everything
             self.precision = {'__default__': pd.options.display.precision}
             return self
@@ -445,8 +446,8 @@ class Styler(object):
         elif isinstance(precision, numbers.Integral):
             self.precision['__default__'] = precision
 
-        for k in kwargs:
-            self.precision[k] = kwargs[k]
+        for k in column_formats:
+            self.precision[k] = column_formats[k]
 
         return self
 
