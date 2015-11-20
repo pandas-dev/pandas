@@ -31,10 +31,17 @@ New features
 Conditional HTML Formatting
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+.. warning::
+    This is a new feature and is under active development.
+    We'll be adding features an  possibly making breaking changes in future
+    releases. Feedback is welcome_.
+
+.. _welcome: https://github.com/pydata/pandas/issues/11610
+
 We've added *experimental* support for conditional HTML formatting:
 the visual styling of a DataFrame based on the data.
 The styling is accomplished with HTML and CSS.
-Acesses the styler class with :attr:`pandas.DataFrame.style`, attribute,
+Acesses the styler class with the :attr:`pandas.DataFrame.style`, attribute,
 an instance of :class:`~pandas.core.style.Styler` with your data attached.
 
 Here's a quick example:
@@ -50,6 +57,7 @@ We can render the HTML to get the following table.
 .. raw:: html
    :file: whatsnew_0171_html_table.html
 
+:class:`~pandas.core.style.Styler` interacts nicely with the Jupyter Notebook.
 See the :ref:`documentation <style>` for more.
 
 .. _whatsnew_0171.enhancements:
