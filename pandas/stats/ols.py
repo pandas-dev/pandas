@@ -1355,10 +1355,7 @@ def _y_converter(y):
 def f_stat_to_dict(result):
     f_stat, shape, p_value = result
 
-    result = {}
-    result['f-stat'] = f_stat
-    result['DF X'] = shape[0]
-    result['DF Resid'] = shape[1]
-    result['p-value'] = p_value
-
-    return result
+    return {'f-stat': f_stat,
+              'DF X': shape[0],
+              'DF Resid': shape[1],
+              'p-value': p_value}

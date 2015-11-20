@@ -632,8 +632,7 @@ class NDFrame(PandasObject):
         renamed : type of caller
         """
         axis = self._get_axis_name(axis)
-        d = {'copy': copy, 'inplace': inplace}
-        d[axis] = mapper
+        d = {'copy': copy, 'inplace': inplace, axis: mapper}
         return self.rename(**d)
 
     #----------------------------------------------------------------------

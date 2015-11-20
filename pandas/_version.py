@@ -205,10 +205,7 @@ def git_pieces_from_vcs(tag_prefix, root, verbose, run_command=run_command):
         raise NotThisMethod("'git rev-parse' failed")
     full_out = full_out.strip()
 
-    pieces = {}
-    pieces["long"] = full_out
-    pieces["short"] = full_out[:7]  # maybe improved later
-    pieces["error"] = None
+    pieces = {"long": full_out, "short": full_out[:7], "error": None}
 
     # parse describe_out. It will be like TAG-NUM-gHEX[-dirty] or HEX[-dirty]
     # TAG might have hyphens.
