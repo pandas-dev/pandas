@@ -68,11 +68,11 @@ class Styler(object):
     Notes
     -----
     Most styling will be done by passing style functions into
-    Styler.apply or Styler.applymap. Style functions should
-    return values with strings containing CSS 'attr: value' that will
+    ``Styler.apply`` or ``Styler.applymap``. Style functions should
+    return values with strings containing CSS ``'attr: value'`` that will
     be applied to the indicated cells.
 
-    If using in the Jupyter notebook, Styler has defined a _repr_html_
+    If using in the Jupyter notebook, Styler has defined a ``_repr_html_``
     to automatically render itself. Otherwise call Styler.render to get
     the genterated HTML.
 
@@ -306,6 +306,10 @@ class Styler(object):
         return self._copy(deepcopy=True)
 
     def clear(self):
+        '''
+        "Reset" the styler, removing any previously applied styles.
+        Returns None.
+        '''
         self.ctx.clear()
         self._todo = []
 
@@ -360,9 +364,9 @@ class Styler(object):
 
         Notes
         -----
-        This is similar to DataFrame.apply, except that axis=None applies
-        the function to the entire DataFrame at once, rather tha column
-        or rowwise.
+        This is similar to ``DataFrame.apply``, except that ``axis=None``
+        applies the function to the entire DataFrame at once,
+        rather than column-wise or row-wise.
         """
         self._todo.append((lambda instance: getattr(instance, '_apply'),
                           (func, axis, subset),
@@ -424,7 +428,7 @@ class Styler(object):
     def set_table_attributes(self, attributes):
         """
         Set the table attributes. These are the items
-        that show up in the opening <table> tag in addition
+        that show up in the opening ``<table>`` tag in addition
         to to automatic (by default) id.
 
         .. versionadded:: 0.17.1
@@ -443,7 +447,7 @@ class Styler(object):
     def export(self):
         """
         Export the styles to applied to the current Styler.
-        Can be applied to a second style with `.use`.
+        Can be applied to a second style with ``Styler.use``.
 
         .. versionadded:: 0.17.1
 
@@ -460,7 +464,7 @@ class Styler(object):
     def use(self, styles):
         """
         Set the styles on the current Styler, possibly using styles
-        from `Styler.export`
+        from ``Styler.export``.
 
         .. versionadded:: 0.17.1
 
