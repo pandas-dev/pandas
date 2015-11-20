@@ -1710,7 +1710,7 @@ Style Export and Import
 
    Styler.render
    Styler.export
-   Styler.set
+   Styler.use
 
 .. currentmodule:: pandas
 
