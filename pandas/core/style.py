@@ -421,7 +421,7 @@ class Styler(object):
                           kwargs))
         return self
 
-    def set_precision(self, precision=None, column_formats={}):
+    def set_precision(self, precision=None, subsets={}):
         """
         Set the precision used to render.
 
@@ -436,7 +436,7 @@ class Styler(object):
         self
         """
         
-        if not column_formats and precision is None:
+        if not subsets and precision is None:
             # reset everything
             self.precision = {'__default__': pd.options.display.precision}
             return self
@@ -446,8 +446,8 @@ class Styler(object):
         elif isinstance(precision, numbers.Integral):
             self.precision['__default__'] = precision
 
-        for k in column_formats:
-            self.precision[k] = column_formats[k]
+        for k in subsets:
+            self.precision[k] = subsets[k]
 
         return self
 
