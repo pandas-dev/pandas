@@ -44,6 +44,11 @@ class Styler(object):
 
     .. versionadded:: 0.17.1
 
+    .. warning::
+        This is a new feature and is under active development.
+        We'll be adding features and possibly making breaking changes in future
+        releases.
+
     Parameters
     ----------
     data: Series or DataFrame
