@@ -1725,6 +1725,7 @@ pass ``convert_numeric=True``. This will force strings and numbers alike to be n
 they will be set to ``np.nan``.
 
 .. ipython:: python
+   :okwarning:
 
    df3['D'] = '1.'
    df3['E'] = '1'
