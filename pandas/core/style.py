@@ -117,7 +117,7 @@ class Styler(object):
                         {% if c.precision is defined and c.precision is number %}
                             {{c.value|round(c.precision)}}
                         {% elif c.precision is defined and c.precision is string %}
-                            {{str.format(c.precision, c.value)}}
+                            {{c.precision.format(c.value)}}
                         {% else %}
                             {{c.value|round(precision.__default__)}}
                         {% endif %}
