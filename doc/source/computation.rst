@@ -267,6 +267,7 @@ sugar for applying the moving window operator to all of the DataFrame's columns:
 
 .. ipython:: python
    :suppress:
+
    plt.close('all')
 
 .. ipython:: python
@@ -541,7 +542,7 @@ which gives
 
 .. math::
 
-    y_t = \frac{x_t + (1 - \alpha)x_{t-1} + (1 - \alpha)^2 x_{t-2} + ... 
+    y_t = \frac{x_t + (1 - \alpha)x_{t-1} + (1 - \alpha)^2 x_{t-2} + ...
     + (1 - \alpha)^t x_{0}}{1 + (1 - \alpha) + (1 - \alpha)^2 + ...
     + (1 - \alpha)^t}
 
@@ -620,7 +621,6 @@ Here is an example for a univariate time series:
 
 .. ipython:: python
 
-   plt.close('all')
    ts.plot(style='k--')
 
    @savefig ewma_ex.png
