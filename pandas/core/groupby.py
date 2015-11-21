@@ -2362,6 +2362,7 @@ class SeriesGroupBy(GroupBy):
         -------
         Series or DataFrame
         """
+        _level = kwargs.pop('_level',None)
         if isinstance(func_or_funcs, compat.string_types):
             return getattr(self, func_or_funcs)(*args, **kwargs)
 
@@ -2411,11 +2412,18 @@ class SeriesGroupBy(GroupBy):
 
         results = {}
         for name, func in arg:
+            obj = self
             if name in results:
                 raise SpecificationError('Function names must be unique, '
                                          'found multiple named %s' % name)
 
-            results[name] = self.aggregate(func)
+            # reset the cache so that we
+            # only include the named selection
+            if name in self._selected_obj:
+                obj = copy.copy(obj)
+                obj._reset_cache()
+                obj._selection = name
+            results[name] = obj.aggregate(func)
 
         return DataFrame(results, columns=columns)
 
@@ -2856,7 +2864,8 @@ class NDFrameGroupBy(GroupBy):
     @Appender(SelectionMixin._agg_doc)
     def aggregate(self, arg, *args, **kwargs):
 
-        result, how = self._aggregate(arg, *args, **kwargs)
+        _level = kwargs.pop('_level',None)
+        result, how = self._aggregate(arg, _level=_level, *args, **kwargs)
         if how is None:
             return result
 
@@ -2870,7 +2879,7 @@ class NDFrameGroupBy(GroupBy):
                 # try to treat as if we are passing a list
                 try:
                     assert not args and not kwargs
-                    result = self._aggregate_multiple_funcs([arg])
+                    result = self._aggregate_multiple_funcs([arg], _level=_level)
                     result.columns = Index(result.columns.levels[0],
                                            name=self._selected_obj.columns.name)
                 except:

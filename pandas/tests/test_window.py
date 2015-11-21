@@ -103,18 +103,62 @@ class TestApi(Base):
                         'B' : range(0,10,2)})
 
         r = df.rolling(window=3)
+        a_mean = r['A'].mean()
+        a_std = r['A'].std()
+        a_sum = r['A'].sum()
+        b_mean = r['B'].mean()
+        b_std = r['B'].std()
+        b_sum = r['B'].sum()
 
-        import pdb; pdb.set_trace()
-        agged = r.aggregate([np.mean, np.std])
-        agged = r.aggregate({'A': np.mean,
-                             'B': np.std})
-        agged = r.aggregate({'A': ['mean','sum']})
-        agged = r['A'].aggregate(['mean','sum'])
-        agged = r.aggregate({'A': { 'mean' : 'mean', 'sum' : 'sum' } })
-        agged = r.aggregate({'A': { 'mean' : 'mean', 'sum' : 'sum' },
-                             'B': { 'mean2' : 'mean', 'sum2' : 'sum' }})
-        agged = r.aggregate({'r1': { 'A' : ['mean','sum'] },
-                             'r2' : { 'B' : ['mean','sum'] }})
+        def compare(result, expected):
+            # if we are using dicts, the orderings is not guaranteed
+            assert_frame_equal(result.reindex_like(expected), expected)
+
+        result = r.aggregate([np.mean, np.std])
+        expected = pd.concat([a_mean,a_std,b_mean,b_std],axis=1)
+        expected.columns = pd.MultiIndex.from_product([['A','B'],['mean','std']])
+        assert_frame_equal(result, expected)
+
+        result = r.aggregate({'A': np.mean,
+                              'B': np.std})
+        expected = pd.concat([a_mean,b_std],axis=1)
+        compare(result, expected)
+
+        result = r.aggregate({'A': ['mean','std']})
+        expected = pd.concat([a_mean,a_std],axis=1)
+        expected.columns = pd.MultiIndex.from_product([['A'],['mean','std']])
+        assert_frame_equal(result, expected)
+
+        result = r['A'].aggregate(['mean','sum'])
+        expected = pd.concat([a_mean,a_sum],axis=1)
+        expected.columns = pd.MultiIndex.from_product([['A'],['mean','sum']])
+        assert_frame_equal(result, expected)
+
+        result = r.aggregate({'A': { 'mean' : 'mean', 'sum' : 'sum' } })
+        expected = pd.concat([a_mean,a_sum],axis=1)
+        expected.columns = pd.MultiIndex.from_product([['A'],['mean','sum']])
+        compare(result, expected)
+
+        result = r.aggregate({'A': { 'mean' : 'mean', 'sum' : 'sum' },
+                              'B': { 'mean2' : 'mean', 'sum2' : 'sum' }})
+        expected = pd.concat([a_mean,a_sum,b_mean,b_sum],axis=1)
+        expected.columns = pd.MultiIndex.from_tuples([('A','mean'),('A','sum'),
+                                                      ('B','mean2'),('B','sum2')])
+        compare(result, expected)
+
+        result = r.aggregate({'r1' : { 'A' : ['mean','sum'] },
+                              'r2' : { 'B' : ['mean','sum'] }})
+        expected = pd.concat([a_mean,a_sum,b_mean,b_sum],axis=1)
+        expected.columns = pd.MultiIndex.from_tuples([('r1','A','mean'),('r1','A','sum'),
+                                                      ('r2','B','mean'),('r2','B','sum')])
+        compare(result, expected)
+
+        result = r.agg({'A' : {'ra' : ['mean','std']},
+                        'B' : {'rb' : ['mean','std']}})
+        expected = pd.concat([a_mean,a_std,b_mean,b_std],axis=1)
+        expected.columns = pd.MultiIndex.from_tuples([('A','ra','mean'),('A','ra','std'),
+                                                      ('B','rb','mean'),('B','rb','std')])
+        compare(result, expected)
 
 class TestMoments(Base):
 

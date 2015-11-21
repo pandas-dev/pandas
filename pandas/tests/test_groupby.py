@@ -1443,6 +1443,48 @@ class TestGroupBy(tm.TestCase):
         result = grouped['C'].agg({'foo': np.mean, 'bar': np.std})
         self.assertEqual(result.index.name, 'A')
 
+    def test_aggregate_api_consistency(self):
+        # GH 9052
+        # make sure that the aggregates via dict
+        # are consistent
+
+
+        def compare(result, expected):
+            # if we ar passin dicts then ordering is not guaranteed for output columns
+            assert_frame_equal(result.reindex_like(expected), expected)
+
+
+        df = DataFrame({'A' : ['foo', 'bar', 'foo', 'bar',
+                               'foo', 'bar', 'foo', 'foo'],
+                        'B' : ['one', 'one', 'two', 'three',
+                               'two', 'two', 'one', 'three'],
+                        'C' : np.random.randn(8),
+                        'D' : np.random.randn(8)})
+
+        grouped = df.groupby(['A', 'B'])
+        result = grouped[['D','C']].agg({'r':np.sum, 'r2':np.mean})
+        expected = pd.concat([grouped[['D','C']].sum(),
+                              grouped[['D','C']].mean()],
+                             keys=['r','r2'],
+                             axis=1).stack(level=1)
+        compare(result, expected)
+
+        result = grouped[['D','C']].agg({'r': { 'C' : np.sum }, 'r2' : { 'D' : np.mean }})
+        expected = pd.concat([grouped[['C']].sum(),
+                              grouped[['D']].mean()],
+                             axis=1)
+        expected.columns = MultiIndex.from_tuples([('r','C'),('r2','D')])
+        compare(result, expected)
+
+        result = grouped[['D','C']].agg([np.sum, np.mean])
+        expected = pd.concat([grouped['D'].sum(),
+                              grouped['D'].mean(),
+                              grouped['C'].sum(),
+                              grouped['C'].mean()],
+                             axis=1)
+        expected.columns = MultiIndex.from_product([['D','C'],['sum','mean']])
+        compare(result, expected)
+
     def test_multi_iter(self):
         s = Series(np.arange(6))
         k1 = np.array(['a', 'a', 'a', 'b', 'b', 'b'])
