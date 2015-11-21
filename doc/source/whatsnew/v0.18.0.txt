@@ -25,10 +25,55 @@ New features
 ~~~~~~~~~~~~
 
 
+.. _whatsnew_0180.enhancements.moments:
 
+Computation moments are now methods
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Computational moments have been refactored to be method on ``Series/DataFrame`` objects, rather than top-level functions, which are now deprecated. This allows these window-type functions, to have a similar API to that of ``.groupby``. See the full documentation :ref:`here <stats.moments>` (:issue:`11603`)
 
+.. ipython:: python
 
+   np.random.seed(1234)
+   df = DataFrame({'A' : range(10), 'B' : np.random.randn(10)})
+   df
+
+Previous Behavior:
+
+.. code-block:: python
+
+   In [8]: pd.rolling_mean(df,window=3)
+   Out[8]:
+       A         B
+   0 NaN       NaN
+   1 NaN       NaN
+   2   1  0.237722
+   3   2 -0.023640
+   4   3  0.133155
+   5   4 -0.048693
+   6   5  0.342054
+   7   6  0.370076
+   8   7  0.079587
+   9   8 -0.954504
+
+  New Behavior:
+
+  .. ipython:: python
+
+    r = df.rolling(window=3)
+
+    # descriptive repr
+    r
+
+    # operate on this Rolling object itself
+    r.mean()
+
+    # getitem access
+    r['A'].mean()
+
+    # aggregates
+    r.agg({'A' : {'ra' : ['mean','std']},
+           'B' : {'rb' : ['mean','std']}})
 
 .. _whatsnew_0180.enhancements.other:
 
@@ -195,6 +240,7 @@ Bug Fixes
 - Bug in ``Period.end_time`` when a multiple of time period is requested (:issue:`11738`)
 - Regression in ``.clip`` with tz-aware datetimes (:issue:`11838`)
 - Bug in ``date_range`` when the boundaries fell on the frequency (:issue:`11804`)
+- Bug in consistency of passing nested dicts to ``.groupby(...).agg(...)`` (:issue:`9052`)
 
 
 

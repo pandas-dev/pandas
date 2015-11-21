@@ -12,6 +12,7 @@ from functools import wraps
 from collections import defaultdict
 
 import pandas as pd
+from pandas.lib import isscalar
 from pandas.core.base import PandasObject, SelectionMixin, AbstractMethodError
 import pandas.core.common as com
 import pandas.algos as algos
@@ -64,11 +65,12 @@ class _Window(PandasObject, SelectionMixin):
         # create a new object to prevent aliasing
         if subset is None:
             subset = self.obj
-        new_self = self._shallow_copy(subset)
-        if ndim==2 and key in subset:
-            new_self._selection = key
-        new_self._reset_cache()
-        return new_self
+        self = self._shallow_copy(subset)
+        self._reset_cache()
+        if subset.ndim==2:
+            if isscalar(key) and key in subset or com.is_list_like(key):
+                self._selection = key
+        return self
 
     def __getattr__(self, attr):
         if attr in self._internal_names_set:
@@ -191,8 +193,6 @@ class _Window(PandasObject, SelectionMixin):
     @Appender(SelectionMixin._agg_doc)
     def aggregate(self, arg, *args, **kwargs):
         result, how = self._aggregate(arg, *args, **kwargs)
-        if result is None:
-            import pdb; pdb.set_trace()
         return result
 
 class Window(_Window):

@@ -237,7 +237,7 @@ class SelectionMixin(object):
     sub-classes need to define: obj, exclusions
     """
     _selection = None
-    _internal_names = ['_cache']
+    _internal_names = ['_cache','__setstate__']
     _internal_names_set = set(_internal_names)
     _builtin_table = {
         builtins.sum: np.sum,
@@ -368,6 +368,13 @@ aggregated : DataFrame
         """
         provide an implementation for the aggregators
 
+        Parameters
+        ----------
+        arg : string, dict, function
+        *args : args to pass on to the function
+        **kwargs : kwargs to pass on to the function
+
+
         Returns
         -------
         tuple of result, how
@@ -378,6 +385,7 @@ aggregated : DataFrame
         None if not required
         """
 
+        _level = kwargs.pop('_level',None)
         if isinstance(arg, compat.string_types):
             return getattr(self, arg)(*args, **kwargs), None
 
@@ -403,24 +411,24 @@ aggregated : DataFrame
 
                 for fname, agg_how in compat.iteritems(arg):
                     colg = self._gotitem(self._selection, ndim=1, subset=subset)
-                    result[fname] = colg.aggregate(agg_how)
+                    result[fname] = colg.aggregate(agg_how, _level=None)
                     keys.append(fname)
             else:
                 for col, agg_how in compat.iteritems(arg):
                     colg = self._gotitem(col, ndim=1)
-                    result[col] = colg.aggregate(agg_how)
+                    result[col] = colg.aggregate(agg_how, _level=(_level or 0) + 1)
                     keys.append(col)
 
             if isinstance(list(result.values())[0], com.ABCDataFrame):
                 from pandas.tools.merge import concat
-                result = concat([result[k] for k in keys], keys=keys, axis=1)
+                result = concat([ result[k] for k in keys ], keys=keys, axis=1)
             else:
                 from pandas import DataFrame
                 result = DataFrame(result)
 
             return result, True
         elif hasattr(arg, '__iter__'):
-            return self._aggregate_multiple_funcs(arg), None
+            return self._aggregate_multiple_funcs(arg, _level=_level), None
         else:
             result = None
 
@@ -431,7 +439,7 @@ aggregated : DataFrame
         # caller can react
         return result, True
 
-    def _aggregate_multiple_funcs(self, arg):
+    def _aggregate_multiple_funcs(self, arg, _level):
         from pandas.tools.merge import concat
 
         if self.axis != 0:
@@ -447,7 +455,15 @@ aggregated : DataFrame
                 try:
                     colg = self._gotitem(obj.name, ndim=1, subset=obj)
                     results.append(colg.aggregate(a))
-                    keys.append(getattr(a,'name',a))
+
+                    # find a good name, this could be a function that we don't recognize
+                    name = self._is_cython_func(a) or a
+                    if not isinstance(name, compat.string_types):
+                        name = getattr(a,name,a)
+                    if not isinstance(name, compat.string_types):
+                        name = getattr(a,func_name,a)
+
+                    keys.append(name)
                 except (TypeError, DataError):
                     pass
                 except SpecificationError:
@@ -464,6 +480,9 @@ aggregated : DataFrame
                     pass
                 except SpecificationError:
                     raise
+
+        if _level:
+            keys = None
         result = concat(results, keys=keys, axis=1)
 
         return result
