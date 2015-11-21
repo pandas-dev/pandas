@@ -27,10 +27,10 @@ New features
 
 .. _whatsnew_0180.enhancements.moments:
 
-Computation moments are now methods
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Window functions are now methods
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Computational moments have been refactored to be method on ``Series/DataFrame`` objects, rather than top-level functions, which are now deprecated. This allows these window-type functions, to have a similar API to that of ``.groupby``. See the full documentation :ref:`here <stats.moments>` (:issue:`11603`)
+Window functions have been refactored to be methods on ``Series/DataFrame`` objects, rather than top-level functions, which are now deprecated. This allows these window-type functions, to have a similar API to that of ``.groupby``. See the full documentation :ref:`here <stats.moments>` (:issue:`11603`)
 
 .. ipython:: python
 
@@ -56,24 +56,36 @@ Previous Behavior:
    8   7  0.079587
    9   8 -0.954504
 
-  New Behavior:
+New Behavior:
 
-  .. ipython:: python
+.. ipython:: python
 
-    r = df.rolling(window=3)
+   r = df.rolling(window=3)
 
-    # descriptive repr
-    r
+These show a descriptive repr, with tab-completion of available methods
 
-    # operate on this Rolling object itself
-    r.mean()
+.. ipython:: python
 
-    # getitem access
-    r['A'].mean()
+   r
 
-    # aggregates
-    r.agg({'A' : {'ra' : ['mean','std']},
-           'B' : {'rb' : ['mean','std']}})
+The methods operate on this ``Rolling`` object itself
+
+.. ipython:: python
+
+   r.mean()
+
+They provide getitem accessors
+
+.. ipython:: python
+
+   r['A'].mean()
+
+And multiple aggregations
+
+.. ipython:: python
+
+   r.agg({'A' : {'ra' : ['mean','std']},
+          'B' : {'rb' : ['mean','std']}})
 
 .. _whatsnew_0180.enhancements.other:
 
