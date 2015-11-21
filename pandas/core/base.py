@@ -7,7 +7,8 @@ import numpy as np
 from pandas.core import common as com
 import pandas.core.nanops as nanops
 import pandas.lib as lib
-from pandas.util.decorators import Appender, cache_readonly, deprecate_kwarg
+from pandas.util.decorators import (Appender, Substitution,
+                                    cache_readonly, deprecate_kwarg)
 from pandas.core.common import AbstractMethodError
 
 _shared_docs = dict()
@@ -356,13 +357,18 @@ Returns
 aggregated : DataFrame
 """
 
-    @Appender(_agg_doc)
-    def agg(self, func, *args, **kwargs):
-        return self.aggregate(func, *args, **kwargs)
+    _see_also_template = """
 
-    @Appender(_agg_doc)
+See also
+--------
+:func:`pandas.Series.%(name)s`
+:func:`pandas.DataFrame.%(name)s`
+"""
+
     def aggregate(self, func, *args, **kwargs):
         raise AbstractMethodError(self)
+
+    agg = aggregate
 
     def _aggregate(self, arg, *args, **kwargs):
         """

@@ -160,6 +160,14 @@ class TestApi(Base):
                                                       ('B','rb','mean'),('B','rb','std')])
         compare(result, expected)
 
+
+        # passed lambda
+        result = r.agg({'A' : np.sum,
+                        'B' : lambda x: np.std(x, ddof=1)})
+        rcustom = r['B'].apply(lambda x: np.std(x,ddof=1))
+        expected = pd.concat([a_sum,rcustom],axis=1)
+        compare(result, expected)
+
 class TestMoments(Base):
 
     def setUp(self):
