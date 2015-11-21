@@ -584,7 +584,7 @@ class DataFrame(NDFrame):
 
         See Also
         --------
-        pandas.core.Styler
+        pandas.core.style.Styler
         """
         from pandas.core.style import Styler
         return Styler(self)

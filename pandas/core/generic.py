@@ -1862,7 +1862,7 @@ class NDFrame(PandasObject):
 
         >>> date_index = pd.date_range('1/1/2010', periods=6, freq='D')
         >>> df2 = pd.DataFrame({"prices": [100, 101, np.nan, 100, 89, 88]},
-                index=date_index)
+        ...                    index=date_index)
         >>> df2
                     prices
         2010-01-01     100
