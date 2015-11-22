@@ -4741,26 +4741,25 @@ class NDFrame(PandasObject):
 
         @Appender(rwindow.rolling.__doc__)
         def rolling(self, window, min_periods=None, freq=None, center=False,
-                    how=None, win_type=None, axis=0):
+                    win_type=None, axis=0):
             axis = self._get_axis_number(axis)
             return rwindow.rolling(self, window=window, min_periods=min_periods, freq=freq, center=center,
-                                   how=how, win_type=win_type, axis=axis)
+                                   win_type=win_type, axis=axis)
         cls.rolling = rolling
 
         @Appender(rwindow.expanding.__doc__)
-        def expanding(self, min_periods=None, freq=None, center=False,
-                      how=None, axis=0):
+        def expanding(self, min_periods=1, freq=None, center=False, axis=0):
             axis = self._get_axis_number(axis)
             return rwindow.expanding(self, min_periods=min_periods, freq=freq, center=center,
-                                     how=how, axis=axis)
+                                     axis=axis)
         cls.expanding = expanding
 
         @Appender(rwindow.ewm.__doc__)
         def ewm(self, com=None, span=None, halflife=None, min_periods=0, freq=None,
-                adjust=True, how=None, ignore_na=False, axis=0):
+                adjust=True, ignore_na=False, axis=0):
             axis = self._get_axis_number(axis)
             return rwindow.ewm(self, com=com, span=span, halflife=halflife, min_periods=min_periods,
-                               freq=freq, adjust=adjust, how=how, ignore_na=ignore_na, axis=axis)
+                               freq=freq, adjust=adjust, ignore_na=ignore_na, axis=axis)
         cls.ewm = ewm
 
 def _doc_parms(cls):

@@ -224,16 +224,7 @@ moved_api_pages = [
     'pandas.io.pickle.read_pickle', 'pandas.io.pytables.HDFStore.append', 'pandas.io.pytables.HDFStore.get',
     'pandas.io.pytables.HDFStore.put', 'pandas.io.pytables.HDFStore.select', 'pandas.io.pytables.read_hdf',
     'pandas.io.sql.read_sql', 'pandas.io.sql.read_frame', 'pandas.io.sql.write_frame',
-    'pandas.io.stata.read_stata', 'pandas.stats.moments.ewma', 'pandas.stats.moments.ewmcorr',
-    'pandas.stats.moments.ewmcov', 'pandas.stats.moments.ewmstd', 'pandas.stats.moments.ewmvar',
-    'pandas.stats.moments.expanding_apply', 'pandas.stats.moments.expanding_corr', 'pandas.stats.moments.expanding_count',
-    'pandas.stats.moments.expanding_cov', 'pandas.stats.moments.expanding_kurt', 'pandas.stats.moments.expanding_mean',
-    'pandas.stats.moments.expanding_median', 'pandas.stats.moments.expanding_quantile', 'pandas.stats.moments.expanding_skew',
-    'pandas.stats.moments.expanding_std', 'pandas.stats.moments.expanding_sum', 'pandas.stats.moments.expanding_var',
-    'pandas.stats.moments.rolling_apply', 'pandas.stats.moments.rolling_corr', 'pandas.stats.moments.rolling_count',
-    'pandas.stats.moments.rolling_cov', 'pandas.stats.moments.rolling_kurt', 'pandas.stats.moments.rolling_mean',
-    'pandas.stats.moments.rolling_median', 'pandas.stats.moments.rolling_quantile', 'pandas.stats.moments.rolling_skew',
-    'pandas.stats.moments.rolling_std', 'pandas.stats.moments.rolling_sum', 'pandas.stats.moments.rolling_var']
+    'pandas.io.stata.read_stata']
 
 html_additional_pages = {'generated/' + page: 'api_redirect.html' for page in moved_api_pages}
 

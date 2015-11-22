@@ -4,7 +4,9 @@ statistics implemented in Cython
 """
 from __future__ import division
 
+import warnings
 import numpy as np
+from pandas import lib
 from pandas.core.api import DataFrame, Series
 from pandas.util.decorators import Substitution, Appender
 
@@ -187,6 +189,10 @@ def ensure_compat(dispatch, name, arg, func_kw=None, *args, **kwargs):
         else:
             raise AssertionError("cannot support ndim > 2 for ndarray compat")
 
+        warnings.warn("pd.{dispatch}_{name} is deprecated for ndarrays and will be removed "
+                      "in a future version".format(dispatch=dispatch,name=name),
+                      FutureWarning, stacklevel=3)
+
     # get the functional keywords here
     if func_kw is None:
         func_kw = []
@@ -195,7 +201,37 @@ def ensure_compat(dispatch, name, arg, func_kw=None, *args, **kwargs):
         value = kwargs.pop(k,None)
         if value is not None:
             kwds[k] = value
+
+    # how is a keyword that if not-None should be in kwds
+    how = kwargs.pop('how',None)
+    if how is not None:
+        kwds['how'] = how
+
     r = getattr(arg,dispatch)(**kwargs)
+
+    if not is_ndarray:
+
+        # give a helpful deprecation message
+        # with copy-pastable arguments
+        pargs = ','.join([ "{a}={b}".format(a=a,b=b) for a,b in kwargs.items() if b is not None ])
+        aargs = ','.join(args)
+        if len(aargs):
+            aargs += ','
+
+        def f(a,b):
+            if lib.isscalar(b):
+                return "{a}={b}".format(a=a,b=b)
+            return "{a}=<{b}>".format(a=a,b=type(b).__name__)
+        aargs = ','.join([ f(a,b) for a,b in kwds.items() if b is not None ])
+        warnings.warn("pd.{dispatch}_{name} is deprecated for {klass} "
+                      "and will be removed in a future version, replace with "
+                      "\n\t{klass}.{dispatch}({pargs}).{name}({aargs})".format(klass=type(arg).__name__,
+                                                                               pargs=pargs,
+                                                                               aargs=aargs,
+                                                                               dispatch=dispatch,
+                                                                               name=name),
+                      FutureWarning, stacklevel=3)
+
     result = getattr(r,name)(*args, **kwds)
 
     if is_ndarray:
@@ -404,8 +440,9 @@ def _rolling_func(name, desc, how=None, func_kw=None, additional_kw=''):
     @Substitution(desc, _unary_arg, _roll_kw%how_arg_str + additional_kw,
                   _type_of_input_retval, _roll_notes)
     @Appender(_doc_template)
-    def f(arg, window, min_periods=None, freq=None, center=False, how=how,
+    def f(arg, window, min_periods=None, freq=None, center=False,
           **kwargs):
+
         return ensure_compat('rolling',
                              name,
                              arg,
@@ -413,7 +450,6 @@ def _rolling_func(name, desc, how=None, func_kw=None, additional_kw=''):
                              min_periods=min_periods,
                              freq=freq,
                              center=center,
-                             how=how,
                              func_kw=func_kw,
                              **kwargs)
     return f
@@ -597,7 +633,6 @@ def rolling_window(arg, window=None, win_type=None, min_periods=None,
                          center=center,
                          min_periods=min_periods,
                          axis=axis,
-                         how=how,
                          func_kw=kwargs.keys(),
                          **kwargs)
 
