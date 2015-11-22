@@ -105,3 +105,6 @@ Performance Improvements
 
 Bug Fixes
 ~~~~~~~~~
+
+- Bug aggregating on UTC timestamps with selection returns int64 object (:issue:`11616`)
+- Bug timezone info lost when broadcasting scalar datetime to DataFrame (:issue:`11682`)

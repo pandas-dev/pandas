@@ -32,6 +32,7 @@ import numpy as np
 import pandas.core.nanops as nanops
 
 import pandas.util.testing as tm
+import pytz
 import pandas as pd
 from numpy.testing import assert_equal
 
@@ -4095,6 +4096,27 @@ class TestGroupBy(tm.TestCase):
         grouper = pd.tseries.resample.TimeGrouper('D')
         grouped = series.groupby(grouper)
         assert next(iter(grouped), None) is None
+
+    def test_groupby_with_timezone_selection(self):
+        # GH 11616
+        # Test that column selection returns output in correct timezone.
+        np.random.seed(42)
+        df = pd.DataFrame({
+            'factor': np.random.randint(0, 3, size=60),
+            'time': pd.date_range('01/01/2000 00:00', periods=60, freq='s', tz='UTC')
+        })
+        df1 = df.groupby('factor').max()['time']
+        df2 = df.groupby('factor')['time'].max()
+        tm.assert_series_equal(df1, df2)
+
+    def test_timezone_info(self):
+        #GH 11682
+        # Timezone info lost when broadcasting scalar datetime to DataFrame
+        df = pd.DataFrame({'a': [1], 'b': [datetime.now(pytz.utc)]})
+        tm.assert_equal(df['b'][0].tzinfo, pytz.utc)
+        df = pd.DataFrame({'a': [1,2,3]})
+        df['b'] = datetime.now(pytz.utc)
+        tm.assert_equal(df['b'][0].tzinfo, pytz.utc)
 
     def test_groupby_with_timegrouper(self):
         # GH 4161
