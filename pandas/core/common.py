@@ -1025,7 +1025,7 @@ def _infer_dtype_from_scalar(val):
 
         dtype = np.object_
 
-    elif isinstance(val, (np.datetime64, datetime)) and getattr(val,'tz',None) is None:
+    elif isinstance(val, (np.datetime64, datetime)) and getattr(val,'tzinfo',None) is None:
         val = lib.Timestamp(val).value
         dtype = np.dtype('M8[ns]')
 
@@ -1321,6 +1321,9 @@ def _possibly_downcast_to_dtype(result, dtype):
             try:
                 result = result.astype(dtype)
             except:
+                if dtype.tz:
+                    # convert to datetime and change timezone
+                    result = pd.to_datetime(result).tz_localize(dtype.tz)
                 pass
 
     except:
