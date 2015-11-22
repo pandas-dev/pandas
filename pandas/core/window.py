@@ -33,21 +33,19 @@ See also
 """
 
 class _Window(PandasObject, SelectionMixin):
-    _attributes = ['window','min_periods','freq','center','how','win_type','axis']
+    _attributes = ['window','min_periods','freq','center','win_type','axis']
     exclusions = set()
 
     def __init__(self, obj, window=None, min_periods=None, freq=None, center=False,
-                 how=None, win_type=None, axis=0):
+                 win_type=None, axis=0):
         self.blocks = []
         self.obj = obj
         self.window = window
         self.min_periods = min_periods
         self.freq = freq
         self.center = center
-        self.how = how
         self.win_type = win_type
         self.axis = axis
-        self._convert_freq()
         self._setup()
 
     @property
@@ -57,9 +55,18 @@ class _Window(PandasObject, SelectionMixin):
     def _setup(self):
         pass
 
-    def _create_blocks(self):
-        """ split data into blocks """
-        return self._selected_obj.as_blocks(copy=False).values()
+    def _convert_freq(self, how=None):
+        """ resample according to the how, return a new object """
+        obj = self._selected_obj
+        if self.freq is not None and isinstance(obj, (com.ABCSeries, com.ABCDataFrame)):
+            obj = obj.resample(self.freq, how=how)
+        return obj
+
+    def _create_blocks(self, how):
+        """ split data into blocks & return conformed data """
+
+        obj = self._convert_freq(how)
+        return obj.as_blocks(copy=False).values(), obj
 
     def _gotitem(self, key, ndim, subset=None):
         """
@@ -119,7 +126,7 @@ class _Window(PandasObject, SelectionMixin):
                 kwargs[attr] = getattr(self,attr)
         return self._constructor(obj, **kwargs)
 
-    def _prep_values(self, values=None, kill_inf=True):
+    def _prep_values(self, values=None, kill_inf=True, how=None):
 
         if values is None:
             values = getattr(self._selected_obj,'values',self._selected_obj)
@@ -143,10 +150,11 @@ class _Window(PandasObject, SelectionMixin):
 
         return values
 
-    def _wrap_result(self, result, block=None):
+    def _wrap_result(self, result, block=None, obj=None):
         """ wrap a single result """
 
-        obj = self._selected_obj
+        if obj is None:
+            obj = self._selected_obj
         if isinstance(result, np.ndarray):
 
             # coerce if necessary
@@ -163,14 +171,21 @@ class _Window(PandasObject, SelectionMixin):
                              columns=block.columns)
         return result
 
-    def _wrap_results(self, results, blocks):
-        """ wrap lists of results, blocks """
+    def _wrap_results(self, results, blocks, obj):
+        """
+        wrap the results
 
-        obj = self._selected_obj
+        Paramters
+        ---------
+        results : list of ndarrays
+        blocks : list of blocks
+        obj : conformed data (may be resampled)
+        """
+
         final = []
         for result, block in zip(results, blocks):
 
-            result = self._wrap_result(result, block)
+            result = self._wrap_result(result, block=block, obj=obj)
             if result.ndim == 1:
                 return result
             final.append(result)
@@ -196,13 +211,6 @@ class _Window(PandasObject, SelectionMixin):
                 result = np.copy(result[tuple(lead_indexer)])
         return result
 
-    def _convert_freq(self):
-        """ conform to our freq """
-
-        from pandas import Series, DataFrame
-        if self.freq is not None and isinstance(self.obj, (Series, DataFrame)):
-            self.obj = self.obj.resample(self.freq, how=self.how)
-
     def aggregate(self, arg, *args, **kwargs):
         result, how = self._aggregate(arg, *args, **kwargs)
         if result is None:
@@ -212,6 +220,58 @@ class _Window(PandasObject, SelectionMixin):
     agg = aggregate
 
 class Window(_Window):
+    """
+    Provides rolling transformations.
+
+    .. versionadded:: 0.18.0
+
+    Parameters
+    ----------
+    window : int
+       Size of the moving window. This is the number of observations used for
+       calculating the statistic.
+    min_periods : int, default None
+        Minimum number of observations in window required to have a value
+        (otherwise result is NA).
+    freq : string or DateOffset object, optional (default None)
+        Frequency to conform the data to before computing the statistic. Specified
+        as a frequency string or DateOffset object.
+    center : boolean, default False
+        Set the labels at the center of the window.
+    win_type : string, default None
+        prove a window type, see the notes below
+    axis : int, default 0
+
+    Returns
+    -------
+    a Window sub-classed for the particular operation
+
+    Notes
+    -----
+    By default, the result is set to the right edge of the window. This can be
+    changed to the center of the window by setting ``center=True``.
+
+    The `freq` keyword is used to conform time series data to a specified
+    frequency by resampling the data. This is done with the default parameters
+    of :meth:`~pandas.Series.resample` (i.e. using the `mean`).
+
+    The recognized window types are:
+
+        * ``boxcar``
+        * ``triang``
+        * ``blackman``
+        * ``hamming``
+        * ``bartlett``
+        * ``parzen``
+        * ``bohman``
+        * ``blackmanharris``
+        * ``nuttall``
+        * ``barthann``
+        * ``kaiser`` (needs beta)
+        * ``gaussian`` (needs std)
+        * ``general_gaussian`` (needs power, width)
+        * ``slepian`` (needs width).
+    """
 
     def _prep_window(self, **kwargs):
         """ provide validation for our window type, return the window """
@@ -229,7 +289,7 @@ class Window(_Window):
 
         raise ValueError('Invalid window %s' % str(window))
 
-    def _apply_window(self, mean=True, **kwargs):
+    def _apply_window(self, mean=True, how=None, **kwargs):
         """
         Applies a moving window of type ``window_type`` on the data.
 
@@ -237,6 +297,8 @@ class Window(_Window):
         ----------
         mean : boolean, default True
             If True computes weighted mean, else weighted sum
+        how : string, default to None
+            how to resample
 
         Returns
         -------
@@ -246,7 +308,8 @@ class Window(_Window):
         window = self._prep_window(**kwargs)
         center = self.center
 
-        results, blocks = [], self._create_blocks()
+        blocks, obj = self._create_blocks(how=how)
+        results = []
         for b in blocks:
             try:
                 values = self._prep_values(b.values)
@@ -271,7 +334,7 @@ class Window(_Window):
                 result = self._center_window(result, window)
             results.append(result)
 
-        return self._wrap_results(results, blocks)
+        return self._wrap_results(results, blocks, obj)
 
     @Substitution(name='rolling')
     @Appender(SelectionMixin._agg_doc)
@@ -309,6 +372,7 @@ class _Rolling(_Window):
         center : boolean, default to self.center
         check_minp : function, default to _use_window
         how : string, default to None
+            how to resample
 
         Returns
         -------
@@ -322,7 +386,8 @@ class _Rolling(_Window):
         if check_minp is None:
             check_minp = _use_window
 
-        results, blocks = [], self._create_blocks()
+        blocks, obj = self._create_blocks(how=how)
+        results = []
         for b in blocks:
             try:
                 values = self._prep_values(b.values)
@@ -365,13 +430,13 @@ class _Rolling(_Window):
 
             results.append(result)
 
-        return self._wrap_results(results, blocks)
+        return self._wrap_results(results, blocks, obj)
 
 class _Rolling_and_Expanding(_Rolling):
 
     _shared_docs['count'] = """%(name)s count of number of non-NaN observations inside provided window."""
     def count(self):
-        obj = self._selected_obj
+        obj = self._convert_freq()
         window = self._get_window()
         window = min(window, len(obj)) if not self.center else window
         try:
@@ -495,7 +560,7 @@ Parameters
 ----------
 other : Series, DataFrame, or ndarray, optional
     if not supplied then will default to self and produce pairwise output
-pairwise : bool, default False
+pairwise : bool, default None
     If False then only matching columns between self and other will be used and
     the output will be a DataFrame.
     If True then all pairwise combinations will be calculated and the output
@@ -504,10 +569,10 @@ pairwise : bool, default False
 ddof : int, default 1
     Delta Degrees of Freedom.  The divisor used in calculations
     is ``N - ddof``, where ``N`` represents the number of elements."""
-    def cov(self, other=None, pairwise=False, ddof=1):
+    def cov(self, other=None, pairwise=None, ddof=1):
         if other is None:
             other = self._selected_obj
-            pairwise = True
+            pairwise = True if pairwise is None else pairwise  # only default unset
         other = self._shallow_copy(other)
         window = self._get_window(other)
 
@@ -525,16 +590,16 @@ Parameters
 ----------
 other : Series, DataFrame, or ndarray, optional
     if not supplied then will default to self and produce pairwise output
-pairwise : bool, default False
+pairwise : bool, default None
     If False then only matching columns between self and other will be used and
     the output will be a DataFrame.
     If True then all pairwise combinations will be calculated and the output
     will be a Panel in the case of DataFrame inputs. In the case of missing
     elements, only complete pairwise observations will be used."""
-    def corr(self, other=None, pairwise=False):
+    def corr(self, other=None, pairwise=None):
         if other is None:
             other = self._selected_obj
-            pairwise = True
+            pairwise = True if pairwise is None else pairwise  # only default unset
         other = self._shallow_copy(other)
         window = self._get_window(other)
 
@@ -552,6 +617,39 @@ pairwise : bool, default False
         return _flex_binary_moment(self._selected_obj, other._selected_obj, _get_corr, pairwise=bool(pairwise))
 
 class Rolling(_Rolling_and_Expanding):
+    """
+    Provides rolling transformations.
+
+    .. versionadded:: 0.18.0
+
+    Parameters
+    ----------
+    window : int
+       Size of the moving window. This is the number of observations used for
+       calculating the statistic.
+    min_periods : int, default None
+        Minimum number of observations in window required to have a value
+        (otherwise result is NA).
+    freq : string or DateOffset object, optional (default None)
+        Frequency to conform the data to before computing the statistic. Specified
+        as a frequency string or DateOffset object.
+    center : boolean, default False
+        Set the labels at the center of the window.
+    axis : int, default 0
+
+    Returns
+    -------
+    a Window sub-classed for the particular operation
+
+    Notes
+    -----
+    By default, the result is set to the right edge of the window. This can be
+    changed to the center of the window by setting ``center=True``.
+
+    The `freq` keyword is used to conform time series data to a specified
+    frequency by resampling the data. This is done with the default parameters
+    of :meth:`~pandas.Series.resample` (i.e. using the `mean`).
+    """
 
     @Substitution(name='rolling')
     @Appender(SelectionMixin._agg_doc)
@@ -589,7 +687,7 @@ class Rolling(_Rolling_and_Expanding):
     @Appender(_doc_template)
     @Appender(_shared_docs['min'])
     def min(self, how='min'):
-        return super(Rolling, self).min()
+        return super(Rolling, self).min(how=how)
 
     @Substitution(name='rolling')
     @Appender(_doc_template)
@@ -636,17 +734,51 @@ class Rolling(_Rolling_and_Expanding):
     @Substitution(name='rolling')
     @Appender(_doc_template)
     @Appender(_shared_docs['cov'])
-    def cov(self, other=None, pairwise=False, ddof=1):
+    def cov(self, other=None, pairwise=None, ddof=1):
         return super(Rolling, self).cov(other=other, pairwise=pairwise, ddof=ddof)
 
     @Substitution(name='rolling')
     @Appender(_doc_template)
     @Appender(_shared_docs['corr'])
-    def corr(self, other=None, pairwise=False):
+    def corr(self, other=None, pairwise=None):
         return super(Rolling, self).corr(other=other, pairwise=pairwise)
 
 class Expanding(_Rolling_and_Expanding):
-    _attributes = ['min_periods','freq','center','how','axis']
+    """
+    Provides expanding transformations.
+
+    .. versionadded:: 0.18.0
+
+    Parameters
+    ----------
+    min_periods : int, default None
+        Minimum number of observations in window required to have a value
+        (otherwise result is NA).
+    freq : string or DateOffset object, optional (default None)
+        Frequency to conform the data to before computing the statistic. Specified
+        as a frequency string or DateOffset object.
+    center : boolean, default False
+        Set the labels at the center of the window.
+    axis : int, default 0
+
+    Returns
+    -------
+    a Window sub-classed for the particular operation
+
+    Notes
+    -----
+    By default, the result is set to the right edge of the window. This can be
+    changed to the center of the window by setting ``center=True``.
+
+    The `freq` keyword is used to conform time series data to a specified
+    frequency by resampling the data. This is done with the default parameters
+    of :meth:`~pandas.Series.resample` (i.e. using the `mean`).
+    """
+
+    _attributes = ['min_periods','freq','center','axis']
+
+    def __init__(self, obj, min_periods=1, freq=None, center=False, axis=0, **kwargs):
+        return super(Expanding, self).__init__(obj=obj, min_periods=min_periods, freq=freq, center=center, axis=axis)
 
     @property
     def _constructor(self):
@@ -694,7 +826,7 @@ class Expanding(_Rolling_and_Expanding):
     @Appender(_doc_template)
     @Appender(_shared_docs['min'])
     def min(self, how='min'):
-        return super(Expanding, self).min()
+        return super(Expanding, self).min(how=how)
 
     @Substitution(name='expanding')
     @Appender(_doc_template)
@@ -741,29 +873,93 @@ class Expanding(_Rolling_and_Expanding):
     @Substitution(name='expanding')
     @Appender(_doc_template)
     @Appender(_shared_docs['cov'])
-    def cov(self, other=None, pairwise=False, ddof=1):
+    def cov(self, other=None, pairwise=None, ddof=1):
         return super(Expanding, self).cov(other=other, pairwise=pairwise, ddof=ddof)
 
     @Substitution(name='expanding')
     @Appender(_doc_template)
     @Appender(_shared_docs['corr'])
-    def corr(self, other=None, pairwise=False):
+    def corr(self, other=None, pairwise=None):
         return super(Expanding, self).corr(other=other, pairwise=pairwise)
 
 class EWM(_Rolling):
-    _attributes = ['com','min_periods','freq','adjust','how','ignore_na','axis']
+    """
+    .. versionadded:: 0.18.0
+
+    Provides exponential weighted functions
+
+    Parameters
+    ----------
+    com : float. optional
+        Center of mass: :math:`\alpha = 1 / (1 + com)`,
+    span : float, optional
+        Specify decay in terms of span, :math:`\alpha = 2 / (span + 1)`
+    halflife : float, optional
+        Specify decay in terms of halflife, :math:`\alpha = 1 - exp(log(0.5) / halflife)`
+    min_periods : int, default 0
+        Minimum number of observations in window required to have a value
+        (otherwise result is NA).
+    freq : None or string alias / date offset object, default=None
+        Frequency to conform to before computing statistic
+    adjust : boolean, default True
+        Divide by decaying adjustment factor in beginning periods to account for
+        imbalance in relative weightings (viewing EWMA as a moving average)
+    ignore_na : boolean, default False
+        Ignore missing values when calculating weights;
+        specify True to reproduce pre-0.15.0 behavior
+
+    Returns
+    -------
+    a Window sub-classed for the particular operation
+
+    Notes
+    -----
+    Either center of mass, span or halflife must be specified
+
+    EWMA is sometimes specified using a "span" parameter `s`, we have that the
+    decay parameter :math:`\alpha` is related to the span as
+    :math:`\alpha = 2 / (s + 1) = 1 / (1 + c)`
+
+    where `c` is the center of mass. Given a span, the associated center of mass is
+    :math:`c = (s - 1) / 2`
+
+    So a "20-day EWMA" would have center 9.5.
+
+    The `freq` keyword is used to conform time series data to a specified
+    frequency by resampling the data. This is done with the default parameters
+    of :meth:`~pandas.Series.resample` (i.e. using the `mean`).
+
+    When adjust is True (default), weighted averages are calculated using weights
+        (1-alpha)**(n-1), (1-alpha)**(n-2), ..., 1-alpha, 1.
+
+    When adjust is False, weighted averages are calculated recursively as:
+       weighted_average[0] = arg[0];
+       weighted_average[i] = (1-alpha)*weighted_average[i-1] + alpha*arg[i].
+
+    When ignore_na is False (default), weights are based on absolute positions.
+    For example, the weights of x and y used in calculating the final weighted
+    average of [x, None, y] are (1-alpha)**2 and 1 (if adjust is True), and
+    (1-alpha)**2 and alpha (if adjust is False).
+
+    When ignore_na is True (reproducing pre-0.15.0 behavior), weights are based on
+    relative positions. For example, the weights of x and y used in calculating
+    the final weighted average of [x, None, y] are 1-alpha and 1 (if adjust is
+    True), and 1-alpha and alpha (if adjust is False).
+
+    More details can be found at
+    http://pandas.pydata.org/pandas-docs/stable/computation.html#exponentially-weighted-moment-functions
+    """
+    _attributes = ['com','min_periods','freq','adjust','ignore_na','axis']
 
     def __init__(self, obj, com=None, span=None, halflife=None, min_periods=0, freq=None,
-                 adjust=True, how=None, ignore_na=False, axis=0):
+                 adjust=True, ignore_na=False, axis=0):
         self.obj = obj
         self.com = _get_center_of_mass(com, span, halflife)
         self.min_periods = min_periods
         self.freq = freq
         self.adjust = adjust
-        self.how = how
         self.ignore_na = ignore_na
         self.axis = axis
-        self._convert_freq()
 
     @property
     def _constructor(self):
@@ -777,20 +973,23 @@ class EWM(_Rolling):
 
     agg = aggregate
 
-    def _apply(self, func, **kwargs):
+    def _apply(self, func, how=None, **kwargs):
         """Rolling statistical measure using supplied function. Designed to be
         used with passed-in Cython array-based functions.
 
         Parameters
         ----------
         func : string/callable to apply
+        how : string, default to None
+            how to resample
 
         Returns
         -------
         y : type of input argument
 
         """
-        results, blocks = [], self._create_blocks()
+        blocks, obj = self._create_blocks(how=how)
+        results = []
         for b in blocks:
             try:
                 values = self._prep_values(b.values)
@@ -813,7 +1012,7 @@ class EWM(_Rolling):
 
             results.append(np.apply_along_axis(func, self.axis, values))
 
-        return self._wrap_results(results, blocks)
+        return self._wrap_results(results, blocks, obj)
 
     @Substitution(name='ewm')
     @Appender(_doc_template)
@@ -857,14 +1056,14 @@ class EWM(_Rolling):
 
     @Substitution(name='ewm')
     @Appender(_doc_template)
-    def cov(self, other=None, pairwise=False, bias=False):
+    def cov(self, other=None, pairwise=None, bias=False):
         """exponential weighted sample covariance
 
         Parameters
         ----------
         other : Series, DataFrame, or ndarray, optional
             if not supplied then will default to self and produce pairwise output
-        pairwise : bool, default False
+        pairwise : bool, default None
             If False then only matching columns between self and other will be used and
             the output will be a DataFrame.
             If True then all pairwise combinations will be calculated and the output
@@ -875,7 +1074,7 @@ class EWM(_Rolling):
         """
         if other is None:
             other = self._selected_obj
-            pairwise = True
+            pairwise = True if pairwise is None else pairwise  # only default unset
         other = self._shallow_copy(other)
 
         def _get_cov(X, Y):
@@ -894,14 +1093,14 @@ class EWM(_Rolling):
 
     @Substitution(name='ewm')
     @Appender(_doc_template)
-    def corr(self, other=None, pairwise=False):
+    def corr(self, other=None, pairwise=None):
         """exponential weighted sample correlation
 
         Parameters
         ----------
         other : Series, DataFrame, or ndarray, optional
             if not supplied then will default to self and produce pairwise output
-        pairwise : bool, default False
+        pairwise : bool, default None
             If False then only matching columns between self and other will be used and
             the output will be a DataFrame.
             If True then all pairwise combinations will be calculated and the output
@@ -910,7 +1109,7 @@ class EWM(_Rolling):
         """
         if other is None:
             other = self._selected_obj
-            pairwise = True
+            pairwise = True if pairwise is None else pairwise  # only default unset
         other = self._shallow_copy(other)
 
         def _get_corr(X, Y):
@@ -1089,60 +1288,6 @@ def _pop_args(win_type, arg_names, kwargs):
 #############################
 
 def rolling(obj, win_type=None, **kwds):
-    """
-    Provides rolling transformations.
-
-    .. versionadded:: 0.18.0
-
-    Parameters
-    ----------
-    window : int
-       Size of the moving window. This is the number of observations used for
-       calculating the statistic.
-    min_periods : int, default None
-        Minimum number of observations in window required to have a value
-        (otherwise result is NA).
-    freq : string or DateOffset object, optional (default None)
-        Frequency to conform the data to before computing the statistic. Specified
-        as a frequency string or DateOffset object.
-    center : boolean, default False
-        Set the labels at the center of the window.
-    how : string, default None
-        Method for down- or re-sampling
-    win_type : string, default None
-        prove a window type, see the notes below
-    axis : int, default 0
-
-    Returns
-    -------
-    a Window sub-classed for the particular operation
-
-    Notes
-    -----
-    By default, the result is set to the right edge of the window. This can be
-    changed to the center of the window by setting ``center=True``.
-
-    The `freq` keyword is used to conform time series data to a specified
-    frequency by resampling the data. This is done with the default parameters
-    of :meth:`~pandas.Series.resample` (i.e. using the `mean`).
-
-    The recognized window types are:
-
-        * ``boxcar``
-        * ``triang``
-        * ``blackman``
-        * ``hamming``
-        * ``bartlett``
-        * ``parzen``
-        * ``bohman``
-        * ``blackmanharris``
-        * ``nuttall``
-        * ``barthann``
-        * ``kaiser`` (needs beta)
-        * ``gaussian`` (needs std)
-        * ``general_gaussian`` (needs power, width)
-        * ``slepian`` (needs width).
-    """
     from pandas import Series, DataFrame
     if not isinstance(obj, (Series, DataFrame)):
         raise TypeError('invalid type: %s' % type(obj))
@@ -1151,118 +1296,20 @@ def rolling(obj, win_type=None, **kwds):
         return Window(obj, win_type=win_type, **kwds)
 
     return Rolling(obj, **kwds)
+rolling.__doc__ = Window.__doc__
 
 def expanding(obj, **kwds):
-    """
-    Provides expanding transformations.
-
-    .. versionadded:: 0.18.0
-
-    Parameters
-    ----------
-    min_periods : int, default None
-        Minimum number of observations in window required to have a value
-        (otherwise result is NA).
-    freq : string or DateOffset object, optional (default None)
-        Frequency to conform the data to before computing the statistic. Specified
-        as a frequency string or DateOffset object.
-    center : boolean, default False
-        Set the labels at the center of the window.
-    how : string, default None
-        Method for down- or re-sampling
-    axis : int, default 0
-
-    Returns
-    -------
-    a Window sub-classed for the particular operation
-
-    Notes
-    -----
-    By default, the result is set to the right edge of the window. This can be
-    changed to the center of the window by setting ``center=True``.
-
-    The `freq` keyword is used to conform time series data to a specified
-    frequency by resampling the data. This is done with the default parameters
-    of :meth:`~pandas.Series.resample` (i.e. using the `mean`).
-    """
-
     from pandas import Series, DataFrame
     if not isinstance(obj, (Series, DataFrame)):
         raise TypeError('invalid type: %s' % type(obj))
 
     return Expanding(obj, **kwds)
+expanding.__doc__ = Expanding.__doc__
 
 def ewm(obj, **kwds):
-    """
-    .. versionadded:: 0.18.0
-
-    Provides exponential weighted functions
-
-    Parameters
-    ----------
-    com : float. optional
-        Center of mass: :math:`\alpha = 1 / (1 + com)`,
-    span : float, optional
-        Specify decay in terms of span, :math:`\alpha = 2 / (span + 1)`
-    halflife : float, optional
-        Specify decay in terms of halflife, :math:`\alpha = 1 - exp(log(0.5) / halflife)`
-    min_periods : int, default 0
-        Minimum number of observations in window required to have a value
-        (otherwise result is NA).
-    freq : None or string alias / date offset object, default=None
-        Frequency to conform to before computing statistic
-    adjust : boolean, default True
-        Divide by decaying adjustment factor in beginning periods to account for
-        imbalance in relative weightings (viewing EWMA as a moving average)
-    how : string, default 'mean'
-        Method for down- or re-sampling
-    ignore_na : boolean, default False
-        Ignore missing values when calculating weights;
-        specify True to reproduce pre-0.15.0 behavior
-
-    Returns
-    -------
-    a Window sub-classed for the particular operation
-
-    Notes
-    -----
-    Either center of mass, span or halflife must be specified
-
-    EWMA is sometimes specified using a "span" parameter `s`, we have that the
-    decay parameter :math:`\alpha` is related to the span as
-    :math:`\alpha = 2 / (s + 1) = 1 / (1 + c)`
-
-    where `c` is the center of mass. Given a span, the associated center of mass is
-    :math:`c = (s - 1) / 2`
-
-    So a "20-day EWMA" would have center 9.5.
-
-    The `freq` keyword is used to conform time series data to a specified
-    frequency by resampling the data. This is done with the default parameters
-    of :meth:`~pandas.Series.resample` (i.e. using the `mean`).
-
-    When adjust is True (default), weighted averages are calculated using weights
-        (1-alpha)**(n-1), (1-alpha)**(n-2), ..., 1-alpha, 1.
-
-    When adjust is False, weighted averages are calculated recursively as:
-       weighted_average[0] = arg[0];
-       weighted_average[i] = (1-alpha)*weighted_average[i-1] + alpha*arg[i].
-
-    When ignore_na is False (default), weights are based on absolute positions.
-    For example, the weights of x and y used in calculating the final weighted
-    average of [x, None, y] are (1-alpha)**2 and 1 (if adjust is True), and
-    (1-alpha)**2 and alpha (if adjust is False).
-
-    When ignore_na is True (reproducing pre-0.15.0 behavior), weights are based on
-    relative positions. For example, the weights of x and y used in calculating
-    the final weighted average of [x, None, y] are 1-alpha and 1 (if adjust is
-    True), and 1-alpha and alpha (if adjust is False).
-
-    More details can be found at
-    http://pandas.pydata.org/pandas-docs/stable/computation.html#exponentially-weighted-moment-functions
-    """
     from pandas import Series, DataFrame
     if not isinstance(obj, (Series, DataFrame)):
         raise TypeError('invalid type: %s' % type(obj))
 
     return EWM(obj, **kwds)
+ewm.__doc__ = EWM.__doc__

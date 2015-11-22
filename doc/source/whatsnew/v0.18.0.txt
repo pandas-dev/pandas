@@ -210,18 +210,40 @@ Other API Changes
 Deprecations
 ^^^^^^^^^^^^
 
+.. _whatsnew_0180.window_deprecations:
 
+- Function ``pd.rolling_*``, ``pd.expanding_*``, and ``pd.ewm*`` are deprecated and replaced by the corresponding method call. Note that
+  the new suggested syntax includes all of the arguments (even if default) (:issue:`11603`)
 
+  .. code-block:: python
 
+     In [1]: s = Series(range(3))
 
+     In [2]: pd.rolling_mean(s,window=2,min_periods=1)
+             FutureWarning: pd.rolling_mean is deprecated for Series and will be removed in a future version, replace with
+                  Series.rolling(min_periods=1,window=2,center=False).mean()
+     Out[2]:
+             0    0.0
+             1    0.5
+             2    1.5
+             dtype: float64
+
+     In [3]: pd.rolling_cov(s, s, window=2)
+             FutureWarning: pd.rolling_cov is deprecated for Series and will be removed in a future version, replace with
+                  Series.rolling(window=2).cov(other=<Series>)
+     Out[3]:
+             0    NaN
+             1    0.5
+             2    0.5
+             dtype: float64
 
 .. _whatsnew_0180.prior_deprecations:
 
 Removal of prior version deprecations/changes
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Removal of ``rolling_corr_parwise`` in favor of ``.rolling().corr(pairwise=True)`` (:issue:`4950`)
-Removal of ``expanding_corr_parwise`` in favor of ``.expanding().corr(pairwise=True)`` (:issue:`4950`)
+- Removal of ``rolling_corr_parwise`` in favor of ``.rolling().corr(pairwise=True)`` (:issue:`4950`)
+- Removal of ``expanding_corr_parwise`` in favor of ``.expanding().corr(pairwise=True)`` (:issue:`4950`)
 
 
 

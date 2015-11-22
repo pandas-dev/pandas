@@ -203,8 +203,12 @@ Window Functions
 
 .. warning::
 
-   Prior to version 0.18.0, these were module level functions that have been deprecated.
-   You can see the previous documentation
+   Prior to version 0.18.0, ``pd.rolling_*``, ``pd.expanding_*``, and ``pd.ewm*`` were module level
+   functions and are now deprecated and replaced by the corresponding method call.
+
+   The deprecation warning will show the new syntax, see an example :ref:`here <whatsnew_0180.window_deprecations>`
+
+   You can view the previous documentation
    `here <http://pandas.pydata.org/pandas-docs/version/0.17.1/computation.html#moving-rolling-statistics-moments>`__
 
 For working with data, a number of windows functions are provided for
@@ -242,10 +246,6 @@ accept the following arguments:
   result is NA)
 - ``freq``: optionally specify a :ref:`frequency string <timeseries.alias>`
   or :ref:`DateOffset <timeseries.offsets>` to pre-conform the data to.
-- ``how``: optionally specify method for down or re-sampling.  Default is
-  is ``min`` for :meth:`~Rolling.min`, ``max`` for :meth:`~Rolling.max`, ``median`` for
-  :meth:`~Rolling.median`, and ``mean`` for all other rolling functions.  See
-  :meth:`DataFrame.resample`'s how argument for more information.
 
 We can then call functions on these ``rolling`` objects. Which return like-indexed objects:
 
@@ -323,7 +323,7 @@ compute the mean absolute deviation on a rolling basis:
 Rolling Windows
 ~~~~~~~~~~~~~~~
 
-The :meth:`~Window.mean`, and :meth:`~Window.sum` functions performs a generic rolling window computation
+The :meth:`~Window.mean`, and :meth:`~Window.sum` functions perform a generic rolling window computation
 on the input data. The weights used in the window are specified by the ``win_type``
 keyword. The list of recognized types are:
 
@@ -360,6 +360,9 @@ For some windowing functions, additional parameters must be specified:
 .. ipython:: python
 
    ser.rolling(window=5, win_type='gaussian').mean(std=0.1)
+
+Centering Windows
+~~~~~~~~~~~~~~~~~
 
 By default the labels are set to the right edge of the window, but a
 ``center`` keyword is available so the labels can be set at the center.

@@ -1505,9 +1505,9 @@ Window
 ------
 .. currentmodule:: pandas.core.window
 
-Rolling objects are returned by rolling calls: :func:`pandas.DataFrame.rolling`, :func:`pandas.Series.rolling`, etc.
-Expanding objects are returned by rolling calls: :func:`pandas.DataFrame.expanding`, :func:`pandas.Series.expanding`, etc.
-EWM objects are returned by rolling calls: :func:`pandas.DataFrame.ewm`, :func:`pandas.Series.ewm`, etc.
+Rolling objects are returned by ``.rolling`` calls: :func:`pandas.DataFrame.rolling`, :func:`pandas.Series.rolling`, etc.
+Expanding objects are returned by ``.expanding`` calls: :func:`pandas.DataFrame.expanding`, :func:`pandas.Series.expanding`, etc.
+EWM objects are returned by ``.ewm`` calls: :func:`pandas.DataFrame.ewm`, :func:`pandas.Series.ewm`, etc.
 
 Standard moving window functions
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1526,13 +1526,13 @@ Standard moving window functions
    Rolling.min
    Rolling.max
    Rolling.corr
-   Rolling.corr_pairwise
    Rolling.cov
    Rolling.skew
    Rolling.kurt
    Rolling.apply
    Rolling.quantile
-   Rolling.window
+   Window.mean
+   Window.sum
 
 .. _api.functions_expanding:
 
@@ -1553,7 +1553,6 @@ Standard expanding window functions
    Expanding.min
    Expanding.max
    Expanding.corr
-   Expanding.corr_pairwise
    Expanding.cov
    Expanding.skew
    Expanding.kurt
