@@ -41,7 +41,7 @@
         "sqlalchemy": [],
         "scipy": [],
         "numexpr": [],
-        "pytables": [],
+        "tables": [],
         "openpyxl": [],
         "xlsxwriter": [],
         "xlrd": [],
