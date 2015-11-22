@@ -1,4 +1,6 @@
 from pandas.compat import cPickle as pkl, pickle_compat as pc, PY3
+from pandas.io.common import _get_handle
+from pandas.io.parsers import get_compression
 
 def to_pickle(obj, path):
     """
@@ -14,7 +16,7 @@ def to_pickle(obj, path):
         pkl.dump(obj, f, protocol=pkl.HIGHEST_PROTOCOL)
 
 
-def read_pickle(path):
+def read_pickle(path, compression_arg='infer'):
     """
     Load pickled pandas object (or any other pickled object) from the specified
     file path
@@ -26,6 +28,9 @@ def read_pickle(path):
     ----------
     path : string
         File path
+    compression_arg: {'gzip', 'bz2', 'infer', None}, default 'infer'
+        Compression type,  ('infer' looks for the file extensions .gz and .bz2, using gzip and bz2 to decompress
+        respectively).
 
     Returns
     -------
@@ -41,19 +46,20 @@ def read_pickle(path):
 
         # cpickle
         # GH 6899
+        compression = get_compression(path, encoding, compression_arg)
         try:
-            with open(path, 'rb') as fh:
+            with _get_handle(path, 'rb', encoding, compression) as fh:
                 return pkl.load(fh)
         except (Exception) as e:
 
             # reg/patched pickle
             try:
-                with open(path, 'rb') as fh:
+                with _get_handle(path, 'rb', encoding, compression) as fh:
                     return pc.load(fh, encoding=encoding, compat=False)
 
             # compat pickle
             except:
-                with open(path, 'rb') as fh:
+                with _get_handle(path, 'rb', encoding, compression) as fh:
                     return pc.load(fh, encoding=encoding, compat=True)
 
     try:
