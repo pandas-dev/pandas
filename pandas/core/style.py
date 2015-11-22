@@ -63,7 +63,7 @@ class Styler(object):
 
     Attributes
     ----------
-    tempate: Jinja Template
+    template: Jinja Template
 
     Notes
     -----
@@ -744,6 +744,3 @@ class Styler(object):
                 extrema = data == data.min().min()
             return pd.DataFrame(np.where(extrema, attr, ''),
                                 index=data.index, columns=data.columns)
-
-
-
