@@ -220,8 +220,8 @@ Deprecations
 Removal of prior version deprecations/changes
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-
-
+Removal of ``rolling_corr_parwise`` in favor of ``.rolling().corr(pairwise=True)`` (:issue:`4950`)
+Removal of ``expanding_corr_parwise`` in favor of ``.expanding().corr(pairwise=True)`` (:issue:`4950`)
 
 
 

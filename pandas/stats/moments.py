@@ -12,13 +12,13 @@ __all__ = ['rolling_count', 'rolling_max', 'rolling_min',
            'rolling_sum', 'rolling_mean', 'rolling_std', 'rolling_cov',
            'rolling_corr', 'rolling_var', 'rolling_skew', 'rolling_kurt',
            'rolling_quantile', 'rolling_median', 'rolling_apply',
-           'rolling_corr_pairwise', 'rolling_window',
+           'rolling_window',
            'ewma', 'ewmvar', 'ewmstd', 'ewmvol', 'ewmcorr', 'ewmcov',
            'expanding_count', 'expanding_max', 'expanding_min',
            'expanding_sum', 'expanding_mean', 'expanding_std',
            'expanding_cov', 'expanding_corr', 'expanding_var',
            'expanding_skew', 'expanding_kurt', 'expanding_quantile',
-           'expanding_median', 'expanding_apply', 'expanding_corr_pairwise']
+           'expanding_median', 'expanding_apply' ]
 
 #------------------------------------------------------------------------------
 # Docs
@@ -271,20 +271,6 @@ def rolling_corr(arg1, arg2=None, window=None, pairwise=None, **kwargs):
                          pairwise=pairwise,
                          func_kw=['other','pairwise'],
                          **kwargs)
-
-@Substitution("Deprecated. Use rolling_corr(..., pairwise=True) instead.\n\n"
-              "Pairwise moving sample correlation", _pairwise_arg,
-              _roll_kw%'None', _pairwise_retval, _roll_notes)
-@Appender(_doc_template)
-def rolling_corr_pairwise(df1, df2=None, window=None, min_periods=None,
-                          freq=None, center=False):
-    import warnings
-    msg = "rolling_corr_pairwise is deprecated, use rolling_corr(..., pairwise=True)"
-    warnings.warn(msg, FutureWarning, stacklevel=2)
-    return rolling_corr(df1, df2, window=window, min_periods=min_periods,
-                        freq=freq, center=center,
-                        pairwise=True)
-
 
 
 #------------------------------------------------------------------------------
@@ -743,18 +729,6 @@ def expanding_corr(arg1, arg2=None, min_periods=1, freq=None, pairwise=None):
                          pairwise=pairwise,
                          freq=freq,
                          func_kw=['other','pairwise','ddof'])
-
-@Substitution("Deprecated. Use expanding_corr(..., pairwise=True) instead.\n\n"
-              "Pairwise expanding sample correlation", _pairwise_arg,
-              _expanding_kw, _pairwise_retval, "")
-@Appender(_doc_template)
-def expanding_corr_pairwise(df1, df2=None, min_periods=1, freq=None):
-    import warnings
-    msg = "expanding_corr_pairwise is deprecated, use expanding_corr(..., pairwise=True)"
-    warnings.warn(msg, FutureWarning, stacklevel=2)
-    return expanding_corr(df1, df2, min_periods=min_periods,
-                          freq=freq, pairwise=True)
-
 
 def expanding_apply(arg, func, min_periods=1, freq=None,
                     args=(), kwargs={}):
