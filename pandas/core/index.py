@@ -3362,8 +3362,8 @@ class CategoricalIndex(Index, PandasDelegate):
         # filling in missing if needed
         if len(missing):
             cats = self.categories.get_indexer(target)
-            if (cats==-1).any():
 
+            if (cats==-1).any():
                 # coerce to a regular index here!
                 result = Index(np.array(self),name=self.name)
                 new_target, indexer, _ = result._reindex_non_unique(np.array(target))
@@ -3396,6 +3396,12 @@ class CategoricalIndex(Index, PandasDelegate):
         if check.any():
             new_indexer = np.arange(len(self.take(indexer)))
             new_indexer[check] = -1
+
+        cats = self.categories.get_indexer(target)
+        if not (cats == -1).any():
+            # .reindex returns normal Index. Revert to CategoricalIndex if
+            # all targets are included in my categories
+            new_target = self._shallow_copy(new_target)
 
         return new_target, indexer, new_indexer
 
