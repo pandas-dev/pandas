@@ -19,7 +19,7 @@ from pandas.compat import u
 from pandas.tseries.frequencies import (
     to_offset, get_period_alias,
     Resolution)
-from pandas.tseries.base import DatelikeOps, DatetimeIndexOpsMixin
+from pandas.tseries.base import DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin
 from pandas.tseries.offsets import DateOffset, generate_range, Tick, CDay
 from pandas.tseries.tools import parse_time_string, normalize_date
 from pandas.tseries.timedeltas import to_timedelta
@@ -126,7 +126,7 @@ def _new_DatetimeIndex(cls, d):
         result = result.tz_localize('UTC').tz_convert(tz)
     return result
 
-class DatetimeIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
+class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin, Int64Index):
     """
     Immutable ndarray of datetime64 data, represented internally as int64, and
     which can be boxed to Timestamp objects that are subclasses of datetime and
