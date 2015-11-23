@@ -164,6 +164,23 @@ class TestTimedeltas(tm.TestCase):
         self.assertEqual(Timedelta(pd.offsets.Hour(2)),Timedelta('0 days, 02:00:00'))
         self.assertEqual(Timedelta(pd.offsets.Second(2)),Timedelta('0 days, 00:00:02'))
 
+    def test_round(self):
+
+        t1 = Timedelta('1 days 02:34:56.789123456')
+        t2 = Timedelta('-1 days 02:34:56.789123456')
+
+        for (reso, s1, s2) in [('N', t1, t2),
+                               ('U', Timedelta('1 days 02:34:56.789123000'),Timedelta('-1 days 02:34:56.789123000')),
+                               ('L', Timedelta('1 days 02:34:56.789000000'),Timedelta('-1 days 02:34:56.789000000')),
+                               ('S',  Timedelta('1 days 02:34:56'),Timedelta('-1 days 02:34:56')),
+                               ('T',  Timedelta('1 days 02:34:00'),Timedelta('-1 days 02:34:00')),
+                               ('H',  Timedelta('1 days 02:00:00'),Timedelta('-1 days 02:00:00')),
+                               ('d',  Timedelta('1 days'),Timedelta('-1 days'))]:
+            r1 = t1.round(reso)
+            self.assertEqual(r1, s1)
+            r2 = t2.round(reso)
+            self.assertEqual(r2, s2)
+
     def test_repr(self):
 
         self.assertEqual(repr(Timedelta(10,unit='d')),"Timedelta('10 days 00:00:00')")

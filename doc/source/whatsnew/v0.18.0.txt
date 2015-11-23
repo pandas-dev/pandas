@@ -57,7 +57,7 @@ Backwards incompatible API changes
 Other API Changes
 ^^^^^^^^^^^^^^^^^
 
-
+- ``Timedelta.resolution`` will now return proper offset frequency strings
 
 
 
@@ -107,5 +107,5 @@ Bug Fixes
 ~~~~~~~~~
 
 
-
+- Bug in ``Timedelta.round`` with negative values (:issue:``)
 - Bug in ``.loc`` against ``CategoricalIndex`` may result in normal ``Index`` (:issue:`11586`)

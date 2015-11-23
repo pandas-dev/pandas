@@ -24,16 +24,6 @@ import pandas.index as _index
 
 Timedelta = tslib.Timedelta
 
-_resolution_map = {
-    'ns' : offsets.Nano,
-    'us' : offsets.Micro,
-    'ms' : offsets.Milli,
-    's'  : offsets.Second,
-    'm'  : offsets.Minute,
-    'h'  : offsets.Hour,
-    'D'  : offsets.Day,
-    }
-
 def _td_index_cmp(opname, nat_result=False):
     """
     Wrap comparison operations to convert timedelta-like to timedelta64
@@ -706,7 +696,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, Int64Index):
             if side == 'left':
                 return lbound
             else:
-                return (lbound + _resolution_map[parsed.resolution]() -
+                return (lbound + to_offset(parsed.resolution) -
                         Timedelta(1, 'ns'))
         elif is_integer(label) or is_float(label):
             self._invalid_indexer('slice',label)
@@ -734,9 +724,8 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, Int64Index):
 
         # figure out the resolution of the passed td
         # and round to it
-        reso = parsed.resolution
         t1 = parsed.round(reso)
-        t2 = t1 + _resolution_map[reso]() - Timedelta(1,'ns')
+        t2 = t1 + to_offset(parsed.resolution) - Timedelta(1,'ns')
 
         stamps = self.asi8
 

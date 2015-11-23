@@ -2301,52 +2301,34 @@ class Timedelta(_Timedelta):
 
         self._ensure_components()
         if self._ns:
-           return "ns"
+           return "N"
         elif self._us:
-           return "us"
+           return "U"
         elif self._ms:
-           return "ms"
+           return "L"
         elif self._s:
-           return "s"
+           return "S"
         elif self._m:
-           return "m"
+           return "T"
         elif self._h:
-           return "h"
+           return "H"
         else:
            return "D"
 
-    def round(self, reso):
+    def round(self, freq):
         """
         return a new Timedelta rounded to this resolution
 
         Parameters
         ----------
-        reso : a string indicating the rouding resolution, accepting values
-           d,h,m,s,ms,us
-
+        freq : a freq string indicating the rouding resolution
         """
-        cdef int64_t frac, value = np.abs(self.value)
+        cdef int64_t result, unit
 
-        self._ensure_components()
-        frac = int(self._ms*1e6 + self._us*1e3+ self._ns)
-        if reso == 'us':
-           value -= self._ns
-        elif reso == 'ms':
-           value -= self._us*1000 + self._ns
-        elif reso == 's':
-           value -= frac
-        elif reso == 'm':
-           value -= int(self._s*1e9) + frac
-        elif reso == 'h':
-           value -= int((60*self._m + self._s)*1e9) + frac
-        elif reso == 'd' or reso == 'D':
-           value -= int((3600*self._h + 60*self._m + self._s)*1e9) + frac
-        else:
-           raise ValueError("invalid resolution")
-
-        if self._sign < 0:
-           value *= -1
-        return Timedelta(value,unit='ns')
+        from pandas.tseries.frequencies import to_offset
+        unit = to_offset(freq).nanos
+        result = unit*np.floor(self.value/unit)
+        return Timedelta(result,unit='ns')
 
     def _repr_base(self, format=None):
         """
