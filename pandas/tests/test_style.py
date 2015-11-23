@@ -198,9 +198,7 @@ class TestStyler(TestCase):
         df = pd.DataFrame({'A': [0, 1, 2]})
         result = df.style.bar()._compute().ctx
         expected = {
-            (0, 0): ['width: 10em', ' height: 80%',
-                     'background: linear-gradient('
-                     '90deg,#d65f5f 0.0%, transparent 0%)'],
+            (0, 0): ['width: 10em', ' height: 80%'],
             (1, 0): ['width: 10em', ' height: 80%',
                      'background: linear-gradient('
                      '90deg,#d65f5f 50.0%, transparent 0%)'],
@@ -212,9 +210,7 @@ class TestStyler(TestCase):
 
         result = df.style.bar(color='red', width=50)._compute().ctx
         expected = {
-            (0, 0): ['width: 10em', ' height: 80%',
-                     'background: linear-gradient('
-                     '90deg,red 0.0%, transparent 0%)'],
+            (0, 0): ['width: 10em', ' height: 80%'],
             (1, 0): ['width: 10em', ' height: 80%',
                      'background: linear-gradient('
                      '90deg,red 25.0%, transparent 0%)'],
@@ -229,6 +225,44 @@ class TestStyler(TestCase):
         self.assertEqual(result, expected)
         df['C'] = df['C'].astype('category')
         result = df.style.bar(color='red', width=50)._compute().ctx
+        self.assertEqual(result, expected)
+
+    def test_bar_0points(self):
+        df = pd.DataFrame([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
+        result = df.style.bar()._compute().ctx
+        expected = {(0, 0): ['width: 10em', ' height: 80%'],
+                    (0, 1): ['width: 10em', ' height: 80%'],
+                    (0, 2): ['width: 10em', ' height: 80%'],
+                    (1, 0): ['width: 10em', ' height: 80%',
+                             'background: linear-gradient(90deg,#d65f5f 50.0%, transparent 0%)'],
+                    (1, 1): ['width: 10em', ' height: 80%',
+                             'background: linear-gradient(90deg,#d65f5f 50.0%, transparent 0%)'],
+                    (1, 2): ['width: 10em', ' height: 80%',
+                             'background: linear-gradient(90deg,#d65f5f 50.0%, transparent 0%)'],
+                    (2, 0): ['width: 10em', ' height: 80%',
+                             'background: linear-gradient(90deg,#d65f5f 100.0%, transparent 0%)'],
+                    (2, 1): ['width: 10em', ' height: 80%',
+                             'background: linear-gradient(90deg,#d65f5f 100.0%, transparent 0%)'],
+                    (2, 2): ['width: 10em', ' height: 80%',
+                             'background: linear-gradient(90deg,#d65f5f 100.0%, transparent 0%)']}
+        self.assertEqual(result, expected)
+
+        result = df.style.bar(axis=1)._compute().ctx
+        expected = {(0, 0): ['width: 10em', ' height: 80%'],
+                    (0, 1): ['width: 10em', ' height: 80%',
+                             'background: linear-gradient(90deg,#d65f5f 50.0%, transparent 0%)'],
+                    (0, 2): ['width: 10em', ' height: 80%',
+                             'background: linear-gradient(90deg,#d65f5f 100.0%, transparent 0%)'],
+                    (1, 0): ['width: 10em', ' height: 80%'],
+                    (1, 1): ['width: 10em', ' height: 80%',
+                             'background: linear-gradient(90deg,#d65f5f 50.0%, transparent 0%)'],
+                    (1, 2): ['width: 10em', ' height: 80%',
+                             'background: linear-gradient(90deg,#d65f5f 100.0%, transparent 0%)'],
+                    (2, 0): ['width: 10em', ' height: 80%'],
+                    (2, 1): ['width: 10em', ' height: 80%',
+                             'background: linear-gradient(90deg,#d65f5f 50.0%, transparent 0%)'],
+                    (2, 2): ['width: 10em', ' height: 80%',
+                             'background: linear-gradient(90deg,#d65f5f 100.0%, transparent 0%)']}
         self.assertEqual(result, expected)
 
     def test_highlight_null(self, null_color='red'):

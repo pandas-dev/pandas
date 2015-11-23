@@ -226,4 +226,7 @@ Bug Fixes
 - Bug in ``.loc`` result with duplicated key may have ``Index`` with incorrect dtype (:issue:`11497`)
 - Bug in ``pd.rolling_median`` where memory allocation failed even with sufficient memory (:issue:`11696`)
 
+- Bug in ``.style.bar`` may not rendered properly using specific browser (:issue:`11678`)
+
+
 - Bug in ``df.replace`` while replacing value in mixed dtype ``Dataframe`` (:issue:`11698`)
