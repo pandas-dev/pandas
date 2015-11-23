@@ -41,6 +41,46 @@ class DatelikeOps(object):
         """
         return np.asarray(self.format(date_format=date_format))
 
+class TimelikeOps(object):
+    """ common ops for TimedeltaIndex/DatetimeIndex, but not PeriodIndex """
+
+    def round(self, freq):
+        """
+        Round the index to the specified freq; this is a floor type of operation
+
+        Paramaters
+        ----------
+        freq : freq string/object
+
+        Returns
+        -------
+        index of same type
+
+        Raises
+        ------
+        ValueError if the freq cannot be converted
+        """
+
+        from pandas.tseries.frequencies import to_offset
+        unit = to_offset(freq).nanos
+
+        # round the local times
+        if getattr(self,'tz',None) is not None:
+            values = self.tz_localize(None).asi8
+        else:
+            values = self.asi8
+        result = (unit*np.floor(values/unit)).astype('i8')
+        attribs = self._get_attributes_dict()
+        if 'freq' in attribs:
+            attribs['freq'] = None
+        if 'tz' in attribs:
+            attribs['tz'] = None
+        result = self._shallow_copy(result, **attribs)
+
+        # reconvert to local tz
+        if getattr(self,'tz',None) is not None:
+            result = result.tz_localize(self.tz)
+        return result
 
 class DatetimeIndexOpsMixin(object):
     """ common ops mixin to support a unified inteface datetimelike Index """

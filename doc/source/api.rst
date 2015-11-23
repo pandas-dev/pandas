@@ -526,6 +526,7 @@ These can be accessed like ``Series.dt.<property>``.
    Series.dt.tz_convert
    Series.dt.normalize
    Series.dt.strftime
+   Series.dt.round
 
 **Timedelta Properties**
 
@@ -1507,7 +1508,7 @@ Time-specific operations
    DatetimeIndex.snap
    DatetimeIndex.tz_convert
    DatetimeIndex.tz_localize
-
+   DatetimeIndex.round
 
 Conversion
 ~~~~~~~~~~
@@ -1548,6 +1549,7 @@ Conversion
 
    TimedeltaIndex.to_pytimedelta
    TimedeltaIndex.to_series
+   TimedeltaIndex.round
 
 GroupBy
 -------

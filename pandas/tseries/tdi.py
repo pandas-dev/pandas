@@ -12,7 +12,7 @@ from pandas.util.decorators import cache_readonly
 from pandas.tseries.frequencies import to_offset
 import pandas.core.common as com
 from pandas.tseries import timedeltas
-from pandas.tseries.base import DatetimeIndexOpsMixin
+from pandas.tseries.base import TimelikeOps, DatetimeIndexOpsMixin
 from pandas.tseries.timedeltas import to_timedelta, _coerce_scalar_to_timedelta_type
 import pandas.tseries.offsets as offsets
 from pandas.tseries.offsets import Tick, DateOffset
@@ -63,7 +63,7 @@ def _td_index_cmp(opname, nat_result=False):
     return wrapper
 
 
-class TimedeltaIndex(DatetimeIndexOpsMixin, Int64Index):
+class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
     """
     Immutable ndarray of timedelta64 data, represented internally as int64, and
     which can be boxed to timedelta objects

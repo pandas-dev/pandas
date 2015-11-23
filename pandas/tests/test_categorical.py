@@ -3753,6 +3753,7 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
         special_func_defs = [
             ('strftime', ("%Y-%m-%d",), {}),
             ('tz_convert', ("EST",), {}),
+            ('round', ("D",), {}),
             #('tz_localize', ("UTC",), {}),
         ]
         _special_func_names = [f[0] for f in special_func_defs]

@@ -362,6 +362,28 @@ class Timestamp(_Timestamp):
     def _repr_base(self):
         return '%s %s' % (self._date_repr, self._time_repr)
 
+    def round(self, freq):
+        """
+        return a new Timestamp rounded to this resolution
+
+        Parameters
+        ----------
+        freq : a freq string indicating the rouding resolution
+        """
+        cdef int64_t unit
+        cdef object result, value
+
+        from pandas.tseries.frequencies import to_offset
+        unit = to_offset(freq).nanos
+        if self.tz is not None:
+            value = self.tz_localize(None).value
+        else:
+            value = self.value
+        result = Timestamp(unit*np.floor(value/unit),unit='ns')
+        if self.tz is not None:
+            result = result.tz_localize(self.tz)
+        return result
+
     @property
     def tz(self):
         """
@@ -2618,11 +2640,13 @@ def convert_to_timedelta(object ts, object unit='ns', errors='raise'):
     assert is_raise or is_ignore or is_coerce
     return convert_to_timedelta64(ts, unit, is_coerce)
 
-cdef dict timedelta_abbrevs = { 'd' : 'd',
+cdef dict timedelta_abbrevs = { 'D' : 'd',
+                                'd' : 'd',
                                 'days' : 'd',
                                 'day' : 'd',
                                 'hours' : 'h',
                                 'hour' : 'h',
+                                'hr' : 'h',
                                 'h' : 'h',
                                 'm' : 'm',
                                 'minute' : 'm',
@@ -2648,6 +2672,7 @@ cdef dict timedelta_abbrevs = { 'd' : 'd',
                                 'nanos' : 'ns',
                                 'nanosecond' : 'ns',
                                 }
+timedelta_abbrevs_map = timedelta_abbrevs
 
 cdef inline int64_t timedelta_as_neg(int64_t value, bint neg):
     """
