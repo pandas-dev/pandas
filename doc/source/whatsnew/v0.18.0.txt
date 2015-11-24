@@ -91,7 +91,7 @@ Removal of prior version deprecations/changes
 Performance Improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-
+- Improved performance of ``andrews_curves`` (:issue:`11534`)
 
 
 
