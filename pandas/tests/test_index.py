@@ -60,6 +60,31 @@ class Base(object):
         self.assertRaises(NotImplementedError, idx.shift, 1)
         self.assertRaises(NotImplementedError, idx.shift, 1, 2)
 
+    def test_create_index_existing_name(self):
+
+        # GH11193, when an existing index is passed, and a new name is not specified, the new index should inherit the
+        # previous object name
+        expected = self.create_index()
+        if not isinstance(expected, MultiIndex):
+            expected.name = 'foo'
+            result = pd.Index(expected)
+            tm.assert_index_equal(result, expected)
+
+            result = pd.Index(expected, name='bar')
+            expected.name = 'bar'
+            tm.assert_index_equal(result, expected)
+        else:
+            expected.names = ['foo', 'bar']
+            result = pd.Index(expected)
+            tm.assert_index_equal(result, Index(Index([('foo', 'one'), ('foo', 'two'), ('bar', 'one'), ('baz', 'two'),
+                                                       ('qux', 'one'), ('qux', 'two')], dtype='object'),
+                                                names=['foo', 'bar']))
+
+            result = pd.Index(expected, names=['A', 'B'])
+            tm.assert_index_equal(result, Index(Index([('foo', 'one'), ('foo', 'two'), ('bar', 'one'), ('baz', 'two'),
+                                                       ('qux', 'one'), ('qux', 'two')], dtype='object'),
+                                                names=['A', 'B']))
+
     def test_numeric_compat(self):
 
         idx = self.create_index()
@@ -3043,7 +3068,7 @@ class TestInt64Index(Numeric, tm.TestCase):
         i = self.index.copy(dtype=object)
         i = i.rename('foo')
         same_values = Index(i, dtype=object)
-        self.assertTrue(same_values.identical(self.index.copy(dtype=object)))
+        self.assertTrue(same_values.identical(i))
 
         self.assertFalse(i.identical(self.index))
         self.assertTrue(Index(same_values, name='foo', dtype=object

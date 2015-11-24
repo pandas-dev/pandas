@@ -120,6 +120,9 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
     def __new__(cls, data=None, dtype=None, copy=False, name=None, fastpath=False,
                 tupleize_cols=True, **kwargs):
 
+        if name is None and hasattr(data, 'name'):
+            name = data.name
+
         # no class inference!
         if fastpath:
             return cls._simple_new(data, name)
@@ -128,6 +131,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
             return CategoricalIndex(data, copy=copy, name=name, **kwargs)
 
         if isinstance(data, (np.ndarray, Index, ABCSeries)):
+
             if issubclass(data.dtype.type, np.datetime64) or is_datetimetz(data):
                 from pandas.tseries.index import DatetimeIndex
                 result = DatetimeIndex(data, copy=copy, name=name, **kwargs)
