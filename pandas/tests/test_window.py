@@ -52,7 +52,11 @@ class TestApi(Base):
         r = self.frame.rolling(window=5)[1]
         self.assertEqual(r._selected_obj.name,self.frame.columns[1])
 
+        # technically this is allowed
         r = self.frame.rolling(window=5)[1,3]
+        tm.assert_index_equal(r._selected_obj.columns,self.frame.columns[[1,3]])
+
+        r = self.frame.rolling(window=5)[[1,3]]
         tm.assert_index_equal(r._selected_obj.columns,self.frame.columns[[1,3]])
 
     def test_select_bad_cols(self):
@@ -73,7 +77,7 @@ class TestApi(Base):
         tm.assert_series_equal(r.A.sum(),r['A'].sum())
         self.assertRaises(AttributeError, lambda : r.F)
 
-    def tests_skip_nuiscance(self):
+    def tests_skip_nuisance(self):
 
         df = DataFrame({'A' : range(5), 'B' : range(5,10), 'C' : 'foo'})
 
@@ -167,6 +171,25 @@ class TestApi(Base):
         rcustom = r['B'].apply(lambda x: np.std(x,ddof=1))
         expected = pd.concat([a_sum,rcustom],axis=1)
         compare(result, expected)
+
+    def test_window_with_args(self):
+
+        # make sure that we are aggregating window functions correctly with arg
+
+        r = Series(np.random.randn(100)).rolling(window=10,min_periods=1,win_type='gaussian')
+        expected = pd.concat([r.mean(std=10),r.mean(std=.01)],axis=1)
+        expected.columns = ['<lambda>','<lambda>']
+        result = r.aggregate([lambda x: x.mean(std=10), lambda x: x.mean(std=.01)])
+        assert_frame_equal(result, expected)
+
+        def a(x):
+            return x.mean(std=10)
+        def b(x):
+            return x.mean(std=0.01)
+        expected = pd.concat([r.mean(std=10),r.mean(std=.01)],axis=1)
+        expected.columns = ['a','b']
+        result = r.aggregate([a,b])
+        assert_frame_equal(result, expected)
 
 class TestDeprecations(Base):
     """ test that we are catching deprecation warnings """

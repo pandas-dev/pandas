@@ -18,6 +18,7 @@ import pandas.core.common as com
 import pandas.algos as algos
 from pandas import compat
 from pandas.util.decorators import Substitution, Appender
+from textwrap import dedent
 
 _shared_docs = dict()
 _doc_template = """
@@ -28,8 +29,8 @@ same type as input
 
 See also
 --------
-:func:`pandas.Series.%(name)s`
-:func:`pandas.DataFrame.%(name)s`
+`pandas.Series.%(name)s`
+`pandas.DataFrame.%(name)s`
 """
 
 class _Window(PandasObject, SelectionMixin):
@@ -257,21 +258,21 @@ class Window(_Window):
 
     The recognized window types are:
 
-        * ``boxcar``
-        * ``triang``
-        * ``blackman``
-        * ``hamming``
-        * ``bartlett``
-        * ``parzen``
-        * ``bohman``
-        * ``blackmanharris``
-        * ``nuttall``
-        * ``barthann``
-        * ``kaiser`` (needs beta)
-        * ``gaussian`` (needs std)
-        * ``general_gaussian`` (needs power, width)
-        * ``slepian`` (needs width).
-    """
+    * ``boxcar``
+    * ``triang``
+    * ``blackman``
+    * ``hamming``
+    * ``bartlett``
+    * ``parzen``
+    * ``bohman``
+    * ``blackmanharris``
+    * ``nuttall``
+    * ``barthann``
+    * ``kaiser`` (needs beta)
+    * ``gaussian`` (needs std)
+    * ``general_gaussian`` (needs power, width)
+    * ``slepian`` (needs width).
+"""
 
     def _prep_window(self, **kwargs):
         """ provide validation for our window type, return the window """
@@ -340,7 +341,13 @@ class Window(_Window):
     @Appender(SelectionMixin._agg_doc)
     @Appender(SelectionMixin._see_also_template)
     def aggregate(self, arg, *args, **kwargs):
-        return super(Window, self).aggregate(arg, *args, **kwargs)
+        result, how = self._aggregate(arg, *args, **kwargs)
+        if result is None:
+
+            # these must apply directly
+            result = arg(self)
+
+        return result
 
     agg = aggregate
 
@@ -451,13 +458,15 @@ class _Rolling_and_Expanding(_Rolling):
         result[result.isnull()] = 0
         return result
 
-    _shared_docs['apply'] = """%(name)s function apply
+    _shared_docs['apply'] = dedent("""
+    %(name)s function apply
 
-Parameters
-----------
-func : function
+    Parameters
+    ----------
+    func : function
     Must produce a single value from an ndarray input
-*args and **kwargs are passed to the function"""
+    *args and **kwargs are passed to the function""")
+
     def apply(self, func, args=(), kwargs={}):
         _level = kwargs.pop('_level',None)
         window = self._get_window()
@@ -472,21 +481,25 @@ func : function
     def sum(self):
         return self._apply('roll_sum')
 
-    _shared_docs['max'] = """%(name)s maximum
+    _shared_docs['max'] = dedent("""
+    %(name)s maximum
 
-Parameters
-----------
-how : string, default max
-    Method for down- or re-sampling"""
+    Parameters
+    ----------
+    how : string, default max
+    Method for down- or re-sampling""")
+
     def max(self, how='max'):
         return self._apply('roll_max', how=how)
 
-    _shared_docs['min'] = """%(name)s minimum
+    _shared_docs['min'] = dedent("""
+    %(name)s minimum
 
-Parameters
-----------
-how : string, default min
-    Method for down- or re-sampling"""
+    Parameters
+    ----------
+    how : string, default min
+    Method for down- or re-sampling""")
+
     def min(self, how='min'):
         return self._apply('roll_min', how=how)
 
@@ -494,22 +507,26 @@ how : string, default min
     def mean(self):
         return self._apply('roll_mean')
 
-    _shared_docs['median'] = """%(name)s median
+    _shared_docs['median'] = dedent("""
+    %(name)s median
 
-Parameters
-----------
-how : string, default median
-    Method for down- or re-sampling"""
+    Parameters
+    ----------
+    how : string, default median
+    Method for down- or re-sampling""")
+
     def median(self, how='median'):
         return self._apply('roll_median_c', how=how)
 
-    _shared_docs['std'] = """%(name)s standard deviation
+    _shared_docs['std'] = dedent("""
+    %(name)s standard deviation
 
-Parameters
-----------
-ddof : int, default 1
+    Parameters
+    ----------
+    ddof : int, default 1
     Delta Degrees of Freedom.  The divisor used in calculations
-    is ``N - ddof``, where ``N`` represents the number of elements."""
+    is ``N - ddof``, where ``N`` represents the number of elements.""")
+
     def std(self, ddof=1):
         window = self._get_window()
         def f(arg, *args, **kwargs):
@@ -518,13 +535,15 @@ ddof : int, default 1
 
         return self._apply(f, check_minp=_require_min_periods(1))
 
-    _shared_docs['var'] = """%(name)s variance
+    _shared_docs['var'] = dedent("""
+    %(name)s variance
 
-Parameters
-----------
-ddof : int, default 1
+    Parameters
+    ----------
+    ddof : int, default 1
     Delta Degrees of Freedom.  The divisor used in calculations
-    is ``N - ddof``, where ``N`` represents the number of elements."""
+    is ``N - ddof``, where ``N`` represents the number of elements.""")
+
     def var(self, ddof=1):
         return self._apply('roll_var',
                            check_minp=_require_min_periods(1),
@@ -540,12 +559,14 @@ ddof : int, default 1
         return self._apply('roll_kurt',
                            check_minp=_require_min_periods(4))
 
-    _shared_docs['quantile'] = """%(name)s quantile
+    _shared_docs['quantile'] = dedent("""
+    %(name)s quantile
 
-Parameters
-----------
-quantile : float
-0 <= quantile <= 1"""
+    Parameters
+    ----------
+    quantile : float
+    0 <= quantile <= 1""")
+
     def quantile(self, quantile):
         window = self._get_window()
         def f(arg, *args, **kwargs):
@@ -554,21 +575,23 @@ quantile : float
 
         return self._apply(f)
 
-    _shared_docs['cov'] = """%(name)s sample covariance
+    _shared_docs['cov'] = dedent("""
+    %(name)s sample covariance
 
-Parameters
-----------
-other : Series, DataFrame, or ndarray, optional
-    if not supplied then will default to self and produce pairwise output
-pairwise : bool, default None
-    If False then only matching columns between self and other will be used and
-    the output will be a DataFrame.
-    If True then all pairwise combinations will be calculated and the output
-    will be a Panel in the case of DataFrame inputs. In the case of missing
-    elements, only complete pairwise observations will be used.
-ddof : int, default 1
-    Delta Degrees of Freedom.  The divisor used in calculations
-    is ``N - ddof``, where ``N`` represents the number of elements."""
+    Parameters
+    ----------
+    other : Series, DataFrame, or ndarray, optional
+        if not supplied then will default to self and produce pairwise output
+    pairwise : bool, default None
+        If False then only matching columns between self and other will be used and
+        the output will be a DataFrame.
+        If True then all pairwise combinations will be calculated and the output
+        will be a Panel in the case of DataFrame inputs. In the case of missing
+        elements, only complete pairwise observations will be used.
+    ddof : int, default 1
+        Delta Degrees of Freedom.  The divisor used in calculations
+        is ``N - ddof``, where ``N`` represents the number of elements.""")
+
     def cov(self, other=None, pairwise=None, ddof=1):
         if other is None:
             other = self._selected_obj
@@ -583,19 +606,20 @@ ddof : int, default 1
             return (mean(X * Y) - mean(X) * mean(Y)) * bias_adj
         return _flex_binary_moment(self._selected_obj, other._selected_obj, _get_cov, pairwise=bool(pairwise))
 
-    _shared_docs['corr'] = """
-%(name)s sample correlation
+    _shared_docs['corr'] = dedent("""
+    %(name)s sample correlation
 
-Parameters
-----------
-other : Series, DataFrame, or ndarray, optional
-    if not supplied then will default to self and produce pairwise output
-pairwise : bool, default None
-    If False then only matching columns between self and other will be used and
-    the output will be a DataFrame.
-    If True then all pairwise combinations will be calculated and the output
-    will be a Panel in the case of DataFrame inputs. In the case of missing
-    elements, only complete pairwise observations will be used."""
+    Parameters
+    ----------
+    other : Series, DataFrame, or ndarray, optional
+        if not supplied then will default to self and produce pairwise output
+    pairwise : bool, default None
+        If False then only matching columns between self and other will be used and
+        the output will be a DataFrame.
+        If True then all pairwise combinations will be calculated and the output
+        will be a Panel in the case of DataFrame inputs. In the case of missing
+        elements, only complete pairwise observations will be used.""")
+
     def corr(self, other=None, pairwise=None):
         if other is None:
             other = self._selected_obj
@@ -625,8 +649,8 @@ class Rolling(_Rolling_and_Expanding):
     Parameters
     ----------
     window : int
-       Size of the moving window. This is the number of observations used for
-       calculating the statistic.
+        Size of the moving window. This is the number of observations used for
+        calculating the statistic.
     min_periods : int, default None
         Minimum number of observations in window required to have a value
         (otherwise result is NA).
@@ -884,9 +908,9 @@ class Expanding(_Rolling_and_Expanding):
 
 class EWM(_Rolling):
     """
-    .. versionadded:: 0.18.0
-
     Provides exponential weighted functions
+
+    .. versionadded:: 0.18.0
 
     Parameters
     ----------

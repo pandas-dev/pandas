@@ -220,7 +220,7 @@ and kurtosis.
 
 .. note::
 
-   The API for window statistics is quite similar to the way one works with ``Groupby`` objects, see the documentation :ref:`here <groupby>`
+   The API for window statistics is quite similar to the way one works with ``GroupBy`` objects, see the documentation :ref:`here <groupby>`
 
 We work with ``rolling``, ``expanding`` and ``exponentially weighted`` data through the corresponding
 objects, :class:`~pandas.core.window.Rolling`, :class:`~pandas.core.window.Expanding` and :class:`~pandas.core.window.EWM`.
@@ -231,7 +231,7 @@ objects, :class:`~pandas.core.window.Rolling`, :class:`~pandas.core.window.Expan
    s = s.cumsum()
    s
 
-These are created from methods on ``Series`` and ``DataFrames``.
+These are created from methods on ``Series`` and ``DataFrame``.
 
 .. ipython:: python
 
@@ -247,7 +247,7 @@ accept the following arguments:
 - ``freq``: optionally specify a :ref:`frequency string <timeseries.alias>`
   or :ref:`DateOffset <timeseries.offsets>` to pre-conform the data to.
 
-We can then call functions on these ``rolling`` objects. Which return like-indexed objects:
+We can then call methods on these ``rolling`` objects. These return like-indexed objects:
 
 .. ipython:: python
 
@@ -304,8 +304,6 @@ We provide a number of the common statistical functions:
     :meth:`~Rolling.apply`, Generic apply
     :meth:`~Rolling.cov`, Unbiased covariance (binary)
     :meth:`~Rolling.corr`, Correlation (binary)
-    :meth:`~Window.mean`, Moving window mean function
-    :meth:`~Window.sum`, Moving window sum function
 
 The :meth:`~Rolling.apply` function takes an extra ``func`` argument and performs
 generic rolling computations. The ``func`` argument should be a single function
@@ -323,9 +321,17 @@ compute the mean absolute deviation on a rolling basis:
 Rolling Windows
 ~~~~~~~~~~~~~~~
 
-The :meth:`~Window.mean`, and :meth:`~Window.sum` functions perform a generic rolling window computation
-on the input data. The weights used in the window are specified by the ``win_type``
-keyword. The list of recognized types are:
+Passing ``win_type`` to ``.rolling`` generates a generic rolling window computation, that is weighted according the ``win_type``.
+The following methods are available:
+
+.. csv-table::
+    :header: "Method", "Description"
+    :widths: 20, 80
+
+    :meth:`~Window.sum`, Sum of values
+    :meth:`~Window.mean`, Mean of values
+
+The weights used in the window are specified by the ``win_type``keyword. The list of recognized types are:
 
 - ``boxcar``
 - ``triang``
@@ -484,9 +490,9 @@ We can aggregate by passing a function to the entire DataFrame, or select a Seri
 
    r['A'].aggregate(np.sum)
 
-   r['A','B'].aggregate(np.sum)
+   r[['A','B']].aggregate(np.sum)
 
-As you can see, the result of the aggregation will have the selection columns, or all
+As you can see, the result of the aggregation will have the selected columns, or all
 columns if none are selected.
 
 .. _stats.aggregate.multifunc:
@@ -531,7 +537,7 @@ columns of a DataFrame:
           'B' : lambda x: np.std(x, ddof=1)})
 
 The function names can also be strings. In order for a string to be valid it
-must be either implemented on the Windowed object
+must be implemented on the Windowed object
 
 .. ipython:: python
 

@@ -361,8 +361,8 @@ aggregated : DataFrame
 
 See also
 --------
-:func:`pandas.Series.%(name)s`
-:func:`pandas.DataFrame.%(name)s`
+`pandas.Series.%(name)s`
+`pandas.DataFrame.%(name)s`
 """
 
     def aggregate(self, func, *args, **kwargs):
@@ -465,9 +465,9 @@ See also
                     # find a good name, this could be a function that we don't recognize
                     name = self._is_cython_func(a) or a
                     if not isinstance(name, compat.string_types):
-                        name = getattr(a,name,a)
+                        name = getattr(a,'name',a)
                     if not isinstance(name, compat.string_types):
-                        name = getattr(a,func_name,a)
+                        name = getattr(a,'__name__',a)
 
                     keys.append(name)
                 except (TypeError, DataError):
