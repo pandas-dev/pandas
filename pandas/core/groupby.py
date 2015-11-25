@@ -22,6 +22,7 @@ from pandas.core.series import Series
 from pandas.core.panel import Panel
 from pandas.util.decorators import (cache_readonly, Substitution, Appender, make_signature,
                                     deprecate_kwarg)
+from textwrap import dedent
 import pandas.core.algorithms as algos
 import pandas.core.common as com
 from pandas.core.common import(_possibly_downcast_to_dtype, isnull,
@@ -39,15 +40,15 @@ import pandas.hashtable as _hash
 
 _doc_template = """
 
-Returns
--------
-same type as input
+        Returns
+        -------
+        same type as input
 
-See also
---------
-:func:`pandas.Series.%(name)s`
-:func:`pandas.DataFrame.%(name)s`
-:func:`pandas.Panel.%(name)s`
+        See also
+        --------
+        `pandas.Series.%(name)s`
+        `pandas.DataFrame.%(name)s`
+        `pandas.Panel.%(name)s`
 """
 
 # special case to prevent duplicate plots when catching exceptions when
@@ -629,43 +630,45 @@ class GroupBy(PandasObject, SelectionMixin):
     @Substitution(name='groupby')
     @Appender(_doc_template)
     def apply(self, func, *args, **kwargs):
-        """Apply function and combine results together in an intelligent way. The
-split-apply-combine combination rules attempt to be as common sense
-based as possible. For example:
+        """
+        Apply function and combine results together in an intelligent way. The
+        split-apply-combine combination rules attempt to be as common sense
+        based as possible. For example:
 
-case 1:
-group DataFrame
-apply aggregation function (f(chunk) -> Series)
-yield DataFrame, with group axis having group labels
+        case 1:
+        group DataFrame
+        apply aggregation function (f(chunk) -> Series)
+        yield DataFrame, with group axis having group labels
 
-case 2:
-group DataFrame
-apply transform function ((f(chunk) -> DataFrame with same indexes)
-yield DataFrame with resulting chunks glued together
+        case 2:
+        group DataFrame
+        apply transform function ((f(chunk) -> DataFrame with same indexes)
+        yield DataFrame with resulting chunks glued together
 
-case 3:
-group Series
-apply function with f(chunk) -> DataFrame
-yield DataFrame with result of chunks glued together
+        case 3:
+        group Series
+        apply function with f(chunk) -> DataFrame
+        yield DataFrame with result of chunks glued together
 
-Parameters
-----------
-func : function
+        Parameters
+        ----------
+        func : function
 
-Notes
------
-See online documentation for full exposition on how to use apply.
+        Notes
+        -----
+        See online documentation for full exposition on how to use apply.
 
-In the current implementation apply calls func twice on the
-first group to decide whether it can take a fast or slow code
-path. This can lead to unexpected behavior if func has
-side-effects, as they will take effect twice for the first
-group.
+        In the current implementation apply calls func twice on the
+        first group to decide whether it can take a fast or slow code
+        path. This can lead to unexpected behavior if func has
+        side-effects, as they will take effect twice for the first
+        group.
 
 
-See also
---------
-aggregate, transform"""
+        See also
+        --------
+        aggregate, transform"""
+
         func = self._is_builtin_func(func)
 
         @wraps(func)
@@ -710,7 +713,8 @@ aggregate, transform"""
     @Substitution(name='groupby')
     @Appender(_doc_template)
     def mean(self):
-        """Compute mean of groups, excluding missing values
+        """
+        Compute mean of groups, excluding missing values
 
         For multiple groupings, the result index will be a MultiIndex
         """
@@ -726,7 +730,8 @@ aggregate, transform"""
     @Substitution(name='groupby')
     @Appender(_doc_template)
     def median(self):
-        """Compute median of groups, excluding missing values
+        """
+        Compute median of groups, excluding missing values
 
         For multiple groupings, the result index will be a MultiIndex
         """
@@ -746,14 +751,16 @@ aggregate, transform"""
     @Substitution(name='groupby')
     @Appender(_doc_template)
     def std(self, ddof=1):
-        """Compute standard deviation of groups, excluding missing values
+        """
+        Compute standard deviation of groups, excluding missing values
 
-For multiple groupings, the result index will be a MultiIndex
+        For multiple groupings, the result index will be a MultiIndex
 
-Parameters
-----------
-ddof : integer, default 1
-degrees of freedom"""
+        Parameters
+        ----------
+        ddof : integer, default 1
+        degrees of freedom
+        """
 
         # todo, implement at cython level?
         return np.sqrt(self.var(ddof=ddof))
@@ -761,14 +768,16 @@ degrees of freedom"""
     @Substitution(name='groupby')
     @Appender(_doc_template)
     def var(self, ddof=1):
-        """Compute variance of groups, excluding missing values
+        """
+        Compute variance of groups, excluding missing values
 
-For multiple groupings, the result index will be a MultiIndex
+        For multiple groupings, the result index will be a MultiIndex
 
-Parameters
-----------
-ddof : integer, default 1
-degrees of freedom"""
+        Parameters
+        ----------
+        ddof : integer, default 1
+        degrees of freedom
+        """
 
         if ddof == 1:
             return self._cython_agg_general('var')
@@ -780,14 +789,16 @@ degrees of freedom"""
     @Substitution(name='groupby')
     @Appender(_doc_template)
     def sem(self, ddof=1):
-        """Compute standard error of the mean of groups, excluding missing values
+        """
+        Compute standard error of the mean of groups, excluding missing values
 
-For multiple groupings, the result index will be a MultiIndex
+        For multiple groupings, the result index will be a MultiIndex
 
-Parameters
-----------
-ddof : integer, default 1
-degrees of freedom"""
+        Parameters
+        ----------
+        ddof : integer, default 1
+        degrees of freedom
+        """
 
         return self.std(ddof=ddof)/np.sqrt(self.count())
 
@@ -809,8 +820,10 @@ degrees of freedom"""
     @Substitution(name='groupby')
     @Appender(_doc_template)
     def ohlc(self):
-        """Compute sum of values, excluding missing values
-For multiple groupings, the result index will be a MultiIndex"""
+        """
+        Compute sum of values, excluding missing values
+        For multiple groupings, the result index will be a MultiIndex
+        """
 
         return self._apply_to_column_groupbys(
             lambda x: x._cython_agg_general('ohlc'))
@@ -818,46 +831,48 @@ For multiple groupings, the result index will be a MultiIndex"""
     @Substitution(name='groupby')
     @Appender(_doc_template)
     def nth(self, n, dropna=None):
-        """Take the nth row from each group if n is an int, or a subset of rows
-if n is a list of ints.
+        """
+        Take the nth row from each group if n is an int, or a subset of rows
+        if n is a list of ints.
 
-If dropna, will take the nth non-null row, dropna is either
-Truthy (if a Series) or 'all', 'any' (if a DataFrame); this is equivalent
-to calling dropna(how=dropna) before the groupby.
+        If dropna, will take the nth non-null row, dropna is either
+        Truthy (if a Series) or 'all', 'any' (if a DataFrame); this is equivalent
+        to calling dropna(how=dropna) before the groupby.
 
-Parameters
-----------
-n : int or list of ints
-    a single nth value for the row or a list of nth values
-dropna : None or str, optional
-    apply the specified dropna operation before counting which row is
-    the nth row. Needs to be None, 'any' or 'all'
+        Parameters
+        ----------
+        n : int or list of ints
+            a single nth value for the row or a list of nth values
+        dropna : None or str, optional
+            apply the specified dropna operation before counting which row is
+            the nth row. Needs to be None, 'any' or 'all'
 
-Examples
---------
->>> df = DataFrame([[1, np.nan], [1, 4], [5, 6]], columns=['A', 'B'])
->>> g = df.groupby('A')
->>> g.nth(0)
-       A   B
-    0  1 NaN
-    2  5   6
->>> g.nth(1)
-       A  B
-    1  1  4
->>> g.nth(-1)
-       A  B
-    1  1  4
-    2  5  6
->>> g.nth(0, dropna='any')
-       B
-       A
-    1  4
-    5  6
->>> g.nth(1, dropna='any')  # NaNs denote group exhausted when using dropna
-        B
-        A
-    1 NaN
-    5 NaN"""
+        Examples
+        --------
+        >>> df = DataFrame([[1, np.nan], [1, 4], [5, 6]], columns=['A', 'B'])
+        >>> g = df.groupby('A')
+        >>> g.nth(0)
+           A   B
+        0  1 NaN
+        2  5   6
+        >>> g.nth(1)
+           A  B
+        1  1  4
+        >>> g.nth(-1)
+           A  B
+        1  1  4
+        2  5  6
+        >>> g.nth(0, dropna='any')
+           B
+           A
+        1  4
+        5  6
+        >>> g.nth(1, dropna='any')  # NaNs denote group exhausted when using dropna
+           B
+           A
+        1 NaN
+        5 NaN
+        """
 
         if isinstance(n, int):
             nth_values = [n]
@@ -953,46 +968,48 @@ Examples
     @Substitution(name='groupby')
     @Appender(_doc_template)
     def cumcount(self, ascending=True):
-        """Number each item in each group from 0 to the length of that group - 1.
+        """
+        Number each item in each group from 0 to the length of that group - 1.
 
-Essentially this is equivalent to
+        Essentially this is equivalent to
 
->>> self.apply(lambda x: Series(np.arange(len(x)), x.index))
+        >>> self.apply(lambda x: Series(np.arange(len(x)), x.index))
 
-Parameters
-----------
-ascending : bool, default True
-    If False, number in reverse, from length of group - 1 to 0.
+        Parameters
+        ----------
+        ascending : bool, default True
+        If False, number in reverse, from length of group - 1 to 0.
 
-Examples
---------
+        Examples
+        --------
 
->>> df = pd.DataFrame([['a'], ['a'], ['a'], ['b'], ['b'], ['a']],
-    ...               columns=['A'])
->>> df
-       A
-    0  a
-    1  a
-    2  a
-    3  b
-    4  b
-    5  a
->>> df.groupby('A').cumcount()
-    0    0
-    1    1
-    2    2
-    3    0
-    4    1
-    5    3
-    dtype: int64
->>> df.groupby('A').cumcount(ascending=False)
-    0    3
-    1    2
-    2    1
-    3    1
-    4    0
-    5    0
-    dtype: int64"""
+        >>> df = pd.DataFrame([['a'], ['a'], ['a'], ['b'], ['b'], ['a']],
+        ...               columns=['A'])
+        >>> df
+           A
+        0  a
+        1  a
+        2  a
+        3  b
+        4  b
+        5  a
+        >>> df.groupby('A').cumcount()
+        0    0
+        1    1
+        2    2
+        3    0
+        4    1
+        5    3
+        dtype: int64
+        >>> df.groupby('A').cumcount(ascending=False)
+        0    3
+        1    2
+        2    1
+        3    1
+        4    0
+        5    0
+        dtype: int64
+        """
 
         self._set_selection_from_grouper()
 
@@ -1021,14 +1038,16 @@ Examples
     @Substitution(name='groupby')
     @Appender(_doc_template)
     def shift(self, periods=1, freq=None, axis=0):
-        """Shift each group by periods observations
+        """
+        Shift each group by periods observations
 
-Parameters
-----------
-periods : integer, default 1
-    number of periods to shift
-freq : frequency string
-axis : axis to shift, default 0"""
+        Parameters
+        ----------
+        periods : integer, default 1
+            number of periods to shift
+        freq : frequency string
+        axis : axis to shift, default 0
+        """
 
         if freq is not None or axis != 0:
             return self.apply(lambda x: x.shift(periods, freq, axis))
@@ -1047,24 +1066,27 @@ axis : axis to shift, default 0"""
     @Substitution(name='groupby')
     @Appender(_doc_template)
     def head(self, n=5):
-        """Returns first n rows of each group.
+        """
+        Returns first n rows of each group.
 
-Essentially equivalent to ``.apply(lambda x: x.head(n))``,
-except ignores as_index flag.
+        Essentially equivalent to ``.apply(lambda x: x.head(n))``,
+        except ignores as_index flag.
 
-Examples
---------
+        Examples
+        --------
 
->>> df = DataFrame([[1, 2], [1, 4], [5, 6]],
-                   columns=['A', 'B'])
->>> df.groupby('A', as_index=False).head(1)
-       A  B
-    0  1  2
-    2  5  6
->>> df.groupby('A').head(1)
-       A  B
-    0  1  2
-    2  5  6"""
+        >>> df = DataFrame([[1, 2], [1, 4], [5, 6]],
+                           columns=['A', 'B'])
+        >>> df.groupby('A', as_index=False).head(1)
+           A  B
+        0  1  2
+        2  5  6
+        >>> df.groupby('A').head(1)
+           A  B
+        0  1  2
+        2  5  6
+        """
+
         obj = self._selected_obj
         in_head = self._cumcount_array() < n
         head = obj[in_head]
@@ -1073,24 +1095,27 @@ Examples
     @Substitution(name='groupby')
     @Appender(_doc_template)
     def tail(self, n=5):
-        """Returns last n rows of each group
+        """
+        Returns last n rows of each group
 
-Essentially equivalent to ``.apply(lambda x: x.tail(n))``,
-except ignores as_index flag.
+        Essentially equivalent to ``.apply(lambda x: x.tail(n))``,
+        except ignores as_index flag.
 
-Examples
---------
+        Examples
+        --------
 
->>> df = DataFrame([['a', 1], ['a', 2], ['b', 1], ['b', 2]],
-                   columns=['A', 'B'])
->>> df.groupby('A').tail(1)
-       A  B
-    1  a  2
-    3  b  2
->>> df.groupby('A').head(1)
-       A  B
-    0  a  1
-    2  b  1"""
+        >>> df = DataFrame([['a', 1], ['a', 2], ['b', 1], ['b', 2]],
+                           columns=['A', 'B'])
+        >>> df.groupby('A').tail(1)
+           A  B
+        1  a  2
+        3  b  2
+        >>> df.groupby('A').head(1)
+           A  B
+        0  a  1
+        2  b  1
+        """
+
         obj = self._selected_obj
         rng = np.arange(0, -self.grouper._max_groupsize, -1, dtype='int64')
         in_tail = self._cumcount_array(rng, ascending=False) > -n
@@ -1098,10 +1123,13 @@ Examples
         return tail
 
     def _cumcount_array(self, arr=None, ascending=True):
-        """arr is where cumcount gets its values from
+        """
+        arr is where cumcount gets its values from
 
-        note: this is currently implementing sort=False (though the default is sort=True)
-              for groupby in general
+        Note
+        ----
+        this is currently implementing sort=False (though the default is sort=True)
+        for groupby in general
         """
         if arr is None:
             arr = np.arange(self.grouper._max_groupsize, dtype='int64')
@@ -3379,8 +3407,8 @@ class DataFrameGroupBy(NDFrameGroupBy):
     _block_agg_axis = 1
 
     @Substitution(name='groupby')
-    @Appender(SelectionMixin._agg_doc)
     @Appender(SelectionMixin._see_also_template)
+    @Appender(SelectionMixin._agg_doc)
     def aggregate(self, arg, *args, **kwargs):
         return super(DataFrameGroupBy, self).aggregate(arg, *args, **kwargs)
 
@@ -3550,8 +3578,8 @@ DataFrameGroupBy.boxplot = boxplot_frame_groupby
 class PanelGroupBy(NDFrameGroupBy):
 
     @Substitution(name='groupby')
-    @Appender(SelectionMixin._agg_doc)
     @Appender(SelectionMixin._see_also_template)
+    @Appender(SelectionMixin._agg_doc)
     def aggregate(self, arg, *args, **kwargs):
         return super(PanelGroupBy, self).aggregate(arg, *args, **kwargs)
 
