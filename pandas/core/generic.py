@@ -4,6 +4,8 @@ import operator
 import weakref
 import gc
 
+from collections.abc import Mapping
+
 import numpy as np
 import pandas.lib as lib
 
@@ -581,7 +583,7 @@ class NDFrame(PandasObject):
 
         # renamer function if passed a dict
         def _get_rename_function(mapper):
-            if isinstance(mapper, (dict, ABCSeries)):
+            if isinstance(mapper, (Mapping, ABCSeries)):
                 def f(x):
                     if x in mapper:
                         return mapper[x]
