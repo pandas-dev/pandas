@@ -971,6 +971,57 @@ Parsing date components in multi-columns is faster with a format
     In [36]: %timeit pd.to_datetime(ds)
     1 loops, best of 3: 488 ms per loop
 
+Skip row between header and data
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. ipython:: python
+
+    from io import StringIO
+    import pandas as pd
+
+    data = """;;;;
+     ;;;;
+     ;;;;
+     ;;;;
+     ;;;;
+     ;;;;
+    ;;;;
+     ;;;;
+     ;;;;
+    ;;;;
+    date;Param1;Param2;Param4;Param5
+        ;m²;°C;m²;m
+    ;;;;
+    01.01.1990 00:00;1;1;2;3
+    01.01.1990 01:00;5;3;4;5
+    01.01.1990 02:00;9;5;6;7
+    01.01.1990 03:00;13;7;8;9
+    01.01.1990 04:00;17;9;10;11
+    01.01.1990 05:00;21;11;12;13
+    """
+
+Option 1: pass rows explicitly to skiprows
+""""""""""""""""""""""""""""""""""""""""""
+
+.. ipython:: python
+
+    pd.read_csv(StringIO(data.decode('UTF-8')), sep=';', skiprows=[11,12],
+            index_col=0, parse_dates=True, header=10)
+
+Option 2: read column names and then data
+"""""""""""""""""""""""""""""""""""""""""
+
+.. ipython:: python
+
+    pd.read_csv(StringIO(data.decode('UTF-8')), sep=';',
+            header=10, parse_dates=True, nrows=10).columns
+    columns = pd.read_csv(StringIO(data.decode('UTF-8')), sep=';',
+                      header=10, parse_dates=True, nrows=10).columns
+    pd.read_csv(StringIO(data.decode('UTF-8')), sep=';',
+                header=12, parse_dates=True, names=columns)
+
+
+
 .. _cookbook.sql:
 
 SQL
@@ -1076,7 +1127,6 @@ Storing Attributes to a group node
 
    store.close()
    os.remove('test.h5')
-
 
 .. _cookbook.binary:
 

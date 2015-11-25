@@ -72,6 +72,7 @@ def show_versions(as_json=False):
         ("patsy", lambda mod: mod.__version__),
         ("dateutil", lambda mod: mod.__version__),
         ("pytz", lambda mod: mod.VERSION),
+        ("blosc", lambda mod: mod.__version__),
         ("bottleneck", lambda mod: mod.__version__),
         ("tables", lambda mod: mod.__version__),
         ("numexpr", lambda mod: mod.__version__),
@@ -88,6 +89,7 @@ def show_versions(as_json=False):
         ("sqlalchemy", lambda mod: mod.__version__),
         ("pymysql", lambda mod: mod.__version__),
         ("psycopg2", lambda mod: mod.__version__),
+        ("jinja2", lambda mod: mod.__version__)
     ]
 
     deps_blob = list()

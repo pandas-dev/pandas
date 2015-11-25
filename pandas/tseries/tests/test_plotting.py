@@ -483,6 +483,7 @@ class TestTSPlot(tm.TestCase):
         ts[5:25] = np.nan
         ax = ts.plot()
         lines = ax.get_lines()
+        tm._skip_if_mpl_1_5()
         self.assertEqual(len(lines), 1)
         l = lines[0]
         data = l.get_xydata()
@@ -532,6 +533,9 @@ class TestTSPlot(tm.TestCase):
         self.assertEqual(len(ax.right_ax.get_lines()), 1)
         l = lines[0]
         data = l.get_xydata()
+
+        tm._skip_if_mpl_1_5()
+
         tm.assertIsInstance(data, np.ma.core.MaskedArray)
         mask = data.mask
         self.assertTrue(mask[5:25, 1].all())

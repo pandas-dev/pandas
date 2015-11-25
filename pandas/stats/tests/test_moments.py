@@ -43,7 +43,6 @@ class TestMoments(Base):
 
     def setUp(self):
         self._create_data()
-        warnings.simplefilter("ignore", category=FutureWarning)
 
     def test_centered_axis_validation(self):
         # ok
@@ -887,7 +886,6 @@ class TestMomentsConsistency(Base):
 
     def setUp(self):
         self._create_data()
-        warnings.simplefilter("ignore", category=FutureWarning)
 
     def _test_moments_consistency(self,
                                   min_periods,
@@ -1513,9 +1511,6 @@ class TestMomentsConsistency(Base):
 
         functions = [lambda x: mom.rolling_cov(x, x, pairwise=True, window=10, min_periods=5),
                      lambda x: mom.rolling_corr(x, x, pairwise=True, window=10, min_periods=5),
-                     # rolling_corr_pairwise is depracated, so the following line should be deleted
-                     # when rolling_corr_pairwise is removed.
-                     lambda x: mom.rolling_corr_pairwise(x, x, window=10, min_periods=5),
                     ]
         for f in functions:
             df_result_panel = f(df)
@@ -1582,9 +1577,6 @@ class TestMomentsConsistency(Base):
                      lambda x: mom.expanding_corr(x, x, pairwise=True, min_periods=5),
                      lambda x: mom.rolling_cov(x, x, pairwise=True, window=10, min_periods=5),
                      lambda x: mom.rolling_corr(x, x, pairwise=True, window=10, min_periods=5),
-                     # rolling_corr_pairwise is depracated, so the following line should be deleted
-                     # when rolling_corr_pairwise is removed.
-                     lambda x: mom.rolling_corr_pairwise(x, x, window=10, min_periods=5),
                     ]
         for f in functions:
             df1_result_panel = f(df1)

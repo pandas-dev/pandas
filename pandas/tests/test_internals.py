@@ -7,10 +7,13 @@ import nose
 import numpy as np
 
 import re
+import itertools
 from pandas import Index, MultiIndex, DataFrame, DatetimeIndex, Series, Categorical
 from pandas.compat import OrderedDict, lrange
 from pandas.sparse.array import SparseArray
-from pandas.core.internals import *
+from pandas.core.internals import (BlockPlacement, SingleBlockManager, make_block,
+                                   BlockManager)
+import pandas.core.common as com
 import pandas.core.internals as internals
 import pandas.util.testing as tm
 import pandas as pd
@@ -303,7 +306,7 @@ class TestDatetimeBlock(tm.TestCase):
         block = create_block('datetime', [0])
 
         # coerce None
-        none_coerced = block._try_coerce_args(block.values, None)[1]
+        none_coerced = block._try_coerce_args(block.values, None)[2]
         self.assertTrue(pd.Timestamp(none_coerced) is pd.NaT)
 
         # coerce different types of date bojects
@@ -311,7 +314,7 @@ class TestDatetimeBlock(tm.TestCase):
                 datetime(2010, 10, 10),
                 date(2010, 10, 10))
         for val in vals:
-            coerced = block._try_coerce_args(block.values, val)[1]
+            coerced = block._try_coerce_args(block.values, val)[2]
             self.assertEqual(np.int64, type(coerced))
             self.assertEqual(pd.Timestamp('2010-10-10'), pd.Timestamp(coerced))
 
@@ -664,8 +667,8 @@ class TestBlockManager(tm.TestCase):
 
     def test_interleave_non_unique_cols(self):
         df = DataFrame([
-            [Timestamp('20130101'), 3.5],
-            [Timestamp('20130102'), 4.5]],
+            [pd.Timestamp('20130101'), 3.5],
+            [pd.Timestamp('20130102'), 4.5]],
             columns=['x', 'x'],
             index=[1, 2])
 

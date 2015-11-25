@@ -11,6 +11,7 @@ from distutils.version import LooseVersion
 import numpy as np
 
 from pandas.util.decorators import cache_readonly, deprecate_kwarg
+from pandas.core.base import PandasObject
 import pandas.core.common as com
 from pandas.core.common import AbstractMethodError
 from pandas.core.generic import _shared_docs, _shared_doc_kwargs
@@ -23,12 +24,12 @@ from pandas.tseries.offsets import DateOffset
 from pandas.compat import range, lrange, lmap, map, zip, string_types
 import pandas.compat as compat
 from pandas.util.decorators import Appender
-
 try:  # mpl optional
     import pandas.tseries.converter as conv
     conv.register()  # needs to override so set_xlim works with str/number
 except ImportError:
     pass
+
 
 # Extracted from https://gist.github.com/huyng/816622
 # this is the rcParams set when setting display.with_mpl_style
@@ -95,6 +96,48 @@ mpl_stylesheet = {
      'ytick.minor.pad': 6.0,
      'ytick.minor.size': 0.0
 }
+
+
+def _mpl_le_1_2_1():
+    try:
+        import matplotlib as mpl
+        return (str(mpl.__version__) <= LooseVersion('1.2.1') and
+                str(mpl.__version__)[0] != '0')
+    except ImportError:
+        return False
+
+def _mpl_ge_1_3_1():
+    try:
+        import matplotlib
+        # The or v[0] == '0' is because their versioneer is
+        # messed up on dev
+        return (matplotlib.__version__ >= LooseVersion('1.3.1')
+                or matplotlib.__version__[0] == '0')
+    except ImportError:
+        return False
+
+def _mpl_ge_1_4_0():
+    try:
+        import matplotlib
+        return (matplotlib.__version__  >= LooseVersion('1.4')
+                or matplotlib.__version__[0] == '0')
+    except ImportError:
+        return False
+
+def _mpl_ge_1_5_0():
+    try:
+        import matplotlib
+        return (matplotlib.__version__  >= LooseVersion('1.5')
+                or matplotlib.__version__[0] == '0')
+    except ImportError:
+        return False
+
+if _mpl_ge_1_5_0():
+    # Compat with mp 1.5, which uses cycler.
+    import cycler
+    colors = mpl_stylesheet.pop('axes.color_cycle')
+    mpl_stylesheet['axes.prop_cycle'] = cycler.cycler('color_cycle', colors)
+
 
 def _get_standard_kind(kind):
     return {'density': 'kde'}.get(kind, kind)
@@ -464,6 +507,15 @@ def radviz(frame, class_column, ax=None, color=None, colormap=None, **kwds):
 def andrews_curves(frame, class_column, ax=None, samples=200, color=None,
                    colormap=None, **kwds):
     """
+    Generates a matplotlib plot of Andrews curves, for visualising clusters of multivariate data.
+
+    Andrews curves have the functional form:
+
+    f(t) = x_1/sqrt(2) + x_2 sin(t) + x_3 cos(t) + x_4 sin(2t) + x_5 cos(2t) + ...
+
+    Where x coefficients correspond to the values of each dimension and t is linearly spaced between -pi and +pi. Each
+    row of frame then corresponds to a single curve.
+
     Parameters:
     -----------
     frame : DataFrame
@@ -484,20 +536,26 @@ def andrews_curves(frame, class_column, ax=None, samples=200, color=None,
     ax: Matplotlib axis object
 
     """
-    from math import sqrt, pi, sin, cos
+    from math import sqrt, pi
     import matplotlib.pyplot as plt
 
     def function(amplitudes):
-        def f(x):
+        def f(t):
             x1 = amplitudes[0]
             result = x1 / sqrt(2.0)
-            harmonic = 1.0
-            for x_even, x_odd in zip(amplitudes[1::2], amplitudes[2::2]):
-                result += (x_even * sin(harmonic * x) +
-                           x_odd * cos(harmonic * x))
-                harmonic += 1.0
-            if len(amplitudes) % 2 != 0:
-                result += amplitudes[-1] * sin(harmonic * x)
+
+            # Take the rest of the coefficients and resize them appropriately. Take a copy of amplitudes as otherwise
+            # numpy deletes the element from amplitudes itself.
+            coeffs = np.delete(np.copy(amplitudes), 0)
+            coeffs.resize((coeffs.size + 1) / 2, 2)
+
+            # Generate the harmonics and arguments for the sin and cos functions.
+            harmonics = np.arange(0, coeffs.shape[0]) + 1
+            trig_args = np.outer(harmonics, t)
+
+            result += np.sum(coeffs[:, 0, np.newaxis] * np.sin(trig_args) +
+                             coeffs[:, 1, np.newaxis] * np.cos(trig_args),
+                             axis=0)
             return result
         return f
 
@@ -505,7 +563,7 @@ def andrews_curves(frame, class_column, ax=None, samples=200, color=None,
     class_col = frame[class_column]
     classes = frame[class_column].drop_duplicates()
     df = frame.drop(class_column, axis=1)
-    x = [-pi + 2.0 * pi * (t / float(samples)) for t in range(samples)]
+    t = np.linspace(-pi, pi, samples)
     used_legends = set([])
 
     color_values = _get_standard_colors(num_colors=len(classes),
@@ -517,14 +575,14 @@ def andrews_curves(frame, class_column, ax=None, samples=200, color=None,
     for i in range(n):
         row = df.iloc[i].values
         f = function(row)
-        y = [f(t) for t in x]
+        y = f(t)
         kls = class_col.iat[i]
         label = com.pprint_thing(kls)
         if label not in used_legends:
             used_legends.add(label)
-            ax.plot(x, y, color=colors[kls], label=label, **kwds)
+            ax.plot(t, y, color=colors[kls], label=label, **kwds)
         else:
-            ax.plot(x, y, color=colors[kls], **kwds)
+            ax.plot(t, y, color=colors[kls], **kwds)
 
     ax.legend(loc='upper right')
     ax.grid()
@@ -595,7 +653,7 @@ def bootstrap_plot(series, fig=None, size=50, samples=500, **kwds):
 @deprecate_kwarg(old_arg_name='data', new_arg_name='frame', stacklevel=3)
 def parallel_coordinates(frame, class_column, cols=None, ax=None, color=None,
                          use_columns=False, xticks=None, colormap=None,
-                         axvlines=True, **kwds):
+                         axvlines=True, axvlines_kwds={'linewidth':1,'color':'black'}, **kwds):
     """Parallel coordinates plotting.
 
     Parameters
@@ -617,6 +675,8 @@ def parallel_coordinates(frame, class_column, cols=None, ax=None, color=None,
         Colormap to use for line colors.
     axvlines: bool, optional
         If true, vertical lines will be added at each xtick
+    axvlines_kwds: keywords, optional
+        Options to be passed to axvline method for vertical lines
     kwds: keywords
         Options to pass to matplotlib plotting method
 
@@ -683,7 +743,7 @@ def parallel_coordinates(frame, class_column, cols=None, ax=None, color=None,
 
     if axvlines:
         for i in x:
-            ax.axvline(i, linewidth=1, color='black')
+            ax.axvline(i, **axvlines_kwds)
 
     ax.set_xticks(x)
     ax.set_xticklabels(df.columns)
@@ -783,7 +843,6 @@ class MPLPlot(object):
     _layout_type = 'vertical'
     _default_rot = 0
     orientation = None
-
     _pop_attributes = ['label', 'style', 'logy', 'logx', 'loglog',
                        'mark_right', 'stacked']
     _attr_defaults = {'logy': False, 'logx': False, 'loglog': False,
@@ -943,11 +1002,11 @@ class MPLPlot(object):
         self._make_plot()
         self._add_table()
         self._make_legend()
+        self._adorn_subplots()
 
         for ax in self.axes:
             self._post_plot_logic_common(ax, self.data)
             self._post_plot_logic(ax, self.data)
-        self._adorn_subplots()
 
     def _args_adjust(self):
         pass
@@ -972,8 +1031,9 @@ class MPLPlot(object):
         else:
             # otherwise, create twin axes
             orig_ax, new_ax = ax, ax.twinx()
-            new_ax._get_lines.color_cycle = orig_ax._get_lines.color_cycle
-
+            # TODO: use Matplotlib public API when available
+            new_ax._get_lines = orig_ax._get_lines
+            new_ax._get_patches_for_fill = orig_ax._get_patches_for_fill
             orig_ax.right_ax, new_ax.left_ax = new_ax, orig_ax
 
             if not self._has_plotted_object(orig_ax):  # no data on left y
@@ -1036,7 +1096,7 @@ class MPLPlot(object):
                 label = 'None'
             data = data.to_frame(name=label)
 
-        numeric_data = data.convert_objects(datetime=True)._get_numeric_data()
+        numeric_data = data._convert(datetime=True)._get_numeric_data()
 
         try:
             is_empty = numeric_data.empty
@@ -1092,7 +1152,7 @@ class MPLPlot(object):
     def _adorn_subplots(self):
         """Common post process unrelated to data"""
         if len(self.axes) > 0:
-            all_axes = self._get_axes()
+            all_axes = self._get_subplots()
             nrows, ncols = self._get_axes_layout()
             _handle_shared_axes(axarr=all_axes, nplots=len(all_axes),
                                 naxes=nrows * ncols, nrows=nrows,
@@ -1195,6 +1255,14 @@ class MPLPlot(object):
     def plt(self):
         import matplotlib.pyplot as plt
         return plt
+
+    @staticmethod
+    def mpl_ge_1_3_1():
+        return _mpl_ge_1_3_1()
+
+    @staticmethod
+    def mpl_ge_1_5_0():
+        return _mpl_ge_1_5_0()
 
     _need_to_set_index = False
 
@@ -1416,11 +1484,13 @@ class MPLPlot(object):
                     errors[kw] = err
         return errors
 
-    def _get_axes(self):
-        return self.axes[0].get_figure().get_axes()
+    def _get_subplots(self):
+        from matplotlib.axes import Subplot
+        return [ax for ax in self.axes[0].get_figure().get_axes()
+                    if isinstance(ax, Subplot)]
 
     def _get_axes_layout(self):
-        axes = self._get_axes()
+        axes = self._get_subplots()
         x_set = set()
         y_set = set()
         for ax in axes:
@@ -1462,16 +1532,17 @@ class PlanePlot(MPLPlot):
 class ScatterPlot(PlanePlot):
     _kind = 'scatter'
 
-    def __init__(self, data, x, y, c=None, **kwargs):
-        super(ScatterPlot, self).__init__(data, x, y, **kwargs)
+    def __init__(self, data, x, y, s=None, c=None, **kwargs):
+        if s is None:
+            # hide the matplotlib default for size, in case we want to change
+            # the handling of this argument later
+            s = 20
+        super(ScatterPlot, self).__init__(data, x, y, s=s, **kwargs)
         if com.is_integer(c) and not self.data.columns.holds_integer():
             c = self.data.columns[c]
         self.c = c
 
     def _make_plot(self):
-        import matplotlib as mpl
-        mpl_ge_1_3_1 = str(mpl.__version__) >= LooseVersion('1.3.1')
-
         x, y, c, data = self.x, self.y, self.c, self.data
         ax = self.axes[0]
 
@@ -1483,9 +1554,13 @@ class ScatterPlot(PlanePlot):
         # pandas uses colormap, matplotlib uses cmap.
         cmap = self.colormap or 'Greys'
         cmap = self.plt.cm.get_cmap(cmap)
-
-        if c is None:
+        color = self.kwds.pop("color", None)
+        if c is not None and color is not None:
+            raise TypeError('Specify exactly one of `c` and `color`')
+        elif c is None and color is None:
             c_values = self.plt.rcParams['patch.facecolor']
+        elif color is not None:
+            c_values = color
         elif c_is_column:
             c_values = self.data[c].values
         else:
@@ -1500,7 +1575,7 @@ class ScatterPlot(PlanePlot):
         if cb:
             img = ax.collections[0]
             kws = dict(ax=ax)
-            if mpl_ge_1_3_1:
+            if self.mpl_ge_1_3_1():
                 kws['label'] = c if c_is_column else ''
             self.fig.colorbar(img, **kws)
 
@@ -1631,6 +1706,11 @@ class LinePlot(MPLPlot):
 
         # Set ax with freq info
         _decorate_axes(ax, freq, kwds)
+        # digging deeper
+        if hasattr(ax, 'left_ax'):
+            _decorate_axes(ax.left_ax, freq, kwds)
+        if hasattr(ax, 'right_ax'):
+            _decorate_axes(ax.right_ax, freq, kwds)
         ax._plot_data.append((data, cls._kind, kwds))
 
         lines = cls._plot(ax, data.index, data.values, style=style, **kwds)
@@ -1738,6 +1818,8 @@ class AreaPlot(LinePlot):
         if not 'color' in kwds:
             kwds['color'] = lines[0].get_color()
 
+        if cls.mpl_ge_1_5_0(): # mpl 1.5 added real support for poly legends
+            kwds.pop('label')
         ax.fill_between(xdata, start, y_values, **kwds)
         cls._update_stacker(ax, stacking_id, y)
         return lines
@@ -1909,8 +1991,7 @@ class HistPlot(LinePlot):
     def _args_adjust(self):
         if com.is_integer(self.bins):
             # create common bin edge
-            values = (self.data.convert_objects(datetime=True)
-                      ._get_numeric_data())
+            values = (self.data._convert(datetime=True)._get_numeric_data())
             values = np.ravel(values)
             values = values[~com.isnull(values)]
 
@@ -2367,16 +2448,23 @@ df_note = """- If `kind` = 'scatter' and the argument `c` is the name of a dataf
       a single number (e.g. `mean`, `max`, `sum`, `std`)."""
 series_note = ""
 
-_shared_doc_df_kwargs = dict(klass='DataFrame', klass_kind=df_kind,
-                             klass_coord=df_coord, klass_ax=df_ax,
-                             klass_unique=df_unique, klass_note=df_note)
-_shared_doc_series_kwargs = dict(klass='Series', klass_kind=series_kind,
+_shared_doc_df_kwargs = dict(klass='DataFrame', klass_obj='df',
+                             klass_kind=df_kind, klass_coord=df_coord,
+                             klass_ax=df_ax, klass_unique=df_unique,
+                             klass_note=df_note)
+_shared_doc_series_kwargs = dict(klass='Series', klass_obj='s',
+                                 klass_kind=series_kind,
                                  klass_coord=series_coord, klass_ax=series_ax,
                                  klass_unique=series_unique,
                                  klass_note=series_note)
 
 _shared_docs['plot'] = """
     Make plots of %(klass)s using matplotlib / pylab.
+
+    *New in version 0.17.0:* Each plot kind has a corresponding method on the
+    ``%(klass)s.plot`` accessor:
+    ``%(klass_obj)s.plot(kind='line')`` is equivalent to
+    ``%(klass_obj)s.plot.line()``.
 
     Parameters
     ----------
@@ -2459,6 +2547,7 @@ _shared_docs['plot'] = """
     %(klass_note)s
 
     """
+
 
 @Appender(_shared_docs['plot'] % _shared_doc_df_kwargs)
 def plot_frame(data, x=None, y=None, kind='line', ax=None,                 # Dataframe unique
@@ -3382,6 +3471,428 @@ def _set_ticks_props(axes, xlabelsize=None, xrot=None,
         if yrot is not None:
             plt.setp(ax.get_yticklabels(), rotation=yrot)
     return axes
+
+
+class BasePlotMethods(PandasObject):
+    def __init__(self, data):
+        self._data = data
+
+    def __call__(self, *args, **kwargs):
+        raise NotImplementedError
+
+
+class SeriesPlotMethods(BasePlotMethods):
+    """Series plotting accessor and method
+
+    Examples
+    --------
+    >>> s.plot.line()
+    >>> s.plot.bar()
+    >>> s.plot.hist()
+
+    Plotting methods can also be accessed by calling the accessor as a method
+    with the ``kind`` argument:
+    ``s.plot(kind='line')`` is equivalent to ``s.plot.line()``
+    """
+    def __call__(self, kind='line', ax=None,                    # Series unique
+                 figsize=None, use_index=True, title=None, grid=None,
+                 legend=False, style=None, logx=False, logy=False, loglog=False,
+                 xticks=None, yticks=None, xlim=None, ylim=None,
+                 rot=None, fontsize=None, colormap=None, table=False,
+                 yerr=None, xerr=None,
+                 label=None, secondary_y=False,                 # Series unique
+                 **kwds):
+        return plot_series(self._data, kind=kind, ax=ax, figsize=figsize,
+                           use_index=use_index, title=title, grid=grid,
+                           legend=legend, style=style, logx=logx, logy=logy,
+                           loglog=loglog, xticks=xticks, yticks=yticks,
+                           xlim=xlim, ylim=ylim, rot=rot, fontsize=fontsize,
+                           colormap=colormap, table=table, yerr=yerr,
+                           xerr=xerr, label=label, secondary_y=secondary_y,
+                           **kwds)
+    __call__.__doc__ = plot_series.__doc__
+
+    def line(self, **kwds):
+        """
+        Line plot
+
+        .. versionadded:: 0.17.0
+
+        Parameters
+        ----------
+        **kwds : optional
+            Keyword arguments to pass on to :py:meth:`pandas.Series.plot`.
+
+        Returns
+        -------
+        axes : matplotlib.AxesSubplot or np.array of them
+        """
+        return self(kind='line', **kwds)
+
+    def bar(self, **kwds):
+        """
+        Vertical bar plot
+
+        .. versionadded:: 0.17.0
+
+        Parameters
+        ----------
+        **kwds : optional
+            Keyword arguments to pass on to :py:meth:`pandas.Series.plot`.
+
+        Returns
+        -------
+        axes : matplotlib.AxesSubplot or np.array of them
+        """
+        return self(kind='bar', **kwds)
+
+    def barh(self, **kwds):
+        """
+        Horizontal bar plot
+
+        .. versionadded:: 0.17.0
+
+        Parameters
+        ----------
+        **kwds : optional
+            Keyword arguments to pass on to :py:meth:`pandas.Series.plot`.
+
+        Returns
+        -------
+        axes : matplotlib.AxesSubplot or np.array of them
+        """
+        return self(kind='barh', **kwds)
+
+    def box(self, **kwds):
+        """
+        Boxplot
+
+        .. versionadded:: 0.17.0
+
+        Parameters
+        ----------
+        **kwds : optional
+            Keyword arguments to pass on to :py:meth:`pandas.Series.plot`.
+
+        Returns
+        -------
+        axes : matplotlib.AxesSubplot or np.array of them
+        """
+        return self(kind='box', **kwds)
+
+    def hist(self, bins=10, **kwds):
+        """
+        Histogram
+
+        .. versionadded:: 0.17.0
+
+        Parameters
+        ----------
+        bins: integer, default 10
+            Number of histogram bins to be used
+        **kwds : optional
+            Keyword arguments to pass on to :py:meth:`pandas.Series.plot`.
+
+        Returns
+        -------
+        axes : matplotlib.AxesSubplot or np.array of them
+        """
+        return self(kind='hist', bins=bins, **kwds)
+
+    def kde(self, **kwds):
+        """
+        Kernel Density Estimate plot
+
+        .. versionadded:: 0.17.0
+
+        Parameters
+        ----------
+        **kwds : optional
+            Keyword arguments to pass on to :py:meth:`pandas.Series.plot`.
+
+        Returns
+        -------
+        axes : matplotlib.AxesSubplot or np.array of them
+        """
+        return self(kind='kde', **kwds)
+
+    density = kde
+
+    def area(self, **kwds):
+        """
+        Area plot
+
+        .. versionadded:: 0.17.0
+
+        Parameters
+        ----------
+        **kwds : optional
+            Keyword arguments to pass on to :py:meth:`pandas.Series.plot`.
+
+        Returns
+        -------
+        axes : matplotlib.AxesSubplot or np.array of them
+        """
+        return self(kind='area', **kwds)
+
+    def pie(self, **kwds):
+        """
+        Pie chart
+
+        .. versionadded:: 0.17.0
+
+        Parameters
+        ----------
+        **kwds : optional
+            Keyword arguments to pass on to :py:meth:`pandas.Series.plot`.
+
+        Returns
+        -------
+        axes : matplotlib.AxesSubplot or np.array of them
+        """
+        return self(kind='pie', **kwds)
+
+
+class FramePlotMethods(BasePlotMethods):
+    """DataFrame plotting accessor and method
+
+    Examples
+    --------
+    >>> df.plot.line()
+    >>> df.plot.scatter('x', 'y')
+    >>> df.plot.hexbin()
+
+    These plotting methods can also be accessed by calling the accessor as a
+    method with the ``kind`` argument:
+    ``df.plot(kind='line')`` is equivalent to ``df.plot.line()``
+    """
+    def __call__(self, x=None, y=None, kind='line', ax=None,                 # Dataframe unique
+                 subplots=False, sharex=None, sharey=False, layout=None,     # Dataframe unique
+                 figsize=None, use_index=True, title=None, grid=None,
+                 legend=True, style=None, logx=False, logy=False, loglog=False,
+                 xticks=None, yticks=None, xlim=None, ylim=None,
+                 rot=None, fontsize=None, colormap=None, table=False,
+                 yerr=None, xerr=None,
+                 secondary_y=False, sort_columns=False,        # Dataframe unique
+                 **kwds):
+        return plot_frame(self._data, kind=kind, x=x, y=y, ax=ax,
+                          subplots=subplots, sharex=sharex, sharey=sharey,
+                          layout=layout, figsize=figsize, use_index=use_index,
+                          title=title, grid=grid, legend=legend, style=style,
+                          logx=logx, logy=logy, loglog=loglog, xticks=xticks,
+                          yticks=yticks, xlim=xlim, ylim=ylim, rot=rot,
+                          fontsize=fontsize, colormap=colormap, table=table,
+                          yerr=yerr, xerr=xerr, secondary_y=secondary_y,
+                          sort_columns=sort_columns, **kwds)
+    __call__.__doc__ = plot_frame.__doc__
+
+    def line(self, x=None, y=None, **kwds):
+        """
+        Line plot
+
+        .. versionadded:: 0.17.0
+
+        Parameters
+        ----------
+        x, y : label or position, optional
+            Coordinates for each point.
+        **kwds : optional
+            Keyword arguments to pass on to :py:meth:`pandas.DataFrame.plot`.
+
+        Returns
+        -------
+        axes : matplotlib.AxesSubplot or np.array of them
+        """
+        return self(kind='line', x=x, y=y, **kwds)
+
+    def bar(self, x=None, y=None, **kwds):
+        """
+        Vertical bar plot
+
+        .. versionadded:: 0.17.0
+
+        Parameters
+        ----------
+        x, y : label or position, optional
+            Coordinates for each point.
+        **kwds : optional
+            Keyword arguments to pass on to :py:meth:`pandas.DataFrame.plot`.
+
+        Returns
+        -------
+        axes : matplotlib.AxesSubplot or np.array of them
+        """
+        return self(kind='bar', x=x, y=y, **kwds)
+
+    def barh(self, x=None, y=None, **kwds):
+        """
+        Horizontal bar plot
+
+        .. versionadded:: 0.17.0
+
+        Parameters
+        ----------
+        x, y : label or position, optional
+            Coordinates for each point.
+        **kwds : optional
+            Keyword arguments to pass on to :py:meth:`pandas.DataFrame.plot`.
+
+        Returns
+        -------
+        axes : matplotlib.AxesSubplot or np.array of them
+        """
+        return self(kind='barh', x=x, y=y, **kwds)
+
+    def box(self, by=None, **kwds):
+        """
+        Boxplot
+
+        .. versionadded:: 0.17.0
+
+        Parameters
+        ----------
+        by : string or sequence
+            Column in the DataFrame to group by.
+        \*\*kwds : optional
+            Keyword arguments to pass on to :py:meth:`pandas.DataFrame.plot`.
+
+        Returns
+        -------
+        axes : matplotlib.AxesSubplot or np.array of them
+        """
+        return self(kind='box', by=by, **kwds)
+
+    def hist(self, by=None, bins=10, **kwds):
+        """
+        Histogram
+
+        .. versionadded:: 0.17.0
+
+        Parameters
+        ----------
+        by : string or sequence
+            Column in the DataFrame to group by.
+        bins: integer, default 10
+            Number of histogram bins to be used
+        **kwds : optional
+            Keyword arguments to pass on to :py:meth:`pandas.DataFrame.plot`.
+
+        Returns
+        -------
+        axes : matplotlib.AxesSubplot or np.array of them
+        """
+        return self(kind='hist', by=by, bins=bins, **kwds)
+
+    def kde(self, **kwds):
+        """
+        Kernel Density Estimate plot
+
+        .. versionadded:: 0.17.0
+
+        Parameters
+        ----------
+        **kwds : optional
+            Keyword arguments to pass on to :py:meth:`pandas.DataFrame.plot`.
+
+        Returns
+        -------
+        axes : matplotlib.AxesSubplot or np.array of them
+        """
+        return self(kind='kde', **kwds)
+
+    density = kde
+
+    def area(self, x=None, y=None, **kwds):
+        """
+        Area plot
+
+        .. versionadded:: 0.17.0
+
+        Parameters
+        ----------
+        x, y : label or position, optional
+            Coordinates for each point.
+        **kwds : optional
+            Keyword arguments to pass on to :py:meth:`pandas.DataFrame.plot`.
+
+        Returns
+        -------
+        axes : matplotlib.AxesSubplot or np.array of them
+        """
+        return self(kind='area', x=x, y=y, **kwds)
+
+    def pie(self, y=None, **kwds):
+        """
+        Pie chart
+
+        .. versionadded:: 0.17.0
+
+        Parameters
+        ----------
+        y : label or position, optional
+            Column to plot.
+        **kwds : optional
+            Keyword arguments to pass on to :py:meth:`pandas.DataFrame.plot`.
+
+        Returns
+        -------
+        axes : matplotlib.AxesSubplot or np.array of them
+        """
+        return self(kind='pie', y=y, **kwds)
+
+    def scatter(self, x, y, s=None, c=None, **kwds):
+        """
+        Scatter plot
+
+        .. versionadded:: 0.17.0
+
+        Parameters
+        ----------
+        x, y : label or position, optional
+            Coordinates for each point.
+        s : scalar or array_like, optional
+            Size of each point.
+        c : label or position, optional
+            Color of each point.
+        **kwds : optional
+            Keyword arguments to pass on to :py:meth:`pandas.DataFrame.plot`.
+
+        Returns
+        -------
+        axes : matplotlib.AxesSubplot or np.array of them
+        """
+        return self(kind='scatter', x=x, y=y, c=c, s=s, **kwds)
+
+    def hexbin(self, x, y, C=None, reduce_C_function=None, gridsize=None,
+               **kwds):
+        """
+        Hexbin plot
+
+        .. versionadded:: 0.17.0
+
+        Parameters
+        ----------
+        x, y : label or position, optional
+            Coordinates for each point.
+        C : label or position, optional
+            The value at each `(x, y)` point.
+        reduce_C_function : callable, optional
+            Function of one argument that reduces all the values in a bin to
+            a single number (e.g. `mean`, `max`, `sum`, `std`).
+        gridsize : int, optional
+            Number of bins.
+        **kwds : optional
+            Keyword arguments to pass on to :py:meth:`pandas.DataFrame.plot`.
+
+        Returns
+        -------
+        axes : matplotlib.AxesSubplot or np.array of them
+        """
+        if reduce_C_function is not None:
+            kwds['reduce_C_function'] = reduce_C_function
+        if gridsize is not None:
+            kwds['gridsize'] = gridsize
+        return self(kind='hexbin', x=x, y=y, C=C, **kwds)
 
 
 if __name__ == '__main__':

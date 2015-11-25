@@ -274,7 +274,6 @@ to sparse
     def __iter__(self):
         for i in range(len(self)):
             yield self._get_val_at(i)
-        raise StopIteration
 
     def __getitem__(self, key):
         """
@@ -283,7 +282,15 @@ to sparse
         if com.is_integer(key):
             return self._get_val_at(key)
         else:
-            data_slice = self.values[key]
+            if isinstance(key, SparseArray):
+                key = np.asarray(key)
+            if hasattr(key,'__len__') and len(self) != len(key):
+                indices = self.sp_index
+                if hasattr(indices,'to_int_index'):
+                    indices = indices.to_int_index()
+                data_slice = self.values.take(indices.indices)[key]
+            else:
+                data_slice = self.values[key]
             return self._constructor(data_slice)
 
     def __getslice__(self, i, j):
@@ -513,7 +520,12 @@ def make_sparse(arr, kind='block', fill_value=nan):
     else:
         mask = arr != fill_value
 
-    indices = np.arange(length, dtype=np.int32)[mask]
+    length = len(arr)
+    if length != mask.size:
+        # the arr is a SparseArray
+        indices = mask.sp_index.indices
+    else:
+        indices = np.arange(length, dtype=np.int32)[mask]
 
     if kind == 'block':
         locs, lens = splib.get_blocks(indices)

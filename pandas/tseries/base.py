@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 
 from pandas import compat
 import numpy as np
-from pandas.core import common as com
+from pandas.core import common as com, algorithms
 from pandas.core.common import is_integer, is_float, AbstractMethodError
 import pandas.tslib as tslib
 import pandas.lib as lib
@@ -180,7 +180,7 @@ class DatetimeIndexOpsMixin(object):
 
             return self._simple_new(sorted_values, **attribs)
 
-    def take(self, indices, axis=0, **kwargs):
+    def take(self, indices, axis=0, allow_fill=True, fill_value=None):
         """
         Analogous to ndarray.take
         """
@@ -189,6 +189,12 @@ class DatetimeIndexOpsMixin(object):
         if isinstance(maybe_slice, slice):
             return self[maybe_slice]
         taken = self.asi8.take(com._ensure_platform_int(indices))
+
+        # only fill if we are passing a non-None fill_value
+        if allow_fill and fill_value is not None:
+            mask = indices == -1
+            if mask.any():
+                taken[mask] = tslib.iNaT
         return self._shallow_copy(taken, freq=None)
 
     def get_duplicates(self):
@@ -196,9 +202,14 @@ class DatetimeIndexOpsMixin(object):
         return self._simple_new(values)
 
     @cache_readonly
+    def _isnan(self):
+        """ return if each value is nan"""
+        return (self.asi8 == tslib.iNaT)
+
+    @cache_readonly
     def hasnans(self):
         """ return if I have any nans; enables various perf speedups """
-        return (self.asi8 == tslib.iNaT).any()
+        return self._isnan.any()
 
     @property
     def asobject(self):
@@ -486,8 +497,7 @@ class DatetimeIndexOpsMixin(object):
             except ValueError:
                 return self.asobject.isin(values)
 
-        value_set = set(values.asi8)
-        return lib.ismember_int64(self.asi8, value_set)
+        return algorithms.isin(self.asi8, values.asi8)
 
     def shift(self, n, freq=None):
         """
@@ -506,9 +516,10 @@ class DatetimeIndexOpsMixin(object):
         if freq is not None and freq != self.freq:
             if isinstance(freq, compat.string_types):
                 freq = frequencies.to_offset(freq)
-            result = Index.shift(self, n, freq)
+            offset = n * freq
+            result = self + offset
 
-            if hasattr(self,'tz'):
+            if hasattr(self, 'tz'):
                 result.tz = self.tz
 
             return result

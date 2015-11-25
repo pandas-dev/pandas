@@ -5,8 +5,6 @@ Misc tools for implementing data structures
 import re
 import collections
 import numbers
-import codecs
-import csv
 import types
 from datetime import datetime, timedelta
 from functools import partial
@@ -19,7 +17,7 @@ import pandas.algos as algos
 import pandas.lib as lib
 import pandas.tslib as tslib
 from pandas import compat
-from pandas.compat import StringIO, BytesIO, range, long, u, zip, map, string_types, iteritems
+from pandas.compat import BytesIO, range, long, u, zip, map, string_types, iteritems
 from pandas.core.dtypes import CategoricalDtype, CategoricalDtypeType, DatetimeTZDtype, DatetimeTZDtypeType
 from pandas.core.config import get_option
 
@@ -446,14 +444,24 @@ def mask_missing(arr, values_to_mask):
     mask = None
     for x in nonna:
         if mask is None:
-            mask = arr == x
+
+            # numpy elementwise comparison warning
+            if is_numeric_v_string_like(arr, x):
+                mask = False
+            else:
+                mask = arr == x
 
             # if x is a string and arr is not, then we get False and we must
             # expand the mask to size arr.shape
             if np.isscalar(mask):
                 mask = np.zeros(arr.shape, dtype=bool)
         else:
-            mask |= arr == x
+
+            # numpy elementwise comparison warning
+            if is_numeric_v_string_like(arr, x):
+                mask |= False
+            else:
+                mask |= arr == x
 
     if na_mask.any():
         if mask is None:
@@ -994,8 +1002,7 @@ def _infer_fill_value(val):
 
 
 def _infer_dtype_from_scalar(val):
-    """ interpret the dtype from a scalar, upcast floats and ints
-        return the new value and the dtype """
+    """ interpret the dtype from a scalar """
 
     dtype = np.object_
 
@@ -1029,12 +1036,17 @@ def _infer_dtype_from_scalar(val):
     elif is_bool(val):
         dtype = np.bool_
 
-    # provide implicity upcast on scalars
     elif is_integer(val):
-        dtype = np.int64
+        if isinstance(val, np.integer):
+            dtype = type(val)
+        else:
+            dtype = np.int64
 
     elif is_float(val):
-        dtype = np.float64
+        if isinstance(val, np.floating):
+            dtype = type(val)
+        else:
+            dtype = np.float64
 
     elif is_complex(val):
         dtype = np.complex_
@@ -1073,6 +1085,9 @@ def _maybe_promote(dtype, fill_value=np.nan):
                     fill_value = tslib.iNaT
             else:
                 fill_value = tslib.iNaT
+    elif is_datetimetz(dtype):
+        if isnull(fill_value):
+            fill_value = tslib.iNaT
     elif is_float(fill_value):
         if issubclass(dtype.type, np.bool_):
             dtype = np.object_
@@ -1099,7 +1114,9 @@ def _maybe_promote(dtype, fill_value=np.nan):
 
     # in case we have a string that looked like a number
     if is_categorical_dtype(dtype):
-        dtype = dtype
+        pass
+    elif is_datetimetz(dtype):
+        pass
     elif issubclass(np.dtype(dtype).type, compat.string_types):
         dtype = np.object_
 
@@ -1407,367 +1424,12 @@ def _fill_zeros(result, x, y, name, fill):
     return result
 
 
-def _interp_wrapper(f, wrap_dtype, na_override=None):
-    def wrapper(arr, mask, limit=None):
-        view = arr.view(wrap_dtype)
-        f(view, mask, limit=limit)
-    return wrapper
-
-
-_pad_1d_datetime = _interp_wrapper(algos.pad_inplace_int64, np.int64)
-_pad_2d_datetime = _interp_wrapper(algos.pad_2d_inplace_int64, np.int64)
-_backfill_1d_datetime = _interp_wrapper(algos.backfill_inplace_int64,
-                                        np.int64)
-_backfill_2d_datetime = _interp_wrapper(algos.backfill_2d_inplace_int64,
-                                        np.int64)
-
-
-def pad_1d(values, limit=None, mask=None, dtype=None):
-
-    if dtype is None:
-        dtype = values.dtype
-    _method = None
-    if is_float_dtype(values):
-        _method = getattr(algos, 'pad_inplace_%s' % dtype.name, None)
-    elif dtype in _DATELIKE_DTYPES or is_datetime64_dtype(values):
-        _method = _pad_1d_datetime
-    elif is_integer_dtype(values):
-        values = _ensure_float64(values)
-        _method = algos.pad_inplace_float64
-    elif values.dtype == np.object_:
-        _method = algos.pad_inplace_object
-
-    if _method is None:
-        raise ValueError('Invalid dtype for pad_1d [%s]' % dtype.name)
-
-    if mask is None:
-        mask = isnull(values)
-    mask = mask.view(np.uint8)
-    _method(values, mask, limit=limit)
-    return values
-
-
-def backfill_1d(values, limit=None, mask=None, dtype=None):
-
-    if dtype is None:
-        dtype = values.dtype
-    _method = None
-    if is_float_dtype(values):
-        _method = getattr(algos, 'backfill_inplace_%s' % dtype.name, None)
-    elif dtype in _DATELIKE_DTYPES or is_datetime64_dtype(values):
-        _method = _backfill_1d_datetime
-    elif is_integer_dtype(values):
-        values = _ensure_float64(values)
-        _method = algos.backfill_inplace_float64
-    elif values.dtype == np.object_:
-        _method = algos.backfill_inplace_object
-
-    if _method is None:
-        raise ValueError('Invalid dtype for backfill_1d [%s]' % dtype.name)
-
-    if mask is None:
-        mask = isnull(values)
-    mask = mask.view(np.uint8)
-
-    _method(values, mask, limit=limit)
-    return values
-
-
-def pad_2d(values, limit=None, mask=None, dtype=None):
-
-    if dtype is None:
-        dtype = values.dtype
-    _method = None
-    if is_float_dtype(values):
-        _method = getattr(algos, 'pad_2d_inplace_%s' % dtype.name, None)
-    elif dtype in _DATELIKE_DTYPES or is_datetime64_dtype(values):
-        _method = _pad_2d_datetime
-    elif is_integer_dtype(values):
-        values = _ensure_float64(values)
-        _method = algos.pad_2d_inplace_float64
-    elif values.dtype == np.object_:
-        _method = algos.pad_2d_inplace_object
-
-    if _method is None:
-        raise ValueError('Invalid dtype for pad_2d [%s]' % dtype.name)
-
-    if mask is None:
-        mask = isnull(values)
-    mask = mask.view(np.uint8)
-
-    if np.all(values.shape):
-        _method(values, mask, limit=limit)
-    else:
-        # for test coverage
-        pass
-    return values
-
-
-def backfill_2d(values, limit=None, mask=None, dtype=None):
-
-    if dtype is None:
-        dtype = values.dtype
-    _method = None
-    if is_float_dtype(values):
-        _method = getattr(algos, 'backfill_2d_inplace_%s' % dtype.name, None)
-    elif dtype in _DATELIKE_DTYPES or is_datetime64_dtype(values):
-        _method = _backfill_2d_datetime
-    elif is_integer_dtype(values):
-        values = _ensure_float64(values)
-        _method = algos.backfill_2d_inplace_float64
-    elif values.dtype == np.object_:
-        _method = algos.backfill_2d_inplace_object
-
-    if _method is None:
-        raise ValueError('Invalid dtype for backfill_2d [%s]' % dtype.name)
-
-    if mask is None:
-        mask = isnull(values)
-    mask = mask.view(np.uint8)
-
-    if np.all(values.shape):
-        _method(values, mask, limit=limit)
-    else:
-        # for test coverage
-        pass
-    return values
-
-
-def _clean_interp_method(method, **kwargs):
-    order = kwargs.get('order')
-    valid = ['linear', 'time', 'index', 'values', 'nearest', 'zero', 'slinear',
-             'quadratic', 'cubic', 'barycentric', 'polynomial',
-             'krogh', 'piecewise_polynomial',
-             'pchip', 'spline']
-    if method in ('spline', 'polynomial') and order is None:
-        raise ValueError("You must specify the order of the spline or "
-                         "polynomial.")
-    if method not in valid:
-        raise ValueError("method must be one of {0}."
-                         "Got '{1}' instead.".format(valid, method))
-    return method
-
-
-def interpolate_1d(xvalues, yvalues, method='linear', limit=None,
-                   limit_direction='forward',
-                   fill_value=None, bounds_error=False, order=None, **kwargs):
-    """
-    Logic for the 1-d interpolation.  The result should be 1-d, inputs
-    xvalues and yvalues will each be 1-d arrays of the same length.
-
-    Bounds_error is currently hardcoded to False since non-scipy ones don't
-    take it as an argumnet.
-    """
-    # Treat the original, non-scipy methods first.
-
-    invalid = isnull(yvalues)
-    valid = ~invalid
-
-    if not valid.any():
-        # have to call np.asarray(xvalues) since xvalues could be an Index
-        # which cant be mutated
-        result = np.empty_like(np.asarray(xvalues), dtype=np.float64)
-        result.fill(np.nan)
-        return result
-
-    if valid.all():
-        return yvalues
-
-    if method == 'time':
-        if not getattr(xvalues, 'is_all_dates', None):
-        # if not issubclass(xvalues.dtype.type, np.datetime64):
-            raise ValueError('time-weighted interpolation only works '
-                             'on Series or DataFrames with a '
-                             'DatetimeIndex')
-        method = 'values'
-
-    def _interp_limit(invalid, fw_limit, bw_limit):
-        "Get idx of values that won't be forward-filled b/c they exceed the limit."
-        all_nans = np.where(invalid)[0]
-        if all_nans.size == 0: # no nans anyway
-            return []
-        violate = [invalid[max(0, x - bw_limit):x + fw_limit + 1] for x in all_nans]
-        violate = np.array([x.all() & (x.size > bw_limit + fw_limit) for x in violate])
-        return all_nans[violate] + fw_limit - bw_limit
-
-    valid_limit_directions = ['forward', 'backward', 'both']
-    limit_direction = limit_direction.lower()
-    if limit_direction not in valid_limit_directions:
-        msg = 'Invalid limit_direction: expecting one of %r, got %r.' % (
-            valid_limit_directions, limit_direction)
-        raise ValueError(msg)
-
-    from pandas import Series
-    ys = Series(yvalues)
-    start_nans = set(range(ys.first_valid_index()))
-    end_nans = set(range(1 + ys.last_valid_index(), len(valid)))
-
-    # This is a list of the indexes in the series whose yvalue is currently NaN,
-    # but whose interpolated yvalue will be overwritten with NaN after computing
-    # the interpolation. For each index in this list, one of these conditions is
-    # true of the corresponding NaN in the yvalues:
-    #
-    # a) It is one of a chain of NaNs at the beginning of the series, and either
-    #    limit is not specified or limit_direction is 'forward'.
-    # b) It is one of a chain of NaNs at the end of the series, and limit is
-    #    specified and limit_direction is 'backward' or 'both'.
-    # c) Limit is nonzero and it is further than limit from the nearest non-NaN
-    #    value (with respect to the limit_direction setting).
-    #
-    # The default behavior is to fill forward with no limit, ignoring NaNs at
-    # the beginning (see issues #9218 and #10420)
-    violate_limit = sorted(start_nans)
-
-    if limit:
-        if limit_direction == 'forward':
-            violate_limit = sorted(start_nans | set(_interp_limit(invalid, limit, 0)))
-        if limit_direction == 'backward':
-            violate_limit = sorted(end_nans | set(_interp_limit(invalid, 0, limit)))
-        if limit_direction == 'both':
-            violate_limit = _interp_limit(invalid, limit, limit)
-
-    xvalues = getattr(xvalues, 'values', xvalues)
-    yvalues = getattr(yvalues, 'values', yvalues)
-    result = yvalues.copy()
-
-    if method in ['linear', 'time', 'index', 'values']:
-        if method in ('values', 'index'):
-            inds = np.asarray(xvalues)
-            # hack for DatetimeIndex, #1646
-            if issubclass(inds.dtype.type, np.datetime64):
-                inds = inds.view(np.int64)
-            if inds.dtype == np.object_:
-                inds = lib.maybe_convert_objects(inds)
-        else:
-            inds = xvalues
-        result[invalid] = np.interp(inds[invalid], inds[valid], yvalues[valid])
-        result[violate_limit] = np.nan
-        return result
-
-    sp_methods = ['nearest', 'zero', 'slinear', 'quadratic', 'cubic',
-                  'barycentric', 'krogh', 'spline', 'polynomial',
-                  'piecewise_polynomial', 'pchip']
-    if method in sp_methods:
-        inds = np.asarray(xvalues)
-        # hack for DatetimeIndex, #1646
-        if issubclass(inds.dtype.type, np.datetime64):
-            inds = inds.view(np.int64)
-        result[invalid] = _interpolate_scipy_wrapper(
-            inds[valid], yvalues[valid], inds[invalid], method=method,
-            fill_value=fill_value,
-            bounds_error=bounds_error, order=order, **kwargs)
-        result[violate_limit] = np.nan
-        return result
-
-
-def _interpolate_scipy_wrapper(x, y, new_x, method, fill_value=None,
-                               bounds_error=False, order=None, **kwargs):
-    """
-    passed off to scipy.interpolate.interp1d. method is scipy's kind.
-    Returns an array interpolated at new_x.  Add any new methods to
-    the list in _clean_interp_method
-    """
-    try:
-        from scipy import interpolate
-        from pandas import DatetimeIndex
-    except ImportError:
-        raise ImportError('{0} interpolation requires Scipy'.format(method))
-
-    new_x = np.asarray(new_x)
-
-    # ignores some kwargs that could be passed along.
-    alt_methods = {
-        'barycentric': interpolate.barycentric_interpolate,
-        'krogh': interpolate.krogh_interpolate,
-        'piecewise_polynomial': interpolate.piecewise_polynomial_interpolate,
-    }
-
-    if getattr(x, 'is_all_dates', False):
-        # GH 5975, scipy.interp1d can't hande datetime64s
-        x, new_x = x._values.astype('i8'), new_x.astype('i8')
-
-    try:
-        alt_methods['pchip'] = interpolate.pchip_interpolate
-    except AttributeError:
-        if method == 'pchip':
-            raise ImportError("Your version of scipy does not support "
-                              "PCHIP interpolation.")
-
-    interp1d_methods = ['nearest', 'zero', 'slinear', 'quadratic', 'cubic',
-                        'polynomial']
-    if method in interp1d_methods:
-        if method == 'polynomial':
-            method = order
-        terp = interpolate.interp1d(x, y, kind=method, fill_value=fill_value,
-                                    bounds_error=bounds_error)
-        new_y = terp(new_x)
-    elif method == 'spline':
-        # GH #10633
-        if not order:
-            raise ValueError("order needs to be specified and greater than 0")
-        terp = interpolate.UnivariateSpline(x, y, k=order, **kwargs)
-        new_y = terp(new_x)
-    else:
-        # GH 7295: need to be able to write for some reason
-        # in some circumstances: check all three
-        if not x.flags.writeable:
-            x = x.copy()
-        if not y.flags.writeable:
-            y = y.copy()
-        if not new_x.flags.writeable:
-            new_x = new_x.copy()
-        method = alt_methods[method]
-        new_y = method(x, y, new_x, **kwargs)
-    return new_y
-
-
-def interpolate_2d(values, method='pad', axis=0, limit=None, fill_value=None, dtype=None):
-    """ perform an actual interpolation of values, values will be make 2-d if
-    needed fills inplace, returns the result
-    """
-
-    transf = (lambda x: x) if axis == 0 else (lambda x: x.T)
-
-    # reshape a 1 dim if needed
-    ndim = values.ndim
-    if values.ndim == 1:
-        if axis != 0:  # pragma: no cover
-            raise AssertionError("cannot interpolate on a ndim == 1 with "
-                                 "axis != 0")
-        values = values.reshape(tuple((1,) + values.shape))
-
-    if fill_value is None:
-        mask = None
-    else:  # todo create faster fill func without masking
-        mask = mask_missing(transf(values), fill_value)
-
-    method = _clean_fill_method(method)
-    if method == 'pad':
-        values = transf(pad_2d(transf(values), limit=limit, mask=mask, dtype=dtype))
-    else:
-        values = transf(backfill_2d(transf(values), limit=limit, mask=mask, dtype=dtype))
-
-    # reshape back
-    if ndim == 1:
-        values = values[0]
-
-    return values
-
-
 def _consensus_name_attr(objs):
     name = objs[0].name
     for obj in objs[1:]:
         if obj.name != name:
             return None
     return name
-
-
-_fill_methods = {'pad': pad_1d, 'backfill': backfill_1d}
-
-
-def _get_fill_func(method):
-    method = _clean_fill_method(method)
-    return _fill_methods[method]
 
 
 #----------------------------------------------------------------------
@@ -1851,79 +1513,14 @@ def _maybe_box(indexer, values, obj, key):
 def _maybe_box_datetimelike(value):
     # turn a datetime like into a Timestamp/timedelta as needed
 
-    if isinstance(value, np.datetime64):
+    if isinstance(value, (np.datetime64, datetime)):
         value = tslib.Timestamp(value)
-    elif isinstance(value, np.timedelta64):
+    elif isinstance(value, (np.timedelta64, timedelta)):
         value = tslib.Timedelta(value)
 
     return value
 
 _values_from_object = lib.values_from_object
-
-
-def _possibly_convert_objects(values,
-                              datetime=True,
-                              numeric=True,
-                              timedelta=True,
-                              coerce=False,
-                              copy=True):
-    """ if we have an object dtype, try to coerce dates and/or numbers """
-
-    conversion_count = sum((datetime, numeric, timedelta))
-    if conversion_count == 0:
-        import warnings
-        warnings.warn('Must explicitly pass type for conversion. Defaulting to '
-                      'pre-0.17 behavior where datetime=True, numeric=True, '
-                      'timedelta=True and coerce=False', DeprecationWarning)
-        datetime = numeric = timedelta = True
-        coerce = False
-
-    if isinstance(values, (list, tuple)):
-        # List or scalar
-        values = np.array(values, dtype=np.object_)
-    elif not hasattr(values, 'dtype'):
-        values = np.array([values], dtype=np.object_)
-    elif not is_object_dtype(values.dtype):
-        # If not object, do not attempt conversion
-        values = values.copy() if copy else values
-        return values
-
-    # If 1 flag is coerce, ensure 2 others are False
-    if coerce:
-        if conversion_count > 1:
-            raise ValueError("Only one of 'datetime', 'numeric' or "
-                             "'timedelta' can be True when when coerce=True.")
-
-        # Immediate return if coerce
-        if datetime:
-            return pd.to_datetime(values, errors='coerce', box=False)
-        elif timedelta:
-            return pd.to_timedelta(values, errors='coerce', box=False)
-        elif numeric:
-            return lib.maybe_convert_numeric(values, set(), coerce_numeric=True)
-
-    # Soft conversions
-    if datetime:
-        values = lib.maybe_convert_objects(values,
-                                           convert_datetime=datetime)
-
-    if timedelta and is_object_dtype(values.dtype):
-        # Object check to ensure only run if previous did not convert
-        values = lib.maybe_convert_objects(values,
-                                           convert_timedelta=timedelta)
-
-    if numeric and is_object_dtype(values.dtype):
-        try:
-            converted = lib.maybe_convert_numeric(values,
-                                                   set(),
-                                                   coerce_numeric=True)
-            # If all NaNs, then do not-alter
-            values = converted if not isnull(converted).all() else values
-            values = values.copy() if copy else values
-        except:
-            pass
-
-    return values
 
 
 def _possibly_castable(arr):
@@ -1995,12 +1592,11 @@ def _possibly_cast_to_datetime(value, dtype, errors='raise'):
                     value = tslib.iNaT
 
                 # we have an array of datetime or timedeltas & nulls
-                elif np.prod(value.shape) and not is_dtype_equal(value.dtype, dtype):
+                elif np.prod(value.shape) or not is_dtype_equal(value.dtype, dtype):
                     try:
                         if is_datetime64:
                             value = to_datetime(value, errors=errors)._values
                         elif is_datetime64tz:
-
                             # input has to be UTC at this point, so just localize
                             value = to_datetime(value, errors=errors).tz_localize(dtype.tz)
                         elif is_timedelta64:
@@ -2217,21 +1813,33 @@ def _count_not_none(*args):
 
 
 
-def adjoin(space, *lists):
+def adjoin(space, *lists, **kwargs):
     """
     Glues together two sets of strings using the amount of space requested.
     The idea is to prettify.
+
+    ----------
+    space : int
+        number of spaces for padding
+    lists : str
+        list of str which being joined
+    strlen : callable
+        function used to calculate the length of each str. Needed for unicode
+        handling.
+    justfunc : callable
+        function used to justify str. Needed for unicode handling.
     """
+    strlen = kwargs.pop('strlen', len)
+    justfunc = kwargs.pop('justfunc', _justify)
+
     out_lines = []
     newLists = []
-    lengths = [max(map(len, x)) + space for x in lists[:-1]]
-
+    lengths = [max(map(strlen, x)) + space for x in lists[:-1]]
     # not the last one
     lengths.append(max(map(len, lists[-1])))
-
     maxLen = max(map(len, lists))
     for i, lst in enumerate(lists):
-        nl = [x.ljust(lengths[i]) for x in lst]
+        nl = justfunc(lst, lengths[i], mode='left')
         nl.extend([' ' * lengths[i]] * (maxLen - len(lst)))
         newLists.append(nl)
     toJoin = zip(*newLists)
@@ -2239,6 +1847,16 @@ def adjoin(space, *lists):
         out_lines.append(_join_unicode(lines))
     return _join_unicode(out_lines, sep='\n')
 
+def _justify(texts, max_len, mode='right'):
+    """
+    Perform ljust, center, rjust against string or list-like
+    """
+    if mode == 'left':
+        return [x.ljust(max_len) for x in texts]
+    elif mode == 'center':
+        return [x.center(max_len) for x in texts]
+    else:
+        return [x.rjust(max_len) for x in texts]
 
 def _join_unicode(lines, sep=''):
     try:
@@ -2431,6 +2049,9 @@ is_float = lib.is_float
 is_complex = lib.is_complex
 
 
+def is_string_like(obj):
+    return isinstance(obj, (compat.text_type, compat.string_types))
+
 def is_iterator(obj):
     # python 3 generators have __next__ instead of next
     return hasattr(obj, 'next') or hasattr(obj, '__next__')
@@ -2533,7 +2154,6 @@ def is_int64_dtype(arr_or_dtype):
     tipo = _get_dtype_type(arr_or_dtype)
     return issubclass(tipo, np.int64)
 
-
 def is_int_or_datetime_dtype(arr_or_dtype):
     tipo = _get_dtype_type(arr_or_dtype)
     return (issubclass(tipo, np.integer) or
@@ -2573,6 +2193,27 @@ def is_datetime_or_timedelta_dtype(arr_or_dtype):
     tipo = _get_dtype_type(arr_or_dtype)
     return issubclass(tipo, (np.datetime64, np.timedelta64))
 
+
+def is_numeric_v_string_like(a, b):
+    """
+    numpy doesn't like to compare numeric arrays vs scalar string-likes
+
+    return a boolean result if this is the case for a,b or b,a
+
+    """
+    is_a_array = isinstance(a, np.ndarray)
+    is_b_array = isinstance(b, np.ndarray)
+
+    is_a_numeric_array = is_a_array and is_numeric_dtype(a)
+    is_b_numeric_array = is_b_array and is_numeric_dtype(b)
+
+    is_a_scalar_string_like = not is_a_array and is_string_like(a)
+    is_b_scalar_string_like = not is_b_array and is_string_like(b)
+
+    return (
+        is_a_numeric_array and is_b_scalar_string_like) or (
+        is_b_numeric_array and is_a_scalar_string_like
+        )
 
 def is_datetimelike_v_numeric(a, b):
     # return if we have an i8 convertible and numeric comparision
@@ -2686,6 +2327,9 @@ def is_re_compilable(obj):
 def is_list_like(arg):
      return (hasattr(arg, '__iter__') and
             not isinstance(arg, compat.string_and_binary_types))
+
+def is_named_tuple(arg):
+    return isinstance(arg, tuple) and hasattr(arg, '_fields')
 
 def is_null_slice(obj):
     """ we have a null slice """
@@ -2823,185 +2467,11 @@ def _astype_nansafe(arr, dtype, copy=True):
     return arr.view(dtype)
 
 
-def _clean_fill_method(method, allow_nearest=False):
-    if method is None:
-        return None
-    method = method.lower()
-    if method == 'ffill':
-        method = 'pad'
-    if method == 'bfill':
-        method = 'backfill'
-
-    valid_methods = ['pad', 'backfill']
-    expecting = 'pad (ffill) or backfill (bfill)'
-    if allow_nearest:
-        valid_methods.append('nearest')
-        expecting = 'pad (ffill), backfill (bfill) or nearest'
-    if method not in valid_methods:
-        msg = ('Invalid fill method. Expecting %s. Got %s'
-               % (expecting, method))
-        raise ValueError(msg)
-    return method
-
-
-def _clean_reindex_fill_method(method):
-    return _clean_fill_method(method, allow_nearest=True)
-
-
 def _all_none(*args):
     for arg in args:
         if arg is not None:
             return False
     return True
-
-
-class UTF8Recoder:
-
-    """
-    Iterator that reads an encoded stream and reencodes the input to UTF-8
-    """
-
-    def __init__(self, f, encoding):
-        self.reader = codecs.getreader(encoding)(f)
-
-    def __iter__(self):
-        return self
-
-    def read(self, bytes=-1):
-        return self.reader.read(bytes).encode('utf-8')
-
-    def readline(self):
-        return self.reader.readline().encode('utf-8')
-
-    def next(self):
-        return next(self.reader).encode("utf-8")
-
-    # Python 3 iterator
-    __next__ = next
-
-
-def _get_handle(path, mode, encoding=None, compression=None):
-    """Gets file handle for given path and mode.
-    NOTE: Under Python 3.2, getting a compressed file handle means reading in
-    the entire file, decompressing it and decoding it to ``str`` all at once
-    and then wrapping it in a StringIO.
-    """
-    if compression is not None:
-        if encoding is not None and not compat.PY3:
-            msg = 'encoding + compression not yet supported in Python 2'
-            raise ValueError(msg)
-
-        if compression == 'gzip':
-            import gzip
-            f = gzip.GzipFile(path, 'rb')
-        elif compression == 'bz2':
-            import bz2
-
-            f = bz2.BZ2File(path, 'rb')
-        else:
-            raise ValueError('Unrecognized compression type: %s' %
-                             compression)
-        if compat.PY3:
-            from io import TextIOWrapper
-            f = TextIOWrapper(f, encoding=encoding)
-        return f
-    else:
-        if compat.PY3:
-            if encoding:
-                f = open(path, mode, encoding=encoding)
-            else:
-                f = open(path, mode, errors='replace')
-        else:
-            f = open(path, mode)
-
-    return f
-
-
-if compat.PY3:  # pragma: no cover
-    def UnicodeReader(f, dialect=csv.excel, encoding="utf-8", **kwds):
-        # ignore encoding
-        return csv.reader(f, dialect=dialect, **kwds)
-
-    def UnicodeWriter(f, dialect=csv.excel, encoding="utf-8", **kwds):
-        return csv.writer(f, dialect=dialect, **kwds)
-else:
-    class UnicodeReader:
-
-        """
-        A CSV reader which will iterate over lines in the CSV file "f",
-        which is encoded in the given encoding.
-
-        On Python 3, this is replaced (below) by csv.reader, which handles
-        unicode.
-        """
-
-        def __init__(self, f, dialect=csv.excel, encoding="utf-8", **kwds):
-            f = UTF8Recoder(f, encoding)
-            self.reader = csv.reader(f, dialect=dialect, **kwds)
-
-        def next(self):
-            row = next(self.reader)
-            return [compat.text_type(s, "utf-8") for s in row]
-
-        # python 3 iterator
-        __next__ = next
-
-        def __iter__(self):  # pragma: no cover
-            return self
-
-    class UnicodeWriter:
-
-        """
-        A CSV writer which will write rows to CSV file "f",
-        which is encoded in the given encoding.
-        """
-
-        def __init__(self, f, dialect=csv.excel, encoding="utf-8", **kwds):
-            # Redirect output to a queue
-            self.queue = StringIO()
-            self.writer = csv.writer(self.queue, dialect=dialect, **kwds)
-            self.stream = f
-            self.encoder = codecs.getincrementalencoder(encoding)()
-            self.quoting = kwds.get("quoting", None)
-
-        def writerow(self, row):
-            def _check_as_is(x):
-                return (self.quoting == csv.QUOTE_NONNUMERIC and
-                        is_number(x)) or isinstance(x, str)
-
-            row = [x if _check_as_is(x)
-                   else pprint_thing(x).encode('utf-8') for x in row]
-
-            self.writer.writerow([s for s in row])
-            # Fetch UTF-8 output from the queue ...
-            data = self.queue.getvalue()
-            data = data.decode("utf-8")
-            # ... and reencode it into the target encoding
-            data = self.encoder.encode(data)
-            # write to the target stream
-            self.stream.write(data)
-            # empty queue
-            self.queue.truncate(0)
-
-        def writerows(self, rows):
-            def _check_as_is(x):
-                return (self.quoting == csv.QUOTE_NONNUMERIC and
-                        is_number(x)) or isinstance(x, str)
-
-            for i, row in enumerate(rows):
-                rows[i] = [x if _check_as_is(x)
-                           else pprint_thing(x).encode('utf-8') for x in row]
-
-            self.writer.writerows([[s for s in row] for row in rows])
-            # Fetch UTF-8 output from the queue ...
-            data = self.queue.getvalue()
-            data = data.decode("utf-8")
-            # ... and reencode it into the target encoding
-            data = self.encoder.encode(data)
-            # write to the target stream
-            self.stream.write(data)
-            # empty queue
-            self.queue.truncate(0)
 
 
 def get_dtype_kinds(l):
@@ -3240,7 +2710,7 @@ def _pprint_seq(seq, _nest_lvl=0, max_seq_items=None, **kwds):
     bounds length of printed sequence, depending on options
     """
     if isinstance(seq, set):
-        fmt = u("set([%s])")
+        fmt = u("{%s}")
     else:
         fmt = u("[%s]") if hasattr(seq, '__setitem__') else u("(%s)")
 

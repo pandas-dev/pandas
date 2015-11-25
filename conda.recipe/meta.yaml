@@ -12,16 +12,16 @@ requirements:
   build:
     - python
     - cython
-    - numpy
+    - numpy x.x
     - libpython # [py2k and win]
     - setuptools
     - pytz
-    - dateutil
+    - python-dateutil
 
   run:
     - python
-    - numpy
-    - dateutil
+    - numpy x.x
+    - python-dateutil
     - pytz
 
 test:

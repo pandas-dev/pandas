@@ -6,7 +6,7 @@ import numpy as np
 import pandas.compat as compat
 import pandas as pd
 from pandas.compat import u, StringIO
-from pandas.core.base import FrozenList, FrozenNDArray, PandasDelegate
+from pandas.core.base import FrozenList, FrozenNDArray, PandasDelegate, NoNewAttributesMixin
 import pandas.core.common as com
 from pandas.tseries.base import DatetimeIndexOpsMixin
 from pandas.util.testing import assertRaisesRegexp, assertIsInstance
@@ -182,6 +182,15 @@ class TestPandasDelegate(tm.TestCase):
 
 
 class Ops(tm.TestCase):
+
+    def _allow_na_ops(self, obj):
+        """Whether to skip test cases including NaN"""
+        if (isinstance(obj, Index) and
+            (obj.is_boolean() or not obj._can_hold_na)):
+            # don't test boolean / int64 index
+            return False
+        return True
+
     def setUp(self):
         self.bool_index    = tm.makeBoolIndex(10, name='a')
         self.int_index     = tm.makeIntIndex(10, name='a')
@@ -452,13 +461,7 @@ class TestIndexOps(Ops):
                 klass = type(o)
                 values = o.values
 
-                if isinstance(o,Index) and o.is_boolean():
-                    # don't test boolean
-                    continue
-
-                if ((isinstance(o, Int64Index) and not isinstance(o,
-                    (DatetimeIndex, PeriodIndex)))):
-                    # skips int64 because it doesn't allow to include nan or None
+                if not self._allow_na_ops(o):
                     continue
 
                 # special assign to the numpy array
@@ -577,7 +580,7 @@ class TestIndexOps(Ops):
 
             s = klass({})
             expected = Series([], dtype=np.int64)
-            tm.assert_series_equal(s.value_counts(), expected)
+            tm.assert_series_equal(s.value_counts(), expected, check_index_type=False)
             self.assert_numpy_array_equal(s.unique(), np.array([]))
             self.assertEqual(s.nunique(), 0)
 
@@ -815,6 +818,86 @@ class TestIndexOps(Ops):
                 s.drop_duplicates(inplace=True)
                 tm.assert_series_equal(s, original)
 
+    def test_fillna(self):
+        # # GH 11343
+        # though Index.fillna and Series.fillna has separate impl,
+        # test here to confirm these works as the same
+        def get_fill_value(obj):
+            if isinstance(obj, pd.tseries.base.DatetimeIndexOpsMixin):
+                return obj.asobject.values[0]
+            else:
+                return obj.values[0]
+
+        for o in self.objs:
+            klass = type(o)
+            values = o.values
+
+            # values will not be changed
+            result = o.fillna(get_fill_value(o))
+            if isinstance(o, Index):
+                self.assert_index_equal(o, result)
+            else:
+                self.assert_series_equal(o, result)
+            # check shallow_copied
+            self.assertFalse(o is result)
+
+        for null_obj in [np.nan, None]:
+            for o in self.objs:
+                klass = type(o)
+                values = o.values.copy()
+
+                if not self._allow_na_ops(o):
+                    continue
+
+                # value for filling
+                fill_value = get_fill_value(o)
+
+                # special assign to the numpy array
+                if o.values.dtype == 'datetime64[ns]' or isinstance(o, PeriodIndex):
+                    values[0:2] = pd.tslib.iNaT
+                else:
+                    values[0:2] = null_obj
+
+                if isinstance(o, PeriodIndex):
+                    # freq must be specified because repeat makes freq ambiguous
+                    expected = [fill_value.ordinal] * 2 + list(values[2:])
+                    expected = klass(ordinal=expected, freq=o.freq)
+                    o = klass(ordinal=values, freq=o.freq)
+                else:
+                    expected = [fill_value] * 2 + list(values[2:])
+                    expected = klass(expected)
+                    o = klass(values)
+
+                result = o.fillna(fill_value)
+                if isinstance(o, Index):
+                    self.assert_index_equal(result, expected)
+                else:
+                    self.assert_series_equal(result, expected)
+                # check shallow_copied
+                self.assertFalse(o is result)
+
+
+    def test_memory_usage(self):
+        for o in self.objs:
+            res = o.memory_usage()
+            res2 = o.memory_usage(deep=True)
+
+            if com.is_object_dtype(o):
+                self.assertTrue(res2 > res)
+            else:
+                self.assertEqual(res, res2)
+
+            if isinstance(o, Series):
+                res = o.memory_usage(index=True)
+                res2 = o.memory_usage(index=True, deep=True)
+                if com.is_object_dtype(o) or com.is_object_dtype(o.index):
+                    self.assertTrue(res2 > res)
+                else:
+                    self.assertEqual(res, res2)
+
+                self.assertEqual(o.memory_usage(index=False) + o.index.memory_usage(),
+                                 o.memory_usage(index=True))
+
 
 class TestFloat64HashTable(tm.TestCase):
     def test_lookup_nan(self):
@@ -823,6 +906,25 @@ class TestFloat64HashTable(tm.TestCase):
         m = Float64HashTable()
         m.map_locations(xs)
         self.assert_numpy_array_equal(m.lookup(xs), np.arange(len(xs)))
+
+
+class TestNoNewAttributesMixin(tm.TestCase):
+
+    def test_mixin(self):
+        class T(NoNewAttributesMixin):
+            pass
+
+        t = T()
+        self.assertFalse(hasattr(t, "__frozen"))
+        t.a = "test"
+        self.assertEqual(t.a, "test")
+        t._freeze()
+        #self.assertTrue("__frozen" not in dir(t))
+        self.assertIs(getattr(t, "__frozen"), True)
+        def f():
+            t.b = "test"
+        self.assertRaises(AttributeError, f)
+        self.assertFalse(hasattr(t, "b"))
 
 
 if __name__ == '__main__':

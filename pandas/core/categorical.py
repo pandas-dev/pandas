@@ -8,8 +8,9 @@ from pandas import compat, lib
 from pandas.compat import u
 
 from pandas.core.algorithms import factorize
-from pandas.core.base import PandasObject, PandasDelegate
+from pandas.core.base import PandasObject, PandasDelegate, NoNewAttributesMixin
 import pandas.core.common as com
+from pandas.core.missing import interpolate_2d
 from pandas.util.decorators import cache_readonly, deprecate_kwarg
 
 from pandas.core.common import (ABCSeries, ABCIndexClass, ABCPeriodIndex, ABCCategoricalIndex,
@@ -815,13 +816,14 @@ class Categorical(PandasObject):
         set_categories
         """
         cat = self if inplace else self.copy()
-        _used = sorted(np.unique(cat._codes))
-        new_categories = cat.categories.take(_ensure_platform_int(_used))
+        idx, inv = np.unique(cat._codes, return_inverse=True)
 
-        from pandas.core.index import _ensure_index
-        new_categories = _ensure_index(new_categories)
-        cat._codes = _get_codes_for_values(cat.__array__(), new_categories)
-        cat._categories = new_categories
+        if idx.size != 0 and idx[0] == -1:  # na sentinel
+            idx, inv = idx[1:], inv - 1
+
+        cat._codes = inv
+        cat._categories = cat.categories.take(idx)
+
         if not inplace:
             return cat
 
@@ -922,6 +924,31 @@ class Categorical(PandasObject):
     @property
     def nbytes(self):
         return self._codes.nbytes + self._categories.values.nbytes
+
+    def memory_usage(self, deep=False):
+        """
+        Memory usage of my values
+
+        Parameters
+        ----------
+        deep : bool
+            Introspect the data deeply, interrogate
+            `object` dtypes for system-level memory consumption
+
+        Returns
+        -------
+        bytes used
+
+        Notes
+        -----
+        Memory usage does not include memory consumed by elements that
+        are not components of the array if deep=False
+
+        See Also
+        --------
+        numpy.ndarray.nbytes
+        """
+        return self._codes.nbytes + self._categories.memory_usage(deep=deep)
 
     def searchsorted(self, v, side='left', sorter=None):
         """Find indices where elements should be inserted to maintain order.
@@ -1312,7 +1339,7 @@ class Categorical(PandasObject):
         if method is not None:
 
             values = self.to_dense().reshape(-1, len(self))
-            values = com.interpolate_2d(
+            values = interpolate_2d(
                 values, method, 0, None, value).astype(self.categories.dtype)[0]
             values = _get_codes_for_values(values, self.categories)
 
@@ -1389,12 +1416,13 @@ class Categorical(PandasObject):
         max_categories = (10 if get_option("display.max_categories") == 0
                     else get_option("display.max_categories"))
         from pandas.core import format as fmt
-        category_strs = fmt.format_array(self.categories, None)
-        if len(category_strs) > max_categories:
+        if len(self.categories) > max_categories:
             num = max_categories // 2
-            head = category_strs[:num]
-            tail = category_strs[-(max_categories - num):]
+            head = fmt.format_array(self.categories[:num], None)
+            tail = fmt.format_array(self.categories[-num:], None)
             category_strs = head + ["..."] + tail
+        else:
+            category_strs = fmt.format_array(self.categories, None)
 
         # Strip all leading spaces, which format_array adds for columns...
         category_strs = [x.strip() for x in category_strs]
@@ -1716,7 +1744,7 @@ class Categorical(PandasObject):
 
 ##### The Series.cat accessor #####
 
-class CategoricalAccessor(PandasDelegate):
+class CategoricalAccessor(PandasDelegate, NoNewAttributesMixin):
     """
     Accessor object for categorical properties of the Series values.
 
@@ -1741,6 +1769,7 @@ class CategoricalAccessor(PandasDelegate):
     def __init__(self, values, index):
         self.categorical = values
         self.index = index
+        self._freeze()
 
     def _delegate_property_get(self, name):
         return getattr(self.categorical, name)

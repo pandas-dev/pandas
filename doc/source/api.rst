@@ -89,7 +89,6 @@ SAS
    :toctree: generated/
 
    read_sas
-   XportReader
 
 SQL
 ~~~
@@ -110,6 +109,7 @@ Google BigQuery
 
    read_gbq
    to_gbq
+
 
 .. currentmodule:: pandas
 
@@ -163,6 +163,14 @@ Top-level missing data
 
    isnull
    notnull
+
+Top-level conversions
+~~~~~~~~~~~~~~~~~~~~~
+
+.. autosummary::
+   :toctree: generated/
+
+   to_numeric
 
 Top-level dealing with datetimelike
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -276,6 +284,7 @@ Attributes
    Series.itemsize
    Series.base
    Series.T
+   Series.memory_usage
 
 Conversion
 ~~~~~~~~~~
@@ -603,7 +612,7 @@ strings and apply several methods to it. These can be acccessed like
 
 ..
     The following is needed to ensure the generated pages are created with the
-    correct template (otherwise they would be created in the Series class page)
+    correct template (otherwise they would be created in the Series/Index class page)
 
 ..
     .. autosummary::
@@ -613,6 +622,10 @@ strings and apply several methods to it. These can be acccessed like
        Series.str
        Series.cat
        Series.dt
+       Index.str
+       CategoricalIndex.str
+       DatetimeIndex.str
+       TimedeltaIndex.str
 
 
 .. _api.categorical:
@@ -672,11 +685,33 @@ the Categorical back to a numpy array, so levels and order information is not pr
 Plotting
 ~~~~~~~~
 
+``Series.plot`` is both a callable method and a namespace attribute for
+specific plotting methods of the form ``Series.plot.<kind>``.
+
+.. autosummary::
+   :toctree: generated/
+   :template: autosummary/accessor_callable.rst
+
+   Series.plot
+
+.. autosummary::
+   :toctree: generated/
+   :template: autosummary/accessor_method.rst
+
+   Series.plot.area
+   Series.plot.bar
+   Series.plot.barh
+   Series.plot.box
+   Series.plot.density
+   Series.plot.hist
+   Series.plot.kde
+   Series.plot.line
+   Series.plot.pie
+
 .. autosummary::
    :toctree: generated/
 
    Series.hist
-   Series.plot
 
 Serialization / IO / Conversion
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -738,6 +773,7 @@ Attributes and underlying data
    DataFrame.ndim
    DataFrame.size
    DataFrame.shape
+   DataFrame.memory_usage
 
 Conversion
 ~~~~~~~~~~
@@ -946,14 +982,41 @@ Time series-related
    DataFrame.tz_convert
    DataFrame.tz_localize
 
+.. _api.dataframe.plotting:
+
 Plotting
 ~~~~~~~~
+
+``DataFrame.plot`` is both a callable method and a namespace attribute for
+specific plotting methods of the form ``DataFrame.plot.<kind>``.
+
+.. autosummary::
+   :toctree: generated/
+   :template: autosummary/accessor_callable.rst
+
+   DataFrame.plot
+
+.. autosummary::
+   :toctree: generated/
+   :template: autosummary/accessor_method.rst
+
+   DataFrame.plot.area
+   DataFrame.plot.bar
+   DataFrame.plot.barh
+   DataFrame.plot.box
+   DataFrame.plot.density
+   DataFrame.plot.hexbin
+   DataFrame.plot.hist
+   DataFrame.plot.kde
+   DataFrame.plot.line
+   DataFrame.plot.pie
+   DataFrame.plot.scatter
+
 .. autosummary::
    :toctree: generated/
 
    DataFrame.boxplot
    DataFrame.hist
-   DataFrame.plot
 
 Serialization / IO / Conversion
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1272,6 +1335,7 @@ Attributes
    Index.itemsize
    Index.base
    Index.T
+   Index.memory_usage
 
 Modifying and Computations
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1597,6 +1661,56 @@ The following methods are available only for ``DataFrameGroupBy`` objects.
 
    DataFrameGroupBy.corrwith
    DataFrameGroupBy.boxplot
+
+Style
+-----
+.. currentmodule:: pandas.core.style
+
+``Styler`` objects are returned by :attr:`pandas.DataFrame.style`.
+
+
+Constructor
+~~~~~~~~~~~
+.. autosummary::
+   :toctree: generated/
+
+   Styler
+
+Style Application
+~~~~~~~~~~~~~~~~~
+.. autosummary::
+   :toctree: generated/
+
+   Styler.apply
+   Styler.applymap
+   Styler.set_precision
+   Styler.set_table_styles
+   Styler.set_caption
+   Styler.set_properties
+   Styler.set_uuid
+   Styler.clear
+
+Builtin Styles
+~~~~~~~~~~~~~~
+
+.. autosummary::
+   :toctree: generated/
+
+   Styler.highlight_max
+   Styler.highlight_min
+   Styler.highlight_null
+   Styler.background_gradient
+   Styler.bar
+
+Style Export and Import
+~~~~~~~~~~~~~~~~~~~~~~~
+
+.. autosummary::
+   :toctree: generated/
+
+   Styler.render
+   Styler.export
+   Styler.use
 
 .. currentmodule:: pandas
 

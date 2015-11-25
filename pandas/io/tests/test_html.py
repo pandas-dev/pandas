@@ -527,10 +527,10 @@ class TestReadHtml(tm.TestCase, ReadHtmlMixin):
                'Hamilton Bank, NA', 'The Citizens Savings Bank']
         dfnew = df.applymap(try_remove_ws).replace(old, new)
         gtnew = ground_truth.applymap(try_remove_ws)
-        converted = dfnew.convert_objects(datetime=True, numeric=True)
+        converted = dfnew._convert(datetime=True, numeric=True)
         date_cols = ['Closing Date','Updated Date']
-        converted[date_cols] = converted[date_cols].convert_objects(datetime=True,
-                                                                    coerce=True)
+        converted[date_cols] = converted[date_cols]._convert(datetime=True,
+                                                             coerce=True)
         tm.assert_frame_equal(converted,gtnew)
 
     @slow
@@ -637,6 +637,11 @@ class TestReadHtml(tm.TestCase, ReadHtmlMixin):
         result = self.read_html(data, 'Arizona', header=1)[0]
         nose.tools.assert_equal(result['sq mi'].dtype, np.dtype('float64'))
 
+    def test_bool_header_arg(self):
+        #GH 6114
+        for arg in [True, False]:
+            with tm.assertRaises(TypeError):
+                read_html(self.spam_data, header=arg)
 
 def _lang_enc(filename):
     return os.path.splitext(os.path.basename(filename))[0].split('_')

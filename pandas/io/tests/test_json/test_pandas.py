@@ -134,7 +134,8 @@ class TestPandasContainer(tm.TestCase):
     def test_frame_from_json_to_json(self):
         def _check_orient(df, orient, dtype=None, numpy=False,
                           convert_axes=True, check_dtype=True, raise_ok=None,
-                          sort=None):
+                          sort=None, check_index_type=True,
+                          check_column_type=True):
             if sort is not None:
                 df = df.sort_values(sort)
             else:
@@ -191,20 +192,29 @@ class TestPandasContainer(tm.TestCase):
                 assert_almost_equal(df.values, unser.values)
             else:
                 if convert_axes:
-                    assert_frame_equal(df, unser, check_dtype=check_dtype)
+                    assert_frame_equal(df, unser, check_dtype=check_dtype,
+                                       check_index_type=check_index_type,
+                                       check_column_type=check_column_type)
                 else:
                     assert_frame_equal(df, unser, check_less_precise=False,
                                        check_dtype=check_dtype)
 
-        def _check_all_orients(df, dtype=None, convert_axes=True, raise_ok=None, sort=None):
+        def _check_all_orients(df, dtype=None, convert_axes=True, raise_ok=None,
+                               sort=None, check_index_type=True,
+                               check_column_type=True):
 
             # numpy=False
             if convert_axes:
-                _check_orient(df, "columns", dtype=dtype, sort=sort)
-                _check_orient(df, "records", dtype=dtype, sort=sort)
-                _check_orient(df, "split", dtype=dtype, sort=sort)
-                _check_orient(df, "index", dtype=dtype, sort=sort)
-                _check_orient(df, "values", dtype=dtype, sort=sort)
+                _check_orient(df, "columns", dtype=dtype, sort=sort,
+                              check_index_type=False, check_column_type=False)
+                _check_orient(df, "records", dtype=dtype, sort=sort,
+                              check_index_type=False, check_column_type=False)
+                _check_orient(df, "split", dtype=dtype, sort=sort,
+                              check_index_type=False, check_column_type=False)
+                _check_orient(df, "index", dtype=dtype, sort=sort,
+                              check_index_type=False, check_column_type=False)
+                _check_orient(df, "values", dtype=dtype, sort=sort,
+                              check_index_type=False, check_column_type=False)
 
             _check_orient(df, "columns", dtype=dtype, convert_axes=False, sort=sort)
             _check_orient(df, "records", dtype=dtype, convert_axes=False, sort=sort)
@@ -215,15 +225,20 @@ class TestPandasContainer(tm.TestCase):
             # numpy=True and raise_ok might be not None, so ignore the error
             if convert_axes:
                 _check_orient(df, "columns", dtype=dtype, numpy=True,
-                              raise_ok=raise_ok, sort=sort)
+                              raise_ok=raise_ok, sort=sort,
+                              check_index_type=False, check_column_type=False)
                 _check_orient(df, "records", dtype=dtype, numpy=True,
-                              raise_ok=raise_ok, sort=sort)
+                              raise_ok=raise_ok, sort=sort,
+                              check_index_type=False, check_column_type=False)
                 _check_orient(df, "split", dtype=dtype, numpy=True,
-                              raise_ok=raise_ok, sort=sort)
+                              raise_ok=raise_ok, sort=sort,
+                              check_index_type=False, check_column_type=False)
                 _check_orient(df, "index", dtype=dtype, numpy=True,
-                              raise_ok=raise_ok, sort=sort)
+                              raise_ok=raise_ok, sort=sort,
+                              check_index_type=False, check_column_type=False)
                 _check_orient(df, "values", dtype=dtype, numpy=True,
-                              raise_ok=raise_ok, sort=sort)
+                              raise_ok=raise_ok, sort=sort,
+                              check_index_type=False, check_column_type=False)
 
             _check_orient(df, "columns", dtype=dtype, numpy=True,
                           convert_axes=False, raise_ok=raise_ok, sort=sort)
@@ -250,7 +265,7 @@ class TestPandasContainer(tm.TestCase):
         biggie = DataFrame(np.zeros((200, 4)),
                            columns=[str(i) for i in range(4)],
                            index=[str(i) for i in range(200)])
-        _check_all_orients(biggie,dtype=False,convert_axes=False)
+        _check_all_orients(biggie,dtype=False, convert_axes=False)
 
         # dtypes
         _check_all_orients(DataFrame(biggie, dtype=np.float64),
@@ -264,7 +279,8 @@ class TestPandasContainer(tm.TestCase):
         _check_all_orients(self.categorical, sort='sort', raise_ok=ValueError)
 
         # empty
-        _check_all_orients(self.empty_frame)
+        _check_all_orients(self.empty_frame, check_index_type=False,
+                           check_column_type=False)
 
         # time series data
         _check_all_orients(self.tsframe)
@@ -354,14 +370,16 @@ class TestPandasContainer(tm.TestCase):
     def test_frame_empty(self):
         df = DataFrame(columns=['jim', 'joe'])
         self.assertFalse(df._is_mixed_type)
-        assert_frame_equal(read_json(df.to_json(), dtype=dict(df.dtypes)), df)
+        assert_frame_equal(read_json(df.to_json(), dtype=dict(df.dtypes)), df,
+                           check_index_type=False)
 
     def test_frame_empty_mixedtype(self):
         # mixed type
         df = DataFrame(columns=['jim', 'joe'])
         df['joe'] = df['joe'].astype('i8')
         self.assertTrue(df._is_mixed_type)
-        assert_frame_equal(read_json(df.to_json(), dtype=dict(df.dtypes)), df)
+        assert_frame_equal(read_json(df.to_json(), dtype=dict(df.dtypes)), df,
+                           check_index_type=False)
 
     def test_frame_mixedtype_orient(self):  # GH10289
         vals = [[10, 1, 'foo', .1, .01],
@@ -457,7 +475,8 @@ class TestPandasContainer(tm.TestCase):
 
     def test_series_from_json_to_json(self):
 
-        def _check_orient(series, orient, dtype=None, numpy=False):
+        def _check_orient(series, orient, dtype=None, numpy=False,
+                          check_index_type=True):
             series = series.sort_index()
             unser = read_json(series.to_json(orient=orient),
                               typ='series', orient=orient, numpy=numpy,
@@ -467,22 +486,33 @@ class TestPandasContainer(tm.TestCase):
                 assert_almost_equal(series.values, unser.values)
             else:
                 if orient == "split":
-                    assert_series_equal(series, unser)
+                    assert_series_equal(series, unser,
+                                        check_index_type=check_index_type)
                 else:
-                    assert_series_equal(series, unser, check_names=False)
+                    assert_series_equal(series, unser, check_names=False,
+                                        check_index_type=check_index_type)
 
-        def _check_all_orients(series, dtype=None):
-            _check_orient(series, "columns", dtype=dtype)
-            _check_orient(series, "records", dtype=dtype)
-            _check_orient(series, "split", dtype=dtype)
-            _check_orient(series, "index", dtype=dtype)
+        def _check_all_orients(series, dtype=None, check_index_type=True):
+            _check_orient(series, "columns", dtype=dtype,
+                          check_index_type=check_index_type)
+            _check_orient(series, "records", dtype=dtype,
+                          check_index_type=check_index_type)
+            _check_orient(series, "split", dtype=dtype,
+                          check_index_type=check_index_type)
+            _check_orient(series, "index", dtype=dtype,
+                          check_index_type=check_index_type)
             _check_orient(series, "values", dtype=dtype)
 
-            _check_orient(series, "columns", dtype=dtype, numpy=True)
-            _check_orient(series, "records", dtype=dtype, numpy=True)
-            _check_orient(series, "split", dtype=dtype, numpy=True)
-            _check_orient(series, "index", dtype=dtype, numpy=True)
-            _check_orient(series, "values", dtype=dtype, numpy=True)
+            _check_orient(series, "columns", dtype=dtype, numpy=True,
+                          check_index_type=check_index_type)
+            _check_orient(series, "records", dtype=dtype, numpy=True,
+                          check_index_type=check_index_type)
+            _check_orient(series, "split", dtype=dtype, numpy=True,
+                          check_index_type=check_index_type)
+            _check_orient(series, "index", dtype=dtype, numpy=True,
+                          check_index_type=check_index_type)
+            _check_orient(series, "values", dtype=dtype, numpy=True,
+                          check_index_type=check_index_type)
 
         # basic
         _check_all_orients(self.series)
@@ -493,7 +523,12 @@ class TestPandasContainer(tm.TestCase):
                            index=self.objSeries.index,
                            name=self.objSeries.name)
         _check_all_orients(objSeries, dtype=False)
-        _check_all_orients(self.empty_series)
+
+        # empty_series has empty index with object dtype
+        # which cannot be revert
+        self.assertEqual(self.empty_series.index.dtype, np.object_)
+        _check_all_orients(self.empty_series, check_index_type=False)
+
         _check_all_orients(self.ts)
 
         # dtype
@@ -508,25 +543,30 @@ class TestPandasContainer(tm.TestCase):
     def test_series_from_json_precise_float(self):
         s = Series([4.56, 4.56, 4.56])
         result = read_json(s.to_json(), typ='series', precise_float=True)
-        assert_series_equal(result, s)
+        assert_series_equal(result, s, check_index_type=False)
 
     def test_frame_from_json_precise_float(self):
         df = DataFrame([[4.56, 4.56, 4.56], [4.56, 4.56, 4.56]])
         result = read_json(df.to_json(), precise_float=True)
-        assert_frame_equal(result, df)
+        assert_frame_equal(result, df, check_index_type=False, check_column_type=False)
 
     def test_typ(self):
 
         s = Series(lrange(6), index=['a','b','c','d','e','f'], dtype='int64')
         result = read_json(s.to_json(),typ=None)
-        assert_series_equal(result,s)
+        assert_series_equal(result, s)
 
     def test_reconstruction_index(self):
 
         df = DataFrame([[1, 2, 3], [4, 5, 6]])
         result = read_json(df.to_json())
 
-        # the index is serialized as strings....correct?
+        self.assertEqual(result.index.dtype, np.float64)
+        self.assertEqual(result.columns.dtype, np.float64)
+        assert_frame_equal(result, df, check_index_type=False, check_column_type=False)
+
+        df = DataFrame({'a': [1, 2, 3], 'b': [4, 5, 6]}, index=['A', 'B', 'C'])
+        result = read_json(df.to_json())
         assert_frame_equal(result, df)
 
     def test_path(self):
@@ -691,7 +731,7 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
 \\[left\\]:  Index\\(\\[u?'a', u?'b'\\], dtype='object'\\)
 \\[right\\]: Int64Index\\(\\[0, 1\\], dtype='int64'\\)"""
         with tm.assertRaisesRegexp(AssertionError, error_msg):
-            assert_frame_equal(result, expected)
+            assert_frame_equal(result, expected, check_index_type=False)
 
         result = read_json('[{"a": 1, "b": 2}, {"b":2, "a" :1}]')
         expected = DataFrame([[1,2], [1,2]], columns=['a','b'])
@@ -717,13 +757,19 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         converter = lambda x: pd.to_timedelta(x,unit='ms')
 
         s = Series([timedelta(23), timedelta(seconds=5)])
-        self.assertEqual(s.dtype,'timedelta64[ns]')
-        assert_series_equal(s, pd.read_json(s.to_json(),typ='series').apply(converter))
+        self.assertEqual(s.dtype, 'timedelta64[ns]')
+        # index will be float dtype
+        assert_series_equal(s, pd.read_json(s.to_json(),typ='series').apply(converter),
+                            check_index_type=False)
+
+        s = Series([timedelta(23), timedelta(seconds=5)], index=pd.Index([0, 1], dtype=float))
+        self.assertEqual(s.dtype, 'timedelta64[ns]')
+        assert_series_equal(s, pd.read_json(s.to_json(), typ='series').apply(converter))
 
         frame = DataFrame([timedelta(23), timedelta(seconds=5)])
         self.assertEqual(frame[0].dtype,'timedelta64[ns]')
-        assert_frame_equal(
-            frame, pd.read_json(frame.to_json()).apply(converter))
+        assert_frame_equal(frame, pd.read_json(frame.to_json()).apply(converter),
+                           check_index_type=False, check_column_type=False)
 
         frame = DataFrame({'a': [timedelta(days=23), timedelta(seconds=5)],
                            'b': [1, 2],
@@ -732,7 +778,7 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         result = pd.read_json(frame.to_json(date_unit='ns'))
         result['a'] = pd.to_timedelta(result.a, unit='ns')
         result['c'] = pd.to_datetime(result.c)
-        assert_frame_equal(frame, result)
+        assert_frame_equal(frame, result, check_index_type=False)
 
     def test_mixed_timedelta_datetime(self):
         frame = DataFrame({'a': [timedelta(23), pd.Timestamp('20130101')]},
@@ -742,14 +788,14 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
                                     pd.Timestamp(frame.a[1]).value]})
         result = pd.read_json(frame.to_json(date_unit='ns'),
                               dtype={'a': 'int64'})
-        assert_frame_equal(result, expected)
+        assert_frame_equal(result, expected, check_index_type=False)
 
     def test_default_handler(self):
         value = object()
         frame = DataFrame({'a': ['a', value]})
         expected = frame.applymap(str)
         result = pd.read_json(frame.to_json(default_handler=str))
-        assert_frame_equal(expected, result)
+        assert_frame_equal(expected, result, check_index_type=False)
 
     def test_default_handler_raises(self):
         def my_handler_raises(obj):

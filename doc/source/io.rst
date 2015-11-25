@@ -39,7 +39,7 @@ object.
     * :ref:`read_json<io.json_reader>`
     * :ref:`read_msgpack<io.msgpack>` (experimental)
     * :ref:`read_html<io.read_html>`
-    * :ref:`read_gbq<io.bigquery>` (experimental)
+    * :ref:`read_gbq<io.bigquery_reader>` (experimental)
     * :ref:`read_stata<io.stata_reader>`
     * :ref:`read_sas<io.sas_reader>`
     * :ref:`read_clipboard<io.clipboard>`
@@ -54,7 +54,7 @@ The corresponding ``writer`` functions are object methods that are accessed like
     * :ref:`to_json<io.json_writer>`
     * :ref:`to_msgpack<io.msgpack>` (experimental)
     * :ref:`to_html<io.html>`
-    * :ref:`to_gbq<io.bigquery>` (experimental)
+    * :ref:`to_gbq<io.bigquery_writer>` (experimental)
     * :ref:`to_stata<io.stata_writer>`
     * :ref:`to_clipboard<io.clipboard>`
     * :ref:`to_pickle<io.pickle>`
@@ -79,9 +79,10 @@ for some advanced strategies
 
 They can take a number of arguments:
 
-  - ``filepath_or_buffer``: Either a string path to a file, URL
+  - ``filepath_or_buffer``: Either a path to a file (a :class:`python:str`,
+    :class:`python:pathlib.Path`, or :class:`py:py._path.local.LocalPath`), URL
     (including http, ftp, and S3 locations), or any object with a ``read``
-    method (such as an open file or ``StringIO``).
+    method (such as an open file or :class:`~python:io.StringIO`).
   - ``sep`` or ``delimiter``: A delimiter / separator to split fields
     on. With ``sep=None``, ``read_csv`` will try to infer the delimiter
     automatically in some cases by "sniffing".
@@ -1980,9 +1981,10 @@ Excel files
 -----------
 
 The :func:`~pandas.read_excel` method can read Excel 2003 (``.xls``) and
-Excel 2007 (``.xlsx``) files using the ``xlrd`` Python
-module and use the same parsing code as the above to convert tabular data into
-a DataFrame. See the :ref:`cookbook<cookbook.excel>` for some
+Excel 2007+ (``.xlsx``) files using the ``xlrd`` Python
+module.  The :meth:`~DataFrame.to_excel` instance method is used for
+saving a ``DataFrame`` to Excel.  Generally the semantics are
+similar to working with :ref:`csv<io.read_csv_table>` data.  See the :ref:`cookbook<cookbook.excel>` for some
 advanced strategies
 
 .. _io.excel_reader:
@@ -1990,95 +1992,79 @@ advanced strategies
 Reading Excel Files
 '''''''''''''''''''
 
-.. versionadded:: 0.17
-
-``read_excel`` can read a ``MultiIndex`` index, by passing a list of columns to ``index_col``
-and a ``MultiIndex`` column by passing a list of rows to ``header``.  If either the ``index``
-or ``columns`` have serialized level names those will be read in as well by specifying
-the rows/columns that make up the levels.
-
-.. ipython:: python
-
-   # MultiIndex index - no names
-   df = pd.DataFrame({'a':[1,2,3,4], 'b':[5,6,7,8]},
-                     index=pd.MultiIndex.from_product([['a','b'],['c','d']]))
-   df.to_excel('path_to_file.xlsx')
-   df = pd.read_excel('path_to_file.xlsx', index_col=[0,1])
-   df
-
-   # MultiIndex index - with names
-   df.index = df.index.set_names(['lvl1', 'lvl2'])
-   df.to_excel('path_to_file.xlsx')
-   df = pd.read_excel('path_to_file.xlsx', index_col=[0,1])
-   df
-
-   # MultiIndex index and column - with names
-   df.columns = pd.MultiIndex.from_product([['a'],['b', 'd']], names=['c1', 'c2'])
-   df.to_excel('path_to_file.xlsx')
-   df = pd.read_excel('path_to_file.xlsx',
-                       index_col=[0,1], header=[0,1])
-   df
-
-.. ipython:: python
-   :suppress:
-
-   import os
-   os.remove('path_to_file.xlsx')
-
-.. warning::
-
-   Excel files saved in version 0.16.2 or prior that had index names will still able to be read in,
-   but the ``has_index_names`` argument must specified to ``True``.
-
-.. versionadded:: 0.16
-
-``read_excel`` can read more than one sheet, by setting ``sheetname`` to either
-a list of sheet names, a list of sheet positions, or ``None`` to read all sheets.
-
-.. versionadded:: 0.13
-
-Sheets can be specified by sheet index or sheet name, using an integer or string,
-respectively.
-
-.. versionadded:: 0.12
-
-``ExcelFile`` has been moved to the top level namespace.
-
-There are two approaches to reading an excel file.  The ``read_excel`` function
-and the ``ExcelFile`` class.  ``read_excel`` is for reading one file
-with file-specific arguments (ie. identical data formats across sheets).
-``ExcelFile`` is for reading one file with sheet-specific arguments (ie. various data
-formats across sheets).  Choosing the approach is largely a question of
-code readability and execution speed.
-
-Equivalent class and function approaches to read a single sheet:
+In the most basic use-case, ``read_excel`` takes a path to an Excel
+file, and the ``sheetname`` indicating which sheet to parse.
 
 .. code-block:: python
 
-    # using the ExcelFile class
-    xls = pd.ExcelFile('path_to_file.xls')
-    data = xls.parse('Sheet1', index_col=None, na_values=['NA'])
+   # Returns a DataFrame
+   read_excel('path_to_file.xls', sheetname='Sheet1')
 
-    # using the read_excel function
-    data = read_excel('path_to_file.xls', 'Sheet1', index_col=None, na_values=['NA'])
 
-Equivalent class and function approaches to read multiple sheets:
+.. _io.excel.excelfile_class:
+
+``ExcelFile`` class
++++++++++++++++++++
+
+To facilitate working with multiple sheets from the same file, the ``ExcelFile``
+class can be used to wrap the file and can be be passed into ``read_excel``
+There will be a performance benefit for reading multiple sheets as the file is
+read into memory only once.
+
+.. code-block:: python
+
+   xlsx = pd.ExcelFile('path_to_file.xls)
+   df = pd.read_excel(xlsx, 'Sheet1')
+
+The ``ExcelFile`` class can also be used as a context manager.
+
+.. code-block:: python
+
+   with pd.ExcelFile('path_to_file.xls') as xls:
+       df1 = pd.read_excel(xls, 'Sheet1')
+       df2 = pd.read_excel(xls, 'Sheet2')
+
+The ``sheet_names`` property will generate
+a list of the sheet names in the file.
+
+The primary use-case for an ``ExcelFile`` is parsing multiple sheets with
+different parameters
 
 .. code-block:: python
 
     data = {}
     # For when Sheet1's format differs from Sheet2
-    xls = pd.ExcelFile('path_to_file.xls')
-    data['Sheet1'] = xls.parse('Sheet1', index_col=None, na_values=['NA'])
-    data['Sheet2'] = xls.parse('Sheet2', index_col=1)
+    with pd.ExcelFile('path_to_file.xls') as xls:
+        data['Sheet1'] = pd.read_excel(xls, 'Sheet1', index_col=None, na_values=['NA'])
+        data['Sheet2'] = pd.read_excel(xls, 'Sheet2', index_col=1)
 
-    # For when Sheet1's format is identical to Sheet2
-    data = read_excel('path_to_file.xls', ['Sheet1','Sheet2'], index_col=None, na_values=['NA'])
+Note that if the same parsing parameters are used for all sheets, a list
+of sheet names can simply be passed to ``read_excel`` with no loss in performance.
+
+.. code-block:: python
+
+    # using the ExcelFile class
+    data = {}
+    with pd.ExcelFile('path_to_file.xls') as xls:
+        data['Sheet1'] = read_excel(xls, 'Sheet1', index_col=None, na_values=['NA'])
+        data['Sheet2'] = read_excel(xls, 'Sheet2', index_col=None, na_values=['NA'])
+
+    # equivalent using the read_excel function
+    data = read_excel('path_to_file.xls', ['Sheet1', 'Sheet2'], index_col=None, na_values=['NA'])
+
+.. versionadded:: 0.12
+
+``ExcelFile`` has been moved to the top level namespace.
+
+.. versionadded:: 0.17
+
+``read_excel`` can take an ``ExcelFile`` object as input
+
+
+.. _io.excel.specifying_sheets:
 
 Specifying Sheets
 +++++++++++++++++
-
-.. _io.specifying_sheets:
 
 .. note :: The second argument is ``sheetname``, not to be confused with ``ExcelFile.sheet_names``
 
@@ -2124,6 +2110,72 @@ Using a list to get multiple sheets:
 
    # Returns the 1st and 4th sheet, as a dictionary of DataFrames.
    read_excel('path_to_file.xls',sheetname=['Sheet1',3])
+
+.. versionadded:: 0.16
+
+``read_excel`` can read more than one sheet, by setting ``sheetname`` to either
+a list of sheet names, a list of sheet positions, or ``None`` to read all sheets.
+
+.. versionadded:: 0.13
+
+Sheets can be specified by sheet index or sheet name, using an integer or string,
+respectively.
+
+.. _io.excel.reading_multiindex:
+
+Reading a ``MultiIndex``
+++++++++++++++++++++++++
+
+.. versionadded:: 0.17
+
+``read_excel`` can read a ``MultiIndex`` index, by passing a list of columns to ``index_col``
+and a ``MultiIndex`` column by passing a list of rows to ``header``.  If either the ``index``
+or ``columns`` have serialized level names those will be read in as well by specifying
+the rows/columns that make up the levels.
+
+For example, to read in a ``MultiIndex`` index without names:
+
+.. ipython:: python
+
+   df = pd.DataFrame({'a':[1,2,3,4], 'b':[5,6,7,8]},
+                     index=pd.MultiIndex.from_product([['a','b'],['c','d']]))
+   df.to_excel('path_to_file.xlsx')
+   df = pd.read_excel('path_to_file.xlsx', index_col=[0,1])
+   df
+
+If the index has level names, they will parsed as well, using the same
+parameters.
+
+.. ipython:: python
+
+   df.index = df.index.set_names(['lvl1', 'lvl2'])
+   df.to_excel('path_to_file.xlsx')
+   df = pd.read_excel('path_to_file.xlsx', index_col=[0,1])
+   df
+
+
+If the source file has both ``MultiIndex`` index and columns, lists specifying each
+should be passed to ``index_col`` and ``header``
+
+.. ipython:: python
+
+   df.columns = pd.MultiIndex.from_product([['a'],['b', 'd']], names=['c1', 'c2'])
+   df.to_excel('path_to_file.xlsx')
+   df = pd.read_excel('path_to_file.xlsx',
+                       index_col=[0,1], header=[0,1])
+   df
+
+.. ipython:: python
+   :suppress:
+
+   import os
+   os.remove('path_to_file.xlsx')
+
+.. warning::
+
+   Excel files saved in version 0.16.2 or prior that had index names will still able to be read in,
+   but the ``has_index_names`` argument must specified to ``True``.
+
 
 Parsing Specific Columns
 ++++++++++++++++++++++++
@@ -2230,6 +2282,10 @@ Writing Excel Files to Memory
 Pandas supports writing Excel files to buffer-like objects such as ``StringIO`` or
 ``BytesIO`` using :class:`~pandas.io.excel.ExcelWriter`.
 
+.. versionadded:: 0.17
+
+Added support for Openpyxl >= 2.2
+
 .. code-block:: python
 
    # Safe import for either Python 2.x or 3.x
@@ -2279,14 +2335,15 @@ config options <options>` ``io.excel.xlsx.writer`` and
 files if `Xlsxwriter`_ is not available.
 
 .. _XlsxWriter: http://xlsxwriter.readthedocs.org
-.. _openpyxl: http://packages.python.org/openpyxl/
+.. _openpyxl: http://openpyxl.readthedocs.org/
 .. _xlwt: http://www.python-excel.org
 
 To specify which writer you want to use, you can pass an engine keyword
 argument to ``to_excel`` and to ``ExcelWriter``. The built-in engines are:
 
-- ``openpyxl``: This includes stable support for OpenPyxl 1.6.1 up to but
-  not including 2.0.0, and experimental support for OpenPyxl 2.0.0 and later.
+- ``openpyxl``: This includes stable support for Openpyxl from 1.6.1. However,
+  it is advised to use version 2.2 and higher, especially when working with
+  styles.
 - ``xlsxwriter``
 - ``xlwt``
 
@@ -3014,6 +3071,33 @@ indexed dimension as the ``where``.
    i = store.root.df.table.cols.index.index
    i.optlevel, i.kind
 
+Ofentimes when appending large amounts of data to a store, it is useful to turn off index creation for each append, then recreate at the end.
+
+.. ipython:: python
+
+   df_1 = DataFrame(randn(10,2),columns=list('AB'))
+   df_2 = DataFrame(randn(10,2),columns=list('AB'))
+
+   st = pd.HDFStore('appends.h5',mode='w')
+   st.append('df', df_1, data_columns=['B'], index=False)
+   st.append('df', df_2, data_columns=['B'], index=False)
+   st.get_storer('df').table
+
+Then create the index when finished appending.
+
+.. ipython:: python
+
+   st.create_table_index('df', columns=['B'], optlevel=9, kind='full')
+   st.get_storer('df').table
+
+   st.close()
+
+.. ipython:: python
+   :suppress:
+   :okexcept:
+
+   os.remove('appends.h5')
+
 See `here <http://stackoverflow.com/questions/17893370/ptrepack-sortby-needs-full-index>`__ for how to create a completely-sorted-index (CSI) on an existing store.
 
 Query via Data Columns
@@ -3256,8 +3340,9 @@ the table using a ``where`` that selects all but the missing data.
 
    Please note that HDF5 **DOES NOT RECLAIM SPACE** in the h5 files
    automatically. Thus, repeatedly deleting (or removing nodes) and adding
-   again **WILL TEND TO INCREASE THE FILE SIZE**. To *clean* the file, use
-   :ref:`ptrepack <io.hdf5-ptrepack>`
+   again, **WILL TEND TO INCREASE THE FILE SIZE**.
+
+   To *repack and clean* the file, use :ref:`ptrepack <io.hdf5-ptrepack>`
 
 .. _io.hdf5-notes:
 
@@ -3918,6 +4003,42 @@ connecting to.
 For more information see the examples the SQLAlchemy `documentation <http://docs.sqlalchemy.org/en/rel_0_9/core/engines.html>`__
 
 
+Advanced SQLAlchemy queries
+'''''''''''''''''''''''''''
+
+You can use SQLAlchemy constructs to describe your query.
+
+Use :func:`sqlalchemy.text` to specify query parameters in a backend-neutral way
+
+.. ipython:: python
+
+   import sqlalchemy as sa
+   pd.read_sql(sa.text('SELECT * FROM data where Col_1=:col1'), engine, params={'col1': 'X'})
+
+If you have an SQLAlchemy description of your database you can express where conditions using SQLAlchemy expressions
+
+.. ipython:: python
+
+   metadata = sa.MetaData()
+   data_table = sa.Table('data', metadata,
+       sa.Column('index', sa.Integer),
+       sa.Column('Date', sa.DateTime),
+       sa.Column('Col_1', sa.String),
+       sa.Column('Col_2', sa.Float),
+       sa.Column('Col_3', sa.Boolean),
+   )
+
+   pd.read_sql(sa.select([data_table]).where(data_table.c.Col_3 == True), engine)
+
+You can combine SQLAlchemy expressions with parameters passed to :func:`read_sql` using :func:`sqlalchemy.bindparam`
+
+.. ipython:: python
+
+    import datetime as dt
+    expr = sa.select([data_table]).where(data_table.c.Date > sa.bindparam('date'))
+    pd.read_sql(expr, engine, params={'date': dt.datetime(2010, 10, 18)})
+
+
 Sqlite fallback
 '''''''''''''''
 
@@ -3951,14 +4072,33 @@ The :mod:`pandas.io.gbq` module provides a wrapper for Google's BigQuery
 analytics web service to simplify retrieving results from BigQuery tables
 using SQL-like queries. Result sets are parsed into a pandas
 DataFrame with a shape and data types derived from the source table.
-Additionally, DataFrames can be appended to existing BigQuery tables if
-the destination table is the same shape as the DataFrame.
+Additionally, DataFrames can be inserted into new BigQuery tables or appended
+to existing tables.
 
-For specifics on the service itself, see `here <https://developers.google.com/bigquery/>`__
+.. warning::
 
-As an example, suppose you want to load all data from an existing BigQuery
-table : `test_dataset.test_table` into a DataFrame using the :func:`~pandas.io.read_gbq`
-function.
+   To use this module, you will need a valid BigQuery account. Refer to the
+   `BigQuery Documentation <https://developers.google.com/bigquery/>`__ for details on the service itself.
+
+The key functions are:
+
+.. currentmodule:: pandas.io.gbq
+
+.. autosummary::
+   :toctree: generated/
+
+   read_gbq
+   to_gbq
+
+.. currentmodule:: pandas
+
+.. _io.bigquery_reader:
+
+Querying
+''''''''
+
+Suppose you want to load all data from an existing BigQuery table : `test_dataset.test_table`
+into a DataFrame using the :func:`~pandas.io.gbq.read_gbq` function.
 
 .. code-block:: python
 
@@ -3966,14 +4106,14 @@ function.
    # Can be found in the Google web console
    projectid = "xxxxxxxx"
 
-   data_frame = pd.read_gbq('SELECT * FROM test_dataset.test_table', project_id = projectid)
+   data_frame = pd.read_gbq('SELECT * FROM test_dataset.test_table', projectid)
 
 You will then be authenticated to the specified BigQuery account
 via Google's Oauth2 mechanism. In general, this is as simple as following the
 prompts in a browser window which will be opened for you. Should the browser not
 be available, or fail to launch, a code will be provided to complete the process
 manually.  Additional information on the authentication mechanism can be found
-`here <https://developers.google.com/accounts/docs/OAuth2#clientside/>`__
+`here <https://developers.google.com/accounts/docs/OAuth2#clientside/>`__.
 
 You can define which column from BigQuery to use as an index in the
 destination DataFrame as well as a preferred column order as follows:
@@ -3982,56 +4122,137 @@ destination DataFrame as well as a preferred column order as follows:
 
    data_frame = pd.read_gbq('SELECT * FROM test_dataset.test_table',
                              index_col='index_column_name',
-                             col_order=['col1', 'col2', 'col3'], project_id = projectid)
+                             col_order=['col1', 'col2', 'col3'], projectid)
 
-Finally, you can append data to a BigQuery table from a pandas DataFrame
-using the :func:`~pandas.io.to_gbq` function. This function uses the
-Google streaming API which requires that your destination table exists in
-BigQuery. Given the BigQuery table already exists, your DataFrame should
-match the destination table in column order, structure, and data types.
-DataFrame indexes are not supported. By default, rows are streamed to
-BigQuery in chunks of 10,000 rows, but you can pass other chuck values
-via the ``chunksize`` argument. You can also see the progess of your
-post via the ``verbose`` flag which defaults to ``True``. The http
-response code of Google BigQuery can be successful (200) even if the
-append failed. For this reason, if there is a failure to append to the
-table, the complete error response from BigQuery is returned which
-can be quite long given it provides a status for each row. You may want
-to start with smaller chunks to test that the size and types of your
-dataframe match your destination table to make debugging simpler.
+.. note::
 
-.. code-block:: python
+   You can find your project id in the `BigQuery management console <https://code.google.com/apis/console/b/0/?noredirect>`__.
 
-   df = pandas.DataFrame({'string_col_name' : ['hello'],
-         'integer_col_name' : [1],
-         'boolean_col_name' : [True]})
-   df.to_gbq('my_dataset.my_table', project_id = projectid)
 
-The BigQuery SQL query language has some oddities, see `here <https://developers.google.com/bigquery/query-reference>`__
+.. note::
 
-While BigQuery uses SQL-like syntax, it has some important differences
-from traditional databases both in functionality, API limitations (size and
-quantity of queries or uploads), and how Google charges for use of the service.
-You should refer to Google documentation often as the service seems to
-be changing and evolving. BiqQuery is best for analyzing large sets of
-data quickly, but it is not a direct replacement for a transactional database.
+   You can toggle the verbose output via the ``verbose`` flag which defaults to ``True``.
 
-You can access the management console to determine project id's by:
-<https://code.google.com/apis/console/b/0/?noredirect>
+.. _io.bigquery_writer:
 
-As of 0.15.2, the gbq module has a function ``generate_bq_schema`` which
-will produce the dictionary representation of the schema.
+Writing DataFrames
+''''''''''''''''''
+
+Assume we want to write a DataFrame ``df`` into a BigQuery table using :func:`~pandas.DataFrame.to_gbq`.
+
+.. ipython:: python
+
+   df = pd.DataFrame({'my_string': list('abc'),
+                      'my_int64': list(range(1, 4)),
+                      'my_float64': np.arange(4.0, 7.0),
+                      'my_bool1': [True, False, True],
+                      'my_bool2': [False, True, False],
+                      'my_dates': pd.date_range('now', periods=3)})
+
+   df
+   df.dtypes
 
 .. code-block:: python
 
-   df = pandas.DataFrame({'A': [1.0]})
-   gbq.generate_bq_schema(df, default_type='STRING')
+   df.to_gbq('my_dataset.my_table', projectid)
+
+.. note::
+
+   The destination table and destination dataset will automatically be created if they do not already exist.
+
+The ``if_exists`` argument can be used to dictate whether to ``'fail'``, ``'replace'``
+or ``'append'`` if the destination table already exists. The default value is ``'fail'``.
+
+For example, assume that ``if_exists`` is set to ``'fail'``. The following snippet will raise
+a ``TableCreationError`` if the destination table already exists.
+
+.. code-block:: python
+
+   df.to_gbq('my_dataset.my_table', projectid, if_exists='fail')
+
+.. note::
+
+   If the ``if_exists`` argument is set to ``'append'``, the destination dataframe will
+   be written to the table using the defined table schema and column types. The
+   dataframe must match the destination table in column order, structure, and
+   data types.
+   If the ``if_exists`` argument is set to ``'replace'``, and the existing table has a
+   different schema, a delay of 2 minutes will be forced to ensure that the new schema
+   has propagated in the Google environment. See
+   `Google BigQuery issue 191 <https://code.google.com/p/google-bigquery/issues/detail?id=191>`__.
+
+Writing large DataFrames can result in errors due to size limitations being exceeded.
+This can be avoided by setting the ``chunksize`` argument when calling :func:`~pandas.DataFrame.to_gbq`.
+For example, the following writes ``df`` to a BigQuery table in batches of 10000 rows at a time:
+
+.. code-block:: python
+
+   df.to_gbq('my_dataset.my_table', projectid, chunksize=10000)
+
+You can also see the progress of your post via the ``verbose`` flag which defaults to ``True``.
+For example:
+
+.. code-block:: python
+
+   In [8]: df.to_gbq('my_dataset.my_table', projectid, chunksize=10000, verbose=True)
+
+           Streaming Insert is 10% Complete
+           Streaming Insert is 20% Complete
+           Streaming Insert is 30% Complete
+           Streaming Insert is 40% Complete
+           Streaming Insert is 50% Complete
+           Streaming Insert is 60% Complete
+           Streaming Insert is 70% Complete
+           Streaming Insert is 80% Complete
+           Streaming Insert is 90% Complete
+           Streaming Insert is 100% Complete
+
+.. note::
+
+   If an error occurs while streaming data to BigQuery, see
+   `Troubleshooting BigQuery Errors <https://cloud.google.com/bigquery/troubleshooting-errors>`__.
+
+.. note::
+
+   The BigQuery SQL query language has some oddities, see the
+   `BigQuery Query Reference Documentation <https://developers.google.com/bigquery/query-reference>`__.
+
+.. note::
+
+   While BigQuery uses SQL-like syntax, it has some important differences from traditional
+   databases both in functionality, API limitations (size and quantity of queries or uploads),
+   and how Google charges for use of the service. You should refer to `Google BigQuery documentation <https://developers.google.com/bigquery/>`__
+   often as the service seems to be changing and evolving. BiqQuery is best for analyzing large
+   sets of data quickly, but it is not a direct replacement for a transactional database.
+
+Creating BigQuery Tables
+''''''''''''''''''''''''
 
 .. warning::
 
-   To use this module, you will need a valid BigQuery account. See
-   <https://cloud.google.com/products/big-query> for details on the
-   service.
+   As of 0.17, the function :func:`~pandas.io.gbq.generate_bq_schema` has been deprecated and will be
+   removed in a future version.
+
+As of 0.15.2, the gbq module has a function :func:`~pandas.io.gbq.generate_bq_schema` which will
+produce the dictionary representation schema of the specified pandas DataFrame.
+
+.. code-block:: python
+
+   In [10]: gbq.generate_bq_schema(df, default_type='STRING')
+
+   Out[10]: {'fields': [{'name': 'my_bool1', 'type': 'BOOLEAN'},
+            {'name': 'my_bool2', 'type': 'BOOLEAN'},
+            {'name': 'my_dates', 'type': 'TIMESTAMP'},
+            {'name': 'my_float64', 'type': 'FLOAT'},
+            {'name': 'my_int64', 'type': 'INTEGER'},
+            {'name': 'my_string', 'type': 'STRING'}]}
+
+.. note::
+
+   If you delete and re-create a BigQuery table with the same name, but different table schema,
+   you must wait 2 minutes before streaming data into the table. As a workaround, consider creating
+   the new table with a different name. Refer to
+   `Google BigQuery issue 191 <https://code.google.com/p/google-bigquery/issues/detail?id=191>`__.
 
 .. _io.stata:
 

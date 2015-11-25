@@ -7,7 +7,6 @@ from pandas.core import common as com
 import pandas.core.nanops as nanops
 import pandas.lib as lib
 from pandas.util.decorators import Appender, cache_readonly, deprecate_kwarg
-from pandas.core.strings import StringMethods
 from pandas.core.common import AbstractMethodError
 
 _shared_docs = dict()
@@ -110,6 +109,31 @@ class PandasObject(StringMixin):
             self._cache.clear()
         else:
             self._cache.pop(key, None)
+
+class NoNewAttributesMixin(object):
+    """Mixin which prevents adding new attributes.
+
+     Prevents additional attributes via xxx.attribute = "something" after a call to
+     `self.__freeze()`. Mainly used to prevent the user from using wrong attrirbutes
+     on a accessor (`Series.cat/.str/.dt`).
+
+     If you really want to add a new attribute at a later time, you need to use
+     `object.__setattr__(self, key, value)`.
+     """
+
+    def _freeze(self):
+        """Prevents setting additional attributes"""
+        object.__setattr__(self, "__frozen", True)
+
+
+    # prevent adding any attribute via s.xxx.new_attribute = ...
+    def __setattr__(self, key, value):
+        # _cache is used by a decorator
+        # dict lookup instead of getattr as getattr is false for getter which error
+        if getattr(self, "__frozen", False) and not (key in type(self).__dict__ or key == "_cache"):
+            raise AttributeError( "You cannot add any new attribute '{key}'".format(key=key))
+        object.__setattr__(self, key, value)
+
 
 class PandasDelegate(PandasObject):
     """ an abstract base class for delegating methods/properties """
@@ -489,6 +513,36 @@ class IndexOpsMixin(object):
             n -= 1
         return n
 
+    def memory_usage(self, deep=False):
+        """
+        Memory usage of my values
+
+        Parameters
+        ----------
+        deep : bool
+            Introspect the data deeply, interrogate
+            `object` dtypes for system-level memory consumption
+
+        Returns
+        -------
+        bytes used
+
+        Notes
+        -----
+        Memory usage does not include memory consumed by elements that
+        are not components of the array if deep=False
+
+        See Also
+        --------
+        numpy.ndarray.nbytes
+        """
+        if hasattr(self.values,'memory_usage'):
+            return self.values.memory_usage(deep=deep)
+
+        v = self.values.nbytes
+        if deep and com.is_object_dtype(self):
+            v += lib.memory_usage_of_objects(self.values)
+        return v
 
     def factorize(self, sort=False, na_sentinel=-1):
         """
@@ -516,41 +570,6 @@ class IndexOpsMixin(object):
         #### needs coercion on the key (DatetimeIndex does alreay)
         #### needs tests/doc-string
         return self.values.searchsorted(key, side=side)
-
-    # string methods
-    def _make_str_accessor(self):
-        from pandas.core.series import Series
-        from pandas.core.index import Index
-        if isinstance(self, Series) and not com.is_object_dtype(self.dtype):
-            # this really should exclude all series with any non-string values,
-            # but that isn't practical for performance reasons until we have a
-            # str dtype (GH 9343)
-            raise AttributeError("Can only use .str accessor with string "
-                                 "values, which use np.object_ dtype in "
-                                 "pandas")
-        elif isinstance(self, Index):
-            # see scc/inferrence.pyx which can contain string values
-            allowed_types = ('string', 'unicode', 'mixed', 'mixed-integer')
-            if self.inferred_type not in allowed_types:
-                message = ("Can only use .str accessor with string values "
-                           "(i.e. inferred_type is 'string', 'unicode' or 'mixed')")
-                raise AttributeError(message)
-            if self.nlevels > 1:
-                message = "Can only use .str accessor with Index, not MultiIndex"
-                raise AttributeError(message)
-        return StringMethods(self)
-
-    str = AccessorProperty(StringMethods, _make_str_accessor)
-
-    def _dir_additions(self):
-        return set()
-
-    def _dir_deletions(self):
-        try:
-            getattr(self, 'str')
-        except AttributeError:
-            return set(['str'])
-        return set()
 
     _shared_docs['drop_duplicates'] = (
         """Return %(klass)s with duplicate values removed

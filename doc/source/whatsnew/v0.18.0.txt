@@ -1,0 +1,111 @@
+.. _whatsnew_0180:
+
+v0.18.0 (January ??, 2016)
+--------------------------
+
+This is a major release from 0.17.1 and includes a small number of API changes, several new features,
+enhancements, and performance improvements along with a large number of bug fixes. We recommend that all
+users upgrade to this version.
+
+Highlights include:
+
+Check the :ref:`API Changes <whatsnew_0180.api>` and :ref:`deprecations <whatsnew_0180.deprecations>` before updating.
+
+.. contents:: What's new in v0.18.0
+    :local:
+    :backlinks: none
+
+.. _whatsnew_0180.enhancements:
+
+New features
+~~~~~~~~~~~~
+
+
+
+
+
+
+
+.. _whatsnew_0180.enhancements.other:
+
+Other enhancements
+^^^^^^^^^^^^^^^^^^
+
+
+
+
+
+
+
+
+
+.. _whatsnew_0180.api:
+
+.. _whatsnew_0180.api_breaking:
+
+Backwards incompatible API changes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+
+
+
+
+
+
+
+Other API Changes
+^^^^^^^^^^^^^^^^^
+
+
+
+
+
+
+
+
+
+.. _whatsnew_0180.deprecations:
+
+Deprecations
+^^^^^^^^^^^^
+
+
+
+
+
+
+.. _whatsnew_0180.prior_deprecations:
+
+Removal of prior version deprecations/changes
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+
+
+
+
+
+
+.. _whatsnew_0180.performance:
+
+Performance Improvements
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+- Improved performance of ``andrews_curves`` (:issue:`11534`)
+
+
+
+
+
+
+
+
+
+.. _whatsnew_0180.bug_fixes:
+
+Bug Fixes
+~~~~~~~~~
+
+
+
+- Bug in ``.loc`` against ``CategoricalIndex`` may result in normal ``Index`` (:issue:`11586`)

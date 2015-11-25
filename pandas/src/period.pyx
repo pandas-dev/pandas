@@ -20,6 +20,7 @@ from pandas import compat
 from pandas.tseries import offsets
 from pandas.tseries.tools import parse_time_string
 
+cimport cython
 from datetime cimport *
 cimport util
 cimport lib
@@ -76,11 +77,11 @@ cdef extern from "period_helper.h":
 
     int64_t get_period_ordinal(int year, int month, int day,
                           int hour, int minute, int second, int microseconds, int picoseconds,
-                          int freq) except INT32_MIN
+                          int freq) nogil except INT32_MIN
 
     int64_t get_python_ordinal(int64_t period_ordinal, int freq) except INT32_MIN
 
-    int get_date_info(int64_t ordinal, int freq, date_info *dinfo) except INT32_MIN
+    int get_date_info(int64_t ordinal, int freq, date_info *dinfo) nogil except INT32_MIN
     double getAbsTime(int, int64_t, int64_t)
 
     int pyear(int64_t ordinal, int freq) except INT32_MIN
@@ -124,6 +125,8 @@ cdef inline int64_t remove_mult(int64_t period_ord_w_mult, int64_t mult):
 
     return period_ord_w_mult * mult + 1;
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
 def dt64arr_to_periodarr(ndarray[int64_t] dtarr, int freq, tz=None):
     """
     Convert array of datetime64 values (passed in as 'i8' dtype) to a set of
@@ -139,17 +142,20 @@ def dt64arr_to_periodarr(ndarray[int64_t] dtarr, int freq, tz=None):
     out = np.empty(l, dtype='i8')
 
     if tz is None:
-        for i in range(l):
-            if dtarr[i] == iNaT:
-                out[i] = iNaT
-                continue
-            pandas_datetime_to_datetimestruct(dtarr[i], PANDAS_FR_ns, &dts)
-            out[i] = get_period_ordinal(dts.year, dts.month, dts.day,
-                                        dts.hour, dts.min, dts.sec, dts.us, dts.ps, freq)
+        with nogil:
+            for i in range(l):
+                if dtarr[i] == NPY_NAT:
+                    out[i] = NPY_NAT
+                    continue
+                pandas_datetime_to_datetimestruct(dtarr[i], PANDAS_FR_ns, &dts)
+                out[i] = get_period_ordinal(dts.year, dts.month, dts.day,
+                                            dts.hour, dts.min, dts.sec, dts.us, dts.ps, freq)
     else:
         out = localize_dt64arr_to_period(dtarr, freq, tz)
     return out
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
 def periodarr_to_dt64arr(ndarray[int64_t] periodarr, int freq):
     """
     Convert array to datetime64 values from a set of ordinals corresponding to
@@ -163,11 +169,12 @@ def periodarr_to_dt64arr(ndarray[int64_t] periodarr, int freq):
 
     out = np.empty(l, dtype='i8')
 
-    for i in range(l):
-        if periodarr[i] == iNaT:
-            out[i] = iNaT
-            continue
-        out[i] = period_ordinal_to_dt64(periodarr[i], freq)
+    with nogil:
+        for i in range(l):
+            if periodarr[i] == NPY_NAT:
+                out[i] = NPY_NAT
+                continue
+            out[i] = period_ordinal_to_dt64(periodarr[i], freq)
 
     return out
 
@@ -245,13 +252,13 @@ def period_ordinal(int y, int m, int d, int h, int min, int s, int us, int ps, i
     return get_period_ordinal(y, m, d, h, min, s, us, ps, freq)
 
 
-cpdef int64_t period_ordinal_to_dt64(int64_t ordinal, int freq):
+cpdef int64_t period_ordinal_to_dt64(int64_t ordinal, int freq) nogil:
     cdef:
         pandas_datetimestruct dts
         date_info dinfo
         float subsecond_fraction
 
-    if ordinal == iNaT:
+    if ordinal == NPY_NAT:
         return NPY_NAT
 
     get_date_info(ordinal, freq, &dinfo)
@@ -439,11 +446,13 @@ def extract_ordinals(ndarray[object] values, freq):
         ndarray[int64_t] ordinals = np.empty(n, dtype=np.int64)
         object p
 
+    freqstr = Period._maybe_convert_freq(freq).freqstr
+
     for i in range(n):
         p = values[i]
         ordinals[i] = p.ordinal
-        if p.freq != freq:
-            raise ValueError("%s is wrong freq" % p)
+        if p.freqstr != freqstr:
+            raise ValueError(_DIFFERENT_FREQ_INDEX.format(freqstr, p.freqstr))
 
     return ordinals
 
@@ -615,8 +624,8 @@ cdef ndarray[int64_t] localize_dt64arr_to_period(ndarray[int64_t] stamps,
     return result
 
 
-_DIFFERENT_FREQ_ERROR = "Input has different freq={1} from Period(freq={0})"
-
+_DIFFERENT_FREQ = "Input has different freq={1} from Period(freq={0})"
+_DIFFERENT_FREQ_INDEX = "Input has different freq={1} from PeriodIndex(freq={0})"
 
 cdef class Period(object):
     """
@@ -757,7 +766,7 @@ cdef class Period(object):
         if isinstance(other, Period):
             from pandas.tseries.frequencies import get_freq_code as _gfc
             if other.freq != self.freq:
-                msg = _DIFFERENT_FREQ_ERROR.format(self.freqstr, other.freqstr)
+                msg = _DIFFERENT_FREQ.format(self.freqstr, other.freqstr)
                 raise ValueError(msg)
             if self.ordinal == tslib.iNaT or other.ordinal == tslib.iNaT:
                 return _nat_scalar_rules[op]
@@ -798,7 +807,7 @@ cdef class Period(object):
                 else:
                     ordinal = self.ordinal + other.n
                 return Period(ordinal=ordinal, freq=self.freq)
-            msg = _DIFFERENT_FREQ_ERROR.format(self.freqstr, other.freqstr)
+            msg = _DIFFERENT_FREQ.format(self.freqstr, other.freqstr)
             raise ValueError(msg)
         else: # pragma no cover
             return NotImplemented

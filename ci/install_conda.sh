@@ -72,22 +72,18 @@ bash miniconda.sh -b -p $HOME/miniconda || exit 1
 
 conda config --set always_yes yes --set changeps1 no || exit 1
 conda update -q conda || exit 1
-conda config --add channels http://conda.binstar.org/pandas || exit 1
+conda config --add channels http://conda.anaconda.org/pandas || exit 1
 conda config --set ssl_verify false || exit 1
 
 # Useful for debugging any issues with conda
 conda info -a || exit 1
 
-conda create -n pandas python=$TRAVIS_PYTHON_VERSION || exit 1
-conda install -n pandas --file=ci/requirements-${TRAVIS_PYTHON_VERSION}${JOB_TAG}.txt || exit 1
-
-conda install -n pandas pip setuptools nose || exit 1
-conda remove -n pandas pandas
+# build deps
+REQ="ci/requirements-${TRAVIS_PYTHON_VERSION}${JOB_TAG}.build"
+time conda create -n pandas python=$TRAVIS_PYTHON_VERSION nose || exit 1
+time conda install -n pandas --file=${REQ} || exit 1
 
 source activate pandas
-
-pip install -U blosc  # See https://github.com/pydata/pandas/pull/9783
-python -c 'import blosc; blosc.print_versions()'
 
 # set the compiler cache to work
 if [ "$IRON_TOKEN" ]; then
@@ -100,15 +96,33 @@ if [ "$IRON_TOKEN" ]; then
 fi
 
 if [ "$BUILD_TEST" ]; then
+
+    # build testing
     pip uninstall --yes cython
     pip install cython==0.15.1
     ( python setup.py build_ext --inplace && python setup.py develop ) || true
-else
-    python setup.py build_ext --inplace && python setup.py develop
-fi
 
-for package in beautifulsoup4; do
-    pip uninstall --yes $package
-done
+else
+
+    # build but don't install
+    time python setup.py build_ext --inplace || exit 1
+
+    # we may have run installations
+    REQ="ci/requirements-${TRAVIS_PYTHON_VERSION}${JOB_TAG}.run"
+    time conda install -n pandas --file=${REQ} || exit 1
+
+    # we may have additional pip installs
+    REQ="ci/requirements-${TRAVIS_PYTHON_VERSION}${JOB_TAG}.pip"
+    if [ -e ${REQ} ]; then
+        pip install -r $REQ
+    fi
+
+    # remove any installed pandas package
+    conda remove pandas
+
+    # install our pandas
+    python setup.py develop  || exit 1
+
+fi
 
 true

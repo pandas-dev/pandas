@@ -1329,33 +1329,37 @@ class TestStringMethods(tm.TestCase):
     def test_split_to_dataframe(self):
         s = Series(['nosplit', 'alsonosplit'])
 
-        with tm.assert_produces_warning():
+        with tm.assert_produces_warning(FutureWarning):
             result = s.str.split('_', return_type='frame')
 
         exp = DataFrame({0: Series(['nosplit', 'alsonosplit'])})
         tm.assert_frame_equal(result, exp)
 
         s = Series(['some_equal_splits', 'with_no_nans'])
-        result = s.str.split('_', return_type='frame')
+        with tm.assert_produces_warning(FutureWarning):
+            result = s.str.split('_', return_type='frame')
         exp = DataFrame({0: ['some', 'with'], 1: ['equal', 'no'],
                          2: ['splits', 'nans']})
         tm.assert_frame_equal(result, exp)
 
         s = Series(['some_unequal_splits', 'one_of_these_things_is_not'])
-        result = s.str.split('_', return_type='frame')
+        with tm.assert_produces_warning(FutureWarning):
+            result = s.str.split('_', return_type='frame')
         exp = DataFrame({0: ['some', 'one'], 1: ['unequal', 'of'],
                          2: ['splits', 'these'], 3: [NA, 'things'],
                          4: [NA, 'is'], 5: [NA, 'not']})
         tm.assert_frame_equal(result, exp)
 
         s = Series(['some_splits', 'with_index'], index=['preserve', 'me'])
-        result = s.str.split('_', return_type='frame')
+        with tm.assert_produces_warning(FutureWarning):
+            result = s.str.split('_', return_type='frame')
         exp = DataFrame({0: ['some', 'with'], 1: ['splits', 'index']},
                         index=['preserve', 'me'])
         tm.assert_frame_equal(result, exp)
 
         with tm.assertRaisesRegexp(ValueError, "expand must be"):
-            s.str.split('_', return_type="some_invalid_type")
+            with tm.assert_produces_warning(FutureWarning):
+                s.str.split('_', return_type="some_invalid_type")
 
     def test_split_to_dataframe_expand(self):
         s = Series(['nosplit', 'alsonosplit'])
@@ -1383,7 +1387,8 @@ class TestStringMethods(tm.TestCase):
         tm.assert_frame_equal(result, exp)
 
         with tm.assertRaisesRegexp(ValueError, "expand must be"):
-            s.str.split('_', return_type="some_invalid_type")
+            with tm.assert_produces_warning(FutureWarning):
+                s.str.split('_', return_type="some_invalid_type")
 
     def test_split_to_multiindex_expand(self):
         idx = Index(['nosplit', 'alsonosplit'])
@@ -1407,7 +1412,8 @@ class TestStringMethods(tm.TestCase):
         self.assertEqual(result.nlevels, 6)
 
         with tm.assertRaisesRegexp(ValueError, "expand must be"):
-            idx.str.split('_', return_type="some_invalid_type")
+            with tm.assert_produces_warning(FutureWarning):
+                idx.str.split('_', return_type="some_invalid_type")
 
     def test_rsplit_to_dataframe_expand(self):
         s = Series(['nosplit', 'alsonosplit'])
@@ -2033,6 +2039,12 @@ class TestStringMethods(tm.TestCase):
         message = 'Can only use .str accessor with Index, not MultiIndex'
         with self.assertRaisesRegexp(AttributeError, message):
             idx.str
+
+    def test_str_accessor_no_new_attributes(self):
+        # https://github.com/pydata/pandas/issues/10673
+        s = Series(list('aabbcde'))
+        with tm.assertRaisesRegexp(AttributeError, "You cannot add any new attribute"):
+            s.str.xlabel = "a"
 
     def test_method_on_bytes(self):
         lhs = Series(np.array(list('abc'), 'S1').astype(object))

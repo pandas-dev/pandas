@@ -97,7 +97,7 @@ of multi-axis indexing.
   axis is of integer type. ``.ix`` is the most general and will
   support any of the inputs in ``.loc`` and ``.iloc``. ``.ix`` also supports floating point
   label schemes. ``.ix`` is exceptionally useful when dealing with mixed positional
-  and label based hierachical indexes.
+  and label based hierarchical indexes.
 
   However, when an axis is integer based, ONLY
   label based access and not positional access is supported.
@@ -1367,6 +1367,31 @@ with duplicates dropped.
    idx1.sym_diff(idx2)
    idx1 ^ idx2
 
+Missing values
+~~~~~~~~~~~~~~
+
+.. _indexing.missing:
+
+.. versionadded:: 0.17.1
+
+.. important::
+
+   Even though ``Index`` can hold missing values (``NaN``), it should be avoided
+   if you do not want any unexpected results. For example, some operations
+   exclude missing values implicitly.
+
+``Index.fillna`` fills missing values with specified scalar value.
+
+.. ipython:: python
+
+   idx1 = pd.Index([1, np.nan, 3, 4])
+   idx1
+   idx1.fillna(2)
+
+   idx2 = pd.DatetimeIndex([pd.Timestamp('2011-01-01'), pd.NaT, pd.Timestamp('2011-01-03')])
+   idx2
+   idx2.fillna(pd.Timestamp('2011-01-02'))
+
 Set / Reset Index
 -----------------
 
@@ -1585,5 +1610,5 @@ This will **not** work at all, and so should be avoided
 .. warning::
 
    The chained assignment warnings / exceptions are aiming to inform the user of a possibly invalid
-   assignment. There may be false positives; situations where a chained assignment is inadvertantly
+   assignment. There may be false positives; situations where a chained assignment is inadvertently
    reported.

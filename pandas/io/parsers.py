@@ -17,7 +17,8 @@ import pandas.core.common as com
 from pandas.core.common import AbstractMethodError
 from pandas.core.config import get_option
 from pandas.io.date_converters import generic_parser
-from pandas.io.common import get_filepath_or_buffer
+from pandas.io.common import (get_filepath_or_buffer, _validate_header_arg,
+                              _get_handle, UnicodeReader, UTF8Recoder)
 from pandas.tseries import tools
 
 from pandas.util.decorators import Appender
@@ -32,6 +33,9 @@ class ParserWarning(Warning):
 
 _parser_params = """Also supports optionally iterating or breaking of the file
 into chunks.
+
+Additional help can be found in the `online docs for IO Tools
+<http://pandas.pydata.org/pandas-docs/stable/io.html>`_.
 
 Parameters
 ----------
@@ -132,9 +136,12 @@ decimal : str, default '.'
 nrows : int, default None
     Number of rows of file to read. Useful for reading pieces of large files
 iterator : boolean, default False
-    Return TextFileReader object
+    Return TextFileReader object for iteration or getting chunks with ``get_chunk()``.
 chunksize : int, default None
-    Return TextFileReader object for iteration
+    Return TextFileReader object for iteration. `See IO Tools docs for more
+    information
+    <http://pandas.pydata.org/pandas-docs/stable/io.html#io-chunking>`_ on
+    ``iterator`` and ``chunksize``.
 skipfooter : int, default 0
     Number of lines at bottom of file to skip (Unsupported with engine='c')
 converters : dict, default None
@@ -235,10 +242,25 @@ def _read(filepath_or_buffer, kwds):
     if skipfooter is not None:
         kwds['skip_footer'] = skipfooter
 
+    # If the input could be a filename, check for a recognizable compression extension.
+    # If we're reading from a URL, the `get_filepath_or_buffer` will use header info
+    # to determine compression, so use what it finds in that case.
+    inferred_compression = kwds.get('compression')
+    if inferred_compression == 'infer':
+        if isinstance(filepath_or_buffer, compat.string_types):
+            if filepath_or_buffer.endswith('.gz'):
+                inferred_compression = 'gzip'
+            elif filepath_or_buffer.endswith('.bz2'):
+                inferred_compression = 'bz2'
+            else:
+                inferred_compression = None
+        else:
+            inferred_compression = None
+
     filepath_or_buffer, _, compression = get_filepath_or_buffer(filepath_or_buffer,
                                                                 encoding,
                                                                 compression=kwds.get('compression', None))
-    kwds['compression'] = compression
+    kwds['compression'] = inferred_compression if compression == 'infer' else compression
 
     if kwds.get('date_parser', None) is not None:
         if isinstance(kwds['parse_dates'], bool):
@@ -301,7 +323,7 @@ _parser_defaults = {
     'verbose': False,
     'encoding': None,
     'squeeze': False,
-    'compression': 'infer',
+    'compression': None,
     'mangle_dupe_cols': True,
     'tupleize_cols': False,
     'infer_datetime_format': False,
@@ -658,6 +680,8 @@ class TextFileReader(object):
         # really delete this one
         keep_default_na = result.pop('keep_default_na')
 
+        _validate_header_arg(options['header'])
+
         if index_col is True:
             raise ValueError("The value of index_col couldn't be 'True'")
         if _is_index_col(index_col):
@@ -855,10 +879,13 @@ class ParserBase(object):
         columns = lzip(*[extract(r) for r in header])
         names = ic + columns
 
+        def tostr(x):
+            return str(x) if not isinstance(x, compat.string_types) else x
+
         # if we find 'Unnamed' all of a single level, then our header was too
         # long
         for n in range(len(columns[0])):
-            if all(['Unnamed' in c[n] for c in columns]):
+            if all(['Unnamed' in tostr(c[n]) for c in columns]):
                 raise _parser.CParserError(
                     "Passed header=[%s] are too many rows for this "
                     "multi_index of columns"
@@ -1067,7 +1094,7 @@ class CParserWrapper(ParserBase):
         if 'utf-16' in (kwds.get('encoding') or ''):
             if isinstance(src, compat.string_types):
                 src = open(src, 'rb')
-            src = com.UTF8Recoder(src, kwds['encoding'])
+            src = UTF8Recoder(src, kwds['encoding'])
             kwds['encoding'] = 'utf-8'
 
         # #2442
@@ -1344,12 +1371,13 @@ def _wrap_compressed(f, compression, encoding=None):
     elif compression == 'bz2':
         import bz2
 
-        # bz2 module can't take file objects, so have to run through decompress
-        # manually
-        data = bz2.decompress(f.read())
         if compat.PY3:
-            data = data.decode(encoding)
-        f = StringIO(data)
+            f = bz2.open(f, 'rt', encoding=encoding)
+        else:
+            # Python 2's bz2 module can't take file objects, so have to
+            # run through decompress manually
+            data = bz2.decompress(f.read())
+            f = StringIO(data)
         return f
     else:
         raise ValueError('do not recognize compression method %s'
@@ -1401,19 +1429,8 @@ class PythonParser(ParserBase):
         self.comment = kwds['comment']
         self._comment_lines = []
 
-        if self.compression == 'infer':
-            if isinstance(f, compat.string_types):
-                if f.endswith('.gz'):
-                    self.compression = 'gzip'
-                elif f.endswith('.bz2'):
-                    self.compression = 'bz2'
-                else:
-                    self.compression = None
-            else:
-                self.compression = None
-
         if isinstance(f, compat.string_types):
-            f = com._get_handle(f, 'r', encoding=self.encoding,
+            f = _get_handle(f, 'r', encoding=self.encoding,
                                 compression=self.compression)
         elif self.compression:
             f = _wrap_compressed(f, self.compression, self.encoding)
@@ -1533,17 +1550,17 @@ class PythonParser(ParserBase):
                 dia.delimiter = sniffed.delimiter
                 if self.encoding is not None:
                     self.buf.extend(list(
-                        com.UnicodeReader(StringIO(line),
-                                          dialect=dia,
-                                          encoding=self.encoding)))
+                        UnicodeReader(StringIO(line),
+                                      dialect=dia,
+                                      encoding=self.encoding)))
                 else:
                     self.buf.extend(list(csv.reader(StringIO(line),
                                                     dialect=dia)))
 
             if self.encoding is not None:
-                reader = com.UnicodeReader(f, dialect=dia,
-                                           encoding=self.encoding,
-                                           strict=True)
+                reader = UnicodeReader(f, dialect=dia,
+                                       encoding=self.encoding,
+                                       strict=True)
             else:
                 reader = csv.reader(f, dialect=dia,
                                     strict=True)

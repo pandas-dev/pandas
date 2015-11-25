@@ -274,8 +274,8 @@ advanced cython techniques:
       ...:     return s * dx
       ...: @cython.boundscheck(False)
       ...: @cython.wraparound(False)
-      ...: cpdef np.ndarray[double] apply_integrate_f_wrap(np.ndarray[double] col_a, np.ndarray[double] col_b, np.ndarray[Py_ssize_t] col_N):
-      ...:     cdef Py_ssize_t i, n = len(col_N)
+      ...: cpdef np.ndarray[double] apply_integrate_f_wrap(np.ndarray[double] col_a, np.ndarray[double] col_b, np.ndarray[int] col_N):
+      ...:     cdef int i, n = len(col_N)
       ...:     assert len(col_a) == len(col_b) == n
       ...:     cdef np.ndarray[double] res = np.empty(n)
       ...:     for i in range(n):
@@ -449,12 +449,15 @@ These operations are supported by :func:`pandas.eval`:
 - Attribute access, e.g., ``df.a``
 - Subscript expressions, e.g., ``df[0]``
 - Simple variable evaluation, e.g., ``pd.eval('df')`` (this is not very useful)
+- Math functions, `sin`, `cos`, `exp`, `log`, `expm1`, `log1p`,
+  `sqrt`, `sinh`, `cosh`, `tanh`, `arcsin`, `arccos`, `arctan`, `arccosh`,
+  `arcsinh`, `arctanh`, `abs` and `arctan2`.
 
 This Python syntax is **not** allowed:
 
 * Expressions
 
-  - Function calls
+  - Function calls other than math functions.
   - ``is``/``is not`` operations
   - ``if`` expressions
   - ``lambda`` expressions
@@ -696,7 +699,7 @@ ol' Python.
 .. note::
 
    Using the ``'python'`` engine is generally *not* useful, except for testing
-   other evaluation engines against it. You will acheive **no** performance
+   other evaluation engines against it. You will achieve **no** performance
    benefits using :func:`~pandas.eval` with ``engine='python'`` and in fact may
    incur a performance hit.
 

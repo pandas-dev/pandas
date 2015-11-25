@@ -2293,6 +2293,13 @@ MyColumn
         result = self.read_csv(StringIO(data), header=None)
         self.assertEqual(len(result), 2)
 
+        # GH 9735
+        chunk1 = 'a' * (1024 * 256 - 2) + '\na'
+        chunk2 = '\n a'
+        result = pd.read_csv(StringIO(chunk1 + chunk2), header=None)
+        expected = pd.DataFrame(['a' * (1024 * 256 - 2), 'a', ' a'])
+        tm.assert_frame_equal(result, expected)
+
     def test_empty_with_index(self):
         # GH 10184
         data = 'x,y'
@@ -2306,14 +2313,14 @@ MyColumn
         result = self.read_csv(StringIO(data), index_col=['x', 'y'])
         expected = DataFrame([], columns=['z'],
                              index=MultiIndex.from_arrays([[]] * 2, names=['x', 'y']))
-        tm.assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected, check_index_type=False)
 
     def test_empty_with_reversed_multiindex(self):
         data = 'x,y,z'
         result = self.read_csv(StringIO(data), index_col=[1, 0])
         expected = DataFrame([], columns=['z'],
                              index=MultiIndex.from_arrays([[]] * 2, names=['y', 'x']))
-        tm.assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected, check_index_type=False)
 
     def test_empty_index_col_scenarios(self):
         data = 'x,y,z'
@@ -2345,28 +2352,26 @@ MyColumn
         # list of int
         index_col, expected = [0, 1], DataFrame([], columns=['z'],
                                                 index=MultiIndex.from_arrays([[]] * 2, names=['x', 'y']))
-        tm.assert_frame_equal(self.read_csv(StringIO(data), index_col=index_col), expected)
+        tm.assert_frame_equal(self.read_csv(StringIO(data), index_col=index_col), expected,
+                              check_index_type=False)
 
         # list of str
-        index_col, expected = (
-            ['x', 'y'],
-            DataFrame([], columns=['z'], index=MultiIndex.from_arrays([[]] * 2, names=['x', 'y']))
-        )
-        tm.assert_frame_equal(self.read_csv(StringIO(data), index_col=index_col), expected)
+        index_col = ['x', 'y']
+        expected = DataFrame([], columns=['z'], index=MultiIndex.from_arrays([[]] * 2, names=['x', 'y']))
+        tm.assert_frame_equal(self.read_csv(StringIO(data), index_col=index_col), expected,
+                              check_index_type=False)
 
         # list of int, reversed sequence
-        index_col, expected = (
-            [1, 0],
-            DataFrame([], columns=['z'], index=MultiIndex.from_arrays([[]] * 2, names=['y', 'x']))
-        )
-        tm.assert_frame_equal(self.read_csv(StringIO(data), index_col=index_col), expected)
+        index_col = [1, 0]
+        expected = DataFrame([], columns=['z'], index=MultiIndex.from_arrays([[]] * 2, names=['y', 'x']))
+        tm.assert_frame_equal(self.read_csv(StringIO(data), index_col=index_col), expected,
+                              check_index_type=False)
 
         # list of str, reversed sequence
-        index_col, expected = (
-            ['y', 'x'],
-            DataFrame([], columns=['z'], index=MultiIndex.from_arrays([[]] * 2, names=['y', 'x']))
-        )
-        tm.assert_frame_equal(self.read_csv(StringIO(data), index_col=index_col), expected)
+        index_col = ['y', 'x']
+        expected = DataFrame([], columns=['z'], index=MultiIndex.from_arrays([[]] * 2, names=['y', 'x']))
+        tm.assert_frame_equal(self.read_csv(StringIO(data), index_col=index_col), expected,
+                              check_index_type=False)
 
     def test_empty_with_index_col_false(self):
         # GH 10413
@@ -2427,11 +2432,11 @@ MyColumn
 
         result = pd.read_csv(StringIO('foo,bar\n'), nrows=10, as_recarray=True)
         result = pd.DataFrame(result[2], columns=result[1], index=result[0])
-        tm.assert_frame_equal(pd.DataFrame.from_records(result), expected)
+        tm.assert_frame_equal(pd.DataFrame.from_records(result), expected, check_index_type=False)
 
         result = next(iter(pd.read_csv(StringIO('foo,bar\n'), chunksize=10, as_recarray=True)))
         result = pd.DataFrame(result[2], columns=result[1], index=result[0])
-        tm.assert_frame_equal(pd.DataFrame.from_records(result), expected)
+        tm.assert_frame_equal(pd.DataFrame.from_records(result), expected, check_index_type=False)
 
     def test_eof_states(self):
         # GH 10728 and 10548
@@ -3690,7 +3695,7 @@ one,two
 
         expected = DataFrame({'one': np.empty(0, dtype='u1'),
                               'two': np.empty(0, dtype=np.object)})
-        tm.assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected, check_index_type=False)
 
     def test_empty_with_index_pass_dtype(self):
         data = 'one,two'
@@ -3699,38 +3704,37 @@ one,two
 
         expected = DataFrame({'two': np.empty(0, dtype='f')},
                              index=Index([], dtype='u1', name='one'))
-        tm.assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected, check_index_type=False)
 
     def test_empty_with_multiindex_pass_dtype(self):
         data = 'one,two,three'
         result = self.read_csv(StringIO(data), index_col=['one', 'two'],
                                dtype={'one': 'u1', 1: 'f8'})
 
-        expected = DataFrame({'three': np.empty(0, dtype=np.object)}, index=MultiIndex.from_arrays(
-            [np.empty(0, dtype='u1'), np.empty(0, dtype='O')],
-            names=['one', 'two'])
-            )
-        tm.assert_frame_equal(result, expected)
+        exp_idx = MultiIndex.from_arrays([np.empty(0, dtype='u1'), np.empty(0, dtype='O')],
+                                         names=['one', 'two'])
+        expected = DataFrame({'three': np.empty(0, dtype=np.object)}, index=exp_idx)
+        tm.assert_frame_equal(result, expected, check_index_type=False)
 
     def test_empty_with_mangled_column_pass_dtype_by_names(self):
         data = 'one,one'
         result = self.read_csv(StringIO(data), dtype={'one': 'u1', 'one.1': 'f'})
 
         expected = DataFrame({'one': np.empty(0, dtype='u1'), 'one.1': np.empty(0, dtype='f')})
-        tm.assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected, check_index_type=False)
 
     def test_empty_with_mangled_column_pass_dtype_by_indexes(self):
         data = 'one,one'
         result = self.read_csv(StringIO(data), dtype={0: 'u1', 1: 'f'})
 
         expected = DataFrame({'one': np.empty(0, dtype='u1'), 'one.1': np.empty(0, dtype='f')})
-        tm.assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected, check_index_type=False)
 
     def test_empty_with_dup_column_pass_dtype_by_names(self):
         data = 'one,one'
         result = self.read_csv(StringIO(data), mangle_dupe_cols=False, dtype={'one': 'u1'})
         expected = pd.concat([Series([], name='one', dtype='u1')] * 2, axis=1)
-        tm.assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected, check_index_type=False)
 
     def test_empty_with_dup_column_pass_dtype_by_indexes(self):
         ### FIXME in GH9424
@@ -3740,7 +3744,7 @@ one,two
         result = self.read_csv(StringIO(data), mangle_dupe_cols=False, dtype={0: 'u1', 1: 'f'})
         expected = pd.concat([Series([], name='one', dtype='u1'),
                               Series([], name='one', dtype='f')], axis=1)
-        tm.assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected, check_index_type=False)
 
     def test_usecols_dtypes(self):
         data = """\
@@ -3835,6 +3839,14 @@ one,two
 
             self.assertRaises(ValueError, self.read_csv,
                               path, compression='bz3')
+
+            with open(path, 'rb') as fin:
+                if compat.PY3:
+                    result = self.read_csv(fin, compression='bz2')
+                    tm.assert_frame_equal(result, expected)
+                else:
+                    self.assertRaises(ValueError, self.read_csv,
+                                      fin, compression='bz2')
 
     def test_decompression_regex_sep(self):
         try:
@@ -4102,6 +4114,22 @@ MyColumn
                                skipinitialspace=True)
         tm.assert_frame_equal(result, expected)
 
+    def test_bool_header_arg(self):
+        # GH 6114
+        data = """\
+MyColumn
+   a
+   b
+   a
+   b"""
+        for arg in [True, False]:
+            with tm.assertRaises(TypeError):
+                pd.read_csv(StringIO(data), header=arg)
+            with tm.assertRaises(TypeError):
+                pd.read_table(StringIO(data), header=arg)
+            with tm.assertRaises(TypeError):
+                pd.read_fwf(StringIO(data), header=arg)
+
 class TestMiscellaneous(tm.TestCase):
 
     # for tests that don't fit into any of the other classes, e.g. those that
@@ -4233,17 +4261,123 @@ class TestS3(tm.TestCase):
 
     @tm.network
     def test_parse_public_s3_bucket(self):
-        import nose.tools as nt
-        df = pd.read_csv('s3://nyqpug/tips.csv')
-        nt.assert_true(isinstance(df, pd.DataFrame))
-        nt.assert_false(df.empty)
-        tm.assert_frame_equal(pd.read_csv(tm.get_data_path('tips.csv')), df)
+        for ext, comp in [('', None), ('.gz', 'gzip'), ('.bz2', 'bz2')]:
+            if comp == 'bz2' and compat.PY2:
+                # The Python 2 C parser can't read bz2 from S3.
+                self.assertRaises(ValueError, pd.read_csv,
+                                  's3://pandas-test/tips.csv' + ext,
+                                  compression=comp)
+            else:
+                df = pd.read_csv('s3://pandas-test/tips.csv' + ext, compression=comp)
+                self.assertTrue(isinstance(df, pd.DataFrame))
+                self.assertFalse(df.empty)
+                tm.assert_frame_equal(pd.read_csv(tm.get_data_path('tips.csv')), df)
 
         # Read public file from bucket with not-public contents
         df = pd.read_csv('s3://cant_get_it/tips.csv')
-        nt.assert_true(isinstance(df, pd.DataFrame))
-        nt.assert_false(df.empty)
+        self.assertTrue(isinstance(df, pd.DataFrame))
+        self.assertFalse(df.empty)
         tm.assert_frame_equal(pd.read_csv(tm.get_data_path('tips.csv')), df)
+
+    @tm.network
+    def test_parse_public_s3n_bucket(self):
+        # Read from AWS s3 as "s3n" URL
+        df = pd.read_csv('s3n://pandas-test/tips.csv', nrows=10)
+        self.assertTrue(isinstance(df, pd.DataFrame))
+        self.assertFalse(df.empty)
+        tm.assert_frame_equal(pd.read_csv(tm.get_data_path('tips.csv')).iloc[:10], df)
+
+    @tm.network
+    def test_parse_public_s3a_bucket(self):
+        # Read from AWS s3 as "s3a" URL
+        df = pd.read_csv('s3a://pandas-test/tips.csv', nrows=10)
+        self.assertTrue(isinstance(df, pd.DataFrame))
+        self.assertFalse(df.empty)
+        tm.assert_frame_equal(pd.read_csv(tm.get_data_path('tips.csv')).iloc[:10], df)
+
+    @tm.network
+    def test_parse_public_s3_bucket_nrows(self):
+        for ext, comp in [('', None), ('.gz', 'gzip'), ('.bz2', 'bz2')]:
+            if comp == 'bz2' and compat.PY2:
+                # The Python 2 C parser can't read bz2 from S3.
+                self.assertRaises(ValueError, pd.read_csv,
+                                  's3://pandas-test/tips.csv' + ext,
+                                  compression=comp)
+            else:
+                df = pd.read_csv('s3://pandas-test/tips.csv' + ext, nrows=10, compression=comp)
+                self.assertTrue(isinstance(df, pd.DataFrame))
+                self.assertFalse(df.empty)
+                tm.assert_frame_equal(pd.read_csv(tm.get_data_path('tips.csv')).iloc[:10], df)
+
+    @tm.network
+    def test_parse_public_s3_bucket_chunked(self):
+        # Read with a chunksize
+        chunksize = 5
+        local_tips = pd.read_csv(tm.get_data_path('tips.csv'))
+        for ext, comp in [('', None), ('.gz', 'gzip'), ('.bz2', 'bz2')]:
+            if comp == 'bz2' and compat.PY2:
+                # The Python 2 C parser can't read bz2 from S3.
+                self.assertRaises(ValueError, pd.read_csv,
+                                  's3://pandas-test/tips.csv' + ext,
+                                  compression=comp)
+            else:
+                df_reader = pd.read_csv('s3://pandas-test/tips.csv' + ext,
+                                        chunksize=chunksize, compression=comp)
+                self.assertEqual(df_reader.chunksize, chunksize)
+                for i_chunk in [0, 1, 2]:
+                    # Read a couple of chunks and make sure we see them properly.
+                    df = df_reader.get_chunk()
+                    self.assertTrue(isinstance(df, pd.DataFrame))
+                    self.assertFalse(df.empty)
+                    true_df = local_tips.iloc[chunksize * i_chunk: chunksize * (i_chunk + 1)]
+                    true_df = true_df.reset_index().drop('index', axis=1)  # Chunking doesn't preserve row numbering
+                    tm.assert_frame_equal(true_df, df)
+
+    @tm.network
+    def test_parse_public_s3_bucket_chunked_python(self):
+        # Read with a chunksize using the Python parser
+        chunksize = 5
+        local_tips = pd.read_csv(tm.get_data_path('tips.csv'))
+        for ext, comp in [('', None), ('.gz', 'gzip'), ('.bz2', 'bz2')]:
+            df_reader = pd.read_csv('s3://pandas-test/tips.csv' + ext,
+                                    chunksize=chunksize, compression=comp,
+                                    engine='python')
+            self.assertEqual(df_reader.chunksize, chunksize)
+            for i_chunk in [0, 1, 2]:
+                # Read a couple of chunks and make sure we see them properly.
+                df = df_reader.get_chunk()
+                self.assertTrue(isinstance(df, pd.DataFrame))
+                self.assertFalse(df.empty)
+                true_df = local_tips.iloc[chunksize * i_chunk: chunksize * (i_chunk + 1)]
+                true_df = true_df.reset_index().drop('index', axis=1)  # Chunking doesn't preserve row numbering
+                tm.assert_frame_equal(true_df, df)
+
+    @tm.network
+    def test_parse_public_s3_bucket_python(self):
+        for ext, comp in [('', None), ('.gz', 'gzip'), ('.bz2', 'bz2')]:
+            df = pd.read_csv('s3://pandas-test/tips.csv' + ext, engine='python',
+                             compression=comp)
+            self.assertTrue(isinstance(df, pd.DataFrame))
+            self.assertFalse(df.empty)
+            tm.assert_frame_equal(pd.read_csv(tm.get_data_path('tips.csv')), df)
+
+    @tm.network
+    def test_infer_s3_compression(self):
+        for ext in ['', '.gz', '.bz2']:
+            df = pd.read_csv('s3://pandas-test/tips.csv' + ext,
+                             engine='python', compression='infer')
+            self.assertTrue(isinstance(df, pd.DataFrame))
+            self.assertFalse(df.empty)
+            tm.assert_frame_equal(pd.read_csv(tm.get_data_path('tips.csv')), df)
+
+    @tm.network
+    def test_parse_public_s3_bucket_nrows_python(self):
+        for ext, comp in [('', None), ('.gz', 'gzip'), ('.bz2', 'bz2')]:
+            df = pd.read_csv('s3://pandas-test/tips.csv' + ext, engine='python',
+                             nrows=10, compression=comp)
+            self.assertTrue(isinstance(df, pd.DataFrame))
+            self.assertFalse(df.empty)
+            tm.assert_frame_equal(pd.read_csv(tm.get_data_path('tips.csv')).iloc[:10], df)
 
     @tm.network
     def test_s3_fails(self):

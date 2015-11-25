@@ -37,10 +37,109 @@ analysis / manipulation tool available in any language.
 * Binary installers on PyPI: http://pypi.python.org/pypi/pandas
 * Documentation: http://pandas.pydata.org
 
+pandas 0.18.0
+-------------
+
+**Release date:** (January ??, 2016)
+
+This is a major release from 0.17.1 and includes a small number of API changes, several new features,
+enhancements, and performance improvements along with a large number of bug fixes. We recommend that all
+users upgrade to this version.
+
+Highlights include:
+
+See the :ref:`v0.17.0 Whatsnew <whatsnew_0180>` overview for an extensive list
+of all enhancements and bugs that have been fixed in 0.17.1.
+
+Thanks
+~~~~~~
+
+pandas 0.17.1
+-------------
+
+**Release date:** (November 21, 2015)
+
+This is a minor release from 0.17.0 and includes a large number of bug fixes
+along with several new features, enhancements, and performance improvements.
+
+Highlights include:
+
+- Support for Conditional HTML Formatting, see :ref:`here <whatsnew_0171.style>`
+- Releasing the GIL on the csv reader & other ops, see :ref:`here <whatsnew_0171.performance>`
+- Regression in ``DataFrame.drop_duplicates`` from 0.16.2, causing incorrect results on integer values (:issue:`11376`)
+
+See the :ref:`v0.17.1 Whatsnew <whatsnew_0171>` overview for an extensive list
+of all enhancements and bugs that have been fixed in 0.17.1.
+
+Thanks
+~~~~~~
+
+- Aleksandr Drozd
+- Alex Chase
+- Anthonios Partheniou
+- BrenBarn
+- Brian J. McGuirk
+- Chris
+- Christian Berendt
+- Christian Perez
+- Cody Piersall
+- Data & Code Expert Experimenting with Code on Data
+- DrIrv
+- Evan Wright
+- Guillaume Gay
+- Hamed Saljooghinejad
+- Iblis Lin
+- Jake VanderPlas
+- Jan Schulz
+- Jean-Mathieu Deschenes
+- Jeff Reback
+- Jimmy Callin
+- Joris Van den Bossche
+- K.-Michael Aye
+- Ka Wo Chen
+- Loïc Séguin-C
+- Luo Yicheng
+- Magnus Jöud
+- Manuel Leonhardt
+- Matthew Gilbert
+- Maximilian Roos
+- Michael
+- Nicholas Stahl
+- Nicolas Bonnotte
+- Pastafarianist
+- Petra Chong
+- Phil Schaf
+- Philipp A
+- Rob deCarvalho
+- Roman Khomenko
+- Rémy Léone
+- Sebastian Bank
+- Thierry Moisan
+- Tom Augspurger
+- Tux1
+- Varun
+- Wieland Hoffmann
+- Winterflower
+- Yoav Ram
+- Younggun Kim
+- Zeke
+- ajcr
+- azuranski
+- behzad nouri
+- cel4
+- emilydolson
+- hironow
+- lexual
+- llllllllll
+- rockg
+- silentquasar
+- sinhrks
+- taeold
+
 pandas 0.17.0
 -------------
 
-**Release date:** (September ??, 2015)
+**Release date:** (October 9, 2015)
 
 This is a major release from 0.16.2 and includes a small number of API changes, several new features,
 enhancements, and performance improvements along with a large number of bug fixes. We recommend that all
@@ -49,23 +148,141 @@ users upgrade to this version.
 Highlights include:
 
 - Release the Global Interpreter Lock (GIL) on some cython operations, see :ref:`here <whatsnew_0170.gil>`
+- Plotting methods are now available as attributes of the ``.plot`` accessor, see :ref:`here <whatsnew_0170.plot>`
 - The sorting API has been revamped to remove some long-time inconsistencies, see :ref:`here <whatsnew_0170.api_breaking.sorting>`
 - Support for a ``datetime64[ns]`` with timezones as a first-class dtype, see :ref:`here <whatsnew_0170.tz>`
 - The default for ``to_datetime`` will now be to ``raise`` when presented with unparseable formats,
-  previously this would return the original input, see :ref:`here <whatsnew_0170.api_breaking.to_datetime>`
+  previously this would return the original input. Also, date parse
+  functions now return consistent results. See :ref:`here <whatsnew_0170.api_breaking.to_datetime>`
 - The default for ``dropna`` in ``HDFStore`` has changed to ``False``, to store by default all rows even
   if they are all ``NaN``, see :ref:`here <whatsnew_0170.api_breaking.hdf_dropna>`
-- Support for ``Series.dt.strftime`` to generate formatted strings for datetime-likes, see :ref:`here <whatsnew_0170.strftime>`
+- Datetime accessor (``dt``) now supports ``Series.dt.strftime`` to generate formatted strings for datetime-likes, and ``Series.dt.total_seconds`` to generate each duration of the timedelta in seconds. See :ref:`here <whatsnew_0170.strftime>`
+- ``Period`` and ``PeriodIndex`` can handle multiplied freq like ``3D``, which corresponding to 3 days span. See :ref:`here <whatsnew_0170.periodfreq>`
 - Development installed versions of pandas will now have ``PEP440`` compliant version strings (:issue:`9518`)
 - Development support for benchmarking with the `Air Speed Velocity library <https://github.com/spacetelescope/asv/>`_ (:issue:`8316`)
 - Support for reading SAS xport files, see :ref:`here <whatsnew_0170.enhancements.sas_xport>`
+- Documentation comparing SAS to *pandas*, see :ref:`here <compare_with_sas>`
 - Removal of the automatic TimeSeries broadcasting, deprecated since 0.8.0, see :ref:`here <whatsnew_0170.prior_deprecations>`
+- Display format with plain text can optionally align with Unicode East Asian Width, see :ref:`here <whatsnew_0170.east_asian_width>`
+- Compatibility with Python 3.5 (:issue:`11097`)
+- Compatibility with matplotlib 1.5.0 (:issue:`11111`)
 
 See the :ref:`v0.17.0 Whatsnew <whatsnew_0170>` overview for an extensive list
 of all enhancements and bugs that have been fixed in 0.17.0.
 
 Thanks
 ~~~~~~
+
+- Alex Rothberg
+- Andrea Bedini
+- Andrew Rosenfeld
+- Andy Li
+- Anthonios Partheniou
+- Artemy Kolchinsky
+- Bernard Willers
+- Charlie Clark
+- Chris
+- Chris Whelan
+- Christoph Gohlke
+- Christopher Whelan
+- Clark Fitzgerald
+- Clearfield Christopher
+- Dan Ringwalt
+- Daniel Ni
+- Data & Code Expert Experimenting with Code on Data
+- David Cottrell
+- David John Gagne
+- David Kelly
+- ETF
+- Eduardo Schettino
+- Egor
+- Egor Panfilov
+- Evan Wright
+- Frank Pinter
+- Gabriel Araujo
+- Garrett-R
+- Gianluca Rossi
+- Guillaume Gay
+- Guillaume Poulin
+- Harsh Nisar
+- Ian Henriksen
+- Ian Hoegen
+- Jaidev Deshpande
+- Jan Rudolph
+- Jan Schulz
+- Jason Swails
+- Jeff Reback
+- Jonas Buyl
+- Joris Van den Bossche
+- Joris Vankerschaver
+- Josh Levy-Kramer
+- Julien Danjou
+- Ka Wo Chen
+- Karrie Kehoe
+- Kelsey Jordahl
+- Kerby Shedden
+- Kevin Sheppard
+- Lars Buitinck
+- Leif Johnson
+- Luis Ortiz
+- Mac
+- Matt Gambogi
+- Matt Savoie
+- Matthew Gilbert
+- Maximilian Roos
+- Michelangelo D'Agostino
+- Mortada Mehyar
+- Nick Eubank
+- Nipun Batra
+- Ondřej Čertík
+- Phillip Cloud
+- Pratap Vardhan
+- Rafal Skolasinski
+- Richard Lewis
+- Rinoc Johnson
+- Rob Levy
+- Robert Gieseke
+- Safia Abdalla
+- Samuel Denny
+- Saumitra Shahapure
+- Sebastian Pölsterl
+- Sebastian Rubbert
+- Sheppard, Kevin
+- Sinhrks
+- Siu Kwan Lam
+- Skipper Seabold
+- Spencer Carrucciu
+- Stephan Hoyer
+- Stephen Hoover
+- Stephen Pascoe
+- Terry Santegoeds
+- Thomas Grainger
+- Tjerk Santegoeds
+- Tom Augspurger
+- Vincent Davis
+- Winterflower
+- Yaroslav Halchenko
+- Yuan Tang (Terry)
+- agijsberts
+- ajcr
+- behzad nouri
+- cel4
+- cyrusmaher
+- davidovitch
+- ganego
+- jreback
+- juricast
+- larvian
+- maximilianr
+- msund
+- rekcahpassyla
+- robertzk
+- scls19fr
+- seth-p
+- sinhrks
+- springcoil
+- terrytangyuan
+- tzinckgraf
 
 pandas 0.16.2
 -------------
