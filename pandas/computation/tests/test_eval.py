@@ -774,7 +774,6 @@ class TestAlignment(object):
         args = product(self.lhs_index_types, self.index_types,
                        self.index_types)
         with warnings.catch_warnings(record=True):
-            warnings.simplefilter('always', RuntimeWarning)
             for lr_idx_type, rr_idx_type, c_idx_type in args:
                 df = mkdf(10, 10, data_gen_f=f, r_idx_type=lr_idx_type,
                           c_idx_type=c_idx_type)
@@ -816,7 +815,6 @@ class TestAlignment(object):
                        self.index_types, self.index_types)
 
         with warnings.catch_warnings(record=True):
-            warnings.simplefilter('always', RuntimeWarning)
 
             for r1, c1, r2, c2 in args:
                 df = mkdf(3, 2, data_gen_f=f, r_idx_type=r1, c_idx_type=c1)
@@ -859,7 +857,6 @@ class TestAlignment(object):
         args = product(self.lhs_index_types, self.index_types,
                        ('index', 'columns'))
         with warnings.catch_warnings(record=True):
-            warnings.simplefilter('always', RuntimeWarning)
             for r_idx_type, c_idx_type, index_name in args:
                 testit(r_idx_type, c_idx_type, index_name)
 
@@ -890,12 +887,12 @@ class TestAlignment(object):
         # only test dt with dt, otherwise weird joins result
         args = product(['i', 'u', 's'], ['i', 'u', 's'], ('index', 'columns'))
         for r_idx_type, c_idx_type, index_name in args:
-            testit(r_idx_type, c_idx_type, index_name)
+            with warnings.catch_warnings(record=True):
+                testit(r_idx_type, c_idx_type, index_name)
 
         # dt with dt
         args = product(['dt'], ['dt'], ('index', 'columns'))
         with warnings.catch_warnings(record=True):
-            warnings.simplefilter('always', RuntimeWarning)
             for r_idx_type, c_idx_type, index_name in args:
                 testit(r_idx_type, c_idx_type, index_name)
 
@@ -909,7 +906,6 @@ class TestAlignment(object):
                        ('index', 'columns'))
 
         with warnings.catch_warnings(record=True):
-            warnings.simplefilter('always', RuntimeWarning)
             for r_idx_type, c_idx_type, op, index_name in args:
                 df = mkdf(10, 10, data_gen_f=f, r_idx_type=r_idx_type,
                           c_idx_type=c_idx_type)
@@ -946,7 +942,6 @@ class TestAlignment(object):
         m2 = 2 * m1
 
         with warnings.catch_warnings(record=True):
-            warnings.simplefilter('always', RuntimeWarning)
             for r1, r2, c1, c2 in args:
                 index_name = random.choice(['index', 'columns'])
                 obj_name = random.choice(['df', 'df2'])
