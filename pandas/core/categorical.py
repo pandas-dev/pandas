@@ -1095,7 +1095,8 @@ class Categorical(PandasObject):
         ix, clean = np.arange(ncat), mask.all()
 
         if dropna or clean:
-            count = bincount(code if clean else code[mask], minlength=ncat)
+            obs = code if clean else code[mask]
+            count = bincount(obs, minlength=ncat or None)
         else:
             count = bincount(np.where(mask, code, ncat))
             ix = np.append(ix, -1)

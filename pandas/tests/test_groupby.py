@@ -2525,6 +2525,11 @@ class TestGroupBy(tm.TestCase):
             right = df.groupby(key, sort=sort)['c'].apply(lambda a: a.shape[0])
             assert_series_equal(left, right, check_names=False)
 
+        # GH11699
+        df = DataFrame([], columns=['A', 'B'])
+        out = Series([], dtype='int64', index=Index([], name='A'))
+        assert_series_equal(df.groupby('A').size(), out)
+
     def test_count(self):
         from string import ascii_lowercase
         n = 1 << 15
