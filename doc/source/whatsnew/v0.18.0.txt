@@ -106,6 +106,7 @@ Performance Improvements
 Bug Fixes
 ~~~~~~~~~
 
+- Bug in ``GroupBy.size`` when data-frame is empty. (:issue:`11699`)
 
 
 - Bug in ``.loc`` against ``CategoricalIndex`` may result in normal ``Index`` (:issue:`11586`)
