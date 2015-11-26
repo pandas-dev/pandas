@@ -164,6 +164,14 @@ Top-level missing data
    isnull
    notnull
 
+Top-level conversions
+~~~~~~~~~~~~~~~~~~~~~
+
+.. autosummary::
+   :toctree: generated/
+
+   to_numeric
+
 Top-level dealing with datetimelike
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -276,6 +284,7 @@ Attributes
    Series.itemsize
    Series.base
    Series.T
+   Series.memory_usage
 
 Conversion
 ~~~~~~~~~~
@@ -603,7 +612,7 @@ strings and apply several methods to it. These can be acccessed like
 
 ..
     The following is needed to ensure the generated pages are created with the
-    correct template (otherwise they would be created in the Series class page)
+    correct template (otherwise they would be created in the Series/Index class page)
 
 ..
     .. autosummary::
@@ -613,6 +622,10 @@ strings and apply several methods to it. These can be acccessed like
        Series.str
        Series.cat
        Series.dt
+       Index.str
+       CategoricalIndex.str
+       DatetimeIndex.str
+       TimedeltaIndex.str
 
 
 .. _api.categorical:
@@ -760,6 +773,7 @@ Attributes and underlying data
    DataFrame.ndim
    DataFrame.size
    DataFrame.shape
+   DataFrame.memory_usage
 
 Conversion
 ~~~~~~~~~~
@@ -1321,6 +1335,7 @@ Attributes
    Index.itemsize
    Index.base
    Index.T
+   Index.memory_usage
 
 Modifying and Computations
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1646,6 +1661,56 @@ The following methods are available only for ``DataFrameGroupBy`` objects.
 
    DataFrameGroupBy.corrwith
    DataFrameGroupBy.boxplot
+
+Style
+-----
+.. currentmodule:: pandas.core.style
+
+``Styler`` objects are returned by :attr:`pandas.DataFrame.style`.
+
+
+Constructor
+~~~~~~~~~~~
+.. autosummary::
+   :toctree: generated/
+
+   Styler
+
+Style Application
+~~~~~~~~~~~~~~~~~
+.. autosummary::
+   :toctree: generated/
+
+   Styler.apply
+   Styler.applymap
+   Styler.set_precision
+   Styler.set_table_styles
+   Styler.set_caption
+   Styler.set_properties
+   Styler.set_uuid
+   Styler.clear
+
+Builtin Styles
+~~~~~~~~~~~~~~
+
+.. autosummary::
+   :toctree: generated/
+
+   Styler.highlight_max
+   Styler.highlight_min
+   Styler.highlight_null
+   Styler.background_gradient
+   Styler.bar
+
+Style Export and Import
+~~~~~~~~~~~~~~~~~~~~~~~
+
+.. autosummary::
+   :toctree: generated/
+
+   Styler.render
+   Styler.export
+   Styler.use
 
 .. currentmodule:: pandas
 

@@ -17,9 +17,9 @@
    import matplotlib.pyplot as plt
    plt.close('all')
 
-********
-Plotting
-********
+*************
+Visualization
+*************
 
 We use the standard convention for referencing the matplotlib API:
 
@@ -109,7 +109,7 @@ You can plot one column versus another using the `x` and `y` keywords in
 
 .. note::
 
-   For more formatting and sytling options, see :ref:`below <visualization.formatting>`.
+   For more formatting and styling options, see :ref:`below <visualization.formatting>`.
 
 .. ipython:: python
     :suppress:
@@ -1264,7 +1264,7 @@ with the ``subplots`` keyword:
 
    plt.close('all')
 
-Using Layout and Targetting Multiple Axes
+Using Layout and Targeting Multiple Axes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The layout of subplots can be specified by ``layout`` keyword. It can accept
@@ -1638,7 +1638,7 @@ Trellis plotting interface
 .. note::
 
    The tips data set can be downloaded `here
-   <http://wesmckinney.com/files/tips.csv>`__. Once you download it execute
+   <https://raw.github.com/pydata/pandas/master/pandas/tests/data/tips.csv>`__. Once you download it execute
 
    .. code-block:: python
 

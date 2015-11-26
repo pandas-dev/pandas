@@ -19,6 +19,7 @@ class SphinxDocString(NumpyDocString):
     def load_config(self, config):
         self.use_plots = config.get('use_plots', False)
         self.class_members_toctree = config.get('class_members_toctree', True)
+        self.class_members_list = config.get('class_members_list', True)
 
     # string conversion routines
     def _str_header(self, name, symbol='`'):
@@ -95,7 +96,7 @@ class SphinxDocString(NumpyDocString):
 
         """
         out = []
-        if self[name]:
+        if self[name] and self.class_members_list:
             out += ['.. rubric:: %s' % name, '']
             prefix = getattr(self, '_name', '')
 
@@ -114,11 +115,13 @@ class SphinxDocString(NumpyDocString):
                         or inspect.isgetsetdescriptor(param_obj)):
                     param_obj = None
 
-                if param_obj and (pydoc.getdoc(param_obj) or not desc):
-                    # Referenced object has a docstring
-                    autosum += ["   %s%s" % (prefix, param)]
-                else:
-                    others.append((param, param_type, desc))
+                # pandas HACK - do not exclude attributes wich are None
+                # if param_obj and (pydoc.getdoc(param_obj) or not desc):
+                #     # Referenced object has a docstring
+                #     autosum += ["   %s%s" % (prefix, param)]
+                # else:
+                #     others.append((param, param_type, desc))
+                autosum += ["   %s%s" % (prefix, param)]
 
             if autosum:
                 out += ['.. autosummary::']

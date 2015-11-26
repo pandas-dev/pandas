@@ -1,7 +1,7 @@
 ## datetimelike delegation ##
 
 import numpy as np
-from pandas.core.base import PandasDelegate
+from pandas.core.base import PandasDelegate, NoNewAttributesMixin
 from pandas.core import common as com
 from pandas.tseries.index import DatetimeIndex
 from pandas.tseries.period import PeriodIndex
@@ -10,8 +10,8 @@ from pandas import tslib
 from pandas.core.common import (_NS_DTYPE, _TD_DTYPE, is_period_arraylike,
                                 is_datetime_arraylike, is_integer_dtype, is_list_like,
                                 is_datetime64_dtype, is_datetime64tz_dtype,
-                                is_timedelta64_dtype,
-                                get_dtype_kinds)
+                                is_timedelta64_dtype, is_categorical_dtype,
+                                get_dtype_kinds, take_1d)
 
 def is_datetimelike(data):
     """ return a boolean if we can be successfully converted to a datetimelike """
@@ -45,24 +45,37 @@ def maybe_to_datetimelike(data, copy=False):
         raise TypeError("cannot convert an object of type {0} to a datetimelike index".format(type(data)))
 
     index = data.index
-    if is_datetime64_dtype(data.dtype) or is_datetime64tz_dtype(data.dtype):
-        return DatetimeProperties(DatetimeIndex(data, copy=copy, freq='infer'), index, name=data.name)
+    name = data.name
+    orig = data if is_categorical_dtype(data) else None
+    if orig is not None:
+        data = orig.values.categories
+
+    if is_datetime64_dtype(data.dtype):
+        return DatetimeProperties(DatetimeIndex(data, copy=copy, freq='infer'), index, name=name,
+                                                orig=orig)
+    elif is_datetime64tz_dtype(data.dtype):
+        return DatetimeProperties(DatetimeIndex(data, copy=copy, freq='infer', ambiguous='infer'),
+                                  index, data.name, orig=orig)
     elif is_timedelta64_dtype(data.dtype):
-        return TimedeltaProperties(TimedeltaIndex(data, copy=copy, freq='infer'), index, name=data.name)
+        return TimedeltaProperties(TimedeltaIndex(data, copy=copy, freq='infer'), index,
+                                   name=name, orig=orig)
     else:
         if is_period_arraylike(data):
-            return PeriodProperties(PeriodIndex(data, copy=copy), index, name=data.name)
+            return PeriodProperties(PeriodIndex(data, copy=copy), index, name=name, orig=orig)
         if is_datetime_arraylike(data):
-            return DatetimeProperties(DatetimeIndex(data, copy=copy, freq='infer'), index, name=data.name)
+            return DatetimeProperties(DatetimeIndex(data, copy=copy, freq='infer'), index,
+                                      name=name, orig=orig)
 
     raise TypeError("cannot convert an object of type {0} to a datetimelike index".format(type(data)))
 
-class Properties(PandasDelegate):
+class Properties(PandasDelegate, NoNewAttributesMixin):
 
-    def __init__(self, values, index, name):
+    def __init__(self, values, index, name, orig=None):
         self.values = values
         self.index = index
         self.name = name
+        self.orig = orig
+        self._freeze()
 
     def _delegate_property_get(self, name):
         from pandas import Series
@@ -75,6 +88,10 @@ class Properties(PandasDelegate):
                 result = result.astype('int64')
         elif not is_list_like(result):
             return result
+
+        # blow up if we operate on categories
+        if self.orig is not None:
+            result = take_1d(result, self.orig.cat.codes)
 
         # return the result as a Series, which is by definition a copy
         result = Series(result, index=self.index, name=self.name)

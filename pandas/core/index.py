@@ -14,19 +14,21 @@ from pandas.lib import Timestamp, Timedelta, is_datetime_array
 
 from pandas.compat import range, zip, lrange, lzip, u, map
 from pandas import compat
-from pandas.core.base import PandasObject, FrozenList, FrozenNDArray, IndexOpsMixin, _shared_docs, PandasDelegate
+from pandas.core import algorithms
+from pandas.core.base import PandasObject, FrozenList, FrozenNDArray, IndexOpsMixin, PandasDelegate
+import pandas.core.base as base
 from pandas.util.decorators import (Appender, Substitution, cache_readonly,
                                     deprecate, deprecate_kwarg)
 import pandas.core.common as com
+from pandas.core.missing import _clean_reindex_fill_method
 from pandas.core.common import (isnull, array_equivalent, is_dtype_equal, is_object_dtype,
                                 is_datetimetz, ABCSeries, ABCCategorical, ABCPeriodIndex,
                                 _values_from_object, is_float, is_integer, is_iterator, is_categorical_dtype,
                                 _ensure_object, _ensure_int64, is_bool_indexer,
                                 is_list_like, is_bool_dtype, is_null_slice, is_integer_dtype)
+from pandas.core.strings import StringAccessorMixin
 from pandas.core.config import get_option
 from pandas.io.common import PerformanceWarning
-
-
 
 
 # simplify
@@ -43,6 +45,7 @@ _unsortable_types = frozenset(('mixed', 'mixed-integer'))
 
 _index_doc_kwargs = dict(klass='Index', inplace='',
                          duplicated='np.array')
+_index_shared_docs = dict()
 
 
 def _try_get_item(x):
@@ -62,7 +65,7 @@ def _new_Index(cls, d):
         and breaks __new__ """
     return cls.__new__(cls, **d)
 
-class Index(IndexOpsMixin, PandasObject):
+class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
 
     """
     Immutable ndarray implementing an ordered, sliceable set. The basic object
@@ -106,9 +109,9 @@ class Index(IndexOpsMixin, PandasObject):
     _allow_datetime_index_ops = False
     _allow_period_index_ops = False
     _is_numeric_dtype = False
+    _can_hold_na = True
 
     _engine_type = _index.ObjectEngine
-    _isin_type = lib.ismember
 
     def __new__(cls, data=None, dtype=None, copy=False, name=None, fastpath=False,
                 tupleize_cols=True, **kwargs):
@@ -488,7 +491,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Return the formatted data as a unicode string
         """
-        from pandas.core.format import get_console_size
+        from pandas.core.format import get_console_size, _get_adjustment
         display_width, _ = get_console_size()
         if display_width is None:
             display_width = get_option('display.width') or 80
@@ -502,14 +505,19 @@ class Index(IndexOpsMixin, PandasObject):
         formatter = self._formatter_func
 
         # do we want to justify (only do so for non-objects)
-        is_justify = not (self.inferred_type == 'string' or self.inferred_type == 'categorical' and is_object_dtype(self.categories))
+        is_justify = not (self.inferred_type in ('string', 'unicode') or
+                          (self.inferred_type == 'categorical' and
+                           is_object_dtype(self.categories)))
 
         # are we a truncated display
         is_truncated = n > max_seq_items
 
+        # adj can optionaly handle unicode eastern asian width
+        adj = _get_adjustment()
+
         def _extend_line(s, line, value, display_width, next_line_prefix):
 
-            if len(line.rstrip()) + len(value.rstrip()) >= display_width:
+            if adj.len(line.rstrip()) + adj.len(value.rstrip()) >= display_width:
                 s += line.rstrip()
                 line = next_line_prefix
             line += value
@@ -517,7 +525,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         def best_len(values):
             if values:
-                return max([len(x) for x in values])
+                return max([adj.len(x) for x in values])
             else:
                 return 0
 
@@ -556,8 +564,10 @@ class Index(IndexOpsMixin, PandasObject):
                 word = head[i] + sep + ' '
                 summary, line = _extend_line(summary, line, word,
                                              display_width, space2)
+
             if is_truncated:
-                summary += line + space2 + '...'
+                # remove trailing space of last line
+                summary += line.rstrip() + space2 + '...'
                 line = space2
 
             for i in range(len(tail)-1):
@@ -619,6 +629,10 @@ class Index(IndexOpsMixin, PandasObject):
     def astype(self, dtype):
         return Index(self.values.astype(dtype), name=self.name,
                      dtype=dtype)
+
+    def _to_safe_for_reshape(self):
+        """ convert to object if we are a categorical """
+        return self
 
     def to_datetime(self, dayfirst=False):
         """
@@ -855,9 +869,10 @@ class Index(IndexOpsMixin, PandasObject):
             return self._invalid_indexer('label', key)
 
         if is_float(key):
-            if not self.is_floating():
-                warnings.warn("scalar indexers for index type {0} should be integers and not floating point".format(
-                    type(self).__name__), FutureWarning, stacklevel=3)
+            if isnull(key):
+                return self._invalid_indexer('label', key)
+            warnings.warn("scalar indexers for index type {0} should be integers and not floating point".format(
+                type(self).__name__), FutureWarning, stacklevel=3)
             return to_int()
 
         return key
@@ -975,10 +990,6 @@ class Index(IndexOpsMixin, PandasObject):
         if kind in [None, 'iloc', 'ix'] and is_integer_dtype(keyarr) \
            and not self.is_floating() and not isinstance(keyarr, ABCPeriodIndex):
 
-            if self.inferred_type != 'integer':
-                keyarr = np.where(keyarr < 0,
-                                  len(self) + keyarr, keyarr)
-
             if self.inferred_type == 'mixed-integer':
                 indexer = self.get_indexer(keyarr)
                 if (indexer >= 0).all():
@@ -991,6 +1002,8 @@ class Index(IndexOpsMixin, PandasObject):
                 return maybe_convert_indices(indexer, len(self))
 
             elif not self.inferred_type == 'integer':
+                keyarr = np.where(keyarr < 0,
+                                  len(self) + keyarr, keyarr)
                 return keyarr
 
         return None
@@ -1225,6 +1238,43 @@ class Index(IndexOpsMixin, PandasObject):
         taken = self.values.take(indices)
         return self._shallow_copy(taken)
 
+    @cache_readonly
+    def _isnan(self):
+        """ return if each value is nan"""
+        if self._can_hold_na:
+            return isnull(self)
+        else:
+            # shouldn't reach to this condition by checking hasnans beforehand
+            values = np.empty(len(self), dtype=np.bool_)
+            values.fill(False)
+            return values
+
+    @cache_readonly
+    def _nan_idxs(self):
+        if self._can_hold_na:
+            w, = self._isnan.nonzero()
+            return w
+        else:
+            return np.array([], dtype=np.int64)
+
+    @cache_readonly
+    def hasnans(self):
+        """ return if I have any nans; enables various perf speedups """
+        if self._can_hold_na:
+            return self._isnan.any()
+        else:
+            return False
+
+    def _convert_for_op(self, value):
+        """ Convert value to be insertable to ndarray """
+        return value
+
+    def _assert_can_do_op(self, value):
+        """ Check value is valid for scalar op """
+        if not lib.isscalar(value):
+            msg = "'value' must be a scalar, passed: {0}"
+            raise TypeError(msg.format(type(value).__name__))
+
     def putmask(self, mask, value):
         """
         return a new Index of the values set with the mask
@@ -1234,8 +1284,12 @@ class Index(IndexOpsMixin, PandasObject):
         numpy.ndarray.putmask
         """
         values = self.values.copy()
-        np.putmask(values, mask, value)
-        return self._shallow_copy(values)
+        try:
+            np.putmask(values, mask, self._convert_for_op(value))
+            return self._shallow_copy(values)
+        except (ValueError, TypeError):
+            # coerces to object
+            return self.astype(object).putmask(mask, value)
 
     def format(self, name=False, formatter=None, **kwargs):
         """
@@ -1407,12 +1461,7 @@ class Index(IndexOpsMixin, PandasObject):
         -------
         shifted : Index
         """
-        if periods == 0:
-            # OK because immutable
-            return self
-
-        offset = periods * freq
-        return Index([idx + offset for idx in self], name=self.name)
+        raise NotImplementedError("Not supported for type %s" % type(self).__name__)
 
     def argsort(self, *args, **kwargs):
         """
@@ -1436,7 +1485,7 @@ class Index(IndexOpsMixin, PandasObject):
         return Index(np.array(self) + other)
 
     def __radd__(self, other):
-        if com.is_list_like(other):
+        if is_list_like(other):
             warnings.warn("using '+' to provide set union with Indexes is deprecated, "
                           "use '|' or .union()", FutureWarning, stacklevel=2)
         return Index(other + np.array(self))
@@ -1459,7 +1508,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     def union(self, other):
         """
-        Form the union of two Index objects and sorts if possible
+        Form the union of two Index objects and sorts if possible.
 
         Parameters
         ----------
@@ -1468,6 +1517,15 @@ class Index(IndexOpsMixin, PandasObject):
         Returns
         -------
         union : Index
+
+        Examples
+        --------
+
+        >>> idx1 = pd.Index([1, 2, 3, 4])
+        >>> idx2 = pd.Index([3, 4, 5, 6])
+        >>> idx1.union(idx2)
+        Int64Index([1, 2, 3, 4, 5, 6], dtype='int64')
+
         """
         self._assert_can_do_setop(other)
         other = _ensure_index(other)
@@ -1535,8 +1593,10 @@ class Index(IndexOpsMixin, PandasObject):
 
     def intersection(self, other):
         """
-        Form the intersection of two Index objects. Sortedness of the result is
-        not guaranteed
+        Form the intersection of two Index objects.
+
+        This returns a new Index with elements common to the index and `other`.
+        Sortedness of the result is not guaranteed.
 
         Parameters
         ----------
@@ -1545,6 +1605,15 @@ class Index(IndexOpsMixin, PandasObject):
         Returns
         -------
         intersection : Index
+
+        Examples
+        --------
+
+        >>> idx1 = pd.Index([1, 2, 3, 4])
+        >>> idx2 = pd.Index([3, 4, 5, 6])
+        >>> idx1.intersection(idx2)
+        Int64Index([3, 4], dtype='int64')
+
         """
         self._assert_can_do_setop(other)
         other = _ensure_index(other)
@@ -1579,7 +1648,9 @@ class Index(IndexOpsMixin, PandasObject):
 
     def difference(self, other):
         """
-        Compute sorted set difference of two Index objects
+        Return a new Index with elements from the index that are not in `other`.
+
+        This is the sorted set difference of two Index objects.
 
         Parameters
         ----------
@@ -1587,13 +1658,16 @@ class Index(IndexOpsMixin, PandasObject):
 
         Returns
         -------
-        diff : Index
+        difference : Index
 
-        Notes
-        -----
-        One can do either of these and achieve the same result
+        Examples
+        --------
 
-        >>> index.difference(index2)
+        >>> idx1 = pd.Index([1, 2, 3, 4])
+        >>> idx2 = pd.Index([3, 4, 5, 6])
+        >>> idx1.difference(idx2)
+        Int64Index([1, 2], dtype='int64')
+
         """
         self._assert_can_do_setop(other)
 
@@ -1613,7 +1687,6 @@ class Index(IndexOpsMixin, PandasObject):
 
         Parameters
         ----------
-
         other : Index or array-like
         result_name : str
 
@@ -1682,7 +1755,8 @@ class Index(IndexOpsMixin, PandasObject):
             if tolerance is not None:
                 raise ValueError('tolerance argument only valid if using pad, '
                                  'backfill or nearest lookups')
-            return self._engine.get_loc(_values_from_object(key))
+            key = _values_from_object(key)
+            return self._engine.get_loc(key)
 
         indexer = self.get_indexer([key], method=method,
                                    tolerance=tolerance)
@@ -1798,7 +1872,7 @@ class Index(IndexOpsMixin, PandasObject):
             positions matches the corresponding target values. Missing values
             in the target are marked by -1.
         """
-        method = com._clean_reindex_fill_method(method)
+        method = _clean_reindex_fill_method(method)
         target = _ensure_index(target)
         if tolerance is not None:
             tolerance = self._convert_tolerance(tolerance)
@@ -1988,10 +2062,9 @@ class Index(IndexOpsMixin, PandasObject):
         is_contained : ndarray (boolean dtype)
 
         """
-        value_set = set(values)
         if level is not None:
             self._validate_index_level(level)
-        return self._isin_type(np.array(self), value_set)
+        return algorithms.isin(np.array(self), values)
 
     def _can_reindex(self, indexer):
         """
@@ -2456,7 +2529,7 @@ class Index(IndexOpsMixin, PandasObject):
             if how == 'left':
                 join_index, lidx, ridx = self._left_indexer(sv, ov)
             elif how == 'right':
-                join_index, ridx, lidx = self._left_indexer(other, self)
+                join_index, ridx, lidx = self._left_indexer(ov, sv)
             elif how == 'inner':
                 join_index, lidx, ridx = self._inner_indexer(sv, ov)
             elif how == 'outer':
@@ -2732,14 +2805,44 @@ class Index(IndexOpsMixin, PandasObject):
         return self.delete(indexer)
 
     @deprecate_kwarg('take_last', 'keep', mapping={True: 'last', False: 'first'})
-    @Appender(_shared_docs['drop_duplicates'] % _index_doc_kwargs)
+    @Appender(base._shared_docs['drop_duplicates'] % _index_doc_kwargs)
     def drop_duplicates(self, keep='first'):
         return super(Index, self).drop_duplicates(keep=keep)
 
     @deprecate_kwarg('take_last', 'keep', mapping={True: 'last', False: 'first'})
-    @Appender(_shared_docs['duplicated'] % _index_doc_kwargs)
+    @Appender(base._shared_docs['duplicated'] % _index_doc_kwargs)
     def duplicated(self, keep='first'):
         return super(Index, self).duplicated(keep=keep)
+
+    _index_shared_docs['fillna'] = """
+        Fill NA/NaN values with the specified value
+
+        Parameters
+        ----------
+        value : scalar
+            Scalar value to use to fill holes (e.g. 0).
+            This value cannot be a list-likes.
+        downcast : dict, default is None
+            a dict of item->dtype of what to downcast if possible,
+            or the string 'infer' which will try to downcast to an appropriate
+            equal type (e.g. float64 to int64 if possible)
+
+        Returns
+        -------
+        filled : Index
+        """
+
+    @Appender(_index_shared_docs['fillna'])
+    def fillna(self, value=None, downcast=None):
+        self._assert_can_do_op(value)
+        if self.hasnans:
+            result = self.putmask(self._isnan, value)
+            if downcast is None:
+                # no need to care metadata other than name
+                # because it can't have freq if
+                return Index(result, name=self.name)
+
+        return self._shallow_copy()
 
     def _evaluate_with_timedelta_like(self, other, op, opstr):
         raise TypeError("can only perform ops with timedelta like values")
@@ -3090,6 +3193,8 @@ class CategoricalIndex(Index, PandasDelegate):
                 raise TypeError("categories must match existing categories when appending")
         else:
             values = other
+            if not is_list_like(values):
+                values = [ values ]
             other = CategoricalIndex(self._create_categorical(self, other, categories=self.categories, ordered=self.ordered))
             if not other.isin(values).all():
                 raise TypeError("cannot append a non-category item to a CategoricalIndex")
@@ -3164,6 +3269,16 @@ class CategoricalIndex(Index, PandasDelegate):
         """ the array interface, return my values """
         return np.array(self._data, dtype=dtype)
 
+    @cache_readonly
+    def _isnan(self):
+        """ return if each value is nan"""
+        return self._data.codes == -1
+
+    @Appender(_index_shared_docs['fillna'])
+    def fillna(self, value, downcast=None):
+        self._assert_can_do_op(value)
+        return CategoricalIndex(self._data.fillna(value), name=self.name)
+
     def argsort(self, *args, **kwargs):
         return self.values.argsort(*args, **kwargs)
 
@@ -3178,10 +3293,14 @@ class CategoricalIndex(Index, PandasDelegate):
         return not self.duplicated().any()
 
     @deprecate_kwarg('take_last', 'keep', mapping={True: 'last', False: 'first'})
-    @Appender(_shared_docs['duplicated'] % _index_doc_kwargs)
+    @Appender(base._shared_docs['duplicated'] % _index_doc_kwargs)
     def duplicated(self, keep='first'):
         from pandas.hashtable import duplicated_int64
         return duplicated_int64(self.codes.astype('i8'), keep)
+
+    def _to_safe_for_reshape(self):
+        """ convert to object if we are a categorical """
+        return self.astype('object')
 
     def get_loc(self, key, method=None):
         """
@@ -3243,8 +3362,8 @@ class CategoricalIndex(Index, PandasDelegate):
         # filling in missing if needed
         if len(missing):
             cats = self.categories.get_indexer(target)
-            if (cats==-1).any():
 
+            if (cats==-1).any():
                 # coerce to a regular index here!
                 result = Index(np.array(self),name=self.name)
                 new_target, indexer, _ = result._reindex_non_unique(np.array(target))
@@ -3278,6 +3397,12 @@ class CategoricalIndex(Index, PandasDelegate):
             new_indexer = np.arange(len(self.take(indexer)))
             new_indexer[check] = -1
 
+        cats = self.categories.get_indexer(target)
+        if not (cats == -1).any():
+            # .reindex returns normal Index. Revert to CategoricalIndex if
+            # all targets are included in my categories
+            new_target = self._shallow_copy(new_target)
+
         return new_target, indexer, new_indexer
 
     def get_indexer(self, target, method=None, limit=None, tolerance=None):
@@ -3308,7 +3433,7 @@ class CategoricalIndex(Index, PandasDelegate):
         -------
         (indexer, mask) : (ndarray, ndarray)
         """
-        method = com._clean_reindex_fill_method(method)
+        method = _clean_reindex_fill_method(method)
         target = _ensure_index(target)
 
         if isinstance(target, CategoricalIndex):
@@ -3572,8 +3697,9 @@ class Int64Index(NumericIndex):
     _inner_indexer = _algos.inner_join_indexer_int64
     _outer_indexer = _algos.outer_join_indexer_int64
 
+    _can_hold_na = False
+
     _engine_type = _index.Int64Engine
-    _isin_type = lib.ismember_int64
 
     def __new__(cls, data=None, dtype=None, copy=False, name=None, fastpath=False, **kwargs):
 
@@ -3606,11 +3732,6 @@ class Int64Index(NumericIndex):
     @property
     def inferred_type(self):
         return 'integer'
-
-    @cache_readonly
-    def hasnans(self):
-        # by definition
-        return False
 
     @property
     def asi8(self):
@@ -3716,9 +3837,23 @@ class Float64Index(NumericIndex):
         return Index(self._values, name=self.name, dtype=dtype)
 
     def _convert_scalar_indexer(self, key, kind=None):
+        """
+        convert a scalar indexer
+
+        Parameters
+        ----------
+        key : label of the slice bound
+        kind : optional, type of the indexing operation (loc/ix/iloc/None)
+
+        right now we are converting
+        floats -> ints if the index supports it
+        """
+
         if kind == 'iloc':
-            return super(Float64Index, self)._convert_scalar_indexer(key,
-                                                                     kind=kind)
+            if is_integer(key):
+                return key
+            return super(Float64Index, self)._convert_scalar_indexer(key, kind=kind)
+
         return key
 
     def _convert_slice_indexer(self, key, kind=None):
@@ -3818,19 +3953,6 @@ class Float64Index(NumericIndex):
         Checks that all the labels are datetime objects
         """
         return False
-
-    @cache_readonly
-    def _nan_idxs(self):
-        w, = self._isnan.nonzero()
-        return w
-
-    @cache_readonly
-    def _isnan(self):
-        return np.isnan(self.values)
-
-    @cache_readonly
-    def hasnans(self):
-        return self._isnan.any()
 
     @cache_readonly
     def is_unique(self):
@@ -4271,10 +4393,15 @@ class MultiIndex(Index):
         Returns True if the name refered to in self.names is duplicated.
         """
         # count the times name equals an element in self.names.
-        return np.sum(name == np.asarray(self.names)) > 1
+        return sum(name == n for n in self.names) > 1
 
     def _format_native_types(self, **kwargs):
-        return self.values
+        # we go through the levels and format them
+        levels = [level._format_native_types(**kwargs)
+                  for level in self.levels]
+        mi = MultiIndex(levels=levels, labels=self.labels, names=self.names,
+                        sortorder=self.sortorder, verify_integrity=False)
+        return mi.values
 
     @property
     def _constructor(self):
@@ -4356,7 +4483,7 @@ class MultiIndex(Index):
         return not self.duplicated().any()
 
     @deprecate_kwarg('take_last', 'keep', mapping={True: 'last', False: 'first'})
-    @Appender(_shared_docs['duplicated'] % _index_doc_kwargs)
+    @Appender(base._shared_docs['duplicated'] % _index_doc_kwargs)
     def duplicated(self, keep='first'):
         from pandas.core.groupby import get_group_index
         from pandas.hashtable import duplicated_int64
@@ -4365,6 +4492,11 @@ class MultiIndex(Index):
         ids = get_group_index(self.labels, shape, sort=False, xnull=False)
 
         return duplicated_int64(ids, keep)
+
+    @Appender(_index_shared_docs['fillna'])
+    def fillna(self, value=None, downcast=None):
+        # isnull is not implemented for MultiIndex
+        raise NotImplementedError('isnull is not defined for MultiIndex')
 
     def get_value(self, series, key):
         # somewhat broken encapsulation
@@ -4501,10 +4633,17 @@ class MultiIndex(Index):
                                       start=int(names),
                                       sentinel=sentinel)
 
+
         if adjoin:
-            return com.adjoin(space, *result_levels).split('\n')
+            from pandas.core.format import  _get_adjustment
+            adj = _get_adjustment()
+            return adj.adjoin(space, *result_levels).split('\n')
         else:
             return result_levels
+
+    def _to_safe_for_reshape(self):
+        """ convert to object if we are a categorical """
+        return self.set_levels([ i._to_safe_for_reshape() for i in self.levels ])
 
     def to_hierarchical(self, n_repeat, n_shuffle=1):
         """
@@ -5072,7 +5211,7 @@ class MultiIndex(Index):
         -------
         (indexer, mask) : (ndarray, ndarray)
         """
-        method = com._clean_reindex_fill_method(method)
+        method = _clean_reindex_fill_method(method)
 
         target = _ensure_index(target)
 

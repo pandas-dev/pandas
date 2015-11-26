@@ -2,11 +2,28 @@
 
 import sys
 import os
+import csv
+import codecs
 import zipfile
 from contextlib import contextmanager, closing
 
-from pandas.compat import StringIO, string_types, BytesIO
+from pandas.compat import StringIO, BytesIO, string_types, text_type
 from pandas import compat
+from pandas.core.common import pprint_thing, is_number
+
+
+try:
+    import pathlib
+    _PATHLIB_INSTALLED = True
+except ImportError:
+    _PATHLIB_INSTALLED = False
+
+
+try:
+    from py.path import local as LocalPath
+    _PY_PATH_INSTALLED = True
+except:
+    _PY_PATH_INSTALLED = False
 
 
 if compat.PY3:
@@ -201,6 +218,25 @@ def _validate_header_arg(header):
                         "header=int or list-like of ints to specify "
                         "the row(s) making up the column names")
 
+def _stringify_path(filepath_or_buffer):
+    """Return the argument coerced to a string if it was a pathlib.Path
+       or a py.path.local
+
+    Parameters
+    ----------
+    filepath_or_buffer : object to be converted
+
+    Returns
+    -------
+    str_filepath_or_buffer : a the string version of the input path
+    """
+    if _PATHLIB_INSTALLED and isinstance(filepath_or_buffer, pathlib.Path):
+        return text_type(filepath_or_buffer)
+    if _PY_PATH_INSTALLED and isinstance(filepath_or_buffer, LocalPath):
+        return filepath_or_buffer.strpath
+    return filepath_or_buffer
+
+
 def get_filepath_or_buffer(filepath_or_buffer, encoding=None,
                            compression=None):
     """
@@ -209,7 +245,8 @@ def get_filepath_or_buffer(filepath_or_buffer, encoding=None,
 
     Parameters
     ----------
-    filepath_or_buffer : a url, filepath, or buffer
+    filepath_or_buffer : a url, filepath (str, py.path.local or pathlib.Path),
+                         or buffer
     encoding : the encoding to use to decode py3 bytes, default is 'utf-8'
 
     Returns
@@ -257,6 +294,8 @@ def get_filepath_or_buffer(filepath_or_buffer, encoding=None,
             filepath_or_buffer = k
         return filepath_or_buffer, None, compression
 
+    # It is a pathlib.Path/py.path.local or string
+    filepath_or_buffer = _stringify_path(filepath_or_buffer)
     return _expand_user(filepath_or_buffer), None, compression
 
 
@@ -284,3 +323,148 @@ if sys.version_info[1] <= 6:
             yield zf
 else:
     ZipFile = zipfile.ZipFile
+
+
+def _get_handle(path, mode, encoding=None, compression=None):
+    """Gets file handle for given path and mode.
+    """
+    if compression is not None:
+        if encoding is not None and not compat.PY3:
+            msg = 'encoding + compression not yet supported in Python 2'
+            raise ValueError(msg)
+
+        if compression == 'gzip':
+            import gzip
+            f = gzip.GzipFile(path, mode)
+        elif compression == 'bz2':
+            import bz2
+            f = bz2.BZ2File(path, mode)
+        else:
+            raise ValueError('Unrecognized compression type: %s' %
+                             compression)
+        if compat.PY3:
+            from io import TextIOWrapper
+            f = TextIOWrapper(f, encoding=encoding)
+        return f
+    else:
+        if compat.PY3:
+            if encoding:
+                f = open(path, mode, encoding=encoding)
+            else:
+                f = open(path, mode, errors='replace')
+        else:
+            f = open(path, mode)
+
+    return f
+
+
+class UTF8Recoder:
+
+    """
+    Iterator that reads an encoded stream and reencodes the input to UTF-8
+    """
+
+    def __init__(self, f, encoding):
+        self.reader = codecs.getreader(encoding)(f)
+
+    def __iter__(self):
+        return self
+
+    def read(self, bytes=-1):
+        return self.reader.read(bytes).encode("utf-8")
+
+    def readline(self):
+        return self.reader.readline().encode("utf-8")
+
+    def next(self):
+        return next(self.reader).encode("utf-8")
+
+    # Python 3 iterator
+    __next__ = next
+
+
+if compat.PY3:  # pragma: no cover
+    def UnicodeReader(f, dialect=csv.excel, encoding="utf-8", **kwds):
+        # ignore encoding
+        return csv.reader(f, dialect=dialect, **kwds)
+
+    def UnicodeWriter(f, dialect=csv.excel, encoding="utf-8", **kwds):
+        return csv.writer(f, dialect=dialect, **kwds)
+else:
+    class UnicodeReader:
+
+        """
+        A CSV reader which will iterate over lines in the CSV file "f",
+        which is encoded in the given encoding.
+
+        On Python 3, this is replaced (below) by csv.reader, which handles
+        unicode.
+        """
+
+        def __init__(self, f, dialect=csv.excel, encoding="utf-8", **kwds):
+            f = UTF8Recoder(f, encoding)
+            self.reader = csv.reader(f, dialect=dialect, **kwds)
+
+        def next(self):
+            row = next(self.reader)
+            return [compat.text_type(s, "utf-8") for s in row]
+
+        # python 3 iterator
+        __next__ = next
+
+        def __iter__(self):  # pragma: no cover
+            return self
+
+    class UnicodeWriter:
+
+        """
+        A CSV writer which will write rows to CSV file "f",
+        which is encoded in the given encoding.
+        """
+
+        def __init__(self, f, dialect=csv.excel, encoding="utf-8", **kwds):
+            # Redirect output to a queue
+            self.queue = StringIO()
+            self.writer = csv.writer(self.queue, dialect=dialect, **kwds)
+            self.stream = f
+            self.encoder = codecs.getincrementalencoder(encoding)()
+            self.quoting = kwds.get("quoting", None)
+
+        def writerow(self, row):
+            def _check_as_is(x):
+                return (self.quoting == csv.QUOTE_NONNUMERIC and
+                        is_number(x)) or isinstance(x, str)
+
+            row = [x if _check_as_is(x)
+                   else pprint_thing(x).encode("utf-8") for x in row]
+
+            self.writer.writerow([s for s in row])
+            # Fetch UTF-8 output from the queue ...
+            data = self.queue.getvalue()
+            data = data.decode("utf-8")
+            # ... and reencode it into the target encoding
+            data = self.encoder.encode(data)
+            # write to the target stream
+            self.stream.write(data)
+            # empty queue
+            self.queue.truncate(0)
+
+        def writerows(self, rows):
+            def _check_as_is(x):
+                return (self.quoting == csv.QUOTE_NONNUMERIC and
+                        is_number(x)) or isinstance(x, str)
+
+            for i, row in enumerate(rows):
+                rows[i] = [x if _check_as_is(x)
+                           else pprint_thing(x).encode("utf-8") for x in row]
+
+            self.writer.writerows([[s for s in row] for row in rows])
+            # Fetch UTF-8 output from the queue ...
+            data = self.queue.getvalue()
+            data = data.decode("utf-8")
+            # ... and reencode it into the target encoding
+            data = self.encoder.encode(data)
+            # write to the target stream
+            self.stream.write(data)
+            # empty queue
+            self.queue.truncate(0)

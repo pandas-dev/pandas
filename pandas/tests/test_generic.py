@@ -39,8 +39,7 @@ class Generic(object):
     _multiprocess_can_split_ = True
 
     def setUp(self):
-        import warnings
-        warnings.filterwarnings(action='ignore', category=FutureWarning)
+        pass
 
     @property
     def _ndim(self):
@@ -613,26 +612,26 @@ class TestSeries(tm.TestCase, Generic):
     def test_get_numeric_data_preserve_dtype(self):
 
         # get the numeric data
-        o = Series([1,2,3])
+        o = Series([1, 2, 3])
         result = o._get_numeric_data()
         self._compare(result, o)
 
-        o = Series([1,'2',3.])
+        o = Series([1, '2', 3.])
         result = o._get_numeric_data()
-        expected = Series([],dtype=object)
+        expected = Series([], dtype=object, index=pd.Index([], dtype=object))
         self._compare(result, expected)
 
-        o = Series([True,False,True])
+        o = Series([True, False, True])
         result = o._get_numeric_data()
         self._compare(result, o)
 
-        o = Series([True,False,True])
+        o = Series([True, False, True])
         result = o._get_bool_data()
         self._compare(result, o)
 
         o = Series(date_range('20130101',periods=3))
         result = o._get_numeric_data()
-        expected = Series([],dtype='M8[ns]')
+        expected = Series([],dtype='M8[ns]', index=pd.Index([], dtype=object))
         self._compare(result, expected)
 
     def test_nonzero_single_element(self):
@@ -1472,6 +1471,25 @@ class TestDataFrame(tm.TestCase, Generic):
         self.assertTrue(G.describe(include=['number', 'object']).shape == (22, 3))
         self.assertTrue(G.describe(include='all').shape == (26, 4))
 
+    def test_describe_multi_index_df_column_names(self):
+        """ Test that column names persist after the describe operation."""
+
+        df = pd.DataFrame({'A': ['foo', 'bar', 'foo', 'bar', 'foo', 'bar', 'foo', 'foo'],
+                           'B': ['one', 'one', 'two', 'three', 'two', 'two', 'one', 'three'],
+                           'C': np.random.randn(8),
+                           'D': np.random.randn(8)})
+
+        # GH 11517
+        # test for hierarchical index
+        hierarchical_index_df = df.groupby(['A', 'B']).mean().T
+        self.assertTrue(hierarchical_index_df.columns.names == ['A', 'B'])
+        self.assertTrue(hierarchical_index_df.describe().columns.names == ['A', 'B'])
+
+        # test for non-hierarchical index
+        non_hierarchical_index_df = df.groupby(['A']).mean().T
+        self.assertTrue(non_hierarchical_index_df.columns.names == ['A'])
+        self.assertTrue(non_hierarchical_index_df.describe().columns.names == ['A'])
+
     def test_no_order(self):
         tm._skip_if_no_scipy()
         s = Series([0, 1, np.nan, 3])
@@ -1681,6 +1699,21 @@ class TestDataFrame(tm.TestCase, Generic):
         assert_equal(df.y, 5)
         assert_series_equal(df['y'], Series([2, 4, 6], name='y'))
 
+    def test_pct_change(self):
+        # GH 11150
+        pnl = DataFrame([np.arange(0, 40, 10), np.arange(0, 40, 10), np.arange(0, 40, 10)]).astype(np.float64)
+        pnl.iat[1,0] = np.nan
+        pnl.iat[1,1] = np.nan
+        pnl.iat[2,3] = 60
+
+        mask = pnl.isnull()
+
+        for axis in range(2):
+            expected = pnl.ffill(axis=axis)/pnl.ffill(axis=axis).shift(axis=axis) - 1
+            expected[mask] = np.nan
+            result = pnl.pct_change(axis=axis, fill_method='pad')
+
+            self.assert_frame_equal(result, expected)
 
 class TestPanel(tm.TestCase, Generic):
     _typ = Panel
@@ -1716,6 +1749,15 @@ class TestNDFrame(tm.TestCase):
 
         p4d = tm.makePanel4D().reindex(labels=['label1'],items=['ItemA'])
         tm.assert_frame_equal(p4d.squeeze(),p4d.ix['label1','ItemA'])
+
+        # don't fail with 0 length dimensions GH11229 & GH8999
+        empty_series=pd.Series([], name='five')
+        empty_frame=pd.DataFrame([empty_series])
+        empty_panel=pd.Panel({'six':empty_frame})
+
+        [tm.assert_series_equal(empty_series, higher_dim.squeeze())
+         for higher_dim in [empty_series, empty_frame, empty_panel]]
+
 
     def test_equals(self):
         s1 = pd.Series([1, 2, 3], index=[0, 2, 1])
@@ -1850,6 +1892,7 @@ class TestNDFrame(tm.TestCase):
 
         with tm.assertRaises(ValueError):
             result = wp.pipe((f, 'y'), x=1, y=1)
+
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],

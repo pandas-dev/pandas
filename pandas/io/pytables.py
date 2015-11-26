@@ -47,6 +47,7 @@ from distutils.version import LooseVersion
 # versioning attribute
 _version = '0.15.2'
 
+### encoding ###
 # PY3 encoding if we don't specify
 _default_encoding = 'UTF-8'
 
@@ -64,21 +65,7 @@ def _ensure_encoding(encoding):
             encoding = _default_encoding
     return encoding
 
-def _set_tz(values, tz, preserve_UTC=False):
-    """ set the timezone if values are an Index """
-    if tz is not None and isinstance(values, Index):
-        tz = _ensure_decoded(tz)
-        if values.tz is None:
-            values = values.tz_localize('UTC').tz_convert(tz)
-        if preserve_UTC:
-            if tslib.get_timezone(tz) == 'UTC':
-                values = list(values)
-
-    return values
-
-
 Term = Expr
-
 
 def _ensure_term(where, scope_level):
     """
@@ -1839,7 +1826,9 @@ class DataCol(IndexCol):
                         nan_rep, encoding):
         # fill nan items with myself, don't disturb the blocks by
         # trying to downcast
-        block = block.fillna(nan_rep, downcast=False)[0]
+        block = block.fillna(nan_rep, downcast=False)
+        if isinstance(block, list):
+            block = block[0]
         data = block.values
 
         # see if we have a valid string type
@@ -1860,7 +1849,8 @@ class DataCol(IndexCol):
                     )
 
         # itemsize is the maximum length of a string (along any dimension)
-        itemsize = lib.max_len_string_array(com._ensure_object(data.ravel()))
+        data_converted = _convert_string_array(data, encoding)
+        itemsize = data_converted.itemsize
 
         # specified min_itemsize?
         if isinstance(min_itemsize, dict):
@@ -1877,10 +1867,7 @@ class DataCol(IndexCol):
         self.itemsize = itemsize
         self.kind = 'string'
         self.typ = self.get_atom_string(block, itemsize)
-        self.set_data(self.convert_string_data(data, itemsize, encoding))
-
-    def convert_string_data(self, data, itemsize, encoding):
-        return _convert_string_array(data, encoding, itemsize)
+        self.set_data(data_converted.astype('|S%d' % itemsize, copy=False))
 
     def get_atom_coltype(self, kind=None):
         """ return the PyTables column class for this column """
@@ -1947,14 +1934,11 @@ class DataCol(IndexCol):
         if values is None:
             values = block.values
 
-        # convert this column to datetime64[ns] utc, and save the tz
-        values = values.tz_convert('UTC').values.view('i8').reshape(block.shape)
+        # convert this column to i8 in UTC, and save the tz
+        values = values.asi8.reshape(block.shape)
 
         # store a converted timezone
-        zone = tslib.get_timezone(block.values.tz)
-        if zone is None:
-            zone = tslib.tot_seconds(block.values.tz.utcoffset())
-        self.tz = zone
+        self.tz = _get_tz(block.values.tz)
         self.update_info(info)
 
         self.kind = 'datetime64'
@@ -2015,18 +1999,9 @@ class DataCol(IndexCol):
 
             # reverse converts
             if dtype == u('datetime64'):
-                # recreate the timezone
-                if self.tz is not None:
 
-                    # data should be 2-dim here
-                    # we stored as utc, so just set the tz
-
-                    index = DatetimeIndex(
-                        self.data.ravel(), tz='UTC').tz_convert(tslib.maybe_get_tz(self.tz))
-                    self.data = index
-
-                else:
-                    self.data = np.asarray(self.data, dtype='M8[ns]')
+                # recreate with tz if indicated
+                self.data = _set_tz(self.data, self.tz, coerce=True)
 
             elif dtype == u('timedelta64'):
                 self.data = np.asarray(self.data, dtype='m8[ns]')
@@ -2347,7 +2322,10 @@ class GenericFixed(Fixed):
                 ret = data
 
             if dtype == u('datetime64'):
-                ret = np.asarray(ret, dtype='M8[ns]')
+
+                # reconstruct a timezone if indicated
+                ret = _set_tz(ret, getattr(attrs, 'tz', None), coerce=True)
+
             elif dtype == u('timedelta64'):
                 ret = np.asarray(ret, dtype='m8[ns]')
 
@@ -2397,10 +2375,7 @@ class GenericFixed(Fixed):
                 node._v_attrs.freq = index.freq
 
             if hasattr(index, 'tz') and index.tz is not None:
-                zone = tslib.get_timezone(index.tz)
-                if zone is None:
-                    zone = tslib.tot_seconds(index.tz.utcoffset())
-                node._v_attrs.tz = zone
+                node._v_attrs.tz = _get_tz(index.tz)
 
     def write_block_index(self, key, index):
         self.write_array('%s_blocs' % key, index.blocs)
@@ -2574,11 +2549,20 @@ class GenericFixed(Fixed):
             if empty_array:
                 self.write_array_empty(key, value)
             else:
-                if value.dtype.type == np.datetime64:
+                if com.is_datetime64_dtype(value.dtype):
                     self._handle.create_array(self.group, key, value.view('i8'))
                     getattr(
                         self.group, key)._v_attrs.value_type = 'datetime64'
-                elif value.dtype.type == np.timedelta64:
+                elif com.is_datetime64tz_dtype(value.dtype):
+                    # store as UTC
+                    # with a zone
+                    self._handle.create_array(self.group, key,
+                                              value.asi8)
+
+                    node = getattr(self.group, key)
+                    node._v_attrs.tz = _get_tz(value.tz)
+                    node._v_attrs.value_type = 'datetime64'
+                elif com.is_timedelta64_dtype(value.dtype):
                     self._handle.create_array(self.group, key, value.view('i8'))
                     getattr(
                         self.group, key)._v_attrs.value_type = 'timedelta64'
@@ -4248,6 +4232,40 @@ def _get_info(info, name):
         idx = info[name] = dict()
     return idx
 
+### tz to/from coercion ###
+def _get_tz(tz):
+    """ for a tz-aware type, return an encoded zone """
+    zone = tslib.get_timezone(tz)
+    if zone is None:
+        zone = tslib.tot_seconds(tz.utcoffset())
+    return zone
+
+def _set_tz(values, tz, preserve_UTC=False, coerce=False):
+    """
+    coerce the values to a DatetimeIndex if tz is set
+    preserve the input shape if possible
+
+    Parameters
+    ----------
+    values : ndarray
+    tz : string/pickled tz object
+    preserve_UTC : boolean,
+        preserve the UTC of the result
+    coerce : if we do not have a passed timezone, coerce to M8[ns] ndarray
+    """
+    if tz is not None:
+        values = values.ravel()
+        tz = tslib.get_timezone(_ensure_decoded(tz))
+        values = DatetimeIndex(values)
+        if values.tz is None:
+            values = values.tz_localize('UTC').tz_convert(tz)
+        if preserve_UTC:
+            if tz == 'UTC':
+                values = list(values)
+    elif coerce:
+        values = np.asarray(values, dtype='M8[ns]')
+
+    return values
 
 def _convert_index(index, encoding=None, format_type=None):
     index_name = getattr(index, 'name', None)

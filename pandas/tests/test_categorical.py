@@ -2,7 +2,7 @@
 # pylint: disable=E1101,E1103,W0232
 
 from datetime import datetime
-from pandas.compat import range, lrange, u
+from pandas.compat import range, lrange, u, PY3
 import os
 import pickle
 import re
@@ -86,12 +86,14 @@ class TestCategorical(tm.TestCase):
         factor = Categorical.from_array(arr, ordered=False)
         self.assertFalse(factor.ordered)
 
-        # this however will raise as cannot be sorted
-        # but fixed in newer versions of numpy
-        if LooseVersion(np.__version__) < "1.10":
+        if compat.PY3:
             self.assertRaises(TypeError, lambda :  Categorical.from_array(arr, ordered=True))
         else:
-            Categorical.from_array(arr, ordered=True)
+            # this however will raise as cannot be sorted (on PY3 or older numpies)
+            if LooseVersion(np.__version__) < "1.10":
+                self.assertRaises(TypeError, lambda :  Categorical.from_array(arr, ordered=True))
+            else:
+                Categorical.from_array(arr, ordered=True)
 
     def test_is_equal_dtype(self):
 
@@ -432,63 +434,56 @@ class TestCategorical(tm.TestCase):
     def test_describe(self):
         # string type
         desc = self.factor.describe()
-        expected = DataFrame.from_dict(dict(counts=[3, 2, 3],
-                                            freqs=[3/8., 2/8., 3/8.],
-                                            categories=['a', 'b', 'c'])
-                                            ).set_index('categories')
+        expected = DataFrame({'counts': [3, 2, 3],
+                              'freqs': [3/8., 2/8., 3/8.]},
+                             index=pd.CategoricalIndex(['a', 'b', 'c'], name='categories'))
         tm.assert_frame_equal(desc, expected)
 
         # check unused categories
         cat = self.factor.copy()
         cat.set_categories(["a","b","c","d"], inplace=True)
         desc = cat.describe()
-        expected = DataFrame.from_dict(dict(counts=[3, 2, 3, 0],
-                                            freqs=[3/8., 2/8., 3/8., 0],
-                                            categories=['a', 'b', 'c', 'd'])
-                                            ).set_index('categories')
+        expected = DataFrame({'counts': [3, 2, 3, 0],
+                              'freqs': [3/8., 2/8., 3/8., 0]},
+                             index=pd.CategoricalIndex(['a', 'b', 'c', 'd'], name='categories'))
         tm.assert_frame_equal(desc, expected)
 
         # check an integer one
         desc = Categorical([1,2,3,1,2,3,3,2,1,1,1]).describe()
-        expected = DataFrame.from_dict(dict(counts=[5, 3, 3],
-                                            freqs=[5/11., 3/11., 3/11.],
-                                            categories=[1,2,3]
-                                            )
-                                            ).set_index('categories')
+        expected = DataFrame({'counts': [5, 3, 3],
+                              'freqs': [5/11., 3/11., 3/11.]},
+                             index=pd.CategoricalIndex([1, 2, 3], name='categories'))
         tm.assert_frame_equal(desc, expected)
 
         # https://github.com/pydata/pandas/issues/3678
         # describe should work with NaN
         cat = pd.Categorical([np.nan,1, 2, 2])
         desc = cat.describe()
-        expected = DataFrame.from_dict(dict(counts=[1, 2, 1],
-                                            freqs=[1/4., 2/4., 1/4.],
-                                            categories=Categorical([1,2,np.nan],
-                                                                   [1, 2])
-                                            )
-                                            ).set_index('categories')
+        expected = DataFrame({'counts': [1, 2, 1],
+                              'freqs': [1/4., 2/4., 1/4.]},
+                             index=pd.CategoricalIndex([1, 2, np.nan], categories=[1, 2],
+                                                       name='categories'))
         tm.assert_frame_equal(desc, expected)
 
         # NA as a category
         with tm.assert_produces_warning(FutureWarning):
-            cat = pd.Categorical(["a","c","c",np.nan], categories=["b","a","c",np.nan])
+            cat = pd.Categorical(["a", "c", "c", np.nan], categories=["b", "a", "c", np.nan])
             result = cat.describe()
 
         expected = DataFrame([[0,0],[1,0.25],[2,0.5],[1,0.25]],
                              columns=['counts','freqs'],
-                             index=Index(['b','a','c',np.nan],name='categories'))
+                             index=pd.CategoricalIndex(['b', 'a', 'c', np.nan], name='categories'))
         tm.assert_frame_equal(result,expected)
 
         # NA as an unused category
         with tm.assert_produces_warning(FutureWarning):
-            cat = pd.Categorical(["a","c","c"], categories=["b","a","c",np.nan])
+            cat = pd.Categorical(["a", "c", "c"], categories=["b", "a", "c", np.nan])
             result = cat.describe()
 
-        expected = DataFrame([[0,0],[1,1/3.],[2,2/3.],[0,0]],
-                             columns=['counts','freqs'],
-                             index=Index(['b','a','c',np.nan],name='categories'))
+        exp_idx = pd.CategoricalIndex(['b', 'a', 'c', np.nan], name='categories')
+        expected = DataFrame([[0, 0], [1, 1/3.], [2, 2/3.], [0, 0]],
+                             columns=['counts', 'freqs'], index=exp_idx)
         tm.assert_frame_equal(result,expected)
-
 
     def test_print(self):
         expected = ["[a, b, b, a, a, c, c, c]",
@@ -533,6 +528,33 @@ class TestCategorical(tm.TestCase):
 
         with option_context("display.width", None):
             self.assertEqual(exp, repr(a))
+
+    def test_unicode_print(self):
+        if PY3:
+            _rep = repr
+        else:
+            _rep = unicode
+
+        c = pd.Categorical(['aaaaa', 'bb', 'cccc'] * 20)
+        expected = u"""[aaaaa, bb, cccc, aaaaa, bb, ..., bb, cccc, aaaaa, bb, cccc]
+Length: 60
+Categories (3, object): [aaaaa, bb, cccc]"""
+        self.assertEqual(_rep(c), expected)
+
+        c = pd.Categorical([u'ああああ', u'いいいいい', u'ううううううう'] * 20)
+        expected = u"""[ああああ, いいいいい, ううううううう, ああああ, いいいいい, ..., いいいいい, ううううううう, ああああ, いいいいい, ううううううう]
+Length: 60
+Categories (3, object): [ああああ, いいいいい, ううううううう]"""
+        self.assertEqual(_rep(c), expected)
+
+        # unicode option should not affect to Categorical, as it doesn't care the repr width
+        with option_context('display.unicode.east_asian_width', True):
+
+            c = pd.Categorical([u'ああああ', u'いいいいい', u'ううううううう'] * 20)
+            expected = u"""[ああああ, いいいいい, ううううううう, ああああ, いいいいい, ..., いいいいい, ううううううう, ああああ, いいいいい, ううううううう]
+Length: 60
+Categories (3, object): [ああああ, いいいいい, ううううううう]"""
+            self.assertEqual(_rep(c), expected)
 
     def test_periodindex(self):
         idx1 = PeriodIndex(['2014-01', '2014-01', '2014-02', '2014-02',
@@ -822,6 +844,26 @@ class TestCategorical(tm.TestCase):
         self.assert_numpy_array_equal(c.categories, exp_categories_dropped)
         self.assertIsNone(res)
 
+        # with NaN values (GH11599)
+        c = Categorical(["a","b","c",np.nan], categories=["a","b","c","d","e"])
+        res = c.remove_unused_categories()
+        self.assert_numpy_array_equal(res.categories, np.array(["a","b","c"]))
+        self.assert_numpy_array_equal(c.categories, exp_categories_all)
+
+        val = ['F', np.nan, 'D', 'B', 'D', 'F', np.nan]
+        cat = pd.Categorical(values=val, categories=list('ABCDEFG'))
+        out = cat.remove_unused_categories()
+        self.assert_numpy_array_equal(out.categories, ['B', 'D', 'F'])
+        self.assert_numpy_array_equal(out.codes, [ 2, -1,  1,  0,  1,  2, -1])
+        self.assertEqual(out.get_values().tolist(), val)
+
+        alpha = list('abcdefghijklmnopqrstuvwxyz')
+        val = np.random.choice(alpha[::2], 10000).astype('object')
+        val[np.random.choice(len(val), 100)] = np.nan
+
+        cat = pd.Categorical(values=val, categories=alpha)
+        out = cat.remove_unused_categories()
+        self.assertEqual(out.get_values().tolist(), val.tolist())
 
     def test_nan_handling(self):
 
@@ -1167,6 +1209,15 @@ class TestCategorical(tm.TestCase):
         cat = pd.Categorical([1,2,3])
         exp = cat._codes.nbytes + cat._categories.values.nbytes
         self.assertEqual(cat.nbytes, exp)
+
+    def test_memory_usage(self):
+        cat = pd.Categorical([1,2,3])
+        self.assertEqual(cat.nbytes, cat.memory_usage())
+        self.assertEqual(cat.nbytes, cat.memory_usage(deep=True))
+
+        cat = pd.Categorical(['foo','foo','bar'])
+        self.assertEqual(cat.nbytes, cat.memory_usage())
+        self.assertTrue(cat.memory_usage(deep=True) > cat.nbytes)
 
     def test_searchsorted(self):
         # https://github.com/pydata/pandas/issues/8420
@@ -2344,6 +2395,7 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
 
         res = self.cat.groupby(['value_group'])['value_group'].count()
         exp = res[sorted(res.index, key=lambda x: float(x.split()[0]))]
+        exp.index = pd.CategoricalIndex(exp.index, name=exp.index.name)
         tm.assert_series_equal(res, exp)
 
     def test_min_max(self):
@@ -2394,10 +2446,10 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
 
         s = pd.Series(pd.Categorical(["a","b","c","c","c","b"], categories=["c","a","b","d"]))
         res = s.value_counts(sort=False)
-        exp = Series([3,1,2,0], index=["c","a","b","d"])
+        exp = Series([3,1,2,0], index=pd.CategoricalIndex(["c","a","b","d"]))
         tm.assert_series_equal(res, exp)
         res = s.value_counts(sort=True)
-        exp = Series([3,2,1,0], index=["c","b","a","d"])
+        exp = Series([3,2,1,0], index=pd.CategoricalIndex(["c","b","a","d"]))
         tm.assert_series_equal(res, exp)
 
     def test_value_counts_with_nan(self):
@@ -2406,42 +2458,42 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
         s = pd.Series(["a", "b", "a"], dtype="category")
         tm.assert_series_equal(
             s.value_counts(dropna=True),
-            pd.Series([2, 1], index=["a", "b"]))
+            pd.Series([2, 1], index=pd.CategoricalIndex(["a", "b"])))
         tm.assert_series_equal(
             s.value_counts(dropna=False),
-            pd.Series([2, 1], index=["a", "b"]))
+            pd.Series([2, 1], index=pd.CategoricalIndex(["a", "b"])))
 
         s = pd.Series(["a", "b", None, "a", None, None], dtype="category")
         tm.assert_series_equal(
             s.value_counts(dropna=True),
-            pd.Series([2, 1], index=["a", "b"]))
+            pd.Series([2, 1], index=pd.CategoricalIndex(["a", "b"])))
         tm.assert_series_equal(
             s.value_counts(dropna=False),
-            pd.Series([3, 2, 1], index=[np.nan, "a", "b"]))
+            pd.Series([3, 2, 1], index=pd.CategoricalIndex([np.nan, "a", "b"])))
         # When we aren't sorting by counts, and np.nan isn't a
         # category, it should be last.
         tm.assert_series_equal(
             s.value_counts(dropna=False, sort=False),
-            pd.Series([2, 1, 3], index=["a", "b", np.nan]))
+            pd.Series([2, 1, 3], index=pd.CategoricalIndex(["a", "b", np.nan])))
 
         with tm.assert_produces_warning(FutureWarning):
             s = pd.Series(pd.Categorical(["a", "b", "a"], categories=["a", "b", np.nan]))
             tm.assert_series_equal(
                 s.value_counts(dropna=True),
-                pd.Series([2, 1], index=["a", "b"]))
+                pd.Series([2, 1], index=pd.CategoricalIndex(["a", "b"])))
             tm.assert_series_equal(
                 s.value_counts(dropna=False),
-                pd.Series([2, 1, 0], index=["a", "b", np.nan]))
+                pd.Series([2, 1, 0], index=pd.CategoricalIndex(["a", "b", np.nan])))
 
         with tm.assert_produces_warning(FutureWarning):
             s = pd.Series(pd.Categorical(["a", "b", None, "a", None, None],
                                          categories=["a", "b", np.nan]))
             tm.assert_series_equal(
                 s.value_counts(dropna=True),
-                pd.Series([2, 1], index=["a", "b"]))
+                pd.Series([2, 1], index=pd.CategoricalIndex(["a", "b"])))
             tm.assert_series_equal(
                 s.value_counts(dropna=False),
-                pd.Series([3, 2, 1], index=[np.nan, "a", "b"]))
+                pd.Series([3, 2, 1], index=pd.CategoricalIndex([np.nan, "a", "b"])))
 
     def test_groupby(self):
 
@@ -2449,7 +2501,7 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
         data = DataFrame({"a":[1,1,1,2,2,2,3,4,5], "b":cats})
 
         expected = DataFrame({'a': Series([1, 2, 4, np.nan],
-                             index=Index(['a', 'b', 'c', 'd'], name='b'))})
+                             index=pd.CategoricalIndex(['a', 'b', 'c', 'd'], name='b'))})
         result = data.groupby("b").mean()
         tm.assert_frame_equal(result, expected)
 
@@ -2459,7 +2511,8 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
 
         # single grouper
         gb = df.groupby("A")
-        expected = DataFrame({ 'values' : Series([3,7,np.nan],index=Index(['a','b','z'],name='A')) })
+        exp_idx = pd.CategoricalIndex(['a', 'b', 'z'], name='A')
+        expected = DataFrame({'values': Series([3, 7, np.nan], index=exp_idx)})
         result = gb.sum()
         tm.assert_frame_equal(result, expected)
 
@@ -2539,7 +2592,7 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
         df = pd.DataFrame({'a': [1, 0, 0, 0]})
         c = pd.cut(df.a, [0, 1, 2, 3, 4])
         result = df.groupby(c).apply(len)
-        expected = pd.Series([1, 0, 0, 0], index=c.values.categories)
+        expected = pd.Series([1, 0, 0, 0], index=pd.CategoricalIndex(c.values.categories))
         expected.index.name = 'a'
         tm.assert_series_equal(result, expected)
 
@@ -3595,6 +3648,159 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
         with tm.assertRaisesRegexp(AttributeError, "only use .cat accessor"):
             invalid.cat
         self.assertFalse(hasattr(invalid, 'cat'))
+
+    def test_cat_accessor_no_new_attributes(self):
+        # https://github.com/pydata/pandas/issues/10673
+        c = Series(list('aabbcde')).astype('category')
+        with tm.assertRaisesRegexp(AttributeError, "You cannot add any new attribute"):
+            c.cat.xlabel = "a"
+
+    def test_str_accessor_api_for_categorical(self):
+        # https://github.com/pydata/pandas/issues/10661
+        from pandas.core.strings import StringMethods
+        s = Series(list('aabb'))
+        s = s + " " + s
+        c = s.astype('category')
+        self.assertIsInstance(c.str, StringMethods)
+
+        # str functions, which need special arguments
+        special_func_defs = [
+            ('cat', (list("zyxw"),), {"sep": ","}),
+            ('center', (10,), {}),
+            ('contains', ("a",), {}),
+            ('count', ("a",), {}),
+            ('decode', ("UTF-8",), {}),
+            ('encode', ("UTF-8",), {}),
+            ('endswith', ("a",), {}),
+            ('extract', ("([a-z]*) ",), {}),
+            ('find', ("a",), {}),
+            ('findall', ("a",), {}),
+            ('index', (" ",), {}),
+            ('ljust', (10,), {}),
+            ('match', ("a"), {}), # deprecated...
+            ('normalize', ("NFC",), {}),
+            ('pad', (10,), {}),
+            ('partition', (" ",), {"expand": False}), # not default
+            ('partition', (" ",), {"expand": True}), # default
+            ('repeat', (3,), {}),
+            ('replace', ("a", "z"), {}),
+            ('rfind', ("a",), {}),
+            ('rindex', (" ",), {}),
+            ('rjust', (10,), {}),
+            ('rpartition', (" ",), {"expand": False}), # not default
+            ('rpartition', (" ",), {"expand": True}), # default
+            ('slice', (0,1), {}),
+            ('slice_replace', (0,1,"z"), {}),
+            ('split', (" ",), {"expand":False}), #default
+            ('split', (" ",), {"expand":True}), # not default
+            ('startswith', ("a",), {}),
+            ('wrap', (2,), {}),
+            ('zfill', (10,), {})
+        ]
+        _special_func_names = [f[0] for f in special_func_defs]
+
+        # * get, join: they need a individual elements of type lists, but
+        #   we can't make a categorical with lists as individual categories.
+        #   -> `s.str.split(" ").astype("category")` will error!
+        # * `translate` has different interfaces for py2 vs. py3
+        _ignore_names = ["get", "join", "translate"]
+
+        str_func_names = [f for f in dir(s.str) if not (f.startswith("_") or
+                                                        f in _special_func_names or
+                                                        f in _ignore_names)]
+
+        func_defs = [(f, (), {}) for f in str_func_names]
+        func_defs.extend(special_func_defs)
+
+
+        for func, args, kwargs in func_defs:
+            res = getattr(c.str, func)(*args, **kwargs)
+            exp = getattr(s.str, func)(*args, **kwargs)
+
+            if isinstance(res, pd.DataFrame):
+                tm.assert_frame_equal(res, exp)
+            else:
+                tm.assert_series_equal(res, exp)
+
+        invalid = Series([1,2,3]).astype('category')
+        with tm.assertRaisesRegexp(AttributeError, "Can only use .str accessor with string"):
+            invalid.str
+        self.assertFalse(hasattr(invalid, 'str'))
+
+    def test_dt_accessor_api_for_categorical(self):
+        # https://github.com/pydata/pandas/issues/10661
+        from pandas.tseries.common import Properties
+        from pandas.tseries.index import date_range, DatetimeIndex
+        from pandas.tseries.period import period_range, PeriodIndex
+        from pandas.tseries.tdi import timedelta_range, TimedeltaIndex
+
+        s_dr = Series(date_range('1/1/2015', periods=5, tz="MET"))
+        c_dr = s_dr.astype("category")
+
+        s_pr = Series(period_range('1/1/2015', freq='D', periods=5))
+        c_pr = s_pr.astype("category")
+
+        s_tdr = Series(timedelta_range('1 days','10 days'))
+        c_tdr = s_tdr.astype("category")
+
+        test_data = [
+            ("Datetime", DatetimeIndex._datetimelike_ops, s_dr, c_dr),
+            ("Period", PeriodIndex._datetimelike_ops, s_pr, c_pr),
+            ("Timedelta", TimedeltaIndex._datetimelike_ops, s_tdr, c_tdr)]
+
+        self.assertIsInstance(c_dr.dt, Properties)
+
+        special_func_defs = [
+            ('strftime', ("%Y-%m-%d",), {}),
+            ('tz_convert', ("EST",), {}),
+            #('tz_localize', ("UTC",), {}),
+        ]
+        _special_func_names = [f[0] for f in special_func_defs]
+
+        # the series is already localized
+        _ignore_names = ['tz_localize']
+
+        for name, attr_names, s, c in test_data:
+            func_names = [f for f in dir(s.dt) if not (f.startswith("_") or
+                                                       f in attr_names or
+                                                       f in _special_func_names or
+                                                       f in _ignore_names)]
+
+            func_defs = [(f, (), {}) for f in func_names]
+            for f_def in special_func_defs:
+                if f_def[0] in dir(s.dt):
+                    func_defs.append(f_def)
+
+            for func, args, kwargs in func_defs:
+                res = getattr(c.dt, func)(*args, **kwargs)
+                exp = getattr(s.dt, func)(*args, **kwargs)
+
+                if isinstance(res, pd.DataFrame):
+                    tm.assert_frame_equal(res, exp)
+                elif isinstance(res, pd.Series):
+                    tm.assert_series_equal(res, exp)
+                else:
+                    tm.assert_numpy_array_equal(res, exp)
+
+            for attr in attr_names:
+                try:
+                    res = getattr(c.dt, attr)
+                    exp = getattr(s.dt, attr)
+                except Exception as e:
+                    print(name, attr)
+                    raise e
+
+            if isinstance(res, pd.DataFrame):
+                tm.assert_frame_equal(res, exp)
+            elif isinstance(res, pd.Series):
+                tm.assert_series_equal(res, exp)
+            else:
+                tm.assert_numpy_array_equal(res, exp)
+
+        invalid = Series([1,2,3]).astype('category')
+        with tm.assertRaisesRegexp(AttributeError, "Can only use .dt accessor with datetimelike"):
+            invalid.dt
+        self.assertFalse(hasattr(invalid, 'str'))
 
     def test_pickle_v0_14_1(self):
 

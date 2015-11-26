@@ -113,7 +113,7 @@ static int dInfoCalc_SetFromDateAndTime(struct date_info *dinfo,
         int yearoffset;
 
         /* Range check */
-        Py_AssertWithArg(year > -(INT_MAX / 366) && year < (INT_MAX / 366),
+         Py_AssertWithArg(year > -(INT_MAX / 366) && year < (INT_MAX / 366),
                  PyExc_ValueError,
                  "year out of range: %i",
                  year);
@@ -136,7 +136,7 @@ static int dInfoCalc_SetFromDateAndTime(struct date_info *dinfo,
                  day);
 
         yearoffset = dInfoCalc_YearOffset(year, calendar);
-        if (PyErr_Occurred()) goto onError;
+        if (yearoffset == INT_ERR_CODE) goto onError;
 
         absdate = day + month_offset[leap][month - 1] + yearoffset;
 
@@ -155,7 +155,7 @@ static int dInfoCalc_SetFromDateAndTime(struct date_info *dinfo,
 
     /* Calculate the absolute time */
     {
-        Py_AssertWithArg(hour >= 0 && hour <= 23,
+       Py_AssertWithArg(hour >= 0 && hour <= 23,
                 PyExc_ValueError,
                 "hour out of range (0-23): %i",
                 hour);
@@ -212,8 +212,7 @@ int dInfoCalc_SetFromAbsDate(register struct date_info *dinfo,
     while (1) {
         /* Calculate the year offset */
         yearoffset = dInfoCalc_YearOffset(year, calendar);
-        if (PyErr_Occurred())
-            goto onError;
+        if (yearoffset == INT_ERR_CODE) goto onError;
 
         /* Backward correction: absdate must be greater than the
            yearoffset */
@@ -310,7 +309,7 @@ static int calc_conversion_factors_matrix_size() {
         }
         matrix_size = max_value(matrix_size, period_value);
     }
-    return matrix_size + 1; 
+    return matrix_size + 1;
 }
 
 static void alloc_conversion_factors_matrix(int matrix_size) {

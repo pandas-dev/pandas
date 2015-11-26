@@ -13,6 +13,8 @@ from pandas import compat
 from pandas.compat import range, long, lrange, lmap, u
 from pandas.core.common import notnull, isnull, array_equivalent
 import pandas.core.common as com
+import pandas.core.convert as convert
+import pandas.core.format as fmt
 import pandas.util.testing as tm
 import pandas.core.config as cf
 
@@ -96,6 +98,62 @@ class TestABCClasses(tm.TestCase):
         self.assertIsInstance(pd.Period('2012', freq='A-DEC'), com.ABCPeriod)
 
 
+class TestInferDtype(tm.TestCase):
+
+    def test_infer_dtype_from_scalar(self):
+        # Test that _infer_dtype_from_scalar is returning correct dtype for int and float.
+
+        for dtypec in [ np.uint8, np.int8,
+                        np.uint16, np.int16,
+                        np.uint32, np.int32,
+                        np.uint64, np.int64 ]:
+            data = dtypec(12)
+            dtype, val = com._infer_dtype_from_scalar(data)
+            self.assertEqual(dtype, type(data))
+
+        data = 12
+        dtype, val = com._infer_dtype_from_scalar(data)
+        self.assertEqual(dtype, np.int64)
+
+        for dtypec in [ np.float16, np.float32, np.float64 ]:
+            data = dtypec(12)
+            dtype, val = com._infer_dtype_from_scalar(data)
+            self.assertEqual(dtype, dtypec)
+
+        data = np.float(12)
+        dtype, val = com._infer_dtype_from_scalar(data)
+        self.assertEqual(dtype, np.float64)
+
+        for data in [ True, False ]:
+            dtype, val = com._infer_dtype_from_scalar(data)
+            self.assertEqual(dtype, np.bool_)
+
+        for data in [ np.complex64(1), np.complex128(1) ]:
+            dtype, val = com._infer_dtype_from_scalar(data)
+            self.assertEqual(dtype, np.complex_)
+
+        import datetime
+        for data in [ np.datetime64(1,'ns'),
+                      pd.Timestamp(1),
+                      datetime.datetime(2000,1,1,0,0)
+                      ]:
+            dtype, val = com._infer_dtype_from_scalar(data)
+            self.assertEqual(dtype, 'M8[ns]')
+
+        for data in [ np.timedelta64(1,'ns'),
+                      pd.Timedelta(1),
+                      datetime.timedelta(1)
+                      ]:
+            dtype, val = com._infer_dtype_from_scalar(data)
+            self.assertEqual(dtype, 'm8[ns]')
+
+        for data in [ datetime.date(2000,1,1),
+                      pd.Timestamp(1,tz='US/Eastern'),
+                      'foo'
+                      ]:
+            dtype, val = com._infer_dtype_from_scalar(data)
+            self.assertEqual(dtype, np.object_)
+
 def test_notnull():
     assert notnull(1.)
     assert not notnull(None)
@@ -176,6 +234,13 @@ def test_isnull_nat():
     result = isnull(np.array([NaT], dtype=object))
     exp = np.array([True])
     assert(np.array_equal(result, exp))
+
+def test_isnull_numpy_nat():
+    arr = np.array([NaT, np.datetime64('NaT'), np.timedelta64('NaT'),
+                    np.datetime64('NaT', 's')])
+    result = isnull(arr)
+    expected = np.array([True] * 4)
+    tm.assert_numpy_array_equal(result, expected)
 
 def test_isnull_datetime():
     assert (not isnull(datetime.now()))
@@ -331,6 +396,99 @@ def test_adjoin():
     assert(adjoined == expected)
 
 
+
+class TestFormattBase(tm.TestCase):
+
+    def test_adjoin(self):
+        data = [['a', 'b', 'c'],
+                ['dd', 'ee', 'ff'],
+                ['ggg', 'hhh', 'iii']]
+        expected = 'a  dd  ggg\nb  ee  hhh\nc  ff  iii'
+
+        adjoined = com.adjoin(2, *data)
+
+        self.assertEqual(adjoined, expected)
+
+    def test_adjoin_unicode(self):
+        data = [[u'あ', 'b', 'c'],
+                ['dd', u'ええ', 'ff'],
+                ['ggg', 'hhh', u'いいい']]
+        expected = u'あ  dd  ggg\nb  ええ  hhh\nc  ff  いいい'
+        adjoined = com.adjoin(2, *data)
+        self.assertEqual(adjoined, expected)
+
+        adj = fmt.EastAsianTextAdjustment()
+
+        expected = u"""あ  dd    ggg
+b   ええ  hhh
+c   ff    いいい"""
+        adjoined = adj.adjoin(2, *data)
+        self.assertEqual(adjoined, expected)
+        cols = adjoined.split('\n')
+        self.assertEqual(adj.len(cols[0]), 13)
+        self.assertEqual(adj.len(cols[1]), 13)
+        self.assertEqual(adj.len(cols[2]), 16)
+
+        expected = u"""あ       dd         ggg
+b        ええ       hhh
+c        ff         いいい"""
+        adjoined = adj.adjoin(7, *data)
+        self.assertEqual(adjoined, expected)
+        cols = adjoined.split('\n')
+        self.assertEqual(adj.len(cols[0]), 23)
+        self.assertEqual(adj.len(cols[1]), 23)
+        self.assertEqual(adj.len(cols[2]), 26)
+
+    def test_justify(self):
+        adj = fmt.EastAsianTextAdjustment()
+
+        def just(x, *args, **kwargs):
+            # wrapper to test single str
+            return adj.justify([x], *args, **kwargs)[0]
+
+        self.assertEqual(just('abc', 5, mode='left'), 'abc  ')
+        self.assertEqual(just('abc', 5, mode='center'), ' abc ')
+        self.assertEqual(just('abc', 5, mode='right'), '  abc')
+        self.assertEqual(just(u'abc', 5, mode='left'), 'abc  ')
+        self.assertEqual(just(u'abc', 5, mode='center'), ' abc ')
+        self.assertEqual(just(u'abc', 5, mode='right'), '  abc')
+
+        self.assertEqual(just(u'パンダ', 5, mode='left'), u'パンダ')
+        self.assertEqual(just(u'パンダ', 5, mode='center'), u'パンダ')
+        self.assertEqual(just(u'パンダ', 5, mode='right'), u'パンダ')
+
+        self.assertEqual(just(u'パンダ', 10, mode='left'), u'パンダ    ')
+        self.assertEqual(just(u'パンダ', 10, mode='center'), u'  パンダ  ')
+        self.assertEqual(just(u'パンダ', 10, mode='right'), u'    パンダ')
+
+    def test_east_asian_len(self):
+        adj = fmt.EastAsianTextAdjustment()
+
+        self.assertEqual(adj.len('abc'), 3)
+        self.assertEqual(adj.len(u'abc'), 3)
+
+        self.assertEqual(adj.len(u'パンダ'), 6)
+        self.assertEqual(adj.len(u'ﾊﾟﾝﾀﾞ'), 5)
+        self.assertEqual(adj.len(u'パンダpanda'), 11)
+        self.assertEqual(adj.len(u'ﾊﾟﾝﾀﾞpanda'), 10)
+
+
+    def test_ambiguous_width(self):
+        adj = fmt.EastAsianTextAdjustment()
+        self.assertEqual(adj.len(u'¡¡ab'), 4)
+
+        with cf.option_context('display.unicode.ambiguous_as_wide', True):
+            adj = fmt.EastAsianTextAdjustment()
+            self.assertEqual(adj.len(u'¡¡ab'), 6)
+
+        data = [[u'あ', 'b', 'c'],
+                ['dd', u'ええ', 'ff'],
+                ['ggg', u'¡¡ab', u'いいい']]
+        expected = u'あ  dd    ggg \nb   ええ  ¡¡ab\nc   ff    いいい'
+        adjoined = adj.adjoin(2, *data)
+        self.assertEqual(adjoined, expected)
+
+
 def test_iterpairs():
     data = [1, 2, 3, 4]
     expected = [(1, 2),
@@ -443,6 +601,15 @@ def test_is_list_like():
     for f in fails:
         assert not com.is_list_like(f)
 
+def test_is_named_tuple():
+    passes = (collections.namedtuple('Test',list('abc'))(1,2,3),)
+    fails = ((1,2,3), 'a', Series({'pi':3.14}))
+
+    for p in passes:
+        assert com.is_named_tuple(p)
+
+    for f in fails:
+        assert not com.is_named_tuple(f)
 
 def test_is_hashable():
 
@@ -1051,6 +1218,22 @@ class TestMaybe(tm.TestCase):
         tm.assert_numpy_array_equal(result, np.array(['x', 2], dtype=object))
         self.assertTrue(result.dtype == object)
 
+def test_possibly_convert_objects_copy():
+    values = np.array([1, 2])
+
+    out = convert._possibly_convert_objects(values, copy=False)
+    assert_true(values is out)
+
+    out = convert._possibly_convert_objects(values, copy=True)
+    assert_true(values is not out)
+
+    values = np.array(['apply','banana'])
+    out = convert._possibly_convert_objects(values, copy=False)
+    assert_true(values is out)
+
+    out = convert._possibly_convert_objects(values, copy=True)
+    assert_true(values is not out)
+
 
 def test_dict_compat():
     data_datetime64 = {np.datetime64('1990-03-15'): 1,
@@ -1061,23 +1244,6 @@ def test_dict_compat():
     assert(com._dict_compat(expected) == expected)
     assert(com._dict_compat(data_unchanged) == data_unchanged)
 
-
-def test_possibly_convert_objects_copy():
-    values = np.array([1, 2])
-
-    out = com._possibly_convert_objects(values, copy=False)
-    assert_true(values is out)
-
-    out = com._possibly_convert_objects(values, copy=True)
-    assert_true(values is not out)
-
-    values = np.array(['apply','banana'])
-    out = com._possibly_convert_objects(values, copy=False)
-    assert_true(values is out)
-
-    out = com._possibly_convert_objects(values, copy=True)
-    assert_true(values is not out)
-    
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],

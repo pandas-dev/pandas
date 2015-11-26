@@ -35,6 +35,8 @@ from distutils.version import LooseVersion
 from itertools import product
 import sys
 import types
+from unicodedata import east_asian_width
+import struct
 
 PY2 = sys.version_info[0] == 2
 PY3 = (sys.version_info[0] >= 3)
@@ -90,6 +92,7 @@ if PY3:
 
     def lfilter(*args, **kwargs):
         return list(filter(*args, **kwargs))
+
 else:
     # Python 2
     import re
@@ -176,6 +179,11 @@ def bind_method(cls, name, func):
 # The license for this library can be found in LICENSES/SIX and the code can be
 # found at https://bitbucket.org/gutworth/six
 
+# Definition of East Asian Width
+# http://unicode.org/reports/tr11/
+# Ambiguous width can be changed by option
+_EAW_MAP = {'Na': 1, 'N': 1, 'W': 2, 'F': 2, 'H': 1}
+
 if PY3:
     string_types = str,
     integer_types = int,
@@ -188,6 +196,20 @@ if PY3:
 
     def u_safe(s):
         return s
+
+    def strlen(data, encoding=None):
+        # encoding is for compat with PY2
+        return len(data)
+
+    def east_asian_len(data, encoding=None, ambiguous_width=1):
+        """
+        Calculate display width considering unicode East Asian Width
+        """
+        if isinstance(data, text_type):
+            return sum([_EAW_MAP.get(east_asian_width(c), ambiguous_width) for c in data])
+        else:
+            return len(data)
+
 else:
     string_types = basestring,
     integer_types = (int, long)
@@ -204,6 +226,25 @@ else:
         except:
             return s
 
+    def strlen(data, encoding=None):
+        try:
+            data = data.decode(encoding)
+        except UnicodeError:
+            pass
+        return len(data)
+
+    def east_asian_len(data, encoding=None, ambiguous_width=1):
+        """
+        Calculate display width considering unicode East Asian Width
+        """
+        if isinstance(data, text_type):
+            try:
+                data = data.decode(encoding)
+            except UnicodeError:
+                pass
+            return sum([_EAW_MAP.get(east_asian_width(c), ambiguous_width) for c in data])
+        else:
+            return len(data)
 
 string_and_binary_types = string_types + (binary_type,)
 
@@ -760,10 +801,11 @@ class OrderedDefaultdict(OrderedDict):
 def is_platform_windows():
     return sys.platform == 'win32' or sys.platform == 'cygwin'
 
-
 def is_platform_linux():
     return sys.platform == 'linux2'
 
-
 def is_platform_mac():
     return sys.platform == 'darwin'
+
+def is_platform_32bit():
+    return struct.calcsize("P") * 8 < 64

@@ -507,6 +507,15 @@ def radviz(frame, class_column, ax=None, color=None, colormap=None, **kwds):
 def andrews_curves(frame, class_column, ax=None, samples=200, color=None,
                    colormap=None, **kwds):
     """
+    Generates a matplotlib plot of Andrews curves, for visualising clusters of multivariate data.
+
+    Andrews curves have the functional form:
+
+    f(t) = x_1/sqrt(2) + x_2 sin(t) + x_3 cos(t) + x_4 sin(2t) + x_5 cos(2t) + ...
+
+    Where x coefficients correspond to the values of each dimension and t is linearly spaced between -pi and +pi. Each
+    row of frame then corresponds to a single curve.
+
     Parameters:
     -----------
     frame : DataFrame
@@ -527,20 +536,26 @@ def andrews_curves(frame, class_column, ax=None, samples=200, color=None,
     ax: Matplotlib axis object
 
     """
-    from math import sqrt, pi, sin, cos
+    from math import sqrt, pi
     import matplotlib.pyplot as plt
 
     def function(amplitudes):
-        def f(x):
+        def f(t):
             x1 = amplitudes[0]
             result = x1 / sqrt(2.0)
-            harmonic = 1.0
-            for x_even, x_odd in zip(amplitudes[1::2], amplitudes[2::2]):
-                result += (x_even * sin(harmonic * x) +
-                           x_odd * cos(harmonic * x))
-                harmonic += 1.0
-            if len(amplitudes) % 2 != 0:
-                result += amplitudes[-1] * sin(harmonic * x)
+
+            # Take the rest of the coefficients and resize them appropriately. Take a copy of amplitudes as otherwise
+            # numpy deletes the element from amplitudes itself.
+            coeffs = np.delete(np.copy(amplitudes), 0)
+            coeffs.resize((coeffs.size + 1) / 2, 2)
+
+            # Generate the harmonics and arguments for the sin and cos functions.
+            harmonics = np.arange(0, coeffs.shape[0]) + 1
+            trig_args = np.outer(harmonics, t)
+
+            result += np.sum(coeffs[:, 0, np.newaxis] * np.sin(trig_args) +
+                             coeffs[:, 1, np.newaxis] * np.cos(trig_args),
+                             axis=0)
             return result
         return f
 
@@ -548,7 +563,7 @@ def andrews_curves(frame, class_column, ax=None, samples=200, color=None,
     class_col = frame[class_column]
     classes = frame[class_column].drop_duplicates()
     df = frame.drop(class_column, axis=1)
-    x = [-pi + 2.0 * pi * (t / float(samples)) for t in range(samples)]
+    t = np.linspace(-pi, pi, samples)
     used_legends = set([])
 
     color_values = _get_standard_colors(num_colors=len(classes),
@@ -560,14 +575,14 @@ def andrews_curves(frame, class_column, ax=None, samples=200, color=None,
     for i in range(n):
         row = df.iloc[i].values
         f = function(row)
-        y = [f(t) for t in x]
+        y = f(t)
         kls = class_col.iat[i]
         label = com.pprint_thing(kls)
         if label not in used_legends:
             used_legends.add(label)
-            ax.plot(x, y, color=colors[kls], label=label, **kwds)
+            ax.plot(t, y, color=colors[kls], label=label, **kwds)
         else:
-            ax.plot(x, y, color=colors[kls], **kwds)
+            ax.plot(t, y, color=colors[kls], **kwds)
 
     ax.legend(loc='upper right')
     ax.grid()
@@ -638,7 +653,7 @@ def bootstrap_plot(series, fig=None, size=50, samples=500, **kwds):
 @deprecate_kwarg(old_arg_name='data', new_arg_name='frame', stacklevel=3)
 def parallel_coordinates(frame, class_column, cols=None, ax=None, color=None,
                          use_columns=False, xticks=None, colormap=None,
-                         axvlines=True, **kwds):
+                         axvlines=True, axvlines_kwds={'linewidth':1,'color':'black'}, **kwds):
     """Parallel coordinates plotting.
 
     Parameters
@@ -660,6 +675,8 @@ def parallel_coordinates(frame, class_column, cols=None, ax=None, color=None,
         Colormap to use for line colors.
     axvlines: bool, optional
         If true, vertical lines will be added at each xtick
+    axvlines_kwds: keywords, optional
+        Options to be passed to axvline method for vertical lines
     kwds: keywords
         Options to pass to matplotlib plotting method
 
@@ -726,7 +743,7 @@ def parallel_coordinates(frame, class_column, cols=None, ax=None, color=None,
 
     if axvlines:
         for i in x:
-            ax.axvline(i, linewidth=1, color='black')
+            ax.axvline(i, **axvlines_kwds)
 
     ax.set_xticks(x)
     ax.set_xticklabels(df.columns)
@@ -985,11 +1002,11 @@ class MPLPlot(object):
         self._make_plot()
         self._add_table()
         self._make_legend()
+        self._adorn_subplots()
 
         for ax in self.axes:
             self._post_plot_logic_common(ax, self.data)
             self._post_plot_logic(ax, self.data)
-        self._adorn_subplots()
 
     def _args_adjust(self):
         pass
@@ -1079,7 +1096,7 @@ class MPLPlot(object):
                 label = 'None'
             data = data.to_frame(name=label)
 
-        numeric_data = data.convert_objects(datetime=True)._get_numeric_data()
+        numeric_data = data._convert(datetime=True)._get_numeric_data()
 
         try:
             is_empty = numeric_data.empty
@@ -1135,7 +1152,7 @@ class MPLPlot(object):
     def _adorn_subplots(self):
         """Common post process unrelated to data"""
         if len(self.axes) > 0:
-            all_axes = self._get_axes()
+            all_axes = self._get_subplots()
             nrows, ncols = self._get_axes_layout()
             _handle_shared_axes(axarr=all_axes, nplots=len(all_axes),
                                 naxes=nrows * ncols, nrows=nrows,
@@ -1467,11 +1484,13 @@ class MPLPlot(object):
                     errors[kw] = err
         return errors
 
-    def _get_axes(self):
-        return self.axes[0].get_figure().get_axes()
+    def _get_subplots(self):
+        from matplotlib.axes import Subplot
+        return [ax for ax in self.axes[0].get_figure().get_axes()
+                    if isinstance(ax, Subplot)]
 
     def _get_axes_layout(self):
-        axes = self._get_axes()
+        axes = self._get_subplots()
         x_set = set()
         y_set = set()
         for ax in axes:
@@ -1972,8 +1991,7 @@ class HistPlot(LinePlot):
     def _args_adjust(self):
         if com.is_integer(self.bins):
             # create common bin edge
-            values = (self.data.convert_objects(datetime=True)
-                      ._get_numeric_data())
+            values = (self.data._convert(datetime=True)._get_numeric_data())
             values = np.ravel(values)
             values = values[~com.isnull(values)]
 

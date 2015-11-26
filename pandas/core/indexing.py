@@ -104,6 +104,8 @@ class _NDFrameIndexer(object):
 
         if isinstance(key, tuple) and not self.ndim < len(key):
             return self._convert_tuple(key, is_setter=True)
+        if isinstance(key, range):
+            return self._convert_range(key, is_setter=True)
 
         try:
             return self._convert_to_indexer(key, is_setter=True)
@@ -155,6 +157,10 @@ class _NDFrameIndexer(object):
                 idx = self._convert_to_indexer(k, axis=i, is_setter=is_setter)
                 keyidx.append(idx)
         return tuple(keyidx)
+
+    def _convert_range(self, key, is_setter=False):
+        """ convert a range argument """
+        return list(key)
 
     def _convert_scalar_indexer(self, key, axis):
         # if we are accessing via lowered dim, use the last dim
@@ -443,11 +449,14 @@ class _NDFrameIndexer(object):
                 # we have an equal len Frame
                 if isinstance(value, ABCDataFrame) and value.ndim > 1:
                     sub_indexer = list(indexer)
+                    multiindex_indexer = isinstance(labels, MultiIndex)
 
                     for item in labels:
                         if item in value:
                             sub_indexer[info_axis] = item
-                            v = self._align_series(tuple(sub_indexer), value[item])
+                            v = self._align_series(
+                                tuple(sub_indexer), value[item], multiindex_indexer
+                            )
                         else:
                             v = np.nan
 
@@ -516,8 +525,28 @@ class _NDFrameIndexer(object):
             self.obj._data = self.obj._data.setitem(indexer=indexer, value=value)
             self.obj._maybe_update_cacher(clear=True)
 
-    def _align_series(self, indexer, ser):
-        # indexer to assign Series can be tuple, slice, scalar
+    def _align_series(self, indexer, ser, multiindex_indexer=False):
+        """
+        Parameters
+        ----------
+        indexer : tuple, slice, scalar
+            The indexer used to get the locations that will be set to
+            `ser`
+
+        ser : pd.Series
+            The values to assign to the locations specified by `indexer`
+
+        multiindex_indexer : boolean, optional
+            Defaults to False. Should be set to True if `indexer` was from
+            a `pd.MultiIndex`, to avoid unnecessary broadcasting.
+
+
+        Returns:
+        --------
+        `np.array` of `ser` broadcast to the appropriate shape for assignment
+        to the locations selected by `indexer`
+
+        """
         if isinstance(indexer, (slice, np.ndarray, list, Index)):
             indexer = tuple([indexer])
 
@@ -555,7 +584,7 @@ class _NDFrameIndexer(object):
                 ser = ser.reindex(obj.axes[0][indexer[0]], copy=True)._values
 
                 # single indexer
-                if len(indexer) > 1:
+                if len(indexer) > 1 and not multiindex_indexer:
                     l = len(indexer[1])
                     ser = np.tile(ser, l).reshape(l, -1).T
 
@@ -955,6 +984,9 @@ class _NDFrameIndexer(object):
                 # asarray can be unsafe, NumPy strings are weird
                 keyarr = _asarray_tuplesafe(key)
 
+            if com.is_categorical_dtype(labels):
+                keyarr = labels._shallow_copy(keyarr)
+
             # have the index handle the indexer and possibly return
             # an indexer or raising
             indexer = labels._convert_list_indexer(keyarr, kind=self.name)
@@ -1285,7 +1317,7 @@ class _LocIndexer(_LocationIndexer):
 
             def error():
                 if isnull(key):
-                    raise ValueError(
+                    raise TypeError(
                         "cannot use label indexing with a null key")
                 raise KeyError("the label [%s] is not in the [%s]" %
                                (key, self.obj._get_axis_name(axis)))
@@ -1783,3 +1815,46 @@ def maybe_droplevels(index, key):
             pass
 
     return index
+
+
+def _non_reducing_slice(slice_):
+    """
+    Ensurse that a slice doesn't reduce to a Series or Scalar.
+
+    Any user-paseed `subset` should have this called on it
+    to make sure we're always working with DataFrames.
+    """
+    # default to column slice, like DataFrame
+    # ['A', 'B'] -> IndexSlices[:, ['A', 'B']]
+    kinds = tuple(list(compat.string_types) +
+                  [ABCSeries, np.ndarray, Index, list])
+    if isinstance(slice_, kinds):
+        slice_ = IndexSlice[:, slice_]
+
+    def pred(part):
+        # true when slice does *not* reduce
+        return isinstance(part, slice) or com.is_list_like(part)
+
+    if not com.is_list_like(slice_):
+        if not isinstance(slice_, slice):
+            # a 1-d slice, like df.loc[1]
+            slice_ = [[slice_]]
+        else:
+            # slice(a, b, c)
+            slice_ = [slice_]  # to tuplize later
+    else:
+        slice_ = [part if pred(part) else [part] for part in slice_]
+    return tuple(slice_)
+
+
+def _maybe_numeric_slice(df, slice_, include_bool=False):
+    """
+    want nice defaults for background_gradient that don't break
+    with non-numeric data. But if slice_ is passed go with that.
+    """
+    if slice_ is None:
+        dtypes = [np.number]
+        if include_bool:
+            dtypes.append(bool)
+        slice_ = IndexSlice[:, df.select_dtypes(include=dtypes).columns]
+    return slice_

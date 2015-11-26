@@ -97,7 +97,7 @@ ignore_na : boolean, default False
 _ewm_notes = r"""
 Notes
 -----
-Either center of mass or span must be specified
+Either center of mass, span or halflife must be specified
 
 EWMA is sometimes specified using a "span" parameter `s`, we have that the
 decay parameter :math:`\alpha` is related to the span as
@@ -124,6 +124,9 @@ When ignore_na is True (reproducing pre-0.15.0 behavior), weights are based on
 relative positions. For example, the weights of x and y used in calculating
 the final weighted average of [x, None, y] are 1-alpha and 1 (if adjust is
 True), and 1-alpha and alpha (if adjust is False).
+
+More details can be found at
+http://pandas.pydata.org/pandas-docs/stable/computation.html#exponentially-weighted-moment-functions
 """
 
 _expanding_kw = """min_periods : int, default None
@@ -646,11 +649,11 @@ def _rolling_func(func, desc, check_minp=_use_window, how=None, additional_kw=''
 
     return f
 
-rolling_max = _rolling_func(algos.roll_max2, 'Moving maximum.', how='max')
-rolling_min = _rolling_func(algos.roll_min2, 'Moving minimum.', how='min')
+rolling_max = _rolling_func(algos.roll_max, 'Moving maximum.', how='max')
+rolling_min = _rolling_func(algos.roll_min, 'Moving minimum.', how='min')
 rolling_sum = _rolling_func(algos.roll_sum, 'Moving sum.')
 rolling_mean = _rolling_func(algos.roll_mean, 'Moving mean.')
-rolling_median = _rolling_func(algos.roll_median_cython, 'Moving median.',
+rolling_median = _rolling_func(algos.roll_median_c, 'Moving median.',
                                how='median')
 
 _ts_std = lambda *a, **kw: _zsqrt(algos.roll_var(*a, **kw))
@@ -888,11 +891,11 @@ def _expanding_func(func, desc, check_minp=_use_window, additional_kw=''):
 
     return f
 
-expanding_max = _expanding_func(algos.roll_max2, 'Expanding maximum.')
-expanding_min = _expanding_func(algos.roll_min2, 'Expanding minimum.')
+expanding_max = _expanding_func(algos.roll_max, 'Expanding maximum.')
+expanding_min = _expanding_func(algos.roll_min, 'Expanding minimum.')
 expanding_sum = _expanding_func(algos.roll_sum, 'Expanding sum.')
 expanding_mean = _expanding_func(algos.roll_mean, 'Expanding mean.')
-expanding_median = _expanding_func(algos.roll_median_cython, 'Expanding median.')
+expanding_median = _expanding_func(algos.roll_median_c, 'Expanding median.')
 
 expanding_std = _expanding_func(_ts_std, 'Expanding standard deviation.',
                                 check_minp=_require_min_periods(1),

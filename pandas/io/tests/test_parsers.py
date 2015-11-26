@@ -2313,14 +2313,14 @@ MyColumn
         result = self.read_csv(StringIO(data), index_col=['x', 'y'])
         expected = DataFrame([], columns=['z'],
                              index=MultiIndex.from_arrays([[]] * 2, names=['x', 'y']))
-        tm.assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected, check_index_type=False)
 
     def test_empty_with_reversed_multiindex(self):
         data = 'x,y,z'
         result = self.read_csv(StringIO(data), index_col=[1, 0])
         expected = DataFrame([], columns=['z'],
                              index=MultiIndex.from_arrays([[]] * 2, names=['y', 'x']))
-        tm.assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected, check_index_type=False)
 
     def test_empty_index_col_scenarios(self):
         data = 'x,y,z'
@@ -2352,28 +2352,26 @@ MyColumn
         # list of int
         index_col, expected = [0, 1], DataFrame([], columns=['z'],
                                                 index=MultiIndex.from_arrays([[]] * 2, names=['x', 'y']))
-        tm.assert_frame_equal(self.read_csv(StringIO(data), index_col=index_col), expected)
+        tm.assert_frame_equal(self.read_csv(StringIO(data), index_col=index_col), expected,
+                              check_index_type=False)
 
         # list of str
-        index_col, expected = (
-            ['x', 'y'],
-            DataFrame([], columns=['z'], index=MultiIndex.from_arrays([[]] * 2, names=['x', 'y']))
-        )
-        tm.assert_frame_equal(self.read_csv(StringIO(data), index_col=index_col), expected)
+        index_col = ['x', 'y']
+        expected = DataFrame([], columns=['z'], index=MultiIndex.from_arrays([[]] * 2, names=['x', 'y']))
+        tm.assert_frame_equal(self.read_csv(StringIO(data), index_col=index_col), expected,
+                              check_index_type=False)
 
         # list of int, reversed sequence
-        index_col, expected = (
-            [1, 0],
-            DataFrame([], columns=['z'], index=MultiIndex.from_arrays([[]] * 2, names=['y', 'x']))
-        )
-        tm.assert_frame_equal(self.read_csv(StringIO(data), index_col=index_col), expected)
+        index_col = [1, 0]
+        expected = DataFrame([], columns=['z'], index=MultiIndex.from_arrays([[]] * 2, names=['y', 'x']))
+        tm.assert_frame_equal(self.read_csv(StringIO(data), index_col=index_col), expected,
+                              check_index_type=False)
 
         # list of str, reversed sequence
-        index_col, expected = (
-            ['y', 'x'],
-            DataFrame([], columns=['z'], index=MultiIndex.from_arrays([[]] * 2, names=['y', 'x']))
-        )
-        tm.assert_frame_equal(self.read_csv(StringIO(data), index_col=index_col), expected)
+        index_col = ['y', 'x']
+        expected = DataFrame([], columns=['z'], index=MultiIndex.from_arrays([[]] * 2, names=['y', 'x']))
+        tm.assert_frame_equal(self.read_csv(StringIO(data), index_col=index_col), expected,
+                              check_index_type=False)
 
     def test_empty_with_index_col_false(self):
         # GH 10413
@@ -2434,11 +2432,11 @@ MyColumn
 
         result = pd.read_csv(StringIO('foo,bar\n'), nrows=10, as_recarray=True)
         result = pd.DataFrame(result[2], columns=result[1], index=result[0])
-        tm.assert_frame_equal(pd.DataFrame.from_records(result), expected)
+        tm.assert_frame_equal(pd.DataFrame.from_records(result), expected, check_index_type=False)
 
         result = next(iter(pd.read_csv(StringIO('foo,bar\n'), chunksize=10, as_recarray=True)))
         result = pd.DataFrame(result[2], columns=result[1], index=result[0])
-        tm.assert_frame_equal(pd.DataFrame.from_records(result), expected)
+        tm.assert_frame_equal(pd.DataFrame.from_records(result), expected, check_index_type=False)
 
     def test_eof_states(self):
         # GH 10728 and 10548
@@ -3697,7 +3695,7 @@ one,two
 
         expected = DataFrame({'one': np.empty(0, dtype='u1'),
                               'two': np.empty(0, dtype=np.object)})
-        tm.assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected, check_index_type=False)
 
     def test_empty_with_index_pass_dtype(self):
         data = 'one,two'
@@ -3706,38 +3704,37 @@ one,two
 
         expected = DataFrame({'two': np.empty(0, dtype='f')},
                              index=Index([], dtype='u1', name='one'))
-        tm.assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected, check_index_type=False)
 
     def test_empty_with_multiindex_pass_dtype(self):
         data = 'one,two,three'
         result = self.read_csv(StringIO(data), index_col=['one', 'two'],
                                dtype={'one': 'u1', 1: 'f8'})
 
-        expected = DataFrame({'three': np.empty(0, dtype=np.object)}, index=MultiIndex.from_arrays(
-            [np.empty(0, dtype='u1'), np.empty(0, dtype='O')],
-            names=['one', 'two'])
-            )
-        tm.assert_frame_equal(result, expected)
+        exp_idx = MultiIndex.from_arrays([np.empty(0, dtype='u1'), np.empty(0, dtype='O')],
+                                         names=['one', 'two'])
+        expected = DataFrame({'three': np.empty(0, dtype=np.object)}, index=exp_idx)
+        tm.assert_frame_equal(result, expected, check_index_type=False)
 
     def test_empty_with_mangled_column_pass_dtype_by_names(self):
         data = 'one,one'
         result = self.read_csv(StringIO(data), dtype={'one': 'u1', 'one.1': 'f'})
 
         expected = DataFrame({'one': np.empty(0, dtype='u1'), 'one.1': np.empty(0, dtype='f')})
-        tm.assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected, check_index_type=False)
 
     def test_empty_with_mangled_column_pass_dtype_by_indexes(self):
         data = 'one,one'
         result = self.read_csv(StringIO(data), dtype={0: 'u1', 1: 'f'})
 
         expected = DataFrame({'one': np.empty(0, dtype='u1'), 'one.1': np.empty(0, dtype='f')})
-        tm.assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected, check_index_type=False)
 
     def test_empty_with_dup_column_pass_dtype_by_names(self):
         data = 'one,one'
         result = self.read_csv(StringIO(data), mangle_dupe_cols=False, dtype={'one': 'u1'})
         expected = pd.concat([Series([], name='one', dtype='u1')] * 2, axis=1)
-        tm.assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected, check_index_type=False)
 
     def test_empty_with_dup_column_pass_dtype_by_indexes(self):
         ### FIXME in GH9424
@@ -3747,7 +3744,7 @@ one,two
         result = self.read_csv(StringIO(data), mangle_dupe_cols=False, dtype={0: 'u1', 1: 'f'})
         expected = pd.concat([Series([], name='one', dtype='u1'),
                               Series([], name='one', dtype='f')], axis=1)
-        tm.assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected, check_index_type=False)
 
     def test_usecols_dtypes(self):
         data = """\

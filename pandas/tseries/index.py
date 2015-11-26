@@ -194,7 +194,8 @@ class DatetimeIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
     _datetimelike_ops = ['year','month','day','hour','minute','second',
                          'weekofyear','week','dayofweek','weekday','dayofyear','quarter', 'days_in_month', 'daysinmonth',
                          'date','time','microsecond','nanosecond','is_month_start','is_month_end',
-                         'is_quarter_start','is_quarter_end','is_year_start','is_year_end','tz','freq']
+                         'is_quarter_start','is_quarter_end','is_year_start','is_year_end',
+                         'tz','freq']
     _is_numeric_dtype = False
 
 
@@ -269,14 +270,7 @@ class DatetimeIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
                                                      dayfirst=dayfirst,
                                                      yearfirst=yearfirst)
 
-        if is_datetimetz(data):
-            # extract the data whether a Series or Index
-            if isinstance(data, ABCSeries):
-                data = data._values
-            tz = data.tz
-            data = data.tz_localize(None, ambiguous='infer').values
-
-        if issubclass(data.dtype.type, np.datetime64):
+        if issubclass(data.dtype.type, np.datetime64) or is_datetimetz(data):
             if isinstance(data, ABCSeries):
                 data = data._values
             if isinstance(data, DatetimeIndex):
@@ -361,7 +355,7 @@ class DatetimeIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
             if freq is not None and not freq_infer:
                 inferred = subarr.inferred_freq
                 if inferred != freq.freqstr:
-                    on_freq = cls._generate(subarr[0], None, len(subarr), None, freq, tz=tz)
+                    on_freq = cls._generate(subarr[0], None, len(subarr), None, freq, tz=tz, ambiguous=ambiguous)
                     if not np.array_equal(subarr.asi8, on_freq.asi8):
                         raise ValueError('Inferred frequency {0} from passed dates does not '
                                          'conform to passed frequency {1}'.format(inferred, freq.freqstr))
@@ -446,17 +440,17 @@ class DatetimeIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
             if inferred_tz is None and tz is not None:
                 # naive dates
                 if start is not None and start.tz is None:
-                    start = start.tz_localize(tz)
+                    start = start.tz_localize(tz, ambiguous=False)
 
                 if end is not None and end.tz is None:
-                    end = end.tz_localize(tz)
+                    end = end.tz_localize(tz, ambiguous=False)
 
             if start and end:
                 if start.tz is None and end.tz is not None:
-                    start = start.tz_localize(end.tz)
+                    start = start.tz_localize(end.tz, ambiguous=False)
 
                 if end.tz is None and start.tz is not None:
-                    end = end.tz_localize(start.tz)
+                    end = end.tz_localize(start.tz, ambiguous=False)
 
             if _use_cached_range(offset, _normalized, start, end):
                 index = cls._cached_range(start, end, periods=periods,
@@ -504,6 +498,12 @@ class DatetimeIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
     @property
     def _box_func(self):
         return lambda x: Timestamp(x, offset=self.offset, tz=self.tz)
+
+    def _convert_for_op(self, value):
+        """ Convert value to be insertable to ndarray """
+        if self._has_same_tz(value):
+            return _to_m8(value)
+        raise ValueError('Passed item and index have different timezone')
 
     def _local_timestamps(self):
         utc = _utc()
@@ -553,6 +553,21 @@ class DatetimeIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
         Alias for tz attribute
         """
         return self.tz
+
+    @cache_readonly
+    def _timezone(self):
+        """ Comparable timezone both for pytz / dateutil"""
+        return tslib.get_timezone(self.tzinfo)
+
+    def _has_same_tz(self, other):
+        zzone = self._timezone
+
+        # vzone sholdn't be None if value is non-datetime like
+        if isinstance(other, np.datetime64):
+            # convert to Timestamp as np.datetime64 doesn't have tz attr
+            other = Timestamp(other)
+        vzone = tslib.get_timezone(getattr(other, 'tzinfo', '__no_tz__'))
+        return zzone == vzone
 
     @classmethod
     def _cached_range(cls, start=None, end=None, periods=None, offset=None,
@@ -686,7 +701,7 @@ class DatetimeIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
         other = Timestamp(other)
 
         # require tz compat
-        if tslib.get_timezone(self.tz) != tslib.get_timezone(other.tzinfo):
+        if not self._has_same_tz(other):
             raise TypeError("Timestamp subtraction must have the same timezones or no timezones")
 
         i8 = self.asi8
@@ -762,6 +777,8 @@ class DatetimeIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
             return self.asi8.copy()
         elif dtype == _NS_DTYPE and self.tz is not None:
             return self.tz_convert('UTC').tz_localize(None)
+        elif dtype == str:
+            return self._shallow_copy(values=self.format(), infer=True)
         else:  # pragma: no cover
             raise ValueError('Cannot cast DatetimeIndex to dtype %s' % dtype)
 
@@ -1556,17 +1573,9 @@ class DatetimeIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
             except:
                 return False
 
-        if self.tz is not None:
-            if other.tz is None:
-                return False
-            same_zone = tslib.get_timezone(
-                self.tz) == tslib.get_timezone(other.tz)
-        else:
-            if other.tz is not None:
-                return False
-            same_zone = True
-
-        return same_zone and np.array_equal(self.asi8, other.asi8)
+        if self._has_same_tz(other):
+            return np.array_equal(self.asi8, other.asi8)
+        return False
 
     def insert(self, loc, item):
         """
@@ -1585,10 +1594,10 @@ class DatetimeIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
         """
 
         freq = None
+
         if isinstance(item, (datetime, np.datetime64)):
-            zone = tslib.get_timezone(self.tz)
-            izone = tslib.get_timezone(getattr(item, 'tzinfo', None))
-            if zone != izone:
+            self._assert_can_do_op(item)
+            if not self._has_same_tz(item):
                 raise ValueError('Passed item and index have different timezone')
             # check freq can be preserved on edge cases
             if self.size and self.freq is not None:
@@ -1875,7 +1884,7 @@ def _generate_regular_range(start, end, periods, offset):
 
 
 def date_range(start=None, end=None, periods=None, freq='D', tz=None,
-               normalize=False, name=None, closed=None):
+               normalize=False, name=None, closed=None, **kwargs):
     """
     Return a fixed frequency datetime index, with day (calendar) as the default
     frequency
@@ -1911,11 +1920,11 @@ def date_range(start=None, end=None, periods=None, freq='D', tz=None,
     """
     return DatetimeIndex(start=start, end=end, periods=periods,
                          freq=freq, tz=tz, normalize=normalize, name=name,
-                         closed=closed)
+                         closed=closed, **kwargs)
 
 
 def bdate_range(start=None, end=None, periods=None, freq='B', tz=None,
-                normalize=True, name=None, closed=None):
+                normalize=True, name=None, closed=None, **kwargs):
     """
     Return a fixed frequency datetime index, with business day as the default
     frequency
@@ -1952,7 +1961,7 @@ def bdate_range(start=None, end=None, periods=None, freq='B', tz=None,
 
     return DatetimeIndex(start=start, end=end, periods=periods,
                          freq=freq, tz=tz, normalize=normalize, name=name,
-                         closed=closed)
+                         closed=closed, **kwargs)
 
 
 def cdate_range(start=None, end=None, periods=None, freq='C', tz=None,

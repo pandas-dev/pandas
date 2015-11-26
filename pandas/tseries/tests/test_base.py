@@ -45,6 +45,32 @@ class TestDatetimeIndexOps(Ops):
         self.assertEqual(s.day,10)
         self.assertRaises(AttributeError, lambda : s.weekday)
 
+    def test_astype_str(self):
+        # test astype string - #10442
+        result = date_range('2012-01-01', periods=4, name='test_name').astype(str)
+        expected = Index(['2012-01-01', '2012-01-02', '2012-01-03','2012-01-04'],
+                            name='test_name', dtype=object)
+        tm.assert_index_equal(result, expected)
+
+        # test astype string with tz and name
+        result = date_range('2012-01-01', periods=3, name='test_name', tz='US/Eastern').astype(str)
+        expected = Index(['2012-01-01 00:00:00-05:00', '2012-01-02 00:00:00-05:00',
+                          '2012-01-03 00:00:00-05:00'], name='test_name', dtype=object)
+        tm.assert_index_equal(result, expected)
+
+        # test astype string with freqH and name
+        result = date_range('1/1/2011', periods=3, freq='H', name='test_name').astype(str)
+        expected = Index(['2011-01-01 00:00:00', '2011-01-01 01:00:00', '2011-01-01 02:00:00'],
+                         name='test_name', dtype=object)
+        tm.assert_index_equal(result, expected)
+
+        # test astype string with freqH and timezone
+        result = date_range('3/6/2012 00:00', periods=2, freq='H',
+                            tz='Europe/London', name='test_name').astype(str)
+        expected = Index(['2012-03-06 00:00:00+00:00', '2012-03-06 01:00:00+00:00'],
+                         dtype=object, name='test_name')
+        tm.assert_index_equal(result, expected)
+
     def test_asobject_tolist(self):
         idx = pd.date_range(start='2013-01-01', periods=4, freq='M', name='idx')
         expected_list = [pd.Timestamp('2013-01-31'), pd.Timestamp('2013-02-28'),
@@ -502,7 +528,6 @@ Freq: H"""
             result = pd.DatetimeIndex(idx.asi8, freq='infer')
             tm.assert_index_equal(idx, result)
             self.assertEqual(result.freq, freq)
-
 
 class TestTimedeltaIndexOps(Ops):
 

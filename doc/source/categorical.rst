@@ -515,6 +515,52 @@ To get a single value `Series` of type ``category`` pass in a list with a single
 
     df.loc[["h"],"cats"]
 
+String and datetime accessors
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. versionadded:: 0.17.1
+
+The accessors  ``.dt`` and ``.str`` will work if the ``s.cat.categories`` are of an appropriate
+type:
+
+
+.. ipython:: python
+
+    str_s = pd.Series(list('aabb'))
+    str_cat = str_s.astype('category')
+    str_cat
+    str_cat.str.contains("a")
+
+    date_s = pd.Series(pd.date_range('1/1/2015', periods=5))
+    date_cat = date_s.astype('category')
+    date_cat
+    date_cat.dt.day
+
+.. note::
+
+    The returned ``Series`` (or ``DataFrame``) is of the same type as if you used the
+    ``.str.<method>`` / ``.dt.<method>`` on a ``Series`` of that type (and not of
+    type ``category``!).
+
+That means, that the returned values from methods and properties on the accessors of a
+``Series`` and the returned values from methods and properties on the accessors of this
+``Series`` transformed to one of type `category` will be equal:
+
+.. ipython:: python
+
+    ret_s = str_s.str.contains("a")
+    ret_cat = str_cat.str.contains("a")
+    ret_s.dtype == ret_cat.dtype
+    ret_s == ret_cat
+
+.. note::
+
+    The work is done on the ``categories`` and then a new ``Series`` is constructed. This has
+    some performance implication if you have a ``Series`` of type string, where lots of elements
+    are repeated (i.e. the number of unique elements in the ``Series`` is a lot smaller than the
+    length of the ``Series``). In this case it can be faster to convert the original ``Series``
+    to one of type ``category`` and use ``.str.<method>`` or ``.dt.<property>`` on that.
+
 Setting
 ~~~~~~~
 
@@ -718,7 +764,7 @@ Old style constructor usage
 
 In earlier versions than pandas 0.15, a `Categorical` could be constructed by passing in precomputed
 `codes` (called then `labels`) instead of values with categories. The `codes` were interpreted as
-pointers to the categories with `-1` as `NaN`. This type of constructor useage is replaced by
+pointers to the categories with `-1` as `NaN`. This type of constructor usage is replaced by
 the special constructor :func:`Categorical.from_codes`.
 
 Unfortunately, in some special cases, using code which assumes the old style constructor usage

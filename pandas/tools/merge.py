@@ -220,8 +220,8 @@ class _MergeOperation(object):
         return result
 
     def _indicator_pre_merge(self, left, right):
-                
-        columns = left.columns.union(right.columns)  
+
+        columns = left.columns.union(right.columns)
 
         for i in ['_left_indicator', '_right_indicator']:
             if i in columns:
@@ -232,12 +232,12 @@ class _MergeOperation(object):
         left = left.copy()
         right = right.copy()
 
-        left['_left_indicator'] = 1  
-        left['_left_indicator'] = left['_left_indicator'].astype('int8')  
-        
-        right['_right_indicator'] = 2     
-        right['_right_indicator'] = right['_right_indicator'].astype('int8') 
-        
+        left['_left_indicator'] = 1
+        left['_left_indicator'] = left['_left_indicator'].astype('int8')
+
+        right['_right_indicator'] = 2
+        right['_right_indicator'] = right['_right_indicator'].astype('int8')
+
         return left, right
 
     def _indicator_post_merge(self, result):
@@ -246,8 +246,8 @@ class _MergeOperation(object):
         result['_right_indicator'] = result['_right_indicator'].fillna(0)
 
         result[self.indicator_name] = Categorical((result['_left_indicator'] + result['_right_indicator']), categories=[1,2,3])
-        result[self.indicator_name] = result[self.indicator_name].cat.rename_categories(['left_only', 'right_only', 'both'])        
- 
+        result[self.indicator_name] = result[self.indicator_name].cat.rename_categories(['left_only', 'right_only', 'both'])
+
         result = result.drop(labels=['_left_indicator', '_right_indicator'], axis=1)
 
         return result
@@ -261,7 +261,7 @@ class _MergeOperation(object):
                 continue
 
             if name in result:
-                key_col = result[name]
+                key_indexer = result.columns.get_loc(name)
 
                 if left_indexer is not None and right_indexer is not None:
 
@@ -274,9 +274,8 @@ class _MergeOperation(object):
                             continue
 
                         right_na_indexer = right_indexer.take(na_indexer)
-                        key_col.put(
-                            na_indexer, com.take_1d(self.right_join_keys[i],
-                                                    right_na_indexer))
+                        result.iloc[na_indexer,key_indexer] = com.take_1d(self.right_join_keys[i],
+                                                                          right_na_indexer)
                     elif name in self.right:
                         if len(self.right) == 0:
                             continue
@@ -286,9 +285,8 @@ class _MergeOperation(object):
                             continue
 
                         left_na_indexer = left_indexer.take(na_indexer)
-                        key_col.put(na_indexer, com.take_1d(self.left_join_keys[i],
-                                                            left_na_indexer))
-
+                        result.iloc[na_indexer,key_indexer] = com.take_1d(self.left_join_keys[i],
+                                                                          left_na_indexer)
             elif left_indexer is not None \
                     and isinstance(self.left_join_keys[i], np.ndarray):
 
@@ -306,6 +304,7 @@ class _MergeOperation(object):
     def _get_join_info(self):
         left_ax = self.left._data.axes[self.axis]
         right_ax = self.right._data.axes[self.axis]
+
         if self.left_index and self.right_index:
             join_index, left_indexer, right_indexer = \
                 left_ax.join(right_ax, how=self.how, return_indexers=True)
@@ -323,7 +322,6 @@ class _MergeOperation(object):
              right_indexer) = _get_join_indexers(self.left_join_keys,
                                                  self.right_join_keys,
                                                  sort=self.sort, how=self.how)
-
             if self.right_index:
                 if len(self.left) > 0:
                     join_index = self.left.index.take(left_indexer)
@@ -339,6 +337,8 @@ class _MergeOperation(object):
             else:
                 join_index = Index(np.arange(len(left_indexer)))
 
+        if len(join_index) == 0:
+            join_index = join_index.astype(object)
         return join_index, left_indexer, right_indexer
 
     def _get_merge_data(self):
@@ -664,10 +664,13 @@ _join_functions = {
 
 
 def _factorize_keys(lk, rk, sort=True):
+    if com.is_datetime64tz_dtype(lk) and com.is_datetime64tz_dtype(rk):
+        lk = lk.values
+        rk = rk.values
     if com.is_int_or_datetime_dtype(lk) and com.is_int_or_datetime_dtype(rk):
         klass = _hash.Int64Factorizer
-        lk = com._ensure_int64(lk)
-        rk = com._ensure_int64(rk)
+        lk = com._ensure_int64(com._values_from_object(lk))
+        rk = com._ensure_int64(com._values_from_object(rk))
     else:
         klass = _hash.Factorizer
         lk = com._ensure_object(lk)

@@ -43,6 +43,7 @@
         "numexpr": [],
         "pytables": [],
         "openpyxl": [],
+        "xlsxwriter": [],
         "xlrd": [],
         "xlwt": []
     },

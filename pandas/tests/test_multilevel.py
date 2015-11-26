@@ -28,8 +28,6 @@ class TestMultiLevel(tm.TestCase):
     _multiprocess_can_split_ = True
 
     def setUp(self):
-        import warnings
-        warnings.filterwarnings(action='ignore', category=FutureWarning)
 
         index = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux'],
                                    ['one', 'two', 'three']],

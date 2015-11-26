@@ -427,7 +427,7 @@ class BaseExprVisitor(ast.NodeVisitor):
         return self.term_type(name, self.env)
 
     def visit_List(self, node, **kwargs):
-        name = self.env.add_tmp([self.visit(e).value for e in node.elts])
+        name = self.env.add_tmp([self.visit(e)(self.env) for e in node.elts])
         return self.term_type(name, self.env)
 
     visit_Tuple = visit_List
@@ -655,7 +655,7 @@ class BaseExprVisitor(ast.NodeVisitor):
         return reduce(visitor, operands)
 
 # ast.Call signature changed on 3.5,
-# conditionally change  which methods is named
+# conditionally change which methods is named
 # visit_Call depending on Python version, #11097
 if compat.PY35:
     BaseExprVisitor.visit_Call = BaseExprVisitor.visit_Call_35

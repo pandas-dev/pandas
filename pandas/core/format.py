@@ -13,6 +13,7 @@ from pandas.compat import(StringIO, lzip, range, map, zip, reduce, u,
                           OrderedDict)
 from pandas.util.terminal import get_terminal_size
 from pandas.core.config import get_option, set_option
+from pandas.io.common import _get_handle, UnicodeWriter, _expand_user
 import pandas.core.common as com
 import pandas.lib as lib
 from pandas.tslib import iNaT, Timestamp, Timedelta, format_array_from_datetime
@@ -23,6 +24,7 @@ import numpy as np
 
 import itertools
 import csv
+import warnings
 
 common_docstring = """
     Parameters
@@ -138,6 +140,7 @@ class SeriesFormatter(object):
             float_format = get_option("display.float_format")
         self.float_format = float_format
         self.dtype = dtype
+        self.adj = _get_adjustment()
 
         self._chk_truncate()
 
@@ -221,22 +224,24 @@ class SeriesFormatter(object):
         fmt_index, have_header = self._get_formatted_index()
         fmt_values = self._get_formatted_values()
 
-        maxlen = max(len(x) for x in fmt_index)  # max index len
+        maxlen = max(self.adj.len(x) for x in fmt_index)  # max index len
         pad_space = min(maxlen, 60)
 
         if self.truncate_v:
             n_header_rows = 0
             row_num = self.tr_row_num
-            width = len(fmt_values[row_num-1])
+            width = self.adj.len(fmt_values[row_num-1])
             if width > 3:
                 dot_str = '...'
             else:
                 dot_str = '..'
-            dot_str = dot_str.center(width)
+            # Series uses mode=center because it has single value columns
+            # DataFrame uses mode=left
+            dot_str = self.adj.justify([dot_str], width, mode='center')[0]
             fmt_values.insert(row_num + n_header_rows, dot_str)
             fmt_index.insert(row_num + 1, '')
 
-        result = adjoin(3, *[fmt_index[1:], fmt_values])
+        result = self.adj.adjoin(3, *[fmt_index[1:], fmt_values])
 
         if self.header and have_header:
             result = fmt_index[0] + '\n' + result
@@ -247,19 +252,54 @@ class SeriesFormatter(object):
         return compat.text_type(u('').join(result))
 
 
-def _strlen_func():
-    if compat.PY3:  # pragma: no cover
-        _strlen = len
+class TextAdjustment(object):
+
+    def __init__(self):
+        self.encoding = get_option("display.encoding")
+
+    def len(self, text):
+        return compat.strlen(text, encoding=self.encoding)
+
+    def justify(self, texts, max_len, mode='right'):
+        return com._justify(texts, max_len, mode=mode)
+
+    def adjoin(self, space, *lists, **kwargs):
+        return com.adjoin(space, *lists, strlen=self.len,
+                          justfunc=self.justify, **kwargs)
+
+
+class EastAsianTextAdjustment(TextAdjustment):
+
+    def __init__(self):
+        super(EastAsianTextAdjustment, self).__init__()
+        if get_option("display.unicode.ambiguous_as_wide"):
+            self.ambiguous_width = 2
+        else:
+            self.ambiguous_width = 1
+
+    def len(self, text):
+        return compat.east_asian_len(text, encoding=self.encoding,
+                                     ambiguous_width=self.ambiguous_width)
+
+    def justify(self, texts, max_len, mode='right'):
+        # re-calculate padding space per str considering East Asian Width
+        def _get_pad(t):
+            return max_len - self.len(t) + len(t)
+
+        if mode == 'left':
+            return [x.ljust(_get_pad(x)) for x in texts]
+        elif mode == 'center':
+            return [x.center(_get_pad(x)) for x in texts]
+        else:
+            return [x.rjust(_get_pad(x)) for x in texts]
+
+
+def _get_adjustment():
+    use_east_asian_width = get_option("display.unicode.east_asian_width")
+    if use_east_asian_width:
+        return EastAsianTextAdjustment()
     else:
-        encoding = get_option("display.encoding")
-
-        def _strlen(x):
-            try:
-                return len(x.decode(encoding))
-            except UnicodeError:
-                return len(x)
-
-    return _strlen
+        return TextAdjustment()
 
 
 class TableFormatter(object):
@@ -303,7 +343,7 @@ class DataFrameFormatter(TableFormatter):
                  index_names=True, line_width=None, max_rows=None,
                  max_cols=None, show_dimensions=False, **kwds):
         self.frame = frame
-        self.buf = buf if buf is not None else StringIO()
+        self.buf = _expand_user(buf) if buf is not None else StringIO()
         self.show_index_names = index_names
 
         if sparsify is None:
@@ -338,6 +378,7 @@ class DataFrameFormatter(TableFormatter):
             self.columns = frame.columns
 
         self._chk_truncate()
+        self.adj = _get_adjustment()
 
     def _chk_truncate(self):
         '''
@@ -414,7 +455,6 @@ class DataFrameFormatter(TableFormatter):
         """
         Render a DataFrame to a list of columns (as lists of strings).
         """
-        _strlen = _strlen_func()
         frame = self.tr_frame
 
         # may include levels names also
@@ -427,27 +467,23 @@ class DataFrameFormatter(TableFormatter):
             for i, c in enumerate(frame):
                 cheader = str_columns[i]
                 max_colwidth = max(self.col_space or 0,
-                                   *(_strlen(x) for x in cheader))
-
+                                   *(self.adj.len(x) for x in cheader))
                 fmt_values = self._format_col(i)
-
                 fmt_values = _make_fixed_width(fmt_values, self.justify,
-                                               minimum=max_colwidth)
+                                               minimum=max_colwidth,
+                                               adj=self.adj)
 
-                max_len = max(np.max([_strlen(x) for x in fmt_values]),
+                max_len = max(np.max([self.adj.len(x) for x in fmt_values]),
                               max_colwidth)
-                if self.justify == 'left':
-                    cheader = [x.ljust(max_len) for x in cheader]
-                else:
-                    cheader = [x.rjust(max_len) for x in cheader]
-
+                cheader = self.adj.justify(cheader, max_len, mode=self.justify)
                 stringified.append(cheader + fmt_values)
         else:
             stringified = []
             for i, c in enumerate(frame):
                 fmt_values = self._format_col(i)
                 fmt_values = _make_fixed_width(fmt_values, self.justify,
-                                               minimum=(self.col_space or 0))
+                                               minimum=(self.col_space or 0),
+                                               adj=self.adj)
 
                 stringified.append(fmt_values)
 
@@ -461,13 +497,13 @@ class DataFrameFormatter(TableFormatter):
 
         if truncate_h:
             col_num = self.tr_col_num
-            col_width = len(strcols[self.tr_size_col][0])  # infer from column header
+            col_width = self.adj.len(strcols[self.tr_size_col][0])  # infer from column header
             strcols.insert(self.tr_col_num + 1, ['...'.center(col_width)] * (len(str_index)))
         if truncate_v:
             n_header_rows = len(str_index) - len(frame)
             row_num = self.tr_row_num
             for ix, col in enumerate(strcols):
-                cwidth = len(strcols[ix][row_num])  # infer from above row
+                cwidth = self.adj.len(strcols[ix][row_num])  # infer from above row
                 is_dot_col = False
                 if truncate_h:
                     is_dot_col = ix == col_num + 1
@@ -477,13 +513,13 @@ class DataFrameFormatter(TableFormatter):
                     my_str = '..'
 
                 if ix == 0:
-                    dot_str = my_str.ljust(cwidth)
+                    dot_mode = 'left'
                 elif is_dot_col:
-                    cwidth = len(strcols[self.tr_size_col][0])
-                    dot_str = my_str.center(cwidth)
+                    cwidth = self.adj.len(strcols[self.tr_size_col][0])
+                    dot_mode = 'center'
                 else:
-                    dot_str = my_str.rjust(cwidth)
-
+                    dot_mode = 'right'
+                dot_str = self.adj.justify([my_str], cwidth, mode=dot_mode)[0]
                 strcols[ix].insert(row_num + n_header_rows, dot_str)
         return strcols
 
@@ -492,6 +528,7 @@ class DataFrameFormatter(TableFormatter):
         Render a DataFrame to a console-friendly tabular output.
         """
         from pandas import Series
+
         frame = self.frame
 
         if len(frame.columns) == 0 or len(frame.index) == 0:
@@ -503,11 +540,11 @@ class DataFrameFormatter(TableFormatter):
         else:
             strcols = self._to_str_columns()
             if self.line_width is None:  # no need to wrap around just print the whole frame
-                text = adjoin(1, *strcols)
+                text = self.adj.adjoin(1, *strcols)
             elif not isinstance(self.max_cols, int) or self.max_cols > 0:  # need to wrap around
                 text = self._join_multiline(*strcols)
             else:  # max_cols == 0. Try to fit frame to terminal
-                text = adjoin(1, *strcols).split('\n')
+                text = self.adj.adjoin(1, *strcols).split('\n')
                 row_lens = Series(text).apply(len)
                 max_len_col_ix = np.argmax(row_lens)
                 max_len = row_lens[max_len_col_ix]
@@ -535,7 +572,7 @@ class DataFrameFormatter(TableFormatter):
                 # and then generate string representation
                 self._chk_truncate()
                 strcols = self._to_str_columns()
-                text = adjoin(1, *strcols)
+                text = self.adj.adjoin(1, *strcols)
 
         self.buf.writelines(text)
 
@@ -549,9 +586,9 @@ class DataFrameFormatter(TableFormatter):
         strcols = list(strcols)
         if self.index:
             idx = strcols.pop(0)
-            lwidth -= np.array([len(x) for x in idx]).max() + adjoin_width
+            lwidth -= np.array([self.adj.len(x) for x in idx]).max() + adjoin_width
 
-        col_widths = [np.array([len(x) for x in col]).max()
+        col_widths = [np.array([self.adj.len(x) for x in col]).max()
                       if len(col) > 0 else 0
                       for col in strcols]
         col_bins = _binify(col_widths, lwidth)
@@ -572,8 +609,7 @@ class DataFrameFormatter(TableFormatter):
                     row.append([' \\'] + ['  '] * (nrows - 1))
                 else:
                     row.append([' '] * nrows)
-
-            str_lst.append(adjoin(adjoin_width, *row))
+            str_lst.append(self.adj.adjoin(adjoin_width, *row))
             st = ed
         return '\n\n'.join(str_lst)
 
@@ -602,11 +638,13 @@ class DataFrameFormatter(TableFormatter):
         if self.index and isinstance(self.frame.index, MultiIndex):
             clevels = self.frame.columns.nlevels
             strcols.pop(0)
-            name = any(self.frame.columns.names)
+            name = any(self.frame.index.names)
             for i, lev in enumerate(self.frame.index.levels):
-                lev2 = lev.format(name=name)
+                lev2 = lev.format()
                 blank = ' ' * len(lev2[0])
                 lev3 = [blank] * clevels
+                if name:
+                    lev3.append(lev.name)
                 for level_idx, group in itertools.groupby(
                         self.frame.index.labels[i]):
                     count = len(list(group))
@@ -633,8 +671,10 @@ class DataFrameFormatter(TableFormatter):
                 buf.write('\\toprule\n')
 
             nlevels = frame.columns.nlevels
+            if any(frame.index.names):
+                nlevels += 1
             for i, row in enumerate(zip(*strcols)):
-                if i == nlevels:
+                if i == nlevels and self.header:
                     buf.write('\\midrule\n')  # End of header
                     if longtable:
                         buf.write('\\endhead\n')
@@ -776,11 +816,12 @@ class DataFrameFormatter(TableFormatter):
                                      formatter=fmt)
         else:
             fmt_index = [index.format(name=show_index_names, formatter=fmt)]
-        fmt_index = [tuple(_make_fixed_width(
-            list(x), justify='left', minimum=(self.col_space or 0)))
-            for x in fmt_index]
+        fmt_index = [tuple(_make_fixed_width(list(x), justify='left',
+                                             minimum=(self.col_space or 0),
+                                             adj=self.adj))
+                     for x in fmt_index]
 
-        adjoined = adjoin(1, *fmt_index).split('\n')
+        adjoined = self.adj.adjoin(1, *fmt_index).split('\n')
 
         # empty space for columns
         if show_col_names:
@@ -1220,18 +1261,22 @@ class CSVFormatter(object):
 
     def __init__(self, obj, path_or_buf=None, sep=",", na_rep='', float_format=None,
                  cols=None, header=True, index=True, index_label=None,
-                 mode='w', nanRep=None, encoding=None, quoting=None,
+                 mode='w', nanRep=None, encoding=None, compression=None, quoting=None,
                  line_terminator='\n', chunksize=None, engine=None,
                  tupleize_cols=False, quotechar='"', date_format=None,
                  doublequote=True, escapechar=None, decimal='.'):
 
-        self.engine = engine  # remove for 0.13
+        if engine is not None:
+            warnings.warn("'engine' keyword is deprecated and "
+                          "will be removed in a future version",
+                          FutureWarning, stacklevel=3)
+        self.engine = engine  # remove for 0.18
         self.obj = obj
 
         if path_or_buf is None:
             path_or_buf = StringIO()
 
-        self.path_or_buf = path_or_buf
+        self.path_or_buf = _expand_user(path_or_buf)
         self.sep = sep
         self.na_rep = na_rep
         self.float_format = float_format
@@ -1242,6 +1287,7 @@ class CSVFormatter(object):
         self.index_label = index_label
         self.mode = mode
         self.encoding = encoding
+        self.compression = compression
 
         if quoting is None:
             quoting = csv.QUOTE_MINIMAL
@@ -1281,7 +1327,7 @@ class CSVFormatter(object):
                                             date_format=date_format,
                                             quoting=self.quoting)
             else:
-                cols = np.asarray(list(cols))
+                cols = list(cols)
             self.obj = self.obj.loc[:, cols]
 
         # update columns to include possible multiplicity of dupes
@@ -1293,7 +1339,7 @@ class CSVFormatter(object):
                                         date_format=date_format,
                                         quoting=self.quoting)
         else:
-            cols = np.asarray(list(cols))
+            cols = list(cols)
 
         # save it
         self.cols = cols
@@ -1430,8 +1476,9 @@ class CSVFormatter(object):
             f = self.path_or_buf
             close = False
         else:
-            f = com._get_handle(self.path_or_buf, self.mode,
-                                encoding=self.encoding)
+            f = _get_handle(self.path_or_buf, self.mode,
+                                encoding=self.encoding,
+                                compression=self.compression)
             close = True
 
         try:
@@ -1442,7 +1489,7 @@ class CSVFormatter(object):
                                  quotechar=self.quotechar)
             if self.encoding is not None:
                 writer_kwargs['encoding'] = self.encoding
-                self.writer = com.UnicodeWriter(f, **writer_kwargs)
+                self.writer = UnicodeWriter(f, **writer_kwargs)
             else:
                 self.writer = csv.writer(f, **writer_kwargs)
 
@@ -1644,12 +1691,12 @@ class ExcelFormatter(object):
     def __init__(self, df, na_rep='', float_format=None, cols=None,
                  header=True, index=True, index_label=None, merge_cells=False,
                  inf_rep='inf'):
-        self.df = df
         self.rowcounter = 0
         self.na_rep = na_rep
-        self.columns = cols
-        if cols is None:
-            self.columns = df.columns
+        self.df = df
+        if cols is not None:
+            self.df = df.loc[:, cols]
+        self.columns = self.df.columns
         self.float_format = float_format
         self.index = index
         self.index_label = index_label
@@ -1661,9 +1708,9 @@ class ExcelFormatter(object):
         if lib.checknull(val):
             val = self.na_rep
         elif com.is_float(val):
-            if np.isposinf(val):
+            if lib.isposinf_scalar(val):
                 val = self.inf_rep
-            elif np.isneginf(val):
+            elif lib.isneginf_scalar(val):
                 val = '-%s' % self.inf_rep
             elif self.float_format is not None:
                 val = float(self.float_format % val)
@@ -1682,7 +1729,7 @@ class ExcelFormatter(object):
             return
 
         columns = self.columns
-        level_strs = columns.format(sparsify=True, adjoin=False, names=False)
+        level_strs = columns.format(sparsify=self.merge_cells, adjoin=False, names=False)
         level_lengths = _get_level_lengths(level_strs)
         coloffset = 0
         lnum = 0
@@ -1804,12 +1851,9 @@ class ExcelFormatter(object):
             for idx, idxval in enumerate(index_values):
                 yield ExcelCell(self.rowcounter + idx, 0, idxval, header_style)
 
-        # Get a frame that will account for any duplicates in the column names.
-        col_mapped_frame = self.df.loc[:, self.columns]
-
         # Write the body of the frame data series by series.
         for colidx in range(len(self.columns)):
-            series = col_mapped_frame.iloc[:, colidx]
+            series = self.df.iloc[:, colidx]
             for i, val in enumerate(series):
                 yield ExcelCell(self.rowcounter + i, colidx + coloffset, val)
 
@@ -1829,8 +1873,9 @@ class ExcelFormatter(object):
 
             # MultiIndex columns require an extra row
             # with index names (blank if None) for
-            # unambigous round-trip
-            if isinstance(self.columns, MultiIndex):
+            # unambigous round-trip, unless not merging,
+            # in which case the names all go on one row Issue #11328
+            if isinstance(self.columns, MultiIndex) and self.merge_cells:
                 self.rowcounter += 1
 
             # if index labels are not empty go ahead and dump
@@ -1878,12 +1923,9 @@ class ExcelFormatter(object):
                                         header_style)
                     gcolidx += 1
 
-        # Get a frame that will account for any duplicates in the column names.
-        col_mapped_frame = self.df.loc[:, self.columns]
-
         # Write the body of the frame data series by series.
         for colidx in range(len(self.columns)):
-            series = col_mapped_frame.iloc[:, colidx]
+            series = self.df.iloc[:, colidx]
             for i, val in enumerate(series):
                 yield ExcelCell(self.rowcounter + i, gcolidx + colidx, val)
 
@@ -2222,13 +2264,16 @@ def _get_format_timedelta64(values, nat_rep='NaT', box=False):
     return _formatter
 
 
-def _make_fixed_width(strings, justify='right', minimum=None):
+def _make_fixed_width(strings, justify='right', minimum=None,
+                      adj=None):
+
     if len(strings) == 0 or justify == 'all':
         return strings
 
-    _strlen = _strlen_func()
+    if adj is None:
+        adj = _get_adjustment()
 
-    max_len = np.max([_strlen(x) for x in strings])
+    max_len = np.max([adj.len(x) for x in strings])
 
     if minimum is not None:
         max_len = max(minimum, max_len)
@@ -2237,22 +2282,14 @@ def _make_fixed_width(strings, justify='right', minimum=None):
     if conf_max is not None and max_len > conf_max:
         max_len = conf_max
 
-    if justify == 'left':
-        justfunc = lambda self, x: self.ljust(x)
-    else:
-        justfunc = lambda self, x: self.rjust(x)
-
     def just(x):
-        eff_len = max_len
-
         if conf_max is not None:
-            if (conf_max > 3) & (_strlen(x) > max_len):
-                x = x[:eff_len - 3] + '...'
+            if (conf_max > 3) & (adj.len(x) > max_len):
+                x = x[:max_len - 3] + '...'
+        return x
 
-        return justfunc(x, eff_len)
-
-    result = [just(x) for x in strings]
-
+    strings = [just(x) for x in strings]
+    result = adj.justify(strings, max_len, mode=justify)
     return result
 
 

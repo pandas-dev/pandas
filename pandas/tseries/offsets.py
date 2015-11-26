@@ -261,16 +261,12 @@ class DateOffset(object):
         # relativedelta/_offset path only valid for base DateOffset
         if (self._use_relativedelta and
             set(self.kwds).issubset(relativedelta_fast)):
+
             months = ((self.kwds.get('years', 0) * 12
                         + self.kwds.get('months', 0)) * self.n)
             if months:
-                base = (i.to_period('M') + months).to_timestamp()
-                time = i.to_perioddelta('D')
-                days = i.to_perioddelta('M') - time
-                # minimum prevents month-end from wrapping
-                day_offset = np.minimum(days,
-                                        to_timedelta(base.days_in_month - 1, unit='D'))
-                i = base + day_offset + time
+                shifted = tslib.shift_months(i.asi8, months)
+                i = i._shallow_copy(shifted)
 
             weeks = (self.kwds.get('weeks', 0)) * self.n
             if weeks:
@@ -1081,7 +1077,9 @@ class MonthEnd(MonthOffset):
 
     @apply_index_wraps
     def apply_index(self, i):
-        return self._end_apply_index(i, 'M')
+        months = self.n - 1 if self.n >= 0 else self.n
+        shifted = tslib.shift_months(i.asi8, months, 'end')
+        return i._shallow_copy(shifted)
 
     def onOffset(self, dt):
         if self.normalize and not _is_normalized(dt):
@@ -1106,7 +1104,9 @@ class MonthBegin(MonthOffset):
 
     @apply_index_wraps
     def apply_index(self, i):
-        return self._beg_apply_index(i, 'M')
+        months = self.n + 1 if self.n < 0 else self.n
+        shifted = tslib.shift_months(i.asi8, months, 'start')
+        return i._shallow_copy(shifted)
 
     def onOffset(self, dt):
         if self.normalize and not _is_normalized(dt):

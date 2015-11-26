@@ -373,7 +373,7 @@ The first thing you need to do is to setup accesses to Google Analytics API. Fol
     #. rename it to ``client_secrets.json``
     #. move it to the ``pandas/io`` module directory
 
-The first time you use the :func:`read_ga` funtion, a browser window will open to ask you to authentify to the Google API. Do proceed.
+The first time you use the :func:`read_ga` function, a browser window will open to ask you to authentify to the Google API. Do proceed.
 
 Using the Google Analytics API
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

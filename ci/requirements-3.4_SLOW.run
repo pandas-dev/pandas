@@ -1,6 +1,6 @@
 python-dateutil
 pytz
-numpy
+numpy=1.9.3
 openpyxl
 xlsxwriter
 xlrd
@@ -18,3 +18,4 @@ bottleneck
 pymysql
 psycopg2
 statsmodels
+jinja2=2.8

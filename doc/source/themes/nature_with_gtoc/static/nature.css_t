@@ -299,6 +299,19 @@ td.field-body blockquote {
     padding-left: 30px;
 }
 
+.rendered_html table {
+    margin-left: auto;
+    margin-right: auto;
+    border-right: 1px solid #cbcbcb;
+    border-bottom: 1px solid #cbcbcb;
+}
+
+.rendered_html td, th {
+    border-left: 1px solid #cbcbcb;
+    border-top: 1px solid #cbcbcb;
+    margin: 0;
+    padding: 0.5em .75em;
+}
 
 /**
  * See also

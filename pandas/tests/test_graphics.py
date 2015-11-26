@@ -10,6 +10,7 @@ from distutils.version import LooseVersion
 
 from datetime import datetime, date
 
+import pandas as pd
 from pandas import (Series, DataFrame, MultiIndex, PeriodIndex, date_range,
                     bdate_range)
 from pandas.compat import (range, lrange, StringIO, lmap, lzip, u, zip,
@@ -462,6 +463,9 @@ class TestPlotBase(tm.TestCase):
 
         spndx=1
         for kind in kinds:
+            if not _ok_for_gaussian_kde(kind):
+                continue
+
             self.plt.subplot(1,4*len(kinds),spndx); spndx+=1
             mpl.rc('axes',grid=False)
             obj.plot(kind=kind, **kws)
@@ -1234,6 +1238,13 @@ class TestSeriesPlots(TestPlotBase):
             ax = s.plot()
         self._check_colors(ax.get_lines(), linecolors=def_colors[:ncolors])
 
+    def test_xticklabels(self):
+        # GH11529
+        s = Series(np.arange(10), index=['P%02d' % i for i in range(10)])
+        ax = s.plot(xticks=[0,3,5,9])
+        exp = ['P%02d' % i for i in [0,3,5,9]]
+        self._check_text_labels(ax.get_xticklabels(), exp)
+
 
 @tm.mplskip
 class TestDataFramePlots(TestPlotBase):
@@ -1468,6 +1479,14 @@ class TestDataFramePlots(TestPlotBase):
     def test_unsorted_index(self):
         df = DataFrame({'y': np.arange(100)},
                        index=np.arange(99, -1, -1), dtype=np.int64)
+        ax = df.plot()
+        l = ax.get_lines()[0]
+        rs = l.get_xydata()
+        rs = Series(rs[:, 1], rs[:, 0], dtype=np.int64, name='y')
+        tm.assert_series_equal(rs, df.y, check_index_type=False)
+        tm.close()
+
+        df.index = pd.Index(np.arange(99, -1, -1), dtype=np.float64)
         ax = df.plot()
         l = ax.get_lines()[0]
         rs = l.get_xydata()
@@ -2686,6 +2705,18 @@ class TestDataFramePlots(TestPlotBase):
         self._check_colors(ax.get_lines(), linecolors=['red'] * 5)
         tm.close()
 
+        # GH 10299
+        custom_colors = ['#FF0000', '#0000FF', '#FFFF00', '#000000', '#FFFFFF']
+        ax = df.plot(color=custom_colors)
+        self._check_colors(ax.get_lines(), linecolors=custom_colors)
+        tm.close()
+
+        with tm.assertRaises(ValueError):
+            # Color contains shorthand hex value results in ValueError
+            custom_colors = ['#F00', '#00F', '#FF0', '#000', '#FFF']
+            # Forced show plot
+            _check_plot_works(df.plot, color=custom_colors)
+
     @slow
     def test_line_colors_and_styles_subplots(self):
         # GH 9894
@@ -2721,6 +2752,20 @@ class TestDataFramePlots(TestPlotBase):
         for ax, c in zip(axes, list(custom_colors)):
             self._check_colors(ax.get_lines(), linecolors=[c])
         tm.close()
+
+        # GH 10299
+        custom_colors = ['#FF0000', '#0000FF', '#FFFF00', '#000000', '#FFFFFF']
+        axes = df.plot(color=custom_colors, subplots=True)
+        for ax, c in zip(axes, list(custom_colors)):
+            self._check_colors(ax.get_lines(), linecolors=[c])
+        tm.close()
+
+        with tm.assertRaises(ValueError):
+            # Color contains shorthand hex value results in ValueError
+            custom_colors = ['#F00', '#00F', '#FF0', '#000', '#FFF']
+            # Forced show plot
+            _check_plot_works(df.plot, color=custom_colors, subplots=True,
+                              filterwarnings='ignore')
 
         rgba_colors = lmap(cm.jet, np.linspace(0, 1, len(df)))
         for cmap in ['jet', cm.jet]:
@@ -3140,6 +3185,7 @@ class TestDataFramePlots(TestPlotBase):
                               ax.get_legend().get_texts()],
                              base_expected[:i] + base_expected[i+1:])
 
+    @slow
     def test_errorbar_plot(self):
         d = {'x': np.arange(12), 'y': np.arange(12, 0, -1)}
         df = DataFrame(d)
@@ -3430,6 +3476,8 @@ class TestDataFramePlots(TestPlotBase):
 
         results = {}
         for kind in plotting._plot_klass.keys():
+            if not _ok_for_gaussian_kde(kind):
+                continue
             args = {}
             if kind in ['hexbin', 'scatter', 'pie']:
                 df = self.hexbin_df
@@ -3638,6 +3686,35 @@ class TestDataFramePlots(TestPlotBase):
 
         with tm.assertRaises(ValueError):
             df.plot(colormap='invalid_colormap')
+
+    def test_plain_axes(self):
+
+        # supplied ax itself is a SubplotAxes, but figure contains also
+        # a plain Axes object (GH11556)
+        fig, ax = self.plt.subplots()
+        fig.add_axes([0.2, 0.2, 0.2, 0.2])
+        Series(rand(10)).plot(ax=ax)
+
+        # suppliad ax itself is a plain Axes, but because the cmap keyword
+        # a new ax is created for the colorbar -> also multiples axes (GH11520)
+        df = DataFrame({'a': randn(8), 'b': randn(8)})
+        fig = self.plt.figure()
+        ax = fig.add_axes((0,0,1,1))
+        df.plot(kind='scatter', ax=ax, x='a', y='b', c='a', cmap='hsv')
+
+        # other examples
+        fig, ax = self.plt.subplots()
+        from mpl_toolkits.axes_grid1 import make_axes_locatable
+        divider = make_axes_locatable(ax)
+        cax = divider.append_axes("right", size="5%", pad=0.05)
+        Series(rand(10)).plot(ax=ax)
+        Series(rand(10)).plot(ax=cax)
+
+        fig, ax = self.plt.subplots()
+        from mpl_toolkits.axes_grid.inset_locator import inset_axes
+        iax = inset_axes(ax, width="30%", height=1., loc=3)
+        Series(rand(10)).plot(ax=ax)
+        Series(rand(10)).plot(ax=iax)
 
 
 @tm.mplskip

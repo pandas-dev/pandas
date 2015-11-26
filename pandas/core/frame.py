@@ -43,7 +43,7 @@ from pandas.core.categorical import Categorical
 import pandas.computation.expressions as expressions
 from pandas.computation.eval import eval as _eval
 from numpy import percentile as _quantile
-from pandas.compat import(range, zip, lrange, lmap, lzip, StringIO, u,
+from pandas.compat import(range, map, zip, lrange, lmap, lzip, StringIO, u,
                           OrderedDict, raise_with_traceback)
 from pandas import compat
 from pandas.sparse.array import SparseArray
@@ -53,7 +53,6 @@ from pandas.util.decorators import (cache_readonly, deprecate, Appender,
 from pandas.tseries.period import PeriodIndex
 from pandas.tseries.index import DatetimeIndex
 from pandas.tseries.tdi import TimedeltaIndex
-
 
 import pandas.core.algorithms as algos
 import pandas.core.base as base
@@ -261,6 +260,8 @@ class DataFrame(NDFrame):
                 data = list(data)
             if len(data) > 0:
                 if is_list_like(data[0]) and getattr(data[0], 'ndim', 1) == 1:
+                    if com.is_named_tuple(data[0]) and columns is None:
+                        columns = data[0]._fields
                     arrays, columns = _to_arrays(data, columns, dtype=dtype)
                     columns = _ensure_index(columns)
 
@@ -575,6 +576,19 @@ class DataFrame(NDFrame):
         else:
             return None
 
+    @property
+    def style(self):
+        """
+        Property returning a Styler object containing methods for
+        building a styled HTML representation fo the DataFrame.
+
+        See Also
+        --------
+        pandas.core.style.Styler
+        """
+        from pandas.core.style import Styler
+        return Styler(self)
+
     def iteritems(self):
         """
         Iterator over (column name, Series) pairs.
@@ -582,7 +596,7 @@ class DataFrame(NDFrame):
         See also
         --------
         iterrows : Iterate over the rows of a DataFrame as (index, Series) pairs.
-        itertuples : Iterate over the rows of a DataFrame as tuples of the values.
+        itertuples : Iterate over the rows of a DataFrame as namedtuples of the values.
 
         """
         if self.columns.is_unique and hasattr(self, '_item_cache'):
@@ -615,7 +629,7 @@ class DataFrame(NDFrame):
            int64
 
            To preserve dtypes while iterating over the rows, it is better
-           to use :meth:`itertuples` which returns tuples of the values
+           to use :meth:`itertuples` which returns namedtuples of the values
            and which is generally faster as ``iterrows``.
 
         2. You should **never modify** something you are iterating over.
@@ -630,7 +644,7 @@ class DataFrame(NDFrame):
 
         See also
         --------
-        itertuples : Iterate over the rows of a DataFrame as tuples of the values.
+        itertuples : Iterate over the rows of a DataFrame as namedtuples of the values.
         iteritems : Iterate over (column name, Series) pairs.
 
         """
@@ -639,15 +653,23 @@ class DataFrame(NDFrame):
             s = Series(v, index=columns, name=k)
             yield k, s
 
-    def itertuples(self, index=True):
+    def itertuples(self, index=True, name="Pandas"):
         """
-        Iterate over the rows of DataFrame as tuples, with index value
+        Iterate over the rows of DataFrame as namedtuples, with index value
         as first element of the tuple.
 
         Parameters
         ----------
         index : boolean, default True
             If True, return the index as the first element of the tuple.
+        name : string, default "Pandas"
+            The name of the returned namedtuples or None to return regular tuples.
+
+        Notes
+        -----
+        The columns names will be renamed to positional names if they are
+        invalid Python identifiers, repeated, or start with an underscore.
+        With a large number of columns (>255), regular tuples are returned.
 
         See also
         --------
@@ -664,16 +686,32 @@ class DataFrame(NDFrame):
         b     2   0.2
         >>> for row in df.itertuples():
         ...     print(row)
-        ('a', 1, 0.10000000000000001)
-        ('b', 2, 0.20000000000000001)
+        ...
+        Pandas(Index='a', col1=1, col2=0.10000000000000001)
+        Pandas(Index='b', col1=2, col2=0.20000000000000001)
 
         """
         arrays = []
+        fields = []
         if index:
             arrays.append(self.index)
+            fields.append("Index")
 
         # use integer indexing because of possible duplicate column names
         arrays.extend(self.iloc[:, k] for k in range(len(self.columns)))
+
+        # Python 3 supports at most 255 arguments to constructor, and
+        # things get slow with this many fields in Python 2
+        if name is not None and len(self.columns) + index < 256:
+            # `rename` is unsupported in Python 2.6
+            try:
+                itertuple = collections.namedtuple(
+                    name, fields+list(self.columns), rename=True)
+                return map(itertuple._make, zip(*arrays))
+            except Exception:
+                pass
+
+        # fallback to regular tuples
         return zip(*arrays)
 
     if compat.PY3:  # pragma: no cover
@@ -802,11 +840,12 @@ class DataFrame(NDFrame):
         elif orient.lower().startswith('sp'):
             return {'index': self.index.tolist(),
                     'columns': self.columns.tolist(),
-                    'data': self.values.tolist()}
+                    'data': lib.map_infer(self.values.ravel(), _maybe_box_datetimelike)
+                    .reshape(self.values.shape).tolist()}
         elif orient.lower().startswith('s'):
-            return dict((k, v) for k, v in compat.iteritems(self))
+            return dict((k, _maybe_box_datetimelike(v)) for k, v in compat.iteritems(self))
         elif orient.lower().startswith('r'):
-            return [dict((k, v) for k, v in zip(self.columns, row))
+            return [dict((k, _maybe_box_datetimelike(v)) for k, v in zip(self.columns, row))
                     for row in self.values]
         elif orient.lower().startswith('i'):
             return dict((k, v.to_dict()) for k, v in self.iterrows())
@@ -1151,7 +1190,7 @@ class DataFrame(NDFrame):
         y : SparseDataFrame
         """
         from pandas.core.sparse import SparseDataFrame
-        return SparseDataFrame(self._series, index=self.index,
+        return SparseDataFrame(self._series, index=self.index, columns=self.columns,
                                default_kind=kind,
                                default_fill_value=fill_value)
 
@@ -1210,7 +1249,7 @@ class DataFrame(NDFrame):
 
     def to_csv(self, path_or_buf=None, sep=",", na_rep='', float_format=None,
                columns=None, header=True, index=True, index_label=None,
-               mode='w', encoding=None, quoting=None,
+               mode='w', encoding=None, compression=None, quoting=None,
                quotechar='"', line_terminator='\n', chunksize=None,
                tupleize_cols=False, date_format=None, doublequote=True,
                escapechar=None, decimal='.', **kwds):
@@ -1247,6 +1286,10 @@ class DataFrame(NDFrame):
         encoding : string, optional
             A string representing the encoding to use in the output file,
             defaults to 'ascii' on Python 2 and 'utf-8' on Python 3.
+        compression : string, optional
+            a string representing the compression to use in the output file,
+            allowed values are 'gzip', 'bz2',
+            only used when the first argument is a filename
         line_terminator : string, default '\\n'
             The newline character or character sequence to use in the output
             file
@@ -1271,10 +1314,10 @@ class DataFrame(NDFrame):
             .. versionadded:: 0.16.0
 
         """
-
         formatter = fmt.CSVFormatter(self, path_or_buf,
                                      line_terminator=line_terminator,
                                      sep=sep, encoding=encoding,
+                                     compression=compression,
                                      quoting=quoting, na_rep=na_rep,
                                      float_format=float_format, cols=columns,
                                      header=header, index=index,
@@ -1486,6 +1529,7 @@ class DataFrame(NDFrame):
                                            max_rows=max_rows,
                                            max_cols=max_cols,
                                            show_dimensions=show_dimensions)
+        # TODO: a generic formatter wld b in DataFrameFormatter
         formatter.to_html(classes=classes, notebook=notebook)
 
         if buf is None:
@@ -1550,11 +1594,12 @@ class DataFrame(NDFrame):
         max_cols : int, default None
             Determines whether full summary or short summary is printed.
             None follows the `display.max_info_columns` setting.
-        memory_usage : boolean, default None
+        memory_usage : boolean/string, default None
             Specifies whether total memory usage of the DataFrame
             elements (including index) should be displayed. None follows
             the `display.memory_usage` setting. True or False overrides
-            the `display.memory_usage` setting. Memory usage is shown in
+            the `display.memory_usage` setting. A value of 'deep' is equivalent
+            of True, with deep introspection. Memory usage is shown in
             human-readable units (base-2 representation).
         null_counts : boolean, default None
             Whether to show the non-null counts
@@ -1644,20 +1689,27 @@ class DataFrame(NDFrame):
         counts = self.get_dtype_counts()
         dtypes = ['%s(%d)' % k for k in sorted(compat.iteritems(counts))]
         lines.append('dtypes: %s' % ', '.join(dtypes))
+
         if memory_usage is None:
             memory_usage = get_option('display.memory_usage')
-        if memory_usage:  # append memory usage of df to display
-            # size_qualifier is just a best effort; not guaranteed to catch all
-            # cases (e.g., it misses categorical data even with object
-            # categories)
-            size_qualifier = ('+' if 'object' in counts
-                              or is_object_dtype(self.index) else '')
-            mem_usage = self.memory_usage(index=True).sum()
+        if memory_usage:
+            # append memory usage of df to display
+            size_qualifier = ''
+            if memory_usage == 'deep':
+                deep=True
+            else:
+                # size_qualifier is just a best effort; not guaranteed to catch all
+                # cases (e.g., it misses categorical data even with object
+                # categories)
+                deep=False
+                if 'object' in counts or is_object_dtype(self.index):
+                    size_qualifier = '+'
+            mem_usage = self.memory_usage(index=True, deep=deep).sum()
             lines.append("memory usage: %s\n" %
                             _sizeof_fmt(mem_usage, size_qualifier))
         _put_lines(buf, lines)
 
-    def memory_usage(self, index=False):
+    def memory_usage(self, index=False, deep=False):
         """Memory usage of DataFrame columns.
 
         Parameters
@@ -1666,6 +1718,9 @@ class DataFrame(NDFrame):
             Specifies whether to include memory usage of DataFrame's
             index in returned Series. If `index=True` (default is False)
             the first index of the Series is `Index`.
+        deep : bool
+            Introspect the data deeply, interrogate
+            `object` dtypes for system-level memory consumption
 
         Returns
         -------
@@ -1676,17 +1731,17 @@ class DataFrame(NDFrame):
         Notes
         -----
         Memory usage does not include memory consumed by elements that
-        are not components of the array.
+        are not components of the array if deep=False
 
         See Also
         --------
         numpy.ndarray.nbytes
         """
-        result = Series([ c.values.nbytes for col, c in self.iteritems() ],
+        result = Series([ c.memory_usage(index=False, deep=deep) for col, c in self.iteritems() ],
                         index=self.columns)
         if index:
-             result = Series(self.index.nbytes,
-                        index=['Index']).append(result)
+             result = Series(self.index.memory_usage(deep=deep),
+                             index=['Index']).append(result)
         return result
 
     def transpose(self):
@@ -1920,7 +1975,7 @@ class DataFrame(NDFrame):
         if self.columns.is_unique:
             return self._get_item_cache(key)
 
-        # duplicate columns & possible reduce dimensionaility
+        # duplicate columns & possible reduce dimensionality
         result = self._constructor(self._data.get(key))
         if result.columns.is_unique:
             result = result[key]
@@ -2876,7 +2931,7 @@ class DataFrame(NDFrame):
         subset : array-like
             Labels along other axis to consider, e.g. if you are dropping rows
             these would be a list of columns to include
-        inplace : boolean, defalt False
+        inplace : boolean, default False
             If True, do operation inplace and return None.
 
         Returns
@@ -2986,13 +3041,7 @@ class DataFrame(NDFrame):
         from pandas.hashtable import duplicated_int64, _SIZE_HINT_LIMIT
 
         def f(vals):
-
-            # if we have integers we can directly index with these
-            if com.is_integer_dtype(vals):
-                from pandas.core.nanops import unique1d
-                labels, shape = vals, unique1d(vals)
-            else:
-                labels, shape = factorize(vals, size_hint=min(len(self), _SIZE_HINT_LIMIT))
+            labels, shape = factorize(vals, size_hint=min(len(self), _SIZE_HINT_LIMIT))
             return labels.astype('i8',copy=False), len(shape)
 
         if subset is None:
@@ -3151,6 +3200,15 @@ class DataFrame(NDFrame):
                                        na_position=na_position)
         else:
             from pandas.core.groupby import _nargsort
+
+            # GH11080 - Check monotonic-ness before sort an index
+            # if monotonic (already sorted), return None or copy() according to 'inplace'
+            if (ascending and labels.is_monotonic_increasing) or \
+               (not ascending and labels.is_monotonic_decreasing):
+                if inplace:
+                    return
+                else:
+                    return self.copy()
 
             indexer = _nargsort(labels, kind=kind, ascending=ascending,
                                 na_position=na_position)
@@ -3543,9 +3601,8 @@ class DataFrame(NDFrame):
         # convert_objects just in case
         return self._constructor(result,
                                  index=new_index,
-                                 columns=new_columns).convert_objects(
-            datetime=True,
-            copy=False)
+                                 columns=new_columns)._convert(datetime=True,
+                                                               copy=False)
 
     def combine_first(self, other):
         """
@@ -3848,6 +3905,11 @@ class DataFrame(NDFrame):
         broadcast : boolean, default False
             For aggregation functions, return object of same size with values
             propagated
+        raw : boolean, default False
+            If False, convert each row or column into a Series. If raw=True the
+            passed function will receive ndarray objects instead. If you are
+            just applying a NumPy reduction function this will achieve much
+            better performance
         reduce : boolean or None, default None
             Try to apply reduction procedures. If the DataFrame is empty,
             apply will use reduce to determine whether the result should be a
@@ -3856,11 +3918,6 @@ class DataFrame(NDFrame):
             while guessing, exceptions raised by func will be ignored). If
             reduce is True a Series will always be returned, and if False a
             DataFrame will always be returned.
-        raw : boolean, default False
-            If False, convert each row or column into a Series. If raw=True the
-            passed function will receive ndarray objects instead. If you are
-            just applying a NumPy reduction function this will achieve much
-            better performance
         args : tuple
             Positional arguments to pass to function in addition to the
             array/series
@@ -4026,9 +4083,7 @@ class DataFrame(NDFrame):
 
             if axis == 1:
                 result = result.T
-            result = result.convert_objects(datetime=True,
-                                            timedelta=True,
-                                            copy=False)
+            result = result._convert(datetime=True, timedelta=True, copy=False)
 
         else:
 
@@ -4158,7 +4213,7 @@ class DataFrame(NDFrame):
             other = DataFrame(other.values.reshape((1, len(other))),
                               index=index,
                               columns=combined_columns)
-            other = other.convert_objects(datetime=True, timedelta=True)
+            other = other._convert(datetime=True, timedelta=True)
 
             if not self.columns.equals(combined_columns):
                 self = self.reindex(columns=combined_columns)
@@ -4325,17 +4380,20 @@ class DataFrame(NDFrame):
         from pandas.tools.merge import concat
 
         def _dict_round(df, decimals):
-            for col in df:
+            for col, vals in df.iteritems():
                 try:
-                    yield np.round(df[col], decimals[col])
+                    yield np.round(vals, decimals[col])
                 except KeyError:
-                    yield df[col]
+                    yield vals
 
         if isinstance(decimals, (dict, Series)):
+            if isinstance(decimals, Series):
+                if not decimals.index.is_unique:
+                    raise ValueError("Index of decimals must be unique")
             new_cols = [col for col in _dict_round(self, decimals)]
         elif com.is_integer(decimals):
             # Dispatch to numpy.round
-            new_cols = [np.round(self[col], decimals) for col in self]
+            new_cols = [np.round(v, decimals) for _, v in self.iteritems()]
         else:
             raise TypeError("decimals must be an integer, a dict-like or a Series")
 
@@ -4379,16 +4437,21 @@ class DataFrame(NDFrame):
         else:
             if min_periods is None:
                 min_periods = 1
-            mat = mat.T
+            mat = com._ensure_float64(mat).T
             corrf = nanops.get_corr_func(method)
             K = len(cols)
             correl = np.empty((K, K), dtype=float)
             mask = np.isfinite(mat)
             for i, ac in enumerate(mat):
                 for j, bc in enumerate(mat):
+                    if i > j:
+                        continue
+
                     valid = mask[i] & mask[j]
                     if valid.sum() < min_periods:
                         c = NA
+                    elif i == j:
+                        c = 1.
                     elif not valid.all():
                         c = corrf(ac[valid], bc[valid])
                     else:
@@ -4627,7 +4690,7 @@ class DataFrame(NDFrame):
                 values = self.values
             result = f(values)
 
-        if is_object_dtype(result.dtype):
+        if hasattr(result, 'dtype') and is_object_dtype(result.dtype):
             try:
                 if filter_type is None or filter_type == 'numeric':
                     result = result.astype(np.float64)

@@ -11,6 +11,8 @@ numexpr
 pytables
 html5lib
 lxml
+matplotlib
+jinja2
 
 # currently causing some warnings
 #sqlalchemy
@@ -20,4 +22,3 @@ lxml
 # not available from conda
 #beautiful-soup
 #bottleneck
-#matplotlib

@@ -1,6 +1,5 @@
 # pylint: disable=E1103
 
-import warnings
 
 from pandas import Series, DataFrame
 from pandas.core.index import MultiIndex, Index
@@ -8,13 +7,14 @@ from pandas.core.groupby import Grouper
 from pandas.tools.merge import concat
 from pandas.tools.util import cartesian_product
 from pandas.compat import range, lrange, zip
-from pandas.util.decorators import deprecate_kwarg
 from pandas import compat
 import pandas.core.common as com
 import numpy as np
 
+
 def pivot_table(data, values=None, index=None, columns=None, aggfunc='mean',
-                fill_value=None, margins=False, dropna=True):
+                fill_value=None, margins=False, dropna=True,
+                margins_name='All'):
     """
     Create a spreadsheet-style pivot table as a DataFrame. The levels in the
     pivot table will be stored in MultiIndex objects (hierarchical indexes) on
@@ -40,6 +40,9 @@ def pivot_table(data, values=None, index=None, columns=None, aggfunc='mean',
         Add all row / columns (e.g. for subtotal / grand totals)
     dropna : boolean, default True
         Do not include columns whose entries are all NaN
+    margins_name : string, default 'All'
+        Name of the row / column that will contain the totals
+        when margins is True.
 
     Examples
     --------
@@ -127,7 +130,7 @@ def pivot_table(data, values=None, index=None, columns=None, aggfunc='mean',
             m = MultiIndex.from_arrays(cartesian_product(table.columns.levels))
             table = table.reindex_axis(m, axis=1)
         except AttributeError:
-            pass # it's a single level or a series
+            pass  # it's a single level or a series
 
     if isinstance(table, DataFrame):
         if isinstance(table.columns, MultiIndex):
@@ -140,7 +143,8 @@ def pivot_table(data, values=None, index=None, columns=None, aggfunc='mean',
 
     if margins:
         table = _add_margins(table, data, values, rows=index,
-                             cols=columns, aggfunc=aggfunc)
+                             cols=columns, aggfunc=aggfunc,
+                             margins_name=margins_name)
 
     # discard the top level
     if values_passed and not values_multi:
@@ -155,28 +159,48 @@ def pivot_table(data, values=None, index=None, columns=None, aggfunc='mean',
 DataFrame.pivot_table = pivot_table
 
 
-def _add_margins(table, data, values, rows, cols, aggfunc):
+def _add_margins(table, data, values, rows, cols, aggfunc,
+                 margins_name='All'):
+    if not isinstance(margins_name, compat.string_types):
+        raise ValueError('margins_name argument must be a string')
 
-    grand_margin = _compute_grand_margin(data, values, aggfunc)
+    exception_msg = 'Conflicting name "{0}" in margins'.format(margins_name)
+    for level in table.index.names:
+        if margins_name in table.index.get_level_values(level):
+            raise ValueError(exception_msg)
+
+    grand_margin = _compute_grand_margin(data, values, aggfunc, margins_name)
+
+    # could be passed a Series object with no 'columns'
+    if hasattr(table, 'columns'):
+        for level in table.columns.names[1:]:
+            if margins_name in table.columns.get_level_values(level):
+                raise ValueError(exception_msg)
+
+    if len(rows) > 1:
+        key = (margins_name,) + ('',) * (len(rows) - 1)
+    else:
+        key = margins_name
 
     if not values and isinstance(table, Series):
         # If there are no values and the table is a series, then there is only
         # one column in the data. Compute grand margin and return it.
-        row_key = ('All',) + ('',) * (len(rows) - 1) if len(rows) > 1 else 'All'
-        return table.append(Series({row_key: grand_margin['All']}))
+        return table.append(Series({key: grand_margin[margins_name]}))
 
     if values:
-        marginal_result_set = _generate_marginal_results(table, data, values, rows, cols, aggfunc, grand_margin)
+        marginal_result_set = _generate_marginal_results(table, data, values,
+                                                         rows, cols, aggfunc,
+                                                         grand_margin,
+                                                         margins_name)
         if not isinstance(marginal_result_set, tuple):
             return marginal_result_set
         result, margin_keys, row_margin = marginal_result_set
     else:
-        marginal_result_set = _generate_marginal_results_without_values(table, data, rows, cols, aggfunc)
+        marginal_result_set = _generate_marginal_results_without_values(
+                table, data, rows, cols, aggfunc, margins_name)
         if not isinstance(marginal_result_set, tuple):
             return marginal_result_set
         result, margin_keys, row_margin = marginal_result_set
-
-    key = ('All',) + ('',) * (len(rows) - 1) if len(rows) > 1 else 'All'
 
     row_margin = row_margin.reindex(result.columns)
     # populate grand margin
@@ -189,13 +213,20 @@ def _add_margins(table, data, values, rows, cols, aggfunc):
     margin_dummy = DataFrame(row_margin, columns=[key]).T
 
     row_names = result.index.names
-    result = result.append(margin_dummy)
+    try:
+        result = result.append(margin_dummy)
+    except TypeError:
+
+        # we cannot reshape, so coerce the axis
+        result.index = result.index._to_safe_for_reshape()
+        result = result.append(margin_dummy)
     result.index.names = row_names
 
     return result
 
 
-def _compute_grand_margin(data, values, aggfunc):
+def _compute_grand_margin(data, values, aggfunc,
+                          margins_name='All'):
 
     if values:
         grand_margin = {}
@@ -214,17 +245,19 @@ def _compute_grand_margin(data, values, aggfunc):
                 pass
         return grand_margin
     else:
-        return {'All': aggfunc(data.index)}
+        return {margins_name: aggfunc(data.index)}
 
 
-def _generate_marginal_results(table, data, values, rows, cols, aggfunc, grand_margin):
+def _generate_marginal_results(table, data, values, rows, cols, aggfunc,
+                               grand_margin,
+                               margins_name='All'):
     if len(cols) > 0:
         # need to "interleave" the margins
         table_pieces = []
         margin_keys = []
 
         def _all_key(key):
-            return (key, 'All') + ('',) * (len(cols) - 1)
+            return (key, margins_name) + ('',) * (len(cols) - 1)
 
         if len(rows) > 0:
             margin = data[rows + values].groupby(rows).agg(aggfunc)
@@ -235,7 +268,13 @@ def _generate_marginal_results(table, data, values, rows, cols, aggfunc, grand_m
 
                 # we are going to mutate this, so need to copy!
                 piece = piece.copy()
-                piece[all_key] = margin[key]
+                try:
+                    piece[all_key] = margin[key]
+                except TypeError:
+
+                    # we cannot reshape, so coerce the axis
+                    piece.set_axis(cat_axis, piece._get_axis(cat_axis)._to_safe_for_reshape())
+                    piece[all_key] = margin[key]
 
                 table_pieces.append(piece)
                 margin_keys.append(all_key)
@@ -269,15 +308,17 @@ def _generate_marginal_results(table, data, values, rows, cols, aggfunc, grand_m
     return result, margin_keys, row_margin
 
 
-def _generate_marginal_results_without_values(table, data, rows, cols, aggfunc):
+def _generate_marginal_results_without_values(
+        table, data, rows, cols, aggfunc,
+        margins_name='All'):
     if len(cols) > 0:
         # need to "interleave" the margins
         margin_keys = []
 
         def _all_key():
             if len(cols) == 1:
-                return 'All'
-            return ('All', ) + ('', ) * (len(cols) - 1)
+                return margins_name
+            return (margins_name, ) + ('', ) * (len(cols) - 1)
 
         if len(rows) > 0:
             margin = data[rows].groupby(rows).apply(aggfunc)

@@ -31,7 +31,7 @@ from pandas.core.common import (is_sequence, array_equivalent, is_list_like, is_
 import pandas.compat as compat
 from pandas.compat import(
     filter, map, zip, range, unichr, lrange, lmap, lzip, u, callable, Counter,
-    raise_with_traceback, httplib, is_platform_windows
+    raise_with_traceback, httplib, is_platform_windows, is_platform_32bit
 )
 
 from pandas.computation import expressions as expr
@@ -58,7 +58,6 @@ def reset_testing_mode():
     testing_mode = os.environ.get('PANDAS_TESTING_MODE','None')
     if 'deprecate' in testing_mode:
         warnings.simplefilter('ignore', DeprecationWarning)
-
 
 set_testing_mode()
 
@@ -176,8 +175,7 @@ def close(fignum=None):
 
 def _skip_if_32bit():
     import nose
-    import struct
-    if struct.calcsize("P") * 8 < 64:
+    if is_platform_32bit():
         raise nose.SkipTest("skipping for 32 bit")
 
 def mplskip(cls):
@@ -255,6 +253,23 @@ def _skip_if_python26():
     if sys.version_info[:2] == (2, 6):
         import nose
         raise nose.SkipTest("skipping on python2.6")
+
+
+def _skip_if_no_pathlib():
+    try:
+        from pathlib import Path
+    except ImportError:
+        import nose
+        raise nose.SkipTest("pathlib not available")
+
+
+def _skip_if_no_localpath():
+    try:
+        from py.path import local as LocalPath
+    except ImportError:
+        import nose
+        raise nose.SkipTest("py.path not installed")
+
 
 def _incompat_bottleneck_version(method):
     """ skip if we have bottleneck installed
@@ -613,7 +628,12 @@ def assert_index_equal(left, right, exact=False, check_names=True,
                 msg = '{0} classes are different'.format(obj)
                 raise_assert_detail(obj, msg, l, r)
             assert_attr_equal('dtype', l, r, obj=obj)
-            assert_attr_equal('inferred_type', l, r, obj=obj)
+
+            # allow string-like to have different inferred_types
+            if l.inferred_type in ('string', 'unicode'):
+                assertIn(r.inferred_type, ('string', 'unicode'))
+            else:
+                assert_attr_equal('inferred_type', l, r, obj=obj)
 
     def _get_ilevel_values(index, level):
         # accept level number only
@@ -850,8 +870,8 @@ def assert_numpy_array_equal(left, right,
 
 # This could be refactored to use the NDFrame.equals method
 def assert_series_equal(left, right, check_dtype=True,
-                        check_index_type=False,
-                        check_series_type=False,
+                        check_index_type=True,
+                        check_series_type=True,
                         check_less_precise=False,
                         check_names=True,
                         check_exact=False,
@@ -932,9 +952,9 @@ def assert_series_equal(left, right, check_dtype=True,
 
 # This could be refactored to use the NDFrame.equals method
 def assert_frame_equal(left, right, check_dtype=True,
-                       check_index_type=False,
-                       check_column_type=False,
-                       check_frame_type=False,
+                       check_index_type=True,
+                       check_column_type=True,
+                       check_frame_type=True,
                        check_less_precise=False,
                        check_names=True,
                        by_blocks=False,
@@ -1563,7 +1583,18 @@ def skip_if_no_package(*args, **kwargs):
                   exc_failed_check=SkipTest,
                   *args, **kwargs)
 
-#
+def skip_if_no_package_deco(pkg_name, version=None, app='pandas'):
+    from nose import SkipTest
+
+    def deco(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            package_check(pkg_name, version=version, app=app,
+                        exc_failed_import=SkipTest, exc_failed_check=SkipTest)
+            return func(*args, **kwargs)
+        return wrapper
+    return deco
+ #
 # Additional tags decorators for nose
 #
 
@@ -1871,7 +1902,7 @@ def assertRaises(_exception, _callable=None, *args, **kwargs):
     In addition to using it as a contextmanager, you can also use it as a
     function, just like the normal assertRaises
 
-    >>> assertRaises(TypeError, ",".join, [1, 3, 5]);
+    >>> assertRaises(TypeError, ",".join, [1, 3, 5])
     """
     manager = _AssertRaisesContextmanager(exception=_exception)
     # don't return anything if used in function form
@@ -1892,18 +1923,18 @@ def assertRaisesRegexp(_exception, _regexp, _callable=None, *args, **kwargs):
 
     You can pass either a regular expression or a compiled regular expression object.
     >>> assertRaisesRegexp(ValueError, 'invalid literal for.*XYZ',
-    ...                                int, 'XYZ');
+    ...                                int, 'XYZ')
     >>> import re
-    >>> assertRaisesRegexp(ValueError, re.compile('literal'), int, 'XYZ');
+    >>> assertRaisesRegexp(ValueError, re.compile('literal'), int, 'XYZ')
 
     If an exception of a different type is raised, it bubbles up.
 
-    >>> assertRaisesRegexp(TypeError, 'literal', int, 'XYZ');
+    >>> assertRaisesRegexp(TypeError, 'literal', int, 'XYZ')
     Traceback (most recent call last):
         ...
     ValueError: invalid literal for int() with base 10: 'XYZ'
     >>> dct = dict()
-    >>> assertRaisesRegexp(KeyError, 'pear', dct.__getitem__, 'apple');
+    >>> assertRaisesRegexp(KeyError, 'pear', dct.__getitem__, 'apple')
     Traceback (most recent call last):
         ...
     AssertionError: "pear" does not match "'apple'"
@@ -1959,7 +1990,6 @@ class _AssertRaisesContextmanager(object):
                 raise_with_traceback(e, traceback)
         return True
 
-
 @contextmanager
 def assert_produces_warning(expected_warning=Warning, filter_level="always",
                             clear=None, check_stacklevel=True):
@@ -2006,6 +2036,7 @@ def assert_produces_warning(expected_warning=Warning, filter_level="always",
         warnings.simplefilter(filter_level)
         yield w
         extra_warnings = []
+
         for actual_warning in w:
             if (expected_warning and issubclass(actual_warning.category,
                                                 expected_warning)):

@@ -1,3 +1,4 @@
+# cython: profile=False
 from numpy cimport int64_t, int32_t, npy_int64, npy_int32, ndarray
 from cpython cimport PyObject
 
@@ -59,6 +60,7 @@ cdef extern from "numpy/ndarrayobject.h":
 
 cdef extern from "numpy_helper.h":
     npy_datetime get_datetime64_value(object o)
+    npy_timedelta get_timedelta64_value(object o)
 
 cdef extern from "numpy/npy_common.h":
 
@@ -95,14 +97,14 @@ cdef extern from "datetime/np_datetime.h":
                                              int apply_tzinfo)
 
     npy_datetime pandas_datetimestruct_to_datetime(PANDAS_DATETIMEUNIT fr,
-                                                   pandas_datetimestruct *d)
+                                                   pandas_datetimestruct *d) nogil
     void pandas_datetime_to_datetimestruct(npy_datetime val,
                                            PANDAS_DATETIMEUNIT fr,
-                                           pandas_datetimestruct *result)
+                                           pandas_datetimestruct *result) nogil
     int days_per_month_table[2][12]
 
-    int dayofweek(int y, int m, int d)
-    int is_leapyear(int64_t year)
+    int dayofweek(int y, int m, int d) nogil
+    int is_leapyear(int64_t year) nogil
     PANDAS_DATETIMEUNIT get_datetime64_unit(object o)
 
 cdef extern from "datetime/np_datetime_strings.h":

@@ -1024,7 +1024,7 @@ class Options(object):
         if expiry in expiry_dates:
             return expiry
         else:
-            index = DatetimeIndex(expiry_dates).order()
+            index = DatetimeIndex(expiry_dates).sort_values()
             return index[index.date >= expiry][0].date()
 
     def get_forward_data(self, months, call=True, put=False, near=False,

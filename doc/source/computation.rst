@@ -212,28 +212,30 @@ mean, median, correlation, variance, covariance, standard deviation, skewness,
 and kurtosis. All of these methods are in the :mod:`pandas` namespace, but
 otherwise they can be found in :mod:`pandas.stats.moments`.
 
+.. currentmodule:: pandas
+
 .. csv-table::
     :header: "Function", "Description"
     :widths: 20, 80
 
-    ``rolling_count``, Number of non-null observations
-    ``rolling_sum``, Sum of values
-    ``rolling_mean``, Mean of values
-    ``rolling_median``, Arithmetic median of values
-    ``rolling_min``, Minimum
-    ``rolling_max``, Maximum
-    ``rolling_std``, Unbiased standard deviation
-    ``rolling_var``, Unbiased variance
-    ``rolling_skew``, Unbiased skewness (3rd moment)
-    ``rolling_kurt``, Unbiased kurtosis (4th moment)
-    ``rolling_quantile``, Sample quantile (value at %)
-    ``rolling_apply``, Generic apply
-    ``rolling_cov``, Unbiased covariance (binary)
-    ``rolling_corr``, Correlation (binary)
-    ``rolling_window``, Moving window function
+    :func:`rolling_count`, Number of non-null observations
+    :func:`rolling_sum`, Sum of values
+    :func:`rolling_mean`, Mean of values
+    :func:`rolling_median`, Arithmetic median of values
+    :func:`rolling_min`, Minimum
+    :func:`rolling_max`, Maximum
+    :func:`rolling_std`, Unbiased standard deviation
+    :func:`rolling_var`, Unbiased variance
+    :func:`rolling_skew`, Unbiased skewness (3rd moment)
+    :func:`rolling_kurt`, Unbiased kurtosis (4th moment)
+    :func:`rolling_quantile`, Sample quantile (value at %)
+    :func:`rolling_apply`, Generic apply
+    :func:`rolling_cov`, Unbiased covariance (binary)
+    :func:`rolling_corr`, Correlation (binary)
+    :func:`rolling_window`, Moving window function
 
 Generally these methods all have the same interface. The binary operators
-(e.g. ``rolling_corr``) take two Series or DataFrames. Otherwise, they all
+(e.g. :func:`rolling_corr`) take two Series or DataFrames. Otherwise, they all
 accept the following arguments:
 
   - ``window``: size of moving window
@@ -244,8 +246,8 @@ accept the following arguments:
     Note that prior to pandas v0.8.0, a keyword argument ``time_rule`` was used
     instead of ``freq`` that referred to the legacy time rule constants
   - ``how``: optionally specify method for down or re-sampling.  Default is
-    is min for ``rolling_min``, max for ``rolling_max``, median for
-    ``rolling_median``, and mean for all other rolling functions.  See
+    is min for :func:`rolling_min`, max for :func:`rolling_max`, median for
+    :func:`rolling_median`, and mean for all other rolling functions.  See
     :meth:`DataFrame.resample`'s how argument for more information.
 
 These functions can be applied to ndarrays or Series objects:
@@ -277,7 +279,7 @@ sugar for applying the moving window operator to all of the DataFrame's columns:
    @savefig rolling_mean_frame.png
    pd.rolling_sum(df, 60).plot(subplots=True)
 
-The ``rolling_apply`` function takes an extra ``func`` argument and performs
+The :func:`rolling_apply` function takes an extra ``func`` argument and performs
 generic rolling computations. The ``func`` argument should be a single function
 that produces a single value from an ndarray input. Suppose we wanted to
 compute the mean absolute deviation on a rolling basis:
@@ -288,7 +290,7 @@ compute the mean absolute deviation on a rolling basis:
    @savefig rolling_apply_ex.png
    pd.rolling_apply(ts, 60, mad).plot(style='k')
 
-The ``rolling_window`` function performs a generic rolling window computation
+The :func:`rolling_window` function performs a generic rolling window computation
 on the input data. The weights used in the window are specified by the ``win_type``
 keyword. The list of recognized types are:
 
@@ -313,7 +315,7 @@ keyword. The list of recognized types are:
 
    pd.rolling_window(ser, 5, 'triang')
 
-Note that the ``boxcar`` window is equivalent to ``rolling_mean``.
+Note that the ``boxcar`` window is equivalent to :func:`rolling_mean`.
 
 .. ipython:: python
 
@@ -358,7 +360,7 @@ This keyword is available in other rolling functions as well.
 Binary rolling moments
 ~~~~~~~~~~~~~~~~~~~~~~
 
-``rolling_cov`` and ``rolling_corr`` can compute moving window statistics about
+:func:`rolling_cov` and :func:`rolling_corr` can compute moving window statistics about
 two ``Series`` or any combination of ``DataFrame/Series`` or
 ``DataFrame/DataFrame``. Here is the behavior in each case:
 
@@ -447,24 +449,26 @@ they are implemented in pandas such that the following two calls are equivalent:
 Like the ``rolling_`` functions, the following methods are included in the
 ``pandas`` namespace or can be located in ``pandas.stats.moments``.
 
+.. currentmodule:: pandas
+
 .. csv-table::
     :header: "Function", "Description"
     :widths: 20, 80
 
-    ``expanding_count``, Number of non-null observations
-    ``expanding_sum``, Sum of values
-    ``expanding_mean``, Mean of values
-    ``expanding_median``, Arithmetic median of values
-    ``expanding_min``, Minimum
-    ``expanding_max``, Maximum
-    ``expanding_std``, Unbiased standard deviation
-    ``expanding_var``, Unbiased variance
-    ``expanding_skew``, Unbiased skewness (3rd moment)
-    ``expanding_kurt``, Unbiased kurtosis (4th moment)
-    ``expanding_quantile``, Sample quantile (value at %)
-    ``expanding_apply``, Generic apply
-    ``expanding_cov``, Unbiased covariance (binary)
-    ``expanding_corr``, Correlation (binary)
+    :func:`expanding_count`, Number of non-null observations
+    :func:`expanding_sum`, Sum of values
+    :func:`expanding_mean`, Mean of values
+    :func:`expanding_median`, Arithmetic median of values
+    :func:`expanding_min`, Minimum
+    :func:`expanding_max`, Maximum
+    :func:`expanding_std`, Unbiased standard deviation
+    :func:`expanding_var`, Unbiased variance
+    :func:`expanding_skew`, Unbiased skewness (3rd moment)
+    :func:`expanding_kurt`, Unbiased kurtosis (4th moment)
+    :func:`expanding_quantile`, Sample quantile (value at %)
+    :func:`expanding_apply`, Generic apply
+    :func:`expanding_cov`, Unbiased covariance (binary)
+    :func:`expanding_corr`, Correlation (binary)
 
 Aside from not having a ``window`` parameter, these functions have the same
 interfaces as their ``rolling_`` counterpart. Like above, the parameters they
@@ -489,7 +493,7 @@ all accept are:
 An expanding window statistic will be more stable (and less responsive) than
 its rolling window counterpart as the increasing window size decreases the
 relative impact of an individual data point. As an example, here is the
-``expanding_mean`` output for the previous time series dataset:
+:func:`expanding_mean` output for the previous time series dataset:
 
 .. ipython:: python
    :suppress:
@@ -512,15 +516,17 @@ A related set of functions are exponentially weighted versions of several of
 the above statistics. A number of expanding EW (exponentially weighted)
 functions are provided:
 
+.. currentmodule:: pandas
+
 .. csv-table::
     :header: "Function", "Description"
     :widths: 20, 80
 
-    ``ewma``, EW moving average
-    ``ewmvar``, EW moving variance
-    ``ewmstd``, EW moving standard deviation
-    ``ewmcorr``, EW moving correlation
-    ``ewmcov``, EW moving covariance
+    :func:`ewma`, EW moving average
+    :func:`ewmvar`, EW moving variance
+    :func:`ewmstd`, EW moving standard deviation
+    :func:`ewmcorr`, EW moving correlation
+    :func:`ewmcov`, EW moving covariance
 
 In general, a weighted moving average is calculated as
 
@@ -528,10 +534,18 @@ In general, a weighted moving average is calculated as
 
     y_t = \frac{\sum_{i=0}^t w_i x_{t-i}}{\sum_{i=0}^t w_i},
 
-where :math:`x_t` is the input at :math:`y_t` is the result.
+where :math:`x_t` is the input and :math:`y_t` is the result.
 
-The EW functions support two variants of exponential weights:
-The default, ``adjust=True``, uses the weights :math:`w_i = (1 - \alpha)^i`.
+The EW functions support two variants of exponential weights.
+The default, ``adjust=True``, uses the weights :math:`w_i = (1 - \alpha)^i`
+which gives
+
+.. math::
+
+    y_t = \frac{x_t + (1 - \alpha)x_{t-1} + (1 - \alpha)^2 x_{t-2} + ...
+    + (1 - \alpha)^t x_{0}}{1 + (1 - \alpha) + (1 - \alpha)^2 + ...
+    + (1 - \alpha)^t}
+
 When ``adjust=False`` is specified, moving averages are calculated as
 
 .. math::
@@ -556,6 +570,34 @@ which is equivalent to using weights
 
       y_t = \alpha' y_{t-1} + (1 - \alpha') x_t.
 
+The difference between the above two variants arises because we are
+dealing with series which have finite history. Consider a series of infinite
+history:
+
+.. math::
+
+    y_t = \frac{x_t + (1 - \alpha)x_{t-1} + (1 - \alpha)^2 x_{t-2} + ...}
+    {1 + (1 - \alpha) + (1 - \alpha)^2 + ...}
+
+Noting that the denominator is a geometric series with initial term equal to 1
+and a ratio of :math:`1 - \alpha` we have
+
+.. math::
+
+    y_t &= \frac{x_t + (1 - \alpha)x_{t-1} + (1 - \alpha)^2 x_{t-2} + ...}
+    {\frac{1}{1 - (1 - \alpha)}}\\
+    &= [x_t + (1 - \alpha)x_{t-1} + (1 - \alpha)^2 x_{t-2} + ...] \alpha \\
+    &= \alpha x_t + [(1-\alpha)x_{t-1} + (1 - \alpha)^2 x_{t-2} + ...]\alpha \\
+    &= \alpha x_t + (1 - \alpha)[x_{t-1} + (1 - \alpha) x_{t-2} + ...]\alpha\\
+    &= \alpha x_t + (1 - \alpha) y_{t-1}
+
+which shows the equivalence of the above two variants for infinite series.
+When ``adjust=True`` we have :math:`y_0 = x_0` and from the last
+representation above we have :math:`y_t = \alpha x_t + (1 - \alpha) y_{t-1}`,
+therefore there is an assumption that :math:`x_0` is not an ordinary value
+but rather an exponentially weighted moment of the infinite series up to that
+point.
+
 One must have :math:`0 < \alpha \leq 1`, but rather than pass :math:`\alpha`
 directly, it's easier to think about either the **span**, **center of mass
 (com)** or **halflife** of an EW moment:
@@ -579,7 +621,6 @@ Here is an example for a univariate time series:
 
 .. ipython:: python
 
-   plt.close('all')
    ts.plot(style='k--')
 
    @savefig ewma_ex.png
@@ -612,7 +653,7 @@ Whereas if ``ignore_na=True``, the weighted average would be calculated as
 
 	\frac{(1-\alpha) \cdot 3 + 1 \cdot 5}{(1-\alpha) + 1}.
 
-The ``ewmvar``, ``ewmstd``, and ``ewmcov`` functions have a ``bias`` argument,
+The :func:`ewmvar`, :func:`ewmstd`, and :func:`ewmcov` functions have a ``bias`` argument,
 specifying whether the result should contain biased or unbiased statistics.
 For example, if ``bias=True``, ``ewmvar(x)`` is calculated as
 ``ewmvar(x) = ewma(x**2) - ewma(x)**2``;

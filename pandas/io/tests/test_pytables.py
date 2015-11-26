@@ -408,7 +408,7 @@ class TestHDFStore(Base, tm.TestCase):
             df['datetime1']  = datetime.datetime(2001,1,2,0,0)
             df['datetime2']  = datetime.datetime(2001,1,3,0,0)
             df.ix[3:6,['obj1']] = np.nan
-            df = df.consolidate().convert_objects(datetime=True)
+            df = df.consolidate()._convert(datetime=True)
 
             warnings.filterwarnings('ignore', category=PerformanceWarning)
             store['df'] = df
@@ -736,7 +736,7 @@ class TestHDFStore(Base, tm.TestCase):
         df['datetime1'] = datetime.datetime(2001, 1, 2, 0, 0)
         df['datetime2'] = datetime.datetime(2001, 1, 3, 0, 0)
         df.ix[3:6, ['obj1']] = np.nan
-        df = df.consolidate().convert_objects(datetime=True)
+        df = df.consolidate()._convert(datetime=True)
 
         with ensure_clean_store(self.path) as store:
             _maybe_remove(store, 'df')
@@ -1456,7 +1456,7 @@ class TestHDFStore(Base, tm.TestCase):
             df_dc.ix[7:9, 'string'] = 'bar'
             df_dc['string2'] = 'cool'
             df_dc['datetime'] = Timestamp('20010102')
-            df_dc = df_dc.convert_objects(datetime=True)
+            df_dc = df_dc._convert(datetime=True)
             df_dc.ix[3:5, ['A', 'B', 'datetime']] = np.nan
 
             _maybe_remove(store, 'df_dc')
@@ -1918,7 +1918,7 @@ class TestHDFStore(Base, tm.TestCase):
         df['datetime1'] = datetime.datetime(2001, 1, 2, 0, 0)
         df['datetime2'] = datetime.datetime(2001, 1, 3, 0, 0)
         df.ix[3:6, ['obj1']] = np.nan
-        df = df.consolidate().convert_objects(datetime=True)
+        df = df.consolidate()._convert(datetime=True)
 
         with ensure_clean_store(self.path) as store:
             store.append('df1_mixed', df)
@@ -1974,7 +1974,7 @@ class TestHDFStore(Base, tm.TestCase):
         df['obj1'] = 'foo'
         df['obj2'] = 'bar'
         df['datetime1'] = datetime.date(2001, 1, 2)
-        df = df.consolidate().convert_objects(datetime=True)
+        df = df.consolidate()._convert(datetime=True)
 
         with ensure_clean_store(self.path) as store:
             # this fails because we have a date in the object block......
@@ -2506,7 +2506,7 @@ class TestHDFStore(Base, tm.TestCase):
 
         ts3 = Series(ts.values, Index(np.asarray(ts.index, dtype=object),
                                       dtype=object))
-        self._check_roundtrip(ts3, tm.assert_series_equal)
+        self._check_roundtrip(ts3, tm.assert_series_equal, check_index_type=False)
 
     def test_sparse_series(self):
 
@@ -3048,6 +3048,18 @@ class TestHDFStore(Base, tm.TestCase):
             store.append('df4',df,data_columns=True)
             result = store.select(
                 'df4', where='values>2.0')
+            tm.assert_frame_equal(expected, result)
+
+        # test selection with comparison against numpy scalar
+        # GH 11283
+        with ensure_clean_store(self.path) as store:
+            df = tm.makeDataFrame()
+
+            expected = df[df['A']>0]
+
+            store.append('df', df, data_columns=True)
+            np_zero = np.float64(0)
+            result = store.select('df', where=["A>np_zero"])
             tm.assert_frame_equal(expected, result)
 
     def test_select_with_many_inputs(self):
@@ -4292,6 +4304,22 @@ class TestHDFStore(Base, tm.TestCase):
 
         compat_assert_produces_warning(PerformanceWarning, f)
 
+
+    def test_unicode_longer_encoded(self):
+        # GH 11234
+        char = '\u0394'
+        df = pd.DataFrame({'A': [char]})
+        with ensure_clean_store(self.path) as store:
+            store.put('df', df, format='table', encoding='utf-8')
+            result = store.get('df')
+            tm.assert_frame_equal(result, df)
+
+        df = pd.DataFrame({'A': ['a', char], 'B': ['b', 'b']})
+        with ensure_clean_store(self.path) as store:
+            store.put('df', df, format='table', encoding='utf-8')
+            result = store.get('df')
+            tm.assert_frame_equal(result, df)
+
     def test_store_datetime_mixed(self):
 
         df = DataFrame(
@@ -4881,15 +4909,26 @@ class TestTimezones(Base, tm.TestCase):
             result = store.select_column('frame', 'index')
             self.assertEqual(rng.tz, result.dt.tz)
 
-    def test_timezones(self):
-        rng = date_range('1/1/2000', '1/30/2000', tz='US/Eastern')
-        frame = DataFrame(np.random.randn(len(rng), 4), index=rng)
-
+    def test_timezones_fixed(self):
         with ensure_clean_store(self.path) as store:
-            store['frame'] = frame
-            recons = store['frame']
-            self.assertTrue(recons.index.equals(rng))
-            self.assertEqual(rng.tz, recons.index.tz)
+
+            # index
+            rng = date_range('1/1/2000', '1/30/2000', tz='US/Eastern')
+            df = DataFrame(np.random.randn(len(rng), 4), index=rng)
+            store['df'] = df
+            result = store['df']
+            assert_frame_equal(result, df)
+
+            # as data
+            # GH11411
+            _maybe_remove(store, 'df')
+            df = DataFrame({'A' : rng,
+                            'B' : rng.tz_convert('UTC').tz_localize(None),
+                            'C' : rng.tz_convert('CET'),
+                            'D' : range(len(rng))}, index=rng)
+            store['df'] = df
+            result = store['df']
+            assert_frame_equal(result, df)
 
     def test_fixed_offset_tz(self):
         rng = date_range('1/1/2000 00:00:00-07:00', '1/30/2000 00:00:00-07:00')
@@ -4959,6 +4998,21 @@ class TestTimezones(Base, tm.TestCase):
         with ensure_clean_store(tm.get_data_path('legacy_hdf/datetimetz_object.h5'), mode='r') as store:
             result = store['df']
             assert_frame_equal(result, expected)
+
+    def test_dst_transitions(self):
+        # make sure we are not failing on transaitions
+        with ensure_clean_store(self.path) as store:
+            times = pd.date_range("2013-10-26 23:00", "2013-10-27 01:00",
+                                  tz="Europe/London",
+                                  freq="H",
+                                  ambiguous='infer')
+
+            for i in [times, times+pd.Timedelta('10min')]:
+                _maybe_remove(store, 'df')
+                df = DataFrame({'A' : range(len(i)), 'B' : i }, index=i)
+                store.append('df',df)
+                result = store.select('df')
+                assert_frame_equal(result, df)
 
 def _test_sort(obj):
     if isinstance(obj, DataFrame):

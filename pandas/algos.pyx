@@ -50,15 +50,14 @@ cdef np.float64_t MAXfloat64 = np.inf
 cdef double NaN = <double> np.NaN
 cdef double nan = NaN
 
-
 cdef inline int int_max(int a, int b): return a if a >= b else b
 cdef inline int int_min(int a, int b): return a if a <= b else b
 
 
 cdef extern from "src/headers/math.h":
-    double sqrt(double x)
-    double fabs(double)
-    int signbit(double)
+    double sqrt(double x) nogil
+    double fabs(double) nogil
+    int signbit(double) nogil
 
 from pandas import lib
 
@@ -864,7 +863,8 @@ def min_subseq(ndarray[double_t] arr):
 
 #-------------------------------------------------------------------------------
 # Rolling sum
-
+@cython.boundscheck(False)
+@cython.wraparound(False)
 def roll_sum(ndarray[double_t] input, int win, int minp):
     cdef double val, prev, sum_x = 0
     cdef int nobs = 0, i
@@ -873,40 +873,41 @@ def roll_sum(ndarray[double_t] input, int win, int minp):
     cdef ndarray[double_t] output = np.empty(N, dtype=float)
 
     minp = _check_minp(win, minp, N)
+    with nogil:
+        for i from 0 <= i < minp - 1:
+            val = input[i]
 
-    for i from 0 <= i < minp - 1:
-        val = input[i]
+            # Not NaN
+            if val == val:
+                nobs += 1
+                sum_x += val
 
-        # Not NaN
-        if val == val:
-            nobs += 1
-            sum_x += val
-
-        output[i] = NaN
-
-    for i from minp - 1 <= i < N:
-        val = input[i]
-
-        if val == val:
-            nobs += 1
-            sum_x += val
-
-        if i > win - 1:
-            prev = input[i - win]
-            if prev == prev:
-                sum_x -= prev
-                nobs -= 1
-
-        if nobs >= minp:
-            output[i] = sum_x
-        else:
             output[i] = NaN
+
+        for i from minp - 1 <= i < N:
+            val = input[i]
+
+            if val == val:
+                nobs += 1
+                sum_x += val
+
+            if i > win - 1:
+                prev = input[i - win]
+                if prev == prev:
+                    sum_x -= prev
+                    nobs -= 1
+
+            if nobs >= minp:
+                output[i] = sum_x
+            else:
+                output[i] = NaN
 
     return output
 
 #-------------------------------------------------------------------------------
 # Rolling mean
-
+@cython.boundscheck(False)
+@cython.wraparound(False)
 def roll_mean(ndarray[double_t] input,
                int win, int minp):
     cdef:
@@ -916,48 +917,48 @@ def roll_mean(ndarray[double_t] input,
 
     cdef ndarray[double_t] output = np.empty(N, dtype=float)
     minp = _check_minp(win, minp, N)
+    with nogil:
+        for i from 0 <= i < minp - 1:
+            val = input[i]
 
-    for i from 0 <= i < minp - 1:
-        val = input[i]
+            # Not NaN
+            if val == val:
+                nobs += 1
+                sum_x += val
+                if signbit(val):
+                    neg_ct += 1
 
-        # Not NaN
-        if val == val:
-            nobs += 1
-            sum_x += val
-            if signbit(val):
-                neg_ct += 1
-
-        output[i] = NaN
-
-    for i from minp - 1 <= i < N:
-        val = input[i]
-
-        if val == val:
-            nobs += 1
-            sum_x += val
-            if signbit(val):
-                neg_ct += 1
-
-        if i > win - 1:
-            prev = input[i - win]
-            if prev == prev:
-                sum_x -= prev
-                nobs -= 1
-                if signbit(prev):
-                    neg_ct -= 1
-
-        if nobs >= minp:
-            result = sum_x / nobs
-            if neg_ct == 0 and result < 0:
-                # all positive
-                output[i] = 0
-            elif neg_ct == nobs and result > 0:
-                # all negative
-                output[i] = 0
-            else:
-                output[i] = result
-        else:
             output[i] = NaN
+
+        for i from minp - 1 <= i < N:
+            val = input[i]
+
+            if val == val:
+                nobs += 1
+                sum_x += val
+                if signbit(val):
+                    neg_ct += 1
+
+            if i > win - 1:
+                prev = input[i - win]
+                if prev == prev:
+                    sum_x -= prev
+                    nobs -= 1
+                    if signbit(prev):
+                        neg_ct -= 1
+
+            if nobs >= minp:
+                result = sum_x / nobs
+                if neg_ct == 0 and result < 0:
+                    # all positive
+                    output[i] = 0
+                elif neg_ct == nobs and result > 0:
+                    # all negative
+                    output[i] = 0
+                else:
+                    output[i] = result
+            else:
+                output[i] = NaN
 
     return output
 
@@ -1242,6 +1243,8 @@ def nancorr_spearman(ndarray[float64_t, ndim=2] mat, Py_ssize_t minp=1):
 #----------------------------------------------------------------------
 # Rolling variance
 
+@cython.boundscheck(False)
+@cython.wraparound(False)
 def roll_var(ndarray[double_t] input, int win, int minp, int ddof=1):
     """
     Numerically stable implementation using Welford's method.
@@ -1257,80 +1260,82 @@ def roll_var(ndarray[double_t] input, int win, int minp, int ddof=1):
     # Check for windows larger than array, addresses #7297
     win = min(win, N)
 
-    # Over the first window, observations can only be added, never removed
-    for i from 0 <= i < win:
-        val = input[i]
+    with nogil:
+        # Over the first window, observations can only be added, never removed
+        for i from 0 <= i < win:
+            val = input[i]
 
-        # Not NaN
-        if val == val:
-            nobs += 1
-            delta = (val - mean_x)
-            mean_x += delta / nobs
-            ssqdm_x += delta * (val - mean_x)
-
-        if (nobs >= minp) and (nobs > ddof):
-            #pathological case
-            if nobs == 1:
-                val = 0
-            else:
-                val = ssqdm_x / (nobs - ddof)
-                if val < 0:
-                    val = 0
-        else:
-            val = NaN
-
-        output[i] = val
-
-    # After the first window, observations can both be added and removed
-    for i from win <= i < N:
-        val = input[i]
-        prev = input[i - win]
-
-        if val == val:
-            if prev == prev:
-                # Adding one observation and removing another one
-                delta = val - prev
-                prev -= mean_x
-                mean_x += delta / nobs
-                val -= mean_x
-                ssqdm_x += (val + prev) * delta
-            else:
-                # Adding one observation and not removing any
+            # Not NaN
+            if val == val:
                 nobs += 1
                 delta = (val - mean_x)
                 mean_x += delta / nobs
                 ssqdm_x += delta * (val - mean_x)
-        elif prev == prev:
-            # Adding no new observation, but removing one
-            nobs -= 1
-            if nobs:
-                delta = (prev - mean_x)
-                mean_x -= delta  / nobs
-                ssqdm_x -= delta * (prev - mean_x)
-            else:
-                mean_x = 0
-                ssqdm_x = 0
-        # Variance is unchanged if no observation is added or removed
 
-        if (nobs >= minp) and (nobs > ddof):
-            #pathological case
-            if nobs == 1:
-                val = 0
-            else:
-                val = ssqdm_x / (nobs - ddof)
-                if val < 0:
+            if (nobs >= minp) and (nobs > ddof):
+                #pathological case
+                if nobs == 1:
                     val = 0
-        else:
-            val = NaN
+                else:
+                    val = ssqdm_x / (nobs - ddof)
+                    if val < 0:
+                        val = 0
+            else:
+                val = NaN
 
-        output[i] = val
+            output[i] = val
+
+        # After the first window, observations can both be added and removed
+        for i from win <= i < N:
+            val = input[i]
+            prev = input[i - win]
+
+            if val == val:
+                if prev == prev:
+                    # Adding one observation and removing another one
+                    delta = val - prev
+                    prev -= mean_x
+                    mean_x += delta / nobs
+                    val -= mean_x
+                    ssqdm_x += (val + prev) * delta
+                else:
+                    # Adding one observation and not removing any
+                    nobs += 1
+                    delta = (val - mean_x)
+                    mean_x += delta / nobs
+                    ssqdm_x += delta * (val - mean_x)
+            elif prev == prev:
+                # Adding no new observation, but removing one
+                nobs -= 1
+                if nobs:
+                    delta = (prev - mean_x)
+                    mean_x -= delta  / nobs
+                    ssqdm_x -= delta * (prev - mean_x)
+                else:
+                    mean_x = 0
+                    ssqdm_x = 0
+            # Variance is unchanged if no observation is added or removed
+
+            if (nobs >= minp) and (nobs > ddof):
+                #pathological case
+                if nobs == 1:
+                    val = 0
+                else:
+                    val = ssqdm_x / (nobs - ddof)
+                    if val < 0:
+                        val = 0
+            else:
+                val = NaN
+
+            output[i] = val
 
     return output
 
 
 #-------------------------------------------------------------------------------
 # Rolling skewness
-
+@cython.boundscheck(False)
+@cython.wraparound(False)
 def roll_skew(ndarray[double_t] input, int win, int minp):
     cdef double val, prev
     cdef double x = 0, xx = 0, xxx = 0
@@ -1343,55 +1348,55 @@ def roll_skew(ndarray[double_t] input, int win, int minp):
     cdef double A, B, C, R
 
     minp = _check_minp(win, minp, N)
+    with nogil:
+        for i from 0 <= i < minp - 1:
+            val = input[i]
 
-    for i from 0 <= i < minp - 1:
-        val = input[i]
+            # Not NaN
+            if val == val:
+                nobs += 1
+                x += val
+                xx += val * val
+                xxx += val * val * val
 
-        # Not NaN
-        if val == val:
-            nobs += 1
-            x += val
-            xx += val * val
-            xxx += val * val * val
-
-        output[i] = NaN
-
-    for i from minp - 1 <= i < N:
-        val = input[i]
-
-        if val == val:
-            nobs += 1
-            x += val
-            xx += val * val
-            xxx += val * val * val
-
-        if i > win - 1:
-            prev = input[i - win]
-            if prev == prev:
-                x -= prev
-                xx -= prev * prev
-                xxx -= prev * prev * prev
-
-                nobs -= 1
-        if nobs >= minp:
-            A = x / nobs
-            B = xx / nobs - A * A
-            C = xxx / nobs - A * A * A - 3 * A * B
-            if B <= 0 or nobs < 3:
-                output[i] = NaN
-            else:
-                R = sqrt(B)
-                output[i] = ((sqrt(nobs * (nobs - 1.)) * C) /
-                             ((nobs-2) * R * R * R))
-        else:
             output[i] = NaN
+
+        for i from minp - 1 <= i < N:
+            val = input[i]
+
+            if val == val:
+                nobs += 1
+                x += val
+                xx += val * val
+                xxx += val * val * val
+
+            if i > win - 1:
+                prev = input[i - win]
+                if prev == prev:
+                    x -= prev
+                    xx -= prev * prev
+                    xxx -= prev * prev * prev
+
+                    nobs -= 1
+            if nobs >= minp:
+                A = x / nobs
+                B = xx / nobs - A * A
+                C = xxx / nobs - A * A * A - 3 * A * B
+                if B <= 0 or nobs < 3:
+                    output[i] = NaN
+                else:
+                    R = sqrt(B)
+                    output[i] = ((sqrt(nobs * (nobs - 1.)) * C) /
+                                 ((nobs-2) * R * R * R))
+            else:
+                output[i] = NaN
 
     return output
 
 #-------------------------------------------------------------------------------
 # Rolling kurtosis
-
-
+@cython.boundscheck(False)
+@cython.wraparound(False)
 def roll_kurt(ndarray[double_t] input,
                int win, int minp):
     cdef double val, prev
@@ -1405,62 +1410,62 @@ def roll_kurt(ndarray[double_t] input,
     cdef double A, B, C, D, R, K
 
     minp = _check_minp(win, minp, N)
+    with nogil:
+        for i from 0 <= i < minp - 1:
+            val = input[i]
 
-    for i from 0 <= i < minp - 1:
-        val = input[i]
+            # Not NaN
+            if val == val:
+                nobs += 1
 
-        # Not NaN
-        if val == val:
-            nobs += 1
+                # seriously don't ask me why this is faster
+                x += val
+                xx += val * val
+                xxx += val * val * val
+                xxxx += val * val * val * val
 
-            # seriously don't ask me why this is faster
-            x += val
-            xx += val * val
-            xxx += val * val * val
-            xxxx += val * val * val * val
+            output[i] = NaN
 
-        output[i] = NaN
+        for i from minp - 1 <= i < N:
+            val = input[i]
 
-    for i from minp - 1 <= i < N:
-        val = input[i]
+            if val == val:
+                nobs += 1
+                x += val
+                xx += val * val
+                xxx += val * val * val
+                xxxx += val * val * val * val
 
-        if val == val:
-            nobs += 1
-            x += val
-            xx += val * val
-            xxx += val * val * val
-            xxxx += val * val * val * val
+            if i > win - 1:
+                prev = input[i - win]
+                if prev == prev:
+                    x -= prev
+                    xx -= prev * prev
+                    xxx -= prev * prev * prev
+                    xxxx -= prev * prev * prev * prev
 
-        if i > win - 1:
-            prev = input[i - win]
-            if prev == prev:
-                x -= prev
-                xx -= prev * prev
-                xxx -= prev * prev * prev
-                xxxx -= prev * prev * prev * prev
+                    nobs -= 1
 
-                nobs -= 1
+            if nobs >= minp:
+                A = x / nobs
+                R = A * A
+                B = xx / nobs - R
+                R = R * A
+                C = xxx / nobs - R - 3 * A * B
+                R = R * A
+                D = xxxx / nobs - R - 6*B*A*A - 4*C*A
 
-        if nobs >= minp:
-            A = x / nobs
-            R = A * A
-            B = xx / nobs - R
-            R = R * A
-            C = xxx / nobs - R - 3 * A * B
-            R = R * A
-            D = xxxx / nobs - R - 6*B*A*A - 4*C*A
+                if B == 0 or nobs < 4:
+                    output[i] = NaN
 
-            if B == 0 or nobs < 4:
-                output[i] = NaN
+                else:
+                    K = (nobs * nobs - 1.)*D/(B*B) - 3*((nobs-1.)**2)
+                    K = K / ((nobs - 2.)*(nobs-3.))
+
+                    output[i] = K
 
             else:
-                K = (nobs * nobs - 1.)*D/(B*B) - 3*((nobs-1.)**2)
-                K = K / ((nobs - 2.)*(nobs-3.))
-
-                output[i] = K
-
-        else:
-            output[i] = NaN
+                output[i] = NaN
 
     return output
 
@@ -1512,9 +1517,13 @@ cdef _roll_skiplist_op(ndarray arg, int win, int minp, skiplist_f op):
 
 from skiplist cimport *
 
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
 def roll_median_c(ndarray[float64_t] arg, int win, int minp):
-    cdef double val, res, prev
     cdef:
+        double val, res, prev
+        bint err=0
         int ret=0
         skiplist_t *sl
         Py_ssize_t midpoint, nobs = 0, i
@@ -1524,70 +1533,58 @@ def roll_median_c(ndarray[float64_t] arg, int win, int minp):
     cdef ndarray[double_t] output = np.empty(N, dtype=float)
 
     sl = skiplist_init(win)
+    if sl == NULL:
+        raise MemoryError("skiplist_init failed")
 
     minp = _check_minp(win, minp, N)
 
-    for i from 0 <= i < minp - 1:
-        val = arg[i]
+    with nogil:
+        for i from 0 <= i < minp - 1:
+            val = arg[i]
 
-        # Not NaN
-        if val == val:
-            nobs += 1
-            skiplist_insert(sl, val)
+            # Not NaN
+            if val == val:
+                nobs += 1
+                err = skiplist_insert(sl, val) != 1
+                if err:
+                    break
+            output[i] = NaN
 
-        output[i] = NaN
+    with nogil:
+        if not err:
+            for i from minp - 1 <= i < N:
 
-    for i from minp - 1 <= i < N:
-        val = arg[i]
+                val = arg[i]
 
-        if i > win - 1:
-            prev = arg[i - win]
+                if i > win - 1:
+                    prev = arg[i - win]
 
-            if prev == prev:
-                skiplist_remove(sl, prev)
-                nobs -= 1
+                    if prev == prev:
+                        skiplist_remove(sl, prev)
+                        nobs -= 1
 
-        if val == val:
-            nobs += 1
-            skiplist_insert(sl, val)
+                if val == val:
+                    nobs += 1
+                    err = skiplist_insert(sl, val) != 1
+                    if err:
+                        break
 
-        if nobs >= minp:
-            midpoint = nobs / 2
-            if nobs % 2:
-                res = skiplist_get(sl, midpoint, &ret)
-            else:
-                res = (skiplist_get(sl, midpoint, &ret) +
-                       skiplist_get(sl, (midpoint - 1), &ret)) / 2
-        else:
-            res = NaN
+                if nobs >= minp:
+                    midpoint = nobs / 2
+                    if nobs % 2:
+                        res = skiplist_get(sl, midpoint, &ret)
+                    else:
+                        res = (skiplist_get(sl, midpoint, &ret) +
+                               skiplist_get(sl, (midpoint - 1), &ret)) / 2
+                else:
+                    res = NaN
 
-        output[i] = res
+                output[i] = res
 
-    skiplist_destroy(sl)
-
+        skiplist_destroy(sl)
+    if err:
+        raise MemoryError("skiplist_insert failed")
     return output
-
-def roll_median_cython(ndarray input, int win, int minp):
-    '''
-    O(N log(window)) implementation using skip list
-    '''
-    return _roll_skiplist_op(input, win, minp, _get_median)
-
-# Unfortunately had to resort to some hackery here, would like for
-# Cython to be able to get this right.
-
-cdef double_t _get_median(object sl, int nobs, int minp):
-    cdef Py_ssize_t midpoint
-    cdef IndexableSkiplist skiplist = <IndexableSkiplist> sl
-    if nobs >= minp:
-        midpoint = nobs / 2
-        if nobs % 2:
-            return skiplist.get(midpoint)
-        else:
-            return (skiplist.get(midpoint) +
-                    skiplist.get(midpoint - 1)) / 2
-    else:
-        return NaN
 
 #----------------------------------------------------------------------
 
@@ -1603,7 +1600,7 @@ from libc cimport stdlib
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def roll_max2(ndarray[float64_t] a, int window, int minp):
+def roll_max(ndarray[float64_t] a, int window, int minp):
     "Moving max of 1d array of dtype=float64 along axis=0 ignoring NaNs."
     cdef np.float64_t ai, aold
     cdef Py_ssize_t count
@@ -1617,7 +1614,7 @@ def roll_max2(ndarray[float64_t] a, int window, int minp):
     cdef Py_ssize_t n0 = dim[0]
     cdef np.npy_intp *dims = [n0]
     cdef np.ndarray[np.float64_t, ndim=1] y = PyArray_EMPTY(1, dims,
-		NPY_float64, 0)
+        NPY_float64, 0)
 
     if window < 1:
         raise ValueError('Invalid window size %d'
@@ -1628,64 +1625,58 @@ def roll_max2(ndarray[float64_t] a, int window, int minp):
                         % (minp, window))
 
     minp = _check_minp(window, minp, n0)
+    with nogil:
+        ring = <pairs*>stdlib.malloc(window * sizeof(pairs))
+        end = ring + window
+        last = ring
 
-    ring = <pairs*>stdlib.malloc(window * sizeof(pairs))
-    end = ring + window
-    last = ring
-
-    minpair = ring
-    ai = a[0]
-    if ai == ai:
-        minpair.value = ai
-    else:
-        minpair.value = MINfloat64
-    minpair.death = window
-
-    count = 0
-    for i0 in range(n0):
-        ai = a[i0]
+        minpair = ring
+        ai = a[0]
         if ai == ai:
-            count += 1
-        else:
-            ai = MINfloat64
-        if i0 >= window:
-            aold = a[i0 - window]
-            if aold == aold:
-                count -= 1
-        if minpair.death == i0:
-            minpair += 1
-            if minpair >= end:
-                minpair = ring
-        if ai >= minpair.value:
             minpair.value = ai
-            minpair.death = i0 + window
-            last = minpair
         else:
-            while last.value <= ai:
-                if last == ring:
-                    last = end
-                last -= 1
-            last += 1
-            if last == end:
-                last = ring
-            last.value = ai
-            last.death = i0 + window
-        if count >= minp:
-            y[i0] = minpair.value
-        else:
+            minpair.value = MINfloat64
+        minpair.death = window
+
+        count = 0
+        for i0 in range(n0):
+            ai = a[i0]
+            if ai == ai:
+                count += 1
+            else:
+                ai = MINfloat64
+            if i0 >= window:
+                aold = a[i0 - window]
+                if aold == aold:
+                    count -= 1
+            if minpair.death == i0:
+                minpair += 1
+                if minpair >= end:
+                    minpair = ring
+            if ai >= minpair.value:
+                minpair.value = ai
+                minpair.death = i0 + window
+                last = minpair
+            else:
+                while last.value <= ai:
+                    if last == ring:
+                        last = end
+                    last -= 1
+                last += 1
+                if last == end:
+                    last = ring
+                last.value = ai
+                last.death = i0 + window
+            if count >= minp:
+                y[i0] = minpair.value
+            else:
+                y[i0] = NaN
+
+        for i0 in range(minp - 1):
             y[i0] = NaN
 
-    for i0 in range(minp - 1):
-        y[i0] = NaN
-
-    stdlib.free(ring)
+        stdlib.free(ring)
     return y
-
-def roll_max(ndarray input, int win, int minp):
-    '''
-    O(N log(window)) implementation using skip list
-    '''
-    return _roll_skiplist_op(input, win, minp, _get_max)
 
 
 cdef double_t _get_max(object skiplist, int nobs, int minp):
@@ -1694,15 +1685,10 @@ cdef double_t _get_max(object skiplist, int nobs, int minp):
     else:
         return NaN
 
-def roll_min(ndarray input, int win, int minp):
-    '''
-    O(N log(window)) implementation using skip list
-    '''
-    return _roll_skiplist_op(input, win, minp, _get_min)
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def roll_min2(np.ndarray[np.float64_t, ndim=1] a, int window, int minp):
+def roll_min(np.ndarray[np.float64_t, ndim=1] a, int window, int minp):
     "Moving min of 1d array of dtype=float64 along axis=0 ignoring NaNs."
     cdef np.float64_t ai, aold
     cdef Py_ssize_t count
@@ -1716,7 +1702,7 @@ def roll_min2(np.ndarray[np.float64_t, ndim=1] a, int window, int minp):
     cdef Py_ssize_t n0 = dim[0]
     cdef np.npy_intp *dims = [n0]
     cdef np.ndarray[np.float64_t, ndim=1] y = PyArray_EMPTY(1, dims,
-		NPY_float64, 0)
+        NPY_float64, 0)
 
     if window < 1:
         raise ValueError('Invalid window size %d'
@@ -1727,57 +1713,57 @@ def roll_min2(np.ndarray[np.float64_t, ndim=1] a, int window, int minp):
                         % (minp, window))
 
     minp = _check_minp(window, minp, n0)
+    with nogil:
+        ring = <pairs*>stdlib.malloc(window * sizeof(pairs))
+        end = ring + window
+        last = ring
 
-    ring = <pairs*>stdlib.malloc(window * sizeof(pairs))
-    end = ring + window
-    last = ring
-
-    minpair = ring
-    ai = a[0]
-    if ai == ai:
-        minpair.value = ai
-    else:
-        minpair.value = MAXfloat64
-    minpair.death = window
-
-    count = 0
-    for i0 in range(n0):
-        ai = a[i0]
+        minpair = ring
+        ai = a[0]
         if ai == ai:
-            count += 1
-        else:
-            ai = MAXfloat64
-        if i0 >= window:
-            aold = a[i0 - window]
-            if aold == aold:
-                count -= 1
-        if minpair.death == i0:
-            minpair += 1
-            if minpair >= end:
-                minpair = ring
-        if ai <= minpair.value:
             minpair.value = ai
-            minpair.death = i0 + window
-            last = minpair
         else:
-            while last.value >= ai:
-                if last == ring:
-                    last = end
-                last -= 1
-            last += 1
-            if last == end:
-                last = ring
-            last.value = ai
-            last.death = i0 + window
-        if count >= minp:
-            y[i0] = minpair.value
-        else:
+            minpair.value = MAXfloat64
+        minpair.death = window
+
+        count = 0
+        for i0 in range(n0):
+            ai = a[i0]
+            if ai == ai:
+                count += 1
+            else:
+                ai = MAXfloat64
+            if i0 >= window:
+                aold = a[i0 - window]
+                if aold == aold:
+                    count -= 1
+            if minpair.death == i0:
+                minpair += 1
+                if minpair >= end:
+                    minpair = ring
+            if ai <= minpair.value:
+                minpair.value = ai
+                minpair.death = i0 + window
+                last = minpair
+            else:
+                while last.value >= ai:
+                    if last == ring:
+                        last = end
+                    last -= 1
+                last += 1
+                if last == end:
+                    last = ring
+                last.value = ai
+                last.death = i0 + window
+            if count >= minp:
+                y[i0] = minpair.value
+            else:
+                y[i0] = NaN
+
+        for i0 in range(minp - 1):
             y[i0] = NaN
 
-    for i0 in range(minp - 1):
-        y[i0] = NaN
-
-    stdlib.free(ring)
+        stdlib.free(ring)
     return y
 
 cdef double_t _get_min(object skiplist, int nobs, int minp):
@@ -2278,43 +2264,6 @@ def group_last_bin_object(ndarray[object, ndim=2] out,
                 out[i, j] = nan
             else:
                 out[i, j] = resx[i, j]
-
-
-
-#----------------------------------------------------------------------
-# median
-
-def group_median(ndarray[float64_t, ndim=2] out,
-                 ndarray[int64_t] counts,
-                 ndarray[float64_t, ndim=2] values,
-                 ndarray[int64_t] labels):
-    '''
-    Only aggregates on axis=0
-    '''
-    cdef:
-        Py_ssize_t i, j, N, K, ngroups, size
-        ndarray[int64_t] _counts
-        ndarray data
-        float64_t* ptr
-    ngroups = len(counts)
-    N, K = (<object> values).shape
-
-    indexer, _counts = groupsort_indexer(labels, ngroups)
-    counts[:] = _counts[1:]
-
-    data = np.empty((K, N), dtype=np.float64)
-    ptr = <float64_t*> data.data
-
-    take_2d_axis1_float64_float64(values.T, indexer, out=data)
-
-    for i in range(K):
-        # exclude NA group
-        ptr += _counts[0]
-        for j in range(ngroups):
-            size = _counts[j + 1]
-            out[j, i] = _median_linear(ptr, size)
-            ptr += size
-
 
 cdef inline float64_t _median_linear(float64_t* a, int n):
     cdef int i, j, na_count = 0

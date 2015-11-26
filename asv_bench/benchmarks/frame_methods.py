@@ -582,11 +582,38 @@ class frame_interpolate_some_good_infer(object):
         self.df.interpolate(downcast='infer')
 
 
-class frame_isnull(object):
+class frame_isnull_floats_no_null(object):
     goal_time = 0.2
 
     def setup(self):
         self.data = np.random.randn(1000, 1000)
+        self.df = DataFrame(self.data)
+
+    def time_frame_isnull(self):
+        isnull(self.df)
+
+
+class frame_isnull_floats(object):
+    goal_time = 0.2
+
+    def setup(self):
+        np.random.seed(1234)
+        self.sample = np.array([np.nan, 1.0])
+        self.data = np.random.choice(self.sample, (1000, 1000))
+        self.df = DataFrame(self.data)
+
+    def time_frame_isnull(self):
+        isnull(self.df)
+
+
+class frame_isnull_obj(object):
+    goal_time = 0.2
+
+    def setup(self):
+        np.random.seed(1234)
+        self.sample = np.array([NaT, np.nan, None, np.datetime64('NaT'),
+                                np.timedelta64('NaT'), 0, 1, 2.0, '', 'abcd'])
+        self.data = np.random.choice(self.sample, (1000, 1000))
         self.df = DataFrame(self.data)
 
     def time_frame_isnull(self):
@@ -651,6 +678,16 @@ class frame_iteritems_cached(object):
     def j(self):
         for i in range(10000):
             self.df3[0]
+
+
+class frame_itertuples(object):
+
+    def setup(self):
+        self.df = DataFrame(np.random.randn(50000, 10))
+
+    def time_frame_itertuples(self):
+        for row in self.df.itertuples():
+            pass
 
 
 class frame_mask_bools(object):
@@ -928,6 +965,16 @@ class frame_xs_row(object):
 
     def time_frame_xs_row(self):
         self.df.xs(50000)
+
+
+class frame_sort_index(object):
+    goal_time = 0.2
+
+    def setup(self):
+        self.df = DataFrame(randn(1000000, 2), columns=list('AB'))
+
+    def time_frame_sort_index(self):
+        self.df.sort_index()
 
 
 class series_string_vector_slice(object):

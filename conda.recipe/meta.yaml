@@ -12,7 +12,7 @@ requirements:
   build:
     - python
     - cython
-    - numpy
+    - numpy x.x
     - libpython # [py2k and win]
     - setuptools
     - pytz
@@ -20,7 +20,7 @@ requirements:
 
   run:
     - python
-    - numpy
+    - numpy x.x
     - python-dateutil
     - pytz
 

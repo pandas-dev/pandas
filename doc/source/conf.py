@@ -299,8 +299,9 @@ latex_documents = [
 intersphinx_mapping = {
     'statsmodels': ('http://statsmodels.sourceforge.net/devel/', None),
     'matplotlib': ('http://matplotlib.org/', None),
-    'python': ('http://docs.python.org/', None),
-    'numpy': ('http://docs.scipy.org/doc/numpy', None)
+    'python': ('http://docs.python.org/3', None),
+    'numpy': ('http://docs.scipy.org/doc/numpy', None),
+    'py': ('http://pylib.readthedocs.org/en/latest/', None)
 }
 import glob
 autosummary_generate = glob.glob("*.rst")
