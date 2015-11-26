@@ -60,7 +60,7 @@ typedef struct {
 } skiplist_t;
 
 static PANDAS_INLINE double urand(void) {
-  return rand() / ((double) RAND_MAX + 1);
+  return ((double) rand() + 1) / ((double) RAND_MAX + 2);
 }
 
 static PANDAS_INLINE int int_min(int a, int b) {
