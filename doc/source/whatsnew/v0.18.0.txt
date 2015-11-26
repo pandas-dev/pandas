@@ -105,3 +105,6 @@ Performance Improvements
 
 Bug Fixes
 ~~~~~~~~~
+
+- Bug in ``pd.concat`` while concatenating tz-aware NaT series. (:issue:`11693`)
+- Bug in ``pd.concat`` while concatenating tz-aware series with time series. (:issue:`11755`)
