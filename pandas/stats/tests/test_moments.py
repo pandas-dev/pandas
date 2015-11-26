@@ -1919,6 +1919,12 @@ class TestMomentsConsistency(Base):
         x = mom.rolling_median(series, window=1, freq='D')
         assert_series_equal(expected, x)
 
+    def test_rolling_median_memory_error(self):
+        # GH11722
+        n = 20000
+        mom.rolling_median(Series(np.random.randn(n)), window=2, center=False)
+        mom.rolling_median(Series(np.random.randn(n)), window=2, center=False)
+
 if __name__ == '__main__':
     import nose
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
