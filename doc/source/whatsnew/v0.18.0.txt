@@ -161,14 +161,13 @@ Bug Fixes
 
 
 
+
+
+
+
+
+
 - Bug in ``Timedelta.round`` with negative values (:issue:`11690`)
-
-
-
-
-
-
-
 - Bug in ``.loc`` against ``CategoricalIndex`` may result in normal ``Index`` (:issue:`11586`)
 
 
@@ -194,3 +193,5 @@ Bug Fixes
 
 - Bug in ``.loc`` result with duplicated key may have ``Index`` with incorrect dtype (:issue:`11497`)
 - Bug in ``pd.rolling_median`` where memory allocation failed even with sufficient memory (:issue:`11696`)
+
+- Bug in ``df.replace`` while replacing value in mixed dtype ``Dataframe`` (:issue:`11698`)

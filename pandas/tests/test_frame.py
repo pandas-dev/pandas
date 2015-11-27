@@ -9666,6 +9666,13 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         df = DataFrame(index=['a', 'b'])
         assert_frame_equal(df, df.replace(5, 7))
 
+        # GH 11698
+        # test for mixed data types.
+        df = pd.DataFrame([('-', pd.to_datetime('20150101')), ('a', pd.to_datetime('20150102'))])
+        df1 = df.replace('-', np.nan)
+        expected_df = pd.DataFrame([(np.nan, pd.to_datetime('20150101')), ('a', pd.to_datetime('20150102'))])
+        assert_frame_equal(df1, expected_df)
+
     def test_replace_list(self):
         obj = {'a': list('ab..'), 'b': list('efgh'), 'c': list('helo')}
         dfobj = DataFrame(obj)
