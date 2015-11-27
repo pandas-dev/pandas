@@ -991,6 +991,16 @@ class TestSeries(tm.TestCase, Generic):
         expected = s
         assert_series_equal(result, expected)
 
+    def test_interp_datetime_with_nats(self):
+        # GH-11701
+        expected = pd.Series(pd.date_range(
+            '2015-01-01', '2015-01-30'), name='t')
+        result = expected.copy()
+        result[[3, 4, 5, 13, 14, 15]] = pd.NaT
+        result = result.interpolate()
+        assert_series_equal(result, expected, True)
+
+
     def test_describe(self):
         _ = self.series.describe()
         _ = self.ts.describe()

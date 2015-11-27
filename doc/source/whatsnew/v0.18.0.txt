@@ -31,6 +31,7 @@ New features
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
 
+- Implement interpolating ``NaT`` values in ``datetime`` series (:issue:`11701`)
 
 
 

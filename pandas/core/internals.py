@@ -24,6 +24,8 @@ from pandas.core.index import Index, MultiIndex, _ensure_index
 from pandas.core.indexing import maybe_convert_indices, length_of_indexer
 from pandas.core.categorical import Categorical, maybe_to_categorical
 from pandas.tseries.index import DatetimeIndex
+from pandas.tseries.tools import to_datetime
+from pandas.tools.util import to_numeric
 import pandas.core.common as com
 import pandas.core.missing as mis
 import pandas.core.convert as convert
@@ -930,9 +932,12 @@ class Block(PandasObject):
         """ interpolate using scipy wrappers """
 
         data = self.values if inplace else self.values.copy()
+        is_datetime_with_nats = self.is_datetime and isnull(data).any()
 
+        if is_datetime_with_nats:
+            data = to_numeric(data)
         # only deal with floats
-        if not self.is_float:
+        elif not self.is_float:
             if not self.is_integer:
                 return self
             data = data.astype(np.float64)
@@ -958,6 +963,9 @@ class Block(PandasObject):
 
         # interp each column independently
         interp_values = np.apply_along_axis(func, axis, data)
+
+        if is_datetime_with_nats:
+            interp_values = to_datetime(interp_values)
 
         blocks = [self.make_block(interp_values,
                                   klass=self.__class__,
