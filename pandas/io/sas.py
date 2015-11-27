@@ -1,5 +1,5 @@
 """
-Tools for reading SAS XPort files into Pandas objects.
+Read a SAS XPort format file into a Pandas DataFrame.
 
 Based on code from Jack Cushman (github.com/jcushman/xport).
 
@@ -23,10 +23,6 @@ _correct_obs_header = "HEADER RECORD*******OBS     HEADER RECORD!!!!!!!000000000
 _fieldkeys = ['ntype', 'nhfun', 'field_length', 'nvar0', 'name', 'label',
               'nform', 'nfl', 'num_decimals', 'nfj', 'nfill', 'niform',
               'nifl', 'nifd', 'npos', '_']
-
-
-# TODO: Support for 4 byte floats, see https://github.com/jcushman/xport/pull/3
-# Need a test file
 
 
 _base_params_doc = """\
@@ -161,15 +157,33 @@ def _split_line(s, parts):
     return out
 
 
+def _handle_truncated_float_vec(vec, nbytes):
+    # This feature is not well documented, but some SAS XPORT files
+    # have 2-7 byte "truncated" floats.  To read these truncated
+    # floats, pad them with zeros on the right to make 8 byte floats.
+    #
+    # References:
+    # https://github.com/jcushman/xport/pull/3
+    # The R "foreign" library
+
+    if nbytes != 8:
+        vec1 = np.zeros(len(vec), np.dtype('S8'))
+        dtype = np.dtype('S%d,S%d' % (nbytes, 8 - nbytes))
+        vec2 = vec1.view(dtype=dtype)
+        vec2['f0'] = vec
+        return vec2
+
+    return vec
+
+
 def _parse_float_vec(vec):
     """
-    Parse a vector of 8-byte values representing IBM 8 byte floats
-    into native 8 byte floats.
+    Parse a vector of float values representing IBM 8 byte floats into
+    native 8 byte floats.
     """
 
     dtype = np.dtype('>u4,>u4')
     vec1 = vec.view(dtype=dtype)
-
     xport1 = vec1['f0']
     xport2 = vec1['f1']
 
@@ -266,7 +280,8 @@ class XportReader(object):
             raise ValueError("Header record is not an XPORT file.")
 
         line2 = self._get_row()
-        file_info = _split_line(line2, [ ['prefix',24], ['version',8], ['OS',8], ['_',24], ['created',16]])
+        file_info = _split_line(line2, [['prefix', 24], ['version', 8], ['OS', 8],
+                                        ['_', 24], ['created', 16]])
         if file_info['prefix'] != "SAS     SAS     SASLIB":
             raise ValueError("Header record has invalid prefix.")
         file_info['created'] = _parse_date(file_info['created'])
@@ -283,11 +298,11 @@ class XportReader(object):
         fieldnamelength = int(header1[-5:-2]) # usually 140, could be 135
 
         # member info
-        member_info = _split_line(self._get_row(), [['prefix',8], ['set_name',8],
-                                                    ['sasdata',8],['version',8],
-                                                    ['OS',8],['_',24],['created',16]])
-        member_info.update( _split_line(self._get_row(), [['modified',16], ['_',16],
-                                                          ['label',40],['type',8]]))
+        member_info = _split_line(self._get_row(), [['prefix', 8], ['set_name', 8],
+                                                    ['sasdata', 8],['version', 8],
+                                                    ['OS', 8],['_', 24],['created', 16]])
+        member_info.update( _split_line(self._get_row(), [['modified', 16], ['_', 16],
+                                                          ['label', 40],['type', 8]]))
         member_info['modified'] = _parse_date(member_info['modified'])
         member_info['created'] = _parse_date(member_info['created'])
         self.member_info = member_info
@@ -313,8 +328,9 @@ class XportReader(object):
             field = dict(zip(_fieldkeys, fieldstruct))
             del field['_']
             field['ntype'] = types[field['ntype']]
-            if field['ntype'] == 'numeric' and field['field_length'] != 8:
-                raise TypeError("Only 8-byte floats are currently implemented. Can't read field %s." % field)
+            fl = field['field_length']
+            if field['ntype'] == 'numeric' and ((fl < 2) or (fl > 8)):
+                raise TypeError("Floating point field width %d is not between 2 and 8." % fw)
 
             for k, v in field.items():
                 try:
@@ -339,11 +355,7 @@ class XportReader(object):
         # Setup the dtype.
         dtypel = []
         for i,field in enumerate(self.fields):
-            ntype = field['ntype']
-            if ntype == "numeric":
-                dtypel.append(('s' + str(i), ">u8"))
-            elif ntype == "char":
-                dtypel.append(('s' + str(i), "S" + str(field['field_length'])))
+            dtypel.append(('s' + str(i), "S" + str(field['field_length'])))
         dtype = np.dtype(dtypel)
         self._dtype = dtype
 
@@ -416,8 +428,8 @@ class XportReader(object):
     def _missing_double(self, vec):
         v = vec.view(dtype='u1,u1,u2,u4')
         miss = (v['f1'] == 0) & (v['f2'] == 0) & (v['f3'] == 0)
-        miss1 = ((v['f0'] >= 0x41) & (v['f0'] <= 0x5a)) |\
-                (v['f0'] == 0x5f) | (v['f0'] == 0x2e)
+        miss1 = (((v['f0'] >= 0x41) & (v['f0'] <= 0x5a)) |
+                 (v['f0'] == 0x5f) | (v['f0'] == 0x2e))
         miss &= miss1
         return miss
 
@@ -440,6 +452,7 @@ class XportReader(object):
             vec = data['s%d' % j]
             ntype = self.fields[j]['ntype']
             if ntype == "numeric":
+                vec = _handle_truncated_float_vec(vec, self.fields[j]['field_length'])
                 miss = self._missing_double(vec)
                 v = _parse_float_vec(vec)
                 v[miss] = np.nan
