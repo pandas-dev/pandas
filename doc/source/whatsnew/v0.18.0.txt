@@ -31,6 +31,8 @@ New features
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
 
+- Handle truncated floats in SAS xport files (:issue:`11713`)
+
 .. _whatsnew_0180.enhancements.rounding:
 
 Datetimelike rounding
