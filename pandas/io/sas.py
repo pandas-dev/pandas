@@ -330,7 +330,7 @@ class XportReader(object):
             field['ntype'] = types[field['ntype']]
             fl = field['field_length']
             if field['ntype'] == 'numeric' and ((fl < 2) or (fl > 8)):
-                raise TypeError("Floating point field width %d is nt between 2 and 8." % fw)
+                raise TypeError("Floating point field width %d is not between 2 and 8." % fw)
 
             for k, v in field.items():
                 try:
