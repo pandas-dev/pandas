@@ -31,7 +31,7 @@ New features
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
 
-
+- `read_pickle` can now unpickle from compressed files (:issue:`<num>`). 
 
 
 

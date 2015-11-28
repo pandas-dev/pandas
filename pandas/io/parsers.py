@@ -234,18 +234,28 @@ Also, 'delimiter' is used to specify the filler character of the
 fields if it is not spaces (e.g., '~').
 """ % (_parser_params % _fwf_widths)
 
+def get_compression(filepath_or_buffer, encoding, compression_kwd):
+    """
+    Determine the compression type of a file or buffer.
 
-def _read(filepath_or_buffer, kwds):
-    "Generic reader of line files."
-    encoding = kwds.get('encoding', None)
-    skipfooter = kwds.pop('skipfooter', None)
-    if skipfooter is not None:
-        kwds['skip_footer'] = skipfooter
+    Parameters
+    ----------
+    filepath_or_buffer : string
+        File path
+    encoding: string
+        Encoding type
+    compression_kwd: {'gzip', 'bz2', 'infer', None}
+        Compression type ('infer' looks for the file extensions .gz and .bz2, using gzip and bz2 to decompress
+        respectively).
 
+    Returns
+    -------
+    compression : {'gzip', 'bz2', None} depending on result
+    """
     # If the input could be a filename, check for a recognizable compression extension.
     # If we're reading from a URL, the `get_filepath_or_buffer` will use header info
     # to determine compression, so use what it finds in that case.
-    inferred_compression = kwds.get('compression')
+    inferred_compression = compression_kwd
     if inferred_compression == 'infer':
         if isinstance(filepath_or_buffer, compat.string_types):
             if filepath_or_buffer.endswith('.gz'):
@@ -259,8 +269,18 @@ def _read(filepath_or_buffer, kwds):
 
     filepath_or_buffer, _, compression = get_filepath_or_buffer(filepath_or_buffer,
                                                                 encoding,
-                                                                compression=kwds.get('compression', None))
-    kwds['compression'] = inferred_compression if compression == 'infer' else compression
+                                                                compression=compression_kwd)
+    return inferred_compression if compression == 'infer' else compression
+
+
+def _read(filepath_or_buffer, kwds):
+    "Generic reader of line files."
+    encoding = kwds.get('encoding', None)
+    skipfooter = kwds.pop('skipfooter', None)
+    if skipfooter is not None:
+        kwds['skip_footer'] = skipfooter
+
+    kwds['compression'] = get_compression(filepath_or_buffer, encoding, kwds['compression'])
 
     if kwds.get('date_parser', None) is not None:
         if isinstance(kwds['parse_dates'], bool):
