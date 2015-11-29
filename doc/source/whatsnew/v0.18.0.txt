@@ -106,6 +106,7 @@ Performance Improvements
 Bug Fixes
 ~~~~~~~~~
 
+- Bug in ``GroupBy.size`` when data-frame is empty. (:issue:`11699`)
 
 
 
