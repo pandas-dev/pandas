@@ -362,6 +362,28 @@ class Timestamp(_Timestamp):
     def _repr_base(self):
         return '%s %s' % (self._date_repr, self._time_repr)
 
+    def round(self, freq):
+        """
+        return a new Timestamp rounded to this resolution
+
+        Parameters
+        ----------
+        freq : a freq string indicating the rouding resolution
+        """
+        cdef int64_t unit
+        cdef object result, value
+
+        from pandas.tseries.frequencies import to_offset
+        unit = to_offset(freq).nanos
+        if self.tz is not None:
+            value = self.tz_localize(None).value
+        else:
+            value = self.value
+        result = Timestamp(unit*np.floor(value/unit),unit='ns')
+        if self.tz is not None:
+            result = result.tz_localize(self.tz)
+        return result
+
     @property
     def tz(self):
         """
@@ -2301,52 +2323,34 @@ class Timedelta(_Timedelta):
 
         self._ensure_components()
         if self._ns:
-           return "ns"
+           return "N"
         elif self._us:
-           return "us"
+           return "U"
         elif self._ms:
-           return "ms"
+           return "L"
         elif self._s:
-           return "s"
+           return "S"
         elif self._m:
-           return "m"
+           return "T"
         elif self._h:
-           return "h"
+           return "H"
         else:
            return "D"
 
-    def round(self, reso):
+    def round(self, freq):
         """
         return a new Timedelta rounded to this resolution
 
         Parameters
         ----------
-        reso : a string indicating the rouding resolution, accepting values
-           d,h,m,s,ms,us
-
+        freq : a freq string indicating the rouding resolution
         """
-        cdef int64_t frac, value = np.abs(self.value)
+        cdef int64_t result, unit
 
-        self._ensure_components()
-        frac = int(self._ms*1e6 + self._us*1e3+ self._ns)
-        if reso == 'us':
-           value -= self._ns
-        elif reso == 'ms':
-           value -= self._us*1000 + self._ns
-        elif reso == 's':
-           value -= frac
-        elif reso == 'm':
-           value -= int(self._s*1e9) + frac
-        elif reso == 'h':
-           value -= int((60*self._m + self._s)*1e9) + frac
-        elif reso == 'd' or reso == 'D':
-           value -= int((3600*self._h + 60*self._m + self._s)*1e9) + frac
-        else:
-           raise ValueError("invalid resolution")
-
-        if self._sign < 0:
-           value *= -1
-        return Timedelta(value,unit='ns')
+        from pandas.tseries.frequencies import to_offset
+        unit = to_offset(freq).nanos
+        result = unit*np.floor(self.value/unit)
+        return Timedelta(result,unit='ns')
 
     def _repr_base(self, format=None):
         """
@@ -2636,11 +2640,13 @@ def convert_to_timedelta(object ts, object unit='ns', errors='raise'):
     assert is_raise or is_ignore or is_coerce
     return convert_to_timedelta64(ts, unit, is_coerce)
 
-cdef dict timedelta_abbrevs = { 'd' : 'd',
+cdef dict timedelta_abbrevs = { 'D' : 'd',
+                                'd' : 'd',
                                 'days' : 'd',
                                 'day' : 'd',
                                 'hours' : 'h',
                                 'hour' : 'h',
+                                'hr' : 'h',
                                 'h' : 'h',
                                 'm' : 'm',
                                 'minute' : 'm',
@@ -2666,6 +2672,7 @@ cdef dict timedelta_abbrevs = { 'd' : 'd',
                                 'nanos' : 'ns',
                                 'nanosecond' : 'ns',
                                 }
+timedelta_abbrevs_map = timedelta_abbrevs
 
 cdef inline int64_t timedelta_as_neg(int64_t value, bint neg):
     """

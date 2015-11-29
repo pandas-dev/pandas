@@ -2702,6 +2702,41 @@ class TestDatetimeIndex(tm.TestCase):
         self.assertTrue(ordered[::-1].is_monotonic)
         self.assert_numpy_array_equal(dexer, [0, 2, 1])
 
+    def test_round(self):
+
+        # round
+        dt = Timestamp('20130101 09:10:11')
+        result = dt.round('D')
+        expected = Timestamp('20130101')
+        self.assertEqual(result, expected)
+
+        dti = date_range('20130101 09:10:11',periods=5)
+        result = dti.round('D')
+        expected = date_range('20130101',periods=5)
+        tm.assert_index_equal(result, expected)
+
+        # round with tz
+        dt = Timestamp('20130101 09:10:11',tz='US/Eastern')
+        result = dt.round('D')
+        expected = Timestamp('20130101',tz='US/Eastern')
+        self.assertEqual(result, expected)
+
+        dt = Timestamp('20130101 09:10:11',tz='US/Eastern')
+        result = dt.round('s')
+        self.assertEqual(result, dt)
+
+        dti = date_range('20130101 09:10:11',periods=5).tz_localize('UTC').tz_convert('US/Eastern')
+        result = dti.round('D')
+        expected = date_range('20130101',periods=5).tz_localize('US/Eastern')
+        tm.assert_index_equal(result, expected)
+
+        result = dti.round('s')
+        tm.assert_index_equal(result, dti)
+
+        # invalid
+        for freq in ['Y','M','foobar']:
+            self.assertRaises(ValueError, lambda : dti.round(freq))
+
     def test_insert(self):
         idx = DatetimeIndex(['2000-01-04', '2000-01-01', '2000-01-02'], name='idx')
 

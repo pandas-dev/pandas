@@ -31,13 +31,53 @@ New features
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
 
+.. _whatsnew_0180.enhancements.rounding:
+
+Datetimelike rounding
+^^^^^^^^^^^^^^^^^^^^^
+
+``DatetimeIndex``, ``Timestamp``, ``TimedeltaIndex``, ``Timedelta`` have gained the ``.round()`` method for datetimelike rounding. (:issue:`4314`)
+
+Naive datetimes
+
+.. ipython:: python
+
+   dr = pd.date_range('20130101 09:12:56.1234', periods=3)
+   dr
+   dr.round('s')
+
+   # Timestamp scalar
+   dr[0]
+   dr[0].round('10s')
+
+Tz-aware are rounded in local times
+
+.. ipython:: python
+
+   dr = dr.tz_localize('US/Eastern')
+   dr
+   dr.round('s')
+
+Timedeltas
+
+.. ipython:: python
+
+   t = timedelta_range('1 days 2 hr 13 min 45 us',periods=3,freq='d')
+   t
+   t.round('10min')
+
+   # Timedelta scalar
+   t[0]
+   t[0].round('2h')
 
 
+In addition, ``.round()`` will be available thru the ``.dt`` accessor of ``Series``.
 
+.. ipython:: python
 
-
-
-
+   s = Series(dr)
+   s
+   s.dt.round('D')
 
 .. _whatsnew_0180.api:
 
@@ -56,6 +96,9 @@ Backwards incompatible API changes
 
 Other API Changes
 ^^^^^^^^^^^^^^^^^
+
+
+
 
 
 
@@ -109,7 +152,7 @@ Bug Fixes
 - Bug in ``GroupBy.size`` when data-frame is empty. (:issue:`11699`)
 
 
-
+- Bug in ``Timedelta.round`` with negative values (:issue:`11690`)
 - Bug in ``.loc`` against ``CategoricalIndex`` may result in normal ``Index`` (:issue:`11586`)
 - Bug groupby on tz-aware data where selection not returning ``Timestamp`` (:issue:`11616`)
 - Bug in timezone info lost when broadcasting scalar datetime to ``DataFrame`` (:issue:`11682`)
