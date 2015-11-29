@@ -113,3 +113,7 @@ Bug Fixes
 - Bug in ``.loc`` against ``CategoricalIndex`` may result in normal ``Index`` (:issue:`11586`)
 - Bug groupby on tz-aware data where selection not returning ``Timestamp`` (:issue:`11616`)
 - Bug in timezone info lost when broadcasting scalar datetime to ``DataFrame`` (:issue:`11682`)
+
+
+- Bug in ``.loc`` result with duplicated key may have ``Index`` with incorrect dtype (:issue:`11497`)
+
