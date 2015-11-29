@@ -547,7 +547,7 @@ def andrews_curves(frame, class_column, ax=None, samples=200, color=None,
             # Take the rest of the coefficients and resize them appropriately. Take a copy of amplitudes as otherwise
             # numpy deletes the element from amplitudes itself.
             coeffs = np.delete(np.copy(amplitudes), 0)
-            coeffs.resize((coeffs.size + 1) / 2, 2)
+            coeffs.resize(int((coeffs.size + 1) / 2), 2)
 
             # Generate the harmonics and arguments for the sin and cos functions.
             harmonics = np.arange(0, coeffs.shape[0]) + 1
