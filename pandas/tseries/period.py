@@ -156,6 +156,8 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
     _datetimelike_ops = ['year','month','day','hour','minute','second',
                          'weekofyear','week','dayofweek','weekday','dayofyear','quarter', 'qyear', 'freq', 'days_in_month', 'daysinmonth']
     _is_numeric_dtype = False
+    _infer_as_myclass = True
+
     freq = None
 
     __eq__ = _period_index_cmp('__eq__')
@@ -279,9 +281,15 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
         result._reset_identity()
         return result
 
-    def _shallow_copy(self, values=None, infer=False, **kwargs):
+    def _shallow_copy_with_infer(self, values=None, **kwargs):
         """ we always want to return a PeriodIndex """
-        return super(PeriodIndex, self)._shallow_copy(values=values, infer=False, **kwargs)
+        return self._shallow_copy(values=values, **kwargs)
+
+    def _shallow_copy(self, values=None, **kwargs):
+        if kwargs.get('freq') is None:
+            # freq must be provided
+            kwargs['freq'] = self.freq
+        return super(PeriodIndex, self)._shallow_copy(values=values, **kwargs)
 
     def _coerce_scalar_to_index(self, item):
         """
