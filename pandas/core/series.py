@@ -1142,7 +1142,8 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin, generic.NDFrame,):
             lab[mask] = cnt = len(lev)
             lev = lev.insert(cnt, _get_na_value(lev.dtype.type))
 
-        out = np.bincount(lab[notnull(self.values)], minlength=len(lev))
+        obs = lab[notnull(self.values)]
+        out = np.bincount(obs, minlength=len(lev) or None)
         return self._constructor(out, index=lev, dtype='int64').__finalize__(self)
 
     def mode(self):

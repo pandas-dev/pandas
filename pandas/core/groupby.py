@@ -1439,7 +1439,7 @@ class BaseGrouper(object):
         """
         ids, _, ngroup = self.group_info
         ids = com._ensure_platform_int(ids)
-        out = np.bincount(ids[ids != -1], minlength=ngroup)
+        out = np.bincount(ids[ids != -1], minlength=ngroup or None)
         return Series(out, index=self.result_index, dtype='int64')
 
     @cache_readonly
@@ -2822,7 +2822,7 @@ class SeriesGroupBy(GroupBy):
 
         mask = (ids != -1) & ~isnull(val)
         ids = com._ensure_platform_int(ids)
-        out = np.bincount(ids[mask], minlength=ngroups) if ngroups != 0 else []
+        out = np.bincount(ids[mask], minlength=ngroups or None)
 
         return Series(out, index=self.grouper.result_index, name=self.name, dtype='int64')
 
