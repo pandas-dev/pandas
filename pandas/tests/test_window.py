@@ -191,6 +191,15 @@ class TestApi(Base):
         result = r.aggregate([a,b])
         assert_frame_equal(result, expected)
 
+    def test_preserve_metadata(self):
+        # GH 10565
+        s = Series(np.arange(100), name='foo')
+
+        s2 = s.rolling(30).sum()
+        s3 = s.rolling(20).sum()
+        self.assertEqual(s2.name, 'foo')
+        self.assertEqual(s3.name, 'foo')
+
 class TestDeprecations(Base):
     """ test that we are catching deprecation warnings """
 
@@ -815,10 +824,15 @@ class TestMoments(Base):
 
             # check via the API calls if name is provided
             if name is not None:
-                return getattr(obj.rolling(window=window,
-                                           min_periods=min_periods,
-                                           freq=freq,
-                                           center=center),name)(**kwargs)
+
+                # catch a freq deprecation warning if freq is provided and not None
+                w = FutureWarning if freq is not None else None
+                with tm.assert_produces_warning(w, check_stacklevel=False):
+                    r = obj.rolling(window=window,
+                                    min_periods=min_periods,
+                                    freq=freq,
+                                    center=center)
+                return getattr(r,name)(**kwargs)
 
             # check via the moments API
             with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
@@ -1001,15 +1015,6 @@ class TestMoments(Base):
             self.assertRaises(Exception, mom.ewma, self.arr, com=9.5, halflife=50)
             self.assertRaises(Exception, mom.ewma, self.arr, com=9.5, span=20, halflife=50)
             self.assertRaises(Exception, mom.ewma, self.arr)
-
-    def test_moment_preserve_series_name(self):
-        # GH 10565
-        s = Series(np.arange(100), name='foo')
-
-        s2 = s.rolling(30).sum()
-        s3 = s.rolling(20).sum()
-        self.assertEqual(s2.name, 'foo')
-        self.assertEqual(s3.name, 'foo')
 
     def test_ew_empty_arrays(self):
         arr = np.array([], dtype=np.float64)
@@ -2133,7 +2138,8 @@ class TestMomentsConsistency(Base):
         expected = Series([1.0, 2.0, 6.0, 4.0, 5.0],
                           index=[datetime(1975, 1, i, 0)
                                  for i in range(1, 6)])
-        x = series.rolling(window=1, freq='D').max()
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            x = series.rolling(window=1, freq='D').max()
         assert_series_equal(expected, x)
 
     def test_rolling_max_how_resample(self):
@@ -2152,14 +2158,16 @@ class TestMomentsConsistency(Base):
         expected = Series([0.0, 1.0, 2.0, 3.0, 20.0],
                           index=[datetime(1975, 1, i, 0)
                                  for i in range(1, 6)])
-        x = series.rolling(window=1, freq='D').max()
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            x = series.rolling(window=1, freq='D').max()
         assert_series_equal(expected, x)
 
         # Now specify median (10.0)
         expected = Series([0.0, 1.0, 2.0, 3.0, 10.0],
                           index=[datetime(1975, 1, i, 0)
                                  for i in range(1, 6)])
-        x = series.rolling(window=1, freq='D').max(how='median')
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            x = series.rolling(window=1, freq='D').max(how='median')
         assert_series_equal(expected, x)
 
         # Now specify mean (4+10+20)/3
@@ -2167,7 +2175,8 @@ class TestMomentsConsistency(Base):
         expected = Series([0.0, 1.0, 2.0, 3.0, v],
                           index=[datetime(1975, 1, i, 0)
                                  for i in range(1, 6)])
-        x = series.rolling(window=1, freq='D').max(how='mean')
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            x = series.rolling(window=1, freq='D').max(how='mean')
         assert_series_equal(expected, x)
 
 
@@ -2187,8 +2196,9 @@ class TestMomentsConsistency(Base):
         expected = Series([0.0, 1.0, 2.0, 3.0, 4.0],
                           index=[datetime(1975, 1, i, 0)
                                  for i in range(1, 6)])
-        x = series.rolling(window=1, freq='D').min()
-        assert_series_equal(expected, x)
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            r = series.rolling(window=1, freq='D')
+        assert_series_equal(expected, r.min())
 
     def test_rolling_median_how_resample(self):
 
@@ -2206,14 +2216,15 @@ class TestMomentsConsistency(Base):
         expected = Series([0.0, 1.0, 2.0, 3.0, 10],
                           index=[datetime(1975, 1, i, 0)
                                  for i in range(1, 6)])
-        x = series.rolling(window=1, freq='D').median()
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            x = series.rolling(window=1, freq='D').median()
         assert_series_equal(expected, x)
 
     def test_rolling_median_memory_error(self):
         # GH11722
         n = 20000
-        mom.rolling_median(Series(np.random.randn(n)), window=2, center=False)
-        mom.rolling_median(Series(np.random.randn(n)), window=2, center=False)
+        Series(np.random.randn(n)).rolling(window=2, center=False).median()
+        Series(np.random.randn(n)).rolling(window=2, center=False).median()
 
 if __name__ == '__main__':
     import nose

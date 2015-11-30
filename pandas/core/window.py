@@ -7,6 +7,7 @@ similar to how we have a Groupby object
 """
 from __future__ import division
 
+import warnings
 import numpy as np
 from functools import wraps
 from collections import defaultdict
@@ -39,6 +40,12 @@ class _Window(PandasObject, SelectionMixin):
 
     def __init__(self, obj, window=None, min_periods=None, freq=None, center=False,
                  win_type=None, axis=0):
+
+        if freq is not None:
+            warnings.warn("The freq kw is deprecated and will be removed in a future version. You can resample prior "
+                          "to passing to a window function",
+                          FutureWarning, stacklevel=3)
+
         self.blocks = []
         self.obj = obj
         self.window = window
@@ -298,7 +305,7 @@ class Window(_Window):
         ----------
         mean : boolean, default True
             If True computes weighted mean, else weighted sum
-        how : string, default to None
+        how : string, default to None (DEPRECATED)
             how to resample
 
         Returns
@@ -378,7 +385,7 @@ class _Rolling(_Window):
         window : int/array, default to _get_window()
         center : boolean, default to self.center
         check_minp : function, default to _use_window
-        how : string, default to None
+        how : string, default to None (DEPRECATED)
             how to resample
 
         Returns
@@ -486,10 +493,15 @@ class _Rolling_and_Expanding(_Rolling):
 
     Parameters
     ----------
-    how : string, default max
+    how : string, default 'max' (DEPRECATED)
     Method for down- or re-sampling""")
-
-    def max(self, how='max'):
+    def max(self, how=None):
+        if how is not None:
+            warnings.warn("The how kw argument is deprecated and removed in a future version. You can resample prior "
+                          "to passing to a window function",
+                          FutureWarning, stacklevel=3)
+        else:
+            how = 'max'
         return self._apply('roll_max', how=how)
 
     _shared_docs['min'] = dedent("""
@@ -497,10 +509,15 @@ class _Rolling_and_Expanding(_Rolling):
 
     Parameters
     ----------
-    how : string, default min
+    how : string, default 'min' (DEPRECATED)
     Method for down- or re-sampling""")
-
-    def min(self, how='min'):
+    def min(self, how=None):
+        if how is not None:
+            warnings.warn("The how kw argument is deprecated and removed in a future version. You can resample prior "
+                          "to passing to a window function",
+                          FutureWarning, stacklevel=3)
+        else:
+            how = 'min'
         return self._apply('roll_min', how=how)
 
     _shared_docs['mean'] = """%(name)s mean"""
@@ -512,10 +529,15 @@ class _Rolling_and_Expanding(_Rolling):
 
     Parameters
     ----------
-    how : string, default median
+    how : string, default 'median' (DEPRECATED)
     Method for down- or re-sampling""")
-
-    def median(self, how='median'):
+    def median(self, how=None):
+        if how is not None:
+            warnings.warn("The how kw argument is deprecated and removed in a future version. You can resample prior "
+                          "to passing to a window function",
+                          FutureWarning, stacklevel=3)
+        else:
+            how = 'median'
         return self._apply('roll_median_c', how=how)
 
     _shared_docs['std'] = dedent("""
@@ -654,7 +676,7 @@ class Rolling(_Rolling_and_Expanding):
     min_periods : int, default None
         Minimum number of observations in window required to have a value
         (otherwise result is NA).
-    freq : string or DateOffset object, optional (default None)
+    freq : string or DateOffset object, optional (default None) (DEPRECATED)
         Frequency to conform the data to before computing the statistic. Specified
         as a frequency string or DateOffset object.
     center : boolean, default False
@@ -704,14 +726,14 @@ class Rolling(_Rolling_and_Expanding):
     @Substitution(name='rolling')
     @Appender(_doc_template)
     @Appender(_shared_docs['max'])
-    def max(self, how='max'):
-        return super(Rolling, self).max(how=how)
+    def max(self, **kwargs):
+        return super(Rolling, self).max(**kwargs)
 
     @Substitution(name='rolling')
     @Appender(_doc_template)
     @Appender(_shared_docs['min'])
-    def min(self, how='min'):
-        return super(Rolling, self).min(how=how)
+    def min(self, **kwargs):
+        return super(Rolling, self).min(**kwargs)
 
     @Substitution(name='rolling')
     @Appender(_doc_template)
@@ -722,8 +744,8 @@ class Rolling(_Rolling_and_Expanding):
     @Substitution(name='rolling')
     @Appender(_doc_template)
     @Appender(_shared_docs['median'])
-    def median(self, how='median'):
-        return super(Rolling, self).median(how=how)
+    def median(self, **kwargs):
+        return super(Rolling, self).median(**kwargs)
 
     @Substitution(name='rolling')
     @Appender(_doc_template)
@@ -778,7 +800,7 @@ class Expanding(_Rolling_and_Expanding):
     min_periods : int, default None
         Minimum number of observations in window required to have a value
         (otherwise result is NA).
-    freq : string or DateOffset object, optional (default None)
+    freq : string or DateOffset object, optional (default None) (DEPRECATED)
         Frequency to conform the data to before computing the statistic. Specified
         as a frequency string or DateOffset object.
     center : boolean, default False
@@ -843,14 +865,14 @@ class Expanding(_Rolling_and_Expanding):
     @Substitution(name='expanding')
     @Appender(_doc_template)
     @Appender(_shared_docs['max'])
-    def max(self, how='max'):
-        return super(Expanding, self).max(how=how)
+    def max(self, **kwargs):
+        return super(Expanding, self).max(**kwargs)
 
     @Substitution(name='expanding')
     @Appender(_doc_template)
     @Appender(_shared_docs['min'])
-    def min(self, how='min'):
-        return super(Expanding, self).min(how=how)
+    def min(self, **kwargs):
+        return super(Expanding, self).min(**kwargs)
 
     @Substitution(name='expanding')
     @Appender(_doc_template)
@@ -861,8 +883,8 @@ class Expanding(_Rolling_and_Expanding):
     @Substitution(name='expanding')
     @Appender(_doc_template)
     @Appender(_shared_docs['median'])
-    def median(self, how='median'):
-        return super(Expanding, self).median(how=how)
+    def median(self, **kwargs):
+        return super(Expanding, self).median(**kwargs)
 
     @Substitution(name='expanding')
     @Appender(_doc_template)
@@ -923,7 +945,7 @@ class EWM(_Rolling):
     min_periods : int, default 0
         Minimum number of observations in window required to have a value
         (otherwise result is NA).
-    freq : None or string alias / date offset object, default=None
+    freq : None or string alias / date offset object, default=None (DEPRECATED)
         Frequency to conform to before computing statistic
     adjust : boolean, default True
         Divide by decaying adjustment factor in beginning periods to account for
@@ -1004,7 +1026,7 @@ class EWM(_Rolling):
         Parameters
         ----------
         func : string/callable to apply
-        how : string, default to None
+        how : string, default to None (DEPRECATED)
             how to resample
 
         Returns

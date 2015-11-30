@@ -13,6 +13,8 @@ users upgrade to this version.
 
 Highlights include:
 
+- Window functions are now methods on ``.groupby`` like objects, see :ref:`here <whatsnew_0180.moments>`.
+
 Check the :ref:`API Changes <whatsnew_0180.api>` and :ref:`deprecations <whatsnew_0180.deprecations>` before updating.
 
 .. contents:: What's new in v0.18.0
@@ -212,7 +214,7 @@ Deprecations
 
 .. _whatsnew_0180.window_deprecations:
 
-- Function ``pd.rolling_*``, ``pd.expanding_*``, and ``pd.ewm*`` are deprecated and replaced by the corresponding method call. Note that
+- The functions ``pd.rolling_*``, ``pd.expanding_*``, and ``pd.ewm*`` are deprecated and replaced by the corresponding method call. Note that
   the new suggested syntax includes all of the arguments (even if default) (:issue:`11603`)
 
   .. code-block:: python
@@ -236,6 +238,8 @@ Deprecations
              1    0.5
              2    0.5
              dtype: float64
+
+- The the ``freq`` and ``how`` arguments to the ``.rolling``, ``.expanding``, and ``.ewm`` (new) functions are deprecated, and will be removed in a future version. (:issue:`11603`)
 
 .. _whatsnew_0180.prior_deprecations:
 
