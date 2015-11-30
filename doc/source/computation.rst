@@ -207,7 +207,6 @@ Window Functions
    functions and are now deprecated and replaced by the corresponding method call.
 
    The deprecation warning will show the new syntax, see an example :ref:`here <whatsnew_0180.window_deprecations>`
-
    You can view the previous documentation
    `here <http://pandas.pydata.org/pandas-docs/version/0.17.1/computation.html#moving-rolling-statistics-moments>`__
 
@@ -244,8 +243,12 @@ accept the following arguments:
 - ``window``: size of moving window
 - ``min_periods``: threshold of non-null data points to require (otherwise
   result is NA)
-- ``freq``: optionally specify a :ref:`frequency string <timeseries.alias>`
-  or :ref:`DateOffset <timeseries.offsets>` to pre-conform the data to.
+
+.. warning::
+
+   The ``freq`` and ``how`` arguments were in the API prior to 0.18.0 changes. These are deprecated in the new API. You can simply resample the input prior to creating a window function.
+
+   For example, instead of ``s.rolling(window=5,freq='D').max()`` to get the max value on a rolling 5 Day window, one could use ``s.resample('D',how='max').rolling(window=5).max()``, which first resamples the data to daily data, then provides a rolling 5 day window.
 
 We can then call methods on these ``rolling`` objects. These return like-indexed objects:
 
@@ -604,8 +607,6 @@ all accept are:
 - ``min_periods``: threshold of non-null data points to require. Defaults to
   minimum needed to compute statistic. No ``NaNs`` will be output once
   ``min_periods`` non-null data points have been seen.
-- ``freq``: optionally specify a :ref:`frequency string <timeseries.alias>`
-  or :ref:`DateOffset <timeseries.offsets>` to pre-conform the data to.
 
 .. note::
 

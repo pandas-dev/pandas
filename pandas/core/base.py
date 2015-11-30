@@ -462,13 +462,8 @@ See also
                     colg = self._gotitem(obj.name, ndim=1, subset=obj)
                     results.append(colg.aggregate(a))
 
-                    # find a good name, this could be a function that we don't recognize
-                    name = self._is_cython_func(a) or a
-                    if not isinstance(name, compat.string_types):
-                        name = getattr(a,'name',a)
-                    if not isinstance(name, compat.string_types):
-                        name = getattr(a,'__name__',a)
-
+                    # make sure we find a good name
+                    name = com._get_callable_name(a) or a
                     keys.append(name)
                 except (TypeError, DataError):
                     pass
