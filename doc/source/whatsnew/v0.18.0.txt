@@ -31,6 +31,10 @@ New features
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
 
+- Handle truncated floats in SAS xport files (see
+  :class:`~pandas.io.sas.XPortReader`` and ``pd.read_sas``).
+
+
 .. _whatsnew_0180.enhancements.rounding:
 
 Datetimelike rounding
