@@ -22,6 +22,7 @@ class TestXport(tm.TestCase):
         self.file01 = os.path.join(self.dirpath, "DEMO_G.XPT")
         self.file02 = os.path.join(self.dirpath, "SSHSV1_A.XPT")
         self.file03 = os.path.join(self.dirpath, "DRXFCD_G.XPT")
+        self.file04 = os.path.join(self.dirpath, "paxraw_d_short.xpt")
 
 
     def test1(self):
@@ -109,4 +110,22 @@ class TestXport(tm.TestCase):
         tm.assert_frame_equal(data, data_csv)
 
         data = read_sas(self.file03)
+        tm.assert_frame_equal(data, data_csv)
+
+
+    def test4(self):
+        # Test with paxraw_d_short.xpt, a shortened version of:
+        # http://wwwn.cdc.gov/Nchs/Nhanes/2005-2006/PAXRAW_D.ZIP
+        # This file has truncated floats (5 bytes in this case).
+
+        data_csv = pd.read_csv(self.file04.replace(".xpt", ".csv"))
+
+        data = XportReader(self.file04).read()
+        for x in data:
+            data[x] = data[x].astype(np.int64)
+        tm.assert_frame_equal(data, data_csv)
+
+        data = read_sas(self.file04)
+        for x in data:
+            data[x] = data[x].astype(np.int64)
         tm.assert_frame_equal(data, data_csv)
