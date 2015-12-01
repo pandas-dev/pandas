@@ -65,6 +65,13 @@ def _skip_if_no_excelsuite():
     _skip_if_no_openpyxl()
 
 
+def _skip_if_no_boto():
+    try:
+        import boto  # NOQA
+    except ImportError:
+        raise nose.SkipTest('boto not installed, skipping')
+
+
 _seriesd = tm.getSeriesData()
 _tsd = tm.getTimeSeriesData()
 _frame = DataFrame(_seriesd)[:10]
@@ -425,6 +432,15 @@ class XlrdTests(ReadingTestsBase):
     def test_read_from_http_url(self):
         url = ('https://raw.github.com/pydata/pandas/master/'
                'pandas/io/tests/data/test1' + self.ext)
+        url_table = read_excel(url)
+        local_table = self.get_exceldf('test1')
+        tm.assert_frame_equal(url_table, local_table)
+
+    @tm.network(check_before_test=True)
+    def test_read_from_s3_url(self):
+        _skip_if_no_boto()
+
+        url = ('s3://pandas-test/test1' + self.ext)
         url_table = read_excel(url)
         local_table = self.get_exceldf('test1')
         tm.assert_frame_equal(url_table, local_table)

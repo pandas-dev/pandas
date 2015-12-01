@@ -11,7 +11,7 @@ import numpy as np
 
 from pandas.core.frame import DataFrame
 from pandas.io.parsers import TextParser
-from pandas.io.common import _is_url, _urlopen, _validate_header_arg
+from pandas.io.common import _is_url, _urlopen, _validate_header_arg, get_filepath_or_buffer, _is_s3_url
 from pandas.tseries.period import Period
 from pandas import json
 from pandas.compat import (map, zip, reduce, range, lrange, u, add_metaclass,
@@ -199,7 +199,10 @@ class ExcelFile(object):
             raise ValueError("Unknown engine: %s" % engine)
 
         if isinstance(io, compat.string_types):
-            if _is_url(io):
+            if _is_s3_url(io):
+                buffer, _, _ = get_filepath_or_buffer(io)
+                self.book = xlrd.open_workbook(file_contents=buffer.read())
+            elif _is_url(io):
                 data = _urlopen(io).read()
                 self.book = xlrd.open_workbook(file_contents=data)
             else:

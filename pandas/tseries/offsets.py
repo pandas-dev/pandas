@@ -496,6 +496,10 @@ class DateOffset(object):
 
         return fstr
 
+    @property
+    def nanos(self):
+        raise ValueError("{0} is a non-fixed frequency".format(self))
+
 class SingleConstructorOffset(DateOffset):
 
     @classmethod

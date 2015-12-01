@@ -12,7 +12,7 @@ from pandas.util.decorators import cache_readonly
 from pandas.tseries.frequencies import to_offset
 import pandas.core.common as com
 from pandas.tseries import timedeltas
-from pandas.tseries.base import DatetimeIndexOpsMixin
+from pandas.tseries.base import TimelikeOps, DatetimeIndexOpsMixin
 from pandas.tseries.timedeltas import to_timedelta, _coerce_scalar_to_timedelta_type
 import pandas.tseries.offsets as offsets
 from pandas.tseries.offsets import Tick, DateOffset
@@ -23,16 +23,6 @@ import pandas.algos as _algos
 import pandas.index as _index
 
 Timedelta = tslib.Timedelta
-
-_resolution_map = {
-    'ns' : offsets.Nano,
-    'us' : offsets.Micro,
-    'ms' : offsets.Milli,
-    's'  : offsets.Second,
-    'm'  : offsets.Minute,
-    'h'  : offsets.Hour,
-    'D'  : offsets.Day,
-    }
 
 def _td_index_cmp(opname, nat_result=False):
     """
@@ -73,7 +63,7 @@ def _td_index_cmp(opname, nat_result=False):
     return wrapper
 
 
-class TimedeltaIndex(DatetimeIndexOpsMixin, Int64Index):
+class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
     """
     Immutable ndarray of timedelta64 data, represented internally as int64, and
     which can be boxed to timedelta objects
@@ -129,6 +119,8 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, Int64Index):
     _comparables = ['name', 'freq']
     _attributes = ['name', 'freq']
     _is_numeric_dtype = True
+    _infer_as_myclass = True
+
     freq = None
 
     def __new__(cls, data=None, unit=None,
@@ -514,8 +506,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, Int64Index):
         name = self.name if self.name == other.name else None
         if (isinstance(other, TimedeltaIndex) and  self.freq == other.freq
             and self._can_fast_union(other)):
-            joined = self._shallow_copy(joined)
-            joined.name = name
+            joined = self._shallow_copy(joined, name=name)
             return joined
         else:
             return self._simple_new(joined, name)
@@ -706,7 +697,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, Int64Index):
             if side == 'left':
                 return lbound
             else:
-                return (lbound + _resolution_map[parsed.resolution]() -
+                return (lbound + to_offset(parsed.resolution) -
                         Timedelta(1, 'ns'))
         elif is_integer(label) or is_float(label):
             self._invalid_indexer('slice',label)
@@ -734,9 +725,8 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, Int64Index):
 
         # figure out the resolution of the passed td
         # and round to it
-        reso = parsed.resolution
         t1 = parsed.round(reso)
-        t2 = t1 + _resolution_map[reso]() - Timedelta(1,'ns')
+        t2 = t1 + to_offset(parsed.resolution) - Timedelta(1,'ns')
 
         stamps = self.asi8
 
