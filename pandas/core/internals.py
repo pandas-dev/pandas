@@ -588,6 +588,7 @@ class Block(PandasObject):
         compatibility."""
 
         original_to_replace = to_replace
+        mask = isnull(self.values)
 
         # try to replace, if we raise an error, convert to ObjectBlock and retry
         try:
