@@ -1211,10 +1211,10 @@ Thur,Lunch,Yes,51.51,17"""
         multi = df.set_index(['DATE', 'ID'])
         multi.columns.name = 'Params'
         unst = multi.unstack('ID')
-        down = unst.resample('W-THU')
+        down = unst.resample('W-THU').mean()
 
         rs = down.stack('ID')
-        xp = unst.ix[:, ['VAR1']].resample('W-THU').stack('ID')
+        xp = unst.ix[:, ['VAR1']].resample('W-THU').mean().stack('ID')
         xp.columns.name = 'Params'
         assert_frame_equal(rs, xp)
 

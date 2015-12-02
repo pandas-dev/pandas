@@ -3557,22 +3557,14 @@ class NDFrame(PandasObject):
         ----------
         rule : string
             the offset string or object representing target conversion
-        how : string
-            method for down- or re-sampling, default to 'mean' for
-            downsampling
         axis : int, optional, default 0
-        fill_method : string, default None
-            fill_method for upsampling
         closed : {'right', 'left'}
             Which side of bin interval is closed
         label : {'right', 'left'}
             Which bin edge label to label bucket with
         convention : {'start', 'end', 's', 'e'}
-        kind : "period"/"timestamp"
         loffset : timedelta
             Adjust the resampled time labels
-        limit : int, default None
-            Maximum size gap to when reindexing with fill_method
         base : int, default 0
             For frequencies that evenly subdivide 1 day, the "origin" of the
             aggregated intervals. For example, for '5min' frequency, base could
@@ -3601,7 +3593,7 @@ class NDFrame(PandasObject):
         Downsample the series into 3 minute bins and sum the values
         of the timestamps falling into a bin.
 
-        >>> series.resample('3T', how='sum')
+        >>> series.resample('3T').sum()
         2000-01-01 00:00:00     3
         2000-01-01 00:03:00    12
         2000-01-01 00:06:00    21
@@ -3617,7 +3609,7 @@ class NDFrame(PandasObject):
         To include this value close the right side of the bin interval as
         illustrated in the example below this one.
 
-        >>> series.resample('3T', how='sum', label='right')
+        >>> series.resample('3T', label='right').sum()
         2000-01-01 00:03:00     3
         2000-01-01 00:06:00    12
         2000-01-01 00:09:00    21
@@ -3626,7 +3618,7 @@ class NDFrame(PandasObject):
         Downsample the series into 3 minute bins as above, but close the right
         side of the bin interval.
 
-        >>> series.resample('3T', how='sum', label='right', closed='right')
+        >>> series.resample('3T', label='right', closed='right').sum()
         2000-01-01 00:00:00     0
         2000-01-01 00:03:00     6
         2000-01-01 00:06:00    15
@@ -3635,7 +3627,7 @@ class NDFrame(PandasObject):
 
         Upsample the series into 30 second bins.
 
-        >>> series.resample('30S')[0:5] #select first 5 rows
+        >>> series.resample('30S').upsample()[0:5] #select first 5 rows
         2000-01-01 00:00:00     0
         2000-01-01 00:00:30   NaN
         2000-01-01 00:01:00     1
@@ -3646,7 +3638,7 @@ class NDFrame(PandasObject):
         Upsample the series into 30 second bins and fill the ``NaN``
         values using the ``pad`` method.
 
-        >>> series.resample('30S', fill_method='pad')[0:5]
+        >>> series.resample('30S').pad()[0:5]
         2000-01-01 00:00:00    0
         2000-01-01 00:00:30    0
         2000-01-01 00:01:00    1
@@ -3657,7 +3649,7 @@ class NDFrame(PandasObject):
         Upsample the series into 30 second bins and fill the
         ``NaN`` values using the ``bfill`` method.
 
-        >>> series.resample('30S', fill_method='bfill')[0:5]
+        >>> series.resample('30S').bfill()[0:5]
         2000-01-01 00:00:00    0
         2000-01-01 00:00:30    1
         2000-01-01 00:01:00    1
@@ -3665,26 +3657,57 @@ class NDFrame(PandasObject):
         2000-01-01 00:02:00    2
         Freq: 30S, dtype: int64
 
-        Pass a custom function to ``how``.
+        Pass a custom function via ``apply``
 
         >>> def custom_resampler(array_like):
         ...     return np.sum(array_like)+5
 
-        >>> series.resample('3T', how=custom_resampler)
+        >>> series.resample('3T').apply(custom_resampler)
         2000-01-01 00:00:00     8
         2000-01-01 00:03:00    17
         2000-01-01 00:06:00    26
         Freq: 3T, dtype: int64
 
         """
+        from pandas.tseries.resample import resample
 
-        from pandas.tseries.resample import TimeGrouper
         axis = self._get_axis_number(axis)
-        sampler = TimeGrouper(rule, label=label, closed=closed, how=how,
-                              axis=axis, kind=kind, loffset=loffset,
-                              fill_method=fill_method, convention=convention,
-                              limit=limit, base=base)
-        return sampler.resample(self).__finalize__(self)
+        r = resample(self, freq=rule, label=label, closed=closed,
+                     axis=axis, kind=kind, loffset=loffset,
+                     fill_method=fill_method, convention=convention,
+                     limit=limit, base=base)
+
+        # deprecation warning
+        # but call the method anyhow
+        if fill_method is not None:
+            args = "limit={0}".format(limit) if limit is not None else ""
+            warnings.warn("fill_method is deprecated to .resample()\n"
+                          "the new syntax is .resample(...)."
+                          "{fill_method}({args})".format(
+                              fill_method=fill_method,
+                              args=args),
+                          FutureWarning, stacklevel=2)
+            return r.aggregate(fill_method, limit=limit)
+
+        # deprecation warning
+        # but call the method anyhow
+        if how is not None:
+
+            # .resample(..., how='sum')
+            if isinstance(how, compat.string_types):
+                method = "{0}()".format(how)
+
+            # .resample(..., how=lambda x: ....)
+            else:
+                method = ".apply(<func>)"
+
+            warnings.warn("how in .resample() is deprecated\n"
+                          "the new syntax is .resample(...).{method}".format(
+                              method=method),
+                          FutureWarning, stacklevel=2)
+            return r.aggregate(how)
+
+        return r
 
     def first(self, offset):
         """

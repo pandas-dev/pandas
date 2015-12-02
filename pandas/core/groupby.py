@@ -300,75 +300,9 @@ class GroupByPlot(PandasObject):
         return attr
 
 
-class GroupBy(PandasObject, SelectionMixin):
-
-    """
-    Class for grouping and aggregating relational data. See aggregate,
-    transform, and apply functions on this object.
-
-    It's easiest to use obj.groupby(...) to use GroupBy, but you can also do:
-
-    ::
-
-        grouped = groupby(obj, ...)
-
-    Parameters
-    ----------
-    obj : pandas object
-    axis : int, default 0
-    level : int, default None
-        Level of MultiIndex
-    groupings : list of Grouping objects
-        Most users should ignore this
-    exclusions : array-like, optional
-        List of columns to exclude
-    name : string
-        Most users should ignore this
-
-    Notes
-    -----
-    After grouping, see aggregate, apply, and transform functions. Here are
-    some other brief notes about usage. When grouping by multiple groups, the
-    result index will be a MultiIndex (hierarchical) by default.
-
-    Iteration produces (key, group) tuples, i.e. chunking the data by group. So
-    you can write code like:
-
-    ::
-
-        grouped = obj.groupby(keys, axis=axis)
-        for key, group in grouped:
-            # do something with the data
-
-    Function calls on GroupBy, if not specially implemented, "dispatch" to the
-    grouped data. So if you group a DataFrame and wish to invoke the std()
-    method on each group, you can simply do:
-
-    ::
-
-        df.groupby(mapper).std()
-
-    rather than
-
-    ::
-
-        df.groupby(mapper).aggregate(np.std)
-
-    You can pass arguments to these "wrapped" functions, too.
-
-    See the online documentation for full exposition on these topics and much
-    more
-
-    Returns
-    -------
-    **Attributes**
-    groups : dict
-        {group name -> group labels}
-    len(grouped) : int
-        Number of groups
-    """
-    _apply_whitelist = _common_apply_whitelist
+class _GroupBy(PandasObject, SelectionMixin):
     _group_selection = None
+    _apply_whitelist = frozenset([])
 
     def __init__(self, obj, keys=None, axis=0, level=None,
                  grouper=None, exclusions=None, selection=None, as_index=True,
@@ -659,12 +593,10 @@ class GroupBy(PandasObject, SelectionMixin):
         side-effects, as they will take effect twice for the first
         group.
 
+
         See also
         --------
-        aggregate, transform
-        pandas.Series.%(name)s
-        pandas.DataFrame.%(name)s
-        pandas.Panel.%(name)s"""
+        aggregate, transform"""
 
         func = self._is_builtin_func(func)
 
@@ -673,7 +605,7 @@ class GroupBy(PandasObject, SelectionMixin):
             return func(g, *args, **kwargs)
 
         # ignore SettingWithCopy here in case the user mutates
-        with option_context('mode.chained_assignment',None):
+        with option_context('mode.chained_assignment', None):
             return self._python_apply_general(f)
 
     def _python_apply_general(self, f):
@@ -688,6 +620,259 @@ class GroupBy(PandasObject, SelectionMixin):
 
     def transform(self, func, *args, **kwargs):
         raise AbstractMethodError(self)
+
+    def _cumcount_array(self, arr=None, ascending=True):
+        """
+        arr is where cumcount gets its values from
+
+        Note
+        ----
+        this is currently implementing sort=False
+        (though the default is sort=True) for groupby in general
+        """
+        if arr is None:
+            arr = np.arange(self.grouper._max_groupsize, dtype='int64')
+
+        len_index = len(self._selected_obj.index)
+        cumcounts = np.zeros(len_index, dtype=arr.dtype)
+        if not len_index:
+            return cumcounts
+
+        indices, values = [], []
+        for v in self.indices.values():
+            indices.append(v)
+
+            if ascending:
+                values.append(arr[:len(v)])
+            else:
+                values.append(arr[len(v) - 1::-1])
+
+        indices = np.concatenate(indices)
+        values = np.concatenate(values)
+        cumcounts[indices] = values
+
+        return cumcounts
+
+    def _index_with_as_index(self, b):
+        """
+        Take boolean mask of index to be returned from apply, if as_index=True
+
+        """
+        # TODO perf, it feels like this should already be somewhere...
+        from itertools import chain
+        original = self._selected_obj.index
+        gp = self.grouper
+        levels = chain((gp.levels[i][gp.labels[i][b]]
+                        for i in range(len(gp.groupings))),
+                       (original.get_level_values(i)[b]
+                        for i in range(original.nlevels)))
+        new = MultiIndex.from_arrays(list(levels))
+        new.names = gp.names + original.names
+        return new
+
+    def _try_cast(self, result, obj):
+        """
+        try to cast the result to our obj original type,
+        we may have roundtripped thru object in the mean-time
+
+        """
+        if obj.ndim > 1:
+            dtype = obj.values.dtype
+        else:
+            dtype = obj.dtype
+
+        if not np.isscalar(result):
+            result = _possibly_downcast_to_dtype(result, dtype)
+
+        return result
+
+    def _cython_transform(self, how, numeric_only=True):
+        output = {}
+        for name, obj in self._iterate_slices():
+            is_numeric = is_numeric_dtype(obj.dtype)
+            if numeric_only and not is_numeric:
+                continue
+
+            try:
+                result, names = self.grouper.transform(obj.values, how)
+            except AssertionError as e:
+                raise GroupByError(str(e))
+            output[name] = self._try_cast(result, obj)
+
+        if len(output) == 0:
+            raise DataError('No numeric types to aggregate')
+
+        return self._wrap_transformed_output(output, names)
+
+    def _cython_agg_general(self, how, numeric_only=True):
+        output = {}
+        for name, obj in self._iterate_slices():
+            is_numeric = is_numeric_dtype(obj.dtype)
+            if numeric_only and not is_numeric:
+                continue
+
+            try:
+                result, names = self.grouper.aggregate(obj.values, how)
+            except AssertionError as e:
+                raise GroupByError(str(e))
+            output[name] = self._try_cast(result, obj)
+
+        if len(output) == 0:
+            raise DataError('No numeric types to aggregate')
+
+        return self._wrap_aggregated_output(output, names)
+
+    def _python_agg_general(self, func, *args, **kwargs):
+        func = self._is_builtin_func(func)
+        f = lambda x: func(x, *args, **kwargs)
+
+        # iterate through "columns" ex exclusions to populate output dict
+        output = {}
+        for name, obj in self._iterate_slices():
+            try:
+                result, counts = self.grouper.agg_series(obj, f)
+                output[name] = self._try_cast(result, obj)
+            except TypeError:
+                continue
+
+        if len(output) == 0:
+            return self._python_apply_general(f)
+
+        if self.grouper._filter_empty_groups:
+
+            mask = counts.ravel() > 0
+            for name, result in compat.iteritems(output):
+
+                # since we are masking, make sure that we have a float object
+                values = result
+                if is_numeric_dtype(values.dtype):
+                    values = com.ensure_float(values)
+
+                output[name] = self._try_cast(values[mask], result)
+
+        return self._wrap_aggregated_output(output)
+
+    def _wrap_applied_output(self, *args, **kwargs):
+        raise AbstractMethodError(self)
+
+    def _concat_objects(self, keys, values, not_indexed_same=False):
+        from pandas.tools.merge import concat
+
+        if not not_indexed_same:
+            result = concat(values, axis=self.axis)
+            ax = self._selected_obj._get_axis(self.axis)
+
+            if isinstance(result, Series):
+                result = result.reindex(ax)
+            else:
+                result = result.reindex_axis(ax, axis=self.axis)
+
+        elif self.group_keys:
+
+            if self.as_index:
+
+                # possible MI return case
+                group_keys = keys
+                group_levels = self.grouper.levels
+                group_names = self.grouper.names
+                result = concat(values, axis=self.axis, keys=group_keys,
+                                levels=group_levels, names=group_names)
+            else:
+
+                # GH5610, returns a MI, with the first level being a
+                # range index
+                keys = list(range(len(values)))
+                result = concat(values, axis=self.axis, keys=keys)
+        else:
+            result = concat(values, axis=self.axis)
+
+        return result
+
+    def _apply_filter(self, indices, dropna):
+        if len(indices) == 0:
+            indices = []
+        else:
+            indices = np.sort(np.concatenate(indices))
+        if dropna:
+            filtered = self._selected_obj.take(indices, axis=self.axis)
+        else:
+            mask = np.empty(len(self._selected_obj.index), dtype=bool)
+            mask.fill(False)
+            mask[indices.astype(int)] = True
+            # mask fails to broadcast when passed to where; broadcast manually.
+            mask = np.tile(mask, list(self._selected_obj.shape[1:]) + [1]).T
+            filtered = self._selected_obj.where(mask)  # Fill with NaNs.
+        return filtered
+
+
+class GroupBy(_GroupBy):
+
+    """
+    Class for grouping and aggregating relational data. See aggregate,
+    transform, and apply functions on this object.
+
+    It's easiest to use obj.groupby(...) to use GroupBy, but you can also do:
+
+    ::
+
+        grouped = groupby(obj, ...)
+
+    Parameters
+    ----------
+    obj : pandas object
+    axis : int, default 0
+    level : int, default None
+        Level of MultiIndex
+    groupings : list of Grouping objects
+        Most users should ignore this
+    exclusions : array-like, optional
+        List of columns to exclude
+    name : string
+        Most users should ignore this
+
+    Notes
+    -----
+    After grouping, see aggregate, apply, and transform functions. Here are
+    some other brief notes about usage. When grouping by multiple groups, the
+    result index will be a MultiIndex (hierarchical) by default.
+
+    Iteration produces (key, group) tuples, i.e. chunking the data by group. So
+    you can write code like:
+
+    ::
+
+        grouped = obj.groupby(keys, axis=axis)
+        for key, group in grouped:
+            # do something with the data
+
+    Function calls on GroupBy, if not specially implemented, "dispatch" to the
+    grouped data. So if you group a DataFrame and wish to invoke the std()
+    method on each group, you can simply do:
+
+    ::
+
+        df.groupby(mapper).std()
+
+    rather than
+
+    ::
+
+        df.groupby(mapper).aggregate(np.std)
+
+    You can pass arguments to these "wrapped" functions, too.
+
+    See the online documentation for full exposition on these topics and much
+    more
+
+    Returns
+    -------
+    **Attributes**
+    groups : dict
+        {group name -> group labels}
+    len(grouped) : int
+        Number of groups
+    """
+    _apply_whitelist = _common_apply_whitelist
 
     def irow(self, i):
         """
@@ -824,6 +1009,30 @@ class GroupBy(PandasObject, SelectionMixin):
 
         return self._apply_to_column_groupbys(
             lambda x: x._cython_agg_general('ohlc'))
+
+    @Substitution(name='groupby')
+    @Appender(_doc_template)
+    def resample(self, rule, **kwargs):
+        """
+        Provide resampling when using a TimeGrouper
+        Return a new grouper with our resampler appended
+        """
+        from pandas.tseries.resample import TimeGrouper
+        gpr = TimeGrouper(axis=self.axis, freq=rule, **kwargs)
+
+        # we by definition have at least 1 key as we are already a grouper
+        groupings = list(self.grouper.groupings)
+        groupings.append(gpr)
+
+        return self.__class__(self.obj,
+                              keys=groupings,
+                              axis=self.axis,
+                              level=self.level,
+                              as_index=self.as_index,
+                              sort=self.sort,
+                              group_keys=self.group_keys,
+                              squeeze=self.squeeze,
+                              selection=self._selection)
 
     @Substitution(name='groupby')
     @Appender(_doc_template)
@@ -1119,189 +1328,6 @@ class GroupBy(PandasObject, SelectionMixin):
         tail = obj[in_tail]
         return tail
 
-    def _cumcount_array(self, arr=None, ascending=True):
-        """
-        arr is where cumcount gets its values from
-
-        Note
-        ----
-        this is currently implementing sort=False (though the default is sort=True)
-        for groupby in general
-        """
-        if arr is None:
-            arr = np.arange(self.grouper._max_groupsize, dtype='int64')
-
-        len_index = len(self._selected_obj.index)
-        cumcounts = np.zeros(len_index, dtype=arr.dtype)
-        if not len_index:
-            return cumcounts
-
-        indices, values = [], []
-        for v in self.indices.values():
-            indices.append(v)
-
-            if ascending:
-                values.append(arr[:len(v)])
-            else:
-                values.append(arr[len(v)-1::-1])
-
-        indices = np.concatenate(indices)
-        values = np.concatenate(values)
-        cumcounts[indices] = values
-
-        return cumcounts
-
-    def _index_with_as_index(self, b):
-        """
-        Take boolean mask of index to be returned from apply, if as_index=True
-
-        """
-        # TODO perf, it feels like this should already be somewhere...
-        from itertools import chain
-        original = self._selected_obj.index
-        gp = self.grouper
-        levels = chain((gp.levels[i][gp.labels[i][b]]
-                        for i in range(len(gp.groupings))),
-                       (original.get_level_values(i)[b]
-                        for i in range(original.nlevels)))
-        new = MultiIndex.from_arrays(list(levels))
-        new.names = gp.names + original.names
-        return new
-
-    def _try_cast(self, result, obj):
-        """
-        try to cast the result to our obj original type,
-        we may have roundtripped thru object in the mean-time
-
-        """
-        if obj.ndim > 1:
-            dtype = obj.values.dtype
-        else:
-            dtype = obj.dtype
-
-        if not np.isscalar(result):
-            result = _possibly_downcast_to_dtype(result, dtype)
-
-        return result
-
-    def _cython_transform(self, how, numeric_only=True):
-        output = {}
-        for name, obj in self._iterate_slices():
-            is_numeric = is_numeric_dtype(obj.dtype)
-            if numeric_only and not is_numeric:
-                continue
-
-            try:
-                result, names = self.grouper.transform(obj.values, how)
-            except AssertionError as e:
-                raise GroupByError(str(e))
-            output[name] = self._try_cast(result, obj)
-
-        if len(output) == 0:
-            raise DataError('No numeric types to aggregate')
-
-        return self._wrap_transformed_output(output, names)
-
-    def _cython_agg_general(self, how, numeric_only=True):
-        output = {}
-        for name, obj in self._iterate_slices():
-            is_numeric = is_numeric_dtype(obj.dtype)
-            if numeric_only and not is_numeric:
-                continue
-
-            try:
-                result, names = self.grouper.aggregate(obj.values, how)
-            except AssertionError as e:
-                raise GroupByError(str(e))
-            output[name] = self._try_cast(result, obj)
-
-        if len(output) == 0:
-            raise DataError('No numeric types to aggregate')
-
-        return self._wrap_aggregated_output(output, names)
-
-    def _python_agg_general(self, func, *args, **kwargs):
-        func = self._is_builtin_func(func)
-        f = lambda x: func(x, *args, **kwargs)
-
-        # iterate through "columns" ex exclusions to populate output dict
-        output = {}
-        for name, obj in self._iterate_slices():
-            try:
-                result, counts = self.grouper.agg_series(obj, f)
-                output[name] = self._try_cast(result, obj)
-            except TypeError:
-                continue
-
-        if len(output) == 0:
-            return self._python_apply_general(f)
-
-        if self.grouper._filter_empty_groups:
-
-            mask = counts.ravel() > 0
-            for name, result in compat.iteritems(output):
-
-                # since we are masking, make sure that we have a float object
-                values = result
-                if is_numeric_dtype(values.dtype):
-                    values = com.ensure_float(values)
-
-                output[name] = self._try_cast(values[mask], result)
-
-        return self._wrap_aggregated_output(output)
-
-    def _wrap_applied_output(self, *args, **kwargs):
-        raise AbstractMethodError(self)
-
-    def _concat_objects(self, keys, values, not_indexed_same=False):
-        from pandas.tools.merge import concat
-
-        if not not_indexed_same:
-            result = concat(values, axis=self.axis)
-            ax = self._selected_obj._get_axis(self.axis)
-
-            if isinstance(result, Series):
-                result = result.reindex(ax)
-            else:
-                result = result.reindex_axis(ax, axis=self.axis)
-
-        elif self.group_keys:
-
-            if self.as_index:
-
-                # possible MI return case
-                group_keys = keys
-                group_levels = self.grouper.levels
-                group_names = self.grouper.names
-                result = concat(values, axis=self.axis, keys=group_keys,
-                                levels=group_levels, names=group_names)
-            else:
-
-                # GH5610, returns a MI, with the first level being a
-                # range index
-                keys = list(range(len(values)))
-                result = concat(values, axis=self.axis, keys=keys)
-        else:
-            result = concat(values, axis=self.axis)
-
-        return result
-
-    def _apply_filter(self, indices, dropna):
-        if len(indices) == 0:
-            indices = []
-        else:
-            indices = np.sort(np.concatenate(indices))
-        if dropna:
-            filtered = self._selected_obj.take(indices, axis=self.axis)
-        else:
-            mask = np.empty(len(self._selected_obj.index), dtype=bool)
-            mask.fill(False)
-            mask[indices.astype(int)] = True
-            # mask fails to broadcast when passed to where; broadcast manually.
-            mask = np.tile(mask, list(self._selected_obj.shape[1:]) + [1]).T
-            filtered = self._selected_obj.where(mask)  # Fill with NaNs.
-        return filtered
-
 
 @Appender(GroupBy.__doc__)
 def groupby(obj, by, **kwds):
@@ -1546,19 +1572,22 @@ class BaseGrouper(object):
                 'f': lambda func, a, b, c, d: func(a, b, c, d, 1)
             },
             'last': 'group_last',
-            },
+            'ohlc': 'group_ohlc',
+        },
 
         'transform': {
-            'cumprod' : 'group_cumprod',
-            'cumsum' : 'group_cumsum',
-            }
+            'cumprod': 'group_cumprod',
+            'cumsum': 'group_cumsum',
+        }
     }
 
     _cython_arity = {
         'ohlc': 4,  # OHLC
     }
 
-    _name_functions = {}
+    _name_functions = {
+        'ohlc': lambda *args: ['open', 'high', 'low', 'close']
+    }
 
     def _get_cython_function(self, kind, how, values, is_numeric):
 
@@ -1947,21 +1976,16 @@ class BinGrouper(BaseGrouper):
         # for compat
         return None
 
-    #----------------------------------------------------------------------
-    # cython aggregation
-
-    _cython_functions = copy.deepcopy(BaseGrouper._cython_functions)
-    _cython_functions['aggregate']['ohlc'] = 'group_ohlc'
-    _cython_functions['aggregate'].pop('median')
-
-    _name_functions = {
-        'ohlc': lambda *args: ['open', 'high', 'low', 'close']
-    }
-
     def agg_series(self, obj, func):
         dummy = obj[:0]
         grouper = lib.SeriesBinGrouper(obj, func, self.bins, dummy)
         return grouper.get_result()
+
+    # ----------------------------------------------------------------------
+    # cython aggregation
+
+    _cython_functions = copy.deepcopy(BaseGrouper._cython_functions)
+    _cython_functions['aggregate'].pop('median')
 
 
 class Grouping(object):
@@ -2273,10 +2297,19 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True):
             in_axis, name = False, None
 
         if is_categorical_dtype(gpr) and len(gpr) != len(obj):
-            raise ValueError("Categorical dtype grouper must have len(grouper) == len(data)")
+            raise ValueError("Categorical dtype grouper must "
+                             "have len(grouper) == len(data)")
 
-        ping = Grouping(group_axis, gpr, obj=obj, name=name,
-                        level=level, sort=sort, in_axis=in_axis)
+        # create the Grouping
+        # allow us to passing the actual Grouping as the gpr
+        ping = Grouping(group_axis,
+                        gpr,
+                        obj=obj,
+                        name=name,
+                        level=level,
+                        sort=sort,
+                        in_axis=in_axis) \
+            if not isinstance(gpr, Grouping) else gpr
 
         groupings.append(ping)
 
@@ -2676,6 +2709,7 @@ class SeriesGroupBy(GroupBy):
         return filtered
 
     def nunique(self, dropna=True):
+        """ Returns number of unique elements in the group """
         ids, _, _ = self.grouper.group_info
         val = self.obj.get_values()
 

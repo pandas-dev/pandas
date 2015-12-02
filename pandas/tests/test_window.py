@@ -132,6 +132,7 @@ class TestApi(Base):
         assert_frame_equal(result, expected)
 
         result = r.aggregate({'A': np.mean, 'B': np.std})
+
         expected = pd.concat([a_mean, b_std], axis=1)
         compare(result, expected)
 
@@ -165,20 +166,6 @@ class TestApi(Base):
         expected = pd.concat([a_mean, a_std, b_mean, b_std], axis=1)
         expected.columns = pd.MultiIndex.from_tuples([('A', 'mean'), (
             'A', 'std'), ('B', 'mean'), ('B', 'std')])
-        compare(result, expected)
-
-        result = r.aggregate({'r1': {'A': ['mean', 'sum']},
-                              'r2': {'B': ['mean', 'sum']}})
-        expected = pd.concat([a_mean, a_sum, b_mean, b_sum], axis=1)
-        expected.columns = pd.MultiIndex.from_tuples([('r1', 'A', 'mean'), (
-            'r1', 'A', 'sum'), ('r2', 'B', 'mean'), ('r2', 'B', 'sum')])
-        compare(result, expected)
-
-        result = r.agg({'A': {'ra': ['mean', 'std']},
-                        'B': {'rb': ['mean', 'std']}})
-        expected = pd.concat([a_mean, a_std, b_mean, b_std], axis=1)
-        expected.columns = pd.MultiIndex.from_tuples([('A', 'ra', 'mean'), (
-            'A', 'ra', 'std'), ('B', 'rb', 'mean'), ('B', 'rb', 'std')])
         compare(result, expected)
 
         # passed lambda

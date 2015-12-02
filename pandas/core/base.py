@@ -412,6 +412,8 @@ pandas.DataFrame.%(name)s
         None if not required
         """
 
+        is_aggregator = lambda x: isinstance(x, (list, tuple, dict))
+
         _level = kwargs.pop('_level', None)
         if isinstance(arg, compat.string_types):
             return getattr(self, arg)(*args, **kwargs), None
@@ -423,7 +425,7 @@ pandas.DataFrame.%(name)s
 
             obj = self._selected_obj
 
-            if any(isinstance(x, (list, tuple, dict)) for x in arg.values()):
+            if any(is_aggregator(x) for x in arg.values()):
                 new_arg = compat.OrderedDict()
                 for k, v in compat.iteritems(arg):
                     if not isinstance(v, (tuple, list, dict)):
@@ -444,7 +446,7 @@ pandas.DataFrame.%(name)s
             else:
                 for col, agg_how in compat.iteritems(arg):
                     colg = self._gotitem(col, ndim=1)
-                    result[col] = colg.aggregate(agg_how, _level=None)
+                    result[col] = colg.aggregate(agg_how, _level=_level)
                     keys.append(col)
 
             if isinstance(list(result.values())[0], com.ABCDataFrame):
