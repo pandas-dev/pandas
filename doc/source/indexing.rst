@@ -1522,23 +1522,58 @@ Contrast this to ``df.loc[:,('one','second')]`` which passes a nested tuple of `
 ``__getitem__``. This allows pandas to deal with this as a single entity. Furthermore this order of operations *can* be significantly
 faster, and allows one to index *both* axes if so desired.
 
-Why does the assignment when using chained indexing fail!
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Why does assignment fail when using chained indexing?
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-So, why does this show the ``SettingWithCopy`` warning / and possibly not work when you do chained indexing and assignment:
+The problem in the previous section is just a performance issue. What's up with
+the ``SettingWithCopy`` warning? We don't **usually** throw warnings around when
+you do something that might cost a few extra milliseconds!
+
+But it turns out that assigning to the product of chained indexing has
+inherently unpredictable results. To see this, think about how the Python
+interpreter executes this code:
+
+.. code-block:: python
+
+   dfmi.loc[:,('one','second')] = value
+   # becomes
+   dfmi.loc.__setitem__((slice(None), ('one', 'second')), value)
+
+But this code is handled differently:
 
 .. code-block:: python
 
    dfmi['one']['second'] = value
+   # becomes
+   dfmi.__getitem__('one').__setitem__('second', value)
 
-Since the chained indexing is 2 calls, it is possible that either call may return a **copy** of the data because of the way it is sliced.
-Thus when setting, you are actually setting a **copy**, and not the original frame data. It is impossible for pandas to figure this out because their are 2 separate python operations that are not connected.
+See that ``__getitem__`` in there? Outside of simple cases, it's very hard to
+predict whether it will return a view or a copy (it depends on the memory layout
+of the array, about which *pandas* makes no guarantees), and therefore whether
+the ``__setitem__`` will modify ``dfmi`` or a temporary object that gets thrown
+out immediately afterward. **That's** what ``SettingWithCopy`` is warning you
+about!
 
-The ``SettingWithCopy`` warning is a 'heuristic' to detect this (meaning it tends to catch most cases but is simply a lightweight check). Figuring this out for real is way complicated.
+.. note:: You may be wondering whether we should be concerned about the ``loc``
+   property in the first example. But ``dfmi.loc`` is guaranteed to be ``dfmi``
+   itself with modified indexing behavior, so ``dfmi.loc.__getitem__`` /
+   ``dfmi.loc.__setitem__`` operate on ``dfmi`` directly. Of course,
+   ``dfmi.loc.__getitem__(idx)`` may be a view or a copy of ``dfmi``.
 
-The ``.loc`` operation is a single python operation, and thus can select a slice (which still may be a copy), but allows pandas to assign that slice back into the frame after it is modified, thus setting the values as you would think.
+Sometimes a ``SettingWithCopy`` warning will arise at times when there's no
+obvious chained indexing going on. **These** are the bugs that
+``SettingWithCopy`` is designed to catch! Pandas is probably trying to warn you
+that you've done this:
 
-The reason for having the ``SettingWithCopy`` warning is this. Sometimes when you slice an array you will simply get a view back, which means you can set it no problem. However, even a single dtyped array can generate a copy if it is sliced in a particular way. A multi-dtyped DataFrame (meaning it has say ``float`` and ``object`` data), will almost always yield a copy. Whether a view is created is dependent on the memory layout of the array.
+.. code-block:: python
+
+   def do_something(df):
+      foo = df[['bar', 'baz']]  # Is foo a view? A copy? Nobody knows!
+      # ... many lines here ...
+      foo['quux'] = value       # We don't know whether this will modify df or not!
+      return foo
+
+Yikes!
 
 Evaluation order matters
 ~~~~~~~~~~~~~~~~~~~~~~~~
