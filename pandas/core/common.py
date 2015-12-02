@@ -2016,14 +2016,15 @@ def _asarray_tuplesafe(values, dtype=None):
 
 
 def _index_labels_to_array(labels):
-    if isinstance(labels, (compat.string_types, tuple)):
+    from .index import Index # ABCIndex doesn't work here
+    if isinstance(labels, tuple): #multiindex
         labels = [labels]
-
-    if not isinstance(labels, (list, np.ndarray)):
-        try:
-            labels = list(labels)
-        except TypeError:  # non-iterable
-            labels = [labels]
+    elif isinstance(labels, Index):
+        # convert to list , or _asarray_tuplesafe will pull out the values, which will
+        # be incorrect for Indexes whose values need to be boxed
+        labels = list(labels)
+    elif not is_list_like(labels):
+        labels = [labels]
 
     labels = _asarray_tuplesafe(labels)
 
@@ -2327,7 +2328,7 @@ def is_re_compilable(obj):
 
 
 def is_list_like(arg):
-     return (hasattr(arg, '__iter__') and
+    return (hasattr(arg, '__iter__') and
             not isinstance(arg, compat.string_and_binary_types))
 
 def is_named_tuple(arg):
