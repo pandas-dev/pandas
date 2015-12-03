@@ -214,5 +214,6 @@ class DatetimeTZDtype(ExtensionDtype):
         if isinstance(other, compat.string_types):
             return other == self.name
 
-        return isinstance(other, DatetimeTZDtype) and self.unit == other.unit \
-            and self.tz == other.tz
+        return isinstance(other, DatetimeTZDtype) and \
+            self.unit == other.unit and \
+            str(self.tz) == str(other.tz)
