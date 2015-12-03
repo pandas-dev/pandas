@@ -237,6 +237,33 @@ def _stringify_path(filepath_or_buffer):
     return filepath_or_buffer
 
 
+def get_compression_type(filepath_or_buffer, compression_kwd):
+    """
+    Determine the compression type of a file or buffer.
+
+    Parameters
+    ----------
+    filepath_or_buffer : string
+        File path
+    compression_kwd: {'gzip', 'bz2', 'infer', None}
+        Compression type ('infer' looks for the file extensions .gz and .bz2, using gzip and bz2 to decompress
+        respectively).
+
+    Returns
+    -------
+    compression : {'gzip', 'bz2', None} depending on result
+    """
+    # If the input could be a filename, check for a recognizable compression extension.
+    # If we're reading from a URL, the `get_filepath_or_buffer` will use header info
+    # to determine compression, so use what it finds in that case.
+    inferred_compression = None
+    if compression_kwd == 'infer' and isinstance(filepath_or_buffer, compat.string_types):
+        if filepath_or_buffer.endswith('.gz'):
+            inferred_compression = 'gzip'
+        elif filepath_or_buffer.endswith('.bz2'):
+            inferred_compression = 'bz2'
+    return inferred_compression
+
 def get_filepath_or_buffer(filepath_or_buffer, encoding=None,
                            compression=None):
     """
