@@ -126,14 +126,15 @@ class CategoricalFormatter(object):
 class SeriesFormatter(object):
 
     def __init__(self, series, buf=None, length=True, header=True,
-                 na_rep='NaN', name=False, float_format=None, dtype=True,
-                 max_rows=None):
+                 index=True, na_rep='NaN', name=False, float_format=None,
+                 dtype=True, max_rows=None):
         self.series = series
         self.buf = buf if buf is not None else StringIO()
         self.name = name
         self.na_rep = na_rep
         self.header = header
         self.length = length
+        self.index = index
         self.max_rows = max_rows
 
         if float_format is None:
@@ -241,7 +242,10 @@ class SeriesFormatter(object):
             fmt_values.insert(row_num + n_header_rows, dot_str)
             fmt_index.insert(row_num + 1, '')
 
-        result = self.adj.adjoin(3, *[fmt_index[1:], fmt_values])
+        if self.index:
+            result = self.adj.adjoin(3, *[fmt_index[1:], fmt_values])
+        else:
+            result = self.adj.adjoin(3, fmt_values)
 
         if self.header and have_header:
             result = fmt_index[0] + '\n' + result
