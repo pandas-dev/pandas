@@ -247,6 +247,8 @@ Other enhancements
 - ``pivot_table()`` now accepts most iterables for the ``values`` parameter (:issue:`12017`)
 - Added Google ``BigQuery`` service account authentication support, which enables authentication on remote servers. (:issue:`11881`). For further details see :ref:`here <io.bigquery_authentication>`
 
+- the order of keyword arguments to text file parsing functions (``.read_csv()``, ``.read_table()``, ``.read_fwf()``) changed to group related arguments. (:issue:`#11555`)
+
 .. _whatsnew_0180.api_breaking:
 
 Backwards incompatible API changes
