@@ -4352,25 +4352,29 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
 
             # related 236/4850
             # trying to access with a float index
-            s = Series(np.arange(len(index)),index=index)
+            s = Series(np.arange(len(index)), index=index)
 
             if iloc is None:
                 iloc = TypeError
-            self.assertRaises(iloc, lambda : s.iloc[3.5])
+            self.assertRaises(iloc, lambda: s.iloc[3.5])
             if loc is None:
                 loc = TypeError
-            self.assertRaises(loc, lambda : s.loc[3.5])
+            self.assertRaises(loc, lambda: s.loc[3.5])
             if ix is None:
                 ix = TypeError
-            self.assertRaises(ix, lambda : s.ix[3.5])
+            self.assertRaises(ix, lambda: s.ix[3.5])
             if getitem is None:
                 getitem = TypeError
-            self.assertRaises(getitem, lambda : s[3.5])
+            self.assertRaises(getitem, lambda: s[3.5])
 
-        for index in [ tm.makeStringIndex, tm.makeUnicodeIndex, tm.makeIntIndex,
-                       tm.makeDateIndex, tm.makePeriodIndex ]:
-            check_invalid(index())
-        check_invalid(Index(np.arange(5) * 2.5),loc=KeyError, ix=KeyError, getitem=KeyError)
+            for index in [tm.makeStringIndex, tm.makeUnicodeIndex,
+                          tm.makeIntIndex, tm.makeRangeIndex,
+                          tm.makeDateIndex, tm.makePeriodIndex]:
+                check_invalid(index())
+                check_invalid(Index(np.arange(5) * 2.5),
+                              loc=KeyError,
+                              ix=KeyError,
+                              getitem=KeyError)
 
         def check_index(index, error):
             index = index()
@@ -4472,37 +4476,38 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         ############
         # IntIndex #
         ############
-        index = tm.makeIntIndex()
-        s = Series(np.arange(len(index),dtype='int64')+10,index+5)
+        for index in [tm.makeIntIndex(), tm.makeRangeIndex()]:
 
-        # this is positional
-        result1 = s[2:5]
-        result4 = s.iloc[2:5]
-        assert_series_equal(result1, result4)
+            s = Series(np.arange(len(index), dtype='int64') + 10, index + 5)
 
-        # these are all label based
-        result2 = s.ix[2:5]
-        result3 = s.loc[2:5]
-        assert_series_equal(result2, result3)
+            # this is positional
+            result1 = s[2:5]
+            result4 = s.iloc[2:5]
+            assert_series_equal(result1, result4)
 
-        # float slicers on an int index
-        expected = Series([11,12,13],index=[6,7,8])
-        for method in [lambda x: x.loc, lambda x: x.ix]:
-            result = method(s)[6.0:8.5]
-            assert_series_equal(result, expected)
+            # these are all label based
+            result2 = s.ix[2:5]
+            result3 = s.loc[2:5]
+            assert_series_equal(result2, result3)
 
-            result = method(s)[5.5:8.5]
-            assert_series_equal(result, expected)
+            # float slicers on an int index
+            expected = Series([11, 12, 13], index=[6, 7, 8])
+            for method in [lambda x: x.loc, lambda x: x.ix]:
+                result = method(s)[6.0:8.5]
+                assert_series_equal(result, expected)
 
-            result = method(s)[5.5:8.0]
-            assert_series_equal(result, expected)
+                result = method(s)[5.5:8.5]
+                assert_series_equal(result, expected)
 
-        # make all float slicing fail for [] with an int index
-        self.assertRaises(TypeError, lambda : s[6.0:8])
-        self.assertRaises(TypeError, lambda : s[6.0:8.0])
-        self.assertRaises(TypeError, lambda : s[6:8.0])
+                result = method(s)[5.5:8.0]
+                assert_series_equal(result, expected)
 
-        check_iloc_compat(s)
+                # make all float slicing fail for [] with an int index
+                self.assertRaises(TypeError, lambda: s[6.0:8])
+                self.assertRaises(TypeError, lambda: s[6.0:8.0])
+                self.assertRaises(TypeError, lambda: s[6:8.0])
+
+            check_iloc_compat(s)
 
         ##############
         # FloatIndex #
@@ -4658,19 +4663,20 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
             self.assertRaises(FutureWarning, f)
 
         # slices
-        for index in [ tm.makeIntIndex, tm.makeFloatIndex,
-                       tm.makeStringIndex, tm.makeUnicodeIndex,
-                       tm.makeDateIndex, tm.makePeriodIndex ]:
+        for index in [tm.makeIntIndex, tm.makeRangeIndex, tm.makeFloatIndex,
+                      tm.makeStringIndex, tm.makeUnicodeIndex,
+                      tm.makeDateIndex, tm.makePeriodIndex]:
 
             index = index(5)
-            for s in [ Series(range(5),index=index), DataFrame(np.random.randn(5,2),index=index) ]:
+            for s in [Series(range(5), index=index),
+                      DataFrame(np.random.randn(5, 2), index=index)]:
 
                 # getitem
-                self.assertRaises(FutureWarning, lambda :
+                self.assertRaises(FutureWarning, lambda:
                                   s.iloc[3.0:4])
-                self.assertRaises(FutureWarning, lambda :
+                self.assertRaises(FutureWarning, lambda:
                                   s.iloc[3.0:4.0])
-                self.assertRaises(FutureWarning, lambda :
+                self.assertRaises(FutureWarning, lambda:
                                   s.iloc[3:4.0])
 
                 # setitem

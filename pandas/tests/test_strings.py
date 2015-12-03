@@ -1324,7 +1324,7 @@ class TestStringMethods(tm.TestCase):
         s = Series(['split once', 'split once too!'])
         result = s.str.split(n=1)
         expected = Series({0: ['split', 'once'], 1: ['split', 'once too!']})
-        tm.assert_series_equal(expected, result)
+        tm.assert_series_equal(expected, result, check_index_type=False)
 
     def test_split_to_dataframe(self):
         s = Series(['nosplit', 'alsonosplit'])
@@ -1393,7 +1393,7 @@ class TestStringMethods(tm.TestCase):
     def test_split_to_multiindex_expand(self):
         idx = Index(['nosplit', 'alsonosplit'])
         result = idx.str.split('_', expand=True)
-        exp = Index([np.array(['nosplit']), np.array(['alsonosplit'])])
+        exp = idx
         tm.assert_index_equal(result, exp)
         self.assertEqual(result.nlevels, 1)
 
@@ -1446,7 +1446,7 @@ class TestStringMethods(tm.TestCase):
     def test_rsplit_to_multiindex_expand(self):
         idx = Index(['nosplit', 'alsonosplit'])
         result = idx.str.rsplit('_', expand=True)
-        exp = Index([np.array(['nosplit']), np.array(['alsonosplit'])])
+        exp = idx
         tm.assert_index_equal(result, exp)
         self.assertEqual(result.nlevels, 1)
 

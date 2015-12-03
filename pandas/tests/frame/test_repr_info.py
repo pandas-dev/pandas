@@ -344,10 +344,13 @@ class TestDataFrameReprInfoEtc(tm.TestCase, TestData):
             data[i] = np.random.randint(2, size=n).astype(dtype)
         df = DataFrame(data)
         df.columns = dtypes
+
         # Ensure df size is as expected
+        # (cols * rows * bytes) + index size
         df_size = df.memory_usage().sum()
-        exp_size = (len(dtypes) + 1) * n * 8  # (cols + index) * rows * bytes
+        exp_size = len(dtypes) * n * 8 + df.index.nbytes
         self.assertEqual(df_size, exp_size)
+
         # Ensure number of cols in memory_usage is the same as df
         size_df = np.size(df.columns.values) + 1  # index=True; default
         self.assertEqual(size_df, np.size(df.memory_usage()))

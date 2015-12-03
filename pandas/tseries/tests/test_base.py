@@ -731,13 +731,13 @@ Freq: D"""
 
         # multiply
         for offset in offsets:
-            self.assertRaises(TypeError, lambda : rng * offset)
+            self.assertRaises(TypeError, lambda: rng * offset)
 
         # divide
-        expected = Int64Index((np.arange(10)+1)*12,name='foo')
+        expected = Int64Index((np.arange(10) + 1) * 12, name='foo')
         for offset in offsets:
             result = rng / offset
-            tm.assert_index_equal(result,expected)
+            tm.assert_index_equal(result, expected, exact=False)
 
         # divide with nats
         rng = TimedeltaIndex(['1 days', pd.NaT, '2 days'], name='foo')

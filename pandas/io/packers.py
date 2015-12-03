@@ -49,8 +49,8 @@ from pandas import compat
 from pandas.compat import u, PY3
 from pandas import (
     Timestamp, Period, Series, DataFrame, Panel, Panel4D,
-    Index, MultiIndex, Int64Index, RangeIndex, PeriodIndex, DatetimeIndex, Float64Index,
-    NaT
+    Index, MultiIndex, Int64Index, RangeIndex, PeriodIndex,
+    DatetimeIndex, Float64Index, NaT
 )
 from pandas.sparse.api import SparseSeries, SparseDataFrame, SparsePanel
 from pandas.sparse.array import BlockIndex, IntIndex
@@ -277,9 +277,9 @@ def encode(obj):
             return {'typ': 'range_index',
                     'klass': obj.__class__.__name__,
                     'name': getattr(obj, 'name', None),
-                    'start': getattr(obj, 'start', None),
-                    'stop': getattr(obj, 'stop', None),
-                    'step': getattr(obj, 'step', None)}
+                    'start': getattr(obj, '_start', None),
+                    'stop': getattr(obj, '_stop', None),
+                    'step': getattr(obj, '_step', None)}
         elif isinstance(obj, PeriodIndex):
             return {'typ': 'period_index',
                     'klass': obj.__class__.__name__,
@@ -472,7 +472,10 @@ def decode(obj):
                          obj.get('compress'))
         return globals()[obj['klass']](data, dtype=dtype, name=obj['name'])
     elif typ == 'range_index':
-        return globals()[obj['klass']](obj['start'], obj['stop'], obj['step'], name=obj['name'])
+        return globals()[obj['klass']](obj['start'],
+                                       obj['stop'],
+                                       obj['step'],
+                                       name=obj['name'])
     elif typ == 'multi_index':
         dtype = dtype_for(obj['dtype'])
         data = unconvert(obj['data'], dtype,
