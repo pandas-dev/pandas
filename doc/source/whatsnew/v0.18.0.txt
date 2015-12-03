@@ -32,6 +32,7 @@ Other enhancements
 ^^^^^^^^^^^^^^^^^^
 
 - Handle truncated floats in SAS xport files (:issue:`11713`)
+- Added option to hide index in ``Series.to_string`` (:issue:`11729`)
 - ``read_excel`` now supports s3 urls of the format ``s3://bucketname/filename`` (:issue:`11447`)
 
 .. _whatsnew_0180.enhancements.rounding:
