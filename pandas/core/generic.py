@@ -90,9 +90,12 @@ class NDFrame(PandasObject):
     _accessors = frozenset([])
     _metadata = []
     is_copy = None
-
+    _is_column_view = None
+    _original_parent = None
+    _children = None
+    
     def __init__(self, data, axes=None, copy=False, dtype=None,
-                 fastpath=False):
+                 fastpath=False, ):
 
         if not fastpath:
             if dtype is not None:
@@ -475,7 +478,8 @@ class NDFrame(PandasObject):
             raise TypeError('transpose() got an unexpected keyword '
                     'argument "{0}"'.format(list(kwargs.keys())[0]))
 
-        return self._constructor(new_values, **new_axes).__finalize__(self)
+        result = self._constructor(new_values, **new_axes).__finalize__(self)
+        return result.copy()
 
     def swapaxes(self, axis1, axis2, copy=True):
         """
