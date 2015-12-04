@@ -617,6 +617,16 @@ class TestMerge(tm.TestCase):
         merged['d'] = 'peekaboo'
         self.assertTrue((right['d'] == 'bar').all())
 
+    def test_merge_nocopy(self):		
+
+        # disabled in copy-on-write paradigm               
+        left = DataFrame({'a': 0, 'b': 1}, index=lrange(10))		
+        right = DataFrame({'c': 'foo', 'd': 'bar'}, index=lrange(10))		
+		
+        with tm.assertRaises(TypeError):
+            merge(left, right, left_index=True,		
+                       right_index=True, copy=False)		
+		
     def test_join_sort(self):
         left = DataFrame({'key': ['foo', 'bar', 'baz', 'foo'],
                           'value': [1, 2, 3, 4]})
@@ -1933,6 +1943,13 @@ class TestConcatenate(tm.TestCase):
         for b in result._data.blocks:
             self.assertIsNone(b.values.base)
 
+        # Concat copy argument removed in copy-on-write
+        with tm.assertRaises(TypeError):
+            result = concat([df,df2,df3],axis=1,copy=False)		
+		
+        df4 = DataFrame(np.random.randn(4,1))		
+        with tm.assertRaises(TypeError):
+            result = concat([df,df2,df3,df4],axis=1,copy=False)				
 
     def test_concat_with_group_keys(self):
         df = DataFrame(np.random.randn(4, 3))
