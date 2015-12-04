@@ -179,7 +179,7 @@ class DataFrame(NDFrame):
         np.arange(n) if no column labels are provided
     dtype : dtype, default None
         Data type to force, otherwise infer
-    copy : boolean, default False
+    copy : boolean, default True
         Copy data from inputs. Only affects DataFrame / 2d ndarray input
 
     Examples
@@ -1963,7 +1963,7 @@ class DataFrame(NDFrame):
         # shortcut if we are an actual column
         is_mi_columns = isinstance(self.columns, MultiIndex)
         try:
-            if key in self.columns and not is_mi_columns:
+            if key in self.columns:
                 result = self._getitem_column(key)
                 result._is_column_view = True
                 return result

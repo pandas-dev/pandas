@@ -1807,8 +1807,7 @@ class TestDataFrame(tm.TestCase, Generic):
         self.assertTrue(v.loc[0] == -88)
         self.assertTrue(v._is_view)
         
-        # Does NOT hold for multi-index (can't guarantee view behaviors --
-        # setting on multi-index creates new data somehow.)
+        # holds for multi-index too
         index = pd.MultiIndex(levels=[['foo', 'bar', 'baz', 'qux'],
                            ['one', 'two', 'three']],
                    labels=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
@@ -1818,16 +1817,17 @@ class TestDataFrame(tm.TestCase, Generic):
                        columns=pd.Index(['A', 'B', 'C'], name='exp')).T
                     
         v = frame['foo','one']
+        
         self.assertTrue(v._is_view)
-        self.assertFalse(v._is_column_view)
+        self.assertTrue(v._is_column_view)
         frame.loc['A', ('foo','one')]=-88
-        self.assertFalse(v.loc['A'] == -88)
+        self.assertTrue(v.loc['A'] == -88)
 
 
         ###
         # Make sure that no problems if view created on view and middle-view
         # gets deleted
-        #
+        ###
         df = pd.DataFrame({'col1':[1,2], 'col2':[3,4]})
         v1 = df.loc[0:0,]
         self.assertTrue(len(df._children)==1)
@@ -1841,7 +1841,28 @@ class TestDataFrame(tm.TestCase, Generic):
         df.loc[0:0, 'col1'] = -88
         
         tm.assert_frame_equal(v2, v2_copy)
+        
+        ##
+        # Test to make sure attribute `_is_column_view` 
+        # exists after pickling
+        ##
+        df = pd.DataFrame({"A": [1,2]})		
+        with tm.ensure_clean('__tmp__pickle') as path:		
+            df.to_pickle(path)		
+            df2 = pd.read_pickle(path)		
+            self.assertTrue(hasattr(df2, '_is_column_view'))
+            self.assertTrue(hasattr(df2, '_children'))
+            self.assertTrue(hasattr(df2, '_original_parent'))
 
+        ##
+        # If create new column in data frame, should be copy not view
+        ## 
+        test_df = pd.DataFrame({'col1':[1,2], 'col2':[3,4]})
+        test_series = pd.Series([9,8], name='col3')
+        test_df['col3'] = test_series
+        copy = test_series.copy()
+        test_series.loc[0] = -88
+        tm.assert_series_equal(test_df['col3'], copy)
 
     def test_is_view_of_multiblocks(self):
         # Ensure that if even if only one block of DF is view, 
