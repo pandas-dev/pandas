@@ -860,31 +860,34 @@ class TestTimestampNsOperations(tm.TestCase):
         t = Timestamp('2014-01-01')
         dt = datetime.datetime(2014, 1, 1)
         delta = datetime.timedelta(3600)
+        td = Timedelta('5s')
+        i = 2
+        f = 1.5
+
+        for (left, right) in [(nat, i), (nat, f), (nat, np.nan)]:
+            self.assertTrue((left / right) is nat)
+            self.assertTrue((left * right) is nat)
+            self.assertTrue((right * left) is nat)
+            with tm.assertRaises(TypeError):
+                right / left
 
         # Timestamp / datetime
-        for (left, right) in [(nat, nat), (nat, t), (dt, nat)]:
-            # NaT + Timestamp-like should raise TypeError
-            with tm.assertRaises(TypeError):
-                left + right
-            with tm.assertRaises(TypeError):
-                right + left
-
-            # NaT - Timestamp-like (or inverse) returns NaT
-            self.assertTrue((left - right) is tslib.NaT)
-            self.assertTrue((right - left) is tslib.NaT)
+        for (left, right) in [(nat, nat), (nat, t), (nat, dt)]:
+            # NaT __add__ or __sub__ Timestamp-like (or inverse) returns NaT
+            self.assertTrue((right + left) is nat)
+            self.assertTrue((left + right) is nat)
+            self.assertTrue((left - right) is nat)
+            self.assertTrue((right - left) is nat)
 
         # timedelta-like
         # offsets are tested in test_offsets.py
-        for (left, right) in [(nat, delta)]:
+        for (left, right) in [(nat, delta), (nat, td)]:
             # NaT + timedelta-like returns NaT
-            self.assertTrue((left + right) is tslib.NaT)
-            # timedelta-like + NaT should raise TypeError
-            with tm.assertRaises(TypeError):
-                right + left
+            self.assertTrue((right + left) is nat)
+            self.assertTrue((left + right) is nat)
+            self.assertTrue((right - left) is nat)
+            self.assertTrue((left - right) is nat)
 
-            self.assertTrue((left - right) is tslib.NaT)
-            with tm.assertRaises(TypeError):
-                right - left
 
 
 class TestTslib(tm.TestCase):

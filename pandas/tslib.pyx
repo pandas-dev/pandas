@@ -665,6 +665,21 @@ class NaTType(_NaT):
         # GH 10939
         return np.nan
 
+    def __rdiv__(self, other):
+        return _nat_rdivide_op(self, other)
+
+    def __rtruediv__(self, other):
+        return _nat_rdivide_op(self, other)
+
+    def __rfloordiv__(self, other):
+        return _nat_rdivide_op(self, other)
+
+    def __rmul__(self, other):
+        if is_integer_object(other) or is_float_object(other):
+            return NaT
+        return NotImplemented
+
+
 
 fields = ['year', 'quarter', 'month', 'day', 'hour',
           'minute', 'second', 'millisecond', 'microsecond', 'nanosecond',
@@ -1001,7 +1016,7 @@ cdef class _Timestamp(datetime):
 
         # index/series like
         elif hasattr(other, '_typ'):
-            return other + self
+            return NotImplemented
 
         result = datetime.__add__(self, other)
         if isinstance(result, datetime):
@@ -1081,6 +1096,18 @@ _nat_scalar_rules[Py_GT] = False
 _nat_scalar_rules[Py_GE] = False
 
 
+cdef _nat_divide_op(self, other):
+    if isinstance(other, (Timedelta, np.timedelta64)) or other is NaT:
+        return np.nan
+    if is_integer_object(other) or is_float_object(other):
+        return NaT
+    return NotImplemented
+
+cdef _nat_rdivide_op(self, other):
+    if isinstance(other, Timedelta):
+        return np.nan
+    return NotImplemented
+
 cdef class _NaT(_Timestamp):
 
     def __hash__(_NaT self):
@@ -1103,6 +1130,8 @@ cdef class _NaT(_Timestamp):
 
     def __add__(self, other):
         try:
+            if isinstance(other, datetime):
+                return NaT
             result = _Timestamp.__add__(self, other)
             if result is NotImplemented:
                 return result
@@ -1111,6 +1140,9 @@ cdef class _NaT(_Timestamp):
         return NaT
 
     def __sub__(self, other):
+
+        if other is NaT:
+            return NaT
 
         if type(self) is datetime:
             other, self = self, other
@@ -1121,6 +1153,26 @@ cdef class _NaT(_Timestamp):
         except (OverflowError, OutOfBoundsDatetime):
             pass
         return NaT
+
+    def __pos__(self):
+        return NaT
+
+    def __neg__(self):
+        return NaT
+
+    def __div__(self, other):
+        return _nat_divide_op(self, other)
+
+    def __truediv__(self, other):
+        return _nat_divide_op(self, other)
+
+    def __floordiv__(self, other):
+        return _nat_divide_op(self, other)
+
+    def __mul__(self, other):
+        if is_integer_object(other) or is_float_object(other):
+            return NaT
+        return NotImplemented
 
 
 def _delta_to_nanoseconds(delta):
@@ -2541,8 +2593,8 @@ class Timedelta(_Timedelta):
         if other is NaT:
             return NaT
 
-        # only integers allowed
-        if not is_integer_object(other):
+        # only integers and floats allowed
+        if not (is_integer_object(other) or is_float_object(other)):
            return NotImplemented
 
         return Timedelta(other*self.value, unit='ns')
@@ -2554,8 +2606,8 @@ class Timedelta(_Timedelta):
         if hasattr(other, 'dtype'):
             return self.to_timedelta64() / other
 
-        # pure integers
-        if is_integer_object(other):
+        # integers or floats
+        if is_integer_object(other) or is_float_object(other):
            return Timedelta(self.value/other, unit='ns')
 
         if not self._validate_ops_compat(other):
@@ -2563,7 +2615,7 @@ class Timedelta(_Timedelta):
 
         other = Timedelta(other)
         if other is NaT:
-            return NaT
+            return np.nan
         return self.value/float(other.value)
 
     def __rtruediv__(self, other):
