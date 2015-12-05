@@ -1790,12 +1790,6 @@ as well)
 
    dfs = read_html(url, skiprows=range(2))
 
-Don't infer numeric and date types
-
-.. code-block:: python
-
-   dfs = read_html(url, infer_types=False)
-
 Specify an HTML attribute
 
 .. code-block:: python
