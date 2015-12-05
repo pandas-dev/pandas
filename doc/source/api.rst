@@ -1820,6 +1820,7 @@ Style Application
 
    Styler.apply
    Styler.applymap
+   Styler.format
    Styler.set_precision
    Styler.set_table_styles
    Styler.set_caption
