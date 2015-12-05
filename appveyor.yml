@@ -16,16 +16,22 @@ environment:
     CMD_IN_ENV: "cmd /E:ON /V:ON /C .\\ci\\run_with_env.cmd"
 
   matrix:
-    - PYTHON: "C:\\Python35_64"
-      PYTHON_VERSION: "3.5"
+    - PYTHON: "C:\\Python34_64"
+      PYTHON_VERSION: "3.4"
       PYTHON_ARCH: "64"
-      CONDA_PY: "35"
+      CONDA_PY: "34"
       CONDA_NPY: "110"
 
     - PYTHON: "C:\\Python27_64"
       PYTHON_VERSION: "2.7"
       PYTHON_ARCH: "64"
       CONDA_PY: "27"
+      CONDA_NPY: "110"
+
+    - PYTHON: "C:\\Python35_64"
+      PYTHON_VERSION: "3.5"
+      PYTHON_ARCH: "64"
+      CONDA_PY: "35"
       CONDA_NPY: "110"
 
 # We always use a 64-bit machine, but can build x86 distributions
