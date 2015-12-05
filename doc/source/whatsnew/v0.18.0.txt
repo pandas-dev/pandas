@@ -167,6 +167,64 @@ Backwards incompatible API changes
 - The parameter ``out`` has been removed from the ``Series.round()`` method. (:issue:`11763`)
 - ``DataFrame.round()`` leaves non-numeric columns unchanged in its return, rather than raises. (:issue:`11885`)
 
+NaT and Timedelta operations
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+``NaT`` and ``Timedelta`` have expanded arithmetic operations, which are extended to ``Series``
+arithmetic where applicable.  Operations defined for ``datetime64[ns]`` or ``timedelta64[ns]``
+are now also defined for ``NaT`` (:issue:`11564`).
+
+``NaT`` now supports arithmetic operations with integers and floats.
+
+.. ipython:: python
+
+   pd.NaT * 1
+   pd.NaT * 1.5
+   pd.NaT / 2
+   pd.NaT * np.nan
+
+``NaT`` defines more arithmetic operations with ``datetime64[ns]`` and ``timedelta64[ns]``.
+
+.. ipython:: python
+
+   pd.NaT / pd.NaT
+   pd.Timedelta('1s') / pd.NaT
+
+``NaT`` may represent either a ``datetime64[ns]`` null or a ``timedelta64[ns]`` null.
+Given the ambiguity, it is treated as a `timedelta64[ns]`, which allows more operations
+to succeed.
+
+.. ipython:: python
+   :okexcept:
+
+   pd.NaT + pd.NaT
+   # same as
+   pd.Timedelta('1s') + pd.Timedelta('1s')
+   # as opposed to
+   pd.Timestamp('1990315') + pd.Timestamp('19900315')
+
+However, when wrapped in a ``Series`` whose ``dtype`` is ``datetime64[ns]`` or ``timedelta64[ns]``,
+the ``dtype`` information is respected.
+
+.. ipython:: python
+
+   pd.Series([pd.NaT], dtype='<M8[ns]') + pd.Series([pd.NaT], dtype='<M8[ns]')
+   pd.Series([pd.NaT], dtype='<m8[ns]') + pd.Series([pd.NaT], dtype='<m8[ns]')
+
+``Timedelta`` division by ``float``s now works.
+
+.. ipython:: python
+
+   pd.Timedelta('1s') / 2.0
+
+Subtraction by ``Timedelta`` in a ``Series`` by a ``Timestamp`` works (:issue:`11925`)
+
+.. ipython:: python
+
+   ser = pd.Series(pd.timedelta_range('1 day', periods=3))
+   ser
+   pd.Timestamp('2012-01-01') - ser
+
 Bug in QuarterBegin with n=0
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -312,6 +370,7 @@ Bug Fixes
 - Bug in ``DataFrame.info`` when duplicated column names exist (:issue:`11761`)
 - Bug in ``.copy`` of datetime tz-aware objects (:issue:`11794`)
 
+- Bug in ``Series.apply`` and ``Series.map`` where ``timedelta64`` was not boxed (:issue:`11349`)
 
 
 
