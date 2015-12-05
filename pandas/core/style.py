@@ -20,6 +20,7 @@ except ImportError:
 import numpy as np
 import pandas as pd
 from pandas.compat import lzip
+import pandas.core.common as com
 from pandas.core.indexing import _maybe_numeric_slice, _non_reducing_slice
 try:
     import matplotlib.pyplot as plt
@@ -113,17 +114,7 @@ class Styler(object):
             <tr>
                 {% for c in r %}
                 <{{c.type}} id="T_{{uuid}}{{c.id}}" class="{{c.class}}">
-                    {% if c.value is number %}
-                        {% if c.precision is defined and c.precision is number %}
-                            {{c.value|round(c.precision)}}
-                        {% elif c.precision is defined and c.precision is string %}
-                            {{c.precision.format(c.value)}}
-                        {% else %}
-                            {{c.value|round(precision.__default__)}}
-                        {% endif %}
-                    {% else %}
-                        {{c.value}}
-                    {% endif %}
+                    {{c.display_value}}
                 {% endfor %}
             </tr>
             {% endfor %}
@@ -165,6 +156,13 @@ class Styler(object):
 
         self.precision = precision
         self.table_attributes = table_attributes
+        # display_funcs maps (row, col) -> formatting function
+        def default_display_func(x):
+            if com.is_float(x):
+                return '{:>.{precision}g}'.format(x, precision=self.precision)
+            else:
+                return x
+        self._display_funcs = defaultdict(lambda: default_display_func)
 
     def _repr_html_(self):
         '''
@@ -215,7 +213,10 @@ class Styler(object):
                 cs = [COL_HEADING_CLASS, "level%s" % r, "col%s" % c]
                 cs.extend(cell_context.get(
                     "col_headings", {}).get(r, {}).get(c, []))
-                row_es.append({"type": "th", "value": clabels[r][c],
+                value = clabels[r][c]
+                row_es.append({"type": "th",
+                               "value": value,
+                               "display_value": value,
                                "class": " ".join(cs)})
             head.append(row_es)
 
@@ -226,18 +227,21 @@ class Styler(object):
                 "row_headings", {}).get(r, {}).get(c, []))
             row_es = [{"type": "th",
                        "value": rlabels[r][c],
-                       "class": " ".join(cs)}
+                       "class": " ".join(cs),
+                       "display_value": rlabels[r][c]}
                       for c in range(len(rlabels[r]))]
 
             for c, col in enumerate(self.data.columns):
                 cs = [DATA_CLASS, "row%s" % r, "col%s" % c]
                 cs.extend(cell_context.get("data", {}).get(r, {}).get(c, []))
-                row_d = {"type": "td", "value": self.data.iloc[r][c],
-                         "class": " ".join(cs), "id": "_".join(cs[1:])}
-                
-                if col in self.precision:
-                    row_d['precision'] = self.precision[col]
-                row_es.append(row_d)
+                formatter = self._display_funcs[(r, c)]
+                value = self.data.iloc[r, c]
+                row_es.append({"type": "td",
+                               "value": value,
+                               "class": " ".join(cs),
+                               "id": "_".join(cs[1:]),
+                               "display_value": formatter(value)
+                })
                 props = []
                 for x in ctx[r, c]:
                     # have to handle empty styles like ['']
@@ -255,6 +259,7 @@ class Styler(object):
                     precision=precision, table_styles=table_styles,
                     caption=caption, table_attributes=self.table_attributes)
 
+<<<<<<< HEAD
     def format(self, formatter, subset=None):
         '''
         formatter is either an `a` or a dict `{column_name: a}` where
@@ -296,6 +301,10 @@ class Styler(object):
             for i, j in locs:
                 self._display_funcs[(i, j)] = lambda x: formatter.format(x)
         return self
+=======
+    def format(self, columns=None):
+        pass
+>>>>>>> c02a4f4... WIP: display_format for style
 
     def render(self):
         """
