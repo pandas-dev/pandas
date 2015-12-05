@@ -689,18 +689,14 @@ values NOT in the categories, similarly to how you can reindex ANY pandas index.
    Reshaping and Comparison operations on a ``CategoricalIndex`` must have the same categories
    or a ``TypeError`` will be raised.
 
-   .. code-block:: python
+   .. ipython:: python
+      :okexcept:
 
-      In [9]: df3 = pd.DataFrame({'A' : np.arange(6),
-                                  'B' : pd.Series(list('aabbca')).astype('category')})
-
-      In [11]: df3 = df3.set_index('B')
-
-      In [11]: df3.index
-      Out[11]: CategoricalIndex([u'a', u'a', u'b', u'b', u'c', u'a'], categories=[u'a', u'b', u'c'], ordered=False, name=u'B', dtype='category')
-
-      In [12]: pd.concat([df2, df3]
-      TypeError: categories must match existing categories when appending
+      df3 = pd.DataFrame({'A' : np.arange(6),
+                          'B' : pd.Series(list('aabbca')).astype('category')})
+      df3 = df3.set_index('B')
+      df3.index
+      pd.concat([df2, df3]
 
 .. _indexing.float64index:
 
@@ -766,20 +762,18 @@ In float indexes, slicing using floats is allowed
 
 In non-float indexes, slicing using floats will raise a ``TypeError``
 
-.. code-block:: python
+.. ipython:: python
+   :okexcept:
 
-   In [1]: pd.Series(range(5))[3.5]
-   TypeError: the label [3.5] is not a proper indexer for this index type (Int64Index)
-
-   In [1]: pd.Series(range(5))[3.5:4.5]
-   TypeError: the slice start [3.5] is not a proper indexer for this index type (Int64Index)
+   pd.Series(range(5))[3.5]
+   pd.Series(range(5))[3.5:4.5]
 
 Using a scalar float indexer will be deprecated in a future version, but is allowed for now.
 
-.. code-block:: python
+.. ipython:: python
+   :okwarning:
 
-   In [3]: pd.Series(range(5))[3.0]
-   Out[3]: 3
+   pd.Series(range(5))[3.0]
 
 Here is a typical use-case for using this type of indexing. Imagine that you have a somewhat
 irregular timedelta-like indexing scheme, but the data is recorded as floats. This could for

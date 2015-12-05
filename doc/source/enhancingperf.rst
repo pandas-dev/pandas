@@ -636,11 +636,14 @@ With :func:`pandas.eval` you cannot use the ``@`` prefix *at all*, because it
 isn't defined in that context. ``pandas`` will let you know this if you try to
 use ``@`` in a top-level call to :func:`pandas.eval`. For example,
 
-.. ipython:: python
-   :okexcept:
+.. ipython::
 
-   a, b = 1, 2
-   pd.eval('@a + b')
+    In [41]: a, b = 1, 2
+
+    In [42]: pd.eval('@a + b')
+    SyntaxError: The '@' prefix is not allowed in top-level eval calls,
+    please refer to your variables by name without the '@' prefix
+
 
 In this case, you should simply refer to the variables like you would in
 standard Python.

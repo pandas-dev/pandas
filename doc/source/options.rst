@@ -57,11 +57,7 @@ The following will **not work** because it matches multiple option names, e.g.
 .. ipython:: python
    :okexcept:
 
-   try:
-       pd.get_option("column")
-   except KeyError as e:
-       print(e)
-
+   pd.get_option("column")
 
 **Note:** Using this form of shorthand may cause your code to break if new options with similar names are added in future versions.
 
