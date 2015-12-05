@@ -6,7 +6,7 @@ build:
     number: {{ environ.get('GIT_DESCRIBE_NUMBER', 0) }}
 
 source:
-    git_url: ../
+    path: ../../
 
 requirements:
   build:
@@ -27,12 +27,6 @@ requirements:
 test:
   imports:
     - pandas
-
-  #requires:
-  #  - nose
-
-  #commands:
-  #  - nosetests --exe -A "not slow and not network and not disabled" pandas
 
 about:
   home: http://pandas.pydata.org
