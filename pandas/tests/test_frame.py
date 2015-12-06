@@ -4752,6 +4752,21 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
             for k2, v2 in compat.iteritems(v):
                 self.assertEqual(v2, recons_data[k2][k])
 
+    def test_latex_repr(self):
+        result=r"""\begin{tabular}{llll}
+\toprule
+{} &         0 &  1 &  2 \\
+\midrule
+0 &  $\alpha$ &  b &  c \\
+1 &         1 &  2 &  3 \\
+\bottomrule
+\end{tabular}
+"""
+        with option_context("display.latex.escape",False):
+            df=DataFrame([[r'$\alpha$','b','c'],[1,2,3]])
+            self.assertEqual(result,df._repr_latex_())
+
+
     def test_to_dict_timestamp(self):
 
         # GH11247

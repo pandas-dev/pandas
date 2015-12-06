@@ -576,6 +576,13 @@ class DataFrame(NDFrame):
         else:
             return None
 
+    def _repr_latex_(self):
+        """
+        Returns a LaTeX representation for a particular Dataframe.
+        Mainly for use with nbconvert (jupyter notebook conversion to pdf).
+        """
+        return self.to_latex()
+
     @property
     def style(self):
         """
@@ -1540,7 +1547,7 @@ class DataFrame(NDFrame):
                  header=True, index=True, na_rep='NaN', formatters=None,
                  float_format=None, sparsify=None, index_names=True,
                  bold_rows=True, column_format=None,
-                 longtable=False, escape=True):
+                 longtable=None, escape=None):
         """
         Render a DataFrame to a tabular environment table. You can splice
         this into a LaTeX document. Requires \\usepackage{booktabs}.
@@ -1552,10 +1559,12 @@ class DataFrame(NDFrame):
         column_format : str, default None
             The columns format as specified in `LaTeX table format
             <https://en.wikibooks.org/wiki/LaTeX/Tables>`__ e.g 'rcl' for 3 columns
-        longtable : boolean, default False
+        longtable : boolean, default will be read from the pandas config module
+            default: False
             Use a longtable environment instead of tabular. Requires adding
             a \\usepackage{longtable} to your LaTeX preamble.
-        escape : boolean, default True
+        escape : boolean, default will be read from the pandas config module
+            default: True
             When set to False prevents from escaping latex special
             characters in column names.
 
@@ -1565,7 +1574,12 @@ class DataFrame(NDFrame):
             warnings.warn("colSpace is deprecated, use col_space",
                           FutureWarning, stacklevel=2)
             col_space = colSpace
-
+        # Get defaults from the pandas config
+        if longtable is None:
+            longtable = get_option("display.latex.longtable")
+        if escape is None:
+            escape = get_option("display.latex.escape")
+            
         formatter = fmt.DataFrameFormatter(self, buf=buf, columns=columns,
                                            col_space=col_space, na_rep=na_rep,
                                            header=header, index=index,

@@ -307,6 +307,10 @@ display.large_repr         truncate     For DataFrames exceeding max_rows/max_co
                                         or switch to the view from df.info()
                                         (the behaviour in earlier versions of pandas).
                                         allowable settings, ['truncate', 'info']
+display.latex.escape       True         Escapes special caracters in Dataframes, when
+                                        using the to_latex method.
+display.latex.longtable    False        Specifies if the to_latex method of a Dataframe
+                                        uses the longtable format.
 display.line_width         80           Deprecated. Use `display.width` instead.
 display.max_columns        20           max_rows and max_columns are used
                                         in __repr__() methods to decide if
@@ -498,3 +502,5 @@ Enabling ``display.unicode.ambiguous_as_wide`` lets pandas to figure these chara
 
    pd.set_option('display.unicode.east_asian_width', False)
    pd.set_option('display.unicode.ambiguous_as_wide', False)
+
+
