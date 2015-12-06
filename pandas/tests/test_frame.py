@@ -7559,6 +7559,18 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
                           columns=['a', 'a', 'b', 'b'])
         frame.info(buf=io)
 
+    def test_info_duplicate_columns_shows_correct_dtypes(self):
+        # GH11761
+        io = StringIO()
+
+        frame = DataFrame([[1, 2.0]],
+                          columns=['a', 'a'])
+        frame.info(buf=io)
+        io.seek(0)
+        lines = io.readlines()
+        self.assertEqual('a    1 non-null int64\n', lines[3])
+        self.assertEqual('a    1 non-null float64\n', lines[4])
+
     def test_info_shows_column_dtypes(self):
         dtypes = ['int64', 'float64', 'datetime64[ns]', 'timedelta64[ns]',
                   'complex128', 'object', 'bool']
