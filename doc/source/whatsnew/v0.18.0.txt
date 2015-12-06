@@ -89,12 +89,40 @@ In addition, ``.round()`` will be available thru the ``.dt`` accessor of ``Serie
 Backwards incompatible API changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+Bug in QuarterBegin with n=0
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+In previous versions, the behavior of the QuarterBegin offset was inconsistent
+depending on the date when the ``n`` parameter was 0.
 
+The general semantics of anchored offsets for ``n=0`` is to not move the date
+when it is an anchor point (e.g., a quarter start date), and otherwise roll
+forward to the next anchor point.
 
+.. ipython:: python
 
+   d = pd.Timestamp('2014-02-01')
+   d
+   d + pd.offsets.QuarterBegin(n=0, startingMonth=2)
+   d + pd.offsets.QuarterBegin(n=0, startingMonth=1)
 
+For the ``QuarterBegin`` offset in previous versions, the date would be rolled
+*backwards* if date was in the same month as the quarter start date.
 
+.. code-block:: python
+
+   In [3]: d = pd.Timestamp('2014-02-15')
+
+   In [4]: d + pd.offsets.QuarterBegin(n=0, startingMonth=2)
+   Out[4]: Timestamp('2014-02-01 00:00:00')
+
+This behavior has been corrected in version 0.18.0, which is consistent with
+other anchored offsets like ``MonthBegin`` and ``YearBegin``.
+
+.. ipython:: python
+
+   d = pd.Timestamp('2014-02-15')
+   d + pd.offsets.QuarterBegin(n=0, startingMonth=2)
 
 
 Other API Changes
