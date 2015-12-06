@@ -1,6 +1,5 @@
 from pandas.compat import cPickle as pkl, pickle_compat as pc, PY3
-from pandas.io.common import _get_handle
-from pandas.io.parsers import get_compression
+from pandas.io.common import _get_handle, get_compression_type
 
 def to_pickle(obj, path):
     """
@@ -16,7 +15,7 @@ def to_pickle(obj, path):
         pkl.dump(obj, f, protocol=pkl.HIGHEST_PROTOCOL)
 
 
-def read_pickle(path, compression_arg='infer'):
+def read_pickle(path, compression='infer'):
     """
     Load pickled pandas object (or any other pickled object) from the specified
     file path
@@ -28,7 +27,7 @@ def read_pickle(path, compression_arg='infer'):
     ----------
     path : string
         File path
-    compression_arg: {'gzip', 'bz2', 'infer', None}, default 'infer'
+    compression: {'gzip', 'bz2', 'infer', None}, default 'infer'
         Compression type,  ('infer' looks for the file extensions .gz and .bz2, using gzip and bz2 to decompress
         respectively).
 
@@ -46,20 +45,20 @@ def read_pickle(path, compression_arg='infer'):
 
         # cpickle
         # GH 6899
-        compression = get_compression(path, encoding, compression_arg)
+        _compression = get_compression_type(path, compression)
         try:
-            with _get_handle(path, 'rb', encoding, compression) as fh:
+            with _get_handle(path, 'rb', encoding, _compression) as fh:
                 return pkl.load(fh)
         except (Exception) as e:
 
             # reg/patched pickle
             try:
-                with _get_handle(path, 'rb', encoding, compression) as fh:
+                with _get_handle(path, 'rb', encoding, _compression) as fh:
                     return pc.load(fh, encoding=encoding, compat=False)
 
             # compat pickle
             except:
-                with _get_handle(path, 'rb', encoding, compression) as fh:
+                with _get_handle(path, 'rb', encoding, _compression) as fh:
                     return pc.load(fh, encoding=encoding, compat=True)
 
     try:
