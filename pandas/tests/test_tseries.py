@@ -10,7 +10,6 @@ import pandas.lib as lib
 import pandas._period as period
 import pandas.algos as algos
 from pandas.core import common as com
-from pandas.tseries.holiday import Holiday, SA, next_monday,USMartinLutherKingJr,USMemorialDay,AbstractHolidayCalendar
 import datetime
 from pandas import DateOffset
 
@@ -693,40 +692,6 @@ class TestPeriodField(tm.TestCase):
 
     def test_get_period_field_array_raises_on_out_of_range(self):
         self.assertRaises(ValueError, period.get_period_field_arr, -1, np.empty(1), 0)
-
-class TestFederalHolidayCalendar(tm.TestCase):
-
-    # Test for issue 10278
-    def test_no_mlk_before_1984(self):
-        class MLKCalendar(AbstractHolidayCalendar):
-            rules=[USMartinLutherKingJr]
-        holidays = MLKCalendar().holidays(start='1984', end='1988').to_pydatetime().tolist()
-        # Testing to make sure holiday is not incorrectly observed before 1986
-        self.assertEqual(holidays, [datetime.datetime(1986, 1, 20, 0, 0), datetime.datetime(1987, 1, 19, 0, 0)])
-
-    def test_memorial_day(self):
-        class MemorialDay(AbstractHolidayCalendar):
-            rules=[USMemorialDay]
-        holidays = MemorialDay().holidays(start='1971', end='1980').to_pydatetime().tolist()
-        # Fixes 5/31 error and checked manually against wikipedia
-        self.assertEqual(holidays, [datetime.datetime(1971, 5, 31, 0, 0), datetime.datetime(1972, 5, 29, 0, 0),
-            datetime.datetime(1973, 5, 28, 0, 0), datetime.datetime(1974, 5, 27, 0, 0),
-            datetime.datetime(1975, 5, 26, 0, 0), datetime.datetime(1976, 5, 31, 0, 0),
-            datetime.datetime(1977, 5, 30, 0, 0), datetime.datetime(1978, 5, 29, 0, 0),
-            datetime.datetime(1979, 5, 28, 0, 0)])
-
-
-
-
-class TestHolidayConflictingArguments(tm.TestCase):
-
-    # GH 10217
-
-    def test_both_offset_observance_raises(self):
-
-        with self.assertRaises(NotImplementedError) as cm:
-            h = Holiday("Cyber Monday", month=11, day=1,
-                        offset=[DateOffset(weekday=SA(4))], observance=next_monday)
 
 if __name__ == '__main__':
     import nose
