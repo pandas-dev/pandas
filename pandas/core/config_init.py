@@ -220,6 +220,19 @@ pc_memory_usage_doc = """
     df.info() is called. Valid values True,False,'deep'
 """
 
+pc_latex_escape = """
+: bool
+    This specifies if the to_latex method of a Dataframe uses escapes special 
+    characters.
+    method. Valid values: False,True    
+"""
+
+pc_latex_longtable = """
+:bool
+    This specifies if the to_latex method of a Dataframe uses the longtable format.
+    method. Valid values: False,True 
+"""
+
 style_backup = dict()
 
 
@@ -297,6 +310,10 @@ with cf.config_prefix('display'):
                        pc_east_asian_width_doc, validator=is_bool)
     cf.register_option('unicode.ambiguous_as_wide', False,
                        pc_east_asian_width_doc, validator=is_bool)
+    cf.register_option('latex.escape',True, pc_latex_escape,
+                        validator=is_bool)
+    cf.register_option('latex.longtable',False,pc_latex_longtable,
+                        validator=is_bool)
 
 cf.deprecate_option('display.line_width',
                     msg=pc_line_width_deprecation_warning,
