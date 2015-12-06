@@ -1767,7 +1767,7 @@ class QuarterBegin(QuarterOffset):
             # make sure you roll forward, so negate
             monthsSince = monthsSince - 3
 
-        if n < 0 and (monthsSince == 0 and other.day > 1):
+        if n <= 0 and (monthsSince == 0 and other.day > 1):
             # after start, so come back an extra period as if rolled forward
             n = n + 1
 
