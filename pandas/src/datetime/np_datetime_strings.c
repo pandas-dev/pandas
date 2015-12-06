@@ -869,7 +869,7 @@ parse_timezone:
         if (out_local != NULL) {
             *out_local = 1;
             // Unlike NumPy, do not change internal value to local time
-            *out_tzoffset = 60 * offset_hour - offset_minute;
+            *out_tzoffset = 60 * offset_hour + offset_minute;
         }
     }
 

@@ -141,6 +141,21 @@ class TestTimestamp(tm.TestCase):
         expected_repr = "Timestamp('2013-11-01 14:00:00+0900', tz='Asia/Tokyo')"
         self.assertEqual(repr(result), expected_repr)
         self.assertEqual(result, eval(repr(result)))
+        
+        # GH11708
+        # This should be 2015-11-18 10:00 in UTC -> converted to Asia/Katmandu tz
+        result = Timestamp("2015-11-18 15:45:00+05:45", tz="Asia/Katmandu")
+        self.assertEqual(result.value, Timestamp("2015-11-18 10:00").value)
+        expected_repr = "Timestamp('2015-11-18 15:45:00+0545', tz='Asia/Katmandu')"
+        self.assertEqual(repr(result), expected_repr)
+        self.assertEqual(result, eval(repr(result)))
+        
+        # This should be 2015-11-18 10:00 in UTC -> converted to Asia/Kolkata tz
+        result = Timestamp("2015-11-18 15:30:00+05:30", tz="Asia/Kolkata")
+        self.assertEqual(result.value, Timestamp("2015-11-18 10:00").value)
+        expected_repr = "Timestamp('2015-11-18 15:30:00+0530', tz='Asia/Kolkata')"
+        self.assertEqual(repr(result), expected_repr)
+        self.assertEqual(result, eval(repr(result)))
 
     def test_constructor_invalid(self):
         with tm.assertRaisesRegexp(TypeError, 'Cannot convert input'):
@@ -620,6 +635,21 @@ class TestDatetimeParsingWrappers(tm.TestCase):
             result, _, _ = tools.parse_time_string(date_str, freq=freq)
             self.assertEqual(result, exp)
 
+    def test_parsers_timezone_minute_offsets_roundtrip(self):
+        #GH11708
+        base = to_datetime("2013-01-01 00:00:00")
+        dt_strings = [('2013-01-01 05:45+0545', 
+                       "Asia/Katmandu",
+                       "Timestamp('2013-01-01 05:45:00+0545', tz='Asia/Katmandu')"),
+                      ('2013-01-01 05:30+0530', 
+                       "Asia/Kolkata",
+                       "Timestamp('2013-01-01 05:30:00+0530', tz='Asia/Kolkata')")]
+        
+        for dt_string, tz, dt_string_repr in dt_strings:
+            dt_time = to_datetime(dt_string)
+            self.assertEqual(base, dt_time)
+            converted_time = dt_time.tz_localize('UTC').tz_convert(tz)
+            self.assertEqual(dt_string_repr, repr(converted_time))
 
 class TestArrayToDatetime(tm.TestCase):
     def test_parsing_valid_dates(self):
@@ -721,7 +751,7 @@ class TestArrayToDatetime(tm.TestCase):
             '01-01-2013 08:00:00+08:00',
             '2013-01-01T08:00:00.000000000+0800',
             '2012-12-31T16:00:00.000000000-0800',
-            '12-31-2012 23:00:00-01:00',
+            '12-31-2012 23:00:00-01:00'
         ]
 
         expected_output = tslib.array_to_datetime(

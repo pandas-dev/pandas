@@ -187,7 +187,7 @@ Bug Fixes
 
 
 
-
+- Bug in parsing timezone offset strings with non-zero minutes (:issue:`11708`)
 
 
 
