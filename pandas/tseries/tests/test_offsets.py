@@ -2918,8 +2918,8 @@ class TestQuarterBegin(Base):
                        datetime(2008, 2, 29): datetime(2008, 4, 1),
                        datetime(2008, 3, 15): datetime(2008, 4, 1),
                        datetime(2008, 3, 31): datetime(2008, 4, 1),
-                       datetime(2008, 4, 15): datetime(2008, 4, 1),
-                       datetime(2008, 4, 30): datetime(2008, 4, 1), }))
+                       datetime(2008, 4, 15): datetime(2008, 7, 1),
+                       datetime(2008, 4, 30): datetime(2008, 7, 1), }))
 
         tests.append((QuarterBegin(startingMonth=1, n=-1),
                       {datetime(2008, 1, 1): datetime(2007, 10, 1),
