@@ -255,6 +255,48 @@ class Styler(object):
                     precision=precision, table_styles=table_styles,
                     caption=caption, table_attributes=self.table_attributes)
 
+    def format(self, formatter, subset=None):
+        '''
+        formatter is either an `a` or a dict `{column_name: a}` where
+        a is one of
+            - str: wrapped in: ``a.format(x)``
+            - callable: called with x.
+
+        now `.set_precision(2)` becomes
+
+        ```
+            .format('{:2g}')
+        ```
+        '''
+        from itertools import product
+        from collections.abc import MutableMapping
+
+        just_row_subset = (com.is_list_like(subset) and
+                           not isinstance(subset, tuple))
+
+        if issubclass(type(formatter), MutableMapping):
+            # formatter is a dict
+            for col, col_formatter in formatter.items():
+                # get the row index locations out of subset
+                j = self.data.columns.get_indexer_for([col])[0]
+                if not callable(col_formatter):
+                    formatter_func = lambda x: col_formatter.format(x)
+
+                if subset is not None and just_row_subset:
+                    locs = self.data.index.get_indexer_for(subset)
+                elif subset is not None:
+                    locs = self.data.index.get_indexer_for(subset)
+                else:
+                    locs = range(len(self.data))
+                for i in locs:
+                    self._display_funcs[(i, j)] = formatter_func
+        # single scalar to format all cells with
+        else:
+            locs = product(*(range(x) for x in self.data.shape))
+            for i, j in locs:
+                self._display_funcs[(i, j)] = lambda x: formatter.format(x)
+        return self
+
     def render(self):
         """
         Render the built up styles to HTML
