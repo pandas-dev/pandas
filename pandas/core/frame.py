@@ -1655,7 +1655,7 @@ class DataFrame(NDFrame):
 
             dtypes = self.dtypes
             for i, col in enumerate(self.columns):
-                dtype = dtypes[col]
+                dtype = dtypes.iloc[i]
                 col = com.pprint_thing(col)
 
                 count = ""
