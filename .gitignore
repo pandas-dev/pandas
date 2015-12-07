@@ -82,6 +82,7 @@ scikits
 # Performance Testing #
 #######################
 asv_bench/
+mytests/
 
 # Documentation generated files #
 #################################
