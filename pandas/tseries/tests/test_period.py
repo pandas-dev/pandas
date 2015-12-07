@@ -2984,6 +2984,16 @@ class TestPeriodIndex(tm.TestCase):
         result = index.to_datetime()
         self.assertEqual(result[0], Timestamp('1/1/2012'))
 
+    def test_to_datetime_dimensions(self):
+        # GH 11776
+        df = DataFrame({'a': ['1/1/2012', '1/2/2012'],
+                        'b': ['12/30/2012', '12/31/2012']})
+        with tm.assertRaisesRegexp(TypeError, "1-d array"):
+            to_datetime(df)
+        for errors in ['ignore', 'raise', 'coerce']:
+            with tm.assertRaisesRegexp(TypeError, "1-d array"):
+                to_datetime(df, errors=errors)
+
     def test_get_loc_msg(self):
         idx = period_range('2000-1-1', freq='A', periods=10)
         bad_period = Period('2012', 'A')
