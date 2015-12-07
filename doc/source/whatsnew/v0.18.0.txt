@@ -153,7 +153,7 @@ Bug Fixes
 ~~~~~~~~~
 
 - Bug in ``GroupBy.size`` when data-frame is empty. (:issue:`11699`)
-
+- Bug in ``Period.end_time`` when a multiple of time period is requested (:issue:`11738`)
 
 
 
