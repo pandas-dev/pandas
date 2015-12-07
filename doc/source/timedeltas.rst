@@ -47,14 +47,14 @@ You can construct a ``Timedelta`` scalar through various arguments:
 
    # like datetime.timedelta
    # note: these MUST be specified as keyword arguments
-   Timedelta(days=1,seconds=1)
+   Timedelta(days=1, seconds=1)
 
    # integers with a unit
-   Timedelta(1,unit='d')
+   Timedelta(1, unit='d')
 
    # from a timedelta/np.timedelta64
-   Timedelta(timedelta(days=1,seconds=1))
-   Timedelta(np.timedelta64(1,'ms'))
+   Timedelta(timedelta(days=1, seconds=1))
+   Timedelta(np.timedelta64(1, 'ms'))
 
    # negative Timedeltas have this string repr
    # to be more consistent with datetime.timedelta conventions
@@ -70,7 +70,7 @@ You can construct a ``Timedelta`` scalar through various arguments:
 
    Timedelta(Second(2))
 
-Further, operations among the scalars yield another scalar ``Timedelta``
+Further, operations among the scalars yield another scalar ``Timedelta``.
 
 .. ipython:: python
 
@@ -84,18 +84,30 @@ to_timedelta
        Prior to 0.15.0 ``pd.to_timedelta`` would return a ``Series`` for list-like/Series input, and a ``np.timedelta64`` for scalar input.
        It will now return a ``TimedeltaIndex`` for list-like input, ``Series`` for Series input, and ``Timedelta`` for scalar input.
 
-       The arguments to ``pd.to_timedelta`` are now ``(arg,unit='ns',box=True)``, previously were ``(arg,box=True,unit='ns')`` as these are more logical.
+       The arguments to ``pd.to_timedelta`` are now ``(arg, unit='ns', box=True)``, previously were ``(arg, box=True, unit='ns')`` as these are more logical.
 
 Using the top-level ``pd.to_timedelta``, you can convert a scalar, array, list, or Series from a recognized timedelta format / value into a ``Timedelta`` type.
-It will construct Series if the input is a Series, a scalar if the input is scalar-like, otherwise will output a ``TimedeltaIndex``
+It will construct Series if the input is a Series, a scalar if the input is scalar-like, otherwise will output a ``TimedeltaIndex``.
+
+You can parse a single string to a Timedelta:
 
 .. ipython:: python
 
    to_timedelta('1 days 06:05:01.00003')
    to_timedelta('15.5us')
-   to_timedelta(['1 days 06:05:01.00003','15.5us','nan'])
-   to_timedelta(np.arange(5),unit='s')
-   to_timedelta(np.arange(5),unit='d')
+
+or a list/array of strings:
+
+.. ipython:: python
+
+   to_timedelta(['1 days 06:05:01.00003', '15.5us', 'nan'])
+
+The ``unit`` keyword argument specifies the unit of the Timedelta:
+
+.. ipython:: python
+
+   to_timedelta(np.arange(5), unit='s')
+   to_timedelta(np.arange(5), unit='d')
 
 .. _timedeltas.operations:
 
@@ -116,41 +128,41 @@ subtraction operations on ``datetime64[ns]`` Series, or ``Timestamps``.
    df.dtypes
 
    s - s.max()
-   s - datetime(2011,1,1,3,5)
+   s - datetime(2011, 1, 1, 3, 5)
    s + timedelta(minutes=5)
    s + Minute(5)
    s + Minute(5) + Milli(5)
 
-Operations with scalars from a ``timedelta64[ns]`` series
+Operations with scalars from a ``timedelta64[ns]`` series:
 
 .. ipython:: python
 
    y = s - s[0]
    y
 
-Series of timedeltas with ``NaT`` values are supported
+Series of timedeltas with ``NaT`` values are supported:
 
 .. ipython:: python
 
    y = s - s.shift()
    y
 
-Elements can be set to ``NaT`` using ``np.nan`` analogously to datetimes
+Elements can be set to ``NaT`` using ``np.nan`` analogously to datetimes:
 
 .. ipython:: python
 
    y[1] = np.nan
    y
 
-Operands can also appear in a reversed order (a singular object operated with a Series)
+Operands can also appear in a reversed order (a singular object operated with a Series):
 
 .. ipython:: python
 
    s.max() - s
-   datetime(2011,1,1,3,5) - s
+   datetime(2011, 1, 1, 3, 5) - s
    timedelta(minutes=5) + s
 
-``min, max`` and the corresponding ``idxmin, idxmax`` operations are supported on frames
+``min, max`` and the corresponding ``idxmin, idxmax`` operations are supported on frames:
 
 .. ipython:: python
 
@@ -185,7 +197,7 @@ pass a timedelta to get a particular value.
    y.fillna(10)
    y.fillna(Timedelta('-1 days, 00:00:05'))
 
-You can also negate, multiply and use ``abs`` on  ``Timedeltas``
+You can also negate, multiply and use ``abs`` on ``Timedeltas``:
 
 .. ipython:: python
 
@@ -205,7 +217,7 @@ Numeric reduction operation for ``timedelta64[ns]`` will return ``Timedelta`` ob
 
 .. ipython:: python
 
-   y2 = Series(to_timedelta(['-1 days +00:00:05','nat','-1 days +00:00:05','1 days']))
+   y2 = Series(to_timedelta(['-1 days +00:00:05', 'nat', '-1 days +00:00:05', '1 days']))
    y2
    y2.mean()
    y2.median()
@@ -225,22 +237,22 @@ Note that division by the numpy scalar is true division, while astyping is equiv
 
 .. ipython:: python
 
-   td = Series(date_range('20130101',periods=4)) - \
-        Series(date_range('20121201',periods=4))
-   td[2] += timedelta(minutes=5,seconds=3)
+   td = Series(date_range('20130101', periods=4)) - \
+        Series(date_range('20121201', periods=4))
+   td[2] += timedelta(minutes=5, seconds=3)
    td[3] = np.nan
    td
 
    # to days
-   td / np.timedelta64(1,'D')
+   td / np.timedelta64(1, 'D')
    td.astype('timedelta64[D]')
 
    # to seconds
-   td / np.timedelta64(1,'s')
+   td / np.timedelta64(1, 's')
    td.astype('timedelta64[s]')
 
    # to months (these are constant months)
-   td / np.timedelta64(1,'M')
+   td / np.timedelta64(1, 'M')
 
 Dividing or multiplying a ``timedelta64[ns]`` Series by an integer or integer Series
 yields another ``timedelta64[ns]`` dtypes Series.
@@ -248,7 +260,7 @@ yields another ``timedelta64[ns]`` dtypes Series.
 .. ipython:: python
 
    td * -1
-   td * Series([1,2,3,4])
+   td * Series([1, 2, 3, 4])
 
 Attributes
 ----------
@@ -261,7 +273,7 @@ These operations can also be directly accessed via the ``.dt`` property of the `
 
    Note that the attributes are NOT the displayed values of the ``Timedelta``. Use ``.components`` to retrieve the displayed values.
 
-For a ``Series``
+For a ``Series``:
 
 .. ipython:: python
 
@@ -300,15 +312,15 @@ or ``np.timedelta64`` objects. Passing ``np.nan/pd.NaT/nat`` will represent miss
 
 .. ipython:: python
 
-   TimedeltaIndex(['1 days','1 days, 00:00:05',
-                   np.timedelta64(2,'D'),timedelta(days=2,seconds=2)])
+   TimedeltaIndex(['1 days', '1 days, 00:00:05',
+                   np.timedelta64(2,'D'), timedelta(days=2,seconds=2)])
 
 Similarly to ``date_range``, you can construct regular ranges of a ``TimedeltaIndex``:
 
 .. ipython:: python
 
-   timedelta_range(start='1 days',periods=5,freq='D')
-   timedelta_range(start='1 days',end='2 days',freq='30T')
+   timedelta_range(start='1 days', periods=5, freq='D')
+   timedelta_range(start='1 days', end='2 days', freq='30T')
 
 Using the TimedeltaIndex
 ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -319,7 +331,7 @@ Similarly to other of the datetime-like indices, ``DatetimeIndex`` and ``PeriodI
 .. ipython:: python
 
    s = Series(np.arange(100),
-              index=timedelta_range('1 days',periods=100,freq='h'))
+              index=timedelta_range('1 days', periods=100, freq='h'))
    s
 
 Selections work similary, with coercion on string-likes and slices:
@@ -343,9 +355,9 @@ Finally, the combination of ``TimedeltaIndex`` with ``DatetimeIndex`` allow cert
 
 .. ipython:: python
 
-   tdi = TimedeltaIndex(['1 days',pd.NaT,'2 days'])
+   tdi = TimedeltaIndex(['1 days', pd.NaT, '2 days'])
    tdi.tolist()
-   dti = date_range('20130101',periods=3)
+   dti = date_range('20130101', periods=3)
    dti.tolist()
    (dti + tdi).tolist()
    (dti - tdi).tolist()
