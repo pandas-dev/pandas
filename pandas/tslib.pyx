@@ -75,12 +75,11 @@ PyDateTime_IMPORT
 # numpy_pydatetime_import
 
 cdef int64_t NPY_NAT = util.get_nat()
+iNaT = NPY_NAT
 
 # < numpy 1.7 compat for NaT
 compat_NaT = np.array([NPY_NAT]).astype('m8[ns]').item()
 
-# numpy actual nat object
-np_NaT = np.datetime64('NaT')
 
 try:
     basestring
@@ -127,7 +126,7 @@ def ints_to_pydatetime(ndarray[int64_t] arr, tz=None, offset=None, box=False):
         if _is_utc(tz):
             for i in range(n):
                 value = arr[i]
-                if value == iNaT:
+                if value == NPY_NAT:
                     result[i] = NaT
                 else:
                     pandas_datetime_to_datetimestruct(value, PANDAS_FR_ns, &dts)
@@ -135,7 +134,7 @@ def ints_to_pydatetime(ndarray[int64_t] arr, tz=None, offset=None, box=False):
         elif _is_tzlocal(tz) or _is_fixed_offset(tz):
             for i in range(n):
                 value = arr[i]
-                if value == iNaT:
+                if value == NPY_NAT:
                     result[i] = NaT
                 else:
                     pandas_datetime_to_datetimestruct(value, PANDAS_FR_ns, &dts)
@@ -150,7 +149,7 @@ def ints_to_pydatetime(ndarray[int64_t] arr, tz=None, offset=None, box=False):
             for i in range(n):
 
                 value = arr[i]
-                if value == iNaT:
+                if value == NPY_NAT:
                     result[i] = NaT
                 else:
 
@@ -169,7 +168,7 @@ def ints_to_pydatetime(ndarray[int64_t] arr, tz=None, offset=None, box=False):
         for i in range(n):
 
             value = arr[i]
-            if value == iNaT:
+            if value == NPY_NAT:
                 result[i] = NaT
             else:
                 pandas_datetime_to_datetimestruct(value, PANDAS_FR_ns, &dts)
@@ -188,7 +187,7 @@ def ints_to_pytimedelta(ndarray[int64_t] arr, box=False):
     for i in range(n):
 
         value = arr[i]
-        if value == iNaT:
+        if value == NPY_NAT:
             result[i] = NaT
         else:
             if box:
@@ -655,7 +654,7 @@ class NaTType(_NaT):
         return 'NaT'
 
     def __hash__(self):
-        return iNaT
+        return NPY_NAT
 
     def __int__(self):
         return NPY_NAT
@@ -727,8 +726,6 @@ def __nat_unpickle(*args):
     return NaT
 
 NaT = NaTType()
-
-iNaT = util.get_nat()
 
 cdef inline bint _checknull_with_nat(object val):
     """ utility to check if a value is a nat or not """
@@ -1184,10 +1181,10 @@ cdef convert_to_tsobject(object ts, object tz, object unit):
     if util.is_string_object(ts):
         return convert_str_to_tsobject(ts, tz, unit)
 
-    if ts is None or ts is NaT or ts is np_NaT:
+    if ts is None or ts is NaT:
         obj.value = NPY_NAT
     elif is_datetime64_object(ts):
-        if ts.view('i8') == iNaT:
+        if ts.view('i8') == NPY_NAT:
             obj.value = NPY_NAT
         else:
             obj.value = _get_datetime64_nanos(ts)
@@ -1475,7 +1472,7 @@ def datetime_to_datetime64(ndarray[object] values):
     for i in range(n):
         val = values[i]
         if _checknull_with_nat(val):
-            iresult[i] = iNaT
+            iresult[i] = NPY_NAT
         elif PyDateTime_Check(val):
             if val.tzinfo is not None:
                 if inferred_tz is not None:
@@ -1548,7 +1545,7 @@ def format_array_from_datetime(ndarray[int64_t] values, object tz=None,
     # a format based on precision
     basic_format = format is None and tz is None
     if basic_format:
-        consider_values = values[values != iNaT]
+        consider_values = values[values != NPY_NAT]
         show_ns = (consider_values%1000).any()
 
         if not show_ns:
@@ -1562,7 +1559,7 @@ def format_array_from_datetime(ndarray[int64_t] values, object tz=None,
     for i in range(N):
         val = values[i]
 
-        if val == iNaT:
+        if val == NPY_NAT:
             result[i] = na_rep
         elif basic_format:
 
@@ -1891,7 +1888,7 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
         for i in range(n):
             val = values[i]
             if _checknull_with_nat(val):
-                iresult[i] = iNaT
+                iresult[i] = NPY_NAT
             elif PyDateTime_Check(val):
                 seen_datetime=1
                 if val.tzinfo is not None:
@@ -1902,7 +1899,7 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
                             _check_dts_bounds(&_ts.dts)
                         except ValueError:
                             if is_coerce:
-                                iresult[i] = iNaT
+                                iresult[i] = NPY_NAT
                                 continue
                             raise
                     else:
@@ -1917,7 +1914,7 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
                         _check_dts_bounds(&dts)
                     except ValueError:
                         if is_coerce:
-                            iresult[i] = iNaT
+                            iresult[i] = NPY_NAT
                             continue
                         raise
             elif PyDate_Check(val):
@@ -1927,43 +1924,43 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
                     seen_datetime=1
                 except ValueError:
                     if is_coerce:
-                        iresult[i] = iNaT
+                        iresult[i] = NPY_NAT
                         continue
                     raise
             elif util.is_datetime64_object(val):
-                if val is np_NaT or val.view('i8') == iNaT:
-                    iresult[i] = iNaT
+                if get_datetime64_value(val) == NPY_NAT:
+                    iresult[i] = NPY_NAT
                 else:
                     try:
                         iresult[i] = _get_datetime64_nanos(val)
                         seen_datetime=1
                     except ValueError:
                         if is_coerce:
-                            iresult[i] = iNaT
+                            iresult[i] = NPY_NAT
                             continue
                         raise
 
             # if we are coercing, dont' allow integers
             elif is_integer_object(val) and not is_coerce:
-                if val == iNaT:
-                    iresult[i] = iNaT
+                if val == NPY_NAT:
+                    iresult[i] = NPY_NAT
                 else:
                     iresult[i] = val*m
                     seen_integer=1
             elif is_float_object(val) and not is_coerce:
-                if val != val or val == iNaT:
-                    iresult[i] = iNaT
+                if val != val or val == NPY_NAT:
+                    iresult[i] = NPY_NAT
                 else:
                     iresult[i] = cast_from_unit(val,unit)
                     seen_integer=1
             else:
                 try:
                     if len(val) == 0:
-                        iresult[i] = iNaT
+                        iresult[i] = NPY_NAT
                         continue
 
                     elif val in _nat_strings:
-                        iresult[i] = iNaT
+                        iresult[i] = NPY_NAT
                         continue
                     _string_to_dts(val, &dts, &out_local, &out_tzoffset)
                     value = pandas_datetimestruct_to_datetime(PANDAS_FR_ns, &dts)
@@ -1976,7 +1973,7 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
                     # if requiring iso8601 strings, skip trying other formats
                     if require_iso8601:
                         if is_coerce:
-                            iresult[i] = iNaT
+                            iresult[i] = NPY_NAT
                             continue
                         elif is_raise:
                             raise ValueError("time data %r does match format specified" %
@@ -1989,7 +1986,7 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
                                                       yearfirst=yearfirst, freq=freq)
                     except Exception:
                         if is_coerce:
-                            iresult[i] = iNaT
+                            iresult[i] = NPY_NAT
                             continue
                         raise TypeError("invalid string coercion to datetime")
 
@@ -1998,12 +1995,12 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
                         iresult[i] = _ts.value
                     except ValueError:
                         if is_coerce:
-                            iresult[i] = iNaT
+                            iresult[i] = NPY_NAT
                             continue
                         raise
                 except:
                     if is_coerce:
-                        iresult[i] = iNaT
+                        iresult[i] = NPY_NAT
                         continue
                     raise
 
@@ -2024,12 +2021,12 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
 
             # set as nan except if its a NaT
             if _checknull_with_nat(val):
-                if val is np_NaT or val.view('i8') == iNaT:
+                if val.view('i8') == NPY_NAT:
                     oresult[i] = NaT
                 else:
                     oresult[i] = np.nan
             elif util.is_datetime64_object(val):
-                if val is np_NaT or val.view('i8') == iNaT:
+                if get_datetime64_value(val) == NPY_NAT:
                     oresult[i] = NaT
                 else:
                     oresult[i] = val.item()
@@ -2730,7 +2727,7 @@ cdef inline parse_timedelta_string(object ts, coerce=False):
     # have_hhmmss : tracks if we have a regular format hh:mm:ss
 
     if ts in _nat_strings or not len(ts):
-        return iNaT
+        return NPY_NAT
 
     for c in ts:
 
@@ -2771,7 +2768,7 @@ cdef inline parse_timedelta_string(object ts, coerce=False):
                     r = timedelta_from_spec(number, frac, unit)
                 except ValueError:
                     if coerce:
-                        return iNaT
+                        return NPY_NAT
                     raise
                 unit, number, frac = [], [c], []
 
@@ -2800,7 +2797,7 @@ cdef inline parse_timedelta_string(object ts, coerce=False):
                 have_hhmmss = 1
             else:
                 if coerce:
-                    return iNaT
+                    return NPY_NAT
                 raise ValueError("expecting hh:mm:ss format, received: {0}".format(ts))
             unit, number = [], []
 
@@ -2836,7 +2833,7 @@ cdef inline parse_timedelta_string(object ts, coerce=False):
             result += timedelta_as_neg(r, neg)
         except ValueError:
             if coerce:
-                return iNaT
+                return NPY_NAT
             raise
 
     # we have a dot as part of a regular format
@@ -2845,7 +2842,7 @@ cdef inline parse_timedelta_string(object ts, coerce=False):
 
         if (len(number) or len(frac)) and not len(unit) and current_unit is None:
             if coerce:
-                return iNaT
+                return NPY_NAT
             raise ValueError("no units specified")
 
         if len(frac) > 0 and len(frac) <= 3:
@@ -2876,11 +2873,11 @@ cdef inline parse_timedelta_string(object ts, coerce=False):
                 result += timedelta_as_neg(r, neg)
             except ValueError:
                 if coerce:
-                    return iNaT
+                    return NPY_NAT
                 raise
         else:
             if coerce:
-                return iNaT
+                return NPY_NAT
             raise ValueError("unit abbreviation w/o a number")
 
     # treat as nanoseconds
@@ -2895,7 +2892,7 @@ cdef inline parse_timedelta_string(object ts, coerce=False):
                 result += timedelta_as_neg(r, neg)
             except ValueError:
                 if coerce:
-                    return iNaT
+                    return NPY_NAT
                 raise
 
     return result
@@ -2919,19 +2916,19 @@ cdef inline convert_to_timedelta64(object ts, object unit, object coerce):
     # handle the numpy < 1.7 case
     """
     if _checknull_with_nat(ts):
-        return np.timedelta64(iNaT)
+        return np.timedelta64(NPY_NAT)
     elif isinstance(ts, Timedelta):
         # already in the proper format
         ts = np.timedelta64(ts.value)
     elif util.is_datetime64_object(ts):
         # only accept a NaT here
-        if ts.astype('int64') == iNaT:
-            return np.timedelta64(iNaT)
+        if ts.astype('int64') == NPY_NAT:
+            return np.timedelta64(NPY_NAT)
     elif isinstance(ts, np.timedelta64):
         ts = ts.astype("m8[{0}]".format(unit.lower()))
     elif is_integer_object(ts):
-        if ts == iNaT:
-            return np.timedelta64(iNaT)
+        if ts == NPY_NAT:
+            return np.timedelta64(NPY_NAT)
         else:
             if util.is_array(ts):
                 ts = ts.astype('int64').item()
@@ -2957,7 +2954,7 @@ cdef inline convert_to_timedelta64(object ts, object unit, object coerce):
         ts = np.timedelta64(ts)
     elif not isinstance(ts, np.timedelta64):
         if coerce:
-            return np.timedelta64(iNaT)
+            return np.timedelta64(NPY_NAT)
         raise ValueError("Invalid type for timedelta scalar: %s" % type(ts))
     return ts.astype('timedelta64[ns]')
 
@@ -3042,11 +3039,11 @@ def array_strptime(ndarray[object] values, object fmt, bint exact=True, errors='
         val = values[i]
         if util.is_string_object(val):
             if val in _nat_strings:
-                iresult[i] = iNaT
+                iresult[i] = NPY_NAT
                 continue
         else:
             if _checknull_with_nat(val):
-                iresult[i] = iNaT
+                iresult[i] = NPY_NAT
                 continue
             else:
                 val = str(val)
@@ -3056,13 +3053,13 @@ def array_strptime(ndarray[object] values, object fmt, bint exact=True, errors='
             found = format_regex.match(val)
             if not found:
                 if is_coerce:
-                    iresult[i] = iNaT
+                    iresult[i] = NPY_NAT
                     continue
                 raise ValueError("time data %r does not match format %r (match)" %
                                  (values[i], fmt))
             if len(val) != found.end():
                 if is_coerce:
-                    iresult[i] = iNaT
+                    iresult[i] = NPY_NAT
                     continue
                 raise ValueError("unconverted data remains: %s" %
                                   values[i][found.end():])
@@ -3072,7 +3069,7 @@ def array_strptime(ndarray[object] values, object fmt, bint exact=True, errors='
             found = format_regex.search(val)
             if not found:
                 if is_coerce:
-                    iresult[i] = iNaT
+                    iresult[i] = NPY_NAT
                     continue
                 raise ValueError("time data %r does not match format %r (search)" %
                                  (values[i], fmt))
@@ -3207,7 +3204,7 @@ def array_strptime(ndarray[object] values, object fmt, bint exact=True, errors='
                 day = datetime_result.day
         except ValueError:
                 if is_coerce:
-                    iresult[i] = iNaT
+                    iresult[i] = NPY_NAT
                     continue
                 raise
         if weekday == -1:
@@ -3227,7 +3224,7 @@ def array_strptime(ndarray[object] values, object fmt, bint exact=True, errors='
             _check_dts_bounds(&dts)
         except ValueError:
             if is_coerce:
-                iresult[i] = iNaT
+                iresult[i] = NPY_NAT
                 continue
             raise
 
@@ -3374,8 +3371,8 @@ def tz_convert(ndarray[int64_t] vals, object tz1, object tz2):
         if _is_tzlocal(tz1):
             for i in range(n):
                 v = vals[i]
-                if v == iNaT:
-                    utc_dates[i] = iNaT
+                if v == NPY_NAT:
+                    utc_dates[i] = NPY_NAT
                 else:
                     pandas_datetime_to_datetimestruct(v, PANDAS_FR_ns, &dts)
                     dt = datetime(dts.year, dts.month, dts.day, dts.hour,
@@ -3387,7 +3384,7 @@ def tz_convert(ndarray[int64_t] vals, object tz1, object tz2):
             trans, deltas, typ = _get_dst_info(tz1)
 
             # all-NaT
-            tt = vals[vals!=iNaT]
+            tt = vals[vals!=NPY_NAT]
             if not len(tt):
                 return vals
 
@@ -3399,8 +3396,8 @@ def tz_convert(ndarray[int64_t] vals, object tz1, object tz2):
             offset = deltas[pos]
             for i in range(n):
                 v = vals[i]
-                if v == iNaT:
-                    utc_dates[i] = iNaT
+                if v == NPY_NAT:
+                    utc_dates[i] = NPY_NAT
                 else:
                     while pos + 1 < trans_len and v >= trans[pos + 1]:
                         pos += 1
@@ -3416,8 +3413,8 @@ def tz_convert(ndarray[int64_t] vals, object tz1, object tz2):
     if _is_tzlocal(tz2):
         for i in range(n):
             v = utc_dates[i]
-            if v == iNaT:
-                result[i] = iNaT
+            if v == NPY_NAT:
+                result[i] = NPY_NAT
             else:
                 pandas_datetime_to_datetimestruct(v, PANDAS_FR_ns, &dts)
                 dt = datetime(dts.year, dts.month, dts.day, dts.hour,
@@ -3432,10 +3429,10 @@ def tz_convert(ndarray[int64_t] vals, object tz1, object tz2):
 
     # use first non-NaT element
     # if all-NaT, return all-NaT
-    if (result==iNaT).all():
+    if (result==NPY_NAT).all():
         return result
 
-    pos = trans.searchsorted(utc_dates[utc_dates!=iNaT][0]) - 1
+    pos = trans.searchsorted(utc_dates[utc_dates!=NPY_NAT][0]) - 1
     if pos < 0:
         raise ValueError('First time before start of DST info')
 
@@ -3443,7 +3440,7 @@ def tz_convert(ndarray[int64_t] vals, object tz1, object tz2):
     offset = deltas[pos]
     for i in range(n):
         v = utc_dates[i]
-        if vals[i] == iNaT:
+        if vals[i] == NPY_NAT:
             result[i] = vals[i]
         else:
             while pos + 1 < trans_len and v >= trans[pos + 1]:
