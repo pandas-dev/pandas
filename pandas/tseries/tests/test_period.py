@@ -566,19 +566,26 @@ class TestPeriodProperties(tm.TestCase):
         xp = _ex(2012, 2, 1)
         self.assertEqual(xp, p.end_time)
 
-        xp = _ex(2012, 1, 2)
         p = Period('2012', freq='D')
-        self.assertEqual(p.end_time, xp)
-
-        xp = _ex(2012, 1, 1, 1)
-        p = Period('2012', freq='H')
-        self.assertEqual(p.end_time, xp)
-
-        xp = _ex(2012, 1, 3)
-        self.assertEqual(Period('2012', freq='B').end_time, xp)
-
         xp = _ex(2012, 1, 2)
-        self.assertEqual(Period('2012', freq='W').end_time, xp)
+        self.assertEqual(xp, p.end_time)
+
+        p = Period('2012', freq='H')
+        xp = _ex(2012, 1, 1, 1)
+        self.assertEqual(xp, p.end_time)
+
+        p = Period('2012', freq='B')
+        xp = _ex(2012, 1, 3)
+        self.assertEqual(xp, p.end_time)
+
+        p = Period('2012', freq='W')
+        xp = _ex(2012, 1, 2)
+        self.assertEqual(xp, p.end_time)
+
+        # Test for GH 11738
+        p = Period('2012', freq='15D')
+        xp = _ex(2012, 1, 16)
+        self.assertEqual(xp, p.end_time)
 
         p = Period('NaT', freq='W')
         self.assertTrue(p.end_time is tslib.NaT)
