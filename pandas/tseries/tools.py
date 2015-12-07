@@ -188,7 +188,7 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
 
     Parameters
     ----------
-    arg : string, datetime, array of strings (with possible NAs)
+    arg : string, datetime, list, tuple, 1-d array, or Series
     errors : {'ignore', 'raise', 'coerce'}, default 'raise'
         - If 'raise', then invalid parsing will raise an exception
         - If 'coerce', then invalid parsing will be set as NaT
@@ -288,7 +288,7 @@ def _to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
 
     def _convert_listlike(arg, box, format, name=None):
 
-        if isinstance(arg, (list,tuple)):
+        if isinstance(arg, (list, tuple)):
             arg = np.array(arg, dtype='O')
 
         # these are shortcutable
@@ -312,8 +312,9 @@ def _to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
             result = arg.astype('datetime64[ns]')
             if box:
                 return DatetimeIndex(result, tz='utc' if utc else None, name=name)
-
             return result
+        elif getattr(arg, 'ndim', 1) > 1:
+            raise TypeError('arg must be a string, datetime, list, tuple, 1-d array, or Series')
 
         arg = com._ensure_object(arg)
         require_iso8601 = False
