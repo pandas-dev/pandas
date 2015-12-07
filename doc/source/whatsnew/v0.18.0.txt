@@ -197,3 +197,9 @@ Bug Fixes
 - Bug in ``pd.rolling_median`` where memory allocation failed even with sufficient memory (:issue:`11696`)
 
 - Bug in ``df.replace`` while replacing value in mixed dtype ``Dataframe`` (:issue:`11698`)
+
+
+
+
+
+- Bug in ``DataFrame.info`` when duplicated column names exist (:issue:`11761`)
