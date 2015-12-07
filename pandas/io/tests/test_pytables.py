@@ -4606,6 +4606,22 @@ class TestHDFStore(Base, tm.TestCase):
             df.to_hdf(path, 'df2', mode='a')
             self.assertRaises(ValueError, read_hdf, path)
 
+    def test_legacy_non_index_axes(self):
+        filename = tm.get_data_path('legacy_hdf/legacy_non_index_axes_0.17.1.h5')
+        with HDFStore(filename, 'r') as store:
+            df_legacy = store.get("df")
+           
+        index = pd.date_range(start = Timestamp("2015-11-01 0:00"), freq = "H", periods = 3, tz = None)
+        columns = MultiIndex(levels=[['A', 'B', 'C', 'D'],
+                                     [1, 2, 3]],
+                             labels=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
+                                     [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
+                             names=['alpha', 'num'])
+        data = np.array([index.asi8+i for i in range(10)])
+        df_new  = DataFrame(data.T, columns=columns, index=index) 
+
+        tm.assert_frame_equal(df_legacy, df_new)                     
+        #df_new.to_hdf(filename, "df", format = "table")        
 
 class TestHDFComplexValues(Base):
     # GH10447
@@ -5025,5 +5041,7 @@ def _test_sort(obj):
 
 if __name__ == '__main__':
     import nose
+    #nose.runmodule(argv=[__file__, '-vvs'],
+    #               exit=False)
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
                    exit=False)
