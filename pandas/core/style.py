@@ -19,6 +19,7 @@ except ImportError:
 import numpy as np
 import pandas as pd
 from pandas.compat import lzip
+import pandas.core.common as com
 from pandas.core.indexing import _maybe_numeric_slice, _non_reducing_slice
 try:
     import matplotlib.pyplot as plt
@@ -117,11 +118,7 @@ class Styler(object):
             <tr>
                 {% for c in r %}
                 <{{c.type}} id="T_{{uuid}}{{c.id}}" class="{{c.class}}">
-                    {% if c.value is number %}
-                        {{c.value|round(precision)}}
-                    {% else %}
-                        {{c.value}}
-                    {% endif %}
+                    {{c.display_value}}
                 {% endfor %}
             </tr>
             {% endfor %}
@@ -152,6 +149,13 @@ class Styler(object):
             precision = pd.options.display.precision
         self.precision = precision
         self.table_attributes = table_attributes
+        # display_funcs maps (row, col) -> formatting function
+        def default_display_func(x):
+            if com.is_float(x):
+                return '{:>.{precision}g}'.format(x, precision=self.precision)
+            else:
+                return x
+        self._display_funcs = defaultdict(lambda: default_display_func)
 
     def _repr_html_(self):
         '''
@@ -202,7 +206,10 @@ class Styler(object):
                 cs = [COL_HEADING_CLASS, "level%s" % r, "col%s" % c]
                 cs.extend(cell_context.get(
                     "col_headings", {}).get(r, {}).get(c, []))
-                row_es.append({"type": "th", "value": clabels[r][c],
+                value = clabels[r][c]
+                row_es.append({"type": "th",
+                               "value": value,
+                               "display_value": value,
                                "class": " ".join(cs)})
             head.append(row_es)
 
@@ -213,14 +220,21 @@ class Styler(object):
                 "row_headings", {}).get(r, {}).get(c, []))
             row_es = [{"type": "th",
                        "value": rlabels[r][c],
-                       "class": " ".join(cs)}
+                       "class": " ".join(cs),
+                       "display_value": rlabels[r][c]}
                       for c in range(len(rlabels[r]))]
 
             for c, col in enumerate(self.data.columns):
                 cs = [DATA_CLASS, "row%s" % r, "col%s" % c]
                 cs.extend(cell_context.get("data", {}).get(r, {}).get(c, []))
-                row_es.append({"type": "td", "value": self.data.iloc[r][c],
-                               "class": " ".join(cs), "id": "_".join(cs[1:])})
+                formatter = self._display_funcs[(r, c)]
+                value = self.data.iloc[r, c]
+                row_es.append({"type": "td",
+                               "value": value,
+                               "class": " ".join(cs),
+                               "id": "_".join(cs[1:]),
+                               "display_value": formatter(value)
+                })
                 props = []
                 for x in ctx[r, c]:
                     # have to handle empty styles like ['']
@@ -237,6 +251,48 @@ class Styler(object):
         return dict(head=head, cellstyle=cellstyle, body=body, uuid=uuid,
                     precision=precision, table_styles=table_styles,
                     caption=caption, table_attributes=self.table_attributes)
+
+    def format(self, formatter, subset=None):
+        '''
+        formatter is either an `a` or a dict `{column_name: a}` where
+        a is one of
+            - str: wrapped in: ``a.format(x)``
+            - callable: called with x.
+
+        now `.set_precision(2)` becomes
+
+        ```
+            .format('{:2g}')
+        ```
+        '''
+        from itertools import product
+        from collections.abc import MutableMapping
+
+        just_row_subset = (com.is_list_like(subset) and
+                           not isinstance(subset, tuple))
+
+        if issubclass(type(formatter), MutableMapping):
+            # formatter is a dict
+            for col, col_formatter in formatter.items():
+                # get the row index locations out of subset
+                j = self.data.columns.get_indexer_for([col])[0]
+                if not callable(col_formatter):
+                    formatter_func = lambda x: col_formatter.format(x)
+
+                if subset is not None and just_row_subset:
+                    locs = self.data.index.get_indexer_for(subset)
+                elif subset is not None:
+                    locs = self.data.index.get_indexer_for(subset)
+                else:
+                    locs = range(len(self.data))
+                for i in locs:
+                    self._display_funcs[(i, j)] = formatter_func
+        # single scalar to format all cells with
+        else:
+            locs = product(*(range(x) for x in self.data.shape))
+            for i, j in locs:
+                self._display_funcs[(i, j)] = lambda x: formatter.format(x)
+        return self
 
     def render(self):
         """
