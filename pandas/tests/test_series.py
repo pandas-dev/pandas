@@ -5112,26 +5112,49 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
 
     def test_copy(self):
 
-        for deep in [False, True]:
+        for deep in [None, False, True]:
             s = Series(np.arange(10),dtype='float64')
-            s2 = s.copy(deep=deep)
+
+            # default deep is True
+            if deep is None:
+                s2 = s.copy()
+            else:
+                s2 = s.copy(deep=deep)
+
             s2[::2] = np.NaN
 
-            # Did not modify original Series
-            self.assertTrue(np.isnan(s2[0]))
-            self.assertFalse(np.isnan(s[0]))
+            if deep is None or deep is True:
+                # Did not modify original Series
+                self.assertTrue(np.isnan(s2[0]))
+                self.assertFalse(np.isnan(s[0]))
+            else:
+
+                # we DID modify the original Series
+                self.assertTrue(np.isnan(s2[0]))
+                self.assertTrue(np.isnan(s[0]))
 
         # GH 11794
         # copy of tz-aware
         expected = Series([Timestamp('2012/01/01', tz='UTC')])
         expected2 = Series([Timestamp('1999/01/01', tz='UTC')])
 
-        for deep in [False, True]:
+        for deep in [None, False, True]:
             s = Series([Timestamp('2012/01/01', tz='UTC')])
-            s2 = s.copy()
+
+            if deep is None:
+                s2 = s.copy()
+            else:
+                s2 = s.copy(deep=deep)
+
             s2[0] = pd.Timestamp('1999/01/01', tz='UTC')
-            assert_series_equal(s, expected)
-            assert_series_equal(s2, expected2)
+
+            # default deep is True
+            if deep is None or deep is True:
+                assert_series_equal(s, expected)
+                assert_series_equal(s2, expected2)
+            else:
+                assert_series_equal(s, expected2)
+                assert_series_equal(s2, expected2)
 
     def test_count(self):
         self.assertEqual(self.ts.count(), len(self.ts))
