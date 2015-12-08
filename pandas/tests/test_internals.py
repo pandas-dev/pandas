@@ -147,6 +147,8 @@ def create_mgr(descr, item_shape=None):
     block_placements = OrderedDict()
     for d in descr.split(';'):
         d = d.strip()
+        if not len(d):
+            continue
         names, blockstr = d.partition(':')[::2]
         blockstr = blockstr.strip()
         names = names.strip().split(',')
@@ -324,7 +326,8 @@ class TestBlockManager(tm.TestCase):
 
     def setUp(self):
         self.mgr = create_mgr('a: f8; b: object; c: f8; d: object; e: f8;'
-                              'f: bool; g: i8; h: complex')
+                              'f: bool; g: i8; h: complex; i: datetime-1; j: datetime-2;'
+                              'k: M8[ns, US/Eastern]; l: M8[ns, CET];')
 
     def test_constructor_corner(self):
         pass
@@ -476,16 +479,24 @@ class TestBlockManager(tm.TestCase):
                 DataFrame([[3], [6]], columns=cols[2:]))
 
     def test_copy(self):
-        shallow = self.mgr.copy(deep=False)
+        cp = self.mgr.copy(deep=False)
+        for blk, cp_blk in zip(self.mgr.blocks, cp.blocks):
 
-        # we don't guaranteee block ordering
-        for blk in self.mgr.blocks:
-            found = False
-            for cp_blk in shallow.blocks:
-                if cp_blk.values is blk.values:
-                    found = True
-                    break
-            self.assertTrue(found)
+            # view assertion
+            self.assertTrue(cp_blk.equals(blk))
+            self.assertTrue(cp_blk.values.base is blk.values.base)
+
+        cp = self.mgr.copy(deep=True)
+        for blk, cp_blk in zip(self.mgr.blocks, cp.blocks):
+
+            # copy assertion
+            # we either have a None for a base or in case of some blocks it is an array (e.g. datetimetz),
+            # but was copied
+            self.assertTrue(cp_blk.equals(blk))
+            if cp_blk.values.base is not None and blk.values.base is not None:
+                self.assertFalse(cp_blk.values.base is blk.values.base)
+            else:
+                self.assertTrue(cp_blk.values.base is None and blk.values.base is None)
 
     def test_sparse(self):
         mgr = create_mgr('a: sparse-1; b: sparse-2')
@@ -688,7 +699,10 @@ class TestBlockManager(tm.TestCase):
         self.mgr.set('g', randn(N))
         self.mgr.set('h', randn(N))
 
+        # we have datetime/tz blocks in self.mgr
         cons = self.mgr.consolidate()
+        self.assertEqual(cons.nblocks, 4)
+        cons = self.mgr.consolidate().get_numeric_data()
         self.assertEqual(cons.nblocks, 1)
         assert_almost_equal(cons.blocks[0].mgr_locs,
                             np.arange(len(cons.items)))

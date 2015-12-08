@@ -65,6 +65,9 @@ class ExtensionDtype(object):
     def __eq__(self, other):
         raise NotImplementedError("sub-classes should implement an __eq__ method")
 
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
     @classmethod
     def is_dtype(cls, dtype):
         """ Return a boolean if we if the passed type is an actual dtype that we can match (via string or type) """
