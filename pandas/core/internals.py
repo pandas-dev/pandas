@@ -4419,11 +4419,14 @@ def _putmask_smart(v, m, n):
     try:
         nn = n[m]
         nn_at = nn.astype(v.dtype)
-        comp = (nn == nn_at)
-        if is_list_like(comp) and comp.all():
-            nv = v.copy()
-            nv[m] = nn_at
-            return nv
+
+        # avoid invalid dtype comparisons
+        if not is_numeric_v_string_like(nn, nn_at):
+            comp = (nn == nn_at)
+            if is_list_like(comp) and comp.all():
+                nv = v.copy()
+                nv[m] = nn_at
+                return nv
     except (ValueError, IndexError, TypeError):
         pass
 
