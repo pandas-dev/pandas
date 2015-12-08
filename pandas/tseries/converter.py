@@ -23,6 +23,9 @@ import pandas.tseries.frequencies as frequencies
 from pandas.tseries.frequencies import FreqGroup
 from pandas.tseries.period import Period, PeriodIndex
 
+from matplotlib.dates import (HOURS_PER_DAY, MINUTES_PER_DAY,
+                              SEC_PER_DAY, MUSECONDS_PER_DAY)
+
 
 def register():
     units.registry[lib.Timestamp] = DatetimeConverter()
@@ -136,11 +139,6 @@ def get_datevalue(date, freq):
         return None
     raise ValueError("Unrecognizable date '%s'" % date)
 
-HOURS_PER_DAY = 24.
-MINUTES_PER_DAY = 60. * HOURS_PER_DAY
-SECONDS_PER_DAY = 60. * MINUTES_PER_DAY
-MUSECONDS_PER_DAY = 1e6 * SECONDS_PER_DAY
-
 
 def _dt_to_float_ordinal(dt):
     """
@@ -222,31 +220,6 @@ class PandasAutoDateFormatter(dates.AutoDateFormatter):
         # matplotlib.dates._UTC has no _utcoffset called by pandas
         if self._tz is dates.UTC:
             self._tz._utcoffset = self._tz.utcoffset(None)
-        self.scaled = {
-            365.0: '%Y',
-            30.: '%b %Y',
-            1.0: '%b %d %Y',
-            1. / 24.: '%H:%M:%S',
-            1. / 24. / 3600. / 1000.: '%H:%M:%S.%f'
-        }
-
-    def _get_fmt(self, x):
-
-        scale = float(self._locator._get_unit())
-
-        fmt = self.defaultfmt
-
-        for k in sorted(self.scaled):
-            if k >= scale:
-                fmt = self.scaled[k]
-                break
-
-        return fmt
-
-    def __call__(self, x, pos=0):
-        fmt = self._get_fmt(x)
-        self._formatter = dates.DateFormatter(fmt, self._tz)
-        return self._formatter(x, pos)
 
 
 class PandasAutoDateLocator(dates.AutoDateLocator):
