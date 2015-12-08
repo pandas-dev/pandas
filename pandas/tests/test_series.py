@@ -5111,12 +5111,27 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         self.assertTrue(isnull(ts1.cov(ts2, min_periods=12)))
 
     def test_copy(self):
-        ts = self.ts.copy()
 
-        ts[::2] = np.NaN
+        for deep in [False, True]:
+            s = Series(np.arange(10),dtype='float64')
+            s2 = s.copy(deep=deep)
+            s2[::2] = np.NaN
 
-        # Did not modify original Series
-        self.assertFalse(np.isnan(self.ts[0]))
+            # Did not modify original Series
+            self.assertTrue(np.isnan(s2[0]))
+            self.assertFalse(np.isnan(s[0]))
+
+        # GH 11794
+        # copy of tz-aware
+        expected = Series([Timestamp('2012/01/01', tz='UTC')])
+        expected2 = Series([Timestamp('1999/01/01', tz='UTC')])
+
+        for deep in [False, True]:
+            s = Series([Timestamp('2012/01/01', tz='UTC')])
+            s2 = s.copy()
+            s2[0] = pd.Timestamp('1999/01/01', tz='UTC')
+            assert_series_equal(s, expected)
+            assert_series_equal(s2, expected2)
 
     def test_count(self):
         self.assertEqual(self.ts.count(), len(self.ts))

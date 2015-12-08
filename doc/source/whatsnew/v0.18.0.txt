@@ -170,7 +170,7 @@ Bug Fixes
 - Bug in ``Timedelta.round`` with negative values (:issue:`11690`)
 - Bug in ``.loc`` against ``CategoricalIndex`` may result in normal ``Index`` (:issue:`11586`)
 - Bug in ``DataFrame.info`` when duplicated column names exist (:issue:`11761`)
-
+- Bug in ``.copy`` of datetime tz-aware objects (:issue:`11794`)
 
 
 
