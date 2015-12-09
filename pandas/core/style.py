@@ -263,8 +263,8 @@ class Styler(object):
         '''
         formatter is either an `a` or a dict `{column_name: a}` where
         a is one of
-            - str: wrapped in: ``a.format(x)``
-            - callable: called with x.
+            - str: wrapped in: `a`.format(x)`
+            - callable: called with x and the column and row index of x.
 
         now `.set_precision(2)` becomes
 
@@ -275,9 +275,6 @@ class Styler(object):
         from itertools import product
         from collections.abc import MutableMapping
 
-        just_row_subset = (com.is_list_like(subset) and
-                           not isinstance(subset, tuple))
-
         if issubclass(type(formatter), MutableMapping):
             # formatter is a dict
             for col, col_formatter in formatter.items():
@@ -286,9 +283,7 @@ class Styler(object):
                 if not callable(col_formatter):
                     formatter_func = lambda x: col_formatter.format(x)
 
-                if subset is not None and just_row_subset:
-                    locs = self.data.index.get_indexer_for(subset)
-                elif subset is not None:
+                if subset is not None:
                     locs = self.data.index.get_indexer_for(subset)
                 else:
                     locs = range(len(self.data))
