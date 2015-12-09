@@ -749,7 +749,10 @@ class NDFrame(PandasObject):
 
     def __abs__(self):
         return self.abs()
-
+    
+    def __round__(self,decimals=0):
+        return self.round(decimals)
+ 
     #----------------------------------------------------------------------
     # Array Interface
 

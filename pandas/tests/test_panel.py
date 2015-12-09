@@ -1901,6 +1901,22 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing,
                           'i3': DataFrame({'c1': [2, 1, .4],
                                            'c2': [2./3, .5, 1./3]})})
         assert_panel_equal(result, expected)
+        
+    def test_round(self):
+        values = [[[-3.2,2.2],[0,-4.8213],[3.123,123.12],
+                    [-1566.213,88.88],[-12,94.5]],
+                   [[-5.82,3.5],[6.21,-73.272], [-9.087,23.12],
+                    [272.212,-99.99],[23,-76.5]]]
+        evalues = [[[float(np.around(i)) for i in j] for j in k] for k in values]
+        p = Panel(values, items=['Item1', 'Item2'],
+                  major_axis=pd.date_range('1/1/2000', periods=5),
+                  minor_axis=['A','B'])
+        expected = Panel(evalues, items=['Item1', 'Item2'],
+                         major_axis=pd.date_range('1/1/2000', periods=5),
+                         minor_axis=['A','B'])
+        result = p.round()
+        self.assert_panel_equal(expected, result)
+
 
     def test_multiindex_get(self):
         ind = MultiIndex.from_tuples([('a', 1), ('a', 2), ('b', 1), ('b', 2)],

@@ -4376,13 +4376,17 @@ class DataFrame(NDFrame):
         Returns
         -------
         DataFrame object
+        
+        See Also
+        --------
+        numpy.around
         """
         from pandas.tools.merge import concat
 
         def _dict_round(df, decimals):
             for col, vals in df.iteritems():
                 try:
-                    yield np.round(vals, decimals[col])
+                    yield vals.round(decimals[col])
                 except KeyError:
                     yield vals
 
@@ -4392,8 +4396,8 @@ class DataFrame(NDFrame):
                     raise ValueError("Index of decimals must be unique")
             new_cols = [col for col in _dict_round(self, decimals)]
         elif com.is_integer(decimals):
-            # Dispatch to numpy.round
-            new_cols = [np.round(v, decimals) for _, v in self.iteritems()]
+            # Dispatch to Series.round
+            new_cols = [v.round(decimals) for _, v in self.iteritems()]
         else:
             raise TypeError("decimals must be an integer, a dict-like or a Series")
 
