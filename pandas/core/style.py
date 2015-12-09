@@ -259,7 +259,6 @@ class Styler(object):
                     precision=precision, table_styles=table_styles,
                     caption=caption, table_attributes=self.table_attributes)
 
-<<<<<<< HEAD
     def format(self, formatter, subset=None):
         '''
         formatter is either an `a` or a dict `{column_name: a}` where
@@ -301,10 +300,6 @@ class Styler(object):
             for i, j in locs:
                 self._display_funcs[(i, j)] = lambda x: formatter.format(x)
         return self
-=======
-    def format(self, columns=None):
-        pass
->>>>>>> c02a4f4... WIP: display_format for style
 
     def render(self):
         """
