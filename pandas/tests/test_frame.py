@@ -16555,7 +16555,7 @@ class TestDataFrameQueryPythonPandas(TestDataFrameQueryNumExprPandas):
     def setUpClass(cls):
         super(TestDataFrameQueryPythonPandas, cls).setUpClass()
         cls.engine = 'python'
-        cls.parser = 'pandas'
+        cls.parser = 'pandas_query'
         cls.frame = _frame.copy()
 
     def test_query_builtin(self):
@@ -16568,6 +16568,16 @@ class TestDataFrameQueryPythonPandas(TestDataFrameQueryNumExprPandas):
         expected = df[df.index > 5]
         result = df.query('sin > 5', engine=engine, parser=parser)
         tm.assert_frame_equal(expected, result)
+
+    def test_query_with_assign_statement(self):
+        df = DataFrame({'a': [1, 2, 3], 'b': ['a', 'b', 'c']})
+        a_before = df['a'].copy()
+        self.assertRaisesRegexp(
+            NotImplementedError, "'Assign' nodes are not implemented",
+            df.query, 'a=1', engine=self.engine, parser=self.parser
+        )
+        a_after = df['a'].copy()
+        assert_series_equal(a_before, a_after)
 
 
 class TestDataFrameQueryPythonPython(TestDataFrameQueryNumExprPython):

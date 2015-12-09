@@ -664,6 +664,7 @@ else:
 
 _python_not_supported = frozenset(['Dict', 'BoolOp', 'In', 'NotIn'])
 _numexpr_supported_calls = frozenset(_reductions + _mathops)
+_query_not_supported = frozenset(['Assign'])
 
 
 @disallow((_unsupported_nodes | _python_not_supported) -
@@ -675,6 +676,17 @@ class PandasExprVisitor(BaseExprVisitor):
                  preparser=partial(_preparse, f=compose(_replace_locals,
                                                         _replace_booleans))):
         super(PandasExprVisitor, self).__init__(env, engine, parser, preparser)
+
+
+@disallow((_unsupported_nodes | _python_not_supported | _query_not_supported) -
+          (_boolop_nodes | frozenset(['BoolOp', 'Attribute', 'In', 'NotIn',
+                                      'Tuple'])))
+class PandasQueryExprVisitor(BaseExprVisitor):
+
+    def __init__(self, env, engine, parser,
+                 preparser=partial(_preparse, f=compose(_replace_locals,
+                                                        _replace_booleans))):
+        super(PandasQueryExprVisitor, self).__init__(env, engine, parser, preparser)
 
 
 @disallow(_unsupported_nodes | _python_not_supported | frozenset(['Not']))
@@ -734,4 +746,5 @@ class Expr(StringMixin):
         return frozenset(term.name for term in com.flatten(self.terms))
 
 
-_parsers = {'python': PythonExprVisitor, 'pandas': PandasExprVisitor}
+_parsers = {'python': PythonExprVisitor, 'pandas': PandasExprVisitor,
+            'pandas_query': PandasQueryExprVisitor}
