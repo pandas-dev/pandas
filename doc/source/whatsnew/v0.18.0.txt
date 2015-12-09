@@ -190,6 +190,7 @@ Bug Fixes
 - Bug in ``GroupBy.size`` when data-frame is empty. (:issue:`11699`)
 - Bug in ``Period.end_time`` when a multiple of time period is requested (:issue:`11738`)
 - Regression in ``.clip`` with tz-aware datetimes (:issue:`11838`)
+- Bug in ``date_range`` when the boundaries fell on the frequency (:issue:`11804`)
 
 
 
