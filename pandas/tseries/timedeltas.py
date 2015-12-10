@@ -19,7 +19,7 @@ def to_timedelta(arg, unit='ns', box=True, errors='raise', coerce=None):
 
     Parameters
     ----------
-    arg : string, timedelta, array of strings (with possible NAs)
+    arg : string, timedelta, list, tuple, 1-d array, or Series
     unit : unit of the arg (D,h,m,s,ms,us,ns) denote the unit, which is an integer/float number
     box : boolean, default True
         - If True returns a Timedelta/TimedeltaIndex of the results
@@ -37,7 +37,7 @@ def to_timedelta(arg, unit='ns', box=True, errors='raise', coerce=None):
 
     def _convert_listlike(arg, box, unit, name=None):
 
-        if isinstance(arg, (list,tuple)) or ((hasattr(arg,'__iter__') and not hasattr(arg,'dtype'))):
+        if isinstance(arg, (list, tuple)) or not hasattr(arg, 'dtype'):
             arg = np.array(list(arg), dtype='O')
 
         # these are shortcutable
@@ -62,8 +62,10 @@ def to_timedelta(arg, unit='ns', box=True, errors='raise', coerce=None):
         return Series(values, index=arg.index, name=arg.name, dtype='m8[ns]')
     elif isinstance(arg, ABCIndexClass):
         return _convert_listlike(arg, box=box, unit=unit, name=arg.name)
-    elif is_list_like(arg):
+    elif is_list_like(arg) and getattr(arg, 'ndim', 1) == 1:
         return _convert_listlike(arg, box=box, unit=unit)
+    elif getattr(arg, 'ndim', 1) > 1:
+        raise TypeError('arg must be a string, timedelta, list, tuple, 1-d array, or Series')
 
     # ...so it must be a scalar value. Return scalar.
     return _coerce_scalar_to_timedelta_type(arg, unit=unit, box=box, errors=errors)

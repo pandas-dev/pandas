@@ -113,7 +113,6 @@ class TestToNumeric(tm.TestCase):
         expected = pd.Series([1, -3.14, np.nan])
         tm.assert_series_equal(res, expected)
 
-
     def test_list(self):
         s = ['1', '-3.14', '7']
         res = to_numeric(s)
@@ -136,6 +135,14 @@ class TestToNumeric(tm.TestCase):
         expected = pd.Series([np.nan, np.nan, np.nan])
         tm.assert_series_equal(res, expected)
 
+    def test_type_check(self):
+        # GH 11776
+        df = pd.DataFrame({'a': [1, -3.14, 7], 'b': ['4', '5', '6']})
+        with tm.assertRaisesRegexp(TypeError, "1-d array"):
+            to_numeric(df)
+        for errors in ['ignore', 'raise', 'coerce']:
+            with tm.assertRaisesRegexp(TypeError, "1-d array"):
+                to_numeric(df, errors=errors)
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
