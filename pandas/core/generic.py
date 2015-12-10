@@ -1214,7 +1214,7 @@ class NDFrame(PandasObject):
         is_copy = axis!=0 or result._is_view
         result._set_is_copy(self, copy=is_copy)
 
-        self._add_to_children(result)
+        self._register_new_child(result)
 
         return result
 
@@ -1247,13 +1247,13 @@ class NDFrame(PandasObject):
             self._children = weakref.WeakValueDictionary()
                     
             
-    def _add_to_children(self, view_to_append):
+    def _register_new_child(self, view_to_append):
         self._children[id(view_to_append)] = view_to_append
 
         if len(self._original_parent) is 0:
             view_to_append._original_parent['parent'] = self
         else:
-            self._original_parent['parent']._add_to_children(view_to_append)
+            self._original_parent['parent']._register_new_child(view_to_append)
             
     def __delitem__(self, key):
         """

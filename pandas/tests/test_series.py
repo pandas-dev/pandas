@@ -289,6 +289,9 @@ class CheckNameIntegration(object):
         with tm.assertRaisesRegexp(ValueError, "modifications"):
             s.dt.hour = 5
 
+        # trying to set a copy		
+        s.dt.hour[0] = 5		
+ 		
 
     def test_dt_accessor_no_new_attributes(self):
         # https://github.com/pydata/pandas/issues/10673

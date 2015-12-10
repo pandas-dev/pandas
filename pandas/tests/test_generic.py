@@ -1733,6 +1733,7 @@ class TestDataFrame(tm.TestCase, Generic):
         views['iloc'] = df.iloc[0:1,]
         views['ix'] = df.ix[0:0,]
         views['loc_of_loc'] = views['loc'].loc[0:0,]
+        views['constructor'] = DataFrame(df)
         
         copies = dict()
         for v in views.keys():    

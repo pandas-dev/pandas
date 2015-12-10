@@ -4013,6 +4013,184 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         result = df.head()
         assert_frame_equal(result, expected) 
 
+    def test_detect_chained_assignment(self):		
+        
+        # All modified to fit copy-on-write behavior
+		
+        # work with the chain		
+        expected = DataFrame([[-5,1],[-6,3]],columns=list('AB'))		
+        df = DataFrame(np.arange(4).reshape(2,2),columns=list('AB'),dtype='int64')		
+        df['A'][0] = -5		
+        df['A'][1] = -6		
+        assert_frame_equal(df, expected)		
+		
+		
+        # fails if doesn't start with pulling single column
+        df = DataFrame({ 'A' : Series(range(2),dtype='int64'), 'B' : np.array(np.arange(2,4),dtype=np.float64)})		
+        expected = df.copy()        
+        df.loc[0]['A'] = -5		
+        assert_frame_equal(df, expected)
+		
+        # doc example		
+        df = DataFrame({'a' : ['one', 'one', 'two',		
+                               'three', 'two', 'one', 'six'],		
+                        'c' : Series(range(7),dtype='int64') })		
+        expected = df.copy()		
+		
+        indexer = df.a.str.startswith('o')		
+        df[indexer]['c'] = 42	
+        assert_frame_equal(expected, df)
+        
+		
+        expected = DataFrame({'A':[111,'bbb','ccc'],'B':[1,2,3]})		
+        df = DataFrame({'A':['aaa','bbb','ccc'],'B':[1,2,3]})		
+        df['A'][0] = 111		
+        df.loc[0]['A'] = -111		
+        assert_frame_equal(df,expected)		
+		
+        # make sure that _children is picked up reconstruction		
+        # GH5475		
+        df = DataFrame({"A": [1,2]})
+        self.assertTrue(hasattr(df, '_children'))
+        self.assertTrue(hasattr(df, '_original_parent'))
+        self.assertTrue(hasattr(df, '_is_column_view'))
+        with tm.ensure_clean('__tmp__pickle') as path:		
+            df.to_pickle(path)		
+            df2 = pd.read_pickle(path)		
+            self.assertTrue(hasattr(df2, '_children'))
+            self.assertTrue(hasattr(df2, '_original_parent'))
+            self.assertTrue(hasattr(df2, '_is_column_view'))
+		
+        # a suprious raise as we are setting the entire column here		
+        # GH5597		
+        from string import ascii_letters as letters		
+		
+        def random_text(nobs=100):		
+            df = []		
+            for i in range(nobs):		
+                idx= np.random.randint(len(letters), size=2)		
+                idx.sort()		
+                df.append([letters[idx[0]:idx[1]]])		
+		
+            return DataFrame(df, columns=['letters'])		
+		
+        df = random_text(100000)		
+		
+        # always a copy		
+        x = df.iloc[[0,1,2]]		
+        self.assertFalse(x._is_column_view)		
+        x = df.iloc[[0,1,2,4]]		
+        self.assertFalse(x._is_column_view)		
+		
+        # explicity copy		
+        indexer = df.letters.apply(lambda x : len(x) > 10)		
+        df = df.ix[indexer].copy()		
+        self.assertIsNone(df.is_copy)		
+        df['letters'] = df['letters'].apply(str.lower)		
+		
+        # implicity take		
+        df = random_text(100000)		
+        indexer = df.letters.apply(lambda x : len(x) > 10)		
+        df = df.ix[indexer]		
+        self.assertIsNotNone(df.is_copy)		
+        df['letters'] = df['letters'].apply(str.lower)		
+		
+        # implicity take 2		
+        df = random_text(100000)		
+        indexer = df.letters.apply(lambda x : len(x) > 10)		
+        df = df.ix[indexer]		
+        self.assertIsNotNone(df.is_copy)		
+        df.loc[:,'letters'] = df['letters'].apply(str.lower)		
+		
+        # should be ok even though it's a copy!		
+        self.assertIsNone(df.is_copy)		
+        df['letters'] = df['letters'].apply(str.lower)		
+        self.assertIsNone(df.is_copy)		
+		
+        df = random_text(100000)		
+        indexer = df.letters.apply(lambda x : len(x) > 10)		
+        df.ix[indexer,'letters'] = df.ix[indexer,'letters'].apply(str.lower)		
+		
+        # an identical take, so no copy		
+        df = DataFrame({'a' : [1]}).dropna()		
+        self.assertIsNone(df.is_copy)		
+        df['a'] += 1		
+		
+        # inplace ops		
+        # original from: http://stackoverflow.com/questions/20508968/series-fillna-in-a-multiindex-dataframe-does-not-fill-is-this-a-bug		
+        a = [12, 23]		
+        b = [123, None]		
+        c = [1234, 2345]		
+        d = [12345, 23456]		
+        tuples = [('eyes', 'left'), ('eyes', 'right'), ('ears', 'left'), ('ears', 'right')]		
+        events = {('eyes', 'left'): a, ('eyes', 'right'): b, ('ears', 'left'): c, ('ears', 'right'): d}		
+        multiind = MultiIndex.from_tuples(tuples, names=['part', 'side'])		
+        zed = DataFrame(events, index=['a', 'b'], columns=multiind)		
+        def f():		
+            zed['eyes']['right'].fillna(value=555, inplace=True)		
+        self.assertRaises(com.SettingWithCopyError, f)		
+		
+        df = DataFrame(np.random.randn(10,4))		
+        s = df.iloc[:,0].sort_values()		
+        assert_series_equal(s,df.iloc[:,0].sort_values())		
+        assert_series_equal(s,df[0].sort_values())		
+		
+        # false positives GH6025		
+        df = DataFrame ({'column1':['a', 'a', 'a'], 'column2': [4,8,9] })		
+        str(df)		
+        df['column1'] = df['column1'] + 'b'		
+        str(df)		
+        df = df [df['column2']!=8]		
+        str(df)		
+        df['column1'] = df['column1'] + 'c'		
+        str(df)		
+		
+        # from SO: http://stackoverflow.com/questions/24054495/potential-bug-setting-value-for-undefined-column-using-iloc		
+        df = DataFrame(np.arange(0,9), columns=['count'])		
+        df['group'] = 'b'		
+        def f():		
+            df.iloc[0:5]['group'] = 'a'		
+        self.assertRaises(com.SettingWithCopyError, f)		
+		
+        # mixed type setting		
+        # same dtype & changing dtype		
+        df = DataFrame(dict(A=date_range('20130101',periods=5),B=np.random.randn(5),C=np.arange(5,dtype='int64'),D=list('abcde')))		
+		
+        def f():		
+            df.ix[2]['D'] = 'foo'		
+        self.assertRaises(com.SettingWithCopyError, f)		
+        def f():		
+            df.ix[2]['C'] = 'foo'		
+        self.assertRaises(com.SettingWithCopyError, f)		
+        def f():		
+            df['C'][2] = 'foo'		
+        self.assertRaises(com.SettingWithCopyError, f)		
+		
+    def test_setting_with_copy_bug(self):		
+		
+        # operating on a copy		
+        df = pd.DataFrame({'a': list(range(4)), 'b': list('ab..'), 'c': ['a', 'b', np.nan, 'd']})		
+        mask = pd.isnull(df.c)		
+		
+        def f():		
+            df[['c']][mask] = df[['b']][mask]		
+        self.assertRaises(com.SettingWithCopyError, f)		
+		
+        # invalid warning as we are returning a new object		
+        # GH 8730		
+        df1 = DataFrame({'x': Series(['a','b','c']), 'y': Series(['d','e','f'])})		
+        df2 = df1[['x']]		
+		
+        # this should not raise		
+        df2['y'] = ['g', 'h', 'i']		
+		
+    def test_detect_chained_assignment_warnings(self):		
+ 		 
+        # now jut test for coyp-on-write
+        df = DataFrame({'A':['aaa','bbb','ccc'],'B':[1,2,3]})		
+        expected = df.copy()
+        df.loc[0]['A'] = 111
+        assert_frame_equal(df, expected)
 
     def test_float64index_slicing_bug(self):
         # GH 5557, related to slicing a float index
