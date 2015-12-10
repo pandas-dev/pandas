@@ -211,12 +211,16 @@ class DataFrame(NDFrame):
 
     def __init__(self, data=None, index=None, columns=None, dtype=None,
                  copy=False):
+                     
+        parent = None
+    
         if data is None:
             data = {}
         if dtype is not None:
             dtype = self._validate_dtype(dtype)
 
         if isinstance(data, DataFrame):
+            parent = data
             data = data._get_view()._data
 
         if isinstance(data, BlockManager):
@@ -305,6 +309,9 @@ class DataFrame(NDFrame):
                 raise PandasError('DataFrame constructor not properly called!')
 
         NDFrame.__init__(self, mgr, fastpath=True)
+
+        if parent is not None:
+            parent._register_new_child(self)
 
     def _init_dict(self, data, index, columns, dtype=None):
         """

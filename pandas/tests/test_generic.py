@@ -1740,7 +1740,6 @@ class TestDataFrame(tm.TestCase, Generic):
             self.assertTrue(views[v]._is_view)
             copies[v] = views[v].copy()
         
-        
         df.loc[0,'col1'] = -88
         
         for v in views.keys():
