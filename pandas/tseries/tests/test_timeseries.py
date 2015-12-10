@@ -959,7 +959,7 @@ class TestTimeSeries(tm.TestCase):
     def test_nat_scalar_field_access(self):
         fields = ['year', 'quarter', 'month', 'day', 'hour', 'minute',
                   'second', 'microsecond', 'nanosecond', 'week', 'dayofyear',
-                  'days_in_month', 'daysinmonth', 'dayofweek']
+                  'days_in_month', 'daysinmonth', 'dayofweek', 'weekday_name']
         for field in fields:
             result = getattr(NaT, field)
             self.assertTrue(np.isnan(result))
@@ -1852,7 +1852,7 @@ class TestTimeSeries(tm.TestCase):
         fields = ['dayofweek', 'dayofyear', 'week', 'weekofyear', 'quarter',
                   'days_in_month', 'is_month_start', 'is_month_end',
                   'is_quarter_start', 'is_quarter_end', 'is_year_start',
-                  'is_year_end']
+                  'is_year_end', 'weekday_name']
         for f in fields:
             expected = getattr(idx, f)[-1]
             result = getattr(Timestamp(idx[-1]), f)
@@ -3541,6 +3541,15 @@ class TestDatetime64(tm.TestCase):
         self.assertEqual(dti.is_year_end[0], False)
         self.assertEqual(dti.is_year_end[364], True)
 
+        # GH 11128
+        self.assertEqual(dti.weekday_name[4], u'Monday')
+        self.assertEqual(dti.weekday_name[5], u'Tuesday')
+        self.assertEqual(dti.weekday_name[6], u'Wednesday')
+        self.assertEqual(dti.weekday_name[7], u'Thursday')
+        self.assertEqual(dti.weekday_name[8], u'Friday')
+        self.assertEqual(dti.weekday_name[9], u'Saturday')
+        self.assertEqual(dti.weekday_name[10], u'Sunday')
+
         self.assertEqual(len(dti.year), 365)
         self.assertEqual(len(dti.month), 365)
         self.assertEqual(len(dti.day), 365)
@@ -3558,6 +3567,7 @@ class TestDatetime64(tm.TestCase):
         self.assertEqual(len(dti.is_quarter_end), 365)
         self.assertEqual(len(dti.is_year_start), 365)
         self.assertEqual(len(dti.is_year_end), 365)
+        self.assertEqual(len(dti.weekday_name), 365)
 
         dti = DatetimeIndex(freq='BQ-FEB', start=datetime(1998, 1, 1),
                             periods=4)

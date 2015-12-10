@@ -399,6 +399,11 @@ class Timestamp(_Timestamp):
         return self.weekday()
 
     @property
+    def weekday_name(self):
+        out = get_date_name_field(np.array([self.value], dtype=np.int64), 'weekday_name')
+        return out[0]
+
+    @property
     def dayofyear(self):
         return self._get_field('doy')
 
@@ -667,7 +672,7 @@ class NaTType(_NaT):
 
 fields = ['year', 'quarter', 'month', 'day', 'hour',
           'minute', 'second', 'millisecond', 'microsecond', 'nanosecond',
-          'week', 'dayofyear', 'days_in_month', 'daysinmonth', 'dayofweek']
+          'week', 'dayofyear', 'days_in_month', 'daysinmonth', 'dayofweek', 'weekday_name']
 for field in fields:
     prop = property(fget=lambda self: np.nan)
     setattr(NaTType, field, prop)
@@ -4387,6 +4392,38 @@ def get_start_end_field(ndarray[int64_t] dtindex, object field, object freqstr=N
                 if (dts.month == end_month) and (ldom == doy):
                     out[i] = 1
             return out.view(bool)
+
+    raise ValueError("Field %s not supported" % field)
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def get_date_name_field(ndarray[int64_t] dtindex, object field):
+    '''
+    Given a int64-based datetime index, return array of strings of date
+    name based on requested field (e.g. weekday_name)
+    '''
+    cdef:
+        _TSObject ts
+        Py_ssize_t i, count = 0
+        ndarray[object] out
+        pandas_datetimestruct dts
+        int dow
+
+    _dayname = np.array(
+        ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
+         dtype=np.str )
+
+    count = len(dtindex)
+    out = np.empty(count, dtype=object)
+
+    if field == 'weekday_name':
+        for i in range(count):
+            if dtindex[i] == NPY_NAT: out[i] = np.nan; continue
+
+            pandas_datetime_to_datetimestruct(dtindex[i], PANDAS_FR_ns, &dts)
+            dow = dayofweek(dts.year, dts.month, dts.day)
+            out[i] = _dayname[dow]
+        return out
 
     raise ValueError("Field %s not supported" % field)
 

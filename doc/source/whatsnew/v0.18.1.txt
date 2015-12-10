@@ -59,6 +59,7 @@ Other Enhancements
 - ``pd.read_csv()`` now supports opening files using xz compression, via extension inference or explicit ``compression='xz'`` is specified; ``xz`` compressions is also supported by ``DataFrame.to_csv`` in the same way (:issue:`11852`)
 - ``pd.read_msgpack()`` now always gives writeable ndarrays even when compression is used (:issue:`12359`).
 - ``Index.take`` now handles ``allow_fill`` and ``fill_value`` consistently (:issue:`12631`)
+- Added ``weekday_name`` as a component to ``DatetimeIndex`` and ``.dt`` accessor. (:issue:`11128`)
 
 .. ipython:: python
 

@@ -37,7 +37,8 @@ class TestSeriesDatetimeValues(TestData, tm.TestCase):
         ok_for_dt = ok_for_base + ['date', 'time', 'microsecond', 'nanosecond',
                                    'is_month_start', 'is_month_end',
                                    'is_quarter_start', 'is_quarter_end',
-                                   'is_year_start', 'is_year_end', 'tz']
+                                   'is_year_start', 'is_year_end', 'tz',
+                                   'weekday_name']
         ok_for_dt_methods = ['to_period', 'to_pydatetime', 'tz_localize',
                              'tz_convert', 'normalize', 'strftime', 'round',
                              'floor', 'ceil']
