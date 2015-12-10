@@ -656,10 +656,10 @@ class Styler(object):
     @staticmethod
     def _bar(s, color, width):
         normed = width * (s - s.min()) / (s.max() - s.min())
-        attrs = 'width: 10em; height: 80%;'\
-            'background: linear-gradient(90deg,'\
-            '{c} {w}%, transparent 0%)'
-        return [attrs.format(c=color, w=x) for x in normed]
+
+        base = 'width: 10em; height: 80%;'
+        attrs = base + 'background: linear-gradient(90deg,{c} {w}%, transparent 0%)'
+        return [attrs.format(c=color, w=x) if x != 0 else base for x in normed]
 
     def bar(self, subset=None, axis=0, color='#d65f5f', width=100):
         """
