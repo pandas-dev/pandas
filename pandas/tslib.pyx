@@ -494,6 +494,10 @@ class Timestamp(_Timestamp):
     def is_year_end(self):
         return self._get_start_end_field('is_year_end')
 
+    @property
+    def weekday_name(self):
+        return self._get_date_name_field('weekday_name')
+
     def tz_localize(self, tz, ambiguous='raise'):
         """
         Convert naive Timestamp to local time zone, or remove
@@ -1096,6 +1100,10 @@ cdef class _Timestamp(datetime):
         month_kw = self.freq.kwds.get('startingMonth', self.freq.kwds.get('month', 12)) if self.freq else 12
         freqstr = self.freqstr if self.freq else None
         out = get_start_end_field(np.array([self.value], dtype=np.int64), field, freqstr, month_kw)
+        return out[0]
+
+    cpdef _get_date_name_field(self, field):
+        out = get_date_name_field(np.array([self.value], dtype=np.int64), field)
         return out[0]
 
     property asm8:
@@ -4359,6 +4367,39 @@ def get_start_end_field(ndarray[int64_t] dtindex, object field, object freqstr=N
                 if (dts.month == end_month) and (ldom == doy):
                     out[i] = 1
             return out.view(bool)
+
+    raise ValueError("Field %s not supported" % field)
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def get_date_name_field(ndarray[int64_t] dtindex, object field):
+    '''
+    Given a int64-based datetime index, return array of strings of date
+    name based on requested field (e.g. weekday_name)
+    '''
+    cdef:
+        _TSObject ts
+        Py_ssize_t i, count = 0
+        ndarray[object] out
+        pandas_datetimestruct dts
+        int dow
+    
+    _dayname = np.array(
+        ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
+         dtype=np.str )
+
+    count = len(dtindex)
+    out = np.empty(count, dtype=object)
+
+    if field == 'weekday_name':
+        for i in range(count):
+            if dtindex[i] == NPY_NAT: out[i] = -1; continue
+
+            pandas_datetime_to_datetimestruct(dtindex[i], PANDAS_FR_ns, &dts)
+            dow = dayofweek(dts.year, dts.month, dts.day)
+            out[i] = _dayname[dow]
+        return out
 
     raise ValueError("Field %s not supported" % field)
 

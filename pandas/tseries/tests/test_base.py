@@ -31,7 +31,7 @@ class TestDatetimeIndexOps(Ops):
                                    'is_month_start', 'is_month_end',
                                    'is_quarter_start',
                                    'is_quarter_end', 'is_year_start',
-                                   'is_year_end'],
+                                   'is_year_end', 'weekday_name'],
                                   lambda x: isinstance(x, DatetimeIndex))
 
     def test_ops_properties_basic(self):

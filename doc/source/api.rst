@@ -469,6 +469,7 @@ These can be accessed like ``Series.dt.<property>``.
    Series.dt.days_in_month
    Series.dt.tz
    Series.dt.freq
+   Series.dt.weekday_name
 
 **Datetime Methods**
 
@@ -1477,6 +1478,7 @@ Time/Date Components
    DatetimeIndex.is_year_start
    DatetimeIndex.is_year_end
    DatetimeIndex.inferred_freq
+   DatetimeIndex.weekday_name
 
 Selecting
 ~~~~~~~~~
