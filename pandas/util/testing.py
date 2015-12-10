@@ -1641,6 +1641,7 @@ _network_error_messages = (
     'HTTP Error 502',
     'HTTP Error 503',
     'HTTP Error 403',
+    'HTTP Error 400',
     'Temporary failure in name resolution',
     'Name or service not known',
     'Connection refused',
