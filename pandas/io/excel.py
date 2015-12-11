@@ -391,7 +391,8 @@ class ExcelFile(object):
                 data.append(row)
 
             if sheet.nrows == 0:
-                return DataFrame()
+                output[asheetname] = DataFrame()
+                continue
 
             if com.is_list_like(header) and len(header) == 1:
                 header = header[0]
