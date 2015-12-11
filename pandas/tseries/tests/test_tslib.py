@@ -390,13 +390,13 @@ class TestTimestamp(tm.TestCase):
 
     def test_asm8(self):
         np.random.seed(7960929)
-        ns = np.random.randint(
+        ns = [
             Timestamp.min.value,
             Timestamp.max.value,
             1000,
-        )
+        ]
         for n in ns:
-            self.assertEqual(Timestamp(n).asm8, np.datetime64(int(n), 'ns'), n)
+            self.assertEqual(Timestamp(n).asm8, np.datetime64(n, 'ns'), n)
         self.assertEqual(Timestamp('nat').asm8, np.datetime64('nat', 'ns'))
 
     def test_fields(self):
