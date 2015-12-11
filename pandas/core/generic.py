@@ -2356,8 +2356,7 @@ class NDFrame(PandasObject):
         else:
             if name in self._info_axis:
                 return self[name]
-            raise AttributeError("'%s' object has no attribute '%s'" %
-                                 (type(self).__name__, name))
+            return object.__getattribute__(self, name)
 
     def __setattr__(self, name, value):
         """After regular attribute access, try setting the name
