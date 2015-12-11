@@ -140,7 +140,7 @@ Examples
 2   baz  3         2   qux  7
 3   foo  4         3   bar  8
 
->>> merge(A, B, left_on='lkey', right_on='rkey', how='outer')
+>>> A.merge(B, left_on='lkey', right_on='rkey', how='outer')
    lkey  value_x  rkey  value_y
 0  foo   1        foo   5
 1  foo   4        foo   5
