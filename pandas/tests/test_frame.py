@@ -15878,6 +15878,17 @@ starting,ending,measure
                                    dtype='int64')
         tm.assert_panel_equal(result, expected)
 
+    def test_subclass_attr_err_propagation(self):
+        # GH 11808
+        class A(DataFrame):
+
+            @property
+            def bar(self):
+                return self.i_dont_exist
+        with tm.assertRaisesRegexp(AttributeError, '.*i_dont_exist.*'):
+            A().bar
+
+
 def skip_if_no_ne(engine='numexpr'):
     if engine == 'numexpr':
         try:
