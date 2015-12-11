@@ -382,6 +382,15 @@ class ReadingTestsBase(SharedItems):
         tm.assert_contains_all(expected_keys, dfs.keys())
         assert len(expected_keys) == len(dfs.keys())
 
+    def test_reading_all_sheets_with_blank(self):
+        # Test reading all sheetnames by setting sheetname to None,
+        # In the case where some sheets are blank.
+        # Issue #11711
+        basename = 'blank_with_header'
+        dfs = self.get_exceldf(basename, sheetname=None)
+        expected_keys = ['Sheet1', 'Sheet2', 'Sheet3']
+        tm.assert_contains_all(expected_keys, dfs.keys())        
+
     # GH6403
     def test_read_excel_blank(self):
         actual = self.get_exceldf('blank', 'Sheet1')
