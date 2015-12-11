@@ -388,6 +388,17 @@ class TestTimestamp(tm.TestCase):
         self.assertTrue(abs(ts_from_string_tz.tz_localize(None)
                             - ts_from_method_tz.tz_localize(None)) < delta)
 
+    def test_asm8(self):
+        np.random.seed(7960929)
+        ns = np.random.randint(
+            Timestamp.min.value,
+            Timestamp.max.value,
+            1000,
+        )
+        for n in ns:
+            self.assertEqual(Timestamp(n).asm8, np.datetime64(int(n), 'ns'), n)
+        self.assertEqual(Timestamp('nat').asm8, np.datetime64('nat', 'ns'))
+
     def test_fields(self):
 
         def check(value, equal):

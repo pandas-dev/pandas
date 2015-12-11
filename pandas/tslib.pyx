@@ -447,10 +447,6 @@ class Timestamp(_Timestamp):
         return getattr(self.offset, 'freqstr', self.offset)
 
     @property
-    def asm8(self):
-        return np.int64(self.value).view('M8[ns]')
-
-    @property
     def is_month_start(self):
         return self._get_start_end_field('is_month_start')
 
@@ -1062,6 +1058,10 @@ cdef class _Timestamp(datetime):
         freqstr = self.freqstr if self.freq else None
         out = get_start_end_field(np.array([self.value], dtype=np.int64), field, freqstr, month_kw)
         return out[0]
+
+    property asm8:
+        def __get__(self):
+            return np.datetime64(self.value, 'ns')
 
 
 cdef PyTypeObject* ts_type = <PyTypeObject*> Timestamp
