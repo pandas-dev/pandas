@@ -309,8 +309,6 @@ class DateOffset(object):
         return params
 
     def __repr__(self):
-        if hasattr(self, '_named'):
-            return self._named
         className = getattr(self, '_outputName', type(self).__name__)
         exclude = set(['n', 'inc', 'normalize'])
         attrs = []
@@ -346,10 +344,7 @@ class DateOffset(object):
 
     @property
     def name(self):
-        if hasattr(self, '_named'):
-            return self._named
-        else:
-            return self.rule_code
+        return self.rule_code
 
     def __eq__(self, other):
         if other is None:
@@ -516,8 +511,6 @@ class BusinessMixin(object):
     # attributes on each object rather than the existing behavior of iterating
     # over internal ``__dict__``
     def __repr__(self):
-        if hasattr(self, '_named'):
-            return self._named
         className = getattr(self, '_outputName', self.__class__.__name__)
 
         if abs(self.n) != 1:
@@ -2668,16 +2661,3 @@ prefix_mapping = dict((offset._prefix, offset) for offset in [
 ])
 
 prefix_mapping['N'] = Nano
-
-def _make_offset(key):
-    """Gets offset based on key. KeyError if prefix is bad, ValueError if
-    suffix is bad. All handled by `get_offset` in tseries/frequencies. Not
-    public."""
-    if key is None:
-        return None
-    split = key.split('-')
-    klass = prefix_mapping[split[0]]
-    # handles case where there's no suffix (and will TypeError if too many '-')
-    obj = klass._from_name(*split[1:])
-    obj._named = key
-    return obj
