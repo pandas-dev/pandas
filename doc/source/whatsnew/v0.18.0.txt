@@ -231,3 +231,5 @@ Bug Fixes
 
 
 - Bug in ``df.replace`` while replacing value in mixed dtype ``Dataframe`` (:issue:`11698`)
+
+- Bug in ``read_excel`` failing to read any non-empty sheets when empty sheets exist and ``sheetname=None`` (:issue:`11711`)
