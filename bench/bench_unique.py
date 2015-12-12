@@ -1,10 +1,12 @@
 from __future__ import print_function
-from pandas import *
-from pandas.util.testing import rands
-from pandas.compat import range, zip
-import pandas._tseries as lib
-import numpy as np
+
 import matplotlib.pyplot as plt
+import numpy as np
+import pandas._tseries as lib
+
+from pandas import *
+from pandas.compat import range, zip
+from pandas.util.testing import rands
 
 N = 50000
 K = 10000
@@ -60,9 +62,7 @@ def algo3_sort():
     out = np.empty(k)
     lib.group_add(out, counts, data, labs)
 
-import numpy as np
 import random
-
 
 # dict to hold results
 counts = {}

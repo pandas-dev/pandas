@@ -1,17 +1,18 @@
 # pylint: disable-msg=E1101,W0612
 import calendar
-from datetime import datetime, time, timedelta
-import sys
 import operator
+import sys
 import warnings
-import nose
+from datetime import datetime, time, timedelta
 
+import nose
 import numpy as np
+
 randn = np.random.randn
 
 from pandas import (Index, Series, DataFrame,
                     isnull, date_range, Timestamp, Period, DatetimeIndex,
-                    Int64Index, to_datetime, bdate_range, Float64Index, TimedeltaIndex, NaT)
+                    Int64Index, to_datetime, bdate_range, Float64Index)
 
 import pandas.core.datetools as datetools
 import pandas.tseries.offsets as offsets
@@ -1911,7 +1912,6 @@ class TestTimeSeries(tm.TestCase):
     def test_append_concat_tz_dateutil(self):
         # GH 2938
         tm._skip_if_no_dateutil()
-        from pandas.tslib import _dateutil_gettz as timezone
 
         rng = date_range('5/8/2012 1:45', periods=10, freq='5T',
                          tz='dateutil/US/Eastern')

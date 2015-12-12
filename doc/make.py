@@ -18,13 +18,9 @@ python make.py html
 """
 from __future__ import print_function
 
-import glob
+import argparse
 import os
 import shutil
-import sys
-import sphinx
-import argparse
-import jinja2
 
 os.environ['PYTHONPATH'] = '..'
 
@@ -301,7 +297,6 @@ small_docs = False
 # current_dir = os.getcwd()
 # os.chdir(os.path.dirname(os.path.join(current_dir, __file__)))
 
-import argparse
 argparser = argparse.ArgumentParser(description="""
 pandas documentation builder
 """.strip())
@@ -327,7 +322,6 @@ def generate_index(api=True, single=False, **kwds):
     with open("source/index.rst","w") as f:
         f.write(t.render(api=api,single=single,**kwds))
 
-import argparse
 argparser = argparse.ArgumentParser(description="pandas documentation builder",
                                     epilog="Targets : %s" % funcd.keys())
 

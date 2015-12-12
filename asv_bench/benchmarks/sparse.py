@@ -1,8 +1,8 @@
-from .pandas_vb_common import *
-import pandas.sparse.series
 import scipy.sparse
+
+import pandas.sparse.series
 from pandas.core.sparse import SparseSeries, SparseDataFrame
-from pandas.core.sparse import SparseDataFrame
+from .pandas_vb_common import *
 
 
 class sparse_series_to_frame(object):

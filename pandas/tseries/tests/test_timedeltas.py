@@ -1,31 +1,28 @@
 # pylint: disable-msg=E1101,W0612
 
 from __future__ import division
-from datetime import datetime, timedelta, time
-import nose
 
+from datetime import timedelta, time
 from distutils.version import LooseVersion
-import numpy as np
-import pandas as pd
 
-from pandas import (Index, Series, DataFrame, Timestamp, Timedelta, TimedeltaIndex, isnull, notnull,
-                    bdate_range, date_range, timedelta_range, Int64Index)
-import pandas.core.common as com
-from pandas.compat import StringIO, lrange, range, zip, u, OrderedDict, long
-from pandas import compat, to_timedelta, tslib
+import nose
+import numpy as np
+from numpy.random import randn
+from numpy.testing import assert_allclose
+
+import pandas as pd
+import pandas.compat as compat
+import pandas.util.testing as tm
+from pandas import (Index, Series, DataFrame, Timestamp, Timedelta, TimedeltaIndex, isnull, date_range, timedelta_range, Int64Index)
+from pandas import _np_version_under1p8
+from pandas import to_timedelta, tslib
+from pandas.compat import range
+from pandas.tseries.offsets import Day, Second
 from pandas.tseries.timedeltas import _coerce_scalar_to_timedelta_type as ct
 from pandas.util.testing import (assert_series_equal,
                                  assert_frame_equal,
                                  assert_almost_equal,
-                                 assert_index_equal,
-                                 ensure_clean)
-from numpy.testing import assert_allclose
-from pandas.tseries.offsets import Day, Second, Hour
-import pandas.util.testing as tm
-from numpy.random import rand, randn
-from pandas import _np_version_under1p8
-import pandas.compat as compat
-
+                                 assert_index_equal)
 
 iNaT = tslib.iNaT
 

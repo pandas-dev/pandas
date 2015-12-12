@@ -76,15 +76,19 @@ TODO
 """
 from __future__ import division, absolute_import, print_function
 
-import sys, os, glob, shutil, imp, warnings, re, textwrap, traceback
-import sphinx
+import os
+import re
+import shutil
+import sys
+import textwrap
+import traceback
+import warnings
 
 if sys.version_info[0] >= 3:
     from io import StringIO
 else:
     from io import StringIO
 
-import warnings
 warnings.warn("A plot_directive module is also available under "
               "matplotlib.sphinxext; expect this numpydoc.plot_directive "
               "module to be deprecated after relevant features have been "
@@ -114,7 +118,7 @@ def setup(app):
 # plot:: directive
 #------------------------------------------------------------------------------
 from docutils.parsers.rst import directives
-from docutils import nodes
+
 
 def plot_directive(name, arguments, options, content, lineno,
                    content_offset, block_text, state, state_machine):
@@ -152,8 +156,6 @@ plot_directive_options = {'alt': directives.unchanged,
 #------------------------------------------------------------------------------
 # Generating output
 #------------------------------------------------------------------------------
-
-from docutils import nodes, utils
 
 try:
     # Sphinx depends on either Jinja or Jinja2
@@ -377,7 +379,6 @@ def run(arguments, content, options, state_machine, state, lineno):
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-import matplotlib.image as image
 from matplotlib import _pylab_helpers
 
 import exceptions

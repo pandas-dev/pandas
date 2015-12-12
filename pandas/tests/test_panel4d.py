@@ -1,28 +1,23 @@
 # -*- coding: utf-8 -*-
-from datetime import datetime
-from pandas.compat import range, lrange
-import os
 import operator
-import nose
+from datetime import datetime
 
 import numpy as np
 
-from pandas import Series, DataFrame, Index, isnull, notnull, pivot, MultiIndex
+import pandas.core.common as com
+import pandas.util.testing as tm
+from pandas import Series, Index, isnull, notnull
+from pandas import compat
+from pandas.compat import range, lrange
 from pandas.core.datetools import bday
 from pandas.core.panel import Panel
 from pandas.core.panel4d import Panel4D
 from pandas.core.series import remove_na
-import pandas.core.common as com
-import pandas.core.panel as panelmod
-from pandas import compat
-
 from pandas.util.testing import (assert_panel_equal,
                                  assert_panel4d_equal,
                                  assert_frame_equal,
                                  assert_series_equal,
                                  assert_almost_equal)
-import pandas.util.testing as tm
-import pandas.compat as compat
 
 
 def add_nans(panel4d):

@@ -2,33 +2,21 @@
 C/Cython ascii file parser tests
 """
 
-from pandas.compat import StringIO, BytesIO, map
-from datetime import datetime
-from pandas import compat
-import csv
 import os
 import sys
-import re
 
 import nose
-
-from numpy import nan
 import numpy as np
-
-from pandas import DataFrame, Series, Index, isnull, MultiIndex
-import pandas.io.parsers as parsers
-from pandas.io.parsers import (read_csv, read_table, read_fwf,
-                               TextParser, TextFileReader)
-from pandas.util.testing import (assert_almost_equal, assert_frame_equal,
-                                 assert_series_equal, network)
-import pandas.lib as lib
-from pandas import compat
-from pandas.lib import Timestamp
+import pandas.parser as parser
+from numpy import nan
+from pandas.parser import TextReader
 
 import pandas.util.testing as tm
-
-from pandas.parser import TextReader
-import pandas.parser as parser
+from pandas import DataFrame
+from pandas import compat
+from pandas.compat import StringIO, BytesIO, map
+from pandas.io.parsers import (read_csv, TextFileReader)
+from pandas.util.testing import (assert_frame_equal)
 
 
 class TestCParser(tm.TestCase):
