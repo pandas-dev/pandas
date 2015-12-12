@@ -293,10 +293,12 @@ class TestIndexOps(Ops):
 
                 o[0] = np.nan
 
+                # noinspection PyComparisonWithNone
                 result = o == None
                 self.assertFalse(result.iat[0])
                 self.assertFalse(result.iat[1])
 
+                # noinspection PyComparisonWithNone
                 result = o != None
                 self.assertTrue(result.iat[0])
                 self.assertTrue(result.iat[1])

@@ -4500,7 +4500,7 @@ class NDFrame(PandasObject):
             else:
                 data = self
         elif include == 'all':
-            if exclude != None:
+            if exclude is not None:
                 msg = "exclude must be None when include is 'all'"
                 raise ValueError(msg)
             data = self

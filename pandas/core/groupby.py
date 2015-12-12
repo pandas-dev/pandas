@@ -586,7 +586,7 @@ class GroupBy(PandasObject):
             # a little trickery for aggregation functions that need an axis
             # argument
             kwargs_with_axis = kwargs.copy()
-            if 'axis' not in kwargs_with_axis or kwargs_with_axis['axis']==None:
+            if 'axis' not in kwargs_with_axis or kwargs_with_axis['axis'] is None:
                 kwargs_with_axis['axis'] = self.axis
 
             def curried_with_axis(x):
