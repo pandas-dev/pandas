@@ -959,7 +959,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin, generic.NDFrame,):
         return result
 
     def to_string(self, buf=None, na_rep='NaN', float_format=None, header=True,
-                  length=False, dtype=False, name=False, max_rows=None):
+                  index=True, length=False, dtype=False, name=False, max_rows=None):
         """
         Render a string representation of the Series
 
@@ -974,6 +974,8 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin, generic.NDFrame,):
             default None
         header: boolean, default True
             Add the Series header (index name)
+        index : bool, optional
+            Add index (row) labels, default True
         length : boolean, default False
             Add the Series length
         dtype : boolean, default False
@@ -990,8 +992,8 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin, generic.NDFrame,):
         """
 
         the_repr = self._get_repr(float_format=float_format, na_rep=na_rep,
-                                  header=header, length=length, dtype=dtype,
-                                  name=name, max_rows=max_rows)
+                                  header=header, index=index, length=length,
+                                  dtype=dtype, name=name, max_rows=max_rows)
 
         # catch contract violations
         if not isinstance(the_repr, compat.text_type):
@@ -1009,15 +1011,15 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin, generic.NDFrame,):
                     f.write(the_repr)
 
     def _get_repr(
-        self, name=False, header=True, length=True, dtype=True, na_rep='NaN',
-            float_format=None, max_rows=None):
+        self, name=False, header=True, index=True, length=True, dtype=True,
+            na_rep='NaN', float_format=None, max_rows=None):
         """
 
         Internal function, should always return unicode string
         """
         formatter = fmt.SeriesFormatter(self, name=name,
                                         length=length, header=header,
-                                        dtype=dtype,
+                                        index=index, dtype=dtype,
                                         na_rep=na_rep,
                                         float_format=float_format,
                                         max_rows=max_rows)
