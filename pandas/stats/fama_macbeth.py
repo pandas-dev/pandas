@@ -31,7 +31,9 @@ class FamaMacBeth(StringMixin):
     def __init__(self, y, x, intercept=True, nw_lags=None,
                  nw_lags_beta=None,
                  entity_effects=False, time_effects=False, x_effects=None,
-                 cluster=None, dropped_dummies={}, verbose=False):
+                 cluster=None, dropped_dummies=None, verbose=False):
+        if dropped_dummies is None:
+                dropped_dummies = {}
         self._nw_lags_beta = nw_lags_beta
 
         from pandas.stats.plm import MovingPanelOLS
@@ -143,7 +145,9 @@ class MovingFamaMacBeth(FamaMacBeth):
     def __init__(self, y, x, window_type='rolling', window=10,
                  intercept=True, nw_lags=None, nw_lags_beta=None,
                  entity_effects=False, time_effects=False, x_effects=None,
-                 cluster=None, dropped_dummies={}, verbose=False):
+                 cluster=None, dropped_dummies=None, verbose=False):
+        if dropped_dummies is None:
+                dropped_dummies = {}
         self._window_type = common._get_window_type(window_type)
         self._window = window
 

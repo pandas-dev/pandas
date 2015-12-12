@@ -55,7 +55,7 @@ def _ensure_like_indices(time, panels):
     return time, panels
 
 
-def panel_index(time, panels, names=['time', 'panel']):
+def panel_index(time, panels, names=None):
     """
     Returns a multi-index suitable for a panel-like DataFrame
 
@@ -94,6 +94,8 @@ def panel_index(time, panels, names=['time', 'panel']):
                 (1961, 'B'), (1961, 'C'), (1962, 'A'), (1962, 'B'),
                 (1962, 'C')], dtype=object)
     """
+    if names is None:
+        names = ['time', 'panel']
     time, panels = _ensure_like_indices(time, panels)
     time_factor = Categorical.from_array(time, ordered=True)
     panel_factor = Categorical.from_array(panels, ordered=True)
