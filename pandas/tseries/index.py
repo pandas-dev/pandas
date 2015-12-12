@@ -21,7 +21,7 @@ from pandas.tseries.frequencies import (
     Resolution)
 from pandas.tseries.base import DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin
 from pandas.tseries.offsets import DateOffset, generate_range, Tick, CDay
-from pandas.tseries.tools import parse_time_string, normalize_date
+from pandas.tseries.tools import parse_time_string, normalize_date, to_time
 from pandas.tseries.timedeltas import to_timedelta
 from pandas.util.decorators import cache_readonly, deprecate_kwarg
 import pandas.core.common as com
@@ -109,12 +109,12 @@ def _ensure_datetime64(other):
         return other
     raise TypeError('%s type object %s' % (type(other), str(other)))
 
-
 _midnight = time(0, 0)
 
+
 def _new_DatetimeIndex(cls, d):
-    """ This is called upon unpickling, rather than the default which doesn't have arguments
-        and breaks __new__ """
+    """ This is called upon unpickling, rather than the default which doesn't
+    have arguments and breaks __new__ """
 
     # data are already in UTC
     # so need to localize
@@ -1755,12 +1755,18 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin, Int64Index)
     def indexer_between_time(self, start_time, end_time, include_start=True,
                              include_end=True):
         """
-        Select values between particular times of day (e.g., 9:00-9:30AM)
+        Select values between particular times of day (e.g., 9:00-9:30AM).
+
+        Return values of the index between two times.  If start_time or
+        end_time are strings then tseres.tools.to_time is used to convert to
+        a time object.
 
         Parameters
         ----------
-        start_time : datetime.time or string
-        end_time : datetime.time or string
+        start_time, end_time : datetime.time, str
+            datetime.time or string in appropriate format ("%H:%M", "%H%M",
+            "%I:%M%p", "%I%M%p", "%H:%M:%S", "%H%M%S", "%I:%M:%S%p",
+            "%I%M%S%p")
         include_start : boolean, default True
         include_end : boolean, default True
         tz : string or pytz.timezone or dateutil.tz.tzfile, default None
@@ -1769,18 +1775,8 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin, Int64Index)
         -------
         values_between_time : TimeSeries
         """
-        from dateutil.parser import parse
-
-        if isinstance(start_time, compat.string_types):
-            start_time = parse(start_time).time()
-
-        if isinstance(end_time, compat.string_types):
-            end_time = parse(end_time).time()
-
-        if start_time.tzinfo or end_time.tzinfo:
-            raise NotImplementedError("argument 'time' with timezone info is "
-                                      "not supported")
-
+        start_time = to_time(start_time)
+        end_time = to_time(end_time)
         time_micros = self._get_time_micros()
         start_micros = _time_to_micros(start_time)
         end_micros = _time_to_micros(end_time)

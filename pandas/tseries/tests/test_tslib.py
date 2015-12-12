@@ -15,8 +15,7 @@ import pandas.tseries.tools as tools
 import pandas.tseries.offsets as offsets
 import pandas.util.testing as tm
 import pandas.compat as compat
-from pandas.util.testing import assert_series_equal
-import pandas.compat as compat
+from pandas.util.testing import assert_series_equal, _skip_if_has_locale
 
 
 class TestTimestamp(tm.TestCase):
@@ -616,6 +615,41 @@ class TestDatetimeParsingWrappers(tm.TestCase):
             self.assertEqual(result3, exp_now)
             self.assertEqual(result4, exp_now)
             self.assertEqual(result5, exp_now)
+
+    def test_parsers_time(self):
+        # GH11818
+        _skip_if_has_locale()
+        strings = ["14:15", "1415", "2:15pm", "0215pm", "14:15:00", "141500",
+                   "2:15:00pm", "021500pm", datetime.time(14, 15)]
+        expected = datetime.time(14, 15)
+
+        for time_string in strings:
+            self.assertEqual(tools.to_time(time_string), expected)
+
+        new_string = "14.15"
+        self.assertRaises(ValueError, tools.to_time, new_string)
+        self.assertEqual(tools.to_time(new_string, format="%H.%M"), expected)
+        tools.add_time_format("%H.%M")
+        self.assertEqual(tools.to_time(new_string), expected)
+
+        arg = ["14:15", "20:20"]
+        expected_arr = [datetime.time(14, 15), datetime.time(20, 20)]
+        self.assertEqual(tools.to_time(arg), expected_arr)
+        self.assertEqual(tools.to_time(arg, format="%H:%M"), expected_arr)
+        self.assertEqual(tools.to_time(arg, infer_time_format=True),
+                         expected_arr)
+        self.assertEqual(tools.to_time(arg, format="%I:%M%p", errors="coerce"),
+                         [None, None])
+        self.assert_numpy_array_equal(tools.to_time(arg, format="%I:%M%p",
+                                                    errors="ignore"),
+                                      np.array(arg))
+        self.assertRaises(ValueError, lambda: tools.to_time(arg,
+                                                            format="%I:%M%p",
+                                                            errors="raise"))
+        self.assert_series_equal(tools.to_time(Series(arg, name="test")),
+                                 Series(expected_arr, name="test"))
+        self.assert_numpy_array_equal(tools.to_time(np.array(arg)),
+                                      np.array(expected_arr))
 
     def test_parsers_monthfreq(self):
         cases = {'201101': datetime.datetime(2011, 1, 1, 0, 0),

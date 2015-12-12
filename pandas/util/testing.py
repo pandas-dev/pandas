@@ -303,11 +303,19 @@ def skip_if_no_ne(engine='numexpr'):
                                 "%s" % ne.__version__)
 
 
+def _skip_if_has_locale():
+    import locale
+    lang, _ = locale.getlocale()
+    if lang is not None:
+        import nose
+        raise nose.SkipTest("Specific locale is set {0}".format(lang))
 
-#------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # locale utilities
 
-def check_output(*popenargs, **kwargs):  # shamelessly taken from Python 2.7 source
+
+def check_output(*popenargs, **kwargs):
+    # shamelessly taken from Python 2.7 source
     r"""Run command with arguments and return its output as a byte string.
 
     If the exit code was non-zero it raises a CalledProcessError.  The
