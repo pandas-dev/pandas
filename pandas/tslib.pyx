@@ -4458,7 +4458,8 @@ def shift_months(int64_t[:] dtindex, int months, object day=None):
         Py_ssize_t i
         pandas_datetimestruct dts
         int count = len(dtindex)
-        int days_in_current_month
+        int months_to_roll
+        bint roll_check
         int64_t[:] out = np.empty(count, dtype='int64')
 
     if day is None:
@@ -4472,36 +4473,44 @@ def shift_months(int64_t[:] dtindex, int months, object day=None):
                 dts.day = min(dts.day, days_in_month(dts))
                 out[i] = pandas_datetimestruct_to_datetime(PANDAS_FR_ns, &dts)
     elif day == 'start':
+        roll_check = False
+        if months <= 0:
+            months += 1
+            roll_check = True
         with nogil:
             for i in range(count):
                 if dtindex[i] == NPY_NAT: out[i] = NPY_NAT; continue
                 pandas_datetime_to_datetimestruct(dtindex[i], PANDAS_FR_ns, &dts)
-                dts.year = _year_add_months(dts, months)
-                dts.month = _month_add_months(dts, months)
+                months_to_roll = months
 
-                # offset semantics - when subtracting if at the start anchor
-                # point, shift back by one more month
-                if months <= 0 and dts.day == 1:
-                    dts.year = _year_add_months(dts, -1)
-                    dts.month = _month_add_months(dts, -1)
-                else:
-                    dts.day = 1
+                # offset semantics - if on the anchor point and going backwards
+                # shift to next
+                if roll_check and dts.day == 1:
+                    months_to_roll -= 1
+
+                dts.year = _year_add_months(dts, months_to_roll)
+                dts.month = _month_add_months(dts, months_to_roll)
+                dts.day = 1
+
                 out[i] = pandas_datetimestruct_to_datetime(PANDAS_FR_ns, &dts)
     elif day == 'end':
+        roll_check = False
+        if months > 0:
+            months -= 1
+            roll_check = True
         with nogil:
             for i in range(count):
                 if dtindex[i] == NPY_NAT: out[i] = NPY_NAT; continue
                 pandas_datetime_to_datetimestruct(dtindex[i], PANDAS_FR_ns, &dts)
-                days_in_current_month = days_in_month(dts)
-
-                dts.year = _year_add_months(dts, months)
-                dts.month = _month_add_months(dts, months)
+                months_to_roll = months
 
                 # similar semantics - when adding shift forward by one
                 # month if already at an end of month
-                if months >= 0 and dts.day == days_in_current_month:
-                    dts.year = _year_add_months(dts, 1)
-                    dts.month = _month_add_months(dts, 1)
+                if roll_check and dts.day == days_in_month(dts):
+                    months_to_roll += 1
+
+                dts.year = _year_add_months(dts, months_to_roll)
+                dts.month = _month_add_months(dts, months_to_roll)
 
                 dts.day = days_in_month(dts)
                 out[i] = pandas_datetimestruct_to_datetime(PANDAS_FR_ns, &dts)
