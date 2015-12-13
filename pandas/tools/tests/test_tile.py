@@ -29,28 +29,28 @@ class TestCut(tm.TestCase):
         result, bins = cut(data, 3, retbins=True)
         intervals = IntervalIndex.from_breaks(bins.round(3))
         tm.assert_numpy_array_equal(result, intervals.take([0, 0, 0, 1, 2, 0]))
-        tm.assert_almost_equal(bins, [0.199, 3.36666667, 6.53333333, 9.7])
+        tm.assert_almost_equal(bins, [0.1905, 3.36666667, 6.53333333, 9.7])
 
     def test_right(self):
         data = np.array([.2, 1.4, 2.5, 6.2, 9.7, 2.1, 2.575])
         result, bins = cut(data, 4, right=True, retbins=True)
         intervals = IntervalIndex.from_breaks(bins.round(3))
         tm.assert_numpy_array_equal(result, intervals.take([0, 0, 0, 2, 3, 0, 0]))
-        tm.assert_almost_equal(bins, [0.199, 2.575, 4.95, 7.325, 9.7])
+        tm.assert_almost_equal(bins, [0.1905, 2.575, 4.95, 7.325, 9.7])
 
     def test_noright(self):
         data = np.array([.2, 1.4, 2.5, 6.2, 9.7, 2.1, 2.575])
         result, bins = cut(data, 4, right=False, retbins=True)
         intervals = IntervalIndex.from_breaks(bins.round(3), closed='left')
         tm.assert_numpy_array_equal(result, intervals.take([0, 0, 0, 2, 3, 0, 1]))
-        tm.assert_almost_equal(bins, [0.2, 2.575, 4.95, 7.325, 9.701])
+        tm.assert_almost_equal(bins, [0.2, 2.575, 4.95, 7.325, 9.7095])
 
     def test_arraylike(self):
         data = [.2, 1.4, 2.5, 6.2, 9.7, 2.1]
         result, bins = cut(data, 3, retbins=True)
         intervals = IntervalIndex.from_breaks(bins.round(3))
         tm.assert_numpy_array_equal(result, intervals.take([0, 0, 0, 1, 2, 0]))
-        tm.assert_almost_equal(bins, [0.199, 3.36666667, 6.53333333, 9.7])
+        tm.assert_almost_equal(bins, [0.1905, 3.36666667, 6.53333333, 9.7])
 
     def test_bins_not_monotonic(self):
         data = [.2, 1.4, 2.5, 6.2, 9.7, 2.1]
@@ -96,7 +96,7 @@ class TestCut(tm.TestCase):
         arr = np.arange(0, 0.73, 0.01)
 
         result = cut(arr, 4, precision=2)
-        ex_levels = IntervalIndex.from_breaks([-0.01, 0.18, 0.36, 0.54, 0.72])
+        ex_levels = IntervalIndex.from_breaks([-0.00072, 0.18, 0.36, 0.54, 0.72])
         self.assert_numpy_array_equal(unique(result), ex_levels)
 
     def test_na_handling(self):
@@ -135,10 +135,9 @@ class TestCut(tm.TestCase):
 
         labels, bins = qcut(arr, 4, retbins=True)
         ex_bins = quantile(arr, [0, .25, .5, .75, 1.])
-        ex_bins[0] -= 0.001
         tm.assert_almost_equal(bins, ex_bins)
 
-        ex_levels = cut(arr, ex_bins)
+        ex_levels = cut(arr, ex_bins, include_lowest=True)
         self.assert_numpy_array_equal(labels, ex_levels)
 
     def test_qcut_bounds(self):
@@ -179,6 +178,15 @@ class TestCut(tm.TestCase):
         exp = Categorical.from_codes([1] + 4 * [0] + [1, 2], labels)
         self.assertTrue(result.equals(exp))
 
+    def test_qcut_include_lowest(self):
+        values = np.arange(10)
+
+        cats = qcut(values, 4)
+
+        ex_levels = [Interval(0, 2.25, closed='both'), Interval(2.25, 4.5),
+                     Interval(4.5, 6.75), Interval(6.75, 9)]
+        self.assert_numpy_array_equal(unique(cats), ex_levels)
+
     def test_qcut_nas(self):
         arr = np.random.randn(100)
         arr[:20] = np.nan
@@ -186,9 +194,7 @@ class TestCut(tm.TestCase):
         result = qcut(arr, 4)
         self.assertTrue(com.isnull(result[:20]).all())
 
-    def test_label_formatting(self):
-        self.assertEqual(tmod._trim_zeros('1.000'), '1')
-
+    def test_round_frac(self):
         # it works
         result = cut(np.arange(11.), 2)
 
@@ -196,10 +202,15 @@ class TestCut(tm.TestCase):
 
         # #1979, negative numbers
 
-        result = tmod._format_label(-117.9998, precision=3)
-        self.assertEqual(result, '-118')
-        result = tmod._format_label(117.9998, precision=3)
-        self.assertEqual(result, '118')
+        result = tmod._round_frac(-117.9998, precision=3)
+        self.assertEqual(result, -118)
+        result = tmod._round_frac(117.9998, precision=3)
+        self.assertEqual(result, 118)
+
+        result = tmod._round_frac(117.9998, precision=2)
+        self.assertEqual(result, 118)
+        result = tmod._round_frac(0.000123456, precision=2)
+        self.assertEqual(result, 0.00012)
 
     def test_qcut_binning_issues(self):
         # #1978, 1979
@@ -229,14 +240,15 @@ class TestCut(tm.TestCase):
         s = Series([0,1,2,3,4,5,6,7,8])
         res = cut(s,3)
         exp_bins = np.linspace(0, 8, num=4).round(3)
-        exp_bins[0] -= 1e-3
+        exp_bins[0] -= 0.008
         exp = Series(IntervalIndex.from_breaks(exp_bins).take([0,0,0,1,1,1,2,2,2]))
         tm.assert_series_equal(res, exp)
 
     def test_qcut_return_intervals(self):
         s = Series([0,1,2,3,4,5,6,7,8])
         res = qcut(s,[0,0.333,0.666,1])
-        exp_levels = IntervalIndex.from_breaks([-0.001, 2.664, 5.328, 8])
+        exp_levels = np.array([Interval(0, 2.664, closed='both'),
+                               Interval(2.664, 5.328), Interval(5.328, 8)])
         exp = Series(exp_levels.take([0,0,0,1,1,1,2,2,2]))
         tm.assert_series_equal(res, exp)
 
@@ -245,11 +257,11 @@ class TestCut(tm.TestCase):
         s = Series(np.arange(4))
         result, bins = cut(s, 2, retbins=True, labels=[0, 1])
         tm.assert_numpy_array_equal(result, [0, 0, 1, 1])
-        tm.assert_almost_equal(bins, [-0.001, 1.5, 3])
+        tm.assert_almost_equal(bins, [-0.003, 1.5, 3])
 
         result, bins = qcut(s, 2, retbins=True, labels=[0, 1])
         tm.assert_numpy_array_equal(result, [0, 0, 1, 1])
-        tm.assert_almost_equal(bins, [-0.001, 1.5, 3])
+        tm.assert_almost_equal(bins, [0, 1.5, 3])
 
 
 def curpath():
