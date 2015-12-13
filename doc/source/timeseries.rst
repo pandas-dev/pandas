@@ -954,6 +954,52 @@ These can be used as arguments to ``date_range``, ``bdate_range``, constructors
 for ``DatetimeIndex``, as well as various other timeseries-related functions
 in pandas.
 
+Anchored Offset Semantics
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+For those offsets that are anchored to the start or end of specific
+frequency (``MonthEnd``, ``MonthBegin``, ``WeekEnd``, etc) the following
+rules apply to rolling forward and backwards.
+
+When ``n`` is not 0, if the given date is not on an anchor point, it snapped to the next(previous)
+anchor point, and moved ``|n|-1`` additional steps forwards or backwards.
+
+.. ipython:: python
+
+   pd.Timestamp('2014-01-02') + MonthBegin(n=1)
+   pd.Timestamp('2014-01-02') + MonthEnd(n=1)
+
+   pd.Timestamp('2014-01-02') - MonthBegin(n=1)
+   pd.Timestamp('2014-01-02') - MonthEnd(n=1)
+
+   pd.Timestamp('2014-01-02') + MonthBegin(n=4)
+   pd.Timestamp('2014-01-02') - MonthBegin(n=4)
+
+If the given date *is* on an anchor point, it is moved ``|n|`` points forwards
+or backwards.
+
+.. ipython:: python
+
+   pd.Timestamp('2014-01-01') + MonthBegin(n=1)
+   pd.Timestamp('2014-01-31') + MonthEnd(n=1)
+
+   pd.Timestamp('2014-01-01') - MonthBegin(n=1)
+   pd.Timestamp('2014-01-31') - MonthEnd(n=1)
+
+   pd.Timestamp('2014-01-01') + MonthBegin(n=4)
+   pd.Timestamp('2014-01-31') - MonthBegin(n=4)
+
+For the case when ``n=0``, the date is not moved if on an anchor point, otherwise
+it is rolled forward to the next anchor point.
+
+.. ipython:: python
+
+   pd.Timestamp('2014-01-02') + MonthBegin(n=0)
+   pd.Timestamp('2014-01-02') + MonthEnd(n=0)
+
+   pd.Timestamp('2014-01-01') + MonthBegin(n=0)
+   pd.Timestamp('2014-01-31') + MonthEnd(n=0)
+
 .. _timeseries.legacyaliases:
 
 Legacy Aliases

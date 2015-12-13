@@ -2622,7 +2622,8 @@ class TestDatetimeIndex(tm.TestCase):
                     assert_func(result, exp)
 
             s = klass([Timestamp('2000-01-05 00:15:00'), Timestamp('2000-01-31 00:23:00'),
-                       Timestamp('2000-01-01'), Timestamp('2000-02-29'), Timestamp('2000-12-31')])
+                       Timestamp('2000-01-01'), Timestamp('2000-03-31'),
+                       Timestamp('2000-02-29'), Timestamp('2000-12-31')])
 
             #DateOffset relativedelta fastpath
             relative_kwargs = [('years', 2), ('months', 5), ('days', 3),
@@ -2659,11 +2660,15 @@ class TestDatetimeIndex(tm.TestCase):
                         else:
                             do = do
                             kwargs = {}
-                        op = getattr(pd.offsets,do)(5, normalize=normalize, **kwargs)
-                        assert_func(klass([x + op for x in s]), s + op)
-                        assert_func(klass([x - op for x in s]), s - op)
-                        assert_func(klass([op + x for x in s]), op + s)
 
+                        for n in [0, 5]:
+                            if (do in ['WeekOfMonth','LastWeekOfMonth',
+                                       'FY5253Quarter','FY5253'] and n == 0):
+                                continue
+                            op = getattr(pd.offsets,do)(n, normalize=normalize, **kwargs)
+                            assert_func(klass([x + op for x in s]), s + op)
+                            assert_func(klass([x - op for x in s]), s - op)
+                            assert_func(klass([op + x for x in s]), op + s)
     # def test_add_timedelta64(self):
     #     rng = date_range('1/1/2000', periods=5)
     #     delta = rng.values[3] - rng.values[1]
