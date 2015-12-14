@@ -271,7 +271,7 @@ date/datetime columns.
        date2 = mdy(2, 15, 2015);
        date1_year = year(date1);
        date2_month = month(date2);
-       * shift date to begninning of next interval;
+       * shift date to beginning of next interval;
        date1_next = intnx('MONTH', date1, 1);
        * count intervals between dates;
        months_between = intck('MONTH', date1, date2);
@@ -279,7 +279,7 @@ date/datetime columns.
 
 The equivalent pandas operations are shown below.  In addition to these
 functions pandas supports other Time Series features
-not available in Base SAS (such as resampling and and custom offets) -
+not available in Base SAS (such as resampling and and custom offsets) -
 see the :ref:`timeseries documentation<timeseries>` for more details.
 
 .. ipython:: python
@@ -350,7 +350,7 @@ Sorting in SAS is accomplished via ``PROC SORT``
    run;
 
 pandas objects have a :meth:`~DataFrame.sort_values` method, which
-takes a list of columnns to sort by.
+takes a list of columns to sort by.
 
 .. ipython:: python
 

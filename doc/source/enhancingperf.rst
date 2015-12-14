@@ -745,7 +745,7 @@ Technical Minutia Regarding Expression Evaluation
 
 Expressions that would result in an object dtype or involve datetime operations
 (because of ``NaT``) must be evaluated in Python space. The main reason for
-this behavior is to maintain backwards compatbility with versions of numpy <
+this behavior is to maintain backwards compatibility with versions of numpy <
 1.7. In those versions of ``numpy`` a call to ``ndarray.astype(str)`` will
 truncate any strings that are more than 60 characters in length. Second, we
 can't pass ``object`` arrays to ``numexpr`` thus string comparisons must be

@@ -138,7 +138,7 @@ lower-dimensional slices. Thus,
 
     Series; ``series[label]``; scalar value
     DataFrame; ``frame[colname]``; ``Series`` corresponding to colname
-    Panel; ``panel[itemname]``; ``DataFrame`` corresponing to the itemname
+    Panel; ``panel[itemname]``; ``DataFrame`` corresponding to the itemname
 
 Here we construct a simple time series data set to use for illustrating the
 indexing functionality:
