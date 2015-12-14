@@ -334,7 +334,7 @@ Similarly to other of the datetime-like indices, ``DatetimeIndex`` and ``PeriodI
               index=timedelta_range('1 days', periods=100, freq='h'))
    s
 
-Selections work similary, with coercion on string-likes and slices:
+Selections work similarly, with coercion on string-likes and slices:
 
 .. ipython:: python
 

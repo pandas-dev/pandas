@@ -525,7 +525,7 @@ they have a MultiIndex:
 
    df.T.sort_index(level=1, axis=1)
 
-The ``MultiIndex`` object has code to **explicity check the sort depth**. Thus,
+The ``MultiIndex`` object has code to **explicitly check the sort depth**. Thus,
 if you try to index at a depth at which the index is not sorted, it will raise
 an exception. Here is a concrete example to illustrate this:
 
