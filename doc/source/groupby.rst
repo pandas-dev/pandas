@@ -649,7 +649,7 @@ For dataframes with multiple columns, filters should explicitly specify a column
 .. note::
 
    Some functions when applied to a groupby object will act as a **filter** on the input, returning
-   a reduced shape of the original (and potentitally eliminating groups), but with the index unchanged.
+   a reduced shape of the original (and potentially eliminating groups), but with the index unchanged.
    Passing ``as_index=False`` will not affect these transformation methods.
 
    For example: ``head, tail``.

@@ -333,7 +333,7 @@ The :ref:`multindexing <advanced.hierarchical>` docs.
 
    # As Labelled Index
    df = df.set_index('row');df
-   # With Heirarchical Columns
+   # With Hierarchical Columns
    df.columns = pd.MultiIndex.from_tuples([tuple(c.split('_')) for c in df.columns]);df
    # Now stack & Reset
    df = df.stack(0).reset_index(1);df

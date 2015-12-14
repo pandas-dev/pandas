@@ -552,7 +552,7 @@ These can be accessed like ``Series.dt.<property>``.
 String handling
 ~~~~~~~~~~~~~~~
 ``Series.str`` can be used to access the values of the series as
-strings and apply several methods to it. These can be acccessed like
+strings and apply several methods to it. These can be accessed like
 ``Series.str.<function/property>``.
 
 .. autosummary::

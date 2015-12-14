@@ -46,7 +46,7 @@ Series
 
 .. warning::
 
-   In 0.13.0 ``Series`` has internaly been refactored to no longer sub-class ``ndarray``
+   In 0.13.0 ``Series`` has internally been refactored to no longer sub-class ``ndarray``
    but instead subclass ``NDFrame``, similarly to the rest of the pandas containers. This should be
    a transparent change with only very limited API implications (See the :ref:`Internal Refactoring<whatsnew_0130.refactoring>`)
 

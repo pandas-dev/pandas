@@ -466,7 +466,7 @@ When ``subplots=False`` / ``by`` is ``None``:
    This is the default of ``boxplot`` in historical reason.
    Note that ``plot(kind='box')`` returns ``Axes`` as default as the same as other plots.
 * if ``return_type`` is ``'axes'``, a :class:`matplotlib Axes <matplotlib.axes.Axes>` containing the boxplot is returned.
-* if ``return_type`` is ``'both'`` a namedtuple containging the :class:`matplotlib Axes <matplotlib.axes.Axes>`
+* if ``return_type`` is ``'both'`` a namedtuple containing the :class:`matplotlib Axes <matplotlib.axes.Axes>`
    and :class:`matplotlib Lines <matplotlib.lines.Line2D>` is returned
 
 When ``subplots=True`` / ``by`` is some column of the DataFrame:
