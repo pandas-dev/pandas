@@ -155,7 +155,7 @@ or multi-indexed DataFrames.
 fredapi is a Python interface to the `Federal Reserve Economic Data (FRED) <http://research.stlouisfed.org/fred2/>`__
 provided by the Federal Reserve Bank of St. Louis. It works with both the FRED database and ALFRED database that
 contains point-in-time data (i.e. historic data revisions). fredapi provides a wrapper in python to the FRED
-HTTP API, and also provides several conveninent methods for parsing and analyzing point-in-time data from ALFRED.
+HTTP API, and also provides several convenient methods for parsing and analyzing point-in-time data from ALFRED.
 fredapi makes use of pandas and returns data in a Series or DataFrame. This module requires a FRED API key that
 you can obtain for free on the FRED website.
 

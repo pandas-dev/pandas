@@ -672,7 +672,7 @@ used exactly like a ``Timedelta`` - see the
 
 Note that some offsets (such as ``BQuarterEnd``) do not have a
 vectorized implementation.  They can still be used but may
-calculate signficantly slower and will raise a ``PerformanceWarning``
+calculate significantly slower and will raise a ``PerformanceWarning``
 
 .. ipython:: python
    :okwarning:
@@ -885,7 +885,7 @@ frequencies. We will refer to these aliases as *offset aliases*
     "H", "hourly frequency"
     "T, min", "minutely frequency"
     "S", "secondly frequency"
-    "L, ms", "milliseonds"
+    "L, ms", "milliseconds"
     "U, us", "microseconds"
     "N", "nanoseconds"
 
@@ -1374,7 +1374,7 @@ frequency. Arithmetic is not allowed between ``Period`` with different ``freq`` 
    p == Period('2012-01', freq='3M')
 
 
-If ``Period`` freq is daily or higher (``D``, ``H``, ``T``, ``S``, ``L``, ``U``, ``N``), ``offsets`` and ``timedelta``-like can be added if the result can have the same freq. Otherise, ``ValueError`` will be raised.
+If ``Period`` freq is daily or higher (``D``, ``H``, ``T``, ``S``, ``L``, ``U``, ``N``), ``offsets`` and ``timedelta``-like can be added if the result can have the same freq. Otherwise, ``ValueError`` will be raised.
 
 .. ipython:: python
 

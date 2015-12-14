@@ -1097,7 +1097,7 @@ Note that the same result could have been achieved using
    ts2.reindex(ts.index).fillna(method='ffill')
 
 :meth:`~Series.reindex` will raise a ValueError if the index is not monotonic
-increasing or descreasing. :meth:`~Series.fillna` and :meth:`~Series.interpolate`
+increasing or decreasing. :meth:`~Series.fillna` and :meth:`~Series.interpolate`
 will not make any checks on the order of the index.
 
 .. _basics.limits_on_reindex_fill:
