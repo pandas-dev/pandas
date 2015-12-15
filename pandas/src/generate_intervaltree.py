@@ -204,11 +204,12 @@ cdef class {dtype_title}Closed{closed_title}IntervalNode:
     the right, and those that overlap with the pivot.
     """
     cdef:
-        readonly left_node, right_node
-        readonly {dtype}_t[:] center_left_values, center_right_values
-        readonly int64_t[:] center_left_indices, center_right_indices
+        {dtype_title}Closed{closed_title}IntervalNode left_node, right_node
+        {dtype}_t[:] center_left_values, center_right_values, left, right
+        int64_t[:] center_left_indices, center_right_indices, indices
         readonly {dtype}_t pivot
-        readonly int64_t n_elements, leaf_size
+        readonly int64_t n_elements, n_center, leaf_size
+        readonly bint is_leaf_node
 
     def __init__(self,
                  ndarray[{dtype}_t, ndim=1] left,
@@ -216,19 +217,30 @@ cdef class {dtype_title}Closed{closed_title}IntervalNode:
                  ndarray[int64_t, ndim=1] indices,
                  int64_t leaf_size):
 
-        self.pivot = np.median(left + right) / 2
         self.n_elements = len(left)
         self.leaf_size = leaf_size
 
-        left_set, right_set, center_set = self.classify_intervals(left, right)
+        if self.n_elements <= leaf_size:
+            # make this a terminal (leaf) node
+            self.is_leaf_node = True
+            self.left = left
+            self.right = right
+            self.indices = indices
+            self.n_center
+        else:
+            # calculate a pivot so we can create child nodes
+            self.is_leaf_node = False
+            self.pivot = np.median(left + right) / 2
+            left_set, right_set, center_set = self.classify_intervals(left, right)
 
-        self.left_node = self.new_child_node(left, right, indices, left_set)
-        self.right_node = self.new_child_node(left, right, indices, right_set)
+            self.left_node = self.new_child_node(left, right, indices, left_set)
+            self.right_node = self.new_child_node(left, right, indices, right_set)
 
-        self.center_left_values, self.center_left_indices = \
-            sort_values_and_indices(left, indices, center_set)
-        self.center_right_values, self.center_right_indices = \
-            sort_values_and_indices(right, indices, center_set)
+            self.center_left_values, self.center_left_indices = \
+                sort_values_and_indices(left, indices, center_set)
+            self.center_right_values, self.center_right_indices = \
+                sort_values_and_indices(right, indices, center_set)
+            self.n_center = len(self.center_left_indices)
 
     @cython.wraparound(False)
     @cython.boundscheck(False)
@@ -237,14 +249,14 @@ cdef class {dtype_title}Closed{closed_title}IntervalNode:
         left, right, or overlap with this node's pivot.
         """
         cdef:
-            int i
             Int64Vector left_ind, right_ind, overlapping_ind
+            Py_ssize_t i
 
         left_ind = Int64Vector()
         right_ind = Int64Vector()
         overlapping_ind = Int64Vector()
 
-        for i in range(len(left)):
+        for i in range(self.n_elements):
             if right[i] {cmp_right_converse} self.pivot:
                 left_ind.append(i)
             elif self.pivot {cmp_left_converse} left[i]:
@@ -262,103 +274,76 @@ cdef class {dtype_title}Closed{closed_title}IntervalNode:
                         ndarray[int64_t, ndim=1] indices,
                         ndarray[int64_t, ndim=1] subset):
         """Create a new child node.
-
-        This should be a terminal leaf node if the number of indices is smaller
-        than leaf_size. Otherwise it should be a non-terminal node.
         """
-
         left = take(left, subset)
         right = take(right, subset)
         indices = take(indices, subset)
-
-        if len(indices) <= self.leaf_size:
-            return {dtype_title}Closed{closed_title}IntervalLeaf(
-                left, right, indices)
-        else:
-            return {dtype_title}Closed{closed_title}IntervalNode(
-                left, right, indices, self.leaf_size)
+        return {dtype_title}Closed{closed_title}IntervalNode(
+            left, right, indices, self.leaf_size)
 
     @cython.wraparound(False)
     @cython.boundscheck(False)
-    cpdef query(self, Int64Vector result, scalar64_t point):
+    @cython.initializedcheck(False)
+    cdef query(self, Int64Vector result, scalar64_t point):
         """Recursively query this node and its sub-nodes for intervals that
         overlap with the query point.
         """
         cdef:
             int64_t[:] indices
             {dtype}_t[:] values
-            int i
+            Py_ssize_t i
 
-        if point < self.pivot:
-            values = self.center_left_values
-            indices = self.center_left_indices
-            for i in range(len(values)):
-                if not values[i] {cmp_left} point:
-                    break
-                result.append(indices[i])
-            self.left_node.query(result, point)
-        elif point > self.pivot:
-            values = self.center_right_values
-            indices = self.center_right_indices
-            for i in range(len(values) - 1, -1, -1):
-                if not point {cmp_right} values[i]:
-                    break
-                result.append(indices[i])
-            self.right_node.query(result, point)
+        if self.is_leaf_node:
+            # Once we get down to a certain size, it doesn't make sense to
+            # continue the binary tree structure. Instead, we use linear
+            # search.
+            for i in range(self.n_elements):
+                 if self.left[i] {cmp_left} point {cmp_right} self.right[i]:
+                    result.append(self.indices[i])
         else:
-            result.extend(self.center_left_indices)
+            # There are child nodes. Based on comparing our query to the pivot,
+            # look at the center values, then go to the relevant child.
+            if point < self.pivot:
+                values = self.center_left_values
+                indices = self.center_left_indices
+                for i in range(self.n_center):
+                    if not values[i] {cmp_left} point:
+                        break
+                    result.append(indices[i])
+                self.left_node.query(result, point)
+            elif point > self.pivot:
+                values = self.center_right_values
+                indices = self.center_right_indices
+                for i in range(self.n_center - 1, -1, -1):
+                    if not point {cmp_right} values[i]:
+                        break
+                    result.append(indices[i])
+                self.right_node.query(result, point)
+            else:
+                result.extend(self.center_left_indices)
 
     def __repr__(self):
-        return ('<{dtype_title}Closed{closed_title}IntervalNode: pivot %s, '
-                '%s elements (%s left, %s right, %s overlapping)>' %
-                (self.pivot, self.n_elements, self.left_node.n_elements,
-                 self.right_node.n_elements, len(self.center_left_indices)))
+        if self.is_leaf_node:
+            return ('<{dtype_title}Closed{closed_title}IntervalNode: '
+                    '%s elements (terminal)>' % self.n_elements)
+        else:
+            n_left = self.left_node.n_elements
+            n_right = self.right_node.n_elements
+            n_center = self.n_elements - n_left - n_right
+            return ('<{dtype_title}Closed{closed_title}IntervalNode: pivot %s, '
+                    '%s elements (%s left, %s right, %s overlapping)>' %
+                    (self.pivot, self.n_elements, n_left, n_right, n_center))
 
     def counts(self):
-        m = len(self.center_left_values)
-        l = self.left_node.counts()
-        r = self.right_node.counts()
-        return (m, (l, r))
+        if self.is_leaf_node:
+            return self.n_elements
+        else:
+            m = len(self.center_left_values)
+            l = self.left_node.counts()
+            r = self.right_node.counts()
+            return (m, (l, r))
 
 NODE_CLASSES['{dtype}', '{closed}'] = {dtype_title}Closed{closed_title}IntervalNode
-
-
-cdef class {dtype_title}Closed{closed_title}IntervalLeaf:
-    """Terminal node for an IntervalTree
-
-    Once we get down to a certain size, it doens't make sense to continue the
-    binary tree structure. Instead, we store interval bounds in 1d arrays use
-    linear search.
-    """
-    cdef:
-        readonly {dtype}_t[:] left, right
-        readonly int64_t[:] indices
-
-    def __init__(self,
-                 {dtype}_t[:] left,
-                 {dtype}_t[:] right,
-                 int64_t[:] indices):
-        self.left = left
-        self.right = right
-        self.indices = indices
-
-    @cython.wraparound(False)
-    @cython.boundscheck(False)
-    cpdef query(self, Int64Vector result, scalar64_t point):
-        for i in range(len(self.left)):
-             if self.left[i] {cmp_left} point {cmp_right} self.right[i]:
-                result.append(self.indices[i])
-
-    def __repr__(self):
-        return ('<{dtype_title}Closed{closed_title}IntervalLeaf: %s elements>'
-                % self.n_elements)
-
-    @property
-    def n_elements(self):
-        return len(self.left)
-
-    def counts(self):
-        return self.n_elements
 '''
 
 
