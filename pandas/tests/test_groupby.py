@@ -9,6 +9,7 @@ from numpy import nan
 
 from pandas import date_range,bdate_range, Timestamp
 from pandas.core.index import Index, MultiIndex, Int64Index, CategoricalIndex
+from pandas.core.interval import IntervalIndex
 from pandas.core.api import Categorical, DataFrame
 from pandas.core.groupby import (SpecificationError, DataError,
                                  _nargsort, _lexsort_indexer)
@@ -4036,7 +4037,7 @@ class TestGroupBy(tm.TestCase):
         #GH3011
         series = Series([np.nan, np.nan, 1, 1, 2, 2, 3, 3, 4, 4])
         # The raises only happens with categorical, not with series of types category
-        bins =  pd.cut(series.dropna().values, 4)
+        bins =  pd.cut(series.dropna().values, 4, labels=pd.Categorical(list('abcd')))
 
         # len(bins) != len(series) here
         self.assertRaises(ValueError,lambda : series.groupby(bins).mean())
@@ -5677,13 +5678,13 @@ class TestGroupBy(tm.TestCase):
 
         d = {'C1': [3, 3, 4, 5], 'C2': [1, 2, 3, 4], 'C3': [10, 100, 200, 34]}
         test = pd.DataFrame(d)
-        values = pd.cut(test['C1'], [1, 2, 3, 6])
+        values = pd.cut(test['C1'], [1, 2, 3, 6], labels=pd.Categorical(['a', 'b', 'c']))
         values.name = "cat"
         groups_double_key = test.groupby([values,'C2'])
 
         res = groups_double_key.agg('mean')
         nan = np.nan
-        idx = MultiIndex.from_product([["(1, 2]", "(2, 3]", "(3, 6]"],[1,2,3,4]],
+        idx = MultiIndex.from_product([['a', 'b', 'c'], [1, 2, 3, 4]],
                                       names=["cat", "C2"])
         exp = DataFrame({"C1":[nan,nan,nan,nan,  3,  3,nan,nan, nan,nan,  4, 5],
                          "C3":[nan,nan,nan,nan, 10,100,nan,nan, nan,nan,200,34]}, index=idx)

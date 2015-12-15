@@ -195,7 +195,7 @@ def infer_dtype(object _values):
             return 'period'
 
     elif is_interval(val):
-        if is_interval_array(values):
+        if is_interval_array_fixed_closed(values):
             return 'interval'
 
     for i in range(n):
@@ -546,13 +546,17 @@ def is_period_array(ndarray[object] values):
 cdef inline bint is_interval(object o):
     return isinstance(o, Interval)
 
-def is_interval_array(ndarray[object] values):
+def is_interval_array_fixed_closed(ndarray[object] values):
     cdef Py_ssize_t i, n = len(values)
-
+    cdef str closed
     if n == 0:
         return False
     for i in range(n):
         if not is_interval(values[i]):
+            return False
+        if i == 0:
+            closed = values[0].closed
+        elif closed != values[i].closed:
             return False
     return True
 

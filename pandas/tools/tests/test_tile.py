@@ -4,7 +4,7 @@ import nose
 import numpy as np
 from pandas.compat import zip
 
-from pandas import DataFrame, Series, unique, isnull
+from pandas import DataFrame, Series, Index, unique, isnull
 import pandas.util.testing as tm
 from pandas.util.testing import assertRaisesRegexp
 import pandas.core.common as com
@@ -193,6 +193,14 @@ class TestCut(tm.TestCase):
 
         result = qcut(arr, 4)
         self.assertTrue(com.isnull(result[:20]).all())
+
+    def test_qcut_index(self):
+        # the result is closed on a different side for the first interval, but
+        # we should still be able to make an index
+        result = qcut([0, 2], 2)
+        index = Index(result)
+        expected = Index([Interval(0, 1, closed='both'), Interval(1, 2)])
+        self.assert_numpy_array_equal(index, expected)
 
     def test_round_frac(self):
         # it works

@@ -17,6 +17,7 @@ from pandas.core.categorical import Categorical
 from pandas.core.frame import DataFrame
 from pandas.core.generic import NDFrame
 from pandas.core.index import Index, MultiIndex, CategoricalIndex, _ensure_index
+from pandas.core.interval import IntervalIndex
 from pandas.core.internals import BlockManager, make_block
 from pandas.core.series import Series
 from pandas.core.panel import Panel
@@ -2735,12 +2736,20 @@ class SeriesGroupBy(GroupBy):
         if bins is None:
             lab, lev = algos.factorize(val, sort=True)
         else:
-            cat, bins = cut(val, bins, retbins=True)
+            raise NotImplementedError('this is broken')
+            lab, bins = cut(val, bins, retbins=True)
             # bins[:-1] for backward compat;
             # o.w. cat.categories could be better
-            lab, lev, dropna = cat.codes, bins[:-1], False
+            # cat = Categorical(cat)
+            # lab, lev, dropna = cat.codes, bins[:-1], False
 
-        sorter = np.lexsort((lab, ids))
+        if (lab.dtype == object
+                and lib.is_interval_array_fixed_closed(lab[notnull(lab)])):
+            lab_index = Index(lab)
+            assert isinstance(lab, IntervalIndex)
+            sorter = np.lexsort((lab_index.left, lab_index.right, ids))
+        else:
+            sorter = np.lexsort((lab, ids))
         ids, lab = ids[sorter], lab[sorter]
 
         # group boundaries are where group ids change
@@ -2771,12 +2780,13 @@ class SeriesGroupBy(GroupBy):
             acc = rep(np.diff(np.r_[idx, len(ids)]))
             out /= acc[mask] if dropna else acc
 
-        if sort and bins is None:
+        if sort:  # and bins is None:
             cat = ids[inc][mask] if dropna else ids[inc]
             sorter = np.lexsort((out if ascending else -out, cat))
             out, labels[-1] = out[sorter], labels[-1][sorter]
 
-        if bins is None:
+        # if bins is None:
+        if True:
             mi = MultiIndex(levels=levels, labels=labels, names=names,
                             verify_integrity=False)
 
