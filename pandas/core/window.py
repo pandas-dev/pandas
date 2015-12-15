@@ -30,8 +30,8 @@ same type as input
 
 See also
 --------
-`pandas.Series.%(name)s`
-`pandas.DataFrame.%(name)s`
+pandas.Series.%(name)s
+pandas.DataFrame.%(name)s
 """
 
 class _Window(PandasObject, SelectionMixin):
@@ -65,8 +65,14 @@ class _Window(PandasObject, SelectionMixin):
 
     def _convert_freq(self, how=None):
         """ resample according to the how, return a new object """
+
         obj = self._selected_obj
         if self.freq is not None and isinstance(obj, (com.ABCSeries, com.ABCDataFrame)):
+            if how is not None:
+                warnings.warn("The how kw argument is deprecated and removed in a future version. You can resample prior "
+                              "to passing to a window function",
+                              FutureWarning, stacklevel=6)
+
             obj = obj.resample(self.freq, how=how)
         return obj
 
@@ -118,7 +124,7 @@ class _Window(PandasObject, SelectionMixin):
     def __unicode__(self):
         """ provide a nice str repr of our rolling object """
 
-        attrs = [ "{k}->{v}".format(k=k,v=getattr(self,k)) \
+        attrs = [ "{k}={v}".format(k=k,v=getattr(self,k)) \
                   for k in self._attributes if getattr(self,k,None) is not None ]
         return "{klass} [{attrs}]".format(klass=self.__class__.__name__,
                                           attrs=','.join(attrs))
@@ -227,6 +233,22 @@ class _Window(PandasObject, SelectionMixin):
 
     agg = aggregate
 
+    _shared_docs['sum'] = dedent("""
+    %(name)s sum
+
+    Parameters
+    ----------
+    how : string, default None (DEPRECATED)
+        Method for down- or re-sampling""")
+
+    _shared_docs['mean'] = dedent("""
+    %(name)s mean
+
+    Parameters
+    ----------
+    how : string, default None (DEPRECATED)
+        Method for down- or re-sampling""")
+
 class Window(_Window):
     """
     Provides rolling transformations.
@@ -241,7 +263,7 @@ class Window(_Window):
     min_periods : int, default None
         Minimum number of observations in window required to have a value
         (otherwise result is NA).
-    freq : string or DateOffset object, optional (default None)
+    freq : string or DateOffset object, optional (default None) (DEPRECATED)
         Frequency to conform the data to before computing the statistic. Specified
         as a frequency string or DateOffset object.
     center : boolean, default False
@@ -345,8 +367,8 @@ class Window(_Window):
         return self._wrap_results(results, blocks, obj)
 
     @Substitution(name='rolling')
-    @Appender(SelectionMixin._agg_doc)
     @Appender(SelectionMixin._see_also_template)
+    @Appender(SelectionMixin._agg_doc)
     def aggregate(self, arg, *args, **kwargs):
         result, how = self._aggregate(arg, *args, **kwargs)
         if result is None:
@@ -358,13 +380,15 @@ class Window(_Window):
 
     agg = aggregate
 
-    @Substitution(name='rolling')
+    @Substitution(name='window')
     @Appender(_doc_template)
+    @Appender(_shared_docs['sum'])
     def sum(self, **kwargs):
         return self._apply_window(mean=False, **kwargs)
 
-    @Substitution(name='rolling')
+    @Substitution(name='window')
     @Appender(_doc_template)
+    @Appender(_shared_docs['mean'])
     def mean(self, **kwargs):
         return self._apply_window(mean=True, **kwargs)
 
@@ -471,8 +495,8 @@ class _Rolling_and_Expanding(_Rolling):
     Parameters
     ----------
     func : function
-    Must produce a single value from an ndarray input
-    *args and **kwargs are passed to the function""")
+        Must produce a single value from an ndarray input
+        *args and **kwargs are passed to the function""")
 
     def apply(self, func, args=(), kwargs={}):
         _level = kwargs.pop('_level',None)
@@ -484,9 +508,8 @@ class _Rolling_and_Expanding(_Rolling):
 
         return self._apply(f, center=False)
 
-    _shared_docs['sum'] = """%(name)s sum"""
-    def sum(self):
-        return self._apply('roll_sum')
+    def sum(self, **kwargs):
+        return self._apply('roll_sum', **kwargs)
 
     _shared_docs['max'] = dedent("""
     %(name)s maximum
@@ -494,15 +517,11 @@ class _Rolling_and_Expanding(_Rolling):
     Parameters
     ----------
     how : string, default 'max' (DEPRECATED)
-    Method for down- or re-sampling""")
-    def max(self, how=None):
-        if how is not None:
-            warnings.warn("The how kw argument is deprecated and removed in a future version. You can resample prior "
-                          "to passing to a window function",
-                          FutureWarning, stacklevel=3)
-        else:
+        Method for down- or re-sampling""")
+    def max(self, how=None, **kwargs):
+        if self.freq is not None and how is None:
             how = 'max'
-        return self._apply('roll_max', how=how)
+        return self._apply('roll_max', how=how, **kwargs)
 
     _shared_docs['min'] = dedent("""
     %(name)s minimum
@@ -510,19 +529,14 @@ class _Rolling_and_Expanding(_Rolling):
     Parameters
     ----------
     how : string, default 'min' (DEPRECATED)
-    Method for down- or re-sampling""")
-    def min(self, how=None):
-        if how is not None:
-            warnings.warn("The how kw argument is deprecated and removed in a future version. You can resample prior "
-                          "to passing to a window function",
-                          FutureWarning, stacklevel=3)
-        else:
+        Method for down- or re-sampling""")
+    def min(self, how=None, **kwargs):
+        if self.freq is not None and how is None:
             how = 'min'
-        return self._apply('roll_min', how=how)
+        return self._apply('roll_min', how=how, **kwargs)
 
-    _shared_docs['mean'] = """%(name)s mean"""
-    def mean(self):
-        return self._apply('roll_mean')
+    def mean(self, **kwargs):
+        return self._apply('roll_mean', **kwargs)
 
     _shared_docs['median'] = dedent("""
     %(name)s median
@@ -530,15 +544,11 @@ class _Rolling_and_Expanding(_Rolling):
     Parameters
     ----------
     how : string, default 'median' (DEPRECATED)
-    Method for down- or re-sampling""")
-    def median(self, how=None):
-        if how is not None:
-            warnings.warn("The how kw argument is deprecated and removed in a future version. You can resample prior "
-                          "to passing to a window function",
-                          FutureWarning, stacklevel=3)
-        else:
+        Method for down- or re-sampling""")
+    def median(self, how=None, **kwargs):
+        if self.freq is not None and how is None:
             how = 'median'
-        return self._apply('roll_median_c', how=how)
+        return self._apply('roll_median_c', how=how, **kwargs)
 
     _shared_docs['std'] = dedent("""
     %(name)s standard deviation
@@ -546,16 +556,16 @@ class _Rolling_and_Expanding(_Rolling):
     Parameters
     ----------
     ddof : int, default 1
-    Delta Degrees of Freedom.  The divisor used in calculations
-    is ``N - ddof``, where ``N`` represents the number of elements.""")
+        Delta Degrees of Freedom.  The divisor used in calculations
+        is ``N - ddof``, where ``N`` represents the number of elements.""")
 
-    def std(self, ddof=1):
+    def std(self, ddof=1, **kwargs):
         window = self._get_window()
         def f(arg, *args, **kwargs):
             minp = _require_min_periods(1)(self.min_periods, window)
             return _zsqrt(algos.roll_var(arg, window, minp, ddof))
 
-        return self._apply(f, check_minp=_require_min_periods(1))
+        return self._apply(f, check_minp=_require_min_periods(1), **kwargs)
 
     _shared_docs['var'] = dedent("""
     %(name)s variance
@@ -563,23 +573,26 @@ class _Rolling_and_Expanding(_Rolling):
     Parameters
     ----------
     ddof : int, default 1
-    Delta Degrees of Freedom.  The divisor used in calculations
-    is ``N - ddof``, where ``N`` represents the number of elements.""")
+        Delta Degrees of Freedom.  The divisor used in calculations
+        is ``N - ddof``, where ``N`` represents the number of elements.""")
 
-    def var(self, ddof=1):
+    def var(self, ddof=1, **kwargs):
         return self._apply('roll_var',
                            check_minp=_require_min_periods(1),
-                           ddof=ddof)
+                           ddof=ddof,
+                           **kwargs)
 
     _shared_docs['skew'] = """Unbiased %(name)s skewness"""
-    def skew(self):
+    def skew(self, **kwargs):
         return self._apply('roll_skew',
-                           check_minp=_require_min_periods(3))
+                           check_minp=_require_min_periods(3),
+                           **kwargs)
 
     _shared_docs['kurt'] = """Unbiased %(name)s kurtosis"""
-    def kurt(self):
+    def kurt(self, **kwargs):
         return self._apply('roll_kurt',
-                           check_minp=_require_min_periods(4))
+                           check_minp=_require_min_periods(4),
+                           **kwargs)
 
     _shared_docs['quantile'] = dedent("""
     %(name)s quantile
@@ -587,15 +600,15 @@ class _Rolling_and_Expanding(_Rolling):
     Parameters
     ----------
     quantile : float
-    0 <= quantile <= 1""")
+        0 <= quantile <= 1""")
 
-    def quantile(self, quantile):
+    def quantile(self, quantile, **kwargs):
         window = self._get_window()
         def f(arg, *args, **kwargs):
             minp = _use_window(self.min_periods, window)
             return algos.roll_quantile(arg, window, minp, quantile)
 
-        return self._apply(f)
+        return self._apply(f, **kwargs)
 
     _shared_docs['cov'] = dedent("""
     %(name)s sample covariance
@@ -614,7 +627,7 @@ class _Rolling_and_Expanding(_Rolling):
         Delta Degrees of Freedom.  The divisor used in calculations
         is ``N - ddof``, where ``N`` represents the number of elements.""")
 
-    def cov(self, other=None, pairwise=None, ddof=1):
+    def cov(self, other=None, pairwise=None, ddof=1, **kwargs):
         if other is None:
             other = self._selected_obj
             pairwise = True if pairwise is None else pairwise  # only default unset
@@ -622,8 +635,8 @@ class _Rolling_and_Expanding(_Rolling):
         window = self._get_window(other)
 
         def _get_cov(X, Y):
-            mean = lambda x: x.rolling(window, self.min_periods, center=self.center).mean()
-            count = (X+Y).rolling(window=window, center=self.center).count()
+            mean = lambda x: x.rolling(window, self.min_periods, center=self.center).mean(**kwargs)
+            count = (X+Y).rolling(window=window, center=self.center).count(**kwargs)
             bias_adj = count / (count - ddof)
             return (mean(X * Y) - mean(X) * mean(Y)) * bias_adj
         return _flex_binary_moment(self._selected_obj, other._selected_obj, _get_cov, pairwise=bool(pairwise))
@@ -642,7 +655,7 @@ class _Rolling_and_Expanding(_Rolling):
         will be a Panel in the case of DataFrame inputs. In the case of missing
         elements, only complete pairwise observations will be used.""")
 
-    def corr(self, other=None, pairwise=None):
+    def corr(self, other=None, pairwise=None, **kwargs):
         if other is None:
             other = self._selected_obj
             pairwise = True if pairwise is None else pairwise  # only default unset
@@ -659,12 +672,12 @@ class _Rolling_and_Expanding(_Rolling):
                           freq=self.freq,
                           center=self.center)
 
-            return a.cov(b) / (a.std() * b.std())
+            return a.cov(b, **kwargs) / (a.std(**kwargs) * b.std(**kwargs))
         return _flex_binary_moment(self._selected_obj, other._selected_obj, _get_corr, pairwise=bool(pairwise))
 
 class Rolling(_Rolling_and_Expanding):
     """
-    Provides rolling transformations.
+    Provides rolling window calculcations.
 
     .. versionadded:: 0.18.0
 
@@ -698,8 +711,8 @@ class Rolling(_Rolling_and_Expanding):
     """
 
     @Substitution(name='rolling')
-    @Appender(SelectionMixin._agg_doc)
     @Appender(SelectionMixin._see_also_template)
+    @Appender(SelectionMixin._agg_doc)
     def aggregate(self, arg, *args, **kwargs):
         return super(Rolling, self).aggregate(arg, *args, **kwargs)
 
@@ -720,8 +733,8 @@ class Rolling(_Rolling_and_Expanding):
     @Substitution(name='rolling')
     @Appender(_doc_template)
     @Appender(_shared_docs['sum'])
-    def sum(self):
-        return super(Rolling, self).sum()
+    def sum(self, **kwargs):
+        return super(Rolling, self).sum(**kwargs)
 
     @Substitution(name='rolling')
     @Appender(_doc_template)
@@ -738,8 +751,8 @@ class Rolling(_Rolling_and_Expanding):
     @Substitution(name='rolling')
     @Appender(_doc_template)
     @Appender(_shared_docs['mean'])
-    def mean(self):
-        return super(Rolling, self).mean()
+    def mean(self, **kwargs):
+        return super(Rolling, self).mean(**kwargs)
 
     @Substitution(name='rolling')
     @Appender(_doc_template)
@@ -750,44 +763,44 @@ class Rolling(_Rolling_and_Expanding):
     @Substitution(name='rolling')
     @Appender(_doc_template)
     @Appender(_shared_docs['std'])
-    def std(self, ddof=1):
-        return super(Rolling, self).std(ddof=ddof)
+    def std(self, ddof=1, **kwargs):
+        return super(Rolling, self).std(ddof=ddof, **kwargs)
 
     @Substitution(name='rolling')
     @Appender(_doc_template)
     @Appender(_shared_docs['var'])
-    def var(self, ddof=1):
-        return super(Rolling, self).var(ddof=ddof)
+    def var(self, ddof=1, **kwargs):
+        return super(Rolling, self).var(ddof=ddof, **kwargs)
 
     @Substitution(name='rolling')
     @Appender(_doc_template)
     @Appender(_shared_docs['skew'])
-    def skew(self):
-        return super(Rolling, self).skew()
+    def skew(self, **kwargs):
+        return super(Rolling, self).skew(**kwargs)
 
     @Substitution(name='rolling')
     @Appender(_doc_template)
     @Appender(_shared_docs['kurt'])
-    def kurt(self):
-        return super(Rolling, self).kurt()
+    def kurt(self, **kwargs):
+        return super(Rolling, self).kurt(**kwargs)
 
     @Substitution(name='rolling')
     @Appender(_doc_template)
     @Appender(_shared_docs['quantile'])
-    def quantile(self, quantile):
-        return super(Rolling, self).quantile(quantile=quantile)
+    def quantile(self, quantile, **kwargs):
+        return super(Rolling, self).quantile(quantile=quantile, **kwargs)
 
     @Substitution(name='rolling')
     @Appender(_doc_template)
     @Appender(_shared_docs['cov'])
-    def cov(self, other=None, pairwise=None, ddof=1):
-        return super(Rolling, self).cov(other=other, pairwise=pairwise, ddof=ddof)
+    def cov(self, other=None, pairwise=None, ddof=1, **kwargs):
+        return super(Rolling, self).cov(other=other, pairwise=pairwise, ddof=ddof, **kwargs)
 
     @Substitution(name='rolling')
     @Appender(_doc_template)
     @Appender(_shared_docs['corr'])
-    def corr(self, other=None, pairwise=None):
-        return super(Rolling, self).corr(other=other, pairwise=pairwise)
+    def corr(self, other=None, pairwise=None, **kwargs):
+        return super(Rolling, self).corr(other=other, pairwise=pairwise, **kwargs)
 
 class Expanding(_Rolling_and_Expanding):
     """
@@ -837,8 +850,8 @@ class Expanding(_Rolling_and_Expanding):
         return max((len(obj) + len(obj)), self.min_periods) if self.min_periods else (len(obj) + len(obj))
 
     @Substitution(name='expanding')
-    @Appender(SelectionMixin._agg_doc)
     @Appender(SelectionMixin._see_also_template)
+    @Appender(SelectionMixin._agg_doc)
     def aggregate(self, arg, *args, **kwargs):
         return super(Expanding, self).aggregate(arg, *args, **kwargs)
 
@@ -847,8 +860,8 @@ class Expanding(_Rolling_and_Expanding):
     @Substitution(name='expanding')
     @Appender(_doc_template)
     @Appender(_shared_docs['count'])
-    def count(self):
-        return super(Expanding, self).count()
+    def count(self, **kwargs):
+        return super(Expanding, self).count(**kwargs)
 
     @Substitution(name='expanding')
     @Appender(_doc_template)
@@ -859,8 +872,8 @@ class Expanding(_Rolling_and_Expanding):
     @Substitution(name='expanding')
     @Appender(_doc_template)
     @Appender(_shared_docs['sum'])
-    def sum(self):
-        return super(Expanding, self).sum()
+    def sum(self, **kwargs):
+        return super(Expanding, self).sum(**kwargs)
 
     @Substitution(name='expanding')
     @Appender(_doc_template)
@@ -877,8 +890,8 @@ class Expanding(_Rolling_and_Expanding):
     @Substitution(name='expanding')
     @Appender(_doc_template)
     @Appender(_shared_docs['mean'])
-    def mean(self):
-        return super(Expanding, self).mean()
+    def mean(self, **kwargs):
+        return super(Expanding, self).mean(**kwargs)
 
     @Substitution(name='expanding')
     @Appender(_doc_template)
@@ -889,44 +902,68 @@ class Expanding(_Rolling_and_Expanding):
     @Substitution(name='expanding')
     @Appender(_doc_template)
     @Appender(_shared_docs['std'])
-    def std(self, ddof=1):
-        return super(Expanding, self).std(ddof=ddof)
+    def std(self, ddof=1, **kwargs):
+        return super(Expanding, self).std(ddof=ddof, **kwargs)
 
     @Substitution(name='expanding')
     @Appender(_doc_template)
     @Appender(_shared_docs['var'])
-    def var(self, ddof=1):
-        return super(Expanding, self).var(ddof=ddof)
+    def var(self, ddof=1, **kwargs):
+        return super(Expanding, self).var(ddof=ddof, **kwargs)
 
     @Substitution(name='expanding')
     @Appender(_doc_template)
     @Appender(_shared_docs['skew'])
-    def skew(self):
-        return super(Expanding, self).skew()
+    def skew(self, **kwargs):
+        return super(Expanding, self).skew(**kwargs)
 
     @Substitution(name='expanding')
     @Appender(_doc_template)
     @Appender(_shared_docs['kurt'])
-    def kurt(self):
-        return super(Expanding, self).kurt()
+    def kurt(self, **kwargs):
+        return super(Expanding, self).kurt(**kwargs)
 
     @Substitution(name='expanding')
     @Appender(_doc_template)
     @Appender(_shared_docs['quantile'])
-    def quantile(self, quantile):
-        return super(Expanding, self).quantile(quantile=quantile)
+    def quantile(self, quantile, **kwargs):
+        return super(Expanding, self).quantile(quantile=quantile, **kwargs)
 
     @Substitution(name='expanding')
     @Appender(_doc_template)
     @Appender(_shared_docs['cov'])
-    def cov(self, other=None, pairwise=None, ddof=1):
-        return super(Expanding, self).cov(other=other, pairwise=pairwise, ddof=ddof)
+    def cov(self, other=None, pairwise=None, ddof=1, **kwargs):
+        return super(Expanding, self).cov(other=other, pairwise=pairwise, ddof=ddof, **kwargs)
 
     @Substitution(name='expanding')
     @Appender(_doc_template)
     @Appender(_shared_docs['corr'])
-    def corr(self, other=None, pairwise=None):
-        return super(Expanding, self).corr(other=other, pairwise=pairwise)
+    def corr(self, other=None, pairwise=None, **kwargs):
+        return super(Expanding, self).corr(other=other, pairwise=pairwise, **kwargs)
+
+_bias_template = """
+
+Parameters
+----------
+bias : boolean, default False
+    Use a standard estimation bias correction
+"""
+
+_pairwise_template = """
+
+Parameters
+----------
+other : Series, DataFrame, or ndarray, optional
+    if not supplied then will default to self and produce pairwise output
+pairwise : bool, default None
+    If False then only matching columns between self and other will be used and
+    the output will be a DataFrame.
+    If True then all pairwise combinations will be calculated and the output
+    will be a Panel in the case of DataFrame inputs. In the case of missing
+    elements, only complete pairwise observations will be used.
+bias : boolean, default False
+   Use a standard estimation bias correction
+"""
 
 class EWM(_Rolling):
     """
@@ -1012,8 +1049,8 @@ class EWM(_Rolling):
         return EWM
 
     @Substitution(name='ewm')
-    @Appender(SelectionMixin._agg_doc)
     @Appender(SelectionMixin._see_also_template)
+    @Appender(SelectionMixin._agg_doc)
     def aggregate(self, arg, *args, **kwargs):
         return super(EWM, self).aggregate(arg, *args, **kwargs)
 
@@ -1062,33 +1099,23 @@ class EWM(_Rolling):
 
     @Substitution(name='ewm')
     @Appender(_doc_template)
-    def mean(self):
+    def mean(self, **kwargs):
         """exponential weighted moving average"""
-        return self._apply('ewma')
+        return self._apply('ewma', **kwargs)
 
     @Substitution(name='ewm')
     @Appender(_doc_template)
-    def std(self, bias=False):
-        """exponential weighted moving stddev
-
-        Parameters
-        ----------
-        bias : boolean, default False
-           Use a standard estimation bias correction
-        """
-        return _zsqrt(self.var(bias=bias))
+    @Appender(_bias_template)
+    def std(self, bias=False, **kwargs):
+        """exponential weighted moving stddev"""
+        return _zsqrt(self.var(bias=bias, **kwargs))
     vol=std
 
     @Substitution(name='ewm')
     @Appender(_doc_template)
-    def var(self, bias=False):
-        """exponential weighted moving average
-
-        Parameters
-        ----------
-        bias : boolean, default False
-           Use a standard estimation bias correction
-        """
+    @Appender(_bias_template)
+    def var(self, bias=False, **kwargs):
+        """exponential weighted moving variance"""
         def f(arg):
             return algos.ewmcov(arg,
                                 arg,
@@ -1098,26 +1125,13 @@ class EWM(_Rolling):
                                 int(self.min_periods),
                                 int(bias))
 
-        return self._apply(f)
+        return self._apply(f, **kwargs)
 
     @Substitution(name='ewm')
     @Appender(_doc_template)
-    def cov(self, other=None, pairwise=None, bias=False):
-        """exponential weighted sample covariance
-
-        Parameters
-        ----------
-        other : Series, DataFrame, or ndarray, optional
-            if not supplied then will default to self and produce pairwise output
-        pairwise : bool, default None
-            If False then only matching columns between self and other will be used and
-            the output will be a DataFrame.
-            If True then all pairwise combinations will be calculated and the output
-            will be a Panel in the case of DataFrame inputs. In the case of missing
-            elements, only complete pairwise observations will be used.
-        bias : boolean, default False
-           Use a standard estimation bias correction
-        """
+    @Appender(_pairwise_template)
+    def cov(self, other=None, pairwise=None, bias=False, **kwargs):
+        """exponential weighted sample covariance"""
         if other is None:
             other = self._selected_obj
             pairwise = True if pairwise is None else pairwise  # only default unset
@@ -1139,20 +1153,9 @@ class EWM(_Rolling):
 
     @Substitution(name='ewm')
     @Appender(_doc_template)
-    def corr(self, other=None, pairwise=None):
-        """exponential weighted sample correlation
-
-        Parameters
-        ----------
-        other : Series, DataFrame, or ndarray, optional
-            if not supplied then will default to self and produce pairwise output
-        pairwise : bool, default None
-            If False then only matching columns between self and other will be used and
-            the output will be a DataFrame.
-            If True then all pairwise combinations will be calculated and the output
-            will be a Panel in the case of DataFrame inputs. In the case of missing
-            elements, only complete pairwise observations will be used.
-        """
+    @Appender(_pairwise_template)
+    def corr(self, other=None, pairwise=None, **kwargs):
+        """exponential weighted sample correlation"""
         if other is None:
             other = self._selected_obj
             pairwise = True if pairwise is None else pairwise  # only default unset

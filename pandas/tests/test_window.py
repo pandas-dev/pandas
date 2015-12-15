@@ -130,17 +130,17 @@ class TestApi(Base):
 
         result = r.aggregate({'A': ['mean','std']})
         expected = pd.concat([a_mean,a_std],axis=1)
-        expected.columns = pd.MultiIndex.from_product([['A'],['mean','std']])
+        expected.columns = pd.MultiIndex.from_tuples([('A','mean'),('A','std')])
         assert_frame_equal(result, expected)
 
         result = r['A'].aggregate(['mean','sum'])
         expected = pd.concat([a_mean,a_sum],axis=1)
-        expected.columns = pd.MultiIndex.from_product([['A'],['mean','sum']])
+        expected.columns = ['mean','sum']
         assert_frame_equal(result, expected)
 
         result = r.aggregate({'A': { 'mean' : 'mean', 'sum' : 'sum' } })
         expected = pd.concat([a_mean,a_sum],axis=1)
-        expected.columns = pd.MultiIndex.from_product([['A'],['mean','sum']])
+        expected.columns = pd.MultiIndex.from_tuples([('A','mean'),('A','sum')])
         compare(result, expected)
 
         result = r.aggregate({'A': { 'mean' : 'mean', 'sum' : 'sum' },
@@ -148,6 +148,13 @@ class TestApi(Base):
         expected = pd.concat([a_mean,a_sum,b_mean,b_sum],axis=1)
         expected.columns = pd.MultiIndex.from_tuples([('A','mean'),('A','sum'),
                                                       ('B','mean2'),('B','sum2')])
+        compare(result, expected)
+
+        result = r.aggregate({'A': ['mean','std'],
+                              'B': ['mean','std']})
+        expected = pd.concat([a_mean,a_std,b_mean,b_std],axis=1)
+        expected.columns = pd.MultiIndex.from_tuples([('A','mean'),('A','std'),
+                                                      ('B','mean'),('B','std')])
         compare(result, expected)
 
         result = r.aggregate({'r1' : { 'A' : ['mean','sum'] },
@@ -172,10 +179,28 @@ class TestApi(Base):
         expected = pd.concat([a_sum,rcustom],axis=1)
         compare(result, expected)
 
+    def test_agg_consistency(self):
+
+        df = DataFrame({'A' : range(5),
+                        'B' : range(0,10,2)})
+        r = df.rolling(window=3)
+
+        result = r.agg([np.sum, np.mean]).columns
+        expected = pd.MultiIndex.from_product([list('AB'),['sum','mean']])
+        tm.assert_index_equal(result, expected)
+
+        result = r['A'].agg([np.sum, np.mean]).columns
+        expected = pd.Index(['sum','mean'])
+        tm.assert_index_equal(result, expected)
+
+        result = r.agg({'A' : [np.sum, np.mean]}).columns
+        expected = pd.MultiIndex.from_tuples([('A','sum'),('A','mean')])
+        tm.assert_index_equal(result, expected)
+
     def test_window_with_args(self):
+        tm._skip_if_no_scipy()
 
         # make sure that we are aggregating window functions correctly with arg
-
         r = Series(np.random.randn(100)).rolling(window=10,min_periods=1,win_type='gaussian')
         expected = pd.concat([r.mean(std=10),r.mean(std=.01)],axis=1)
         expected.columns = ['<lambda>','<lambda>']
@@ -199,6 +224,31 @@ class TestApi(Base):
         s3 = s.rolling(20).sum()
         self.assertEqual(s2.name, 'foo')
         self.assertEqual(s3.name, 'foo')
+
+    def test_how_compat(self):
+        # in prior versions, we would allow how to be used in the resample
+        # now that its deprecated, we need to handle this in the actual
+        # aggregation functions
+        s = pd.Series(np.random.randn(20), index=pd.date_range('1/1/2000', periods=20, freq='12H'))
+
+        for how in ['min','max','median']:
+            for op in ['mean','sum','std','var','kurt','skew']:
+                for t in ['rolling','expanding']:
+
+                    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+
+                        dfunc = getattr(pd,"{0}_{1}".format(t,op))
+                        if dfunc is None:
+                            continue
+
+                        if t == 'rolling':
+                            kwargs = {'window' : 5}
+                        else:
+                            kwargs = {}
+                        result = dfunc(s, freq='D', how=how, **kwargs)
+
+                        expected = getattr(getattr(s,t)(freq='D', **kwargs),op)(how=how)
+                        assert_series_equal(result, expected)
 
 class TestDeprecations(Base):
     """ test that we are catching deprecation warnings """
@@ -495,11 +545,12 @@ class TestMoments(Base):
             assert_series_equal(xp, rs)
 
     def test_rolling_median(self):
-        self._check_moment_func(mom.rolling_median, np.median, name='median')
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            self._check_moment_func(mom.rolling_median, np.median, name='median')
 
     def test_rolling_min(self):
-        self._check_moment_func(mom.rolling_min, np.min, name='min')
-
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            self._check_moment_func(mom.rolling_min, np.min, name='min')
 
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             a = np.array([1, 2, 3, 4, 5])
@@ -510,7 +561,8 @@ class TestMoments(Base):
                               np.array([1,2, 3]), window=3, min_periods=5)
 
     def test_rolling_max(self):
-        self._check_moment_func(mom.rolling_max, np.max, name='max')
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            self._check_moment_func(mom.rolling_max, np.max, name='max')
 
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             a = np.array([1, 2, 3, 4, 5])
@@ -2177,7 +2229,7 @@ class TestMomentsConsistency(Base):
                                  for i in range(1, 6)])
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             x = series.rolling(window=1, freq='D').max(how='mean')
-        assert_series_equal(expected, x)
+            assert_series_equal(expected, x)
 
 
     def test_rolling_min_how_resample(self):
@@ -2198,7 +2250,7 @@ class TestMomentsConsistency(Base):
                                  for i in range(1, 6)])
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             r = series.rolling(window=1, freq='D')
-        assert_series_equal(expected, r.min())
+            assert_series_equal(expected, r.min())
 
     def test_rolling_median_how_resample(self):
 
@@ -2218,7 +2270,7 @@ class TestMomentsConsistency(Base):
                                  for i in range(1, 6)])
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             x = series.rolling(window=1, freq='D').median()
-        assert_series_equal(expected, x)
+            assert_series_equal(expected, x)
 
     def test_rolling_median_memory_error(self):
         # GH11722
