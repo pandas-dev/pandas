@@ -654,7 +654,9 @@ class Styler(object):
         return self.applymap(f, subset=subset)
 
     @staticmethod
-    def _bar(s, color, width):
+    def _bar(s, color, width, source = None):
+        if source is not None:
+            s = source
         normed = width * (s - s.min()) / (s.max() - s.min())
 
         base = 'width: 10em; height: 80%;'
@@ -677,7 +679,10 @@ class Styler(object):
         width: float
             A number between 0 or 100. The largest value will cover ``width``
             percent of the cell's width
-
+        source: array
+             values for which to base the styling on - used if you wish to style
+             based on a different source.
+             
         Returns
         -------
         self
@@ -685,7 +690,7 @@ class Styler(object):
         subset = _maybe_numeric_slice(self.data, subset)
         subset = _non_reducing_slice(subset)
         self.apply(self._bar, subset=subset, axis=axis, color=color,
-                   width=width)
+                   width=width, source = source)
         return self
 
     def highlight_max(self, subset=None, color='yellow', axis=0):
