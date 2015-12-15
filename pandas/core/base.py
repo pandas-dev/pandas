@@ -358,11 +358,10 @@ aggregated : DataFrame
 """
 
     _see_also_template = """
-
 See also
 --------
-`pandas.Series.%(name)s`
-`pandas.DataFrame.%(name)s`
+pandas.Series.%(name)s
+pandas.DataFrame.%(name)s
 """
 
     def aggregate(self, func, *args, **kwargs):
@@ -422,7 +421,7 @@ See also
             else:
                 for col, agg_how in compat.iteritems(arg):
                     colg = self._gotitem(col, ndim=1)
-                    result[col] = colg.aggregate(agg_how, _level=(_level or 0) + 1)
+                    result[col] = colg.aggregate(agg_how, _level=None)
                     keys.append(col)
 
             if isinstance(list(result.values())[0], com.ABCDataFrame):
@@ -451,12 +450,16 @@ See also
         if self.axis != 0:
             raise NotImplementedError("axis other than 0 is not supported")
 
-        obj = self._obj_with_exclusions
+        if self._selected_obj.ndim == 1:
+            obj = self._selected_obj
+        else:
+            obj = self._obj_with_exclusions
+
         results = []
         keys = []
 
         # degenerate case
-        if obj.ndim == 1:
+        if obj.ndim==1:
             for a in arg:
                 try:
                     colg = self._gotitem(obj.name, ndim=1, subset=obj)

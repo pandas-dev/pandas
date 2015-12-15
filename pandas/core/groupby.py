@@ -40,15 +40,11 @@ import pandas.hashtable as _hash
 
 _doc_template = """
 
-        Returns
-        -------
-        same type as input
-
         See also
         --------
-        `pandas.Series.%(name)s`
-        `pandas.DataFrame.%(name)s`
-        `pandas.Panel.%(name)s`
+        pandas.Series.%(name)s
+        pandas.DataFrame.%(name)s
+        pandas.Panel.%(name)s
 """
 
 # special case to prevent duplicate plots when catching exceptions when
@@ -628,7 +624,6 @@ class GroupBy(PandasObject, SelectionMixin):
         return self.grouper.get_iterator(self.obj, axis=self.axis)
 
     @Substitution(name='groupby')
-    @Appender(_doc_template)
     def apply(self, func, *args, **kwargs):
         """
         Apply function and combine results together in an intelligent way. The
@@ -664,10 +659,12 @@ class GroupBy(PandasObject, SelectionMixin):
         side-effects, as they will take effect twice for the first
         group.
 
-
         See also
         --------
-        aggregate, transform"""
+        aggregate, transform
+        pandas.Series.%(name)s
+        pandas.DataFrame.%(name)s
+        pandas.Panel.%(name)s"""
 
         func = self._is_builtin_func(func)
 
@@ -759,7 +756,7 @@ class GroupBy(PandasObject, SelectionMixin):
         Parameters
         ----------
         ddof : integer, default 1
-        degrees of freedom
+            degrees of freedom
         """
 
         # todo, implement at cython level?
@@ -776,7 +773,7 @@ class GroupBy(PandasObject, SelectionMixin):
         Parameters
         ----------
         ddof : integer, default 1
-        degrees of freedom
+            degrees of freedom
         """
 
         if ddof == 1:
@@ -797,7 +794,7 @@ class GroupBy(PandasObject, SelectionMixin):
         Parameters
         ----------
         ddof : integer, default 1
-        degrees of freedom
+            degrees of freedom
         """
 
         return self.std(ddof=ddof)/np.sqrt(self.count())
@@ -868,8 +865,8 @@ class GroupBy(PandasObject, SelectionMixin):
         1  4
         5  6
         >>> g.nth(1, dropna='any')  # NaNs denote group exhausted when using dropna
-           B
-           A
+            B
+            A
         1 NaN
         5 NaN
         """
@@ -978,13 +975,13 @@ class GroupBy(PandasObject, SelectionMixin):
         Parameters
         ----------
         ascending : bool, default True
-        If False, number in reverse, from length of group - 1 to 0.
+            If False, number in reverse, from length of group - 1 to 0.
 
         Examples
         --------
 
         >>> df = pd.DataFrame([['a'], ['a'], ['a'], ['b'], ['b'], ['a']],
-        ...               columns=['A'])
+        ...                   columns=['A'])
         >>> df
            A
         0  a

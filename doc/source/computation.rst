@@ -243,6 +243,7 @@ accept the following arguments:
 - ``window``: size of moving window
 - ``min_periods``: threshold of non-null data points to require (otherwise
   result is NA)
+- ``center``: boolean, whether to set the labels at the center (default is False)
 
 .. warning::
 
@@ -334,7 +335,7 @@ The following methods are available:
     :meth:`~Window.sum`, Sum of values
     :meth:`~Window.mean`, Mean of values
 
-The weights used in the window are specified by the ``win_type``keyword. The list of recognized types are:
+The weights used in the window are specified by the ``win_type`` keyword. The list of recognized types are:
 
 - ``boxcar``
 - ``triang``
@@ -370,6 +371,20 @@ For some windowing functions, additional parameters must be specified:
 
    ser.rolling(window=5, win_type='gaussian').mean(std=0.1)
 
+.. _stats.moments.normalization:
+
+.. note::
+
+    For ``.sum()`` with a ``win_type``, there is no normalization done to the
+    weights for the window. Passing custom weights of ``[1, 1, 1]`` will yield a different
+    result than passing weights of ``[2, 2, 2]``, for example. When passing a
+    ``win_type`` instead of explicitly specifying the weights, the weights are
+    already normalized so that the largest weight is 1.
+
+    In contrast, the nature of the ``.mean()`` calculation is
+    such that the weights are normalized with respect to each other. Weights
+    of ``[1, 1, 1]`` and ``[2, 2, 2]`` yield the same result.
+
 Centering Windows
 ~~~~~~~~~~~~~~~~~
 
@@ -379,25 +394,8 @@ This keyword is available in other rolling functions as well.
 
 .. ipython:: python
 
-   ser.rolling(window=5, win_type='boxcar').mean()
-
-   ser.rolling(window=5, win_type='boxcar', center=True).mean()
-
+   ser.rolling(window=5).mean()
    ser.rolling(window=5, center=True).mean()
-
-.. _stats.moments.normalization:
-
-.. note::
-
-    For ``.sum()`` with a ``win_type``, there is no normalization done to the
-    weights. Passing custom weights of ``[1, 1, 1]`` will yield a different
-    result than passing weights of ``[2, 2, 2]``, for example. When passing a
-    ``win_type`` instead of explicitly specifying the weights, the weights are
-    already normalized so that the largest weight is 1.
-
-    In contrast, the nature of the ``.mean()`` calculation is
-    such that the weights are normalized with respect to each other. Weights
-    of ``[1, 1, 1]`` and ``[2, 2, 2]`` yield the same result.
 
 .. _stats.moments.binary:
 
@@ -550,7 +548,7 @@ Furthermore you can pass a nested dict to indicate different aggregations on dif
 
 .. ipython:: python
 
-   r.agg({'A' : {'ra' : 'sum'}, 'B' : {'rb' : 'std' }})
+   r.agg({'A' : ['sum','std'], 'B' : ['mean','std'] })
 
 
 .. _stats.moments.expanding:
@@ -607,6 +605,7 @@ all accept are:
 - ``min_periods``: threshold of non-null data points to require. Defaults to
   minimum needed to compute statistic. No ``NaNs`` will be output once
   ``min_periods`` non-null data points have been seen.
+- ``center``: boolean, whether to set the labels at the center (default is False)
 
 .. note::
 

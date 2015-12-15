@@ -170,11 +170,18 @@ API changes
   :ref:`Computing rolling pairwise covariances and correlations
   <stats.moments.corr_pairwise>` in the docs.
 
-  .. ipython:: python
+  .. code-block:: python
 
-    df = DataFrame(np.random.randn(10,4),columns=list('ABCD'))
-    covs = rolling_cov(df[['A','B','C']], df[['B','C','D']], 5, pairwise=True)
-    covs[df.index[-1]]
+     In [1]: df = DataFrame(np.random.randn(10,4),columns=list('ABCD'))
+
+     In [4]: covs = pd.rolling_cov(df[['A','B','C']], df[['B','C','D']], 5, pairwise=True)
+
+     In [5]: covs[df.index[-1]]
+     Out[5]:
+               B         C         D
+     A  0.035310  0.326593 -0.505430
+     B  0.137748 -0.006888 -0.005383
+     C -0.006888  0.861040  0.020762
 
 - ``Series.iteritems()`` is now lazy (returns an iterator rather than a list). This was the documented behavior prior to 0.14. (:issue:`6760`)
 

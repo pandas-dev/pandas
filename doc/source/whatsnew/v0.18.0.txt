@@ -86,8 +86,8 @@ And multiple aggregations
 
 .. ipython:: python
 
-   r.agg({'A' : {'ra' : ['mean','std']},
-          'B' : {'rb' : ['mean','std']}})
+   r.agg({'A' : ['mean','std'],
+          'B' : ['mean','std']})
 
 .. _whatsnew_0180.enhancements.other:
 
@@ -239,15 +239,17 @@ Deprecations
              2    0.5
              dtype: float64
 
-- The the ``freq`` and ``how`` arguments to the ``.rolling``, ``.expanding``, and ``.ewm`` (new) functions are deprecated, and will be removed in a future version. (:issue:`11603`)
+- The the ``freq`` and ``how`` arguments to the ``.rolling``, ``.expanding``, and ``.ewm`` (new) functions are deprecated, and will be removed in a future version. You can simply resample the input prior to creating a window function. (:issue:`11603`).
+
+  For example, instead of ``s.rolling(window=5,freq='D').max()`` to get the max value on a rolling 5 Day window, one could use ``s.resample('D',how='max').rolling(window=5).max()``, which first resamples the data to daily data, then provides a rolling 5 day window.
 
 .. _whatsnew_0180.prior_deprecations:
 
 Removal of prior version deprecations/changes
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-- Removal of ``rolling_corr_parwise`` in favor of ``.rolling().corr(pairwise=True)`` (:issue:`4950`)
-- Removal of ``expanding_corr_parwise`` in favor of ``.expanding().corr(pairwise=True)`` (:issue:`4950`)
+- Removal of ``rolling_corr_pairwise`` in favor of ``.rolling().corr(pairwise=True)`` (:issue:`4950`)
+- Removal of ``expanding_corr_pairwise`` in favor of ``.expanding().corr(pairwise=True)`` (:issue:`4950`)
 
 
 
