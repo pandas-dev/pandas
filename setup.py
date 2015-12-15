@@ -485,6 +485,8 @@ else:
     macros = [('__LITTLE_ENDIAN__', '1')]
 
 packer_ext = Extension('pandas.msgpack._packer',
+                        depends=['pandas/src/msgpack/pack.h',
+                                 'pandas/src/msgpack/pack_template.h'],
                         sources = [srcpath('_packer',
                                    suffix=suffix if suffix == '.pyx' else '.cpp',
                                    subdir='msgpack')],
@@ -492,6 +494,9 @@ packer_ext = Extension('pandas.msgpack._packer',
                         include_dirs=['pandas/src/msgpack'] + common_include,
                         define_macros=macros)
 unpacker_ext = Extension('pandas.msgpack._unpacker',
+                        depends=['pandas/src/msgpack/unpack.h',
+                                 'pandas/src/msgpack/unpack_define.h',
+                                 'pandas/src/msgpack/unpack_template.h'],
                         sources = [srcpath('_unpacker',
                                    suffix=suffix if suffix == '.pyx' else '.cpp',
                                    subdir='msgpack')],
