@@ -1,4 +1,4 @@
-# coding=utf-8
+﻿# coding=utf-8
 # pylint: disable-msg=E1101,W0612
 
 import re
@@ -3003,11 +3003,26 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
     def test_round(self):
         # numpy.round doesn't preserve metadata, probably a numpy bug,
         # re: GH #314
-        result = np.round(self.ts, 2)
+        result = self.ts.round(2)
         expected = Series(np.round(self.ts.values, 2), index=self.ts.index,
                           name='ts')
         assert_series_equal(result, expected)
         self.assertEqual(result.name, self.ts.name)
+         
+    def test_built_in_round(self):
+        if not compat.PY3:
+            raise nose.SkipTest('build in round cannot be overriden prior to Python 3')
+        
+        s = Series([1.123, 2.123, 3.123], index=lrange(3))
+        result = round(s)
+        expected_rounded0 = Series([1., 2., 3.], index=lrange(3))
+        self.assert_series_equal(result, expected_rounded0)
+        
+        decimals = 2
+        expected_rounded = Series([1.12, 2.12, 3.12], index=lrange(3))
+        result = round(s, decimals)
+        self.assert_series_equal(result, expected_rounded)
+
 
     def test_prod_numpy16_bug(self):
         s = Series([1., 1., 1.], index=lrange(3))

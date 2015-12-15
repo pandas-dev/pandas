@@ -34,6 +34,8 @@ Other enhancements
 - Handle truncated floats in SAS xport files (:issue:`11713`)
 - Added option to hide index in ``Series.to_string`` (:issue:`11729`)
 - ``read_excel`` now supports s3 urls of the format ``s3://bucketname/filename`` (:issue:`11447`)
+- A simple version of ``Panel.round()`` is now implemented (:issue:`11763`)
+- For Python 3.x, ``round(DataFrame)``, ``round(Series)``, ``round(Panel)`` will work (:issue:`11763`)
 
 .. _whatsnew_0180.enhancements.rounding:
 
@@ -89,6 +91,8 @@ In addition, ``.round()`` will be available thru the ``.dt`` accessor of ``Serie
 
 Backwards incompatible API changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- The parameter ``out`` has been removed from the ``Series.round()`` method. (:issue:`11763`) 
 
 Bug in QuarterBegin with n=0
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
