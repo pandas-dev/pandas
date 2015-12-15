@@ -663,7 +663,7 @@ class Styler(object):
         attrs = base + 'background: linear-gradient(90deg,{c} {w}%, transparent 0%)'
         return [attrs.format(c=color, w=x) if x != 0 else base for x in normed]
 
-    def bar(self, subset=None, axis=0, color='#d65f5f', width=100):
+    def bar(self, subset=None, axis=0, color='#d65f5f', width=100, source = None):
         """
         Color the background ``color`` proptional to the values in each column.
         Excludes non-numeric data by default.
