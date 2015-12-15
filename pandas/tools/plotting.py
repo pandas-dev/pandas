@@ -653,7 +653,7 @@ def bootstrap_plot(series, fig=None, size=50, samples=500, **kwds):
 @deprecate_kwarg(old_arg_name='data', new_arg_name='frame', stacklevel=3)
 def parallel_coordinates(frame, class_column, cols=None, ax=None, color=None,
                          use_columns=False, xticks=None, colormap=None,
-                         axvlines=True, axvlines_kwds={'linewidth':1,'color':'black'}, **kwds):
+                         axvlines=True, axvlines_kwds=None, **kwds):
     """Parallel coordinates plotting.
 
     Parameters
@@ -693,6 +693,8 @@ def parallel_coordinates(frame, class_column, cols=None, ax=None, color=None,
     >>> parallel_coordinates(df, 'Name', color=('#556270', '#4ECDC4', '#C7F464'))
     >>> plt.show()
     """
+    if axvlines_kwds is None:
+        axvlines_kwds = {'linewidth':1,'color':'black'}
     import matplotlib.pyplot as plt
 
     n = len(frame)

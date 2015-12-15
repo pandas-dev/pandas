@@ -1149,7 +1149,9 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
             raise Exception("invalid pickle state")
     _unpickle_compat = __setstate__
 
-    def __deepcopy__(self, memo={}):
+    def __deepcopy__(self, memo=None):
+        if memo is None:
+                memo = {}
         return self.copy(deep=True)
 
     def __nonzero__(self):
