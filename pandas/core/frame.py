@@ -217,6 +217,7 @@ class DataFrame(NDFrame):
             dtype = self._validate_dtype(dtype)
 
         if isinstance(data, DataFrame):
+            data = data.iloc[:,:]
             data = data._data
 
         if isinstance(data, BlockManager):
