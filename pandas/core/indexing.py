@@ -752,9 +752,6 @@ class _NDFrameIndexer(object):
             if i >= self.obj.ndim:
                 raise IndexingError('Too many indexers')
 
-            #if is_null_slice(key):
-            #    continue
-
             retval = getattr(retval, self.name)._getitem_axis(key, axis=i)
 
         return retval
@@ -1458,9 +1455,9 @@ class _iLocIndexer(_LocationIndexer):
             if i >= self.obj.ndim:
                 raise IndexingError('Too many indexers')
 
-            if is_null_slice(key):
-                axis += 1
-                continue
+            #if is_null_slice(key):
+            #    axis += 1
+            #    continue
 
             retval = getattr(retval, self.name)._getitem_axis(key, axis=axis)
 
