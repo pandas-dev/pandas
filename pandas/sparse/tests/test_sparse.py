@@ -26,6 +26,7 @@ import pandas.util.testing as tm
 from pandas.compat import range, lrange, StringIO, lrange
 from pandas import compat
 from pandas.tools.util import cartesian_product
+from pandas.tools.pivot import pivot_table
 
 import pandas.sparse.frame as spf
 
@@ -1449,7 +1450,7 @@ class TestSparseDataFrame(tm.TestCase, test_frame.SafeForSparse):
             [[1, 2, 3], [4, 5, 6], [7, 8, 9]], index=['a', 'a', 'c'])
         df = df_orig.to_sparse()
         rs = df.apply(lambda s: s[0], axis=1)
-        xp = Series([1, 4, 7], ['a', 'a', 'c'])
+        xp = Series([1, 4, 7], ['a', 'a', 'c'])#.astype(float)
         assert_series_equal(rs, xp)
 
         # df.T breaks
@@ -1719,6 +1720,18 @@ class TestSparseDataFrame(tm.TestCase, test_frame.SafeForSparse):
         nan_colname_sparse = nan_colname.to_sparse()
         self.assertTrue(np.isnan(nan_colname_sparse.columns[0]))
 
+    def test_pivot(self):
+        # issue #11856
+        df = DataFrame( list(zip([3,2,4,1,5,3,2],
+             ["chr1", "chr1", "chr1", "chr1", "chr2", "chr2", "chr3"],
+             [100,100, 100, 200, 1, 3, 1],
+             [True, True, True, False, True, False, True],
+             [-1,0,1,3, 0,2,1])) ,
+             columns = ["counts", "chr", "pos", "strand", "distance"])
+
+        dfpiv_from_sparse = pivot_table(SparseDataFrame(df), index= [ "chr", "pos"], columns= ["strand","distance"], values= "counts").fillna(0)
+        dfpiv = pivot_table(df, index= [ "chr", "pos"], columns= ["strand","distance"], values= "counts").fillna(0)
+        assert_frame_equal(dfpiv, dfpiv0)
 
 def _dense_series_compare(s, f):
     result = f(s)
