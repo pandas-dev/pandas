@@ -4912,6 +4912,14 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         expected = [1]
         self.assertEqual(result, expected)
 
+    def test_empty_indexers_return_view(self):
+        # Closes Issue 11814
+        df = pd.DataFrame({'col1':range(10,20),
+                   'col2':range(20,30)})
+        self.assertTrue(df.loc[:,:]._is_view)
+        self.assertTrue(df.iloc[:,:]._is_view)
+        self.assertTrue(df.ix[:,:]._is_view)
+
 
 class TestCategoricalIndex(tm.TestCase):
 
@@ -5195,13 +5203,6 @@ class TestCategoricalIndex(tm.TestCase):
         #         name=u'B')
         self.assertRaises(TypeError, lambda : df4[df4.index < 2])
         self.assertRaises(TypeError, lambda : df4[df4.index > 1])
-
-    def test_empty_indexers_return_view(self):
-        df = pd.DataFrame({'col1':range(10,20),
-                   'col2':range(20,30)})
-        self.assertTrue(df.loc[:,:]._is_view)
-        self.assertTrue(df.iloc[:,:]._is_view)
-        self.assertTrue(df.ix[:,:]._is_view)
 
 
 class TestSeriesNoneCoercion(tm.TestCase):
