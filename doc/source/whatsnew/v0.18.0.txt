@@ -92,7 +92,7 @@ In addition, ``.round()`` will be available thru the ``.dt`` accessor of ``Serie
 Backwards incompatible API changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-- The parameter ``out`` has been removed from the ``Series.round()`` method. (:issue:`11763`) 
+- The parameter ``out`` has been removed from the ``Series.round()`` method. (:issue:`11763`)
 
 Bug in QuarterBegin with n=0
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -189,7 +189,7 @@ Bug Fixes
 
 - Bug in ``GroupBy.size`` when data-frame is empty. (:issue:`11699`)
 - Bug in ``Period.end_time`` when a multiple of time period is requested (:issue:`11738`)
-
+- Regression in ``.clip`` with tz-aware datetimes (:issue:`11838`)
 
 
 

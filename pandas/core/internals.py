@@ -1215,10 +1215,6 @@ class Block(PandasObject):
         result = func(cond, values, other)
         if self._can_hold_na or self.ndim == 1:
 
-            if not isinstance(result, np.ndarray):
-                raise TypeError('Could not compare [%s] with block values'
-                                % repr(other))
-
             if transpose:
                 result = result.T
 
