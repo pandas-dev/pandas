@@ -5196,6 +5196,14 @@ class TestCategoricalIndex(tm.TestCase):
         self.assertRaises(TypeError, lambda : df4[df4.index < 2])
         self.assertRaises(TypeError, lambda : df4[df4.index > 1])
 
+    def test_empty_indexers_return_view(self):
+        df = pd.DataFrame({'col1':range(10,20),
+                   'col2':range(20,30)})
+        self.assertTrue(df.loc[:,:]._is_view)
+        self.assertTrue(df.iloc[:,:]._is_view)
+        self.assertTrue(df.ix[:,:]._is_view)
+
+
 class TestSeriesNoneCoercion(tm.TestCase):
     EXPECTED_RESULTS = [
         # For numeric series, we should coerce to NaN.

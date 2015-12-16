@@ -2645,6 +2645,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
     def test_constructor_dtype_nocast_view(self):
         df = DataFrame([[1, 2]])
         should_be_view = DataFrame(df, dtype=df[0].dtype)
+        self.assertTrue(should_be_view._is_view)
         should_be_view[0][0] = 99
         self.assertEqual(df.values[0, 0], 99)
 
