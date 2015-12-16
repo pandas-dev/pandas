@@ -1331,143 +1331,104 @@ def roll_var(ndarray[double_t] input, int win, int minp, int ddof=1):
 
     return output
 
+#----------------------------------------------------------------------
+# Rolling skewness and kurtosis
 
-#-------------------------------------------------------------------------------
-# Rolling skewness
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def roll_skew(ndarray[double_t] input, int win, int minp):
+def roll_higher_moment(ndarray[double_t] input, int win, int minp, bint kurt):
+    """
+    Numerically stable implementation of skewness and kurtosis using a
+    Welford-like method. If `kurt` is True, rolling kurtosis is computed,
+    if False, rolling skewness.
+    """
     cdef double val, prev
-    cdef double x = 0, xx = 0, xxx = 0
-    cdef Py_ssize_t nobs = 0, i
-    cdef Py_ssize_t N = len(input)
+    cdef double mean_x = 0, s2dm_x = 0, s3dm_x = 0, s4dm_x = 0, rep = NaN
+    cdef double delta, delta_n, tmp
+    cdef Py_ssize_t i, nobs = 0, nrep = 0, N = len(input)
 
     cdef ndarray[double_t] output = np.empty(N, dtype=float)
 
-    # 3 components of the skewness equation
-    cdef double A, B, C, R
-
     minp = _check_minp(win, minp, N)
-    with nogil:
-        for i from 0 <= i < minp - 1:
-            val = input[i]
+    minobs = max(minp, 4 if kurt else 3)
 
-            # Not NaN
-            if val == val:
-                nobs += 1
-                x += val
-                xx += val * val
-                xxx += val * val * val
+    for i from 0 <= i < N:
+        val = input[i]
+        prev = NaN if i < win else input[i - win]
 
-            output[i] = NaN
-
-        for i from minp - 1 <= i < N:
-            val = input[i]
-
-            if val == val:
-                nobs += 1
-                x += val
-                xx += val * val
-                xxx += val * val * val
-
-            if i > win - 1:
-                prev = input[i - win]
-                if prev == prev:
-                    x -= prev
-                    xx -= prev * prev
-                    xxx -= prev * prev * prev
-
-                    nobs -= 1
-            if nobs >= minp:
-                A = x / nobs
-                B = xx / nobs - A * A
-                C = xxx / nobs - A * A * A - 3 * A * B
-                if B <= 0 or nobs < 3:
-                    output[i] = NaN
+        if prev == prev:
+            # prev is not NaN, remove an observation...
+            nobs -= 1
+            if nobs < nrep:
+                # ...all non-NaN values were identical, remove a repeat
+                nrep -= 1
+            if nobs == nrep:
+                # We can get here both if all non-NaN were already identical
+                # or if nobs == 1 after removing the observation
+                if nrep == 0:
+                    rep = NaN
+                    mean_x = 0
                 else:
-                    R = sqrt(B)
-                    output[i] = ((sqrt(nobs * (nobs - 1.)) * C) /
-                                 ((nobs-2) * R * R * R))
+                    mean_x = rep
+                # This is redundant most of the time
+                s2dm_x = s3dm_x = s4dm_x = 0
             else:
-                output[i] = NaN
+                # ...update mean and sums of raised differences from mean
+                delta = prev - mean_x
+                delta_n = delta / nobs
+                tmp = delta * delta_n * (nobs + 1)
+                if kurt:
+                    s4dm_x -= ((tmp * ((nobs + 3) * nobs + 3) -
+                                6 * s2dm_x) * delta_n - 4 * s3dm_x) * delta_n
+                s3dm_x -= (tmp * (nobs + 2) - 3 * s2dm_x) * delta_n
+                s2dm_x -= tmp
+                mean_x -= delta_n
+
+        if val == val:
+            # val is not NaN, adding an observation...
+            nobs += 1
+            if val == rep:
+                # ...and adding a repeat
+                nrep += 1
+            else:
+                # ...and resetting repeats
+                nrep = 1
+                rep = val
+            if nobs == nrep:
+                # ...all non-NaN values are identical
+                mean_x = rep
+                s2dm_x = s3dm_x = s4dm_x = 0
+            else:
+                # ...update mean and sums of raised differences from mean
+                delta = val - mean_x
+                delta_n = delta / nobs
+                tmp = delta * delta_n * (nobs - 1)
+                if kurt:
+                    s4dm_x += ((tmp * ((nobs - 3) * nobs + 3) +
+                                6 * s2dm_x) * delta_n - 4 * s3dm_x) * delta_n
+                s3dm_x += (tmp * (nobs - 2) - 3 * s2dm_x) * delta_n
+                s2dm_x += tmp
+                mean_x += delta_n
+
+        # Sums of even powers must be positive
+        if s2dm_x < 0 or s4dm_x < 0:
+            s2dm_x = s3dm_x = s4_dm_x = 0
+
+        if nobs < minobs or s2dm_x == 0:
+            output[i] = NaN
+        elif kurt:
+            # multiplications are cheap, divisions are not
+            tmp = s2dm_x * s2dm_x
+            output[i] = (nobs - 1) * (nobs * (nobs + 1) * s4dm_x -
+                                      3 * (nobs - 1) * tmp)
+            output[i] /= tmp * (nobs - 2) * (nobs - 3)
+        else:
+            # multiplications are cheap, divisions and square roots are not
+            tmp = (nobs - 2) * (nobs - 2) * s2dm_x * s2dm_x * s2dm_x
+            output[i] = s3dm_x * nobs * sqrt((nobs - 1) / tmp)
 
     return output
 
-#-------------------------------------------------------------------------------
-# Rolling kurtosis
-@cython.boundscheck(False)
-@cython.wraparound(False)
-def roll_kurt(ndarray[double_t] input,
-               int win, int minp):
-    cdef double val, prev
-    cdef double x = 0, xx = 0, xxx = 0, xxxx = 0
-    cdef Py_ssize_t nobs = 0, i
-    cdef Py_ssize_t N = len(input)
-
-    cdef ndarray[double_t] output = np.empty(N, dtype=float)
-
-    # 5 components of the kurtosis equation
-    cdef double A, B, C, D, R, K
-
-    minp = _check_minp(win, minp, N)
-    with nogil:
-        for i from 0 <= i < minp - 1:
-            val = input[i]
-
-            # Not NaN
-            if val == val:
-                nobs += 1
-
-                # seriously don't ask me why this is faster
-                x += val
-                xx += val * val
-                xxx += val * val * val
-                xxxx += val * val * val * val
-
-            output[i] = NaN
-
-        for i from minp - 1 <= i < N:
-            val = input[i]
-
-            if val == val:
-                nobs += 1
-                x += val
-                xx += val * val
-                xxx += val * val * val
-                xxxx += val * val * val * val
-
-            if i > win - 1:
-                prev = input[i - win]
-                if prev == prev:
-                    x -= prev
-                    xx -= prev * prev
-                    xxx -= prev * prev * prev
-                    xxxx -= prev * prev * prev * prev
-
-                    nobs -= 1
-
-            if nobs >= minp:
-                A = x / nobs
-                R = A * A
-                B = xx / nobs - R
-                R = R * A
-                C = xxx / nobs - R - 3 * A * B
-                R = R * A
-                D = xxxx / nobs - R - 6*B*A*A - 4*C*A
-
-                if B == 0 or nobs < 4:
-                    output[i] = NaN
-
-                else:
-                    K = (nobs * nobs - 1.)*D/(B*B) - 3*((nobs-1.)**2)
-                    K = K / ((nobs - 2.)*(nobs-3.))
-
-                    output[i] = K
-
-            else:
-                output[i] = NaN
-
-    return output
 
 #-------------------------------------------------------------------------------
 # Rolling median, min, max
