@@ -3008,16 +3008,16 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
                           name='ts')
         assert_series_equal(result, expected)
         self.assertEqual(result.name, self.ts.name)
-         
+
     def test_built_in_round(self):
         if not compat.PY3:
             raise nose.SkipTest('build in round cannot be overriden prior to Python 3')
-        
+
         s = Series([1.123, 2.123, 3.123], index=lrange(3))
         result = round(s)
         expected_rounded0 = Series([1., 2., 3.], index=lrange(3))
         self.assert_series_equal(result, expected_rounded0)
-        
+
         decimals = 2
         expected_rounded = Series([1.12, 2.12, 3.12], index=lrange(3))
         result = round(s, decimals)
@@ -5843,6 +5843,24 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         upper = Series([1.5, 2.5, 3.5])
         assert_series_equal(s.clip(lower, upper), Series([1.0, 2.0, 3.5]))
         assert_series_equal(s.clip(1.5, upper), Series([1.5, 1.5, 3.5]))
+
+
+    def test_clip_with_datetimes(self):
+
+        # GH 11838
+        # naive and tz-aware datetimes
+
+        t = Timestamp('2015-12-01 09:30:30')
+        s = Series([ Timestamp('2015-12-01 09:30:00'), Timestamp('2015-12-01 09:31:00') ])
+        result = s.clip(upper=t)
+        expected = Series([ Timestamp('2015-12-01 09:30:00'), Timestamp('2015-12-01 09:30:30') ])
+        assert_series_equal(result, expected)
+
+        t = Timestamp('2015-12-01 09:30:30', tz='US/Eastern')
+        s = Series([ Timestamp('2015-12-01 09:30:00', tz='US/Eastern'), Timestamp('2015-12-01 09:31:00', tz='US/Eastern') ])
+        result = s.clip(upper=t)
+        expected = Series([ Timestamp('2015-12-01 09:30:00', tz='US/Eastern'), Timestamp('2015-12-01 09:30:30', tz='US/Eastern') ])
+        assert_series_equal(result, expected)
 
     def test_valid(self):
         ts = self.ts.copy()
