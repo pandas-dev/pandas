@@ -120,15 +120,17 @@ class TestIntervalTree(tm.TestCase):
         x = np.arange(1000)
         found = x
         not_found = -np.ones(1000)
-        for closed in ['left', 'right', 'both', 'neither']:
-            tree = IntervalTree(x, x + 0.5, closed=closed)
-            self.assert_numpy_array_equal(found, tree.get_indexer(x + 0.25))
+        for leaf_size in [1, 10, 100, 10000]:
+            for closed in ['left', 'right', 'both', 'neither']:
+                tree = IntervalTree(x, x + 0.5, closed=closed,
+                                   leaf_size=leaf_size)
+                self.assert_numpy_array_equal(found, tree.get_indexer(x + 0.25))
 
-            expected = found if tree.closed_left else not_found
-            self.assert_numpy_array_equal(expected, tree.get_indexer(x + 0.0))
+                expected = found if tree.closed_left else not_found
+                self.assert_numpy_array_equal(expected, tree.get_indexer(x + 0.0))
 
-            expected = found if tree.closed_right else not_found
-            self.assert_numpy_array_equal(expected, tree.get_indexer(x + 0.5))
+                expected = found if tree.closed_right else not_found
+                self.assert_numpy_array_equal(expected, tree.get_indexer(x + 0.5))
 
 
 class TestIntervalIndex(tm.TestCase):

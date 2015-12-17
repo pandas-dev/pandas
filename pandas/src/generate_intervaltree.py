@@ -207,6 +207,7 @@ cdef class {dtype_title}Closed{closed_title}IntervalNode:
         {dtype_title}Closed{closed_title}IntervalNode left_node, right_node
         {dtype}_t[:] center_left_values, center_right_values, left, right
         int64_t[:] center_left_indices, center_right_indices, indices
+        {dtype}_t min_left, max_right
         readonly {dtype}_t pivot
         readonly int64_t n_elements, n_center, leaf_size
         readonly bint is_leaf_node
@@ -219,6 +220,12 @@ cdef class {dtype_title}Closed{closed_title}IntervalNode:
 
         self.n_elements = len(left)
         self.leaf_size = leaf_size
+        if left.size > 0:
+            self.min_left = left.min()
+            self.max_right = right.max()
+        else:
+            self.min_left = 0
+            self.max_right = 0
 
         if self.n_elements <= leaf_size:
             # make this a terminal (leaf) node
@@ -284,7 +291,7 @@ cdef class {dtype_title}Closed{closed_title}IntervalNode:
     @cython.wraparound(False)
     @cython.boundscheck(False)
     @cython.initializedcheck(False)
-    cdef query(self, Int64Vector result, scalar64_t point):
+    cpdef query(self, Int64Vector result, scalar64_t point):
         """Recursively query this node and its sub-nodes for intervals that
         overlap with the query point.
         """
@@ -310,7 +317,8 @@ cdef class {dtype_title}Closed{closed_title}IntervalNode:
                     if not values[i] {cmp_left} point:
                         break
                     result.append(indices[i])
-                self.left_node.query(result, point)
+                if point {cmp_right} self.left_node.max_right:
+                    self.left_node.query(result, point)
             elif point > self.pivot:
                 values = self.center_right_values
                 indices = self.center_right_indices
@@ -318,7 +326,8 @@ cdef class {dtype_title}Closed{closed_title}IntervalNode:
                     if not point {cmp_right} values[i]:
                         break
                     result.append(indices[i])
-                self.right_node.query(result, point)
+                if self.right_node.min_left {cmp_left} point:
+                    self.right_node.query(result, point)
             else:
                 result.extend(self.center_left_indices)
 

@@ -188,6 +188,7 @@ cdef class Float64ClosedLeftIntervalNode:
         Float64ClosedLeftIntervalNode left_node, right_node
         float64_t[:] center_left_values, center_right_values, left, right
         int64_t[:] center_left_indices, center_right_indices, indices
+        float64_t min_left, max_right
         readonly float64_t pivot
         readonly int64_t n_elements, n_center, leaf_size
         readonly bint is_leaf_node
@@ -200,6 +201,12 @@ cdef class Float64ClosedLeftIntervalNode:
 
         self.n_elements = len(left)
         self.leaf_size = leaf_size
+        if left.size > 0:
+            self.min_left = left.min()
+            self.max_right = right.max()
+        else:
+            self.min_left = 0
+            self.max_right = 0
 
         if self.n_elements <= leaf_size:
             # make this a terminal (leaf) node
@@ -265,7 +272,7 @@ cdef class Float64ClosedLeftIntervalNode:
     @cython.wraparound(False)
     @cython.boundscheck(False)
     @cython.initializedcheck(False)
-    cdef _query(self, Int64Vector result, scalar64_t point):
+    cpdef query(self, Int64Vector result, scalar64_t point):
         """Recursively query this node and its sub-nodes for intervals that
         overlap with the query point.
         """
@@ -291,7 +298,8 @@ cdef class Float64ClosedLeftIntervalNode:
                     if not values[i] <= point:
                         break
                     result.append(indices[i])
-                self.left_node._query(result, point)
+                if point < self.left_node.max_right:
+                    self.left_node.query(result, point)
             elif point > self.pivot:
                 values = self.center_right_values
                 indices = self.center_right_indices
@@ -299,12 +307,10 @@ cdef class Float64ClosedLeftIntervalNode:
                     if not point < values[i]:
                         break
                     result.append(indices[i])
-                self.right_node._query(result, point)
+                if self.right_node.min_left <= point:
+                    self.right_node.query(result, point)
             else:
                 result.extend(self.center_left_indices)
-
-    cpdef query(self, Int64Vector result, scalar64_t point):
-        return self._query(result, point)
 
     def __repr__(self):
         if self.is_leaf_node:
@@ -340,6 +346,7 @@ cdef class Float64ClosedRightIntervalNode:
         Float64ClosedRightIntervalNode left_node, right_node
         float64_t[:] center_left_values, center_right_values, left, right
         int64_t[:] center_left_indices, center_right_indices, indices
+        float64_t min_left, max_right
         readonly float64_t pivot
         readonly int64_t n_elements, n_center, leaf_size
         readonly bint is_leaf_node
@@ -352,6 +359,12 @@ cdef class Float64ClosedRightIntervalNode:
 
         self.n_elements = len(left)
         self.leaf_size = leaf_size
+        if left.size > 0:
+            self.min_left = left.min()
+            self.max_right = right.max()
+        else:
+            self.min_left = 0
+            self.max_right = 0
 
         if self.n_elements <= leaf_size:
             # make this a terminal (leaf) node
@@ -417,7 +430,7 @@ cdef class Float64ClosedRightIntervalNode:
     @cython.wraparound(False)
     @cython.boundscheck(False)
     @cython.initializedcheck(False)
-    cdef _query(self, Int64Vector result, scalar64_t point):
+    cpdef query(self, Int64Vector result, scalar64_t point):
         """Recursively query this node and its sub-nodes for intervals that
         overlap with the query point.
         """
@@ -443,7 +456,8 @@ cdef class Float64ClosedRightIntervalNode:
                     if not values[i] < point:
                         break
                     result.append(indices[i])
-                self.left_node._query(result, point)
+                if point <= self.left_node.max_right:
+                    self.left_node.query(result, point)
             elif point > self.pivot:
                 values = self.center_right_values
                 indices = self.center_right_indices
@@ -451,12 +465,10 @@ cdef class Float64ClosedRightIntervalNode:
                     if not point <= values[i]:
                         break
                     result.append(indices[i])
-                self.right_node._query(result, point)
+                if self.right_node.min_left < point:
+                    self.right_node.query(result, point)
             else:
                 result.extend(self.center_left_indices)
-
-    cpdef query(self, Int64Vector result, scalar64_t point):
-        return self._query(result, point)
 
     def __repr__(self):
         if self.is_leaf_node:
@@ -492,6 +504,7 @@ cdef class Float64ClosedBothIntervalNode:
         Float64ClosedBothIntervalNode left_node, right_node
         float64_t[:] center_left_values, center_right_values, left, right
         int64_t[:] center_left_indices, center_right_indices, indices
+        float64_t min_left, max_right
         readonly float64_t pivot
         readonly int64_t n_elements, n_center, leaf_size
         readonly bint is_leaf_node
@@ -504,6 +517,12 @@ cdef class Float64ClosedBothIntervalNode:
 
         self.n_elements = len(left)
         self.leaf_size = leaf_size
+        if left.size > 0:
+            self.min_left = left.min()
+            self.max_right = right.max()
+        else:
+            self.min_left = 0
+            self.max_right = 0
 
         if self.n_elements <= leaf_size:
             # make this a terminal (leaf) node
@@ -569,7 +588,7 @@ cdef class Float64ClosedBothIntervalNode:
     @cython.wraparound(False)
     @cython.boundscheck(False)
     @cython.initializedcheck(False)
-    cdef _query(self, Int64Vector result, scalar64_t point):
+    cpdef query(self, Int64Vector result, scalar64_t point):
         """Recursively query this node and its sub-nodes for intervals that
         overlap with the query point.
         """
@@ -595,7 +614,8 @@ cdef class Float64ClosedBothIntervalNode:
                     if not values[i] <= point:
                         break
                     result.append(indices[i])
-                self.left_node._query(result, point)
+                if point <= self.left_node.max_right:
+                    self.left_node.query(result, point)
             elif point > self.pivot:
                 values = self.center_right_values
                 indices = self.center_right_indices
@@ -603,12 +623,10 @@ cdef class Float64ClosedBothIntervalNode:
                     if not point <= values[i]:
                         break
                     result.append(indices[i])
-                self.right_node._query(result, point)
+                if self.right_node.min_left <= point:
+                    self.right_node.query(result, point)
             else:
                 result.extend(self.center_left_indices)
-
-    cpdef query(self, Int64Vector result, scalar64_t point):
-        return self._query(result, point)
 
     def __repr__(self):
         if self.is_leaf_node:
@@ -644,6 +662,7 @@ cdef class Float64ClosedNeitherIntervalNode:
         Float64ClosedNeitherIntervalNode left_node, right_node
         float64_t[:] center_left_values, center_right_values, left, right
         int64_t[:] center_left_indices, center_right_indices, indices
+        float64_t min_left, max_right
         readonly float64_t pivot
         readonly int64_t n_elements, n_center, leaf_size
         readonly bint is_leaf_node
@@ -656,6 +675,12 @@ cdef class Float64ClosedNeitherIntervalNode:
 
         self.n_elements = len(left)
         self.leaf_size = leaf_size
+        if left.size > 0:
+            self.min_left = left.min()
+            self.max_right = right.max()
+        else:
+            self.min_left = 0
+            self.max_right = 0
 
         if self.n_elements <= leaf_size:
             # make this a terminal (leaf) node
@@ -721,7 +746,7 @@ cdef class Float64ClosedNeitherIntervalNode:
     @cython.wraparound(False)
     @cython.boundscheck(False)
     @cython.initializedcheck(False)
-    cdef _query(self, Int64Vector result, scalar64_t point):
+    cpdef query(self, Int64Vector result, scalar64_t point):
         """Recursively query this node and its sub-nodes for intervals that
         overlap with the query point.
         """
@@ -747,7 +772,8 @@ cdef class Float64ClosedNeitherIntervalNode:
                     if not values[i] < point:
                         break
                     result.append(indices[i])
-                self.left_node._query(result, point)
+                if point < self.left_node.max_right:
+                    self.left_node.query(result, point)
             elif point > self.pivot:
                 values = self.center_right_values
                 indices = self.center_right_indices
@@ -755,12 +781,10 @@ cdef class Float64ClosedNeitherIntervalNode:
                     if not point < values[i]:
                         break
                     result.append(indices[i])
-                self.right_node._query(result, point)
+                if self.right_node.min_left < point:
+                    self.right_node.query(result, point)
             else:
                 result.extend(self.center_left_indices)
-
-    cpdef query(self, Int64Vector result, scalar64_t point):
-        return self._query(result, point)
 
     def __repr__(self):
         if self.is_leaf_node:
@@ -796,6 +820,7 @@ cdef class Int64ClosedLeftIntervalNode:
         Int64ClosedLeftIntervalNode left_node, right_node
         int64_t[:] center_left_values, center_right_values, left, right
         int64_t[:] center_left_indices, center_right_indices, indices
+        int64_t min_left, max_right
         readonly int64_t pivot
         readonly int64_t n_elements, n_center, leaf_size
         readonly bint is_leaf_node
@@ -808,6 +833,12 @@ cdef class Int64ClosedLeftIntervalNode:
 
         self.n_elements = len(left)
         self.leaf_size = leaf_size
+        if left.size > 0:
+            self.min_left = left.min()
+            self.max_right = right.max()
+        else:
+            self.min_left = 0
+            self.max_right = 0
 
         if self.n_elements <= leaf_size:
             # make this a terminal (leaf) node
@@ -873,7 +904,7 @@ cdef class Int64ClosedLeftIntervalNode:
     @cython.wraparound(False)
     @cython.boundscheck(False)
     @cython.initializedcheck(False)
-    cdef _query(self, Int64Vector result, scalar64_t point):
+    cpdef query(self, Int64Vector result, scalar64_t point):
         """Recursively query this node and its sub-nodes for intervals that
         overlap with the query point.
         """
@@ -899,7 +930,8 @@ cdef class Int64ClosedLeftIntervalNode:
                     if not values[i] <= point:
                         break
                     result.append(indices[i])
-                self.left_node._query(result, point)
+                if point < self.left_node.max_right:
+                    self.left_node.query(result, point)
             elif point > self.pivot:
                 values = self.center_right_values
                 indices = self.center_right_indices
@@ -907,12 +939,10 @@ cdef class Int64ClosedLeftIntervalNode:
                     if not point < values[i]:
                         break
                     result.append(indices[i])
-                self.right_node._query(result, point)
+                if self.right_node.min_left <= point:
+                    self.right_node.query(result, point)
             else:
                 result.extend(self.center_left_indices)
-
-    cpdef query(self, Int64Vector result, scalar64_t point):
-        return self._query(result, point)
 
     def __repr__(self):
         if self.is_leaf_node:
@@ -948,6 +978,7 @@ cdef class Int64ClosedRightIntervalNode:
         Int64ClosedRightIntervalNode left_node, right_node
         int64_t[:] center_left_values, center_right_values, left, right
         int64_t[:] center_left_indices, center_right_indices, indices
+        int64_t min_left, max_right
         readonly int64_t pivot
         readonly int64_t n_elements, n_center, leaf_size
         readonly bint is_leaf_node
@@ -960,6 +991,12 @@ cdef class Int64ClosedRightIntervalNode:
 
         self.n_elements = len(left)
         self.leaf_size = leaf_size
+        if left.size > 0:
+            self.min_left = left.min()
+            self.max_right = right.max()
+        else:
+            self.min_left = 0
+            self.max_right = 0
 
         if self.n_elements <= leaf_size:
             # make this a terminal (leaf) node
@@ -1025,7 +1062,7 @@ cdef class Int64ClosedRightIntervalNode:
     @cython.wraparound(False)
     @cython.boundscheck(False)
     @cython.initializedcheck(False)
-    cdef _query(self, Int64Vector result, scalar64_t point):
+    cpdef query(self, Int64Vector result, scalar64_t point):
         """Recursively query this node and its sub-nodes for intervals that
         overlap with the query point.
         """
@@ -1051,7 +1088,8 @@ cdef class Int64ClosedRightIntervalNode:
                     if not values[i] < point:
                         break
                     result.append(indices[i])
-                self.left_node._query(result, point)
+                if point <= self.left_node.max_right:
+                    self.left_node.query(result, point)
             elif point > self.pivot:
                 values = self.center_right_values
                 indices = self.center_right_indices
@@ -1059,12 +1097,10 @@ cdef class Int64ClosedRightIntervalNode:
                     if not point <= values[i]:
                         break
                     result.append(indices[i])
-                self.right_node._query(result, point)
+                if self.right_node.min_left < point:
+                    self.right_node.query(result, point)
             else:
                 result.extend(self.center_left_indices)
-
-    cpdef query(self, Int64Vector result, scalar64_t point):
-        return self._query(result, point)
 
     def __repr__(self):
         if self.is_leaf_node:
@@ -1100,6 +1136,7 @@ cdef class Int64ClosedBothIntervalNode:
         Int64ClosedBothIntervalNode left_node, right_node
         int64_t[:] center_left_values, center_right_values, left, right
         int64_t[:] center_left_indices, center_right_indices, indices
+        int64_t min_left, max_right
         readonly int64_t pivot
         readonly int64_t n_elements, n_center, leaf_size
         readonly bint is_leaf_node
@@ -1112,6 +1149,12 @@ cdef class Int64ClosedBothIntervalNode:
 
         self.n_elements = len(left)
         self.leaf_size = leaf_size
+        if left.size > 0:
+            self.min_left = left.min()
+            self.max_right = right.max()
+        else:
+            self.min_left = 0
+            self.max_right = 0
 
         if self.n_elements <= leaf_size:
             # make this a terminal (leaf) node
@@ -1177,7 +1220,7 @@ cdef class Int64ClosedBothIntervalNode:
     @cython.wraparound(False)
     @cython.boundscheck(False)
     @cython.initializedcheck(False)
-    cdef _query(self, Int64Vector result, scalar64_t point):
+    cpdef query(self, Int64Vector result, scalar64_t point):
         """Recursively query this node and its sub-nodes for intervals that
         overlap with the query point.
         """
@@ -1203,7 +1246,8 @@ cdef class Int64ClosedBothIntervalNode:
                     if not values[i] <= point:
                         break
                     result.append(indices[i])
-                self.left_node._query(result, point)
+                if point <= self.left_node.max_right:
+                    self.left_node.query(result, point)
             elif point > self.pivot:
                 values = self.center_right_values
                 indices = self.center_right_indices
@@ -1211,12 +1255,10 @@ cdef class Int64ClosedBothIntervalNode:
                     if not point <= values[i]:
                         break
                     result.append(indices[i])
-                self.right_node._query(result, point)
+                if self.right_node.min_left <= point:
+                    self.right_node.query(result, point)
             else:
                 result.extend(self.center_left_indices)
-
-    cpdef query(self, Int64Vector result, scalar64_t point):
-        return self._query(result, point)
 
     def __repr__(self):
         if self.is_leaf_node:
@@ -1252,6 +1294,7 @@ cdef class Int64ClosedNeitherIntervalNode:
         Int64ClosedNeitherIntervalNode left_node, right_node
         int64_t[:] center_left_values, center_right_values, left, right
         int64_t[:] center_left_indices, center_right_indices, indices
+        int64_t min_left, max_right
         readonly int64_t pivot
         readonly int64_t n_elements, n_center, leaf_size
         readonly bint is_leaf_node
@@ -1264,6 +1307,12 @@ cdef class Int64ClosedNeitherIntervalNode:
 
         self.n_elements = len(left)
         self.leaf_size = leaf_size
+        if left.size > 0:
+            self.min_left = left.min()
+            self.max_right = right.max()
+        else:
+            self.min_left = 0
+            self.max_right = 0
 
         if self.n_elements <= leaf_size:
             # make this a terminal (leaf) node
@@ -1329,7 +1378,7 @@ cdef class Int64ClosedNeitherIntervalNode:
     @cython.wraparound(False)
     @cython.boundscheck(False)
     @cython.initializedcheck(False)
-    cdef _query(self, Int64Vector result, scalar64_t point):
+    cpdef query(self, Int64Vector result, scalar64_t point):
         """Recursively query this node and its sub-nodes for intervals that
         overlap with the query point.
         """
@@ -1355,7 +1404,8 @@ cdef class Int64ClosedNeitherIntervalNode:
                     if not values[i] < point:
                         break
                     result.append(indices[i])
-                self.left_node._query(result, point)
+                if point < self.left_node.max_right:
+                    self.left_node.query(result, point)
             elif point > self.pivot:
                 values = self.center_right_values
                 indices = self.center_right_indices
@@ -1363,12 +1413,10 @@ cdef class Int64ClosedNeitherIntervalNode:
                     if not point < values[i]:
                         break
                     result.append(indices[i])
-                self.right_node._query(result, point)
+                if self.right_node.min_left < point:
+                    self.right_node.query(result, point)
             else:
                 result.extend(self.center_left_indices)
-
-    cpdef query(self, Int64Vector result, scalar64_t point):
-        return self._query(result, point)
 
     def __repr__(self):
         if self.is_leaf_node:
