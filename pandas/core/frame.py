@@ -630,7 +630,7 @@ class DataFrame(NDFrame):
 
            To preserve dtypes while iterating over the rows, it is better
            to use :meth:`itertuples` which returns namedtuples of the values
-           and which is generally faster as ``iterrows``.
+           and which is generally faster than ``iterrows``.
 
         2. You should **never modify** something you are iterating over.
            This is not guaranteed to work in all cases. Depending on the
@@ -667,7 +667,7 @@ class DataFrame(NDFrame):
 
         Notes
         -----
-        The columns names will be renamed to positional names if they are
+        The column names will be renamed to positional names if they are
         invalid Python identifiers, repeated, or start with an underscore.
         With a large number of columns (>255), regular tuples are returned.
 
