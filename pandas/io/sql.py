@@ -1556,6 +1556,8 @@ class SQLiteDatabase(PandasSQL):
 
         while True:
             data = cursor.fetchmany(chunksize)
+            if type(data) == tuple:
+               data = list(data)
             if not data:
                 cursor.close()
                 break
