@@ -477,12 +477,36 @@ class TestDateRange(tm.TestCase):
             closed = date_range(begin, end, closed=None, freq=freq)
             left = date_range(begin, end, closed="left", freq=freq)
             right = date_range(begin, end, closed="right", freq=freq)
+            expected_left = left
+            expected_right = right
 
-            expected_left = closed[:-1]
-            expected_right = closed[1:]
+            if end == closed[-1]:
+                expected_left = closed[:-1]
+            if begin == closed[0]:
+                expected_right = closed[1:]
 
             self.assertTrue(expected_left.equals(left))
             self.assertTrue(expected_right.equals(right))
+
+    def test_range_closed_boundary(self):
+        # GH 11804
+        for closed in ['right', 'left', None]:
+            right_boundary = date_range('2015-09-12', '2015-12-01', freq='QS-MAR', closed=closed)
+            left_boundary = date_range('2015-09-01', '2015-09-12', freq='QS-MAR', closed=closed)
+            both_boundary = date_range('2015-09-01', '2015-12-01', freq='QS-MAR', closed=closed)
+            expected_right = expected_left = expected_both = both_boundary
+
+            if closed == 'right':
+                expected_left = both_boundary[1:]
+            if closed == 'left':
+                expected_right = both_boundary[:-1]
+            if closed is None:
+                expected_right = both_boundary[1:]
+                expected_left = both_boundary[:-1]
+
+            self.assertTrue(right_boundary.equals(expected_right))
+            self.assertTrue(left_boundary.equals(expected_left))
+            self.assertTrue(both_boundary.equals(expected_both))
 
     def test_years_only(self):
         # GH 6961
