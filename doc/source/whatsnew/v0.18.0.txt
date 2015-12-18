@@ -7,6 +7,10 @@ This is a major release from 0.17.1 and includes a small number of API changes, 
 enhancements, and performance improvements along with a large number of bug fixes. We recommend that all
 users upgrade to this version.
 
+.. warning::
+
+   pandas >= 0.18.0 will no longer support compatibility with Python version 3.3 (:issue:`11273`)
+
 Highlights include:
 
 Check the :ref:`API Changes <whatsnew_0180.api>` and :ref:`deprecations <whatsnew_0180.deprecations>` before updating.
