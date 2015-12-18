@@ -237,13 +237,9 @@ To get horizontal bar plots, use the ``barh`` method:
 Histograms
 ~~~~~~~~~~
 
-.. versionadded:: 0.17.0
-
-Histogram can be drawn by using the :meth:`DataFrame.plot.hist` and :meth:`Series.plot.hist` methods.
-
 .. versionadded:: 0.15.0
 
-Histogram can be drawn by using the ``plot(kind='hist')`` method.
+Histogram can be drawn by using the :meth:`DataFrame.plot.hist` and :meth:`Series.plot.hist` methods.
 
 .. ipython:: python
 
@@ -342,16 +338,10 @@ The ``by`` keyword can be specified to plot grouped histograms:
 Box Plots
 ~~~~~~~~~
 
-Boxplot can be drawn calling :meth:`Series.plot.box` and :meth:`DataFrame.plot.box`,
-or :meth:`DataFrame.boxplot` to visualize the distribution of values within each column.
-
-.. versionadded:: 0.17.0
-
-:meth:`DataFrame.plot.box` and :meth:`Series.plot.box` can now be used to draw boxplot.
-
 .. versionadded:: 0.15.0
 
-``plot`` method now supports ``kind='box'`` to draw boxplot.
+Boxplot can be drawn calling :meth:`Series.plot.box` and :meth:`DataFrame.plot.box`,
+or :meth:`DataFrame.boxplot` to visualize the distribution of values within each column.
 
 For instance, here is a boxplot representing five trials of 10 observations of
 a uniform random variable on [0,1).
@@ -481,7 +471,7 @@ When ``subplots=False`` / ``by`` is ``None``:
 
 * if ``return_type`` is ``'dict'``, a dictionary containing the :class:`matplotlib Lines <matplotlib.lines.Line2D>` is returned. The keys are "boxes", "caps", "fliers", "medians", and "whiskers".
    This is the default of ``boxplot`` in historical reason.
-   Note that both ``plot.box()`` and ``plot(kind'box')`` return ``Axes`` as default as the same as other plots.
+   Note that ``plot.box()`` returns ``Axes`` by default same as other plots.
 * if ``return_type`` is ``'axes'``, a :class:`matplotlib Axes <matplotlib.axes.Axes>` containing the boxplot is returned.
 * if ``return_type`` is ``'both'`` a namedtuple containging the :class:`matplotlib Axes <matplotlib.axes.Axes>`
    and :class:`matplotlib Lines <matplotlib.lines.Line2D>` is returned
@@ -531,13 +521,10 @@ Compare to:
 Area Plot
 ~~~~~~~~~
 
-.. versionadded:: 0.17
-
-You can create area plots with :meth:`Series.plot.area` and :meth:`DataFrame.plot.area`.
-
 .. versionadded:: 0.14
 
-You can create area plots with ``Series.plot`` and ``DataFrame.plot`` by passing ``kind='area'``. Area plots are stacked by default. To produce stacked area plot, each column must be either all positive or all negative values.
+You can create area plots with :meth:`Series.plot.area` and :meth:`DataFrame.plot.area`.
+Area plots are stacked by default. To produce stacked area plot, each column must be either all positive or all negative values.
 
 When input data contains `NaN`, it will be automatically filled by 0. If you want to drop or fill by different values, use :func:`dataframe.dropna` or :func:`dataframe.fillna` before calling `plot`.
 
@@ -572,13 +559,9 @@ To produce an unstacked plot, pass ``stacked=False``. Alpha value is set to 0.5 
 Scatter Plot
 ~~~~~~~~~~~~
 
-.. versionadded:: 0.17.0
-
-Scatter plot can be drawn by using the :meth:`DataFrame.plot.scatter` method.
-
 .. versionadded:: 0.13
 
-You can create scatter plots with ``DataFrame.plot`` by passing ``kind='scatter'``.
+Scatter plot can be drawn by using the :meth:`DataFrame.plot.scatter` method.
 Scatter plot requires numeric columns for x and y axis.
 These can be specified by ``x`` and ``y`` keywords each.
 
@@ -645,14 +628,9 @@ See the :meth:`scatter <matplotlib.axes.Axes.scatter>` method and the
 Hexagonal Bin Plot
 ~~~~~~~~~~~~~~~~~~
 
-.. versionadded:: 0.17.0
-
-You can create hexagonal bin plots with :meth:`DataFrame.plot.hexbin`.
-
 .. versionadded:: 0.14
 
-You can create hexagonal bin plots with :meth:`DataFrame.plot` and
-``kind='hexbin'``.
+You can create hexagonal bin plots with :meth:`DataFrame.plot.hexbin`.
 Hexbin plots can be a useful alternative to scatter plots if your data are
 too dense to plot each point individually.
 
@@ -713,13 +691,9 @@ See the :meth:`hexbin <matplotlib.axes.Axes.hexbin>` method and the
 Pie plot
 ~~~~~~~~
 
-.. versionadded:: 0.17
-
-You can create a pie plot with :meth:`DataFrame.plot.pie` or :meth:`Series.plot.pie`.
-
 .. versionadded:: 0.14
 
-You can create a pie plot with :meth:`DataFrame.plot` or :meth:`Series.plot` with ``kind='pie'``.
+You can create a pie plot with :meth:`DataFrame.plot.pie` or :meth:`Series.plot.pie`.
 If your data includes any ``NaN``, they will be automatically filled with 0.
 A ``ValueError`` will be raised if there are any negative values in your data.
 
@@ -892,14 +866,9 @@ You can create a scatter plot matrix using the
 Density Plot
 ~~~~~~~~~~~~
 
-.. versionadded:: 0.17.0
-
-You can create density plots using the :meth:`Series.plot.kde` and :meth:`DataFrame.plot.kde` methods.
-
 .. versionadded:: 0.8.0
 
-You can create density plots using the Series/DataFrame.plot and
-setting ``kind='kde'``:
+You can create density plots using the :meth:`Series.plot.kde` and :meth:`DataFrame.plot.kde` methods.
 
 .. ipython:: python
    :suppress:
