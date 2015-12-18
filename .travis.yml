@@ -57,13 +57,6 @@ matrix:
       - FULL_DEPS=true
       - CLIPBOARD=xsel
       - BUILD_TYPE=conda
-    - python: 3.3
-      env:
-      - JOB_NAME: "33_nslow"
-      - NOSE_ARGS="not slow and not disabled"
-      - FULL_DEPS=true
-      - CLIPBOARD=xsel
-      - BUILD_TYPE=conda
     - python: 2.7
       env:
       - JOB_NAME: "27_slow"
@@ -104,13 +97,6 @@ matrix:
       - BUILD_TYPE=pydata
       - PANDAS_TESTING_MODE="deprecate"
     allow_failures:
-      - python: 3.3
-        env:
-        - JOB_NAME: "33_nslow"
-        - NOSE_ARGS="not slow and not disabled"
-        - FULL_DEPS=true
-        - CLIPBOARD=xsel
-        - BUILD_TYPE=conda
       - python: 2.7
         env:
         - JOB_NAME: "27_slow"
