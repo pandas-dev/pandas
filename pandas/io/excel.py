@@ -293,7 +293,14 @@ class ExcelFile(object):
                  stacklevel=3)
 
         if 'chunksize' in kwds:
-            raise NotImplementedError("Reading an Excel file in chunks "
+            raise NotImplementedError("chunksize keyword of read_excel "
+                                      "is not implemented")
+        if parse_dates:
+            raise NotImplementedError("parse_dates keyword of read_excel "
+                                      "is not implemented")
+
+        if date_parser is not None:
+            raise NotImplementedError("date_parser keyword of read_excel "
                                       "is not implemented")
 
         import xlrd
