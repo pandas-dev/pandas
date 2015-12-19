@@ -2,11 +2,13 @@
 Base and utility classes for pandas objects.
 """
 from pandas import compat
+from pandas.compat import builtins
 import numpy as np
 from pandas.core import common as com
 import pandas.core.nanops as nanops
 import pandas.lib as lib
-from pandas.util.decorators import Appender, cache_readonly, deprecate_kwarg
+from pandas.util.decorators import (Appender, Substitution,
+                                    cache_readonly, deprecate_kwarg)
 from pandas.core.common import AbstractMethodError
 
 _shared_docs = dict()
@@ -217,6 +219,288 @@ class AccessorProperty(object):
     def __delete__(self, instance):
         raise AttributeError("can't delete attribute")
 
+
+class GroupByError(Exception):
+    pass
+
+
+class DataError(GroupByError):
+    pass
+
+
+class SpecificationError(GroupByError):
+    pass
+
+
+class SelectionMixin(object):
+    """
+    mixin implementing the selection & aggregation interface on a group-like object
+    sub-classes need to define: obj, exclusions
+    """
+    _selection = None
+    _internal_names = ['_cache','__setstate__']
+    _internal_names_set = set(_internal_names)
+    _builtin_table = {
+        builtins.sum: np.sum,
+        builtins.max: np.max,
+        builtins.min: np.min,
+        }
+    _cython_table = {
+        builtins.sum: 'sum',
+        builtins.max: 'max',
+        builtins.min: 'min',
+        np.sum: 'sum',
+        np.mean: 'mean',
+        np.prod: 'prod',
+        np.std: 'std',
+        np.var: 'var',
+        np.median: 'median',
+        np.max: 'max',
+        np.min: 'min',
+        np.cumprod: 'cumprod',
+        np.cumsum: 'cumsum'
+        }
+
+    @property
+    def name(self):
+        if self._selection is None:
+            return None  # 'result'
+        else:
+            return self._selection
+
+    @property
+    def _selection_list(self):
+        if not isinstance(self._selection, (list, tuple, com.ABCSeries, com.ABCIndex, np.ndarray)):
+            return [self._selection]
+        return self._selection
+
+    @cache_readonly
+    def _selected_obj(self):
+
+        if self._selection is None or isinstance(self.obj, com.ABCSeries):
+            return self.obj
+        else:
+            return self.obj[self._selection]
+
+    @cache_readonly
+    def _obj_with_exclusions(self):
+        if self._selection is not None and isinstance(self.obj, com.ABCDataFrame):
+            return self.obj.reindex(columns=self._selection_list)
+
+        if len(self.exclusions) > 0:
+            return self.obj.drop(self.exclusions, axis=1)
+        else:
+            return self.obj
+
+    def __getitem__(self, key):
+        if self._selection is not None:
+            raise Exception('Column(s) %s already selected' % self._selection)
+
+        if isinstance(key, (list, tuple, com.ABCSeries, com.ABCIndex, np.ndarray)):
+            if len(self.obj.columns.intersection(key)) != len(key):
+                bad_keys = list(set(key).difference(self.obj.columns))
+                raise KeyError("Columns not found: %s"
+                               % str(bad_keys)[1:-1])
+            return self._gotitem(list(key), ndim=2)
+
+        elif not getattr(self,'as_index',False):
+            if key not in self.obj.columns:
+                raise KeyError("Column not found: %s" % key)
+            return self._gotitem(key, ndim=2)
+
+        else:
+            if key not in self.obj:
+                raise KeyError("Column not found: %s" % key)
+            return self._gotitem(key, ndim=1)
+
+    def _gotitem(self, key, ndim, subset=None):
+        """
+        sub-classes to define
+        return a sliced object
+
+        Parameters
+        ----------
+        key : string / list of selections
+        ndim : 1,2
+            requested ndim of result
+        subset : object, default None
+            subset to act on
+
+        """
+        raise AbstractMethodError(self)
+
+    _agg_doc = """Aggregate using input function or dict of {column -> function}
+
+Parameters
+----------
+arg : function or dict
+    Function to use for aggregating groups. If a function, must either
+    work when passed a DataFrame or when passed to DataFrame.apply. If
+    passed a dict, the keys must be DataFrame column names.
+
+    Accepted Combinations are:
+      - string cythonized function name
+      - function
+      - list of functions
+      - dict of columns -> functions
+      - nested dict of names -> dicts of functions
+
+Notes
+-----
+Numpy functions mean/median/prod/sum/std/var are special cased so the
+default behavior is applying the function along axis=0
+(e.g., np.mean(arr_2d, axis=0)) as opposed to
+mimicking the default Numpy behavior (e.g., np.mean(arr_2d)).
+
+Returns
+-------
+aggregated : DataFrame
+"""
+
+    _see_also_template = """
+See also
+--------
+pandas.Series.%(name)s
+pandas.DataFrame.%(name)s
+"""
+
+    def aggregate(self, func, *args, **kwargs):
+        raise AbstractMethodError(self)
+
+    agg = aggregate
+
+    def _aggregate(self, arg, *args, **kwargs):
+        """
+        provide an implementation for the aggregators
+
+        Parameters
+        ----------
+        arg : string, dict, function
+        *args : args to pass on to the function
+        **kwargs : kwargs to pass on to the function
+
+
+        Returns
+        -------
+        tuple of result, how
+
+        Notes
+        -----
+        how can be a string describe the required post-processing, or
+        None if not required
+        """
+
+        _level = kwargs.pop('_level',None)
+        if isinstance(arg, compat.string_types):
+            return getattr(self, arg)(*args, **kwargs), None
+
+        result = compat.OrderedDict()
+        if isinstance(arg, dict):
+            if self.axis != 0:  # pragma: no cover
+                raise ValueError('Can only pass dict with axis=0')
+
+            obj = self._selected_obj
+
+            if any(isinstance(x, (list, tuple, dict)) for x in arg.values()):
+                new_arg = compat.OrderedDict()
+                for k, v in compat.iteritems(arg):
+                    if not isinstance(v, (tuple, list, dict)):
+                        new_arg[k] = [v]
+                    else:
+                        new_arg[k] = v
+                arg = new_arg
+
+            keys = []
+            if self._selection is not None:
+                subset = obj
+
+                for fname, agg_how in compat.iteritems(arg):
+                    colg = self._gotitem(self._selection, ndim=1, subset=subset)
+                    result[fname] = colg.aggregate(agg_how, _level=None)
+                    keys.append(fname)
+            else:
+                for col, agg_how in compat.iteritems(arg):
+                    colg = self._gotitem(col, ndim=1)
+                    result[col] = colg.aggregate(agg_how, _level=None)
+                    keys.append(col)
+
+            if isinstance(list(result.values())[0], com.ABCDataFrame):
+                from pandas.tools.merge import concat
+                result = concat([ result[k] for k in keys ], keys=keys, axis=1)
+            else:
+                from pandas import DataFrame
+                result = DataFrame(result)
+
+            return result, True
+        elif hasattr(arg, '__iter__'):
+            return self._aggregate_multiple_funcs(arg, _level=_level), None
+        else:
+            result = None
+
+        cy_func = self._is_cython_func(arg)
+        if cy_func and not args and not kwargs:
+            return getattr(self, cy_func)(), None
+
+        # caller can react
+        return result, True
+
+    def _aggregate_multiple_funcs(self, arg, _level):
+        from pandas.tools.merge import concat
+
+        if self.axis != 0:
+            raise NotImplementedError("axis other than 0 is not supported")
+
+        if self._selected_obj.ndim == 1:
+            obj = self._selected_obj
+        else:
+            obj = self._obj_with_exclusions
+
+        results = []
+        keys = []
+
+        # degenerate case
+        if obj.ndim==1:
+            for a in arg:
+                try:
+                    colg = self._gotitem(obj.name, ndim=1, subset=obj)
+                    results.append(colg.aggregate(a))
+
+                    # make sure we find a good name
+                    name = com._get_callable_name(a) or a
+                    keys.append(name)
+                except (TypeError, DataError):
+                    pass
+                except SpecificationError:
+                    raise
+
+        # multiples
+        else:
+            for col in obj:
+                try:
+                    colg = self._gotitem(col, ndim=1, subset=obj[col])
+                    results.append(colg.aggregate(arg))
+                    keys.append(col)
+                except (TypeError, DataError):
+                    pass
+                except SpecificationError:
+                    raise
+
+        if _level:
+            keys = None
+        result = concat(results, keys=keys, axis=1)
+
+        return result
+
+    def _is_cython_func(self, arg):
+        """ if we define an internal function for this argument, return it """
+        return self._cython_table.get(arg)
+
+    def _is_builtin_func(self, arg):
+        """
+        if we define an builtin function for this argument, return it,
+        otherwise return the arg
+        """
+        return self._builtin_table.get(arg, arg)
 
 class FrozenList(PandasObject, list):
 
