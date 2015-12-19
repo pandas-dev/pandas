@@ -990,7 +990,7 @@ class HDFStore(StringMixin):
 
     def create_table_index(self, key, **kwargs):
         """ Create a pytables index on the table
-        Paramaters
+        Parameters
         ----------
         key : object (the node to index)
 
@@ -3119,7 +3119,7 @@ class Table(Fixed):
           note: cannot index Time64Col() or ComplexCol currently;
           PyTables must be >= 3.0
 
-        Paramaters
+        Parameters
         ----------
         columns : False (don't create an index), True (create all columns
             index), None or list_like (the indexers to index)
