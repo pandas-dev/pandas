@@ -13,7 +13,7 @@ users upgrade to this version.
 
 Highlights include:
 
-- Window functions are now methods on ``.groupby`` like objects, see :ref:`here <whatsnew_0180.moments>`.
+- Window functions are now methods on ``.groupby`` like objects, see :ref:`here <whatsnew_0180.enhancements.moments>`.
 
 Check the :ref:`API Changes <whatsnew_0180.api>` and :ref:`deprecations <whatsnew_0180.deprecations>` before updating.
 
@@ -45,6 +45,8 @@ Previous Behavior:
 .. code-block:: python
 
    In [8]: pd.rolling_mean(df,window=3)
+           FutureWarning: pd.rolling_mean is deprecated for DataFrame and will be removed in a future version, replace with
+                          DataFrame.rolling(window=3,center=False).mean()
    Out[8]:
        A         B
    0 NaN       NaN
@@ -64,13 +66,20 @@ New Behavior:
 
    r = df.rolling(window=3)
 
-These show a descriptive repr, with tab-completion of available methods
+These show a descriptive repr
 
 .. ipython:: python
 
    r
+with tab-completion of available methods and properties.
 
-The methods operate on this ``Rolling`` object itself
+.. code-block:: python
+
+   In [9]: r.
+   r.A           r.agg         r.apply       r.count       r.exclusions  r.max         r.median      r.name        r.skew        r.sum
+   r.B           r.aggregate   r.corr        r.cov         r.kurt        r.mean        r.min         r.quantile    r.std         r.var
+
+The methods operate on the ``Rolling`` object itself
 
 .. ipython:: python
 
