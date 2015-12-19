@@ -76,13 +76,13 @@ dataframe can be found with the memory_usage method:
     # total memory usage of dataframe
     df.memory_usage().sum()
 
-By default the memory usage of the dataframe's index is not shown in the
-returned Series, the memory usage of the index can be shown by passing
-the ``index=True`` argument:
+By default the memory usage of the dataframe's index is shown in the
+returned Series, the memory usage of the index can be suppressed by passing
+the ``index=False`` argument:
 
 .. ipython:: python
 
-    df.memory_usage(index=True)
+    df.memory_usage(index=False)
 
 The memory usage displayed by the ``info`` method utilizes the
 ``memory_usage`` method to determine the memory usage of a dataframe

@@ -23,7 +23,7 @@ from numpy import nan as NA
 import numpy as np
 import numpy.ma as ma
 
-from pandas.core.common import (isnull, notnull, PandasError, _try_sort, _not_none,
+from pandas.core.common import (isnull, notnull, PandasError, _try_sort,
                                 _default_index, _maybe_upcast, is_sequence,
                                 _infer_dtype_from_scalar, _values_from_object,
                                 is_list_like, _maybe_box_datetimelike,
@@ -46,8 +46,7 @@ from numpy import percentile as _quantile
 from pandas.compat import(range, map, zip, lrange, lmap, lzip, StringIO, u,
                           OrderedDict, raise_with_traceback)
 from pandas import compat
-from pandas.sparse.array import SparseArray
-from pandas.util.decorators import (cache_readonly, deprecate, Appender,
+from pandas.util.decorators import (deprecate, Appender,
                                     Substitution, deprecate_kwarg)
 
 from pandas.tseries.period import PeriodIndex
@@ -1720,10 +1719,11 @@ class DataFrame(NDFrame):
                     size_qualifier = '+'
             mem_usage = self.memory_usage(index=True, deep=deep).sum()
             lines.append("memory usage: %s\n" %
-                            _sizeof_fmt(mem_usage, size_qualifier))
+                         _sizeof_fmt(mem_usage, size_qualifier)
+                         )
         _put_lines(buf, lines)
 
-    def memory_usage(self, index=False, deep=False):
+    def memory_usage(self, index=True, deep=False):
         """Memory usage of DataFrame columns.
 
         Parameters
