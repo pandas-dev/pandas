@@ -167,10 +167,9 @@ class ReadingTestsBase(SharedItems):
 
         dfref = self.get_csv_refdf('test1')
         dfref = dfref.reindex(columns=['A', 'B', 'C'])
-        df1 = self.get_exceldf('test1', 'Sheet1', index_col=0, parse_dates=True,
-                               parse_cols=3)
+        df1 = self.get_exceldf('test1', 'Sheet1', index_col=0, parse_cols=3)
         df2 = self.get_exceldf('test1', 'Sheet2', skiprows=[1], index_col=0,
-                               parse_dates=True, parse_cols=3)
+                               parse_cols=3)
         # TODO add index to xls file)
         tm.assert_frame_equal(df1, dfref, check_names=False)
         tm.assert_frame_equal(df2, dfref, check_names=False)
@@ -179,10 +178,9 @@ class ReadingTestsBase(SharedItems):
 
         dfref = self.get_csv_refdf('test1')
         dfref = dfref.reindex(columns=['B', 'C'])
-        df1 = self.get_exceldf('test1', 'Sheet1', index_col=0, parse_dates=True,
+        df1 = self.get_exceldf('test1', 'Sheet1', index_col=0,
                                parse_cols=[0, 2, 3])
         df2 = self.get_exceldf('test1', 'Sheet2', skiprows=[1], index_col=0,
-                               parse_dates=True,
                                parse_cols=[0, 2, 3])
         # TODO add index to xls file)
         tm.assert_frame_equal(df1, dfref, check_names=False)
@@ -193,28 +191,28 @@ class ReadingTestsBase(SharedItems):
         dfref = self.get_csv_refdf('test1')
 
         df1 = dfref.reindex(columns=['A', 'B', 'C'])
-        df2 = self.get_exceldf('test1', 'Sheet1', index_col=0, parse_dates=True,
+        df2 = self.get_exceldf('test1', 'Sheet1', index_col=0,
                                parse_cols='A:D')
         df3 = self.get_exceldf('test1', 'Sheet2', skiprows=[1], index_col=0,
-                               parse_dates=True, parse_cols='A:D')
+                               parse_cols='A:D')
         # TODO add index to xls, read xls ignores index name ?
         tm.assert_frame_equal(df2, df1, check_names=False)
         tm.assert_frame_equal(df3, df1, check_names=False)
 
         df1 = dfref.reindex(columns=['B', 'C'])
-        df2 = self.get_exceldf('test1', 'Sheet1', index_col=0, parse_dates=True,
+        df2 = self.get_exceldf('test1', 'Sheet1', index_col=0,
                                parse_cols='A,C,D')
         df3 = self.get_exceldf('test1', 'Sheet2', skiprows=[1], index_col=0,
-                               parse_dates=True, parse_cols='A,C,D')
+                               parse_cols='A,C,D')
         # TODO add index to xls file
         tm.assert_frame_equal(df2, df1, check_names=False)
         tm.assert_frame_equal(df3, df1, check_names=False)
 
         df1 = dfref.reindex(columns=['B', 'C'])
-        df2 = self.get_exceldf('test1', 'Sheet1', index_col=0, parse_dates=True,
+        df2 = self.get_exceldf('test1', 'Sheet1', index_col=0,
                                parse_cols='A,C:D')
         df3 = self.get_exceldf('test1', 'Sheet2', skiprows=[1], index_col=0,
-                               parse_dates=True, parse_cols='A,C:D')
+                               parse_cols='A,C:D')
         tm.assert_frame_equal(df2, df1, check_names=False)
         tm.assert_frame_equal(df3, df1, check_names=False)
 
@@ -251,23 +249,23 @@ class ReadingTestsBase(SharedItems):
         excel = self.get_excelfile('test1')
         dfref = self.get_csv_refdf('test1')
 
-        df1 = read_excel(excel, 0, index_col=0, parse_dates=True)
-        df2 = read_excel(excel, 1, skiprows=[1], index_col=0, parse_dates=True)
+        df1 = read_excel(excel, 0, index_col=0)
+        df2 = read_excel(excel, 1, skiprows=[1], index_col=0)
         tm.assert_frame_equal(df1, dfref, check_names=False)
         tm.assert_frame_equal(df2, dfref, check_names=False)
 
-        df1 = excel.parse(0, index_col=0, parse_dates=True)
-        df2 = excel.parse(1, skiprows=[1], index_col=0, parse_dates=True)
+        df1 = excel.parse(0, index_col=0)
+        df2 = excel.parse(1, skiprows=[1], index_col=0)
         tm.assert_frame_equal(df1, dfref, check_names=False)
         tm.assert_frame_equal(df2, dfref, check_names=False)
 
-        df3 = read_excel(excel, 0, index_col=0, parse_dates=True, skipfooter=1)
-        df4 = read_excel(excel, 0, index_col=0, parse_dates=True, skip_footer=1)
+        df3 = read_excel(excel, 0, index_col=0, skipfooter=1)
+        df4 = read_excel(excel, 0, index_col=0, skip_footer=1)
         tm.assert_frame_equal(df3, df1.ix[:-1])
         tm.assert_frame_equal(df3, df4)
 
-        df3 = excel.parse(0, index_col=0, parse_dates=True, skipfooter=1)
-        df4 = excel.parse(0, index_col=0, parse_dates=True, skip_footer=1)
+        df3 = excel.parse(0, index_col=0, skipfooter=1)
+        df4 = excel.parse(0, index_col=0, skip_footer=1)
         tm.assert_frame_equal(df3, df1.ix[:-1])
         tm.assert_frame_equal(df3, df4)
 
@@ -279,16 +277,15 @@ class ReadingTestsBase(SharedItems):
 
         dfref = self.get_csv_refdf('test1')
 
-        df1 = self.get_exceldf('test1', 'Sheet1', index_col=0, parse_dates=True)
-        df2 = self.get_exceldf('test1', 'Sheet2', skiprows=[1], index_col=0,
-                               parse_dates=True)
+        df1 = self.get_exceldf('test1', 'Sheet1', index_col=0)
+        df2 = self.get_exceldf('test1', 'Sheet2', skiprows=[1], index_col=0)
         # TODO add index to file
         tm.assert_frame_equal(df1, dfref, check_names=False)
         tm.assert_frame_equal(df2, dfref, check_names=False)
 
-        df3 = self.get_exceldf('test1', 'Sheet1', index_col=0, parse_dates=True,
+        df3 = self.get_exceldf('test1', 'Sheet1', index_col=0,
                                skipfooter=1)
-        df4 = self.get_exceldf('test1', 'Sheet1', index_col=0, parse_dates=True,
+        df4 = self.get_exceldf('test1', 'Sheet1', index_col=0,
                                skip_footer=1)
         tm.assert_frame_equal(df3, df1.ix[:-1])
         tm.assert_frame_equal(df3, df4)
@@ -389,7 +386,7 @@ class ReadingTestsBase(SharedItems):
         basename = 'blank_with_header'
         dfs = self.get_exceldf(basename, sheetname=None)
         expected_keys = ['Sheet1', 'Sheet2', 'Sheet3']
-        tm.assert_contains_all(expected_keys, dfs.keys())        
+        tm.assert_contains_all(expected_keys, dfs.keys())
 
     # GH6403
     def test_read_excel_blank(self):
@@ -411,14 +408,14 @@ class XlrdTests(ReadingTestsBase):
     def test_excel_read_buffer(self):
 
         pth = os.path.join(self.dirpath, 'test1' + self.ext)
-        expected = read_excel(pth, 'Sheet1', index_col=0, parse_dates=True)
+        expected = read_excel(pth, 'Sheet1', index_col=0)
         with open(pth, 'rb') as f:
-            actual = read_excel(f, 'Sheet1', index_col=0, parse_dates=True)
+            actual = read_excel(f, 'Sheet1', index_col=0)
             tm.assert_frame_equal(expected, actual)
 
         with open(pth, 'rb') as f:
             xls = ExcelFile(f)
-            actual = read_excel(xls, 'Sheet1', index_col=0, parse_dates=True)
+            actual = read_excel(xls, 'Sheet1', index_col=0)
             tm.assert_frame_equal(expected, actual)
 
     def test_read_xlrd_Book(self):
@@ -680,7 +677,7 @@ class XlrdTests(ReadingTestsBase):
         tm.assert_frame_equal(actual, expected, check_names=False)
 
     def test_read_excel_bool_header_arg(self):
-        #GH 6114
+        # GH 6114
         for arg in [True, False]:
             with tm.assertRaises(TypeError):
                 pd.read_excel(os.path.join(self.dirpath, 'test1' + self.ext),
@@ -691,6 +688,19 @@ class XlrdTests(ReadingTestsBase):
         with tm.assertRaises(NotImplementedError):
             pd.read_excel(os.path.join(self.dirpath, 'test1' + self.ext),
                           chunksize=100)
+
+    def test_read_excel_parse_dates(self):
+        # GH 11544
+        with tm.assertRaises(NotImplementedError):
+            pd.read_excel(os.path.join(self.dirpath, 'test1' + self.ext),
+                          parse_dates=True)
+
+    def test_read_excel_date_parser(self):
+        # GH 11544
+        with tm.assertRaises(NotImplementedError):
+            dateparse = lambda x: pd.datetime.strptime(x, '%Y-%m-%d %H:%M:%S')
+            pd.read_excel(os.path.join(self.dirpath, 'test1' + self.ext),
+                          date_parser=dateparse)
 
     def test_read_excel_skiprows_list(self):
         #GH 4903
@@ -1093,7 +1103,7 @@ class ExcelWriterBase(SharedItems):
             xp.to_excel(path, 'sht1')
 
             reader = ExcelFile(path)
-            rs = read_excel(reader, 'sht1', index_col=0, parse_dates=True)
+            rs = read_excel(reader, 'sht1', index_col=0)
             tm.assert_frame_equal(xp, rs.to_period('M'))
 
     def test_to_excel_multiindex(self):
