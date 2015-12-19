@@ -1,22 +1,25 @@
 # -*- coding: utf-8 -*-
 from __future__ import print_function
-import re
-from datetime import datetime, timedelta
-import numpy as np
-import pandas.compat as compat
-import pandas as pd
-from pandas.compat import u, StringIO
-from pandas.core.base import FrozenList, FrozenNDArray, PandasDelegate, NoNewAttributesMixin
-import pandas.core.common as com
-from pandas.tseries.base import DatetimeIndexOpsMixin
-from pandas.util.testing import assertRaisesRegexp, assertIsInstance
-from pandas.tseries.common import is_datetimelike
-from pandas import Series, Index, Int64Index, DatetimeIndex, TimedeltaIndex, PeriodIndex, Timedelta
-import pandas.tslib as tslib
-from pandas import _np_version_under1p9
-import nose
 
+import re
+import sys
+from datetime import datetime, timedelta
+
+import numpy as np
+
+import pandas as pd
+import pandas.compat as compat
+import pandas.core.common as com
 import pandas.util.testing as tm
+from pandas import Series, Index, DatetimeIndex, \
+    TimedeltaIndex, PeriodIndex, Timedelta
+from pandas.compat import u, StringIO
+from pandas.core.base import FrozenList, FrozenNDArray, \
+    PandasDelegate, NoNewAttributesMixin
+from pandas.tseries.base import DatetimeIndexOpsMixin
+from pandas.util.testing import assertRaisesRegexp, \
+    assertIsInstance
+
 
 class CheckStringMixin(object):
     def test_string_methods_dont_fail(self):
@@ -112,7 +115,9 @@ class TestFrozenNDArray(CheckImmutable, CheckStringMixin, tm.TestCase):
     def test_shallow_copying(self):
         original = self.container.copy()
         assertIsInstance(self.container.view(), FrozenNDArray)
-        self.assertFalse(isinstance(self.container.view(np.ndarray), FrozenNDArray))
+        self.assertFalse(isinstance(
+            self.container.view(np.ndarray), FrozenNDArray
+        ))
         self.assertIsNot(self.container.view(), self.container)
         self.assert_numpy_array_equal(self.container, original)
         # shallow copy should be the same too
@@ -881,27 +886,30 @@ class TestIndexOps(Ops):
                 # check shallow_copied
                 self.assertFalse(o is result)
 
-
     def test_memory_usage(self):
         for o in self.objs:
             res = o.memory_usage()
-            res2 = o.memory_usage(deep=True)
+            res_deep = o.memory_usage(deep=True)
 
-            if com.is_object_dtype(o):
-                self.assertTrue(res2 > res)
+            if (com.is_object_dtype(o) or
+                    (isinstance(o, Series) and
+                        com.is_object_dtype(o.index))):
+                # if there are objects, only deep will pick them up
+                self.assertTrue(res_deep > res)
             else:
-                self.assertEqual(res, res2)
+                self.assertEqual(res, res_deep)
 
             if isinstance(o, Series):
-                res = o.memory_usage(index=True)
-                res2 = o.memory_usage(index=True, deep=True)
-                if com.is_object_dtype(o) or com.is_object_dtype(o.index):
-                    self.assertTrue(res2 > res)
-                else:
-                    self.assertEqual(res, res2)
+                self.assertEqual(
+                    (o.memory_usage(index=False) +
+                        o.index.memory_usage()),
+                    o.memory_usage(index=True)
+                )
 
-                self.assertEqual(o.memory_usage(index=False) + o.index.memory_usage(),
-                                 o.memory_usage(index=True))
+            # sys.getsizeof will call the .memory_usage with
+            # deep=True, and add on some GC overhead
+            diff = res_deep - sys.getsizeof(o)
+            self.assertTrue(abs(diff) < 100)
 
 
 class TestFloat64HashTable(tm.TestCase):
