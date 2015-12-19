@@ -7699,23 +7699,35 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         df.columns = dtypes
         # Ensure df size is as expected
         df_size = df.memory_usage().sum()
-        exp_size = len(dtypes) * n * 8  # cols * rows * bytes
+        exp_size = (len(dtypes) + 1) * n * 8  # (cols + index) * rows * bytes
         self.assertEqual(df_size, exp_size)
         # Ensure number of cols in memory_usage is the same as df
-        size_df = np.size(df.columns.values)  # index=False; default
+        size_df = np.size(df.columns.values) + 1  # index=True; default
         self.assertEqual(size_df, np.size(df.memory_usage()))
 
         # assert deep works only on object
-        self.assertEqual(df.memory_usage().sum(),df.memory_usage(deep=True).sum())
+        self.assertEqual(df.memory_usage().sum(),
+                         df.memory_usage(deep=True).sum())
 
         # test for validity
-        DataFrame(1,index=['a'],columns=['A']).memory_usage(index=True)
-        DataFrame(1,index=['a'],columns=['A']).index.nbytes
-        DataFrame(1,index=pd.MultiIndex.from_product([['a'],range(1000)]),columns=['A']).index.nbytes
-        DataFrame(1,index=pd.MultiIndex.from_product([['a'],range(1000)]),columns=['A']).index.values.nbytes
-        DataFrame(1,index=pd.MultiIndex.from_product([['a'],range(1000)]),columns=['A']).memory_usage(index=True)
-        DataFrame(1,index=pd.MultiIndex.from_product([['a'],range(1000)]),columns=['A']).index.nbytes
-        DataFrame(1,index=pd.MultiIndex.from_product([['a'],range(1000)]),columns=['A']).index.values.nbytes
+        DataFrame(1, index=['a'], columns=['A']
+                  ).memory_usage(index=True)
+        DataFrame(1, index=['a'], columns=['A']
+                  ).index.nbytes
+        df = DataFrame(
+            data=1,
+            index=pd.MultiIndex.from_product(
+                [['a'], range(1000)]),
+            columns=['A']
+        )
+        df.index.nbytes
+        df.memory_usage(index=True)
+        df.index.values.nbytes
+
+        # sys.getsizeof will call the .memory_usage with
+        # deep=True, and add on some GC overhead
+        diff = df.memory_usage(deep=True).sum() - sys.getsizeof(df)
+        self.assertTrue(abs(diff) < 100)
 
     def test_dtypes(self):
         self.mixed_frame['bool'] = self.mixed_frame['A'] > 0

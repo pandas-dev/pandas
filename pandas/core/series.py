@@ -2335,7 +2335,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin, generic.NDFrame,):
             raise ValueError("cannot reindex series on non-zero axis!")
         return self.reindex(index=labels, **kwargs)
 
-    def memory_usage(self, index=False, deep=False):
+    def memory_usage(self, index=True, deep=False):
         """Memory usage of the Series
 
         Parameters

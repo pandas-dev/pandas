@@ -1,22 +1,22 @@
 # -*- coding: utf-8 -*-
 # pylint: disable=E1101,E1103,W0232
 
-from datetime import datetime
-from pandas.compat import range, lrange, u, PY3
 import os
-import pickle
-import re
+import sys
+from datetime import datetime
 from distutils.version import LooseVersion
 
 import numpy as np
+
 import pandas as pd
-
-from pandas import Categorical, Index, Series, DataFrame, PeriodIndex, Timestamp, CategoricalIndex
-
-from pandas.core.config import option_context
-import pandas.core.common as com
 import pandas.compat as compat
+import pandas.core.common as com
 import pandas.util.testing as tm
+from pandas import (Categorical, Index, Series, DataFrame,
+                    PeriodIndex, Timestamp, CategoricalIndex)
+from pandas.compat import range, lrange, u, PY3
+from pandas.core.config import option_context
+
 
 class TestCategorical(tm.TestCase):
     _multiprocess_can_split_ = True
@@ -1219,10 +1219,17 @@ Categories (3, object): [ああああ, いいいいい, ううううううう]""
         self.assertEqual(cat.nbytes, cat.memory_usage())
         self.assertTrue(cat.memory_usage(deep=True) > cat.nbytes)
 
+        # sys.getsizeof will call the .memory_usage with
+        # deep=True, and add on some GC overhead
+        diff = cat.memory_usage(deep=True) - sys.getsizeof(cat)
+        self.assertTrue(abs(diff) < 100)
+
     def test_searchsorted(self):
         # https://github.com/pydata/pandas/issues/8420
-        s1 = pd.Series(['apple', 'bread', 'bread', 'cheese', 'milk' ])
-        s2 = pd.Series(['apple', 'bread', 'bread', 'cheese', 'milk', 'donuts' ])
+        s1 = pd.Series(['apple', 'bread', 'bread', 'cheese',
+                        'milk'])
+        s2 = pd.Series(['apple', 'bread', 'bread', 'cheese',
+                        'milk', 'donuts'])
         c1 = pd.Categorical(s1, ordered=True)
         c2 = pd.Categorical(s2, ordered=True)
 

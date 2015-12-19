@@ -112,6 +112,22 @@ class PandasObject(StringMixin):
         else:
             self._cache.pop(key, None)
 
+    def __sizeof__(self):
+        """
+        Generates the total memory usage for a object that returns
+         either a value or Series of values
+        """
+        if hasattr(self, 'memory_usage'):
+            mem = self.memory_usage(deep=True)
+            if not lib.isscalar(mem):
+                mem = mem.sum()
+            return int(mem)
+
+        # no memory_usage attribute, so fall back to
+        # object's 'sizeof'
+        return super(self, PandasObject).__sizeof__()
+
+
 class NoNewAttributesMixin(object):
     """Mixin which prevents adding new attributes.
 
