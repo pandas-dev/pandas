@@ -519,7 +519,7 @@ to standardize the data within each group:
 
    index = pd.date_range('10/1/1999', periods=1100)
    ts = pd.Series(np.random.normal(0.5, 2, 1100), index)
-   ts = pd.rolling_mean(ts, 100, 100).dropna()
+   ts = ts.rolling(window=100,min_periods=100).mean().dropna()
 
    ts.head()
    ts.tail()

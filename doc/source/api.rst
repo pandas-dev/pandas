@@ -194,65 +194,6 @@ Top-level evaluation
 
    eval
 
-Standard moving window functions
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. autosummary::
-   :toctree: generated/
-
-   rolling_count
-   rolling_sum
-   rolling_mean
-   rolling_median
-   rolling_var
-   rolling_std
-   rolling_min
-   rolling_max
-   rolling_corr
-   rolling_corr_pairwise
-   rolling_cov
-   rolling_skew
-   rolling_kurt
-   rolling_apply
-   rolling_quantile
-   rolling_window
-
-.. _api.functions_expanding:
-
-Standard expanding window functions
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. autosummary::
-   :toctree: generated/
-
-   expanding_count
-   expanding_sum
-   expanding_mean
-   expanding_median
-   expanding_var
-   expanding_std
-   expanding_min
-   expanding_max
-   expanding_corr
-   expanding_corr_pairwise
-   expanding_cov
-   expanding_skew
-   expanding_kurt
-   expanding_apply
-   expanding_quantile
-
-Exponentially-weighted moving window functions
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. autosummary::
-   :toctree: generated/
-
-   ewma
-   ewmstd
-   ewmvar
-   ewmcorr
-   ewmcov
-
 .. _api.series:
 
 Series
@@ -260,6 +201,9 @@ Series
 
 Constructor
 ~~~~~~~~~~~
+
+.. currentmodule:: pandas
+
 .. autosummary::
    :toctree: generated/
 
@@ -344,14 +288,17 @@ Binary operator functions
    Series.ne
    Series.eq
 
-Function application, GroupBy
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Function application, GroupBy & Window
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .. autosummary::
    :toctree: generated/
 
    Series.apply
    Series.map
    Series.groupby
+   Series.rolling
+   Series.expanding
+   Series.ewm
 
 .. _api.series.stats:
 
@@ -846,14 +793,17 @@ Binary operator functions
    DataFrame.combine
    DataFrame.combine_first
 
-Function application, GroupBy
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Function application, GroupBy & Window
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .. autosummary::
    :toctree: generated/
 
    DataFrame.apply
    DataFrame.applymap
    DataFrame.groupby
+   DataFrame.rolling
+   DataFrame.expanding
+   DataFrame.ewm
 
 .. _api.dataframe.stats:
 
@@ -1550,6 +1500,78 @@ Conversion
    TimedeltaIndex.to_pytimedelta
    TimedeltaIndex.to_series
    TimedeltaIndex.round
+
+Window
+------
+.. currentmodule:: pandas.core.window
+
+Rolling objects are returned by ``.rolling`` calls: :func:`pandas.DataFrame.rolling`, :func:`pandas.Series.rolling`, etc.
+Expanding objects are returned by ``.expanding`` calls: :func:`pandas.DataFrame.expanding`, :func:`pandas.Series.expanding`, etc.
+EWM objects are returned by ``.ewm`` calls: :func:`pandas.DataFrame.ewm`, :func:`pandas.Series.ewm`, etc.
+
+Standard moving window functions
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. currentmodule:: pandas.core.window
+
+.. autosummary::
+   :toctree: generated/
+
+   Rolling.count
+   Rolling.sum
+   Rolling.mean
+   Rolling.median
+   Rolling.var
+   Rolling.std
+   Rolling.min
+   Rolling.max
+   Rolling.corr
+   Rolling.cov
+   Rolling.skew
+   Rolling.kurt
+   Rolling.apply
+   Rolling.quantile
+   Window.mean
+   Window.sum
+
+.. _api.functions_expanding:
+
+Standard expanding window functions
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. currentmodule:: pandas.core.window
+
+.. autosummary::
+   :toctree: generated/
+
+   Expanding.count
+   Expanding.sum
+   Expanding.mean
+   Expanding.median
+   Expanding.var
+   Expanding.std
+   Expanding.min
+   Expanding.max
+   Expanding.corr
+   Expanding.cov
+   Expanding.skew
+   Expanding.kurt
+   Expanding.apply
+   Expanding.quantile
+
+Exponentially-weighted moving window functions
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. currentmodule:: pandas.core.window
+
+.. autosummary::
+   :toctree: generated/
+
+   EWM.mean
+   EWM.std
+   EWM.var
+   EWM.corr
+   EWM.cov
 
 GroupBy
 -------

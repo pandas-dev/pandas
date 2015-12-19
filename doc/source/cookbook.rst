@@ -517,7 +517,7 @@ Unlike agg, apply's callable is passed a sub-DataFrame which gives you access to
    def Red(x):
       return functools.reduce(CumRet,x,1.0)
 
-   pd.expanding_apply(S, Red)
+   S.expanding().apply(Red)
 
 
 `Replacing some values with mean of the rest of a group
@@ -639,7 +639,7 @@ Create a list of dataframes, split using a delineation based on logic included i
    df = pd.DataFrame(data={'Case' : ['A','A','A','B','A','A','B','A','A'],
                            'Data' : np.random.randn(9)})
 
-   dfs = list(zip(*df.groupby(pd.rolling_median((1*(df['Case']=='B')).cumsum(),3,True))))[-1]
+   dfs = list(zip(*df.groupby((1*(df['Case']=='B')).cumsum().rolling(window=3,min_periods=1).median())))[-1]
 
    dfs[0]
    dfs[1]

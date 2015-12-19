@@ -13,6 +13,8 @@ users upgrade to this version.
 
 Highlights include:
 
+- Window functions are now methods on ``.groupby`` like objects, see :ref:`here <whatsnew_0180.moments>`.
+
 Check the :ref:`API Changes <whatsnew_0180.api>` and :ref:`deprecations <whatsnew_0180.deprecations>` before updating.
 
 .. contents:: What's new in v0.18.0
@@ -25,10 +27,67 @@ New features
 ~~~~~~~~~~~~
 
 
+.. _whatsnew_0180.enhancements.moments:
 
+Window functions are now methods
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Window functions have been refactored to be methods on ``Series/DataFrame`` objects, rather than top-level functions, which are now deprecated. This allows these window-type functions, to have a similar API to that of ``.groupby``. See the full documentation :ref:`here <stats.moments>` (:issue:`11603`)
 
+.. ipython:: python
 
+   np.random.seed(1234)
+   df = DataFrame({'A' : range(10), 'B' : np.random.randn(10)})
+   df
+
+Previous Behavior:
+
+.. code-block:: python
+
+   In [8]: pd.rolling_mean(df,window=3)
+   Out[8]:
+       A         B
+   0 NaN       NaN
+   1 NaN       NaN
+   2   1  0.237722
+   3   2 -0.023640
+   4   3  0.133155
+   5   4 -0.048693
+   6   5  0.342054
+   7   6  0.370076
+   8   7  0.079587
+   9   8 -0.954504
+
+New Behavior:
+
+.. ipython:: python
+
+   r = df.rolling(window=3)
+
+These show a descriptive repr, with tab-completion of available methods
+
+.. ipython:: python
+
+   r
+
+The methods operate on this ``Rolling`` object itself
+
+.. ipython:: python
+
+   r.mean()
+
+They provide getitem accessors
+
+.. ipython:: python
+
+   r['A'].mean()
+
+And multiple aggregations
+
+.. ipython:: python
+
+   r.agg({'A' : ['mean','std'],
+          'B' : ['mean','std']})
 
 .. _whatsnew_0180.enhancements.other:
 
@@ -153,18 +212,44 @@ Other API Changes
 Deprecations
 ^^^^^^^^^^^^
 
+.. _whatsnew_0180.window_deprecations:
 
+- The functions ``pd.rolling_*``, ``pd.expanding_*``, and ``pd.ewm*`` are deprecated and replaced by the corresponding method call. Note that
+  the new suggested syntax includes all of the arguments (even if default) (:issue:`11603`)
 
+  .. code-block:: python
 
+     In [1]: s = Series(range(3))
 
+     In [2]: pd.rolling_mean(s,window=2,min_periods=1)
+             FutureWarning: pd.rolling_mean is deprecated for Series and will be removed in a future version, replace with
+                  Series.rolling(min_periods=1,window=2,center=False).mean()
+     Out[2]:
+             0    0.0
+             1    0.5
+             2    1.5
+             dtype: float64
+
+     In [3]: pd.rolling_cov(s, s, window=2)
+             FutureWarning: pd.rolling_cov is deprecated for Series and will be removed in a future version, replace with
+                  Series.rolling(window=2).cov(other=<Series>)
+     Out[3]:
+             0    NaN
+             1    0.5
+             2    0.5
+             dtype: float64
+
+- The the ``freq`` and ``how`` arguments to the ``.rolling``, ``.expanding``, and ``.ewm`` (new) functions are deprecated, and will be removed in a future version. You can simply resample the input prior to creating a window function. (:issue:`11603`).
+
+  For example, instead of ``s.rolling(window=5,freq='D').max()`` to get the max value on a rolling 5 Day window, one could use ``s.resample('D',how='max').rolling(window=5).max()``, which first resamples the data to daily data, then provides a rolling 5 day window.
 
 .. _whatsnew_0180.prior_deprecations:
 
 Removal of prior version deprecations/changes
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-
-
+- Removal of ``rolling_corr_pairwise`` in favor of ``.rolling().corr(pairwise=True)`` (:issue:`4950`)
+- Removal of ``expanding_corr_pairwise`` in favor of ``.expanding().corr(pairwise=True)`` (:issue:`4950`)
 
 
 
@@ -195,6 +280,7 @@ Bug Fixes
 - Bug in ``Period.end_time`` when a multiple of time period is requested (:issue:`11738`)
 - Regression in ``.clip`` with tz-aware datetimes (:issue:`11838`)
 - Bug in ``date_range`` when the boundaries fell on the frequency (:issue:`11804`)
+- Bug in consistency of passing nested dicts to ``.groupby(...).agg(...)`` (:issue:`9052`)
 
 
 

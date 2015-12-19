@@ -2,6 +2,7 @@ from pandas.compat import StringIO, callable
 from pandas.lib import cache_readonly
 import sys
 import warnings
+from textwrap import dedent
 from functools import wraps
 
 
@@ -180,7 +181,7 @@ class Appender(object):
         func.__doc__ = func.__doc__ if func.__doc__ else ''
         self.addendum = self.addendum if self.addendum else ''
         docitems = [func.__doc__, self.addendum]
-        func.__doc__ = self.join.join(docitems)
+        func.__doc__ = dedent(self.join.join(docitems))
         return func
 
 
