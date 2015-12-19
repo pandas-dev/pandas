@@ -48,7 +48,7 @@ class TimelikeOps(object):
         """
         Round the index to the specified freq; this is a floor type of operation
 
-        Paramaters
+        Parameters
         ----------
         freq : freq string/object
 

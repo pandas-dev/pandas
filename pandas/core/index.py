@@ -1494,7 +1494,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         ascending : boolean, default True
             False to sort in descending order
 
-        level, sort_remaining are compat paramaters
+        level, sort_remaining are compat parameters
 
         Returns
         -------
