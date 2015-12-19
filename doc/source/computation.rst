@@ -201,10 +201,12 @@ parameter:
 Window Functions
 ----------------
 
+.. currentmodule:: pandas.core.window
+
 .. warning::
 
    Prior to version 0.18.0, ``pd.rolling_*``, ``pd.expanding_*``, and ``pd.ewm*`` were module level
-   functions and are now deprecated and replaced by the corresponding method call.
+   functions and are now deprecated. These are replaced by using the :class:`~pandas.core.window.Rolling`, :class:`~pandas.core.window.Expanding` and :class:`~pandas.core.window.EWM`. objects and a corresponding method call.
 
    The deprecation warning will show the new syntax, see an example :ref:`here <whatsnew_0180.window_deprecations>`
    You can view the previous documentation
@@ -214,8 +216,6 @@ For working with data, a number of windows functions are provided for
 computing common *window* or *rolling* statistics. Among these are count, sum,
 mean, median, correlation, variance, covariance, standard deviation, skewness,
 and kurtosis.
-
-.. currentmodule:: pandas.core.window
 
 .. note::
 
@@ -236,6 +236,14 @@ These are created from methods on ``Series`` and ``DataFrame``.
 
    r = s.rolling(window=60)
    r
+
+These object provide tab-completion of the avaible methods and properties.
+
+.. code-block:: python
+
+   In [14]: r.
+   r.agg         r.apply       r.count       r.exclusions  r.max         r.median      r.name        r.skew        r.sum
+   r.aggregate   r.corr        r.cov         r.kurt        r.mean        r.min         r.quantile    r.std         r.var
 
 Generally these methods all have the same interface. They all
 accept the following arguments:
@@ -390,7 +398,6 @@ Centering Windows
 
 By default the labels are set to the right edge of the window, but a
 ``center`` keyword is available so the labels can be set at the center.
-This keyword is available in other rolling functions as well.
 
 .. ipython:: python
 
