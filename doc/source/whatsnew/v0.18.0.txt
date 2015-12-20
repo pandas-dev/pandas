@@ -33,6 +33,7 @@ Other enhancements
 
 - Handle truncated floats in SAS xport files (:issue:`11713`)
 - ``read_excel`` now supports s3 urls of the format ``s3://bucketname/filename`` (:issue:`11447`)
+- ``to_datetime`` have a new parameter, ``origin``, to define offset for ``DateTimeIndex`` (:issue:`11276`)
 
 .. _whatsnew_0180.enhancements.rounding:
 
