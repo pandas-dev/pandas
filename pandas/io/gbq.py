@@ -24,7 +24,6 @@ import httplib2
 
 # P.Chr added libs
 from hurry.filesize import size, si
-from datetime import datetime
 import time
 
 logger = logging.getLogger('pandas.io.gbq')
@@ -106,12 +105,12 @@ class GbqConnector:
         self.start = time.monotonic()
 
     def get_elapsed_seconds(self):
-        return round(time.monotonic() - self.start, 3)
+        return round(time.monotonic() - self.start, 2)
 
     def print_elapsed_seconds(self, prefix='Elapsed', postfix='s.', overlong=7):
         sec = self.get_elapsed_seconds()
         if sec > overlong:
-            print('{} {} {}'.format(prefix, round(sec, 3), postfix))
+            print('{} {} {}'.format(prefix, sec, postfix))
             sys.stdout.flush()
 
     def run_query(self, query):
@@ -130,7 +129,7 @@ class GbqConnector:
             query_reply = job_collection.insert(projectId=self.project_id,
                                            body=job_data).execute()
             status = query_reply['status']
-            print('Query started...')
+            print('Query requested...')
             sys.stdout.flush()
         except AccessTokenRefreshError:
             raise AccessDeniedException("The credentials have been revoked or expired, please re-run"
@@ -165,14 +164,14 @@ class GbqConnector:
 
         bytes_processed = int(query_reply.get('totalBytesProcessed', '0'))
         if query_reply['cacheHit']:
-            print('Done. Cached result. Price: 0 $.')
+            print('Query done.\nCached result.\nPrice: 0 $.\n')
         else:
             # Charges are rounded to the nearest MB, with a minimum 10 MB data processed per table referenced by the query.
             mbytes = max( round( bytes_processed / 1e6 ), 10) # minimal charge is 10MB
             price = round(mbytes * 5 / 1e6, 4) # 5$ per TB
-            print('Done. {} processed. Price: {} $.'.format(size(bytes_processed, system=si), price))
+            print('Query done.\nProcessed: {}.\nPrice: {} $.\n'.format(size(bytes_processed, system=si), price))
 
-        self.print_elapsed_seconds('Query time taken', 's.\nRetrieving results...')
+        print('Retrieving results...')
 
         total_rows = int(query_reply['totalRows'])
         result_pages = list()
@@ -215,8 +214,8 @@ class GbqConnector:
             raise InvalidPageToken()
 
         # print basic query stats
-        print('Got {} rows.'.format(total_rows))
-        self.print_elapsed_seconds('Query + retrieving time taken' , 's.\nConstructing DataFrame...')
+        print('Got all {} rows.'.format(total_rows))
+        self.print_elapsed_seconds('Query + retrieving time taken' , 's.\n\nConstructing DataFrame...')
 
         return schema, result_pages
 
@@ -377,6 +376,7 @@ def read_gbq(query, project_id = None, index_col=None, col_order=None, reauth=Fa
     final_df._data = final_df._data.downcast(dtypes='infer')
 
     connector.print_elapsed_seconds('Total time taken', 's.', 0)
+    print( datetime.now().strftime("Finished at %Y-%m-%d %H:%M:%S.") );
 
     return final_df
 
