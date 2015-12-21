@@ -71,7 +71,7 @@ def get_writer(engine_name):
         raise ValueError("No Excel writer '%s'" % engine_name)
 
 def read_excel(io, sheetname=0, header=0, skiprows=None, skip_footer=0,
-               index_col=None, parse_cols=None, parse_dates=False,
+               index_col=None, names=None, parse_cols=None, parse_dates=False,
                date_parser=None, na_values=None, thousands=None,
                convert_float=True, has_index_names=None, converters=None,
                engine=None, **kwds):
@@ -116,6 +116,9 @@ def read_excel(io, sheetname=0, header=0, skiprows=None, skip_footer=0,
         Column (0-indexed) to use as the row labels of the DataFrame.
         Pass None if there is no such column.  If a list is passed,
         those columns will be combined into a ``MultiIndex``
+    names : array-like, default None
+        List of column names to use. If file contains no header row,
+        then you should explicitly pass header=None
     converters : dict, default None
         Dict of functions for converting values in certain columns. Keys can
         either be integers or column labels, values are functions that take one
