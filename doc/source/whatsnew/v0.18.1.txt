@@ -143,3 +143,5 @@ Bug Fixes
 
 
 - Bug in ``pivot_table`` when ``margins=True`` and ``dropna=True`` where nulls still contributed to margin count (:issue:`12577`)
+
+- Bug in ``read_csv`` with duplicated columns and ``usecols`` (:issue:`11823`) 

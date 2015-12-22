@@ -2342,6 +2342,20 @@ a,b,c
         expected = expected[['a', 'b']]
         tm.assert_frame_equal(result, expected)
 
+        # 11823: usecols vs no usecols
+        result = self.read_csv(StringIO(data), names=['a', 'a', 'b'],
+                               header=None, usecols=['a', 'a', 'b'])
+        expected = self.read_csv(StringIO(data), names=['a', 'a', 'b'],
+                                 header=None)
+        tm.assert_frame_equal(result, expected)
+        
+        # 11823: c vs python engine
+        result_c = pd.read_csv(StringIO(data), engine='c', header=None, 
+                            names=['a', 'a', 'b'], usecols=['a','a','b'])
+        result_py = pd.read_csv(StringIO(data), engine='python', header=None, 
+                            names=['a', 'a', 'b'], usecols=['a','a','b'])
+        tm.assert_frame_equal(result_c, result_py)
+
         # length conflict, passed names and usecols disagree
         self.assertRaises(ValueError, self.read_csv, StringIO(data),
                           names=['a', 'b'], usecols=[1], header=None)
