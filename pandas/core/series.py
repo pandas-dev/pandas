@@ -959,7 +959,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin, generic.NDFrame,):
         return result
 
     def to_string(self, buf=None, na_rep='NaN', float_format=None, header=True,
-                  length=False, dtype=False, name=False, max_rows=None):
+                  index=True, length=False, dtype=False, name=False, max_rows=None):
         """
         Render a string representation of the Series
 
@@ -974,6 +974,8 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin, generic.NDFrame,):
             default None
         header: boolean, default True
             Add the Series header (index name)
+        index : bool, optional
+            Add index (row) labels, default True
         length : boolean, default False
             Add the Series length
         dtype : boolean, default False
@@ -990,8 +992,8 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin, generic.NDFrame,):
         """
 
         the_repr = self._get_repr(float_format=float_format, na_rep=na_rep,
-                                  header=header, length=length, dtype=dtype,
-                                  name=name, max_rows=max_rows)
+                                  header=header, index=index, length=length,
+                                  dtype=dtype, name=name, max_rows=max_rows)
 
         # catch contract violations
         if not isinstance(the_repr, compat.text_type):
@@ -1009,15 +1011,15 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin, generic.NDFrame,):
                     f.write(the_repr)
 
     def _get_repr(
-        self, name=False, header=True, length=True, dtype=True, na_rep='NaN',
-            float_format=None, max_rows=None):
+        self, name=False, header=True, index=True, length=True, dtype=True,
+            na_rep='NaN', float_format=None, max_rows=None):
         """
 
         Internal function, should always return unicode string
         """
         formatter = fmt.SeriesFormatter(self, name=name,
                                         length=length, header=header,
-                                        dtype=dtype,
+                                        index=index, dtype=dtype,
                                         na_rep=na_rep,
                                         float_format=float_format,
                                         max_rows=max_rows)
@@ -1142,7 +1144,8 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin, generic.NDFrame,):
             lab[mask] = cnt = len(lev)
             lev = lev.insert(cnt, _get_na_value(lev.dtype.type))
 
-        out = np.bincount(lab[notnull(self.values)], minlength=len(lev))
+        obs = lab[notnull(self.values)]
+        out = np.bincount(obs, minlength=len(lev) or None)
         return self._constructor(out, index=lev, dtype='int64').__finalize__(self)
 
     def mode(self):
@@ -1232,15 +1235,29 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin, generic.NDFrame,):
     argmin = idxmin
     argmax = idxmax
 
-    @Appender(np.ndarray.round.__doc__)
-    def round(self, decimals=0, out=None):
+    def round(self, decimals=0):
         """
+        Round each value in a Series to the given number of decimals.
+        
+        Parameters
+        ----------
+        decimals : int
+            Number of decimal places to round to (default: 0). 
+            If decimals is negative, it specifies the number of 
+            positions to the left of the decimal point.
+        
+        Returns
+        -------
+        Series object
+        
+        See Also
+        --------
+        numpy.around
 
         """
-        result = _values_from_object(self).round(decimals, out=out)
-        if out is None:
-            result = self._constructor(result,
-                                       index=self.index).__finalize__(self)
+        result = _values_from_object(self).round(decimals)
+        result = self._constructor(result,
+                                   index=self.index).__finalize__(self)
 
         return result
 
@@ -1480,6 +1497,36 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin, generic.NDFrame,):
         Returns
         -------
         appended : Series
+
+        Examples
+        --------
+        >>> s1 = pd.Series([1, 2, 3])
+        >>> s2 = pd.Series([4, 5, 6])
+        >>> s3 = pd.Series([4, 5, 6], index=[3,4,5])
+        >>> s1.append(s2)
+        0    1
+        1    2
+        2    3
+        0    4
+        1    5
+        2    6
+        dtype: int64
+
+        >>> s1.append(s3)
+        0    1
+        1    2
+        2    3
+        3    4
+        4    5
+        5    6
+        dtype: int64
+
+        With `verify_integrity` set to True:
+
+        >>> s1.append(s2, verify_integrity=True)
+        ValueError: Indexes have overlapping values: [0, 1, 2]
+
+
         """
         from pandas.tools.merge import concat
 
@@ -2718,6 +2765,7 @@ Series._setup_axes(['index'], info_axis=0, stat_axis=0,
                    aliases={'rows': 0})
 Series._add_numeric_operations()
 Series._add_series_only_operations()
+Series._add_series_or_dataframe_operations()
 _INDEX_TYPES = ndarray, Index, list, tuple
 
 #------------------------------------------------------------------------------

@@ -4752,6 +4752,21 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
             for k2, v2 in compat.iteritems(v):
                 self.assertEqual(v2, recons_data[k2][k])
 
+    def test_latex_repr(self):
+        result=r"""\begin{tabular}{llll}
+\toprule
+{} &         0 &  1 &  2 \\
+\midrule
+0 &  $\alpha$ &  b &  c \\
+1 &         1 &  2 &  3 \\
+\bottomrule
+\end{tabular}
+"""
+        with option_context("display.latex.escape",False):
+            df=DataFrame([[r'$\alpha$','b','c'],[1,2,3]])
+            self.assertEqual(result,df._repr_latex_())
+
+
     def test_to_dict_timestamp(self):
 
         # GH11247
@@ -7559,6 +7574,18 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
                           columns=['a', 'a', 'b', 'b'])
         frame.info(buf=io)
 
+    def test_info_duplicate_columns_shows_correct_dtypes(self):
+        # GH11761
+        io = StringIO()
+
+        frame = DataFrame([[1, 2.0]],
+                          columns=['a', 'a'])
+        frame.info(buf=io)
+        io.seek(0)
+        lines = io.readlines()
+        self.assertEqual('a    1 non-null int64\n', lines[3])
+        self.assertEqual('a    1 non-null float64\n', lines[4])
+
     def test_info_shows_column_dtypes(self):
         dtypes = ['int64', 'float64', 'datetime64[ns]', 'timedelta64[ns]',
                   'complex128', 'object', 'bool']
@@ -9665,6 +9692,13 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         # empty
         df = DataFrame(index=['a', 'b'])
         assert_frame_equal(df, df.replace(5, 7))
+
+        # GH 11698
+        # test for mixed data types.
+        df = pd.DataFrame([('-', pd.to_datetime('20150101')), ('a', pd.to_datetime('20150102'))])
+        df1 = df.replace('-', np.nan)
+        expected_df = pd.DataFrame([(np.nan, pd.to_datetime('20150101')), ('a', pd.to_datetime('20150102'))])
+        assert_frame_equal(df1, expected_df)
 
     def test_replace_list(self):
         obj = {'a': list('ab..'), 'b': list('efgh'), 'c': list('helo')}
@@ -13372,6 +13406,143 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         self._check_stat_op('median', wrapper, frame=self.intframe,
                             check_dtype=False, check_dates=True)
 
+    def test_round(self):
+
+        # GH 2665
+
+        # Test that rounding an empty DataFrame does nothing
+        df = DataFrame()
+        tm.assert_frame_equal(df, df.round())
+
+        # Here's the test frame we'll be working with
+        df = DataFrame(
+            {'col1': [1.123, 2.123, 3.123], 'col2': [1.234, 2.234, 3.234]})
+
+        # Default round to integer (i.e. decimals=0)
+        expected_rounded = DataFrame(
+            {'col1': [1., 2., 3.], 'col2': [1., 2., 3.]})
+        tm.assert_frame_equal(df.round(), expected_rounded)
+
+        # Round with an integer
+        decimals = 2
+        expected_rounded = DataFrame(
+            {'col1': [1.12, 2.12, 3.12], 'col2': [1.23, 2.23, 3.23]})
+        tm.assert_frame_equal(df.round(decimals), expected_rounded)
+
+        # This should also work with np.round (since np.round dispatches to
+        # df.round)
+        tm.assert_frame_equal(np.round(df, decimals), expected_rounded)
+
+        # Round with a list
+        round_list = [1, 2]
+        with self.assertRaises(TypeError):
+            df.round(round_list)
+
+        # Round with a dictionary
+        expected_rounded = DataFrame(
+            {'col1': [1.1, 2.1, 3.1], 'col2': [1.23, 2.23, 3.23]})
+        round_dict = {'col1': 1, 'col2': 2}
+        tm.assert_frame_equal(df.round(round_dict), expected_rounded)
+
+        # Incomplete dict
+        expected_partially_rounded = DataFrame(
+            {'col1': [1.123, 2.123, 3.123], 'col2': [1.2, 2.2, 3.2]})
+        partial_round_dict = {'col2': 1}
+        tm.assert_frame_equal(
+            df.round(partial_round_dict), expected_partially_rounded)
+
+        # Dict with unknown elements
+        wrong_round_dict = {'col3': 2, 'col2': 1}
+        tm.assert_frame_equal(
+            df.round(wrong_round_dict), expected_partially_rounded)
+
+        # float input to `decimals`
+        non_int_round_dict = {'col1': 1, 'col2': 0.5}
+        if sys.version < LooseVersion('2.7'):
+            # np.round([1.123, 2.123], 0.5) is only a warning in Python 2.6
+            with self.assert_produces_warning(DeprecationWarning, check_stacklevel=False):
+                df.round(non_int_round_dict)
+        else:
+            with self.assertRaises(TypeError):
+                df.round(non_int_round_dict)
+
+        # String input
+        non_int_round_dict = {'col1': 1, 'col2': 'foo'}
+        with self.assertRaises(TypeError):
+            df.round(non_int_round_dict)
+
+        non_int_round_Series = Series(non_int_round_dict)
+        with self.assertRaises(TypeError):
+            df.round(non_int_round_Series)
+
+        # List input
+        non_int_round_dict = {'col1': 1, 'col2': [1, 2]}
+        with self.assertRaises(TypeError):
+            df.round(non_int_round_dict)
+
+        non_int_round_Series = Series(non_int_round_dict)
+        with self.assertRaises(TypeError):
+            df.round(non_int_round_Series)
+
+        # Non integer Series inputs
+        non_int_round_Series = Series(non_int_round_dict)
+        with self.assertRaises(TypeError):
+            df.round(non_int_round_Series)
+
+        non_int_round_Series = Series(non_int_round_dict)
+        with self.assertRaises(TypeError):
+            df.round(non_int_round_Series)
+
+        # Negative numbers
+        negative_round_dict = {'col1': -1, 'col2': -2}
+        big_df = df * 100
+        expected_neg_rounded = DataFrame(
+                {'col1':[110., 210, 310], 'col2':[100., 200, 300]})
+        tm.assert_frame_equal(
+            big_df.round(negative_round_dict), expected_neg_rounded)
+
+        # nan in Series round
+        nan_round_Series = Series({'col1': nan, 'col2':1})
+        expected_nan_round = DataFrame(
+                {'col1': [1.123, 2.123, 3.123], 'col2': [1.2, 2.2, 3.2]})
+        if sys.version < LooseVersion('2.7'):
+            # Rounding with decimal is a ValueError in Python < 2.7
+            with self.assertRaises(ValueError):
+                df.round(nan_round_Series)
+        else:
+            with self.assertRaises(TypeError):
+                df.round(nan_round_Series)
+
+        # Make sure this doesn't break existing Series.round
+        tm.assert_series_equal(df['col1'].round(1), expected_rounded['col1'])
+
+    def test_round_issue(self):
+        # GH11611
+
+        df = pd.DataFrame(np.random.random([3, 3]), columns=['A', 'B', 'C'],
+                          index=['first', 'second', 'third'])
+
+        dfs = pd.concat((df, df), axis=1)
+        rounded = dfs.round()
+        self.assertTrue(rounded.index.equals(dfs.index))
+
+        decimals = pd.Series([1, 0, 2], index=['A', 'B', 'A'])
+        self.assertRaises(ValueError, df.round, decimals)
+        
+    def test_built_in_round(self):
+        if not compat.PY3:
+            raise nose.SkipTest('build in round cannot be overriden prior to Python 3')
+
+        # GH11763
+        # Here's the test frame we'll be working with
+        df = DataFrame(
+            {'col1': [1.123, 2.123, 3.123], 'col2': [1.234, 2.234, 3.234]})
+
+        # Default round to integer (i.e. decimals=0)
+        expected_rounded = DataFrame(
+            {'col1': [1., 2., 3.], 'col2': [1., 2., 3.]})
+        tm.assert_frame_equal(round(df), expected_rounded)
+        
     def test_quantile(self):
         from numpy import percentile
 
@@ -15858,6 +16029,17 @@ starting,ending,measure
                                    minor_axis=[0, 1, 2],
                                    dtype='int64')
         tm.assert_panel_equal(result, expected)
+
+    def test_subclass_attr_err_propagation(self):
+        # GH 11808
+        class A(DataFrame):
+
+            @property
+            def bar(self):
+                return self.i_dont_exist
+        with tm.assertRaisesRegexp(AttributeError, '.*i_dont_exist.*'):
+            A().bar
+
 
 def skip_if_no_ne(engine='numexpr'):
     if engine == 'numexpr':

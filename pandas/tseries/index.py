@@ -19,7 +19,7 @@ from pandas.compat import u
 from pandas.tseries.frequencies import (
     to_offset, get_period_alias,
     Resolution)
-from pandas.tseries.base import DatelikeOps, DatetimeIndexOpsMixin
+from pandas.tseries.base import DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin
 from pandas.tseries.offsets import DateOffset, generate_range, Tick, CDay
 from pandas.tseries.tools import parse_time_string, normalize_date
 from pandas.tseries.timedeltas import to_timedelta
@@ -93,9 +93,8 @@ def _dt_index_cmp(opname, nat_result=False):
             if o_mask.any():
                 result[o_mask] = nat_result
 
-        mask = self.asi8 == tslib.iNaT
-        if mask.any():
-            result[mask] = nat_result
+        if self.hasnans:
+            result[self._isnan] = nat_result
 
         # support of bool dtype indexers
         if com.is_bool_dtype(result):
@@ -126,7 +125,7 @@ def _new_DatetimeIndex(cls, d):
         result = result.tz_localize('UTC').tz_convert(tz)
     return result
 
-class DatetimeIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
+class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin, Int64Index):
     """
     Immutable ndarray of datetime64 data, represented internally as int64, and
     which can be boxed to Timestamp objects that are subclasses of datetime and
@@ -197,7 +196,7 @@ class DatetimeIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
                          'is_quarter_start','is_quarter_end','is_year_start','is_year_end',
                          'tz','freq']
     _is_numeric_dtype = False
-
+    _infer_as_myclass = True
 
     @deprecate_kwarg(old_arg_name='infer_dst', new_arg_name='ambiguous',
                      mapping={True: 'infer', False: 'raise'})
@@ -487,10 +486,9 @@ class DatetimeIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
                 index = index.view(_NS_DTYPE)
 
         index = cls._simple_new(index, name=name, freq=offset, tz=tz)
-
-        if not left_closed:
+        if not left_closed and len(index) and  index[0] == start:
             index = index[1:]
-        if not right_closed:
+        if not right_closed and len(index) and index[-1] == end:
             index = index[:-1]
 
         return index
@@ -778,7 +776,7 @@ class DatetimeIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
         elif dtype == _NS_DTYPE and self.tz is not None:
             return self.tz_convert('UTC').tz_localize(None)
         elif dtype == str:
-            return self._shallow_copy(values=self.format(), infer=True)
+            return Index(self.format(), name=self.name, dtype=object)
         else:  # pragma: no cover
             raise ValueError('Cannot cast DatetimeIndex to dtype %s' % dtype)
 

@@ -111,10 +111,17 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
     _is_numeric_dtype = False
     _can_hold_na = True
 
+    # prioritize current class for _shallow_copy_with_infer,
+    # used to infer integers as datetime-likes
+    _infer_as_myclass = False
+
     _engine_type = _index.ObjectEngine
 
     def __new__(cls, data=None, dtype=None, copy=False, name=None, fastpath=False,
                 tupleize_cols=True, **kwargs):
+
+        if name is None and hasattr(data, 'name'):
+            name = data.name
 
         # no class inference!
         if fastpath:
@@ -124,6 +131,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
             return CategoricalIndex(data, copy=copy, name=name, **kwargs)
 
         if isinstance(data, (np.ndarray, Index, ABCSeries)):
+
             if issubclass(data.dtype.type, np.datetime64) or is_datetimetz(data):
                 from pandas.tseries.index import DatetimeIndex
                 result = DatetimeIndex(data, copy=copy, name=name, **kwargs)
@@ -175,8 +183,13 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
                 elif inferred != 'string':
                     if (inferred.startswith('datetime') or
                         tslib.is_timestamp_array(subarr)):
-                        from pandas.tseries.index import DatetimeIndex
-                        return DatetimeIndex(subarr, copy=copy, name=name, **kwargs)
+
+                        if (lib.is_datetime_with_singletz_array(subarr) or
+                            'tz' in kwargs):
+                            # only when subarr has the same tz
+                            from pandas.tseries.index import DatetimeIndex
+                            return DatetimeIndex(subarr, copy=copy, name=name, **kwargs)
+
                     elif (inferred.startswith('timedelta') or
                           lib.is_timedelta_array(subarr)):
                         from pandas.tseries.tdi import TimedeltaIndex
@@ -209,6 +222,24 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
             subarr = com._asarray_tuplesafe(data, dtype=object)
             return Index(subarr, dtype=dtype, copy=copy, name=name, **kwargs)
 
+    """
+    NOTE for new Index creation:
+
+    - _simple_new: It returns new Index with the same type as the caller.
+      All metadata (such as name) must be provided by caller's responsibility.
+      Using _shallow_copy is recommended because it fills these metadata otherwise specified.
+
+    - _shallow_copy: It returns new Index with the same type (using _simple_new),
+      but fills caller's metadata otherwise specified. Passed kwargs will
+      overwrite corresponding metadata.
+
+    - _shallow_copy_with_infer: It returns new Index inferring its type
+      from passed values. It fills caller's metadata otherwise specified as the
+      same as _shallow_copy.
+
+    See each method's docstring.
+    """
+
     @classmethod
     def _simple_new(cls, values, name=None, dtype=None, **kwargs):
         """
@@ -232,6 +263,48 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
             setattr(result,k,v)
         result._reset_identity()
         return result
+
+    def _shallow_copy(self, values=None, **kwargs):
+        """
+        create a new Index with the same class as the caller, don't copy the data,
+        use the same object attributes with passed in attributes taking precedence
+
+        *this is an internal non-public method*
+
+        Parameters
+        ----------
+        values : the values to create the new Index, optional
+        kwargs : updates the default attributes for this Index
+        """
+        if values is None:
+            values = self.values
+        attributes = self._get_attributes_dict()
+        attributes.update(kwargs)
+        return self._simple_new(values, **attributes)
+
+    def _shallow_copy_with_infer(self, values=None, **kwargs):
+        """
+        create a new Index inferring the class with passed value, don't copy the data,
+        use the same object attributes with passed in attributes taking precedence
+
+        *this is an internal non-public method*
+
+        Parameters
+        ----------
+        values : the values to create the new Index, optional
+        kwargs : updates the default attributes for this Index
+        """
+        if values is None:
+            values = self.values
+        attributes = self._get_attributes_dict()
+        attributes.update(kwargs)
+        attributes['copy'] = False
+        if self._infer_as_myclass:
+            try:
+                return self._constructor(values, **attributes)
+            except (TypeError, ValueError) as e:
+                pass
+        return Index(values, **attributes)
 
     def _update_inplace(self, result, **kwargs):
         # guard when called from IndexOpsMixin
@@ -371,31 +444,6 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         if isinstance(result, Index):
             result._id = self._id
         return result
-
-    def _shallow_copy(self, values=None, infer=False, **kwargs):
-        """
-        create a new Index, don't copy the data, use the same object attributes
-        with passed in attributes taking precedence
-
-        *this is an internal non-public method*
-
-        Parameters
-        ----------
-        values : the values to create the new Index, optional
-        infer : boolean, default False
-            if True, infer the new type of the passed values
-        kwargs : updates the default attributes for this Index
-        """
-        if values is None:
-            values = self.values
-        attributes = self._get_attributes_dict()
-        attributes.update(kwargs)
-
-        if infer:
-            attributes['copy'] = False
-            return Index(values, **attributes)
-
-        return self.__class__._simple_new(values,**attributes)
 
     def _coerce_scalar_to_index(self, item):
         """
@@ -1105,7 +1153,9 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
             raise Exception("invalid pickle state")
     _unpickle_compat = __setstate__
 
-    def __deepcopy__(self, memo={}):
+    def __deepcopy__(self, memo=None):
+        if memo is None:
+                memo = {}
         return self.copy(deep=True)
 
     def __nonzero__(self):
@@ -1206,7 +1256,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         to_concat, name = self._ensure_compat_append(other)
         attribs = self._get_attributes_dict()
         attribs['name'] = name
-        return self._shallow_copy(np.concatenate(to_concat), infer=True, **attribs)
+        return self._shallow_copy_with_infer(np.concatenate(to_concat), **attribs)
 
     @staticmethod
     def _ensure_compat_concat(indexes):
@@ -1444,7 +1494,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         ascending : boolean, default True
             False to sort in descending order
 
-        level, sort_remaining are compat paramaters
+        level, sort_remaining are compat parameters
 
         Returns
         -------
@@ -1725,7 +1775,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         attribs['name'] = result_name
         if 'freq' in attribs:
             attribs['freq'] = None
-        return self._shallow_copy(the_diff, infer=True, **attribs)
+        return self._shallow_copy_with_infer(the_diff, **attribs)
 
     def get_loc(self, key, method=None, tolerance=None):
         """
@@ -2199,7 +2249,8 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
                 new_indexer = np.arange(len(self.take(indexer)))
                 new_indexer[~check] = -1
 
-        return self._shallow_copy(new_labels), indexer, new_indexer
+        new_index = self._shallow_copy_with_infer(new_labels, freq=None)
+        return new_index, indexer, new_indexer
 
     def join(self, other, how='left', level=None, return_indexers=False):
         """
@@ -2756,8 +2807,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         -------
         new_index : Index
         """
-        attribs = self._get_attributes_dict()
-        return self._shallow_copy(np.delete(self._data, loc), **attribs)
+        return self._shallow_copy(np.delete(self._data, loc))
 
     def insert(self, loc, item):
         """
@@ -2778,8 +2828,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
 
         idx = np.concatenate(
             (_self[:loc], item, _self[loc:]))
-        attribs = self._get_attributes_dict()
-        return self._shallow_copy(idx, infer=True, **attribs)
+        return self._shallow_copy_with_infer(idx)
 
     def drop(self, labels, errors='raise'):
         """
@@ -2841,7 +2890,6 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
                 # no need to care metadata other than name
                 # because it can't have freq if
                 return Index(result, name=self.name)
-
         return self._shallow_copy()
 
     def _evaluate_with_timedelta_like(self, other, op, opstr):
@@ -3362,8 +3410,8 @@ class CategoricalIndex(Index, PandasDelegate):
         # filling in missing if needed
         if len(missing):
             cats = self.categories.get_indexer(target)
-            if (cats==-1).any():
 
+            if (cats==-1).any():
                 # coerce to a regular index here!
                 result = Index(np.array(self),name=self.name)
                 new_target, indexer, _ = result._reindex_non_unique(np.array(target))
@@ -3396,6 +3444,12 @@ class CategoricalIndex(Index, PandasDelegate):
         if check.any():
             new_indexer = np.arange(len(self.take(indexer)))
             new_indexer[check] = -1
+
+        cats = self.categories.get_indexer(target)
+        if not (cats == -1).any():
+            # .reindex returns normal Index. Revert to CategoricalIndex if
+            # all targets are included in my categories
+            new_target = self._shallow_copy(new_target)
 
         return new_target, indexer, new_indexer
 
@@ -4310,10 +4364,15 @@ class MultiIndex(Index):
         result._id = self._id
         return result
 
-    def _shallow_copy(self, values=None, infer=False, **kwargs):
+    def _shallow_copy_with_infer(self, values=None, **kwargs):
+        return self._shallow_copy(values, **kwargs)
+
+    def _shallow_copy(self, values=None, **kwargs):
         if values is not None:
             if 'name' in kwargs:
                 kwargs['names'] = kwargs.pop('name',None)
+            # discards freq
+            kwargs.pop('freq', None)
             return MultiIndex.from_tuples(values, **kwargs)
         return self.view()
 

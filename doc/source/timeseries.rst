@@ -672,7 +672,7 @@ used exactly like a ``Timedelta`` - see the
 
 Note that some offsets (such as ``BQuarterEnd``) do not have a
 vectorized implementation.  They can still be used but may
-calculate signficantly slower and will raise a ``PerformanceWarning``
+calculate significantly slower and will raise a ``PerformanceWarning``
 
 .. ipython:: python
    :okwarning:
@@ -885,7 +885,7 @@ frequencies. We will refer to these aliases as *offset aliases*
     "H", "hourly frequency"
     "T, min", "minutely frequency"
     "S", "secondly frequency"
-    "L, ms", "milliseonds"
+    "L, ms", "milliseconds"
     "U, us", "microseconds"
     "N", "nanoseconds"
 
@@ -953,6 +953,52 @@ For some frequencies you can specify an anchoring suffix:
 These can be used as arguments to ``date_range``, ``bdate_range``, constructors
 for ``DatetimeIndex``, as well as various other timeseries-related functions
 in pandas.
+
+Anchored Offset Semantics
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+For those offsets that are anchored to the start or end of specific
+frequency (``MonthEnd``, ``MonthBegin``, ``WeekEnd``, etc) the following
+rules apply to rolling forward and backwards.
+
+When ``n`` is not 0, if the given date is not on an anchor point, it snapped to the next(previous)
+anchor point, and moved ``|n|-1`` additional steps forwards or backwards.
+
+.. ipython:: python
+
+   pd.Timestamp('2014-01-02') + MonthBegin(n=1)
+   pd.Timestamp('2014-01-02') + MonthEnd(n=1)
+
+   pd.Timestamp('2014-01-02') - MonthBegin(n=1)
+   pd.Timestamp('2014-01-02') - MonthEnd(n=1)
+
+   pd.Timestamp('2014-01-02') + MonthBegin(n=4)
+   pd.Timestamp('2014-01-02') - MonthBegin(n=4)
+
+If the given date *is* on an anchor point, it is moved ``|n|`` points forwards
+or backwards.
+
+.. ipython:: python
+
+   pd.Timestamp('2014-01-01') + MonthBegin(n=1)
+   pd.Timestamp('2014-01-31') + MonthEnd(n=1)
+
+   pd.Timestamp('2014-01-01') - MonthBegin(n=1)
+   pd.Timestamp('2014-01-31') - MonthEnd(n=1)
+
+   pd.Timestamp('2014-01-01') + MonthBegin(n=4)
+   pd.Timestamp('2014-01-31') - MonthBegin(n=4)
+
+For the case when ``n=0``, the date is not moved if on an anchor point, otherwise
+it is rolled forward to the next anchor point.
+
+.. ipython:: python
+
+   pd.Timestamp('2014-01-02') + MonthBegin(n=0)
+   pd.Timestamp('2014-01-02') + MonthEnd(n=0)
+
+   pd.Timestamp('2014-01-01') + MonthBegin(n=0)
+   pd.Timestamp('2014-01-31') + MonthEnd(n=0)
 
 .. _timeseries.legacyaliases:
 
@@ -1328,7 +1374,7 @@ frequency. Arithmetic is not allowed between ``Period`` with different ``freq`` 
    p == Period('2012-01', freq='3M')
 
 
-If ``Period`` freq is daily or higher (``D``, ``H``, ``T``, ``S``, ``L``, ``U``, ``N``), ``offsets`` and ``timedelta``-like can be added if the result can have the same freq. Otherise, ``ValueError`` will be raised.
+If ``Period`` freq is daily or higher (``D``, ``H``, ``T``, ``S``, ``L``, ``U``, ``N``), ``offsets`` and ``timedelta``-like can be added if the result can have the same freq. Otherwise, ``ValueError`` will be raised.
 
 .. ipython:: python
 

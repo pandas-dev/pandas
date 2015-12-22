@@ -592,7 +592,7 @@ cdef class BlockSlider:
 def reduce(arr, f, axis=0, dummy=None, labels=None):
     """
 
-    Paramaters
+    Parameters
     -----------
     arr : NDFrame object
     f : function

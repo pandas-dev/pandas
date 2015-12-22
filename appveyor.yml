@@ -1,3 +1,13 @@
+# With infos from
+# http://tjelvarolsson.com/blog/how-to-continuously-test-your-python-code-on-windows-using-appveyor/
+# https://packaging.python.org/en/latest/appveyor/
+# https://github.com/rmcgibbo/python-appveyor-conda-example
+
+# Backslashes in quotes need to be escaped: \ -> "\\"
+
+matrix:
+  fast_finish: true     # immediately finish build once one of the jobs fails.
+
 environment:
   global:
     # SDK v7.0 MSVC Express 2008's SetEnv.cmd script will fail if the
@@ -6,33 +16,66 @@ environment:
     CMD_IN_ENV: "cmd /E:ON /V:ON /C .\\ci\\run_with_env.cmd"
 
   matrix:
-    - PYTHON: "C:\\Python27_32"
-      PYTHON_VERSION: "2.7"
-      PYTHON_ARCH: "32"
+    - PYTHON: "C:\\Python34_64"
+      PYTHON_VERSION: "3.4"
+      PYTHON_ARCH: "64"
+      CONDA_PY: "34"
+      CONDA_NPY: "110"
 
     - PYTHON: "C:\\Python27_64"
       PYTHON_VERSION: "2.7"
       PYTHON_ARCH: "64"
+      CONDA_PY: "27"
+      CONDA_NPY: "110"
 
-    - PYTHON: "C:\\Python34_32"
-      PYTHON_VERSION: "3.4"
-      PYTHON_ARCH: "32"
-
-    - PYTHON: "C:\\Python34_64"
-      PYTHON_VERSION: "3.4"
+    - PYTHON: "C:\\Python35_64"
+      PYTHON_VERSION: "3.5"
       PYTHON_ARCH: "64"
+      CONDA_PY: "35"
+      CONDA_NPY: "110"
+
+# We always use a 64-bit machine, but can build x86 distributions
+# with the PYTHON_ARCH variable (which is used by CMD_IN_ENV).
+platform:
+    - x64
+
+# all our python builds have to happen in tests_script...
+build: false
+
+init:
+  - "ECHO %PYTHON_VERSION% %PYTHON%"
 
 install:
   # this installs the appropriate Miniconda (Py2/Py3, 32/64 bit),
-  # as well as pip, conda-build, and the binstar CLI
+  - powershell .\ci\install.ps1
+  - SET PATH=%PYTHON%;%PYTHON%\Scripts;%PATH%
   - echo "install"
   - cd
   - ls -ltr
-  - powershell .\\ci\\install_appveyor.ps1
-  - "SET PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%"
+  - git tag --sort v:refname
 
-build: false
+  # install our build environment
+  - cmd: conda config --set show_channel_urls yes --set always_yes yes --set changeps1 no
+  - cmd: conda update -q conda
+  - cmd: conda config --add channels http://conda.anaconda.org/pandas
+  - cmd: conda config --set ssl_verify false
+
+  # this is now the downloaded conda...
+  - conda info -a
+
+  # build em using the local source checkout in the correct windows env
+  - conda install conda-build
+  - cmd: '%CMD_IN_ENV% conda build conda.recipe -q --no-test'
+
+  # create our env
+  - SET REQ=ci\requirements-%PYTHON_VERSION%-%PYTHON_ARCH%.run
+  - cmd: conda create -q -n pandas python=%PYTHON_VERSION% nose
+  - cmd: activate pandas
+  - cmd: conda install -q --file=%REQ%
+  - ps: conda install -q (conda build conda.recipe -q --output --no-test)
 
 test_script:
-  - "%CMD_IN_ENV% %PYTHON%/python.exe setup.py build_ext --inplace"
-  - "%PYTHON%/Scripts/nosetests -A \"not slow and not network and not disabled\" pandas"
+  # tests
+  - cd \
+  - conda list pandas
+  - nosetests --exe -A "not slow and not network and not disabled" pandas

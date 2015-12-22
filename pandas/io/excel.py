@@ -11,7 +11,7 @@ import numpy as np
 
 from pandas.core.frame import DataFrame
 from pandas.io.parsers import TextParser
-from pandas.io.common import _is_url, _urlopen, _validate_header_arg
+from pandas.io.common import _is_url, _urlopen, _validate_header_arg, get_filepath_or_buffer, _is_s3_url
 from pandas.tseries.period import Period
 from pandas import json
 from pandas.compat import (map, zip, reduce, range, lrange, u, add_metaclass,
@@ -199,7 +199,10 @@ class ExcelFile(object):
             raise ValueError("Unknown engine: %s" % engine)
 
         if isinstance(io, compat.string_types):
-            if _is_url(io):
+            if _is_s3_url(io):
+                buffer, _, _ = get_filepath_or_buffer(io)
+                self.book = xlrd.open_workbook(file_contents=buffer.read())
+            elif _is_url(io):
                 data = _urlopen(io).read()
                 self.book = xlrd.open_workbook(file_contents=data)
             else:
@@ -290,7 +293,14 @@ class ExcelFile(object):
                  stacklevel=3)
 
         if 'chunksize' in kwds:
-            raise NotImplementedError("Reading an Excel file in chunks "
+            raise NotImplementedError("chunksize keyword of read_excel "
+                                      "is not implemented")
+        if parse_dates:
+            raise NotImplementedError("parse_dates keyword of read_excel "
+                                      "is not implemented")
+
+        if date_parser is not None:
+            raise NotImplementedError("date_parser keyword of read_excel "
                                       "is not implemented")
 
         import xlrd
@@ -388,7 +398,8 @@ class ExcelFile(object):
                 data.append(row)
 
             if sheet.nrows == 0:
-                return DataFrame()
+                output[asheetname] = DataFrame()
+                continue
 
             if com.is_list_like(header) and len(header) == 1:
                 header = header[0]

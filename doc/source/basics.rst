@@ -1097,7 +1097,7 @@ Note that the same result could have been achieved using
    ts2.reindex(ts.index).fillna(method='ffill')
 
 :meth:`~Series.reindex` will raise a ValueError if the index is not monotonic
-increasing or descreasing. :meth:`~Series.fillna` and :meth:`~Series.interpolate`
+increasing or decreasing. :meth:`~Series.fillna` and :meth:`~Series.interpolate`
 will not make any checks on the order of the index.
 
 .. _basics.limits_on_reindex_fill:
@@ -1212,7 +1212,7 @@ To iterate over the rows of a DataFrame, you can use the following methods:
   This converts the rows to Series objects, which can change the dtypes and has some
   performance implications.
 * :meth:`~DataFrame.itertuples`: Iterate over the rows of a DataFrame
-  as namedtuples of the values.  This is a lot faster as
+  as namedtuples of the values.  This is a lot faster than
   :meth:`~DataFrame.iterrows`, and is in most cases preferable to use
   to iterate over the values of a DataFrame.
 
@@ -1344,7 +1344,7 @@ and is generally faster as :meth:`~DataFrame.iterrows`.
 
 .. note::
 
-   The columns names will be renamed to positional names if they are
+   The column names will be renamed to positional names if they are
    invalid Python identifiers, repeated, or start with an underscore.
    With a large number of columns (>255), regular tuples are returned.
 

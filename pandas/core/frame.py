@@ -140,7 +140,7 @@ Examples
 2   baz  3         2   qux  7
 3   foo  4         3   bar  8
 
->>> merge(A, B, left_on='lkey', right_on='rkey', how='outer')
+>>> A.merge(B, left_on='lkey', right_on='rkey', how='outer')
    lkey  value_x  rkey  value_y
 0  foo   1        foo   5
 1  foo   4        foo   5
@@ -576,6 +576,13 @@ class DataFrame(NDFrame):
         else:
             return None
 
+    def _repr_latex_(self):
+        """
+        Returns a LaTeX representation for a particular Dataframe.
+        Mainly for use with nbconvert (jupyter notebook conversion to pdf).
+        """
+        return self.to_latex()
+
     @property
     def style(self):
         """
@@ -584,7 +591,7 @@ class DataFrame(NDFrame):
 
         See Also
         --------
-        pandas.core.Styler
+        pandas.core.style.Styler
         """
         from pandas.core.style import Styler
         return Styler(self)
@@ -630,7 +637,7 @@ class DataFrame(NDFrame):
 
            To preserve dtypes while iterating over the rows, it is better
            to use :meth:`itertuples` which returns namedtuples of the values
-           and which is generally faster as ``iterrows``.
+           and which is generally faster than ``iterrows``.
 
         2. You should **never modify** something you are iterating over.
            This is not guaranteed to work in all cases. Depending on the
@@ -667,7 +674,7 @@ class DataFrame(NDFrame):
 
         Notes
         -----
-        The columns names will be renamed to positional names if they are
+        The column names will be renamed to positional names if they are
         invalid Python identifiers, repeated, or start with an underscore.
         With a large number of columns (>255), regular tuples are returned.
 
@@ -1540,7 +1547,7 @@ class DataFrame(NDFrame):
                  header=True, index=True, na_rep='NaN', formatters=None,
                  float_format=None, sparsify=None, index_names=True,
                  bold_rows=True, column_format=None,
-                 longtable=False, escape=True):
+                 longtable=None, escape=None):
         """
         Render a DataFrame to a tabular environment table. You can splice
         this into a LaTeX document. Requires \\usepackage{booktabs}.
@@ -1552,10 +1559,12 @@ class DataFrame(NDFrame):
         column_format : str, default None
             The columns format as specified in `LaTeX table format
             <https://en.wikibooks.org/wiki/LaTeX/Tables>`__ e.g 'rcl' for 3 columns
-        longtable : boolean, default False
+        longtable : boolean, default will be read from the pandas config module
+            default: False
             Use a longtable environment instead of tabular. Requires adding
             a \\usepackage{longtable} to your LaTeX preamble.
-        escape : boolean, default True
+        escape : boolean, default will be read from the pandas config module
+            default: True
             When set to False prevents from escaping latex special
             characters in column names.
 
@@ -1565,7 +1574,12 @@ class DataFrame(NDFrame):
             warnings.warn("colSpace is deprecated, use col_space",
                           FutureWarning, stacklevel=2)
             col_space = colSpace
-
+        # Get defaults from the pandas config
+        if longtable is None:
+            longtable = get_option("display.latex.longtable")
+        if escape is None:
+            escape = get_option("display.latex.escape")
+            
         formatter = fmt.DataFrameFormatter(self, buf=buf, columns=columns,
                                            col_space=col_space, na_rep=na_rep,
                                            header=header, index=index,
@@ -1655,7 +1669,7 @@ class DataFrame(NDFrame):
 
             dtypes = self.dtypes
             for i, col in enumerate(self.columns):
-                dtype = dtypes[col]
+                dtype = dtypes.iloc[i]
                 col = com.pprint_thing(col)
 
                 count = ""
@@ -4376,13 +4390,17 @@ class DataFrame(NDFrame):
         Returns
         -------
         DataFrame object
+        
+        See Also
+        --------
+        numpy.around
         """
         from pandas.tools.merge import concat
 
         def _dict_round(df, decimals):
             for col, vals in df.iteritems():
                 try:
-                    yield np.round(vals, decimals[col])
+                    yield vals.round(decimals[col])
                 except KeyError:
                     yield vals
 
@@ -4392,8 +4410,8 @@ class DataFrame(NDFrame):
                     raise ValueError("Index of decimals must be unique")
             new_cols = [col for col in _dict_round(self, decimals)]
         elif com.is_integer(decimals):
-            # Dispatch to numpy.round
-            new_cols = [np.round(v, decimals) for _, v in self.iteritems()]
+            # Dispatch to Series.round
+            new_cols = [v.round(decimals) for _, v in self.iteritems()]
         else:
             raise TypeError("decimals must be an integer, a dict-like or a Series")
 
@@ -5145,6 +5163,7 @@ class DataFrame(NDFrame):
 DataFrame._setup_axes(['index', 'columns'], info_axis=1, stat_axis=0,
                       axes_are_reversed=True, aliases={'rows': 0})
 DataFrame._add_numeric_operations()
+DataFrame._add_series_or_dataframe_operations()
 
 _EMPTY_SERIES = Series([])
 

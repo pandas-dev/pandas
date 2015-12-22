@@ -2622,7 +2622,8 @@ class TestDatetimeIndex(tm.TestCase):
                     assert_func(result, exp)
 
             s = klass([Timestamp('2000-01-05 00:15:00'), Timestamp('2000-01-31 00:23:00'),
-                       Timestamp('2000-01-01'), Timestamp('2000-02-29'), Timestamp('2000-12-31')])
+                       Timestamp('2000-01-01'), Timestamp('2000-03-31'),
+                       Timestamp('2000-02-29'), Timestamp('2000-12-31')])
 
             #DateOffset relativedelta fastpath
             relative_kwargs = [('years', 2), ('months', 5), ('days', 3),
@@ -2659,11 +2660,15 @@ class TestDatetimeIndex(tm.TestCase):
                         else:
                             do = do
                             kwargs = {}
-                        op = getattr(pd.offsets,do)(5, normalize=normalize, **kwargs)
-                        assert_func(klass([x + op for x in s]), s + op)
-                        assert_func(klass([x - op for x in s]), s - op)
-                        assert_func(klass([op + x for x in s]), op + s)
 
+                        for n in [0, 5]:
+                            if (do in ['WeekOfMonth','LastWeekOfMonth',
+                                       'FY5253Quarter','FY5253'] and n == 0):
+                                continue
+                            op = getattr(pd.offsets,do)(n, normalize=normalize, **kwargs)
+                            assert_func(klass([x + op for x in s]), s + op)
+                            assert_func(klass([x - op for x in s]), s - op)
+                            assert_func(klass([op + x for x in s]), op + s)
     # def test_add_timedelta64(self):
     #     rng = date_range('1/1/2000', periods=5)
     #     delta = rng.values[3] - rng.values[1]
@@ -2701,6 +2706,41 @@ class TestDatetimeIndex(tm.TestCase):
         ordered, dexer = idx.sort_values(return_indexer=True, ascending=False)
         self.assertTrue(ordered[::-1].is_monotonic)
         self.assert_numpy_array_equal(dexer, [0, 2, 1])
+
+    def test_round(self):
+
+        # round
+        dt = Timestamp('20130101 09:10:11')
+        result = dt.round('D')
+        expected = Timestamp('20130101')
+        self.assertEqual(result, expected)
+
+        dti = date_range('20130101 09:10:11',periods=5)
+        result = dti.round('D')
+        expected = date_range('20130101',periods=5)
+        tm.assert_index_equal(result, expected)
+
+        # round with tz
+        dt = Timestamp('20130101 09:10:11',tz='US/Eastern')
+        result = dt.round('D')
+        expected = Timestamp('20130101',tz='US/Eastern')
+        self.assertEqual(result, expected)
+
+        dt = Timestamp('20130101 09:10:11',tz='US/Eastern')
+        result = dt.round('s')
+        self.assertEqual(result, dt)
+
+        dti = date_range('20130101 09:10:11',periods=5).tz_localize('UTC').tz_convert('US/Eastern')
+        result = dti.round('D')
+        expected = date_range('20130101',periods=5).tz_localize('US/Eastern')
+        tm.assert_index_equal(result, expected)
+
+        result = dti.round('s')
+        tm.assert_index_equal(result, dti)
+
+        # invalid
+        for freq in ['Y','M','foobar']:
+            self.assertRaises(ValueError, lambda : dti.round(freq))
 
     def test_insert(self):
         idx = DatetimeIndex(['2000-01-04', '2000-01-01', '2000-01-02'], name='idx')

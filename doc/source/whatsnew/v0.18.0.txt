@@ -7,7 +7,13 @@ This is a major release from 0.17.1 and includes a small number of API changes, 
 enhancements, and performance improvements along with a large number of bug fixes. We recommend that all
 users upgrade to this version.
 
+.. warning::
+
+   pandas >= 0.18.0 will no longer support compatibility with Python version 3.3 (:issue:`11273`)
+
 Highlights include:
+
+- Window functions are now methods on ``.groupby`` like objects, see :ref:`here <whatsnew_0180.enhancements.moments>`.
 
 Check the :ref:`API Changes <whatsnew_0180.api>` and :ref:`deprecations <whatsnew_0180.deprecations>` before updating.
 
@@ -20,24 +26,136 @@ Check the :ref:`API Changes <whatsnew_0180.api>` and :ref:`deprecations <whatsne
 New features
 ~~~~~~~~~~~~
 
+.. _whatsnew_0180.enhancements.moments:
 
+Window functions are now methods
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Window functions have been refactored to be methods on ``Series/DataFrame`` objects, rather than top-level functions, which are now deprecated. This allows these window-type functions, to have a similar API to that of ``.groupby``. See the full documentation :ref:`here <stats.moments>` (:issue:`11603`)
 
+.. ipython:: python
 
+   np.random.seed(1234)
+   df = DataFrame({'A' : range(10), 'B' : np.random.randn(10)})
+   df
 
+Previous Behavior:
+
+.. code-block:: python
+
+   In [8]: pd.rolling_mean(df,window=3)
+           FutureWarning: pd.rolling_mean is deprecated for DataFrame and will be removed in a future version, replace with
+                          DataFrame.rolling(window=3,center=False).mean()
+   Out[8]:
+       A         B
+   0 NaN       NaN
+   1 NaN       NaN
+   2   1  0.237722
+   3   2 -0.023640
+   4   3  0.133155
+   5   4 -0.048693
+   6   5  0.342054
+   7   6  0.370076
+   8   7  0.079587
+   9   8 -0.954504
+
+New Behavior:
+
+.. ipython:: python
+
+   r = df.rolling(window=3)
+
+These show a descriptive repr
+
+.. ipython:: python
+
+   r
+with tab-completion of available methods and properties.
+
+.. code-block:: python
+
+   In [9]: r.
+   r.A           r.agg         r.apply       r.count       r.exclusions  r.max         r.median      r.name        r.skew        r.sum
+   r.B           r.aggregate   r.corr        r.cov         r.kurt        r.mean        r.min         r.quantile    r.std         r.var
+
+The methods operate on the ``Rolling`` object itself
+
+.. ipython:: python
+
+   r.mean()
+
+They provide getitem accessors
+
+.. ipython:: python
+
+   r['A'].mean()
+
+And multiple aggregations
+
+.. ipython:: python
+
+   r.agg({'A' : ['mean','std'],
+          'B' : ['mean','std']})
 
 .. _whatsnew_0180.enhancements.other:
 
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
 
+- Handle truncated floats in SAS xport files (:issue:`11713`)
+- Added option to hide index in ``Series.to_string`` (:issue:`11729`)
+- ``read_excel`` now supports s3 urls of the format ``s3://bucketname/filename`` (:issue:`11447`)
+- A simple version of ``Panel.round()`` is now implemented (:issue:`11763`)
+- For Python 3.x, ``round(DataFrame)``, ``round(Series)``, ``round(Panel)`` will work (:issue:`11763`)
+- ``Dataframe`` has gained a ``_repr_latex_`` method in order to allow for automatic conversion to latex in a ipython/jupyter notebook using nbconvert. Options ``display.latex.escape`` and ``display.latex.longtable`` have been added to the configuration and are used automatically by the ``to_latex`` method.(:issue:`11778`)
+
+.. _whatsnew_0180.enhancements.rounding:
+
+Datetimelike rounding
+^^^^^^^^^^^^^^^^^^^^^
+
+``DatetimeIndex``, ``Timestamp``, ``TimedeltaIndex``, ``Timedelta`` have gained the ``.round()`` method for datetimelike rounding. (:issue:`4314`)
+
+Naive datetimes
+
+.. ipython:: python
+
+   dr = pd.date_range('20130101 09:12:56.1234', periods=3)
+   dr
+   dr.round('s')
+
+   # Timestamp scalar
+   dr[0]
+   dr[0].round('10s')
+
+Tz-aware are rounded in local times
+
+.. ipython:: python
+
+   dr = dr.tz_localize('US/Eastern')
+   dr
+   dr.round('s')
+
+Timedeltas
+
+.. ipython:: python
+
+   t = timedelta_range('1 days 2 hr 13 min 45 us',periods=3,freq='d')
+   t
+   t.round('10min')
+
+   # Timedelta scalar
+   t[0]
+   t[0].round('2h')
 
 
+In addition, ``.round()`` will be available thru the ``.dt`` accessor of ``Series``.
 
+.. ipython:: python
 
-
-
-
+   s = Series(dr)
+   s
+   s.dt.round('D')
 
 .. _whatsnew_0180.api:
 
@@ -46,16 +164,49 @@ Other enhancements
 Backwards incompatible API changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+- The parameter ``out`` has been removed from the ``Series.round()`` method. (:issue:`11763`)
 
+Bug in QuarterBegin with n=0
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+In previous versions, the behavior of the QuarterBegin offset was inconsistent
+depending on the date when the ``n`` parameter was 0. (:issue:`11406`)
 
+The general semantics of anchored offsets for ``n=0`` is to not move the date
+when it is an anchor point (e.g., a quarter start date), and otherwise roll
+forward to the next anchor point.
 
+.. ipython:: python
 
+   d = pd.Timestamp('2014-02-01')
+   d
+   d + pd.offsets.QuarterBegin(n=0, startingMonth=2)
+   d + pd.offsets.QuarterBegin(n=0, startingMonth=1)
 
+For the ``QuarterBegin`` offset in previous versions, the date would be rolled
+*backwards* if date was in the same month as the quarter start date.
+
+.. code-block:: python
+
+   In [3]: d = pd.Timestamp('2014-02-15')
+
+   In [4]: d + pd.offsets.QuarterBegin(n=0, startingMonth=2)
+   Out[4]: Timestamp('2014-02-01 00:00:00')
+
+This behavior has been corrected in version 0.18.0, which is consistent with
+other anchored offsets like ``MonthBegin`` and ``YearBegin``.
+
+.. ipython:: python
+
+   d = pd.Timestamp('2014-02-15')
+   d + pd.offsets.QuarterBegin(n=0, startingMonth=2)
 
 
 Other API Changes
 ^^^^^^^^^^^^^^^^^
+
+
+
 
 
 
@@ -70,18 +221,44 @@ Other API Changes
 Deprecations
 ^^^^^^^^^^^^
 
+.. _whatsnew_0180.window_deprecations:
 
+- The functions ``pd.rolling_*``, ``pd.expanding_*``, and ``pd.ewm*`` are deprecated and replaced by the corresponding method call. Note that
+  the new suggested syntax includes all of the arguments (even if default) (:issue:`11603`)
 
+  .. code-block:: python
 
+     In [1]: s = Series(range(3))
 
+     In [2]: pd.rolling_mean(s,window=2,min_periods=1)
+             FutureWarning: pd.rolling_mean is deprecated for Series and will be removed in a future version, replace with
+                  Series.rolling(min_periods=1,window=2,center=False).mean()
+     Out[2]:
+             0    0.0
+             1    0.5
+             2    1.5
+             dtype: float64
+
+     In [3]: pd.rolling_cov(s, s, window=2)
+             FutureWarning: pd.rolling_cov is deprecated for Series and will be removed in a future version, replace with
+                  Series.rolling(window=2).cov(other=<Series>)
+     Out[3]:
+             0    NaN
+             1    0.5
+             2    0.5
+             dtype: float64
+
+- The the ``freq`` and ``how`` arguments to the ``.rolling``, ``.expanding``, and ``.ewm`` (new) functions are deprecated, and will be removed in a future version. You can simply resample the input prior to creating a window function. (:issue:`11603`).
+
+  For example, instead of ``s.rolling(window=5,freq='D').max()`` to get the max value on a rolling 5 Day window, one could use ``s.resample('D',how='max').rolling(window=5).max()``, which first resamples the data to daily data, then provides a rolling 5 day window.
 
 .. _whatsnew_0180.prior_deprecations:
 
 Removal of prior version deprecations/changes
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-
-
+- Removal of ``rolling_corr_pairwise`` in favor of ``.rolling().corr(pairwise=True)`` (:issue:`4950`)
+- Removal of ``expanding_corr_pairwise`` in favor of ``.expanding().corr(pairwise=True)`` (:issue:`4950`)
 
 
 
@@ -91,7 +268,9 @@ Removal of prior version deprecations/changes
 Performance Improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
+- Improved performance of ``andrews_curves`` (:issue:`11534`)
 
+- Improved huge ``DatetimeIndex``, ``PeriodIndex`` and ``TimedeltaIndex``'s ops performance including ``NaT`` (:issue:`10277`)
 
 
 
@@ -105,6 +284,67 @@ Performance Improvements
 
 Bug Fixes
 ~~~~~~~~~
+
+- Bug in ``GroupBy.size`` when data-frame is empty. (:issue:`11699`)
+- Bug in ``Period.end_time`` when a multiple of time period is requested (:issue:`11738`)
+- Regression in ``.clip`` with tz-aware datetimes (:issue:`11838`)
+- Bug in ``date_range`` when the boundaries fell on the frequency (:issue:`11804`)
+- Bug in consistency of passing nested dicts to ``.groupby(...).agg(...)`` (:issue:`9052`)
+
+
+
+
+ - Bug in vectorized ``DateOffset`` when ``n`` parameter is ``0`` (:issue:`11370`)
+
+
+
+
+
+
+
+- Bug in ``Timedelta.round`` with negative values (:issue:`11690`)
+- Bug in ``.loc`` against ``CategoricalIndex`` may result in normal ``Index`` (:issue:`11586`)
+- Bug in ``DataFrame.info`` when duplicated column names exist (:issue:`11761`)
+- Bug in ``.copy`` of datetime tz-aware objects (:issue:`11794`)
+
+
+
+
+
+- Bug in subclasses of `DataFrame` where `AttributeError` did not propagate (:issue:`11808`)
+- Bug groupby on tz-aware data where selection not returning ``Timestamp`` (:issue:`11616`)
+- Bug in ``pd.read_clipboard`` and ``pd.to_clipboard`` functions not supporting Unicode; upgrade included ``pyperclip`` to v1.5.15 (:issue:`9263`)
+
+
+
+
+
+
+- Bug in timezone info lost when broadcasting scalar datetime to ``DataFrame`` (:issue:`11682`)
+- Bug in ``Index`` creation from ``Timestamp`` with mixed tz coerces to UTC (:issue:`11488`)
+- Bug in ``to_numeric`` where it does not raise if input is more than one dimension (:issue:`11776`)
+
+- Bug in parsing timezone offset strings with non-zero minutes (:issue:`11708`)
+
+
+
+
+- Bug in ``.loc`` result with duplicated key may have ``Index`` with incorrect dtype (:issue:`11497`)
+- Bug in ``pd.rolling_median`` where memory allocation failed even with sufficient memory (:issue:`11696`)
+
+- Bug in ``.style.bar`` may not rendered properly using specific browser (:issue:`11678`)
+
+
+- Bug in ``df.replace`` while replacing value in mixed dtype ``Dataframe`` (:issue:`11698`)
+
+- Bug in ``Index`` prevents copying name of passed ``Index``, when a new name is not provided (:issue:`11193`)
+
+- Bug in ``read_excel`` failing to read any non-empty sheets when empty sheets exist and ``sheetname=None`` (:issue:`11711`)
+
+- Bug in ``read_excel`` failing to raise ``NotImplemented`` error when keywords `parse_dates` and `date_parser` are provided (:issue:`11544`)
+
+- Bug in ``read_sql`` with pymysql connections failing to return chunked data (:issue:`11522`)
+
 
 - Bug in ``pd.concat`` while concatenating tz-aware NaT series. (:issue:`11693`)
 - Bug in ``pd.concat`` while concatenating tz-aware series with time series. (:issue:`11755`)

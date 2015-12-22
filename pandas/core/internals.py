@@ -168,17 +168,11 @@ class Block(PandasObject):
 
         return make_block(values, placement=placement, ndim=ndim, **kwargs)
 
-    def make_block_same_class(self, values, placement, copy=False, fastpath=True,
-                              **kwargs):
-        """
-        Wrap given values in a block of same type as self.
-
-        `kwargs` are used in SparseBlock override.
-
-        """
-        if copy:
-            values = values.copy()
-        return make_block(values, placement, klass=self.__class__,
+    def make_block_same_class(self, values, placement=None, fastpath=True, **kwargs):
+        """ Wrap given values in a block of same type as self. """
+        if placement is None:
+            placement = self.mgr_locs
+        return make_block(values, placement=placement, klass=self.__class__,
                           fastpath=fastpath, **kwargs)
 
     @mgr_locs.setter
@@ -573,12 +567,11 @@ class Block(PandasObject):
 
     # block actions ####
     def copy(self, deep=True, mgr=None):
+        """ copy constructor """
         values = self.values
         if deep:
             values = values.copy()
-        return self.make_block(values,
-                               klass=self.__class__,
-                               fastpath=True)
+        return self.make_block_same_class(values)
 
     def replace(self, to_replace, value, inplace=False, filter=None,
                 regex=False, convert=True, mgr=None):
@@ -588,6 +581,7 @@ class Block(PandasObject):
         compatibility."""
 
         original_to_replace = to_replace
+        mask = isnull(self.values)
 
         # try to replace, if we raise an error, convert to ObjectBlock and retry
         try:
@@ -1220,10 +1214,6 @@ class Block(PandasObject):
         # or if we are a single block (ndim == 1)
         result = func(cond, values, other)
         if self._can_hold_na or self.ndim == 1:
-
-            if not isinstance(result, np.ndarray):
-                raise TypeError('Could not compare [%s] with block values'
-                                % repr(other))
 
             if transpose:
                 result = result.T
@@ -2139,6 +2129,13 @@ class DatetimeTZBlock(NonConsolidatableMixIn, DatetimeBlock):
                                               placement=placement,
                                               ndim=ndim,
                                               **kwargs)
+    def copy(self, deep=True, mgr=None):
+        """ copy constructor """
+        values = self.values
+        if deep:
+            values = values.copy(deep=True)
+        return self.make_block_same_class(values)
+
     def external_values(self):
         """ we internally represent the data as a DatetimeIndex, but for external
         compat with ndarray, export as a ndarray of Timestamps """
@@ -3256,10 +3253,14 @@ class BlockManager(PandasObject):
         full_loc = list(ax.get_loc(x)
                         for ax, x in zip(self.axes, tup))
         blk = self.blocks[self._blknos[full_loc[0]]]
-        full_loc[0] = self._blklocs[full_loc[0]]
+        values = blk.values
 
         # FIXME: this may return non-upcasted types?
-        return blk.values[tuple(full_loc)]
+        if values.ndim == 1:
+            return values[full_loc[1]]
+
+        full_loc[0] = self._blklocs[full_loc[0]]
+        return values[tuple(full_loc)]
 
     def delete(self, item):
         """
@@ -4414,11 +4415,14 @@ def _putmask_smart(v, m, n):
     try:
         nn = n[m]
         nn_at = nn.astype(v.dtype)
-        comp = (nn == nn_at)
-        if is_list_like(comp) and comp.all():
-            nv = v.copy()
-            nv[m] = nn_at
-            return nv
+
+        # avoid invalid dtype comparisons
+        if not is_numeric_v_string_like(nn, nn_at):
+            comp = (nn == nn_at)
+            if is_list_like(comp) and comp.all():
+                nv = v.copy()
+                nv[m] = nn_at
+                return nv
     except (ValueError, IndexError, TypeError):
         pass
 
@@ -4732,8 +4736,10 @@ def trim_join_unit(join_unit, length):
 
 
 class JoinUnit(object):
-    def __init__(self, block, shape, indexers={}):
+    def __init__(self, block, shape, indexers=None):
         # Passing shape explicitly is required for cases when block is None.
+        if indexers is None:
+                indexers = {}
         self.block = block
         self.indexers = indexers
         self.shape = shape

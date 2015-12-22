@@ -7,7 +7,7 @@ from pandas.tseries.holiday import (
     USFederalHolidayCalendar, USMemorialDay, USThanksgivingDay, 
     nearest_workday, next_monday_or_tuesday, next_monday,
     previous_friday, sunday_to_monday, Holiday, DateOffset,
-    MO, Timestamp, AbstractHolidayCalendar, get_calendar,
+    MO, SA, Timestamp, AbstractHolidayCalendar, get_calendar,
     HolidayCalendarFactory, next_workday, previous_workday,
     before_nearest_workday, EasterMonday, GoodFriday,
     after_nearest_workday, weekend_to_monday, USLaborDay,
@@ -358,7 +358,37 @@ class TestObservanceRules(tm.TestCase):
         self.assertEqual(after_nearest_workday(self.sa), self.mo)
         self.assertEqual(after_nearest_workday(self.su), self.tu)
         self.assertEqual(after_nearest_workday(self.fr), self.mo)
-    
+
+class TestFederalHolidayCalendar(tm.TestCase):
+
+    # Test for issue 10278
+    def test_no_mlk_before_1984(self):
+        class MLKCalendar(AbstractHolidayCalendar):
+            rules=[USMartinLutherKingJr]
+        holidays = MLKCalendar().holidays(start='1984', end='1988').to_pydatetime().tolist()
+        # Testing to make sure holiday is not incorrectly observed before 1986
+        self.assertEqual(holidays, [datetime(1986, 1, 20, 0, 0), datetime(1987, 1, 19, 0, 0)])
+
+    def test_memorial_day(self):
+        class MemorialDay(AbstractHolidayCalendar):
+            rules=[USMemorialDay]
+        holidays = MemorialDay().holidays(start='1971', end='1980').to_pydatetime().tolist()
+        # Fixes 5/31 error and checked manually against wikipedia
+        self.assertEqual(holidays, [datetime(1971, 5, 31, 0, 0), datetime(1972, 5, 29, 0, 0),
+            datetime(1973, 5, 28, 0, 0), datetime(1974, 5, 27, 0, 0),
+            datetime(1975, 5, 26, 0, 0), datetime(1976, 5, 31, 0, 0),
+            datetime(1977, 5, 30, 0, 0), datetime(1978, 5, 29, 0, 0),
+            datetime(1979, 5, 28, 0, 0)])
+
+class TestHolidayConflictingArguments(tm.TestCase):
+
+    # GH 10217
+
+    def test_both_offset_observance_raises(self):
+
+        with self.assertRaises(NotImplementedError) as cm:
+            h = Holiday("Cyber Monday", month=11, day=1,
+                        offset=[DateOffset(weekday=SA(4))], observance=next_monday)
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],

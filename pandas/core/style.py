@@ -63,7 +63,7 @@ class Styler(object):
 
     Attributes
     ----------
-    tempate: Jinja Template
+    template: Jinja Template
 
     Notes
     -----
@@ -520,17 +520,31 @@ class Styler(object):
 
     def set_table_styles(self, table_styles):
         """
-        Set the table styles on a Styler
+        Set the table styles on a Styler. These are placed in a
+        ``<style>`` tag before the generated HTML table.
 
         .. versionadded:: 0.17.1
 
         Parameters
         ----------
         table_styles: list
+            Each individual table_style should be a dictionary with
+            ``selector`` and ``props`` keys. ``selector`` should be a CSS
+            selector that the style will be applied to (automatically
+            prefixed by the table's UUID) and ``props`` should be a list of
+            tuples with ``(attribute, value)``.
 
         Returns
         -------
         self
+
+        Examples
+        --------
+        >>> df = pd.DataFrame(np.random.randn(10, 4))
+        >>> df.style.set_table_styles(
+        ...     [{'selector': 'tr:hover',
+        ...       'props': [('background-color', 'yellow')]}]
+        ... )
         """
         self.table_styles = table_styles
         return self
@@ -642,10 +656,10 @@ class Styler(object):
     @staticmethod
     def _bar(s, color, width):
         normed = width * (s - s.min()) / (s.max() - s.min())
-        attrs = 'width: 10em; height: 80%;'\
-            'background: linear-gradient(90deg,'\
-            '{c} {w}%, transparent 0%)'
-        return [attrs.format(c=color, w=x) for x in normed]
+
+        base = 'width: 10em; height: 80%;'
+        attrs = base + 'background: linear-gradient(90deg,{c} {w}%, transparent 0%)'
+        return [attrs.format(c=color, w=x) if x != 0 else base for x in normed]
 
     def bar(self, subset=None, axis=0, color='#d65f5f', width=100):
         """
@@ -744,6 +758,3 @@ class Styler(object):
                 extrema = data == data.min().min()
             return pd.DataFrame(np.where(extrema, attr, ''),
                                 index=data.index, columns=data.columns)
-
-
-

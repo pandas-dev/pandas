@@ -41,6 +41,46 @@ class DatelikeOps(object):
         """
         return np.asarray(self.format(date_format=date_format))
 
+class TimelikeOps(object):
+    """ common ops for TimedeltaIndex/DatetimeIndex, but not PeriodIndex """
+
+    def round(self, freq):
+        """
+        Round the index to the specified freq; this is a floor type of operation
+
+        Parameters
+        ----------
+        freq : freq string/object
+
+        Returns
+        -------
+        index of same type
+
+        Raises
+        ------
+        ValueError if the freq cannot be converted
+        """
+
+        from pandas.tseries.frequencies import to_offset
+        unit = to_offset(freq).nanos
+
+        # round the local times
+        if getattr(self,'tz',None) is not None:
+            values = self.tz_localize(None).asi8
+        else:
+            values = self.asi8
+        result = (unit*np.floor(values/unit)).astype('i8')
+        attribs = self._get_attributes_dict()
+        if 'freq' in attribs:
+            attribs['freq'] = None
+        if 'tz' in attribs:
+            attribs['tz'] = None
+        result = self._shallow_copy(result, **attribs)
+
+        # reconvert to local tz
+        if getattr(self,'tz',None) is not None:
+            result = result.tz_localize(self.tz)
+        return result
 
 class DatetimeIndexOpsMixin(object):
     """ common ops mixin to support a unified inteface datetimelike Index """
@@ -241,12 +281,11 @@ class DatetimeIndexOpsMixin(object):
         """
 
         if self.hasnans:
-            mask = self.asi8 == tslib.iNaT
             if convert:
                 result = result.astype(convert)
             if fill_value is None:
                 fill_value = np.nan
-            result[mask] = fill_value
+            result[self._isnan] = fill_value
         return result
 
     def tolist(self):
@@ -272,8 +311,7 @@ class DatetimeIndexOpsMixin(object):
                     return self._box_func(i8[0])
 
             if self.hasnans:
-                mask = i8 == tslib.iNaT
-                min_stamp = i8[~mask].min()
+                min_stamp = self[~self._isnan].asi8.min()
             else:
                 min_stamp = i8.min()
             return self._box_func(min_stamp)
@@ -291,7 +329,7 @@ class DatetimeIndexOpsMixin(object):
 
         i8 = self.asi8
         if self.hasnans:
-            mask = i8 == tslib.iNaT
+            mask = self._isnan
             if mask.all():
                 return -1
             i8 = i8.copy()
@@ -315,8 +353,7 @@ class DatetimeIndexOpsMixin(object):
                     return self._box_func(i8[-1])
 
             if self.hasnans:
-                mask = i8 == tslib.iNaT
-                max_stamp = i8[~mask].max()
+                max_stamp = self[~self._isnan].asi8.max()
             else:
                 max_stamp = i8.max()
             return self._box_func(max_stamp)
@@ -334,7 +371,7 @@ class DatetimeIndexOpsMixin(object):
 
         i8 = self.asi8
         if self.hasnans:
-            mask = i8 == tslib.iNaT
+            mask = self._isnan
             if mask.all():
                 return -1
             i8 = i8.copy()
@@ -458,9 +495,9 @@ class DatetimeIndexOpsMixin(object):
         # return the i8 result view
 
         inc = tslib._delta_to_nanoseconds(other)
-        mask = self.asi8 == tslib.iNaT
         new_values = (self.asi8 + inc).view('i8')
-        new_values[mask] = tslib.iNaT
+        if self.hasnans:
+            new_values[self._isnan] = tslib.iNaT
         return new_values.view('i8')
 
     def _add_delta_tdi(self, other):
@@ -473,9 +510,10 @@ class DatetimeIndexOpsMixin(object):
 
         self_i8 = self.asi8
         other_i8 = other.asi8
-        mask = (self_i8 == tslib.iNaT) | (other_i8 == tslib.iNaT)
         new_values = self_i8 + other_i8
-        new_values[mask] = tslib.iNaT
+        if self.hasnans or other.hasnans:
+            mask = (self._isnan) | (other._isnan)
+            new_values[mask] = tslib.iNaT
         return new_values.view(self.dtype)
 
     def isin(self, values):

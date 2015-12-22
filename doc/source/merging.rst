@@ -135,7 +135,7 @@ functionality below.
 .. note::
    It is worth noting however, that ``concat`` (and therefore ``append``) makes
    a full copy of the data, and that constantly reusing this function can
-   create a signifcant performance hit. If you need to use the operation over
+   create a significant performance hit. If you need to use the operation over
    several datasets, use a list comprehension.
 
 ::

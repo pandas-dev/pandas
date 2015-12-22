@@ -1,4 +1,4 @@
-# coding=utf-8
+﻿# coding=utf-8
 # pylint: disable-msg=E1101,W0612
 
 import re
@@ -88,9 +88,9 @@ class CheckNameIntegration(object):
         ok_for_period_methods = ['strftime']
         ok_for_dt = ok_for_base + ['date','time','microsecond','nanosecond', 'is_month_start', 'is_month_end', 'is_quarter_start',
                                    'is_quarter_end', 'is_year_start', 'is_year_end', 'tz']
-        ok_for_dt_methods = ['to_period','to_pydatetime','tz_localize','tz_convert', 'normalize', 'strftime']
+        ok_for_dt_methods = ['to_period','to_pydatetime','tz_localize','tz_convert', 'normalize', 'strftime', 'round']
         ok_for_td = ['days','seconds','microseconds','nanoseconds']
-        ok_for_td_methods = ['components','to_pytimedelta','total_seconds']
+        ok_for_td_methods = ['components','to_pytimedelta','total_seconds','round']
 
         def get_expected(s, name):
             result = getattr(Index(s._values),prop)
@@ -138,6 +138,17 @@ class CheckNameIntegration(object):
             result = s.dt.tz_localize('UTC').dt.tz_convert('US/Eastern')
             expected = Series(DatetimeIndex(s.values).tz_localize('UTC').tz_convert('US/Eastern'),index=s.index)
             tm.assert_series_equal(result, expected)
+
+        # round
+        s = Series(date_range('20130101 09:10:11',periods=5))
+        result = s.dt.round('D')
+        expected = Series(date_range('20130101',periods=5))
+        tm.assert_series_equal(result, expected)
+
+        # round with tz
+        result = s.dt.tz_localize('UTC').dt.tz_convert('US/Eastern').dt.round('D')
+        expected = Series(date_range('20130101',periods=5)).dt.tz_localize('US/Eastern')
+        tm.assert_series_equal(result, expected)
 
         # datetimeindex with tz
         s = Series(date_range('20130101',periods=5,tz='US/Eastern'))
@@ -2992,11 +3003,26 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
     def test_round(self):
         # numpy.round doesn't preserve metadata, probably a numpy bug,
         # re: GH #314
-        result = np.round(self.ts, 2)
+        result = self.ts.round(2)
         expected = Series(np.round(self.ts.values, 2), index=self.ts.index,
                           name='ts')
         assert_series_equal(result, expected)
         self.assertEqual(result.name, self.ts.name)
+
+    def test_built_in_round(self):
+        if not compat.PY3:
+            raise nose.SkipTest('build in round cannot be overriden prior to Python 3')
+
+        s = Series([1.123, 2.123, 3.123], index=lrange(3))
+        result = round(s)
+        expected_rounded0 = Series([1., 2., 3.], index=lrange(3))
+        self.assert_series_equal(result, expected_rounded0)
+
+        decimals = 2
+        expected_rounded = Series([1.12, 2.12, 3.12], index=lrange(3))
+        result = round(s, decimals)
+        self.assert_series_equal(result, expected_rounded)
+
 
     def test_prod_numpy16_bug(self):
         s = Series([1., 1., 1.], index=lrange(3))
@@ -5100,12 +5126,50 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         self.assertTrue(isnull(ts1.cov(ts2, min_periods=12)))
 
     def test_copy(self):
-        ts = self.ts.copy()
 
-        ts[::2] = np.NaN
+        for deep in [None, False, True]:
+            s = Series(np.arange(10),dtype='float64')
 
-        # Did not modify original Series
-        self.assertFalse(np.isnan(self.ts[0]))
+            # default deep is True
+            if deep is None:
+                s2 = s.copy()
+            else:
+                s2 = s.copy(deep=deep)
+
+            s2[::2] = np.NaN
+
+            if deep is None or deep is True:
+                # Did not modify original Series
+                self.assertTrue(np.isnan(s2[0]))
+                self.assertFalse(np.isnan(s[0]))
+            else:
+
+                # we DID modify the original Series
+                self.assertTrue(np.isnan(s2[0]))
+                self.assertTrue(np.isnan(s[0]))
+
+        # GH 11794
+        # copy of tz-aware
+        expected = Series([Timestamp('2012/01/01', tz='UTC')])
+        expected2 = Series([Timestamp('1999/01/01', tz='UTC')])
+
+        for deep in [None, False, True]:
+            s = Series([Timestamp('2012/01/01', tz='UTC')])
+
+            if deep is None:
+                s2 = s.copy()
+            else:
+                s2 = s.copy(deep=deep)
+
+            s2[0] = pd.Timestamp('1999/01/01', tz='UTC')
+
+            # default deep is True
+            if deep is None or deep is True:
+                assert_series_equal(s, expected)
+                assert_series_equal(s2, expected2)
+            else:
+                assert_series_equal(s, expected2)
+                assert_series_equal(s2, expected2)
 
     def test_count(self):
         self.assertEqual(self.ts.count(), len(self.ts))
@@ -5779,6 +5843,24 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         upper = Series([1.5, 2.5, 3.5])
         assert_series_equal(s.clip(lower, upper), Series([1.0, 2.0, 3.5]))
         assert_series_equal(s.clip(1.5, upper), Series([1.5, 1.5, 3.5]))
+
+
+    def test_clip_with_datetimes(self):
+
+        # GH 11838
+        # naive and tz-aware datetimes
+
+        t = Timestamp('2015-12-01 09:30:30')
+        s = Series([ Timestamp('2015-12-01 09:30:00'), Timestamp('2015-12-01 09:31:00') ])
+        result = s.clip(upper=t)
+        expected = Series([ Timestamp('2015-12-01 09:30:00'), Timestamp('2015-12-01 09:30:30') ])
+        assert_series_equal(result, expected)
+
+        t = Timestamp('2015-12-01 09:30:30', tz='US/Eastern')
+        s = Series([ Timestamp('2015-12-01 09:30:00', tz='US/Eastern'), Timestamp('2015-12-01 09:31:00', tz='US/Eastern') ])
+        result = s.clip(upper=t)
+        expected = Series([ Timestamp('2015-12-01 09:30:00', tz='US/Eastern'), Timestamp('2015-12-01 09:30:30', tz='US/Eastern') ])
+        assert_series_equal(result, expected)
 
     def test_valid(self):
         ts = self.ts.copy()

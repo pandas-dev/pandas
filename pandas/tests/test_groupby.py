@@ -1443,6 +1443,48 @@ class TestGroupBy(tm.TestCase):
         result = grouped['C'].agg({'foo': np.mean, 'bar': np.std})
         self.assertEqual(result.index.name, 'A')
 
+    def test_aggregate_api_consistency(self):
+        # GH 9052
+        # make sure that the aggregates via dict
+        # are consistent
+
+
+        def compare(result, expected):
+            # if we ar passin dicts then ordering is not guaranteed for output columns
+            assert_frame_equal(result.reindex_like(expected), expected)
+
+
+        df = DataFrame({'A' : ['foo', 'bar', 'foo', 'bar',
+                               'foo', 'bar', 'foo', 'foo'],
+                        'B' : ['one', 'one', 'two', 'three',
+                               'two', 'two', 'one', 'three'],
+                        'C' : np.random.randn(8),
+                        'D' : np.random.randn(8)})
+
+        grouped = df.groupby(['A', 'B'])
+        result = grouped[['D','C']].agg({'r':np.sum, 'r2':np.mean})
+        expected = pd.concat([grouped[['D','C']].sum(),
+                              grouped[['D','C']].mean()],
+                             keys=['r','r2'],
+                             axis=1).stack(level=1)
+        compare(result, expected)
+
+        result = grouped[['D','C']].agg({'r': { 'C' : np.sum }, 'r2' : { 'D' : np.mean }})
+        expected = pd.concat([grouped[['C']].sum(),
+                              grouped[['D']].mean()],
+                             axis=1)
+        expected.columns = MultiIndex.from_tuples([('r','C'),('r2','D')])
+        compare(result, expected)
+
+        result = grouped[['D','C']].agg([np.sum, np.mean])
+        expected = pd.concat([grouped['D'].sum(),
+                              grouped['D'].mean(),
+                              grouped['C'].sum(),
+                              grouped['C'].mean()],
+                             axis=1)
+        expected.columns = MultiIndex.from_product([['D','C'],['sum','mean']])
+        compare(result, expected)
+
     def test_multi_iter(self):
         s = Series(np.arange(6))
         k1 = np.array(['a', 'a', 'a', 'b', 'b', 'b'])
@@ -2524,6 +2566,11 @@ class TestGroupBy(tm.TestCase):
             left = df.groupby(key, sort=sort).size()
             right = df.groupby(key, sort=sort)['c'].apply(lambda a: a.shape[0])
             assert_series_equal(left, right, check_names=False)
+
+        # GH11699
+        df = DataFrame([], columns=['A', 'B'])
+        out = Series([], dtype='int64', index=Index([], name='A'))
+        assert_series_equal(df.groupby('A').size(), out)
 
     def test_count(self):
         from string import ascii_lowercase
@@ -4095,6 +4142,30 @@ class TestGroupBy(tm.TestCase):
         grouper = pd.tseries.resample.TimeGrouper('D')
         grouped = series.groupby(grouper)
         assert next(iter(grouped), None) is None
+
+    def test_groupby_with_timezone_selection(self):
+        # GH 11616
+        # Test that column selection returns output in correct timezone.
+        np.random.seed(42)
+        df = pd.DataFrame({
+            'factor': np.random.randint(0, 3, size=60),
+            'time': pd.date_range('01/01/2000 00:00', periods=60, freq='s', tz='UTC')
+        })
+        df1 = df.groupby('factor').max()['time']
+        df2 = df.groupby('factor')['time'].max()
+        tm.assert_series_equal(df1, df2)
+
+    def test_timezone_info(self):
+        #GH 11682
+        # Timezone info lost when broadcasting scalar datetime to DataFrame
+        tm._skip_if_no_pytz()
+        import pytz
+
+        df = pd.DataFrame({'a': [1], 'b': [datetime.now(pytz.utc)]})
+        tm.assert_equal(df['b'][0].tzinfo, pytz.utc)
+        df = pd.DataFrame({'a': [1,2,3]})
+        df['b'] = datetime.now(pytz.utc)
+        tm.assert_equal(df['b'][0].tzinfo, pytz.utc)
 
     def test_groupby_with_timegrouper(self):
         # GH 4161

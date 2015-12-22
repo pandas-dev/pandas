@@ -293,10 +293,12 @@ class TestIndexOps(Ops):
 
                 o[0] = np.nan
 
+                # noinspection PyComparisonWithNone
                 result = o == None
                 self.assertFalse(result.iat[0])
                 self.assertFalse(result.iat[1])
 
+                # noinspection PyComparisonWithNone
                 result = o != None
                 self.assertTrue(result.iat[0])
                 self.assertTrue(result.iat[1])
@@ -413,6 +415,7 @@ class TestIndexOps(Ops):
 
                 # resets name from Index
                 expected_index = pd.Index(o[::-1])
+                expected_index.name = None
 
                 # attach name to klass
                 o = o.repeat(range(1, len(o) + 1))
@@ -422,16 +425,18 @@ class TestIndexOps(Ops):
 
                 # resets name from Index
                 expected_index = pd.Index(o[::-1])
+                expected_index.name = None
 
                 # attach name to klass
                 o = o.repeat(range(1, len(o) + 1))
                 o.name = 'a'
 
             # don't test boolean
-            elif isinstance(o,Index) and o.is_boolean():
+            elif isinstance(o, Index) and o.is_boolean():
                 continue
             elif isinstance(o, Index):
                 expected_index = pd.Index(values[::-1])
+                expected_index.name = None
                 o = o.repeat(range(1, len(o) + 1))
                 o.name = 'a'
             else:

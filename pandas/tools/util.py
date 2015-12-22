@@ -56,7 +56,7 @@ def to_numeric(arg, errors='raise'):
 
     Parameters
     ----------
-    arg : list, tuple or array of objects, or Series
+    arg : list, tuple, 1-d array, or Series
     errors : {'ignore', 'raise', 'coerce'}, default 'raise'
         - If 'raise', then invalid parsing will raise an exception
         - If 'coerce', then invalid parsing will be set as NaN
@@ -84,6 +84,8 @@ def to_numeric(arg, errors='raise'):
         index, name = arg.index, arg.name
     elif isinstance(arg, (list, tuple)):
         arg = np.array(arg, dtype='O')
+    elif getattr(arg, 'ndim', 1) > 1:
+        raise TypeError('arg must be a list, tuple, 1-d array, or Series')
 
     conv = arg
     arg = com._ensure_object(arg)

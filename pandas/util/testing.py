@@ -718,7 +718,11 @@ def assert_attr_equal(attr, left, right, obj='Attributes'):
         # np.nan
         return True
 
-    result = left_attr == right_attr
+    try:
+        result = left_attr == right_attr
+    except TypeError:
+        # datetimetz on rhs may raise TypeError
+        result = False
     if not isinstance(result, bool):
         result = result.all()
 
@@ -1637,6 +1641,7 @@ _network_error_messages = (
     'HTTP Error 502',
     'HTTP Error 503',
     'HTTP Error 403',
+    'HTTP Error 400',
     'Temporary failure in name resolution',
     'Name or service not known',
     'Connection refused',

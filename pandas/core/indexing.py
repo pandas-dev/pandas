@@ -984,6 +984,9 @@ class _NDFrameIndexer(object):
                 # asarray can be unsafe, NumPy strings are weird
                 keyarr = _asarray_tuplesafe(key)
 
+            if com.is_categorical_dtype(labels):
+                keyarr = labels._shallow_copy(keyarr)
+
             # have the index handle the indexer and possibly return
             # an indexer or raising
             indexer = labels._convert_list_indexer(keyarr, kind=self.name)

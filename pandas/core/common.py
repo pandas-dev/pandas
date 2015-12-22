@@ -232,7 +232,7 @@ def _isnull_ndarraylike(obj):
     values = getattr(obj, 'values', obj)
     dtype = values.dtype
 
-    if dtype.kind in ('O', 'S', 'U'):
+    if is_string_dtype(dtype):
         if is_categorical_dtype(values):
             from pandas import Categorical
             if not isinstance(values, Categorical):
@@ -243,7 +243,7 @@ def _isnull_ndarraylike(obj):
             # Working around NumPy ticket 1542
             shape = values.shape
 
-            if dtype.kind in ('S', 'U'):
+            if is_string_like_dtype(dtype):
                 result = np.zeros(values.shape, dtype=bool)
             else:
                 result = np.empty(shape, dtype=bool)
@@ -267,11 +267,11 @@ def _isnull_ndarraylike_old(obj):
     values = getattr(obj, 'values', obj)
     dtype = values.dtype
 
-    if dtype.kind in ('O', 'S', 'U'):
+    if is_string_dtype(dtype):
         # Working around NumPy ticket 1542
         shape = values.shape
 
-        if values.dtype.kind in ('S', 'U'):
+        if is_string_like_dtype(dtype):
             result = np.zeros(values.shape, dtype=bool)
         else:
             result = np.empty(shape, dtype=bool)
@@ -1025,7 +1025,7 @@ def _infer_dtype_from_scalar(val):
 
         dtype = np.object_
 
-    elif isinstance(val, (np.datetime64, datetime)) and getattr(val,'tz',None) is None:
+    elif isinstance(val, (np.datetime64, datetime)) and getattr(val,'tzinfo',None) is None:
         val = lib.Timestamp(val).value
         dtype = np.dtype('M8[ns]')
 
@@ -1321,7 +1321,9 @@ def _possibly_downcast_to_dtype(result, dtype):
             try:
                 result = result.astype(dtype)
             except:
-                pass
+                if dtype.tz:
+                    # convert to datetime and change timezone
+                    result = pd.to_datetime(result).tz_localize(dtype.tz)
 
     except:
         pass
@@ -2206,13 +2208,17 @@ def is_numeric_v_string_like(a, b):
 
     is_a_numeric_array = is_a_array and is_numeric_dtype(a)
     is_b_numeric_array = is_b_array and is_numeric_dtype(b)
+    is_a_string_array = is_a_array and is_string_like_dtype(a)
+    is_b_string_array = is_b_array and is_string_like_dtype(b)
 
     is_a_scalar_string_like = not is_a_array and is_string_like(a)
     is_b_scalar_string_like = not is_b_array and is_string_like(b)
 
     return (
         is_a_numeric_array and is_b_scalar_string_like) or (
-        is_b_numeric_array and is_a_scalar_string_like
+        is_b_numeric_array and is_a_scalar_string_like) or (
+        is_a_numeric_array and is_b_string_array) or (
+        is_b_numeric_array and is_a_string_array
         )
 
 def is_datetimelike_v_numeric(a, b):
@@ -2254,6 +2260,15 @@ def is_numeric_dtype(arr_or_dtype):
     return (issubclass(tipo, (np.number, np.bool_))
             and not issubclass(tipo, (np.datetime64, np.timedelta64)))
 
+
+def is_string_dtype(arr_or_dtype):
+    dtype = _get_dtype(arr_or_dtype)
+    return dtype.kind in ('O', 'S', 'U')
+
+def is_string_like_dtype(arr_or_dtype):
+    # exclude object as its a mixed dtype
+    dtype = _get_dtype(arr_or_dtype)
+    return dtype.kind in ('S', 'U')
 
 def is_float_dtype(arr_or_dtype):
     tipo = _get_dtype_type(arr_or_dtype)

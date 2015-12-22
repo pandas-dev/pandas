@@ -1790,12 +1790,6 @@ as well)
 
    dfs = read_html(url, skiprows=range(2))
 
-Don't infer numeric and date types
-
-.. code-block:: python
-
-   dfs = read_html(url, infer_types=False)
-
 Specify an HTML attribute
 
 .. code-block:: python
@@ -3071,7 +3065,7 @@ indexed dimension as the ``where``.
    i = store.root.df.table.cols.index.index
    i.optlevel, i.kind
 
-Ofentimes when appending large amounts of data to a store, it is useful to turn off index creation for each append, then recreate at the end.
+Oftentimes when appending large amounts of data to a store, it is useful to turn off index creation for each append, then recreate at the end.
 
 .. ipython:: python
 
@@ -4421,7 +4415,7 @@ whether imported ``Categorical`` variables are ordered.
 
     *Stata* supports partially labeled series.  These series have value labels for
     some but not all data values. Importing a partially labeled series will produce
-    a ``Categorial`` with string categories for the values that are labeled and
+    a ``Categorical`` with string categories for the values that are labeled and
     numeric categories for values with no label.
 
 .. _io.other:
