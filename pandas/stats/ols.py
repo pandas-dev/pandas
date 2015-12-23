@@ -47,6 +47,12 @@ class OLS(StringMixin):
 
     def __init__(self, y, x, intercept=True, weights=None, nw_lags=None,
                  nw_overlap=False):
+        import warnings
+        warnings.warn("The pandas.stats.ols module is deprecated and will be "
+                      "removed in a future version. We refer to external packages "
+                      "like statsmodels, see some examples here: http://statsmodels.sourceforge.net/stable/regression.html",
+                      FutureWarning, stacklevel=4)
+
         try:
             import statsmodels.api as sm
         except ImportError:
