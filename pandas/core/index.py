@@ -4022,8 +4022,7 @@ Float64Index._add_logical_methods_disabled()
 class MultiIndex(Index):
 
     """
-    Implements multi-level, a.k.a. hierarchical, index object for pandas
-    objects
+    A multi-level, or hierarchical, index object for pandas objects
 
     Parameters
     ----------
