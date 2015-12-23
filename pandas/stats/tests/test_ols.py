@@ -175,7 +175,7 @@ class TestOLS(BaseTest):
         _check_non_raw_results(result)
 
     def checkMovingOLS(self, window_type, x, y, weights=None, **kwds):
-        window = sm.tools.tools.rank(x.values) * 2
+        window = np.linalg.matrix_rank(x.values) * 2
 
         moving = ols(y=y, x=x, weights=weights, window_type=window_type,
                      window=window, **kwds)
