@@ -748,10 +748,10 @@ class NDFrame(PandasObject):
 
     def __abs__(self):
         return self.abs()
-    
+
     def __round__(self,decimals=0):
         return self.round(decimals)
- 
+
     #----------------------------------------------------------------------
     # Array Interface
 
@@ -2189,6 +2189,48 @@ class NDFrame(PandasObject):
         Returns
         -------
         A new object of same type as caller.
+
+        Examples
+        --------
+
+        Generate an example ``Series`` and ``DataFrame``:
+
+        >>> s = pd.Series(np.random.randn(50))
+        >>> s.head()
+        0   -0.038497
+        1    1.820773
+        2   -0.972766
+        3   -1.598270
+        4   -1.095526
+        dtype: float64
+        >>> df = pd.DataFrame(np.random.randn(50, 4), columns=list('ABCD'))
+        >>> df.head()
+                  A         B         C         D
+        0  0.016443 -2.318952 -0.566372 -1.028078
+        1 -1.051921  0.438836  0.658280 -0.175797
+        2 -1.243569 -0.364626 -0.215065  0.057736
+        3  1.768216  0.404512 -0.385604 -1.457834
+        4  1.072446 -1.137172  0.314194 -0.046661
+
+        Next extract a random sample from both of these objects...
+
+        3 random elements from the ``Series``:
+
+        >>> s.sample(n=3)
+        27   -0.994689
+        55   -1.049016
+        67   -0.224565
+        dtype: float64
+
+        And a random 10% of the ``DataFrame`` with replacement:
+
+        >>> df.sample(frac=0.1, replace=True)
+                   A         B         C         D
+        35  1.981780  0.142106  1.817165 -0.290805
+        49 -1.336199 -0.448634 -0.789640  0.217116
+        40  0.823173 -0.078816  1.009536  1.015108
+        15  1.421154 -0.055301 -1.922594 -0.019696
+        6  -0.148339  0.832938  1.787600 -1.383767
         """
 
         if axis is None:
