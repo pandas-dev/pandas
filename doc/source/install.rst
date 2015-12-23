@@ -247,6 +247,13 @@ Optional Dependencies
 * `SciPy <http://www.scipy.org>`__: miscellaneous statistical functions
 * `PyTables <http://www.pytables.org>`__: necessary for HDF5-based storage. Version 3.0.0 or higher required, Version 3.2.1 or higher highly recommended.
 * `SQLAlchemy <http://www.sqlalchemy.org>`__: for SQL database support. Version 0.8.1 or higher recommended.
+  * Besides SQLAlchemy, you also need a database specific driver.
+    Examples of such drivers are `psycopg2 <http://initd.org/psycopg/>`__ for PostgreSQL
+    or `pymysql <https://github.com/PyMySQL/PyMySQL>`__ for MySQL. For
+    `SQLite <https://docs.python.org/3.5/library/sqlite3.html>`__ this is
+    included in Python's standard library by default.
+    You can find an overview of supported drivers for each SQL dialect in the
+    `SQLAlchemy docs <http://docs.sqlalchemy.org/en/latest/dialects/index.html>`__.
 * `matplotlib <http://matplotlib.sourceforge.net/>`__: for plotting
 * `statsmodels <http://statsmodels.sourceforge.net/>`__
    * Needed for parts of :mod:`pandas.stats`
