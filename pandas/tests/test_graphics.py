@@ -3718,7 +3718,7 @@ class TestDataFramePlots(TestPlotBase):
 
     def test_passed_bar_colors(self):
         import matplotlib as mpl
-        color_tuples = [(0.9, 0, 0, 1), (0, 0.9, 0, 1), (0, 0, 0.9, 1)] 
+        color_tuples = [(0.9, 0, 0, 1), (0, 0.9, 0, 1), (0, 0, 0.9, 1)]
         colormap = mpl.colors.ListedColormap(color_tuples)
         barplot = pd.DataFrame([[1,2,3]]).plot(kind="bar", cmap=colormap)
         self.assertEqual(color_tuples, [c.get_facecolor() for c in barplot.patches])
@@ -3780,6 +3780,21 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         tm.close()
         df.groupby('z')['x'].plot.line()
         tm.close()
+
+    def test_plot_kwargs(self):
+
+        df = DataFrame({'x': [1, 2, 3, 4, 5],
+                        'y': [1, 2, 3, 2, 1],
+                        'z': list('ababa')})
+
+        res = df.groupby('z').plot(kind='scatter', x='x', y='y')
+        # check that a scatter plot is effectively plotted: the axes should
+        # contain a PathCollection from the scatter plot (GH11805)
+        self.assertEqual(len(res['a'].collections), 1)
+
+        res = df.groupby('z').plot.scatter(x='x', y='y')
+        self.assertEqual(len(res['a'].collections), 1)
+
 
 def assert_is_valid_plot_return_object(objs):
     import matplotlib.pyplot as plt
