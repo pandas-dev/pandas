@@ -3741,8 +3741,13 @@ SQL Queries
 
 The :mod:`pandas.io.sql` module provides a collection of query wrappers to both
 facilitate data retrieval and to reduce dependency on DB-specific API. Database abstraction
-is provided by SQLAlchemy if installed, in addition you will need a driver library for
-your database.
+is provided by SQLAlchemy if installed. In addition you will need a driver library for
+your database. Examples of such drivers are `psycopg2 <http://initd.org/psycopg/>`__
+for PostgreSQL or `pymysql <https://github.com/PyMySQL/PyMySQL>`__ for MySQL.
+For `SQLite <https://docs.python.org/3.5/library/sqlite3.html>`__ this is
+included in Python's standard library by default.
+You can find an overview of supported drivers for each SQL dialect in the
+`SQLAlchemy docs <http://docs.sqlalchemy.org/en/latest/dialects/index.html>`__.
 
 .. versionadded:: 0.14.0
 
@@ -3780,7 +3785,7 @@ To connect with SQLAlchemy you use the :func:`create_engine` function to create 
 object from database URI. You only need to create the engine once per database you are
 connecting to.
 For more information on :func:`create_engine` and the URI formatting, see the examples
-below and the SQLAlchemy `documentation <http://docs.sqlalchemy.org/en/rel_0_9/core/engines.html>`__
+below and the SQLAlchemy `documentation <http://docs.sqlalchemy.org/en/latest/core/engines.html>`__
 
 .. ipython:: python
 
@@ -3994,7 +3999,7 @@ connecting to.
    # or absolute, starting with a slash:
    engine = create_engine('sqlite:////absolute/path/to/foo.db')
 
-For more information see the examples the SQLAlchemy `documentation <http://docs.sqlalchemy.org/en/rel_0_9/core/engines.html>`__
+For more information see the examples the SQLAlchemy `documentation <http://docs.sqlalchemy.org/en/latest/core/engines.html>`__
 
 
 Advanced SQLAlchemy queries
