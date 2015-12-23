@@ -253,6 +253,7 @@ Deprecations
   For example, instead of ``s.rolling(window=5,freq='D').max()`` to get the max value on a rolling 5 Day window, one could use ``s.resample('D',how='max').rolling(window=5).max()``, which first resamples the data to daily data, then provides a rolling 5 day window.
 
 - ``pd.tseries.frequencies.get_offset_name`` function is deprecated. Use offset's ``.freqstr`` property as alternative (:issue:`11192`)
+- ``pandas.fama_macbeth`` routines are deprecated and will be removed in a future version (:issue:``)
 
 .. _whatsnew_0180.prior_deprecations:
 
@@ -345,5 +346,8 @@ Bug Fixes
 - Bug in ``read_excel`` failing to raise ``NotImplemented`` error when keywords `parse_dates` and `date_parser` are provided (:issue:`11544`)
 
 - Bug in ``read_sql`` with pymysql connections failing to return chunked data (:issue:`11522`)
+<<<<<<< f67dd750a67e1e097b58407c755016d3726f21d5
 
 - Bug in ``DataFrame`` when masking an empty ``DataFrame`` (:issue:`11859`)
+=======
+>>>>>>> DEPR: deprecate pandas.fama_macbeth, #6077
