@@ -2047,7 +2047,7 @@ class DataFrame(NDFrame):
             return self._get_item_cache(key)
 
     def _getitem_frame(self, key):
-        if key.values.dtype != np.bool_:
+        if key.values.size and not com.is_bool_dtype(key.values):
             raise ValueError('Must pass DataFrame with boolean values only')
         return self.where(key)
 
