@@ -1067,7 +1067,8 @@ def mode_int64(int64_t[:] values):
 @cython.boundscheck(False)
 def duplicated_int64(ndarray[int64_t, ndim=1] values, object keep='first'):
     cdef:
-        int ret = 0, value, k
+        int ret = 0, k
+        int64_t value
         Py_ssize_t i, n = len(values)
         kh_int64_t * table = kh_init_int64()
         ndarray[uint8_t, ndim=1, cast=True] out = np.empty(n, dtype='bool')

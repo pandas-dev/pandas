@@ -468,9 +468,11 @@ Bug Fixes
 - Bug in ``to_numeric`` where it does not raise if input is more than one dimension (:issue:`11776`)
 
 - Bug in parsing timezone offset strings with non-zero minutes (:issue:`11708`)
+
 - Bug in ``df.plot`` using incorrect colors for bar plots under matplotlib 1.5+ (:issue:`11614`)
 - Bug in the ``groupby`` ``plot`` method when using keyword arguments (:issue:`11805`).
 
+- Bug in ``DataFrame.duplicated`` and ``drop_duplicates`` causing spurious matches when setting `keep=False` (:issue:`11864`)
 
 - Bug in ``.loc`` result with duplicated key may have ``Index`` with incorrect dtype (:issue:`11497`)
 - Bug in ``pd.rolling_median`` where memory allocation failed even with sufficient memory (:issue:`11696`)
