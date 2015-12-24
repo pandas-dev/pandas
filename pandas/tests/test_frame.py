@@ -826,6 +826,13 @@ class CheckIndexing(object):
                 df[df > df2] = 47
                 assert_frame_equal(df, df2)
 
+    def test_getitem_empty_frame_with_boolean(self):
+        # Test for issue #11859
+
+        df = pd.DataFrame()
+        df2 = df[df>0]
+        assert_frame_equal(df, df2)
+
     def test_delitem_corner(self):
         f = self.frame.copy()
         del f['D']
