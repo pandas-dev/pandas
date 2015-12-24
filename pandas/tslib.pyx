@@ -3427,6 +3427,10 @@ def tz_convert(ndarray[int64_t] vals, object tz1, object tz2):
     trans, deltas, typ = _get_dst_info(tz2)
     trans_len = len(trans)
 
+    #if all NaT, return all NaT
+    if (utc_dates==iNaT).all():
+        return utc_dates
+
     # use first non-NaT element
     # if all-NaT, return all-NaT
     if (result==NPY_NAT).all():

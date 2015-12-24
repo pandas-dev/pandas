@@ -955,8 +955,12 @@ class _Concatenator(object):
 
             # stack blocks
             if self.axis == 0:
-                new_data = com._concat_compat([x._values for x in self.objs])
+                to_concat = [x._values for x in self.objs]
+                typs = com.get_dtype_kinds(to_concat)
+                new_data = com._concat_compat(to_concat)
                 name = com._consensus_name_attr(self.objs)
+                if 'datetimetz' in typs and ('datetime' in typs or 'object' in typs):
+                    return Series(new_data, index=self.new_axes[0], name=name, dtype='object').__finalize__(self, method='concat')
                 return Series(new_data, index=self.new_axes[0], name=name).__finalize__(self, method='concat')
 
             # combine as columns in a frame

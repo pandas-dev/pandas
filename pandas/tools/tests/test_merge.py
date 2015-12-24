@@ -994,6 +994,47 @@ class TestMerge(tm.TestCase):
         result = pd.merge(left, right, on='key', how='outer')
         assert_frame_equal(result, expected)
 
+    def test_concat_Nat_series(self):
+        # GH 11693
+        # test for merging NaT series with datetime series.
+        x = pd.Series( pd.date_range('20151124 08:00', '20151124 09:00', freq='1h', tz = "US/Eastern"))
+        y = pd.Series( pd.date_range('20151124 10:00', '20151124 11:00', freq='1h', tz = "US/Eastern"))
+        y[:] = pd.NaT
+        expected = pd.Series([x[0], x[1], pd.NaT, pd.NaT], index=[0, 1, 0, 1])
+        tm.assert_series_equal(pd.concat([x,y]), expected)
+
+        # all NaT with tz
+        x[:] = pd.NaT
+        expected = pd.Series([pd.NaT for i in range(4)], index=[0, 1, 0, 1], dtype ='datetime64[ns, US/Eastern]')
+        tm.assert_series_equal(pd.concat([x,y]), expected)
+
+        #without tz
+        x = pd.Series( pd.date_range('20151124 08:00', '20151124 09:00', freq='1h'))
+        y = pd.Series( pd.date_range('20151124 10:00', '20151124 11:00', freq='1h'))
+        y[:] = pd.NaT
+        expected = pd.Series([x[0], x[1], pd.NaT, pd.NaT], index=[0, 1, 0, 1])
+        tm.assert_series_equal(pd.concat([x, y]), expected)
+
+        #all NaT without tz
+        x[:] = pd.NaT
+        expected = pd.Series([pd.NaT for i in range(4)], index=[0, 1, 0, 1], dtype ='datetime64[ns]')
+        tm.assert_series_equal(pd.concat([x,y]), expected)
+
+    def test_concat_tz_series(self):
+        #tz and no tz
+        #GH 11755
+        x = pd.Series(pd.date_range('20151124 08:00', '20151124 09:00', freq = '1h', tz = "UTC") )
+        y = pd.Series(pd.date_range('2012-01-01', '2012-01-02'))
+        expected = pd.Series([x[0], x[1], y[0], y[1]], index=[0, 1, 0, 1], dtype='object')
+        tm.assert_series_equal(pd.concat([x,y]), expected)
+
+        #tz and object
+        #GH 11887
+        x = pd.Series(pd.date_range('20151124 08:00', '20151124 09:00', freq = '1h', tz = "UTC") )
+        y = pd.Series(['a', 'b'])
+        expected = pd.Series([x[0], x[1], y[0], y[1]], index=[0, 1, 0, 1], dtype='object')
+        tm.assert_series_equal(pd.concat([x,y]), expected)
+
     def test_indicator(self):
         # PR #10054. xref #7412 and closes #8790.
         df1 = DataFrame({'col1':[0,1], 'col_left':['a','b'], 'col_conflict':[1,2]})

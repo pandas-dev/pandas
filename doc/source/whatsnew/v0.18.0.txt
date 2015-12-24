@@ -345,3 +345,6 @@ Bug Fixes
 
 - Bug in ``read_sql`` with pymysql connections failing to return chunked data (:issue:`11522`)
 
+
+- Bug in ``pd.concat`` while concatenating tz-aware NaT series. (:issue:`11693`)
+- Bug in ``pd.concat`` while concatenating tz-aware series with time series. (:issue:`11755`)
