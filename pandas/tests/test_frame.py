@@ -8532,6 +8532,13 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         df = pd.DataFrame([[-x, x], [x, x + 4]])
         assert_frame_equal(df.drop_duplicates(), df)
 
+        # GH 11864
+        df = pd.DataFrame([i] * 9 for i in range(16))
+        df = df.append([[1] + [0] * 8], ignore_index=True)
+
+        for keep in ['first', 'last', False]:
+            assert_equal(df.duplicated(keep=keep).sum(), 0)
+
     def test_drop_duplicates_for_take_all(self):
         df = DataFrame({'AAA': ['foo', 'bar', 'baz', 'bar',
                                 'foo', 'bar', 'qux', 'foo'],
