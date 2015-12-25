@@ -3716,6 +3716,24 @@ class TestDataFramePlots(TestPlotBase):
         Series(rand(10)).plot(ax=ax)
         Series(rand(10)).plot(ax=iax)
 
+    def test_passed_bar_colors(self):
+        import matplotlib as mpl
+        color_tuples = [(0.9, 0, 0, 1), (0, 0.9, 0, 1), (0, 0, 0.9, 1)] 
+        colormap = mpl.colors.ListedColormap(color_tuples)
+        barplot = pd.DataFrame([[1,2,3]]).plot(kind="bar", cmap=colormap)
+        self.assertEqual(color_tuples, [c.get_facecolor() for c in barplot.patches])
+
+    def test_rcParams_bar_colors(self):
+        import matplotlib as mpl
+        color_tuples = [(0.9, 0, 0, 1), (0, 0.9, 0, 1), (0, 0, 0.9, 1)]
+        try: # mpl 1.5
+            with mpl.rc_context(rc={'axes.prop_cycle': mpl.cycler("color", color_tuples)}):
+                barplot = pd.DataFrame([[1,2,3]]).plot(kind="bar")
+        except (AttributeError, KeyError): # mpl 1.4
+            with mpl.rc_context(rc={'axes.color_cycle': color_tuples}):
+                barplot = pd.DataFrame([[1,2,3]]).plot(kind="bar")
+        self.assertEqual(color_tuples, [c.get_facecolor() for c in barplot.patches])
+
 
 @tm.mplskip
 class TestDataFrameGroupByPlots(TestPlotBase):
@@ -3762,7 +3780,6 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         tm.close()
         df.groupby('z')['x'].plot.line()
         tm.close()
-
 
 def assert_is_valid_plot_return_object(objs):
     import matplotlib.pyplot as plt
