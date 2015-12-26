@@ -17,7 +17,7 @@ def fama_macbeth(**kwargs):
 
     nw_lags_beta: int
        Newey-West adjusts the betas by the given lags
-    """
+       """
     window_type = kwargs.get('window_type')
     if window_type is None:
         klass = FamaMacBeth
@@ -32,6 +32,12 @@ class FamaMacBeth(StringMixin):
                  nw_lags_beta=None,
                  entity_effects=False, time_effects=False, x_effects=None,
                  cluster=None, dropped_dummies=None, verbose=False):
+        import warnings
+        warnings.warn("The pandas.stats.fama_macbeth module is deprecated and will be "
+                      "removed in a future version. We refer to external packages "
+                      "like statsmodels, see here: http://statsmodels.sourceforge.net/stable/index.html",
+                      FutureWarning, stacklevel=4)
+
         if dropped_dummies is None:
                 dropped_dummies = {}
         self._nw_lags_beta = nw_lags_beta

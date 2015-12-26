@@ -47,6 +47,12 @@ class OLS(StringMixin):
 
     def __init__(self, y, x, intercept=True, weights=None, nw_lags=None,
                  nw_overlap=False):
+        import warnings
+        warnings.warn("The pandas.stats.ols module is deprecated and will be "
+                      "removed in a future version. We refer to external packages "
+                      "like statsmodels, see some examples here: http://statsmodels.sourceforge.net/stable/regression.html",
+                      FutureWarning, stacklevel=4)
+
         try:
             import statsmodels.api as sm
         except ImportError:
@@ -1197,8 +1203,11 @@ class MovingOLS(OLS):
 
     @cache_readonly
     def _window_time_obs(self):
-        window_obs = moments.rolling_sum(self._time_obs_count > 0,
-                                         self._window, min_periods=1)
+        window_obs = (Series(self._time_obs_count > 0)
+                      .rolling(self._window, min_periods=1)
+                      .sum()
+                      .values
+                      )
 
         window_obs[np.isnan(window_obs)] = 0
         return window_obs.astype(int)
@@ -1211,8 +1220,7 @@ class MovingOLS(OLS):
             # expanding case
             window = len(self._index)
 
-        result = moments.rolling_sum(self._time_obs_count, window,
-                                     min_periods=1)
+        result = Series(self._time_obs_count).rolling(window, min_periods=1).sum().values
 
         return result.astype(int)
 
