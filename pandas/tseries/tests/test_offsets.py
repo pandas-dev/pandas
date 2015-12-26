@@ -16,7 +16,7 @@ from pandas.core.datetools import (
     QuarterBegin, BQuarterBegin, BMonthBegin, DateOffset, Week,
     YearBegin, YearEnd, Hour, Minute, Second, Day, Micro, Milli, Nano, Easter,
     WeekOfMonth, format, ole2datetime, QuarterEnd, to_datetime, normalize_date,
-    get_offset, get_offset_name, get_standard_freq)
+    get_offset, get_standard_freq)
 
 from pandas import Series
 from pandas.tseries.frequencies import _offset_map, get_freq_code, _get_freq_str
@@ -3593,19 +3593,20 @@ class TestTicks(tm.TestCase):
 
 class TestOffsetNames(tm.TestCase):
     def test_get_offset_name(self):
-        assertRaisesRegexp(ValueError, 'Bad rule.*BusinessDays', get_offset_name, BDay(2))
+        self.assertEqual(BDay().freqstr, 'B')
+        self.assertEqual(BDay(2).freqstr, '2B')
+        self.assertEqual(BMonthEnd().freqstr, 'BM')
+        self.assertEqual(Week(weekday=0).freqstr, 'W-MON')
+        self.assertEqual(Week(weekday=1).freqstr, 'W-TUE')
+        self.assertEqual(Week(weekday=2).freqstr, 'W-WED')
+        self.assertEqual(Week(weekday=3).freqstr, 'W-THU')
+        self.assertEqual(Week(weekday=4).freqstr, 'W-FRI')
 
-        assert get_offset_name(BDay()) == 'B'
-        assert get_offset_name(BMonthEnd()) == 'BM'
-        assert get_offset_name(Week(weekday=0)) == 'W-MON'
-        assert get_offset_name(Week(weekday=1)) == 'W-TUE'
-        assert get_offset_name(Week(weekday=2)) == 'W-WED'
-        assert get_offset_name(Week(weekday=3)) == 'W-THU'
-        assert get_offset_name(Week(weekday=4)) == 'W-FRI'
-
-        self.assertEqual(get_offset_name(LastWeekOfMonth(weekday=WeekDay.SUN)), "LWOM-SUN")
-        self.assertEqual(get_offset_name(makeFY5253LastOfMonthQuarter(weekday=1, startingMonth=3, qtr_with_extra_week=4)),"REQ-L-MAR-TUE-4")
-        self.assertEqual(get_offset_name(makeFY5253NearestEndMonthQuarter(weekday=1, startingMonth=3, qtr_with_extra_week=3)), "REQ-N-MAR-TUE-3")
+        self.assertEqual(LastWeekOfMonth(weekday=WeekDay.SUN).freqstr, "LWOM-SUN")
+        self.assertEqual(makeFY5253LastOfMonthQuarter(weekday=1, startingMonth=3, qtr_with_extra_week=4).freqstr,
+                         "REQ-L-MAR-TUE-4")
+        self.assertEqual(makeFY5253NearestEndMonthQuarter(weekday=1, startingMonth=3, qtr_with_extra_week=3).freqstr,
+                         "REQ-N-MAR-TUE-3")
 
 def test_get_offset():
     assertRaisesRegexp(ValueError, "rule.*GIBBERISH", get_offset, 'gibberish')
@@ -3834,13 +3835,10 @@ class TestReprNames(tm.TestCase):
         names += ['W-' + day for day in days]
         names += ['WOM-' + week + day for week in ('1', '2', '3', '4')
                                        for day in days]
-        #singletons
-        names += ['S', 'T', 'U', 'BM', 'BMS', 'BQ', 'QS'] # No 'Q'
         _offset_map.clear()
         for name in names:
             offset = get_offset(name)
-            self.assertEqual(repr(offset), name)
-            self.assertEqual(str(offset), name)
+            self.assertEqual(offset.freqstr, name)
 
 
 def get_utc_offset_hours(ts):
