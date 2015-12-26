@@ -194,6 +194,14 @@ Top-level evaluation
 
    eval
 
+Testing
+~~~~~~~
+
+.. autosummary::
+   :toctree: generated/
+
+   test
+
 .. _api.series:
 
 Series
