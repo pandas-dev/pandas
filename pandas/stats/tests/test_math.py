@@ -52,7 +52,8 @@ class TestMath(tm.TestCase):
 
         b = Series(np.random.randn(N), self.frame.index)
         result = pmath.solve(self.frame, b)
-        expected = ols(y=b, x=self.frame, intercept=False).beta
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            expected = ols(y=b, x=self.frame, intercept=False).beta
         self.assertTrue(np.allclose(result, expected))
 
     def test_inv_illformed(self):
