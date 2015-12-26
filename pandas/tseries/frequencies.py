@@ -286,8 +286,7 @@ from pandas.tseries.offsets import (Nano, Micro, Milli, Second, Minute, Hour,
                                     MonthEnd, BMonthBegin, BMonthEnd,
                                     QuarterBegin, QuarterEnd, BQuarterBegin,
                                     BQuarterEnd, YearBegin, YearEnd,
-                                    BYearBegin, BYearEnd, _make_offset
-                                    )
+                                    BYearBegin, BYearEnd, prefix_mapping)
 try:
     cday = CDay()
 except NotImplementedError:
@@ -547,13 +546,17 @@ def get_offset(name):
 
     if name not in _offset_map:
         try:
-            # generate and cache offset
-            offset = _make_offset(name)
+            split = name.split('-')
+            klass = prefix_mapping[split[0]]
+            # handles case where there's no suffix (and will TypeError if too many '-')
+            offset = klass._from_name(*split[1:])
         except (ValueError, TypeError, KeyError):
             # bad prefix or suffix
             raise ValueError('Bad rule name requested: %s.' % name)
+        # cache
         _offset_map[name] = offset
-    return _offset_map[name]
+    # do not return cache because it's mutable
+    return _offset_map[name].copy()
 
 
 getOffset = get_offset
@@ -567,19 +570,10 @@ def get_offset_name(offset):
     --------
     get_offset_name(BMonthEnd(1)) --> 'EOM'
     """
-    if offset is None:
-        raise ValueError("Offset can't be none!")
-    # Hack because this is what it did before...
-    if isinstance(offset, BDay):
-        if offset.n != 1:
-            raise ValueError('Bad rule given: %s.' % 'BusinessDays')
-        else:
-            return offset.rule_code
-    try:
-        return offset.freqstr
-    except AttributeError:
-        # Bad offset, give useful error.
-        raise ValueError('Bad rule given: %s.' % offset)
+
+    msg = "get_offset_name(offset) is deprecated. Use offset.freqstr instead"
+    warnings.warn(msg, FutureWarning, stacklevel=2)
+    return offset.freqstr
 
 
 def get_legacy_offset_name(offset):
