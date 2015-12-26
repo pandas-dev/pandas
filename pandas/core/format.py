@@ -577,8 +577,10 @@ class DataFrameFormatter(TableFormatter):
                 self._chk_truncate()
                 strcols = self._to_str_columns()
                 text = self.adj.adjoin(1, *strcols)
-
-        self.buf.writelines(text)
+        if self.index==True:
+          self.buf.writelines(text)
+        else:
+          self.buf.writelines(text.replace(" ",""))
 
         if self.should_show_dimensions:
             self.buf.write("\n\n[%d rows x %d columns]"
