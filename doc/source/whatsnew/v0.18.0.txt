@@ -346,3 +346,4 @@ Bug Fixes
 
 - Bug in ``read_sql`` with pymysql connections failing to return chunked data (:issue:`11522`)
 
+- Bug in ``DataFrame`` when masking an empty ``DataFrame`` (:issue:`11859`)
