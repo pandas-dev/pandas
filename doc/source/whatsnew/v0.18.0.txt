@@ -14,6 +14,7 @@ users upgrade to this version.
 Highlights include:
 
 - Window functions are now methods on ``.groupby`` like objects, see :ref:`here <whatsnew_0180.enhancements.moments>`.
+- ``pd.test()`` top-level nose test runner is available (:issue:`4327`)
 
 Check the :ref:`API Changes <whatsnew_0180.api>` and :ref:`deprecations <whatsnew_0180.deprecations>` before updating.
 
