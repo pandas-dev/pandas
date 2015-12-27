@@ -6,7 +6,7 @@ from distutils.version import LooseVersion
 import sys
 
 from pandas.core.base import PandasObject
-from pandas.core.common import adjoin, notnull
+from pandas.core.common import adjoin, isnull, notnull
 from pandas.core.index import Index, MultiIndex, _ensure_index
 from pandas import compat
 from pandas.compat import(StringIO, lzip, range, map, zip, reduce, u,
@@ -1631,6 +1631,7 @@ class CSVFormatter(object):
         ix = data_index.to_native_types(slicer=slicer,
                                         na_rep=self.na_rep,
                                         float_format=self.float_format,
+                                        decimal=self.decimal,
                                         date_format=self.date_format,
                                         quoting=self.quoting)
 
@@ -1983,7 +1984,8 @@ def format_array(values, formatter, float_format=None, na_rep='NaN',
 class GenericArrayFormatter(object):
 
     def __init__(self, values, digits=7, formatter=None, na_rep='NaN',
-                 space=12, float_format=None, justify='right'):
+                 space=12, float_format=None, justify='right',
+                 decimal='.', quoting=None):
         self.values = values
         self.digits = digits
         self.na_rep = na_rep
@@ -1991,6 +1993,8 @@ class GenericArrayFormatter(object):
         self.formatter = formatter
         self.float_format = float_format
         self.justify = justify
+        self.decimal = decimal
+        self.quoting = quoting
 
     def get_result(self):
         fmt_values = self._format_strings()
@@ -2100,6 +2104,42 @@ class FloatArrayFormatter(GenericArrayFormatter):
                 fmt_values = self._format_with(fmt_str)
 
         return fmt_values
+
+    def get_formatted_data(self):
+        """Returns the array with its float values converted into strings using
+        the parameters given at initalisation.
+
+        Note: the method `.get_result()` does something similar, but with a
+        fixed-width output suitable for screen printing. The output here is not
+        fixed-width.
+        """
+        values = self.values
+        mask = isnull(values)
+
+        # the following variable is to be applied on each value to format it
+        # according to the string containing the float format, self.float_format
+        # and the character to use as decimal separator, self.decimal
+        formatter = None
+        if self.float_format and self.decimal != '.':
+            formatter = lambda v: (
+                (self.float_format % v).replace('.', self.decimal, 1))
+        elif self.decimal != '.':  # no float format
+            formatter = lambda v: str(v).replace('.', self.decimal, 1)
+        elif self.float_format:  # no special decimal separator
+            formatter = lambda v: self.float_format % v
+
+        if formatter is None and not self.quoting:
+            values = values.astype(str)
+        else:
+            values = np.array(values, dtype='object')
+
+        values[mask] = self.na_rep
+        if formatter:
+            imask = (~mask).ravel()
+            values.flat[imask] = np.array(
+                [formatter(val) for val in values.ravel()[imask]])
+
+        return values
 
 
 class IntArrayFormatter(GenericArrayFormatter):

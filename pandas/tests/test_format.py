@@ -2932,6 +2932,52 @@ $1$,$2$
         expected_float_format = ';col1;col2;col3\n0;1;a;10,10\n'
         self.assertEqual(df.to_csv(decimal=',',sep=';', float_format = '%.2f'), expected_float_format)
 
+        # GH 11553: testing if decimal is taken into account for '0.0'
+        df = pd.DataFrame({'a': [0, 1.1], 'b': [2.2, 3.3], 'c': 1})
+        expected = 'a,b,c\n0^0,2^2,1\n1^1,3^3,1\n'
+        self.assertEqual(
+            df.to_csv(index=False, decimal='^'), expected)
+
+        # same but for an index
+        self.assertEqual(
+            df.set_index('a').to_csv(decimal='^'), expected)
+
+        # same for a multi-index
+        self.assertEqual(
+            df.set_index(['a', 'b']).to_csv(decimal="^"), expected)
+
+    def test_to_csv_float_format(self):
+        # testing if float_format is taken into account for the index
+        # GH 11553
+        df = pd.DataFrame({'a': [0, 1], 'b': [2.2, 3.3], 'c': 1})
+        expected = 'a,b,c\n0,2.20,1\n1,3.30,1\n'
+        self.assertEqual(
+            df.set_index('a').to_csv(float_format='%.2f'), expected)
+
+        # same for a multi-index
+        self.assertEqual(
+            df.set_index(['a', 'b']).to_csv(float_format='%.2f'), expected)
+
+    def test_to_csv_na_rep(self):
+        # testing if NaN values are correctly represented in the index
+        # GH 11553
+        df = DataFrame({'a': [0, np.NaN], 'b': [0, 1], 'c': [2, 3]})
+        expected = "a,b,c\n0.0,0,2\n_,1,3\n"
+        self.assertEqual(df.set_index('a').to_csv(na_rep='_'), expected)
+        self.assertEqual(df.set_index(['a', 'b']).to_csv(na_rep='_'), expected)
+
+        # now with an index containing only NaNs
+        df = DataFrame({'a': np.NaN, 'b': [0, 1], 'c': [2, 3]})
+        expected = "a,b,c\n_,0,2\n_,1,3\n"
+        self.assertEqual(df.set_index('a').to_csv(na_rep='_'), expected)
+        self.assertEqual(df.set_index(['a', 'b']).to_csv(na_rep='_'), expected)
+
+        # check if na_rep parameter does not break anything when no NaN
+        df = DataFrame({'a': 0, 'b': [0, 1], 'c': [2, 3]})
+        expected = "a,b,c\n0,0,2\n0,1,3\n"
+        self.assertEqual(df.set_index('a').to_csv(na_rep='_'), expected)
+        self.assertEqual(df.set_index(['a', 'b']).to_csv(na_rep='_'), expected)
+
     def test_to_csv_date_format(self):
         # GH 10209
         df_sec = DataFrame({'A': pd.date_range('20130101',periods=5,freq='s')})
