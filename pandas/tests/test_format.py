@@ -3063,10 +3063,10 @@ class TestSeriesFormatting(tm.TestCase):
         #GH 11729 Test index=False option
         s= Series([1, 2, 3, 4])
         result = s.to_string(index=False)
-        expected = (u(' 1\n') +
-                    ' 2\n' +
-                    ' 3\n' +
-                    ' 4')
+        expected = (u('1\n') +
+                    '2\n' +
+                    '3\n' +
+                    '4')
         self.assertEqual(result, expected)
 
     def test_unicode_name_in_footer(self):
