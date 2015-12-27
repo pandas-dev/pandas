@@ -578,7 +578,6 @@ class DataFrameFormatter(TableFormatter):
                 strcols = self._to_str_columns()
                 text = self.adj.adjoin(1, *strcols)
 
-
         if self.index==True:
             self.buf.writelines(text)
         else:
