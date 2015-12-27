@@ -1725,7 +1725,7 @@ class TestDataFrameFormatting(tm.TestCase):
                         'y': [4, 5, 6]})
 
         df_s = df.to_string(index=False)
-        expected = " x  y\n 1  4\n 2  5\n 3  6"
+        expected = " x  y\n1  4\n2  5\n3  6"
 
         self.assertEqual(df_s, expected)
 
