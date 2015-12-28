@@ -986,7 +986,7 @@ def get_dummies(data, prefix=None, prefix_sep='_', dummy_na=False,
     >>> import pandas as pd
     >>> s = pd.Series(list('abca'))
 
-    >>> get_dummies(s)
+    >>> pd.get_dummies(s)
        a  b  c
     0  1  0  0
     1  0  1  0
@@ -995,22 +995,22 @@ def get_dummies(data, prefix=None, prefix_sep='_', dummy_na=False,
 
     >>> s1 = ['a', 'b', np.nan]
 
-    >>> get_dummies(s1)
+    >>> pd.get_dummies(s1)
        a  b
     0  1  0
     1  0  1
     2  0  0
 
-    >>> get_dummies(s1, dummy_na=True)
+    >>> pd.get_dummies(s1, dummy_na=True)
        a  b  NaN
     0  1  0    0
     1  0  1    0
     2  0  0    1
 
-    >>> df = DataFrame({'A': ['a', 'b', 'a'], 'B': ['b', 'a', 'c'],
+    >>> df = pd.DataFrame({'A': ['a', 'b', 'a'], 'B': ['b', 'a', 'c'],
                         'C': [1, 2, 3]})
 
-    >>> get_dummies(df, prefix=['col1', 'col2']):
+    >>> pd.get_dummies(df, prefix=['col1', 'col2'])
        C  col1_a  col1_b  col2_a  col2_b  col2_c
     0  1       1       0       0       1       0
     1  2       0       1       1       0       0
