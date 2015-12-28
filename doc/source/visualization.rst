@@ -1595,8 +1595,8 @@ when plotting a large number of points.
 
    price = pd.Series(np.random.randn(150).cumsum(),
                      index=pd.date_range('2000-1-1', periods=150, freq='B'))
-   ma = pd.rolling_mean(price, 20)
-   mstd = pd.rolling_std(price, 20)
+   ma = price.rolling(20).mean()
+   mstd = price.rolling(20).std()
 
    plt.figure()
 
