@@ -662,7 +662,23 @@ class TestDataFrameSelectReindex(tm.TestCase, TestData):
 
         # pass in None
         with assertRaisesRegexp(TypeError, 'Must pass'):
+            self.frame.filter()
+        with assertRaisesRegexp(TypeError, 'Must pass'):
             self.frame.filter(items=None)
+        with assertRaisesRegexp(TypeError, 'Must pass'):
+            self.frame.filter(axis=1)
+
+        # test mutually exclusive arguments
+        with assertRaisesRegexp(TypeError, 'mutually exclusive'):
+            self.frame.filter(items=['one', 'three'], regex='e$', like='bbi')
+        with assertRaisesRegexp(TypeError, 'mutually exclusive'):
+            self.frame.filter(items=['one', 'three'], regex='e$', axis=1)
+        with assertRaisesRegexp(TypeError, 'mutually exclusive'):
+            self.frame.filter(items=['one', 'three'], regex='e$')
+        with assertRaisesRegexp(TypeError, 'mutually exclusive'):
+            self.frame.filter(items=['one', 'three'], like='bbi', axis=0)
+        with assertRaisesRegexp(TypeError, 'mutually exclusive'):
+            self.frame.filter(items=['one', 'three'], like='bbi')
 
         # objects
         filtered = self.mixed_frame.filter(like='foo')
