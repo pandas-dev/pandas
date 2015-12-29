@@ -4416,9 +4416,14 @@ class DataFrame(NDFrame):
         def _dict_round(df, decimals):
             for col, vals in df.iteritems():
                 try:
-                    yield vals.round(decimals[col])
+                    yield _series_round(vals, decimals[col])
                 except KeyError:
                     yield vals
+
+        def _series_round(s, decimals):
+            if com.is_integer_dtype(s) or com.is_float_dtype(s):
+                return s.round(decimals)
+            return s
 
         if isinstance(decimals, (dict, Series)):
             if isinstance(decimals, Series):
@@ -4427,7 +4432,7 @@ class DataFrame(NDFrame):
             new_cols = [col for col in _dict_round(self, decimals)]
         elif com.is_integer(decimals):
             # Dispatch to Series.round
-            new_cols = [v.round(decimals) for _, v in self.iteritems()]
+            new_cols = [_series_round(v, decimals) for _, v in self.iteritems()]
         else:
             raise TypeError("decimals must be an integer, a dict-like or a Series")
 
