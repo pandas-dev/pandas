@@ -2090,7 +2090,7 @@ class NDFrame(PandasObject):
 
     def filter(self, items=None, like=None, regex=None, axis=None):
         """
-        Restrict the info axis to set of items or wildcard
+        Subset rows or columns of dataframe according to specified filters.
 
         Parameters
         ----------
@@ -2101,14 +2101,44 @@ class NDFrame(PandasObject):
         regex : string (regular expression)
             Keep info axis with re.search(regex, col) == True
         axis : int or None
-            The axis to filter on. By default this is the info axis. The "info
-            axis" is the axis that is used when indexing with ``[]``. For
-            example, ``df = DataFrame({'a': [1, 2, 3, 4]]}); df['a']``. So,
-            the ``DataFrame`` columns are the info axis.
+            The axis to filter on. 
+
+        Examples
+        --------
+        >>> df
+                one  two  three
+        mouse     1    2      3
+        rabbit    4    5      6
+        >>> # select columns by name
+        >>> df.filter(items=['one', 'three'])  
+                one  three
+        mouse     1      3
+        rabbit    4      6
+        >>> # select columns by regular expression
+        >>> df.filter(regex='e$', axis=1)
+                one  three
+        mouse     1      3
+        rabbit    4      6
+        >>> # select rows containing 'm'
+        >>> df.filter(like='m', axis=0)
+               one  two  three
+        mouse    1    2      3
+        >>> # select rows containing 'bbi'
+        >>> df.filter(like='bbi', axis=0)
+                one  two  three
+        rabbit    4    5      6
+
+        Returns
+        -------
+        same type as input object with filtered info axis
 
         Notes
         -----
-        Arguments are mutually exclusive, but this is not checked for
+        Arguments are mutually exclusive, but this is not checked for. 
+
+        ``axis`` defaults to the info axis that is used when indexing with ``[]``, 
+        e.g. ``df = DataFrame({'a': [1, 2, 3, 4]]}); df['a']``
+        In this instance the ``DataFrame`` columns are the info axis.
 
         """
         import re
