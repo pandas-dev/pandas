@@ -242,15 +242,7 @@ class SeriesFormatter(object):
             fmt_values.insert(row_num + n_header_rows, dot_str)
             fmt_index.insert(row_num + 1, '')
 
-        ''' this part checks for the argument index passed.
-         If it is true then  returns the text with index mentioned else it returns without the index,
-          the leading whitespaces ,in place of index are also omitted when the index is False
-          ex:
-             df=pd.Series({'a':range(5),'b':range(5)})
-             df.to_string()
-             'a    [0, 1, 2, 3, 4]\nb    [0, 1, 2, 3, 4]'
-             df.to_string(index=False)
-            '[0, 1, 2, 3, 4]\n[0, 1, 2, 3, 4]'''
+
 
         if self.index:
             result = self.adj.adjoin(3, *[fmt_index[1:], fmt_values])
@@ -588,15 +580,8 @@ class DataFrameFormatter(TableFormatter):
                 strcols = self._to_str_columns()
                 text = self.adj.adjoin(1, *strcols)
 
-        ''' this part checks for the argument index passed.
-         If it is true then  returns the text with index mentioned else it returns without the index,
-          the leading whitespaces ,in place of index are also omitted when the index is False
-          ex:
-            df=pd.DataFrame({'a':range(5),'b':range(5)})
-            df.to_string()
-                a  b\n0  0  0\n1  1  1\n2  2  2\n3  3  3\n4  4  4'
-            df.to_string(index=False)
-                a  b\n0  0\n1  1\n2  2\n3  3\n4  4'''''
+
+
 
         if not self.index:
             text=text.replace('\n ','\n').strip()
