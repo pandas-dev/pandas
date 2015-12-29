@@ -165,6 +165,7 @@ Backwards incompatible API changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 - The parameter ``out`` has been removed from the ``Series.round()`` method. (:issue:`11763`)
+- ``DataFrame.round()`` leaves non-numeric columns unchanged in its return, rather than raises. (:issue:`11885`)
 
 Bug in QuarterBegin with n=0
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
