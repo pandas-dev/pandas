@@ -13523,6 +13523,21 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         # Make sure this doesn't break existing Series.round
         tm.assert_series_equal(df['col1'].round(1), expected_rounded['col1'])
 
+
+    def test_round_mixed_type(self):
+        # GH11885
+        df = DataFrame({'col1': [1.1, 2.2, 3.3, 4.4], 'col2': ['1', 'a', 'c', 'f'],
+                        'col3': date_range('20111111', periods=4)})
+        round_0 = DataFrame({'col1': [1., 2., 3., 4.], 'col2': ['1', 'a', 'c' ,'f'],
+                              'col3': date_range('20111111', periods=4)})
+        tm.assert_frame_equal(df.round(), round_0)
+        tm.assert_frame_equal(df.round(1), df)
+        tm.assert_frame_equal(df.round({'col1':1}), df)
+        tm.assert_frame_equal(df.round({'col1':0}), round_0)
+        tm.assert_frame_equal(df.round({'col1':0, 'col2':1}), round_0)
+        tm.assert_frame_equal(df.round({'col3':1}), df)
+
+
     def test_round_issue(self):
         # GH11611
 
