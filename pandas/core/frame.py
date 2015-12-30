@@ -4172,6 +4172,71 @@ class DataFrame(NDFrame):
             return lib.map_infer(_values_from_object(x), func)
         return self.apply(infer)
 
+
+    def overby(self, group_by_column, sort_by_column, yielder, ascending=False):
+        """
+        Apply a function to a DataFrame that will group rows by group_by_column, sort within groups 
+        using sort_by_column, and process rows one at a time.
+
+        Parameters
+        ----------
+        group_by_column : string or object
+            the column to group by 
+        sort_by_column : string or object
+            once grouped, this column will determine how we sort within groups
+        yielder : func
+            a function that returns a iterable object. If the contents are dictionaries, the 
+            resulting DataFrame will have columns for each key.
+
+        Examples
+        --------
+
+        >>> df = pd.DataFrame(np.random.randint(0, 3, size=(5,3)), columns=['id', 't', 'x'])
+        >>> df
+               id  t  x
+            0   1  2  0
+            1   2  1  1
+            2   0  1  1
+            3   0  0  2
+            4   1  1  0
+        >>> def yield_values(iterrows):
+        ....:   sum_ = 0
+        ....:   for _, row in iterrows:
+        ....:       sum_ += row['x']
+        ....:       if sum_ % 2 == 0:
+        ....:           yield {'cumulative_sum': sum_ }
+        ....:
+
+        >>> df = df.overby('id', 't', yield_complicated_values)
+        >>> df
+                  cumulative_sum
+            id
+            1  0               0
+               1               0
+            0  0               2
+
+        Returns
+        -------
+        applied : DataFrame
+
+        See also
+        --------
+        DataFrame.groupby : For grouping without sorting 
+
+        """        
+
+        def sort_and_apply_function(group):
+            group = group.sort_values(sort_by_column)
+            index = group[sort_by_column]
+            resulting_df = pd.DataFrame((result for result in yielder(group.iterrows())), index=index)
+            if not resulting_df.empty:
+                return resulting_df
+
+        self = self.set_index([group_by_column])
+
+        return self.groupby(level=0, sort=False).apply(sort_and_apply_function)
+
+
     #----------------------------------------------------------------------
     # Merging / joining methods
 
