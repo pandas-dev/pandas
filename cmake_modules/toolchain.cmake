@@ -20,8 +20,6 @@ if ("$ENV{DISABLE_NATIVE_TOOLCHAIN}" STREQUAL "")
   set(ENV{GOOGLETEST_PREFIX}
     "$ENV{NATIVE_TOOLCHAIN}/googletest-$ENV{GOOGLETEST_VERSION}")
 
-  message(STATUS "FOO: $ENV{GLOG_PREFIX}")
-
   # Setting SYSTEM_GCC will use the toolchain dependencies compiled with the original
   # host's compiler.
   if ("$ENV{SYSTEM_GCC}" STREQUAL "")

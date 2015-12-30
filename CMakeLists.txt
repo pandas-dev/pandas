@@ -1,16 +1,9 @@
-# Copyright 2014 Cloudera, Inc.
+# Assembled from BSD/MIT/Apache-licensed code from a variety of copyright
+# holders, including at least
 #
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+# Copyright 2012-25 Cloudera, Inc.
+# Copyright (C) 2011-15 DyND Developers
+# Copyright (C) 2012-15 Continuum Analytics, Inc.
 
 cmake_minimum_required(VERSION 2.7)
 
@@ -518,6 +511,7 @@ include_directories(SYSTEM
   ${GFLAGS_INCLUDE_DIR}
   ${NUMPY_INCLUDE_DIRS}
   ${PYTHON_INCLUDE_DIRS}
+  pandas/
   src)
 
 ############################################################
@@ -572,9 +566,8 @@ endif (UNIX)
 add_subdirectory(src/pandas)
 add_subdirectory(src/pandas/util)
 
-# NumPy shared library must be manually imported / linked
+# Python and NumPy shared libraries must be manually imported / linked
 set(LINK_LIBS
-  python
 )
 
 add_library(pandas SHARED
@@ -584,3 +577,49 @@ set_target_properties(pandas PROPERTIES LINKER_LANGUAGE CXX)
 
 # install(TARGETS pandas
 #  LIBRARY DESTINATION lib)
+
+############################################################
+# Setup and build Cython modules
+############################################################
+
+foreach(pyx_api_file
+  pandas/native.pyx)
+    set_source_files_properties(${pyx_api_file} PROPERTIES CYTHON_API 1)
+endforeach(pyx_api_file)
+
+foreach(module native)
+    string(REPLACE "." ";" directories ${module})
+    list(GET directories -1 module_name)
+    list(REMOVE_AT directories -1)
+
+    string(REPLACE "." "/" module_root "${module}")
+    set(module_SRC pandas/${module_root}.pyx)
+    set_source_files_properties(${module_SRC} PROPERTIES CYTHON_IS_CXX 1)
+
+    cython_add_module(${module_name}
+      ${module_name}_pyx
+      ${module_name}_output
+      ${module_SRC})
+
+    if (directories)
+        string(REPLACE ";" "/" module_output_directory ${directories})
+        set_target_properties(${module_name} PROPERTIES
+          LIBRARY_OUTPUT_DIRECTORY ${module_output_directory})
+    endif()
+
+    if(APPLE)
+        set(module_install_rpath "@loader_path")
+    else()
+        set(module_install_rpath "$ORIGIN")
+    endif()
+    list(LENGTH directories i)
+    while(${i} GREATER 0)
+        set(module_install_rpath "${module_install_rpath}/..")
+        math(EXPR i "${i} - 1" )
+    endwhile(${i} GREATER 0)
+    set_target_properties(${module_name} PROPERTIES
+      INSTALL_RPATH ${module_install_rpath})
+    target_link_libraries(${module_name} pandas)
+endforeach(module)
+
+add_dependencies(pandas native_pyx)
