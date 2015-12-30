@@ -4173,7 +4173,7 @@ class DataFrame(NDFrame):
         return self.apply(infer)
 
 
-    def overby(self, group_by_column, sort_by_column, yielder, ascending=False):
+    def overby(self, group_by_column, sort_by_column, yielder, ascending=False, sort=False):
         """
         Apply a function to a DataFrame that will group rows by group_by_column, sort within groups 
         using sort_by_column, and process rows one at a time.
@@ -4226,15 +4226,14 @@ class DataFrame(NDFrame):
         """        
 
         def sort_and_apply_function(group):
-            group = group.sort_values(sort_by_column)
-            index = group[sort_by_column]
-            resulting_df = pd.DataFrame((result for result in yielder(group.iterrows())), index=index)
+            group = group.sort_values(sort_by_column, ascending=ascending)
+            resulting_df = pd.DataFrame((result for result in yielder(group.iterrows())))
             if not resulting_df.empty:
                 return resulting_df
 
         self = self.set_index([group_by_column])
 
-        return self.groupby(level=0, sort=False).apply(sort_and_apply_function)
+        return self.groupby(level=0, sort=sort).apply(sort_and_apply_function)
 
 
     #----------------------------------------------------------------------
