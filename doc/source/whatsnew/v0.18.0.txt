@@ -162,44 +162,28 @@ In addition, ``.round()`` will be available thru the ``.dt`` accessor of ``Serie
 .. _whatsnew_0180.api_breaking:
 
 
-Change in to_string(index=False) method of DataFrameFormatter and SeriesFormatter class
+Changed to_string(index=False) method of DataFrame and Series formatter class.
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-- the "leading whitespaces" have been removed from the output of "to_string(index=False)" method (:issue: '11833')
+- the "leading whitespaces" have been removed from the output of "to_string(index=False)" method (:issue:'11833')
 
-Previous Behaviour for DataFrame Objects
+Previous Behaviour for the DataFrame Objects
+
+.. code-block:: python
+
+   In [3]: df = pd.DataFrame({'a':range(5),'b':range(5)})
+   In [3]: df.to_string(index=False)
+   Out [4]: u' a  b\n 0  0\n 1  1\n 2  2\n 3  3\n 4  4'
+
+
+New Behaviour for the DataFrame Objects
 
 .. ipython:: python
 
    df=pd.DataFrame({'a':range(5),'b':range(5)})
    df.to_string(index=False)
-   u' a  b\n 0  0\n 1  1\n 2  2\n 3  3\n 4  4'
 
-
-New Behaviour for DataFrame Objects
-
-.. ipython:: python
-
-   df=pd.DataFrame({'a':range(5),'b':range(5)})
-   df.to_string(index=False)
-   u'a  b\n0  0\n1  1\n2  2\n3  3\n4  4'
-
-
-Previous Behaviour for Series Objects
-
-.. ipython:: python
-
-   df=pd.Series({'a':range(5),'b':range(5)})
-   df.to_string(index=False)
-   u' [0, 1, 2, 3, 4]\n [0, 1, 2, 3, 4]'
-
-New Behaviour for Series Objects
-
-.. ipython:: python
-
-   df=pd.Series({'a':range(5),'b':range(5)})
-   df.to_string(index=False)
-   u'[0, 1, 2, 3, 4]\n[0, 1, 2, 3, 4]'
+Similar behaviour applies for the Series objects as well
 
 Backwards incompatible API changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
