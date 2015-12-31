@@ -34,6 +34,11 @@ class PanelOLS(OLS):
                  entity_effects=False, time_effects=False, x_effects=None,
                  cluster=None, dropped_dummies=None, verbose=False,
                  nw_overlap=False):
+        import warnings
+        warnings.warn("The pandas.stats.plm module is deprecated and will be "
+                      "removed in a future version. We refer to external packages "
+                      "like statsmodels, see some examples here: http://statsmodels.sourceforge.net/stable/mixed_linear.html",
+                      FutureWarning, stacklevel=4)
         self._x_orig = x
         self._y_orig = y
         self._weights = weights
@@ -731,6 +736,12 @@ class NonPooledPanelOLS(object):
     def __init__(self, y, x, window_type='full_sample', window=None,
                  min_periods=None, intercept=True, nw_lags=None,
                  nw_overlap=False):
+
+        import warnings
+        warnings.warn("The pandas.stats.plm module is deprecated and will be "
+                      "removed in a future version. We refer to external packages "
+                      "like statsmodels, see some examples here: http://statsmodels.sourceforge.net/stable/mixed_linear.html",
+                      FutureWarning, stacklevel=4)
 
         for attr in self.ATTRIBUTES:
             setattr(self.__class__, attr, create_ols_attr(attr))

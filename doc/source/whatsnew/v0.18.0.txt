@@ -162,8 +162,15 @@ In addition, ``.round()`` will be available thru the ``.dt`` accessor of ``Serie
 .. _whatsnew_0180.api_breaking:
 
 
+<<<<<<< HEAD
 
 - the leading whitespaces have been removed from the output of  ``to_string(index=False)``  method (:issue:'11833')
+=======
+Changed to_string(index=False) method of DataFrame and Series formatter class.
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- the "leading whitespaces" have been removed from the output of "to_string(index=False)" method (:issue:'11833')
+>>>>>>> dd8fd212968048d6b468a8ba0cba7b6644cb2206
 
 Previous Behaviour for the DataFrame Objects
 
@@ -275,6 +282,8 @@ Deprecations
   For example, instead of ``s.rolling(window=5,freq='D').max()`` to get the max value on a rolling 5 Day window, one could use ``s.resample('D',how='max').rolling(window=5).max()``, which first resamples the data to daily data, then provides a rolling 5 day window.
 
 - ``pd.tseries.frequencies.get_offset_name`` function is deprecated. Use offset's ``.freqstr`` property as alternative (:issue:`11192`)
+- ``pandas.stats.fama_macbeth`` routines are deprecated and will be removed in a future version (:issue:`6077`)
+- ``pandas.stats.ols``, ``pandas.stats.plm`` and ``pandas.stats.var`` routines are deprecated and will be removed in a future version (:issue:`6077`)
 
 .. _whatsnew_0180.prior_deprecations:
 

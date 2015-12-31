@@ -242,7 +242,11 @@ class SeriesFormatter(object):
             fmt_values.insert(row_num + n_header_rows, dot_str)
             fmt_index.insert(row_num + 1, '')
 
+<<<<<<< HEAD
 
+=======
+        ''' condition check for index '''
+>>>>>>> dd8fd212968048d6b468a8ba0cba7b6644cb2206
 
         if self.index:
             result = self.adj.adjoin(3, *[fmt_index[1:], fmt_values])
@@ -581,7 +585,11 @@ class DataFrameFormatter(TableFormatter):
                 text = self.adj.adjoin(1, *strcols)
 
 
+<<<<<<< HEAD
 
+=======
+        '''condition check for index '''
+>>>>>>> dd8fd212968048d6b468a8ba0cba7b6644cb2206
 
         if not self.index:
             text=text.replace('\n ','\n').strip()
