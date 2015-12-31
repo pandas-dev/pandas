@@ -270,7 +270,7 @@ class TestTimedeltas(tm.TestCase):
         self.assertEqual(abs(td), td)
         self.assertEqual(abs(-td), td)
         self.assertEqual(td / td, 1)
-        self.assertTrue((td / pd.NaT) is pd.NaT)
+        self.assertTrue((td / pd.NaT) is np.nan)
 
         # invert
         self.assertEqual(-td,Timedelta('-10d'))
@@ -881,20 +881,32 @@ class TestTimedeltas(tm.TestCase):
 
         actual = s1 + scalar1
         assert_series_equal(actual, s2)
+        actual = scalar1 + s1
+        assert_series_equal(actual, s2)
         actual = s2 - scalar1
+        assert_series_equal(actual, s1)
+        actual = -scalar1 + s2
         assert_series_equal(actual, s1)
 
         actual = s1 + timedelta_NaT
         assert_series_equal(actual, sn)
+        actual = timedelta_NaT + s1
+        assert_series_equal(actual, sn)
         actual = s1 - timedelta_NaT
+        assert_series_equal(actual, sn)
+        actual = -timedelta_NaT + s1
         assert_series_equal(actual, sn)
 
         actual = s1 + NA
         assert_series_equal(actual, sn)
+        actual = NA + s1
+        assert_series_equal(actual, sn)
         actual = s1 - NA
         assert_series_equal(actual, sn)
+        actual = -NA + s1
+        assert_series_equal(actual, sn)
 
-        actual = s1 + pd.NaT  # NaT is datetime, not timedelta
+        actual = s1 + pd.NaT
         assert_series_equal(actual, sn)
         actual = s2 - pd.NaT
         assert_series_equal(actual, sn)

@@ -2078,8 +2078,9 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin, generic.NDFrame,):
             same index as caller
         """
         values = self._values
-        if com.is_datetime64_dtype(values.dtype):
-            values = lib.map_infer(values, lib.Timestamp)
+        if needs_i8_conversion(values.dtype):
+            boxer = i8_boxer(values)
+            values = lib.map_infer(values, boxer)
 
         if na_action == 'ignore':
             mask = isnull(values)
@@ -2210,8 +2211,9 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin, generic.NDFrame,):
             return f(self)
 
         values = _values_from_object(self)
-        if com.is_datetime64_dtype(values.dtype):
-            values = lib.map_infer(values, lib.Timestamp)
+        if needs_i8_conversion(values.dtype):
+            boxer = i8_boxer(values)
+            values = lib.map_infer(values, boxer)
 
         mapped = lib.map_infer(values, f, convert=convert_dtype)
         if len(mapped) and isinstance(mapped[0], Series):
