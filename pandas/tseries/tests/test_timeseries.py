@@ -11,7 +11,8 @@ randn = np.random.randn
 
 from pandas import (Index, Series, DataFrame,
                     isnull, date_range, Timestamp, Period, DatetimeIndex,
-                    Int64Index, to_datetime, bdate_range, Float64Index, TimedeltaIndex, NaT)
+                    Int64Index, to_datetime, bdate_range, Float64Index,
+                    TimedeltaIndex, NaT, timedelta_range, Timedelta)
 
 import pandas.core.datetools as datetools
 import pandas.tseries.offsets as offsets
@@ -368,6 +369,12 @@ class TestTimeSeries(tm.TestCase):
         tm.assertIsInstance(s[5], Timestamp)
 
         tm.assertIsInstance(s.iat[5], Timestamp)
+
+    def test_series_box_timedelta(self):
+        rng = timedelta_range('1 day 1 s',periods=5,freq='h')
+        s = Series(rng)
+        tm.assertIsInstance(s[1], Timedelta)
+        tm.assertIsInstance(s.iat[2], Timedelta)
 
     def test_date_range_ambiguous_arguments(self):
         # #2538
@@ -2082,6 +2089,16 @@ class TestTimeSeries(tm.TestCase):
             return (x.hour, x.day, x.month)
 
         # it works!
+        s.map(f)
+        s.apply(f)
+        DataFrame(s).applymap(f)
+
+    def test_series_map_box_timedelta(self):
+        # GH 11349
+        s = Series(timedelta_range('1 day 1 s',periods=5,freq='h'))
+
+        def f(x):
+            return x.total_seconds()
         s.map(f)
         s.apply(f)
         DataFrame(s).applymap(f)

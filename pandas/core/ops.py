@@ -291,6 +291,7 @@ class _TimeOp(object):
         self.is_datetime64tz_lhs = is_datetime64tz_dtype(lvalues)
         self.is_datetime_lhs = self.is_datetime64_lhs or self.is_datetime64tz_lhs
         self.is_integer_lhs = left.dtype.kind in ['i', 'u']
+        self.is_floating_lhs = left.dtype.kind == 'f'
 
         # right
         self.right = right
@@ -300,6 +301,7 @@ class _TimeOp(object):
         self.is_datetime_rhs = self.is_datetime64_rhs or self.is_datetime64tz_rhs
         self.is_timedelta_rhs = is_timedelta64_dtype(rvalues)
         self.is_integer_rhs = rvalues.dtype.kind in ('i', 'u')
+        self.is_floating_rhs = rvalues.dtype.kind == 'f'
 
         self._validate(lvalues, rvalues, name)
         self.lvalues, self.rvalues = self._convert_for_datetime(lvalues, rvalues)
@@ -307,25 +309,17 @@ class _TimeOp(object):
     def _validate(self, lvalues, rvalues, name):
         # timedelta and integer mul/div
 
-        if (self.is_timedelta_lhs and self.is_integer_rhs) or (
-            self.is_integer_lhs and self.is_timedelta_rhs):
+        if (self.is_timedelta_lhs and
+                (self.is_integer_rhs or self.is_floating_rhs)) or (
+            self.is_timedelta_rhs and
+                    (self.is_integer_lhs or self.is_floating_lhs)):
 
-            if name not in ('__div__', '__truediv__', '__mul__'):
+            if name not in ('__div__', '__truediv__', '__mul__', '__rmul__'):
                 raise TypeError("can only operate on a timedelta and an "
-                                "integer for division, but the operator [%s]"
-                                "was passed" % name)
+                                "integer or a float for division and "
+                                "multiplication, but the operator [%s] was"
+                                "passed" % name)
 
-        # 2 datetimes
-        elif self.is_datetime_lhs and self.is_datetime_rhs:
-
-            if name not in ('__sub__','__rsub__'):
-                raise TypeError("can only operate on a datetimes for"
-                                " subtraction, but the operator [%s] was"
-                                " passed" % name)
-
-            # if tz's must be equal (same or None)
-            if getattr(lvalues,'tz',None) != getattr(rvalues,'tz',None):
-                raise ValueError("Incompatbile tz's on datetime subtraction ops")
 
         # 2 timedeltas
         elif ((self.is_timedelta_lhs and
@@ -339,6 +333,7 @@ class _TimeOp(object):
                                 "addition, subtraction, and division, but the"
                                 " operator [%s] was passed" % name)
 
+
         # datetime and timedelta/DateOffset
         elif (self.is_datetime_lhs and
               (self.is_timedelta_rhs or self.is_offset_rhs)):
@@ -349,6 +344,28 @@ class _TimeOp(object):
                                 " but the operator [%s] was passed" %
                                 name)
 
+        elif (self.is_datetime_rhs and
+              (self.is_timedelta_lhs or self.is_offset_lhs)):
+            if name not in ('__add__', '__radd__', '__rsub__'):
+                raise TypeError("can only operate on a timedelta/DateOffset with a rhs of"
+                                " a datetime for addition,"
+                                " but the operator [%s] was passed" %
+                                name)
+
+
+        # 2 datetimes
+        elif self.is_datetime_lhs and self.is_datetime_rhs:
+
+            if name not in ('__sub__','__rsub__'):
+                raise TypeError("can only operate on a datetimes for"
+                                " subtraction, but the operator [%s] was"
+                                " passed" % name)
+
+            # if tz's must be equal (same or None)
+            if getattr(lvalues,'tz',None) != getattr(rvalues,'tz',None):
+                raise ValueError("Incompatbile tz's on datetime subtraction ops")
+
+
         elif ((self.is_timedelta_lhs or self.is_offset_lhs)
               and self.is_datetime_rhs):
 
@@ -357,7 +374,7 @@ class _TimeOp(object):
                                 " a datetime for addition, but the operator"
                                 " [%s] was passed" % name)
         else:
-            raise TypeError('cannot operate on a series with out a rhs '
+            raise TypeError('cannot operate on a series without a rhs '
                             'of a series/ndarray of type datetime64[ns] '
                             'or a timedelta')
 
@@ -366,17 +383,25 @@ class _TimeOp(object):
         from pandas.tseries.timedeltas import to_timedelta
 
         ovalues = values
+        supplied_dtype = None
         if not is_list_like(values):
             values = np.array([values])
-
-        inferred_type = lib.infer_dtype(values)
-
-        if inferred_type in ('datetime64', 'datetime', 'date', 'time'):
+        # if this is a Series that contains relevant dtype info, then use this
+        # instead of the inferred type; this avoids coercing Series([NaT],
+        # dtype='datetime64[ns]') to Series([NaT], dtype='timedelta64[ns]')
+        elif isinstance(values, pd.Series) and (
+                    is_timedelta64_dtype(values) or is_datetime64_dtype(values)):
+            supplied_dtype = values.dtype
+        inferred_type = supplied_dtype or lib.infer_dtype(values)
+        if (inferred_type in ('datetime64', 'datetime', 'date', 'time')
+            or com.is_datetimetz(inferred_type)):
             # if we have a other of timedelta, but use pd.NaT here we
             # we are in the wrong path
-            if (other is not None and other.dtype == 'timedelta64[ns]' and
-                    all(isnull(v) for v in values)):
-                values = np.empty(values.shape, dtype=other.dtype)
+            if (supplied_dtype is None
+                and other is not None
+                and (other.dtype in ('timedelta64[ns]', 'datetime64[ns]'))
+                and isnull(values).all()):
+                values = np.empty(values.shape, dtype='timedelta64[ns]')
                 values[:] = iNaT
 
             # a datelike
@@ -401,18 +426,15 @@ class _TimeOp(object):
                 values = values.astype('timedelta64[ns]')
             elif isinstance(values, pd.PeriodIndex):
                 values = values.to_timestamp().to_series()
-            elif name not in ('__truediv__', '__div__', '__mul__'):
+            elif name not in ('__truediv__', '__div__', '__mul__', '__rmul__'):
                 raise TypeError("incompatible type for a datetime/timedelta "
                                 "operation [{0}]".format(name))
         elif inferred_type == 'floating':
-            # all nan, so ok, use the other dtype (e.g. timedelta or datetime)
-            if isnull(values).all():
+            if isnull(values).all() and name in ('__add__', '__radd__',
+                                                 '__sub__', '__rsub__'):
                 values = np.empty(values.shape, dtype=other.dtype)
                 values[:] = iNaT
-            else:
-                raise TypeError(
-                    'incompatible type [{0}] for a datetime/timedelta '
-                    'operation'.format(np.array(values).dtype))
+            return values
         elif self._is_offset(values):
             return values
         else:
@@ -431,7 +453,10 @@ class _TimeOp(object):
 
             # datetime subtraction means timedelta
             if self.is_datetime_lhs and self.is_datetime_rhs:
-                self.dtype = 'timedelta64[ns]'
+                if self.name in ('__sub__', '__rsub__'):
+                    self.dtype = 'timedelta64[ns]'
+                else:
+                    self.dtype = 'datetime64[ns]'
             elif self.is_datetime64tz_lhs:
                 self.dtype = lvalues.dtype
             elif self.is_datetime64tz_rhs:
@@ -482,7 +507,8 @@ class _TimeOp(object):
                 rvalues = to_timedelta(rvalues)
 
             lvalues = lvalues.astype(np.int64)
-            rvalues = rvalues.astype(np.int64)
+            if not self.is_floating_rhs:
+                rvalues = rvalues.astype(np.int64)
 
             # time delta division -> unit less
             # integer gets converted to timedelta in np < 1.6
@@ -580,7 +606,7 @@ def _arith_method_SERIES(op, name, str_rep, fill_zeros=None,
             lvalues, rvalues = left, right
             dtype = None
             wrap_results = lambda x: x
-        elif time_converted == NotImplemented:
+        elif time_converted is NotImplemented:
             return NotImplemented
         else:
             left, right = time_converted.left, time_converted.right

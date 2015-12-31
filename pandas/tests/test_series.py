@@ -19,7 +19,7 @@ import numpy as np
 import numpy.ma as ma
 import pandas as pd
 
-from pandas import (Index, Series, DataFrame, isnull, notnull, bdate_range,
+from pandas import (Index, Series, DataFrame, isnull, notnull, bdate_range, NaT,
                     date_range, period_range, timedelta_range, _np_version_under1p8)
 from pandas.core.index import MultiIndex
 from pandas.core.indexing import IndexingError
@@ -3466,6 +3466,13 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         assert_series_equal(result, expected)
         assert_series_equal(result2, expected)
 
+        result = s - pd.offsets.Second(5)
+        result2 = -pd.offsets.Second(5) + s
+        expected = Series(
+            [Timestamp('20130101 9:00:55'), Timestamp('20130101 9:01:55')])
+        assert_series_equal(result, expected)
+        assert_series_equal(result2, expected)
+
         result = s + pd.offsets.Milli(5)
         result2 = pd.offsets.Milli(5) + s
         expected = Series(
@@ -3499,6 +3506,19 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
             op = getattr(pd.offsets,do)
             s + op(5)
             op(5) + s
+
+    def test_timedelta_series_ops(self):
+        #GH11925
+
+        s = Series(timedelta_range('1 day', periods=3))
+        ts = Timestamp('2012-01-01')
+        expected = Series(date_range('2012-01-02', periods=3))
+        assert_series_equal(ts + s, expected)
+        assert_series_equal(s + ts, expected)
+
+        expected2 = Series(date_range('2011-12-31', periods=3, freq='-1D'))
+        assert_series_equal(ts - s, expected2)
+        assert_series_equal(ts + (-s), expected2)
 
 
     def test_timedelta64_operations_with_DateOffset(self):
@@ -3619,11 +3639,14 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         assert_series_equal(result,expected)
 
         # invalid ops
-        for op in ['__true_div__','__div__','__mul__']:
-            sop = getattr(s1,op,None)
-            if sop is not None:
-                self.assertRaises(TypeError, sop, s2.astype(float))
-                self.assertRaises(TypeError, sop, 2.)
+        assert_series_equal(s1 / s2.astype(float),
+                            Series([Timedelta('2 days 22:48:00'),
+                                    Timedelta('1 days 23:12:00'),
+                                    Timedelta('NaT')]))
+        assert_series_equal(s1 / 2.0,
+                            Series([Timedelta('29 days 12:00:00'),
+                                    Timedelta('29 days 12:00:00'),
+                                    Timedelta('NaT')]))
 
         for op in ['__add__','__sub__']:
             sop = getattr(s1,op,None)
@@ -3653,7 +3676,7 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
                     assert_series_equal(result, expected)
 
                 # reverse op
-                expected = s1.apply(lambda x: np.timedelta64(m,unit) / x)
+                expected = s1.apply(lambda x: Timedelta(np.timedelta64(m,unit)) / x)
                 result = np.timedelta64(m,unit) / s1
 
         # astype
@@ -3759,7 +3782,7 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
 
         ### timetimedelta with datetime64 ###
         ops = ['__sub__', '__mul__', '__floordiv__', '__truediv__', '__div__',
-               '__pow__', '__rsub__', '__rmul__', '__rfloordiv__',
+               '__pow__', '__rmul__', '__rfloordiv__',
                '__rtruediv__', '__rdiv__', '__rpow__']
         run_ops(ops, td1, dt1)
         td1 + dt1
@@ -3824,6 +3847,151 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
 
         self.assertRaises(TypeError, lambda: td1 - dt1)
         self.assertRaises(TypeError, lambda: td2 - dt2)
+
+    def test_ops_nat(self):
+        # GH 11349
+        timedelta_series = Series([NaT, Timedelta('1s')])
+        datetime_series = Series([NaT, Timestamp('19900315')])
+        nat_series_dtype_timedelta = Series([NaT, NaT], dtype='timedelta64[ns]')
+        nat_series_dtype_timestamp = Series([NaT, NaT], dtype='datetime64[ns]')
+        single_nat_dtype_datetime = Series([NaT], dtype='datetime64[ns]')
+        single_nat_dtype_timedelta = Series([NaT], dtype='timedelta64[ns]')
+
+        # subtraction
+        assert_series_equal(timedelta_series - NaT, nat_series_dtype_timedelta)
+        assert_series_equal(-NaT + timedelta_series, nat_series_dtype_timedelta)
+
+        assert_series_equal(timedelta_series - single_nat_dtype_timedelta,
+                            nat_series_dtype_timedelta)
+        assert_series_equal(-single_nat_dtype_timedelta + timedelta_series,
+                            nat_series_dtype_timedelta)
+
+        assert_series_equal(datetime_series - NaT, nat_series_dtype_timestamp)
+        assert_series_equal(-NaT + datetime_series, nat_series_dtype_timestamp)
+
+        assert_series_equal(datetime_series - single_nat_dtype_datetime,
+                            nat_series_dtype_timedelta)
+        with tm.assertRaises(TypeError):
+            -single_nat_dtype_datetime + datetime_series
+
+        assert_series_equal(datetime_series - single_nat_dtype_timedelta,
+                            nat_series_dtype_timestamp)
+        assert_series_equal(-single_nat_dtype_timedelta + datetime_series ,
+                            nat_series_dtype_timestamp)
+
+        # without a Series wrapping the NaT, it is ambiguous
+        # whether it is a datetime64 or timedelta64
+        # defaults to interpreting it as timedelta64
+        assert_series_equal(nat_series_dtype_timestamp - NaT,
+                            nat_series_dtype_timestamp)
+        assert_series_equal(-NaT + nat_series_dtype_timestamp,
+                            nat_series_dtype_timestamp)
+
+        assert_series_equal(nat_series_dtype_timestamp - single_nat_dtype_datetime,
+                            nat_series_dtype_timedelta)
+        with tm.assertRaises(TypeError):
+            -single_nat_dtype_datetime + nat_series_dtype_timestamp
+
+        assert_series_equal(nat_series_dtype_timestamp - single_nat_dtype_timedelta,
+                            nat_series_dtype_timestamp)
+        assert_series_equal(-single_nat_dtype_timedelta + nat_series_dtype_timestamp,
+                            nat_series_dtype_timestamp)
+
+        with tm.assertRaises(TypeError):
+            timedelta_series - single_nat_dtype_datetime
+
+        # addition
+        assert_series_equal(nat_series_dtype_timestamp + NaT,
+                            nat_series_dtype_timestamp)
+        assert_series_equal(NaT + nat_series_dtype_timestamp,
+                            nat_series_dtype_timestamp)
+
+        assert_series_equal(nat_series_dtype_timestamp + single_nat_dtype_timedelta,
+                            nat_series_dtype_timestamp)
+        assert_series_equal(single_nat_dtype_timedelta + nat_series_dtype_timestamp,
+                            nat_series_dtype_timestamp)
+
+        assert_series_equal(nat_series_dtype_timedelta + NaT,
+                            nat_series_dtype_timedelta)
+        assert_series_equal(NaT + nat_series_dtype_timedelta,
+                            nat_series_dtype_timedelta)
+
+        assert_series_equal(nat_series_dtype_timedelta + single_nat_dtype_timedelta,
+                            nat_series_dtype_timedelta)
+        assert_series_equal(single_nat_dtype_timedelta + nat_series_dtype_timedelta,
+                            nat_series_dtype_timedelta)
+
+        assert_series_equal(timedelta_series + NaT, nat_series_dtype_timedelta)
+        assert_series_equal(NaT + timedelta_series, nat_series_dtype_timedelta)
+
+        assert_series_equal(timedelta_series + single_nat_dtype_timedelta,
+                            nat_series_dtype_timedelta)
+        assert_series_equal(single_nat_dtype_timedelta + timedelta_series,
+                            nat_series_dtype_timedelta)
+
+        assert_series_equal(nat_series_dtype_timestamp + NaT,
+                            nat_series_dtype_timestamp)
+        assert_series_equal(NaT + nat_series_dtype_timestamp,
+                            nat_series_dtype_timestamp)
+
+        assert_series_equal(nat_series_dtype_timestamp + single_nat_dtype_timedelta,
+                            nat_series_dtype_timestamp)
+        assert_series_equal(single_nat_dtype_timedelta + nat_series_dtype_timestamp,
+                            nat_series_dtype_timestamp)
+
+        assert_series_equal(nat_series_dtype_timedelta + NaT,
+                            nat_series_dtype_timedelta)
+        assert_series_equal(NaT + nat_series_dtype_timedelta,
+                            nat_series_dtype_timedelta)
+
+        assert_series_equal(nat_series_dtype_timedelta + single_nat_dtype_timedelta,
+                            nat_series_dtype_timedelta)
+        assert_series_equal(single_nat_dtype_timedelta + nat_series_dtype_timedelta,
+                            nat_series_dtype_timedelta)
+
+        assert_series_equal(nat_series_dtype_timedelta + single_nat_dtype_datetime,
+                            nat_series_dtype_timestamp)
+        assert_series_equal(single_nat_dtype_datetime + nat_series_dtype_timedelta,
+                            nat_series_dtype_timestamp)
+
+        # multiplication
+        assert_series_equal(nat_series_dtype_timedelta * 1.0,
+                            nat_series_dtype_timedelta)
+        assert_series_equal(1.0 * nat_series_dtype_timedelta,
+                            nat_series_dtype_timedelta)
+
+        assert_series_equal(timedelta_series * 1, timedelta_series)
+        assert_series_equal(1 * timedelta_series, timedelta_series)
+
+        assert_series_equal(timedelta_series * 1.5,
+                            Series([NaT, Timedelta('1.5s')]))
+        assert_series_equal(1.5 * timedelta_series,
+                            Series([NaT, Timedelta('1.5s')]))
+
+        assert_series_equal(timedelta_series * nan, nat_series_dtype_timedelta)
+        assert_series_equal(nan * timedelta_series, nat_series_dtype_timedelta)
+
+        with tm.assertRaises(TypeError):
+            datetime_series * 1
+        with tm.assertRaises(TypeError):
+            nat_series_dtype_timestamp * 1
+        with tm.assertRaises(TypeError):
+            datetime_series * 1.0
+        with tm.assertRaises(TypeError):
+            nat_series_dtype_timestamp * 1.0
+
+        # division
+        assert_series_equal(timedelta_series / 2,
+                            Series([NaT, Timedelta('0.5s')]))
+        assert_series_equal(timedelta_series / 2.0,
+                            Series([NaT, Timedelta('0.5s')]))
+        assert_series_equal(timedelta_series / nan,
+                            nat_series_dtype_timedelta)
+        with tm.assertRaises(TypeError):
+            nat_series_dtype_timestamp / 1.0
+        with tm.assertRaises(TypeError):
+            nat_series_dtype_timestamp / 1
+
 
     def test_ops_datetimelike_align(self):
         # GH 7500
