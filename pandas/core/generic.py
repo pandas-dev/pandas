@@ -2136,18 +2136,14 @@ class NDFrame(PandasObject):
         """
         Returns first n rows
         """
-        l = len(self)
-        if l == 0 or n==0:
-            return self
         return self.iloc[:n]
 
     def tail(self, n=5):
         """
         Returns last n rows
         """
-        l = len(self)
-        if l == 0 or n == 0:
-            return self
+        if n == 0:
+            return self.iloc[0:0]
         return self.iloc[-n:]
 
 
