@@ -17,7 +17,8 @@ import pandas.core.common as com
 from pandas import option_context
 from pandas.core.indexing import _non_reducing_slice, _maybe_numeric_slice
 from pandas.core.api import (DataFrame, Index, Series, Panel, isnull,
-                             MultiIndex, Float64Index, Timestamp, Timedelta)
+                             MultiIndex, Float64Index, IntervalIndex,
+                             Timestamp, Timedelta)
 from pandas.util.testing import (assert_almost_equal, assert_series_equal,
                                  assert_frame_equal, assert_panel_equal,
                                  assert_attr_equal)
@@ -4344,6 +4345,31 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         assert_series_equal(result1, result2)
         assert_series_equal(result1, result3)
         assert_series_equal(result1, Series([1],index=[2.5]))
+
+    def test_interval_index(self):
+        s = Series(np.arange(5), IntervalIndex.from_breaks(np.arange(6)))
+
+        expected = 0
+        self.assertEqual(expected, s.loc[0.5])
+        self.assertEqual(expected, s.loc[1])
+        self.assertEqual(expected, s.loc[pd.Interval(0, 1)])
+        self.assertRaises(KeyError, s.loc.__getitem__, 0)
+
+        expected = s.iloc[:3]
+        assert_series_equal(expected, s.loc[:3])
+        assert_series_equal(expected, s.loc[:2.5])
+        assert_series_equal(expected, s.loc[0.1:2.5])
+        assert_series_equal(expected, s.loc[-1:3])
+
+        def _assert_expected_loc_array_indexer(expected, original, indexer):
+            expected = pd.Series(expected, indexer)
+            actual = original.loc[indexer]
+            assert_series_equal(expected, actual)
+
+        expected = s.iloc[1:4]
+        assert_series_equal(expected, s.loc[[1.5, 2.5, 3.5]])
+        assert_series_equal(expected, s.loc[[2, 3, 4]])
+        assert_series_equal(expected, s.loc[[1.5, 3, 4]])
 
     def test_scalar_indexer(self):
         # float indexing checked above

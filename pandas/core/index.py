@@ -177,6 +177,9 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
                     return Int64Index(subarr.astype('i8'), copy=copy, name=name)
                 elif inferred in ['floating', 'mixed-integer-float']:
                     return Float64Index(subarr, copy=copy, name=name)
+                elif inferred == 'interval':
+                    from pandas.core.interval import IntervalIndex
+                    return IntervalIndex.from_intervals(subarr, name=name)
                 elif inferred == 'boolean':
                     # don't support boolean explicity ATM
                     pass
@@ -833,7 +836,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
     @property
     def is_monotonic(self):
         """ alias for is_monotonic_increasing (deprecated) """
-        return self._engine.is_monotonic_increasing
+        return self.is_monotonic_increasing
 
     @property
     def is_monotonic_increasing(self):
@@ -1639,7 +1642,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
 
     def _wrap_union_result(self, other, result):
         name = self.name if self.name == other.name else None
-        return self.__class__(data=result, name=name)
+        return self._constructor(data=result, name=name)
 
     def intersection(self, other):
         """
@@ -2677,6 +2680,13 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
 
         raise ValueError('index must be monotonic increasing or decreasing')
 
+    def _get_loc_only_exact_matches(self, key):
+        """
+        This is overriden on subclasses (namely, IntervalIndex) to control
+        get_slice_bound.
+        """
+        return self.get_loc(key)
+
     def get_slice_bound(self, label, side, kind):
         """
         Calculate slice bound that corresponds to given label.
@@ -2704,7 +2714,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
 
         # we need to look up the label
         try:
-            slc = self.get_loc(label)
+            slc = self._get_loc_only_exact_matches(label)
         except KeyError as err:
             try:
                 return self._searchsorted_monotonic(label, side)

@@ -352,14 +352,10 @@ class TestValueCounts(tm.TestCase):
         arr = np.random.randn(4)
         factor = cut(arr, 4)
 
-        tm.assertIsInstance(factor, Categorical)
+        # tm.assertIsInstance(factor, n)
         result = algos.value_counts(factor)
-        cats = ['(-1.194, -0.535]',
-                '(-0.535, 0.121]',
-                '(0.121, 0.777]',
-                '(0.777, 1.433]'
-        ]
-        expected_index = CategoricalIndex(cats, cats, ordered=True)
+        breaks = [-1.192, -0.535, 0.121, 0.777, 1.433]
+        expected_index = pd.IntervalIndex.from_breaks(breaks)
         expected = Series([1, 1, 1, 1],
                           index=expected_index)
         tm.assert_series_equal(result.sort_index(), expected.sort_index())
@@ -368,12 +364,12 @@ class TestValueCounts(tm.TestCase):
         s = [1, 2, 3, 4]
         result = algos.value_counts(s, bins=1)
         self.assertEqual(result.tolist(), [4])
-        self.assertEqual(result.index[0], 0.997)
+        self.assertEqual(result.index[0], pd.Interval(0.999, 4.0))
 
         result = algos.value_counts(s, bins=2, sort=False)
         self.assertEqual(result.tolist(), [2, 2])
-        self.assertEqual(result.index[0], 0.997)
-        self.assertEqual(result.index[1], 2.5)
+        self.assertEqual(result.index.min(), pd.Interval(0.999, 2.5))
+        self.assertEqual(result.index.max(), pd.Interval(2.5, 4.0))
 
     def test_value_counts_dtypes(self):
         result = algos.value_counts([1, 1.])

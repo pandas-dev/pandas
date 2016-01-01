@@ -96,11 +96,8 @@ cdef void append_data(vector_data *data, sixty_four_bit_scalar x) nogil:
         data.data[data.n] = x
         data.n += 1
 
-cdef class Int64Vector:
 
-    cdef:
-        Int64VectorData *data
-        ndarray ao
+cdef class Int64Vector:
 
     def __cinit__(self):
         self.data = <Int64VectorData *>PyMem_Malloc(sizeof(Int64VectorData))
@@ -122,7 +119,7 @@ cdef class Int64Vector:
     def __len__(self):
         return self.data.n
 
-    def to_array(self):
+    cpdef to_array(self):
         self.ao.resize(self.data.n)
         self.data.m = self.data.n
         return self.ao
@@ -133,6 +130,11 @@ cdef class Int64Vector:
             self.resize()
 
         append_data(self.data, x)
+
+    cdef extend(self, int64_t[:] x):
+        for i in range(len(x)):
+            self.append(x[i])
+
 
 cdef class Float64Vector:
 

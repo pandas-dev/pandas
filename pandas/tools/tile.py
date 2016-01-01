@@ -5,12 +5,15 @@ Quantilization functions and related stuff
 from pandas.core.api import DataFrame, Series
 from pandas.core.categorical import Categorical
 from pandas.core.index import _ensure_index
+from pandas.core.interval import IntervalIndex, Interval
 import pandas.core.algorithms as algos
 import pandas.core.common as com
 import pandas.core.nanops as nanops
 from pandas.compat import zip
 
 import numpy as np
+
+import warnings
 
 
 def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
@@ -39,9 +42,9 @@ def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
     retbins : bool, optional
         Whether to return the bins or not. Can be useful if bins is given
         as a scalar.
-    precision : int
+    precision : int, optional
         The precision at which to store and display the bins labels
-    include_lowest : bool
+    include_lowest : bool, optional
         Whether the first interval should be left-inclusive or not.
 
     Returns
@@ -84,12 +87,11 @@ def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
         except AttributeError:
             x = np.asarray(x)
             sz = x.size
+
         if sz == 0:
             raise ValueError('Cannot cut empty array')
-            # handle empty arrays. Can't determine range, so use 0-1.
-            # rng = (0, 1)
-        else:
-            rng = (nanops.nanmin(x), nanops.nanmax(x))
+
+        rng = (nanops.nanmin(x), nanops.nanmax(x))
         mn, mx = [mi + 0.0 for mi in rng]
 
         if mn == mx:  # adjust end points before binning
@@ -109,9 +111,8 @@ def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
         if (np.diff(bins) < 0).any():
             raise ValueError('bins must increase monotonically.')
 
-    return _bins_to_cuts(x, bins, right=right, labels=labels,retbins=retbins, precision=precision,
-                         include_lowest=include_lowest)
-
+    return _bins_to_cuts(x, bins, right=right, labels=labels, retbins=retbins,
+                         precision=precision, include_lowest=include_lowest)
 
 
 def qcut(x, q, labels=None, retbins=False, precision=3):
@@ -133,7 +134,7 @@ def qcut(x, q, labels=None, retbins=False, precision=3):
     retbins : bool, optional
         Whether to return the bins or not. Can be useful if bins is given
         as a scalar.
-    precision : int
+    precision : int, optional
         The precision at which to store and display the bins labels
 
     Returns
@@ -165,13 +166,12 @@ def qcut(x, q, labels=None, retbins=False, precision=3):
     else:
         quantiles = q
     bins = algos.quantile(x, quantiles)
-    return _bins_to_cuts(x, bins, labels=labels, retbins=retbins,precision=precision,
-                         include_lowest=True)
-
+    return _bins_to_cuts(x, bins, labels=labels, retbins=retbins,
+                         precision=precision, include_lowest=True)
 
 
 def _bins_to_cuts(x, bins, right=True, labels=None, retbins=False,
-                  precision=3, name=None, include_lowest=False):
+                  precision=None, name=None, include_lowest=False):
     x_is_series = isinstance(x, Series)
     series_index = None
 
@@ -196,102 +196,60 @@ def _bins_to_cuts(x, bins, right=True, labels=None, retbins=False,
 
     if labels is not False:
         if labels is None:
-            increases = 0
-            while True:
-                try:
-                    levels = _format_levels(bins, precision, right=right,
-                                            include_lowest=include_lowest)
-                except ValueError:
-                    increases += 1
-                    precision += 1
-                    if increases >= 20:
-                        raise
-                else:
-                    break
+            closed = 'right' if right else 'left'
+            precision = _infer_precision(precision, bins)
+            breaks = [_round_frac(b, precision) for b in bins]
+            labels = IntervalIndex.from_breaks(breaks, closed=closed).values
+
+            if right and include_lowest:
+                labels[0] = Interval(labels[0].left, labels[0].right,
+                                     closed='both')
 
         else:
             if len(labels) != len(bins) - 1:
                 raise ValueError('Bin labels must be one fewer than '
                                  'the number of bin edges')
-            levels = labels
 
-        levels = np.asarray(levels, dtype=object)
+        if not com.is_categorical(labels):
+            labels = np.asarray(labels)
+
         np.putmask(ids, na_mask, 0)
-        fac = Categorical(ids - 1, levels, ordered=True, fastpath=True)
+        result = com.take_nd(labels, ids - 1)
+
     else:
-        fac = ids - 1
+        result = ids - 1
         if has_nas:
-            fac = fac.astype(np.float64)
-            np.putmask(fac, na_mask, np.nan)
+            result = result.astype(np.float64)
+            np.putmask(result, na_mask, np.nan)
 
     if x_is_series:
-        fac = Series(fac, index=series_index, name=name)
+        result = Series(result, index=series_index, name=name)
 
     if not retbins:
-        return fac
+        return result
 
-    return fac, bins
+    return result, bins
 
 
-def _format_levels(bins, prec, right=True,
-                   include_lowest=False):
-    fmt = lambda v: _format_label(v, precision=prec)
-    if right:
-        levels = []
-        for a, b in zip(bins, bins[1:]):
-            fa, fb = fmt(a), fmt(b)
-
-            if a != b and fa == fb:
-                raise ValueError('precision too low')
-
-            formatted = '(%s, %s]' % (fa, fb)
-
-            levels.append(formatted)
-
-        if include_lowest:
-            levels[0] = '[' + levels[0][1:]
+def _round_frac(x, precision):
+    """Round the fractional part of the given number
+    """
+    if not np.isfinite(x) or x == 0:
+        return x
     else:
-        levels = ['[%s, %s)' % (fmt(a), fmt(b))
-                  for a, b in zip(bins, bins[1:])]
-
-    return levels
-
-
-def _format_label(x, precision=3):
-    fmt_str = '%%.%dg' % precision
-    if np.isinf(x):
-        return str(x)
-    elif com.is_float(x):
         frac, whole = np.modf(x)
-        sgn = '-' if x < 0 else ''
-        whole = abs(whole)
-        if frac != 0.0:
-            val = fmt_str % frac
-
-            # rounded up or down
-            if '.' not in val:
-                if x < 0:
-                    return '%d' % (-whole - 1)
-                else:
-                    return '%d' % (whole + 1)
-
-            if 'e' in val:
-                return _trim_zeros(fmt_str % x)
-            else:
-                val = _trim_zeros(val)
-                if '.' in val:
-                    return sgn + '.'.join(('%d' % whole, val.split('.')[1]))
-                else:  # pragma: no cover
-                    return sgn + '.'.join(('%d' % whole, val))
+        if whole == 0:
+            digits = -int(np.floor(np.log10(abs(frac)))) - 1 + precision
         else:
-            return sgn + '%0.f' % whole
-    else:
-        return str(x)
+            digits = precision
+        return np.around(x, digits)
 
 
-def _trim_zeros(x):
-    while len(x) > 1 and x[-1] == '0':
-        x = x[:-1]
-    if len(x) > 1 and x[-1] == '.':
-        x = x[:-1]
-    return x
+def _infer_precision(base_precision, bins):
+    """Infer an appropriate precision for _round_frac
+    """
+    for precision in range(base_precision, 20):
+        levels = [_round_frac(b, precision) for b in bins]
+        if algos.unique(levels).size == bins.size:
+            return precision
+    return base_precision  # default

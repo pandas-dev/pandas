@@ -11,7 +11,8 @@ from distutils.version import LooseVersion
 import numpy as np
 import pandas as pd
 
-from pandas import Categorical, Index, Series, DataFrame, PeriodIndex, Timestamp, CategoricalIndex
+from pandas import (Categorical, Index, Series, DataFrame, PeriodIndex,
+                    Timestamp, CategoricalIndex, Interval)
 
 from pandas.core.config import option_context
 import pandas.core.common as com
@@ -1328,9 +1329,10 @@ class TestCategoricalAsBlock(tm.TestCase):
 
         df = DataFrame({'value': np.random.randint(0, 10000, 100)})
         labels = [ "{0} - {1}".format(i, i + 499) for i in range(0, 10000, 500) ]
+        cat_labels = Categorical(labels, labels)
 
         df = df.sort_values(by=['value'], ascending=True)
-        df['value_group'] = pd.cut(df.value, range(0, 10500, 500), right=False, labels=labels)
+        df['value_group'] = pd.cut(df.value, range(0, 10500, 500), right=False, labels=cat_labels)
         self.cat = df
 
     def test_dtypes(self):
@@ -1727,7 +1729,7 @@ class TestCategoricalAsBlock(tm.TestCase):
     def test_assignment_to_dataframe(self):
         # assignment
         df = DataFrame({'value': np.array(np.random.randint(0, 10000, 100),dtype='int32')})
-        labels = [ "{0} - {1}".format(i, i + 499) for i in range(0, 10000, 500) ]
+        labels = Categorical(["{0} - {1}".format(i, i + 499) for i in range(0, 10000, 500)])
 
         df = df.sort_values(by=['value'], ascending=True)
         s = pd.cut(df.value, range(0, 10500, 500), right=False, labels=labels)
@@ -2590,7 +2592,7 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
 
         # GH 9603
         df = pd.DataFrame({'a': [1, 0, 0, 0]})
-        c = pd.cut(df.a, [0, 1, 2, 3, 4])
+        c = pd.cut(df.a, [0, 1, 2, 3, 4], labels=pd.Categorical(list('abcd')))
         result = df.groupby(c).apply(len)
         expected = pd.Series([1, 0, 0, 0], index=pd.CategoricalIndex(c.values.categories))
         expected.index.name = 'a'
@@ -2725,7 +2727,7 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
         df = DataFrame({'value': (np.arange(100)+1).astype('int64')})
         df['D'] = pd.cut(df.value, bins=[0,25,50,75,100])
 
-        expected = Series([11,'(0, 25]'], index=['value','D'], name=10)
+        expected = Series([11, Interval(0, 25)], index=['value','D'], name=10)
         result = df.iloc[10]
         tm.assert_series_equal(result, expected)
 
@@ -2735,7 +2737,7 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
         result = df.iloc[10:20]
         tm.assert_frame_equal(result, expected)
 
-        expected = Series([9,'(0, 25]'],index=['value', 'D'], name=8)
+        expected = Series([9, Interval(0, 25)],index=['value', 'D'], name=8)
         result = df.loc[8]
         tm.assert_series_equal(result, expected)
 

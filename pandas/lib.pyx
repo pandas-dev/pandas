@@ -306,6 +306,7 @@ def isscalar(object val):
     - instances of datetime.datetime
     - instances of datetime.timedelta
     - Period
+    - Interval
 
     """
 
@@ -316,7 +317,8 @@ def isscalar(object val):
             or PyDate_Check(val)
             or PyDelta_Check(val)
             or PyTime_Check(val)
-            or util.is_period_object(val))
+            or util.is_period_object(val)
+            or is_interval(val))
 
 
 def item_from_zerodim(object val):
@@ -1896,4 +1898,6 @@ cdef class BlockPlacement:
 
 include "reduce.pyx"
 include "properties.pyx"
+include "interval.pyx"
+include "intervaltree.pyx"
 include "inference.pyx"
