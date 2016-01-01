@@ -1089,7 +1089,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         verification must be done like in MultiIndex.
 
         """
-        if isinstance(level, int):
+        if com.is_integer(level):
             if level < 0 and level != -1:
                 raise IndexError("Too many levels: Index has only 1 level,"
                                  " %d is not a valid level number" % (level,))
@@ -1101,9 +1101,43 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
             raise KeyError('Level %s must be same as name (%s)'
                            % (level, self.name))
 
-    def _get_level_number(self, level):
+    def _get_level_number(self, level, ignore_names=False):
+        """
+        Returns level number corresponding to level.
+        If level is a level name and ignore_names is False,
+            the level number corresponding to such level name is returned.
+        Otherwise level must be a number.
+        If level is a positive number, it is returned.
+        If level is a negative number, its sum with self.nlevels is returned.
+        """
+        if ignore_names and (not com.is_integer(level)):
+            raise KeyError('Level %s not found' % str(level))
         self._validate_index_level(level)
         return 0
+
+    def _get_level_numbers(self, levels, allow_mixed_names_and_numbers=False):
+        """
+        Returns level numbers corresponding to levels.
+        If levels is None, a list of all level numbers is returned.
+        If levels is a single number or level name,
+            then a single number is returned (using _get_level_number()).
+        If levels is a list of numbers or level names,
+            then a list of numbers is returned (each using _get_level_number()).
+        If allow_mixed_names_and_numbers is False, then levels must be
+            either all level numbers or all level names.
+        """
+        if levels is None:
+            return list(range(self.nlevels))
+        elif isinstance(levels, (list, tuple, set)):
+            if (not allow_mixed_names_and_numbers) and (not all(lev in self.names for lev in levels)):
+                if all(isinstance(lev, int) for lev in levels):
+                    return type(levels)(self._get_level_number(level, ignore_names=True) for level in levels)
+                else:
+                    raise ValueError("level should contain all level names or all level numbers, "
+                                     "not a mixture of the two.")
+            return type(levels)(self._get_level_number(level) for level in levels)
+        else:
+            return self._get_level_number(levels)
 
     @cache_readonly
     def inferred_type(self):
@@ -4492,28 +4526,38 @@ class MultiIndex(Index):
                        sortorder=None):
         return MultiIndex(levels, labels, names, sortorder=sortorder)
 
-    def _get_level_number(self, level):
-        try:
+    def _get_level_number(self, level, ignore_names=False):
+        """
+        Returns level number corresponding to level.
+        If level is a level name and ignore_names is False,
+            the level number corresponding to such level name is returned.
+        Otherwise level must be a number.
+        If level is a positive number, it is returned.
+        If level is a negative number, its sum with self.nlevels is returned.
+        """
+        if not ignore_names:
             count = self.names.count(level)
             if count > 1:
                 raise ValueError('The name %s occurs multiple times, use a '
                                  'level number' % level)
-            level = self.names.index(level)
-        except ValueError:
-            if not isinstance(level, int):
-                raise KeyError('Level %s not found' % str(level))
-            elif level < 0:
-                level += self.nlevels
-                if level < 0:
-                    orig_level = level - self.nlevels
-                    raise IndexError(
-                        'Too many levels: Index has only %d levels, '
-                        '%d is not a valid level number' % (self.nlevels, orig_level)
-                    )
-            # Note: levels are zero-based
-            elif level >= self.nlevels:
-                raise IndexError('Too many levels: Index has only %d levels, '
-                                 'not %d' % (self.nlevels, level + 1))
+            try:
+                return self.names.index(level)
+            except ValueError:
+                pass
+        if not com.is_integer(level):
+            raise KeyError('Level %s not found' % str(level))
+        elif level < 0:
+            level += self.nlevels
+            if level < 0:
+                orig_level = level - self.nlevels
+                raise IndexError(
+                    'Too many levels: Index has only %d levels, '
+                    '%d is not a valid level number' % (self.nlevels, orig_level)
+                )
+        # Note: levels are zero-based
+        elif level >= self.nlevels:
+            raise IndexError('Too many levels: Index has only %d levels, '
+                             'not %d' % (self.nlevels, level + 1))
         return level
 
     _tuples = None
@@ -5098,7 +5142,7 @@ class MultiIndex(Index):
 
         return self[mask]
 
-    def droplevel(self, level=0):
+    def droplevel(self, level=0, ignore_names=False):
         """
         Return Index with requested level removed. If MultiIndex has only 2
         levels, the result will be of Index type not MultiIndex.
@@ -5106,6 +5150,8 @@ class MultiIndex(Index):
         Parameters
         ----------
         level : int/level name or list thereof
+        ignore_names : boolean, default True
+            If True, level must be an int or list thereof
 
         Notes
         -----
@@ -5123,7 +5169,7 @@ class MultiIndex(Index):
         new_labels = list(self.labels)
         new_names = list(self.names)
 
-        levnums = sorted(self._get_level_number(lev) for lev in levels)[::-1]
+        levnums = sorted((self._get_level_number(lev, ignore_names) for lev in levels), reverse=True)
 
         for i in levnums:
             new_levels.pop(i)
@@ -5136,6 +5182,9 @@ class MultiIndex(Index):
             mask = new_labels[0] == -1
             result = new_levels[0].take(new_labels[0])
             if mask.any():
+                if result.is_integer():
+                    # cannot store NaNs in an integer index, so promote to Float64Index
+                    result = Float64Index(result.values, name=result.name)
                 result = result.putmask(mask, np.nan)
 
             result.name = new_names[0]
@@ -5746,7 +5795,7 @@ class MultiIndex(Index):
 
         else:
 
-            loc = level_index.get_loc(key)
+            loc = -1 if com.is_float(key) and np.isnan(key) else level_index.get_loc(key)
             if level > 0 or self.lexsort_depth == 0:
                 return np.array(labels == loc,dtype=bool)
             else:
@@ -6257,7 +6306,7 @@ def _trim_front(strings):
 
 
 def _sanitize_and_check(indexes):
-    kinds = list(set([type(index) for index in indexes]))
+    kinds = list(set(type(index) for index in indexes))
 
     if list in kinds:
         if len(kinds) > 1:
@@ -6278,11 +6327,11 @@ def _get_consensus_names(indexes):
 
     # find the non-none names, need to tupleify to make
     # the set hashable, then reverse on return
-    consensus_names = set([
+    consensus_names = set(
         tuple(i.names) for i in indexes if all(n is not None for n in i.names)
-    ])
+    )
     if len(consensus_names) == 1:
-        return list(list(consensus_names)[0])
+        return list(consensus_names.pop())
     return [None] * indexes[0].nlevels
 
 

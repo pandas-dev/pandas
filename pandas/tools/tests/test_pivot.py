@@ -474,6 +474,7 @@ class TestPivotTable(tm.TestCase):
                              columns='Carl Joe Mark'.split())
         expected.index.name = 'Date'
         expected.columns.name = 'Buyer'
+        expected['Carl'] = expected['Carl'].astype(df.dtypes['Quantity'])
 
         result = pivot_table(df, index=Grouper(freq='6MS'), columns='Buyer',
                              values='Quantity', aggfunc=np.sum)
