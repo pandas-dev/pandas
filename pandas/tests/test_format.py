@@ -1,4 +1,4 @@
-﻿# -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 from __future__ import print_function
 from distutils.version import LooseVersion
 import re
@@ -1725,7 +1725,7 @@ class TestDataFrameFormatting(tm.TestCase):
                         'y': [4, 5, 6]})
 
         df_s = df.to_string(index=False)
-        expected = " x  y\n 1  4\n 2  5\n 3  6"
+        expected = "x  y\n1  4\n2  5\n3  6"
 
         self.assertEqual(df_s, expected)
 
@@ -3106,13 +3106,13 @@ class TestSeriesFormatting(tm.TestCase):
         self.assertEqual(result, expected)
 
     def test_to_string_without_index(self):
-        #GH 11729 Test index=False option
-        s= Series([1, 2, 3, 4])
+        # GH 11729 Test index=False option
+        s = Series([1, 2, 3, 4])
         result = s.to_string(index=False)
-        expected = (u(' 1\n') +
-                    ' 2\n' +
-                    ' 3\n' +
-                    ' 4')
+        expected = (u('1\n') +
+                    '2\n' +
+                    '3\n' +
+                    '4')
         self.assertEqual(result, expected)
 
     def test_unicode_name_in_footer(self):
