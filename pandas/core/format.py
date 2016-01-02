@@ -245,7 +245,7 @@ class SeriesFormatter(object):
         if self.index:
             result = self.adj.adjoin(3, *[fmt_index[1:], fmt_values])
         else:
-            result = self.adj.adjoin(3, fmt_values)
+            result = self.adj.adjoin(3, fmt_values).replace('\n ','\n').strip()
 
         if self.header and have_header:
             result = fmt_index[0] + '\n' + result
@@ -577,7 +577,8 @@ class DataFrameFormatter(TableFormatter):
                 self._chk_truncate()
                 strcols = self._to_str_columns()
                 text = self.adj.adjoin(1, *strcols)
-
+        if not self.index:
+            text=text.replace('\n ','\n').strip()
         self.buf.writelines(text)
 
         if self.should_show_dimensions:
