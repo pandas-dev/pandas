@@ -8,7 +8,7 @@ import pandas as pd
 
 from distutils.version import LooseVersion
 from pandas import (Index, Series, DataFrame, Panel, isnull,
-                    date_range, period_range)
+                    date_range, period_range, Panel4D)
 from pandas.core.index import MultiIndex
 
 import pandas.core.common as com
@@ -18,6 +18,8 @@ from pandas import compat
 from pandas.util.testing import (assert_series_equal,
                                  assert_frame_equal,
                                  assert_panel_equal,
+                                 assert_panel4d_equal,
+                                 assert_almost_equal,
                                  assert_equal)
 import pandas.util.testing as tm
 
@@ -1057,6 +1059,52 @@ class TestSeries(tm.TestCase, Generic):
         expected = Series([0, 0], index=['count', 'unique'], name='None')
         assert_series_equal(noneSeries.describe(), expected)
 
+    def test_to_xarray(self):
+
+        tm._skip_if_no_xarray()
+        from xarray import DataArray
+
+        s = Series([])
+        s.index.name = 'foo'
+        result = s.to_xarray()
+        self.assertEqual(len(result), 0)
+        self.assertEqual(len(result.coords), 1)
+        assert_almost_equal(list(result.coords.keys()), ['foo'])
+        self.assertIsInstance(result, DataArray)
+
+        def testit(index, check_index_type=True):
+            s = Series(range(6), index=index(6))
+            s.index.name = 'foo'
+            result = s.to_xarray()
+            repr(result)
+            self.assertEqual(len(result), 6)
+            self.assertEqual(len(result.coords), 1)
+            assert_almost_equal(list(result.coords.keys()), ['foo'])
+            self.assertIsInstance(result, DataArray)
+
+            # idempotency
+            assert_series_equal(result.to_series(), s,
+                                check_index_type=check_index_type)
+
+        for index in [tm.makeFloatIndex, tm.makeIntIndex,
+                      tm.makeStringIndex, tm.makeUnicodeIndex,
+                      tm.makeDateIndex, tm.makePeriodIndex,
+                      tm.makeTimedeltaIndex]:
+            testit(index)
+
+        # not idempotent
+        testit(tm.makeCategoricalIndex, check_index_type=False)
+
+        s = Series(range(6))
+        s.index.name = 'foo'
+        s.index = pd.MultiIndex.from_product([['a', 'b'], range(3)],
+                                             names=['one', 'two'])
+        result = s.to_xarray()
+        self.assertEqual(len(result), 2)
+        assert_almost_equal(list(result.coords.keys()), ['one', 'two'])
+        self.assertIsInstance(result, DataArray)
+        assert_series_equal(result.to_series(), s)
+
 
 class TestDataFrame(tm.TestCase, Generic):
     _typ = DataFrame
@@ -1777,10 +1825,102 @@ class TestDataFrame(tm.TestCase, Generic):
 
             self.assert_frame_equal(result, expected)
 
+    def test_to_xarray(self):
+
+        tm._skip_if_no_xarray()
+        from xarray import Dataset
+
+        df = DataFrame({'a': list('abc'),
+                        'b': list(range(1, 4)),
+                        'c': np.arange(3, 6).astype('u1'),
+                        'd': np.arange(4.0, 7.0, dtype='float64'),
+                        'e': [True, False, True],
+                        'f': pd.Categorical(list('abc')),
+                        'g': pd.date_range('20130101', periods=3),
+                        'h': pd.date_range('20130101',
+                                           periods=3,
+                                           tz='US/Eastern')}
+                       )
+
+        df.index.name = 'foo'
+        result = df[0:0].to_xarray()
+        self.assertEqual(result.dims['foo'], 0)
+        self.assertIsInstance(result, Dataset)
+
+        for index in [tm.makeFloatIndex, tm.makeIntIndex,
+                      tm.makeStringIndex, tm.makeUnicodeIndex,
+                      tm.makeDateIndex, tm.makePeriodIndex,
+                      tm.makeCategoricalIndex, tm.makeTimedeltaIndex]:
+            df.index = index(3)
+            df.index.name = 'foo'
+            df.columns.name = 'bar'
+            result = df.to_xarray()
+            self.assertEqual(result.dims['foo'], 3)
+            self.assertEqual(len(result.coords), 1)
+            self.assertEqual(len(result.data_vars), 8)
+            assert_almost_equal(list(result.coords.keys()), ['foo'])
+            self.assertIsInstance(result, Dataset)
+
+            # idempotency
+            # categoricals are not preserved
+            # datetimes w/tz are not preserved
+            # column names are lost
+            expected = df.copy()
+            expected['f'] = expected['f'].astype(object)
+            expected['h'] = expected['h'].astype('datetime64[ns]')
+            expected.columns.name = None
+            assert_frame_equal(result.to_dataframe(),
+                               expected,
+                               check_index_type=False)
+
+        # not implemented
+        df.index = pd.MultiIndex.from_product([['a'], range(3)],
+                                              names=['one', 'two'])
+        self.assertRaises(ValueError, lambda: df.to_xarray())
+
 
 class TestPanel(tm.TestCase, Generic):
     _typ = Panel
     _comparator = lambda self, x, y: assert_panel_equal(x, y)
+
+    def test_to_xarray(self):
+
+        tm._skip_if_no_xarray()
+        from xarray import DataArray
+
+        p = tm.makePanel()
+
+        result = p.to_xarray()
+        self.assertIsInstance(result, DataArray)
+        self.assertEqual(len(result.coords), 3)
+        assert_almost_equal(list(result.coords.keys()),
+                            ['items', 'major_axis', 'minor_axis'])
+        self.assertEqual(len(result.dims), 3)
+
+        # idempotency
+        assert_panel_equal(result.to_pandas(), p)
+
+
+class TestPanel4D(tm.TestCase, Generic):
+    _typ = Panel4D
+    _comparator = lambda self, x, y: assert_panel4d_equal(x, y)
+
+    def test_to_xarray(self):
+
+        tm._skip_if_no_xarray()
+        from xarray import DataArray
+
+        p = tm.makePanel4D()
+
+        result = p.to_xarray()
+        self.assertIsInstance(result, DataArray)
+        self.assertEqual(len(result.coords), 4)
+        assert_almost_equal(list(result.coords.keys()),
+                            ['labels', 'items', 'major_axis', 'minor_axis'])
+        self.assertEqual(len(result.dims), 4)
+
+        # non-convertible
+        self.assertRaises(ValueError, lambda: result.to_pandas())
 
 
 class TestNDFrame(tm.TestCase):

@@ -224,6 +224,18 @@ def _skip_if_scipy_0_17():
         import nose
         raise nose.SkipTest("scipy 0.17")
 
+def _skip_if_no_xarray():
+    try:
+        import xarray
+    except ImportError:
+        import nose
+        raise nose.SkipTest("xarray not installed")
+
+    v = xarray.__version__
+    if v < LooseVersion('0.7.0'):
+        import nose
+        raise nose.SkipTest("xarray not version is too low: {0}".format(v))
+
 def _skip_if_no_pytz():
     try:
         import pytz
