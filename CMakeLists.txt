@@ -228,7 +228,9 @@ if (${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_CURRENT_BINARY_DIR})
 EXECUTE_PROCESS(COMMAND ln ${MORE_ARGS} -sf ${BUILD_OUTPUT_ROOT_DIRECTORY}
   ${CMAKE_CURRENT_BINARY_DIR}/build/latest)
 else()
-  set(BUILD_OUTPUT_ROOT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/${BUILD_SUBDIR_NAME}/")
+  # set(BUILD_OUTPUT_ROOT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/${BUILD_SUBDIR_NAME}/")
+  set(BUILD_OUTPUT_ROOT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}")
+
 endif()
 
 # where to put generated archives (.a files)
@@ -587,6 +589,9 @@ foreach(pyx_api_file
     set_source_files_properties(${pyx_api_file} PROPERTIES CYTHON_API 1)
 endforeach(pyx_api_file)
 
+set(USE_RELATIVE_RPATH ON)
+set(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
+
 foreach(module native)
     string(REPLACE "." ";" directories ${module})
     list(GET directories -1 module_name)
@@ -617,6 +622,10 @@ foreach(module native)
         set(module_install_rpath "${module_install_rpath}/..")
         math(EXPR i "${i} - 1" )
     endwhile(${i} GREATER 0)
+
+	# for inplace development for now
+    set(module_install_rpath "${CMAKE_SOURCE_DIR}/pandas/")
+
     set_target_properties(${module_name} PROPERTIES
       INSTALL_RPATH ${module_install_rpath})
     target_link_libraries(${module_name} pandas)
