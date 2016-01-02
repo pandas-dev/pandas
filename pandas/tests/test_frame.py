@@ -2583,6 +2583,23 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         result = df.set_index(['a', 'x'])
         repr(result)
 
+    def test_set_index_with_col_label_index(self):
+        # GH10797: It should be possible to use an index of column labels as the
+        # `keys` parameter in set_index().
+        df = DataFrame({'col1': [1, 2, 3, 4, 5, 6],
+                        'col2': ['a', 'b', 'c', 'a', 'b', 'c'],
+                        'col3': [0.0, 0.0, 1.0, 1.0, 2.0, 2.0]})
+        expected_index = MultiIndex(levels=[['a', 'b', 'c'], [0.0, 1.0, 2.0]],
+                                    labels=[[0, 1, 2, 0, 1, 2],
+                                            [0, 0, 1, 1, 2, 2]],
+                                    names=['col2', 'col3'])
+        expected_df = DataFrame(data={'col1': [1, 2, 3, 4, 5, 6]},
+                                index=expected_index)
+        list_df = df.set_index(['col2', 'col3'])
+        assert_frame_equal(expected_df, list_df)
+        index_df = df.set_index(df.columns[1:])
+        assert_frame_equal(expected_df, index_df)
+
     def test_set_columns(self):
         cols = Index(np.arange(len(self.mixed_frame.columns)))
         self.mixed_frame.columns = cols
