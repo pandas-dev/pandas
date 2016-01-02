@@ -2727,11 +2727,12 @@ class DataFrame(NDFrame):
                   verify_integrity=False):
         """
         Set the DataFrame index (row labels) using one or more existing
-        columns. By default yields a new object.
+        columns and/or new arrays of values. By default yields a new object.
 
         Parameters
         ----------
-        keys : column label or list of column labels / arrays
+        keys : column label or array, or a list-like of column labels and/or arrays
+            The existing columns and/or new values to set as the index.
         drop : boolean, default True
             Delete columns to be used as the new index
         append : boolean, default False
@@ -2748,12 +2749,13 @@ class DataFrame(NDFrame):
         >>> indexed_df = df.set_index(['A', 'B'])
         >>> indexed_df2 = df.set_index(['A', [0, 1, 2, 0, 1, 2]])
         >>> indexed_df3 = df.set_index([[0, 1, 2, 0, 1, 2]])
+        >>> indexed_df4 = df.set_index(df.columns[:2])
 
         Returns
         -------
         dataframe : DataFrame
         """
-        if not isinstance(keys, list):
+        if not is_list_like(keys):
             keys = [keys]
 
         if inplace:
