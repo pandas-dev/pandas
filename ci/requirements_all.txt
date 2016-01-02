@@ -1,4 +1,5 @@
 nose
+flake8
 sphinx
 ipython
 python-dateutil
