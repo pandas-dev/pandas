@@ -792,7 +792,7 @@ def concat(objs, axis=0, join='outer', join_axes=None, ignore_index=False,
         If True, do not use the index values along the concatenation axis. The
         resulting axis will be labeled 0, ..., n - 1. This is useful if you are
         concatenating objects where the concatenation axis does not have
-        meaningful indexing information. Note the the index values on the other
+        meaningful indexing information. Note the index values on the other
         axes are still respected in the join.
     copy : boolean, default True
         If False, do not copy data unnecessarily
