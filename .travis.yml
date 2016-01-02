@@ -173,4 +173,4 @@ after_script:
   - if [ -f /tmp/doc.log ]; then cat /tmp/doc.log; fi
   - source activate pandas && ci/print_versions.py
   - ci/print_skipped.py /tmp/nosetests.xml
-  - ci/after_script.sh
+  - ci/lint.sh
