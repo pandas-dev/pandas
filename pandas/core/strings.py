@@ -967,13 +967,14 @@ def str_get(arr, i):
 
 def str_decode(arr, encoding, errors="strict"):
     """
-    Decode character string in the Series/Index to unicode
-    using indicated encoding. Equivalent to :meth:`str.decode`.
+    Decode character string in the Series/Index using indicated encoding.
+    Equivalent to :meth:`str.decode` in python2 and :meth:`bytes.decode` in
+    python3.
 
     Parameters
     ----------
-    encoding : string
-    errors : string
+    encoding : str
+    errors : str, optional
 
     Returns
     -------
@@ -985,13 +986,13 @@ def str_decode(arr, encoding, errors="strict"):
 
 def str_encode(arr, encoding, errors="strict"):
     """
-    Encode character string in the Series/Index to some other encoding
-    using indicated encoding. Equivalent to :meth:`str.encode`.
+    Encode character string in the Series/Index using indicated encoding.
+    Equivalent to :meth:`str.encode`.
 
     Parameters
     ----------
-    encoding : string
-    errors : string
+    encoding : str
+    errors : str, optional
 
     Returns
     -------
