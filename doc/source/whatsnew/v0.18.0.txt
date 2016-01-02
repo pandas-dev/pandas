@@ -108,6 +108,7 @@ Other enhancements
 - A simple version of ``Panel.round()`` is now implemented (:issue:`11763`)
 - For Python 3.x, ``round(DataFrame)``, ``round(Series)``, ``round(Panel)`` will work (:issue:`11763`)
 - ``Dataframe`` has gained a ``_repr_latex_`` method in order to allow for automatic conversion to latex in a ipython/jupyter notebook using nbconvert. Options ``display.latex.escape`` and ``display.latex.longtable`` have been added to the configuration and are used automatically by the ``to_latex`` method.(:issue:`11778`)
+- ``set_index`` now accepts like-likes, such as indexes, of column labels (:issue:`10797`)
 
 .. _whatsnew_0180.enhancements.rounding:
 
