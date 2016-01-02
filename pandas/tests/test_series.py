@@ -7642,8 +7642,9 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
 
     def test_head_tail(self):
         assert_series_equal(self.series.head(), self.series[:5])
+        assert_series_equal(self.series.head(0), self.series[0:0])
         assert_series_equal(self.series.tail(), self.series[-5:])
-
+        assert_series_equal(self.series.tail(0), self.series[0:0])
     def test_isin(self):
         s = Series(['A', 'B', 'C', 'a', 'B', 'B', 'A', 'C'])
 

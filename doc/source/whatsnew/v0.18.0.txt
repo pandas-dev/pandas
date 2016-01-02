@@ -166,6 +166,8 @@ Backwards incompatible API changes
 
 - The parameter ``out`` has been removed from the ``Series.round()`` method. (:issue:`11763`)
 - ``DataFrame.round()`` leaves non-numeric columns unchanged in its return, rather than raises. (:issue:`11885`)
+- ``DataFrame.head(0)`` and ``DataFrame.tail(0)`` return empty frames, rather than ``self``.  (:issue:`11937`)
+- ``Series.head(0)`` and ``Series.tail(0)`` return empty series, rather than ``self``.  (:issue:`11937`)
 
 NaT and Timedelta operations
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
