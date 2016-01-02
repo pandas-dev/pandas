@@ -215,6 +215,14 @@ def _skip_if_no_scipy():
         raise nose.SkipTest('scipy.interpolate missing')
 
 
+def _skip_if_no_xray():
+    try:
+        import xray
+    except ImportError:
+        import nose
+        raise nose.SkipTest("xray not installed")
+
+
 def _skip_if_no_pytz():
     try:
         import pytz

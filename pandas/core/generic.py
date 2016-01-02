@@ -1041,7 +1041,29 @@ class NDFrame(PandasObject):
         from pandas.io import clipboard
         clipboard.to_clipboard(self, excel=excel, sep=sep, **kwargs)
 
-    #----------------------------------------------------------------------
+    def to_xray(self):
+        """
+        Return an xray object from the pandas object.
+
+        Returns
+        -------
+        a DataArray for a Series
+        a Dataset for a DataFrame
+        a Dataset for higher dims
+        """
+        import xray
+        if self.ndim == 1:
+            return xray.DataArray.from_series(self)
+        elif self.ndim == 2:
+            return xray.Dataset.from_dataframe(self)
+
+        # > 2 dims
+        coords = [(a, self._get_axis(a)) for a in self._AXIS_ORDERS]
+        return xray.DataArray(self,
+                              coords=coords,
+                              ).to_dataset()
+
+    # ----------------------------------------------------------------------
     # Fancy Indexing
 
     @classmethod
