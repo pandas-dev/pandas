@@ -186,7 +186,7 @@ Attribute Access
 
 .. _indexing.attribute_access:
 
-You may access an index on a ``Series``, column on a ``DataFrame``, and a item on a ``Panel`` directly
+You may access an index on a ``Series``, column on a ``DataFrame``, and an item on a ``Panel`` directly
 as an attribute:
 
 .. ipython:: python
@@ -1513,7 +1513,7 @@ Compare these two access methods:
 These both yield the same results, so which should you use? It is instructive to understand the order
 of operations on these and why method 2 (``.loc``) is much preferred over method 1 (chained ``[]``)
 
-``dfmi['one']`` selects the first level of the columns and returns a data frame that is singly-indexed.
+``dfmi['one']`` selects the first level of the columns and returns a DataFrame that is singly-indexed.
 Then another python operation ``dfmi_with_one['second']`` selects the series indexed by ``'second'`` happens.
 This is indicated by the variable ``dfmi_with_one`` because pandas sees these operations as separate events.
 e.g. separate calls to ``__getitem__``, so it has to treat them as linear operations, they happen one after another.
