@@ -726,9 +726,10 @@ Rolling Apply to multiple columns where function returns a Scalar (Volume Weight
                       'Close' : np.random.randn(len(rng)),
                       'Volume' : np.random.randint(100,2000,len(rng))}, index=rng); df
 
-   def vwap(bars): return ((bars.Close*bars.Volume).sum()/bars.Volume.sum()).round(2)
+   def vwap(bars): return ((bars.Close*bars.Volume).sum()/bars.Volume.sum())
    window = 5
-   s = pd.concat([ (pd.Series(vwap(df.iloc[i:i+window]), index=[df.index[i+window]])) for i in range(len(df)-window) ]); s
+   s = pd.concat([ (pd.Series(vwap(df.iloc[i:i+window]), index=[df.index[i+window]])) for i in range(len(df)-window) ]);
+   s.round(2)
 
 Timeseries
 ----------
