@@ -110,6 +110,7 @@ Other enhancements
 - ``DataFrame`` has gained a ``_repr_latex_`` method in order to allow for automatic conversion to latex in a ipython/jupyter notebook using nbconvert. Options ``display.latex.escape`` and ``display.latex.longtable`` have been added to the configuration and are used automatically by the ``to_latex`` method. (:issue:`11778`)
 - ``sys.getsizeof(obj)`` returns the memory usage of a pandas object, including the
   values it contains (:issue:`11597`)
+- ``Series`` gained an ``is_unique`` attribute (:issue:`11946`)
 
 .. _whatsnew_0180.enhancements.rounding:
 

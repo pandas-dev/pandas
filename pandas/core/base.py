@@ -832,6 +832,17 @@ class IndexOpsMixin(object):
             n -= 1
         return n
 
+    @property
+    def is_unique(self):
+        """
+        Return boolean if values in the object are unique
+
+        Returns
+        -------
+        is_unique : boolean
+        """
+        return self.nunique() == len(self)
+
     def memory_usage(self, deep=False):
         """
         Memory usage of my values
