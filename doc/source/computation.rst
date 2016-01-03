@@ -485,8 +485,9 @@ An obvious one is aggregation via the ``aggregate`` or equivalently ``agg`` meth
 
 .. ipython:: python
 
-   dfa = pd.DataFrame(np.random.randn(1000, 3), index=s.index,
-                     columns=['A', 'B', 'C'])
+   dfa = pd.DataFrame(np.random.randn(1000, 3),
+                      index=pd.date_range('1/1/2000', periods=1000),
+                      columns=['A', 'B', 'C'])
    r = dfa.rolling(window=60,min_periods=1)
    r
 
@@ -540,6 +541,7 @@ By passing a dict to ``aggregate`` you can apply a different aggregation to the
 columns of a DataFrame:
 
 .. ipython:: python
+   :okexcept:
 
    r.agg({'A' : np.sum,
           'B' : lambda x: np.std(x, ddof=1)})
