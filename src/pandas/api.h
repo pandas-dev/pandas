@@ -16,6 +16,7 @@
 #define PANDAS_API_H
 
 #include "pandas/array.h"
+#include "pandas/numpy_interop.h"
 #include "pandas/status.h"
 #include "pandas/types.h"
 

@@ -572,6 +572,11 @@ add_subdirectory(src/pandas/util)
 set(LINK_LIBS
 )
 
+set(PANDAS_SRCS
+  src/pandas/numpy_interop.cc
+  src/pandas/status.cc
+)
+
 add_library(pandas SHARED
   ${PANDAS_SRCS})
 target_link_libraries(pandas ${LINK_LIBS})

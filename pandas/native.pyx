@@ -7,10 +7,99 @@ cimport numpy as cnp
 
 import numpy as np
 
-from pandas.native cimport shared_ptr
+from pandas.native cimport shared_ptr, string
 cimport pandas.native as lp
 
 cnp.import_array()
+
+
+UINT8 = lp.TypeEnum_UINT8
+UINT16 = lp.TypeEnum_UINT16
+UINT32 = lp.TypeEnum_UINT32
+UINT64 = lp.TypeEnum_UINT64
+INT8 = lp.TypeEnum_INT8
+INT16 = lp.TypeEnum_INT16
+INT32 = lp.TypeEnum_INT32
+INT64 = lp.TypeEnum_INT64
+BOOL = lp.TypeEnum_BOOL
+FLOAT = lp.TypeEnum_FLOAT
+DOUBLE = lp.TypeEnum_DOUBLE
+PYOBJECT = lp.TypeEnum_PYOBJECT
+CATEGORY = lp.TypeEnum_CATEGORY
+TIMESTAMP = lp.TypeEnum_TIMESTAMP
+TIMESTAMP_TZ = lp.TypeEnum_TIMESTAMP_TZ
+
+
+class CPandasException(Exception):
+    pass
+
+
+class CPandasBadStatus(CPandasException):
+    """
+    libpandas operation returned an error Status
+    """
+    pass
+
+
+class CPandasNotImplemented(CPandasBadStatus):
+    pass
+
+
+cdef check_status(const lp.Status& status):
+    if status.ok():
+        return
+
+    message = status.ToString()
+
+    if status.IsNotImplemented():
+        raise CPandasNotImplemented(message)
+    else:
+        raise CPandasBadStatus(message)
+
+
+cdef class Scalar:
+    cdef readonly:
+        lp.TypeEnum type
+
+
+cdef class NAType(Scalar):
+
+    def __cinit__(self):
+        self.type = lp.TypeEnum_NA
+
+NA = NAType()
+
+
+cdef dict _primitive_type_aliases = {
+    'u1': UINT8,
+    'u2': UINT16,
+    'u4': UINT32,
+    'u8': UINT64,
+    'uint8': UINT8,
+    'uint16': UINT16,
+    'uint32': UINT32,
+    'uint64': UINT64,
+
+    'i1': INT8,
+    'i2': INT16,
+    'i4': INT32,
+    'i8': INT64,
+    'int8': INT8,
+    'int16': INT16,
+    'int32': INT32,
+    'int64': INT64,
+
+    'f4': FLOAT,
+    'f8': DOUBLE,
+    'float32': FLOAT,
+    'float64': DOUBLE,
+
+    'b1': BOOL,
+    'bool': BOOL,
+
+    'O8': PYOBJECT,
+    'object': PYOBJECT,
+}
 
 
 def wrap_numpy_array(ndarray arr):
@@ -27,6 +116,20 @@ cdef class PandasType:
     def __repr__(self):
         return 'PandasType({0})'.format(self.type.get().ToString())
 
+    def equals(PandasType self, PandasType other):
+        pass
+
+
+def primitive_type(TypeEnum tp_enum):
+    cdef lp.TypePtr sp_type
+
+    if tp_enum == lp.TypeEnum_INT8:
+        sp_type.reset(new lp.Int8Type())
+    else:
+        raise NotImplementedError(tp_enum)
+
+    return wrap_type(sp_type)
+
 
 cdef class Category(PandasType):
 
@@ -34,6 +137,10 @@ cdef class Category(PandasType):
 
         def __get__(self):
             pass
+
+
+def category_type(categories):
+    pass
 
 
 cdef class Array:
@@ -100,11 +207,17 @@ cdef PandasType wrap_type(const lp.TypePtr& sp_type):
 
 
 cpdef PandasType convert_numpy_dtype(cnp.dtype dtype):
-    cdef lp.TypePtr sp_type
+    cdef lp.TypeEnum pandas_typenum
 
-    if dtype.type_num == cnp.NPY_INT8:
-        sp_type.reset(new lp.Int8Type())
-    else:
-        raise NotImplementedError(dtype)
+    check_status(lp.numpy_type_num_to_pandas(dtype.type_num,
+                                             &pandas_typenum))
 
-    return wrap_type(sp_type)
+    return primitive_type(pandas_typenum)
+
+
+def to_pandas_array(values):
+    pass
+
+
+def numpy_to_pandas_array(ndarray arr):
+    pass

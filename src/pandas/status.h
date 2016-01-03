@@ -67,7 +67,6 @@ enum class StatusCode: char {
   OutOfMemory = 1,
   KeyError = 2,
   Invalid = 3,
-
   NotImplemented = 10,
 };
 
@@ -113,12 +112,7 @@ class Status {
   // Returns the string "OK" for success.
   std::string ToString() const;
 
-  // Return a string representation of the status code, without the message
-  // text or posix code information.
   std::string CodeAsString() const;
-
-  // Get the POSIX code associated with this Status, or -1 if there is none.
-  int16_t posix_code() const;
 
  private:
   // OK status has a NULL state_.  Otherwise, state_ is a new[] array
@@ -141,6 +135,7 @@ class Status {
 inline Status::Status(const Status& s) {
   state_ = (s.state_ == NULL) ? NULL : CopyState(s.state_);
 }
+
 inline void Status::operator=(const Status& s) {
   // The following condition catches both aliasing (when this == &s),
   // and the common case where both s and *this are ok.
@@ -148,25 +143,6 @@ inline void Status::operator=(const Status& s) {
     delete[] state_;
     state_ = (s.state_ == NULL) ? NULL : CopyState(s.state_);
   }
-}
-
-Status::Status(StatusCode code, const std::string& msg, int16_t posix_code) {
-  assert(code != StatusCode::OK);
-  const uint32_t size = msg.size();
-  char* result = new char[size + 7];
-  memcpy(result, &size, sizeof(size));
-  result[4] = static_cast<char>(code);
-  memcpy(result + 5, &posix_code, sizeof(posix_code));
-  memcpy(result + 7, msg.c_str(), msg.size());
-  state_ = result;
-}
-
-const char* Status::CopyState(const char* state) {
-  uint32_t size;
-  memcpy(&size, state, sizeof(size));
-  char* result = new char[size + 7];
-  memcpy(result, state, size + 7);
-  return result;
 }
 
 }  // namespace pandas

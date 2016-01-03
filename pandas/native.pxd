@@ -51,23 +51,25 @@ cdef extern from "pandas/status.h" namespace "pandas" nogil:
 
 cdef extern from "pandas/api.h" namespace "pandas":
 
-    enum TypeEnum" pandas::TypeEnum":
-        NA " pandas::TypeEnum::NA"
-        UINT8 " pandas::TypeEnum::UINT8"
-        UINT16 " pandas::TypeEnum::UINT16"
-        UINT32 " pandas::TypeEnum::UINT32"
-        UINT64 " pandas::TypeEnum::UINT64"
-        INT8 " pandas::TypeEnum::INT8"
-        INT16 " pandas::TypeEnum::INT16"
-        INT32 " pandas::TypeEnum::INT32"
-        INT64 " pandas::TypeEnum::INT64"
-        BOOL " pandas::TypeEnum::BOOL"
-        FLOAT " pandas::TypeEnum::FLOAT"
-        DOUBLE " pandas::TypeEnum::DOUBLE"
-        PYOBJECT " pandas::TypeEnum::PYOBJECT"
-        CATEGORY " pandas::TypeEnum::CATEGORY"
-        TIMESTAMP " pandas::TypeEnum::TIMESTAMP"
-        TIMESTAMP_TZ " pandas::TypeEnum::TIMESTAMP_TZ"
+    enum TypeEnum:
+        TypeEnum_NA " pandas::TypeEnum::NA"
+        TypeEnum_UINT8 " pandas::TypeEnum::UINT8"
+        TypeEnum_UINT16 " pandas::TypeEnum::UINT16"
+        TypeEnum_UINT32 " pandas::TypeEnum::UINT32"
+        TypeEnum_UINT64 " pandas::TypeEnum::UINT64"
+        TypeEnum_INT8 " pandas::TypeEnum::INT8"
+        TypeEnum_INT16 " pandas::TypeEnum::INT16"
+        TypeEnum_INT32 " pandas::TypeEnum::INT32"
+        TypeEnum_INT64 " pandas::TypeEnum::INT64"
+        TypeEnum_BOOL " pandas::TypeEnum::BOOL"
+        TypeEnum_FLOAT " pandas::TypeEnum::FLOAT"
+        TypeEnum_DOUBLE " pandas::TypeEnum::DOUBLE"
+        TypeEnum_PYOBJECT " pandas::TypeEnum::PYOBJECT"
+        TypeEnum_CATEGORY " pandas::TypeEnum::CATEGORY"
+        TypeEnum_TIMESTAMP " pandas::TypeEnum::TIMESTAMP"
+        TypeEnum_TIMESTAMP_TZ " pandas::TypeEnum::TIMESTAMP_TZ"
+
+    Status numpy_type_num_to_pandas(int type_num, TypeEnum* pandas_type)
 
     cdef cppclass DataType:
         TypeEnum type

@@ -22,7 +22,7 @@
 
 namespace pandas {
 
-enum class TypeEnum: char {
+enum TypeEnum {
   // A degerate NULL type
   NA = 0,
 
