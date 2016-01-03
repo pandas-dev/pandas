@@ -1,4 +1,4 @@
-﻿# coding=utf-8
+# coding=utf-8
 # pylint: disable-msg=E1101,W0612
 
 import re
@@ -8205,6 +8205,12 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         expected = SubclassedFrame({'X': [1, 2, 3]})
         assert_frame_equal(result, expected)
 
+    def test_is_unique(self):
+        # GH11946
+        s = Series(np.random.randint(0,10,size=1000))
+        self.assertFalse(s.is_unique)
+        s = Series(np.arange(1000))
+        self.assertTrue(s.is_unique)
 
 class TestSeriesNonUnique(tm.TestCase):
 
