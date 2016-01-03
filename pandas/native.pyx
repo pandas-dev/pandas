@@ -2,8 +2,8 @@
 # distutils: language = c++
 # cython: embedsignature = True
 
-from numpy cimport ndarray
-cimport numpy as cnp
+from pandas.internals.numpy cimport ndarray
+cimport pandas.internals.numpy as cnp
 
 import numpy as np
 

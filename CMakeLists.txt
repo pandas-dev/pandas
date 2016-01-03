@@ -1,3 +1,6 @@
+# This file is a part of pandas. See LICENSE for details about reuse and
+# copyright holders
+#
 # Assembled from BSD/MIT/Apache-licensed code from a variety of copyright
 # holders, including at least
 #

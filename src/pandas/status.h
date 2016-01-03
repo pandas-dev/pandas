@@ -10,6 +10,9 @@
 // non-const method, all threads accessing the same Status must use
 // external synchronization.
 
+// This file is a part of pandas. See LICENSE for details about reuse and
+// copyright holders
+
 // Adapted from Kudu github.com/cloudera/kudu
 
 #ifndef PANDAS_STATUS_H_
