@@ -4,6 +4,7 @@ import re
 import numpy as np
 from pandas import compat
 
+
 class ExtensionDtype(object):
     """
     A np.dtype duck-typed class, suitable for holding a custom dtype.
@@ -60,17 +61,21 @@ class ExtensionDtype(object):
         return str(self)
 
     def __hash__(self):
-        raise NotImplementedError("sub-classes should implement an __hash__ method")
+        raise NotImplementedError("sub-classes should implement an __hash__ "
+                                  "method")
 
     def __eq__(self, other):
-        raise NotImplementedError("sub-classes should implement an __eq__ method")
+        raise NotImplementedError("sub-classes should implement an __eq__ "
+                                  "method")
 
     def __ne__(self, other):
         return not self.__eq__(other)
 
     @classmethod
     def is_dtype(cls, dtype):
-        """ Return a boolean if we if the passed type is an actual dtype that we can match (via string or type) """
+        """ Return a boolean if we if the passed type is an actual dtype that
+        we can match (via string or type)
+        """
         if hasattr(dtype, 'dtype'):
             dtype = dtype.dtype
         if isinstance(dtype, cls):
@@ -82,16 +87,19 @@ class ExtensionDtype(object):
         except:
             return False
 
+
 class CategoricalDtypeType(type):
     """
     the type of CategoricalDtype, this metaclass determines subclass ability
     """
     pass
 
+
 class CategoricalDtype(ExtensionDtype):
 
     """
-    A np.dtype duck-typed class, suitable for holding a custom categorical dtype.
+    A np.dtype duck-typed class, suitable for holding a custom categorical
+    dtype.
 
     THIS IS NOT A REAL NUMPY DTYPE, but essentially a sub-class of np.object
     """
@@ -113,7 +121,8 @@ class CategoricalDtype(ExtensionDtype):
 
     @classmethod
     def construct_from_string(cls, string):
-        """ attempt to construct this type from a string, raise a TypeError if its not possible """
+        """ attempt to construct this type from a string, raise a TypeError if
+        it's not possible """
         try:
             if string == 'category':
                 return cls()
@@ -122,25 +131,29 @@ class CategoricalDtype(ExtensionDtype):
 
         raise TypeError("cannot construct a CategoricalDtype")
 
+
 class DatetimeTZDtypeType(type):
     """
     the type of DatetimeTZDtype, this metaclass determines subclass ability
     """
     pass
 
+
 class DatetimeTZDtype(ExtensionDtype):
 
     """
-    A np.dtype duck-typed class, suitable for holding a custom datetime with tz dtype.
+    A np.dtype duck-typed class, suitable for holding a custom datetime with tz
+    dtype.
 
-    THIS IS NOT A REAL NUMPY DTYPE, but essentially a sub-class of np.datetime64[ns]
+    THIS IS NOT A REAL NUMPY DTYPE, but essentially a sub-class of
+    np.datetime64[ns]
     """
     type = DatetimeTZDtypeType
     kind = 'M'
     str = '|M8[ns]'
     num = 101
     base = np.dtype('M8[ns]')
-    _metadata = ['unit','tz']
+    _metadata = ['unit', 'tz']
     _match = re.compile("(datetime64|M8)\[(?P<unit>.+), (?P<tz>.+)\]")
 
     def __init__(self, unit, tz=None):
@@ -167,7 +180,8 @@ class DatetimeTZDtype(ExtensionDtype):
             except:
                 raise ValueError("could not construct DatetimeTZDtype")
 
-            raise ValueError("DatetimeTZDtype constructor must have a tz supplied")
+            raise ValueError("DatetimeTZDtype constructor must have a tz "
+                             "supplied")
 
         if unit != 'ns':
             raise ValueError("DatetimeTZDtype only supports ns units")
@@ -176,7 +190,9 @@ class DatetimeTZDtype(ExtensionDtype):
 
     @classmethod
     def construct_from_string(cls, string):
-        """ attempt to construct this type from a string, raise a TypeError if its not possible """
+        """ attempt to construct this type from a string, raise a TypeError if
+        it's not possible
+        """
         try:
             return cls(unit=string)
         except ValueError:
@@ -198,4 +214,5 @@ class DatetimeTZDtype(ExtensionDtype):
         if isinstance(other, compat.string_types):
             return other == self.name
 
-        return isinstance(other, DatetimeTZDtype) and self.unit == other.unit and self.tz == other.tz
+        return isinstance(other, DatetimeTZDtype) and self.unit == other.unit \
+            and self.tz == other.tz

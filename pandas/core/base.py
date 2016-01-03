@@ -7,8 +7,7 @@ import numpy as np
 from pandas.core import common as com
 import pandas.core.nanops as nanops
 import pandas.lib as lib
-from pandas.util.decorators import (Appender, Substitution,
-                                    cache_readonly, deprecate_kwarg)
+from pandas.util.decorators import Appender, cache_readonly, deprecate_kwarg
 from pandas.core.common import AbstractMethodError
 
 _shared_docs = dict()
@@ -17,7 +16,6 @@ _indexops_doc_kwargs = dict(klass='IndexOpsMixin', inplace='',
 
 
 class StringMixin(object):
-
     """implements string methods so long as object defines a `__unicode__`
     method.
 
@@ -26,7 +24,7 @@ class StringMixin(object):
     # side note - this could be made into a metaclass if more than one
     #             object needs
 
-    #----------------------------------------------------------------------
+    # ----------------------------------------------------------------------
     # Formatting
 
     def __unicode__(self):
@@ -115,7 +113,7 @@ class PandasObject(StringMixin):
     def __sizeof__(self):
         """
         Generates the total memory usage for a object that returns
-         either a value or Series of values
+        either a value or Series of values
         """
         if hasattr(self, 'memory_usage'):
             mem = self.memory_usage(deep=True)
@@ -131,25 +129,27 @@ class PandasObject(StringMixin):
 class NoNewAttributesMixin(object):
     """Mixin which prevents adding new attributes.
 
-     Prevents additional attributes via xxx.attribute = "something" after a call to
-     `self.__freeze()`. Mainly used to prevent the user from using wrong attrirbutes
-     on a accessor (`Series.cat/.str/.dt`).
+    Prevents additional attributes via xxx.attribute = "something" after a
+    call to `self.__freeze()`. Mainly used to prevent the user from using
+    wrong attrirbutes on a accessor (`Series.cat/.str/.dt`).
 
-     If you really want to add a new attribute at a later time, you need to use
-     `object.__setattr__(self, key, value)`.
-     """
+    If you really want to add a new attribute at a later time, you need to use
+    `object.__setattr__(self, key, value)`.
+    """
 
     def _freeze(self):
         """Prevents setting additional attributes"""
         object.__setattr__(self, "__frozen", True)
 
-
     # prevent adding any attribute via s.xxx.new_attribute = ...
     def __setattr__(self, key, value):
         # _cache is used by a decorator
-        # dict lookup instead of getattr as getattr is false for getter which error
-        if getattr(self, "__frozen", False) and not (key in type(self).__dict__ or key == "_cache"):
-            raise AttributeError( "You cannot add any new attribute '{key}'".format(key=key))
+        # dict lookup instead of getattr as getattr is false for getter
+        # which error
+        if getattr(self, "__frozen", False) and not \
+                (key in type(self).__dict__ or key == "_cache"):
+            raise AttributeError("You cannot add any new attribute '{key}'".
+                                 format(key=key))
         object.__setattr__(self, key, value)
 
 
@@ -157,7 +157,8 @@ class PandasDelegate(PandasObject):
     """ an abstract base class for delegating methods/properties """
 
     def _delegate_property_get(self, name, *args, **kwargs):
-        raise TypeError("You cannot access the property {name}".format(name=name))
+        raise TypeError("You cannot access the "
+                        "property {name}".format(name=name))
 
     def _delegate_property_set(self, name, value, *args, **kwargs):
         raise TypeError("The property {name} cannot be set".format(name=name))
@@ -166,7 +167,8 @@ class PandasDelegate(PandasObject):
         raise TypeError("You cannot call method {name}".format(name=name))
 
     @classmethod
-    def _add_delegate_accessors(cls, delegate, accessors, typ, overwrite=False):
+    def _add_delegate_accessors(cls, delegate, accessors, typ,
+                                overwrite=False):
         """
         add accessors to cls from the delegate class
 
@@ -178,20 +180,21 @@ class PandasDelegate(PandasObject):
         typ : 'property' or 'method'
         overwrite : boolean, default False
            overwrite the method/property in the target class if it exists
-
         """
 
         def _create_delegator_property(name):
 
             def _getter(self):
                 return self._delegate_property_get(name)
+
             def _setter(self, new_values):
                 return self._delegate_property_set(name, new_values)
 
             _getter.__name__ = name
             _setter.__name__ = name
 
-            return property(fget=_getter, fset=_setter, doc=getattr(delegate,name).__doc__)
+            return property(fget=_getter, fset=_setter,
+                            doc=getattr(delegate, name).__doc__)
 
         def _create_delegator_method(name):
 
@@ -199,7 +202,7 @@ class PandasDelegate(PandasObject):
                 return self._delegate_method(name, *args, **kwargs)
 
             f.__name__ = name
-            f.__doc__ = getattr(delegate,name).__doc__
+            f.__doc__ = getattr(delegate, name).__doc__
 
             return f
 
@@ -212,7 +215,7 @@ class PandasDelegate(PandasObject):
 
             # don't overwrite existing methods/properties
             if overwrite or not hasattr(cls, name):
-                setattr(cls,name,f)
+                setattr(cls, name, f)
 
 
 class AccessorProperty(object):
@@ -250,17 +253,17 @@ class SpecificationError(GroupByError):
 
 class SelectionMixin(object):
     """
-    mixin implementing the selection & aggregation interface on a group-like object
-    sub-classes need to define: obj, exclusions
+    mixin implementing the selection & aggregation interface on a group-like
+    object sub-classes need to define: obj, exclusions
     """
     _selection = None
-    _internal_names = ['_cache','__setstate__']
+    _internal_names = ['_cache', '__setstate__']
     _internal_names_set = set(_internal_names)
     _builtin_table = {
         builtins.sum: np.sum,
         builtins.max: np.max,
-        builtins.min: np.min,
-        }
+        builtins.min: np.min
+    }
     _cython_table = {
         builtins.sum: 'sum',
         builtins.max: 'max',
@@ -275,7 +278,7 @@ class SelectionMixin(object):
         np.min: 'min',
         np.cumprod: 'cumprod',
         np.cumsum: 'cumsum'
-        }
+    }
 
     @property
     def name(self):
@@ -286,7 +289,8 @@ class SelectionMixin(object):
 
     @property
     def _selection_list(self):
-        if not isinstance(self._selection, (list, tuple, com.ABCSeries, com.ABCIndex, np.ndarray)):
+        if not isinstance(self._selection, (list, tuple, com.ABCSeries,
+                                            com.ABCIndex, np.ndarray)):
             return [self._selection]
         return self._selection
 
@@ -300,7 +304,8 @@ class SelectionMixin(object):
 
     @cache_readonly
     def _obj_with_exclusions(self):
-        if self._selection is not None and isinstance(self.obj, com.ABCDataFrame):
+        if self._selection is not None and isinstance(self.obj,
+                                                      com.ABCDataFrame):
             return self.obj.reindex(columns=self._selection_list)
 
         if len(self.exclusions) > 0:
@@ -312,14 +317,15 @@ class SelectionMixin(object):
         if self._selection is not None:
             raise Exception('Column(s) %s already selected' % self._selection)
 
-        if isinstance(key, (list, tuple, com.ABCSeries, com.ABCIndex, np.ndarray)):
+        if isinstance(key, (list, tuple, com.ABCSeries, com.ABCIndex,
+                            np.ndarray)):
             if len(self.obj.columns.intersection(key)) != len(key):
                 bad_keys = list(set(key).difference(self.obj.columns))
                 raise KeyError("Columns not found: %s"
                                % str(bad_keys)[1:-1])
             return self._gotitem(list(key), ndim=2)
 
-        elif not getattr(self,'as_index',False):
+        elif not getattr(self, 'as_index', False):
             if key not in self.obj.columns:
                 raise KeyError("Column not found: %s" % key)
             return self._gotitem(key, ndim=2)
@@ -345,7 +351,8 @@ class SelectionMixin(object):
         """
         raise AbstractMethodError(self)
 
-    _agg_doc = """Aggregate using input function or dict of {column -> function}
+    _agg_doc = """Aggregate using input function or dict of {column ->
+function}
 
 Parameters
 ----------
@@ -395,7 +402,6 @@ pandas.DataFrame.%(name)s
         *args : args to pass on to the function
         **kwargs : kwargs to pass on to the function
 
-
         Returns
         -------
         tuple of result, how
@@ -406,7 +412,7 @@ pandas.DataFrame.%(name)s
         None if not required
         """
 
-        _level = kwargs.pop('_level',None)
+        _level = kwargs.pop('_level', None)
         if isinstance(arg, compat.string_types):
             return getattr(self, arg)(*args, **kwargs), None
 
@@ -431,7 +437,8 @@ pandas.DataFrame.%(name)s
                 subset = obj
 
                 for fname, agg_how in compat.iteritems(arg):
-                    colg = self._gotitem(self._selection, ndim=1, subset=subset)
+                    colg = self._gotitem(self._selection, ndim=1,
+                                         subset=subset)
                     result[fname] = colg.aggregate(agg_how, _level=None)
                     keys.append(fname)
             else:
@@ -442,7 +449,7 @@ pandas.DataFrame.%(name)s
 
             if isinstance(list(result.values())[0], com.ABCDataFrame):
                 from pandas.tools.merge import concat
-                result = concat([ result[k] for k in keys ], keys=keys, axis=1)
+                result = concat([result[k] for k in keys], keys=keys, axis=1)
             else:
                 from pandas import DataFrame
                 result = DataFrame(result)
@@ -475,7 +482,7 @@ pandas.DataFrame.%(name)s
         keys = []
 
         # degenerate case
-        if obj.ndim==1:
+        if obj.ndim == 1:
             for a in arg:
                 try:
                     colg = self._gotitem(obj.name, ndim=1, subset=obj)
@@ -517,6 +524,7 @@ pandas.DataFrame.%(name)s
         otherwise return the arg
         """
         return self._builtin_table.get(arg, arg)
+
 
 class FrozenList(PandasObject, list):
 
@@ -585,6 +593,7 @@ class FrozenList(PandasObject, list):
     __setitem__ = __setslice__ = __delitem__ = __delslice__ = _disabled
     pop = append = extend = remove = sort = insert = _disabled
 
+
 class FrozenNDArray(PandasObject, np.ndarray):
 
     # no __array_finalize__ for now because no metadata
@@ -623,7 +632,9 @@ class FrozenNDArray(PandasObject, np.ndarray):
 
 
 class IndexOpsMixin(object):
-    """ common ops mixin to support a unified inteface / docs for Series / Index """
+    """ common ops mixin to support a unified inteface / docs for Series /
+    Index
+    """
 
     # ndarray compatibility
     __array_priority__ = 1000
@@ -632,7 +643,8 @@ class IndexOpsMixin(object):
         """ return the transpose, which is by definition self """
         return self
 
-    T = property(transpose, doc="return the transpose, which is by definition self")
+    T = property(transpose, doc="return the transpose, which is by "
+                                "definition self")
 
     @property
     def shape(self):
@@ -641,11 +653,15 @@ class IndexOpsMixin(object):
 
     @property
     def ndim(self):
-        """ return the number of dimensions of the underlying data, by definition 1 """
+        """ return the number of dimensions of the underlying data,
+        by definition 1
+        """
         return 1
 
     def item(self):
-        """ return the first element of the underlying data as a python scalar """
+        """ return the first element of the underlying data as a python
+        scalar
+        """
         try:
             return self.values.item()
         except IndexError:
@@ -685,7 +701,9 @@ class IndexOpsMixin(object):
 
     @property
     def base(self):
-        """ return the base object if the memory of the underlying data is shared """
+        """ return the base object if the memory of the underlying data is
+        shared
+        """
         return self.values.base
 
     @property
@@ -729,9 +747,10 @@ class IndexOpsMixin(object):
     def _reduce(self, op, name, axis=0, skipna=True, numeric_only=None,
                 filter_type=None, **kwds):
         """ perform the reduction type operation if we can """
-        func = getattr(self,name,None)
+        func = getattr(self, name, None)
         if func is None:
-            raise TypeError("{klass} cannot perform the operation {op}".format(klass=self.__class__.__name__,op=name))
+            raise TypeError("{klass} cannot perform the operation {op}".format(
+                            klass=self.__class__.__name__, op=name))
         return func(**kwds)
 
     def value_counts(self, normalize=False, sort=True, ascending=False,
@@ -787,7 +806,7 @@ class IndexOpsMixin(object):
         """
         from pandas.core.nanops import unique1d
         values = self.values
-        if hasattr(values,'unique'):
+        if hasattr(values, 'unique'):
             return values.unique()
 
         return unique1d(values)
@@ -836,7 +855,7 @@ class IndexOpsMixin(object):
         --------
         numpy.ndarray.nbytes
         """
-        if hasattr(self.values,'memory_usage'):
+        if hasattr(self.values, 'memory_usage'):
             return self.values.memory_usage(deep=deep)
 
         v = self.values.nbytes
@@ -866,9 +885,9 @@ class IndexOpsMixin(object):
     def searchsorted(self, key, side='left'):
         """ np.ndarray searchsorted compat """
 
-        ### FIXME in GH7447
-        #### needs coercion on the key (DatetimeIndex does alreay)
-        #### needs tests/doc-string
+        # FIXME in GH7447
+        # needs coercion on the key (DatetimeIndex does alreay)
+        # needs tests/doc-string
         return self.values.searchsorted(key, side=side)
 
     _shared_docs['drop_duplicates'] = (
@@ -889,7 +908,8 @@ class IndexOpsMixin(object):
         deduplicated : %(klass)s
         """)
 
-    @deprecate_kwarg('take_last', 'keep', mapping={True: 'last', False: 'first'})
+    @deprecate_kwarg('take_last', 'keep', mapping={True: 'last',
+                                                   False: 'first'})
     @Appender(_shared_docs['drop_duplicates'] % _indexops_doc_kwargs)
     def drop_duplicates(self, keep='first', inplace=False):
         duplicated = self.duplicated(keep=keep)
@@ -905,8 +925,10 @@ class IndexOpsMixin(object):
         Parameters
         ----------
         keep : {'first', 'last', False}, default 'first'
-            - ``first`` : Mark duplicates as ``True`` except for the first occurrence.
-            - ``last`` : Mark duplicates as ``True`` except for the last occurrence.
+            - ``first`` : Mark duplicates as ``True`` except for the first
+              occurrence.
+            - ``last`` : Mark duplicates as ``True`` except for the last
+              occurrence.
             - False : Mark all duplicates as ``True``.
         take_last : deprecated
 
@@ -915,7 +937,8 @@ class IndexOpsMixin(object):
         duplicated : %(duplicated)s
         """)
 
-    @deprecate_kwarg('take_last', 'keep', mapping={True: 'last', False: 'first'})
+    @deprecate_kwarg('take_last', 'keep', mapping={True: 'last',
+                                                   False: 'first'})
     @Appender(_shared_docs['duplicated'] % _indexops_doc_kwargs)
     def duplicated(self, keep='first'):
         keys = com._values_from_object(com._ensure_object(self.values))
@@ -926,7 +949,7 @@ class IndexOpsMixin(object):
         except AttributeError:
             return np.array(duplicated, dtype=bool)
 
-    #----------------------------------------------------------------------
+    # ----------------------------------------------------------------------
     # abstracts
 
     def _update_inplace(self, result, **kwargs):
