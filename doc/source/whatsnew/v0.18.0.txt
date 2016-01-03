@@ -107,7 +107,7 @@ Other enhancements
 - ``read_excel`` now supports s3 urls of the format ``s3://bucketname/filename`` (:issue:`11447`)
 - A simple version of ``Panel.round()`` is now implemented (:issue:`11763`)
 - For Python 3.x, ``round(DataFrame)``, ``round(Series)``, ``round(Panel)`` will work (:issue:`11763`)
-- ``DataFrame`` has gained a ``_repr_latex_`` method in order to allow for automatic conversion to latex in a ipython/jupyter notebook using nbconvert. Options ``display.latex.escape`` and ``display.latex.longtable`` have been added to the configuration and are used automatically by the ``to_latex`` method.(:issue:`11778`)
+- ``DataFrame`` has gained a ``_repr_latex_`` method in order to allow for automatic conversion to latex in a ipython/jupyter notebook using nbconvert. Options ``display.latex.escape`` and ``display.latex.longtable`` have been added to the configuration and are used automatically by the ``to_latex`` method. (:issue:`11778`)
 - ``sys.getsizeof(obj)`` returns the memory usage of a pandas object, including the
   values it contains (:issue:`11597`)
 
@@ -163,12 +163,11 @@ In addition, ``.round()`` will be available thru the ``.dt`` accessor of ``Serie
 
 .. _whatsnew_0180.api_breaking:
 
-- the leading whitespaces have been removed from the output of ``.to_string(index=False)`` method (:issue:`11833`)
-
 Backwards incompatible API changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-- The parameter ``out`` has been removed from the ``Series.round()`` method. (:issue:`11763`)
+- the leading whitespaces have been removed from the output of ``.to_string(index=False)`` method (:issue:`11833`)
+- the ``out`` parameter has been removed from the ``Series.round()`` method. (:issue:`11763`)
 - ``DataFrame.round()`` leaves non-numeric columns unchanged in its return, rather than raises. (:issue:`11885`)
 - ``DataFrame.head(0)`` and ``DataFrame.tail(0)`` return empty frames, rather than ``self``.  (:issue:`11937`)
 - ``Series.head(0)`` and ``Series.tail(0)`` return empty series, rather than ``self``.  (:issue:`11937`)
@@ -197,27 +196,36 @@ are now also defined for ``NaT`` (:issue:`11564`).
    pd.Timedelta('1s') / pd.NaT
 
 ``NaT`` may represent either a ``datetime64[ns]`` null or a ``timedelta64[ns]`` null.
-Given the ambiguity, it is treated as a `timedelta64[ns]`, which allows more operations
+Given the ambiguity, it is treated as a ``timedelta64[ns]``, which allows more operations
 to succeed.
 
 .. ipython:: python
-   :okexcept:
 
    pd.NaT + pd.NaT
+
    # same as
    pd.Timedelta('1s') + pd.Timedelta('1s')
-   # as opposed to
-   pd.Timestamp('1990315') + pd.Timestamp('19900315')
+
+as opposed to
+
+.. code-block:: python
+
+   In [3]: pd.Timestamp('1990315') + pd.Timestamp('19900315')
+   ValueError:
 
 However, when wrapped in a ``Series`` whose ``dtype`` is ``datetime64[ns]`` or ``timedelta64[ns]``,
 the ``dtype`` information is respected.
 
+.. code-block:: python
+
+   In [1]: pd.Series([pd.NaT], dtype='<M8[ns]') + pd.Series([pd.NaT], dtype='<M8[ns]')
+   TypeError: can only operate on a datetimes for subtraction, but the operator [__add__] was passed
+
 .. ipython:: python
 
-   pd.Series([pd.NaT], dtype='<M8[ns]') + pd.Series([pd.NaT], dtype='<M8[ns]')
    pd.Series([pd.NaT], dtype='<m8[ns]') + pd.Series([pd.NaT], dtype='<m8[ns]')
 
-``Timedelta`` division by ``float``s now works.
+``Timedelta`` division by ``floats`` now works.
 
 .. ipython:: python
 
@@ -270,8 +278,8 @@ other anchored offsets like ``MonthBegin`` and ``YearBegin``.
 Other API Changes
 ^^^^^^^^^^^^^^^^^
 
-- ``DataFrame.between_time`` and ``Series.between_time`` now only parse a fixed set of time strings. Parsing
-of date strings is no longer supported and raises a ``ValueError``. (:issue:`11818`)
+- ``DataFrame.between_time`` and ``Series.between_time`` now only parse a fixed set of time strings. Parsing of
+   date strings is no longer supported and raises a ``ValueError``. (:issue:`11818`)
 
   .. ipython:: python
 
@@ -379,7 +387,7 @@ Bug Fixes
 
 
 
- - Bug in vectorized ``DateOffset`` when ``n`` parameter is ``0`` (:issue:`11370`)
+- Bug in vectorized ``DateOffset`` when ``n`` parameter is ``0`` (:issue:`11370`)
 
 
 
