@@ -1,0 +1,99 @@
+# Copyright 2014 Cloudera, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# distutils: language = c++
+
+from libc.stdint cimport *
+from libcpp cimport bool as c_bool
+from libcpp.string cimport string
+from libcpp.vector cimport vector
+
+# This must be included for cerr and other things to work
+cdef extern from "<iostream>":
+    pass
+
+
+cdef extern from "<memory>" namespace "std" nogil:
+
+    cdef cppclass shared_ptr[T]:
+        T* get()
+        void reset()
+        void reset(T* p)
+
+
+cdef extern from "pandas/status.h" namespace "pandas" nogil:
+
+    # We can later add more of the common status factory methods as needed
+    cdef Status Status_OK "Status::OK"()
+
+    cdef cppclass Status:
+        Status()
+
+        string ToString()
+
+        c_bool ok()
+        c_bool IsKeyError()
+        c_bool IsOutOfMemory()
+        c_bool IsInvalid()
+        c_bool IsNotImplemented()
+
+
+cdef extern from "pandas/api.h" namespace "pandas":
+
+    enum TypeEnum" pandas::TypeEnum":
+        NA " pandas::TypeEnum::NA"
+        UINT8 " pandas::TypeEnum::UINT8"
+        UINT16 " pandas::TypeEnum::UINT16"
+        UINT32 " pandas::TypeEnum::UINT32"
+        UINT64 " pandas::TypeEnum::UINT64"
+        INT8 " pandas::TypeEnum::INT8"
+        INT16 " pandas::TypeEnum::INT16"
+        INT32 " pandas::TypeEnum::INT32"
+        INT64 " pandas::TypeEnum::INT64"
+        BOOL " pandas::TypeEnum::BOOL"
+        FLOAT " pandas::TypeEnum::FLOAT"
+        DOUBLE " pandas::TypeEnum::DOUBLE"
+        PYOBJECT " pandas::TypeEnum::PYOBJECT"
+        CATEGORY " pandas::TypeEnum::CATEGORY"
+        TIMESTAMP " pandas::TypeEnum::TIMESTAMP"
+        TIMESTAMP_TZ " pandas::TypeEnum::TIMESTAMP_TZ"
+
+    cdef cppclass DataType:
+        TypeEnum type
+
+        DataType()
+        string ToString()
+
+    ctypedef shared_ptr[DataType] TypePtr
+
+    cdef cppclass Int8Type(DataType):
+        pass
+
+
+    cdef cppclass CategoryType(DataType):
+        pass
+
+
+    cdef cppclass cArray" pandas::Array":
+
+        const TypePtr& type()
+        TypeEnum type_enum()
+
+    cdef cppclass cCategoryArray" pandas::CategoryArray"(cArray):
+        pass
+
+    cdef cppclass cBooleanArray" pandas::BooleanArray"(cArray):
+        pass
+
+    ctypedef shared_ptr[cArray] ArrayPtr

@@ -30,15 +30,13 @@ namespace pandas {
 class Array {
  public:
 
-  Array(const TypePtr& type, size_t length) {
-    Init(type, length);
-  }
-
+  Array() {}
   virtual ~Array() {}
 
-  void Init(const TypePtr& type, size_t length) {
+  Status Init(const TypePtr& type, size_t length) {
     type_ = type;
     length_ = length;
+    return Status::OK();
   }
 
   size_t length() const { return length_;}
@@ -60,10 +58,10 @@ typedef std::shared_ptr<Array> ArrayPtr;
 // Base class for arrays whose data is stored in a NumPy array
 class NumPyArray : public Array {
  public:
-  explicit NumPyArray() : Array(), numpy_array__(nullptr) {}
+  explicit NumPyArray() : Array(), numpy_array_(nullptr) {}
   virtual ~NumPyArray() {
-    if (numpy_array_ == nullptr) {
-      Py_XDECREF(numpy_array_);
+    if (numpy_array_ != nullptr) {
+      Py_DECREF(numpy_array_);
     }
   }
 

@@ -2,6 +2,10 @@
 
 import pandas.util.testing as tm
 
+import pandas.native as lib
+
 
 class TestLibPandas(tm.TestCase):
-    pass
+
+    def test_convert_numpy_int_dtypes(self):
+        pass

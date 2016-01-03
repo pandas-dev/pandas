@@ -12,19 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef PANDAS_TYPES_BOOLEAN_H
-#define PANDAS_TYPES_BOOLEAN_H
+#ifndef PANDAS_API_H
+#define PANDAS_API_H
 
-namespace pandas {
+#include "pandas/array.h"
+#include "pandas/status.h"
+#include "pandas/types.h"
 
-class BooleanArray : public NumPyArray {
- public:
-  Status Init(const TypePtr& type, PyObject* codes) {
-    // return Array::Init(type, length);
-    return Status::NotImplemented();
-  }
-};
+#include "pandas/types/boolean.h"
+#include "pandas/types/category.h"
+#include "pandas/types/floating.h"
+#include "pandas/types/integer.h"
 
-} // namespace pandas
-
-#endif // PANDAS_TYPES_BOOLEAN_H
+#endif // PANDAS_API_H

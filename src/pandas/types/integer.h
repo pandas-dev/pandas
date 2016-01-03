@@ -16,22 +16,21 @@
 #define PANDAS_TYPES_INTEGER_H
 
 #include "pandas/array.h"
+#include "pandas/status.h"
 #include "pandas/types.h"
 
+namespace pandas {
 
 template <typename TypeClass>
 class IntegerArrayImpl : public NumPyArray {
  public:
   typedef typename TypeClass::c_type T;
 
-  IntegerArrayImpl() : PrimitiveArray() {}
-  IntegerArrayImpl(size_t length) {
-    Init(length);
-  }
-
-  void Init(PyObject* arr) {
+  IntegerArrayImpl() : NumPyArray() {}
+  Status Init(PyObject* arr) {
     TypePtr type(new TypeClass());
-    NumPyArray::Init(type, length);
+    RETURN_NOT_OK(NumPyArray::Init(type, length));
+    return Status::OK();
   }
 };
 
@@ -47,5 +46,6 @@ typedef IntegerArrayImpl<Int32Type> Int32Array;
 typedef IntegerArrayImpl<UInt64Type> UInt64Array;
 typedef IntegerArrayImpl<Int64Type> Int64Array;
 
+} // namespace pandas
 
 #endif // PANDAS_TYPES_INTEGER_H

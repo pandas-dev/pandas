@@ -93,7 +93,7 @@ class Status {
     return Status(StatusCode::KeyError, msg, -1);
   }
 
-  static Status NotImplemented(const std::string& msg) {
+  static Status NotImplemented(const std::string& msg="not implemented") {
     return Status(StatusCode::NotImplemented, msg, -1);
   }
 
@@ -107,6 +107,7 @@ class Status {
   bool IsOutOfMemory() const { return code() == StatusCode::OutOfMemory; }
   bool IsKeyError() const { return code() == StatusCode::KeyError; }
   bool IsInvalid() const { return code() == StatusCode::Invalid; }
+  bool IsNotImplemented() const { return code() == StatusCode::NotImplemented; }
 
   // Return a string representation of this status suitable for printing.
   // Returns the string "OK" for success.

@@ -1,4 +1,4 @@
-// copyright 2015 Cloudera Inc.
+// Copyright 2015 Cloudera Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,29 +15,58 @@
 #ifndef PANDAS_TYPES_CATEGORY_H
 #define PANDAS_TYPES_CATEGORY_H
 
-#include <memory>
+#include <string>
 
 #include "pandas/array.h"
 #include "pandas/types.h"
 
-class CategoryArray : public Array {
- public:
-  void Init(PyObject* arr) {
-    TypePtr type(new TypeClass());
-    NumPyArray::Init(type, length);
+namespace pandas {
+
+struct CategoryType : public DataType {
+
+  explicit CategoryType(const ArrayPtr& categories)
+      : DataType(TypeEnum::CATEGORY) {
+    categories_ = categories;
   }
 
-  std::shared_ptr<Array> codes() {
-    return codes_;
+  virtual std::string ToString() {
+    std::stringstream s;
+    s << "category<" << category_type()->ToString() << ">";
+    return s.str();
   }
 
-  std::shared_ptr<Array> categories() {
+  TypePtr category_type() {
+    return categories_->type();
+  }
+
+  ArrayPtr categories() {
     return categories_;
   }
 
- private:
-  std::shared_ptr<Array> codes_;
-  std::shared_ptr<Array> categories_;
+ protected:
+  ArrayPtr categories_;
 };
+
+
+class CategoryArray : public Array {
+ public:
+  Status Init(const TypePtr& type, PyObject* codes) {
+    // return Array::Init(type, length);
+    return Status::NotImplemented();
+  }
+
+  ArrayPtr codes() {
+    return codes_;
+  }
+
+  ArrayPtr categories() {
+    return static_cast<CategoryType*>(type_.get())->categories();
+  }
+
+ private:
+  ArrayPtr codes_;
+};
+
+} // namespace pandas
 
 #endif // PANDAS_TYPES_CATEGORY_H
