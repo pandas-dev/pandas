@@ -17,9 +17,12 @@ import pandas.algos as algos
 import pandas.lib as lib
 import pandas.tslib as tslib
 from pandas import compat
-from pandas.compat import BytesIO, range, long, u, zip, map, string_types, iteritems
-from pandas.core.dtypes import CategoricalDtype, CategoricalDtypeType, DatetimeTZDtype, DatetimeTZDtypeType
+from pandas.compat import (BytesIO, range, long, u, zip, map, string_types,
+                           iteritems)
+from pandas.core.dtypes import (CategoricalDtype, CategoricalDtypeType,
+                                DatetimeTZDtype, DatetimeTZDtypeType)
 from pandas.core.config import get_option
+
 
 class PandasError(Exception):
     pass
@@ -41,27 +44,30 @@ class AbstractMethodError(NotImplementedError):
     """Raise this error instead of NotImplementedError for abstract methods
     while keeping compatibility with Python 2 and Python 3.
     """
+
     def __init__(self, class_instance):
         self.class_instance = class_instance
 
     def __str__(self):
-        return "This method must be defined in the concrete class of " \
-               + self.class_instance.__class__.__name__
+        return ("This method must be defined in the concrete class of %s" %
+                self.class_instance.__class__.__name__)
+
 
 _POSSIBLY_CAST_DTYPES = set([np.dtype(t).name
-                             for t in ['O', 'int8',
-                                       'uint8', 'int16', 'uint16', 'int32',
-                                       'uint32', 'int64', 'uint64']])
+                             for t in ['O', 'int8', 'uint8', 'int16', 'uint16',
+                                       'int32', 'uint32', 'int64', 'uint64']])
 
 _NS_DTYPE = np.dtype('M8[ns]')
 _TD_DTYPE = np.dtype('m8[ns]')
 _INT64_DTYPE = np.dtype(np.int64)
-_DATELIKE_DTYPES = set([np.dtype(t) for t in ['M8[ns]', '<M8[ns]', '>M8[ns]',
-                                              'm8[ns]', '<m8[ns]', '>m8[ns]']])
+_DATELIKE_DTYPES = set([np.dtype(t)
+                        for t in ['M8[ns]', '<M8[ns]', '>M8[ns]',
+                                  'm8[ns]', '<m8[ns]', '>m8[ns]']])
 _int8_max = np.iinfo(np.int8).max
 _int16_max = np.iinfo(np.int16).max
 _int32_max = np.iinfo(np.int32).max
 _int64_max = np.iinfo(np.int64).max
+
 
 # define abstract base classes to enable isinstance type checking on our
 # objects
@@ -69,42 +75,47 @@ def create_pandas_abc_type(name, attr, comp):
     @classmethod
     def _check(cls, inst):
         return getattr(inst, attr, '_typ') in comp
-    dct = dict(__instancecheck__=_check,
-               __subclasscheck__=_check)
-    meta = type("ABCBase", (type,), dct)
+
+    dct = dict(__instancecheck__=_check, __subclasscheck__=_check)
+    meta = type("ABCBase", (type, ), dct)
     return meta(name, tuple(), dct)
 
 
-ABCIndex = create_pandas_abc_type("ABCIndex", "_typ", ("index",))
-ABCInt64Index = create_pandas_abc_type("ABCInt64Index", "_typ", ("int64index",))
-ABCFloat64Index = create_pandas_abc_type("ABCFloat64Index", "_typ", ("float64index",))
-ABCMultiIndex = create_pandas_abc_type("ABCMultiIndex", "_typ", ("multiindex",))
-ABCDatetimeIndex = create_pandas_abc_type("ABCDatetimeIndex", "_typ", ("datetimeindex",))
-ABCTimedeltaIndex = create_pandas_abc_type("ABCTimedeltaIndex", "_typ", ("timedeltaindex",))
-ABCPeriodIndex = create_pandas_abc_type("ABCPeriodIndex", "_typ", ("periodindex",))
-ABCCategoricalIndex = create_pandas_abc_type("ABCCategoricalIndex", "_typ", ("categoricalindex",))
-ABCIndexClass = create_pandas_abc_type("ABCIndexClass", "_typ", ("index",
-                                                                 "int64index",
-                                                                 "float64index",
-                                                                 "multiindex",
-                                                                 "datetimeindex",
-                                                                 "timedeltaindex",
-                                                                 "periodindex",
-                                                                 "categoricalindex"))
+ABCIndex = create_pandas_abc_type("ABCIndex", "_typ", ("index", ))
+ABCInt64Index = create_pandas_abc_type("ABCInt64Index", "_typ",
+                                       ("int64index", ))
+ABCFloat64Index = create_pandas_abc_type("ABCFloat64Index", "_typ",
+                                         ("float64index", ))
+ABCMultiIndex = create_pandas_abc_type("ABCMultiIndex", "_typ",
+                                       ("multiindex", ))
+ABCDatetimeIndex = create_pandas_abc_type("ABCDatetimeIndex", "_typ",
+                                          ("datetimeindex", ))
+ABCTimedeltaIndex = create_pandas_abc_type("ABCTimedeltaIndex", "_typ",
+                                           ("timedeltaindex", ))
+ABCPeriodIndex = create_pandas_abc_type("ABCPeriodIndex", "_typ",
+                                        ("periodindex", ))
+ABCCategoricalIndex = create_pandas_abc_type("ABCCategoricalIndex", "_typ",
+                                             ("categoricalindex", ))
+ABCIndexClass = create_pandas_abc_type("ABCIndexClass", "_typ",
+                                       ("index", "int64index", "float64index",
+                                        "multiindex", "datetimeindex",
+                                        "timedeltaindex", "periodindex",
+                                        "categoricalindex"))
 
-ABCSeries = create_pandas_abc_type("ABCSeries", "_typ", ("series",))
-ABCDataFrame = create_pandas_abc_type("ABCDataFrame", "_typ", ("dataframe",))
-ABCPanel = create_pandas_abc_type("ABCPanel", "_typ", ("panel",))
+ABCSeries = create_pandas_abc_type("ABCSeries", "_typ", ("series", ))
+ABCDataFrame = create_pandas_abc_type("ABCDataFrame", "_typ", ("dataframe", ))
+ABCPanel = create_pandas_abc_type("ABCPanel", "_typ", ("panel", ))
 ABCSparseSeries = create_pandas_abc_type("ABCSparseSeries", "_subtyp",
                                          ('sparse_series',
                                           'sparse_time_series'))
 ABCSparseArray = create_pandas_abc_type("ABCSparseArray", "_subtyp",
                                         ('sparse_array', 'sparse_series'))
-ABCCategorical = create_pandas_abc_type("ABCCategorical","_typ",("categorical"))
-ABCPeriod = create_pandas_abc_type("ABCPeriod", "_typ", ("period",))
+ABCCategorical = create_pandas_abc_type("ABCCategorical", "_typ",
+                                        ("categorical"))
+ABCPeriod = create_pandas_abc_type("ABCPeriod", "_typ", ("period", ))
+
 
 class _ABCGeneric(type):
-
     def __instancecheck__(cls, inst):
         return hasattr(inst, "_data")
 
@@ -135,6 +146,7 @@ def bind_method(cls, name, func):
         setattr(cls, name, types.MethodType(func, None, cls))
     else:
         setattr(cls, name, func)
+
 
 def isnull(obj):
     """Detect missing values (NaN in numeric arrays, None/NaN in object arrays)
@@ -197,6 +209,7 @@ def _isnull_old(obj):
         return _isnull_ndarraylike_old(np.asarray(obj))
     else:
         return obj is None
+
 
 _isnull = _isnull_new
 
@@ -263,6 +276,7 @@ def _isnull_ndarraylike(obj):
 
     return result
 
+
 def _isnull_ndarraylike_old(obj):
     values = getattr(obj, 'values', obj)
     dtype = values.dtype
@@ -316,6 +330,7 @@ def notnull(obj):
         return not res
     return ~res
 
+
 def is_null_datelike_scalar(other):
     """ test whether the object is a null datelike, e.g. Nat
     but guard against passing a non-scalar """
@@ -324,18 +339,19 @@ def is_null_datelike_scalar(other):
     elif np.isscalar(other):
 
         # a timedelta
-        if hasattr(other,'dtype'):
+        if hasattr(other, 'dtype'):
             return other.view('i8') == tslib.iNaT
         elif is_integer(other) and other == tslib.iNaT:
             return True
         return isnull(other)
     return False
 
+
 def array_equivalent(left, right, strict_nan=False):
     """
-    True if two arrays, left and right, have equal non-NaN elements, and NaNs in
-    corresponding locations.  False otherwise. It is assumed that left and right
-    are NumPy arrays of the same dtype. The behavior of this function
+    True if two arrays, left and right, have equal non-NaN elements, and NaNs
+    in corresponding locations.  False otherwise. It is assumed that left and
+    right are NumPy arrays of the same dtype. The behavior of this function
     (particularly with respect to NaNs) is not defined if the dtypes are
     different.
 
@@ -363,22 +379,25 @@ def array_equivalent(left, right, strict_nan=False):
     """
 
     left, right = np.asarray(left), np.asarray(right)
-    if left.shape != right.shape: return False
+    if left.shape != right.shape:
+        return False
 
     # Object arrays can contain None, NaN and NaT.
-    if issubclass(left.dtype.type, np.object_) or issubclass(right.dtype.type, np.object_):
+    if (issubclass(left.dtype.type, np.object_) or
+            issubclass(right.dtype.type, np.object_)):
 
         if not strict_nan:
             # pd.isnull considers NaN and None to be equivalent.
-            return lib.array_equivalent_object(_ensure_object(left.ravel()),
-                                               _ensure_object(right.ravel()))
+            return lib.array_equivalent_object(
+                _ensure_object(left.ravel()), _ensure_object(right.ravel()))
 
         for left_value, right_value in zip(left, right):
             if left_value is tslib.NaT and right_value is not tslib.NaT:
                 return False
 
             elif isinstance(left_value, float) and np.isnan(left_value):
-                if not isinstance(right_value, float) or not np.isnan(right_value):
+                if (not isinstance(right_value, float) or
+                        not np.isnan(right_value)):
                     return False
             else:
                 if left_value != right_value:
@@ -395,6 +414,7 @@ def array_equivalent(left, right, strict_nan=False):
 
     # NaNs cannot occur otherwise.
     return np.array_equal(left, right)
+
 
 def _iterable_not_string(x):
     return (isinstance(x, collections.Iterable) and
@@ -502,6 +522,7 @@ def _view_wrapper(f, arr_dtype=None, out_dtype=None, fill_wrap=None):
         if fill_wrap is not None:
             fill_value = fill_wrap(fill_value)
         f(arr, indexer, out, fill_value=fill_value)
+
     return wrapper
 
 
@@ -509,6 +530,7 @@ def _convert_wrapper(f, conv_dtype):
     def wrapper(arr, indexer, out, fill_value=np.nan):
         arr = arr.astype(conv_dtype)
         f(arr, indexer, out, fill_value=fill_value)
+
     return wrapper
 
 
@@ -569,14 +591,13 @@ _take_1d_dict = {
     ('float32', 'float64'): algos.take_1d_float32_float64,
     ('float64', 'float64'): algos.take_1d_float64_float64,
     ('object', 'object'): algos.take_1d_object_object,
-    ('bool', 'bool'):
-    _view_wrapper(algos.take_1d_bool_bool, np.uint8, np.uint8),
-    ('bool', 'object'):
-    _view_wrapper(algos.take_1d_bool_object, np.uint8, None),
-    ('datetime64[ns]', 'datetime64[ns]'):
-    _view_wrapper(algos.take_1d_int64_int64, np.int64, np.int64, np.int64)
+    ('bool', 'bool'): _view_wrapper(algos.take_1d_bool_bool, np.uint8,
+                                    np.uint8),
+    ('bool', 'object'): _view_wrapper(algos.take_1d_bool_object, np.uint8,
+                                      None),
+    ('datetime64[ns]', 'datetime64[ns]'): _view_wrapper(
+        algos.take_1d_int64_int64, np.int64, np.int64, np.int64)
 }
-
 
 _take_2d_axis0_dict = {
     ('int8', 'int8'): algos.take_2d_axis0_int8_int8,
@@ -596,15 +617,14 @@ _take_2d_axis0_dict = {
     ('float32', 'float64'): algos.take_2d_axis0_float32_float64,
     ('float64', 'float64'): algos.take_2d_axis0_float64_float64,
     ('object', 'object'): algos.take_2d_axis0_object_object,
-    ('bool', 'bool'):
-    _view_wrapper(algos.take_2d_axis0_bool_bool, np.uint8, np.uint8),
-    ('bool', 'object'):
-    _view_wrapper(algos.take_2d_axis0_bool_object, np.uint8, None),
+    ('bool', 'bool'): _view_wrapper(algos.take_2d_axis0_bool_bool, np.uint8,
+                                    np.uint8),
+    ('bool', 'object'): _view_wrapper(algos.take_2d_axis0_bool_object,
+                                      np.uint8, None),
     ('datetime64[ns]', 'datetime64[ns]'):
     _view_wrapper(algos.take_2d_axis0_int64_int64, np.int64, np.int64,
                   fill_wrap=np.int64)
 }
-
 
 _take_2d_axis1_dict = {
     ('int8', 'int8'): algos.take_2d_axis1_int8_int8,
@@ -624,15 +644,14 @@ _take_2d_axis1_dict = {
     ('float32', 'float64'): algos.take_2d_axis1_float32_float64,
     ('float64', 'float64'): algos.take_2d_axis1_float64_float64,
     ('object', 'object'): algos.take_2d_axis1_object_object,
-    ('bool', 'bool'):
-    _view_wrapper(algos.take_2d_axis1_bool_bool, np.uint8, np.uint8),
-    ('bool', 'object'):
-    _view_wrapper(algos.take_2d_axis1_bool_object, np.uint8, None),
+    ('bool', 'bool'): _view_wrapper(algos.take_2d_axis1_bool_bool, np.uint8,
+                                    np.uint8),
+    ('bool', 'object'): _view_wrapper(algos.take_2d_axis1_bool_object,
+                                      np.uint8, None),
     ('datetime64[ns]', 'datetime64[ns]'):
     _view_wrapper(algos.take_2d_axis1_int64_int64, np.int64, np.int64,
                   fill_wrap=np.int64)
 }
-
 
 _take_2d_multi_dict = {
     ('int8', 'int8'): algos.take_2d_multi_int8_int8,
@@ -652,10 +671,10 @@ _take_2d_multi_dict = {
     ('float32', 'float64'): algos.take_2d_multi_float32_float64,
     ('float64', 'float64'): algos.take_2d_multi_float64_float64,
     ('object', 'object'): algos.take_2d_multi_object_object,
-    ('bool', 'bool'):
-    _view_wrapper(algos.take_2d_multi_bool_bool, np.uint8, np.uint8),
-    ('bool', 'object'):
-    _view_wrapper(algos.take_2d_multi_bool_object, np.uint8, None),
+    ('bool', 'bool'): _view_wrapper(algos.take_2d_multi_bool_bool, np.uint8,
+                                    np.uint8),
+    ('bool', 'object'): _view_wrapper(algos.take_2d_multi_bool_object,
+                                      np.uint8, None),
     ('datetime64[ns]', 'datetime64[ns]'):
     _view_wrapper(algos.take_2d_multi_int64_int64, np.int64, np.int64,
                   fill_wrap=np.int64)
@@ -689,13 +708,14 @@ def _get_take_nd_function(ndim, arr_dtype, out_dtype, axis=0, mask_info=None):
 
     def func(arr, indexer, out, fill_value=np.nan):
         indexer = _ensure_int64(indexer)
-        _take_nd_generic(arr, indexer, out, axis=axis,
-                         fill_value=fill_value, mask_info=mask_info)
+        _take_nd_generic(arr, indexer, out, axis=axis, fill_value=fill_value,
+                         mask_info=mask_info)
+
     return func
 
 
-def take_nd(arr, indexer, axis=0, out=None, fill_value=np.nan,
-            mask_info=None, allow_fill=True):
+def take_nd(arr, indexer, axis=0, out=None, fill_value=np.nan, mask_info=None,
+            allow_fill=True):
     """
     Specialized Cython take which sets NaN values in one pass
 
@@ -786,8 +806,8 @@ def take_nd(arr, indexer, axis=0, out=None, fill_value=np.nan,
         else:
             out = np.empty(out_shape, dtype=dtype)
 
-    func = _get_take_nd_function(arr.ndim, arr.dtype, out.dtype,
-                                 axis=axis, mask_info=mask_info)
+    func = _get_take_nd_function(arr.ndim, arr.dtype, out.dtype, axis=axis,
+                                 mask_info=mask_info)
     indexer = _ensure_int64(indexer)
     func(arr, indexer, out, fill_value)
 
@@ -799,8 +819,8 @@ def take_nd(arr, indexer, axis=0, out=None, fill_value=np.nan,
 take_1d = take_nd
 
 
-def take_2d_multi(arr, indexer, out=None, fill_value=np.nan,
-                  mask_info=None, allow_fill=True):
+def take_2d_multi(arr, indexer, out=None, fill_value=np.nan, mask_info=None,
+                  allow_fill=True):
     """
     Specialized Cython take which sets NaN values in one pass
     """
@@ -858,11 +878,14 @@ def take_2d_multi(arr, indexer, out=None, fill_value=np.nan,
         if func is not None:
             func = _convert_wrapper(func, out.dtype)
     if func is None:
+
         def func(arr, indexer, out, fill_value=np.nan):
-            _take_2d_multi_generic(arr, indexer, out,
-                                   fill_value=fill_value, mask_info=mask_info)
+            _take_2d_multi_generic(arr, indexer, out, fill_value=fill_value,
+                                   mask_info=mask_info)
+
     func(arr, indexer, out=out, fill_value=fill_value)
     return out
+
 
 _diff_special = {
     'float64': algos.diff_2d_float64,
@@ -872,6 +895,7 @@ _diff_special = {
     'int16': algos.diff_2d_int16,
     'int8': algos.diff_2d_int8,
 }
+
 
 def diff(arr, n, axis=0):
     """ difference of n between self,
@@ -931,9 +955,11 @@ def diff(arr, n, axis=0):
 
     if is_timedelta:
         from pandas import TimedeltaIndex
-        out_arr = TimedeltaIndex(out_arr.ravel().astype('int64')).asi8.reshape(out_arr.shape).astype('timedelta64[ns]')
+        out_arr = TimedeltaIndex(out_arr.ravel().astype('int64')).asi8.reshape(
+            out_arr.shape).astype('timedelta64[ns]')
 
     return out_arr
+
 
 def _coerce_indexer_dtype(indexer, categories):
     """ coerce the indexer input array to the smallest dtype possible """
@@ -945,6 +971,7 @@ def _coerce_indexer_dtype(indexer, categories):
     elif l < _int32_max:
         return _ensure_int32(indexer)
     return _ensure_int64(indexer)
+
 
 def _coerce_to_dtypes(result, dtypes):
     """ given a dtypes and a result set, coerce the result elements to the
@@ -965,7 +992,7 @@ def _coerce_to_dtypes(result, dtypes):
                 r = _coerce_scalar_to_timedelta_type(r)
             elif dtype == np.bool_:
                 # messy. non 0/1 integers do not get converted.
-                if is_integer(r) and r not in [0,1]:
+                if is_integer(r) and r not in [0, 1]:
                     return int(r)
                 r = bool(r)
             elif dtype.kind == 'f':
@@ -982,22 +1009,22 @@ def _coerce_to_dtypes(result, dtypes):
 
 def _infer_fill_value(val):
     """
-    infer the fill value for the nan/NaT from the provided scalar/ndarray/list-like
-    if we are a NaT, return the correct dtyped element to provide proper block construction
-
+    infer the fill value for the nan/NaT from the provided
+    scalar/ndarray/list-like if we are a NaT, return the correct dtyped
+    element to provide proper block construction
     """
 
     if not is_list_like(val):
         val = [val]
-    val = np.array(val,copy=False)
+    val = np.array(val, copy=False)
     if is_datetimelike(val):
-        return np.array('NaT',dtype=val.dtype)
+        return np.array('NaT', dtype=val.dtype)
     elif is_object_dtype(val.dtype):
         dtype = lib.infer_dtype(_ensure_object(val))
-        if dtype in ['datetime','datetime64']:
-            return np.array('NaT',dtype=_NS_DTYPE)
-        elif dtype in ['timedelta','timedelta64']:
-            return np.array('NaT',dtype=_TD_DTYPE)
+        if dtype in ['datetime', 'datetime64']:
+            return np.array('NaT', dtype=_NS_DTYPE)
+        elif dtype in ['timedelta', 'timedelta64']:
+            return np.array('NaT', dtype=_TD_DTYPE)
     return np.nan
 
 
@@ -1025,12 +1052,13 @@ def _infer_dtype_from_scalar(val):
 
         dtype = np.object_
 
-    elif isinstance(val, (np.datetime64, datetime)) and getattr(val,'tzinfo',None) is None:
+    elif isinstance(val, (np.datetime64,
+                          datetime)) and getattr(val, 'tzinfo', None) is None:
         val = lib.Timestamp(val).value
         dtype = np.dtype('M8[ns]')
 
     elif isinstance(val, (np.timedelta64, timedelta)):
-        val = tslib.convert_to_timedelta(val,'ns')
+        val = tslib.convert_to_timedelta(val, 'ns')
         dtype = np.dtype('m8[ns]')
 
     elif is_bool(val):
@@ -1252,7 +1280,9 @@ def _possibly_downcast_to_dtype(result, dtype):
     if np.isscalar(result):
         return result
 
-    trans = lambda x: x
+    def trans(x):
+        return x
+
     if isinstance(dtype, compat.string_types):
         if dtype == 'infer':
             inferred_type = lib.infer_dtype(_ensure_object(result.ravel()))
@@ -1269,8 +1299,9 @@ def _possibly_downcast_to_dtype(result, dtype):
             elif inferred_type == 'floating':
                 dtype = 'int64'
                 if issubclass(result.dtype.type, np.number):
-                    trans = lambda x: x.round()
 
+                    def trans(x):
+                        return x.round()
             else:
                 dtype = 'object'
 
@@ -1281,7 +1312,8 @@ def _possibly_downcast_to_dtype(result, dtype):
 
         # don't allow upcasts here (except if empty)
         if dtype.kind == result.dtype.kind:
-            if result.dtype.itemsize <= dtype.itemsize and np.prod(result.shape):
+            if (result.dtype.itemsize <= dtype.itemsize and
+                    np.prod(result.shape)):
                 return result
 
         if issubclass(dtype.type, np.floating):
@@ -1317,7 +1349,7 @@ def _possibly_downcast_to_dtype(result, dtype):
                         return new_result
 
         # a datetimelike
-        elif dtype.kind in ['M','m'] and result.dtype.kind in ['i']:
+        elif dtype.kind in ['M', 'm'] and result.dtype.kind in ['i']:
             try:
                 result = result.astype(dtype)
             except:
@@ -1339,7 +1371,7 @@ def _maybe_convert_string_to_object(values):
     if isinstance(values, string_types):
         values = np.array([values], dtype=object)
     elif (isinstance(values, np.ndarray) and
-        issubclass(values.dtype.type, (np.string_, np.unicode_))):
+          issubclass(values.dtype.type, (np.string_, np.unicode_))):
         values = values.astype(object)
     return values
 
@@ -1386,9 +1418,9 @@ def _fill_zeros(result, x, y, name, fill):
         return result
 
     if name.startswith(('r', '__r')):
-        x,y = y,x
+        x, y = y, x
 
-    is_typed_variable = (hasattr(y, 'dtype') or hasattr(y,'type'))
+    is_typed_variable = (hasattr(y, 'dtype') or hasattr(y, 'type'))
     is_scalar = lib.isscalar(y)
 
     if not is_typed_variable and not is_scalar:
@@ -1433,9 +1465,9 @@ def _consensus_name_attr(objs):
             return None
     return name
 
-
-#----------------------------------------------------------------------
+# ----------------------------------------------------------------------
 # Lots of little utilities
+
 
 def _validate_date_like_dtype(dtype):
     try:
@@ -1443,20 +1475,22 @@ def _validate_date_like_dtype(dtype):
     except ValueError as e:
         raise TypeError('%s' % e)
     if typ != 'generic' and typ != 'ns':
-        raise ValueError('%r is too specific of a frequency, try passing %r'
-                         % (dtype.name, dtype.type.__name__))
+        raise ValueError('%r is too specific of a frequency, try passing %r' %
+                         (dtype.name, dtype.type.__name__))
 
 
 def _invalidate_string_dtypes(dtype_set):
-    """Change string like dtypes to object for ``DataFrame.select_dtypes()``."""
+    """Change string like dtypes to object for
+    ``DataFrame.select_dtypes()``.
+    """
     non_string_dtypes = dtype_set - _string_dtypes
     if non_string_dtypes != dtype_set:
         raise TypeError("string dtypes are not allowed, use 'object' instead")
 
 
 def _get_dtype_from_object(dtype):
-    """Get a numpy dtype.type-style object. This handles the
-       datetime64[ns] and datetime64[ns, TZ] compat
+    """Get a numpy dtype.type-style object. This handles the datetime64[ns]
+    and datetime64[ns, TZ] compat
 
     Notes
     -----
@@ -1523,6 +1557,7 @@ def _maybe_box_datetimelike(value):
 
     return value
 
+
 _values_from_object = lib.values_from_object
 
 
@@ -1569,39 +1604,43 @@ def _possibly_cast_to_datetime(value, dtype, errors='raise'):
         if is_datetime64 or is_datetime64tz or is_timedelta64:
 
             # force the dtype if needed
-            if is_datetime64 and not is_dtype_equal(dtype,_NS_DTYPE):
+            if is_datetime64 and not is_dtype_equal(dtype, _NS_DTYPE):
                 if dtype.name == 'datetime64[ns]':
                     dtype = _NS_DTYPE
                 else:
-                    raise TypeError(
-                        "cannot convert datetimelike to dtype [%s]" % dtype)
+                    raise TypeError("cannot convert datetimelike to "
+                                    "dtype [%s]" % dtype)
             elif is_datetime64tz:
                 pass
-            elif is_timedelta64 and not is_dtype_equal(dtype,_TD_DTYPE):
+            elif is_timedelta64 and not is_dtype_equal(dtype, _TD_DTYPE):
                 if dtype.name == 'timedelta64[ns]':
                     dtype = _TD_DTYPE
                 else:
-                    raise TypeError(
-                        "cannot convert timedeltalike to dtype [%s]" % dtype)
+                    raise TypeError("cannot convert timedeltalike to "
+                                    "dtype [%s]" % dtype)
 
             if np.isscalar(value):
                 if value == tslib.iNaT or isnull(value):
                     value = tslib.iNaT
             else:
-                value = np.array(value,copy=False)
+                value = np.array(value, copy=False)
 
                 # have a scalar array-like (e.g. NaT)
                 if value.ndim == 0:
                     value = tslib.iNaT
 
                 # we have an array of datetime or timedeltas & nulls
-                elif np.prod(value.shape) or not is_dtype_equal(value.dtype, dtype):
+                elif np.prod(value.shape) or not is_dtype_equal(value.dtype,
+                                                                dtype):
                     try:
                         if is_datetime64:
                             value = to_datetime(value, errors=errors)._values
                         elif is_datetime64tz:
-                            # input has to be UTC at this point, so just localize
-                            value = to_datetime(value, errors=errors).tz_localize(dtype.tz)
+                            # input has to be UTC at this point, so just
+                            # localize
+                            value = to_datetime(
+                                value,
+                                errors=errors).tz_localize(dtype.tz)
                         elif is_timedelta64:
                             value = to_timedelta(value, errors=errors)._values
                     except (AttributeError, ValueError):
@@ -1670,7 +1709,7 @@ def _possibly_infer_to_datetimelike(value, convert_dates=False):
     v = value
     if not is_list_like(v):
         v = [v]
-    v = np.array(v,copy=False)
+    v = np.array(v, copy=False)
     shape = v.shape
     if not v.ndim == 1:
         v = v.ravel()
@@ -1684,8 +1723,8 @@ def _possibly_infer_to_datetimelike(value, convert_dates=False):
             except ValueError:
 
                 # we might have a sequence of the same-datetimes with tz's
-                # if so coerce to a DatetimeIndex; if they are not the same, then
-                # these stay as object dtype
+                # if so coerce to a DatetimeIndex; if they are not the same,
+                # then these stay as object dtype
                 try:
                     from pandas import to_datetime
                     return to_datetime(v)
@@ -1708,17 +1747,18 @@ def _possibly_infer_to_datetimelike(value, convert_dates=False):
                 return v
 
         # do a quick inference for perf
-        sample = v[:min(3,len(v))]
+        sample = v[:min(3, len(v))]
         inferred_type = lib.infer_dtype(sample)
 
-        if inferred_type in ['datetime', 'datetime64'] or (convert_dates and inferred_type in ['date']):
+        if (inferred_type in ['datetime', 'datetime64'] or
+                (convert_dates and inferred_type in ['date'])):
             value = _try_datetime(v)
         elif inferred_type in ['timedelta', 'timedelta64']:
             value = _try_timedelta(v)
 
-        # its possible to have nulls intermixed within the datetime or timedelta
-        # these will in general have an inferred_type of 'mixed', so have to try
-        # both datetime and timedelta
+        # It's possible to have nulls intermixed within the datetime or
+        # timedelta.  These will in general have an inferred_type of 'mixed',
+        # so have to try both datetime and timedelta.
 
         # try timedelta first to avoid spurious datetime conversions
         # e.g. '00:00:01' is a timedelta but technically is also a datetime
@@ -1758,7 +1798,7 @@ def is_bool_indexer(key):
 def _default_index(n):
     from pandas.core.index import Int64Index
     values = np.arange(n, dtype=np.int64)
-    result = Int64Index(values,name=None)
+    result = Int64Index(values, name=None)
     result.is_unique = True
     return result
 
@@ -1785,6 +1825,7 @@ def _mut_exclusive(**kwargs):
 def _not_none(*args):
     return (arg for arg in args if arg is not None)
 
+
 def _any_none(*args):
     for arg in args:
         if arg is None:
@@ -1810,10 +1851,8 @@ def _try_sort(iterable):
 def _count_not_none(*args):
     return sum(x is not None for x in args)
 
-#------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # miscellaneous python tools
-
-
 
 
 def adjoin(space, *lists, **kwargs):
@@ -1850,6 +1889,7 @@ def adjoin(space, *lists, **kwargs):
         out_lines.append(_join_unicode(lines))
     return _join_unicode(out_lines, sep='\n')
 
+
 def _justify(texts, max_len, mode='right'):
     """
     Perform ljust, center, rjust against string or list-like
@@ -1860,6 +1900,7 @@ def _justify(texts, max_len, mode='right'):
         return [x.center(max_len) for x in texts]
     else:
         return [x.rjust(max_len) for x in texts]
+
 
 def _join_unicode(lines, sep=''):
     try:
@@ -1874,7 +1915,7 @@ def iterpairs(seq):
     """
     Parameters
     ----------
-    seq: sequence
+    seq : sequence
 
     Returns
     -------
@@ -1933,7 +1974,6 @@ def _long_prod(vals):
 
 
 class groupby(dict):
-
     """
     A simple groupby different from the one in itertools.
 
@@ -1945,6 +1985,7 @@ class groupby(dict):
         for value in seq:
             k = key(value)
             self.setdefault(k, []).append(value)
+
     try:
         __iter__ = dict.iteritems
     except AttributeError:  # pragma: no cover
@@ -1986,8 +2027,7 @@ def intersection(*seqs):
 def _asarray_tuplesafe(values, dtype=None):
     from pandas.core.index import Index
 
-    if not (isinstance(values, (list, tuple))
-            or hasattr(values, '__array__')):
+    if not (isinstance(values, (list, tuple)) or hasattr(values, '__array__')):
         values = list(values)
     elif isinstance(values, Index):
         return values.values
@@ -2036,24 +2076,20 @@ def _maybe_make_list(obj):
         return [obj]
     return obj
 
-########################
-##### TYPE TESTING #####
-########################
+# TYPE TESTING
 
 is_bool = lib.is_bool
 
-
 is_integer = lib.is_integer
 
-
 is_float = lib.is_float
-
 
 is_complex = lib.is_complex
 
 
 def is_string_like(obj):
     return isinstance(obj, (compat.text_type, compat.string_types))
+
 
 def is_iterator(obj):
     # python 3 generators have __next__ instead of next
@@ -2063,6 +2099,7 @@ def is_iterator(obj):
 def is_number(obj):
     return isinstance(obj, (numbers.Number, np.number))
 
+
 def is_period_arraylike(arr):
     """ return if we are period arraylike / PeriodIndex """
     if isinstance(arr, pd.PeriodIndex):
@@ -2070,6 +2107,7 @@ def is_period_arraylike(arr):
     elif isinstance(arr, (np.ndarray, ABCSeries)):
         return arr.dtype == object and lib.infer_dtype(arr) == 'period'
     return getattr(arr, 'inferred_type', None) == 'period'
+
 
 def is_datetime_arraylike(arr):
     """ return if we are datetime arraylike / DatetimeIndex """
@@ -2079,8 +2117,11 @@ def is_datetime_arraylike(arr):
         return arr.dtype == object and lib.infer_dtype(arr) == 'datetime'
     return getattr(arr, 'inferred_type', None) == 'datetime'
 
+
 def is_datetimelike(arr):
-    return arr.dtype in _DATELIKE_DTYPES or isinstance(arr, ABCPeriodIndex) or is_datetimetz(arr)
+    return (arr.dtype in _DATELIKE_DTYPES or isinstance(arr, ABCPeriodIndex) or
+            is_datetimetz(arr))
+
 
 def _coerce_to_dtype(dtype):
     """ coerce a string / np.dtype to a dtype """
@@ -2091,6 +2132,7 @@ def _coerce_to_dtype(dtype):
     else:
         dtype = np.dtype(dtype)
     return dtype
+
 
 def _get_dtype(arr_or_dtype):
     if isinstance(arr_or_dtype, np.dtype):
@@ -2110,6 +2152,7 @@ def _get_dtype(arr_or_dtype):
     if hasattr(arr_or_dtype, 'dtype'):
         arr_or_dtype = arr_or_dtype.dtype
     return np.dtype(arr_or_dtype)
+
 
 def _get_dtype_type(arr_or_dtype):
     if isinstance(arr_or_dtype, np.dtype):
@@ -2131,6 +2174,7 @@ def _get_dtype_type(arr_or_dtype):
     except AttributeError:
         return type(None)
 
+
 def is_dtype_equal(source, target):
     """ return a boolean if the dtypes are equal """
     try:
@@ -2143,6 +2187,7 @@ def is_dtype_equal(source, target):
         # object == category will hit this
         return False
 
+
 def is_any_int_dtype(arr_or_dtype):
     tipo = _get_dtype_type(arr_or_dtype)
     return issubclass(tipo, np.integer)
@@ -2153,14 +2198,17 @@ def is_integer_dtype(arr_or_dtype):
     return (issubclass(tipo, np.integer) and
             not issubclass(tipo, (np.datetime64, np.timedelta64)))
 
+
 def is_int64_dtype(arr_or_dtype):
     tipo = _get_dtype_type(arr_or_dtype)
     return issubclass(tipo, np.int64)
+
 
 def is_int_or_datetime_dtype(arr_or_dtype):
     tipo = _get_dtype_type(arr_or_dtype)
     return (issubclass(tipo, np.integer) or
             issubclass(tipo, (np.datetime64, np.timedelta64)))
+
 
 def is_datetime64_dtype(arr_or_dtype):
     try:
@@ -2169,11 +2217,15 @@ def is_datetime64_dtype(arr_or_dtype):
         return False
     return issubclass(tipo, np.datetime64)
 
+
 def is_datetime64tz_dtype(arr_or_dtype):
     return DatetimeTZDtype.is_dtype(arr_or_dtype)
 
+
 def is_datetime64_any_dtype(arr_or_dtype):
-    return is_datetime64_dtype(arr_or_dtype) or is_datetime64tz_dtype(arr_or_dtype)
+    return (is_datetime64_dtype(arr_or_dtype) or
+            is_datetime64tz_dtype(arr_or_dtype))
+
 
 def is_datetime64_ns_dtype(arr_or_dtype):
     try:
@@ -2181,6 +2233,7 @@ def is_datetime64_ns_dtype(arr_or_dtype):
     except TypeError:
         return False
     return tipo == _NS_DTYPE
+
 
 def is_timedelta64_dtype(arr_or_dtype):
     tipo = _get_dtype_type(arr_or_dtype)
@@ -2215,61 +2268,76 @@ def is_numeric_v_string_like(a, b):
     is_a_scalar_string_like = not is_a_array and is_string_like(a)
     is_b_scalar_string_like = not is_b_array and is_string_like(b)
 
-    return (
-        is_a_numeric_array and is_b_scalar_string_like) or (
-        is_b_numeric_array and is_a_scalar_string_like) or (
-        is_a_numeric_array and is_b_string_array) or (
-        is_b_numeric_array and is_a_string_array
-        )
+    return ((is_a_numeric_array and is_b_scalar_string_like) or
+            (is_b_numeric_array and is_a_scalar_string_like) or
+            (is_a_numeric_array and is_b_string_array) or
+            (is_b_numeric_array and is_a_string_array))
+
 
 def is_datetimelike_v_numeric(a, b):
-    # return if we have an i8 convertible and numeric comparision
-    if not hasattr(a,'dtype'):
+    # return if we have an i8 convertible and numeric comparison
+    if not hasattr(a, 'dtype'):
         a = np.asarray(a)
     if not hasattr(b, 'dtype'):
         b = np.asarray(b)
-    is_numeric = lambda x: is_integer_dtype(x) or is_float_dtype(x)
+
+    def is_numeric(x):
+        return is_integer_dtype(x) or is_float_dtype(x)
+
     is_datetimelike = needs_i8_conversion
-    return (is_datetimelike(a) and is_numeric(b)) or (
-        is_datetimelike(b) and is_numeric(a))
+    return ((is_datetimelike(a) and is_numeric(b)) or
+            (is_datetimelike(b) and is_numeric(a)))
+
 
 def is_datetimelike_v_object(a, b):
-    # return if we have an i8 convertible and object comparision
-    if not hasattr(a,'dtype'):
+    # return if we have an i8 convertible and object comparsion
+    if not hasattr(a, 'dtype'):
         a = np.asarray(a)
     if not hasattr(b, 'dtype'):
         b = np.asarray(b)
-    f = lambda x: is_object_dtype(x)
-    is_object = lambda x: is_integer_dtype(x) or is_float_dtype(x)
-    is_datetimelike = needs_i8_conversion
-    return (is_datetimelike(a) and is_object(b)) or (
-        is_datetimelike(b) and is_object(a))
 
-needs_i8_conversion = lambda arr_or_dtype: is_datetime_or_timedelta_dtype(arr_or_dtype) or \
-                      is_datetime64tz_dtype(arr_or_dtype)
+    def f(x):
+        return is_object_dtype(x)
+
+    def is_object(x):
+        return is_integer_dtype(x) or is_float_dtype(x)
+
+    is_datetimelike = needs_i8_conversion
+    return ((is_datetimelike(a) and is_object(b)) or
+            (is_datetimelike(b) and is_object(a)))
+
+
+def needs_i8_conversion(arr_or_dtype):
+    return (is_datetime_or_timedelta_dtype(arr_or_dtype) or
+            is_datetime64tz_dtype(arr_or_dtype))
+
 
 def i8_boxer(arr_or_dtype):
     """ return the scalar boxer for the dtype """
-    if is_datetime64_dtype(arr_or_dtype) or is_datetime64tz_dtype(arr_or_dtype):
+    if (is_datetime64_dtype(arr_or_dtype) or
+            is_datetime64tz_dtype(arr_or_dtype)):
         return lib.Timestamp
     elif is_timedelta64_dtype(arr_or_dtype):
-        return lambda x: lib.Timedelta(x,unit='ns')
+        return lambda x: lib.Timedelta(x, unit='ns')
     raise ValueError("cannot find a scalar boxer for {0}".format(arr_or_dtype))
+
 
 def is_numeric_dtype(arr_or_dtype):
     tipo = _get_dtype_type(arr_or_dtype)
-    return (issubclass(tipo, (np.number, np.bool_))
-            and not issubclass(tipo, (np.datetime64, np.timedelta64)))
+    return (issubclass(tipo, (np.number, np.bool_)) and
+            not issubclass(tipo, (np.datetime64, np.timedelta64)))
 
 
 def is_string_dtype(arr_or_dtype):
     dtype = _get_dtype(arr_or_dtype)
     return dtype.kind in ('O', 'S', 'U')
 
+
 def is_string_like_dtype(arr_or_dtype):
     # exclude object as its a mixed dtype
     dtype = _get_dtype(arr_or_dtype)
     return dtype.kind in ('S', 'U')
+
 
 def is_float_dtype(arr_or_dtype):
     tipo = _get_dtype_type(arr_or_dtype)
@@ -2289,13 +2357,18 @@ def is_bool_dtype(arr_or_dtype):
         return False
     return issubclass(tipo, np.bool_)
 
+
 def is_sparse(array):
     """ return if we are a sparse array """
     return isinstance(array, (ABCSparseArray, ABCSparseSeries))
 
+
 def is_datetimetz(array):
     """ return if we are a datetime with tz array """
-    return (isinstance(array, ABCDatetimeIndex) and getattr(array,'tz',None) is not None) or is_datetime64tz_dtype(array)
+    return ((isinstance(array, ABCDatetimeIndex) and
+             getattr(array, 'tz', None) is not None) or
+            is_datetime64tz_dtype(array))
+
 
 def is_internal_type(value):
     """
@@ -2310,12 +2383,15 @@ def is_internal_type(value):
         return True
     return False
 
+
 def is_categorical(array):
     """ return if we are a categorical possibility """
     return isinstance(array, ABCCategorical) or is_categorical_dtype(array)
 
+
 def is_categorical_dtype(arr_or_dtype):
     return CategoricalDtype.is_dtype(arr_or_dtype)
+
 
 def is_complex_dtype(arr_or_dtype):
     tipo = _get_dtype_type(arr_or_dtype)
@@ -2341,21 +2417,25 @@ def is_re_compilable(obj):
 
 
 def is_list_like(arg):
-     return (hasattr(arg, '__iter__') and
+    return (hasattr(arg, '__iter__') and
             not isinstance(arg, compat.string_and_binary_types))
+
 
 def is_named_tuple(arg):
     return isinstance(arg, tuple) and hasattr(arg, '_fields')
+
 
 def is_null_slice(obj):
     """ we have a null slice """
     return (isinstance(obj, slice) and obj.start is None and
             obj.stop is None and obj.step is None)
 
+
 def is_full_slice(obj, l):
     """ we have a full length slice """
-    return (isinstance(obj, slice) and obj.start == 0 and
-            obj.stop == l and obj.step is None)
+    return (isinstance(obj, slice) and obj.start == 0 and obj.stop == l and
+            obj.step is None)
+
 
 def is_hashable(arg):
     """Return True if hash(arg) will succeed, False otherwise.
@@ -2414,9 +2494,9 @@ def _get_callable_name(obj):
     # distinguishing between no name and a name of ''
     return None
 
+
 _string_dtypes = frozenset(map(_get_dtype_from_object, (compat.binary_type,
                                                         compat.text_type)))
-
 
 _ensure_float64 = algos.ensure_float64
 _ensure_float32 = algos.ensure_float32
@@ -2456,7 +2536,7 @@ def _astype_nansafe(arr, dtype, copy=True):
 
         # in py3, timedelta64[ns] are int64
         elif ((compat.PY3 and dtype not in [_INT64_DTYPE, _TD_DTYPE]) or
-                (not compat.PY3 and dtype != _TD_DTYPE)):
+              (not compat.PY3 and dtype != _TD_DTYPE)):
 
             # allow frequency conversions
             if dtype.kind == 'm':
@@ -2524,11 +2604,13 @@ def get_dtype_kinds(l):
         typs.add(typ)
     return typs
 
+
 def _concat_compat(to_concat, axis=0):
     """
     provide concatenation of an array of arrays each of which is a single
-    'normalized' dtypes (in that for example, if its object, then it is a non-datetimelike
-    provde a combined dtype for the resulting array the preserves the overall dtype if possible)
+    'normalized' dtypes (in that for example, if it's object, then it is a
+    non-datetimelike and provide a combined dtype for the resulting array that
+    preserves the overall dtype if possible)
 
     Parameters
     ----------
@@ -2547,6 +2629,7 @@ def _concat_compat(to_concat, axis=0):
             return x.shape[axis] > 0
         except Exception:
             return True
+
     nonempty = [x for x in to_concat if is_nonempty(x)]
 
     # If all arrays are empty, there's nothing to convert, just short-cut to
@@ -2572,20 +2655,22 @@ def _concat_compat(to_concat, axis=0):
         return _concat_compat(to_concat, axis=axis)
 
     if not nonempty:
-
-        # we have all empties, but may need to coerce the result dtype to object if we
-        # have non-numeric type operands (numpy would otherwise cast this to float)
+        # we have all empties, but may need to coerce the result dtype to
+        # object if we have non-numeric type operands (numpy would otherwise
+        # cast this to float)
         typs = get_dtype_kinds(to_concat)
         if len(typs) != 1:
 
-            if not len(typs-set(['i','u','f'])) or not len(typs-set(['bool','i','u'])):
+            if (not len(typs - set(['i', 'u', 'f'])) or
+                    not len(typs - set(['bool', 'i', 'u']))):
                 # let numpy coerce
                 pass
             else:
                 # coerce to object
-                to_concat = [ x.astype('object') for x in to_concat ]
+                to_concat = [x.astype('object') for x in to_concat]
 
-    return np.concatenate(to_concat,axis=axis)
+    return np.concatenate(to_concat, axis=axis)
+
 
 def _where_compat(mask, arr1, arr2):
     if arr1.dtype == _NS_DTYPE and arr2.dtype == _NS_DTYPE:
@@ -2600,6 +2685,7 @@ def _where_compat(mask, arr1, arr2):
 
     return np.where(mask, arr1, arr2)
 
+
 def _dict_compat(d):
     """
     Helper function to convert datetimelike-keyed dicts to Timestamp-keyed dict
@@ -2613,20 +2699,23 @@ def _dict_compat(d):
     dict
 
     """
-    return dict((_maybe_box_datetimelike(key), value) for key, value in iteritems(d))
+    return dict((_maybe_box_datetimelike(key), value)
+                for key, value in iteritems(d))
+
 
 def sentinel_factory():
-
     class Sentinel(object):
         pass
 
     return Sentinel()
+
 
 def in_interactive_session():
     """ check if we're running in an interactive shell
 
     returns True if running under python/ipython interactive shell
     """
+
     def check_main():
         import __main__ as main
         return (not hasattr(main, '__file__') or
@@ -2648,8 +2737,7 @@ def in_qtconsole():
         ip = get_ipython()
         front_end = (
             ip.config.get('KernelApp', {}).get('parent_appname', "") or
-            ip.config.get('IPKernelApp', {}).get('parent_appname', "")
-        )
+            ip.config.get('IPKernelApp', {}).get('parent_appname', ""))
         if 'qtconsole' in front_end.lower():
             return True
     except:
@@ -2668,8 +2756,7 @@ def in_ipnb():
         ip = get_ipython()
         front_end = (
             ip.config.get('KernelApp', {}).get('parent_appname', "") or
-            ip.config.get('IPKernelApp', {}).get('parent_appname', "")
-        )
+            ip.config.get('IPKernelApp', {}).get('parent_appname', ""))
         if 'notebook' in front_end.lower():
             return True
     except:
@@ -2738,7 +2825,8 @@ def _pprint_seq(seq, _nest_lvl=0, max_seq_items=None, **kwds):
     s = iter(seq)
     r = []
     for i in range(min(nitems, len(seq))):  # handle sets, no slicing
-        r.append(pprint_thing(next(s), _nest_lvl + 1, max_seq_items=max_seq_items, **kwds))
+        r.append(pprint_thing(
+            next(s), _nest_lvl + 1, max_seq_items=max_seq_items, **kwds))
     body = ", ".join(r)
 
     if nitems < len(seq):
@@ -2765,8 +2853,11 @@ def _pprint_dict(seq, _nest_lvl=0, max_seq_items=None, **kwds):
         nitems = max_seq_items or get_option("max_seq_items") or len(seq)
 
     for k, v in list(seq.items())[:nitems]:
-        pairs.append(pfmt % (pprint_thing(k, _nest_lvl + 1, max_seq_items=max_seq_items, **kwds),
-                             pprint_thing(v, _nest_lvl + 1, max_seq_items=max_seq_items, **kwds)))
+        pairs.append(pfmt %
+                     (pprint_thing(k, _nest_lvl + 1,
+                                   max_seq_items=max_seq_items, **kwds),
+                      pprint_thing(v, _nest_lvl + 1,
+                                   max_seq_items=max_seq_items, **kwds)))
 
     if nitems < len(seq):
         return fmt % (", ".join(pairs) + ", ...")
@@ -2802,6 +2893,7 @@ def pprint_thing(thing, _nest_lvl=0, escape_chars=None, default_escapes=False,
     result - unicode object on py2, str on py3. Always Unicode.
 
     """
+
     def as_escaped_unicode(thing, escape_chars=escape_chars):
         # Unicode is fine, else we try to decode using utf-8 and 'replace'
         # if that's not it either, we have no way of knowing and the user
@@ -2813,10 +2905,7 @@ def pprint_thing(thing, _nest_lvl=0, escape_chars=None, default_escapes=False,
             # either utf-8 or we replace errors
             result = str(thing).decode('utf-8', "replace")
 
-        translate = {'\t': r'\t',
-                     '\n': r'\n',
-                     '\r': r'\r',
-                     }
+        translate = {'\t': r'\t', '\n': r'\n', '\r': r'\r', }
         if isinstance(escape_chars, dict):
             if default_escapes:
                 translate.update(escape_chars)
@@ -2834,11 +2923,13 @@ def pprint_thing(thing, _nest_lvl=0, escape_chars=None, default_escapes=False,
         return compat.text_type(thing)
     elif (isinstance(thing, dict) and
           _nest_lvl < get_option("display.pprint_nest_depth")):
-        result = _pprint_dict(thing, _nest_lvl, quote_strings=True, max_seq_items=max_seq_items)
-    elif is_sequence(thing) and _nest_lvl < \
-            get_option("display.pprint_nest_depth"):
+        result = _pprint_dict(thing, _nest_lvl, quote_strings=True,
+                              max_seq_items=max_seq_items)
+    elif (is_sequence(thing) and
+          _nest_lvl < get_option("display.pprint_nest_depth")):
         result = _pprint_seq(thing, _nest_lvl, escape_chars=escape_chars,
-                             quote_strings=quote_strings, max_seq_items=max_seq_items)
+                             quote_strings=quote_strings,
+                             max_seq_items=max_seq_items)
     elif isinstance(thing, compat.string_types) and quote_strings:
         if compat.PY3:
             fmt = "'%s'"
@@ -2864,8 +2955,8 @@ def console_encode(object, **kwds):
     set in display.encoding. Use this everywhere
     where you output to the console.
     """
-    return pprint_thing_encoded(object,
-                                get_option("display.encoding"))
+    return pprint_thing_encoded(object, get_option("display.encoding"))
+
 
 def _maybe_match_name(a, b):
     a_has = hasattr(a, 'name')
@@ -2880,6 +2971,7 @@ def _maybe_match_name(a, b):
     elif b_has:
         return b.name
     return None
+
 
 def _random_state(state=None):
     """
@@ -2906,4 +2998,5 @@ def _random_state(state=None):
     elif state is None:
         return np.random.RandomState()
     else:
-        raise ValueError("random_state must be an integer, a numpy RandomState, or None")
+        raise ValueError("random_state must be an integer, a numpy "
+                         "RandomState, or None")
