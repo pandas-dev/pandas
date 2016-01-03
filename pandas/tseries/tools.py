@@ -365,11 +365,15 @@ def _to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
 
             if result is None and (format is None or infer_datetime_format):
                 result = tslib.array_to_datetime(
-                            arg, errors=errors,
-                            utc=utc, dayfirst=dayfirst,
-                            yearfirst=yearfirst,
-                            freq=freq, unit=unit,
-                            require_iso8601=require_iso8601)
+                    arg,
+                    errors=errors,
+                    utc=utc,
+                    dayfirst=dayfirst,
+                    yearfirst=yearfirst,
+                    freq=freq,
+                    unit=unit,
+                    require_iso8601=require_iso8601
+                )
 
             if com.is_datetime64_dtype(result) and box:
                 result = DatetimeIndex(result,
@@ -413,9 +417,10 @@ def _attempt_YYYYMMDD(arg, errors):
     def calc(carg):
         # calculate the actual result
         carg = carg.astype(object)
-        return tslib.array_to_datetime(
-                lib.try_parse_year_month_day(carg/10000, carg/100 % 100,
-                                             carg % 100), errors=errors)
+        parsed = lib.try_parse_year_month_day(carg/10000,
+                                              carg/100 % 100,
+                                              carg % 100)
+        return tslib.array_to_datetime(parsed, errors=errors)
 
     def calc_with_mask(carg, mask):
         result = np.empty(carg.shape, dtype='M8[ns]')
@@ -494,10 +499,6 @@ _time_formats = ["%H:%M", "%H%M", "%I:%M%p", "%I%M%p",
                  "%H:%M:%S", "%H%M%S", "%I:%M:%S%p", "%I%M%S%p"]
 
 
-def add_time_format(time_format):
-    _time_formats.append(time_format)
-
-
 def _guess_time_format_for_array(arr):
     # Try to guess the format based on the first non-NaN element
     non_nan_elements = com.notnull(arr).nonzero()[0]
@@ -527,7 +528,7 @@ def to_time(arg, format=None, infer_time_format=False, errors='raise'):
     arg : string in time format, datetime.time, list, tuple, 1-d array,  Series
     format : str, default None
         Format used to convert arg into a time object.  If None, fixed formats
-        are used.  Use tools.add_time_format to add an additional fixed format.
+        are used.
     infer_time_format: bool, default False
         Infer the time format based on the first non-NaN element.  If all
         strings are in the same format, this will speed up conversion.
@@ -580,8 +581,8 @@ def to_time(arg, format=None, infer_time_format=False, errors='raise'):
                                                         time_format).time()
                         if not format_found:
                             # Put the found format in front
-                            formats.insert(0, formats.pop(
-                                              formats.index(time_format)))
+                            fmt = formats.pop(formats.index(time_format))
+                            formats.insert(0, fmt)
                             format_found = True
                         break
                     except (ValueError, TypeError):
@@ -590,8 +591,8 @@ def to_time(arg, format=None, infer_time_format=False, errors='raise'):
                 if time_object is not None:
                     times.append(time_object)
                 elif errors == 'raise':
-                    raise ValueError("Cannot convert arg %s to a time.  Pass "
-                                     "in format or add default format." % arg)
+                    raise ValueError("Cannot convert arg {arg} to "
+                                     "a time".format(arg=arg))
                 elif errors == 'ignore':
                     return arg
                 else:

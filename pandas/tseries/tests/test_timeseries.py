@@ -87,7 +87,7 @@ class TestTimeSeriesDuplicates(tm.TestCase):
         self.assertEqual(idx.nunique(dropna=False), 21)
 
         arr = [Timestamp('2013-06-09 02:42:28') + timedelta(seconds=t) for
-               t in range(20) ] + [NaT]
+               t in range(20)] + [NaT]
         idx = DatetimeIndex(arr * 3)
         self.assertTrue(idx.unique().equals(DatetimeIndex(arr)))
         self.assertEqual(idx.nunique(), 20)
@@ -254,30 +254,30 @@ class TestTimeSeriesDuplicates(tm.TestCase):
         # GH3546 (not including times on the last day)
         idx = date_range(start='2013-05-31 00:00', end='2013-05-31 23:00',
                          freq='H')
-        ts  = Series(lrange(len(idx)), index=idx)
+        ts = Series(lrange(len(idx)), index=idx)
         expected = ts['2013-05']
         assert_series_equal(expected, ts)
 
         idx = date_range(start='2013-05-31 00:00', end='2013-05-31 23:59',
                          freq='S')
-        ts  = Series(lrange(len(idx)), index=idx)
+        ts = Series(lrange(len(idx)), index=idx)
         expected = ts['2013-05']
-        assert_series_equal(expected,ts)
+        assert_series_equal(expected, ts)
 
         idx = [Timestamp('2013-05-31 00:00'),
-               Timestamp(datetime(2013,5,31,23,59,59,999999))]
+               Timestamp(datetime(2013, 5, 31, 23, 59, 59, 999999))]
         ts = Series(lrange(len(idx)), index=idx)
         expected = ts['2013']
-        assert_series_equal(expected,ts)
+        assert_series_equal(expected, ts)
 
         # GH 3925, indexing with a seconds resolution string / datetime object
-        df = DataFrame(randn(5,5),
+        df = DataFrame(randn(5, 5),
                        columns=['open', 'high', 'low', 'close', 'volume'],
                        index=date_range('2012-01-02 18:01:00',
                                         periods=5, tz='US/Central', freq='s'))
         expected = df.loc[[df.index[2]]]
         result = df['2012-01-02 18:01:02']
-        assert_frame_equal(result,expected)
+        assert_frame_equal(result, expected)
 
         # this is a single date, so will raise
         self.assertRaises(KeyError, df.__getitem__, df.index[2],)
