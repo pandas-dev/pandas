@@ -80,7 +80,7 @@ conda info -a || exit 1
 
 # build deps
 REQ="ci/requirements-${TRAVIS_PYTHON_VERSION}${JOB_TAG}.build"
-time conda create -n pandas python=$TRAVIS_PYTHON_VERSION nose || exit 1
+time conda create -n pandas python=$TRAVIS_PYTHON_VERSION nose flake8 || exit 1
 time conda install -n pandas --file=${REQ} || exit 1
 
 source activate pandas
