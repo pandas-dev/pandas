@@ -573,6 +573,7 @@ set(LINK_LIBS
 )
 
 set(PANDAS_SRCS
+  src/pandas/dispatch.cc
   src/pandas/numpy_interop.cc
   src/pandas/status.cc
 )

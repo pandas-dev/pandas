@@ -69,12 +69,12 @@ cdef extern from "pandas/api.h" namespace "pandas":
         TypeEnum_TIMESTAMP " pandas::TypeEnum::TIMESTAMP"
         TypeEnum_TIMESTAMP_TZ " pandas::TypeEnum::TIMESTAMP_TZ"
 
-    Status numpy_type_num_to_pandas(int type_num, TypeEnum* pandas_type)
-
     cdef cppclass DataType:
         TypeEnum type
 
         DataType()
+
+        c_bool Equals(const DataType& other)
         string ToString()
 
     ctypedef shared_ptr[DataType] TypePtr
@@ -82,6 +82,35 @@ cdef extern from "pandas/api.h" namespace "pandas":
     cdef cppclass Int8Type(DataType):
         pass
 
+    cdef cppclass Int16Type(DataType):
+        pass
+
+    cdef cppclass Int32Type(DataType):
+        pass
+
+    cdef cppclass Int64Type(DataType):
+        pass
+
+    cdef cppclass UInt8Type(DataType):
+        pass
+
+    cdef cppclass UInt16Type(DataType):
+        pass
+
+    cdef cppclass UInt32Type(DataType):
+        pass
+
+    cdef cppclass UInt64Type(DataType):
+        pass
+
+    cdef cppclass FloatType(DataType):
+        pass
+
+    cdef cppclass DoubleType(DataType):
+        pass
+
+    cdef cppclass PyObjectType(DataType):
+        pass
 
     cdef cppclass CategoryType(DataType):
         pass
@@ -99,3 +128,6 @@ cdef extern from "pandas/api.h" namespace "pandas":
         pass
 
     ctypedef shared_ptr[cArray] ArrayPtr
+
+    Status numpy_type_num_to_pandas(int type_num, TypeEnum* pandas_type)
+    Status primitive_type_from_enum(TypeEnum tp_enum, DataType** out)

@@ -12,18 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef PANDAS_API_H
-#define PANDAS_API_H
+#ifndef PANDAS_DISPATCH_H
+#define PANDAS_DISPATCH_H
 
-#include "pandas/array.h"
-#include "pandas/dispatch.h"
-#include "pandas/numpy_interop.h"
 #include "pandas/status.h"
 #include "pandas/types.h"
 
-#include "pandas/types/boolean.h"
-#include "pandas/types/category.h"
-#include "pandas/types/floating.h"
-#include "pandas/types/integer.h"
+namespace pandas {
 
-#endif // PANDAS_API_H
+Status primitive_type_from_enum(TypeEnum tp_enum, DataType** out);
+
+}
+
+#endif // PANDAS_DISPATCH_H

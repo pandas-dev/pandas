@@ -68,6 +68,10 @@ struct DataType {
       : type(type) {}
 
   virtual std::string ToString() const = 0;
+
+  virtual bool Equals(const DataType& other) {
+    return type == other.type;
+  }
 };
 
 
@@ -93,7 +97,7 @@ struct TimestampType : public DataType {
     return "timestamp";
   }
 
-  virtual std::string ToString() {
+  virtual std::string ToString() const {
     return name();
   }
 };
@@ -111,7 +115,7 @@ struct PyObjectType : public DataType {
     return "object";
   }
 
-  virtual std::string ToString() {
+  virtual std::string ToString() const {
      return name();
   }
 };

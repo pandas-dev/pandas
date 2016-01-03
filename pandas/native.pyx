@@ -10,6 +10,8 @@ import numpy as np
 from pandas.native cimport shared_ptr, string
 cimport pandas.native as lp
 
+from cython.operator cimport dereference as deref
+
 cnp.import_array()
 
 
@@ -117,17 +119,16 @@ cdef class PandasType:
         return 'PandasType({0})'.format(self.type.get().ToString())
 
     def equals(PandasType self, PandasType other):
-        pass
+        return self.type.get().Equals(deref(other.type.get()))
 
 
 def primitive_type(TypeEnum tp_enum):
-    cdef lp.TypePtr sp_type
+    cdef:
+        lp.TypePtr sp_type
+        lp.DataType* type
 
-    if tp_enum == lp.TypeEnum_INT8:
-        sp_type.reset(new lp.Int8Type())
-    else:
-        raise NotImplementedError(tp_enum)
-
+    check_status(lp.primitive_type_from_enum(tp_enum, &type))
+    sp_type.reset(type)
     return wrap_type(sp_type)
 
 
@@ -183,7 +184,7 @@ cdef Array wrap_array(const lp.ArrayPtr& type):
     cdef:
         Array result
 
-    if type.get().type_enum() == lp.CATEGORY:
+    if type.get().type_enum() == lp.TypeEnum_CATEGORY:
         result = CategoryArray()
     else:
         result = Array()
@@ -196,7 +197,7 @@ cdef PandasType wrap_type(const lp.TypePtr& sp_type):
         lp.DataType* type = sp_type.get()
         PandasType result
 
-    if type.type == lp.CATEGORY:
+    if type.type == lp.TypeEnum_CATEGORY:
         result = Category()
     else:
         result = PandasType()
