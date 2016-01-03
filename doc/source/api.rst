@@ -345,6 +345,7 @@ Computations / Descriptive Stats
    Series.var
    Series.unique
    Series.nunique
+   Series.is_unique
    Series.value_counts
 
 Reindexing / Selection / Label manipulation
