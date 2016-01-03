@@ -127,33 +127,37 @@ class TestTimestamp(tm.TestCase):
                 self.assertEqual(result.value, expected_utc)
                 self.assertEqual(tslib.pydt_to_i8(result), expected_utc)
 
-        # This should be 2013-11-01 05:00 in UTC -> converted to Chicago tz
+        # This should be 2013-11-01 05:00 in UTC
+        # converted to Chicago tz
         result = Timestamp('2013-11-01 00:00:00-0500', tz='America/Chicago')
         self.assertEqual(result.value, Timestamp('2013-11-01 05:00').value)
-        expected_repr = "Timestamp('2013-11-01 00:00:00-0500', tz='America/Chicago')"
-        self.assertEqual(repr(result), expected_repr)
+        expected = "Timestamp('2013-11-01 00:00:00-0500', tz='America/Chicago')"  # noqa
+        self.assertEqual(repr(result), expected)
         self.assertEqual(result, eval(repr(result)))
 
-        # This should be 2013-11-01 05:00 in UTC -> converted to Tokyo tz (+09:00)
+        # This should be 2013-11-01 05:00 in UTC
+        # converted to Tokyo tz (+09:00)
         result = Timestamp('2013-11-01 00:00:00-0500', tz='Asia/Tokyo')
         self.assertEqual(result.value, Timestamp('2013-11-01 05:00').value)
-        expected_repr = "Timestamp('2013-11-01 14:00:00+0900', tz='Asia/Tokyo')"
-        self.assertEqual(repr(result), expected_repr)
+        expected = "Timestamp('2013-11-01 14:00:00+0900', tz='Asia/Tokyo')"
+        self.assertEqual(repr(result), expected)
         self.assertEqual(result, eval(repr(result)))
-        
+
         # GH11708
-        # This should be 2015-11-18 10:00 in UTC -> converted to Asia/Katmandu tz
+        # This should be 2015-11-18 10:00 in UTC
+        # converted to Asia/Katmandu
         result = Timestamp("2015-11-18 15:45:00+05:45", tz="Asia/Katmandu")
         self.assertEqual(result.value, Timestamp("2015-11-18 10:00").value)
-        expected_repr = "Timestamp('2015-11-18 15:45:00+0545', tz='Asia/Katmandu')"
-        self.assertEqual(repr(result), expected_repr)
+        expected = "Timestamp('2015-11-18 15:45:00+0545', tz='Asia/Katmandu')"
+        self.assertEqual(repr(result), expected)
         self.assertEqual(result, eval(repr(result)))
-        
-        # This should be 2015-11-18 10:00 in UTC -> converted to Asia/Kolkata tz
+
+        # This should be 2015-11-18 10:00 in UTC
+        # converted to Asia/Kolkata
         result = Timestamp("2015-11-18 15:30:00+05:30", tz="Asia/Kolkata")
         self.assertEqual(result.value, Timestamp("2015-11-18 10:00").value)
-        expected_repr = "Timestamp('2015-11-18 15:30:00+0530', tz='Asia/Kolkata')"
-        self.assertEqual(repr(result), expected_repr)
+        expected = "Timestamp('2015-11-18 15:30:00+0530', tz='Asia/Kolkata')"
+        self.assertEqual(repr(result), expected)
         self.assertEqual(result, eval(repr(result)))
 
     def test_constructor_invalid(self):
@@ -629,8 +633,6 @@ class TestDatetimeParsingWrappers(tm.TestCase):
         new_string = "14.15"
         self.assertRaises(ValueError, tools.to_time, new_string)
         self.assertEqual(tools.to_time(new_string, format="%H.%M"), expected)
-        tools.add_time_format("%H.%M")
-        self.assertEqual(tools.to_time(new_string), expected)
 
         arg = ["14:15", "20:20"]
         expected_arr = [datetime.time(14, 15), datetime.time(20, 20)]
@@ -681,15 +683,17 @@ class TestDatetimeParsingWrappers(tm.TestCase):
             self.assertEqual(result, exp)
 
     def test_parsers_timezone_minute_offsets_roundtrip(self):
-        #GH11708
+        # GH11708
         base = to_datetime("2013-01-01 00:00:00")
-        dt_strings = [('2013-01-01 05:45+0545', 
-                       "Asia/Katmandu",
-                       "Timestamp('2013-01-01 05:45:00+0545', tz='Asia/Katmandu')"),
-                      ('2013-01-01 05:30+0530', 
-                       "Asia/Kolkata",
-                       "Timestamp('2013-01-01 05:30:00+0530', tz='Asia/Kolkata')")]
-        
+        dt_strings = [
+            ('2013-01-01 05:45+0545',
+             "Asia/Katmandu",
+             "Timestamp('2013-01-01 05:45:00+0545', tz='Asia/Katmandu')"),
+            ('2013-01-01 05:30+0530',
+             "Asia/Kolkata",
+             "Timestamp('2013-01-01 05:30:00+0530', tz='Asia/Kolkata')")
+        ]
+
         for dt_string, tz, dt_string_repr in dt_strings:
             dt_time = to_datetime(dt_string)
             self.assertEqual(base, dt_time)
