@@ -107,7 +107,9 @@ Other enhancements
 - ``read_excel`` now supports s3 urls of the format ``s3://bucketname/filename`` (:issue:`11447`)
 - A simple version of ``Panel.round()`` is now implemented (:issue:`11763`)
 - For Python 3.x, ``round(DataFrame)``, ``round(Series)``, ``round(Panel)`` will work (:issue:`11763`)
-- ``Dataframe`` has gained a ``_repr_latex_`` method in order to allow for automatic conversion to latex in a ipython/jupyter notebook using nbconvert. Options ``display.latex.escape`` and ``display.latex.longtable`` have been added to the configuration and are used automatically by the ``to_latex`` method.(:issue:`11778`)
+- ``DataFrame`` has gained a ``_repr_latex_`` method in order to allow for automatic conversion to latex in a ipython/jupyter notebook using nbconvert. Options ``display.latex.escape`` and ``display.latex.longtable`` have been added to the configuration and are used automatically by the ``to_latex`` method.(:issue:`11778`)
+- ``sys.getsizeof(obj)`` returns the memory usage of a pandas object, including the
+  values it contains (:issue:`11597`)
 
 .. _whatsnew_0180.enhancements.rounding:
 
@@ -266,6 +268,7 @@ other anchored offsets like ``MonthBegin`` and ``YearBegin``.
 Other API Changes
 ^^^^^^^^^^^^^^^^^
 
+- ``.memory_usage`` now includes values in the index, as does memory_usage in ``.info`` (:issue:`11597`)
 
 
 
