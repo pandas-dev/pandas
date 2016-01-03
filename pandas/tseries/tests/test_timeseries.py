@@ -5,29 +5,27 @@ import sys
 import operator
 import warnings
 import nose
-
 import numpy as np
-randn = np.random.randn
-
+import pandas.tseries.frequencies as frequencies
+import pandas.lib as lib
+import pandas.tslib as tslib
+import pandas.index as _index
+import pandas as pd
 from pandas import (Index, Series, DataFrame,
                     isnull, date_range, Timestamp, Period, DatetimeIndex,
                     Int64Index, to_datetime, bdate_range, Float64Index,
-                    TimedeltaIndex, NaT, timedelta_range, Timedelta)
+                    NaT, timedelta_range, Timedelta)
 
 import pandas.core.datetools as datetools
 import pandas.tseries.offsets as offsets
 import pandas.tseries.tools as tools
-import pandas.tseries.frequencies as frequencies
-import pandas as pd
 
-from pandas.util.testing import assert_series_equal, assert_almost_equal
+
+from pandas.util.testing import assert_series_equal, assert_almost_equal,\
+    _skip_if_has_locale
 import pandas.util.testing as tm
 
-from pandas.tslib import NaT, iNaT
-import pandas.lib as lib
-import pandas.tslib as tslib
-
-import pandas.index as _index
+from pandas.tslib import iNaT
 
 from pandas.compat import range, long, StringIO, lrange, lmap, zip, product
 from numpy.random import rand
@@ -40,12 +38,7 @@ from pandas import _np_version_under1p8
 
 from numpy.testing.decorators import slow
 
-
-def _skip_if_has_locale():
-    import locale
-    lang, _ = locale.getlocale()
-    if lang is not None:
-        raise nose.SkipTest("Specific locale is set {0}".format(lang))
+randn = np.random.randn
 
 
 class TestTimeSeriesDuplicates(tm.TestCase):
@@ -93,7 +86,8 @@ class TestTimeSeriesDuplicates(tm.TestCase):
         self.assertEqual(idx.nunique(), 20)
         self.assertEqual(idx.nunique(dropna=False), 21)
 
-        arr = [ Timestamp('2013-06-09 02:42:28') + timedelta(seconds=t) for t in range(20) ] + [NaT]
+        arr = [Timestamp('2013-06-09 02:42:28') + timedelta(seconds=t) for
+               t in range(20) ] + [NaT]
         idx = DatetimeIndex(arr * 3)
         self.assertTrue(idx.unique().equals(DatetimeIndex(arr)))
         self.assertEqual(idx.nunique(), 20)
@@ -258,23 +252,29 @@ class TestTimeSeriesDuplicates(tm.TestCase):
         assert_series_equal(expected, result)
 
         # GH3546 (not including times on the last day)
-        idx = date_range(start='2013-05-31 00:00', end='2013-05-31 23:00', freq='H')
+        idx = date_range(start='2013-05-31 00:00', end='2013-05-31 23:00',
+                         freq='H')
         ts  = Series(lrange(len(idx)), index=idx)
         expected = ts['2013-05']
         assert_series_equal(expected, ts)
 
-        idx = date_range(start='2013-05-31 00:00', end='2013-05-31 23:59', freq='S')
+        idx = date_range(start='2013-05-31 00:00', end='2013-05-31 23:59',
+                         freq='S')
         ts  = Series(lrange(len(idx)), index=idx)
         expected = ts['2013-05']
         assert_series_equal(expected,ts)
 
-        idx = [ Timestamp('2013-05-31 00:00'), Timestamp(datetime(2013,5,31,23,59,59,999999))]
-        ts  = Series(lrange(len(idx)), index=idx)
+        idx = [Timestamp('2013-05-31 00:00'),
+               Timestamp(datetime(2013,5,31,23,59,59,999999))]
+        ts = Series(lrange(len(idx)), index=idx)
         expected = ts['2013']
         assert_series_equal(expected,ts)
 
         # GH 3925, indexing with a seconds resolution string / datetime object
-        df = DataFrame(randn(5,5),columns=['open','high','low','close','volume'],index=date_range('2012-01-02 18:01:00',periods=5,tz='US/Central',freq='s'))
+        df = DataFrame(randn(5,5),
+                       columns=['open', 'high', 'low', 'close', 'volume'],
+                       index=date_range('2012-01-02 18:01:00',
+                                        periods=5, tz='US/Central', freq='s'))
         expected = df.loc[[df.index[2]]]
         result = df['2012-01-02 18:01:02']
         assert_frame_equal(result,expected)
@@ -283,14 +283,16 @@ class TestTimeSeriesDuplicates(tm.TestCase):
         self.assertRaises(KeyError, df.__getitem__, df.index[2],)
 
     def test_recreate_from_data(self):
-        freqs = ['M', 'Q', 'A', 'D', 'B', 'BH', 'T', 'S', 'L', 'U', 'H', 'N', 'C']
+        freqs = ['M', 'Q', 'A', 'D', 'B', 'BH', 'T',
+                 'S', 'L', 'U', 'H', 'N', 'C']
 
         for f in freqs:
             org = DatetimeIndex(start='2001/02/01 09:00', freq=f, periods=1)
             idx = DatetimeIndex(org, freq=f)
             self.assertTrue(idx.equals(org))
 
-            org = DatetimeIndex(start='2001/02/01 09:00', freq=f, tz='US/Pacific', periods=1)
+            org = DatetimeIndex(start='2001/02/01 09:00', freq=f,
+                                tz='US/Pacific', periods=1)
             idx = DatetimeIndex(org, freq=f, tz='US/Pacific')
             self.assertTrue(idx.equals(org))
 
@@ -459,7 +461,8 @@ class TestTimeSeries(tm.TestCase):
                 self.assertEqual(x.tzinfo, stamp.tzinfo)
 
         rng = date_range('20090415', '20090519')
-        rng_eastern = date_range('20090415', '20090519', tz=pytz.timezone('US/Eastern'))
+        rng_eastern = date_range('20090415', '20090519',
+                                 tz=pytz.timezone('US/Eastern'))
         rng_utc = date_range('20090415', '20090519', tz=pytz.utc)
 
         _check_rng(rng)
@@ -479,7 +482,8 @@ class TestTimeSeries(tm.TestCase):
                 self.assertEqual(x.tzinfo, stamp.tzinfo)
 
         rng = date_range('20090415', '20090519')
-        rng_eastern = date_range('20090415', '20090519', tz='dateutil/US/Eastern')
+        rng_eastern = date_range('20090415', '20090519',
+                                 tz='dateutil/US/Eastern')
         rng_utc = date_range('20090415', '20090519', tz=dateutil.tz.tzutc())
 
         _check_rng(rng)
@@ -1523,6 +1527,38 @@ class TestTimeSeries(tm.TestCase):
                     self.assertTrue((t <= etime) or (t >= stime))
                 else:
                     self.assertTrue((t < etime) or (t >= stime))
+
+    def test_between_time_types(self):
+        # GH11818
+        rng = date_range('1/1/2000', '1/5/2000', freq='5min')
+        self.assertRaises(ValueError, rng.indexer_between_time,
+                          datetime(2010, 1, 2, 1), datetime(2010, 1, 2, 5))
+
+        frame = DataFrame({'A': 0}, index=rng)
+        self.assertRaises(ValueError, frame.between_time,
+                          datetime(2010, 1, 2, 1), datetime(2010, 1, 2, 5))
+
+        series = Series(0, index=rng)
+        self.assertRaises(ValueError, series.between_time,
+                          datetime(2010, 1, 2, 1), datetime(2010, 1, 2, 5))
+
+    def test_between_time_formats(self):
+        # GH11818
+        _skip_if_has_locale()
+
+        rng = date_range('1/1/2000', '1/5/2000', freq='5min')
+        ts = DataFrame(np.random.randn(len(rng), 2), index=rng)
+
+        strings = [("2:00", "2:30"), ("0200", "0230"),
+                   ("2:00am", "2:30am"), ("0200am", "0230am"),
+                   ("2:00:00", "2:30:00"), ("020000", "023000"),
+                   ("2:00:00am", "2:30:00am"), ("020000am", "023000am")]
+        expected_length = 28
+
+        for time_string in strings:
+            self.assertEqual(len(ts.between_time(*time_string)),
+                             expected_length,
+                             "%s - %s" % time_string)
 
     def test_dti_constructor_preserve_dti_freq(self):
         rng = date_range('1/1/2000', '1/2/2000', freq='5min')
