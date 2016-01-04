@@ -4,6 +4,7 @@
 # pandas_util
 
 set(UTIL_SRCS
+  bitarray.cc
 )
 
 set(UTIL_LIBS
@@ -41,3 +42,5 @@ target_link_libraries(pandas_test_main
   pandas_test_util
   dl
   rt)
+
+ADD_PANDAS_TEST(bitarray-test)

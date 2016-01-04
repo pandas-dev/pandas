@@ -87,8 +87,8 @@ class Status {
   static Status OK() { return Status(); }
 
   // Return error status of an appropriate type.
-  static Status OutOfMemory(const std::string& msg, int16_t posix_code = -1) {
-    return Status(StatusCode::OutOfMemory, msg, posix_code);
+  static Status OutOfMemory(const std::string& msg) {
+    return Status(StatusCode::OutOfMemory, msg, -1);
   }
 
   static Status KeyError(const std::string& msg) {

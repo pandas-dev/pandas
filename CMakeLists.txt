@@ -522,7 +522,17 @@ include_directories(SYSTEM
 ############################################################
 # Linker setup
 ############################################################
-set(PANDAS_MIN_TEST_LIBS pandas_test_main pandas_test_util ${PANDAS_BASE_LIBS})
+
+# Unit tests need to link to libpython. NumPy can be linked by importing the
+# numpy module
+ADD_THIRDPARTY_LIB(python
+  SHARED_LIB "${PYTHON_LIBRARIES}")
+
+set(PANDAS_MIN_TEST_LIBS
+  pandas_test_main
+  pandas
+  python
+  ${PANDAS_BASE_LIBS})
 set(PANDAS_TEST_LINK_LIBS ${PANDAS_MIN_TEST_LIBS})
 
 ############################################################
