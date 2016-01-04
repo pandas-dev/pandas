@@ -34,6 +34,10 @@ class TestLibPandas(tm.TestCase):
             assert result.equals(expected)
             assert name in repr(result)
 
+    def test_isnull_natype_interop(self):
+        assert lib.isnull(lib.NA)
+        assert not lib.isnull(None)
+
     def test_libpandas_decrefs(self):
         arr = np.array([1, 2, 3, 4, 5])
         before = sys.getrefcount(arr)
@@ -45,11 +49,14 @@ class TestLibPandas(tm.TestCase):
         gc.collect()
         assert sys.getrefcount(arr) == before
 
-    def test_convert_integer_arrays(self):
-        arr = np.array([1, 2, 3, 4, 5])
-        result = lib.to_array(arr)
+    def test_convert_primitive_numpy_arrays_basics(self):
+        INT_TYPES = ['i1', 'i2', 'i4', 'i8', 'u1', 'u2', 'u4', 'u8',
+                     'b1', 'f4', 'f8']
 
-        ex_type = lib.primitive_type(lib.INT8)
+        for dt in INT_TYPES:
+            arr = np.array([1, 2, 3, 4, 5], dtype=dt)
+            result = lib.to_array(arr)
+            ex_type = lib.convert_numpy_dtype(np.dtype(dt))
 
-        assert len(result) == 5
-        # assert result.dtype.equals(ex_type)
+            assert len(result) == 5
+            assert result.dtype.equals(ex_type)

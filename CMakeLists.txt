@@ -590,6 +590,7 @@ set(PANDAS_SRCS
   src/pandas/array.cc
   src/pandas/dispatch.cc
   src/pandas/numpy_interop.cc
+  src/pandas/pytypes.cc
   src/pandas/status.cc
 )
 

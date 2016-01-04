@@ -138,3 +138,8 @@ cdef extern from "pandas/api.h" namespace "pandas":
     Status array_from_masked_numpy(PyObject* arr, cArray** out)
 
     void init_numpy()
+
+
+cdef extern from "pandas/pytypes.h" namespace "pandas::py":
+    void init_natype(object type_obj)
+    c_bool is_na(object type_obj)

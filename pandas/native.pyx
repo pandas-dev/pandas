@@ -76,6 +76,10 @@ cdef class NAType(Scalar):
         return 'NA'
 
 NA = NAType()
+lp.init_natype(NAType)
+
+def isnull(obj):
+    return lp.is_na(obj)
 
 
 cdef dict _primitive_type_aliases = {
@@ -122,7 +126,12 @@ cdef class PandasType:
         self.type = type
 
     def __repr__(self):
-        return 'PandasType({0})'.format(self.type.get().ToString())
+        return 'PandasType({0})'.format(self.name)
+
+    property name:
+
+        def __get__(self):
+            return self.type.get().ToString()
 
     def equals(PandasType self, PandasType other):
         return self.type.get().Equals(deref(other.type.get()))
