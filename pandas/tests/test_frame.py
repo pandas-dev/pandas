@@ -2583,9 +2583,12 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         result = df.set_index(['a', 'x'])
         repr(result)
 
-    def test_set_index_with_col_label_index(self):
-        # GH10797: It should be possible to use an index of column labels as the
-        # `keys` parameter in set_index().
+    def test_set_index_with_index(self):
+        # GH10797: It should be possible to use a slice of the column index as
+        # the `keys` parameter in set_index().
+
+        # Test that setting the first two columns as the index can be done
+        # either with a list of column labels or a slice of the column index.
         df = DataFrame({'col1': [1, 2, 3, 4, 5, 6],
                         'col2': ['a', 'b', 'c', 'a', 'b', 'c'],
                         'col3': [0.0, 0.0, 1.0, 1.0, 2.0, 2.0]})
@@ -2599,6 +2602,22 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         assert_frame_equal(expected_df, list_df)
         index_df = df.set_index(df.columns[1:])
         assert_frame_equal(expected_df, index_df)
+
+        # Test that passing the entire index results in an empty dataframe (i.e.
+        # all columns become part of the index).
+        empty_df = df.set_index(df.columns)
+        assert_equal(len(empty_df.columns), 0)
+        assert_equal(empty_df.index.nlevels, 3)
+
+        # Test that an index that is created independently of the column index
+        # is used as a new index - not as a set of column labels.
+        new_index = Index(data=['col1', 'col1', 'col2', 'col2', 'col3', 'col3'])
+        expected_df2 = DataFrame({'col1': [1, 2, 3, 4, 5, 6],
+                        'col2': ['a', 'b', 'c', 'a', 'b', 'c'],
+                        'col3': [0.0, 0.0, 1.0, 1.0, 2.0, 2.0]},
+                                index=new_index)
+        col_name_index_df = df.set_index(new_index)
+        assert_frame_equal(expected_df2, col_name_index_df)
 
     def test_set_columns(self):
         cols = Index(np.arange(len(self.mixed_frame.columns)))
