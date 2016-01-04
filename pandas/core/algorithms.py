@@ -12,6 +12,7 @@ import pandas.algos as algos
 import pandas.hashtable as htable
 from pandas.compat import string_types
 
+
 def match(to_match, values, na_sentinel=-1):
     """
     Compute locations of to_match into values
@@ -44,7 +45,8 @@ def match(to_match, values, na_sentinel=-1):
         # replace but return a numpy array
         # use a Series because it handles dtype conversions properly
         from pandas.core.series import Series
-        result = Series(result.ravel()).replace(-1,na_sentinel).values.reshape(result.shape)
+        result = Series(result.ravel()).replace(-1, na_sentinel).values.\
+            reshape(result.shape)
 
     return result
 
@@ -63,6 +65,7 @@ def unique(values):
     uniques
     """
     values = com._asarray_tuplesafe(values)
+
     f = lambda htype, caster: _unique_generic(values, htype, caster)
     return _hashtable_algo(f, values.dtype)
 
@@ -95,9 +98,9 @@ def isin(comps, values):
     # work-around for numpy < 1.8 and comparisions on py3
     # faster for larger cases to use np.in1d
     if (_np_version_under1p8 and compat.PY3) or len(comps) > 1000000:
-        f = lambda x, y: np.in1d(x,np.asarray(list(y)))
+        f = lambda x, y: np.in1d(x, np.asarray(list(y)))
     else:
-        f = lambda x, y: lib.ismember_int64(x,set(y))
+        f = lambda x, y: lib.ismember_int64(x, set(y))
 
     # may need i8 conversion for proper membership testing
     if com.is_datetime64_dtype(comps):
@@ -114,6 +117,7 @@ def isin(comps, values):
         f = lambda x, y: lib.ismember(x, set(values))
 
     return f(comps, values)
+
 
 def _hashtable_algo(f, dtype, return_dtype=None):
     """
@@ -148,8 +152,6 @@ def _unique_generic(values, table_type, type_caster):
     return type_caster(uniques)
 
 
-
-
 def factorize(values, sort=False, order=None, na_sentinel=-1, size_hint=None):
     """
     Encode input values as an enumerated type or categorical variable
@@ -169,12 +171,15 @@ def factorize(values, sort=False, order=None, na_sentinel=-1, size_hint=None):
     -------
     labels : the indexer to the original array
     uniques : ndarray (1-d) or Index
-        the unique values. Index is returned when passed values is Index or Series
+        the unique values. Index is returned when passed values is Index or
+        Series
 
-    note: an array of Periods will ignore sort as it returns an always sorted PeriodIndex
+    note: an array of Periods will ignore sort as it returns an always sorted
+    PeriodIndex
     """
     if order is not None:
-        msg = "order is deprecated. See https://github.com/pydata/pandas/issues/6926"
+        msg = "order is deprecated. See " \
+              "https://github.com/pydata/pandas/issues/6926"
         warn(msg, FutureWarning, stacklevel=2)
 
     from pandas.core.index import Index
@@ -203,10 +208,12 @@ def factorize(values, sort=False, order=None, na_sentinel=-1, size_hint=None):
 
             # order ints before strings
             ordered = np.concatenate([
-                np.sort(np.array([ e for i, e in enumerate(uniques) if f(e) ],dtype=object)) for f in [ lambda x: not isinstance(x,string_types),
-                                                                                                        lambda x: isinstance(x,string_types) ]
-                ])
-            sorter = com._ensure_platform_int(t.lookup(com._ensure_object(ordered)))
+                np.sort(np.array([e for i, e in enumerate(uniques) if f(e)],
+                                 dtype=object)) for f in
+                [lambda x: not isinstance(x, string_types),
+                 lambda x: isinstance(x, string_types)]])
+            sorter = com._ensure_platform_int(t.lookup(
+                com._ensure_object(ordered)))
 
         reverse_indexer = np.empty(len(sorter), dtype=np.int_)
         reverse_indexer.put(sorter, np.arange(len(sorter)))
@@ -276,7 +283,8 @@ def value_counts(values, sort=True, ascending=False, normalize=False,
         is_period = com.is_period_arraylike(values)
         is_datetimetz = com.is_datetimetz(values)
 
-        if com.is_datetime_or_timedelta_dtype(dtype) or is_period or is_datetimetz:
+        if com.is_datetime_or_timedelta_dtype(dtype) or is_period or \
+                is_datetimetz:
 
             if is_period:
                 values = PeriodIndex(values)
@@ -300,7 +308,6 @@ def value_counts(values, sort=True, ascending=False, normalize=False,
             else:
                 keys = keys.astype(dtype)
 
-
         elif com.is_integer_dtype(dtype):
             values = com._ensure_int64(values)
             keys, counts = htable.value_count_scalar64(values, dropna)
@@ -322,7 +329,8 @@ def value_counts(values, sort=True, ascending=False, normalize=False,
 
         if bins is not None:
             # TODO: This next line should be more efficient
-            result = result.reindex(np.arange(len(cat.categories)), fill_value=0)
+            result = result.reindex(np.arange(len(cat.categories)),
+                                    fill_value=0)
             result.index = bins[:-1]
 
     if sort:
@@ -525,12 +533,11 @@ def _finalize_nsmallest(arr, kth_val, n, keep, narr):
 
 
 def nsmallest(arr, n, keep='first'):
-    '''
+    """
     Find the indices of the n smallest values of a numpy array.
 
     Note: Fails silently with NaN.
-
-    '''
+    """
     if keep == 'last':
         arr = arr[::-1]
 
