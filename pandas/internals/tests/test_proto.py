@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
 
+import gc
+import sys
+
 import numpy as np
 
 import pandas.util.testing as tm
@@ -30,6 +33,17 @@ class TestLibPandas(tm.TestCase):
 
             assert result.equals(expected)
             assert name in repr(result)
+
+    def test_libpandas_decrefs(self):
+        arr = np.array([1, 2, 3, 4, 5])
+        before = sys.getrefcount(arr)
+
+        result = lib.to_array(arr)
+        assert sys.getrefcount(arr) == (before + 1)
+
+        result = None  # noqa
+        gc.collect()
+        assert sys.getrefcount(arr) == before
 
     def test_convert_integer_arrays(self):
         arr = np.array([1, 2, 3, 4, 5])
