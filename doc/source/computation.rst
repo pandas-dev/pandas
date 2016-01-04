@@ -282,7 +282,8 @@ sugar for applying the moving window operator to all of the DataFrame's columns:
 
 .. ipython:: python
 
-   df = pd.DataFrame(np.random.randn(1000, 4), index=s.index,
+   df = pd.DataFrame(np.random.randn(1000, 4),
+                     index=pd.date_range('1/1/2000', periods=1000),
                      columns=['A', 'B', 'C', 'D'])
    df = df.cumsum()
 

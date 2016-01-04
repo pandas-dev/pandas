@@ -279,7 +279,7 @@ Other API Changes
 ^^^^^^^^^^^^^^^^^
 
 - ``DataFrame.between_time`` and ``Series.between_time`` now only parse a fixed set of time strings. Parsing of
-   date strings is no longer supported and raises a ``ValueError``. (:issue:`11818`)
+date strings is no longer supported and raises a ``ValueError``. (:issue:`11818`)
 
   .. ipython:: python
 
@@ -320,7 +320,8 @@ Deprecations
      In [1]: s = Series(range(3))
 
      In [2]: pd.rolling_mean(s,window=2,min_periods=1)
-             FutureWarning: pd.rolling_mean is deprecated for Series and will be removed in a future version, replace with
+             FutureWarning: pd.rolling_mean is deprecated for Series and
+                  will be removed in a future version, replace with
                   Series.rolling(min_periods=1,window=2,center=False).mean()
      Out[2]:
              0    0.0
@@ -329,7 +330,8 @@ Deprecations
              dtype: float64
 
      In [3]: pd.rolling_cov(s, s, window=2)
-             FutureWarning: pd.rolling_cov is deprecated for Series and will be removed in a future version, replace with
+             FutureWarning: pd.rolling_cov is deprecated for Series and
+                  will be removed in a future version, replace with
                   Series.rolling(window=2).cov(other=<Series>)
      Out[3]:
              0    NaN
@@ -405,7 +407,7 @@ Bug Fixes
 
 
 
-- Bug in subclasses of `DataFrame` where `AttributeError` did not propagate (:issue:`11808`)
+- Bug in subclasses of ``DataFrame`` where ``AttributeError`` did not propagate (:issue:`11808`)
 - Bug groupby on tz-aware data where selection not returning ``Timestamp`` (:issue:`11616`)
 - Bug in ``pd.read_clipboard`` and ``pd.to_clipboard`` functions not supporting Unicode; upgrade included ``pyperclip`` to v1.5.15 (:issue:`9263`)
 
