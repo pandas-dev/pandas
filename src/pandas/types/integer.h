@@ -5,22 +5,34 @@
 #define PANDAS_TYPES_INTEGER_H
 
 #include "pandas/array.h"
+#include "pandas/numpy_interop.h"
 #include "pandas/status.h"
 #include "pandas/types.h"
+#include "pandas/util/bitarray.h"
 
 namespace pandas {
 
 template <typename TypeClass>
-class IntegerArrayImpl : public NumPyArray {
+class IntegerArrayImpl : public Array {
  public:
   typedef typename TypeClass::c_type T;
 
-  IntegerArrayImpl() : NumPyArray() {}
-  Status Init(PyObject* arr) {
+  IntegerArrayImpl() : Array() {}
+
+  Status InitFromNumpy(PyObject* arr) {
     TypePtr type(new TypeClass());
-    RETURN_NOT_OK(NumPyArray::Init(type, length));
+    RETURN_NOT_OK(numpy_array_.Init(arr));
+    RETURN_NOT_OK(Array::Init(type, numpy_array_.size()));
     return Status::OK();
   }
+
+  size_t null_count() {
+    return nulls_.set_count();
+  }
+
+ protected:
+  NumPyBuffer numpy_array_;
+  BitArray nulls_;
 };
 
 typedef IntegerArrayImpl<UInt8Type> UInt8Array;

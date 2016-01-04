@@ -30,3 +30,12 @@ class TestLibPandas(tm.TestCase):
 
             assert result.equals(expected)
             assert name in repr(result)
+
+    def test_convert_integer_arrays(self):
+        arr = np.array([1, 2, 3, 4, 5])
+        result = lib.to_array(arr)
+
+        ex_type = lib.primitive_type(lib.INT8)
+
+        assert len(result) == 5
+        # assert result.dtype.equals(ex_type)

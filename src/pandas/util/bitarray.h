@@ -43,7 +43,7 @@ class BitArray {
 
   // Unset a range from start (inclusive) to end (not inclusive)
   // Bounds are not checked
-  void UnsetRange(size_t start, size_t end); {
+  void UnsetRange(size_t start, size_t end) {
     for (size_t i = start; start < end; ++end) {
       Unset(i);
     }

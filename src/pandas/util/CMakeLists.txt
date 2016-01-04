@@ -8,7 +8,6 @@ set(UTIL_SRCS
 )
 
 set(UTIL_LIBS
-  glog
   rt)
 
 

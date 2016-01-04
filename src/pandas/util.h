@@ -5,6 +5,7 @@
 #define PANDAS_UTIL_H
 
 #include <cstdlib>
+#include <cstring>
 
 #define DISALLOW_COPY_AND_ASSIGN(TypeName)      \
   TypeName(const TypeName&) = delete;           \
@@ -14,24 +15,24 @@ namespace pandas {
 
 namespace util {
 
-inline size_t ceil_byte(size_t size) {
+static inline size_t ceil_byte(size_t size) {
   return (size + 7) & ~7;
 }
 
-inline size_t ceil_2bytes(size_t size) {
+static inline size_t ceil_2bytes(size_t size) {
   return (size + 15) & ~15;
 }
 
-inline bool get_bit(const uint8_t* bits, size_t i) {
+static inline bool get_bit(const uint8_t* bits, size_t i) {
   return bits[i / 8] & (1 << (i % 8));
 }
 
-inline void set_bit(uint8_t* bits, size_t i, bool is_set) {
+static inline void set_bit(uint8_t* bits, size_t i, bool is_set) {
   bits[i / 8] |= (1 << (i % 8)) * is_set;
 }
 
 
-size_t next_power2(size_t n) {
+static inline size_t next_power2(size_t n) {
   n--;
   n |= n >> 1;
   n |= n >> 2;
@@ -45,13 +46,13 @@ size_t next_power2(size_t n) {
   return n;
 }
 
-void bytes_to_bits(uint8_t* bytes, size_t length, uint8_t* bits) {
+static void bytes_to_bits(uint8_t* bytes, size_t length, uint8_t* bits) {
   for (size_t i = 0; i < length; ++i) {
     set_bit(bits, i, static_cast<bool>(bytes[i]));
   }
 }
 
-uint8_t* bytes_to_bits(uint8_t* bytes, size_t length, size_t* out_length) {
+static uint8_t* bytes_to_bits(uint8_t* bytes, size_t length, size_t* out_length) {
   if (!length) {
     return nullptr;
   }

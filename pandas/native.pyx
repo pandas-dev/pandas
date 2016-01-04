@@ -10,10 +10,13 @@ import numpy as np
 from pandas.native cimport shared_ptr, string
 cimport pandas.native as lp
 
+from cpython cimport PyObject
 from cython.operator cimport dereference as deref
 
 cnp.import_array()
 
+# Ensure libpandas can use NumPy C Array API
+lp.init_numpy()
 
 UINT8 = lp.TypeEnum_UINT8
 UINT16 = lp.TypeEnum_UINT16
@@ -68,6 +71,9 @@ cdef class NAType(Scalar):
 
     def __cinit__(self):
         self.type = lp.TypeEnum_NA
+
+    def __repr__(self):
+        return 'NA'
 
 NA = NAType()
 
@@ -147,9 +153,25 @@ def category_type(categories):
 cdef class Array:
     cdef:
         lp.ArrayPtr arr
+        cArray* ap
+
+    def __cinit__(self):
+        self.ap = NULL
 
     cdef init(self, const lp.ArrayPtr& arr):
         self.arr = arr
+        self.ap = arr.get()
+
+    def __len__(self):
+        return self.ap.length()
+
+    property dtype:
+
+        def __get__(self):
+            return wrap_type(self.ap.type())
+
+    # def to_numpy(self):
+    #     return self.ap.to_numpy()
 
 
 cdef class NumericArray(Array):
@@ -180,14 +202,16 @@ cdef class CategoryArray(Array):
     pass
 
 
-cdef Array wrap_array(const lp.ArrayPtr& type):
+cdef Array wrap_array(const lp.ArrayPtr& arr):
     cdef:
         Array result
 
-    if type.get().type_enum() == lp.TypeEnum_CATEGORY:
+    if arr.get().type_enum() == lp.TypeEnum_CATEGORY:
         result = CategoryArray()
     else:
         result = Array()
+
+    result.init(arr)
 
     return result
 
@@ -209,16 +233,25 @@ cdef PandasType wrap_type(const lp.TypePtr& sp_type):
 
 cpdef PandasType convert_numpy_dtype(cnp.dtype dtype):
     cdef lp.TypeEnum pandas_typenum
-
     check_status(lp.numpy_type_num_to_pandas(dtype.type_num,
                                              &pandas_typenum))
 
     return primitive_type(pandas_typenum)
 
 
-def to_pandas_array(values):
-    pass
+def to_array(values):
+    if isinstance(values, np.ndarray):
+        return numpy_to_pandas_array(values)
+    else:
+        raise TypeError(type(values))
 
 
-def numpy_to_pandas_array(ndarray arr):
-    pass
+cdef numpy_to_pandas_array(ndarray arr):
+    cdef:
+        Array result
+        cArray* array_obj
+        lp.ArrayPtr sp_array
+
+    check_status(lp.array_from_numpy(<PyObject*> arr, &array_obj))
+    sp_array.reset(array_obj)
+    return wrap_array(sp_array)

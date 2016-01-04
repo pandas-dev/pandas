@@ -19,6 +19,8 @@ from libcpp cimport bool as c_bool
 from libcpp.string cimport string
 from libcpp.vector cimport vector
 
+from cpython cimport PyObject
+
 # This must be included for cerr and other things to work
 cdef extern from "<iostream>":
     pass
@@ -115,11 +117,11 @@ cdef extern from "pandas/api.h" namespace "pandas":
     cdef cppclass CategoryType(DataType):
         pass
 
-
     cdef cppclass cArray" pandas::Array":
 
         const TypePtr& type()
         TypeEnum type_enum()
+        size_t length()
 
     cdef cppclass cCategoryArray" pandas::CategoryArray"(cArray):
         pass
@@ -131,3 +133,8 @@ cdef extern from "pandas/api.h" namespace "pandas":
 
     Status numpy_type_num_to_pandas(int type_num, TypeEnum* pandas_type)
     Status primitive_type_from_enum(TypeEnum tp_enum, DataType** out)
+
+    Status array_from_numpy(PyObject* arr, cArray** out)
+    Status array_from_masked_numpy(PyObject* arr, cArray** out)
+
+    void init_numpy()

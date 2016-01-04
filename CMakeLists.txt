@@ -583,9 +583,11 @@ add_subdirectory(src/pandas/util)
 
 # Python and NumPy shared libraries must be manually imported / linked
 set(LINK_LIBS
+  pandas_util
 )
 
 set(PANDAS_SRCS
+  src/pandas/array.cc
   src/pandas/dispatch.cc
   src/pandas/numpy_interop.cc
   src/pandas/status.cc
