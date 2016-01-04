@@ -363,6 +363,14 @@ class TestTimedeltas(tm.TestCase):
         expected = pd.Series([False, True])
         tm.assert_series_equal(actual, expected)
 
+    def test_compare_timedelta_ndarray(self):
+        # GH11835
+        periods = [Timedelta('0 days 01:00:00'), Timedelta('0 days 01:00:00')]
+        arr = np.array(periods)
+        result = arr[0] > arr
+        expected = np.array([False, False])
+        self.assert_numpy_array_equal(result, expected)
+
     def test_ops_notimplemented(self):
         class Other:
             pass
