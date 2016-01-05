@@ -8,9 +8,8 @@ import cython
 from cpython.object cimport (Py_EQ, Py_NE, Py_GT, Py_LT, Py_GE, Py_LE,
                              PyObject_RichCompare)
 
-
+import numbers
 _VALID_CLOSED = frozenset(['left', 'right', 'both', 'neither'])
-
 
 cdef class IntervalMixin:
     property closed_left:
@@ -100,6 +99,62 @@ cdef class Interval(IntervalMixin):
         start_symbol = '[' if self.closed_left else '('
         end_symbol = ']' if self.closed_right else ')'
         return '%s%s, %s%s' % (start_symbol, self.left, self.right, end_symbol)
+
+    def __add__(self, y):
+        if isinstance(y, numbers.Number):
+            return Interval(self.left + y, self.right + y)
+        elif isinstance(y, Interval) and isinstance(self, numbers.Number):
+            return Interval(y.left + self, y.right + self)
+        else:
+            raise TypeError("unsupported operand type(s) for +: '%s' and '%s'" %
+                        (type(self).__name__, type(y).__name__))
+
+    def __sub__(self, y):
+        if isinstance(y, numbers.Number):
+            return Interval(self.left - y, self.right - y)
+        elif isinstance(y, Interval) and isinstance(self, numbers.Number):
+            return Interval(y.left - self, y.right - self)
+        else:
+            raise TypeError("unsupported operand type(s) for -: '%s' and '%s'" %
+                        (type(self).__name__, type(y).__name__))
+
+    def __mult__(self, y):
+        if isinstance(y, numbers.Number):
+            return Interval(self.left * y, self.right * y)
+        elif isinstance(y, Interval) and isinstance(self, numbers.Number):
+            return Interval(y.left * self, y.right * self)
+        else:
+            raise TypeError("unsupported operand type(s) for *: '%s' and '%s'" %
+                        (type(self).__name__, type(y).__name__))
+
+    def __div__(self, y):
+        if isinstance(y, numbers.Number):
+            return Interval(self.left / y, self.right / y)
+        elif isinstance(y, Interval) and isinstance(self, numbers.Number):
+            return Interval(y.left / self, y.right / self)
+        else:
+            raise TypeError("unsupported operand type(s) for /: '%s' and '%s'" %
+                        (type(self).__name__, type(y).__name__))
+
+    def overlap(self, y):
+        if not isinstance(y, Interval):
+            raise TypeError("unsupported operand type(s) for &: '%s' and '%s'" %
+                            (type(self).__name__, type(y).__name__))
+        return self.left <= y.right and y.left <= self.right
+
+    def intersect(self, y):
+        if not isinstance(y, Interval):
+            raise TypeError("unsupported operand type(s) for &: '%s' and '%s'" %
+                            (type(self).__name__, type(y).__name__))
+        if not self.overlap(y):
+            # ideally, I would like to return an empty interval, and
+            # not raise a ValueError
+            raise ValueError("%s does not overlap with %s" % (self, y))
+        return Interval(max(self.left, y.left),
+                        min(self.right, y.right))
+
+    def __and__(self, y):
+        return self.intersect(y)
 
 
 @cython.wraparound(False)
