@@ -2751,11 +2751,16 @@ class DataFrame(NDFrame):
                   verify_integrity=False):
         """
         Set the DataFrame index (row labels) using one or more existing
-        columns. By default yields a new object.
+        columns and/or new arrays of values. By default yields a new object.
 
         Parameters
         ----------
-        keys : column label or list of column labels / arrays
+        keys : column label (str), Index, Series, array, or a list of these things
+            Existing columns to set as the index (when given columns labels)
+            and/or new values to set as new index values. If an Index is given,
+            it will be used as a new index unless it is a view of the column
+            index, in which case it will be interpreted as a set of existing
+            columns to set as the index.
         drop : boolean, default True
             Delete columns to be used as the new index
         append : boolean, default False
@@ -2772,13 +2777,26 @@ class DataFrame(NDFrame):
         >>> indexed_df = df.set_index(['A', 'B'])
         >>> indexed_df2 = df.set_index(['A', [0, 1, 2, 0, 1, 2]])
         >>> indexed_df3 = df.set_index([[0, 1, 2, 0, 1, 2]])
+        >>> indexed_df4 = df.set_index(df.columns[:2])
 
         Returns
         -------
         dataframe : DataFrame
         """
         if not isinstance(keys, list):
-            keys = [keys]
+            if isinstance(keys, Index):
+                # if the index is a slice of the column index, treat it like
+                # a list of column labels; otherwise, treat it like a new index
+                keys_base = keys.base
+                while isinstance(keys_base, Index):
+                    keys_base = keys_base.base
+                cols_base = self.columns.base
+                while isinstance(cols_base, Index):
+                    cols_base = cols_base.base
+                if keys_base is not cols_base:
+                    keys = [keys]
+            else:
+                keys = [keys]
 
         if inplace:
             frame = self
