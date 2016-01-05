@@ -476,6 +476,7 @@ Bug Fixes
 
 - Bug in ``.style.bar`` may not rendered properly using specific browser (:issue:`11678`)
 
+- Bug in rich comparison of ``Timedelta`` with a ``numpy.array`` of ``Timedelta``s that caused an infinite recursion (:issue:`11835`)
 
 - Bug in ``df.replace`` while replacing value in mixed dtype ``Dataframe`` (:issue:`11698`)
 
