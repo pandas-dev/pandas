@@ -193,8 +193,8 @@ class TestTimedeltas(tm.TestCase):
                                 Timedelta('-1 days 02:34:56.789000000')
                                 ),
                                ('S',
-                                Timedelta('1 days 02:34:56'),
-                                Timedelta('-1 days 02:34:56')
+                                Timedelta('1 days 02:34:57'),
+                                Timedelta('-1 days 02:34:57')
                                 ),
                                ('2S',
                                 Timedelta('1 days 02:34:56'),
@@ -205,15 +205,15 @@ class TestTimedeltas(tm.TestCase):
                                 Timedelta('-1 days 02:34:55')
                                 ),
                                ('T',
-                                Timedelta('1 days 02:34:00'),
-                                Timedelta('-1 days 02:34:00')
+                                Timedelta('1 days 02:35:00'),
+                                Timedelta('-1 days 02:35:00')
                                 ),
                                ('12T',
-                                Timedelta('1 days 02:24:00'),
-                                Timedelta('-1 days 02:24:00')),
+                                Timedelta('1 days 02:36:00'),
+                                Timedelta('-1 days 02:36:00')),
                                ('H',
-                                Timedelta('1 days 02:00:00'),
-                                Timedelta('-1 days 02:00:00')
+                                Timedelta('1 days 03:00:00'),
+                                Timedelta('-1 days 03:00:00')
                                 ),
                                ('d',
                                 Timedelta('1 days'),
@@ -237,22 +237,15 @@ class TestTimedeltas(tm.TestCase):
         # note that negative times round DOWN! so don't give whole numbers
         for (freq, s1, s2) in [('N', t1, t2),
                                ('U', t1, t2),
-                               ('L', t1a, TimedeltaIndex(['-1 days +00:00:00', '-2 days +23:58:57.999000',
-                                                          '-2 days +23:57:55.999000'],
+                               ('L', t1a, TimedeltaIndex(['-1 days +00:00:00', '-2 days +23:58:58', '-2 days +23:57:56'],
                                                          dtype='timedelta64[ns]', freq=None)),
-                               ('S', t1a, TimedeltaIndex(['-1 days +00:00:00', '-2 days +23:58:57', '-2 days +23:57:55'],
+                               ('S', t1a, TimedeltaIndex(['-1 days +00:00:00', '-2 days +23:58:58', '-2 days +23:57:56'],
                                                          dtype='timedelta64[ns]', freq=None)),
-                               ('2S', t1a, TimedeltaIndex(['-1 days +00:00:00', '-2 days +23:58:56', '-2 days +23:57:54'],
-                                                          dtype='timedelta64[ns]', freq=None)),
-                               ('5S', t1b, TimedeltaIndex(['-1 days +00:00:00', '-2 days +23:58:55', '-2 days +23:57:55'],
-                                                          dtype='timedelta64[ns]', freq=None)),
-                               ('T', t1b,  TimedeltaIndex(['-1 days +00:00:00', '-2 days +23:58:00', '-2 days +23:57:00'],
-                                                          dtype='timedelta64[ns]', freq=None)),
-                               ('12T', t1c, TimedeltaIndex(['-1 days +00:00:00', '-2 days +23:48:00', '-2 days +23:48:00'],
+                               ('12T', t1c, TimedeltaIndex(['-1 days', '-1 days', '-1 days'],
                                                            dtype='timedelta64[ns]', freq=None)),
-                               ('H',  t1c, TimedeltaIndex(['-1 days +00:00:00', '-2 days +23:00:00', '-2 days +23:00:00'],
+                               ('H',  t1c, TimedeltaIndex(['-1 days', '-1 days', '-1 days'],
                                                           dtype='timedelta64[ns]', freq=None)),
-                               ('d',  t1c, pd.TimedeltaIndex([-1,-2,-2],unit='D'))]:
+                               ('d',  t1c, pd.TimedeltaIndex([-1,-1,-1],unit='D'))]:
             r1 = t1.round(freq)
             tm.assert_index_equal(r1, s1)
             r2 = t2.round(freq)

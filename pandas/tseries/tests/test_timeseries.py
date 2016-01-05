@@ -2785,10 +2785,42 @@ class TestDatetimeIndex(tm.TestCase):
         expected = Timestamp('20130101')
         self.assertEqual(result, expected)
 
+        dt = Timestamp('20130101 19:10:11')
+        result = dt.round('D')
+        expected = Timestamp('20130102')
+        self.assertEqual(result, expected)
+
+        dt = Timestamp('20130201 12:00:00')
+        result = dt.round('D')
+        expected = Timestamp('20130202')
+        self.assertEqual(result, expected)
+
+        dt = Timestamp('20130104 12:00:00')
+        result = dt.round('D')
+        expected = Timestamp('20130105')
+        self.assertEqual(result, expected)
+
+        dt = Timestamp('20130104 12:32:00')
+        result = dt.round('30Min')
+        expected = Timestamp('20130104 12:30:00')
+        self.assertEqual(result, expected)
+
         dti = date_range('20130101 09:10:11',periods=5)
         result = dti.round('D')
         expected = date_range('20130101',periods=5)
         tm.assert_index_equal(result, expected)
+
+        # floor
+        dt = Timestamp('20130101 09:10:11')
+        result = dt.floor('D')
+        expected = Timestamp('20130101')
+        self.assertEqual(result, expected)
+
+        # ceil
+        dt = Timestamp('20130101 09:10:11')
+        result = dt.ceil('D')
+        expected = Timestamp('20130102')
+        self.assertEqual(result, expected)
 
         # round with tz
         dt = Timestamp('20130101 09:10:11',tz='US/Eastern')

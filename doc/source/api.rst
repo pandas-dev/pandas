@@ -483,6 +483,8 @@ These can be accessed like ``Series.dt.<property>``.
    Series.dt.normalize
    Series.dt.strftime
    Series.dt.round
+   Series.dt.floor
+   Series.dt.ceil
 
 **Timedelta Properties**
 
@@ -1496,6 +1498,8 @@ Time-specific operations
    DatetimeIndex.tz_convert
    DatetimeIndex.tz_localize
    DatetimeIndex.round
+   DatetimeIndex.floor
+   DatetimeIndex.ceil
 
 Conversion
 ~~~~~~~~~~
@@ -1537,6 +1541,8 @@ Conversion
    TimedeltaIndex.to_pytimedelta
    TimedeltaIndex.to_series
    TimedeltaIndex.round
+   TimedeltaIndex.floor
+   TimedeltaIndex.ceil
 
 Window
 ------
