@@ -361,14 +361,8 @@ class Timestamp(_Timestamp):
     def _repr_base(self):
         return '%s %s' % (self._date_repr, self._time_repr)
 
-    def round(self, freq):
-        """
-        return a new Timestamp rounded to this resolution
+    def _round(self, freq, rounder):
 
-        Parameters
-        ----------
-        freq : a freq string indicating the rouding resolution
-        """
         cdef int64_t unit
         cdef object result, value
 
@@ -378,10 +372,40 @@ class Timestamp(_Timestamp):
             value = self.tz_localize(None).value
         else:
             value = self.value
-        result = Timestamp(unit*np.floor(value/unit),unit='ns')
+        result = Timestamp(unit*rounder(value/float(unit)),unit='ns')
         if self.tz is not None:
             result = result.tz_localize(self.tz)
         return result
+
+    def round(self, freq):
+        """
+        return a new Timestamp rounded to this resolution
+
+        Parameters
+        ----------
+        freq : a freq string indicating the rounding resolution
+        """
+        return self._round(freq, np.round)
+
+    def floor(self, freq):
+        """
+        return a new Timestamp floored to this resolution
+
+        Parameters
+        ----------
+        freq : a freq string indicating the flooring resolution
+        """
+        return self._round(freq, np.floor)
+
+    def ceil(self, freq):
+        """
+        return a new Timestamp ceiled to this resolution
+
+        Parameters
+        ----------
+        freq : a freq string indicating the ceiling resolution
+        """
+        return self._round(freq, np.ceil)
 
     @property
     def tz(self):
@@ -2388,20 +2412,45 @@ class Timedelta(_Timedelta):
         else:
            return "D"
 
-    def round(self, freq):
-        """
-        return a new Timedelta rounded to this resolution
+    def _round(self, freq, rounder):
 
-        Parameters
-        ----------
-        freq : a freq string indicating the rouding resolution
-        """
         cdef int64_t result, unit
 
         from pandas.tseries.frequencies import to_offset
         unit = to_offset(freq).nanos
-        result = unit*np.floor(self.value/unit)
+        result = unit*rounder(self.value/float(unit))
         return Timedelta(result,unit='ns')
+
+    def round(self, freq):
+        """
+        return a new Timedelta rounded to this resolution.
+
+
+        Parameters
+        ----------
+        freq : a freq string indicating the rounding resolution
+        """
+        return self._round(freq, np.round)
+
+    def floor(self, freq):
+        """
+        return a new Timedelta floored to this resolution
+
+        Parameters
+        ----------
+        freq : a freq string indicating the flooring resolution
+        """
+        return self._round(freq, np.floor)
+
+    def ceil(self, freq):
+        """
+        return a new Timedelta ceiled to this resolution
+
+        Parameters
+        ----------
+        freq : a freq string indicating the ceiling resolution
+        """
+        return self._round(freq, np.ceil)
 
     def _repr_base(self, format=None):
         """
