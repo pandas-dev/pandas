@@ -63,7 +63,7 @@ class TestLibPandas(tm.TestCase):
             assert len(result) == 5
             assert result.dtype.equals(ex_type)
 
-    def test_integer_get_set_na(self):
+    def test_integer_get_set_unset_na(self):
         arr = np.array([1, 2, 3, 4, 5], dtype='i1')
         result = lib.to_array(arr)
 
@@ -71,3 +71,6 @@ class TestLibPandas(tm.TestCase):
 
         result[0] = NA
         assert result[0] is NA
+
+        result[0] = 12
+        assert result[0] == 12
