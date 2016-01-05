@@ -35,19 +35,19 @@ class BitArray {
 
   // Set a range from start (inclusive) to end (not inclusive)
   // Bounds are not checked
-  void SetRange(size_t start, size_t end) {
-    for (size_t i = start; start < end; ++end) {
-      Set(i);
-    }
-  }
+  // void SetRange(size_t start, size_t end) {
+  //   for (size_t i = start; i < end; ++i) {
+  //     Set(i);
+  //   }
+  // }
 
   // Unset a range from start (inclusive) to end (not inclusive)
   // Bounds are not checked
-  void UnsetRange(size_t start, size_t end) {
-    for (size_t i = start; start < end; ++end) {
-      Unset(i);
-    }
-  }
+  // void UnsetRange(size_t start, size_t end) {
+  //   for (size_t i = start; i < end; ++i) {
+  //     Unset(i);
+  //   }
+  // }
 
   size_t set_count() {
     return count_;

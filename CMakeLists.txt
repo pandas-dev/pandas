@@ -20,7 +20,7 @@ set(BUILD_SUPPORT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/build-support)
 # Must be declared in the top-level CMakeLists.txt.
 set(CMAKE_SKIP_INSTALL_ALL_DEPENDENCY true)
 
-# For thirdparty libs: glog, googletest, gflags
+# For thirdparty libs: googletest
 include(toolchain)
 
 project(pandas)
@@ -485,19 +485,6 @@ function(ADD_THIRDPARTY_LIB LIB_NAME)
   endif()
 endfunction()
 
-find_package(GLog REQUIRED)
-ADD_THIRDPARTY_LIB(glog
-  STATIC_LIB "${GLOG_STATIC_LIB}"
-  SHARED_LIB "${GLOG_SHARED_LIB}")
-list(APPEND PANDAS_BASE_LIBS glog)
-
-## GFlags
-find_package(GFlags REQUIRED)
-ADD_THIRDPARTY_LIB(gflags
-  STATIC_LIB "${GFLAGS_STATIC_LIB}"
-  SHARED_LIB "${GFLAGS_SHARED_LIB}")
-list(APPEND PANDAS_BASE_LIBS gflags)
-
 ## GMock
 find_package(GMock REQUIRED)
 ADD_THIRDPARTY_LIB(gmock
@@ -510,10 +497,8 @@ find_package(NumPy REQUIRED)
 include(UseCython)
 
 include_directories(SYSTEM
-  ${GLOG_INCLUDE_DIR}
-  ${GMOCK_INCLUDE_DIR}
   ${GTEST_INCLUDE_DIR}
-  ${GFLAGS_INCLUDE_DIR}
+  ${GMOCK_INCLUDE_DIR}
   ${NUMPY_INCLUDE_DIRS}
   ${PYTHON_INCLUDE_DIRS}
   pandas/

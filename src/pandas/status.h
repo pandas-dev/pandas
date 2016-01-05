@@ -19,8 +19,8 @@
 #define PANDAS_STATUS_H_
 
 #include <string>
-
-#include <glog/logging.h>
+#include <cstdio>
+#include <cstring>
 
 // Return the given status if it is not OK.
 #define PANDAS_RETURN_NOT_OK(s) do {           \
@@ -54,9 +54,6 @@ PANDAS_CHECK(_s.ok()) << (msg) << ": " << _s.ToString();   \
 // logged message.
 #define PANDAS_CHECK_OK(s) PANDAS_CHECK_OK_PREPEND(s, "Bad status")
 
-// These are standard glog macros.
-#define PANDAS_LOG              LOG
-#define PANDAS_CHECK            CHECK
 
 namespace pandas {
 

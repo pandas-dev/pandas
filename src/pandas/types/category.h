@@ -4,6 +4,7 @@
 #ifndef PANDAS_TYPES_CATEGORY_H
 #define PANDAS_TYPES_CATEGORY_H
 
+#include <sstream>
 #include <string>
 
 #include "pandas/array.h"

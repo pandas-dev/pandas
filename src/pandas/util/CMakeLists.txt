@@ -21,8 +21,6 @@ SET_TARGET_PROPERTIES(pandas_util PROPERTIES LINKER_LANGUAGE CXX)
 
 add_library(pandas_test_util)
 target_link_libraries(pandas_test_util
-  gflags
-  glog
   gmock
   pandas_util)
 
@@ -34,8 +32,6 @@ add_library(pandas_test_main
   test_main.cc)
 
 target_link_libraries(pandas_test_main
-  gflags
-  glog
   gmock
   pandas_util
   pandas_test_util

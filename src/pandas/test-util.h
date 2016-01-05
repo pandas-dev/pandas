@@ -4,7 +4,6 @@
 #ifndef PANDAS_TEST_UTIL_H_
 #define PANDAS_TEST_UTIL_H_
 
-#include <gflags/gflags.h>
 #include <gtest/gtest.h>
 
 #include "pandas/status.h"
