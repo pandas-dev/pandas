@@ -123,7 +123,7 @@ Other enhancements
 Datetimelike rounding
 ^^^^^^^^^^^^^^^^^^^^^
 
-``DatetimeIndex``, ``Timestamp``, ``TimedeltaIndex``, ``Timedelta`` have gained the ``.round()`` method for datetimelike rounding. (:issue:`4314`)
+``DatetimeIndex``, ``Timestamp``, ``TimedeltaIndex``, ``Timedelta`` have gained the ``.round()``, ``.floor()`` and ``.ceil()`` method for datetimelike rounding, flooring and ceiling. (:issue:`4314`, :issue:`11963`)
 
 Naive datetimes
 
@@ -137,7 +137,7 @@ Naive datetimes
    dr[0]
    dr[0].round('10s')
 
-Tz-aware are rounded in local times
+Tz-aware are rounded, floored and ceiled in local times
 
 .. ipython:: python
 
@@ -158,7 +158,7 @@ Timedeltas
    t[0].round('2h')
 
 
-In addition, ``.round()`` will be available thru the ``.dt`` accessor of ``Series``.
+In addition, ``.round()``, ``.floor()`` and ``.ceil()`` will be available thru the ``.dt`` accessor of ``Series``.
 
 .. ipython:: python
 

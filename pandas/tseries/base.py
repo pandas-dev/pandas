@@ -44,9 +44,9 @@ class DatelikeOps(object):
 class TimelikeOps(object):
     """ common ops for TimedeltaIndex/DatetimeIndex, but not PeriodIndex """
 
-    def round(self, freq):
+    _round_doc = (
         """
-        Round the index to the specified freq; this is a floor type of operation
+        %s the index to the specified freq
 
         Parameters
         ----------
@@ -59,7 +59,8 @@ class TimelikeOps(object):
         Raises
         ------
         ValueError if the freq cannot be converted
-        """
+        """)
+    def _round(self, freq, rounder):
 
         from pandas.tseries.frequencies import to_offset
         unit = to_offset(freq).nanos
@@ -69,7 +70,7 @@ class TimelikeOps(object):
             values = self.tz_localize(None).asi8
         else:
             values = self.asi8
-        result = (unit*np.floor(values/unit)).astype('i8')
+        result = (unit*rounder(values/float(unit))).astype('i8')
         attribs = self._get_attributes_dict()
         if 'freq' in attribs:
             attribs['freq'] = None
@@ -81,6 +82,18 @@ class TimelikeOps(object):
         if getattr(self,'tz',None) is not None:
             result = result.tz_localize(self.tz)
         return result
+    
+    @Appender(_round_doc % "round")
+    def round(self, freq):
+       return self._round(freq, np.round)
+
+    @Appender(_round_doc % "floor")
+    def floor(self, freq):
+       return self._round(freq, np.floor)
+
+    @Appender(_round_doc % "floor")
+    def ceil(self, freq):
+       return self._round(freq, np.ceil)
 
 class DatetimeIndexOpsMixin(object):
     """ common ops mixin to support a unified inteface datetimelike Index """
