@@ -24,8 +24,8 @@ class plot_andrews_curves(object):
     def setup(self):
         self.N = 500
         self.M = 10
-	data_dict = {x: np.random.randn(self.N) for x in range(self.M)}
-	data_dict["Name"] = ["A"] * self.N
+        data_dict = {x: np.random.randn(self.N) for x in range(self.M)}
+        data_dict["Name"] = ["A"] * self.N
         self.df = DataFrame(data_dict)
 
     def time_plot_andrews_curves(self):

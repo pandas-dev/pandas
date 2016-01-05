@@ -91,6 +91,59 @@ class concat_small_frames(object):
         concat(([self.df] * 1000))
 
 
+class concat_panels(object):
+    goal_time = 0.2
+
+    def setup(self):
+        dataset = np.zeros((10000, 200, 2), dtype=np.float32)
+        self.panels_f = [pd.Panel(np.copy(dataset, order='F'))
+                         for i in range(20)]
+        self.panels_c = [pd.Panel(np.copy(dataset, order='C'))
+                         for i in range(20)]
+
+    def time_concat_c_ordered_axis0(self):
+        concat(self.panels_c, axis=0, ignore_index=True)
+
+    def time_concat_f_ordered_axis0(self):
+        concat(self.panels_f, axis=0, ignore_index=True)
+
+    def time_concat_c_ordered_axis1(self):
+        concat(self.panels_c, axis=1, ignore_index=True)
+
+    def time_concat_f_ordered_axis1(self):
+        concat(self.panels_f, axis=1, ignore_index=True)
+
+    def time_concat_c_ordered_axis2(self):
+        concat(self.panels_c, axis=2, ignore_index=True)
+
+    def time_concat_f_ordered_axis2(self):
+        concat(self.panels_f, axis=2, ignore_index=True)
+
+
+class concat_dataframes(object):
+    goal_time = 0.2
+
+    def setup(self):
+        dataset = np.zeros((10000, 200), dtype=np.float32)
+
+        self.frames_f = [pd.DataFrame(np.copy(dataset, order='F'))
+                         for i in range(20)]
+        self.frames_c = [pd.DataFrame(np.copy(dataset, order='C'))
+                         for i in range(20)]
+
+    def time_concat_c_ordered_axis0(self):
+        concat(self.frames_c, axis=0, ignore_index=True)
+
+    def time_concat_f_ordered_axis0(self):
+        concat(self.frames_f, axis=0, ignore_index=True)
+
+    def time_concat_c_ordered_axis1(self):
+        concat(self.frames_c, axis=1, ignore_index=True)
+
+    def time_concat_f_ordered_axis1(self):
+        concat(self.frames_f, axis=1, ignore_index=True)
+
+
 class i8merge(object):
     goal_time = 0.2
 
