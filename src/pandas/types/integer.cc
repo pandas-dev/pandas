@@ -16,7 +16,7 @@ PyObject* IntegerArrayImpl<T>::GetValue(size_t i) {
     return py::NA;
   }
   return PyArray_Scalar(numpy_array_.item(i), numpy_array_.dtype(),
-      (PyObject*) numpy_array_.array());
+      reinterpret_cast<PyObject*>(numpy_array_.array()));
 }
 
 template <typename T>

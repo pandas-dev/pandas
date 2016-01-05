@@ -84,7 +84,7 @@ static Status convert_numpy_array(PyObject* arr, Array** out) {
 
 
 Status array_from_numpy(PyObject* arr, Array** out) {
-  int type_num = PyArray_TYPE((PyArrayObject*) arr);
+  int type_num = PyArray_TYPE(reinterpret_cast<PyArrayObject*>(arr));
   switch (type_num) {
     NUMPY_CONVERTER_CASE(INT8, Int8Array);
     NUMPY_CONVERTER_CASE(INT16, Int16Array);
@@ -122,7 +122,7 @@ NumPyBuffer::~NumPyBuffer() {
 }
 
 Status NumPyBuffer::Init(PyObject* arr) {
-  if (PyArray_NDIM((PyArrayObject*) arr) != 1) {
+  if (PyArray_NDIM(reinterpret_cast<PyArrayObject*>(arr)) != 1) {
     return Status::Invalid("Only support 1-dimensional NumPy arrays for now");
   }
   Py_INCREF(arr);

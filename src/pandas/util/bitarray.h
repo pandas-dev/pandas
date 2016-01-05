@@ -63,7 +63,6 @@ class BitArray {
   size_t count_;
 };
 
-
-}
+} // namespace pandas
 
 #endif // PANDAS_UTIL_BITARRAY_H

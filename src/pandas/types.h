@@ -94,8 +94,7 @@ struct TimestampType : public DataType {
 
 struct PyObjectType : public DataType {
 
-  explicit PyObjectType()
-      : DataType(TypeEnum::PYOBJECT) {}
+  PyObjectType() : DataType(TypeEnum::PYOBJECT) {}
 
   PyObjectType(const PyObjectType& other)
       : PyObjectType() {}

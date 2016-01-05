@@ -95,7 +95,7 @@ class Status {
     return Status(StatusCode::KeyError, msg, -1);
   }
 
-  static Status NotImplemented(const std::string& msg="not implemented") {
+  static Status NotImplemented(const std::string& msg = "not implemented") {
     return Status(StatusCode::NotImplemented, msg, -1);
   }
 

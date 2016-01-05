@@ -33,8 +33,7 @@
 
 namespace pandas {
 
-inline int import_numpy()
-{
+inline int import_numpy() {
 #ifdef NUMPY_IMPORT_ARRAY
   import_array1(-1);
   import_umath1(-1);
@@ -54,7 +53,7 @@ Status array_from_masked_numpy(PyObject* arr, PyObject* mask, Array** out);
 // Container for strided (but contiguous) data contained in a NumPy array
 class NumPyBuffer {
  public:
-  explicit NumPyBuffer() : arr_(nullptr) {}
+  NumPyBuffer() : arr_(nullptr) {}
   virtual ~NumPyBuffer();
   Status Init(PyObject* arr);
 
@@ -62,7 +61,7 @@ class NumPyBuffer {
   int stride();
 
   PyArrayObject* array() {
-    return (PyArrayObject*) arr_;
+    return reinterpret_cast<PyArrayObject*>(arr_);
   }
 
   PyArray_Descr* dtype() {
