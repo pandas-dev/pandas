@@ -24,6 +24,10 @@ class FloatingArrayImpl : public Array {
     RETURN_NOT_OK(Array::Init(type, numpy_array_.size()));
     return Status::OK();
   }
+
+  virtual PyObject* GetValue(size_t i);
+  virtual void SetValue(size_t i, PyObject* val);
+
  protected:
   NumPyBuffer numpy_array_;
 };

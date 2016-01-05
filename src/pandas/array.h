@@ -4,6 +4,8 @@
 #ifndef PANDAS_ARRAY_H
 #define PANDAS_ARRAY_H
 
+#include <Python.h>
+
 #include <memory>
 #include <string>
 #include <vector>
@@ -25,6 +27,10 @@ class Array {
   size_t length() const { return length_;}
   const TypePtr& type() const { return type_;}
   TypeEnum type_enum() const { return type_->type;}
+
+  // Dynamic dispatch array API
+  virtual PyObject* GetValue(size_t i) = 0;
+  virtual void SetValue(size_t i, PyObject* val) = 0;
 
  protected:
   TypePtr type_;

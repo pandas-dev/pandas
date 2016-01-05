@@ -6,6 +6,8 @@ import sys
 import numpy as np
 
 import pandas.util.testing as tm
+
+from pandas.native import NA
 import pandas.native as lib
 
 
@@ -60,3 +62,12 @@ class TestLibPandas(tm.TestCase):
 
             assert len(result) == 5
             assert result.dtype.equals(ex_type)
+
+    def test_integer_get_set_na(self):
+        arr = np.array([1, 2, 3, 4, 5], dtype='i1')
+        result = lib.to_array(arr)
+
+        assert result[0] == arr[0]
+
+        result[0] = NA
+        assert result[0] is NA

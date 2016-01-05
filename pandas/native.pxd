@@ -50,7 +50,6 @@ cdef extern from "pandas/status.h" namespace "pandas" nogil:
         c_bool IsInvalid()
         c_bool IsNotImplemented()
 
-
 cdef extern from "pandas/api.h" namespace "pandas":
 
     enum TypeEnum:
@@ -123,6 +122,9 @@ cdef extern from "pandas/api.h" namespace "pandas":
         TypeEnum type_enum()
         size_t length()
 
+        object GetValue(size_t i)
+        void SetValue(size_t i, object val)
+
     cdef cppclass cCategoryArray" pandas::CategoryArray"(cArray):
         pass
 
@@ -137,9 +139,7 @@ cdef extern from "pandas/api.h" namespace "pandas":
     Status array_from_numpy(PyObject* arr, cArray** out)
     Status array_from_masked_numpy(PyObject* arr, cArray** out)
 
-    void init_numpy()
-
 
 cdef extern from "pandas/pytypes.h" namespace "pandas::py":
-    void init_natype(object type_obj)
+    void init_natype(object type_obj, object inst_obj)
     c_bool is_na(object type_obj)

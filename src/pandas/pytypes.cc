@@ -9,9 +9,14 @@ namespace pandas {
 
 namespace py {
 
-void init_natype(PyObject* na_type) {
+PyObject* NAType;
+PyObject* NA;
+
+void init_natype(PyObject* na_type, PyObject* na_singleton) {
   Py_INCREF(na_type);
+  Py_INCREF(na_singleton);
   NAType = na_type;
+  NA = na_singleton;
 }
 
 } // namespace py

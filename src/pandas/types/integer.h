@@ -17,7 +17,7 @@ class IntegerArrayImpl : public Array {
  public:
   typedef typename TypeClass::c_type T;
 
-  IntegerArrayImpl() : Array() {}
+  IntegerArrayImpl() : Array(), have_nulls_(false) {}
 
   Status InitFromNumpy(PyObject* arr) {
     TypePtr type(new TypeClass());
@@ -30,9 +30,13 @@ class IntegerArrayImpl : public Array {
     return nulls_.set_count();
   }
 
+  virtual PyObject* GetValue(size_t i);
+  virtual void SetValue(size_t i, PyObject* val);
+
  protected:
   NumPyBuffer numpy_array_;
   BitArray nulls_;
+  bool have_nulls_;
 };
 
 typedef IntegerArrayImpl<UInt8Type> UInt8Array;

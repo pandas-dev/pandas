@@ -7,6 +7,7 @@
 #include <string>
 
 #include "pandas/array.h"
+#include "pandas/status.h"
 #include "pandas/types.h"
 
 namespace pandas {
@@ -51,6 +52,9 @@ class CategoryArray : public Array {
   ArrayPtr categories() {
     return static_cast<CategoryType*>(type_.get())->categories();
   }
+
+  virtual PyObject* GetValue(size_t i);
+  virtual void SetValue(size_t i, PyObject* val);
 
  private:
   ArrayPtr codes_;

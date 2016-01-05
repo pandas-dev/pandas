@@ -10,12 +10,13 @@ namespace pandas {
 
 namespace py {
 
-void init_natype(PyObject* na_type);
+void init_natype(PyObject* na_type, PyObject* na_singleton);
 
-extern PyObject* NAType = NULL;
+extern PyObject* NAType;
+extern PyObject* NA;
 
-bool is_na(PyObject* obj) {
-  return PyObject_IsInstance(obj, NAType);
+static inline bool is_na(PyObject* obj) {
+  return (obj == NA) || PyObject_IsInstance(obj, NAType);
 }
 
 } // namespace py

@@ -1,10 +1,9 @@
 // This file is a part of pandas. See LICENSE for details about reuse and
 // copyright holders
 
-#include <Python.h>
-#include <numpy/arrayobject.h>
-
 #include "pandas/numpy_interop.h"
+
+#include <numpy/arrayobject.h>
 
 #include <memory>
 
@@ -85,7 +84,7 @@ static Status convert_numpy_array(PyObject* arr, Array** out) {
 
 
 Status array_from_numpy(PyObject* arr, Array** out) {
-  int type_num = PyArray_TYPE(arr);
+  int type_num = PyArray_TYPE((PyArrayObject*) arr);
   switch (type_num) {
     NUMPY_CONVERTER_CASE(INT8, Int8Array);
     NUMPY_CONVERTER_CASE(INT16, Int16Array);
@@ -123,7 +122,7 @@ NumPyBuffer::~NumPyBuffer() {
 }
 
 Status NumPyBuffer::Init(PyObject* arr) {
-  if (PyArray_NDIM(arr) != 1) {
+  if (PyArray_NDIM((PyArrayObject*) arr) != 1) {
     return Status::Invalid("Only support 1-dimensional NumPy arrays for now");
   }
   Py_INCREF(arr);
@@ -132,15 +131,14 @@ Status NumPyBuffer::Init(PyObject* arr) {
 }
 
 size_t NumPyBuffer::size() {
-  return PyArray_SIZE(arr_);
+  return PyArray_SIZE(array());
 }
 
 int NumPyBuffer::stride() {
-  return static_cast<int>(PyArray_STRIDES(arr_)[0]);
+  return static_cast<int>(PyArray_STRIDES(array())[0]);
 }
 
-void init_numpy() {
-  import_array();
-}
+  PyObject* GetItem(size_t i);
+  void PySetItem(size_t i, PyObject* val);
 
 } // namespace pandas

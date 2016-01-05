@@ -589,9 +589,15 @@ set(LINK_LIBS
 set(PANDAS_SRCS
   src/pandas/array.cc
   src/pandas/dispatch.cc
+  src/pandas/init.cc
   src/pandas/numpy_interop.cc
   src/pandas/pytypes.cc
   src/pandas/status.cc
+
+  src/pandas/types/boolean.cc
+  src/pandas/types/category.cc
+  src/pandas/types/integer.cc
+  src/pandas/types/floating.cc
 )
 
 add_library(pandas SHARED
@@ -607,14 +613,15 @@ set_target_properties(pandas PROPERTIES LINKER_LANGUAGE CXX)
 ############################################################
 
 foreach(pyx_api_file
-  pandas/native.pyx)
+  pandas/native.pyx
+  pandas/internals/config.pyx)
     set_source_files_properties(${pyx_api_file} PROPERTIES CYTHON_API 1)
 endforeach(pyx_api_file)
 
 set(USE_RELATIVE_RPATH ON)
 set(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
 
-foreach(module native)
+foreach(module native internals.config)
     string(REPLACE "." ";" directories ${module})
     list(GET directories -1 module_name)
     list(REMOVE_AT directories -1)

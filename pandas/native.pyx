@@ -5,18 +5,18 @@
 from pandas.internals.numpy cimport ndarray
 cimport pandas.internals.numpy as cnp
 
-import numpy as np
-
 from pandas.native cimport shared_ptr, string
 cimport pandas.native as lp
 
 from cpython cimport PyObject
 from cython.operator cimport dereference as deref
+cimport cpython
 
-cnp.import_array()
+cdef extern from "Python.h":
+    int PySlice_Check(object)
 
-# Ensure libpandas can use NumPy C Array API
-lp.init_numpy()
+import pandas.internals.config
+import numpy as np
 
 UINT8 = lp.TypeEnum_UINT8
 UINT16 = lp.TypeEnum_UINT16
@@ -76,7 +76,7 @@ cdef class NAType(Scalar):
         return 'NA'
 
 NA = NAType()
-lp.init_natype(NAType)
+lp.init_natype(NAType, NA)
 
 def isnull(obj):
     return lp.is_na(obj)
@@ -181,6 +181,56 @@ cdef class Array:
 
     # def to_numpy(self):
     #     return self.ap.to_numpy()
+
+    def __getitem__(self, i):
+        cdef:
+            Py_ssize_t n = len(self)
+
+        if PySlice_Check(i):
+            start = i.start or 0
+            while start < 0:
+                start += n
+
+            stop = i.stop if i.stop is not None else n
+            while stop < 0:
+                stop += n
+
+            step = i.step or 1
+            if step != 1:
+                raise NotImplementedError
+            else:
+                return self.slice(start, stop)
+
+        while i < 0:
+            i += self.ap.length()
+
+        return self._getitem(i)
+
+    cdef inline _getitem(self, size_t i):
+        if i >= self.ap.length():
+            raise IndexError('Out of bounds: %d' % i)
+        return self.ap.GetValue(i)
+
+    def __setitem__(self, i, val):
+        cdef:
+            Py_ssize_t n = len(self)
+
+        if PySlice_Check(i):
+            raise NotImplementedError
+
+        while i < 0:
+            i += self.ap.length()
+
+        self._setitem(i, val)
+
+    cdef inline _setitem(self, size_t i, object val):
+        if i >= self.ap.length():
+            raise IndexError('Out of bounds: %d' % i)
+        self.ap.SetValue(i, val)
+
+    def slice(self, start, end):
+        pass
+
 
 
 cdef class NumericArray(Array):

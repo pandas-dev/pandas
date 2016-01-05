@@ -24,6 +24,9 @@ class BooleanArray : public Array {
     return Status::OK();
   }
 
+  virtual PyObject* GetValue(size_t i);
+  virtual void SetValue(size_t i, PyObject* val);
+
  protected:
   NumPyBuffer numpy_array_;
   BitArray nulls_;

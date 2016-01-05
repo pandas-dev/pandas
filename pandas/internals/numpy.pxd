@@ -188,7 +188,6 @@ cdef extern from "numpy/arrayobject.h":
             int ndim "nd"
             npy_intp *shape "dimensions"
             npy_intp *strides
-            dtype descr
 
         # Note: This syntax (function definition in pxd files) is an
         # experimental exception made for __getbuffer__ and __releasebuffer__
@@ -239,7 +238,7 @@ cdef extern from "numpy/arrayobject.h":
 
             cdef int t
             cdef char* f = NULL
-            cdef dtype descr = self.descr
+            cdef dtype descr = PyArray_DESCR(<PyArrayObject*> self)
             cdef int offset
 
             cdef bint hasfields = PyDataType_HASFIELDS(descr)
@@ -471,6 +470,7 @@ cdef extern from "numpy/arrayobject.h":
     # bint PyArray_HasArrayInterfaceType(object, dtype, object, object&)
     # bint PyArray_HasArrayInterface(op, out)
 
+    dtype PyArray_DESCR(PyArrayObject*)
 
     bint PyArray_IsZeroDim(object)
     # Cannot be supported due to ## ## in macro:
@@ -510,7 +510,6 @@ cdef extern from "numpy/arrayobject.h":
     void PyArray_XDECREF_ERR(ndarray)
     # Cannot be supported due to out arg
     # void PyArray_DESCR_REPLACE(descr)
-
 
     object PyArray_Copy(ndarray)
     object PyArray_FromObject(object op, int type, int min_depth, int max_depth)

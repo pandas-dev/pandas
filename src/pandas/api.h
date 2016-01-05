@@ -4,12 +4,8 @@
 #ifndef PANDAS_API_H
 #define PANDAS_API_H
 
-// Include this first
-#include "pandas/compat.h"
-
 #include "pandas/array.h"
 #include "pandas/dispatch.h"
-#include "pandas/numpy_interop.h"
 #include "pandas/status.h"
 #include "pandas/types.h"
 
