@@ -4769,7 +4769,7 @@ class JoinUnit(object):
         if self.block.is_categorical:
             values_flat = values.categories
         else:
-            values_flat = values.ravel()
+            values_flat = values.ravel(order='K')
         total_len = values_flat.shape[0]
         chunk_len = max(total_len // 40, 1000)
         for i in range(0, total_len, chunk_len):

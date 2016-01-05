@@ -410,6 +410,7 @@ Performance Improvements
 - Improved performance of ``andrews_curves`` (:issue:`11534`)
 
 - Improved huge ``DatetimeIndex``, ``PeriodIndex`` and ``TimedeltaIndex``'s ops performance including ``NaT`` (:issue:`10277`)
+- Improved performance of ``pandas.concat`` (:issue:`11958`)
 
 
 
