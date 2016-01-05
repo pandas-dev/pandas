@@ -278,8 +278,7 @@ other anchored offsets like ``MonthBegin`` and ``YearBegin``.
 Other API Changes
 ^^^^^^^^^^^^^^^^^
 
-- ``DataFrame.between_time`` and ``Series.between_time`` now only parse a fixed set of time strings. Parsing of
-date strings is no longer supported and raises a ``ValueError``. (:issue:`11818`)
+- ``DataFrame.between_time`` and ``Series.between_time`` now only parse a fixed set of time strings. Parsing of date strings is no longer supported and raises a ``ValueError``. (:issue:`11818`)
 
   .. ipython:: python
 
@@ -321,10 +320,10 @@ assignment should be done inplace or return a copy.
 .. warning::
 
    For backwards compatability, ``inplace`` defaults to ``True`` if not specified.
-   This will change in a future version of pandas - if your code depends on an
+   This will change in a future version of pandas. If your code depends on an
    inplace assignment you should update to explicitly set ``inplace=True``
 
-The ``inplace`` keyword parameter was also added the ``query`` method.  
+The ``inplace`` keyword parameter was also added the ``query`` method.
 
 .. ipython:: python
 
@@ -335,11 +334,11 @@ The ``inplace`` keyword parameter was also added the ``query`` method.
 .. warning::
 
    Note that the default value for ``inplace`` in a ``query``
-   is ``False``, which is consistent with prior verions.
+   is ``False``, which is consistent with prior versions.
 
 ``eval`` has also been updated to allow multi-line expressions for multiple
 assignments.  These expressions will be evaluated one at a time in order.  Only
-assginments are valid for multi-line expressions.
+assignments are valid for multi-line expressions.
 
 .. ipython:: python
 
