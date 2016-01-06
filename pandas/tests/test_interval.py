@@ -1,3 +1,4 @@
+from __future__ import division
 import numpy as np
 
 from pandas.core.interval import Interval, IntervalIndex
@@ -68,10 +69,56 @@ class TestInterval(tm.TestCase):
         actual = self.interval + 1
         self.assertEqual(expected, actual)
 
+        expected = Interval(1, 2)
+        actual = 1 + self.interval
+        self.assertEqual(expected, actual)
+
+        actual = self.interval
+        actual += 1
+        self.assertEqual(expected, actual)
+
+        with self.assertRaises(TypeError):
+            self.interval + Interval(1, 2)
+
+    def test_math_sub(self):
+        expected = Interval(-1, 0)
+        actual = self.interval - 1
+        self.assertEqual(expected, actual)
+
+        actual = self.interval
+        actual -= 1
+        self.assertEqual(expected, actual)
+
+        with self.assertRaises(TypeError):
+            self.interval - Interval(1, 2)
+
     def test_math_mult(self):
         expected = Interval(0, 2)
         actual = self.interval * 2
         self.assertEqual(expected, actual)
+
+        expected = Interval(0, 2)
+        actual = 2 * self.interval
+        self.assertEqual(expected, actual)
+
+        actual = self.interval
+        actual *= 2
+        self.assertEqual(expected, actual)
+
+        with self.assertRaises(TypeError):
+            self.interval * Interval(1, 2)
+
+    def test_math_div(self):
+        expected = Interval(0, 0.5)
+        actual = self.interval / 2.0
+        self.assertEqual(expected, actual)
+
+        actual = self.interval
+        actual /= 2.0
+        self.assertEqual(expected, actual)
+
+        with self.assertRaises(TypeError):
+            self.interval / Interval(1, 2)
 
 
 class TestIntervalTree(tm.TestCase):

@@ -106,55 +106,39 @@ cdef class Interval(IntervalMixin):
         elif isinstance(y, Interval) and isinstance(self, numbers.Number):
             return Interval(y.left + self, y.right + self)
         else:
-            raise TypeError("unsupported operand type(s) for +: '%s' and '%s'" %
-                        (type(self).__name__, type(y).__name__))
+            raise NotImplemented
 
     def __sub__(self, y):
         if isinstance(y, numbers.Number):
             return Interval(self.left - y, self.right - y)
-        elif isinstance(y, Interval) and isinstance(self, numbers.Number):
-            return Interval(y.left - self, y.right - self)
         else:
-            raise TypeError("unsupported operand type(s) for -: '%s' and '%s'" %
-                        (type(self).__name__, type(y).__name__))
+            raise NotImplemented
 
-    def __mult__(self, y):
+    def __mul__(self, y):
         if isinstance(y, numbers.Number):
             return Interval(self.left * y, self.right * y)
         elif isinstance(y, Interval) and isinstance(self, numbers.Number):
             return Interval(y.left * self, y.right * self)
         else:
-            raise TypeError("unsupported operand type(s) for *: '%s' and '%s'" %
-                        (type(self).__name__, type(y).__name__))
+            return NotImplemented
 
     def __div__(self, y):
         if isinstance(y, numbers.Number):
             return Interval(self.left / y, self.right / y)
-        elif isinstance(y, Interval) and isinstance(self, numbers.Number):
-            return Interval(y.left / self, y.right / self)
         else:
-            raise TypeError("unsupported operand type(s) for /: '%s' and '%s'" %
-                        (type(self).__name__, type(y).__name__))
+            return NotImplemented
 
-    def overlap(self, y):
-        if not isinstance(y, Interval):
-            raise TypeError("unsupported operand type(s) for &: '%s' and '%s'" %
-                            (type(self).__name__, type(y).__name__))
-        return self.left <= y.right and y.left <= self.right
+    def __truediv__(self, y):
+        if isinstance(y, numbers.Number):
+            return Interval(self.left / y, self.right / y)
+        else:
+            return NotImplemented
 
-    def intersect(self, y):
-        if not isinstance(y, Interval):
-            raise TypeError("unsupported operand type(s) for &: '%s' and '%s'" %
-                            (type(self).__name__, type(y).__name__))
-        if not self.overlap(y):
-            # ideally, I would like to return an empty interval, and
-            # not raise a ValueError
-            raise ValueError("%s does not overlap with %s" % (self, y))
-        return Interval(max(self.left, y.left),
-                        min(self.right, y.right))
-
-    def __and__(self, y):
-        return self.intersect(y)
+    def __floordiv__(self, y):
+        if isinstance(y, numbers.Number):
+            return Interval(self.left // y, self.right // y)
+        else:
+            return NotImplemented
 
 
 @cython.wraparound(False)
@@ -184,3 +168,4 @@ cpdef intervals_to_interval_bounds(np.ndarray intervals):
         elif closed != interval.closed:
             raise ValueError('intervals must all be closed on the same side')
     return left, right, closed
+
