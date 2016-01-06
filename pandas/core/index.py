@@ -1722,12 +1722,12 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         self._assert_can_do_setop(other)
 
         if self.equals(other):
-            return Index([], name=self.name)
+            return self._shallow_copy([])
 
         other, result_name = self._convert_can_do_setop(other)
 
-        theDiff = sorted(set(self) - set(other))
-        return Index(theDiff, name=result_name)
+        diff = sorted(set(self.values) - set(other.values))
+        return self._shallow_copy(diff, name=result_name)
 
     diff = deprecate('diff', difference)
 

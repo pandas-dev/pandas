@@ -136,6 +136,7 @@ Performance Improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 - Checking monotonic-ness before sorting on an index (:issue:`11080`)
+- Performance improvements in ``Index.difference``, particularly for ``PeriodIndex`` (:issue:`11278`)
 - ``Series.dropna`` performance improvement when its dtype can't contain ``NaN`` (:issue:`11159`)
 - Release the GIL on most datetime field operations (e.g. ``DatetimeIndex.year``, ``Series.dt.year``), normalization, and conversion to and from ``Period``, ``DatetimeIndex.to_period`` and ``PeriodIndex.to_timestamp`` (:issue:`11263`)
 - Release the GIL on some rolling algos: ``rolling_median``, ``rolling_mean``, ``rolling_max``, ``rolling_min``, ``rolling_var``, ``rolling_kurt``, ``rolling_skew`` (:issue:`11450`)
