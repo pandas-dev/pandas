@@ -5,11 +5,11 @@
 
 set(UTIL_SRCS
   bitarray.cc
+  status.cc
 )
 
 set(UTIL_LIBS
-  rt)
-
+)
 
 add_library(pandas_util STATIC
   ${UTIL_SRCS}
@@ -21,21 +21,24 @@ SET_TARGET_PROPERTIES(pandas_util PROPERTIES LINKER_LANGUAGE CXX)
 
 add_library(pandas_test_util)
 target_link_libraries(pandas_test_util
-  gmock
   pandas_util)
 
 SET_TARGET_PROPERTIES(pandas_test_util PROPERTIES LINKER_LANGUAGE CXX)
 
 # pandas_test_main
-
 add_library(pandas_test_main
-  test_main.cc)
+  test_main.cc
+  ${THIRDPARTY_DIR}/gtest/gtest-all.cc)
 
 target_link_libraries(pandas_test_main
-  gmock
   pandas_util
   pandas_test_util
-  dl
-  rt)
+  python
+  dl)
+
+if(APPLE)
+  set_target_properties(pandas_test_main
+		PROPERTIES LINK_FLAGS "-undefined dynamic_lookup")
+endif()
 
 ADD_PANDAS_TEST(bitarray-test)

@@ -8,7 +8,6 @@
 #include <vector>
 
 #include "pandas/array.h"
-#include "pandas/status.h"
 
 // A table of equal-length pandas arrays
 class Table {

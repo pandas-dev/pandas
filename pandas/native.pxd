@@ -34,7 +34,7 @@ cdef extern from "<memory>" namespace "std" nogil:
         void reset(T* p)
 
 
-cdef extern from "pandas/status.h" namespace "pandas" nogil:
+cdef extern from "pandas/util/status.h" namespace "pandas" nogil:
 
     # We can later add more of the common status factory methods as needed
     cdef Status Status_OK "Status::OK"()

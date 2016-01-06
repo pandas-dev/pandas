@@ -3,6 +3,8 @@
 
 #include "pandas/dispatch.h"
 
+#include "pandas/util/status.h"
+
 namespace pandas {
 
 #define MAKE_TYPE_CASE(NAME, CapName)           \

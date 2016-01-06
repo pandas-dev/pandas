@@ -8,9 +8,9 @@
 
 #include "pandas/array.h"
 #include "pandas/numpy_interop.h"
-#include "pandas/status.h"
 #include "pandas/types.h"
 #include "pandas/util/bitarray.h"
+#include "pandas/util/status.h"
 
 namespace pandas {
 

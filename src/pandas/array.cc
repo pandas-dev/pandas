@@ -3,7 +3,7 @@
 
 #include "pandas/array.h"
 
-#include "pandas/status.h"
+#include "pandas/util/status.h"
 
 namespace pandas {
 

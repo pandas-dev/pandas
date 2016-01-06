@@ -6,8 +6,6 @@
 
 #include <gtest/gtest.h>
 
-#include "pandas/status.h"
-
 #define ASSERT_RAISES(ENUM, expr)               \
   do {                                          \
     Status s = (expr);                          \

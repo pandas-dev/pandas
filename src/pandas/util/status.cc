@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
-#include "pandas/status.h"
+#include "pandas/util/status.h"
 
 #include <assert.h>
 #include <stdio.h>

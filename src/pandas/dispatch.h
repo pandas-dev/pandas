@@ -4,10 +4,11 @@
 #ifndef PANDAS_DISPATCH_H
 #define PANDAS_DISPATCH_H
 
-#include "pandas/status.h"
 #include "pandas/types.h"
 
 namespace pandas {
+
+class Status;
 
 Status primitive_type_from_enum(TypeEnum tp_enum, DataType** out);
 

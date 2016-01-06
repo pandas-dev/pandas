@@ -10,7 +10,7 @@
 #include "pandas/types/boolean.h"
 #include "pandas/types/integer.h"
 #include "pandas/types/floating.h"
-#include "pandas/status.h"
+#include "pandas/util/status.h"
 
 namespace pandas {
 
