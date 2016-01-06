@@ -1034,9 +1034,9 @@ class TestSeries(tm.TestCase, Generic):
         expected = Series([0, 0], index=['count', 'unique'], name='None')
         assert_series_equal(noneSeries.describe(), expected)
 
-    def test_to_xray(self):
+    def test_to_xarray(self):
 
-        tm._skip_if_no_xray()
+        tm._skip_if_no_xarray()
         import xray
         from xray import DataArray
 
@@ -1044,7 +1044,7 @@ class TestSeries(tm.TestCase, Generic):
             # https://github.com/xray/xray/issues/697
             s = Series([])
             s.index.name = 'foo'
-            result = s.to_xray()
+            result = s.to_xarray()
             self.assertEqual(len(result), 0)
             self.assertEqual(len(result.coords), 1)
             self.assertEqual(result.coords.keys(), ['foo'])
@@ -1056,7 +1056,7 @@ class TestSeries(tm.TestCase, Generic):
                       tm.makeTimedeltaIndex]:
             s = Series(range(6), index=index(6))
             s.index.name = 'foo'
-            result = s.to_xray()
+            result = s.to_xarray()
             repr(result)
             self.assertEqual(len(result), 6)
             self.assertEqual(len(result.coords), 1)
@@ -1072,12 +1072,12 @@ class TestSeries(tm.TestCase, Generic):
             s = Series(range(6), index=index(6))
             s.index.name = 'foo'
 
-            result = s.to_xray()
+            result = s.to_xarray()
             self.assertRaises(ValueError, lambda: repr(result))
 
         s.index = pd.MultiIndex.from_product([['a', 'b'], range(3)],
                                              names=['one', 'two'])
-        result = s.to_xray()
+        result = s.to_xarray()
         self.assertEqual(len(result), 2)
         assert_almost_equal(result.coords.keys(), ['one', 'two'])
         self.assertIsInstance(result, DataArray)
@@ -1766,9 +1766,9 @@ class TestDataFrame(tm.TestCase, Generic):
 
             self.assert_frame_equal(result, expected)
 
-    def test_to_xray(self):
+    def test_to_xarray(self):
 
-        tm._skip_if_no_xray()
+        tm._skip_if_no_xarray()
         import xray
         from xray import Dataset
 
@@ -1785,9 +1785,9 @@ class TestDataFrame(tm.TestCase, Generic):
                        )
 
         if LooseVersion(xray.__version__) > '0.6.1':
-            # https://github.com/xray/xray/issues/697
+            # https://github.com/pydata/xarray/issues/697
             df.index.name = 'foo'
-            result = df[0:0].to_xray()
+            result = df[0:0].to_xarray()
             self.assertEqual(result.dims['foo'], 0)
             self.assertIsInstance(result, Dataset)
 
@@ -1798,7 +1798,7 @@ class TestDataFrame(tm.TestCase, Generic):
             df.index = index(3)
             df.index.name = 'foo'
             df.columns.name = 'bar'
-            result = df.to_xray()
+            result = df.to_xarray()
             self.assertEqual(result.dims['foo'], 3)
             self.assertEqual(len(result.coords), 1)
             self.assertEqual(len(result.data_vars), 8)
@@ -1820,26 +1820,26 @@ class TestDataFrame(tm.TestCase, Generic):
         # not implemented
         df.index = pd.MultiIndex.from_product([['a'], range(3)],
                                               names=['one', 'two'])
-        self.assertRaises(ValueError, lambda: df.to_xray())
+        self.assertRaises(ValueError, lambda: df.to_xarray())
 
 
 class TestPanel(tm.TestCase, Generic):
     _typ = Panel
     _comparator = lambda self, x, y: assert_panel_equal(x, y)
 
-    def test_to_xray(self):
+    def test_to_xarray(self):
 
-        tm._skip_if_no_xray()
+        tm._skip_if_no_xarray()
         import xray
         from xray import Dataset
 
         p = tm.makePanel()
 
         if LooseVersion(xray.__version__) > '0.6.1':
-            # https://github.com/xray/xray/issues/697
+            # https://github.com/pydata/xarray/issues/697
             pass
 
-        result = p.to_xray()
+        result = p.to_xarray()
         self.assertIsInstance(result, Dataset)
         self.assertEqual(len(result.coords), 3)
         assert_almost_equal(result.coords.keys(),
@@ -1851,9 +1851,9 @@ class TestPanel4D(tm.TestCase, Generic):
     _typ = Panel4D
     _comparator = lambda self, x, y: assert_panel4d_equal(x, y)
 
-    def test_to_xray(self):
+    def test_to_xarray(self):
 
-        tm._skip_if_no_xray()
+        tm._skip_if_no_xarray()
         import xray
         from xray import Dataset
 
@@ -1863,7 +1863,7 @@ class TestPanel4D(tm.TestCase, Generic):
             # https://github.com/xray/xray/issues/697
             pass
 
-        result = p.to_xray()
+        result = p.to_xarray()
         self.assertIsInstance(result, Dataset)
         self.assertEqual(len(result.coords), 4)
         assert_almost_equal(result.coords.keys(),

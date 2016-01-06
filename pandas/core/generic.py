@@ -1041,9 +1041,9 @@ class NDFrame(PandasObject):
         from pandas.io import clipboard
         clipboard.to_clipboard(self, excel=excel, sep=sep, **kwargs)
 
-    def to_xray(self):
+    def to_xarray(self):
         """
-        Return an xray object from the pandas object.
+        Return an xarray object from the pandas object.
 
         Returns
         -------
