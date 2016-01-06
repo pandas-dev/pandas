@@ -55,6 +55,7 @@ import pandas.util.testing as tm
 import pandas.lib as lib
 
 from numpy.testing.decorators import slow
+from pandas import _np_version_under1p9
 
 #---------------------------------------------------------------------
 # DataFrame test cases
@@ -13641,6 +13642,93 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
 
         self.assertRaises(ValueError, df.quantile, 0.1, axis=-1)
         self.assertRaises(ValueError, df.quantile, 0.1, axis="column")
+
+    def test_quantile_interpolation(self):
+        # GH #10174
+        if _np_version_under1p9:
+            raise nose.SkipTest("Numpy version under 1.9")            
+
+        from numpy import percentile
+
+        #interpolation = linear (default case)
+        q = self.tsframe.quantile(0.1, axis=0,interpolation='linear')
+        self.assertEqual(q['A'], percentile(self.tsframe['A'], 10))
+        q = self.intframe.quantile(0.1)
+        self.assertEqual(q['A'], percentile(self.intframe['A'], 10))
+                
+        q1 = self.intframe.quantile(0.1)
+        self.assertEqual(q1['A'], np.percentile(self.intframe['A'], 10))        
+        #test with and without interpolation keyword
+        assert_series_equal(q,q1)   
+        
+        #interpolation method other than default linear
+        
+        df = DataFrame({"A": [1, 2, 3], "B": [2, 3, 4]}, index=[1, 2, 3])
+        result = df.quantile(.5, axis=1,interpolation='nearest')
+        expected = Series([1., 2., 3.], index=[1, 2, 3])
+        assert_series_equal(result, expected)
+
+        #axis
+        result = df.quantile([.5, .75], axis=1,interpolation='lower')
+        expected = DataFrame({1: [1., 1.], 2: [2., 2.],
+                              3: [3., 3.]}, index=[0.5, 0.75])
+        assert_frame_equal(result, expected)
+
+        #test degenerate case
+        df = DataFrame({'x': [], 'y': []})
+        q = df.quantile(0.1, axis=0,interpolation='higher')            
+        assert(np.isnan(q['x']) and np.isnan(q['y']))
+
+        #multi
+        df = DataFrame([[1, 1, 1], [2, 2, 2], [3, 3, 3]],
+                   columns=['a', 'b', 'c'])
+        result = df.quantile([.25, .5],interpolation='midpoint')
+        expected = DataFrame([[1.5, 1.5, 1.5], [2.5, 2.5, 2.5]],
+                             index=[.25, .5], columns=['a', 'b', 'c'])
+        assert_frame_equal(result, expected)
+    
+
+    def test_quantile_interpolation_np_lt_1p9(self):
+        # GH #10174
+        if not _np_version_under1p9:
+            raise nose.SkipTest("Numpy version is greater than 1.9")
+
+        from numpy import percentile
+
+        #interpolation = linear (default case)
+        q = self.tsframe.quantile(0.1, axis=0,interpolation='linear')
+        self.assertEqual(q['A'], percentile(self.tsframe['A'], 10))
+        q = self.intframe.quantile(0.1)
+        self.assertEqual(q['A'], percentile(self.intframe['A'], 10))
+                
+        q1 = self.intframe.quantile(0.1)
+        self.assertEqual(q1['A'], np.percentile(self.intframe['A'], 10))        
+        #test with and without interpolation keyword
+        assert_series_equal(q,q1)   
+        
+        #interpolation method other than default linear
+
+        expErrMsg = ("Interpolation methods other than linear"
+                    " not supported in numpy < 1.9")
+        df = DataFrame({"A": [1, 2, 3], "B": [2, 3, 4]}, index=[1, 2, 3])
+        with assertRaisesRegexp(ValueError,expErrMsg):
+            df.quantile(.5, axis=1,interpolation='nearest')
+
+        with assertRaisesRegexp(ValueError,expErrMsg):
+            df.quantile([.5, .75], axis=1,interpolation='lower')
+
+        # test degenerate case
+        df = DataFrame({'x': [], 'y': []})
+        with assertRaisesRegexp(ValueError,expErrMsg):
+            q = df.quantile(0.1, axis=0,interpolation='higher')
+
+        #multi
+        df = DataFrame([[1, 1, 1], [2, 2, 2], [3, 3, 3]],
+                   columns=['a', 'b', 'c'])            
+        with assertRaisesRegexp(ValueError,expErrMsg):
+            result = df.quantile([.25, .5],interpolation='midpoint')
+        
+
 
     def test_quantile_multi(self):
         df = DataFrame([[1, 1, 1], [2, 2, 2], [3, 3, 3]],
