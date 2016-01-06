@@ -153,6 +153,7 @@ before_install:
   - echo "before_install"
   - echo $VIRTUAL_ENV
   - export PATH="$HOME/miniconda/bin:$PATH"
+  - export APT_ARGS="-y"
   - sudo apt-get install ccache
   - df -h
   - date
