@@ -240,7 +240,7 @@ class build_ext(_build_ext):
             return name + suffix
 
     def get_cmake_cython_names(self):
-        return ['native']
+        return ['native', osp.join('internals', 'config')]
 
     def get_names(self):
         return self._found_names

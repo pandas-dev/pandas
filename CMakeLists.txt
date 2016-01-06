@@ -1,3 +1,6 @@
+# This file is a part of pandas. See LICENSE for details about reuse and
+# copyright holders
+#
 # Assembled from BSD/MIT/Apache-licensed code from a variety of copyright
 # holders, including at least
 #
@@ -6,21 +9,24 @@
 # Copyright (C) 2012-15 Continuum Analytics, Inc.
 
 cmake_minimum_required(VERSION 2.7)
+project(pandas)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake_modules")
 include(CMakeParseArguments)
 
 set(BUILD_SUPPORT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/build-support)
+set(THIRDPARTY_DIR ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty)
 
 # Allow "make install" to not depend on all targets.
 #
 # Must be declared in the top-level CMakeLists.txt.
 set(CMAKE_SKIP_INSTALL_ALL_DEPENDENCY true)
 
-# For thirdparty libs: glog, googletest, gflags
-include(toolchain)
+# For thirdparty libs: googletest
+# include(toolchain)
 
-project(pandas)
+set(CMAKE_MACOSX_RPATH 1)
+set(CMAKE_OSX_DEPLOYMENT_TARGET 10.9)
 
 ############################################################
 # Compiler flags
@@ -110,22 +116,9 @@ if ("${COMPILER_FAMILY}" STREQUAL "clang")
   #   http://petereisentraut.blogspot.com/2011/09/ccache-and-clang-part-2.html
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Qunused-arguments")
 
-  # Only hardcode -fcolor-diagnostics if stderr is opened on a terminal. Otherwise
-  # the color codes show up as noisy artifacts.
-  #
-  # This test is imperfect because 'cmake' and 'make' can be run independently
-  # (with different terminal options), and we're testing during the former.
-  execute_process(COMMAND test -t 2 RESULT_VARIABLE PANDAS_IS_TTY)
-  if ((${PANDAS_IS_TTY} EQUAL 0) AND (NOT ("$ENV{TERM}" STREQUAL "dumb")))
-    message("Running in a controlling terminal")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fcolor-diagnostics")
-  else()
-    message("Running without a controlling terminal or in a dumb terminal")
-  endif()
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-parameter -Wno-unused-function -Wno-error")
 
-  # Use libstdc++ and not libc++. The latter lacks support for tr1 in OSX
-  # and since 10.9 is now the default.
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libstdc++")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++")
 endif()
 
 # Sanity check linking option.
@@ -482,45 +475,20 @@ function(ADD_THIRDPARTY_LIB LIB_NAME)
   endif()
 endfunction()
 
-find_package(GLog REQUIRED)
-ADD_THIRDPARTY_LIB(glog
-  STATIC_LIB "${GLOG_STATIC_LIB}"
-  SHARED_LIB "${GLOG_SHARED_LIB}")
-list(APPEND PANDAS_BASE_LIBS glog)
-
-## GFlags
-find_package(GFlags REQUIRED)
-ADD_THIRDPARTY_LIB(gflags
-  STATIC_LIB "${GFLAGS_STATIC_LIB}"
-  SHARED_LIB "${GFLAGS_SHARED_LIB}")
-list(APPEND PANDAS_BASE_LIBS gflags)
-
-## GMock
-find_package(GMock REQUIRED)
-ADD_THIRDPARTY_LIB(gmock
-  STATIC_LIB ${GMOCK_STATIC_LIBRARY})
-
 ## Python and libraries
 find_package(PythonInterp REQUIRED)
 find_package(PythonLibsNew REQUIRED)
 find_package(NumPy REQUIRED)
 include(UseCython)
 
+message(STATUS "Found Python dynamic library: ${PYTHON_LIBRARIES}")
+
 include_directories(SYSTEM
-  ${GLOG_INCLUDE_DIR}
-  ${GMOCK_INCLUDE_DIR}
-  ${GTEST_INCLUDE_DIR}
-  ${GFLAGS_INCLUDE_DIR}
   ${NUMPY_INCLUDE_DIRS}
   ${PYTHON_INCLUDE_DIRS}
   pandas/
+  thirdparty/
   src)
-
-############################################################
-# Linker setup
-############################################################
-set(PANDAS_MIN_TEST_LIBS pandas_test_main pandas_test_util ${PANDAS_BASE_LIBS})
-set(PANDAS_TEST_LINK_LIBS ${PANDAS_MIN_TEST_LIBS})
 
 ############################################################
 # "make ctags" target
@@ -561,6 +529,23 @@ if (UNIX)
     `find ${CMAKE_CURRENT_SOURCE_DIR}/src -name \\*.cc -or -name \\*.h`)
 endif (UNIX)
 
+#############################################################
+# Test linking
+
+set(PANDAS_MIN_TEST_LIBS
+  pandas_test_main
+  pandas)
+
+# Unit tests need to link to libpython. NumPy can be linked by importing the
+# numpy module
+if(NOT APPLE)
+  ADD_THIRDPARTY_LIB(python
+    SHARED_LIB "${PYTHON_LIBRARIES}")
+  list(APPEND PANDAS_MIN_TEST_LIBS python)
+endif()
+
+set(PANDAS_TEST_LINK_LIBS ${PANDAS_MIN_TEST_LIBS})
+
 ############################################################
 # Subdirectories
 ############################################################
@@ -568,31 +553,43 @@ endif (UNIX)
 add_subdirectory(src/pandas)
 add_subdirectory(src/pandas/util)
 
-# Python and NumPy shared libraries must be manually imported / linked
-set(LINK_LIBS
+set(PANDAS_SRCS
+  src/pandas/array.cc
+  src/pandas/dispatch.cc
+  src/pandas/init.cc
+  src/pandas/numpy_interop.cc
+  src/pandas/pytypes.cc
+
+  src/pandas/types/boolean.cc
+  src/pandas/types/category.cc
+  src/pandas/types/integer.cc
+  src/pandas/types/floating.cc
 )
 
 add_library(pandas SHARED
   ${PANDAS_SRCS})
-target_link_libraries(pandas ${LINK_LIBS})
+target_link_libraries(pandas
+	pandas_util)
 set_target_properties(pandas PROPERTIES LINKER_LANGUAGE CXX)
 
-# install(TARGETS pandas
-#  LIBRARY DESTINATION lib)
+if(APPLE)
+    set_target_properties(pandas PROPERTIES LINK_FLAGS "-undefined dynamic_lookup")
+endif()
 
 ############################################################
 # Setup and build Cython modules
 ############################################################
 
 foreach(pyx_api_file
-  pandas/native.pyx)
+  pandas/native.pyx
+  pandas/internals/config.pyx)
     set_source_files_properties(${pyx_api_file} PROPERTIES CYTHON_API 1)
 endforeach(pyx_api_file)
 
 set(USE_RELATIVE_RPATH ON)
 set(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
 
-foreach(module native)
+foreach(module native internals.config)
     string(REPLACE "." ";" directories ${module})
     list(GET directories -1 module_name)
     list(REMOVE_AT directories -1)
@@ -623,7 +620,7 @@ foreach(module native)
         math(EXPR i "${i} - 1" )
     endwhile(${i} GREATER 0)
 
-	# for inplace development for now
+    # for inplace development for now
     set(module_install_rpath "${CMAKE_SOURCE_DIR}/pandas/")
 
     set_target_properties(${module_name} PROPERTIES
@@ -631,4 +628,4 @@ foreach(module native)
     target_link_libraries(${module_name} pandas)
 endforeach(module)
 
-add_dependencies(pandas native_pyx)
+# add_dependencies(pandas native_pyx)

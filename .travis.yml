@@ -1,3 +1,15 @@
+sudo: required
+dist: trusty
+addons:
+  apt:
+    sources:
+    - ubuntu-toolchain-r-test
+    - kalakris-cmake
+    packages:
+    - gcc-4.9
+    - g++-4.9
+    - cmake
+    - valgrind
 
 language: python
 
@@ -141,6 +153,7 @@ before_install:
   - echo "before_install"
   - echo $VIRTUAL_ENV
   - export PATH="$HOME/miniconda/bin:$PATH"
+  - export APT_ARGS="-y"
   - sudo apt-get install ccache
   - df -h
   - date
@@ -159,8 +172,8 @@ install:
   - ci/submit_ccache.sh
 
 before_script:
-  - mysql -e 'create database pandas_nosetest;'
-  - psql -c 'create database pandas_nosetest;' -U postgres
+  - # mysql -e 'create database pandas_nosetest;'
+  - # psql -c 'create database pandas_nosetest;' -U postgres
 
 script:
   - echo "script"
