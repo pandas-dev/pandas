@@ -13,6 +13,7 @@ html5lib
 lxml
 matplotlib
 jinja2
+xray
 
 # currently causing some warnings
 #sqlalchemy

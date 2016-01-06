@@ -67,6 +67,7 @@ def show_versions(as_json=False):
         ("numpy", lambda mod: mod.version.version),
         ("scipy", lambda mod: mod.version.version),
         ("statsmodels", lambda mod: mod.__version__),
+        ("xray", lambda mod: mod.__version__),
         ("IPython", lambda mod: mod.__version__),
         ("sphinx", lambda mod: mod.__version__),
         ("patsy", lambda mod: mod.__version__),

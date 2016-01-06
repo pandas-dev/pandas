@@ -5457,10 +5457,10 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
     def test_head_tail(self):
         assert_frame_equal(self.frame.head(), self.frame[:5])
         assert_frame_equal(self.frame.tail(), self.frame[-5:])
-         
+
         assert_frame_equal(self.frame.head(0), self.frame[0:0])
         assert_frame_equal(self.frame.tail(0), self.frame[0:0])
-        
+
         assert_frame_equal(self.frame.head(-1), self.frame[:-1])
         assert_frame_equal(self.frame.tail(-1), self.frame[1:])
         assert_frame_equal(self.frame.head(1), self.frame[:1])
@@ -13564,10 +13564,11 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
 
         decimals = pd.Series([1, 0, 2], index=['A', 'B', 'A'])
         self.assertRaises(ValueError, df.round, decimals)
-        
+
     def test_built_in_round(self):
         if not compat.PY3:
-            raise nose.SkipTest('build in round cannot be overriden prior to Python 3')
+            raise nose.SkipTest('build in round cannot be '
+                                'overriden prior to Python 3')
 
         # GH11763
         # Here's the test frame we'll be working with
@@ -13578,7 +13579,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         expected_rounded = DataFrame(
             {'col1': [1., 2., 3.], 'col2': [1., 2., 3.]})
         tm.assert_frame_equal(round(df), expected_rounded)
-        
+
     def test_quantile(self):
         from numpy import percentile
 
