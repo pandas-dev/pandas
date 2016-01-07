@@ -134,7 +134,6 @@ class TestConfig(unittest.TestCase):
         self.assertRaises(KeyError, self.cf.get_option, 'no_such_option')
         self.cf.deprecate_option('KanBan')
 
-        # testing warning with catch_warning was only added in 2.6
         self.assertTrue(self.cf._is_deprecated('kAnBaN'))
 
     def test_get_option(self):
@@ -248,10 +247,6 @@ class TestConfig(unittest.TestCase):
         import sys
         self.cf.deprecate_option(
             'foo')  # we can deprecate non-existent options
-
-        # testing warning with catch_warning was only added in 2.6
-        if sys.version_info[:2] < (2, 6):
-            raise nose.SkipTest("Need py > 2.6")
 
         self.assertTrue(self.cf._is_deprecated('foo'))
         with warnings.catch_warnings(record=True) as w:
