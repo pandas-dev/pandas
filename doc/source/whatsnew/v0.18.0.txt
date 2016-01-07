@@ -482,6 +482,8 @@ Bug Fixes
 
 - Bug in rich comparison of ``Timedelta`` with a ``numpy.array`` of ``Timedelta`` that caused an infinite recursion (:issue:`11835`)
 
+- Bug in ``DataFrame.round`` dropping column index name (:issue:`11986`)
+
 - Bug in ``df.replace`` while replacing value in mixed dtype ``Dataframe`` (:issue:`11698`)
 
 - Bug in ``Index`` prevents copying name of passed ``Index``, when a new name is not provided (:issue:`11193`)

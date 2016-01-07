@@ -13545,6 +13545,18 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         # Make sure this doesn't break existing Series.round
         tm.assert_series_equal(df['col1'].round(1), expected_rounded['col1'])
 
+        # named columns
+        # GH 11986
+        decimals = 2
+        expected_rounded = DataFrame(
+            {'col1': [1.12, 2.12, 3.12], 'col2': [1.23, 2.23, 3.23]})
+        df.columns.name = "cols"
+        expected_rounded.columns.name = "cols"
+        tm.assert_frame_equal(df.round(decimals), expected_rounded)
+
+        # interaction of named columns & series
+        tm.assert_series_equal(df['col1'].round(decimals), expected_rounded['col1'])
+        tm.assert_series_equal(df.round(decimals)['col1'], expected_rounded['col1'])
 
     def test_round_mixed_type(self):
         # GH11885
