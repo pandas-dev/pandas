@@ -13706,8 +13706,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         assert_series_equal(q, q1)
 
         # interpolation method other than default linear
-        expErrMsg = ("Interpolation methods other than linear"
-                     " not supported in numpy < 1.9")
+        expErrMsg = "Interpolation methods other than linear"
         df = DataFrame({"A": [1, 2, 3], "B": [2, 3, 4]}, index=[1, 2, 3])
         with assertRaisesRegexp(ValueError, expErrMsg):
             df.quantile(.5, axis=1, interpolation='nearest')
