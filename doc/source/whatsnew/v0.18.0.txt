@@ -221,7 +221,8 @@ the ``dtype`` information is respected.
 .. code-block:: python
 
    In [1]: pd.Series([pd.NaT], dtype='<M8[ns]') + pd.Series([pd.NaT], dtype='<M8[ns]')
-   TypeError: can only operate on a datetimes for subtraction, but the operator [__add__] was passed
+   TypeError: can only operate on a datetimes for subtraction,
+              but the operator [__add__] was passed
 
 .. ipython:: python
 
@@ -479,7 +480,7 @@ Bug Fixes
 
 - Bug in ``.style.bar`` may not rendered properly using specific browser (:issue:`11678`)
 
-- Bug in rich comparison of ``Timedelta`` with a ``numpy.array`` of ``Timedelta``s that caused an infinite recursion (:issue:`11835`)
+- Bug in rich comparison of ``Timedelta`` with a ``numpy.array`` of ``Timedelta`` that caused an infinite recursion (:issue:`11835`)
 
 - Bug in ``df.replace`` while replacing value in mixed dtype ``Dataframe`` (:issue:`11698`)
 
@@ -487,7 +488,7 @@ Bug Fixes
 
 - Bug in ``read_excel`` failing to read any non-empty sheets when empty sheets exist and ``sheetname=None`` (:issue:`11711`)
 
-- Bug in ``read_excel`` failing to raise ``NotImplemented`` error when keywords `parse_dates` and `date_parser` are provided (:issue:`11544`)
+- Bug in ``read_excel`` failing to raise ``NotImplemented`` error when keywords ``parse_dates`` and ``date_parser`` are provided (:issue:`11544`)
 
 - Bug in ``read_sql`` with pymysql connections failing to return chunked data (:issue:`11522`)
 
