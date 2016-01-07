@@ -1026,10 +1026,8 @@ class TestBlockPlacement(tm.TestCase):
 
     def test_unbounded_slice_raises(self):
         def assert_unbounded_slice_error(slc):
-            # assertRaisesRegexp is not available in py2.6
-            # self.assertRaisesRegexp(ValueError, "unbounded slice",
-            #                         lambda: BlockPlacement(slc))
-            self.assertRaises(ValueError, BlockPlacement, slc)
+            self.assertRaisesRegexp(ValueError, "unbounded slice",
+                                    lambda: BlockPlacement(slc))
 
         assert_unbounded_slice_error(slice(None, None))
         assert_unbounded_slice_error(slice(10, None))
