@@ -3004,6 +3004,7 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
     def test_round(self):
         # numpy.round doesn't preserve metadata, probably a numpy bug,
         # re: GH #314
+        self.ts.index.name = "index_name"
         result = self.ts.round(2)
         expected = Series(np.round(self.ts.values, 2), index=self.ts.index,
                           name='ts')

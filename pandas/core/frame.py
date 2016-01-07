@@ -4457,12 +4457,16 @@ class DataFrame(NDFrame):
             new_cols = [col for col in _dict_round(self, decimals)]
         elif com.is_integer(decimals):
             # Dispatch to Series.round
-            new_cols = [_series_round(v, decimals) for _, v in self.iteritems()]
+            new_cols = [_series_round(v, decimals)
+                        for _, v in self.iteritems()]
         else:
-            raise TypeError("decimals must be an integer, a dict-like or a Series")
+            raise TypeError("decimals must be an integer, "
+                            "a dict-like, or a Series")
 
         if len(new_cols) > 0:
-            return concat(new_cols, axis=1)
+            return self._constructor(concat(new_cols, axis=1),
+                                     index=self.index,
+                                     columns=self.columns)
         else:
             return self
 
