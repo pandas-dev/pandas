@@ -3115,8 +3115,7 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         self.assertEqual(q1, percentile(self.ts.valid(), 10))
 
         # interpolation other than linear
-        expErrMsg = "Interpolation methods other than " \
-                    "linear not supported in numpy < 1.9"
+        expErrMsg = "Interpolation methods other than "
         with tm.assertRaisesRegexp(ValueError, expErrMsg):
             self.ts.quantile(0.9, interpolation='nearest')
 
