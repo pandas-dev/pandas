@@ -631,6 +631,17 @@ def test_is_list_like():
         assert not com.is_list_like(f)
 
 
+def test_is_dict_like():
+    passes = [{}, {'A': 1}, pd.Series([1])]
+    fails = ['1', 1, [1, 2], (1, 2), range(2), pd.Index([1])]
+
+    for p in passes:
+        assert com.is_dict_like(p)
+
+    for f in fails:
+        assert not com.is_dict_like(f)
+
+
 def test_is_named_tuple():
     passes = (collections.namedtuple('Test', list('abc'))(1, 2, 3), )
     fails = ((1, 2, 3), 'a', Series({'pi': 3.14}))

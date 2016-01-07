@@ -2456,6 +2456,10 @@ def is_list_like(arg):
             not isinstance(arg, compat.string_and_binary_types))
 
 
+def is_dict_like(arg):
+    return hasattr(arg, '__getitem__') and hasattr(arg, 'keys')
+
+
 def is_named_tuple(arg):
     return isinstance(arg, tuple) and hasattr(arg, '_fields')
 
