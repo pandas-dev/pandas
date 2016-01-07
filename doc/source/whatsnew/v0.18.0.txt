@@ -212,8 +212,8 @@ as opposed to
 
 .. code-block:: python
 
-   In [3]: pd.Timestamp('1990315') + pd.Timestamp('19900315')
-   ValueError:
+   In [3]: pd.Timestamp('19900315') + pd.Timestamp('19900315')
+   TypeError: unsupported operand type(s) for +: 'Timestamp' and 'Timestamp'
 
 However, when wrapped in a ``Series`` whose ``dtype`` is ``datetime64[ns]`` or ``timedelta64[ns]``,
 the ``dtype`` information is respected.
