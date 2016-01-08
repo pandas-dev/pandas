@@ -509,6 +509,15 @@ entire suite.  This is done using one of the following constructs::
     nosetests pandas/tests/[test-module].py:[TestClass]
     nosetests pandas/tests/[test-module].py:[TestClass].[test_method]
 
+  .. versionadded:: 0.18.0
+
+Furthermore one can run
+
+.. code-block:: python
+
+   pd.test()
+
+with an imported pandas to run tests similarly.
 
 Running the performance test suite
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
