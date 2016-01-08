@@ -17,8 +17,9 @@ from cpython cimport (
     PyLong_Check,
     PyObject_RichCompareBool,
     PyObject_RichCompare,
-    PyString_Check,
-    Py_GT, Py_GE, Py_EQ, Py_NE, Py_LT, Py_LE
+    Py_GT, Py_GE, Py_EQ, Py_NE, Py_LT, Py_LE,
+    PyUnicode_Check,
+    PyUnicode_AsUTF8String,
 )
 
 # Cython < 0.17 doesn't have this in cpython
@@ -31,10 +32,9 @@ cdef extern from "datetime_helper.h":
 
 # this is our datetime.pxd
 from datetime cimport cmp_pandas_datetimestruct
-from util cimport is_integer_object, is_float_object, is_datetime64_object, is_timedelta64_object
-
 from libc.stdlib cimport free
 
+from util cimport is_integer_object, is_float_object, is_datetime64_object, is_timedelta64_object
 cimport util
 
 from datetime cimport *
@@ -2769,7 +2769,7 @@ cdef inline parse_timedelta_string(object ts, coerce=False):
     """
 
     cdef:
-        str c
+        unicode c
         bint neg=0, have_dot=0, have_value=0, have_hhmmss=0
         object current_unit=None
         int64_t result=0, m=0, r
@@ -2782,6 +2782,10 @@ cdef inline parse_timedelta_string(object ts, coerce=False):
 
     if ts in _nat_strings or not len(ts):
         return NPY_NAT
+
+    # decode ts if necessary
+    if not PyUnicode_Check(ts) and not PY3:
+        ts = str(ts).decode('utf-8')
 
     for c in ts:
 
