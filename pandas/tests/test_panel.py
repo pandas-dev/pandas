@@ -1454,20 +1454,98 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing,
         assert_frame_equal(filled['ItemA'],
                            panel['ItemA'].fillna(method='backfill'))
 
+        # GH 11445
+        # Fill forward.
+        filled = self.panel.fillna(method='ffill')
+        assert_frame_equal(filled['ItemA'],
+                           self.panel['ItemA'].fillna(method='ffill'))
+
+        # With limit.
+        filled = self.panel.fillna(method='backfill', limit=1)
+        assert_frame_equal(filled['ItemA'],
+                           self.panel['ItemA'].fillna(method='backfill', limit=1))
+
+        # With downcast.
+        rounded = self.panel.apply(lambda x: x.apply(np.round))
+        filled = rounded.fillna(method='backfill', downcast='infer')
+        assert_frame_equal(filled['ItemA'],
+                           rounded['ItemA'].fillna(method='backfill', downcast='infer'))
+
+        # Now explicitly request axis 1.
+        filled = self.panel.fillna(method='backfill', axis=1)
+        assert_frame_equal(filled['ItemA'],
+                           self.panel['ItemA'].fillna(method='backfill', axis=0))
+
+        # Fill along axis 2, equivalent to filling along axis 1 of each
+        # DataFrame.
+        filled = self.panel.fillna(method='backfill', axis=2)
+        assert_frame_equal(filled['ItemA'],
+                           self.panel['ItemA'].fillna(method='backfill', axis=1))
+
+        # Fill an empty panel.
         empty = self.panel.reindex(items=[])
         filled = empty.fillna(0)
         assert_panel_equal(filled, empty)
 
+        # either method or value must be specified
         self.assertRaises(ValueError, self.panel.fillna)
+
+        # method and value can not both be specified
         self.assertRaises(ValueError, self.panel.fillna, 5, method='ffill')
 
+        # can't pass list or tuple, only scalar
         self.assertRaises(TypeError, self.panel.fillna, [1, 2])
         self.assertRaises(TypeError, self.panel.fillna, (1, 2))
 
         # limit not implemented when only value is specified
         p = Panel(np.random.randn(3,4,5))
         p.iloc[0:2,0:2,0:2] = np.nan
-        self.assertRaises(NotImplementedError, lambda : p.fillna(999,limit=1))
+        self.assertRaises(NotImplementedError, lambda : p.fillna(999, limit=1))
+
+    def test_fillna_axis_0(self):
+        # GH 11445
+
+        # Forward fill along axis 0, interpolating values across DataFrames.
+        filled = self.panel.fillna(method='ffill', axis=0)
+        nan_indexes = self.panel.loc['ItemB', :, 'C'].index[
+            self.panel.loc['ItemB', :, 'C'].apply(np.isnan)]
+
+        # Values from ItemA are filled into ItemB.
+        assert_series_equal(filled.loc['ItemB', :, 'C'][nan_indexes],
+                            self.panel.loc['ItemA', :, 'C'][nan_indexes])
+
+        # Backfill along axis 0.
+        filled = self.panel.fillna(method='backfill', axis=0)
+
+        # The test data lacks values that can be backfilled on axis 0.
+        assert_panel_equal(filled, self.panel)
+
+        # Reverse the panel and backfill along axis 0, to properly test
+        # backfill.
+        reverse_panel = self.panel.reindex_axis(reversed(self.panel.axes[0]))
+        filled = reverse_panel.fillna(method='bfill', axis=0)
+        nan_indexes = reverse_panel.loc['ItemB', :, 'C'].index[
+            reverse_panel.loc['ItemB', :, 'C'].isnull()]
+        assert_series_equal(filled.loc['ItemB', :, 'C'][nan_indexes],
+                            reverse_panel.loc['ItemA', :, 'C'][nan_indexes])
+
+        # Fill along axis 0 with limit.
+        filled = self.panel.fillna(method='ffill', axis=0, limit=1)
+        a_nan = self.panel.loc['ItemA', :, 'C'].index[
+            self.panel.loc['ItemA', :, 'C'].apply(np.isnan)]
+        b_nan = self.panel.loc['ItemB', :, 'C'].index[
+            self.panel.loc['ItemB', :, 'C'].apply(np.isnan)]
+
+        # Cells that are nan in ItemB but not in ItemA remain unfilled in
+        # ItemC.
+        self.assertTrue(
+            filled.loc['ItemC', :, 'C'][b_nan.difference(a_nan)].apply(np.isnan).all())
+
+        # limit not implemented when only value is specified
+        panel = self.panel.copy()
+        panel['str'] = 'foo'
+        self.assertRaises(NotImplementedError, 
+                          lambda: panel.fillna(method='ffill', axis=0))
 
     def test_ffill_bfill(self):
         assert_panel_equal(self.panel.ffill(),
