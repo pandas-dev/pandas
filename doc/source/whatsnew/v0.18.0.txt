@@ -438,7 +438,7 @@ Bug Fixes
 - Regression in ``.clip`` with tz-aware datetimes (:issue:`11838`)
 - Bug in ``date_range`` when the boundaries fell on the frequency (:issue:`11804`)
 - Bug in consistency of passing nested dicts to ``.groupby(...).agg(...)`` (:issue:`9052`)
-
+- Accept unicode in ``Timedelta`` constructor (:issue:`11995`)
 
 
 
