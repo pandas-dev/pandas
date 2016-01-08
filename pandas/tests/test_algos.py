@@ -567,7 +567,7 @@ class GroupVarTestMixin(object):
         self.algo(out, counts, values, labels)
 
         self.assertEqual(counts[0], 3)
-        self.assertTrue(out[0, 0] >= 0)  # Python 2.6 has no assertGreaterEqual
+        self.assertTrue(out[0, 0] >= 0)
         tm.assert_almost_equal(out[0, 0], 0.0)
 
 

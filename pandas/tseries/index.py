@@ -1493,8 +1493,6 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin, Int64Index)
         """
         Returns numpy array of datetime.time. The time part of the Timestamps.
         """
-        # can't call self.map() which tries to treat func as ufunc
-        # and causes recursion warnings on python 2.6
         return self._maybe_mask_results(_algos.arrmap_object(self.asobject.values,
                                                              lambda x: np.nan if x is tslib.NaT else x.time()))
 

@@ -19,14 +19,15 @@ git:
 matrix:
     fast_finish: true
     include:
-    - python: 2.6
+    - python: 2.7
       env:
-      - JOB_NAME: "26_nslow_nnet"
+      - JOB_NAME: "27_nslow_nnet_COMPAT"
       - NOSE_ARGS="not slow and not network and not disabled"
       - CLIPBOARD=xclip
       - LOCALE_OVERRIDE="it_IT.UTF-8"
       - BUILD_TYPE=conda
       - INSTALL_TEST=true
+      - JOB_TAG=_COMPAT
     - python: 2.7
       env:
       - JOB_NAME: "27_slow_nnet_LOCALE"

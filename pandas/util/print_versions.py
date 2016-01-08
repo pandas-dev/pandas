@@ -106,7 +106,6 @@ def show_versions(as_json=False):
             deps_blob.append((modname, None))
 
     if (as_json):
-        # 2.6-safe
         try:
             import json
         except:
@@ -134,7 +133,6 @@ def show_versions(as_json=False):
 
 
 def main():
-        # optparse is 2.6-safe
     from optparse import OptionParser
     parser = OptionParser()
     parser.add_option("-j", "--json", metavar="FILE", nargs=1,

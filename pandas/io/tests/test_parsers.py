@@ -2502,8 +2502,6 @@ MyColumn
         self.assertRaises(Exception, self.read_csv, StringIO(data), escapechar='\\')
 
         # IN_QUOTED_FIELD
-        # Python 2.6 won't throw an exception for this case (see http://bugs.python.org/issue16013)
-        tm._skip_if_python26()
         data = 'a,b,c\n4,5,6\n"'
         self.assertRaises(Exception, self.read_csv, StringIO(data), escapechar='\\')
 
