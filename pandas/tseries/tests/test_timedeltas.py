@@ -161,9 +161,22 @@ class TestTimedeltas(tm.TestCase):
         self.assertTrue(isnull(Timedelta('nat')))
 
         # offset
-        self.assertEqual(to_timedelta(pd.offsets.Hour(2)),Timedelta('0 days, 02:00:00'))
-        self.assertEqual(Timedelta(pd.offsets.Hour(2)),Timedelta('0 days, 02:00:00'))
-        self.assertEqual(Timedelta(pd.offsets.Second(2)),Timedelta('0 days, 00:00:02'))
+        self.assertEqual(to_timedelta(pd.offsets.Hour(2)),
+                         Timedelta('0 days, 02:00:00'))
+        self.assertEqual(Timedelta(pd.offsets.Hour(2)),
+                         Timedelta('0 days, 02:00:00'))
+        self.assertEqual(Timedelta(pd.offsets.Second(2)),
+                         Timedelta('0 days, 00:00:02'))
+
+        # unicode
+        # GH 11995
+        expected = Timedelta('1H')
+        result = pd.Timedelta(u'1H')
+        self.assertEqual(result, expected)
+        self.assertEqual(to_timedelta(pd.offsets.Hour(2)),
+                         Timedelta(u'0 days, 02:00:00'))
+
+        self.assertRaises(ValueError, lambda: Timedelta(u'foo bar'))
 
     def test_round(self):
 
@@ -171,15 +184,41 @@ class TestTimedeltas(tm.TestCase):
         t2 = Timedelta('-1 days 02:34:56.789123456')
 
         for (freq, s1, s2) in [('N', t1, t2),
-                               ('U', Timedelta('1 days 02:34:56.789123000'),Timedelta('-1 days 02:34:56.789123000')),
-                               ('L', Timedelta('1 days 02:34:56.789000000'),Timedelta('-1 days 02:34:56.789000000')),
-                               ('S',  Timedelta('1 days 02:34:56'),Timedelta('-1 days 02:34:56')),
-                               ('2S',  Timedelta('1 days 02:34:56'),Timedelta('-1 days 02:34:56')),
-                               ('5S',  Timedelta('1 days 02:34:55'),Timedelta('-1 days 02:34:55')),
-                               ('T',  Timedelta('1 days 02:34:00'),Timedelta('-1 days 02:34:00')),
-                               ('12T',  Timedelta('1 days 02:24:00'),Timedelta('-1 days 02:24:00')),
-                               ('H',  Timedelta('1 days 02:00:00'),Timedelta('-1 days 02:00:00')),
-                               ('d',  Timedelta('1 days'),Timedelta('-1 days'))]:
+                               ('U',
+                                Timedelta('1 days 02:34:56.789123000'),
+                                Timedelta('-1 days 02:34:56.789123000')
+                                ),
+                               ('L',
+                                Timedelta('1 days 02:34:56.789000000'),
+                                Timedelta('-1 days 02:34:56.789000000')
+                                ),
+                               ('S',
+                                Timedelta('1 days 02:34:56'),
+                                Timedelta('-1 days 02:34:56')
+                                ),
+                               ('2S',
+                                Timedelta('1 days 02:34:56'),
+                                Timedelta('-1 days 02:34:56')
+                                ),
+                               ('5S',
+                                Timedelta('1 days 02:34:55'),
+                                Timedelta('-1 days 02:34:55')
+                                ),
+                               ('T',
+                                Timedelta('1 days 02:34:00'),
+                                Timedelta('-1 days 02:34:00')
+                                ),
+                               ('12T',
+                                Timedelta('1 days 02:24:00'),
+                                Timedelta('-1 days 02:24:00')),
+                               ('H',
+                                Timedelta('1 days 02:00:00'),
+                                Timedelta('-1 days 02:00:00')
+                                ),
+                               ('d',
+                                Timedelta('1 days'),
+                                Timedelta('-1 days')
+                                )]:
             r1 = t1.round(freq)
             self.assertEqual(r1, s1)
             r2 = t2.round(freq)
@@ -1104,20 +1143,32 @@ class TestTimedeltaIndex(tm.TestCase):
         self.assertTrue(result.iloc[1].isnull().all())
 
     def test_constructor(self):
-        expected = TimedeltaIndex(['1 days','1 days 00:00:05',
-                                   '2 days','2 days 00:00:02','0 days 00:00:03'])
-        result = TimedeltaIndex(['1 days','1 days, 00:00:05',
-                                 np.timedelta64(2,'D'),
-                                 timedelta(days=2,seconds=2),
+        expected = TimedeltaIndex(['1 days', '1 days 00:00:05',
+                                   '2 days', '2 days 00:00:02',
+                                   '0 days 00:00:03'])
+        result = TimedeltaIndex(['1 days', '1 days, 00:00:05',
+                                 np.timedelta64(2, 'D'),
+                                 timedelta(days=2, seconds=2),
                                  pd.offsets.Second(3)])
-        tm.assert_index_equal(result,expected)
+        tm.assert_index_equal(result, expected)
 
-        expected = TimedeltaIndex(['0 days 00:00:00', '0 days 00:00:01', '0 days 00:00:02'])
+        # unicode
+        result = TimedeltaIndex([u'1 days', '1 days, 00:00:05',
+                                 np.timedelta64(2, 'D'),
+                                 timedelta(days=2, seconds=2),
+                                 pd.offsets.Second(3)])
+
+        expected = TimedeltaIndex(['0 days 00:00:00', '0 days 00:00:01',
+                                   '0 days 00:00:02'])
         tm.assert_index_equal(TimedeltaIndex(range(3), unit='s'), expected)
-        expected = TimedeltaIndex(['0 days 00:00:00', '0 days 00:00:05', '0 days 00:00:09'])
+        expected = TimedeltaIndex(['0 days 00:00:00', '0 days 00:00:05',
+                                   '0 days 00:00:09'])
         tm.assert_index_equal(TimedeltaIndex([0, 5, 9], unit='s'), expected)
-        expected = TimedeltaIndex(['0 days 00:00:00.400', '0 days 00:00:00.450', '0 days 00:00:01.200'])
-        tm.assert_index_equal(TimedeltaIndex([400, 450, 1200], unit='ms'), expected)
+        expected = TimedeltaIndex(['0 days 00:00:00.400',
+                                   '0 days 00:00:00.450',
+                                   '0 days 00:00:01.200'])
+        tm.assert_index_equal(TimedeltaIndex([400, 450, 1200], unit='ms'),
+                              expected)
 
     def test_constructor_coverage(self):
         rng = timedelta_range('1 days', periods=10.5)
