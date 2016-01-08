@@ -45,6 +45,15 @@ def str_cat(arr, others=None, sep=None, na_rep=None):
 
     Examples
     --------
+    When ``na_rep`` is `None` (default behavior), NaN value(s)
+    in the Series propagate and return value will be NaN.
+
+    >>> Series(['a','b',np.nan,'c']).str.cat(sep=' ')
+    nan
+
+    >>> Series(['a','b',np.nan,'c']).str.cat(sep=' ', na_rep='?')
+    'a b ? c'
+
     If ``others`` is specified, corresponding values are
     concatenated with the separator. Result will be a Series of strings.
 
@@ -110,11 +119,13 @@ def str_cat(arr, others=None, sep=None, na_rep=None):
 def _length_check(others):
     n = None
     for x in others:
-        if n is None:
-            n = len(x)
-        elif len(x) != n:
-            raise ValueError('All arrays must be same length')
-
+        try:
+            if n is None:
+                n = len(x)
+            elif len(x) != n:
+                raise ValueError('All arrays must be same length')
+        except TypeError:
+            raise ValueError("Did you mean to supply a `sep` keyword?")
     return n
 
 
