@@ -9,6 +9,10 @@ users upgrade to this version.
 
 .. warning::
 
+   pandas >= 0.18.0 will no longer support compatibility with Python version 2.6 (:issue:`7718`)
+
+.. warning::
+
    pandas >= 0.18.0 will no longer support compatibility with Python version 3.3 (:issue:`11273`)
 
 Highlights include:

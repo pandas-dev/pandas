@@ -5052,8 +5052,6 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         self.assertEqual(df.index.name, 'id')
 
     def test_from_records_with_datetimes(self):
-        if sys.version < LooseVersion('2.7'):
-            raise nose.SkipTest('rec arrays dont work properly with py2.6')
 
         # this may fail on certain platforms because of a numpy issue
         # related GH6140
@@ -13492,13 +13490,8 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
 
         # float input to `decimals`
         non_int_round_dict = {'col1': 1, 'col2': 0.5}
-        if sys.version < LooseVersion('2.7'):
-            # np.round([1.123, 2.123], 0.5) is only a warning in Python 2.6
-            with self.assert_produces_warning(DeprecationWarning, check_stacklevel=False):
-                df.round(non_int_round_dict)
-        else:
-            with self.assertRaises(TypeError):
-                df.round(non_int_round_dict)
+        with self.assertRaises(TypeError):
+            df.round(non_int_round_dict)
 
         # String input
         non_int_round_dict = {'col1': 1, 'col2': 'foo'}

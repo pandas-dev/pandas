@@ -45,7 +45,7 @@ parser.add_argument('--dry',
 args = parser.parse_args()
 dry_run = args.dry
 
-builds = ['26-32','26-64','27-32','27-64','33-32','33-64','34-32','34-64']
+builds = ['27-32','27-64','34-32','34-64']
 base_dir = "C:\Users\Jeff Reback\Documents\GitHub\pandas"
 remote_host='pandas.pydata.org'
 username='pandas'
@@ -140,7 +140,7 @@ def do_update(is_verbose=True):
         if is_verbose:
             logger.info("commits changed : {0} -> {1}".format(start_commit,master.commit))
     return result
-    
+
 def run_install():
     # send the installation binaries
 
