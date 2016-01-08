@@ -521,7 +521,7 @@ class CheckIndexing(object):
         self.assertEqual(a.ix[-2].name, 'S')
 
     def test_getattr(self):
-        tm.assert_series_equal(self.frame.A, self.frame['A'])
+        assert_series_equal(self.frame.A, self.frame['A'])
         self.assertRaises(AttributeError, getattr, self.frame,
                           'NONEXISTENT_NAME')
 
@@ -2067,51 +2067,51 @@ class CheckIndexing(object):
         df = pd.DataFrame(np.random.randn(3, 3),
                           index=[0.1, 0.2, 0.2], columns=list('abc'))
         expect = df.iloc[1:]
-        tm.assert_frame_equal(df.loc[0.2], expect)
-        tm.assert_frame_equal(df.ix[0.2], expect)
+        assert_frame_equal(df.loc[0.2], expect)
+        assert_frame_equal(df.ix[0.2], expect)
 
         expect = df.iloc[1:, 0]
-        tm.assert_series_equal(df.loc[0.2, 'a'], expect)
+        assert_series_equal(df.loc[0.2, 'a'], expect)
 
         df.index = [1, 0.2, 0.2]
         expect = df.iloc[1:]
-        tm.assert_frame_equal(df.loc[0.2], expect)
-        tm.assert_frame_equal(df.ix[0.2], expect)
+        assert_frame_equal(df.loc[0.2], expect)
+        assert_frame_equal(df.ix[0.2], expect)
 
         expect = df.iloc[1:, 0]
-        tm.assert_series_equal(df.loc[0.2, 'a'], expect)
+        assert_series_equal(df.loc[0.2, 'a'], expect)
 
         df = pd.DataFrame(np.random.randn(4, 3),
                           index=[1, 0.2, 0.2, 1], columns=list('abc'))
         expect = df.iloc[1:-1]
-        tm.assert_frame_equal(df.loc[0.2], expect)
-        tm.assert_frame_equal(df.ix[0.2], expect)
+        assert_frame_equal(df.loc[0.2], expect)
+        assert_frame_equal(df.ix[0.2], expect)
 
         expect = df.iloc[1:-1, 0]
-        tm.assert_series_equal(df.loc[0.2, 'a'], expect)
+        assert_series_equal(df.loc[0.2, 'a'], expect)
 
         df.index = [0.1, 0.2, 2, 0.2]
         expect = df.iloc[[1, -1]]
-        tm.assert_frame_equal(df.loc[0.2], expect)
-        tm.assert_frame_equal(df.ix[0.2], expect)
+        assert_frame_equal(df.loc[0.2], expect)
+        assert_frame_equal(df.ix[0.2], expect)
 
         expect = df.iloc[[1, -1], 0]
-        tm.assert_series_equal(df.loc[0.2, 'a'], expect)
+        assert_series_equal(df.loc[0.2, 'a'], expect)
 
     def test_setitem_with_sparse_value(self):
         # GH8131
-        df = pd.DataFrame({'c_1':['a', 'b', 'c'], 'n_1': [1., 2., 3.]})
+        df = pd.DataFrame({'c_1': ['a', 'b', 'c'], 'n_1': [1., 2., 3.]})
         sp_series = pd.Series([0, 0, 1]).to_sparse(fill_value=0)
         df['new_column'] = sp_series
-        tm.assert_series_equal(df['new_column'], sp_series, check_names=False)
+        assert_series_equal(df['new_column'], sp_series, check_names=False)
 
     def test_setitem_with_unaligned_sparse_value(self):
-        df = pd.DataFrame({'c_1':['a', 'b', 'c'], 'n_1': [1., 2., 3.]})
+        df = pd.DataFrame({'c_1': ['a', 'b', 'c'], 'n_1': [1., 2., 3.]})
         sp_series = (pd.Series([0, 0, 1], index=[2, 1, 0])
                      .to_sparse(fill_value=0))
         df['new_column'] = sp_series
         exp = pd.Series([1, 0, 0], name='new_column')
-        tm.assert_series_equal(df['new_column'], exp)
+        assert_series_equal(df['new_column'], exp)
 
 
 _seriesd = tm.getSeriesData()
@@ -3019,7 +3019,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         assert_frame_equal(result, expected, check_dtype=False)
 
     def test_constructor_dict_multiindex(self):
-        check = lambda result, expected: tm.assert_frame_equal(
+        check = lambda result, expected: assert_frame_equal(
             result, expected, check_dtype=True, check_index_type=True,
             check_column_type=True, check_names=True)
         d = {('a', 'a'): {('i', 'i'): 0, ('i', 'j'): 1, ('j', 'i'): 2},
@@ -3101,7 +3101,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
                 data.setdefault(col, {})[row] = df.get_value(row, col)
 
         result = DataFrame(data, columns=rng)
-        tm.assert_frame_equal(result, df)
+        assert_frame_equal(result, df)
 
         data = {}
         for col in df.columns:
@@ -3109,8 +3109,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
                 data.setdefault(row, {})[col] = df.get_value(row, col)
 
         result = DataFrame(data, index=rng).T
-        tm.assert_frame_equal(result, df)
-
+        assert_frame_equal(result, df)
 
     def _check_basic_constructor(self, empty):
         "mat: 2d matrix with shpae (3, 2) to input. empty - makes sized objects"
@@ -3374,7 +3373,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
             DataFrame(mat, index=[0, 1], columns=[0], dtype=float)
 
         dm = DataFrame(DataFrame(self.frame._series))
-        tm.assert_frame_equal(dm, self.frame)
+        assert_frame_equal(dm, self.frame)
 
         # int cast
         dm = DataFrame({'A': np.ones(10, dtype=int),
@@ -4878,8 +4877,8 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         self.assert_numpy_array_equal(indexed_frame.index, index)
 
         # without names, it should go to last ditch
-        arr2 = np.zeros((2,3))
-        tm.assert_frame_equal(DataFrame.from_records(arr2), DataFrame(arr2))
+        arr2 = np.zeros((2, 3))
+        assert_frame_equal(DataFrame.from_records(arr2), DataFrame(arr2))
 
         # wrong length
         msg = r'Shape of passed values is \(3, 2\), indices imply \(3, 1\)'
@@ -5128,8 +5127,9 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
                            index=df1.index, columns=['value1', 'value2'])
 
         # these must be the same results (but columns are flipped)
-        tm.assert_frame_equal(df1.join(df2, how='left'), exp)
-        tm.assert_frame_equal(df2.join(df1, how='right'), exp[['value2', 'value1']])
+        assert_frame_equal(df1.join(df2, how='left'), exp)
+        assert_frame_equal(df2.join(df1, how='right'),
+                           exp[['value2', 'value1']])
 
         exp_idx = pd.MultiIndex.from_product([['a', 'b'], ['x', 'y', 'z']],
                                              names=['first', 'second'])
@@ -5137,20 +5137,22 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
                             [-0.353756, 20], [0.368062, 20], [-1.721840, 20]],
                            index=exp_idx, columns=['value1', 'value2'])
 
-        tm.assert_frame_equal(df1.join(df2, how='right'), exp)
-        tm.assert_frame_equal(df2.join(df1, how='left'), exp[['value2', 'value1']])
+        assert_frame_equal(df1.join(df2, how='right'), exp)
+        assert_frame_equal(df2.join(df1, how='left'),
+                           exp[['value2', 'value1']])
 
     def test_from_records_sequencelike(self):
-        df = DataFrame({'A' : np.array(np.random.randn(6), dtype = np.float64),
-                        'A1': np.array(np.random.randn(6), dtype = np.float64),
-                        'B' : np.array(np.arange(6), dtype = np.int64),
-                        'C' : ['foo'] * 6,
-                        'D' : np.array([True, False] * 3, dtype=bool),
-                        'E' : np.array(np.random.randn(6), dtype = np.float32),
-                        'E1': np.array(np.random.randn(6), dtype = np.float32),
-                        'F' : np.array(np.arange(6), dtype = np.int32) })
+        df = DataFrame({'A': np.array(np.random.randn(6), dtype=np.float64),
+                        'A1': np.array(np.random.randn(6), dtype=np.float64),
+                        'B': np.array(np.arange(6), dtype=np.int64),
+                        'C': ['foo'] * 6,
+                        'D': np.array([True, False] * 3, dtype=bool),
+                        'E': np.array(np.random.randn(6), dtype=np.float32),
+                        'E1': np.array(np.random.randn(6), dtype=np.float32),
+                        'F': np.array(np.arange(6), dtype=np.int32)})
 
-        # this is actually tricky to create the recordlike arrays and have the dtypes be intact
+        # this is actually tricky to create the recordlike arrays and
+        # have the dtypes be intact
         blocks = df.blocks
         tuples = []
         columns = []
@@ -5770,12 +5772,12 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
             # no nats
             expected = left_f(df, Timestamp('20010109'))
             result = right_f(Timestamp('20010109'), df)
-            tm.assert_frame_equal(result, expected)
+            assert_frame_equal(result, expected)
 
             # nats
             expected = left_f(df, Timestamp('nat'))
             result = right_f(Timestamp('nat'), df)
-            tm.assert_frame_equal(result, expected)
+            assert_frame_equal(result, expected)
 
     def test_modulo(self):
 
@@ -9704,7 +9706,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
             df = DataFrame({'a': [metachar, 'else']})
             result = df.replace({'a': {metachar: 'paren'}})
             expected = DataFrame({'a': ['paren', 'else']})
-            tm.assert_frame_equal(result, expected)
+            assert_frame_equal(result, expected)
 
     def test_replace(self):
         self.tsframe['A'][:5] = nan
@@ -9835,21 +9837,21 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         expected = DataFrame({'col': ['a', 2, 3, 'b']})
 
         result = df.replace({'col': {1: 'a', 4: 'b'}})
-        tm.assert_frame_equal(expected, result)
+        assert_frame_equal(expected, result)
 
         # in this case, should be the same as the not nested version
         result = df.replace({1: 'a', 4: 'b'})
-        tm.assert_frame_equal(expected, result)
+        assert_frame_equal(expected, result)
 
     def test_replace_simple_nested_dict_with_nonexistent_value(self):
         df = DataFrame({'col': range(1, 5)})
         expected = DataFrame({'col': ['a', 2, 3, 'b']})
 
         result = df.replace({-1: '-', 1: 'a', 4: 'b'})
-        tm.assert_frame_equal(expected, result)
+        assert_frame_equal(expected, result)
 
         result = df.replace({'col': {-1: '-', 1: 'a', 4: 'b'}})
-        tm.assert_frame_equal(expected, result)
+        assert_frame_equal(expected, result)
 
     def test_interpolate(self):
         pass
@@ -9997,7 +9999,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
                    5, 'Strongly Disagree': 1}
         expected = Series({0: 5, 1: 4, 2: 3, 3: 2, 4: 1})
         result = answer.replace(weights)
-        tm.assert_series_equal(result, expected)
+        assert_series_equal(result, expected)
 
     def test_replace_series_no_regex(self):
         answer = Series({0: 'Strongly Agree', 1: 'Agree', 2: 'Neutral', 3:
@@ -10006,7 +10008,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
                           'Strongly Agree': 5, 'Strongly Disagree': 1})
         expected = Series({0: 5, 1: 4, 2: 3, 3: 2, 4: 1})
         result = answer.replace(weights)
-        tm.assert_series_equal(result, expected)
+        assert_series_equal(result, expected)
 
     def test_replace_dict_tuple_list_ordering_remains_the_same(self):
         df = DataFrame(dict(A=[nan, 1]))
@@ -10015,9 +10017,9 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         res3 = df.replace(to_replace=[1, nan], value=[-1e8, 0])
 
         expected = DataFrame({'A': [0, -1e8]})
-        tm.assert_frame_equal(res1, res2)
-        tm.assert_frame_equal(res2, res3)
-        tm.assert_frame_equal(res3, expected)
+        assert_frame_equal(res1, res2)
+        assert_frame_equal(res2, res3)
+        assert_frame_equal(res3, expected)
 
     def test_replace_doesnt_replace_without_regex(self):
         from pandas.compat import StringIO
@@ -10028,24 +10030,24 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         3    3     0    bt     0"""
         df = read_csv(StringIO(raw), sep=r'\s+')
         res = df.replace({'\D': 1})
-        tm.assert_frame_equal(df, res)
+        assert_frame_equal(df, res)
 
     def test_replace_bool_with_string(self):
         df = DataFrame({'a': [True, False], 'b': list('ab')})
         result = df.replace(True, 'a')
         expected = DataFrame({'a': ['a', False], 'b': df.b})
-        tm.assert_frame_equal(result, expected)
+        assert_frame_equal(result, expected)
 
     def test_replace_pure_bool_with_string_no_op(self):
         df = DataFrame(np.random.rand(2, 2) > 0.5)
         result = df.replace('asdf', 'fdsa')
-        tm.assert_frame_equal(df, result)
+        assert_frame_equal(df, result)
 
     def test_replace_bool_with_bool(self):
         df = DataFrame(np.random.rand(2, 2) > 0.5)
         result = df.replace(False, True)
         expected = DataFrame(np.ones((2, 2), dtype=bool))
-        tm.assert_frame_equal(result, expected)
+        assert_frame_equal(result, expected)
 
     def test_replace_with_dict_with_bool_keys(self):
         df = DataFrame({0: [True, False], 1: [False, True]})
@@ -10056,7 +10058,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         df = DataFrame({'a': [True, True]})
         r = df.replace([np.inf, -np.inf], np.nan)
         e = df
-        tm.assert_frame_equal(r, e)
+        assert_frame_equal(r, e)
 
     def test_replace_int_to_int_chain(self):
         df = DataFrame({'a': lrange(1, 5)})
@@ -10075,12 +10077,12 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         df = pd.DataFrame({'a': [True, False, True]})
         res = df.replace({'a': {True: 'Y', False: 'N'}})
         expect = pd.DataFrame({'a': ['Y', 'N', 'Y']})
-        tm.assert_frame_equal(res, expect)
+        assert_frame_equal(res, expect)
 
         df = pd.DataFrame({'a': [0, 1, 0]})
         res = df.replace({'a': {0: 'Y', 1: 'N'}})
         expect = pd.DataFrame({'a': ['Y', 'N', 'Y']})
-        tm.assert_frame_equal(res, expect)
+        assert_frame_equal(res, expect)
 
     def test_replace_period(self):
         d = {'fname':
@@ -10103,7 +10105,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         expected = DataFrame({'fname': [d['fname'][k]
                                         for k in df.fname.values]})
         result = df.replace(d)
-        tm.assert_frame_equal(result, expected)
+        assert_frame_equal(result, expected)
 
     def test_replace_datetime(self):
         d = {'fname':
@@ -10126,7 +10128,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         expected = DataFrame({'fname': [d['fname'][k]
                                         for k in df.fname.values]})
         result = df.replace(d)
-        tm.assert_frame_equal(result, expected)
+        assert_frame_equal(result, expected)
 
     def test_replace_datetimetz(self):
 
@@ -10507,18 +10509,20 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
 
     def test_reindex_nan(self):
         df = pd.DataFrame([[1, 2], [3, 5], [7, 11], [9, 23]],
-                index=[2, np.nan, 1, 5], columns=['joe', 'jim'])
+                          index=[2, np.nan, 1, 5],
+                          columns=['joe', 'jim'])
 
         i, j = [np.nan, 5, 5, np.nan, 1, 2, np.nan], [1, 3, 3, 1, 2, 0, 1]
-        tm.assert_frame_equal(df.reindex(i), df.iloc[j])
+        assert_frame_equal(df.reindex(i), df.iloc[j])
 
         df.index = df.index.astype('object')
-        tm.assert_frame_equal(df.reindex(i), df.iloc[j], check_index_type=False)
+        assert_frame_equal(df.reindex(i), df.iloc[j], check_index_type=False)
 
         # GH10388
-        df = pd.DataFrame({'other':['a', 'b', np.nan, 'c'],
-                           'date':['2015-03-22', np.nan, '2012-01-08', np.nan],
-                           'amount':[2, 3, 4, 5]})
+        df = pd.DataFrame({'other': ['a', 'b', np.nan, 'c'],
+                           'date': ['2015-03-22', np.nan,
+                                    '2012-01-08', np.nan],
+                           'amount': [2, 3, 4, 5]})
 
         df['date'] = pd.to_datetime(df.date)
         df['delta'] = (pd.to_datetime('2015-06-18') - df['date']).shift(1)
@@ -10848,11 +10852,11 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         res2l, res2r = df2.align(df1, join='right')
 
         expl = df1
-        tm.assert_frame_equal(expl, res1l)
-        tm.assert_frame_equal(expl, res2r)
+        assert_frame_equal(expl, res1l)
+        assert_frame_equal(expl, res2r)
         expr = pd.DataFrame([0, 0, 1, 1, np.nan, np.nan] * 2, index=midx)
-        tm.assert_frame_equal(expr, res1r)
-        tm.assert_frame_equal(expr, res2l)
+        assert_frame_equal(expr, res1r)
+        assert_frame_equal(expr, res2l)
 
         res1l, res1r = df1.align(df2, join='right')
         res2l, res2r = df2.align(df1, join='left')
@@ -10860,14 +10864,15 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         exp_idx = pd.MultiIndex.from_product([range(2), range(2), range(2)],
                                              names=('a', 'b', 'c'))
         expl = pd.DataFrame([0, 1, 2, 3, 6, 7, 8, 9], index=exp_idx)
-        tm.assert_frame_equal(expl, res1l)
-        tm.assert_frame_equal(expl, res2r)
+        assert_frame_equal(expl, res1l)
+        assert_frame_equal(expl, res2r)
         expr = pd.DataFrame([0, 0, 1, 1] * 2, index=exp_idx)
-        tm.assert_frame_equal(expr, res1r)
-        tm.assert_frame_equal(expr, res2l)
+        assert_frame_equal(expr, res1r)
+        assert_frame_equal(expr, res2l)
 
     def test_where(self):
-        default_frame = DataFrame(np.random.randn(5, 3),columns=['A','B','C'])
+        default_frame = DataFrame(np.random.randn(5, 3),
+                                  columns=['A', 'B', 'C'])
 
         def _safe_add(df):
             # only add to the numeric items
@@ -13441,7 +13446,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
 
         # Test that rounding an empty DataFrame does nothing
         df = DataFrame()
-        tm.assert_frame_equal(df, df.round())
+        assert_frame_equal(df, df.round())
 
         # Here's the test frame we'll be working with
         df = DataFrame(
@@ -13450,17 +13455,17 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         # Default round to integer (i.e. decimals=0)
         expected_rounded = DataFrame(
             {'col1': [1., 2., 3.], 'col2': [1., 2., 3.]})
-        tm.assert_frame_equal(df.round(), expected_rounded)
+        assert_frame_equal(df.round(), expected_rounded)
 
         # Round with an integer
         decimals = 2
         expected_rounded = DataFrame(
             {'col1': [1.12, 2.12, 3.12], 'col2': [1.23, 2.23, 3.23]})
-        tm.assert_frame_equal(df.round(decimals), expected_rounded)
+        assert_frame_equal(df.round(decimals), expected_rounded)
 
         # This should also work with np.round (since np.round dispatches to
         # df.round)
-        tm.assert_frame_equal(np.round(df, decimals), expected_rounded)
+        assert_frame_equal(np.round(df, decimals), expected_rounded)
 
         # Round with a list
         round_list = [1, 2]
@@ -13471,18 +13476,18 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         expected_rounded = DataFrame(
             {'col1': [1.1, 2.1, 3.1], 'col2': [1.23, 2.23, 3.23]})
         round_dict = {'col1': 1, 'col2': 2}
-        tm.assert_frame_equal(df.round(round_dict), expected_rounded)
+        assert_frame_equal(df.round(round_dict), expected_rounded)
 
         # Incomplete dict
         expected_partially_rounded = DataFrame(
             {'col1': [1.123, 2.123, 3.123], 'col2': [1.2, 2.2, 3.2]})
         partial_round_dict = {'col2': 1}
-        tm.assert_frame_equal(
+        assert_frame_equal(
             df.round(partial_round_dict), expected_partially_rounded)
 
         # Dict with unknown elements
         wrong_round_dict = {'col3': 2, 'col2': 1}
-        tm.assert_frame_equal(
+        assert_frame_equal(
             df.round(wrong_round_dict), expected_partially_rounded)
 
         # float input to `decimals`
@@ -13526,8 +13531,8 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         negative_round_dict = {'col1': -1, 'col2': -2}
         big_df = df * 100
         expected_neg_rounded = DataFrame(
-                {'col1':[110., 210, 310], 'col2':[100., 200, 300]})
-        tm.assert_frame_equal(
+            {'col1': [110., 210, 310], 'col2': [100., 200, 300]})
+        assert_frame_equal(
             big_df.round(negative_round_dict), expected_neg_rounded)
 
         # nan in Series round
@@ -13543,7 +13548,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
                 df.round(nan_round_Series)
 
         # Make sure this doesn't break existing Series.round
-        tm.assert_series_equal(df['col1'].round(1), expected_rounded['col1'])
+        assert_series_equal(df['col1'].round(1), expected_rounded['col1'])
 
         # named columns
         # GH 11986
@@ -13552,27 +13557,28 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
             {'col1': [1.12, 2.12, 3.12], 'col2': [1.23, 2.23, 3.23]})
         df.columns.name = "cols"
         expected_rounded.columns.name = "cols"
-        tm.assert_frame_equal(df.round(decimals), expected_rounded)
+        assert_frame_equal(df.round(decimals), expected_rounded)
 
         # interaction of named columns & series
-        tm.assert_series_equal(df['col1'].round(decimals),
-                               expected_rounded['col1'])
-        tm.assert_series_equal(df.round(decimals)['col1'],
-                               expected_rounded['col1'])
+        assert_series_equal(df['col1'].round(decimals),
+                            expected_rounded['col1'])
+        assert_series_equal(df.round(decimals)['col1'],
+                            expected_rounded['col1'])
 
     def test_round_mixed_type(self):
         # GH11885
-        df = DataFrame({'col1': [1.1, 2.2, 3.3, 4.4], 'col2': ['1', 'a', 'c', 'f'],
+        df = DataFrame({'col1': [1.1, 2.2, 3.3, 4.4],
+                        'col2': ['1', 'a', 'c', 'f'],
                         'col3': date_range('20111111', periods=4)})
-        round_0 = DataFrame({'col1': [1., 2., 3., 4.], 'col2': ['1', 'a', 'c' ,'f'],
-                              'col3': date_range('20111111', periods=4)})
-        tm.assert_frame_equal(df.round(), round_0)
-        tm.assert_frame_equal(df.round(1), df)
-        tm.assert_frame_equal(df.round({'col1':1}), df)
-        tm.assert_frame_equal(df.round({'col1':0}), round_0)
-        tm.assert_frame_equal(df.round({'col1':0, 'col2':1}), round_0)
-        tm.assert_frame_equal(df.round({'col3':1}), df)
-
+        round_0 = DataFrame({'col1': [1., 2., 3., 4.],
+                             'col2': ['1', 'a', 'c', 'f'],
+                             'col3': date_range('20111111', periods=4)})
+        assert_frame_equal(df.round(), round_0)
+        assert_frame_equal(df.round(1), df)
+        assert_frame_equal(df.round({'col1': 1}), df)
+        assert_frame_equal(df.round({'col1': 0}), round_0)
+        assert_frame_equal(df.round({'col1': 0, 'col2': 1}), round_0)
+        assert_frame_equal(df.round({'col3': 1}), df)
 
     def test_round_issue(self):
         # GH11611
@@ -13600,7 +13606,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         # Default round to integer (i.e. decimals=0)
         expected_rounded = DataFrame(
             {'col1': [1., 2., 3.], 'col2': [1., 2., 3.]})
-        tm.assert_frame_equal(round(df), expected_rounded)
+        assert_frame_equal(round(df), expected_rounded)
 
     def test_quantile(self):
         from numpy import percentile
@@ -14158,8 +14164,8 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         dm = DataFrame(self.mixed_frame._series)
         df = DataFrame(self.mixed_frame._series)
 
-        tm.assert_series_equal(dm.count(), df.count())
-        tm.assert_series_equal(dm.count(1), df.count(1))
+        assert_series_equal(dm.count(), df.count())
+        assert_series_equal(dm.count(1), df.count(1))
 
     def test_cumsum_corner(self):
         dm = DataFrame(np.arange(20).reshape(4, 5),
@@ -14384,7 +14390,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
             right[('D', 'a')] = right[('D', 'a')].astype('int64')
 
             self.assertEqual(left.shape, (3, 2))
-            tm.assert_frame_equal(left, right)
+            assert_frame_equal(left, right)
 
     def test_unstack_non_unique_index_names(self):
         idx = MultiIndex.from_tuples([('a', 'b'), ('c', 'd')],
@@ -15917,11 +15923,11 @@ starting,ending,measure
                         'f': pd.Categorical(list('abc'))})
         ri = df.select_dtypes(include=[np.number])
         ei = df[['b', 'c', 'd']]
-        tm.assert_frame_equal(ri, ei)
+        assert_frame_equal(ri, ei)
 
-        ri = df.select_dtypes(include=[np.number,'category'])
+        ri = df.select_dtypes(include=[np.number, 'category'])
         ei = df[['b', 'c', 'd', 'f']]
-        tm.assert_frame_equal(ri, ei)
+        assert_frame_equal(ri, ei)
 
     def test_select_dtypes_exclude(self):
         df = DataFrame({'a': list('abc'),
@@ -15931,7 +15937,7 @@ starting,ending,measure
                         'e': [True, False, True]})
         re = df.select_dtypes(exclude=[np.number])
         ee = df[['a', 'e']]
-        tm.assert_frame_equal(re, ee)
+        assert_frame_equal(re, ee)
 
     def test_select_dtypes_exclude_include(self):
         df = DataFrame({'a': list('abc'),
@@ -15944,13 +15950,13 @@ starting,ending,measure
         include = np.bool_, 'integer'
         r = df.select_dtypes(include=include, exclude=exclude)
         e = df[['b', 'c', 'e']]
-        tm.assert_frame_equal(r, e)
+        assert_frame_equal(r, e)
 
         exclude = 'datetime',
         include = 'bool', 'int64', 'int32'
         r = df.select_dtypes(include=include, exclude=exclude)
         e = df[['b', 'e']]
-        tm.assert_frame_equal(r, e)
+        assert_frame_equal(r, e)
 
     def test_select_dtypes_not_an_attr_but_still_valid_dtype(self):
         df = DataFrame({'a': list('abc'),
@@ -15963,11 +15969,11 @@ starting,ending,measure
         assert not hasattr(np, 'u8')
         r = df.select_dtypes(include=['i8', 'O'], exclude=['timedelta'])
         e = df[['a', 'b']]
-        tm.assert_frame_equal(r, e)
+        assert_frame_equal(r, e)
 
         r = df.select_dtypes(include=['i8', 'O', 'timedelta64[ns]'])
         e = df[['a', 'b', 'g']]
-        tm.assert_frame_equal(r, e)
+        assert_frame_equal(r, e)
 
     def test_select_dtypes_empty(self):
         df = DataFrame({'a': list('abc'), 'b': list(range(1, 4))})
@@ -16121,7 +16127,7 @@ starting,ending,measure
                            'b': list(ascii_lowercase[:10])})
         result = df.nlargest(5, 'a')
         expected = df.sort_values('a', ascending=False).head(5)
-        tm.assert_frame_equal(result, expected)
+        assert_frame_equal(result, expected)
 
     def test_nlargest_multiple_columns(self):
         from string import ascii_lowercase
@@ -16130,7 +16136,7 @@ starting,ending,measure
                            'c': np.random.permutation(10).astype('float64')})
         result = df.nlargest(5, ['a', 'b'])
         expected = df.sort_values(['a', 'b'], ascending=False).head(5)
-        tm.assert_frame_equal(result, expected)
+        assert_frame_equal(result, expected)
 
     def test_nsmallest(self):
         from string import ascii_lowercase
@@ -16138,7 +16144,7 @@ starting,ending,measure
                            'b': list(ascii_lowercase[:10])})
         result = df.nsmallest(5, 'a')
         expected = df.sort_values('a').head(5)
-        tm.assert_frame_equal(result, expected)
+        assert_frame_equal(result, expected)
 
     def test_nsmallest_multiple_columns(self):
         from string import ascii_lowercase
@@ -16147,7 +16153,7 @@ starting,ending,measure
                            'c': np.random.permutation(10).astype('float64')})
         result = df.nsmallest(5, ['a', 'c'])
         expected = df.sort_values(['a', 'c']).head(5)
-        tm.assert_frame_equal(result, expected)
+        assert_frame_equal(result, expected)
 
     def test_to_panel_expanddim(self):
         # GH 9762
@@ -16398,7 +16404,7 @@ class TestDataFrameQueryWithMultiIndex(object):
             if isinstance(v, Index):
                 assert v.is_(expected[k])
             elif isinstance(v, Series):
-                tm.assert_series_equal(v, expected[k])
+                assert_series_equal(v, expected[k])
             else:
                 raise AssertionError("object must be a Series or Index")
 
@@ -16460,7 +16466,7 @@ class TestDataFrameQueryNumExprPandas(tm.TestCase):
         res = df.query('dates1 < 20130101 < dates3', engine=engine,
                        parser=parser)
         expec = df[(df.dates1 < '20130101') & ('20130101' < df.dates3)]
-        tm.assert_frame_equal(res, expec)
+        assert_frame_equal(res, expec)
 
     def test_date_query_with_NaT(self):
         engine, parser = self.engine, self.parser
@@ -16541,14 +16547,14 @@ class TestDataFrameQueryNumExprPandas(tm.TestCase):
 
         df = DataFrame(np.random.randn(20, 2), columns=list('ab'))
 
-        a, b = 1, 2
+        a, b = 1, 2  # noqa
         res = df.query('a > b', engine=engine, parser=parser)
         expected = df[df.a > df.b]
-        tm.assert_frame_equal(res, expected)
+        assert_frame_equal(res, expected)
 
         res = df.query('@a > b', engine=engine, parser=parser)
         expected = df[a > df.b]
-        tm.assert_frame_equal(res, expected)
+        assert_frame_equal(res, expected)
 
         # no local variable c
         with tm.assertRaises(UndefinedVariableError):
@@ -16689,12 +16695,12 @@ class TestDataFrameQueryNumExprPandas(tm.TestCase):
 
         expected = df.loc[(df.b - 1).isin(a)]
         result = df.query('b - 1 in a', engine=engine, parser=parser)
-        tm.assert_frame_equal(expected, result)
+        assert_frame_equal(expected, result)
 
         b = Series(np.random.randint(10, size=15), name='b')
         expected = df.loc[(b - 1).isin(a)]
         result = df.query('@b - 1 in a', engine=engine, parser=parser)
-        tm.assert_frame_equal(expected, result)
+        assert_frame_equal(expected, result)
 
     def test_at_inside_string(self):
         engine, parser = self.engine, self.parser
@@ -16703,7 +16709,7 @@ class TestDataFrameQueryNumExprPandas(tm.TestCase):
         df = DataFrame({'a': ['a', 'a', 'b', 'b', '@c', '@c']})
         result = df.query('a == "@c"', engine=engine, parser=parser)
         expected = df[df.a == "@c"]
-        tm.assert_frame_equal(result, expected)
+        assert_frame_equal(result, expected)
 
     def test_query_undefined_local(self):
         from pandas.computation.ops import UndefinedVariableError
@@ -16722,22 +16728,24 @@ class TestDataFrameQueryNumExprPandas(tm.TestCase):
         df.index.name = 'index'
         result = df.query('index > 5', engine=self.engine, parser=self.parser)
         expected = df[df['index'] > 5]
-        tm.assert_frame_equal(result, expected)
+        assert_frame_equal(result, expected)
 
-        df = DataFrame({'index': a, 'b': np.random.randn(a.size)})
-        result = df.query('ilevel_0 > 5', engine=self.engine, parser=self.parser)
+        df = DataFrame({'index': a,
+                        'b': np.random.randn(a.size)})
+        result = df.query('ilevel_0 > 5', engine=self.engine,
+                          parser=self.parser)
         expected = df.loc[df.index[df.index > 5]]
-        tm.assert_frame_equal(result, expected)
+        assert_frame_equal(result, expected)
 
         df = DataFrame({'a': a, 'b': np.random.randn(a.size)})
         df.index.name = 'a'
         result = df.query('a > 5', engine=self.engine, parser=self.parser)
         expected = df[df.a > 5]
-        tm.assert_frame_equal(result, expected)
+        assert_frame_equal(result, expected)
 
         result = df.query('index > 5', engine=self.engine, parser=self.parser)
         expected = df.loc[df.index[df.index > 5]]
-        tm.assert_frame_equal(result, expected)
+        assert_frame_equal(result, expected)
 
     def test_inf(self):
         n = 10
@@ -16749,7 +16757,7 @@ class TestDataFrameQueryNumExprPandas(tm.TestCase):
             q = 'a %s inf' % op
             expected = df[f(df.a, np.inf)]
             result = df.query(q, engine=self.engine, parser=self.parser)
-            tm.assert_frame_equal(result, expected)
+            assert_frame_equal(result, expected)
 
 
 class TestDataFrameQueryNumExprPython(TestDataFrameQueryNumExprPandas):
@@ -16771,7 +16779,8 @@ class TestDataFrameQueryNumExprPython(TestDataFrameQueryNumExprPandas):
         res = df.query('(dates1 < 20130101) & (20130101 < dates3)',
                        engine=engine, parser=parser)
         expec = df[(df.dates1 < '20130101') & ('20130101' < df.dates3)]
-        tm.assert_frame_equal(res, expec)
+        assert_frame_equal(res, expec)
+
     def test_date_query_with_NaT(self):
         engine, parser = self.engine, self.parser
         n = 10
@@ -16844,12 +16853,12 @@ class TestDataFrameQueryNumExprPython(TestDataFrameQueryNumExprPandas):
         expected = df[(df > 0) & (df2 > 0)]
         result = pd.eval('df[(df > 0) & (df2 > 0)]', engine=engine,
                          parser=parser)
-        tm.assert_frame_equal(expected, result)
+        assert_frame_equal(expected, result)
 
         expected = df[(df > 0) & (df2 > 0) & (df[df > 0] > 0)]
         result = pd.eval('df[(df > 0) & (df2 > 0) & (df[df > 0] > 0)]',
                          engine=engine, parser=parser)
-        tm.assert_frame_equal(expected, result)
+        assert_frame_equal(expected, result)
 
 
 class TestDataFrameQueryPythonPandas(TestDataFrameQueryNumExprPandas):
@@ -16870,7 +16879,7 @@ class TestDataFrameQueryPythonPandas(TestDataFrameQueryNumExprPandas):
         df.index.name = 'sin'
         expected = df[df.index > 5]
         result = df.query('sin > 5', engine=engine, parser=parser)
-        tm.assert_frame_equal(expected, result)
+        assert_frame_equal(expected, result)
 
 
 class TestDataFrameQueryPythonPython(TestDataFrameQueryNumExprPython):
@@ -16890,7 +16899,7 @@ class TestDataFrameQueryPythonPython(TestDataFrameQueryNumExprPython):
         df.index.name = 'sin'
         expected = df[df.index > 5]
         result = df.query('sin > 5', engine=engine, parser=parser)
-        tm.assert_frame_equal(expected, result)
+        assert_frame_equal(expected, result)
 
 
 PARSERS = 'python', 'pandas'
@@ -17047,7 +17056,7 @@ class TestDataFrameQueryStrings(object):
         expected = df[df.event == '"page 1 load"']
         res = df.query("""'"page 1 load"' in event""", parser=parser,
                        engine=engine)
-        tm.assert_frame_equal(expected, res)
+        assert_frame_equal(expected, res)
 
     def test_query_with_nested_string(self):
         for parser, engine in product(PARSERS, ENGINES):
@@ -17060,7 +17069,7 @@ class TestDataFrameQueryStrings(object):
                         'b': [1, 2, 3]})
         res = df.query('a == "test & test"', parser=parser, engine=engine)
         expec = df[df.a == 'test & test']
-        tm.assert_frame_equal(res, expec)
+        assert_frame_equal(res, expec)
 
     def test_query_with_nested_special_character(self):
         for parser, engine in product(PARSERS, ENGINES):
@@ -17103,9 +17112,9 @@ class TestDataFrameQueryStrings(object):
         df = pd.DataFrame({'Symbol': ['BUD US', 'BUD US', 'IBM US', 'IBM US'],
                            'Price': [109.70, 109.72, 183.30, 183.35]})
         e = df[df.Symbol == 'BUD US']
-        symb = 'BUD US'
+        symb = 'BUD US'  # noqa
         r = df.query('Symbol == @symb', parser=parser, engine=engine)
-        tm.assert_frame_equal(e, r)
+        assert_frame_equal(e, r)
 
     def test_query_string_scalar_variable(self):
         for parser, engine in product(['pandas'], ENGINES):
