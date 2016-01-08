@@ -4462,7 +4462,7 @@ class DataFrame(NDFrame):
             raise TypeError("decimals must be an integer, a dict-like or a Series")
 
         if len(new_cols) > 0:
-            return concat(new_cols, axis=1)
+            return DataFrame(concat(new_cols, axis=1), self.index, self.columns)
         else:
             return self
 
