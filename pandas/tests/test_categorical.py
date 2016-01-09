@@ -3721,6 +3721,7 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
 
 
         for func, args, kwargs in func_defs:
+            print(func, args, kwargs, c)
             res = getattr(c.str, func)(*args, **kwargs)
             exp = getattr(s.str, func)(*args, **kwargs)
 
