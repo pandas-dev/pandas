@@ -966,7 +966,7 @@ bias : boolean, default False
 """
 
 class EWM(_Rolling):
-    """
+    r"""
     Provides exponential weighted functions
 
     .. versionadded:: 0.18.0
