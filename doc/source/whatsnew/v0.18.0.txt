@@ -24,6 +24,7 @@ Highlights include:
   since 0.14.0. This will now raise a ``TypeError``, see :ref:`here <whatsnew_0180.float_indexers>`.
 - The ``.to_xarray()`` function has been added for compatibility with the
   `xarray package <http://xarray.pydata.org/en/stable/>`__, see :ref:`here <whatsnew_0180.enhancements.xarray>`.
+- The ``read_sas`` function has been enhanced to read ``sas7bdat`` files, see :ref:`here <whatsnew_0180.enhancements.sas>`.
 - Addition of the :ref:`.str.extractall() method <whatsnew_0180.enhancements.extract>`,
   and API changes to the :ref:`.str.extract() method <whatsnew_0180.enhancements.extract>`
   and :ref:`.str.cat() method <whatsnew_0180.enhancements.strcat>`.
@@ -402,6 +403,13 @@ For example, if you have a jupyter notebook you plan to convert to latex using n
 
 Options ``display.latex.escape`` and ``display.latex.longtable`` have also been added to the configuration and are used automatically by the ``to_latex``
 method. See the :ref:`options documentation<options>` for more info.
+
+.. _whatsnew_0180.enhancements.sas:
+
+SAS7BDAT files
+^^^^^^^^^^^^^^
+
+Pandas can now read SAS7BDAT files, including compressed files.  The files can be read in entirety, or incrementally.  For full details see :ref:`here <io.sas>`. (issue:`4052`)
 
 .. _whatsnew_0180.enhancements.other:
 
