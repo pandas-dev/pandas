@@ -262,7 +262,8 @@ class CheckSDist(sdist_class):
                  'pandas/parser.pyx',
                  'pandas/src/period.pyx',
                  'pandas/src/sparse.pyx',
-                 'pandas/src/testing.pyx']
+                 'pandas/src/testing.pyx',
+                 'pandas/io/sas/saslib.pyx']
 
     def initialize_options(self):
         sdist_class.initialize_options(self)
@@ -418,8 +419,10 @@ ext_data = dict(
                         'pandas/src/parser/io.h',
                         'pandas/src/numpy_helper.h'],
             'sources': ['pandas/src/parser/tokenizer.c',
-                        'pandas/src/parser/io.c']}
+                        'pandas/src/parser/io.c']},
 )
+
+ext_data["io.sas.saslib"] = {'pyxfile': 'io/sas/saslib'}
 
 extensions = []
 
@@ -527,6 +530,7 @@ setup(name=DISTNAME,
                 'pandas.core',
                 'pandas.indexes',
                 'pandas.io',
+                'pandas.io.sas',
                 'pandas.rpy',
                 'pandas.sandbox',
                 'pandas.sparse',

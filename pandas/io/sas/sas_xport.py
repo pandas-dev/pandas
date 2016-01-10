@@ -15,9 +15,10 @@ from pandas import compat
 import struct
 import numpy as np
 from pandas.util.decorators import Appender
+import warnings
 
-_correct_line1 = ("HEADER RECORD*******LIBRARY HEADER RECORD"
-                  "!!!!!!!000000000000000000000000000000  ")
+_correct_line1 = ("HEADER RECORD*******LIBRARY HEADER RECORD!!!!!!!"
+                  "000000000000000000000000000000  ")
 _correct_header1 = ("HEADER RECORD*******MEMBER  HEADER RECORD!!!!!!!"
                     "000000000000000001600000000")
 _correct_header2 = ("HEADER RECORD*******DSCRPTR HEADER RECORD!!!!!!!"
@@ -27,6 +28,7 @@ _correct_obs_header = ("HEADER RECORD*******OBS     HEADER RECORD!!!!!!!"
 _fieldkeys = ['ntype', 'nhfun', 'field_length', 'nvar0', 'name', 'label',
               'nform', 'nfl', 'num_decimals', 'nfj', 'nfill', 'niform',
               'nifl', 'nifd', 'npos', '_']
+
 
 _base_params_doc = """\
 Parameters
@@ -110,25 +112,6 @@ Returns
 -------
 A DataFrame.
 """
-
-
-@Appender(_read_sas_doc)
-def read_sas(filepath_or_buffer, format='xport', index=None,
-             encoding='ISO-8859-1', chunksize=None, iterator=False):
-
-    format = format.lower()
-
-    if format == 'xport':
-        reader = XportReader(filepath_or_buffer, index=index,
-                             encoding=encoding,
-                             chunksize=chunksize)
-    else:
-        raise ValueError('only xport format is supported')
-
-    if iterator or chunksize:
-        return reader
-
-    return reader.read()
 
 
 def _parse_date(datestr):
@@ -282,8 +265,9 @@ class XportReader(BaseIterator):
             raise ValueError("Header record is not an XPORT file.")
 
         line2 = self._get_row()
-        file_info = _split_line(line2, [['prefix', 24], ['version', 8],
-                                        ['OS', 8], ['_', 24], ['created', 16]])
+        fif = [['prefix', 24], ['version', 8], ['OS', 8],
+               ['_', 24], ['created', 16]]
+        file_info = _split_line(line2, fif)
         if file_info['prefix'] != "SAS     SAS     SASLIB":
             raise ValueError("Header record has invalid prefix.")
         file_info['created'] = _parse_date(file_info['created'])
@@ -295,22 +279,19 @@ class XportReader(BaseIterator):
         # read member header
         header1 = self._get_row()
         header2 = self._get_row()
-        if (not header1.startswith(_correct_header1) or
-                not header2 == _correct_header2):
-            raise ValueError("Member header not found.")
-        fieldnamelength = int(header1[-5:-2])  # usually 140, could be 135
+        headflag1 = header1.startswith(_correct_header1)
+        headflag2 = (header2 == _correct_header2)
+        if not (headflag1 and headflag2):
+            raise ValueError("Member header not found")
+        # usually 140, could be 135
+        fieldnamelength = int(header1[-5:-2])
 
         # member info
-        member_info = _split_line(self._get_row(), [['prefix', 8],
-                                                    ['set_name', 8],
-                                                    ['sasdata', 8],
-                                                    ['version', 8],
-                                                    ['OS', 8], ['_', 24],
-                                                    ['created', 16]])
-        member_info.update(_split_line(self._get_row(),
-                                       [['modified', 16],
-                                        ['_', 16],
-                                        ['label', 40], ['type', 8]]))
+        mem = [['prefix', 8], ['set_name', 8], ['sasdata', 8],
+               ['version', 8], ['OS', 8], ['_', 24], ['created', 16]]
+        member_info = _split_line(self._get_row(), mem)
+        mem = [['modified', 16], ['_', 16], ['label', 40], ['type', 8]]
+        member_info.update(_split_line(self._get_row(), mem))
         member_info['modified'] = _parse_date(member_info['modified'])
         member_info['created'] = _parse_date(member_info['created'])
         self.member_info = member_info
@@ -319,15 +300,16 @@ class XportReader(BaseIterator):
         types = {1: 'numeric', 2: 'char'}
         fieldcount = int(self._get_row()[54:58])
         datalength = fieldnamelength * fieldcount
-        if datalength % 80:  # round up to nearest 80
+        # round up to nearest 80
+        if datalength % 80:
             datalength += 80 - datalength % 80
         fielddata = self.filepath_or_buffer.read(datalength)
         fields = []
         obs_length = 0
         while len(fielddata) >= fieldnamelength:
             # pull data for one field
-            field, fielddata = (
-                fielddata[:fieldnamelength], fielddata[fieldnamelength:])
+            field, fielddata = (fielddata[:fieldnamelength],
+                                fielddata[fieldnamelength:])
 
             # rest at end gets ignored, so if field is short, pad out
             # to match struct pattern below
@@ -339,8 +321,8 @@ class XportReader(BaseIterator):
             field['ntype'] = types[field['ntype']]
             fl = field['field_length']
             if field['ntype'] == 'numeric' and ((fl < 2) or (fl > 8)):
-                raise TypeError("Floating point field width %d is not between "
-                                "2 and 8." % fl)
+                msg = "Floating field width {0} is not between 2 and 8."
+                raise TypeError(msg.format(fl))
 
             for k, v in field.items():
                 try:
@@ -376,8 +358,8 @@ class XportReader(BaseIterator):
         """
         Get number of records in file.
 
-        This is maybe suboptimal because we have to seek to the end of the
-        file.
+        This is maybe suboptimal because we have to seek to the end of
+        the file.
 
         Side effect: returns file position to record_start.
         """
@@ -387,7 +369,6 @@ class XportReader(BaseIterator):
                                 self.record_start)
 
         if total_records_length % 80 != 0:
-            import warnings
             warnings.warn("xport file may be corrupted")
 
         if self.record_length > 80:
@@ -461,7 +442,8 @@ class XportReader(BaseIterator):
             elif self.fields[j]['ntype'] == 'char':
                 v = [y.rstrip() for y in vec]
                 if compat.PY3:
-                    v = [y.decode(self._encoding) for y in v]
+                    if self._encoding is not None:
+                        v = [y.decode(self._encoding) for y in v]
             df[x] = v
 
         if self._index is None:

@@ -1,6 +1,6 @@
 import pandas as pd
 import pandas.util.testing as tm
-from pandas.io.sas import XportReader, read_sas
+from pandas.io.sas.sasreader import read_sas
 import numpy as np
 import os
 
@@ -33,16 +33,16 @@ class TestXport(tm.TestCase):
         numeric_as_float(data_csv)
 
         # Read full file
-        data = XportReader(self.file01).read()
+        data = read_sas(self.file01, format="xport")
         tm.assert_frame_equal(data, data_csv)
 
         # Test incremental read with `read` method.
-        reader = XportReader(self.file01)
+        reader = read_sas(self.file01, format="xport", iterator=True)
         data = reader.read(10)
         tm.assert_frame_equal(data, data_csv.iloc[0:10, :])
 
         # Test incremental read with `get_chunk` method.
-        reader = XportReader(self.file01, chunksize=10)
+        reader = read_sas(self.file01, format="xport", chunksize=10)
         data = reader.get_chunk()
         tm.assert_frame_equal(data, data_csv.iloc[0:10, :])
 
@@ -59,20 +59,22 @@ class TestXport(tm.TestCase):
         numeric_as_float(data_csv)
 
         # Read full file
-        data = XportReader(self.file01, index="SEQN").read()
+        data = read_sas(self.file01, index="SEQN", format="xport")
         tm.assert_frame_equal(data, data_csv, check_index_type=False)
 
         # Test incremental read with `read` method.
-        reader = XportReader(self.file01, index="SEQN")
+        reader = read_sas(self.file01, index="SEQN", format="xport",
+                          iterator=True)
         data = reader.read(10)
-        tm.assert_frame_equal(data, data_csv.iloc[
-                              0:10, :], check_index_type=False)
+        tm.assert_frame_equal(data, data_csv.iloc[0:10, :],
+                              check_index_type=False)
 
         # Test incremental read with `get_chunk` method.
-        reader = XportReader(self.file01, index="SEQN", chunksize=10)
+        reader = read_sas(self.file01, index="SEQN", format="xport",
+                          chunksize=10)
         data = reader.get_chunk()
-        tm.assert_frame_equal(data, data_csv.iloc[
-                              0:10, :], check_index_type=False)
+        tm.assert_frame_equal(data, data_csv.iloc[0:10, :],
+                              check_index_type=False)
 
     def test1_incremental(self):
         # Test with DEMO_G.xpt, reading full file incrementally
@@ -81,15 +83,10 @@ class TestXport(tm.TestCase):
         data_csv = data_csv.set_index("SEQN")
         numeric_as_float(data_csv)
 
-        reader = XportReader(self.file01, index="SEQN", chunksize=1000)
+        reader = read_sas(self.file01, index="SEQN", chunksize=1000)
 
         all_data = [x for x in reader]
         data = pd.concat(all_data, axis=0)
-
-        tm.assert_frame_equal(data, data_csv, check_index_type=False)
-
-        reader = XportReader(self.file01, index="SEQN", chunksize=1000)
-        data = pd.concat(reader, axis=0)
 
         tm.assert_frame_equal(data, data_csv, check_index_type=False)
 
@@ -100,7 +97,7 @@ class TestXport(tm.TestCase):
         data_csv = pd.read_csv(self.file02.replace(".xpt", ".csv"))
         numeric_as_float(data_csv)
 
-        data = XportReader(self.file02).read()
+        data = read_sas(self.file02)
         tm.assert_frame_equal(data, data_csv)
 
     def test_multiple_types(self):
@@ -109,10 +106,7 @@ class TestXport(tm.TestCase):
         # Compare to this
         data_csv = pd.read_csv(self.file03.replace(".xpt", ".csv"))
 
-        data = XportReader(self.file03).read()
-        tm.assert_frame_equal(data, data_csv)
-
-        data = read_sas(self.file03)
+        data = read_sas(self.file03, encoding="utf-8")
         tm.assert_frame_equal(data, data_csv)
 
     def test_truncated_float_support(self):
@@ -124,8 +118,5 @@ class TestXport(tm.TestCase):
 
         data_csv = pd.read_csv(self.file04.replace(".xpt", ".csv"))
 
-        data = XportReader(self.file04).read()
-        tm.assert_frame_equal(data.astype('int64'), data_csv)
-
-        data = read_sas(self.file04)
+        data = read_sas(self.file04, format="xport")
         tm.assert_frame_equal(data.astype('int64'), data_csv)
