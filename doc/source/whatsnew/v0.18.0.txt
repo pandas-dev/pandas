@@ -463,6 +463,7 @@ Bug Fixes
 - Bug in ``pd.read_clipboard`` and ``pd.to_clipboard`` functions not supporting Unicode; upgrade included ``pyperclip`` to v1.5.15 (:issue:`9263`)
 - Bug in ``DataFrame.query`` containing an assignment (:issue:`8664`)
 
+- Bug in ``from_msgpack`` where ``__contains__()`` fails for columns of the unpacked ``DataFrame``, if the ``DataFrame`` has object columns. (:issue: `11880`)
 
 
 - Bug in timezone info lost when broadcasting scalar datetime to ``DataFrame`` (:issue:`11682`)

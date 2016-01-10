@@ -965,6 +965,7 @@ bias : boolean, default False
    Use a standard estimation bias correction
 """
 
+
 class EWM(_Rolling):
     r"""
     Provides exponential weighted functions
