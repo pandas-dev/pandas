@@ -403,6 +403,13 @@ For example, if you have a jupyter notebook you plan to convert to latex using n
 Options ``display.latex.escape`` and ``display.latex.longtable`` have also been added to the configuration and are used automatically by the ``to_latex``
 method. See the :ref:`options documentation<options>` for more info.
 
+SAS7BDAT files
+^^^^^^^^^^^^^^
+
+Pandas can now read SAS7BDAT files, including compressed files.  The
+files can be read in entirety, or incrementally.  For full details see
+:ref:`here <io.sas>`. (issue:`4052`)
+
 .. _whatsnew_0180.enhancements.other:
 
 Other enhancements
