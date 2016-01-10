@@ -1224,6 +1224,23 @@ class TestTimeSeries(tm.TestCase):
         tm.assert_equal(index_name, df.index.name)
         tm.assert_equal(index_name, df.asfreq('10D').index.name)
 
+    def test_asfreq_resample_set_correct_freq(self):
+        # GH5613
+        # we test if .asfreq() and .resample() set the correct value for .freq
+        df = pd.DataFrame({'date': ["2012-01-01", "2012-01-02", "2012-01-03"],
+                           'col': [1, 2, 3]})
+        df = df.set_index(pd.to_datetime(df.date))
+
+        # testing the settings before calling .asfreq() and .resample()
+        self.assertEqual(df.index.freq, None)
+        self.assertEqual(df.index.inferred_freq, 'D')
+
+        # does .asfreq() set .freq correctly?
+        self.assertEqual(df.asfreq('D').index.freq, 'D')
+
+        # does .resample() set .freq correctly?
+        self.assertEqual(df.resample('D').index.freq, 'D')
+
     def test_promote_datetime_date(self):
         rng = date_range('1/1/2000', periods=20)
         ts = Series(np.random.randn(20), index=rng)
