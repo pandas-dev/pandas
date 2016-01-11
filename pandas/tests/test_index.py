@@ -4028,6 +4028,12 @@ class TestPeriodIndex(DatetimeLike, tm.TestCase):
         with tm.assertRaisesRegexp(ValueError, 'Input has different freq=D from PeriodIndex\\(freq=H\\)'):
             idx.fillna(pd.Period('2011-01-01', freq='D'))
 
+    def test_no_millisecond_field(self):
+        with self.assertRaises(AttributeError):
+            DatetimeIndex.millisecond
+
+        with self.assertRaises(AttributeError):
+            DatetimeIndex([]).millisecond
 
 class TestTimedeltaIndex(DatetimeLike, tm.TestCase):
     _holder = TimedeltaIndex
