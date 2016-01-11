@@ -1109,50 +1109,56 @@ class _NDFrameIndexer(object):
             return labels.get_locs(obj)
         elif is_list_like_indexer(obj):
             if is_bool_indexer(obj):
-                obj = check_bool_indexer(labels, obj)
-                inds, = obj.nonzero()
-                return inds
+                if is_bool_indexer(list(labels)):
+                    pass
+                elif len(obj) == self.obj.shape[axis]:
+                    obj = check_bool_indexer(labels, obj)
+                    inds, = obj.nonzero()
+                    return inds
+                else:
+                    raise ValueError('Item wrong length %d instead of %d.' %
+                                 (len(obj), len(self.obj.index)))
+
+            if isinstance(obj, Index):
+                objarr = obj.values
             else:
-                if isinstance(obj, Index):
-                    objarr = obj.values
+                objarr = _asarray_tuplesafe(obj)
+
+            # The index may want to handle a list indexer differently
+            # by returning an indexer or raising
+            indexer = labels._convert_list_indexer(objarr, kind=self.name)
+            if indexer is not None:
+                return indexer
+
+            # this is not the most robust, but...
+            if (isinstance(labels, MultiIndex) and
+                    not isinstance(objarr[0], tuple)):
+                level = 0
+                _, indexer = labels.reindex(objarr, level=level)
+
+                # take all
+                if indexer is None:
+                    indexer = np.arange(len(labels))
+
+                check = labels.levels[0].get_indexer(objarr)
+            else:
+                level = None
+
+                # unique index
+                if labels.is_unique:
+                    indexer = check = labels.get_indexer(objarr)
+
+                # non-unique (dups)
                 else:
-                    objarr = _asarray_tuplesafe(obj)
+                    (indexer,
+                     missing) = labels.get_indexer_non_unique(objarr)
+                    check = indexer
 
-                # The index may want to handle a list indexer differently
-                # by returning an indexer or raising
-                indexer = labels._convert_list_indexer(objarr, kind=self.name)
-                if indexer is not None:
-                    return indexer
+            mask = check == -1
+            if mask.any():
+                raise KeyError('%s not in index' % objarr[mask])
 
-                # this is not the most robust, but...
-                if (isinstance(labels, MultiIndex) and
-                        not isinstance(objarr[0], tuple)):
-                    level = 0
-                    _, indexer = labels.reindex(objarr, level=level)
-
-                    # take all
-                    if indexer is None:
-                        indexer = np.arange(len(labels))
-
-                    check = labels.levels[0].get_indexer(objarr)
-                else:
-                    level = None
-
-                    # unique index
-                    if labels.is_unique:
-                        indexer = check = labels.get_indexer(objarr)
-
-                    # non-unique (dups)
-                    else:
-                        (indexer,
-                         missing) = labels.get_indexer_non_unique(objarr)
-                        check = indexer
-
-                mask = check == -1
-                if mask.any():
-                    raise KeyError('%s not in index' % objarr[mask])
-
-                return _values_from_object(indexer)
+            return _values_from_object(indexer)
 
         else:
             try:
