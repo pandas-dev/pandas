@@ -303,6 +303,30 @@ class TestDataFramePlots(TestPlotBase):
         _check_plot_works(df.boxplot, return_type='axes')
 
     @slow
+    def test_hist_df_nan_and_weights(self):
+        d = {'category' : ['A', 'A', 'B', 'B', 'C'],
+             'items' : [4., 3., 2., np.nan, 1],
+             'val' : [10., 8., np.nan, 5, 7.]}
+        df = DataFrame(d)
+        orig_columns = df.columns
+        orig_rows = len(df)
+        _check_plot_works(df.hist, column='items', by='category',
+                          weights='val', bins=range(0, 10))
+        _check_plot_works(df.hist, column='items', by='category',
+                          weights=df.val.values, bins=range(0, 10))
+        # check without weights functionality
+        _check_plot_works(df.hist, column='items', by='category',
+                          bins=range(0, 10))
+        _check_plot_works(df.hist, column='items', weights='val',
+                          bins=range(0, 10))
+        _check_plot_works(df.hist, column='items', weights=df.val.values,
+                          bins=range(0, 10))
+        # also check that we have not changed the original df that had
+        # nan values in it.
+        self.assertEqual(len(orig_columns), len(df.columns))
+        self.assertEqual(orig_rows, len(df))
+
+    @slow
     def test_hist_df_legacy(self):
         from matplotlib.patches import Rectangle
         _check_plot_works(self.hist_df.hist)
