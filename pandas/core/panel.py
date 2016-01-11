@@ -1339,8 +1339,10 @@ class Panel(NDFrame):
         other = other.reindex(**{axis_name: axis_values})
 
         for frame in axis_values:
-            self[frame].update(other[frame], join, overwrite, filter_func,
+            temp = self[frame]
+            temp.update(other[frame], join, overwrite, filter_func,
                                raise_conflict)
+            self[frame] = temp
 
     def _get_join_index(self, other, how):
         if how == 'left':
