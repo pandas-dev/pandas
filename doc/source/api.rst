@@ -581,6 +581,7 @@ strings and apply several methods to it. These can be accessed like
        Series.dt
        Index.str
        CategoricalIndex.str
+       MultiIndex.str
        DatetimeIndex.str
        TimedeltaIndex.str
 
@@ -1404,6 +1405,33 @@ Categorical Components
    CategoricalIndex.set_categories
    CategoricalIndex.as_ordered
    CategoricalIndex.as_unordered
+
+.. _api.multiindex:
+
+MultiIndex
+----------
+
+.. autosummary::
+   :toctree: generated/
+
+   MultiIndex
+
+MultiIndex Components
+~~~~~~~~~~~~~~~~~~~~~~
+
+.. autosummary::
+   :toctree: generated/
+
+   MultiIndex.from_arrays
+   MultiIndex.from_tuples
+   MultiIndex.from_product
+   MultiIndex.set_levels
+   MultiIndex.set_labels
+   MultiIndex.to_hierarchical
+   MultiIndex.is_lexsorted
+   MultiIndex.droplevel
+   MultiIndex.swaplevel
+   MultiIndex.reorder_levels
 
 .. _api.datetimeindex:
 
