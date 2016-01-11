@@ -8,9 +8,8 @@ import cython
 from cpython.object cimport (Py_EQ, Py_NE, Py_GT, Py_LT, Py_GE, Py_LE,
                              PyObject_RichCompare)
 
-
+import numbers
 _VALID_CLOSED = frozenset(['left', 'right', 'both', 'neither'])
-
 
 cdef class IntervalMixin:
     property closed_left:
@@ -101,6 +100,46 @@ cdef class Interval(IntervalMixin):
         end_symbol = ']' if self.closed_right else ')'
         return '%s%s, %s%s' % (start_symbol, self.left, self.right, end_symbol)
 
+    def __add__(self, y):
+        if isinstance(y, numbers.Number):
+            return Interval(self.left + y, self.right + y)
+        elif isinstance(y, Interval) and isinstance(self, numbers.Number):
+            return Interval(y.left + self, y.right + self)
+        else:
+            raise NotImplemented
+
+    def __sub__(self, y):
+        if isinstance(y, numbers.Number):
+            return Interval(self.left - y, self.right - y)
+        else:
+            raise NotImplemented
+
+    def __mul__(self, y):
+        if isinstance(y, numbers.Number):
+            return Interval(self.left * y, self.right * y)
+        elif isinstance(y, Interval) and isinstance(self, numbers.Number):
+            return Interval(y.left * self, y.right * self)
+        else:
+            return NotImplemented
+
+    def __div__(self, y):
+        if isinstance(y, numbers.Number):
+            return Interval(self.left / y, self.right / y)
+        else:
+            return NotImplemented
+
+    def __truediv__(self, y):
+        if isinstance(y, numbers.Number):
+            return Interval(self.left / y, self.right / y)
+        else:
+            return NotImplemented
+
+    def __floordiv__(self, y):
+        if isinstance(y, numbers.Number):
+            return Interval(self.left // y, self.right // y)
+        else:
+            return NotImplemented
+
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
@@ -129,3 +168,4 @@ cpdef intervals_to_interval_bounds(np.ndarray intervals):
         elif closed != interval.closed:
             raise ValueError('intervals must all be closed on the same side')
     return left, right, closed
+

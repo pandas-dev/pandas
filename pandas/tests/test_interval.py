@@ -1,3 +1,4 @@
+from __future__ import division
 import numpy as np
 
 from pandas.core.interval import Interval, IntervalIndex
@@ -63,10 +64,61 @@ class TestInterval(tm.TestCase):
         # should not raise
         hash(self.interval)
 
-    # def test_math(self):
-    #     expected = Interval(1, 2)
-    #     actual = self.interval + 1
-    #     self.assertEqual(expected, actual)
+    def test_math_add(self):
+        expected = Interval(1, 2)
+        actual = self.interval + 1
+        self.assertEqual(expected, actual)
+
+        expected = Interval(1, 2)
+        actual = 1 + self.interval
+        self.assertEqual(expected, actual)
+
+        actual = self.interval
+        actual += 1
+        self.assertEqual(expected, actual)
+
+        with self.assertRaises(TypeError):
+            self.interval + Interval(1, 2)
+
+    def test_math_sub(self):
+        expected = Interval(-1, 0)
+        actual = self.interval - 1
+        self.assertEqual(expected, actual)
+
+        actual = self.interval
+        actual -= 1
+        self.assertEqual(expected, actual)
+
+        with self.assertRaises(TypeError):
+            self.interval - Interval(1, 2)
+
+    def test_math_mult(self):
+        expected = Interval(0, 2)
+        actual = self.interval * 2
+        self.assertEqual(expected, actual)
+
+        expected = Interval(0, 2)
+        actual = 2 * self.interval
+        self.assertEqual(expected, actual)
+
+        actual = self.interval
+        actual *= 2
+        self.assertEqual(expected, actual)
+
+        with self.assertRaises(TypeError):
+            self.interval * Interval(1, 2)
+
+    def test_math_div(self):
+        expected = Interval(0, 0.5)
+        actual = self.interval / 2.0
+        self.assertEqual(expected, actual)
+
+        actual = self.interval
+        actual /= 2.0
+        self.assertEqual(expected, actual)
+
+        with self.assertRaises(TypeError):
+            self.interval / Interval(1, 2)
 
 
 class TestIntervalTree(tm.TestCase):
@@ -515,7 +567,7 @@ class TestIntervalIndex(tm.TestCase):
         self.assert_numpy_array_equal(actual, expected)
 
     # def test_math(self):
-    #     # add, subtract, multiply, divide with scalers should be OK
+    #     # add, subtract, multiply, divide with scalars should be OK
     #     actual = 2 * self.index + 1
     #     expected = IntervalIndex.from_breaks((2 * np.arange(3) + 1))
     #     self.assertTrue(expected.equals(actual))
