@@ -631,6 +631,8 @@ def pandasSQL_builder(con, flavor=None, schema=None, meta=None,
     con = _engine_builder(con)
     if _is_sqlalchemy_connectable(con):
         return SQLDatabase(con, schema=schema, meta=meta)
+    elif isinstance(con, string_types):
+        raise ImportError("Using URI string without sqlalchemy installed.")
     else:
         if flavor == 'mysql':
             warnings.warn(_MYSQL_WARNING, FutureWarning, stacklevel=3)
