@@ -1482,10 +1482,11 @@ def _get_dtype_from_object(dtype):
 
         try:
             return _get_dtype_from_object(getattr(np,dtype))
-        except AttributeError:
+        except (AttributeError, TypeError):
             # handles cases like _get_dtype(int)
             # i.e., python objects that are valid dtypes (unlike user-defined
             # types, in general)
+            # TypeError handles the float16 typecode of 'e'
             # further handle internal types
             pass
 
