@@ -89,9 +89,9 @@ class CheckNameIntegration(object):
         ok_for_period_methods = ['strftime']
         ok_for_dt = ok_for_base + ['date','time','microsecond','nanosecond', 'is_month_start', 'is_month_end', 'is_quarter_start',
                                    'is_quarter_end', 'is_year_start', 'is_year_end', 'tz']
-        ok_for_dt_methods = ['to_period','to_pydatetime','tz_localize','tz_convert', 'normalize', 'strftime', 'round']
+        ok_for_dt_methods = ['to_period','to_pydatetime','tz_localize','tz_convert', 'normalize', 'strftime', 'round', 'floor', 'ceil']
         ok_for_td = ['days','seconds','microseconds','nanoseconds']
-        ok_for_td_methods = ['components','to_pytimedelta','total_seconds','round']
+        ok_for_td_methods = ['components','to_pytimedelta','total_seconds','round', 'floor', 'ceil']
 
         def get_expected(s, name):
             result = getattr(Index(s._values),prop)
@@ -141,14 +141,26 @@ class CheckNameIntegration(object):
             tm.assert_series_equal(result, expected)
 
         # round
-        s = Series(date_range('20130101 09:10:11',periods=5))
+        s = Series(pd.to_datetime(['2012-01-01 13:00:00', '2012-01-01 12:01:00', '2012-01-01 08:00:00']))
         result = s.dt.round('D')
-        expected = Series(date_range('20130101',periods=5))
+        expected = Series(pd.to_datetime(['2012-01-02', '2012-01-02', '2012-01-01']))
         tm.assert_series_equal(result, expected)
 
         # round with tz
         result = s.dt.tz_localize('UTC').dt.tz_convert('US/Eastern').dt.round('D')
-        expected = Series(date_range('20130101',periods=5)).dt.tz_localize('US/Eastern')
+        expected = Series(pd.to_datetime(['2012-01-01', '2012-01-01', '2012-01-01']).tz_localize('US/Eastern'))
+        tm.assert_series_equal(result, expected)
+
+        # floor
+        s = Series(pd.to_datetime(['2012-01-01 13:00:00', '2012-01-01 12:01:00', '2012-01-01 08:00:00']))
+        result = s.dt.floor('D')
+        expected = Series(pd.to_datetime(['2012-01-01', '2012-01-01', '2012-01-01']))
+        tm.assert_series_equal(result, expected)
+
+        # ceil
+        s = Series(pd.to_datetime(['2012-01-01 13:00:00', '2012-01-01 12:01:00', '2012-01-01 08:00:00']))
+        result = s.dt.ceil('D')
+        expected = Series(pd.to_datetime(['2012-01-02', '2012-01-02', '2012-01-02']))
         tm.assert_series_equal(result, expected)
 
         # datetimeindex with tz
