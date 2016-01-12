@@ -398,6 +398,7 @@ Deprecations
 - ``pd.tseries.frequencies.get_offset_name`` function is deprecated. Use offset's ``.freqstr`` property as alternative (:issue:`11192`)
 - ``pandas.stats.fama_macbeth`` routines are deprecated and will be removed in a future version (:issue:`6077`)
 - ``pandas.stats.ols``, ``pandas.stats.plm`` and ``pandas.stats.var`` routines are deprecated and will be removed in a future version (:issue:`6077`)
+- show a ``FutureWarning`` rather than a ``DeprecationWarning`` on using long-time deprecated syntax in ``HDFStore.select``, where ``where`` clause is not a string-like (:issue:`12027`)
 
 .. _whatsnew_0180.prior_deprecations:
 
