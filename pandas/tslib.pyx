@@ -1360,7 +1360,7 @@ cpdef convert_str_to_tsobject(object ts, object tz, object unit,
             try:
                 ts = parse_datetime_string(ts, dayfirst=dayfirst, yearfirst=yearfirst)
             except Exception:
-                raise ValueError
+                raise ValueError("year is out of range")
 
     return convert_to_tsobject(ts, tz, unit)
 
