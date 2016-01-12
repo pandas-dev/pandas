@@ -246,7 +246,7 @@ class TestTimeSeriesDuplicates(tm.TestCase):
         expected = ts['2001']
         expected.name = 'A'
 
-        df.loc['2001','A'] = 1
+        df.loc['2001', 'A'] = 1
 
         result = df['2001']['A']
         assert_series_equal(expected, result)
@@ -2805,9 +2805,9 @@ class TestDatetimeIndex(tm.TestCase):
         expected = Timestamp('20130104 12:30:00')
         self.assertEqual(result, expected)
 
-        dti = date_range('20130101 09:10:11',periods=5)
+        dti = date_range('20130101 09:10:11', periods=5)
         result = dti.round('D')
-        expected = date_range('20130101',periods=5)
+        expected = date_range('20130101', periods=5)
         tm.assert_index_equal(result, expected)
 
         # floor
@@ -2823,12 +2823,12 @@ class TestDatetimeIndex(tm.TestCase):
         self.assertEqual(result, expected)
 
         # round with tz
-        dt = Timestamp('20130101 09:10:11',tz='US/Eastern')
+        dt = Timestamp('20130101 09:10:11', tz='US/Eastern')
         result = dt.round('D')
-        expected = Timestamp('20130101',tz='US/Eastern')
+        expected = Timestamp('20130101', tz='US/Eastern')
         self.assertEqual(result, expected)
 
-        dt = Timestamp('20130101 09:10:11',tz='US/Eastern')
+        dt = Timestamp('20130101 09:10:11', tz='US/Eastern')
         result = dt.round('s')
         self.assertEqual(result, dt)
 
