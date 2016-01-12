@@ -526,7 +526,7 @@ class Expr(expr.Expr):
                     "where must be passed as a string if op/value are passed")
             warnings.warn("passing a dict to Expr is deprecated, "
                           "pass the where as a single string",
-                          DeprecationWarning)
+                          FutureWarning, stacklevel=10)
         if isinstance(w, tuple):
             if len(w) == 2:
                 w, value = w
@@ -535,7 +535,7 @@ class Expr(expr.Expr):
                 w, op, value = w
             warnings.warn("passing a tuple into Expr is deprecated, "
                           "pass the where as a single string",
-                          DeprecationWarning, stacklevel=10)
+                          FutureWarning, stacklevel=10)
 
         if op is not None:
             if not isinstance(w, string_types):
@@ -564,7 +564,7 @@ class Expr(expr.Expr):
 
             warnings.warn("passing multiple values to Expr is deprecated, "
                           "pass the where as a single string",
-                          DeprecationWarning)
+                          FutureWarning, stacklevel=10)
 
         return w
 
