@@ -1469,23 +1469,61 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin, Int64Index)
     hour = _field_accessor('hour', 'h', "The hours of the datetime")
     minute = _field_accessor('minute', 'm', "The minutes of the datetime")
     second = _field_accessor('second', 's', "The seconds of the datetime")
-    microsecond = _field_accessor('microsecond', 'us', "The microseconds of the datetime")
-    nanosecond = _field_accessor('nanosecond', 'ns', "The nanoseconds of the datetime")
-    weekofyear = _field_accessor('weekofyear', 'woy', "The week ordinal of the year")
+    microsecond = _field_accessor(
+        'microsecond',
+        'us',
+        "The microseconds of the datetime")
+    nanosecond = _field_accessor(
+        'nanosecond',
+        'ns',
+        "The nanoseconds of the datetime")
+    weekofyear = _field_accessor(
+        'weekofyear',
+        'woy',
+        "The week ordinal of the year")
     week = weekofyear
-    dayofweek = _field_accessor('dayofweek', 'dow',
-                                 "The day of the week with Monday=0, Sunday=6")
+    dayofweek = _field_accessor(
+        'dayofweek',
+        'dow',
+        "The day of the week with Monday=0, Sunday=6")
     weekday = dayofweek
-    dayofyear = _field_accessor('dayofyear', 'doy', "The ordinal day of the year")
-    quarter = _field_accessor('quarter', 'q', "The quarter of the date")
-    days_in_month = _field_accessor('days_in_month', 'dim', "The number of days in the month\n\n.. versionadded:: 0.16.0")
+    dayofyear = _field_accessor(
+        'dayofyear',
+        'doy',
+        "The ordinal day of the year")
+    quarter = _field_accessor(
+        'quarter',
+        'q',
+        "The quarter of the date")
+    days_in_month = _field_accessor(
+        'days_in_month',
+        'dim',
+        "The number of days in the month\n\n.. versionadded:: 0.16.0")
     daysinmonth = days_in_month
-    is_month_start = _field_accessor('is_month_start', 'is_month_start', "Logical indicating if first day of month (defined by frequency)")
-    is_month_end = _field_accessor('is_month_end', 'is_month_end', "Logical indicating if last day of month (defined by frequency)")
-    is_quarter_start = _field_accessor('is_quarter_start', 'is_quarter_start', "Logical indicating if first day of quarter (defined by frequency)")
-    is_quarter_end = _field_accessor('is_quarter_end', 'is_quarter_end', "Logical indicating if last day of quarter (defined by frequency)")
-    is_year_start = _field_accessor('is_year_start', 'is_year_start', "Logical indicating if first day of year (defined by frequency)")
-    is_year_end = _field_accessor('is_year_end', 'is_year_end', "Logical indicating if last day of year (defined by frequency)")
+    is_month_start = _field_accessor(
+        'is_month_start',
+        'is_month_start',
+        "Logical indicating if first day of month (defined by frequency)")
+    is_month_end = _field_accessor(
+        'is_month_end',
+        'is_month_end',
+        "Logical indicating if last day of month (defined by frequency)")
+    is_quarter_start = _field_accessor(
+        'is_quarter_start',
+        'is_quarter_start',
+        "Logical indicating if first day of quarter (defined by frequency)")
+    is_quarter_end = _field_accessor(
+        'is_quarter_end',
+        'is_quarter_end',
+        "Logical indicating if last day of quarter (defined by frequency)")
+    is_year_start = _field_accessor(
+        'is_year_start',
+        'is_year_start',
+        "Logical indicating if first day of year (defined by frequency)")
+    is_year_end = _field_accessor(
+        'is_year_end',
+        'is_year_end',
+        "Logical indicating if last day of year (defined by frequency)")
 
     @property
     def time(self):

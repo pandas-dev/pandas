@@ -3763,7 +3763,7 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
             ('round', ("D",), {}),
             ('floor', ("D",), {}),
             ('ceil', ("D",), {}),
-            #('tz_localize', ("UTC",), {}),
+            # ('tz_localize', ("UTC",), {}),
         ]
         _special_func_names = [f[0] for f in special_func_defs]
 

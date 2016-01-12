@@ -141,13 +141,16 @@ class DatetimeProperties(Properties):
     def to_pydatetime(self):
         return self.values.to_pydatetime()
 
-DatetimeProperties._add_delegate_accessors(delegate=DatetimeIndex,
-                                           accessors=DatetimeIndex._datetimelike_ops,
-                                           typ='property')
-DatetimeProperties._add_delegate_accessors(delegate=DatetimeIndex,
-                                           accessors=["to_period","tz_localize","tz_convert",
-                                                      "normalize","strftime","round", "floor", "ceil"],
-                                           typ='method')
+DatetimeProperties._add_delegate_accessors(
+    delegate=DatetimeIndex,
+    accessors=DatetimeIndex._datetimelike_ops,
+    typ='property')
+DatetimeProperties._add_delegate_accessors(
+    delegate=DatetimeIndex,
+    accessors=["to_period", "tz_localize", "tz_convert",
+               "normalize", "strftime", "round", "floor", "ceil"],
+    typ='method')
+
 
 class TimedeltaProperties(Properties):
     """
@@ -178,12 +181,15 @@ class TimedeltaProperties(Properties):
         """
         return self.values.components.set_index(self.index)
 
-TimedeltaProperties._add_delegate_accessors(delegate=TimedeltaIndex,
-                                            accessors=TimedeltaIndex._datetimelike_ops,
-                                            typ='property')
-TimedeltaProperties._add_delegate_accessors(delegate=TimedeltaIndex,
-                                            accessors=["to_pytimedelta", "total_seconds", "round", "floor", "ceil"],
-                                            typ='method')
+TimedeltaProperties._add_delegate_accessors(
+    delegate=TimedeltaIndex,
+    accessors=TimedeltaIndex._datetimelike_ops,
+    typ='property')
+TimedeltaProperties._add_delegate_accessors(
+    delegate=TimedeltaIndex,
+    accessors=["to_pytimedelta", "total_seconds", "round", "floor", "ceil"],
+    typ='method')
+
 
 class PeriodProperties(Properties):
     """

@@ -84,17 +84,25 @@ class CheckNameIntegration(object):
         # GH 7207
         # test .dt namespace accessor
 
-        ok_for_base = ['year','month','day','hour','minute','second','weekofyear','week','dayofweek','weekday','dayofyear','quarter','freq','days_in_month','daysinmonth']
+        ok_for_base = ['year', 'month', 'day', 'hour', 'minute', 'second',
+                       'weekofyear', 'week', 'dayofweek', 'weekday',
+                       'dayofyear', 'quarter', 'freq', 'days_in_month',
+                       'daysinmonth']
         ok_for_period = ok_for_base + ['qyear']
         ok_for_period_methods = ['strftime']
-        ok_for_dt = ok_for_base + ['date','time','microsecond','nanosecond', 'is_month_start', 'is_month_end', 'is_quarter_start',
-                                   'is_quarter_end', 'is_year_start', 'is_year_end', 'tz']
-        ok_for_dt_methods = ['to_period','to_pydatetime','tz_localize','tz_convert', 'normalize', 'strftime', 'round', 'floor', 'ceil']
-        ok_for_td = ['days','seconds','microseconds','nanoseconds']
-        ok_for_td_methods = ['components','to_pytimedelta','total_seconds','round', 'floor', 'ceil']
+        ok_for_dt = ok_for_base + ['date', 'time', 'microsecond', 'nanosecond',
+                                   'is_month_start', 'is_month_end',
+                                   'is_quarter_start', 'is_quarter_end',
+                                   'is_year_start', 'is_year_end', 'tz']
+        ok_for_dt_methods = ['to_period', 'to_pydatetime', 'tz_localize',
+                             'tz_convert', 'normalize', 'strftime', 'round',
+                             'floor', 'ceil']
+        ok_for_td = ['days', 'seconds', 'microseconds', 'nanoseconds']
+        ok_for_td_methods = ['components', 'to_pytimedelta', 'total_seconds',
+                             'round', 'floor', 'ceil']
 
         def get_expected(s, name):
-            result = getattr(Index(s._values),prop)
+            result = getattr(Index(s._values), prop)
             if isinstance(result, np.ndarray):
                 if com.is_integer_dtype(result):
                     result = result.astype('int64')
@@ -141,26 +149,42 @@ class CheckNameIntegration(object):
             tm.assert_series_equal(result, expected)
 
         # round
-        s = Series(pd.to_datetime(['2012-01-01 13:00:00', '2012-01-01 12:01:00', '2012-01-01 08:00:00']))
+        s = Series(pd.to_datetime(['2012-01-01 13:00:00',
+                                   '2012-01-01 12:01:00',
+                                   '2012-01-01 08:00:00']))
         result = s.dt.round('D')
-        expected = Series(pd.to_datetime(['2012-01-02', '2012-01-02', '2012-01-01']))
+        expected = Series(pd.to_datetime(['2012-01-02',
+                                          '2012-01-02',
+                                          '2012-01-01']))
         tm.assert_series_equal(result, expected)
 
         # round with tz
-        result = s.dt.tz_localize('UTC').dt.tz_convert('US/Eastern').dt.round('D')
-        expected = Series(pd.to_datetime(['2012-01-01', '2012-01-01', '2012-01-01']).tz_localize('US/Eastern'))
+        result = s.dt.tz_localize('UTC').dt.tz_convert(
+            'US/Eastern').dt.round('D')
+        expected = Series(pd.to_datetime(['2012-01-01',
+                                          '2012-01-01',
+                                          '2012-01-01']
+                                         ).tz_localize('US/Eastern'))
         tm.assert_series_equal(result, expected)
 
         # floor
-        s = Series(pd.to_datetime(['2012-01-01 13:00:00', '2012-01-01 12:01:00', '2012-01-01 08:00:00']))
+        s = Series(pd.to_datetime(['2012-01-01 13:00:00',
+                                   '2012-01-01 12:01:00',
+                                   '2012-01-01 08:00:00']))
         result = s.dt.floor('D')
-        expected = Series(pd.to_datetime(['2012-01-01', '2012-01-01', '2012-01-01']))
+        expected = Series(pd.to_datetime(['2012-01-01',
+                                          '2012-01-01',
+                                          '2012-01-01']))
         tm.assert_series_equal(result, expected)
 
         # ceil
-        s = Series(pd.to_datetime(['2012-01-01 13:00:00', '2012-01-01 12:01:00', '2012-01-01 08:00:00']))
+        s = Series(pd.to_datetime(['2012-01-01 13:00:00',
+                                   '2012-01-01 12:01:00',
+                                   '2012-01-01 08:00:00']))
         result = s.dt.ceil('D')
-        expected = Series(pd.to_datetime(['2012-01-02', '2012-01-02', '2012-01-02']))
+        expected = Series(pd.to_datetime(['2012-01-02',
+                                          '2012-01-02',
+                                          '2012-01-02']))
         tm.assert_series_equal(result, expected)
 
         # datetimeindex with tz
