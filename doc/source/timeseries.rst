@@ -1091,7 +1091,7 @@ An example of how holidays and holiday calendars are defined:
 Using this calendar, creating an index or doing offset arithmetic skips weekends
 and holidays (i.e., Memorial Day/July 4th).  For example, the below defines
 a custom business day offset using the ``ExampleCalendar``.  Like any other offset,
-it can be used to create a ``DatetimeIndex`` or added to ``datetime`` 
+it can be used to create a ``DatetimeIndex`` or added to ``datetime``
 or ``Timestamp`` objects.
 
 .. ipython:: python
