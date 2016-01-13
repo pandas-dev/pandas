@@ -20,7 +20,7 @@ from pandas.util.testing import (assert_series_equal,
 
 import pandas.util.testing as tm
 
-from pandas.tests.frame.common import _frame
+from pandas.tests.frame.common import TestData
 
 
 PARSERS = 'python', 'pandas'
@@ -39,6 +39,55 @@ def skip_if_no_ne(engine='numexpr'):
         except ImportError:
             raise nose.SkipTest("cannot query engine numexpr when numexpr not "
                                 "installed")
+
+
+class TestDataFrameEval(tm.TestCase, TestData):
+
+    _multiprocess_can_split_ = True
+
+    def test_ops(self):
+
+        # tst ops and reversed ops in evaluation
+        # GH7198
+
+        # smaller hits python, larger hits numexpr
+        for n in [4, 4000]:
+
+            df = DataFrame(1, index=range(n), columns=list('abcd'))
+            df.iloc[0] = 2
+            m = df.mean()
+
+            for op_str, op, rop in [('+', '__add__', '__radd__'),
+                                    ('-', '__sub__', '__rsub__'),
+                                    ('*', '__mul__', '__rmul__'),
+                                    ('/', '__truediv__', '__rtruediv__')]:
+
+                base = (DataFrame(np.tile(m.values, n)  # noqa
+                                  .reshape(n, -1),
+                                  columns=list('abcd')))
+
+                expected = eval("base{op}df".format(op=op_str))
+
+                # ops as strings
+                result = eval("m{op}df".format(op=op_str))
+                assert_frame_equal(result, expected)
+
+                # these are commutative
+                if op in ['+', '*']:
+                    result = getattr(df, op)(m)
+                    assert_frame_equal(result, expected)
+
+                # these are not
+                elif op in ['-', '/']:
+                    result = getattr(df, rop)(m)
+                    assert_frame_equal(result, expected)
+
+        # GH7192
+        df = DataFrame(dict(A=np.random.randn(25000)))
+        df.iloc[0:5] = np.nan
+        expected = (1 - np.isnan(df.iloc[0:25]))
+        result = (1 - np.isnan(df)).iloc[0:25]
+        assert_frame_equal(result, expected)
 
 
 class TestDataFrameQueryWithMultiIndex(tm.TestCase):
@@ -619,7 +668,7 @@ class TestDataFrameQueryNumExprPython(TestDataFrameQueryNumExprPandas):
         cls.engine = 'numexpr'
         cls.parser = 'python'
         tm.skip_if_no_ne(cls.engine)
-        cls.frame = _frame.copy()
+        cls.frame = TestData().frame
 
     def test_date_query_no_attribute_access(self):
         engine, parser = self.engine, self.parser
@@ -719,7 +768,7 @@ class TestDataFrameQueryPythonPandas(TestDataFrameQueryNumExprPandas):
         super(TestDataFrameQueryPythonPandas, cls).setUpClass()
         cls.engine = 'python'
         cls.parser = 'pandas'
-        cls.frame = _frame.copy()
+        cls.frame = TestData().frame
 
     def test_query_builtin(self):
         engine, parser = self.engine, self.parser
@@ -739,7 +788,7 @@ class TestDataFrameQueryPythonPython(TestDataFrameQueryNumExprPython):
     def setUpClass(cls):
         super(TestDataFrameQueryPythonPython, cls).setUpClass()
         cls.engine = cls.parser = 'python'
-        cls.frame = _frame.copy()
+        cls.frame = TestData().frame
 
     def test_query_builtin(self):
         engine, parser = self.engine, self.parser
