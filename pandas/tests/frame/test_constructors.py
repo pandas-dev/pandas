@@ -1552,6 +1552,71 @@ class TestDataFrameConstructors(tm.TestCase, TestData):
         expected.sort_index()
         assert_series_equal(result, expected)
 
+    def test_constructor_frame_copy(self):
+        cop = DataFrame(self.frame, copy=True)
+        cop['A'] = 5
+        self.assertTrue((cop['A'] == 5).all())
+        self.assertFalse((self.frame['A'] == 5).all())
+
+    def test_constructor_ndarray_copy(self):
+        df = DataFrame(self.frame.values)
+
+        self.frame.values[5] = 5
+        self.assertTrue((df.values[5] == 5).all())
+
+        df = DataFrame(self.frame.values, copy=True)
+        self.frame.values[6] = 6
+        self.assertFalse((df.values[6] == 6).all())
+
+    def test_constructor_series_copy(self):
+        series = self.frame._series
+
+        df = DataFrame({'A': series['A']})
+        df['A'][:] = 5
+
+        self.assertFalse((series['A'] == 5).all())
+
+    def test_constructor_with_nas(self):
+        # GH 5016
+        # na's in indicies
+
+        def check(df):
+            for i in range(len(df.columns)):
+                df.iloc[:, i]
+
+            # allow single nans to succeed
+            indexer = np.arange(len(df.columns))[isnull(df.columns)]
+
+            if len(indexer) == 1:
+                assert_series_equal(df.iloc[:, indexer[0]], df.loc[:, np.nan])
+
+            # multiple nans should fail
+            else:
+
+                def f():
+                    df.loc[:, np.nan]
+                self.assertRaises(TypeError, f)
+
+        df = DataFrame([[1, 2, 3], [4, 5, 6]], index=[1, np.nan])
+        check(df)
+
+        df = DataFrame([[1, 2, 3], [4, 5, 6]], columns=[1.1, 2.2, np.nan])
+        check(df)
+
+        df = DataFrame([[0, 1, 2, 3], [4, 5, 6, 7]],
+                       columns=[np.nan, 1.1, 2.2, np.nan])
+        check(df)
+
+        df = DataFrame([[0.0, 1, 2, 3.0], [4, 5, 6, 7]],
+                       columns=[np.nan, 1.1, 2.2, np.nan])
+        check(df)
+
+    def test_constructor_lists_to_object_dtype(self):
+        # from #1074
+        d = DataFrame({'a': [np.nan, False]})
+        self.assertEqual(d['a'].dtype, np.object_)
+        self.assertFalse(d['a'][1])
+
     def test_from_records_to_records(self):
         # from numpy documentation
         arr = np.zeros((2,), dtype=('i4,f4,a10'))

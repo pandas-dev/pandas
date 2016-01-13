@@ -33,7 +33,9 @@ from pandas._sparse import BlockIndex, IntIndex
 from pandas.sparse.api import (SparseSeries,
                                SparseDataFrame, SparsePanel,
                                SparseArray)
-import pandas.tests.test_frame as test_frame
+from pandas.tests.frame.test_misc_api import (
+    SafeForSparse as SparseFrameTests)
+
 import pandas.tests.test_panel as test_panel
 import pandas.tests.test_series as test_series
 
@@ -922,7 +924,7 @@ class TestSparseTimeSeries(tm.TestCase):
     pass
 
 
-class TestSparseDataFrame(tm.TestCase, test_frame.SafeForSparse):
+class TestSparseDataFrame(tm.TestCase, SparseFrameTests):
     klass = SparseDataFrame
     _multiprocess_can_split_ = True
 

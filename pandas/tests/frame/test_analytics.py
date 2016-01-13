@@ -3,6 +3,8 @@
 from __future__ import print_function
 
 from datetime import timedelta, datetime
+from distutils.version import LooseVersion
+import sys
 import nose
 
 from numpy import nan
@@ -10,13 +12,14 @@ from numpy.random import randn
 import numpy as np
 
 from pandas.compat import lrange
-from pandas import (isnull, notnull, DataFrame, Series, MultiIndex, date_range,
-                    Timestamp)
+from pandas import (compat, isnull, notnull, DataFrame, Series,
+                    MultiIndex, date_range, Timestamp)
 import pandas as pd
 import pandas.core.common as com
 import pandas.core.nanops as nanops
 
 from pandas.util.testing import (assert_almost_equal,
+                                 assert_equal,
                                  assert_series_equal,
                                  assert_frame_equal,
                                  assertRaisesRegexp)
@@ -1058,6 +1061,85 @@ class TestDataFrameAnalytics(tm.TestCase, TestData):
 
         assert_frame_equal(df.mode(), exp)
 
+    def test_operators_timedelta64(self):
+        from datetime import timedelta
+        df = DataFrame(dict(A=date_range('2012-1-1', periods=3, freq='D'),
+                            B=date_range('2012-1-2', periods=3, freq='D'),
+                            C=Timestamp('20120101') -
+                            timedelta(minutes=5, seconds=5)))
+
+        diffs = DataFrame(dict(A=df['A'] - df['C'],
+                               B=df['A'] - df['B']))
+
+        # min
+        result = diffs.min()
+        self.assertEqual(result[0], diffs.ix[0, 'A'])
+        self.assertEqual(result[1], diffs.ix[0, 'B'])
+
+        result = diffs.min(axis=1)
+        self.assertTrue((result == diffs.ix[0, 'B']).all())
+
+        # max
+        result = diffs.max()
+        self.assertEqual(result[0], diffs.ix[2, 'A'])
+        self.assertEqual(result[1], diffs.ix[2, 'B'])
+
+        result = diffs.max(axis=1)
+        self.assertTrue((result == diffs['A']).all())
+
+        # abs
+        result = diffs.abs()
+        result2 = abs(diffs)
+        expected = DataFrame(dict(A=df['A'] - df['C'],
+                                  B=df['B'] - df['A']))
+        assert_frame_equal(result, expected)
+        assert_frame_equal(result2, expected)
+
+        # mixed frame
+        mixed = diffs.copy()
+        mixed['C'] = 'foo'
+        mixed['D'] = 1
+        mixed['E'] = 1.
+        mixed['F'] = Timestamp('20130101')
+
+        # results in an object array
+        from pandas.tseries.timedeltas import (
+            _coerce_scalar_to_timedelta_type as _coerce)
+
+        result = mixed.min()
+        expected = Series([_coerce(timedelta(seconds=5 * 60 + 5)),
+                           _coerce(timedelta(days=-1)),
+                           'foo', 1, 1.0,
+                           Timestamp('20130101')],
+                          index=mixed.columns)
+        assert_series_equal(result, expected)
+
+        # excludes numeric
+        result = mixed.min(axis=1)
+        expected = Series([1, 1, 1.], index=[0, 1, 2])
+        assert_series_equal(result, expected)
+
+        # works when only those columns are selected
+        result = mixed[['A', 'B']].min(1)
+        expected = Series([timedelta(days=-1)] * 3)
+        assert_series_equal(result, expected)
+
+        result = mixed[['A', 'B']].min()
+        expected = Series([timedelta(seconds=5 * 60 + 5),
+                           timedelta(days=-1)], index=['A', 'B'])
+        assert_series_equal(result, expected)
+
+        # GH 3106
+        df = DataFrame({'time': date_range('20130102', periods=5),
+                        'time2': date_range('20130105', periods=5)})
+        df['off1'] = df['time2'] - df['time']
+        self.assertEqual(df['off1'].dtype, 'timedelta64[ns]')
+
+        df['off2'] = df['time'] - df['time2']
+        df._consolidate_inplace()
+        self.assertTrue(df['off1'].dtype == 'timedelta64[ns]')
+        self.assertTrue(df['off2'].dtype == 'timedelta64[ns]')
+
     def test_sum_corner(self):
         axis0 = self.empty.sum(0)
         axis1 = self.empty.sum(1)
@@ -1305,3 +1387,882 @@ class TestDataFrameAnalytics(tm.TestCase, TestData):
         result = df.nsmallest(5, ['a', 'c'])
         expected = df.sort_values(['a', 'c']).head(5)
         assert_frame_equal(result, expected)
+
+    # ----------------------------------------------------------------------
+    # Isin
+
+    def test_isin(self):
+        # GH #4211
+        df = DataFrame({'vals': [1, 2, 3, 4], 'ids': ['a', 'b', 'f', 'n'],
+                        'ids2': ['a', 'n', 'c', 'n']},
+                       index=['foo', 'bar', 'baz', 'qux'])
+        other = ['a', 'b', 'c']
+
+        result = df.isin(other)
+        expected = DataFrame([df.loc[s].isin(other) for s in df.index])
+        assert_frame_equal(result, expected)
+
+    def test_isin_empty(self):
+        df = DataFrame({'A': ['a', 'b', 'c'], 'B': ['a', 'e', 'f']})
+        result = df.isin([])
+        expected = pd.DataFrame(False, df.index, df.columns)
+        assert_frame_equal(result, expected)
+
+    def test_isin_dict(self):
+        df = DataFrame({'A': ['a', 'b', 'c'], 'B': ['a', 'e', 'f']})
+        d = {'A': ['a']}
+
+        expected = DataFrame(False, df.index, df.columns)
+        expected.loc[0, 'A'] = True
+
+        result = df.isin(d)
+        assert_frame_equal(result, expected)
+
+        # non unique columns
+        df = DataFrame({'A': ['a', 'b', 'c'], 'B': ['a', 'e', 'f']})
+        df.columns = ['A', 'A']
+        expected = DataFrame(False, df.index, df.columns)
+        expected.loc[0, 'A'] = True
+        result = df.isin(d)
+        assert_frame_equal(result, expected)
+
+    def test_isin_with_string_scalar(self):
+        # GH4763
+        df = DataFrame({'vals': [1, 2, 3, 4], 'ids': ['a', 'b', 'f', 'n'],
+                        'ids2': ['a', 'n', 'c', 'n']},
+                       index=['foo', 'bar', 'baz', 'qux'])
+        with tm.assertRaises(TypeError):
+            df.isin('a')
+
+        with tm.assertRaises(TypeError):
+            df.isin('aaa')
+
+    def test_isin_df(self):
+        df1 = DataFrame({'A': [1, 2, 3, 4], 'B': [2, np.nan, 4, 4]})
+        df2 = DataFrame({'A': [0, 2, 12, 4], 'B': [2, np.nan, 4, 5]})
+        expected = DataFrame(False, df1.index, df1.columns)
+        result = df1.isin(df2)
+        expected['A'].loc[[1, 3]] = True
+        expected['B'].loc[[0, 2]] = True
+        assert_frame_equal(result, expected)
+
+        # partial overlapping columns
+        df2.columns = ['A', 'C']
+        result = df1.isin(df2)
+        expected['B'] = False
+        assert_frame_equal(result, expected)
+
+    def test_isin_df_dupe_values(self):
+        df1 = DataFrame({'A': [1, 2, 3, 4], 'B': [2, np.nan, 4, 4]})
+        # just cols duped
+        df2 = DataFrame([[0, 2], [12, 4], [2, np.nan], [4, 5]],
+                        columns=['B', 'B'])
+        with tm.assertRaises(ValueError):
+            df1.isin(df2)
+
+        # just index duped
+        df2 = DataFrame([[0, 2], [12, 4], [2, np.nan], [4, 5]],
+                        columns=['A', 'B'], index=[0, 0, 1, 1])
+        with tm.assertRaises(ValueError):
+            df1.isin(df2)
+
+        # cols and index:
+        df2.columns = ['B', 'B']
+        with tm.assertRaises(ValueError):
+            df1.isin(df2)
+
+    def test_isin_dupe_self(self):
+        other = DataFrame({'A': [1, 0, 1, 0], 'B': [1, 1, 0, 0]})
+        df = DataFrame([[1, 1], [1, 0], [0, 0]], columns=['A', 'A'])
+        result = df.isin(other)
+        expected = DataFrame(False, index=df.index, columns=df.columns)
+        expected.loc[0] = True
+        expected.iloc[1, 1] = True
+        assert_frame_equal(result, expected)
+
+    def test_isin_against_series(self):
+        df = pd.DataFrame({'A': [1, 2, 3, 4], 'B': [2, np.nan, 4, 4]},
+                          index=['a', 'b', 'c', 'd'])
+        s = pd.Series([1, 3, 11, 4], index=['a', 'b', 'c', 'd'])
+        expected = DataFrame(False, index=df.index, columns=df.columns)
+        expected['A'].loc['a'] = True
+        expected.loc['d'] = True
+        result = df.isin(s)
+        assert_frame_equal(result, expected)
+
+    def test_isin_multiIndex(self):
+        idx = MultiIndex.from_tuples([(0, 'a', 'foo'), (0, 'a', 'bar'),
+                                      (0, 'b', 'bar'), (0, 'b', 'baz'),
+                                      (2, 'a', 'foo'), (2, 'a', 'bar'),
+                                      (2, 'c', 'bar'), (2, 'c', 'baz'),
+                                      (1, 'b', 'foo'), (1, 'b', 'bar'),
+                                      (1, 'c', 'bar'), (1, 'c', 'baz')])
+        df1 = DataFrame({'A': np.ones(12),
+                         'B': np.zeros(12)}, index=idx)
+        df2 = DataFrame({'A': [1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1],
+                         'B': [1, 1, 0, 1, 1, 0, 0, 1, 1, 1, 1, 1]})
+        # against regular index
+        expected = DataFrame(False, index=df1.index, columns=df1.columns)
+        result = df1.isin(df2)
+        assert_frame_equal(result, expected)
+
+        df2.index = idx
+        expected = df2.values.astype(np.bool)
+        expected[:, 1] = ~expected[:, 1]
+        expected = DataFrame(expected, columns=['A', 'B'], index=idx)
+
+        result = df1.isin(df2)
+        assert_frame_equal(result, expected)
+
+    # ----------------------------------------------------------------------
+    # Row deduplication
+
+    def test_drop_duplicates(self):
+        df = DataFrame({'AAA': ['foo', 'bar', 'foo', 'bar',
+                                'foo', 'bar', 'bar', 'foo'],
+                        'B': ['one', 'one', 'two', 'two',
+                              'two', 'two', 'one', 'two'],
+                        'C': [1, 1, 2, 2, 2, 2, 1, 2],
+                        'D': lrange(8)})
+
+        # single column
+        result = df.drop_duplicates('AAA')
+        expected = df[:2]
+        assert_frame_equal(result, expected)
+
+        result = df.drop_duplicates('AAA', keep='last')
+        expected = df.ix[[6, 7]]
+        assert_frame_equal(result, expected)
+
+        result = df.drop_duplicates('AAA', keep=False)
+        expected = df.ix[[]]
+        assert_frame_equal(result, expected)
+        self.assertEqual(len(result), 0)
+
+        # deprecate take_last
+        with tm.assert_produces_warning(FutureWarning):
+            result = df.drop_duplicates('AAA', take_last=True)
+            expected = df.ix[[6, 7]]
+            assert_frame_equal(result, expected)
+
+        # multi column
+        expected = df.ix[[0, 1, 2, 3]]
+        result = df.drop_duplicates(np.array(['AAA', 'B']))
+        assert_frame_equal(result, expected)
+        result = df.drop_duplicates(['AAA', 'B'])
+        assert_frame_equal(result, expected)
+
+        result = df.drop_duplicates(('AAA', 'B'), keep='last')
+        expected = df.ix[[0, 5, 6, 7]]
+        assert_frame_equal(result, expected)
+
+        result = df.drop_duplicates(('AAA', 'B'), keep=False)
+        expected = df.ix[[0]]
+        assert_frame_equal(result, expected)
+
+        # deprecate take_last
+        with tm.assert_produces_warning(FutureWarning):
+            result = df.drop_duplicates(('AAA', 'B'), take_last=True)
+        expected = df.ix[[0, 5, 6, 7]]
+        assert_frame_equal(result, expected)
+
+        # consider everything
+        df2 = df.ix[:, ['AAA', 'B', 'C']]
+
+        result = df2.drop_duplicates()
+        # in this case only
+        expected = df2.drop_duplicates(['AAA', 'B'])
+        assert_frame_equal(result, expected)
+
+        result = df2.drop_duplicates(keep='last')
+        expected = df2.drop_duplicates(['AAA', 'B'], keep='last')
+        assert_frame_equal(result, expected)
+
+        result = df2.drop_duplicates(keep=False)
+        expected = df2.drop_duplicates(['AAA', 'B'], keep=False)
+        assert_frame_equal(result, expected)
+
+        # deprecate take_last
+        with tm.assert_produces_warning(FutureWarning):
+            result = df2.drop_duplicates(take_last=True)
+        with tm.assert_produces_warning(FutureWarning):
+            expected = df2.drop_duplicates(['AAA', 'B'], take_last=True)
+        assert_frame_equal(result, expected)
+
+        # integers
+        result = df.drop_duplicates('C')
+        expected = df.iloc[[0, 2]]
+        assert_frame_equal(result, expected)
+        result = df.drop_duplicates('C', keep='last')
+        expected = df.iloc[[-2, -1]]
+        assert_frame_equal(result, expected)
+
+        df['E'] = df['C'].astype('int8')
+        result = df.drop_duplicates('E')
+        expected = df.iloc[[0, 2]]
+        assert_frame_equal(result, expected)
+        result = df.drop_duplicates('E', keep='last')
+        expected = df.iloc[[-2, -1]]
+        assert_frame_equal(result, expected)
+
+        # GH 11376
+        df = pd.DataFrame({'x': [7, 6, 3, 3, 4, 8, 0],
+                           'y': [0, 6, 5, 5, 9, 1, 2]})
+        expected = df.loc[df.index != 3]
+        assert_frame_equal(df.drop_duplicates(), expected)
+
+        df = pd.DataFrame([[1, 0], [0, 2]])
+        assert_frame_equal(df.drop_duplicates(), df)
+
+        df = pd.DataFrame([[-2, 0], [0, -4]])
+        assert_frame_equal(df.drop_duplicates(), df)
+
+        x = np.iinfo(np.int64).max / 3 * 2
+        df = pd.DataFrame([[-x, x], [0, x + 4]])
+        assert_frame_equal(df.drop_duplicates(), df)
+
+        df = pd.DataFrame([[-x, x], [x, x + 4]])
+        assert_frame_equal(df.drop_duplicates(), df)
+
+        # GH 11864
+        df = pd.DataFrame([i] * 9 for i in range(16))
+        df = df.append([[1] + [0] * 8], ignore_index=True)
+
+        for keep in ['first', 'last', False]:
+            assert_equal(df.duplicated(keep=keep).sum(), 0)
+
+    def test_drop_duplicates_for_take_all(self):
+        df = DataFrame({'AAA': ['foo', 'bar', 'baz', 'bar',
+                                'foo', 'bar', 'qux', 'foo'],
+                        'B': ['one', 'one', 'two', 'two',
+                              'two', 'two', 'one', 'two'],
+                        'C': [1, 1, 2, 2, 2, 2, 1, 2],
+                        'D': lrange(8)})
+
+        # single column
+        result = df.drop_duplicates('AAA')
+        expected = df.iloc[[0, 1, 2, 6]]
+        assert_frame_equal(result, expected)
+
+        result = df.drop_duplicates('AAA', keep='last')
+        expected = df.iloc[[2, 5, 6, 7]]
+        assert_frame_equal(result, expected)
+
+        result = df.drop_duplicates('AAA', keep=False)
+        expected = df.iloc[[2, 6]]
+        assert_frame_equal(result, expected)
+
+        # multiple columns
+        result = df.drop_duplicates(['AAA', 'B'])
+        expected = df.iloc[[0, 1, 2, 3, 4, 6]]
+        assert_frame_equal(result, expected)
+
+        result = df.drop_duplicates(['AAA', 'B'], keep='last')
+        expected = df.iloc[[0, 1, 2, 5, 6, 7]]
+        assert_frame_equal(result, expected)
+
+        result = df.drop_duplicates(['AAA', 'B'], keep=False)
+        expected = df.iloc[[0, 1, 2, 6]]
+        assert_frame_equal(result, expected)
+
+    def test_drop_duplicates_deprecated_warning(self):
+        df = DataFrame({'AAA': ['foo', 'bar', 'foo', 'bar',
+                                'foo', 'bar', 'bar', 'foo'],
+                        'B': ['one', 'one', 'two', 'two',
+                              'two', 'two', 'one', 'two'],
+                        'C': [1, 1, 2, 2, 2, 2, 1, 2],
+                        'D': lrange(8)})
+        expected = df[:2]
+
+        # Raises warning
+        with tm.assert_produces_warning(False):
+            result = df.drop_duplicates(subset='AAA')
+        assert_frame_equal(result, expected)
+
+        with tm.assert_produces_warning(FutureWarning):
+            result = df.drop_duplicates(cols='AAA')
+        assert_frame_equal(result, expected)
+
+        # Does not allow both subset and cols
+        self.assertRaises(TypeError, df.drop_duplicates,
+                          kwargs={'cols': 'AAA', 'subset': 'B'})
+
+        # Does not allow unknown kwargs
+        self.assertRaises(TypeError, df.drop_duplicates,
+                          kwargs={'subset': 'AAA', 'bad_arg': True})
+
+        # deprecate take_last
+        # Raises warning
+        with tm.assert_produces_warning(FutureWarning):
+            result = df.drop_duplicates(take_last=False, subset='AAA')
+        assert_frame_equal(result, expected)
+
+        self.assertRaises(ValueError, df.drop_duplicates, keep='invalid_name')
+
+    def test_drop_duplicates_tuple(self):
+        df = DataFrame({('AA', 'AB'): ['foo', 'bar', 'foo', 'bar',
+                                       'foo', 'bar', 'bar', 'foo'],
+                        'B': ['one', 'one', 'two', 'two',
+                              'two', 'two', 'one', 'two'],
+                        'C': [1, 1, 2, 2, 2, 2, 1, 2],
+                        'D': lrange(8)})
+
+        # single column
+        result = df.drop_duplicates(('AA', 'AB'))
+        expected = df[:2]
+        assert_frame_equal(result, expected)
+
+        result = df.drop_duplicates(('AA', 'AB'), keep='last')
+        expected = df.ix[[6, 7]]
+        assert_frame_equal(result, expected)
+
+        result = df.drop_duplicates(('AA', 'AB'), keep=False)
+        expected = df.ix[[]]  # empty df
+        self.assertEqual(len(result), 0)
+        assert_frame_equal(result, expected)
+
+        # deprecate take_last
+        with tm.assert_produces_warning(FutureWarning):
+            result = df.drop_duplicates(('AA', 'AB'), take_last=True)
+        expected = df.ix[[6, 7]]
+        assert_frame_equal(result, expected)
+
+        # multi column
+        expected = df.ix[[0, 1, 2, 3]]
+        result = df.drop_duplicates((('AA', 'AB'), 'B'))
+        assert_frame_equal(result, expected)
+
+    def test_drop_duplicates_NA(self):
+        # none
+        df = DataFrame({'A': [None, None, 'foo', 'bar',
+                              'foo', 'bar', 'bar', 'foo'],
+                        'B': ['one', 'one', 'two', 'two',
+                              'two', 'two', 'one', 'two'],
+                        'C': [1.0, np.nan, np.nan, np.nan, 1., 1., 1, 1.],
+                        'D': lrange(8)})
+
+        # single column
+        result = df.drop_duplicates('A')
+        expected = df.ix[[0, 2, 3]]
+        assert_frame_equal(result, expected)
+
+        result = df.drop_duplicates('A', keep='last')
+        expected = df.ix[[1, 6, 7]]
+        assert_frame_equal(result, expected)
+
+        result = df.drop_duplicates('A', keep=False)
+        expected = df.ix[[]]  # empty df
+        assert_frame_equal(result, expected)
+        self.assertEqual(len(result), 0)
+
+        # deprecate take_last
+        with tm.assert_produces_warning(FutureWarning):
+            result = df.drop_duplicates('A', take_last=True)
+        expected = df.ix[[1, 6, 7]]
+        assert_frame_equal(result, expected)
+
+        # multi column
+        result = df.drop_duplicates(['A', 'B'])
+        expected = df.ix[[0, 2, 3, 6]]
+        assert_frame_equal(result, expected)
+
+        result = df.drop_duplicates(['A', 'B'], keep='last')
+        expected = df.ix[[1, 5, 6, 7]]
+        assert_frame_equal(result, expected)
+
+        result = df.drop_duplicates(['A', 'B'], keep=False)
+        expected = df.ix[[6]]
+        assert_frame_equal(result, expected)
+
+        # deprecate take_last
+        with tm.assert_produces_warning(FutureWarning):
+            result = df.drop_duplicates(['A', 'B'], take_last=True)
+        expected = df.ix[[1, 5, 6, 7]]
+        assert_frame_equal(result, expected)
+
+        # nan
+        df = DataFrame({'A': ['foo', 'bar', 'foo', 'bar',
+                              'foo', 'bar', 'bar', 'foo'],
+                        'B': ['one', 'one', 'two', 'two',
+                              'two', 'two', 'one', 'two'],
+                        'C': [1.0, np.nan, np.nan, np.nan, 1., 1., 1, 1.],
+                        'D': lrange(8)})
+
+        # single column
+        result = df.drop_duplicates('C')
+        expected = df[:2]
+        assert_frame_equal(result, expected)
+
+        result = df.drop_duplicates('C', keep='last')
+        expected = df.ix[[3, 7]]
+        assert_frame_equal(result, expected)
+
+        result = df.drop_duplicates('C', keep=False)
+        expected = df.ix[[]]  # empty df
+        assert_frame_equal(result, expected)
+        self.assertEqual(len(result), 0)
+
+        # deprecate take_last
+        with tm.assert_produces_warning(FutureWarning):
+            result = df.drop_duplicates('C', take_last=True)
+        expected = df.ix[[3, 7]]
+        assert_frame_equal(result, expected)
+
+        # multi column
+        result = df.drop_duplicates(['C', 'B'])
+        expected = df.ix[[0, 1, 2, 4]]
+        assert_frame_equal(result, expected)
+
+        result = df.drop_duplicates(['C', 'B'], keep='last')
+        expected = df.ix[[1, 3, 6, 7]]
+        assert_frame_equal(result, expected)
+
+        result = df.drop_duplicates(['C', 'B'], keep=False)
+        expected = df.ix[[1]]
+        assert_frame_equal(result, expected)
+
+        # deprecate take_last
+        with tm.assert_produces_warning(FutureWarning):
+            result = df.drop_duplicates(['C', 'B'], take_last=True)
+        expected = df.ix[[1, 3, 6, 7]]
+        assert_frame_equal(result, expected)
+
+    def test_drop_duplicates_NA_for_take_all(self):
+        # none
+        df = DataFrame({'A': [None, None, 'foo', 'bar',
+                              'foo', 'baz', 'bar', 'qux'],
+                        'C': [1.0, np.nan, np.nan, np.nan, 1., 2., 3, 1.]})
+
+        # single column
+        result = df.drop_duplicates('A')
+        expected = df.iloc[[0, 2, 3, 5, 7]]
+        assert_frame_equal(result, expected)
+
+        result = df.drop_duplicates('A', keep='last')
+        expected = df.iloc[[1, 4, 5, 6, 7]]
+        assert_frame_equal(result, expected)
+
+        result = df.drop_duplicates('A', keep=False)
+        expected = df.iloc[[5, 7]]
+        assert_frame_equal(result, expected)
+
+        # nan
+
+        # single column
+        result = df.drop_duplicates('C')
+        expected = df.iloc[[0, 1, 5, 6]]
+        assert_frame_equal(result, expected)
+
+        result = df.drop_duplicates('C', keep='last')
+        expected = df.iloc[[3, 5, 6, 7]]
+        assert_frame_equal(result, expected)
+
+        result = df.drop_duplicates('C', keep=False)
+        expected = df.iloc[[5, 6]]
+        assert_frame_equal(result, expected)
+
+    def test_drop_duplicates_inplace(self):
+        orig = DataFrame({'A': ['foo', 'bar', 'foo', 'bar',
+                                'foo', 'bar', 'bar', 'foo'],
+                          'B': ['one', 'one', 'two', 'two',
+                                'two', 'two', 'one', 'two'],
+                          'C': [1, 1, 2, 2, 2, 2, 1, 2],
+                          'D': lrange(8)})
+
+        # single column
+        df = orig.copy()
+        df.drop_duplicates('A', inplace=True)
+        expected = orig[:2]
+        result = df
+        assert_frame_equal(result, expected)
+
+        df = orig.copy()
+        df.drop_duplicates('A', keep='last', inplace=True)
+        expected = orig.ix[[6, 7]]
+        result = df
+        assert_frame_equal(result, expected)
+
+        df = orig.copy()
+        df.drop_duplicates('A', keep=False, inplace=True)
+        expected = orig.ix[[]]
+        result = df
+        assert_frame_equal(result, expected)
+        self.assertEqual(len(df), 0)
+
+        # deprecate take_last
+        df = orig.copy()
+        with tm.assert_produces_warning(FutureWarning):
+            df.drop_duplicates('A', take_last=True, inplace=True)
+        expected = orig.ix[[6, 7]]
+        result = df
+        assert_frame_equal(result, expected)
+
+        # multi column
+        df = orig.copy()
+        df.drop_duplicates(['A', 'B'], inplace=True)
+        expected = orig.ix[[0, 1, 2, 3]]
+        result = df
+        assert_frame_equal(result, expected)
+
+        df = orig.copy()
+        df.drop_duplicates(['A', 'B'], keep='last', inplace=True)
+        expected = orig.ix[[0, 5, 6, 7]]
+        result = df
+        assert_frame_equal(result, expected)
+
+        df = orig.copy()
+        df.drop_duplicates(['A', 'B'], keep=False, inplace=True)
+        expected = orig.ix[[0]]
+        result = df
+        assert_frame_equal(result, expected)
+
+        # deprecate take_last
+        df = orig.copy()
+        with tm.assert_produces_warning(FutureWarning):
+            df.drop_duplicates(['A', 'B'], take_last=True, inplace=True)
+        expected = orig.ix[[0, 5, 6, 7]]
+        result = df
+        assert_frame_equal(result, expected)
+
+        # consider everything
+        orig2 = orig.ix[:, ['A', 'B', 'C']].copy()
+
+        df2 = orig2.copy()
+        df2.drop_duplicates(inplace=True)
+        # in this case only
+        expected = orig2.drop_duplicates(['A', 'B'])
+        result = df2
+        assert_frame_equal(result, expected)
+
+        df2 = orig2.copy()
+        df2.drop_duplicates(keep='last', inplace=True)
+        expected = orig2.drop_duplicates(['A', 'B'], keep='last')
+        result = df2
+        assert_frame_equal(result, expected)
+
+        df2 = orig2.copy()
+        df2.drop_duplicates(keep=False, inplace=True)
+        expected = orig2.drop_duplicates(['A', 'B'], keep=False)
+        result = df2
+        assert_frame_equal(result, expected)
+
+        # deprecate take_last
+        df2 = orig2.copy()
+        with tm.assert_produces_warning(FutureWarning):
+            df2.drop_duplicates(take_last=True, inplace=True)
+        with tm.assert_produces_warning(FutureWarning):
+            expected = orig2.drop_duplicates(['A', 'B'], take_last=True)
+        result = df2
+        assert_frame_equal(result, expected)
+
+    def test_duplicated_deprecated_warning(self):
+        df = DataFrame({'AAA': ['foo', 'bar', 'foo', 'bar',
+                                'foo', 'bar', 'bar', 'foo'],
+                        'B': ['one', 'one', 'two', 'two',
+                              'two', 'two', 'one', 'two'],
+                        'C': [1, 1, 2, 2, 2, 2, 1, 2],
+                        'D': lrange(8)})
+
+        # Raises warning
+        with tm.assert_produces_warning(False):
+            result = df.duplicated(subset='AAA')
+
+        with tm.assert_produces_warning(FutureWarning):
+            result = df.duplicated(cols='AAA')  # noqa
+
+        # Does not allow both subset and cols
+        self.assertRaises(TypeError, df.duplicated,
+                          kwargs={'cols': 'AAA', 'subset': 'B'})
+
+        # Does not allow unknown kwargs
+        self.assertRaises(TypeError, df.duplicated,
+                          kwargs={'subset': 'AAA', 'bad_arg': True})
+
+    # Rounding
+
+    def test_round(self):
+        # GH 2665
+
+        # Test that rounding an empty DataFrame does nothing
+        df = DataFrame()
+        assert_frame_equal(df, df.round())
+
+        # Here's the test frame we'll be working with
+        df = DataFrame(
+            {'col1': [1.123, 2.123, 3.123], 'col2': [1.234, 2.234, 3.234]})
+
+        # Default round to integer (i.e. decimals=0)
+        expected_rounded = DataFrame(
+            {'col1': [1., 2., 3.], 'col2': [1., 2., 3.]})
+        assert_frame_equal(df.round(), expected_rounded)
+
+        # Round with an integer
+        decimals = 2
+        expected_rounded = DataFrame(
+            {'col1': [1.12, 2.12, 3.12], 'col2': [1.23, 2.23, 3.23]})
+        assert_frame_equal(df.round(decimals), expected_rounded)
+
+        # This should also work with np.round (since np.round dispatches to
+        # df.round)
+        assert_frame_equal(np.round(df, decimals), expected_rounded)
+
+        # Round with a list
+        round_list = [1, 2]
+        with self.assertRaises(TypeError):
+            df.round(round_list)
+
+        # Round with a dictionary
+        expected_rounded = DataFrame(
+            {'col1': [1.1, 2.1, 3.1], 'col2': [1.23, 2.23, 3.23]})
+        round_dict = {'col1': 1, 'col2': 2}
+        assert_frame_equal(df.round(round_dict), expected_rounded)
+
+        # Incomplete dict
+        expected_partially_rounded = DataFrame(
+            {'col1': [1.123, 2.123, 3.123], 'col2': [1.2, 2.2, 3.2]})
+        partial_round_dict = {'col2': 1}
+        assert_frame_equal(
+            df.round(partial_round_dict), expected_partially_rounded)
+
+        # Dict with unknown elements
+        wrong_round_dict = {'col3': 2, 'col2': 1}
+        assert_frame_equal(
+            df.round(wrong_round_dict), expected_partially_rounded)
+
+        # float input to `decimals`
+        non_int_round_dict = {'col1': 1, 'col2': 0.5}
+        with self.assertRaises(TypeError):
+            df.round(non_int_round_dict)
+
+        # String input
+        non_int_round_dict = {'col1': 1, 'col2': 'foo'}
+        with self.assertRaises(TypeError):
+            df.round(non_int_round_dict)
+
+        non_int_round_Series = Series(non_int_round_dict)
+        with self.assertRaises(TypeError):
+            df.round(non_int_round_Series)
+
+        # List input
+        non_int_round_dict = {'col1': 1, 'col2': [1, 2]}
+        with self.assertRaises(TypeError):
+            df.round(non_int_round_dict)
+
+        non_int_round_Series = Series(non_int_round_dict)
+        with self.assertRaises(TypeError):
+            df.round(non_int_round_Series)
+
+        # Non integer Series inputs
+        non_int_round_Series = Series(non_int_round_dict)
+        with self.assertRaises(TypeError):
+            df.round(non_int_round_Series)
+
+        non_int_round_Series = Series(non_int_round_dict)
+        with self.assertRaises(TypeError):
+            df.round(non_int_round_Series)
+
+        # Negative numbers
+        negative_round_dict = {'col1': -1, 'col2': -2}
+        big_df = df * 100
+        expected_neg_rounded = DataFrame(
+            {'col1': [110., 210, 310], 'col2': [100., 200, 300]})
+        assert_frame_equal(
+            big_df.round(negative_round_dict), expected_neg_rounded)
+
+        # nan in Series round
+        nan_round_Series = Series({'col1': nan, 'col2': 1})
+
+        # TODO(wesm): unused?
+        expected_nan_round = DataFrame({  # noqa
+            'col1': [1.123, 2.123, 3.123],
+            'col2': [1.2, 2.2, 3.2]})
+
+        if sys.version < LooseVersion('2.7'):
+            # Rounding with decimal is a ValueError in Python < 2.7
+            with self.assertRaises(ValueError):
+                df.round(nan_round_Series)
+        else:
+            with self.assertRaises(TypeError):
+                df.round(nan_round_Series)
+
+        # Make sure this doesn't break existing Series.round
+        assert_series_equal(df['col1'].round(1), expected_rounded['col1'])
+
+        # named columns
+        # GH 11986
+        decimals = 2
+        expected_rounded = DataFrame(
+            {'col1': [1.12, 2.12, 3.12], 'col2': [1.23, 2.23, 3.23]})
+        df.columns.name = "cols"
+        expected_rounded.columns.name = "cols"
+        assert_frame_equal(df.round(decimals), expected_rounded)
+
+        # interaction of named columns & series
+        assert_series_equal(df['col1'].round(decimals),
+                            expected_rounded['col1'])
+        assert_series_equal(df.round(decimals)['col1'],
+                            expected_rounded['col1'])
+
+    def test_round_mixed_type(self):
+        # GH11885
+        df = DataFrame({'col1': [1.1, 2.2, 3.3, 4.4],
+                        'col2': ['1', 'a', 'c', 'f'],
+                        'col3': date_range('20111111', periods=4)})
+        round_0 = DataFrame({'col1': [1., 2., 3., 4.],
+                             'col2': ['1', 'a', 'c', 'f'],
+                             'col3': date_range('20111111', periods=4)})
+        assert_frame_equal(df.round(), round_0)
+        assert_frame_equal(df.round(1), df)
+        assert_frame_equal(df.round({'col1': 1}), df)
+        assert_frame_equal(df.round({'col1': 0}), round_0)
+        assert_frame_equal(df.round({'col1': 0, 'col2': 1}), round_0)
+        assert_frame_equal(df.round({'col3': 1}), df)
+
+    def test_round_issue(self):
+        # GH11611
+
+        df = pd.DataFrame(np.random.random([3, 3]), columns=['A', 'B', 'C'],
+                          index=['first', 'second', 'third'])
+
+        dfs = pd.concat((df, df), axis=1)
+        rounded = dfs.round()
+        self.assertTrue(rounded.index.equals(dfs.index))
+
+        decimals = pd.Series([1, 0, 2], index=['A', 'B', 'A'])
+        self.assertRaises(ValueError, df.round, decimals)
+
+    def test_built_in_round(self):
+        if not compat.PY3:
+            raise nose.SkipTest("build in round cannot be overriden "
+                                "prior to Python 3")
+
+        # GH11763
+        # Here's the test frame we'll be working with
+        df = DataFrame(
+            {'col1': [1.123, 2.123, 3.123], 'col2': [1.234, 2.234, 3.234]})
+
+        # Default round to integer (i.e. decimals=0)
+        expected_rounded = DataFrame(
+            {'col1': [1., 2., 3.], 'col2': [1., 2., 3.]})
+        assert_frame_equal(round(df), expected_rounded)
+
+    # Clip
+
+    def test_clip(self):
+        median = self.frame.median().median()
+
+        capped = self.frame.clip_upper(median)
+        self.assertFalse((capped.values > median).any())
+
+        floored = self.frame.clip_lower(median)
+        self.assertFalse((floored.values < median).any())
+
+        double = self.frame.clip(upper=median, lower=median)
+        self.assertFalse((double.values != median).any())
+
+    def test_dataframe_clip(self):
+        # GH #2747
+        df = DataFrame(np.random.randn(1000, 2))
+
+        for lb, ub in [(-1, 1), (1, -1)]:
+            clipped_df = df.clip(lb, ub)
+
+            lb, ub = min(lb, ub), max(ub, lb)
+            lb_mask = df.values <= lb
+            ub_mask = df.values >= ub
+            mask = ~lb_mask & ~ub_mask
+            self.assertTrue((clipped_df.values[lb_mask] == lb).all())
+            self.assertTrue((clipped_df.values[ub_mask] == ub).all())
+            self.assertTrue((clipped_df.values[mask] ==
+                             df.values[mask]).all())
+
+    def test_clip_against_series(self):
+        # GH #6966
+
+        df = DataFrame(np.random.randn(1000, 2))
+        lb = Series(np.random.randn(1000))
+        ub = lb + 1
+
+        clipped_df = df.clip(lb, ub, axis=0)
+
+        for i in range(2):
+            lb_mask = df.iloc[:, i] <= lb
+            ub_mask = df.iloc[:, i] >= ub
+            mask = ~lb_mask & ~ub_mask
+
+            result = clipped_df.loc[lb_mask, i]
+            assert_series_equal(result, lb[lb_mask], check_names=False)
+            self.assertEqual(result.name, i)
+
+            result = clipped_df.loc[ub_mask, i]
+            assert_series_equal(result, ub[ub_mask], check_names=False)
+            self.assertEqual(result.name, i)
+
+            assert_series_equal(clipped_df.loc[mask, i], df.loc[mask, i])
+
+    def test_clip_against_frame(self):
+        df = DataFrame(np.random.randn(1000, 2))
+        lb = DataFrame(np.random.randn(1000, 2))
+        ub = lb + 1
+
+        clipped_df = df.clip(lb, ub)
+
+        lb_mask = df <= lb
+        ub_mask = df >= ub
+        mask = ~lb_mask & ~ub_mask
+
+        assert_frame_equal(clipped_df[lb_mask], lb[lb_mask])
+        assert_frame_equal(clipped_df[ub_mask], ub[ub_mask])
+        assert_frame_equal(clipped_df[mask], df[mask])
+
+    # Matrix-like
+
+    def test_dot(self):
+        a = DataFrame(np.random.randn(3, 4), index=['a', 'b', 'c'],
+                      columns=['p', 'q', 'r', 's'])
+        b = DataFrame(np.random.randn(4, 2), index=['p', 'q', 'r', 's'],
+                      columns=['one', 'two'])
+
+        result = a.dot(b)
+        expected = DataFrame(np.dot(a.values, b.values),
+                             index=['a', 'b', 'c'],
+                             columns=['one', 'two'])
+        # Check alignment
+        b1 = b.reindex(index=reversed(b.index))
+        result = a.dot(b)
+        assert_frame_equal(result, expected)
+
+        # Check series argument
+        result = a.dot(b['one'])
+        assert_series_equal(result, expected['one'], check_names=False)
+        self.assertTrue(result.name is None)
+
+        result = a.dot(b1['one'])
+        assert_series_equal(result, expected['one'], check_names=False)
+        self.assertTrue(result.name is None)
+
+        # can pass correct-length arrays
+        row = a.ix[0].values
+
+        result = a.dot(row)
+        exp = a.dot(a.ix[0])
+        assert_series_equal(result, exp)
+
+        with assertRaisesRegexp(ValueError, 'Dot product shape mismatch'):
+            a.dot(row[:-1])
+
+        a = np.random.rand(1, 5)
+        b = np.random.rand(5, 1)
+        A = DataFrame(a)
+
+        # TODO(wesm): unused
+        B = DataFrame(b)  # noqa
+
+        # it works
+        result = A.dot(b)
+
+        # unaligned
+        df = DataFrame(randn(3, 4), index=[1, 2, 3], columns=lrange(4))
+        df2 = DataFrame(randn(5, 3), index=lrange(5), columns=[1, 2, 3])
+
+        assertRaisesRegexp(ValueError, 'aligned', df.dot, df2)
