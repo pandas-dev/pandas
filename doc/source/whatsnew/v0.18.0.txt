@@ -504,6 +504,8 @@ Bug Fixes
 
 - Bug in ``.to_csv`` ignoring formatting parameters ``decimal``, ``na_rep``, ``float_format`` for float indexes (:issue:`11553`)
 
+- Bug in ``Int64Index`` and ``Float64Index`` preventing the use of the modulo operator (:issue:`9244`)
+
 - Bug in ``DataFrame`` when masking an empty ``DataFrame`` (:issue:`11859`)
 
 - Removed ``millisecond`` property of ``DatetimeIndex``. This would always raise
