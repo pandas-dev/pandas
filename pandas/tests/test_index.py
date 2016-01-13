@@ -2723,13 +2723,26 @@ class Numeric(Base):
             self.assertEqual(idx.groupby(to_groupby),
                              {1.0: [idx[0], idx[5]], 2.0: [idx[1], idx[4]]})
 
-            to_groupby = Index([datetime(2011, 11, 1), datetime(2011, 12, 1),
-                                pd.NaT, pd.NaT,
-                                datetime(2011, 12, 1), datetime(2011, 11, 1)], tz='UTC').values
+            to_groupby = Index([datetime(2011, 11, 1),
+                                datetime(2011, 12, 1),
+                                pd.NaT,
+                                pd.NaT,
+                                datetime(2011, 12, 1),
+                                datetime(2011, 11, 1)],
+                               tz='UTC').values
 
-            ex_keys = pd.tslib.datetime_to_datetime64(np.array([Timestamp('2011-11-01'), Timestamp('2011-12-01')]))
-            expected = {ex_keys[0][0]: [idx[0], idx[5]], ex_keys[0][1]: [idx[1], idx[4]]}
+            ex_keys = pd.tslib.datetime_to_datetime64(
+                np.array([Timestamp('2011-11-01'),
+                          Timestamp('2011-12-01')]))
+            expected = {ex_keys[0][0]: [idx[0], idx[5]],
+                        ex_keys[0][1]: [idx[1], idx[4]]}
             self.assertEqual(idx.groupby(to_groupby), expected)
+
+    def test_modulo(self):
+        # GH 9244
+        index = self.create_index()
+        expected = Index(index.values % 2)
+        self.assert_index_equal(index % 2, expected)
 
 
 class TestFloat64Index(Numeric, tm.TestCase):

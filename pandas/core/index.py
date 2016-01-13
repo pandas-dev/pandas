@@ -3030,21 +3030,31 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
 
             return _evaluate_numeric_unary
 
-        cls.__add__ = cls.__radd__ = _make_evaluate_binop(operator.add,'__add__')
-        cls.__sub__ = _make_evaluate_binop(operator.sub,'__sub__')
-        cls.__rsub__ = _make_evaluate_binop(operator.sub,'__sub__',reversed=True)
-        cls.__mul__ = cls.__rmul__ = _make_evaluate_binop(operator.mul,'__mul__')
-        cls.__floordiv__ = _make_evaluate_binop(operator.floordiv,'__floordiv__')
-        cls.__rfloordiv__ = _make_evaluate_binop(operator.floordiv,'__floordiv__',reversed=True)
-        cls.__truediv__ = _make_evaluate_binop(operator.truediv,'__truediv__')
-        cls.__rtruediv__ = _make_evaluate_binop(operator.truediv,'__truediv__',reversed=True)
+        cls.__add__ = cls.__radd__ = _make_evaluate_binop(
+            operator.add, '__add__')
+        cls.__sub__ = _make_evaluate_binop(operator.sub, '__sub__')
+        cls.__rsub__ = _make_evaluate_binop(
+            operator.sub, '__sub__', reversed=True)
+        cls.__mul__ = cls.__rmul__ = _make_evaluate_binop(
+            operator.mul, '__mul__')
+        cls.__mod__ = _make_evaluate_binop(operator.mod, '__mod__')
+        cls.__floordiv__ = _make_evaluate_binop(
+            operator.floordiv, '__floordiv__')
+        cls.__rfloordiv__ = _make_evaluate_binop(
+            operator.floordiv, '__floordiv__', reversed=True)
+        cls.__truediv__ = _make_evaluate_binop(
+            operator.truediv, '__truediv__')
+        cls.__rtruediv__ = _make_evaluate_binop(
+            operator.truediv, '__truediv__', reversed=True)
         if not compat.PY3:
-            cls.__div__ = _make_evaluate_binop(operator.div,'__div__')
-            cls.__rdiv__ = _make_evaluate_binop(operator.div,'__div__',reversed=True)
-        cls.__neg__ = _make_evaluate_unary(lambda x: -x,'__neg__')
-        cls.__pos__ = _make_evaluate_unary(lambda x: x,'__pos__')
-        cls.__abs__ = _make_evaluate_unary(lambda x: np.abs(x),'__abs__')
-        cls.__inv__ = _make_evaluate_unary(lambda x: -x,'__inv__')
+            cls.__div__ = _make_evaluate_binop(
+                operator.div, '__div__')
+            cls.__rdiv__ = _make_evaluate_binop(
+                operator.div, '__div__', reversed=True)
+        cls.__neg__ = _make_evaluate_unary(lambda x: -x, '__neg__')
+        cls.__pos__ = _make_evaluate_unary(lambda x: x, '__pos__')
+        cls.__abs__ = _make_evaluate_unary(np.abs, '__abs__')
+        cls.__inv__ = _make_evaluate_unary(lambda x: -x, '__inv__')
 
     @classmethod
     def _add_logical_methods(cls):
