@@ -774,8 +774,9 @@ class TestTake(tm.TestCase):
     _multiprocess_can_split_ = True
 
     def test_1d_with_out(self):
-        def _test_dtype(dtype, can_hold_na):
+        def _test_dtype(dtype, can_hold_na, writeable=True):
             data = np.random.randint(0, 2, 4).astype(dtype)
+            data.flags.writeable = writeable
 
             indexer = [2, 1, 0, 1]
             out = np.empty(4, dtype=dtype)
@@ -796,18 +797,22 @@ class TestTake(tm.TestCase):
                 # no exception o/w
                 data.take(indexer, out=out)
 
-        _test_dtype(np.float64, True)
-        _test_dtype(np.float32, True)
-        _test_dtype(np.uint64, False)
-        _test_dtype(np.uint32, False)
-        _test_dtype(np.uint16, False)
-        _test_dtype(np.uint8, False)
-        _test_dtype(np.int64, False)
-        _test_dtype(np.int32, False)
-        _test_dtype(np.int16, False)
-        _test_dtype(np.int8, False)
-        _test_dtype(np.object_, True)
-        _test_dtype(np.bool, False)
+        for writeable in [True, False]:
+            # Check that take_nd works both with writeable arrays (in which
+            # case fast typed memoryviews implementation) and read-only
+            # arrays alike.
+            _test_dtype(np.float64, True, writeable=writeable)
+            _test_dtype(np.float32, True, writeable=writeable)
+            _test_dtype(np.uint64, False, writeable=writeable)
+            _test_dtype(np.uint32, False, writeable=writeable)
+            _test_dtype(np.uint16, False, writeable=writeable)
+            _test_dtype(np.uint8, False, writeable=writeable)
+            _test_dtype(np.int64, False, writeable=writeable)
+            _test_dtype(np.int32, False, writeable=writeable)
+            _test_dtype(np.int16, False, writeable=writeable)
+            _test_dtype(np.int8, False, writeable=writeable)
+            _test_dtype(np.object_, True, writeable=writeable)
+            _test_dtype(np.bool, False, writeable=writeable)
 
     def test_1d_fill_nonna(self):
         def _test_dtype(dtype, fill_value, out_dtype):

@@ -2403,13 +2403,12 @@ def arrmap_bool(ndarray[uint8_t] index, object func):
     return maybe_convert_objects(result)
 
 
-
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def take_1d_bool_bool(uint8_t[:] values,
-                              int64_t[:] indexer,
-                              uint8_t[:] out,
-                              fill_value=np.nan):
+cdef inline take_1d_bool_bool_memview(uint8_t[:] values,
+                      int64_t[:] indexer,
+                      uint8_t[:] out,
+                      fill_value=np.nan):
     cdef:
         Py_ssize_t i, n, idx
         uint8_t fv
@@ -2429,10 +2428,42 @@ def take_1d_bool_bool(uint8_t[:] values,
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def take_1d_bool_object(uint8_t[:] values,
+def take_1d_bool_bool(ndarray[uint8_t, ndim=1] values,
                               int64_t[:] indexer,
-                              object[:] out,
+                              uint8_t[:] out,
                               fill_value=np.nan):
+
+    if values.flags.writeable:
+        # We can call the memoryview version of the code
+        take_1d_bool_bool_memview(values, indexer, out,
+                                          fill_value=fill_value)
+        return
+
+    # We cannot use the memoryview version on readonly-buffers due to
+    # a limitation of Cython's typed memoryviews. Instead we can use
+    # the slightly slower Cython ndarray type directly.
+    cdef:
+        Py_ssize_t i, n, idx
+        uint8_t fv
+
+    n = indexer.shape[0]
+
+    fv = fill_value
+
+    with nogil:
+        for i from 0 <= i < n:
+            idx = indexer[i]
+            if idx == -1:
+                out[i] = fv
+            else:
+                out[i] = values[idx]
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+cdef inline take_1d_bool_object_memview(uint8_t[:] values,
+                      int64_t[:] indexer,
+                      object[:] out,
+                      fill_value=np.nan):
     cdef:
         Py_ssize_t i, n, idx
         object fv
@@ -2452,10 +2483,42 @@ def take_1d_bool_object(uint8_t[:] values,
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def take_1d_int8_int8(int8_t[:] values,
+def take_1d_bool_object(ndarray[uint8_t, ndim=1] values,
                               int64_t[:] indexer,
-                              int8_t[:] out,
+                              object[:] out,
                               fill_value=np.nan):
+
+    if values.flags.writeable:
+        # We can call the memoryview version of the code
+        take_1d_bool_object_memview(values, indexer, out,
+                                          fill_value=fill_value)
+        return
+
+    # We cannot use the memoryview version on readonly-buffers due to
+    # a limitation of Cython's typed memoryviews. Instead we can use
+    # the slightly slower Cython ndarray type directly.
+    cdef:
+        Py_ssize_t i, n, idx
+        object fv
+
+    n = indexer.shape[0]
+
+    fv = fill_value
+
+    
+    for i from 0 <= i < n:
+        idx = indexer[i]
+        if idx == -1:
+            out[i] = fv
+        else:
+            out[i] = True if values[idx] > 0 else False
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+cdef inline take_1d_int8_int8_memview(int8_t[:] values,
+                      int64_t[:] indexer,
+                      int8_t[:] out,
+                      fill_value=np.nan):
     cdef:
         Py_ssize_t i, n, idx
         int8_t fv
@@ -2475,10 +2538,42 @@ def take_1d_int8_int8(int8_t[:] values,
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def take_1d_int8_int32(int8_t[:] values,
+def take_1d_int8_int8(ndarray[int8_t, ndim=1] values,
                               int64_t[:] indexer,
-                              int32_t[:] out,
+                              int8_t[:] out,
                               fill_value=np.nan):
+
+    if values.flags.writeable:
+        # We can call the memoryview version of the code
+        take_1d_int8_int8_memview(values, indexer, out,
+                                          fill_value=fill_value)
+        return
+
+    # We cannot use the memoryview version on readonly-buffers due to
+    # a limitation of Cython's typed memoryviews. Instead we can use
+    # the slightly slower Cython ndarray type directly.
+    cdef:
+        Py_ssize_t i, n, idx
+        int8_t fv
+
+    n = indexer.shape[0]
+
+    fv = fill_value
+
+    
+    for i from 0 <= i < n:
+        idx = indexer[i]
+        if idx == -1:
+            out[i] = fv
+        else:
+            out[i] = values[idx]
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+cdef inline take_1d_int8_int32_memview(int8_t[:] values,
+                      int64_t[:] indexer,
+                      int32_t[:] out,
+                      fill_value=np.nan):
     cdef:
         Py_ssize_t i, n, idx
         int32_t fv
@@ -2498,10 +2593,42 @@ def take_1d_int8_int32(int8_t[:] values,
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def take_1d_int8_int64(int8_t[:] values,
+def take_1d_int8_int32(ndarray[int8_t, ndim=1] values,
                               int64_t[:] indexer,
-                              int64_t[:] out,
+                              int32_t[:] out,
                               fill_value=np.nan):
+
+    if values.flags.writeable:
+        # We can call the memoryview version of the code
+        take_1d_int8_int32_memview(values, indexer, out,
+                                          fill_value=fill_value)
+        return
+
+    # We cannot use the memoryview version on readonly-buffers due to
+    # a limitation of Cython's typed memoryviews. Instead we can use
+    # the slightly slower Cython ndarray type directly.
+    cdef:
+        Py_ssize_t i, n, idx
+        int32_t fv
+
+    n = indexer.shape[0]
+
+    fv = fill_value
+
+    with nogil:
+        for i from 0 <= i < n:
+            idx = indexer[i]
+            if idx == -1:
+                out[i] = fv
+            else:
+                out[i] = values[idx]
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+cdef inline take_1d_int8_int64_memview(int8_t[:] values,
+                      int64_t[:] indexer,
+                      int64_t[:] out,
+                      fill_value=np.nan):
     cdef:
         Py_ssize_t i, n, idx
         int64_t fv
@@ -2521,10 +2648,42 @@ def take_1d_int8_int64(int8_t[:] values,
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def take_1d_int8_float64(int8_t[:] values,
+def take_1d_int8_int64(ndarray[int8_t, ndim=1] values,
                               int64_t[:] indexer,
-                              float64_t[:] out,
+                              int64_t[:] out,
                               fill_value=np.nan):
+
+    if values.flags.writeable:
+        # We can call the memoryview version of the code
+        take_1d_int8_int64_memview(values, indexer, out,
+                                          fill_value=fill_value)
+        return
+
+    # We cannot use the memoryview version on readonly-buffers due to
+    # a limitation of Cython's typed memoryviews. Instead we can use
+    # the slightly slower Cython ndarray type directly.
+    cdef:
+        Py_ssize_t i, n, idx
+        int64_t fv
+
+    n = indexer.shape[0]
+
+    fv = fill_value
+
+    with nogil:
+        for i from 0 <= i < n:
+            idx = indexer[i]
+            if idx == -1:
+                out[i] = fv
+            else:
+                out[i] = values[idx]
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+cdef inline take_1d_int8_float64_memview(int8_t[:] values,
+                      int64_t[:] indexer,
+                      float64_t[:] out,
+                      fill_value=np.nan):
     cdef:
         Py_ssize_t i, n, idx
         float64_t fv
@@ -2544,10 +2703,42 @@ def take_1d_int8_float64(int8_t[:] values,
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def take_1d_int16_int16(int16_t[:] values,
+def take_1d_int8_float64(ndarray[int8_t, ndim=1] values,
                               int64_t[:] indexer,
-                              int16_t[:] out,
+                              float64_t[:] out,
                               fill_value=np.nan):
+
+    if values.flags.writeable:
+        # We can call the memoryview version of the code
+        take_1d_int8_float64_memview(values, indexer, out,
+                                          fill_value=fill_value)
+        return
+
+    # We cannot use the memoryview version on readonly-buffers due to
+    # a limitation of Cython's typed memoryviews. Instead we can use
+    # the slightly slower Cython ndarray type directly.
+    cdef:
+        Py_ssize_t i, n, idx
+        float64_t fv
+
+    n = indexer.shape[0]
+
+    fv = fill_value
+
+    with nogil:
+        for i from 0 <= i < n:
+            idx = indexer[i]
+            if idx == -1:
+                out[i] = fv
+            else:
+                out[i] = values[idx]
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+cdef inline take_1d_int16_int16_memview(int16_t[:] values,
+                      int64_t[:] indexer,
+                      int16_t[:] out,
+                      fill_value=np.nan):
     cdef:
         Py_ssize_t i, n, idx
         int16_t fv
@@ -2567,10 +2758,42 @@ def take_1d_int16_int16(int16_t[:] values,
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def take_1d_int16_int32(int16_t[:] values,
+def take_1d_int16_int16(ndarray[int16_t, ndim=1] values,
                               int64_t[:] indexer,
-                              int32_t[:] out,
+                              int16_t[:] out,
                               fill_value=np.nan):
+
+    if values.flags.writeable:
+        # We can call the memoryview version of the code
+        take_1d_int16_int16_memview(values, indexer, out,
+                                          fill_value=fill_value)
+        return
+
+    # We cannot use the memoryview version on readonly-buffers due to
+    # a limitation of Cython's typed memoryviews. Instead we can use
+    # the slightly slower Cython ndarray type directly.
+    cdef:
+        Py_ssize_t i, n, idx
+        int16_t fv
+
+    n = indexer.shape[0]
+
+    fv = fill_value
+
+    with nogil:
+        for i from 0 <= i < n:
+            idx = indexer[i]
+            if idx == -1:
+                out[i] = fv
+            else:
+                out[i] = values[idx]
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+cdef inline take_1d_int16_int32_memview(int16_t[:] values,
+                      int64_t[:] indexer,
+                      int32_t[:] out,
+                      fill_value=np.nan):
     cdef:
         Py_ssize_t i, n, idx
         int32_t fv
@@ -2590,10 +2813,42 @@ def take_1d_int16_int32(int16_t[:] values,
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def take_1d_int16_int64(int16_t[:] values,
+def take_1d_int16_int32(ndarray[int16_t, ndim=1] values,
                               int64_t[:] indexer,
-                              int64_t[:] out,
+                              int32_t[:] out,
                               fill_value=np.nan):
+
+    if values.flags.writeable:
+        # We can call the memoryview version of the code
+        take_1d_int16_int32_memview(values, indexer, out,
+                                          fill_value=fill_value)
+        return
+
+    # We cannot use the memoryview version on readonly-buffers due to
+    # a limitation of Cython's typed memoryviews. Instead we can use
+    # the slightly slower Cython ndarray type directly.
+    cdef:
+        Py_ssize_t i, n, idx
+        int32_t fv
+
+    n = indexer.shape[0]
+
+    fv = fill_value
+
+    with nogil:
+        for i from 0 <= i < n:
+            idx = indexer[i]
+            if idx == -1:
+                out[i] = fv
+            else:
+                out[i] = values[idx]
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+cdef inline take_1d_int16_int64_memview(int16_t[:] values,
+                      int64_t[:] indexer,
+                      int64_t[:] out,
+                      fill_value=np.nan):
     cdef:
         Py_ssize_t i, n, idx
         int64_t fv
@@ -2613,10 +2868,42 @@ def take_1d_int16_int64(int16_t[:] values,
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def take_1d_int16_float64(int16_t[:] values,
+def take_1d_int16_int64(ndarray[int16_t, ndim=1] values,
                               int64_t[:] indexer,
-                              float64_t[:] out,
+                              int64_t[:] out,
                               fill_value=np.nan):
+
+    if values.flags.writeable:
+        # We can call the memoryview version of the code
+        take_1d_int16_int64_memview(values, indexer, out,
+                                          fill_value=fill_value)
+        return
+
+    # We cannot use the memoryview version on readonly-buffers due to
+    # a limitation of Cython's typed memoryviews. Instead we can use
+    # the slightly slower Cython ndarray type directly.
+    cdef:
+        Py_ssize_t i, n, idx
+        int64_t fv
+
+    n = indexer.shape[0]
+
+    fv = fill_value
+
+    with nogil:
+        for i from 0 <= i < n:
+            idx = indexer[i]
+            if idx == -1:
+                out[i] = fv
+            else:
+                out[i] = values[idx]
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+cdef inline take_1d_int16_float64_memview(int16_t[:] values,
+                      int64_t[:] indexer,
+                      float64_t[:] out,
+                      fill_value=np.nan):
     cdef:
         Py_ssize_t i, n, idx
         float64_t fv
@@ -2636,10 +2923,42 @@ def take_1d_int16_float64(int16_t[:] values,
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def take_1d_int32_int32(int32_t[:] values,
+def take_1d_int16_float64(ndarray[int16_t, ndim=1] values,
                               int64_t[:] indexer,
-                              int32_t[:] out,
+                              float64_t[:] out,
                               fill_value=np.nan):
+
+    if values.flags.writeable:
+        # We can call the memoryview version of the code
+        take_1d_int16_float64_memview(values, indexer, out,
+                                          fill_value=fill_value)
+        return
+
+    # We cannot use the memoryview version on readonly-buffers due to
+    # a limitation of Cython's typed memoryviews. Instead we can use
+    # the slightly slower Cython ndarray type directly.
+    cdef:
+        Py_ssize_t i, n, idx
+        float64_t fv
+
+    n = indexer.shape[0]
+
+    fv = fill_value
+
+    with nogil:
+        for i from 0 <= i < n:
+            idx = indexer[i]
+            if idx == -1:
+                out[i] = fv
+            else:
+                out[i] = values[idx]
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+cdef inline take_1d_int32_int32_memview(int32_t[:] values,
+                      int64_t[:] indexer,
+                      int32_t[:] out,
+                      fill_value=np.nan):
     cdef:
         Py_ssize_t i, n, idx
         int32_t fv
@@ -2659,10 +2978,42 @@ def take_1d_int32_int32(int32_t[:] values,
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def take_1d_int32_int64(int32_t[:] values,
+def take_1d_int32_int32(ndarray[int32_t, ndim=1] values,
                               int64_t[:] indexer,
-                              int64_t[:] out,
+                              int32_t[:] out,
                               fill_value=np.nan):
+
+    if values.flags.writeable:
+        # We can call the memoryview version of the code
+        take_1d_int32_int32_memview(values, indexer, out,
+                                          fill_value=fill_value)
+        return
+
+    # We cannot use the memoryview version on readonly-buffers due to
+    # a limitation of Cython's typed memoryviews. Instead we can use
+    # the slightly slower Cython ndarray type directly.
+    cdef:
+        Py_ssize_t i, n, idx
+        int32_t fv
+
+    n = indexer.shape[0]
+
+    fv = fill_value
+
+    with nogil:
+        for i from 0 <= i < n:
+            idx = indexer[i]
+            if idx == -1:
+                out[i] = fv
+            else:
+                out[i] = values[idx]
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+cdef inline take_1d_int32_int64_memview(int32_t[:] values,
+                      int64_t[:] indexer,
+                      int64_t[:] out,
+                      fill_value=np.nan):
     cdef:
         Py_ssize_t i, n, idx
         int64_t fv
@@ -2682,10 +3033,42 @@ def take_1d_int32_int64(int32_t[:] values,
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def take_1d_int32_float64(int32_t[:] values,
+def take_1d_int32_int64(ndarray[int32_t, ndim=1] values,
                               int64_t[:] indexer,
-                              float64_t[:] out,
+                              int64_t[:] out,
                               fill_value=np.nan):
+
+    if values.flags.writeable:
+        # We can call the memoryview version of the code
+        take_1d_int32_int64_memview(values, indexer, out,
+                                          fill_value=fill_value)
+        return
+
+    # We cannot use the memoryview version on readonly-buffers due to
+    # a limitation of Cython's typed memoryviews. Instead we can use
+    # the slightly slower Cython ndarray type directly.
+    cdef:
+        Py_ssize_t i, n, idx
+        int64_t fv
+
+    n = indexer.shape[0]
+
+    fv = fill_value
+
+    with nogil:
+        for i from 0 <= i < n:
+            idx = indexer[i]
+            if idx == -1:
+                out[i] = fv
+            else:
+                out[i] = values[idx]
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+cdef inline take_1d_int32_float64_memview(int32_t[:] values,
+                      int64_t[:] indexer,
+                      float64_t[:] out,
+                      fill_value=np.nan):
     cdef:
         Py_ssize_t i, n, idx
         float64_t fv
@@ -2705,10 +3088,42 @@ def take_1d_int32_float64(int32_t[:] values,
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def take_1d_int64_int64(int64_t[:] values,
+def take_1d_int32_float64(ndarray[int32_t, ndim=1] values,
                               int64_t[:] indexer,
-                              int64_t[:] out,
+                              float64_t[:] out,
                               fill_value=np.nan):
+
+    if values.flags.writeable:
+        # We can call the memoryview version of the code
+        take_1d_int32_float64_memview(values, indexer, out,
+                                          fill_value=fill_value)
+        return
+
+    # We cannot use the memoryview version on readonly-buffers due to
+    # a limitation of Cython's typed memoryviews. Instead we can use
+    # the slightly slower Cython ndarray type directly.
+    cdef:
+        Py_ssize_t i, n, idx
+        float64_t fv
+
+    n = indexer.shape[0]
+
+    fv = fill_value
+
+    with nogil:
+        for i from 0 <= i < n:
+            idx = indexer[i]
+            if idx == -1:
+                out[i] = fv
+            else:
+                out[i] = values[idx]
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+cdef inline take_1d_int64_int64_memview(int64_t[:] values,
+                      int64_t[:] indexer,
+                      int64_t[:] out,
+                      fill_value=np.nan):
     cdef:
         Py_ssize_t i, n, idx
         int64_t fv
@@ -2728,10 +3143,42 @@ def take_1d_int64_int64(int64_t[:] values,
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def take_1d_int64_float64(int64_t[:] values,
+def take_1d_int64_int64(ndarray[int64_t, ndim=1] values,
                               int64_t[:] indexer,
-                              float64_t[:] out,
+                              int64_t[:] out,
                               fill_value=np.nan):
+
+    if values.flags.writeable:
+        # We can call the memoryview version of the code
+        take_1d_int64_int64_memview(values, indexer, out,
+                                          fill_value=fill_value)
+        return
+
+    # We cannot use the memoryview version on readonly-buffers due to
+    # a limitation of Cython's typed memoryviews. Instead we can use
+    # the slightly slower Cython ndarray type directly.
+    cdef:
+        Py_ssize_t i, n, idx
+        int64_t fv
+
+    n = indexer.shape[0]
+
+    fv = fill_value
+
+    with nogil:
+        for i from 0 <= i < n:
+            idx = indexer[i]
+            if idx == -1:
+                out[i] = fv
+            else:
+                out[i] = values[idx]
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+cdef inline take_1d_int64_float64_memview(int64_t[:] values,
+                      int64_t[:] indexer,
+                      float64_t[:] out,
+                      fill_value=np.nan):
     cdef:
         Py_ssize_t i, n, idx
         float64_t fv
@@ -2751,10 +3198,42 @@ def take_1d_int64_float64(int64_t[:] values,
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def take_1d_float32_float32(float32_t[:] values,
+def take_1d_int64_float64(ndarray[int64_t, ndim=1] values,
                               int64_t[:] indexer,
-                              float32_t[:] out,
+                              float64_t[:] out,
                               fill_value=np.nan):
+
+    if values.flags.writeable:
+        # We can call the memoryview version of the code
+        take_1d_int64_float64_memview(values, indexer, out,
+                                          fill_value=fill_value)
+        return
+
+    # We cannot use the memoryview version on readonly-buffers due to
+    # a limitation of Cython's typed memoryviews. Instead we can use
+    # the slightly slower Cython ndarray type directly.
+    cdef:
+        Py_ssize_t i, n, idx
+        float64_t fv
+
+    n = indexer.shape[0]
+
+    fv = fill_value
+
+    with nogil:
+        for i from 0 <= i < n:
+            idx = indexer[i]
+            if idx == -1:
+                out[i] = fv
+            else:
+                out[i] = values[idx]
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+cdef inline take_1d_float32_float32_memview(float32_t[:] values,
+                      int64_t[:] indexer,
+                      float32_t[:] out,
+                      fill_value=np.nan):
     cdef:
         Py_ssize_t i, n, idx
         float32_t fv
@@ -2774,10 +3253,42 @@ def take_1d_float32_float32(float32_t[:] values,
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def take_1d_float32_float64(float32_t[:] values,
+def take_1d_float32_float32(ndarray[float32_t, ndim=1] values,
                               int64_t[:] indexer,
-                              float64_t[:] out,
+                              float32_t[:] out,
                               fill_value=np.nan):
+
+    if values.flags.writeable:
+        # We can call the memoryview version of the code
+        take_1d_float32_float32_memview(values, indexer, out,
+                                          fill_value=fill_value)
+        return
+
+    # We cannot use the memoryview version on readonly-buffers due to
+    # a limitation of Cython's typed memoryviews. Instead we can use
+    # the slightly slower Cython ndarray type directly.
+    cdef:
+        Py_ssize_t i, n, idx
+        float32_t fv
+
+    n = indexer.shape[0]
+
+    fv = fill_value
+
+    with nogil:
+        for i from 0 <= i < n:
+            idx = indexer[i]
+            if idx == -1:
+                out[i] = fv
+            else:
+                out[i] = values[idx]
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+cdef inline take_1d_float32_float64_memview(float32_t[:] values,
+                      int64_t[:] indexer,
+                      float64_t[:] out,
+                      fill_value=np.nan):
     cdef:
         Py_ssize_t i, n, idx
         float64_t fv
@@ -2797,10 +3308,42 @@ def take_1d_float32_float64(float32_t[:] values,
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def take_1d_float64_float64(float64_t[:] values,
+def take_1d_float32_float64(ndarray[float32_t, ndim=1] values,
                               int64_t[:] indexer,
                               float64_t[:] out,
                               fill_value=np.nan):
+
+    if values.flags.writeable:
+        # We can call the memoryview version of the code
+        take_1d_float32_float64_memview(values, indexer, out,
+                                          fill_value=fill_value)
+        return
+
+    # We cannot use the memoryview version on readonly-buffers due to
+    # a limitation of Cython's typed memoryviews. Instead we can use
+    # the slightly slower Cython ndarray type directly.
+    cdef:
+        Py_ssize_t i, n, idx
+        float64_t fv
+
+    n = indexer.shape[0]
+
+    fv = fill_value
+
+    with nogil:
+        for i from 0 <= i < n:
+            idx = indexer[i]
+            if idx == -1:
+                out[i] = fv
+            else:
+                out[i] = values[idx]
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+cdef inline take_1d_float64_float64_memview(float64_t[:] values,
+                      int64_t[:] indexer,
+                      float64_t[:] out,
+                      fill_value=np.nan):
     cdef:
         Py_ssize_t i, n, idx
         float64_t fv
@@ -2820,10 +3363,75 @@ def take_1d_float64_float64(float64_t[:] values,
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def take_1d_object_object(object[:] values,
+def take_1d_float64_float64(ndarray[float64_t, ndim=1] values,
+                              int64_t[:] indexer,
+                              float64_t[:] out,
+                              fill_value=np.nan):
+
+    if values.flags.writeable:
+        # We can call the memoryview version of the code
+        take_1d_float64_float64_memview(values, indexer, out,
+                                          fill_value=fill_value)
+        return
+
+    # We cannot use the memoryview version on readonly-buffers due to
+    # a limitation of Cython's typed memoryviews. Instead we can use
+    # the slightly slower Cython ndarray type directly.
+    cdef:
+        Py_ssize_t i, n, idx
+        float64_t fv
+
+    n = indexer.shape[0]
+
+    fv = fill_value
+
+    with nogil:
+        for i from 0 <= i < n:
+            idx = indexer[i]
+            if idx == -1:
+                out[i] = fv
+            else:
+                out[i] = values[idx]
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+cdef inline take_1d_object_object_memview(object[:] values,
+                      int64_t[:] indexer,
+                      object[:] out,
+                      fill_value=np.nan):
+    cdef:
+        Py_ssize_t i, n, idx
+        object fv
+
+    n = indexer.shape[0]
+
+    fv = fill_value
+
+    
+    for i from 0 <= i < n:
+        idx = indexer[i]
+        if idx == -1:
+            out[i] = fv
+        else:
+            out[i] = values[idx]
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def take_1d_object_object(ndarray[object, ndim=1] values,
                               int64_t[:] indexer,
                               object[:] out,
                               fill_value=np.nan):
+
+    if values.flags.writeable:
+        # We can call the memoryview version of the code
+        take_1d_object_object_memview(values, indexer, out,
+                                          fill_value=fill_value)
+        return
+
+    # We cannot use the memoryview version on readonly-buffers due to
+    # a limitation of Cython's typed memoryviews. Instead we can use
+    # the slightly slower Cython ndarray type directly.
     cdef:
         Py_ssize_t i, n, idx
         object fv
