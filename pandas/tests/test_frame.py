@@ -1237,8 +1237,8 @@ class CheckIndexing(object):
         f = self.frame
         ix = f.ix
 
-        # return self if no slicing...for now
-        self.assertIs(ix[:, :], f)
+        # return view
+        self.assertIsNot(ix[:, :], f)
 
         # low dimensional slice
         xs1 = ix[2, ['C', 'B', 'A']]

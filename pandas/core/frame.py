@@ -217,8 +217,7 @@ class DataFrame(NDFrame):
             dtype = self._validate_dtype(dtype)
 
         if isinstance(data, DataFrame):
-            data = data.iloc[:,:]
-            data = data._data
+            data = data._get_view()._data
 
         if isinstance(data, BlockManager):
             mgr = self._init_mgr(data, axes=dict(index=index, columns=columns),
@@ -5227,6 +5226,9 @@ class DataFrame(NDFrame):
                       "'DataFrame.mul(other, fill_value=1.)' instead",
                       FutureWarning, stacklevel=2)
         return self.mul(other, fill_value=1.)
+
+    def _get_view(self):
+        return self.loc[:,:]
 
 
 DataFrame._setup_axes(['index', 'columns'], info_axis=1, stat_axis=0,

@@ -2483,6 +2483,8 @@ class BlockManager(PandasObject):
     insert(loc, label, value)
     set(label, value)
 
+    view()
+
     Parameters
     ----------
 
