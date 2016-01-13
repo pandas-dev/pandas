@@ -440,10 +440,7 @@ Bug Fixes
 - Bug in ``date_range`` when the boundaries fell on the frequency (:issue:`11804`)
 - Bug in consistency of passing nested dicts to ``.groupby(...).agg(...)`` (:issue:`9052`)
 - Accept unicode in ``Timedelta`` constructor (:issue:`11995`)
-
 - Bug in value label reading for ``StataReader`` when reading incrementally (:issue:`12014`)
-
-
 - Bug in vectorized ``DateOffset`` when ``n`` parameter is ``0`` (:issue:`11370`)
 
 
@@ -456,7 +453,6 @@ Bug Fixes
 - Bug in ``.loc`` against ``CategoricalIndex`` may result in normal ``Index`` (:issue:`11586`)
 - Bug in ``DataFrame.info`` when duplicated column names exist (:issue:`11761`)
 - Bug in ``.copy`` of datetime tz-aware objects (:issue:`11794`)
-
 - Bug in ``Series.apply`` and ``Series.map`` where ``timedelta64`` was not boxed (:issue:`11349`)
 
 
@@ -465,48 +461,39 @@ Bug Fixes
 - Bug in subclasses of ``DataFrame`` where ``AttributeError`` did not propagate (:issue:`11808`)
 - Bug groupby on tz-aware data where selection not returning ``Timestamp`` (:issue:`11616`)
 - Bug in ``pd.read_clipboard`` and ``pd.to_clipboard`` functions not supporting Unicode; upgrade included ``pyperclip`` to v1.5.15 (:issue:`9263`)
-
-
 - Bug in ``DataFrame.query`` containing an assignment (:issue:`8664`)
 
 
 
 - Bug in timezone info lost when broadcasting scalar datetime to ``DataFrame`` (:issue:`11682`)
-
 - Bug in ``Index`` creation from ``Timestamp`` with mixed tz coerces to UTC (:issue:`11488`)
 - Bug in ``to_numeric`` where it does not raise if input is more than one dimension (:issue:`11776`)
-
 - Bug in parsing timezone offset strings with non-zero minutes (:issue:`11708`)
-
 - Bug in ``df.plot`` using incorrect colors for bar plots under matplotlib 1.5+ (:issue:`11614`)
 - Bug in the ``groupby`` ``plot`` method when using keyword arguments (:issue:`11805`).
-
 - Bug in ``DataFrame.duplicated`` and ``drop_duplicates`` causing spurious matches when setting ``keep=False`` (:issue:`11864`)
-
 - Bug in ``.loc`` result with duplicated key may have ``Index`` with incorrect dtype (:issue:`11497`)
 - Bug in ``pd.rolling_median`` where memory allocation failed even with sufficient memory (:issue:`11696`)
-
 - Bug in ``.style.bar`` may not rendered properly using specific browser (:issue:`11678`)
-
 - Bug in rich comparison of ``Timedelta`` with a ``numpy.array`` of ``Timedelta`` that caused an infinite recursion (:issue:`11835`)
-
 - Bug in ``DataFrame.round`` dropping column index name (:issue:`11986`)
-
 - Bug in ``df.replace`` while replacing value in mixed dtype ``Dataframe`` (:issue:`11698`)
-
 - Bug in ``Index`` prevents copying name of passed ``Index``, when a new name is not provided (:issue:`11193`)
-
 - Bug in ``read_excel`` failing to read any non-empty sheets when empty sheets exist and ``sheetname=None`` (:issue:`11711`)
-
 - Bug in ``read_excel`` failing to raise ``NotImplemented`` error when keywords ``parse_dates`` and ``date_parser`` are provided (:issue:`11544`)
-
 - Bug in ``read_sql`` with pymysql connections failing to return chunked data (:issue:`11522`)
-
 - Bug in ``.to_csv`` ignoring formatting parameters ``decimal``, ``na_rep``, ``float_format`` for float indexes (:issue:`11553`)
-
 - Bug in ``Int64Index`` and ``Float64Index`` preventing the use of the modulo operator (:issue:`9244`)
+
 
 - Bug in ``DataFrame`` when masking an empty ``DataFrame`` (:issue:`11859`)
 
-- Removed ``millisecond`` property of ``DatetimeIndex``. This would always raise
-  a ``ValueError`` (:issue:`12019`).
+
+
+
+
+
+
+
+- Removed ``millisecond`` property of ``DatetimeIndex``. This would always raise a ``ValueError`` (:issue:`12019`).
+- Bug in ``Series`` constructor with read-only data (:issue:`11502`)
