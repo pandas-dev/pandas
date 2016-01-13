@@ -175,3 +175,4 @@ after_script:
   - source activate pandas && ci/print_versions.py
   - ci/print_skipped.py /tmp/nosetests.xml
   - ci/lint.sh
+  - ci/lint_ok_for_now.sh
