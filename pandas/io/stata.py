@@ -39,8 +39,7 @@ convert_categoricals : boolean, defaults to True
 
 _encoding_params = """\
 encoding : string, None or encoding
-    Encoding used to parse the files. Note that Stata doesn't
-    support unicode. None defaults to iso-8859-1."""
+    Encoding used to parse the files. None defaults to iso-8859-1."""
 
 _statafile_processing_params2 = """\
 index : identifier of index column
@@ -431,6 +430,7 @@ Fixed width strings in Stata .dta files are limited to 244 (or fewer) characters
 Column '%s' does not satisfy this restriction.
 """
 
+
 class PossiblePrecisionLoss(Warning):
     pass
 
@@ -439,6 +439,7 @@ precision_loss_doc = """
 Column converted from %s to %s, and some data are outside of the lossless
 conversion range. This may result in a loss of precision in the saved data.
 """
+
 
 class ValueLabelTypeMismatch(Warning):
     pass
@@ -513,7 +514,6 @@ def _cast_to_stata_types(data):
                             ws = precision_loss_doc % ('uint64', 'float64')
 
                 data[col] = data[col].astype(dtype)
-
 
         # Check values and upcast if necessary
         if dtype == np.int8:
@@ -788,19 +788,19 @@ class StataParser(object):
     def __init__(self, encoding):
         self._encoding = encoding
 
-        #type          code.
-        #--------------------
-        #str1        1 = 0x01
-        #str2        2 = 0x02
-        #...
-        #str244    244 = 0xf4
-        #byte      251 = 0xfb  (sic)
-        #int       252 = 0xfc
-        #long      253 = 0xfd
-        #float     254 = 0xfe
-        #double    255 = 0xff
-        #--------------------
-        #NOTE: the byte type seems to be reserved for categorical variables
+        # type          code.
+        # --------------------
+        # str1        1 = 0x01
+        # str2        2 = 0x02
+        # ...
+        # str244    244 = 0xf4
+        # byte      251 = 0xfb  (sic)
+        # int       252 = 0xfc
+        # long      253 = 0xfd
+        # float     254 = 0xfe
+        # double    255 = 0xff
+        # --------------------
+        # NOTE: the byte type seems to be reserved for categorical variables
         # with a label, but the underlying variable is -127 to 100
         # we're going to drop the label and cast to int
         self.DTYPE_MAP = \
@@ -837,7 +837,7 @@ class StataParser(object):
                     (65530, 'b')
                 ]
             )
-        #NOTE: technically, some of these are wrong. there are more numbers
+        # NOTE: technically, some of these are wrong. there are more numbers
         # that can be represented. it's the 27 ABOVE and BELOW the max listed
         # numeric data type in [U] 12.2.2 of the 11.2 manual
         float32_min = b'\xff\xff\xff\xfe'
@@ -899,6 +899,7 @@ class StataParser(object):
         else:
             return str
 
+
 class StataReader(StataParser):
     __doc__ = _stata_reader_doc
 
@@ -932,7 +933,7 @@ class StataReader(StataParser):
         self._dtype = None
         self._lines_read = 0
 
-        self._native_byteorder =  _set_endianness(sys.byteorder)
+        self._native_byteorder = _set_endianness(sys.byteorder)
         if isinstance(path_or_buf, str):
             path_or_buf, encoding, _ = get_filepath_or_buffer(
                 path_or_buf, encoding=self._default_encoding
@@ -951,7 +952,6 @@ class StataReader(StataParser):
 
         self._read_header()
 
-
     def __enter__(self):
         """ enter context manager """
         return self
@@ -966,7 +966,6 @@ class StataReader(StataParser):
             self.path_or_buf.close()
         except IOError:
             pass
-
 
     def _read_header(self):
         first_char = self.path_or_buf.read(1)
@@ -983,7 +982,6 @@ class StataReader(StataParser):
 
         # remove format details from %td
         self.fmtlist = ["%td" if x.startswith("%td") else x for x in self.fmtlist]
-
 
     def _read_new_header(self, first_char):
         # The first part of the header is common to 117 and 118.
@@ -1049,7 +1047,6 @@ class StataReader(StataParser):
         self.path_or_buf.seek(self._seek_variable_labels)
         self.vlblist = self._get_vlblist()
 
-
     # Get data type information, works for versions 117-118.
     def _get_dtypes(self, seek_vartypes):
 
@@ -1082,7 +1079,6 @@ class StataReader(StataParser):
 
         return typlist, dtyplist
 
-
     def _get_varlist(self):
         if self.format_version == 117:
             b = 33
@@ -1091,7 +1087,6 @@ class StataReader(StataParser):
 
         return [self._null_terminate(self.path_or_buf.read(b))
                 for i in range(self.nvar)]
-
 
     # Returns the format list
     def _get_fmtlist(self):
@@ -1107,7 +1102,6 @@ class StataReader(StataParser):
         return [self._null_terminate(self.path_or_buf.read(b))
                 for i in range(self.nvar)]
 
-
     # Returns the label list
     def _get_lbllist(self):
         if self.format_version >= 118:
@@ -1118,7 +1112,6 @@ class StataReader(StataParser):
             b = 9
         return [self._null_terminate(self.path_or_buf.read(b))
                 for i in range(self.nvar)]
-
 
     def _get_vlblist(self):
         if self.format_version == 118:
@@ -1132,7 +1125,6 @@ class StataReader(StataParser):
                        for i in range(self.nvar)]
         return vlblist
 
-
     def _get_nobs(self):
         if self.format_version == 118:
             return struct.unpack(self.byteorder + 'Q',
@@ -1140,7 +1132,6 @@ class StataReader(StataParser):
         else:
             return struct.unpack(self.byteorder + 'I',
                                  self.path_or_buf.read(4))[0]
-
 
     def _get_data_label(self):
         if self.format_version == 118:
@@ -1154,7 +1145,6 @@ class StataReader(StataParser):
         else:
             return self._null_terminate(self.path_or_buf.read(32))
 
-
     def _get_time_stamp(self):
         if self.format_version == 118:
             strlen = struct.unpack('b', self.path_or_buf.read(1))[0]
@@ -1167,19 +1157,17 @@ class StataReader(StataParser):
         else:
             raise ValueError()
 
-
     def _get_seek_variable_labels(self):
         if self.format_version == 117:
             self.path_or_buf.read(8)  # <variable_lables>, throw away
             # Stata 117 data files do not follow the described format.  This is
             # a work around that uses the previous label, 33 bytes for each
             # variable, 20 for the closing tag and 17 for the opening tag
-            return self._seek_value_label_names + (33*self.nvar) + 20 + 17
+            return self._seek_value_label_names + (33 * self.nvar) + 20 + 17
         elif self.format_version == 118:
             return struct.unpack(self.byteorder + 'q', self.path_or_buf.read(8))[0] + 17
         else:
             raise ValueError()
-
 
     def _read_old_header(self, first_char):
         self.format_version = struct.unpack('b', first_char)[0]
@@ -1258,20 +1246,17 @@ class StataReader(StataParser):
         # necessary data to continue parsing
         self.data_location = self.path_or_buf.tell()
 
-
     def _calcsize(self, fmt):
         return (type(fmt) is int and fmt
                 or struct.calcsize(self.byteorder + fmt))
-
 
     def _decode(self, s):
         s = s.partition(b"\0")[0]
         return s.decode('utf-8')
 
-
     def _null_terminate(self, s):
-        if compat.PY3 or self._encoding is not None:  # have bytes not strings,
-                                                      # so must decode
+        if compat.PY3 or self._encoding is not None:
+            # have bytes not strings, so must decode
             s = s.partition(b"\0")[0]
             return s.decode(self._encoding or self._default_encoding)
         else:
@@ -1316,33 +1301,32 @@ class StataReader(StataParser):
                               self.path_or_buf.read(4))[0]
             txtlen = struct.unpack(self.byteorder + 'I',
                                    self.path_or_buf.read(4))[0]
-            off = []
-            for i in range(n):
-                off.append(struct.unpack(self.byteorder + 'I',
-                                         self.path_or_buf.read(4))[0])
-            val = []
-            for i in range(n):
-                val.append(struct.unpack(self.byteorder + 'I',
-                                         self.path_or_buf.read(4))[0])
+            off = np.frombuffer(self.path_or_buf.read(4 * n),
+                                dtype=self.byteorder + "i4",
+                                count=n)
+            val = np.frombuffer(self.path_or_buf.read(4 * n),
+                                dtype=self.byteorder + "i4",
+                                count=n)
+            ii = np.argsort(off)
+            off = off[ii]
+            val = val[ii]
             txt = self.path_or_buf.read(txtlen)
             self.value_label_dict[labname] = dict()
             for i in range(n):
+                end = off[i + 1] if i < n - 1 else txtlen
                 if self.format_version <= 117:
                     self.value_label_dict[labname][val[i]] = (
-                        self._null_terminate(txt[off[i]:])
-                        )
+                        self._null_terminate(txt[off[i]:end]))
                 else:
                     self.value_label_dict[labname][val[i]] = (
-                        self._decode(txt[off[i]:])
-                        )
+                        self._decode(txt[off[i]:end]))
             if self.format_version >= 117:
                 self.path_or_buf.read(6)  # </lbl>
         self._value_labels_read = True
 
-
     def _read_strls(self):
         self.path_or_buf.seek(self.seek_strls)
-        self.GSO = {0 : ''}
+        self.GSO = {0: ''}
         while True:
             if self.path_or_buf.read(3) != b'GSO':
                 break
@@ -1381,7 +1365,6 @@ class StataReader(StataParser):
 
         return self.read(None, **kwargs)
 
-
     def __iter__(self):
         try:
             if self._chunksize:
@@ -1391,7 +1374,6 @@ class StataReader(StataParser):
                 yield self.read()
         except StopIteration:
             pass
-
 
     def get_chunk(self, size=None):
         """
@@ -1409,7 +1391,6 @@ class StataReader(StataParser):
         if size is None:
             size = self._chunksize
         return self.read(nrows=size)
-
 
     @Appender(_read_method_doc)
     def read(self, nrows=None, convert_dates=None,
@@ -1465,7 +1446,8 @@ class StataReader(StataParser):
         if read_len <= 0:
             # Iterator has finished, should never be here unless
             # we are reading the file incrementally
-            self._read_value_labels()
+            if convert_categoricals:
+                self._read_value_labels()
             raise StopIteration
         offset = self._lines_read * dtype.itemsize
         self.path_or_buf.seek(self.data_location + offset)
@@ -1484,7 +1466,7 @@ class StataReader(StataParser):
         if convert_categoricals:
             self._read_value_labels()
 
-        if len(data)==0:
+        if len(data) == 0:
             data = DataFrame(columns=self.varlist, index=index)
         else:
             data = DataFrame.from_records(data, index=index)
@@ -1536,7 +1518,7 @@ class StataReader(StataParser):
 
         if convert_categoricals and self.value_label_dict:
             data = self._do_convert_categoricals(data, self.value_label_dict, self.lbllist,
-                                             order_categoricals)
+                                                 order_categoricals)
 
         if not preserve_dtypes:
             retyped_data = []
@@ -1629,7 +1611,6 @@ class StataReader(StataParser):
 
         return data[columns]
 
-
     def _do_convert_categoricals(self, data, value_label_dict, lbllist, order_categoricals):
         """
         Converts categorical columns to Categorical type.
@@ -1677,7 +1658,7 @@ class StataReader(StataParser):
 
 def _open_file_binary_write(fname, encoding):
     if hasattr(fname, 'write'):
-        #if 'b' not in fname.mode:
+        # if 'b' not in fname.mode:
         return fname
     return open(fname, "wb")
 
@@ -2003,7 +1984,7 @@ class StataWriter(StataParser):
         return data
 
     def _prepare_pandas(self, data):
-        #NOTE: we might need a different API / class for pandas objects so
+        # NOTE: we might need a different API / class for pandas objects so
         # we can set different semantics - handle this with a PR to pandas.io
 
         data = data.copy()
@@ -2076,9 +2057,9 @@ class StataWriter(StataParser):
         # unused
         self._write("\x00")
         # number of vars, 2 bytes
-        self._file.write(struct.pack(byteorder+"h", self.nvar)[:2])
+        self._file.write(struct.pack(byteorder + "h", self.nvar)[:2])
         # number of obs, 4 bytes
-        self._file.write(struct.pack(byteorder+"i", self.nobs)[:4])
+        self._file.write(struct.pack(byteorder + "i", self.nobs)[:4])
         # data label 81 bytes, char, null terminated
         if data_label is None:
             self._file.write(self._null_terminate(_pad_bytes("", 80)))
@@ -2111,7 +2092,7 @@ class StataWriter(StataParser):
             self._write(name)
 
         # srtlist, 2*(nvar+1), int array, encoded by byteorder
-        srtlist = _pad_bytes("", (2*(nvar+1)))
+        srtlist = _pad_bytes("", 2 * (nvar + 1))
         self._write(srtlist)
 
         # fmtlist, 49*nvar, char array
@@ -2156,11 +2137,11 @@ class StataWriter(StataParser):
                 has_strings = True
                 data[col] = data[col].fillna('').apply(_pad_bytes, args=(typ,))
                 stype = 'S%d' % typ
-                dtype.append(('c'+str(i), stype))
+                dtype.append(('c' + str(i), stype))
                 string = data[col].str.encode(self._encoding)
                 data_cols.append(string.values.astype(stype))
             else:
-                dtype.append(('c'+str(i), data[col].dtype))
+                dtype.append(('c' + str(i), data[col].dtype))
                 data_cols.append(data[col].values)
         dtype = np.dtype(dtype)
 
