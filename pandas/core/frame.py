@@ -1547,7 +1547,7 @@ class DataFrame(NDFrame):
                  header=True, index=True, na_rep='NaN', formatters=None,
                  float_format=None, sparsify=None, index_names=True,
                  bold_rows=True, column_format=None,
-                 longtable=None, escape=None):
+                 longtable=None, escape=None, encoding=None):
         """
         Render a DataFrame to a tabular environment table. You can splice
         this into a LaTeX document. Requires \\usepackage{booktabs}.
@@ -1567,7 +1567,8 @@ class DataFrame(NDFrame):
             default: True
             When set to False prevents from escaping latex special
             characters in column names.
-
+        encoding : str, default None
+            Default encoding is ascii in Python 2 and utf-8 in Python 3
         """
 
         if colSpace is not None:  # pragma: no cover
@@ -1589,7 +1590,8 @@ class DataFrame(NDFrame):
                                            sparsify=sparsify,
                                            index_names=index_names,
                                            escape=escape)
-        formatter.to_latex(column_format=column_format, longtable=longtable)
+        formatter.to_latex(column_format=column_format, longtable=longtable,
+                           encoding=encoding)
 
         if buf is None:
             return formatter.buf.getvalue()
