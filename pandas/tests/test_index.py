@@ -2731,6 +2731,12 @@ class Numeric(Base):
             expected = {ex_keys[0][0]: [idx[0], idx[5]], ex_keys[0][1]: [idx[1], idx[4]]}
             self.assertEqual(idx.groupby(to_groupby), expected)
 
+    def test_modulo(self):
+        # GH 9244
+        index = self.create_index()
+        expected = Index(index.values % 2)
+        self.assert_index_equal(index % 2, expected)
+
 
 class TestFloat64Index(Numeric, tm.TestCase):
     _holder = Float64Index

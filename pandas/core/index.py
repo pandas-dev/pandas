@@ -3034,6 +3034,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         cls.__sub__ = _make_evaluate_binop(operator.sub,'__sub__')
         cls.__rsub__ = _make_evaluate_binop(operator.sub,'__sub__',reversed=True)
         cls.__mul__ = cls.__rmul__ = _make_evaluate_binop(operator.mul,'__mul__')
+        cls.__mod__ = _make_evaluate_binop(operator.mod, '__mod__')
         cls.__floordiv__ = _make_evaluate_binop(operator.floordiv,'__floordiv__')
         cls.__rfloordiv__ = _make_evaluate_binop(operator.floordiv,'__floordiv__',reversed=True)
         cls.__truediv__ = _make_evaluate_binop(operator.truediv,'__truediv__')
