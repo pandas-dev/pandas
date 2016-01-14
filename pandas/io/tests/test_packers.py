@@ -12,9 +12,9 @@ from pandas import (Series, DataFrame, Panel, MultiIndex, bdate_range,
                     date_range, period_range, Index, SparseSeries, SparseDataFrame,
                     SparsePanel)
 import pandas.util.testing as tm
-from pandas.util.testing import ensure_clean, assert_index_equal
-from pandas.tests.test_series import assert_series_equal
-from pandas.tests.test_frame import assert_frame_equal
+from pandas.util.testing import (ensure_clean, assert_index_equal,
+                                 assert_series_equal,
+                                 assert_frame_equal)
 from pandas.tests.test_panel import assert_panel_equal
 
 import pandas
