@@ -510,3 +510,5 @@ Bug Fixes
 
 - Removed ``millisecond`` property of ``DatetimeIndex``. This would always raise
   a ``ValueError`` (:issue:`12019`).
+
+- Bug in Series constructor with read-only data (:issue:`11502`)
