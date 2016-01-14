@@ -15,6 +15,8 @@ from numpy import nan
 from numpy.random import randn
 import numpy as np
 
+import codecs
+
 div_style = ''
 try:
     import IPython
@@ -2553,6 +2555,24 @@ c  10  11  12  13  14\
 
             with open(path, 'r') as f:
                 self.assertEqual(self.frame.to_latex(), f.read())
+
+        # test with utf-8 and encoding option (GH 7061)
+        df = DataFrame([[u'au\xdfgangen']])
+        with tm.ensure_clean('test.tex') as path:
+            df.to_latex(path, encoding='utf-8')
+            with codecs.open(path, 'r', encoding='utf-8') as f:
+                self.assertEqual(df.to_latex(), f.read())
+
+        # test with utf-8 without encoding option
+        if compat.PY3:  # python3 default encoding is utf-8
+            with tm.ensure_clean('test.tex') as path:
+                df.to_latex(path)
+                with codecs.open(path, 'r') as f:
+                    self.assertEqual(df.to_latex(), f.read())
+        else:
+            # python2 default encoding is ascii, so an error should be raised
+            with tm.ensure_clean('test.tex') as path:
+                self.assertRaises(UnicodeEncodeError, df.to_latex, path)
 
     def test_to_latex(self):
         # it works!

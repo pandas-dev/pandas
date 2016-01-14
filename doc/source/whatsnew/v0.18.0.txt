@@ -303,6 +303,9 @@ Other API Changes
 
 - ``.memory_usage`` now includes values in the index, as does memory_usage in ``.info`` (:issue:`11597`)
 
+- ``DataFrame.to_latex()`` now supports non-ascii encodings (eg utf-8) in Python 2 with the parameter ``encoding`` (:issue:`7061`)
+
+
 Changes to eval
 ^^^^^^^^^^^^^^^
 
