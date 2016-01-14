@@ -4,9 +4,9 @@ echo "inside $0"
 
 source activate pandas
 
-for path in 'core'
+for path in 'io' 'stats' 'computation' 'tseries' 'util' 'compat' 'tools' 'sparse' 'tests'
 do
-    echo "linting -> pandas/$path"
+    echo "linting [ok_for_now] -> pandas/$path"
     flake8 pandas/$path --filename '*.py' --statistics -q
 done
 
