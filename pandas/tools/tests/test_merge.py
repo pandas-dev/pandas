@@ -609,7 +609,7 @@ class TestMerge(tm.TestCase):
         right = DataFrame({'c': 'foo', 'd': 'bar'}, index=lrange(10))
 
         merged = merge(left, right, left_index=True,
-                       right_index=True, copy=True)
+                       right_index=True)
 
         merged['a'] = 6
         self.assertTrue((left['a'] == 0).all())
@@ -617,19 +617,16 @@ class TestMerge(tm.TestCase):
         merged['d'] = 'peekaboo'
         self.assertTrue((right['d'] == 'bar').all())
 
-    def test_merge_nocopy(self):
-        left = DataFrame({'a': 0, 'b': 1}, index=lrange(10))
-        right = DataFrame({'c': 'foo', 'd': 'bar'}, index=lrange(10))
+    def test_merge_nocopy(self):		
 
-        merged = merge(left, right, left_index=True,
-                       right_index=True, copy=False)
-
-        merged['a'] = 6
-        self.assertTrue((left['a'] == 6).all())
-
-        merged['d'] = 'peekaboo'
-        self.assertTrue((right['d'] == 'peekaboo').all())
-
+        # disabled in copy-on-write paradigm               
+        left = DataFrame({'a': 0, 'b': 1}, index=lrange(10))		
+        right = DataFrame({'c': 'foo', 'd': 'bar'}, index=lrange(10))		
+		
+        with tm.assertRaises(TypeError):
+            merge(left, right, left_index=True,		
+                       right_index=True, copy=False)		
+		
     def test_join_sort(self):
         left = DataFrame({'key': ['foo', 'bar', 'baz', 'foo'],
                           'value': [1, 2, 3, 4]})
@@ -1942,30 +1939,17 @@ class TestConcatenate(tm.TestCase):
         df3 = DataFrame({5 : 'foo'},index=range(4))
 
         # these are actual copies
-        result = concat([df,df2,df3],axis=1,copy=True)
+        result = concat([df,df2,df3],axis=1)
         for b in result._data.blocks:
             self.assertIsNone(b.values.base)
 
-        # these are the same
-        result = concat([df,df2,df3],axis=1,copy=False)
-        for b in result._data.blocks:
-            if b.is_float:
-                self.assertTrue(b.values.base is df._data.blocks[0].values.base)
-            elif b.is_integer:
-                self.assertTrue(b.values.base is df2._data.blocks[0].values.base)
-            elif b.is_object:
-                self.assertIsNotNone(b.values.base)
-
-        # float block was consolidated
-        df4 = DataFrame(np.random.randn(4,1))
-        result = concat([df,df2,df3,df4],axis=1,copy=False)
-        for b in result._data.blocks:
-            if b.is_float:
-                self.assertIsNone(b.values.base)
-            elif b.is_integer:
-                self.assertTrue(b.values.base is df2._data.blocks[0].values.base)
-            elif b.is_object:
-                self.assertIsNotNone(b.values.base)
+        # Concat copy argument removed in copy-on-write
+        with tm.assertRaises(TypeError):
+            result = concat([df,df2,df3],axis=1,copy=False)		
+		
+        df4 = DataFrame(np.random.randn(4,1))		
+        with tm.assertRaises(TypeError):
+            result = concat([df,df2,df3,df4],axis=1,copy=False)				
 
     def test_concat_with_group_keys(self):
         df = DataFrame(np.random.randn(4, 3))

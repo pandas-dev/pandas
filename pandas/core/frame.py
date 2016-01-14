@@ -179,7 +179,7 @@ class DataFrame(NDFrame):
         np.arange(n) if no column labels are provided
     dtype : dtype, default None
         Data type to force, otherwise infer
-    copy : boolean, default False
+    copy : boolean, default True
         Copy data from inputs. Only affects DataFrame / 2d ndarray input
 
     Examples
@@ -211,13 +211,17 @@ class DataFrame(NDFrame):
 
     def __init__(self, data=None, index=None, columns=None, dtype=None,
                  copy=False):
+                     
+        parent = None
+    
         if data is None:
             data = {}
         if dtype is not None:
             dtype = self._validate_dtype(dtype)
 
         if isinstance(data, DataFrame):
-            data = data._data
+            parent = data
+            data = data._get_view()._data
 
         if isinstance(data, BlockManager):
             mgr = self._init_mgr(data, axes=dict(index=index, columns=columns),
@@ -305,6 +309,9 @@ class DataFrame(NDFrame):
                 raise PandasError('DataFrame constructor not properly called!')
 
         NDFrame.__init__(self, mgr, fastpath=True)
+
+        if parent is not None:
+            parent._register_new_child(self)
 
     def _init_dict(self, data, index, columns, dtype=None):
         """
@@ -1963,8 +1970,10 @@ class DataFrame(NDFrame):
         # shortcut if we are an actual column
         is_mi_columns = isinstance(self.columns, MultiIndex)
         try:
-            if key in self.columns and not is_mi_columns:
-                return self._getitem_column(key)
+            if key in self.columns:
+                result = self._getitem_column(key)
+                result._is_column_view = True
+                return result
         except:
             pass
 
@@ -2338,7 +2347,6 @@ class DataFrame(NDFrame):
             self._set_item(key, value)
 
     def _setitem_slice(self, key, value):
-        self._check_setitem_copy()
         self.ix._setitem_with_indexer(key, value)
 
     def _setitem_array(self, key, value):
@@ -2349,7 +2357,6 @@ class DataFrame(NDFrame):
                                  (len(key), len(self.index)))
             key = check_bool_indexer(self.index, key)
             indexer = key.nonzero()[0]
-            self._check_setitem_copy()
             self.ix._setitem_with_indexer(indexer, value)
         else:
             if isinstance(value, DataFrame):
@@ -2359,7 +2366,6 @@ class DataFrame(NDFrame):
                     self[k1] = value[k2]
             else:
                 indexer = self.ix._convert_to_indexer(key, axis=1)
-                self._check_setitem_copy()
                 self.ix._setitem_with_indexer((slice(None), indexer), value)
 
     def _setitem_frame(self, key, value):
@@ -2369,7 +2375,6 @@ class DataFrame(NDFrame):
             raise TypeError('Must pass DataFrame with boolean values only')
 
         self._check_inplace_setting(value)
-        self._check_setitem_copy()
         self.where(-key, value, inplace=True)
 
     def _ensure_valid_index(self, value):
@@ -2405,11 +2410,6 @@ class DataFrame(NDFrame):
         value = self._sanitize_column(key, value)
         NDFrame._set_item(self, key, value)
 
-        # check if we are modifying a copy
-        # try to set first as we want an invalid
-        # value exeption to occur first
-        if len(self):
-            self._check_setitem_copy()
 
     def insert(self, loc, column, value, allow_duplicates=False):
         """
@@ -4377,12 +4377,12 @@ class DataFrame(NDFrame):
     @Appender(_merge_doc, indents=2)
     def merge(self, right, how='inner', on=None, left_on=None, right_on=None,
               left_index=False, right_index=False, sort=False,
-              suffixes=('_x', '_y'), copy=True, indicator=False):
+              suffixes=('_x', '_y'), indicator=False):
         from pandas.tools.merge import merge
         return merge(self, right, how=how, on=on,
                      left_on=left_on, right_on=right_on,
                      left_index=left_index, right_index=right_index, sort=sort,
-                     suffixes=suffixes, copy=copy, indicator=indicator)
+                     suffixes=suffixes, indicator=indicator)
 
     def round(self, decimals=0, out=None):
         """
@@ -5226,6 +5226,9 @@ class DataFrame(NDFrame):
                       "'DataFrame.mul(other, fill_value=1.)' instead",
                       FutureWarning, stacklevel=2)
         return self.mul(other, fill_value=1.)
+
+    def _get_view(self):
+        return self.loc[:,:]
 
 
 DataFrame._setup_axes(['index', 'columns'], info_axis=1, stat_axis=0,

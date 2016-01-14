@@ -57,6 +57,7 @@ class _NDFrameIndexer(object):
         raise NotImplementedError('ix is not iterable')
 
     def __getitem__(self, key):
+
         if type(key) is tuple:
             try:
                 values = self.obj.get_value(*key)
@@ -113,6 +114,9 @@ class _NDFrameIndexer(object):
             raise IndexingError(key)
 
     def __setitem__(self, key, value):
+        # Make sure changes don't propagate to children
+        self.obj._execute_copy_on_write()
+
         indexer = self._get_setitem_indexer(key)
         self._setitem_with_indexer(indexer, value)
 
@@ -204,6 +208,7 @@ class _NDFrameIndexer(object):
 
     def _setitem_with_indexer(self, indexer, value):
         self._has_valid_setitem_indexer(indexer)
+
 
         # also has the side effect of consolidating in-place
         from pandas import Panel, DataFrame, Series
@@ -517,8 +522,6 @@ class _NDFrameIndexer(object):
             if isinstance(value, ABCPanel):
                 value = self._align_panel(indexer, value)
 
-            # check for chained assignment
-            self.obj._check_is_chained_assignment_possible()
 
             # actually do the set
             self.obj._consolidate_inplace()
@@ -751,9 +754,6 @@ class _NDFrameIndexer(object):
         for i, key in enumerate(tup):
             if i >= self.obj.ndim:
                 raise IndexingError('Too many indexers')
-
-            if is_null_slice(key):
-                continue
 
             retval = getattr(retval, self.name)._getitem_axis(key, axis=i)
 
@@ -1171,8 +1171,6 @@ class _NDFrameIndexer(object):
     def _get_slice_axis(self, slice_obj, axis=0):
         obj = self.obj
 
-        if not need_slice(slice_obj):
-            return obj
         indexer = self._convert_slice_indexer(slice_obj, axis)
 
         if isinstance(indexer, slice):
@@ -1244,8 +1242,7 @@ class _LocationIndexer(_NDFrameIndexer):
     def _get_slice_axis(self, slice_obj, axis=0):
         """ this is pretty simple as we just have to deal with labels """
         obj = self.obj
-        if not need_slice(slice_obj):
-            return obj
+
 
         labels = obj._get_axis(axis)
         indexer = labels.slice_indexer(slice_obj.start, slice_obj.stop,
@@ -1461,9 +1458,9 @@ class _iLocIndexer(_LocationIndexer):
             if i >= self.obj.ndim:
                 raise IndexingError('Too many indexers')
 
-            if is_null_slice(key):
-                axis += 1
-                continue
+            #if is_null_slice(key):
+            #    axis += 1
+            #    continue
 
             retval = getattr(retval, self.name)._getitem_axis(key, axis=axis)
 
@@ -1477,10 +1474,6 @@ class _iLocIndexer(_LocationIndexer):
         return retval
 
     def _get_slice_axis(self, slice_obj, axis=0):
-        obj = self.obj
-
-        if not need_slice(slice_obj):
-            return obj
 
         slice_obj = self._convert_slice_indexer(slice_obj, axis)
         if isinstance(slice_obj, slice):
@@ -1790,12 +1783,6 @@ def is_list_like_indexer(key):
 def is_label_like(key):
     # select a label or row
     return not isinstance(key, slice) and not is_list_like_indexer(key)
-
-
-def need_slice(obj):
-    return (obj.start is not None or
-            obj.stop is not None or
-            (obj.step is not None and obj.step != 1))
 
 
 def maybe_droplevels(index, key):

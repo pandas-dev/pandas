@@ -945,7 +945,7 @@ def wide_to_long(df, stubnames, i, j):
 
     for stub in stubnames[1:]:
         new = melt_stub(df, stub, id_vars, j)
-        newdf = newdf.merge(new, how="outer", on=id_vars + [j], copy=False)
+        newdf = newdf.merge(new, how="outer", on=id_vars + [j])
     return newdf.set_index([i, j])
 
 def get_dummies(data, prefix=None, prefix_sep='_', dummy_na=False,

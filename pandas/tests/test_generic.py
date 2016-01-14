@@ -1715,6 +1715,164 @@ class TestDataFrame(tm.TestCase, Generic):
 
             self.assert_frame_equal(result, expected)
 
+    def test_copy_on_write(self):
+
+        #######
+        # FORWARD PROPAGATION TESTS
+        #######
+        
+        # Test various slicing methods add to _children
+        
+        df = pd.DataFrame({'col1':[1,2], 'col2':[3,4]})
+        self.assertTrue(len(df._children)==0)
+        
+        
+        views = dict()
+        
+        views['loc'] = df.loc[0:0,]
+        views['iloc'] = df.iloc[0:1,]
+        views['ix'] = df.ix[0:0,]
+        views['loc_of_loc'] = views['loc'].loc[0:0,]
+        views['constructor'] = DataFrame(df)
+        
+        copies = dict()
+        for v in views.keys():    
+            self.assertTrue(views[v]._is_view)
+            copies[v] = views[v].copy()
+        
+        df.loc[0,'col1'] = -88
+        
+        for v in views.keys():
+            tm.assert_frame_equal(views[v], copies[v])
+        
+        # Test different forms of value setting 
+        # all trigger conversions
+        
+        parent = dict()
+        views = dict()
+        copies = dict()
+        for v in ['loc', 'iloc', 'ix', 'column', 'attribute']:
+            parent[v] = pd.DataFrame({'col1':[1,2], 'col2':[3,4]})
+            views[v] = parent[v].loc[0:0,]
+            copies[v] = views[v].copy()
+            self.assertTrue( views[v]._is_view )
+        
+        parent['loc'].loc[0, 'col1'] = -88 
+        parent['iloc'].iloc[0, 0] = -88
+        parent['ix'].ix[0, 'col1'] = -88
+        parent['column']['col1'] = -88
+        parent['attribute'].col1 = -88
+        
+        
+        for v in views.keys():
+            tm.assert_frame_equal(views[v], copies[v])
+        
+        ########
+        # No Backward Propogation 
+        #######
+        df = pd.DataFrame({'col1':[1,2], 'col2':[3,4]})
+        df_copy = df.copy()
+        
+        views = dict()
+        
+        views['loc'] = df.loc[0:0,]
+        views['iloc'] = df.iloc[0:1,]
+        views['ix'] = df.ix[0:0,]
+        views['loc_of_loc'] = views['loc'].loc[0:0,]
+        
+        for v in views.keys():    
+            views[v].loc[0:0,] = -99
+                
+        tm.assert_frame_equal(df, df_copy)
+
+        ###
+        # Dictionary-like access to single columns SHOULD give views
+        ###
+        
+        # If change child, should back-propagate
+        df = pd.DataFrame({'col1':[1,2], 'col2':[3,4]})
+        v = df['col1']
+        self.assertTrue(v._is_view)
+        self.assertTrue(v._is_column_view)
+        v.loc[0]=-88
+        self.assertTrue(df.loc[0,'col1'] == -88)
+        self.assertTrue(v._is_view)
+        
+        # If change parent, should forward-propagate
+        df = pd.DataFrame({'col1':[1,2], 'col2':[3,4]})
+        v = df['col1']
+        self.assertTrue(v._is_view)
+        self.assertTrue(v._is_column_view)
+        df.loc[0, 'col1']=-88
+        self.assertTrue(v.loc[0] == -88)
+        self.assertTrue(v._is_view)
+        
+        # holds for multi-index too
+        index = pd.MultiIndex(levels=[['foo', 'bar', 'baz', 'qux'],
+                           ['one', 'two', 'three']],
+                   labels=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
+                           [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
+                   names=['first', 'second'])
+        frame = pd.DataFrame(np.random.randn(10, 3), index=index,
+                       columns=pd.Index(['A', 'B', 'C'], name='exp')).T
+                    
+        v = frame['foo','one']
+        
+        self.assertTrue(v._is_view)
+        self.assertTrue(v._is_column_view)
+        frame.loc['A', ('foo','one')]=-88
+        self.assertTrue(v.loc['A'] == -88)
+
+
+        ###
+        # Make sure that no problems if view created on view and middle-view
+        # gets deleted
+        ###
+        df = pd.DataFrame({'col1':[1,2], 'col2':[3,4]})
+        v1 = df.loc[0:0,]
+        self.assertTrue(len(df._children)==1)
+                
+        v2 = v1.loc[0:0,]
+        v2_copy = v2.copy()        
+        self.assertTrue(len(df._children)==2)
+        
+        del v1
+        
+        df.loc[0:0, 'col1'] = -88
+        
+        tm.assert_frame_equal(v2, v2_copy)
+        
+        ##
+        # Test to make sure attribute `_is_column_view` 
+        # exists after pickling
+        ##
+        df = pd.DataFrame({"A": [1,2]})		
+        with tm.ensure_clean('__tmp__pickle') as path:		
+            df.to_pickle(path)		
+            df2 = pd.read_pickle(path)		
+            self.assertTrue(hasattr(df2, '_is_column_view'))
+            self.assertTrue(hasattr(df2, '_children'))
+            self.assertTrue(hasattr(df2, '_original_parent'))
+
+        ##
+        # If create new column in data frame, should be copy not view
+        ## 
+        test_df = pd.DataFrame({'col1':[1,2], 'col2':[3,4]})
+        test_series = pd.Series([9,8], name='col3')
+        test_df['col3'] = test_series
+        copy = test_series.copy()
+        test_series.loc[0] = -88
+        tm.assert_series_equal(test_df['col3'], copy)
+
+    def test_is_view_of_multiblocks(self):
+        # Ensure that if even if only one block of DF is view, 
+        # returns _is_view = True. 
+        df = pd.DataFrame({'col1':[1,2], 'col2':[3,4]})
+        s = pd.Series([0.5, 0.3, 0.4])
+        df['col3'] = s[0:1]
+        self.assertTrue(df['col3']._is_view)        
+        self.assertTrue(df._is_view)
+
 class TestPanel(tm.TestCase, Generic):
     _typ = Panel
     _comparator = lambda self, x, y: assert_panel_equal(x, y)

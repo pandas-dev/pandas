@@ -537,11 +537,12 @@ class TestMultiLevel(tm.TestCase):
         # this is a copy in 0.14
         result = self.frame.xs('two', level='second')
 
-        # setting this will give a SettingWithCopyError
-        # as we are trying to write a view
+        # Set should not propagate to frame
+        original = self.frame.copy()
         def f(x):
             x[:] = 10
-        self.assertRaises(com.SettingWithCopyError, f, result)
+        f(result)
+        assert_frame_equal(self.frame,original)
 
     def test_xs_level_multiple(self):
         from pandas import read_table
@@ -560,11 +561,11 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         # this is a copy in 0.14
         result = df.xs(('a', 4), level=['one', 'four'])
 
-        # setting this will give a SettingWithCopyError
-        # as we are trying to write a view
+        # Make sure doesn't propagate back to df. 
+        original = df.copy()
         def f(x):
             x[:] = 10
-        self.assertRaises(com.SettingWithCopyError, f, result)
+        assert_frame_equal(df, original)
 
         # GH2107
         dates = lrange(20111201, 20111205)
@@ -1401,26 +1402,13 @@ Thur,Lunch,Yes,51.51,17"""
     def test_frame_getitem_view(self):
         df = self.frame.T.copy()
 
-        # this works because we are modifying the underlying array
-        # really a no-no
-        df['foo'].values[:] = 0
-        self.assertTrue((df['foo'].values == 0).all())
-
-        # but not if it's mixed-type
-        df['foo', 'four'] = 'foo'
-        df = df.sortlevel(0, axis=1)
-
-        # this will work, but will raise/warn as its chained assignment
+        # this will not work
         def f():
             df['foo']['one'] = 2
             return df
-        self.assertRaises(com.SettingWithCopyError, f)
 
-        try:
-            df = f()
-        except:
-            pass
-        self.assertTrue((df['foo', 'one'] == 0).all())
+        df = f()
+        self.assertTrue((df['foo', 'one'] != 2).all())
 
     def test_frame_getitem_not_sorted(self):
         df = self.frame.T
