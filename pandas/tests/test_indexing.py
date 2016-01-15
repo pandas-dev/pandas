@@ -970,6 +970,55 @@ class TestIndexing(tm.TestCase):
         df.loc[df.new_col == 'new', 'time'] = v
         assert_series_equal(df.loc[df.new_col == 'new', 'time'], v)
 
+    def test_indexing_with_datetimeindex_tz(self):
+
+        # GH 12050
+        # indexing on a series with a datetimeindex with tz
+        index = pd.date_range('2015-01-01', periods=2, tz='utc')
+
+        ser = pd.Series(range(2), index=index)
+
+        # list-like indexing
+
+        for sel in (index, list(index)):
+            # getitem
+            assert_series_equal(ser[sel], ser)
+
+            # setitem
+            result = ser.copy()
+            result[sel] = 1
+            expected = pd.Series(1, index=index)
+            assert_series_equal(result, expected)
+
+            # .loc getitem
+            assert_series_equal(ser.loc[sel], ser)
+
+            # .loc setitem
+            result = ser.copy()
+            result.loc[sel] = 1
+            expected = pd.Series(1, index=index)
+            assert_series_equal(result, expected)
+
+        # single element indexing
+
+        # getitem
+        self.assertEqual(ser[index[1]], 1)
+
+        # setitem
+        result = ser.copy()
+        result[index[1]] = 5
+        expected = pd.Series([0, 5], index=index)
+        assert_series_equal(result, expected)
+
+        # .loc getitem
+        self.assertEqual(ser.loc[index[1]], 1)
+
+        # .loc setitem
+        result = ser.copy()
+        result.loc[index[1]] = 5
+        expected = pd.Series([0, 5], index=index)
+        assert_series_equal(result, expected)
+
     def test_loc_setitem_dups(self):
 
         # GH 6541
