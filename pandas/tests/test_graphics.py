@@ -2718,6 +2718,12 @@ class TestDataFramePlots(TestPlotBase):
             _check_plot_works(df.plot, color=custom_colors)
 
     @slow
+    def test_dont_modify_colors(self):
+        colors = ['r', 'g', 'b']
+        pd.DataFrame(np.random.rand(10, 2)).plot(color=colors)
+        self.assertEqual(len(colors), 3)
+
+    @slow
     def test_line_colors_and_styles_subplots(self):
         # GH 9894
         from matplotlib import cm
