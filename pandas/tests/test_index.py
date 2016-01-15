@@ -5,6 +5,7 @@ from datetime import datetime, timedelta, time
 from pandas import compat
 from pandas.compat import (long, is_platform_windows, range,
                            lrange, lzip, u, zip, PY3)
+from itertools import combinations
 import operator
 import re
 import nose
@@ -3465,9 +3466,8 @@ class TestRangeIndex(Numeric, tm.TestCase):
         return RangeIndex(5)
 
     def test_binops(self):
-        import operator as op
-        from itertools import combinations
-        ops = [op.add, op.sub, op.mul, op.floordiv, op.truediv, pow]
+        ops = [operator.add, operator.sub, operator.mul,
+               operator.floordiv, operator.truediv, pow]
         scalars = [-1, 1, 2]
         idxs = [RangeIndex(0, 10, 1),
                 RangeIndex(0, 20, 2),
@@ -3611,7 +3611,8 @@ class TestRangeIndex(Numeric, tm.TestCase):
         self.assertTrue(result.equals(expected))
 
         result = idx // 1
-        tm.assert_index_equal(result, idx, exact=True)
+        expected = idx._int64index // 1
+        tm.assert_index_equal(result, expected, exact=True)
 
         # __mul__
         result = idx * idx
@@ -3627,7 +3628,7 @@ class TestRangeIndex(Numeric, tm.TestCase):
         # __floordiv__
         idx = RangeIndex(0, 1000, 2)
         result = idx // 2
-        expected = RangeIndex(0, 500, 1)
+        expected = idx._int64index // 2
         tm.assert_index_equal(result, expected, exact=True)
 
         idx = RangeIndex(0, 1000, 1)

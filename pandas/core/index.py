@@ -3995,8 +3995,8 @@ class RangeIndex(Int64Index):
             stop = data.stop
             start = data.start
         else:
-        # seems we only have indexing ops to infer
-        # rather than direct accessors
+            # seems we only have indexing ops to infer
+            # rather than direct accessors
             if len(data) > 1:
                 step = data[1] - data[0]
                 stop = data[-1] + step
@@ -4395,7 +4395,7 @@ class RangeIndex(Int64Index):
 
                         # we don't have a representable op
                         # so return a base index
-                        if not is_integer(rstep):
+                        if not is_integer(rstep) or not rstep:
                             raise ValueError
 
                     else:
@@ -4440,15 +4440,6 @@ class RangeIndex(Int64Index):
             operator.mul,
             '__mul__',
             step=operator.mul)
-        cls.__floordiv__ = _make_evaluate_binop(
-            operator.floordiv,
-            '__floordiv__',
-            step=operator.floordiv)
-        cls.__rfloordiv__ = _make_evaluate_binop(
-            operator.floordiv,
-            '__floordiv__',
-            reversed=True,
-            step=operator.floordiv)
         cls.__truediv__ = _make_evaluate_binop(
             operator.truediv,
             '__truediv__',
