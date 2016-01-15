@@ -1804,7 +1804,6 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin, Int64Index)
             "%I%M%S%p")
         include_start : boolean, default True
         include_end : boolean, default True
-        tz : string or pytz.timezone or dateutil.tz.tzfile, default None
 
         Returns
         -------
