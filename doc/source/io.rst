@@ -2503,6 +2503,21 @@ indices to be parsed.
 
    read_excel('path_to_file.xls', 'Sheet1', parse_cols=[0, 2, 3])
 
+
+Parsing Dates
++++++++++++++
+
+Datetime-like values are automatically converted to the appropriate dtype when
+reading the excel file. When there is a column of strings that have to be parsed
+to a datetime, you can use the `parse_dates` keyword:
+
+.. code-block:: python
+
+   read_excel('path_to_file.xls', 'Sheet1', parse_dates=['date_strings'])
+
+So this should *not* be used when the column in excel has already a datetime-like
+type.
+
 Cell Converters
 +++++++++++++++
 
