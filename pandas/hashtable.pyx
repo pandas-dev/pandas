@@ -342,7 +342,7 @@ cdef class Int64HashTable(HashTable):
                 self.table.vals[k] = <Py_ssize_t> values[i]
 
     @cython.boundscheck(False)
-    def map_locations(self, int64_t[:] values):
+    def map_locations(self, ndarray[int64_t, ndim=1] values):
         cdef:
             Py_ssize_t i, n = len(values)
             int ret = 0
@@ -570,7 +570,7 @@ cdef class Float64HashTable(HashTable):
         return np.asarray(labels)
 
     @cython.boundscheck(False)
-    def map_locations(self, float64_t[:] values):
+    def map_locations(self, ndarray[float64_t, ndim=1] values):
         cdef:
             Py_ssize_t i, n = len(values)
             int ret = 0

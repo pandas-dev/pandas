@@ -9,8 +9,8 @@ from distutils.version import LooseVersion
 from pandas import compat
 from pandas.compat import u
 from pandas import (Series, DataFrame, Panel, MultiIndex, bdate_range,
-                    date_range, period_range, Index, SparseSeries, SparseDataFrame,
-                    SparsePanel)
+                    date_range, period_range, Index)
+from pandas.io.packers import to_msgpack, read_msgpack
 import pandas.util.testing as tm
 from pandas.util.testing import (ensure_clean, assert_index_equal,
                                  assert_series_equal,
@@ -23,7 +23,19 @@ from pandas import Timestamp, tslib
 
 nan = np.nan
 
-from pandas.io.packers import to_msgpack, read_msgpack
+try:
+    import blosc  # NOQA
+except ImportError:
+    _BLOSC_INSTALLED = False
+else:
+    _BLOSC_INSTALLED = True
+
+try:
+    import zlib  # NOQA
+except ImportError:
+    _ZLIB_INSTALLED = False
+else:
+    _ZLIB_INSTALLED = True
 
 _multiprocess_can_split_ = False
 
@@ -483,6 +495,14 @@ class TestCompression(TestPackers):
     """
 
     def setUp(self):
+        try:
+            from sqlalchemy import create_engine
+            self._create_sql_engine = create_engine
+        except ImportError:
+            self._SQLALCHEMY_INSTALLED = False
+        else:
+            self._SQLALCHEMY_INSTALLED = True
+
         super(TestCompression, self).setUp()
         data = {
             'A': np.arange(1000, dtype=np.float64),
@@ -508,13 +528,55 @@ class TestCompression(TestPackers):
             assert_frame_equal(self.frame[k], i_rec[k])
 
     def test_compression_blosc(self):
-        try:
-            import blosc
-        except ImportError:
+        if not _BLOSC_INSTALLED:
             raise nose.SkipTest('no blosc')
         i_rec = self.encode_decode(self.frame, compress='blosc')
         for k in self.frame.keys():
             assert_frame_equal(self.frame[k], i_rec[k])
+
+    def test_readonly_axis_blosc(self):
+        # GH11880
+        if not _BLOSC_INSTALLED:
+            raise nose.SkipTest('no blosc')
+        df1 = DataFrame({'A': list('abcd')})
+        df2 = DataFrame(df1, index=[1., 2., 3., 4.])
+        self.assertTrue(1 in self.encode_decode(df1['A'], compress='blosc'))
+        self.assertTrue(1. in self.encode_decode(df2['A'], compress='blosc'))
+
+    def test_readonly_axis_zlib(self):
+        # GH11880
+        df1 = DataFrame({'A': list('abcd')})
+        df2 = DataFrame(df1, index=[1., 2., 3., 4.])
+        self.assertTrue(1 in self.encode_decode(df1['A'], compress='zlib'))
+        self.assertTrue(1. in self.encode_decode(df2['A'], compress='zlib'))
+
+    def test_readonly_axis_blosc_to_sql(self):
+        # GH11880
+        if not _BLOSC_INSTALLED:
+            raise nose.SkipTest('no blosc')
+        if not self._SQLALCHEMY_INSTALLED:
+            raise nose.SkipTest('no sqlalchemy')
+        expected = DataFrame({'A': list('abcd')})
+        df = self.encode_decode(expected, compress='blosc')
+        eng = self._create_sql_engine("sqlite:///:memory:")
+        df.to_sql('test', eng, if_exists='append')
+        result = pandas.read_sql_table('test', eng, index_col='index')
+        result.index.names = [None]
+        assert_frame_equal(expected, result)
+
+    def test_readonly_axis_zlib_to_sql(self):
+        # GH11880
+        if not _ZLIB_INSTALLED:
+            raise nose.SkipTest('no zlib')
+        if not self._SQLALCHEMY_INSTALLED:
+            raise nose.SkipTest('no sqlalchemy')
+        expected = DataFrame({'A': list('abcd')})
+        df = self.encode_decode(expected, compress='zlib')
+        eng = self._create_sql_engine("sqlite:///:memory:")
+        df.to_sql('test', eng, if_exists='append')
+        result = pandas.read_sql_table('test', eng, index_col='index')
+        result.index.names = [None]
+        assert_frame_equal(expected, result)
 
 
 class TestEncoding(TestPackers):
