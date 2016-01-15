@@ -1114,7 +1114,8 @@ class _NDFrameIndexer(object):
                 return inds
             else:
                 if isinstance(obj, Index):
-                    objarr = obj.values
+                    # want Index objects to pass through untouched
+                    objarr = obj
                 else:
                     objarr = _asarray_tuplesafe(obj)
 
