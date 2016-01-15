@@ -399,8 +399,10 @@ class TestTimestamp(tm.TestCase):
             1000,
         ]
         for n in ns:
-            self.assertEqual(Timestamp(n).asm8, np.datetime64(n, 'ns'), n)
-        self.assertEqual(Timestamp('nat').asm8, np.datetime64('nat', 'ns'))
+            self.assertEqual(Timestamp(n).asm8.view('i8'),
+                             np.datetime64(n, 'ns').view('i8'), n)
+        self.assertEqual(Timestamp('nat').asm8.view('i8'),
+                         np.datetime64('nat', 'ns').view('i8'))
 
     def test_fields(self):
 
@@ -752,13 +754,11 @@ class TestArrayToDatetime(tm.TestCase):
                 np.array([invalid_date], dtype='object'),
                 errors='raise',
             )
-            self.assertTrue(
-                np.array_equal(
-                    tslib.array_to_datetime(
-                        np.array([invalid_date], dtype='object'), errors='coerce',
-                    ),
-                    np.array([tslib.iNaT], dtype='M8[ns]')
-                )
+            self.assert_numpy_array_equal(
+                tslib.array_to_datetime(
+                    np.array([invalid_date], dtype='object'),
+                    errors='coerce'),
+                np.array([tslib.iNaT], dtype='M8[ns]')
             )
 
         arr = np.array(['1/1/1000', '1/1/2000'], dtype=object)
