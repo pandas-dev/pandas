@@ -3717,11 +3717,13 @@ class TestRangeIndex(Numeric, tm.TestCase):
 
     def test_equals(self):
 
-        if isinstance(self.index, RangeIndex):
-            raise nose.SkipTest("RangeIndex does not accept dtype=object")
-        same_values = Index(self.index, dtype=object)
-        self.assertTrue(self.index.equals(same_values))
-        self.assertTrue(same_values.equals(self.index))
+        equiv_pairs = [(RangeIndex(0, 9, 2), RangeIndex(0, 10, 2)),
+                       (RangeIndex(0), RangeIndex(1, -1, 3)),
+                       (RangeIndex(1, 2, 3), RangeIndex(1, 3, 4)),
+                       (RangeIndex(0, -9, -2), RangeIndex(0, -10, -2))]
+        for left, right in equiv_pairs:
+            self.assertTrue(left.equals(right))
+            self.assertTrue(right.equals(left))
 
     def test_logical_compat(self):
         idx = self.create_index()
