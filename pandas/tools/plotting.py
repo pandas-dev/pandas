@@ -1419,10 +1419,17 @@ class MPLPlot(object):
         Error bars can be specified in several ways:
             Series: the user provides a pandas.Series object of the same
                     length as the data
-            ndarray: provides a np.ndarray of the same length as the data
+            list_like (list/tuple/ndarray/iterator): either a list like of the
+                    same length N as the data has to be provided
+                    or a list like of the shape Mx2xN for asymmetrical error
+                    bars when plotting a DataFrame of shape MxN
+                    or a list like of the shape 2xN for asymmetrical error bars
+                    when plotting a Series.
             DataFrame/dict: error values are paired with keys matching the
                     key in the plotted DataFrame
             str: the name of the column within the plotted DataFrame
+            numeric scalar: the error provided as a number is used for every
+                    data point
         '''
 
         if err is None:
@@ -1458,22 +1465,33 @@ class MPLPlot(object):
 
         elif com.is_list_like(err):
             if com.is_iterator(err):
-                err = np.atleast_2d(list(err))
+                err = np.asanyarray(list(err))
             else:
                 # raw error values
-                err = np.atleast_2d(err)
+                err = np.asanyarray(err)
 
-            err_shape = err.shape
+            if self.nseries == 1 and err.ndim == 2 and len(err) == 2:
+                # asymmetrical errors bars for a series as a 2xN array
+                err = np.expand_dims(err, 0)
+                err_shape = err.shape
 
-            # asymmetrical error bars
-            if err.ndim == 3:
-                if (err_shape[0] != self.nseries) or \
-                        (err_shape[1] != 2) or \
-                        (err_shape[2] != len(self.data)):
+                if err_shape[2] != len(self.data):
                     msg = "Asymmetrical error bars should be provided " + \
-                        "with the shape (%u, 2, %u)" % \
-                        (self.nseries, len(self.data))
+                        "with the shape (2, %u)" % (len(self.data))
                     raise ValueError(msg)
+            else:
+                err = np.atleast_2d(err)
+                err_shape = err.shape
+
+                # asymmetrical error bars
+                if err.ndim == 3:
+                    if (err_shape[0] != self.nseries) or \
+                            (err_shape[1] != 2) or \
+                            (err_shape[2] != len(self.data)):
+                        msg = "Asymmetrical error bars should be provided " + \
+                            "with the shape (%u, 2, %u)" % \
+                            (self.nseries, len(self.data))
+                        raise ValueError(msg)
 
             # broadcast errors to each data series
             if len(err) == 1:
