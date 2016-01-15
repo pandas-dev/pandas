@@ -298,13 +298,10 @@ class ExcelFile(object):
         if 'chunksize' in kwds:
             raise NotImplementedError("chunksize keyword of read_excel "
                                       "is not implemented")
-        if parse_dates:
-            raise NotImplementedError("parse_dates keyword of read_excel "
-                                      "is not implemented")
 
-        if date_parser is not None:
-            raise NotImplementedError("date_parser keyword of read_excel "
-                                      "is not implemented")
+        if parse_dates and not index_col:
+            warn("The parse_dates keyword of read_excel was provided without "
+                 "an index_col keyword value.")
 
         import xlrd
         from xlrd import (xldate, XL_CELL_DATE,
