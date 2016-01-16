@@ -367,14 +367,6 @@ class PandasSQLTest(unittest.TestCase):
         self.drop_table('test_frame1')
         self.pandasSQL.to_sql(self.test_frame1.iloc[:0], 'test_frame1')
 
-    def _to_sql_single_dtype(self,dtype):
-        self.drop_table('test_frame1')
-        self.pandasSQL.to_sql(self.test_frame1[['A','B']],'test_frame1',dtype=dtype)
-        self.assertTrue(self.pandasSQL.has_table(
-            'test_frame1'), 'Table not written to DB')
-
-        self.drop_table('test_frame1')
-
     def _to_sql_fail(self):
         self.drop_table('test_frame1')
 
@@ -1174,7 +1166,19 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         self._to_sql_empty()
 
     def test_to_sql_single_dtype(self):
-        self._to_sql_single_dtype(dtype=sqltypes.Float)
+        self.drop_table('single_dtype_test')
+        cols = ['A','B']
+        data = [('a','b'),
+                ('c','d')]
+        df = DataFrame(data,columns=cols)
+        df.to_sql('single_dtype_test',self.conn,dtype=sqlalchemy.TEXT)
+        meta = sqlalchemy.schema.MetaData(bind=self.conn)
+        meta.reflect()
+        sqltypea = meta.tables['single_dtype_test'].columns['A'].type
+        sqltypeb = meta.tables['single_dtype_test'].columns['B'].type
+        self.assertTrue(isinstance(sqltypea, sqlalchemy.TEXT))
+        self.assertTrue(isinstance(sqltypeb, sqlalchemy.TEXT))
+        self.drop_table('single_dtype_test')
 
     def test_to_sql_fail(self):
         self._to_sql_fail()
@@ -1890,7 +1894,17 @@ class TestSQLiteFallback(SQLiteMixIn, PandasSQLTest):
         self._to_sql_empty()
 
     def test_to_sql_single_dtype(self):
-        self._to_sql_single_dtype(dtype='float64')
+        if self.flavor == 'mysql':
+            raise nose.SkipTest('Not applicable to MySQL legacy')
+        self.drop_table('single_dtype_test')
+        cols = ['A','B']
+        data = [('a','b'),
+                ('c','d')]
+        df = DataFrame(data,columns=cols)
+        df.to_sql('single_dtype_test',self.conn,dtype='STRING')
+        self.assertEqual(self._get_sqlite_column_type('single_dtype_test','A'),'STRING')
+        self.assertEqual(self._get_sqlite_column_type('single_dtype_test','B'),'STRING')
+        self.drop_table('single_dtype_test')
 
     def test_to_sql_fail(self):
         self._to_sql_fail()
