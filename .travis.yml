@@ -97,6 +97,13 @@ matrix:
       - NUMPY_BUILD=master
       - BUILD_TYPE=pydata
       - PANDAS_TESTING_MODE="deprecate"
+    - python: 3.5
+      env:
+      - JOB_NAME: "35_numpy_dev"
+      - JOB_TAG=_NUMPY_DEV
+      - NOSE_ARGS="not slow and not network and not disabled"
+      - BUILD_TYPE=conda
+      - PANDAS_TESTING_MODE="deprecate"
     allow_failures:
       - python: 2.7
         env:
@@ -137,6 +144,13 @@ matrix:
         - FULL_DEPS=true
         - BUILD_TYPE=pydata
         - BUILD_TEST=true
+      - python: 3.5
+        env:
+        - JOB_NAME: "35_numpy_dev"
+        - JOB_TAG=_NUMPY_DEV
+        - NOSE_ARGS="not slow and not network and not disabled"
+        - BUILD_TYPE=conda
+        - PANDAS_TESTING_MODE="deprecate"
 
 before_install:
   - echo "before_install"
