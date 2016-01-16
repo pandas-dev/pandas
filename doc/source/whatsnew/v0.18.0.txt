@@ -493,7 +493,8 @@ Bug Fixes
 - Bug in ``DataFrame`` when masking an empty ``DataFrame`` (:issue:`11859`)
 
 
-
+- Bug in ``.plot`` potentially modifying the ``colors`` input when the number
+of columns didn't match the number of series provided (:issue:`12039`).
 
 
 

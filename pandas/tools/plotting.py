@@ -158,7 +158,7 @@ def _get_standard_colors(num_colors=None, colormap=None, color_type='default',
         if colormap is not None:
             warnings.warn("'color' and 'colormap' cannot be used "
                           "simultaneously. Using 'color'")
-        colors = color
+        colors = list(color) if com.is_list_like(color) else color
     else:
         if color_type == 'default':
             # need to call list() on the result to copy so we don't
