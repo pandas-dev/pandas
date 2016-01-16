@@ -3085,6 +3085,13 @@ class TestGroupBy(tm.TestCase):
 
         assert_frame_equal(result, expected)
 
+    def test_groupby_one_row(self):
+        # GH 11741
+        df1 = pd.DataFrame(np.random.randn(1, 4), columns=list('ABCD'))
+        self.assertRaises(KeyError, df1.groupby, 'Z')
+        df2 = pd.DataFrame(np.random.randn(2, 4), columns=list('ABCD'))
+        self.assertRaises(KeyError, df2.groupby, 'Z')
+
     def test_groupby_nat_exclude(self):
         # GH 6992
         df = pd.DataFrame({'values': np.random.randn(8),

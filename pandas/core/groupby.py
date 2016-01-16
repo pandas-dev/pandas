@@ -2207,11 +2207,12 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True):
 
     if not isinstance(key, (tuple, list)):
         keys = [key]
+        match_axis_length = False
     else:
         keys = key
+        match_axis_length = len(keys) == len(group_axis)
 
     # what are we after, exactly?
-    match_axis_length = len(keys) == len(group_axis)
     any_callable = any(callable(g) or isinstance(g, dict) for g in keys)
     any_groupers = any(isinstance(g, Grouper) for g in keys)
     any_arraylike = any(isinstance(g, (list, tuple, Series, Index, np.ndarray))
