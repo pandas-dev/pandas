@@ -19,6 +19,7 @@ Highlights include:
 
 - Window functions are now methods on ``.groupby`` like objects, see :ref:`here <whatsnew_0180.enhancements.moments>`.
 - ``pd.test()`` top-level nose test runner is available (:issue:`4327`)
+- Adding support for a ``RangeIndex`` as a specialized form of the ``Int64Index`` for memory savings, see :ref:`here <whatsnew_0180.enhancements.rangeindex>`.
 
 Check the :ref:`API Changes <whatsnew_0180.api>` and :ref:`deprecations <whatsnew_0180.deprecations>` before updating.
 
@@ -101,6 +102,39 @@ And multiple aggregations
 
    r.agg({'A' : ['mean','std'],
           'B' : ['mean','std']})
+
+.. _whatsnew_0180.enhancements.rangeindex:
+
+Range Index
+^^^^^^^^^^^
+
+A ``RangeIndex`` has been added to the ``Int64Index`` sub-classes to support a memory saving alternative for common use cases. This has a similar implementation to the python ``range`` object (``xrange`` in python 2), in that it only stores the start, stop, and step values for the index. It will transparently interact with the user API, converting to ``Int64Index`` if needed.
+
+This will now be the default constructed index for ``NDFrame`` objects, rather than previous an ``Int64Index``. (:issue:`939`)
+
+Previous Behavior:
+
+.. code-block:: python
+
+   In [3]: s = Series(range(1000))
+
+   In [4]: s.index
+   Out[4]:
+   Int64Index([  0,   1,   2,   3,   4,   5,   6,   7,   8,   9,
+               ...
+               990, 991, 992, 993, 994, 995, 996, 997, 998, 999], dtype='int64', length=1000)
+
+   In [6]: s.index.nbytes
+   Out[6]: 8000
+
+
+New Behavior:
+
+.. ipython:: python
+
+   s = Series(range(1000))
+   s.index
+   s.index.nbytes
 
 .. _whatsnew_0180.enhancements.other:
 

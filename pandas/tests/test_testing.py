@@ -283,9 +283,8 @@ Index levels are different
 \\[right\\]: 2, MultiIndex\\(levels=\\[\\[u?'A', u?'B'\\], \\[1, 2, 3, 4\\]\\],
            labels=\\[\\[0, 0, 1, 1\\], \\[0, 1, 2, 3\\]\\]\\)"""
         idx1 = pd.Index([1, 2, 3])
-        idx2 = pd.MultiIndex.from_tuples([('A', 1), ('A', 2), ('B', 3), ('B', 4)])
-        with assertRaisesRegexp(AssertionError, expected):
-            assert_index_equal(idx1, idx2)
+        idx2 = pd.MultiIndex.from_tuples([('A', 1), ('A', 2),
+                                          ('B', 3), ('B', 4)])
         with assertRaisesRegexp(AssertionError, expected):
             assert_index_equal(idx1, idx2, exact=False)
 
@@ -471,8 +470,8 @@ class TestAssertSeriesEqual(tm.TestCase):
         expected = """Series are different
 
 Series length are different
-\\[left\\]:  3, Int64Index\\(\\[0, 1, 2\\], dtype='int64'\\)
-\\[right\\]: 4, Int64Index\\(\\[0, 1, 2, 3\\], dtype='int64'\\)"""
+\\[left\\]:  3, RangeIndex\\(start=0, stop=3, step=1\\)
+\\[right\\]: 4, RangeIndex\\(start=0, stop=4, step=1\\)"""
         with assertRaisesRegexp(AssertionError, expected):
             assert_series_equal(pd.Series([1, 2, 3]), pd.Series([1, 2, 3, 4]))
 
@@ -526,12 +525,11 @@ class TestAssertFrameEqual(tm.TestCase):
         expected = """DataFrame are different
 
 DataFrame shape \\(number of rows\\) are different
-\\[left\\]:  3, Int64Index\\(\\[0, 1, 2\\], dtype='int64'\\)
-\\[right\\]: 4, Int64Index\\(\\[0, 1, 2, 3\\], dtype='int64'\\)"""
+\\[left\\]:  3, RangeIndex\\(start=0, stop=3, step=1\\)
+\\[right\\]: 4, RangeIndex\\(start=0, stop=4, step=1\\)"""
         with assertRaisesRegexp(AssertionError, expected):
-            assert_frame_equal(pd.DataFrame({'A':[1, 2, 3]}),
-                                  pd.DataFrame({'A':[1, 2, 3, 4]}))
-
+            assert_frame_equal(pd.DataFrame({'A': [1, 2, 3]}),
+                               pd.DataFrame({'A': [1, 2, 3, 4]}))
 
         expected = """DataFrame are different
 
@@ -539,9 +537,8 @@ DataFrame shape \\(number of columns\\) are different
 \\[left\\]:  2, Index\\(\\[u?'A', u?'B'\\], dtype='object'\\)
 \\[right\\]: 1, Index\\(\\[u?'A'\\], dtype='object'\\)"""
         with assertRaisesRegexp(AssertionError, expected):
-            assert_frame_equal(pd.DataFrame({'A':[1, 2, 3], 'B':[4, 5, 6]}),
-                                  pd.DataFrame({'A':[1, 2, 3]}))
-
+            assert_frame_equal(pd.DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6]}),
+                               pd.DataFrame({'A': [1, 2, 3]}))
 
         expected = """DataFrame\\.index are different
 
@@ -549,10 +546,10 @@ DataFrame\\.index values are different \\(33\\.33333 %\\)
 \\[left\\]:  Index\\(\\[u?'a', u?'b', u?'c'\\], dtype='object'\\)
 \\[right\\]: Index\\(\\[u?'a', u?'b', u?'d'\\], dtype='object'\\)"""
         with assertRaisesRegexp(AssertionError, expected):
-            assert_frame_equal(pd.DataFrame({'A':[1, 2, 3], 'B':[4, 5, 6]},
-                                               index=['a', 'b', 'c']),
-                                  pd.DataFrame({'A':[1, 2, 3], 'B':[4, 5, 6]},
-                                               index=['a', 'b', 'd']))
+            assert_frame_equal(pd.DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6]},
+                                            index=['a', 'b', 'c']),
+                               pd.DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6]},
+                                            index=['a', 'b', 'd']))
 
         expected = """DataFrame\\.columns are different
 
@@ -560,11 +557,10 @@ DataFrame\\.columns values are different \\(50\\.0 %\\)
 \\[left\\]:  Index\\(\\[u?'A', u?'B'\\], dtype='object'\\)
 \\[right\\]: Index\\(\\[u?'A', u?'b'\\], dtype='object'\\)"""
         with assertRaisesRegexp(AssertionError, expected):
-            assert_frame_equal(pd.DataFrame({'A':[1, 2, 3], 'B':[4, 5, 6]},
-                                               index=['a', 'b', 'c']),
-                                  pd.DataFrame({'A':[1, 2, 3], 'b':[4, 5, 6]},
-                                               index=['a', 'b', 'c']))
-
+            assert_frame_equal(pd.DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6]},
+                                            index=['a', 'b', 'c']),
+                               pd.DataFrame({'A': [1, 2, 3], 'b': [4, 5, 6]},
+                                            index=['a', 'b', 'c']))
 
         expected = """DataFrame\\.iloc\\[:, 1\\] are different
 

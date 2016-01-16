@@ -617,10 +617,20 @@ faster than fancy indexing.
    timeit ser.ix[indexer]
    timeit ser.take(indexer)
 
+.. _indexing.index_types:
+
+Index Types
+-----------
+
+We have discussed ``MultiIndex`` in the previous sections pretty extensively. ``DatetimeIndex`` and ``PeriodIndex``
+are shown :ref:`here <timeseries.overview>`. ``TimedeltaIndex`` are :ref:`here <timedeltas.timedeltas>`.
+
+In the following sub-sections we will highlite some other index types.
+
 .. _indexing.categoricalindex:
 
 CategoricalIndex
-----------------
+~~~~~~~~~~~~~~~~
 
 .. versionadded:: 0.16.1
 
@@ -702,10 +712,21 @@ values NOT in the categories, similarly to how you can reindex ANY pandas index.
       In [12]: pd.concat([df2, df3]
       TypeError: categories must match existing categories when appending
 
+.. _indexing.rangeindex:
+
+Int64Index and RangeIndex
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``Int64Index`` is a fundamental basic index in *pandas*. This is an Immutable array implementing an ordered, sliceable set.
+Prior to 0.18.0, the ``Int64Index`` would provide the default index for all ``NDFrame`` objects.
+
+``RangeIndex`` is a sub-class of ``Int64Index`` added in version 0.18.0, now providing the default index for all ``NDFrame`` objects.
+``RangeIndex`` is an optimized version of ``Int64Index`` that can represent a monotonic ordered set. These are analagous to python :ref:`range types <https://docs.python.org/3/library/stdtypes.html#typesseq-range>`.
+
 .. _indexing.float64index:
 
 Float64Index
-------------
+~~~~~~~~~~~~
 
 .. note::
 

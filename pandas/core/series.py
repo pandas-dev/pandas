@@ -110,7 +110,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin, generic.NDFrame,):
     index : array-like or Index (1d)
         Values must be unique and hashable, same length as data. Index
         object (or other iterable of same length as data) Will default to
-        np.arange(len(data)) if not provided. If both a dict and index
+        RangeIndex(len(data)) if not provided. If both a dict and index
         sequence are used, the index will override the keys found in the
         dict.
     dtype : numpy.dtype or None
@@ -920,7 +920,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin, generic.NDFrame,):
         resetted : DataFrame, or Series if drop == True
         """
         if drop:
-            new_index = np.arange(len(self))
+            new_index = _default_index(len(self))
             if level is not None and isinstance(self.index, MultiIndex):
                 if not isinstance(level, (tuple, list)):
                     level = [level]
@@ -1706,7 +1706,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin, generic.NDFrame,):
         bad = isnull(arr)
 
         good = ~bad
-        idx = np.arange(len(self))
+        idx = _default_index(len(self))
 
         argsorted = _try_kind_sort(arr[good])
 

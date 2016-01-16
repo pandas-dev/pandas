@@ -253,6 +253,7 @@ class TestIndex(TestPackers):
             'string': tm.makeStringIndex(100),
             'date': tm.makeDateIndex(100),
             'int': tm.makeIntIndex(100),
+            'rng': tm.makeRangeIndex(100),
             'float': tm.makeFloatIndex(100),
             'empty': Index([]),
             'tuple': Index(zip(['foo', 'bar', 'baz'], [1, 2, 3])),
