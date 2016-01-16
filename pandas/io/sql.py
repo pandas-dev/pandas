@@ -19,6 +19,7 @@ from pandas.core.api import DataFrame, Series
 from pandas.core.common import isnull
 from pandas.core.base import PandasObject
 from pandas.core.dtypes import DatetimeTZDtype
+from pandas.core.generic import is_dictlike
 from pandas.tseries.tools import to_datetime
 from pandas.util.decorators import Appender
 
@@ -564,7 +565,7 @@ def to_sql(frame, name, con, flavor='sqlite', schema=None, if_exists='fail',
         raise NotImplementedError("'frame' argument should be either a "
                                   "Series or a DataFrame")
 
-    if dtype and not isinstance(dtype,dict):
+    if dtype and not is_dictlike(dtype):
         temp_type = dtype
         dtype = { col_name : temp_type for col_name in frame }
         
