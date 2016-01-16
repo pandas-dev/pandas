@@ -531,7 +531,7 @@ Bug Fixes
 of columns didn't match the number of series provided (:issue:`12039`).
 
 
-
+- Bug in ``.groupby`` where a ``KeyError`` was not raised for a wrong column if there was only one row in the dataframe (:issue:`11741`)
 
 
 - Removed ``millisecond`` property of ``DatetimeIndex``. This would always raise a ``ValueError`` (:issue:`12019`).
