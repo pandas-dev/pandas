@@ -118,6 +118,7 @@ Other enhancements
 - ``Series`` gained an ``is_unique`` attribute (:issue:`11946`)
 - ``DataFrame.quantile`` and ``Series.quantile`` now accept ``interpolation`` keyword (:issue:`10174`).
 - ``DataFrame.select_dtypes`` now allows the ``np.float16`` typecode (:issue:`11990`)
+- ``DataFrame.to_sql `` now allows a single value as the SQL type for all columns (:issue:`11886`).
 
 .. _whatsnew_0180.enhancements.rounding:
 
