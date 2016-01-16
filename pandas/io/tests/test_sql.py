@@ -1165,6 +1165,9 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
     def test_to_sql_empty(self):
         self._to_sql_empty()
 
+    def test_to_sql_single_dtype(self):
+        self.to_sql_single_dtype()
+        
     def test_to_sql_fail(self):
         self._to_sql_fail()
 
@@ -1877,6 +1880,9 @@ class TestSQLiteFallback(SQLiteMixIn, PandasSQLTest):
 
     def test_to_sql_empty(self):
         self._to_sql_empty()
+
+    def test_to_sql_single_dtype(self):
+        self.to_sql_single_dtype()
 
     def test_to_sql_fail(self):
         self._to_sql_fail()
