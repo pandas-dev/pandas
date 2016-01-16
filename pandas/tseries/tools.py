@@ -334,10 +334,7 @@ def _to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
             # datetime strings, so in those cases don't use the inferred
             # format because this path makes process slower in this
             # special case
-            format_is_iso8601 = (
-                ('%Y-%m-%dT%H:%M:%S.%f'.startswith(format) or
-                 '%Y-%m-%d %H:%M:%S.%f'.startswith(format)) and
-                format != '%Y')
+            format_is_iso8601 = _format_is_iso(format)
             if format_is_iso8601:
                 require_iso8601 = not infer_datetime_format
                 format = None
@@ -461,6 +458,21 @@ def _attempt_YYYYMMDD(arg, errors):
 
     return None
 
+def _format_is_iso(f):
+    """
+    Does format match the iso8601 set that can be handled by the C parser?
+    Generally of form YYYY-MM-DDTHH:MM:SS - date separator can be different
+    but must be consistent.  Leading 0s in dates and times are optional.
+    """
+    iso_template = '%Y{date_sep}%m{date_sep}%d{time_sep}%H:%M:%S.%f'.format
+    excluded_formats = ['%Y%m%d','%Y%m', '%Y']
+
+    for date_sep in [' ', '/', '\\', '-', '.', '']:
+        for time_sep in [' ', 'T']:
+            if (iso_template(date_sep=date_sep, time_sep=time_sep).startswith(f)
+                and f not in excluded_formats):
+                return True
+    return False
 
 def parse_time_string(arg, freq=None, dayfirst=None, yearfirst=None):
     """
