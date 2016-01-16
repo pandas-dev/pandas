@@ -87,7 +87,7 @@ They can take a number of arguments:
     on. With ``sep=None``, ``read_csv`` will try to infer the delimiter
     automatically in some cases by "sniffing".
     The separator may be specified as a regular expression; for instance
-    you may use '\|\\s*' to indicate a pipe plus arbitrary whitespace.
+    you may use '\|\\s*' to indicate a pipe plus arbitrary whitespace, but ignores quotes in the data when a regex is used in separator.
   - ``delim_whitespace``: Parse whitespace-delimited (spaces or tabs) file
     (much faster than using a regular expression)
   - ``compression``: decompress ``'gzip'`` and ``'bz2'`` formats on the fly.
