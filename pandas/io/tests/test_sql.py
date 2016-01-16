@@ -1174,7 +1174,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         self._to_sql_empty()
 
     def test_to_sql_single_dtype(self):
-        self._to_sql_single_dtype(dtype=sqltypes.NVARCHAR)
+        self._to_sql_single_dtype(dtype=sqltypes.Float)
 
     def test_to_sql_fail(self):
         self._to_sql_fail()
