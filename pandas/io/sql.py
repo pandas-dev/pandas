@@ -565,9 +565,6 @@ def to_sql(frame, name, con, flavor='sqlite', schema=None, if_exists='fail',
         raise NotImplementedError("'frame' argument should be either a "
                                   "Series or a DataFrame")
 
-    if dtype and not is_dictlike(dtype):
-        temp_type = dtype
-        dtype = { col_name : temp_type for col_name in frame }
         
     pandas_sql.to_sql(frame, name, if_exists=if_exists, index=index,
                       index_label=index_label, schema=schema,
@@ -1232,6 +1229,9 @@ class SQLDatabase(PandasSQL):
             be a SQLAlchemy type.
 
         """
+        if dtype and not is_dictlike(dtype):
+            temp_type = dtype
+            dtype = { col_name : temp_type for col_name in frame }
         if dtype is not None:
             from sqlalchemy.types import to_instance, TypeEngine
             for col, my_type in dtype.items():
@@ -1628,6 +1628,10 @@ class SQLiteDatabase(PandasSQL):
             be a string.
 
         """
+        if dtype and not is_dictlike(dtype):
+            temp_type = dtype
+            dtype = { col_name : temp_type for col_name in frame }
+
         if dtype is not None:
             for col, my_type in dtype.items():
                 if not isinstance(my_type, str):
