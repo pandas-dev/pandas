@@ -1388,6 +1388,26 @@ cpdef convert_str_to_tsobject(object ts, object tz, object unit,
 
     return convert_to_tsobject(ts, tz, unit)
 
+def _test_parse_iso8601(object ts):
+    '''
+    TESTING ONLY: Parse string into Timestamp using iso8601 parser. Used
+    only for testing, actual construction uses `convert_str_to_tsobject`
+    '''
+    cdef:
+        _TSObject obj
+        int out_local = 0, out_tzoffset = 0
+
+    obj = _TSObject()
+
+    _string_to_dts(ts, &obj.dts, &out_local, &out_tzoffset)
+    obj.value = pandas_datetimestruct_to_datetime(PANDAS_FR_ns, &obj.dts)
+    _check_dts_bounds(&obj.dts)
+    if out_local == 1:
+        obj.tzinfo = pytz.FixedOffset(out_tzoffset)
+        obj.value = tz_convert_single(obj.value, obj.tzinfo, 'UTC')
+        return Timestamp(obj.value, tz=obj.tzinfo)
+    else:
+        return Timestamp(obj.value)
 
 cdef inline void _localize_tso(_TSObject obj, object tz):
     '''
