@@ -445,7 +445,7 @@ Bug Fixes
 - Accept unicode in ``Timedelta`` constructor (:issue:`11995`)
 - Bug in value label reading for ``StataReader`` when reading incrementally (:issue:`12014`)
 - Bug in vectorized ``DateOffset`` when ``n`` parameter is ``0`` (:issue:`11370`)
-
+- Compat for numpy 1.11 w.r.t. ``NaT`` comparison changes (:issue:`12049`)
 
 
 
