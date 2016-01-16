@@ -10,8 +10,10 @@ import numpy as np
 
 import pandas
 import pandas as pd
-from pandas import (Series, DataFrame, Panel, MultiIndex, Categorical, bdate_range,
-                    date_range, timedelta_range, Index, DatetimeIndex, TimedeltaIndex, isnull)
+from pandas import (Series, DataFrame, Panel, MultiIndex, Int64Index,
+                    RangeIndex, Categorical, bdate_range,
+                    date_range, timedelta_range, Index, DatetimeIndex,
+                    isnull)
 
 from pandas.compat import is_platform_windows, PY3, PY35
 from pandas.io.pytables import _tables, TableIterator
@@ -1619,34 +1621,51 @@ class TestHDFStore(Base, tm.TestCase):
         # GH 4710
         # recreate multi-indexes properly
 
-        index = MultiIndex.from_tuples([('A','a'), ('A','b'), ('B','a'), ('B','b')], names=['first','second'])
-        df = DataFrame(np.arange(12).reshape(3,4), columns=index)
+        index = MultiIndex.from_tuples([('A', 'a'), ('A', 'b'),
+                                        ('B', 'a'), ('B', 'b')],
+                                       names=['first', 'second'])
+        df = DataFrame(np.arange(12).reshape(3, 4), columns=index)
+        expected = df.copy()
+        if isinstance(expected.index, RangeIndex):
+            expected.index = Int64Index(expected.index)
 
         with ensure_clean_store(self.path) as store:
 
-            store.put('df',df)
-            tm.assert_frame_equal(store['df'],df,check_index_type=True,check_column_type=True)
+            store.put('df', df)
+            tm.assert_frame_equal(store['df'], expected,
+                                  check_index_type=True,
+                                  check_column_type=True)
 
-            store.put('df1',df,format='table')
-            tm.assert_frame_equal(store['df1'],df,check_index_type=True,check_column_type=True)
+            store.put('df1', df, format='table')
+            tm.assert_frame_equal(store['df1'], expected,
+                                  check_index_type=True,
+                                  check_column_type=True)
 
-            self.assertRaises(ValueError, store.put, 'df2',df,format='table',data_columns=['A'])
-            self.assertRaises(ValueError, store.put, 'df3',df,format='table',data_columns=True)
+            self.assertRaises(ValueError, store.put, 'df2', df,
+                              format='table', data_columns=['A'])
+            self.assertRaises(ValueError, store.put, 'df3', df,
+                              format='table', data_columns=True)
 
         # appending multi-column on existing table (see GH 6167)
         with ensure_clean_store(self.path) as store:
             store.append('df2', df)
             store.append('df2', df)
 
-            tm.assert_frame_equal(store['df2'], concat((df,df)))
+            tm.assert_frame_equal(store['df2'], concat((df, df)))
 
         # non_index_axes name
-        df = DataFrame(np.arange(12).reshape(3,4), columns=Index(list('ABCD'),name='foo'))
+        df = DataFrame(np.arange(12).reshape(3, 4),
+                       columns=Index(list('ABCD'), name='foo'))
+        expected = df.copy()
+        if isinstance(expected.index, RangeIndex):
+                expected.index = Int64Index(expected.index)
 
         with ensure_clean_store(self.path) as store:
 
-            store.put('df1',df,format='table')
-            tm.assert_frame_equal(store['df1'],df,check_index_type=True,check_column_type=True)
+            store.put('df1', df, format='table')
+            tm.assert_frame_equal(store['df1'], expected,
+                                  check_index_type=True,
+                                  check_column_type=True)
 
     def test_store_multiindex(self):
 
@@ -2477,11 +2496,6 @@ class TestHDFStore(Base, tm.TestCase):
                                       )
             expected = wp.loc[:, [Timestamp('20000102'),
                                   Timestamp('20000103')]]
-            assert_panel_equal(result, expected)
-            with assert_produces_warning(expected_warning=FutureWarning,
-                                         check_stacklevel=False):
-                result = store.select('wp', [('minor_axis', '=', ['A', 'B'])])
-            expected = wp.loc[:, :, ['A', 'B']]
             assert_panel_equal(result, expected)
 
     def test_same_name_scoping(self):

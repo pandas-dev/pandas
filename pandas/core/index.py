@@ -3,6 +3,8 @@ import datetime
 import warnings
 import operator
 from functools import partial
+from math import ceil, floor
+
 from sys import getsizeof
 
 import numpy as np
@@ -15,18 +17,23 @@ from pandas.lib import Timestamp, Timedelta, is_datetime_array
 from pandas.compat import range, zip, lrange, lzip, u, map
 from pandas import compat
 from pandas.core import algorithms
-from pandas.core.base import PandasObject, FrozenList, FrozenNDArray, IndexOpsMixin, PandasDelegate
+from pandas.core.base import (PandasObject, FrozenList, FrozenNDArray,
+                              IndexOpsMixin, PandasDelegate)
 import pandas.core.base as base
 from pandas.util.decorators import (Appender, Substitution, cache_readonly,
                                     deprecate, deprecate_kwarg)
 import pandas.core.common as com
 from pandas.core.missing import _clean_reindex_fill_method
-from pandas.core.common import (isnull, array_equivalent, is_dtype_equal, is_object_dtype,
-                                is_datetimetz, ABCSeries, ABCCategorical, ABCPeriodIndex,
-                                _values_from_object, is_float, is_integer, is_iterator, is_categorical_dtype,
+from pandas.core.common import (isnull, array_equivalent, is_dtype_equal,
+                                is_object_dtype, is_datetimetz, ABCSeries,
+                                ABCCategorical, ABCPeriodIndex,
+                                _values_from_object, is_float, is_integer,
+                                is_iterator, is_categorical_dtype,
                                 _ensure_object, _ensure_int64, is_bool_indexer,
-                                is_list_like, is_bool_dtype, is_null_slice, is_integer_dtype)
+                                is_list_like, is_bool_dtype, is_null_slice,
+                                is_integer_dtype, is_int64_dtype)
 from pandas.core.strings import StringAccessorMixin
+
 from pandas.core.config import get_option
 from pandas.io.common import PerformanceWarning
 
@@ -123,22 +130,33 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         if name is None and hasattr(data, 'name'):
             name = data.name
 
-        # no class inference!
         if fastpath:
             return cls._simple_new(data, name)
 
+        # range
+        if isinstance(data, RangeIndex):
+            return RangeIndex(start=data, copy=copy, dtype=dtype, name=name)
+        elif isinstance(data, range):
+            return RangeIndex.from_range(data, copy=copy, dtype=dtype,
+                                         name=name)
+
+        # categorical
         if is_categorical_dtype(data) or is_categorical_dtype(dtype):
             return CategoricalIndex(data, copy=copy, name=name, **kwargs)
 
-        if isinstance(data, (np.ndarray, Index, ABCSeries)):
+        # index-like
+        elif isinstance(data, (np.ndarray, Index, ABCSeries)):
 
-            if issubclass(data.dtype.type, np.datetime64) or is_datetimetz(data):
+            if issubclass(data.dtype.type,
+                          np.datetime64) or is_datetimetz(data):
+
                 from pandas.tseries.index import DatetimeIndex
                 result = DatetimeIndex(data, copy=copy, name=name, **kwargs)
                 if dtype is not None and _o_dtype == dtype:
                     return Index(result.to_pydatetime(), dtype=_o_dtype)
                 else:
                     return result
+
             elif issubclass(data.dtype.type, np.timedelta64):
                 from pandas.tseries.tdi import TimedeltaIndex
                 result = TimedeltaIndex(data, copy=copy, name=name, **kwargs)
@@ -327,7 +345,8 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         True if both have same underlying data, False otherwise : bool
         """
         # use something other than None to be clearer
-        return self._id is getattr(other, '_id', Ellipsis)
+        return self._id is getattr(
+            other, '_id', Ellipsis) and self._id is not None
 
     def _reset_identity(self):
         """Initializes or resets ``_id`` attribute with new object"""
@@ -455,14 +474,14 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         """
         return Index([item], dtype=self.dtype, **self._get_attributes_dict())
 
-    def copy(self, names=None, name=None, dtype=None, deep=False):
-        """
+    _index_shared_docs['copy'] = """
         Make a copy of this object.  Name and dtype sets those attributes on
         the new object.
 
         Parameters
         ----------
         name : string, optional
+        deep : boolean, default False
         dtype : numpy dtype or pandas type
 
         Returns
@@ -474,6 +493,10 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         In most cases, there should be no functional difference from using
         ``deep``, but if ``deep`` is passed it will attempt to deepcopy.
         """
+
+    @Appender(_index_shared_docs['copy'])
+    def copy(self, name=None, deep=False, dtype=None, **kwargs):
+        names = kwargs.get('names')
         if names is not None and name is not None:
             raise TypeError("Can only provide one of `names` and `name`")
         if deep:
@@ -1060,9 +1083,9 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         """ consistent invalid indexer message """
         raise TypeError("cannot do {form} indexing on {klass} with these "
                         "indexers [{key}] of {kind}".format(form=form,
-                                                           klass=type(self),
-                                                           key=key,
-                                                           kind=type(key)))
+                                                            klass=type(self),
+                                                            key=key,
+                                                            kind=type(key)))
 
     def get_duplicates(self):
         from collections import defaultdict
@@ -1075,6 +1098,10 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
 
     def _cleanup(self):
         self._engine.clear_mapping()
+
+    @cache_readonly
+    def _constructor(self):
+        return type(self)
 
     @cache_readonly
     def _engine(self):
@@ -1639,7 +1666,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
 
     def _wrap_union_result(self, other, result):
         name = self.name if self.name == other.name else None
-        return self.__class__(data=result, name=name)
+        return self.__class__(result, name=name)
 
     def intersection(self, other):
         """
@@ -2158,6 +2185,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
 
         # GH7774: preserve dtype/tz if target is empty and not an Index.
         target = _ensure_has_len(target)  # target may be an iterator
+
         if not isinstance(target, Index) and len(target) == 0:
             attrs = self._get_attributes_dict()
             attrs.pop('freq', None)  # don't preserve freq
@@ -2221,9 +2249,9 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
 
             missing = com._ensure_platform_int(missing)
             missing_labels = target.take(missing)
-            missing_indexer = com._ensure_int64(l[~check])
+            missing_indexer = _ensure_int64(l[~check])
             cur_labels = self.take(indexer[check])._values
-            cur_indexer = com._ensure_int64(l[check])
+            cur_indexer = _ensure_int64(l[check])
 
             new_labels = np.empty(tuple([len(indexer)]), dtype=object)
             new_labels[cur_indexer] = cur_labels
@@ -2442,7 +2470,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
                 return np.empty(0, dtype='int64')
 
             if len(labels) == 1:
-                lab = com._ensure_int64(labels[0])
+                lab = _ensure_int64(labels[0])
                 sorter, _ = groupsort_indexer(lab, 1 + lab.max())
                 return sorter
 
@@ -2453,8 +2481,8 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
                 tic |= lab[:-1] != lab[1:]
 
             starts = np.hstack(([True], tic, [True])).nonzero()[0]
-            lab = com._ensure_int64(labels[-1])
-            return lib.get_level_sorter(lab, com._ensure_int64(starts))
+            lab = _ensure_int64(labels[-1])
+            return lib.get_level_sorter(lab, _ensure_int64(starts))
 
         if isinstance(self, MultiIndex) and isinstance(other, MultiIndex):
             raise TypeError('Join on level between two MultiIndex objects '
@@ -2486,7 +2514,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
                 join_index = left[left_indexer]
 
         else:
-            left_lev_indexer = com._ensure_int64(left_lev_indexer)
+            left_lev_indexer = _ensure_int64(left_lev_indexer)
             rev_indexer = lib.get_reverse_indexer(left_lev_indexer,
                                                   len(old_level))
 
@@ -2956,6 +2984,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
             invalid_op.__name__ = name
             return invalid_op
 
+        cls.__pow__ = cls.__rpow__ = _make_invalid_op('__pow__')
         cls.__mul__ = cls.__rmul__ = _make_invalid_op('__mul__')
         cls.__floordiv__ = cls.__rfloordiv__ = _make_invalid_op('__floordiv__')
         cls.__truediv__ = cls.__rtruediv__ = _make_invalid_op('__truediv__')
@@ -2970,40 +2999,82 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         """ Update Index attributes (e.g. freq) depending on op """
         return attrs
 
+    def _validate_for_numeric_unaryop(self, op, opstr):
+        """ validate if we can perform a numeric unary operation """
+
+        if not self._is_numeric_dtype:
+            raise TypeError("cannot evaluate a numeric op "
+                            "{opstr} for type: {typ}".format(
+                                opstr=opstr,
+                                typ=type(self))
+                            )
+
+    def _validate_for_numeric_binop(self, other, op, opstr):
+        """
+        return valid other, evaluate or raise TypeError
+        if we are not of the appropriate type
+
+        internal method called by ops
+        """
+        from pandas.tseries.offsets import DateOffset
+
+        # if we are an inheritor of numeric,
+        # but not actually numeric (e.g. DatetimeIndex/PeriodInde)
+        if not self._is_numeric_dtype:
+            raise TypeError("cannot evaluate a numeric op {opstr} "
+                            "for type: {typ}".format(
+                                opstr=opstr,
+                                typ=type(self))
+                            )
+
+        if isinstance(other, Index):
+            if not other._is_numeric_dtype:
+                raise TypeError("cannot evaluate a numeric op "
+                                "{opstr} with type: {typ}".format(
+                                    opstr=type(self),
+                                    typ=type(other))
+                                )
+        elif isinstance(other, np.ndarray) and not other.ndim:
+                    other = other.item()
+
+        if isinstance(other, (Index, ABCSeries, np.ndarray)):
+            if len(self) != len(other):
+                raise ValueError("cannot evaluate a numeric op with "
+                                 "unequal lengths")
+            other = _values_from_object(other)
+            if other.dtype.kind not in ['f', 'i']:
+                raise TypeError("cannot evaluate a numeric op "
+                                "with a non-numeric dtype")
+        elif isinstance(other, (DateOffset, np.timedelta64,
+                                Timedelta, datetime.timedelta)):
+            # higher up to handle
+            pass
+        elif isinstance(other, (Timestamp, np.datetime64)):
+            # higher up to handle
+            pass
+        else:
+            if not (is_float(other) or is_integer(other)):
+                raise TypeError("can only perform ops with scalar values")
+
+        return other
+
     @classmethod
-    def _add_numeric_methods(cls):
+    def _add_numeric_methods_binary(cls):
         """ add in numeric methods """
 
         def _make_evaluate_binop(op, opstr, reversed=False):
 
             def _evaluate_numeric_binop(self, other):
-                import pandas.tseries.offsets as offsets
 
-                # if we are an inheritor of numeric, but not actually numeric (e.g. DatetimeIndex/PeriodInde)
-                if not self._is_numeric_dtype:
-                    raise TypeError("cannot evaluate a numeric op {opstr} for type: {typ}".format(opstr=opstr,
-                                                                                                  typ=type(self)))
+                from pandas.tseries.offsets import DateOffset
+                other = self._validate_for_numeric_binop(other, op, opstr)
 
-                if isinstance(other, Index):
-                    if not other._is_numeric_dtype:
-                        raise TypeError("cannot evaluate a numeric op {opstr} with type: {typ}".format(opstr=type(self),
-                                                                                                       typ=type(other)))
-                elif isinstance(other, np.ndarray) and not other.ndim:
-                    other = other.item()
-
-                if isinstance(other, (Index, ABCSeries, np.ndarray)):
-                    if len(self) != len(other):
-                        raise ValueError("cannot evaluate a numeric op with unequal lengths")
-                    other = _values_from_object(other)
-                    if other.dtype.kind not in ['f','i']:
-                        raise TypeError("cannot evaluate a numeric op with a non-numeric dtype")
-                elif isinstance(other, (offsets.DateOffset, np.timedelta64, Timedelta, datetime.timedelta)):
+                # handle time-based others
+                if isinstance(other, (DateOffset, np.timedelta64,
+                                      Timedelta, datetime.timedelta)):
                     return self._evaluate_with_timedelta_like(other, op, opstr)
                 elif isinstance(other, (Timestamp, np.datetime64)):
                     return self._evaluate_with_datetime_like(other, op, opstr)
-                else:
-                    if not (is_float(other) or is_integer(other)):
-                        raise TypeError("can only perform ops with scalar values")
 
                 # if we are a reversed non-communative op
                 values = self.values
@@ -3016,28 +3087,18 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
 
             return _evaluate_numeric_binop
 
-        def _make_evaluate_unary(op, opstr):
-
-            def _evaluate_numeric_unary(self):
-
-                # if we are an inheritor of numeric, but not actually numeric (e.g. DatetimeIndex/PeriodInde)
-                if not self._is_numeric_dtype:
-                    raise TypeError("cannot evaluate a numeric op {opstr} for type: {typ}".format(opstr=opstr,
-                                                                                                  typ=type(self)))
-                attrs = self._get_attributes_dict()
-                attrs = self._maybe_update_attributes(attrs)
-                return Index(op(self.values), **attrs)
-
-            return _evaluate_numeric_unary
-
         cls.__add__ = cls.__radd__ = _make_evaluate_binop(
             operator.add, '__add__')
-        cls.__sub__ = _make_evaluate_binop(operator.sub, '__sub__')
+        cls.__sub__ = _make_evaluate_binop(
+            operator.sub, '__sub__')
         cls.__rsub__ = _make_evaluate_binop(
             operator.sub, '__sub__', reversed=True)
         cls.__mul__ = cls.__rmul__ = _make_evaluate_binop(
             operator.mul, '__mul__')
-        cls.__mod__ = _make_evaluate_binop(operator.mod, '__mod__')
+        cls.__pow__ = cls.__rpow__ = _make_evaluate_binop(
+            operator.pow, '__pow__')
+        cls.__mod__ = _make_evaluate_binop(
+            operator.mod, '__mod__')
         cls.__floordiv__ = _make_evaluate_binop(
             operator.floordiv, '__floordiv__')
         cls.__rfloordiv__ = _make_evaluate_binop(
@@ -3051,10 +3112,31 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
                 operator.div, '__div__')
             cls.__rdiv__ = _make_evaluate_binop(
                 operator.div, '__div__', reversed=True)
+
+    @classmethod
+    def _add_numeric_methods_unary(cls):
+        """ add in numeric unary methods """
+
+        def _make_evaluate_unary(op, opstr):
+
+            def _evaluate_numeric_unary(self):
+
+                self._validate_for_numeric_unaryop(op, opstr)
+                attrs = self._get_attributes_dict()
+                attrs = self._maybe_update_attributes(attrs)
+                return Index(op(self.values), **attrs)
+
+            return _evaluate_numeric_unary
+
         cls.__neg__ = _make_evaluate_unary(lambda x: -x, '__neg__')
         cls.__pos__ = _make_evaluate_unary(lambda x: x, '__pos__')
         cls.__abs__ = _make_evaluate_unary(np.abs, '__abs__')
         cls.__inv__ = _make_evaluate_unary(lambda x: -x, '__inv__')
+
+    @classmethod
+    def _add_numeric_methods(cls):
+        cls._add_numeric_methods_unary()
+        cls._add_numeric_methods_binary()
 
     @classmethod
     def _add_logical_methods(cls):
@@ -3826,6 +3908,560 @@ class Int64Index(NumericIndex):
 
 Int64Index._add_numeric_methods()
 Int64Index._add_logical_methods()
+
+
+class RangeIndex(Int64Index):
+
+    """
+    Immutable Index implementing a monotonic range. RangeIndex is a
+    memory-saving special case of Int64Index limited to representing
+    monotonic ranges.
+
+    Parameters
+    ----------
+    start : int (default: 0)
+    stop : int (default: 0)
+    step : int (default: 1)
+    name : object, optional
+        Name to be stored in the index
+    copy : bool, default False
+        Make a copy of input if its a RangeIndex
+
+    """
+
+    _typ = 'rangeindex'
+    _engine_type = _index.Int64Engine
+
+    def __new__(cls, start=None, stop=None, step=None, name=None, dtype=None,
+                fastpath=False, copy=False, **kwargs):
+
+        if fastpath:
+            return cls._simple_new(start, stop, step, name=name)
+
+        cls._validate_dtype(dtype)
+
+        # RangeIndex
+        if isinstance(start, RangeIndex):
+            if not copy:
+                return start
+            if name is None:
+                name = getattr(start, 'name', None)
+            start, stop, step = start._start, start._stop, start._step
+
+        # validate the arguments
+        def _ensure_int(value, field):
+            try:
+                new_value = int(value)
+            except:
+                new_value = value
+
+            if not is_integer(new_value) or new_value != value:
+                raise TypeError("RangeIndex(...) must be called with integers,"
+                                " {value} was passed for {field}".format(
+                                    value=type(value).__name__,
+                                    field=field)
+                                )
+
+            return new_value
+
+        if start is None:
+            start = 0
+        else:
+            start = _ensure_int(start, 'start')
+        if stop is None:
+            stop = start
+            start = 0
+        else:
+            stop = _ensure_int(stop, 'stop')
+        if step is None:
+            step = 1
+        elif step == 0:
+            raise ValueError("Step must not be zero")
+        else:
+            step = _ensure_int(step, 'step')
+
+        return cls._simple_new(start, stop, step, name)
+
+    @classmethod
+    def from_range(cls, data, name=None, dtype=None, **kwargs):
+        """ create RangeIndex from a range (py3), or xrange (py2) object """
+        if not isinstance(data, range):
+            raise TypeError(
+                '{0}(...) must be called with object coercible to a '
+                'range, {1} was passed'.format(cls.__name__, repr(data)))
+
+        if compat.PY3:
+            step = data.step
+            stop = data.stop
+            start = data.start
+        else:
+            # seems we only have indexing ops to infer
+            # rather than direct accessors
+            if len(data) > 1:
+                step = data[1] - data[0]
+                stop = data[-1] + step
+                start = data[0]
+            elif len(data):
+                start = data[0]
+                stop = data[0] + 1
+                step = 1
+            else:
+                start = stop = 0
+                step = 1
+        return RangeIndex(start, stop, step, dtype=dtype, name=name, **kwargs)
+
+    @classmethod
+    def _simple_new(cls, start, stop=None, step=None, name=None,
+                    dtype=None, **kwargs):
+        result = object.__new__(cls)
+
+        # handle passed None, non-integers
+        if start is None or not is_integer(start):
+            try:
+                return RangeIndex(start, stop, step, name=name, **kwargs)
+            except TypeError:
+                return Index(start, stop, step, name=name, **kwargs)
+
+        result._start = start
+        result._stop = stop or 0
+        result._step = step or 1
+        result.name = name
+        for k, v in compat.iteritems(kwargs):
+            setattr(result, k, v)
+
+        result._reset_identity()
+        return result
+
+    @staticmethod
+    def _validate_dtype(dtype):
+        """ require dtype to be None or int64 """
+        if not (dtype is None or is_int64_dtype(dtype)):
+            raise TypeError('Invalid to pass a non-int64 dtype to RangeIndex')
+
+    @cache_readonly
+    def _constructor(self):
+        """ return the class to use for construction """
+        return Int64Index
+
+    @cache_readonly
+    def _data(self):
+        return np.arange(self._start, self._stop, self._step, dtype=np.int64)
+
+    @cache_readonly
+    def _int64index(self):
+        return Int64Index(self._data, name=self.name, fastpath=True)
+
+    def _get_data_as_items(self):
+        """ return a list of tuples of start, stop, step """
+        return [('start', self._start),
+                ('stop', self._stop),
+                ('step', self._step)]
+
+    def __reduce__(self):
+        d = self._get_attributes_dict()
+        d.update(dict(self._get_data_as_items()))
+        return _new_Index, (self.__class__, d), None
+
+    def _format_attrs(self):
+        """
+        Return a list of tuples of the (attr, formatted_value)
+        """
+        attrs = self._get_data_as_items()
+        if self.name is not None:
+            attrs.append(('name', default_pprint(self.name)))
+        return attrs
+
+    def _format_data(self):
+        # we are formatting thru the attributes
+        return None
+
+    @cache_readonly
+    def nbytes(self):
+        """ return the number of bytes in the underlying data """
+        return sum([getsizeof(getattr(self, v)) for v in
+                    ['_start', '_stop', '_step']])
+
+    def memory_usage(self, deep=False):
+        """
+        Memory usage of my values
+
+        Parameters
+        ----------
+        deep : bool
+            Introspect the data deeply, interrogate
+            `object` dtypes for system-level memory consumption
+
+        Returns
+        -------
+        bytes used
+
+        Notes
+        -----
+        Memory usage does not include memory consumed by elements that
+        are not components of the array if deep=False
+
+        See Also
+        --------
+        numpy.ndarray.nbytes
+        """
+        return self.nbytes
+
+    @property
+    def dtype(self):
+        return np.dtype(np.int64)
+
+    @property
+    def is_unique(self):
+        """ return if the index has unique values """
+        return True
+
+    @property
+    def has_duplicates(self):
+        return False
+
+    def tolist(self):
+        return lrange(self._start, self._stop, self._step)
+
+    def _shallow_copy(self, values=None, **kwargs):
+        """ create a new Index, don't copy the data, use the same object attributes
+            with passed in attributes taking precedence """
+        if values is None:
+            return RangeIndex(name=self.name, fastpath=True,
+                              **dict(self._get_data_as_items()))
+        else:
+            kwargs.setdefault('name', self.name)
+            return self._int64index._shallow_copy(values, **kwargs)
+
+    @Appender(_index_shared_docs['copy'])
+    def copy(self, name=None, deep=False, dtype=None, **kwargs):
+        self._validate_dtype(dtype)
+        if name is None:
+            name = self.name
+        return RangeIndex(name=name, fastpath=True,
+                          **dict(self._get_data_as_items()))
+
+    def argsort(self, *args, **kwargs):
+        """
+        return an ndarray indexer of the underlying data
+
+        See also
+        --------
+        numpy.ndarray.argsort
+        """
+        if self._step > 0:
+            return np.arange(len(self))
+        else:
+            return np.arange(len(self) - 1, -1, -1)
+
+    def equals(self, other):
+        """
+        Determines if two Index objects contain the same elements.
+        """
+        if isinstance(other, RangeIndex):
+            ls = len(self)
+            lo = len(other)
+            return (ls == lo == 0 or
+                    ls == lo == 1 and
+                    self._start == other._start or
+                    ls == lo and
+                    self._start == other._start and
+                    self._step == other._step)
+
+        return super(RangeIndex, self).equals(other)
+
+    def intersection(self, other):
+        """
+        Form the intersection of two Index objects. Sortedness of the result is
+        not guaranteed
+
+        Parameters
+        ----------
+        other : Index or array-like
+
+        Returns
+        -------
+        intersection : Index
+        """
+        if not isinstance(other, RangeIndex):
+            return super(RangeIndex, self).intersection(other)
+
+        # check whether intervals intersect
+        # deals with in- and decreasing ranges
+        int_low = max(min(self._start, self._stop + 1),
+                      min(other._start, other._stop + 1))
+        int_high = min(max(self._stop, self._start + 1),
+                       max(other._stop, other._start + 1))
+        if int_high <= int_low:
+            return RangeIndex()
+
+        # Method hint: linear Diophantine equation
+        # solve intersection problem
+        # performance hint: for identical step sizes, could use
+        # cheaper alternative
+        gcd, s, t = self._extended_gcd(self._step, other._step)
+
+        # check whether element sets intersect
+        if (self._start - other._start) % gcd:
+            return RangeIndex()
+
+        # calculate parameters for the RangeIndex describing the
+        # intersection disregarding the lower bounds
+        tmp_start = self._start + (other._start - self._start) * \
+            self._step // gcd * s
+        new_step = self._step * other._step // gcd
+        new_index = RangeIndex(tmp_start, int_high, new_step, fastpath=True)
+
+        # adjust index to limiting interval
+        new_index._start = new_index._min_fitting_element(int_low)
+        return new_index
+
+    def _min_fitting_element(self, lower_limit):
+        """Returns the value of the smallest element greater than the limit"""
+        round = ceil if self._step > 0 else floor
+        no_steps = round((float(lower_limit) - self._start) / self._step)
+        return self._start + self._step * no_steps
+
+    def _max_fitting_element(self, upper_limit):
+        """Returns the value of the largest element smaller than the limit"""
+        round = floor if self._step > 0 else ceil
+        no_steps = round((float(upper_limit) - self._start) / self._step)
+        return self._start + self._step * no_steps
+
+    def _extended_gcd(self, a, b):
+        """
+        Extended Euclidean algorithms to solve Bezout's identity:
+           a*x + b*y = gcd(x, y)
+        Finds one particular solution for x, y: s, t
+        Returns: gcd, s, t
+        """
+        s, old_s = 0, 1
+        t, old_t = 1, 0
+        r, old_r = b, a
+        while r:
+            quotient = old_r // r
+            old_r, r = r, old_r - quotient * r
+            old_s, s = s, old_s - quotient * s
+            old_t, t = t, old_t - quotient * t
+        return old_r, old_s, old_t
+
+    def union(self, other):
+        """
+        Form the union of two Index objects and sorts if possible
+
+        Parameters
+        ----------
+        other : Index or array-like
+
+        Returns
+        -------
+        union : Index
+        """
+        # note: could return a RangeIndex in some circumstances
+        return self._int64index.union(other)
+
+    def join(self, other, how='left', level=None, return_indexers=False):
+        """
+        *this is an internal non-public method*
+
+        Compute join_index and indexers to conform data
+        structures to the new index.
+
+        Parameters
+        ----------
+        other : Index
+        how : {'left', 'right', 'inner', 'outer'}
+        level : int or level name, default None
+        return_indexers : boolean, default False
+
+        Returns
+        -------
+        join_index, (left_indexer, right_indexer)
+        """
+        if how == 'outer' and self is not other:
+            # note: could return RangeIndex in more circumstances
+            return self._int64index.join(other, how, level, return_indexers)
+
+        return super(RangeIndex, self).join(other, how, level, return_indexers)
+
+    def __len__(self):
+        """
+        return the length of the RangeIndex
+        """
+        return max(0, -(-(self._stop - self._start) // self._step))
+
+    @property
+    def size(self):
+        return len(self)
+
+    def __getitem__(self, key):
+        """
+        Conserve RangeIndex type for scalar and slice keys.
+        """
+        super_getitem = super(RangeIndex, self).__getitem__
+
+        if np.isscalar(key):
+            n = int(key)
+            if n != key:
+                return super_getitem(key)
+            if n < 0:
+                n = len(self) + key
+            if n < 0 or n > len(self) - 1:
+                raise IndexError("index {key} is out of bounds for axis 0 "
+                                 "with size {size}".format(key=key,
+                                                           size=len(self)))
+            return self._start + n * self._step
+
+        if isinstance(key, slice):
+
+            # This is basically PySlice_GetIndicesEx, but delegation to our
+            # super routines if we don't have integers
+
+            l = len(self)
+
+            # complete missing slice information
+            step = 1 if key.step is None else key.step
+            if key.start is None:
+                start = l - 1 if step < 0 else 0
+            else:
+                start = key.start
+
+                if start < 0:
+                    start += l
+                if start < 0:
+                    start = -1 if step < 0 else 0
+                if start >= l:
+                    start = l - 1 if step < 0 else l
+
+            if key.stop is None:
+                stop = -1 if step < 0 else l
+            else:
+                stop = key.stop
+
+                if stop < 0:
+                    stop += l
+                if stop < 0:
+                    stop = -1
+                if stop > l:
+                    stop = l
+
+            # delegate non-integer slices
+            if (start != int(start) and
+                    stop != int(stop) and
+                    step != int(step)):
+                return super_getitem(key)
+
+            # convert indexes to values
+            start = self._start + self._step * start
+            stop = self._start + self._step * stop
+            step = self._step * step
+
+            return RangeIndex(start, stop, step, self.name, fastpath=True)
+
+        # fall back to Int64Index
+        return super_getitem(key)
+
+    @classmethod
+    def _add_numeric_methods_binary(cls):
+        """ add in numeric methods, specialized to RangeIndex """
+
+        def _make_evaluate_binop(op, opstr, reversed=False, step=False):
+            """
+            Parameters
+            ----------
+            op : callable that accepts 2 parms
+                perform the binary op
+            opstr : string
+                string name of ops
+            reversed : boolean, default False
+                if this is a reversed op, e.g. radd
+            step : callable, optional, default to False
+                op to apply to the step parm if not None
+                if False, use the existing step
+            """
+
+            def _evaluate_numeric_binop(self, other):
+
+                other = self._validate_for_numeric_binop(other, op, opstr)
+                attrs = self._get_attributes_dict()
+                attrs = self._maybe_update_attributes(attrs)
+
+                if reversed:
+                    self, other = other, self
+
+                try:
+                    # alppy if we have an override
+                    if step:
+                        rstep = step(self._step, other)
+
+                        # we don't have a representable op
+                        # so return a base index
+                        if not is_integer(rstep) or not rstep:
+                            raise ValueError
+
+                    else:
+                        rstep = self._step
+
+                    rstart = op(self._start, other)
+                    rstop = op(self._stop, other)
+
+                    result = RangeIndex(rstart,
+                                        rstop,
+                                        rstep,
+                                        **attrs)
+
+                    # for compat with numpy / Int64Index
+                    # even if we can represent as a RangeIndex, return
+                    # as a Float64Index if we have float-like descriptors
+                    if not all([is_integer(x) for x in
+                                [rstart, rstop, rstep]]):
+                        result = result.astype('float64')
+
+                    return result
+
+                except (ValueError, TypeError, AttributeError):
+                    pass
+
+                # convert to Int64Index ops
+                if isinstance(self, RangeIndex):
+                    self = self.values
+                if isinstance(other, RangeIndex):
+                    other = other.values
+
+                return Index(op(self, other), **attrs)
+
+            return _evaluate_numeric_binop
+
+        cls.__add__ = cls.__radd__ = _make_evaluate_binop(
+            operator.add, '__add__')
+        cls.__sub__ = _make_evaluate_binop(operator.sub, '__sub__')
+        cls.__rsub__ = _make_evaluate_binop(
+            operator.sub, '__sub__', reversed=True)
+        cls.__mul__ = cls.__rmul__ = _make_evaluate_binop(
+            operator.mul,
+            '__mul__',
+            step=operator.mul)
+        cls.__truediv__ = _make_evaluate_binop(
+            operator.truediv,
+            '__truediv__',
+            step=operator.truediv)
+        cls.__rtruediv__ = _make_evaluate_binop(
+            operator.truediv,
+            '__truediv__',
+            reversed=True,
+            step=operator.truediv)
+        if not compat.PY3:
+            cls.__div__ = _make_evaluate_binop(
+                operator.div,
+                '__div__',
+                step=operator.div)
+            cls.__rdiv__ = _make_evaluate_binop(
+                operator.div,
+                '__div__',
+                reversed=True,
+                step=operator.div)
+
+RangeIndex._add_numeric_methods()
+RangeIndex._add_logical_methods()
 
 
 class Float64Index(NumericIndex):
@@ -4658,10 +5294,12 @@ class MultiIndex(Index):
         num = self._get_level_number(level)
         unique = self.levels[num]  # .values
         labels = self.labels[num]
-        filled = com.take_1d(unique._values, labels, fill_value=unique._na_value)
-        values = unique._simple_new(filled, self.names[num],
-                                    freq=getattr(unique, 'freq', None),
-                                    tz=getattr(unique, 'tz', None))
+        filled = com.take_1d(unique.values, labels,
+                             fill_value=unique._na_value)
+        _simple_new = unique._simple_new
+        values = _simple_new(filled, self.names[num],
+                             freq=getattr(unique, 'freq', None),
+                             tz=getattr(unique, 'tz', None))
         return values
 
     def format(self, space=2, sparsify=None, adjoin=True, names=False,
@@ -5740,7 +6378,7 @@ class MultiIndex(Index):
                 # a partial date slicer on a DatetimeIndex generates a slice
                 # note that the stop ALREADY includes the stopped point (if
                 # it was a string sliced)
-                return convert_indexer(start.start,stop.stop,step)
+                return convert_indexer(start.start, stop.stop, step)
 
             elif level > 0 or self.lexsort_depth == 0 or step is not None:
                 # need to have like semantics here to right

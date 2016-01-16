@@ -826,6 +826,9 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
     def test_constructor_empty(self):
         empty = Series()
         empty2 = Series([])
+
+        # the are Index() and RangeIndex() which don't compare type equal
+        # but are just .equals
         assert_series_equal(empty, empty2, check_index_type=False)
 
         empty = Series(index=lrange(10))
@@ -1226,7 +1229,7 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
 
     def test_constructor_dict_multiindex(self):
         check = lambda result, expected: tm.assert_series_equal(
-            result, expected, check_dtype=True, check_index_type=True,
+            result, expected, check_dtype=True,
             check_series_type=True)
         d = {('a', 'a'): 0., ('b', 'a'): 1., ('b', 'c'): 2.}
         _d = sorted(d.items())
@@ -7418,6 +7421,7 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         assert_series_equal(ts.reindex(i), ts.iloc[j])
 
         ts.index = ts.index.astype('object')
+
         # reindex coerces index.dtype to float, loc/iloc doesn't
         assert_series_equal(ts.reindex(i), ts.iloc[j], check_index_type=False)
 
