@@ -359,7 +359,7 @@ Resample API
 ^^^^^^^^^^^^
 
 Like the change in the window functions API :ref:`above <whatsnew_0180.enhancements.moments>`, ``.resample(...)`` is changing to have
-a more groupby-like API. (:issue:`11732`).
+a more groupby-like API. (:issue:`11732`, :issue:`12702`).
 
 .. ipython:: python
 

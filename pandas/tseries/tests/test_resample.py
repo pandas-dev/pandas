@@ -522,6 +522,15 @@ class TestResample(tm.TestCase):
             '1 day', freq='2s', periods=3))
         assert_series_equal(result, expected)
 
+    def test_resample_timedelta_idempotency(self):
+
+        # GH 12072
+        index = pd.timedelta_range('0', periods=9, freq='10L')
+        series = pd.Series(range(9), index=index)
+        result = series.resample('10L').mean()
+        expected = series
+        assert_series_equal(result, expected)
+
     def test_resample_rounding(self):
         # GH 8371
         # odd results when rounding is needed
