@@ -3,7 +3,6 @@
 import pandas as pd
 import unittest
 import warnings
-import nose
 
 
 class TestConfig(unittest.TestCase):
@@ -39,11 +38,11 @@ class TestConfig(unittest.TestCase):
         self.assertTrue(hasattr(pd, 'describe_option'))
 
     def test_is_one_of_factory(self):
-        v = self.cf.is_one_of_factory([None,12])
+        v = self.cf.is_one_of_factory([None, 12])
 
         v(12)
         v(None)
-        self.assertRaises(ValueError,v,1.1)
+        self.assertRaises(ValueError, v, 1.1)
 
     def test_register_option(self):
         self.cf.register_option('a', 1, 'doc')
@@ -117,7 +116,7 @@ class TestConfig(unittest.TestCase):
         # current value is reported
         self.assertFalse(
             'bar' in self.cf.describe_option('l', _print_desc=False))
-        self.cf.set_option("l","bar")
+        self.cf.set_option("l", "bar")
         self.assertTrue(
             'bar' in self.cf.describe_option('l', _print_desc=False))
 
@@ -167,7 +166,6 @@ class TestConfig(unittest.TestCase):
         self.assertEqual(self.cf.get_option('b.b'), 1.1)
 
         self.assertRaises(KeyError, self.cf.set_option, 'no.such.key', None)
-
 
     def test_set_option_empty_args(self):
         self.assertRaises(ValueError, self.cf.set_option)
@@ -244,9 +242,8 @@ class TestConfig(unittest.TestCase):
         self.assertEqual(self.cf.get_option('b.c'), 'hullo')
 
     def test_deprecate_option(self):
-        import sys
-        self.cf.deprecate_option(
-            'foo')  # we can deprecate non-existent options
+        # we can deprecate non-existent options
+        self.cf.deprecate_option('foo')
 
         self.assertTrue(self.cf._is_deprecated('foo'))
         with warnings.catch_warnings(record=True) as w:

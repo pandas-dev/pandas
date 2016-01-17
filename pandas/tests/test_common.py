@@ -8,9 +8,8 @@ from nose.tools import assert_equal, assert_true
 import numpy as np
 import pandas as pd
 from pandas.tslib import iNaT, NaT
-from pandas import (Series, DataFrame, date_range,
-                    DatetimeIndex, TimedeltaIndex,
-                    Timestamp, Float64Index)
+from pandas import (Series, DataFrame, date_range, DatetimeIndex,
+                    TimedeltaIndex, Timestamp, Float64Index)
 from pandas import compat
 from pandas.compat import range, long, lrange, lmap, u
 from pandas.core.common import notnull, isnull, array_equivalent
@@ -33,17 +32,18 @@ def test_mut_exclusive():
 
 def test_is_sequence():
     is_seq = com.is_sequence
-    assert(is_seq((1, 2)))
-    assert(is_seq([1, 2]))
-    assert(not is_seq("abcd"))
-    assert(not is_seq(u("abcd")))
-    assert(not is_seq(np.int64))
+    assert (is_seq((1, 2)))
+    assert (is_seq([1, 2]))
+    assert (not is_seq("abcd"))
+    assert (not is_seq(u("abcd")))
+    assert (not is_seq(np.int64))
 
     class A(object):
+
         def __getitem__(self):
             return 1
 
-    assert(not is_seq(A()))
+    assert (not is_seq(A()))
 
 
 def test_get_callable_name():
@@ -52,13 +52,15 @@ def test_get_callable_name():
 
     def fn(x):
         return x
+
     lambda_ = lambda x: x
     part1 = partial(fn)
     part2 = partial(part1)
 
     class somecall(object):
+
         def __call__(self):
-            return x
+            return x  # noqa
 
     assert getname(fn) == 'fn'
     assert getname(lambda_)
@@ -67,7 +69,8 @@ def test_get_callable_name():
     assert getname(somecall()) == 'somecall'
     assert getname(1) is None
 
-#Issue 10859
+
+# Issue 10859
 class TestABCClasses(tm.TestCase):
     tuples = [[1, 2, 2], ['red', 'blue', 'red']]
     multi_index = pd.MultiIndex.from_arrays(tuples, names=('number', 'color'))
@@ -88,7 +91,8 @@ class TestABCClasses(tm.TestCase):
         self.assertIsInstance(self.datetime_index, com.ABCDatetimeIndex)
         self.assertIsInstance(self.timedelta_index, com.ABCTimedeltaIndex)
         self.assertIsInstance(self.period_index, com.ABCPeriodIndex)
-        self.assertIsInstance(self.categorical_df.index, com.ABCCategoricalIndex)
+        self.assertIsInstance(self.categorical_df.index,
+                              com.ABCCategoricalIndex)
         self.assertIsInstance(pd.Index(['a', 'b', 'c']), com.ABCIndexClass)
         self.assertIsInstance(pd.Int64Index([1, 2, 3]), com.ABCIndexClass)
         self.assertIsInstance(pd.Series([1, 2, 3]), com.ABCSeries)
@@ -103,12 +107,11 @@ class TestABCClasses(tm.TestCase):
 class TestInferDtype(tm.TestCase):
 
     def test_infer_dtype_from_scalar(self):
-        # Test that _infer_dtype_from_scalar is returning correct dtype for int and float.
+        # Test that _infer_dtype_from_scalar is returning correct dtype for int
+        # and float.
 
-        for dtypec in [ np.uint8, np.int8,
-                        np.uint16, np.int16,
-                        np.uint32, np.int32,
-                        np.uint64, np.int64 ]:
+        for dtypec in [np.uint8, np.int8, np.uint16, np.int16, np.uint32,
+                       np.int32, np.uint64, np.int64]:
             data = dtypec(12)
             dtype, val = com._infer_dtype_from_scalar(data)
             self.assertEqual(dtype, type(data))
@@ -117,7 +120,7 @@ class TestInferDtype(tm.TestCase):
         dtype, val = com._infer_dtype_from_scalar(data)
         self.assertEqual(dtype, np.int64)
 
-        for dtypec in [ np.float16, np.float32, np.float64 ]:
+        for dtypec in [np.float16, np.float32, np.float64]:
             data = dtypec(12)
             dtype, val = com._infer_dtype_from_scalar(data)
             self.assertEqual(dtype, dtypec)
@@ -126,35 +129,30 @@ class TestInferDtype(tm.TestCase):
         dtype, val = com._infer_dtype_from_scalar(data)
         self.assertEqual(dtype, np.float64)
 
-        for data in [ True, False ]:
+        for data in [True, False]:
             dtype, val = com._infer_dtype_from_scalar(data)
             self.assertEqual(dtype, np.bool_)
 
-        for data in [ np.complex64(1), np.complex128(1) ]:
+        for data in [np.complex64(1), np.complex128(1)]:
             dtype, val = com._infer_dtype_from_scalar(data)
             self.assertEqual(dtype, np.complex_)
 
         import datetime
-        for data in [ np.datetime64(1,'ns'),
-                      pd.Timestamp(1),
-                      datetime.datetime(2000,1,1,0,0)
-                      ]:
+        for data in [np.datetime64(1, 'ns'), pd.Timestamp(1),
+                     datetime.datetime(2000, 1, 1, 0, 0)]:
             dtype, val = com._infer_dtype_from_scalar(data)
             self.assertEqual(dtype, 'M8[ns]')
 
-        for data in [ np.timedelta64(1,'ns'),
-                      pd.Timedelta(1),
-                      datetime.timedelta(1)
-                      ]:
+        for data in [np.timedelta64(1, 'ns'), pd.Timedelta(1),
+                     datetime.timedelta(1)]:
             dtype, val = com._infer_dtype_from_scalar(data)
             self.assertEqual(dtype, 'm8[ns]')
 
-        for data in [ datetime.date(2000,1,1),
-                      pd.Timestamp(1,tz='US/Eastern'),
-                      'foo'
-                      ]:
+        for data in [datetime.date(2000, 1, 1),
+                     pd.Timestamp(1, tz='US/Eastern'), 'foo']:
             dtype, val = com._infer_dtype_from_scalar(data)
             self.assertEqual(dtype, np.object_)
+
 
 def test_notnull():
     assert notnull(1.)
@@ -178,9 +176,11 @@ def test_notnull():
         assert result.sum() == 2
 
     with cf.option_context("mode.use_inf_as_null", False):
-        for s in [tm.makeFloatSeries(),tm.makeStringSeries(),
-                  tm.makeObjectSeries(),tm.makeTimeSeries(),tm.makePeriodSeries()]:
-            assert(isinstance(isnull(s), Series))
+        for s in [tm.makeFloatSeries(), tm.makeStringSeries(),
+                  tm.makeObjectSeries(), tm.makeTimeSeries(),
+                  tm.makePeriodSeries()]:
+            assert (isinstance(isnull(s), Series))
+
 
 def test_isnull():
     assert not isnull(1.)
@@ -190,52 +190,58 @@ def test_isnull():
     assert not isnull(-np.inf)
 
     # series
-    for s in [tm.makeFloatSeries(),tm.makeStringSeries(),
-              tm.makeObjectSeries(),tm.makeTimeSeries(),tm.makePeriodSeries()]:
-        assert(isinstance(isnull(s), Series))
+    for s in [tm.makeFloatSeries(), tm.makeStringSeries(),
+              tm.makeObjectSeries(), tm.makeTimeSeries(),
+              tm.makePeriodSeries()]:
+        assert (isinstance(isnull(s), Series))
 
     # frame
-    for df in [tm.makeTimeDataFrame(),tm.makePeriodFrame(),tm.makeMixedDataFrame()]:
+    for df in [tm.makeTimeDataFrame(), tm.makePeriodFrame(),
+               tm.makeMixedDataFrame()]:
         result = isnull(df)
         expected = df.apply(isnull)
         tm.assert_frame_equal(result, expected)
 
     # panel
-    for p in [ tm.makePanel(), tm.makePeriodPanel(), tm.add_nans(tm.makePanel()) ]:
+    for p in [tm.makePanel(), tm.makePeriodPanel(), tm.add_nans(tm.makePanel())
+              ]:
         result = isnull(p)
         expected = p.apply(isnull)
         tm.assert_panel_equal(result, expected)
 
     # panel 4d
-    for p in [ tm.makePanel4D(), tm.add_nans_panel4d(tm.makePanel4D()) ]:
+    for p in [tm.makePanel4D(), tm.add_nans_panel4d(tm.makePanel4D())]:
         result = isnull(p)
         expected = p.apply(isnull)
         tm.assert_panel4d_equal(result, expected)
 
+
 def test_isnull_lists():
     result = isnull([[False]])
     exp = np.array([[False]])
-    assert(np.array_equal(result, exp))
+    assert (np.array_equal(result, exp))
 
     result = isnull([[1], [2]])
     exp = np.array([[False], [False]])
-    assert(np.array_equal(result, exp))
+    assert (np.array_equal(result, exp))
 
     # list of strings / unicode
     result = isnull(['foo', 'bar'])
-    assert(not result.any())
+    assert (not result.any())
 
     result = isnull([u('foo'), u('bar')])
-    assert(not result.any())
+    assert (not result.any())
+
 
 def test_isnull_nat():
     result = isnull([NaT])
     exp = np.array([True])
-    assert(np.array_equal(result, exp))
+    assert (np.array_equal(result, exp))
 
     result = isnull(np.array([NaT], dtype=object))
     exp = np.array([True])
-    assert(np.array_equal(result, exp))
+    assert (np.array_equal(result, exp))
+
 
 def test_isnull_numpy_nat():
     arr = np.array([NaT, np.datetime64('NaT'), np.timedelta64('NaT'),
@@ -244,31 +250,33 @@ def test_isnull_numpy_nat():
     expected = np.array([True] * 4)
     tm.assert_numpy_array_equal(result, expected)
 
+
 def test_isnull_datetime():
     assert (not isnull(datetime.now()))
     assert notnull(datetime.now())
 
     idx = date_range('1/1/1990', periods=20)
-    assert(notnull(idx).all())
+    assert (notnull(idx).all())
 
     idx = np.asarray(idx)
     idx[0] = iNaT
     idx = DatetimeIndex(idx)
     mask = isnull(idx)
-    assert(mask[0])
-    assert(not mask[1:].any())
+    assert (mask[0])
+    assert (not mask[1:].any())
 
     # GH 9129
     pidx = idx.to_period(freq='M')
     mask = isnull(pidx)
-    assert(mask[0])
-    assert(not mask[1:].any())
+    assert (mask[0])
+    assert (not mask[1:].any())
 
     mask = isnull(pidx[1:])
-    assert(not mask.any())
+    assert (not mask.any())
 
 
 class TestIsNull(tm.TestCase):
+
     def test_0d_array(self):
         self.assertTrue(isnull(np.array(np.nan)))
         self.assertFalse(isnull(np.array(0.0)))
@@ -298,24 +306,26 @@ def test_downcast_conv():
 
     # conversions
 
-    expected = np.array([1,2])
-    for dtype in [np.float64,object,np.int64]:
-        arr = np.array([1.0,2.0],dtype=dtype)
-        result = com._possibly_downcast_to_dtype(arr,'infer')
+    expected = np.array([1, 2])
+    for dtype in [np.float64, object, np.int64]:
+        arr = np.array([1.0, 2.0], dtype=dtype)
+        result = com._possibly_downcast_to_dtype(arr, 'infer')
         tm.assert_almost_equal(result, expected)
 
-    expected = np.array([1.0,2.0,np.nan])
-    for dtype in [np.float64,object]:
-        arr = np.array([1.0,2.0,np.nan],dtype=dtype)
-        result = com._possibly_downcast_to_dtype(arr,'infer')
+    expected = np.array([1.0, 2.0, np.nan])
+    for dtype in [np.float64, object]:
+        arr = np.array([1.0, 2.0, np.nan], dtype=dtype)
+        result = com._possibly_downcast_to_dtype(arr, 'infer')
         tm.assert_almost_equal(result, expected)
 
     # empties
-    for dtype in [np.int32,np.float64,np.float32,np.bool_,np.int64,object]:
-        arr = np.array([],dtype=dtype)
-        result = com._possibly_downcast_to_dtype(arr,'int64')
-        tm.assert_almost_equal(result, np.array([],dtype=np.int64))
+    for dtype in [np.int32, np.float64, np.float32, np.bool_, np.int64, object
+                  ]:
+        arr = np.array([], dtype=dtype)
+        result = com._possibly_downcast_to_dtype(arr, 'int64')
+        tm.assert_almost_equal(result, np.array([], dtype=np.int64))
         assert result.dtype == np.int64
+
 
 def test_array_equivalent():
     assert array_equivalent(np.array([np.nan, np.nan]),
@@ -326,70 +336,76 @@ def test_array_equivalent():
                             np.array([np.nan, None], dtype='object'))
     assert array_equivalent(np.array([np.nan, 1 + 1j], dtype='complex'),
                             np.array([np.nan, 1 + 1j], dtype='complex'))
-    assert not array_equivalent(np.array([np.nan, 1 + 1j], dtype='complex'),
-                                np.array([np.nan, 1 + 2j], dtype='complex'))
-    assert not array_equivalent(np.array([np.nan, 1, np.nan]),
-                                np.array([np.nan, 2, np.nan]))
-    assert not array_equivalent(np.array(['a', 'b', 'c', 'd']),
-                                np.array(['e', 'e']))
+    assert not array_equivalent(
+        np.array([np.nan, 1 + 1j], dtype='complex'), np.array(
+            [np.nan, 1 + 2j], dtype='complex'))
+    assert not array_equivalent(
+        np.array([np.nan, 1, np.nan]), np.array([np.nan, 2, np.nan]))
+    assert not array_equivalent(
+        np.array(['a', 'b', 'c', 'd']), np.array(['e', 'e']))
     assert array_equivalent(Float64Index([0, np.nan]),
                             Float64Index([0, np.nan]))
-    assert not array_equivalent(Float64Index([0, np.nan]),
-                                Float64Index([1, np.nan]))
+    assert not array_equivalent(
+        Float64Index([0, np.nan]), Float64Index([1, np.nan]))
     assert array_equivalent(DatetimeIndex([0, np.nan]),
                             DatetimeIndex([0, np.nan]))
-    assert not array_equivalent(DatetimeIndex([0, np.nan]),
-                                DatetimeIndex([1, np.nan]))
+    assert not array_equivalent(
+        DatetimeIndex([0, np.nan]), DatetimeIndex([1, np.nan]))
     assert array_equivalent(TimedeltaIndex([0, np.nan]),
                             TimedeltaIndex([0, np.nan]))
-    assert not array_equivalent(TimedeltaIndex([0, np.nan]),
-                                TimedeltaIndex([1, np.nan]))
+    assert not array_equivalent(
+        TimedeltaIndex([0, np.nan]), TimedeltaIndex([1, np.nan]))
     assert array_equivalent(DatetimeIndex([0, np.nan], tz='US/Eastern'),
                             DatetimeIndex([0, np.nan], tz='US/Eastern'))
-    assert not array_equivalent(DatetimeIndex([0, np.nan], tz='US/Eastern'),
-                                DatetimeIndex([1, np.nan], tz='US/Eastern'))
-    assert not array_equivalent(DatetimeIndex([0, np.nan]),
-                                DatetimeIndex([0, np.nan], tz='US/Eastern'))
-    assert not array_equivalent(DatetimeIndex([0, np.nan], tz='CET'),
-                                DatetimeIndex([0, np.nan], tz='US/Eastern'))
-    assert not array_equivalent(DatetimeIndex([0, np.nan]),
-                                TimedeltaIndex([0, np.nan]))
+    assert not array_equivalent(
+        DatetimeIndex([0, np.nan], tz='US/Eastern'), DatetimeIndex(
+            [1, np.nan], tz='US/Eastern'))
+    assert not array_equivalent(
+        DatetimeIndex([0, np.nan]), DatetimeIndex(
+            [0, np.nan], tz='US/Eastern'))
+    assert not array_equivalent(
+        DatetimeIndex([0, np.nan], tz='CET'), DatetimeIndex(
+            [0, np.nan], tz='US/Eastern'))
+    assert not array_equivalent(
+        DatetimeIndex([0, np.nan]), TimedeltaIndex([0, np.nan]))
 
 
 def test_datetimeindex_from_empty_datetime64_array():
     for unit in ['ms', 'us', 'ns']:
         idx = DatetimeIndex(np.array([], dtype='datetime64[%s]' % unit))
-        assert(len(idx) == 0)
+        assert (len(idx) == 0)
 
 
 def test_nan_to_nat_conversions():
 
     df = DataFrame(dict({
-        'A' : np.asarray(lrange(10),dtype='float64'),
-        'B' : Timestamp('20010101') }))
-    df.iloc[3:6,:] = np.nan
-    result = df.loc[4,'B'].value
-    assert(result == iNaT)
+        'A': np.asarray(
+            lrange(10), dtype='float64'),
+        'B': Timestamp('20010101')
+    }))
+    df.iloc[3:6, :] = np.nan
+    result = df.loc[4, 'B'].value
+    assert (result == iNaT)
 
     s = df['B'].copy()
-    s._data = s._data.setitem(indexer=tuple([slice(8,9)]),value=np.nan)
-    assert(isnull(s[8]))
+    s._data = s._data.setitem(indexer=tuple([slice(8, 9)]), value=np.nan)
+    assert (isnull(s[8]))
 
     # numpy < 1.7.0 is wrong
     from distutils.version import LooseVersion
     if LooseVersion(np.__version__) >= '1.7.0':
-        assert(s[8].value == np.datetime64('NaT').astype(np.int64))
+        assert (s[8].value == np.datetime64('NaT').astype(np.int64))
 
 
 def test_any_none():
-    assert(com._any_none(1, 2, 3, None))
-    assert(not com._any_none(1, 2, 3, 4))
+    assert (com._any_none(1, 2, 3, None))
+    assert (not com._any_none(1, 2, 3, 4))
 
 
 def test_all_not_none():
-    assert(com._all_not_none(1, 2, 3, 4))
-    assert(not com._all_not_none(1, 2, 3, None))
-    assert(not com._all_not_none(None, None, None, None))
+    assert (com._all_not_none(1, 2, 3, 4))
+    assert (not com._all_not_none(1, 2, 3, None))
+    assert (not com._all_not_none(None, None, None, None))
 
 
 def test_repr_binary_type():
@@ -408,23 +424,18 @@ def test_repr_binary_type():
 
 
 def test_adjoin():
-    data = [['a', 'b', 'c'],
-            ['dd', 'ee', 'ff'],
-            ['ggg', 'hhh', 'iii']]
+    data = [['a', 'b', 'c'], ['dd', 'ee', 'ff'], ['ggg', 'hhh', 'iii']]
     expected = 'a  dd  ggg\nb  ee  hhh\nc  ff  iii'
 
     adjoined = com.adjoin(2, *data)
 
-    assert(adjoined == expected)
-
+    assert (adjoined == expected)
 
 
 class TestFormattBase(tm.TestCase):
 
     def test_adjoin(self):
-        data = [['a', 'b', 'c'],
-                ['dd', 'ee', 'ff'],
-                ['ggg', 'hhh', 'iii']]
+        data = [['a', 'b', 'c'], ['dd', 'ee', 'ff'], ['ggg', 'hhh', 'iii']]
         expected = 'a  dd  ggg\nb  ee  hhh\nc  ff  iii'
 
         adjoined = com.adjoin(2, *data)
@@ -432,9 +443,7 @@ class TestFormattBase(tm.TestCase):
         self.assertEqual(adjoined, expected)
 
     def test_adjoin_unicode(self):
-        data = [[u'あ', 'b', 'c'],
-                ['dd', u'ええ', 'ff'],
-                ['ggg', 'hhh', u'いいい']]
+        data = [[u'あ', 'b', 'c'], ['dd', u'ええ', 'ff'], ['ggg', 'hhh', u'いいい']]
         expected = u'あ  dd  ggg\nb  ええ  hhh\nc  ff  いいい'
         adjoined = com.adjoin(2, *data)
         self.assertEqual(adjoined, expected)
@@ -444,6 +453,7 @@ class TestFormattBase(tm.TestCase):
         expected = u"""あ  dd    ggg
 b   ええ  hhh
 c   ff    いいい"""
+
         adjoined = adj.adjoin(2, *data)
         self.assertEqual(adjoined, expected)
         cols = adjoined.split('\n')
@@ -454,6 +464,7 @@ c   ff    いいい"""
         expected = u"""あ       dd         ggg
 b        ええ       hhh
 c        ff         いいい"""
+
         adjoined = adj.adjoin(7, *data)
         self.assertEqual(adjoined, expected)
         cols = adjoined.split('\n')
@@ -494,7 +505,6 @@ c        ff         いいい"""
         self.assertEqual(adj.len(u'パンダpanda'), 11)
         self.assertEqual(adj.len(u'ﾊﾟﾝﾀﾞpanda'), 10)
 
-
     def test_ambiguous_width(self):
         adj = fmt.EastAsianTextAdjustment()
         self.assertEqual(adj.len(u'¡¡ab'), 4)
@@ -503,8 +513,7 @@ c        ff         いいい"""
             adj = fmt.EastAsianTextAdjustment()
             self.assertEqual(adj.len(u'¡¡ab'), 6)
 
-        data = [[u'あ', 'b', 'c'],
-                ['dd', u'ええ', 'ff'],
+        data = [[u'あ', 'b', 'c'], ['dd', u'ええ', 'ff'],
                 ['ggg', u'¡¡ab', u'いいい']]
         expected = u'あ  dd    ggg \nb   ええ  ¡¡ab\nc   ff    いいい'
         adjoined = adj.adjoin(2, *data)
@@ -513,13 +522,11 @@ c        ff         いいい"""
 
 def test_iterpairs():
     data = [1, 2, 3, 4]
-    expected = [(1, 2),
-                (2, 3),
-                (3, 4)]
+    expected = [(1, 2), (2, 3), (3, 4)]
 
     result = list(com.iterpairs(data))
 
-    assert(result == expected)
+    assert (result == expected)
 
 
 def test_split_ranges():
@@ -556,12 +563,12 @@ def test_indent():
     s = 'a b c\nd e f'
     result = com.indent(s, spaces=6)
 
-    assert(result == '      a b c\n      d e f')
+    assert (result == '      a b c\n      d e f')
 
 
 def test_banner():
     ban = com.banner('hi')
-    assert(ban == ('%s\nhi\n%s' % ('=' * 80, '=' * 80)))
+    assert (ban == ('%s\nhi\n%s' % ('=' * 80, '=' * 80)))
 
 
 def test_map_indices_py():
@@ -570,7 +577,7 @@ def test_map_indices_py():
 
     result = com.map_indices_py(data)
 
-    assert(result == expected)
+    assert (result == expected)
 
 
 def test_union():
@@ -579,7 +586,7 @@ def test_union():
 
     union = sorted(com.union(a, b))
 
-    assert((a + b) == union)
+    assert ((a + b) == union)
 
 
 def test_difference():
@@ -588,7 +595,7 @@ def test_difference():
 
     inter = sorted(com.difference(b, a))
 
-    assert([4, 5, 6] == inter)
+    assert ([4, 5, 6] == inter)
 
 
 def test_intersection():
@@ -597,7 +604,7 @@ def test_intersection():
 
     inter = sorted(com.intersection(a, b))
 
-    assert(a == inter)
+    assert (a == inter)
 
 
 def test_groupby():
@@ -613,7 +620,7 @@ def test_groupby():
 
 
 def test_is_list_like():
-    passes = ([], [1], (1,), (1, 2), {'a': 1}, set([1, 'a']), Series([1]),
+    passes = ([], [1], (1, ), (1, 2), {'a': 1}, set([1, 'a']), Series([1]),
               Series([]), Series(['a']).str)
     fails = (1, '2', object())
 
@@ -623,15 +630,17 @@ def test_is_list_like():
     for f in fails:
         assert not com.is_list_like(f)
 
+
 def test_is_named_tuple():
-    passes = (collections.namedtuple('Test',list('abc'))(1,2,3),)
-    fails = ((1,2,3), 'a', Series({'pi':3.14}))
+    passes = (collections.namedtuple('Test', list('abc'))(1, 2, 3), )
+    fails = ((1, 2, 3), 'a', Series({'pi': 3.14}))
 
     for p in passes:
         assert com.is_named_tuple(p)
 
     for f in fails:
         assert not com.is_named_tuple(f)
+
 
 def test_is_hashable():
 
@@ -643,18 +652,19 @@ def test_is_hashable():
         __hash__ = None
 
     class UnhashableClass2(object):
+
         def __hash__(self):
             raise TypeError("Not hashable")
 
-    hashable = (
-        1, 3.14, np.float64(3.14), 'a', tuple(), (1,), HashableClass(),
-    )
-    not_hashable = (
-        [], UnhashableClass1(),
-    )
-    abc_hashable_not_really_hashable = (
-        ([],), UnhashableClass2(),
-    )
+    hashable = (1,
+                3.14,
+                np.float64(3.14),
+                'a',
+                tuple(),
+                (1, ),
+                HashableClass(), )
+    not_hashable = ([], UnhashableClass1(), )
+    abc_hashable_not_really_hashable = (([], ), UnhashableClass2(), )
 
     for i in hashable:
         assert com.is_hashable(i)
@@ -671,8 +681,10 @@ def test_is_hashable():
     # old-style classes in Python 2 don't appear hashable to
     # collections.Hashable but also seem to support hash() by default
     if compat.PY2:
+
         class OldStyleClass():
             pass
+
         c = OldStyleClass()
         assert not isinstance(c, collections.Hashable)
         assert com.is_hashable(c)
@@ -682,11 +694,11 @@ def test_is_hashable():
 def test_ensure_int32():
     values = np.arange(10, dtype=np.int32)
     result = com._ensure_int32(values)
-    assert(result.dtype == np.int32)
+    assert (result.dtype == np.int32)
 
     values = np.arange(10, dtype=np.int64)
     result = com._ensure_int32(values)
-    assert(result.dtype == np.int32)
+    assert (result.dtype == np.int32)
 
 
 def test_ensure_platform_int():
@@ -697,17 +709,17 @@ def test_ensure_platform_int():
 
     # int64
     x = Int64Index([1, 2, 3], dtype='int64')
-    assert(x.dtype == np.int64)
+    assert (x.dtype == np.int64)
 
     pi = com._ensure_platform_int(x)
-    assert(pi.dtype == np.int_)
+    assert (pi.dtype == np.int_)
 
     # int32
     x = Int64Index([1, 2, 3], dtype='int32')
-    assert(x.dtype == np.int32)
+    assert (x.dtype == np.int32)
 
     pi = com._ensure_platform_int(x)
-    assert(pi.dtype == np.int_)
+    assert (pi.dtype == np.int_)
 
 # TODO: fix this broken test
 
@@ -737,8 +749,8 @@ def test_is_re():
 
 
 def test_is_recompilable():
-    passes = (r'a', u('x'), r'asdf', re.compile('adsf'),
-              u(r'\u2233\s*'), re.compile(r''))
+    passes = (r'a', u('x'), r'asdf', re.compile('adsf'), u(r'\u2233\s*'),
+              re.compile(r''))
     fails = 1, [], object()
 
     for p in passes:
@@ -746,6 +758,7 @@ def test_is_recompilable():
 
     for f in fails:
         assert not com.is_re_compilable(f)
+
 
 def test_random_state():
     import numpy.random as npr
@@ -755,7 +768,8 @@ def test_random_state():
 
     # Check with random state object
     state2 = npr.RandomState(10)
-    assert_equal(com._random_state(state2).uniform(), npr.RandomState(10).uniform())
+    assert_equal(
+        com._random_state(state2).uniform(), npr.RandomState(10).uniform())
 
     # check with no arg random state
     assert isinstance(com._random_state(), npr.RandomState)
@@ -770,23 +784,27 @@ def test_random_state():
 
 def test_maybe_match_name():
 
-    matched = com._maybe_match_name(Series([1], name='x'), Series([2], name='x'))
-    assert(matched == 'x')
+    matched = com._maybe_match_name(
+        Series([1], name='x'), Series(
+            [2], name='x'))
+    assert (matched == 'x')
 
-    matched = com._maybe_match_name(Series([1], name='x'), Series([2], name='y'))
-    assert(matched is None)
+    matched = com._maybe_match_name(
+        Series([1], name='x'), Series(
+            [2], name='y'))
+    assert (matched is None)
 
     matched = com._maybe_match_name(Series([1]), Series([2], name='x'))
-    assert(matched is None)
+    assert (matched is None)
 
     matched = com._maybe_match_name(Series([1], name='x'), Series([2]))
-    assert(matched is None)
+    assert (matched is None)
 
     matched = com._maybe_match_name(Series([1], name='x'), [2])
-    assert(matched == 'x')
+    assert (matched == 'x')
 
     matched = com._maybe_match_name([1], Series([2], name='y'))
-    assert(matched == 'y')
+    assert (matched == 'y')
 
 
 class TestTake(tm.TestCase):
@@ -843,15 +861,15 @@ class TestTake(tm.TestCase):
             indexer = [2, 1, 0, -1]
 
             result = com.take_1d(data, indexer, fill_value=fill_value)
-            assert((result[[0, 1, 2]] == data[[2, 1, 0]]).all())
-            assert(result[3] == fill_value)
-            assert(result.dtype == out_dtype)
+            assert ((result[[0, 1, 2]] == data[[2, 1, 0]]).all())
+            assert (result[3] == fill_value)
+            assert (result.dtype == out_dtype)
 
             indexer = [2, 1, 0, 1]
 
             result = com.take_1d(data, indexer, fill_value=fill_value)
-            assert((result[[0, 1, 2, 3]] == data[indexer]).all())
-            assert(result.dtype == dtype)
+            assert ((result[[0, 1, 2, 3]] == data[indexer]).all())
+            assert (result.dtype == dtype)
 
         _test_dtype(np.int8, np.int16(127), np.int8)
         _test_dtype(np.int8, np.int16(128), np.int16)
@@ -934,24 +952,24 @@ class TestTake(tm.TestCase):
             indexer = [2, 1, 0, -1]
 
             result = com.take_nd(data, indexer, axis=0, fill_value=fill_value)
-            assert((result[[0, 1, 2], :] == data[[2, 1, 0], :]).all())
-            assert((result[3, :] == fill_value).all())
-            assert(result.dtype == out_dtype)
+            assert ((result[[0, 1, 2], :] == data[[2, 1, 0], :]).all())
+            assert ((result[3, :] == fill_value).all())
+            assert (result.dtype == out_dtype)
 
             result = com.take_nd(data, indexer, axis=1, fill_value=fill_value)
-            assert((result[:, [0, 1, 2]] == data[:, [2, 1, 0]]).all())
-            assert((result[:, 3] == fill_value).all())
-            assert(result.dtype == out_dtype)
+            assert ((result[:, [0, 1, 2]] == data[:, [2, 1, 0]]).all())
+            assert ((result[:, 3] == fill_value).all())
+            assert (result.dtype == out_dtype)
 
             indexer = [2, 1, 0, 1]
 
             result = com.take_nd(data, indexer, axis=0, fill_value=fill_value)
-            assert((result[[0, 1, 2, 3], :] == data[indexer, :]).all())
-            assert(result.dtype == dtype)
+            assert ((result[[0, 1, 2, 3], :] == data[indexer, :]).all())
+            assert (result.dtype == dtype)
 
             result = com.take_nd(data, indexer, axis=1, fill_value=fill_value)
-            assert((result[:, [0, 1, 2, 3]] == data[:, indexer]).all())
-            assert(result.dtype == dtype)
+            assert ((result[:, [0, 1, 2, 3]] == data[:, indexer]).all())
+            assert (result.dtype == dtype)
 
         _test_dtype(np.int8, np.int16(127), np.int8)
         _test_dtype(np.int8, np.int16(128), np.int16)
@@ -1038,33 +1056,33 @@ class TestTake(tm.TestCase):
             indexer = [2, 1, 0, -1]
 
             result = com.take_nd(data, indexer, axis=0, fill_value=fill_value)
-            assert((result[[0, 1, 2], :, :] == data[[2, 1, 0], :, :]).all())
-            assert((result[3, :, :] == fill_value).all())
-            assert(result.dtype == out_dtype)
+            assert ((result[[0, 1, 2], :, :] == data[[2, 1, 0], :, :]).all())
+            assert ((result[3, :, :] == fill_value).all())
+            assert (result.dtype == out_dtype)
 
             result = com.take_nd(data, indexer, axis=1, fill_value=fill_value)
-            assert((result[:, [0, 1, 2], :] == data[:, [2, 1, 0], :]).all())
-            assert((result[:, 3, :] == fill_value).all())
-            assert(result.dtype == out_dtype)
+            assert ((result[:, [0, 1, 2], :] == data[:, [2, 1, 0], :]).all())
+            assert ((result[:, 3, :] == fill_value).all())
+            assert (result.dtype == out_dtype)
 
             result = com.take_nd(data, indexer, axis=2, fill_value=fill_value)
-            assert((result[:, :, [0, 1, 2]] == data[:, :, [2, 1, 0]]).all())
-            assert((result[:, :, 3] == fill_value).all())
-            assert(result.dtype == out_dtype)
+            assert ((result[:, :, [0, 1, 2]] == data[:, :, [2, 1, 0]]).all())
+            assert ((result[:, :, 3] == fill_value).all())
+            assert (result.dtype == out_dtype)
 
             indexer = [2, 1, 0, 1]
 
             result = com.take_nd(data, indexer, axis=0, fill_value=fill_value)
-            assert((result[[0, 1, 2, 3], :, :] == data[indexer, :, :]).all())
-            assert(result.dtype == dtype)
+            assert ((result[[0, 1, 2, 3], :, :] == data[indexer, :, :]).all())
+            assert (result.dtype == dtype)
 
             result = com.take_nd(data, indexer, axis=1, fill_value=fill_value)
-            assert((result[:, [0, 1, 2, 3], :] == data[:, indexer, :]).all())
-            assert(result.dtype == dtype)
+            assert ((result[:, [0, 1, 2, 3], :] == data[:, indexer, :]).all())
+            assert (result.dtype == dtype)
 
             result = com.take_nd(data, indexer, axis=2, fill_value=fill_value)
-            assert((result[:, :, [0, 1, 2, 3]] == data[:, :, indexer]).all())
-            assert(result.dtype == dtype)
+            assert ((result[:, :, [0, 1, 2, 3]] == data[:, :, indexer]).all())
+            assert (result.dtype == dtype)
 
         _test_dtype(np.int8, np.int16(127), np.int8)
         _test_dtype(np.int8, np.int16(128), np.int16)
@@ -1126,9 +1144,7 @@ class TestTake(tm.TestCase):
         self.assertEqual(result.dtype, np.object_)
 
     def test_2d_bool(self):
-        arr = np.array([[0, 1, 0],
-                        [1, 0, 1],
-                        [0, 1, 1]], dtype=bool)
+        arr = np.array([[0, 1, 0], [1, 0, 1], [0, 1, 1]], dtype=bool)
 
         result = com.take_nd(arr, [0, 2, 2, 1])
         expected = arr.take([0, 2, 2, 1], axis=0)
@@ -1155,7 +1171,7 @@ class TestTake(tm.TestCase):
         expected[[2, 4], :] = np.nan
         tm.assert_almost_equal(result, expected)
 
-        #### this now accepts a float32! # test with float64 out buffer
+        # this now accepts a float32! # test with float64 out buffer
         out = np.empty((len(indexer), arr.shape[1]), dtype='float32')
         com.take_nd(arr, indexer, out=out)  # it works!
 
@@ -1171,7 +1187,8 @@ class TestTake(tm.TestCase):
 
     def test_2d_datetime64(self):
         # 2005/01/01 - 2006/01/01
-        arr = np.random.randint(long(11045376), long(11360736), (5, 3))*100000000000
+        arr = np.random.randint(
+            long(11045376), long(11360736), (5, 3)) * 100000000000
         arr = arr.view(dtype='datetime64[ns]')
         indexer = [0, 2, -1, 1, -1]
 
@@ -1245,6 +1262,7 @@ class TestMaybe(tm.TestCase):
         tm.assert_numpy_array_equal(result, np.array(['x', 2], dtype=object))
         self.assertTrue(result.dtype == object)
 
+
 def test_possibly_convert_objects_copy():
     values = np.array([1, 2])
 
@@ -1254,7 +1272,7 @@ def test_possibly_convert_objects_copy():
     out = convert._possibly_convert_objects(values, copy=True)
     assert_true(values is not out)
 
-    values = np.array(['apply','banana'])
+    values = np.array(['apply', 'banana'])
     out = convert._possibly_convert_objects(values, copy=False)
     assert_true(values is out)
 
@@ -1267,9 +1285,9 @@ def test_dict_compat():
                        np.datetime64('2015-03-15'): 2}
     data_unchanged = {1: 2, 3: 4, 5: 6}
     expected = {Timestamp('1990-3-15'): 1, Timestamp('2015-03-15'): 2}
-    assert(com._dict_compat(data_datetime64) == expected)
-    assert(com._dict_compat(expected) == expected)
-    assert(com._dict_compat(data_unchanged) == data_unchanged)
+    assert (com._dict_compat(data_datetime64) == expected)
+    assert (com._dict_compat(expected) == expected)
+    assert (com._dict_compat(data_unchanged) == data_unchanged)
 
 
 if __name__ == '__main__':

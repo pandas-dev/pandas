@@ -53,16 +53,19 @@ class TestMisc(tm.TestCase):
                 indices = np.arange(0, end, step, dtype=np.int64)
                 maybe_slice = lib.maybe_indices_to_slice(indices, len(target))
                 self.assertTrue(isinstance(maybe_slice, slice))
-                self.assert_numpy_array_equal(target[indices], target[maybe_slice])
+                self.assert_numpy_array_equal(target[indices],
+                                              target[maybe_slice])
 
                 # reverse
                 indices = indices[::-1]
                 maybe_slice = lib.maybe_indices_to_slice(indices, len(target))
                 self.assertTrue(isinstance(maybe_slice, slice))
-                self.assert_numpy_array_equal(target[indices], target[maybe_slice])
+                self.assert_numpy_array_equal(target[indices],
+                                              target[maybe_slice])
 
         # not slice
-        for case in [[2, 1, 2, 0], [2, 2, 1, 0], [0, 1, 2, 1], [-2, 0, 2], [2, 0, -2]]:
+        for case in [[2, 1, 2, 0], [2, 2, 1, 0], [0, 1, 2, 1], [-2, 0, 2],
+                     [2, 0, -2]]:
             indices = np.array(case, dtype=np.int64)
             maybe_slice = lib.maybe_indices_to_slice(indices, len(target))
             self.assertFalse(isinstance(maybe_slice, slice))
@@ -78,13 +81,15 @@ class TestMisc(tm.TestCase):
                 indices = np.arange(start, 99, step, dtype=np.int64)
                 maybe_slice = lib.maybe_indices_to_slice(indices, len(target))
                 self.assertTrue(isinstance(maybe_slice, slice))
-                self.assert_numpy_array_equal(target[indices], target[maybe_slice])
+                self.assert_numpy_array_equal(target[indices],
+                                              target[maybe_slice])
 
                 # reverse
                 indices = indices[::-1]
                 maybe_slice = lib.maybe_indices_to_slice(indices, len(target))
                 self.assertTrue(isinstance(maybe_slice, slice))
-                self.assert_numpy_array_equal(target[indices], target[maybe_slice])
+                self.assert_numpy_array_equal(target[indices],
+                                              target[maybe_slice])
 
         # not slice
         indices = np.array([97, 98, 99, 100], dtype=np.int64)
@@ -145,13 +150,15 @@ class TestMisc(tm.TestCase):
                 indices = np.arange(start, end, step, dtype=np.int64)
                 maybe_slice = lib.maybe_indices_to_slice(indices, len(target))
                 self.assertTrue(isinstance(maybe_slice, slice))
-                self.assert_numpy_array_equal(target[indices], target[maybe_slice])
+                self.assert_numpy_array_equal(target[indices],
+                                              target[maybe_slice])
 
                 # reverse
                 indices = indices[::-1]
                 maybe_slice = lib.maybe_indices_to_slice(indices, len(target))
                 self.assertTrue(isinstance(maybe_slice, slice))
-                self.assert_numpy_array_equal(target[indices], target[maybe_slice])
+                self.assert_numpy_array_equal(target[indices],
+                                              target[maybe_slice])
 
         # not slice
         for case in [[14, 12, 10, 12], [12, 12, 11, 10], [10, 11, 12, 11]]:
@@ -162,7 +169,7 @@ class TestMisc(tm.TestCase):
             self.assert_numpy_array_equal(target[indices], target[maybe_slice])
 
     def test_isinf_scalar(self):
-        #GH 11352
+        # GH 11352
         self.assertTrue(lib.isposinf_scalar(float('inf')))
         self.assertTrue(lib.isposinf_scalar(np.inf))
         self.assertFalse(lib.isposinf_scalar(-np.inf))
@@ -174,6 +181,7 @@ class TestMisc(tm.TestCase):
         self.assertFalse(lib.isneginf_scalar(np.inf))
         self.assertFalse(lib.isneginf_scalar(1))
         self.assertFalse(lib.isneginf_scalar('a'))
+
 
 class Testisscalar(tm.TestCase):
 
@@ -197,7 +205,7 @@ class Testisscalar(tm.TestCase):
         self.assertFalse(lib.isscalar([]))
         self.assertFalse(lib.isscalar([1]))
         self.assertFalse(lib.isscalar(()))
-        self.assertFalse(lib.isscalar((1,)))
+        self.assertFalse(lib.isscalar((1, )))
         self.assertFalse(lib.isscalar(slice(None)))
         self.assertFalse(lib.isscalar(Ellipsis))
 
@@ -213,8 +221,7 @@ class Testisscalar(tm.TestCase):
         self.assertTrue(lib.isscalar(np.timedelta64(1, 'h')))
 
     def test_isscalar_numpy_zerodim_arrays(self):
-        for zerodim in [np.array(1),
-                        np.array('foobar'),
+        for zerodim in [np.array(1), np.array('foobar'),
                         np.array(np.datetime64('2014-01-01')),
                         np.array(np.timedelta64(1, 'h'))]:
             self.assertFalse(lib.isscalar(zerodim))

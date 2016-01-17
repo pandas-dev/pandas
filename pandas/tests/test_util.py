@@ -5,8 +5,8 @@ from pandas.util.decorators import deprecate_kwarg
 import pandas.util.testing as tm
 
 
-
 class TestDecorators(tm.TestCase):
+
     def setUp(self):
         @deprecate_kwarg('old', 'new')
         def _f1(new=False):
@@ -16,7 +16,7 @@ class TestDecorators(tm.TestCase):
         def _f2(new=False):
             return new
 
-        @deprecate_kwarg('old', 'new', lambda x: x+1)
+        @deprecate_kwarg('old', 'new', lambda x: x + 1)
         def _f3(new=0):
             return new
 
@@ -48,7 +48,7 @@ class TestDecorators(tm.TestCase):
         x = 5
         with tm.assert_produces_warning(FutureWarning):
             result = self.f3(old=x)
-        self.assertEqual(result, x+1)
+        self.assertEqual(result, x + 1)
         with tm.assertRaises(TypeError):
             self.f3(old='hello')
 

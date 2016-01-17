@@ -3,10 +3,10 @@ from pandas.compat import range
 import pandas.util.testing as tm
 from pandas import read_csv
 import os
-import nose
 
 with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
     import pandas.tools.rplot as rplot
+
 
 def curpath():
     pth, _ = os.path.split(os.path.abspath(__file__))
@@ -37,6 +37,7 @@ class TestUtilityFunctions(tm.TestCase):
     """
     Tests for RPlot utility functions.
     """
+
     def setUp(self):
         path = os.path.join(curpath(), 'data/iris.csv')
         self.data = read_csv(path, sep=',')
@@ -62,8 +63,8 @@ class TestUtilityFunctions(tm.TestCase):
                           alpha=rplot.ScaleShape('test'))
 
     def test_dictionary_union(self):
-        dict1 = {1 : 1, 2 : 2, 3 : 3}
-        dict2 = {1 : 1, 2 : 2, 4 : 4}
+        dict1 = {1: 1, 2: 2, 3: 3}
+        dict2 = {1: 1, 2: 2, 4: 4}
         union = rplot.dictionary_union(dict1, dict2)
         self.assertEqual(len(union), 4)
         keys = list(union.keys())
@@ -103,6 +104,7 @@ class TestUtilityFunctions(tm.TestCase):
 
 @tm.mplskip
 class TestTrellis(tm.TestCase):
+
     def setUp(self):
         path = os.path.join(curpath(), 'data/tips.csv')
         self.data = read_csv(path, sep=',')
@@ -151,6 +153,7 @@ class TestTrellis(tm.TestCase):
 
 @tm.mplskip
 class TestScaleGradient(tm.TestCase):
+
     def setUp(self):
         path = os.path.join(curpath(), 'data/iris.csv')
         self.data = read_csv(path, sep=',')
@@ -160,7 +163,7 @@ class TestScaleGradient(tm.TestCase):
 
     def test_gradient(self):
         for index in range(len(self.data)):
-            row = self.data.iloc[index]
+            # row = self.data.iloc[index]
             r, g, b = self.gradient(self.data, index)
             r1, g1, b1 = self.gradient.colour1
             r2, g2, b2 = self.gradient.colour2
@@ -171,10 +174,12 @@ class TestScaleGradient(tm.TestCase):
 
 @tm.mplskip
 class TestScaleGradient2(tm.TestCase):
+
     def setUp(self):
         path = os.path.join(curpath(), 'data/iris.csv')
         self.data = read_csv(path, sep=',')
-        self.gradient = rplot.ScaleGradient2("SepalLength", colour1=(0.2, 0.3, 0.4), colour2=(0.8, 0.7, 0.6), colour3=(0.5, 0.5, 0.5))
+        self.gradient = rplot.ScaleGradient2("SepalLength", colour1=(
+            0.2, 0.3, 0.4), colour2=(0.8, 0.7, 0.6), colour3=(0.5, 0.5, 0.5))
 
     def test_gradient2(self):
         for index in range(len(self.data)):
@@ -199,6 +204,7 @@ class TestScaleGradient2(tm.TestCase):
 
 @tm.mplskip
 class TestScaleRandomColour(tm.TestCase):
+
     def setUp(self):
         path = os.path.join(curpath(), 'data/iris.csv')
         self.data = read_csv(path, sep=',')
@@ -219,6 +225,7 @@ class TestScaleRandomColour(tm.TestCase):
 
 @tm.mplskip
 class TestScaleConstant(tm.TestCase):
+
     def test_scale_constant(self):
         scale = rplot.ScaleConstant(1.0)
         self.assertEqual(scale(None, None), 1.0)
@@ -227,6 +234,7 @@ class TestScaleConstant(tm.TestCase):
 
 
 class TestScaleSize(tm.TestCase):
+
     def setUp(self):
         path = os.path.join(curpath(), 'data/iris.csv')
         self.data = read_csv(path, sep=',')
@@ -236,7 +244,8 @@ class TestScaleSize(tm.TestCase):
     def test_scale_size(self):
         for index in range(len(self.data)):
             marker = self.scale1(self.data, index)
-            self.assertTrue(marker in ['o', '+', 's', '*', '^', '<', '>', 'v', '|', 'x'])
+            self.assertTrue(
+                marker in ['o', '+', 's', '*', '^', '<', '>', 'v', '|', 'x'])
 
     def test_scale_overflow(self):
         def f():
@@ -248,6 +257,7 @@ class TestScaleSize(tm.TestCase):
 
 @tm.mplskip
 class TestRPlot(tm.TestCase):
+
     def test_rplot1(self):
         import matplotlib.pyplot as plt
         path = os.path.join(curpath(), 'data/tips.csv')
@@ -255,7 +265,8 @@ class TestRPlot(tm.TestCase):
         self.data = read_csv(path, sep=',')
         self.plot = rplot.RPlot(self.data, x='tip', y='total_bill')
         self.plot.add(rplot.TrellisGrid(['sex', 'smoker']))
-        self.plot.add(rplot.GeomPoint(colour=rplot.ScaleRandomColour('day'), shape=rplot.ScaleShape('size')))
+        self.plot.add(rplot.GeomPoint(colour=rplot.ScaleRandomColour(
+            'day'), shape=rplot.ScaleShape('size')))
         self.fig = plt.gcf()
         self.plot.render(self.fig)
 
@@ -266,7 +277,8 @@ class TestRPlot(tm.TestCase):
         self.data = read_csv(path, sep=',')
         self.plot = rplot.RPlot(self.data, x='tip', y='total_bill')
         self.plot.add(rplot.TrellisGrid(['.', 'smoker']))
-        self.plot.add(rplot.GeomPoint(colour=rplot.ScaleRandomColour('day'), shape=rplot.ScaleShape('size')))
+        self.plot.add(rplot.GeomPoint(colour=rplot.ScaleRandomColour(
+            'day'), shape=rplot.ScaleShape('size')))
         self.fig = plt.gcf()
         self.plot.render(self.fig)
 
@@ -277,7 +289,8 @@ class TestRPlot(tm.TestCase):
         self.data = read_csv(path, sep=',')
         self.plot = rplot.RPlot(self.data, x='tip', y='total_bill')
         self.plot.add(rplot.TrellisGrid(['sex', '.']))
-        self.plot.add(rplot.GeomPoint(colour=rplot.ScaleRandomColour('day'), shape=rplot.ScaleShape('size')))
+        self.plot.add(rplot.GeomPoint(colour=rplot.ScaleRandomColour(
+            'day'), shape=rplot.ScaleShape('size')))
         self.fig = plt.gcf()
         self.plot.render(self.fig)
 
@@ -287,8 +300,12 @@ class TestRPlot(tm.TestCase):
         plt.figure()
         self.data = read_csv(path, sep=',')
         plot = rplot.RPlot(self.data, x='SepalLength', y='SepalWidth')
-        plot.add(rplot.GeomPoint(colour=rplot.ScaleGradient('PetalLength', colour1=(0.0, 1.0, 0.5), colour2=(1.0, 0.0, 0.5)),
-            size=rplot.ScaleSize('PetalWidth', min_size=10.0, max_size=200.0),
+        plot.add(rplot.GeomPoint(
+            colour=rplot.ScaleGradient('PetalLength',
+                                       colour1=(0.0, 1.0, 0.5),
+                                       colour2=(1.0, 0.0, 0.5)),
+            size=rplot.ScaleSize('PetalWidth', min_size=10.0,
+                                 max_size=200.0),
             shape=rplot.ScaleShape('Name')))
         self.fig = plt.gcf()
         plot.render(self.fig)

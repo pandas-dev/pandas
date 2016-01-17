@@ -1,19 +1,24 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-from pandas.msgpack import packb, unpackb
+from pandas.msgpack import packb
 from collections import namedtuple
+
 
 class MyList(list):
     pass
 
+
 class MyDict(dict):
     pass
+
 
 class MyTuple(tuple):
     pass
 
+
 MyNamedTuple = namedtuple('MyNamedTuple', 'x y')
+
 
 def test_types():
     assert packb(MyDict()) == packb(dict())
