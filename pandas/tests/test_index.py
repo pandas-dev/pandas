@@ -3733,7 +3733,7 @@ class TestRangeIndex(Numeric, tm.TestCase):
         self.assertTrue(result.equals(expected))
 
         result = idx // 1
-        expected = idx._int64index // 1
+        expected = idx
         tm.assert_index_equal(result, expected, exact=True)
 
         # __mul__
@@ -3748,15 +3748,18 @@ class TestRangeIndex(Numeric, tm.TestCase):
         tm.assert_index_equal(Index(result.values), expected, exact=True)
 
         # __floordiv__
-        idx = RangeIndex(0, 1000, 2)
-        result = idx // 2
-        expected = idx._int64index // 2
-        tm.assert_index_equal(result, expected, exact=True)
-
-        idx = RangeIndex(0, 1000, 1)
-        result = idx // 2
-        expected = idx._int64index // 2
-        tm.assert_index_equal(result, expected, exact=True)
+        cases_exact = [(RangeIndex(0, 1000, 2), 2, RangeIndex(0, 500, 1)),
+                       (RangeIndex(-99, -201, -3), -3, RangeIndex(33, 67, 1)),
+                       (RangeIndex(0, 1000, 1), 2,
+                        RangeIndex(0, 1000, 1)._int64index // 2),
+                       (RangeIndex(0, 100, 1), 2.0,
+                        RangeIndex(0, 100, 1)._int64index // 2.0),
+                       (RangeIndex(), 50, RangeIndex()),
+                       (RangeIndex(2, 4, 2), 3, RangeIndex(0, 1, 1)),
+                       (RangeIndex(-5, -10, -6), 4, RangeIndex(-2, -1, 1)),
+                       (RangeIndex(-100, -200, 3), 2, RangeIndex())]
+        for idx, div, expected in cases_exact:
+            tm.assert_index_equal(idx // div, expected, exact=True)
 
     def test_constructor_corner(self):
         arr = np.array([1, 2, 3, 4], dtype=object)
@@ -3857,7 +3860,6 @@ class TestRangeIndex(Numeric, tm.TestCase):
         self.assertTrue(index.is_monotonic_decreasing)
 
     def test_equals(self):
-
         equiv_pairs = [(RangeIndex(0, 9, 2), RangeIndex(0, 10, 2)),
                        (RangeIndex(0), RangeIndex(1, -1, 3)),
                        (RangeIndex(1, 2, 3), RangeIndex(1, 3, 4)),
