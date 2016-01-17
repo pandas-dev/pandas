@@ -2,6 +2,7 @@
 from pandas.msgpack import packb, Unpacker, OutOfData
 UnexpectedTypeException = ValueError
 
+
 def test_read_array_header():
     unpacker = Unpacker()
     unpacker.feed(packb(['a', 'b', 'c']))
@@ -28,6 +29,7 @@ def test_read_map_header():
     except OutOfData:
         assert 1, 'okay'
 
+
 def test_incorrect_type_array():
     unpacker = Unpacker()
     unpacker.feed(packb(1))
@@ -36,6 +38,7 @@ def test_incorrect_type_array():
         assert 0, 'should raise exception'
     except UnexpectedTypeException:
         assert 1, 'okay'
+
 
 def test_incorrect_type_map():
     unpacker = Unpacker()
@@ -46,6 +49,7 @@ def test_incorrect_type_map():
     except UnexpectedTypeException:
         assert 1, 'okay'
 
+
 def test_correct_type_nested_array():
     unpacker = Unpacker()
     unpacker.feed(packb({'a': ['b', 'c', 'd']}))
@@ -55,6 +59,7 @@ def test_correct_type_nested_array():
     except UnexpectedTypeException:
         assert 1, 'okay'
 
+
 def test_incorrect_type_nested_map():
     unpacker = Unpacker()
     unpacker.feed(packb([{'a': 'b'}]))
@@ -63,4 +68,3 @@ def test_incorrect_type_nested_map():
         assert 0, 'should raise exception'
     except UnexpectedTypeException:
         assert 1, 'okay'
-

@@ -477,7 +477,7 @@ class TestDataFrameOperators(tm.TestCase, TestData):
             result = getattr(df, op)(x, level='second', axis=0)
 
             expected = (pd.concat([opa(df.loc[idx[:, i], :], v)
-                                  for i, v in x.iteritems()])
+                                   for i, v in x.iteritems()])
                         .reindex_like(df).sortlevel())
             assert_frame_equal(result, expected)
 
