@@ -13,6 +13,7 @@ from pandas.util.testing import (assert_frame_equal,
                                  assert_almost_equal)
 import pandas.util.testing as tm
 
+
 class TestRank(tm.TestCase):
     _multiprocess_can_split_ = True
     s = Series([1, 3, 4, 2, nan, 2, 1, 5, nan, 3])
@@ -49,7 +50,7 @@ class TestRank(tm.TestCase):
         from scipy.stats import rankdata
 
         xs = np.random.randn(9)
-        xs = np.concatenate([xs[i:] for i in range(0, 9, 2)]) # add duplicates
+        xs = np.concatenate([xs[i:] for i in range(0, 9, 2)])  # add duplicates
         np.random.shuffle(xs)
 
         index = [chr(ord('a') + i) for i in range(len(xs))]
@@ -76,8 +77,9 @@ class TestRank(tm.TestCase):
             for ax in [0, 1]:
                 for m in ['average', 'min', 'max', 'first', 'dense']:
                     result = df.rank(axis=ax, method=m)
-                    sprank = np.apply_along_axis(rankdata, ax, vals,
-                                      m if m != 'first' else 'ordinal')
+                    sprank = np.apply_along_axis(
+                        rankdata, ax, vals,
+                        m if m != 'first' else 'ordinal')
                     expected = DataFrame(sprank, columns=cols)
                     tm.assert_frame_equal(result, expected)
 
@@ -86,11 +88,11 @@ class TestRank(tm.TestCase):
         in_out = [([1], [1]),
                   ([2], [1]),
                   ([0], [1]),
-                  ([2,2], [1,1]),
-                  ([1,2,3], [1,2,3]),
-                  ([4,2,1], [3,2,1],),
-                  ([1,1,5,5,3], [1,1,3,3,2]),
-                  ([-5,-4,-3,-2,-1], [1,2,3,4,5])]
+                  ([2, 2], [1, 1]),
+                  ([1, 2, 3], [1, 2, 3]),
+                  ([4, 2, 1], [3, 2, 1],),
+                  ([1, 1, 5, 5, 3], [1, 1, 3, 3, 2]),
+                  ([-5, -4, -3, -2, -1], [1, 2, 3, 4, 5])]
 
         for ser, exp in in_out:
             for dtype in dtypes:
@@ -137,7 +139,6 @@ class TestRank(tm.TestCase):
             assert_frame_equal(res3, expected)
 
     def test_rank_2d_tie_methods(self):
-        s = self.s
         df = self.df
 
         def _check2d(df, expected, method='average', axis=0):

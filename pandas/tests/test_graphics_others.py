@@ -8,24 +8,14 @@ import string
 import warnings
 from distutils.version import LooseVersion
 
-from datetime import datetime, date
-
-from pandas import (Series, DataFrame, MultiIndex, PeriodIndex, date_range,
-                    bdate_range)
-from pandas.compat import (range, lrange, StringIO, lmap, lzip, u, zip,
-                           iteritems, OrderedDict, PY3)
-from pandas.util.decorators import cache_readonly
-import pandas.core.common as com
+from pandas import Series, DataFrame, MultiIndex
+from pandas.compat import range, lmap, lzip
 import pandas.util.testing as tm
-from pandas.util.testing import ensure_clean
-from pandas.core.config import set_option
-
 
 import numpy as np
 from numpy import random
-from numpy.random import rand, randn
+from numpy.random import randn
 
-from numpy.testing import assert_array_equal, assert_allclose
 from numpy.testing.decorators import slow
 import pandas.tools.plotting as plotting
 
@@ -115,20 +105,25 @@ class TestSeriesPlots(TestPlotBase):
         axes = _check_plot_works(df.height.hist, by=df.category, layout=(4, 1))
         self._check_axes_shape(axes, axes_num=4, layout=(4, 1))
 
-        axes = _check_plot_works(df.height.hist, by=df.category, layout=(2, -1))
+        axes = _check_plot_works(
+            df.height.hist, by=df.category, layout=(2, -1))
         self._check_axes_shape(axes, axes_num=4, layout=(2, 2))
 
-        axes = _check_plot_works(df.height.hist, by=df.category, layout=(3, -1))
+        axes = _check_plot_works(
+            df.height.hist, by=df.category, layout=(3, -1))
         self._check_axes_shape(axes, axes_num=4, layout=(3, 2))
 
-        axes = _check_plot_works(df.height.hist, by=df.category, layout=(-1, 4))
+        axes = _check_plot_works(
+            df.height.hist, by=df.category, layout=(-1, 4))
         self._check_axes_shape(axes, axes_num=4, layout=(1, 4))
 
-        axes = _check_plot_works(df.height.hist, by=df.classroom, layout=(2, 2))
+        axes = _check_plot_works(
+            df.height.hist, by=df.classroom, layout=(2, 2))
         self._check_axes_shape(axes, axes_num=3, layout=(2, 2))
 
         axes = df.height.hist(by=df.category, layout=(4, 2), figsize=(12, 7))
-        self._check_axes_shape(axes, axes_num=4, layout=(4, 2), figsize=(12, 7))
+        self._check_axes_shape(
+            axes, axes_num=4, layout=(4, 2), figsize=(12, 7))
 
     @slow
     def test_hist_no_overlap(self):
@@ -146,7 +141,7 @@ class TestSeriesPlots(TestPlotBase):
     @slow
     def test_hist_by_no_extra_plots(self):
         df = self.hist_df
-        axes = df.height.hist(by=df.gender)
+        axes = df.height.hist(by=df.gender)  # noqa
         self.assertEqual(len(self.plt.get_fignums()), 1)
 
     @slow
@@ -188,9 +183,10 @@ class TestDataFramePlots(TestPlotBase):
         mpl.rcdefaults()
 
         self.tdf = tm.makeTimeDataFrame()
-        self.hexbin_df = DataFrame({"A": np.random.uniform(size=20),
-                               "B": np.random.uniform(size=20),
-                               "C": np.arange(20) + np.random.uniform(size=20)})
+        self.hexbin_df = DataFrame({
+            "A": np.random.uniform(size=20),
+            "B": np.random.uniform(size=20),
+            "C": np.arange(20) + np.random.uniform(size=20)})
 
         from pandas import read_csv
         path = os.path.join(curpath(), 'data', 'iris.csv')
@@ -205,7 +201,8 @@ class TestDataFramePlots(TestPlotBase):
         df['indic2'] = ['foo', 'bar', 'foo'] * 2
 
         _check_plot_works(df.boxplot, return_type='dict')
-        _check_plot_works(df.boxplot, column=['one', 'two'], return_type='dict')
+        _check_plot_works(df.boxplot, column=[
+                          'one', 'two'], return_type='dict')
         _check_plot_works(df.boxplot, column=['one', 'two'], by='indic')
         _check_plot_works(df.boxplot, column='one', by=['indic', 'indic2'])
         _check_plot_works(df.boxplot, by='indic')
@@ -231,10 +228,12 @@ class TestDataFramePlots(TestPlotBase):
 
         # Multiple columns with an ax argument should use same figure
         fig, ax = self.plt.subplots()
-        axes = df.boxplot(column=['Col1', 'Col2'], by='X', ax=ax, return_type='axes')
+        axes = df.boxplot(column=['Col1', 'Col2'],
+                          by='X', ax=ax, return_type='axes')
         self.assertIs(axes['Col1'].get_figure(), fig)
 
-        # When by is None, check that all relevant lines are present in the dict
+        # When by is None, check that all relevant lines are present in the
+        # dict
         fig, ax = self.plt.subplots()
         d = df.boxplot(ax=ax, return_type='dict')
         lines = list(itertools.chain.from_iterable(d.values()))
@@ -243,7 +242,7 @@ class TestDataFramePlots(TestPlotBase):
     @slow
     def test_boxplot_return_type_legacy(self):
         # API change in https://github.com/pydata/pandas/pull/7096
-        import matplotlib as mpl
+        import matplotlib as mpl  # noqa
 
         df = DataFrame(randn(6, 4),
                        index=list(string.ascii_letters[:6]),
@@ -426,21 +425,23 @@ class TestDataFramePlots(TestPlotBase):
         with tm.RNGContext(42):
             df = DataFrame(randn(100, 3))
 
-        axes = _check_plot_works(scatter_matrix, filterwarnings='always', frame=df,
-                                 range_padding=.1)
+        axes = _check_plot_works(scatter_matrix, filterwarnings='always',
+                                 frame=df, range_padding=.1)
         axes0_labels = axes[0][0].yaxis.get_majorticklabels()
         # GH 5662
         expected = ['-2', '-1', '0', '1', '2']
         self._check_text_labels(axes0_labels, expected)
-        self._check_ticks_props(axes, xlabelsize=8, xrot=90, ylabelsize=8, yrot=0)
+        self._check_ticks_props(
+            axes, xlabelsize=8, xrot=90, ylabelsize=8, yrot=0)
 
         df[0] = ((df[0] - 2) / 3)
-        axes = _check_plot_works(scatter_matrix, filterwarnings='always', frame=df,
-                                 range_padding=.1)
+        axes = _check_plot_works(scatter_matrix, filterwarnings='always',
+                                 frame=df, range_padding=.1)
         axes0_labels = axes[0][0].yaxis.get_majorticklabels()
         expected = ['-1.2', '-1.0', '-0.8', '-0.6', '-0.4', '-0.2', '0.0']
         self._check_text_labels(axes0_labels, expected)
-        self._check_ticks_props(axes, xlabelsize=8, xrot=90, ylabelsize=8, yrot=0)
+        self._check_ticks_props(
+            axes, xlabelsize=8, xrot=90, ylabelsize=8, yrot=0)
 
     @slow
     def test_andrews_curves(self):
@@ -452,16 +453,22 @@ class TestDataFramePlots(TestPlotBase):
         _check_plot_works(andrews_curves, frame=df, class_column='Name')
 
         rgba = ('#556270', '#4ECDC4', '#C7F464')
-        ax = _check_plot_works(andrews_curves, frame=df, class_column='Name', color=rgba)
-        self._check_colors(ax.get_lines()[:10], linecolors=rgba, mapping=df['Name'][:10])
+        ax = _check_plot_works(andrews_curves, frame=df,
+                               class_column='Name', color=rgba)
+        self._check_colors(
+            ax.get_lines()[:10], linecolors=rgba, mapping=df['Name'][:10])
 
         cnames = ['dodgerblue', 'aquamarine', 'seagreen']
-        ax = _check_plot_works(andrews_curves, frame=df, class_column='Name', color=cnames)
-        self._check_colors(ax.get_lines()[:10], linecolors=cnames, mapping=df['Name'][:10])
+        ax = _check_plot_works(andrews_curves, frame=df,
+                               class_column='Name', color=cnames)
+        self._check_colors(
+            ax.get_lines()[:10], linecolors=cnames, mapping=df['Name'][:10])
 
-        ax = _check_plot_works(andrews_curves, frame=df, class_column='Name', colormap=cm.jet)
+        ax = _check_plot_works(andrews_curves, frame=df,
+                               class_column='Name', colormap=cm.jet)
         cmaps = lmap(cm.jet, np.linspace(0, 1, df['Name'].nunique()))
-        self._check_colors(ax.get_lines()[:10], linecolors=cmaps, mapping=df['Name'][:10])
+        self._check_colors(
+            ax.get_lines()[:10], linecolors=cmaps, mapping=df['Name'][:10])
 
         length = 10
         df = DataFrame({"A": random.rand(length),
@@ -472,16 +479,22 @@ class TestDataFramePlots(TestPlotBase):
         _check_plot_works(andrews_curves, frame=df, class_column='Name')
 
         rgba = ('#556270', '#4ECDC4', '#C7F464')
-        ax = _check_plot_works(andrews_curves, frame=df, class_column='Name', color=rgba)
-        self._check_colors(ax.get_lines()[:10], linecolors=rgba, mapping=df['Name'][:10])
+        ax = _check_plot_works(andrews_curves, frame=df,
+                               class_column='Name', color=rgba)
+        self._check_colors(
+            ax.get_lines()[:10], linecolors=rgba, mapping=df['Name'][:10])
 
         cnames = ['dodgerblue', 'aquamarine', 'seagreen']
-        ax = _check_plot_works(andrews_curves, frame=df, class_column='Name', color=cnames)
-        self._check_colors(ax.get_lines()[:10], linecolors=cnames, mapping=df['Name'][:10])
+        ax = _check_plot_works(andrews_curves, frame=df,
+                               class_column='Name', color=cnames)
+        self._check_colors(
+            ax.get_lines()[:10], linecolors=cnames, mapping=df['Name'][:10])
 
-        ax = _check_plot_works(andrews_curves, frame=df, class_column='Name', colormap=cm.jet)
+        ax = _check_plot_works(andrews_curves, frame=df,
+                               class_column='Name', colormap=cm.jet)
         cmaps = lmap(cm.jet, np.linspace(0, 1, df['Name'].nunique()))
-        self._check_colors(ax.get_lines()[:10], linecolors=cmaps, mapping=df['Name'][:10])
+        self._check_colors(
+            ax.get_lines()[:10], linecolors=cmaps, mapping=df['Name'][:10])
 
         colors = ['b', 'g', 'r']
         df = DataFrame({"A": [1, 2, 3],
@@ -502,23 +515,31 @@ class TestDataFramePlots(TestPlotBase):
 
         df = self.iris
 
-        ax = _check_plot_works(parallel_coordinates, frame=df, class_column='Name')
+        ax = _check_plot_works(parallel_coordinates,
+                               frame=df, class_column='Name')
         nlines = len(ax.get_lines())
         nxticks = len(ax.xaxis.get_ticklabels())
 
         rgba = ('#556270', '#4ECDC4', '#C7F464')
-        ax = _check_plot_works(parallel_coordinates, frame=df, class_column='Name', color=rgba)
-        self._check_colors(ax.get_lines()[:10], linecolors=rgba, mapping=df['Name'][:10])
+        ax = _check_plot_works(parallel_coordinates,
+                               frame=df, class_column='Name', color=rgba)
+        self._check_colors(
+            ax.get_lines()[:10], linecolors=rgba, mapping=df['Name'][:10])
 
         cnames = ['dodgerblue', 'aquamarine', 'seagreen']
-        ax = _check_plot_works(parallel_coordinates, frame=df, class_column='Name', color=cnames)
-        self._check_colors(ax.get_lines()[:10], linecolors=cnames, mapping=df['Name'][:10])
+        ax = _check_plot_works(parallel_coordinates,
+                               frame=df, class_column='Name', color=cnames)
+        self._check_colors(
+            ax.get_lines()[:10], linecolors=cnames, mapping=df['Name'][:10])
 
-        ax = _check_plot_works(parallel_coordinates, frame=df, class_column='Name', colormap=cm.jet)
+        ax = _check_plot_works(parallel_coordinates,
+                               frame=df, class_column='Name', colormap=cm.jet)
         cmaps = lmap(cm.jet, np.linspace(0, 1, df['Name'].nunique()))
-        self._check_colors(ax.get_lines()[:10], linecolors=cmaps, mapping=df['Name'][:10])
+        self._check_colors(
+            ax.get_lines()[:10], linecolors=cmaps, mapping=df['Name'][:10])
 
-        ax = _check_plot_works(parallel_coordinates, frame=df, class_column='Name', axvlines=False)
+        ax = _check_plot_works(parallel_coordinates,
+                               frame=df, class_column='Name', axvlines=False)
         assert len(ax.get_lines()) == (nlines - nxticks)
 
         colors = ['b', 'g', 'r']
@@ -544,17 +565,20 @@ class TestDataFramePlots(TestPlotBase):
         _check_plot_works(radviz, frame=df, class_column='Name')
 
         rgba = ('#556270', '#4ECDC4', '#C7F464')
-        ax = _check_plot_works(radviz, frame=df, class_column='Name', color=rgba)
+        ax = _check_plot_works(
+            radviz, frame=df, class_column='Name', color=rgba)
         # skip Circle drawn as ticks
         patches = [p for p in ax.patches[:20] if p.get_label() != '']
-        self._check_colors(patches[:10], facecolors=rgba, mapping=df['Name'][:10])
+        self._check_colors(
+            patches[:10], facecolors=rgba, mapping=df['Name'][:10])
 
         cnames = ['dodgerblue', 'aquamarine', 'seagreen']
         _check_plot_works(radviz, frame=df, class_column='Name', color=cnames)
         patches = [p for p in ax.patches[:20] if p.get_label() != '']
         self._check_colors(patches, facecolors=cnames, mapping=df['Name'][:10])
 
-        _check_plot_works(radviz, frame=df, class_column='Name', colormap=cm.jet)
+        _check_plot_works(radviz, frame=df,
+                          class_column='Name', colormap=cm.jet)
         cmaps = lmap(cm.jet, np.linspace(0, 1, df['Name'].nunique()))
         patches = [p for p in ax.patches[:20] if p.get_label() != '']
         self._check_colors(patches, facecolors=cmaps, mapping=df['Name'][:10])
@@ -656,7 +680,8 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         xrot, yrot = 30, 40
         axes = plotting.grouped_hist(df.A, by=df.C, normed=True,
                                      cumulative=True, bins=4,
-                                     xlabelsize=xf, xrot=xrot, ylabelsize=yf, yrot=yrot)
+                                     xlabelsize=xf, xrot=xrot,
+                                     ylabelsize=yf, yrot=yrot)
         # height of last bin (index 5) must be 1.0
         for ax in axes.ravel():
             rects = [x for x in ax.get_children() if isinstance(x, Rectangle)]
@@ -700,13 +725,15 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         # old style: return_type=None
         result = df.boxplot(by='gender')
         self.assertIsInstance(result, np.ndarray)
-        self._check_box_return_type(result, None,
-                                    expected_keys=['height', 'weight', 'category'])
+        self._check_box_return_type(
+            result, None,
+            expected_keys=['height', 'weight', 'category'])
 
         # now for groupby
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             result = df.groupby('gender').boxplot()
-        self._check_box_return_type(result, 'dict', expected_keys=['Male', 'Female'])
+        self._check_box_return_type(
+            result, 'dict', expected_keys=['Male', 'Female'])
 
         columns2 = 'X B C D A G Y N Q O'.split()
         df2 = DataFrame(random.randn(50, 10), columns=columns2)
@@ -715,11 +742,13 @@ class TestDataFrameGroupByPlots(TestPlotBase):
 
         for t in ['dict', 'axes', 'both']:
             returned = df.groupby('classroom').boxplot(return_type=t)
-            self._check_box_return_type(returned, t, expected_keys=['A', 'B', 'C'])
+            self._check_box_return_type(
+                returned, t, expected_keys=['A', 'B', 'C'])
 
             returned = df.boxplot(by='classroom', return_type=t)
-            self._check_box_return_type(returned, t,
-                                        expected_keys=['height', 'weight', 'category'])
+            self._check_box_return_type(
+                returned, t,
+                expected_keys=['height', 'weight', 'category'])
 
             returned = df2.groupby('category').boxplot(return_type=t)
             self._check_box_return_type(returned, t, expected_keys=categories2)
@@ -733,7 +762,8 @@ class TestDataFrameGroupByPlots(TestPlotBase):
 
         self.assertRaises(ValueError, df.boxplot, column=['weight', 'height'],
                           by=df.gender, layout=(1, 1))
-        self.assertRaises(ValueError, df.boxplot, column=['height', 'weight', 'category'],
+        self.assertRaises(ValueError, df.boxplot,
+                          column=['height', 'weight', 'category'],
                           layout=(2, 1), return_type='dict')
         self.assertRaises(ValueError, df.boxplot, column=['weight', 'height'],
                           by=df.gender, layout=(-1, -1))
@@ -742,7 +772,8 @@ class TestDataFrameGroupByPlots(TestPlotBase):
                                 return_type='dict')
         self._check_axes_shape(self.plt.gcf().axes, axes_num=2, layout=(1, 2))
 
-        box = _check_plot_works(df.groupby('category').boxplot, column='height',
+        box = _check_plot_works(df.groupby('category').boxplot,
+                                column='height',
                                 return_type='dict')
         self._check_axes_shape(self.plt.gcf().axes, axes_num=4, layout=(2, 2))
 
@@ -766,10 +797,12 @@ class TestDataFrameGroupByPlots(TestPlotBase):
             column=['height', 'weight', 'category'], return_type='dict')
         self._check_axes_shape(self.plt.gcf().axes, axes_num=3, layout=(2, 2))
 
-        box = _check_plot_works(df.groupby('category').boxplot, column='height',
+        box = _check_plot_works(df.groupby('category').boxplot,
+                                column='height',
                                 layout=(3, 2), return_type='dict')
         self._check_axes_shape(self.plt.gcf().axes, axes_num=4, layout=(3, 2))
-        box = _check_plot_works(df.groupby('category').boxplot, column='height',
+        box = _check_plot_works(df.groupby('category').boxplot,
+                                column='height',
                                 layout=(3, -1), return_type='dict')
         self._check_axes_shape(self.plt.gcf().axes, axes_num=4, layout=(3, 2))
 
@@ -786,7 +819,7 @@ class TestDataFrameGroupByPlots(TestPlotBase):
             return_type='dict')
         self._check_axes_shape(self.plt.gcf().axes, axes_num=3, layout=(1, 4))
 
-        box = df.groupby('classroom').boxplot(
+        box = df.groupby('classroom').boxplot(  # noqa
             column=['height', 'weight', 'category'], layout=(1, -1),
             return_type='dict')
         self._check_axes_shape(self.plt.gcf().axes, axes_num=3, layout=(1, 3))
@@ -803,8 +836,10 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         # which has earlier alphabetical order
         with tm.assert_produces_warning(UserWarning):
             fig, axes = self.plt.subplots(2, 2)
-            df.groupby('category').boxplot(column='height', return_type='axes', ax=axes)
-            self._check_axes_shape(self.plt.gcf().axes, axes_num=4, layout=(2, 2))
+            df.groupby('category').boxplot(
+                column='height', return_type='axes', ax=axes)
+            self._check_axes_shape(self.plt.gcf().axes,
+                                   axes_num=4, layout=(2, 2))
 
         fig, axes = self.plt.subplots(2, 3)
         with warnings.catch_warnings():
@@ -856,12 +891,15 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         axes = df.hist(column='height', by=df.category, layout=(-1, 1))
         self._check_axes_shape(axes, axes_num=4, layout=(4, 1))
 
-        axes = df.hist(column='height', by=df.category, layout=(4, 2), figsize=(12, 8))
-        self._check_axes_shape(axes, axes_num=4, layout=(4, 2), figsize=(12, 8))
+        axes = df.hist(column='height', by=df.category,
+                       layout=(4, 2), figsize=(12, 8))
+        self._check_axes_shape(
+            axes, axes_num=4, layout=(4, 2), figsize=(12, 8))
         tm.close()
 
         # GH 6769
-        axes = _check_plot_works(df.hist, column='height', by='classroom', layout=(2, 2))
+        axes = _check_plot_works(
+            df.hist, column='height', by='classroom', layout=(2, 2))
         self._check_axes_shape(axes, axes_num=3, layout=(2, 2))
 
         # without column

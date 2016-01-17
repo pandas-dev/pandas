@@ -1,33 +1,33 @@
 #!/usr/bin/env python
 # coding: utf-8
-from __future__ import absolute_import, division, print_function, unicode_literals
+from __future__ import (absolute_import, division, print_function,
+                        unicode_literals)
 import pandas.util.testing as tm
 
 from pandas.msgpack import packb, unpackb, Packer, Unpacker, ExtType
 
+
 class TestLimits(tm.TestCase):
+
     def test_integer(self):
         x = -(2 ** 63)
         assert unpackb(packb(x)) == x
-        self.assertRaises((OverflowError, ValueError), packb, x-1)
+        self.assertRaises((OverflowError, ValueError), packb, x - 1)
         x = 2 ** 64 - 1
         assert unpackb(packb(x)) == x
-        self.assertRaises((OverflowError, ValueError), packb, x+1)
-
+        self.assertRaises((OverflowError, ValueError), packb, x + 1)
 
     def test_array_header(self):
         packer = Packer()
-        packer.pack_array_header(2**32-1)
+        packer.pack_array_header(2 ** 32 - 1)
         self.assertRaises((OverflowError, ValueError),
-                          packer.pack_array_header, 2**32)
-
+                          packer.pack_array_header, 2 ** 32)
 
     def test_map_header(self):
         packer = Packer()
-        packer.pack_map_header(2**32-1)
+        packer.pack_map_header(2 ** 32 - 1)
         self.assertRaises((OverflowError, ValueError),
-                          packer.pack_array_header, 2**32)
-
+                          packer.pack_array_header, 2 ** 32)
 
     def test_max_str_len(self):
         d = 'x' * 3
@@ -41,7 +41,6 @@ class TestLimits(tm.TestCase):
         unpacker.feed(packed)
         self.assertRaises(ValueError, unpacker.unpack)
 
-
     def test_max_bin_len(self):
         d = b'x' * 3
         packed = packb(d, use_bin_type=True)
@@ -53,7 +52,6 @@ class TestLimits(tm.TestCase):
         unpacker = Unpacker(max_bin_len=2)
         unpacker.feed(packed)
         self.assertRaises(ValueError, unpacker.unpack)
-
 
     def test_max_array_len(self):
         d = [1, 2, 3]
@@ -67,7 +65,6 @@ class TestLimits(tm.TestCase):
         unpacker.feed(packed)
         self.assertRaises(ValueError, unpacker.unpack)
 
-
     def test_max_map_len(self):
         d = {1: 2, 3: 4, 5: 6}
         packed = packb(d)
@@ -79,7 +76,6 @@ class TestLimits(tm.TestCase):
         unpacker = Unpacker(max_map_len=2)
         unpacker.feed(packed)
         self.assertRaises(ValueError, unpacker.unpack)
-
 
     def test_max_ext_len(self):
         d = ExtType(42, b"abc")
