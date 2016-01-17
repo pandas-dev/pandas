@@ -110,7 +110,7 @@ Range Index
 
 A ``RangeIndex`` has been added to the ``Int64Index`` sub-classes to support a memory saving alternative for common use cases. This has a similar implementation to the python ``range`` object (``xrange`` in python 2), in that it only stores the start, stop, and step values for the index. It will transparently interact with the user API, converting to ``Int64Index`` if needed.
 
-This will now be the default constructed index for ``NDFrame`` objects, rather than previous an ``Int64Index``. (:issue:`939`)
+This will now be the default constructed index for ``NDFrame`` objects, rather than previous an ``Int64Index``. (:issue:`939`, :issue:`12070`)
 
 Previous Behavior:
 
