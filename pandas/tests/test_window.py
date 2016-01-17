@@ -121,10 +121,6 @@ class TestApi(Base):
         b_std = r['B'].std()
         b_sum = r['B'].sum()
 
-        def compare(result, expected):
-            # if we are using dicts, the orderings is not guaranteed
-            assert_frame_equal(result.reindex_like(expected), expected)
-
         result = r.aggregate([np.mean, np.std])
         expected = pd.concat([a_mean, a_std, b_mean, b_std], axis=1)
         expected.columns = pd.MultiIndex.from_product([['A', 'B'], ['mean',
@@ -134,7 +130,7 @@ class TestApi(Base):
         result = r.aggregate({'A': np.mean, 'B': np.std})
 
         expected = pd.concat([a_mean, b_std], axis=1)
-        compare(result, expected)
+        assert_frame_equal(result, expected, check_like=True)
 
         result = r.aggregate({'A': ['mean', 'std']})
         expected = pd.concat([a_mean, a_std], axis=1)
@@ -151,7 +147,7 @@ class TestApi(Base):
         expected = pd.concat([a_mean, a_sum], axis=1)
         expected.columns = pd.MultiIndex.from_tuples([('A', 'mean'), ('A',
                                                                       'sum')])
-        compare(result, expected)
+        assert_frame_equal(result, expected, check_like=True)
 
         result = r.aggregate({'A': {'mean': 'mean',
                                     'sum': 'sum'},
@@ -160,19 +156,19 @@ class TestApi(Base):
         expected = pd.concat([a_mean, a_sum, b_mean, b_sum], axis=1)
         expected.columns = pd.MultiIndex.from_tuples([('A', 'mean'), (
             'A', 'sum'), ('B', 'mean2'), ('B', 'sum2')])
-        compare(result, expected)
+        assert_frame_equal(result, expected, check_like=True)
 
         result = r.aggregate({'A': ['mean', 'std'], 'B': ['mean', 'std']})
         expected = pd.concat([a_mean, a_std, b_mean, b_std], axis=1)
         expected.columns = pd.MultiIndex.from_tuples([('A', 'mean'), (
             'A', 'std'), ('B', 'mean'), ('B', 'std')])
-        compare(result, expected)
+        assert_frame_equal(result, expected, check_like=True)
 
         # passed lambda
         result = r.agg({'A': np.sum, 'B': lambda x: np.std(x, ddof=1)})
         rcustom = r['B'].apply(lambda x: np.std(x, ddof=1))
         expected = pd.concat([a_sum, rcustom], axis=1)
-        compare(result, expected)
+        assert_frame_equal(result, expected, check_like=True)
 
     def test_agg_consistency(self):
 
@@ -190,6 +186,26 @@ class TestApi(Base):
         result = r.agg({'A': [np.sum, np.mean]}).columns
         expected = pd.MultiIndex.from_tuples([('A', 'sum'), ('A', 'mean')])
         tm.assert_index_equal(result, expected)
+
+    def test_agg_nested_dicts(self):
+
+        # API change for disallowing these types of nested dicts
+        df = DataFrame({'A': range(5), 'B': range(0, 10, 2)})
+        r = df.rolling(window=3)
+
+        def f():
+            r.aggregate({'r1': {'A': ['mean', 'sum']},
+                         'r2': {'B': ['mean', 'sum']}})
+
+        self.assertRaises(ValueError, f)
+
+        result = r.agg({'A': {'ra': ['mean', 'std']},
+                        'B': {'rb': ['mean', 'std']}})
+        expected = pd.concat([r['A'].mean(), r['A'].std(), r['B'].mean(),
+                              r['B'].std()], axis=1)
+        expected.columns = pd.MultiIndex.from_tuples([('A', 'ra', 'mean'), (
+            'A', 'ra', 'std'), ('B', 'rb', 'mean'), ('B', 'rb', 'std')])
+        assert_frame_equal(result, expected, check_like=True)
 
     def test_window_with_args(self):
         tm._skip_if_no_scipy()

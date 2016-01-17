@@ -303,6 +303,10 @@ class SelectionMixin(object):
             return self.obj[self._selection]
 
     @cache_readonly
+    def ndim(self):
+        return self._selected_obj.ndim
+
+    @cache_readonly
     def _obj_with_exclusions(self):
         if self._selection is not None and isinstance(self.obj,
                                                       com.ABCDataFrame):
@@ -438,14 +442,18 @@ pandas.DataFrame.%(name)s
             if self._selection is not None:
                 subset = obj
 
+                ndim = 1 if len(self._selection_list) == 1 else 2
                 for fname, agg_how in compat.iteritems(arg):
-                    colg = self._gotitem(self._selection, ndim=1,
+                    colg = self._gotitem(self._selection, ndim=ndim,
                                          subset=subset)
                     result[fname] = colg.aggregate(agg_how, _level=None)
                     keys.append(fname)
             else:
                 for col, agg_how in compat.iteritems(arg):
                     colg = self._gotitem(col, ndim=1)
+                    if colg.ndim != 1:
+                        raise ValueError("nested dictionary is ambiguous"
+                                         "in aggregation")
                     result[col] = colg.aggregate(agg_how, _level=_level)
                     keys.append(col)
 

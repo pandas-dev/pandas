@@ -34,11 +34,6 @@ import pandas as pd
 from numpy.testing import assert_equal
 
 
-def compare_frame_like(result, expected):
-    # if we are using dicts, the orderings is not guaranteed
-    assert_frame_equal(result.reindex_like(expected), expected)
-
-
 class TestGroupBy(tm.TestCase):
 
     _multiprocess_can_split_ = True
@@ -1484,7 +1479,7 @@ class TestGroupBy(tm.TestCase):
         expected = pd.concat([d_sum, d_mean],
                              axis=1)
         expected.columns = ['sum', 'mean']
-        compare_frame_like(result, expected)
+        assert_frame_equal(result, expected, check_like=True)
 
         result = grouped.agg([np.sum, np.mean])
         expected = pd.concat([c_sum,
@@ -1494,7 +1489,7 @@ class TestGroupBy(tm.TestCase):
                              axis=1)
         expected.columns = MultiIndex.from_product([['C', 'D'],
                                                     ['sum', 'mean']])
-        compare_frame_like(result, expected)
+        assert_frame_equal(result, expected, check_like=True)
 
         result = grouped[['D', 'C']].agg([np.sum, np.mean])
         expected = pd.concat([d_sum,
@@ -1504,18 +1499,18 @@ class TestGroupBy(tm.TestCase):
                              axis=1)
         expected.columns = MultiIndex.from_product([['D', 'C'],
                                                     ['sum', 'mean']])
-        compare_frame_like(result, expected)
+        assert_frame_equal(result, expected, check_like=True)
 
-        import pdb; pdb.set_trace()
-        result = grouped[['D', 'C']].agg({'r': np.sum, 'r2': np.mean})
+        result = grouped[['D', 'C']].agg(OrderedDict([('r', np.sum),
+                                                      ('r2', np.mean)]))
         expected = pd.concat([d_sum,
-                              d_mean,
                               c_sum,
+                              d_mean,
                               c_mean],
                              axis=1)
         expected.columns = MultiIndex.from_product([['r', 'r2'],
-                                                    ['sum', 'mean']])
-        compare_frame_like(result, expected)
+                                                    ['D', 'C']])
+        assert_frame_equal(result, expected, check_like=True)
 
     def test_multi_iter(self):
         s = Series(np.arange(6))
@@ -5489,7 +5484,7 @@ class TestGroupBy(tm.TestCase):
              'cumprod', 'tail', 'resample', 'cummin', 'fillna', 'cumsum',
              'cumcount', 'all', 'shift', 'skew', 'bfill', 'ffill', 'take',
              'tshift', 'pct_change', 'any', 'mad', 'corr', 'corrwith', 'cov',
-             'dtypes', 'diff', 'idxmax', 'idxmin'])
+             'dtypes', 'ndim', 'diff', 'idxmax', 'idxmin'])
         self.assertEqual(results, expected)
 
     def test_lexsort_indexer(self):

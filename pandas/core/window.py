@@ -76,7 +76,7 @@ class _Window(PandasObject, SelectionMixin):
                               "to passing to a window function", FutureWarning,
                               stacklevel=6)
 
-            obj = obj.resample(self.freq).aggregate(how or 'upsample')
+            obj = obj.resample(self.freq).aggregate(how or 'asfreq')
         return obj
 
     def _create_blocks(self, how):

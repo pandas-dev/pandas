@@ -3,7 +3,7 @@
 from datetime import datetime, timedelta
 from functools import partial
 
-from pandas.compat import range, lrange, zip, product
+from pandas.compat import range, lrange, zip, product, OrderedDict
 import numpy as np
 
 from pandas import (Series, DataFrame, Panel, Index, isnull,
@@ -29,11 +29,6 @@ from pandas.util.testing import (assert_series_equal, assert_almost_equal,
 import pandas.util.testing as tm
 
 bday = BDay()
-
-
-def compare_frame_like(result, expected):
-    # if we are using dicts, the orderings is not guaranteed
-    assert_frame_equal(result.reindex_like(expected), expected)
 
 
 class TestResampleAPI(tm.TestCase):
@@ -211,7 +206,7 @@ class TestResampleAPI(tm.TestCase):
 
         # this is reindex / asfreq
         rng = pd.date_range('1/1/2012', periods=100, freq='S')
-        ts = pd.Series(np.arange(len(rng)), index=rng)
+        ts = pd.Series(np.arange(len(rng), dtype='int64'), index=rng)
         result = ts.resample('20s').asfreq()
         expected = Series([0, 20, 40, 60, 80],
                           index=pd.date_range('2012-01-01 00:00:00',
@@ -271,7 +266,7 @@ class TestResampleAPI(tm.TestCase):
         for t in [r, g]:
             result = t.aggregate({'A': np.mean,
                                   'B': np.std})
-            compare_frame_like(result, expected)
+            assert_frame_equal(result, expected, check_like=True)
 
         expected = pd.concat([a_mean, a_std], axis=1)
         expected.columns = pd.MultiIndex.from_tuples([('A', 'mean'),
@@ -291,7 +286,7 @@ class TestResampleAPI(tm.TestCase):
                                                       ('A', 'sum')])
         for t in [r, g]:
             result = t.aggregate({'A': {'mean': 'mean', 'sum': 'sum'}})
-            compare_frame_like(result, expected)
+            assert_frame_equal(result, expected, check_like=True)
 
         expected = pd.concat([a_mean, a_sum, b_mean, b_sum], axis=1)
         expected.columns = pd.MultiIndex.from_tuples([('A', 'mean'),
@@ -301,7 +296,7 @@ class TestResampleAPI(tm.TestCase):
         for t in [r, g]:
             result = t.aggregate({'A': {'mean': 'mean', 'sum': 'sum'},
                                   'B': {'mean2': 'mean', 'sum2': 'sum'}})
-            compare_frame_like(result, expected)
+            assert_frame_equal(result, expected, check_like=True)
 
         expected = pd.concat([a_mean, a_std, b_mean, b_std], axis=1)
         expected.columns = pd.MultiIndex.from_tuples([('A', 'mean'),
@@ -311,7 +306,7 @@ class TestResampleAPI(tm.TestCase):
         for t in [r, g]:
             result = t.aggregate({'A': ['mean', 'std'],
                                   'B': ['mean', 'std']})
-            compare_frame_like(result, expected)
+            assert_frame_equal(result, expected, check_like=True)
 
         expected = pd.concat([a_mean, a_sum, b_mean, b_sum], axis=1)
         expected.columns = pd.MultiIndex.from_tuples([('r1', 'A', 'mean'),
@@ -338,18 +333,38 @@ class TestResampleAPI(tm.TestCase):
                             'B': lambda x: np.std(x, ddof=1)})
             rcustom = t['B'].apply(lambda x: np.std(x, ddof=1))
             expected = pd.concat([r['A'].sum(), rcustom], axis=1)
-            compare_frame_like(result, expected)
+            assert_frame_equal(result, expected, check_like=True)
 
         # misc
+        expected = pd.concat([t['A'].sum(),
+                              t['B'].sum(),
+                              t['A'].mean(),
+                              t['B'].mean()],
+                             axis=1)
+        expected.columns = pd.MultiIndex.from_tuples([('result1', 'A'),
+                                                      ('result1', 'B'),
+                                                      ('result2', 'A'),
+                                                      ('result2', 'B')])
         for t in [r, g]:
-            t[['A', 'B']].agg({'result1': np.sum, 'result2': np.mean})
+            result = t[['A', 'B']].agg(OrderedDict([('result1', np.sum),
+                                                    ('result2', np.mean)]))
+            assert_frame_equal(result, expected, check_like=True)
 
         for t in [r, g]:
             t.agg({'A': ['sum', 'std'], 'B': ['mean', 'std']})
 
+        # what should this produce??????
+        import pdb; pdb.set_trace()
         for t in [r, g]:
             t[['A', 'B']].agg({'A': ['sum', 'std'],
                                'B': ['mean', 'std']})
+
+        # errors
+        for t in [r, g]:
+            r[['A']].agg({'A': ['sum', 'std'], 'B': ['mean', 'std']})
+
+        for t in [r, g]:
+            r['A'].agg({'A': ['sum', 'std'], 'B': ['mean', 'std']})
 
 
 class TestResample(tm.TestCase):
@@ -515,7 +530,7 @@ class TestResample(tm.TestCase):
 
     def test_resample_single_period_timedelta(self):
 
-        s = Series(range(5), index=pd.timedelta_range(
+        s = Series(list(range(5)), index=pd.timedelta_range(
             '1 day', freq='s', periods=5))
         result = s.resample('2s').sum()
         expected = Series([1, 5, 4], index=pd.timedelta_range(

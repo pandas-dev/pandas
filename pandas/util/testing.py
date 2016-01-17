@@ -984,6 +984,7 @@ def assert_frame_equal(left, right, check_dtype=True,
                        by_blocks=False,
                        check_exact=False,
                        check_datetimelike_compat=False,
+                       check_like=False,
                        obj='DataFrame'):
 
     """Check that left and right DataFrame are equal.
@@ -1014,6 +1015,8 @@ def assert_frame_equal(left, right, check_dtype=True,
         Whether to compare number exactly.
     check_dateteimelike_compat : bool, default False
         Compare datetime-like which is comparable ignoring dtype.
+    check_like : bool, default False
+        If true, then reindex_like operands
     obj : str, default 'DataFrame'
         Specify object name being compared, internally used to show appropriate
         assertion message
@@ -1026,16 +1029,24 @@ def assert_frame_equal(left, right, check_dtype=True,
     if check_frame_type:
         assertIsInstance(left, type(right))
 
+    if check_like:
+        left, right = left.reindex_like(right), right
+
     # shape comparison (row)
     if left.shape[0] != right.shape[0]:
-        raise_assert_detail(obj, 'DataFrame shape (number of rows) are different',
+        raise_assert_detail(obj,
+                            'DataFrame shape (number of rows) are different',
                             '{0}, {1}'.format(left.shape[0], left.index),
                             '{0}, {1}'.format(right.shape[0], right.index))
     # shape comparison (columns)
     if left.shape[1] != right.shape[1]:
-        raise_assert_detail(obj, 'DataFrame shape (number of columns) are different',
-                            '{0}, {1}'.format(left.shape[1], left.columns),
-                            '{0}, {1}'.format(right.shape[1], right.columns))
+        raise_assert_detail(obj,
+                            'DataFrame shape (number of columns) '
+                            'are different',
+                            '{0}, {1}'.format(left.shape[1],
+                                              left.columns),
+                            '{0}, {1}'.format(right.shape[1],
+                                              right.columns))
 
     # index comparison
     assert_index_equal(left.index, right.index, exact=check_index_type,
