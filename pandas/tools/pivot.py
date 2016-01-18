@@ -124,7 +124,7 @@ def pivot_table(data, values=None, index=None, columns=None, aggfunc='mean',
             m = MultiIndex.from_arrays(cartesian_product(table.index.levels))
             table = table.reindex_axis(m, axis=0)
         except AttributeError:
-            pass # it's a single level
+            pass  # it's a single level
 
         try:
             m = MultiIndex.from_arrays(cartesian_product(table.columns.levels))
@@ -197,7 +197,7 @@ def _add_margins(table, data, values, rows, cols, aggfunc,
         result, margin_keys, row_margin = marginal_result_set
     else:
         marginal_result_set = _generate_marginal_results_without_values(
-                table, data, rows, cols, aggfunc, margins_name)
+            table, data, rows, cols, aggfunc, margins_name)
         if not isinstance(marginal_result_set, tuple):
             return marginal_result_set
         result, margin_keys, row_margin = marginal_result_set
@@ -273,7 +273,8 @@ def _generate_marginal_results(table, data, values, rows, cols, aggfunc,
                 except TypeError:
 
                     # we cannot reshape, so coerce the axis
-                    piece.set_axis(cat_axis, piece._get_axis(cat_axis)._to_safe_for_reshape())
+                    piece.set_axis(cat_axis, piece._get_axis(
+                        cat_axis)._to_safe_for_reshape())
                     piece[all_key] = margin[key]
 
                 table_pieces.append(piece)
@@ -355,6 +356,7 @@ def _convert_by(by):
     else:
         by = list(by)
     return by
+
 
 def crosstab(index, columns, values=None, rownames=None, colnames=None,
              aggfunc=None, margins=False, dropna=True):

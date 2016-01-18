@@ -109,9 +109,8 @@ def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
         if (np.diff(bins) < 0).any():
             raise ValueError('bins must increase monotonically.')
 
-    return _bins_to_cuts(x, bins, right=right, labels=labels,retbins=retbins, precision=precision,
+    return _bins_to_cuts(x, bins, right=right, labels=labels, retbins=retbins, precision=precision,
                          include_lowest=include_lowest)
-
 
 
 def qcut(x, q, labels=None, retbins=False, precision=3):
@@ -165,9 +164,8 @@ def qcut(x, q, labels=None, retbins=False, precision=3):
     else:
         quantiles = q
     bins = algos.quantile(x, quantiles)
-    return _bins_to_cuts(x, bins, labels=labels, retbins=retbins,precision=precision,
+    return _bins_to_cuts(x, bins, labels=labels, retbins=retbins, precision=precision,
                          include_lowest=True)
-
 
 
 def _bins_to_cuts(x, bins, right=True, labels=None, retbins=False,

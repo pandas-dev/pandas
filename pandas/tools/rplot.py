@@ -26,11 +26,13 @@ class Scale:
     """
     pass
 
+
 class ScaleGradient(Scale):
     """
     A mapping between a data attribute value and a
     point in colour space between two specified colours.
     """
+
     def __init__(self, column, colour1, colour2):
         """Initialize ScaleGradient instance.
 
@@ -67,11 +69,13 @@ class ScaleGradient(Scale):
                 g1 + (g2 - g1) * x_scaled,
                 b1 + (b2 - b1) * x_scaled)
 
+
 class ScaleGradient2(Scale):
     """
     Create a mapping between a data attribute value and a
     point in colour space in a line of three specified colours.
     """
+
     def __init__(self, column, colour1, colour2, colour3):
         """Initialize ScaleGradient2 instance.
 
@@ -119,11 +123,13 @@ class ScaleGradient2(Scale):
                     g2 + (g3 - g2) * x_scaled,
                     b2 + (b3 - b2) * x_scaled)
 
+
 class ScaleSize(Scale):
     """
     Provide a mapping between a DataFrame column and matplotlib
     scatter plot shape size.
     """
+
     def __init__(self, column, min_size=5.0, max_size=100.0, transform=lambda x: x):
         """Initialize ScaleSize instance.
 
@@ -152,13 +158,15 @@ class ScaleSize(Scale):
         a = float(min(data[self.column]))
         b = float(max(data[self.column]))
         return self.transform(self.min_size + ((x - a) / (b - a)) *
-            (self.max_size - self.min_size))
+                              (self.max_size - self.min_size))
+
 
 class ScaleShape(Scale):
     """
     Provides a mapping between matplotlib marker shapes
     and attribute values.
     """
+
     def __init__(self, column):
         """Initialize ScaleShape instance.
 
@@ -185,14 +193,17 @@ class ScaleShape(Scale):
         """
         values = sorted(list(set(data[self.column])))
         if len(values) > len(self.shapes):
-            raise ValueError("Too many different values of the categorical attribute for ScaleShape")
+            raise ValueError(
+                "Too many different values of the categorical attribute for ScaleShape")
         x = data[self.column].iget(index)
         return self.shapes[values.index(x)]
+
 
 class ScaleRandomColour(Scale):
     """
     Maps a random colour to a DataFrame attribute.
     """
+
     def __init__(self, column):
         """Initialize ScaleRandomColour instance.
 
@@ -215,10 +226,12 @@ class ScaleRandomColour(Scale):
         random.seed(data[self.column].iget(index))
         return [random.random() for _ in range(3)]
 
+
 class ScaleConstant(Scale):
     """
     Constant returning scale. Usually used automatically.
     """
+
     def __init__(self, value):
         """Initialize ScaleConstant instance.
 
@@ -243,6 +256,7 @@ class ScaleConstant(Scale):
         """
         return self.value
 
+
 def default_aes(x=None, y=None):
     """Create the default aesthetics dictionary.
 
@@ -256,13 +270,14 @@ def default_aes(x=None, y=None):
     a dictionary with aesthetics bindings
     """
     return {
-        'x' : x,
-        'y' : y,
-        'size' : ScaleConstant(40.0),
-        'colour' : ScaleConstant('grey'),
-        'shape' : ScaleConstant('o'),
-        'alpha' : ScaleConstant(1.0),
+        'x': x,
+        'y': y,
+        'size': ScaleConstant(40.0),
+        'colour': ScaleConstant('grey'),
+        'shape': ScaleConstant('o'),
+        'alpha': ScaleConstant(1.0),
     }
+
 
 def make_aes(x=None, y=None, size=None, colour=None, shape=None, alpha=None):
     """Create an empty aesthetics dictionary.
@@ -291,32 +306,37 @@ def make_aes(x=None, y=None, size=None, colour=None, shape=None, alpha=None):
     if any([isinstance(size, scale) for scale in [ScaleConstant, ScaleSize]]) or size is None:
         pass
     else:
-        raise ValueError('size mapping should be done through ScaleConstant or ScaleSize')
+        raise ValueError(
+            'size mapping should be done through ScaleConstant or ScaleSize')
     if any([isinstance(colour, scale) for scale in [ScaleConstant, ScaleGradient, ScaleGradient2, ScaleRandomColour]]) or colour is None:
         pass
     else:
-        raise ValueError('colour mapping should be done through ScaleConstant, ScaleRandomColour, ScaleGradient or ScaleGradient2')
+        raise ValueError(
+            'colour mapping should be done through ScaleConstant, ScaleRandomColour, ScaleGradient or ScaleGradient2')
     if any([isinstance(shape, scale) for scale in [ScaleConstant, ScaleShape]]) or shape is None:
         pass
     else:
-        raise ValueError('shape mapping should be done through ScaleConstant or ScaleShape')
+        raise ValueError(
+            'shape mapping should be done through ScaleConstant or ScaleShape')
     if any([isinstance(alpha, scale) for scale in [ScaleConstant]]) or alpha is None:
         pass
     else:
         raise ValueError('alpha mapping should be done through ScaleConstant')
     return {
-        'x' : x,
-        'y' : y,
-        'size' : size,
-        'colour' : colour,
-        'shape' : shape,
-        'alpha' : alpha,
+        'x': x,
+        'y': y,
+        'size': size,
+        'colour': colour,
+        'shape': shape,
+        'alpha': alpha,
     }
+
 
 class Layer:
     """
     Layer object representing a single plot layer.
     """
+
     def __init__(self, data=None, **kwds):
         """Initialize layer object.
 
@@ -343,7 +363,9 @@ class Layer:
         """
         return fig, ax
 
+
 class GeomPoint(Layer):
+
     def work(self, fig=None, ax=None):
         """Render the layer on a matplotlib axis.
         You can specify either a figure or an axis to draw on.
@@ -375,10 +397,10 @@ class GeomPoint(Layer):
             marker_value = shape_scaler(self.data, index)
             alpha_value = alpha(self.data, index)
             patch = ax.scatter(x, y,
-                    s=size_value,
-                    c=colour_value,
-                    marker=marker_value,
-                    alpha=alpha_value)
+                               s=size_value,
+                               c=colour_value,
+                               marker=marker_value,
+                               alpha=alpha_value)
             label = []
             if colour_scaler.categorical:
                 label += [colour_scaler.column, row[colour_scaler.column]]
@@ -389,10 +411,12 @@ class GeomPoint(Layer):
         ax.set_ylabel(self.aes['y'])
         return fig, ax
 
+
 class GeomPolyFit(Layer):
     """
     Draw a polynomial fit of specified degree.
     """
+
     def __init__(self, degree, lw=2.0, colour='grey'):
         """Initialize GeomPolyFit object.
 
@@ -436,10 +460,12 @@ class GeomPolyFit(Layer):
         ax.plot(x_, y_, lw=self.lw, c=self.colour)
         return fig, ax
 
+
 class GeomScatter(Layer):
     """
     An efficient scatter plot, use this instead of GeomPoint for speed.
     """
+
     def __init__(self, marker='o', colour='lightblue', alpha=1.0):
         """Initialize GeomScatter instance.
 
@@ -476,10 +502,12 @@ class GeomScatter(Layer):
         ax.scatter(x, y, marker=self.marker, c=self.colour, alpha=self.alpha)
         return fig, ax
 
+
 class GeomHistogram(Layer):
     """
     An efficient histogram, use this instead of GeomBar for speed.
     """
+
     def __init__(self, bins=10, colour='lightblue'):
         """Initialize GeomHistogram instance.
 
@@ -514,10 +542,12 @@ class GeomHistogram(Layer):
         ax.set_xlabel(self.aes['x'])
         return fig, ax
 
+
 class GeomDensity(Layer):
     """
     A kernel density estimation plot.
     """
+
     def work(self, fig=None, ax=None):
         """Draw a one dimensional kernel density plot.
         You can specify either a figure or an axis to draw on.
@@ -543,7 +573,9 @@ class GeomDensity(Layer):
         ax.plot(ind, gkde.evaluate(ind))
         return fig, ax
 
+
 class GeomDensity2D(Layer):
+
     def work(self, fig=None, ax=None):
         """Draw a two dimensional kernel density plot.
         You can specify either a figure or an axis to draw on.
@@ -578,7 +610,9 @@ class GeomDensity2D(Layer):
         ax.contour(Z, extent=[x_min, x_max, y_min, y_max])
         return fig, ax
 
+
 class TrellisGrid(Layer):
+
     def __init__(self, by):
         """Initialize TreelisGrid instance.
 
@@ -589,7 +623,8 @@ class TrellisGrid(Layer):
         if len(by) != 2:
             raise ValueError("You must give a list of length 2 to group by")
         elif by[0] == '.' and by[1] == '.':
-            raise ValueError("At least one of grouping attributes must be not a dot")
+            raise ValueError(
+                "At least one of grouping attributes must be not a dot")
         self.by = by
 
     def trellis(self, layers):
@@ -628,8 +663,10 @@ class TrellisGrid(Layer):
             else:
                 self.rows = len(shingle1)
                 self.cols = len(shingle2)
-            trellised = [[None for _ in range(self.cols)] for _ in range(self.rows)]
-            self.group_grid = [[None for _ in range(self.cols)] for _ in range(self.rows)]
+            trellised = [[None for _ in range(self.cols)]
+                         for _ in range(self.rows)]
+            self.group_grid = [[None for _ in range(
+                self.cols)] for _ in range(self.rows)]
             row = 0
             col = 0
             for group, data in grouped:
@@ -643,6 +680,7 @@ class TrellisGrid(Layer):
                     row += 1
             trellised_layers.append(trellised)
         return trellised_layers
+
 
 def dictionary_union(dict1, dict2):
     """Take two dictionaries, return dictionary union.
@@ -666,6 +704,7 @@ def dictionary_union(dict1, dict2):
         result[key2] = dict2[key2]
     return result
 
+
 def merge_aes(layer1, layer2):
     """Merges the aesthetics dictionaries for the two layers.
     Look up sequence_layers function. Which layer is first and which
@@ -679,6 +718,7 @@ def merge_aes(layer1, layer2):
     for key in layer2.aes.keys():
         if layer2.aes[key] is None:
             layer2.aes[key] = layer1.aes[key]
+
 
 def sequence_layers(layers):
     """Go through the list of layers and fill in the missing bits of information.
@@ -696,6 +736,7 @@ def sequence_layers(layers):
         merge_aes(layer1, layer2)
     return layers
 
+
 def sequence_grids(layer_grids):
     """Go through the list of layer girds and perform the same thing as sequence_layers.
 
@@ -710,6 +751,7 @@ def sequence_grids(layer_grids):
                     layer2.data = layer1.data
                 merge_aes(layer1, layer2)
     return layer_grids
+
 
 def work_grid(grid, fig):
     """Take a two dimensional grid, add subplots to a figure for each cell and do layer work.
@@ -728,9 +770,11 @@ def work_grid(grid, fig):
     axes = [[None for _ in range(ncols)] for _ in range(nrows)]
     for row in range(nrows):
         for col in range(ncols):
-            axes[row][col] = fig.add_subplot(nrows, ncols, ncols * row + col + 1)
+            axes[row][col] = fig.add_subplot(
+                nrows, ncols, ncols * row + col + 1)
             grid[row][col].work(ax=axes[row][col])
     return axes
+
 
 def adjust_subplots(fig, axes, trellis, layers):
     """Adjust the subtplots on matplotlib figure with the
@@ -763,20 +807,25 @@ def adjust_subplots(fig, axes, trellis, layers):
             axis.get_xaxis().set_ticks([])
             axis.set_xlabel('')
         if trellis.by[0] == '.':
-            label1 = "%s = %s" % (trellis.by[1], trellis.group_grid[index // trellis.cols][index % trellis.cols])
+            label1 = "%s = %s" % (trellis.by[1], trellis.group_grid[
+                                  index // trellis.cols][index % trellis.cols])
             label2 = None
         elif trellis.by[1] == '.':
-            label1 = "%s = %s" % (trellis.by[0], trellis.group_grid[index // trellis.cols][index % trellis.cols])
+            label1 = "%s = %s" % (trellis.by[0], trellis.group_grid[
+                                  index // trellis.cols][index % trellis.cols])
             label2 = None
         else:
-            label1 = "%s = %s" % (trellis.by[0], trellis.group_grid[index // trellis.cols][index % trellis.cols][0])
-            label2 = "%s = %s" % (trellis.by[1], trellis.group_grid[index // trellis.cols][index % trellis.cols][1])
+            label1 = "%s = %s" % (trellis.by[0], trellis.group_grid[
+                                  index // trellis.cols][index % trellis.cols][0])
+            label2 = "%s = %s" % (trellis.by[1], trellis.group_grid[
+                                  index // trellis.cols][index % trellis.cols][1])
         if label2 is not None:
             axis.table(cellText=[[label1], [label2]],
-                loc='top', cellLoc='center',
-                cellColours=[['lightgrey'], ['lightgrey']])
+                       loc='top', cellLoc='center',
+                       cellColours=[['lightgrey'], ['lightgrey']])
         else:
-            axis.table(cellText=[[label1]], loc='top', cellLoc='center', cellColours=[['lightgrey']])
+            axis.table(cellText=[[label1]], loc='top',
+                       cellLoc='center', cellColours=[['lightgrey']])
     # Flatten the layer grid
     layers = [layer for row in layers for layer in row]
     legend = {}
@@ -800,15 +849,18 @@ def adjust_subplots(fig, axes, trellis, layers):
             col1, val1, col2, val2 = key
             labels.append("%s, %s" % (str(val1), str(val2)))
         else:
-            raise ValueError("Maximum 2 categorical attributes to display a lengend of")
+            raise ValueError(
+                "Maximum 2 categorical attributes to display a lengend of")
     if len(legend):
         fig.legend(patches, labels, loc='upper right')
     fig.subplots_adjust(wspace=0.05, hspace=0.2)
+
 
 class RPlot:
     """
     The main plot object. Add layers to an instance of this object to create a plot.
     """
+
     def __init__(self, data, x=None, y=None):
         """Initialize RPlot instance.
 
@@ -829,7 +881,8 @@ class RPlot:
         layer: Layer instance
         """
         if not isinstance(layer, Layer):
-            raise TypeError("The operand on the right side of + must be a Layer instance")
+            raise TypeError(
+                "The operand on the right side of + must be a Layer instance")
         self.layers.append(layer)
 
     def render(self, fig=None):
@@ -873,7 +926,8 @@ class RPlot:
                     col1, val1, col2, val2 = key
                     labels.append("%s, %s" % (str(val1), str(val2)))
                 else:
-                    raise ValueError("Maximum 2 categorical attributes to display a lengend of")
+                    raise ValueError(
+                        "Maximum 2 categorical attributes to display a lengend of")
             if len(legend):
                 fig.legend(patches, labels, loc='upper right')
         else:

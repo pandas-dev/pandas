@@ -414,7 +414,7 @@ class TestMerge(tm.TestCase):
 
         data = np.random.randn(len(key1))
         data = DataFrame({'key1': key1, 'key2': key2,
-                         'data': data})
+                          'data': data})
 
         index = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux'],
                                    ['one', 'two', 'three']],
@@ -459,8 +459,8 @@ class TestMerge(tm.TestCase):
 
     def test_join_float64_float32(self):
 
-        a = DataFrame(randn(10, 2), columns=['a', 'b'], dtype = np.float64)
-        b = DataFrame(randn(10, 1), columns=['c'], dtype = np.float32)
+        a = DataFrame(randn(10, 2), columns=['a', 'b'], dtype=np.float64)
+        b = DataFrame(randn(10, 1), columns=['c'], dtype=np.float32)
         joined = a.join(b)
         self.assertEqual(joined.dtypes['a'], 'float64')
         self.assertEqual(joined.dtypes['b'], 'float64')
@@ -470,7 +470,7 @@ class TestMerge(tm.TestCase):
         b = np.random.random(100).astype('float64')
         c = np.random.random(100).astype('float32')
         df = DataFrame({'a': a, 'b': b, 'c': c})
-        xpdf = DataFrame({'a': a, 'b': b, 'c': c })
+        xpdf = DataFrame({'a': a, 'b': b, 'c': c})
         s = DataFrame(np.random.random(5).astype('float32'), columns=['md'])
         rs = df.merge(s, left_on='a', right_index=True)
         self.assertEqual(rs.dtypes['a'], 'int64')
@@ -785,14 +785,14 @@ class TestMerge(tm.TestCase):
         right = pd.DataFrame([[1, 2, 3], [4, 5, 6], [7, 8, 9]],
                              columns=['x', 'y', 'z'])
 
-        exp_out = pd.DataFrame({'a': np.array([np.nan]*3, dtype=object),
-                                'b': np.array([np.nan]*3, dtype=object),
-                                'c': np.array([np.nan]*3, dtype=object),
+        exp_out = pd.DataFrame({'a': np.array([np.nan] * 3, dtype=object),
+                                'b': np.array([np.nan] * 3, dtype=object),
+                                'c': np.array([np.nan] * 3, dtype=object),
                                 'x': [1, 4, 7],
                                 'y': [2, 5, 8],
                                 'z': [3, 6, 9]},
                                columns=['a', 'b', 'c', 'x', 'y', 'z'])
-        exp_in = exp_out[0:0] # make empty DataFrame keeping dtype
+        exp_in = exp_out[0:0]  # make empty DataFrame keeping dtype
         # result will have object dtype
         exp_in.index = exp_in.index.astype(object)
 
@@ -820,11 +820,11 @@ class TestMerge(tm.TestCase):
         exp_out = pd.DataFrame({'a': [1, 4, 7],
                                 'b': [2, 5, 8],
                                 'c': [3, 6, 9],
-                                'x': np.array([np.nan]*3, dtype=object),
-                                'y': np.array([np.nan]*3, dtype=object),
-                                'z': np.array([np.nan]*3, dtype=object)},
+                                'x': np.array([np.nan] * 3, dtype=object),
+                                'y': np.array([np.nan] * 3, dtype=object),
+                                'z': np.array([np.nan] * 3, dtype=object)},
                                columns=['a', 'b', 'c', 'x', 'y', 'z'])
-        exp_in = exp_out[0:0] # make empty DataFrame keeping dtype
+        exp_in = exp_out[0:0]  # make empty DataFrame keeping dtype
         # result will have object dtype
         exp_in.index = exp_in.index.astype(object)
 
@@ -871,24 +871,25 @@ class TestMerge(tm.TestCase):
         self.assertTrue((df.var3.unique() == result.var3.unique()).all())
 
     def test_merge_nan_right(self):
-        df1 = DataFrame({"i1" : [0, 1], "i2" : [0, 1]})
-        df2 = DataFrame({"i1" : [0], "i3" : [0]})
+        df1 = DataFrame({"i1": [0, 1], "i2": [0, 1]})
+        df2 = DataFrame({"i1": [0], "i3": [0]})
         result = df1.join(df2, on="i1", rsuffix="_")
         expected = DataFrame({'i1': {0: 0.0, 1: 1}, 'i2': {0: 0, 1: 1},
                               'i1_': {0: 0, 1: np.nan}, 'i3': {0: 0.0, 1: np.nan},
-                               None: {0: 0, 1: 0}}).set_index(None).reset_index()[['i1', 'i2', 'i1_', 'i3']]
+                              None: {0: 0, 1: 0}}).set_index(None).reset_index()[['i1', 'i2', 'i1_', 'i3']]
         assert_frame_equal(result, expected, check_dtype=False)
 
-        df1 = DataFrame({"i1" : [0, 1], "i2" : [0.5, 1.5]})
-        df2 = DataFrame({"i1" : [0], "i3" : [0.7]})
+        df1 = DataFrame({"i1": [0, 1], "i2": [0.5, 1.5]})
+        df2 = DataFrame({"i1": [0], "i3": [0.7]})
         result = df1.join(df2, rsuffix="_", on='i1')
         expected = DataFrame({'i1': {0: 0, 1: 1}, 'i1_': {0: 0.0, 1: nan},
                               'i2': {0: 0.5, 1: 1.5}, 'i3': {0: 0.69999999999999996,
-                              1: nan}})[['i1', 'i2', 'i1_', 'i3']]
+                                                             1: nan}})[['i1', 'i2', 'i1_', 'i3']]
         assert_frame_equal(result, expected)
 
     def test_merge_type(self):
         class NotADataFrame(DataFrame):
+
             @property
             def _constructor(self):
                 return NotADataFrame
@@ -905,20 +906,22 @@ class TestMerge(tm.TestCase):
         import datetime as dt
         from pandas import NaT
 
-        df1 = DataFrame(index=[1,2], data=[dt.datetime(2013,1,1,0,0),
-                                           dt.datetime(2013,1,2,0,0)],
+        df1 = DataFrame(index=[1, 2], data=[dt.datetime(2013, 1, 1, 0, 0),
+                                            dt.datetime(2013, 1, 2, 0, 0)],
                         columns=['start_time'])
-        df2 = DataFrame(index=[4,5], data=[[dt.datetime(2013,1,3,0,0),
-                                            dt.datetime(2013,1,3,6,10)],
-                                           [dt.datetime(2013,1,4,0,0),
-                                            dt.datetime(2013,1,4,7,10)]],
-                        columns=['start_time','end_time'])
+        df2 = DataFrame(index=[4, 5], data=[[dt.datetime(2013, 1, 3, 0, 0),
+                                             dt.datetime(2013, 1, 3, 6, 10)],
+                                            [dt.datetime(2013, 1, 4, 0, 0),
+                                             dt.datetime(2013, 1, 4, 7, 10)]],
+                        columns=['start_time', 'end_time'])
 
         expected = concat([
-            Series([NaT,NaT,dt.datetime(2013,1,3,6,10),dt.datetime(2013,1,4,7,10)],name='end_time'),
-            Series([dt.datetime(2013,1,1,0,0),dt.datetime(2013,1,2,0,0),dt.datetime(2013,1,3,0,0),dt.datetime(2013,1,4,0,0)],name='start_time'),
-            ],axis=1)
-        result = df1.append(df2,ignore_index=True)
+            Series([NaT, NaT, dt.datetime(2013, 1, 3, 6, 10),
+                    dt.datetime(2013, 1, 4, 7, 10)], name='end_time'),
+            Series([dt.datetime(2013, 1, 1, 0, 0), dt.datetime(2013, 1, 2, 0, 0), dt.datetime(
+                2013, 1, 3, 0, 0), dt.datetime(2013, 1, 4, 0, 0)], name='start_time'),
+        ], axis=1)
+        result = df1.append(df2, ignore_index=True)
         assert_frame_equal(result, expected)
 
     def test_join_append_timedeltas(self):
@@ -934,18 +937,19 @@ class TestMerge(tm.TestCase):
         df = df.append(d, ignore_index=True)
         result = df.append(d, ignore_index=True)
         expected = DataFrame({'d': [dt.datetime(2013, 11, 5, 5, 56),
-                                    dt.datetime(2013, 11, 5, 5, 56) ],
-                              't': [ dt.timedelta(0, 22500),
-                                     dt.timedelta(0, 22500) ]})
+                                    dt.datetime(2013, 11, 5, 5, 56)],
+                              't': [dt.timedelta(0, 22500),
+                                    dt.timedelta(0, 22500)]})
         assert_frame_equal(result, expected)
 
         td = np.timedelta64(300000000)
-        lhs = DataFrame(Series([td,td],index=["A","B"]))
-        rhs = DataFrame(Series([td],index=["A"]))
+        lhs = DataFrame(Series([td, td], index=["A", "B"]))
+        rhs = DataFrame(Series([td], index=["A"]))
 
         from pandas import NaT
-        result = lhs.join(rhs,rsuffix='r', how="left")
-        expected = DataFrame({ '0' : Series([td,td],index=list('AB')), '0r' : Series([td,NaT],index=list('AB')) })
+        result = lhs.join(rhs, rsuffix='r', how="left")
+        expected = DataFrame({'0': Series([td, td], index=list(
+            'AB')), '0r': Series([td, NaT], index=list('AB'))})
         assert_frame_equal(result, expected)
 
     def test_overlapping_columns_error_message(self):
@@ -959,10 +963,10 @@ class TestMerge(tm.TestCase):
         df.columns = ['key', 'foo', 'foo']
         df2.columns = ['key', 'bar', 'bar']
         expected = DataFrame({'key': [1, 2, 3],
-                         'v1': [4, 5, 6],
-                         'v2': [7, 8, 9],
-                         'v3': [4, 5, 6],
-                         'v4': [7, 8, 9]})
+                              'v1': [4, 5, 6],
+                              'v2': [7, 8, 9],
+                              'v3': [4, 5, 6],
+                              'v4': [7, 8, 9]})
         expected.columns = ['key', 'foo', 'foo', 'bar', 'bar']
         assert_frame_equal(merge(df, df2), expected)
 
@@ -973,48 +977,48 @@ class TestMerge(tm.TestCase):
     def test_merge_on_datetime64tz(self):
 
         # GH11405
-        left = pd.DataFrame({'key' : pd.date_range('20151010',periods=2,tz='US/Eastern'),
-                             'value' : [1,2]})
-        right = pd.DataFrame({'key' : pd.date_range('20151011',periods=3,tz='US/Eastern'),
-                              'value' : [1,2,3]})
+        left = pd.DataFrame({'key': pd.date_range('20151010', periods=2, tz='US/Eastern'),
+                             'value': [1, 2]})
+        right = pd.DataFrame({'key': pd.date_range('20151011', periods=3, tz='US/Eastern'),
+                              'value': [1, 2, 3]})
 
-        expected = DataFrame({'key' : pd.date_range('20151010',periods=4,tz='US/Eastern'),
-                              'value_x' : [1,2,np.nan,np.nan],
-                              'value_y' : [np.nan,1,2,3]})
+        expected = DataFrame({'key': pd.date_range('20151010', periods=4, tz='US/Eastern'),
+                              'value_x': [1, 2, np.nan, np.nan],
+                              'value_y': [np.nan, 1, 2, 3]})
         result = pd.merge(left, right, on='key', how='outer')
         assert_frame_equal(result, expected)
 
-        left = pd.DataFrame({'value' : pd.date_range('20151010',periods=2,tz='US/Eastern'),
-                             'key' : [1,2]})
-        right = pd.DataFrame({'value' : pd.date_range('20151011',periods=2,tz='US/Eastern'),
-                              'key' : [2,3]})
-        expected = DataFrame({'value_x' : list(pd.date_range('20151010',periods=2,tz='US/Eastern')) + [pd.NaT],
-                              'value_y' : [pd.NaT] + list(pd.date_range('20151011',periods=2,tz='US/Eastern')),
-                              'key' : [1.,2,3]})
+        left = pd.DataFrame({'value': pd.date_range('20151010', periods=2, tz='US/Eastern'),
+                             'key': [1, 2]})
+        right = pd.DataFrame({'value': pd.date_range('20151011', periods=2, tz='US/Eastern'),
+                              'key': [2, 3]})
+        expected = DataFrame({'value_x': list(pd.date_range('20151010', periods=2, tz='US/Eastern')) + [pd.NaT],
+                              'value_y': [pd.NaT] + list(pd.date_range('20151011', periods=2, tz='US/Eastern')),
+                              'key': [1., 2, 3]})
         result = pd.merge(left, right, on='key', how='outer')
         assert_frame_equal(result, expected)
 
     def test_indicator(self):
         # PR #10054. xref #7412 and closes #8790.
-        df1 = DataFrame({'col1':[0,1], 'col_left':['a','b'], 'col_conflict':[1,2]})
+        df1 = DataFrame({'col1': [0, 1], 'col_left': [
+                        'a', 'b'], 'col_conflict': [1, 2]})
         df1_copy = df1.copy()
 
-        df2 = DataFrame({'col1':[1,2,3,4,5],'col_right':[2,2,2,2,2],
-                         'col_conflict':[1,2,3,4,5]})
+        df2 = DataFrame({'col1': [1, 2, 3, 4, 5], 'col_right': [2, 2, 2, 2, 2],
+                         'col_conflict': [1, 2, 3, 4, 5]})
         df2_copy = df2.copy()
 
-        df_result = DataFrame({'col1':[0,1,2,3,4,5],
-                'col_conflict_x':[1,2,np.nan,np.nan,np.nan,np.nan],
-                'col_left':['a','b', np.nan,np.nan,np.nan,np.nan],
-                'col_conflict_y':[np.nan,1,2,3,4,5],
-                'col_right':[np.nan, 2,2,2,2,2]},
-                dtype='float64')
-        df_result['_merge'] = Categorical(['left_only','both','right_only',
-            'right_only','right_only','right_only']
-            , categories=['left_only', 'right_only', 'both'])
+        df_result = DataFrame({'col1': [0, 1, 2, 3, 4, 5],
+                               'col_conflict_x': [1, 2, np.nan, np.nan, np.nan, np.nan],
+                               'col_left': ['a', 'b', np.nan, np.nan, np.nan, np.nan],
+                               'col_conflict_y': [np.nan, 1, 2, 3, 4, 5],
+                               'col_right': [np.nan, 2, 2, 2, 2, 2]},
+                              dtype='float64')
+        df_result['_merge'] = Categorical(['left_only', 'both', 'right_only',
+                                           'right_only', 'right_only', 'right_only'], categories=['left_only', 'right_only', 'both'])
 
         df_result = df_result[['col1', 'col_conflict_x', 'col_left',
-                               'col_conflict_y', 'col_right', '_merge' ]]
+                               'col_conflict_y', 'col_right', '_merge']]
 
         test = merge(df1, df2, on='col1', how='outer', indicator=True)
         assert_frame_equal(test, df_result)
@@ -1027,11 +1031,14 @@ class TestMerge(tm.TestCase):
 
         # Check with custom name
         df_result_custom_name = df_result
-        df_result_custom_name = df_result_custom_name.rename(columns={'_merge':'custom_name'})
+        df_result_custom_name = df_result_custom_name.rename(
+            columns={'_merge': 'custom_name'})
 
-        test_custom_name = merge(df1, df2, on='col1', how='outer', indicator='custom_name')
+        test_custom_name = merge(
+            df1, df2, on='col1', how='outer', indicator='custom_name')
         assert_frame_equal(test_custom_name, df_result_custom_name)
-        test_custom_name = df1.merge(df2, on='col1', how='outer', indicator='custom_name')
+        test_custom_name = df1.merge(
+            df2, on='col1', how='outer', indicator='custom_name')
         assert_frame_equal(test_custom_name, df_result_custom_name)
 
         # Check only accepts strings and booleans
@@ -1059,35 +1066,40 @@ class TestMerge(tm.TestCase):
 
         # Check if working name in df
         for i in ['_right_indicator', '_left_indicator', '_merge']:
-            df_badcolumn = DataFrame({'col1':[1,2], i:[2,2]})
+            df_badcolumn = DataFrame({'col1': [1, 2], i: [2, 2]})
 
             with tm.assertRaises(ValueError):
-                merge(df1, df_badcolumn, on='col1', how='outer', indicator=True)
+                merge(df1, df_badcolumn, on='col1',
+                      how='outer', indicator=True)
             with tm.assertRaises(ValueError):
                 df1.merge(df_badcolumn, on='col1', how='outer', indicator=True)
 
         # Check for name conflict with custom name
-        df_badcolumn = DataFrame({'col1':[1,2], 'custom_column_name':[2,2]})
+        df_badcolumn = DataFrame(
+            {'col1': [1, 2], 'custom_column_name': [2, 2]})
 
         with tm.assertRaises(ValueError):
-            merge(df1, df_badcolumn, on='col1', how='outer', indicator='custom_column_name')
+            merge(df1, df_badcolumn, on='col1', how='outer',
+                  indicator='custom_column_name')
         with tm.assertRaises(ValueError):
-            df1.merge(df_badcolumn, on='col1', how='outer', indicator='custom_column_name')
+            df1.merge(df_badcolumn, on='col1', how='outer',
+                      indicator='custom_column_name')
 
         # Merge on multiple columns
-        df3 = DataFrame({'col1':[0,1], 'col2':['a','b']})
+        df3 = DataFrame({'col1': [0, 1], 'col2': ['a', 'b']})
 
-        df4 = DataFrame({'col1':[1,1,3], 'col2':['b','x','y']})
+        df4 = DataFrame({'col1': [1, 1, 3], 'col2': ['b', 'x', 'y']})
 
-        hand_coded_result = DataFrame({'col1':[0,1,1,3.0],
-                                         'col2':['a','b','x','y']})
+        hand_coded_result = DataFrame({'col1': [0, 1, 1, 3.0],
+                                       'col2': ['a', 'b', 'x', 'y']})
         hand_coded_result['_merge'] = Categorical(
-            ['left_only','both','right_only','right_only']
-            , categories=['left_only', 'right_only', 'both'])
+            ['left_only', 'both', 'right_only', 'right_only'], categories=['left_only', 'right_only', 'both'])
 
-        test5 = merge(df3, df4, on=['col1', 'col2'], how='outer', indicator=True)
+        test5 = merge(df3, df4, on=['col1', 'col2'],
+                      how='outer', indicator=True)
         assert_frame_equal(test5, hand_coded_result)
-        test5 = df3.merge(df4, on=['col1', 'col2'], how='outer', indicator=True)
+        test5 = df3.merge(df4, on=['col1', 'col2'],
+                          how='outer', indicator=True)
         assert_frame_equal(test5, hand_coded_result)
 
 
@@ -1099,7 +1111,8 @@ def _check_merge(x, y):
                          sort=True)
         expected = expected.set_index('index')
 
-        assert_frame_equal(result, expected, check_names=False)  # TODO check_names on merge?
+        # TODO check_names on merge?
+        assert_frame_equal(result, expected, check_names=False)
 
 
 class TestMergeMulti(tm.TestCase):
@@ -1147,7 +1160,7 @@ class TestMergeMulti(tm.TestCase):
         def bind_cols(df):
             iord = lambda a: 0 if a != a else ord(a)
             f = lambda ts: ts.map(iord) - ord('a')
-            return f(df['1st']) + f(df['3rd'])* 1e2 + df['2nd'].fillna(0) * 1e4
+            return f(df['1st']) + f(df['3rd']) * 1e2 + df['2nd'].fillna(0) * 1e4
 
         def run_asserts(left, right):
             for sort in [False, True]:
@@ -1157,7 +1170,8 @@ class TestMergeMulti(tm.TestCase):
                 self.assertFalse(res['4th'].isnull().any())
                 self.assertFalse(res['5th'].isnull().any())
 
-                tm.assert_series_equal(res['4th'], - res['5th'], check_names=False)
+                tm.assert_series_equal(
+                    res['4th'], - res['5th'], check_names=False)
                 result = bind_cols(res.iloc[:, :-2])
                 tm.assert_series_equal(res['4th'], result, check_names=False)
                 self.assertTrue(result.name is None)
@@ -1203,10 +1217,10 @@ class TestMergeMulti(tm.TestCase):
         # compare left vs right merge with multikey
         for sort in [False, True]:
             merged1 = self.data.merge(self.to_join, left_on=['key1', 'key2'],
-                    right_index=True, how='left', sort=sort)
+                                      right_index=True, how='left', sort=sort)
 
             merged2 = self.to_join.merge(self.data, right_on=['key1', 'key2'],
-                    left_index=True, how='right', sort=sort)
+                                         left_index=True, how='right', sort=sort)
 
             merged2 = merged2.ix[:, merged1.columns]
             assert_frame_equal(merged1, merged2)
@@ -1231,7 +1245,7 @@ class TestMergeMulti(tm.TestCase):
 
         left = DataFrame({'k1': [0, 1, 2] * 8,
                           'k2': ['foo', 'bar'] * 12,
-                          'v': np.array(np.arange(24),dtype=np.int64) })
+                          'v': np.array(np.arange(24), dtype=np.int64)})
 
         index = MultiIndex.from_tuples([(2, 'bar'), (1, 'foo')])
         right = DataFrame({'v2': [5, 7]}, index=index)
@@ -1240,8 +1254,8 @@ class TestMergeMulti(tm.TestCase):
 
         expected = left.copy()
         expected['v2'] = np.nan
-        expected.loc[(expected.k1 == 2) & (expected.k2 == 'bar'),'v2'] = 5
-        expected.loc[(expected.k1 == 1) & (expected.k2 == 'foo'),'v2'] = 7
+        expected.loc[(expected.k1 == 2) & (expected.k2 == 'bar'), 'v2'] = 5
+        expected.loc[(expected.k1 == 1) & (expected.k2 == 'foo'), 'v2'] = 7
 
         tm.assert_frame_equal(result, expected)
         tm.assert_frame_equal(result.sort_values(['k1', 'k2'], kind='mergesort'),
@@ -1250,8 +1264,8 @@ class TestMergeMulti(tm.TestCase):
         # test join with multi dtypes blocks
         left = DataFrame({'k1': [0, 1, 2] * 8,
                           'k2': ['foo', 'bar'] * 12,
-                          'k3' : np.array([0, 1, 2]*8, dtype=np.float32),
-                          'v': np.array(np.arange(24),dtype=np.int32) })
+                          'k3': np.array([0, 1, 2] * 8, dtype=np.float32),
+                          'v': np.array(np.arange(24), dtype=np.int32)})
 
         index = MultiIndex.from_tuples([(2, 'bar'), (1, 'foo')])
         right = DataFrame({'v2': [5, 7]}, index=index)
@@ -1260,8 +1274,8 @@ class TestMergeMulti(tm.TestCase):
 
         expected = left.copy()
         expected['v2'] = np.nan
-        expected.loc[(expected.k1 == 2) & (expected.k2 == 'bar'),'v2'] = 5
-        expected.loc[(expected.k1 == 1) & (expected.k2 == 'foo'),'v2'] = 7
+        expected.loc[(expected.k1 == 2) & (expected.k2 == 'bar'), 'v2'] = 5
+        expected.loc[(expected.k1 == 1) & (expected.k2 == 'foo'), 'v2'] = 7
 
         tm.assert_frame_equal(result, expected)
         tm.assert_frame_equal(result.sort_values(['k1', 'k2'], kind='mergesort'),
@@ -1331,7 +1345,7 @@ class TestMergeMulti(tm.TestCase):
                            how='left', sort=True)
 
         tm.assert_frame_equal(result,
-                expected.sort_values(['cola', 'colb', 'colc'], kind='mergesort'))
+                              expected.sort_values(['cola', 'colb', 'colc'], kind='mergesort'))
 
         # GH7331 - maintain left frame order in left merge
         right.reset_index(inplace=True)
@@ -1378,7 +1392,8 @@ class TestMergeMulti(tm.TestCase):
         tm.assert_frame_equal(result, expected)
 
         result = left.join(right, on='tag', how='left', sort=True)
-        tm.assert_frame_equal(result, expected.sort_values('tag', kind='mergesort'))
+        tm.assert_frame_equal(
+            result, expected.sort_values('tag', kind='mergesort'))
 
         # GH7331 - maintain left frame order in left merge
         result = merge(left, right.reset_index(), how='left', on='tag')
@@ -1388,13 +1403,14 @@ class TestMergeMulti(tm.TestCase):
     def test_join_multi_dtypes(self):
 
         # test with multi dtypes in the join index
-        def _test(dtype1,dtype2):
+        def _test(dtype1, dtype2):
             left = DataFrame({'k1': np.array([0, 1, 2] * 8, dtype=dtype1),
                               'k2': ['foo', 'bar'] * 12,
-                              'v': np.array(np.arange(24),dtype=np.int64) })
+                              'v': np.array(np.arange(24), dtype=np.int64)})
 
             index = MultiIndex.from_tuples([(2, 'bar'), (1, 'foo')])
-            right = DataFrame({'v2': np.array([5, 7], dtype=dtype2)}, index=index)
+            right = DataFrame(
+                {'v2': np.array([5, 7], dtype=dtype2)}, index=index)
 
             result = left.join(right, on=['k1', 'k2'])
 
@@ -1402,9 +1418,9 @@ class TestMergeMulti(tm.TestCase):
 
             if dtype2.kind == 'i':
                 dtype2 = np.dtype('float64')
-            expected['v2'] = np.array(np.nan,dtype=dtype2)
-            expected.loc[(expected.k1 == 2) & (expected.k2 == 'bar'),'v2'] = 5
-            expected.loc[(expected.k1 == 1) & (expected.k2 == 'foo'),'v2'] = 7
+            expected['v2'] = np.array(np.nan, dtype=dtype2)
+            expected.loc[(expected.k1 == 2) & (expected.k2 == 'bar'), 'v2'] = 5
+            expected.loc[(expected.k1 == 1) & (expected.k2 == 'foo'), 'v2'] = 7
 
             tm.assert_frame_equal(result, expected)
 
@@ -1412,9 +1428,9 @@ class TestMergeMulti(tm.TestCase):
             expected.sort_values(['k1', 'k2'], kind='mergesort', inplace=True)
             tm.assert_frame_equal(result, expected)
 
-        for d1 in [np.int64,np.int32,np.int16,np.int8,np.uint8]:
-            for d2 in [np.int64,np.float64,np.float32,np.float16]:
-                _test(np.dtype(d1),np.dtype(d2))
+        for d1 in [np.int64, np.int32, np.int16, np.int8, np.uint8]:
+            for d2 in [np.int64, np.float64, np.float32, np.float16]:
+                _test(np.dtype(d1), np.dtype(d2))
 
     def test_left_merge_na_buglet(self):
         left = DataFrame({'id': list('abcde'), 'v1': randn(5),
@@ -1588,52 +1604,58 @@ class TestMergeMulti(tm.TestCase):
                 assert_frame_equal(frame, align(res),
                                    check_dtype=how not in ('right', 'outer'))
 
-
     def test_join_multi_levels(self):
 
         # GH 3662
         # merge multi-levels
 
-        household = DataFrame(dict(household_id = [1,2,3],
-                                   male = [0,1,0],
-                                   wealth = [196087.3,316478.7,294750]),
-                              columns = ['household_id','male','wealth']).set_index('household_id')
-        portfolio = DataFrame(dict(household_id = [1,2,2,3,3,3,4],
-                                   asset_id = ["nl0000301109","nl0000289783","gb00b03mlx29","gb00b03mlx29","lu0197800237","nl0000289965",np.nan],
-                                   name = ["ABN Amro","Robeco","Royal Dutch Shell","Royal Dutch Shell","AAB Eastern Europe Equity Fund","Postbank BioTech Fonds",np.nan],
-                                   share = [1.0,0.4,0.6,0.15,0.6,0.25,1.0]),
-                              columns = ['household_id','asset_id','name','share']).set_index(['household_id','asset_id'])
+        household = DataFrame(dict(household_id=[1, 2, 3],
+                                   male=[0, 1, 0],
+                                   wealth=[196087.3, 316478.7, 294750]),
+                              columns=['household_id', 'male', 'wealth']).set_index('household_id')
+        portfolio = DataFrame(dict(household_id=[1, 2, 2, 3, 3, 3, 4],
+                                   asset_id=["nl0000301109", "nl0000289783", "gb00b03mlx29",
+                                             "gb00b03mlx29", "lu0197800237", "nl0000289965", np.nan],
+                                   name=["ABN Amro", "Robeco", "Royal Dutch Shell", "Royal Dutch Shell",
+                                         "AAB Eastern Europe Equity Fund", "Postbank BioTech Fonds", np.nan],
+                                   share=[1.0, 0.4, 0.6, 0.15, 0.6, 0.25, 1.0]),
+                              columns=['household_id', 'asset_id', 'name', 'share']).set_index(['household_id', 'asset_id'])
         result = household.join(portfolio, how='inner')
-        expected = DataFrame(dict(male = [0,1,1,0,0,0],
-                                  wealth = [ 196087.3, 316478.7, 316478.7, 294750.0, 294750.0, 294750.0 ],
-                                  name = ['ABN Amro','Robeco','Royal Dutch Shell','Royal Dutch Shell','AAB Eastern Europe Equity Fund','Postbank BioTech Fonds'],
-                                  share = [1.00,0.40,0.60,0.15,0.60,0.25],
-                                  household_id = [1,2,2,3,3,3],
-                                  asset_id = ['nl0000301109','nl0000289783','gb00b03mlx29','gb00b03mlx29','lu0197800237','nl0000289965']),
-                             ).set_index(['household_id','asset_id']).reindex(columns=['male','wealth','name','share'])
-        assert_frame_equal(result,expected)
+        expected = DataFrame(dict(male=[0, 1, 1, 0, 0, 0],
+                                  wealth=[196087.3, 316478.7, 316478.7,
+                                          294750.0, 294750.0, 294750.0],
+                                  name=['ABN Amro', 'Robeco', 'Royal Dutch Shell', 'Royal Dutch Shell',
+                                        'AAB Eastern Europe Equity Fund', 'Postbank BioTech Fonds'],
+                                  share=[1.00, 0.40, 0.60, 0.15, 0.60, 0.25],
+                                  household_id=[1, 2, 2, 3, 3, 3],
+                                  asset_id=['nl0000301109', 'nl0000289783', 'gb00b03mlx29', 'gb00b03mlx29', 'lu0197800237', 'nl0000289965']),
+                             ).set_index(['household_id', 'asset_id']).reindex(columns=['male', 'wealth', 'name', 'share'])
+        assert_frame_equal(result, expected)
 
-        assert_frame_equal(result,expected)
+        assert_frame_equal(result, expected)
 
         # equivalency
-        result2 = merge(household.reset_index(),portfolio.reset_index(),on=['household_id'],how='inner').set_index(['household_id','asset_id'])
-        assert_frame_equal(result2,expected)
+        result2 = merge(household.reset_index(), portfolio.reset_index(), on=[
+                        'household_id'], how='inner').set_index(['household_id', 'asset_id'])
+        assert_frame_equal(result2, expected)
 
         result = household.join(portfolio, how='outer')
-        expected = concat([expected,DataFrame(dict(share = [1.00]),
-                                              index=MultiIndex.from_tuples([(4,np.nan)],
-                                                                           names=['household_id','asset_id']))],
+        expected = concat([expected, DataFrame(dict(share=[1.00]),
+                                               index=MultiIndex.from_tuples([(4, np.nan)],
+                                                                            names=['household_id', 'asset_id']))],
                           axis=0).reindex(columns=expected.columns)
-        assert_frame_equal(result,expected)
+        assert_frame_equal(result, expected)
 
         # invalid cases
         household.index.name = 'foo'
+
         def f():
             household.join(portfolio, how='inner')
         self.assertRaises(ValueError, f)
 
         portfolio2 = portfolio.copy()
-        portfolio2.index.set_names(['household_id','foo'])
+        portfolio2.index.set_names(['household_id', 'foo'])
+
         def f():
             portfolio2.join(portfolio, how='inner')
         self.assertRaises(ValueError, f)
@@ -1642,44 +1664,53 @@ class TestMergeMulti(tm.TestCase):
 
         # some more advanced merges
         # GH6360
-        household = DataFrame(dict(household_id = [1,2,2,3,3,3,4],
-                                   asset_id = ["nl0000301109","nl0000301109","gb00b03mlx29","gb00b03mlx29","lu0197800237","nl0000289965",np.nan],
-                                   share = [1.0,0.4,0.6,0.15,0.6,0.25,1.0]),
-                              columns = ['household_id','asset_id','share']).set_index(['household_id','asset_id'])
+        household = DataFrame(dict(household_id=[1, 2, 2, 3, 3, 3, 4],
+                                   asset_id=["nl0000301109", "nl0000301109", "gb00b03mlx29",
+                                             "gb00b03mlx29", "lu0197800237", "nl0000289965", np.nan],
+                                   share=[1.0, 0.4, 0.6, 0.15, 0.6, 0.25, 1.0]),
+                              columns=['household_id', 'asset_id', 'share']).set_index(['household_id', 'asset_id'])
 
         log_return = DataFrame(dict(
-            asset_id = ["gb00b03mlx29", "gb00b03mlx29", "gb00b03mlx29", "lu0197800237", "lu0197800237"],
-            t = [233, 234, 235, 180, 181],
-            log_return = [.09604978, -.06524096, .03532373, .03025441, .036997]
-                )).set_index(["asset_id","t"])
+            asset_id=["gb00b03mlx29", "gb00b03mlx29",
+                      "gb00b03mlx29", "lu0197800237", "lu0197800237"],
+            t=[233, 234, 235, 180, 181],
+            log_return=[.09604978, -.06524096, .03532373, .03025441, .036997]
+        )).set_index(["asset_id", "t"])
 
         expected = DataFrame(dict(
-            household_id = [2, 2, 2, 3, 3, 3, 3, 3],
-            asset_id = ["gb00b03mlx29", "gb00b03mlx29", "gb00b03mlx29", "gb00b03mlx29", "gb00b03mlx29", "gb00b03mlx29", "lu0197800237", "lu0197800237"],
-            t = [233, 234, 235, 233, 234, 235, 180, 181],
-            share = [0.6, 0.6, 0.6, 0.15, 0.15, 0.15, 0.6, 0.6],
-            log_return = [.09604978, -.06524096, .03532373, .09604978, -.06524096, .03532373, .03025441, .036997]
-            )).set_index(["household_id", "asset_id", "t"]).reindex(columns=['share','log_return'])
+            household_id=[2, 2, 2, 3, 3, 3, 3, 3],
+            asset_id=["gb00b03mlx29", "gb00b03mlx29", "gb00b03mlx29", "gb00b03mlx29",
+                      "gb00b03mlx29", "gb00b03mlx29", "lu0197800237", "lu0197800237"],
+            t=[233, 234, 235, 233, 234, 235, 180, 181],
+            share=[0.6, 0.6, 0.6, 0.15, 0.15, 0.15, 0.6, 0.6],
+            log_return=[.09604978, -.06524096, .03532373,
+                        .09604978, -.06524096, .03532373, .03025441, .036997]
+        )).set_index(["household_id", "asset_id", "t"]).reindex(columns=['share', 'log_return'])
 
         def f():
             household.join(log_return, how='inner')
         self.assertRaises(NotImplementedError, f)
 
         # this is the equivalency
-        result = merge(household.reset_index(),log_return.reset_index(),on=['asset_id'],how='inner').set_index(['household_id','asset_id','t'])
-        assert_frame_equal(result,expected)
+        result = merge(household.reset_index(), log_return.reset_index(), on=[
+                       'asset_id'], how='inner').set_index(['household_id', 'asset_id', 't'])
+        assert_frame_equal(result, expected)
 
         expected = DataFrame(dict(
-            household_id = [1, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 4],
-            asset_id = ["nl0000301109", "nl0000289783", "gb00b03mlx29", "gb00b03mlx29", "gb00b03mlx29", "gb00b03mlx29", "gb00b03mlx29", "gb00b03mlx29", "lu0197800237", "lu0197800237", "nl0000289965", None],
-            t = [None, None, 233, 234, 235, 233, 234, 235, 180, 181, None, None],
-            share = [1.0, 0.4, 0.6, 0.6, 0.6, 0.15, 0.15, 0.15, 0.6, 0.6, 0.25, 1.0],
-            log_return = [None, None, .09604978, -.06524096, .03532373, .09604978, -.06524096, .03532373, .03025441, .036997, None, None]
-            )).set_index(["household_id", "asset_id", "t"])
+            household_id=[1, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 4],
+            asset_id=["nl0000301109", "nl0000289783", "gb00b03mlx29", "gb00b03mlx29", "gb00b03mlx29",
+                      "gb00b03mlx29", "gb00b03mlx29", "gb00b03mlx29", "lu0197800237", "lu0197800237", "nl0000289965", None],
+            t=[None, None, 233, 234, 235, 233, 234, 235, 180, 181, None, None],
+            share=[1.0, 0.4, 0.6, 0.6, 0.6, 0.15,
+                   0.15, 0.15, 0.6, 0.6, 0.25, 1.0],
+            log_return=[None, None, .09604978, -.06524096, .03532373,
+                        .09604978, -.06524096, .03532373, .03025441, .036997, None, None]
+        )).set_index(["household_id", "asset_id", "t"])
 
         def f():
             household.join(log_return, how='outer')
         self.assertRaises(NotImplementedError, f)
+
 
 def _check_join(left, right, result, join_col, how='left',
                 lsuffix='_x', rsuffix='_y'):
@@ -1722,7 +1753,7 @@ def _restrict_to_columns(group, columns, suffix):
     found = [c for c in group.columns
              if c in columns or c.replace(suffix, '') in columns]
 
-     # filter
+    # filter
     group = group.ix[:, found]
 
     # get rid of suffixes, if any
@@ -1823,7 +1854,8 @@ class TestConcatenate(tm.TestCase):
         # GH 6129
         df = DataFrame({'a': {'x': 1, 'y': 2}, 'b': {'x': 3, 'y': 4}})
         row = Series([5, 6, 7], index=['a', 'b', 'c'], name='z')
-        expected = DataFrame({'a': {'x': 1, 'y': 2, 'z': 5}, 'b': {'x': 3, 'y': 4, 'z': 6}, 'c' : {'z' : 7}})
+        expected = DataFrame({'a': {'x': 1, 'y': 2, 'z': 5}, 'b': {
+                             'x': 3, 'y': 4, 'z': 6}, 'c': {'z': 7}})
         result = df.append(row)
         assert_frame_equal(result, expected)
 
@@ -1938,32 +1970,35 @@ class TestConcatenate(tm.TestCase):
     def test_concat_copy(self):
 
         df = DataFrame(np.random.randn(4, 3))
-        df2 = DataFrame(np.random.randint(0,10,size=4).reshape(4,1))
-        df3 = DataFrame({5 : 'foo'},index=range(4))
+        df2 = DataFrame(np.random.randint(0, 10, size=4).reshape(4, 1))
+        df3 = DataFrame({5: 'foo'}, index=range(4))
 
         # these are actual copies
-        result = concat([df,df2,df3],axis=1,copy=True)
+        result = concat([df, df2, df3], axis=1, copy=True)
         for b in result._data.blocks:
             self.assertIsNone(b.values.base)
 
         # these are the same
-        result = concat([df,df2,df3],axis=1,copy=False)
+        result = concat([df, df2, df3], axis=1, copy=False)
         for b in result._data.blocks:
             if b.is_float:
-                self.assertTrue(b.values.base is df._data.blocks[0].values.base)
+                self.assertTrue(
+                    b.values.base is df._data.blocks[0].values.base)
             elif b.is_integer:
-                self.assertTrue(b.values.base is df2._data.blocks[0].values.base)
+                self.assertTrue(
+                    b.values.base is df2._data.blocks[0].values.base)
             elif b.is_object:
                 self.assertIsNotNone(b.values.base)
 
         # float block was consolidated
-        df4 = DataFrame(np.random.randn(4,1))
-        result = concat([df,df2,df3,df4],axis=1,copy=False)
+        df4 = DataFrame(np.random.randn(4, 1))
+        result = concat([df, df2, df3, df4], axis=1, copy=False)
         for b in result._data.blocks:
             if b.is_float:
                 self.assertIsNone(b.values.base)
             elif b.is_integer:
-                self.assertTrue(b.values.base is df2._data.blocks[0].values.base)
+                self.assertTrue(
+                    b.values.base is df2._data.blocks[0].values.base)
             elif b.is_object:
                 self.assertIsNotNone(b.values.base)
 
@@ -1984,7 +2019,7 @@ class TestConcatenate(tm.TestCase):
 
         result = concat([df, df], keys=[0, 1])
         exp_index2 = MultiIndex.from_arrays([[0, 0, 0, 1, 1, 1],
-                                            [0, 1, 2, 0, 1, 2]])
+                                             [0, 1, 2, 0, 1, 2]])
         expected = DataFrame(np.r_[df.values, df.values],
                              index=exp_index2)
         tm.assert_frame_equal(result, expected)
@@ -2016,9 +2051,9 @@ class TestConcatenate(tm.TestCase):
 
     def test_concat_dataframe_keys_bug(self):
         t1 = DataFrame({'value': Series([1, 2, 3],
-                       index=Index(['a', 'b', 'c'], name='id'))})
+                                        index=Index(['a', 'b', 'c'], name='id'))})
         t2 = DataFrame({'value': Series([7, 8],
-                       index=Index(['a', 'b'], name='id'))})
+                                        index=Index(['a', 'b'], name='id'))})
 
         # it works
         result = concat([t1, t2], axis=1, keys=['t1', 't2'])
@@ -2027,20 +2062,23 @@ class TestConcatenate(tm.TestCase):
 
     def test_concat_series_partial_columns_names(self):
         # GH10698
-        foo = Series([1,2], name='foo')
-        bar = Series([1,2])
-        baz = Series([4,5])
+        foo = Series([1, 2], name='foo')
+        bar = Series([1, 2])
+        baz = Series([4, 5])
 
         result = concat([foo, bar, baz], axis=1)
-        expected = DataFrame({'foo' : [1,2], 0 : [1,2], 1 : [4,5]}, columns=['foo',0,1])
+        expected = DataFrame({'foo': [1, 2], 0: [1, 2], 1: [
+                             4, 5]}, columns=['foo', 0, 1])
         tm.assert_frame_equal(result, expected)
 
-        result = concat([foo, bar, baz], axis=1, keys=['red','blue','yellow'])
-        expected = DataFrame({'red' : [1,2], 'blue' : [1,2], 'yellow' : [4,5]}, columns=['red','blue','yellow'])
+        result = concat([foo, bar, baz], axis=1, keys=[
+                        'red', 'blue', 'yellow'])
+        expected = DataFrame({'red': [1, 2], 'blue': [1, 2], 'yellow': [
+                             4, 5]}, columns=['red', 'blue', 'yellow'])
         tm.assert_frame_equal(result, expected)
 
         result = concat([foo, bar, baz], axis=1, ignore_index=True)
-        expected = DataFrame({0 : [1,2], 1 : [1,2], 2 : [4,5]})
+        expected = DataFrame({0: [1, 2], 1: [1, 2], 2: [4, 5]})
         tm.assert_frame_equal(result, expected)
 
     def test_concat_dict(self):
@@ -2110,7 +2148,7 @@ class TestConcatenate(tm.TestCase):
         df = df.set_index(['dt', 'b'])
 
         exp_idx1 = DatetimeIndex(['2014-01-01', '2014-01-02', '2014-01-03'] * 2,
-                                    tz='US/Pacific', name='dt')
+                                 tz='US/Pacific', name='dt')
         exp_idx2 = Index(['A', 'B', 'C'] * 2, name='b')
         exp_idx = MultiIndex.from_arrays([exp_idx1, exp_idx2])
         expected = DataFrame({'c': [1, 2, 3] * 2, 'd': [4, 5, 6] * 2},
@@ -2214,70 +2252,73 @@ class TestConcatenate(tm.TestCase):
         # GH 4771
 
         # single dtypes
-        df = DataFrame(np.random.randint(0,10,size=40).reshape(10,4),columns=['A','A','C','C'])
+        df = DataFrame(np.random.randint(0, 10, size=40).reshape(
+            10, 4), columns=['A', 'A', 'C', 'C'])
 
-        result = concat([df,df],axis=1)
-        assert_frame_equal(result.iloc[:,:4],df)
-        assert_frame_equal(result.iloc[:,4:],df)
+        result = concat([df, df], axis=1)
+        assert_frame_equal(result.iloc[:, :4], df)
+        assert_frame_equal(result.iloc[:, 4:], df)
 
-        result = concat([df,df],axis=0)
-        assert_frame_equal(result.iloc[:10],df)
-        assert_frame_equal(result.iloc[10:],df)
+        result = concat([df, df], axis=0)
+        assert_frame_equal(result.iloc[:10], df)
+        assert_frame_equal(result.iloc[10:], df)
 
         # multi dtypes
-        df = concat([DataFrame(np.random.randn(10,4),columns=['A','A','B','B']),
-                     DataFrame(np.random.randint(0,10,size=20).reshape(10,2),columns=['A','C'])],
+        df = concat([DataFrame(np.random.randn(10, 4), columns=['A', 'A', 'B', 'B']),
+                     DataFrame(np.random.randint(0, 10, size=20).reshape(10, 2), columns=['A', 'C'])],
                     axis=1)
 
-        result = concat([df,df],axis=1)
-        assert_frame_equal(result.iloc[:,:6],df)
-        assert_frame_equal(result.iloc[:,6:],df)
+        result = concat([df, df], axis=1)
+        assert_frame_equal(result.iloc[:, :6], df)
+        assert_frame_equal(result.iloc[:, 6:], df)
 
-        result = concat([df,df],axis=0)
-        assert_frame_equal(result.iloc[:10],df)
-        assert_frame_equal(result.iloc[10:],df)
+        result = concat([df, df], axis=0)
+        assert_frame_equal(result.iloc[:10], df)
+        assert_frame_equal(result.iloc[10:], df)
 
         # append
-        result = df.iloc[0:8,:].append(df.iloc[8:])
+        result = df.iloc[0:8, :].append(df.iloc[8:])
         assert_frame_equal(result, df)
 
-        result = df.iloc[0:8,:].append(df.iloc[8:9]).append(df.iloc[9:10])
+        result = df.iloc[0:8, :].append(df.iloc[8:9]).append(df.iloc[9:10])
         assert_frame_equal(result, df)
 
-        expected = concat([df,df],axis=0)
+        expected = concat([df, df], axis=0)
         result = df.append(df)
         assert_frame_equal(result, expected)
 
     def test_with_mixed_tuples(self):
         # 10697
         # columns have mixed tuples, so handle properly
-        df1 = DataFrame({ u'A' : 'foo', (u'B',1) : 'bar' },index=range(2))
-        df2 = DataFrame({ u'B' : 'foo', (u'B',1) : 'bar' },index=range(2))
-        result = concat([df1,df2])
+        df1 = DataFrame({u'A': 'foo', (u'B', 1): 'bar'}, index=range(2))
+        df2 = DataFrame({u'B': 'foo', (u'B', 1): 'bar'}, index=range(2))
+        result = concat([df1, df2])
 
     def test_join_dups(self):
 
         # joining dups
-        df = concat([DataFrame(np.random.randn(10,4),columns=['A','A','B','B']),
-                     DataFrame(np.random.randint(0,10,size=20).reshape(10,2),columns=['A','C'])],
+        df = concat([DataFrame(np.random.randn(10, 4), columns=['A', 'A', 'B', 'B']),
+                     DataFrame(np.random.randint(0, 10, size=20).reshape(10, 2), columns=['A', 'C'])],
                     axis=1)
 
-        expected = concat([df,df],axis=1)
-        result = df.join(df,rsuffix='_2')
+        expected = concat([df, df], axis=1)
+        result = df.join(df, rsuffix='_2')
         result.columns = expected.columns
         assert_frame_equal(result, expected)
 
         # GH 4975, invalid join on dups
-        w = DataFrame(np.random.randn(4,2), columns=["x", "y"])
-        x = DataFrame(np.random.randn(4,2), columns=["x", "y"])
-        y = DataFrame(np.random.randn(4,2), columns=["x", "y"])
-        z = DataFrame(np.random.randn(4,2), columns=["x", "y"])
+        w = DataFrame(np.random.randn(4, 2), columns=["x", "y"])
+        x = DataFrame(np.random.randn(4, 2), columns=["x", "y"])
+        y = DataFrame(np.random.randn(4, 2), columns=["x", "y"])
+        z = DataFrame(np.random.randn(4, 2), columns=["x", "y"])
 
-        dta = x.merge(y, left_index=True, right_index=True).merge(z, left_index=True, right_index=True, how="outer")
+        dta = x.merge(y, left_index=True, right_index=True).merge(
+            z, left_index=True, right_index=True, how="outer")
         dta = dta.merge(w, left_index=True, right_index=True)
-        expected = concat([x,y,z,w],axis=1)
-        expected.columns=['x_x','y_x','x_y','y_y','x_x','y_x','x_y','y_y']
-        assert_frame_equal(dta,expected)
+        expected = concat([x, y, z, w], axis=1)
+        expected.columns = ['x_x', 'y_x', 'x_y',
+                            'y_y', 'x_x', 'y_x', 'x_y', 'y_y']
+        assert_frame_equal(dta, expected)
 
     def test_handle_empty_objects(self):
         df = DataFrame(np.random.randn(10, 4), columns=list('abcd'))
@@ -2291,22 +2332,23 @@ class TestConcatenate(tm.TestCase):
 
         expected = df.ix[:, ['a', 'b', 'c', 'd', 'foo']]
         expected['foo'] = expected['foo'].astype('O')
-        expected.loc[0:4,'foo'] = 'bar'
+        expected.loc[0:4, 'foo'] = 'bar'
 
         tm.assert_frame_equal(concatted, expected)
 
         # empty as first element with time series
         # GH3259
-        df = DataFrame(dict(A = range(10000)),index=date_range('20130101',periods=10000,freq='s'))
+        df = DataFrame(dict(A=range(10000)), index=date_range(
+            '20130101', periods=10000, freq='s'))
         empty = DataFrame()
-        result = concat([df,empty],axis=1)
+        result = concat([df, empty], axis=1)
         assert_frame_equal(result, df)
-        result = concat([empty,df],axis=1)
+        result = concat([empty, df], axis=1)
         assert_frame_equal(result, df)
 
-        result = concat([df,empty])
+        result = concat([df, empty])
         assert_frame_equal(result, df)
-        result = concat([empty,df])
+        result = concat([empty, df])
         assert_frame_equal(result, df)
 
     def test_concat_mixed_objs(self):
@@ -2315,56 +2357,64 @@ class TestConcatenate(tm.TestCase):
         # G2385
 
         # axis 1
-        index=date_range('01-Jan-2013', periods=10, freq='H')
+        index = date_range('01-Jan-2013', periods=10, freq='H')
         arr = np.arange(10, dtype='int64')
         s1 = Series(arr, index=index)
         s2 = Series(arr, index=index)
-        df = DataFrame(arr.reshape(-1,1), index=index)
+        df = DataFrame(arr.reshape(-1, 1), index=index)
 
-        expected = DataFrame(np.repeat(arr,2).reshape(-1,2), index=index, columns = [0, 0])
-        result = concat([df,df], axis=1)
+        expected = DataFrame(np.repeat(arr, 2).reshape(-1, 2),
+                             index=index, columns=[0, 0])
+        result = concat([df, df], axis=1)
         assert_frame_equal(result, expected)
 
-        expected = DataFrame(np.repeat(arr,2).reshape(-1,2), index=index, columns = [0, 1])
-        result = concat([s1,s2], axis=1)
+        expected = DataFrame(np.repeat(arr, 2).reshape(-1, 2),
+                             index=index, columns=[0, 1])
+        result = concat([s1, s2], axis=1)
         assert_frame_equal(result, expected)
 
-        expected = DataFrame(np.repeat(arr,3).reshape(-1,3), index=index, columns = [0, 1, 2])
-        result = concat([s1,s2,s1], axis=1)
+        expected = DataFrame(np.repeat(arr, 3).reshape(-1, 3),
+                             index=index, columns=[0, 1, 2])
+        result = concat([s1, s2, s1], axis=1)
         assert_frame_equal(result, expected)
 
-        expected = DataFrame(np.repeat(arr,5).reshape(-1,5), index=index, columns = [0, 0, 1, 2, 3])
-        result = concat([s1,df,s2,s2,s1], axis=1)
+        expected = DataFrame(np.repeat(arr, 5).reshape(-1, 5),
+                             index=index, columns=[0, 0, 1, 2, 3])
+        result = concat([s1, df, s2, s2, s1], axis=1)
         assert_frame_equal(result, expected)
 
         # with names
         s1.name = 'foo'
-        expected = DataFrame(np.repeat(arr,3).reshape(-1,3), index=index, columns = ['foo', 0, 0])
-        result = concat([s1,df,s2], axis=1)
+        expected = DataFrame(np.repeat(arr, 3).reshape(-1, 3),
+                             index=index, columns=['foo', 0, 0])
+        result = concat([s1, df, s2], axis=1)
         assert_frame_equal(result, expected)
 
         s2.name = 'bar'
-        expected = DataFrame(np.repeat(arr,3).reshape(-1,3), index=index, columns = ['foo', 0, 'bar'])
-        result = concat([s1,df,s2], axis=1)
+        expected = DataFrame(np.repeat(arr, 3).reshape(-1, 3),
+                             index=index, columns=['foo', 0, 'bar'])
+        result = concat([s1, df, s2], axis=1)
         assert_frame_equal(result, expected)
 
         # ignore index
-        expected = DataFrame(np.repeat(arr,3).reshape(-1,3), index=index, columns = [0, 1, 2])
-        result = concat([s1,df,s2], axis=1, ignore_index=True)
+        expected = DataFrame(np.repeat(arr, 3).reshape(-1, 3),
+                             index=index, columns=[0, 1, 2])
+        result = concat([s1, df, s2], axis=1, ignore_index=True)
         assert_frame_equal(result, expected)
 
         # axis 0
-        expected = DataFrame(np.tile(arr,3).reshape(-1,1), index=index.tolist() * 3, columns = [0])
-        result = concat([s1,df,s2])
+        expected = DataFrame(np.tile(arr, 3).reshape(-1, 1),
+                             index=index.tolist() * 3, columns=[0])
+        result = concat([s1, df, s2])
         assert_frame_equal(result, expected)
 
-        expected = DataFrame(np.tile(arr,3).reshape(-1,1), columns = [0])
-        result = concat([s1,df,s2], ignore_index=True)
+        expected = DataFrame(np.tile(arr, 3).reshape(-1, 1), columns=[0])
+        result = concat([s1, df, s2], ignore_index=True)
         assert_frame_equal(result, expected)
 
         # invalid concatente of mixed dims
         panel = tm.makePanel()
-        self.assertRaises(ValueError, lambda : concat([panel,s1],axis=1))
+        self.assertRaises(ValueError, lambda: concat([panel, s1], axis=1))
 
     def test_panel_join(self):
         panel = tm.makePanel()
@@ -2576,7 +2626,8 @@ class TestConcatenate(tm.TestCase):
 
         s2.name = None
         result = concat([s, s2], axis=1)
-        self.assertTrue(np.array_equal(result.columns, Index(['A', 0], dtype='object')))
+        self.assertTrue(np.array_equal(
+            result.columns, Index(['A', 0], dtype='object')))
 
         # must reindex, #2603
         s = Series(randn(3), index=['c', 'a', 'b'], name='A')
@@ -2614,7 +2665,7 @@ class TestConcatenate(tm.TestCase):
     def test_concat_timedelta64_block(self):
         from pandas import to_timedelta
 
-        rng = to_timedelta(np.arange(10),unit='s')
+        rng = to_timedelta(np.arange(10), unit='s')
 
         df = DataFrame({'time': rng})
 
@@ -2640,8 +2691,8 @@ class TestConcatenate(tm.TestCase):
         ts1 = tm.makeTimeSeries()
         ts2 = tm.makeTimeSeries()[::2]
 
-        ## to join with union
-        ## these two are of different length!
+        # to join with union
+        # these two are of different length!
         left = concat([ts1, ts2], join='outer', axis=1)
         right = concat([ts2, ts1], join='outer', axis=1)
 
@@ -2654,22 +2705,24 @@ class TestConcatenate(tm.TestCase):
         result = concat([ts0, ts1], axis=1)
 
         expected = DataFrame({0: ts0, 1: ts1})
-        expected.columns=['same name', 'same name']
+        expected.columns = ['same name', 'same name']
         assert_frame_equal(result, expected)
 
     def test_concat_bug_3602(self):
 
         # GH 3602, duplicate columns
-        df1 = DataFrame({'firmNo' : [0,0,0,0], 'stringvar' : ['rrr', 'rrr', 'rrr', 'rrr'], 'prc' : [6,6,6,6] })
-        df2 = DataFrame({'misc' : [1,2,3,4], 'prc' : [6,6,6,6], 'C' : [9,10,11,12]})
-        expected = DataFrame([[0,6,'rrr',9,1,6],
-                              [0,6,'rrr',10,2,6],
-                              [0,6,'rrr',11,3,6],
-                              [0,6,'rrr',12,4,6]])
-        expected.columns = ['firmNo','prc','stringvar','C','misc','prc']
+        df1 = DataFrame({'firmNo': [0, 0, 0, 0], 'stringvar': [
+                        'rrr', 'rrr', 'rrr', 'rrr'], 'prc': [6, 6, 6, 6]})
+        df2 = DataFrame({'misc': [1, 2, 3, 4], 'prc': [
+                        6, 6, 6, 6], 'C': [9, 10, 11, 12]})
+        expected = DataFrame([[0, 6, 'rrr', 9, 1, 6],
+                              [0, 6, 'rrr', 10, 2, 6],
+                              [0, 6, 'rrr', 11, 3, 6],
+                              [0, 6, 'rrr', 12, 4, 6]])
+        expected.columns = ['firmNo', 'prc', 'stringvar', 'C', 'misc', 'prc']
 
-        result = concat([df1,df2],axis=1)
-        assert_frame_equal(result,expected)
+        result = concat([df1, df2], axis=1)
+        assert_frame_equal(result, expected)
 
     def test_concat_series_axis1_same_names_ignore_index(self):
         dates = date_range('01-Jan-2013', '01-Jan-2014', freq='MS')[0:-1]
@@ -2689,29 +2742,38 @@ class TestConcatenate(tm.TestCase):
         expected = DataFrame([1, 2, 3, 4, 5, 6])
         assert_frame_equal(concat((df1, df2), ignore_index=True), expected)
         assert_frame_equal(concat([df1, df2], ignore_index=True), expected)
-        assert_frame_equal(concat((df for df in (df1, df2)), ignore_index=True), expected)
-        assert_frame_equal(concat(deque((df1, df2)), ignore_index=True), expected)
+        assert_frame_equal(concat((df for df in (df1, df2)),
+                                  ignore_index=True), expected)
+        assert_frame_equal(
+            concat(deque((df1, df2)), ignore_index=True), expected)
+
         class CustomIterator1(object):
+
             def __len__(self):
                 return 2
+
             def __getitem__(self, index):
                 try:
                     return {0: df1, 1: df2}[index]
                 except KeyError:
                     raise IndexError
-        assert_frame_equal(pd.concat(CustomIterator1(), ignore_index=True), expected)
+        assert_frame_equal(pd.concat(CustomIterator1(),
+                                     ignore_index=True), expected)
+
         class CustomIterator2(Iterable):
+
             def __iter__(self):
                 yield df1
                 yield df2
-        assert_frame_equal(pd.concat(CustomIterator2(), ignore_index=True), expected)
+        assert_frame_equal(pd.concat(CustomIterator2(),
+                                     ignore_index=True), expected)
 
     def test_concat_invalid(self):
 
         # trying to concat a ndframe with a non-ndframe
         df1 = mkdf(10, 2)
-        for obj in [1, dict(), [1, 2], (1, 2) ]:
-            self.assertRaises(TypeError, lambda x: concat([ df1, obj ]))
+        for obj in [1, dict(), [1, 2], (1, 2)]:
+            self.assertRaises(TypeError, lambda x: concat([df1, obj]))
 
     def test_concat_invalid_first_argument(self):
         df1 = mkdf(10, 2)
@@ -2719,7 +2781,7 @@ class TestConcatenate(tm.TestCase):
         self.assertRaises(TypeError, concat, df1, df2)
 
         # generator ok though
-        concat(DataFrame(np.random.rand(5,5)) for _ in range(3))
+        concat(DataFrame(np.random.rand(5, 5)) for _ in range(3))
 
         # text reader ok
         # GH6583
@@ -2735,7 +2797,8 @@ bar2,12,13,14,15
         reader = read_csv(StringIO(data), chunksize=1)
         result = concat(reader, ignore_index=True)
         expected = read_csv(StringIO(data))
-        assert_frame_equal(result,expected)
+        assert_frame_equal(result, expected)
+
 
 class TestOrderedMerge(tm.TestCase):
 
@@ -2789,6 +2852,7 @@ class TestOrderedMerge(tm.TestCase):
 
     def test_merge_type(self):
         class NotADataFrame(DataFrame):
+
             @property
             def _constructor(self):
                 return NotADataFrame

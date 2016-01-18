@@ -181,8 +181,8 @@ class _MergeOperation(object):
         elif isinstance(self.indicator, bool):
             self.indicator_name = '_merge' if self.indicator else None
         else:
-            raise ValueError('indicator option can only accept boolean or string arguments')
-
+            raise ValueError(
+                'indicator option can only accept boolean or string arguments')
 
         # note this function has side effects
         (self.left_join_keys,
@@ -191,7 +191,8 @@ class _MergeOperation(object):
 
     def get_result(self):
         if self.indicator:
-            self.left, self.right = self._indicator_pre_merge(self.left, self.right)
+            self.left, self.right = self._indicator_pre_merge(
+                self.left, self.right)
 
         join_index, left_indexer, right_indexer = self._get_join_info()
 
@@ -225,9 +226,11 @@ class _MergeOperation(object):
 
         for i in ['_left_indicator', '_right_indicator']:
             if i in columns:
-                raise ValueError("Cannot use `indicator=True` option when data contains a column named {}".format(i))
+                raise ValueError(
+                    "Cannot use `indicator=True` option when data contains a column named {}".format(i))
         if self.indicator_name in columns:
-            raise ValueError("Cannot use name of an existing column for indicator column")
+            raise ValueError(
+                "Cannot use name of an existing column for indicator column")
 
         left = left.copy()
         right = right.copy()
@@ -245,10 +248,13 @@ class _MergeOperation(object):
         result['_left_indicator'] = result['_left_indicator'].fillna(0)
         result['_right_indicator'] = result['_right_indicator'].fillna(0)
 
-        result[self.indicator_name] = Categorical((result['_left_indicator'] + result['_right_indicator']), categories=[1,2,3])
-        result[self.indicator_name] = result[self.indicator_name].cat.rename_categories(['left_only', 'right_only', 'both'])
+        result[self.indicator_name] = Categorical(
+            (result['_left_indicator'] + result['_right_indicator']), categories=[1, 2, 3])
+        result[self.indicator_name] = result[self.indicator_name].cat.rename_categories(
+            ['left_only', 'right_only', 'both'])
 
-        result = result.drop(labels=['_left_indicator', '_right_indicator'], axis=1)
+        result = result.drop(
+            labels=['_left_indicator', '_right_indicator'], axis=1)
 
         return result
 
@@ -274,8 +280,8 @@ class _MergeOperation(object):
                             continue
 
                         right_na_indexer = right_indexer.take(na_indexer)
-                        result.iloc[na_indexer,key_indexer] = com.take_1d(self.right_join_keys[i],
-                                                                          right_na_indexer)
+                        result.iloc[na_indexer, key_indexer] = com.take_1d(self.right_join_keys[i],
+                                                                           right_na_indexer)
                     elif name in self.right:
                         if len(self.right) == 0:
                             continue
@@ -285,8 +291,8 @@ class _MergeOperation(object):
                             continue
 
                         left_na_indexer = left_indexer.take(na_indexer)
-                        result.iloc[na_indexer,key_indexer] = com.take_1d(self.left_join_keys[i],
-                                                                          left_na_indexer)
+                        result.iloc[na_indexer, key_indexer] = com.take_1d(self.left_join_keys[i],
+                                                                           left_na_indexer)
             elif left_indexer is not None \
                     and isinstance(self.left_join_keys[i], np.ndarray):
 
@@ -384,8 +390,10 @@ class _MergeOperation(object):
         left_drop = []
         left, right = self.left, self.right
 
-        is_lkey = lambda x: isinstance(x, (np.ndarray, ABCSeries)) and len(x) == len(left)
-        is_rkey = lambda x: isinstance(x, (np.ndarray, ABCSeries)) and len(x) == len(right)
+        is_lkey = lambda x: isinstance(
+            x, (np.ndarray, ABCSeries)) and len(x) == len(left)
+        is_rkey = lambda x: isinstance(
+            x, (np.ndarray, ABCSeries)) and len(x) == len(right)
 
         # ugh, spaghetti re #733
         if _any(self.left_on) and _any(self.right_on):
@@ -507,13 +515,13 @@ def _get_join_indexers(left_keys, right_keys, sort=False, how='inner'):
     from functools import partial
 
     assert len(left_keys) == len(right_keys), \
-            'left_key and right_keys must be the same length'
+        'left_key and right_keys must be the same length'
 
     # bind `sort` arg. of _factorize_keys
     fkeys = partial(_factorize_keys, sort=sort)
 
     # get left & right join labels and num. of levels at each location
-    llab, rlab, shape = map(list, zip( * map(fkeys, left_keys, right_keys)))
+    llab, rlab, shape = map(list, zip(* map(fkeys, left_keys, right_keys)))
 
     # get flat i8 keys from label lists
     lkey, rkey = _get_join_keys(llab, rlab, shape, sort)
@@ -524,7 +532,7 @@ def _get_join_indexers(left_keys, right_keys, sort=False, how='inner'):
     lkey, rkey, count = fkeys(lkey, rkey)
 
     # preserve left frame order if how == 'left' and sort == False
-    kwargs = {'sort':sort} if how == 'left' else {}
+    kwargs = {'sort': sort} if how == 'left' else {}
     join_func = _join_functions[how]
     return join_func(lkey, rkey, count, **kwargs)
 
@@ -563,8 +571,10 @@ class _OrderedMerge(_MergeOperation):
             left_join_indexer = left_indexer
             right_join_indexer = right_indexer
 
-        lindexers = {1: left_join_indexer} if left_join_indexer is not None else {}
-        rindexers = {1: right_join_indexer} if right_join_indexer is not None else {}
+        lindexers = {
+            1: left_join_indexer} if left_join_indexer is not None else {}
+        rindexers = {
+            1: right_join_indexer} if right_join_indexer is not None else {}
 
         result_data = concatenate_block_managers(
             [(ldata, lindexers), (rdata, rindexers)],
@@ -586,7 +596,7 @@ def _get_multiindex_indexer(join_keys, index, sort):
     fkeys = partial(_factorize_keys, sort=sort)
 
     # left & right join labels and num. of levels at each location
-    rlab, llab, shape = map(list, zip( * map(fkeys, index.levels, join_keys)))
+    rlab, llab, shape = map(list, zip(* map(fkeys, index.levels, join_keys)))
     if sort:
         rlab = list(map(np.take, rlab, index.labels))
     else:
@@ -885,10 +895,10 @@ class _Concatenator(object):
         else:
             # filter out the empties
             # if we have not multi-index possibiltes
-            df = DataFrame([ obj.shape for obj in objs ]).sum(1)
-            non_empties = df[df!=0]
+            df = DataFrame([obj.shape for obj in objs]).sum(1)
+            non_empties = df[df != 0]
             if len(non_empties) and (keys is None and names is None and levels is None and join_axes is None):
-                objs = [ objs[i] for i in non_empties.index ]
+                objs = [objs[i] for i in non_empties.index]
                 sample = objs[0]
 
         if sample is None:
@@ -917,12 +927,12 @@ class _Concatenator(object):
                 if ndim == max_ndim:
                     pass
 
-                elif ndim != max_ndim-1:
+                elif ndim != max_ndim - 1:
                     raise ValueError("cannot concatenate unaligned mixed "
                                      "dimensional NDFrame objects")
 
                 else:
-                    name = getattr(obj,'name',None)
+                    name = getattr(obj, 'name', None)
                     if ignore_index or name is None:
                         name = current_column
                         current_column += 1
@@ -931,7 +941,7 @@ class _Concatenator(object):
                     # to line up
                     if self._is_frame and axis == 1:
                         name = 0
-                    obj = sample._constructor({ name : obj })
+                    obj = sample._constructor({name: obj})
 
                 self.objs.append(obj)
 
@@ -965,9 +975,11 @@ class _Concatenator(object):
                 index, columns = self.new_axes
                 tmpdf = DataFrame(data, index=index)
                 # checks if the column variable already stores valid column names (because set via the 'key' argument
-                # in the 'concat' function call. If that's not the case, use the series names as column names
+                # in the 'concat' function call. If that's not the case, use
+                # the series names as column names
                 if columns.equals(Index(np.arange(len(self.objs)))) and not self.ignore_index:
-                    columns = np.array([ data[i].name for i in range(len(data)) ], dtype='object')
+                    columns = np.array(
+                        [data[i].name for i in range(len(data))], dtype='object')
                     indexer = isnull(columns)
                     if indexer.any():
                         columns[indexer] = np.arange(len(indexer[indexer]))
@@ -1091,7 +1103,7 @@ class _Concatenator(object):
             if not concat_index.is_unique:
                 overlap = concat_index.get_duplicates()
                 raise ValueError('Indexes have overlapping values: %s'
-                                % str(overlap))
+                                 % str(overlap))
 
 
 def _concat_indexes(indexes):
@@ -1106,7 +1118,8 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None):
             names = [None] * len(zipped)
 
         if levels is None:
-            levels = [Categorical.from_array(zp, ordered=True).categories for zp in zipped]
+            levels = [Categorical.from_array(
+                zp, ordered=True).categories for zp in zipped]
         else:
             levels = [_ensure_index(x) for x in levels]
     else:
@@ -1152,7 +1165,7 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None):
             names = list(names)
         else:
             # make sure that all of the passed indices have the same nlevels
-            if not len(set([ i.nlevels for i in indexes ])) == 1:
+            if not len(set([i.nlevels for i in indexes])) == 1:
                 raise AssertionError("Cannot concat indices that do"
                                      " not have the same number of levels")
 
