@@ -24,15 +24,17 @@ def pivot_table(data, values=None, index=None, columns=None, aggfunc='mean',
     ----------
     data : DataFrame
     values : column to aggregate, optional
-    index : a column, Grouper, array which has the same length as data, or list
-        of them.
+    index : column, Grouper, array, or list of the previous
+        If an array is passed, it must be the same length as the data. The list
+        can contain any of the other types (except list).
         Keys to group by on the pivot table index.  If an array is passed, it
         is being used as the same manner as column values.
-    columns : a column, Grouper, array which has the same length as data, or
-        list of them.
+    columns : column, Grouper, array, or list of the previous
+        If an array is passed, it must be the same length as the data. The list
+        can contain any of the other types (except list).
         Keys to group by on the pivot table column.  If an array is passed, it
         is being used as the same manner as column values.
-    aggfunc : function, default numpy.mean, or list of functions
+    aggfunc : function or list of functions, default numpy.mean
         If list of functions passed, the resulting pivot table will have
         hierarchical columns whose top level are the function names (inferred
         from the function objects themselves)
