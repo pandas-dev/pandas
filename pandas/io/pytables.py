@@ -41,6 +41,8 @@ import pandas.lib as lib
 import pandas.algos as algos
 import pandas.tslib as tslib
 
+from tables.exceptions import NoSuchNodeError, NodeError
+
 from contextlib import contextmanager
 from distutils.version import LooseVersion
 
@@ -1455,6 +1457,7 @@ class IndexCol(StringMixin):
         """infer this column from the table: create and return a new object"""
         table = handler.table
         new_self = self.copy()
+        new_self._handle = handler._handle
         new_self.set_table(table)
         new_self.get_attr()
         new_self.read_metadata(handler)
@@ -1511,6 +1514,10 @@ class IndexCol(StringMixin):
         """ return my cython values """
         return self.values
 
+    @property
+    def handle(self):
+        return self._handle
+    
     def __iter__(self):
         return iter(self.values)
 
@@ -1534,6 +1541,7 @@ class IndexCol(StringMixin):
         pass
 
     def validate_and_set(self, handler, append, **kwargs):
+        self._handle = handler._handle
         self.set_table(handler.table)
         self.validate_col()
         self.validate_attr(append)
@@ -2043,13 +2051,35 @@ class DataCol(IndexCol):
     def get_attr(self):
         """ get the data for this colummn """
         self.values = getattr(self.attrs, self.kind_attr, None)
+        if self.values is None:
+            try:
+                data = self.handle.get_node(self.attrs._v_node._v_parent, self.kind_attr)[:]
+                if len(data.shape) > 1 and data.shape[1] > 1: # multiIndex
+                    self.values = map(tuple, data.tolist())
+                else:
+                    self.values = data.tolist()
+
+            except NoSuchNodeError:
+                pass
         self.dtype = getattr(self.attrs, self.dtype_attr, None)
         self.meta = getattr(self.attrs, self.meta_attr, None)
         self.set_kind()
 
     def set_attr(self):
         """ set the data for this colummn """
-        setattr(self.attrs, self.kind_attr, self.values)
+        #setattr(self.attrs, self.kind_attr, self.values)
+        try:
+            self.handle.create_carray(self.attrs._v_node._v_parent,
+                                   self.kind_attr,
+                                   obj=np.array(self.values))
+        except NodeError as e: 
+            self.handle.remove_node(self.attrs._v_node._v_parent,
+                                   self.kind_attr)
+            self.handle.create_carray(self.attrs._v_node._v_parent,
+                                   self.kind_attr,
+                                   obj=np.array(self.values))    
+        except Exception as e: # for debugging
+            raise      
         setattr(self.attrs, self.meta_attr, self.meta)
         if self.dtype is not None:
             setattr(self.attrs, self.dtype_attr, self.dtype)
@@ -3020,12 +3050,50 @@ class Table(Fixed):
         """ update our table index info """
         self.attrs.info = self.info
 
+    def set_non_index_axes(self):
+        """ Write the axes to carrays """
+        def f(dim, flds):
+            name = "non_index_axes_%d" % dim
+            try:
+                self._handle.create_carray(self.attrs._v_node, name, obj=np.array(flds))
+            except ValueError as e: 
+                # Should probably make this check:
+                #if e.message == "unknown type: 'object'":
+                #    raise ValueError("axis {} has dtype 'object' which cannot be saved to carray".format(dim))
+                raise                
+            except NodeError as e: 
+                self._handle.remove_node(self.attrs._v_node, name)
+                self._handle.create_carray(self.attrs._v_node, name, obj=np.array(flds))                
+            return dim, flds
+        
+        replacement = [f(dim, flds) for dim, flds in self.non_index_axes]
+        self.attrs.non_index_axes = replacement
+
+    def get_non_index_axes(self):
+        """Load the non-index axes from their carrays.  This is a pass-through
+        for tables stored prior to v0.17"""
+        def f(dim, flds):
+            if isinstance(flds, string_types):
+                flds = self._handle.get_node(self.attrs._v_node, flds)[:]
+                if len(flds.shape) > 1 and flds.shape[1] > 1:
+                    flds = map(tuple, flds.tolist())
+                else:
+                    flds = flds.tolist()
+                return dim, flds
+            else:
+                return dim, flds #if not a string presumably pre v17 list
+        non_index_axes = getattr(self.attrs, 'non_index_axes', [])
+        new = [f(dim, flds) for dim, flds in non_index_axes] 
+        return new
+
     def set_attrs(self):
         """ set our table type & indexables """
         self.attrs.table_type = str(self.table_type)
         self.attrs.index_cols = self.index_cols()
         self.attrs.values_cols = self.values_cols()
-        self.attrs.non_index_axes = self.non_index_axes
+
+        #self.attrs.non_index_axes = self.non_index_axes
+        self.set_non_index_axes()
         self.attrs.data_columns = self.data_columns
         self.attrs.nan_rep = self.nan_rep
         self.attrs.encoding = self.encoding
@@ -3035,8 +3103,7 @@ class Table(Fixed):
 
     def get_attrs(self):
         """ retrieve our attributes """
-        self.non_index_axes = getattr(
-            self.attrs, 'non_index_axes', None) or []
+        self.non_index_axes = self.get_non_index_axes()
         self.data_columns = getattr(
             self.attrs, 'data_columns', None) or []
         self.info = getattr(
