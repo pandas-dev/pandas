@@ -226,8 +226,8 @@ class _MergeOperation(object):
 
         for i in ['_left_indicator', '_right_indicator']:
             if i in columns:
-                raise ValueError(
-                    "Cannot use `indicator=True` option when data contains a column named {}".format(i))
+                raise ValueError("Cannot use `indicator=True` option when "
+                                 "data contains a column named {}".format(i))
         if self.indicator_name in columns:
             raise ValueError(
                 "Cannot use name of an existing column for indicator column")
@@ -248,14 +248,15 @@ class _MergeOperation(object):
         result['_left_indicator'] = result['_left_indicator'].fillna(0)
         result['_right_indicator'] = result['_right_indicator'].fillna(0)
 
-        result[self.indicator_name] = Categorical(
-            (result['_left_indicator'] + result['_right_indicator']), categories=[1, 2, 3])
-        result[self.indicator_name] = result[self.indicator_name].cat.rename_categories(
-            ['left_only', 'right_only', 'both'])
+        result[self.indicator_name] = Categorical((result['_left_indicator'] +
+                                                   result['_right_indicator']),
+                                                  categories=[1, 2, 3])
+        result[self.indicator_name] = (
+            result[self.indicator_name]
+            .cat.rename_categories(['left_only', 'right_only', 'both']))
 
-        result = result.drop(
-            labels=['_left_indicator', '_right_indicator'], axis=1)
-
+        result = result.drop(labels=['_left_indicator', '_right_indicator'],
+                             axis=1)
         return result
 
     def _maybe_add_join_keys(self, result, left_indexer, right_indexer):
@@ -280,8 +281,9 @@ class _MergeOperation(object):
                             continue
 
                         right_na_indexer = right_indexer.take(na_indexer)
-                        result.iloc[na_indexer, key_indexer] = com.take_1d(self.right_join_keys[i],
-                                                                           right_na_indexer)
+                        result.iloc[na_indexer, key_indexer] = (
+                            com.take_1d(self.right_join_keys[i],
+                                        right_na_indexer))
                     elif name in self.right:
                         if len(self.right) == 0:
                             continue
@@ -291,8 +293,9 @@ class _MergeOperation(object):
                             continue
 
                         left_na_indexer = left_indexer.take(na_indexer)
-                        result.iloc[na_indexer, key_indexer] = com.take_1d(self.left_join_keys[i],
-                                                                           left_na_indexer)
+                        result.iloc[na_indexer, key_indexer] = (
+                            com.take_1d(self.left_join_keys[i],
+                                        left_na_indexer))
             elif left_indexer is not None \
                     and isinstance(self.left_join_keys[i], np.ndarray):
 
@@ -761,12 +764,13 @@ def _get_join_keys(llab, rlab, shape, sort):
 
     return _get_join_keys(llab, rlab, shape, sort)
 
-#----------------------------------------------------------------------
+# ---------------------------------------------------------------------
 # Concatenate DataFrame objects
 
 
 def concat(objs, axis=0, join='outer', join_axes=None, ignore_index=False,
-           keys=None, levels=None, names=None, verify_integrity=False, copy=True):
+           keys=None, levels=None, names=None, verify_integrity=False,
+           copy=True):
     """
     Concatenate pandas objects along a particular axis with optional set logic
     along the other axes. Can also add a layer of hierarchical indexing on the
@@ -897,7 +901,8 @@ class _Concatenator(object):
             # if we have not multi-index possibiltes
             df = DataFrame([obj.shape for obj in objs]).sum(1)
             non_empties = df[df != 0]
-            if len(non_empties) and (keys is None and names is None and levels is None and join_axes is None):
+            if (len(non_empties) and (keys is None and names is None and
+                                      levels is None and join_axes is None)):
                 objs = [objs[i] for i in non_empties.index]
                 sample = objs[0]
 
@@ -967,19 +972,23 @@ class _Concatenator(object):
             if self.axis == 0:
                 new_data = com._concat_compat([x._values for x in self.objs])
                 name = com._consensus_name_attr(self.objs)
-                return Series(new_data, index=self.new_axes[0], name=name).__finalize__(self, method='concat')
+                return (Series(new_data, index=self.new_axes[0], name=name)
+                        .__finalize__(self, method='concat'))
 
             # combine as columns in a frame
             else:
                 data = dict(zip(range(len(self.objs)), self.objs))
                 index, columns = self.new_axes
                 tmpdf = DataFrame(data, index=index)
-                # checks if the column variable already stores valid column names (because set via the 'key' argument
-                # in the 'concat' function call. If that's not the case, use
-                # the series names as column names
-                if columns.equals(Index(np.arange(len(self.objs)))) and not self.ignore_index:
-                    columns = np.array(
-                        [data[i].name for i in range(len(data))], dtype='object')
+                # checks if the column variable already stores valid column
+                # names (because set via the 'key' argument in the 'concat'
+                # function call. If that's not the case, use the series names
+                # as column names
+                if (columns.equals(Index(np.arange(len(self.objs)))) and
+                        not self.ignore_index):
+                    columns = np.array([data[i].name
+                                        for i in range(len(data))],
+                                       dtype='object')
                     indexer = isnull(columns)
                     if indexer.any():
                         columns[indexer] = np.arange(len(indexer[indexer]))
@@ -1004,11 +1013,13 @@ class _Concatenator(object):
                 mgrs_indexers.append((obj._data, indexers))
 
             new_data = concatenate_block_managers(
-                mgrs_indexers, self.new_axes, concat_axis=self.axis, copy=self.copy)
+                mgrs_indexers, self.new_axes,
+                concat_axis=self.axis, copy=self.copy)
             if not self.copy:
                 new_data._consolidate_inplace()
 
-            return self.objs[0]._from_axes(new_data, self.new_axes).__finalize__(self, method='concat')
+            return (self.objs[0]._from_axes(new_data, self.new_axes)
+                    .__finalize__(self, method='concat'))
 
     def _get_result_dim(self):
         if self._is_series and self.axis == 1:
@@ -1214,7 +1225,8 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None):
 
 
 def _should_fill(lname, rname):
-    if not isinstance(lname, compat.string_types) or not isinstance(rname, compat.string_types):
+    if (not isinstance(lname, compat.string_types) or
+            not isinstance(rname, compat.string_types)):
         return True
     return lname == rname
 

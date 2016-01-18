@@ -1,6 +1,5 @@
 # being a bit too dynamic
 # pylint: disable=E1101
-import datetime
 import warnings
 import re
 from math import ceil
@@ -17,10 +16,7 @@ from pandas.core.common import AbstractMethodError
 from pandas.core.generic import _shared_docs, _shared_doc_kwargs
 from pandas.core.index import Index, MultiIndex
 from pandas.core.series import Series, remove_na
-from pandas.tseries.index import DatetimeIndex
-from pandas.tseries.period import PeriodIndex, Period
-import pandas.tseries.frequencies as frequencies
-from pandas.tseries.offsets import DateOffset
+from pandas.tseries.period import PeriodIndex
 from pandas.compat import range, lrange, lmap, map, zip, string_types
 import pandas.compat as compat
 from pandas.util.decorators import Appender
@@ -327,7 +323,6 @@ def scatter_matrix(frame, alpha=0.5, figsize=None, ax=None, grid=False,
     >>> scatter_matrix(df, alpha=0.2)
     """
     import matplotlib.pyplot as plt
-    from matplotlib.artist import setp
 
     df = frame._get_numeric_data()
     n = df.columns.size
@@ -521,14 +516,17 @@ def radviz(frame, class_column, ax=None, color=None, colormap=None, **kwds):
 def andrews_curves(frame, class_column, ax=None, samples=200, color=None,
                    colormap=None, **kwds):
     """
-    Generates a matplotlib plot of Andrews curves, for visualising clusters of multivariate data.
+    Generates a matplotlib plot of Andrews curves, for visualising clusters of
+    multivariate data.
 
     Andrews curves have the functional form:
 
-    f(t) = x_1/sqrt(2) + x_2 sin(t) + x_3 cos(t) + x_4 sin(2t) + x_5 cos(2t) + ...
+    f(t) = x_1/sqrt(2) + x_2 sin(t) + x_3 cos(t) +
+           x_4 sin(2t) + x_5 cos(2t) + ...
 
-    Where x coefficients correspond to the values of each dimension and t is linearly spaced between -pi and +pi. Each
-    row of frame then corresponds to a single curve.
+    Where x coefficients correspond to the values of each dimension and t is
+    linearly spaced between -pi and +pi. Each row of frame then corresponds to
+    a single curve.
 
     Parameters:
     -----------
@@ -558,8 +556,9 @@ def andrews_curves(frame, class_column, ax=None, samples=200, color=None,
             x1 = amplitudes[0]
             result = x1 / sqrt(2.0)
 
-            # Take the rest of the coefficients and resize them appropriately. Take a copy of amplitudes as otherwise
-            # numpy deletes the element from amplitudes itself.
+            # Take the rest of the coefficients and resize them
+            # appropriately. Take a copy of amplitudes as otherwise numpy
+            # deletes the element from amplitudes itself.
             coeffs = np.delete(np.copy(amplitudes), 0)
             coeffs.resize(int((coeffs.size + 1) / 2), 2)
 
@@ -705,8 +704,10 @@ def parallel_coordinates(frame, class_column, cols=None, ax=None, color=None,
     >>> from pandas import read_csv
     >>> from pandas.tools.plotting import parallel_coordinates
     >>> from matplotlib import pyplot as plt
-    >>> df = read_csv('https://raw.github.com/pydata/pandas/master/pandas/tests/data/iris.csv')
-    >>> parallel_coordinates(df, 'Name', color=('#556270', '#4ECDC4', '#C7F464'))
+    >>> df = read_csv('https://raw.github.com/pydata/pandas/master'
+                      '/pandas/tests/data/iris.csv')
+    >>> parallel_coordinates(df, 'Name', color=('#556270',
+                             '#4ECDC4', '#C7F464'))
     >>> plt.show()
     """
     if axvlines_kwds is None:
@@ -824,7 +825,8 @@ def autocorrelation_plot(series, ax=None, **kwds):
     c0 = np.sum((data - mean) ** 2) / float(n)
 
     def r(h):
-        return ((data[:n - h] - mean) * (data[h:] - mean)).sum() / float(n) / c0
+        return ((data[:n - h] - mean) *
+                (data[h:] - mean)).sum() / float(n) / c0
     x = np.arange(n) + 1
     y = lmap(r, x)
     z95 = 1.959963984540054
@@ -982,10 +984,11 @@ class MPLPlot(object):
             # need only a single match
             for s in styles:
                 if re.match('^[a-z]+?', s) is not None:
-                    raise ValueError("Cannot pass 'style' string with a color "
-                                     "symbol and 'color' keyword argument. Please"
-                                     " use one or the other or pass 'style' "
-                                     "without a color symbol")
+                    raise ValueError(
+                        "Cannot pass 'style' string with a color "
+                        "symbol and 'color' keyword argument. Please"
+                        " use one or the other or pass 'style' "
+                        "without a color symbol")
 
     def _iter_data(self, data=None, keep_index=False, fillna=None):
         if data is None:
@@ -993,10 +996,11 @@ class MPLPlot(object):
         if fillna is not None:
             data = data.fillna(fillna)
 
-        if self.sort_columns:
-            columns = com._try_sort(data.columns)
-        else:
-            columns = data.columns
+        # TODO: unused?
+        # if self.sort_columns:
+        #     columns = com._try_sort(data.columns)
+        # else:
+        #     columns = data.columns
 
         for col, values in data.iteritems():
             if keep_index is True:
@@ -1220,7 +1224,7 @@ class MPLPlot(object):
             return ','.join(stringified)
 
     def _add_legend_handle(self, handle, label, index=None):
-        if not label is None:
+        if label is not None:
             if self.mark_right and index is not None:
                 if self.on_right(index):
                     label = label + ' (right)'
@@ -1235,7 +1239,7 @@ class MPLPlot(object):
         title = ''
 
         if not self.subplots:
-            if not leg is None:
+            if leg is not None:
                 title = leg.get_title().get_text()
                 handles = leg.legendHandles
                 labels = [x.get_text() for x in leg.get_texts()]
@@ -1247,7 +1251,7 @@ class MPLPlot(object):
 
                 handles += self.legend_handles
                 labels += self.legend_labels
-                if not self.legend_title is None:
+                if self.legend_title is not None:
                     title = self.legend_title
 
             if len(handles) > 0:
@@ -1770,8 +1774,10 @@ class LinePlot(MPLPlot):
         elif (values <= 0).all():
             return ax._stacker_neg_prior[stacking_id] + values
 
-        raise ValueError('When stacked is True, each column must be either all positive or negative.'
-                         '{0} contains both positive and negative values'.format(label))
+        raise ValueError('When stacked is True, each column must be either '
+                         'all positive or negative.'
+                         '{0} contains both positive and negative values'
+                         .format(label))
 
     @classmethod
     def _update_stacker(cls, ax, stacking_id, values):
@@ -1837,7 +1843,7 @@ class AreaPlot(LinePlot):
         else:
             start = np.zeros(len(y))
 
-        if not 'color' in kwds:
+        if 'color' not in kwds:
             kwds['color'] = lines[0].get_color()
 
         if cls.mpl_ge_1_5_0():  # mpl 1.5 added real support for poly legends
@@ -1943,20 +1949,23 @@ class BarPlot(MPLPlot):
             if self.subplots:
                 w = self.bar_width / 2
                 rect = self._plot(ax, self.ax_pos + w, y, self.bar_width,
-                                  start=start, label=label, log=self.log, **kwds)
+                                  start=start, label=label,
+                                  log=self.log, **kwds)
                 ax.set_title(label)
             elif self.stacked:
                 mask = y > 0
                 start = np.where(mask, pos_prior, neg_prior) + self._start_base
                 w = self.bar_width / 2
                 rect = self._plot(ax, self.ax_pos + w, y, self.bar_width,
-                                  start=start, label=label, log=self.log, **kwds)
+                                  start=start, label=label,
+                                  log=self.log, **kwds)
                 pos_prior = pos_prior + np.where(mask, y, 0)
                 neg_prior = neg_prior + np.where(mask, 0, y)
             else:
                 w = self.bar_width / K
                 rect = self._plot(ax, self.ax_pos + (i + 0.5) * w, y, w,
-                                  start=start, label=label, log=self.log, **kwds)
+                                  start=start, label=label,
+                                  log=self.log, **kwds)
             self._add_legend_handle(rect, label, index=i)
 
     def _post_plot_logic(self, ax, data):
@@ -2017,9 +2026,10 @@ class HistPlot(LinePlot):
             values = np.ravel(values)
             values = values[~com.isnull(values)]
 
-            hist, self.bins = np.histogram(values, bins=self.bins,
-                                           range=self.kwds.get('range', None),
-                                           weights=self.kwds.get('weights', None))
+            hist, self.bins = np.histogram(
+                values, bins=self.bins,
+                range=self.kwds.get('range', None),
+                weights=self.kwds.get('weights', None))
 
         if com.is_list_like(self.bottom):
             self.bottom = np.array(self.bottom)
@@ -2254,8 +2264,10 @@ class BoxPlot(LinePlot):
                 valid_keys = ['boxes', 'whiskers', 'medians', 'caps']
                 for key, values in compat.iteritems(self.color):
                     if key not in valid_keys:
-                        raise ValueError("color dict contains invalid key '{0}' "
-                                         "The key must be either {1}".format(key, valid_keys))
+                        raise ValueError("color dict contains invalid "
+                                         "key '{0}' "
+                                         "The key must be either {1}"
+                                         .format(key, valid_keys))
         else:
             self.color = None
 
@@ -2551,7 +2563,8 @@ _shared_docs['plot'] = """
         be transposed to meet matplotlib's default layout.
         If a Series or DataFrame is passed, use passed data to draw a table.
     yerr : DataFrame, Series, array-like, dict and str
-        See :ref:`Plotting with Error Bars <visualization.errorbars>` for detail.
+        See :ref:`Plotting with Error Bars <visualization.errorbars>` for
+        detail.
     xerr : same types as yerr.
     %(klass_unique)s
     mark_right : boolean, default True
@@ -2577,14 +2590,14 @@ _shared_docs['plot'] = """
 
 
 @Appender(_shared_docs['plot'] % _shared_doc_df_kwargs)
-def plot_frame(data, x=None, y=None, kind='line', ax=None,                 # Dataframe unique
-               subplots=False, sharex=None, sharey=False, layout=None,     # Dataframe unique
+def plot_frame(data, x=None, y=None, kind='line', ax=None,
+               subplots=False, sharex=None, sharey=False, layout=None,
                figsize=None, use_index=True, title=None, grid=None,
                legend=True, style=None, logx=False, logy=False, loglog=False,
                xticks=None, yticks=None, xlim=None, ylim=None,
                rot=None, fontsize=None, colormap=None, table=False,
                yerr=None, xerr=None,
-               secondary_y=False, sort_columns=False,        # Dataframe unique
+               secondary_y=False, sort_columns=False,
                **kwds):
     return _plot(data, kind=kind, x=x, y=y, ax=ax,
                  subplots=subplots, sharex=sharex, sharey=sharey,
@@ -2858,10 +2871,11 @@ def hist_frame(data, column=None, by=None, grid=True, xlabelsize=None,
     """
 
     if by is not None:
-        axes = grouped_hist(data, column=column, by=by, ax=ax, grid=grid, figsize=figsize,
-                            sharex=sharex, sharey=sharey, layout=layout, bins=bins,
-                            xlabelsize=xlabelsize, xrot=xrot, ylabelsize=ylabelsize, yrot=yrot,
-                            **kwds)
+        axes = grouped_hist(data, column=column, by=by, ax=ax, grid=grid,
+                            figsize=figsize, sharex=sharex, sharey=sharey,
+                            layout=layout, bins=bins, xlabelsize=xlabelsize,
+                            xrot=xrot, ylabelsize=ylabelsize,
+                            yrot=yrot, **kwds)
         return axes
 
     if column is not None:
@@ -2890,7 +2904,8 @@ def hist_frame(data, column=None, by=None, grid=True, xlabelsize=None,
 
 
 def hist_series(self, by=None, ax=None, grid=True, xlabelsize=None,
-                xrot=None, ylabelsize=None, yrot=None, figsize=None, bins=10, **kwds):
+                xrot=None, ylabelsize=None, yrot=None, figsize=None,
+                bins=10, **kwds):
     """
     Draw histogram of the input series using matplotlib
 
@@ -2952,9 +2967,9 @@ def hist_series(self, by=None, ax=None, grid=True, xlabelsize=None,
             raise ValueError("Cannot pass 'figure' when using the "
                              "'by' argument, since a new 'Figure' instance "
                              "will be created")
-        axes = grouped_hist(self, by=by, ax=ax, grid=grid, figsize=figsize, bins=bins,
-                            xlabelsize=xlabelsize, xrot=xrot, ylabelsize=ylabelsize, yrot=yrot,
-                            **kwds)
+        axes = grouped_hist(self, by=by, ax=ax, grid=grid, figsize=figsize,
+                            bins=bins, xlabelsize=xlabelsize, xrot=xrot,
+                            ylabelsize=ylabelsize, yrot=yrot, **kwds)
 
     if hasattr(axes, 'ndim'):
         if axes.ndim == 1 and len(axes) == 1:
@@ -3054,8 +3069,8 @@ def boxplot_frame_groupby(grouped, subplots=True, column=None, fontsize=None,
     if subplots is True:
         naxes = len(grouped)
         fig, axes = _subplots(naxes=naxes, squeeze=False,
-                              ax=ax, sharex=False, sharey=True, figsize=figsize,
-                              layout=layout)
+                              ax=ax, sharex=False, sharey=True,
+                              figsize=figsize, layout=layout)
         axes = _flatten(axes)
 
         ret = compat.OrderedDict()
@@ -3077,7 +3092,8 @@ def boxplot_frame_groupby(grouped, subplots=True, column=None, fontsize=None,
             else:
                 df = frames[0]
         ret = df.boxplot(column=column, fontsize=fontsize, rot=rot,
-                         grid=grid, ax=ax, figsize=figsize, layout=layout, **kwds)
+                         grid=grid, ax=ax, figsize=figsize,
+                         layout=layout, **kwds)
     return ret
 
 
@@ -3115,8 +3131,8 @@ def _grouped_plot(plotf, data, column=None, by=None, numeric_only=True,
 
 def _grouped_plot_by_column(plotf, data, columns=None, by=None,
                             numeric_only=True, grid=False,
-                            figsize=None, ax=None, layout=None, return_type=None,
-                            **kwargs):
+                            figsize=None, ax=None, layout=None,
+                            return_type=None, **kwargs):
     grouped = data.groupby(by)
     if columns is None:
         if not isinstance(by, (list, tuple)):
@@ -3162,7 +3178,8 @@ def table(ax, data, rowLabels=None, colLabels=None,
         data for table contents
     `kwargs`: keywords, optional
         keyword arguments which passed to matplotlib.table.table.
-        If `rowLabels` or `colLabels` is not specified, data index or column name will be used.
+        If `rowLabels` or `colLabels` is not specified, data index or column
+        name will be used.
 
     Returns
     -------
@@ -3186,7 +3203,8 @@ def table(ax, data, rowLabels=None, colLabels=None,
 
     import matplotlib.table
     table = matplotlib.table.table(ax, cellText=cellText,
-                                   rowLabels=rowLabels, colLabels=colLabels, **kwargs)
+                                   rowLabels=rowLabels,
+                                   colLabels=colLabels, **kwargs)
     return table
 
 
@@ -3208,8 +3226,8 @@ def _get_layout(nplots, layout=None, layout_type='box'):
             raise ValueError(msg)
 
         if nrows * ncols < nplots:
-            raise ValueError('Layout of %sx%s must be larger than required size %s' %
-                             (nrows, ncols, nplots))
+            raise ValueError('Layout of %sx%s must be larger than '
+                             'required size %s' % (nrows, ncols, nplots))
 
         return layout
 
@@ -3237,7 +3255,8 @@ def _get_layout(nplots, layout=None, layout_type='box'):
 
 
 def _subplots(naxes=None, sharex=False, sharey=False, squeeze=True,
-              subplot_kw=None, ax=None, layout=None, layout_type='box', **fig_kw):
+              subplot_kw=None, ax=None, layout=None, layout_type='box',
+              **fig_kw):
     """Create a figure with a set of subplots already made.
 
     This utility wrapper makes it convenient to create common layouts of
@@ -3322,17 +3341,18 @@ def _subplots(naxes=None, sharex=False, sharey=False, squeeze=True,
         if com.is_list_like(ax):
             ax = _flatten(ax)
             if layout is not None:
-                warnings.warn(
-                    "When passing multiple axes, layout keyword is ignored", UserWarning)
+                warnings.warn("When passing multiple axes, layout keyword is "
+                              "ignored", UserWarning)
             if sharex or sharey:
-                warnings.warn("When passing multiple axes, sharex and sharey are ignored."
-                              "These settings must be specified when creating axes", UserWarning)
+                warnings.warn("When passing multiple axes, sharex and sharey "
+                              "are ignored. These settings must be specified "
+                              "when creating axes", UserWarning)
             if len(ax) == naxes:
                 fig = ax[0].get_figure()
                 return fig, ax
             else:
-                raise ValueError("The number of passed axes must be {0}, the same as "
-                                 "the output plot".format(naxes))
+                raise ValueError("The number of passed axes must be {0}, the "
+                                 "same as the output plot".format(naxes))
 
         fig = ax.get_figure()
         # if ax is passed and a number of subplots is 1, return ax as it is
@@ -3342,8 +3362,8 @@ def _subplots(naxes=None, sharex=False, sharey=False, squeeze=True,
             else:
                 return fig, _flatten(ax)
         else:
-            warnings.warn("To output multiple subplots, the figure containing the passed axes "
-                          "is being cleared", UserWarning)
+            warnings.warn("To output multiple subplots, the figure containing "
+                          "the passed axes is being cleared", UserWarning)
             fig.clear()
 
     nrows, ncols = _get_layout(naxes, layout=layout, layout_type=layout_type)
@@ -3432,7 +3452,8 @@ def _handle_shared_axes(axarr, nplots, naxes, nrows, ncols, sharex, sharey):
                     # the last in the column, because below is no subplot/gap.
                     if not layout[ax.rowNum + 1, ax.colNum]:
                         continue
-                    if sharex or len(ax.get_shared_x_axes().get_siblings(ax)) > 1:
+                    if sharex or len(ax.get_shared_x_axes()
+                                     .get_siblings(ax)) > 1:
                         _remove_labels_from_axis(ax.xaxis)
 
             except IndexError:
@@ -3441,14 +3462,15 @@ def _handle_shared_axes(axarr, nplots, naxes, nrows, ncols, sharex, sharey):
                 for ax in axarr:
                     if ax.is_last_row():
                         continue
-                    if sharex or len(ax.get_shared_x_axes().get_siblings(ax)) > 1:
+                    if sharex or len(ax.get_shared_x_axes()
+                                     .get_siblings(ax)) > 1:
                         _remove_labels_from_axis(ax.xaxis)
 
         if ncols > 1:
             for ax in axarr:
-                # only the first column should get y labels -> set all other to off
-                # as we only have labels in teh first column and we always have a subplot there,
-                # we can skip the layout test
+                # only the first column should get y labels -> set all other to
+                # off as we only have labels in teh first column and we always
+                # have a subplot there, we can skip the layout test
                 if ax.is_first_col():
                     continue
                 if sharey or len(ax.get_shared_y_axes().get_siblings(ax)) > 1:
@@ -3523,14 +3545,14 @@ class SeriesPlotMethods(BasePlotMethods):
     ``s.plot(kind='line')`` is equivalent to ``s.plot.line()``
     """
 
-    def __call__(self, kind='line', ax=None,                    # Series unique
+    def __call__(self, kind='line', ax=None,
                  figsize=None, use_index=True, title=None, grid=None,
-                 legend=False, style=None, logx=False, logy=False, loglog=False,
-                 xticks=None, yticks=None, xlim=None, ylim=None,
+                 legend=False, style=None, logx=False, logy=False,
+                 loglog=False, xticks=None, yticks=None,
+                 xlim=None, ylim=None,
                  rot=None, fontsize=None, colormap=None, table=False,
                  yerr=None, xerr=None,
-                 label=None, secondary_y=False,                 # Series unique
-                 **kwds):
+                 label=None, secondary_y=False, **kwds):
         return plot_series(self._data, kind=kind, ax=ax, figsize=figsize,
                            use_index=use_index, title=title, grid=grid,
                            legend=legend, style=style, logx=logx, logy=logy,
@@ -3696,15 +3718,14 @@ class FramePlotMethods(BasePlotMethods):
     ``df.plot(kind='line')`` is equivalent to ``df.plot.line()``
     """
 
-    def __call__(self, x=None, y=None, kind='line', ax=None,                 # Dataframe unique
-                 subplots=False, sharex=None, sharey=False, layout=None,     # Dataframe unique
+    def __call__(self, x=None, y=None, kind='line', ax=None,
+                 subplots=False, sharex=None, sharey=False, layout=None,
                  figsize=None, use_index=True, title=None, grid=None,
                  legend=True, style=None, logx=False, logy=False, loglog=False,
                  xticks=None, yticks=None, xlim=None, ylim=None,
                  rot=None, fontsize=None, colormap=None, table=False,
                  yerr=None, xerr=None,
-                 secondary_y=False, sort_columns=False,        # Dataframe unique
-                 **kwds):
+                 secondary_y=False, sort_columns=False, **kwds):
         return plot_frame(self._data, kind=kind, x=x, y=y, ax=ax,
                           subplots=subplots, sharex=sharex, sharey=sharey,
                           layout=layout, figsize=figsize, use_index=use_index,
@@ -3938,8 +3959,8 @@ if __name__ == '__main__':
 
     import pandas.tools.plotting as plots
     import pandas.core.frame as fr
-    reload(plots)
-    reload(fr)
+    reload(plots)  # noqa
+    reload(fr)  # noqa
     from pandas.core.frame import DataFrame
 
     data = DataFrame([[3, 6, -5], [4, 8, 2], [4, 9, -6],

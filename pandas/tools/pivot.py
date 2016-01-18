@@ -24,12 +24,14 @@ def pivot_table(data, values=None, index=None, columns=None, aggfunc='mean',
     ----------
     data : DataFrame
     values : column to aggregate, optional
-    index : a column, Grouper, array which has the same length as data, or list of them.
-        Keys to group by on the pivot table index.
-        If an array is passed, it is being used as the same manner as column values.
-    columns : a column, Grouper, array which has the same length as data, or list of them.
-        Keys to group by on the pivot table column.
-        If an array is passed, it is being used as the same manner as column values.
+    index : a column, Grouper, array which has the same length as data, or list
+        of them.
+        Keys to group by on the pivot table index.  If an array is passed, it
+        is being used as the same manner as column values.
+    columns : a column, Grouper, array which has the same length as data, or
+        list of them.
+        Keys to group by on the pivot table column.  If an array is passed, it
+        is being used as the same manner as column values.
     aggfunc : function, default numpy.mean, or list of functions
         If list of functions passed, the resulting pivot table will have
         hierarchical columns whose top level are the function names (inferred
@@ -78,7 +80,8 @@ def pivot_table(data, values=None, index=None, columns=None, aggfunc='mean',
         pieces = []
         keys = []
         for func in aggfunc:
-            table = pivot_table(data, values=values, index=index, columns=columns,
+            table = pivot_table(data, values=values, index=index,
+                                columns=columns,
                                 fill_value=fill_value, aggfunc=func,
                                 margins=margins)
             pieces.append(table)
@@ -350,7 +353,8 @@ def _generate_marginal_results_without_values(
 def _convert_by(by):
     if by is None:
         by = []
-    elif (np.isscalar(by) or isinstance(by, (np.ndarray, Index, Series, Grouper))
+    elif (np.isscalar(by) or isinstance(by, (np.ndarray, Index,
+                                             Series, Grouper))
           or hasattr(by, '__call__')):
         by = [by]
     else:

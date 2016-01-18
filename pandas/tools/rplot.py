@@ -15,7 +15,8 @@ warnings.warn("\n"
               "The rplot trellis plotting interface is deprecated and will be "
               "removed in a future version. We refer to external packages "
               "like seaborn for similar but more refined functionality. \n\n"
-              "See our docs http://pandas.pydata.org/pandas-docs/stable/visualization.html#rplot "
+              "See our docs http://pandas.pydata.org/pandas-docs/stable"
+              "/visualization.html#rplot "
               "for some example how to convert your existing code to these "
               "packages.", FutureWarning, stacklevel=2)
 
@@ -39,8 +40,10 @@ class ScaleGradient(Scale):
         Parameters:
         -----------
         column: string, pandas DataFrame column name
-        colour1: tuple, 3 element tuple with float values representing an RGB colour
-        colour2: tuple, 3 element tuple with float values representing an RGB colour
+        colour1: tuple
+            3 element tuple with float values representing an RGB colour
+        colour2: tuple
+            3 element tuple with float values representing an RGB colour
         """
         self.column = column
         self.colour1 = colour1
@@ -57,7 +60,8 @@ class ScaleGradient(Scale):
 
         Returns:
         --------
-        A three element tuple representing an RGB somewhere between colour1 and colour2
+        A three element tuple representing an RGB somewhere between colour1 and
+        colour2
         """
         x = data[self.column].iget(index)
         a = min(data[self.column])
@@ -82,9 +86,12 @@ class ScaleGradient2(Scale):
         Parameters:
         -----------
         column: string, pandas DataFrame column name
-        colour1: tuple, 3 element tuple with float values representing an RGB colour
-        colour2: tuple, 3 element tuple with float values representing an RGB colour
-        colour3: tuple, 3 element tuple with float values representing an RGB colour
+        colour1: tuple
+            3 element tuple with float values representing an RGB colour
+        colour2: tuple
+            3 element tuple with float values representing an RGB colour
+        colour3: tuple
+            3 element tuple with float values representing an RGB colour
         """
         self.column = column
         self.colour1 = colour1
@@ -130,7 +137,8 @@ class ScaleSize(Scale):
     scatter plot shape size.
     """
 
-    def __init__(self, column, min_size=5.0, max_size=100.0, transform=lambda x: x):
+    def __init__(self, column, min_size=5.0, max_size=100.0,
+                 transform=lambda x: x):
         """Initialize ScaleSize instance.
 
         Parameters:
@@ -138,7 +146,9 @@ class ScaleSize(Scale):
         column: string, a column name
         min_size: float, minimum point size
         max_size: float, maximum point size
-        transform: a one argument function of form float -> float (e.g. lambda x: log(x))
+        transform: function
+            a one argument function of form float -> float (e.g. lambda x:
+            log(x))
         """
         self.column = column
         self.min_size = min_size
@@ -193,8 +203,8 @@ class ScaleShape(Scale):
         """
         values = sorted(list(set(data[self.column])))
         if len(values) > len(self.shapes):
-            raise ValueError(
-                "Too many different values of the categorical attribute for ScaleShape")
+            raise ValueError("Too many different values of the categorical "
+                             "attribute for ScaleShape")
         x = data[self.column].iget(index)
         return self.shapes[values.index(x)]
 
@@ -303,22 +313,30 @@ def make_aes(x=None, y=None, size=None, colour=None, shape=None, alpha=None):
         shape = ScaleConstant(shape)
     if not hasattr(alpha, '__call__') and alpha is not None:
         alpha = ScaleConstant(alpha)
-    if any([isinstance(size, scale) for scale in [ScaleConstant, ScaleSize]]) or size is None:
+    if any([isinstance(size, scale)
+            for scale in [ScaleConstant, ScaleSize]]) or size is None:
         pass
     else:
         raise ValueError(
             'size mapping should be done through ScaleConstant or ScaleSize')
-    if any([isinstance(colour, scale) for scale in [ScaleConstant, ScaleGradient, ScaleGradient2, ScaleRandomColour]]) or colour is None:
+    if (any([isinstance(colour, scale)
+             for scale in [ScaleConstant, ScaleGradient,
+                           ScaleGradient2, ScaleRandomColour]]) or
+            colour is None):
         pass
     else:
-        raise ValueError(
-            'colour mapping should be done through ScaleConstant, ScaleRandomColour, ScaleGradient or ScaleGradient2')
-    if any([isinstance(shape, scale) for scale in [ScaleConstant, ScaleShape]]) or shape is None:
+        raise ValueError('colour mapping should be done through '
+                         'ScaleConstant, ScaleRandomColour, ScaleGradient '
+                         'or ScaleGradient2')
+    if (any([isinstance(shape, scale)
+             for scale in [ScaleConstant, ScaleShape]]) or
+            shape is None):
         pass
     else:
-        raise ValueError(
-            'shape mapping should be done through ScaleConstant or ScaleShape')
-    if any([isinstance(alpha, scale) for scale in [ScaleConstant]]) or alpha is None:
+        raise ValueError('shape mapping should be done through ScaleConstant '
+                         'or ScaleShape')
+    if (any([isinstance(alpha, scale) for scale in [ScaleConstant]]) or
+            alpha is None):
         pass
     else:
         raise ValueError('alpha mapping should be done through ScaleConstant')
@@ -596,7 +614,10 @@ class GeomDensity2D(Layer):
                 ax = fig.gca()
         x = self.data[self.aes['x']]
         y = self.data[self.aes['y']]
-        rvs = np.array([x, y])
+
+        # TODO: unused?
+        # rvs = np.array([x, y])
+
         x_min = x.min()
         x_max = x.max()
         y_min = y.min()
@@ -628,8 +649,9 @@ class TrellisGrid(Layer):
         self.by = by
 
     def trellis(self, layers):
-        """Create a trellis structure for a list of layers.
-        Each layer will be cloned with different data in to a two dimensional grid.
+        """
+        Create a trellis structure for a list of layers.  Each layer will be
+        cloned with different data in to a two dimensional grid.
 
         Parameters:
         -----------
@@ -637,7 +659,8 @@ class TrellisGrid(Layer):
 
         Returns:
         --------
-        trellised_layers: Clones of each layer in the list arranged in a trellised latice
+        trellised_layers: Clones of each layer in the list arranged in a
+        trellised latice
         """
         trellised_layers = []
         for layer in layers:
@@ -721,10 +744,14 @@ def merge_aes(layer1, layer2):
 
 
 def sequence_layers(layers):
-    """Go through the list of layers and fill in the missing bits of information.
+    """
+    Go through the list of layers and fill in the missing bits of information.
     The basic rules are this:
-    * If the current layer has data set to None, take the data from previous layer.
-    * For each aesthetic mapping, if that mapping is set to None, take it from previous layer.
+
+    * If the current layer has data set to None, take the data from previous
+      layer.
+    * For each aesthetic mapping, if that mapping is set to None, take it from
+      previous layer.
 
     Parameters:
     -----------
@@ -738,7 +765,9 @@ def sequence_layers(layers):
 
 
 def sequence_grids(layer_grids):
-    """Go through the list of layer girds and perform the same thing as sequence_layers.
+    """
+    Go through the list of layer girds and perform the same thing as
+    sequence_layers.
 
     Parameters:
     -----------
@@ -754,7 +783,9 @@ def sequence_grids(layer_grids):
 
 
 def work_grid(grid, fig):
-    """Take a two dimensional grid, add subplots to a figure for each cell and do layer work.
+    """
+    Take a two dimensional grid, add subplots to a figure for each cell and do
+    layer work.
 
     Parameters:
     -----------
@@ -815,10 +846,14 @@ def adjust_subplots(fig, axes, trellis, layers):
                                   index // trellis.cols][index % trellis.cols])
             label2 = None
         else:
-            label1 = "%s = %s" % (trellis.by[0], trellis.group_grid[
-                                  index // trellis.cols][index % trellis.cols][0])
-            label2 = "%s = %s" % (trellis.by[1], trellis.group_grid[
-                                  index // trellis.cols][index % trellis.cols][1])
+            label1 = "%s = %s" % (
+                trellis.by[0],
+                trellis.group_grid[index // trellis.cols]
+                [index % trellis.cols][0])
+            label2 = "%s = %s" % (
+                trellis.by[1],
+                trellis.group_grid[index // trellis.cols]
+                [index % trellis.cols][1])
         if label2 is not None:
             axis.table(cellText=[[label1], [label2]],
                        loc='top', cellLoc='center',
@@ -858,7 +893,8 @@ def adjust_subplots(fig, axes, trellis, layers):
 
 class RPlot:
     """
-    The main plot object. Add layers to an instance of this object to create a plot.
+    The main plot object. Add layers to an instance of this object to create a
+    plot.
     """
 
     def __init__(self, data, x=None, y=None):
@@ -871,7 +907,6 @@ class RPlot:
         y: string, DataFrame column name
         """
         self.layers = [Layer(data, **default_aes(x=x, y=y))]
-        trellised = False
 
     def add(self, layer):
         """Add a layer to RPlot instance.
@@ -926,14 +961,13 @@ class RPlot:
                     col1, val1, col2, val2 = key
                     labels.append("%s, %s" % (str(val1), str(val2)))
                 else:
-                    raise ValueError(
-                        "Maximum 2 categorical attributes to display a lengend of")
+                    raise ValueError("Maximum 2 categorical attributes to "
+                                     "display a lengend of")
             if len(legend):
                 fig.legend(patches, labels, loc='upper right')
         else:
-            # We have a trellised plot.
-            # First let's remove all other TrellisGrid instances from the layer list,
-            # including this one.
+            # We have a trellised plot.  First let's remove all other
+            # TrellisGrid instances from the layer list, including this one.
             new_layers = []
             for layer in self.layers:
                 if not isinstance(layer, TrellisGrid):
