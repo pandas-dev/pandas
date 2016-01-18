@@ -30,7 +30,7 @@ from pandas.core.common import (
     is_internal_type, is_datetimetz, _possibly_infer_to_datetimelike,
     _dict_compat)
 from pandas.core.generic import NDFrame, _shared_docs
-from pandas.core.index import Index, MultiIndex, _ensure_index
+from pandas.core.index import Index, MultiIndex, _ensure_index, RangeIndex
 from pandas.core.indexing import (maybe_droplevels, convert_to_index_sliceable,
                                   check_bool_indexer)
 from pandas.core.internals import (BlockManager,
@@ -2891,7 +2891,7 @@ class DataFrame(NDFrame):
                                                                 np.nan)
             return values
 
-        new_index = np.arange(len(new_obj), dtype='int64')
+        new_index = _default_index(len(new_obj))
         if isinstance(self.index, MultiIndex):
             if level is not None:
                 if not isinstance(level, (tuple, list)):

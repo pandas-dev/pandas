@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 import numpy as np
 
 from pandas.compat import lrange
-from pandas import DataFrame, Series, Index, MultiIndex
+from pandas import DataFrame, Series, Index, MultiIndex, RangeIndex
 import pandas as pd
 
 from pandas.util.testing import (assert_almost_equal,
@@ -576,6 +576,17 @@ class TestDataFrameAlterAxes(tm.TestCase, TestData):
         expected = pd.DataFrame([['A', 1, 2], ['B', 3, 4]],
                                 columns=['index', datetime(2013, 1, 1),
                                          datetime(2013, 1, 2)])
+        assert_frame_equal(result, expected)
+
+    def test_reset_index_range(self):
+        # GH 12071
+        df = pd.DataFrame([[0, 0], [1, 1]], columns=['A', 'B'],
+                          index=RangeIndex(stop=2))
+        result = df.reset_index()
+        tm.assertIsInstance(result.index, RangeIndex)
+        expected = pd.DataFrame([[0, 0, 0], [1, 1, 1]],
+                                columns=['index', 'A', 'B'],
+                                index=RangeIndex(stop=2))
         assert_frame_equal(result, expected)
 
     def test_set_index_names(self):
