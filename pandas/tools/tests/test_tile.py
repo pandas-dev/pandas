@@ -4,7 +4,7 @@ import nose
 import numpy as np
 from pandas.compat import zip
 
-from pandas import DataFrame, Series, unique
+from pandas import Series
 import pandas.util.testing as tm
 from pandas.util.testing import assertRaisesRegexp
 import pandas.core.common as com
@@ -245,7 +245,7 @@ class TestCut(tm.TestCase):
         res = qcut(s, [0, 0.333, 0.666, 1])
         exp = Series(Categorical.from_codes([0, 0, 0, 1, 1, 1, 2, 2, 2],
                                             ["[0, 2.664]",
-                                                "(2.664, 5.328]", "(5.328, 8]"],
+                                             "(2.664, 5.328]", "(5.328, 8]"],
                                             ordered=True))
         tm.assert_series_equal(res, exp)
 

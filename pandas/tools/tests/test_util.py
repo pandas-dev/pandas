@@ -2,7 +2,7 @@ import os
 import locale
 import codecs
 import nose
-from nose.tools import assert_raises, assert_true
+from nose.tools import assert_raises
 
 import numpy as np
 from numpy.testing import assert_equal
@@ -22,7 +22,7 @@ class TestCartesianProduct(tm.TestCase):
         x, y = list('ABC'), [1, 22]
         result = cartesian_product([x, y])
         expected = [np.array(['A', 'A', 'B', 'B', 'C', 'C']),
-                    np.array([1, 22,  1, 22,  1, 22])]
+                    np.array([1, 22, 1, 22, 1, 22])]
         assert_equal(result, expected)
 
     def test_datetimeindex(self):
