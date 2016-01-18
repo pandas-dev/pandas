@@ -20,7 +20,7 @@ import pandas as pd
 from pandas import (Index, Series, DataFrame, isnull, notnull, bdate_range,
                     NaT, date_range, period_range, timedelta_range,
                     _np_version_under1p8, _np_version_under1p9)
-from pandas.core.index import MultiIndex
+from pandas.core.index import MultiIndex, RangeIndex
 from pandas.core.indexing import IndexingError
 from pandas.tseries.period import PeriodIndex
 from pandas.tseries.index import Timestamp, DatetimeIndex
@@ -8552,6 +8552,16 @@ class TestSeriesNonUnique(tm.TestCase):
         rs = s.reset_index(level=[0, 2], drop=True)
         self.assertTrue(rs.index.equals(Index(index.get_level_values(1))))
         tm.assertIsInstance(rs, Series)
+
+    def test_reset_index_range(self):
+        # GH 12071
+        s = pd.Series(range(2), name='A', index=RangeIndex(stop=2))
+        series_result = s.reset_index()
+        tm.assertIsInstance(series_result.index, RangeIndex)
+        series_expected = pd.DataFrame([[0, 0], [1, 1]],
+                                       columns=['index', 'A'],
+                                       index=RangeIndex(stop=2))
+        assert_frame_equal(series_result, series_expected)
 
     def test_set_index_makes_timeseries(self):
         idx = tm.makeDateIndex(10)
