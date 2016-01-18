@@ -551,7 +551,7 @@ def to_sql(frame, name, con, flavor='sqlite', schema=None, if_exists='fail',
         time.  If None, all rows will be written at once.
     dtype : single SQL type or dict of column name to SQL type, default None
         Optional specifying the datatype for columns. The SQL type should
-        be a SQLAlchemy type, or a string for sqlite3 fallback connection.
+        be a SQLAlchemy type, or a string for sqlite3 fallback connection. 
         If all columns are of the same type, one single value can be 
         used.
 
@@ -1227,14 +1227,13 @@ class SQLDatabase(PandasSQL):
             time.  If None, all rows will be written at once.
         dtype : single SQL type or dict of column name to SQL type, default None
             Optional specifying the datatype for columns. The SQL type should
-            be a SQLAlchemy type.If all columns are of the same type, one 
+            be a SQLAlchemy type. If all columns are of the same type, one 
             single value can be used.
 
 
         """
         if dtype and not is_dictlike(dtype):
-            temp_type = dtype
-            dtype = { col_name : temp_type for col_name in frame }
+            dtype = { col_name : dtype for col_name in frame }
         if dtype is not None:
             from sqlalchemy.types import to_instance, TypeEngine
             for col, my_type in dtype.items():
@@ -1633,8 +1632,7 @@ class SQLiteDatabase(PandasSQL):
 
         """
         if dtype and not is_dictlike(dtype):
-            temp_type = dtype
-            dtype = { col_name : temp_type for col_name in frame }
+            dtype = { col_name : dtype for col_name in frame }
 
         if dtype is not None:
             for col, my_type in dtype.items():
