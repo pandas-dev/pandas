@@ -2891,7 +2891,7 @@ class DataFrame(NDFrame):
                                                                 np.nan)
             return values
 
-        new_index = np.arange(len(new_obj), dtype='int64')
+        new_index = _default_index(len(new_obj))
         if isinstance(self.index, MultiIndex):
             if level is not None:
                 if not isinstance(level, (tuple, list)):
