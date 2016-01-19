@@ -36,7 +36,7 @@ def cartesian_product(X):
 
     return [np.tile(np.repeat(np.asarray(com._values_from_object(x)), b[i]),
                     np.product(a[i]))
-               for i, x in enumerate(X)]
+            for i, x in enumerate(X)]
 
 
 def _compose2(f, g):
