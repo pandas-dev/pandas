@@ -23,9 +23,6 @@ import pandas.tseries.frequencies as frequencies
 from pandas.tseries.frequencies import FreqGroup
 from pandas.tseries.period import Period, PeriodIndex
 
-from matplotlib.dates import (HOURS_PER_DAY, MINUTES_PER_DAY,
-                              SEC_PER_DAY, MUSECONDS_PER_DAY)
-
 
 def register():
     units.registry[lib.Timestamp] = DatetimeConverter()
@@ -81,7 +78,7 @@ class TimeConverter(units.ConversionInterface):
         return 'time'
 
 
-### time formatter
+# time formatter
 class TimeFormatter(Formatter):
 
     def __init__(self, locs):
@@ -103,7 +100,7 @@ class TimeFormatter(Formatter):
         return pydt.time(h, m, s, us).strftime(fmt)
 
 
-### Period Conversion
+# Period Conversion
 
 
 class PeriodConverter(dates.DateConverter):
@@ -112,7 +109,8 @@ class PeriodConverter(dates.DateConverter):
     def convert(values, units, axis):
         if not hasattr(axis, 'freq'):
             raise TypeError('Axis must have `freq` set to convert to Periods')
-        valid_types = (compat.string_types, datetime, Period, pydt.date, pydt.time)
+        valid_types = (compat.string_types, datetime,
+                       Period, pydt.date, pydt.time)
         if (isinstance(values, valid_types) or com.is_integer(values) or
                 com.is_float(values)):
             return get_datevalue(values, axis.freq)
@@ -130,7 +128,8 @@ class PeriodConverter(dates.DateConverter):
 def get_datevalue(date, freq):
     if isinstance(date, Period):
         return date.asfreq(freq).ordinal
-    elif isinstance(date, (compat.string_types, datetime, pydt.date, pydt.time)):
+    elif isinstance(date, (compat.string_types, datetime,
+                           pydt.date, pydt.time)):
         return Period(date, freq).ordinal
     elif (com.is_integer(date) or com.is_float(date) or
           (isinstance(date, (np.ndarray, Index)) and (date.size == 1))):
@@ -146,14 +145,15 @@ def _dt_to_float_ordinal(dt):
     preserving hours, minutes, seconds and microseconds.  Return value
     is a :func:`float`.
     """
-    if isinstance(dt, (np.ndarray, Index, Series)) and com.is_datetime64_ns_dtype(dt):
+    if (isinstance(dt, (np.ndarray, Index, Series)) and
+            com.is_datetime64_ns_dtype(dt)):
         base = dates.epoch2num(dt.asi8 / 1.0E9)
     else:
         base = dates.date2num(dt)
     return base
 
 
-### Datetime Conversion
+# Datetime Conversion
 class DatetimeConverter(dates.DateConverter):
 
     @staticmethod
@@ -274,19 +274,20 @@ class MilliSecondLocator(dates.DateLocator):
 
         if dmin > dmax:
             dmax, dmin = dmin, dmax
-        delta = relativedelta(dmax, dmin)
-
         # We need to cap at the endpoints of valid datetime
-        try:
-            start = dmin - delta
-        except ValueError:
-            start = _from_ordinal(1.0)
 
-        try:
-            stop = dmax + delta
-        except ValueError:
-            # The magic number!
-            stop = _from_ordinal(3652059.9999999)
+        # TODO(wesm) unused?
+        # delta = relativedelta(dmax, dmin)
+        # try:
+        #     start = dmin - delta
+        # except ValueError:
+        #     start = _from_ordinal(1.0)
+
+        # try:
+        #     stop = dmax + delta
+        # except ValueError:
+        #     # The magic number!
+        #     stop = _from_ordinal(3652059.9999999)
 
         nmax, nmin = dates.date2num((dmax, dmin))
 
@@ -306,7 +307,7 @@ class MilliSecondLocator(dates.DateLocator):
             raise RuntimeError(('MillisecondLocator estimated to generate %d '
                                 'ticks from %s to %s: exceeds Locator.MAXTICKS'
                                 '* 2 (%d) ') %
-                              (estimate, dmin, dmax, self.MAXTICKS * 2))
+                               (estimate, dmin, dmax, self.MAXTICKS * 2))
 
         freq = '%dL' % self._get_interval()
         tz = self.tz.tzname(None)
@@ -318,7 +319,7 @@ class MilliSecondLocator(dates.DateLocator):
             if len(all_dates) > 0:
                 locs = self.raise_if_exceeds(dates.date2num(all_dates))
                 return locs
-        except Exception as e:  # pragma: no cover
+        except Exception:  # pragma: no cover
             pass
 
         lims = dates.date2num([dmin, dmax])
@@ -335,19 +336,21 @@ class MilliSecondLocator(dates.DateLocator):
         if dmin > dmax:
             dmax, dmin = dmin, dmax
 
-        delta = relativedelta(dmax, dmin)
-
         # We need to cap at the endpoints of valid datetime
-        try:
-            start = dmin - delta
-        except ValueError:
-            start = _from_ordinal(1.0)
 
-        try:
-            stop = dmax + delta
-        except ValueError:
-            # The magic number!
-            stop = _from_ordinal(3652059.9999999)
+        # TODO(wesm): unused?
+
+        # delta = relativedelta(dmax, dmin)
+        # try:
+        #     start = dmin - delta
+        # except ValueError:
+        #     start = _from_ordinal(1.0)
+
+        # try:
+        #     stop = dmax + delta
+        # except ValueError:
+        #     # The magic number!
+        #     stop = _from_ordinal(3652059.9999999)
 
         dmin, dmax = self.datalim_to_dt()
 
@@ -377,11 +380,11 @@ def _from_ordinal(x, tz=None):
 
     return dt
 
-### Fixed frequency dynamic tick locators and formatters
+# Fixed frequency dynamic tick locators and formatters
 
-##### -------------------------------------------------------------------------
-#---- --- Locators ---
-##### -------------------------------------------------------------------------
+# -------------------------------------------------------------------------
+# --- Locators ---
+# -------------------------------------------------------------------------
 
 
 def _get_default_annual_spacing(nyears):
@@ -660,7 +663,6 @@ def _daily_finder(vmin, vmax, freq):
         minor_idx = year_start[(year_break % min_anndef == 0)]
         info_min[minor_idx] = True
         info_fmt[major_idx] = '%Y'
-    #............................................
 
     return info
 
@@ -671,7 +673,7 @@ def _monthly_finder(vmin, vmax, freq):
     vmin_orig = vmin
     (vmin, vmax) = (int(vmin), int(vmax))
     span = vmax - vmin + 1
-    #..............
+
     # Initialize the output
     info = np.zeros(span,
                     dtype=[('val', int), ('maj', bool), ('min', bool),
@@ -682,7 +684,7 @@ def _monthly_finder(vmin, vmax, freq):
     year_start = (dates_ % 12 == 0).nonzero()[0]
     info_maj = info['maj']
     info_fmt = info['fmt']
-    #..............
+
     if span <= 1.15 * periodsperyear:
         info_maj[year_start] = True
         info['min'] = True
@@ -696,7 +698,7 @@ def _monthly_finder(vmin, vmax, freq):
             else:
                 idx = 0
             info_fmt[idx] = '%b\n%Y'
-    #..............
+
     elif span <= 2.5 * periodsperyear:
         quarter_start = (dates_ % 3 == 0).nonzero()
         info_maj[year_start] = True
@@ -706,7 +708,7 @@ def _monthly_finder(vmin, vmax, freq):
 
         info_fmt[quarter_start] = '%b'
         info_fmt[year_start] = '%b\n%Y'
-    #..............
+
     elif span <= 4 * periodsperyear:
         info_maj[year_start] = True
         info['min'] = True
@@ -714,14 +716,14 @@ def _monthly_finder(vmin, vmax, freq):
         jan_or_jul = (dates_ % 12 == 0) | (dates_ % 12 == 6)
         info_fmt[jan_or_jul] = '%b'
         info_fmt[year_start] = '%b\n%Y'
-    #..............
+
     elif span <= 11 * periodsperyear:
         quarter_start = (dates_ % 3 == 0).nonzero()
         info_maj[year_start] = True
         info['min'][quarter_start] = True
 
         info_fmt[year_start] = '%Y'
-    #..................
+
     else:
         nyears = span / periodsperyear
         (min_anndef, maj_anndef) = _get_default_annual_spacing(nyears)
@@ -731,7 +733,7 @@ def _monthly_finder(vmin, vmax, freq):
         info['min'][year_start[(years % min_anndef == 0)]] = True
 
         info_fmt[major_idx] = '%Y'
-    #..............
+
     return info
 
 
@@ -740,7 +742,7 @@ def _quarterly_finder(vmin, vmax, freq):
     vmin_orig = vmin
     (vmin, vmax) = (int(vmin), int(vmax))
     span = vmax - vmin + 1
-    #............................................
+
     info = np.zeros(span,
                     dtype=[('val', int), ('maj', bool), ('min', bool),
                            ('fmt', '|S8')])
@@ -750,7 +752,7 @@ def _quarterly_finder(vmin, vmax, freq):
     info_maj = info['maj']
     info_fmt = info['fmt']
     year_start = (dates_ % 4 == 0).nonzero()[0]
-    #..............
+
     if span <= 3.5 * periodsperyear:
         info_maj[year_start] = True
         info['min'] = True
@@ -763,12 +765,12 @@ def _quarterly_finder(vmin, vmax, freq):
             else:
                 idx = 0
             info_fmt[idx] = 'Q%q\n%F'
-    #..............
+
     elif span <= 11 * periodsperyear:
         info_maj[year_start] = True
         info['min'] = True
         info_fmt[year_start] = '%F'
-    #..............
+
     else:
         years = dates_[year_start] // 4 + 1
         nyears = span / periodsperyear
@@ -777,27 +779,27 @@ def _quarterly_finder(vmin, vmax, freq):
         info_maj[major_idx] = True
         info['min'][year_start[(years % min_anndef == 0)]] = True
         info_fmt[major_idx] = '%F'
-    #..............
+
     return info
 
 
 def _annual_finder(vmin, vmax, freq):
     (vmin, vmax) = (int(vmin), int(vmax + 1))
     span = vmax - vmin + 1
-    #..............
+
     info = np.zeros(span,
                     dtype=[('val', int), ('maj', bool), ('min', bool),
                            ('fmt', '|S8')])
     info['val'] = np.arange(vmin, vmax + 1)
     info['fmt'] = ''
     dates_ = info['val']
-    #..............
+
     (min_anndef, maj_anndef) = _get_default_annual_spacing(span)
     major_idx = dates_ % maj_anndef == 0
     info['maj'][major_idx] = True
     info['min'][(dates_ % min_anndef == 0)] = True
     info['fmt'][major_idx] = '%Y'
-    #..............
+
     return info
 
 
@@ -896,9 +898,9 @@ class TimeSeries_DateLocator(Locator):
             vmax += 1
         return nonsingular(vmin, vmax)
 
-#####-------------------------------------------------------------------------
-#---- --- Formatter ---
-#####-------------------------------------------------------------------------
+# -------------------------------------------------------------------------
+# --- Formatter ---
+# -------------------------------------------------------------------------
 
 
 class TimeSeries_DateFormatter(Formatter):

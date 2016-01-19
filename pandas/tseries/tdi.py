@@ -3,18 +3,17 @@
 from datetime import timedelta
 import numpy as np
 from pandas.core.common import (ABCSeries, _TD_DTYPE, _INT64_DTYPE,
-                                is_timedelta64_dtype, _maybe_box,
-                                _values_from_object, isnull, is_integer, is_float)
+                                _maybe_box,
+                                _values_from_object, isnull,
+                                is_integer, is_float)
 from pandas.core.index import Index, Int64Index
 import pandas.compat as compat
 from pandas.compat import u
-from pandas.util.decorators import cache_readonly
 from pandas.tseries.frequencies import to_offset
 import pandas.core.common as com
-from pandas.tseries import timedeltas
 from pandas.tseries.base import TimelikeOps, DatetimeIndexOpsMixin
-from pandas.tseries.timedeltas import to_timedelta, _coerce_scalar_to_timedelta_type
-import pandas.tseries.offsets as offsets
+from pandas.tseries.timedeltas import (to_timedelta,
+                                       _coerce_scalar_to_timedelta_type)
 from pandas.tseries.offsets import Tick, DateOffset
 
 import pandas.lib as lib
@@ -24,10 +23,12 @@ import pandas.index as _index
 
 Timedelta = tslib.Timedelta
 
+
 def _td_index_cmp(opname, nat_result=False):
     """
     Wrap comparison operations to convert timedelta-like to timedelta64
     """
+
     def wrapper(self, other):
         func = getattr(super(TimedeltaIndex, self), opname)
         if _is_convertible_to_td(other):
@@ -37,7 +38,8 @@ def _td_index_cmp(opname, nat_result=False):
                 result.fill(nat_result)
         else:
             if not com.is_list_like(other):
-                raise TypeError("cannot compare a TimedeltaIndex with type {0}".format(type(other)))
+                raise TypeError("cannot compare a TimedeltaIndex with type "
+                                "{0}".format(type(other)))
 
             other = TimedeltaIndex(other).values
             result = func(other)
@@ -94,8 +96,10 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
 
     _typ = 'timedeltaindex'
     _join_precedence = 10
+
     def _join_i8_wrapper(joinf, **kwargs):
-        return DatetimeIndexOpsMixin._join_i8_wrapper(joinf, dtype='m8[ns]', **kwargs)
+        return DatetimeIndexOpsMixin._join_i8_wrapper(
+            joinf, dtype='m8[ns]', **kwargs)
 
     _inner_indexer = _join_i8_wrapper(_algos.inner_join_indexer_int64)
     _outer_indexer = _join_i8_wrapper(_algos.outer_join_indexer_int64)
@@ -103,8 +107,8 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
     _left_indexer_unique = _join_i8_wrapper(
         _algos.left_join_indexer_unique_int64, with_indexers=False)
     _arrmap = None
-    _datetimelike_ops = ['days','seconds','microseconds','nanoseconds',
-                         'freq','components']
+    _datetimelike_ops = ['days', 'seconds', 'microseconds', 'nanoseconds',
+                         'freq', 'components']
 
     __eq__ = _td_index_cmp('__eq__')
     __ne__ = _td_index_cmp('__ne__', nat_result=True)
@@ -167,10 +171,10 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
                                  % repr(data))
 
         # convert if not already
-        if getattr(data,'dtype',None) != _TD_DTYPE:
-            data = to_timedelta(data,unit=unit,box=False)
+        if getattr(data, 'dtype', None) != _TD_DTYPE:
+            data = to_timedelta(data, unit=unit, box=False)
         elif copy:
-            data = np.array(data,copy=True)
+            data = np.array(data, copy=True)
 
         # check that we are matching freqs
         if verify_integrity and len(data) > 0:
@@ -178,10 +182,13 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
                 index = cls._simple_new(data, name=name)
                 inferred = index.inferred_freq
                 if inferred != freq.freqstr:
-                    on_freq = cls._generate(index[0], None, len(index), name, freq)
+                    on_freq = cls._generate(
+                        index[0], None, len(index), name, freq)
                     if not np.array_equal(index.asi8, on_freq.asi8):
-                        raise ValueError('Inferred frequency {0} from passed timedeltas does not '
-                                         'conform to passed frequency {1}'.format(inferred, freq.freqstr))
+                        raise ValueError('Inferred frequency {0} from passed '
+                                         'timedeltas does not conform to '
+                                         'passed frequency {1}'
+                                         .format(inferred, freq.freqstr))
                 index.freq = freq
                 return index
 
@@ -239,8 +246,8 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
 
     @classmethod
     def _simple_new(cls, values, name=None, freq=None, **kwargs):
-        if not getattr(values,'dtype',None):
-            values = np.array(values,copy=False)
+        if not getattr(values, 'dtype', None):
+            values = np.array(values, copy=False)
         if values.dtype == np.object_:
             values = tslib.array_to_timedelta64(values)
         if values.dtype != _TD_DTYPE:
@@ -286,7 +293,8 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
             # update name when delta is index
             name = com._maybe_match_name(self, delta)
         else:
-            raise ValueError("cannot add the type {0} to a TimedeltaIndex".format(type(delta)))
+            raise ValueError("cannot add the type {0} to a TimedeltaIndex"
+                             .format(type(delta)))
 
         result = TimedeltaIndex(new_values, freq='infer', name=name)
         return result
@@ -294,16 +302,17 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
     def _evaluate_with_timedelta_like(self, other, op, opstr):
 
         # allow division by a timedelta
-        if opstr in ['__div__','__truediv__']:
+        if opstr in ['__div__', '__truediv__']:
             if _is_convertible_to_td(other):
                 other = Timedelta(other)
                 if isnull(other):
-                    raise NotImplementedError("division by pd.NaT not implemented")
+                    raise NotImplementedError(
+                        "division by pd.NaT not implemented")
 
                 i8 = self.asi8
-                result = i8/float(other.value)
-                result = self._maybe_mask_results(result,convert='float64')
-                return Index(result,name=self.name,copy=False)
+                result = i8 / float(other.value)
+                result = self._maybe_mask_results(result, convert='float64')
+                return Index(result, name=self.name, copy=False)
 
         return NotImplemented
 
@@ -314,8 +323,8 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
         other = Timestamp(other)
         i8 = self.asi8
         result = i8 + other.value
-        result = self._maybe_mask_results(result,fill_value=tslib.iNaT)
-        return DatetimeIndex(result,name=self.name,copy=False)
+        result = self._maybe_mask_results(result, fill_value=tslib.iNaT)
+        return DatetimeIndex(result, name=self.name, copy=False)
 
     def _sub_datelike(self, other):
         raise TypeError("cannot subtract a datelike from a TimedeltaIndex")
@@ -335,10 +344,12 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
             result = np.empty(len(self), dtype='float64')
             mask = self._isnan
             imask = ~mask
-            result.flat[imask] = np.array([ getattr(Timedelta(val),m) for val in values[imask] ])
+            result.flat[imask] = np.array(
+                [getattr(Timedelta(val), m) for val in values[imask]])
             result[mask] = np.nan
         else:
-            result = np.array([ getattr(Timedelta(val),m) for val in values ],dtype='int64')
+            result = np.array([getattr(Timedelta(val), m)
+                               for val in values], dtype='int64')
         return result
 
     @property
@@ -353,12 +364,17 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
 
     @property
     def microseconds(self):
-        """ Number of microseconds (>= 0 and less than 1 second) for each element. """
+        """
+        Number of microseconds (>= 0 and less than 1 second) for each
+        element. """
         return self._get_field('microseconds')
 
     @property
     def nanoseconds(self):
-        """ Number of nanoseconds (>= 0 and less than 1 microsecond) for each element. """
+        """
+        Number of nanoseconds (>= 0 and less than 1 microsecond) for each
+        element.
+        """
         return self._get_field('nanoseconds')
 
     @property
@@ -373,18 +389,19 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
         """
         from pandas import DataFrame
 
-        columns = ['days','hours','minutes','seconds','milliseconds','microseconds','nanoseconds']
+        columns = ['days', 'hours', 'minutes', 'seconds',
+                   'milliseconds', 'microseconds', 'nanoseconds']
         hasnans = self.hasnans
         if hasnans:
             def f(x):
                 if isnull(x):
-                    return [np.nan]*len(columns)
+                    return [np.nan] * len(columns)
                 return x.components
         else:
             def f(x):
                 return x.components
 
-        result = DataFrame([ f(x) for x in self ])
+        result = DataFrame([f(x) for x in self])
         result.columns = columns
         if not hasnans:
             result = result.astype('int64')
@@ -396,7 +413,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
 
         .. versionadded:: 0.17.0
         """
-        return self._maybe_mask_results(1e-9*self.asi8)
+        return self._maybe_mask_results(1e-9 * self.asi8)
 
     def to_pytimedelta(self):
         """
@@ -422,9 +439,11 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
             # return an index (essentially this is division)
             result = self.values.astype(dtype)
             if self.hasnans:
-                return Index(self._maybe_mask_results(result,convert='float64'),name=self.name)
+                return Index(self._maybe_mask_results(result,
+                                                      convert='float64'),
+                             name=self.name)
 
-            return Index(result.astype('i8'),name=self.name)
+            return Index(result.astype('i8'), name=self.name)
 
         else:  # pragma: no cover
             raise ValueError('Cannot cast TimedeltaIndex to dtype %s' % dtype)
@@ -503,8 +522,8 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
 
     def _wrap_joined_index(self, joined, other):
         name = self.name if self.name == other.name else None
-        if (isinstance(other, TimedeltaIndex) and  self.freq == other.freq
-            and self._can_fast_union(other)):
+        if (isinstance(other, TimedeltaIndex) and self.freq == other.freq
+                and self._can_fast_union(other)):
             joined = self._shallow_copy(joined, name=name)
             return joined
         else:
@@ -550,7 +569,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
         else:
             left, right = other, self
 
-        left_start, left_end = left[0], left[-1]
+        left_end = left[-1]
         right_end = right[-1]
 
         # concatenate
@@ -624,7 +643,8 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
             return self.get_value_maybe_box(series, key)
 
         try:
-            return _maybe_box(self, Index.get_value(self, series, key), series, key)
+            return _maybe_box(self, Index.get_value(self, series, key),
+                              series, key)
         except KeyError:
             try:
                 loc = self._get_string_slice(key)
@@ -699,7 +719,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
                 return (lbound + to_offset(parsed.resolution) -
                         Timedelta(1, 'ns'))
         elif is_integer(label) or is_float(label):
-            self._invalid_indexer('slice',label)
+            self._invalid_indexer('slice', label)
 
         return label
 
@@ -707,7 +727,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
         freq = getattr(self, 'freqstr',
                        getattr(self, 'inferred_freq', None))
         if is_integer(key) or is_float(key):
-            self._invalid_indexer('slice',key)
+            self._invalid_indexer('slice', key)
         loc = self._partial_td_slice(key, freq, use_lhs=use_lhs,
                                      use_rhs=use_rhs)
         return loc
@@ -718,36 +738,44 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
         if not isinstance(key, compat.string_types):
             return key
 
-        parsed = _coerce_scalar_to_timedelta_type(key, box=True)
+        raise NotImplementedError
 
-        is_monotonic = self.is_monotonic
+        # TODO(wesm): dead code
+        # parsed = _coerce_scalar_to_timedelta_type(key, box=True)
 
-        # figure out the resolution of the passed td
-        # and round to it
-        t1 = parsed.round(reso)
-        t2 = t1 + to_offset(parsed.resolution) - Timedelta(1,'ns')
+        # is_monotonic = self.is_monotonic
 
-        stamps = self.asi8
+        # # figure out the resolution of the passed td
+        # # and round to it
 
-        if is_monotonic:
+        # # t1 = parsed.round(reso)
 
-            # we are out of range
-            if len(stamps) and (
-                (use_lhs and t1.value < stamps[0] and t2.value < stamps[0]) or (
-                (use_rhs and t1.value > stamps[-1] and t2.value > stamps[-1]))):
-                raise KeyError
+        # t2 = t1 + to_offset(parsed.resolution) - Timedelta(1, 'ns')
 
-            # a monotonic (sorted) series can be sliced
-            left = stamps.searchsorted(t1.value, side='left') if use_lhs else None
-            right = stamps.searchsorted(t2.value, side='right') if use_rhs else None
+        # stamps = self.asi8
 
-            return slice(left, right)
+        # if is_monotonic:
 
-        lhs_mask = (stamps >= t1.value) if use_lhs else True
-        rhs_mask = (stamps <= t2.value) if use_rhs else True
+        #     # we are out of range
+        #     if (len(stamps) and ((use_lhs and t1.value < stamps[0] and
+        #                           t2.value < stamps[0]) or
+        #                          ((use_rhs and t1.value > stamps[-1] and
+        #                            t2.value > stamps[-1])))):
+        #         raise KeyError
 
-        # try to find a the dates
-        return (lhs_mask & rhs_mask).nonzero()[0]
+        #     # a monotonic (sorted) series can be sliced
+        #     left = (stamps.searchsorted(t1.value, side='left')
+        #             if use_lhs else None)
+        #     right = (stamps.searchsorted(t2.value, side='right')
+        #              if use_rhs else None)
+
+        #     return slice(left, right)
+
+        # lhs_mask = (stamps >= t1.value) if use_lhs else True
+        # rhs_mask = (stamps <= t2.value) if use_rhs else True
+
+        # # try to find a the dates
+        # return (lhs_mask & rhs_mask).nonzero()[0]
 
     def searchsorted(self, key, side='left'):
         if isinstance(key, (np.ndarray, Index)):
@@ -816,7 +844,8 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
 
             # check freq can be preserved on edge cases
             if self.freq is not None:
-                if (loc == 0 or loc == -len(self)) and item + self.freq == self[0]:
+                if ((loc == 0 or loc == -len(self)) and
+                        item + self.freq == self[0]):
                     freq = self.freq
                 elif (loc == len(self)) and item - self.freq == self[-1]:
                     freq = self.freq
@@ -824,15 +853,16 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
 
         try:
             new_tds = np.concatenate((self[:loc].asi8, [item.view(np.int64)],
-                                        self[loc:].asi8))
+                                      self[loc:].asi8))
             return TimedeltaIndex(new_tds, name=self.name, freq=freq)
 
         except (AttributeError, TypeError):
 
             # fall back to object index
-            if isinstance(item,compat.string_types):
+            if isinstance(item, compat.string_types):
                 return self.asobject.insert(loc, item)
-            raise TypeError("cannot insert TimedeltaIndex with incompatible label")
+            raise TypeError(
+                "cannot insert TimedeltaIndex with incompatible label")
 
     def delete(self, loc):
         """
@@ -855,7 +885,8 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
                 freq = self.freq
         else:
             if com.is_list_like(loc):
-                loc = lib.maybe_indices_to_slice(com._ensure_int64(np.array(loc)), len(self))
+                loc = lib.maybe_indices_to_slice(
+                    com._ensure_int64(np.array(loc)), len(self))
             if isinstance(loc, slice) and loc.step in (1, None):
                 if (loc.start in (0, None) or loc.stop in (len(self), None)):
                     freq = self.freq
@@ -869,18 +900,22 @@ TimedeltaIndex._add_datetimelike_methods()
 
 
 def _is_convertible_to_index(other):
-    """ return a boolean whether I can attempt conversion to a TimedeltaIndex """
+    """
+    return a boolean whether I can attempt conversion to a TimedeltaIndex
+    """
     if isinstance(other, TimedeltaIndex):
         return True
     elif (len(other) > 0 and
-          other.inferred_type not in ('floating', 'mixed-integer','integer',
+          other.inferred_type not in ('floating', 'mixed-integer', 'integer',
                                       'mixed-integer-float', 'mixed')):
         return True
     return False
 
 
 def _is_convertible_to_td(key):
-    return isinstance(key, (DateOffset, timedelta, Timedelta, np.timedelta64, compat.string_types))
+    return isinstance(key, (DateOffset, timedelta, Timedelta,
+                            np.timedelta64, compat.string_types))
+
 
 def _to_m8(key):
     '''
@@ -892,6 +927,7 @@ def _to_m8(key):
 
     # return an type that can be compared
     return np.int64(key.value).view(_TD_DTYPE)
+
 
 def _generate_regular_range(start, end, periods, offset):
     stride = offset.nanos
