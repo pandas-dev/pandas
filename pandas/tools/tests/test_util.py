@@ -2,7 +2,7 @@ import os
 import locale
 import codecs
 import nose
-from nose.tools import assert_raises, assert_true
+from nose.tools import assert_raises
 
 import numpy as np
 from numpy.testing import assert_equal
@@ -22,7 +22,7 @@ class TestCartesianProduct(tm.TestCase):
         x, y = list('ABC'), [1, 22]
         result = cartesian_product([x, y])
         expected = [np.array(['A', 'A', 'B', 'B', 'C', 'C']),
-                    np.array([ 1, 22,  1, 22,  1, 22])]
+                    np.array([1, 22, 1, 22, 1, 22])]
         assert_equal(result, expected)
 
     def test_datetimeindex(self):
@@ -91,6 +91,7 @@ class TestLocaleUtils(tm.TestCase):
 
 
 class TestToNumeric(tm.TestCase):
+
     def test_series(self):
         s = pd.Series(['1', '-3.14', '7'])
         res = to_numeric(s)
@@ -130,7 +131,7 @@ class TestToNumeric(tm.TestCase):
         tm.assert_series_equal(res, expected)
 
     def test_all_nan(self):
-        s = pd.Series(['a','b','c'])
+        s = pd.Series(['a', 'b', 'c'])
         res = to_numeric(s, errors='coerce')
         expected = pd.Series([np.nan, np.nan, np.nan])
         tm.assert_series_equal(res, expected)
@@ -147,4 +148,3 @@ class TestToNumeric(tm.TestCase):
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
                    exit=False)
-

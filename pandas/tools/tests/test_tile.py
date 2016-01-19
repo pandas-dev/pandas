@@ -4,7 +4,7 @@ import nose
 import numpy as np
 from pandas.compat import zip
 
-from pandas import DataFrame, Series, unique
+from pandas import Series
 import pandas.util.testing as tm
 from pandas.util.testing import assertRaisesRegexp
 import pandas.core.common as com
@@ -113,7 +113,7 @@ class TestCut(tm.TestCase):
 
     def test_inf_handling(self):
         data = np.arange(6)
-        data_ser = Series(data,dtype='int64')
+        data_ser = Series(data, dtype='int64')
 
         result = cut(data, [-np.inf, 2, 4, np.inf])
         result_ser = cut(data_ser, [-np.inf, 2, 4, np.inf])
@@ -151,7 +151,8 @@ class TestCut(tm.TestCase):
         self.assertTrue(factor.equals(expected))
 
     def test_qcut_all_bins_same(self):
-        assertRaisesRegexp(ValueError, "edges.*unique", qcut, [0,0,0,0,0,0,0,0,0,0], 3)
+        assertRaisesRegexp(ValueError, "edges.*unique", qcut,
+                           [0, 0, 0, 0, 0, 0, 0, 0, 0, 0], 3)
 
     def test_cut_out_of_bounds(self):
         arr = np.random.randn(100)
@@ -230,19 +231,21 @@ class TestCut(tm.TestCase):
 
     def test_cut_return_categorical(self):
         from pandas import Categorical
-        s = Series([0,1,2,3,4,5,6,7,8])
-        res = cut(s,3)
-        exp = Series(Categorical.from_codes([0,0,0,1,1,1,2,2,2],
-                                            ["(-0.008, 2.667]", "(2.667, 5.333]", "(5.333, 8]"],
+        s = Series([0, 1, 2, 3, 4, 5, 6, 7, 8])
+        res = cut(s, 3)
+        exp = Series(Categorical.from_codes([0, 0, 0, 1, 1, 1, 2, 2, 2],
+                                            ["(-0.008, 2.667]",
+                                             "(2.667, 5.333]", "(5.333, 8]"],
                                             ordered=True))
         tm.assert_series_equal(res, exp)
 
     def test_qcut_return_categorical(self):
         from pandas import Categorical
-        s = Series([0,1,2,3,4,5,6,7,8])
-        res = qcut(s,[0,0.333,0.666,1])
-        exp = Series(Categorical.from_codes([0,0,0,1,1,1,2,2,2],
-                                            ["[0, 2.664]", "(2.664, 5.328]", "(5.328, 8]"],
+        s = Series([0, 1, 2, 3, 4, 5, 6, 7, 8])
+        res = qcut(s, [0, 0.333, 0.666, 1])
+        exp = Series(Categorical.from_codes([0, 0, 0, 1, 1, 1, 2, 2, 2],
+                                            ["[0, 2.664]",
+                                             "(2.664, 5.328]", "(5.328, 8]"],
                                             ordered=True))
         tm.assert_series_equal(res, exp)
 
