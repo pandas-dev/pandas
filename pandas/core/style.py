@@ -206,6 +206,24 @@ class Styler(object):
                                "class": " ".join(cs)})
             head.append(row_es)
 
+        if self.data.index.names:
+            index_header_row = []
+
+            for c, name in enumerate(self.data.index.names):
+                cs = [COL_HEADING_CLASS,
+                      "level%s" % (n_clvls + 1),
+                      "col%s" % c]
+                index_header_row.append({"type": "th", "value": name,
+                                         "class": " ".join(cs)})
+
+            index_header_row.extend(
+                [{"type": "th",
+                  "value": BLANK_VALUE,
+                  "class": " ".join([BLANK_CLASS])
+                  }] * len(clabels[0]))
+
+            head.append(index_header_row)
+
         body = []
         for r, idx in enumerate(self.data.index):
             cs = [ROW_HEADING_CLASS, "level%s" % c, "row%s" % r]
