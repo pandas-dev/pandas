@@ -1356,7 +1356,7 @@ class TestResample(tm.TestCase):
                            DataFrame([5], index=df.index.normalize()))
         df.resample(rule='MS').sum()
         assert_frame_equal(
-            df.resample(rule='MS').sum()
+            df.resample(rule='MS').sum(),
             DataFrame([5], index=DatetimeIndex([datetime(2012, 11, 1)],
                                                tz='US/Eastern')))
 
@@ -1414,7 +1414,6 @@ class TestResample(tm.TestCase):
                       index=date_range('10/26/2013', '10/29/2013',
                                        freq='D', tz='Europe/Paris')),
             'D Frequency')
-
 
 
 def _simple_ts(start, end, freq='D'):
@@ -1857,7 +1856,6 @@ class TestResamplePeriodIndex(tm.TestCase):
             index=index)
         result = df.resample('7D').sum()
         assert_frame_equal(result, expected)
-
 
 
 class TestTimeGrouper(tm.TestCase):

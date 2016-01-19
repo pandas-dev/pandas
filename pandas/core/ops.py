@@ -274,11 +274,7 @@ class _TimeOp(object):
     def __init__(self, left, right, name, na_op):
 
         # need to make sure that we are aligning the data
-<<<<<<< 16a7799702f43d58ee2c2b3582c5a2c92b34fc0c
-        if isinstance(left, pd.Series) and isinstance(right, pd.Series):
-=======
         if isinstance(left, ABCSeries) and isinstance(right, ABCSeries):
->>>>>>> ENH: .resample API to groupby-like class, #11732
             left, right = left.align(right, copy=False)
 
         lvalues = self._convert_to_array(left, name=name)
@@ -623,11 +619,7 @@ def _arith_method_SERIES(op, name, str_rep, fill_zeros=None, default_axis=None,
             wrap_results = time_converted.wrap_results
             na_op = time_converted.na_op
 
-<<<<<<< 16a7799702f43d58ee2c2b3582c5a2c92b34fc0c
-        if isinstance(rvalues, pd.Series):
-=======
         if isinstance(rvalues, ABCSeries):
->>>>>>> ENH: .resample API to groupby-like class, #11732
             rindex = getattr(rvalues, 'index', rvalues)
             name = _maybe_match_name(left, rvalues)
             lvalues = getattr(lvalues, 'values', lvalues)

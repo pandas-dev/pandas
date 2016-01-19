@@ -721,7 +721,8 @@ class TimeGrouper(Grouper):
             return binner, [], labels
 
         first, last = ax.min(), ax.max()
-        first, last = _get_range_edges(first, last, self.freq, closed=self.closed,
+        first, last = _get_range_edges(first, last, self.freq,
+                                       closed=self.closed,
                                        base=self.base)
         tz = ax.tz
         binner = labels = DatetimeIndex(freq=self.freq,
