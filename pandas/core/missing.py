@@ -2,11 +2,8 @@
 Routines for filling missing data
 """
 
-from functools import partial
-
 import numpy as np
 
-import pandas as pd
 import pandas.core.common as com
 import pandas.algos as algos
 import pandas.lib as lib
@@ -28,8 +25,8 @@ def _clean_fill_method(method, allow_nearest=False):
         valid_methods.append('nearest')
         expecting = 'pad (ffill), backfill (bfill) or nearest'
     if method not in valid_methods:
-        msg = ('Invalid fill method. Expecting %s. Got %s'
-               % (expecting, method))
+        msg = ('Invalid fill method. Expecting %s. Got %s' %
+               (expecting, method))
         raise ValueError(msg)
     return method
 
@@ -37,9 +34,8 @@ def _clean_fill_method(method, allow_nearest=False):
 def _clean_interp_method(method, **kwargs):
     order = kwargs.get('order')
     valid = ['linear', 'time', 'index', 'values', 'nearest', 'zero', 'slinear',
-             'quadratic', 'cubic', 'barycentric', 'polynomial',
-             'krogh', 'piecewise_polynomial',
-             'pchip', 'spline']
+             'quadratic', 'cubic', 'barycentric', 'polynomial', 'krogh',
+             'piecewise_polynomial', 'pchip', 'spline']
     if method in ('spline', 'polynomial') and order is None:
         raise ValueError("You must specify the order of the spline or "
                          "polynomial.")
@@ -50,8 +46,8 @@ def _clean_interp_method(method, **kwargs):
 
 
 def interpolate_1d(xvalues, yvalues, method='linear', limit=None,
-                   limit_direction='forward',
-                   fill_value=None, bounds_error=False, order=None, **kwargs):
+                   limit_direction='forward', fill_value=None,
+                   bounds_error=False, order=None, **kwargs):
     """
     Logic for the 1-d interpolation.  The result should be 1-d, inputs
     xvalues and yvalues will each be 1-d arrays of the same length.
@@ -76,7 +72,7 @@ def interpolate_1d(xvalues, yvalues, method='linear', limit=None,
 
     if method == 'time':
         if not getattr(xvalues, 'is_all_dates', None):
-        # if not issubclass(xvalues.dtype.type, np.datetime64):
+            # if not issubclass(xvalues.dtype.type, np.datetime64):
             raise ValueError('time-weighted interpolation only works '
                              'on Series or DataFrames with a '
                              'DatetimeIndex')
@@ -91,22 +87,21 @@ def interpolate_1d(xvalues, yvalues, method='linear', limit=None,
     valid_limit_directions = ['forward', 'backward', 'both']
     limit_direction = limit_direction.lower()
     if limit_direction not in valid_limit_directions:
-        msg = 'Invalid limit_direction: expecting one of %r, got %r.' % (
-            valid_limit_directions, limit_direction)
-        raise ValueError(msg)
+        raise ValueError('Invalid limit_direction: expecting one of %r, got '
+                         '%r.' % (valid_limit_directions, limit_direction))
 
     from pandas import Series
     ys = Series(yvalues)
     start_nans = set(range(ys.first_valid_index()))
     end_nans = set(range(1 + ys.last_valid_index(), len(valid)))
 
-    # This is a list of the indexes in the series whose yvalue is currently NaN,
-    # but whose interpolated yvalue will be overwritten with NaN after computing
-    # the interpolation. For each index in this list, one of these conditions is
-    # true of the corresponding NaN in the yvalues:
+    # This is a list of the indexes in the series whose yvalue is currently
+    # NaN, but whose interpolated yvalue will be overwritten with NaN after
+    # computing the interpolation. For each index in this list, one of these
+    # conditions is true of the corresponding NaN in the yvalues:
     #
-    # a) It is one of a chain of NaNs at the beginning of the series, and either
-    #    limit is not specified or limit_direction is 'forward'.
+    # a) It is one of a chain of NaNs at the beginning of the series, and
+    #    either limit is not specified or limit_direction is 'forward'.
     # b) It is one of a chain of NaNs at the end of the series, and limit is
     #    specified and limit_direction is 'backward' or 'both'.
     # c) Limit is nonzero and it is further than limit from the nearest non-NaN
@@ -118,9 +113,11 @@ def interpolate_1d(xvalues, yvalues, method='linear', limit=None,
 
     if limit:
         if limit_direction == 'forward':
-            violate_limit = sorted(start_nans | set(_interp_limit(invalid, limit, 0)))
+            violate_limit = sorted(start_nans | set(_interp_limit(invalid,
+                                                                  limit, 0)))
         if limit_direction == 'backward':
-            violate_limit = sorted(end_nans | set(_interp_limit(invalid, 0, limit)))
+            violate_limit = sorted(end_nans | set(_interp_limit(invalid, 0,
+                                                                limit)))
         if limit_direction == 'both':
             violate_limit = sorted(_interp_limit(invalid, limit, limit))
 
@@ -150,10 +147,13 @@ def interpolate_1d(xvalues, yvalues, method='linear', limit=None,
         # hack for DatetimeIndex, #1646
         if issubclass(inds.dtype.type, np.datetime64):
             inds = inds.view(np.int64)
-        result[invalid] = _interpolate_scipy_wrapper(
-            inds[valid], yvalues[valid], inds[invalid], method=method,
-            fill_value=fill_value,
-            bounds_error=bounds_error, order=order, **kwargs)
+        result[invalid] = _interpolate_scipy_wrapper(inds[valid],
+                                                     yvalues[valid],
+                                                     inds[invalid],
+                                                     method=method,
+                                                     fill_value=fill_value,
+                                                     bounds_error=bounds_error,
+                                                     order=order, **kwargs)
         result[violate_limit] = np.nan
         return result
 
@@ -167,7 +167,8 @@ def _interpolate_scipy_wrapper(x, y, new_x, method, fill_value=None,
     """
     try:
         from scipy import interpolate
-        from pandas import DatetimeIndex
+        # TODO: Why is DatetimeIndex being imported here?
+        from pandas import DatetimeIndex  # noqa
     except ImportError:
         raise ImportError('{0} interpolation requires Scipy'.format(method))
 
@@ -219,7 +220,8 @@ def _interpolate_scipy_wrapper(x, y, new_x, method, fill_value=None,
     return new_y
 
 
-def interpolate_2d(values, method='pad', axis=0, limit=None, fill_value=None, dtype=None):
+def interpolate_2d(values, method='pad', axis=0, limit=None, fill_value=None,
+                   dtype=None):
     """ perform an actual interpolation of values, values will be make 2-d if
     needed fills inplace, returns the result
     """
@@ -232,7 +234,7 @@ def interpolate_2d(values, method='pad', axis=0, limit=None, fill_value=None, dt
         if axis != 0:  # pragma: no cover
             raise AssertionError("cannot interpolate on a ndim == 1 with "
                                  "axis != 0")
-        values = values.reshape(tuple((1,) + values.shape))
+        values = values.reshape(tuple((1, ) + values.shape))
 
     if fill_value is None:
         mask = None
@@ -241,9 +243,11 @@ def interpolate_2d(values, method='pad', axis=0, limit=None, fill_value=None, dt
 
     method = _clean_fill_method(method)
     if method == 'pad':
-        values = transf(pad_2d(transf(values), limit=limit, mask=mask, dtype=dtype))
+        values = transf(pad_2d(
+            transf(values), limit=limit, mask=mask, dtype=dtype))
     else:
-        values = transf(backfill_2d(transf(values), limit=limit, mask=mask, dtype=dtype))
+        values = transf(backfill_2d(
+            transf(values), limit=limit, mask=mask, dtype=dtype))
 
     # reshape back
     if ndim == 1:
@@ -256,13 +260,13 @@ def _interp_wrapper(f, wrap_dtype, na_override=None):
     def wrapper(arr, mask, limit=None):
         view = arr.view(wrap_dtype)
         f(view, mask, limit=limit)
+
     return wrapper
 
 
 _pad_1d_datetime = _interp_wrapper(algos.pad_inplace_int64, np.int64)
 _pad_2d_datetime = _interp_wrapper(algos.pad_2d_inplace_int64, np.int64)
-_backfill_1d_datetime = _interp_wrapper(algos.backfill_inplace_int64,
-                                        np.int64)
+_backfill_1d_datetime = _interp_wrapper(algos.backfill_inplace_int64, np.int64)
 _backfill_2d_datetime = _interp_wrapper(algos.backfill_2d_inplace_int64,
                                         np.int64)
 
