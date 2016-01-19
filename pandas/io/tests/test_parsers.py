@@ -4158,7 +4158,7 @@ MyColumn
         df['date'] = pd.date_range('20000101 09:00:00',
                                    periods=num_rows,
                                    freq='s')
-        df['int'] = np.arange(num_rows)
+        df['int'] = np.arange(num_rows, dtype='int64')
         return df
 
     def generate_multithread_dataframe(self, path, num_rows, num_tasks):
