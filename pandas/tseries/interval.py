@@ -14,7 +14,8 @@ class Interval(object):
 
 class PeriodInterval(object):
     """
-    Represents an interval of time defined by two Period objects (time ordinals)
+    Represents an interval of time defined by two Period objects (time
+    ordinals)
     """
 
     def __init__(self, start, end):
@@ -26,6 +27,7 @@ class IntervalIndex(Index):
     """
 
     """
+
     def __new__(self, starts, ends):
         pass
 

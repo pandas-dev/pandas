@@ -1,4 +1,4 @@
-from datetime import datetime,timedelta
+from datetime import timedelta
 from pandas.compat import range, long, zip
 from pandas import compat
 import re
@@ -16,6 +16,7 @@ import pandas.tslib as tslib
 import pandas._period as period
 from pandas.tslib import Timedelta
 from pytz import AmbiguousTimeError
+
 
 class FreqGroup(object):
     FR_ANN = 1000
@@ -44,28 +45,29 @@ class Resolution(object):
     RESO_DAY = period.D_RESO
 
     _reso_str_map = {
-    RESO_US: 'microsecond',
-    RESO_MS: 'millisecond',
-    RESO_SEC: 'second',
-    RESO_MIN: 'minute',
-    RESO_HR: 'hour',
-    RESO_DAY: 'day'}
+        RESO_US: 'microsecond',
+        RESO_MS: 'millisecond',
+        RESO_SEC: 'second',
+        RESO_MIN: 'minute',
+        RESO_HR: 'hour',
+        RESO_DAY: 'day'}
 
     _str_reso_map = dict([(v, k) for k, v in compat.iteritems(_reso_str_map)])
 
     _reso_freq_map = {
-    'year': 'A',
-    'quarter': 'Q',
-    'month': 'M',
-    'day': 'D',
-    'hour': 'H',
-    'minute': 'T',
-    'second': 'S',
-    'millisecond': 'L',
-    'microsecond': 'U',
-    'nanosecond': 'N'}
+        'year': 'A',
+        'quarter': 'Q',
+        'month': 'M',
+        'day': 'D',
+        'hour': 'H',
+        'minute': 'T',
+        'second': 'S',
+        'millisecond': 'L',
+        'microsecond': 'U',
+        'nanosecond': 'N'}
 
-    _freq_reso_map = dict([(v, k) for k, v in compat.iteritems(_reso_freq_map)])
+    _freq_reso_map = dict([(v, k)
+                           for k, v in compat.iteritems(_reso_freq_map)])
 
     @classmethod
     def get_str(cls, reso):
@@ -277,11 +279,12 @@ def _get_freq_str(base, mult=1):
     return str(mult) + code
 
 
-#----------------------------------------------------------------------
+# ---------------------------------------------------------------------
 # Offset names ("time rules") and related functions
 
 
-from pandas.tseries.offsets import (Nano, Micro, Milli, Second, Minute, Hour,
+from pandas.tseries.offsets import (Nano, Micro, Milli, Second,  # noqa
+                                    Minute, Hour,
                                     Day, BDay, CDay, Week, MonthBegin,
                                     MonthEnd, BMonthBegin, BMonthEnd,
                                     QuarterBegin, QuarterEnd, BQuarterBegin,
@@ -384,7 +387,7 @@ _lite_rule_alias = {
     'us': 'U'
 }
 
-#TODO: Can this be killed?
+# TODO: Can this be killed?
 for _i, _weekday in enumerate(['MON', 'TUE', 'WED', 'THU', 'FRI']):
     for _iweek in range(4):
         _name = 'WOM-%d%s' % (_iweek + 1, _weekday)
@@ -403,6 +406,7 @@ _name_to_offset_map = {'days': Day(1),
                        'milliseconds': Milli(1),
                        'microseconds': Micro(1),
                        'nanoseconds': Nano(1)}
+
 
 def to_offset(freqstr):
     """
@@ -548,7 +552,8 @@ def get_offset(name):
         try:
             split = name.split('-')
             klass = prefix_mapping[split[0]]
-            # handles case where there's no suffix (and will TypeError if too many '-')
+            # handles case where there's no suffix (and will TypeError if too
+            # many '-')
             offset = klass._from_name(*split[1:])
         except (ValueError, TypeError, KeyError):
             # bad prefix or suffix
@@ -586,6 +591,7 @@ def get_legacy_offset_name(offset):
     name = offset.name
     return _legacy_reverse_map.get(name, name)
 
+
 def get_standard_freq(freq):
     """
     Return the standardized frequency string
@@ -599,7 +605,7 @@ def get_standard_freq(freq):
     code, stride = get_freq_code(freq)
     return _get_freq_str(code, stride)
 
-#----------------------------------------------------------------------
+# ---------------------------------------------------------------------
 # Period codes
 
 # period frequency constants corresponding to scikits timeseries
@@ -815,7 +821,7 @@ def infer_freq(index, warn=True):
     Parameters
     ----------
     index : DatetimeIndex or TimedeltaIndex
-            if passed a Series will use the values of the series (NOT THE INDEX)
+      if passed a Series will use the values of the series (NOT THE INDEX)
     warn : boolean, default True
 
     Returns
@@ -829,8 +835,11 @@ def infer_freq(index, warn=True):
 
     if isinstance(index, com.ABCSeries):
         values = index._values
-        if not (com.is_datetime64_dtype(values) or com.is_timedelta64_dtype(values) or values.dtype == object):
-            raise TypeError("cannot infer freq from a non-convertible dtype on a Series of {0}".format(index.dtype))
+        if not (com.is_datetime64_dtype(values) or
+                com.is_timedelta64_dtype(values) or
+                values.dtype == object):
+            raise TypeError("cannot infer freq from a non-convertible "
+                            "dtype on a Series of {0}".format(index.dtype))
         index = values
 
     if com.is_period_arraylike(index):
@@ -842,7 +851,8 @@ def infer_freq(index, warn=True):
 
     if isinstance(index, pd.Index) and not isinstance(index, pd.DatetimeIndex):
         if isinstance(index, (pd.Int64Index, pd.Float64Index)):
-            raise TypeError("cannot infer freq from a non-convertible index type {0}".format(type(index)))
+            raise TypeError("cannot infer freq from a non-convertible index "
+                            "type {0}".format(type(index)))
         index = index.values
 
     if not isinstance(index, pd.DatetimeIndex):
@@ -873,7 +883,7 @@ class _FrequencyInferer(object):
 
         # This moves the values, which are implicitly in UTC, to the
         # the timezone so they are in local time
-        if hasattr(index,'tz'):
+        if hasattr(index, 'tz'):
             if index.tz is not None:
                 self.values = tslib.tz_convert(self.values, 'UTC', index.tz)
 
@@ -1069,10 +1079,10 @@ class _FrequencyInferer(object):
                 'ce': 'M', 'be': 'BM'}.get(pos_check)
 
     def _get_wom_rule(self):
-#         wdiffs = unique(np.diff(self.index.week))
-        #We also need -47, -49, -48 to catch index spanning year boundary
-#         if not lib.ismember(wdiffs, set([4, 5, -47, -49, -48])).all():
-#             return None
+        #         wdiffs = unique(np.diff(self.index.week))
+        # We also need -47, -49, -48 to catch index spanning year boundary
+        #     if not lib.ismember(wdiffs, set([4, 5, -47, -49, -48])).all():
+        #         return None
 
         weekdays = unique(self.index.weekday)
         if len(weekdays) > 1:
@@ -1091,6 +1101,7 @@ class _FrequencyInferer(object):
         return 'WOM-%d%s' % (week, wd)
 
 import pandas.core.algorithms as algos
+
 
 class _TimedeltaFrequencyInferer(_FrequencyInferer):
 
@@ -1261,6 +1272,7 @@ MONTHS = tslib._MONTHS
 _month_numbers = tslib._MONTH_NUMBERS
 _month_aliases = tslib._MONTH_ALIASES
 _weekday_rule_aliases = dict((k, v) for k, v in enumerate(DAYS))
+
 
 def _is_multiple(us, mult):
     return us % mult == 0

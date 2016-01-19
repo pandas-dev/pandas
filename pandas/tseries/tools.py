@@ -37,6 +37,7 @@ try:
 except (ImportError, AttributeError):
     pass
 
+
 def _infer_tzinfo(start, end):
     def _infer(a, b):
         tz = a.tzinfo
@@ -169,6 +170,7 @@ def _guess_datetime_format(dt_str, dayfirst=False,
     if parsed_datetime.strftime(guessed_format) == dt_str:
         return guessed_format
 
+
 def _guess_datetime_format_for_array(arr, **kwargs):
     # Try to guess the format based on the first non-NaN element
     non_nan_elements = com.notnull(arr).nonzero()[0]
@@ -193,13 +195,16 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
         - If 'ignore', then invalid parsing will return the input
     dayfirst : boolean, default False
         Specify a date parse order if `arg` is str or its list-likes.
-        If True, parses dates with the day first, eg 10/11/12 is parsed as 2012-11-10.
+        If True, parses dates with the day first, eg 10/11/12 is parsed as
+        2012-11-10.
         Warning: dayfirst=True is not strict, but will prefer to parse
         with day first (this is a known bug, based on dateutil behavior).
     yearfirst : boolean, default False
         Specify a date parse order if `arg` is str or its list-likes.
-        - If True parses dates with the year first, eg 10/11/12 is parsed as 2010-11-12.
-        - If both dayfirst and yearfirst are True, yearfirst is preceded (same as dateutil).
+        - If True parses dates with the year first, eg 10/11/12 is parsed as
+          2010-11-12.
+        - If both dayfirst and yearfirst are True, yearfirst is preceded (same
+          as dateutil).
         Warning: yearfirst=True is not strict, but will prefer to parse
         with year first (this is a known bug, based on dateutil beahavior).
 
@@ -269,7 +274,8 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
     >>> pd.to_datetime('13000101', format='%Y%m%d', errors='coerce')
     NaT
     """
-    return _to_datetime(arg, errors=errors, dayfirst=dayfirst, yearfirst=yearfirst,
+    return _to_datetime(arg, errors=errors, dayfirst=dayfirst,
+                        yearfirst=yearfirst,
                         utc=utc, box=box, format=format, exact=exact,
                         unit=unit, infer_datetime_format=infer_datetime_format)
 
@@ -293,7 +299,8 @@ def _to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
         if com.is_datetime64_ns_dtype(arg):
             if box and not isinstance(arg, DatetimeIndex):
                 try:
-                    return DatetimeIndex(arg, tz='utc' if utc else None, name=name)
+                    return DatetimeIndex(arg, tz='utc' if utc else None,
+                                         name=name)
                 except ValueError:
                     pass
 
@@ -306,13 +313,15 @@ def _to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
                 arg = arg.tz_convert(None)
             return arg
 
-        elif format is None and com.is_integer_dtype(arg) and unit=='ns':
+        elif format is None and com.is_integer_dtype(arg) and unit == 'ns':
             result = arg.astype('datetime64[ns]')
             if box:
-                return DatetimeIndex(result, tz='utc' if utc else None, name=name)
+                return DatetimeIndex(result, tz='utc' if utc else None,
+                                     name=name)
             return result
         elif getattr(arg, 'ndim', 1) > 1:
-            raise TypeError('arg must be a string, datetime, list, tuple, 1-d array, or Series')
+            raise TypeError('arg must be a string, datetime, list, tuple, '
+                            '1-d array, or Series')
 
         arg = com._ensure_object(arg)
         require_iso8601 = False
@@ -400,7 +409,7 @@ def _to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
     elif com.is_list_like(arg):
         return _convert_listlike(arg, box, format)
 
-    return _convert_listlike(np.array([ arg ]), box, format)[0]
+    return _convert_listlike(np.array([arg]), box, format)[0]
 
 
 def _attempt_YYYYMMDD(arg, errors):
@@ -417,8 +426,8 @@ def _attempt_YYYYMMDD(arg, errors):
     def calc(carg):
         # calculate the actual result
         carg = carg.astype(object)
-        parsed = lib.try_parse_year_month_day(carg/10000,
-                                              carg/100 % 100,
+        parsed = lib.try_parse_year_month_day(carg / 10000,
+                                              carg / 100 % 100,
                                               carg % 100)
         return tslib.array_to_datetime(parsed, errors=errors)
 
@@ -439,14 +448,14 @@ def _attempt_YYYYMMDD(arg, errors):
     # a float with actual np.nan
     try:
         carg = arg.astype(np.float64)
-        return calc_with_mask(carg,com.notnull(carg))
+        return calc_with_mask(carg, com.notnull(carg))
     except:
         pass
 
     # string with NaN-like
     try:
         mask = ~lib.ismember(arg, tslib._nat_strings)
-        return calc_with_mask(arg,mask)
+        return calc_with_mask(arg, mask)
     except:
         pass
 
