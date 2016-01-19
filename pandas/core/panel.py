@@ -13,8 +13,7 @@ import pandas.core.common as com
 import pandas.core.ops as ops
 from pandas import compat
 from pandas import lib
-from pandas.compat import (map, zip, range, u, OrderedDict,
-                           OrderedDefaultdict)
+from pandas.compat import (map, zip, range, u, OrderedDict, OrderedDefaultdict)
 from pandas.core.categorical import Categorical
 from pandas.core.common import (PandasError, _try_sort, _default_index,
                                 _infer_dtype_from_scalar, is_list_like)
@@ -36,7 +35,7 @@ _shared_doc_kwargs = dict(
     klass="Panel",
     axes_single_arg="{0, 1, 2, 'items', 'major_axis', 'minor_axis'}")
 _shared_doc_kwargs['args_transpose'] = ("three positional arguments: each one"
-                                        "of\n        %s" %
+                                        "of\n%s" %
                                         _shared_doc_kwargs['axes_single_arg'])
 
 
@@ -171,7 +170,8 @@ class Panel(NDFrame):
                 dtype, data = _infer_dtype_from_scalar(data)
             values = np.empty([len(x) for x in passed_axes], dtype=dtype)
             values.fill(data)
-            mgr = self._init_matrix(values, passed_axes, dtype=dtype, copy=False)
+            mgr = self._init_matrix(values, passed_axes, dtype=dtype,
+                                    copy=False)
             copy = False
         else:  # pragma: no cover
             raise PandasError('Panel constructor not properly called!')
@@ -184,8 +184,9 @@ class Panel(NDFrame):
         # prefilter if haxis passed
         if haxis is not None:
             haxis = _ensure_index(haxis)
-            data = OrderedDict((k, v) for k, v
-                               in compat.iteritems(data) if k in haxis)
+            data = OrderedDict((k, v)
+                               for k, v in compat.iteritems(data)
+                               if k in haxis)
         else:
             ks = list(data.keys())
             if not isinstance(data, OrderedDict):
@@ -197,8 +198,8 @@ class Panel(NDFrame):
                 data[k] = self._constructor_sliced(v)
 
         # extract axis for remaining axes & create the slicemap
-        raxes = [self._extract_axis(self, data, axis=i)
-                 if a is None else a for i, a in enumerate(axes)]
+        raxes = [self._extract_axis(self, data, axis=i) if a is None else a
+                 for i, a in enumerate(axes)]
         raxes_sm = self._extract_axes_for_slice(self, raxes)
 
         # shallow copy
@@ -277,8 +278,7 @@ class Panel(NDFrame):
         if isinstance(loc, (slice, np.ndarray)):
             new_index = info[loc]
             result_index = maybe_droplevels(new_index, key)
-            slices = [loc] + [slice(None) for x in range(
-                self._AXIS_LEN - 1)]
+            slices = [loc] + [slice(None) for x in range(self._AXIS_LEN - 1)]
             new_values = self.values[slices]
 
             d = self._construct_axes_dict(self._AXIS_ORDERS[1:])
@@ -379,7 +379,8 @@ class Panel(NDFrame):
         (as compared with higher level planes),
         as we are returning a DataFrame axes
         """
-        return [self._get_axis(axi) for axi in self._get_plane_axes_index(axis)]
+        return [self._get_axis(axi)
+                for axi in self._get_plane_axes_index(axis)]
 
     fromDict = from_dict
 
@@ -400,8 +401,7 @@ class Panel(NDFrame):
         frames = dict(compat.iteritems(self))
         return SparsePanel(frames, items=self.items,
                            major_axis=self.major_axis,
-                           minor_axis=self.minor_axis,
-                           default_kind=kind,
+                           minor_axis=self.minor_axis, default_kind=kind,
                            default_fill_value=fill_value)
 
     def to_excel(self, path, na_rep='', engine=None, **kwargs):
@@ -544,8 +544,7 @@ class Panel(NDFrame):
             result = self.reindex(**d)
             args = list(args)
             likely_dtype, args[-1] = _infer_dtype_from_scalar(args[-1])
-            made_bigger = not np.array_equal(
-                axes[0], self._info_axis)
+            made_bigger = not np.array_equal(axes[0], self._info_axis)
             # how to make this logic simpler?
             if made_bigger:
                 com._possibly_cast_item(result, args[0], likely_dtype)
@@ -573,9 +572,9 @@ class Panel(NDFrame):
             mat = value.values
         elif isinstance(value, np.ndarray):
             if value.shape != shape[1:]:
-                raise ValueError(
-                    'shape of value must be {0}, shape of given object was '
-                    '{1}'.format(shape[1:], tuple(map(int, value.shape))))
+                raise ValueError('shape of value must be {0}, shape of given '
+                                 'object was {1}'.format(
+                                     shape[1:], tuple(map(int, value.shape))))
             mat = np.asarray(value)
         elif np.isscalar(value):
             dtype, value = _infer_dtype_from_scalar(value)
@@ -624,24 +623,24 @@ class Panel(NDFrame):
 
     def tail(self, n=5):
         raise NotImplementedError
-    
+
     def round(self, decimals=0):
         """
         Round each value in Panel to a specified number of decimal places.
-        
+
         .. versionadded:: 0.18.0
-        
+
         Parameters
         ----------
         decimals : int
-            Number of decimal places to round to (default: 0). 
-            If decimals is negative, it specifies the number of 
+            Number of decimal places to round to (default: 0).
+            If decimals is negative, it specifies the number of
             positions to the left of the decimal point.
-                
+
         Returns
         -------
         Panel object
-        
+
         See Also
         --------
         numpy.around
@@ -650,7 +649,6 @@ class Panel(NDFrame):
             result = np.apply_along_axis(np.round, 0, self.values)
             return self._wrap_result(result, axis=0)
         raise TypeError("decimals must be an integer")
-        
 
     def _needs_reindex_multi(self, axes, method, level):
         """ don't allow a multi reindex on Panel or above ndim """
@@ -708,9 +706,9 @@ class Panel(NDFrame):
         elif np.isscalar(other):
             return self._combine_const(other, func)
         else:
-            raise NotImplementedError(str(type(other)) +
-                                      ' is not supported in combine operation with ' +
-                                      str(type(self)))
+            raise NotImplementedError("%s is not supported in combine "
+                                      "operation with %s" %
+                                      (str(type(other)), str(type(self))))
 
     def _combine_const(self, other, func):
         new_values = func(self.values, other)
@@ -768,8 +766,9 @@ class Panel(NDFrame):
         -----
         major_xs is only for getting, not setting values.
 
-        MultiIndex Slicers is a generic way to get/set values on any level or levels
-        it is a superset of major_xs functionality, see :ref:`MultiIndex Slicers <advanced.mi_slicers>`
+        MultiIndex Slicers is a generic way to get/set values on any level or
+        levels and is a superset of major_xs functionality, see
+        :ref:`MultiIndex Slicers <advanced.mi_slicers>`
 
         """
         if copy is not None:
@@ -798,8 +797,9 @@ class Panel(NDFrame):
         -----
         minor_xs is only for getting, not setting values.
 
-        MultiIndex Slicers is a generic way to get/set values on any level or levels
-        it is a superset of minor_xs functionality, see :ref:`MultiIndex Slicers <advanced.mi_slicers>`
+        MultiIndex Slicers is a generic way to get/set values on any level or
+        levels and is a superset of minor_xs functionality, see
+        :ref:`MultiIndex Slicers <advanced.mi_slicers>`
 
         """
         if copy is not None:
@@ -828,8 +828,9 @@ class Panel(NDFrame):
         -----
         xs is only for getting, not setting values.
 
-        MultiIndex Slicers is a generic way to get/set values on any level or levels
-        it is a superset of xs functionality, see :ref:`MultiIndex Slicers <advanced.mi_slicers>`
+        MultiIndex Slicers is a generic way to get/set values on any level or
+        levels and  is a superset of xs functionality, see
+        :ref:`MultiIndex Slicers <advanced.mi_slicers>`
 
         """
         if copy is not None:
@@ -860,7 +861,8 @@ class Panel(NDFrame):
         key = ax[i]
 
         # xs cannot handle a non-scalar key, so just reindex here
-        # if we have a multi-index and a single tuple, then its a reduction (GH 7516)
+        # if we have a multi-index and a single tuple, then its a reduction
+        # (GH 7516)
         if not (isinstance(ax, MultiIndex) and isinstance(key, tuple)):
             if is_list_like(key):
                 indexer = {self._get_axis_name(axis): key}
@@ -962,8 +964,8 @@ class Panel(NDFrame):
         labels = major_labels + minor_labels
         names = major_names + minor_names
 
-        index = MultiIndex(levels=levels, labels=labels,
-                           names=names, verify_integrity=False)
+        index = MultiIndex(levels=levels, labels=labels, names=names,
+                           verify_integrity=False)
 
         return DataFrame(data, index=index, columns=self.items)
 
@@ -979,9 +981,10 @@ class Panel(NDFrame):
         func : function
             Function to apply to each combination of 'other' axes
             e.g. if axis = 'items', the combination of major_axis/minor_axis
-            will each be passed as a Series; if axis = ('items', 'major'), DataFrames
-            of items & major axis will be passed
-        axis : {'items', 'minor', 'major'}, or {0, 1, 2}, or a tuple with two axes
+            will each be passed as a Series; if axis = ('items', 'major'),
+            DataFrames of items & major axis will be passed
+        axis : {'items', 'minor', 'major'}, or {0, 1, 2}, or a tuple with two
+            axes
         Additional keyword arguments will be passed as keywords to the function
 
         Examples
@@ -1000,7 +1003,8 @@ class Panel(NDFrame):
 
         >>> p.apply(lambda x: x.sum(), axis='minor')
 
-        Return the shapes of each DataFrame over axis 2 (i.e the shapes of items x major), as a Series
+        Return the shapes of each DataFrame over axis 2 (i.e the shapes of
+        items x major), as a Series
 
         >>> p.apply(lambda x: x.shape, axis=(0,1))
 
@@ -1034,7 +1038,6 @@ class Panel(NDFrame):
     def _apply_1d(self, func, axis):
 
         axis_name = self._get_axis_name(axis)
-        ax = self._get_axis(axis)
         ndim = self.ndim
         values = self.values
 
@@ -1119,8 +1122,8 @@ class Panel(NDFrame):
     def _reduce(self, op, name, axis=0, skipna=True, numeric_only=None,
                 filter_type=None, **kwds):
         if numeric_only:
-            raise NotImplementedError(
-                'Panel.{0} does not implement numeric_only.'.format(name))
+            raise NotImplementedError('Panel.{0} does not implement '
+                                      'numeric_only.'.format(name))
 
         axis_name = self._get_axis_name(axis)
         axis_number = self._get_axis_number(axis_name)
@@ -1153,7 +1156,7 @@ class Panel(NDFrame):
 
         # same as self
         elif self.ndim == ndim:
-            """ return the construction dictionary for these axes """
+            # return the construction dictionary for these axes
             if axes is None:
                 return self._constructor(result)
             return self._constructor(result, **self._construct_axes_dict())
@@ -1178,19 +1181,19 @@ class Panel(NDFrame):
 
     @Appender(_shared_docs['reindex'] % _shared_doc_kwargs)
     def reindex(self, items=None, major_axis=None, minor_axis=None, **kwargs):
-        major_axis = (major_axis if major_axis is not None
-                      else kwargs.pop('major', None))
-        minor_axis = (minor_axis if minor_axis is not None
-                      else kwargs.pop('minor', None))
+        major_axis = (major_axis if major_axis is not None else
+                      kwargs.pop('major', None))
+        minor_axis = (minor_axis if minor_axis is not None else
+                      kwargs.pop('minor', None))
         return super(Panel, self).reindex(items=items, major_axis=major_axis,
                                           minor_axis=minor_axis, **kwargs)
 
     @Appender(_shared_docs['rename'] % _shared_doc_kwargs)
     def rename(self, items=None, major_axis=None, minor_axis=None, **kwargs):
-        major_axis = (major_axis if major_axis is not None
-                      else kwargs.pop('major', None))
-        minor_axis = (minor_axis if minor_axis is not None
-                      else kwargs.pop('minor', None))
+        major_axis = (major_axis if major_axis is not None else
+                      kwargs.pop('major', None))
+        minor_axis = (minor_axis if minor_axis is not None else
+                      kwargs.pop('minor', None))
         return super(Panel, self).rename(items=items, major_axis=major_axis,
                                          minor_axis=minor_axis, **kwargs)
 
@@ -1209,10 +1212,9 @@ class Panel(NDFrame):
     @Appender(_shared_docs['fillna'] % _shared_doc_kwargs)
     def fillna(self, value=None, method=None, axis=None, inplace=False,
                limit=None, downcast=None, **kwargs):
-        return super(Panel, self).fillna(value=value, method=method,
-                                         axis=axis, inplace=inplace,
-                                         limit=limit, downcast=downcast,
-                                         **kwargs)
+        return super(Panel, self).fillna(value=value, method=method, axis=axis,
+                                         inplace=inplace, limit=limit,
+                                         downcast=downcast, **kwargs)
 
     def count(self, axis='major'):
         """
@@ -1359,15 +1361,16 @@ class Panel(NDFrame):
     @staticmethod
     def _extract_axes(self, data, axes, **kwargs):
         """ return a list of the axis indicies """
-        return [self._extract_axis(self, data, axis=i, **kwargs) for i, a
-                in enumerate(axes)]
+        return [self._extract_axis(self, data, axis=i, **kwargs)
+                for i, a in enumerate(axes)]
 
     @staticmethod
     def _extract_axes_for_slice(self, axes):
         """ return the slice dictionary for these axes """
         return dict([(self._AXIS_SLICEMAP[i], a)
-                     for i, a in zip(self._AXIS_ORDERS[self._AXIS_LEN -
-                                                       len(axes):], axes)])
+                     for i, a in zip(
+                         self._AXIS_ORDERS[self._AXIS_LEN - len(axes):],
+                         axes)])
 
     @staticmethod
     def _prep_ndarray(self, values, copy=True):
@@ -1519,7 +1522,8 @@ Returns
 
                 Parameters
                 ----------
-                other : %s or %s""" % (cls._constructor_sliced.__name__, cls.__name__) + """
+                other : %s or %s""" % (cls._constructor_sliced.__name__,
+                                       cls.__name__) + """
                 axis : {""" + ', '.join(cls._AXIS_ORDERS) + "}" + """
                     Axis to broadcast over
 
@@ -1530,7 +1534,8 @@ Returns
                 See also
                 --------
                 """ + cls.__name__ + ".%s\n"
-                doc = _op_doc % (op_desc['desc'], op_name, equiv, op_desc['reverse'])
+                doc = _op_doc % (op_desc['desc'], op_name, equiv,
+                                 op_desc['reverse'])
             else:
                 doc = _agg_doc % name
 
@@ -1547,17 +1552,16 @@ Returns
             flex_comp_method=ops._comp_method_PANEL)
 
 
-Panel._setup_axes(axes=['items', 'major_axis', 'minor_axis'],
-                  info_axis=0,
-                  stat_axis=1,
-                  aliases={'major': 'major_axis',
-                           'minor': 'minor_axis'},
+Panel._setup_axes(axes=['items', 'major_axis', 'minor_axis'], info_axis=0,
+                  stat_axis=1, aliases={'major': 'major_axis',
+                                        'minor': 'minor_axis'},
                   slicers={'major_axis': 'index',
                            'minor_axis': 'columns'})
 
 ops.add_special_arithmetic_methods(Panel, **ops.panel_special_funcs)
 Panel._add_aggregate_operations()
 Panel._add_numeric_operations()
+
 
 # legacy
 class WidePanel(Panel):
