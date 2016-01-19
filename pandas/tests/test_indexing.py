@@ -976,7 +976,8 @@ class TestIndexing(tm.TestCase):
         # indexing on a series with a datetimeindex with tz
         index = pd.date_range('2015-01-01', periods=2, tz='utc')
 
-        ser = pd.Series(range(2), index=index)
+        ser = pd.Series(range(2), index=index,
+                        dtype='int64')
 
         # list-like indexing
 
