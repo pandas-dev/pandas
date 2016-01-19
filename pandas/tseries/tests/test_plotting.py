@@ -9,7 +9,7 @@ from numpy.testing.decorators import slow
 from pandas import Index, Series, DataFrame
 
 from pandas.tseries.index import date_range, bdate_range
-from pandas.tseries.offsets import DateOffset, Week
+from pandas.tseries.offsets import DateOffset
 from pandas.tseries.period import period_range, Period, PeriodIndex
 from pandas.tseries.resample import DatetimeIndex
 
@@ -49,7 +49,7 @@ class TestTSPlot(tm.TestCase):
 
     def test_fontsize_set_correctly(self):
         # For issue #8765
-        import matplotlib.pyplot as plt
+        import matplotlib.pyplot as plt  # noqa
         df = DataFrame(np.random.randn(10, 9), index=range(10))
         ax = df.plot(fontsize=2)
         for label in (ax.get_xticklabels() + ax.get_yticklabels()):
@@ -58,7 +58,7 @@ class TestTSPlot(tm.TestCase):
     @slow
     def test_frame_inferred(self):
         # inferred freq
-        import matplotlib.pyplot as plt
+        import matplotlib.pyplot as plt  # noqa
         idx = date_range('1/1/1987', freq='MS', periods=100)
         idx = DatetimeIndex(idx.values, freq=None)
 
@@ -80,10 +80,10 @@ class TestTSPlot(tm.TestCase):
         import matplotlib.pyplot as plt
 
         idx = date_range('1/1/1987', freq='A', periods=3)
-        df = DataFrame({'A': ["x", "y", "z"], 'B': [1,2,3]}, idx)
+        df = DataFrame({'A': ["x", "y", "z"], 'B': [1, 2, 3]}, idx)
 
-        ax = df.plot() # it works
-        self.assertEqual(len(ax.get_lines()), 1) #B was plotted
+        ax = df.plot()  # it works
+        self.assertEqual(len(ax.get_lines()), 1)  # B was plotted
         plt.close(plt.gcf())
 
         self.assertRaises(TypeError, df['A'].plot)
@@ -114,7 +114,7 @@ class TestTSPlot(tm.TestCase):
         self.assertEqual((0., 0., 0.), ax.get_lines()[0].get_color())
 
     def test_both_style_and_color(self):
-        import matplotlib.pyplot as plt
+        import matplotlib.pyplot as plt  # noqa
 
         ts = tm.makeTimeSeries()
         self.assertRaises(ValueError, ts.plot, style='b-', color='#000099')
@@ -146,16 +146,21 @@ class TestTSPlot(tm.TestCase):
             first_x = first_line.get_xdata()[0].ordinal
             first_y = first_line.get_ydata()[0]
             try:
-                self.assertEqual(expected_string, ax.format_coord(first_x, first_y))
+                self.assertEqual(expected_string,
+                                 ax.format_coord(first_x, first_y))
             except (ValueError):
-                raise nose.SkipTest("skipping test because issue forming test comparison GH7664")
+                raise nose.SkipTest("skipping test because issue forming "
+                                    "test comparison GH7664")
 
-        annual = Series(1, index=date_range('2014-01-01', periods=3, freq='A-DEC'))
+        annual = Series(1, index=date_range('2014-01-01', periods=3,
+                                            freq='A-DEC'))
         check_format_of_first_point(annual.plot(), 't = 2014  y = 1.000000')
 
-        # note this is added to the annual plot already in existence, and changes its freq field
+        # note this is added to the annual plot already in existence, and
+        # changes its freq field
         daily = Series(1, index=date_range('2014-01-01', periods=3, freq='D'))
-        check_format_of_first_point(daily.plot(), 't = 2014-01-01  y = 1.000000')
+        check_format_of_first_point(daily.plot(),
+                                    't = 2014-01-01  y = 1.000000')
         tm.close()
 
         # tsplot
@@ -218,9 +223,8 @@ class TestTSPlot(tm.TestCase):
 
     @slow
     def test_plot_multiple_inferred_freq(self):
-        dr = Index([datetime(2000, 1, 1),
-                    datetime(2000, 1, 6),
-                    datetime(2000, 1, 11)])
+        dr = Index([datetime(2000, 1, 1), datetime(2000, 1, 6), datetime(
+            2000, 1, 11)])
         ser = Series(np.random.randn(len(dr)), dr)
         _check_plot_works(ser.plot)
 
@@ -261,7 +265,8 @@ class TestTSPlot(tm.TestCase):
         diffs = Series(ax.get_lines()[0].get_xydata()[:, 0]).diff()
 
         sec = 1. / 24 / 60 / 60
-        self.assertTrue((np.fabs(diffs[1:] - [sec, sec * 2, sec]) < 1e-8).all())
+        self.assertTrue((np.fabs(diffs[1:] - [sec, sec * 2, sec]) < 1e-8).all(
+        ))
 
         plt.clf()
         fig.add_subplot(111)
@@ -286,7 +291,7 @@ class TestTSPlot(tm.TestCase):
             self.assertEqual(rs, xp)
 
     def test_business_freq(self):
-        import matplotlib.pyplot as plt
+        import matplotlib.pyplot as plt  # noqa
         bts = tm.makePeriodSeries()
         ax = bts.plot()
         self.assertEqual(ax.get_lines()[0].get_xydata()[0, 0],
@@ -309,8 +314,8 @@ class TestTSPlot(tm.TestCase):
 
     def test_nonzero_base(self):
         # GH2571
-        idx = (date_range('2012-12-20', periods=24, freq='H') +
-               timedelta(minutes=30))
+        idx = (date_range('2012-12-20', periods=24, freq='H') + timedelta(
+            minutes=30))
         df = DataFrame(np.arange(24), index=idx)
         ax = df.plot()
         rs = ax.get_lines()[0].get_xdata()
@@ -601,7 +606,7 @@ class TestTSPlot(tm.TestCase):
         tm._skip_if_no_scipy()
         _skip_if_no_scipy_gaussian_kde()
 
-        import matplotlib.pyplot as plt
+        import matplotlib.pyplot as plt  # noqa
         ser = Series(np.random.randn(10))
         ax = ser.plot(secondary_y=True, kind='density')
         self.assertTrue(hasattr(ax, 'left_ax'))
@@ -616,7 +621,7 @@ class TestTSPlot(tm.TestCase):
         ax = ser.plot(secondary_y=True, kind='bar')
         fig = ax.get_figure()
         axes = fig.get_axes()
-        self.assertEqual(axes[1].get_yaxis().get_ticks_position(),  'right')
+        self.assertEqual(axes[1].get_yaxis().get_ticks_position(), 'right')
 
     @slow
     def test_secondary_frame(self):
@@ -635,10 +640,13 @@ class TestTSPlot(tm.TestCase):
         self.assertEqual(axes[2].get_yaxis().get_ticks_position(), 'right')
 
     def test_mixed_freq_regular_first(self):
-        import matplotlib.pyplot as plt
+        import matplotlib.pyplot as plt  # noqa
         s1 = tm.makeTimeSeries()
         s2 = s1[[0, 5, 10, 11, 12, 13, 14, 15]]
-        ax = s1.plot()
+
+        # it works!
+        s1.plot()
+
         ax2 = s2.plot(style='g')
         lines = ax2.get_lines()
         idx1 = PeriodIndex(lines[0].get_xdata())
@@ -652,7 +660,7 @@ class TestTSPlot(tm.TestCase):
 
     @slow
     def test_mixed_freq_irregular_first(self):
-        import matplotlib.pyplot as plt
+        import matplotlib.pyplot as plt  # noqa
         s1 = tm.makeTimeSeries()
         s2 = s1[[0, 5, 10, 11, 12, 13, 14, 15]]
         s2.plot(style='g')
@@ -666,7 +674,7 @@ class TestTSPlot(tm.TestCase):
 
     def test_mixed_freq_regular_first_df(self):
         # GH 9852
-        import matplotlib.pyplot as plt
+        import matplotlib.pyplot as plt  # noqa
         s1 = tm.makeTimeSeries().to_frame()
         s2 = s1.iloc[[0, 5, 10, 11, 12, 13, 14, 15], :]
         ax = s1.plot()
@@ -684,7 +692,7 @@ class TestTSPlot(tm.TestCase):
     @slow
     def test_mixed_freq_irregular_first_df(self):
         # GH 9852
-        import matplotlib.pyplot as plt
+        import matplotlib.pyplot as plt  # noqa
         s1 = tm.makeTimeSeries().to_frame()
         s2 = s1.iloc[[0, 5, 10, 11, 12, 13, 14, 15], :]
         ax = s2.plot(style='g')
@@ -783,12 +791,12 @@ class TestTSPlot(tm.TestCase):
         ax = high.plot()
 
         expected_h = idxh.to_period().asi8
-        expected_l = np.array([1514, 1519, 1523, 1527, 1531, 1536, 1540, 1544, 1549,
-                               1553, 1558, 1562])
+        expected_l = np.array([1514, 1519, 1523, 1527, 1531, 1536, 1540, 1544,
+                               1549, 1553, 1558, 1562])
         for l in ax.get_lines():
             self.assertTrue(PeriodIndex(data=l.get_xdata()).freq, idxh.freq)
             xdata = l.get_xdata(orig=False)
-            if len(xdata) == 12: # idxl lines
+            if len(xdata) == 12:  # idxl lines
                 self.assert_numpy_array_equal(xdata, expected_l)
             else:
                 self.assert_numpy_array_equal(xdata, expected_h)
@@ -803,7 +811,7 @@ class TestTSPlot(tm.TestCase):
         for l in lines:
             self.assertTrue(PeriodIndex(data=l.get_xdata()).freq, idxh.freq)
             xdata = l.get_xdata(orig=False)
-            if len(xdata) == 12: # idxl lines
+            if len(xdata) == 12:  # idxl lines
                 self.assert_numpy_array_equal(xdata, expected_l)
             else:
                 self.assert_numpy_array_equal(xdata, expected_h)
@@ -815,7 +823,7 @@ class TestTSPlot(tm.TestCase):
         high = DataFrame(np.random.rand(len(idxh), 3),
                          index=idxh, columns=[0, 1, 2])
         low = DataFrame(np.random.rand(len(idxl), 3),
-                     index=idxl, columns=[0, 1, 2])
+                        index=idxl, columns=[0, 1, 2])
 
         # low to high
         for kind1, kind2 in [('line', 'area'), ('area', 'line')]:
@@ -823,26 +831,31 @@ class TestTSPlot(tm.TestCase):
             ax = high.plot(kind=kind2, stacked=True, ax=ax)
 
             # check low dataframe result
-            expected_x = np.array([1514, 1519, 1523, 1527, 1531, 1536, 1540, 1544, 1549,
-                                   1553, 1558, 1562])
+            expected_x = np.array([1514, 1519, 1523, 1527, 1531, 1536, 1540,
+                                   1544, 1549, 1553, 1558, 1562])
             expected_y = np.zeros(len(expected_x))
             for i in range(3):
                 l = ax.lines[i]
                 self.assertEqual(PeriodIndex(l.get_xdata()).freq, idxh.freq)
-                self.assert_numpy_array_equal(l.get_xdata(orig=False), expected_x)
+                self.assert_numpy_array_equal(
+                    l.get_xdata(orig=False), expected_x)
                 # check stacked values are correct
                 expected_y += low[i].values
-                self.assert_numpy_array_equal(l.get_ydata(orig=False), expected_y)
+                self.assert_numpy_array_equal(
+                    l.get_ydata(orig=False), expected_y)
 
             # check high dataframe result
             expected_x = idxh.to_period().asi8
             expected_y = np.zeros(len(expected_x))
             for i in range(3):
                 l = ax.lines[3 + i]
-                self.assertEqual(PeriodIndex(data=l.get_xdata()).freq, idxh.freq)
-                self.assert_numpy_array_equal(l.get_xdata(orig=False), expected_x)
+                self.assertEqual(PeriodIndex(
+                    data=l.get_xdata()).freq, idxh.freq)
+                self.assert_numpy_array_equal(
+                    l.get_xdata(orig=False), expected_x)
                 expected_y += high[i].values
-                self.assert_numpy_array_equal(l.get_ydata(orig=False), expected_y)
+                self.assert_numpy_array_equal(
+                    l.get_ydata(orig=False), expected_y)
 
         # high to low
         for kind1, kind2 in [('line', 'area'), ('area', 'line')]:
@@ -854,21 +867,27 @@ class TestTSPlot(tm.TestCase):
             expected_y = np.zeros(len(expected_x))
             for i in range(3):
                 l = ax.lines[i]
-                self.assertEqual(PeriodIndex(data=l.get_xdata()).freq, idxh.freq)
-                self.assert_numpy_array_equal(l.get_xdata(orig=False), expected_x)
+                self.assertEqual(PeriodIndex(
+                    data=l.get_xdata()).freq, idxh.freq)
+                self.assert_numpy_array_equal(
+                    l.get_xdata(orig=False), expected_x)
                 expected_y += high[i].values
-                self.assert_numpy_array_equal(l.get_ydata(orig=False), expected_y)
+                self.assert_numpy_array_equal(
+                    l.get_ydata(orig=False), expected_y)
 
             # check low dataframe result
-            expected_x = np.array([1514, 1519, 1523, 1527, 1531, 1536, 1540, 1544, 1549,
-                                   1553, 1558, 1562])
+            expected_x = np.array([1514, 1519, 1523, 1527, 1531, 1536, 1540,
+                                   1544, 1549, 1553, 1558, 1562])
             expected_y = np.zeros(len(expected_x))
             for i in range(3):
                 l = ax.lines[3 + i]
-                self.assertEqual(PeriodIndex(data=l.get_xdata()).freq, idxh.freq)
-                self.assert_numpy_array_equal(l.get_xdata(orig=False), expected_x)
+                self.assertEqual(PeriodIndex(
+                    data=l.get_xdata()).freq, idxh.freq)
+                self.assert_numpy_array_equal(
+                    l.get_xdata(orig=False), expected_x)
                 expected_y += low[i].values
-                self.assert_numpy_array_equal(l.get_ydata(orig=False), expected_y)
+                self.assert_numpy_array_equal(
+                    l.get_ydata(orig=False), expected_y)
 
     @slow
     def test_mixed_freq_second_millisecond(self):
@@ -956,7 +975,10 @@ class TestTSPlot(tm.TestCase):
         labels = ax.get_xticklabels()
         for t, l in zip(ticks, labels):
             m, s = divmod(int(t), 60)
-            us = int((t - int(t)) * 1e6)
+
+            # TODO: unused?
+            # us = int((t - int(t)) * 1e6)
+
             h, m = divmod(m, 60)
             xp = l.get_text()
             if len(xp) > 0:
@@ -1079,8 +1101,7 @@ class TestTSPlot(tm.TestCase):
     def test_ax_plot(self):
         import matplotlib.pyplot as plt
 
-        x = DatetimeIndex(start='2012-01-02', periods=10,
-                          freq='D')
+        x = DatetimeIndex(start='2012-01-02', periods=10, freq='D')
         y = lrange(len(x))
         fig = plt.figure()
         ax = fig.add_subplot(111)
@@ -1105,9 +1126,9 @@ class TestTSPlot(tm.TestCase):
 
         line1, line2 = ax.get_lines()
         tm.assert_numpy_array_equal(np.array([x.toordinal() for x in dates]),
-                           line1.get_xydata()[:, 0])
+                                    line1.get_xydata()[:, 0])
         tm.assert_numpy_array_equal(np.array([x.toordinal() for x in dates]),
-                           line2.get_xydata()[:, 0])
+                                    line2.get_xydata()[:, 0])
 
     @slow
     def test_irregular_ts_shared_ax_xlim(self):

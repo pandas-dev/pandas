@@ -19,7 +19,6 @@ from pandas.util.testing import assert_series_equal, _skip_if_has_locale
 
 
 class TestTimestamp(tm.TestCase):
-
     def test_constructor(self):
         base_str = '2014-07-01 09:00'
         base_dt = datetime.datetime(2014, 7, 1, 9)
@@ -27,23 +26,27 @@ class TestTimestamp(tm.TestCase):
 
         # confirm base representation is correct
         import calendar
-        self.assertEqual(calendar.timegm(base_dt.timetuple()) * 1000000000, base_expected)
+        self.assertEqual(calendar.timegm(base_dt.timetuple())
+                         * 1000000000, base_expected)
 
         tests = [(base_str, base_dt, base_expected),
                  ('2014-07-01 10:00', datetime.datetime(2014, 7, 1, 10),
                   base_expected + 3600 * 1000000000),
                  ('2014-07-01 09:00:00.000008000',
-                  datetime.datetime(2014, 7, 1, 9, 0, 0, 8), base_expected + 8000),
+                  datetime.datetime(2014, 7, 1, 9, 0, 0, 8),
+                  base_expected + 8000),
                  ('2014-07-01 09:00:00.000000005',
-                  Timestamp('2014-07-01 09:00:00.000000005'), base_expected + 5)]
+                  Timestamp('2014-07-01 09:00:00.000000005'),
+                  base_expected + 5)]
 
         tm._skip_if_no_pytz()
         tm._skip_if_no_dateutil()
         import pytz
         import dateutil
-        timezones = [(None, 0), ('UTC', 0), (pytz.utc, 0),
-                     ('Asia/Tokyo', 9), ('US/Eastern', -4), ('dateutil/US/Pacific', -7),
-                     (pytz.FixedOffset(-180), -3), (dateutil.tz.tzoffset(None, 18000), 5)]
+        timezones = [(None, 0), ('UTC', 0), (pytz.utc, 0), ('Asia/Tokyo', 9),
+                     ('US/Eastern', -4), ('dateutil/US/Pacific', -7),
+                     (pytz.FixedOffset(-180), -3),
+                     (dateutil.tz.tzoffset(None, 18000), 5)]
 
         for date_str, date, expected in tests:
             for result in [Timestamp(date_str), Timestamp(date)]:
@@ -58,7 +61,8 @@ class TestTimestamp(tm.TestCase):
 
             # with timezone
             for tz, offset in timezones:
-                for result in [Timestamp(date_str, tz=tz), Timestamp(date, tz=tz)]:
+                for result in [Timestamp(date_str, tz=tz), Timestamp(date,
+                                                                     tz=tz)]:
                     expected_tz = expected - offset * 3600 * 1000000000
                     self.assertEqual(result.value, expected_tz)
                     self.assertEqual(tslib.pydt_to_i8(result), expected_tz)
@@ -82,10 +86,12 @@ class TestTimestamp(tm.TestCase):
 
         # confirm base representation is correct
         import calendar
-        self.assertEqual(calendar.timegm(base_dt.timetuple()) * 1000000000, base_expected)
+        self.assertEqual(calendar.timegm(base_dt.timetuple())
+                         * 1000000000, base_expected)
 
         tests = [(base_str, base_expected),
-                 ('2014-07-01 12:00:00+02:00', base_expected + 3600 * 1000000000),
+                 ('2014-07-01 12:00:00+02:00',
+                  base_expected + 3600 * 1000000000),
                  ('2014-07-01 11:00:00.000008000+02:00', base_expected + 8000),
                  ('2014-07-01 11:00:00.000000005+02:00', base_expected + 5)]
 
@@ -93,10 +99,10 @@ class TestTimestamp(tm.TestCase):
         tm._skip_if_no_dateutil()
         import pytz
         import dateutil
-        timezones = [(None, 0), ('UTC', 0), (pytz.utc, 0),
-                     ('Asia/Tokyo', 9), ('US/Eastern', -4),
-                     ('dateutil/US/Pacific', -7),
-                     (pytz.FixedOffset(-180), -3), (dateutil.tz.tzoffset(None, 18000), 5)]
+        timezones = [(None, 0), ('UTC', 0), (pytz.utc, 0), ('Asia/Tokyo', 9),
+                     ('US/Eastern', -4), ('dateutil/US/Pacific', -7),
+                     (pytz.FixedOffset(-180), -3),
+                     (dateutil.tz.tzoffset(None, 18000), 5)]
 
         for date_str, expected in tests:
             for result in [Timestamp(date_str)]:
@@ -185,14 +191,18 @@ class TestTimestamp(tm.TestCase):
         tm._skip_if_no_pytz()
         tm._skip_if_no_dateutil()
 
-        dates = ['2014-03-07', '2014-01-01 09:00', '2014-01-01 00:00:00.000000001']
+        dates = ['2014-03-07', '2014-01-01 09:00',
+                 '2014-01-01 00:00:00.000000001']
 
         # dateutil zone change (only matters for repr)
         import dateutil
-        if dateutil.__version__ >= LooseVersion('2.3') and dateutil.__version__ <= LooseVersion('2.4.0'):
-            timezones = ['UTC', 'Asia/Tokyo', 'US/Eastern', 'dateutil/US/Pacific']
+        if dateutil.__version__ >= LooseVersion(
+                '2.3') and dateutil.__version__ <= LooseVersion('2.4.0'):
+            timezones = ['UTC', 'Asia/Tokyo', 'US/Eastern',
+                         'dateutil/US/Pacific']
         else:
-            timezones = ['UTC', 'Asia/Tokyo', 'US/Eastern', 'dateutil/America/Los_Angeles']
+            timezones = ['UTC', 'Asia/Tokyo', 'US/Eastern',
+                         'dateutil/America/Los_Angeles']
 
         freqs = ['D', 'M', 'S', 'N']
 
@@ -231,43 +241,33 @@ class TestTimestamp(tm.TestCase):
                     self.assertIn(freq_repr, repr(date_tz_freq))
                     self.assertEqual(date_tz_freq, eval(repr(date_tz_freq)))
 
-        # this can cause the tz field to be populated, but it's redundant to information in the datestring
+        # this can cause the tz field to be populated, but it's redundant to
+        # information in the datestring
         tm._skip_if_no_pytz()
-        import pytz
+        import pytz  # noqa
         date_with_utc_offset = Timestamp('2014-03-13 00:00:00-0400', tz=None)
         self.assertIn('2014-03-13 00:00:00-0400', repr(date_with_utc_offset))
         self.assertNotIn('tzoffset', repr(date_with_utc_offset))
         self.assertIn('pytz.FixedOffset(-240)', repr(date_with_utc_offset))
         expr = repr(date_with_utc_offset).replace("'pytz.FixedOffset(-240)'",
-                    'pytz.FixedOffset(-240)')
+                                                  'pytz.FixedOffset(-240)')
         self.assertEqual(date_with_utc_offset, eval(expr))
 
     def test_bounds_with_different_units(self):
-        out_of_bounds_dates = (
-            '1677-09-21',
-            '2262-04-12',
-        )
+        out_of_bounds_dates = ('1677-09-21', '2262-04-12', )
 
         time_units = ('D', 'h', 'm', 's', 'ms', 'us')
 
         for date_string in out_of_bounds_dates:
             for unit in time_units:
-                self.assertRaises(
-                    ValueError,
-                    Timestamp,
-                    np.datetime64(date_string, dtype='M8[%s]' % unit)
-                )
+                self.assertRaises(ValueError, Timestamp, np.datetime64(
+                    date_string, dtype='M8[%s]' % unit))
 
-        in_bounds_dates = (
-            '1677-09-23',
-            '2262-04-11',
-        )
+        in_bounds_dates = ('1677-09-23', '2262-04-11', )
 
         for date_string in in_bounds_dates:
             for unit in time_units:
-                Timestamp(
-                    np.datetime64(date_string, dtype='M8[%s]' % unit)
-                )
+                Timestamp(np.datetime64(date_string, dtype='M8[%s]' % unit))
 
     def test_tz(self):
         t = '2014-02-01 09:00'
@@ -276,8 +276,7 @@ class TestTimestamp(tm.TestCase):
         self.assertEqual(local.hour, 9)
         self.assertEqual(local, Timestamp(t, tz='Asia/Tokyo'))
         conv = local.tz_convert('US/Eastern')
-        self.assertEqual(conv,
-                         Timestamp('2014-01-31 19:00', tz='US/Eastern'))
+        self.assertEqual(conv, Timestamp('2014-01-31 19:00', tz='US/Eastern'))
         self.assertEqual(conv.hour, 19)
 
         # preserves nanosecond
@@ -298,21 +297,24 @@ class TestTimestamp(tm.TestCase):
         rng = date_range('2014-11-02', periods=3, freq='H', tz='US/Eastern')
         self.assertEqual(rng[1], ts_dst)
         self.assertEqual(rng[2], ts_no_dst)
-        self.assertRaises(ValueError, ts.tz_localize, 'US/Eastern', ambiguous='infer')
+        self.assertRaises(ValueError, ts.tz_localize, 'US/Eastern',
+                          ambiguous='infer')
 
         # GH 8025
-        with tm.assertRaisesRegexp(TypeError, 'Cannot localize tz-aware Timestamp, use '
+        with tm.assertRaisesRegexp(TypeError,
+                                   'Cannot localize tz-aware Timestamp, use '
                                    'tz_convert for conversions'):
-            Timestamp('2011-01-01' ,tz='US/Eastern').tz_localize('Asia/Tokyo')
+            Timestamp('2011-01-01', tz='US/Eastern').tz_localize('Asia/Tokyo')
 
-        with tm.assertRaisesRegexp(TypeError, 'Cannot convert tz-naive Timestamp, use '
-                            'tz_localize to localize'):
+        with tm.assertRaisesRegexp(TypeError,
+                                   'Cannot convert tz-naive Timestamp, use '
+                                   'tz_localize to localize'):
             Timestamp('2011-01-01').tz_convert('Asia/Tokyo')
 
     def test_tz_localize_roundtrip(self):
         for tz in ['UTC', 'Asia/Tokyo', 'US/Eastern', 'dateutil/US/Pacific']:
-            for t in ['2014-02-01 09:00', '2014-07-08 09:00', '2014-11-01 17:00',
-                      '2014-11-05 00:00']:
+            for t in ['2014-02-01 09:00', '2014-07-08 09:00',
+                      '2014-11-01 17:00', '2014-11-05 00:00']:
                 ts = Timestamp(t)
                 localized = ts.tz_localize(tz)
                 self.assertEqual(localized, Timestamp(t, tz=tz))
@@ -326,15 +328,16 @@ class TestTimestamp(tm.TestCase):
 
     def test_tz_convert_roundtrip(self):
         for tz in ['UTC', 'Asia/Tokyo', 'US/Eastern', 'dateutil/US/Pacific']:
-            for t in ['2014-02-01 09:00', '2014-07-08 09:00', '2014-11-01 17:00',
-                      '2014-11-05 00:00']:
+            for t in ['2014-02-01 09:00', '2014-07-08 09:00',
+                      '2014-11-01 17:00', '2014-11-05 00:00']:
                 ts = Timestamp(t, tz='UTC')
                 converted = ts.tz_convert(tz)
 
                 reset = converted.tz_convert(None)
                 self.assertEqual(reset, Timestamp(t))
                 self.assertTrue(reset.tzinfo is None)
-                self.assertEqual(reset, converted.tz_convert('UTC').tz_localize(None))
+                self.assertEqual(reset,
+                                 converted.tz_convert('UTC').tz_localize(None))
 
     def test_barely_oob_dts(self):
         one_us = np.timedelta64(1).astype('timedelta64[us]')
@@ -355,7 +358,8 @@ class TestTimestamp(tm.TestCase):
         self.assertRaises(ValueError, Timestamp, max_ts_us + one_us)
 
     def test_utc_z_designator(self):
-        self.assertEqual(get_timezone(Timestamp('2014-11-02 01:00Z').tzinfo), 'UTC')
+        self.assertEqual(get_timezone(
+            Timestamp('2014-11-02 01:00Z').tzinfo), 'UTC')
 
     def test_now(self):
         # #9000
@@ -366,13 +370,14 @@ class TestTimestamp(tm.TestCase):
         ts_from_string_tz = Timestamp('now', tz='US/Eastern')
         ts_from_method_tz = Timestamp.now(tz='US/Eastern')
 
-        # Check that the delta between the times is less than 1s (arbitrarily small)
+        # Check that the delta between the times is less than 1s (arbitrarily
+        # small)
         delta = Timedelta(seconds=1)
         self.assertTrue(abs(ts_from_method - ts_from_string) < delta)
         self.assertTrue(abs(ts_datetime - ts_from_method) < delta)
         self.assertTrue(abs(ts_from_method_tz - ts_from_string_tz) < delta)
-        self.assertTrue(abs(ts_from_string_tz.tz_localize(None)
-                            - ts_from_method_tz.tz_localize(None)) < delta)
+        self.assertTrue(abs(ts_from_string_tz.tz_localize(None) -
+                            ts_from_method_tz.tz_localize(None)) < delta)
 
     def test_today(self):
 
@@ -383,21 +388,18 @@ class TestTimestamp(tm.TestCase):
         ts_from_string_tz = Timestamp('today', tz='US/Eastern')
         ts_from_method_tz = Timestamp.today(tz='US/Eastern')
 
-        # Check that the delta between the times is less than 1s (arbitrarily small)
+        # Check that the delta between the times is less than 1s (arbitrarily
+        # small)
         delta = Timedelta(seconds=1)
         self.assertTrue(abs(ts_from_method - ts_from_string) < delta)
         self.assertTrue(abs(ts_datetime - ts_from_method) < delta)
         self.assertTrue(abs(ts_from_method_tz - ts_from_string_tz) < delta)
-        self.assertTrue(abs(ts_from_string_tz.tz_localize(None)
-                            - ts_from_method_tz.tz_localize(None)) < delta)
+        self.assertTrue(abs(ts_from_string_tz.tz_localize(None) -
+                            ts_from_method_tz.tz_localize(None)) < delta)
 
     def test_asm8(self):
         np.random.seed(7960929)
-        ns = [
-            Timestamp.min.value,
-            Timestamp.max.value,
-            1000,
-        ]
+        ns = [Timestamp.min.value, Timestamp.max.value, 1000, ]
         for n in ns:
             self.assertEqual(Timestamp(n).asm8.view('i8'),
                              np.datetime64(n, 'ns').view('i8'), n)
@@ -405,7 +407,6 @@ class TestTimestamp(tm.TestCase):
                          np.datetime64('nat', 'ns').view('i8'))
 
     def test_fields(self):
-
         def check(value, equal):
             # that we are int/long like
             self.assertTrue(isinstance(value, (int, compat.long)))
@@ -419,7 +420,7 @@ class TestTimestamp(tm.TestCase):
         check(ts.hour, 9)
         check(ts.minute, 6)
         check(ts.second, 3)
-        self.assertRaises(AttributeError, lambda : ts.millisecond)
+        self.assertRaises(AttributeError, lambda: ts.millisecond)
         check(ts.microsecond, 100)
         check(ts.nanosecond, 1)
         check(ts.dayofweek, 6)
@@ -449,34 +450,23 @@ class TestTimestamp(tm.TestCase):
 
 
 class TestDatetimeParsingWrappers(tm.TestCase):
-
     def test_does_not_convert_mixed_integer(self):
-        bad_date_strings = (
-            '-50000',
-            '999',
-            '123.1234',
-            'm',
-            'T'
-        )
+        bad_date_strings = ('-50000', '999', '123.1234', 'm', 'T')
 
         for bad_date_string in bad_date_strings:
-            self.assertFalse(
-                tslib._does_string_look_like_datetime(bad_date_string)
-            )
+            self.assertFalse(tslib._does_string_look_like_datetime(
+                bad_date_string))
 
-        good_date_strings = (
-            '2012-01-01',
-            '01/01/2012',
-            'Mon Sep 16, 2013',
-            '01012012',
-            '0101',
-            '1-1',
-        )
+        good_date_strings = ('2012-01-01',
+                             '01/01/2012',
+                             'Mon Sep 16, 2013',
+                             '01012012',
+                             '0101',
+                             '1-1', )
 
         for good_date_string in good_date_strings:
-            self.assertTrue(
-                tslib._does_string_look_like_datetime(good_date_string)
-            )
+            self.assertTrue(tslib._does_string_look_like_datetime(
+                good_date_string))
 
     def test_parsers(self):
         cases = {'2011-01-01': datetime.datetime(2011, 1, 1),
@@ -495,15 +485,12 @@ class TestDatetimeParsingWrappers(tm.TestCase):
                  '4Q2000': datetime.datetime(2000, 10, 1),
                  '4Q00': datetime.datetime(2000, 10, 1),
                  '2000q4': datetime.datetime(2000, 10, 1),
-
                  '2000-Q4': datetime.datetime(2000, 10, 1),
                  '00-Q4': datetime.datetime(2000, 10, 1),
                  '4Q-2000': datetime.datetime(2000, 10, 1),
                  '4Q-00': datetime.datetime(2000, 10, 1),
-
                  '2000q4': datetime.datetime(2000, 10, 1),
                  '00q4': datetime.datetime(2000, 10, 1),
-
                  '2005': datetime.datetime(2005, 1, 1),
                  '2005-11': datetime.datetime(2005, 11, 1),
                  '2005 11': datetime.datetime(2005, 11, 1),
@@ -511,16 +498,14 @@ class TestDatetimeParsingWrappers(tm.TestCase):
                  '11 2005': datetime.datetime(2005, 11, 1),
                  '200511': datetime.datetime(2020, 5, 11),
                  '20051109': datetime.datetime(2005, 11, 9),
-
                  '20051109 10:15': datetime.datetime(2005, 11, 9, 10, 15),
                  '20051109 08H': datetime.datetime(2005, 11, 9, 8, 0),
-
                  '2005-11-09 10:15': datetime.datetime(2005, 11, 9, 10, 15),
                  '2005-11-09 08H': datetime.datetime(2005, 11, 9, 8, 0),
                  '2005/11/09 10:15': datetime.datetime(2005, 11, 9, 10, 15),
                  '2005/11/09 08H': datetime.datetime(2005, 11, 9, 8, 0),
-
-                 "Thu Sep 25 10:36:28 2003": datetime.datetime(2003, 9, 25, 10, 36, 28),
+                 "Thu Sep 25 10:36:28 2003": datetime.datetime(2003, 9, 25, 10,
+                                                               36, 28),
                  "Thu Sep 25 2003": datetime.datetime(2003, 9, 25),
                  "Sep 25 2003": datetime.datetime(2003, 9, 25),
                  "January 1 2014": datetime.datetime(2014, 1, 1),
@@ -529,8 +514,7 @@ class TestDatetimeParsingWrappers(tm.TestCase):
                  '2014-06': datetime.datetime(2014, 6, 1),
                  '06-2014': datetime.datetime(2014, 6, 1),
                  '2014-6': datetime.datetime(2014, 6, 1),
-                 '6-2014': datetime.datetime(2014, 6, 1),
-                 }
+                 '6-2014': datetime.datetime(2014, 6, 1), }
 
         for date_str, expected in compat.iteritems(cases):
             result1, _, _ = tools.parse_time_string(date_str)
@@ -560,8 +544,7 @@ class TestDatetimeParsingWrappers(tm.TestCase):
 
     def test_parsers_quarter_invalid(self):
 
-        cases = ['2Q 2005', '2Q-200A', '2Q-200',
-                 '22Q2005', '6Q-20', '2Q200.']
+        cases = ['2Q 2005', '2Q-200A', '2Q-200', '22Q2005', '6Q-20', '2Q200.']
         for case in cases:
             self.assertRaises(ValueError, tools.parse_time_string, case)
 
@@ -579,8 +562,9 @@ class TestDatetimeParsingWrappers(tm.TestCase):
         tm._skip_if_no_dateutil()
         from dateutil.parser import parse
         for date_str, values in compat.iteritems(cases):
-            for dayfirst, yearfirst ,expected in values:
-                result1, _, _ = tools.parse_time_string(date_str, dayfirst=dayfirst,
+            for dayfirst, yearfirst, expected in values:
+                result1, _, _ = tools.parse_time_string(date_str,
+                                                        dayfirst=dayfirst,
                                                         yearfirst=yearfirst)
 
                 result2 = to_datetime(date_str, dayfirst=dayfirst,
@@ -596,7 +580,8 @@ class TestDatetimeParsingWrappers(tm.TestCase):
                 self.assertEqual(result3, expected)
 
                 # compare with dateutil result
-                dateutil_result = parse(date_str, dayfirst=dayfirst, yearfirst=yearfirst)
+                dateutil_result = parse(date_str, dayfirst=dayfirst,
+                                        yearfirst=yearfirst)
                 self.assertEqual(dateutil_result, expected)
 
     def test_parsers_timestring(self):
@@ -605,7 +590,7 @@ class TestDatetimeParsingWrappers(tm.TestCase):
 
         # must be the same as dateutil result
         cases = {'10:15': (parse('10:15'), datetime.datetime(1, 1, 1, 10, 15)),
-                 '9:05': (parse('9:05'), datetime.datetime(1, 1, 1, 9, 5)) }
+                 '9:05': (parse('9:05'), datetime.datetime(1, 1, 1, 9, 5))}
 
         for date_str, (exp_now, exp_def) in compat.iteritems(cases):
             result1, _, _ = tools.parse_time_string(date_str)
@@ -647,9 +632,9 @@ class TestDatetimeParsingWrappers(tm.TestCase):
         self.assert_numpy_array_equal(tools.to_time(arg, format="%I:%M%p",
                                                     errors="ignore"),
                                       np.array(arg))
-        self.assertRaises(ValueError, lambda: tools.to_time(arg,
-                                                            format="%I:%M%p",
-                                                            errors="raise"))
+        self.assertRaises(ValueError,
+                          lambda: tools.to_time(arg, format="%I:%M%p",
+                                                errors="raise"))
         self.assert_series_equal(tools.to_time(Series(arg, name="test")),
                                  Series(expected_arr, name="test"))
         self.assert_numpy_array_equal(tools.to_time(np.array(arg)),
@@ -666,13 +651,14 @@ class TestDatetimeParsingWrappers(tm.TestCase):
             self.assertEqual(result2, expected)
 
     def test_parsers_quarterly_with_freq(self):
-
-        msg = 'Incorrect quarterly string is given, quarter must be between 1 and 4: 2013Q5'
+        msg = ('Incorrect quarterly string is given, quarter '
+               'must be between 1 and 4: 2013Q5')
         with tm.assertRaisesRegexp(tslib.DateParseError, msg):
             tools.parse_time_string('2013Q5')
 
         # GH 5418
-        msg = 'Unable to retrieve month information from given freq: INVLD-L-DEC-SAT'
+        msg = ('Unable to retrieve month information from given freq: '
+               'INVLD-L-DEC-SAT')
         with tm.assertRaisesRegexp(tslib.DateParseError, msg):
             tools.parse_time_string('2013Q1', freq='INVLD-L-DEC-SAT')
 
@@ -702,17 +688,18 @@ class TestDatetimeParsingWrappers(tm.TestCase):
             converted_time = dt_time.tz_localize('UTC').tz_convert(tz)
             self.assertEqual(dt_string_repr, repr(converted_time))
 
+
 class TestArrayToDatetime(tm.TestCase):
     def test_parsing_valid_dates(self):
         arr = np.array(['01-01-2013', '01-02-2013'], dtype=object)
         self.assert_numpy_array_equal(
             tslib.array_to_datetime(arr),
             np.array(
-                    [
-                        '2013-01-01T00:00:00.000000000-0000',
-                        '2013-01-02T00:00:00.000000000-0000'
-                    ],
-                    dtype='M8[ns]'
+                [
+                    '2013-01-01T00:00:00.000000000-0000',
+                    '2013-01-02T00:00:00.000000000-0000'
+                ],
+                dtype='M8[ns]'
             )
         )
 
@@ -720,11 +707,11 @@ class TestArrayToDatetime(tm.TestCase):
         self.assert_numpy_array_equal(
             tslib.array_to_datetime(arr),
             np.array(
-                    [
-                        '2013-09-16T00:00:00.000000000-0000',
-                        '2013-09-17T00:00:00.000000000-0000'
-                    ],
-                    dtype='M8[ns]'
+                [
+                    '2013-09-16T00:00:00.000000000-0000',
+                    '2013-09-17T00:00:00.000000000-0000'
+                ],
+                dtype='M8[ns]'
             )
         )
 
@@ -733,10 +720,12 @@ class TestArrayToDatetime(tm.TestCase):
         # These strings don't look like datetimes so they shouldn't be
         # attempted to be converted
         arr = np.array(['-352.737091', '183.575577'], dtype=object)
-        self.assert_numpy_array_equal(tslib.array_to_datetime(arr, errors='ignore'), arr)
+        self.assert_numpy_array_equal(
+            tslib.array_to_datetime(arr, errors='ignore'), arr)
 
         arr = np.array(['1', '2', '3', '4', '5'], dtype=object)
-        self.assert_numpy_array_equal(tslib.array_to_datetime(arr, errors='ignore'), arr)
+        self.assert_numpy_array_equal(
+            tslib.array_to_datetime(arr, errors='ignore'), arr)
 
     def test_coercing_dates_outside_of_datetime64_ns_bounds(self):
         invalid_dates = [
@@ -748,12 +737,11 @@ class TestArrayToDatetime(tm.TestCase):
         ]
 
         for invalid_date in invalid_dates:
-            self.assertRaises(
-                ValueError,
-                tslib.array_to_datetime,
-                np.array([invalid_date], dtype='object'),
-                errors='raise',
-            )
+            self.assertRaises(ValueError,
+                              tslib.array_to_datetime,
+                              np.array(
+                                  [invalid_date], dtype='object'),
+                              errors='raise', )
             self.assert_numpy_array_equal(
                 tslib.array_to_datetime(
                     np.array([invalid_date], dtype='object'),
@@ -765,11 +753,11 @@ class TestArrayToDatetime(tm.TestCase):
         self.assert_numpy_array_equal(
             tslib.array_to_datetime(arr, errors='coerce'),
             np.array(
-                    [
-                        tslib.iNaT,
-                        '2000-01-01T00:00:00.000000000-0000'
-                    ],
-                    dtype='M8[ns]'
+                [
+                    tslib.iNaT,
+                    '2000-01-01T00:00:00.000000000-0000'
+                ],
+                dtype='M8[ns]'
             )
         )
 
@@ -778,18 +766,19 @@ class TestArrayToDatetime(tm.TestCase):
 
         # Without coercing, the presence of any invalid dates prevents
         # any values from being converted
-        self.assert_numpy_array_equal(tslib.array_to_datetime(arr,errors='ignore'), arr)
+        self.assert_numpy_array_equal(
+            tslib.array_to_datetime(arr, errors='ignore'), arr)
 
         # With coercing, the invalid dates becomes iNaT
         self.assert_numpy_array_equal(
             tslib.array_to_datetime(arr, errors='coerce'),
             np.array(
-                    [
-                        '2013-01-01T00:00:00.000000000-0000',
-                        tslib.iNaT,
-                        tslib.iNaT
-                    ],
-                    dtype='M8[ns]'
+                [
+                    '2013-01-01T00:00:00.000000000-0000',
+                    tslib.iNaT,
+                    tslib.iNaT
+                ],
+                dtype='M8[ns]'
             )
         )
 
@@ -803,9 +792,8 @@ class TestArrayToDatetime(tm.TestCase):
             '12-31-2012 23:00:00-01:00'
         ]
 
-        expected_output = tslib.array_to_datetime(
-            np.array(['01-01-2013 00:00:00'], dtype=object)
-        )
+        expected_output = tslib.array_to_datetime(np.array(
+            ['01-01-2013 00:00:00'], dtype=object))
 
         for dt_string in dt_strings:
             self.assert_numpy_array_equal(
@@ -814,6 +802,7 @@ class TestArrayToDatetime(tm.TestCase):
                 ),
                 expected_output
             )
+
 
 class TestTimestampNsOperations(tm.TestCase):
     def setUp(self):
@@ -826,13 +815,16 @@ class TestTimestampNsOperations(tm.TestCase):
         self.assertEqual(modified_value - value, expected_value)
 
     def test_timedelta_ns_arithmetic(self):
-        self.assert_ns_timedelta(self.timestamp + np.timedelta64(-123, 'ns'), -123)
+        self.assert_ns_timedelta(self.timestamp + np.timedelta64(-123, 'ns'),
+                                 -123)
 
     def test_timedelta_ns_based_arithmetic(self):
-        self.assert_ns_timedelta(self.timestamp + np.timedelta64(1234567898, 'ns'), 1234567898)
+        self.assert_ns_timedelta(self.timestamp + np.timedelta64(
+            1234567898, 'ns'), 1234567898)
 
     def test_timedelta_us_arithmetic(self):
-        self.assert_ns_timedelta(self.timestamp + np.timedelta64(-123, 'us'), -123000)
+        self.assert_ns_timedelta(self.timestamp + np.timedelta64(-123, 'us'),
+                                 -123000)
 
     def test_timedelta_ms_arithmetic(self):
         time = self.timestamp + np.timedelta64(-123, 'ms')
@@ -927,65 +919,99 @@ class TestTimestampNsOperations(tm.TestCase):
             self.assertTrue((left - right) is nat)
 
 
-
 class TestTslib(tm.TestCase):
-
     def test_intraday_conversion_factors(self):
-        self.assertEqual(period_asfreq(1, get_freq('D'), get_freq('H'), False), 24)
-        self.assertEqual(period_asfreq(1, get_freq('D'), get_freq('T'), False), 1440)
-        self.assertEqual(period_asfreq(1, get_freq('D'), get_freq('S'), False), 86400)
-        self.assertEqual(period_asfreq(1, get_freq('D'), get_freq('L'), False), 86400000)
-        self.assertEqual(period_asfreq(1, get_freq('D'), get_freq('U'), False), 86400000000)
-        self.assertEqual(period_asfreq(1, get_freq('D'), get_freq('N'), False), 86400000000000)
+        self.assertEqual(period_asfreq(
+            1, get_freq('D'), get_freq('H'), False), 24)
+        self.assertEqual(period_asfreq(
+            1, get_freq('D'), get_freq('T'), False), 1440)
+        self.assertEqual(period_asfreq(
+            1, get_freq('D'), get_freq('S'), False), 86400)
+        self.assertEqual(period_asfreq(1, get_freq(
+            'D'), get_freq('L'), False), 86400000)
+        self.assertEqual(period_asfreq(1, get_freq(
+            'D'), get_freq('U'), False), 86400000000)
+        self.assertEqual(period_asfreq(1, get_freq(
+            'D'), get_freq('N'), False), 86400000000000)
 
-        self.assertEqual(period_asfreq(1, get_freq('H'), get_freq('T'), False), 60)
-        self.assertEqual(period_asfreq(1, get_freq('H'), get_freq('S'), False), 3600)
-        self.assertEqual(period_asfreq(1, get_freq('H'), get_freq('L'), False), 3600000)
-        self.assertEqual(period_asfreq(1, get_freq('H'), get_freq('U'), False), 3600000000)
-        self.assertEqual(period_asfreq(1, get_freq('H'), get_freq('N'), False), 3600000000000)
+        self.assertEqual(period_asfreq(
+            1, get_freq('H'), get_freq('T'), False), 60)
+        self.assertEqual(period_asfreq(
+            1, get_freq('H'), get_freq('S'), False), 3600)
+        self.assertEqual(period_asfreq(1, get_freq('H'),
+                                       get_freq('L'), False), 3600000)
+        self.assertEqual(period_asfreq(1, get_freq(
+            'H'), get_freq('U'), False), 3600000000)
+        self.assertEqual(period_asfreq(1, get_freq(
+            'H'), get_freq('N'), False), 3600000000000)
 
-        self.assertEqual(period_asfreq(1, get_freq('T'), get_freq('S'), False), 60)
-        self.assertEqual(period_asfreq(1, get_freq('T'), get_freq('L'), False), 60000)
-        self.assertEqual(period_asfreq(1, get_freq('T'), get_freq('U'), False), 60000000)
-        self.assertEqual(period_asfreq(1, get_freq('T'), get_freq('N'), False), 60000000000)
+        self.assertEqual(period_asfreq(
+            1, get_freq('T'), get_freq('S'), False), 60)
+        self.assertEqual(period_asfreq(
+            1, get_freq('T'), get_freq('L'), False), 60000)
+        self.assertEqual(period_asfreq(1, get_freq(
+            'T'), get_freq('U'), False), 60000000)
+        self.assertEqual(period_asfreq(1, get_freq(
+            'T'), get_freq('N'), False), 60000000000)
 
-        self.assertEqual(period_asfreq(1, get_freq('S'), get_freq('L'), False), 1000)
-        self.assertEqual(period_asfreq(1, get_freq('S'), get_freq('U'), False), 1000000)
-        self.assertEqual(period_asfreq(1, get_freq('S'), get_freq('N'), False), 1000000000)
+        self.assertEqual(period_asfreq(
+            1, get_freq('S'), get_freq('L'), False), 1000)
+        self.assertEqual(period_asfreq(1, get_freq('S'),
+                                       get_freq('U'), False), 1000000)
+        self.assertEqual(period_asfreq(1, get_freq(
+            'S'), get_freq('N'), False), 1000000000)
 
-        self.assertEqual(period_asfreq(1, get_freq('L'), get_freq('U'), False), 1000)
-        self.assertEqual(period_asfreq(1, get_freq('L'), get_freq('N'), False), 1000000)
+        self.assertEqual(period_asfreq(
+            1, get_freq('L'), get_freq('U'), False), 1000)
+        self.assertEqual(period_asfreq(1, get_freq('L'),
+                                       get_freq('N'), False), 1000000)
 
-        self.assertEqual(period_asfreq(1, get_freq('U'), get_freq('N'), False), 1000)
+        self.assertEqual(period_asfreq(
+            1, get_freq('U'), get_freq('N'), False), 1000)
 
     def test_period_ordinal_start_values(self):
         # information for 1.1.1970
-        self.assertEqual(0, period_ordinal(1970, 1, 1, 0, 0, 0, 0, 0, get_freq('A')))
-        self.assertEqual(0, period_ordinal(1970, 1, 1, 0, 0, 0, 0, 0, get_freq('M')))
-        self.assertEqual(1, period_ordinal(1970, 1, 1, 0, 0, 0, 0, 0, get_freq('W')))
-        self.assertEqual(0, period_ordinal(1970, 1, 1, 0, 0, 0, 0, 0, get_freq('D')))
-        self.assertEqual(0, period_ordinal(1970, 1, 1, 0, 0, 0, 0, 0, get_freq('B')))
+        self.assertEqual(0, period_ordinal(1970, 1, 1, 0, 0, 0, 0, 0,
+                                           get_freq('A')))
+        self.assertEqual(0, period_ordinal(1970, 1, 1, 0, 0, 0, 0, 0,
+                                           get_freq('M')))
+        self.assertEqual(1, period_ordinal(1970, 1, 1, 0, 0, 0, 0, 0,
+                                           get_freq('W')))
+        self.assertEqual(0, period_ordinal(1970, 1, 1, 0, 0, 0, 0, 0,
+                                           get_freq('D')))
+        self.assertEqual(0, period_ordinal(1970, 1, 1, 0, 0, 0, 0, 0,
+                                           get_freq('B')))
 
     def test_period_ordinal_week(self):
-        self.assertEqual(1, period_ordinal(1970, 1, 4, 0, 0, 0, 0, 0, get_freq('W')))
-        self.assertEqual(2, period_ordinal(1970, 1, 5, 0, 0, 0, 0, 0, get_freq('W')))
+        self.assertEqual(1, period_ordinal(1970, 1, 4, 0, 0, 0, 0, 0,
+                                           get_freq('W')))
+        self.assertEqual(2, period_ordinal(1970, 1, 5, 0, 0, 0, 0, 0,
+                                           get_freq('W')))
 
-        self.assertEqual(2284, period_ordinal(2013, 10, 6, 0, 0, 0, 0, 0, get_freq('W')))
-        self.assertEqual(2285, period_ordinal(2013, 10, 7, 0, 0, 0, 0, 0, get_freq('W')))
+        self.assertEqual(2284, period_ordinal(2013, 10, 6, 0, 0, 0, 0, 0,
+                                              get_freq('W')))
+        self.assertEqual(2285, period_ordinal(2013, 10, 7, 0, 0, 0, 0, 0,
+                                              get_freq('W')))
 
     def test_period_ordinal_business_day(self):
         # Thursday
-        self.assertEqual(11415, period_ordinal(2013, 10, 3, 0, 0, 0, 0, 0, get_freq('B')))
+        self.assertEqual(11415, period_ordinal(2013, 10, 3, 0, 0, 0, 0, 0,
+                                               get_freq('B')))
         # Friday
-        self.assertEqual(11416, period_ordinal(2013, 10, 4, 0, 0, 0, 0, 0, get_freq('B')))
+        self.assertEqual(11416, period_ordinal(2013, 10, 4, 0, 0, 0, 0, 0,
+                                               get_freq('B')))
         # Saturday
-        self.assertEqual(11417, period_ordinal(2013, 10, 5, 0, 0, 0, 0, 0, get_freq('B')))
+        self.assertEqual(11417, period_ordinal(2013, 10, 5, 0, 0, 0, 0, 0,
+                                               get_freq('B')))
         # Sunday
-        self.assertEqual(11417, period_ordinal(2013, 10, 6, 0, 0, 0, 0, 0, get_freq('B')))
+        self.assertEqual(11417, period_ordinal(2013, 10, 6, 0, 0, 0, 0, 0,
+                                               get_freq('B')))
         # Monday
-        self.assertEqual(11417, period_ordinal(2013, 10, 7, 0, 0, 0, 0, 0, get_freq('B')))
+        self.assertEqual(11417, period_ordinal(2013, 10, 7, 0, 0, 0, 0, 0,
+                                               get_freq('B')))
         # Tuesday
-        self.assertEqual(11418, period_ordinal(2013, 10, 8, 0, 0, 0, 0, 0, get_freq('B')))
+        self.assertEqual(11418, period_ordinal(2013, 10, 8, 0, 0, 0, 0, 0,
+                                               get_freq('B')))
 
     def test_tslib_tz_convert(self):
         def compare_utc_to_local(tz_didx, utc_didx):
@@ -1006,7 +1032,8 @@ class TestTslib(tm.TestCase):
             tz_didx = date_range('2014-03-01', '2015-01-10', freq='H', tz=tz)
             utc_didx = date_range('2014-03-01', '2015-01-10', freq='H')
             compare_utc_to_local(tz_didx, utc_didx)
-            # local tz to UTC can be differ in hourly (or higher) freqs because of DST
+            # local tz to UTC can be differ in hourly (or higher) freqs because
+            # of DST
             compare_local_to_utc(tz_didx, utc_didx)
 
             tz_didx = date_range('2000-01-01', '2020-01-01', freq='D', tz=tz)
@@ -1029,26 +1056,32 @@ class TestTslib(tm.TestCase):
         result = tslib.tz_convert(np.array([tslib.iNaT], dtype=np.int64),
                                   tslib.maybe_get_tz('US/Eastern'),
                                   tslib.maybe_get_tz('Asia/Tokyo'))
-        self.assert_numpy_array_equal(result, np.array([tslib.iNaT], dtype=np.int64))
+        self.assert_numpy_array_equal(result, np.array(
+            [tslib.iNaT], dtype=np.int64))
 
     def test_shift_months(self):
-        s = DatetimeIndex([Timestamp('2000-01-05 00:15:00'), Timestamp('2000-01-31 00:23:00'),
-                           Timestamp('2000-01-01'), Timestamp('2000-02-29'), Timestamp('2000-12-31')])
+        s = DatetimeIndex([Timestamp('2000-01-05 00:15:00'), Timestamp(
+            '2000-01-31 00:23:00'), Timestamp('2000-01-01'), Timestamp(
+                '2000-02-29'), Timestamp('2000-12-31')])
         for years in [-1, 0, 1]:
             for months in [-2, 0, 2]:
-                actual = DatetimeIndex(tslib.shift_months(s.asi8, years * 12 + months))
-                expected = DatetimeIndex([x + offsets.DateOffset(years=years, months=months) for x in s])
+                actual = DatetimeIndex(tslib.shift_months(s.asi8, years * 12 +
+                                                          months))
+                expected = DatetimeIndex([x + offsets.DateOffset(
+                    years=years, months=months) for x in s])
                 tm.assert_index_equal(actual, expected)
-
 
 
 class TestTimestampOps(tm.TestCase):
     def test_timestamp_and_datetime(self):
-        self.assertEqual((Timestamp(datetime.datetime(2013, 10, 13)) - datetime.datetime(2013, 10, 12)).days, 1)
-        self.assertEqual((datetime.datetime(2013, 10, 12) - Timestamp(datetime.datetime(2013, 10, 13))).days, -1)
+        self.assertEqual((Timestamp(datetime.datetime(
+            2013, 10, 13)) - datetime.datetime(2013, 10, 12)).days, 1)
+        self.assertEqual((datetime.datetime(2013, 10, 12) -
+                          Timestamp(datetime.datetime(2013, 10, 13))).days, -1)
 
     def test_timestamp_and_series(self):
-        timestamp_series = Series(date_range('2014-03-17', periods=2, freq='D', tz='US/Eastern'))
+        timestamp_series = Series(date_range('2014-03-17', periods=2, freq='D',
+                                             tz='US/Eastern'))
         first_timestamp = timestamp_series[0]
 
         delta_series = Series([np.timedelta64(0, 'D'), np.timedelta64(1, 'D')])
@@ -1056,25 +1089,34 @@ class TestTimestampOps(tm.TestCase):
         assert_series_equal(first_timestamp - timestamp_series, -delta_series)
 
     def test_addition_subtraction_types(self):
-        # Assert on the types resulting from Timestamp +/- various date/time objects
+        # Assert on the types resulting from Timestamp +/- various date/time
+        # objects
         datetime_instance = datetime.datetime(2014, 3, 4)
         timedelta_instance = datetime.timedelta(seconds=1)
-        # build a timestamp with a frequency, since then it supports addition/subtraction of integers
-        timestamp_instance = date_range(datetime_instance, periods=1, freq='D')[0]
+        # build a timestamp with a frequency, since then it supports
+        # addition/subtraction of integers
+        timestamp_instance = date_range(datetime_instance, periods=1,
+                                        freq='D')[0]
 
         self.assertEqual(type(timestamp_instance + 1), Timestamp)
         self.assertEqual(type(timestamp_instance - 1), Timestamp)
 
-        # Timestamp + datetime not supported, though subtraction is supported and yields timedelta
-        # more tests in tseries/base/tests/test_base.py
-        self.assertEqual(type(timestamp_instance - datetime_instance), Timedelta)
-        self.assertEqual(type(timestamp_instance + timedelta_instance), Timestamp)
-        self.assertEqual(type(timestamp_instance - timedelta_instance), Timestamp)
+        # Timestamp + datetime not supported, though subtraction is supported
+        # and yields timedelta more tests in tseries/base/tests/test_base.py
+        self.assertEqual(
+            type(timestamp_instance - datetime_instance), Timedelta)
+        self.assertEqual(
+            type(timestamp_instance + timedelta_instance), Timestamp)
+        self.assertEqual(
+            type(timestamp_instance - timedelta_instance), Timestamp)
 
-        # Timestamp +/- datetime64 not supported, so not tested (could possibly assert error raised?)
+        # Timestamp +/- datetime64 not supported, so not tested (could possibly
+        # assert error raised?)
         timedelta64_instance = np.timedelta64(1, 'D')
-        self.assertEqual(type(timestamp_instance + timedelta64_instance), Timestamp)
-        self.assertEqual(type(timestamp_instance - timedelta64_instance), Timestamp)
+        self.assertEqual(
+            type(timestamp_instance + timedelta64_instance), Timestamp)
+        self.assertEqual(
+            type(timestamp_instance - timedelta64_instance), Timestamp)
 
     def test_addition_subtraction_preserve_frequency(self):
         timestamp_instance = date_range('2014-03-05', periods=1, freq='D')[0]
@@ -1082,20 +1124,30 @@ class TestTimestampOps(tm.TestCase):
         original_freq = timestamp_instance.freq
         self.assertEqual((timestamp_instance + 1).freq, original_freq)
         self.assertEqual((timestamp_instance - 1).freq, original_freq)
-        self.assertEqual((timestamp_instance + timedelta_instance).freq, original_freq)
-        self.assertEqual((timestamp_instance - timedelta_instance).freq, original_freq)
+        self.assertEqual(
+            (timestamp_instance + timedelta_instance).freq, original_freq)
+        self.assertEqual(
+            (timestamp_instance - timedelta_instance).freq, original_freq)
 
         timedelta64_instance = np.timedelta64(1, 'D')
-        self.assertEqual((timestamp_instance + timedelta64_instance).freq, original_freq)
-        self.assertEqual((timestamp_instance - timedelta64_instance).freq, original_freq)
+        self.assertEqual(
+            (timestamp_instance + timedelta64_instance).freq, original_freq)
+        self.assertEqual(
+            (timestamp_instance - timedelta64_instance).freq, original_freq)
 
     def test_resolution(self):
 
-        for freq, expected in zip(['A', 'Q', 'M', 'D', 'H', 'T', 'S', 'L', 'U'],
-                                  [period.D_RESO, period.D_RESO, period.D_RESO, period.D_RESO,
-                                   period.H_RESO, period.T_RESO, period.S_RESO, period.MS_RESO, period.US_RESO]):
-            for tz in [None, 'Asia/Tokyo', 'US/Eastern', 'dateutil/US/Eastern']:
-                idx = date_range(start='2013-04-01', periods=30, freq=freq, tz=tz)
+        for freq, expected in zip(['A', 'Q', 'M', 'D', 'H', 'T',
+                                   'S', 'L', 'U'],
+                                  [period.D_RESO, period.D_RESO,
+                                   period.D_RESO, period.D_RESO,
+                                   period.H_RESO, period.T_RESO,
+                                   period.S_RESO, period.MS_RESO,
+                                   period.US_RESO]):
+            for tz in [None, 'Asia/Tokyo', 'US/Eastern', 'dateutil/US/Eastern'
+                       ]:
+                idx = date_range(start='2013-04-01', periods=30, freq=freq,
+                                 tz=tz)
                 result = period.resolution(idx.asi8, idx.tz)
                 self.assertEqual(result, expected)
 

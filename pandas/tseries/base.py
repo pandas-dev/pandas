@@ -17,29 +17,28 @@ import pandas.tseries.frequencies as frequencies
 import pandas.algos as _algos
 
 
-
 class DatelikeOps(object):
     """ common ops for DatetimeIndex/PeriodIndex, but not TimedeltaIndex """
 
     def strftime(self, date_format):
-        """
-        Return an array of formatted strings specified by date_format, which
-        supports the same string format as the python standard library. Details
-        of the string format can be found in the `python string format doc
-        <https://docs.python.org/2/library/datetime.html#strftime-and-strptime-behavior>`__
-
-        .. versionadded:: 0.17.0
-
-        Parameters
-        ----------
-        date_format : str
-            date format string (e.g. "%Y-%m-%d")
-
-        Returns
-        -------
-        ndarray of formatted strings
-        """
         return np.asarray(self.format(date_format=date_format))
+    strftime.__doc__ = """
+    Return an array of formatted strings specified by date_format, which
+    supports the same string format as the python standard library. Details
+    of the string format can be found in `python string format doc <{0}>`__
+
+    .. versionadded:: 0.17.0
+
+    Parameters
+    ----------
+    date_format : str
+        date format string (e.g. "%Y-%m-%d")
+
+    Returns
+    -------
+    ndarray of formatted strings
+    """.format("https://docs.python.org/2/library/datetime.html"
+               "#strftime-and-strptime-behavior")
 
 
 class TimelikeOps(object):
@@ -68,7 +67,7 @@ class TimelikeOps(object):
         unit = to_offset(freq).nanos
 
         # round the local times
-        if getattr(self,'tz',None) is not None:
+        if getattr(self, 'tz', None) is not None:
             values = self.tz_localize(None).asi8
         else:
             values = self.asi8
@@ -81,7 +80,7 @@ class TimelikeOps(object):
         result = self._shallow_copy(result, **attribs)
 
         # reconvert to local tz
-        if getattr(self,'tz',None) is not None:
+        if getattr(self, 'tz', None) is not None:
             result = result.tz_localize(self.tz)
         return result
 
@@ -181,7 +180,9 @@ class DatetimeIndexOpsMixin(object):
 
     @property
     def freqstr(self):
-        """ return the frequency object as a string if its set, otherwise None """
+        """
+        Return the frequency object as a string if its set, otherwise None
+        """
         if self.freq is None:
             return None
         return self.freq.freqstr
@@ -291,7 +292,8 @@ class DatetimeIndexOpsMixin(object):
         -------
         result : ndarray with values replace by the fill_value
 
-        mask the result if needed, convert to the provided dtype if its not None
+        mask the result if needed, convert to the provided dtype if its not
+        None
 
         This is an internal routine
         """
@@ -408,7 +410,7 @@ class DatetimeIndexOpsMixin(object):
                 freq = self.freqstr
                 if freq is not None:
                     freq = "'%s'" % freq
-                attrs.append(('freq',freq))
+                attrs.append(('freq', freq))
         return attrs
 
     @cache_readonly
@@ -424,7 +426,8 @@ class DatetimeIndexOpsMixin(object):
 
     def _convert_scalar_indexer(self, key, kind=None):
         """
-        we don't allow integer or float indexing on datetime-like when using loc
+        we don't allow integer or float indexing on datetime-like when using
+        loc
 
         Parameters
         ----------
@@ -432,10 +435,12 @@ class DatetimeIndexOpsMixin(object):
         kind : optional, type of the indexing operation (loc/ix/iloc/None)
         """
 
-        if kind in ['loc'] and lib.isscalar(key) and (is_integer(key) or is_float(key)):
-            self._invalid_indexer('index',key)
+        if (kind in ['loc'] and lib.isscalar(key) and
+                (is_integer(key) or is_float(key))):
+            self._invalid_indexer('index', key)
 
-        return super(DatetimeIndexOpsMixin, self)._convert_scalar_indexer(key, kind=kind)
+        return (super(DatetimeIndexOpsMixin, self)
+                ._convert_scalar_indexer(key, kind=kind))
 
     def _add_datelike(self, other):
         raise AbstractMethodError(self)
@@ -445,7 +450,10 @@ class DatetimeIndexOpsMixin(object):
 
     @classmethod
     def _add_datetimelike_methods(cls):
-        """ add in the datetimelike methods (as we may have to override the superclass) """
+        """
+        add in the datetimelike methods (as we may have to override the
+        superclass)
+        """
 
         def __add__(self, other):
             from pandas.core.index import Index
@@ -454,14 +462,17 @@ class DatetimeIndexOpsMixin(object):
             if isinstance(other, TimedeltaIndex):
                 return self._add_delta(other)
             elif isinstance(self, TimedeltaIndex) and isinstance(other, Index):
-                if hasattr(other,'_add_delta'):
+                if hasattr(other, '_add_delta'):
                     return other._add_delta(self)
-                raise TypeError("cannot add TimedeltaIndex and {typ}".format(typ=type(other)))
+                raise TypeError("cannot add TimedeltaIndex and {typ}"
+                                .format(typ=type(other)))
             elif isinstance(other, Index):
-                warnings.warn("using '+' to provide set union with datetimelike Indexes is deprecated, "
-                              "use .union()",FutureWarning, stacklevel=2)
+                warnings.warn("using '+' to provide set union with "
+                              "datetimelike Indexes is deprecated, "
+                              "use .union()", FutureWarning, stacklevel=2)
                 return self.union(other)
-            elif isinstance(other, (DateOffset, timedelta, np.timedelta64, tslib.Timedelta)):
+            elif isinstance(other, (DateOffset, timedelta, np.timedelta64,
+                                    tslib.Timedelta)):
                 return self._add_delta(other)
             elif com.is_integer(other):
                 return self.shift(other)
@@ -480,13 +491,16 @@ class DatetimeIndexOpsMixin(object):
                 return self._add_delta(-other)
             elif isinstance(self, TimedeltaIndex) and isinstance(other, Index):
                 if not isinstance(other, TimedeltaIndex):
-                    raise TypeError("cannot subtract TimedeltaIndex and {typ}".format(typ=type(other)))
+                    raise TypeError("cannot subtract TimedeltaIndex and {typ}"
+                                    .format(typ=type(other)))
                 return self._add_delta(-other)
             elif isinstance(other, Index):
-                warnings.warn("using '-' to provide set differences with datetimelike Indexes is deprecated, "
-                              "use .difference()",FutureWarning, stacklevel=2)
+                warnings.warn("using '-' to provide set differences with "
+                              "datetimelike Indexes is deprecated, "
+                              "use .difference()", FutureWarning, stacklevel=2)
                 return self.difference(other)
-            elif isinstance(other, (DateOffset, timedelta, np.timedelta64, tslib.Timedelta)):
+            elif isinstance(other, (DateOffset, timedelta, np.timedelta64,
+                                    tslib.Timedelta)):
                 return self._add_delta(-other)
             elif com.is_integer(other):
                 return self.shift(-other)
@@ -630,5 +644,5 @@ class DatetimeIndexOpsMixin(object):
             result += '\nFreq: %s' % self.freqstr
 
         # display as values, not quoted
-        result = result.replace("'","")
+        result = result.replace("'", "")
         return result
