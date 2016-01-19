@@ -123,7 +123,8 @@ SAS provides ``PROC IMPORT`` to read csv data into a data set.
 
 .. code-block:: none
 
-   proc import datafile='tips.csv' dbms=csv out=tips replace;
+   filename tips url  "https://raw.githubusercontent.com/pydata/pandas/master/pandas/tests/data/tips.csv";
+   proc import datafile=tips dbms=csv out=tips replace;
        getnames=yes;
    run;
 
