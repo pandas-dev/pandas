@@ -17,7 +17,8 @@
 # limitations under the License.
 #
 
-# Utility for creating well-formed pull request merges and pushing them to Apache.
+# Utility for creating well-formed pull request merges and pushing them to
+# Apache.
 #   usage: ./apache-pr-merge.py    (see config env vars below)
 #
 # Lightly modified from version of this script in incubator-parquet-format
@@ -121,25 +122,31 @@ def clean_up():
 # merge the requested PR and return the merge hash
 def merge_pr(pr_num, target_ref):
     pr_branch_name = "%s_MERGE_PR_%s" % (BRANCH_PREFIX, pr_num)
-    target_branch_name = "%s_MERGE_PR_%s_%s" % (BRANCH_PREFIX, pr_num, target_ref.upper())
-    run_cmd("git fetch %s pull/%s/head:%s" % (PR_REMOTE_NAME, pr_num, pr_branch_name))
-    run_cmd("git fetch %s %s:%s" % (PUSH_REMOTE_NAME, target_ref, target_branch_name))
+    target_branch_name = "%s_MERGE_PR_%s_%s" % (BRANCH_PREFIX, pr_num,
+                                                target_ref.upper())
+    run_cmd("git fetch %s pull/%s/head:%s" % (PR_REMOTE_NAME, pr_num,
+                                              pr_branch_name))
+    run_cmd("git fetch %s %s:%s" % (PUSH_REMOTE_NAME, target_ref,
+                                    target_branch_name))
     run_cmd("git checkout %s" % target_branch_name)
 
     had_conflicts = False
     try:
         run_cmd(['git', 'merge', pr_branch_name, '--squash'])
     except Exception as e:
-        msg = "Error merging: %s\nWould you like to manually fix-up this merge?" % e
+        msg = ("Error merging: %s\nWould you like to manually fix-up "
+               "this merge?" % e)
         continue_maybe(msg)
-        msg = "Okay, please fix any conflicts and 'git add' conflicting files... Finished?"
+        msg = ("Okay, please fix any conflicts and 'git add' "
+               "conflicting files... Finished?")
         continue_maybe(msg)
         had_conflicts = True
 
     commit_authors = run_cmd(['git', 'log', 'HEAD..%s' % pr_branch_name,
                              '--pretty=format:%an <%ae>']).split("\n")
     distinct_authors = sorted(set(commit_authors),
-                              key=lambda x: commit_authors.count(x), reverse=True)
+                              key=lambda x: commit_authors.count(x),
+                              reverse=True)
     primary_author = distinct_authors[0]
     commits = run_cmd(['git', 'log', 'HEAD..%s' % pr_branch_name,
                       '--pretty=format:%h [%an] %s']).split("\n\n")
@@ -147,7 +154,7 @@ def merge_pr(pr_num, target_ref):
     merge_message_flags = []
 
     merge_message_flags += ["-m", title]
-    if body != None:
+    if body is not None:
         merge_message_flags += ["-m", '\n'.join(textwrap.wrap(body))]
 
     authors = "\n".join(["Author: %s" % a for a in distinct_authors])
@@ -157,14 +164,17 @@ def merge_pr(pr_num, target_ref):
     if had_conflicts:
         committer_name = run_cmd("git config --get user.name").strip()
         committer_email = run_cmd("git config --get user.email").strip()
-        message = "This patch had conflicts when merged, resolved by\nCommitter: %s <%s>" % (
-            committer_name, committer_email)
+        message = ("This patch had conflicts when merged, "
+                   "resolved by\nCommitter: %s <%s>"
+                   % (committer_name, committer_email))
         merge_message_flags += ["-m", message]
 
-    # The string "Closes #%s" string is required for GitHub to correctly close the PR
+    # The string "Closes #%s" string is required for GitHub to correctly close
+    # the PR
     merge_message_flags += [
         "-m",
-        "Closes #%s from %s and squashes the following commits:" % (pr_num, pr_repo_desc)]
+        "Closes #%s from %s and squashes the following commits:"
+        % (pr_num, pr_repo_desc)]
     for c in commits:
         merge_message_flags += ["-m", c]
 
@@ -229,11 +239,11 @@ def fix_version_from_branch(branch, versions):
         return filter(lambda x: x.name.startswith(branch_ver), versions)[-1]
 
 
-branches = get_json("%s/branches" % GITHUB_API_BASE)
-branch_names = filter(lambda x: x.startswith("branch-"),
-                      [x['name'] for x in branches])
+# branches = get_json("%s/branches" % GITHUB_API_BASE)
+# branch_names = filter(lambda x: x.startswith("branch-"),
+#                       [x['name'] for x in branches])
 # Assumes branch names can be sorted lexicographically
-latest_branch = sorted(branch_names, reverse=True)[0]
+# latest_branch = sorted(branch_names, reverse=True)[0]
 
 pr_num = raw_input("Which pull request would you like to merge? (e.g. 34): ")
 pr = get_json("%s/pulls/%s" % (GITHUB_API_BASE, pr_num))
@@ -247,20 +257,8 @@ base_ref = pr["head"]["ref"]
 pr_repo_desc = "%s/%s" % (user_login, base_ref)
 
 if pr["merged"] is True:
-    print("Pull request {0} has already been merged, assuming "
-          "you want to backport".format(pr_num))
-    merge_commit_desc = run_cmd([
-        'git', 'log', '--merges', '--first-parent',
-        '--grep=pull request #%s' % pr_num, '--oneline']).split("\n")[0]
-    if merge_commit_desc == "":
-        fail("Couldn't find any merge commit for #{0}"
-             ", you may need to update HEAD.".format(pr_num))
-
-    merge_hash = merge_commit_desc[:7]
-    message = merge_commit_desc[8:]
-
-    print("Found: %s" % message)
-    maybe_cherry_pick(pr_num, merge_hash, latest_branch)
+    print("Pull request {0} has already been merged, please backport manually"
+          .format(pr_num))
     sys.exit(0)
 
 if not bool(pr["mergeable"]):
@@ -268,16 +266,11 @@ if not bool(pr["mergeable"]):
            "Continue? (experts only!)".format(pr_num))
     continue_maybe(msg)
 
-print ("\n=== Pull Request #%s ===" % pr_num)
-print ("title\t%s\nsource\t%s\ntarget\t%s\nurl\t%s" % (
-    title, pr_repo_desc, target_ref, url))
+print("\n=== Pull Request #%s ===" % pr_num)
+print("title\t%s\nsource\t%s\ntarget\t%s\nurl\t%s"
+      % (title, pr_repo_desc, target_ref, url))
 continue_maybe("Proceed with merging pull request #%s?" % pr_num)
 
 merged_refs = [target_ref]
 
 merge_hash = merge_pr(pr_num, target_ref)
-
-pick_prompt = "Would you like to pick %s into another branch?" % merge_hash
-while raw_input("\n%s (y/n): " % pick_prompt).lower() == "y":
-    merged_refs = merged_refs + [cherry_pick(pr_num, merge_hash,
-                                             latest_branch)]
