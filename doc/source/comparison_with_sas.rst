@@ -267,7 +267,7 @@ date/datetime columns.
 
    data tips;
        set tips;
-       format date1 date2 date1_plusmonth mmddyy10.;
+       format date1 date2 date1_next mmddyy10.;
        date1 = mdy(1, 15, 2013);
        date2 = mdy(2, 15, 2015);
        date1_year = year(date1);
