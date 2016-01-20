@@ -563,6 +563,18 @@ cdef class TextReader:
                 else:
                     raise ValueError('Python 2 cannot read bz2 from open file '
                                      'handle')
+            elif self.compression == 'zip':
+                import zipfile
+                zip_file = zipfile.ZipFile(source)
+                zip_names = zip_file.namelist()
+
+                if len(zip_names) == 1:
+                    file_name = zip_names.pop()
+                    source = zip_file.open(file_name)
+
+                elif len(zip_names)>1:
+                    raise ValueError('Multiple files found in compressed '
+                                     'zip file %s', str(zip_names))
             else:
                 raise ValueError('Unrecognized compression type: %s' %
                                  self.compression)
