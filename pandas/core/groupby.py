@@ -1156,8 +1156,8 @@ class GroupBy(_GroupBy):
 
             return result
 
-        if (isinstance(self._selected_obj, DataFrame)
-                and dropna not in ['any', 'all']):
+        if isinstance(self._selected_obj, DataFrame) and \
+           dropna not in ['any', 'all']:
             # Note: when agg-ing picker doesn't raise this, just returns NaN
             raise ValueError("For a DataFrame groupby, dropna must be "
                              "either None, 'any' or 'all', "
@@ -2512,12 +2512,12 @@ class SeriesGroupBy(GroupBy):
         -------
         Series or DataFrame
         """
-        kwargs.pop('_level', None)
+        _level = kwargs.pop('_level', None)
         if isinstance(func_or_funcs, compat.string_types):
             return getattr(self, func_or_funcs)(*args, **kwargs)
 
         if hasattr(func_or_funcs, '__iter__'):
-            ret = self._aggregate_multiple_funcs(func_or_funcs)
+            ret = self._aggregate_multiple_funcs(func_or_funcs, _level)
         else:
             cyfunc = self._is_cython_func(func_or_funcs)
             if cyfunc and not args and not kwargs:
@@ -2541,7 +2541,7 @@ class SeriesGroupBy(GroupBy):
 
     agg = aggregate
 
-    def _aggregate_multiple_funcs(self, arg):
+    def _aggregate_multiple_funcs(self, arg, _level):
         if isinstance(arg, dict):
             columns = list(arg.keys())
             arg = list(arg.items())
@@ -2562,6 +2562,14 @@ class SeriesGroupBy(GroupBy):
                     columns.append(com._get_callable_name(f))
             arg = lzip(columns, arg)
 
+        # for a ndim=1, disallow a nested dict for an aggregator as
+        # this is a mis-specification of the aggregations, via a
+        # specificiation error
+        # e.g. g['A'].agg({'A': ..., 'B': ...})
+        if self.name in columns and len(columns) > 1:
+            raise SpecificationError('invalid aggregation names specified '
+                                     'for selected objects')
+
         results = {}
         for name, func in arg:
             obj = self
@@ -2577,6 +2585,13 @@ class SeriesGroupBy(GroupBy):
                 obj._selection = name
             results[name] = obj.aggregate(func)
 
+        if isinstance(list(compat.itervalues(results))[0],
+                      com.ABCDataFrame):
+
+            # let higher level handle
+            if _level:
+                return results
+            return list(compat.itervalues(results))[0]
         return DataFrame(results, columns=columns)
 
     def _wrap_output(self, output, index, names=None):

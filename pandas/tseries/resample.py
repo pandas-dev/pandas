@@ -385,9 +385,9 @@ class DatetimeIndexResampler(Resampler):
         if isinstance(loffset, compat.string_types):
             loffset = to_offset(self.loffset)
 
-        if isinstance(loffset, (DateOffset, timedelta)):
-            if (isinstance(result.index, DatetimeIndex)
-                    and len(result.index) > 0):
+        if isinstance(loffset, (DateOffset, timedelta)) and \
+           isinstance(result.index, DatetimeIndex) and \
+           len(result.index) > 0:
                 result.index = result.index + loffset
 
         return self._wrap_result(result)

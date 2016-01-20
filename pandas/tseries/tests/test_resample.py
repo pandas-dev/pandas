@@ -18,6 +18,7 @@ from pandas.tseries.resample import (DatetimeIndex, TimeGrouper,
                                      DatetimeIndexResampler)
 from pandas.tseries.frequencies import MONTHS, DAYS
 from pandas.core.common import ABCSeries, ABCDataFrame
+from pandas.core.base import SpecificationError
 
 import pandas.tseries.offsets as offsets
 import pandas as pd
@@ -335,7 +336,7 @@ class TestResampleAPI(tm.TestCase):
             expected = pd.concat([r['A'].sum(), rcustom], axis=1)
             assert_frame_equal(result, expected, check_like=True)
 
-        # misc
+        # agg with renamers
         expected = pd.concat([t['A'].sum(),
                               t['B'].sum(),
                               t['A'].mean(),
@@ -350,21 +351,80 @@ class TestResampleAPI(tm.TestCase):
                                                     ('result2', np.mean)]))
             assert_frame_equal(result, expected, check_like=True)
 
+        # agg with different hows
+        expected = pd.concat([t['A'].sum(),
+                              t['A'].std(),
+                              t['B'].mean(),
+                              t['B'].std()],
+                             axis=1)
+        expected.columns = pd.MultiIndex.from_tuples([('A', 'sum'),
+                                                      ('A', 'std'),
+                                                      ('B', 'mean'),
+                                                      ('B', 'std')])
         for t in [r, g]:
-            t.agg({'A': ['sum', 'std'], 'B': ['mean', 'std']})
+            result = t.agg(OrderedDict([('A', ['sum', 'std']),
+                                        ('B', ['mean', 'std'])]))
+            assert_frame_equal(result, expected, check_like=True)
 
-        # what should this produce??????
-        import pdb; pdb.set_trace()
+        # equivalent of using a selection list / or not
         for t in [r, g]:
-            t[['A', 'B']].agg({'A': ['sum', 'std'],
-                               'B': ['mean', 'std']})
+            result = g[['A', 'B']].agg({'A': ['sum', 'std'],
+                                        'B': ['mean', 'std']})
+            assert_frame_equal(result, expected, check_like=True)
+
+        # series like aggs
+        expected = pd.concat([t['A'].sum(),
+                              t['A'].std()],
+                             axis=1)
+        expected.columns = ['sum', 'std']
+
+        for t in [r, g]:
+            result = r['A'].agg({'A': ['sum', 'std']})
+            assert_frame_equal(result, expected, check_like=True)
 
         # errors
         for t in [r, g]:
-            r[['A']].agg({'A': ['sum', 'std'], 'B': ['mean', 'std']})
+
+            # invalid names in the agg specification
+            def f():
+                r['A'].agg({'A': ['sum', 'std'], 'B': ['mean', 'std']})
+            self.assertRaises(SpecificationError, f)
+
+            def f():
+                r[['A']].agg({'A': ['sum', 'std'], 'B': ['mean', 'std']})
+            self.assertRaises(SpecificationError, f)
+
+    def test_agg_nested_dicts(self):
+
+        np.random.seed(1234)
+        df = pd.DataFrame(np.random.rand(10, 2),
+                          columns=list('AB'),
+                          index=pd.date_range('2010-01-01 09:00:00',
+                                              periods=10,
+                                              freq='s'))
+
+        r = df.resample('2s')
+        g = df.groupby(pd.Grouper(freq='2s'))
 
         for t in [r, g]:
-            r['A'].agg({'A': ['sum', 'std'], 'B': ['mean', 'std']})
+            def f():
+                t.aggregate({'r1': {'A': ['mean', 'sum']},
+                             'r2': {'B': ['mean', 'sum']}})
+                self.assertRaises(ValueError, f)
+
+        for t in [r, g]:
+            expected = pd.concat([t['A'].mean(), t['A'].std(), t['B'].mean(),
+                                  t['B'].std()], axis=1)
+            expected.columns = pd.MultiIndex.from_tuples([('ra', 'mean'), (
+                'ra', 'std'), ('rb', 'mean'), ('rb', 'std')])
+
+            result = t[['A', 'B']].agg({'A': {'ra': ['mean', 'std']},
+                                        'B': {'rb': ['mean', 'std']}})
+            assert_frame_equal(result, expected, check_like=True)
+
+            result = t.agg({'A': {'ra': ['mean', 'std']},
+                            'B': {'rb': ['mean', 'std']}})
+            assert_frame_equal(result, expected, check_like=True)
 
 
 class TestResample(tm.TestCase):

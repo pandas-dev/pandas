@@ -18,6 +18,7 @@ from pandas.util.testing import (assert_almost_equal, assert_series_equal,
 import pandas.core.datetools as datetools
 import pandas.stats.moments as mom
 import pandas.core.window as rwindow
+from pandas.core.base import SpecificationError
 import pandas.util.testing as tm
 from pandas.compat import range, zip, PY3
 
@@ -197,12 +198,18 @@ class TestApi(Base):
             r.aggregate({'r1': {'A': ['mean', 'sum']},
                          'r2': {'B': ['mean', 'sum']}})
 
-        self.assertRaises(ValueError, f)
+        self.assertRaises(SpecificationError, f)
+
+        expected = pd.concat([r['A'].mean(), r['A'].std(), r['B'].mean(),
+                              r['B'].std()], axis=1)
+        expected.columns = pd.MultiIndex.from_tuples([('ra', 'mean'), (
+            'ra', 'std'), ('rb', 'mean'), ('rb', 'std')])
+        result = r[['A', 'B']].agg({'A': {'ra': ['mean', 'std']},
+                                    'B': {'rb': ['mean', 'std']}})
+        assert_frame_equal(result, expected, check_like=True)
 
         result = r.agg({'A': {'ra': ['mean', 'std']},
                         'B': {'rb': ['mean', 'std']}})
-        expected = pd.concat([r['A'].mean(), r['A'].std(), r['B'].mean(),
-                              r['B'].std()], axis=1)
         expected.columns = pd.MultiIndex.from_tuples([('A', 'ra', 'mean'), (
             'A', 'ra', 'std'), ('B', 'rb', 'mean'), ('B', 'rb', 'std')])
         assert_frame_equal(result, expected, check_like=True)

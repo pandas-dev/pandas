@@ -1512,6 +1512,32 @@ class TestGroupBy(tm.TestCase):
                                                     ['D', 'C']])
         assert_frame_equal(result, expected, check_like=True)
 
+    def test_agg_nested_dicts(self):
+
+        # API change for disallowing these types of nested dicts
+        df = DataFrame({'A': ['foo', 'bar', 'foo', 'bar',
+                              'foo', 'bar', 'foo', 'foo'],
+                        'B': ['one', 'one', 'two', 'two',
+                              'two', 'two', 'one', 'two'],
+                        'C': np.random.randn(8) + 1.0,
+                        'D': np.arange(8)})
+
+        g = df.groupby(['A', 'B'])
+
+        def f():
+            g.aggregate({'r1': {'C': ['mean', 'sum']},
+                         'r2': {'D': ['mean', 'sum']}})
+
+        self.assertRaises(SpecificationError, f)
+
+        result = g.agg({'C': {'ra': ['mean', 'std']},
+                        'D': {'rb': ['mean', 'std']}})
+        expected = pd.concat([g['C'].mean(), g['C'].std(), g['D'].mean(),
+                              g['D'].std()], axis=1)
+        expected.columns = pd.MultiIndex.from_tuples([('ra', 'mean'), (
+            'ra', 'std'), ('rb', 'mean'), ('rb', 'std')])
+        assert_frame_equal(result, expected, check_like=True)
+
     def test_multi_iter(self):
         s = Series(np.arange(6))
         k1 = np.array(['a', 'a', 'a', 'b', 'b', 'b'])

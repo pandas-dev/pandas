@@ -417,6 +417,7 @@ pandas.DataFrame.%(name)s
         """
 
         is_aggregator = lambda x: isinstance(x, (list, tuple, dict))
+        is_nested_renamer = False
 
         _level = kwargs.pop('_level', None)
         if isinstance(arg, compat.string_types):
@@ -424,41 +425,119 @@ pandas.DataFrame.%(name)s
 
         result = compat.OrderedDict()
         if isinstance(arg, dict):
+
+            # aggregate based on the passed dict
             if self.axis != 0:  # pragma: no cover
                 raise ValueError('Can only pass dict with axis=0')
 
             obj = self._selected_obj
 
-            if any(is_aggregator(x) for x in arg.values()):
+            # if we have a dict of any non-scalars
+            # eg. {'A' : ['mean']}, normalize all to
+            # be list-likes
+            if any(is_aggregator(x) for x in compat.itervalues(arg)):
                 new_arg = compat.OrderedDict()
                 for k, v in compat.iteritems(arg):
                     if not isinstance(v, (tuple, list, dict)):
                         new_arg[k] = [v]
                     else:
                         new_arg[k] = v
+
+                    # the keys must be in the columns
+                    # for ndim=2, or renamers for ndim=1
+
+                    # ok
+                    # {'A': { 'ra': 'mean' }}
+                    # {'A': { 'ra': ['mean'] }}
+                    # {'ra': ['mean']}
+
+                    # not ok
+                    # {'ra' : { 'A' : 'mean' }}
+                    if isinstance(v, dict):
+                        is_nested_renamer = True
+
+                        if k not in obj.columns:
+                            raise SpecificationError('cannot perform renaming '
+                                                     'for {0} with a nested '
+                                                     'dictionary'.format(k))
+
                 arg = new_arg
 
-            keys = []
-            if self._selection is not None:
-                subset = obj
+            from pandas.tools.merge import concat
 
-                ndim = 1 if len(self._selection_list) == 1 else 2
-                for fname, agg_how in compat.iteritems(arg):
-                    colg = self._gotitem(self._selection, ndim=ndim,
-                                         subset=subset)
-                    result[fname] = colg.aggregate(agg_how, _level=None)
-                    keys.append(fname)
+            def _agg_1dim(name, how, subset=None):
+                """
+                aggregate a 1-dim with how
+                """
+                colg = self._gotitem(name, ndim=1, subset=subset)
+                if colg.ndim != 1:
+                    raise SpecificationError("nested dictionary is ambiguous "
+                                             "in aggregation")
+                return colg.aggregate(how, _level=(_level or 0) + 1)
+
+            def _agg_2dim(name, how):
+                """
+                aggregate a 2-dim with how
+                """
+                colg = self._gotitem(self._selection, ndim=2,
+                                     subset=obj)
+                return colg.aggregate(how, _level=None)
+
+            # set the final keys
+            keys = list(compat.iterkeys(arg))
+
+            # nested renamer
+            if is_nested_renamer:
+                results = [_agg_1dim(k, v) for k, v in compat.iteritems(arg)]
+
+                if all(isinstance(r, dict) for r in results):
+
+                    for r in results:
+                        result.update(r)
+                    keys = list(compat.iterkeys(result))
+
+                else:
+
+                    result = results
+                    if self._selection is not None:
+                        keys = None
+
+            # some selection on the object
+            elif self._selection is not None:
+
+                sl = set(self._selection_list)
+
+                # we are a Series like object,
+                # but may have multiple aggregations
+                if len(sl) == 1:
+
+                    for fname, agg_how in compat.iteritems(arg):
+                        result[fname] = _agg_1dim(self._selection,
+                                                  agg_how)
+
+                # we are selecting the same set as we are aggregating
+                elif not len(sl - set(compat.iterkeys(arg))):
+
+                    for fname, agg_how in compat.iteritems(arg):
+                        result[fname] = _agg_1dim(fname, agg_how)
+
+                # we are a DataFrame, with possibly multiple aggregations
+                else:
+
+                    for fname, agg_how in compat.iteritems(arg):
+                        result[fname] = _agg_2dim(fname, agg_how)
+
+            # no selection
             else:
-                for col, agg_how in compat.iteritems(arg):
-                    colg = self._gotitem(col, ndim=1)
-                    if colg.ndim != 1:
-                        raise ValueError("nested dictionary is ambiguous"
-                                         "in aggregation")
-                    result[col] = colg.aggregate(agg_how, _level=_level)
-                    keys.append(col)
 
-            if isinstance(list(result.values())[0], com.ABCDataFrame):
-                from pandas.tools.merge import concat
+                for col, agg_how in compat.iteritems(arg):
+                    result[col] = _agg_1dim(col, agg_how)
+
+            # combine results
+            if isinstance(result, list):
+                result = concat(result, keys=keys, axis=1)
+            elif isinstance(list(compat.itervalues(result))[0],
+                            com.ABCDataFrame):
                 result = concat([result[k] for k in keys], keys=keys, axis=1)
             else:
                 from pandas import DataFrame
@@ -518,11 +597,7 @@ pandas.DataFrame.%(name)s
                 except SpecificationError:
                     raise
 
-        if _level:
-            keys = None
-        result = concat(results, keys=keys, axis=1)
-
-        return result
+        return concat(results, keys=keys, axis=1)
 
     def _is_cython_func(self, arg):
         """ if we define an internal function for this argument, return it """
