@@ -8555,7 +8555,7 @@ class TestSeriesNonUnique(tm.TestCase):
 
     def test_reset_index_range(self):
         # GH 12071
-        s = pd.Series(range(2), name='A', index=RangeIndex(stop=2))
+        s = pd.Series(range(2), name='A', dtype='int64')
         series_result = s.reset_index()
         tm.assertIsInstance(series_result.index, RangeIndex)
         series_expected = pd.DataFrame([[0, 0], [1, 1]],
