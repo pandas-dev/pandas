@@ -1,8 +1,9 @@
 import numpy as np
 
 from pandas.compat import zip
-from pandas.core.common import (isnull, _values_from_object, is_bool_dtype, is_list_like,
-                                is_categorical_dtype, is_object_dtype, take_1d)
+from pandas.core.common import (isnull, _values_from_object, is_bool_dtype,
+                                is_list_like, is_categorical_dtype,
+                                is_object_dtype, take_1d)
 import pandas.compat as compat
 from pandas.core.base import AccessorProperty, NoNewAttributesMixin
 from pandas.util.decorators import Appender, deprecate_kwarg
@@ -10,7 +11,6 @@ import re
 import pandas.lib as lib
 import warnings
 import textwrap
-
 
 _shared_docs = dict()
 
@@ -138,11 +138,13 @@ def _map(f, arr, na_mask=False, na_value=np.nan, dtype=object):
         try:
             result = lib.map_infer_mask(arr, f, mask.view(np.uint8))
         except (TypeError, AttributeError):
+
             def g(x):
                 try:
                     return f(x)
                 except (TypeError, AttributeError):
                     return na_value
+
             return _map(g, arr, dtype=dtype)
         if na_value is not np.nan:
             np.putmask(result, mask, na_value)
@@ -206,7 +208,8 @@ def str_contains(arr, pat, case=True, flags=0, na=np.nan, regex=True):
 
         if regex.groups > 0:
             warnings.warn("This pattern has match groups. To actually get the"
-                          " groups, use str.extract.", UserWarning, stacklevel=3)
+                          " groups, use str.extract.", UserWarning,
+                          stacklevel=3)
 
         f = lambda x: bool(regex.search(x))
     else:
@@ -314,6 +317,7 @@ def str_repeat(arr, repeats):
     repeated : Series/Index of objects
     """
     if np.isscalar(repeats):
+
         def rep(x):
             try:
                 return compat.binary_type.__mul__(x, repeats)
@@ -322,6 +326,7 @@ def str_repeat(arr, repeats):
 
         return _na_map(rep, arr)
     else:
+
         def rep(x, r):
             try:
                 return compat.binary_type.__mul__(x, r)
@@ -360,7 +365,7 @@ def str_match(arr, pat, case=True, flags=0, na=np.nan, as_indexer=False):
 
     See Also
     --------
-    contains : analagous, but less strict, relying on re.search instead of
+    contains : analogous, but less strict, relying on re.search instead of
         re.match
     extract : now preferred to the deprecated usage of match (as_indexer=False)
 
@@ -467,7 +472,6 @@ def str_extract(arr, pat, flags=0):
     2    NaN   NaN
 
     """
-    from pandas.core.series import Series
     from pandas.core.frame import DataFrame
     from pandas.core.index import Index
 
@@ -475,7 +479,7 @@ def str_extract(arr, pat, flags=0):
     # just to be safe, check this
     if regex.groups == 0:
         raise ValueError("This pattern contains no groups to capture.")
-    empty_row = [np.nan]*regex.groups
+    empty_row = [np.nan] * regex.groups
 
     def f(x):
         if not isinstance(x, compat.string_types):
@@ -498,10 +502,8 @@ def str_extract(arr, pat, flags=0):
         if arr.empty:
             result = DataFrame(columns=columns, dtype=object)
         else:
-            result = DataFrame([f(val) for val in arr],
-                               columns=columns,
-                               index=arr.index,
-                               dtype=object)
+            result = DataFrame([f(val) for val in arr], columns=columns,
+                               index=arr.index, dtype=object)
     return result, name
 
 
@@ -542,7 +544,8 @@ def str_get_dummies(arr, sep='|'):
 
     # GH9980, Index.str does not support get_dummies() as it returns a frame
     if isinstance(arr, Index):
-        raise TypeError("get_dummies is not supported for string methods on Index")
+        raise TypeError("get_dummies is not supported for string methods on "
+                        "Index")
 
     # TODO remove this hack?
     arr = arr.fillna('')
@@ -818,6 +821,7 @@ def str_slice_replace(arr, start=None, stop=None, repl=None):
         if stop is not None:
             y += x[local_stop:]
         return y
+
     return _na_map(f, arr)
 
 
@@ -919,10 +923,10 @@ def str_translate(arr, table, deletechars=None):
     Parameters
     ----------
     table : dict (python 3), str or None (python 2)
-        In python 3, table is a mapping of Unicode ordinals to Unicode ordinals,
-        strings, or None. Unmapped characters are left untouched. Characters
-        mapped to None are deleted. :meth:`str.maketrans` is a helper function
-        for making translation tables.
+        In python 3, table is a mapping of Unicode ordinals to Unicode
+        ordinals, strings, or None. Unmapped characters are left untouched.
+        Characters mapped to None are deleted. :meth:`str.maketrans` is a
+        helper function for making translation tables.
         In python 2, table is either a string of length 256 or None. If the
         table argument is None, no translation is applied and the operation
         simply removes the characters in deletechars. :func:`string.maketrans`
@@ -942,7 +946,8 @@ def str_translate(arr, table, deletechars=None):
         if compat.PY3:
             raise ValueError("deletechars is not a valid argument for "
                              "str.translate in python 3. You should simply "
-                             "specify character deletions in the table argument")
+                             "specify character deletions in the table "
+                             "argument")
         f = lambda x: x.translate(table, deletechars)
     return _na_map(f, arr)
 
@@ -1040,15 +1045,16 @@ def _pat_wrapper(f, flags=False, na=False, **kwargs):
 
 def copy(source):
     "Copy a docstring from another source function (if present)"
+
     def do_copy(target):
         if source.__doc__:
             target.__doc__ = source.__doc__
         return target
+
     return do_copy
 
 
 class StringMethods(NoNewAttributesMixin):
-
     """
     Vectorized string functions for Series and Index. NAs stay NA unless
     handled otherwise by a particular method. Patterned after Python's string
@@ -1069,8 +1075,7 @@ class StringMethods(NoNewAttributesMixin):
 
     def __getitem__(self, key):
         if isinstance(key, slice):
-            return self.slice(start=key.start, stop=key.stop,
-                              step=key.step)
+            return self.slice(start=key.start, stop=key.stop, step=key.step)
         else:
             return self.get(key)
 
@@ -1087,8 +1092,8 @@ class StringMethods(NoNewAttributesMixin):
         # for category, we do the stuff on the categories, so blow it up
         # to the full series again
         # But for some operations, we have to do the stuff on the full values,
-        # so make it possible to skip this step as the method already did this before
-        # the transformation...
+        # so make it possible to skip this step as the method already did this
+        # before the transformation...
         if use_codes and self._is_categorical:
             result = take_1d(result, self._orig.cat.codes)
 
@@ -1142,11 +1147,13 @@ class StringMethods(NoNewAttributesMixin):
         else:
             index = self._orig.index
             if expand:
+
                 def cons_row(x):
                     if is_list_like(x):
                         return x
                     else:
-                        return [ x ]
+                        return [x]
+
                 cons = self._orig._constructor_expanddim
                 data = [cons_row(x) for x in result]
                 return cons(data, index=index)
@@ -1161,9 +1168,8 @@ class StringMethods(NoNewAttributesMixin):
         result = str_cat(data, others=others, sep=sep, na_rep=na_rep)
         return self._wrap_result(result, use_codes=(not self._is_categorical))
 
-
-    @deprecate_kwarg('return_type', 'expand',
-                     mapping={'series': False, 'frame': True})
+    @deprecate_kwarg('return_type', 'expand', mapping={'series': False,
+                                                       'frame': True})
     @copy(str_split)
     def split(self, pat=None, n=-1, expand=False):
         result = str_split(self._data, pat, n=n)
@@ -1217,17 +1223,24 @@ class StringMethods(NoNewAttributesMixin):
     1  D_E  _  F
     2          X
     """)
-    @Appender(_shared_docs['str_partition'] % {'side': 'first',
-        'return': '3 elements containing the string itself, followed by two empty strings',
-        'also': 'rpartition : Split the string at the last occurrence of `sep`'})
+
+    @Appender(_shared_docs['str_partition'] % {
+        'side': 'first',
+        'return': '3 elements containing the string itself, followed by two '
+                  'empty strings',
+        'also': 'rpartition : Split the string at the last occurrence of `sep`'
+    })
     def partition(self, pat=' ', expand=True):
         f = lambda x: x.partition(pat)
         result = _na_map(f, self._data)
         return self._wrap_result_expand(result, expand=expand)
 
-    @Appender(_shared_docs['str_partition'] % {'side': 'last',
-        'return': '3 elements containing two empty strings, followed by the string itself',
-        'also': 'partition : Split the string at the first occurrence of `sep`'})
+    @Appender(_shared_docs['str_partition'] % {
+        'side': 'last',
+        'return': '3 elements containing two empty strings, followed by the '
+                  'string itself',
+        'also': 'partition : Split the string at the first occurrence of `sep`'
+    })
     def rpartition(self, pat=' ', expand=True):
         f = lambda x: x.rpartition(pat)
         result = _na_map(f, self._data)
@@ -1245,14 +1258,14 @@ class StringMethods(NoNewAttributesMixin):
 
     @copy(str_contains)
     def contains(self, pat, case=True, flags=0, na=np.nan, regex=True):
-        result = str_contains(self._data, pat, case=case, flags=flags,
-                              na=na, regex=regex)
+        result = str_contains(self._data, pat, case=case, flags=flags, na=na,
+                              regex=regex)
         return self._wrap_result(result)
 
     @copy(str_match)
     def match(self, pat, case=True, flags=0, na=np.nan, as_indexer=False):
-        result = str_match(self._data, pat, case=case, flags=flags,
-                           na=na, as_indexer=as_indexer)
+        result = str_match(self._data, pat, case=case, flags=flags, na=na,
+                           as_indexer=as_indexer)
         return self._wrap_result(result)
 
     @copy(str_replace)
@@ -1289,7 +1302,7 @@ class StringMethods(NoNewAttributesMixin):
     """)
 
     @Appender(_shared_docs['str_pad'] % dict(side='left and right',
-              method='center'))
+                                             method='center'))
     def center(self, width, fillchar=' '):
         return self.pad(width, side='both', fillchar=fillchar)
 
@@ -1349,19 +1362,19 @@ class StringMethods(NoNewAttributesMixin):
     """)
 
     @Appender(_shared_docs['str_strip'] % dict(side='left and right sides',
-              method='strip'))
+                                               method='strip'))
     def strip(self, to_strip=None):
         result = str_strip(self._data, to_strip, side='both')
         return self._wrap_result(result)
 
     @Appender(_shared_docs['str_strip'] % dict(side='left side',
-              method='lstrip'))
+                                               method='lstrip'))
     def lstrip(self, to_strip=None):
         result = str_strip(self._data, to_strip, side='left')
         return self._wrap_result(result)
 
     @Appender(_shared_docs['str_strip'] % dict(side='right side',
-              method='rstrip'))
+                                               method='rstrip'))
     def rstrip(self, to_strip=None):
         result = str_strip(self._data, to_strip, side='right')
         return self._wrap_result(result)
@@ -1417,14 +1430,16 @@ class StringMethods(NoNewAttributesMixin):
     %(also)s
     """)
 
-    @Appender(_shared_docs['find'] % dict(side='lowest', method='find',
-              also='rfind : Return highest indexes in each strings'))
+    @Appender(_shared_docs['find'] %
+              dict(side='lowest', method='find',
+                   also='rfind : Return highest indexes in each strings'))
     def find(self, sub, start=0, end=None):
         result = str_find(self._data, sub, start=start, end=end, side='left')
         return self._wrap_result(result)
 
-    @Appender(_shared_docs['find'] % dict(side='highest', method='rfind',
-              also='find : Return lowest indexes in each strings'))
+    @Appender(_shared_docs['find'] %
+              dict(side='highest', method='rfind',
+                   also='find : Return lowest indexes in each strings'))
     def rfind(self, sub, start=0, end=None):
         result = str_find(self._data, sub, start=start, end=end, side='right')
         return self._wrap_result(result)
@@ -1450,9 +1465,9 @@ class StringMethods(NoNewAttributesMixin):
 
     _shared_docs['index'] = ("""
     Return %(side)s indexes in each strings where the substring is
-    fully contained between [start:end]. This is the same as ``str.%(similar)s``
-    except instead of returning -1, it raises a ValueError when the substring
-    is not found. Equivalent to standard ``str.%(method)s``.
+    fully contained between [start:end]. This is the same as
+    ``str.%(similar)s`` except instead of returning -1, it raises a ValueError
+    when the substring is not found. Equivalent to standard ``str.%(method)s``.
 
     Parameters
     ----------
@@ -1472,14 +1487,16 @@ class StringMethods(NoNewAttributesMixin):
     %(also)s
     """)
 
-    @Appender(_shared_docs['index'] % dict(side='lowest', similar='find', method='index',
-              also='rindex : Return highest indexes in each strings'))
+    @Appender(_shared_docs['index'] %
+              dict(side='lowest', similar='find', method='index',
+                   also='rindex : Return highest indexes in each strings'))
     def index(self, sub, start=0, end=None):
         result = str_index(self._data, sub, start=start, end=end, side='left')
         return self._wrap_result(result)
 
-    @Appender(_shared_docs['index'] % dict(side='highest', similar='rfind', method='rindex',
-              also='index : Return lowest indexes in each strings'))
+    @Appender(_shared_docs['index'] %
+              dict(side='highest', similar='rfind', method='rindex',
+                   also='index : Return lowest indexes in each strings'))
     def rindex(self, sub, start=0, end=None):
         result = str_index(self._data, sub, start=start, end=end, side='right')
         return self._wrap_result(result)
@@ -1568,6 +1585,7 @@ class StringMethods(NoNewAttributesMixin):
                                docstring=_shared_docs['ismethods'] %
                                _shared_docs['isdecimal'])
 
+
 class StringAccessorMixin(object):
     """ Mixin to add a `.str` acessor to the class."""
 
@@ -1575,15 +1593,15 @@ class StringAccessorMixin(object):
     def _make_str_accessor(self):
         from pandas.core.series import Series
         from pandas.core.index import Index
-        if isinstance(self, Series) and not(
-                    (is_categorical_dtype(self.dtype) and
-                     is_object_dtype(self.values.categories)) or
-                    (is_object_dtype(self.dtype))):
-            # it's neither a string series not a categorical series with strings
-            # inside the categories.
-            # this really should exclude all series with any non-string values (instead of test
-            # for object dtype), but that isn't practical for performance reasons until we have a
-            # str dtype (GH 9343)
+        if (isinstance(self, Series) and
+                not ((is_categorical_dtype(self.dtype) and
+                      is_object_dtype(self.values.categories)) or
+                     (is_object_dtype(self.dtype)))):
+            # it's neither a string series not a categorical series with
+            # strings inside the categories.
+            # this really should exclude all series with any non-string values
+            # (instead of test for object dtype), but that isn't practical for
+            # performance reasons until we have a str dtype (GH 9343)
             raise AttributeError("Can only use .str accessor with string "
                                  "values, which use np.object_ dtype in "
                                  "pandas")
@@ -1592,10 +1610,12 @@ class StringAccessorMixin(object):
             allowed_types = ('string', 'unicode', 'mixed', 'mixed-integer')
             if self.inferred_type not in allowed_types:
                 message = ("Can only use .str accessor with string values "
-                           "(i.e. inferred_type is 'string', 'unicode' or 'mixed')")
+                           "(i.e. inferred_type is 'string', 'unicode' or "
+                           "'mixed')")
                 raise AttributeError(message)
             if self.nlevels > 1:
-                message = "Can only use .str accessor with Index, not MultiIndex"
+                message = ("Can only use .str accessor with Index, not "
+                           "MultiIndex")
                 raise AttributeError(message)
         return StringMethods(self)
 
