@@ -2,7 +2,7 @@
 # pylint: disable=W0612,E1101
 
 from datetime import datetime
-from inspect import getargspec
+
 import operator
 import nose
 from functools import wraps
@@ -17,7 +17,7 @@ from pandas.core.panel import Panel
 from pandas.core.series import remove_na
 import pandas.core.common as com
 from pandas import compat
-from pandas.compat import range, lrange, StringIO, OrderedDict
+from pandas.compat import range, lrange, StringIO, OrderedDict, signature
 from pandas import SparsePanel
 
 from pandas.util.testing import (assert_panel_equal, assert_frame_equal,
@@ -198,7 +198,7 @@ class SafeForLongAndSparse(object):
         self.assertRaises(Exception, f, axis=obj.ndim)
 
         # Unimplemented numeric_only parameter.
-        if 'numeric_only' in getargspec(f).args:
+        if 'numeric_only' in signature(f):
             self.assertRaisesRegexp(NotImplementedError, name, f,
                                     numeric_only=True)
 
