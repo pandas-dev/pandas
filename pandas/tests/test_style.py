@@ -130,6 +130,40 @@ class TestStyler(TestCase):
         expected = {(0, 0): ['color: white']}
         self.assertEqual(result, expected)
 
+    def test_index_name(self):
+        # https://github.com/pydata/pandas/issues/11655
+        df = pd.DataFrame({'A': [1, 2], 'B': [3, 4], 'C': [5, 6]})
+        result = df.set_index('A').style._translate()
+
+        expected = [[{'class': 'blank', 'type': 'th', 'value': ''},
+                     {'class': 'col_heading level0 col0', 'type': 'th',
+                      'value': 'B'},
+                     {'class': 'col_heading level0 col1', 'type': 'th',
+                      'value': 'C'}],
+                    [{'class': 'col_heading level2 col0', 'type': 'th',
+                      'value': 'A'},
+                     {'class': 'blank', 'type': 'th', 'value': ''},
+                     {'class': 'blank', 'type': 'th', 'value': ''}]]
+
+        self.assertEqual(result['head'], expected)
+
+    def test_multiindex_name(self):
+        # https://github.com/pydata/pandas/issues/11655
+        df = pd.DataFrame({'A': [1, 2], 'B': [3, 4], 'C': [5, 6]})
+        result = df.set_index(['A', 'B']).style._translate()
+
+        expected = [[{'class': 'blank', 'type': 'th', 'value': ''},
+                     {'class': 'blank', 'type': 'th', 'value': ''},
+                     {'class': 'col_heading level0 col0', 'type': 'th',
+                      'value': 'C'}],
+                    [{'class': 'col_heading level2 col0', 'type': 'th',
+                      'value': 'A'},
+                     {'class': 'col_heading level2 col1', 'type': 'th',
+                      'value': 'B'},
+                     {'class': 'blank', 'type': 'th', 'value': ''}]]
+
+        self.assertEqual(result['head'], expected)
+
     def test_apply_axis(self):
         df = pd.DataFrame({'A': [0, 0], 'B': [1, 1]})
         f = lambda x: ['val: %s' % x.max() for v in x]

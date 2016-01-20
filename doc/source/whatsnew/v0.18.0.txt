@@ -537,3 +537,4 @@ of columns didn't match the number of series provided (:issue:`12039`).
 - Bug in ``Series`` constructor with read-only data (:issue:`11502`)
 
 - Bug in ``.loc`` setitem indexer preventing the use of a TZ-aware DatetimeIndex (:issue:`12050`)
+- Big in ``.style`` indexes and multi-indexes not appearing (:issue:`11655`)
