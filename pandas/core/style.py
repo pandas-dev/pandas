@@ -154,9 +154,7 @@ class Styler(object):
         self.table_attributes = table_attributes
 
     def _repr_html_(self):
-        '''
-        Hooks into Jupyter notebook rich display system.
-        '''
+        """Hooks into Jupyter notebook rich display system."""
         return self.render()
 
     def _translate(self):
@@ -196,31 +194,34 @@ class Styler(object):
         head = []
 
         for r in range(n_clvls):
-            row_es = [{"type": "th", "value": BLANK_VALUE,
+            row_es = [{"type": "th",
+                       "value": BLANK_VALUE,
                        "class": " ".join([BLANK_CLASS])}] * n_rlvls
             for c in range(len(clabels[0])):
                 cs = [COL_HEADING_CLASS, "level%s" % r, "col%s" % c]
-                cs.extend(cell_context.get(
-                    "col_headings", {}).get(r, {}).get(c, []))
-                row_es.append({"type": "th", "value": clabels[r][c],
+                cs.extend(
+                    cell_context.get("col_headings", {}).get(r, {}).get(c, []))
+                row_es.append({"type": "th",
+                               "value": clabels[r][c],
                                "class": " ".join(cs)})
             head.append(row_es)
 
         body = []
         for r, idx in enumerate(self.data.index):
             cs = [ROW_HEADING_CLASS, "level%s" % c, "row%s" % r]
-            cs.extend(cell_context.get(
-                "row_headings", {}).get(r, {}).get(c, []))
+            cs.extend(
+                cell_context.get("row_headings", {}).get(r, {}).get(c, []))
             row_es = [{"type": "th",
                        "value": rlabels[r][c],
-                       "class": " ".join(cs)}
-                      for c in range(len(rlabels[r]))]
+                       "class": " ".join(cs)} for c in range(len(rlabels[r]))]
 
             for c, col in enumerate(self.data.columns):
                 cs = [DATA_CLASS, "row%s" % r, "col%s" % c]
                 cs.extend(cell_context.get("data", {}).get(r, {}).get(c, []))
-                row_es.append({"type": "td", "value": self.data.iloc[r][c],
-                               "class": " ".join(cs), "id": "_".join(cs[1:])})
+                row_es.append({"type": "td",
+                               "value": self.data.iloc[r][c],
+                               "class": " ".join(cs),
+                               "id": "_".join(cs[1:])})
                 props = []
                 for x in ctx[r, c]:
                     # have to handle empty styles like ['']
@@ -228,10 +229,8 @@ class Styler(object):
                         props.append(x.split(":"))
                     else:
                         props.append(['', ''])
-                cellstyle.append(
-                    {'props': props,
-                     'selector': "row%s_col%s" % (r, c)}
-                )
+                cellstyle.append({'props': props,
+                                  'selector': "row%s_col%s" % (r, c)})
             body.append(row_es)
 
         return dict(head=head, cellstyle=cellstyle, body=body, uuid=uuid,
@@ -262,8 +261,8 @@ class Styler(object):
         # filter out empty styles, every cell will have a class
         # but the list of props may just be [['', '']].
         # so we have the neested anys below
-        trimmed = [x for x in d['cellstyle'] if
-                    any(any(y) for y in x['props'])]
+        trimmed = [x for x in d['cellstyle']
+                   if any(any(y) for y in x['props'])]
         d['cellstyle'] = trimmed
         return self.template.render(**d)
 
@@ -306,22 +305,21 @@ class Styler(object):
         return self._copy(deepcopy=True)
 
     def clear(self):
-        '''
-        "Reset" the styler, removing any previously applied styles.
+        """"Reset" the styler, removing any previously applied styles.
         Returns None.
-        '''
+        """
         self.ctx.clear()
         self._todo = []
 
     def _compute(self):
-        '''
+        """
         Execute the style functions built up in `self._todo`.
 
         Relies on the conventions that all style functions go through
         .apply or .applymap. The append styles to apply as tuples of
 
         (application method, *args, **kwargs)
-        '''
+        """
         r = self
         for func, args, kwargs in self._todo:
             r = func(self)(*args, **kwargs)
@@ -369,8 +367,7 @@ class Styler(object):
         rather than column-wise or row-wise.
         """
         self._todo.append((lambda instance: getattr(instance, '_apply'),
-                          (func, axis, subset),
-                           kwargs))
+                           (func, axis, subset), kwargs))
         return self
 
     def _applymap(self, func, subset=None, **kwargs):
@@ -404,8 +401,7 @@ class Styler(object):
 
         """
         self._todo.append((lambda instance: getattr(instance, '_applymap'),
-                          (func, subset),
-                          kwargs))
+                           (func, subset), kwargs))
         return self
 
     def set_precision(self, precision):
@@ -574,8 +570,8 @@ class Styler(object):
         self.applymap(self._highlight_null, null_color=null_color)
         return self
 
-    def background_gradient(self, cmap='PuBu', low=0, high=0,
-                            axis=0, subset=None):
+    def background_gradient(self, cmap='PuBu', low=0, high=0, axis=0,
+                            subset=None):
         """
         Color the background in a gradient according to
         the data in each column (optionally row).
@@ -648,8 +644,8 @@ class Styler(object):
         >>> df = pd.DataFrame(np.random.randn(10, 4))
         >>> df.style.set_properties(color="white", align="right")
         """
-        values = ';'.join('{p}: {v}'.format(p=p, v=v) for p, v in
-                          kwargs.items())
+        values = ';'.join('{p}: {v}'.format(p=p, v=v)
+                          for p, v in kwargs.items())
         f = lambda x: values
         return self.applymap(f, subset=subset)
 
@@ -658,7 +654,8 @@ class Styler(object):
         normed = width * (s - s.min()) / (s.max() - s.min())
 
         base = 'width: 10em; height: 80%;'
-        attrs = base + 'background: linear-gradient(90deg,{c} {w}%, transparent 0%)'
+        attrs = (base + 'background: linear-gradient(90deg,{c} {w}%, '
+                        'transparent 0%)')
         return [attrs.format(c=color, w=x) if x != 0 else base for x in normed]
 
     def bar(self, subset=None, axis=0, color='#d65f5f', width=100):
@@ -741,9 +738,7 @@ class Styler(object):
 
     @staticmethod
     def _highlight_extrema(data, color='yellow', max_=True):
-        '''
-        highlight the min or max in a Series or DataFrame
-        '''
+        """Highlight the min or max in a Series or DataFrame"""
         attr = 'background-color: {0}'.format(color)
         if data.ndim == 1:  # Series from .apply
             if max_:
