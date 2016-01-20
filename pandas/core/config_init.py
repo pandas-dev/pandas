@@ -11,11 +11,9 @@ module is imported, register them here rather then in the module.
 """
 
 import pandas.core.config as cf
-from pandas.core.config import (is_int, is_bool, is_text, is_float,
-                                is_instance_factory, is_one_of_factory,
-                                get_default_val)
+from pandas.core.config import (is_int, is_bool, is_text, is_instance_factory,
+                                is_one_of_factory, get_default_val)
 from pandas.core.format import detect_console_encoding
-
 
 #
 # options from the "display" namespace
@@ -61,8 +59,8 @@ pc_max_cols_doc = """
 
 pc_max_categories_doc = """
 : int
-    This sets the maximum number of categories pandas should output when printing
-    out a `Categorical` or a Series of dtype "category".
+    This sets the maximum number of categories pandas should output when
+    printing out a `Categorical` or a Series of dtype "category".
 """
 
 pc_max_info_cols_doc = """
@@ -146,9 +144,11 @@ pc_line_width_doc = """
 
 pc_east_asian_width_doc = """
 : boolean
-    Whether to use the Unicode East Asian Width to calculate the display text width
+    Whether to use the Unicode East Asian Width to calculate the display text
+    width.
     Enabling this may affect to the performance (default: False)
 """
+
 pc_ambiguous_as_wide_doc = """
 : boolean
     Whether to handle Unicode characters belong to Ambiguous as Wide (width=2)
@@ -197,7 +197,8 @@ pc_max_info_rows_doc = """
 : int or None
     df.info() will usually show null-counts for each column.
     For large frames this can be quite slow. max_info_rows and max_info_cols
-    limit this null check only to frames with smaller dimensions then specified.
+    limit this null check only to frames with smaller dimensions than
+    specified.
 """
 
 pc_large_repr_doc = """
@@ -222,15 +223,16 @@ pc_memory_usage_doc = """
 
 pc_latex_escape = """
 : bool
-    This specifies if the to_latex method of a Dataframe uses escapes special 
+    This specifies if the to_latex method of a Dataframe uses escapes special
     characters.
-    method. Valid values: False,True    
+    method. Valid values: False,True
 """
 
 pc_latex_longtable = """
 :bool
-    This specifies if the to_latex method of a Dataframe uses the longtable format.
-    method. Valid values: False,True 
+    This specifies if the to_latex method of a Dataframe uses the longtable
+    format.
+    method. Valid values: False,True
 """
 
 style_backup = dict()
@@ -244,7 +246,7 @@ def mpl_style_cb(key):
     val = cf.get_option(key)
 
     if 'matplotlib' not in sys.modules.keys():
-        if not(val):  # starting up, we get reset to None
+        if not val:  # starting up, we get reset to None
             return val
         raise Exception("matplotlib has not been imported. aborting")
 
@@ -267,7 +269,8 @@ with cf.config_prefix('display'):
                        validator=is_instance_factory((int, type(None))))
     cf.register_option('max_rows', 60, pc_max_rows_doc,
                        validator=is_instance_factory([type(None), int]))
-    cf.register_option('max_categories', 8, pc_max_categories_doc, validator=is_int)
+    cf.register_option('max_categories', 8, pc_max_categories_doc,
+                       validator=is_int)
     cf.register_option('max_colwidth', 50, max_colwidth_doc, validator=is_int)
     cf.register_option('max_columns', 20, pc_max_cols_doc,
                        validator=is_instance_factory([type(None), int]))
@@ -305,28 +308,29 @@ with cf.config_prefix('display'):
     cf.register_option('line_width', get_default_val('display.width'),
                        pc_line_width_doc)
     cf.register_option('memory_usage', True, pc_memory_usage_doc,
-                        validator=is_one_of_factory([None, True, False, 'deep']))
+                       validator=is_one_of_factory([None, True,
+                                                    False, 'deep']))
     cf.register_option('unicode.east_asian_width', False,
                        pc_east_asian_width_doc, validator=is_bool)
     cf.register_option('unicode.ambiguous_as_wide', False,
                        pc_east_asian_width_doc, validator=is_bool)
-    cf.register_option('latex.escape',True, pc_latex_escape,
-                        validator=is_bool)
-    cf.register_option('latex.longtable',False,pc_latex_longtable,
-                        validator=is_bool)
+    cf.register_option('latex.escape', True, pc_latex_escape,
+                       validator=is_bool)
+    cf.register_option('latex.longtable', False, pc_latex_longtable,
+                       validator=is_bool)
 
 cf.deprecate_option('display.line_width',
                     msg=pc_line_width_deprecation_warning,
                     rkey='display.width')
 
-cf.deprecate_option('display.height',
-                    msg=pc_height_deprecation_warning,
+cf.deprecate_option('display.height', msg=pc_height_deprecation_warning,
                     rkey='display.max_rows')
 
 tc_sim_interactive_doc = """
 : boolean
     Whether to simulate interactive mode for purposes of testing
 """
+
 with cf.config_prefix('mode'):
     cf.register_option('sim_interactive', False, tc_sim_interactive_doc)
 
@@ -349,7 +353,6 @@ with cf.config_prefix('mode'):
     cf.register_option('use_inf_as_null', False, use_inf_as_null_doc,
                        cb=use_inf_as_null_cb)
 
-
 # user warnings
 chained_assignment = """
 : string
@@ -361,7 +364,6 @@ with cf.config_prefix('mode'):
     cf.register_option('chained_assignment', 'warn', chained_assignment,
                        validator=is_one_of_factory([None, 'warn', 'raise']))
 
-
 # Set up the io.excel specific configuration.
 writer_engine_doc = """
 : string
@@ -371,8 +373,7 @@ writer_engine_doc = """
 
 with cf.config_prefix('io.excel'):
     # going forward, will be additional writers
-    for ext, options in [('xls', ['xlwt']),
-                         ('xlsm', ['openpyxl'])]:
+    for ext, options in [('xls', ['xlwt']), ('xlsm', ['openpyxl'])]:
         default = options.pop(0)
         if options:
             options = " " + ", ".join(options)
@@ -384,14 +385,13 @@ with cf.config_prefix('io.excel'):
 
     def _register_xlsx(engine, other):
         cf.register_option('xlsx.writer', engine,
-                           writer_engine_doc.format(ext='xlsx',
-                                                    default=engine,
+                           writer_engine_doc.format(ext='xlsx', default=engine,
                                                     others=", '%s'" % other),
                            validator=str)
 
     try:
         # better memory footprint
-        import xlsxwriter
+        import xlsxwriter  # noqa
         _register_xlsx('xlsxwriter', 'openpyxl')
     except ImportError:
         # fallback

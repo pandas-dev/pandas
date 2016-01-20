@@ -57,8 +57,8 @@ from pandas.compat import map, lmap, u
 import pandas.compat as compat
 
 DeprecatedOption = namedtuple('DeprecatedOption', 'key msg rkey removal_ver')
-RegisteredOption = namedtuple(
-    'RegisteredOption', 'key defval doc validator cb')
+RegisteredOption = namedtuple('RegisteredOption',
+                              'key defval doc validator cb')
 
 _deprecated_options = {}  # holds deprecated option metdata
 _registered_options = {}  # holds registered option metdata
@@ -67,13 +67,13 @@ _reserved_keys = ['all']  # keys which have a special meaning
 
 
 class OptionError(AttributeError, KeyError):
-
     """Exception for pandas.options, backwards compatible with KeyError
-    checks"""
-
+    checks
+    """
 
 #
 # User API
+
 
 def _get_single_key(pat, silent):
     keys = _select_options(pat)
@@ -106,14 +106,14 @@ def _set_option(*args, **kwargs):
     nargs = len(args)
     if not nargs or nargs % 2 != 0:
         raise ValueError("Must provide an even number of non-keyword "
-                             "arguments")
+                         "arguments")
 
     # default to false
     silent = kwargs.pop('silent', False)
 
     if kwargs:
         raise TypeError('_set_option() got an unexpected keyword '
-                'argument "{0}"'.format(list(kwargs.keys())[0]))
+                        'argument "{0}"'.format(list(kwargs.keys())[0]))
 
     for k, v in zip(args[::2], args[1::2]):
         key = _get_single_key(k, silent)
@@ -128,6 +128,7 @@ def _set_option(*args, **kwargs):
 
         if o.cb:
             o.cb(key)
+
 
 def _describe_option(pat='', _print_desc=True):
 
@@ -168,9 +169,7 @@ def get_default_val(pat):
 
 
 class DictWrapper(object):
-
-    """ provide attribute-style access to a nested dict
-    """
+    """ provide attribute-style access to a nested dict"""
 
     def __init__(self, d, prefix=""):
         object.__setattr__(self, "d", d)
@@ -202,7 +201,6 @@ class DictWrapper(object):
     def __dir__(self):
         return list(self.d.keys())
 
-
 # For user convenience,  we'd like to have the available options described
 # in the docstring. For dev convenience we'd like to generate the docstrings
 # dynamically instead of maintaining them by hand. To this, we use the
@@ -213,7 +211,6 @@ class DictWrapper(object):
 
 
 class CallableDynamicDoc(object):
-
     def __init__(self, func, doc_tmpl):
         self.__doc_tmpl__ = doc_tmpl
         self.__func__ = func
@@ -227,6 +224,7 @@ class CallableDynamicDoc(object):
         opts_list = pp_options_list(list(_registered_options.keys()))
         return self.__doc_tmpl__.format(opts_desc=opts_desc,
                                         opts_list=opts_list)
+
 
 _get_option_tmpl = """
 get_option(pat)
@@ -384,10 +382,8 @@ class option_context(object):
 
     def __init__(self, *args):
         if not (len(args) % 2 == 0 and len(args) >= 2):
-            raise ValueError(
-                'Need to invoke as'
-                'option_context(pat, val, [(pat, val), ...)).'
-            )
+            raise ValueError('Need to invoke as'
+                             'option_context(pat, val, [(pat, val), ...)).')
 
         self.ops = list(zip(args[::2], args[1::2]))
 
@@ -462,8 +458,8 @@ def register_option(key, defval, doc='', validator=None, cb=None):
         cursor = cursor[p]
 
     if not isinstance(cursor, dict):
-        raise OptionError("Path prefix to option '%s' is already an option"
-                          % '.'.join(path[:-1]))
+        raise OptionError("Path prefix to option '%s' is already an option" %
+                          '.'.join(path[:-1]))
 
     cursor[path[-1]] = defval  # initialize
 
@@ -520,9 +516,9 @@ def deprecate_option(key, msg=None, rkey=None, removal_ver=None):
 
     _deprecated_options[key] = DeprecatedOption(key, msg, rkey, removal_ver)
 
-
 #
 # functions internal to the module
+
 
 def _select_options(pat):
     """returns a list of keys matching `pat`
@@ -681,7 +677,6 @@ def pp_options_list(keys, width=80, _print=False):
     else:
         return s
 
-
 #
 # helpers
 
@@ -717,7 +712,6 @@ def config_prefix(prefix):
     global register_option, get_option, set_option, reset_option
 
     def wrap(func):
-
         def inner(key, *args, **kwds):
             pkey = '%s.%s' % (prefix, key)
             return func(pkey, *args, **kwds)
@@ -735,9 +729,9 @@ def config_prefix(prefix):
     get_option = _get_option
     register_option = _register_option
 
-
 # These factories and methods are handy for use as the validator
 # arg in register_option
+
 
 def is_type_factory(_type):
     """
@@ -790,10 +784,10 @@ def is_instance_factory(_type):
 def is_one_of_factory(legal_values):
     def inner(x):
         from pandas.core.common import pprint_thing as pp
-        if not x in legal_values:
+        if x not in legal_values:
             pp_values = lmap(pp, legal_values)
-            raise ValueError("Value must be one of %s"
-                             % pp("|".join(pp_values)))
+            raise ValueError("Value must be one of %s" %
+                             pp("|".join(pp_values)))
 
     return inner
 
