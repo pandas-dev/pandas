@@ -3,9 +3,9 @@
 
 from datetime import datetime
 try:
-  from inspect import getargspec
-except:
   from inspect import signature
+except:
+  from inspect import getargspec
 import operator
 import nose
 from functools import wraps
