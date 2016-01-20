@@ -61,9 +61,9 @@ escapechar : string (length 1), default None
 dtype : Type name or dict of column -> type, default None
     Data type for data or columns. E.g. {'a': np.float64, 'b': np.int32}
     (Unsupported with engine='python')
-compression : {'gzip', 'bz2', 'infer', None}, default 'infer'
+compression : {'gzip', 'bz2', 'zip', 'infer', None}, default 'infer'
     For on-the-fly decompression of on-disk data. If 'infer', then use gzip or
-    bz2 if filepath_or_buffer is a string ending in '.gz' or '.bz2',
+    bz2 if filepath_or_buffer is a string ending in '.gz', '.bz2' or '.zip',
     respectively, and no decompression otherwise. Set to None for no
     decompression.
 dialect : string or csv.Dialect instance, default None
@@ -252,6 +252,8 @@ def _read(filepath_or_buffer, kwds):
                 inferred_compression = 'gzip'
             elif filepath_or_buffer.endswith('.bz2'):
                 inferred_compression = 'bz2'
+            elif filepath_or_buffer.endswith('.zip'):
+                inferred_compression = 'zip'
             else:
                 inferred_compression = None
         else:
@@ -1379,6 +1381,21 @@ def _wrap_compressed(f, compression, encoding=None):
             data = bz2.decompress(f.read())
             f = StringIO(data)
         return f
+    elif compression == 'zip':
+        import zipfile
+        zip_file = zipfile.ZipFile(f)
+        zip_names = zip_file.namelist()
+
+        if len(zip_names) == 1:
+            file_name = zip_names.pop()
+            f = zip_file.open(file_name)
+            return f
+
+        elif len(zip_names)>1:
+            raise ValueError('Multiple files found in compressed '
+                             'zip file %s', str(zip_names))
+        return f
+
     else:
         raise ValueError('do not recognize compression method %s'
                          % compression)

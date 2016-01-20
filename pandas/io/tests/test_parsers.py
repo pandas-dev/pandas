@@ -3809,11 +3809,24 @@ one,two
         try:
             import gzip
             import bz2
+            import zipfile
         except ImportError:
-            raise nose.SkipTest('need gzip and bz2 to run')
+            raise nose.SkipTest('need zipfile, gzip and bz2 to run')
 
         data = open(self.csv1, 'rb').read()
         expected = self.read_csv(self.csv1)
+
+        with tm.ensure_clean() as path:
+            file_name = 'test_file'
+            tmp = zipfile.ZipFile(path, mode='w')
+            tmp.writestr(file_name, data)
+            tmp.close()
+
+            result = self.read_csv(path, compression='zip')
+            tm.assert_frame_equal(result, expected)
+
+            result = self.read_csv(open(path, 'rb'), compression='zip')
+            tm.assert_frame_equal(result, expected)
 
         with tm.ensure_clean() as path:
             tmp = gzip.GzipFile(path, mode='wb')
