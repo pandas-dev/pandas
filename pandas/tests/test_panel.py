@@ -2,11 +2,14 @@
 # pylint: disable=W0612,E1101
 
 from datetime import datetime
-from inspect import getargspec
+try:
+  from inspect import getargspec
+except:
+  from inspect import signature
 import operator
 import nose
 from functools import wraps
-
+import platform
 import numpy as np
 import pandas as pd
 
@@ -198,9 +201,15 @@ class SafeForLongAndSparse(object):
         self.assertRaises(Exception, f, axis=obj.ndim)
 
         # Unimplemented numeric_only parameter.
-        if 'numeric_only' in getargspec(f).args:
-            self.assertRaisesRegexp(NotImplementedError, name, f,
-                                    numeric_only=True)
+        python_Version = platform.python_version()
+        if python_Version.startswith('3'):
+          if 'numeric_only' in list(signature(f).parameters.keys()):
+              self.assertRaisesRegexp(NotImplementedError, name, f,
+                                      numeric_only=True)
+        else:
+          if 'numeric_only' in getargspec(f).args:
+              self.assertRaisesRegexp(NotImplementedError, name, f,
+                                      numeric_only=True)
 
 
 class SafeForSparse(object):
