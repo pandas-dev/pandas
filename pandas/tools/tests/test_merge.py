@@ -261,6 +261,17 @@ class TestMerge(tm.TestCase):
                             index=tm.makeCustomIndex(10, 2))
             merge(df, df2, right_on='a', left_on=['a', 'b'])
 
+    def test_join_on_fails_with_wrong_object_type(self):
+        # GH12081
+        wrongly_typed = [Series([0, 1]), 2, 'str', None, np.array([0, 1])]
+        df = DataFrame({'a': [1, 1]})
+
+        for obj in wrongly_typed:
+            with tm.assertRaisesRegexp(ValueError, str(type(obj))):
+                merge(obj, df, left_on='a', right_on='a')
+            with tm.assertRaisesRegexp(ValueError, str(type(obj))):
+                merge(df, obj, left_on='a', right_on='a')
+
     def test_join_on_pass_vector(self):
         expected = self.target.join(self.source, on='C')
         del expected['C']
