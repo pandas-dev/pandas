@@ -13,13 +13,14 @@ from pandas.util.testing import makeCustomDataframe as mkdf, disabled
 
 
 try:
-    import pandas.util.clipboard
+    import pandas.util.clipboard  # noqa
 except OSError:
     raise nose.SkipTest("no clipboard found")
 
 
 @disabled
 class TestClipboard(tm.TestCase):
+
     @classmethod
     def setUpClass(cls):
         super(TestClipboard, cls).setUpClass()
@@ -40,11 +41,12 @@ class TestClipboard(tm.TestCase):
         # Test columns exceeding "max_colwidth" (GH8305)
         _cw = get_option('display.max_colwidth') + 1
         cls.data['colwidth'] = mkdf(5, 3, data_gen_f=lambda *args: 'x' * _cw,
-                                   c_idx_type='s', r_idx_type='i',
-                                   c_idx_names=[None], r_idx_names=[None])
+                                    c_idx_type='s', r_idx_type='i',
+                                    c_idx_names=[None], r_idx_names=[None])
         # Test GH-5346
         max_rows = get_option('display.max_rows')
-        cls.data['longdf'] = mkdf(max_rows+1, 3, data_gen_f=lambda *args: randint(2),
+        cls.data['longdf'] = mkdf(max_rows + 1, 3,
+                                  data_gen_f=lambda *args: randint(2),
                                   c_idx_type='s', r_idx_type='i',
                                   c_idx_names=[None], r_idx_names=[None])
         # Test for non-ascii text: GH9263
@@ -61,18 +63,18 @@ class TestClipboard(tm.TestCase):
         data = self.data[data_type]
         data.to_clipboard(excel=excel, sep=sep)
         if sep is not None:
-            result = read_clipboard(sep=sep,index_col=0)
+            result = read_clipboard(sep=sep, index_col=0)
         else:
             result = read_clipboard()
         tm.assert_frame_equal(data, result, check_dtype=False)
 
     def test_round_trip_frame_sep(self):
         for dt in self.data_types:
-            self.check_round_trip_frame(dt,sep=',')
+            self.check_round_trip_frame(dt, sep=',')
 
     def test_round_trip_frame_string(self):
         for dt in self.data_types:
-            self.check_round_trip_frame(dt,excel=False)
+            self.check_round_trip_frame(dt, excel=False)
 
     def test_round_trip_frame(self):
         for dt in self.data_types:

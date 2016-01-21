@@ -5,7 +5,6 @@ from pandas.compat import StringIO
 import os
 from os.path import isabs
 
-import nose
 import pandas.util.testing as tm
 
 from pandas.io import common
@@ -19,6 +18,7 @@ try:
     from py.path import local as LocalPath
 except ImportError:
     pass
+
 
 class TestCommonIOCapabilities(tm.TestCase):
 

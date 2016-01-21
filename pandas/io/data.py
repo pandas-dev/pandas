@@ -3,6 +3,8 @@ Module contains tools for collecting data from various remote sources
 
 
 """
+# flake8: noqa
+
 import warnings
 import tempfile
 import datetime as dt
