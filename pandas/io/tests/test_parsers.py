@@ -4004,6 +4004,17 @@ one,two
             result = self.read_csv(open(path, 'rb'), compression='zip')
             tm.assert_frame_equal(result, expected)
 
+
+        with tm.ensure_clean() as path:
+            file_names = ['test_file', 'second_file']
+            tmp = zipfile.ZipFile(path, mode='w')
+            for file_name in file_names:
+                tmp.writestr(file_name, data)
+            tmp.close()
+
+            self.assertRaises(ValueError, self.read_csv,
+                              path, compression='zip')
+
         with tm.ensure_clean() as path:
             tmp = gzip.GzipFile(path, mode='wb')
             tmp.write(data)
