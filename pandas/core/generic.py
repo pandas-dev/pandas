@@ -2731,9 +2731,9 @@ class NDFrame(PandasObject):
         converted : same as input object
         """
         return self._constructor(
-                self._data.convert(datetime=datetime, numeric=numeric,
-                                   timedelta=timedelta, coerce=coerce,
-                                   copy=copy)).__finalize__(self)
+            self._data.convert(datetime=datetime, numeric=numeric,
+                               timedelta=timedelta, coerce=coerce,
+                               copy=copy)).__finalize__(self)
 
     # TODO: Remove in 0.18 or 2017, which ever is sooner
     def convert_objects(self, convert_dates=True, convert_numeric=False,

@@ -1312,7 +1312,7 @@ def _possibly_downcast_to_dtype(result, dtype):
                 dtype = 'int64'
                 if issubclass(result.dtype.type, np.number):
 
-                    def trans(x):
+                    def trans(x):  # noqa
                         return x.round()
             else:
                 dtype = 'object'
@@ -2731,7 +2731,7 @@ def in_interactive_session():
                 get_option('mode.sim_interactive'))
 
     try:
-        return __IPYTHON__ or check_main()
+        return __IPYTHON__ or check_main()  # noqa
     except:
         return check_main()
 
@@ -2743,7 +2743,7 @@ def in_qtconsole():
     DEPRECATED: This is no longer needed, or working, in IPython 3 and above.
     """
     try:
-        ip = get_ipython()
+        ip = get_ipython()  # noqa
         front_end = (
             ip.config.get('KernelApp', {}).get('parent_appname', "") or
             ip.config.get('IPKernelApp', {}).get('parent_appname', ""))
@@ -2762,7 +2762,7 @@ def in_ipnb():
     and above.
     """
     try:
-        ip = get_ipython()
+        ip = get_ipython()  # noqa
         front_end = (
             ip.config.get('KernelApp', {}).get('parent_appname', "") or
             ip.config.get('IPKernelApp', {}).get('parent_appname', ""))
@@ -2778,7 +2778,7 @@ def in_ipython_frontend():
     check if we're inside an an IPython zmq frontend
     """
     try:
-        ip = get_ipython()
+        ip = get_ipython()  # noqa
         return 'zmq' in str(type(ip)).lower()
     except:
         pass
