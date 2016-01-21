@@ -4,6 +4,7 @@ Module contains tools for processing files into DataFrames or other objects
 from __future__ import print_function
 from pandas.compat import range, lrange, StringIO, lzip, zip, string_types, map
 from pandas import compat
+from collections import defaultdict
 import re
 import csv
 import warnings
@@ -2264,6 +2265,8 @@ def _get_empty_meta(columns, index_col, index_names, dtype=None):
     if dtype is None:
         dtype = {}
     else:
+        if not isinstance(dtype, dict):
+            dtype = defaultdict(lambda: dtype)
         # Convert column indexes to column names.
         dtype = dict((columns[k] if com.is_integer(k) else k, v)
                      for k, v in compat.iteritems(dtype))
