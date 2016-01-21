@@ -695,6 +695,14 @@ skip
                                   dtype={'A': 'timedelta64', 'B': 'float64'},
                                   index_col=0)
 
+        with tm.assertRaisesRegexp(ValueError,
+                                   "The 'dtype' option is not supported"):
+
+            # empty frame
+            # GH12048
+            self.read_csv(StringIO('A,B'), dtype=str)
+
+
         def test_quoting(self):
             bad_line_small = """printer\tresult\tvariant_name
 Klosterdruckerei\tKlosterdruckerei <Salem> (1611-1804)\tMuller, Jacob
@@ -3587,6 +3595,12 @@ A,B,C
             # valid but we don't support it
             self.assertRaises(TypeError, self.read_csv, path, dtype={'A': 'timedelta64', 'B': 'float64'},
                               index_col=0)
+
+        # empty frame
+        # GH12048
+        actual = self.read_csv(StringIO('A,B'), dtype=str)
+        expected = DataFrame({'A': [], 'B': []}, index=[], dtype=str)
+        tm.assert_frame_equal(actual, expected)
 
     def test_dtype_and_names_error(self):
 
