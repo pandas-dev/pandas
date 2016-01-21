@@ -445,7 +445,7 @@ Removal of prior version deprecations/changes
 
 - Removal of ``rolling_corr_pairwise`` in favor of ``.rolling().corr(pairwise=True)`` (:issue:`4950`)
 - Removal of ``expanding_corr_pairwise`` in favor of ``.expanding().corr(pairwise=True)`` (:issue:`4950`)
-
+- Removal of ``DataMatrix`` module. This was not imported into the pandas namespace in any event (:issue:`12111`)
 
 
 
