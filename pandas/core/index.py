@@ -3,8 +3,6 @@ import datetime
 import warnings
 import operator
 from functools import partial
-from math import ceil, floor
-
 from sys import getsizeof
 
 import numpy as np
@@ -4267,16 +4265,14 @@ class RangeIndex(Int64Index):
         return new_index
 
     def _min_fitting_element(self, lower_limit):
-        """Returns the value of the smallest element greater than the limit"""
-        round = ceil if self._step > 0 else floor
-        no_steps = round((float(lower_limit) - self._start) / self._step)
-        return self._start + self._step * no_steps
+        """Returns the smallest element greater than or equal to the limit"""
+        no_steps = -(-(lower_limit - self._start) // abs(self._step))
+        return self._start + abs(self._step) * no_steps
 
     def _max_fitting_element(self, upper_limit):
-        """Returns the value of the largest element smaller than the limit"""
-        round = floor if self._step > 0 else ceil
-        no_steps = round((float(upper_limit) - self._start) / self._step)
-        return self._start + self._step * no_steps
+        """Returns the largest element smaller than or equal to the limit"""
+        no_steps = (upper_limit - self._start) // abs(self._step)
+        return self._start + abs(self._step) * no_steps
 
     def _extended_gcd(self, a, b):
         """
