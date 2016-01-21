@@ -101,23 +101,14 @@ keep_default_na : bool, default True
     If na_values are specified and keep_default_na is False the default NaN
     values are overridden, otherwise they're appended to
 parse_dates : various, default False
-    Acceptable input types
+
     * boolean. If True -> try parsing the index.
-
-    * list of ints or names
-
-      * If [1, 2, 3] -> try parsing columns 1, 2, 3 each as a separate date
-        column.
-
-    * list of lists
-
-      * If [[1, 3]] -> combine columns 1 and 3 and parse as a single date
-        column.
-
-    * dict
-
-      * {'foo' : [1, 3]} -> parse columns 1, 3 as date and call result 'foo'
-
+    * list of ints or names. e.g. If [1, 2, 3] -> try parsing columns 1, 2, 3
+      each as a separate date column.
+    * list of lists. e.g.  If [[1, 3]] -> combine columns 1 and 3 and parse as
+        a single date column.
+    * dict, e.g. {'foo' : [1, 3]} -> parse columns 1, 3 as date and call result
+      'foo'
     Note: A fast-path exists for iso8601-formatted dates.
 keep_date_col : boolean, default False
     If True and parse_dates specifies combining multiple columns then
