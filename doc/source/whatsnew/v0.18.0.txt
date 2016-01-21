@@ -203,6 +203,8 @@ In addition, ``.round()``, ``.floor()`` and ``.ceil()`` will be available thru t
 
 .. _whatsnew_0180.api:
 
+- ``pandas.merge()`` and ``DataFrame.merge()`` will show a specific error message when trying to merge with an object that is not of type ``DataFrame`` or a subclass (:issue:`12081`)
+
 .. _whatsnew_0180.api_breaking:
 
 Backwards incompatible API changes
