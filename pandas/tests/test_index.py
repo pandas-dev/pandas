@@ -4130,6 +4130,39 @@ class TestRangeIndex(Numeric, tm.TestCase):
         expected = np.concatenate((other, self.index))
         self.assert_numpy_array_equal(result, expected)
 
+    def test_union(self):
+        RI = RangeIndex
+        I64 = Int64Index
+        cases = [(RI(0, 10, 1), RI(0, 10, 1), RI(0, 10, 1)),
+            (RI(0, 10, 1), RI(5, 20, 1), RI(0, 20, 1)),
+            (RI(0, 10, 1), RI(10, 20, 1), RI(0, 20, 1)),
+            (RI(0, -10, -1), RI(0, -10, -1), RI(0, -10, -1)),
+            (RI(0, -10, -1), RI(-10, -20, -1), RI(-19, 1, 1)),
+            (RI(0, 10, 2), RI(1, 10, 2), RI(0, 10, 1)),
+            (RI(0, 11, 2), RI(1, 12, 2), RI(0, 12, 1)),
+            (RI(0, 21, 4), RI(-2, 24, 4), RI(-2, 24, 2)),
+            (RI(0, -20, -2), RI(-1, -21, -2), RI(-19, 1, 1)),
+            (RI(0, 100, 5), RI(0, 100, 20), RI(0, 100, 5)),
+            (RI(0, -100, -5), RI(5, -100, -20), RI(-95, 10, 5)),
+            (RI(0, -11, -1), RI(1, -12, -4), RI(-11, 2, 1)),
+            (RI(), RI(), RI()),
+            (RI(0, -10, -2), RI(), RI(0, -10, -2)),
+            (RI(0, 100, 2), RI(100, 150, 200), RI(0, 102, 2)),
+            (RI(0, -100, -2), RI(-100, 50, 102), RI(-100, 4, 2)),
+            (RI(0, -100, -1), RI(0, -50, -3), RI(-99, 1, 1)),
+            (RI(0, 1, 1), RI(5, 6, 10), RI(0, 6, 5)),
+            (RI(0, 10, 5), RI(-5, -6, -20), RI(-5, 10, 5)),
+            (RI(0, 3, 1), RI(4, 5, 1), I64([0, 1, 2, 4])),
+            (RI(0, 10, 1), I64([]), RI(0, 10, 1)),
+            (RI(), I64([1, 5, 6]), I64([1, 5, 6]))]
+        for idx1, idx2, expected in cases:
+            res1 = idx1.union(idx2)
+            res2 = idx2.union(idx1)
+            res3 = idx1._int64index.union(idx2)
+            tm.assert_index_equal(res1, expected, exact=True)
+            tm.assert_index_equal(res2, expected, exact=True)
+            tm.assert_index_equal(res3, expected)
+
     def test_nbytes(self):
 
         # memory savings vs int index
