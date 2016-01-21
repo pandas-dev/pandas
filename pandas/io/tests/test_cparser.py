@@ -3,27 +3,18 @@ C/Cython ascii file parser tests
 """
 
 from pandas.compat import StringIO, BytesIO, map
-from datetime import datetime
 from pandas import compat
-import csv
 import os
 import sys
-import re
 
 import nose
 
 from numpy import nan
 import numpy as np
 
-from pandas import DataFrame, Series, Index, isnull, MultiIndex
-import pandas.io.parsers as parsers
-from pandas.io.parsers import (read_csv, read_table, read_fwf,
-                               TextParser, TextFileReader)
-from pandas.util.testing import (assert_almost_equal, assert_frame_equal,
-                                 assert_series_equal, network)
-import pandas.lib as lib
-from pandas import compat
-from pandas.lib import Timestamp
+from pandas import DataFrame
+from pandas.io.parsers import (read_csv, TextFileReader)
+from pandas.util.testing import assert_frame_equal
 
 import pandas.util.testing as tm
 
@@ -43,19 +34,19 @@ class TestCParser(tm.TestCase):
         try:
             f = open(self.csv1, 'rb')
             reader = TextReader(f)
-            result = reader.read()
+            result = reader.read()  # noqa
         finally:
             f.close()
 
     def test_string_filename(self):
         reader = TextReader(self.csv1, header=None)
-        result = reader.read()
+        reader.read()
 
     def test_file_handle_mmap(self):
         try:
             f = open(self.csv1, 'rb')
             reader = TextReader(f, memory_map=True, header=None)
-            result = reader.read()
+            reader.read()
         finally:
             f.close()
 
@@ -63,7 +54,7 @@ class TestCParser(tm.TestCase):
         text = open(self.csv1, 'rb').read()
         src = BytesIO(text)
         reader = TextReader(src, header=None)
-        result = reader.read()
+        reader.read()
 
     def test_string_factorize(self):
         # should this be optional?
@@ -136,7 +127,7 @@ class TestCParser(tm.TestCase):
         data = '123.456\n12.500'
 
         reader = TextFileReader(StringIO(data), delimiter=':',
-                            thousands='.', header=None)
+                                thousands='.', header=None)
         result = reader.read()
 
         expected = [123456, 12500]
@@ -192,7 +183,7 @@ class TestCParser(tm.TestCase):
         self.assertEqual(header, expected)
 
         recs = reader.read()
-        expected = {0 : [1, 4], 1 : [2, 5], 2 : [3, 6]}
+        expected = {0: [1, 4], 1: [2, 5], 2: [3, 6]}
         assert_array_dicts_equal(expected, recs)
 
         # not enough rows
@@ -202,7 +193,8 @@ class TestCParser(tm.TestCase):
     def test_header_not_enough_lines_as_recarray(self):
 
         if compat.is_platform_windows():
-            raise nose.SkipTest("segfaults on win-64, only when all tests are run")
+            raise nose.SkipTest(
+                "segfaults on win-64, only when all tests are run")
 
         data = ('skip this\n'
                 'skip this\n'
@@ -279,7 +271,8 @@ aaaa,4
 aaaaa,5"""
 
         if compat.is_platform_windows():
-            raise nose.SkipTest("segfaults on win-64, only when all tests are run")
+            raise nose.SkipTest(
+                "segfaults on win-64, only when all tests are run")
 
         def _make_reader(**kwds):
             return TextReader(StringIO(data), delimiter=',', header=None,
@@ -382,21 +375,22 @@ a,b,c
                       index=[1, 1])
         c = DataFrame([[1, 2, 3, 4], [6, nan, nan, nan],
                        [8, 9, 10, 11], [13, 14, nan, nan]],
-                       columns=list('abcd'),
-                       index=[0, 5, 7, 12])
+                      columns=list('abcd'),
+                      index=[0, 5, 7, 12])
 
         for _ in range(100):
             df = read_csv(StringIO('a,b\nc\n'), skiprows=0,
                           names=['a'], engine='c')
             assert_frame_equal(df, a)
 
-            df = read_csv(StringIO('1,1,1,1,0\n'*2 + '\n'*2),
+            df = read_csv(StringIO('1,1,1,1,0\n' * 2 + '\n' * 2),
                           names=list("abcd"), engine='c')
             assert_frame_equal(df, b)
 
             df = read_csv(StringIO('0,1,2,3,4\n5,6\n7,8,9,10,11\n12,13,14'),
                           names=list('abcd'), engine='c')
             assert_frame_equal(df, c)
+
 
 def assert_array_dicts_equal(left, right):
     for k, v in compat.iteritems(left):
