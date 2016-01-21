@@ -20,7 +20,8 @@ from numpy.testing.decorators import slow
 
 from pandas import (DataFrame, MultiIndex, read_csv, Timestamp, Index,
                     date_range, Series)
-from pandas.compat import map, zip, StringIO, string_types, BytesIO, is_platform_windows
+from pandas.compat import (map, zip, StringIO, string_types, BytesIO,
+                           is_platform_windows)
 from pandas.io.common import URLError, urlopen, file_path_to_url
 from pandas.io.html import read_html
 from pandas.parser import CParserError
@@ -87,6 +88,7 @@ def test_bs4_version_fails():
 
 
 class ReadHtmlMixin(object):
+
     def read_html(self, *args, **kwargs):
         kwargs.setdefault('flavor', self.flavor)
         return read_html(*args, **kwargs)
@@ -437,8 +439,9 @@ class TestReadHtml(tm.TestCase, ReadHtmlMixin):
             </tfoot>
         </table>'''
 
-        data1 = data_template.format(footer = "")
-        data2 = data_template.format(footer ="<tr><td>footA</td><th>footB</th></tr>")
+        data1 = data_template.format(footer="")
+        data2 = data_template.format(
+            footer="<tr><td>footA</td><th>footB</th></tr>")
 
         d1 = {'A': ['bodyA'], 'B': ['bodyB']}
         d2 = {'A': ['bodyA', 'footA'], 'B': ['bodyB', 'footB']}
@@ -528,10 +531,10 @@ class TestReadHtml(tm.TestCase, ReadHtmlMixin):
         dfnew = df.applymap(try_remove_ws).replace(old, new)
         gtnew = ground_truth.applymap(try_remove_ws)
         converted = dfnew._convert(datetime=True, numeric=True)
-        date_cols = ['Closing Date','Updated Date']
+        date_cols = ['Closing Date', 'Updated Date']
         converted[date_cols] = converted[date_cols]._convert(datetime=True,
                                                              coerce=True)
-        tm.assert_frame_equal(converted,gtnew)
+        tm.assert_frame_equal(converted, gtnew)
 
     @slow
     def test_gold_canyon(self):
@@ -638,10 +641,11 @@ class TestReadHtml(tm.TestCase, ReadHtmlMixin):
         nose.tools.assert_equal(result['sq mi'].dtype, np.dtype('float64'))
 
     def test_bool_header_arg(self):
-        #GH 6114
+        # GH 6114
         for arg in [True, False]:
             with tm.assertRaises(TypeError):
                 read_html(self.spam_data, header=arg)
+
 
 def _lang_enc(filename):
     return os.path.splitext(os.path.basename(filename))[0].split('_')
@@ -682,13 +686,13 @@ class TestReadHtmlEncoding(tm.TestCase):
                 from_filename = self.read_filename(f, encoding).pop()
                 tm.assert_frame_equal(from_string, from_file_like)
                 tm.assert_frame_equal(from_string, from_filename)
-            except Exception as e:
-
+            except Exception:
                 # seems utf-16/32 fail on windows
                 if is_platform_windows():
                     if '16' in encoding or '32' in encoding:
                         continue
                     raise
+
 
 class TestReadHtmlEncodingLxml(TestReadHtmlEncoding):
     flavor = 'lxml'

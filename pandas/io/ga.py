@@ -4,6 +4,8 @@
 3. Goto APIs and register for OAuth2.0 for installed applications
 4. Download JSON secret file and move into same directory as this file
 """
+# flake8: noqa
+
 from datetime import datetime
 import re
 from pandas import compat

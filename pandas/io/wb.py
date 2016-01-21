@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+# flake8: noqa
+
 from __future__ import print_function
 
 from pandas.compat import map, reduce, range, lrange

@@ -1,6 +1,5 @@
 import pandas as pd
 import pandas.util.testing as tm
-from pandas import compat
 from pandas.io.sas import XportReader, read_sas
 import numpy as np
 import os
@@ -9,6 +8,8 @@ import os
 
 # Numbers in a SAS xport file are always float64, so need to convert
 # before making comparisons.
+
+
 def numeric_as_float(data):
     for v in data.columns:
         if data[v].dtype is np.dtype('int64'):
@@ -23,7 +24,6 @@ class TestXport(tm.TestCase):
         self.file02 = os.path.join(self.dirpath, "SSHSV1_A.XPT")
         self.file03 = os.path.join(self.dirpath, "DRXFCD_G.XPT")
         self.file04 = os.path.join(self.dirpath, "paxraw_d_short.xpt")
-
 
     def test1_basic(self):
         # Tests with DEMO_G.XPT (all numeric file)
@@ -50,7 +50,6 @@ class TestXport(tm.TestCase):
         data = read_sas(self.file01)
         tm.assert_frame_equal(data, data_csv)
 
-
     def test1_index(self):
         # Tests with DEMO_G.XPT using index (all numeric file)
 
@@ -66,13 +65,14 @@ class TestXport(tm.TestCase):
         # Test incremental read with `read` method.
         reader = XportReader(self.file01, index="SEQN")
         data = reader.read(10)
-        tm.assert_frame_equal(data, data_csv.iloc[0:10, :], check_index_type=False)
+        tm.assert_frame_equal(data, data_csv.iloc[
+                              0:10, :], check_index_type=False)
 
         # Test incremental read with `get_chunk` method.
         reader = XportReader(self.file01, index="SEQN", chunksize=10)
         data = reader.get_chunk()
-        tm.assert_frame_equal(data, data_csv.iloc[0:10, :], check_index_type=False)
-
+        tm.assert_frame_equal(data, data_csv.iloc[
+                              0:10, :], check_index_type=False)
 
     def test1_incremental(self):
         # Test with DEMO_G.XPT, reading full file incrementally
@@ -88,7 +88,6 @@ class TestXport(tm.TestCase):
 
         tm.assert_frame_equal(data, data_csv, check_index_type=False)
 
-
     def test2(self):
         # Test with SSHSV1_A.XPT
 
@@ -98,7 +97,6 @@ class TestXport(tm.TestCase):
 
         data = XportReader(self.file02).read()
         tm.assert_frame_equal(data, data_csv)
-
 
     def test_multiple_types(self):
         # Test with DRXFCD_G.XPT (contains text and numeric variables)
@@ -111,7 +109,6 @@ class TestXport(tm.TestCase):
 
         data = read_sas(self.file03)
         tm.assert_frame_equal(data, data_csv)
-
 
     def test_truncated_float_support(self):
         # Test with paxraw_d_short.xpt, a shortened version of:

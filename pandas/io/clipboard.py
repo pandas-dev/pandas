@@ -42,7 +42,7 @@ def read_clipboard(**kwargs):  # pragma: no cover
     # 1  3  4
 
     counts = set([x.lstrip().count('\t') for x in lines])
-    if len(lines)>1 and len(counts) == 1 and counts.pop() != 0:
+    if len(lines) > 1 and len(counts) == 1 and counts.pop() != 0:
         kwargs['sep'] = '\t'
 
     if kwargs.get('sep') is None and kwargs.get('delim_whitespace') is None:

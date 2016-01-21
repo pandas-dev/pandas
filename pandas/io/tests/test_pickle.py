@@ -2,23 +2,18 @@
 
 """ manage legacy pickle tests """
 
-from datetime import datetime, timedelta
-import operator
-import pickle as pkl
 import nose
 import os
 
 from distutils.version import LooseVersion
 
-import numpy as np
-import pandas.util.testing as tm
 import pandas as pd
 from pandas import Index
-from pandas.sparse.tests import test_sparse
-from pandas import compat
 from pandas.compat import u
+from pandas.sparse.tests import test_sparse
 from pandas.util.misc import is_little_endian
 import pandas
+import pandas.util.testing as tm
 from pandas.tseries.offsets import Day, MonthEnd
 
 
@@ -34,26 +29,29 @@ class TestPickle():
     3. Move the created pickle to "data/legacy_pickle/<version>" directory.
 
     NOTE: TestPickle can't be a subclass of tm.Testcase to use test generator.
-    http://stackoverflow.com/questions/6689537/nose-test-generators-inside-class
+    http://stackoverflow.com/questions/6689537/
+    nose-test-generators-inside-class
     """
     _multiprocess_can_split_ = True
 
     def setUp(self):
-        from pandas.io.tests.generate_legacy_storage_files import create_pickle_data
+        from pandas.io.tests.generate_legacy_storage_files import (
+            create_pickle_data)
         self.data = create_pickle_data()
         self.path = u('__%s__.pickle' % tm.rands(10))
 
     def compare_element(self, result, expected, typ, version=None):
-        if isinstance(expected,Index):
+        if isinstance(expected, Index):
             tm.assert_index_equal(expected, result)
             return
 
         if typ.startswith('sp_'):
-            comparator = getattr(test_sparse,"assert_%s_equal" % typ)
-            comparator(result,expected,exact_indices=False)
+            comparator = getattr(test_sparse, "assert_%s_equal" % typ)
+            comparator(result, expected, exact_indices=False)
         else:
-            comparator = getattr(tm,"assert_%s_equal" % typ,tm.assert_almost_equal)
-            comparator(result,expected)
+            comparator = getattr(tm, "assert_%s_equal" %
+                                 typ, tm.assert_almost_equal)
+            comparator(result, expected)
 
     def compare(self, vf, version):
 
@@ -76,7 +74,8 @@ class TestPickle():
 
                 # use a specific comparator
                 # if available
-                comparator = getattr(self,"compare_{typ}_{dt}".format(typ=typ,dt=dt), self.compare_element)
+                comparator = getattr(self, "compare_{typ}_{dt}".format(
+                    typ=typ, dt=dt), self.compare_element)
                 comparator(result, expected, typ, version)
         return data
 
@@ -113,7 +112,8 @@ class TestPickle():
 
             if 'series' in data:
                 if 'ts' in data['series']:
-                    self._validate_timeseries(data['series']['ts'], self.data['series']['ts'])
+                    self._validate_timeseries(
+                        data['series']['ts'], self.data['series']['ts'])
                     self._validate_frequency(data['series']['ts'])
             if 'index' in data:
                 if 'period' in data['index']:
@@ -136,12 +136,13 @@ class TestPickle():
 
         try:
             import cPickle as c_pickle
-            def c_pickler(obj,path):
-                with open(path,'wb') as fh:
-                    c_pickle.dump(obj,fh,protocol=-1)
+
+            def c_pickler(obj, path):
+                with open(path, 'wb') as fh:
+                    c_pickle.dump(obj, fh, protocol=-1)
 
             def c_unpickler(path):
-                with open(path,'rb') as fh:
+                with open(path, 'rb') as fh:
                     fh.seek(0)
                     return c_pickle.load(fh)
         except:
@@ -150,26 +151,26 @@ class TestPickle():
 
         import pickle as python_pickle
 
-        def python_pickler(obj,path):
-            with open(path,'wb') as fh:
-                python_pickle.dump(obj,fh,protocol=-1)
+        def python_pickler(obj, path):
+            with open(path, 'wb') as fh:
+                python_pickle.dump(obj, fh, protocol=-1)
 
         def python_unpickler(path):
-            with open(path,'rb') as fh:
+            with open(path, 'rb') as fh:
                 fh.seek(0)
                 return python_pickle.load(fh)
 
         for typ, dv in self.data.items():
             for dt, expected in dv.items():
 
-                for writer in [pd.to_pickle, c_pickler, python_pickler ]:
+                for writer in [pd.to_pickle, c_pickler, python_pickler]:
                     if writer is None:
                         continue
 
                     with tm.ensure_clean(self.path) as path:
 
                         # test writing with each pickler
-                        writer(expected,path)
+                        writer(expected, path)
 
                         # test reading with each unpickler
                         result = pd.read_pickle(path)
@@ -212,7 +213,6 @@ class TestPickle():
 
 
 if __name__ == '__main__':
-    import nose
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
                    # '--with-coverage', '--cover-package=pandas.core'],
                    exit=False)

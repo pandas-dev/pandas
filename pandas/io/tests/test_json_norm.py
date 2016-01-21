@@ -7,6 +7,7 @@ import pandas.util.testing as tm
 
 from pandas.io.json import json_normalize, nested_to_record
 
+
 def _assert_equal_data(left, right):
     if not left.columns.equals(right.columns):
         left = left.reindex(columns=right.columns)
@@ -18,17 +19,17 @@ class TestJSONNormalize(tm.TestCase):
 
     def setUp(self):
         self.state_data = [
-             {'counties': [{'name': 'Dade', 'population': 12345},
-                           {'name': 'Broward', 'population': 40000},
-                           {'name': 'Palm Beach', 'population': 60000}],
-              'info': {'governor': 'Rick Scott'},
-              'shortname': 'FL',
-              'state': 'Florida'},
-             {'counties': [{'name': 'Summit', 'population': 1234},
-                           {'name': 'Cuyahoga', 'population': 1337}],
-              'info': {'governor': 'John Kasich'},
-              'shortname': 'OH',
-              'state': 'Ohio'}]
+            {'counties': [{'name': 'Dade', 'population': 12345},
+                          {'name': 'Broward', 'population': 40000},
+                          {'name': 'Palm Beach', 'population': 60000}],
+             'info': {'governor': 'Rick Scott'},
+             'shortname': 'FL',
+             'state': 'Florida'},
+            {'counties': [{'name': 'Summit', 'population': 1234},
+                          {'name': 'Cuyahoga', 'population': 1337}],
+             'info': {'governor': 'John Kasich'},
+             'shortname': 'OH',
+             'state': 'Ohio'}]
 
     def test_simple_records(self):
         recs = [{'a': 1, 'b': 2, 'c': 3},
@@ -67,28 +68,28 @@ class TestJSONNormalize(tm.TestCase):
                                          'pop': 12345},
                                         {'name': 'Los Angeles',
                                          'pop': 12346}]
-                            },
+                             },
                             {'name': 'Ohio',
                              'cities': [{'name': 'Columbus',
                                          'pop': 1234},
                                         {'name': 'Cleveland',
                                          'pop': 1236}]}
-                           ]
+                            ]
                  },
                 {'country': 'Germany',
                  'states': [{'name': 'Bayern',
                              'cities': [{'name': 'Munich', 'pop': 12347}]
-                            },
+                             },
                             {'name': 'Nordrhein-Westfalen',
                              'cities': [{'name': 'Duesseldorf', 'pop': 1238},
                                         {'name': 'Koeln', 'pop': 1239}]}
-                           ]
+                            ]
                  }
                 ]
 
         result = json_normalize(data, ['states', 'cities'],
                                 meta=['country', ['states', 'name']])
-                                # meta_prefix={'states': 'state_'})
+        # meta_prefix={'states': 'state_'})
 
         ex_data = {'country': ['USA'] * 4 + ['Germany'] * 3,
                    'states.name': ['California', 'California', 'Ohio', 'Ohio',
@@ -105,15 +106,15 @@ class TestJSONNormalize(tm.TestCase):
         data = [{'state': 'Florida',
                  'shortname': 'FL',
                  'info': {
-                      'governor': 'Rick Scott'
+                     'governor': 'Rick Scott'
                  },
                  'counties': [{'name': 'Dade', 'population': 12345},
-                             {'name': 'Broward', 'population': 40000},
-                             {'name': 'Palm Beach', 'population': 60000}]},
+                              {'name': 'Broward', 'population': 40000},
+                              {'name': 'Palm Beach', 'population': 60000}]},
                 {'state': 'Ohio',
                  'shortname': 'OH',
                  'info': {
-                      'governor': 'John Kasich'
+                     'governor': 'John Kasich'
                  },
                  'counties': [{'name': 'Summit', 'population': 1234},
                               {'name': 'Cuyahoga', 'population': 1337}]}]
@@ -167,8 +168,8 @@ class TestJSONNormalize(tm.TestCase):
 class TestNestedToRecord(tm.TestCase):
 
     def test_flat_stays_flat(self):
-        recs = [dict(flat1=1,flat2=2),
-                dict(flat1=3,flat2=4),
+        recs = [dict(flat1=1, flat2=2),
+                dict(flat1=3, flat2=4),
                 ]
 
         result = nested_to_record(recs)
@@ -177,30 +178,30 @@ class TestNestedToRecord(tm.TestCase):
 
     def test_one_level_deep_flattens(self):
         data = dict(flat1=1,
-                    dict1=dict(c=1,d=2))
+                    dict1=dict(c=1, d=2))
 
         result = nested_to_record(data)
-        expected =     {'dict1.c': 1,
-             'dict1.d': 2,
-             'flat1': 1}
+        expected = {'dict1.c': 1,
+                    'dict1.d': 2,
+                    'flat1': 1}
 
-        self.assertEqual(result,expected)
+        self.assertEqual(result, expected)
 
     def test_nested_flattens(self):
         data = dict(flat1=1,
-                    dict1=dict(c=1,d=2),
-                    nested=dict(e=dict(c=1,d=2),
+                    dict1=dict(c=1, d=2),
+                    nested=dict(e=dict(c=1, d=2),
                                 d=2))
 
         result = nested_to_record(data)
-        expected =     {'dict1.c': 1,
-             'dict1.d': 2,
-             'flat1': 1,
-             'nested.d': 2,
-             'nested.e.c': 1,
-             'nested.e.d': 2}
+        expected = {'dict1.c': 1,
+                    'dict1.d': 2,
+                    'flat1': 1,
+                    'nested.d': 2,
+                    'nested.e.c': 1,
+                    'nested.e.d': 2}
 
-        self.assertEqual(result,expected)
+        self.assertEqual(result, expected)
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb',

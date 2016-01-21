@@ -16,7 +16,8 @@ import pandas.core.common as com
 
 loads = _json.loads
 dumps = _json.dumps
-### interface to/from ###
+
+# interface to/from
 
 
 def to_json(path_or_buf, obj, orient=None, date_format='epoch',
@@ -115,7 +116,7 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
         file. For file URLs, a host is expected. For instance, a local file
         could be ``file://localhost/path/to/table.json``
 
-    orient  
+    orient
 
         * `Series`
 
@@ -151,15 +152,15 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
     convert_dates : boolean, default True
         List of columns to parse for dates; If True, then try to parse
         datelike columns default is True; a column label is datelike if
-        
+
         * it ends with ``'_at'``,
-        
+
         * it ends with ``'_time'``,
-        
+
         * it begins with ``'timestamp'``,
-        
+
         * it is ``'modified'``, or
-        
+
         * it is ``'date'``
 
     keep_default_dates : boolean, default True
@@ -190,7 +191,7 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
 
         # if the filepath is too long will raise here
         # 5874
-        except (TypeError,ValueError):
+        except (TypeError, ValueError):
             exists = False
 
         if exists:
@@ -566,12 +567,12 @@ class FrameParser(Parser):
 
         self._process_converter(
             lambda col, c: self._try_convert_to_date(c),
-            lambda col, c: ((self.keep_default_dates and is_ok(col))
-                            or col in convert_dates))
+            lambda col, c: ((self.keep_default_dates and is_ok(col)) or
+                            col in convert_dates))
 
-
-#----------------------------------------------------------------------
+# ---------------------------------------------------------------------
 # JSON normalization routines
+
 
 def nested_to_record(ds, prefix="", level=0):
     """a simplified json_normalize
@@ -627,7 +628,7 @@ def nested_to_record(ds, prefix="", level=0):
                 continue
             else:
                 v = new_d.pop(k)
-                new_d.update(nested_to_record(v, newkey, level+1))
+                new_d.update(nested_to_record(v, newkey, level + 1))
         new_ds.append(new_d)
 
     if singleton:
@@ -741,7 +742,7 @@ def json_normalize(data, record_path=None, meta=None,
                         seen_meta[key] = _pull_field(obj, val[-1])
 
                 _recursive_extract(obj[path[0]], path[1:],
-                                   seen_meta, level=level+1)
+                                   seen_meta, level=level + 1)
         else:
             for obj in data:
                 recs = _pull_field(obj, path[0])

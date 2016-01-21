@@ -1,27 +1,16 @@
-from pandas.compat import StringIO, BytesIO
+from pandas.compat import StringIO
 from datetime import date, datetime
-import csv
-import os
-import sys
-import re
 
 import nose
 
-from numpy import nan
 import numpy as np
-from numpy.testing.decorators import slow
 
-from pandas import DataFrame, Series, Index, MultiIndex, isnull
-import pandas.io.parsers as parsers
-from pandas.io.parsers import (read_csv, read_table, read_fwf,
-                               TextParser)
-from pandas.util.testing import (assert_almost_equal, assert_frame_equal,
-                                 assert_series_equal, network)
-import pandas.lib as lib
-from pandas import compat
-from pandas.lib import Timestamp
+from pandas import DataFrame, MultiIndex
+from pandas.io.parsers import (read_csv, read_table)
+from pandas.util.testing import assert_frame_equal
 import pandas.io.date_converters as conv
 import pandas.util.testing as tm
+
 
 class TestConverters(tm.TestCase):
 
@@ -68,7 +57,8 @@ date, time, a, b
         expected = np.array([datetime(2007, 1, 3), datetime(2008, 2, 4)])
         self.assertTrue((result == expected).all())
 
-        data = "year, month, day, a\n 2001 , 01 , 10 , 10.\n 2001 , 02 , 1 , 11."
+        data = ("year, month, day, a\n 2001 , 01 , 10 , 10.\n"
+                "2001 , 02 , 1 , 11.")
         datecols = {'ymd': [0, 1, 2]}
         df = read_table(StringIO(data), sep=',', header=0,
                         parse_dates=datecols,
@@ -136,8 +126,9 @@ date,time,prn,rxstatus
                       parse_dates={'datetime': ['date', 'time']},
                       index_col=['datetime', 'prn'])
 
-        datetimes = np.array(['2013-11-03T19:00:00Z']*3, dtype='datetime64[s]')
-        df_correct = DataFrame(data={'rxstatus': ['00E80000']*3},
+        datetimes = np.array(['2013-11-03T19:00:00Z'] * 3,
+                             dtype='datetime64[s]')
+        df_correct = DataFrame(data={'rxstatus': ['00E80000'] * 3},
                                index=MultiIndex.from_tuples(
                                    [(datetimes[0], 126),
                                     (datetimes[1], 23),
@@ -146,6 +137,5 @@ date,time,prn,rxstatus
         assert_frame_equal(df, df_correct)
 
 if __name__ == '__main__':
-    import nose
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
                    exit=False)

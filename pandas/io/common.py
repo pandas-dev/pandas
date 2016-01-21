@@ -30,20 +30,19 @@ if compat.PY3:
     from urllib.request import urlopen, pathname2url
     _urlopen = urlopen
     from urllib.parse import urlparse as parse_url
-    import urllib.parse as compat_parse
     from urllib.parse import (uses_relative, uses_netloc, uses_params,
                               urlencode, urljoin)
     from urllib.error import URLError
-    from http.client import HTTPException
+    from http.client import HTTPException  # noqa
 else:
     from urllib2 import urlopen as _urlopen
-    from urllib import urlencode, pathname2url
+    from urllib import urlencode, pathname2url  # noqa
     from urlparse import urlparse as parse_url
     from urlparse import uses_relative, uses_netloc, uses_params, urljoin
-    from urllib2 import URLError
-    from httplib import HTTPException
-    from contextlib import contextmanager, closing
-    from functools import wraps
+    from urllib2 import URLError  # noqa
+    from httplib import HTTPException  # noqa
+    from contextlib import contextmanager, closing  # noqa
+    from functools import wraps  # noqa
 
     # @wraps(_urlopen)
     @contextmanager
@@ -66,6 +65,7 @@ class DtypeWarning(Warning):
 
 try:
     from boto.s3 import key
+
     class BotoFileLikeReader(key.Key):
         """boto Key modified to be more file-like
 
@@ -78,10 +78,12 @@ try:
         Also adds a `readline` function which will split the returned
         values by the `\n` character.
         """
+
         def __init__(self, *args, **kwargs):
             encoding = kwargs.pop("encoding", None)  # Python 2 compat
             super(BotoFileLikeReader, self).__init__(*args, **kwargs)
-            self.finished_read = False  # Add a flag to mark the end of the read.
+            # Add a flag to mark the end of the read.
+            self.finished_read = False
             self.buffer = ""
             self.lines = []
             if encoding is None and compat.PY3:
@@ -121,7 +123,8 @@ try:
                     raise StopIteration
 
             if self.encoding:
-                self.buffer = "{}{}".format(self.buffer, self.read(8192).decode(self.encoding))
+                self.buffer = "{}{}".format(
+                    self.buffer, self.read(8192).decode(self.encoding))
             else:
                 self.buffer = "{}{}".format(self.buffer, self.read(8192))
 
@@ -211,12 +214,14 @@ def _expand_user(filepath_or_buffer):
         return os.path.expanduser(filepath_or_buffer)
     return filepath_or_buffer
 
+
 def _validate_header_arg(header):
     if isinstance(header, bool):
         raise TypeError("Passing a bool to header is invalid. "
                         "Use header=None for no header or "
                         "header=int or list-like of ints to specify "
                         "the row(s) making up the column names")
+
 
 def _stringify_path(filepath_or_buffer):
     """Return the argument coerced to a string if it was a pathlib.Path
@@ -263,8 +268,9 @@ def get_filepath_or_buffer(filepath_or_buffer, encoding=None,
             else:
                 compression = None
         # cat on the compression to the tuple returned by the function
-        to_return = list(maybe_read_encoded_stream(req, encoding, compression)) + \
-                    [compression]
+        to_return = (list(maybe_read_encoded_stream(req, encoding,
+                                                    compression)) +
+                     [compression])
         return tuple(to_return)
 
     if _is_s3_url(filepath_or_buffer):

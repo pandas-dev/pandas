@@ -2,15 +2,14 @@
 from __future__ import print_function
 from distutils.version import LooseVersion
 from pandas import (Series, DataFrame, Panel,
-                    SparseSeries, SparseDataFrame, SparsePanel,
-                    Index, MultiIndex, PeriodIndex, bdate_range, to_msgpack,
-                    date_range, period_range, bdate_range, Timestamp, Categorical,
-                    Period)
+                    SparseSeries, SparseDataFrame,
+                    Index, MultiIndex, bdate_range, to_msgpack,
+                    date_range, period_range,
+                    Timestamp, Categorical, Period)
 import os
 import sys
 import numpy as np
 import pandas
-import pandas.util.testing as tm
 import platform as pl
 
 
@@ -66,50 +65,68 @@ def create_data():
 
     scalars = dict(timestamp=Timestamp('20130101'))
     if LooseVersion(pandas.__version__) >= '0.17.0':
-        scalars['period'] = Period('2012','M')
+        scalars['period'] = Period('2012', 'M')
 
     index = dict(int=Index(np.arange(10)),
                  date=date_range('20130101', periods=10),
                  period=period_range('2013-01-01', freq='M', periods=10))
 
-    mi = dict(reg2=MultiIndex.from_tuples(tuple(zip(*[['bar', 'bar', 'baz', 'baz', 'foo', 'foo', 'qux', 'qux'],
-                                                      ['one', 'two', 'one', 'two', 'one', 'two', 'one', 'two']])),
-                                          names=['first', 'second']))
+    mi = dict(reg2=MultiIndex.from_tuples(
+        tuple(zip(*[['bar', 'bar', 'baz', 'baz', 'foo',
+                     'foo', 'qux', 'qux'],
+                    ['one', 'two', 'one', 'two', 'one',
+                     'two', 'one', 'two']])),
+        names=['first', 'second']))
     series = dict(float=Series(data['A']),
                   int=Series(data['B']),
                   mixed=Series(data['E']),
-                  ts=Series(np.arange(10).astype(np.int64), index=date_range('20130101',periods=10)),
+                  ts=Series(np.arange(10).astype(np.int64),
+                            index=date_range('20130101', periods=10)),
                   mi=Series(np.arange(5).astype(np.float64),
-                            index=MultiIndex.from_tuples(tuple(zip(*[[1, 1, 2, 2, 2], [3, 4, 3, 4, 5]])),
-                                                         names=['one', 'two'])),
-                  dup=Series(np.arange(5).astype(np.float64), index=['A', 'B', 'C', 'D', 'A']),
+                            index=MultiIndex.from_tuples(
+                                tuple(zip(*[[1, 1, 2, 2, 2],
+                                            [3, 4, 3, 4, 5]])),
+                                names=['one', 'two'])),
+                  dup=Series(np.arange(5).astype(np.float64),
+                             index=['A', 'B', 'C', 'D', 'A']),
                   cat=Series(Categorical(['foo', 'bar', 'baz'])),
-                  dt=Series(date_range('20130101',periods=5)),
-                  dt_tz=Series(date_range('20130101',periods=5,tz='US/Eastern')))
+                  dt=Series(date_range('20130101', periods=5)),
+                  dt_tz=Series(date_range('20130101', periods=5,
+                                          tz='US/Eastern')))
     if LooseVersion(pandas.__version__) >= '0.17.0':
         series['period'] = Series([Period('2000Q1')] * 5)
 
     mixed_dup_df = DataFrame(data)
     mixed_dup_df.columns = list("ABCDA")
-    frame = dict(float=DataFrame(dict(A=series['float'], B=series['float'] + 1)),
+    frame = dict(float=DataFrame(dict(A=series['float'],
+                                      B=series['float'] + 1)),
                  int=DataFrame(dict(A=series['int'], B=series['int'] + 1)),
-                 mixed=DataFrame(dict([(k, data[k]) for k in ['A', 'B', 'C', 'D']])),
-                 mi=DataFrame(dict(A=np.arange(5).astype(np.float64), B=np.arange(5).astype(np.int64)),
-                              index=MultiIndex.from_tuples(tuple(zip(*[['bar', 'bar', 'baz', 'baz', 'baz'],
-                                                                       ['one', 'two', 'one', 'two', 'three']])),
-                                                           names=['first', 'second'])),
+                 mixed=DataFrame(dict([(k, data[k])
+                                       for k in ['A', 'B', 'C', 'D']])),
+                 mi=DataFrame(dict(A=np.arange(5).astype(np.float64),
+                                   B=np.arange(5).astype(np.int64)),
+                              index=MultiIndex.from_tuples(
+                                  tuple(zip(*[['bar', 'bar', 'baz',
+                                               'baz', 'baz'],
+                                              ['one', 'two', 'one',
+                                               'two', 'three']])),
+                                  names=['first', 'second'])),
                  dup=DataFrame(np.arange(15).reshape(5, 3).astype(np.float64),
                                columns=['A', 'B', 'A']),
                  cat_onecol=DataFrame(dict(A=Categorical(['foo', 'bar']))),
-                 cat_and_float=DataFrame(dict(A=Categorical(['foo', 'bar', 'baz']),
-                                              B=np.arange(3).astype(np.int64))),
+                 cat_and_float=DataFrame(dict(
+                     A=Categorical(['foo', 'bar', 'baz']),
+                     B=np.arange(3).astype(np.int64))),
                  mixed_dup=mixed_dup_df,
-                 dt_mixed_tzs=DataFrame(dict(A=Timestamp('20130102', tz='US/Eastern'), B=Timestamp('20130603', tz='CET')), index=range(5)),
+                 dt_mixed_tzs=DataFrame(dict(
+                     A=Timestamp('20130102', tz='US/Eastern'),
+                     B=Timestamp('20130603', tz='CET')), index=range(5)),
                  )
 
     mixed_dup_panel = Panel(dict(ItemA=frame['float'], ItemB=frame['int']))
     mixed_dup_panel.items = ['ItemA', 'ItemA']
-    panel = dict(float=Panel(dict(ItemA=frame['float'], ItemB=frame['float'] + 1)),
+    panel = dict(float=Panel(dict(ItemA=frame['float'],
+                                  ItemB=frame['float'] + 1)),
                  dup=Panel(np.arange(30).reshape(3, 5, 2).astype(np.float64),
                            items=['A', 'B', 'A']),
                  mixed_dup=mixed_dup_panel)
@@ -153,20 +170,22 @@ def create_msgpack_data():
 
 
 def platform_name():
-    return '_'.join([str(pandas.__version__), str(pl.machine()), str(pl.system().lower()), str(pl.python_version())])
+    return '_'.join([str(pandas.__version__), str(pl.machine()),
+                     str(pl.system().lower()), str(pl.python_version())])
 
 
 def write_legacy_pickles(output_dir):
 
     # make sure we are < 0.13 compat (in py3)
     try:
-        from pandas.compat import zip, cPickle as pickle
+        from pandas.compat import zip, cPickle as pickle  # noqa
     except:
         import pickle
 
     version = pandas.__version__
 
-    print("This script generates a storage file for the current arch, system, and python version")
+    print("This script generates a storage file for the current arch, system, "
+          "and python version")
     print("  pandas version: {0}".format(version))
     print("  output dir    : {0}".format(output_dir))
     print("  storage format: pickle")
@@ -184,7 +203,8 @@ def write_legacy_msgpack(output_dir):
 
     version = pandas.__version__
 
-    print("This script generates a storage file for the current arch, system, and python version")
+    print("This script generates a storage file for the current arch, "
+          "system, and python version")
     print("  pandas version: {0}".format(version))
     print("  output dir    : {0}".format(output_dir))
     print("  storage format: msgpack")
@@ -200,7 +220,8 @@ def write_legacy_file():
     sys.path.insert(0, '.')
 
     if len(sys.argv) != 3:
-        exit("Specify output directory and storage type: generate_legacy_storage_files.py <output_dir> <storage_type>")
+        exit("Specify output directory and storage type: generate_legacy_"
+             "storage_files.py <output_dir> <storage_type>")
 
     output_dir = str(sys.argv[1])
     storage_type = str(sys.argv[2])
