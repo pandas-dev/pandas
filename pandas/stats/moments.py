@@ -20,9 +20,9 @@ __all__ = ['rolling_count', 'rolling_max', 'rolling_min',
            'expanding_sum', 'expanding_mean', 'expanding_std',
            'expanding_cov', 'expanding_corr', 'expanding_var',
            'expanding_skew', 'expanding_kurt', 'expanding_quantile',
-           'expanding_median', 'expanding_apply' ]
+           'expanding_median', 'expanding_apply']
 
-#------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # Docs
 
 # The order of arguments for the _doc_template is:
@@ -72,7 +72,8 @@ _ewm_kw = r"""com : float. optional
 span : float, optional
     Specify decay in terms of span, :math:`\alpha = 2 / (span + 1)`
 halflife : float, optional
-    Specify decay in terms of halflife, :math:`\alpha = 1 - exp(log(0.5) / halflife)`
+    Specify decay in terms of halflife,
+    :math:`\alpha = 1 - exp(log(0.5) / halflife)`
 min_periods : int, default 0
     Minimum number of observations in window required to have a value
     (otherwise result is NA).
@@ -173,6 +174,7 @@ _bias_kw = r"""bias : boolean, default False
     Use a standard estimation bias correction
 """
 
+
 def ensure_compat(dispatch, name, arg, func_kw=None, *args, **kwargs):
     """
     wrapper function to dispatch to the appropriate window functions
@@ -189,8 +191,10 @@ def ensure_compat(dispatch, name, arg, func_kw=None, *args, **kwargs):
         else:
             raise AssertionError("cannot support ndim > 2 for ndarray compat")
 
-        warnings.warn("pd.{dispatch}_{name} is deprecated for ndarrays and will be removed "
-                      "in a future version".format(dispatch=dispatch,name=name),
+        warnings.warn("pd.{dispatch}_{name} is deprecated for ndarrays and "
+                      "will be removed "
+                      "in a future version"
+                      .format(dispatch=dispatch, name=name),
                       FutureWarning, stacklevel=3)
 
     # get the functional keywords here
@@ -198,45 +202,45 @@ def ensure_compat(dispatch, name, arg, func_kw=None, *args, **kwargs):
         func_kw = []
     kwds = {}
     for k in func_kw:
-        value = kwargs.pop(k,None)
+        value = kwargs.pop(k, None)
         if value is not None:
             kwds[k] = value
 
     # how is a keyword that if not-None should be in kwds
-    how = kwargs.pop('how',None)
+    how = kwargs.pop('how', None)
     if how is not None:
         kwds['how'] = how
 
-    r = getattr(arg,dispatch)(**kwargs)
+    r = getattr(arg, dispatch)(**kwargs)
 
     if not is_ndarray:
 
         # give a helpful deprecation message
         # with copy-pastable arguments
-        pargs = ','.join([ "{a}={b}".format(a=a,b=b) for a,b in kwargs.items() if b is not None ])
+        pargs = ','.join(["{a}={b}".format(a=a, b=b)
+                          for a, b in kwargs.items() if b is not None])
         aargs = ','.join(args)
         if len(aargs):
             aargs += ','
 
-        def f(a,b):
+        def f(a, b):
             if lib.isscalar(b):
-                return "{a}={b}".format(a=a,b=b)
-            return "{a}=<{b}>".format(a=a,b=type(b).__name__)
-        aargs = ','.join([ f(a,b) for a,b in kwds.items() if b is not None ])
+                return "{a}={b}".format(a=a, b=b)
+            return "{a}=<{b}>".format(a=a, b=type(b).__name__)
+        aargs = ','.join([f(a, b) for a, b in kwds.items() if b is not None])
         warnings.warn("pd.{dispatch}_{name} is deprecated for {klass} "
                       "and will be removed in a future version, replace with "
-                      "\n\t{klass}.{dispatch}({pargs}).{name}({aargs})".format(klass=type(arg).__name__,
-                                                                               pargs=pargs,
-                                                                               aargs=aargs,
-                                                                               dispatch=dispatch,
-                                                                               name=name),
+                      "\n\t{klass}.{dispatch}({pargs}).{name}({aargs})"
+                      .format(klass=type(arg).__name__, pargs=pargs,
+                              aargs=aargs, dispatch=dispatch, name=name),
                       FutureWarning, stacklevel=3)
 
-    result = getattr(r,name)(*args, **kwds)
+    result = getattr(r, name)(*args, **kwds)
 
     if is_ndarray:
         result = result.values
     return result
+
 
 def rolling_count(arg, window, **kwargs):
     """
@@ -249,8 +253,8 @@ def rolling_count(arg, window, **kwargs):
         Size of the moving window. This is the number of observations used for
         calculating the statistic.
     freq : string or DateOffset object, optional (default None)
-        Frequency to conform the data to before computing the statistic. Specified
-        as a frequency string or DateOffset object.
+        Frequency to conform the data to before computing the
+        statistic. Specified as a frequency string or DateOffset object.
     center : boolean, default False
         Whether the label should correspond with center of window
     how : string, default 'mean'
@@ -268,8 +272,10 @@ def rolling_count(arg, window, **kwargs):
     """
     return ensure_compat('rolling', 'count', arg, window=window, **kwargs)
 
+
 @Substitution("Unbiased moving covariance.", _binary_arg_flex,
-              _roll_kw%'None'+_pairwise_kw+_ddof_kw, _flex_retval, _roll_notes)
+              _roll_kw % 'None' + _pairwise_kw + _ddof_kw, _flex_retval,
+              _roll_notes)
 @Appender(_doc_template)
 def rolling_cov(arg1, arg2=None, window=None, pairwise=None, **kwargs):
     if window is None and isinstance(arg2, (int, float)):
@@ -285,11 +291,12 @@ def rolling_cov(arg1, arg2=None, window=None, pairwise=None, **kwargs):
                          other=arg2,
                          window=window,
                          pairwise=pairwise,
-                         func_kw=['other','pairwise','ddof'],
+                         func_kw=['other', 'pairwise', 'ddof'],
                          **kwargs)
 
+
 @Substitution("Moving sample correlation.", _binary_arg_flex,
-              _roll_kw%'None'+_pairwise_kw, _flex_retval, _roll_notes)
+              _roll_kw % 'None' + _pairwise_kw, _flex_retval, _roll_notes)
 @Appender(_doc_template)
 def rolling_corr(arg1, arg2=None, window=None, pairwise=None, **kwargs):
     if window is None and isinstance(arg2, (int, float)):
@@ -305,11 +312,11 @@ def rolling_corr(arg1, arg2=None, window=None, pairwise=None, **kwargs):
                          other=arg2,
                          window=window,
                          pairwise=pairwise,
-                         func_kw=['other','pairwise'],
+                         func_kw=['other', 'pairwise'],
                          **kwargs)
 
 
-#------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # Exponential moving moments
 
 
@@ -330,8 +337,9 @@ def ewma(arg, com=None, span=None, halflife=None, min_periods=0, freq=None,
                          how=how,
                          ignore_na=ignore_na)
 
+
 @Substitution("Exponentially-weighted moving variance", _unary_arg,
-              _ewm_kw+_bias_kw, _type_of_input_retval, _ewm_notes)
+              _ewm_kw + _bias_kw, _type_of_input_retval, _ewm_notes)
 @Appender(_doc_template)
 def ewmvar(arg, com=None, span=None, halflife=None, min_periods=0, bias=False,
            freq=None, how=None, ignore_na=False, adjust=True):
@@ -349,8 +357,9 @@ def ewmvar(arg, com=None, span=None, halflife=None, min_periods=0, bias=False,
                          bias=bias,
                          func_kw=['bias'])
 
+
 @Substitution("Exponentially-weighted moving std", _unary_arg,
-              _ewm_kw+_bias_kw, _type_of_input_retval, _ewm_notes)
+              _ewm_kw + _bias_kw, _type_of_input_retval, _ewm_notes)
 @Appender(_doc_template)
 def ewmstd(arg, com=None, span=None, halflife=None, min_periods=0, bias=False,
            freq=None, how=None, ignore_na=False, adjust=True):
@@ -372,10 +381,11 @@ ewmvol = ewmstd
 
 
 @Substitution("Exponentially-weighted moving covariance", _binary_arg_flex,
-              _ewm_kw+_pairwise_kw, _type_of_input_retval, _ewm_notes)
+              _ewm_kw + _pairwise_kw, _type_of_input_retval, _ewm_notes)
 @Appender(_doc_template)
 def ewmcov(arg1, arg2=None, com=None, span=None, halflife=None, min_periods=0,
-           bias=False, freq=None, pairwise=None, how=None, ignore_na=False, adjust=True):
+           bias=False, freq=None, pairwise=None, how=None, ignore_na=False,
+           adjust=True):
     if arg2 is None:
         arg2 = arg1
         pairwise = True if pairwise is None else pairwise
@@ -398,10 +408,11 @@ def ewmcov(arg1, arg2=None, com=None, span=None, halflife=None, min_periods=0,
                          ignore_na=ignore_na,
                          adjust=adjust,
                          pairwise=pairwise,
-                         func_kw=['other','pairwise','bias'])
+                         func_kw=['other', 'pairwise', 'bias'])
+
 
 @Substitution("Exponentially-weighted moving correlation", _binary_arg_flex,
-              _ewm_kw+_pairwise_kw, _type_of_input_retval, _ewm_notes)
+              _ewm_kw + _pairwise_kw, _type_of_input_retval, _ewm_notes)
 @Appender(_doc_template)
 def ewmcorr(arg1, arg2=None, com=None, span=None, halflife=None, min_periods=0,
             freq=None, pairwise=None, how=None, ignore_na=False, adjust=True):
@@ -425,9 +436,9 @@ def ewmcorr(arg1, arg2=None, com=None, span=None, halflife=None, min_periods=0,
                          ignore_na=ignore_na,
                          adjust=adjust,
                          pairwise=pairwise,
-                         func_kw=['other','pairwise'])
+                         func_kw=['other', 'pairwise'])
 
-#----------------------------------------------------------------------
+# ---------------------------------------------------------------------
 # Python interface to Cython functions
 
 
@@ -435,9 +446,9 @@ def _rolling_func(name, desc, how=None, func_kw=None, additional_kw=''):
     if how is None:
         how_arg_str = 'None'
     else:
-        how_arg_str = "'%s"%how
+        how_arg_str = "'%s" % how
 
-    @Substitution(desc, _unary_arg, _roll_kw%how_arg_str + additional_kw,
+    @Substitution(desc, _unary_arg, _roll_kw % how_arg_str + additional_kw,
                   _type_of_input_retval, _roll_notes)
     @Appender(_doc_template)
     def f(arg, window, min_periods=None, freq=None, center=False,
@@ -468,6 +479,7 @@ rolling_var = _rolling_func('var', 'Moving variance.',
 rolling_skew = _rolling_func('skew', 'Unbiased moving skewness.')
 rolling_kurt = _rolling_func('kurt', 'Unbiased moving kurtosis.')
 
+
 def rolling_quantile(arg, window, quantile, min_periods=None, freq=None,
                      center=False):
     """Moving quantile.
@@ -484,8 +496,8 @@ def rolling_quantile(arg, window, quantile, min_periods=None, freq=None,
         Minimum number of observations in window required to have a value
         (otherwise result is NA).
     freq : string or DateOffset object, optional (default None)
-        Frequency to conform the data to before computing the statistic. Specified
-        as a frequency string or DateOffset object.
+        Frequency to conform the data to before computing the
+        statistic. Specified as a frequency string or DateOffset object.
     center : boolean, default False
         Whether the label should correspond with center of window
 
@@ -529,8 +541,8 @@ def rolling_apply(arg, window, func, min_periods=None, freq=None,
         Minimum number of observations in window required to have a value
         (otherwise result is NA).
     freq : string or DateOffset object, optional (default None)
-        Frequency to conform the data to before computing the statistic. Specified
-        as a frequency string or DateOffset object.
+        Frequency to conform the data to before computing the
+        statistic. Specified as a frequency string or DateOffset object.
     center : boolean, default False
         Whether the label should correspond with center of window
     args : tuple
@@ -558,7 +570,7 @@ def rolling_apply(arg, window, func, min_periods=None, freq=None,
                          freq=freq,
                          center=center,
                          min_periods=min_periods,
-                         func_kw=['func','args','kwargs'],
+                         func_kw=['func', 'args', 'kwargs'],
                          func=func,
                          args=args,
                          kwargs=kwargs)
@@ -583,8 +595,8 @@ def rolling_window(arg, window=None, win_type=None, min_periods=None,
         Minimum number of observations in window required to have a value
         (otherwise result is NA).
     freq : string or DateOffset object, optional (default None)
-        Frequency to conform the data to before computing the statistic. Specified
-        as a frequency string or DateOffset object.
+        Frequency to conform the data to before computing the
+        statistic. Specified as a frequency string or DateOffset object.
     center : boolean, default False
         Whether the label should correspond with center of window
     mean : boolean, default True
@@ -636,6 +648,7 @@ def rolling_window(arg, window=None, win_type=None, min_periods=None,
                          func_kw=kwargs.keys(),
                          **kwargs)
 
+
 def _expanding_func(name, desc, func_kw=None, additional_kw=''):
     @Substitution(desc, _unary_arg, _expanding_kw + additional_kw,
                   _type_of_input_retval, "")
@@ -674,8 +687,8 @@ def expanding_count(arg, freq=None):
     ----------
     arg :  DataFrame or numpy ndarray-like
     freq : string or DateOffset object, optional (default None)
-        Frequency to conform the data to before computing the statistic. Specified
-        as a frequency string or DateOffset object.
+        Frequency to conform the data to before computing the
+        statistic. Specified as a frequency string or DateOffset object.
 
     Returns
     -------
@@ -702,8 +715,8 @@ def expanding_quantile(arg, quantile, min_periods=1, freq=None):
         Minimum number of observations in window required to have a value
         (otherwise result is NA).
     freq : string or DateOffset object, optional (default None)
-        Frequency to conform the data to before computing the statistic. Specified
-        as a frequency string or DateOffset object.
+        Frequency to conform the data to before computing the
+        statistic. Specified as a frequency string or DateOffset object.
 
     Returns
     -------
@@ -723,10 +736,12 @@ def expanding_quantile(arg, quantile, min_periods=1, freq=None):
                          func_kw=['quantile'],
                          quantile=quantile)
 
+
 @Substitution("Unbiased expanding covariance.", _binary_arg_flex,
-              _expanding_kw+_pairwise_kw+_ddof_kw, _flex_retval, "")
+              _expanding_kw + _pairwise_kw + _ddof_kw, _flex_retval, "")
 @Appender(_doc_template)
-def expanding_cov(arg1, arg2=None, min_periods=1, freq=None, pairwise=None, ddof=1):
+def expanding_cov(arg1, arg2=None, min_periods=1, freq=None,
+                  pairwise=None, ddof=1):
     if arg2 is None:
         arg2 = arg1
         pairwise = True if pairwise is None else pairwise
@@ -742,11 +757,11 @@ def expanding_cov(arg1, arg2=None, min_periods=1, freq=None, pairwise=None, ddof
                          pairwise=pairwise,
                          freq=freq,
                          ddof=ddof,
-                         func_kw=['other','pairwise','ddof'])
+                         func_kw=['other', 'pairwise', 'ddof'])
 
 
 @Substitution("Expanding sample correlation.", _binary_arg_flex,
-              _expanding_kw+_pairwise_kw, _flex_retval, "")
+              _expanding_kw + _pairwise_kw, _flex_retval, "")
 @Appender(_doc_template)
 def expanding_corr(arg1, arg2=None, min_periods=1, freq=None, pairwise=None):
     if arg2 is None:
@@ -763,7 +778,8 @@ def expanding_corr(arg1, arg2=None, min_periods=1, freq=None, pairwise=None):
                          min_periods=min_periods,
                          pairwise=pairwise,
                          freq=freq,
-                         func_kw=['other','pairwise','ddof'])
+                         func_kw=['other', 'pairwise', 'ddof'])
+
 
 def expanding_apply(arg, func, min_periods=1, freq=None,
                     args=(), kwargs={}):
@@ -778,8 +794,8 @@ def expanding_apply(arg, func, min_periods=1, freq=None,
         Minimum number of observations in window required to have a value
         (otherwise result is NA).
     freq : string or DateOffset object, optional (default None)
-        Frequency to conform the data to before computing the statistic. Specified
-        as a frequency string or DateOffset object.
+        Frequency to conform the data to before computing the
+        statistic. Specified as a frequency string or DateOffset object.
     args : tuple
         Passed on to func
     kwargs : dict
@@ -800,7 +816,7 @@ def expanding_apply(arg, func, min_periods=1, freq=None,
                          arg,
                          freq=freq,
                          min_periods=min_periods,
-                         func_kw=['func','args','kwargs'],
+                         func_kw=['func', 'args', 'kwargs'],
                          func=func,
                          args=args,
                          kwargs=kwargs)

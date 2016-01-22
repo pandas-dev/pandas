@@ -76,7 +76,8 @@ def ols(**kwargs):
     result = ols(y=y, x=x)
 
     # Run expanding panel OLS with window 10 and entity clustering.
-    result = ols(y=y, x=x, cluster='entity', window_type='expanding', window=10)
+    result = ols(y=y, x=x, cluster='entity', window_type='expanding',
+                 window=10)
 
     Returns
     -------
@@ -85,11 +86,10 @@ def ols(**kwargs):
     """
 
     if (kwargs.get('cluster') is not None and
-        kwargs.get('nw_lags') is not None):
+            kwargs.get('nw_lags') is not None):
         raise ValueError(
             'Pandas OLS does not work with Newey-West correction '
             'and clustering.')
-
 
     pool = kwargs.get('pool')
     if 'pool' in kwargs:
