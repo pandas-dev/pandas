@@ -100,7 +100,8 @@ class TestStringMethods(tm.TestCase):
 
         # single array
         result = strings.str_cat(one)
-        self.assertTrue(isnull(result))
+        exp = 'aabbc'
+        self.assertEqual(result, exp)
 
         result = strings.str_cat(one, na_rep='NA')
         exp = 'aabbcNA'
@@ -2091,7 +2092,7 @@ class TestStringMethods(tm.TestCase):
             tm.assert_series_equal(result, expected)
 
     def test_str_cat_raises_intuitive_error(self):
-        # https://github.com/pydata/pandas/issues/11334
+        # https://github.com/pydata/pandas/issues/11334i
         s = Series(['a','b','c','d'])
         message = "Did you mean to supply a `sep` keyword?"
         with tm.assertRaisesRegexp(ValueError, message):

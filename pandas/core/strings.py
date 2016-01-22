@@ -112,7 +112,7 @@ def str_cat(arr, others=None, sep=None, na_rep=None):
         arr = np.asarray(arr, dtype=object)
         mask = isnull(arr)
         if na_rep is None and mask.any():
-            return np.nan
+            na_rep = ''
         return sep.join(np.where(mask, na_rep, arr))
 
 
