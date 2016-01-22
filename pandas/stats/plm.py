@@ -5,6 +5,8 @@ Linear regression objects for panel data
 # pylint: disable-msg=W0231
 # pylint: disable-msg=E1101,E1103
 
+# flake8: noqa
+
 from __future__ import division
 from pandas.compat import range
 from pandas import compat
@@ -291,7 +293,8 @@ class PanelOLS(OLS):
                 self.log(
                     '-- Excluding dummy for %s: %s' % (effect, to_exclude))
 
-                dummies = dummies.filter(dummies.columns.difference([mapped_name]))
+                dummies = dummies.filter(
+                    dummies.columns.difference([mapped_name]))
                 dropped_dummy = True
 
             dummies = _convertDummies(dummies, cat_mappings.get(effect))
@@ -793,7 +796,7 @@ def _var_beta_panel(y, x, beta, xx, rmse, cluster_axis,
             resid = resid.swaplevel(0, 1).sortlevel(0)
 
         m = _group_agg(x.values * resid.values, x.index._bounds,
-                      lambda x: np.sum(x, axis=0))
+                       lambda x: np.sum(x, axis=0))
 
         if nw_lags is None:
             nw_lags = 0
@@ -804,6 +807,7 @@ def _var_beta_panel(y, x, beta, xx, rmse, cluster_axis,
                                    nobs, df, nw_overlap)
 
         return np.dot(xx_inv, np.dot(xox, xx_inv))
+
 
 def _group_agg(values, bounds, f):
     """
@@ -839,6 +843,7 @@ def _group_agg(values, bounds, f):
         result[i] = f(values[left_bound:right_bound])
 
     return result
+
 
 def _xx_time_effects(x, y):
     """

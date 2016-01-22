@@ -1,3 +1,5 @@
+# flake8: noqa
+
 from __future__ import division
 
 from pandas.compat import range, lrange, zip, reduce
@@ -517,6 +519,7 @@ class PanelVAR(VAR):
     data: Panel or dict of DataFrame
     lags: int
     """
+
     def __init__(self, data, lags, intercept=True):
         self._data = _prep_panel_data(data)
         self._p = lags
