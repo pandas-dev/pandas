@@ -2,10 +2,6 @@
 # pylint: disable=W0612,E1101
 
 from datetime import datetime
-try:
-  from inspect import signature
-except:
-  from inspect import getargspec
 import operator
 import nose
 from functools import wraps
