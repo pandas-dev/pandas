@@ -5619,6 +5619,8 @@ class MultiIndex(Index):
         MultiIndex.from_product : Make a MultiIndex from cartesian product
                                   of iterables
         """
+        tuples = list(tuples)
+        
         if len(tuples) == 0:
             # I think this is right? Not quite sure...
             raise TypeError('Cannot infer number of levels from empty list')
