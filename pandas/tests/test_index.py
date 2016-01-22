@@ -4266,6 +4266,11 @@ class TestRangeIndex(Numeric, tm.TestCase):
         result = RangeIndex(5, 0, -1)._min_fitting_element(1)
         self.assertEqual(1, result)
 
+        big_num = 500000000000000000000000
+
+        result = RangeIndex(5, big_num * 2, 1)._min_fitting_element(big_num)
+        self.assertEqual(big_num, result)
+
     def test_max_fitting_element(self):
         result = RangeIndex(0, 20, 2)._max_fitting_element(17)
         self.assertEqual(16, result)
@@ -4278,6 +4283,11 @@ class TestRangeIndex(Numeric, tm.TestCase):
 
         result = RangeIndex(5, 0, -1)._max_fitting_element(4)
         self.assertEqual(4, result)
+
+        big_num = 500000000000000000000000
+
+        result = RangeIndex(5, big_num * 2, 1)._max_fitting_element(big_num)
+        self.assertEqual(big_num, result)
 
     def test_pickle_compat_construction(self):
         # RangeIndex() is a valid constructor
