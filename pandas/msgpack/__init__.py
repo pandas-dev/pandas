@@ -1,4 +1,6 @@
 # coding: utf-8
+# flake8: noqa
+
 from pandas.msgpack._version import version
 from pandas.msgpack.exceptions import *
 
