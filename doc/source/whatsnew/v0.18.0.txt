@@ -152,6 +152,7 @@ Other enhancements
 - ``Series`` gained an ``is_unique`` attribute (:issue:`11946`)
 - ``DataFrame.quantile`` and ``Series.quantile`` now accept ``interpolation`` keyword (:issue:`10174`).
 - ``DataFrame.select_dtypes`` now allows the ``np.float16`` typecode (:issue:`11990`)
+- Added ``weekday_name`` as a component to ``DatetimeIndex`` and ``.dt`` accessor. (:issue:`11128`)
 
 .. _whatsnew_0180.enhancements.rounding:
 

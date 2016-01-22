@@ -60,6 +60,9 @@ def _field_accessor(name, field, docstring=None):
 
             result = tslib.get_start_end_field(
                 values, field, self.freqstr, month_kw)
+        elif field in ['weekday_name']:
+            result = tslib.get_date_name_field(values, field)
+            return self._maybe_mask_results(result)
         else:
             result = tslib.get_date_field(values, field)
 
@@ -207,7 +210,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
                          'daysinmonth', 'date', 'time', 'microsecond',
                          'nanosecond', 'is_month_start', 'is_month_end',
                          'is_quarter_start', 'is_quarter_end', 'is_year_start',
-                         'is_year_end', 'tz', 'freq']
+                         'is_year_end', 'tz', 'freq', 'weekday_name']
     _is_numeric_dtype = False
     _infer_as_myclass = True
 
@@ -1564,6 +1567,10 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         'is_year_end',
         'is_year_end',
         "Logical indicating if last day of year (defined by frequency)")
+    weekday_name = _field_accessor(
+        'weekday_name',
+        'weekday_name',
+        "The name of day in a week (ex: Friday)\n\n.. versionadded:: 0.18.0")
 
     @property
     def time(self):
