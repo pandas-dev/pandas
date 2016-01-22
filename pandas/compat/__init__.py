@@ -25,6 +25,8 @@ Other items:
 * platform checker
 """
 # pylint disable=W0611
+# flake8: noqa
+
 import functools
 import itertools
 from distutils.version import LooseVersion

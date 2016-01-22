@@ -173,8 +173,8 @@ def _reconstruct_object(typ, obj, axes, dtype):
         ret_value = res_t.type(obj)
     else:
         ret_value = typ(obj).astype(res_t)
-        # The condition is to distinguish 0-dim array (returned in case of scalar)
-        # and 1 element array
+        # The condition is to distinguish 0-dim array (returned in case of
+        # scalar) and 1 element array
         # e.g. np.array(0) and np.array([0])
         if len(obj.shape) == 1 and len(obj) == 1:
             if not isinstance(ret_value, np.ndarray):

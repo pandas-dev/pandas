@@ -23,11 +23,15 @@ class TablePlotter(object):
         """Calcurate appropriate figure size based on left and right data"""
         if vertical:
             # calcurate required number of cells
-            vcells = max(sum([self._shape(l)[0] for l in left]), self._shape(right)[0])
-            hcells = max([self._shape(l)[1] for l in left]) + self._shape(right)[1]
+            vcells = max(sum([self._shape(l)[0] for l in left]),
+                         self._shape(right)[0])
+            hcells = (max([self._shape(l)[1] for l in left]) +
+                      self._shape(right)[1])
         else:
-            vcells = max([self._shape(l)[0] for l in left] + [self._shape(right)[0]])
-            hcells = sum([self._shape(l)[1] for l in left] + [self._shape(right)[1]])
+            vcells = max([self._shape(l)[0] for l in left] +
+                         [self._shape(right)[0]])
+            hcells = sum([self._shape(l)[1] for l in left] +
+                         [self._shape(right)[1]])
         return hcells, vcells
 
     def plot(self, left, right, labels=None, vertical=True):
@@ -66,10 +70,11 @@ class TablePlotter(object):
             max_left_rows = max([self._shape(l)[0] for l in left])
             for i, (l, label) in enumerate(zip(left, labels)):
                 ax = fig.add_subplot(gs[i, 0:max_left_cols])
-                self._make_table(ax, l, title=label, height=1.0/max_left_rows)
+                self._make_table(ax, l, title=label,
+                                 height=1.0 / max_left_rows)
             # right
             ax = plt.subplot(gs[:, max_left_cols:])
-            self._make_table(ax, right, title='Result', height=1.05/vcells)
+            self._make_table(ax, right, title='Result', height=1.05 / vcells)
             fig.subplots_adjust(top=0.9, bottom=0.05, left=0.05, right=0.95)
         else:
             max_rows = max([self._shape(df)[0] for df in left + [right]])
@@ -79,7 +84,7 @@ class TablePlotter(object):
             i = 0
             for l, label in zip(left, labels):
                 sp = self._shape(l)
-                ax = fig.add_subplot(gs[0, i:i+sp[1]])
+                ax = fig.add_subplot(gs[0, i:i + sp[1]])
                 self._make_table(ax, l, title=label, height=height)
                 i += sp[1]
             # right
@@ -107,12 +112,14 @@ class TablePlotter(object):
             data.insert(0, 'Index', data.index)
         else:
             for i in range(idx_nlevels):
-                data.insert(i, 'Index{0}'.format(i), data.index.get_level_values(i))
+                data.insert(i, 'Index{0}'.format(i),
+                            data.index.get_level_values(i))
 
         col_nlevels = data.columns.nlevels
         if col_nlevels > 1:
             col = data.columns.get_level_values(0)
-            values = [data.columns.get_level_values(i).values for i in range(1, col_nlevels)]
+            values = [data.columns.get_level_values(i).values
+                      for i in range(1, col_nlevels)]
             col_df = pd.DataFrame(values)
             data.columns = col_df.columns
             data = pd.concat([col_df, data])
@@ -151,7 +158,6 @@ class TablePlotter(object):
 
 
 if __name__ == "__main__":
-    import pandas as pd
     import matplotlib.pyplot as plt
 
     p = TablePlotter()
@@ -174,11 +180,11 @@ if __name__ == "__main__":
     plt.show()
 
     idx = pd.MultiIndex.from_tuples([(1, 'A'), (1, 'B'), (1, 'C'),
-                                 (2, 'A'), (2, 'B'), (2, 'C')])
+                                     (2, 'A'), (2, 'B'), (2, 'C')])
     col = pd.MultiIndex.from_tuples([(1, 'A'), (1, 'B')])
     df3 = pd.DataFrame({'v1': [1, 2, 3, 4, 5, 6],
                         'v2': [5, 6, 7, 8, 9, 10]},
-                        index=idx)
+                       index=idx)
     df3.columns = col
     p.plot(df3, df3, labels=['df3'])
     plt.show()

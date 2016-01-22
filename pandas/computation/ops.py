@@ -498,12 +498,13 @@ class UnaryOp(Op):
         if operand.return_type == np.dtype('bool'):
             return np.dtype('bool')
         if (isinstance(operand, Op) and
-            (operand.op in _cmp_ops_dict or operand.op in _bool_ops_dict)):
+                (operand.op in _cmp_ops_dict or operand.op in _bool_ops_dict)):
             return np.dtype('bool')
         return np.dtype('int')
 
 
 class MathCall(Op):
+
     def __init__(self, func, args):
         super(MathCall, self).__init__(func.name, args)
         self.func = func
@@ -518,9 +519,11 @@ class MathCall(Op):
 
 
 class FuncNode(object):
+
     def __init__(self, name):
         if name not in _mathops:
-            raise ValueError("\"{0}\" is not a supported function".format(name))
+            raise ValueError(
+                "\"{0}\" is not a supported function".format(name))
         self.name = name
         self.func = getattr(np, name)
 

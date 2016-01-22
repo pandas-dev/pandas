@@ -1,6 +1,8 @@
 from __future__ import division
 # pylint: disable-msg=W0402
 
+# flake8: noqa
+
 import random
 import re
 import string

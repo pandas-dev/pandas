@@ -32,4 +32,4 @@ def is_compat(major_ver=1):
         return LooseVersion(stop_ver) <= ver
     else:
         raise ValueError('cannot test for openpyxl compatibility with ver {0}'
-                .format(major_ver))
+                         .format(major_ver))

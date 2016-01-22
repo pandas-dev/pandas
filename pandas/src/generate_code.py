@@ -6,6 +6,8 @@ during building.  To regenerate `generated.pyx`, just run:
 
 """
 
+# flake8: noqa
+
 from __future__ import print_function
 import os
 from pandas.compat import StringIO

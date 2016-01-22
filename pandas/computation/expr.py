@@ -2,11 +2,7 @@
 """
 
 import ast
-import operator
-import sys
-import inspect
 import tokenize
-import datetime
 
 from functools import partial
 
@@ -21,7 +17,7 @@ from pandas.computation.ops import (_cmp_ops_syms, _bool_ops_syms,
 from pandas.computation.ops import _reductions, _mathops, _LOCAL_TAG
 from pandas.computation.ops import Op, BinOp, UnaryOp, Term, Constant, Div
 from pandas.computation.ops import UndefinedVariableError, FuncNode
-from pandas.computation.scope import Scope, _ensure_scope
+from pandas.computation.scope import Scope
 
 
 def tokenize_string(source):
@@ -381,9 +377,9 @@ class BaseExprVisitor(ast.NodeVisitor):
                                                       rhs.type))
 
         if self.engine != 'pytables':
-            if (res.op in _cmp_ops_syms
-                    and getattr(lhs, 'is_datetime', False)
-                    or getattr(rhs, 'is_datetime', False)):
+            if (res.op in _cmp_ops_syms and
+                    getattr(lhs, 'is_datetime', False) or
+                    getattr(rhs, 'is_datetime', False)):
                 # all date ops must be done in python bc numexpr doesn't work
                 # well with NaT
                 return self._possibly_eval(res, self.binary_ops)
@@ -392,8 +388,8 @@ class BaseExprVisitor(ast.NodeVisitor):
             # "in"/"not in" ops are always evaluated in python
             return self._possibly_eval(res, eval_in_python)
         elif self.engine != 'pytables':
-            if (getattr(lhs, 'return_type', None) == object
-                    or getattr(rhs, 'return_type', None) == object):
+            if (getattr(lhs, 'return_type', None) == object or
+                    getattr(rhs, 'return_type', None) == object):
                 # evaluate "==" and "!=" in python if either of our operands
                 # has an object return type
                 return self._possibly_eval(res, eval_in_python +
@@ -517,7 +513,8 @@ class BaseExprVisitor(ast.NodeVisitor):
         raise ValueError("Invalid Attribute context {0}".format(ctx.__name__))
 
     def visit_Call_35(self, node, side=None, **kwargs):
-        """ in 3.5 the starargs attribute was changed to be more flexible, #11097 """
+        """ in 3.5 the starargs attribute was changed to be more flexible,
+        #11097 """
 
         if isinstance(node.func, ast.Attribute):
             res = self.visit_Attribute(node.func)
@@ -541,7 +538,7 @@ class BaseExprVisitor(ast.NodeVisitor):
 
         if isinstance(res, FuncNode):
 
-            new_args = [ self.visit(arg) for arg in node.args ]
+            new_args = [self.visit(arg) for arg in node.args]
 
             if node.keywords:
                 raise TypeError("Function \"{0}\" does not support keyword "
@@ -551,7 +548,7 @@ class BaseExprVisitor(ast.NodeVisitor):
 
         else:
 
-            new_args = [ self.visit(arg).value for arg in node.args ]
+            new_args = [self.visit(arg).value for arg in node.args]
 
             for key in node.keywords:
                 if not isinstance(key, ast.keyword):
@@ -559,7 +556,9 @@ class BaseExprVisitor(ast.NodeVisitor):
                                      "'{0}'".format(node.func.id))
 
                 if key.arg:
-                    kwargs.append(ast.keyword(keyword.arg, self.visit(keyword.value)))
+                    # TODO: bug?
+                    kwargs.append(ast.keyword(
+                        keyword.arg, self.visit(keyword.value)))  # noqa
 
             return self.const_type(res(*new_args, **kwargs), self.env)
 
