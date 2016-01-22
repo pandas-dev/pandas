@@ -5,8 +5,9 @@ _WINDOW_TYPES = {
     2: 'expanding'
 }
 # also allow 'rolling' as key
-_WINDOW_TYPES.update((v, v) for k,v in list(_WINDOW_TYPES.items()))
+_WINDOW_TYPES.update((v, v) for k, v in list(_WINDOW_TYPES.items()))
 _ADDITIONAL_CLUSTER_TYPES = set(("entity", "time"))
+
 
 def _get_cluster_type(cluster_type):
     # this was previous behavior
@@ -20,14 +21,17 @@ def _get_cluster_type(cluster_type):
             return final_type
         raise ValueError('Unrecognized cluster type: %s' % cluster_type)
 
+
 def _get_window_type(window_type):
     # e.g., 0, 1, 2
     final_type = _WINDOW_TYPES.get(window_type)
     # e.g., 'full_sample'
-    final_type = final_type or _WINDOW_TYPES.get(str(window_type).lower().replace(" ", "_"))
+    final_type = final_type or _WINDOW_TYPES.get(
+        str(window_type).lower().replace(" ", "_"))
     if final_type is None:
         raise ValueError('Unrecognized window type: %s' % window_type)
     return final_type
+
 
 def banner(text, width=80):
     """

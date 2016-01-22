@@ -4,6 +4,8 @@ Unit test suite for OLS and PanelOLS classes
 
 # pylint: disable-msg=W0212
 
+# flake8: noqa
+
 from __future__ import division
 
 from datetime import datetime
@@ -425,6 +427,7 @@ class TestOLSMisc(tm.TestCase):
         y = tm.makeTimeSeries()
 
         data = {'foo': df1, 'bar': df2}
+
         def f():
             with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
                 ols(y=y, x=data)
@@ -655,7 +658,8 @@ class TestPanelOLS(BaseTest):
 
     def testWithXEffectsAndConversion(self):
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            result = ols(y=self.panel_y3, x=self.panel_x3, x_effects=['x1', 'x2'])
+            result = ols(y=self.panel_y3, x=self.panel_x3,
+                         x_effects=['x1', 'x2'])
 
         assert_almost_equal(result._y.values.flat, [1, 2, 3, 4])
         exp_x = [[0, 0, 0, 1, 1], [1, 0, 0, 0, 1], [0, 1, 1, 0, 1],
@@ -713,10 +717,12 @@ class TestPanelOLS(BaseTest):
     def testRollingWithEntityCluster(self):
         self.checkMovingOLS(self.panel_x, self.panel_y,
                             cluster='entity')
+
     def testUnknownClusterRaisesValueError(self):
         assertRaisesRegexp(ValueError, "Unrecognized cluster.*ridiculous",
                            self.checkMovingOLS, self.panel_x, self.panel_y,
-                                               cluster='ridiculous')
+                           cluster='ridiculous')
+
     def testRollingWithTimeEffectsAndEntityCluster(self):
         self.checkMovingOLS(self.panel_x, self.panel_y,
                             time_effects=True, cluster='entity')
@@ -744,6 +750,7 @@ class TestPanelOLS(BaseTest):
         self.checkNonPooled(y=self.panel_y, x=self.panel_x)
         self.checkNonPooled(y=self.panel_y, x=self.panel_x,
                             window_type='rolling', window=25, min_periods=10)
+
     def testUnknownWindowType(self):
         assertRaisesRegexp(ValueError, "window.*ridiculous",
                            self.checkNonPooled, y=self.panel_y, x=self.panel_x,
@@ -855,6 +862,7 @@ class TestPanelOLS(BaseTest):
         # test a function that doesn't aggregate
         f2 = lambda x: np.zeros((2, 2))
         self.assertRaises(Exception, _group_agg, values, bounds, f2)
+
 
 def _check_non_raw_results(model):
     _check_repr(model)

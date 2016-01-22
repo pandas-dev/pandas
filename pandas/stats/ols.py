@@ -4,6 +4,8 @@ Ordinary least squares regression
 
 # pylint: disable-msg=W0201
 
+# flake8: noqa
+
 from pandas.compat import zip, range, StringIO
 from itertools import starmap
 from pandas import compat
@@ -21,7 +23,6 @@ import pandas.stats.math as math
 import pandas.stats.moments as moments
 
 _FP_ERR = 1e-8
-
 
 class OLS(StringMixin):
     """
@@ -103,7 +104,7 @@ class OLS(StringMixin):
             filt_rhs['intercept'] = 1.
             pre_filt_rhs['intercept'] = 1.
 
-        if hasattr(filt_weights,'to_dense'):
+        if hasattr(filt_weights, 'to_dense'):
             filt_weights = filt_weights.to_dense()
 
         return (filt_lhs, filt_rhs, filt_weights,
@@ -630,6 +631,7 @@ class MovingOLS(OLS):
         Assume data is overlapping when computing Newey-West estimator
 
     """
+
     def __init__(self, y, x, weights=None, window_type='expanding',
                  window=None, min_periods=None, intercept=True,
                  nw_lags=None, nw_overlap=False):
@@ -989,7 +991,7 @@ class MovingOLS(OLS):
 
         result = [2 * t.sf(a, b)
                   for a, b in zip(np.fabs(self._t_stat_raw),
-                                   self._df_resid_raw)]
+                                  self._df_resid_raw)]
 
         return np.array(result)
 
@@ -1220,7 +1222,8 @@ class MovingOLS(OLS):
             # expanding case
             window = len(self._index)
 
-        result = Series(self._time_obs_count).rolling(window, min_periods=1).sum().values
+        result = Series(self._time_obs_count).rolling(
+            window, min_periods=1).sum().values
 
         return result.astype(int)
 
@@ -1314,7 +1317,7 @@ def _filter_data(lhs, rhs, weights=None):
     filt_lhs = combined.pop('__y__')
     filt_rhs = combined
 
-    if hasattr(filt_weights,'to_dense'):
+    if hasattr(filt_weights, 'to_dense'):
         filt_weights = filt_weights.to_dense()
 
     return (filt_lhs.to_dense(), filt_rhs.to_dense(), filt_weights,

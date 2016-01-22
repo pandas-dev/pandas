@@ -7,6 +7,7 @@ from pandas.core.api import Series, DataFrame
 import pandas.stats.common as common
 from pandas.util.decorators import cache_readonly
 
+# flake8: noqa
 
 def fama_macbeth(**kwargs):
     """Runs Fama-MacBeth regression.
@@ -28,6 +29,7 @@ def fama_macbeth(**kwargs):
 
 
 class FamaMacBeth(StringMixin):
+
     def __init__(self, y, x, intercept=True, nw_lags=None,
                  nw_lags_beta=None,
                  entity_effects=False, time_effects=False, x_effects=None,
@@ -39,7 +41,7 @@ class FamaMacBeth(StringMixin):
                       FutureWarning, stacklevel=4)
 
         if dropped_dummies is None:
-                dropped_dummies = {}
+            dropped_dummies = {}
         self._nw_lags_beta = nw_lags_beta
 
         from pandas.stats.plm import MovingPanelOLS
@@ -99,7 +101,7 @@ class FamaMacBeth(StringMixin):
     def _coef_table(self):
         buffer = StringIO()
         buffer.write('%13s %13s %13s %13s %13s %13s\n' %
-                    ('Variable', 'Beta', 'Std Err', 't-stat', 'CI 2.5%', 'CI 97.5%'))
+                     ('Variable', 'Beta', 'Std Err', 't-stat', 'CI 2.5%', 'CI 97.5%'))
         template = '%13s %13.4f %13.4f %13.2f %13.4f %13.4f\n'
 
         for i, name in enumerate(self._cols):
@@ -148,12 +150,13 @@ Formula: Y ~ %(formulaRHS)s
 
 
 class MovingFamaMacBeth(FamaMacBeth):
+
     def __init__(self, y, x, window_type='rolling', window=10,
                  intercept=True, nw_lags=None, nw_lags_beta=None,
                  entity_effects=False, time_effects=False, x_effects=None,
                  cluster=None, dropped_dummies=None, verbose=False):
         if dropped_dummies is None:
-                dropped_dummies = {}
+            dropped_dummies = {}
         self._window_type = common._get_window_type(window_type)
         self._window = window
 
