@@ -5,6 +5,10 @@ from datetime import datetime
 import operator
 import nose
 from functools import wraps
+try:
+  from inspect import signature
+except:
+  from inspect import getargspec
 import platform
 import numpy as np
 import pandas as pd
