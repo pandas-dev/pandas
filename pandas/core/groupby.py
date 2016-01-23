@@ -2004,25 +2004,6 @@ class BinGrouper(BaseGrouper):
         if start < length:
             yield self.binlabels[-1], slicer(start, None)
 
-    def apply(self, f, data, axis=0):
-        result_keys = []
-        result_values = []
-        mutated = False
-        for key, group in self.get_iterator(data, axis=axis):
-            object.__setattr__(group, 'name', key)
-
-            # group might be modified
-            group_axes = _get_axes(group)
-            res = f(group)
-
-            if not _is_indexed_like(res, group_axes):
-                mutated = True
-
-            result_keys.append(key)
-            result_values.append(res)
-
-        return result_keys, result_values, mutated
-
     @cache_readonly
     def indices(self):
         indices = collections.defaultdict(list)
@@ -2071,8 +2052,8 @@ class BinGrouper(BaseGrouper):
 
     @property
     def groupings(self):
-        # for compat
-        return None
+        return [Grouping(lvl, lvl, in_axis=False, level=None, name=name)
+                for lvl, name in zip(self.levels, self.names)]
 
     def agg_series(self, obj, func):
         dummy = obj[:0]
