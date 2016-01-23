@@ -474,6 +474,13 @@ def nanargmin(values, axis=None, skipna=True):
 
 @disallow('M8', 'm8')
 def nanskew(values, axis=None, skipna=True):
+    """ Compute the sample skewness.
+
+    The statistic computed here is the adjusted Fisher-Pearson standardized
+    moment coefficient G1. The algorithm computes this coefficient directly
+    from the second and third central moment.
+
+    """
 
     mask = isnull(values)
     if not is_float_dtype(values.dtype):
@@ -486,24 +493,34 @@ def nanskew(values, axis=None, skipna=True):
         values = values.copy()
         np.putmask(values, mask, 0)
 
-    typ = values.dtype.type
-    A = values.sum(axis) / count
-    B = (values**2).sum(axis) / count - A**typ(2)
-    C = (values**3).sum(axis) / count - A**typ(3) - typ(3) * A * B
+    mean = values.sum(axis, dtype=np.float64) / count
+    if axis is not None:
+        mean = np.expand_dims(mean, axis)
+
+    adjusted = values - mean
+    if skipna:
+        np.putmask(adjusted, mask, 0)
+    adjusted2 = adjusted ** 2
+    adjusted3 = adjusted2 * adjusted
+    m2 = adjusted2.sum(axis, dtype=np.float64)
+    m3 = adjusted3.sum(axis, dtype=np.float64)
 
     # floating point error
-    B = _zero_out_fperr(B)
-    C = _zero_out_fperr(C)
+    m2 = _zero_out_fperr(m2)
+    m3 = _zero_out_fperr(m3)
 
-    result = ((np.sqrt(count * count - count) * C) /
-              ((count - typ(2)) * np.sqrt(B)**typ(3)))
+    result = (count * (count - 1) ** 0.5 / (count - 2)) * (m3 / m2 ** 1.5)
+
+    dtype = values.dtype
+    if is_float_dtype(dtype):
+        result = result.astype(dtype)
 
     if isinstance(result, np.ndarray):
-        result = np.where(B == 0, 0, result)
+        result = np.where(m2 == 0, 0, result)
         result[count < 3] = np.nan
         return result
     else:
-        result = 0 if B == 0 else result
+        result = 0 if m2 == 0 else result
         if count < 3:
             return np.nan
         return result
@@ -511,7 +528,13 @@ def nanskew(values, axis=None, skipna=True):
 
 @disallow('M8', 'm8')
 def nankurt(values, axis=None, skipna=True):
+    """ Compute the sample skewness.
 
+    The statistic computed here is the adjusted Fisher-Pearson standardized
+    moment coefficient G2, computed directly from the second and fourth
+    central moment.
+
+    """
     mask = isnull(values)
     if not is_float_dtype(values.dtype):
         values = values.astype('f8')
@@ -523,30 +546,43 @@ def nankurt(values, axis=None, skipna=True):
         values = values.copy()
         np.putmask(values, mask, 0)
 
-    typ = values.dtype.type
-    A = values.sum(axis) / count
-    B = (values**2).sum(axis) / count - A**typ(2)
-    C = (values**3).sum(axis) / count - A**typ(3) - typ(3) * A * B
-    D = ((values**4).sum(axis) / count - A**typ(4) -
-         typ(6) * B * A * A - typ(4) * C * A)
+    mean = values.sum(axis, dtype=np.float64) / count
+    if axis is not None:
+        mean = np.expand_dims(mean, axis)
 
-    B = _zero_out_fperr(B)
-    D = _zero_out_fperr(D)
+    adjusted = values - mean
+    if skipna:
+        np.putmask(adjusted, mask, 0)
+    adjusted2 = adjusted ** 2
+    adjusted4 = adjusted2 ** 2
+    m2 = adjusted2.sum(axis, dtype=np.float64)
+    m4 = adjusted4.sum(axis, dtype=np.float64)
 
-    if not isinstance(B, np.ndarray):
-        # if B is a scalar, check these corner cases first before doing
-        # division
+    adj = 3 * (count - 1) ** 2 / ((count - 2) * (count - 3))
+    numer = count * (count + 1) * (count - 1) * m4
+    denom = (count - 2) * (count - 3) * m2**2
+    result = numer / denom - adj
+
+    # floating point error
+    numer = _zero_out_fperr(numer)
+    denom = _zero_out_fperr(denom)
+
+    if not isinstance(denom, np.ndarray):
+        # if ``denom`` is a scalar, check these corner cases first before
+        # doing division
         if count < 4:
             return np.nan
-        if B == 0:
+        if denom == 0:
             return 0
 
-    result = (((count * count - typ(1)) * D / (B * B) - typ(3) *
-               ((count - typ(1))**typ(2))) / ((count - typ(2)) *
-                                              (count - typ(3))))
+    result = numer / denom - adj
+
+    dtype = values.dtype
+    if is_float_dtype(dtype):
+        result = result.astype(dtype)
 
     if isinstance(result, np.ndarray):
-        result = np.where(B == 0, 0, result)
+        result = np.where(denom == 0, 0, result)
         result[count < 4] = np.nan
 
     return result
