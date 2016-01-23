@@ -69,6 +69,9 @@ if PY3:
 
     def bytes_to_str(b, encoding=None):
         return b.decode(encoding or 'utf-8')
+    
+    def signature(f):
+        return list(inspect.signature(f).parameters.keys())
 
     def signature(f):
         return list(inspect.signature(f).parameters.keys())
@@ -108,6 +111,9 @@ else:
 
     def bytes_to_str(b, encoding='ascii'):
         return b
+    
+    def signature(f):
+        return inspect.getargspec(f).args
 
     def signature(f):
         return inspect.getargspec(f).args
