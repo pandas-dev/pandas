@@ -3627,7 +3627,7 @@ class NDFrame(PandasObject):
 
         Upsample the series into 30 second bins.
 
-        >>> series.resample('30S').upsample()[0:5] #select first 5 rows
+        >>> series.resample('30S').asfreq()[0:5] #select first 5 rows
         2000-01-01 00:00:00     0
         2000-01-01 00:00:30   NaN
         2000-01-01 00:01:00     1
@@ -3677,20 +3677,9 @@ class NDFrame(PandasObject):
                      fill_method=fill_method, convention=convention,
                      limit=limit, base=base)
 
-        # deprecation warning
-        # but call the method anyhow
-        if fill_method is not None:
-            args = "limit={0}".format(limit) if limit is not None else ""
-            warnings.warn("fill_method is deprecated to .resample()\n"
-                          "the new syntax is .resample(...)."
-                          "{fill_method}({args})".format(
-                              fill_method=fill_method,
-                              args=args),
-                          FutureWarning, stacklevel=2)
-            return r.aggregate(fill_method, limit=limit)
+        # deprecation warnings
+        # but call methods anyhow
 
-        # deprecation warning
-        # but call the method anyhow
         if how is not None:
 
             # .resample(..., how='sum')
@@ -3701,11 +3690,34 @@ class NDFrame(PandasObject):
             else:
                 method = ".apply(<func>)"
 
-            warnings.warn("how in .resample() is deprecated\n"
-                          "the new syntax is .resample(...).{method}".format(
-                              method=method),
+            # if we have both a how and fill_method, then show
+            # the following warning
+            if fill_method is None:
+                warnings.warn("how in .resample() is deprecated\n"
+                              "the new syntax is "
+                              ".resample(...).{method}".format(
+                                  method=method),
+                              FutureWarning, stacklevel=2)
+            r = r.aggregate(how)
+
+        if fill_method is not None:
+
+            # show the prior function call
+            method = '.' + method if how is not None else ''
+
+            args = "limit={0}".format(limit) if limit is not None else ""
+            warnings.warn("fill_method is deprecated to .resample()\n"
+                          "the new syntax is .resample(...){method}"
+                          ".{fill_method}({args})".format(
+                              method=method,
+                              fill_method=fill_method,
+                              args=args),
                           FutureWarning, stacklevel=2)
-            return r.aggregate(how)
+
+            if how is not None:
+                r = getattr(r, fill_method)(limit=limit)
+            else:
+                r = r.aggregate(fill_method, limit=limit)
 
         return r
 

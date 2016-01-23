@@ -1501,8 +1501,24 @@ class TestGroupBy(tm.TestCase):
                                                     ['sum', 'mean']])
         assert_frame_equal(result, expected, check_like=True)
 
-        result = grouped[['D', 'C']].agg(OrderedDict([('r', np.sum),
-                                                      ('r2', np.mean)]))
+        result = grouped.agg({'C': 'mean', 'D': 'sum'})
+        expected = pd.concat([d_sum,
+                              c_mean],
+                             axis=1)
+        assert_frame_equal(result, expected, check_like=True)
+
+        result = grouped.agg({'C': ['mean', 'sum'],
+                              'D': ['mean', 'sum']})
+        expected = pd.concat([c_mean,
+                              c_sum,
+                              d_mean,
+                              d_sum],
+                             axis=1)
+        expected.columns = MultiIndex.from_product([['C', 'D'],
+                                                    ['mean', 'sum']])
+
+        result = grouped[['D', 'C']].agg({'r': np.sum,
+                                          'r2': np.mean})
         expected = pd.concat([d_sum,
                               c_sum,
                               d_mean,

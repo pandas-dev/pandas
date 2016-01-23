@@ -423,7 +423,6 @@ pandas.DataFrame.%(name)s
         if isinstance(arg, compat.string_types):
             return getattr(self, arg)(*args, **kwargs), None
 
-        result = compat.OrderedDict()
         if isinstance(arg, dict):
 
             # aggregate based on the passed dict
@@ -483,22 +482,33 @@ pandas.DataFrame.%(name)s
                                      subset=obj)
                 return colg.aggregate(how, _level=None)
 
+            def _agg(arg, func):
+                """
+                run the aggregations over the arg with func
+                return an OrderedDict
+                """
+                result = compat.OrderedDict()
+                for fname, agg_how in compat.iteritems(arg):
+                    result[fname] = func(fname, agg_how)
+                return result
+
             # set the final keys
             keys = list(compat.iterkeys(arg))
+            result = compat.OrderedDict()
 
             # nested renamer
             if is_nested_renamer:
-                results = [_agg_1dim(k, v) for k, v in compat.iteritems(arg)]
+                result = list(_agg(arg, _agg_1dim).values())
 
-                if all(isinstance(r, dict) for r in results):
+                if all(isinstance(r, dict) for r in result):
 
+                    result, results = compat.OrderedDict(), result
                     for r in results:
                         result.update(r)
                     keys = list(compat.iterkeys(result))
 
                 else:
 
-                    result = results
                     if self._selection is not None:
                         keys = None
 
@@ -511,27 +521,29 @@ pandas.DataFrame.%(name)s
                 # but may have multiple aggregations
                 if len(sl) == 1:
 
-                    for fname, agg_how in compat.iteritems(arg):
-                        result[fname] = _agg_1dim(self._selection,
-                                                  agg_how)
+                    result = _agg(arg, lambda fname,
+                                  agg_how: _agg_1dim(self._selection, agg_how))
 
                 # we are selecting the same set as we are aggregating
                 elif not len(sl - set(compat.iterkeys(arg))):
 
-                    for fname, agg_how in compat.iteritems(arg):
-                        result[fname] = _agg_1dim(fname, agg_how)
+                    result = _agg(arg, _agg_1dim)
 
                 # we are a DataFrame, with possibly multiple aggregations
                 else:
 
-                    for fname, agg_how in compat.iteritems(arg):
-                        result[fname] = _agg_2dim(fname, agg_how)
+                    result = _agg(arg, _agg_2dim)
 
             # no selection
             else:
 
-                for col, agg_how in compat.iteritems(arg):
-                    result[col] = _agg_1dim(col, agg_how)
+                try:
+                    result = _agg(arg, _agg_1dim)
+                except SpecificationError:
+
+                    # we are aggregating expecting all 1d-returns
+                    # but we have 2d
+                    result = _agg(arg, _agg_2dim)
 
             # combine results
             if isinstance(result, list):

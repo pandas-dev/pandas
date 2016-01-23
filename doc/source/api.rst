@@ -1773,6 +1773,7 @@ Computations / Descriptive Stats
    :toctree: generated/
 
    Resampler.count
+   Resampler.nunique
    Resampler.first
    Resampler.last
    Resampler.max

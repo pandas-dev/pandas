@@ -23,6 +23,29 @@ import pandas.tslib as tslib
 
 class Resampler(_GroupBy):
 
+    """
+    Class for resampling datetimelike data, a groupby-like operation.
+    See aggregate, transform, and apply functions on this object.
+
+    It's easiest to use obj.resample(...) to use Resampler.
+
+    Parameters
+    ----------
+    obj : pandas object
+    groupby : a TimeGrouper object
+    axis : int, default 0
+    kind : str or None
+        'period', 'timestamp' to override default index treatement
+
+    Notes
+    -----
+    After resampling, see aggregate, apply, and transform functions.
+
+    Returns
+    -------
+    a Resampler of the appropriate type
+    """
+
     # to the groupby descriptor
     _attributes = ['freq', 'axis', 'closed', 'label', 'convention',
                    'loffset', 'base', 'kind']
@@ -36,7 +59,7 @@ class Resampler(_GroupBy):
                                         'exclusions']
 
     # API compat of disallowed attributes
-    _deprecated_invalids = ['iloc', 'loc', 'ix']
+    _deprecated_invalids = ['iloc', 'loc', 'ix', 'iat', 'at']
 
     def __init__(self, obj, groupby, axis=0, kind=None, **kwargs):
         self.groupby = groupby
@@ -48,6 +71,8 @@ class Resampler(_GroupBy):
         self.group_keys = True
         self.as_index = True
         self.exclusions = set()
+        self.binner = None
+        self.grouper = None
 
         self.groupby._set_grouper(self._convert_obj(obj), sort=True)
 
@@ -57,7 +82,7 @@ class Resampler(_GroupBy):
                  for k in self._attributes if
                  getattr(self.groupby, k, None) is not None]
         return "{klass} [{attrs}]".format(klass=self.__class__.__name__,
-                                          attrs=','.join(attrs))
+                                          attrs=', '.join(attrs))
 
     @property
     def obj(self):
@@ -161,8 +186,13 @@ class Resampler(_GroupBy):
         raise AbstractMethodError(self)
 
     def _set_binner(self):
-        """ setup our binners """
-        self.binner, self.grouper = self._get_binner()
+        """
+        setup our binners
+        cache these as we are an immutable object
+        """
+
+        if self.binner is None:
+            self.binner, self.grouper = self._get_binner()
 
     def _get_binner(self):
         """
@@ -174,7 +204,70 @@ class Resampler(_GroupBy):
         bin_grouper = BinGrouper(bins, binlabels)
         return binner, bin_grouper
 
+    def _assure_grouper(self):
+        """ make sure that we are creating our binner & grouper """
+        self._set_binner()
+
     def aggregate(self, arg, *args, **kwargs):
+        """
+        Apply aggregation function or functions to resampled groups, yielding
+        most likely Series but in some cases DataFrame depending on the output
+        of the aggregation function
+
+        Parameters
+        ----------
+        func_or_funcs : function or list / dict of functions
+            List/dict of functions will produce DataFrame with column names
+            determined by the function names themselves (list) or the keys in
+            the dict
+
+        Notes
+        -----
+        agg is an alias for aggregate. Use it.
+
+        Examples
+        --------
+        >>> s = Series([1,2,3,4,5],
+                        index=pd.date_range('20130101',
+                                            periods=5,freq='s'))
+        2013-01-01 00:00:00    1
+        2013-01-01 00:00:01    2
+        2013-01-01 00:00:02    3
+        2013-01-01 00:00:03    4
+        2013-01-01 00:00:04    5
+        Freq: S, dtype: int64
+
+        >>> r = s.resample('2s')
+        DatetimeIndexResampler [freq=<2 * Seconds>, axis=0, closed=left,
+                                label=left, convention=start, base=0]
+
+        >>> r.agg(np.sum)
+        2013-01-01 00:00:00    3
+        2013-01-01 00:00:02    7
+        2013-01-01 00:00:04    5
+        Freq: 2S, dtype: int64
+
+        >>> r.agg(['sum','mean','max'])
+                             sum  mean  max
+        2013-01-01 00:00:00    3   1.5    2
+        2013-01-01 00:00:02    7   3.5    4
+        2013-01-01 00:00:04    5   5.0    5
+
+        >>> r.agg({'result' : lambda x: x.mean() / x.std(),
+                   'total' : np.sum})
+                             total    result
+        2013-01-01 00:00:00      3  2.121320
+        2013-01-01 00:00:02      7  4.949747
+        2013-01-01 00:00:04      5       NaN
+
+        See also
+        --------
+        transform
+
+        Returns
+        -------
+        Series or DataFrame
+        """
 
         self._set_binner()
         result, how = self._aggregate(arg, *args, **kwargs)
@@ -191,8 +284,21 @@ class Resampler(_GroupBy):
 
     def transform(self, arg, *args, **kwargs):
         """
-        Provide a transformation on the Resampler
-        Return the same size as input
+        Call function producing a like-indexed Series on each group and return
+        a Series with the transformed values
+
+        Parameters
+        ----------
+        func : function
+            To apply to each group. Should return a Series with the same index
+
+        Examples
+        --------
+        >>> resampled.transform(lambda x: (x - x.mean()) / x.std())
+
+        Returns
+        -------
+        transformed : Series
         """
         return self._selected_obj.groupby(self.groupby).transform(
             arg, *args, **kwargs)
@@ -244,7 +350,14 @@ class Resampler(_GroupBy):
             # panel grouper
             grouped = PanelGroupBy(obj, grouper=grouper, axis=self.axis)
 
-        result = grouped.aggregate(how, *args, **kwargs)
+        try:
+            result = grouped.aggregate(how, *args, **kwargs)
+        except Exception:
+
+            # we have a non-reducing function
+            # try to evaluate
+            result = grouped.apply(how, *args, **kwargs)
+
         return self._wrap_result(result)
 
     def _wrap_result(self, result):
@@ -259,6 +372,11 @@ class Resampler(_GroupBy):
         ----------
         limit : integer, optional
             limit of how many values to fill
+
+        See Also
+        --------
+        Series.fillna
+        DataFrame.fillna
         """
         return self._upsample('pad', limit=limit)
     ffill = pad
@@ -271,6 +389,11 @@ class Resampler(_GroupBy):
         ----------
         limit : integer, optional
             limit of how many values to fill
+
+        See Also
+        --------
+        Series.fillna
+        DataFrame.fillna
         """
         return self._upsample('backfill', limit=limit)
     bfill = backfill
@@ -279,10 +402,16 @@ class Resampler(_GroupBy):
         """
         Parameters
         ----------
+        method : str, method of resampling ('ffill', 'bfill')
         limit : integer, optional
             limit of how many values to fill
+
+        See Also
+        --------
+        Series.fillna
+        DataFrame.fillna
         """
-        return self._upsample(None, limit=limit)
+        return self._upsample(method, limit=limit)
 
     def asfreq(self):
         """
@@ -461,8 +590,8 @@ class PeriodIndexResampler(DatetimeIndexResampler):
     def aggregate(self, arg, *args, **kwargs):
         result, how = self._aggregate(arg, *args, **kwargs)
         if result is None:
-            return self._wrap_result(
-                self._python_agg_general(arg, *args, **kwargs))
+            result = self._downsample(arg, *args, **kwargs)
+
         return result
 
     agg = aggregate

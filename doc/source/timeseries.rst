@@ -1295,7 +1295,7 @@ For upsampling, you can specify a way to upsample and the ``limit`` parameter to
 
    # from secondly to every 250 milliseconds
 
-   ts[:2].resample('250L').reindex()
+   ts[:2].resample('250L').asfreq()
 
    ts[:2].resample('250L').ffill()
 
@@ -1398,7 +1398,7 @@ must be implemented on the Resampled object
 
    r.agg({'A' : 'sum', 'B' : 'std'})
 
-Furthermore you can pass a nested dict to indicate different aggregations on different columns.
+Furthermore, you can also specify multiple aggregation functions for each column separately.
 
 .. ipython:: python
 

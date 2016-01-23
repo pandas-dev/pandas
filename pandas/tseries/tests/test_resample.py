@@ -47,8 +47,8 @@ class TestResampleAPI(tm.TestCase):
 
         r = self.series.resample('H')
         self.assertTrue(
-            'DatetimeIndexResampler [freq=<Hour>,axis=0,closed=left,'
-            'label=left,convention=start,base=0]' in str(r))
+            'DatetimeIndexResampler [freq=<Hour>, axis=0, closed=left, '
+            'label=left, convention=start, base=0]' in str(r))
 
     def test_api(self):
 
@@ -92,8 +92,11 @@ class TestResampleAPI(tm.TestCase):
         # invalids as these can be setting operations
         r = self.series.resample('H')
         self.assertRaises(ValueError, lambda: r.iloc[0])
+        self.assertRaises(ValueError, lambda: r.iat[0])
         self.assertRaises(ValueError, lambda: r.ix[0])
         self.assertRaises(ValueError, lambda: r.loc[
+                          Timestamp('2013-01-01 00:00:00', offset='H')])
+        self.assertRaises(ValueError, lambda: r.at[
                           Timestamp('2013-01-01 00:00:00', offset='H')])
 
         def f():
@@ -190,6 +193,22 @@ class TestResampleAPI(tm.TestCase):
             r.F = 'bah'
         self.assertRaises(ValueError, f)
 
+    def test_api_compat_before_use(self):
+
+        # make sure that we are setting the binner
+        # on these attributes
+        for attr in ['groups', 'ngroups', 'indices']:
+            rng = pd.date_range('1/1/2012', periods=100, freq='S')
+            ts = pd.Series(np.arange(len(rng)), index=rng)
+            rs = ts.resample('30s')
+
+            # before use
+            getattr(rs, attr)
+
+            # after grouper is initialized is ok
+            rs.mean()
+            getattr(rs, attr)
+
     def tests_skip_nuisance(self):
 
         df = self.frame
@@ -215,6 +234,22 @@ class TestResampleAPI(tm.TestCase):
                                               periods=5))
         assert_series_equal(result, expected)
 
+    def test_combined_up_downsampling_of_irregular(self):
+
+        # since we are reallydoing an operation like this
+        # ts2.resample('2s').mean().ffill()
+        # preserve these semantics
+
+        rng = pd.date_range('1/1/2012', periods=100, freq='S')
+        ts = pd.Series(np.arange(len(rng)), index=rng)
+        ts2 = ts.iloc[[0, 1, 2, 3, 5, 7, 11, 15, 16, 25, 30]]
+
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            result = ts2.resample('2s', how='mean', fill_method='ffill')
+        expected = ts2.resample('2s').mean().ffill()
+        assert_series_equal(result, expected)
+
     def test_transform(self):
 
         r = self.series.resample('20min')
@@ -225,17 +260,28 @@ class TestResampleAPI(tm.TestCase):
 
     def test_fillna(self):
 
-        r = self.series.resample('H')
+        # need to upsample here
+        rng = pd.date_range('1/1/2012', periods=10, freq='2S')
+        ts = pd.Series(np.arange(len(rng), dtype='int64'), index=rng)
+        r = ts.resample('s')
+
         expected = r.ffill()
         result = r.fillna(method='ffill')
         assert_series_equal(result, expected)
 
+        expected = r.bfill()
+        result = r.fillna(method='bfill')
+        assert_series_equal(result, expected)
+
     def test_apply_without_aggregation(self):
 
-        # this is in-line with groupby
-        # as far as raising
+        # both resample and groupby should work w/o aggregation
         r = self.series.resample('20min')
-        self.assertRaises(Exception, lambda: r.apply(lambda x: x))
+        g = self.series.groupby(pd.Grouper(freq='20min'))
+
+        for t in [g, r]:
+            result = t.apply(lambda x: x)
+            assert_series_equal(result, self.series)
 
     def test_agg(self):
         # test with both a Resampler and a TimeGrouper
@@ -425,6 +471,20 @@ class TestResampleAPI(tm.TestCase):
             result = t.agg({'A': {'ra': ['mean', 'std']},
                             'B': {'rb': ['mean', 'std']}})
             assert_frame_equal(result, expected, check_like=True)
+
+    def test_agg_consistency(self):
+
+        # make sure that we are consistent across
+        # similar aggregations with and w/o selection list
+        df = DataFrame(np.random.randn(1000, 3),
+                       index=pd.date_range('1/1/2012', freq='S', periods=1000),
+                       columns=['A', 'B', 'C'])
+
+        r = df.resample('3T')
+
+        expected = r[['A', 'B', 'C']].agg({'r1': 'mean', 'r2': 'sum'})
+        result = r.agg({'r1': 'mean', 'r2': 'sum'})
+        assert_frame_equal(result, expected)
 
 
 class TestResample(tm.TestCase):
@@ -1105,6 +1165,19 @@ class TestResample(tm.TestCase):
         result = ts.resample('M', kind='period').mean()
         exp_index = period_range('Jan-2000', 'Dec-2000', freq='M')
         self.assertTrue(result.index.equals(exp_index))
+
+    def test_period_with_agg(self):
+
+        # aggregate a period resampler with a lambda
+        s2 = pd.Series(np.random.randint(0, 5, 50),
+                       index=pd.period_range('2012-01-01',
+                                             freq='H',
+                                             periods=50),
+                       dtype='float64')
+
+        expected = s2.to_timestamp().resample('D').mean().to_period()
+        result = s2.resample('D').agg(lambda x: x.mean())
+        assert_series_equal(result, expected)
 
     def test_resample_empty(self):
         ts = _simple_ts('1/1/2000', '2/1/2000')[:0]
