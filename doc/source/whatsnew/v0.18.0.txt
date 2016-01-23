@@ -517,6 +517,63 @@ New API
 
    In the new API, you can either downsample OR upsample. The prior implementation would allow you to pass an aggregator function (like ``mean``) even though you were upsampling, providing a bit of confusion.
 
+.. _whatsnew_0180.breaking.aggregation:
+
+Aggregation API clarifictions
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+As part of the new API for :ref:`window functions <whatsnew_0180.enhancements.moments>` and :ref:`resampling <whatsnew_0180.resample>`, aggregation functions have been
+clarified. (:issue:`9052`). A full set of examples are presented in :ref:`groupby <groupby.aggregation>`.
+
+Here are the available methodologies and changes for these aggregations.
+
+.. ipython:: python
+
+   df = pd.DataFrame({'A': ['foo', 'bar', 'foo', 'bar',
+                            'foo', 'bar', 'foo', 'foo'],
+                      'B': ['one', 'one', 'two', 'three',
+                            'two', 'two', 'one', 'three'],
+                      'C': np.random.randn(8),
+                      'D': np.arange(8)})
+
+   grouped = df.groupby(['A', 'B'])
+
+Passing a single function or a list of aggregation functions
+
+.. ipython:: python
+
+   grouped[['D','C']].agg(['sum','mean'])
+
+
+Passing a single level dictionary will perform aggregations and name
+the result columns as the keys.
+
+.. ipython:: python
+
+   grouped['D'].agg({'result1': np.sum,
+                     'result2': np.mean})
+
+You can also pass a single level dictionary where the keys are the column names.
+
+.. ipython:: python
+
+   grouped.agg({'C': 'sum', 'D': 'std'})
+
+Finally you can pass a nested dictionary to enable specific functions on specific
+columns and have renaming.
+
+.. ipython:: python
+
+   grouped.agg({'C': {'summer': 'sum'}, 'D' : {'stddev':'std'}})
+
+The change in 0.18.0 is to disallow the following, which could be ambiguous,
+and will now raise a ``SpecificationError``.
+
+.. code-block:: python
+
+   grouped.agg({'summer': {'C': 'sum'}, 'stddev' : {'D':'std'}})
+
+
 Changes to eval
 ^^^^^^^^^^^^^^^
 
