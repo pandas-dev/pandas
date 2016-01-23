@@ -4824,6 +4824,40 @@ class TestGroupBy(tm.TestCase):
                 result = grouped.get_group(dt)
                 assert_frame_equal(result, expected)
 
+    def test_timegrouper_apply_return_type_series(self):
+        # Using `apply` with the `TimeGrouper` should give the
+        # same return type as an `apply` with a `Grouper`.
+        df = pd.DataFrame({'date': ['10/10/2000', '11/10/2000'],
+                           'value': [10, 13]})
+        df_dt = df.copy()
+        df_dt['date'] = pd.to_datetime(df_dt['date'])
+
+        def sumfunc_series(x):
+            return pd.Series([x['value'].sum()], ('sum',))
+
+        expected = df.groupby(pd.Grouper(key='date')).apply(sumfunc_series)
+        result = (df_dt.groupby(pd.TimeGrouper(freq='M', key='date'))
+                  .apply(sumfunc_series))
+        assert_frame_equal(result.reset_index(drop=True),
+                           expected.reset_index(drop=True))
+
+    def test_timegrouper_apply_return_type_value(self):
+        # Using `apply` with the `TimeGrouper` should give the
+        # same return type as an `apply` with a `Grouper`.
+        df = pd.DataFrame({'date': ['10/10/2000', '11/10/2000'],
+                           'value': [10, 13]})
+        df_dt = df.copy()
+        df_dt['date'] = pd.to_datetime(df_dt['date'])
+
+        def sumfunc_value(x):
+            return x.value.sum()
+
+        expected = df.groupby(pd.Grouper(key='date')).apply(sumfunc_value)
+        result = (df_dt.groupby(pd.TimeGrouper(freq='M', key='date'))
+                  .apply(sumfunc_value))
+        assert_series_equal(result.reset_index(drop=True),
+                            expected.reset_index(drop=True))
+
     def test_cumcount(self):
         df = DataFrame([['a'], ['a'], ['a'], ['b'], ['a']], columns=['A'])
         g = df.groupby('A')
