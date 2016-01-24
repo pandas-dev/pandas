@@ -5,7 +5,7 @@ import numpy as np
 import pandas.index as _index
 
 from pandas import compat
-from pandas.compat import lrange
+from pandas.compat import lrange, range
 from pandas.indexes.base import Index
 from pandas.util.decorators import Appender, cache_readonly
 import pandas.core.common as com
