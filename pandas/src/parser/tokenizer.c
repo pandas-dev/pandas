@@ -408,7 +408,7 @@ static int push_char(parser_t *self, char c) {
     return 0;
 }
 
-static int P_INLINE end_field(parser_t *self) {
+int P_INLINE end_field(parser_t *self) {
     // XXX cruft
 //    self->numeric_field = 0;
     if (self->words_len >= self->words_cap) {

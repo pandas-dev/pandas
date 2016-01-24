@@ -283,19 +283,19 @@ static int daytime_conversion_factors[][2] = {
 
 static npy_int64** daytime_conversion_factor_matrix = NULL;
 
-PANDAS_INLINE static int max_value(int a, int b) {
+PANDAS_INLINE int max_value(int a, int b) {
     return a > b ? a : b;
 }
 
-PANDAS_INLINE static int min_value(int a, int b) {
+PANDAS_INLINE int min_value(int a, int b) {
     return a < b ? a : b;
 }
 
-PANDAS_INLINE static int get_freq_group(int freq) {
+PANDAS_INLINE int get_freq_group(int freq) {
     return (freq/1000)*1000;
 }
 
-PANDAS_INLINE static int get_freq_group_index(int freq) {
+PANDAS_INLINE int get_freq_group_index(int freq) {
     return freq/1000;
 }
 
@@ -399,7 +399,7 @@ PANDAS_INLINE npy_int64 downsample_daytime(npy_int64 ordinal, asfreq_info *af_in
     return ordinal / (af_info->intraday_conversion_factor);
 }
 
-PANDAS_INLINE static npy_int64 transform_via_day(npy_int64 ordinal, char relation, asfreq_info *af_info, freq_conv_func first_func, freq_conv_func second_func) {
+PANDAS_INLINE npy_int64 transform_via_day(npy_int64 ordinal, char relation, asfreq_info *af_info, freq_conv_func first_func, freq_conv_func second_func) {
     //printf("transform_via_day(%ld, %ld, %d)\n", ordinal, af_info->intraday_conversion_factor, af_info->intraday_conversion_upsample);
 	npy_int64 result;
 

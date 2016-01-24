@@ -54,11 +54,11 @@ int main() {
 
 #ifndef PANDAS_INLINE
   #if defined(__GNUC__)
-    #define PANDAS_INLINE __inline__
+    #define PANDAS_INLINE static __inline__
   #elif defined(_MSC_VER)
-    #define PANDAS_INLINE __inline
+    #define PANDAS_INLINE static __inline
   #elif defined (__STDC_VERSION__) && __STDC_VERSION__ >= 199901L
-    #define PANDAS_INLINE inline
+    #define PANDAS_INLINE static inline
   #else
     #define PANDAS_INLINE
   #endif

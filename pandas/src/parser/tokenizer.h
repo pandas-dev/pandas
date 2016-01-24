@@ -41,11 +41,11 @@ See LICENSE for the license
 
 #ifndef P_INLINE
   #if defined(__GNUC__)
-    #define P_INLINE __inline__
+    #define P_INLINE static __inline__
   #elif defined(_MSC_VER)
     #define P_INLINE
   #elif defined (__STDC_VERSION__) && __STDC_VERSION__ >= 199901L
-    #define P_INLINE inline
+    #define P_INLINE static inline
   #else
     #define P_INLINE
   #endif
