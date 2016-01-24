@@ -138,7 +138,7 @@ class NoseTester(nosetester.NoseTester):
             * 'full' - fast (as above) and slow tests as in the
               'no -A' option to nosetests - this is the same as ''.
             * None or '' - run all tests.
-            attribute_identifier - string passed directly to nosetests as '-A'.
+            * attribute_identifier - string passed directly to nosetests as '-A'.
         verbose : int, optional
             Verbosity value for test outputs, in the range 1-10. Default is 1.
         extra_argv : list, optional
@@ -147,14 +147,14 @@ class NoseTester(nosetester.NoseTester):
             If True, run doctests in module. Default is False.
         coverage : bool, optional
             If True, report coverage of NumPy code. Default is False.
-            (This requires the `coverage module:
-             <http://nedbatchelder.com/code/modules/coverage.html>`_).
+            (This requires the `coverage module
+            <http://nedbatchelder.com/code/modules/coverage.html>`_).
         raise_warnings : str or sequence of warnings, optional
             This specifies which warnings to configure as 'raise' instead
             of 'warn' during the test execution.  Valid strings are:
 
-              - "develop" : equals ``(DeprecationWarning, RuntimeWarning)``
-              - "release" : equals ``()``, don't raise on any warnings.
+            - "develop" : equals ``(DeprecationWarning, RuntimeWarning)``
+            - "release" : equals ``()``, don't raise on any warnings.
 
         Returns
         -------
