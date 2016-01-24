@@ -2192,6 +2192,18 @@ indices to be parsed.
 
    read_excel('path_to_file.xls', 'Sheet1', parse_cols=[0, 2, 3])
 
+
+Parsing Dates
++++++++++++++
+
+The `parse_dates` keyword for `read_excel` is used to specify whether to parse strings
+to a datetime.
+
+.. code-block:: python
+
+   read_excel('path_to_file.xls', 'Sheet1', parse_dates=['strings'])
+
+
 Cell Converters
 +++++++++++++++
 
