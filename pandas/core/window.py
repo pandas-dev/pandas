@@ -511,7 +511,7 @@ class _Rolling_and_Expanding(_Rolling):
     ----------
     func : function
         Must produce a single value from an ndarray input
-        *args and **kwargs are passed to the function""")
+        \*args and \*\*kwargs are passed to the function""")
 
     def apply(self, func, args=(), kwargs={}):
         # TODO: _level is unused?
