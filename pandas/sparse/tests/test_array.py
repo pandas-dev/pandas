@@ -1,13 +1,11 @@
 from pandas.compat import range
 import re
-from numpy import nan, ndarray
+from numpy import nan
 import numpy as np
 
 import operator
 import warnings
 
-from pandas.core.series import Series
-from pandas.core.common import notnull
 from pandas.sparse.api import SparseArray
 from pandas.util.testing import assert_almost_equal, assertRaisesRegexp
 import pandas.util.testing as tm
@@ -15,11 +13,11 @@ import pandas.util.testing as tm
 
 def assert_sp_array_equal(left, right):
     assert_almost_equal(left.sp_values, right.sp_values)
-    assert(left.sp_index.equals(right.sp_index))
+    assert (left.sp_index.equals(right.sp_index))
     if np.isnan(left.fill_value):
-        assert(np.isnan(right.fill_value))
+        assert (np.isnan(right.fill_value))
     else:
-        assert(left.fill_value == right.fill_value)
+        assert (left.fill_value == right.fill_value)
 
 
 class TestSparseArray(tm.TestCase):
@@ -46,6 +44,7 @@ class TestSparseArray(tm.TestCase):
 
         def setslice():
             self.arr[1:5] = 2
+
         assertRaisesRegexp(TypeError, "item assignment", setitem)
         assertRaisesRegexp(TypeError, "item assignment", setslice)
 
@@ -79,7 +78,7 @@ class TestSparseArray(tm.TestCase):
                 base = base.base
             return base
 
-        assert(_get_base(arr2) is _get_base(self.arr))
+        assert (_get_base(arr2) is _get_base(self.arr))
 
     def test_values_asarray(self):
         assert_almost_equal(self.arr.values, self.arr_data)
@@ -150,7 +149,7 @@ class TestSparseArray(tm.TestCase):
                 exp_fv = op(first.fill_value, 4)
                 assert_almost_equal(res4.fill_value, exp_fv)
                 assert_almost_equal(res4.values, exp)
-            except (ValueError) :
+            except ValueError:
                 pass
 
         def _check_inplace_op(op):
@@ -184,7 +183,7 @@ class TestSparseArray(tm.TestCase):
                                     category=PendingDeprecationWarning)
             for _ in sp_arr:
                 pass
-            assert len(w)==0
+            assert len(w) == 0
 
 
 if __name__ == '__main__':
