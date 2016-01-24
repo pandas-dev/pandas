@@ -1,4 +1,4 @@
-from .base import (Index,  # noqa
+from .base import (Index, _new_Index,  # noqa
                    _ensure_index, _get_na_value,
                    InvalidIndexError)
 from .category import CategoricalIndex  # noqa
@@ -13,6 +13,7 @@ import pandas.lib as lib
 __all__ = ['Index', 'MultiIndex', 'NumericIndex', 'Float64Index', 'Int64Index',
            'CategoricalIndex', 'RangeIndex',
            'InvalidIndexError',
+           '_new_Index',
            '_ensure_index', '_get_na_value', '_get_combined_index',
            '_get_distinct_indexes', '_union_indexes',
            '_get_consensus_names',
