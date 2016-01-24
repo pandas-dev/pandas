@@ -14,33 +14,11 @@ import pandas.util.testing as tm
 
 import pandas as pd
 
-if PY3:
-    unicode = lambda x: x
-
 
 class Base(object):
     """ base class for index sub-class tests """
     _holder = None
     _compat_props = ['shape', 'ndim', 'size', 'itemsize', 'nbytes']
-
-    # @staticmethod
-    # def setup_indices(cls, indices):
-    #     # setup the test indices in the self.indices dict
-    #     def make_accessor(x):
-    #         @property
-    #         def accessor(self):
-    #             key = '__cached_{0}'.format(x)
-    #             if hasattr(self, key):
-    #                 return getattr(self, key)
-    #             else:
-    #                 result = self.indices[x].copy(deep=True)
-    #                 setattr(self, key, result)
-    #                 return result
-
-    #         return accessor
-
-    #     for name in indices:
-    #         setattr(cls, name, make_accessor(name))
 
     def setup_indices(self):
         for name, idx in self.indices.items():

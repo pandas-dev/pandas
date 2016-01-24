@@ -1,10 +1,11 @@
-from .base import (Index, _new_Index,  # noqa
-                   _ensure_index, _get_na_value,
-                   InvalidIndexError)
-from .category import CategoricalIndex  # noqa
-from .multi import MultiIndex  # noqa
-from .numeric import NumericIndex, Float64Index, Int64Index  # noqa
-from .range import RangeIndex  # noqa
+from pandas.indexes.base import (Index, _new_Index,  # noqa
+                                 _ensure_index, _get_na_value,
+                                 InvalidIndexError)
+from pandas.indexes.category import CategoricalIndex  # noqa
+from pandas.indexes.multi import MultiIndex  # noqa
+from pandas.indexes.numeric import (NumericIndex, Float64Index,  # noqa
+                                    Int64Index)
+from pandas.indexes.range import RangeIndex  # noqa
 
 import pandas.core.common as com
 import pandas.lib as lib

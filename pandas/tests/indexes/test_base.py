@@ -29,9 +29,6 @@ from pandas.tseries.index import _to_m8
 import pandas as pd
 from pandas.lib import Timestamp
 
-if PY3:
-    unicode = lambda x: x
-
 
 class TestIndex(Base, tm.TestCase):
     _holder = Index
@@ -1349,7 +1346,7 @@ class TestIndex(Base, tm.TestCase):
             self.assertEqual(repr(idx), expected)
         else:
             expected = u"""Index([u'a', u'bb', u'ccc'], dtype='object')"""
-            self.assertEqual(unicode(idx), expected)
+            self.assertEqual(u(idx), expected)
 
         # multiple lines
         idx = pd.Index(['a', 'bb', 'ccc'] * 10)
@@ -1368,7 +1365,7 @@ Index([u'a', u'bb', u'ccc', u'a', u'bb', u'ccc', u'a', u'bb', u'ccc', u'a',
        u'ccc', u'a', u'bb', u'ccc', u'a', u'bb', u'ccc', u'a', u'bb', u'ccc'],
       dtype='object')"""
 
-            self.assertEqual(unicode(idx), expected)
+            self.assertEqual(u(idx), expected)
 
         # truncated
         idx = pd.Index(['a', 'bb', 'ccc'] * 100)
@@ -1387,7 +1384,7 @@ Index([u'a', u'bb', u'ccc', u'a', u'bb', u'ccc', u'a', u'bb', u'ccc', u'a',
        u'ccc', u'a', u'bb', u'ccc', u'a', u'bb', u'ccc', u'a', u'bb', u'ccc'],
       dtype='object', length=300)"""
 
-            self.assertEqual(unicode(idx), expected)
+            self.assertEqual(u(idx), expected)
 
         # short
         idx = pd.Index([u'あ', u'いい', u'ううう'])
@@ -1397,7 +1394,7 @@ Index([u'a', u'bb', u'ccc', u'a', u'bb', u'ccc', u'a', u'bb', u'ccc', u'a',
         else:
             expected = u"""\
 Index([u'あ', u'いい', u'ううう'], dtype='object')"""
-            self.assertEqual(unicode(idx), expected)
+            self.assertEqual(u(idx), expected)
 
         # multiple lines
         idx = pd.Index([u'あ', u'いい', u'ううう'] * 10)
@@ -1414,7 +1411,7 @@ Index([u'あ', u'いい', u'ううう'], dtype='object')"""
        u'ううう', u'あ', u'いい', u'ううう', u'あ', u'いい', u'ううう', u'あ', u'いい', u'ううう'],
       dtype='object')"""
 
-            self.assertEqual(unicode(idx), expected)
+            self.assertEqual(u(idx), expected)
 
         # truncated
         idx = pd.Index([u'あ', u'いい', u'ううう'] * 100)
@@ -1431,7 +1428,7 @@ Index([u'あ', u'いい', u'ううう'], dtype='object')"""
        u'ううう', u'あ', u'いい', u'ううう', u'あ', u'いい', u'ううう', u'あ', u'いい', u'ううう'],
       dtype='object', length=300)"""
 
-            self.assertEqual(unicode(idx), expected)
+            self.assertEqual(u(idx), expected)
 
         # Emable Unicode option -----------------------------------------
         with cf.option_context('display.unicode.east_asian_width', True):
@@ -1443,7 +1440,7 @@ Index([u'あ', u'いい', u'ううう'], dtype='object')"""
                 self.assertEqual(repr(idx), expected)
             else:
                 expected = u"""Index([u'あ', u'いい', u'ううう'], dtype='object')"""
-                self.assertEqual(unicode(idx), expected)
+                self.assertEqual(u(idx), expected)
 
             # multiple lines
             idx = pd.Index([u'あ', u'いい', u'ううう'] * 10)
@@ -1462,7 +1459,7 @@ Index([u'あ', u'いい', u'ううう'], dtype='object')"""
        u'ううう', u'あ', u'いい', u'ううう', u'あ', u'いい', u'ううう'],
       dtype='object')"""
 
-                self.assertEqual(unicode(idx), expected)
+                self.assertEqual(u(idx), expected)
 
             # truncated
             idx = pd.Index([u'あ', u'いい', u'ううう'] * 100)
@@ -1483,7 +1480,7 @@ Index([u'あ', u'いい', u'ううう'], dtype='object')"""
        u'いい', u'ううう'],
       dtype='object', length=300)"""
 
-                self.assertEqual(unicode(idx), expected)
+                self.assertEqual(u(idx), expected)
 
 
 def test_get_combined_index():
