@@ -237,7 +237,7 @@ class Styler(object):
                 cs = [DATA_CLASS, "row%s" % r, "col%s" % c]
                 cs.extend(cell_context.get("data", {}).get(r, {}).get(c, []))
                 row_es.append({"type": "td",
-                               "value": self.data.iloc[r][c],
+                               "value": self.data.iloc[r, c],
                                "class": " ".join(cs),
                                "id": "_".join(cs[1:])})
                 props = []

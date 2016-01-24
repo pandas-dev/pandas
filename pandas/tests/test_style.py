@@ -164,6 +164,12 @@ class TestStyler(TestCase):
 
         self.assertEqual(result['head'], expected)
 
+    def test_numeric_columns(self):
+        # https://github.com/pydata/pandas/issues/12125
+        # smoke test for _translate
+        df = pd.DataFrame({0: [1, 2, 3]})
+        df.style._translate()
+
     def test_apply_axis(self):
         df = pd.DataFrame({'A': [0, 0], 'B': [1, 1]})
         f = lambda x: ['val: %s' % x.max() for v in x]
