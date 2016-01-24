@@ -10,7 +10,8 @@ from pandas.indexes.range import RangeIndex  # noqa
 import pandas.core.common as com
 import pandas.lib as lib
 
-
+# TODO: there are many places that rely on these private methods existing in
+# pandas.core.index
 __all__ = ['Index', 'MultiIndex', 'NumericIndex', 'Float64Index', 'Int64Index',
            'CategoricalIndex', 'RangeIndex',
            'InvalidIndexError',
