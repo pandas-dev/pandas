@@ -1108,3 +1108,9 @@ class TestDataFrameToCSV(tm.TestCase, TestData):
             df.to_pickle(path)
             result = pd.read_pickle(path)
             assert_frame_equal(result, df)
+
+    def test_to_csv_empty_frame(self):
+        # GH12048
+        actual = read_csv(StringIO('A,B'), dtype=str)
+        expected = pd.DataFrame({'A': [], 'B': []}, index=[], dtype=str)
+        assert_frame_equal(actual, expected)
