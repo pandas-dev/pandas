@@ -94,8 +94,9 @@ def pivot_table(data, values=None, index=None, columns=None, aggfunc='mean',
 
     values_passed = values is not None
     if values_passed:
-        if isinstance(values, (list, tuple)):
+        if com.is_list_like(values):
             values_multi = True
+            values = list(values)
         else:
             values_multi = False
             values = [values]
