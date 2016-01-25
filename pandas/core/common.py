@@ -3039,3 +3039,29 @@ def _random_state(state=None):
     else:
         raise ValueError("random_state must be an integer, a numpy "
                          "RandomState, or None")
+
+
+def pandas_dtype(dtype):
+    """
+    Converts input into a pandas only dtype object or a numpy dtype object.
+
+    Parameters
+    ----------
+    dtype : object to be converted
+
+    Returns
+    -------
+    np.dtype or a pandas dtype
+    """
+    if isinstance(dtype, compat.string_types):
+        try:
+            return DatetimeTZDtype.construct_from_string(dtype)
+        except TypeError:
+            pass
+
+        try:
+            return CategoricalDtype.construct_from_string(dtype)
+        except TypeError:
+            pass
+
+    return np.dtype(dtype)

@@ -331,11 +331,16 @@ class TestSeries(TestPackers):
             'C': ['foo1', 'foo2', 'foo3', 'foo4', 'foo5'],
             'D': date_range('1/1/2009', periods=5),
             'E': [0., 1, Timestamp('20100101'), 'foo', 2.],
+            'F': [Timestamp('20130102', tz='US/Eastern')] * 2 +
+                 [Timestamp('20130603', tz='CET')] * 3,
+            'G': [Timestamp('20130102', tz='US/Eastern')] * 5
         }
 
         self.d['float'] = Series(data['A'])
         self.d['int'] = Series(data['B'])
         self.d['mixed'] = Series(data['E'])
+        self.d['dt_tz_mixed'] = Series(data['F'])
+        self.d['dt_tz'] = Series(data['G'])
 
     def test_basic(self):
 
@@ -357,13 +362,14 @@ class TestNDFrame(TestPackers):
             'C': ['foo1', 'foo2', 'foo3', 'foo4', 'foo5'],
             'D': date_range('1/1/2009', periods=5),
             'E': [0., 1, Timestamp('20100101'), 'foo', 2.],
+            'F': [Timestamp('20130102', tz='US/Eastern')] * 5,
+            'G': [Timestamp('20130603', tz='CET')] * 5
         }
 
         self.frame = {
             'float': DataFrame(dict(A=data['A'], B=Series(data['A']) + 1)),
             'int': DataFrame(dict(A=data['B'], B=Series(data['B']) + 1)),
-            'mixed': DataFrame(dict([(k, data[k])
-                                     for k in ['A', 'B', 'C', 'D']]))}
+            'mixed': DataFrame(data)}
 
         self.panel = {
             'float': Panel(dict(ItemA=self.frame['float'],
@@ -713,6 +719,11 @@ TestPackers
         pth = tm.get_data_path('legacy_msgpack/{0}'.format(str(version)))
         n = 0
         for f in os.listdir(pth):
+            # GH12142 0.17 files packed in P2 can't be read in P3
+            if (compat.PY3 and
+                    version.startswith('0.17.') and
+                    f.split('.')[-4][-1] == '2'):
+                continue
             vf = os.path.join(pth, f)
             self.compare(vf, version)
             n += 1

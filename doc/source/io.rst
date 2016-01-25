@@ -2539,6 +2539,24 @@ both on the writing (serialization), and reading (deserialization).
    optimizations in the io of the ``msgpack`` data. Since this is marked
    as an EXPERIMENTAL LIBRARY, the storage format may not be stable until a future release.
 
+   As a result of writing format changes and other issues:
+   +----------------------+------------------------+
+   | Packed with          | Can be unpacked with   |
+   +======================+========================+
+   | pre-0.17 / Python 2  | any                    |
+   +----------------------+------------------------+
+   | pre-0.17 / Python 3  | any                    |
+   +----------------------+------------------------+
+   | 0.17 / Python 2      | - 0.17 / Python 2      |
+   |                      | - >=0.18 / any Python  |
+   +----------------------+------------------------+
+   | 0.17 / Python 3      | >=0.18 / any Python    |
+   +----------------------+------------------------+
+   | 0.18                 | >= 0.18                |
+   +======================+========================+
+   
+   Reading (files packed by older versions) is backward-compatibile, except for files packed with 0.17 in Python 2, in which case only they can only be unpacked in Python 2.
+
 .. ipython:: python
 
    df = DataFrame(np.random.rand(5,2),columns=list('AB'))
