@@ -513,6 +513,33 @@ Subtraction by ``Timedelta`` in a ``Series`` by a ``Timestamp`` works (:issue:`1
 ``pd.Timestamp`` to rehydrate any timestamp like object from its isoformat
 (:issue:`12300`).
 
+Changes to msgpack
+^^^^^^^^^^^^^^^^^^
+
+Forward incompatible changes in ``msgpack`` writing format were made over 0.17.0 and 0.18.0; older versions of pandas cannot read files packed by newer versions (:issue:`12129`, `10527`)
+
+Bug in ``to_msgpack`` and ``read_msgpack`` introduced in 0.17.0 and fixed in 0.18.0, caused files packed in Python 2 unreadable by Python 3 (:issue:`12142`)
+
+.. warning::
+
+   As a result of a number of issues:
+
+   +----------------------+------------------------+
+   | Packed with          | Can be unpacked with   |
+   +======================+========================+
+   | pre-0.17 / Python 2  | any                    |
+   +----------------------+------------------------+
+   | pre-0.17 / Python 3  | any                    |
+   +----------------------+------------------------+
+   | 0.17 / Python 2      | - 0.17 / Python 2      |
+   |                      | - >=0.18 / any Python  |
+   +----------------------+------------------------+
+   | 0.17 / Python 3      | >=0.18 / any Python    |
+   +----------------------+------------------------+
+   | 0.18                 | >= 0.18                |
+   +======================+========================+
+
+   0.18.0 is backward-compatible for reading files packed by older versions, except for files packed with 0.17 in Python 2, in which case only they can only be unpacked in Python 2.
 
 Signature change for .rank
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -806,7 +833,6 @@ assignments are valid for multi-line expressions.
 
 Other API Changes
 ^^^^^^^^^^^^^^^^^
-
 - ``DataFrame.between_time`` and ``Series.between_time`` now only parse a fixed set of time strings. Parsing of date strings is no longer supported and raises a ``ValueError``. (:issue:`11818`)
 
   .. ipython:: python
