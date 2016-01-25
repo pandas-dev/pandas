@@ -379,6 +379,12 @@ class TestStyler(TestCase):
         self.assertTrue(s is s2)
         self.assertEqual(s.precision, 4)
 
+    def test_precision_zero(self):
+        df = pd.DataFrame({'A': 100, 'B': [0, 1, 2, 3, np.nan]})
+        df['C'] = df['A'] / df['B']
+        result = df.style.set_precision(0).render()
+        self.assertEqual(result.count('.'), 0)
+
     def test_apply_none(self):
         def f(x):
             return pd.DataFrame(np.where(x == x.max(), 'color: red', ''),
