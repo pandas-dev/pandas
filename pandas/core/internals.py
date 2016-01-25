@@ -2098,6 +2098,14 @@ class DatetimeTZBlock(NonConsolidatableMixIn, DatetimeBlock):
 
         if not isinstance(values, self._holder):
             values = self._holder(values)
+
+        dtype = kwargs.pop('dtype', None)
+
+        if dtype is not None:
+            if isinstance(dtype, compat.string_types):
+                dtype = DatetimeTZDtype.construct_from_string(dtype)
+            values = values.tz_localize('UTC').tz_convert(dtype.tz)
+
         if values.tz is None:
             raise ValueError("cannot create a DatetimeTZBlock without a tz")
 
@@ -2427,6 +2435,10 @@ def make_block(values, placement, klass=None, ndim=None, dtype=None,
             klass = CategoricalBlock
         else:
             klass = ObjectBlock
+
+    elif klass is DatetimeTZBlock and not is_datetimetz(values):
+        return klass(values, ndim=ndim, fastpath=fastpath,
+                     placement=placement, dtype=dtype)
 
     return klass(values, ndim=ndim, fastpath=fastpath, placement=placement)
 
