@@ -46,6 +46,22 @@ class categorical_constructor(object):
         Categorical(self.codes, self.cat_idx, fastpath=True)
 
 
+class categorical_constructor_with_datetimes(object):
+    goal_time = 0.2
+
+    def setup(self):
+        self.datetimes = pd.Series(pd.date_range(
+            '1995-01-01 00:00:00', periods=10000, freq='s'))
+
+    def time_datetimes(self):
+        Categorical(self.datetimes)
+
+    def time_datetimes_with_nat(self):
+        t = self.datetimes
+        t.iloc[-1] = pd.NaT
+        Categorical(t)
+
+
 class categorical_rendering(object):
     goal_time = 3e-3
 
