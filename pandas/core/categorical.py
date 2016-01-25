@@ -257,7 +257,7 @@ class Categorical(PandasObject):
                 categories = values.categories
             values = values.__array__()
 
-        elif isinstance(values, ABCIndexClass):
+        elif isinstance(values, (ABCIndexClass, ABCSeries)):
             pass
 
         else:
@@ -1177,7 +1177,7 @@ class Categorical(PandasObject):
         """
         # if we are a datetime and period index, return Index to keep metadata
         if com.is_datetimelike(self.categories):
-            return self.categories.take(self._codes)
+            return self.categories.take(self._codes, fill_value=np.nan)
         return np.array(self)
 
     def check_for_ordered(self, op):

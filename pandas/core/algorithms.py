@@ -11,6 +11,7 @@ import pandas.core.common as com
 import pandas.algos as algos
 import pandas.hashtable as htable
 from pandas.compat import string_types
+from pandas.tslib import iNaT
 
 
 def match(to_match, values, na_sentinel=-1):
@@ -182,9 +183,15 @@ def factorize(values, sort=False, order=None, na_sentinel=-1, size_hint=None):
               "https://github.com/pydata/pandas/issues/6926"
         warn(msg, FutureWarning, stacklevel=2)
 
-    from pandas.core.index import Index
-    from pandas.core.series import Series
+    from pandas import Index, Series, DatetimeIndex
+
     vals = np.asarray(values)
+
+    # localize to UTC
+    is_datetimetz = com.is_datetimetz(values)
+    if is_datetimetz:
+        values = DatetimeIndex(values)
+        vals = values.tz_localize(None)
 
     is_datetime = com.is_datetime64_dtype(vals)
     is_timedelta = com.is_timedelta64_dtype(vals)
@@ -192,7 +199,7 @@ def factorize(values, sort=False, order=None, na_sentinel=-1, size_hint=None):
 
     table = hash_klass(size_hint or len(vals))
     uniques = vec_klass()
-    labels = table.get_labels(vals, uniques, 0, na_sentinel)
+    labels = table.get_labels(vals, uniques, 0, na_sentinel, True)
 
     labels = com._ensure_platform_int(labels)
 
@@ -224,7 +231,12 @@ def factorize(values, sort=False, order=None, na_sentinel=-1, size_hint=None):
 
         uniques = uniques.take(sorter)
 
-    if is_datetime:
+    if is_datetimetz:
+
+        # reset tz
+        uniques = DatetimeIndex(uniques.astype('M8[ns]')).tz_localize(
+            values.tz)
+    elif is_datetime:
         uniques = uniques.astype('M8[ns]')
     elif is_timedelta:
         uniques = uniques.astype('m8[ns]')
@@ -296,7 +308,6 @@ def value_counts(values, sort=True, ascending=False, normalize=False,
             keys, counts = htable.value_count_scalar64(values, dropna)
 
             if dropna:
-                from pandas.tslib import iNaT
                 msk = keys != iNaT
                 keys, counts = keys[msk], counts[msk]
 
@@ -478,22 +489,13 @@ def _interpolate(a, b, fraction):
 
 
 def _get_data_algo(values, func_map):
-    mask = None
     if com.is_float_dtype(values):
         f = func_map['float64']
         values = com._ensure_float64(values)
 
     elif com.needs_i8_conversion(values):
-
-        # if we have NaT, punt to object dtype
-        mask = com.isnull(values)
-        if mask.ravel().any():
-            f = func_map['generic']
-            values = com._ensure_object(values)
-            values[mask] = np.nan
-        else:
-            f = func_map['int64']
-            values = values.view('i8')
+        f = func_map['int64']
+        values = values.view('i8')
 
     elif com.is_integer_dtype(values):
         f = func_map['int64']

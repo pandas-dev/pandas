@@ -832,7 +832,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
         values[imask] = np.array([formatter(dt) for dt in values[imask]])
         return values
 
-    def take(self, indices, axis=0):
+    def take(self, indices, axis=0, allow_fill=True, fill_value=None):
         """
         Analogous to ndarray.take
         """
