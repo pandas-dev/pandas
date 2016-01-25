@@ -3667,6 +3667,25 @@ nan 2
                 self.assertIn(
                     'Buffer overflow caught - possible malformed input file.', str(cperr))
 
+    def test_buffer_rd_bytes(self):
+        # GH 12098
+        # src->buffer can be freed twice leading to a segfault if a corrupt 
+        # gzip file is read with read_csv and the buffer is filled more than
+        # once before gzip throws an exception
+        
+        data = '\x1F\x8B\x08\x00\x00\x00\x00\x00\x00\x03\xED\xC3\x41\x09' \
+               '\x00\x00\x08\x00\xB1\xB7\xB6\xBA\xFE\xA5\xCC\x21\x6C\xB0' \
+               '\xA6\x4D' + '\x55' * 267 + \
+               '\x7D\xF7\x00\x91\xE0\x47\x97\x14\x38\x04\x00' \
+               '\x1f\x8b\x08\x00VT\x97V\x00\x03\xed]\xefO'
+        for i in range(100):
+            try:
+                _ = self.read_csv(StringIO(data),
+                                  compression='gzip',
+                                  delim_whitespace=True)
+            except Exception as e:
+                pass
+
     def test_single_char_leading_whitespace(self):
         # GH 9710
         data = """\
@@ -4207,6 +4226,25 @@ No,No,No"""
             except Exception as cperr:
                 self.assertIn(
                     'Buffer overflow caught - possible malformed input file.', str(cperr))
+
+    def test_buffer_rd_bytes(self):
+        # GH 12098
+        # src->buffer can be freed twice leading to a segfault if a corrupt 
+        # gzip file is read with read_csv and the buffer is filled more than
+        # once before gzip throws an exception
+        
+        data = '\x1F\x8B\x08\x00\x00\x00\x00\x00\x00\x03\xED\xC3\x41\x09' \
+               '\x00\x00\x08\x00\xB1\xB7\xB6\xBA\xFE\xA5\xCC\x21\x6C\xB0' \
+               '\xA6\x4D' + '\x55' * 267 + \
+               '\x7D\xF7\x00\x91\xE0\x47\x97\x14\x38\x04\x00' \
+               '\x1f\x8b\x08\x00VT\x97V\x00\x03\xed]\xefO'
+        for i in range(100):
+            try:
+                _ = self.read_csv(StringIO(data),
+                                  compression='gzip',
+                                  delim_whitespace=True)
+            except Exception as e:
+                pass
 
     def test_single_char_leading_whitespace(self):
         # GH 9710
