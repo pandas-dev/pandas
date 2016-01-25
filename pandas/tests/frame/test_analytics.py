@@ -787,7 +787,12 @@ class TestDataFrameAnalytics(tm.TestCase, TestData):
         # check the rank
         expected = DataFrame([[2., nan, 1.],
                               [2., 3., 1.]])
-        result = df.rank(1, numeric_only=False)
+        result = df.rank(1, numeric_only=False, ascending=True)
+        assert_frame_equal(result, expected)
+
+        expected = DataFrame([[1., nan, 2.],
+                              [2., 1., 3.]])
+        result = df.rank(1, numeric_only=False, ascending=False)
         assert_frame_equal(result, expected)
 
         # mixed-type frames
