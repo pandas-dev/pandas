@@ -2146,11 +2146,11 @@ class FloatArrayFormatter(GenericArrayFormatter):
         formatter = None
         if self.float_format and self.decimal != '.':
             formatter = lambda v: (
-                (self.float_format % v).replace('.', self.decimal, 1))
+                self.float_format.format(v).replace('.', self.decimal, 1))
         elif self.decimal != '.':  # no float format
             formatter = lambda v: str(v).replace('.', self.decimal, 1)
         elif self.float_format:  # no special decimal separator
-            formatter = lambda v: self.float_format % v
+            formatter = lambda v: self.float_format.format(v)
 
         if formatter is None and not self.quoting:
             values = values.astype(str)
