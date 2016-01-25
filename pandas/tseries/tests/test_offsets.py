@@ -8,6 +8,7 @@ from nose.tools import assert_raises
 
 import numpy as np
 
+from pandas.compat.numpy_compat import np_datetime64_compat
 from pandas.core.datetools import (bday, BDay, CDay, BQuarterEnd, BMonthEnd,
                                    BusinessHour, CBMonthEnd, CBMonthBegin,
                                    BYearEnd, MonthEnd, MonthBegin, BYearBegin,
@@ -201,7 +202,7 @@ class TestCommon(Base):
                           'Second': Timestamp('2011-01-01 09:00:01'),
                           'Milli': Timestamp('2011-01-01 09:00:00.001000'),
                           'Micro': Timestamp('2011-01-01 09:00:00.000001'),
-                          'Nano': Timestamp(np.datetime64(
+                          'Nano': Timestamp(np_datetime64_compat(
                               '2011-01-01T09:00:00.000000001Z'))}
 
     def test_return_type(self):
@@ -292,7 +293,7 @@ class TestCommon(Base):
 
     def test_apply(self):
         sdt = datetime(2011, 1, 1, 9, 0)
-        ndt = np.datetime64('2011-01-01 09:00Z')
+        ndt = np_datetime64_compat('2011-01-01 09:00Z')
 
         for offset in self.offset_types:
             for dt in [sdt, ndt]:
@@ -333,7 +334,7 @@ class TestCommon(Base):
         norm_expected.update(normalized)
 
         sdt = datetime(2011, 1, 1, 9, 0)
-        ndt = np.datetime64('2011-01-01 09:00Z')
+        ndt = np_datetime64_compat('2011-01-01 09:00Z')
 
         for offset in self.offset_types:
             for dt in [sdt, ndt]:
@@ -391,7 +392,7 @@ class TestCommon(Base):
         norm_expected.update(normalized)
 
         sdt = datetime(2011, 1, 1, 9, 0)
-        ndt = np.datetime64('2011-01-01 09:00Z')
+        ndt = np_datetime64_compat('2011-01-01 09:00Z')
 
         for offset in self.offset_types:
             for dt in [sdt, ndt]:
@@ -1394,7 +1395,7 @@ class TestCustomBusinessDay(Base):
 
     def setUp(self):
         self.d = datetime(2008, 1, 1)
-        self.nd = np.datetime64('2008-01-01 00:00:00Z')
+        self.nd = np_datetime64_compat('2008-01-01 00:00:00Z')
 
         tm._skip_if_no_cday()
         self.offset = CDay()

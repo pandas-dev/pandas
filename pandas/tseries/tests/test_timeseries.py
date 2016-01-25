@@ -15,6 +15,7 @@ from pandas import (Index, Series, DataFrame, isnull, date_range, Timestamp,
                     Period, DatetimeIndex, Int64Index, to_datetime,
                     bdate_range, Float64Index, NaT, timedelta_range, Timedelta)
 
+from pandas.compat.numpy_compat import np_datetime64_compat
 import pandas.core.datetools as datetools
 import pandas.tseries.offsets as offsets
 import pandas.tseries.tools as tools
@@ -2496,11 +2497,11 @@ class TestDatetimeIndex(tm.TestCase):
                                   '2014-05-01', '2014-07-01'])
         didx2 = pd.DatetimeIndex(['2014-02-01', '2014-03-01', pd.NaT, pd.NaT,
                                   '2014-06-01', '2014-07-01'])
-        darr = np.array([np.datetime64('2014-02-01 00:00Z'),
-                         np.datetime64('2014-03-01 00:00Z'),
-                         np.datetime64('nat'), np.datetime64('nat'),
-                         np.datetime64('2014-06-01 00:00Z'),
-                         np.datetime64('2014-07-01 00:00Z')])
+        darr = np.array([np_datetime64_compat('2014-02-01 00:00Z'),
+                         np_datetime64_compat('2014-03-01 00:00Z'),
+                         np_datetime64_compat('nat'), np.datetime64('nat'),
+                         np_datetime64_compat('2014-06-01 00:00Z'),
+                         np_datetime64_compat('2014-07-01 00:00Z')])
 
         if _np_version_under1p8:
             # cannot test array because np.datetime('nat') returns today's date

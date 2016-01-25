@@ -22,14 +22,14 @@ import pandas.core.datetools as datetools
 import pandas as pd
 import numpy as np
 from numpy.random import randn
-from pandas.compat import range, lrange, lmap, zip
+from pandas.compat import range, lrange, lmap, zip, text_type, PY3
+from pandas.compat.numpy_compat import np_datetime64_compat
 
 from pandas import Series, DataFrame, _np_version_under1p9
 from pandas import tslib
 from pandas.util.testing import (assert_series_equal, assert_almost_equal,
                                  assertRaisesRegexp)
 import pandas.util.testing as tm
-from pandas import compat
 
 
 class TestPeriodProperties(tm.TestCase):
@@ -329,8 +329,8 @@ class TestPeriodProperties(tm.TestCase):
         i1 = Period(date(2007, 1, 1), freq='M')
         i2 = Period(datetime(2007, 1, 1), freq='M')
         i3 = Period(np.datetime64('2007-01-01'), freq='M')
-        i4 = Period(np.datetime64('2007-01-01 00:00:00Z'), freq='M')
-        i5 = Period(np.datetime64('2007-01-01 00:00:00.000Z'), freq='M')
+        i4 = Period(np_datetime64_compat('2007-01-01 00:00:00Z'), freq='M')
+        i5 = Period(np_datetime64_compat('2007-01-01 00:00:00.000Z'), freq='M')
         self.assertEqual(i1, i2)
         self.assertEqual(i1, i3)
         self.assertEqual(i1, i4)
@@ -340,14 +340,15 @@ class TestPeriodProperties(tm.TestCase):
         expected = Period(datetime(2007, 1, 1, 9, 0, 0, 1000), freq='L')
         self.assertEqual(i1, expected)
 
-        expected = Period(np.datetime64('2007-01-01 09:00:00.001Z'), freq='L')
+        expected = Period(np_datetime64_compat(
+            '2007-01-01 09:00:00.001Z'), freq='L')
         self.assertEqual(i1, expected)
 
         i1 = Period('2007-01-01 09:00:00.00101')
         expected = Period(datetime(2007, 1, 1, 9, 0, 0, 1010), freq='U')
         self.assertEqual(i1, expected)
 
-        expected = Period(np.datetime64('2007-01-01 09:00:00.00101Z'),
+        expected = Period(np_datetime64_compat('2007-01-01 09:00:00.00101Z'),
                           freq='U')
         self.assertEqual(i1, expected)
 
@@ -406,8 +407,8 @@ class TestPeriodProperties(tm.TestCase):
         i1 = Period(date(2007, 1, 1), freq='M')
         i2 = Period(datetime(2007, 1, 1), freq='M')
         i3 = Period(np.datetime64('2007-01-01'), freq='M')
-        i4 = Period(np.datetime64('2007-01-01 00:00:00Z'), freq='M')
-        i5 = Period(np.datetime64('2007-01-01 00:00:00.000Z'), freq='M')
+        i4 = Period(np_datetime64_compat('2007-01-01 00:00:00Z'), freq='M')
+        i5 = Period(np_datetime64_compat('2007-01-01 00:00:00.000Z'), freq='M')
         self.assertEqual(i1, i2)
         self.assertEqual(i1, i3)
         self.assertEqual(i1, i4)
@@ -417,14 +418,15 @@ class TestPeriodProperties(tm.TestCase):
         expected = Period(datetime(2007, 1, 1, 9, 0, 0, 1000), freq='L')
         self.assertEqual(i1, expected)
 
-        expected = Period(np.datetime64('2007-01-01 09:00:00.001Z'), freq='L')
+        expected = Period(np_datetime64_compat(
+            '2007-01-01 09:00:00.001Z'), freq='L')
         self.assertEqual(i1, expected)
 
         i1 = Period('2007-01-01 09:00:00.00101')
         expected = Period(datetime(2007, 1, 1, 9, 0, 0, 1010), freq='U')
         self.assertEqual(i1, expected)
 
-        expected = Period(np.datetime64('2007-01-01 09:00:00.00101Z'),
+        expected = Period(np_datetime64_compat('2007-01-01 09:00:00.00101Z'),
                           freq='U')
         self.assertEqual(i1, expected)
 
@@ -462,7 +464,7 @@ class TestPeriodProperties(tm.TestCase):
         p = Period('2000-1-1 12:34:12', freq='S')
         res = p.strftime('%Y-%m-%d %H:%M:%S')
         self.assertEqual(res, '2000-01-01 12:34:12')
-        tm.assertIsInstance(res, compat.text_type)  # GH3363
+        tm.assertIsInstance(res, text_type)  # GH3363
 
     def test_sub_delta(self):
         left, right = Period('2011', freq='A'), Period('2007', freq='A')
@@ -2957,9 +2959,9 @@ class TestPeriodIndex(tm.TestCase):
         index = PeriodIndex(raw, freq='A')
         types = str,
 
-        if compat.PY3:
+        if PY3:
             # unicode
-            types += compat.text_type,
+            types += text_type,
 
         for t in types:
             expected = np.array(lmap(t, raw), dtype=object)

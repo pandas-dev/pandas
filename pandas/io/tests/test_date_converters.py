@@ -10,6 +10,7 @@ from pandas.io.parsers import (read_csv, read_table)
 from pandas.util.testing import assert_frame_equal
 import pandas.io.date_converters as conv
 import pandas.util.testing as tm
+from pandas.compat.numpy_compat import np_array_datetime64_compat
 
 
 class TestConverters(tm.TestCase):
@@ -119,15 +120,16 @@ date,time,prn,rxstatus
 """
 
         def date_parser(date, time):
-            datetime = np.array(date + 'T' + time + 'Z', dtype='datetime64[s]')
+            datetime = np_array_datetime64_compat(
+                date + 'T' + time + 'Z', dtype='datetime64[s]')
             return datetime
 
         df = read_csv(StringIO(data), date_parser=date_parser,
                       parse_dates={'datetime': ['date', 'time']},
                       index_col=['datetime', 'prn'])
 
-        datetimes = np.array(['2013-11-03T19:00:00Z'] * 3,
-                             dtype='datetime64[s]')
+        datetimes = np_array_datetime64_compat(['2013-11-03T19:00:00Z'] * 3,
+                                               dtype='datetime64[s]')
         df_correct = DataFrame(data={'rxstatus': ['00E80000'] * 3},
                                index=MultiIndex.from_tuples(
                                    [(datetimes[0], 126),
