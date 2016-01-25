@@ -51,7 +51,7 @@ def read_clipboard(**kwargs):  # pragma: no cover
     return read_table(StringIO(text), **kwargs)
 
 
-def to_clipboard(obj, excel=None, sep=None, **kwargs):  # pragma: no cover
+def to_clipboard(obj, excel=None, sep=None, line_terminator=None, **kwargs):  # pragma: no cover
     """
     Attempt to write text representation of object to the system clipboard
     The clipboard can be then pasted into Excel for example.
@@ -65,6 +65,7 @@ def to_clipboard(obj, excel=None, sep=None, **kwargs):  # pragma: no cover
             if False, write a string representation of the object
             to the clipboard
     sep : optional, defaults to tab
+    line_terminator : optional, defaults to system line terminator
     other keywords are passed to to_csv
 
     Notes
@@ -82,8 +83,11 @@ def to_clipboard(obj, excel=None, sep=None, **kwargs):  # pragma: no cover
         try:
             if sep is None:
                 sep = '\t'
+            if line_terminator is None:
+                import os
+                line_terminator = os.linesep
             buf = StringIO()
-            obj.to_csv(buf, sep=sep, **kwargs)
+            obj.to_csv(buf, sep=sep, line_terminator=line_terminator, **kwargs)
             clipboard_set(buf.getvalue())
             return
         except:
