@@ -20,6 +20,7 @@ from pandas.core.api import DataFrame, Series
 from pandas.core.common import isnull
 from pandas.core.base import PandasObject
 from pandas.core.dtypes import DatetimeTZDtype
+from pandas.core.generic import is_dictlike
 from pandas.tseries.tools import to_datetime
 from pandas.util.decorators import Appender
 
@@ -551,9 +552,11 @@ def to_sql(frame, name, con, flavor='sqlite', schema=None, if_exists='fail',
     chunksize : int, default None
         If not None, then rows will be written in batches of this size at a
         time.  If None, all rows will be written at once.
-    dtype : dict of column name to SQL type, default None
+    dtype : single SQL type or dict of column name to SQL type, default None
         Optional specifying the datatype for columns. The SQL type should
-        be a SQLAlchemy type, or a string for sqlite3 fallback connection.
+        be a SQLAlchemy type, or a string for sqlite3 fallback connection. 
+        If all columns are of the same type, one single value can be 
+        used.
 
     """
     if if_exists not in ('fail', 'replace', 'append'):
@@ -566,7 +569,7 @@ def to_sql(frame, name, con, flavor='sqlite', schema=None, if_exists='fail',
     elif not isinstance(frame, DataFrame):
         raise NotImplementedError("'frame' argument should be either a "
                                   "Series or a DataFrame")
-
+        
     pandas_sql.to_sql(frame, name, if_exists=if_exists, index=index,
                       index_label=index_label, schema=schema,
                       chunksize=chunksize, dtype=dtype)
@@ -1232,11 +1235,15 @@ class SQLDatabase(PandasSQL):
         chunksize : int, default None
             If not None, then rows will be written in batches of this size at a
             time.  If None, all rows will be written at once.
-        dtype : dict of column name to SQL type, default None
+        dtype : single SQL type or dict of column name to SQL type, default None
             Optional specifying the datatype for columns. The SQL type should
-            be a SQLAlchemy type.
+            be a SQLAlchemy type. If all columns are of the same type, one 
+            single value can be used.
+
 
         """
+        if dtype and not is_dictlike(dtype):
+            dtype = { col_name : dtype for col_name in frame }
         if dtype is not None:
             from sqlalchemy.types import to_instance, TypeEngine
             for col, my_type in dtype.items():
@@ -1632,11 +1639,15 @@ class SQLiteDatabase(PandasSQL):
         chunksize : int, default None
             If not None, then rows will be written in batches of this
             size at a time. If None, all rows will be written at once.
-        dtype : dict of column name to SQL type, default None
+        dtype : single SQL type or dict of column name to SQL type, default None
             Optional specifying the datatype for columns. The SQL type should
-            be a string.
+            be a string. If all columns are of the same type, one single 
+            value can be used.
 
         """
+        if dtype and not is_dictlike(dtype):
+            dtype = { col_name : dtype for col_name in frame }
+
         if dtype is not None:
             for col, my_type in dtype.items():
                 if not isinstance(my_type, str):
