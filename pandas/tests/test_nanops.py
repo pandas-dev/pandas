@@ -888,6 +888,106 @@ class TestNanvarFixedValues(tm.TestCase):
         return np.random.RandomState(1234)
 
 
+class TestNanskewFixedValues(tm.TestCase):
+
+    # xref GH 11974
+
+    def setUp(self):
+        # Test data + skewness value (computed with scipy.stats.skew)
+        self.samples = np.sin(np.linspace(0, 1, 200))
+        self.actual_skew = -0.1875895205961754
+
+    def test_constant_series(self):
+        # xref GH 11974
+        for val in [3075.2, 3075.3, 3075.5]:
+            data = val * np.ones(300)
+            skew = nanops.nanskew(data)
+            self.assertEqual(skew, 0.0)
+
+    def test_all_finite(self):
+        alpha, beta = 0.3, 0.1
+        left_tailed = self.prng.beta(alpha, beta, size=100)
+        self.assertLess(nanops.nanskew(left_tailed), 0)
+
+        alpha, beta = 0.1, 0.3
+        right_tailed = self.prng.beta(alpha, beta, size=100)
+        self.assertGreater(nanops.nanskew(right_tailed), 0)
+
+    def test_ground_truth(self):
+        skew = nanops.nanskew(self.samples)
+        self.assertAlmostEqual(skew, self.actual_skew)
+
+    def test_axis(self):
+        samples = np.vstack([self.samples,
+                             np.nan * np.ones(len(self.samples))])
+        skew = nanops.nanskew(samples, axis=1)
+        tm.assert_almost_equal(skew, [self.actual_skew, np.nan])
+
+    def test_nans(self):
+        samples = np.hstack([self.samples, np.nan])
+        skew = nanops.nanskew(samples, skipna=False)
+        self.assertTrue(np.isnan(skew))
+
+    def test_nans_skipna(self):
+        samples = np.hstack([self.samples, np.nan])
+        skew = nanops.nanskew(samples, skipna=True)
+        tm.assert_almost_equal(skew, self.actual_skew)
+
+    @property
+    def prng(self):
+        return np.random.RandomState(1234)
+
+
+class TestNankurtFixedValues(tm.TestCase):
+
+    # xref GH 11974
+
+    def setUp(self):
+        # Test data + kurtosis value (computed with scipy.stats.kurtosis)
+        self.samples = np.sin(np.linspace(0, 1, 200))
+        self.actual_kurt = -1.2058303433799713
+
+    def test_constant_series(self):
+        # xref GH 11974
+        for val in [3075.2, 3075.3, 3075.5]:
+            data = val * np.ones(300)
+            kurt = nanops.nankurt(data)
+            self.assertEqual(kurt, 0.0)
+
+    def test_all_finite(self):
+        alpha, beta = 0.3, 0.1
+        left_tailed = self.prng.beta(alpha, beta, size=100)
+        self.assertLess(nanops.nankurt(left_tailed), 0)
+
+        alpha, beta = 0.1, 0.3
+        right_tailed = self.prng.beta(alpha, beta, size=100)
+        self.assertGreater(nanops.nankurt(right_tailed), 0)
+
+    def test_ground_truth(self):
+        kurt = nanops.nankurt(self.samples)
+        self.assertAlmostEqual(kurt, self.actual_kurt)
+
+    def test_axis(self):
+        samples = np.vstack([self.samples,
+                             np.nan * np.ones(len(self.samples))])
+        kurt = nanops.nankurt(samples, axis=1)
+        tm.assert_almost_equal(kurt, [self.actual_kurt, np.nan])
+
+    def test_nans(self):
+        samples = np.hstack([self.samples, np.nan])
+        kurt = nanops.nankurt(samples, skipna=False)
+        self.assertTrue(np.isnan(kurt))
+
+    def test_nans_skipna(self):
+        samples = np.hstack([self.samples, np.nan])
+        kurt = nanops.nankurt(samples, skipna=True)
+        tm.assert_almost_equal(kurt, self.actual_kurt)
+
+    @property
+    def prng(self):
+        return np.random.RandomState(1234)
+
+
 if __name__ == '__main__':
     import nose
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure', '-s'
