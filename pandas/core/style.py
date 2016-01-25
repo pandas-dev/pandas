@@ -118,7 +118,11 @@ class Styler(object):
                 {% for c in r %}
                 <{{c.type}} id="T_{{uuid}}{{c.id}}" class="{{c.class}}">
                     {% if c.value is number %}
-                        {{c.value|round(precision)}}
+                        {% if precision %}
+                            {{c.value|round(precision)}}
+                        {% else %}
+                            {{'%.0f'|format(c.value)}}
+                        {% endif %}
                     {% else %}
                         {{c.value}}
                     {% endif %}
