@@ -613,6 +613,18 @@ class TestSeriesIndexing(TestData, tm.TestCase):
         expected = s.reindex(arr_inds)
         assert_series_equal(result, expected)
 
+        # GH12089
+        # with tz for values
+        s = Series(pd.date_range("2011-01-01", periods=3, tz="US/Eastern"),
+                   index=['a', 'b', 'c'])
+        expected = Timestamp('2011-01-01', tz='US/Eastern')
+        result = s.loc['a']
+        self.assertEqual(result, expected)
+        result = s.iloc[0]
+        self.assertEqual(result, expected)
+        result = s['a']
+        self.assertEqual(result, expected)
+
     def test_basic_setitem_with_labels(self):
         indices = self.ts.index[[5, 10, 15]]
 
@@ -649,6 +661,26 @@ class TestSeriesIndexing(TestData, tm.TestCase):
         arr_inds_notfound = np.array([0, 4, 5, 6])
         self.assertRaises(Exception, s.__setitem__, inds_notfound, 0)
         self.assertRaises(Exception, s.__setitem__, arr_inds_notfound, 0)
+
+        # GH12089
+        # with tz for values
+        s = Series(pd.date_range("2011-01-01", periods=3, tz="US/Eastern"),
+                   index=['a', 'b', 'c'])
+        s2 = s.copy()
+        expected = Timestamp('2011-01-03', tz='US/Eastern')
+        s2.loc['a'] = expected
+        result = s2.loc['a']
+        self.assertEqual(result, expected)
+
+        s2 = s.copy()
+        s2.iloc[0] = expected
+        result = s2.iloc[0]
+        self.assertEqual(result, expected)
+
+        s2 = s.copy()
+        s2['a'] = expected
+        result = s2['a']
+        self.assertEqual(result, expected)
 
     def test_ix_getitem(self):
         inds = self.series.index[[3, 4, 7]]

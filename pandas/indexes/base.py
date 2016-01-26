@@ -1881,7 +1881,12 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         # use this, e.g. DatetimeIndex
         s = getattr(series, '_values', None)
         if isinstance(s, Index) and lib.isscalar(key):
-            return s[key]
+            try:
+                return s[key]
+            except (IndexError, ValueError):
+
+                # invalid type as an indexer
+                pass
 
         s = _values_from_object(series)
         k = _values_from_object(key)
@@ -1891,7 +1896,8 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
             raise KeyError
 
         try:
-            return self._engine.get_value(s, k)
+            return self._engine.get_value(s, k,
+                                          tz=getattr(series.dtype, 'tz', None))
         except KeyError as e1:
             if len(self) > 0 and self.inferred_type in ['integer', 'boolean']:
                 raise

@@ -483,7 +483,7 @@ Bug Fixes
 - Compat for numpy 1.11 w.r.t. ``NaT`` comparison changes (:issue:`12049`)
 - Bug in ``read_csv`` when reading from a ``StringIO`` in threads (:issue:`11790`)
 - Bug in not treating ``NaT`` as a missing value in datetimelikes when factorizing & with ``Categoricals`` (:issue:`12077`)
-
+- Bug in getitem when the values of a ``Series`` were tz-aware (:issue:`12089`)
 
 
 
