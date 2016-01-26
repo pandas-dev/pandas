@@ -2455,7 +2455,7 @@ class TestDatetimeIndex(tm.TestCase):
             idx = date_range('2013/1/1 0:00:00-5:00', '2016/1/1 23:59:59-5:00',
                              freq=freq)
             expected = date_range('2013-01-01T00:00:00', '2016-01-01T23:59:59',
-                                  freq=freq, tz=tzoffset(None, -18000))
+                                  freq=freq, tz=pytz.FixedOffset(-300))
             tm.assert_index_equal(idx, expected)
             # Unable to use `US/Eastern` because of DST
             expected_i8 = date_range('2013-01-01T00:00:00',
@@ -2466,7 +2466,7 @@ class TestDatetimeIndex(tm.TestCase):
             idx = date_range('2013/1/1 0:00:00+9:00',
                              '2016/1/1 23:59:59+09:00', freq=freq)
             expected = date_range('2013-01-01T00:00:00', '2016-01-01T23:59:59',
-                                  freq=freq, tz=tzoffset(None, 32400))
+                                  freq=freq, tz=pytz.FixedOffset(540))
             tm.assert_index_equal(idx, expected)
             expected_i8 = date_range('2013-01-01T00:00:00',
                                      '2016-01-01T23:59:59', freq=freq,
@@ -4834,6 +4834,15 @@ class TestToDatetimeInferFormat(tm.TestCase):
             pd.to_datetime(test_series, infer_datetime_format=True)
         )
 
+    def test_to_datetime_iso8601_noleading_0s(self):
+        # GH 11871
+        test_series = pd.Series(['2014-1-1', '2014-2-2', '2015-3-3'])
+        expected = pd.Series([pd.Timestamp('2014-01-01'),
+                              pd.Timestamp('2014-02-02'),
+                              pd.Timestamp('2015-03-03')])
+        tm.assert_series_equal(pd.to_datetime(test_series), expected)
+        tm.assert_series_equal(pd.to_datetime(test_series, format='%Y-%m-%d'),
+                               expected)
 
 class TestGuessDatetimeFormat(tm.TestCase):
     def test_guess_datetime_format_with_parseable_formats(self):

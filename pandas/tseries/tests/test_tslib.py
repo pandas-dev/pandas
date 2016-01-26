@@ -691,6 +691,32 @@ class TestDatetimeParsingWrappers(tm.TestCase):
             converted_time = dt_time.tz_localize('UTC').tz_convert(tz)
             self.assertEqual(dt_string_repr, repr(converted_time))
 
+    def test_parsers_iso8601(self):
+        # GH 12060
+        # test only the iso parser - flexibility to different
+        # separators and leadings 0s
+        # Timestamp construction falls back to dateutil
+        cases = {'2011-01-02': datetime.datetime(2011, 1, 2),
+                 '2011-1-2': datetime.datetime(2011, 1, 2),
+                 '2011-01': datetime.datetime(2011, 1, 1),
+                 '2011-1': datetime.datetime(2011, 1, 1),
+                 '2011 01 02': datetime.datetime(2011, 1, 2),
+                 '2011.01.02': datetime.datetime(2011, 1, 2),
+                 '2011/01/02': datetime.datetime(2011, 1, 2),
+                 '2011\\01\\02': datetime.datetime(2011, 1, 2),
+                 '2013-01-01 05:30:00': datetime.datetime(2013, 1, 1, 5, 30),
+                 '2013-1-1 5:30:00': datetime.datetime(2013, 1, 1, 5, 30)}
+        for date_str, exp in compat.iteritems(cases):
+            actual = tslib._test_parse_iso8601(date_str)
+            self.assertEqual(actual, exp)
+
+        # seperators must all match - YYYYMM not valid
+        invalid_cases = ['2011-01/02', '2011^11^11', '201401',
+                         '201111', '200101']
+        for date_str in invalid_cases:
+            with tm.assertRaises(ValueError):
+                tslib._test_parse_iso8601(date_str)
+
 
 class TestArrayToDatetime(tm.TestCase):
     def test_parsing_valid_dates(self):

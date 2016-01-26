@@ -461,7 +461,7 @@ Performance Improvements
 - Improved performance in construction of ``Categoricals`` with Series of datetimes containing ``NaT`` (:issue:`12077`)
 
 
-
+- Improved performance of ISO 8601 date parsing for dates without separators (:issue:`11899`), leading zeros (:issue:`11871`) and with whitespace preceding the time zone (:issue:`9714`)
 
 
 
