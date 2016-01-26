@@ -345,6 +345,16 @@ def _get_handle(path, mode, encoding=None, compression=None):
         elif compression == 'bz2':
             import bz2
             f = bz2.BZ2File(path, mode)
+        elif compression == 'zip':
+            import zipfile
+            zip_file = zipfile.ZipFile(path)
+            zip_names = zip_file.namelist()
+
+            if len(zip_names) == 1:
+                file_name = zip_names.pop()
+                f = zip_file.open(file_name)
+            else:
+                raise ValueError('ZIP file contains multiple files {}', zip_file.filename)
         else:
             raise ValueError('Unrecognized compression type: %s' %
                              compression)
