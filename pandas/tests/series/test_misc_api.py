@@ -1,0 +1,307 @@
+# coding=utf-8
+# pylint: disable-msg=E1101,W0612
+
+import numpy as np
+import pandas as pd
+
+from pandas import Index, Series, DataFrame, date_range
+from pandas.tseries.index import Timestamp
+import pandas.core.common as com
+
+from pandas.compat import range
+from pandas import compat
+from pandas.util.testing import (assert_series_equal,
+                                 ensure_clean)
+import pandas.util.testing as tm
+
+from .common import TestData
+
+
+class SharedWithSparse(object):
+
+    def test_scalarop_preserve_name(self):
+        result = self.ts * 2
+        self.assertEqual(result.name, self.ts.name)
+
+    def test_copy_name(self):
+        result = self.ts.copy()
+        self.assertEqual(result.name, self.ts.name)
+
+    def test_copy_index_name_checking(self):
+        # don't want to be able to modify the index stored elsewhere after
+        # making a copy
+
+        self.ts.index.name = None
+        self.assertIsNone(self.ts.index.name)
+        self.assertIs(self.ts, self.ts)
+
+        cp = self.ts.copy()
+        cp.index.name = 'foo'
+        com.pprint_thing(self.ts.index.name)
+        self.assertIsNone(self.ts.index.name)
+
+    def test_append_preserve_name(self):
+        result = self.ts[:5].append(self.ts[5:])
+        self.assertEqual(result.name, self.ts.name)
+
+    def test_binop_maybe_preserve_name(self):
+        # names match, preserve
+        result = self.ts * self.ts
+        self.assertEqual(result.name, self.ts.name)
+        result = self.ts.mul(self.ts)
+        self.assertEqual(result.name, self.ts.name)
+
+        result = self.ts * self.ts[:-2]
+        self.assertEqual(result.name, self.ts.name)
+
+        # names don't match, don't preserve
+        cp = self.ts.copy()
+        cp.name = 'something else'
+        result = self.ts + cp
+        self.assertIsNone(result.name)
+        result = self.ts.add(cp)
+        self.assertIsNone(result.name)
+
+        ops = ['add', 'sub', 'mul', 'div', 'truediv', 'floordiv', 'mod', 'pow']
+        ops = ops + ['r' + op for op in ops]
+        for op in ops:
+            # names match, preserve
+            s = self.ts.copy()
+            result = getattr(s, op)(s)
+            self.assertEqual(result.name, self.ts.name)
+
+            # names don't match, don't preserve
+            cp = self.ts.copy()
+            cp.name = 'changed'
+            result = getattr(s, op)(cp)
+            self.assertIsNone(result.name)
+
+    def test_combine_first_name(self):
+        result = self.ts.combine_first(self.ts[:5])
+        self.assertEqual(result.name, self.ts.name)
+
+    def test_getitem_preserve_name(self):
+        result = self.ts[self.ts > 0]
+        self.assertEqual(result.name, self.ts.name)
+
+        result = self.ts[[0, 2, 4]]
+        self.assertEqual(result.name, self.ts.name)
+
+        result = self.ts[5:10]
+        self.assertEqual(result.name, self.ts.name)
+
+    def test_pickle(self):
+        unp_series = self._pickle_roundtrip(self.series)
+        unp_ts = self._pickle_roundtrip(self.ts)
+        assert_series_equal(unp_series, self.series)
+        assert_series_equal(unp_ts, self.ts)
+
+    def _pickle_roundtrip(self, obj):
+
+        with ensure_clean() as path:
+            obj.to_pickle(path)
+            unpickled = pd.read_pickle(path)
+            return unpickled
+
+    def test_argsort_preserve_name(self):
+        result = self.ts.argsort()
+        self.assertEqual(result.name, self.ts.name)
+
+    def test_sort_index_name(self):
+        result = self.ts.sort_index(ascending=False)
+        self.assertEqual(result.name, self.ts.name)
+
+    def test_to_sparse_pass_name(self):
+        result = self.ts.to_sparse()
+        self.assertEqual(result.name, self.ts.name)
+
+
+class TestSeriesMisc(TestData, SharedWithSparse, tm.TestCase):
+
+    _multiprocess_can_split_ = True
+
+    def test_tab_completion(self):
+        # GH 9910
+        s = Series(list('abcd'))
+        # Series of str values should have .str but not .dt/.cat in __dir__
+        self.assertTrue('str' in dir(s))
+        self.assertTrue('dt' not in dir(s))
+        self.assertTrue('cat' not in dir(s))
+
+        # similiarly for .dt
+        s = Series(date_range('1/1/2015', periods=5))
+        self.assertTrue('dt' in dir(s))
+        self.assertTrue('str' not in dir(s))
+        self.assertTrue('cat' not in dir(s))
+
+        # similiarly for .cat, but with the twist that str and dt should be
+        # there if the categories are of that type first cat and str
+        s = Series(list('abbcd'), dtype="category")
+        self.assertTrue('cat' in dir(s))
+        self.assertTrue('str' in dir(s))  # as it is a string categorical
+        self.assertTrue('dt' not in dir(s))
+
+        # similar to cat and str
+        s = Series(date_range('1/1/2015', periods=5)).astype("category")
+        self.assertTrue('cat' in dir(s))
+        self.assertTrue('str' not in dir(s))
+        self.assertTrue('dt' in dir(s))  # as it is a datetime categorical
+
+    def test_not_hashable(self):
+        s_empty = Series()
+        s = Series([1])
+        self.assertRaises(TypeError, hash, s_empty)
+        self.assertRaises(TypeError, hash, s)
+
+    def test_contains(self):
+        tm.assert_contains_all(self.ts.index, self.ts)
+
+    def test_iter(self):
+        for i, val in enumerate(self.series):
+            self.assertEqual(val, self.series[i])
+
+        for i, val in enumerate(self.ts):
+            self.assertEqual(val, self.ts[i])
+
+    def test_keys(self):
+        # HACK: By doing this in two stages, we avoid 2to3 wrapping the call
+        # to .keys() in a list()
+        getkeys = self.ts.keys
+        self.assertIs(getkeys(), self.ts.index)
+
+    def test_values(self):
+        self.assert_numpy_array_equal(self.ts, self.ts.values)
+
+    def test_iteritems(self):
+        for idx, val in compat.iteritems(self.series):
+            self.assertEqual(val, self.series[idx])
+
+        for idx, val in compat.iteritems(self.ts):
+            self.assertEqual(val, self.ts[idx])
+
+        # assert is lazy (genrators don't define reverse, lists do)
+        self.assertFalse(hasattr(self.series.iteritems(), 'reverse'))
+
+    def test_raise_on_info(self):
+        s = Series(np.random.randn(10))
+        with tm.assertRaises(AttributeError):
+            s.info()
+
+    def test_copy(self):
+
+        for deep in [None, False, True]:
+            s = Series(np.arange(10), dtype='float64')
+
+            # default deep is True
+            if deep is None:
+                s2 = s.copy()
+            else:
+                s2 = s.copy(deep=deep)
+
+            s2[::2] = np.NaN
+
+            if deep is None or deep is True:
+                # Did not modify original Series
+                self.assertTrue(np.isnan(s2[0]))
+                self.assertFalse(np.isnan(s[0]))
+            else:
+
+                # we DID modify the original Series
+                self.assertTrue(np.isnan(s2[0]))
+                self.assertTrue(np.isnan(s[0]))
+
+        # GH 11794
+        # copy of tz-aware
+        expected = Series([Timestamp('2012/01/01', tz='UTC')])
+        expected2 = Series([Timestamp('1999/01/01', tz='UTC')])
+
+        for deep in [None, False, True]:
+            s = Series([Timestamp('2012/01/01', tz='UTC')])
+
+            if deep is None:
+                s2 = s.copy()
+            else:
+                s2 = s.copy(deep=deep)
+
+            s2[0] = pd.Timestamp('1999/01/01', tz='UTC')
+
+            # default deep is True
+            if deep is None or deep is True:
+                assert_series_equal(s, expected)
+                assert_series_equal(s2, expected2)
+            else:
+                assert_series_equal(s, expected2)
+                assert_series_equal(s2, expected2)
+
+    def test_axis_alias(self):
+        s = Series([1, 2, np.nan])
+        assert_series_equal(s.dropna(axis='rows'), s.dropna(axis='index'))
+        self.assertEqual(s.dropna().sum('rows'), 3)
+        self.assertEqual(s._get_axis_number('rows'), 0)
+        self.assertEqual(s._get_axis_name('rows'), 'index')
+
+    def test_numpy_unique(self):
+        # it works!
+        np.unique(self.ts)
+
+    def test_ndarray_compat(self):
+
+        # test numpy compat with Series as sub-class of NDFrame
+        tsdf = DataFrame(np.random.randn(1000, 3), columns=['A', 'B', 'C'],
+                         index=date_range('1/1/2000', periods=1000))
+
+        def f(x):
+            return x[x.argmax()]
+
+        result = tsdf.apply(f)
+        expected = tsdf.max()
+        assert_series_equal(result, expected)
+
+        # .item()
+        s = Series([1])
+        result = s.item()
+        self.assertEqual(result, 1)
+        self.assertEqual(s.item(), s.iloc[0])
+
+        # using an ndarray like function
+        s = Series(np.random.randn(10))
+        result = np.ones_like(s)
+        expected = Series(1, index=range(10), dtype='float64')
+        # assert_series_equal(result,expected)
+
+        # ravel
+        s = Series(np.random.randn(10))
+        tm.assert_almost_equal(s.ravel(order='F'), s.values.ravel(order='F'))
+
+        # compress
+        # GH 6658
+        s = Series([0, 1., -1], index=list('abc'))
+        result = np.compress(s > 0, s)
+        assert_series_equal(result, Series([1.], index=['b']))
+
+        result = np.compress(s < -1, s)
+        # result empty Index(dtype=object) as the same as original
+        exp = Series([], dtype='float64', index=Index([], dtype='object'))
+        assert_series_equal(result, exp)
+
+        s = Series([0, 1., -1], index=[.1, .2, .3])
+        result = np.compress(s > 0, s)
+        assert_series_equal(result, Series([1.], index=[.2]))
+
+        result = np.compress(s < -1, s)
+        # result empty Float64Index as the same as original
+        exp = Series([], dtype='float64', index=Index([], dtype='float64'))
+        assert_series_equal(result, exp)
+
+    def test_str_attribute(self):
+        # GH9068
+        methods = ['strip', 'rstrip', 'lstrip']
+        s = Series([' jack', 'jill ', ' jesse ', 'frank'])
+        for method in methods:
+            expected = Series([getattr(str, method)(x) for x in s.values])
+            assert_series_equal(getattr(Series.str, method)(s.str), expected)
+
+        # str accessor only valid with string values
+        s = Series(range(5))
+        with self.assertRaisesRegexp(AttributeError, 'only use .str accessor'):
+            s.str.repeat(2)
