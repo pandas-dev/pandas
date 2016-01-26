@@ -62,10 +62,10 @@ dtype : Type name or dict of column -> type, default None
     Data type for data or columns. E.g. {'a': np.float64, 'b': np.int32}
     (Unsupported with engine='python')
 compression : {'gzip', 'bz2', 'zip', 'infer', None}, default 'infer'
-    For on-the-fly decompression of on-disk data. If 'infer', then use gzip or
-    bz2 if filepath_or_buffer is a string ending in '.gz', '.bz2' or '.zip',
-    respectively, and no decompression otherwise. Set to None for no
-    decompression.
+    For on-the-fly decompression of on-disk data. If 'infer', then use gzip,
+    bz2 or zip if filepath_or_buffer is a string ending in '.gz', '.bz2' or '.zip',
+    respectively, and no decompression otherwise. If using 'zip', the ZIP file must 
+    contain only one data file to be read in. Set to None for no decompression.
 dialect : string or csv.Dialect instance, default None
     If None defaults to Excel dialect. Ignored if sep longer than 1 char
     See csv.Dialect documentation for more details
