@@ -111,16 +111,6 @@ class TestSeriesIndexing(TestData, tm.TestCase):
         assert_series_equal(s, Series(dtype='int64', index=Index(
             [], dtype='object')))
 
-    def test_getitem_preserve_name(self):
-        result = self.ts[self.ts > 0]
-        self.assertEqual(result.name, self.ts.name)
-
-        result = self.ts[[0, 2, 4]]
-        self.assertEqual(result.name, self.ts.name)
-
-        result = self.ts[5:10]
-        self.assertEqual(result.name, self.ts.name)
-
     def test_getitem_setitem_ellipsis(self):
         s = Series(np.random.randn(10))
 

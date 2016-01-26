@@ -1615,14 +1615,6 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
         s = Series(np.arange(1000))
         self.assertTrue(s.is_unique)
 
-    def test_argsort_preserve_name(self):
-        result = self.ts.argsort()
-        self.assertEqual(result.name, self.ts.name)
-
-    def test_sort_index_name(self):
-        result = self.ts.sort_index(ascending=False)
-        self.assertEqual(result.name, self.ts.name)
-
     def test_sort_values(self):
 
         ts = self.ts.copy()

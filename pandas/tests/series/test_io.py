@@ -20,19 +20,6 @@ class TestSeriesIO(TestData, tm.TestCase):
 
     _multiprocess_can_split_ = True
 
-    def test_pickle(self):
-        unp_series = self._pickle_roundtrip(self.series)
-        unp_ts = self._pickle_roundtrip(self.ts)
-        assert_series_equal(unp_series, self.series)
-        assert_series_equal(unp_ts, self.ts)
-
-    def _pickle_roundtrip(self, obj):
-
-        with ensure_clean() as path:
-            obj.to_pickle(path)
-            unpickled = pd.read_pickle(path)
-            return unpickled
-
     def test_from_csv(self):
 
         with ensure_clean() as path:

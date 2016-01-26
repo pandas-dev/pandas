@@ -10,13 +10,113 @@ import pandas.core.common as com
 
 from pandas.compat import range
 from pandas import compat
-from pandas.util.testing import assert_series_equal
+from pandas.util.testing import (assert_series_equal,
+                                 ensure_clean)
 import pandas.util.testing as tm
 
 from .common import TestData
 
 
-class TestSeriesMisc(TestData, tm.TestCase):
+class SharedWithSparse(object):
+
+    def test_scalarop_preserve_name(self):
+        result = self.ts * 2
+        self.assertEqual(result.name, self.ts.name)
+
+    def test_copy_name(self):
+        result = self.ts.copy()
+        self.assertEqual(result.name, self.ts.name)
+
+    def test_copy_index_name_checking(self):
+        # don't want to be able to modify the index stored elsewhere after
+        # making a copy
+
+        self.ts.index.name = None
+        self.assertIsNone(self.ts.index.name)
+        self.assertIs(self.ts, self.ts)
+
+        cp = self.ts.copy()
+        cp.index.name = 'foo'
+        com.pprint_thing(self.ts.index.name)
+        self.assertIsNone(self.ts.index.name)
+
+    def test_append_preserve_name(self):
+        result = self.ts[:5].append(self.ts[5:])
+        self.assertEqual(result.name, self.ts.name)
+
+    def test_binop_maybe_preserve_name(self):
+        # names match, preserve
+        result = self.ts * self.ts
+        self.assertEqual(result.name, self.ts.name)
+        result = self.ts.mul(self.ts)
+        self.assertEqual(result.name, self.ts.name)
+
+        result = self.ts * self.ts[:-2]
+        self.assertEqual(result.name, self.ts.name)
+
+        # names don't match, don't preserve
+        cp = self.ts.copy()
+        cp.name = 'something else'
+        result = self.ts + cp
+        self.assertIsNone(result.name)
+        result = self.ts.add(cp)
+        self.assertIsNone(result.name)
+
+        ops = ['add', 'sub', 'mul', 'div', 'truediv', 'floordiv', 'mod', 'pow']
+        ops = ops + ['r' + op for op in ops]
+        for op in ops:
+            # names match, preserve
+            s = self.ts.copy()
+            result = getattr(s, op)(s)
+            self.assertEqual(result.name, self.ts.name)
+
+            # names don't match, don't preserve
+            cp = self.ts.copy()
+            cp.name = 'changed'
+            result = getattr(s, op)(cp)
+            self.assertIsNone(result.name)
+
+    def test_combine_first_name(self):
+        result = self.ts.combine_first(self.ts[:5])
+        self.assertEqual(result.name, self.ts.name)
+
+    def test_getitem_preserve_name(self):
+        result = self.ts[self.ts > 0]
+        self.assertEqual(result.name, self.ts.name)
+
+        result = self.ts[[0, 2, 4]]
+        self.assertEqual(result.name, self.ts.name)
+
+        result = self.ts[5:10]
+        self.assertEqual(result.name, self.ts.name)
+
+    def test_pickle(self):
+        unp_series = self._pickle_roundtrip(self.series)
+        unp_ts = self._pickle_roundtrip(self.ts)
+        assert_series_equal(unp_series, self.series)
+        assert_series_equal(unp_ts, self.ts)
+
+    def _pickle_roundtrip(self, obj):
+
+        with ensure_clean() as path:
+            obj.to_pickle(path)
+            unpickled = pd.read_pickle(path)
+            return unpickled
+
+    def test_argsort_preserve_name(self):
+        result = self.ts.argsort()
+        self.assertEqual(result.name, self.ts.name)
+
+    def test_sort_index_name(self):
+        result = self.ts.sort_index(ascending=False)
+        self.assertEqual(result.name, self.ts.name)
+
+    def test_to_sparse_pass_name(self):
+        result = self.ts.to_sparse()
+        self.assertEqual(result.name, self.ts.name)
+
+
+class TestSeriesMisc(TestData, SharedWithSparse, tm.TestCase):
 
     _multiprocess_can_split_ = True
 
@@ -143,27 +243,6 @@ class TestSeriesMisc(TestData, tm.TestCase):
     def test_numpy_unique(self):
         # it works!
         np.unique(self.ts)
-
-    def test_copy_name(self):
-        result = self.ts.copy()
-        self.assertEqual(result.name, self.ts.name)
-
-    def test_copy_index_name_checking(self):
-        # don't want to be able to modify the index stored elsewhere after
-        # making a copy
-
-        self.ts.index.name = None
-        self.assertIsNone(self.ts.index.name)
-        self.assertIs(self.ts, self.ts)
-
-        cp = self.ts.copy()
-        cp.index.name = 'foo'
-        com.pprint_thing(self.ts.index.name)
-        self.assertIsNone(self.ts.index.name)
-
-    def test_to_sparse_pass_name(self):
-        result = self.ts.to_sparse()
-        self.assertEqual(result.name, self.ts.name)
 
     def test_ndarray_compat(self):
 

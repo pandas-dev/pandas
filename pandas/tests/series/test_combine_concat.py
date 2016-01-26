@@ -183,10 +183,6 @@ class TestSeriesCombine(TestData, tm.TestCase):
         self.assertEqual(result.dtype, np.object_)
         self.assertEqual(result.ftype, 'object:dense')
 
-    def test_combine_first_name(self):
-        result = self.ts.combine_first(self.ts[:5])
-        self.assertEqual(result.name, self.ts.name)
-
     def test_combine_first_dt64(self):
         from pandas.tseries.tools import to_datetime
         s0 = to_datetime(Series(["2010", np.NaN]))
@@ -200,7 +196,3 @@ class TestSeriesCombine(TestData, tm.TestCase):
         rs = s0.combine_first(s1)
         xp = Series([datetime(2010, 1, 1), '2011'])
         assert_series_equal(rs, xp)
-
-    def test_append_preserve_name(self):
-        result = self.ts[:5].append(self.ts[5:])
-        self.assertEqual(result.name, self.ts.name)
