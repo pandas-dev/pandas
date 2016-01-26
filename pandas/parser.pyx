@@ -572,7 +572,7 @@ cdef class TextReader:
                     file_name = zip_names.pop()
                     source = zip_file.open(file_name)
 
-                elif len(zip_names)>1:
+                else:
                     raise ValueError('Multiple files found in compressed '
                                      'zip file %s', str(zip_names))
             else:

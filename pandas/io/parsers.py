@@ -732,10 +732,10 @@ class TextFileReader(object):
         if engine == 'c':
             self._engine = CParserWrapper(self.f, **self.options)
         else:
-            if engine == 'python':
-                klass = PythonParser
-            elif engine == 'python-fwf':
+            if engine == 'python-fwf':
                 klass = FixedWidthFieldParser
+            else:  #default to engine == 'python':
+                klass = PythonParser
             self._engine = klass(self.f, **self.options)
 
     def _failover_to_python(self):
@@ -1391,10 +1391,9 @@ def _wrap_compressed(f, compression, encoding=None):
             f = zip_file.open(file_name)
             return f
 
-        elif len(zip_names)>1:
+        else:
             raise ValueError('Multiple files found in compressed '
                              'zip file %s', str(zip_names))
-        return f
 
     else:
         raise ValueError('do not recognize compression method %s'
