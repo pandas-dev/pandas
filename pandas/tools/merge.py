@@ -184,6 +184,13 @@ class _MergeOperation(object):
             raise ValueError(
                 'indicator option can only accept boolean or string arguments')
 
+        if not isinstance(left, DataFrame):
+            raise ValueError(
+                'can not merge DataFrame with instance of type {0}'.format(type(left)))
+        if not isinstance(right, DataFrame):
+            raise ValueError(
+                'can not merge DataFrame with instance of type {0}'.format(type(right)))
+
         # note this function has side effects
         (self.left_join_keys,
          self.right_join_keys,
