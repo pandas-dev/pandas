@@ -1,0 +1,175 @@
+# coding=utf-8
+# pylint: disable-msg=E1101,W0612
+
+from datetime import datetime
+
+import numpy as np
+import pandas as pd
+
+from pandas import Series, DataFrame
+
+from pandas.compat import StringIO, u
+from pandas.util.testing import (assert_series_equal, assert_almost_equal,
+                                 assert_frame_equal, ensure_clean)
+import pandas.util.testing as tm
+
+from .common import TestData
+
+
+class TestSeriesIO(TestData, tm.TestCase):
+
+    _multiprocess_can_split_ = True
+
+    def test_from_csv(self):
+
+        with ensure_clean() as path:
+            self.ts.to_csv(path)
+            ts = Series.from_csv(path)
+            assert_series_equal(self.ts, ts, check_names=False)
+            self.assertTrue(ts.name is None)
+            self.assertTrue(ts.index.name is None)
+
+            # GH10483
+            self.ts.to_csv(path, header=True)
+            ts_h = Series.from_csv(path, header=0)
+            self.assertTrue(ts_h.name == 'ts')
+
+            self.series.to_csv(path)
+            series = Series.from_csv(path)
+            self.assertIsNone(series.name)
+            self.assertIsNone(series.index.name)
+            assert_series_equal(self.series, series, check_names=False)
+            self.assertTrue(series.name is None)
+            self.assertTrue(series.index.name is None)
+
+            self.series.to_csv(path, header=True)
+            series_h = Series.from_csv(path, header=0)
+            self.assertTrue(series_h.name == 'series')
+
+            outfile = open(path, 'w')
+            outfile.write('1998-01-01|1.0\n1999-01-01|2.0')
+            outfile.close()
+            series = Series.from_csv(path, sep='|')
+            checkseries = Series({datetime(1998, 1, 1): 1.0,
+                                  datetime(1999, 1, 1): 2.0})
+            assert_series_equal(checkseries, series)
+
+            series = Series.from_csv(path, sep='|', parse_dates=False)
+            checkseries = Series({'1998-01-01': 1.0, '1999-01-01': 2.0})
+            assert_series_equal(checkseries, series)
+
+    def test_to_csv(self):
+        import io
+
+        with ensure_clean() as path:
+            self.ts.to_csv(path)
+
+            lines = io.open(path, newline=None).readlines()
+            assert (lines[1] != '\n')
+
+            self.ts.to_csv(path, index=False)
+            arr = np.loadtxt(path)
+            assert_almost_equal(arr, self.ts.values)
+
+    def test_to_csv_unicode_index(self):
+        buf = StringIO()
+        s = Series([u("\u05d0"), "d2"], index=[u("\u05d0"), u("\u05d1")])
+
+        s.to_csv(buf, encoding='UTF-8')
+        buf.seek(0)
+
+        s2 = Series.from_csv(buf, index_col=0, encoding='UTF-8')
+
+        assert_series_equal(s, s2)
+
+    def test_tolist(self):
+        rs = self.ts.tolist()
+        xp = self.ts.values.tolist()
+        assert_almost_equal(rs, xp)
+
+        # datetime64
+        s = Series(self.ts.index)
+        rs = s.tolist()
+        self.assertEqual(self.ts.index[0], rs[0])
+
+    def test_to_frame(self):
+        self.ts.name = None
+        rs = self.ts.to_frame()
+        xp = pd.DataFrame(self.ts.values, index=self.ts.index)
+        assert_frame_equal(rs, xp)
+
+        self.ts.name = 'testname'
+        rs = self.ts.to_frame()
+        xp = pd.DataFrame(dict(testname=self.ts.values), index=self.ts.index)
+        assert_frame_equal(rs, xp)
+
+        rs = self.ts.to_frame(name='testdifferent')
+        xp = pd.DataFrame(
+            dict(testdifferent=self.ts.values), index=self.ts.index)
+        assert_frame_equal(rs, xp)
+
+    def test_to_dict(self):
+        self.assert_numpy_array_equal(Series(self.ts.to_dict()), self.ts)
+
+    def test_to_csv_float_format(self):
+
+        with ensure_clean() as filename:
+            ser = Series([0.123456, 0.234567, 0.567567])
+            ser.to_csv(filename, float_format='%.2f')
+
+            rs = Series.from_csv(filename)
+            xp = Series([0.12, 0.23, 0.57])
+            assert_series_equal(rs, xp)
+
+    def test_to_csv_list_entries(self):
+        s = Series(['jack and jill', 'jesse and frank'])
+
+        split = s.str.split(r'\s+and\s+')
+
+        buf = StringIO()
+        split.to_csv(buf)
+
+    def test_to_csv_path_is_none(self):
+        # GH 8215
+        # Series.to_csv() was returning None, inconsistent with
+        # DataFrame.to_csv() which returned string
+        s = Series([1, 2, 3])
+        csv_str = s.to_csv(path=None)
+        self.assertIsInstance(csv_str, str)
+
+    def test_timeseries_periodindex(self):
+        # GH2891
+        from pandas import period_range
+        prng = period_range('1/1/2011', '1/1/2012', freq='M')
+        ts = Series(np.random.randn(len(prng)), prng)
+        new_ts = self.round_trip_pickle(ts)
+        self.assertEqual(new_ts.index.freq, 'M')
+
+    def test_pickle_preserve_name(self):
+        unpickled = self._pickle_roundtrip_name(self.ts)
+        self.assertEqual(unpickled.name, self.ts.name)
+
+    def _pickle_roundtrip_name(self, obj):
+
+        with ensure_clean() as path:
+            obj.to_pickle(path)
+            unpickled = pd.read_pickle(path)
+            return unpickled
+
+    def test_to_frame_expanddim(self):
+        # GH 9762
+
+        class SubclassedSeries(Series):
+
+            @property
+            def _constructor_expanddim(self):
+                return SubclassedFrame
+
+        class SubclassedFrame(DataFrame):
+            pass
+
+        s = SubclassedSeries([1, 2, 3], name='X')
+        result = s.to_frame()
+        self.assertTrue(isinstance(result, SubclassedFrame))
+        expected = SubclassedFrame({'X': [1, 2, 3]})
+        assert_frame_equal(result, expected)

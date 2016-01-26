@@ -34,7 +34,7 @@ from pandas.tests.frame.test_misc_api import (SafeForSparse as
 from pandas.sparse.tests.test_array import assert_sp_array_equal
 
 import pandas.tests.test_panel as test_panel
-import pandas.tests.test_series as test_series
+from pandas.tests.series.test_misc_api import SharedWithSparse
 
 dec = np.testing.dec
 
@@ -116,7 +116,7 @@ def assert_sp_panel_equal(left, right, exact_indices=True):
         assert (item in left)
 
 
-class TestSparseSeries(tm.TestCase, test_series.CheckNameIntegration):
+class TestSparseSeries(tm.TestCase, SharedWithSparse):
     _multiprocess_can_split_ = True
 
     def setUp(self):
