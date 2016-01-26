@@ -201,10 +201,6 @@ In addition, ``.round()``, ``.floor()`` and ``.ceil()`` will be available thru t
    s
    s.dt.round('D')
 
-.. _whatsnew_0180.api:
-
-- ``pandas.merge()`` and ``DataFrame.merge()`` will show a specific error message when trying to merge with an object that is not of type ``DataFrame`` or a subclass (:issue:`12081`)
-
 .. _whatsnew_0180.api_breaking:
 
 Backwards incompatible API changes
@@ -319,29 +315,6 @@ other anchored offsets like ``MonthBegin`` and ``YearBegin``.
    d = pd.Timestamp('2014-02-15')
    d + pd.offsets.QuarterBegin(n=0, startingMonth=2)
 
-
-Other API Changes
-^^^^^^^^^^^^^^^^^
-
-- ``DataFrame.between_time`` and ``Series.between_time`` now only parse a fixed set of time strings. Parsing of date strings is no longer supported and raises a ``ValueError``. (:issue:`11818`)
-
-  .. ipython:: python
-
-     s = pd.Series(range(10), pd.date_range('2015-01-01', freq='H', periods=10))
-     s.between_time("7:00am", "9:00am")
-
-  This will now raise.
-
-  .. code-block:: python
-
-     In [2]: s.between_time('20150101 07:00:00','20150101 09:00:00')
-     ValueError: Cannot convert arg ['20150101 07:00:00'] to a time.
-
-- ``.memory_usage`` now includes values in the index, as does memory_usage in ``.info`` (:issue:`11597`)
-
-- ``DataFrame.to_latex()`` now supports non-ascii encodings (eg utf-8) in Python 2 with the parameter ``encoding`` (:issue:`7061`)
-
-
 Changes to eval
 ^^^^^^^^^^^^^^^
 
@@ -396,6 +369,32 @@ assignments are valid for multi-line expressions.
    f = e - 22
    g = f / 2.0""", inplace=True)
    df
+
+
+.. _whatsnew_0180.api:
+
+Other API Changes
+^^^^^^^^^^^^^^^^^
+
+- ``DataFrame.between_time`` and ``Series.between_time`` now only parse a fixed set of time strings. Parsing of date strings is no longer supported and raises a ``ValueError``. (:issue:`11818`)
+
+  .. ipython:: python
+
+     s = pd.Series(range(10), pd.date_range('2015-01-01', freq='H', periods=10))
+     s.between_time("7:00am", "9:00am")
+
+  This will now raise.
+
+  .. code-block:: python
+
+     In [2]: s.between_time('20150101 07:00:00','20150101 09:00:00')
+     ValueError: Cannot convert arg ['20150101 07:00:00'] to a time.
+
+- ``.memory_usage`` now includes values in the index, as does memory_usage in ``.info`` (:issue:`11597`)
+
+- ``DataFrame.to_latex()`` now supports non-ascii encodings (eg utf-8) in Python 2 with the parameter ``encoding`` (:issue:`7061`)
+
+- ``pandas.merge()`` and ``DataFrame.merge()`` will show a specific error message when trying to merge with an object that is not of type ``DataFrame`` or a subclass (:issue:`12081`)
 
 .. _whatsnew_0180.deprecations:
 
@@ -502,7 +501,7 @@ Bug Fixes
 - Bug in ``pd.read_clipboard`` and ``pd.to_clipboard`` functions not supporting Unicode; upgrade included ``pyperclip`` to v1.5.15 (:issue:`9263`)
 - Bug in ``DataFrame.query`` containing an assignment (:issue:`8664`)
 
-- Bug in ``from_msgpack`` where ``__contains__()`` fails for columns of the unpacked ``DataFrame``, if the ``DataFrame`` has object columns. (:issue: `11880`)
+- Bug in ``from_msgpack`` where ``__contains__()`` fails for columns of the unpacked ``DataFrame``, if the ``DataFrame`` has object columns. (:issue:`11880`)
 
 
 - Bug in timezone info lost when broadcasting scalar datetime to ``DataFrame`` (:issue:`11682`)
@@ -521,7 +520,7 @@ Bug Fixes
 - Bug in ``Index`` prevents copying name of passed ``Index``, when a new name is not provided (:issue:`11193`)
 - Bug in ``read_excel`` failing to read any non-empty sheets when empty sheets exist and ``sheetname=None`` (:issue:`11711`)
 - Bug in ``read_excel`` failing to raise ``NotImplemented`` error when keywords ``parse_dates`` and ``date_parser`` are provided (:issue:`11544`)
-- Bug in ``read_sql`` with pymysql connections failing to return chunked data (:issue:`11522`)
+- Bug in ``read_sql`` with ``pymysql`` connections failing to return chunked data (:issue:`11522`)
 - Bug in ``.to_csv`` ignoring formatting parameters ``decimal``, ``na_rep``, ``float_format`` for float indexes (:issue:`11553`)
 - Bug in ``Int64Index`` and ``Float64Index`` preventing the use of the modulo operator (:issue:`9244`)
 
@@ -529,8 +528,7 @@ Bug Fixes
 - Bug in ``DataFrame`` when masking an empty ``DataFrame`` (:issue:`11859`)
 
 
-- Bug in ``.plot`` potentially modifying the ``colors`` input when the number
-of columns didn't match the number of series provided (:issue:`12039`).
+- Bug in ``.plot`` potentially modifying the ``colors`` input when the number of columns didn't match the number of series provided (:issue:`12039`).
 
 
 - Bug in ``.groupby`` where a ``KeyError`` was not raised for a wrong column if there was only one row in the dataframe (:issue:`11741`)
