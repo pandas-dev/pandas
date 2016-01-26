@@ -1,4 +1,4 @@
-ipython=3.2.1
+ipython
 nbconvert
 matplotlib
 scipy
