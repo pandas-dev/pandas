@@ -4,13 +4,8 @@
 
 __docformat__ = 'restructuredtext'
 
-# use the closest tagged version if possible
-from ._version import get_versions
-v = get_versions()
-__version__ = v.get('closest-tag',v['version'])
-del get_versions, v
-
 # numpy compat
+import numpy as np
 from pandas.compat.numpy_compat import *
 
 try:
@@ -23,8 +18,6 @@ except ImportError as e:  # pragma: no cover
                       "extensions first.".format(module))
 
 from datetime import datetime
-import numpy as np
-
 from pandas.info import __doc__
 
 # let init-time option registration happen
@@ -50,3 +43,10 @@ import pandas.util.testing
 from pandas.util.nosetester import NoseTester
 test = NoseTester().test
 del NoseTester
+
+# use the closest tagged version if possible
+from ._version import get_versions
+v = get_versions()
+__version__ = v.get('closest-tag',v['version'])
+del get_versions, v
+
