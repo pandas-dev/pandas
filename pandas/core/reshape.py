@@ -971,7 +971,11 @@ def get_dummies(data, prefix=None, prefix_sep='_', dummy_na=False,
         Otherwise returns a DataFrame with some SparseBlocks.
 
         .. versionadded:: 0.16.1
+    drop_first : bool, default False
+        Whether to get k-1 dummies out of n categorical levels by removing the
+        first level.
 
+        .. versionadded:: 0.18.0
     Returns
     -------
     dummies : DataFrame or SparseDataFrame
@@ -1011,6 +1015,21 @@ def get_dummies(data, prefix=None, prefix_sep='_', dummy_na=False,
     1  2       0       1       1       0       0
     2  3       1       0       0       0       1
 
+    >>> pd.get_dummies(pd.Series(list('abcaa')))
+       a  b  c
+    0  1  0  0
+    1  0  1  0
+    2  0  0  1
+    3  1  0  0
+    4  1  0  0
+
+    >>> pd.get_dummies(pd.Series(list('abcaa')), drop_first=True))
+       b  c
+    0  0  0
+    1  1  0
+    2  0  1
+    3  0  0
+    4  0  0
     See also ``Series.str.get_dummies``.
 
     """
@@ -1060,17 +1079,18 @@ def get_dummies(data, prefix=None, prefix_sep='_', dummy_na=False,
         for (col, pre, sep) in zip(columns_to_encode, prefix, prefix_sep):
 
             dummy = _get_dummies_1d(data[col], prefix=pre, prefix_sep=sep,
-                                    dummy_na=dummy_na, sparse=sparse)
+                                    dummy_na=dummy_na, sparse=sparse,
+                                    drop_first=drop_first)
             with_dummies.append(dummy)
         result = concat(with_dummies, axis=1)
     else:
         result = _get_dummies_1d(data, prefix, prefix_sep, dummy_na,
-                                 sparse=sparse)
+                                 sparse=sparse, drop_first=drop_first)
     return result
 
 
 def _get_dummies_1d(data, prefix, prefix_sep='_', dummy_na=False,
-                    sparse=False):
+                    sparse=False, drop_first=False):
     # Series avoids inconsistent NaN handling
     cat = Categorical.from_array(Series(data), ordered=True)
     levels = cat.categories
@@ -1113,6 +1133,11 @@ def _get_dummies_1d(data, prefix, prefix_sep='_', dummy_na=False,
                 continue
             sp_indices[code].append(ndx)
 
+        if drop_first:
+            # remove first categorical level to avoid perfect collinearity
+            # GH12042
+            sp_indices = sp_indices[1:]
+            dummy_cols = dummy_cols[1:]
         for col, ixs in zip(dummy_cols, sp_indices):
             sarr = SparseArray(np.ones(len(ixs)),
                                sparse_index=IntIndex(N, ixs), fill_value=0)
@@ -1127,6 +1152,10 @@ def _get_dummies_1d(data, prefix, prefix_sep='_', dummy_na=False,
             # reset NaN GH4446
             dummy_mat[codes == -1] = 0
 
+        if drop_first:
+            # remove first GH12042
+            dummy_mat = dummy_mat[:, 1:]
+            dummy_cols = dummy_cols[1:]
         return DataFrame(dummy_mat, index=index, columns=dummy_cols)
 
 

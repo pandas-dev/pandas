@@ -411,6 +411,91 @@ class TestGetDummies(tm.TestCase):
                              ]]
         assert_frame_equal(result, expected)
 
+    # GH12402 Add a new parameter `drop_first` to avoid collinearity
+    def test_basic_drop_first(self):
+        # Basic case
+        s_list = list('abc')
+        s_series = Series(s_list)
+        s_series_index = Series(s_list, list('ABC'))
+
+        expected = DataFrame({'b': {0: 0.0,
+                                    1: 1.0,
+                                    2: 0.0},
+                              'c': {0: 0.0,
+                                    1: 0.0,
+                                    2: 1.0}})
+
+        result = get_dummies(s_list, sparse=self.sparse, drop_first=True)
+        assert_frame_equal(result, expected)
+
+        result = get_dummies(s_series, sparse=self.sparse, drop_first=True)
+        assert_frame_equal(result, expected)
+
+        expected.index = list('ABC')
+        result = get_dummies(s_series_index, sparse=self.sparse, drop_first=True)
+        assert_frame_equal(result, expected)
+
+    def test_basic_drop_first_NA(self):
+        # Test NA hadling together with drop_first
+        s_NA = ['a', 'b', np.nan]
+        res = get_dummies(s_NA, sparse=self.sparse, drop_first=True)
+        exp = DataFrame({'b': {0: 0.0,
+                               1: 1.0,
+                               2: 0.0}})
+        assert_frame_equal(res, exp)
+
+        # Sparse dataframes do not allow nan labelled columns, see #GH8822
+        res_na = get_dummies(s_NA, dummy_na=True, sparse=self.sparse,
+                             drop_first=True)
+        exp_na = DataFrame({'b': {0: 0.0,
+                                  1: 1.0,
+                                  2: 0.0},
+                            nan: {0: 0.0,
+                                  1: 0.0,
+                                  2: 1.0}}).reindex_axis(
+                                      ['b', nan], 1)
+        assert_frame_equal(res_na, exp_na)
+
+        res_just_na = get_dummies([nan], dummy_na=True, sparse=self.sparse,
+                                  drop_first=True)
+        tm.assert_numpy_array_equal(res_just_na.empty, True)
+
+    def test_dataframe_dummies_drop_first(self):
+        df = self.df[['A', 'B']]
+        result = get_dummies(df, sparse=self.sparse, drop_first=True)
+        expected = DataFrame({'A_b': [0., 1, 0],
+                              'B_c': [0., 0, 1]})
+        assert_frame_equal(result, expected)
+
+    def test_dataframe_dummies_drop_first_with_categorical(self):
+        df = self.df
+        df['cat'] = pd.Categorical(['x', 'y', 'y'])
+        result = get_dummies(df, sparse=self.sparse, drop_first=True)
+        expected = DataFrame({'C': [1, 2, 3],
+                              'A_b': [0., 1, 0],
+                              'B_c': [0., 0, 1],
+                              'cat_y': [0., 1, 1]})
+        expected = expected[['C', 'A_b', 'B_c', 'cat_y']]
+        assert_frame_equal(result, expected)
+
+    def test_dataframe_dummies_drop_first_with_na(self):
+        df = self.df
+        df.loc[3, :] = [np.nan, np.nan, np.nan]
+        result = get_dummies(df, dummy_na=True, sparse=self.sparse,
+                             drop_first=True)
+        expected = DataFrame({'C': [1, 2, 3, np.nan],
+                              'A_b': [0., 1, 0, 0],
+                              'A_nan': [0., 0, 0, 1],
+                              'B_c': [0., 0, 1, 0],
+                              'B_nan': [0., 0, 0, 1]})
+        expected = expected[['C', 'A_b', 'A_nan', 'B_c', 'B_nan']]
+        assert_frame_equal(result, expected)
+
+        result = get_dummies(df, dummy_na=False, sparse=self.sparse,
+                             drop_first=True)
+        expected = expected[['C', 'A_b', 'B_c']]
+        assert_frame_equal(result, expected)
+
 
 class TestGetDummiesSparse(TestGetDummies):
     sparse = True
