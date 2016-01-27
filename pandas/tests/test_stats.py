@@ -59,7 +59,7 @@ class TestRank(tm.TestCase):
             ts = Series(vals, index=index)
 
             for m in ['average', 'min', 'max', 'first', 'dense']:
-                result = ts.rank(m)
+                result = ts.rank(method=m)
                 sprank = rankdata(vals, m if m != 'first' else 'ordinal')
                 tm.assert_series_equal(result, Series(sprank, index=index))
 

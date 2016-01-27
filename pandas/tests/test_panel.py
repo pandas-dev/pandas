@@ -56,6 +56,9 @@ class PanelTests(object):
         unpickled = self.round_trip_pickle(self.panel)
         assert_frame_equal(unpickled['ItemA'], self.panel['ItemA'])
 
+    def test_rank(self):
+        self.assertRaises(NotImplementedError, lambda: self.panel.rank())
+
     def test_cumsum(self):
         cumsum = self.panel.cumsum()
         assert_frame_equal(cumsum['ItemA'], self.panel['ItemA'].cumsum())
