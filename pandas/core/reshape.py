@@ -944,7 +944,7 @@ def wide_to_long(df, stubnames, i, j):
 
 
 def get_dummies(data, prefix=None, prefix_sep='_', dummy_na=False,
-                columns=None, sparse=False):
+                columns=None, sparse=False, drop_first=False):
     """
     Convert categorical variable into dummy/indicator variables
 

@@ -435,6 +435,11 @@ class TestGetDummies(tm.TestCase):
         result = get_dummies(s_series_index, sparse=self.sparse, drop_first=True)
         assert_frame_equal(result, expected)
 
+    # Test the case that categorical variable only has one level.
+    def test_basic_drop_first_one_level(self):
+        result = get_dummies(list('aaa'), sparse=self.sparse, drop_first=True)
+        self.assertEqual(result.empty, True)
+
     def test_basic_drop_first_NA(self):
         # Test NA hadling together with drop_first
         s_NA = ['a', 'b', np.nan]
