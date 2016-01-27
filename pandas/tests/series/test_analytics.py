@@ -1025,6 +1025,11 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
         iranks = iseries.rank()
         assert_series_equal(iranks, exp)
 
+    def test_rank_signature(self):
+        s = Series([0, 1])
+        s.rank(method='average')
+        self.assertRaises(ValueError, s.rank, 'average')
+
     def test_rank_inf(self):
         raise nose.SkipTest('DataFrame.rank does not currently rank '
                             'np.inf and -np.inf properly')

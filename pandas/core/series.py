@@ -1865,36 +1865,6 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
                 np.argsort(values, kind=kind), index=self.index,
                 dtype='int64').__finalize__(self)
 
-    def rank(self, method='average', na_option='keep', ascending=True,
-             pct=False):
-        """
-        Compute data ranks (1 through n). Equal values are assigned a rank that
-        is the average of the ranks of those values
-
-        Parameters
-        ----------
-        method : {'average', 'min', 'max', 'first', 'dense'}
-            * average: average rank of group
-            * min: lowest rank in group
-            * max: highest rank in group
-            * first: ranks assigned in order they appear in the array
-            * dense: like 'min', but rank always increases by 1 between groups
-        na_option : {'keep'}
-            keep: leave NA values where they are
-        ascending : boolean, default True
-            False for ranks by high (1) to low (N)
-        pct : boolean, default False
-            Computes percentage rank of data
-
-        Returns
-        -------
-        ranks : Series
-        """
-        ranks = algorithms.rank(self._values, method=method,
-                                na_option=na_option, ascending=ascending,
-                                pct=pct)
-        return self._constructor(ranks, index=self.index).__finalize__(self)
-
     @deprecate_kwarg('take_last', 'keep', mapping={True: 'last',
                                                    False: 'first'})
     def nlargest(self, n=5, keep='first'):
