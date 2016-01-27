@@ -42,9 +42,14 @@ class NumericIndex(Index):
         """
 
         # we are a numeric index, so we accept
-        # integer/floats directly
-        if not (com.is_integer(label) or com.is_float(label)):
-            self._invalid_indexer('slice', label)
+        # integer directly
+        if com.is_integer(label):
+            pass
+
+        # disallow floats only if we not-strict
+        elif com.is_float(label):
+            if not (self.is_floating() or kind in ['ix']):
+                self._invalid_indexer('slice', label)
 
         return label
 
@@ -200,6 +205,18 @@ class Float64Index(NumericIndex):
 
         if dtype is None:
             dtype = np.float64
+        dtype = np.dtype(dtype)
+
+        # allow integer / object dtypes to be passed, but coerce to float64
+        if dtype.kind in ['i', 'O']:
+            dtype = np.float64
+
+        elif dtype.kind in ['f']:
+            pass
+
+        else:
+            raise TypeError("cannot support {0} dtype in "
+                            "Float64Index".format(dtype))
 
         try:
             subarr = np.array(data, dtype=dtype, copy=copy)

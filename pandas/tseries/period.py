@@ -678,7 +678,12 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
             except TypeError:
                 pass
 
-            key = Period(key, freq=self.freq)
+            try:
+                key = Period(key, freq=self.freq)
+            except ValueError:
+                # we cannot construct the Period
+                # as we have an invalid type
+                return self._invalid_indexer('label', key)
             try:
                 return Index.get_loc(self, key.ordinal, method, tolerance)
             except KeyError:

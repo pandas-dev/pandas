@@ -21,6 +21,7 @@ Highlights include:
 - ``pd.test()`` top-level nose test runner is available (:issue:`4327`)
 - Adding support for a ``RangeIndex`` as a specialized form of the ``Int64Index`` for memory savings, see :ref:`here <whatsnew_0180.enhancements.rangeindex>`.
 - API breaking ``.resample`` changes to make it more ``.groupby`` like, see :ref:`here <whatsnew_0180.breaking.resample>`.
+- Removal of support for deprecated float indexers; these will now raise a ``TypeError``, see :ref:`here <whatsnew_0180.enhancements.float_indexers>`.
 
 Check the :ref:`API Changes <whatsnew_0180.api_breaking>` and :ref:`deprecations <whatsnew_0180.deprecations>` before updating.
 
@@ -865,9 +866,45 @@ Deprecations
   is better handled by matplotlib's `style sheets`_ (:issue:`11783`).
 
 
-
-
 .. _style sheets: http://matplotlib.org/users/style_sheets.html
+
+.. _whatsnew_0180.float_indexers:
+
+Removal of deprecated float indexers
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+In :issue:`4892` indexing with floating point numbers on a non-``Float64Index`` was deprecated (in version 0.14.0).
+In 0.18.0, this deprecation warning is removed and these will now raise a ``TypeError``. (:issue:`12165`)
+
+Previous Behavior:
+
+.. code-block:
+
+   In [1]: s = Series([1,2,3])
+   In [2]: s[1.0]
+   FutureWarning: scalar indexers for index type Int64Index should be integers and not floating point
+   Out[2]: 2
+
+   In [3]: s.iloc[1.0]
+   FutureWarning: scalar indexers for index type Int64Index should be integers and not floating point
+   Out[3]: 2
+
+   In [4]: s.loc[1.0]
+   FutureWarning: scalar indexers for index type Int64Index should be integers and not floating point
+   Out[4]: 2
+
+New Behavior:
+
+.. code-block:
+
+   In [4]: s[1.0]
+   TypeError: cannot do label indexing on <class 'pandas.indexes.range.RangeIndex'> with these indexers [1.0] of <type 'float'>
+
+   In [4]: s.iloc[1.0]
+   TypeError: cannot do label indexing on <class 'pandas.indexes.range.RangeIndex'> with these indexers [1.0] of <type 'float'>
+
+   In [4]: s.loc[1.0]
+   TypeError: cannot do label indexing on <class 'pandas.indexes.range.RangeIndex'> with these indexers [1.0] of <type 'float'>
 
 .. _whatsnew_0180.prior_deprecations:
 
