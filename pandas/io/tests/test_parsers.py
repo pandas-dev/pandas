@@ -69,6 +69,51 @@ bar2,12,13,14,15
         self.csv2 = os.path.join(self.dirpath, 'test2.csv')
         self.xls1 = os.path.join(self.dirpath, 'test.xls')
 
+    def construct_dataframe(self, num_rows):
+
+        df = DataFrame(np.random.rand(num_rows, 5), columns=list('abcde'))
+        df['foo'] = 'foo'
+        df['bar'] = 'bar'
+        df['baz'] = 'baz'
+        df['date'] = pd.date_range('20000101 09:00:00',
+                                   periods=num_rows,
+                                   freq='s')
+        df['int'] = np.arange(num_rows, dtype='int64')
+        return df
+
+    def generate_multithread_dataframe(self, path, num_rows, num_tasks):
+
+        def reader(arg):
+            start, nrows = arg
+
+            if not start:
+                return pd.read_csv(path, index_col=0, header=0, nrows=nrows,
+                                   parse_dates=['date'])
+
+            return pd.read_csv(path,
+                               index_col=0,
+                               header=None,
+                               skiprows=int(start) + 1,
+                               nrows=nrows,
+                               parse_dates=[9])
+
+        tasks = [
+            (num_rows * i / num_tasks,
+             num_rows / num_tasks) for i in range(num_tasks)
+        ]
+
+        pool = ThreadPool(processes=num_tasks)
+
+        results = pool.map(reader, tasks)
+
+        header = results[0].columns
+        for r in results[1:]:
+            r.columns = header
+
+        final_dataframe = pd.concat(results)
+
+        return final_dataframe
+
     def test_converters_type_must_be_dict(self):
         with tm.assertRaisesRegexp(TypeError, 'Type converters.+'):
             self.read_csv(StringIO(self.data1), converters=0)
@@ -3361,8 +3406,43 @@ col1~~~~~col2  col3++++++++++++++++++col4
         tm.assert_frame_equal(expected, read_fwf(BytesIO(test.encode('utf8')),
                                                  header=None, encoding='utf8'))
 
+class CParserTests(ParserTests):
+    """ base class for CParser Testsing """
 
-class TestCParserHighMemory(ParserTests, tm.TestCase):
+    def test_buffer_overflow(self):
+        # GH9205
+        # test certain malformed input files that cause buffer overflows in
+        # tokenizer.c
+        malfw = "1\r1\r1\r 1\r 1\r"         # buffer overflow in words pointer
+        malfs = "1\r1\r1\r 1\r 1\r11\r"     # buffer overflow in stream pointer
+        malfl = "1\r1\r1\r 1\r 1\r11\r1\r"  # buffer overflow in lines pointer
+        for malf in (malfw, malfs, malfl):
+            try:
+                df = self.read_table(StringIO(malf))
+            except Exception as cperr:
+                self.assertIn(
+                    'Buffer overflow caught - possible malformed input file.', str(cperr))
+
+    def test_buffer_rd_bytes(self):
+        # GH 12098
+        # src->buffer can be freed twice leading to a segfault if a corrupt
+        # gzip file is read with read_csv and the buffer is filled more than
+        # once before gzip throws an exception
+
+        data = '\x1F\x8B\x08\x00\x00\x00\x00\x00\x00\x03\xED\xC3\x41\x09' \
+               '\x00\x00\x08\x00\xB1\xB7\xB6\xBA\xFE\xA5\xCC\x21\x6C\xB0' \
+               '\xA6\x4D' + '\x55' * 267 + \
+               '\x7D\xF7\x00\x91\xE0\x47\x97\x14\x38\x04\x00' \
+               '\x1f\x8b\x08\x00VT\x97V\x00\x03\xed]\xefO'
+        for i in range(100):
+            try:
+                _ = self.read_csv(StringIO(data),
+                                  compression='gzip',
+                                  delim_whitespace=True)
+            except Exception as e:
+                pass
+
+class TestCParserHighMemory(CParserTests, tm.TestCase):
 
     def read_csv(self, *args, **kwds):
         kwds = kwds.copy()
@@ -3653,39 +3733,6 @@ nan 2
         with tm.assertRaisesRegexp(ValueError, 'does not support'):
             self.read_table(StringIO(data), engine='c', skip_footer=1)
 
-    def test_buffer_overflow(self):
-        # GH9205
-        # test certain malformed input files that cause buffer overflows in
-        # tokenizer.c
-        malfw = "1\r1\r1\r 1\r 1\r"         # buffer overflow in words pointer
-        malfs = "1\r1\r1\r 1\r 1\r11\r"     # buffer overflow in stream pointer
-        malfl = "1\r1\r1\r 1\r 1\r11\r1\r"  # buffer overflow in lines pointer
-        for malf in (malfw, malfs, malfl):
-            try:
-                df = self.read_table(StringIO(malf))
-            except Exception as cperr:
-                self.assertIn(
-                    'Buffer overflow caught - possible malformed input file.', str(cperr))
-
-    def test_buffer_rd_bytes(self):
-        # GH 12098
-        # src->buffer can be freed twice leading to a segfault if a corrupt 
-        # gzip file is read with read_csv and the buffer is filled more than
-        # once before gzip throws an exception
-        
-        data = '\x1F\x8B\x08\x00\x00\x00\x00\x00\x00\x03\xED\xC3\x41\x09' \
-               '\x00\x00\x08\x00\xB1\xB7\xB6\xBA\xFE\xA5\xCC\x21\x6C\xB0' \
-               '\xA6\x4D' + '\x55' * 267 + \
-               '\x7D\xF7\x00\x91\xE0\x47\x97\x14\x38\x04\x00' \
-               '\x1f\x8b\x08\x00VT\x97V\x00\x03\xed]\xefO'
-        for i in range(100):
-            try:
-                _ = self.read_csv(StringIO(data),
-                                  compression='gzip',
-                                  delim_whitespace=True)
-            except Exception as e:
-                pass
-
     def test_single_char_leading_whitespace(self):
         # GH 9710
         data = """\
@@ -3706,7 +3753,7 @@ MyColumn
         tm.assert_frame_equal(result, expected)
 
 
-class TestCParserLowMemory(ParserTests, tm.TestCase):
+class TestCParserLowMemory(CParserTests, tm.TestCase):
 
     def read_csv(self, *args, **kwds):
         kwds = kwds.copy()
@@ -4213,39 +4260,6 @@ No,No,No"""
         with tm.assertRaisesRegexp(ValueError, 'you can only specify one'):
             self.read_table(StringIO(data), sep='\s', delim_whitespace=True)
 
-    def test_buffer_overflow(self):
-        # GH9205
-        # test certain malformed input files that cause buffer overflows in
-        # tokenizer.c
-        malfw = "1\r1\r1\r 1\r 1\r"         # buffer overflow in words pointer
-        malfs = "1\r1\r1\r 1\r 1\r11\r"     # buffer overflow in stream pointer
-        malfl = "1\r1\r1\r 1\r 1\r11\r1\r"  # buffer overflow in lines pointer
-        for malf in (malfw, malfs, malfl):
-            try:
-                df = self.read_table(StringIO(malf))
-            except Exception as cperr:
-                self.assertIn(
-                    'Buffer overflow caught - possible malformed input file.', str(cperr))
-
-    def test_buffer_rd_bytes(self):
-        # GH 12098
-        # src->buffer can be freed twice leading to a segfault if a corrupt 
-        # gzip file is read with read_csv and the buffer is filled more than
-        # once before gzip throws an exception
-        
-        data = '\x1F\x8B\x08\x00\x00\x00\x00\x00\x00\x03\xED\xC3\x41\x09' \
-               '\x00\x00\x08\x00\xB1\xB7\xB6\xBA\xFE\xA5\xCC\x21\x6C\xB0' \
-               '\xA6\x4D' + '\x55' * 267 + \
-               '\x7D\xF7\x00\x91\xE0\x47\x97\x14\x38\x04\x00' \
-               '\x1f\x8b\x08\x00VT\x97V\x00\x03\xed]\xefO'
-        for i in range(100):
-            try:
-                _ = self.read_csv(StringIO(data),
-                                  compression='gzip',
-                                  delim_whitespace=True)
-            except Exception as e:
-                pass
-
     def test_single_char_leading_whitespace(self):
         # GH 9710
         data = """\
@@ -4299,51 +4313,6 @@ MyColumn
 
         for result in results:
             tm.assert_frame_equal(first_result, result)
-
-    def construct_dataframe(self, num_rows):
-
-        df = DataFrame(np.random.rand(num_rows, 5), columns=list('abcde'))
-        df['foo'] = 'foo'
-        df['bar'] = 'bar'
-        df['baz'] = 'baz'
-        df['date'] = pd.date_range('20000101 09:00:00',
-                                   periods=num_rows,
-                                   freq='s')
-        df['int'] = np.arange(num_rows, dtype='int64')
-        return df
-
-    def generate_multithread_dataframe(self, path, num_rows, num_tasks):
-
-        def reader(arg):
-            start, nrows = arg
-
-            if not start:
-                return pd.read_csv(path, index_col=0, header=0, nrows=nrows,
-                                   parse_dates=['date'])
-
-            return pd.read_csv(path,
-                               index_col=0,
-                               header=None,
-                               skiprows=int(start) + 1,
-                               nrows=nrows,
-                               parse_dates=[9])
-
-        tasks = [
-            (num_rows * i / num_tasks,
-             num_rows / num_tasks) for i in range(num_tasks)
-        ]
-
-        pool = ThreadPool(processes=num_tasks)
-
-        results = pool.map(reader, tasks)
-
-        header = results[0].columns
-        for r in results[1:]:
-            r.columns = header
-
-        final_dataframe = pd.concat(results)
-
-        return final_dataframe
 
     def test_multithread_path_multipart_read_csv(self):
         # GH 11786
