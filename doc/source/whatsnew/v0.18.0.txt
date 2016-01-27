@@ -1,7 +1,7 @@
 .. _whatsnew_0180:
 
-v0.18.0 (January ??, 2016)
---------------------------
+v0.18.0 (February ??, 2016)
+---------------------------
 
 This is a major release from 0.17.1 and includes a small number of API changes, several new features,
 enhancements, and performance improvements along with a large number of bug fixes. We recommend that all
@@ -21,7 +21,7 @@ Highlights include:
 - ``pd.test()`` top-level nose test runner is available (:issue:`4327`)
 - Adding support for a ``RangeIndex`` as a specialized form of the ``Int64Index`` for memory savings, see :ref:`here <whatsnew_0180.enhancements.rangeindex>`.
 
-Check the :ref:`API Changes <whatsnew_0180.api>` and :ref:`deprecations <whatsnew_0180.deprecations>` before updating.
+Check the :ref:`API Changes <whatsnew_0180.api_breaking>` and :ref:`deprecations <whatsnew_0180.deprecations>` before updating.
 
 .. contents:: What's new in v0.18.0
     :local:
@@ -136,23 +136,6 @@ New Behavior:
    s.index
    s.index.nbytes
 
-.. _whatsnew_0180.enhancements.other:
-
-Other enhancements
-^^^^^^^^^^^^^^^^^^
-
-- Handle truncated floats in SAS xport files (:issue:`11713`)
-- Added option to hide index in ``Series.to_string`` (:issue:`11729`)
-- ``read_excel`` now supports s3 urls of the format ``s3://bucketname/filename`` (:issue:`11447`)
-- A simple version of ``Panel.round()`` is now implemented (:issue:`11763`)
-- For Python 3.x, ``round(DataFrame)``, ``round(Series)``, ``round(Panel)`` will work (:issue:`11763`)
-- ``DataFrame`` has gained a ``_repr_latex_`` method in order to allow for automatic conversion to latex in a ipython/jupyter notebook using nbconvert. Options ``display.latex.escape`` and ``display.latex.longtable`` have been added to the configuration and are used automatically by the ``to_latex`` method. (:issue:`11778`)
-- ``sys.getsizeof(obj)`` returns the memory usage of a pandas object, including the
-  values it contains (:issue:`11597`)
-- ``Series`` gained an ``is_unique`` attribute (:issue:`11946`)
-- ``DataFrame.quantile`` and ``Series.quantile`` now accept ``interpolation`` keyword (:issue:`10174`).
-- ``DataFrame.select_dtypes`` now allows the ``np.float16`` typecode (:issue:`11990`)
-
 .. _whatsnew_0180.enhancements.rounding:
 
 Datetimelike rounding
@@ -200,6 +183,23 @@ In addition, ``.round()``, ``.floor()`` and ``.ceil()`` will be available thru t
    s = Series(dr)
    s
    s.dt.round('D')
+
+.. _whatsnew_0180.enhancements.other:
+
+Other enhancements
+^^^^^^^^^^^^^^^^^^
+
+- Handle truncated floats in SAS xport files (:issue:`11713`)
+- Added option to hide index in ``Series.to_string`` (:issue:`11729`)
+- ``read_excel`` now supports s3 urls of the format ``s3://bucketname/filename`` (:issue:`11447`)
+- A simple version of ``Panel.round()`` is now implemented (:issue:`11763`)
+- For Python 3.x, ``round(DataFrame)``, ``round(Series)``, ``round(Panel)`` will work (:issue:`11763`)
+- ``DataFrame`` has gained a ``_repr_latex_`` method in order to allow for automatic conversion to latex in a ipython/jupyter notebook using nbconvert. Options ``display.latex.escape`` and ``display.latex.longtable`` have been added to the configuration and are used automatically by the ``to_latex`` method. (:issue:`11778`)
+- ``sys.getsizeof(obj)`` returns the memory usage of a pandas object, including the
+  values it contains (:issue:`11597`)
+- ``Series`` gained an ``is_unique`` attribute (:issue:`11946`)
+- ``DataFrame.quantile`` and ``Series.quantile`` now accept ``interpolation`` keyword (:issue:`10174`).
+- ``DataFrame.select_dtypes`` now allows the ``np.float16`` typecode (:issue:`11990`)
 
 .. _whatsnew_0180.api_breaking:
 
@@ -540,6 +540,6 @@ Bug Fixes
 - Bug in ``Series`` constructor with read-only data (:issue:`11502`)
 
 - Bug in ``.loc`` setitem indexer preventing the use of a TZ-aware DatetimeIndex (:issue:`12050`)
-- Big in ``.style`` indexes and multi-indexes not appearing (:issue:`11655`)
+- Bug in ``.style`` indexes and multi-indexes not appearing (:issue:`11655`)
 
 - Bug in ``.skew`` and ``.kurt`` due to roundoff error for highly similar values (:issue:`11974`)
