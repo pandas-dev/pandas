@@ -152,6 +152,9 @@ Other enhancements
 - ``Series`` gained an ``is_unique`` attribute (:issue:`11946`)
 - ``DataFrame.quantile`` and ``Series.quantile`` now accept ``interpolation`` keyword (:issue:`10174`).
 - ``DataFrame.select_dtypes`` now allows the ``np.float16`` typecode (:issue:`11990`)
+- Added Google ``BigQuery`` service account authentication support, which enables authentication on remote servers. (:issue:`11881`)
+  For further details see :ref:`here <io.bigquery_authentication>`
+
 
 .. _whatsnew_0180.enhancements.rounding:
 
