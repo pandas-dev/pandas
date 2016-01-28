@@ -1670,40 +1670,6 @@ class TestDataFrameAnalytics(tm.TestCase, TestData):
         expected = df.iloc[[0, 1, 2, 6]]
         assert_frame_equal(result, expected)
 
-    def test_drop_duplicates_deprecated_warning(self):
-        df = DataFrame({'AAA': ['foo', 'bar', 'foo', 'bar',
-                                'foo', 'bar', 'bar', 'foo'],
-                        'B': ['one', 'one', 'two', 'two',
-                              'two', 'two', 'one', 'two'],
-                        'C': [1, 1, 2, 2, 2, 2, 1, 2],
-                        'D': lrange(8)})
-        expected = df[:2]
-
-        # Raises warning
-        with tm.assert_produces_warning(False):
-            result = df.drop_duplicates(subset='AAA')
-        assert_frame_equal(result, expected)
-
-        with tm.assert_produces_warning(FutureWarning):
-            result = df.drop_duplicates(cols='AAA')
-        assert_frame_equal(result, expected)
-
-        # Does not allow both subset and cols
-        self.assertRaises(TypeError, df.drop_duplicates,
-                          kwargs={'cols': 'AAA', 'subset': 'B'})
-
-        # Does not allow unknown kwargs
-        self.assertRaises(TypeError, df.drop_duplicates,
-                          kwargs={'subset': 'AAA', 'bad_arg': True})
-
-        # deprecate take_last
-        # Raises warning
-        with tm.assert_produces_warning(FutureWarning):
-            result = df.drop_duplicates(take_last=False, subset='AAA')
-        assert_frame_equal(result, expected)
-
-        self.assertRaises(ValueError, df.drop_duplicates, keep='invalid_name')
-
     def test_drop_duplicates_tuple(self):
         df = DataFrame({('AA', 'AB'): ['foo', 'bar', 'foo', 'bar',
                                        'foo', 'bar', 'bar', 'foo'],
@@ -1959,29 +1925,6 @@ class TestDataFrameAnalytics(tm.TestCase, TestData):
             expected = orig2.drop_duplicates(['A', 'B'], take_last=True)
         result = df2
         assert_frame_equal(result, expected)
-
-    def test_duplicated_deprecated_warning(self):
-        df = DataFrame({'AAA': ['foo', 'bar', 'foo', 'bar',
-                                'foo', 'bar', 'bar', 'foo'],
-                        'B': ['one', 'one', 'two', 'two',
-                              'two', 'two', 'one', 'two'],
-                        'C': [1, 1, 2, 2, 2, 2, 1, 2],
-                        'D': lrange(8)})
-
-        # Raises warning
-        with tm.assert_produces_warning(False):
-            result = df.duplicated(subset='AAA')
-
-        with tm.assert_produces_warning(FutureWarning):
-            result = df.duplicated(cols='AAA')  # noqa
-
-        # Does not allow both subset and cols
-        self.assertRaises(TypeError, df.duplicated,
-                          kwargs={'cols': 'AAA', 'subset': 'B'})
-
-        # Does not allow unknown kwargs
-        self.assertRaises(TypeError, df.duplicated,
-                          kwargs={'subset': 'AAA', 'bad_arg': True})
 
     # Rounding
 
