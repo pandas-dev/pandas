@@ -523,7 +523,7 @@ Bug Fixes
 - Bug in ``read_sql`` with ``pymysql`` connections failing to return chunked data (:issue:`11522`)
 - Bug in ``.to_csv`` ignoring formatting parameters ``decimal``, ``na_rep``, ``float_format`` for float indexes (:issue:`11553`)
 - Bug in ``Int64Index`` and ``Float64Index`` preventing the use of the modulo operator (:issue:`9244`)
-
+- Bug in ``MultiIndex.drop`` for not lexsorted multi-indexes (:issue:`12078`)
 
 - Bug in ``DataFrame`` when masking an empty ``DataFrame`` (:issue:`11859`)
 

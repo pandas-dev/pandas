@@ -1083,10 +1083,24 @@ class MultiIndex(Index):
         for label in labels:
             try:
                 loc = self.get_loc(label)
+                # get_loc returns either an integer, a slice, or a boolean
+                # mask
                 if isinstance(loc, int):
                     inds.append(loc)
-                else:
+                elif isinstance(loc, slice):
                     inds.extend(lrange(loc.start, loc.stop))
+                elif is_bool_indexer(loc):
+                    if self.lexsort_depth == 0:
+                        warnings.warn('dropping on a non-lexsorted multi-index'
+                                      'without a level parameter may impact '
+                                      'performance.',
+                                      PerformanceWarning,
+                                      stacklevel=2)
+                    loc = loc.nonzero()[0]
+                    inds.extend(loc)
+                else:
+                    msg = 'unsupported indexer of type {}'.format(type(loc))
+                    raise AssertionError(msg)
             except KeyError:
                 if errors != 'ignore':
                     raise
