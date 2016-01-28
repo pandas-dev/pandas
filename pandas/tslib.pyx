@@ -233,8 +233,6 @@ class Timestamp(_Timestamp):
         Offset which Timestamp will have
     tz : string, pytz.timezone, dateutil.tz.tzfile or None
         Time zone for time which Timestamp will have.
-    unit : string
-        numpy unit used for conversion, if ts_input is int or float
     """
 
     # Do not add ``dayfirst`` and ``yearfist`` to Timestamp based on the discussion
