@@ -2421,7 +2421,7 @@ def _plot(data, x=None, y=None, subplots=False,
                 if com.is_integer(y) and not data.columns.holds_integer():
                     y = data.columns[y]
                 label = kwds['label'] if 'label' in kwds else y
-                series = data[y].copy()  # Don't modify
+                series = data.eval(y).copy()  # Don't modify
                 series.name = label
 
                 for kw in ['xerr', 'yerr']:
