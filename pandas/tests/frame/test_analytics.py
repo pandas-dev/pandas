@@ -875,6 +875,12 @@ class TestDataFrameAnalytics(tm.TestCase, TestData):
         assert_almost_equal(ranks0.values, exp0)
         assert_almost_equal(ranks1.values, exp1)
 
+    def test_rank_axis(self):
+        # check if using axes' names gives the same result
+        df = pd.DataFrame([[2, 1], [4, 3]])
+        assert_frame_equal(df.rank(axis=0), df.rank(axis='index'))
+        assert_frame_equal(df.rank(axis=1), df.rank(axis='columns'))
+
     def test_sem(self):
         alt = lambda x: np.std(x, ddof=1) / np.sqrt(len(x))
         self._check_stat_op('sem', alt)

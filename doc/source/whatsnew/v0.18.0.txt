@@ -280,6 +280,36 @@ Subtraction by ``Timedelta`` in a ``Series`` by a ``Timestamp`` works (:issue:`1
    ser
    pd.Timestamp('2012-01-01') - ser
 
+
+Signature change for .rank
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+``Series.rank`` and ``DataFrame.rank`` now have the same signature (:issue:`11759`)
+
+Previous signature
+
+.. code-block:: python
+
+   In [3]: pd.Series([0,1]).rank(method='average', na_option='keep', ascending=True, pct=False)
+   Out[3]:
+   0    1
+   1    2
+   dtype: float64
+
+   In [4]: pd.DataFrame([0,1]).rank(axis=0, numeric_only=None, method='average', na_option='keep', ascending=True, pct=False)
+   Out[4]:
+      0
+   0  1
+   1  2
+
+New signature
+
+.. ipython:: python
+
+   pd.Series([0,1]).rank(axis=0, method='average', numeric_only=None, na_option='keep', ascending=True, pct=False)
+   pd.DataFrame([0,1]).rank(axis=0, method='average', numeric_only=None, na_option='keep', ascending=True, pct=False)
+
+
 Bug in QuarterBegin with n=0
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
