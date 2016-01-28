@@ -8,6 +8,7 @@ import warnings
 
 from pandas import (date_range, MultiIndex, Index, CategoricalIndex,
                     compat)
+from pandas.io.common import PerformanceWarning
 from pandas.indexes.base import InvalidIndexError
 from pandas.compat import range, lrange, u, PY3, long, lzip
 
@@ -1418,6 +1419,28 @@ class TestMultiIndex(Base, tm.TestCase):
         dropped = index[:2].droplevel(['three', 'one'])
         expected = index[:2].droplevel(2).droplevel(0)
         self.assertTrue(dropped.equals(expected))
+
+    def test_drop_not_lexsorted(self):
+        # GH 12078
+
+        # define the lexsorted version of the multi-index
+        tuples = [('a', ''), ('b1', 'c1'), ('b2', 'c2')]
+        lexsorted_mi = MultiIndex.from_tuples(tuples, names=['b', 'c'])
+        self.assertTrue(lexsorted_mi.is_lexsorted())
+
+        # and the not-lexsorted version
+        df = pd.DataFrame(columns=['a', 'b', 'c', 'd'],
+                          data=[[1, 'b1', 'c1', 3], [1, 'b2', 'c2', 4]])
+        df = df.pivot_table(index='a', columns=['b', 'c'], values='d')
+        df = df.reset_index()
+        not_lexsorted_mi = df.columns
+        self.assertFalse(not_lexsorted_mi.is_lexsorted())
+
+        # compare the results
+        self.assert_index_equal(lexsorted_mi, not_lexsorted_mi)
+        with self.assert_produces_warning(PerformanceWarning):
+            self.assert_index_equal(lexsorted_mi.drop('a'),
+                                    not_lexsorted_mi.drop('a'))
 
     def test_insert(self):
         # key contained in all levels
