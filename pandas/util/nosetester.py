@@ -178,7 +178,15 @@ class NoseTester(nosetester.NoseTester):
         doctest.master = None
 
         if raise_warnings is None:
-            raise_warnings = 'release'
+
+            # default based on if we are released
+            from pandas import __version__
+            from distutils.version import StrictVersion
+            try:
+                StrictVersion(__version__)
+                raise_warnings = 'release'
+            except ValueError:
+                raise_warnings = 'develop'
 
         _warn_opts = dict(develop=(DeprecationWarning, RuntimeWarning),
                           release=())
@@ -186,20 +194,22 @@ class NoseTester(nosetester.NoseTester):
             raise_warnings = _warn_opts[raise_warnings]
 
         with warnings.catch_warnings():
-            # Reset the warning filters to the default state,
-            # so that running the tests is more repeatable.
-            warnings.resetwarnings()
-            # Set all warnings to 'warn', this is because the default 'once'
-            # has the bad property of possibly shadowing later warnings.
-            warnings.filterwarnings('always')
-            # Force the requested warnings to raise
-            for warningtype in raise_warnings:
-                warnings.filterwarnings('error', category=warningtype)
-            # Filter out annoying import messages.
-            warnings.filterwarnings("ignore", category=FutureWarning)
+
+            if len(raise_warnings):
+
+                # Reset the warning filters to the default state,
+                # so that running the tests is more repeatable.
+                warnings.resetwarnings()
+                # Set all warnings to 'warn', this is because the default 'once'
+                # has the bad property of possibly shadowing later warnings.
+                warnings.filterwarnings('always')
+                # Force the requested warnings to raise
+                for warningtype in raise_warnings:
+                    warnings.filterwarnings('error', category=warningtype)
+                # Filter out annoying import messages.
+                warnings.filterwarnings("ignore", category=FutureWarning)
 
             from numpy.testing.noseclasses import NumpyTestProgram
-
             argv, plugins = self.prepare_test_args(
                 label, verbose, extra_argv, doctests, coverage)
             t = NumpyTestProgram(argv=argv, exit=False, plugins=plugins)
