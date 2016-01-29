@@ -1092,7 +1092,7 @@ class MultiIndex(Index):
                 elif is_bool_indexer(loc):
                     if self.lexsort_depth == 0:
                         warnings.warn('dropping on a non-lexsorted multi-index'
-                                      'without a level parameter may impact '
+                                      ' without a level parameter may impact '
                                       'performance.',
                                       PerformanceWarning,
                                       stacklevel=2)
