@@ -1002,7 +1002,7 @@ class TestAlignment(object):
         df = DataFrame(randn(1000, 10))
         s = Series(randn(10000))
         if engine == 'numexpr':
-            seen = pd.io.common.PerformanceWarning
+            seen = pd.core.common.PerformanceWarning
         else:
             seen = False
 
@@ -1024,7 +1024,7 @@ class TestAlignment(object):
         is_python_engine = engine == 'python'
 
         if not is_python_engine:
-            wrn = pd.io.common.PerformanceWarning
+            wrn = pd.core.common.PerformanceWarning
         else:
             wrn = False
 

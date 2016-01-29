@@ -28,6 +28,10 @@ class PandasError(Exception):
     pass
 
 
+class PerformanceWarning(Warning):
+    pass
+
+
 class SettingWithCopyError(ValueError):
     pass
 

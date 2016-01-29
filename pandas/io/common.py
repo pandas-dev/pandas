@@ -55,10 +55,6 @@ _VALID_URLS = set(uses_relative + uses_netloc + uses_params)
 _VALID_URLS.discard('')
 
 
-class PerformanceWarning(Warning):
-    pass
-
-
 class DtypeWarning(Warning):
     pass
 

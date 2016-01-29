@@ -22,7 +22,7 @@ from pandas.util.testing import (assert_almost_equal, assert_series_equal,
                                  assert_frame_equal, assert_panel_equal,
                                  assert_attr_equal)
 from pandas import concat, lib
-from pandas.io.common import PerformanceWarning
+from pandas.core.common import PerformanceWarning
 
 import pandas.util.testing as tm
 from pandas import date_range

@@ -22,10 +22,10 @@ from pandas.sparse.array import BlockIndex, IntIndex
 from pandas.tseries.api import PeriodIndex, DatetimeIndex
 from pandas.tseries.tdi import TimedeltaIndex
 from pandas.core.base import StringMixin
-from pandas.core.common import adjoin, pprint_thing
+from pandas.core.common import (adjoin, pprint_thing, _asarray_tuplesafe,
+                                PerformanceWarning)
 from pandas.core.algorithms import match, unique
 from pandas.core.categorical import Categorical
-from pandas.core.common import _asarray_tuplesafe
 from pandas.core.internals import (BlockManager, make_block,
                                    _block2d_to_blocknd,
                                    _factor_indexer, _block_shape)
@@ -34,7 +34,6 @@ import pandas.core.common as com
 from pandas.tools.merge import concat
 from pandas import compat
 from pandas.compat import u_safe as u, PY3, range, lrange, string_types, filter
-from pandas.io.common import PerformanceWarning
 from pandas.core.config import get_option
 from pandas.computation.pytables import Expr, maybe_expression
 

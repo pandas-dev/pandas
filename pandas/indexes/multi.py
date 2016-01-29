@@ -22,10 +22,10 @@ from pandas.core.common import (isnull, array_equivalent,
                                 _values_from_object,
                                 is_iterator,
                                 _ensure_int64, is_bool_indexer,
-                                is_list_like, is_null_slice)
+                                is_list_like, is_null_slice,
+                                PerformanceWarning)
 
 from pandas.core.config import get_option
-from pandas.io.common import PerformanceWarning
 
 from pandas.indexes.base import (Index, _ensure_index, _ensure_frozen,
                                  _get_na_value, InvalidIndexError)
@@ -1095,7 +1095,7 @@ class MultiIndex(Index):
                                       ' without a level parameter may impact '
                                       'performance.',
                                       PerformanceWarning,
-                                      stacklevel=2)
+                                      stacklevel=3)
                     loc = loc.nonzero()[0]
                     inds.extend(loc)
                 else:

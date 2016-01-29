@@ -101,7 +101,7 @@ def _align_core(terms):
                                   'than an order of magnitude on term {1!r}, '
                                   'by more than {2:.4g}; performance may '
                                   'suffer'.format(axis, terms[i].name, ordm),
-                                  category=pd.io.common.PerformanceWarning,
+                                  category=pd.core.common.PerformanceWarning,
                                   stacklevel=6)
 
                 if transpose:

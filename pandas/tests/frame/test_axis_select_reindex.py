@@ -16,6 +16,7 @@ from pandas.util.testing import (assert_series_equal,
                                  assert_frame_equal,
                                  assertRaisesRegexp)
 
+from pandas.core.common import PerformanceWarning
 import pandas.util.testing as tm
 
 from pandas.tests.frame.common import TestData
@@ -134,8 +135,12 @@ class TestDataFrameSelectReindex(tm.TestCase, TestData):
 
         # compare the results
         tm.assert_frame_equal(lexsorted_df, not_lexsorted_df)
-        tm.assert_frame_equal(lexsorted_df.drop('a', axis=1),
-                              not_lexsorted_df.drop('a', axis=1))
+
+        expected = lexsorted_df.drop('a', axis=1)
+        with tm.assert_produces_warning(PerformanceWarning):
+            result = not_lexsorted_df.drop('a', axis=1)
+
+        tm.assert_frame_equal(result, expected)
 
     def test_reindex(self):
         newFrame = self.frame.reindex(self.ts1.index)
