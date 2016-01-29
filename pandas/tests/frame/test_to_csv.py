@@ -994,7 +994,8 @@ class TestDataFrameToCSV(tm.TestCase, TestData):
 
         with ensure_clean() as filename:
             # zip compression is not supported and should raise ValueError
-            self.assertRaises(ValueError, df.to_csv,
+            import zipfile
+            self.assertRaises(zipfile.BadZipfile, df.to_csv,
                               filename, compression="zip")
 
     def test_to_csv_date_format(self):
