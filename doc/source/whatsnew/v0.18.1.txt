@@ -56,6 +56,7 @@ Partial string indexing now matches on ``DateTimeIndex`` when part of a ``MultiI
 Other Enhancements
 ^^^^^^^^^^^^^^^^^^
 
+- ``pd.read_csv()`` now supports opening ZIP files that contains a single CSV, via extension inference or explict ``compression='zip'`` (:issue:`12175`)
 - ``pd.read_msgpack()`` now always gives writeable ndarrays even when compression is used (:issue:`12359`).
 
 .. _whatsnew_0181.api:
