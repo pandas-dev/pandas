@@ -1,7 +1,7 @@
 .. _whatsnew_0180:
 
-v0.18.0 (January ??, 2016)
---------------------------
+v0.18.0 (February ??, 2016)
+---------------------------
 
 This is a major release from 0.17.1 and includes a small number of API changes, several new features,
 enhancements, and performance improvements along with a large number of bug fixes. We recommend that all
@@ -21,7 +21,7 @@ Highlights include:
 - ``pd.test()`` top-level nose test runner is available (:issue:`4327`)
 - Adding support for a ``RangeIndex`` as a specialized form of the ``Int64Index`` for memory savings, see :ref:`here <whatsnew_0180.enhancements.rangeindex>`.
 
-Check the :ref:`API Changes <whatsnew_0180.api>` and :ref:`deprecations <whatsnew_0180.deprecations>` before updating.
+Check the :ref:`API Changes <whatsnew_0180.api_breaking>` and :ref:`deprecations <whatsnew_0180.deprecations>` before updating.
 
 .. contents:: What's new in v0.18.0
     :local:
@@ -110,7 +110,7 @@ Range Index
 
 A ``RangeIndex`` has been added to the ``Int64Index`` sub-classes to support a memory saving alternative for common use cases. This has a similar implementation to the python ``range`` object (``xrange`` in python 2), in that it only stores the start, stop, and step values for the index. It will transparently interact with the user API, converting to ``Int64Index`` if needed.
 
-This will now be the default constructed index for ``NDFrame`` objects, rather than previous an ``Int64Index``. (:issue:`939`, :issue:`12070`, :issue:`12071`)
+This will now be the default constructed index for ``NDFrame`` objects, rather than previous an ``Int64Index``. (:issue:`939`, :issue:`12070`, :issue:`12071`, :issue:`12109`)
 
 Previous Behavior:
 
@@ -135,23 +135,6 @@ New Behavior:
    s = Series(range(1000))
    s.index
    s.index.nbytes
-
-.. _whatsnew_0180.enhancements.other:
-
-Other enhancements
-^^^^^^^^^^^^^^^^^^
-
-- Handle truncated floats in SAS xport files (:issue:`11713`)
-- Added option to hide index in ``Series.to_string`` (:issue:`11729`)
-- ``read_excel`` now supports s3 urls of the format ``s3://bucketname/filename`` (:issue:`11447`)
-- A simple version of ``Panel.round()`` is now implemented (:issue:`11763`)
-- For Python 3.x, ``round(DataFrame)``, ``round(Series)``, ``round(Panel)`` will work (:issue:`11763`)
-- ``DataFrame`` has gained a ``_repr_latex_`` method in order to allow for automatic conversion to latex in a ipython/jupyter notebook using nbconvert. Options ``display.latex.escape`` and ``display.latex.longtable`` have been added to the configuration and are used automatically by the ``to_latex`` method. (:issue:`11778`)
-- ``sys.getsizeof(obj)`` returns the memory usage of a pandas object, including the
-  values it contains (:issue:`11597`)
-- ``Series`` gained an ``is_unique`` attribute (:issue:`11946`)
-- ``DataFrame.quantile`` and ``Series.quantile`` now accept ``interpolation`` keyword (:issue:`10174`).
-- ``DataFrame.select_dtypes`` now allows the ``np.float16`` typecode (:issue:`11990`)
 
 .. _whatsnew_0180.enhancements.rounding:
 
@@ -201,7 +184,22 @@ In addition, ``.round()``, ``.floor()`` and ``.ceil()`` will be available thru t
    s
    s.dt.round('D')
 
-.. _whatsnew_0180.api:
+.. _whatsnew_0180.enhancements.other:
+
+Other enhancements
+^^^^^^^^^^^^^^^^^^
+
+- Handle truncated floats in SAS xport files (:issue:`11713`)
+- Added option to hide index in ``Series.to_string`` (:issue:`11729`)
+- ``read_excel`` now supports s3 urls of the format ``s3://bucketname/filename`` (:issue:`11447`)
+- A simple version of ``Panel.round()`` is now implemented (:issue:`11763`)
+- For Python 3.x, ``round(DataFrame)``, ``round(Series)``, ``round(Panel)`` will work (:issue:`11763`)
+- ``DataFrame`` has gained a ``_repr_latex_`` method in order to allow for automatic conversion to latex in a ipython/jupyter notebook using nbconvert. Options ``display.latex.escape`` and ``display.latex.longtable`` have been added to the configuration and are used automatically by the ``to_latex`` method. (:issue:`11778`)
+- ``sys.getsizeof(obj)`` returns the memory usage of a pandas object, including the
+  values it contains (:issue:`11597`)
+- ``Series`` gained an ``is_unique`` attribute (:issue:`11946`)
+- ``DataFrame.quantile`` and ``Series.quantile`` now accept ``interpolation`` keyword (:issue:`10174`).
+- ``DataFrame.select_dtypes`` now allows the ``np.float16`` typecode (:issue:`11990`)
 
 .. _whatsnew_0180.api_breaking:
 
@@ -282,6 +280,41 @@ Subtraction by ``Timedelta`` in a ``Series`` by a ``Timestamp`` works (:issue:`1
    ser
    pd.Timestamp('2012-01-01') - ser
 
+
+Signature change for .rank
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+``Series.rank`` and ``DataFrame.rank`` now have the same signature (:issue:`11759`)
+
+Previous signature
+
+.. code-block:: python
+
+   In [3]: pd.Series([0,1]).rank(method='average', na_option='keep',
+                                 ascending=True, pct=False)
+   Out[3]:
+   0    1
+   1    2
+   dtype: float64
+
+   In [4]: pd.DataFrame([0,1]).rank(axis=0, numeric_only=None,
+                                    method='average', na_option='keep',
+                                    ascending=True, pct=False)
+   Out[4]:
+      0
+   0  1
+   1  2
+
+New signature
+
+.. ipython:: python
+
+   pd.Series([0,1]).rank(axis=0, method='average', numeric_only=None,
+                         na_option='keep', ascending=True, pct=False)
+   pd.DataFrame([0,1]).rank(axis=0, method='average', numeric_only=None,
+                            na_option='keep', ascending=True, pct=False)
+
+
 Bug in QuarterBegin with n=0
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -316,29 +349,6 @@ other anchored offsets like ``MonthBegin`` and ``YearBegin``.
 
    d = pd.Timestamp('2014-02-15')
    d + pd.offsets.QuarterBegin(n=0, startingMonth=2)
-
-
-Other API Changes
-^^^^^^^^^^^^^^^^^
-
-- ``DataFrame.between_time`` and ``Series.between_time`` now only parse a fixed set of time strings. Parsing of date strings is no longer supported and raises a ``ValueError``. (:issue:`11818`)
-
-  .. ipython:: python
-
-     s = pd.Series(range(10), pd.date_range('2015-01-01', freq='H', periods=10))
-     s.between_time("7:00am", "9:00am")
-
-  This will now raise.
-
-  .. code-block:: python
-
-     In [2]: s.between_time('20150101 07:00:00','20150101 09:00:00')
-     ValueError: Cannot convert arg ['20150101 07:00:00'] to a time.
-
-- ``.memory_usage`` now includes values in the index, as does memory_usage in ``.info`` (:issue:`11597`)
-
-- ``DataFrame.to_latex()`` now supports non-ascii encodings (eg utf-8) in Python 2 with the parameter ``encoding`` (:issue:`7061`)
-
 
 Changes to eval
 ^^^^^^^^^^^^^^^
@@ -395,6 +405,32 @@ assignments are valid for multi-line expressions.
    g = f / 2.0""", inplace=True)
    df
 
+
+.. _whatsnew_0180.api:
+
+Other API Changes
+^^^^^^^^^^^^^^^^^
+
+- ``DataFrame.between_time`` and ``Series.between_time`` now only parse a fixed set of time strings. Parsing of date strings is no longer supported and raises a ``ValueError``. (:issue:`11818`)
+
+  .. ipython:: python
+
+     s = pd.Series(range(10), pd.date_range('2015-01-01', freq='H', periods=10))
+     s.between_time("7:00am", "9:00am")
+
+  This will now raise.
+
+  .. code-block:: python
+
+     In [2]: s.between_time('20150101 07:00:00','20150101 09:00:00')
+     ValueError: Cannot convert arg ['20150101 07:00:00'] to a time.
+
+- ``.memory_usage`` now includes values in the index, as does memory_usage in ``.info`` (:issue:`11597`)
+
+- ``DataFrame.to_latex()`` now supports non-ascii encodings (eg utf-8) in Python 2 with the parameter ``encoding`` (:issue:`7061`)
+
+- ``pandas.merge()`` and ``DataFrame.merge()`` will show a specific error message when trying to merge with an object that is not of type ``DataFrame`` or a subclass (:issue:`12081`)
+
 .. _whatsnew_0180.deprecations:
 
 Deprecations
@@ -445,8 +481,8 @@ Removal of prior version deprecations/changes
 
 - Removal of ``rolling_corr_pairwise`` in favor of ``.rolling().corr(pairwise=True)`` (:issue:`4950`)
 - Removal of ``expanding_corr_pairwise`` in favor of ``.expanding().corr(pairwise=True)`` (:issue:`4950`)
-
-
+- Removal of ``DataMatrix`` module. This was not imported into the pandas namespace in any event (:issue:`12111`)
+- Removal of ``cols`` keyword in favor of ``subset`` in ``DataFrame.duplicated()`` and ``DataFrame.drop_duplicates()`` (:issue:`6680`)
 
 
 .. _whatsnew_0180.performance:
@@ -458,10 +494,10 @@ Performance Improvements
 - Improved huge ``DatetimeIndex``, ``PeriodIndex`` and ``TimedeltaIndex``'s ops performance including ``NaT`` (:issue:`10277`)
 - Improved performance of ``pandas.concat`` (:issue:`11958`)
 - Improved performance of ``StataReader`` (:issue:`11591`)
+- Improved performance in construction of ``Categoricals`` with Series of datetimes containing ``NaT`` (:issue:`12077`)
 
 
-
-
+- Improved performance of ISO 8601 date parsing for dates without separators (:issue:`11899`), leading zeros (:issue:`11871`) and with whitespace preceding the time zone (:issue:`9714`)
 
 
 
@@ -481,7 +517,8 @@ Bug Fixes
 - Bug in vectorized ``DateOffset`` when ``n`` parameter is ``0`` (:issue:`11370`)
 - Compat for numpy 1.11 w.r.t. ``NaT`` comparison changes (:issue:`12049`)
 - Bug in ``read_csv`` when reading from a ``StringIO`` in threads (:issue:`11790`)
-
+- Bug in not treating ``NaT`` as a missing value in datetimelikes when factorizing & with ``Categoricals`` (:issue:`12077`)
+- Bug in getitem when the values of a ``Series`` were tz-aware (:issue:`12089`)
 
 
 
@@ -499,7 +536,7 @@ Bug Fixes
 - Bug in ``pd.read_clipboard`` and ``pd.to_clipboard`` functions not supporting Unicode; upgrade included ``pyperclip`` to v1.5.15 (:issue:`9263`)
 - Bug in ``DataFrame.query`` containing an assignment (:issue:`8664`)
 
-- Bug in ``from_msgpack`` where ``__contains__()`` fails for columns of the unpacked ``DataFrame``, if the ``DataFrame`` has object columns. (:issue: `11880`)
+- Bug in ``from_msgpack`` where ``__contains__()`` fails for columns of the unpacked ``DataFrame``, if the ``DataFrame`` has object columns. (:issue:`11880`)
 
 
 - Bug in timezone info lost when broadcasting scalar datetime to ``DataFrame`` (:issue:`11682`)
@@ -518,22 +555,28 @@ Bug Fixes
 - Bug in ``Index`` prevents copying name of passed ``Index``, when a new name is not provided (:issue:`11193`)
 - Bug in ``read_excel`` failing to read any non-empty sheets when empty sheets exist and ``sheetname=None`` (:issue:`11711`)
 - Bug in ``read_excel`` failing to raise ``NotImplemented`` error when keywords ``parse_dates`` and ``date_parser`` are provided (:issue:`11544`)
-- Bug in ``read_sql`` with pymysql connections failing to return chunked data (:issue:`11522`)
+- Bug in ``read_sql`` with ``pymysql`` connections failing to return chunked data (:issue:`11522`)
 - Bug in ``.to_csv`` ignoring formatting parameters ``decimal``, ``na_rep``, ``float_format`` for float indexes (:issue:`11553`)
 - Bug in ``Int64Index`` and ``Float64Index`` preventing the use of the modulo operator (:issue:`9244`)
-
+- Bug in ``MultiIndex.drop`` for not lexsorted multi-indexes (:issue:`12078`)
 
 - Bug in ``DataFrame`` when masking an empty ``DataFrame`` (:issue:`11859`)
 
 
-- Bug in ``.plot`` potentially modifying the ``colors`` input when the number
-of columns didn't match the number of series provided (:issue:`12039`).
+- Bug in ``.plot`` potentially modifying the ``colors`` input when the number of columns didn't match the number of series provided (:issue:`12039`).
 
 
 - Bug in ``.groupby`` where a ``KeyError`` was not raised for a wrong column if there was only one row in the dataframe (:issue:`11741`)
+- Bug in ``.read_csv`` with dtype specified on empty data producing an error (:issue:`12048`)
+- Bug in building *pandas* with debugging symbols (:issue:`12123`)
 
 
 - Removed ``millisecond`` property of ``DatetimeIndex``. This would always raise a ``ValueError`` (:issue:`12019`).
 - Bug in ``Series`` constructor with read-only data (:issue:`11502`)
 
 - Bug in ``.loc`` setitem indexer preventing the use of a TZ-aware DatetimeIndex (:issue:`12050`)
+- Bug in ``.style`` indexes and multi-indexes not appearing (:issue:`11655`)
+
+- Bug in ``.skew`` and ``.kurt`` due to roundoff error for highly similar values (:issue:`11974`)
+
+- Bug in ``buffer_rd_bytes`` src->buffer could be freed more than once if reading failed, causing a segfault (:issue:`12098`)

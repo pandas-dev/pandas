@@ -1,12 +1,10 @@
 """
 Msgpack serializer support for reading and writing pandas data structures
 to disk
-"""
 
-# portions of msgpack_numpy package, by Lev Givon were incorporated
-# into this module (and tests_packers.py)
+portions of msgpack_numpy package, by Lev Givon were incorporated
+into this module (and tests_packers.py)
 
-"""
 License
 =======
 
@@ -46,12 +44,10 @@ from dateutil.parser import parse
 
 import numpy as np
 from pandas import compat
-from pandas.compat import u, PY3
-from pandas import (
-    Timestamp, Period, Series, DataFrame, Panel, Panel4D,
-    Index, MultiIndex, Int64Index, RangeIndex, PeriodIndex,
-    DatetimeIndex, Float64Index, NaT
-)
+from pandas.compat import u
+from pandas import (Timestamp, Period, Series, DataFrame,  # noqa
+                    Index, MultiIndex, Float64Index, Int64Index,
+                    Panel, RangeIndex, PeriodIndex, DatetimeIndex)
 from pandas.sparse.api import SparseSeries, SparseDataFrame, SparsePanel
 from pandas.sparse.array import BlockIndex, IntIndex
 from pandas.core.generic import NDFrame
@@ -174,7 +170,7 @@ dtype_dict = {21: np.dtype('M8[ns]'),
               # this is platform int, which we need to remap to np.int64
               # for compat on windows platforms
               7: np.dtype('int64'),
-}
+              }
 
 
 def dtype_for(t):
@@ -183,9 +179,9 @@ def dtype_for(t):
         return dtype_dict[t]
     return np.typeDict[t]
 
-c2f_dict = {'complex':    np.float64,
+c2f_dict = {'complex': np.float64,
             'complex128': np.float64,
-            'complex64':  np.float32}
+            'complex64': np.float32}
 
 # numpy 1.6.1 compat
 if hasattr(np, 'float128'):
@@ -322,16 +318,16 @@ def encode(obj):
             raise NotImplementedError(
                 'msgpack sparse series is not implemented'
             )
-            #d = {'typ': 'sparse_series',
+            # d = {'typ': 'sparse_series',
             #     'klass': obj.__class__.__name__,
             #     'dtype': obj.dtype.name,
             #     'index': obj.index,
             #     'sp_index': obj.sp_index,
             #     'sp_values': convert(obj.sp_values),
             #     'compress': compressor}
-            #for f in ['name', 'fill_value', 'kind']:
+            # for f in ['name', 'fill_value', 'kind']:
             #    d[f] = getattr(obj, f, None)
-            #return d
+            # return d
         else:
             return {'typ': 'series',
                     'klass': obj.__class__.__name__,
@@ -345,33 +341,33 @@ def encode(obj):
             raise NotImplementedError(
                 'msgpack sparse frame is not implemented'
             )
-            #d = {'typ': 'sparse_dataframe',
+            # d = {'typ': 'sparse_dataframe',
             #     'klass': obj.__class__.__name__,
             #     'columns': obj.columns}
-            #for f in ['default_fill_value', 'default_kind']:
+            # for f in ['default_fill_value', 'default_kind']:
             #    d[f] = getattr(obj, f, None)
-            #d['data'] = dict([(name, ss)
+            # d['data'] = dict([(name, ss)
             #                 for name, ss in compat.iteritems(obj)])
-            #return d
+            # return d
         elif isinstance(obj, SparsePanel):
             raise NotImplementedError(
                 'msgpack sparse frame is not implemented'
             )
-            #d = {'typ': 'sparse_panel',
+            # d = {'typ': 'sparse_panel',
             #     'klass': obj.__class__.__name__,
             #     'items': obj.items}
-            #for f in ['default_fill_value', 'default_kind']:
+            # for f in ['default_fill_value', 'default_kind']:
             #    d[f] = getattr(obj, f, None)
-            #d['data'] = dict([(name, df)
+            # d['data'] = dict([(name, df)
             #                 for name, df in compat.iteritems(obj)])
-            #return d
+            # return d
         else:
 
             data = obj._data
             if not data.is_consolidated():
                 data = data.consolidate()
 
-           # the block manager
+            # the block manager
             return {'typ': 'block_manager',
                     'klass': obj.__class__.__name__,
                     'axes': data.axes,
@@ -512,7 +508,8 @@ def decode(obj):
             values = unconvert(b['values'], dtype_for(b['dtype']),
                                b['compress']).reshape(b['shape'])
 
-            # locs handles duplicate column names, and should be used instead of items; see GH 9618
+            # locs handles duplicate column names, and should be used instead
+            # of items; see GH 9618
             if 'locs' in b:
                 placement = b['locs']
             else:
@@ -533,19 +530,19 @@ def decode(obj):
         return timedelta(*obj['data'])
     elif typ == 'timedelta64':
         return np.timedelta64(int(obj['data']))
-    #elif typ == 'sparse_series':
+    # elif typ == 'sparse_series':
     #    dtype = dtype_for(obj['dtype'])
     #    return globals()[obj['klass']](
     #        unconvert(obj['sp_values'], dtype, obj['compress']),
     #        sparse_index=obj['sp_index'], index=obj['index'],
     #        fill_value=obj['fill_value'], kind=obj['kind'], name=obj['name'])
-    #elif typ == 'sparse_dataframe':
+    # elif typ == 'sparse_dataframe':
     #    return globals()[obj['klass']](
     #        obj['data'], columns=obj['columns'],
     #        default_fill_value=obj['default_fill_value'],
     #        default_kind=obj['default_kind']
     #    )
-    #elif typ == 'sparse_panel':
+    # elif typ == 'sparse_panel':
     #    return globals()[obj['klass']](
     #        obj['data'], items=obj['items'],
     #        default_fill_value=obj['default_fill_value'],

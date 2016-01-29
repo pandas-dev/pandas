@@ -14,11 +14,11 @@ from pandas.core.missing import interpolate_2d
 from pandas.util.decorators import cache_readonly, deprecate_kwarg
 
 from pandas.core.common import (
-    ABCSeries, ABCIndexClass, ABCPeriodIndex, ABCCategoricalIndex, isnull,
-    notnull, is_dtype_equal, is_categorical_dtype, is_integer_dtype,
-    is_object_dtype, _possibly_infer_to_datetimelike, get_dtype_kinds,
-    is_list_like, is_sequence, is_null_slice, is_bool, _ensure_platform_int,
-    _ensure_object, _ensure_int64, _coerce_indexer_dtype, take_1d)
+    ABCSeries, ABCIndexClass, ABCCategoricalIndex, isnull, notnull,
+    is_dtype_equal, is_categorical_dtype, is_integer_dtype,
+    _possibly_infer_to_datetimelike, get_dtype_kinds, is_list_like,
+    is_sequence, is_null_slice, is_bool, _ensure_object, _ensure_int64,
+    _coerce_indexer_dtype, take_1d)
 from pandas.core.dtypes import CategoricalDtype
 from pandas.util.terminal import get_terminal_size
 from pandas.core.config import get_option
@@ -257,7 +257,7 @@ class Categorical(PandasObject):
                 categories = values.categories
             values = values.__array__()
 
-        elif isinstance(values, ABCIndexClass):
+        elif isinstance(values, (ABCIndexClass, ABCSeries)):
             pass
 
         else:
@@ -1177,7 +1177,7 @@ class Categorical(PandasObject):
         """
         # if we are a datetime and period index, return Index to keep metadata
         if com.is_datetimelike(self.categories):
-            return self.categories.take(self._codes)
+            return self.categories.take(self._codes, fill_value=np.nan)
         return np.array(self)
 
     def check_for_ordered(self, op):

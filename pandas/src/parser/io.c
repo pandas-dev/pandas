@@ -121,6 +121,7 @@ void* buffer_rd_bytes(void *source, size_t nbytes,
 
     /* delete old object */
     Py_XDECREF(src->buffer);
+    src->buffer = NULL;
     args = Py_BuildValue("(i)", nbytes);
 
     func = PyObject_GetAttrString(src->obj, "read");

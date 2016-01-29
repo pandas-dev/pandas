@@ -6,14 +6,13 @@ build:
     number: {{ environ.get('GIT_DESCRIBE_NUMBER', 0) }}
 
 source:
-    path: ../../
+    path: ../
 
 requirements:
   build:
     - python
     - cython
     - numpy x.x
-    - libpython # [py2k and win]
     - setuptools
     - pytz
     - python-dateutil

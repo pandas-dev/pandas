@@ -9,12 +9,11 @@ from __future__ import division
 
 import warnings
 import numpy as np
-from functools import wraps
 from collections import defaultdict
 
 import pandas as pd
 from pandas.lib import isscalar
-from pandas.core.base import PandasObject, SelectionMixin, AbstractMethodError
+from pandas.core.base import PandasObject, SelectionMixin
 import pandas.core.common as com
 import pandas.algos as algos
 from pandas import compat
@@ -34,17 +33,19 @@ pandas.Series.%(name)s
 pandas.DataFrame.%(name)s
 """
 
+
 class _Window(PandasObject, SelectionMixin):
-    _attributes = ['window','min_periods','freq','center','win_type','axis']
+    _attributes = ['window', 'min_periods', 'freq', 'center', 'win_type',
+                   'axis']
     exclusions = set()
 
-    def __init__(self, obj, window=None, min_periods=None, freq=None, center=False,
-                 win_type=None, axis=0):
+    def __init__(self, obj, window=None, min_periods=None, freq=None,
+                 center=False, win_type=None, axis=0):
 
         if freq is not None:
-            warnings.warn("The freq kw is deprecated and will be removed in a future version. You can resample prior "
-                          "to passing to a window function",
-                          FutureWarning, stacklevel=3)
+            warnings.warn("The freq kw is deprecated and will be removed in a "
+                          "future version. You can resample prior to passing "
+                          "to a window function", FutureWarning, stacklevel=3)
 
         self.blocks = []
         self.obj = obj
@@ -67,11 +68,13 @@ class _Window(PandasObject, SelectionMixin):
         """ resample according to the how, return a new object """
 
         obj = self._selected_obj
-        if self.freq is not None and isinstance(obj, (com.ABCSeries, com.ABCDataFrame)):
+        if (self.freq is not None and
+                isinstance(obj, (com.ABCSeries, com.ABCDataFrame))):
             if how is not None:
-                warnings.warn("The how kw argument is deprecated and removed in a future version. You can resample prior "
-                              "to passing to a window function",
-                              FutureWarning, stacklevel=6)
+                warnings.warn("The how kw argument is deprecated and removed "
+                              "in a future version. You can resample prior "
+                              "to passing to a window function", FutureWarning,
+                              stacklevel=6)
 
             obj = obj.resample(self.freq, how=how)
         return obj
@@ -101,7 +104,7 @@ class _Window(PandasObject, SelectionMixin):
             subset = self.obj
         self = self._shallow_copy(subset)
         self._reset_cache()
-        if subset.ndim==2:
+        if subset.ndim == 2:
             if isscalar(key) and key in subset or com.is_list_like(key):
                 self._selection = key
         return self
@@ -124,8 +127,9 @@ class _Window(PandasObject, SelectionMixin):
     def __unicode__(self):
         """ provide a nice str repr of our rolling object """
 
-        attrs = [ "{k}={v}".format(k=k,v=getattr(self,k)) \
-                  for k in self._attributes if getattr(self,k,None) is not None ]
+        attrs = ["{k}={v}".format(k=k, v=getattr(self, k))
+                 for k in self._attributes
+                 if getattr(self, k, None) is not None]
         return "{klass} [{attrs}]".format(klass=self.__class__.__name__,
                                           attrs=','.join(attrs))
 
@@ -137,13 +141,13 @@ class _Window(PandasObject, SelectionMixin):
             obj = obj.obj
         for attr in self._attributes:
             if attr not in kwargs:
-                kwargs[attr] = getattr(self,attr)
+                kwargs[attr] = getattr(self, attr)
         return self._constructor(obj, **kwargs)
 
     def _prep_values(self, values=None, kill_inf=True, how=None):
 
         if values is None:
-            values = getattr(self._selected_obj,'values',self._selected_obj)
+            values = getattr(self._selected_obj, 'values', self._selected_obj)
 
         # coerce dtypes as appropriate
         if com.is_float_dtype(values.dtype):
@@ -156,7 +160,8 @@ class _Window(PandasObject, SelectionMixin):
             try:
                 values = values.astype(float)
             except (ValueError, TypeError):
-                raise TypeError("cannot handle this type -> {0}".format(values.dtype))
+                raise TypeError("cannot handle this type -> {0}"
+                                "".format(values.dtype))
 
         if kill_inf:
             values = values.copy()
@@ -174,15 +179,14 @@ class _Window(PandasObject, SelectionMixin):
             # coerce if necessary
             if block is not None:
                 if com.is_timedelta64_dtype(block.values.dtype):
-                    result = pd.to_timedelta(result.ravel(),unit='ns').values.reshape(result.shape)
+                    result = pd.to_timedelta(
+                        result.ravel(), unit='ns').values.reshape(result.shape)
 
             if result.ndim == 1:
                 from pandas import Series
                 return Series(result, obj.index, name=obj.name)
 
-            return type(obj)(result,
-                             index=obj.index,
-                             columns=block.columns)
+            return type(obj)(result, index=obj.index, columns=block.columns)
         return result
 
     def _wrap_results(self, results, blocks, obj):
@@ -206,11 +210,11 @@ class _Window(PandasObject, SelectionMixin):
 
         if not len(final):
             return obj.astype('float64')
-        return pd.concat(final,axis=1).reindex(columns=obj.columns)
+        return pd.concat(final, axis=1).reindex(columns=obj.columns)
 
     def _center_window(self, result, window):
         """ center the result in the window """
-        if self.axis > result.ndim-1:
+        if self.axis > result.ndim - 1:
             raise ValueError("Requested axis is larger then no. of argument "
                              "dimensions")
 
@@ -249,6 +253,7 @@ class _Window(PandasObject, SelectionMixin):
     how : string, default None (DEPRECATED)
         Method for down- or re-sampling""")
 
+
 class Window(_Window):
     """
     Provides rolling transformations.
@@ -264,8 +269,8 @@ class Window(_Window):
         Minimum number of observations in window required to have a value
         (otherwise result is NA).
     freq : string or DateOffset object, optional (default None) (DEPRECATED)
-        Frequency to conform the data to before computing the statistic. Specified
-        as a frequency string or DateOffset object.
+        Frequency to conform the data to before computing the statistic.
+        Specified as a frequency string or DateOffset object.
     center : boolean, default False
         Set the labels at the center of the window.
     win_type : string, default None
@@ -313,8 +318,10 @@ class Window(_Window):
             try:
                 import scipy.signal as sig
             except ImportError:
-                raise ImportError('Please install scipy to generate window weight')
-            win_type = _validate_win_type(self.win_type, kwargs)  # may pop from kwargs
+                raise ImportError('Please install scipy to generate window '
+                                  'weight')
+            # the below may pop from kwargs
+            win_type = _validate_win_type(self.win_type, kwargs)
             return sig.get_window(win_type, window).astype(float)
 
         raise ValueError('Invalid window %s' % str(window))
@@ -353,10 +360,12 @@ class Window(_Window):
 
             offset = _offset(window, center)
             additional_nans = np.array([np.NaN] * offset)
+
             def f(arg, *args, **kwargs):
                 minp = _use_window(self.min_periods, len(window))
-                return algos.roll_window(np.concatenate((arg, additional_nans)) if center else arg,
-                                         window, minp, avg=mean)
+                return algos.roll_window(np.concatenate((arg, additional_nans))
+                                         if center else arg, window, minp,
+                                         avg=mean)
 
             result = np.apply_along_axis(f, self.axis, values)
 
@@ -392,13 +401,14 @@ class Window(_Window):
     def mean(self, **kwargs):
         return self._apply_window(mean=True, **kwargs)
 
-class _Rolling(_Window):
 
+class _Rolling(_Window):
     @property
     def _constructor(self):
         return Rolling
 
-    def _apply(self, func, window=None, center=None, check_minp=None, how=None, **kwargs):
+    def _apply(self, func, window=None, center=None, check_minp=None, how=None,
+               **kwargs):
         """
         Rolling statistical measure using supplied function. Designed to be
         used with passed-in Cython array-based functions.
@@ -440,9 +450,11 @@ class _Rolling(_Window):
             # if we have a string function name, wrap it
             if isinstance(func, compat.string_types):
                 if not hasattr(algos, func):
-                    raise ValueError("we do not support this function algos.{0}".format(func))
+                    raise ValueError("we do not support this function "
+                                     "algos.{0}".format(func))
 
                 cfunc = getattr(algos, func)
+
                 def func(arg, window, min_periods=None):
                     minp = check_minp(min_periods, window)
                     return cfunc(arg, window, minp, **kwargs)
@@ -451,12 +463,14 @@ class _Rolling(_Window):
             if center:
                 offset = _offset(window, center)
                 additional_nans = np.array([np.NaN] * offset)
+
                 def calc(x):
                     return func(np.concatenate((x, additional_nans)),
                                 window, min_periods=self.min_periods)
             else:
+
                 def calc(x):
-                    return func(x,window, min_periods=self.min_periods)
+                    return func(x, window, min_periods=self.min_periods)
 
             if values.ndim > 1:
                 result = np.apply_along_axis(calc, self.axis, values)
@@ -470,9 +484,12 @@ class _Rolling(_Window):
 
         return self._wrap_results(results, blocks, obj)
 
+
 class _Rolling_and_Expanding(_Rolling):
 
-    _shared_docs['count'] = """%(name)s count of number of non-NaN observations inside provided window."""
+    _shared_docs['count'] = """%(name)s count of number of non-NaN
+    observations inside provided window."""
+
     def count(self):
         obj = self._convert_freq()
         window = self._get_window()
@@ -481,9 +498,7 @@ class _Rolling_and_Expanding(_Rolling):
             converted = np.isfinite(obj).astype(float)
         except TypeError:
             converted = np.isfinite(obj.astype(float)).astype(float)
-        result = self._constructor(converted,
-                                   window=window,
-                                   min_periods=0,
+        result = self._constructor(converted, window=window, min_periods=0,
                                    center=self.center).sum()
 
         result[result.isnull()] = 0
@@ -496,15 +511,18 @@ class _Rolling_and_Expanding(_Rolling):
     ----------
     func : function
         Must produce a single value from an ndarray input
-        *args and **kwargs are passed to the function""")
+        \*args and \*\*kwargs are passed to the function""")
 
     def apply(self, func, args=(), kwargs={}):
-        _level = kwargs.pop('_level',None)
+        # TODO: _level is unused?
+        _level = kwargs.pop('_level', None)  # noqa
         window = self._get_window()
         offset = _offset(window, self.center)
+
         def f(arg, window, min_periods):
             minp = _use_window(min_periods, window)
-            return algos.roll_generic(arg, window, minp, offset, func, args, kwargs)
+            return algos.roll_generic(arg, window, minp, offset, func, args,
+                                      kwargs)
 
         return self._apply(f, center=False)
 
@@ -518,6 +536,7 @@ class _Rolling_and_Expanding(_Rolling):
     ----------
     how : string, default 'max' (DEPRECATED)
         Method for down- or re-sampling""")
+
     def max(self, how=None, **kwargs):
         if self.freq is not None and how is None:
             how = 'max'
@@ -530,6 +549,7 @@ class _Rolling_and_Expanding(_Rolling):
     ----------
     how : string, default 'min' (DEPRECATED)
         Method for down- or re-sampling""")
+
     def min(self, how=None, **kwargs):
         if self.freq is not None and how is None:
             how = 'min'
@@ -545,6 +565,7 @@ class _Rolling_and_Expanding(_Rolling):
     ----------
     how : string, default 'median' (DEPRECATED)
         Method for down- or re-sampling""")
+
     def median(self, how=None, **kwargs):
         if self.freq is not None and how is None:
             how = 'median'
@@ -561,6 +582,7 @@ class _Rolling_and_Expanding(_Rolling):
 
     def std(self, ddof=1, **kwargs):
         window = self._get_window()
+
         def f(arg, *args, **kwargs):
             minp = _require_min_periods(1)(self.min_periods, window)
             return _zsqrt(algos.roll_var(arg, window, minp, ddof))
@@ -577,21 +599,19 @@ class _Rolling_and_Expanding(_Rolling):
         is ``N - ddof``, where ``N`` represents the number of elements.""")
 
     def var(self, ddof=1, **kwargs):
-        return self._apply('roll_var',
-                           check_minp=_require_min_periods(1),
-                           ddof=ddof,
-                           **kwargs)
+        return self._apply('roll_var', check_minp=_require_min_periods(1),
+                           ddof=ddof, **kwargs)
 
     _shared_docs['skew'] = """Unbiased %(name)s skewness"""
+
     def skew(self, **kwargs):
-        return self._apply('roll_skew',
-                           check_minp=_require_min_periods(3),
+        return self._apply('roll_skew', check_minp=_require_min_periods(3),
                            **kwargs)
 
     _shared_docs['kurt'] = """Unbiased %(name)s kurtosis"""
+
     def kurt(self, **kwargs):
-        return self._apply('roll_kurt',
-                           check_minp=_require_min_periods(4),
+        return self._apply('roll_kurt', check_minp=_require_min_periods(4),
                            **kwargs)
 
     _shared_docs['quantile'] = dedent("""
@@ -604,6 +624,7 @@ class _Rolling_and_Expanding(_Rolling):
 
     def quantile(self, quantile, **kwargs):
         window = self._get_window()
+
         def f(arg, *args, **kwargs):
             minp = _use_window(self.min_periods, window)
             return algos.roll_quantile(arg, window, minp, quantile)
@@ -618,11 +639,11 @@ class _Rolling_and_Expanding(_Rolling):
     other : Series, DataFrame, or ndarray, optional
         if not supplied then will default to self and produce pairwise output
     pairwise : bool, default None
-        If False then only matching columns between self and other will be used and
-        the output will be a DataFrame.
-        If True then all pairwise combinations will be calculated and the output
-        will be a Panel in the case of DataFrame inputs. In the case of missing
-        elements, only complete pairwise observations will be used.
+        If False then only matching columns between self and other will be used
+        and the output will be a DataFrame.
+        If True then all pairwise combinations will be calculated and the
+        output will be a Panel in the case of DataFrame inputs. In the case of
+        missing elements, only complete pairwise observations will be used.
     ddof : int, default 1
         Delta Degrees of Freedom.  The divisor used in calculations
         is ``N - ddof``, where ``N`` represents the number of elements.""")
@@ -630,16 +651,21 @@ class _Rolling_and_Expanding(_Rolling):
     def cov(self, other=None, pairwise=None, ddof=1, **kwargs):
         if other is None:
             other = self._selected_obj
-            pairwise = True if pairwise is None else pairwise  # only default unset
+            # only default unset
+            pairwise = True if pairwise is None else pairwise
         other = self._shallow_copy(other)
         window = self._get_window(other)
 
         def _get_cov(X, Y):
-            mean = lambda x: x.rolling(window, self.min_periods, center=self.center).mean(**kwargs)
-            count = (X+Y).rolling(window=window, center=self.center).count(**kwargs)
+            mean = lambda x: x.rolling(window, self.min_periods,
+                                       center=self.center).mean(**kwargs)
+            count = (X + Y).rolling(window=window,
+                                    center=self.center).count(**kwargs)
             bias_adj = count / (count - ddof)
             return (mean(X * Y) - mean(X) * mean(Y)) * bias_adj
-        return _flex_binary_moment(self._selected_obj, other._selected_obj, _get_cov, pairwise=bool(pairwise))
+
+        return _flex_binary_moment(self._selected_obj, other._selected_obj,
+                                   _get_cov, pairwise=bool(pairwise))
 
     _shared_docs['corr'] = dedent("""
     %(name)s sample correlation
@@ -649,31 +675,31 @@ class _Rolling_and_Expanding(_Rolling):
     other : Series, DataFrame, or ndarray, optional
         if not supplied then will default to self and produce pairwise output
     pairwise : bool, default None
-        If False then only matching columns between self and other will be used and
-        the output will be a DataFrame.
-        If True then all pairwise combinations will be calculated and the output
-        will be a Panel in the case of DataFrame inputs. In the case of missing
-        elements, only complete pairwise observations will be used.""")
+        If False then only matching columns between self and other will be used
+        and the output will be a DataFrame.
+        If True then all pairwise combinations will be calculated and the
+        output will be a Panel in the case of DataFrame inputs. In the case of
+        missing elements, only complete pairwise observations will be used.""")
 
     def corr(self, other=None, pairwise=None, **kwargs):
         if other is None:
             other = self._selected_obj
-            pairwise = True if pairwise is None else pairwise  # only default unset
+            # only default unset
+            pairwise = True if pairwise is None else pairwise
         other = self._shallow_copy(other)
         window = self._get_window(other)
 
         def _get_corr(a, b):
-            a = a.rolling(window=window,
-                          min_periods=self.min_periods,
-                          freq=self.freq,
-                          center=self.center)
-            b = b.rolling(window=window,
-                          min_periods=self.min_periods,
-                          freq=self.freq,
-                          center=self.center)
+            a = a.rolling(window=window, min_periods=self.min_periods,
+                          freq=self.freq, center=self.center)
+            b = b.rolling(window=window, min_periods=self.min_periods,
+                          freq=self.freq, center=self.center)
 
             return a.cov(b, **kwargs) / (a.std(**kwargs) * b.std(**kwargs))
-        return _flex_binary_moment(self._selected_obj, other._selected_obj, _get_corr, pairwise=bool(pairwise))
+
+        return _flex_binary_moment(self._selected_obj, other._selected_obj,
+                                   _get_corr, pairwise=bool(pairwise))
+
 
 class Rolling(_Rolling_and_Expanding):
     """
@@ -690,8 +716,8 @@ class Rolling(_Rolling_and_Expanding):
         Minimum number of observations in window required to have a value
         (otherwise result is NA).
     freq : string or DateOffset object, optional (default None) (DEPRECATED)
-        Frequency to conform the data to before computing the statistic. Specified
-        as a frequency string or DateOffset object.
+        Frequency to conform the data to before computing the statistic.
+        Specified as a frequency string or DateOffset object.
     center : boolean, default False
         Set the labels at the center of the window.
     axis : int, default 0
@@ -794,13 +820,16 @@ class Rolling(_Rolling_and_Expanding):
     @Appender(_doc_template)
     @Appender(_shared_docs['cov'])
     def cov(self, other=None, pairwise=None, ddof=1, **kwargs):
-        return super(Rolling, self).cov(other=other, pairwise=pairwise, ddof=ddof, **kwargs)
+        return super(Rolling, self).cov(other=other, pairwise=pairwise,
+                                        ddof=ddof, **kwargs)
 
     @Substitution(name='rolling')
     @Appender(_doc_template)
     @Appender(_shared_docs['corr'])
     def corr(self, other=None, pairwise=None, **kwargs):
-        return super(Rolling, self).corr(other=other, pairwise=pairwise, **kwargs)
+        return super(Rolling, self).corr(other=other, pairwise=pairwise,
+                                         **kwargs)
+
 
 class Expanding(_Rolling_and_Expanding):
     """
@@ -814,8 +843,8 @@ class Expanding(_Rolling_and_Expanding):
         Minimum number of observations in window required to have a value
         (otherwise result is NA).
     freq : string or DateOffset object, optional (default None) (DEPRECATED)
-        Frequency to conform the data to before computing the statistic. Specified
-        as a frequency string or DateOffset object.
+        Frequency to conform the data to before computing the statistic.
+        Specified as a frequency string or DateOffset object.
     center : boolean, default False
         Set the labels at the center of the window.
     axis : int, default 0
@@ -834,10 +863,14 @@ class Expanding(_Rolling_and_Expanding):
     of :meth:`~pandas.Series.resample` (i.e. using the `mean`).
     """
 
-    _attributes = ['min_periods','freq','center','axis']
+    _attributes = ['min_periods', 'freq', 'center', 'axis']
 
-    def __init__(self, obj, min_periods=1, freq=None, center=False, axis=0, **kwargs):
-        return super(Expanding, self).__init__(obj=obj, min_periods=min_periods, freq=freq, center=center, axis=axis)
+    def __init__(self, obj, min_periods=1, freq=None, center=False, axis=0,
+                 **kwargs):
+        return super(Expanding, self).__init__(obj=obj,
+                                               min_periods=min_periods,
+                                               freq=freq, center=center,
+                                               axis=axis)
 
     @property
     def _constructor(self):
@@ -846,8 +879,10 @@ class Expanding(_Rolling_and_Expanding):
     def _get_window(self, other=None):
         obj = self._selected_obj
         if other is None:
-            return max(len(obj), self.min_periods) if self.min_periods else len(obj)
-        return max((len(obj) + len(obj)), self.min_periods) if self.min_periods else (len(obj) + len(obj))
+            return (max(len(obj), self.min_periods) if self.min_periods
+                    else len(obj))
+        return (max((len(obj) + len(obj)), self.min_periods)
+                if self.min_periods else (len(obj) + len(obj)))
 
     @Substitution(name='expanding')
     @Appender(SelectionMixin._see_also_template)
@@ -933,13 +968,16 @@ class Expanding(_Rolling_and_Expanding):
     @Appender(_doc_template)
     @Appender(_shared_docs['cov'])
     def cov(self, other=None, pairwise=None, ddof=1, **kwargs):
-        return super(Expanding, self).cov(other=other, pairwise=pairwise, ddof=ddof, **kwargs)
+        return super(Expanding, self).cov(other=other, pairwise=pairwise,
+                                          ddof=ddof, **kwargs)
 
     @Substitution(name='expanding')
     @Appender(_doc_template)
     @Appender(_shared_docs['corr'])
     def corr(self, other=None, pairwise=None, **kwargs):
-        return super(Expanding, self).corr(other=other, pairwise=pairwise, **kwargs)
+        return super(Expanding, self).corr(other=other, pairwise=pairwise,
+                                           **kwargs)
+
 
 _bias_template = """
 
@@ -979,15 +1017,16 @@ class EWM(_Rolling):
     span : float, optional
         Specify decay in terms of span, :math:`\alpha = 2 / (span + 1)`
     halflife : float, optional
-        Specify decay in terms of halflife, :math:`\alpha = 1 - exp(log(0.5) / halflife)`
+        Specify decay in terms of halflife,
+        :math:`\alpha = 1 - exp(log(0.5) / halflife)`
     min_periods : int, default 0
         Minimum number of observations in window required to have a value
         (otherwise result is NA).
     freq : None or string alias / date offset object, default=None (DEPRECATED)
         Frequency to conform to before computing statistic
     adjust : boolean, default True
-        Divide by decaying adjustment factor in beginning periods to account for
-        imbalance in relative weightings (viewing EWMA as a moving average)
+        Divide by decaying adjustment factor in beginning periods to account
+        for imbalance in relative weightings (viewing EWMA as a moving average)
     ignore_na : boolean, default False
         Ignore missing values when calculating weights;
         specify True to reproduce pre-0.15.0 behavior
@@ -1004,8 +1043,8 @@ class EWM(_Rolling):
     decay parameter :math:`\alpha` is related to the span as
     :math:`\alpha = 2 / (s + 1) = 1 / (1 + c)`
 
-    where `c` is the center of mass. Given a span, the associated center of mass is
-    :math:`c = (s - 1) / 2`
+    where `c` is the center of mass. Given a span, the associated center of
+    mass is :math:`c = (s - 1) / 2`
 
     So a "20-day EWMA" would have center 9.5.
 
@@ -1013,8 +1052,8 @@ class EWM(_Rolling):
     frequency by resampling the data. This is done with the default parameters
     of :meth:`~pandas.Series.resample` (i.e. using the `mean`).
 
-    When adjust is True (default), weighted averages are calculated using weights
-        (1-alpha)**(n-1), (1-alpha)**(n-2), ..., 1-alpha, 1.
+    When adjust is True (default), weighted averages are calculated using
+    weights (1-alpha)**(n-1), (1-alpha)**(n-2), ..., 1-alpha, 1.
 
     When adjust is False, weighted averages are calculated recursively as:
        weighted_average[0] = arg[0];
@@ -1025,18 +1064,18 @@ class EWM(_Rolling):
     average of [x, None, y] are (1-alpha)**2 and 1 (if adjust is True), and
     (1-alpha)**2 and alpha (if adjust is False).
 
-    When ignore_na is True (reproducing pre-0.15.0 behavior), weights are based on
-    relative positions. For example, the weights of x and y used in calculating
-    the final weighted average of [x, None, y] are 1-alpha and 1 (if adjust is
-    True), and 1-alpha and alpha (if adjust is False).
+    When ignore_na is True (reproducing pre-0.15.0 behavior), weights are based
+    on relative positions. For example, the weights of x and y used in
+    calculating the final weighted average of [x, None, y] are 1-alpha and 1
+    (if adjust is True), and 1-alpha and alpha (if adjust is False).
 
     More details can be found at
     http://pandas.pydata.org/pandas-docs/stable/computation.html#exponentially-weighted-moment-functions
     """
-    _attributes = ['com','min_periods','freq','adjust','ignore_na','axis']
+    _attributes = ['com', 'min_periods', 'freq', 'adjust', 'ignore_na', 'axis']
 
-    def __init__(self, obj, com=None, span=None, halflife=None, min_periods=0, freq=None,
-                 adjust=True, ignore_na=False, axis=0):
+    def __init__(self, obj, com=None, span=None, halflife=None, min_periods=0,
+                 freq=None, adjust=True, ignore_na=False, axis=0):
         self.obj = obj
         self.com = _get_center_of_mass(com, span, halflife)
         self.min_periods = min_periods
@@ -1088,11 +1127,14 @@ class EWM(_Rolling):
             # if we have a string function name, wrap it
             if isinstance(func, compat.string_types):
                 if not hasattr(algos, func):
-                    raise ValueError("we do not support this function algos.{0}".format(func))
+                    raise ValueError("we do not support this function "
+                                     "algos.{0}".format(func))
 
                 cfunc = getattr(algos, func)
+
                 def func(arg):
-                    return cfunc(arg, self.com, int(self.adjust), int(self.ignore_na), int(self.min_periods))
+                    return cfunc(arg, self.com, int(self.adjust),
+                                 int(self.ignore_na), int(self.min_periods))
 
             results.append(np.apply_along_axis(func, self.axis, values))
 
@@ -1110,20 +1152,18 @@ class EWM(_Rolling):
     def std(self, bias=False, **kwargs):
         """exponential weighted moving stddev"""
         return _zsqrt(self.var(bias=bias, **kwargs))
-    vol=std
+
+    vol = std
 
     @Substitution(name='ewm')
     @Appender(_doc_template)
     @Appender(_bias_template)
     def var(self, bias=False, **kwargs):
         """exponential weighted moving variance"""
+
         def f(arg):
-            return algos.ewmcov(arg,
-                                arg,
-                                self.com,
-                                int(self.adjust),
-                                int(self.ignore_na),
-                                int(self.min_periods),
+            return algos.ewmcov(arg, arg, self.com, int(self.adjust),
+                                int(self.ignore_na), int(self.min_periods),
                                 int(bias))
 
         return self._apply(f, **kwargs)
@@ -1135,22 +1175,20 @@ class EWM(_Rolling):
         """exponential weighted sample covariance"""
         if other is None:
             other = self._selected_obj
-            pairwise = True if pairwise is None else pairwise  # only default unset
+            # only default unset
+            pairwise = True if pairwise is None else pairwise
         other = self._shallow_copy(other)
 
         def _get_cov(X, Y):
             X = self._shallow_copy(X)
             Y = self._shallow_copy(Y)
-            cov = algos.ewmcov(X._prep_values(),
-                               Y._prep_values(),
-                               self.com,
-                               int(self.adjust),
-                               int(self.ignore_na),
-                               int(self.min_periods),
-                               int(bias))
+            cov = algos.ewmcov(X._prep_values(), Y._prep_values(), self.com,
+                               int(self.adjust), int(self.ignore_na),
+                               int(self.min_periods), int(bias))
             return X._wrap_result(cov)
 
-        return _flex_binary_moment(self._selected_obj, other._selected_obj, _get_cov, pairwise=bool(pairwise))
+        return _flex_binary_moment(self._selected_obj, other._selected_obj,
+                                   _get_cov, pairwise=bool(pairwise))
 
     @Substitution(name='ewm')
     @Appender(_doc_template)
@@ -1159,14 +1197,18 @@ class EWM(_Rolling):
         """exponential weighted sample correlation"""
         if other is None:
             other = self._selected_obj
-            pairwise = True if pairwise is None else pairwise  # only default unset
+            # only default unset
+            pairwise = True if pairwise is None else pairwise
         other = self._shallow_copy(other)
 
         def _get_corr(X, Y):
             X = self._shallow_copy(X)
             Y = self._shallow_copy(Y)
+
             def _cov(x, y):
-                return algos.ewmcov(x, y, self.com, int(self.adjust), int(self.ignore_na), int(self.min_periods), 1)
+                return algos.ewmcov(x, y, self.com, int(self.adjust),
+                                    int(self.ignore_na), int(self.min_periods),
+                                    1)
 
             x_values = X._prep_values()
             y_values = Y._prep_values()
@@ -1176,25 +1218,26 @@ class EWM(_Rolling):
             corr = cov / _zsqrt(x_var * y_var)
             return X._wrap_result(corr)
 
-        return _flex_binary_moment(self._selected_obj, other._selected_obj, _get_corr, pairwise=bool(pairwise))
+        return _flex_binary_moment(self._selected_obj, other._selected_obj,
+                                   _get_corr, pairwise=bool(pairwise))
 
-########################
-##### Helper Funcs #####
-########################
+# Helper Funcs
+
 
 def _flex_binary_moment(arg1, arg2, f, pairwise=False):
     from pandas import Series, DataFrame, Panel
-    if not (isinstance(arg1,(np.ndarray, Series, DataFrame)) and
-            isinstance(arg2,(np.ndarray, Series, DataFrame))):
+    if not (isinstance(arg1, (np.ndarray, Series, DataFrame)) and
+            isinstance(arg2, (np.ndarray, Series, DataFrame))):
         raise TypeError("arguments to moment function must be of type "
-                         "np.ndarray/Series/DataFrame")
+                        "np.ndarray/Series/DataFrame")
 
-    if isinstance(arg1, (np.ndarray, Series)) and \
-            isinstance(arg2, (np.ndarray,Series)):
+    if (isinstance(arg1, (np.ndarray, Series)) and
+            isinstance(arg2, (np.ndarray, Series))):
         X, Y = _prep_binary(arg1, arg2)
         return f(X, Y)
 
     elif isinstance(arg1, DataFrame):
+
         def dataframe_from_int_dict(data, frame_template):
             result = DataFrame(data, index=frame_template.index)
             if len(result.columns) > 0:
@@ -1221,16 +1264,18 @@ def _flex_binary_moment(arg1, arg2, f, pairwise=False):
                     for col in res_columns:
                         if col in X and col in Y:
                             results[col] = f(X[col], Y[col])
-                    return DataFrame(results, index=X.index, columns=res_columns)
+                    return DataFrame(results, index=X.index,
+                                     columns=res_columns)
             elif pairwise is True:
                 results = defaultdict(dict)
                 for i, k1 in enumerate(arg1.columns):
                     for j, k2 in enumerate(arg2.columns):
-                        if j<i and arg2 is arg1:
+                        if j < i and arg2 is arg1:
                             # Symmetric case
                             results[i][j] = results[j][i]
                         else:
-                            results[i][j] = f(*_prep_binary(arg1.iloc[:, i], arg2.iloc[:, j]))
+                            results[i][j] = f(*_prep_binary(arg1.iloc[:, i],
+                                                            arg2.iloc[:, j]))
                 p = Panel.from_dict(results).swapaxes('items', 'major')
                 if len(p.major_axis) > 0:
                     p.major_axis = arg1.columns[p.major_axis]
@@ -1247,6 +1292,7 @@ def _flex_binary_moment(arg1, arg2, f, pairwise=False):
 
     else:
         return _flex_binary_moment(arg2, arg1, f)
+
 
 def _get_center_of_mass(com, span, halflife):
     valid_count = len([x for x in [com, span, halflife] if x is not None])
@@ -1265,6 +1311,7 @@ def _get_center_of_mass(com, span, halflife):
 
     return float(com)
 
+
 def _offset(window, center):
     if not com.is_integer(window):
         window = len(window)
@@ -1274,19 +1321,23 @@ def _offset(window, center):
     except:
         return offset.astype(int)
 
+
 def _require_min_periods(p):
     def _check_func(minp, window):
         if minp is None:
             return window
         else:
             return max(p, minp)
+
     return _check_func
+
 
 def _use_window(minp, window):
     if minp is None:
         return window
     else:
         return minp
+
 
 def _zsqrt(x):
     result = np.sqrt(x)
@@ -1302,6 +1353,7 @@ def _zsqrt(x):
 
     return result
 
+
 def _prep_binary(arg1, arg2):
     if not isinstance(arg2, type(arg1)):
         raise Exception('Input arrays must be of the same type!')
@@ -1312,6 +1364,7 @@ def _prep_binary(arg1, arg2):
 
     return X, Y
 
+
 def _validate_win_type(win_type, kwargs):
     # may pop from kwargs
     arg_map = {'kaiser': ['beta'],
@@ -1319,8 +1372,8 @@ def _validate_win_type(win_type, kwargs):
                'general_gaussian': ['power', 'width'],
                'slepian': ['width']}
     if win_type in arg_map:
-        return tuple([win_type] +
-                     _pop_args(win_type, arg_map[win_type], kwargs))
+        return tuple([win_type] + _pop_args(win_type, arg_map[win_type],
+                                            kwargs))
     return win_type
 
 
@@ -1333,9 +1386,9 @@ def _pop_args(win_type, arg_names, kwargs):
         all_args.append(kwargs.pop(n))
     return all_args
 
-#############################
-##### top-level exports #####
-#############################
+
+# Top-level exports
+
 
 def rolling(obj, win_type=None, **kwds):
     from pandas import Series, DataFrame
@@ -1346,7 +1399,10 @@ def rolling(obj, win_type=None, **kwds):
         return Window(obj, win_type=win_type, **kwds)
 
     return Rolling(obj, **kwds)
+
+
 rolling.__doc__ = Window.__doc__
+
 
 def expanding(obj, **kwds):
     from pandas import Series, DataFrame
@@ -1354,7 +1410,10 @@ def expanding(obj, **kwds):
         raise TypeError('invalid type: %s' % type(obj))
 
     return Expanding(obj, **kwds)
+
+
 expanding.__doc__ = Expanding.__doc__
+
 
 def ewm(obj, **kwds):
     from pandas import Series, DataFrame
@@ -1362,4 +1421,6 @@ def ewm(obj, **kwds):
         raise TypeError('invalid type: %s' % type(obj))
 
     return EWM(obj, **kwds)
+
+
 ewm.__doc__ = EWM.__doc__

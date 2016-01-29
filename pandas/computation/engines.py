@@ -1,13 +1,16 @@
 """Engine classes for :func:`~pandas.eval`
 """
 
+# flake8: noqa
+
 import abc
 
 from pandas import compat
 from pandas.compat import DeepChainMap, map
 from pandas.core import common as com
 from pandas.computation.align import _align, _reconstruct_object
-from pandas.computation.ops import UndefinedVariableError, _mathops, _reductions
+from pandas.computation.ops import (UndefinedVariableError,
+                                    _mathops, _reductions)
 
 
 _ne_builtins = frozenset(_mathops + _reductions)
@@ -30,8 +33,8 @@ def _check_ne_builtin_clash(expr):
 
     if overlap:
         s = ', '.join(map(repr, overlap))
-        raise NumExprClobberingError('Variables in expression "%s" overlap with '
-                                     'numexpr builtins: (%s)' % (expr, s))
+        raise NumExprClobberingError('Variables in expression "%s" '
+                                     'overlap with builtins: (%s)' % (expr, s))
 
 
 class AbstractEngine(object):

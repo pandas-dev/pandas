@@ -1,5 +1,5 @@
 # pylint: disable=W0611
-
+# flake8: noqa
 from pandas.sparse.array import SparseArray
 from pandas.sparse.list import SparseList
 from pandas.sparse.series import SparseSeries, SparseTimeSeries

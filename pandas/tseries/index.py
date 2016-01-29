@@ -1361,7 +1361,8 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
             key = Timestamp(key, tz=self.tz)
         elif not isinstance(key, Timestamp):
             key = Timestamp(key)
-        values = self._engine.get_value(_values_from_object(series), key)
+        values = self._engine.get_value(_values_from_object(series),
+                                        key, tz=self.tz)
         return _maybe_box(self, values, series, key)
 
     def get_loc(self, key, method=None, tolerance=None):
