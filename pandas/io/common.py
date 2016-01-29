@@ -408,7 +408,7 @@ if compat.PY3:  # pragma: no cover
     def UnicodeWriter(f, dialect=csv.excel, encoding="utf-8", **kwds):
         return csv.writer(f, dialect=dialect, **kwds)
 else:
-    class UnicodeReader:
+    class UnicodeReader(BaseIterator):
 
         """
         A CSV reader which will iterate over lines in the CSV file "f",
@@ -422,15 +422,9 @@ else:
             f = UTF8Recoder(f, encoding)
             self.reader = csv.reader(f, dialect=dialect, **kwds)
 
-        def next(self):
+        def __next__(self):
             row = next(self.reader)
             return [compat.text_type(s, "utf-8") for s in row]
-
-        # python 3 iterator
-        __next__ = next
-
-        def __iter__(self):  # pragma: no cover
-            return self
 
     class UnicodeWriter:
 
