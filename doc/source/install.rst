@@ -192,32 +192,31 @@ installed), make sure you have `nose
 
 ::
 
-    $ nosetests pandas
-    ..........................................................................
-    .......................S..................................................
-    ..........................................................................
-    ..........................................................................
-    ..........................................................................
-    ..........................................................................
-    ..........................................................................
-    ..........................................................................
-    ..........................................................................
-    ..........................................................................
-    .................S........................................................
-    ....
-    ----------------------------------------------------------------------
-    Ran 818 tests in 21.631s
+    >>> import pandas as pd
+    >>> pd.test()
+    Running unit tests for pandas
+    pandas version 0.18.0
+    numpy version 1.10.2
+    pandas is installed in pandas
+    Python version 2.7.11 |Continuum Analytics, Inc.|
+       (default, Dec  6 2015, 18:57:58) [GCC 4.2.1 (Apple Inc. build 5577)]
+    nose version 1.3.7
+    ..................................................................S......
+    ........S................................................................
+    .........................................................................
 
-    OK (SKIP=2)
+    ----------------------------------------------------------------------
+    Ran 9252 tests in 368.339s
+
+    OK (SKIP=117)
 
 Dependencies
 ------------
 
 * `setuptools <http://pythonhosted.org/setuptools>`__
 * `NumPy <http://www.numpy.org>`__: 1.7.1 or higher
-* `python-dateutil <http://labix.org/python-dateutil>`__ 1.5 or higher
-* `pytz <http://pytz.sourceforge.net/>`__
-   * Needed for time zone support
+* `python-dateutil <http://labix.org/python-dateutil>`__: 1.5 or higher
+* `pytz <http://pytz.sourceforge.net/>`__: Needed for time zone support
 
 .. _install.recommended_dependencies:
 
@@ -247,6 +246,7 @@ Optional Dependencies
 * `SciPy <http://www.scipy.org>`__: miscellaneous statistical functions
 * `PyTables <http://www.pytables.org>`__: necessary for HDF5-based storage. Version 3.0.0 or higher required, Version 3.2.1 or higher highly recommended.
 * `SQLAlchemy <http://www.sqlalchemy.org>`__: for SQL database support. Version 0.8.1 or higher recommended.
+
   * Besides SQLAlchemy, you also need a database specific driver.
     Examples of such drivers are `psycopg2 <http://initd.org/psycopg/>`__ for PostgreSQL
     or `pymysql <https://github.com/PyMySQL/PyMySQL>`__ for MySQL. For
@@ -255,12 +255,9 @@ Optional Dependencies
     You can find an overview of supported drivers for each SQL dialect in the
     `SQLAlchemy docs <http://docs.sqlalchemy.org/en/latest/dialects/index.html>`__.
 * `matplotlib <http://matplotlib.sourceforge.net/>`__: for plotting
-* `statsmodels <http://statsmodels.sourceforge.net/>`__
-   * Needed for parts of :mod:`pandas.stats`
-* `openpyxl <http://packages.python.org/openpyxl/>`__, `xlrd/xlwt <http://www.python-excel.org/>`__
-   * Needed for Excel I/O
-* `XlsxWriter <https://pypi.python.org/pypi/XlsxWriter>`__
-   * Alternative Excel writer
+* `statsmodels <http://statsmodels.sourceforge.net/>`__: Needed for parts of :mod:`pandas.stats`
+* `openpyxl <http://packages.python.org/openpyxl/>`__, `xlrd/xlwt <http://www.python-excel.org/>`__: Needed for Excel I/O
+* `XlsxWriter <https://pypi.python.org/pypi/XlsxWriter>`__: Alternative Excel writer
 * `Jinja2 <http://jinja.pocoo.org/>`__: Template engine for conditional HTML formatting.
 * `boto <https://pypi.python.org/pypi/boto>`__: necessary for Amazon S3
   access.
@@ -275,12 +272,8 @@ Optional Dependencies
   distributions will have xclip and/or xsel immediately available for
   installation.
 * Google's `python-gflags <http://code.google.com/p/python-gflags/>`__
-  and `google-api-python-client <http://github.com/google/google-api-python-client>`__
-  * Needed for :mod:`~pandas.io.gbq`
-* `setuptools <https://pypi.python.org/pypi/setuptools/>`__
-  * Needed for :mod:`~pandas.io.gbq` (specifically, it utilizes `pkg_resources`)
-* `httplib2 <http://pypi.python.org/pypi/httplib2>`__
-  * Needed for :mod:`~pandas.io.gbq`
+  and `google-api-python-client <http://github.com/google/google-api-python-client>`__: Needed for :mod:`~pandas.io.gbq`
+* `httplib2 <http://pypi.python.org/pypi/httplib2>`__: Needed for :mod:`~pandas.io.gbq`
 * One of the following combinations of libraries is needed to use the
   top-level :func:`~pandas.io.html.read_html` function:
 
@@ -327,5 +320,5 @@ Optional Dependencies
 
    Without the optional dependencies, many useful features will not
    work. Hence, it is highly recommended that you install these. A packaged
-   distribution like `Enthought Canopy
+   distribution like `Anaconda <http://docs.continuum.io/anaconda/>`__, or `Enthought Canopy
    <http://enthought.com/products/canopy>`__ may be worth considering.
