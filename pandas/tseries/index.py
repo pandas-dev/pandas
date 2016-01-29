@@ -10,9 +10,8 @@ from pandas.core.common import (_NS_DTYPE, _INT64_DTYPE,
                                 is_object_dtype, is_datetime64_dtype,
                                 is_datetimetz, is_dtype_equal,
                                 ABCSeries, is_integer, is_float,
-                                DatetimeTZDtype)
+                                DatetimeTZDtype, PerformanceWarning)
 
-from pandas.io.common import PerformanceWarning
 from pandas.core.index import Index, Int64Index, Float64Index
 import pandas.compat as compat
 from pandas.compat import u

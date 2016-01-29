@@ -8,7 +8,7 @@ import warnings
 
 from pandas import (date_range, MultiIndex, Index, CategoricalIndex,
                     compat)
-from pandas.io.common import PerformanceWarning
+from pandas.core.common import PerformanceWarning
 from pandas.indexes.base import InvalidIndexError
 from pandas.compat import range, lrange, u, PY3, long, lzip
 

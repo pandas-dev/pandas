@@ -30,7 +30,7 @@ from pandas.tslib import iNaT
 from pandas.compat import range, long, StringIO, lrange, lmap, zip, product
 from numpy.random import rand
 from pandas.util.testing import assert_frame_equal
-from pandas.io.common import PerformanceWarning
+from pandas.core.common import PerformanceWarning
 import pandas.compat as compat
 import pandas.core.common as com
 from pandas import concat

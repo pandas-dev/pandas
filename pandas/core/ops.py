@@ -24,8 +24,7 @@ from pandas.core.common import (is_list_like, notnull, isnull,
                                 is_integer_dtype, is_categorical_dtype,
                                 is_object_dtype, is_timedelta64_dtype,
                                 is_datetime64_dtype, is_datetime64tz_dtype,
-                                is_bool_dtype)
-from pandas.io.common import PerformanceWarning
+                                is_bool_dtype, PerformanceWarning)
 
 # -----------------------------------------------------------------------------
 # Functions that add arithmetic methods to objects, given arithmetic factory
