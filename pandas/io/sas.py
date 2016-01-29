@@ -10,7 +10,7 @@ https://support.sas.com/techsup/technote/ts140.pdf
 
 from datetime import datetime
 import pandas as pd
-from pandas.io.common import get_filepath_or_buffer
+from pandas.io.common import get_filepath_or_buffer, BaseIterator
 from pandas import compat
 import struct
 import numpy as np
@@ -242,7 +242,7 @@ def _parse_float_vec(vec):
     return ieee
 
 
-class XportReader(object):
+class XportReader(BaseIterator):
     __doc__ = _xport_reader_doc
 
     def __init__(self, filepath_or_buffer, index=None, encoding='ISO-8859-1',
@@ -369,15 +369,8 @@ class XportReader(object):
         dtype = np.dtype(dtypel)
         self._dtype = dtype
 
-    def __iter__(self):
-        try:
-            if self._chunksize:
-                while True:
-                    yield self.read(self._chunksize)
-            else:
-                yield self.read()
-        except StopIteration:
-            pass
+    def __next__(self):
+        return self.read(nrows=self._chunksize or 1)
 
     def _record_count(self):
         """

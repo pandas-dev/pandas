@@ -9,7 +9,7 @@ from contextlib import contextmanager, closing
 
 from pandas.compat import StringIO, BytesIO, string_types, text_type
 from pandas import compat
-from pandas.core.common import pprint_thing, is_number
+from pandas.core.common import pprint_thing, is_number, AbstractMethodError
 
 
 try:
@@ -57,6 +57,20 @@ _VALID_URLS.discard('')
 
 class DtypeWarning(Warning):
     pass
+
+
+class BaseIterator(object):
+    """Subclass this and provide a "__next__()" method to obtain an iterator.
+    Useful only when the object being iterated is non-reusable (e.g. OK for a
+    parser, not for an in-memory table, yes for its iterator)."""
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        raise AbstractMethodError(self)
+
+if not compat.PY3:
+    BaseIterator.next = lambda self: self.__next__()
 
 
 try:
@@ -394,7 +408,7 @@ if compat.PY3:  # pragma: no cover
     def UnicodeWriter(f, dialect=csv.excel, encoding="utf-8", **kwds):
         return csv.writer(f, dialect=dialect, **kwds)
 else:
-    class UnicodeReader:
+    class UnicodeReader(BaseIterator):
 
         """
         A CSV reader which will iterate over lines in the CSV file "f",
@@ -408,15 +422,9 @@ else:
             f = UTF8Recoder(f, encoding)
             self.reader = csv.reader(f, dialect=dialect, **kwds)
 
-        def next(self):
+        def __next__(self):
             row = next(self.reader)
             return [compat.text_type(s, "utf-8") for s in row]
-
-        # python 3 iterator
-        __next__ = next
-
-        def __iter__(self):  # pragma: no cover
-            return self
 
     class UnicodeWriter:
 

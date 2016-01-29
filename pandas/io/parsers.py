@@ -19,7 +19,8 @@ from pandas.core.common import AbstractMethodError
 from pandas.core.config import get_option
 from pandas.io.date_converters import generic_parser
 from pandas.io.common import (get_filepath_or_buffer, _validate_header_arg,
-                              _get_handle, UnicodeReader, UTF8Recoder)
+                              _get_handle, UnicodeReader, UTF8Recoder,
+                              BaseIterator)
 from pandas.tseries import tools
 
 from pandas.util.decorators import Appender
@@ -545,7 +546,7 @@ _NA_VALUES = set([
 ])
 
 
-class TextFileReader(object):
+class TextFileReader(BaseIterator):
     """
 
     Passed dialect overrides any of the related parser options
@@ -724,15 +725,8 @@ class TextFileReader(object):
 
         return result, engine
 
-    def __iter__(self):
-        try:
-            if self.chunksize:
-                while True:
-                    yield self.read(self.chunksize)
-            else:
-                yield self.read()
-        except StopIteration:
-            pass
+    def __next__(self):
+        return self.get_chunk()
 
     def _make_engine(self, engine='c'):
         if engine == 'c':
@@ -2363,7 +2357,7 @@ def _concat_date_cols(date_cols):
     return rs
 
 
-class FixedWidthReader(object):
+class FixedWidthReader(BaseIterator):
     """
     A reader of fixed-width lines.
     """
@@ -2417,7 +2411,7 @@ class FixedWidthReader(object):
         edges = np.where((mask ^ shifted) == 1)[0]
         return list(zip(edges[::2], edges[1::2]))
 
-    def next(self):
+    def __next__(self):
         if self.buffer is not None:
             try:
                 line = next(self.buffer)
@@ -2429,9 +2423,6 @@ class FixedWidthReader(object):
         # Note: 'colspecs' is a sequence of half-open intervals.
         return [line[fromm:to].strip(self.delimiter)
                 for (fromm, to) in self.colspecs]
-
-    # Iterator protocol in Python 3 uses __next__()
-    __next__ = next
 
 
 class FixedWidthFieldParser(PythonParser):
