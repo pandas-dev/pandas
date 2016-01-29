@@ -1033,6 +1033,10 @@ class TestStata(tm.TestCase):
         chunk = itr.get_chunk()
         tm.assert_frame_equal(parsed.iloc[0:5, :], chunk)
 
+        # GH12153
+        from_chunks = pd.concat(read_stata(fname, chunksize=4))
+        tm.assert_frame_equal(parsed, from_chunks)
+
     def test_read_chunks_115(self):
         files_115 = [self.dta2_115, self.dta3_115, self.dta4_115,
                      self.dta14_115, self.dta15_115, self.dta16_115,
