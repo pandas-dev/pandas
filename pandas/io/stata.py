@@ -25,7 +25,7 @@ from pandas.compat import lrange, lmap, lzip, text_type, string_types, range, \
 from pandas.util.decorators import Appender
 import pandas as pd
 import pandas.core.common as com
-from pandas.io.common import get_filepath_or_buffer
+from pandas.io.common import get_filepath_or_buffer, BaseIterator
 from pandas.lib import max_len_string_array, infer_dtype
 from pandas.tslib import NaT, Timestamp
 
@@ -907,7 +907,7 @@ class StataParser(object):
             return str
 
 
-class StataReader(StataParser):
+class StataReader(StataParser, BaseIterator):
     __doc__ = _stata_reader_doc
 
     def __init__(self, path_or_buf, convert_dates=True,
@@ -1377,15 +1377,8 @@ class StataReader(StataParser):
 
         return self.read(None, **kwargs)
 
-    def __iter__(self):
-        try:
-            if self._chunksize:
-                while True:
-                    yield self.read(self._chunksize)
-            else:
-                yield self.read()
-        except StopIteration:
-            pass
+    def __next__(self):
+        return self.read(nrows=self._chunksize or 1)
 
     def get_chunk(self, size=None):
         """

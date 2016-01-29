@@ -88,6 +88,11 @@ class TestXport(tm.TestCase):
 
         tm.assert_frame_equal(data, data_csv, check_index_type=False)
 
+        reader = XportReader(self.file01, index="SEQN", chunksize=1000)
+        data = pd.concat(reader, axis=0)
+
+        tm.assert_frame_equal(data, data_csv, check_index_type=False)
+
     def test2(self):
         # Test with SSHSV1_A.XPT
 
