@@ -9,7 +9,7 @@ from contextlib import contextmanager, closing
 
 from pandas.compat import StringIO, BytesIO, string_types, text_type
 from pandas import compat
-from pandas.core.common import pprint_thing, is_number
+from pandas.core.common import pprint_thing, is_number, AbstractMethodError
 
 
 try:
@@ -57,6 +57,20 @@ _VALID_URLS.discard('')
 
 class DtypeWarning(Warning):
     pass
+
+
+class BaseIterator(object):
+    """Subclass this and provide a "__next__()" method to obtain an iterator.
+    Useful only when the object being iterated is non-reusable (e.g. OK for a
+    parser, not for an in-memory table, yes for its iterator)."""
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        raise AbstractMethodError(self)
+
+if not compat.PY3:
+    BaseIterator.next = lambda self: self.__next__()
 
 
 try:
