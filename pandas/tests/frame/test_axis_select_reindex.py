@@ -114,6 +114,29 @@ class TestDataFrameSelectReindex(tm.TestCase, TestData):
         df.drop(labels=df[df.b > 0].index, inplace=True)
         assert_frame_equal(df, expected)
 
+    def test_drop_multiindex_not_lexsorted(self):
+        # GH 11640
+
+        # define the lexsorted version
+        lexsorted_mi = MultiIndex.from_tuples(
+            [('a', ''), ('b1', 'c1'), ('b2', 'c2')], names=['b', 'c'])
+        lexsorted_df = DataFrame([[1, 3, 4]], columns=lexsorted_mi)
+        self.assertTrue(lexsorted_df.columns.is_lexsorted())
+
+        # define the non-lexsorted version
+        not_lexsorted_df = DataFrame(columns=['a', 'b', 'c', 'd'],
+                                     data=[[1, 'b1', 'c1', 3],
+                                           [1, 'b2', 'c2', 4]])
+        not_lexsorted_df = not_lexsorted_df.pivot_table(
+            index='a', columns=['b', 'c'], values='d')
+        not_lexsorted_df = not_lexsorted_df.reset_index()
+        self.assertFalse(not_lexsorted_df.columns.is_lexsorted())
+
+        # compare the results
+        tm.assert_frame_equal(lexsorted_df, not_lexsorted_df)
+        tm.assert_frame_equal(lexsorted_df.drop('a', axis=1),
+                              not_lexsorted_df.drop('a', axis=1))
+
     def test_reindex(self):
         newFrame = self.frame.reindex(self.ts1.index)
 
