@@ -522,6 +522,7 @@ Bug Fixes
 - Bug in not treating ``NaT`` as a missing value in datetimelikes when factorizing & with ``Categoricals`` (:issue:`12077`)
 - Bug in getitem when the values of a ``Series`` were tz-aware (:issue:`12089`)
 - Bug in ``Series.str.get_dummies`` when one of the variables was 'name' (:issue:`12180`)
+- Bug in ``pd.concat`` while concatenating tz-aware NaT series. (:issue:`11693`, :issue:`11755`)
 
 
 
@@ -583,5 +584,3 @@ Bug Fixes
 - Bug in ``.skew`` and ``.kurt`` due to roundoff error for highly similar values (:issue:`11974`)
 
 - Bug in ``buffer_rd_bytes`` src->buffer could be freed more than once if reading failed, causing a segfault (:issue:`12098`)
-- Bug in ``pd.concat`` while concatenating tz-aware NaT series. (:issue:`11693`)
-- Bug in ``pd.concat`` while concatenating tz-aware series with time series. (:issue:`11755`)

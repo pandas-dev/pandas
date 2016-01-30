@@ -1024,46 +1024,62 @@ class TestMerge(tm.TestCase):
         result = pd.merge(left, right, on='key', how='outer')
         assert_frame_equal(result, expected)
 
-    def test_concat_Nat_series(self):
+    def test_concat_NaT_series(self):
         # GH 11693
         # test for merging NaT series with datetime series.
-        x = pd.Series( pd.date_range('20151124 08:00', '20151124 09:00', freq='1h', tz = "US/Eastern"))
-        y = pd.Series( pd.date_range('20151124 10:00', '20151124 11:00', freq='1h', tz = "US/Eastern"))
-        y[:] = pd.NaT
-        expected = pd.Series([x[0], x[1], pd.NaT, pd.NaT], index=[0, 1, 0, 1])
-        tm.assert_series_equal(pd.concat([x,y]), expected)
+        x = Series(date_range('20151124 08:00', '20151124 09:00',
+                              freq='1h', tz='US/Eastern'))
+        y = Series(pd.NaT, index=[0, 1], dtype='datetime64[ns, US/Eastern]')
+        expected = Series([x[0], x[1], pd.NaT, pd.NaT])
+
+        result = concat([x, y], ignore_index=True)
+        tm.assert_series_equal(result, expected)
 
         # all NaT with tz
-        x[:] = pd.NaT
-        expected = pd.Series([pd.NaT for i in range(4)], index=[0, 1, 0, 1], dtype ='datetime64[ns, US/Eastern]')
-        tm.assert_series_equal(pd.concat([x,y]), expected)
+        expected = Series(pd.NaT, index=range(4),
+                          dtype='datetime64[ns, US/Eastern]')
+        result = pd.concat([y, y], ignore_index=True)
+        tm.assert_series_equal(result, expected)
 
-        #without tz
-        x = pd.Series( pd.date_range('20151124 08:00', '20151124 09:00', freq='1h'))
-        y = pd.Series( pd.date_range('20151124 10:00', '20151124 11:00', freq='1h'))
+        # without tz
+        x = pd.Series(pd.date_range('20151124 08:00',
+                                    '20151124 09:00', freq='1h'))
+        y = pd.Series(pd.date_range('20151124 10:00',
+                                    '20151124 11:00', freq='1h'))
         y[:] = pd.NaT
-        expected = pd.Series([x[0], x[1], pd.NaT, pd.NaT], index=[0, 1, 0, 1])
-        tm.assert_series_equal(pd.concat([x, y]), expected)
+        expected = pd.Series([x[0], x[1], pd.NaT, pd.NaT])
+        result = pd.concat([x, y], ignore_index=True)
+        tm.assert_series_equal(result, expected)
 
-        #all NaT without tz
+        # all NaT without tz
         x[:] = pd.NaT
-        expected = pd.Series([pd.NaT for i in range(4)], index=[0, 1, 0, 1], dtype ='datetime64[ns]')
-        tm.assert_series_equal(pd.concat([x,y]), expected)
+        expected = pd.Series(pd.NaT, index=range(4),
+                             dtype='datetime64[ns]')
+        result = pd.concat([x, y], ignore_index=True)
+        tm.assert_series_equal(result, expected)
 
     def test_concat_tz_series(self):
-        #tz and no tz
-        #GH 11755
-        x = pd.Series(pd.date_range('20151124 08:00', '20151124 09:00', freq = '1h', tz = "UTC") )
-        y = pd.Series(pd.date_range('2012-01-01', '2012-01-02'))
-        expected = pd.Series([x[0], x[1], y[0], y[1]], index=[0, 1, 0, 1], dtype='object')
-        tm.assert_series_equal(pd.concat([x,y]), expected)
+        # GH 11755
+        # tz and no tz
+        x = Series(date_range('20151124 08:00',
+                              '20151124 09:00',
+                              freq='1h', tz='UTC'))
+        y = Series(date_range('2012-01-01', '2012-01-02'))
+        expected = Series([x[0], x[1], y[0], y[1]],
+                          dtype='object')
+        result = concat([x, y], ignore_index=True)
+        tm.assert_series_equal(result, expected)
 
-        #tz and object
-        #GH 11887
-        x = pd.Series(pd.date_range('20151124 08:00', '20151124 09:00', freq = '1h', tz = "UTC") )
-        y = pd.Series(['a', 'b'])
-        expected = pd.Series([x[0], x[1], y[0], y[1]], index=[0, 1, 0, 1], dtype='object')
-        tm.assert_series_equal(pd.concat([x,y]), expected)
+        # GH 11887
+        # concat tz and object
+        x = Series(date_range('20151124 08:00',
+                              '20151124 09:00',
+                              freq='1h', tz='UTC'))
+        y = Series(['a', 'b'])
+        expected = Series([x[0], x[1], y[0], y[1]],
+                          dtype='object')
+        result = concat([x, y], ignore_index=True)
+        tm.assert_series_equal(result, expected)
 
     def test_indicator(self):
         # PR #10054. xref #7412 and closes #8790.

@@ -258,11 +258,12 @@ def _concat_compat(to_concat, axis=0):
 
         # if dtype is of datetimetz or timezone
         if x.dtype.kind == _NS_DTYPE.kind:
-            shape = x.shape
-            x = tslib.ints_to_pydatetime(x.view(np.int64).ravel())
-            x = x.reshape(shape)
-            if hasattr(x, 'tz'):
+            if getattr(x, 'tz', None) is not None:
                 x = x.asobject
+            else:
+                shape = x.shape
+                x = tslib.ints_to_pydatetime(x.view(np.int64).ravel())
+                x = x.reshape(shape)
 
         elif x.dtype == _TD_DTYPE:
             shape = x.shape
@@ -276,10 +277,11 @@ def _concat_compat(to_concat, axis=0):
     # datetimetz
     if 'datetimetz' in typs:
 
-        # if to_concat have 'datetime' or 'object', then we need to coerce to object
+        # if to_concat have 'datetime' or 'object'
+        # then we need to coerce to object
         if 'datetime' in typs or 'object' in typs:
             to_concat = [convert_to_pydatetime(x, axis) for x in to_concat]
-            return np.concatenate(to_concat,axis=axis)
+            return np.concatenate(to_concat, axis=axis)
 
         # we require ALL of the same tz for datetimetz
         tzs = set([getattr(x, 'tz', None) for x in to_concat]) - set([None])
