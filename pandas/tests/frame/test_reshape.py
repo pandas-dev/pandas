@@ -10,7 +10,7 @@ from numpy import nan
 import numpy as np
 
 from pandas.compat import u
-from pandas import DataFrame, Index, Series, MultiIndex, date_range
+from pandas import DataFrame, Index, Series, MultiIndex, date_range, Timedelta, Period
 import pandas as pd
 
 from pandas.util.testing import (assert_series_equal,
@@ -135,6 +135,141 @@ class TestDataFrameReshape(tm.TestCase, TestData):
         unstacked_cols_df = stacked_df.unstack(0)
         assert_frame_equal(unstacked_cols.T, self.frame)
         assert_frame_equal(unstacked_cols_df['bar'].T, self.frame)
+
+    def test_unstack_fill(self):
+
+        # GH #9746: fill_value keyword argument for Series
+        # and DataFrame unstack
+
+        # From a series
+        data = Series([1, 2, 4, 5], dtype=np.int16)
+        data.index = MultiIndex.from_tuples(
+            [('x', 'a'), ('x', 'b'), ('y', 'b'), ('z', 'a')])
+
+        result = data.unstack(fill_value=-1)
+        expected = DataFrame({'a': [1, -1, 5], 'b': [2, 4, -1]},
+                             index=['x', 'y', 'z'], dtype=np.int16)
+        assert_frame_equal(result, expected)
+
+        # From a series with incorrect data type for fill_value
+        result = data.unstack(fill_value=0.5)
+        expected = DataFrame({'a': [1, 0.5, 5], 'b': [2, 4, 0.5]},
+                             index=['x', 'y', 'z'], dtype=np.float)
+        assert_frame_equal(result, expected)
+
+        # From a dataframe
+        rows = [[1, 2], [3, 4], [5, 6], [7, 8]]
+        df = DataFrame(rows, columns=list('AB'), dtype=np.int32)
+        df.index = MultiIndex.from_tuples(
+            [('x', 'a'), ('x', 'b'), ('y', 'b'), ('z', 'a')])
+
+        result = df.unstack(fill_value=-1)
+
+        rows = [[1, 3, 2, 4], [-1, 5, -1, 6], [7, -1, 8, -1]]
+        expected = DataFrame(rows, index=list('xyz'), dtype=np.int32)
+        expected.columns = MultiIndex.from_tuples(
+            [('A', 'a'), ('A', 'b'), ('B', 'a'), ('B', 'b')])
+        assert_frame_equal(result, expected)
+
+        # From a mixed type dataframe
+        df['A'] = df['A'].astype(np.int16)
+        df['B'] = df['B'].astype(np.float64)
+
+        result = df.unstack(fill_value=-1)
+        expected['A'] = expected['A'].astype(np.int16)
+        expected['B'] = expected['B'].astype(np.float64)
+        assert_frame_equal(result, expected)
+
+        # From a dataframe with incorrect data type for fill_value
+        result = df.unstack(fill_value=0.5)
+
+        rows = [[1, 3, 2, 4], [0.5, 5, 0.5, 6], [7, 0.5, 8, 0.5]]
+        expected = DataFrame(rows, index=list('xyz'), dtype=np.float)
+        expected.columns = MultiIndex.from_tuples(
+            [('A', 'a'), ('A', 'b'), ('B', 'a'), ('B', 'b')])
+        assert_frame_equal(result, expected)
+
+        # Test unstacking with date times
+        dv = pd.date_range('2012-01-01', periods=4).values
+        data = Series(dv)
+        data.index = MultiIndex.from_tuples(
+            [('x', 'a'), ('x', 'b'), ('y', 'b'), ('z', 'a')])
+
+        result = data.unstack()
+        expected = DataFrame({'a': [dv[0], pd.NaT, dv[3]],
+                              'b': [dv[1], dv[2], pd.NaT]},
+                             index=['x', 'y', 'z'])
+        assert_frame_equal(result, expected)
+
+        result = data.unstack(fill_value=dv[0])
+        expected = DataFrame({'a': [dv[0], dv[0], dv[3]],
+                              'b': [dv[1], dv[2], dv[0]]},
+                             index=['x', 'y', 'z'])
+        assert_frame_equal(result, expected)
+
+        # Test unstacking with time deltas
+        td = [Timedelta(days=i) for i in range(4)]
+        data = Series(td)
+        data.index = MultiIndex.from_tuples(
+            [('x', 'a'), ('x', 'b'), ('y', 'b'), ('z', 'a')])
+
+        result = data.unstack()
+        expected = DataFrame({'a': [td[0], pd.NaT, td[3]],
+                              'b': [td[1], td[2], pd.NaT]},
+                             index=['x', 'y', 'z'])
+        assert_frame_equal(result, expected)
+
+        result = data.unstack(fill_value=td[1])
+        expected = DataFrame({'a': [td[0], td[1], td[3]],
+                              'b': [td[1], td[2], td[1]]},
+                             index=['x', 'y', 'z'])
+        assert_frame_equal(result, expected)
+
+        # Test unstacking with period
+        periods = [Period('2012-01'), Period('2012-02'), Period('2012-03'),
+                   Period('2012-04')]
+        data = Series(periods)
+        data.index = MultiIndex.from_tuples(
+            [('x', 'a'), ('x', 'b'), ('y', 'b'), ('z', 'a')])
+
+        result = data.unstack()
+        expected = DataFrame({'a': [periods[0], None, periods[3]],
+                              'b': [periods[1], periods[2], None]},
+                             index=['x', 'y', 'z'])
+        assert_frame_equal(result, expected)
+
+        result = data.unstack(fill_value=periods[1])
+        expected = DataFrame({'a': [periods[0], periods[1], periods[3]],
+                              'b': [periods[1], periods[2], periods[1]]},
+                             index=['x', 'y', 'z'])
+        assert_frame_equal(result, expected)
+
+        # Test unstacking with categorical
+        data = pd.Series(['a', 'b', 'c', 'a'], dtype='category')
+        data.index = pd.MultiIndex.from_tuples(
+            [('x', 'a'), ('x', 'b'), ('y', 'b'), ('z', 'a')])
+
+        # By default missing values will be NaN
+        result = data.unstack()
+        expected = DataFrame({'a': pd.Categorical(list('axa'),
+                                                  categories=list('abc')),
+                              'b': pd.Categorical(list('bcx'),
+                                                  categories=list('abc'))},
+                             index=list('xyz'))
+        assert_frame_equal(result, expected)
+
+        # Fill with non-category results in NaN entries similar to above
+        result = data.unstack(fill_value='d')
+        assert_frame_equal(result, expected)
+
+        # Fill with category value replaces missing values as expected
+        result = data.unstack(fill_value='c')
+        expected = DataFrame({'a': pd.Categorical(list('aca'),
+                                                  categories=list('abc')),
+                              'b': pd.Categorical(list('bcc'),
+                                                  categories=list('abc'))},
+                             index=list('xyz'))
+        assert_frame_equal(result, expected)
 
     def test_stack_ints(self):
         df = DataFrame(
