@@ -76,7 +76,7 @@ def read_excel(io, sheetname=0, header=0, skiprows=None, skip_footer=0,
                index_col=None, names=None, parse_cols=None, parse_dates=False,
                date_parser=None, na_values=None, thousands=None,
                convert_float=True, has_index_names=None, converters=None,
-               engine=None, **kwds):
+               engine=None, squeeze=False, **kwds):
     """
     Read an Excel table into a pandas DataFrame
 
@@ -133,6 +133,8 @@ def read_excel(io, sheetname=0, header=0, skiprows=None, skip_footer=0,
         * If list of ints then indicates list of column numbers to be parsed
         * If string then indicates comma separated list of column names and
           column ranges (e.g. "A:E" or "A,C,E:F")
+    squeeze : boolean, default False
+        If the parsed data only contains one column then return a Series
     na_values : list-like, default None
         List of additional strings to recognize as NA/NaN
     thousands : str, default None
@@ -171,7 +173,7 @@ def read_excel(io, sheetname=0, header=0, skiprows=None, skip_footer=0,
         index_col=index_col, parse_cols=parse_cols, parse_dates=parse_dates,
         date_parser=date_parser, na_values=na_values, thousands=thousands,
         convert_float=convert_float, has_index_names=has_index_names,
-        skip_footer=skip_footer, converters=converters, **kwds)
+        skip_footer=skip_footer, converters=converters, squeeze=squeeze, **kwds)
 
 
 class ExcelFile(object):
@@ -227,7 +229,7 @@ class ExcelFile(object):
               index_col=None, parse_cols=None, parse_dates=False,
               date_parser=None, na_values=None, thousands=None,
               convert_float=True, has_index_names=None,
-              converters=None, **kwds):
+              converters=None, squeeze=False, **kwds):
         """
         Parse specified sheet(s) into a DataFrame
 
@@ -246,6 +248,7 @@ class ExcelFile(object):
                                  skip_footer=skip_footer,
                                  convert_float=convert_float,
                                  converters=converters,
+                                 squeeze=squeeze,
                                  **kwds)
 
     def _should_parse(self, i, parse_cols):
@@ -285,7 +288,7 @@ class ExcelFile(object):
                      index_col=None, has_index_names=None, parse_cols=None,
                      parse_dates=False, date_parser=None, na_values=None,
                      thousands=None, convert_float=True,
-                     verbose=False, **kwds):
+                     verbose=False, squeeze=False, **kwds):
 
         skipfooter = kwds.pop('skipfooter', None)
         if skipfooter is not None:
@@ -452,11 +455,13 @@ class ExcelFile(object):
                                 date_parser=date_parser,
                                 skiprows=skiprows,
                                 skip_footer=skip_footer,
+                                squeeze=squeeze,
                                 **kwds)
 
             output[asheetname] = parser.read()
-            output[asheetname].columns = output[
-                asheetname].columns.set_names(header_names)
+            if not squeeze or isinstance(output[asheetname], DataFrame):
+                output[asheetname].columns = output[
+                    asheetname].columns.set_names(header_names)
 
         if ret_dict:
             return output
