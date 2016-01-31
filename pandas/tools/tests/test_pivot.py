@@ -737,6 +737,7 @@ class TestPivotTable(tm.TestCase):
         tm.assert_frame_equal(result, expected)
 
     def test_pivot_table_with_iterator_values(self):
+        # GH 12017
         aggs = {'D': 'sum', 'E': 'mean'}
 
         pivot_values_list = pd.pivot_table(
