@@ -2266,7 +2266,7 @@ class BoxPlot(LinePlot):
                 self.sharey = False
 
     @classmethod
-    def _plot(cls, ax, y, column_num=None, return_type=None, **kwds):
+    def _plot(cls, ax, y, column_num=None, return_type='axes', **kwds):
         if y.ndim == 2:
             y = [remove_na(v) for v in y]
             # Boxplot fails with empty arrays, so need to add a NaN
@@ -2691,7 +2691,7 @@ _shared_docs['boxplot'] = """
     grid : Setting this to True will show the grid
     layout : tuple (optional)
         (rows, columns) for the layout of the plot
-    return_type : {'axes', 'dict', 'both'}, default 'dict'
+    return_type : {'axes', 'dict', 'both'}, default 'axes'
         The kind of object to return. 'dict' returns a dictionary
         whose values are the matplotlib Lines of the boxplot;
         'axes' returns the matplotlib axes the boxplot is drawn on;
@@ -2719,7 +2719,7 @@ _shared_docs['boxplot'] = """
 
 @Appender(_shared_docs['boxplot'] % _shared_doc_kwargs)
 def boxplot(data, column=None, by=None, ax=None, fontsize=None,
-            rot=0, grid=True, figsize=None, layout=None, return_type=None,
+            rot=0, grid=True, figsize=None, layout=None, return_type='axes',
             **kwds):
 
     # validate return_type:
@@ -2778,14 +2778,6 @@ def boxplot(data, column=None, by=None, ax=None, fontsize=None,
             raise ValueError("The 'layout' keyword is not supported when "
                              "'by' is None")
 
-        if return_type is None:
-            msg = ("\nThe default value for 'return_type' will change to "
-                   "'axes' in a future release.\n To use the future behavior "
-                   "now, set return_type='axes'.\n To keep the previous "
-                   "behavior and silence this warning, set "
-                   "return_type='dict'.")
-            warnings.warn(msg, FutureWarning, stacklevel=3)
-            return_type = 'dict'
         if ax is None:
             ax = _gca()
         data = data._get_numeric_data()

@@ -456,25 +456,21 @@ columns:
 
 .. _visualization.box.return:
 
-Basically, plot functions return :class:`matplotlib Axes <matplotlib.axes.Axes>` as a return value.
-In ``boxplot``, the return type can be changed by argument ``return_type``, and whether the subplots is enabled (``subplots=True`` in ``plot`` or ``by`` is specified in ``boxplot``).
+.. warning::
 
-When ``subplots=False`` / ``by`` is ``None``:
+   The default changed from ``'dict'`` to ``'axes'`` in version 0.18.0.
 
-* if ``return_type`` is ``'dict'``, a dictionary containing the :class:`matplotlib Lines <matplotlib.lines.Line2D>` is returned. The keys are "boxes", "caps", "fliers", "medians", and "whiskers".
-   This is the default of ``boxplot`` in historical reason.
-   Note that ``plot.box()`` returns ``Axes`` by default same as other plots.
-* if ``return_type`` is ``'axes'``, a :class:`matplotlib Axes <matplotlib.axes.Axes>` containing the boxplot is returned.
-* if ``return_type`` is ``'both'`` a namedtuple containing the :class:`matplotlib Axes <matplotlib.axes.Axes>`
-   and :class:`matplotlib Lines <matplotlib.lines.Line2D>` is returned
+Plot functions return scalar or arrays of :class:`matplotlib Axes <matplotlib.axes.Axes>`.
+In ``boxplot``, the return type can be controlled by the ``return_type``, keyword. The valid choices are ``{"axes", "dict", "both"}``. If the ``by`` argument is ``None``,
 
-When ``subplots=True`` / ``by`` is some column of the DataFrame:
+* ``'axes'`` returns a single matplotlib axes.
+* ``'dict'`` returns a dict of matplotlib artists, similar to the matplotlib boxplot function.
+* ``'both'`` returns a named tuple of axes and dicts.
 
-* A dict of ``return_type`` is returned, where the keys are the columns
-  of the DataFrame. The plot has a facet for each column of
-  the DataFrame, with a separate box for each value of ``by``.
+When ``by`` is not None, you get back an ``OrderedDict`` of whatever ``return_type`` is.
+Unless ``return_type`` is just ``None``, in which case you get back an array of axes.
 
-Finally, when calling boxplot on a :class:`Groupby` object, a dict of ``return_type``
+Finally, when calling boxplot on a :class:`Groupby` object, an  ``OrderedDict`` of ``return_type``
 is returned, where the keys are the same as the Groupby object. The plot has a
 facet for each key, with each facet containing a box for each column of the
 DataFrame.

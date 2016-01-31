@@ -1221,6 +1221,9 @@ class TestDataFramePlots(TestPlotBase):
         result = df.plot.box(return_type='axes')
         self._check_box_return_type(result, 'axes')
 
+        result = df.plot.box()  # default axes
+        self._check_box_return_type(result, 'axes')
+
         result = df.plot.box(return_type='both')
         self._check_box_return_type(result, 'both')
 
