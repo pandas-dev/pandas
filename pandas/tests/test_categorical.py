@@ -308,6 +308,38 @@ class TestCategorical(tm.TestCase):
         cat = pd.Categorical([0, 1, 2], categories=xrange(3))
         self.assertTrue(cat.equals(exp))
 
+    def test_constructor_with_datetimelike(self):
+
+        # 12077
+        # constructor wwth a datetimelike and NaT
+
+        for dtl in [pd.date_range('1995-01-01 00:00:00',
+                                  periods=5, freq='s'),
+                    pd.date_range('1995-01-01 00:00:00',
+                                  periods=5, freq='s', tz='US/Eastern'),
+                    pd.timedelta_range('1 day', periods=5, freq='s')]:
+
+            s = Series(dtl)
+            c = Categorical(s)
+            expected = type(dtl)(s)
+            expected.freq = None
+            tm.assert_index_equal(c.categories, expected)
+            self.assert_numpy_array_equal(c.codes, np.arange(5, dtype='int8'))
+
+            # with NaT
+            s2 = s.copy()
+            s2.iloc[-1] = pd.NaT
+            c = Categorical(s2)
+            expected = type(dtl)(s2.dropna())
+            expected.freq = None
+            tm.assert_index_equal(c.categories, expected)
+            self.assert_numpy_array_equal(c.codes,
+                                          np.concatenate([np.arange(4, dtype='int8'),
+                                                      [-1]]))
+
+            result = repr(c)
+            self.assertTrue('NaT' in result)
+
     def test_from_codes(self):
 
         # too few categories

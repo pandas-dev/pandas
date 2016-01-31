@@ -3012,7 +3012,6 @@ class DataFrame(NDFrame):
 
     @deprecate_kwarg('take_last', 'keep', mapping={True: 'last',
                                                    False: 'first'})
-    @deprecate_kwarg(old_arg_name='cols', new_arg_name='subset', stacklevel=3)
     def drop_duplicates(self, subset=None, keep='first', inplace=False):
         """
         Return DataFrame with duplicate rows removed, optionally only
@@ -3030,7 +3029,6 @@ class DataFrame(NDFrame):
         take_last : deprecated
         inplace : boolean, default False
             Whether to drop duplicates in place or to return a copy
-        cols : kwargs only argument of subset [deprecated]
 
         Returns
         -------
@@ -3047,7 +3045,6 @@ class DataFrame(NDFrame):
 
     @deprecate_kwarg('take_last', 'keep', mapping={True: 'last',
                                                    False: 'first'})
-    @deprecate_kwarg(old_arg_name='cols', new_arg_name='subset', stacklevel=3)
     def duplicated(self, subset=None, keep='first'):
         """
         Return boolean Series denoting duplicate rows, optionally only
@@ -3065,7 +3062,6 @@ class DataFrame(NDFrame):
               last occurrence.
             - False : Mark all duplicates as ``True``.
         take_last : deprecated
-        cols : kwargs only argument of subset [deprecated]
 
         Returns
         -------
@@ -3855,7 +3851,7 @@ class DataFrame(NDFrame):
         else:
             return stack(self, level, dropna=dropna)
 
-    def unstack(self, level=-1):
+    def unstack(self, level=-1, fill_value=None):
         """
         Pivot a level of the (necessarily hierarchical) index labels, returning
         a DataFrame having a new level of column labels whose inner-most level
@@ -3868,6 +3864,10 @@ class DataFrame(NDFrame):
         ----------
         level : int, string, or list of these, default -1 (last level)
             Level(s) of index to unstack, can pass level name
+        fill_value : replace NaN with this value if the unstack produces
+            missing values
+
+            .. versionadded: 0.18.0
 
         See also
         --------
@@ -3909,7 +3909,7 @@ class DataFrame(NDFrame):
         unstacked : DataFrame or Series
         """
         from pandas.core.reshape import unstack
-        return unstack(self, level)
+        return unstack(self, level, fill_value)
 
     # ----------------------------------------------------------------------
     # Time series-related
@@ -5004,55 +5004,6 @@ class DataFrame(NDFrame):
                 result = result.T.squeeze()
             result.name = None  # For groupby, so it can set an index name
         return result
-
-    def rank(self, axis=0, numeric_only=None, method='average',
-             na_option='keep', ascending=True, pct=False):
-        """
-        Compute numerical data ranks (1 through n) along axis. Equal values are
-        assigned a rank that is the average of the ranks of those values
-
-        Parameters
-        ----------
-        axis : {0 or 'index', 1 or 'columns'}, default 0
-            Ranks over columns (0) or rows (1)
-        numeric_only : boolean, default None
-            Include only float, int, boolean data
-        method : {'average', 'min', 'max', 'first', 'dense'}
-            * average: average rank of group
-            * min: lowest rank in group
-            * max: highest rank in group
-            * first: ranks assigned in order they appear in the array
-            * dense: like 'min', but rank always increases by 1 between groups
-        na_option : {'keep', 'top', 'bottom'}
-            * keep: leave NA values where they are
-            * top: smallest rank if ascending
-            * bottom: smallest rank if descending
-        ascending : boolean, default True
-            False for ranks by high (1) to low (N)
-        pct : boolean, default False
-            Computes percentage rank of data
-
-        Returns
-        -------
-        ranks : DataFrame
-        """
-        axis = self._get_axis_number(axis)
-        if numeric_only is None:
-            try:
-                ranks = algos.rank(self.values, axis=axis, method=method,
-                                   ascending=ascending, na_option=na_option,
-                                   pct=pct)
-                return self._constructor(ranks, index=self.index,
-                                         columns=self.columns)
-            except TypeError:
-                numeric_only = True
-        if numeric_only:
-            data = self._get_numeric_data()
-        else:
-            data = self
-        ranks = algos.rank(data.values, axis=axis, method=method,
-                           ascending=ascending, na_option=na_option, pct=pct)
-        return self._constructor(ranks, index=data.index, columns=data.columns)
 
     def to_timestamp(self, freq=None, how='start', axis=0, copy=True):
         """

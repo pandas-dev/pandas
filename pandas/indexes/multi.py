@@ -22,10 +22,10 @@ from pandas.core.common import (isnull, array_equivalent,
                                 _values_from_object,
                                 is_iterator,
                                 _ensure_int64, is_bool_indexer,
-                                is_list_like, is_null_slice)
+                                is_list_like, is_null_slice,
+                                PerformanceWarning)
 
 from pandas.core.config import get_option
-from pandas.io.common import PerformanceWarning
 
 from pandas.indexes.base import (Index, _ensure_index, _ensure_frozen,
                                  _get_na_value, InvalidIndexError)
@@ -1083,10 +1083,24 @@ class MultiIndex(Index):
         for label in labels:
             try:
                 loc = self.get_loc(label)
+                # get_loc returns either an integer, a slice, or a boolean
+                # mask
                 if isinstance(loc, int):
                     inds.append(loc)
-                else:
+                elif isinstance(loc, slice):
                     inds.extend(lrange(loc.start, loc.stop))
+                elif is_bool_indexer(loc):
+                    if self.lexsort_depth == 0:
+                        warnings.warn('dropping on a non-lexsorted multi-index'
+                                      ' without a level parameter may impact '
+                                      'performance.',
+                                      PerformanceWarning,
+                                      stacklevel=3)
+                    loc = loc.nonzero()[0]
+                    inds.extend(loc)
+                else:
+                    msg = 'unsupported indexer of type {}'.format(type(loc))
+                    raise AssertionError(msg)
             except KeyError:
                 if errors != 'ignore':
                     raise

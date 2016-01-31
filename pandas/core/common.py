@@ -28,6 +28,10 @@ class PandasError(Exception):
     pass
 
 
+class PerformanceWarning(Warning):
+    pass
+
+
 class SettingWithCopyError(ValueError):
     pass
 
@@ -1123,6 +1127,12 @@ def _maybe_promote(dtype, fill_value=np.nan):
                     # the proper thing to do here would probably be to upcast
                     # to object (but numpy 1.6.1 doesn't do this properly)
                     fill_value = tslib.iNaT
+            elif issubclass(dtype.type, np.timedelta64):
+                try:
+                    fill_value = lib.Timedelta(fill_value).value
+                except:
+                    # as for datetimes, cannot upcast to object
+                    fill_value = tslib.iNaT
             else:
                 fill_value = tslib.iNaT
     elif is_datetimetz(dtype):
@@ -1149,6 +1159,16 @@ def _maybe_promote(dtype, fill_value=np.nan):
             dtype = np.object_
         elif issubclass(dtype.type, (np.integer, np.floating)):
             dtype = np.complex128
+    elif fill_value is None:
+        if is_float_dtype(dtype) or is_complex_dtype(dtype):
+            fill_value = np.nan
+        elif is_integer_dtype(dtype):
+            dtype = np.float64
+            fill_value = np.nan
+        elif is_datetime_or_timedelta_dtype(dtype):
+            fill_value = tslib.iNaT
+        else:
+            dtype = np.object_
     else:
         dtype = np.object_
 

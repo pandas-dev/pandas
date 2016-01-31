@@ -15,6 +15,9 @@ import pandas.tseries.tools as tools
 import pandas.tseries.offsets as offsets
 import pandas.util.testing as tm
 import pandas.compat as compat
+from pandas.compat.numpy_compat import (np_datetime64_compat,
+                                        np_array_datetime64_compat)
+
 from pandas.util.testing import assert_series_equal, _skip_if_has_locale
 
 
@@ -688,13 +691,39 @@ class TestDatetimeParsingWrappers(tm.TestCase):
             converted_time = dt_time.tz_localize('UTC').tz_convert(tz)
             self.assertEqual(dt_string_repr, repr(converted_time))
 
+    def test_parsers_iso8601(self):
+        # GH 12060
+        # test only the iso parser - flexibility to different
+        # separators and leadings 0s
+        # Timestamp construction falls back to dateutil
+        cases = {'2011-01-02': datetime.datetime(2011, 1, 2),
+                 '2011-1-2': datetime.datetime(2011, 1, 2),
+                 '2011-01': datetime.datetime(2011, 1, 1),
+                 '2011-1': datetime.datetime(2011, 1, 1),
+                 '2011 01 02': datetime.datetime(2011, 1, 2),
+                 '2011.01.02': datetime.datetime(2011, 1, 2),
+                 '2011/01/02': datetime.datetime(2011, 1, 2),
+                 '2011\\01\\02': datetime.datetime(2011, 1, 2),
+                 '2013-01-01 05:30:00': datetime.datetime(2013, 1, 1, 5, 30),
+                 '2013-1-1 5:30:00': datetime.datetime(2013, 1, 1, 5, 30)}
+        for date_str, exp in compat.iteritems(cases):
+            actual = tslib._test_parse_iso8601(date_str)
+            self.assertEqual(actual, exp)
+
+        # seperators must all match - YYYYMM not valid
+        invalid_cases = ['2011-01/02', '2011^11^11', '201401',
+                         '201111', '200101']
+        for date_str in invalid_cases:
+            with tm.assertRaises(ValueError):
+                tslib._test_parse_iso8601(date_str)
+
 
 class TestArrayToDatetime(tm.TestCase):
     def test_parsing_valid_dates(self):
         arr = np.array(['01-01-2013', '01-02-2013'], dtype=object)
         self.assert_numpy_array_equal(
             tslib.array_to_datetime(arr),
-            np.array(
+            np_array_datetime64_compat(
                 [
                     '2013-01-01T00:00:00.000000000-0000',
                     '2013-01-02T00:00:00.000000000-0000'
@@ -706,7 +735,7 @@ class TestArrayToDatetime(tm.TestCase):
         arr = np.array(['Mon Sep 16 2013', 'Tue Sep 17 2013'], dtype=object)
         self.assert_numpy_array_equal(
             tslib.array_to_datetime(arr),
-            np.array(
+            np_array_datetime64_compat(
                 [
                     '2013-09-16T00:00:00.000000000-0000',
                     '2013-09-17T00:00:00.000000000-0000'
@@ -752,7 +781,7 @@ class TestArrayToDatetime(tm.TestCase):
         arr = np.array(['1/1/1000', '1/1/2000'], dtype=object)
         self.assert_numpy_array_equal(
             tslib.array_to_datetime(arr, errors='coerce'),
-            np.array(
+            np_array_datetime64_compat(
                 [
                     tslib.iNaT,
                     '2000-01-01T00:00:00.000000000-0000'
@@ -772,7 +801,7 @@ class TestArrayToDatetime(tm.TestCase):
         # With coercing, the invalid dates becomes iNaT
         self.assert_numpy_array_equal(
             tslib.array_to_datetime(arr, errors='coerce'),
-            np.array(
+            np_array_datetime64_compat(
                 [
                     '2013-01-01T00:00:00.000000000-0000',
                     tslib.iNaT,
@@ -863,7 +892,7 @@ class TestTimestampNsOperations(tm.TestCase):
         self.assertEqual(t.value, expected)
         self.assertEqual(t.nanosecond, 5)
 
-        t = Timestamp(np.datetime64('2011-01-01 00:00:00.000000005Z'))
+        t = Timestamp(np_datetime64_compat('2011-01-01 00:00:00.000000005Z'))
         self.assertEqual(repr(t), "Timestamp('2011-01-01 00:00:00.000000005')")
         self.assertEqual(t.value, expected)
         self.assertEqual(t.nanosecond, 5)
@@ -879,7 +908,7 @@ class TestTimestampNsOperations(tm.TestCase):
         self.assertEqual(t.value, expected)
         self.assertEqual(t.nanosecond, 10)
 
-        t = Timestamp(np.datetime64('2011-01-01 00:00:00.000000010Z'))
+        t = Timestamp(np_datetime64_compat('2011-01-01 00:00:00.000000010Z'))
         self.assertEqual(repr(t), "Timestamp('2011-01-01 00:00:00.000000010')")
         self.assertEqual(t.value, expected)
         self.assertEqual(t.nanosecond, 10)
