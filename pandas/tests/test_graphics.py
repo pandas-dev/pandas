@@ -3774,9 +3774,15 @@ class TestDataFramePlots(TestPlotBase):
             plotting._dataframe_kinds, kws={'x': 'a', 'y': 'b'})
 
     def test_option_mpl_style(self):
-        set_option('display.mpl_style', 'default')
-        set_option('display.mpl_style', None)
-        set_option('display.mpl_style', False)
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            set_option('display.mpl_style', 'default')
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            set_option('display.mpl_style', None)
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            set_option('display.mpl_style', False)
 
         with tm.assertRaises(ValueError):
             set_option('display.mpl_style', 'default2')
