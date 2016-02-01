@@ -47,11 +47,12 @@ from pandas import compat
 from pandas.compat import u
 from pandas import (Timestamp, Period, Series, DataFrame,  # noqa
                     Index, MultiIndex, Float64Index, Int64Index,
-                    Panel, RangeIndex, PeriodIndex, DatetimeIndex)
+                    Panel, RangeIndex, PeriodIndex, DatetimeIndex,
+                    Categorical)
 from pandas.sparse.api import SparseSeries, SparseDataFrame, SparsePanel
 from pandas.sparse.array import BlockIndex, IntIndex
 from pandas.core.generic import NDFrame
-from pandas.core.common import needs_i8_conversion
+from pandas.core.common import needs_i8_conversion, is_categorical_dtype
 from pandas.io.common import get_filepath_or_buffer
 from pandas.core.internals import BlockManager, make_block
 import pandas.core.internals as internals
@@ -170,6 +171,7 @@ dtype_dict = {21: np.dtype('M8[ns]'),
               # this is platform int, which we need to remap to np.int64
               # for compat on windows platforms
               7: np.dtype('int64'),
+              'category': 'category'
               }
 
 
@@ -209,6 +211,14 @@ def convert(values):
     if dtype == np.object_:
         return v.tolist()
 
+    if is_categorical_dtype(dtype):
+        return {
+            'codes': {'dtype': values.codes.dtype.name,
+                      'data': convert(values.codes)},
+            'categories': {'dtype': values.categories.dtype.name,
+                           'data': convert(values.categories.values)}
+            }
+
     if compressor == 'zlib':
 
         # return string arrays like they are
@@ -241,6 +251,15 @@ def unconvert(values, dtype, compress=None):
 
     if as_is_ext:
         values = values.data
+
+    if is_categorical_dtype(dtype):
+        return Categorical.from_codes(
+            unconvert(values['codes']['data'],
+                      dtype_for(values['codes']['dtype']),
+                      compress=compress),
+            unconvert(values['categories']['data'],
+                      dtype_for(values['categories']['dtype']),
+                      compress=compress))
 
     if dtype == np.object_:
         return np.array(values, dtype=object)
@@ -495,11 +514,15 @@ def decode(obj):
 
     elif typ == 'series':
         dtype = dtype_for(obj['dtype'])
+        ctor_dtype = dtype
+        if is_categorical_dtype(dtype):
+            # Series ctor doesn't take dtype with categorical
+            ctor_dtype = None
         index = obj['index']
         return globals()[obj['klass']](unconvert(obj['data'], dtype,
                                                  obj['compress']),
                                        index=index,
-                                       dtype=dtype,
+                                       dtype=ctor_dtype,
                                        name=obj['name'])
     elif typ == 'block_manager':
         axes = obj['axes']

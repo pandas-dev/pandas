@@ -9,7 +9,7 @@ from distutils.version import LooseVersion
 from pandas import compat
 from pandas.compat import u
 from pandas import (Series, DataFrame, Panel, MultiIndex, bdate_range,
-                    date_range, period_range, Index)
+                    date_range, period_range, Index, Categorical)
 from pandas.io.packers import to_msgpack, read_msgpack
 import pandas.util.testing as tm
 from pandas.util.testing import (ensure_clean, assert_index_equal,
@@ -330,11 +330,13 @@ class TestSeries(TestPackers):
             'C': ['foo1', 'foo2', 'foo3', 'foo4', 'foo5'],
             'D': date_range('1/1/2009', periods=5),
             'E': [0., 1, Timestamp('20100101'), 'foo', 2.],
+            'F': Categorical(['a', 'b', 'c', 'd', 'e'])
         }
 
         self.d['float'] = Series(data['A'])
         self.d['int'] = Series(data['B'])
         self.d['mixed'] = Series(data['E'])
+        self.d['categorical'] = Series(data['F'])
 
     def test_basic(self):
 
@@ -356,13 +358,14 @@ class TestNDFrame(TestPackers):
             'C': ['foo1', 'foo2', 'foo3', 'foo4', 'foo5'],
             'D': date_range('1/1/2009', periods=5),
             'E': [0., 1, Timestamp('20100101'), 'foo', 2.],
+            'F': Categorical(['a', 'b', 'c', 'd', 'e'])
         }
 
         self.frame = {
             'float': DataFrame(dict(A=data['A'], B=Series(data['A']) + 1)),
             'int': DataFrame(dict(A=data['B'], B=Series(data['B']) + 1)),
             'mixed': DataFrame(dict([(k, data[k])
-                                     for k in ['A', 'B', 'C', 'D']]))}
+                                     for k in ['A', 'B', 'C', 'D', 'F']]))}
 
         self.panel = {
             'float': Panel(dict(ItemA=self.frame['float'],
