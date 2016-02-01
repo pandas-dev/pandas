@@ -13,7 +13,7 @@ import numpy as np
 
 from pandas.compat import lrange
 from pandas import (compat, isnull, notnull, DataFrame, Series,
-                    MultiIndex, date_range, Timestamp)
+                    MultiIndex, date_range, Timestamp, _np_version_under1p11)
 import pandas as pd
 import pandas.core.common as com
 import pandas.core.nanops as nanops
@@ -562,8 +562,14 @@ class TestDataFrameAnalytics(tm.TestCase, TestData):
         df = DataFrame([[1, 1, 1], [2, 2, 2], [3, 3, 3]],
                        columns=['a', 'b', 'c'])
         result = df.quantile([.25, .5], interpolation='midpoint')
-        expected = DataFrame([[1.5, 1.5, 1.5], [2.5, 2.5, 2.5]],
-                             index=[.25, .5], columns=['a', 'b', 'c'])
+
+        # https://github.com/numpy/numpy/issues/7163
+        if _np_version_under1p11:
+            expected = DataFrame([[1.5, 1.5, 1.5], [2.5, 2.5, 2.5]],
+                                 index=[.25, .5], columns=['a', 'b', 'c'])
+        else:
+            expected = DataFrame([[1.5, 1.5, 1.5], [2.0, 2.0, 2.0]],
+                                 index=[.25, .5], columns=['a', 'b', 'c'])
         assert_frame_equal(result, expected)
 
     def test_quantile_interpolation_np_lt_1p9(self):
