@@ -1105,9 +1105,11 @@ class StringMethods(NoNewAttributesMixin):
 
         if not hasattr(result, 'ndim'):
             return result
-        name = name or getattr(result, 'name', None) or self._orig.name
 
         if result.ndim == 1:
+            # Wait until we are sure result is a Series or Index before
+            # checking attributes (GH 12180)
+            name = name or getattr(result, 'name', None) or self._orig.name
             if isinstance(self._orig, Index):
                 # if result is a boolean np.array, return the np.array
                 # instead of wrapping it into a boolean Index (GH 8875)
