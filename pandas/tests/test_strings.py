@@ -812,6 +812,14 @@ class TestStringMethods(tm.TestCase):
             idx = Index(['a|b', 'a|c', 'b|c'])
             idx.str.get_dummies('|')
 
+        # GH 12180
+        # Dummies named 'name' should work as expected
+        s = Series(['a', 'b,name', 'b'])
+        result = s.str.get_dummies(',')
+        expected = DataFrame([[1, 0, 0], [0, 1, 1], [0, 1, 0]],
+                             columns=['a', 'b', 'name'])
+        tm.assert_frame_equal(result, expected)
+
     def test_join(self):
         values = Series(['a_b_c', 'c_d_e', np.nan, 'f_g_h'])
         result = values.str.split('_').str.join('_')
