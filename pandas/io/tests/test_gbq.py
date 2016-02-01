@@ -1,3 +1,4 @@
+import re
 from datetime import datetime
 import nose
 import pytz
@@ -31,6 +32,24 @@ _GOOGLE_API_CLIENT_VALID_VERSION = False
 _HTTPLIB2_INSTALLED = False
 _SETUPTOOLS_INSTALLED = False
 
+def _skip_if_no_project_id():
+    if not PROJECT_ID:
+        raise nose.SkipTest(
+            "Cannot run integration tests without a project id")
+
+def _skip_if_no_private_key_path():
+    if not PRIVATE_KEY_JSON_PATH:
+        raise nose.SkipTest("Cannot run integration tests without a "
+                            "private key json file path")
+
+def _skip_if_no_private_key_contents():
+    if not PRIVATE_KEY_JSON_CONTENTS:
+        raise nose.SkipTest("Cannot run integration tests without a "
+                            "private key json contents")
+
+        _skip_if_no_project_id()
+        _skip_if_no_private_key_path()
+        _skip_if_no_private_key_contents()
 
 def _test_imports():
     global _GOOGLE_API_CLIENT_INSTALLED, _GOOGLE_API_CLIENT_VALID_VERSION, \
@@ -142,9 +161,7 @@ class TestGBQConnectorIntegration(tm.TestCase):
     def setUp(self):
         test_requirements()
 
-        if not PROJECT_ID:
-            raise nose.SkipTest(
-                "Cannot run integration tests without a project id")
+        _skip_if_no_project_id()
 
         self.sut = gbq.GbqConnector(PROJECT_ID)
 
@@ -173,9 +190,8 @@ class TestGBQConnectorServiceAccountKeyPathIntegration(tm.TestCase):
     def setUp(self):
         test_requirements()
 
-        if not PROJECT_ID or not PRIVATE_KEY_JSON_PATH:
-            raise nose.SkipTest("Cannot run integration tests without "
-                                "a project id and private key json path")
+        _skip_if_no_project_id()
+        _skip_if_no_private_key_path()
 
         self.sut = gbq.GbqConnector(PROJECT_ID,
                                     private_key=PRIVATE_KEY_JSON_PATH)
@@ -205,9 +221,8 @@ class TestGBQConnectorServiceAccountKeyContentsIntegration(tm.TestCase):
     def setUp(self):
         test_requirements()
 
-        if not PROJECT_ID or not PRIVATE_KEY_JSON_CONTENTS:
-            raise nose.SkipTest("Cannot run integration tests without "
-                                "a project id and private key json contents")
+        _skip_if_no_project_id()
+        _skip_if_no_private_key_contents()
 
         self.sut = gbq.GbqConnector(PROJECT_ID,
                                     private_key=PRIVATE_KEY_JSON_CONTENTS)
@@ -293,21 +308,14 @@ class GBQUnitTests(tm.TestCase):
                 private_key='{ "client_email" : 1, "private_key" : True }')
 
     def test_read_gbq_with_empty_private_key_file_should_fail(self):
-        from tempfile import mkstemp
-        from os import remove
-        _, empty_file = mkstemp()
-        try:
+        with tm.ensure_clean() as empty_file_path:
             with tm.assertRaises(gbq.InvalidPrivateKeyFormat):
                 gbq.read_gbq('SELECT 1', project_id='x',
-                             private_key=empty_file)
-        finally:
-            remove(empty_file)
+                             private_key=empty_file_path)
 
     def test_read_gbq_with_corrupted_private_key_json_should_fail(self):
-        if not PRIVATE_KEY_JSON_CONTENTS:
-            raise nose.SkipTest("Cannot run without private key json content")
+        _skip_if_no_private_key_contents()
 
-        import re
         with tm.assertRaises(gbq.InvalidPrivateKeyFormat):
             gbq.read_gbq(
                 'SELECT 1', project_id='x',
@@ -322,9 +330,7 @@ class TestReadGBQIntegration(tm.TestCase):
         #   put here any instruction you want to execute only *ONCE* *BEFORE*
         #   executing *ALL* tests described below.
 
-        if not PROJECT_ID:
-            raise nose.SkipTest(
-                "Cannot run integration tests without a project id")
+        _skip_if_no_project_id()
 
         test_requirements()
 
@@ -348,18 +354,14 @@ class TestReadGBQIntegration(tm.TestCase):
         pass
 
     def test_should_read_as_service_account_with_key_path(self):
-        if not PRIVATE_KEY_JSON_PATH:
-            raise nose.SkipTest("Cannot run integration tests without a "
-                                "private key json path")
+        _skip_if_no_private_key_path()
         query = 'SELECT "PI" as VALID_STRING'
         df = gbq.read_gbq(query, project_id=PROJECT_ID,
                           private_key=PRIVATE_KEY_JSON_PATH)
         tm.assert_frame_equal(df, DataFrame({'VALID_STRING': ['PI']}))
 
     def test_should_read_as_service_account_with_key_contents(self):
-        if not PRIVATE_KEY_JSON_CONTENTS:
-            raise nose.SkipTest("Cannot run integration tests without a "
-                                "private key json contents")
+        _skip_if_no_private_key_contents()
         query = 'SELECT "PI" as VALID_STRING'
         df = gbq.read_gbq(query, project_id=PROJECT_ID,
                           private_key=PRIVATE_KEY_JSON_CONTENTS)
@@ -526,9 +528,7 @@ class TestToGBQIntegration(tm.TestCase):
         # put here any instruction you want to execute only *ONCE* *BEFORE*
         # executing *ALL* tests described below.
 
-        if not PROJECT_ID:
-            raise nose.SkipTest(
-                "Cannot run integration tests without a project id")
+        _skip_if_no_project_id()
 
         test_requirements()
         clean_gbq_environment()
@@ -755,12 +755,8 @@ class TestToGBQIntegrationServiceAccountKeyPath(tm.TestCase):
         # put here any instruction you want to execute only *ONCE* *BEFORE*
         # executing *ALL* tests described below.
 
-        if not PROJECT_ID:
-            raise nose.SkipTest(
-                "Cannot run integration tests without a project id")
-        if not PRIVATE_KEY_JSON_PATH:
-            raise nose.SkipTest(
-                "Cannot run integration tests without private key json path")
+        _skip_if_no_project_id()
+        _skip_if_no_private_key_path()
 
         test_requirements()
         clean_gbq_environment(PRIVATE_KEY_JSON_PATH)
@@ -818,12 +814,8 @@ class TestToGBQIntegrationServiceAccountKeyContents(tm.TestCase):
         # put here any instruction you want to execute only *ONCE* *BEFORE*
         # executing *ALL* tests described below.
 
-        if not PROJECT_ID:
-            raise nose.SkipTest(
-                "Cannot run integration tests without a project id")
-        if not PRIVATE_KEY_JSON_CONTENTS:
-            raise nose.SkipTest("Cannot run integration tests without "
-                                "private key json contents")
+        _skip_if_no_project_id()
+        _skip_if_no_private_key_contents()
 
         test_requirements()
         clean_gbq_environment(PRIVATE_KEY_JSON_CONTENTS)

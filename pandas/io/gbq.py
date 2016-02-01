@@ -722,7 +722,7 @@ class _Table(GbqConnector):
         from apiclient.errors import HttpError
         self.http_error = HttpError
         self.dataset_id = dataset_id
-        GbqConnector.__init__(self, project_id, reauth, verbose, private_key)
+        super(_Table, self).__init__(project_id, reauth, verbose, private_key)
 
     def exists(self, table_id):
         """ Check if a table exists in Google BigQuery
@@ -821,7 +821,7 @@ class _Dataset(GbqConnector):
                  private_key=None):
         from apiclient.errors import HttpError
         self.http_error = HttpError
-        GbqConnector.__init__(self, project_id, reauth, verbose, private_key)
+        super(_Dataset, self).__init__(project_id, reauth, verbose, private_key)
 
     def exists(self, dataset_id):
         """ Check if a dataset exists in Google BigQuery

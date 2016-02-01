@@ -4112,12 +4112,13 @@ Additional information on service accounts can be found
 
 .. note::
 
-The `'private_key'` parameter can be set to either the file path of the service account key in JSON format, or 
-key contents of the service account key in JSON format. 
+   The `'private_key'` parameter can be set to either the file path of the service account key
+   in JSON format, or key contents of the service account key in JSON format. 
 
 .. note::
 
-A private key can be obtained from the Google developers console by clicking `here <https://console.developers.google.com/permissions/serviceaccounts>`__. Use JSON key type.
+   A private key can be obtained from the Google developers console by clicking 
+   `here <https://console.developers.google.com/permissions/serviceaccounts>`__. Use JSON key type.
 
 
 Querying
