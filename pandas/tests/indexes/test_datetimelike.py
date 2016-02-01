@@ -108,10 +108,6 @@ class TestDatetimeIndex(DatetimeLike, tm.TestCase):
         expected = i.tz_localize(None).tz_localize('UTC')
         self.assert_index_equal(i2, expected)
 
-        i2 = DatetimeIndex(i, tz='UTC')
-        expected = i.tz_convert('UTC')
-        self.assert_index_equal(i2, expected)
-
         # incompat tz/dtype
         self.assertRaises(ValueError, lambda: DatetimeIndex(
             i.tz_localize(None).asi8, dtype=i.dtype, tz='US/Pacific'))
