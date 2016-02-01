@@ -4318,18 +4318,20 @@ class DataFrame(NDFrame):
             Series is passed, its name attribute must be set, and that will be
             used as the column name in the resulting joined DataFrame
         on : column name, tuple/list of column names, or array-like
-            Column(s) to use for joining, otherwise join on index. If multiples
+            Column(s) in the caller to join on the index in other,
+            otherwise joins index-on-index. If multiples
             columns given, the passed DataFrame must have a MultiIndex. Can
             pass an array as the join key if not already contained in the
             calling DataFrame. Like an Excel VLOOKUP operation
         how : {'left', 'right', 'outer', 'inner'}
-            How to handle indexes of the two objects. Default: 'left'
-            for joining on index, None otherwise
+            How to handle the operation of the two objects. Default: 'left'
 
-            * left: use calling frame's index
-            * right: use input frame's index
-            * outer: form union of indexes
-            * inner: use intersection of indexes
+            * left: use calling frame's index (or column if on is specified)
+            * right: use other frame's index
+            * outer: form union of calling frame's index (or column if on is
+                specified) with other frame's index
+            * inner: form intersection of calling frame's index (or column if
+                on is specified) with other frame's index
         lsuffix : string
             Suffix to use from left frame's overlapping columns
         rsuffix : string
@@ -4342,6 +4344,46 @@ class DataFrame(NDFrame):
         -----
         on, lsuffix, and rsuffix options are not supported when passing a list
         of DataFrame objects
+
+        Examples
+        --------
+        >>> caller = pd.DataFrame({'key': ['K0', 'K1', 'K2', 'K3', 'K4', 'K5'],
+        ...                        'A': ['A0', 'A1', 'A2', 'A3', 'A4', 'A5']})
+
+        >>> caller
+            A key
+        0  A0  K0
+        1  A1  K1
+        2  A2  K2
+        3  A3  K3
+        4  A4  K4
+        5  A5  K5
+
+        >>> other = pd.DataFrame({'key': ['K0', 'K1', 'K2'],
+        ...                       'B': ['B0', 'B1', 'B2']})
+
+        >>> other
+            B key
+        0  B0  K0
+        1  B1  K1
+        2  B2  K2
+
+        Perform a left join using caller's key column and other frame's index 
+
+        >>> caller.join(other.set_index('key'), on='key', how='left',
+        ...                             lsuffix='_l', rsuffix='_r')
+
+        >>>     A key    B
+            0  A0  K0   B0
+            1  A1  K1   B1
+            2  A2  K2   B2
+            3  A3  K3  NaN
+            4  A4  K4  NaN
+            5  A5  K5  NaN
+
+        See also
+        --------
+        DataFrame.merge : For column(s)-on-columns(s) operations
 
         Returns
         -------
