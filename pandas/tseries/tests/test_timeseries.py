@@ -74,7 +74,7 @@ class TestTimeSeriesDuplicates(tm.TestCase):
         dups_local = self.dups.index.tz_localize('US/Eastern')
         dups_local.name = 'foo'
         result = dups_local.unique()
-        expected = DatetimeIndex(expected, tz='US/Eastern')
+        expected = DatetimeIndex(expected).tz_localize('US/Eastern')
         self.assertTrue(result.tz is not None)
         self.assertEqual(result.name, 'foo')
         self.assertTrue(result.equals(expected))
@@ -2472,6 +2472,40 @@ class TestDatetimeIndex(tm.TestCase):
                                      '2016-01-01T23:59:59', freq=freq,
                                      tz='Asia/Tokyo')
             self.assert_numpy_array_equal(idx.asi8, expected_i8.asi8)
+
+    def test_constructor_dtype(self):
+
+        # passing a dtype with a tz should localize
+        idx = DatetimeIndex(['2013-01-01',
+                             '2013-01-02'],
+                            dtype='datetime64[ns, US/Eastern]')
+        expected = DatetimeIndex(['2013-01-01', '2013-01-02']
+                                 ).tz_localize('US/Eastern')
+        self.assertTrue(idx.equals(expected))
+
+        idx = DatetimeIndex(['2013-01-01',
+                             '2013-01-02'],
+                            tz='US/Eastern')
+        self.assertTrue(idx.equals(expected))
+
+        # if we already have a tz and its not the same, then raise
+        idx = DatetimeIndex(['2013-01-01', '2013-01-02'],
+                            dtype='datetime64[ns, US/Eastern]')
+
+        self.assertRaises(ValueError,
+                          lambda: DatetimeIndex(idx,
+                                                dtype='datetime64[ns]'))
+
+        # this is effectively trying to convert tz's
+        self.assertRaises(TypeError,
+                          lambda: DatetimeIndex(idx,
+                                                dtype='datetime64[ns, CET]'))
+        self.assertRaises(ValueError,
+                          lambda: DatetimeIndex(
+                              idx, tz='CET',
+                              dtype='datetime64[ns, US/Eastern]'))
+        result = DatetimeIndex(idx, dtype='datetime64[ns, US/Eastern]')
+        self.assertTrue(idx.equals(result))
 
     def test_constructor_name(self):
         idx = DatetimeIndex(start='2000-01-01', periods=1, freq='A',

@@ -3943,10 +3943,17 @@ class TestGroupBy(tm.TestCase):
         result = df.groupby('tz').date.apply(
             lambda x: pd.to_datetime(x).dt.tz_localize(x.name))
 
-        expected = pd.to_datetime(Series(
-            ['2000-01-28 22:47:00', '2000-01-29 22:48:00',
-             '2000-01-31 00:49:00', '2000-01-31 22:50:00',
-             '2000-01-01 21:50:00']))
+        expected = Series([Timestamp('2000-01-28 16:47:00-0600',
+                                     tz='America/Chicago'),
+                           Timestamp('2000-01-29 16:48:00-0600',
+                                     tz='America/Chicago'),
+                           Timestamp('2000-01-30 16:49:00-0800',
+                                     tz='America/Los_Angeles'),
+                           Timestamp('2000-01-31 16:50:00-0600',
+                                     tz='America/Chicago'),
+                           Timestamp('2000-01-01 16:50:00-0500',
+                                     tz='America/New_York')],
+                          dtype=object)
         assert_series_equal(result, expected)
 
         tz = 'America/Chicago'

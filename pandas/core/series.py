@@ -2903,7 +2903,7 @@ def _sanitize_array(data, index, dtype=None, copy=False,
         # return a new empty value suitable for the dtype
 
         if is_datetimetz(dtype):
-            subarr = DatetimeIndex([value] * len(index))
+            subarr = DatetimeIndex([value] * len(index), dtype=dtype)
         else:
             if not isinstance(dtype, (np.dtype, type(np.dtype))):
                 dtype = dtype.dtype
@@ -2937,7 +2937,8 @@ def _sanitize_array(data, index, dtype=None, copy=False,
 
             # a 1-element ndarray
             if len(subarr) != len(index) and len(subarr) == 1:
-                subarr = create_from_value(subarr[0], index, subarr)
+                subarr = create_from_value(subarr[0], index,
+                                           subarr.dtype)
 
     elif subarr.ndim > 1:
         if isinstance(data, np.ndarray):

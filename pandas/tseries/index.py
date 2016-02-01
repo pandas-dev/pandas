@@ -242,6 +242,19 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
             raise ValueError("Must provide freq argument if no data is "
                              "supplied")
 
+        # if dtype has an embeded tz, capture it
+        if dtype is not None:
+            try:
+                dtype = DatetimeTZDtype.construct_from_string(dtype)
+                dtz = getattr(dtype, 'tz', None)
+                if dtz is not None:
+                    if tz is not None and str(tz) != str(dtz):
+                        raise ValueError("cannot supply both a tz and a dtype"
+                                         " with a tz")
+                    tz = dtz
+            except TypeError:
+                pass
+
         if data is None:
             return cls._generate(start, end, periods, name, freq,
                                  tz=tz, normalize=normalize, closed=closed,
@@ -272,7 +285,15 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
                         data.name = name
 
                     if tz is not None:
-                        return data.tz_localize(tz, ambiguous=ambiguous)
+
+                        # we might already be localized to this tz
+                        # so passing the same tz is ok
+                        # however any other tz is a no-no
+                        if data.tz is None:
+                            return data.tz_localize(tz, ambiguous=ambiguous)
+                        elif str(tz) != str(data.tz):
+                            raise TypeError("Already tz-aware, use tz_convert "
+                                            "to convert.")
 
                     return data
 
@@ -287,6 +308,12 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
             if isinstance(data, DatetimeIndex):
                 if tz is None:
                     tz = data.tz
+
+                else:
+                    # the tz's must match
+                    if str(tz) != str(data.tz):
+                        raise TypeError("Already tz-aware, use tz_convert "
+                                        "to convert.")
 
                 subarr = data.values
 

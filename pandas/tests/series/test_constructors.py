@@ -473,6 +473,11 @@ class TestSeriesConstructors(TestData, tm.TestCase):
         self.assertTrue(s.dtype == 'object')
         self.assertTrue(lib.infer_dtype(s) == 'datetime')
 
+        # with all NaT
+        s = Series(pd.NaT, index=[0, 1], dtype='datetime64[ns, US/Eastern]')
+        expected = Series(pd.DatetimeIndex(['NaT', 'NaT'], tz='US/Eastern'))
+        assert_series_equal(s, expected)
+
     def test_constructor_periodindex(self):
         # GH7932
         # converting a PeriodIndex when put in a Series

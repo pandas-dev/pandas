@@ -1643,7 +1643,13 @@ def _possibly_cast_to_datetime(value, dtype, errors='raise'):
                     raise TypeError("cannot convert datetimelike to "
                                     "dtype [%s]" % dtype)
             elif is_datetime64tz:
-                pass
+
+                # our NaT doesn't support tz's
+                # this will coerce to DatetimeIndex with
+                # a matching dtype below
+                if lib.isscalar(value) and isnull(value):
+                    value = [value]
+
             elif is_timedelta64 and not is_dtype_equal(dtype, _TD_DTYPE):
                 if dtype.name == 'timedelta64[ns]':
                     dtype = _TD_DTYPE
@@ -1651,7 +1657,7 @@ def _possibly_cast_to_datetime(value, dtype, errors='raise'):
                     raise TypeError("cannot convert timedeltalike to "
                                     "dtype [%s]" % dtype)
 
-            if np.isscalar(value):
+            if lib.isscalar(value):
                 if value == tslib.iNaT or isnull(value):
                     value = tslib.iNaT
             else:
