@@ -20,6 +20,7 @@ Highlights include:
 - Window functions are now methods on ``.groupby`` like objects, see :ref:`here <whatsnew_0180.enhancements.moments>`.
 - ``pd.test()`` top-level nose test runner is available (:issue:`4327`)
 - Adding support for a ``RangeIndex`` as a specialized form of the ``Int64Index`` for memory savings, see :ref:`here <whatsnew_0180.enhancements.rangeindex>`.
+- API breaking ``.resample`` changes to make it more ``.groupby`` like, see :ref:`here <whatsnew_0180.resample>`.
 
 Check the :ref:`API Changes <whatsnew_0180.api_breaking>` and :ref:`deprecations <whatsnew_0180.deprecations>` before updating.
 
@@ -352,6 +353,170 @@ other anchored offsets like ``MonthBegin`` and ``YearBegin``.
    d = pd.Timestamp('2014-02-15')
    d + pd.offsets.QuarterBegin(n=0, startingMonth=2)
 
+.. _whatsnew_0180.breaking.resample:
+
+Resample API
+^^^^^^^^^^^^
+
+Like the change in the window functions API :ref:`above <whatsnew_0180.enhancements.moments>`, ``.resample(...)`` is changing to have
+a more groupby-like API. (:issue:`11732`, :issue:`12702`).
+
+.. ipython:: python
+
+   np.random.seed(1234)
+   df = pd.DataFrame(np.random.rand(10,4),
+                     columns=list('ABCD'),
+                     index=pd.date_range('2010-01-01 09:00:00', periods=10, freq='s'))
+   df
+
+
+**Previous API**:
+
+You would write a resampling operation that immediately evaluates.
+
+This defaults to ``how='mean'``
+
+.. code-block:: python
+
+   In [6]: df.resample('2s')
+   Out[6]:
+                            A         B         C         D
+   2010-01-01 09:00:00  0.485748  0.447351  0.357096  0.793615
+   2010-01-01 09:00:02  0.820801  0.794317  0.364034  0.531096
+   2010-01-01 09:00:04  0.433985  0.314582  0.424104  0.625733
+   2010-01-01 09:00:06  0.624988  0.609738  0.633165  0.612452
+   2010-01-01 09:00:08  0.510470  0.534317  0.573201  0.806949
+
+You could also specify a ``how`` directly
+
+.. code-block:: python
+
+   In [7]: df.resample('2s',how='sum')
+   Out[7]:
+                            A         B         C         D
+   2010-01-01 09:00:00  0.971495  0.894701  0.714192  1.587231
+   2010-01-01 09:00:02  1.641602  1.588635  0.728068  1.062191
+   2010-01-01 09:00:04  0.867969  0.629165  0.848208  1.251465
+   2010-01-01 09:00:06  1.249976  1.219477  1.266330  1.224904
+   2010-01-01 09:00:08  1.020940  1.068634  1.146402  1.613897
+
+.. warning::
+
+   This new API for resample includes some internal changes that previous API (pre 0.18.0), to work with a deprecation warning in most cases. Since the returned resample is now a deferred object, and not immediately evaluated (as before). We can intercept operations and just do what the (pre 0.18.0) API did (with a warning). Here is a typical use case:
+
+   .. code-block:: python
+
+      In [4]: r = df.resample('2s')
+
+      In [6]: r*10
+      pandas/tseries/resample.py:80: FutureWarning: .resample() is now a deferred operation
+      use .resample(...).mean() instead of .resample(...)
+
+      Out[6]:
+                            A         B         C         D
+      2010-01-01 09:00:00  4.857476  4.473507  3.570960  7.936154
+      2010-01-01 09:00:02  8.208011  7.943173  3.640340  5.310957
+      2010-01-01 09:00:04  4.339846  3.145823  4.241039  6.257326
+      2010-01-01 09:00:06  6.249881  6.097384  6.331650  6.124518
+      2010-01-01 09:00:08  5.104699  5.343172  5.732009  8.069486
+
+   However, getting and assignment operations directly on a ``Resampler`` will raise a ``ValueError``:
+
+   .. code-block:: python
+
+      In [7]: r.iloc[0] = 5
+      ValueError: .resample() is now a deferred operation
+            use .resample(...).mean() instead of .resample(...)
+            assignment will have no effect as you are working on a copy
+
+**New API**:
+
+Now, you write ``.resample`` as a 2-stage operation like groupby, which
+yields a ``Resampler``.
+
+.. ipython:: python
+
+   r = df.resample('2s')
+   r
+
+Downsampling
+''''''''''''
+
+You can then use this object to perform similar operations.
+These are downsampling operations (going from a lower frequency to a higher one).
+
+.. ipython:: python
+
+   r.mean()
+
+.. ipython:: python
+
+   r.sum()
+
+Furthermore, resample now supports ``getitem`` operations to perform the resample on specific columns.
+
+.. ipython:: python
+
+   r[['A','C']].mean()
+
+and ``.aggregate`` type operations.
+
+.. ipython:: python
+
+   r.agg({'A' : 'mean', 'B' : 'sum'})
+
+These accessors can of course, be combined
+
+.. ipython:: python
+
+   r[['A','B']].agg(['mean','sum'])
+
+Upsampling
+''''''''''
+
+.. currentmodule:: pandas.tseries.resample
+
+Upsampling operations take you from a higher frequency to a lower frequency. These are now
+performed with the ``Resampler`` objects with :meth:`~Resampler.backfill`,
+:meth:`~Resampler.ffill`, :meth:`~Resampler.fillna` and :meth:`~Resampler.asfreq` methods.
+
+.. ipython:: python
+
+   s = Series(np.arange(5,dtype='int64'),
+              index=date_range('2010-01-01', periods=5, freq='Q'))
+   s
+
+Previously
+
+.. code-block:: python
+
+   In [6]: s.resample('M', fill_method='ffill')
+   Out[6]:
+   2010-03-31    0
+   2010-04-30    0
+   2010-05-31    0
+   2010-06-30    1
+   2010-07-31    1
+   2010-08-31    1
+   2010-09-30    2
+   2010-10-31    2
+   2010-11-30    2
+   2010-12-31    3
+   2011-01-31    3
+   2011-02-28    3
+   2011-03-31    4
+   Freq: M, dtype: int64
+
+New API
+
+.. ipython:: python
+
+   s.resample('M').ffill()
+
+.. note::
+
+   In the new API, you can either downsample OR upsample. The prior implementation would allow you to pass an aggregator function (like ``mean``) even though you were upsampling, providing a bit of confusion.
+
 Changes to eval
 ^^^^^^^^^^^^^^^
 
@@ -434,6 +599,9 @@ Other API Changes
 - ``pandas.merge()`` and ``DataFrame.merge()`` will show a specific error message when trying to merge with an object that is not of type ``DataFrame`` or a subclass (:issue:`12081`)
 
 - ``DataFrame.unstack`` and ``Series.unstack`` now take ``fill_value`` keyword to allow direct replacement of missing values when an unstack results in missing values in the resulting ``DataFrame``. As an added benefit, specifying ``fill_value`` will preserve the data type of the original stacked data.  (:issue:`9746`)
+
+- As part of the new API for :ref:`window functions <whatsnew_0180.enhancements.moments>` and :ref:`resampling <whatsnew_0180.resample>`, aggregation functions have been
+clarified, raising more informative error messages on invalid aggregations. (:issue:`9052`). A full set of examples are presented in :ref:`groupby <groupby.aggregation>`.
 
 .. _whatsnew_0180.deprecations:
 

@@ -71,8 +71,8 @@ def _maybe_resample(series, ax, kwargs):
             freq = ax_freq
         elif _is_sup(freq, ax_freq):  # one is weekly
             how = kwargs.pop('how', 'last')
-            series = series.resample('D', how=how).dropna()
-            series = series.resample(ax_freq, how=how).dropna()
+            series = getattr(series.resample('D'), how)().dropna()
+            series = getattr(series.resample(ax_freq), how)().dropna()
             freq = ax_freq
         elif frequencies.is_subperiod(freq, ax_freq) or _is_sub(freq, ax_freq):
             _upsample_others(ax, freq, kwargs)

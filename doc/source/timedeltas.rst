@@ -401,4 +401,4 @@ Similar to :ref:`timeseries resampling <timeseries.resampling>`, we can resample
 
 .. ipython:: python
 
-   s.resample('D')
+   s.resample('D').mean()

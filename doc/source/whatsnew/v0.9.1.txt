@@ -112,14 +112,21 @@ API changes
   - Upsampling data with a PeriodIndex will result in a higher frequency
     TimeSeries that spans the original time window
 
-    .. ipython:: python
+    .. code-block:: python
 
-        prng = period_range('2012Q1', periods=2, freq='Q')
+       In [1]: prng = period_range('2012Q1', periods=2, freq='Q')
 
-        s = Series(np.random.randn(len(prng)), prng)
+       In [2]: s = Series(np.random.randn(len(prng)), prng)
 
-        s.resample('M')
-
+       In [4]: s.resample('M')
+       Out[4]:
+       2012-01   -1.471992
+       2012-02         NaN
+       2012-03         NaN
+       2012-04   -0.493593
+       2012-05         NaN
+       2012-06         NaN
+       Freq: M, dtype: float64
 
   - Period.end_time now returns the last nanosecond in the time interval
     (:issue:`2124`, :issue:`2125`, :issue:`1764`)
