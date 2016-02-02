@@ -2724,8 +2724,7 @@ class NDFrame(PandasObject):
     def convert_objects(self, convert_dates=True, convert_numeric=False,
                         convert_timedeltas=True, copy=True):
         """
-        Deprecated. Use the data-type specific converters pd.to_datetime, 
-        pd.to_timedelta, and pd.to_numeric.
+        Deprecated.
         
         Attempt to infer better dtype for object columns
 
@@ -2744,6 +2743,18 @@ class NDFrame(PandasObject):
             If True, return a copy even if no copy is necessary (e.g. no
             conversion was done). Note: This is meant for internal use, and
             should not be confused with inplace.
+
+        See also
+        --------
+        pandas.to_datetime
+            Convert argument to datetime.
+
+        pandas.to_timedelta 
+            Convert argument to timedelta.
+
+        pandas.to_numeric
+            Return a fixed frequency timedelta index,
+            with day as the default.
 
         Returns
         -------
