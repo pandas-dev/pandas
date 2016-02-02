@@ -2724,6 +2724,9 @@ class NDFrame(PandasObject):
     def convert_objects(self, convert_dates=True, convert_numeric=False,
                         convert_timedeltas=True, copy=True):
         """
+        Deprecated. Use the data-type specific converters pd.to_datetime, 
+        pd.to_timedelta, and pd.to_numeric.
+        
         Attempt to infer better dtype for object columns
 
         Parameters
