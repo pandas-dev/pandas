@@ -357,8 +357,8 @@ def _convert_by(by):
     if by is None:
         by = []
     elif (np.isscalar(by) or isinstance(by, (np.ndarray, Index,
-                                             Series, Grouper))
-          or hasattr(by, '__call__')):
+                                             Series, Grouper)) or
+          hasattr(by, '__call__')):
         by = [by]
     else:
         by = list(by)

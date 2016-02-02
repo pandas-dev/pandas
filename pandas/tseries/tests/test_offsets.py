@@ -4209,8 +4209,9 @@ class TestDST(tm.TestCase):
             self.assertTrue(timedelta(offset.kwds['days']) + tstart.date() ==
                             t.date())
             # expect the same hour of day, minute, second, ...
-            self.assertTrue(t.hour == tstart.hour and t.minute == tstart.minute
-                            and t.second == tstart.second)
+            self.assertTrue(t.hour == tstart.hour and
+                            t.minute == tstart.minute and
+                            t.second == tstart.second)
         elif offset_name in self.valid_date_offsets_singular:
             # expect the signular offset value to match between tstart and t
             datepart_offset = getattr(t, offset_name
@@ -4223,8 +4224,10 @@ class TestDST(tm.TestCase):
                                   ).tz_convert('US/Pacific'))
 
     def _make_timestamp(self, string, hrs_offset, tz):
-        offset_string = '{hrs:02d}00'.format(hrs=hrs_offset) if hrs_offset >= 0 else \
-            '-{hrs:02d}00'.format(hrs=-1 * hrs_offset)
+        if hrs_offset >= 0:
+            offset_string = '{hrs:02d}00'.format(hrs=hrs_offset)
+        else:
+            offset_string = '-{hrs:02d}00'.format(hrs=-1 * hrs_offset)
         return Timestamp(string + offset_string).tz_convert(tz)
 
     def test_fallback_plural(self):

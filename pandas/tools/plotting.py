@@ -108,8 +108,8 @@ def _mpl_ge_1_3_1():
         import matplotlib
         # The or v[0] == '0' is because their versioneer is
         # messed up on dev
-        return (matplotlib.__version__ >= LooseVersion('1.3.1')
-                or matplotlib.__version__[0] == '0')
+        return (matplotlib.__version__ >= LooseVersion('1.3.1') or
+                matplotlib.__version__[0] == '0')
     except ImportError:
         return False
 
@@ -117,8 +117,8 @@ def _mpl_ge_1_3_1():
 def _mpl_ge_1_4_0():
     try:
         import matplotlib
-        return (matplotlib.__version__ >= LooseVersion('1.4')
-                or matplotlib.__version__[0] == '0')
+        return (matplotlib.__version__ >= LooseVersion('1.4') or
+                matplotlib.__version__[0] == '0')
     except ImportError:
         return False
 
@@ -126,8 +126,8 @@ def _mpl_ge_1_4_0():
 def _mpl_ge_1_5_0():
     try:
         import matplotlib
-        return (matplotlib.__version__ >= LooseVersion('1.5')
-                or matplotlib.__version__[0] == '0')
+        return (matplotlib.__version__ >= LooseVersion('1.5') or
+                matplotlib.__version__[0] == '0')
     except ImportError:
         return False
 
@@ -1789,10 +1789,10 @@ class LinePlot(MPLPlot):
             ax._stacker_neg_prior[stacking_id] += values
 
     def _post_plot_logic(self, ax, data):
-        condition = (not self._use_dynamic_x()
-                     and data.index.is_all_dates
-                     and not self.subplots
-                     or (self.subplots and self.sharex))
+        condition = (not self._use_dynamic_x() and
+                     data.index.is_all_dates and
+                     not self.subplots or
+                     (self.subplots and self.sharex))
 
         index_name = self._get_index_name()
 
@@ -2186,8 +2186,8 @@ class PiePlot(MPLPlot):
             # Blank out labels for values of 0 so they don't overlap
             # with nonzero wedges
             if labels is not None:
-                blabels = [blank_labeler(label, value) for
-                           label, value in zip(labels, y)]
+                blabels = [blank_labeler(l, value) for
+                           l, value in zip(labels, y)]
             else:
                 blabels = None
             results = ax.pie(y, labels=blabels, **kwds)
@@ -2331,7 +2331,7 @@ class BoxPlot(LinePlot):
             self.maybe_color_bp(bp)
             self._return_obj = ret
 
-            labels = [l for l, y in self._iter_data()]
+            labels = [l for l, _ in self._iter_data()]
             labels = [com.pprint_thing(l) for l in labels]
             if not self.use_index:
                 labels = [com.pprint_thing(key) for key in range(len(labels))]

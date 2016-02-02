@@ -105,8 +105,8 @@ class TestMultiLevel(tm.TestCase):
         expected = Index._simple_new(
             np.array([(1.1, datetime.datetime(2011, 1, 1, tzinfo=tz), 'A'),
                       (1.2, datetime.datetime(2011, 1, 2, tzinfo=tz), 'B'),
-                      (1.3, datetime.datetime(2011, 1, 3, tzinfo=tz), 'C')]
-                     + expected_tuples), None)
+                      (1.3, datetime.datetime(2011, 1, 3, tzinfo=tz), 'C')] +
+                     expected_tuples), None)
         self.assertTrue(result.equals(expected))
 
     def test_dataframe_constructor(self):

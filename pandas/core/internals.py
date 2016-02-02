@@ -3981,7 +3981,7 @@ def form_blocks(arrays, names, axes):
                                   klass=DatetimeTZBlock,
                                   fastpath=True,
                                   placement=[i], )
-                       for i, names, array in datetime_tz_items]
+                       for i, _, array in datetime_tz_items]
         blocks.extend(dttz_blocks)
 
     if len(bool_items):
@@ -3999,7 +3999,7 @@ def form_blocks(arrays, names, axes):
     if len(cat_items) > 0:
         cat_blocks = [make_block(array, klass=CategoricalBlock, fastpath=True,
                                  placement=[i])
-                      for i, names, array in cat_items]
+                      for i, _, array in cat_items]
         blocks.extend(cat_blocks)
 
     if len(extra_locs):

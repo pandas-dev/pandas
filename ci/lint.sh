@@ -4,17 +4,14 @@ echo "inside $0"
 
 source activate pandas
 
-for path in 'core'
+RET=0
+for path in 'core' 'io' 'stats' 'compat' 'sparse' 'tools' 'tseries' 'tests' 'computation' 'util'
 do
     echo "linting -> pandas/$path"
-    flake8 pandas/$path --filename '*.py' --statistics -q
+    flake8 pandas/$path --filename '*.py'
+    if [ $? -ne "0" ]; then
+        RET=1
+    fi
 done
 
-RET="$?"
-
-# we are disabling the return code for now
-# to have Travis-CI pass. When the code
-# passes linting, re-enable
-#exit "$RET"
-
-exit 0
+exit $RET

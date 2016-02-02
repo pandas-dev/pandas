@@ -6,6 +6,7 @@ import warnings
 
 import numpy as np
 
+import pandas.core.algorithms as algos
 from pandas.core.algorithms import unique
 from pandas.tseries.offsets import DateOffset
 from pandas.util.decorators import cache_readonly
@@ -1099,8 +1100,6 @@ class _FrequencyInferer(object):
         wd = _weekday_rule_aliases[weekdays[0]]
 
         return 'WOM-%d%s' % (week, wd)
-
-import pandas.core.algorithms as algos
 
 
 class _TimedeltaFrequencyInferer(_FrequencyInferer):

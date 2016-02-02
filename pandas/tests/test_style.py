@@ -1,6 +1,13 @@
 import os
 from nose import SkipTest
 
+import copy
+import numpy as np
+import pandas as pd
+from pandas import DataFrame
+from pandas.util.testing import TestCase
+import pandas.util.testing as tm
+
 # this is a mess. Getting failures on a python 2.7 build with
 # whenever we try to import jinja, whether it's installed or not.
 # so we're explicitly skipping that one *before* we try to import
@@ -13,14 +20,6 @@ try:
     from pandas.core.style import Styler
 except ImportError:
     raise SkipTest("No Jinja2")
-
-import copy
-
-import numpy as np
-import pandas as pd
-from pandas import DataFrame
-from pandas.util.testing import TestCase
-import pandas.util.testing as tm
 
 
 class TestStyler(TestCase):
@@ -196,8 +195,8 @@ class TestStyler(TestCase):
                 expected = dict(((r, c), ['color: baz'])
                                 for r, row in enumerate(self.df.index)
                                 for c, col in enumerate(self.df.columns)
-                                if row in self.df.loc[slice_].index
-                                and col in self.df.loc[slice_].columns)
+                                if row in self.df.loc[slice_].index and
+                                col in self.df.loc[slice_].columns)
                 self.assertEqual(result, expected)
 
     def test_applymap_subset(self):
@@ -213,8 +212,8 @@ class TestStyler(TestCase):
             expected = dict(((r, c), ['foo: bar'])
                             for r, row in enumerate(self.df.index)
                             for c, col in enumerate(self.df.columns)
-                            if row in self.df.loc[slice_].index
-                            and col in self.df.loc[slice_].columns)
+                            if row in self.df.loc[slice_].index and
+                            col in self.df.loc[slice_].columns)
             self.assertEqual(result, expected)
 
     def test_empty(self):

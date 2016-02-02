@@ -1276,9 +1276,9 @@ class TestResample(tm.TestCase):
 
         s = pd.Series(np.random.randn(5),
                       index=pd.date_range('2014-10-14 23:06:23.206',
-                                          periods=3, freq='400L')
-                      | pd.date_range('2014-10-15 23:00:00',
-                                      periods=2, freq='2200L'))
+                                          periods=3, freq='400L') |
+                      pd.date_range('2014-10-15 23:00:00',
+                                    periods=2, freq='2200L'))
 
         # Ensure left closing works
         result = s.resample('2200L').mean()

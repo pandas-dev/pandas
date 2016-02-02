@@ -2310,10 +2310,9 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True):
     except Exception:
         all_in_columns = False
 
-    if (not any_callable and not all_in_columns
-        and not any_arraylike and not any_groupers
-            and match_axis_length
-            and level is None):
+    if not any_callable and not all_in_columns and \
+       not any_arraylike and not any_groupers and \
+       match_axis_length and level is None:
         keys = [com._asarray_tuplesafe(keys)]
 
     if isinstance(level, (tuple, list)):
@@ -3695,7 +3694,7 @@ class DataFrameGroupBy(NDFrameGroupBy):
         return self._wrap_agged_blocks(data.items, list(blk))
 
 
-from pandas.tools.plotting import boxplot_frame_groupby
+from pandas.tools.plotting import boxplot_frame_groupby  # noqa
 DataFrameGroupBy.boxplot = boxplot_frame_groupby
 
 

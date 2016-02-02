@@ -19,7 +19,8 @@ _np_version_under1p10 = LooseVersion(_np_version) < '1.10'
 _np_version_under1p11 = LooseVersion(_np_version) < '1.11'
 
 if LooseVersion(_np_version) < '1.7.0':
-    raise ImportError('this version of pandas is incompatible with numpy < 1.7.0\n'
+    raise ImportError('this version of pandas is incompatible with '
+                      'numpy < 1.7.0\n'
                       'your numpy version is {0}.\n'
                       'Please upgrade numpy to >= 1.7.0 to use '
                       'this pandas version'.format(_np_version))
@@ -61,7 +62,7 @@ def np_array_datetime64_compat(arr, *args, **kwargs):
            isinstance(arr, string_and_binary_types):
             arr = [tz_replacer(s) for s in arr]
         else:
-            arr = tz_replacer(s)
+            arr = tz_replacer(arr)
 
     return np.array(arr, *args, **kwargs)
 

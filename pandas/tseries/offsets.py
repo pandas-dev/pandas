@@ -13,6 +13,7 @@ import pandas.tslib as tslib
 from pandas.tslib import Timestamp, OutOfBoundsDatetime, Timedelta
 
 import functools
+import operator
 
 __all__ = ['Day', 'BusinessDay', 'BDay', 'CustomBusinessDay', 'CDay',
            'CBMonthEnd', 'CBMonthBegin',
@@ -111,8 +112,8 @@ def apply_index_wraps(func):
 
 
 def _is_normalized(dt):
-    if (dt.hour != 0 or dt.minute != 0 or dt.second != 0
-            or dt.microsecond != 0 or getattr(dt, 'nanosecond', 0) != 0):
+    if (dt.hour != 0 or dt.minute != 0 or dt.second != 0 or
+            dt.microsecond != 0 or getattr(dt, 'nanosecond', 0) != 0):
         return False
     return True
 
@@ -268,8 +269,8 @@ class DateOffset(object):
         if (self._use_relativedelta and
                 set(self.kwds).issubset(relativedelta_fast)):
 
-            months = ((self.kwds.get('years', 0) * 12
-                       + self.kwds.get('months', 0)) * self.n)
+            months = ((self.kwds.get('years', 0) * 12 +
+                       self.kwds.get('months', 0)) * self.n)
             if months:
                 shifted = tslib.shift_months(i.asi8, months)
                 i = i._shallow_copy(shifted)
@@ -321,8 +322,8 @@ class DateOffset(object):
         exclude = set(['n', 'inc', 'normalize'])
         attrs = []
         for attr in sorted(self.__dict__):
-            if ((attr == 'kwds' and len(self.kwds) == 0)
-                    or attr.startswith('_')):
+            if ((attr == 'kwds' and len(self.kwds) == 0) or
+                    attr.startswith('_')):
                 continue
             elif attr == 'kwds':
                 kwds_new = {}
@@ -2436,8 +2437,6 @@ class Easter(DateOffset):
 
 # ---------------------------------------------------------------------
 # Ticks
-
-import operator
 
 
 def _tick_comp(op):
