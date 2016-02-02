@@ -1,4 +1,5 @@
 ipython
+sphinx
 nbconvert
 matplotlib
 scipy
