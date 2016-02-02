@@ -274,14 +274,15 @@ def get_filepath_or_buffer(filepath_or_buffer, encoding=None,
             import boto
         except:
             raise ImportError("boto is required to handle s3 files")
-        # Assuming AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY
+        # Assuming AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY and AWS_S3_HOST
         # are environment variables
         parsed_url = parse_url(filepath_or_buffer)
+        s3_host = os.environ.get('AWS_S3_HOST','s3.amazonaws.com')
 
         try:
-            conn = boto.connect_s3()
+            conn = boto.connect_s3(host=s3_host)
         except boto.exception.NoAuthHandlerFound:
-            conn = boto.connect_s3(anon=True)
+            conn = boto.connect_s3(host=s3_host,anon=True)
 
         b = conn.get_bucket(parsed_url.netloc, validate=False)
         if compat.PY2 and (compression == 'gzip' or
