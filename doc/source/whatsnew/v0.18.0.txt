@@ -420,7 +420,7 @@ You could also specify a ``how`` directly
       2010-01-01 09:00:06  6.249881  6.097384  6.331650  6.124518
       2010-01-01 09:00:08  5.104699  5.343172  5.732009  8.069486
 
-   Assignment operations will raise a ``ValueError``:
+   However, getting and assignment operations directly on a ``Resampler`` will raise a ``ValueError``:
 
    .. code-block:: python
 
@@ -517,63 +517,6 @@ New API
 
    In the new API, you can either downsample OR upsample. The prior implementation would allow you to pass an aggregator function (like ``mean``) even though you were upsampling, providing a bit of confusion.
 
-.. _whatsnew_0180.breaking.aggregation:
-
-Aggregation API clarifictions
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-As part of the new API for :ref:`window functions <whatsnew_0180.enhancements.moments>` and :ref:`resampling <whatsnew_0180.resample>`, aggregation functions have been
-clarified. (:issue:`9052`). A full set of examples are presented in :ref:`groupby <groupby.aggregation>`.
-
-Here are the available methodologies and changes for these aggregations.
-
-.. ipython:: python
-
-   df = pd.DataFrame({'A': ['foo', 'bar', 'foo', 'bar',
-                            'foo', 'bar', 'foo', 'foo'],
-                      'B': ['one', 'one', 'two', 'three',
-                            'two', 'two', 'one', 'three'],
-                      'C': np.random.randn(8),
-                      'D': np.arange(8)})
-
-   grouped = df.groupby(['A', 'B'])
-
-Passing a single function or a list of aggregation functions
-
-.. ipython:: python
-
-   grouped[['D','C']].agg(['sum','mean'])
-
-
-Passing a single level dictionary will perform aggregations and name
-the result columns as the keys.
-
-.. ipython:: python
-
-   grouped['D'].agg({'result1': np.sum,
-                     'result2': np.mean})
-
-You can also pass a single level dictionary where the keys are the column names.
-
-.. ipython:: python
-
-   grouped.agg({'C': 'sum', 'D': 'std'})
-
-Finally you can pass a nested dictionary to enable specific functions on specific
-columns and have renaming.
-
-.. ipython:: python
-
-   grouped.agg({'C': {'summer': 'sum'}, 'D' : {'stddev':'std'}})
-
-The change in 0.18.0 is to disallow the following, which could be ambiguous,
-and will now raise a ``SpecificationError``.
-
-.. code-block:: python
-
-   grouped.agg({'summer': {'C': 'sum'}, 'stddev' : {'D':'std'}})
-
-
 Changes to eval
 ^^^^^^^^^^^^^^^
 
@@ -656,6 +599,9 @@ Other API Changes
 - ``pandas.merge()`` and ``DataFrame.merge()`` will show a specific error message when trying to merge with an object that is not of type ``DataFrame`` or a subclass (:issue:`12081`)
 
 - ``DataFrame.unstack`` and ``Series.unstack`` now take ``fill_value`` keyword to allow direct replacement of missing values when an unstack results in missing values in the resulting ``DataFrame``. As an added benefit, specifying ``fill_value`` will preserve the data type of the original stacked data.  (:issue:`9746`)
+
+- As part of the new API for :ref:`window functions <whatsnew_0180.enhancements.moments>` and :ref:`resampling <whatsnew_0180.resample>`, aggregation functions have been
+clarified, raising more informative error messages on invalid aggregations. (:issue:`9052`). A full set of examples are presented in :ref:`groupby <groupby.aggregation>`.
 
 .. _whatsnew_0180.deprecations:
 
