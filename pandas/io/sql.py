@@ -1708,24 +1708,6 @@ def get_schema(frame, name, flavor='sqlite', keys=None, con=None, dtype=None):
 
 # legacy names, with depreciation warnings and copied docs
 
-@Appender(read_sql.__doc__, join='\n')
-def read_frame(*args, **kwargs):
-    """DEPRECATED - use read_sql
-    """
-    warnings.warn("read_frame is deprecated, use read_sql", FutureWarning,
-                  stacklevel=2)
-    return read_sql(*args, **kwargs)
-
-
-@Appender(read_sql.__doc__, join='\n')
-def frame_query(*args, **kwargs):
-    """DEPRECATED - use read_sql
-    """
-    warnings.warn("frame_query is deprecated, use read_sql", FutureWarning,
-                  stacklevel=2)
-    return read_sql(*args, **kwargs)
-
-
 def write_frame(frame, name, con, flavor='sqlite', if_exists='fail', **kwargs):
     """DEPRECATED - use to_sql
 

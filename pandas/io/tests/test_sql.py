@@ -524,12 +524,6 @@ class _TestSQLApi(PandasSQLTest):
             "SELECT * FROM iris_view", self.conn)
         self._check_iris_loaded_frame(iris_frame)
 
-    def test_legacy_read_frame(self):
-        with tm.assert_produces_warning(FutureWarning):
-            iris_frame = sql.read_frame(
-                "SELECT * FROM iris", self.conn)
-        self._check_iris_loaded_frame(iris_frame)
-
     def test_to_sql(self):
         sql.to_sql(self.test_frame1, 'test_frame1', self.conn, flavor='sqlite')
         self.assertTrue(
@@ -2239,7 +2233,7 @@ class TestXSQLite(SQLiteMixIn, tm.TestCase):
 
         self.conn.commit()
 
-        result = sql.read_frame("select * from test", con=self.conn)
+        result = sql.read_sql("select * from test", con=self.conn)
         result.index = frame.index
         tm.assert_frame_equal(result, frame)
 
@@ -2254,7 +2248,7 @@ class TestXSQLite(SQLiteMixIn, tm.TestCase):
         sql.execute(ins, self.conn, params=tuple(row))
         self.conn.commit()
 
-        result = sql.read_frame("select * from test", self.conn)
+        result = sql.read_sql("select * from test", self.conn)
         result.index = frame.index[:1]
         tm.assert_frame_equal(result, frame[:1])
 
@@ -2328,7 +2322,7 @@ class TestXSQLite(SQLiteMixIn, tm.TestCase):
 
     def _check_roundtrip(self, frame):
         sql.write_frame(frame, name='test_table', con=self.conn)
-        result = sql.read_frame("select * from test_table", self.conn)
+        result = sql.read_sql("select * from test_table", self.conn)
 
         # HACK! Change this once indexes are handled properly.
         result.index = frame.index
@@ -2340,7 +2334,7 @@ class TestXSQLite(SQLiteMixIn, tm.TestCase):
         frame2 = frame.copy()
         frame2['Idx'] = Index(lrange(len(frame2))) + 10
         sql.write_frame(frame2, name='test_table2', con=self.conn)
-        result = sql.read_frame("select * from test_table2", self.conn,
+        result = sql.read_sql("select * from test_table2", self.conn,
                                 index_col='Idx')
         expected = frame.copy()
         expected.index = Index(lrange(len(frame2))) + 10
@@ -2402,7 +2396,7 @@ class TestXSQLite(SQLiteMixIn, tm.TestCase):
         # it should not fail, and gives 3 ( Issue #3628 )
         self.assertEqual(the_sum, 3)
 
-        result = sql.read_frame("select * from mono_df", con_x)
+        result = sql.read_sql("select * from mono_df", con_x)
         tm.assert_frame_equal(result, mono_df)
 
     def test_if_exists(self):
@@ -2542,7 +2536,7 @@ class TestXMySQL(MySQLMixIn, tm.TestCase):
 
         self.conn.commit()
 
-        result = sql.read_frame("select * from test", con=self.conn)
+        result = sql.read_sql("select * from test", con=self.conn)
         result.index = frame.index
         tm.assert_frame_equal(result, frame)
 
@@ -2577,7 +2571,7 @@ class TestXMySQL(MySQLMixIn, tm.TestCase):
         sql.execute(ins, self.conn, params=tuple(row))
         self.conn.commit()
 
-        result = sql.read_frame("select * from test", self.conn)
+        result = sql.read_sql("select * from test", self.conn)
         result.index = frame.index[:1]
         tm.assert_frame_equal(result, frame[:1])
 
@@ -2668,7 +2662,7 @@ class TestXMySQL(MySQLMixIn, tm.TestCase):
             cur.execute(drop_sql)
         sql.write_frame(frame, name='test_table',
                         con=self.conn, flavor='mysql')
-        result = sql.read_frame("select * from test_table", self.conn)
+        result = sql.read_sql("select * from test_table", self.conn)
 
         # HACK! Change this once indexes are handled properly.
         result.index = frame.index
@@ -2688,7 +2682,7 @@ class TestXMySQL(MySQLMixIn, tm.TestCase):
             cur.execute(drop_sql)
         sql.write_frame(frame2, name='test_table2',
                         con=self.conn, flavor='mysql')
-        result = sql.read_frame("select * from test_table2", self.conn,
+        result = sql.read_sql("select * from test_table2", self.conn,
                                 index_col='Idx')
         expected = frame.copy()
 
