@@ -18,7 +18,6 @@ if [ x"$DOC_BUILD" != x"" ]; then
 
     source activate pandas
     conda install -n pandas -c r r rpy2 --yes
-    pip install sphinx -U
 
     time sudo apt-get $APT_ARGS install dvipng
 
