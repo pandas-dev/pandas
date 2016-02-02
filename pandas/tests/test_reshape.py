@@ -432,13 +432,28 @@ class TestGetDummies(tm.TestCase):
         assert_frame_equal(result, expected)
 
         expected.index = list('ABC')
-        result = get_dummies(s_series_index, sparse=self.sparse, drop_first=True)
+        result = get_dummies(s_series_index, sparse=self.sparse,
+                             drop_first=True)
         assert_frame_equal(result, expected)
 
-    # Test the case that categorical variable only has one level.
     def test_basic_drop_first_one_level(self):
-        result = get_dummies(list('aaa'), sparse=self.sparse, drop_first=True)
-        self.assertEqual(result.empty, True)
+        # Test the case that categorical variable only has one level.
+        s_list = list('aaa')
+        s_series = Series(s_list)
+        s_series_index = Series(s_list, list('ABC'))
+
+        expected = DataFrame(index=np.arange(3))
+
+        result = get_dummies(s_list, sparse=self.sparse, drop_first=True)
+        assert_frame_equal(result, expected)
+
+        result = get_dummies(s_series, sparse=self.sparse, drop_first=True)
+        assert_frame_equal(result, expected)
+
+        expected = DataFrame(index=list('ABC'))
+        result = get_dummies(s_series_index, sparse=self.sparse,
+                             drop_first=True)
+        assert_frame_equal(result, expected)
 
     def test_basic_drop_first_NA(self):
         # Test NA hadling together with drop_first
@@ -449,7 +464,6 @@ class TestGetDummies(tm.TestCase):
                                2: 0.0}})
         assert_frame_equal(res, exp)
 
-        # Sparse dataframes do not allow nan labelled columns, see #GH8822
         res_na = get_dummies(s_NA, dummy_na=True, sparse=self.sparse,
                              drop_first=True)
         exp_na = DataFrame({'b': {0: 0.0,
@@ -463,7 +477,8 @@ class TestGetDummies(tm.TestCase):
 
         res_just_na = get_dummies([nan], dummy_na=True, sparse=self.sparse,
                                   drop_first=True)
-        tm.assert_numpy_array_equal(res_just_na.empty, True)
+        exp_just_na = DataFrame(index=np.arange(1))
+        assert_frame_equal(res_just_na, exp_just_na)
 
     def test_dataframe_dummies_drop_first(self):
         df = self.df[['A', 'B']]

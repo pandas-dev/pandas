@@ -1095,8 +1095,7 @@ def _get_dummies_1d(data, prefix, prefix_sep='_', dummy_na=False,
     cat = Categorical.from_array(Series(data), ordered=True)
     levels = cat.categories
 
-    # if all NaN
-    if not dummy_na and len(levels) == 0:
+    def get_empty_Frame(data, sparse):
         if isinstance(data, Series):
             index = data.index
         else:
@@ -1106,10 +1105,18 @@ def _get_dummies_1d(data, prefix, prefix_sep='_', dummy_na=False,
         else:
             return SparseDataFrame(index=index)
 
+    # if all NaN
+    if not dummy_na and len(levels) == 0:
+        return get_empty_Frame(data, sparse)
+
     codes = cat.codes.copy()
     if dummy_na:
         codes[codes == -1] = len(cat.categories)
         levels = np.append(cat.categories, np.nan)
+
+    # if dummy_na, we just fake a nan level. drop_first will drop it again
+    if drop_first and len(levels) == 1:
+        return get_empty_Frame(data, sparse)
 
     number_of_cols = len(levels)
 
