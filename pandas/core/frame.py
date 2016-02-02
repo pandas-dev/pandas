@@ -51,7 +51,6 @@ from pandas.tseries.period import PeriodIndex
 from pandas.tseries.index import DatetimeIndex
 from pandas.tseries.tdi import TimedeltaIndex
 
-import pandas.core.algorithms as algos
 import pandas.core.base as base
 import pandas.core.common as com
 import pandas.core.format as fmt

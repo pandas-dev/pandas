@@ -138,7 +138,8 @@ class NoseTester(nosetester.NoseTester):
             * 'full' - fast (as above) and slow tests as in the
               'no -A' option to nosetests - this is the same as ''.
             * None or '' - run all tests.
-            * attribute_identifier - string passed directly to nosetests as '-A'.
+            * attribute_identifier - string passed directly to nosetests
+              as '-A'.
         verbose : int, optional
             Verbosity value for test outputs, in the range 1-10. Default is 1.
         extra_argv : list, optional
@@ -200,8 +201,9 @@ class NoseTester(nosetester.NoseTester):
                 # Reset the warning filters to the default state,
                 # so that running the tests is more repeatable.
                 warnings.resetwarnings()
-                # Set all warnings to 'warn', this is because the default 'once'
-                # has the bad property of possibly shadowing later warnings.
+                # Set all warnings to 'warn', this is because the default
+                # 'once' has the bad property of possibly shadowing later
+                # warnings.
                 warnings.filterwarnings('always')
                 # Force the requested warnings to raise
                 for warningtype in raise_warnings:

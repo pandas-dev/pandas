@@ -2,11 +2,8 @@
 from datetime import datetime
 import sys
 import os
-
 import nose
-
 import numpy as np
-randn = np.random.randn
 
 from pandas import (Index, Series, date_range, Timestamp,
                     DatetimeIndex, Int64Index, to_datetime)
@@ -23,6 +20,8 @@ from pandas import read_pickle
 from numpy.random import rand
 import pandas.compat as compat
 from pandas.core.datetools import BDay
+
+randn = np.random.randn
 
 
 # infortunately, too much has changed to handle these legacy pickles

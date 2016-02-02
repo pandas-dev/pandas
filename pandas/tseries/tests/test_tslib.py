@@ -29,8 +29,8 @@ class TestTimestamp(tm.TestCase):
 
         # confirm base representation is correct
         import calendar
-        self.assertEqual(calendar.timegm(base_dt.timetuple())
-                         * 1000000000, base_expected)
+        self.assertEqual(calendar.timegm(base_dt.timetuple()) * 1000000000,
+                         base_expected)
 
         tests = [(base_str, base_dt, base_expected),
                  ('2014-07-01 10:00', datetime.datetime(2014, 7, 1, 10),
@@ -89,8 +89,8 @@ class TestTimestamp(tm.TestCase):
 
         # confirm base representation is correct
         import calendar
-        self.assertEqual(calendar.timegm(base_dt.timetuple())
-                         * 1000000000, base_expected)
+        self.assertEqual(calendar.timegm(base_dt.timetuple()) * 1000000000,
+                         base_expected)
 
         tests = [(base_str, base_expected),
                  ('2014-07-01 12:00:00+02:00',

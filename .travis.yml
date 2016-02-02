@@ -164,11 +164,10 @@ script:
   - echo "script"
   - ci/run_build_docs.sh
   - ci/script.sh
+  - ci/lint.sh
 # nothing here, or failed tests won't fail travis
 
 after_script:
   - ci/install_test.sh
   - source activate pandas && ci/print_versions.py
   - ci/print_skipped.py /tmp/nosetests.xml
-  - ci/lint.sh
-  - ci/lint_ok_for_now.sh

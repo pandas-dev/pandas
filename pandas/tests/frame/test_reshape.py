@@ -10,7 +10,8 @@ from numpy import nan
 import numpy as np
 
 from pandas.compat import u
-from pandas import DataFrame, Index, Series, MultiIndex, date_range, Timedelta, Period
+from pandas import (DataFrame, Index, Series, MultiIndex, date_range,
+                    Timedelta, Period)
 import pandas as pd
 
 from pandas.util.testing import (assert_series_equal,

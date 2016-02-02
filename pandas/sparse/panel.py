@@ -520,10 +520,10 @@ def _convert_frames(frames, index, columns, fill_value=np.nan, kind='block'):
         output[item] = df
 
     if index is None:
-        all_indexes = [df.index for df in output.values()]
+        all_indexes = [x.index for x in output.values()]
         index = _get_combined_index(all_indexes)
     if columns is None:
-        all_columns = [df.columns for df in output.values()]
+        all_columns = [x.columns for x in output.values()]
         columns = _get_combined_index(all_columns)
 
     index = _ensure_index(index)

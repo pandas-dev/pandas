@@ -1002,32 +1002,31 @@ class TestMoments(Base):
             return (s.multiply(w).cumsum() / w.cumsum()).fillna(method='ffill')
 
         for (s, adjust, ignore_na, w) in [
-                (s0, True, False, [np.nan, (1. - alpha), 1.]),
-                (s0, True, True, [np.nan, (1. - alpha), 1.]),
-                (s0, False, False, [np.nan, (1. - alpha), alpha]),
-                (s0, False, True, [np.nan, (1. - alpha), alpha]),
-                (s1, True, False, [(1. - alpha) ** 2, np.nan, 1.]),
-                (s1, True, True, [(1. - alpha), np.nan, 1.]),
-                (s1, False, False, [(1. - alpha) ** 2, np.nan, alpha]),
-                (s1, False, True, [(1. - alpha), np.nan, alpha]),
-                (s2, True, False, [np.nan, (1. - alpha)
-                                   ** 3, np.nan, np.nan, 1., np.nan]),
-                (s2, True, True, [np.nan, (1. - alpha),
-                                  np.nan, np.nan, 1., np.nan]),
-                (s2, False, False, [np.nan, (1. - alpha)
-                                    ** 3, np.nan, np.nan, alpha, np.nan]),
-                (s2, False, True, [np.nan, (1. - alpha),
-                                   np.nan, np.nan, alpha, np.nan]),
-                (s3, True, False, [(1. - alpha)
-                                   ** 3, np.nan, (1. - alpha), 1.]),
-                (s3, True, True, [(1. - alpha) **
-                                  2, np.nan, (1. - alpha), 1.]),
-                (s3, False, False, [(1. - alpha) ** 3, np.nan,
-                                    (1. - alpha) * alpha,
-                                    alpha * ((1. - alpha) ** 2 + alpha)]),
-                (s3, False, True, [(1. - alpha) ** 2,
-                                   np.nan, (1. - alpha) * alpha, alpha]),
-        ]:
+            (s0, True, False, [np.nan, (1. - alpha), 1.]),
+            (s0, True, True, [np.nan, (1. - alpha), 1.]),
+            (s0, False, False, [np.nan, (1. - alpha), alpha]),
+            (s0, False, True, [np.nan, (1. - alpha), alpha]),
+            (s1, True, False, [(1. - alpha) ** 2, np.nan, 1.]),
+            (s1, True, True, [(1. - alpha), np.nan, 1.]),
+            (s1, False, False, [(1. - alpha) ** 2, np.nan, alpha]),
+            (s1, False, True, [(1. - alpha), np.nan, alpha]),
+            (s2, True, False, [np.nan, (1. - alpha) **
+                               3, np.nan, np.nan, 1., np.nan]),
+            (s2, True, True, [np.nan, (1. - alpha),
+                              np.nan, np.nan, 1., np.nan]),
+            (s2, False, False, [np.nan, (1. - alpha) **
+                                3, np.nan, np.nan, alpha, np.nan]),
+            (s2, False, True, [np.nan, (1. - alpha),
+                               np.nan, np.nan, alpha, np.nan]),
+            (s3, True, False, [(1. - alpha) **
+                               3, np.nan, (1. - alpha), 1.]),
+            (s3, True, True, [(1. - alpha) **
+                              2, np.nan, (1. - alpha), 1.]),
+            (s3, False, False, [(1. - alpha) ** 3, np.nan,
+                                (1. - alpha) * alpha,
+                                alpha * ((1. - alpha) ** 2 + alpha)]),
+            (s3, False, True, [(1. - alpha) ** 2,
+                               np.nan, (1. - alpha) * alpha, alpha])]:
             expected = simple_wma(s, Series(w))
             result = s.ewm(com=com, adjust=adjust, ignore_na=ignore_na).mean()
 

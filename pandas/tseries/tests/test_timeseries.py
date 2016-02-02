@@ -2451,7 +2451,7 @@ class TestDatetimeIndex(tm.TestCase):
             self.assert_numpy_array_equal(idx.asi8, expected_i8.asi8)
 
         tm._skip_if_no_dateutil()
-        from dateutil.tz import tzoffset
+
         # Non ISO 8601 format results in dateutil.tz.tzoffset
         for freq in ['AS', 'W-SUN']:
             idx = date_range('2013/1/1 0:00:00-5:00', '2016/1/1 23:59:59-5:00',

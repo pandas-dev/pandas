@@ -470,8 +470,7 @@ class _MergeOperation(object):
 
     def _validate_specification(self):
         # Hm, any way to make this logic less complicated??
-        if (self.on is None and self.left_on is None
-                and self.right_on is None):
+        if self.on is None and self.left_on is None and self.right_on is None:
 
             if self.left_index and self.right_index:
                 self.left_on, self.right_on = (), ()
@@ -1185,7 +1184,7 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None):
             names = list(names)
         else:
             # make sure that all of the passed indices have the same nlevels
-            if not len(set([i.nlevels for i in indexes])) == 1:
+            if not len(set([idx.nlevels for idx in indexes])) == 1:
                 raise AssertionError("Cannot concat indices that do"
                                      " not have the same number of levels")
 

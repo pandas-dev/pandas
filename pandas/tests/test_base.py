@@ -332,7 +332,7 @@ class TestIndexOps(Ops):
                 self.assertTrue(result.iat[0])
                 self.assertTrue(result.iat[1])
 
-                result = None == o
+                result = None == o  # noqa
                 self.assertFalse(result.iat[0])
                 self.assertFalse(result.iat[1])
 

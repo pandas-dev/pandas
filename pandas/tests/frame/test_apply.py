@@ -262,8 +262,8 @@ class TestDataFrameApply(tm.TestCase, TestData):
             return row
 
         def transform2(row):
-            if (notnull(row['C']) and row['C'].startswith('shin')
-                    and row['A'] == 'foo'):
+            if (notnull(row['C']) and row['C'].startswith('shin') and
+                    row['A'] == 'foo'):
                 row['D'] = 7
             return row
 

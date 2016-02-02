@@ -328,13 +328,13 @@ class TestDataFrameReprInfoEtc(tm.TestCase, TestData):
         res = buf.getvalue().splitlines()
         self.assertTrue(re.match(r"memory usage: [^+]+$", res[-1]))
 
-        self.assertTrue(df_with_object_index.memory_usage(index=True,
-                                                          deep=True).sum()
-                        > df_with_object_index.memory_usage(index=True).sum())
+        self.assertGreater(df_with_object_index.memory_usage(index=True,
+                                                             deep=True).sum(),
+                           df_with_object_index.memory_usage(index=True).sum())
 
         df_object = pd.DataFrame({'a': ['a']})
-        self.assertTrue(df_object.memory_usage(deep=True).sum()
-                        > df_object.memory_usage().sum())
+        self.assertGreater(df_object.memory_usage(deep=True).sum(),
+                           df_object.memory_usage().sum())
 
         # Test a DataFrame with duplicate columns
         dtypes = ['int64', 'int64', 'int64', 'float64']
