@@ -1729,6 +1729,65 @@ The following methods are available only for ``DataFrameGroupBy`` objects.
    DataFrameGroupBy.corrwith
    DataFrameGroupBy.boxplot
 
+Resampling
+----------
+.. currentmodule:: pandas.tseries.resample
+
+Resampler objects are returned by resample calls: :func:`pandas.DataFrame.resample`, :func:`pandas.Series.resample`.
+
+Indexing, iteration
+~~~~~~~~~~~~~~~~~~~
+.. autosummary::
+   :toctree: generated/
+
+   Resampler.__iter__
+   Resampler.groups
+   Resampler.indices
+   Resampler.get_group
+
+Function application
+~~~~~~~~~~~~~~~~~~~~
+.. autosummary::
+   :toctree: generated/
+
+   Resampler.apply
+   Resampler.aggregate
+   Resampler.transform
+
+Upsampling
+~~~~~~~~~~
+
+.. autosummary::
+   :toctree: generated/
+
+   Resampler.ffill
+   Resampler.backfill
+   Resampler.bfill
+   Resampler.pad
+   Resampler.fillna
+   Resampler.asfreq
+
+Computations / Descriptive Stats
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. autosummary::
+   :toctree: generated/
+
+   Resampler.count
+   Resampler.nunique
+   Resampler.first
+   Resampler.last
+   Resampler.max
+   Resampler.mean
+   Resampler.median
+   Resampler.min
+   Resampler.ohlc
+   Resampler.prod
+   Resampler.size
+   Resampler.sem
+   Resampler.std
+   Resampler.sum
+   Resampler.var
+
 Style
 -----
 .. currentmodule:: pandas.core.style

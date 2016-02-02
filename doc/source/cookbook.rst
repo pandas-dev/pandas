@@ -567,7 +567,7 @@ Unlike agg, apply's callable is passed a sub-DataFrame which gives you access to
       return pd.NaT
 
    mhc = {'Mean' : np.mean, 'Max' : np.max, 'Custom' : MyCust}
-   ts.resample("5min",how = mhc)
+   ts.resample("5min").apply(mhc)
    ts
 
 `Create a value counts column and reassign back to the DataFrame

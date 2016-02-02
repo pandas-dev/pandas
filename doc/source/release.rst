@@ -48,7 +48,12 @@ users upgrade to this version.
 
 Highlights include:
 
-See the :ref:`v0.17.0 Whatsnew <whatsnew_0180>` overview for an extensive list
+Highlights include:
+
+- Window functions are now methods on ``.groupby`` like objects, see :ref:`here <whatsnew_0180.enhancements.moments>`.
+- API breaking ``.resample`` changes to make it more ``.groupby`` like, see :ref:`here <whatsnew_0180.resample>`.
+
+See the :ref:`v0.18.0 Whatsnew <whatsnew_0180>` overview for an extensive list
 of all enhancements and bugs that have been fixed in 0.17.1.
 
 Thanks

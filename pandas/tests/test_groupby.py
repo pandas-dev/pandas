@@ -1462,42 +1462,97 @@ class TestGroupBy(tm.TestCase):
         # make sure that the aggregates via dict
         # are consistent
 
-        def compare(result, expected):
-            # if we ar passin dicts then ordering is not guaranteed for output
-            # columns
-            assert_frame_equal(result.reindex_like(expected), expected)
-
-        df = DataFrame(
-            {'A': ['foo', 'bar', 'foo', 'bar', 'foo', 'bar', 'foo', 'foo'],
-             'B': ['one', 'one', 'two', 'three', 'two', 'two', 'one', 'three'],
-             'C': np.random.randn(8),
-             'D': np.random.randn(8)})
+        df = DataFrame({'A': ['foo', 'bar', 'foo', 'bar',
+                              'foo', 'bar', 'foo', 'foo'],
+                        'B': ['one', 'one', 'two', 'two',
+                              'two', 'two', 'one', 'two'],
+                        'C': np.random.randn(8) + 1.0,
+                        'D': np.arange(8)})
 
         grouped = df.groupby(['A', 'B'])
-        result = grouped[['D', 'C']].agg({'r': np.sum, 'r2': np.mean})
-        expected = pd.concat([grouped[['D', 'C']].sum(),
-                              grouped[['D', 'C']].mean()],
-                             keys=['r', 'r2'],
-                             axis=1).stack(level=1)
-        compare(result, expected)
+        c_mean = grouped['C'].mean()
+        c_sum = grouped['C'].sum()
+        d_mean = grouped['D'].mean()
+        d_sum = grouped['D'].sum()
 
-        result = grouped[['D', 'C']].agg({'r': {'C': np.sum},
-                                          'r2': {'D': np.mean}})
-        expected = pd.concat([grouped[['C']].sum(),
-                              grouped[['D']].mean()],
+        result = grouped['D'].agg(['sum', 'mean'])
+        expected = pd.concat([d_sum, d_mean],
                              axis=1)
-        expected.columns = MultiIndex.from_tuples([('r', 'C'), ('r2', 'D')])
-        compare(result, expected)
+        expected.columns = ['sum', 'mean']
+        assert_frame_equal(result, expected, check_like=True)
+
+        result = grouped.agg([np.sum, np.mean])
+        expected = pd.concat([c_sum,
+                              c_mean,
+                              d_sum,
+                              d_mean],
+                             axis=1)
+        expected.columns = MultiIndex.from_product([['C', 'D'],
+                                                    ['sum', 'mean']])
+        assert_frame_equal(result, expected, check_like=True)
 
         result = grouped[['D', 'C']].agg([np.sum, np.mean])
-        expected = pd.concat([grouped['D'].sum(),
-                              grouped['D'].mean(),
-                              grouped['C'].sum(),
-                              grouped['C'].mean()],
+        expected = pd.concat([d_sum,
+                              d_mean,
+                              c_sum,
+                              c_mean],
                              axis=1)
-        expected.columns = MultiIndex.from_product([['D', 'C'], ['sum', 'mean']
-                                                    ])
-        compare(result, expected)
+        expected.columns = MultiIndex.from_product([['D', 'C'],
+                                                    ['sum', 'mean']])
+        assert_frame_equal(result, expected, check_like=True)
+
+        result = grouped.agg({'C': 'mean', 'D': 'sum'})
+        expected = pd.concat([d_sum,
+                              c_mean],
+                             axis=1)
+        assert_frame_equal(result, expected, check_like=True)
+
+        result = grouped.agg({'C': ['mean', 'sum'],
+                              'D': ['mean', 'sum']})
+        expected = pd.concat([c_mean,
+                              c_sum,
+                              d_mean,
+                              d_sum],
+                             axis=1)
+        expected.columns = MultiIndex.from_product([['C', 'D'],
+                                                    ['mean', 'sum']])
+
+        result = grouped[['D', 'C']].agg({'r': np.sum,
+                                          'r2': np.mean})
+        expected = pd.concat([d_sum,
+                              c_sum,
+                              d_mean,
+                              c_mean],
+                             axis=1)
+        expected.columns = MultiIndex.from_product([['r', 'r2'],
+                                                    ['D', 'C']])
+        assert_frame_equal(result, expected, check_like=True)
+
+    def test_agg_nested_dicts(self):
+
+        # API change for disallowing these types of nested dicts
+        df = DataFrame({'A': ['foo', 'bar', 'foo', 'bar',
+                              'foo', 'bar', 'foo', 'foo'],
+                        'B': ['one', 'one', 'two', 'two',
+                              'two', 'two', 'one', 'two'],
+                        'C': np.random.randn(8) + 1.0,
+                        'D': np.arange(8)})
+
+        g = df.groupby(['A', 'B'])
+
+        def f():
+            g.aggregate({'r1': {'C': ['mean', 'sum']},
+                         'r2': {'D': ['mean', 'sum']}})
+
+        self.assertRaises(SpecificationError, f)
+
+        result = g.agg({'C': {'ra': ['mean', 'std']},
+                        'D': {'rb': ['mean', 'std']}})
+        expected = pd.concat([g['C'].mean(), g['C'].std(), g['D'].mean(),
+                              g['D'].std()], axis=1)
+        expected.columns = pd.MultiIndex.from_tuples([('ra', 'mean'), (
+            'ra', 'std'), ('rb', 'mean'), ('rb', 'std')])
+        assert_frame_equal(result, expected, check_like=True)
 
     def test_multi_iter(self):
         s = Series(np.arange(6))
@@ -4333,7 +4388,7 @@ class TestGroupBy(tm.TestCase):
             expected.iloc[[0, 6, 18], 0] = np.array(
                 [24., 6., 9.], dtype='float64')
 
-            result1 = df.resample('5D', how=sum)
+            result1 = df.resample('5D') .sum()
             assert_frame_equal(result1, expected)
 
             df_sorted = df.sort_index()
@@ -4549,7 +4604,7 @@ class TestGroupBy(tm.TestCase):
         for freq in ['D', 'M', 'A', 'Q-APR']:
             expected = df.groupby('user_id')[
                 'whole_cost'].resample(
-                    freq, how='sum').dropna().reorder_levels(
+                    freq).sum().dropna().reorder_levels(
                         ['date', 'user_id']).sortlevel().astype('int64')
             expected.name = 'whole_cost'
 
@@ -5269,9 +5324,9 @@ class TestGroupBy(tm.TestCase):
         assert_frame_equal(g.apply(lambda x: x.sum()),
                            g_exp.apply(lambda x: x.sum()))
 
-        assert_frame_equal(g.resample('D'), g_exp.resample('D'))
-        assert_frame_equal(g.resample('D', how='ohlc'),
-                           g_exp.resample('D', how='ohlc'))
+        assert_frame_equal(g.resample('D').mean(), g_exp.resample('D').mean())
+        assert_frame_equal(g.resample('D').ohlc(),
+                           g_exp.resample('D').ohlc())
 
         assert_frame_equal(g.filter(lambda x: len(x) == 3),
                            g_exp.filter(lambda x: len(x) == 3))
@@ -5471,7 +5526,7 @@ class TestGroupBy(tm.TestCase):
              'cumprod', 'tail', 'resample', 'cummin', 'fillna', 'cumsum',
              'cumcount', 'all', 'shift', 'skew', 'bfill', 'ffill', 'take',
              'tshift', 'pct_change', 'any', 'mad', 'corr', 'corrwith', 'cov',
-             'dtypes', 'diff', 'idxmax', 'idxmin'])
+             'dtypes', 'ndim', 'diff', 'idxmax', 'idxmin'])
         self.assertEqual(results, expected)
 
     def test_lexsort_indexer(self):

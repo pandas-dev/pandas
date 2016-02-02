@@ -68,7 +68,7 @@ Resample:
 .. ipython:: python
 
    # Daily means
-   ts.resample('D', how='mean')
+   ts.resample('D').mean()
 
 
 .. _timeseries.overview:
@@ -1211,6 +1211,11 @@ Converting to Python datetimes
 Resampling
 ----------
 
+.. warning::
+
+   The interface to ``.resample`` has changed in 0.18.0 to be more groupby-like and hence more flexible.
+   See the :ref:`whatsnew docs <whatsnew_0180.breaking.resample>` for a comparison with prior versions.
+
 Pandas has a simple, powerful, and efficient functionality for
 performing resampling operations during frequency conversion (e.g., converting
 secondly data into 5-minutely data). This is extremely common in, but not
@@ -1226,7 +1231,7 @@ See some :ref:`cookbook examples <cookbook.resample>` for some advanced strategi
 
    ts = Series(randint(0, 500, len(rng)), index=rng)
 
-   ts.resample('5Min', how='sum')
+   ts.resample('5Min').sum()
 
 The ``resample`` function is very flexible and allows you to specify many
 different parameters to control the frequency conversion and resampling
@@ -1237,11 +1242,11 @@ an array and produces aggregated values:
 
 .. ipython:: python
 
-   ts.resample('5Min') # default is mean
+   ts.resample('5Min').mean()
 
-   ts.resample('5Min', how='ohlc')
+   ts.resample('5Min').ohlc()
 
-   ts.resample('5Min', how=np.max)
+   ts.resample('5Min').max()
 
 Any function available via :ref:`dispatching <groupby.dispatch>` can be given to
 the ``how`` parameter by name, including ``sum``, ``mean``, ``std``, ``sem``,
@@ -1252,9 +1257,9 @@ end of the interval is closed:
 
 .. ipython:: python
 
-   ts.resample('5Min', closed='right')
+   ts.resample('5Min', closed='right').mean()
 
-   ts.resample('5Min', closed='left')
+   ts.resample('5Min', closed='left').mean()
 
 Parameters like ``label`` and ``loffset`` are used to manipulate the resulting
 labels. ``label`` specifies whether the result is labeled with the beginning or
@@ -1263,11 +1268,11 @@ labels.
 
 .. ipython:: python
 
-   ts.resample('5Min') # by default label='right'
+   ts.resample('5Min').mean() # by default label='right'
 
-   ts.resample('5Min', label='left')
+   ts.resample('5Min', label='left').mean()
 
-   ts.resample('5Min', label='left', loffset='1s')
+   ts.resample('5Min', label='left', loffset='1s').mean()
 
 The ``axis`` parameter can be set to 0 or 1 and allows you to resample the
 specified axis for a DataFrame.
@@ -1284,18 +1289,17 @@ frequency periods.
 Up Sampling
 ~~~~~~~~~~~
 
-For upsampling, the ``fill_method`` and ``limit`` parameters can be specified
-to interpolate over the gaps that are created:
+For upsampling, you can specify a way to upsample and the ``limit`` parameter to interpolate over the gaps that are created:
 
 .. ipython:: python
 
    # from secondly to every 250 milliseconds
 
-   ts[:2].resample('250L')
+   ts[:2].resample('250L').asfreq()
 
-   ts[:2].resample('250L', fill_method='pad')
+   ts[:2].resample('250L').ffill()
 
-   ts[:2].resample('250L', fill_method='pad', limit=2)
+   ts[:2].resample('250L').ffill(limit=2)
 
 Sparse Resampling
 ~~~~~~~~~~~~~~~~~
@@ -1317,7 +1321,7 @@ If we want to resample to the full range of the series
 
 .. ipython:: python
 
-    ts.resample('3T',how='sum')
+    ts.resample('3T').sum()
 
 We can instead only resample those groups where we have points as follows:
 
@@ -1332,6 +1336,74 @@ We can instead only resample those groups where we have points as follows:
         return Timestamp((t.value // freq.delta.value) * freq.delta.value)
 
     ts.groupby(partial(round, freq='3T')).sum()
+
+Aggregation
+~~~~~~~~~~~
+
+Similar to :ref:`groupby aggregates <groupby.aggregate>` and the :ref:`window functions <stats.aggregate>`, a ``Resampler`` can be selectively
+resampled.
+
+Resampling a ``DataFrame``, the default will be to act on all columns with the same function.
+
+.. ipython:: python
+
+   df = pd.DataFrame(np.random.randn(1000, 3),
+                     index=pd.date_range('1/1/2012', freq='S', periods=1000),
+                     columns=['A', 'B', 'C'])
+   r = df.resample('3T')
+   r.mean()
+
+We can select a specific column or columns using standard getitem.
+
+.. ipython:: python
+
+   r['A'].mean()
+
+   r[['A','B']].mean()
+
+You can pass a list or dict of functions to do aggregation with, outputting a DataFrame:
+
+.. ipython:: python
+
+   r['A'].agg([np.sum, np.mean, np.std])
+
+If a dict is passed, the keys will be used to name the columns. Otherwise the
+function's name (stored in the function object) will be used.
+
+.. ipython:: python
+
+   r['A'].agg({'result1' : np.sum,
+               'result2' : np.mean})
+
+On a resampled DataFrame, you can pass a list of functions to apply to each
+column, which produces an aggregated result with a hierarchical index:
+
+.. ipython:: python
+
+   r.agg([np.sum, np.mean])
+
+By passing a dict to ``aggregate`` you can apply a different aggregation to the
+columns of a DataFrame:
+
+.. ipython:: python
+   :okexcept:
+
+   r.agg({'A' : np.sum,
+          'B' : lambda x: np.std(x, ddof=1)})
+
+The function names can also be strings. In order for a string to be valid it
+must be implemented on the Resampled object
+
+.. ipython:: python
+
+   r.agg({'A' : 'sum', 'B' : 'std'})
+
+Furthermore, you can also specify multiple aggregation functions for each column separately.
+
+.. ipython:: python
+
+   r.agg({'A' : ['sum','std'], 'B' : ['mean','std'] })
+
 
 .. _timeseries.periods:
 

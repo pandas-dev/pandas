@@ -24,7 +24,7 @@ from pandas.core.common import (is_list_like, notnull, isnull,
                                 is_integer_dtype, is_categorical_dtype,
                                 is_object_dtype, is_timedelta64_dtype,
                                 is_datetime64_dtype, is_datetime64tz_dtype,
-                                is_bool_dtype, PerformanceWarning)
+                                is_bool_dtype, PerformanceWarning, ABCSeries)
 
 # -----------------------------------------------------------------------------
 # Functions that add arithmetic methods to objects, given arithmetic factory
@@ -274,7 +274,7 @@ class _TimeOp(object):
     def __init__(self, left, right, name, na_op):
 
         # need to make sure that we are aligning the data
-        if isinstance(left, pd.Series) and isinstance(right, pd.Series):
+        if isinstance(left, ABCSeries) and isinstance(right, ABCSeries):
             left, right = left.align(right, copy=False)
 
         lvalues = self._convert_to_array(left, name=name)
@@ -412,9 +412,9 @@ class _TimeOp(object):
                 values = pd.DatetimeIndex(values)
             # datetime array with tz
             elif com.is_datetimetz(values):
-                if isinstance(values, pd.Series):
+                if isinstance(values, ABCSeries):
                     values = values._values
-            elif not (isinstance(values, (np.ndarray, pd.Series)) and
+            elif not (isinstance(values, (np.ndarray, ABCSeries)) and
                       is_datetime64_dtype(values)):
                 values = tslib.array_to_datetime(values)
         elif inferred_type in ('timedelta', 'timedelta64'):
@@ -579,7 +579,7 @@ def _arith_method_SERIES(op, name, str_rep, fill_zeros=None, default_axis=None,
             result = expressions.evaluate(op, str_rep, x, y,
                                           raise_on_error=True, **eval_kwargs)
         except TypeError:
-            if isinstance(y, (np.ndarray, pd.Series, pd.Index)):
+            if isinstance(y, (np.ndarray, ABCSeries, pd.Index)):
                 dtype = np.find_common_type([x.dtype, y.dtype], [])
                 result = np.empty(x.size, dtype=dtype)
                 mask = notnull(x) & notnull(y)
@@ -619,7 +619,7 @@ def _arith_method_SERIES(op, name, str_rep, fill_zeros=None, default_axis=None,
             wrap_results = time_converted.wrap_results
             na_op = time_converted.na_op
 
-        if isinstance(rvalues, pd.Series):
+        if isinstance(rvalues, ABCSeries):
             rindex = getattr(rvalues, 'index', rvalues)
             name = _maybe_match_name(left, rvalues)
             lvalues = getattr(lvalues, 'values', lvalues)
@@ -672,7 +672,7 @@ def _comp_method_SERIES(op, name, str_rep, masker=False):
             if isinstance(y, list):
                 y = lib.list_to_object_array(y)
 
-            if isinstance(y, (np.ndarray, pd.Series)):
+            if isinstance(y, (np.ndarray, ABCSeries)):
                 if not is_object_dtype(y.dtype):
                     result = lib.vec_compare(x, y.astype(np.object_), op)
                 else:
@@ -727,7 +727,7 @@ def _comp_method_SERIES(op, name, str_rep, masker=False):
         if axis is not None:
             self._get_axis_number(axis)
 
-        if isinstance(other, pd.Series):
+        if isinstance(other, ABCSeries):
             name = _maybe_match_name(self, other)
             if len(self) != len(other):
                 raise ValueError('Series lengths must match to compare')
@@ -785,7 +785,7 @@ def _bool_method_SERIES(op, name, str_rep):
             if isinstance(y, list):
                 y = lib.list_to_object_array(y)
 
-            if isinstance(y, (np.ndarray, pd.Series)):
+            if isinstance(y, (np.ndarray, ABCSeries)):
                 if (is_bool_dtype(x.dtype) and is_bool_dtype(y.dtype)):
                     result = op(x, y)  # when would this be hit?
                 else:
@@ -812,7 +812,7 @@ def _bool_method_SERIES(op, name, str_rep):
         fill_int = lambda x: x.fillna(0)
         fill_bool = lambda x: x.fillna(False).astype(bool)
 
-        if isinstance(other, pd.Series):
+        if isinstance(other, ABCSeries):
             name = _maybe_match_name(self, other)
             other = other.reindex_like(self)
             is_other_int_dtype = is_integer_dtype(other.dtype)
@@ -923,9 +923,9 @@ def _flex_method_SERIES(op, name, str_rep, default_axis=None, fill_zeros=None,
     def flex_wrapper(self, other, level=None, fill_value=None, axis=0):
         # validate axis
         self._get_axis_number(axis)
-        if isinstance(other, pd.Series):
+        if isinstance(other, ABCSeries):
             return self._binop(other, op, level=level, fill_value=fill_value)
-        elif isinstance(other, (np.ndarray, pd.Series, list, tuple)):
+        elif isinstance(other, (np.ndarray, ABCSeries, list, tuple)):
             if len(other) != len(self):
                 raise ValueError('Lengths must be equal')
             return self._binop(self._constructor(other, self.index), op,
@@ -981,7 +981,7 @@ def _arith_method_FRAME(op, name, str_rep=None, default_axis='columns',
                                           raise_on_error=True, **eval_kwargs)
         except TypeError:
             xrav = x.ravel()
-            if isinstance(y, (np.ndarray, pd.Series)):
+            if isinstance(y, (np.ndarray, ABCSeries)):
                 dtype = np.find_common_type([x.dtype, y.dtype], [])
                 result = np.empty(x.size, dtype=dtype)
                 yrav = y.ravel()
@@ -1053,7 +1053,7 @@ def _arith_method_FRAME(op, name, str_rep=None, default_axis='columns',
     def f(self, other, axis=default_axis, level=None, fill_value=None):
         if isinstance(other, pd.DataFrame):  # Another DataFrame
             return self._combine_frame(other, na_op, fill_value, level)
-        elif isinstance(other, pd.Series):
+        elif isinstance(other, ABCSeries):
             return self._combine_series(other, na_op, fill_value, axis, level)
         elif isinstance(other, (list, tuple)):
             if axis is not None and self._get_axis_name(axis) == 'index':
@@ -1102,7 +1102,7 @@ def _flex_comp_method_FRAME(op, name, str_rep=None, default_axis='columns',
         except TypeError:
             xrav = x.ravel()
             result = np.empty(x.size, dtype=x.dtype)
-            if isinstance(y, (np.ndarray, pd.Series)):
+            if isinstance(y, (np.ndarray, ABCSeries)):
                 yrav = y.ravel()
                 mask = notnull(xrav) & notnull(yrav)
                 result[mask] = op(np.array(list(xrav[mask])),
@@ -1124,7 +1124,7 @@ def _flex_comp_method_FRAME(op, name, str_rep=None, default_axis='columns',
         if isinstance(other, pd.DataFrame):  # Another DataFrame
             return self._flex_compare_frame(other, na_op, str_rep, level)
 
-        elif isinstance(other, pd.Series):
+        elif isinstance(other, ABCSeries):
             return self._combine_series(other, na_op, None, axis, level)
 
         elif isinstance(other, (list, tuple)):
@@ -1167,7 +1167,7 @@ def _comp_method_FRAME(func, name, str_rep, masker=False):
     def f(self, other):
         if isinstance(other, pd.DataFrame):  # Another DataFrame
             return self._compare_frame(other, func, str_rep)
-        elif isinstance(other, pd.Series):
+        elif isinstance(other, ABCSeries):
             return self._combine_series_infer(other, func)
         else:
 
@@ -1253,7 +1253,7 @@ def _comp_method_PANEL(op, name, str_rep=None, masker=False):
         if isinstance(other, self._constructor):
             return self._compare_constructor(other, na_op)
         elif isinstance(other, (self._constructor_sliced, pd.DataFrame,
-                                pd.Series)):
+                                ABCSeries)):
             raise Exception("input needs alignment for this object [%s]" %
                             self._constructor)
         else:

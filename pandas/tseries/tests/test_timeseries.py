@@ -2198,9 +2198,9 @@ class TestTimeSeries(tm.TestCase):
         s[10:30] = np.nan
         expected = Series([34.5, 79.5], index=[Period(
             '2013-01-01 00:00', 'T'), Period('2013-01-01 00:01', 'T')])
-        result = s.to_period().resample('T', kind='period')
+        result = s.to_period().resample('T', kind='period').mean()
         assert_series_equal(result, expected)
-        result2 = s.resample('T', kind='period')
+        result2 = s.resample('T', kind='period').mean()
         assert_series_equal(result2, expected)
 
     def test_period_resample_with_local_timezone_pytz(self):
@@ -2220,7 +2220,8 @@ class TestTimeSeries(tm.TestCase):
 
         series = pd.Series(1, index=index)
         series = series.tz_convert(local_timezone)
-        result = series.resample('D', kind='period')
+        result = series.resample('D', kind='period').mean()
+
         # Create the expected series
         # Index is moved back a day with the timezone conversion from UTC to
         # Pacific
@@ -2245,7 +2246,8 @@ class TestTimeSeries(tm.TestCase):
 
         series = pd.Series(1, index=index)
         series = series.tz_convert(local_timezone)
-        result = series.resample('D', kind='period')
+        result = series.resample('D', kind='period').mean()
+
         # Create the expected series
         # Index is moved back a day with the timezone conversion from UTC to
         # Pacific

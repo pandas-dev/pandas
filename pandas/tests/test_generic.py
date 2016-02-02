@@ -696,13 +696,13 @@ class TestSeries(tm.TestCase, Generic):
         ts = Series(np.random.rand(1000),
                     index=date_range('20130101', periods=1000, freq='s'),
                     name='foo')
-        result = ts.resample('1T')
+        result = ts.resample('1T').mean()
         self.check_metadata(ts, result)
 
-        result = ts.resample('1T', how='min')
+        result = ts.resample('1T').min()
         self.check_metadata(ts, result)
 
-        result = ts.resample('1T', how=lambda x: x.sum())
+        result = ts.resample('1T').apply(lambda x: x.sum())
         self.check_metadata(ts, result)
 
         _metadata = Series._metadata

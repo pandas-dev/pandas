@@ -1139,7 +1139,7 @@ class ExcelWriterBase(SharedItems):
         _skip_if_no_xlrd()
 
         frame = self.tsframe
-        xp = frame.resample('M', kind='period')
+        xp = frame.resample('M', kind='period').mean()
 
         with ensure_clean(self.ext) as path:
             xp.to_excel(path, 'sht1')
