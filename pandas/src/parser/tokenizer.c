@@ -2225,10 +2225,12 @@ double xstrtod(const char *str, char **endptr, char decimal,
     }
 
     // Process string of digits
+    num_digits = 0;
     n = 0;
     while (isdigit(*p))
     {
       n = n * 10 + (*p - '0');
+      num_digits++;
       p++;
     }
 
@@ -2236,6 +2238,10 @@ double xstrtod(const char *str, char **endptr, char decimal,
       exponent -= n;
     else
       exponent += n;
+
+    // If no digits, after the 'e'/'E', un-consume it
+    if (num_digits == 0)
+        p--;
   }
 
 
@@ -2396,10 +2402,12 @@ double precise_xstrtod(const char *str, char **endptr, char decimal,
         }
 
         // Process string of digits
+        num_digits = 0;
         n = 0;
         while (isdigit(*p))
         {
             n = n * 10 + (*p - '0');
+            num_digits++;
             p++;
         }
 
@@ -2407,6 +2415,10 @@ double precise_xstrtod(const char *str, char **endptr, char decimal,
             exponent -= n;
         else
             exponent += n;
+
+        // If no digits, after the 'e'/'E', un-consume it
+        if (num_digits == 0)
+            p--;
     }
 
     if (exponent > 308)

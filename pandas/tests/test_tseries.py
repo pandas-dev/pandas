@@ -337,6 +337,13 @@ def test_convert_infs():
     assert (result.dtype == np.float64)
 
 
+def test_scientific_no_exponent():
+    # See PR 12215
+    arr = np.array(['42E', '2E', '99e', '6e'], dtype='O')
+    result = lib.maybe_convert_numeric(arr, set(), False, True)
+    assert np.all(np.isnan(result))
+
+
 def test_convert_objects_ints():
     # test that we can detect many kinds of integers
     dtypes = ['i1', 'i2', 'i4', 'i8', 'u1', 'u2', 'u4', 'u8']
