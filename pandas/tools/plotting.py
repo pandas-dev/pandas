@@ -135,7 +135,7 @@ if _mpl_ge_1_5_0():
     # Compat with mp 1.5, which uses cycler.
     import cycler
     colors = mpl_stylesheet.pop('axes.color_cycle')
-    mpl_stylesheet['axes.prop_cycle'] = cycler.cycler('color_cycle', colors)
+    mpl_stylesheet['axes.prop_cycle'] = cycler.cycler('color', colors)
 
 
 def _get_standard_kind(kind):
