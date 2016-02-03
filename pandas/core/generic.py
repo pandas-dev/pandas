@@ -2746,14 +2746,11 @@ class NDFrame(PandasObject):
 
         See also
         --------
-        pandas.to_datetime
-            Convert argument to datetime.
+        pandas.to_datetime : Convert argument to datetime.
 
-        pandas.to_timedelta 
-            Convert argument to timedelta.
+        pandas.to_timedelta : Convert argument to timedelta.
 
-        pandas.to_numeric
-            Return a fixed frequency timedelta index,
+        pandas.to_numeric : Return a fixed frequency timedelta index,
             with day as the default.
 
         Returns
