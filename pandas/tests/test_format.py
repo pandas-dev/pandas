@@ -204,7 +204,7 @@ class TestDataFrameFormatting(tm.TestCase):
             self.assertEqual(repr(df), '     0    1\n0  0.0  0.5\n1  0.5  0.0')
 
         with option_context("display.chop_threshold", 0.6):
-            self.assertEqual(repr(df), '   0  1\n0  0  0\n1  0  0')
+            self.assertEqual(repr(df), '     0    1\n0  0.0  0.0\n1  0.0  0.0')
 
         with option_context("display.chop_threshold", None):
             self.assertEqual(repr(df), '     0    1\n0  0.1  0.5\n1  0.5 -0.1')
@@ -753,7 +753,7 @@ class TestDataFrameFormatting(tm.TestCase):
 
     def test_to_html_unicode(self):
         df = DataFrame({u('\u03c3'): np.arange(10.)})
-        expected = u'<table border="1" class="dataframe">\n  <thead>\n    <tr style="text-align: right;">\n      <th></th>\n      <th>\u03c3</th>\n    </tr>\n  </thead>\n  <tbody>\n    <tr>\n      <th>0</th>\n      <td>0</td>\n    </tr>\n    <tr>\n      <th>1</th>\n      <td>1</td>\n    </tr>\n    <tr>\n      <th>2</th>\n      <td>2</td>\n    </tr>\n    <tr>\n      <th>3</th>\n      <td>3</td>\n    </tr>\n    <tr>\n      <th>4</th>\n      <td>4</td>\n    </tr>\n    <tr>\n      <th>5</th>\n      <td>5</td>\n    </tr>\n    <tr>\n      <th>6</th>\n      <td>6</td>\n    </tr>\n    <tr>\n      <th>7</th>\n      <td>7</td>\n    </tr>\n    <tr>\n      <th>8</th>\n      <td>8</td>\n    </tr>\n    <tr>\n      <th>9</th>\n      <td>9</td>\n    </tr>\n  </tbody>\n</table>'
+        expected = u'<table border="1" class="dataframe">\n  <thead>\n    <tr style="text-align: right;">\n      <th></th>\n      <th>\u03c3</th>\n    </tr>\n  </thead>\n  <tbody>\n    <tr>\n      <th>0</th>\n      <td>0.0</td>\n    </tr>\n    <tr>\n      <th>1</th>\n      <td>1.0</td>\n    </tr>\n    <tr>\n      <th>2</th>\n      <td>2.0</td>\n    </tr>\n    <tr>\n      <th>3</th>\n      <td>3.0</td>\n    </tr>\n    <tr>\n      <th>4</th>\n      <td>4.0</td>\n    </tr>\n    <tr>\n      <th>5</th>\n      <td>5.0</td>\n    </tr>\n    <tr>\n      <th>6</th>\n      <td>6.0</td>\n    </tr>\n    <tr>\n      <th>7</th>\n      <td>7.0</td>\n    </tr>\n    <tr>\n      <th>8</th>\n      <td>8.0</td>\n    </tr>\n    <tr>\n      <th>9</th>\n      <td>9.0</td>\n    </tr>\n  </tbody>\n</table>'
         self.assertEqual(df.to_html(), expected)
         df = DataFrame({'A': [u('\u03c3')]})
         expected = u'<table border="1" class="dataframe">\n  <thead>\n    <tr style="text-align: right;">\n      <th></th>\n      <th>A</th>\n    </tr>\n  </thead>\n  <tbody>\n    <tr>\n      <th>0</th>\n      <td>\u03c3</td>\n    </tr>\n  </tbody>\n</table>'
@@ -1916,12 +1916,12 @@ c  10  11  12  13  14\
                         'B': [np.nan, 'foo', 'foooo', 'fooooo', 'bar']})
         result = df.to_string()
 
-        expected = ('    A       B\n'
-                    '0 NaN     NaN\n'
-                    '1  -1     foo\n'
-                    '2  -2   foooo\n'
-                    '3   3  fooooo\n'
-                    '4   4     bar')
+        expected = ('     A       B\n'
+                    '0  NaN     NaN\n'
+                    '1 -1.0     foo\n'
+                    '2 -2.0   foooo\n'
+                    '3  3.0  fooooo\n'
+                    '4  4.0     bar')
         self.assertEqual(result, expected)
 
     def test_to_string_line_width(self):
@@ -3760,8 +3760,8 @@ class TestFloatArrayFormatter(tm.TestCase):
     def test_format(self):
         obj = fmt.FloatArrayFormatter(np.array([12, 0], dtype=np.float64))
         result = obj.get_result()
-        self.assertEqual(result[0], " 12")
-        self.assertEqual(result[1], "  0")
+        self.assertEqual(result[0], " 12.0")
+        self.assertEqual(result[1], "  0.0")
 
     def test_output_significant_digits(self):
         # Issue #9764
@@ -3793,15 +3793,15 @@ class TestFloatArrayFormatter(tm.TestCase):
     def test_too_long(self):
         # GH 10451
         with pd.option_context('display.precision', 4):
-            # need both a number > 1e8 and something that normally formats to
+            # need both a number > 1e6 and something that normally formats to
             # having length > display.precision + 6
             df = pd.DataFrame(dict(x=[12345.6789]))
             self.assertEqual(str(df), '            x\n0  12345.6789')
-            df = pd.DataFrame(dict(x=[2e8]))
-            self.assertEqual(str(df), '           x\n0  200000000')
-            df = pd.DataFrame(dict(x=[12345.6789, 2e8]))
+            df = pd.DataFrame(dict(x=[2e6]))
+            self.assertEqual(str(df), '           x\n0  2000000.0')
+            df = pd.DataFrame(dict(x=[12345.6789, 2e6]))
             self.assertEqual(
-                str(df), '            x\n0  1.2346e+04\n1  2.0000e+08')
+                str(df), '            x\n0  1.2346e+04\n1  2.0000e+06')
 
 
 class TestRepr_timedelta64(tm.TestCase):
