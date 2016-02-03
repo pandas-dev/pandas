@@ -185,6 +185,48 @@ In addition, ``.round()``, ``.floor()`` and ``.ceil()`` will be available thru t
    s
    s.dt.round('D')
 
+
+Formatting of integer in FloatIndex
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Integers in ``FloatIndex``, e.g. 1., are now formatted with a decimal point
+and a ``0`` digit, e.g. ``1.0`` (:issue:`11713`)
+
+This change affects the display in jupyter, but also the output of IO methods
+like ``.to_csv`` or ``.to_html``
+
+Previous Behavior:
+
+.. code-block:: python
+
+   In [2]: s = Series([1,2,3], index=np.arange(3.))
+
+   In [3]: s
+   Out[3]:
+   0    1
+   1    2
+   2    3
+   dtype: int64
+
+   In [4]: s.index
+   Out[4]: Float64Index([0.0, 1.0, 2.0], dtype='float64')
+
+   In [5]: print(s.to_csv(path=None))
+   0,1
+   1,2
+   2,3
+
+
+New Behavior:
+
+.. ipython:: python
+
+   s = Series([1,2,3], index=np.arange(3.))
+   s
+   s.index
+   print(s.to_csv(path=None))
+
+
 .. _whatsnew_0180.enhancements.other:
 
 Other enhancements

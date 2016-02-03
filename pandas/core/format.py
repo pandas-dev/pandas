@@ -2115,7 +2115,9 @@ class FloatArrayFormatter(GenericArrayFormatter):
             abs_vals = np.abs(self.values)
 
             # this is pretty arbitrary for now
-            has_large_values = (abs_vals > 1e8).any()
+            # large values: more that 8 characters including decimal symbol
+            # and first digit, hence > 1e6
+            has_large_values = (abs_vals > 1e6).any()
             has_small_values = ((abs_vals < 10**(-self.digits)) &
                                 (abs_vals > 0)).any()
 
@@ -2367,7 +2369,7 @@ def _make_fixed_width(strings, justify='right', minimum=None, adj=None):
 
 def _trim_zeros(str_floats, na_rep='NaN'):
     """
-    Trims zeros and decimal points.
+    Trims zeros, leaving just one before the decimal points if need be.
     """
     trimmed = str_floats
 
@@ -2379,8 +2381,8 @@ def _trim_zeros(str_floats, na_rep='NaN'):
     while _cond(trimmed):
         trimmed = [x[:-1] if x != na_rep else x for x in trimmed]
 
-    # trim decimal points
-    return [x[:-1] if x.endswith('.') and x != na_rep else x for x in trimmed]
+    # leave one 0 after the decimal points if need be.
+    return [x + "0" if x.endswith('.') and x != na_rep else x for x in trimmed]
 
 
 def single_column_table(column, align=None, style=None):
