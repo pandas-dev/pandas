@@ -483,11 +483,11 @@ optional ``level`` parameter which applies only if the object has a
     ``mode``, Mode
     ``abs``, Absolute Value
     ``prod``, Product of values
-    ``std``, Unbiased standard deviation
+    ``std``, Bessel-corrected sample standard deviation
     ``var``, Unbiased variance
-    ``sem``, Unbiased standard error of the mean
-    ``skew``, Unbiased skewness (3rd moment)
-    ``kurt``, Unbiased kurtosis (4th moment)
+    ``sem``, Standard error of the mean
+    ``skew``, Sample skewness (3rd moment)
+    ``kurt``, Sample kurtosis (4th moment)
     ``quantile``, Sample quantile (value at %)
     ``cumsum``, Cumulative sum
     ``cumprod``, Cumulative product

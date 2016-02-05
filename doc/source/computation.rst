@@ -309,10 +309,10 @@ We provide a number of the common statistical functions:
     :meth:`~Rolling.median`, Arithmetic median of values
     :meth:`~Rolling.min`, Minimum
     :meth:`~Rolling.max`, Maximum
-    :meth:`~Rolling.std`, Unbiased standard deviation
+    :meth:`~Rolling.std`, Bessel-corrected sample standard deviation
     :meth:`~Rolling.var`, Unbiased variance
-    :meth:`~Rolling.skew`, Unbiased skewness (3rd moment)
-    :meth:`~Rolling.kurt`, Unbiased kurtosis (4th moment)
+    :meth:`~Rolling.skew`, Sample skewness (3rd moment)
+    :meth:`~Rolling.kurt`, Sample kurtosis (4th moment)
     :meth:`~Rolling.quantile`, Sample quantile (value at %)
     :meth:`~Rolling.apply`, Generic apply
     :meth:`~Rolling.cov`, Unbiased covariance (binary)
