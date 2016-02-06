@@ -217,6 +217,12 @@ def _skip_if_no_scipy():
         import nose
         raise nose.SkipTest('scipy.interpolate missing')
 
+def _skip_if_scipy_0_17():
+    import scipy
+    v = scipy.__version__
+    if v >= LooseVersion("0.17.0"):
+        import nose
+        raise nose.SkipTest("scipy 0.17")
 
 def _skip_if_no_pytz():
     try:

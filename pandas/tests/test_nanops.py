@@ -380,6 +380,7 @@ class TestnanopsDataFrame(tm.TestCase):
 
     def test_nansem(self):
         tm.skip_if_no_package('scipy.stats')
+        tm._skip_if_scipy_0_17()
         from scipy.stats import sem
         self.check_funs_ddof(nanops.nansem, sem, allow_complex=False,
                              allow_str=False, allow_date=False,
@@ -439,6 +440,7 @@ class TestnanopsDataFrame(tm.TestCase):
 
     def test_nanskew(self):
         tm.skip_if_no_package('scipy.stats')
+        tm._skip_if_scipy_0_17()
         from scipy.stats import skew
         func = partial(self._skew_kurt_wrap, func=skew)
         self.check_funs(nanops.nanskew, func, allow_complex=False,
@@ -446,6 +448,7 @@ class TestnanopsDataFrame(tm.TestCase):
 
     def test_nankurt(self):
         tm.skip_if_no_package('scipy.stats')
+        tm._skip_if_scipy_0_17()
         from scipy.stats import kurtosis
         func1 = partial(kurtosis, fisher=True)
         func = partial(self._skew_kurt_wrap, func=func1)
