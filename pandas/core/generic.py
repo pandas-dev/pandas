@@ -4783,7 +4783,7 @@ class NDFrame(PandasObject):
             nanops.nanvar)
         cls.std = _make_stat_function_ddof(
             'std', name, name2, axis_descr,
-            "Return unbiased standard deviation over requested axis."
+            "Return sample standard deviation over requested axis."
             "\n\nNormalized by N-1 by default. This can be changed using the "
             "ddof argument",
             nanops.nanstd)
