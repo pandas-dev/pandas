@@ -2034,7 +2034,7 @@ class NDFrame(PandasObject):
         --------
         >>> df.reindex_axis(['A', 'B', 'C'], axis=1)
 
-        See also
+        See Also
         --------
         reindex, reindex_like
 
@@ -2740,6 +2740,8 @@ class NDFrame(PandasObject):
     def convert_objects(self, convert_dates=True, convert_numeric=False,
                         convert_timedeltas=True, copy=True):
         """
+        Deprecated.
+
         Attempt to infer better dtype for object columns
 
         Parameters
@@ -2757,6 +2759,13 @@ class NDFrame(PandasObject):
             If True, return a copy even if no copy is necessary (e.g. no
             conversion was done). Note: This is meant for internal use, and
             should not be confused with inplace.
+
+        See Also
+        --------
+        pandas.to_datetime : Convert argument to datetime.
+        pandas.to_timedelta : Convert argument to timedelta.
+        pandas.to_numeric : Return a fixed frequency timedelta index,
+            with day as the default.
 
         Returns
         -------
@@ -2808,7 +2817,7 @@ class NDFrame(PandasObject):
             or the string 'infer' which will try to downcast to an appropriate
             equal type (e.g. float64 to int64 if possible)
 
-        See also
+        See Also
         --------
         reindex, asfreq
 
@@ -2988,7 +2997,7 @@ class NDFrame(PandasObject):
             The method to use when for replacement, when ``to_replace`` is a
             ``list``.
 
-        See also
+        See Also
         --------
         NDFrame.reindex
         NDFrame.asfreq
@@ -3299,7 +3308,7 @@ class NDFrame(PandasObject):
         """
         Return a boolean same-sized object indicating if the values are null.
 
-        See also
+        See Also
         --------
         notnull : boolean inverse of isnull
         """
@@ -3309,7 +3318,7 @@ class NDFrame(PandasObject):
         """Return a boolean same-sized object indicating if the values are
         not null.
 
-        See also
+        See Also
         --------
         isnull : boolean inverse of notnull
         """
@@ -3387,7 +3396,7 @@ class NDFrame(PandasObject):
         axis : int or string axis name, optional
             Align object with threshold along the given axis.
 
-        See also
+        See Also
         --------
         clip
 
@@ -3411,7 +3420,7 @@ class NDFrame(PandasObject):
         axis : int or string axis name, optional
             Align object with threshold along the given axis.
 
-        See also
+        See Also
         --------
         clip
 
@@ -4571,7 +4580,7 @@ class NDFrame(PandasObject):
 
         The include, exclude arguments are ignored for Series.
 
-        See also
+        See Also
         --------
         DataFrame.select_dtypes
         """
