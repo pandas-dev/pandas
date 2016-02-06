@@ -6,6 +6,7 @@ import numpy as np
 from numpy import nan
 import pandas as pd
 
+from distutils.version import LooseVersion
 from pandas import (Index, Series, DataFrame, Panel, isnull,
                     date_range, period_range)
 from pandas.core.index import MultiIndex
@@ -1195,9 +1196,15 @@ class TestDataFrame(tm.TestCase, Generic):
         assert_frame_equal(result, expectedk)
 
         _skip_if_no_pchip()
+        import scipy
         result = df.interpolate(method='pchip')
         expected.ix[2, 'A'] = 3
-        expected.ix[5, 'A'] = 6.125
+
+        if LooseVersion(scipy.__version__) >= '0.17.0':
+            expected.ix[5, 'A'] = 6.0
+        else:
+            expected.ix[5, 'A'] = 6.125
+
         assert_frame_equal(result, expected)
 
     def test_interp_rowwise(self):

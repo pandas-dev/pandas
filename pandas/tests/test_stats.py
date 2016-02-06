@@ -2,6 +2,7 @@
 from pandas import compat
 import nose
 
+from distutils.version import LooseVersion
 from numpy import nan
 import numpy as np
 
@@ -47,6 +48,7 @@ class TestRank(tm.TestCase):
 
     def test_rank_methods_series(self):
         tm.skip_if_no_package('scipy', '0.13', 'scipy.stats.rankdata')
+        import scipy
         from scipy.stats import rankdata
 
         xs = np.random.randn(9)
@@ -61,10 +63,15 @@ class TestRank(tm.TestCase):
             for m in ['average', 'min', 'max', 'first', 'dense']:
                 result = ts.rank(method=m)
                 sprank = rankdata(vals, m if m != 'first' else 'ordinal')
-                tm.assert_series_equal(result, Series(sprank, index=index))
+                expected = Series(sprank, index=index)
+
+                if LooseVersion(scipy.__version__) >= '0.17.0':
+                    expected = expected.astype('float64')
+                tm.assert_series_equal(result, expected)
 
     def test_rank_methods_frame(self):
         tm.skip_if_no_package('scipy', '0.13', 'scipy.stats.rankdata')
+        import scipy
         from scipy.stats import rankdata
 
         xs = np.random.randint(0, 21, (100, 26))
@@ -81,6 +88,9 @@ class TestRank(tm.TestCase):
                         rankdata, ax, vals,
                         m if m != 'first' else 'ordinal')
                     expected = DataFrame(sprank, columns=cols)
+
+                    if LooseVersion(scipy.__version__) >= '0.17.0':
+                        expected = expected.astype('float64')
                     tm.assert_frame_equal(result, expected)
 
     def test_rank_dense_method(self):
