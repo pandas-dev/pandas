@@ -14,7 +14,7 @@ env:
 
 git:
     # for cloning
-    depth: 100
+    depth: 200
 
 matrix:
     fast_finish: true
