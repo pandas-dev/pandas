@@ -139,13 +139,15 @@ class TestSeriesOperators(TestData, tm.TestCase):
         assert_series_equal(result, expected)
 
     def test_operators(self):
-        def _check_op(series, other, op, pos_only=False):
+        def _check_op(series, other, op, pos_only=False,
+                      check_dtype=True):
             left = np.abs(series) if pos_only else series
             right = np.abs(other) if pos_only else other
 
             cython_or_numpy = op(left, right)
             python = left.combine(right, op)
-            tm.assert_almost_equal(cython_or_numpy, python)
+            tm.assert_series_equal(cython_or_numpy, python,
+                                   check_dtype=check_dtype)
 
         def check(series, other):
             simple_ops = ['add', 'sub', 'mul', 'truediv', 'floordiv', 'mod']
@@ -169,15 +171,15 @@ class TestSeriesOperators(TestData, tm.TestCase):
         check(self.ts, self.ts[::2])
         check(self.ts, 5)
 
-        def check_comparators(series, other):
-            _check_op(series, other, operator.gt)
-            _check_op(series, other, operator.ge)
-            _check_op(series, other, operator.eq)
-            _check_op(series, other, operator.lt)
-            _check_op(series, other, operator.le)
+        def check_comparators(series, other, check_dtype=True):
+            _check_op(series, other, operator.gt, check_dtype=check_dtype)
+            _check_op(series, other, operator.ge, check_dtype=check_dtype)
+            _check_op(series, other, operator.eq, check_dtype=check_dtype)
+            _check_op(series, other, operator.lt, check_dtype=check_dtype)
+            _check_op(series, other, operator.le, check_dtype=check_dtype)
 
         check_comparators(self.ts, 5)
-        check_comparators(self.ts, self.ts + 1)
+        check_comparators(self.ts, self.ts + 1, check_dtype=False)
 
     def test_operators_empty_int_corner(self):
         s1 = Series([], [], dtype=np.int32)
@@ -1245,10 +1247,14 @@ class TestSeriesOperators(TestData, tm.TestCase):
         # rpow does not work with DataFrame
         df = DataFrame({'A': self.ts})
 
-        tm.assert_almost_equal(self.ts + self.ts, self.ts + df['A'])
-        tm.assert_almost_equal(self.ts ** self.ts, self.ts ** df['A'])
-        tm.assert_almost_equal(self.ts < self.ts, self.ts < df['A'])
-        tm.assert_almost_equal(self.ts / self.ts, self.ts / df['A'])
+        tm.assert_series_equal(self.ts + self.ts, self.ts + df['A'],
+                               check_names=False)
+        tm.assert_series_equal(self.ts ** self.ts, self.ts ** df['A'],
+                               check_names=False)
+        tm.assert_series_equal(self.ts < self.ts, self.ts < df['A'],
+                               check_names=False)
+        tm.assert_series_equal(self.ts / self.ts, self.ts / df['A'],
+                               check_names=False)
 
     def test_operators_combine(self):
         def _check_fill(meth, op, a, b, fill_value=0):

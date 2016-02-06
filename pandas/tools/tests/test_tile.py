@@ -63,10 +63,10 @@ class TestCut(tm.TestCase):
 
     def test_cut_out_of_range_more(self):
         # #1511
-        s = Series([0, -1, 0, 1, -3])
+        s = Series([0, -1, 0, 1, -3], name='x')
         ind = cut(s, [0, 1], labels=False)
-        exp = [np.nan, np.nan, np.nan, 0, np.nan]
-        tm.assert_almost_equal(ind, exp)
+        exp = Series([np.nan, np.nan, np.nan, 0, np.nan], name='x')
+        tm.assert_series_equal(ind, exp)
 
     def test_labels(self):
         arr = np.tile(np.arange(0, 1.01, 0.1), 4)

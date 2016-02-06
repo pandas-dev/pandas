@@ -1580,7 +1580,7 @@ class TestMathPythonPython(tm.TestCase):
             expr = "{0}(a)".format(fn)
             got = self.eval(expr)
             expect = getattr(np, fn)(a)
-            pd.util.testing.assert_almost_equal(got, expect)
+            tm.assert_series_equal(got, expect, check_names=False)
 
     def test_binary_functions(self):
         df = DataFrame({'a': np.random.randn(10),
@@ -1601,7 +1601,7 @@ class TestMathPythonPython(tm.TestCase):
                 parser=self.parser, inplace=True)
         got = df.e
         expect = np.arctan2(np.sin(df.a), df.b)
-        pd.util.testing.assert_almost_equal(got, expect)
+        tm.assert_series_equal(got, expect, check_names=False)
 
     def test_df_arithmetic_subexpression(self):
         df = DataFrame({'a': np.random.randn(10),
@@ -1611,7 +1611,7 @@ class TestMathPythonPython(tm.TestCase):
                 parser=self.parser, inplace=True)
         got = df.e
         expect = np.sin(df.a + df.b)
-        pd.util.testing.assert_almost_equal(got, expect)
+        tm.assert_series_equal(got, expect, check_names=False)
 
     def check_result_type(self, dtype, expect_dtype):
         df = DataFrame({'a': np.random.randn(10).astype(dtype)})
@@ -1623,7 +1623,7 @@ class TestMathPythonPython(tm.TestCase):
         expect = np.sin(df.a)
         self.assertEqual(expect.dtype, got.dtype)
         self.assertEqual(expect_dtype, got.dtype)
-        pd.util.testing.assert_almost_equal(got, expect)
+        tm.assert_series_equal(got, expect, check_names=False)
 
     def test_result_types(self):
         self.check_result_type(np.int32, np.float64)

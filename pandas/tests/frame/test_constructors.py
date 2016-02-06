@@ -28,8 +28,7 @@ import pandas.lib as lib
 
 from pandas.core.dtypes import DatetimeTZDtype
 
-from pandas.util.testing import (assert_almost_equal,
-                                 assert_numpy_array_equal,
+from pandas.util.testing import (assert_numpy_array_equal,
                                  assert_series_equal,
                                  assert_frame_equal,
                                  assertRaisesRegexp)
@@ -359,7 +358,7 @@ class TestDataFrameConstructors(tm.TestCase, TestData):
         expected = [[4., 3., 2., 1.]]
         df = DataFrame({'d': [4.], 'c': [3.], 'b': [2.], 'a': [1.]},
                        columns=['d', 'c', 'b', 'a'])
-        assert_almost_equal(df.values, expected)
+        tm.assert_numpy_array_equal(df.values, expected)
 
     def test_constructor_dict_cast(self):
         # cast float tests

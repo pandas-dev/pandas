@@ -10,8 +10,7 @@ from pandas.compat import lrange
 from pandas import DataFrame, Series, Index, MultiIndex, RangeIndex
 import pandas as pd
 
-from pandas.util.testing import (assert_almost_equal,
-                                 assert_series_equal,
+from pandas.util.testing import (assert_series_equal,
                                  assert_frame_equal,
                                  assertRaisesRegexp)
 
@@ -447,7 +446,7 @@ class TestDataFrameAlterAxes(tm.TestCase, TestData):
                                            stacked.index.labels)):
             values = lev.take(lab)
             name = names[i]
-            assert_almost_equal(values, deleveled[name])
+            tm.assert_index_equal(values, Index(deleveled[name]))
 
         stacked.index.names = [None, None]
         deleveled2 = stacked.reset_index()

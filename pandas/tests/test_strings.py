@@ -127,33 +127,35 @@ class TestStringMethods(tm.TestCase):
         values = ['foo', 'foofoo', NA, 'foooofooofommmfoo']
 
         result = strings.str_count(values, 'f[o]+')
-        exp = [1, 2, NA, 4]
+        exp = Series([1, 2, NA, 4])
         tm.assert_almost_equal(result, exp)
 
         result = Series(values).str.count('f[o]+')
         tm.assertIsInstance(result, Series)
-        tm.assert_almost_equal(result, exp)
+        tm.assert_series_equal(result, exp)
 
         # mixed
         mixed = ['a', NA, 'b', True, datetime.today(), 'foo', None, 1, 2.]
         rs = strings.str_count(mixed, 'a')
-        xp = [1, NA, 0, NA, NA, 0, NA, NA, NA]
-        tm.assert_almost_equal(rs, xp)
+        xp = np.array([1, NA, 0, NA, NA, 0, NA, NA, NA])
+        tm.assert_numpy_array_equal(rs, xp)
 
         rs = Series(mixed).str.count('a')
+        xp = Series([1, NA, 0, NA, NA, 0, NA, NA, NA])
         tm.assertIsInstance(rs, Series)
-        tm.assert_almost_equal(rs, xp)
+        tm.assert_series_equal(rs, xp)
 
         # unicode
         values = [u('foo'), u('foofoo'), NA, u('foooofooofommmfoo')]
 
         result = strings.str_count(values, 'f[o]+')
-        exp = [1, 2, NA, 4]
-        tm.assert_almost_equal(result, exp)
+        exp = np.array([1, 2, NA, 4])
+        tm.assert_numpy_array_equal(result, exp)
 
         result = Series(values).str.count('f[o]+')
+        exp = Series([1, 2, NA, 4])
         tm.assertIsInstance(result, Series)
-        tm.assert_almost_equal(result, exp)
+        tm.assert_series_equal(result, exp)
 
     def test_contains(self):
         values = ['foo', NA, 'fooommm__foo', 'mmm_', 'foommm[_]+bar']
@@ -187,12 +189,12 @@ class TestStringMethods(tm.TestCase):
         # mixed
         mixed = ['a', NA, 'b', True, datetime.today(), 'foo', None, 1, 2.]
         rs = strings.str_contains(mixed, 'o')
-        xp = [False, NA, False, NA, NA, True, NA, NA, NA]
+        xp = Series([False, NA, False, NA, NA, True, NA, NA, NA])
         tm.assert_almost_equal(rs, xp)
 
         rs = Series(mixed).str.contains('o')
         tm.assertIsInstance(rs, Series)
-        tm.assert_almost_equal(rs, xp)
+        tm.assert_series_equal(rs, xp)
 
         # unicode
         values = [u('foo'), NA, u('fooommm__foo'), u('mmm_')]
@@ -227,12 +229,12 @@ class TestStringMethods(tm.TestCase):
         # mixed
         mixed = ['a', NA, 'b', True, datetime.today(), 'foo', None, 1, 2.]
         rs = strings.str_startswith(mixed, 'f')
-        xp = [False, NA, False, NA, NA, True, NA, NA, NA]
+        xp = Series([False, NA, False, NA, NA, True, NA, NA, NA])
         tm.assert_almost_equal(rs, xp)
 
         rs = Series(mixed).str.startswith('f')
         tm.assertIsInstance(rs, Series)
-        tm.assert_almost_equal(rs, xp)
+        tm.assert_series_equal(rs, xp)
 
         # unicode
         values = Series([u('om'), NA, u('foo_nom'), u('nom'), u('bar_foo'), NA,
@@ -255,12 +257,12 @@ class TestStringMethods(tm.TestCase):
         # mixed
         mixed = ['a', NA, 'b', True, datetime.today(), 'foo', None, 1, 2.]
         rs = strings.str_endswith(mixed, 'f')
-        xp = [False, NA, False, NA, NA, False, NA, NA, NA]
+        xp = Series([False, NA, False, NA, NA, False, NA, NA, NA])
         tm.assert_almost_equal(rs, xp)
 
         rs = Series(mixed).str.endswith('f')
         tm.assertIsInstance(rs, Series)
-        tm.assert_almost_equal(rs, xp)
+        tm.assert_series_equal(rs, xp)
 
         # unicode
         values = Series([u('om'), NA, u('foo_nom'), u('nom'), u('bar_foo'), NA,
@@ -310,9 +312,9 @@ class TestStringMethods(tm.TestCase):
                         2.])
         mixed = mixed.str.upper()
         rs = Series(mixed).str.lower()
-        xp = ['a', NA, 'b', NA, NA, 'foo', NA, NA, NA]
+        xp = Series(['a', NA, 'b', NA, NA, 'foo', NA, NA, NA])
         tm.assertIsInstance(rs, Series)
-        tm.assert_almost_equal(rs, xp)
+        tm.assert_series_equal(rs, xp)
 
         # unicode
         values = Series([u('om'), NA, u('nom'), u('nom')])
@@ -389,7 +391,7 @@ class TestStringMethods(tm.TestCase):
                         None, 1, 2.])
 
         rs = Series(mixed).str.replace('BAD[_]*', '')
-        xp = ['a', NA, 'b', NA, NA, 'foo', NA, NA, NA]
+        xp = Series(['a', NA, 'b', NA, NA, 'foo', NA, NA, NA])
         tm.assertIsInstance(rs, Series)
         tm.assert_almost_equal(rs, xp)
 
@@ -426,9 +428,9 @@ class TestStringMethods(tm.TestCase):
                         2.])
 
         rs = Series(mixed).str.repeat(3)
-        xp = ['aaa', NA, 'bbb', NA, NA, 'foofoofoo', NA, NA, NA]
+        xp = Series(['aaa', NA, 'bbb', NA, NA, 'foofoofoo', NA, NA, NA])
         tm.assertIsInstance(rs, Series)
-        tm.assert_almost_equal(rs, xp)
+        tm.assert_series_equal(rs, xp)
 
         # unicode
         values = Series([u('a'), u('b'), NA, u('c'), NA, u('d')])
@@ -456,9 +458,10 @@ class TestStringMethods(tm.TestCase):
 
         with tm.assert_produces_warning():
             rs = Series(mixed).str.match('.*(BAD[_]+).*(BAD)')
-        xp = [('BAD_', 'BAD'), NA, ('BAD_', 'BAD'), NA, NA, [], NA, NA, NA]
+        xp = Series([('BAD_', 'BAD'), NA, ('BAD_', 'BAD'),
+                     NA, NA, [], NA, NA, NA])
         tm.assertIsInstance(rs, Series)
-        tm.assert_almost_equal(rs, xp)
+        tm.assert_series_equal(rs, xp)
 
         # unicode
         values = Series([u('fooBAD__barBAD'), NA, u('foo')])
@@ -489,9 +492,9 @@ class TestStringMethods(tm.TestCase):
 
         with tm.assert_produces_warning():
             rs = Series(mixed).str.match('.*(BAD[_]+).*(BAD)', as_indexer=True)
-        xp = [True, NA, True, NA, NA, False, NA, NA, NA]
+        xp = Series([True, NA, True, NA, NA, False, NA, NA, NA])
         tm.assertIsInstance(rs, Series)
-        tm.assert_almost_equal(rs, xp)
+        tm.assert_series_equal(rs, xp)
 
         # unicode
         values = Series([u('fooBAD__barBAD'), NA, u('foo')])

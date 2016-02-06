@@ -1555,7 +1555,7 @@ class TestDataFrameIndexing(tm.TestCase, TestData):
                         'mask_c': [False, True, False, True]})
         df['mask'] = df.lookup(df.index, 'mask_' + df['label'])
         exp_mask = alt(df, df.index, 'mask_' + df['label'])
-        assert_almost_equal(df['mask'], exp_mask)
+        tm.assert_series_equal(df['mask'], pd.Series(exp_mask, name='mask'))
         self.assertEqual(df['mask'].dtype, np.bool_)
 
         with tm.assertRaises(KeyError):
@@ -2070,7 +2070,9 @@ class TestDataFrameIndexing(tm.TestCase, TestData):
         df['E'] = 3.
 
         xs = df.xs(0)
-        assert_almost_equal(xs, [1., 'foo', 2., 'bar', 3.])
+        exp = pd.Series([1., 'foo', 2., 'bar', 3.],
+                        index=list('ABCDE'), name=0)
+        tm.assert_series_equal(xs, exp)
 
         # no columns but Index(dtype=object)
         df = DataFrame(index=['a', 'b', 'c'])

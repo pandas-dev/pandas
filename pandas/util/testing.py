@@ -102,9 +102,21 @@ class TestCase(unittest.TestCase):
         return deprecate('assertNotAlmostEquals', self.assertNotAlmostEqual)(*args, **kwargs)
 
 
-# NOTE: don't pass an NDFrame or index to this function - may not handle it
-# well.
-assert_almost_equal = _testing.assert_almost_equal
+def assert_almost_equal(left, right, check_exact=False, **kwargs):
+    if isinstance(left, pd.Index):
+        return assert_index_equal(left, right, check_exact=check_exact,
+                                  **kwargs)
+
+    elif isinstance(left, pd.Series):
+        return assert_series_equal(left, right, check_exact=check_exact,
+                                   **kwargs)
+
+    elif isinstance(left, pd.DataFrame):
+        return assert_frame_equal(left, right, check_exact=check_exact,
+                                  **kwargs)
+
+    return _testing.assert_almost_equal(left, right, **kwargs)
+
 
 assert_dict_equal = _testing.assert_dict_equal
 
@@ -714,9 +726,9 @@ def assert_index_equal(left, right, exact='equiv', check_names=True,
             msg = '{0} values are different ({1} %)'.format(obj, np.round(diff, 5))
             raise_assert_detail(obj, msg, left, right)
     else:
-        assert_almost_equal(left.values, right.values,
-                            check_less_precise=check_less_precise,
-                            obj=obj, lobj=left, robj=right)
+        _testing.assert_almost_equal(left.values, right.values,
+                                     check_less_precise=check_less_precise,
+                                     obj=obj, lobj=left, robj=right)
 
     # metadata comparison
     if check_names:
@@ -766,7 +778,10 @@ def isiterable(obj):
     return hasattr(obj, '__iter__')
 
 def is_sorted(seq):
-    return assert_almost_equal(seq, np.sort(np.array(seq)))
+    if isinstance(seq, (Index, Series)):
+        seq = seq.values
+    # sorting does not change precisions
+    return assert_numpy_array_equal(seq, np.sort(np.array(seq)))
 
 
 def assertIs(first, second, msg=''):
@@ -865,7 +880,7 @@ def assert_numpy_array_equal(left, right,
 
     # compare shape and values
     if array_equivalent(left, right, strict_nan=strict_nan):
-        return
+        return True
 
     if err_msg is None:
         # show detailed error
@@ -965,19 +980,23 @@ def assert_series_equal(left, right, check_dtype=True,
                                  obj='{0}'.format(obj))
     elif check_datetimelike_compat:
         # we want to check only if we have compat dtypes
-        # e.g. integer and M|m are NOT compat, but we can simply check the values in that case
-        if is_datetimelike_v_numeric(left, right) or is_datetimelike_v_object(left, right) or needs_i8_conversion(left) or needs_i8_conversion(right):
+        # e.g. integer and M|m are NOT compat, but we can simply check
+        # the values in that case
+        if (is_datetimelike_v_numeric(left, right) or
+            is_datetimelike_v_object(left, right) or
+            needs_i8_conversion(left) or
+            needs_i8_conversion(right)):
 
-            # datetimelike may have different objects (e.g. datetime.datetime vs Timestamp) but will compare equal
+            # datetimelike may have different objects (e.g. datetime.datetime
+            # vs Timestamp) but will compare equal
             if not Index(left.values).equals(Index(right.values)):
-                raise AssertionError(
-                    '[datetimelike_compat=True] {0} is not equal to {1}.'.format(left.values,
-                                                                                 right.values))
+                msg = '[datetimelike_compat=True] {0} is not equal to {1}.'
+                raise AssertionError(msg.format(left.values, right.values))
         else:
             assert_numpy_array_equal(left.values, right.values)
     else:
-        assert_almost_equal(left.get_values(), right.get_values(),
-                            check_less_precise, obj='{0}'.format(obj))
+        _testing.assert_almost_equal(left.get_values(), right.get_values(),
+                                     check_less_precise, obj='{0}'.format(obj))
 
     # metadata comparison
     if check_names:
