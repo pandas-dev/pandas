@@ -389,8 +389,9 @@ class TestHDFStore(Base, tm.TestCase):
             store['d'] = tm.makePanel()
             store['foo/bar'] = tm.makePanel()
             self.assertEqual(len(store), 5)
-            self.assertTrue(set(
-                store.keys()) == set(['/a', '/b', '/c', '/d', '/foo/bar']))
+            expected = set(['/a', '/b', '/c', '/d', '/foo/bar'])
+            self.assertTrue(set(store.keys()) == expected)
+            self.assertTrue(set(store) == expected)
 
     def test_repr(self):
 
