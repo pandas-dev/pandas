@@ -48,10 +48,10 @@ users upgrade to this version.
 
 Highlights include:
 
-Highlights include:
-
 - Window functions are now methods on ``.groupby`` like objects, see :ref:`here <whatsnew_0180.enhancements.moments>`.
-- API breaking ``.resample`` changes to make it more ``.groupby`` like, see :ref:`here <whatsnew_0180.resample>`.
+- ``pd.test()`` top-level nose test runner is available (:issue:`4327`)
+- Adding support for a ``RangeIndex`` as a specialized form of the ``Int64Index`` for memory savings, see :ref:`here <whatsnew_0180.enhancements.rangeindex>`.
+- API breaking ``.resample`` changes to make it more ``.groupby`` like, see :ref:`here <whatsnew_0180.breaking.resample>`.
 
 See the :ref:`v0.18.0 Whatsnew <whatsnew_0180>` overview for an extensive list
 of all enhancements and bugs that have been fixed in 0.17.1.

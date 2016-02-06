@@ -20,7 +20,7 @@ Highlights include:
 - Window functions are now methods on ``.groupby`` like objects, see :ref:`here <whatsnew_0180.enhancements.moments>`.
 - ``pd.test()`` top-level nose test runner is available (:issue:`4327`)
 - Adding support for a ``RangeIndex`` as a specialized form of the ``Int64Index`` for memory savings, see :ref:`here <whatsnew_0180.enhancements.rangeindex>`.
-- API breaking ``.resample`` changes to make it more ``.groupby`` like, see :ref:`here <whatsnew_0180.resample>`.
+- API breaking ``.resample`` changes to make it more ``.groupby`` like, see :ref:`here <whatsnew_0180.breaking.resample>`.
 
 Check the :ref:`API Changes <whatsnew_0180.api_breaking>` and :ref:`deprecations <whatsnew_0180.deprecations>` before updating.
 
@@ -401,8 +401,7 @@ other anchored offsets like ``MonthBegin`` and ``YearBegin``.
 Resample API
 ^^^^^^^^^^^^
 
-Like the change in the window functions API :ref:`above <whatsnew_0180.enhancements.moments>`, ``.resample(...)`` is changing to have
-a more groupby-like API. (:issue:`11732`, :issue:`12702`).
+Like the change in the window functions API :ref:`above <whatsnew_0180.enhancements.moments>`, ``.resample(...)`` is changing to have a more groupby-like API. (:issue:`11732`, :issue:`12702`).
 
 .. ipython:: python
 
@@ -415,9 +414,8 @@ a more groupby-like API. (:issue:`11732`, :issue:`12702`).
 
 **Previous API**:
 
-You would write a resampling operation that immediately evaluates.
-
-This defaults to ``how='mean'``
+You would write a resampling operation that immediately evaluates. If a ``how`` parameter was not provided, it
+would default to ``how='mean'``.
 
 .. code-block:: python
 
@@ -445,7 +443,7 @@ You could also specify a ``how`` directly
 
 .. warning::
 
-   This new API for resample includes some internal changes that previous API (pre 0.18.0), to work with a deprecation warning in most cases. Since the returned resample is now a deferred object, and not immediately evaluated (as before). We can intercept operations and just do what the (pre 0.18.0) API did (with a warning). Here is a typical use case:
+   This new API for resample includes some internal changes for the prior-to-0.18.0 API, to work with a deprecation warning in most cases, as the resample operation returns a deferred object. We can intercept operations and just do what the (pre 0.18.0) API did (with a warning). Here is a typical use case:
 
    .. code-block:: python
 
@@ -474,7 +472,7 @@ You could also specify a ``how`` directly
 
 **New API**:
 
-Now, you write ``.resample`` as a 2-stage operation like groupby, which
+Now, you can write ``.resample`` as a 2-stage operation like groupby, which
 yields a ``Resampler``.
 
 .. ipython:: python
@@ -485,7 +483,7 @@ yields a ``Resampler``.
 Downsampling
 ''''''''''''
 
-You can then use this object to perform similar operations.
+You can then use this object to perform operations.
 These are downsampling operations (going from a lower frequency to a higher one).
 
 .. ipython:: python
@@ -635,7 +633,7 @@ Other API Changes
      In [2]: s.between_time('20150101 07:00:00','20150101 09:00:00')
      ValueError: Cannot convert arg ['20150101 07:00:00'] to a time.
 
-- ``.memory_usage`` now includes values in the index, as does memory_usage in ``.info`` (:issue:`11597`)
+- ``.memory_usage()`` now includes values in the index, as does memory_usage in ``.info`` (:issue:`11597`)
 
 - ``DataFrame.to_latex()`` now supports non-ascii encodings (eg utf-8) in Python 2 with the parameter ``encoding`` (:issue:`7061`)
 
@@ -643,8 +641,7 @@ Other API Changes
 
 - ``DataFrame.unstack`` and ``Series.unstack`` now take ``fill_value`` keyword to allow direct replacement of missing values when an unstack results in missing values in the resulting ``DataFrame``. As an added benefit, specifying ``fill_value`` will preserve the data type of the original stacked data.  (:issue:`9746`)
 
-- As part of the new API for :ref:`window functions <whatsnew_0180.enhancements.moments>` and :ref:`resampling <whatsnew_0180.resample>`, aggregation functions have been
-clarified, raising more informative error messages on invalid aggregations. (:issue:`9052`). A full set of examples are presented in :ref:`groupby <groupby.aggregation>`.
+- As part of the new API for :ref:`window functions <whatsnew_0180.enhancements.moments>` and :ref:`resampling <whatsnew_0180.breaking.resample>`, aggregation functions have been clarified, raising more informative error messages on invalid aggregations. (:issue:`9052`). A full set of examples are presented in :ref:`groupby <groupby.aggregation>`.
 
 .. _whatsnew_0180.deprecations:
 
@@ -687,7 +684,7 @@ Deprecations
 - ``pd.tseries.frequencies.get_offset_name`` function is deprecated. Use offset's ``.freqstr`` property as alternative (:issue:`11192`)
 - ``pandas.stats.fama_macbeth`` routines are deprecated and will be removed in a future version (:issue:`6077`)
 - ``pandas.stats.ols``, ``pandas.stats.plm`` and ``pandas.stats.var`` routines are deprecated and will be removed in a future version (:issue:`6077`)
-- show a ``FutureWarning`` rather than a ``DeprecationWarning`` on using long-time deprecated syntax in ``HDFStore.select``, where ``where`` clause is not a string-like (:issue:`12027`)
+- show a ``FutureWarning`` rather than a ``DeprecationWarning`` on using long-time deprecated syntax in ``HDFStore.select``, where the ``where`` clause is not a string-like (:issue:`12027`)
 
 .. _whatsnew_0180.prior_deprecations:
 

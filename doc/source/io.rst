@@ -4093,6 +4093,7 @@ The key functions are:
 
 .. _io.bigquery_reader:
 
+.. _io.bigquery_authentication:
 
 Authentication
 ''''''''''''''
