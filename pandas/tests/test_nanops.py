@@ -122,7 +122,7 @@ class TestnanopsDataFrame(tm.TestCase):
 
         # timedeltas are a beast here
         def _coerce_tds(targ, res):
-            if targ.dtype == 'm8[ns]':
+            if hasattr(targ, 'dtype') and targ.dtype == 'm8[ns]':
                 if len(targ) == 1:
                     targ = targ[0].item()
                     res = res.item()
@@ -141,7 +141,8 @@ class TestnanopsDataFrame(tm.TestCase):
             tm.assert_almost_equal(targ, res)
         except:
 
-            if targ.dtype == 'm8[ns]':
+            # handle timedelta dtypes
+            if hasattr(targ, 'dtype') and targ.dtype == 'm8[ns]':
                 targ, res = _coerce_tds(targ, res)
                 tm.assert_almost_equal(targ, res)
                 return
