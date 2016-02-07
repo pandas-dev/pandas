@@ -389,8 +389,9 @@ class TestHDFStore(Base, tm.TestCase):
             store['d'] = tm.makePanel()
             store['foo/bar'] = tm.makePanel()
             self.assertEqual(len(store), 5)
-            self.assertTrue(set(
-                store.keys()) == set(['/a', '/b', '/c', '/d', '/foo/bar']))
+            expected = set(['/a', '/b', '/c', '/d', '/foo/bar'])
+            self.assertTrue(set(store.keys()) == expected)
+            self.assertTrue(set(store) == expected)
 
     def test_repr(self):
 
@@ -1337,6 +1338,16 @@ class TestHDFStore(Base, tm.TestCase):
             df_new = DataFrame(
                 [[124, 'abcdefqhij'], [346, 'abcdefghijklmnopqrtsuvwxyz']])
             self.assertRaises(ValueError, store.append, 'df_new', df_new)
+
+            # min_itemsize on Series with Multiindex (GH 10381)
+            df = tm.makeMixedDataFrame().set_index(['A', 'C'])
+            store.append('ss', df['B'], min_itemsize={'index': 4})
+            tm.assert_series_equal(store.select('ss'), df['B'])
+
+            # min_itemsize with MultiIndex and data_columns=True
+            store.append('midf', df, data_columns=True,
+                         min_itemsize={'index': 4})
+            tm.assert_frame_equal(store.select('midf'), df)
 
             # with nans
             _maybe_remove(store, 'df')
