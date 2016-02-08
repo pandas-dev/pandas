@@ -216,7 +216,7 @@ class Styler(object):
                                "class": " ".join(cs)})
             head.append(row_es)
 
-        if self.data.index.names:
+        if self.data.index.names and self.data.index.names != [None]:
             index_header_row = []
 
             for c, name in enumerate(self.data.index.names):
