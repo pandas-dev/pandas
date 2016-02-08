@@ -1397,7 +1397,6 @@ class TestCustomBusinessDay(Base):
         self.d = datetime(2008, 1, 1)
         self.nd = np_datetime64_compat('2008-01-01 00:00:00Z')
 
-        tm._skip_if_no_cday()
         self.offset = CDay()
         self.offset2 = CDay(2)
 
@@ -1629,7 +1628,6 @@ class CustomBusinessMonthBase(object):
     def setUp(self):
         self.d = datetime(2008, 1, 1)
 
-        tm._skip_if_no_cday()
         self.offset = self._object()
         self.offset2 = self._object(2)
 
