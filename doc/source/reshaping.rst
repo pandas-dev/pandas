@@ -539,6 +539,32 @@ the prefix separator. You can specify ``prefix`` and ``prefix_sep`` in 3 ways
     from_dict = pd.get_dummies(df, prefix={'B': 'from_B', 'A': 'from_A'})
     from_dict
 
+.. versionadded:: 0.18.0
+
+Sometimes it will be useful to only keep k-1 levels of a categorical
+variable to avoid collinearity when feeding the result to statistical models.
+You can switch to this mode by turn on ``drop_first``.
+
+.. ipython:: python
+
+    s = pd.Series(list('abcaa'))
+
+    pd.get_dummies(s)
+
+    pd.get_dummies(s, drop_first=True)
+
+When a column contains only one level, it will be omitted in the result.
+
+.. ipython:: python
+
+    df = pd.DataFrame({'A':list('aaaaa'),'B':list('ababc')})
+
+    pd.get_dummies(df)
+
+    pd.get_dummies(df, drop_first=True)
+
+
+
 Factorizing values
 ------------------
 
