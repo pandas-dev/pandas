@@ -784,7 +784,13 @@ def _comp_method_SERIES(op, name, str_rep, masker=False):
             # always return a full value series here
             res = _values_from_object(res)
 
-        res = pd.Series(res, index=self.index, name=self.name, dtype='bool')
+        from pandas.sparse.api import SparseSeries
+        if isinstance(self, SparseSeries):
+            res = pd.Series(
+                res, index=self.index, name=self.name, dtype='bool')
+        else:
+            res = self._constructor(
+                res, index=self.index, name=self.name, dtype='bool')
         return res
 
     return wrapper

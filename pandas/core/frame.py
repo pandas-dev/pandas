@@ -1918,6 +1918,7 @@ class DataFrame(NDFrame):
                     # if we are a copy, mark as such
                     copy = (isinstance(new_values, np.ndarray) and
                             new_values.base is None)
+
                     result = self._constructor_sliced(new_values,
                                                       index=self.columns,
                                                       name=self.index[i],
@@ -4900,7 +4901,7 @@ class DataFrame(NDFrame):
                 if axis == 0:
                     result = com._coerce_to_dtypes(result, self.dtypes)
 
-        return Series(result, index=labels)
+        return self._constructor_sliced(result, index=labels)
 
     def idxmin(self, axis=0, skipna=True):
         """

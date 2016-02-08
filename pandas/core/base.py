@@ -943,9 +943,15 @@ class IndexOpsMixin(object):
         counts : Series
         """
         from pandas.core.algorithms import value_counts
+        from pandas import Index
+
         result = value_counts(self, sort=sort, ascending=ascending,
                               normalize=normalize, bins=bins, dropna=dropna)
-        return result
+
+        if isinstance(self, Index):
+            return result
+        else:
+            return self._constructor(result)
 
     def unique(self):
         """

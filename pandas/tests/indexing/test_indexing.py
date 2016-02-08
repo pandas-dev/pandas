@@ -1381,6 +1381,16 @@ class TestIndexing(tm.TestCase):
         assert_series_equal(result, expected)
         self.assertEqual(result.dtype, object)
 
+    def test_loc_subclassing(self):
+        df = tm.SubclassedDataFrame(
+            data=[[1, 2, 3, 4], [2, 3, 4, 5], [2, 3, 4, 5]],
+            index=list('abc'), columns=list('ABCD'))
+        tm.assertIsInstance(df.loc['a'], tm.SubclassedSeries)
+        tm.assertIsInstance(df.loc[:'b'], tm.SubclassedDataFrame)
+        tm.assertIsInstance(df.loc['a':, 'A'], tm.SubclassedSeries)
+        tm.assertIsInstance(
+            df.loc[['a', 'c'], ['A', 'D']], tm.SubclassedDataFrame)
+
     def test_loc_setitem_consistency(self):
         # GH 6149
         # coerce similary for setitem and loc when rows have a null-slice
@@ -1620,6 +1630,16 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
 
         # trying to use a label
         self.assertRaises(ValueError, df.iloc.__getitem__, tuple(['j', 'D']))
+
+    def test_iloc_getitem_subclassing(self):
+        df = tm.SubclassedDataFrame(
+            data=[[1, 2, 3, 4], [2, 3, 4, 5], [2, 3, 4, 5]])
+        tm.assertIsInstance(df.iloc[1], tm.SubclassedSeries)
+        tm.assertIsInstance(df.iloc[:1], tm.SubclassedDataFrame)
+        tm.assertIsInstance(df.iloc[0:1, 2:3], tm.SubclassedDataFrame)
+        tm.assertIsInstance(df.iloc[[0, 2], [0, 3]], tm.SubclassedDataFrame)
+        tm.assertIsInstance(df.iloc[0:1, :], tm.SubclassedDataFrame)
+        tm.assertIsInstance(df.iloc[:, 0:1], tm.SubclassedDataFrame)
 
     def test_iloc_getitem_panel(self):
 
@@ -2155,6 +2175,10 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
                                        names=['col', 'year'])
         expected = DataFrame({'amount': [222, 333, 444]}, index=index)
         tm.assert_frame_equal(res, expected)
+
+    def test_ix_subclassing(self):
+        df = tm.SubclassedDataFrame([[1, 2, 3, 4], [2, 3, 4, 5], [2, 3, 4, 5]])
+        tm.assertIsInstance(df.ix[1], tm.SubclassedSeries)
 
     def test_ix_weird_slicing(self):
         # http://stackoverflow.com/q/17056560/1240268

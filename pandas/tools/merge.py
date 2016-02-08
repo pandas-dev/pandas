@@ -1008,7 +1008,36 @@ class _Concatenator(object):
 
         self.new_axes = self._get_new_axes()
 
+        if self._is_series:
+            self.constructor_series = sample._constructor
+            self.constructor_frame = sample._constructor_expanddim
+        elif self._is_frame:
+            self.constructor_series = sample._constructor_sliced
+            self.constructor_frame = sample._constructor
+        else:
+            self._constructor_series = Series
+            self._constructor_frame = sample._constructor_sliced
+
+    @property
+    def constructor_series(self):
+        return self._constructor_series
+
+    @constructor_series.setter
+    def constructor_series(self, constructor):
+        self._constructor_series = constructor
+
+    @property
+    def constructor_frame(self):
+        return self._constructor_frame
+
+    @constructor_frame.setter
+    def constructor_frame(self, constructor):
+        self._constructor_frame = constructor
+
     def get_result(self):
+
+        return_types = {'series': self._constructor_series,
+              'frame': self._constructor_frame}
 
         # series only
         if self._is_series:
@@ -1024,7 +1053,8 @@ class _Concatenator(object):
                 new_data = _concat._concat_compat(values)
 
                 name = com._consensus_name_attr(self.objs)
-                cons = _concat._get_series_result_type(new_data)
+
+                cons = _concat._get_series_result_type(new_data, return_types)
 
                 return (cons(new_data, index=self.new_axes[0],
                              name=name, dtype=new_data.dtype)
@@ -1033,7 +1063,8 @@ class _Concatenator(object):
             # combine as columns in a frame
             else:
                 data = dict(zip(range(len(self.objs)), self.objs))
-                cons = _concat._get_series_result_type(data)
+                cons = _concat._get_series_result_type(
+                    data, return_types=return_types)
 
                 index, columns = self.new_axes
                 df = cons(data, index=index)

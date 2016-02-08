@@ -795,6 +795,12 @@ class TestSeries(tm.TestCase, Generic):
         self.series.describe()
         self.ts.describe()
 
+    def test_describe_subclassing(self):
+        df1 = tm.SubclassedDataFrame([[1, 2], [2, 3]],
+                                     index=list('ab'), columns=list('AB'))
+        tm.assertIsInstance(df1.describe(), tm.SubclassedDataFrame)
+        tm.assertIsInstance(df1['A'].describe(), tm.SubclassedSeries)
+
     def test_describe_objects(self):
         s = Series(['a', 'b', 'b', np.nan, np.nan, np.nan, 'c', 'd', 'a', 'a'])
         result = s.describe()

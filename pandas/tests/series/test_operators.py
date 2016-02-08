@@ -862,6 +862,12 @@ class TestSeriesOperators(TestData, tm.TestCase):
         expected = -(s == 'a')
         assert_series_equal(result, expected)
 
+    def test_comparison_subclassing(self):
+        s1 = tm.SubclassedSeries(np.random.randn(6), index=list('abcdef'))
+        s2 = tm.SubclassedSeries(data=list('abcdef'))
+        tm.assertIsInstance(s1 > 0, tm.SubclassedSeries)
+        tm.assertIsInstance(s2 == 'a', tm.SubclassedSeries)
+
     def test_comparison_tuples(self):
         # GH11339
         # comparisons vs tuple
