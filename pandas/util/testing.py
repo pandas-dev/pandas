@@ -250,14 +250,6 @@ def _skip_if_windows():
         import nose
         raise nose.SkipTest("Running on Windows")
 
-
-def _skip_if_no_cday():
-    from pandas.core.datetools import cday
-    if cday is None:
-        import nose
-        raise nose.SkipTest("CustomBusinessDay not available.")
-
-
 def _skip_if_no_pathlib():
     try:
         from pathlib import Path

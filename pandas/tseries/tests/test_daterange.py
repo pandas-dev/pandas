@@ -30,7 +30,6 @@ class TestGenRangeGeneration(tm.TestCase):
         self.assert_numpy_array_equal(rng1, rng2)
 
     def test_generate_cday(self):
-        tm._skip_if_no_cday()
         rng1 = list(generate_range(START, END, offset=datetools.cday))
         rng2 = list(generate_range(START, END, time_rule='C'))
         self.assert_numpy_array_equal(rng1, rng2)
@@ -546,7 +545,6 @@ class TestDateRange(tm.TestCase):
 
 class TestCustomDateRange(tm.TestCase):
     def setUp(self):
-        tm._skip_if_no_cday()
         self.rng = cdate_range(START, END)
 
     def test_constructor(self):
