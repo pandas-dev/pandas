@@ -2324,7 +2324,7 @@ class TestXSQLite(SQLiteMixIn, tm.TestCase):
         frame2['Idx'] = Index(lrange(len(frame2))) + 10
         sql.to_sql(frame2, name='test_table2', con=self.conn, index=False)
         result = sql.read_sql("select * from test_table2", self.conn,
-                                index_col='Idx')
+                              index_col='Idx')
         expected = frame.copy()
         expected.index = Index(lrange(len(frame2))) + 10
         expected.index.name = 'Idx'
@@ -2672,7 +2672,7 @@ class TestXMySQL(MySQLMixIn, tm.TestCase):
         sql.to_sql(frame2, name='test_table2',
                    con=self.conn, flavor='mysql', index=False)
         result = sql.read_sql("select * from test_table2", self.conn,
-                                index_col='Idx')
+                              index_col='Idx')
         expected = frame.copy()
 
         # HACK! Change this once indexes are handled properly.
@@ -2738,7 +2738,7 @@ class TestXMySQL(MySQLMixIn, tm.TestCase):
         _skip_if_no_pymysql()
         df = DataFrame({'From': np.ones(5)})
         sql.to_sql(df, con=self.conn, name='testkeywords',
-                        if_exists='replace', flavor='mysql', index=False)
+                   if_exists='replace', flavor='mysql', index=False)
 
     def test_if_exists(self):
         _skip_if_no_pymysql()
