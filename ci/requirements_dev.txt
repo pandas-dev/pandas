@@ -1,0 +1,6 @@
+python-dateutil
+pytz
+numpy
+cython
+nose
+flake8

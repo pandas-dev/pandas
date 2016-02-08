@@ -1,0 +1,107 @@
+from .pandas_vb_common import *
+
+
+class series_constructor_no_data_datetime_index(object):
+    goal_time = 0.2
+
+    def setup(self):
+        self.dr = pd.date_range(
+            start=datetime(2015,10,26),
+            end=datetime(2016,1,1),
+            freq='10s'
+        )  # ~500k long
+
+    def time_series_constructor_no_data_datetime_index(self):
+        Series(data=None, index=self.dr)
+
+
+class series_isin_int64(object):
+    goal_time = 0.2
+
+    def setup(self):
+        self.s3 = Series(np.random.randint(1, 10, 100000)).astype('int64')
+        self.s4 = Series(np.random.randint(1, 100, 10000000)).astype('int64')
+        self.values = [1, 2]
+
+    def time_series_isin_int64(self):
+        self.s3.isin(self.values)
+
+    def time_series_isin_int64_large(self):
+        self.s4.isin(self.values)
+
+
+class series_isin_object(object):
+    goal_time = 0.2
+
+    def setup(self):
+        self.s3 = Series(np.random.randint(1, 10, 100000)).astype('int64')
+        self.values = [1, 2]
+        self.s4 = self.s3.astype('object')
+
+    def time_series_isin_object(self):
+        self.s4.isin(self.values)
+
+
+class series_nlargest1(object):
+    goal_time = 0.2
+
+    def setup(self):
+        self.s1 = Series(np.random.randn(10000))
+        self.s2 = Series(np.random.randint(1, 10, 10000))
+        self.s3 = Series(np.random.randint(1, 10, 100000)).astype('int64')
+        self.values = [1, 2]
+        self.s4 = self.s3.astype('object')
+
+    def time_series_nlargest1(self):
+        self.s1.nlargest(3, take_last=True)
+        self.s1.nlargest(3, take_last=False)
+
+
+class series_nlargest2(object):
+    goal_time = 0.2
+
+    def setup(self):
+        self.s1 = Series(np.random.randn(10000))
+        self.s2 = Series(np.random.randint(1, 10, 10000))
+        self.s3 = Series(np.random.randint(1, 10, 100000)).astype('int64')
+        self.values = [1, 2]
+        self.s4 = self.s3.astype('object')
+
+    def time_series_nlargest2(self):
+        self.s2.nlargest(3, take_last=True)
+        self.s2.nlargest(3, take_last=False)
+
+
+class series_nsmallest2(object):
+    goal_time = 0.2
+
+    def setup(self):
+        self.s1 = Series(np.random.randn(10000))
+        self.s2 = Series(np.random.randint(1, 10, 10000))
+        self.s3 = Series(np.random.randint(1, 10, 100000)).astype('int64')
+        self.values = [1, 2]
+        self.s4 = self.s3.astype('object')
+
+    def time_series_nsmallest2(self):
+        self.s2.nsmallest(3, take_last=True)
+        self.s2.nsmallest(3, take_last=False)
+
+
+class series_dropna_int64(object):
+    goal_time = 0.2
+
+    def setup(self):
+        self.s = Series(np.random.randint(1, 10, 1000000))
+
+    def time_series_dropna_int64(self):
+        self.s.dropna()
+
+class series_dropna_datetime(object):
+    goal_time = 0.2
+
+    def setup(self):
+        self.s = Series(pd.date_range('2000-01-01', freq='S', periods=1000000))
+        self.s[np.random.randint(1, 1000000, 100)] = pd.NaT
+
+    def time_series_dropna_datetime(self):
+        self.s.dropna()

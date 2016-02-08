@@ -1,0 +1,36 @@
+.. _whatsnew_0801:
+
+v0.8.1 (July 22, 2012)
+----------------------
+
+This release includes a few new features, performance enhancements, and over 30
+bug fixes from 0.8.0.  New features include notably NA friendly string
+processing functionality and a series of new plot types and options.
+
+New features
+~~~~~~~~~~~~
+
+  - Add :ref:`vectorized string processing methods <text.string_methods>`
+    accessible via Series.str (:issue:`620`)
+  - Add option to disable adjustment in EWMA (:issue:`1584`)
+  - :ref:`Radviz plot <visualization.radviz>` (:issue:`1566`)
+  - :ref:`Parallel coordinates plot <visualization.parallel_coordinates>`
+  - :ref:`Bootstrap plot <visualization.bootstrap>`
+  - Per column styles and secondary y-axis plotting (:issue:`1559`)
+  - New datetime converters millisecond plotting  (:issue:`1599`)
+  - Add option to disable "sparse" display of hierarchical indexes (:issue:`1538`)
+  - Series/DataFrame's ``set_index`` method can :ref:`append levels
+    <indexing.set_index>` to an existing Index/MultiIndex (:issue:`1569`, :issue:`1577`)
+
+Performance improvements
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+  - Improved implementation of rolling min and max (thanks to `Bottleneck
+    <http://berkeleyanalytics.com/bottleneck/>`__ !)
+  - Add accelerated ``'median'`` GroupBy option (:issue:`1358`)
+  - Significantly improve the performance of parsing ISO8601-format date
+    strings with ``DatetimeIndex`` or ``to_datetime`` (:issue:`1571`)
+  - Improve the performance of GroupBy on single-key aggregations and use with
+    Categorical types
+  - Significant datetime parsing performance improvments
+

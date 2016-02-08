@@ -1,0 +1,28 @@
+include MANIFEST.in
+include LICENSE
+include RELEASE.md
+include README.rst
+include setup.py
+
+graft doc
+prune doc/build
+
+graft examples
+graft pandas
+
+global-exclude *.so
+global-exclude *.pyd
+global-exclude *.pyc
+global-exclude *~
+global-exclude \#*
+global-exclude .git*
+global-exclude .DS_Store
+global-exclude *.png
+
+# include examples/data/*
+# recursive-include examples *.py
+# recursive-include doc/source *
+# recursive-include doc/sphinxext *
+# recursive-include LICENSES *
+include versioneer.py
+include pandas/_version.py

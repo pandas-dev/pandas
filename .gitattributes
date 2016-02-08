@@ -1,0 +1,16 @@
+* text=auto
+# enforce text on certain files
+*.py text
+*.pyx text
+*.pyd text
+*.c text
+*.h text
+*.html text
+*.csv text
+*.json text
+*.pickle binary
+*.h5 binary
+*.dta binary
+*.xls binary
+*.xlsx binary
+pandas/_version.py export-subst

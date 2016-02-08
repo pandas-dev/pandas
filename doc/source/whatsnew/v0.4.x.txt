@@ -1,0 +1,63 @@
+.. _whatsnew_04x:
+
+v.0.4.3 through v0.4.1 (September 25 - October 9, 2011)
+-------------------------------------------------------
+
+New Features
+~~~~~~~~~~~~
+
+- Added Python 3 support using 2to3 (:issue:`200`)
+- :ref:`Added <dsintro.name_attribute>` ``name`` attribute to ``Series``, now
+  prints as part of ``Series.__repr__``
+- :ref:`Added <missing.isnull>` instance methods ``isnull`` and ``notnull`` to
+  Series (:issue:`209`, :issue:`203`)
+- :ref:`Added <basics.align>` ``Series.align`` method for aligning two series
+  with choice of join method (ENH56_)
+- :ref:`Added <advanced.get_level_values>` method ``get_level_values`` to
+  ``MultiIndex`` (:issue:`188`)
+- Set values in mixed-type ``DataFrame`` objects via ``.ix`` indexing attribute (:issue:`135`)
+- Added new ``DataFrame`` :ref:`methods <basics.dtypes>`
+  ``get_dtype_counts`` and property ``dtypes`` (ENHdc_)
+- Added :ref:`ignore_index <merging.ignore_index>` option to
+  ``DataFrame.append`` to stack DataFrames (ENH1b_)
+- ``read_csv`` tries to :ref:`sniff <io.sniff>` delimiters using
+  ``csv.Sniffer`` (:issue:`146`)
+- ``read_csv`` can :ref:`read <io.csv_multiindex>` multiple columns into a
+  ``MultiIndex``; DataFrame's ``to_csv`` method writes out a corresponding
+  ``MultiIndex`` (:issue:`151`)
+- ``DataFrame.rename`` has a new ``copy`` parameter to :ref:`rename
+  <basics.rename>` a DataFrame in place (ENHed_)
+- :ref:`Enable <reshaping.unstack_by_name>` unstacking by name (:issue:`142`)
+- :ref:`Enable <advanced.sortlevel_byname>` ``sortlevel`` to work by level (:issue:`141`)
+
+Performance Enhancements
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+- Altered binary operations on differently-indexed SparseSeries objects
+  to use the integer-based (dense) alignment logic which is faster with a
+  larger number of blocks (:issue:`205`)
+- Wrote faster Cython data alignment / merging routines resulting in
+  substantial speed increases
+- Improved performance of ``isnull`` and ``notnull``, a regression from v0.3.0
+  (:issue:`187`)
+- Refactored code related to ``DataFrame.join`` so that intermediate aligned
+  copies of the data in each ``DataFrame`` argument do not need to be created.
+  Substantial performance increases result (:issue:`176`)
+- Substantially improved performance of generic ``Index.intersection`` and
+  ``Index.union``
+- Implemented ``BlockManager.take`` resulting in significantly faster ``take``
+  performance on mixed-type ``DataFrame`` objects (:issue:`104`)
+- Improved performance of ``Series.sort_index``
+- Significant groupby performance enhancement: removed unnecessary integrity
+  checks in DataFrame internals that were slowing down slicing operations to
+  retrieve groups
+- Optimized ``_ensure_index`` function resulting in performance savings in
+  type-checking Index objects
+- Wrote fast time series merging / joining methods in Cython. Will be
+  integrated later into DataFrame.join and related functions
+
+.. _ENH1b: https://github.com/pydata/pandas/commit/1ba56251f0013ff7cd8834e9486cef2b10098371
+.. _ENHdc: https://github.com/pydata/pandas/commit/dca3c5c5a6a3769ee01465baca04cfdfa66a4f76
+.. _ENHed: https://github.com/pydata/pandas/commit/edd9f1945fc010a57fa0ae3b3444d1fffe592591
+.. _ENH56: https://github.com/pydata/pandas/commit/56e0c9ffafac79ce262b55a6a13e1b10a88fbe93
+

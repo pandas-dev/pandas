@@ -1,0 +1,97 @@
+.. _whatsnew_0900:
+
+.. ipython:: python
+   :suppress:
+
+   from pandas.compat import StringIO
+
+v0.9.0 (October 7, 2012)
+------------------------
+
+This is a major release from 0.8.1 and includes several new features and
+enhancements along with a large number of bug fixes. New features include
+vectorized unicode encoding/decoding for `Series.str`, `to_latex` method to
+DataFrame, more flexible parsing of boolean values, and enabling the download of
+options data from Yahoo! Finance.
+
+New features
+~~~~~~~~~~~~
+
+  - Add ``encode`` and ``decode`` for unicode handling to :ref:`vectorized
+    string processing methods <text.string_methods>` in Series.str  (:issue:`1706`)
+  - Add ``DataFrame.to_latex`` method (:issue:`1735`)
+  - Add convenient expanding window equivalents of all rolling_* ops (:issue:`1785`)
+  - Add Options class to pandas.io.data for fetching options data from Yahoo!
+    Finance (:issue:`1748`, :issue:`1739`)
+  - More flexible parsing of boolean values (Yes, No, TRUE, FALSE, etc)
+    (:issue:`1691`, :issue:`1295`)
+  - Add ``level`` parameter to ``Series.reset_index``
+  - ``TimeSeries.between_time`` can now select times across midnight (:issue:`1871`)
+  - Series constructor can now handle generator as input (:issue:`1679`)
+  - ``DataFrame.dropna`` can now take multiple axes (tuple/list) as input
+    (:issue:`924`)
+  - Enable ``skip_footer`` parameter in ``ExcelFile.parse`` (:issue:`1843`)
+
+API changes
+~~~~~~~~~~~
+
+  - The default column names when ``header=None`` and no columns names passed to
+    functions like ``read_csv`` has changed to be more Pythonic and amenable to
+    attribute access:
+
+.. ipython:: python
+
+   data = '0,0,1\n1,1,0\n0,1,0'
+   df = read_csv(StringIO(data), header=None)
+   df
+
+
+- Creating a Series from another Series, passing an index, will cause reindexing
+  to happen inside rather than treating the Series like an ndarray. Technically
+  improper usages like ``Series(df[col1], index=df[col2])`` that worked before
+  "by accident" (this was never intended) will lead to all NA Series in some
+  cases. To be perfectly clear:
+
+.. ipython:: python
+
+   s1 = Series([1, 2, 3])
+   s1
+
+   s2 = Series(s1, index=['foo', 'bar', 'baz'])
+   s2
+
+- Deprecated ``day_of_year`` API removed from PeriodIndex, use ``dayofyear``
+  (:issue:`1723`)
+
+- Don't modify NumPy suppress printoption to True at import time
+
+- The internal HDF5 data arrangement for DataFrames has been transposed.  Legacy
+  files will still be readable by HDFStore (:issue:`1834`, :issue:`1824`)
+
+- Legacy cruft removed: pandas.stats.misc.quantileTS
+
+- Use ISO8601 format for Period repr: monthly, daily, and on down (:issue:`1776`)
+
+- Empty DataFrame columns are now created as object dtype. This will prevent a
+  class of TypeErrors that was occurring in code where the dtype of a column
+  would depend on the presence of data or not (e.g. a SQL query having results)
+  (:issue:`1783`)
+
+- Setting parts of DataFrame/Panel using ix now aligns input Series/DataFrame
+  (:issue:`1630`)
+
+- ``first`` and ``last`` methods in ``GroupBy`` no longer drop non-numeric
+  columns (:issue:`1809`)
+
+- Resolved inconsistencies in specifying custom NA values in text parser.
+  ``na_values`` of type dict no longer override default NAs unless
+  ``keep_default_na`` is set to false explicitly (:issue:`1657`)
+
+- ``DataFrame.dot`` will not do data alignment, and also work with Series
+  (:issue:`1915`)
+
+
+See the :ref:`full release notes
+<release>` or issue tracker
+on GitHub for a complete list.
+

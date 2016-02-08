@@ -1,0 +1,96 @@
+.. _whatsnew_0703:
+
+v.0.7.3 (April 12, 2012)
+------------------------
+
+This is a minor release from 0.7.2 and fixes many minor bugs and adds a number
+of nice new features. There are also a couple of API changes to note; these
+should not affect very many users, and we are inclined to call them "bug fixes"
+even though they do constitute a change in behavior. See the :ref:`full release
+notes <release>` or issue
+tracker on GitHub for a complete list.
+
+New features
+~~~~~~~~~~~~
+
+- New :ref:`fixed width file reader <io.fwf>`, ``read_fwf``
+- New :ref:`scatter_matrix <visualization.scatter_matrix>` function for making
+  a scatter plot matrix
+
+.. code-block:: python
+
+   from pandas.tools.plotting import scatter_matrix
+   scatter_matrix(df, alpha=0.2)
+
+.. image:: _static/scatter_matrix_kde.png
+   :width: 5in
+
+- Add ``stacked`` argument to Series and DataFrame's ``plot`` method for
+  :ref:`stacked bar plots <visualization.barplot>`.
+
+.. code-block:: python
+
+   df.plot(kind='bar', stacked=True)
+
+.. image:: _static/bar_plot_stacked_ex.png
+   :width: 4in
+
+.. code-block:: python
+
+   df.plot(kind='barh', stacked=True)
+
+.. image:: _static/barh_plot_stacked_ex.png
+   :width: 4in
+
+- Add log x and y :ref:`scaling options <visualization.basic>` to
+  ``DataFrame.plot`` and ``Series.plot``
+- Add ``kurt`` methods to Series and DataFrame for computing kurtosis
+
+
+NA Boolean Comparison API Change
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Reverted some changes to how NA values (represented typically as ``NaN`` or
+``None``) are handled in non-numeric Series:
+
+.. ipython:: python
+
+   series = Series(['Steve', np.nan, 'Joe'])
+   series == 'Steve'
+   series != 'Steve'
+
+In comparisons, NA / NaN will always come through as ``False`` except with
+``!=`` which is ``True``. *Be very careful* with boolean arithmetic, especially
+negation, in the presence of NA data. You may wish to add an explicit NA
+filter into boolean array operations if you are worried about this:
+
+.. ipython:: python
+
+   mask = series == 'Steve'
+   series[mask & series.notnull()]
+
+While propagating NA in comparisons may seem like the right behavior to some
+users (and you could argue on purely technical grounds that this is the right
+thing to do), the evaluation was made that propagating NA everywhere, including
+in numerical arrays, would cause a large amount of problems for users. Thus, a
+"practicality beats purity" approach was taken. This issue may be revisited at
+some point in the future.
+
+Other API Changes
+~~~~~~~~~~~~~~~~~
+
+When calling ``apply`` on a grouped Series, the return value will also be a
+Series, to be more consistent with the ``groupby`` behavior with DataFrame:
+
+.. ipython:: python
+    :okwarning:
+
+    df = DataFrame({'A' : ['foo', 'bar', 'foo', 'bar',
+                        'foo', 'bar', 'foo', 'foo'],
+                    'B' : ['one', 'one', 'two', 'three',
+                           'two', 'two', 'one', 'three'],
+                    'C' : np.random.randn(8), 'D' : np.random.randn(8)})
+    df
+    grouped = df.groupby('A')['C']
+    grouped.describe()
+    grouped.apply(lambda x: x.order()[-2:]) # top 2 values

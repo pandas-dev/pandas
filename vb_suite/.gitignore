@@ -1,0 +1,4 @@
+benchmarks.db
+build/*
+source/vbench/*
+source/*.rst

@@ -1,0 +1,202 @@
+.. _ecosystem:
+
+****************
+pandas Ecosystem
+****************
+
+Increasingly, packages are being built on top of pandas to address specific needs
+in data preparation, analysis and visualization.
+This is encouraging because it means pandas is not only helping users to handle
+their data tasks but also that it provides a better starting point for developers to
+build powerful and more focused data tools.
+The creation of libraries that complement pandas' functionality also allows pandas
+development to remain focused around it's original requirements.
+
+This is an in-exhaustive list of projects that build on pandas in order to provide
+tools in the PyData space.
+
+We'd like to make it easier for users to find these project, if you know of other
+substantial projects that you feel should be on this list, please let us know.
+
+
+.. _ecosystem.stats:
+
+Statistics and Machine Learning
+-------------------------------
+
+`Statsmodels <http://statsmodels.sourceforge.net>`__
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Statsmodels is the prominent python "statistics and econometrics library" and it has
+a long-standing special relationship with pandas. Statsmodels provides powerful statistics,
+econometrics, analysis and modeling functionality that is out of pandas' scope.
+Statsmodels leverages pandas objects as the underlying data container for computation.
+
+`sklearn-pandas <https://github.com/paulgb/sklearn-pandas>`__
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Use pandas DataFrames in your `scikit-learn <http://scikit-learn.org/>`__
+ML pipeline.
+
+
+
+.. _ecosystem.visualization:
+
+Visualization
+-------------
+
+`Bokeh <http://bokeh.pydata.org>`__
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Bokeh is a Python interactive visualization library for large datasets that natively uses
+the latest web technologies. Its goal is to provide elegant, concise construction of novel
+graphics in the style of Protovis/D3, while delivering high-performance interactivity over
+large data to thin clients.
+
+`yhat/ggplot <https://github.com/yhat/ggplot>`__
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Hadley Wickham's `ggplot2 <http://ggplot2.org/>`__ is a foundational exploratory visualization package for the R language.
+Based on `"The Grammar of Graphics" <http://www.cs.uic.edu/~wilkinson/TheGrammarOfGraphics/GOG.html>`__ it
+provides a powerful, declarative and extremely general way to generate bespoke plots of any kind of data.
+It's really quite incredible. Various implementations to other languages are available,
+but a faithful implementation for python users has long been missing. Although still young
+(as of Jan-2014), the `yhat/ggplot <https://github.com/yhat/ggplot>`__ project has been
+progressing quickly in that direction.
+
+`Seaborn <https://github.com/mwaskom/seaborn>`__
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Although pandas has quite a bit of "just plot it" functionality built-in, visualization and
+in particular statistical graphics is a vast field with a long tradition and lots of ground
+to cover. The `Seaborn <https://github.com/mwaskom/seaborn>`__ project builds on top of pandas
+and `matplotlib <http://matplotlib.org>`__ to provide easy plotting of data which extends to
+more advanced types of plots then those offered by pandas.
+
+`Vincent <https://github.com/wrobstory/vincent>`__
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The `Vincent <https://github.com/wrobstory/vincent>`__ project leverages `Vega <https://github.com/trifacta/vega>`__
+(that in turn, leverages `d3 <http://d3js.org/>`__) to create plots . It has great support
+for pandas data objects.
+
+`Plotly <https://plot.ly/python>`__
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+`Plotly’s <https://plot.ly/>`__ `Python API <https://plot.ly/python/>`__ enables interactive figures and web shareability. Maps, 2D, 3D, and live-streaming graphs are rendered with WebGL and `D3.js <http://d3js.org/>`__. The library supports plotting directly from a pandas DataFrame and cloud-based collaboration. Users of `matplotlib, ggplot for Python, and Seaborn <https://plot.ly/python/matplotlib-to-plotly-tutorial/>`__ can convert figures into interactive web-based plots. Plots can be drawn in `IPython Notebooks <https://plot.ly/ipython-notebooks/>`__ , edited with R or MATLAB, modified in a GUI, or embedded in apps and dashboards. Plotly is free for unlimited sharing, and has `cloud <https://plot.ly/product/plans/>`__, `offline <https://plot.ly/python/offline/>`__, or `on-premise <https://plot.ly/product/enterprise/>`__ accounts for private use.
+
+.. _ecosystem.ide:
+
+IDE
+------
+
+`IPython <http://ipython.org/documentation.html>`__
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+IPython is an interactive command shell and distributed computing
+environment.
+IPython Notebook is a web application for creating IPython notebooks.
+An IPython notebook is a JSON document containing an ordered list
+of input/output cells which can contain code, text, mathematics, plots
+and rich media.
+IPython notebooks can be converted to a number of open standard output formats
+(HTML, HTML presentation slides, LaTeX, PDF, ReStructuredText, Markdown,
+Python) through 'Download As' in the web interface and ``ipython nbconvert``
+in a shell.
+
+Pandas DataFrames implement ``_repr_html_`` methods
+which are utilized by IPython Notebook for displaying
+(abbreviated) HTML tables.  (Note: HTML tables may or may not be
+compatible with non-HTML IPython output formats.)
+
+`quantopian/qgrid <https://github.com/quantopian/qgrid>`__
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+qgrid is "an interactive grid for sorting and filtering
+DataFrames in IPython Notebook" built with SlickGrid.
+
+`Spyder <https://code.google.com/p/spyderlib/>`__
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Spyder is a cross-platform Qt-based open-source Python IDE with
+editing, testing, debugging, and introspection features.
+Spyder can now introspect and display Pandas DataFrames and show
+both "column wise min/max and global min/max coloring."
+
+
+.. _ecosystem.api:
+
+API
+-----
+
+`quandl/Python <https://github.com/quandl/Python>`_
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Quandl API for Python wraps the Quandl REST API to return
+Pandas DataFrames with timeseries indexes.
+
+`pydatastream <https://github.com/vfilimonov/pydatastream>`_
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+PyDatastream is a Python interface to the
+`Thomson Dataworks Enterprise (DWE/Datastream) <http://dataworks.thomson.com/Dataworks/Enterprise/1.0/>`__
+SOAP API to return indexed Pandas DataFrames or Panels with financial data.
+This package requires valid credentials for this API (non free).
+
+`pandaSDMX <http://pandasdmx.readthedocs.org>`_
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+pandaSDMX is an extensible library to retrieve and acquire statistical data
+and metadata disseminated in
+`SDMX <http://www.sdmx.org>`_ 2.1. This standard is currently supported by
+the European statistics office (Eurostat)
+and the European Central Bank (ECB). Datasets may be returned as pandas Series
+or multi-indexed DataFrames.
+
+`fredapi <https://github.com/mortada/fredapi>`_
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+fredapi is a Python interface to the `Federal Reserve Economic Data (FRED) <http://research.stlouisfed.org/fred2/>`__
+provided by the Federal Reserve Bank of St. Louis. It works with both the FRED database and ALFRED database that
+contains point-in-time data (i.e. historic data revisions). fredapi provides a wrapper in python to the FRED
+HTTP API, and also provides several convenient methods for parsing and analyzing point-in-time data from ALFRED.
+fredapi makes use of pandas and returns data in a Series or DataFrame. This module requires a FRED API key that
+you can obtain for free on the FRED website.
+
+
+.. _ecosystem.domain:
+
+Domain Specific
+---------------
+
+`Geopandas <https://github.com/kjordahl/geopandas>`__
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Geopandas extends pandas data objects to include geographic information which support
+geometric operations. If your work entails maps and geographical coordinates, and
+you love pandas, you should take a close look at Geopandas.
+
+`xray <https://github.com/xray/xray>`__
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+xray brings the labeled data power of pandas to the physical sciences by
+providing N-dimensional variants of the core pandas data structures. It aims to
+provide a pandas-like and pandas-compatible toolkit for analytics on multi-
+dimensional arrays, rather than the tabular data for which pandas excels.
+
+
+.. _ecosystem.out-of-core:
+
+Out-of-core
+-------------
+
+`Blaze <http://blaze.pydata.org/>`__
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Blaze provides a standard API for doing computations with various
+in-memory and on-disk backends: NumPy, Pandas, SQLAlchemy, MongoDB, PyTables,
+PySpark.
+
+`Odo <http://odo.pydata.org>`__
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Odo provides a uniform API for moving data between different formats. It uses
+pandas own ``read_csv`` for CSV IO and leverages many existing packages such as
+PyTables, h5py, and pymongo to move data between non pandas formats. Its graph
+based approach is also extensible by end users for custom formats that may be
+too specific for the core of odo.

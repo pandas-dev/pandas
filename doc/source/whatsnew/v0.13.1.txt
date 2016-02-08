@@ -1,0 +1,288 @@
+.. _whatsnew_0131:
+
+v0.13.1 (February 3, 2014)
+--------------------------
+
+This is a minor release from 0.13.0 and includes a small number of API changes, several new features,
+enhancements, and performance improvements along with a large number of bug fixes. We recommend that all
+users upgrade to this version.
+
+Highlights include:
+
+- Added ``infer_datetime_format`` keyword to ``read_csv/to_datetime`` to allow speedups for homogeneously formatted datetimes.
+- Will intelligently limit display precision for datetime/timedelta formats.
+- Enhanced Panel :meth:`~pandas.Panel.apply` method.
+- Suggested tutorials in new :ref:`Tutorials<tutorials>` section.
+- Our pandas ecosystem is growing, We now feature related projects in a new :ref:`Pandas Ecosystem<ecosystem>` section.
+- Much work has been taking place on improving the docs, and a new :ref:`Contributing<contributing>` section has been added.
+- Even though it may only be of interest to devs, we <3 our new CI status page: `ScatterCI <http://scatterci.github.io/pydata/pandas>`__.
+
+.. warning::
+
+   0.13.1 fixes a bug that was caused by a combination of having numpy < 1.8, and doing
+   chained assignment on a string-like array. Please review :ref:`the docs<indexing.view_versus_copy>`,
+   chained indexing can have unexpected results and should generally be avoided.
+
+   This would previously segfault:
+
+   .. ipython:: python
+
+      df = DataFrame(dict(A = np.array(['foo','bar','bah','foo','bar'])))
+      df['A'].iloc[0] = np.nan
+      df
+
+   The recommended way to do this type of assignment is:
+
+   .. ipython:: python
+
+      df = DataFrame(dict(A = np.array(['foo','bar','bah','foo','bar'])))
+      df.ix[0,'A'] = np.nan
+      df
+
+Output Formatting Enhancements
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- df.info() view now display dtype info per column (:issue:`5682`)
+
+- df.info() now honors the option ``max_info_rows``, to disable null counts for large frames (:issue:`5974`)
+
+  .. ipython:: python
+
+     max_info_rows = pd.get_option('max_info_rows')
+
+     df = DataFrame(dict(A = np.random.randn(10),
+                         B = np.random.randn(10),
+                         C = date_range('20130101',periods=10)))
+     df.iloc[3:6,[0,2]] = np.nan
+
+  .. ipython:: python
+
+     # set to not display the null counts
+     pd.set_option('max_info_rows',0)
+     df.info()
+
+  .. ipython:: python
+
+     # this is the default (same as in 0.13.0)
+     pd.set_option('max_info_rows',max_info_rows)
+     df.info()
+
+- Add ``show_dimensions`` display option for the new DataFrame repr to control whether the dimensions print.
+
+  .. ipython:: python
+
+      df = DataFrame([[1, 2], [3, 4]])
+      pd.set_option('show_dimensions', False)
+      df
+
+      pd.set_option('show_dimensions', True)
+      df
+
+- The ``ArrayFormatter`` for ``datetime`` and ``timedelta64`` now intelligently
+  limit precision based on the values in the array (:issue:`3401`)
+
+  Previously output might look like:
+
+  .. code-block:: python
+
+        age                 today               diff
+      0 2001-01-01 00:00:00 2013-04-19 00:00:00 4491 days, 00:00:00
+      1 2004-06-01 00:00:00 2013-04-19 00:00:00 3244 days, 00:00:00
+
+  Now the output looks like:
+
+  .. ipython:: python
+
+     df = DataFrame([ Timestamp('20010101'),
+                      Timestamp('20040601') ], columns=['age'])
+     df['today'] = Timestamp('20130419')
+     df['diff'] = df['today']-df['age']
+     df
+
+API changes
+~~~~~~~~~~~
+
+- Add ``-NaN`` and ``-nan`` to the default set of NA values (:issue:`5952`).
+  See :ref:`NA Values <io.na_values>`.
+
+- Added ``Series.str.get_dummies`` vectorized string method (:issue:`6021`), to extract
+  dummy/indicator variables for separated string columns:
+
+  .. ipython:: python
+
+      s = Series(['a', 'a|b', np.nan, 'a|c'])
+      s.str.get_dummies(sep='|')
+
+- Added the ``NDFrame.equals()`` method to compare if two NDFrames are
+  equal have equal axes, dtypes, and values. Added the
+  ``array_equivalent`` function to compare if two ndarrays are
+  equal. NaNs in identical locations are treated as
+  equal. (:issue:`5283`) See also :ref:`the docs<basics.equals>` for a motivating example.
+
+  .. ipython:: python
+      :okwarning:
+      
+      df = DataFrame({'col':['foo', 0, np.nan]})
+      df2 = DataFrame({'col':[np.nan, 0, 'foo']}, index=[2,1,0])
+      df.equals(df2)
+      df.equals(df2.sort())
+
+      import pandas.core.common as com
+      com.array_equivalent(np.array([0, np.nan]), np.array([0, np.nan]))
+      np.array_equal(np.array([0, np.nan]), np.array([0, np.nan]))
+
+- ``DataFrame.apply`` will use the ``reduce`` argument to determine whether a
+  ``Series`` or a ``DataFrame`` should be returned when the ``DataFrame`` is
+  empty (:issue:`6007`).
+
+  Previously, calling ``DataFrame.apply`` an empty ``DataFrame`` would return
+  either a ``DataFrame`` if there were no columns, or the function being
+  applied would be called with an empty ``Series`` to guess whether a
+  ``Series`` or ``DataFrame`` should be returned:
+
+  .. ipython:: python
+
+     def applied_func(col):
+        print("Apply function being called with: ", col)
+        return col.sum()
+
+     empty = DataFrame(columns=['a', 'b'])
+     empty.apply(applied_func)
+
+  Now, when ``apply`` is called on an empty ``DataFrame``: if the ``reduce``
+  argument is ``True`` a ``Series`` will returned, if it is ``False`` a
+  ``DataFrame`` will be returned, and if it is ``None`` (the default) the
+  function being applied will be called with an empty series to try and guess
+  the return type.
+
+  .. ipython:: python
+
+     empty.apply(applied_func, reduce=True)
+     empty.apply(applied_func, reduce=False)
+
+Prior Version Deprecations/Changes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+There are no announced changes in 0.13 or prior that are taking effect as of 0.13.1
+
+Deprecations
+~~~~~~~~~~~~
+
+There are no deprecations of prior behavior in 0.13.1
+
+Enhancements
+~~~~~~~~~~~~
+
+- ``pd.read_csv`` and ``pd.to_datetime`` learned a new ``infer_datetime_format`` keyword which greatly
+  improves parsing perf in many cases. Thanks to @lexual for suggesting and @danbirken
+  for rapidly implementing. (:issue:`5490`, :issue:`6021`)
+
+  If ``parse_dates`` is enabled and this flag is set, pandas will attempt to
+  infer the format of the datetime strings in the columns, and if it can
+  be inferred, switch to a faster method of parsing them.  In some cases
+  this can increase the parsing speed by ~5-10x.
+
+  .. code-block:: python
+
+      # Try to infer the format for the index column
+      df = pd.read_csv('foo.csv', index_col=0, parse_dates=True,
+                       infer_datetime_format=True)
+
+- ``date_format`` and ``datetime_format`` keywords can now be specified when writing to ``excel``
+  files (:issue:`4133`)
+
+- ``MultiIndex.from_product`` convenience function for creating a MultiIndex from
+  the cartesian product of a set of iterables (:issue:`6055`):
+
+  .. ipython:: python
+
+      shades = ['light', 'dark']
+      colors = ['red', 'green', 'blue']
+
+      MultiIndex.from_product([shades, colors], names=['shade', 'color'])
+
+- Panel :meth:`~pandas.Panel.apply` will work on non-ufuncs. See :ref:`the docs<basics.apply_panel>`.
+
+  .. ipython:: python
+
+     import pandas.util.testing as tm
+     panel = tm.makePanel(5)
+     panel
+     panel['ItemA']
+
+  Specifying an ``apply`` that operates on a Series (to return a single element)
+
+  .. ipython:: python
+
+     panel.apply(lambda x: x.dtype, axis='items')
+
+  A similar reduction type operation
+
+  .. ipython:: python
+
+     panel.apply(lambda x: x.sum(), axis='major_axis')
+
+  This is equivalent to
+
+  .. ipython:: python
+
+     panel.sum('major_axis')
+
+  A transformation operation that returns a Panel, but is computing
+  the z-score across the major_axis
+
+  .. ipython:: python
+
+     result = panel.apply(
+                lambda x: (x-x.mean())/x.std(),
+                axis='major_axis')
+     result
+     result['ItemA']
+
+- Panel :meth:`~pandas.Panel.apply` operating on cross-sectional slabs. (:issue:`1148`)
+
+  .. ipython:: python
+
+     f = lambda x: ((x.T-x.mean(1))/x.std(1)).T
+
+     result = panel.apply(f, axis = ['items','major_axis'])
+     result
+     result.loc[:,:,'ItemA']
+
+  This is equivalent to the following
+
+  .. ipython:: python
+
+     result = Panel(dict([ (ax,f(panel.loc[:,:,ax]))
+                             for ax in panel.minor_axis ]))
+     result
+     result.loc[:,:,'ItemA']
+
+Performance
+~~~~~~~~~~~
+
+Performance improvements for 0.13.1
+
+- Series datetime/timedelta binary operations (:issue:`5801`)
+- DataFrame ``count/dropna`` for ``axis=1``
+- Series.str.contains now has a `regex=False` keyword which can be faster for plain (non-regex) string patterns. (:issue:`5879`)
+- Series.str.extract (:issue:`5944`)
+- ``dtypes/ftypes`` methods (:issue:`5968`)
+- indexing with object dtypes (:issue:`5968`)
+- ``DataFrame.apply`` (:issue:`6013`)
+- Regression in JSON IO (:issue:`5765`)
+- Index construction from Series (:issue:`6150`)
+
+Experimental
+~~~~~~~~~~~~
+
+There are no experimental changes in 0.13.1
+
+Bug Fixes
+~~~~~~~~~
+
+See :ref:`V0.13.1 Bug Fixes<release.bug_fixes-0.13.1>` for an extensive list of bugs that have been fixed in 0.13.1.
+
+See the :ref:`full release notes
+<release>` or issue tracker
+on GitHub for a complete list of all API changes, Enhancements and Bug Fixes.
