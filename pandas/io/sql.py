@@ -21,7 +21,6 @@ from pandas.core.common import isnull
 from pandas.core.base import PandasObject
 from pandas.core.dtypes import DatetimeTZDtype
 from pandas.tseries.tools import to_datetime
-from pandas.util.decorators import Appender
 
 from contextlib import contextmanager
 
