@@ -409,9 +409,9 @@ class TestStata(tm.TestCase):
                 written_and_read_again.set_index('index'), formatted)
 
     def test_read_write_dta13(self):
-        s1 = Series(2**9, dtype=np.int16)
-        s2 = Series(2**17, dtype=np.int32)
-        s3 = Series(2**33, dtype=np.int64)
+        s1 = Series(2 ** 9, dtype=np.int16)
+        s2 = Series(2 ** 17, dtype=np.int32)
+        s3 = Series(2 ** 33, dtype=np.int64)
         original = DataFrame({'int16': s1, 'int32': s2, 'int64': s3})
         original.index.name = 'index'
 
@@ -567,6 +567,20 @@ class TestStata(tm.TestCase):
             modified.columns = ['_0']
             tm.assert_frame_equal(written_and_read_again.set_index('index'),
                                   modified)
+
+    def test_105(self):
+        # Data obtained from:
+        # http://go.worldbank.org/ZXY29PVJ21
+        dpath = os.path.join(self.dirpath, 'S4_EDUC1.DTA')
+        df = pd.read_stata(dpath)
+        df0 = [[1, 1, 3, -2], [2, 1, 2, -2], [4, 1, 1, -2]]
+        df0 = pd.DataFrame(df0)
+        df0.columns = ["clustnum", "pri_schl", "psch_num", "psch_dis"]
+        df0['clustnum'] = df0["clustnum"].astype(np.int16)
+        df0['pri_schl'] = df0["pri_schl"].astype(np.int8)
+        df0['psch_num'] = df0["psch_num"].astype(np.int8)
+        df0['psch_dis'] = df0["psch_dis"].astype(np.float32)
+        tm.assert_frame_equal(df.head(3), df0)
 
     def test_date_export_formats(self):
         columns = ['tc', 'td', 'tw', 'tm', 'tq', 'th', 'ty']

@@ -851,23 +851,24 @@ class StataParser(object):
         float32_max = b'\xff\xff\xff\x7e'
         float64_min = b'\xff\xff\xff\xff\xff\xff\xef\xff'
         float64_max = b'\xff\xff\xff\xff\xff\xff\xdf\x7f'
-        self.VALID_RANGE = \
-            {
-                'b': (-127, 100),
-                'h': (-32767, 32740),
-                'l': (-2147483647, 2147483620),
-                'f': (np.float32(struct.unpack('<f', float32_min)[0]),
-                      np.float32(struct.unpack('<f', float32_max)[0])),
-                'd': (np.float64(struct.unpack('<d', float64_min)[0]),
-                      np.float64(struct.unpack('<d', float64_max)[0]))
-            }
+        self.VALID_RANGE = {
+            'b': (-127, 100),
+            'h': (-32767, 32740),
+            'l': (-2147483647, 2147483620),
+            'f': (np.float32(struct.unpack('<f', float32_min)[0]),
+                  np.float32(struct.unpack('<f', float32_max)[0])),
+            'd': (np.float64(struct.unpack('<d', float64_min)[0]),
+                  np.float64(struct.unpack('<d', float64_max)[0]))
+        }
 
-        self.OLD_TYPE_MAPPING = \
-            {
-                'i': 252,
-                'f': 254,
-                'b': 251
-            }
+        self.OLD_TYPE_MAPPING = {
+            98: 251,   # byte
+            105: 252,  # int
+            108: 253,  # long
+            102: 254   # float
+            # don't know old code for double
+        }
+
         # These missing values are the generic '.' in Stata, and are used
         # to replace nans
         self.MISSING_VALUES = {
@@ -878,15 +879,14 @@ class StataParser(object):
             'd': np.float64(
                 struct.unpack('<d', b'\x00\x00\x00\x00\x00\x00\xe0\x7f')[0])
         }
-        self.NUMPY_TYPE_MAP = \
-            {
-                'b': 'i1',
-                'h': 'i2',
-                'l': 'i4',
-                'f': 'f4',
-                'd': 'f8',
-                'Q': 'u8'
-            }
+        self.NUMPY_TYPE_MAP = {
+            'b': 'i1',
+            'h': 'i2',
+            'l': 'i4',
+            'f': 'f4',
+            'd': 'f8',
+            'Q': 'u8'
+        }
 
         # Reserved words cannot be used as variable names
         self.RESERVED_WORDS = ('aggregate', 'array', 'boolean', 'break',
@@ -899,12 +899,6 @@ class StataParser(object):
                                'int', 'local', 'long', 'NULL', 'pragma',
                                'protected', 'quad', 'rowvector', 'short',
                                'typedef', 'typename', 'virtual')
-
-    def _decode_bytes(self, str, errors=None):
-        if compat.PY3 or self._encoding is not None:
-            return str.decode(self._encoding, errors)
-        else:
-            return str
 
 
 class StataReader(StataParser, BaseIterator):
@@ -1201,11 +1195,14 @@ class StataReader(StataParser, BaseIterator):
             typlist = [ord(self.path_or_buf.read(1))
                        for i in range(self.nvar)]
         else:
-            typlist = [
-                self.OLD_TYPE_MAPPING[
-                    self._decode_bytes(self.path_or_buf.read(1))
-                ] for i in range(self.nvar)
-            ]
+            buf = self.path_or_buf.read(self.nvar)
+            typlistb = np.frombuffer(buf, dtype=np.uint8)
+            typlist = []
+            for tp in typlistb:
+                if tp in self.OLD_TYPE_MAPPING:
+                    typlist.append(self.OLD_TYPE_MAPPING[tp])
+                else:
+                    typlist.append(tp - 127)  # string
 
         try:
             self.typlist = [self.TYPE_MAP[typ] for typ in typlist]
@@ -1526,7 +1523,7 @@ class StataReader(StataParser, BaseIterator):
                     data[col],
                     self.fmtlist[i])
 
-        if convert_categoricals and self.value_label_dict:
+        if convert_categoricals and self.format_version > 108:
             data = self._do_convert_categoricals(data,
                                                  self.value_label_dict,
                                                  self.lbllist,
