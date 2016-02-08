@@ -733,7 +733,7 @@ Bug Fixes
 - Bug in getitem when the values of a ``Series`` were tz-aware (:issue:`12089`)
 - Bug in ``Series.str.get_dummies`` when one of the variables was 'name' (:issue:`12180`)
 - Bug in ``pd.concat`` while concatenating tz-aware NaT series. (:issue:`11693`, :issue:`11755`)
-
+- Bug in ``pd.read_stata`` with version <= 108 files (:issue:`12232`)
 
 
 - Bug in ``Timedelta.round`` with negative values (:issue:`11690`)
