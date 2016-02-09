@@ -546,23 +546,26 @@ class HDFStore(StringMixin):
                 raise
 
         except (ValueError) as e:
+            if 'is already opened, but in read-only mode' in str(e):
+                print('Reopening %s in read-only mode' % self._path)
+                self._handle = tables.open_file(self._path, 'r', **kwargs)
+            else:
+                # trap PyTables >= 3.1 FILE_OPEN_POLICY exception
+                # to provide an updated message
+                if 'FILE_OPEN_POLICY' in str(e):
+                    e = ValueError(
+                        "PyTables [{version}] no longer supports opening multiple "
+                        "files\n"
+                        "even in read-only mode on this HDF5 version "
+                        "[{hdf_version}]. You can accept this\n"
+                        "and not open the same file multiple times at once,\n"
+                        "upgrade the HDF5 version, or downgrade to PyTables 3.0.0 "
+                        "which allows\n"
+                        "files to be opened multiple times at once\n"
+                        .format(version=tables.__version__,
+                                hdf_version=tables.get_hdf5_version()))
 
-            # trap PyTables >= 3.1 FILE_OPEN_POLICY exception
-            # to provide an updated message
-            if 'FILE_OPEN_POLICY' in str(e):
-                e = ValueError(
-                    "PyTables [{version}] no longer supports opening multiple "
-                    "files\n"
-                    "even in read-only mode on this HDF5 version "
-                    "[{hdf_version}]. You can accept this\n"
-                    "and not open the same file multiple times at once,\n"
-                    "upgrade the HDF5 version, or downgrade to PyTables 3.0.0 "
-                    "which allows\n"
-                    "files to be opened multiple times at once\n"
-                    .format(version=tables.__version__,
-                            hdf_version=tables.get_hdf5_version()))
-
-            raise e
+                raise e
 
         except (Exception) as e:
 

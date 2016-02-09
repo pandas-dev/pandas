@@ -4779,6 +4779,19 @@ class TestHDFStore(Base, tm.TestCase):
             self.assertTrue(store.is_open)
             store.close()
 
+        # GH12266
+        with ensure_clean_path(self.path) as path:
+            store = HDFStore(path)
+            store.put('df', df)
+            store.close()
+            os.chmod(path, 0o400)
+            store1 = HDFStore(path)
+            store2 = HDFStore(path)
+            tm.assert_frame_equal(df, store1['df'])
+            tm.assert_frame_equal(df, store2['df'])
+            store1.close()
+            store2.close()
+
     def test_read_hdf_iterator(self):
         df = DataFrame(np.random.rand(4, 5),
                        index=list('abcd'),
