@@ -137,6 +137,92 @@ New Behavior:
    s.index
    s.index.nbytes
 
+.. _whatsnew_0180.enhancements.extract:
+
+Changes to str.extract
+^^^^^^^^^^^^^^^^^^^^^^
+
+The :ref:`.str.extract <text.extract>` method takes a regular
+expression with capture groups, finds the first match in each subject
+string, and returns the contents of the capture groups
+(:issue:`11386`). In v0.18.0, the ``expand`` argument was added to
+``extract``. When ``expand=False`` it returns a ``Series``, ``Index``,
+or ``DataFrame``, depending on the subject and regular expression
+pattern (same behavior as pre-0.18.0). When ``expand=True`` it always
+returns a ``DataFrame``, which is more consistent and less confusing
+from the perspective of a user. Currently the default is
+``expand=None`` which gives a ``FutureWarning`` and uses
+``expand=False``. To avoid this warning, please explicitly specify
+``expand``.
+
+.. ipython:: python
+
+   pd.Series(['a1', 'b2', 'c3']).str.extract('[ab](\d)')
+
+Extracting a regular expression with one group returns a ``DataFrame``
+with one column if ``expand=True``.
+
+.. ipython:: python
+
+   pd.Series(['a1', 'b2', 'c3']).str.extract('[ab](\d)', expand=True)
+
+It returns a Series if ``expand=False``.
+
+.. ipython:: python
+
+   pd.Series(['a1', 'b2', 'c3']).str.extract('[ab](\d)', expand=False)
+
+Calling on an ``Index`` with a regex with exactly one capture group
+returns a ``DataFrame`` with one column if ``expand=True``,
+
+.. ipython:: python
+
+   s = pd.Series(["a1", "b2", "c3"], ["A11", "B22", "C33"])
+   s
+   s.index.str.extract("(?P<letter>[a-zA-Z])", expand=True)
+
+It returns an ``Index`` if ``expand=False``.
+
+.. ipython:: python
+
+   s.index.str.extract("(?P<letter>[a-zA-Z])", expand=False)
+
+Calling on an ``Index`` with a regex with more than one capture group
+returns a ``DataFrame`` if ``expand=True``.
+
+.. ipython:: python
+
+   s.index.str.extract("(?P<letter>[a-zA-Z])([0-9]+)", expand=True)
+
+It raises ``ValueError`` if ``expand=False``.
+
+.. code-block:: python
+
+    >>> s.index.str.extract("(?P<letter>[a-zA-Z])([0-9]+)", expand=False)
+    ValueError: only one regex group is supported with Index
+
+In summary, ``extract(expand=True)`` always returns a ``DataFrame``
+with a row for every subject string, and a column for every capture
+group.
+
+.. _whatsnew_0180.enhancements.extractall:
+
+The :ref:`.str.extractall <text.extractall>` method was added
+(:issue:`11386`).  Unlike ``extract`` (which returns only the first
+match),
+
+.. ipython:: python
+
+   s = pd.Series(["a1a2", "b1", "c1"], ["A", "B", "C"])
+   s
+   s.str.extract("(?P<letter>[ab])(?P<digit>\d)")
+
+the ``extractall`` method returns all matches.
+
+.. ipython:: python
+
+   s.str.extractall("(?P<letter>[ab])(?P<digit>\d)")
+
 .. _whatsnew_0180.enhancements.rounding:
 
 Datetimelike rounding

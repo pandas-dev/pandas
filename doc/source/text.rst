@@ -168,28 +168,37 @@ Extracting Substrings
 
 .. _text.extract:
 
-The method ``extract`` (introduced in version 0.13) accepts `regular expressions
-<https://docs.python.org/2/library/re.html>`__ with match groups. Extracting a
-regular expression with one group returns a Series of strings.
+Extract first match in each subject (extract)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. ipython:: python
+.. versionadded:: 0.13.0
 
-   pd.Series(['a1', 'b2', 'c3']).str.extract('[ab](\d)')
+.. warning::
 
-Elements that do not match return ``NaN``. Extracting a regular expression
-with more than one group returns a DataFrame with one column per group.
+   In version 0.18.0, ``extract`` gained the ``expand`` argument. When
+   ``expand=False`` it returns a ``Series``, ``Index``, or
+   ``DataFrame``, depending on the subject and regular expression
+   pattern (same behavior as pre-0.18.0). When ``expand=True`` it
+   always returns a ``DataFrame``, which is more consistent and less
+   confusing from the perspective of a user.
+
+The ``extract`` method accepts a `regular expression
+<https://docs.python.org/2/library/re.html>`__ with at least one
+capture group. 
+
+Extracting a regular expression with more than one group returns a
+DataFrame with one column per group.
 
 .. ipython:: python
 
    pd.Series(['a1', 'b2', 'c3']).str.extract('([ab])(\d)')
 
-Elements that do not match return a row filled with ``NaN``.
-Thus, a Series of messy strings can be "converted" into a
-like-indexed Series or DataFrame of cleaned-up or more useful strings,
-without necessitating ``get()`` to access tuples or ``re.match`` objects.
-
-The results dtype always is object, even if no match is found and the result
-only contains ``NaN``.
+Elements that do not match return a row filled with ``NaN``. Thus, a
+Series of messy strings can be "converted" into a like-indexed Series
+or DataFrame of cleaned-up or more useful strings, without
+necessitating ``get()`` to access tuples or ``re.match`` objects.  The
+results dtype always is object, even if no match is found and the
+result only contains ``NaN``.
 
 Named groups like
 
@@ -201,9 +210,109 @@ and optional groups like
 
 .. ipython:: python
 
-   pd.Series(['a1', 'b2', '3']).str.extract('(?P<letter>[ab])?(?P<digit>\d)')
+   pd.Series(['a1', 'b2', '3']).str.extract('([ab])?(\d)')
 
-can also be used.
+can also be used. Note that any capture group names in the regular
+expression will be used for column names; otherwise capture group
+numbers will be used.
+
+Extracting a regular expression with one group returns a ``DataFrame``
+with one column if ``expand=True``.
+
+.. ipython:: python
+
+   pd.Series(['a1', 'b2', 'c3']).str.extract('[ab](\d)', expand=True)
+
+It returns a Series if ``expand=False``.
+
+.. ipython:: python
+
+   pd.Series(['a1', 'b2', 'c3']).str.extract('[ab](\d)', expand=False)
+
+Calling on an ``Index`` with a regex with exactly one capture group
+returns a ``DataFrame`` with one column if ``expand=True``,
+
+.. ipython:: python
+
+   s = pd.Series(["a1", "b2", "c3"], ["A11", "B22", "C33"])
+   s
+   s.index.str.extract("(?P<letter>[a-zA-Z])", expand=True)
+
+It returns an ``Index`` if ``expand=False``.
+
+.. ipython:: python
+
+   s.index.str.extract("(?P<letter>[a-zA-Z])", expand=False)
+
+Calling on an ``Index`` with a regex with more than one capture group
+returns a ``DataFrame`` if ``expand=True``.
+
+.. ipython:: python
+
+   s.index.str.extract("(?P<letter>[a-zA-Z])([0-9]+)", expand=True)
+
+It raises ``ValueError`` if ``expand=False``.
+
+.. code-block:: python
+
+    >>> s.index.str.extract("(?P<letter>[a-zA-Z])([0-9]+)", expand=False)
+    ValueError: This pattern contains no groups to capture.
+
+The table below summarizes the behavior of ``extract(expand=False)``
+(input subject in first column, number of groups in regex in
+first row)
+
++--------+---------+------------+
+|        | 1 group | >1 group   |
++--------+---------+------------+
+| Index  | Index   | ValueError |
++--------+---------+------------+
+| Series | Series  | DataFrame  |
++--------+---------+------------+
+
+Extract all matches in each subject (extractall)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. _text.extractall:
+
+Unlike ``extract`` (which returns only the first match),
+
+.. ipython:: python
+
+   s = pd.Series(["a1a2", "b1", "c1"], ["A", "B", "C"])
+   s
+   s.str.extract("[ab](?P<digit>\d)")
+
+.. versionadded:: 0.18.0
+
+the ``extractall`` method returns every match. The result of
+``extractall`` is always a ``DataFrame`` with a ``MultiIndex`` on its
+rows. The last level of the ``MultiIndex`` is named ``match`` and
+indicates the order in the subject.
+
+.. ipython:: python
+
+   s.str.extractall("[ab](?P<digit>\d)")
+
+When each subject string in the Series has exactly one match,
+
+.. ipython:: python
+
+   s = pd.Series(['a3', 'b3', 'c2'])
+   s
+   two_groups = '(?P<letter>[a-z])(?P<digit>[0-9])'
+
+then ``extractall(pat).xs(0, level='match')`` gives the same result as
+``extract(pat)``.
+
+.. ipython:: python
+
+   extract_result = s.str.extract(two_groups)
+   extract_result
+   extractall_result = s.str.extractall(two_groups)
+   extractall_result
+   extractall_result.xs(0, level="match")
+
 
 Testing for Strings that Match or Contain a Pattern
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -288,7 +397,8 @@ Method Summary
     :meth:`~Series.str.endswith`,Equivalent to ``str.endswith(pat)`` for each element
     :meth:`~Series.str.findall`,Compute list of all occurrences of pattern/regex for each string
     :meth:`~Series.str.match`,"Call ``re.match`` on each element, returning matched groups as list"
-    :meth:`~Series.str.extract`,"Call ``re.match`` on each element, as ``match`` does, but return matched groups as strings for convenience."
+    :meth:`~Series.str.extract`,"Call ``re.search`` on each element, returning DataFrame with one row for each element and one column for each regex capture group"
+    :meth:`~Series.str.extractall`,"Call ``re.findall`` on each element, returning DataFrame with one row for each match and one column for each regex capture group"
     :meth:`~Series.str.len`,Compute string lengths
     :meth:`~Series.str.strip`,Equivalent to ``str.strip``
     :meth:`~Series.str.rstrip`,Equivalent to ``str.rstrip``
