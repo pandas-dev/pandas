@@ -4110,6 +4110,7 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
             ('encode', ("UTF-8",), {}),
             ('endswith', ("a",), {}),
             ('extract', ("([a-z]*) ",), {}),
+            ('extractall', ("([a-z]*) ",), {}),
             ('find', ("a",), {}),
             ('findall', ("a",), {}),
             ('index', (" ",), {}),

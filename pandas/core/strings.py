@@ -418,67 +418,10 @@ def _get_single_group_name(rx):
         return None
 
 
-def str_extract(arr, pat, flags=0):
-    """
-    Find groups in each string in the Series using passed regular
-    expression.
-
-    Parameters
-    ----------
-    pat : string
-        Pattern or regular expression
-    flags : int, default 0 (no flags)
-        re module flags, e.g. re.IGNORECASE
-
-    Returns
-    -------
-    extracted groups : Series (one group) or DataFrame (multiple groups)
-        Note that dtype of the result is always object, even when no match is
-        found and the result is a Series or DataFrame containing only NaN
-        values.
-
-    Examples
-    --------
-    A pattern with one group will return a Series. Non-matches will be NaN.
-
-    >>> Series(['a1', 'b2', 'c3']).str.extract('[ab](\d)')
-    0      1
-    1      2
-    2    NaN
-    dtype: object
-
-    A pattern with more than one group will return a DataFrame.
-
-    >>> Series(['a1', 'b2', 'c3']).str.extract('([ab])(\d)')
-         0    1
-    0    a    1
-    1    b    2
-    2  NaN  NaN
-
-    A pattern may contain optional groups.
-
-    >>> Series(['a1', 'b2', 'c3']).str.extract('([ab])?(\d)')
-         0  1
-    0    a  1
-    1    b  2
-    2  NaN  3
-
-    Named groups will become column names in the result.
-
-    >>> Series(['a1', 'b2', 'c3']).str.extract('(?P<letter>[ab])(?P<digit>\d)')
-      letter digit
-    0      a     1
-    1      b     2
-    2    NaN   NaN
-
-    """
-    from pandas.core.frame import DataFrame
-    from pandas.core.index import Index
-
-    regex = re.compile(pat, flags=flags)
-    # just to be safe, check this
+def _groups_or_na_fun(regex):
+    """Used in both extract_noexpand and extract_frame"""
     if regex.groups == 0:
-        raise ValueError("This pattern contains no groups to capture.")
+        raise ValueError("pattern contains no capture groups")
     empty_row = [np.nan] * regex.groups
 
     def f(x):
@@ -489,9 +432,24 @@ def str_extract(arr, pat, flags=0):
             return [np.nan if item is None else item for item in m.groups()]
         else:
             return empty_row
+    return f
+
+
+def _str_extract_noexpand(arr, pat, flags=0):
+    """
+    Find groups in each string in the Series using passed regular
+    expression. This function is called from
+    str_extract(expand=False), and can return Series, DataFrame, or
+    Index.
+
+    """
+    from pandas import DataFrame, Index
+
+    regex = re.compile(pat, flags=flags)
+    groups_or_na = _groups_or_na_fun(regex)
 
     if regex.groups == 1:
-        result = np.array([f(val)[0] for val in arr], dtype=object)
+        result = np.array([groups_or_na(val)[0] for val in arr], dtype=object)
         name = _get_single_group_name(regex)
     else:
         if isinstance(arr, Index):
@@ -502,9 +460,237 @@ def str_extract(arr, pat, flags=0):
         if arr.empty:
             result = DataFrame(columns=columns, dtype=object)
         else:
-            result = DataFrame([f(val) for val in arr], columns=columns,
-                               index=arr.index, dtype=object)
+            result = DataFrame(
+                [groups_or_na(val) for val in arr],
+                columns=columns,
+                index=arr.index,
+                dtype=object)
     return result, name
+
+
+def _str_extract_frame(arr, pat, flags=0):
+    """
+    For each subject string in the Series, extract groups from the
+    first match of regular expression pat. This function is called from
+    str_extract(expand=True), and always returns a DataFrame.
+
+    """
+    from pandas import DataFrame
+
+    regex = re.compile(pat, flags=flags)
+    groups_or_na = _groups_or_na_fun(regex)
+    names = dict(zip(regex.groupindex.values(), regex.groupindex.keys()))
+    columns = [names.get(1 + i, i) for i in range(regex.groups)]
+
+    if len(arr) == 0:
+        return DataFrame(columns=columns, dtype=object)
+    try:
+        result_index = arr.index
+    except AttributeError:
+        result_index = None
+    return DataFrame(
+        [groups_or_na(val) for val in arr],
+        columns=columns,
+        index=result_index,
+        dtype=object)
+
+
+def str_extract(arr, pat, flags=0, expand=None):
+    """
+    For each subject string in the Series, extract groups from the
+    first match of regular expression pat.
+
+    .. versionadded:: 0.13.0
+
+    Parameters
+    ----------
+    pat : string
+        Regular expression pattern with capturing groups
+    flags : int, default 0 (no flags)
+        re module flags, e.g. re.IGNORECASE
+
+    .. versionadded:: 0.18.0
+    expand : bool, default False
+        * If True, return DataFrame.
+        * If False, return Series/Index/DataFrame.
+
+    Returns
+    -------
+    DataFrame with one row for each subject string, and one column for
+    each group. Any capture group names in regular expression pat will
+    be used for column names; otherwise capture group numbers will be
+    used. The dtype of each result column is always object, even when
+    no match is found. If expand=True and pat has only one capture group,
+    then return a Series (if subject is a Series) or Index (if subject
+    is an Index).
+
+    See Also
+    --------
+    extractall : returns all matches (not just the first match)
+
+    Examples
+    --------
+    A pattern with two groups will return a DataFrame with two columns.
+    Non-matches will be NaN.
+
+    >>> s = Series(['a1', 'b2', 'c3'])
+    >>> s.str.extract('([ab])(\d)')
+         0    1
+    0    a    1
+    1    b    2
+    2  NaN  NaN
+
+    A pattern may contain optional groups.
+
+    >>> s.str.extract('([ab])?(\d)')
+         0  1
+    0    a  1
+    1    b  2
+    2  NaN  3
+
+    Named groups will become column names in the result.
+
+    >>> s.str.extract('(?P<letter>[ab])(?P<digit>\d)')
+      letter digit
+    0      a     1
+    1      b     2
+    2    NaN   NaN
+
+    A pattern with one group will return a DataFrame with one column
+    if expand=True.
+
+    >>> s.str.extract('[ab](\d)', expand=True)
+         0
+    0    1
+    1    2
+    2  NaN
+
+    A pattern with one group will return a Series if expand=False.
+
+    >>> s.str.extract('[ab](\d)', expand=False)
+    0      1
+    1      2
+    2    NaN
+    dtype: object
+
+    """
+    if expand is None:
+        warnings.warn(
+            "currently extract(expand=None) " +
+            "means expand=False (return Index/Series/DataFrame) " +
+            "but in a future version of pandas this will be changed " +
+            "to expand=True (return DataFrame)",
+            FutureWarning,
+            stacklevel=3)
+        expand = False
+    if not isinstance(expand, bool):
+        raise ValueError("expand must be True or False")
+    if expand:
+        return _str_extract_frame(arr._orig, pat, flags=flags)
+    else:
+        result, name = _str_extract_noexpand(arr._data, pat, flags=flags)
+        return arr._wrap_result(result, name=name)
+
+
+def str_extractall(arr, pat, flags=0):
+    """
+    For each subject string in the Series, extract groups from all
+    matches of regular expression pat. When each subject string in the
+    Series has exactly one match, extractall(pat).xs(0, level='match')
+    is the same as extract(pat).
+
+    .. versionadded:: 0.18.0
+
+    Parameters
+    ----------
+    pat : string
+        Regular expression pattern with capturing groups
+    flags : int, default 0 (no flags)
+        re module flags, e.g. re.IGNORECASE
+
+    Returns
+    -------
+    A DataFrame with one row for each match, and one column for each
+    group. Its rows have a MultiIndex with first levels that come from
+    the subject Series. The last level is named 'match' and indicates
+    the order in the subject. Any capture group names in regular
+    expression pat will be used for column names; otherwise capture
+    group numbers will be used.
+
+    See Also
+    --------
+    extract : returns first match only (not all matches)
+
+    Examples
+    --------
+    A pattern with one group will return a DataFrame with one column.
+    Indices with no matches will not appear in the result.
+
+    >>> s = Series(["a1a2", "b1", "c1"], index=["A", "B", "C"])
+    >>> s.str.extractall("[ab](\d)")
+             0
+      match
+    A 0      1
+      1      2
+    B 0      1
+
+    Capture group names are used for column names of the result.
+
+    >>> s.str.extractall("[ab](?P<digit>\d)")
+            digit
+      match
+    A 0         1
+      1         2
+    B 0         1
+
+    A pattern with two groups will return a DataFrame with two columns.
+
+    >>> s.str.extractall("(?P<letter>[ab])(?P<digit>\d)")
+            letter digit
+      match
+    A 0          a     1
+      1          a     2
+    B 0          b     1
+
+    Optional groups that do not match are NaN in the result.
+
+    >>> s.str.extractall("(?P<letter>[ab])?(?P<digit>\d)")
+            letter digit
+      match
+    A 0          a     1
+      1          a     2
+    B 0          b     1
+    C 0        NaN     1
+
+    """
+    from pandas import DataFrame, MultiIndex
+    regex = re.compile(pat, flags=flags)
+    # the regex must contain capture groups.
+    if regex.groups == 0:
+        raise ValueError("pattern contains no capture groups")
+    names = dict(zip(regex.groupindex.values(), regex.groupindex.keys()))
+    columns = [names.get(1 + i, i) for i in range(regex.groups)]
+    match_list = []
+    index_list = []
+    for subject_key, subject in arr.iteritems():
+        if isinstance(subject, compat.string_types):
+            try:
+                key_list = list(subject_key)
+            except TypeError:
+                key_list = [subject_key]
+            for match_i, match_tuple in enumerate(regex.findall(subject)):
+                na_tuple = [
+                    np.NaN if group == "" else group for group in match_tuple]
+                match_list.append(na_tuple)
+                result_key = tuple(key_list + [match_i])
+                index_list.append(result_key)
+    if 0 < len(index_list):
+        index = MultiIndex.from_tuples(
+            index_list, names=arr.index.names + ["match"])
+    else:
+        index = None
+    result = DataFrame(match_list, index, columns)
+    return result
 
 
 def str_get_dummies(arr, sep='|'):
@@ -599,6 +785,10 @@ def str_findall(arr, pat, flags=0):
     Returns
     -------
     matches : Series/Index of lists
+
+    See Also
+    --------
+    extractall : returns DataFrame with one column per capture group
     """
     regex = re.compile(pat, flags=flags)
     return _na_map(regex.findall, arr)
@@ -1405,9 +1595,12 @@ class StringMethods(NoNewAttributesMixin):
     findall = _pat_wrapper(str_findall, flags=True)
 
     @copy(str_extract)
-    def extract(self, pat, flags=0):
-        result, name = str_extract(self._data, pat, flags=flags)
-        return self._wrap_result(result, name=name)
+    def extract(self, pat, flags=0, expand=None):
+        return str_extract(self, pat, flags=flags, expand=expand)
+
+    @copy(str_extractall)
+    def extractall(self, pat, flags=0):
+        return str_extractall(self._orig, pat, flags=flags)
 
     _shared_docs['find'] = ("""
     Return %(side)s indexes in each strings in the Series/Index

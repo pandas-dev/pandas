@@ -526,6 +526,7 @@ strings and apply several methods to it. These can be accessed like
    Series.str.encode
    Series.str.endswith
    Series.str.extract
+   Series.str.extractall
    Series.str.find
    Series.str.findall
    Series.str.get
