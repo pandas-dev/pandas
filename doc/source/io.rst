@@ -2553,7 +2553,7 @@ for some advanced strategies
 
 .. ipython:: python
 
-   store = HDFStore('store.h5')
+   store = pd.HDFStore('store.h5')
    print(store)
 
 Objects can be written to the file just like adding key-value pairs to a
@@ -2611,7 +2611,7 @@ Closing a Store, Context Manager
 
    # Working with, and automatically closing the store with the context
    # manager
-   with HDFStore('store.h5') as store:
+   with pd.HDFStore('store.h5') as store:
        store.keys()
 
 .. ipython:: python
