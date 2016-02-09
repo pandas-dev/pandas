@@ -145,15 +145,15 @@ Changes to str.extract
 The :ref:`.str.extract <text.extract>` method takes a regular
 expression with capture groups, finds the first match in each subject
 string, and returns the contents of the capture groups
-(:issue:`11386`). In v0.18.0, the ``expand`` argument was added to
-``extract``. When ``expand=False`` it returns a ``Series``, ``Index``,
-or ``DataFrame``, depending on the subject and regular expression
-pattern (same behavior as pre-0.18.0). When ``expand=True`` it always
-returns a ``DataFrame``, which is more consistent and less confusing
-from the perspective of a user. Currently the default is
-``expand=None`` which gives a ``FutureWarning`` and uses
-``expand=False``. To avoid this warning, please explicitly specify
-``expand``.
+(:issue:`11386`).
+
+In v0.18.0, the ``expand`` argument was added to
+``extract``.
+
+- ``expand=False``: it returns a ``Series``, ``Index``, or ``DataFrame``, depending on the subject and regular expression pattern (same behavior as pre-0.18.0).
+- ``expand=True``: it always returns a ``DataFrame``, which is more consistent and less confusing from the perspective of a user.
+
+Currently the default is ``expand=None`` which gives a ``FutureWarning`` and uses ``expand=False``. To avoid this warning, please explicitly specify ``expand``.
 
 .. ipython:: python
 
@@ -204,6 +204,9 @@ It raises ``ValueError`` if ``expand=False``.
 In summary, ``extract(expand=True)`` always returns a ``DataFrame``
 with a row for every subject string, and a column for every capture
 group.
+
+Addition of str.extractall
+^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. _whatsnew_0180.enhancements.extractall:
 
