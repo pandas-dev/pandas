@@ -29,6 +29,7 @@ from pandas.io.parsers import (read_csv, read_table, read_fwf,
 import pandas.util.testing as tm
 import pandas as pd
 
+from pandas.core.common import AbstractMethodError
 from pandas.compat import parse_date
 import pandas.lib as lib
 from pandas import compat
@@ -2495,6 +2496,18 @@ MyColumn
         expected = pd.DataFrame([[float(s) for s in data.split(',')]])
         tm.assert_frame_equal(result, expected)
 
+    def float_precision_choices(self):
+        raise AbstractMethodError(self)
+
+    def test_scientific_no_exponent(self):
+        # See PR 12215
+        df = DataFrame.from_items([('w', ['2e']), ('x', ['3E']),
+                                   ('y', ['42e']), ('z', ['632E'])])
+        data = df.to_csv(index=False)
+        for prec in self.float_precision_choices():
+            df_roundtrip = self.read_csv(StringIO(data), float_precision=prec)
+            tm.assert_frame_equal(df_roundtrip, df)
+
     def test_int64_overflow(self):
         data = """ID
 00013007854817840016671868
@@ -2650,6 +2663,9 @@ class TestPythonParser(ParserTests, tm.TestCase):
         kwds = kwds.copy()
         kwds['engine'] = 'python'
         return read_table(*args, **kwds)
+
+    def float_precision_choices(self):
+        return [None]
 
     def test_sniff_delimiter(self):
         text = """index|A|B|C
@@ -3408,6 +3424,9 @@ col1~~~~~col2  col3++++++++++++++++++col4
 
 class CParserTests(ParserTests):
     """ base class for CParser Testsing """
+
+    def float_precision_choices(self):
+        return [None, 'high', 'round_trip']
 
     def test_buffer_overflow(self):
         # GH9205
