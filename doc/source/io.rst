@@ -1399,7 +1399,7 @@ Writing to a file, with a date index and a date column
    dfj2['date'] = Timestamp('20130101')
    dfj2['ints'] = list(range(5))
    dfj2['bools'] = True
-   dfj2.index = date_range('20130101', periods=5)
+   dfj2.index = pd.date_range('20130101', periods=5)
    dfj2.to_json('test.json')
    open('test.json').read()
 
@@ -2562,7 +2562,7 @@ dict:
 .. ipython:: python
 
    np.random.seed(1234)
-   index = date_range('1/1/2000', periods=8)
+   index = pd.date_range('1/1/2000', periods=8)
    s = Series(randn(5), index=['a', 'b', 'c', 'd', 'e'])
    df = DataFrame(randn(8, 3), index=index,
                   columns=['A', 'B', 'C'])
@@ -2754,7 +2754,7 @@ enable ``put/append/to_hdf`` to by default store in the ``table`` format.
 
 .. ipython:: python
 
-   store = HDFStore('store.h5')
+   store = pd.HDFStore('store.h5')
    df1 = df[0:4]
    df2 = df[4:]
 
@@ -2800,6 +2800,22 @@ everything in the sub-store and BELOW, so be *careful*.
    store
 
 .. _io.hdf5-types:
+
+.. warning:: Hierarchical keys cannot be retrieved as dotted (attribute) access as described above for items stored under root node.
+
+    .. ipython:: python
+    
+       store.foo.bar.bah
+       AttributeError: 'HDFStore' object has no attribute 'foo'
+
+       store.root.foo.bar.bah
+       /foo/bar/bah (Group) ''
+       children := ['block0_items' (Array), 'axis1' (Array), 'axis0' (Array), 'block0_values' (Array)]
+       
+       
+       
+    
+    
 
 Storing Types
 '''''''''''''
@@ -3364,7 +3380,7 @@ Compression for all objects within the file
 
 .. code-block:: python
 
-   store_compressed = HDFStore('store_compressed.h5', complevel=9, complib='blosc')
+   store_compressed = pd.HDFStore('store_compressed.h5', complevel=9, complib='blosc')
 
 Or on-the-fly compression (this only applies to tables). You can turn
 off file compression for a specific table by passing ``complevel=0``
@@ -3573,7 +3589,7 @@ It is possible to write an ``HDFStore`` object that can easily be imported into 
                             index=range(100))
    df_for_r.head()
 
-   store_export = HDFStore('export.h5')
+   store_export = pd.HDFStore('export.h5')
    store_export.append('df_for_r', df_for_r, data_columns=df_dc.columns)
    store_export
 
@@ -3662,7 +3678,7 @@ number of options, please see the docstring.
 .. ipython:: python
 
    # a legacy store
-   legacy_store = HDFStore(legacy_file_path,'r')
+   legacy_store = pd.HDFStore(legacy_file_path,'r')
    legacy_store
 
    # copy (and return the new handle)
