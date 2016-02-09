@@ -1224,6 +1224,15 @@ class TestResample(tm.TestCase):
         # it works!
         ts.resample('M')
 
+    def test_nanosecond_resample_error(self):
+        # GH 12307
+        start = 1443707890427
+        indx = pd.date_range(start=pd.to_datetime(start),
+                             periods=10, freq='100n')
+        ts = pd.Series(np.random.randn(len(indx)), index=indx)
+        r = ts.resample(pd.tseries.offsets.Nano(100))
+        r.agg('mean')
+
     def test_resample_anchored_intraday(self):
         # #1471, #1458
 

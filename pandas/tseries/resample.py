@@ -854,9 +854,11 @@ class TimeGrouper(Grouper):
                                        closed=self.closed,
                                        base=self.base)
         tz = ax.tz
+        # do not call replace() because that will swallow the nanosecond part
+        # GH #12037
         binner = labels = DatetimeIndex(freq=self.freq,
-                                        start=first.replace(tzinfo=None),
-                                        end=last.replace(tzinfo=None),
+                                        start=first,
+                                        end=last,
                                         tz=tz,
                                         name=ax.name)
 
