@@ -186,9 +186,13 @@ class TestDataFrameReprInfoEtc(tm.TestCase, TestData):
 \bottomrule
 \end{tabular}
 """
-        with option_context("display.latex.escape", False):
+        with option_context("display.latex.escape", False,
+                            'display.latex.repr', True):
             df = DataFrame([[r'$\alpha$', 'b', 'c'], [1, 2, 3]])
             self.assertEqual(result, df._repr_latex_())
+
+        # GH 12182
+        self.assertIsNone(df._repr_latex_())
 
     def test_info(self):
         io = StringIO()
