@@ -344,6 +344,18 @@ See the `xarray full-documentation here <http://xarray.pydata.org/en/stable/>`__
      * major_axis  (major_axis) int64 0 1 2
      * minor_axis  (minor_axis) int64 0 1 2 3
 
+Latex Representation
+^^^^^^^^^^^^^^^^^^^^
+
+``DataFrame`` has gained a ``._repr_latex_()`` method in order to allow for conversion to latex in a ipython/jupyter notebook using nbconvert. (:issue:`11778`)
+
+Note that this must be activated by setting the option ``display.latex.repr`` to ``True`` (issue:`12182`)
+
+For example, if you have a jupyter notebook you plan to convert to latex using nbconvert, place the statement ``pd.set_option('display.latex.repr', True)`` in the first cell to have the contained DataFrame output also stored as latex.
+
+Options ``display.latex.escape`` and ``display.latex.longtable`` have also been added to the configuration and are used automatically by the ``to_latex``
+method. See the :ref:`options documentation<options>` for more info.
+
 .. _whatsnew_0180.enhancements.other:
 
 Other enhancements
@@ -355,7 +367,6 @@ Other enhancements
 - add support for ``AWS_S3_HOST`` env variable when reading from s3 (:issue:`12198`)
 - A simple version of ``Panel.round()`` is now implemented (:issue:`11763`)
 - For Python 3.x, ``round(DataFrame)``, ``round(Series)``, ``round(Panel)`` will work (:issue:`11763`)
-- ``DataFrame`` has gained a ``_repr_latex_`` method in order to allow for automatic conversion to latex in a ipython/jupyter notebook using nbconvert. Options ``display.latex.escape`` and ``display.latex.longtable`` have been added to the configuration and are used automatically by the ``to_latex`` method. (:issue:`11778`)
 - ``sys.getsizeof(obj)`` returns the memory usage of a pandas object, including the
   values it contains (:issue:`11597`)
 - ``Series`` gained an ``is_unique`` attribute (:issue:`11946`)

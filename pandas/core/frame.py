@@ -574,7 +574,10 @@ class DataFrame(NDFrame):
         Returns a LaTeX representation for a particular Dataframe.
         Mainly for use with nbconvert (jupyter notebook conversion to pdf).
         """
-        return self.to_latex()
+        if get_option('display.latex.repr'):
+            return self.to_latex()
+        else:
+            return None
 
     @property
     def style(self):

@@ -155,6 +155,13 @@ pc_ambiguous_as_wide_doc = """
     (default: False)
 """
 
+pc_latex_repr_doc = """
+: boolean
+    Whether to produce a latex DataFrame representation for jupyter
+    environments that support it.
+    (default: False)
+"""
+
 pc_line_width_deprecation_warning = """\
 line_width has been deprecated, use display.width instead (currently both are
 identical)
@@ -314,6 +321,8 @@ with cf.config_prefix('display'):
                        pc_east_asian_width_doc, validator=is_bool)
     cf.register_option('unicode.ambiguous_as_wide', False,
                        pc_east_asian_width_doc, validator=is_bool)
+    cf.register_option('latex.repr', False,
+                       pc_latex_repr_doc, validator=is_bool)
     cf.register_option('latex.escape', True, pc_latex_escape,
                        validator=is_bool)
     cf.register_option('latex.longtable', False, pc_latex_longtable,
