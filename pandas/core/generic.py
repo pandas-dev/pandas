@@ -939,7 +939,7 @@ class NDFrame(PandasObject):
         from pandas.io import pytables
         return pytables.to_hdf(path_or_buf, key, self, **kwargs)
 
-    def to_msgpack(self, path_or_buf=None, **kwargs):
+    def to_msgpack(self, path_or_buf=None, encoding='utf-8', **kwargs):
         """
         msgpack (serialize) object to input file path
 
@@ -957,7 +957,8 @@ class NDFrame(PandasObject):
         """
 
         from pandas.io import packers
-        return packers.to_msgpack(path_or_buf, self, **kwargs)
+        return packers.to_msgpack(path_or_buf, self, encoding=encoding,
+                                  **kwargs)
 
     def to_sql(self, name, con, flavor='sqlite', schema=None, if_exists='fail',
                index=True, index_label=None, chunksize=None, dtype=None):

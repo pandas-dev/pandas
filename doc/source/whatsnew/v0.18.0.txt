@@ -346,6 +346,7 @@ Backwards incompatible API changes
 - ``DataFrame.round()`` leaves non-numeric columns unchanged in its return, rather than raises. (:issue:`11885`)
 - ``DataFrame.head(0)`` and ``DataFrame.tail(0)`` return empty frames, rather than ``self``.  (:issue:`11937`)
 - ``Series.head(0)`` and ``Series.tail(0)`` return empty series, rather than ``self``.  (:issue:`11937`)
+- ``to_msgpack`` and ``read_msgpack`` encoding now defaults to ``'utf-8'``. (:issue:`12170`)
 
 NaT and Timedelta operations
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
