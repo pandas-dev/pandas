@@ -684,6 +684,7 @@ Serialization / IO / Conversion
    Series.to_csv
    Series.to_dict
    Series.to_frame
+   Series.to_xarray
    Series.to_hdf
    Series.to_sql
    Series.to_msgpack
@@ -918,6 +919,7 @@ Reshaping, sorting, transposing
    DataFrame.unstack
    DataFrame.T
    DataFrame.to_panel
+   DataFrame.to_xarray
    DataFrame.transpose
 
 Combining / joining / merging
@@ -1216,6 +1218,7 @@ Serialization / IO / Conversion
    Panel.to_json
    Panel.to_sparse
    Panel.to_frame
+   Panel.to_xarray
    Panel.to_clipboard
 
 .. _api.panel4d:
@@ -1229,6 +1232,13 @@ Constructor
    :toctree: generated/
 
    Panel4D
+
+Serialization / IO / Conversion
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. autosummary::
+   :toctree: generated/
+
+   Panel4D.to_xarray
 
 Attributes and underlying data
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
