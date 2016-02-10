@@ -828,6 +828,7 @@ Bug Fixes
 - Bug in ``Series.str.get_dummies`` when one of the variables was 'name' (:issue:`12180`)
 - Bug in ``pd.concat`` while concatenating tz-aware NaT series. (:issue:`11693`, :issue:`11755`)
 - Bug in ``pd.read_stata`` with version <= 108 files (:issue:`12232`)
+- Bug in ``Series.resample`` using a frequency of ``Nano`` when the index is a ``DatetimeIndex`` and contains non-zero nanosecond parts (:issue:`12037`)
 
 
 - Bug in ``Timedelta.round`` with negative values (:issue:`11690`)
@@ -845,7 +846,7 @@ Bug Fixes
 - Bug in ``DataFrame.query`` containing an assignment (:issue:`8664`)
 
 - Bug in ``from_msgpack`` where ``__contains__()`` fails for columns of the unpacked ``DataFrame``, if the ``DataFrame`` has object columns. (:issue:`11880`)
-- Bug in ``df.resample()`` on categorical data with ``TimedeltaIndex`` (:issue:`12169`)
+- Bug in ``.resample`` on categorical data with ``TimedeltaIndex`` (:issue:`12169`)
 
 
 - Bug in timezone info lost when broadcasting scalar datetime to ``DataFrame`` (:issue:`11682`)

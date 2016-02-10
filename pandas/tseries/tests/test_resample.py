@@ -1236,6 +1236,29 @@ class TestResample(tm.TestCase):
         # it works!
         ts.resample('M')
 
+    def test_nanosecond_resample_error(self):
+        # GH 12307 - Values falls after last bin when
+        # Resampling using pd.tseries.offsets.Nano as period
+        start = 1443707890427
+        exp_start = 1443707890400
+        indx = pd.date_range(
+            start=pd.to_datetime(start),
+            periods=10,
+            freq='100n'
+        )
+        ts = pd.Series(range(len(indx)), index=indx)
+        r = ts.resample(pd.tseries.offsets.Nano(100))
+        result = r.agg('mean')
+
+        exp_indx = pd.date_range(
+            start=pd.to_datetime(exp_start),
+            periods=10,
+            freq='100n'
+        )
+        exp = pd.Series(range(len(exp_indx)), index=exp_indx)
+
+        assert_series_equal(result, exp)
+
     def test_resample_anchored_intraday(self):
         # #1471, #1458
 
