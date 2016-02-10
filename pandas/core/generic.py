@@ -1050,9 +1050,37 @@ class NDFrame(PandasObject):
         a Dataset for a DataFrame
         a DataArray for higher dims
 
-        See Also
+        Examples
         --------
-        `xarray docs <http://xarray.pydata.org/en/stable/>`__
+        >>> df = DataFrame({'A' : [1, 2, 3], 'B' : ['foo', 'bar', 'baz']})
+        >>> df.to_xarray()
+        <xarray.Dataset>
+        Dimensions:  (index: 3)
+        Coordinates:
+          * index    (index) int64 0 1 2
+        Data variables:
+            A        (index) int64 1 2 3
+            B        (index) object 'foo' 'bar' 'baz'
+
+        >>> p = pd.Panel(np.arange(6).reshape(3,2,1))
+        >>> p.to_xarray()
+        <xarray.DataArray (items: 3, major_axis: 2, minor_axis: 1)>
+        array([[[0],
+               [1]],
+
+               [[2],
+               [3]],
+
+              [[4],
+              [5]]])
+        Coordinates:
+          * items       (items) int64 0 1 2
+          * major_axis  (major_axis) int64 0 1
+          * minor_axis  (minor_axis) int64 0
+
+        Notes
+        -----
+        See also the `xarray docs <http://xarray.pydata.org/en/stable/>`__
         """
         import xarray
         if self.ndim == 1:
