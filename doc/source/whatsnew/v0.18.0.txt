@@ -788,6 +788,7 @@ Removal of prior version deprecations/changes
 - Removal of the ``read_frame`` and ``frame_query`` (both aliases for ``pd.read_sql``)
   and ``write_frame`` (alias of ``to_sql``) functions in the ``pd.io.sql`` namespace,
   deprecated since 0.14.0 (:issue:`6292`).
+- Removal of the ``order`` keyword from ``.factorize()`` (:issue:`6930`)
 
 .. _whatsnew_0180.performance:
 
