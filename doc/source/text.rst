@@ -184,14 +184,14 @@ Extract first match in each subject (extract)
 
 The ``extract`` method accepts a `regular expression
 <https://docs.python.org/2/library/re.html>`__ with at least one
-capture group. 
+capture group.
 
 Extracting a regular expression with more than one group returns a
 DataFrame with one column per group.
 
 .. ipython:: python
 
-   pd.Series(['a1', 'b2', 'c3']).str.extract('([ab])(\d)')
+   pd.Series(['a1', 'b2', 'c3']).str.extract('([ab])(\d)', expand=False)
 
 Elements that do not match return a row filled with ``NaN``. Thus, a
 Series of messy strings can be "converted" into a like-indexed Series
@@ -204,13 +204,13 @@ Named groups like
 
 .. ipython:: python
 
-   pd.Series(['a1', 'b2', 'c3']).str.extract('(?P<letter>[ab])(?P<digit>\d)')
+   pd.Series(['a1', 'b2', 'c3']).str.extract('(?P<letter>[ab])(?P<digit>\d)', expand=False)
 
 and optional groups like
 
 .. ipython:: python
 
-   pd.Series(['a1', 'b2', '3']).str.extract('([ab])?(\d)')
+   pd.Series(['a1', 'b2', '3']).str.extract('([ab])?(\d)', expand=False)
 
 can also be used. Note that any capture group names in the regular
 expression will be used for column names; otherwise capture group
@@ -281,7 +281,7 @@ Unlike ``extract`` (which returns only the first match),
 
    s = pd.Series(["a1a2", "b1", "c1"], ["A", "B", "C"])
    s
-   s.str.extract("[ab](?P<digit>\d)")
+   s.str.extract("[ab](?P<digit>\d)", expand=False)
 
 .. versionadded:: 0.18.0
 
@@ -307,7 +307,7 @@ then ``extractall(pat).xs(0, level='match')`` gives the same result as
 
 .. ipython:: python
 
-   extract_result = s.str.extract(two_groups)
+   extract_result = s.str.extract(two_groups, expand=False)
    extract_result
    extractall_result = s.str.extractall(two_groups)
    extractall_result

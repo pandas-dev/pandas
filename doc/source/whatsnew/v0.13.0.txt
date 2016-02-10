@@ -536,6 +536,7 @@ Enhancements
   matches more conveniently.
 
   .. ipython:: python
+     :okwarning:
 
      Series(['a1', 'b2', 'c3']).str.extract('[ab](\d)')
 
@@ -544,6 +545,7 @@ Enhancements
 
 
   .. ipython:: python
+     :okwarning:
 
      Series(['a1', 'b2', 'c3']).str.extract('([ab])(\d)')
 
@@ -555,6 +557,7 @@ Enhancements
   Named groups like
 
   .. ipython:: python
+     :okwarning:
 
      Series(['a1', 'b2', 'c3']).str.extract(
              '(?P<letter>[ab])(?P<digit>\d)')
@@ -562,6 +565,7 @@ Enhancements
   and optional groups can also be used.
 
   .. ipython:: python
+     :okwarning:
 
       Series(['a1', 'b2', '3']).str.extract(
               '(?P<letter>[ab])?(?P<digit>\d)')
