@@ -157,7 +157,7 @@ Currently the default is ``expand=None`` which gives a ``FutureWarning`` and use
 
 .. ipython:: python
 
-   pd.Series(['a1', 'b2', 'c3']).str.extract('[ab](\d)')
+   pd.Series(['a1', 'b2', 'c3']).str.extract('[ab](\d)', expand=False)
 
 Extracting a regular expression with one group returns a ``DataFrame``
 with one column if ``expand=True``.
@@ -218,7 +218,7 @@ match),
 
    s = pd.Series(["a1a2", "b1", "c1"], ["A", "B", "C"])
    s
-   s.str.extract("(?P<letter>[ab])(?P<digit>\d)")
+   s.str.extract("(?P<letter>[ab])(?P<digit>\d)", expand=False)
 
 the ``extractall`` method returns all matches.
 
@@ -565,6 +565,7 @@ Now, you can write ``.resample`` as a 2-stage operation like groupby, which
 yields a ``Resampler``.
 
 .. ipython:: python
+
 
    r = df.resample('2s')
    r
