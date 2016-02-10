@@ -299,11 +299,8 @@ class TestIndex(TestPackers):
     def test_unicode(self):
         i = tm.makeUnicodeIndex(100)
 
-        # this currently fails
-        self.assertRaises(UnicodeEncodeError, self.encode_decode, i)
-
-        # i_rec = self.encode_decode(i)
-        # self.assertTrue(i.equals(i_rec))
+        i_rec = self.encode_decode(i)
+        self.assertTrue(i.equals(i_rec))
 
 
 class TestSeries(TestPackers):
@@ -615,6 +612,14 @@ class TestEncoding(TestPackers):
                 result = self.encode_decode(frame, encoding=encoding)
                 assert_frame_equal(result, frame)
 
+    def test_default_encoding(self):
+        for frame in compat.itervalues(self.frame):
+            result = frame.to_msgpack()
+            expected = frame.to_msgpack(encoding='utf8')
+            self.assertEqual(result, expected)
+            result = self.encode_decode(frame)
+            assert_frame_equal(result, frame)
+
 
 class TestMsgpack():
     """
@@ -652,7 +657,11 @@ TestPackers
                     typ], '"{0}" not found in data["{1}"]'.format(kind, typ)
 
     def compare(self, vf, version):
-        data = read_msgpack(vf)
+        # GH12277 encoding default used to be latin-1, now utf-8
+        if LooseVersion(version) < '0.18.0':
+            data = read_msgpack(vf, encoding='latin-1')
+        else:
+            data = read_msgpack(vf)
         self.check_min_structure(data)
         for typ, dv in data.items():
             assert typ in self.all_data, ('unpacked data contains '

@@ -75,6 +75,7 @@ def to_msgpack(path_or_buf, *args, **kwargs):
     path_or_buf : string File path, buffer-like, or None
                   if None, return generated string
     args : an object or objects to serialize
+    encoding: encoding for unicode objects
     append : boolean whether to append to an existing msgpack
              (default is False)
     compress : type of compressor (zlib or blosc), default to None (no
@@ -103,7 +104,7 @@ def to_msgpack(path_or_buf, *args, **kwargs):
         writer(path_or_buf)
 
 
-def read_msgpack(path_or_buf, iterator=False, **kwargs):
+def read_msgpack(path_or_buf, encoding='utf-8', iterator=False, **kwargs):
     """
     Load msgpack pandas object from the specified
     file path
@@ -114,6 +115,7 @@ def read_msgpack(path_or_buf, iterator=False, **kwargs):
     Parameters
     ----------
     path_or_buf : string File path, BytesIO like or string
+    encoding: Encoding for decoding msgpack str type
     iterator : boolean, if True, return an iterator to the unpacker
                (default is False)
 
@@ -127,7 +129,7 @@ def read_msgpack(path_or_buf, iterator=False, **kwargs):
         return Iterator(path_or_buf)
 
     def read(fh):
-        l = list(unpack(fh, **kwargs))
+        l = list(unpack(fh, encoding=encoding, **kwargs))
         if len(l) == 1:
             return l[0]
         return l
@@ -573,7 +575,7 @@ def decode(obj):
 
 
 def pack(o, default=encode,
-         encoding='latin1', unicode_errors='strict', use_single_float=False,
+         encoding='utf-8', unicode_errors='strict', use_single_float=False,
          autoreset=1, use_bin_type=1):
     """
     Pack an object and return the packed bytes.
@@ -587,7 +589,7 @@ def pack(o, default=encode,
 
 
 def unpack(packed, object_hook=decode,
-           list_hook=None, use_list=False, encoding='latin1',
+           list_hook=None, use_list=False, encoding='utf-8',
            unicode_errors='strict', object_pairs_hook=None,
            max_buffer_size=0, ext_hook=ExtType):
     """
@@ -607,7 +609,7 @@ def unpack(packed, object_hook=decode,
 class Packer(_Packer):
 
     def __init__(self, default=encode,
-                 encoding='latin1',
+                 encoding='utf-8',
                  unicode_errors='strict',
                  use_single_float=False,
                  autoreset=1,
@@ -624,7 +626,7 @@ class Unpacker(_Unpacker):
 
     def __init__(self, file_like=None, read_size=0, use_list=False,
                  object_hook=decode,
-                 object_pairs_hook=None, list_hook=None, encoding='latin1',
+                 object_pairs_hook=None, list_hook=None, encoding='utf-8',
                  unicode_errors='strict', max_buffer_size=0, ext_hook=ExtType):
         super(Unpacker, self).__init__(file_like=file_like,
                                        read_size=read_size,
