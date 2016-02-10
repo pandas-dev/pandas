@@ -177,7 +177,8 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
                                                      default=np.nan)
                         else:
                             data = np.nan
-                    elif isinstance(index, PeriodIndex):
+                    # GH #12169
+                    elif isinstance(index, (PeriodIndex, TimedeltaIndex)):
                         data = ([data.get(i, nan) for i in index]
                                 if data else np.nan)
                     else:

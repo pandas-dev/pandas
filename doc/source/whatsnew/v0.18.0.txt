@@ -845,6 +845,7 @@ Bug Fixes
 - Bug in ``DataFrame.query`` containing an assignment (:issue:`8664`)
 
 - Bug in ``from_msgpack`` where ``__contains__()`` fails for columns of the unpacked ``DataFrame``, if the ``DataFrame`` has object columns. (:issue:`11880`)
+- Bug in ``df.resample()`` on categorical data with ``TimedeltaIndex`` (:issue:`12169`)
 
 
 - Bug in timezone info lost when broadcasting scalar datetime to ``DataFrame`` (:issue:`11682`)
