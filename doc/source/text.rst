@@ -196,9 +196,9 @@ DataFrame with one column per group.
 Elements that do not match return a row filled with ``NaN``. Thus, a
 Series of messy strings can be "converted" into a like-indexed Series
 or DataFrame of cleaned-up or more useful strings, without
-necessitating ``get()`` to access tuples or ``re.match`` objects.  The
-results dtype always is object, even if no match is found and the
-result only contains ``NaN``.
+necessitating ``get()`` to access tuples or ``re.match`` objects. The
+dtype of the result is always object, even if no match is found and
+the result only contains ``NaN``.
 
 Named groups like
 
@@ -275,15 +275,16 @@ Extract all matches in each subject (extractall)
 
 .. _text.extractall:
 
+.. versionadded:: 0.18.0
+
 Unlike ``extract`` (which returns only the first match),
 
 .. ipython:: python
 
    s = pd.Series(["a1a2", "b1", "c1"], ["A", "B", "C"])
    s
-   s.str.extract("[ab](?P<digit>\d)", expand=False)
-
-.. versionadded:: 0.18.0
+   two_groups = '(?P<letter>[a-z])(?P<digit>[0-9])'
+   s.str.extract(two_groups, expand=True)
 
 the ``extractall`` method returns every match. The result of
 ``extractall`` is always a ``DataFrame`` with a ``MultiIndex`` on its
@@ -292,7 +293,7 @@ indicates the order in the subject.
 
 .. ipython:: python
 
-   s.str.extractall("[ab](?P<digit>\d)")
+   s.str.extractall(two_groups)
 
 When each subject string in the Series has exactly one match,
 
@@ -300,14 +301,13 @@ When each subject string in the Series has exactly one match,
 
    s = pd.Series(['a3', 'b3', 'c2'])
    s
-   two_groups = '(?P<letter>[a-z])(?P<digit>[0-9])'
 
 then ``extractall(pat).xs(0, level='match')`` gives the same result as
 ``extract(pat)``.
 
 .. ipython:: python
 
-   extract_result = s.str.extract(two_groups, expand=False)
+   extract_result = s.str.extract(two_groups, expand=True)
    extract_result
    extractall_result = s.str.extractall(two_groups)
    extractall_result
@@ -315,7 +315,7 @@ then ``extractall(pat).xs(0, level='match')`` gives the same result as
 
 
 Testing for Strings that Match or Contain a Pattern
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+---------------------------------------------------
 
 You can check whether elements contain a pattern:
 
@@ -355,7 +355,7 @@ Methods like ``match``, ``contains``, ``startswith``, and ``endswith`` take
    s4.str.contains('A', na=False)
 
 Creating Indicator Variables
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+----------------------------
 
 You can extract dummy variables from string columns.
 For example if they are separated by a ``'|'``:
