@@ -157,49 +157,49 @@ Currently the default is ``expand=None`` which gives a ``FutureWarning`` and use
 
 .. ipython:: python
 
+   pd.Series(['a1', 'b2', 'c3']).str.extract('[ab](\d)', expand=None)
+
+Extracting a regular expression with one group returns a Series if
+``expand=False``.
+
+.. ipython:: python
+
    pd.Series(['a1', 'b2', 'c3']).str.extract('[ab](\d)', expand=False)
 
-Extracting a regular expression with one group returns a ``DataFrame``
-with one column if ``expand=True``.
+It returns a ``DataFrame`` with one column if ``expand=True``.
 
 .. ipython:: python
 
    pd.Series(['a1', 'b2', 'c3']).str.extract('[ab](\d)', expand=True)
 
-It returns a Series if ``expand=False``.
-
-.. ipython:: python
-
-   pd.Series(['a1', 'b2', 'c3']).str.extract('[ab](\d)', expand=False)
-
 Calling on an ``Index`` with a regex with exactly one capture group
-returns a ``DataFrame`` with one column if ``expand=True``,
+returns  an ``Index`` if ``expand=False``.
 
 .. ipython:: python
 
    s = pd.Series(["a1", "b2", "c3"], ["A11", "B22", "C33"])
    s
-   s.index.str.extract("(?P<letter>[a-zA-Z])", expand=True)
-
-It returns an ``Index`` if ``expand=False``.
-
-.. ipython:: python
-
    s.index.str.extract("(?P<letter>[a-zA-Z])", expand=False)
 
-Calling on an ``Index`` with a regex with more than one capture group
-returns a ``DataFrame`` if ``expand=True``.
+It returns a ``DataFrame`` with one column if ``expand=True``.
 
 .. ipython:: python
 
-   s.index.str.extract("(?P<letter>[a-zA-Z])([0-9]+)", expand=True)
+   s.index.str.extract("(?P<letter>[a-zA-Z])", expand=True)
 
-It raises ``ValueError`` if ``expand=False``.
+Calling on an ``Index`` with a regex with more than one capture group
+raises ``ValueError`` if ``expand=False``.
 
 .. code-block:: python
 
     >>> s.index.str.extract("(?P<letter>[a-zA-Z])([0-9]+)", expand=False)
     ValueError: only one regex group is supported with Index
+
+It returns a ``DataFrame`` if ``expand=True``.
+
+.. ipython:: python
+
+   s.index.str.extract("(?P<letter>[a-zA-Z])([0-9]+)", expand=True)
 
 In summary, ``extract(expand=True)`` always returns a ``DataFrame``
 with a row for every subject string, and a column for every capture
