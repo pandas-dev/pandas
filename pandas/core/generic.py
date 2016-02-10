@@ -1040,6 +1040,32 @@ class NDFrame(PandasObject):
         from pandas.io import clipboard
         clipboard.to_clipboard(self, excel=excel, sep=sep, **kwargs)
 
+    def to_xarray(self):
+        """
+        Return an xarray object from the pandas object.
+
+        Returns
+        -------
+        a DataArray for a Series
+        a Dataset for a DataFrame
+        a DataArray for higher dims
+
+        See Also
+        --------
+        `xarray docs <http://xarray.pydata.org/en/stable/>`__
+        """
+        import xarray
+        if self.ndim == 1:
+            return xarray.DataArray.from_series(self)
+        elif self.ndim == 2:
+            return xarray.Dataset.from_dataframe(self)
+
+        # > 2 dims
+        coords = [(a, self._get_axis(a)) for a in self._AXIS_ORDERS]
+        return xarray.DataArray(self,
+                                coords=coords,
+                                )
+
     # ----------------------------------------------------------------------
     # Fancy Indexing
 
