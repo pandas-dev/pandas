@@ -274,7 +274,6 @@ In addition, ``.round()``, ``.floor()`` and ``.ceil()`` will be available thru t
    s
    s.dt.round('D')
 
-
 Formatting of integer in FloatIndex
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -315,6 +314,35 @@ New Behavior:
    s.index
    print(s.to_csv(path=None))
 
+.. _whatsnew_0180.enhancements.xarray:
+
+to_xarray
+^^^^^^^^^
+
+In a future version of pandas, we will be deprecating ``Panel`` and other > 2 ndim objects. In order to provide for continuity,
+all ``NDFrame`` objects have gained the ``.to_xarray()`` method in order to convert to ``xarray`` objects, which has
+a pandas-like interface for > 2 ndim.
+
+See the `xarray full-documentation here <http://xarray.pydata.org/en/stable/>`__.
+
+.. code-block:: python
+
+   In [1]: p = Panel(np.arange(2*3*4).reshape(2,3,4))
+
+   In [2]: p.to_xarray()
+   Out[2]:
+   <xarray.DataArray (items: 2, major_axis: 3, minor_axis: 4)>
+   array([[[ 0,  1,  2,  3],
+           [ 4,  5,  6,  7],
+           [ 8,  9, 10, 11]],
+
+          [[12, 13, 14, 15],
+           [16, 17, 18, 19],
+           [20, 21, 22, 23]]])
+   Coordinates:
+     * items       (items) int64 0 1
+     * major_axis  (major_axis) int64 0 1 2
+     * minor_axis  (minor_axis) int64 0 1 2 3
 
 .. _whatsnew_0180.enhancements.other:
 

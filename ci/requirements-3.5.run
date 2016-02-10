@@ -17,6 +17,7 @@ bottleneck
 sqlalchemy
 pymysql
 psycopg2
+xarray
 
 # incompat with conda ATM
 # beautiful-soup
