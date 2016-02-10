@@ -1147,6 +1147,18 @@ class TestResample(tm.TestCase):
         self.assertTrue(without_base.index.equals(exp_without_base))
         self.assertTrue(with_base.index.equals(exp_with_base))
 
+    def test_resample_categorical_data_with_timedeltaindex(self):
+        # GH #12169
+        df = DataFrame({'Group_obj': 'A'},
+                       index=pd.to_timedelta(list(range(20)), unit='s'))
+        df['Group'] = df['Group_obj'].astype('category')
+        result = df.resample('10s').agg(lambda x: (x.value_counts().index[0]))
+        expected = DataFrame({'Group_obj': ['A', 'A'],
+                              'Group': ['A', 'A']},
+                             index=pd.to_timedelta([0, 10], unit='s'))
+        expected = expected.reindex_axis(['Group_obj', 'Group'], 1)
+        tm.assert_frame_equal(result, expected)
+
     def test_resample_daily_anchored(self):
         rng = date_range('1/1/2000 0:00:00', periods=10000, freq='T')
         ts = Series(np.random.randn(len(rng)), index=rng)
