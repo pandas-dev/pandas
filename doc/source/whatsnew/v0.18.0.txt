@@ -888,3 +888,5 @@ Bug Fixes
 - Bug in ``.skew`` and ``.kurt`` due to roundoff error for highly similar values (:issue:`11974`)
 
 - Bug in ``buffer_rd_bytes`` src->buffer could be freed more than once if reading failed, causing a segfault (:issue:`12098`)
+
+- Bug in ``Series.resample`` using pd.tseries.offsets.Nano as period when the index is an DatetimeIndex and contains non-zero nanosecond part (:issue:`12037`) 
