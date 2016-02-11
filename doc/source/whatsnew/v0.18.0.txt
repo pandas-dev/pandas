@@ -840,6 +840,15 @@ Deprecations
 - ``pandas.stats.ols``, ``pandas.stats.plm`` and ``pandas.stats.var`` routines are deprecated and will be removed in a future version (:issue:`6077`)
 - show a ``FutureWarning`` rather than a ``DeprecationWarning`` on using long-time deprecated syntax in ``HDFStore.select``, where the ``where`` clause is not a string-like (:issue:`12027`)
 
+- The ``pandas.options.display.mpl_style`` configuration has been deprecated
+  and will be removed in a future version of pandas. This functionality
+  is better handled by matplotlib's `style sheets`_ (:issue:`11783`).
+
+
+
+
+.. _style sheets: http://matplotlib.org/users/style_sheets.html
+
 .. _whatsnew_0180.prior_deprecations:
 
 Removal of prior version deprecations/changes

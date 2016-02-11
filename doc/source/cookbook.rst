@@ -19,10 +19,7 @@
    pd.options.display.max_rows=15
 
    import matplotlib
-   try:
-      matplotlib.style.use('ggplot')
-   except AttributeError:
-      pd.options.display.mpl_style = 'default'
+   matplotlib.style.use('ggplot')
 
    np.set_printoptions(precision=4, suppress=True)
 
