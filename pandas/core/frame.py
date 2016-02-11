@@ -29,6 +29,7 @@ from pandas.core.common import (
     _maybe_box_datetimelike, is_categorical_dtype, is_object_dtype,
     is_internal_type, is_datetimetz, _possibly_infer_to_datetimelike,
     _dict_compat)
+from pandas.core.dtypes import ExtensionDtype
 from pandas.core.generic import NDFrame, _shared_docs
 from pandas.core.index import Index, MultiIndex, _ensure_index
 from pandas.core.indexing import (maybe_droplevels, convert_to_index_sliceable,
@@ -770,6 +771,36 @@ class DataFrame(NDFrame):
                 return Series(result, index=left.index)
         else:  # pragma: no cover
             raise TypeError('unsupported type: %s' % type(other))
+
+    @classmethod
+    def empty(cls, shape, dtype=float):
+        """
+        Return a new DataFrame of given shape and type, without initializing entries.
+
+        Parameters
+        ----------
+        shape : int or tuple of int
+            Shape of the empty DataFrame
+        dtype : data-type, optional
+            Desired output data-type
+
+        Returns
+        -------
+        out : DataFrame
+            DataFrame of uninitialized (arbitrary) data
+            with the given shape and dtype.
+
+        See Also
+        --------
+        numpy.empty : initializes an empty array of given shape and type
+        Series.empty : initializes an empty Series of given length and type
+
+        """
+        if ExtensionDtype.is_dtype(dtype):
+            return cls(np.empty(shape, dtype=object).tolist(), dtype=dtype)
+
+        else:
+            return cls(np.empty(shape, dtype=dtype))
 
     # ----------------------------------------------------------------------
     # IO methods (to / from other formats)

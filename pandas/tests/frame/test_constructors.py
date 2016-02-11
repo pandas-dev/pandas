@@ -1995,3 +1995,24 @@ class TestDataFrameConstructors(tm.TestCase, TestData):
         self.assertTrue(np.array_equal(result.columns, ['bar']))
         self.assertEqual(len(result), 0)
         self.assertEqual(result.index.name, 'foo')
+
+    def test_empty(self):
+        from pandas.core.dtypes import DatetimeTZDtype
+
+        df = DataFrame({'dt': pd.date_range(
+            "2015-01-01", periods=3, tz='Europe/Brussels')})
+        dt = df.values.dtype
+
+        params = [
+            (dt, (4, 8), dt),
+            (None, (7, 1), float),
+            (np.int64, (3, 5), np.int64),
+            (DatetimeTZDtype, (2, 3), object),
+        ]
+
+        for in_dt, shape, out_dt in params:
+            df = DataFrame.empty(shape, dtype=in_dt)
+            self.assertEqual(df.shape, shape)
+
+            for col in df.columns:
+                self.assertEqual(df[col].dtype, out_dt)
