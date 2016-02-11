@@ -9,6 +9,7 @@ If you need to make sure options are available even before a certain
 module is imported, register them here rather then in the module.
 
 """
+import warnings
 
 import pandas.core.config as cf
 from pandas.core.config import (is_int, is_bool, is_text, is_instance_factory,
@@ -222,6 +223,11 @@ pc_mpl_style_doc = """
     Setting this to None/False restores the values to their initial value.
 """
 
+pc_mpl_style_deprecation_warning = """
+mpl_style had been deprecated and will be removed in a future version.
+Use `matplotlib.pyplot.style.use` instead.
+"""
+
 pc_memory_usage_doc = """
 : bool, string or None
     This specifies if the memory usage of a DataFrame should be displayed when
@@ -246,6 +252,9 @@ style_backup = dict()
 
 
 def mpl_style_cb(key):
+    warnings.warn(pc_mpl_style_deprecation_warning, FutureWarning,
+                  stacklevel=4)
+
     import sys
     from pandas.tools.plotting import mpl_stylesheet
     global style_backup

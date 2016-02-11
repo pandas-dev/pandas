@@ -361,12 +361,6 @@ display.max_seq_items      100          when pretty-printing a long sequence,
 display.memory_usage       True         This specifies if the memory usage of
                                         a DataFrame should be displayed when the
                                         df.info() method is invoked.
-display.mpl_style          None         Setting this to 'default' will modify
-                                        the rcParams used by matplotlib
-                                        to give plots a more pleasing visual
-                                        style by default. Setting this to
-                                        None/False restores the values to
-                                        their initial value.
 display.multi_sparse       True         "Sparsify" MultiIndex display (don't
                                         display repeated elements in outer
                                         levels within groups)

@@ -8,10 +8,7 @@
    np.set_printoptions(precision=4, suppress=True)
    import pandas as pd
    import matplotlib
-   try:
-      matplotlib.style.use('ggplot')
-   except AttributeError:
-      pd.options.display.mpl_style = 'default'
+   matplotlib.style.use('ggplot')
    import matplotlib.pyplot as plt
    plt.close('all')
    pd.options.display.max_rows=15
