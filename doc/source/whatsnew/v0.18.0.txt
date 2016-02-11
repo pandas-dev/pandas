@@ -251,6 +251,38 @@ the ``extractall`` method returns all matches.
 
 .. _whatsnew_0180.enhancements.rounding:
 
+
+Changes to str.cat
+^^^^^^^^^^^^^^^^^^
+
+The :ref:`.str.cat <text.cat>` concatenates the members of a Series. Before, if NaN values
+were present in the Series, calling `cat()` on it would return NaN, unlike the rest of the
+`Series.str.*` API. This behavior has been amended to ignore NaN values by default.
+(:issue:`11435`).
+
+A new, friendlier ValueError was also added to protect against the mistake of supplying the
+`sep` as an arg, rather than a kwarg.
+(:issue:`11334`).
+
+.. code-block:: python
+
+    >>> Series(['a','b',np.nan,'c']).str.cat(sep=' ')
+    'a b c'
+
+    >>> Series(['a','b',np.nan,'c']).str.cat(sep=' ', na_rep='?')
+    'a b ? c'
+
+    >>> Series(['a','b',np.nan,'c']).str.cat(' ')
+    ---------------------------------------------------------------------------
+    ValueError                                Traceback (most recent call last)
+    <ipython-input-3-338c379049e9> in <module>()
+    ----> 1 Series(['a','b',np.nan,'c']).str.cat(' ')
+
+    [...]
+
+    ValueError: Did you mean to supply a `sep` keyword?
+
+
 Datetimelike rounding
 ^^^^^^^^^^^^^^^^^^^^^
 
