@@ -214,6 +214,17 @@ Series can also have a ``name`` attribute:
 The Series ``name`` will be assigned automatically in many cases, in particular
 when taking 1D slices of DataFrame as you will see below.
 
+.. versionadded:: 0.18.0
+
+You can rename a Series with the :meth:`pandas.Series.rename` method.
+
+.. ipython:: python
+
+   s2 = s.rename("different")
+   s2.name
+
+Note that ``s`` and ``s2`` refer to different objects.
+
 .. _basics.dataframe:
 
 DataFrame

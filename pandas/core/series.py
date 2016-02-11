@@ -8,6 +8,7 @@ from __future__ import division
 
 import types
 import warnings
+from collections import MutableMapping
 
 from numpy import nan, ndarray
 import numpy as np
@@ -1109,6 +1110,20 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         from pandas.core.sparse import SparseSeries
         return SparseSeries(self, kind=kind,
                             fill_value=fill_value).__finalize__(self)
+
+    def _set_name(self, name, inplace=False):
+        '''
+        Set the Series name.
+
+        Parameters
+        ----------
+        name : str
+        inplace : bool
+            whether to modify `self` directly or return a copy
+        '''
+        ser = self if inplace else self.copy()
+        ser.name = name
+        return ser
 
     # ----------------------------------------------------------------------
     # Statistics, overridden ndarray methods
@@ -2314,6 +2329,12 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
 
     @Appender(generic._shared_docs['rename'] % _shared_doc_kwargs)
     def rename(self, index=None, **kwargs):
+        is_scalar_or_list = (
+            (not com.is_sequence(index) and not callable(index)) or
+            (com.is_list_like(index) and not isinstance(index, MutableMapping))
+        )
+        if is_scalar_or_list:
+            return self._set_name(index, inplace=kwargs.get('inplace'))
         return super(Series, self).rename(index=index, **kwargs)
 
     @Appender(generic._shared_docs['reindex'] % _shared_doc_kwargs)
