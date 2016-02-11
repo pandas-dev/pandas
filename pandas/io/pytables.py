@@ -488,6 +488,9 @@ class HDFStore(StringMixin):
         """
         return [n._v_pathname for n in self.groups()]
 
+    def __iter__(self):
+        return iter(self.keys())
+
     def items(self):
         """
         iterate on key->group
