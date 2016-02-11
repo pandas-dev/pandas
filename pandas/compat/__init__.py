@@ -152,32 +152,24 @@ else:
     lmap = builtins.map
     lfilter = builtins.filter
 
+def _iterfactory(what):
+    """Functions to process/iterate on dictionaries' values/keys/items."""
+    iterwhat = "iter%s" % what
+    if PY2:
+        def func(obj, **kw):
+                return getattr(obj, iterwhat)(**kw)
+    else:
+        def func(obj, **kw):
+            return iter(getattr(obj, what)(**kw))
+    return func
 
-def iteritems(obj, **kwargs):
-    """replacement for six's iteritems for Python2/3 compat
-       uses 'iteritems' if available and otherwise uses 'items'.
+iteritems, iterkeys, itervalues = (_iterfactory(what)
+                                   for what in ("items","keys", "values"))
 
-       Passes kwargs to method.
-    """
-    func = getattr(obj, "iteritems", None)
-    if not func:
-        func = obj.items
-    return func(**kwargs)
-
-
-def iterkeys(obj, **kwargs):
-    func = getattr(obj, "iterkeys", None)
-    if not func:
-        func = obj.keys
-    return func(**kwargs)
-
-
-def itervalues(obj, **kwargs):
-    func = getattr(obj, "itervalues", None)
-    if not func:
-        func = obj.values
-    return func(**kwargs)
-
+if PY2:
+    next = lambda it : it.next()
+else:
+    next = next
 
 def bind_method(cls, name, func):
     """Bind a method to class, python 2 and python 3 compatible.
