@@ -100,7 +100,8 @@ class TestStringMethods(tm.TestCase):
 
         # single array
         result = strings.str_cat(one)
-        self.assertTrue(isnull(result))
+        exp = 'aabbc'
+        self.assertEqual(result, exp)
 
         result = strings.str_cat(one, na_rep='NA')
         exp = 'aabbcNA'
@@ -122,6 +123,8 @@ class TestStringMethods(tm.TestCase):
         result = strings.str_cat(one, two)
         exp = ['aa', NA, 'bb', 'bd', 'cfoo', NA]
         tm.assert_almost_equal(result, exp)
+
+
 
     def test_count(self):
         values = ['foo', 'foofoo', NA, 'foooofooofommmfoo']
@@ -2518,6 +2521,18 @@ class TestStringMethods(tm.TestCase):
             expected = Series(np.array(
                 ['ad', 'be', 'cf'], 'S2').astype(object))
             tm.assert_series_equal(result, expected)
+
+    def test_str_cat_raises_intuitive_error(self):
+        # https://github.com/pydata/pandas/issues/11334
+        s = Series(['a','b','c','d'])
+        message = "Did you mean to supply a `sep` keyword?"
+        with tm.assertRaisesRegexp(ValueError, message):
+            s.str.cat('|')
+        with tm.assertRaisesRegexp(ValueError, message):
+            s.str.cat('    ')
+
+
+
 
 
 if __name__ == '__main__':
