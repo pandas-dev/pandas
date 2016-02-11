@@ -389,8 +389,15 @@ class TestHDFStore(Base, tm.TestCase):
             store['d'] = tm.makePanel()
             store['foo/bar'] = tm.makePanel()
             self.assertEqual(len(store), 5)
-            self.assertTrue(set(
-                store.keys()) == set(['/a', '/b', '/c', '/d', '/foo/bar']))
+            expected = set(['/a', '/b', '/c', '/d', '/foo/bar'])
+            self.assertTrue(set(store.keys()) == expected)
+            self.assertTrue(set(store) == expected)
+
+    def test_iter_empty(self):
+
+        with ensure_clean_path(self.path) as path:
+            # GH 12221
+            self.assertTrue(list(pd.HDFStore(path)) == [])
 
     def test_repr(self):
 

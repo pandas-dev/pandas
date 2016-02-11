@@ -395,6 +395,7 @@ Other enhancements
 - ``DataFrame.select_dtypes`` now allows the ``np.float16`` typecode (:issue:`11990`)
 - ``pivot_table()`` now accepts most iterables for the ``values`` parameter (:issue:`12017`)
 - Added Google ``BigQuery`` service account authentication support, which enables authentication on remote servers. (:issue:`11881`). For further details see :ref:`here <io.bigquery_authentication>`
+- ``HDFStore`` is now iterable: ``for k in store`` is equivalent to ``for k in store.keys()`` (:issue: `12221`).
 
 .. _whatsnew_0180.api_breaking:
 
