@@ -892,6 +892,17 @@ class TestCrosstab(tm.TestCase):
         table = data.pivot_table('x', 'y', 'z', margins=True)
         tm.assert_frame_equal(table, expected)
 
+    def test_crosstab_no_overlap(self):
+        # GS 10291
+
+        s1 = pd.Series([1, 2, 3], index=[1, 2, 3])
+        s2 = pd.Series([4, 5, 6], index=[4, 5, 6])
+
+        actual = crosstab(s1, s2)
+        expected = pd.DataFrame()
+
+        tm.assert_frame_equal(actual, expected)
+
 if __name__ == '__main__':
     import nose
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
