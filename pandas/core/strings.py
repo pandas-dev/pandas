@@ -1,7 +1,8 @@
 import numpy as np
 
 from pandas.compat import zip
-from pandas.core.common import (isnull, _values_from_object, is_bool_dtype,
+from pandas.core.common import (isnull, notnull, _values_from_object,
+                                is_bool_dtype,
                                 is_list_like, is_categorical_dtype,
                                 is_object_dtype, take_1d)
 import pandas.compat as compat
@@ -37,7 +38,7 @@ def str_cat(arr, others=None, sep=None, na_rep=None):
       If None, returns str concatenating strings of the Series
     sep : string or None, default None
     na_rep : string or None, default None
-        If None, an NA in any array will propagate
+        If None, NA in the series are ignored.
 
     Returns
     -------
@@ -45,6 +46,15 @@ def str_cat(arr, others=None, sep=None, na_rep=None):
 
     Examples
     --------
+    When ``na_rep`` is `None` (default behavior), NaN value(s)
+    in the Series are ignored.
+
+    >>> Series(['a','b',np.nan,'c']).str.cat(sep=' ')
+    'a b c'
+
+    >>> Series(['a','b',np.nan,'c']).str.cat(sep=' ', na_rep='?')
+    'a b ? c'
+
     If ``others`` is specified, corresponding values are
     concatenated with the separator. Result will be a Series of strings.
 
@@ -103,18 +113,23 @@ def str_cat(arr, others=None, sep=None, na_rep=None):
         arr = np.asarray(arr, dtype=object)
         mask = isnull(arr)
         if na_rep is None and mask.any():
-            return np.nan
+            if sep == '':
+                na_rep = ''
+            else:
+                return sep.join(arr[notnull(arr)])
         return sep.join(np.where(mask, na_rep, arr))
 
 
 def _length_check(others):
     n = None
     for x in others:
-        if n is None:
-            n = len(x)
-        elif len(x) != n:
-            raise ValueError('All arrays must be same length')
-
+        try:
+            if n is None:
+                n = len(x)
+            elif len(x) != n:
+                raise ValueError('All arrays must be same length')
+        except TypeError:
+            raise ValueError("Did you mean to supply a `sep` keyword?")
     return n
 
 

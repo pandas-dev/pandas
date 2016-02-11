@@ -100,7 +100,8 @@ class TestStringMethods(tm.TestCase):
 
         # single array
         result = strings.str_cat(one)
-        self.assertTrue(isnull(result))
+        exp = 'aabbc'
+        self.assertEqual(result, exp)
 
         result = strings.str_cat(one, na_rep='NA')
         exp = 'aabbcNA'
@@ -112,6 +113,10 @@ class TestStringMethods(tm.TestCase):
 
         result = strings.str_cat(one, sep='_', na_rep='NA')
         exp = 'a_a_b_b_c_NA'
+        self.assertEqual(result, exp)
+
+        result = strings.str_cat(two, sep='-')
+        exp = 'a-b-d-foo'
         self.assertEqual(result, exp)
 
         # Multiple arrays
@@ -2452,6 +2457,15 @@ class TestStringMethods(tm.TestCase):
         str_multiple = str_year.str.cat([str_month, str_month], sep=' ')
 
         self.assertEqual(str_multiple.loc[1], '2011 2 2')
+
+    def test_str_cat_raises_intuitive_error(self):
+        # https://github.com/pydata/pandas/issues/11334
+        s = Series(['a', 'b', 'c', 'd'])
+        message = "Did you mean to supply a `sep` keyword?"
+        with tm.assertRaisesRegexp(ValueError, message):
+            s.str.cat('|')
+        with tm.assertRaisesRegexp(ValueError, message):
+            s.str.cat('    ')
 
     def test_index_str_accessor_visibility(self):
         from pandas.core.strings import StringMethods
