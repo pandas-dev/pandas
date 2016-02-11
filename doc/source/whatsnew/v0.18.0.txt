@@ -106,6 +106,9 @@ And multiple aggregations
 
 .. _whatsnew_0180.enhancements.rename:
 
+Changes to rename
+^^^^^^^^^^^^^^^^^
+
 ``Series.rename`` and ``NDFrame.rename_axis`` can now take a scalar or list-like
 argument for altering the Series or axis *name*, in addition to their old behaviors of altering labels. (:issue:`9494`, :issue:`11965`)
 
