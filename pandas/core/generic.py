@@ -546,13 +546,16 @@ class NDFrame(PandasObject):
     _shared_docs['rename'] = """
         Alter axes input function or functions. Function / dict values must be
         unique (1-to-1). Labels not contained in a dict / Series will be left
-        as-is.
+        as-is. Alternatively, change ``Series.name`` with a scalar
+        value (Series only).
 
         Parameters
         ----------
-        %(axes)s : dict-like or function, optional
-            Transformation to apply to that axis values
-
+        %(axes)s : scalar, list-like, dict-like or function, optional
+            Scalar or list-like will alter the ``Series.name`` attribute,
+            and raise on DataFrame or Panel.
+            dict-like or functions are transformations to apply to
+            that axis' values
         copy : boolean, default True
             Also copy underlying data
         inplace : boolean, default False
@@ -562,6 +565,43 @@ class NDFrame(PandasObject):
         Returns
         -------
         renamed : %(klass)s (new object)
+
+        See Also
+        --------
+        pandas.NDFrame.rename_axis
+
+        Examples
+        --------
+        >>> s = pd.Series([1, 2, 3])
+        >>> s
+        0    1
+        1    2
+        2    3
+        dtype: int64
+        >>> s.rename("my_name") # scalar, changes Series.name
+        0    1
+        1    2
+        2    3
+        Name: my_name, dtype: int64
+        >>> s.rename(lambda x: x ** 2)  # function, changes labels
+        0    1
+        1    2
+        4    3
+        dtype: int64
+        >>> s.rename({1: 3, 2: 5})  # mapping, changes labels
+        0    1
+        3    2
+        5    3
+        dtype: int64
+        >>> df = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
+        >>> df.rename(2)
+        ...
+        TypeError: 'int' object is not callable
+        >>> df.rename(index=str, columns={"A": "a", "B": "c"})
+           a  c
+        0  1  4
+        1  2  5
+        2  3  6
         """
 
     @Appender(_shared_docs['rename'] % dict(axes='axes keywords for this'
@@ -617,12 +657,15 @@ class NDFrame(PandasObject):
     def rename_axis(self, mapper, axis=0, copy=True, inplace=False):
         """
         Alter index and / or columns using input function or functions.
+        A scaler or list-like for ``mapper`` will alter the ``Index.name``
+        or ``MultiIndex.names`` attribute.
+        A function or dict for ``mapper`` will alter the labels.
         Function / dict values must be unique (1-to-1). Labels not contained in
         a dict / Series will be left as-is.
 
         Parameters
         ----------
-        mapper : dict-like or function, optional
+        mapper : scalar, list-like, dict-like or function, optional
         axis : int or string, default 0
         copy : boolean, default True
             Also copy underlying data
@@ -631,11 +674,88 @@ class NDFrame(PandasObject):
         Returns
         -------
         renamed : type of caller
+
+        See Also
+        --------
+        pandas.NDFrame.rename
+        pandas.Index.rename
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
+        >>> df.rename_axis("foo")  # scalar, alters df.index.name
+             A  B
+        foo
+        0    1  4
+        1    2  5
+        2    3  6
+        >>> df.rename_axis(lambda x: 2 * x)  # function: alters labels
+           A  B
+        0  1  4
+        2  2  5
+        4  3  6
+        >>> df.rename_axis({"A": "ehh", "C": "see"}, axis="columns")  # mapping
+           ehh  B
+        0    1  4
+        1    2  5
+        2    3  6
         """
-        axis = self._get_axis_name(axis)
-        d = {'copy': copy, 'inplace': inplace}
-        d[axis] = mapper
-        return self.rename(**d)
+        is_scalar_or_list = (
+            (not com.is_sequence(mapper) and not callable(mapper)) or
+            (com.is_list_like(mapper) and not com.is_dict_like(mapper))
+        )
+
+        if is_scalar_or_list:
+            return self._set_axis_name(mapper, axis=axis)
+        else:
+            axis = self._get_axis_name(axis)
+            d = {'copy': copy, 'inplace': inplace}
+            d[axis] = mapper
+            return self.rename(**d)
+
+    def _set_axis_name(self, name, axis=0):
+        """
+        Alter the name or names of the axis, returning self.
+
+        Parameters
+        ----------
+        name : str or list of str
+            Name for the Index, or list of names for the MultiIndex
+        axis : int or str
+           0 or 'index' for the index; 1 or 'columns' for the columns
+
+        Returns
+        -------
+        renamed : type of caller
+
+        See Also
+        --------
+        pandas.DataFrame.rename
+        pandas.Series.rename
+        pandas.Index.rename
+
+        Examples
+        --------
+        >>> df._set_axis_name("foo")
+             A
+        foo
+        0    1
+        1    2
+        2    3
+        >>> df.index = pd.MultiIndex.from_product([['A'], ['a', 'b', 'c']])
+        >>> df._set_axis_name(["bar", "baz"])
+                 A
+        bar baz
+        A   a    1
+            b    2
+            c    3
+        """
+        axis = self._get_axis_number(axis)
+        idx = self._get_axis(axis).set_names(name)
+
+        renamed = self.copy(deep=True)
+        renamed.set_axis(axis, idx)
+        return renamed
 
     # ----------------------------------------------------------------------
     # Comparisons

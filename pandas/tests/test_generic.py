@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 # pylint: disable-msg=E1101,W0612
 
+from operator import methodcaller
 import nose
 import numpy as np
 from numpy import nan
@@ -632,6 +633,33 @@ class TestSeries(tm.TestCase, Generic):
                        [("A", x) for x in ["a", "B", "c"]]))
         s.rename(str.lower)
 
+    def test_set_axis_name(self):
+        s = Series([1, 2, 3], index=['a', 'b', 'c'])
+        funcs = ['rename_axis', '_set_axis_name']
+        name = 'foo'
+        for func in funcs:
+            result = methodcaller(func, name)(s)
+            self.assertTrue(s.index.name is None)
+            self.assertEqual(result.index.name, name)
+
+    def test_set_axis_name_mi(self):
+        s = Series([11, 21, 31], index=MultiIndex.from_tuples(
+            [("A", x) for x in ["a", "B", "c"]],
+            names=['l1', 'l2'])
+        )
+        funcs = ['rename_axis', '_set_axis_name']
+        for func in funcs:
+            result = methodcaller(func, ['L1', 'L2'])(s)
+            self.assertTrue(s.index.name is None)
+            self.assertEqual(s.index.names, ['l1', 'l2'])
+            self.assertTrue(result.index.name is None)
+            self.assertTrue(result.index.names, ['L1', 'L2'])
+
+    def test_set_axis_name_raises(self):
+        s = pd.Series([1])
+        with tm.assertRaises(ValueError):
+            s._set_axis_name(name='a', axis=1)
+
     def test_get_numeric_data_preserve_dtype(self):
 
         # get the numeric data
@@ -1115,6 +1143,36 @@ class TestDataFrame(tm.TestCase, Generic):
             11, 21, 31
         ], index=MultiIndex.from_tuples([("A", x) for x in ["a", "B", "c"]]))
         df.rename(str.lower)
+
+    def test_set_axis_name(self):
+        df = pd.DataFrame([[1, 2], [3, 4]])
+        funcs = ['_set_axis_name', 'rename_axis']
+        for func in funcs:
+            result = methodcaller(func, 'foo')(df)
+            self.assertTrue(df.index.name is None)
+            self.assertEqual(result.index.name, 'foo')
+
+            result = methodcaller(func, 'cols', axis=1)(df)
+            self.assertTrue(df.columns.name is None)
+            self.assertEqual(result.columns.name, 'cols')
+
+    def test_set_axis_name_mi(self):
+        df = DataFrame(
+            np.empty((3, 3)),
+            index=MultiIndex.from_tuples([("A", x) for x in list('aBc')]),
+            columns=MultiIndex.from_tuples([('C', x) for x in list('xyz')])
+        )
+
+        level_names = ['L1', 'L2']
+        funcs = ['_set_axis_name', 'rename_axis']
+        for func in funcs:
+            result = methodcaller(func, level_names)(df)
+            self.assertEqual(result.index.names, level_names)
+            self.assertEqual(result.columns.names, [None, None])
+
+            result = methodcaller(func, level_names, axis=1)(df)
+            self.assertEqual(result.columns.names, ["L1", "L2"])
+            self.assertEqual(result.index.names, [None, None])
 
     def test_nonzero_single_element(self):
 
@@ -2097,7 +2155,6 @@ class TestNDFrame(tm.TestCase):
 
         with tm.assertRaises(ValueError):
             result = wp.pipe((f, 'y'), x=1, y=1)
-
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
