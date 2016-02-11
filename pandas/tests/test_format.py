@@ -10,6 +10,7 @@ import re
 from pandas.compat import range, zip, lrange, StringIO, PY3, lzip, u
 import pandas.compat as compat
 import itertools
+from operator import methodcaller
 import os
 import sys
 from textwrap import dedent
@@ -4082,6 +4083,10 @@ class TestStringRepTimestamp(tm.TestCase):
 
         dt_datetime_us = datetime(2013, 1, 2, 12, 1, 3, 45, tzinfo=utc)
         self.assertEqual(str(dt_datetime_us), str(Timestamp(dt_datetime_us)))
+
+    def test_nat_representations(self):
+        for f in (str, repr, methodcaller('isoformat')):
+            self.assertEqual(f(pd.NaT), 'NaT')
 
 
 if __name__ == '__main__':
