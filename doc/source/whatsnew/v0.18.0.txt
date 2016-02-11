@@ -249,6 +249,24 @@ the ``extractall`` method returns all matches.
 
    s.str.extractall("(?P<letter>[ab])(?P<digit>\d)")
 
+Changes to str.cat
+^^^^^^^^^^^^^^^^^^
+
+The :ref:`.str.cat <text.cat>` concatenates the members of a ``Series``. Before, if ``NaN`` values were present in the Series, calling ``.str.cat()`` on it would return ``NaN``, unlike the rest of the ``Series.str.*`` API. This behavior has been amended to ignore ``NaN`` values by default. (:issue:`11435`).
+
+A new, friendlier ``ValueError`` is added to protect against the mistake of supplying the ``sep`` as an arg, rather than as a kwarg. (:issue:`11334`).
+
+.. ipython:: python
+
+    Series(['a','b',np.nan,'c']).str.cat(sep=' ')
+    Series(['a','b',np.nan,'c']).str.cat(sep=' ', na_rep='?')
+
+.. code-block:: python
+
+    In [2]: Series(['a','b',np.nan,'c']).str.cat(' ')
+    ValueError: Did you mean to supply a `sep` keyword?
+
+
 .. _whatsnew_0180.enhancements.rounding:
 
 Datetimelike rounding
