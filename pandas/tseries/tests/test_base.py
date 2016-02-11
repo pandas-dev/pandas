@@ -341,6 +341,14 @@ Freq: D"""
             rng += 1
             tm.assert_index_equal(rng, expected)
 
+        idx = DatetimeIndex(['2011-01-01', '2011-01-02'])
+        msg = "cannot add a datelike to a DatetimeIndex"
+        with tm.assertRaisesRegexp(TypeError, msg):
+            idx + pd.Timestamp('2011-01-01')
+
+        with tm.assertRaisesRegexp(TypeError, msg):
+            pd.Timestamp('2011-01-01') + idx
+
     def test_sub_isub(self):
         for tz in self.tz:
             # diff
@@ -598,6 +606,16 @@ Freq: D"""
             tm.assert_index_equal(idx, result)
             self.assertEqual(result.freq, freq)
 
+    def test_nat_new(self):
+        idx = pd.date_range('2011-01-01', freq='D', periods=5, name='x')
+        result = idx._nat_new()
+        exp = pd.DatetimeIndex([pd.NaT] * 5, name='x')
+        tm.assert_index_equal(result, exp)
+
+        result = idx._nat_new(box=False)
+        exp = np.array([tslib.iNaT] * 5, dtype=np.int64)
+        tm.assert_numpy_array_equal(result, exp)
+
 
 class TestTimedeltaIndexOps(Ops):
     def setUp(self):
@@ -777,7 +795,6 @@ Freq: D"""
         tm.assert_index_equal(rng, expected)
 
     def test_sub_isub(self):
-
         # only test adding/sub offsets as - is now numeric
 
         # offset
@@ -799,6 +816,15 @@ Freq: D"""
         tm.assert_index_equal(result, expected)
         rng -= 1
         tm.assert_index_equal(rng, expected)
+
+        idx = TimedeltaIndex(['1 day', '2 day'])
+        msg = "cannot subtract a datelike from a TimedeltaIndex"
+        with tm.assertRaisesRegexp(TypeError, msg):
+            idx - pd.Timestamp('2011-01-01')
+
+        result = Timestamp('2011-01-01') + idx
+        expected = DatetimeIndex(['2011-01-02', '2011-01-03'])
+        tm.assert_index_equal(result, expected)
 
     def test_ops_compat(self):
 
@@ -1251,6 +1277,17 @@ Freq: D"""
             result = pd.TimedeltaIndex(idx.asi8, freq='infer')
             tm.assert_index_equal(idx, result)
             self.assertEqual(result.freq, freq)
+
+    def test_nat_new(self):
+
+        idx = pd.timedelta_range('1', freq='D', periods=5, name='x')
+        result = idx._nat_new()
+        exp = pd.TimedeltaIndex([pd.NaT] * 5, name='x')
+        tm.assert_index_equal(result, exp)
+
+        result = idx._nat_new(box=False)
+        exp = np.array([tslib.iNaT] * 5, dtype=np.int64)
+        tm.assert_numpy_array_equal(result, exp)
 
 
 class TestPeriodIndexOps(Ops):
@@ -2053,3 +2090,14 @@ Freq: Q-DEC"""
             self.assert_index_equal(result, expected)
             self.assertEqual(result.freq, expected.freq)
             self.assertEqual(result.freq, 'D')
+
+    def test_nat_new(self):
+
+        idx = pd.period_range('2011-01', freq='M', periods=5, name='x')
+        result = idx._nat_new()
+        exp = pd.PeriodIndex([pd.NaT] * 5, freq='M', name='x')
+        tm.assert_index_equal(result, exp)
+
+        result = idx._nat_new(box=False)
+        exp = np.array([tslib.iNaT] * 5, dtype=np.int64)
+        tm.assert_numpy_array_equal(result, exp)

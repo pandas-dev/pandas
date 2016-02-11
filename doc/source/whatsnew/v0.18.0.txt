@@ -903,6 +903,8 @@ Bug Fixes
 - Bug in ``Series.resample`` using a frequency of ``Nano`` when the index is a ``DatetimeIndex`` and contains non-zero nanosecond parts (:issue:`12037`)
 
 
+- Bug in ``NaT`` subtraction from ``Timestamp`` or ``DatetimeIndex`` with timezones (:issue:`11718`)
+
 - Bug in ``Timedelta.round`` with negative values (:issue:`11690`)
 - Bug in ``.loc`` against ``CategoricalIndex`` may result in normal ``Index`` (:issue:`11586`)
 - Bug in ``DataFrame.info`` when duplicated column names exist (:issue:`11761`)

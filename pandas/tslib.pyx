@@ -1055,16 +1055,12 @@ cdef class _Timestamp(datetime):
             return self + neg_other
 
         # a Timestamp-DatetimeIndex -> yields a negative TimedeltaIndex
-        elif getattr(other,'_typ',None) == 'datetimeindex':
-
-            # we may be passed reverse ops
-            if get_timezone(getattr(self,'tzinfo',None)) != get_timezone(other.tz):
-                    raise TypeError("Timestamp subtraction must have the same timezones or no timezones")
-
+        elif getattr(other, '_typ', None) == 'datetimeindex':
+            # timezone comparison is performed in DatetimeIndex._sub_datelike
             return -other.__sub__(self)
 
         # a Timestamp-TimedeltaIndex -> yields a negative TimedeltaIndex
-        elif getattr(other,'_typ',None) == 'timedeltaindex':
+        elif getattr(other, '_typ', None) == 'timedeltaindex':
             return (-other).__add__(self)
 
         elif other is NaT:
@@ -1157,6 +1153,7 @@ cdef class _NaT(_Timestamp):
             if isinstance(other, datetime):
                 return NaT
             result = _Timestamp.__add__(self, other)
+            # Timestamp.__add__ doesn't return DatetimeIndex/TimedeltaIndex
             if result is NotImplemented:
                 return result
         except (OverflowError, OutOfBoundsDatetime):
@@ -1164,15 +1161,12 @@ cdef class _NaT(_Timestamp):
         return NaT
 
     def __sub__(self, other):
-
-        if other is NaT:
+        if isinstance(other, (datetime, timedelta)):
             return NaT
-
-        if type(self) is datetime:
-            other, self = self, other
         try:
             result = _Timestamp.__sub__(self, other)
-            if result is NotImplemented:
+            # Timestamp.__sub__ may return DatetimeIndex/TimedeltaIndex
+            if result is NotImplemented or hasattr(result, '_typ'):
                 return result
         except (OverflowError, OutOfBoundsDatetime):
             pass

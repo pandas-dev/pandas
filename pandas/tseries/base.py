@@ -199,6 +199,27 @@ class DatetimeIndexOpsMixin(object):
         except ValueError:
             return None
 
+    def _nat_new(self, box=True):
+        """
+        Return Index or ndarray filled with NaT which has the same
+        length as the caller.
+
+        Parameters
+        ----------
+        box : boolean, default True
+            - If True returns a Index as the same as caller.
+            - If False returns ndarray of np.int64.
+        """
+        result = np.zeros(len(self), dtype=np.int64)
+        result.fill(tslib.iNaT)
+        if not box:
+            return result
+
+        attribs = self._get_attributes_dict()
+        if not isinstance(self, com.ABCPeriodIndex):
+            attribs['freq'] = None
+        return self._simple_new(result, **attribs)
+
     # Try to run function on index first, and then on elements of index
     # Especially important for group-by functionality
     def map(self, f):
@@ -224,8 +245,8 @@ class DatetimeIndexOpsMixin(object):
             sorted_values = np.sort(self.values)
             attribs = self._get_attributes_dict()
             freq = attribs['freq']
-            from pandas.tseries.period import PeriodIndex
-            if freq is not None and not isinstance(self, PeriodIndex):
+
+            if freq is not None and not isinstance(self, com.ABCPeriodIndex):
                 if freq.n > 0 and not ascending:
                     freq = freq * -1
                 elif freq.n < 0 and ascending:
