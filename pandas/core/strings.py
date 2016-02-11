@@ -37,7 +37,7 @@ def str_cat(arr, others=None, sep=None, na_rep=None):
       If None, returns str concatenating strings of the Series
     sep : string or None, default None
     na_rep : string or None, default None
-        If None, an NA in any array will propagate
+        If None, NA in the series are ignored.
 
     Returns
     -------
