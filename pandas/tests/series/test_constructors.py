@@ -706,3 +706,22 @@ class TestSeriesConstructors(TestData, tm.TestCase):
         self.assertEqual(s.dtype, 'timedelta64[ns]')
         s = Series([pd.NaT, np.nan, '1 Day'])
         self.assertEqual(s.dtype, 'timedelta64[ns]')
+
+    def test_empty(self):
+        from pandas.core.dtypes import DatetimeTZDtype
+
+        df = pd.DataFrame({'dt': pd.date_range(
+            "2015-01-01", periods=3, tz='Europe/Brussels')})
+        dt = df.values.dtype
+
+        params = [
+            (dt, 6, dt),
+            (None, 3, float),
+            (np.int64, 10, np.int64),
+            (DatetimeTZDtype, 5, object),
+        ]
+
+        for in_dt, length, out_dt in params:
+            s = Series.empty(length, dtype=in_dt)
+            self.assertEqual(s.size, length)
+            self.assertEqual(s.dtype, out_dt)

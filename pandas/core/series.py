@@ -26,6 +26,7 @@ from pandas.core.common import (isnull, notnull, is_bool_indexer,
                                 _coerce_to_dtype, SettingWithCopyError,
                                 _maybe_box_datetimelike, ABCDataFrame,
                                 _dict_compat)
+from pandas.core.dtypes import ExtensionDtype
 from pandas.core.index import (Index, MultiIndex, InvalidIndexError,
                                Float64Index, _ensure_index)
 from pandas.core.indexing import check_bool_indexer, maybe_convert_indices
@@ -242,6 +243,36 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
 
         return cls(arr, index=index, name=name, dtype=dtype, copy=copy,
                    fastpath=fastpath)
+
+    @classmethod
+    def empty(cls, length, dtype=float):
+        """
+        Return a new Series of given length and type, without initializing entries.
+
+        Parameters
+        ----------
+        length : int
+            Length of the empty Series
+        dtype : data-type, optional
+            Desired output data-type
+
+        Returns
+        -------
+        out : Series
+            Series of uninitialized (arbitrary) data
+            with the given length and dtype.
+
+        See Also
+        --------
+        numpy.empty : initializes an empty array of given shape and type
+        DataFrame.empty : initializes an empty DataFrame of given shape and type
+
+        """
+        if ExtensionDtype.is_dtype(dtype):
+            return cls.from_array(np.empty(length, dtype=object), dtype=dtype)
+
+        else:
+            return cls(np.empty(length, dtype=dtype))
 
     @property
     def _constructor(self):
