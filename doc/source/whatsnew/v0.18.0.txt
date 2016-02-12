@@ -906,6 +906,7 @@ Bug Fixes
 
 
 - Bug in ``NaT`` subtraction from ``Timestamp`` or ``DatetimeIndex`` with timezones (:issue:`11718`)
+- Bug in subtraction of ``Series`` of a single tz-aware ``Timestamp`` (:issue:`12290`)
 
 - Bug in ``Timedelta.round`` with negative values (:issue:`11690`)
 - Bug in ``.loc`` against ``CategoricalIndex`` may result in normal ``Index`` (:issue:`11586`)

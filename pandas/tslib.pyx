@@ -3530,7 +3530,7 @@ def tz_convert(ndarray[int64_t] vals, object tz1, object tz2):
     if _get_zone(tz2) == 'UTC':
         return utc_dates
 
-    result = np.empty(n, dtype=np.int64)
+    result = np.zeros(n, dtype=np.int64)
     if _is_tzlocal(tz2):
         for i in range(n):
             v = utc_dates[i]
