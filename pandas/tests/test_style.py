@@ -136,9 +136,9 @@ class TestStyler(TestCase):
 
         expected = [[{'class': 'blank', 'type': 'th', 'value': ''},
                      {'class': 'col_heading level0 col0', 'type': 'th',
-                      'value': 'B'},
+                      'value': 'B', 'display_value': 'B'},
                      {'class': 'col_heading level0 col1', 'type': 'th',
-                      'value': 'C'}],
+                      'value': 'C', 'display_value': 'C'}],
                     [{'class': 'col_heading level2 col0', 'type': 'th',
                       'value': 'A'},
                      {'class': 'blank', 'type': 'th', 'value': ''},
@@ -154,7 +154,7 @@ class TestStyler(TestCase):
         expected = [[{'class': 'blank', 'type': 'th', 'value': ''},
                      {'class': 'blank', 'type': 'th', 'value': ''},
                      {'class': 'col_heading level0 col0', 'type': 'th',
-                      'value': 'C'}],
+                      'value': 'C', 'display_value': 'C'}],
                     [{'class': 'col_heading level2 col0', 'type': 'th',
                       'value': 'A'},
                      {'class': 'col_heading level2 col1', 'type': 'th',
@@ -162,6 +162,12 @@ class TestStyler(TestCase):
                      {'class': 'blank', 'type': 'th', 'value': ''}]]
 
         self.assertEqual(result['head'], expected)
+
+    def test_numeric_columns(self):
+        # https://github.com/pydata/pandas/issues/12125
+        # smoke test for _translate
+        df = pd.DataFrame({0: [1, 2, 3]})
+        df.style._translate()
 
     def test_apply_axis(self):
         df = pd.DataFrame({'A': [0, 0], 'B': [1, 1]})
@@ -263,53 +269,51 @@ class TestStyler(TestCase):
     def test_bar_0points(self):
         df = pd.DataFrame([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
         result = df.style.bar()._compute().ctx
-        expected = {
-            (0, 0): ['width: 10em', ' height: 80%'],
-            (0, 1): ['width: 10em', ' height: 80%'],
-            (0, 2): ['width: 10em', ' height: 80%'],
-            (1, 0): ['width: 10em', ' height: 80%',
-                     'background: linear-gradient(90deg,#d65f5f 50.0%, '
-                     'transparent 0%)'],
-            (1, 1): ['width: 10em', ' height: 80%',
-                     'background: linear-gradient(90deg,#d65f5f 50.0%, '
-                     'transparent 0%)'],
-            (1, 2): ['width: 10em', ' height: 80%',
-                     'background: linear-gradient(90deg,#d65f5f 50.0%, '
-                     'transparent 0%)'],
-            (2, 0): ['width: 10em', ' height: 80%',
-                     'background: linear-gradient(90deg,#d65f5f 100.0%, '
-                     'transparent 0%)'],
-            (2, 1): ['width: 10em', ' height: 80%',
-                     'background: linear-gradient(90deg,#d65f5f 100.0%, '
-                     'transparent 0%)'],
-            (2, 2): ['width: 10em', ' height: 80%',
-                     'background: linear-gradient(90deg,#d65f5f 100.0%, '
-                     'transparent 0%)']}
+        expected = {(0, 0): ['width: 10em', ' height: 80%'],
+                    (0, 1): ['width: 10em', ' height: 80%'],
+                    (0, 2): ['width: 10em', ' height: 80%'],
+                    (1, 0): ['width: 10em', ' height: 80%',
+                             'background: linear-gradient(90deg,#d65f5f 50.0%,'
+                             ' transparent 0%)'],
+                    (1, 1): ['width: 10em', ' height: 80%',
+                             'background: linear-gradient(90deg,#d65f5f 50.0%,'
+                             ' transparent 0%)'],
+                    (1, 2): ['width: 10em', ' height: 80%',
+                             'background: linear-gradient(90deg,#d65f5f 50.0%,'
+                             ' transparent 0%)'],
+                    (2, 0): ['width: 10em', ' height: 80%',
+                             'background: linear-gradient(90deg,#d65f5f 100.0%'
+                             ', transparent 0%)'],
+                    (2, 1): ['width: 10em', ' height: 80%',
+                             'background: linear-gradient(90deg,#d65f5f 100.0%'
+                             ', transparent 0%)'],
+                    (2, 2): ['width: 10em', ' height: 80%',
+                             'background: linear-gradient(90deg,#d65f5f 100.0%'
+                             ', transparent 0%)']}
         self.assertEqual(result, expected)
 
         result = df.style.bar(axis=1)._compute().ctx
-        expected = {
-            (0, 0): ['width: 10em', ' height: 80%'],
-            (0, 1): ['width: 10em', ' height: 80%',
-                     'background: linear-gradient(90deg,#d65f5f 50.0%, '
-                     'transparent 0%)'],
-            (0, 2): ['width: 10em', ' height: 80%',
-                     'background: linear-gradient(90deg,#d65f5f 100.0%, '
-                     'transparent 0%)'],
-            (1, 0): ['width: 10em', ' height: 80%'],
-            (1, 1): ['width: 10em', ' height: 80%',
-                     'background: linear-gradient(90deg,#d65f5f 50.0%, '
-                     'transparent 0%)'],
-            (1, 2): ['width: 10em', ' height: 80%',
-                     'background: linear-gradient(90deg,#d65f5f 100.0%, '
-                     'transparent 0%)'],
-            (2, 0): ['width: 10em', ' height: 80%'],
-            (2, 1): ['width: 10em', ' height: 80%',
-                     'background: linear-gradient(90deg,#d65f5f 50.0%, '
-                     'transparent 0%)'],
-            (2, 2): ['width: 10em', ' height: 80%',
-                     'background: linear-gradient(90deg,#d65f5f 100.0%, '
-                     'transparent 0%)']}
+        expected = {(0, 0): ['width: 10em', ' height: 80%'],
+                    (0, 1): ['width: 10em', ' height: 80%',
+                             'background: linear-gradient(90deg,#d65f5f 50.0%,'
+                             ' transparent 0%)'],
+                    (0, 2): ['width: 10em', ' height: 80%',
+                             'background: linear-gradient(90deg,#d65f5f 100.0%'
+                             ', transparent 0%)'],
+                    (1, 0): ['width: 10em', ' height: 80%'],
+                    (1, 1): ['width: 10em', ' height: 80%',
+                             'background: linear-gradient(90deg,#d65f5f 50.0%'
+                             ', transparent 0%)'],
+                    (1, 2): ['width: 10em', ' height: 80%',
+                             'background: linear-gradient(90deg,#d65f5f 100.0%'
+                             ', transparent 0%)'],
+                    (2, 0): ['width: 10em', ' height: 80%'],
+                    (2, 1): ['width: 10em', ' height: 80%',
+                             'background: linear-gradient(90deg,#d65f5f 50.0%'
+                             ', transparent 0%)'],
+                    (2, 2): ['width: 10em', ' height: 80%',
+                             'background: linear-gradient(90deg,#d65f5f 100.0%'
+                             ', transparent 0%)']}
         self.assertEqual(result, expected)
 
     def test_highlight_null(self, null_color='red'):
@@ -443,6 +447,73 @@ class TestStyler(TestCase):
         style2.use(result)
         self.assertEqual(style1._todo, style2._todo)
         style2.render()
+
+    def test_display_format(self):
+        df = pd.DataFrame(np.random.random(size=(2, 2)))
+        ctx = df.style.format("{:0.1f}")._translate()
+
+        self.assertTrue(all(['display_value' in c for c in row]
+                            for row in ctx['body']))
+        self.assertTrue(all([len(c['display_value']) <= 3 for c in row[1:]]
+                            for row in ctx['body']))
+        self.assertTrue(
+            len(ctx['body'][0][1]['display_value'].lstrip('-')) <= 3)
+
+    def test_display_format_raises(self):
+        df = pd.DataFrame(np.random.randn(2, 2))
+        with tm.assertRaises(TypeError):
+            df.style.format(5)
+        with tm.assertRaises(TypeError):
+            df.style.format(True)
+
+    def test_display_subset(self):
+        df = pd.DataFrame([[.1234, .1234], [1.1234, 1.1234]],
+                          columns=['a', 'b'])
+        ctx = df.style.format({"a": "{:0.1f}", "b": "{0:.2%}"},
+                              subset=pd.IndexSlice[0, :])._translate()
+        expected = '0.1'
+        self.assertEqual(ctx['body'][0][1]['display_value'], expected)
+        self.assertEqual(ctx['body'][1][1]['display_value'], '1.1234')
+        self.assertEqual(ctx['body'][0][2]['display_value'], '12.34%')
+
+        raw_11 = '1.1234'
+        ctx = df.style.format("{:0.1f}",
+                              subset=pd.IndexSlice[0, :])._translate()
+        self.assertEqual(ctx['body'][0][1]['display_value'], expected)
+        self.assertEqual(ctx['body'][1][1]['display_value'], raw_11)
+
+        ctx = df.style.format("{:0.1f}",
+                              subset=pd.IndexSlice[0, :])._translate()
+        self.assertEqual(ctx['body'][0][1]['display_value'], expected)
+        self.assertEqual(ctx['body'][1][1]['display_value'], raw_11)
+
+        ctx = df.style.format("{:0.1f}",
+                              subset=pd.IndexSlice['a'])._translate()
+        self.assertEqual(ctx['body'][0][1]['display_value'], expected)
+        self.assertEqual(ctx['body'][0][2]['display_value'], '0.1234')
+
+        ctx = df.style.format("{:0.1f}",
+                              subset=pd.IndexSlice[0, 'a'])._translate()
+        self.assertEqual(ctx['body'][0][1]['display_value'], expected)
+        self.assertEqual(ctx['body'][1][1]['display_value'], raw_11)
+
+        ctx = df.style.format("{:0.1f}",
+                              subset=pd.IndexSlice[[0, 1], ['a']])._translate()
+        self.assertEqual(ctx['body'][0][1]['display_value'], expected)
+        self.assertEqual(ctx['body'][1][1]['display_value'], '1.1')
+        self.assertEqual(ctx['body'][0][2]['display_value'], '0.1234')
+        self.assertEqual(ctx['body'][1][2]['display_value'], '1.1234')
+
+    def test_display_dict(self):
+        df = pd.DataFrame([[.1234, .1234], [1.1234, 1.1234]],
+                          columns=['a', 'b'])
+        ctx = df.style.format({"a": "{:0.1f}", "b": "{0:.2%}"})._translate()
+        self.assertEqual(ctx['body'][0][1]['display_value'], '0.1')
+        self.assertEqual(ctx['body'][0][2]['display_value'], '12.34%')
+        df['c'] = ['aaa', 'bbb']
+        ctx = df.style.format({"a": "{:0.1f}", "c": str.upper})._translate()
+        self.assertEqual(ctx['body'][0][1]['display_value'], '0.1')
+        self.assertEqual(ctx['body'][0][3]['display_value'], 'AAA')
 
 
 @tm.mplskip
