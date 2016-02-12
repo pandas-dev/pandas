@@ -960,10 +960,13 @@ class TestGroupBy(tm.TestCase):
 
         # GH5782
         # odd comparisons can result here, so cast to make easy
-        assert_almost_equal(
-            result.xs('foo'), np.array([foo] * K).astype('float64'))
-        assert_almost_equal(
-            result.xs('bar'), np.array([bar] * K).astype('float64'))
+        exp = pd.Series(np.array([foo] * K), index=list('BCD'),
+                        dtype=np.float64, name='foo')
+        tm.assert_series_equal(result.xs('foo'), exp)
+
+        exp = pd.Series(np.array([bar] * K), index=list('BCD'),
+                        dtype=np.float64, name='bar')
+        tm.assert_almost_equal(result.xs('bar'), exp)
 
         def aggfun(ser):
             return ser.size
@@ -1390,7 +1393,8 @@ class TestGroupBy(tm.TestCase):
         for name, group in grouped:
             mean = group.mean()
             for idx in group.index:
-                assert_almost_equal(transformed.xs(idx), mean)
+                tm.assert_series_equal(transformed.xs(idx), mean,
+                                       check_names=False)
 
         # iterate
         for weekday, group in grouped:

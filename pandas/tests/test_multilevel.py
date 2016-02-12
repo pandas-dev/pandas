@@ -849,7 +849,8 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
 
         self.frame['D'] = 'foo'
         result = self.frame.count(level=0, numeric_only=True)
-        assert_almost_equal(result.columns, ['A', 'B', 'C'])
+        tm.assert_index_equal(result.columns,
+                              pd.Index(['A', 'B', 'C'], name='exp'))
 
     def test_count_level_series(self):
         index = MultiIndex(levels=[['foo', 'bar', 'baz'], ['one', 'two',
