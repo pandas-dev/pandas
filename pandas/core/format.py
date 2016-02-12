@@ -2008,7 +2008,7 @@ def format_array(values, formatter, float_format=None, na_rep='NaN',
 class GenericArrayFormatter(object):
     def __init__(self, values, digits=7, formatter=None, na_rep='NaN',
                  space=12, float_format=None, justify='right', decimal='.',
-                 quoting=None):
+                 quoting=None, fixed_width=True):
         self.values = values
         self.digits = digits
         self.na_rep = na_rep
@@ -2018,6 +2018,7 @@ class GenericArrayFormatter(object):
         self.justify = justify
         self.decimal = decimal
         self.quoting = quoting
+        self.fixed_width = fixed_width
 
     def get_result(self):
         fmt_values = self._format_strings()
@@ -2076,96 +2077,131 @@ class FloatArrayFormatter(GenericArrayFormatter):
     def __init__(self, *args, **kwargs):
         GenericArrayFormatter.__init__(self, *args, **kwargs)
 
+        # float_format is expected to be a string
+        # formatter should be used to pass a function
         if self.float_format is not None and self.formatter is None:
-            self.formatter = self.float_format
+            if callable(self.float_format):
+                self.formatter = self.float_format
+                self.float_format = None
 
-    def _format_with(self, fmt_str):
-        def _val(x, threshold):
-            if notnull(x):
-                if (threshold is None or
-                        abs(x) > get_option("display.chop_threshold")):
-                    return fmt_str % x
+    def _value_formatter(self, float_format=None, threshold=None):
+        """Returns a function to be applied on each value to format it
+        """
+
+        # the float_format parameter supersedes self.float_format
+        if float_format is None:
+            float_format = self.float_format
+
+        # we are going to compose different functions, to first convert to
+        # a string, then replace the decimal symbol, and finally chop according
+        # to the threshold
+
+        # when there is no float_format, we use str instead of '%g'
+        # because str(0.0) = '0.0' while '%g' % 0.0 = '0'
+        if float_format:
+            def base_formatter(v):
+                return (float_format % v) if notnull(v) else self.na_rep
+        else:
+            def base_formatter(v):
+                return str(v) if notnull(v) else self.na_rep
+
+        if self.decimal != '.':
+            def decimal_formatter(v):
+                return base_formatter(v).replace('.', self.decimal, 1)
+        else:
+            decimal_formatter = base_formatter
+
+        if threshold is None:
+            return decimal_formatter
+
+        def formatter(value):
+            if notnull(value):
+                if abs(value) > threshold:
+                    return decimal_formatter(value)
                 else:
-                    if fmt_str.endswith("e"):  # engineering format
-                        return "0"
-                    else:
-                        return fmt_str % 0
+                    return decimal_formatter(0.0)
             else:
-
                 return self.na_rep
 
-        threshold = get_option("display.chop_threshold")
-        fmt_values = [_val(x, threshold) for x in self.values]
-        return _trim_zeros(fmt_values, self.na_rep)
+        return formatter
 
-    def _format_strings(self):
-        if self.formatter is not None:
-            fmt_values = [self.formatter(x) for x in self.values]
-        else:
-            fmt_str = '%% .%df' % self.digits
-            fmt_values = self._format_with(fmt_str)
-
-            if len(fmt_values) > 0:
-                maxlen = max(len(x) for x in fmt_values)
-            else:
-                maxlen = 0
-
-            too_long = maxlen > self.digits + 6
-
-            abs_vals = np.abs(self.values)
-
-            # this is pretty arbitrary for now
-            # large values: more that 8 characters including decimal symbol
-            # and first digit, hence > 1e6
-            has_large_values = (abs_vals > 1e6).any()
-            has_small_values = ((abs_vals < 10**(-self.digits)) &
-                                (abs_vals > 0)).any()
-
-            if too_long and has_large_values:
-                fmt_str = '%% .%de' % self.digits
-                fmt_values = self._format_with(fmt_str)
-            elif has_small_values:
-                fmt_str = '%% .%de' % self.digits
-                fmt_values = self._format_with(fmt_str)
-
-        return fmt_values
-
-    def get_formatted_data(self):
-        """Returns the array with its float values converted into strings using
-        the parameters given at initalisation.
-
-        Note: the method `.get_result()` does something similar, but with a
-        fixed-width output suitable for screen printing. The output here is not
-        fixed-width.
+    def get_result_as_array(self):
         """
-        values = self.values
-        mask = isnull(values)
+        Returns the float values converted into strings using
+        the parameters given at initalisation, as a numpy array
+        """
 
-        # the following variable is to be applied on each value to format it
-        # according to the string containing the float format,
-        # self.float_format and the character to use as decimal separator,
-        # self.decimal
-        formatter = None
-        if self.float_format and self.decimal != '.':
-            formatter = lambda v: (
-                (self.float_format % v).replace('.', self.decimal, 1))
-        elif self.decimal != '.':  # no float format
-            formatter = lambda v: str(v).replace('.', self.decimal, 1)
-        elif self.float_format:  # no special decimal separator
-            formatter = lambda v: self.float_format % v
+        if self.formatter is not None:
+            return np.array([self.formatter(x) for x in self.values])
 
-        if formatter is None and not self.quoting:
-            values = values.astype(str)
+        if self.fixed_width:
+            threshold = get_option("display.chop_threshold")
         else:
-            values = np.array(values, dtype='object')
+            threshold = None
 
-        values[mask] = self.na_rep
-        if formatter:
+        # if we have a fixed_width, we'll need to try different float_format
+        def format_values_with(float_format):
+            formatter = self._value_formatter(float_format, threshold)
+
+            # separate the wheat from the chaff
+            values = self.values
+            mask = isnull(values)
+            if hasattr(values, 'to_dense'):  # sparse numpy ndarray
+                values = values.to_dense()
+            values = np.array(values, dtype='object')
+            values[mask] = self.na_rep
             imask = (~mask).ravel()
             values.flat[imask] = np.array([formatter(val)
                                            for val in values.ravel()[imask]])
 
-        return values
+            if self.fixed_width:
+                return _trim_zeros(values, self.na_rep)
+
+            return values
+
+        # There is a special default string when we are fixed-width
+        # The default is otherwise to use str instead of a formatting string
+        if self.float_format is None and self.fixed_width:
+            float_format = '%% .%df' % self.digits
+        else:
+            float_format = self.float_format
+
+        formatted_values = format_values_with(float_format)
+
+        if not self.fixed_width:
+            return formatted_values
+
+        # we need do convert to engineering format if some values are too small
+        # and would appear as 0, or if some values are too big and take too
+        # much space
+
+        if len(formatted_values) > 0:
+            maxlen = max(len(x) for x in formatted_values)
+            too_long = maxlen > self.digits + 6
+        else:
+            too_long = False
+
+        abs_vals = np.abs(self.values)
+
+        # this is pretty arbitrary for now
+        # large values: more that 8 characters including decimal symbol
+        # and first digit, hence > 1e6
+        has_large_values = (abs_vals > 1e6).any()
+        has_small_values = ((abs_vals < 10**(-self.digits)) &
+                            (abs_vals > 0)).any()
+
+        if has_small_values or (too_long and has_large_values):
+            float_format = '%% .%de' % self.digits
+            formatted_values = format_values_with(float_format)
+
+        return formatted_values
+
+    def _format_strings(self):
+        # shortcut
+        if self.formatter is not None:
+            return [self.formatter(x) for x in self.values]
+
+        return list(self.get_result_as_array())
 
 
 class IntArrayFormatter(GenericArrayFormatter):
