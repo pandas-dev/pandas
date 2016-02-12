@@ -138,6 +138,25 @@ class TestRangeIndex(Numeric, tm.TestCase):
         self.assertRaises(TypeError,
                           lambda: Index(range(1, 5, 2), dtype='float64'))
 
+    def test_constructor_name(self):
+        # GH12288
+        orig = RangeIndex(10)
+        orig.name = 'original'
+
+        copy = RangeIndex(orig)
+        copy.name = 'copy'
+
+        self.assertTrue(orig.name, 'original')
+        self.assertTrue(copy.name, 'copy')
+
+        new = Index(copy)
+        self.assertTrue(new.name, 'copy')
+
+        new.name = 'new'
+        self.assertTrue(orig.name, 'original')
+        self.assertTrue(new.name, 'copy')
+        self.assertTrue(new.name, 'new')
+
     def test_numeric_compat2(self):
         # validate that we are handling the RangeIndex overrides to numeric ops
         # and returning RangeIndex where possible

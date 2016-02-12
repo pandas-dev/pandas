@@ -23,13 +23,14 @@ class RangeIndex(Int64Index):
 
     Parameters
     ----------
-    start : int (default: 0)
+    start : int (default: 0), or other RangeIndex instance.
+        If int and "stop" is not given, interpreted as "stop" instead.
     stop : int (default: 0)
     step : int (default: 1)
     name : object, optional
         Name to be stored in the index
     copy : bool, default False
-        Make a copy of input if its a RangeIndex
+        Unused, accepted for homogeneity with other index types.
 
     """
 
@@ -46,20 +47,17 @@ class RangeIndex(Int64Index):
 
         # RangeIndex
         if isinstance(start, RangeIndex):
-            if not copy:
-                return start
             if name is None:
-                name = getattr(start, 'name', None)
-            start, stop, step = start._start, start._stop, start._step
+                name = start.name
+            return cls._simple_new(name=name,
+                                   **dict(start._get_data_as_items()))
 
         # validate the arguments
         def _ensure_int(value, field):
             try:
                 new_value = int(value)
-            except:
-                new_value = value
-
-            if not com.is_integer(new_value) or new_value != value:
+                assert(new_value == value)
+            except (ValueError, AssertionError):
                 raise TypeError("RangeIndex(...) must be called with integers,"
                                 " {value} was passed for {field}".format(
                                     value=type(value).__name__,
