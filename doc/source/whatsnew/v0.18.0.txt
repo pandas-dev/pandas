@@ -967,4 +967,9 @@ Bug Fixes
 - Bug in ``.skew`` and ``.kurt`` due to roundoff error for highly similar values (:issue:`11974`)
 
 - Bug in ``buffer_rd_bytes`` src->buffer could be freed more than once if reading failed, causing a segfault (:issue:`12098`)
+
 - Bug in ``crosstab`` where arguments with non-overlapping indexes would return a ``KeyError`` (:issue:`10291`)
+
+
+- Bug in ``to_msgpack`` and ``from_msgpack`` which did not correctly serialize
+  or deserialize ``NaT`` (:issue:`12307`).

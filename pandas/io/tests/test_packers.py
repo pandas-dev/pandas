@@ -18,7 +18,7 @@ from pandas.util.testing import (ensure_clean, assert_index_equal,
 from pandas.tests.test_panel import assert_panel_equal
 
 import pandas
-from pandas import Timestamp, tslib
+from pandas import Timestamp, NaT, tslib
 
 nan = np.nan
 
@@ -224,6 +224,10 @@ class TestBasic(TestPackers):
                 Timestamp('201301010501')]:
             i_rec = self.encode_decode(i)
             self.assertEqual(i, i_rec)
+
+    def test_nat(self):
+        nat_rec = self.encode_decode(NaT)
+        self.assertIs(NaT, nat_rec)
 
     def test_datetimes(self):
 
