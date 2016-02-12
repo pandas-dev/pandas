@@ -47,7 +47,8 @@ from pandas import compat
 from pandas.compat import u
 from pandas import (Timestamp, Period, Series, DataFrame,  # noqa
                     Index, MultiIndex, Float64Index, Int64Index,
-                    Panel, RangeIndex, PeriodIndex, DatetimeIndex)
+                    Panel, RangeIndex, PeriodIndex, DatetimeIndex, NaT)
+from pandas.tslib import NaTType
 from pandas.sparse.api import SparseSeries, SparseDataFrame, SparsePanel
 from pandas.sparse.array import BlockIndex, IntIndex
 from pandas.core.generic import NDFrame
@@ -383,7 +384,7 @@ def encode(obj):
                                 } for b in data.blocks]}
 
     elif isinstance(obj, (datetime, date, np.datetime64, timedelta,
-                          np.timedelta64)):
+                          np.timedelta64, NaTType)):
         if isinstance(obj, Timestamp):
             tz = obj.tzinfo
             if tz is not None:
@@ -395,6 +396,8 @@ def encode(obj):
                     'value': obj.value,
                     'offset': offset,
                     'tz': tz}
+        if isinstance(obj, NaTType):
+            return {'typ': 'nat'}
         elif isinstance(obj, np.timedelta64):
             return {'typ': 'timedelta64',
                     'data': obj.view('i8')}
@@ -462,6 +465,8 @@ def decode(obj):
         return obj
     elif typ == 'timestamp':
         return Timestamp(obj['value'], tz=obj['tz'], offset=obj['offset'])
+    elif typ == 'nat':
+        return NaT
     elif typ == 'period':
         return Period(ordinal=obj['ordinal'], freq=obj['freq'])
     elif typ == 'index':
