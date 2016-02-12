@@ -1630,6 +1630,11 @@ class TestMathPythonPython(tm.TestCase):
         self.check_result_type(np.int64, np.float64)
         self.check_result_type(np.float32, np.float32)
         self.check_result_type(np.float64, np.float64)
+
+    def test_result_types2(self):
+	# xref https://github.com/pydata/pandas/issues/12293
+        tm._skip_if_windows()
+
         # Did not test complex64 because DataFrame is converting it to
         # complex128. Due to https://github.com/pydata/pandas/issues/10952
         self.check_result_type(np.complex128, np.complex128)
