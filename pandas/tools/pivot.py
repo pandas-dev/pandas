@@ -153,7 +153,7 @@ def pivot_table(data, values=None, index=None, columns=None, aggfunc='mean',
                              margins_name=margins_name)
 
     # discard the top level
-    if values_passed and not values_multi:
+    if values_passed and not values_multi and not table.empty:
         table = table[values[0]]
 
     if len(index) == 0 and len(columns) > 0:
@@ -395,6 +395,9 @@ def crosstab(index, columns, values=None, rownames=None, colnames=None,
     -----
     Any Series passed will have their name attributes used unless row or column
     names for the cross-tabulation are specified
+
+    In the event that there aren't overlapping indexes an empty DataFrame will
+    be returned.
 
     Examples
     --------
