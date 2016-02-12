@@ -253,7 +253,7 @@ style_backup = dict()
 
 def mpl_style_cb(key):
     warnings.warn(pc_mpl_style_deprecation_warning, FutureWarning,
-                  stacklevel=4)
+                  stacklevel=5)
 
     import sys
     from pandas.tools.plotting import mpl_stylesheet
