@@ -3939,7 +3939,7 @@ class NDFrame(PandasObject):
 
         Examples
         --------
-        ts.last('10D') -> First 10 days
+        ts.first('10D') -> First 10 days
 
         Returns
         -------
