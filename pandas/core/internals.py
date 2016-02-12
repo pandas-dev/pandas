@@ -1380,8 +1380,9 @@ class FloatBlock(FloatOrComplexBlock):
         from pandas.core.format import FloatArrayFormatter
         formatter = FloatArrayFormatter(values, na_rep=na_rep,
                                         float_format=float_format,
-                                        decimal=decimal, quoting=quoting)
-        return formatter.get_formatted_data()
+                                        decimal=decimal, quoting=quoting,
+                                        fixed_width=False)
+        return formatter.get_result_as_array()
 
     def should_store(self, value):
         # when inserting a column should not coerce integers to floats
