@@ -8,6 +8,9 @@
 matrix:
   fast_finish: true     # immediately finish build once one of the jobs fails.
 
+# set clone depth
+clone_depth: 200
+
 environment:
   global:
     # SDK v7.0 MSVC Express 2008's SetEnv.cmd script will fail if the
@@ -65,14 +68,14 @@ install:
 
   # build em using the local source checkout in the correct windows env
   - conda install conda-build
-  - cmd: '%CMD_IN_ENV% conda build conda.recipe -q --no-test'
+  - cmd: '%CMD_IN_ENV% conda build ci\appveyor.recipe -q --no-test'
 
   # create our env
   - SET REQ=ci\requirements-%PYTHON_VERSION%-%PYTHON_ARCH%.run
   - cmd: conda create -q -n pandas python=%PYTHON_VERSION% nose
   - cmd: activate pandas
   - cmd: conda install -q --file=%REQ%
-  - ps: conda install -q (conda build conda.recipe -q --output --no-test)
+  - ps: conda install -q (conda build ci\appveyor.recipe -q --output --no-test)
 
 test_script:
   # tests

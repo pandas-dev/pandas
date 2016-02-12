@@ -1,0 +1,37 @@
+package:
+    name: pandas
+    version: {{ environ.get('GIT_DESCRIBE_TAG','') }}
+
+build:
+    number: {{ environ.get('GIT_DESCRIBE_NUMBER',0) }}
+    string: np{{ environ.get('CONDA_NPY') }}py{{ environ.get('CONDA_PY') }}_{{ environ.get('GIT_BUILD_STR','') }}
+
+source:
+
+    # conda-build needs a full clone
+    # rather than a shallow git_url type clone
+    # https://github.com/conda/conda-build/issues/780
+    path: ../../
+
+requirements:
+  build:
+    - python
+    - cython
+    - numpy x.x
+    - setuptools
+    - pytz
+    - python-dateutil
+
+  run:
+    - python
+    - numpy x.x
+    - python-dateutil
+    - pytz
+
+test:
+  imports:
+    - pandas
+
+about:
+  home: http://pandas.pydata.org
+  license: BSD
