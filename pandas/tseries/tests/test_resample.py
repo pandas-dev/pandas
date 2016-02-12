@@ -1220,6 +1220,24 @@ class TestResample(tm.TestCase):
                         # (ex: doing mean with dtype of np.object)
                         pass
 
+    def test_resample_dtype_preservation(self):
+
+        # GH 12202
+        # validation tests for dtype preservation
+
+        df = DataFrame({'date': pd.date_range(start='2016-01-01',
+                                              periods=4, freq='W'),
+                        'group': [1, 1, 2, 2],
+                        'val': Series([5, 6, 7, 8],
+                                      dtype='int32')}
+                       ).set_index('date')
+
+        result = df.resample('1D').ffill()
+        self.assertEqual(result.val.dtype, np.int32)
+
+        result = df.groupby('group').resample('1D').ffill()
+        self.assertEqual(result.val.dtype, np.int32)
+
     def test_weekly_resample_buglet(self):
         # #1327
         rng = date_range('1/1/2000', freq='B', periods=20)
