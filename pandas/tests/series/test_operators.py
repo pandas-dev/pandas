@@ -660,6 +660,17 @@ class TestSeriesOperators(TestData, tm.TestCase):
         self.assertRaises(TypeError, lambda: td1 - dt1)
         self.assertRaises(TypeError, lambda: td2 - dt2)
 
+    def test_sub_single_tz(self):
+        # GH12290
+        s1 = Series([pd.Timestamp('2016-02-10', tz='America/Sao_Paulo')])
+        s2 = Series([pd.Timestamp('2016-02-08', tz='America/Sao_Paulo')])
+        result = s1 - s2
+        expected = Series([Timedelta('2days')])
+        assert_series_equal(result, expected)
+        result = s2 - s1
+        expected = Series([Timedelta('-2days')])
+        assert_series_equal(result, expected)
+
     def test_ops_nat(self):
         # GH 11349
         timedelta_series = Series([NaT, Timedelta('1s')])
