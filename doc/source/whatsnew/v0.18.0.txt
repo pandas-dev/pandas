@@ -400,6 +400,8 @@ Other enhancements
 - ``HDFStore`` is now iterable: ``for k in store`` is equivalent to ``for k in store.keys()`` (:issue: `12221`).
 
 
+- the order of keyword arguments to text file parsing functions (``.read_csv()``, ``.read_table()``, ``.read_fwf()``) changed to group related arguments. (:issue:`#11555`)
+
 .. _whatsnew_0180.api_breaking:
 
 Backwards incompatible API changes
