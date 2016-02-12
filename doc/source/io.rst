@@ -72,123 +72,201 @@ CSV & Text files
 ----------------
 
 The two workhorse functions for reading text files (a.k.a. flat files) are
-:func:`~pandas.io.parsers.read_csv` and :func:`~pandas.io.parsers.read_table`.
-They both use the same parsing code to intelligently convert tabular
-data into a DataFrame object. See the :ref:`cookbook<cookbook.csv>`
-for some advanced strategies
+:func:`read_csv` and :func:`read_table`. They both use the same parsing code to
+intelligently convert tabular data into a DataFrame object. See the
+:ref:`cookbook<cookbook.csv>` for some advanced strategies.
 
-They can take a number of arguments:
+Parsing options
+'''''''''''''''
 
-  - ``filepath_or_buffer``: Either a path to a file (a :class:`python:str`,
-    :class:`python:pathlib.Path`, or :class:`py:py._path.local.LocalPath`), URL
-    (including http, ftp, and S3 locations), or any object with a ``read``
-    method (such as an open file or :class:`~python:io.StringIO`).
-  - ``sep`` or ``delimiter``: A delimiter / separator to split fields
-    on. With ``sep=None``, ``read_csv`` will try to infer the delimiter
-    automatically in some cases by "sniffing".
-    The separator may be specified as a regular expression; for instance
-    you may use '\|\\s*' to indicate a pipe plus arbitrary whitespace, but ignores quotes in the data when a regex is used in separator.
-  - ``delim_whitespace``: Parse whitespace-delimited (spaces or tabs) file
-    (much faster than using a regular expression)
-  - ``compression``: decompress ``'gzip'`` and ``'bz2'`` formats on the fly.
-    Set to  ``'infer'`` (the default) to guess a format based on the file
-    extension.
-  - ``dialect``: string or :class:`python:csv.Dialect` instance to expose more
-    ways to specify the file format
-  - ``dtype``: A data type name or a dict of column name to data type. If not
-    specified, data types will be inferred. (Unsupported with
-    ``engine='python'``)
-  - ``header``: row number(s) to use as the column names, and the start of the
-    data.  Defaults to 0 if no ``names`` passed, otherwise ``None``. Explicitly
-    pass ``header=0`` to be able to replace existing names. The header can be
-    a list of integers that specify row locations for a multi-index on the columns
-    E.g. [0,1,3]. Intervening rows that are not specified will be
-    skipped (e.g. 2 in this example are skipped). Note that this parameter
-    ignores commented lines and empty lines if ``skip_blank_lines=True`` (the default),
-    so header=0 denotes the first line of data rather than the first line of the file.
-  - ``skip_blank_lines``: whether to skip over blank lines rather than interpreting
-    them as NaN values
-  - ``skiprows``: A collection of numbers for rows in the file to skip. Can
-    also be an integer to skip the first ``n`` rows
-  - ``index_col``: column number, column name, or list of column numbers/names,
-    to use as the ``index`` (row labels) of the resulting DataFrame. By default,
-    it will number the rows without using any column, unless there is one more
-    data column than there are headers, in which case the first column is taken
-    as the index.
-  - ``names``: List of column names to use as column names. To replace header
-    existing in file, explicitly pass ``header=0``.
-  - ``na_values``: optional string or list of strings to recognize as NaN (missing
-    values), either in addition to or in lieu of the default set.
-  - ``true_values``: list of strings to recognize as ``True``
-  - ``false_values``: list of strings to recognize as ``False``
-  - ``keep_default_na``: whether to include the default set of missing values
-    in addition to the ones specified in ``na_values``
-  - ``parse_dates``: if True then index will be parsed as dates
-    (False by default). You can specify more complicated options to parse
-    a subset of columns or a combination of columns into a single date column
-    (list of ints or names, list of lists, or dict)
-    [1, 2, 3] -> try parsing columns 1, 2, 3 each as a separate date column
-    [[1, 3]] -> combine columns 1 and 3 and parse as a single date column
-    {'foo' : [1, 3]} -> parse columns 1, 3 as date and call result 'foo'
-  - ``keep_date_col``: if True, then date component columns passed into
-    ``parse_dates`` will be retained in the output (False by default).
-  - ``date_parser``: function to use to parse strings into datetime
-    objects. If ``parse_dates`` is True, it defaults to the very robust
-    ``dateutil.parser``. Specifying this implicitly sets ``parse_dates`` as True.
-    You can also use functions from community supported date converters from
-    date_converters.py
-  - ``dayfirst``: if True then uses the DD/MM international/European date format
-    (This is False by default)
-  - ``thousands``: specifies the thousands separator. If not None, this character will
-    be stripped from numeric dtypes. However, if it is the first character in a field,
-    that column will be imported as a string. In the PythonParser, if not None,
-    then parser will try to look for it in the output and parse relevant data to numeric
-    dtypes. Because it has to essentially scan through the data again, this causes a
-    significant performance hit so only use if necessary.
-  - ``lineterminator`` : string (length 1), default ``None``, Character to break file into lines. Only valid with C parser
-  - ``quotechar`` : string, The character to used to denote the start and end of a quoted item.
-    Quoted items can include the delimiter and it will be ignored.
-  - ``quoting`` : int,
-    Controls whether quotes should be recognized. Values are taken from `csv.QUOTE_*` values.
-    Acceptable values are 0, 1, 2, and 3 for QUOTE_MINIMAL, QUOTE_ALL,
-    QUOTE_NONNUMERIC and QUOTE_NONE, respectively.
-  - ``skipinitialspace`` : boolean, default ``False``, Skip spaces after delimiter
-  - ``escapechar`` : string, to specify how to escape quoted data
-  - ``comment``: Indicates remainder of line should not be parsed. If found at the
-    beginning of a line, the line will be ignored altogether. This parameter
-    must be a single character. Like empty lines, fully commented lines
-    are ignored by the parameter `header` but not by `skiprows`. For example,
-    if comment='#', parsing '#empty\n1,2,3\na,b,c' with `header=0` will
-    result in '1,2,3' being treated as the header.
-  - ``nrows``: Number of rows to read out of the file. Useful to only read a
-    small portion of a large file
-  - ``iterator``: If True, return a ``TextFileReader`` to enable reading a file
-    into memory piece by piece
-  - ``chunksize``: An number of rows to be used to "chunk" a file into
-    pieces. Will cause an ``TextFileReader`` object to be returned. More on this
-    below in the section on :ref:`iterating and chunking <io.chunking>`
-  - ``skip_footer``: number of lines to skip at bottom of file (default 0)
-    (Unsupported with ``engine='c'``)
-  - ``converters``: a dictionary of functions for converting values in certain
-    columns, where keys are either integers or column labels
-  - ``encoding``: a string representing the encoding to use for decoding
-    unicode data, e.g. ``'utf-8``` or ``'latin-1'``. `Full list of Python
-    standard encodings
-    <https://docs.python.org/3/library/codecs.html#standard-encodings>`_
-  - ``verbose``: show number of NA values inserted in non-numeric columns
-  - ``squeeze``: if True then output with only one column is turned into Series
-  - ``error_bad_lines``: if False then any lines causing an error will be skipped :ref:`bad lines <io.bad_lines>`
-  - ``usecols``: a subset of columns to return, results in much faster parsing
-    time and lower memory usage.
-  - ``mangle_dupe_cols``: boolean, default True, then duplicate columns will be specified
-    as 'X.0'...'X.N', rather than 'X'...'X'
-  - ``tupleize_cols``: boolean, default False, if False, convert a list of tuples
-    to a multi-index of columns, otherwise, leave the column index as a list of
-    tuples
-  - ``float_precision`` : string, default None. Specifies which converter the C
-    engine should use for floating-point values. The options are None for the
-    ordinary converter, 'high' for the high-precision converter, and
-    'round_trip' for the round-trip converter.
+:func:`read_csv` and :func:`read_table` accept the following arguments:
+
+Basic
++++++
+
+filepath_or_buffer : various
+  Either a path to a file (a :class:`python:str`, :class:`python:pathlib.Path`,
+  or :class:`py:py._path.local.LocalPath`), URL (including http, ftp, and S3
+  locations), or any object with a ``read()`` method (such as an open file or
+  :class:`~python:io.StringIO`).
+sep : str, defaults to ``','`` for :func:`read_csv`, ``\t`` for :func:`read_table`
+  Delimiter to use. If sep is ``None``,
+  will try to automatically determine this. Regular expressions are accepted,
+  use of a regular expression will force use of the python parsing engine and
+  will ignore quotes in the data.
+delimiter : str, default ``None``
+  Alternative argument name for sep.
+
+Column and Index Locations and Names
+++++++++++++++++++++++++++++++++++++
+
+header : int or list of ints, default ``'infer'``
+  Row number(s) to use as the column names, and the start of the data. Default
+  behavior is as if ``header=0`` if no ``names`` passed, otherwise as if
+  ``header=None``. Explicitly pass ``header=0`` to be able to replace existing
+  names. The header can be a list of ints that specify row locations for a
+  multi-index on the columns e.g. ``[0,1,3]``. Intervening rows that are not
+  specified will be skipped (e.g. 2 in this example is skipped). Note that
+  this parameter ignores commented lines and empty lines if
+  ``skip_blank_lines=True``, so header=0 denotes the first line of data
+  rather than the first line of the file.
+names : array-like, default ``None``
+  List of column names to use. If file contains no header row, then you should
+  explicitly pass ``header=None``.
+index_col :  int or sequence or ``False``, default ``None``
+  Column to use as the row labels of the DataFrame. If a sequence is given, a
+  MultiIndex is used. If you have a malformed file with delimiters at the end of
+  each line, you might consider ``index_col=False`` to force pandas to *not* use
+  the first column as the index (row names).
+usecols : array-like, default ``None``
+  Return a subset of the columns. Results in much faster parsing time and lower
+  memory usage
+squeeze : boolean, default ``False``
+  If the parsed data only contains one column then return a Series.
+prefix : str, default ``None``
+  Prefix to add to column numbers when no header, e.g. 'X' for X0, X1, ...
+mangle_dupe_cols : boolean, default ``True``
+  Duplicate columns will be specified as 'X.0'...'X.N', rather than 'X'...'X'.
+
+General Parsing Configuration
++++++++++++++++++++++++++++++
+
+dtype : Type name or dict of column -> type, default ``None``
+  Data type for data or columns. E.g. ``{'a': np.float64, 'b': np.int32}``
+  (unsupported with ``engine='python'``). Use `str` or `object` to preserve and
+  not interpret dtype.
+engine : {``'c'``, ``'python'``}
+  Parser engine to use. The C engine is faster while the python engine is
+  currently more feature-complete.
+converters : dict, default ``None``
+  Dict of functions for converting values in certain columns. Keys can either be
+  integers or column labels.
+true_values : list, default ``None``
+  Values to consider as ``True``.
+false_values : list, default ``None``
+  Values to consider as ``False``.
+skipinitialspace : boolean, default ``False``
+  Skip spaces after delimiter.
+skiprows : list-like or integer, default ``None``
+  Line numbers to skip (0-indexed) or number of lines to skip (int) at the start
+  of the file.
+skipfooter : int, default ``0``
+  Number of lines at bottom of file to skip (unsupported with engine='c').
+nrows : int, default ``None``
+  Number of rows of file to read. Useful for reading pieces of large files.
+
+NA and Missing Data Handling
+++++++++++++++++++++++++++++
+
+na_values : str, list-like or dict, default ``None``
+  Additional strings to recognize as NA/NaN. If dict passed, specific per-column
+  NA values. By default the following values are interpreted as NaN:
+  ``'-1.#IND', '1.#QNAN', '1.#IND', '-1.#QNAN', '#N/A N/A', '#N/A', 'N/A', 'NA',
+  '#NA', 'NULL', 'NaN', '-NaN', 'nan', '-nan', ''``.
+keep_default_na : boolean, default ``True``
+  If na_values are specified and keep_default_na is ``False`` the default NaN
+  values are overridden, otherwise they're appended to.
+na_filter : boolean, default ``True``
+  Detect missing value markers (empty strings and the value of na_values). In
+  data without any NAs, passing ``na_filter=False`` can improve the performance
+  of reading a large file.
+verbose : boolean, default ``False``
+  Indicate number of NA values placed in non-numeric columns.
+skip_blank_lines : boolean, default ``True``
+  If ``True``, skip over blank lines rather than interpreting as NaN values.
+
+Datetime Handling
++++++++++++++++++
+
+parse_dates : boolean or list of ints or names or list of lists or dict, default ``False``.
+  - If ``True`` -> try parsing the index.
+  - If ``[1, 2, 3]`` ->  try parsing columns 1, 2, 3 each as a separate date
+    column.
+  - If ``[[1, 3]]`` -> combine columns 1 and 3 and parse as a single date
+    column.
+  - If ``{'foo' : [1, 3]}`` -> parse columns 1, 3 as date and call result 'foo'.
+    A fast-path exists for iso8601-formatted dates.
+infer_datetime_format : boolean, default ``False``
+  If ``True`` and parse_dates is enabled for a column, attempt to infer the
+  datetime format to speed up the processing.
+keep_date_col : boolean, default ``False``
+  If ``True`` and parse_dates specifies combining multiple columns then keep the
+  original columns.
+date_parser : function, default ``None``
+  Function to use for converting a sequence of string columns to an array of
+  datetime instances. The default uses ``dateutil.parser.parser`` to do the
+  conversion. Pandas will try to call date_parser in three different ways,
+  advancing to the next if an exception occurs: 1) Pass one or more arrays (as
+  defined by parse_dates) as arguments; 2) concatenate (row-wise) the string
+  values from the columns defined by parse_dates into a single array and pass
+  that; and 3) call date_parser once for each row using one or more strings
+  (corresponding to the columns defined by parse_dates) as arguments.
+dayfirst : boolean, default ``False``
+  DD/MM format dates, international and European format.
+
+Iteration
++++++++++
+
+iterator : boolean, default ``False``
+  Return `TextFileReader` object for iteration or getting chunks with
+  ``get_chunk()``.
+chunksize : int, default ``None``
+  Return `TextFileReader` object for iteration. See :ref:`iterating and chunking
+  <io.chunking>` below.
+
+Quoting, Compression, and File Format
++++++++++++++++++++++++++++++++++++++
+
+compression : {``'infer'``, ``'gzip'``, ``'bz2'``, ``None``}, default ``'infer'``
+  For on-the-fly decompression of on-disk data. If 'infer', then use gzip or bz2
+  if filepath_or_buffer is a string ending in '.gz' or '.bz2', respectively, and
+  no decompression otherwise. Set to ``None`` for no decompression.
+thousands : str, default ``None``
+  Thousands separator.
+decimal : str, default ``'.'``
+  Character to recognize as decimal point. E.g. use ``','`` for European data.
+lineterminator : str (length 1), default ``None``
+  Character to break file into lines. Only valid with C parser.
+quotechar : str (length 1)
+  The character used to denote the start and end of a quoted item. Quoted items
+  can include the delimiter and it will be ignored.
+quoting : int or ``csv.QUOTE_*`` instance, default ``None``
+  Control field quoting behavior per ``csv.QUOTE_*`` constants. Use one of
+  ``QUOTE_MINIMAL`` (0), ``QUOTE_ALL`` (1), ``QUOTE_NONNUMERIC`` (2) or
+  ``QUOTE_NONE`` (3). Default (``None``) results in ``QUOTE_MINIMAL``
+  behavior.
+escapechar : str (length 1), default ``None``
+  One-character string used to escape delimiter when quoting is ``QUOTE_NONE``.
+comment : str, default ``None``
+  Indicates remainder of line should not be parsed. If found at the beginning of
+  a line, the line will be ignored altogether. This parameter must be a single
+  character. Like empty lines (as long as ``skip_blank_lines=True``), fully
+  commented lines are ignored by the parameter `header` but not by `skiprows`.
+  For example, if ``comment='#'``, parsing '#empty\\na,b,c\\n1,2,3' with
+  `header=0` will result in 'a,b,c' being treated as the header.
+encoding : str, default ``None``
+  Encoding to use for UTF when reading/writing (e.g. ``'utf-8'``). `List of
+  Python standard encodings
+  <https://docs.python.org/3/library/codecs.html#standard-encodings>`_.
+dialect : str or :class:`python:csv.Dialect` instance, default ``None``
+  If ``None`` defaults to Excel dialect. Ignored if sep longer than 1 char. See
+  :class:`python:csv.Dialect` documentation for more details.
+tupleize_cols : boolean, default ``False``
+  Leave a list of tuples on columns as is (default is to convert to a MultiIndex
+  on the columns).
+
+Error Handling
+++++++++++++++
+
+error_bad_lines : boolean, default ``True``
+  Lines with too many fields (e.g. a csv line with too many commas) will by
+  default cause an exception to be raised, and no DataFrame will be returned. If
+  ``False``, then these "bad lines" will dropped from the DataFrame that is
+  returned (only valid with C parser). See :ref:`bad lines <io.bad_lines>`
+  below.
+warn_bad_lines : boolean, default ``True``
+  If error_bad_lines is ``False``, and warn_bad_lines is ``True``, a warning for
+  each "bad line" will be output (only valid with C parser).
 
 .. ipython:: python
    :suppress:
@@ -500,11 +578,10 @@ Date Handling
 Specifying Date Columns
 +++++++++++++++++++++++
 
-To better facilitate working with datetime data,
-:func:`~pandas.io.parsers.read_csv` and :func:`~pandas.io.parsers.read_table`
-uses the keyword arguments ``parse_dates`` and ``date_parser`` to allow users
-to specify a variety of columns and date/time formats to turn the input text
-data into ``datetime`` objects.
+To better facilitate working with datetime data, :func:`read_csv` and
+:func:`read_table` use the keyword arguments ``parse_dates`` and ``date_parser``
+to allow users to specify a variety of columns and date/time formats to turn the
+input text data into ``datetime`` objects.
 
 The simplest case is to just pass in ``parse_dates=True``:
 
@@ -929,10 +1006,9 @@ should pass the ``escapechar`` option:
 Files with Fixed Width Columns
 ''''''''''''''''''''''''''''''
 
-While ``read_csv`` reads delimited data, the :func:`~pandas.io.parsers.read_fwf`
-function works with data files that have known and fixed column widths.
-The function parameters to ``read_fwf`` are largely the same as `read_csv` with
-two extra parameters:
+While ``read_csv`` reads delimited data, the :func:`read_fwf` function works
+with data files that have known and fixed column widths. The function parameters
+to ``read_fwf`` are largely the same as `read_csv` with two extra parameters:
 
   - ``colspecs``: A list of pairs (tuples) giving the extents of the
     fixed-width fields of each line as half-open intervals (i.e.,  [from, to[ ).
