@@ -671,6 +671,7 @@ _period_code_map.update({
     "Q": 2000,  # Quarterly - December year end (default quarterly)
     "A": 1000,  # Annual
     "W": 4000,  # Weekly
+    "C": 5000,  # Custom Business Day
 })
 
 
