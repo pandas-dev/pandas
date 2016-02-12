@@ -1270,6 +1270,15 @@ class TestSeriesPlots(TestPlotBase):
         exp = ['P%02d' % i for i in [0, 3, 5, 9]]
         self._check_text_labels(ax.get_xticklabels(), exp)
 
+    def test_custom_business_day_freq(self):
+        # GH7222
+        from pandas.tseries.offsets import CustomBusinessDay
+        s = Series(range(100, 121), index=pd.bdate_range(
+            start='2014-05-01', end='2014-06-01',
+            freq=CustomBusinessDay(holidays=['2014-05-26'])))
+
+        _check_plot_works(s.plot)
+
 
 @tm.mplskip
 class TestDataFramePlots(TestPlotBase):
