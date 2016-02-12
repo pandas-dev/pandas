@@ -487,9 +487,9 @@ class _TimeOp(object):
 
                 # with tz, convert to UTC
                 if self.is_datetime64tz_lhs:
-                    lvalues = lvalues.tz_localize(None)
+                    lvalues = lvalues.tz_convert('UTC')
                 if self.is_datetime64tz_rhs:
-                    rvalues = rvalues.tz_localize(None)
+                    rvalues = rvalues.tz_convert('UTC')
 
                 lvalues = lvalues.view(np.int64)
                 rvalues = rvalues.view(np.int64)
