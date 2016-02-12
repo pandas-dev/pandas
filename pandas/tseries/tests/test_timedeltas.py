@@ -670,8 +670,8 @@ class TestTimedeltas(tm.TestCase):
 
         # pass thru
         result = to_timedelta(np.array([np.timedelta64(1, 's')]))
-        expected = np.array([np.timedelta64(1, 's')])
-        tm.assert_almost_equal(result, expected)
+        expected = pd.Index(np.array([np.timedelta64(1, 's')]))
+        tm.assert_index_equal(result, expected)
 
         # ints
         result = np.timedelta64(0, 'ns')

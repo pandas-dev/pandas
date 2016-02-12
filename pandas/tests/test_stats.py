@@ -9,9 +9,7 @@ import numpy as np
 from pandas import Series, DataFrame
 
 from pandas.compat import product
-from pandas.util.testing import (assert_frame_equal,
-                                 assert_series_equal,
-                                 assert_almost_equal)
+from pandas.util.testing import (assert_frame_equal, assert_series_equal)
 import pandas.util.testing as tm
 
 
@@ -34,7 +32,7 @@ class TestRank(tm.TestCase):
 
         def _check(s, expected, method='average'):
             result = s.rank(method=method)
-            assert_almost_equal(result, expected)
+            tm.assert_series_equal(result, Series(expected))
 
         dtypes = [None, object]
         disabled = set([(object, 'first')])
@@ -87,6 +85,7 @@ class TestRank(tm.TestCase):
                     sprank = np.apply_along_axis(
                         rankdata, ax, vals,
                         m if m != 'first' else 'ordinal')
+                    sprank = sprank.astype(np.float64)
                     expected = DataFrame(sprank, columns=cols)
 
                     if LooseVersion(scipy.__version__) >= '0.17.0':

@@ -960,10 +960,10 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
         filled = self.ts.fillna(np.inf)
 
         # rankdata returns a ndarray
-        exp = Series(rankdata(filled), index=filled.index)
+        exp = Series(rankdata(filled), index=filled.index, name='ts')
         exp[mask] = np.nan
 
-        assert_almost_equal(ranks, exp)
+        tm.assert_series_equal(ranks, exp)
 
         iseries = Series(np.arange(5).repeat(2))
 

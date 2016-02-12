@@ -16,7 +16,7 @@ import pandas.lib as lib
 
 from pandas.compat import lrange, range, zip, OrderedDict, long
 from pandas import compat
-from pandas.util.testing import assert_series_equal, assert_almost_equal
+from pandas.util.testing import assert_series_equal
 import pandas.util.testing as tm
 
 from .common import TestData
@@ -213,7 +213,7 @@ class TestSeriesConstructors(TestData, tm.TestCase):
 
     def test_constructor_default_index(self):
         s = Series([0, 1, 2])
-        assert_almost_equal(s.index, np.arange(3))
+        tm.assert_index_equal(s.index, pd.Index(np.arange(3)))
 
     def test_constructor_corner(self):
         df = tm.makeTimeDataFrame()

@@ -7,8 +7,7 @@ import numpy as np
 
 from pandas import DataFrame, Series
 
-from pandas.util.testing import (assert_almost_equal,
-                                 assert_series_equal,
+from pandas.util.testing import (assert_series_equal,
                                  assert_frame_equal,
                                  assertRaisesRegexp)
 
@@ -125,12 +124,12 @@ class TestDataFrameMutateColumns(tm.TestCase, TestData):
 
         df.insert(0, 'foo', df['a'])
         self.assert_numpy_array_equal(df.columns, ['foo', 'c', 'b', 'a'])
-        assert_almost_equal(df['a'], df['foo'])
+        tm.assert_series_equal(df['a'], df['foo'], check_names=False)
 
         df.insert(2, 'bar', df['c'])
         self.assert_numpy_array_equal(df.columns,
                                       ['foo', 'c', 'bar', 'b', 'a'])
-        assert_almost_equal(df['c'], df['bar'])
+        tm.assert_almost_equal(df['c'], df['bar'], check_names=False)
 
         # diff dtype
 

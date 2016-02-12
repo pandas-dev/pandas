@@ -702,7 +702,7 @@ class TestBlockManager(tm.TestCase):
 
         reindexed = mgr.reindex_axis(['g', 'c', 'a', 'd'], axis=0)
         self.assertEqual(reindexed.nblocks, 2)
-        assert_almost_equal(reindexed.items, ['g', 'c', 'a', 'd'])
+        tm.assert_index_equal(reindexed.items, pd.Index(['g', 'c', 'a', 'd']))
         assert_almost_equal(
             mgr.get('g', fastpath=False), reindexed.get('g', fastpath=False))
         assert_almost_equal(
@@ -746,7 +746,8 @@ class TestBlockManager(tm.TestCase):
         mgr.set('obj', np.array([1, 2, 3], dtype=np.object_))
 
         numeric = mgr.get_numeric_data()
-        assert_almost_equal(numeric.items, ['int', 'float', 'complex', 'bool'])
+        tm.assert_index_equal(numeric.items,
+                              pd.Index(['int', 'float', 'complex', 'bool']))
         assert_almost_equal(
             mgr.get('float', fastpath=False), numeric.get('float',
                                                           fastpath=False))
@@ -762,7 +763,8 @@ class TestBlockManager(tm.TestCase):
             mgr.get('float').internal_values(), np.array([100., 200., 300.]))
 
         numeric2 = mgr.get_numeric_data(copy=True)
-        assert_almost_equal(numeric.items, ['int', 'float', 'complex', 'bool'])
+        tm.assert_index_equal(numeric.items,
+                              pd.Index(['int', 'float', 'complex', 'bool']))
         numeric2.set('float', np.array([1000., 2000., 3000.]))
         assert_almost_equal(
             mgr.get('float', fastpath=False), np.array([100., 200., 300.]))
@@ -776,9 +778,9 @@ class TestBlockManager(tm.TestCase):
         mgr.set('obj', np.array([True, False, True], dtype=np.object_))
 
         bools = mgr.get_bool_data()
-        assert_almost_equal(bools.items, ['bool'])
-        assert_almost_equal(
-            mgr.get('bool', fastpath=False), bools.get('bool', fastpath=False))
+        tm.assert_index_equal(bools.items, pd.Index(['bool']))
+        assert_almost_equal(mgr.get('bool', fastpath=False),
+                            bools.get('bool', fastpath=False))
         assert_almost_equal(
             mgr.get('bool').internal_values(),
             bools.get('bool').internal_values())
@@ -946,23 +948,25 @@ class TestIndexing(object):
 
             reindexed = mgr.reindex_axis(new_labels, axis,
                                          fill_value=fill_value)
-            assert_almost_equal(com.take_nd(mat, indexer, axis,
-                                            fill_value=fill_value),
-                                reindexed.as_matrix())
-            assert_almost_equal(reindexed.axes[axis], new_labels)
+            tm.assert_numpy_array_equal(com.take_nd(mat, indexer, axis,
+                                                    fill_value=fill_value),
+                                        reindexed.as_matrix())
+            tm.assert_index_equal(reindexed.axes[axis], new_labels)
 
         for mgr in self.MANAGERS:
             for ax in range(mgr.ndim):
                 for fill_value in (None, np.nan, 100.):
-                    yield assert_reindex_axis_is_ok, mgr, ax, [], fill_value
+                    yield (assert_reindex_axis_is_ok, mgr, ax,
+                           pd.Index([]), fill_value)
                     yield (assert_reindex_axis_is_ok, mgr, ax, mgr.axes[ax],
                            fill_value)
                     yield (assert_reindex_axis_is_ok, mgr, ax,
                            mgr.axes[ax][[0, 0, 0]], fill_value)
                     yield (assert_reindex_axis_is_ok, mgr, ax,
-                           ['foo', 'bar', 'baz'], fill_value)
+                           pd.Index(['foo', 'bar', 'baz']), fill_value)
                     yield (assert_reindex_axis_is_ok, mgr, ax,
-                           ['foo', mgr.axes[ax][0], 'baz'], fill_value)
+                           pd.Index(['foo', mgr.axes[ax][0], 'baz']),
+                           fill_value)
 
                     if mgr.shape[ax] >= 3:
                         yield (assert_reindex_axis_is_ok, mgr, ax,
@@ -973,6 +977,7 @@ class TestIndexing(object):
                                mgr.axes[ax][[0, 1, 2, 0, 1, 2]], fill_value)
 
     def test_reindex_indexer(self):
+
         def assert_reindex_indexer_is_ok(mgr, axis, new_labels, indexer,
                                          fill_value):
             mat = mgr.as_matrix()
@@ -980,18 +985,19 @@ class TestIndexing(object):
                                         fill_value=fill_value)
             reindexed = mgr.reindex_indexer(new_labels, indexer, axis,
                                             fill_value=fill_value)
-            assert_almost_equal(reindexed_mat, reindexed.as_matrix())
-            assert_almost_equal(reindexed.axes[axis], new_labels)
+            tm.assert_numpy_array_equal(reindexed_mat, reindexed.as_matrix())
+            tm.assert_index_equal(reindexed.axes[axis], new_labels)
 
         for mgr in self.MANAGERS:
             for ax in range(mgr.ndim):
                 for fill_value in (None, np.nan, 100.):
-                    yield (assert_reindex_indexer_is_ok, mgr, ax, [], [],
-                           fill_value)
-                    yield (assert_reindex_indexer_is_ok, mgr, ax, mgr.axes[ax],
+                    yield (assert_reindex_indexer_is_ok, mgr, ax,
+                           pd.Index([]), [], fill_value)
+                    yield (assert_reindex_indexer_is_ok, mgr, ax,
+                           mgr.axes[ax], np.arange(mgr.shape[ax]), fill_value)
+                    yield (assert_reindex_indexer_is_ok, mgr, ax,
+                           pd.Index(['foo'] * mgr.shape[ax]),
                            np.arange(mgr.shape[ax]), fill_value)
-                    yield (assert_reindex_indexer_is_ok, mgr, ax, ['foo'] *
-                           mgr.shape[ax], np.arange(mgr.shape[ax]), fill_value)
 
                     yield (assert_reindex_indexer_is_ok, mgr, ax,
                            mgr.axes[ax][::-1], np.arange(mgr.shape[ax]),
@@ -999,16 +1005,19 @@ class TestIndexing(object):
                     yield (assert_reindex_indexer_is_ok, mgr, ax, mgr.axes[ax],
                            np.arange(mgr.shape[ax])[::-1], fill_value)
                     yield (assert_reindex_indexer_is_ok, mgr, ax,
-                           ['foo', 'bar', 'baz'], [0, 0, 0], fill_value)
+                           pd.Index(['foo', 'bar', 'baz']),
+                           [0, 0, 0], fill_value)
                     yield (assert_reindex_indexer_is_ok, mgr, ax,
-                           ['foo', 'bar', 'baz'], [-1, 0, -1], fill_value)
+                           pd.Index(['foo', 'bar', 'baz']),
+                           [-1, 0, -1], fill_value)
                     yield (assert_reindex_indexer_is_ok, mgr, ax,
-                           ['foo', mgr.axes[ax][0], 'baz'], [-1, -1, -1],
-                           fill_value)
+                           pd.Index(['foo', mgr.axes[ax][0], 'baz']),
+                           [-1, -1, -1], fill_value)
 
                     if mgr.shape[ax] >= 3:
                         yield (assert_reindex_indexer_is_ok, mgr, ax,
-                               ['foo', 'bar', 'baz'], [0, 1, 2], fill_value)
+                               pd.Index(['foo', 'bar', 'baz']),
+                               [0, 1, 2], fill_value)
 
     # test_get_slice(slice_like, axis)
     # take(indexer, axis)

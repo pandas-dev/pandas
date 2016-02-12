@@ -440,7 +440,8 @@ class TestSparseSeries(tm.TestCase, SharedWithSparse):
 
         # Corner case
         sp = SparseSeries(np.ones(10) * nan)
-        assert_almost_equal(sp.take([0, 1, 2, 3, 4]), np.repeat(nan, 5))
+        exp = pd.Series(np.repeat(nan, 5))
+        tm.assert_series_equal(sp.take([0, 1, 2, 3, 4]), exp)
 
     def test_setitem(self):
         self.bseries[5] = 7.
@@ -1872,8 +1873,10 @@ class TestSparsePanel(tm.TestCase, test_panel.SafeForLongAndSparse,
 
         assert_sp_frame_equal(self.panel['ItemE'], self.panel['ItemC'])
         assert_sp_frame_equal(self.panel['ItemF'], self.panel['ItemC'])
-        assert_almost_equal(self.panel.items, ['ItemA', 'ItemB', 'ItemC',
-                                               'ItemD', 'ItemE', 'ItemF'])
+
+        expected = pd.Index(['ItemA', 'ItemB', 'ItemC',
+                             'ItemD', 'ItemE', 'ItemF'])
+        tm.assert_index_equal(self.panel.items, expected)
 
         self.assertRaises(Exception, self.panel.__setitem__, 'item6', 1)
 
@@ -1890,11 +1893,12 @@ class TestSparsePanel(tm.TestCase, test_panel.SafeForLongAndSparse,
 
     def test_delitem_pop(self):
         del self.panel['ItemB']
-        assert_almost_equal(self.panel.items, ['ItemA', 'ItemC', 'ItemD'])
+        tm.assert_index_equal(self.panel.items,
+                              pd.Index(['ItemA', 'ItemC', 'ItemD']))
         crackle = self.panel['ItemC']
         pop = self.panel.pop('ItemC')
         self.assertIs(pop, crackle)
-        assert_almost_equal(self.panel.items, ['ItemA', 'ItemD'])
+        tm.assert_almost_equal(self.panel.items, pd.Index(['ItemA', 'ItemD']))
 
         self.assertRaises(KeyError, self.panel.__delitem__, 'ItemC')
 

@@ -130,8 +130,8 @@ class TestCParser(tm.TestCase):
                                 thousands='.', header=None)
         result = reader.read()
 
-        expected = [123456, 12500]
-        tm.assert_almost_equal(result[0], expected)
+        expected = DataFrame([123456, 12500])
+        tm.assert_frame_equal(result, expected)
 
     def test_skip_bad_lines(self):
         # too many lines, see #2430 for why
