@@ -4072,22 +4072,24 @@ class DataFrame(NDFrame):
         # this only matters if the reduction in values is of different dtype
         # e.g. if we want to apply to a SparseFrame, then can't directly reduce
         if reduce:
-
             values = self.values
 
-            # Create a dummy Series from an empty array
-            index = self._get_axis(axis)
-            empty_arr = np.empty(len(index), dtype=values.dtype)
-            dummy = Series(empty_arr, index=self._get_axis(axis),
-                           dtype=values.dtype)
+            # we cannot reduce using non-numpy dtypes,
+            # as demonstrated in gh-12244
+            if not is_internal_type(values):
+                # Create a dummy Series from an empty array
+                index = self._get_axis(axis)
+                empty_arr = np.empty(len(index), dtype=values.dtype)
+                dummy = Series(empty_arr, index=self._get_axis(axis),
+                               dtype=values.dtype)
 
-            try:
-                labels = self._get_agg_axis(axis)
-                result = lib.reduce(values, func, axis=axis, dummy=dummy,
-                                    labels=labels)
-                return Series(result, index=labels)
-            except Exception:
-                pass
+                try:
+                    labels = self._get_agg_axis(axis)
+                    result = lib.reduce(values, func, axis=axis, dummy=dummy,
+                                        labels=labels)
+                    return Series(result, index=labels)
+                except Exception:
+                    pass
 
         dtype = object if self._is_mixed_type else None
         if axis == 0:
