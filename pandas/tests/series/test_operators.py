@@ -1197,7 +1197,15 @@ class TestSeriesOperators(TestData, tm.TestCase):
         # TODO: Fix this exception - needs to be fixed! (see GH5035)
         # (previously this was a TypeError because series returned
         # NotImplemented
+
+        # this is an alignment issue; these are equivalent
+        # https://github.com/pydata/pandas/issues/5284
+
+        self.assertRaises(ValueError, lambda: d.__and__(s, axis='columns'))
         self.assertRaises(ValueError, tester, s, d)
+
+        # this is wrong as its not a boolean result
+        # result = d.__and__(s,axis='index')
 
     def test_operators_corner(self):
         series = self.ts
