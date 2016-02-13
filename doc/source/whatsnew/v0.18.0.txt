@@ -884,7 +884,7 @@ In 0.18.0, this deprecation warning is removed and these will now raise a ``Type
 
 Previous Behavior:
 
-.. code-block:
+.. code-block::
 
    In [1]: s = Series([1,2,3])
    In [2]: s[1.0]
@@ -901,7 +901,7 @@ Previous Behavior:
 
 New Behavior:
 
-.. code-block:
+.. code-block::
 
    In [4]: s[1.0]
    TypeError: cannot do label indexing on <class 'pandas.indexes.range.RangeIndex'> with these indexers [1.0] of <type 'float'>
