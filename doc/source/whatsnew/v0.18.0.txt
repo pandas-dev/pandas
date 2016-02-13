@@ -9,22 +9,25 @@ users upgrade to this version.
 
 .. warning::
 
-   pandas >= 0.18.0 will no longer support compatibility with Python version 2.6 (:issue:`7718`)
-
-.. warning::
-
-   pandas >= 0.18.0 will no longer support compatibility with Python version 3.3 (:issue:`11273`)
+   pandas >= 0.18.0 no longer supports compatibility with Python version 2.6
+   and 3.3 (:issue:`7718`, :issue:`11273`)
 
 Highlights include:
 
-- Window functions are now methods on ``.groupby`` like objects, see :ref:`here <whatsnew_0180.enhancements.moments>`.
-- ``pd.test()`` top-level nose test runner is available (:issue:`4327`)
-- Adding support for a ``RangeIndex`` as a specialized form of the ``Int64Index`` for memory savings, see :ref:`here <whatsnew_0180.enhancements.rangeindex>`.
-- API breaking ``.resample`` changes to make it more ``.groupby`` like, see :ref:`here <whatsnew_0180.breaking.resample>`.
-- Removal of support for deprecated float indexers; these will now raise a ``TypeError``, see :ref:`here <whatsnew_0180.enhancements.float_indexers>`.
-- The ``.to_xarray()`` function has been added for compatibility with the `xarray package <http://xarray.pydata.org/en/stable/>`__, see :ref:`here <whatsnew_0180.enhancements.xarray>`.
-- Addition of the :ref:`.str.extractall() method <whatsnew_0180.enhancements.extractall>`, and API changes to the :ref:`.str.extract() method <whatsnew_0180.enhancements.extract>` and :ref:`.str.cat() method <whatsnew_0180.enhancements.strcat>`.
-
+- Moving and expanding window functions are now methods on Series and DataFrame,
+  similar to ``.groupby``, see :ref:`here <whatsnew_0180.enhancements.moments>`.
+- Adding support for a ``RangeIndex`` as a specialized form of the ``Int64Index``
+  for memory savings, see :ref:`here <whatsnew_0180.enhancements.rangeindex>`.
+- API breaking change to the ``.resample`` method to make it more ``.groupby``
+  like, see :ref:`here <whatsnew_0180.breaking.resample>`.
+- Removal of support for positional indexing with floats, which was deprecated
+  since 0.14.0. This will now raise a ``TypeError``, see :ref:`here <whatsnew_0180.enhancements.float_indexers>`.
+- The ``.to_xarray()`` function has been added for compatibility with the
+  `xarray package <http://xarray.pydata.org/en/stable/>`__, see :ref:`here <whatsnew_0180.enhancements.xarray>`.
+- Addition of the :ref:`.str.extractall() method <whatsnew_0180.enhancements.extract>`,
+  and API changes to the :ref:`.str.extract() method <whatsnew_0180.enhancements.extract>`
+  and :ref:`.str.cat() method <whatsnew_0180.enhancements.strcat>`.
+- ``pd.test()`` top-level nose test runner is available (:issue:`4327`).
 
 Check the :ref:`API Changes <whatsnew_0180.api_breaking>` and :ref:`deprecations <whatsnew_0180.deprecations>` before updating.
 
