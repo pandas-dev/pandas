@@ -212,9 +212,13 @@ class TestDataFrameIndexing(tm.TestCase, TestData):
         assert_frame_equal(subframe_obj, subframe)
 
         # test that Series indexers reindex
-        indexer_obj = indexer_obj.reindex(self.tsframe.index[::-1])
-        subframe_obj = self.tsframe[indexer_obj]
-        assert_frame_equal(subframe_obj, subframe)
+        # we are producing a warning that since the passed boolean
+        # key is not the same as the given index, we will reindex
+        # not sure this is really necessary
+        with tm.assert_produces_warning(UserWarning):
+            indexer_obj = indexer_obj.reindex(self.tsframe.index[::-1])
+            subframe_obj = self.tsframe[indexer_obj]
+            assert_frame_equal(subframe_obj, subframe)
 
         # test df[df > 0]
         for df in [self.tsframe, self.mixed_frame,
