@@ -22,6 +22,9 @@ Highlights include:
 - Adding support for a ``RangeIndex`` as a specialized form of the ``Int64Index`` for memory savings, see :ref:`here <whatsnew_0180.enhancements.rangeindex>`.
 - API breaking ``.resample`` changes to make it more ``.groupby`` like, see :ref:`here <whatsnew_0180.breaking.resample>`.
 - Removal of support for deprecated float indexers; these will now raise a ``TypeError``, see :ref:`here <whatsnew_0180.enhancements.float_indexers>`.
+- The ``.to_xarray()`` function has been added for compatibility with the `xarray package <http://xarray.pydata.org/en/stable/>`__, see :ref:`here <whatsnew_0180.enhancements.xarray>`.
+- Addition of the :ref:`.str.extractall() method <whatsnew_0180.enhancements.extract>`, and API changes to the :ref:`.str.extract() method <whatsnew_0180.enhancements.extract>` and :ref:`.str.cat() method <whatsnew_0180.enhancements.strcat>`.
+
 
 Check the :ref:`API Changes <whatsnew_0180.api_breaking>` and :ref:`deprecations <whatsnew_0180.deprecations>` before updating.
 
@@ -250,10 +253,12 @@ the ``extractall`` method returns all matches.
 
    s.str.extractall("(?P<letter>[ab])(?P<digit>\d)")
 
+.. _whatsnew_0180.enhancements.strcat:
+
 Changes to str.cat
 ^^^^^^^^^^^^^^^^^^
 
-The :ref:`.str.cat <text.cat>` concatenates the members of a ``Series``. Before, if ``NaN`` values were present in the Series, calling ``.str.cat()`` on it would return ``NaN``, unlike the rest of the ``Series.str.*`` API. This behavior has been amended to ignore ``NaN`` values by default. (:issue:`11435`).
+The method ``.str.cat()`` concatenates the members of a ``Series``. Before, if ``NaN`` values were present in the Series, calling ``.str.cat()`` on it would return ``NaN``, unlike the rest of the ``Series.str.*`` API. This behavior has been amended to ignore ``NaN`` values by default. (:issue:`11435`).
 
 A new, friendlier ``ValueError`` is added to protect against the mistake of supplying the ``sep`` as an arg, rather than as a kwarg. (:issue:`11334`).
 
@@ -417,8 +422,8 @@ Other enhancements
 - ``DataFrame.select_dtypes`` now allows the ``np.float16`` typecode (:issue:`11990`)
 - ``pivot_table()`` now accepts most iterables for the ``values`` parameter (:issue:`12017`)
 - Added Google ``BigQuery`` service account authentication support, which enables authentication on remote servers. (:issue:`11881`). For further details see :ref:`here <io.bigquery_authentication>`
-- ``HDFStore`` is now iterable: ``for k in store`` is equivalent to ``for k in store.keys()`` (:issue: `12221`).
-
+- ``HDFStore`` is now iterable: ``for k in store`` is equivalent to ``for k in store.keys()`` (:issue:`12221`).
+- The entire codebase has been ``PEP``-ified (:issue:`12096`)
 
 .. _whatsnew_0180.api_breaking:
 
