@@ -4,7 +4,8 @@ package:
 
 build:
     number: {{ GIT_DESCRIBE_NUMBER|int }}
-    string: np{{ CONDA_NPY }}py{{ CONDA_PY }}_{{ GIT_BUILD_STR }}
+    {% if GIT_DESCRIBE_NUMBER|int == 0 %}string: np{{ CONDA_NPY }}py{{ CONDA_PY }}_0
+    {% else %}string: np{{ CONDA_NPY }}py{{ CONDA_PY }}_{{ GIT_BUILD_STR }}{% endif %}
 
 source:
     git_url: ../
