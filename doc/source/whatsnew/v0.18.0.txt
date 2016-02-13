@@ -21,7 +21,7 @@ Highlights include:
 - API breaking change to the ``.resample`` method to make it more ``.groupby``
   like, see :ref:`here <whatsnew_0180.breaking.resample>`.
 - Removal of support for positional indexing with floats, which was deprecated
-  since 0.14.0. This will now raise a ``TypeError``, see :ref:`here <whatsnew_0180.enhancements.float_indexers>`.
+  since 0.14.0. This will now raise a ``TypeError``, see :ref:`here <whatsnew_0180.float_indexers>`.
 - The ``.to_xarray()`` function has been added for compatibility with the
   `xarray package <http://xarray.pydata.org/en/stable/>`__, see :ref:`here <whatsnew_0180.enhancements.xarray>`.
 - Addition of the :ref:`.str.extractall() method <whatsnew_0180.enhancements.extract>`,
@@ -327,11 +327,8 @@ In addition, ``.round()``, ``.floor()`` and ``.ceil()`` will be available thru t
 Formatting of integer in FloatIndex
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Integers in ``FloatIndex``, e.g. 1., are now formatted with a decimal point
-and a ``0`` digit, e.g. ``1.0`` (:issue:`11713`)
-
-This change affects the display in jupyter, but also the output of IO methods
-like ``.to_csv`` or ``.to_html``
+Integers in ``FloatIndex``, e.g. 1., are now formatted with a decimal point and a ``0`` digit, e.g. ``1.0`` (:issue:`11713`)
+This change not only affects the display in a jupyter notebook, but also the output of IO methods like ``.to_csv`` or ``.to_html``
 
 Previous Behavior:
 
@@ -887,7 +884,7 @@ In 0.18.0, this deprecation warning is removed and these will now raise a ``Type
 
 Previous Behavior:
 
-.. code-block::
+.. code-block:: python
 
    In [1]: s = Series([1,2,3])
    In [2]: s[1.0]
@@ -904,7 +901,7 @@ Previous Behavior:
 
 New Behavior:
 
-.. code-block::
+.. code-block:: python
 
    In [4]: s[1.0]
    TypeError: cannot do label indexing on <class 'pandas.indexes.range.RangeIndex'> with these indexers [1.0] of <type 'float'>
@@ -914,6 +911,14 @@ New Behavior:
 
    In [4]: s.loc[1.0]
    TypeError: cannot do label indexing on <class 'pandas.indexes.range.RangeIndex'> with these indexers [1.0] of <type 'float'>
+
+Float indexing on a ``Float64Index`` is unchanged.
+
+.. ipython:: python
+
+   s = Series([1,2,3],index=np.arange(3.))
+   s[1.0]
+   s[1.0:2.5]
 
 .. _whatsnew_0180.prior_deprecations:
 
