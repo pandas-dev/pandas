@@ -16,12 +16,14 @@ import pandas.core.common as com
 
 from pandas.compat import range, zip
 from pandas import compat
-from pandas.util.testing import (assert_series_equal,
+from pandas.util.testing import (assertRaisesRegexp,
+                                 assert_series_equal,
                                  assert_frame_equal,
                                  assert_panel_equal,
                                  assert_panel4d_equal,
                                  assert_almost_equal,
                                  assert_equal)
+
 import pandas.util.testing as tm
 
 
@@ -483,8 +485,6 @@ class Generic(object):
         self.assertTrue(len(np.array_split(o, 2)) == 2)
 
     def test_unexpected_keyword(self):  # GH8597
-        from pandas.util.testing import assertRaisesRegexp
-
         df = DataFrame(np.random.randn(5, 2), columns=['jim', 'joe'])
         ca = pd.Categorical([0, 0, 2, 2, 3, np.nan])
         ts = df['joe'].copy()
@@ -501,6 +501,20 @@ class Generic(object):
 
         with assertRaisesRegexp(TypeError, 'unexpected keyword'):
             ts.fillna(0, in_place=True)
+
+    # See gh-12301
+    def test_stat_unexpected_keyword(self):
+        obj = self._construct(5)
+        starwars = 'Star Wars'
+
+        with assertRaisesRegexp(TypeError, 'unexpected keyword'):
+            obj.max(epic=starwars)  # stat_function
+        with assertRaisesRegexp(TypeError, 'unexpected keyword'):
+            obj.var(epic=starwars)  # stat_function_ddof
+        with assertRaisesRegexp(TypeError, 'unexpected keyword'):
+            obj.sum(epic=starwars)  # cum_function
+        with assertRaisesRegexp(TypeError, 'unexpected keyword'):
+            obj.any(epic=starwars)  # logical_function
 
 
 class TestSeries(tm.TestCase, Generic):
