@@ -395,9 +395,9 @@ class TestHDFStore(Base, tm.TestCase):
 
     def test_iter_empty(self):
 
-        with ensure_clean_path(self.path) as path:
+        with ensure_clean_store(self.path) as store:
             # GH 12221
-            self.assertTrue(list(pd.HDFStore(path)) == [])
+            self.assertTrue(list(store) == [])
 
     def test_repr(self):
 
