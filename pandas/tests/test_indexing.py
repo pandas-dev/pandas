@@ -1130,7 +1130,9 @@ class TestIndexing(tm.TestCase):
         self.check_result('label range', 'loc', 'f', 'ix', 'f',
                           typs=['floats'], fails=TypeError)
         self.check_result('label range', 'loc', 20, 'ix', 20,
-                          typs=['ints', 'labels', 'mixed'], fails=KeyError)
+                          typs=['ints', 'mixed'], fails=KeyError)
+        self.check_result('label range', 'loc', 20, 'ix', 20,
+                          typs=['labels'], fails=TypeError)
         self.check_result('label range', 'loc', 20, 'ix', 20, typs=['ts'],
                           axes=0, fails=TypeError)
         self.check_result('label range', 'loc', 20, 'ix', 20, typs=['floats'],
@@ -4200,7 +4202,7 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         def f():
             df.ix[100.0, :] = df.ix[0]
 
-        self.assertRaises(ValueError, f)
+        self.assertRaises(TypeError, f)
 
         def f():
             df.ix[100, :] = df.ix[0]
@@ -5120,27 +5122,24 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
 
             # positional selection
             result1 = s[5]
-            result2 = s[5.0]
+            self.assertRaises(TypeError, lambda: s[5.0])
             result3 = s.iloc[5]
-            result4 = s.iloc[5.0]
+            self.assertRaises(TypeError, lambda: s.iloc[5.0])
 
             # by value
-            self.assertRaises(error, lambda: s.loc[5])
-            self.assertRaises(error, lambda: s.loc[5.0])
+            self.assertRaises(TypeError, lambda: s.loc[5])
+            self.assertRaises(TypeError, lambda: s.loc[5.0])
 
             # this is fallback, so it works
             result5 = s.ix[5]
-            result6 = s.ix[5.0]
+            self.assertRaises(error, lambda: s.ix[5.0])
 
-            self.assertEqual(result1, result2)
             self.assertEqual(result1, result3)
-            self.assertEqual(result1, result4)
             self.assertEqual(result1, result5)
-            self.assertEqual(result1, result6)
 
         # string-like
         for index in [tm.makeStringIndex, tm.makeUnicodeIndex]:
-            check_index(index, KeyError)
+            check_index(index, TypeError)
 
         # datetimelike
         for index in [tm.makeDateIndex, tm.makeTimedeltaIndex,
@@ -5150,32 +5149,21 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         # exact indexing when found on IntIndex
         s = Series(np.arange(10), dtype='int64')
 
-        result1 = s[5.0]
-        result2 = s.loc[5.0]
-        result3 = s.ix[5.0]
+        self.assertRaises(TypeError, lambda: s[5.0])
+        self.assertRaises(TypeError, lambda: s.loc[5.0])
+        self.assertRaises(TypeError, lambda: s.ix[5.0])
         result4 = s[5]
         result5 = s.loc[5]
         result6 = s.ix[5]
-        self.assertEqual(result1, result2)
-        self.assertEqual(result1, result3)
-        self.assertEqual(result1, result4)
-        self.assertEqual(result1, result5)
-        self.assertEqual(result1, result6)
+        self.assertEqual(result4, result5)
+        self.assertEqual(result4, result6)
 
     def test_slice_indexer(self):
         def check_iloc_compat(s):
-            # invalid type for iloc (but works with a warning)
-            # check_stacklevel=False -> impossible to get it right for all
-            # index types
-            with self.assert_produces_warning(FutureWarning,
-                                              check_stacklevel=False):
-                s.iloc[6.0:8]
-            with self.assert_produces_warning(FutureWarning,
-                                              check_stacklevel=False):
-                s.iloc[6.0:8.0]
-            with self.assert_produces_warning(FutureWarning,
-                                              check_stacklevel=False):
-                s.iloc[6:8.0]
+            # these are exceptions
+            self.assertRaises(TypeError, lambda: s.iloc[6.0:8])
+            self.assertRaises(TypeError, lambda: s.iloc[6.0:8.0])
+            self.assertRaises(TypeError, lambda: s.iloc[6:8.0])
 
         def check_slicing_positional(index):
 
@@ -5229,22 +5217,30 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
             result3 = s.loc[2:5]
             assert_series_equal(result2, result3)
 
-            # float slicers on an int index
+            # float slicers on an int index with ix
             expected = Series([11, 12, 13], index=[6, 7, 8])
-            for method in [lambda x: x.loc, lambda x: x.ix]:
-                result = method(s)[6.0:8.5]
-                assert_series_equal(result, expected)
+            result = s.ix[6.0:8.5]
+            assert_series_equal(result, expected)
 
-                result = method(s)[5.5:8.5]
-                assert_series_equal(result, expected)
+            result = s.ix[5.5:8.5]
+            assert_series_equal(result, expected)
 
-                result = method(s)[5.5:8.0]
-                assert_series_equal(result, expected)
+            result = s.ix[5.5:8.0]
+            assert_series_equal(result, expected)
 
-                # make all float slicing fail for [] with an int index
-                self.assertRaises(TypeError, lambda: s[6.0:8])
-                self.assertRaises(TypeError, lambda: s[6.0:8.0])
-                self.assertRaises(TypeError, lambda: s[6:8.0])
+            for method in ['loc', 'iloc']:
+                # make all float slicing fail for .loc with an int index
+                self.assertRaises(TypeError,
+                                  lambda: getattr(s, method)[6.0:8])
+                self.assertRaises(TypeError,
+                                  lambda: getattr(s, method)[6.0:8.0])
+                self.assertRaises(TypeError,
+                                  lambda: getattr(s, method)[6:8.0])
+
+            # make all float slicing fail for [] with an int index
+            self.assertRaises(TypeError, lambda: s[6.0:8])
+            self.assertRaises(TypeError, lambda: s[6.0:8.0])
+            self.assertRaises(TypeError, lambda: s[6:8.0])
 
             check_iloc_compat(s)
 
@@ -5329,121 +5325,343 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         assert_frame_equal(df.ix[[]], df.iloc[:0, :], check_index_type=True,
                            check_column_type=True)
 
-    def test_deprecate_float_indexers(self):
+    def test_index_type_coercion(self):
+
+        # GH 11836
+        # if we have an index type and set it with something that looks
+        # to numpy like the same, but is actually, not
+        # (e.g. setting with a float or string '0')
+        # then we need to coerce to object
+
+        # integer indexes
+        for s in [Series(range(5)),
+                  Series(range(5), index=range(1, 6))]:
+
+            self.assertTrue(s.index.is_integer())
+
+            for attr in ['ix', 'loc']:
+                s2 = s.copy()
+                getattr(s2, attr)[0.1] = 0
+                self.assertTrue(s2.index.is_floating())
+                self.assertTrue(getattr(s2, attr)[0.1] == 0)
+
+                s2 = s.copy()
+                getattr(s2, attr)[0.0] = 0
+                exp = s.index
+                if 0 not in s:
+                    exp = Index(s.index.tolist() + [0])
+                tm.assert_index_equal(s2.index, exp)
+
+                s2 = s.copy()
+                getattr(s2, attr)['0'] = 0
+                self.assertTrue(s2.index.is_object())
+
+            # setitem
+            s2 = s.copy()
+            s2[0.1] = 0
+            self.assertTrue(s2.index.is_floating())
+            self.assertTrue(s2[0.1] == 0)
+
+            s2 = s.copy()
+            s2[0.0] = 0
+            exp = s.index
+            if 0 not in s:
+                exp = Index(s.index.tolist() + [0])
+            tm.assert_index_equal(s2.index, exp)
+
+            s2 = s.copy()
+            s2['0'] = 0
+            self.assertTrue(s2.index.is_object())
+
+        for s in [Series(range(5), index=np.arange(5.))]:
+
+            self.assertTrue(s.index.is_floating())
+
+            for attr in ['ix', 'loc']:
+
+                s2 = s.copy()
+                getattr(s2, attr)[0.1] = 0
+                self.assertTrue(s2.index.is_floating())
+                self.assertTrue(getattr(s2, attr)[0.1] == 0)
+
+                s2 = s.copy()
+                getattr(s2, attr)[0.0] = 0
+                tm.assert_index_equal(s2.index, s.index)
+
+                s2 = s.copy()
+                getattr(s2, attr)['0'] = 0
+                self.assertTrue(s2.index.is_object())
+
+            # setitem
+            s2 = s.copy()
+            s2[0.1] = 0
+            self.assertTrue(s2.index.is_floating())
+            self.assertTrue(s2[0.1] == 0)
+
+            s2 = s.copy()
+            s2[0.0] = 0
+            tm.assert_index_equal(s2.index, s.index)
+
+            s2 = s.copy()
+            s2['0'] = 0
+            self.assertTrue(s2.index.is_object())
+
+    def test_invalid_scalar_float_indexers(self):
 
         # GH 4892
-        # deprecate allowing float indexers that are equal to ints to be used
-        # as indexers in non-float indices
+        # float_indexers should raise exceptions
+        # on appropriate Index types & accessors
 
-        import warnings
-        warnings.filterwarnings(action='error', category=FutureWarning)
+        for index in [tm.makeStringIndex, tm.makeUnicodeIndex,
+                      tm.makeCategoricalIndex,
+                      tm.makeDateIndex, tm.makeTimedeltaIndex,
+                      tm.makePeriodIndex]:
 
-        def check_index(index):
             i = index(5)
 
             for s in [Series(
                     np.arange(len(i)), index=i), DataFrame(
                         np.random.randn(
                             len(i), len(i)), index=i, columns=i)]:
-                self.assertRaises(FutureWarning, lambda: s.iloc[3.0])
 
-                # setting
+                for attr in ['iloc', 'loc', 'ix', '__getitem__']:
+                    def f():
+                        getattr(s, attr)()[3.0]
+                    self.assertRaises(TypeError, f)
+
+                # setting only fails with iloc as
+                # the others expand the index
                 def f():
                     s.iloc[3.0] = 0
-
-                self.assertRaises(FutureWarning, f)
+                self.assertRaises(TypeError, f)
 
             # fallsback to position selection ,series only
             s = Series(np.arange(len(i)), index=i)
             s[3]
-            self.assertRaises(FutureWarning, lambda: s[3.0])
+            self.assertRaises(TypeError, lambda: s[3.0])
+
+        # integer index
+        for index in [tm.makeIntIndex, tm.makeRangeIndex]:
+
+            i = index(5)
+            for s in [Series(np.arange(len(i))),
+                      DataFrame(np.random.randn(len(i), len(i)),
+                                index=i, columns=i)]:
+
+                # any kind of get access should fail
+                for attr in ['iloc', 'loc', 'ix']:
+                    def f():
+                        getattr(s, attr)[3.0]
+                    self.assertRaises(TypeError, f)
+                error = KeyError if isinstance(s, DataFrame) else TypeError
+                self.assertRaises(error, lambda: s[3.0])
+
+                # setting only fails with iloc as
+                def f():
+                    s.iloc[3.0] = 0
+                self.assertRaises(TypeError, f)
+
+                # other indexers will coerce to an object index
+                # tested explicity in: test_invalid_scalar_float_indexers
+                # above
+
+        # floats index
+        index = tm.makeFloatIndex(5)
+        for s in [Series(np.arange(len(index)), index=index),
+                  DataFrame(np.random.randn(len(index), len(index)),
+                            index=index, columns=index)]:
+
+            # assert all operations except for iloc are ok
+            indexer = index[3]
+            expected = s.iloc[3]
+
+            if isinstance(s, Series):
+                compare = self.assertEqual
+            else:
+                compare = tm.assert_series_equal
+
+            for attr in ['loc', 'ix']:
+
+                # getting
+                result = getattr(s, attr)[indexer]
+                compare(result, expected)
+
+                # setting
+                s2 = s.copy()
+
+                def f():
+                    getattr(s2, attr)[indexer] = expected
+                result = getattr(s2, attr)[indexer]
+                compare(result, expected)
+
+                # random integer is a KeyError
+                self.assertRaises(KeyError, lambda: getattr(s, attr)[3])
+
+            # iloc succeeds with an integer
+            result = s.iloc[3]
+            compare(result, expected)
+
+            s2 = s.copy()
+
+            def f():
+                s2.iloc[3] = expected
+            result = s2.iloc[3]
+            compare(result, expected)
+
+            # iloc raises with a float
+            self.assertRaises(TypeError, lambda: s.iloc[3.0])
+
+            def f():
+                s.iloc[3.0] = 0
+            self.assertRaises(TypeError, f)
+
+            # getitem
+
+            # getting
+            if isinstance(s, DataFrame):
+                expected = s.iloc[:, 3]
+            result = s[indexer]
+            compare(result, expected)
+
+            # setting
+            s2 = s.copy()
+
+            def f():
+                s2[indexer] = expected
+            result = s2[indexer]
+            compare(result, expected)
+
+            # random integer is a KeyError
+            result = self.assertRaises(KeyError, lambda: s[3])
+
+    def test_invalid_slice_float_indexers(self):
+
+        # GH 4892
+        # float_indexers should raise exceptions
+        # on appropriate Index types & accessors
 
         for index in [tm.makeStringIndex, tm.makeUnicodeIndex,
                       tm.makeDateIndex, tm.makeTimedeltaIndex,
                       tm.makePeriodIndex]:
-            check_index(index)
-
-        # ints
-        i = index(5)
-        for s in [Series(np.arange(len(i))), DataFrame(
-                np.random.randn(
-                    len(i), len(i)), index=i, columns=i)]:
-            self.assertRaises(FutureWarning, lambda: s.iloc[3.0])
-
-            # on some arch's this doesn't provide a warning (and thus raise)
-            # and some it does
-            try:
-                s[3.0]
-            except:
-                pass
-
-            # setting
-            def f():
-                s.iloc[3.0] = 0
-
-            self.assertRaises(FutureWarning, f)
-
-        # floats: these are all ok!
-        i = np.arange(5.)
-
-        for s in [Series(
-                np.arange(len(i)), index=i), DataFrame(
-                    np.random.randn(
-                        len(i), len(i)), index=i, columns=i)]:
-            with tm.assert_produces_warning(False):
-                s[3.0]
-
-            with tm.assert_produces_warning(False):
-                s[3]
-
-            self.assertRaises(FutureWarning, lambda: s.iloc[3.0])
-
-            with tm.assert_produces_warning(False):
-                s.iloc[3]
-
-            with tm.assert_produces_warning(False):
-                s.loc[3.0]
-
-            with tm.assert_produces_warning(False):
-                s.loc[3]
-
-            def f():
-                s.iloc[3.0] = 0
-
-            self.assertRaises(FutureWarning, f)
-
-        # slices
-        for index in [tm.makeIntIndex, tm.makeRangeIndex, tm.makeFloatIndex,
-                      tm.makeStringIndex, tm.makeUnicodeIndex,
-                      tm.makeDateIndex, tm.makePeriodIndex]:
 
             index = index(5)
-            for s in [Series(
-                    range(5), index=index), DataFrame(
-                        np.random.randn(5, 2), index=index)]:
+            for s in [Series(range(5), index=index),
+                      DataFrame(np.random.randn(5, 2), index=index)]:
 
                 # getitem
-                self.assertRaises(FutureWarning, lambda: s.iloc[3.0:4])
-                self.assertRaises(FutureWarning, lambda: s.iloc[3.0:4.0])
-                self.assertRaises(FutureWarning, lambda: s.iloc[3:4.0])
+                for l in [slice(3.0, 4),
+                          slice(3, 4.0),
+                          slice(3.0, 4.0)]:
+
+                    def f():
+                        s.iloc[l]
+                    self.assertRaises(TypeError, f)
+
+                    def f():
+                        s.loc[l]
+                    self.assertRaises(TypeError, f)
+
+                    def f():
+                        s[l]
+                    self.assertRaises(TypeError, f)
+
+                    def f():
+                        s.ix[l]
+                    self.assertRaises(TypeError, f)
 
                 # setitem
-                def f():
-                    s.iloc[3.0:4] = 0
+                for l in [slice(3.0, 4),
+                          slice(3, 4.0),
+                          slice(3.0, 4.0)]:
 
-                self.assertRaises(FutureWarning, f)
+                    def f():
+                        s.iloc[l] = 0
+                    self.assertRaises(TypeError, f)
 
-                def f():
-                    s.iloc[3:4.0] = 0
+                    def f():
+                        s.loc[l] = 0
+                    self.assertRaises(TypeError, f)
 
-                self.assertRaises(FutureWarning, f)
+                    def f():
+                        s[l] = 0
+                    self.assertRaises(TypeError, f)
 
-                def f():
-                    s.iloc[3.0:4.0] = 0
+                    def f():
+                        s.ix[l] = 0
+                    self.assertRaises(TypeError, f)
 
-                self.assertRaises(FutureWarning, f)
+        # same as above, but for Integer based indexes
+        for index in [tm.makeIntIndex, tm.makeRangeIndex]:
 
-        warnings.filterwarnings(action='ignore', category=FutureWarning)
+            index = index(5)
+            for s in [Series(range(5), index=index),
+                      DataFrame(np.random.randn(5, 2), index=index)]:
+
+                # getitem
+                for l in [slice(3.0, 4),
+                          slice(3, 4.0),
+                          slice(3.0, 4.0)]:
+
+                    def f():
+                        s.iloc[l]
+                    self.assertRaises(TypeError, f)
+
+                    def f():
+                        s.loc[l]
+                    self.assertRaises(TypeError, f)
+
+                    def f():
+                        s[l]
+                    self.assertRaises(TypeError, f)
+
+                    # ix allows float slicing
+                    s.ix[l]
+
+                # setitem
+                for l in [slice(3.0, 4),
+                          slice(3, 4.0),
+                          slice(3.0, 4.0)]:
+
+                    def f():
+                        s.iloc[l] = 0
+                    self.assertRaises(TypeError, f)
+
+                    def f():
+                        s.loc[l] = 0
+                    self.assertRaises(TypeError, f)
+
+                    def f():
+                        s[l] = 0
+                    self.assertRaises(TypeError, f)
+
+                    # ix allows float slicing
+                    s.ix[l] = 0
+
+        # same as above, but for floats
+        index = tm.makeFloatIndex(5)
+        for s in [Series(range(5), index=index),
+                  DataFrame(np.random.randn(5, 2), index=index)]:
+
+            # getitem
+            for l in [slice(3.0, 4),
+                      slice(3, 4.0),
+                      slice(3.0, 4.0)]:
+
+                # ix is ok
+                result1 = s.ix[3:4]
+                result2 = s.ix[3.0:4]
+                result3 = s.ix[3.0:4.0]
+                result4 = s.ix[3:4.0]
+                self.assertTrue(result1.equals(result2))
+                self.assertTrue(result1.equals(result3))
+                self.assertTrue(result1.equals(result4))
+
+                # setitem
+                for l in [slice(3.0, 4),
+                          slice(3, 4.0),
+                          slice(3.0, 4.0)]:
+
+                    pass
 
     def test_float_index_to_mixed(self):
         df = DataFrame({0.0: np.random.rand(10), 1.0: np.random.rand(10)})

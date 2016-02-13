@@ -21,12 +21,12 @@ import pandas.core.common as com
 from pandas.core.missing import _clean_reindex_fill_method
 from pandas.core.common import (isnull, array_equivalent,
                                 is_object_dtype, is_datetimetz, ABCSeries,
-                                ABCPeriodIndex,
+                                ABCPeriodIndex, ABCMultiIndex,
                                 _values_from_object, is_float, is_integer,
                                 is_iterator, is_categorical_dtype,
                                 _ensure_object, _ensure_int64, is_bool_indexer,
                                 is_list_like, is_bool_dtype,
-                                is_integer_dtype)
+                                is_integer_dtype, is_float_dtype)
 from pandas.core.strings import StringAccessorMixin
 
 from pandas.core.config import get_option
@@ -162,7 +162,46 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
 
             if dtype is not None:
                 try:
-                    data = np.array(data, dtype=dtype, copy=copy)
+
+                    # we need to avoid having numpy coerce
+                    # things that look like ints/floats to ints unless
+                    # they are actually ints, e.g. '0' and 0.0
+                    # should not be coerced
+                    # GH 11836
+                    if is_integer_dtype(dtype):
+                        inferred = lib.infer_dtype(data)
+                        if inferred == 'integer':
+                            data = np.array(data, copy=copy, dtype=dtype)
+                        elif inferred in ['floating', 'mixed-integer-float']:
+
+                            # if we are actually all equal to integers
+                            # then coerce to integer
+                            from .numeric import Int64Index, Float64Index
+                            try:
+                                res = data.astype('i8')
+                                if (res == data).all():
+                                    return Int64Index(res, copy=copy,
+                                                      name=name)
+                            except (TypeError, ValueError):
+                                pass
+
+                            # return an actual float index
+                            return Float64Index(data, copy=copy, dtype=dtype,
+                                                name=name)
+
+                        elif inferred == 'string':
+                            pass
+                        else:
+                            data = data.astype(dtype)
+                    elif is_float_dtype(dtype):
+                        inferred = lib.infer_dtype(data)
+                        if inferred == 'string':
+                            pass
+                        else:
+                            data = data.astype(dtype)
+                    else:
+                        data = np.array(data, dtype=dtype, copy=copy)
+
                 except (TypeError, ValueError):
                     pass
 
@@ -930,35 +969,32 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         kind : optional, type of the indexing operation (loc/ix/iloc/None)
 
         right now we are converting
-        floats -> ints if the index supports it
         """
-
-        def to_int():
-            ikey = int(key)
-            if ikey != key:
-                return self._invalid_indexer('label', key)
-            return ikey
 
         if kind == 'iloc':
             if is_integer(key):
                 return key
-            elif is_float(key):
-                key = to_int()
-                warnings.warn("scalar indexers for index type {0} should be "
-                              "integers and not floating point".format(
-                                  type(self).__name__),
-                              FutureWarning, stacklevel=5)
-                return key
             return self._invalid_indexer('label', key)
+        else:
 
-        if is_float(key):
-            if isnull(key):
-                return self._invalid_indexer('label', key)
-            warnings.warn("scalar indexers for index type {0} should be "
-                          "integers and not floating point".format(
-                              type(self).__name__),
-                          FutureWarning, stacklevel=3)
-            return to_int()
+            if len(self):
+
+                # we can safely disallow
+                # if we are not a MultiIndex
+                # or a Float64Index
+                # or have mixed inferred type (IOW we have the possiblity
+                # of a float in with say strings)
+                if is_float(key):
+                    if not (isinstance(self, ABCMultiIndex,) or
+                            self.is_floating() or self.is_mixed()):
+                        return self._invalid_indexer('label', key)
+
+                # we can disallow integers with loc
+                # if could not contain and integer
+                elif is_integer(key) and kind == 'loc':
+                    if not (isinstance(self, ABCMultiIndex,) or
+                            self.holds_integer() or self.is_mixed()):
+                        return self._invalid_indexer('label', key)
 
         return key
 
@@ -991,14 +1027,6 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
                 v = getattr(key, c)
                 if v is None or is_integer(v):
                     return v
-
-                # warn if it's a convertible float
-                if v == int(v):
-                    warnings.warn("slice indexers when using iloc should be "
-                                  "integers and not floating point",
-                                  FutureWarning, stacklevel=7)
-                    return int(v)
-
                 self._invalid_indexer('slice {0} value'.format(c), v)
 
             return slice(*[f(c) for c in ['start', 'stop', 'step']])
@@ -1057,7 +1085,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
             indexer = key
         else:
             try:
-                indexer = self.slice_indexer(start, stop, step)
+                indexer = self.slice_indexer(start, stop, step, kind=kind)
             except Exception:
                 if is_index_slice:
                     if self.is_integer():
@@ -1891,10 +1919,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         s = _values_from_object(series)
         k = _values_from_object(key)
 
-        # prevent integer truncation bug in indexing
-        if is_float(k) and not self.is_floating():
-            raise KeyError
-
+        k = self._convert_scalar_indexer(k, kind='getitem')
         try:
             return self._engine.get_value(s, k,
                                           tz=getattr(series.dtype, 'tz', None))
@@ -2236,6 +2261,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
             if self.equals(target):
                 indexer = None
             else:
+
                 if self.is_unique:
                     indexer = self.get_indexer(target, method=method,
                                                limit=limit,
@@ -2722,7 +2748,9 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         # datetimelike Indexes
         # reject them
         if is_float(label):
-            self._invalid_indexer('slice', label)
+            if not (kind in ['ix'] and (self.holds_integer() or
+                                        self.is_floating())):
+                self._invalid_indexer('slice', label)
 
         # we are trying to find integer bounds on a non-integer based index
         # this is rejected (generally .loc gets you here)

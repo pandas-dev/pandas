@@ -379,9 +379,18 @@ class TestInt64Index(Numeric, tm.TestCase):
         new_index = Int64Index(arr, copy=True)
         tm.assert_numpy_array_equal(new_index, self.index)
         val = arr[0] + 3000
+
         # this should not change index
         arr[0] = val
         self.assertNotEqual(new_index[0], val)
+
+        # interpret list-like
+        expected = Int64Index([5, 0])
+        for cls in [Index, Int64Index]:
+            for idx in [cls([5, 0], dtype='int64'),
+                        cls(np.array([5, 0]), dtype='int64'),
+                        cls(Series([5, 0]), dtype='int64')]:
+                tm.assert_index_equal(idx, expected)
 
     def test_constructor_corner(self):
         arr = np.array([1, 2, 3, 4], dtype=object)
