@@ -900,13 +900,13 @@ class TestAlignment(object):
 
         # only test dt with dt, otherwise weird joins result
         args = product(['i', 'u', 's'], ['i', 'u', 's'], ('index', 'columns'))
-        for r_idx_type, c_idx_type, index_name in args:
-            testit(r_idx_type, c_idx_type, index_name)
+        with warnings.catch_warnings(record=True):
+            for r_idx_type, c_idx_type, index_name in args:
+                testit(r_idx_type, c_idx_type, index_name)
 
         # dt with dt
         args = product(['dt'], ['dt'], ('index', 'columns'))
         with warnings.catch_warnings(record=True):
-            warnings.simplefilter('always', RuntimeWarning)
             for r_idx_type, c_idx_type, index_name in args:
                 testit(r_idx_type, c_idx_type, index_name)
 

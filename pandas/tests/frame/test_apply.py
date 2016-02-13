@@ -4,6 +4,7 @@ from __future__ import print_function
 
 from datetime import datetime
 
+import warnings
 import numpy as np
 
 from pandas import (notnull, DataFrame, Series, MultiIndex, date_range,
@@ -168,7 +169,8 @@ class TestDataFrameApply(tm.TestCase, TestData):
         no_index = DataFrame(columns=['a', 'b', 'c'])
 
         def _check(df, f):
-            test_res = f(np.array([], dtype='f8'))
+            with warnings.catch_warnings(record=True):
+                test_res = f(np.array([], dtype='f8'))
             is_reduction = not isinstance(test_res, np.ndarray)
 
             def _checkit(axis=0, raw=False):
