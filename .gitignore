@@ -66,6 +66,7 @@ Thumbs.db
 # Data files #
 ##############
 *.dta
+*.xpt
 *.h5
 pandas/io/*.dat
 pandas/io/*.json
