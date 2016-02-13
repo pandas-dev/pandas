@@ -456,35 +456,6 @@ class Generic(object):
         with tm.assertRaises(ValueError):
             o.sample(n=3, weights=nan_weights)
 
-        # A few dataframe test with degenerate weights.
-        easy_weight_list = [0] * 10
-        easy_weight_list[5] = 1
-
-        df = pd.DataFrame({'col1': range(10, 20),
-                           'col2': range(20, 30),
-                           'colString': ['a'] * 10,
-                           'easyweights': easy_weight_list})
-        sample1 = df.sample(n=1, weights='easyweights')
-        assert_frame_equal(sample1, df.iloc[5:6])
-
-        # Ensure proper error if string given as weight for Series, panel, or
-        # DataFrame with axis = 1.
-        s = Series(range(10))
-        with tm.assertRaises(ValueError):
-            s.sample(n=3, weights='weight_column')
-
-        panel = pd.Panel(items=[0, 1, 2], major_axis=[2, 3, 4],
-                         minor_axis=[3, 4, 5])
-        with tm.assertRaises(ValueError):
-            panel.sample(n=1, weights='weight_column')
-
-        with tm.assertRaises(ValueError):
-            df.sample(n=1, weights='weight_column', axis=1)
-
-        # Check weighting key error
-        with tm.assertRaises(KeyError):
-            df.sample(n=3, weights='not_a_real_column_name')
-
         # Check np.nan are replaced by zeros.
         weights_with_nan = [np.nan] * 10
         weights_with_nan[5] = 0.5
@@ -496,90 +467,6 @@ class Generic(object):
         weights_with_None[5] = 0.5
         self._compare(
             o.sample(n=1, axis=0, weights=weights_with_None), o.iloc[5:6])
-
-        # Check that re-normalizes weights that don't sum to one.
-        weights_less_than_1 = [0] * 10
-        weights_less_than_1[0] = 0.5
-        tm.assert_frame_equal(
-            df.sample(n=1, weights=weights_less_than_1), df.iloc[:1])
-
-        ###
-        # Test axis argument
-        ###
-
-        # Test axis argument
-        df = pd.DataFrame({'col1': range(10), 'col2': ['a'] * 10})
-        second_column_weight = [0, 1]
-        assert_frame_equal(
-            df.sample(n=1, axis=1, weights=second_column_weight), df[['col2']])
-
-        # Different axis arg types
-        assert_frame_equal(df.sample(n=1, axis='columns',
-                                     weights=second_column_weight),
-                           df[['col2']])
-
-        weight = [0] * 10
-        weight[5] = 0.5
-        assert_frame_equal(df.sample(n=1, axis='rows', weights=weight),
-                           df.iloc[5:6])
-        assert_frame_equal(df.sample(n=1, axis='index', weights=weight),
-                           df.iloc[5:6])
-
-        # Check out of range axis values
-        with tm.assertRaises(ValueError):
-            df.sample(n=1, axis=2)
-
-        with tm.assertRaises(ValueError):
-            df.sample(n=1, axis='not_a_name')
-
-        with tm.assertRaises(ValueError):
-            s = pd.Series(range(10))
-            s.sample(n=1, axis=1)
-
-        # Test weight length compared to correct axis
-        with tm.assertRaises(ValueError):
-            df.sample(n=1, axis=1, weights=[0.5] * 10)
-
-        # Check weights with axis = 1
-        easy_weight_list = [0] * 3
-        easy_weight_list[2] = 1
-
-        df = pd.DataFrame({'col1': range(10, 20),
-                           'col2': range(20, 30),
-                           'colString': ['a'] * 10})
-        sample1 = df.sample(n=1, axis=1, weights=easy_weight_list)
-        assert_frame_equal(sample1, df[['colString']])
-
-        # Test default axes
-        p = pd.Panel(items=['a', 'b', 'c'], major_axis=[2, 4, 6],
-                     minor_axis=[1, 3, 5])
-        assert_panel_equal(
-            p.sample(n=3, random_state=42), p.sample(n=3, axis=1,
-                                                     random_state=42))
-        assert_frame_equal(
-            df.sample(n=3, random_state=42), df.sample(n=3, axis=0,
-                                                       random_state=42))
-
-        # Test that function aligns weights with frame
-        df = DataFrame(
-            {'col1': [5, 6, 7],
-             'col2': ['a', 'b', 'c'], }, index=[9, 5, 3])
-        s = Series([1, 0, 0], index=[3, 5, 9])
-        assert_frame_equal(df.loc[[3]], df.sample(1, weights=s))
-
-        # Weights have index values to be dropped because not in
-        # sampled DataFrame
-        s2 = Series([0.001, 0, 10000], index=[3, 5, 10])
-        assert_frame_equal(df.loc[[3]], df.sample(1, weights=s2))
-
-        # Weights have empty values to be filed with zeros
-        s3 = Series([0.01, 0], index=[3, 5])
-        assert_frame_equal(df.loc[[3]], df.sample(1, weights=s3))
-
-        # No overlap in weight and sampled DataFrame indices
-        s4 = Series([1, 0], index=[1, 2])
-        with tm.assertRaises(ValueError):
-            df.sample(1, weights=s4)
 
     def test_size_compat(self):
         # GH8846
@@ -1963,6 +1850,9 @@ class TestPanel4D(tm.TestCase, Generic):
     _typ = Panel4D
     _comparator = lambda self, x, y: assert_panel4d_equal(x, y)
 
+    def test_sample(self):
+        raise nose.SkipTest("sample on Panel4D")
+
     def test_to_xarray(self):
 
         tm._skip_if_no_xarray()
@@ -1983,6 +1873,123 @@ class TestPanel4D(tm.TestCase, Generic):
 
 class TestNDFrame(tm.TestCase):
     # tests that don't fit elsewhere
+
+    def test_sample(sel):
+        # Fixes issue: 2419
+        # additional specific object based tests
+
+        # A few dataframe test with degenerate weights.
+        easy_weight_list = [0] * 10
+        easy_weight_list[5] = 1
+
+        df = pd.DataFrame({'col1': range(10, 20),
+                           'col2': range(20, 30),
+                           'colString': ['a'] * 10,
+                           'easyweights': easy_weight_list})
+        sample1 = df.sample(n=1, weights='easyweights')
+        assert_frame_equal(sample1, df.iloc[5:6])
+
+        # Ensure proper error if string given as weight for Series, panel, or
+        # DataFrame with axis = 1.
+        s = Series(range(10))
+        with tm.assertRaises(ValueError):
+            s.sample(n=3, weights='weight_column')
+
+        panel = pd.Panel(items=[0, 1, 2], major_axis=[2, 3, 4],
+                         minor_axis=[3, 4, 5])
+        with tm.assertRaises(ValueError):
+            panel.sample(n=1, weights='weight_column')
+
+        with tm.assertRaises(ValueError):
+            df.sample(n=1, weights='weight_column', axis=1)
+
+        # Check weighting key error
+        with tm.assertRaises(KeyError):
+            df.sample(n=3, weights='not_a_real_column_name')
+
+        # Check that re-normalizes weights that don't sum to one.
+        weights_less_than_1 = [0] * 10
+        weights_less_than_1[0] = 0.5
+        tm.assert_frame_equal(
+            df.sample(n=1, weights=weights_less_than_1), df.iloc[:1])
+
+        ###
+        # Test axis argument
+        ###
+
+        # Test axis argument
+        df = pd.DataFrame({'col1': range(10), 'col2': ['a'] * 10})
+        second_column_weight = [0, 1]
+        assert_frame_equal(
+            df.sample(n=1, axis=1, weights=second_column_weight), df[['col2']])
+
+        # Different axis arg types
+        assert_frame_equal(df.sample(n=1, axis='columns',
+                                     weights=second_column_weight),
+                           df[['col2']])
+
+        weight = [0] * 10
+        weight[5] = 0.5
+        assert_frame_equal(df.sample(n=1, axis='rows', weights=weight),
+                           df.iloc[5:6])
+        assert_frame_equal(df.sample(n=1, axis='index', weights=weight),
+                           df.iloc[5:6])
+
+        # Check out of range axis values
+        with tm.assertRaises(ValueError):
+            df.sample(n=1, axis=2)
+
+        with tm.assertRaises(ValueError):
+            df.sample(n=1, axis='not_a_name')
+
+        with tm.assertRaises(ValueError):
+            s = pd.Series(range(10))
+            s.sample(n=1, axis=1)
+
+        # Test weight length compared to correct axis
+        with tm.assertRaises(ValueError):
+            df.sample(n=1, axis=1, weights=[0.5] * 10)
+
+        # Check weights with axis = 1
+        easy_weight_list = [0] * 3
+        easy_weight_list[2] = 1
+
+        df = pd.DataFrame({'col1': range(10, 20),
+                           'col2': range(20, 30),
+                           'colString': ['a'] * 10})
+        sample1 = df.sample(n=1, axis=1, weights=easy_weight_list)
+        assert_frame_equal(sample1, df[['colString']])
+
+        # Test default axes
+        p = pd.Panel(items=['a', 'b', 'c'], major_axis=[2, 4, 6],
+                     minor_axis=[1, 3, 5])
+        assert_panel_equal(
+            p.sample(n=3, random_state=42), p.sample(n=3, axis=1,
+                                                     random_state=42))
+        assert_frame_equal(
+            df.sample(n=3, random_state=42), df.sample(n=3, axis=0,
+                                                       random_state=42))
+
+        # Test that function aligns weights with frame
+        df = DataFrame(
+            {'col1': [5, 6, 7],
+             'col2': ['a', 'b', 'c'], }, index=[9, 5, 3])
+        s = Series([1, 0, 0], index=[3, 5, 9])
+        assert_frame_equal(df.loc[[3]], df.sample(1, weights=s))
+
+        # Weights have index values to be dropped because not in
+        # sampled DataFrame
+        s2 = Series([0.001, 0, 10000], index=[3, 5, 10])
+        assert_frame_equal(df.loc[[3]], df.sample(1, weights=s2))
+
+        # Weights have empty values to be filed with zeros
+        s3 = Series([0.01, 0], index=[3, 5])
+        assert_frame_equal(df.loc[[3]], df.sample(1, weights=s3))
+
+        # No overlap in weight and sampled DataFrame indices
+        s4 = Series([1, 0], index=[1, 2])
+        with tm.assertRaises(ValueError):
+            df.sample(1, weights=s4)
 
     def test_squeeze(self):
         # noop

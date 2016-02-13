@@ -4284,8 +4284,11 @@ class TestGroupBy(tm.TestCase):
 
         # compare the results
         tm.assert_frame_equal(lexsorted_df, not_lexsorted_df)
-        tm.assert_frame_equal(lexsorted_df.groupby('a').mean(),
-                              not_lexsorted_df.groupby('a').mean())
+
+        expected = lexsorted_df.groupby('a').mean()
+        with tm.assert_produces_warning(com.PerformanceWarning):
+            result = not_lexsorted_df.groupby('a').mean()
+        tm.assert_frame_equal(expected, result)
 
     def test_groupby_levels_and_columns(self):
         # GH9344, GH9049

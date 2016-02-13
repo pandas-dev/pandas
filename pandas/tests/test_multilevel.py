@@ -2366,7 +2366,7 @@ Thur,Lunch,Yes,51.51,17"""
         idx1 = idx1.append(idx1)
         idx2 = pd.period_range('2013-01-01 09:00', periods=2, freq='H')
         idx2 = idx2.append(idx2).append(idx2)
-        idx3 = pd.period_range('2005', periods=6, freq='Y')
+        idx3 = pd.period_range('2005', periods=6, freq='A')
 
         df = df.set_index(idx1)
         df = df.set_index(idx2, append=True)

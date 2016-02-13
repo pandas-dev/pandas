@@ -175,7 +175,7 @@ class TestDataFrameAnalytics(tm.TestCase, TestData):
         a = self.tsframe
         noise = Series(randn(len(a)), index=a.index)
 
-        b = self.tsframe + noise
+        b = self.tsframe.add(noise, axis=0)
 
         # make sure order does not matter
         b = b.reindex(columns=b.columns[::-1], index=b.index[::-1][10:])
