@@ -212,11 +212,9 @@ class TestDataFrameIndexing(tm.TestCase, TestData):
         assert_frame_equal(subframe_obj, subframe)
 
         # test that Series indexers reindex
-        with tm.assert_produces_warning(UserWarning):
-            indexer_obj = indexer_obj.reindex(self.tsframe.index[::-1])
-
-            subframe_obj = self.tsframe[indexer_obj]
-            assert_frame_equal(subframe_obj, subframe)
+        indexer_obj = indexer_obj.reindex(self.tsframe.index[::-1])
+        subframe_obj = self.tsframe[indexer_obj]
+        assert_frame_equal(subframe_obj, subframe)
 
         # test df[df > 0]
         for df in [self.tsframe, self.mixed_frame,
@@ -1309,37 +1307,25 @@ class TestDataFrameIndexing(tm.TestCase, TestData):
         df = DataFrame(np.random.randn(5, 5), index=index)
 
         # positional slicing only via iloc!
-        # stacklevel=False -> needed stacklevel depends on index type
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            result = df.iloc[1.0:5]
-
-        expected = df.reindex([2.5, 3.5, 4.5, 5.0])
-        assert_frame_equal(result, expected)
-        self.assertEqual(len(result), 4)
+        self.assertRaises(TypeError, lambda: df.iloc[1.0:5])
 
         result = df.iloc[4:5]
         expected = df.reindex([5.0])
         assert_frame_equal(result, expected)
         self.assertEqual(len(result), 1)
 
-        # GH 4892, float indexers in iloc are deprecated
-        import warnings
-        warnings.filterwarnings(action='error', category=FutureWarning)
-
         cp = df.copy()
 
         def f():
             cp.iloc[1.0:5] = 0
-        self.assertRaises(FutureWarning, f)
+        self.assertRaises(TypeError, f)
 
         def f():
             result = cp.iloc[1.0:5] == 0  # noqa
 
-        self.assertRaises(FutureWarning, f)
+        self.assertRaises(TypeError, f)
         self.assertTrue(result.values.all())
         self.assertTrue((cp.iloc[0:1] == df.iloc[0:1]).values.all())
-
-        warnings.filterwarnings(action='default', category=FutureWarning)
 
         cp = df.copy()
         cp.iloc[4:5] = 0

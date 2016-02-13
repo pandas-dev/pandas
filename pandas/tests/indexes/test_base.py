@@ -180,53 +180,46 @@ class TestIndex(Base, tm.TestCase):
 
     def test_constructor_dtypes(self):
 
-        for idx in [Index(np.array([1, 2, 3], dtype=int)), Index(
-                np.array(
-                    [1, 2, 3], dtype=int), dtype=int), Index(
-                        np.array(
-                            [1., 2., 3.], dtype=float), dtype=int), Index(
-                                [1, 2, 3], dtype=int), Index(
-                                    [1., 2., 3.], dtype=int)]:
+        for idx in [Index(np.array([1, 2, 3], dtype=int)),
+                    Index(np.array([1, 2, 3], dtype=int), dtype=int),
+                    Index([1, 2, 3], dtype=int)]:
             self.assertIsInstance(idx, Int64Index)
 
-        for idx in [Index(np.array([1., 2., 3.], dtype=float)), Index(
-                np.array(
-                    [1, 2, 3], dtype=int), dtype=float), Index(
-                        np.array(
-                            [1., 2., 3.], dtype=float), dtype=float), Index(
-                                [1, 2, 3], dtype=float), Index(
-                                    [1., 2., 3.], dtype=float)]:
+        # these should coerce
+        for idx in [Index(np.array([1., 2., 3.], dtype=float), dtype=int),
+                    Index([1., 2., 3.], dtype=int)]:
+            self.assertIsInstance(idx, Int64Index)
+
+        for idx in [Index(np.array([1., 2., 3.], dtype=float)),
+                    Index(np.array([1, 2, 3], dtype=int), dtype=float),
+                    Index(np.array([1., 2., 3.], dtype=float), dtype=float),
+                    Index([1, 2, 3], dtype=float),
+                    Index([1., 2., 3.], dtype=float)]:
             self.assertIsInstance(idx, Float64Index)
 
-        for idx in [Index(np.array(
-                [True, False, True], dtype=bool)), Index([True, False, True]),
-                Index(
-                np.array(
-                    [True, False, True], dtype=bool), dtype=bool),
-                Index(
-                [True, False, True], dtype=bool)]:
+        for idx in [Index(np.array([True, False, True], dtype=bool)),
+                    Index([True, False, True]),
+                    Index(np.array([True, False, True], dtype=bool), dtype=bool),
+                    Index([True, False, True], dtype=bool)]:
             self.assertIsInstance(idx, Index)
             self.assertEqual(idx.dtype, object)
 
-        for idx in [Index(
-                np.array([1, 2, 3], dtype=int), dtype='category'), Index(
-                    [1, 2, 3], dtype='category'), Index(
-                        np.array([np.datetime64('2011-01-01'), np.datetime64(
-                            '2011-01-02')]), dtype='category'), Index(
-                                [datetime(2011, 1, 1), datetime(2011, 1, 2)
-                                 ], dtype='category')]:
+        for idx in [Index(np.array([1, 2, 3], dtype=int), dtype='category'),
+                    Index([1, 2, 3], dtype='category'),
+                    Index(np.array([np.datetime64('2011-01-01'),
+                                    np.datetime64('2011-01-02')]), dtype='category'),
+                    Index([datetime(2011, 1, 1), datetime(2011, 1, 2)], dtype='category')]:
             self.assertIsInstance(idx, CategoricalIndex)
 
-        for idx in [Index(np.array([np.datetime64('2011-01-01'), np.datetime64(
-                    '2011-01-02')])),
+        for idx in [Index(np.array([np.datetime64('2011-01-01'),
+                                    np.datetime64('2011-01-02')])),
                     Index([datetime(2011, 1, 1), datetime(2011, 1, 2)])]:
             self.assertIsInstance(idx, DatetimeIndex)
 
-        for idx in [Index(
-                np.array([np.datetime64('2011-01-01'), np.datetime64(
-                    '2011-01-02')]), dtype=object), Index(
-                        [datetime(2011, 1, 1), datetime(2011, 1, 2)
-                         ], dtype=object)]:
+        for idx in [Index(np.array([np.datetime64('2011-01-01'),
+                                    np.datetime64('2011-01-02')]), dtype=object),
+                    Index([datetime(2011, 1, 1),
+                           datetime(2011, 1, 2)], dtype=object)]:
             self.assertNotIsInstance(idx, DatetimeIndex)
             self.assertIsInstance(idx, Index)
             self.assertEqual(idx.dtype, object)
@@ -235,10 +228,9 @@ class TestIndex(Base, tm.TestCase):
                 1, 'D')])), Index([timedelta(1), timedelta(1)])]:
             self.assertIsInstance(idx, TimedeltaIndex)
 
-        for idx in [Index(
-                np.array([np.timedelta64(1, 'D'), np.timedelta64(1, 'D')]),
-                dtype=object), Index(
-                    [timedelta(1), timedelta(1)], dtype=object)]:
+        for idx in [Index(np.array([np.timedelta64(1, 'D'),
+                                    np.timedelta64(1, 'D')]), dtype=object),
+                    Index([timedelta(1), timedelta(1)], dtype=object)]:
             self.assertNotIsInstance(idx, TimedeltaIndex)
             self.assertIsInstance(idx, Index)
             self.assertEqual(idx.dtype, object)
@@ -942,12 +934,17 @@ class TestIndex(Base, tm.TestCase):
         self.assertEqual(idx2.slice_locs(10.5, -1), (0, n))
 
         # int slicing with floats
+        # GH 4892, these are all TypeErrors
         idx = Index(np.array([0, 1, 2, 5, 6, 7, 9, 10], dtype=int))
-        self.assertEqual(idx.slice_locs(5.0, 10.0), (3, n))
-        self.assertEqual(idx.slice_locs(4.5, 10.5), (3, 8))
+        self.assertRaises(TypeError,
+                          lambda: idx.slice_locs(5.0, 10.0), (3, n))
+        self.assertRaises(TypeError,
+                          lambda: idx.slice_locs(4.5, 10.5), (3, 8))
         idx2 = idx[::-1]
-        self.assertEqual(idx2.slice_locs(8.5, 1.5), (2, 6))
-        self.assertEqual(idx2.slice_locs(10.5, -1), (0, n))
+        self.assertRaises(TypeError,
+                          lambda: idx2.slice_locs(8.5, 1.5), (2, 6))
+        self.assertRaises(TypeError,
+                          lambda: idx2.slice_locs(10.5, -1), (0, n))
 
     def test_slice_locs_dup(self):
         idx = Index(['a', 'a', 'b', 'c', 'd', 'd'])

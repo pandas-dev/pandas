@@ -115,7 +115,11 @@ class _NDFrameIndexer(object):
 
         try:
             return self._convert_to_indexer(key, is_setter=True)
-        except TypeError:
+        except TypeError as e:
+
+            # invalid indexer type vs 'other' indexing errors
+            if 'cannot do' in str(e):
+                raise
             raise IndexingError(key)
 
     def __setitem__(self, key, value):
@@ -311,6 +315,18 @@ class _NDFrameIndexer(object):
                 if self.ndim == 1:
                     index = self.obj.index
                     new_index = index.insert(len(index), indexer)
+
+                    # we have a coerced indexer, e.g. a float
+                    # that matches in an Int64Index, so
+                    # we will not create a duplicate index, rather
+                    # index to that element
+                    # e.g. 0.0 -> 0
+                    # GH12246
+                    if index.is_unique:
+                        new_indexer = index.get_indexer([new_index[-1]])
+                        if (new_indexer != -1).any():
+                            return self._setitem_with_indexer(new_indexer,
+                                                              value)
 
                     # this preserves dtype of the value
                     new_values = Series([value])._values
@@ -1091,8 +1107,17 @@ class _NDFrameIndexer(object):
         """
         labels = self.obj._get_axis(axis)
 
-        # if we are a scalar indexer and not type correct raise
-        obj = self._convert_scalar_indexer(obj, axis)
+        if isinstance(obj, slice):
+            return self._convert_slice_indexer(obj, axis)
+
+        # try to find out correct indexer, if not type correct raise
+        try:
+            obj = self._convert_scalar_indexer(obj, axis)
+        except TypeError:
+
+            # but we will allow setting
+            if is_setter:
+                pass
 
         # see if we are positional in nature
         is_int_index = labels.is_integer()
@@ -1131,10 +1156,7 @@ class _NDFrameIndexer(object):
 
             return obj
 
-        if isinstance(obj, slice):
-            return self._convert_slice_indexer(obj, axis)
-
-        elif is_nested_tuple(obj, labels):
+        if is_nested_tuple(obj, labels):
             return labels.get_locs(obj)
         elif is_list_like_indexer(obj):
             if is_bool_indexer(obj):
@@ -1278,7 +1300,7 @@ class _LocationIndexer(_NDFrameIndexer):
 
         labels = obj._get_axis(axis)
         indexer = labels.slice_indexer(slice_obj.start, slice_obj.stop,
-                                       slice_obj.step)
+                                       slice_obj.step, kind=self.name)
 
         if isinstance(indexer, slice):
             return self._slice(indexer, axis=axis, kind='iloc')
