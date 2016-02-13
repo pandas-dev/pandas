@@ -12,7 +12,6 @@ from pandas.core.panel import Panel
 from pandas.core.panel4d import Panel4D
 from pandas.core.series import remove_na
 import pandas.core.common as com
-from pandas import compat
 
 from pandas.util.testing import (assert_panel_equal,
                                  assert_panel4d_equal,
@@ -232,7 +231,7 @@ class SafeForSparse(object):
     def test_iteritems(self):
         """Test panel4d.iteritems()"""
 
-        self.assertEqual(len(list(compat.iteritems(self.panel4d))),
+        self.assertEqual(len(list(self.panel4d.iteritems())),
                          len(self.panel4d.labels))
 
     def test_combinePanel4d(self):
@@ -731,7 +730,7 @@ class TestPanel4d(tm.TestCase, CheckIndexing, SafeForSparse,
         # assert_panel_equal(result, expected)
 
     def test_constructor_dict_mixed(self):
-        data = dict((k, v.values) for k, v in compat.iteritems(self.panel4d))
+        data = dict((k, v.values) for k, v in self.panel4d.iteritems())
         result = Panel4D(data)
         exp_major = Index(np.arange(len(self.panel4d.major_axis)))
         self.assertTrue(result.major_axis.equals(exp_major))

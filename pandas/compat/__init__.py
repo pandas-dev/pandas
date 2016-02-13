@@ -152,23 +152,28 @@ else:
     lmap = builtins.map
     lfilter = builtins.filter
 
-def _iterfactory(what):
-    """Functions to process/iterate on dictionaries' values/keys/items."""
-    iterwhat = "iter%s" % what
-    if PY2:
-        def func(obj, **kw):
-                return getattr(obj, iterwhat)(**kw)
-    else:
-        def func(obj, **kw):
-            return iter(getattr(obj, what)(**kw))
-    return func
-
-iteritems, iterkeys, itervalues = (_iterfactory(what)
-                                   for what in ("items","keys", "values"))
 
 if PY2:
+    def iteritems(obj, **kw):
+        return obj.iteritems(**kw)
+
+    def iterkeys(obj, **kw):
+        return obj.iterkeys(**kw)
+
+    def itervalues(obj, **kw):
+        return obj.itervalues(**kw)
+
     next = lambda it : it.next()
 else:
+    def iteritems(obj, **kw):
+        return iter(obj.items(**kw))
+
+    def iterkeys(obj, **kw):
+        return iter(obj.keys(**kw))
+
+    def itervalues(obj, **kw):
+        return iter(obj.values(**kw))
+
     next = next
 
 def bind_method(cls, name, func):

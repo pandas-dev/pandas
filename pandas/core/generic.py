@@ -3083,7 +3083,7 @@ class NDFrame(PandasObject):
 
                 # fill in 2d chunks
                 result = dict([(col, s.fillna(method=method, value=value))
-                               for col, s in compat.iteritems(self)])
+                               for col, s in self.iteritems()])
                 return self._constructor.from_dict(result).__finalize__(self)
 
             # 2d or less
