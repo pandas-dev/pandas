@@ -53,6 +53,8 @@ Highlights include:
 - Adding support for a ``RangeIndex`` as a specialized form of the ``Int64Index`` for memory savings, see :ref:`here <whatsnew_0180.enhancements.rangeindex>`.
 - API breaking ``.resample`` changes to make it more ``.groupby`` like, see :ref:`here <whatsnew_0180.breaking.resample>`.
 - Removal of support for deprecated float indexers; these will now raise a ``TypeError``, see :ref:`here <whatsnew_0180.enhancements.float_indexers>`.
+- The ``.to_xarray()`` function has been added for compatibility with the `xarray package <http://xarray.pydata.org/en/stable/>`__, see :ref:`here <whatsnew_0180.enhancements.xarray>`.
+- Addition of the :ref:`.str.extractall() method <whatsnew_0180.enhancements.extract>`, and API changes to the :ref:`.str.extract() method <whatsnew_0180.enhancements.extract>` and :ref:`.str.cat() method <whatsnew_0180.enhancements.strcat>`.
 
 See the :ref:`v0.18.0 Whatsnew <whatsnew_0180>` overview for an extensive list
 of all enhancements and bugs that have been fixed in 0.17.1.
