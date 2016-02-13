@@ -4,7 +4,7 @@ from pandas.io.sas import XportReader, read_sas
 import numpy as np
 import os
 
-# CSV versions of test XPT files were obtained using the R foreign library
+# CSV versions of test xpt files were obtained using the R foreign library
 
 # Numbers in a SAS xport file are always float64, so need to convert
 # before making comparisons.
@@ -20,16 +20,16 @@ class TestXport(tm.TestCase):
 
     def setUp(self):
         self.dirpath = tm.get_data_path()
-        self.file01 = os.path.join(self.dirpath, "DEMO_G.XPT")
-        self.file02 = os.path.join(self.dirpath, "SSHSV1_A.XPT")
-        self.file03 = os.path.join(self.dirpath, "DRXFCD_G.XPT")
+        self.file01 = os.path.join(self.dirpath, "DEMO_G.xpt")
+        self.file02 = os.path.join(self.dirpath, "SSHSV1_A.xpt")
+        self.file03 = os.path.join(self.dirpath, "DRXFCD_G.xpt")
         self.file04 = os.path.join(self.dirpath, "paxraw_d_short.xpt")
 
     def test1_basic(self):
-        # Tests with DEMO_G.XPT (all numeric file)
+        # Tests with DEMO_G.xpt (all numeric file)
 
         # Compare to this
-        data_csv = pd.read_csv(self.file01.replace(".XPT", ".csv"))
+        data_csv = pd.read_csv(self.file01.replace(".xpt", ".csv"))
         numeric_as_float(data_csv)
 
         # Read full file
@@ -51,10 +51,10 @@ class TestXport(tm.TestCase):
         tm.assert_frame_equal(data, data_csv)
 
     def test1_index(self):
-        # Tests with DEMO_G.XPT using index (all numeric file)
+        # Tests with DEMO_G.xpt using index (all numeric file)
 
         # Compare to this
-        data_csv = pd.read_csv(self.file01.replace(".XPT", ".csv"))
+        data_csv = pd.read_csv(self.file01.replace(".xpt", ".csv"))
         data_csv = data_csv.set_index("SEQN")
         numeric_as_float(data_csv)
 
@@ -75,9 +75,9 @@ class TestXport(tm.TestCase):
                               0:10, :], check_index_type=False)
 
     def test1_incremental(self):
-        # Test with DEMO_G.XPT, reading full file incrementally
+        # Test with DEMO_G.xpt, reading full file incrementally
 
-        data_csv = pd.read_csv(self.file01.replace(".XPT", ".csv"))
+        data_csv = pd.read_csv(self.file01.replace(".xpt", ".csv"))
         data_csv = data_csv.set_index("SEQN")
         numeric_as_float(data_csv)
 
@@ -94,20 +94,20 @@ class TestXport(tm.TestCase):
         tm.assert_frame_equal(data, data_csv, check_index_type=False)
 
     def test2(self):
-        # Test with SSHSV1_A.XPT
+        # Test with SSHSV1_A.xpt
 
         # Compare to this
-        data_csv = pd.read_csv(self.file02.replace(".XPT", ".csv"))
+        data_csv = pd.read_csv(self.file02.replace(".xpt", ".csv"))
         numeric_as_float(data_csv)
 
         data = XportReader(self.file02).read()
         tm.assert_frame_equal(data, data_csv)
 
     def test_multiple_types(self):
-        # Test with DRXFCD_G.XPT (contains text and numeric variables)
+        # Test with DRXFCD_G.xpt (contains text and numeric variables)
 
         # Compare to this
-        data_csv = pd.read_csv(self.file03.replace(".XPT", ".csv"))
+        data_csv = pd.read_csv(self.file03.replace(".xpt", ".csv"))
 
         data = XportReader(self.file03).read()
         tm.assert_frame_equal(data, data_csv)
