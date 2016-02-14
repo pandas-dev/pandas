@@ -235,10 +235,10 @@ In summary, ``extract(expand=True)`` always returns a ``DataFrame``
 with a row for every subject string, and a column for every capture
 group.
 
+.. _whatsnew_0180.enhancements.extractall:
+
 Addition of str.extractall
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-.. _whatsnew_0180.enhancements.extractall:
 
 The :ref:`.str.extractall <text.extractall>` method was added
 (:issue:`11386`).  Unlike ``extract`` (which returns only the first
