@@ -10,10 +10,7 @@
    np.set_printoptions(precision=4, suppress=True)
    pd.options.display.max_rows = 15
    import matplotlib
-   try:
-      matplotlib.style.use('ggplot')
-   except AttributeError:
-      pd.options.display.mpl_style = 'default'
+   matplotlib.style.use('ggplot')
    import matplotlib.pyplot as plt
    plt.close('all')
 
@@ -33,11 +30,6 @@ The plots in this document are made using matplotlib's ``ggplot`` style (new in 
 
    import matplotlib
    matplotlib.style.use('ggplot')
-
-If your version of matplotlib is 1.3 or lower, you can set ``display.mpl_style`` to ``'default'``
-with ``pd.options.display.mpl_style = 'default'``
-to produce more appealing plots.
-When set, matplotlib's ``rcParams`` are changed (globally!) to nicer-looking settings.
 
 We provide the basics in pandas to easily create decent looking plots.
 See the :ref:`ecosystem <ecosystem.visualization>` section for visualization
@@ -189,7 +181,7 @@ For labeled, non-time series data, you may wish to produce a bar plot:
    @savefig bar_plot_ex.png
    df.ix[5].plot.bar(); plt.axhline(0, color='k')
 
-Calling a DataFrame's :meth:`~DataFrame.plot.bar` method produces a multiple
+Calling a DataFrame's :meth:`plot.bar() <DataFrame.plot.bar>` method produces a multiple
 bar plot:
 
 .. ipython:: python
