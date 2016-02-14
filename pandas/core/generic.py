@@ -5207,12 +5207,29 @@ Returns
 %(outname)s : %(name1)s\n"""
 
 
+def _validate_kwargs(fname, kwargs, *compat_args):
+    """
+    Checks whether parameters passed to the
+    **kwargs argument in a 'stat' function 'fname'
+    are valid parameters as specified in *compat_args
+
+    """
+    list(map(kwargs.__delitem__, filter(
+        kwargs.__contains__, compat_args)))
+    if kwargs:
+        bad_arg = list(kwargs)[0]  # first 'key' element
+        raise TypeError(("{fname}() got an unexpected "
+                         "keyword argument '{arg}'".
+                         format(fname=fname, arg=bad_arg)))
+
+
 def _make_stat_function(name, name1, name2, axis_descr, desc, f):
     @Substitution(outname=name, desc=desc, name1=name1, name2=name2,
                   axis_descr=axis_descr)
     @Appender(_num_doc)
     def stat_func(self, axis=None, skipna=None, level=None, numeric_only=None,
                   **kwargs):
+        _validate_kwargs(name, kwargs, 'out', 'dtype')
         if skipna is None:
             skipna = True
         if axis is None:
@@ -5233,6 +5250,7 @@ def _make_stat_function_ddof(name, name1, name2, axis_descr, desc, f):
     @Appender(_num_ddof_doc)
     def stat_func(self, axis=None, skipna=None, level=None, ddof=1,
                   numeric_only=None, **kwargs):
+        _validate_kwargs(name, kwargs, 'out', 'dtype')
         if skipna is None:
             skipna = True
         if axis is None:
@@ -5254,6 +5272,7 @@ def _make_cum_function(name, name1, name2, axis_descr, desc, accum_func,
     @Appender("Return cumulative {0} over requested axis.".format(name) +
               _cnum_doc)
     def func(self, axis=None, dtype=None, out=None, skipna=True, **kwargs):
+        _validate_kwargs(name, kwargs, 'out', 'dtype')
         if axis is None:
             axis = self._stat_axis_number
         else:
@@ -5288,6 +5307,7 @@ def _make_logical_function(name, name1, name2, axis_descr, desc, f):
     @Appender(_bool_doc)
     def logical_func(self, axis=None, bool_only=None, skipna=None, level=None,
                      **kwargs):
+        _validate_kwargs(name, kwargs, 'out', 'dtype')
         if skipna is None:
             skipna = True
         if axis is None:
