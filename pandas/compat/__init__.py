@@ -71,7 +71,30 @@ if PY3:
         return b.decode(encoding or 'utf-8')
 
     def signature(f):
-        return list(inspect.signature(f).parameters.keys())
+        from collections import namedtuple
+        sig = inspect.signature(f)
+        args = [
+            p.name for p in sig.parameters.values()
+            if p.kind == inspect.Parameter.POSITIONAL_OR_KEYWORD
+            ]
+        varargs = [
+            p.name for p in sig.parameters.values()
+            if p.kind == inspect.Parameter.VAR_POSITIONAL
+            ]
+        varargs = varargs[0] if varargs else None
+        keywords = [
+            p.name for p in sig.parameters.values()
+            if p.kind == inspect.Parameter.VAR_KEYWORD
+            ]
+        keywords = keywords[0] if keywords else None
+        defaults = [
+            p.default for p in sig.parameters.values()
+            if p.kind == inspect.Parameter.POSITIONAL_OR_KEYWORD
+            and p.default is not p.empty
+            ] or None
+        argspec = namedtuple('Signature',['args','defaults',
+                                'varargs','keywords'])
+        return argspec(args,defaults,varargs,keywords)
 
     # have to explicitly put builtins into the namespace
     range = range
@@ -110,7 +133,7 @@ else:
         return b
 
     def signature(f):
-        return inspect.getargspec(f).args
+        return inspect.getargspec(f)
 
     # import iterator versions of these functions
     range = xrange
