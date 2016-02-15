@@ -654,3 +654,19 @@ class Base(object):
                 expected[1] = True
                 self.assert_numpy_array_equal(idx._isnan, expected)
                 self.assertTrue(idx.hasnans)
+
+    def test_copy(self):
+        # GH12309
+        for name, index in compat.iteritems(self.indices):
+            first = index.__class__(index, copy=True, name='mario')
+            second = first.__class__(first, copy=False)
+            self.assertTrue(index.equals(first))
+            # Even though "copy=False", we want a new object:
+            self.assertTrue(id(first) != id(second))
+
+            if isinstance(index, MultiIndex) and len(index.levels) > 1:
+                # No unique "name" attribute (each level has its own)
+                continue
+
+            self.assertEqual(first.name, 'mario')
+            self.assertEqual(second.name, 'mario')

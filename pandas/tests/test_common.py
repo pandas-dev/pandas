@@ -725,9 +725,9 @@ def test_ensure_platform_int():
     pi = com._ensure_platform_int(x)
     assert (pi.dtype == np.int_)
 
-    # int32
+    # int32 - "dtype" argument is irrelevant
     x = Int64Index([1, 2, 3], dtype='int32')
-    assert (x.dtype == np.int32)
+    assert (x.dtype == np.int64)
 
     pi = com._ensure_platform_int(x)
     assert (pi.dtype == np.int_)

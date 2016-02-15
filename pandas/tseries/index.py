@@ -218,6 +218,9 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
                 verify_integrity=True, normalize=False,
                 closed=None, ambiguous='raise', dtype=None, **kwargs):
 
+        if name is None and hasattr(data, 'name'):
+            name = data.name
+
         dayfirst = kwargs.pop('dayfirst', None)
         yearfirst = kwargs.pop('yearfirst', None)
 

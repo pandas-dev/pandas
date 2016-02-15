@@ -1649,7 +1649,7 @@ class TestTimedeltaIndex(tm.TestCase):
         kinds = 'outer', 'inner', 'left', 'right'
         for kind in kinds:
             joined = index.join(index, how=kind)
-            self.assertIs(index, joined)
+            tm.assert_index_equal(index, joined)
 
     def test_factorize(self):
         idx1 = TimedeltaIndex(['1 day', '1 day', '2 day', '2 day', '3 day',
