@@ -5406,6 +5406,23 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
             s2['0'] = 0
             self.assertTrue(s2.index.is_object())
 
+    def test_invalid_scalar_float_indexers_error(self):
+
+        for index in [tm.makeStringIndex, tm.makeUnicodeIndex,
+                      tm.makeCategoricalIndex,
+                      tm.makeDateIndex, tm.makeTimedeltaIndex,
+                      tm.makePeriodIndex]:
+
+            i = index(5)
+
+            s = Series(np.arange(len(i)), index=i)
+
+            def f():
+                s.iloc[3.0]
+            self.assertRaisesRegexp(TypeError,
+                                    'cannot do positional indexing',
+                                    f)
+
     def test_invalid_scalar_float_indexers(self):
 
         # GH 4892

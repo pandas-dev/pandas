@@ -795,12 +795,23 @@ In non-float indexes, slicing using floats will raise a ``TypeError``
    In [1]: pd.Series(range(5))[3.5:4.5]
    TypeError: the slice start [3.5] is not a proper indexer for this index type (Int64Index)
 
-Using a scalar float indexer will be deprecated in a future version, but is allowed for now.
+.. warning::
 
-.. code-block:: python
+   Using a scalar float indexer has been removed in 0.18.0, so the following will raise a ``TypeError``
 
-   In [3]: pd.Series(range(5))[3.0]
-   Out[3]: 3
+   .. code-block:: python
+
+      In [3]: pd.Series(range(5))[3.0]
+      TypeError: cannot do label indexing on <class 'pandas.indexes.range.RangeIndex'> with these indexers [3.0] of <type 'float'>
+
+   Further the treatment of ``.ix`` with a float indexer on a non-float index, will be label based, and thus coerce the index.
+
+   .. ipython:: python
+
+      s2 = pd.Series([1, 2, 3], index=list('abc'))
+      s2
+      s2.ix[1.0] = 10
+      s2
 
 Here is a typical use-case for using this type of indexing. Imagine that you have a somewhat
 irregular timedelta-like indexing scheme, but the data is recorded as floats. This could for
