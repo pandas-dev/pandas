@@ -973,9 +973,9 @@ class TestTimeSeries(tm.TestCase):
         # GH 9513
         raise_methods = ['astimezone', 'combine', 'ctime', 'dst',
                          'fromordinal', 'fromtimestamp', 'isocalendar',
-                         'isoformat', 'strftime', 'strptime', 'time',
-                         'timestamp', 'timetuple', 'timetz', 'toordinal',
-                         'tzname', 'utcfromtimestamp', 'utcnow', 'utcoffset',
+                         'strftime', 'strptime', 'time', 'timestamp',
+                         'timetuple', 'timetz', 'toordinal', 'tzname',
+                         'utcfromtimestamp', 'utcnow', 'utcoffset',
                          'utctimetuple']
         nat_methods = ['date', 'now', 'replace', 'to_datetime', 'today']
         nan_methods = ['weekday', 'isoweekday']
@@ -991,6 +991,9 @@ class TestTimeSeries(tm.TestCase):
         for method in nat_methods:
             if hasattr(NaT, method):
                 self.assertIs(getattr(NaT, method)(), NaT)
+
+        # GH 12300
+        self.assertEqual(NaT.isoformat(), 'NaT')
 
     def test_to_datetime_types(self):
 

@@ -437,6 +437,8 @@ Backwards incompatible API changes
 - ``Series.head(0)`` and ``Series.tail(0)`` return empty series, rather than ``self``.  (:issue:`11937`)
 - ``to_msgpack`` and ``read_msgpack`` encoding now defaults to ``'utf-8'``. (:issue:`12170`)
 - the order of keyword arguments to text file parsing functions (``.read_csv()``, ``.read_table()``, ``.read_fwf()``) changed to group related arguments. (:issue:`11555`)
+- ``NaTType.isoformat`` now returns the string ``'NaT`` to allow the result to
+  be passed to the constructor of ``Timestamp``. (:issue:`12300`)
 
 NaT and Timedelta operations
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -505,6 +507,11 @@ Subtraction by ``Timedelta`` in a ``Series`` by a ``Timestamp`` works (:issue:`1
    ser = pd.Series(pd.timedelta_range('1 day', periods=3))
    ser
    pd.Timestamp('2012-01-01') - ser
+
+
+``NaT.isoformat()`` now returns ``'NaT'``. This change allows allows
+``pd.Timestamp`` to rehydrate any timestamp like object from its isoformat
+(:issue:`12300`).
 
 
 Signature change for .rank
