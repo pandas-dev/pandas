@@ -75,11 +75,10 @@ class TestPivotTable(tm.TestCase):
                         'product': {0: 'a', 1: 'b', 2: 'c', 3: 'd'},
                         'quantity': {0: 2000000, 1: 500000,
                                      2: 1000000, 3: 1000000}})
-        pv_col = df.pivot_table('quantity', 'month', [
-                                'customer', 'product'], dropna=False)
-        pv_ind = df.pivot_table(
-            'quantity', ['customer', 'product'], 'month', dropna=False)
-
+        names1, names2 = ['month'], ['customer', 'product']
+        pv_col = df.pivot_table('quantity', names1, names2, dropna=False)
+        pv_ind = df.pivot_table('quantity', names2, names1, dropna=False)
+    
         m = MultiIndex.from_tuples([(u('A'), u('a')),
                                     (u('A'), u('b')),
                                     (u('A'), u('c')),
@@ -92,7 +91,11 @@ class TestPivotTable(tm.TestCase):
                                     (u('C'), u('b')),
                                     (u('C'), u('c')),
                                     (u('C'), u('d'))])
-
+    
+        assert_equal(pv_col.index.names, names1)
+        assert_equal(pv_ind.columns.names, names1)
+        assert_equal(pv_col.columns.names, names2)
+        assert_equal(pv_ind.index.names, names2)
         assert_equal(pv_col.columns.values, m.values)
         assert_equal(pv_ind.index.values, m.values)
 
