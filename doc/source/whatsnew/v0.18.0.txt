@@ -704,8 +704,8 @@ performed with the ``Resampler`` objects with :meth:`~Resampler.backfill`,
 
 .. ipython:: python
 
-   s = Series(np.arange(5,dtype='int64'),
-              index=date_range('2010-01-01', periods=5, freq='Q'))
+   s = pd.Series(np.arange(5,dtype='int64'),
+                 index=date_range('2010-01-01', periods=5, freq='Q'))
    s
 
 Previously
@@ -838,7 +838,7 @@ Deprecations
 
   .. code-block:: python
 
-     In [1]: s = Series(range(3))
+     In [1]: s = pd.Series(range(3))
 
      In [2]: pd.rolling_mean(s,window=2,min_periods=1)
              FutureWarning: pd.rolling_mean is deprecated for Series and
@@ -884,11 +884,17 @@ Removal of deprecated float indexers
 In :issue:`4892` indexing with floating point numbers on a non-``Float64Index`` was deprecated (in version 0.14.0).
 In 0.18.0, this deprecation warning is removed and these will now raise a ``TypeError``. (:issue:`12165`)
 
+.. ipython:: python
+
+   s = pd.Series([1,2,3])
+   s
+   s2 = pd.Series([1, 2, 3], index=list('abc'))
+   s2
+
 Previous Behavior:
 
 .. code-block:: python
 
-   In [1]: s = Series([1,2,3])
    In [2]: s[1.0]
    FutureWarning: scalar indexers for index type Int64Index should be integers and not floating point
    Out[2]: 2
@@ -901,24 +907,46 @@ Previous Behavior:
    FutureWarning: scalar indexers for index type Int64Index should be integers and not floating point
    Out[4]: 2
 
+   # .ix would coerce 1.0 to the positional 1, and index
+   In [5]: s2.ix[1.0] = 10
+   FutureWarning: scalar indexers for index type Index should be integers and not floating point
+
+   In [6]: s2
+   Out[6]:
+   a     1
+   b    10
+   c     3
+   dtype: int64
+
 New Behavior:
 
 .. code-block:: python
 
-   In [4]: s[1.0]
+   In [2]: s[1.0]
    TypeError: cannot do label indexing on <class 'pandas.indexes.range.RangeIndex'> with these indexers [1.0] of <type 'float'>
 
-   In [4]: s.iloc[1.0]
+   In [3]: s.iloc[1.0]
    TypeError: cannot do label indexing on <class 'pandas.indexes.range.RangeIndex'> with these indexers [1.0] of <type 'float'>
 
    In [4]: s.loc[1.0]
    TypeError: cannot do label indexing on <class 'pandas.indexes.range.RangeIndex'> with these indexers [1.0] of <type 'float'>
 
+   # .ix will now cause this to be a label lookup and coerce to and Index
+   In [5]: s2.ix[1.0] = 10
+
+   In [6]: s2
+   Out[3]:
+   a       1
+   b       2
+   c       3
+   1.0    10
+   dtype: int64
+
 Float indexing on a ``Float64Index`` is unchanged.
 
 .. ipython:: python
 
-   s = Series([1,2,3],index=np.arange(3.))
+   s = pd.Series([1,2,3],index=np.arange(3.))
    s[1.0]
    s[1.0:2.5]
 
@@ -945,7 +973,7 @@ Performance Improvements
 - Improved huge ``DatetimeIndex``, ``PeriodIndex`` and ``TimedeltaIndex``'s ops performance including ``NaT`` (:issue:`10277`)
 - Improved performance of ``pandas.concat`` (:issue:`11958`)
 - Improved performance of ``StataReader`` (:issue:`11591`)
-- Improved performance in construction of ``Categoricals`` with Series of datetimes containing ``NaT`` (:issue:`12077`)
+- Improved performance in construction of ``Categoricals`` with ``Series`` of datetimes containing ``NaT`` (:issue:`12077`)
 
 
 - Improved performance of ISO 8601 date parsing for dates without separators (:issue:`11899`), leading zeros (:issue:`11871`) and with whitespace preceding the time zone (:issue:`9714`)
