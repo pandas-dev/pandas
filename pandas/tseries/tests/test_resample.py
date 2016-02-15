@@ -925,6 +925,19 @@ class TestResample(tm.TestCase):
         self.assertEqual(xs['low'], s[:5].min())
         self.assertEqual(xs['close'], s[4])
 
+    def test_resample_ohlc_result(self):
+
+        # GH 12332
+        index = pd.date_range('1-1-2000', '2-15-2000', freq='h')
+        index = index.union(pd.date_range('4-15-2000', '5-15-2000', freq='h'))
+        s = Series(range(len(index)), index=index)
+
+        a = s.loc[:'4-15-2000'].resample('30T').ohlc()
+        self.assertIsInstance(a, DataFrame)
+
+        b = s.loc[:'4-14-2000'].resample('30T').ohlc()
+        self.assertIsInstance(b, DataFrame)
+
     def test_resample_ohlc_dataframe(self):
         df = (
             pd.DataFrame({
