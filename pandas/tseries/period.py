@@ -182,6 +182,9 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
                 raise ValueError('Periods must be a number, got %s' %
                                  str(periods))
 
+        if name is None and hasattr(data, 'name'):
+            name = data.name
+
         if data is None:
             if ordinal is not None:
                 data = np.asarray(ordinal, dtype=np.int64)
@@ -190,7 +193,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
                                                  freq, kwargs)
         else:
             ordinal, freq = cls._from_arraylike(data, freq, tz)
-            data = np.array(ordinal, dtype=np.int64, copy=False)
+            data = np.array(ordinal, dtype=np.int64, copy=copy)
 
         return cls._simple_new(data, name=name, freq=freq)
 
