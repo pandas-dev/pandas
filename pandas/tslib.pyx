@@ -673,6 +673,10 @@ class NaTType(_NaT):
     def __str__(self):
         return 'NaT'
 
+    def isoformat(self, sep='T'):
+        # This allows Timestamp(ts.isoformat()) to always correctly roundtrip.
+        return 'NaT'
+
     def __hash__(self):
         return NPY_NAT
 
@@ -736,7 +740,7 @@ _nat_methods = ['date', 'now', 'replace', 'to_datetime', 'today']
 
 _nan_methods = ['weekday', 'isoweekday', 'total_seconds']
 
-_implemented_methods = ['to_datetime64']
+_implemented_methods = ['to_datetime64', 'isoformat']
 _implemented_methods.extend(_nat_methods)
 _implemented_methods.extend(_nan_methods)
 
