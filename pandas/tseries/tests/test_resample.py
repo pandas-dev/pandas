@@ -419,25 +419,32 @@ class TestResampleAPI(tm.TestCase):
             assert_frame_equal(result, expected, check_like=True)
 
         # series like aggs
-        expected = pd.concat([t['A'].sum(),
-                              t['A'].std()],
-                             axis=1)
-        expected.columns = ['sum', 'std']
-
         for t in [r, g]:
-            result = r['A'].agg({'A': ['sum', 'std']})
+            result = t['A'].agg({'A': ['sum', 'std']})
+            expected = pd.concat([t['A'].sum(),
+                                  t['A'].std()],
+                                 axis=1)
+            expected.columns = ['sum', 'std']
+
+            assert_frame_equal(result, expected, check_like=True)
+
+            expected = pd.concat([t['A'].agg(['sum', 'std']),
+                                  t['A'].agg(['mean', 'std'])],
+                                 axis=1)
+            expected.columns = pd.MultiIndex.from_tuples([('A', 'sum'),
+                                                          ('A', 'std'),
+                                                          ('B', 'mean'),
+                                                          ('B', 'std')])
+            result = t['A'].agg({'A': ['sum', 'std'], 'B': ['mean', 'std']})
             assert_frame_equal(result, expected, check_like=True)
 
         # errors
+        # invalid names in the agg specification
         for t in [r, g]:
 
-            # invalid names in the agg specification
             def f():
-                r['A'].agg({'A': ['sum', 'std'], 'B': ['mean', 'std']})
-            self.assertRaises(SpecificationError, f)
-
-            def f():
-                r[['A']].agg({'A': ['sum', 'std'], 'B': ['mean', 'std']})
+                r[['A']].agg({'A': ['sum', 'std'],
+                              'B': ['mean', 'std']})
             self.assertRaises(SpecificationError, f)
 
     def test_agg_nested_dicts(self):
@@ -917,6 +924,19 @@ class TestResample(tm.TestCase):
         self.assertEqual(xs['high'], s[:5].max())
         self.assertEqual(xs['low'], s[:5].min())
         self.assertEqual(xs['close'], s[4])
+
+    def test_resample_ohlc_result(self):
+
+        # GH 12332
+        index = pd.date_range('1-1-2000', '2-15-2000', freq='h')
+        index = index.union(pd.date_range('4-15-2000', '5-15-2000', freq='h'))
+        s = Series(range(len(index)), index=index)
+
+        a = s.loc[:'4-15-2000'].resample('30T').ohlc()
+        self.assertIsInstance(a, DataFrame)
+
+        b = s.loc[:'4-14-2000'].resample('30T').ohlc()
+        self.assertIsInstance(b, DataFrame)
 
     def test_resample_ohlc_dataframe(self):
         df = (

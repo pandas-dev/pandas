@@ -1558,6 +1558,13 @@ class TestGroupBy(tm.TestCase):
             'ra', 'std'), ('rb', 'mean'), ('rb', 'std')])
         assert_frame_equal(result, expected, check_like=True)
 
+        # same name as the original column
+        # GH9052
+        expected = g['D'].agg({'result1': np.sum, 'result2': np.mean})
+        expected = expected.rename(columns={'result1': 'D'})
+        result = g['D'].agg({'D': np.sum, 'result2': np.mean})
+        assert_frame_equal(result, expected, check_like=True)
+
     def test_multi_iter(self):
         s = Series(np.arange(6))
         k1 = np.array(['a', 'a', 'a', 'b', 'b', 'b'])
