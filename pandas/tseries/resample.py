@@ -500,7 +500,7 @@ class DatetimeIndexResampler(Resampler):
         # do we have a regular frequency
         if ax.freq is not None or ax.inferred_freq is not None:
 
-            if len(self.grouper.binlabels) > len(ax):
+            if len(self.grouper.binlabels) > len(ax) and how is None:
 
                 # let's do an asfreq
                 return self.asfreq()

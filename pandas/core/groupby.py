@@ -2526,7 +2526,8 @@ class SeriesGroupBy(GroupBy):
             return getattr(self, func_or_funcs)(*args, **kwargs)
 
         if hasattr(func_or_funcs, '__iter__'):
-            ret = self._aggregate_multiple_funcs(func_or_funcs, _level)
+            ret = self._aggregate_multiple_funcs(func_or_funcs,
+                                                 (_level or 0) + 1)
         else:
             cyfunc = self._is_cython_func(func_or_funcs)
             if cyfunc and not args and not kwargs:
@@ -2546,6 +2547,18 @@ class SeriesGroupBy(GroupBy):
         if not self.as_index:  # pragma: no cover
             print('Warning, ignoring as_index=True')
 
+        # _level handled at higher
+        if not _level and isinstance(ret, dict):
+            from pandas import concat
+
+            # our result is a Series-like
+            if len(ret) == 1:
+                ret = concat([r for r in ret.values()],
+                             axis=1)
+
+            # our result is a DataFrame like
+            else:
+                ret = concat(ret, axis=1)
         return ret
 
     agg = aggregate
@@ -2570,14 +2583,6 @@ class SeriesGroupBy(GroupBy):
                     # protect against callables without names
                     columns.append(com._get_callable_name(f))
             arg = lzip(columns, arg)
-
-        # for a ndim=1, disallow a nested dict for an aggregator as
-        # this is a mis-specification of the aggregations, via a
-        # specificiation error
-        # e.g. g['A'].agg({'A': ..., 'B': ...})
-        if self.name in columns and len(columns) > 1:
-            raise SpecificationError('invalid aggregation names specified '
-                                     'for selected objects')
 
         results = {}
         for name, func in arg:
