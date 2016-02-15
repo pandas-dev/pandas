@@ -1532,6 +1532,34 @@ class TestGroupBy(tm.TestCase):
                                                     ['D', 'C']])
         assert_frame_equal(result, expected, check_like=True)
 
+    def test_agg_compat(self):
+
+        # GH 12334
+
+        df = DataFrame({'A': ['foo', 'bar', 'foo', 'bar',
+                              'foo', 'bar', 'foo', 'foo'],
+                        'B': ['one', 'one', 'two', 'two',
+                              'two', 'two', 'one', 'two'],
+                        'C': np.random.randn(8) + 1.0,
+                        'D': np.arange(8)})
+
+        g = df.groupby(['A', 'B'])
+
+        expected = pd.concat([g['D'].sum(),
+                              g['D'].std()],
+                             axis=1)
+        expected.columns = MultiIndex.from_tuples([('C', 'sum'),
+                                                   ('C', 'std')])
+        result = g['D'].agg({'C': ['sum', 'std']})
+        assert_frame_equal(result, expected, check_like=True)
+
+        expected = pd.concat([g['D'].sum(),
+                              g['D'].std()],
+                             axis=1)
+        expected.columns = ['C', 'D']
+        result = g['D'].agg({'C': 'sum', 'D': 'std'})
+        assert_frame_equal(result, expected, check_like=True)
+
     def test_agg_nested_dicts(self):
 
         # API change for disallowing these types of nested dicts

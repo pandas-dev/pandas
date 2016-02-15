@@ -424,8 +424,8 @@ class TestResampleAPI(tm.TestCase):
             expected = pd.concat([t['A'].sum(),
                                   t['A'].std()],
                                  axis=1)
-            expected.columns = ['sum', 'std']
-
+            expected.columns = pd.MultiIndex.from_tuples([('A', 'sum'),
+                                                          ('A', 'std')])
             assert_frame_equal(result, expected, check_like=True)
 
             expected = pd.concat([t['A'].agg(['sum', 'std']),
