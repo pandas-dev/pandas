@@ -419,25 +419,32 @@ class TestResampleAPI(tm.TestCase):
             assert_frame_equal(result, expected, check_like=True)
 
         # series like aggs
-        expected = pd.concat([t['A'].sum(),
-                              t['A'].std()],
-                             axis=1)
-        expected.columns = ['sum', 'std']
-
         for t in [r, g]:
-            result = r['A'].agg({'A': ['sum', 'std']})
+            result = t['A'].agg({'A': ['sum', 'std']})
+            expected = pd.concat([t['A'].sum(),
+                                  t['A'].std()],
+                                 axis=1)
+            expected.columns = ['sum', 'std']
+
+            assert_frame_equal(result, expected, check_like=True)
+
+            expected = pd.concat([t['A'].agg(['sum', 'std']),
+                                  t['A'].agg(['mean', 'std'])],
+                                 axis=1)
+            expected.columns = pd.MultiIndex.from_tuples([('A', 'sum'),
+                                                          ('A', 'std'),
+                                                          ('B', 'mean'),
+                                                          ('B', 'std')])
+            result = t['A'].agg({'A': ['sum', 'std'], 'B': ['mean', 'std']})
             assert_frame_equal(result, expected, check_like=True)
 
         # errors
+        # invalid names in the agg specification
         for t in [r, g]:
 
-            # invalid names in the agg specification
             def f():
-                r['A'].agg({'A': ['sum', 'std'], 'B': ['mean', 'std']})
-            self.assertRaises(SpecificationError, f)
-
-            def f():
-                r[['A']].agg({'A': ['sum', 'std'], 'B': ['mean', 'std']})
+                r[['A']].agg({'A': ['sum', 'std'],
+                              'B': ['mean', 'std']})
             self.assertRaises(SpecificationError, f)
 
     def test_agg_nested_dicts(self):
