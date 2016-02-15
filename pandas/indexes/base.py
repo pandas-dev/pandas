@@ -974,7 +974,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         if kind == 'iloc':
             if is_integer(key):
                 return key
-            return self._invalid_indexer('label', key)
+            return self._invalid_indexer('positional', key)
         else:
 
             if len(self):
