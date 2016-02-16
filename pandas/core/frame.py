@@ -3236,7 +3236,7 @@ class DataFrame(NDFrame):
 
             # make sure that the axis is lexsorted to start
             # if not we need to reconstruct to get the correct indexer
-            if not labels.is_lexsorted():
+            if not labels.is_lexsorted() or not all([labels.get_level_values(i).is_monotonic for i in range(labels.nlevels)]):
                 labels = MultiIndex.from_tuples(labels.values)
 
             indexer = _lexsort_indexer(labels.labels, orders=ascending,
