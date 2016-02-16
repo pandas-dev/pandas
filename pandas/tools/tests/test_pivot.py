@@ -75,10 +75,11 @@ class TestPivotTable(tm.TestCase):
                         'product': {0: 'a', 1: 'b', 2: 'c', 3: 'd'},
                         'quantity': {0: 2000000, 1: 500000,
                                      2: 1000000, 3: 1000000}})
-        names1, names2 = ['month'], ['customer', 'product']
-        pv_col = df.pivot_table('quantity', names1, names2, dropna=False)
-        pv_ind = df.pivot_table('quantity', names2, names1, dropna=False)
-    
+        pv_col = df.pivot_table('quantity', 'month', [
+                                'customer', 'product'], dropna=False)
+        pv_ind = df.pivot_table(
+            'quantity', ['customer', 'product'], 'month', dropna=False)
+
         m = MultiIndex.from_tuples([(u('A'), u('a')),
                                     (u('A'), u('b')),
                                     (u('A'), u('c')),
@@ -91,13 +92,20 @@ class TestPivotTable(tm.TestCase):
                                     (u('C'), u('b')),
                                     (u('C'), u('c')),
                                     (u('C'), u('d'))])
-    
-        assert_equal(pv_col.index.names, names1)
-        assert_equal(pv_ind.columns.names, names1)
-        assert_equal(pv_col.columns.names, names2)
-        assert_equal(pv_ind.index.names, names2)
+
         assert_equal(pv_col.columns.values, m.values)
         assert_equal(pv_ind.index.values, m.values)
+
+        idx = pd.MultiIndex.from_tuples([(1000000, 201308), (1000000, 201310)],
+                                        names=('quantity', 'month'))
+        tup = (("B", "c"), ("B", "d"), ("C", "c"), ("C", "d"))
+        clm = pd.MultiIndex.from_tuples(tup, names=('customer', 'product'))
+        pv = pd.DataFrame([[50000, np.nan, np.nan, np.nan],
+                           [np.nan, np.nan, np.nan, 30000]],
+                           index=idx, columns=clm)
+        pv_gen = df[2:].pivot_table('amount', ['quantity', 'month'],
+                                    ['customer', 'product'], dropna=False)
+        tm.assert_frame_equal(pv, pv_gen)
 
     def test_pass_array(self):
         result = self.data.pivot_table(
