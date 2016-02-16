@@ -525,12 +525,18 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
 
     THIS IS AN EXPERIMENTAL LIBRARY
 
-    The main method a user calls to execute a Query in Google BigQuery and read
-    results into a pandas DataFrame using the v2 Google API client for Python.
-    Documentation for the API is available at
-    https://developers.google.com/api-client-library/python/.  Authentication
-    to the Google BigQuery service is via OAuth 2.0 using the product name
-    'pandas GBQ'.
+    The main method a user calls to execute a Query in Google BigQuery
+    and read results into a pandas DataFrame.
+
+    Google BigQuery API Client Library v2 for Python is used.
+    Documentation is available at
+    https://developers.google.com/api-client-library/python/apis/bigquery/v2
+
+    Authentication to the Google BigQuery service is via OAuth 2.0.
+    By default user account credentials are used. You will be asked to
+    grant permissions for product name 'pandas GBQ'. It is also posible
+    to authenticate via service account credentials by using
+    private_key parameter.
 
     Parameters
     ----------
@@ -614,6 +620,19 @@ def to_gbq(dataframe, destination_table, project_id, chunksize=10000,
     """Write a DataFrame to a Google BigQuery table.
 
     THIS IS AN EXPERIMENTAL LIBRARY
+
+    The main method a user calls to export pandas DataFrame contents to
+    Google BigQuery table.
+
+    Google BigQuery API Client Library v2 for Python is used.
+    Documentation is available at
+    https://developers.google.com/api-client-library/python/apis/bigquery/v2
+
+    Authentication to the Google BigQuery service is via OAuth 2.0.
+    By default user account credentials are used. You will be asked to
+    grant permissions for product name 'pandas GBQ'. It is also posible
+    to authenticate via service account credentials by using
+    private_key parameter.
 
     Parameters
     ----------
