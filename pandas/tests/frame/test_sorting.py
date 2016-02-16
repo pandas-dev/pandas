@@ -471,3 +471,18 @@ class TestDataFrameSorting(tm.TestCase, TestData):
 
         cp = s.copy()
         cp.sort_values()  # it works!
+
+    def test_sort_added_index(self):
+        # GH 12261
+        df = DataFrame(0, columns=[], index=MultiIndex.from_product([[], []]))
+
+        df.loc['b', '2'] = 1
+        df.loc['a', '3'] = 1
+
+        expected = DataFrame([[1.0, np.nan], [np.nan, 1.0]],
+                             index=MultiIndex.from_product([['b', 'a'], ['']]),
+                             columns=['2', '3']).sort_index()
+
+        actual = df.sort_index()
+
+        assert_frame_equal(expected, actual)

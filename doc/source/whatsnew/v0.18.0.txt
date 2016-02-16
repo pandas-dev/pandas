@@ -1081,3 +1081,4 @@ Bug Fixes
 - Bug in ``crosstab`` where arguments with non-overlapping indexes would return a ``KeyError`` (:issue:`10291`)
 
 - Bug in ``DataFrame.apply`` in which reduction was not being prevented for cases in which ``dtype`` was not a numpy dtype (:issue:`12244`)
+- Bug in ``MultiIndex.sort_index`` where if the levels were out of order, but the labels were monotonic, then the index would return unsorted. (:issue:`12261`)
