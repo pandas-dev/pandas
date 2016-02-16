@@ -130,7 +130,7 @@ def pivot_table(data, values=None, index=None, columns=None, aggfunc='mean',
                                        names=table.index.names)
             table = table.reindex_axis(m, axis=0)
         except AttributeError:
-            pass # it's a single level
+            pass  # it's a single level
 
         try:
             m = MultiIndex.from_arrays(cartesian_product(table.columns.levels),
