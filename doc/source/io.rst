@@ -4153,7 +4153,7 @@ to existing tables.
 .. warning::
 
    To use this module, you will need a valid BigQuery account. Refer to the
-   `BigQuery Documentation <https://developers.google.com/bigquery/>`__ for details on the service itself.
+   `BigQuery Documentation <https://cloud.google.com/bigquery/what-is-bigquery>`__ for details on the service itself.
 
 The key functions are:
 
@@ -4173,17 +4173,18 @@ The key functions are:
 
 Authentication
 ''''''''''''''
-
-Authentication is possible with either user account credentials or service account credentials.
+Authentication to the Google ``BigQuery`` service is via ``OAuth 2.0``.
+Is possible to authenticate with either user account credentials or service account credentials.
 
 Authenticating with user account credentials is as simple as following the prompts in a browser window
 which will be automatically opened for you. You will be authenticated to the specified
-``BigQuery`` account via Google's ``Oauth2`` mechanism. Additional information on the
-authentication mechanism can be found `here <https://developers.google.com/identity/protocols/OAuth2#clientside/>`__.
+``BigQuery`` account using the product name ``pandas GBQ``. It is only possible on local host.
+The remote authentication using user account credentials is not currently supported in Pandas.
+Additional information on the authentication mechanism can be found 
+`here <https://developers.google.com/identity/protocols/OAuth2#clientside/>`__.
 
 Authentication with service account credentials is possible via the `'private_key'` parameter. This method
 is particularly useful when working on remote servers (eg. jupyter iPython notebook on remote host).
-The remote authentication using user account credentials is not currently supported in Pandas.
 Additional information on service accounts can be found
 `here <https://developers.google.com/identity/protocols/OAuth2#serviceaccount>`__.
 
@@ -4314,13 +4315,13 @@ For example:
 .. note::
 
    The BigQuery SQL query language has some oddities, see the
-   `BigQuery Query Reference Documentation <https://developers.google.com/bigquery/query-reference>`__.
+   `BigQuery Query Reference Documentation <https://cloud.google.com/bigquery/query-reference>`__.
 
 .. note::
 
    While BigQuery uses SQL-like syntax, it has some important differences from traditional
    databases both in functionality, API limitations (size and quantity of queries or uploads),
-   and how Google charges for use of the service. You should refer to `Google BigQuery documentation <https://developers.google.com/bigquery/>`__
+   and how Google charges for use of the service. You should refer to `Google BigQuery documentation <https://cloud.google.com/bigquery/what-is-bigquery>`__
    often as the service seems to be changing and evolving. BiqQuery is best for analyzing large
    sets of data quickly, but it is not a direct replacement for a transactional database.
 
