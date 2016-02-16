@@ -1681,7 +1681,7 @@ def _possibly_cast_to_datetime(value, dtype, errors='raise'):
                                 errors=errors).tz_localize(dtype.tz)
                         elif is_timedelta64:
                             value = to_timedelta(value, errors=errors)._values
-                    except (AttributeError, ValueError):
+                    except (AttributeError, ValueError, TypeError):
                         pass
 
         # coerce datetimelike to object
