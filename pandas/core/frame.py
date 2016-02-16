@@ -28,7 +28,7 @@ from pandas.core.common import (
     is_sequence, _infer_dtype_from_scalar, _values_from_object, is_list_like,
     _maybe_box_datetimelike, is_categorical_dtype, is_object_dtype,
     is_internal_type, is_datetimetz, _possibly_infer_to_datetimelike,
-    _dict_compat)
+    _dict_compat, is_dict_like)
 from pandas.core.generic import NDFrame, _shared_docs
 from pandas.core.index import Index, MultiIndex, _ensure_index
 from pandas.core.indexing import (maybe_droplevels, convert_to_index_sliceable,
@@ -219,8 +219,6 @@ class DataFrame(NDFrame):
         if isinstance(data, BlockManager):
             mgr = self._init_mgr(data, axes=dict(index=index, columns=columns),
                                  dtype=dtype, copy=copy)
-        elif isinstance(data, dict):
-            mgr = self._init_dict(data, index, columns, dtype=dtype)
         elif isinstance(data, ma.MaskedArray):
             import numpy.ma.mrecords as mrecords
             # masked recarray
@@ -252,6 +250,8 @@ class DataFrame(NDFrame):
             else:
                 mgr = self._init_ndarray(data, index, columns, dtype=dtype,
                                          copy=copy)
+        elif is_dict_like(data):
+            mgr = self._init_dict(data, index, columns, dtype=dtype)
         elif isinstance(data, (list, types.GeneratorType)):
             if isinstance(data, types.GeneratorType):
                 data = list(data)

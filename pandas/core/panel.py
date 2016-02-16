@@ -16,7 +16,8 @@ from pandas import lib
 from pandas.compat import (map, zip, range, u, OrderedDict, OrderedDefaultdict)
 from pandas.core.categorical import Categorical
 from pandas.core.common import (PandasError, _try_sort, _default_index,
-                                _infer_dtype_from_scalar, is_list_like)
+                                _infer_dtype_from_scalar, is_list_like,
+                                is_dict_like)
 from pandas.core.frame import DataFrame
 from pandas.core.generic import NDFrame, _shared_docs
 from pandas.core.index import (Index, MultiIndex, _ensure_index,
@@ -157,7 +158,7 @@ class Panel(NDFrame):
                 axes = [x if x is not None else y
                         for x, y in zip(passed_axes, data.axes)]
             mgr = data
-        elif isinstance(data, dict):
+        elif is_dict_like(data):
             mgr = self._init_dict(data, passed_axes, dtype=dtype)
             copy = False
             dtype = None
