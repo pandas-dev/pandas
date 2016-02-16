@@ -1098,6 +1098,33 @@ def _infer_dtype_from_scalar(val):
     return dtype, val
 
 
+def _is_na_compat(arr, fill_value=np.nan):
+    """
+    Parameters
+    ----------
+    arr: a numpy array
+    fill_value: fill value, default to np.nan
+
+    Returns
+    -------
+    True if we can fill using this fill_value
+    """
+    dtype = arr.dtype
+    if isnull(fill_value):
+        return not (is_bool_dtype(dtype) or
+                    is_integer_dtype(dtype))
+    return True
+
+
+def _maybe_fill(arr, fill_value=np.nan):
+    """
+    if we have a compatiable fill_value and arr dtype, then fill
+    """
+    if _is_na_compat(arr, fill_value):
+        arr.fill(fill_value)
+    return arr
+
+
 def _maybe_promote(dtype, fill_value=np.nan):
 
     # if we passed an array here, determine the fill value by dtype
@@ -1359,7 +1386,10 @@ def _possibly_downcast_to_dtype(result, dtype):
             # do a test on the first element, if it fails then we are done
             r = result.ravel()
             arr = np.array([r[0]])
-            if not np.allclose(arr, trans(arr).astype(dtype)):
+
+            # if we have any nulls, then we are done
+            if isnull(arr).any() or not np.allclose(arr,
+                                                    trans(arr).astype(dtype)):
                 return result
 
             # a comparable, e.g. a Decimal may slip in here

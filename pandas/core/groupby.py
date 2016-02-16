@@ -31,7 +31,8 @@ from pandas.core.common import(_possibly_downcast_to_dtype, isnull,
                                is_timedelta64_dtype, is_datetime64_dtype,
                                is_categorical_dtype, _values_from_object,
                                is_datetime_or_timedelta_dtype, is_bool,
-                               is_bool_dtype, AbstractMethodError)
+                               is_bool_dtype, AbstractMethodError,
+                               _maybe_fill)
 from pandas.core.config import option_context
 import pandas.lib as lib
 from pandas.lib import Timestamp
@@ -1725,14 +1726,15 @@ class BaseGrouper(object):
         labels, _, _ = self.group_info
 
         if kind == 'aggregate':
-            result = np.empty(out_shape, dtype=out_dtype)
-            result.fill(np.nan)
+            result = _maybe_fill(np.empty(out_shape, dtype=out_dtype),
+                                 fill_value=np.nan)
             counts = np.zeros(self.ngroups, dtype=np.int64)
             result = self._aggregate(
                 result, counts, values, labels, func, is_numeric)
         elif kind == 'transform':
-            result = np.empty_like(values, dtype=out_dtype)
-            result.fill(np.nan)
+            result = _maybe_fill(np.empty_like(values, dtype=out_dtype),
+                                 fill_value=np.nan)
+
             # temporary storange for running-total type tranforms
             accum = np.empty(out_shape, dtype=out_dtype)
             result = self._transform(
