@@ -615,7 +615,7 @@ other anchored offsets like ``MonthBegin`` and ``YearBegin``.
 Resample API
 ^^^^^^^^^^^^
 
-Like the change in the window functions API :ref:`above <whatsnew_0180.enhancements.moments>`, ``.resample(...)`` is changing to have a more groupby-like API. (:issue:`11732`, :issue:`12702`, :issue:`12202`, :issue:`12332`).
+Like the change in the window functions API :ref:`above <whatsnew_0180.enhancements.moments>`, ``.resample(...)`` is changing to have a more groupby-like API. (:issue:`11732`, :issue:`12702`, :issue:`12202`, :issue:`12332`, :issue:`12348`).
 
 .. ipython:: python
 
