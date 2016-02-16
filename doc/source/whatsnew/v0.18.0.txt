@@ -1035,7 +1035,7 @@ Bug Fixes
 - Bug in ``pd.concat`` while concatenating tz-aware NaT series. (:issue:`11693`, :issue:`11755`, :issue:`12217`)
 - Bug in ``pd.read_stata`` with version <= 108 files (:issue:`12232`)
 - Bug in ``Series.resample`` using a frequency of ``Nano`` when the index is a ``DatetimeIndex`` and contains non-zero nanosecond parts (:issue:`12037`)
-
+- Bug in resampling with ``.nunique`` and a sparse index (:issue:`12352`)
 
 - Bug in ``NaT`` subtraction from ``Timestamp`` or ``DatetimeIndex`` with timezones (:issue:`11718`)
 - Bug in subtraction of ``Series`` of a single tz-aware ``Timestamp`` (:issue:`12290`)

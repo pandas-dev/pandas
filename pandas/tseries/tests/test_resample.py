@@ -1526,6 +1526,34 @@ class TestResample(tm.TestCase):
             result = df.groupby(pd.Grouper(freq='M', key='A')).count()
             assert_frame_equal(result, expected)
 
+    def test_resample_nunique(self):
+
+        # GH 12352
+        df = DataFrame({
+            'ID': {pd.Timestamp('2015-06-05 00:00:00'): '0010100903',
+                   pd.Timestamp('2015-06-08 00:00:00'): '0010150847'},
+            'DATE': {pd.Timestamp('2015-06-05 00:00:00'): '2015-06-05',
+                     pd.Timestamp('2015-06-08 00:00:00'): '2015-06-08'}})
+        r = df.resample('D')
+        g = df.groupby(pd.Grouper(freq='D'))
+        expected = df.groupby(pd.TimeGrouper('D')).ID.apply(lambda x:
+                                                            x.nunique())
+        self.assertEqual(expected.name, 'ID')
+
+        for t in [r, g]:
+            result = r.ID.nunique()
+            assert_series_equal(result, expected)
+
+        # TODO
+        # this should have name
+        # https://github.com/pydata/pandas/issues/12363
+        expected.name = None
+        result = df.ID.resample('D').nunique()
+        assert_series_equal(result, expected)
+
+        result = df.ID.groupby(pd.Grouper(freq='D')).nunique()
+        assert_series_equal(result, expected)
+
     def test_resample_group_info(self):  # GH10914
         for n, k in product((10000, 100000), (10, 100, 1000)):
             dr = date_range(start='2015-08-27', periods=n // 10, freq='T')
