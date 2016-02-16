@@ -96,6 +96,17 @@ class TestPivotTable(tm.TestCase):
         assert_equal(pv_col.columns.values, m.values)
         assert_equal(pv_ind.index.values, m.values)
 
+        idx = pd.MultiIndex.from_tuples([(1000000, 201308), (1000000, 201310)],
+                                        names=('quantity', 'month'))
+        tup = (("B", "c"), ("B", "d"), ("C", "c"), ("C", "d"))
+        clm = pd.MultiIndex.from_tuples(tup, names=('customer', 'product'))
+        pv = pd.DataFrame([[50000, np.nan, np.nan, np.nan],
+                           [np.nan, np.nan, np.nan, 30000]],
+                           index=idx, columns=clm)
+        pv_gen = df[2:].pivot_table('amount', ['quantity', 'month'],
+                                    ['customer', 'product'], dropna=False)
+        tm.assert_frame_equal(pv, pv_gen)
+
     def test_pass_array(self):
         result = self.data.pivot_table(
             'D', index=self.data.A, columns=self.data.C)
