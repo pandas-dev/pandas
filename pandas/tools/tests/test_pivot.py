@@ -96,6 +96,7 @@ class TestPivotTable(tm.TestCase):
         assert_equal(pv_col.columns.values, m.values)
         assert_equal(pv_ind.index.values, m.values)
 
+        #issue 12133, dropna=False arg drops index level names
         idx = pd.MultiIndex.from_tuples([(1000000, 201308), (1000000, 201310)],
                                         names=('quantity', 'month'))
         tup = (("B", "c"), ("B", "d"), ("C", "c"), ("C", "d"))
