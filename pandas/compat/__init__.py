@@ -36,6 +36,7 @@ import types
 from unicodedata import east_asian_width
 import struct
 import inspect
+from collections import namedtuple
 
 PY2 = sys.version_info[0] == 2
 PY3 = (sys.version_info[0] >= 3)
@@ -70,8 +71,9 @@ if PY3:
     def bytes_to_str(b, encoding=None):
         return b.decode(encoding or 'utf-8')
 
+    # The signature version below is directly copied from Django,
+    # https://github.com/django/django/pull/4846
     def signature(f):
-        from collections import namedtuple
         sig = inspect.signature(f)
         args = [
             p.name for p in sig.parameters.values()
