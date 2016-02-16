@@ -38,9 +38,11 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 """
 
-import os
 from datetime import datetime, date, timedelta
 from dateutil.parser import parse
+import os
+import sys
+import warnings
 
 import numpy as np
 from pandas import compat
@@ -52,7 +54,11 @@ from pandas.tslib import NaTType
 from pandas.sparse.api import SparseSeries, SparseDataFrame, SparsePanel
 from pandas.sparse.array import BlockIndex, IntIndex
 from pandas.core.generic import NDFrame
-from pandas.core.common import needs_i8_conversion, pandas_dtype
+from pandas.core.common import (
+    PerformanceWarning,
+    needs_i8_conversion,
+    pandas_dtype,
+)
 from pandas.io.common import get_filepath_or_buffer
 from pandas.core.internals import BlockManager, make_block
 import pandas.core.internals as internals
@@ -255,17 +261,36 @@ def unconvert(values, dtype, compress=None):
     if not as_is_ext:
         values = values.encode('latin1')
 
-    if compress == u'zlib':
-        import zlib
-        values = zlib.decompress(values)
-        return np.frombuffer(values, dtype=dtype)
+    if compress:
+        if compress == u'zlib':
+            from zlib import decompress
+        elif compress == u'blosc':
+            from blosc import decompress
+        else:
+            raise ValueError("compress must be one of 'zlib' or 'blosc'")
 
-    elif compress == u'blosc':
-        import blosc
-        values = blosc.decompress(values)
-        return np.frombuffer(values, dtype=dtype)
+        values = decompress(values)
+        if sys.getrefcount(values) == 2:
+            arr = np.frombuffer(values, dtype=dtype)
+            # We are setting the memory owned by a bytes object as mutable.
+            # We can do this because we know that no one has a reference to
+            # this object since it was just created in the call to decompress
+            # and we have checked that we have the only reference.
+            # the refcnt reports as 2 instead of 1 because we incref the
+            # values object when we push it on the stack to call getrefcnt.
+            # The 2 references are then the local variable `values` and
+            # TOS.
+            arr.flags.writeable = True
+            return arr
+        else:
+            warnings.warn(
+                'copying data after decompressing; this may mean that'
+                ' decompress is caching its result',
+                PerformanceWarning,
+            )
+            # fall through to copying `np.fromstring`
 
-    # from a string
+    # Copy the string into a numpy array.
     return np.fromstring(values, dtype=dtype)
 
 

@@ -1,5 +1,6 @@
 import nose
 
+from contextlib import contextmanager
 import os
 import datetime
 import numpy as np
@@ -10,6 +11,7 @@ from pandas import compat
 from pandas.compat import u
 from pandas import (Series, DataFrame, Panel, MultiIndex, bdate_range,
                     date_range, period_range, Index)
+from pandas.core.common import PerformanceWarning
 from pandas.io.packers import to_msgpack, read_msgpack
 import pandas.util.testing as tm
 from pandas.util.testing import (ensure_clean, assert_index_equal,
@@ -55,6 +57,20 @@ def check_arbitrary(a, b):
         assert_index_equal(a, b)
     else:
         assert(a == b)
+
+
+@contextmanager
+def patch(ob, attr, value):
+    noattr = object()  # mark that the attribute never existed
+    old = getattr(ob, attr, noattr)
+    setattr(ob, attr, value)
+    try:
+        yield
+    finally:
+        if old is noattr:
+            delattr(ob, attr)
+        else:
+            setattr(ob, attr, old)
 
 
 class TestPackers(tm.TestCase):
@@ -539,17 +555,89 @@ class TestCompression(TestPackers):
         for k in self.frame.keys():
             assert_frame_equal(self.frame[k], i_rec[k])
 
-    def test_compression_zlib(self):
-        i_rec = self.encode_decode(self.frame, compress='zlib')
+    def _test_compression(self, compress):
+        i_rec = self.encode_decode(self.frame, compress=compress)
         for k in self.frame.keys():
-            assert_frame_equal(self.frame[k], i_rec[k])
+            value = i_rec[k]
+            expected = self.frame[k]
+            assert_frame_equal(value, expected)
+            # make sure that we can write to the new frames
+            for block in value._data.blocks:
+                self.assertTrue(block.values.flags.writeable)
+
+    def test_compression_zlib(self):
+        if not _ZLIB_INSTALLED:
+            raise nose.SkipTest('no zlib')
+        self._test_compression('zlib')
 
     def test_compression_blosc(self):
         if not _BLOSC_INSTALLED:
             raise nose.SkipTest('no blosc')
-        i_rec = self.encode_decode(self.frame, compress='blosc')
-        for k in self.frame.keys():
-            assert_frame_equal(self.frame[k], i_rec[k])
+        self._test_compression('blosc')
+
+    def _test_compression_warns_when_decompress_caches(self, compress):
+        not_garbage = []
+        control = []  # copied data
+
+        compress_module = globals()[compress]
+        real_decompress = compress_module.decompress
+
+        def decompress(ob):
+            """mock decompress function that delegates to the real
+            decompress but caches the result and a copy of the result.
+            """
+            res = real_decompress(ob)
+            not_garbage.append(res)  # hold a reference to this bytes object
+            control.append(bytearray(res))  # copy the data here to check later
+            return res
+
+        # types mapped to values to add in place.
+        rhs = {
+            np.dtype('float64'): 1.0,
+            np.dtype('int32'): 1,
+            np.dtype('object'): 'a',
+            np.dtype('datetime64[ns]'): np.timedelta64(1, 'ns'),
+            np.dtype('timedelta64[ns]'): np.timedelta64(1, 'ns'),
+        }
+
+        with patch(compress_module, 'decompress', decompress), \
+                tm.assert_produces_warning(PerformanceWarning) as ws:
+
+            i_rec = self.encode_decode(self.frame, compress=compress)
+            for k in self.frame.keys():
+
+                value = i_rec[k]
+                expected = self.frame[k]
+                assert_frame_equal(value, expected)
+                # make sure that we can write to the new frames even though
+                # we needed to copy the data
+                for block in value._data.blocks:
+                    self.assertTrue(block.values.flags.writeable)
+                    # mutate the data in some way
+                    block.values[0] += rhs[block.dtype]
+
+        for w in ws:
+            # check the messages from our warnings
+            self.assertEqual(
+                str(w.message),
+                'copying data after decompressing; this may mean that'
+                ' decompress is caching its result',
+            )
+
+        for buf, control_buf in zip(not_garbage, control):
+            # make sure none of our mutations above affected the
+            # original buffers
+            self.assertEqual(buf, control_buf)
+
+    def test_compression_warns_when_decompress_caches_zlib(self):
+        if not _ZLIB_INSTALLED:
+            raise nose.SkipTest('no zlib')
+        self._test_compression_warns_when_decompress_caches('zlib')
+
+    def test_compression_warns_when_decompress_caches_blosc(self):
+        if not _ZLIB_INSTALLED:
+            raise nose.SkipTest('no blosc')
+        self._test_compression_warns_when_decompress_caches('blosc')
 
     def test_readonly_axis_blosc(self):
         # GH11880
