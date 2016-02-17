@@ -2,9 +2,8 @@
 Quantilization functions and related stuff
 """
 
-from pandas.core.api import DataFrame, Series
+from pandas.core.api import Series
 from pandas.core.categorical import Categorical
-from pandas.core.index import _ensure_index
 import pandas.core.algorithms as algos
 import pandas.core.common as com
 import pandas.core.nanops as nanops
@@ -34,8 +33,9 @@ def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
         right == True (the default), then the bins [1,2,3,4] indicate
         (1,2], (2,3], (3,4].
     labels : array or boolean, default None
-        Used as labels for the resulting bins. Must be of the same length as the resulting
-        bins. If False, return only integer indicators of the bins.
+        Used as labels for the resulting bins. Must be of the same length as
+        the resulting bins. If False, return only integer indicators of the
+        bins.
     retbins : bool, optional
         Whether to return the bins or not. Can be useful if bins is given
         as a scalar.
@@ -47,9 +47,9 @@ def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
     Returns
     -------
     out : Categorical or Series or array of integers if labels is False
-        The return type (Categorical or Series) depends on the input: a Series of type category if
-        input is a Series else Categorical. Bins are represented as categories when categorical
-        data is returned.
+        The return type (Categorical or Series) depends on the input: a Series
+        of type category if input is a Series else Categorical. Bins are
+        represented as categories when categorical data is returned.
     bins : ndarray of floats
         Returned only if `retbins` is True.
 
@@ -66,10 +66,12 @@ def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
     Examples
     --------
     >>> pd.cut(np.array([.2, 1.4, 2.5, 6.2, 9.7, 2.1]), 3, retbins=True)
-    ([(0.191, 3.367], (0.191, 3.367], (0.191, 3.367], (3.367, 6.533], (6.533, 9.7], (0.191, 3.367]]
+    ([(0.191, 3.367], (0.191, 3.367], (0.191, 3.367], (3.367, 6.533],
+      (6.533, 9.7], (0.191, 3.367]]
     Categories (3, object): [(0.191, 3.367] < (3.367, 6.533] < (6.533, 9.7]],
     array([ 0.1905    ,  3.36666667,  6.53333333,  9.7       ]))
-    >>> pd.cut(np.array([.2, 1.4, 2.5, 6.2, 9.7, 2.1]), 3, labels=["good","medium","bad"])
+    >>> pd.cut(np.array([.2, 1.4, 2.5, 6.2, 9.7, 2.1]), 3,
+               labels=["good","medium","bad"])
     [good, good, good, medium, bad, good]
     Categories (3, object): [good < medium < bad]
     >>> pd.cut(np.ones(5), 4, labels=False)
@@ -109,9 +111,9 @@ def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
         if (np.diff(bins) < 0).any():
             raise ValueError('bins must increase monotonically.')
 
-    return _bins_to_cuts(x, bins, right=right, labels=labels,retbins=retbins, precision=precision,
+    return _bins_to_cuts(x, bins, right=right, labels=labels,
+                         retbins=retbins, precision=precision,
                          include_lowest=include_lowest)
-
 
 
 def qcut(x, q, labels=None, retbins=False, precision=3):
@@ -128,8 +130,9 @@ def qcut(x, q, labels=None, retbins=False, precision=3):
         Number of quantiles. 10 for deciles, 4 for quartiles, etc. Alternately
         array of quantiles, e.g. [0, .25, .5, .75, 1.] for quartiles
     labels : array or boolean, default None
-        Used as labels for the resulting bins. Must be of the same length as the resulting
-        bins. If False, return only integer indicators of the bins.
+        Used as labels for the resulting bins. Must be of the same length as
+        the resulting bins. If False, return only integer indicators of the
+        bins.
     retbins : bool, optional
         Whether to return the bins or not. Can be useful if bins is given
         as a scalar.
@@ -139,9 +142,9 @@ def qcut(x, q, labels=None, retbins=False, precision=3):
     Returns
     -------
     out : Categorical or Series or array of integers if labels is False
-        The return type (Categorical or Series) depends on the input: a Series of type category if
-        input is a Series else Categorical. Bins are represented as categories when categorical
-        data is returned.
+        The return type (Categorical or Series) depends on the input: a Series
+        of type category if input is a Series else Categorical. Bins are
+        represented as categories when categorical data is returned.
     bins : ndarray of floats
         Returned only if `retbins` is True.
 
@@ -165,9 +168,8 @@ def qcut(x, q, labels=None, retbins=False, precision=3):
     else:
         quantiles = q
     bins = algos.quantile(x, quantiles)
-    return _bins_to_cuts(x, bins, labels=labels, retbins=retbins,precision=precision,
-                         include_lowest=True)
-
+    return _bins_to_cuts(x, bins, labels=labels, retbins=retbins,
+                         precision=precision, include_lowest=True)
 
 
 def _bins_to_cuts(x, bins, right=True, labels=None, retbins=False,

@@ -20,7 +20,14 @@
   <td>Build Status</td>
   <td>
     <a href="https://travis-ci.org/pydata/pandas">
-    <img src="https://travis-ci.org/pydata/pandas.svg?branch=master" alt="build status" />
+    <img src="https://travis-ci.org/pydata/pandas.svg?branch=master" alt="travis build status" />
+    </a>
+  </td>
+</tr>
+  <td></td>
+  <td>
+    <a href="https://ci.appveyor.com/project/jreback/pandas-465">
+    <img src="https://ci.appveyor.com/api/projects/status/iblk29s98quexwxi/branch/master?svg=true" alt="appveyor build status" />
     </a>
   </td>
 </tr>

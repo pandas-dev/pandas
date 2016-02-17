@@ -1,13 +1,17 @@
+# flake8: noqa
+
 from pandas import DataFrame, Panel
 from pandas.stats.api import fama_macbeth
 from .common import assert_almost_equal, BaseTest
 
 from pandas.compat import range
 from pandas import compat
+import pandas.util.testing as tm
 import numpy as np
 
 
 class TestFamaMacBeth(BaseTest):
+
     def testFamaMacBethRolling(self):
         # self.checkFamaMacBethExtended('rolling', self.panel_x, self.panel_y,
         #                               nw_lags_beta=2)
@@ -23,8 +27,9 @@ class TestFamaMacBeth(BaseTest):
     def checkFamaMacBethExtended(self, window_type, x, y, **kwds):
         window = 25
 
-        result = fama_macbeth(y=y, x=x, window_type=window_type, window=window,
-                              **kwds)
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            result = fama_macbeth(y=y, x=x, window_type=window_type, window=window,
+                                  **kwds)
         self._check_stuff_works(result)
 
         index = result._index
@@ -43,10 +48,12 @@ class TestFamaMacBeth(BaseTest):
                 x2[k] = v.truncate(start, end)
             y2 = y.truncate(start, end)
 
-            reference = fama_macbeth(y=y2, x=x2, **kwds)
+            with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+                reference = fama_macbeth(y=y2, x=x2, **kwds)
             assert_almost_equal(reference._stats, result._stats[:, i])
 
-        static = fama_macbeth(y=y2, x=x2, **kwds)
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            static = fama_macbeth(y=y2, x=x2, **kwds)
         self._check_stuff_works(static)
 
     def _check_stuff_works(self, result):

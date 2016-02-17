@@ -1,0 +1,25 @@
+python-dateutil
+pytz
+numpy
+openpyxl
+xlsxwriter
+xlrd
+xlwt
+patsy
+scipy
+numexpr
+pytables
+html5lib
+lxml
+matplotlib
+jinja2
+blosc
+
+# currently causing some warnings
+#sqlalchemy
+#pymysql
+#psycopg2
+
+# not available from conda
+#beautiful-soup
+#bottleneck

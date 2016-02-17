@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+# flake8: noqa
+
 from __future__ import print_function
 
 from pandas.compat import map, reduce, range, lrange
@@ -83,7 +85,7 @@ country_codes = ['AD', 'AE', 'AF', 'AG', 'AI', 'AL', 'AM', 'AO', 'AQ', 'AR', \
                  'VIR', 'VNM', 'VUT', 'WLF', 'WSM', 'YEM', 'ZAF', 'ZMB', \
                  'ZWE', 'all', 'ALL', 'All']
 
-def download(country=['MX', 'CA', 'US'], indicator=['NY.GDP.MKTP.CD', 'NY.GNS.ICTR.ZS'],
+def download(country=None, indicator=None,
              start=2003, end=2005,errors='warn'):
     """
     Download data series from the World Bank's World Development Indicators
@@ -123,6 +125,10 @@ def download(country=['MX', 'CA', 'US'], indicator=['NY.GDP.MKTP.CD', 'NY.GNS.IC
     indicator value.
 
     """
+    if country is None:
+        country = ['MX', 'CA', 'US']
+    if indicator is None:
+        indicator = ['NY.GDP.MKTP.CD', 'NY.GNS.ICTR.ZS']
 
     if type(country) == str:
         country = [country]

@@ -2,7 +2,6 @@ from pandas.compat import range
 import nose
 
 import numpy as np
-from numpy.testing.decorators import slow
 
 from pandas import Series, date_range
 import pandas.util.testing as tm
@@ -17,6 +16,7 @@ class TestPivotAnnual(tm.TestCase):
     """
     New pandas of scikits.timeseries pivot_annual
     """
+
     def test_daily(self):
         rng = date_range('1/1/2000', '12/31/2004', freq='D')
         ts = Series(np.random.randn(len(rng)), index=rng)
@@ -42,8 +42,8 @@ class TestPivotAnnual(tm.TestCase):
         tm.assert_series_equal(annual[day].dropna(), leaps)
 
     def test_hourly(self):
-        rng_hourly = date_range(
-            '1/1/1994', periods=(18 * 8760 + 4 * 24), freq='H')
+        rng_hourly = date_range('1/1/1994', periods=(18 * 8760 + 4 * 24),
+                                freq='H')
         data_hourly = np.random.randint(100, 350, rng_hourly.size)
         ts_hourly = Series(data_hourly, index=rng_hourly)
 
@@ -64,14 +64,12 @@ class TestPivotAnnual(tm.TestCase):
             tm.assert_series_equal(result, subset, check_names=False)
             self.assertEqual(result.name, i)
 
-        leaps = ts_hourly[(ts_hourly.index.month == 2) &
-                          (ts_hourly.index.day == 29) &
-                          (ts_hourly.index.hour == 0)]
+        leaps = ts_hourly[(ts_hourly.index.month == 2) & (
+            ts_hourly.index.day == 29) & (ts_hourly.index.hour == 0)]
         hour = leaps.index.dayofyear[0] * 24 - 23
         leaps.index = leaps.index.year
         leaps.name = 1417
         tm.assert_series_equal(annual[hour].dropna(), leaps)
-
 
     def test_weekly(self):
         pass
@@ -104,12 +102,13 @@ def test_normalize_date():
     value = date(2012, 9, 7)
 
     result = normalize_date(value)
-    assert(result == datetime(2012, 9, 7))
+    assert (result == datetime(2012, 9, 7))
 
     value = datetime(2012, 9, 7, 12)
 
     result = normalize_date(value)
-    assert(result == datetime(2012, 9, 7))
+    assert (result == datetime(2012, 9, 7))
+
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],

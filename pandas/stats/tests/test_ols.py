@@ -4,6 +4,8 @@ Unit test suite for OLS and PanelOLS classes
 
 # pylint: disable-msg=W0212
 
+# flake8: noqa
+
 from __future__ import division
 
 from datetime import datetime
@@ -115,7 +117,8 @@ class TestOLS(BaseTest):
         self._check_wls(X, Y, weights)
 
     def _check_wls(self, x, y, weights):
-        result = ols(y=y, x=x, weights=1 / weights)
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            result = ols(y=y, x=x, weights=1 / weights)
 
         combined = x.copy()
         combined['__y__'] = y
@@ -153,10 +156,12 @@ class TestOLS(BaseTest):
 
     def checkOLS(self, exog, endog, x, y):
         reference = sm.OLS(endog, sm.add_constant(exog, prepend=False)).fit()
-        result = ols(y=y, x=x)
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            result = ols(y=y, x=x)
 
         # check that sparse version is the same
-        sparse_result = ols(y=y.to_sparse(), x=x.to_sparse())
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            sparse_result = ols(y=y.to_sparse(), x=x.to_sparse())
         _compare_ols_results(result, sparse_result)
 
         assert_almost_equal(reference.params, result._beta_raw)
@@ -175,16 +180,18 @@ class TestOLS(BaseTest):
         _check_non_raw_results(result)
 
     def checkMovingOLS(self, window_type, x, y, weights=None, **kwds):
-        window = sm.tools.tools.rank(x.values) * 2
+        window = np.linalg.matrix_rank(x.values) * 2
 
-        moving = ols(y=y, x=x, weights=weights, window_type=window_type,
-                     window=window, **kwds)
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            moving = ols(y=y, x=x, weights=weights, window_type=window_type,
+                         window=window, **kwds)
 
         # check that sparse version is the same
-        sparse_moving = ols(y=y.to_sparse(), x=x.to_sparse(),
-                            weights=weights,
-                            window_type=window_type,
-                            window=window, **kwds)
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            sparse_moving = ols(y=y.to_sparse(), x=x.to_sparse(),
+                                weights=weights,
+                                window_type=window_type,
+                                window=window, **kwds)
         _compare_ols_results(moving, sparse_moving)
 
         index = moving._index
@@ -202,7 +209,8 @@ class TestOLS(BaseTest):
                 x_iter[k] = v.truncate(before=prior_date, after=date)
             y_iter = y.truncate(before=prior_date, after=date)
 
-            static = ols(y=y_iter, x=x_iter, weights=weights, **kwds)
+            with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+                static = ols(y=y_iter, x=x_iter, weights=weights, **kwds)
 
             self.compare(static, moving, event_index=i,
                          result_index=n)
@@ -248,7 +256,8 @@ class TestOLS(BaseTest):
 
     def test_ols_object_dtype(self):
         df = DataFrame(np.random.randn(20, 2), dtype=object)
-        model = ols(y=df[0], x=df[1])
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            model = ols(y=df[0], x=df[1])
         summary = repr(model)
 
 
@@ -269,7 +278,8 @@ class TestOLSMisc(tm.TestCase):
         x = tm.makeTimeDataFrame()
         y = x.pop('A')
 
-        model = ols(y=y, x=x)
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            model = ols(y=y, x=x)
 
         hyp = '1*B+1*C+1*D=0'
         result = model.f_test(hyp)
@@ -289,8 +299,10 @@ class TestOLSMisc(tm.TestCase):
         x_with = x.copy()
         x_with['intercept'] = 1.
 
-        model1 = ols(y=y, x=x)
-        model2 = ols(y=y, x=x_with, intercept=False)
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            model1 = ols(y=y, x=x)
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            model2 = ols(y=y, x=x_with, intercept=False)
         assert_series_equal(model1.beta, model2.beta)
 
         # TODO: can we infer whether the intercept is there...
@@ -298,28 +310,33 @@ class TestOLSMisc(tm.TestCase):
 
         # rolling
 
-        model1 = ols(y=y, x=x, window=20)
-        model2 = ols(y=y, x=x_with, window=20, intercept=False)
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            model1 = ols(y=y, x=x, window=20)
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            model2 = ols(y=y, x=x_with, window=20, intercept=False)
         assert_frame_equal(model1.beta, model2.beta)
         self.assertTrue((model1.r2 != model2.r2).all())
 
     def test_summary_many_terms(self):
         x = DataFrame(np.random.randn(100, 20))
         y = np.random.randn(100)
-        model = ols(y=y, x=x)
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            model = ols(y=y, x=x)
         model.summary
 
     def test_y_predict(self):
         y = tm.makeTimeSeries()
         x = tm.makeTimeDataFrame()
-        model1 = ols(y=y, x=x)
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            model1 = ols(y=y, x=x)
         assert_series_equal(model1.y_predict, model1.y_fitted)
         assert_almost_equal(model1._y_predict_raw, model1._y_fitted_raw)
 
     def test_predict(self):
         y = tm.makeTimeSeries()
         x = tm.makeTimeDataFrame()
-        model1 = ols(y=y, x=x)
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            model1 = ols(y=y, x=x)
         assert_series_equal(model1.predict(), model1.y_predict)
         assert_series_equal(model1.predict(x=x), model1.y_predict)
         assert_series_equal(model1.predict(beta=model1.beta), model1.y_predict)
@@ -358,7 +375,8 @@ class TestOLSMisc(tm.TestCase):
 
         endog = Series(endogenous)
         exog = Series(exogenous)
-        model = ols(y=endog, x=exog)
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            model = ols(y=endog, x=exog)
 
         pred = model.y_predict
         self.assertTrue(pred.index.equals(exog.index))
@@ -368,7 +386,8 @@ class TestOLSMisc(tm.TestCase):
         lp = wp.to_frame()
 
         y = lp.pop('ItemA')
-        model = ols(y=y, x=lp, entity_effects=True, window=20)
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            model = ols(y=y, x=lp, entity_effects=True, window=20)
         self.assertTrue(notnull(model.beta.values).all())
         tm.assertIsInstance(model, PanelOLS)
         model.summary
@@ -376,8 +395,10 @@ class TestOLSMisc(tm.TestCase):
     def test_series_rhs(self):
         y = tm.makeTimeSeries()
         x = tm.makeTimeSeries()
-        model = ols(y=y, x=x)
-        expected = ols(y=y, x={'x': x})
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            model = ols(y=y, x=x)
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            expected = ols(y=y, x={'x': x})
         assert_series_equal(model.beta, expected.beta)
 
         # GH 5233/5250
@@ -388,7 +409,8 @@ class TestOLSMisc(tm.TestCase):
 
         x = DataFrame(np.random.randn(100, 5))
         y = np.random.randn(100)
-        model = ols(y=y, x=x, window=20)
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            model = ols(y=y, x=x, window=20)
 
         series_attrs = ['rank', 'df', 'forecast_mean', 'forecast_vol']
 
@@ -405,17 +427,23 @@ class TestOLSMisc(tm.TestCase):
         y = tm.makeTimeSeries()
 
         data = {'foo': df1, 'bar': df2}
-        self.assertRaises(Exception, ols, y=y, x=data)
+
+        def f():
+            with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+                ols(y=y, x=data)
+        self.assertRaises(Exception, f)
 
     def test_plm_ctor(self):
         y = tm.makeTimeDataFrame()
         x = {'a': tm.makeTimeDataFrame(),
              'b': tm.makeTimeDataFrame()}
 
-        model = ols(y=y, x=x, intercept=False)
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            model = ols(y=y, x=x, intercept=False)
         model.summary
 
-        model = ols(y=y, x=Panel(x))
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            model = ols(y=y, x=Panel(x))
         model.summary
 
     def test_plm_attrs(self):
@@ -423,8 +451,10 @@ class TestOLSMisc(tm.TestCase):
         x = {'a': tm.makeTimeDataFrame(),
              'b': tm.makeTimeDataFrame()}
 
-        rmodel = ols(y=y, x=x, window=10)
-        model = ols(y=y, x=x)
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            rmodel = ols(y=y, x=x, window=10)
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            model = ols(y=y, x=x)
         model.resid
         rmodel.resid
 
@@ -433,7 +463,8 @@ class TestOLSMisc(tm.TestCase):
         x = {'a': tm.makeTimeDataFrame(),
              'b': tm.makeTimeDataFrame()}
 
-        model = ols(y=y, x=x, window=10)
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            model = ols(y=y, x=x, window=10)
         result = model.lagged_y_predict(2)
 
     def test_plm_f_test(self):
@@ -441,7 +472,8 @@ class TestOLSMisc(tm.TestCase):
         x = {'a': tm.makeTimeDataFrame(),
              'b': tm.makeTimeDataFrame()}
 
-        model = ols(y=y, x=x)
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            model = ols(y=y, x=x)
 
         hyp = '1*a+1*b=0'
         result = model.f_test(hyp)
@@ -456,12 +488,16 @@ class TestOLSMisc(tm.TestCase):
         x = {'a': tm.makeTimeDataFrame(),
              'b': tm.makeTimeDataFrame()}
 
-        model = ols(
-            y=y, x=x, entity_effects=True, dropped_dummies={'entity': 'D'})
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            model = ols(
+                y=y, x=x, entity_effects=True, dropped_dummies={'entity': 'D'})
         model.summary
 
-        self.assertRaises(Exception, ols, y=y, x=x, entity_effects=True,
-                          dropped_dummies={'entity': 'E'})
+        def f():
+            with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+                ols(y=y, x=x, entity_effects=True,
+                    dropped_dummies={'entity': 'E'})
+        self.assertRaises(Exception, f)
 
     def test_columns_tuples_summary(self):
         # #1837
@@ -469,7 +505,8 @@ class TestOLSMisc(tm.TestCase):
         Y = Series(np.random.randn(10))
 
         # it works!
-        model = ols(y=Y, x=X)
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            model = ols(y=Y, x=X)
         model.summary
 
 
@@ -484,7 +521,8 @@ class TestPanelOLS(BaseTest):
     _other_fields = ['resid', 'y_fitted']
 
     def testFiltering(self):
-        result = ols(y=self.panel_y2, x=self.panel_x2)
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            result = ols(y=self.panel_y2, x=self.panel_x2)
 
         x = result._x
         index = x.index.get_level_values(0)
@@ -544,8 +582,10 @@ class TestPanelOLS(BaseTest):
         stack_x.index = stack_x.index._tuple_index
         stack_weights.index = stack_weights.index._tuple_index
 
-        result = ols(y=y, x=x, weights=1 / weights)
-        expected = ols(y=stack_y, x=stack_x, weights=1 / stack_weights)
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            result = ols(y=y, x=x, weights=1 / weights)
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            expected = ols(y=stack_y, x=stack_x, weights=1 / stack_weights)
 
         assert_almost_equal(result.beta, expected.beta)
 
@@ -555,7 +595,8 @@ class TestPanelOLS(BaseTest):
             assert_almost_equal(rvals, evals)
 
     def testWithTimeEffects(self):
-        result = ols(y=self.panel_y2, x=self.panel_x2, time_effects=True)
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            result = ols(y=self.panel_y2, x=self.panel_x2, time_effects=True)
 
         assert_almost_equal(result._y_trans.values.flat, [0, -0.5, 0.5])
 
@@ -565,7 +606,8 @@ class TestPanelOLS(BaseTest):
         # _check_non_raw_results(result)
 
     def testWithEntityEffects(self):
-        result = ols(y=self.panel_y2, x=self.panel_x2, entity_effects=True)
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            result = ols(y=self.panel_y2, x=self.panel_x2, entity_effects=True)
 
         assert_almost_equal(result._y.values.flat, [1, 4, 5])
 
@@ -577,8 +619,9 @@ class TestPanelOLS(BaseTest):
         # _check_non_raw_results(result)
 
     def testWithEntityEffectsAndDroppedDummies(self):
-        result = ols(y=self.panel_y2, x=self.panel_x2, entity_effects=True,
-                     dropped_dummies={'entity': 'B'})
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            result = ols(y=self.panel_y2, x=self.panel_x2, entity_effects=True,
+                         dropped_dummies={'entity': 'B'})
 
         assert_almost_equal(result._y.values.flat, [1, 4, 5])
         exp_x = DataFrame([[1., 6., 14., 1.], [1, 9, 17, 1], [0, 30, 48, 1]],
@@ -589,7 +632,8 @@ class TestPanelOLS(BaseTest):
         # _check_non_raw_results(result)
 
     def testWithXEffects(self):
-        result = ols(y=self.panel_y2, x=self.panel_x2, x_effects=['x1'])
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            result = ols(y=self.panel_y2, x=self.panel_x2, x_effects=['x1'])
 
         assert_almost_equal(result._y.values.flat, [1, 4, 5])
 
@@ -600,8 +644,9 @@ class TestPanelOLS(BaseTest):
         assert_frame_equal(res, exp_x.reindex(columns=res.columns))
 
     def testWithXEffectsAndDroppedDummies(self):
-        result = ols(y=self.panel_y2, x=self.panel_x2, x_effects=['x1'],
-                     dropped_dummies={'x1': 30})
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            result = ols(y=self.panel_y2, x=self.panel_x2, x_effects=['x1'],
+                         dropped_dummies={'x1': 30})
 
         res = result._x
         assert_almost_equal(result._y.values.flat, [1, 4, 5])
@@ -612,7 +657,9 @@ class TestPanelOLS(BaseTest):
         assert_frame_equal(res, exp_x.reindex(columns=res.columns))
 
     def testWithXEffectsAndConversion(self):
-        result = ols(y=self.panel_y3, x=self.panel_x3, x_effects=['x1', 'x2'])
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            result = ols(y=self.panel_y3, x=self.panel_x3,
+                         x_effects=['x1', 'x2'])
 
         assert_almost_equal(result._y.values.flat, [1, 2, 3, 4])
         exp_x = [[0, 0, 0, 1, 1], [1, 0, 0, 0, 1], [0, 1, 1, 0, 1],
@@ -625,8 +672,9 @@ class TestPanelOLS(BaseTest):
         # _check_non_raw_results(result)
 
     def testWithXEffectsAndConversionAndDroppedDummies(self):
-        result = ols(y=self.panel_y3, x=self.panel_x3, x_effects=['x1', 'x2'],
-                     dropped_dummies={'x2': 'foo'})
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            result = ols(y=self.panel_y3, x=self.panel_x3, x_effects=['x1', 'x2'],
+                         dropped_dummies={'x2': 'foo'})
 
         assert_almost_equal(result._y.values.flat, [1, 2, 3, 4])
         exp_x = [[0, 0, 0, 0, 1], [1, 0, 1, 0, 1], [0, 1, 0, 1, 1],
@@ -669,10 +717,12 @@ class TestPanelOLS(BaseTest):
     def testRollingWithEntityCluster(self):
         self.checkMovingOLS(self.panel_x, self.panel_y,
                             cluster='entity')
+
     def testUnknownClusterRaisesValueError(self):
         assertRaisesRegexp(ValueError, "Unrecognized cluster.*ridiculous",
                            self.checkMovingOLS, self.panel_x, self.panel_y,
-                                               cluster='ridiculous')
+                           cluster='ridiculous')
+
     def testRollingWithTimeEffectsAndEntityCluster(self):
         self.checkMovingOLS(self.panel_x, self.panel_y,
                             time_effects=True, cluster='entity')
@@ -700,6 +750,7 @@ class TestPanelOLS(BaseTest):
         self.checkNonPooled(y=self.panel_y, x=self.panel_x)
         self.checkNonPooled(y=self.panel_y, x=self.panel_x,
                             window_type='rolling', window=25, min_periods=10)
+
     def testUnknownWindowType(self):
         assertRaisesRegexp(ValueError, "window.*ridiculous",
                            self.checkNonPooled, y=self.panel_y, x=self.panel_x,
@@ -707,7 +758,8 @@ class TestPanelOLS(BaseTest):
 
     def checkNonPooled(self, x, y, **kwds):
         # For now, just check that it doesn't crash
-        result = ols(y=y, x=x, pool=False, **kwds)
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            result = ols(y=y, x=x, pool=False, **kwds)
 
         _check_repr(result)
         for attr in NonPooledPanelOLS.ATTRIBUTES:
@@ -716,8 +768,9 @@ class TestPanelOLS(BaseTest):
     def checkMovingOLS(self, x, y, window_type='rolling', **kwds):
         window = 25  # must be larger than rank of x
 
-        moving = ols(y=y, x=x, window_type=window_type,
-                     window=window, **kwds)
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            moving = ols(y=y, x=x, window_type=window_type,
+                         window=window, **kwds)
 
         index = moving._index
 
@@ -734,7 +787,8 @@ class TestPanelOLS(BaseTest):
                 x_iter[k] = v.truncate(before=prior_date, after=date)
             y_iter = y.truncate(before=prior_date, after=date)
 
-            static = ols(y=y_iter, x=x_iter, **kwds)
+            with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+                static = ols(y=y_iter, x=x_iter, **kwds)
 
             self.compare(static, moving, event_index=i,
                          result_index=n)
@@ -743,8 +797,10 @@ class TestPanelOLS(BaseTest):
 
     def checkForSeries(self, x, y, series_x, series_y, **kwds):
         # Consistency check with simple OLS.
-        result = ols(y=y, x=x, **kwds)
-        reference = ols(y=series_y, x=series_x, **kwds)
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            result = ols(y=y, x=x, **kwds)
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            reference = ols(y=series_y, x=series_x, **kwds)
 
         self.compare(reference, result)
 
@@ -783,9 +839,11 @@ class TestPanelOLS(BaseTest):
         data = tm.makeTimeDataFrame()
         y = data.pop('A')
 
-        window_model = ols(y=y, x=data, window=20, min_periods=10)
-        rolling_model = ols(y=y, x=data, window=20, min_periods=10,
-                            window_type='rolling')
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            window_model = ols(y=y, x=data, window=20, min_periods=10)
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            rolling_model = ols(y=y, x=data, window=20, min_periods=10,
+                                window_type='rolling')
 
         assert_frame_equal(window_model.beta, rolling_model.beta)
 
@@ -804,6 +862,7 @@ class TestPanelOLS(BaseTest):
         # test a function that doesn't aggregate
         f2 = lambda x: np.zeros((2, 2))
         self.assertRaises(Exception, _group_agg, values, bounds, f2)
+
 
 def _check_non_raw_results(model):
     _check_repr(model)

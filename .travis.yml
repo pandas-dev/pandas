@@ -14,19 +14,20 @@ env:
 
 git:
     # for cloning
-    depth: 100
+    depth: 200
 
 matrix:
     fast_finish: true
     include:
-    - python: 2.6
+    - python: 2.7
       env:
-      - JOB_NAME: "26_nslow_nnet"
+      - JOB_NAME: "27_nslow_nnet_COMPAT"
       - NOSE_ARGS="not slow and not network and not disabled"
       - CLIPBOARD=xclip
       - LOCALE_OVERRIDE="it_IT.UTF-8"
       - BUILD_TYPE=conda
       - INSTALL_TEST=true
+      - JOB_TAG=_COMPAT
     - python: 2.7
       env:
       - JOB_NAME: "27_slow_nnet_LOCALE"
@@ -41,8 +42,6 @@ matrix:
       - NOSE_ARGS="not slow and not disabled"
       - FULL_DEPS=true
       - CLIPBOARD_GUI=gtk2
-      - BUILD_TYPE=conda
-      - DOC_BUILD=true # if rst files were changed, build docs in parallel with tests
     - python: 3.4
       env:
       - JOB_NAME: "34_nslow"
@@ -56,21 +55,12 @@ matrix:
       - NOSE_ARGS="not slow and not network and not disabled"
       - FULL_DEPS=true
       - CLIPBOARD=xsel
-      - BUILD_TYPE=conda
-    - python: 3.3
-      env:
-      - JOB_NAME: "33_nslow"
-      - NOSE_ARGS="not slow and not disabled"
-      - FULL_DEPS=true
-      - CLIPBOARD=xsel
-      - BUILD_TYPE=conda
     - python: 2.7
       env:
       - JOB_NAME: "27_slow"
       - JOB_TAG=_SLOW
       - NOSE_ARGS="slow and not network and not disabled"
       - FULL_DEPS=true
-      - BUILD_TYPE=conda
     - python: 3.4
       env:
       - JOB_NAME: "34_slow"
@@ -78,46 +68,39 @@ matrix:
       - NOSE_ARGS="slow and not network and not disabled"
       - FULL_DEPS=true
       - CLIPBOARD=xsel
-      - BUILD_TYPE=conda
     - python: 2.7
       env:
       - JOB_NAME: "27_build_test_conda"
       - JOB_TAG=_BUILD_TEST
       - NOSE_ARGS="not slow and not disabled"
       - FULL_DEPS=true
-      - BUILD_TYPE=conda
       - BUILD_TEST=true
     - python: 2.7
       env:
-      - JOB_NAME: "27_build_test_pydata"
-      - JOB_TAG=_BUILD_TEST
-      - NOSE_ARGS="not slow and not disabled"
-      - FULL_DEPS=true
-      - BUILD_TYPE=pydata
-      - BUILD_TEST=true
-    - python: 2.7
-      env:
-      - JOB_NAME: "27_numpy_master"
-      - JOB_TAG=_NUMPY_DEV_master
+      - JOB_NAME: "27_numpy_dev"
+      - JOB_TAG=_NUMPY_DEV
       - NOSE_ARGS="not slow and not network and not disabled"
-      - NUMPY_BUILD=master
-      - BUILD_TYPE=pydata
       - PANDAS_TESTING_MODE="deprecate"
+    - python: 3.5
+      env:
+      - JOB_NAME: "35_numpy_dev"
+      - JOB_TAG=_NUMPY_DEV
+      - NOSE_ARGS="not slow and not network and not disabled"
+      - PANDAS_TESTING_MODE="deprecate"
+    - python: 2.7
+      env:
+      - JOB_NAME: "doc_build"
+      - FULL_DEPS=true
+      - BUILD_TYPE=conda
+      - DOC_BUILD=true # if rst files were changed, build docs in parallel with tests
+      - JOB_TAG=_DOC_BUILD
     allow_failures:
-      - python: 3.3
-        env:
-        - JOB_NAME: "33_nslow"
-        - NOSE_ARGS="not slow and not disabled"
-        - FULL_DEPS=true
-        - CLIPBOARD=xsel
-        - BUILD_TYPE=conda
       - python: 2.7
         env:
         - JOB_NAME: "27_slow"
         - JOB_TAG=_SLOW
         - NOSE_ARGS="slow and not network and not disabled"
         - FULL_DEPS=true
-        - BUILD_TYPE=conda
       - python: 3.4
         env:
         - JOB_NAME: "34_slow"
@@ -125,14 +108,11 @@ matrix:
         - NOSE_ARGS="slow and not network and not disabled"
         - FULL_DEPS=true
         - CLIPBOARD=xsel
-        - BUILD_TYPE=conda
       - python: 2.7
         env:
-        - JOB_NAME: "27_numpy_master"
-        - JOB_TAG=_NUMPY_DEV_master
+        - JOB_NAME: "27_numpy_dev"
+        - JOB_TAG=_NUMPY_DEV
         - NOSE_ARGS="not slow and not network and not disabled"
-        - NUMPY_BUILD=master
-        - BUILD_TYPE=pydata
         - PANDAS_TESTING_MODE="deprecate"
       - python: 2.7
         env:
@@ -140,16 +120,20 @@ matrix:
         - JOB_TAG=_BUILD_TEST
         - NOSE_ARGS="not slow and not disabled"
         - FULL_DEPS=true
-        - BUILD_TYPE=conda
         - BUILD_TEST=true
+      - python: 3.5
+        env:
+        - JOB_NAME: "35_numpy_dev"
+        - JOB_TAG=_NUMPY_DEV
+        - NOSE_ARGS="not slow and not network and not disabled"
+        - PANDAS_TESTING_MODE="deprecate"
       - python: 2.7
         env:
-        - JOB_NAME: "27_build_test_pydata"
-        - JOB_TAG=_BUILD_TEST
-        - NOSE_ARGS="not slow and not disabled"
+        - JOB_NAME: "doc_build"
         - FULL_DEPS=true
-        - BUILD_TYPE=pydata
-        - BUILD_TEST=true
+        - BUILD_TYPE=conda
+        - DOC_BUILD=true
+        - JOB_TAG=_DOC_BUILD
 
 before_install:
   - echo "before_install"
@@ -161,7 +145,7 @@ before_install:
   - pwd
   - uname -a
   - python -V
-  - ci/before_install.sh
+  - ci/before_install_travis.sh
   # Xvfb stuff for clipboard functionality; see the travis-ci documentation
   - export DISPLAY=:99.0
   - sh -e /etc/init.d/xvfb start
@@ -169,7 +153,7 @@ before_install:
 install:
   - echo "install"
   - ci/prep_ccache.sh
-  - ci/install_${BUILD_TYPE}.sh
+  - ci/install_travis.sh
   - ci/submit_ccache.sh
 
 before_script:
@@ -178,13 +162,12 @@ before_script:
 
 script:
   - echo "script"
-  - ci/run_build_docs.sh &
+  - ci/run_build_docs.sh
   - ci/script.sh
+  - ci/lint.sh
 # nothing here, or failed tests won't fail travis
 
 after_script:
   - ci/install_test.sh
-  - if [ -f /tmp/doc.log ]; then cat /tmp/doc.log; fi
   - source activate pandas && ci/print_versions.py
   - ci/print_skipped.py /tmp/nosetests.xml
-  - ci/after_script.sh

@@ -4,9 +4,11 @@ from pandas.msgpack import Unpacker, packb, OutOfData, ExtType
 import pandas.util.testing as tm
 import nose
 
+
 class TestUnpack(tm.TestCase):
+
     def test_unpack_array_header_from_file(self):
-        f = BytesIO(packb([1,2,3,4]))
+        f = BytesIO(packb([1, 2, 3, 4]))
         unpacker = Unpacker(f)
         assert unpacker.read_array_header() == 4
         assert unpacker.unpack() == 1
@@ -14,7 +16,6 @@ class TestUnpack(tm.TestCase):
         assert unpacker.unpack() == 3
         assert unpacker.unpack() == 4
         self.assertRaises(OutOfData, unpacker.unpack)
-
 
     def test_unpacker_hook_refcnt(self):
         if not hasattr(sys, 'getrefcount'):
@@ -41,9 +42,7 @@ class TestUnpack(tm.TestCase):
 
         assert sys.getrefcount(hook) == basecnt
 
-
     def test_unpacker_ext_hook(self):
-
         class MyUnpacker(Unpacker):
 
             def __init__(self):

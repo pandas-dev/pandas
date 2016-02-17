@@ -13,12 +13,11 @@ html5lib
 lxml
 matplotlib
 jinja2
+bottleneck
+sqlalchemy
+pymysql
+psycopg2
+xarray
 
-# currently causing some warnings
-#sqlalchemy
-#pymysql
-#psycopg2
-
-# not available from conda
-#beautiful-soup
-#bottleneck
+# incompat with conda ATM
+# beautiful-soup

@@ -525,7 +525,7 @@ they have a MultiIndex:
 
    df.T.sort_index(level=1, axis=1)
 
-The ``MultiIndex`` object has code to **explicity check the sort depth**. Thus,
+The ``MultiIndex`` object has code to **explicitly check the sort depth**. Thus,
 if you try to index at a depth at which the index is not sorted, it will raise
 an exception. Here is a concrete example to illustrate this:
 
@@ -617,10 +617,20 @@ faster than fancy indexing.
    timeit ser.ix[indexer]
    timeit ser.take(indexer)
 
+.. _indexing.index_types:
+
+Index Types
+-----------
+
+We have discussed ``MultiIndex`` in the previous sections pretty extensively. ``DatetimeIndex`` and ``PeriodIndex``
+are shown :ref:`here <timeseries.overview>`. ``TimedeltaIndex`` are :ref:`here <timedeltas.timedeltas>`.
+
+In the following sub-sections we will highlite some other index types.
+
 .. _indexing.categoricalindex:
 
 CategoricalIndex
-----------------
+~~~~~~~~~~~~~~~~
 
 .. versionadded:: 0.16.1
 
@@ -702,10 +712,21 @@ values NOT in the categories, similarly to how you can reindex ANY pandas index.
       In [12]: pd.concat([df2, df3]
       TypeError: categories must match existing categories when appending
 
+.. _indexing.rangeindex:
+
+Int64Index and RangeIndex
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``Int64Index`` is a fundamental basic index in *pandas*. This is an Immutable array implementing an ordered, sliceable set.
+Prior to 0.18.0, the ``Int64Index`` would provide the default index for all ``NDFrame`` objects.
+
+``RangeIndex`` is a sub-class of ``Int64Index`` added in version 0.18.0, now providing the default index for all ``NDFrame`` objects.
+``RangeIndex`` is an optimized version of ``Int64Index`` that can represent a monotonic ordered set. These are analagous to python :ref:`range types <https://docs.python.org/3/library/stdtypes.html#typesseq-range>`.
+
 .. _indexing.float64index:
 
 Float64Index
-------------
+~~~~~~~~~~~~
 
 .. note::
 
@@ -774,12 +795,23 @@ In non-float indexes, slicing using floats will raise a ``TypeError``
    In [1]: pd.Series(range(5))[3.5:4.5]
    TypeError: the slice start [3.5] is not a proper indexer for this index type (Int64Index)
 
-Using a scalar float indexer will be deprecated in a future version, but is allowed for now.
+.. warning::
 
-.. code-block:: python
+   Using a scalar float indexer has been removed in 0.18.0, so the following will raise a ``TypeError``
 
-   In [3]: pd.Series(range(5))[3.0]
-   Out[3]: 3
+   .. code-block:: python
+
+      In [3]: pd.Series(range(5))[3.0]
+      TypeError: cannot do label indexing on <class 'pandas.indexes.range.RangeIndex'> with these indexers [3.0] of <type 'float'>
+
+   Further the treatment of ``.ix`` with a float indexer on a non-float index, will be label based, and thus coerce the index.
+
+   .. ipython:: python
+
+      s2 = pd.Series([1, 2, 3], index=list('abc'))
+      s2
+      s2.ix[1.0] = 10
+      s2
 
 Here is a typical use-case for using this type of indexing. Imagine that you have a somewhat
 irregular timedelta-like indexing scheme, but the data is recorded as floats. This could for

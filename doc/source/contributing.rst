@@ -176,7 +176,7 @@ If you are on Windows, then you will also need to install the compiler linkages:
 
 This will create the new environment, and not touch any of your existing environments,
 nor any existing python installation. It will install all of the basic dependencies of
-*pandas*, as well as the development and testing tools. If you would like to install 
+*pandas*, as well as the development and testing tools. If you would like to install
 other dependencies, you can install them as follows::
 
       conda install -n pandas_dev -c pandas pytables scipy
@@ -294,7 +294,7 @@ Some other important things to know about the docs:
       In [2]: x**3
       Out[2]: 8
 
-  Almost all code examples in the docs are run (and the output saved) during the 
+  Almost all code examples in the docs are run (and the output saved) during the
   doc build. This approach means that code examples will always be up to date,
   but it does make the doc building a bit more complex.
 
@@ -337,7 +337,7 @@ Furthermore, it is recommended to have all `optional dependencies
 <http://pandas.pydata.org/pandas-docs/dev/install.html#optional-dependencies>`_
 installed. This is not strictly necessary, but be aware that you will see some error
 messages when building the docs. This happens because all the code in the documentation
-is executed during the doc build, and so code examples using optional dependencies 
+is executed during the doc build, and so code examples using optional dependencies
 will generate errors. Run ``pd.show_versions()`` to get an overview of the installed
 version of all dependencies.
 
@@ -357,7 +357,7 @@ So how do you build the docs? Navigate to your local
 Then you can find the HTML output in the folder ``pandas/doc/build/html/``.
 
 The first time you build the docs, it will take quite a while because it has to run
-all the code examples and build all the generated docstring pages. In subsequent 
+all the code examples and build all the generated docstring pages. In subsequent
 evocations, sphinx will try to only build the pages that have been modified.
 
 If you want to do a full clean build, do::
@@ -368,7 +368,7 @@ If you want to do a full clean build, do::
 Starting with *pandas* 0.13.1 you can tell ``make.py`` to compile only a single section
 of the docs, greatly reducing the turn-around time for checking your changes.
 You will be prompted to delete ``.rst`` files that aren't required. This is okay because
-the prior versions of these files can be checked out from git. However, you must make sure 
+the prior versions of these files can be checked out from git. However, you must make sure
 not to commit the file deletions to your Git repository!
 
 ::
@@ -396,7 +396,7 @@ And you'll have the satisfaction of seeing your new and improved documentation!
 Building master branch documentation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-When pull requests are merged into the *pandas* ``master`` branch, the main parts of 
+When pull requests are merged into the *pandas* ``master`` branch, the main parts of
 the documentation are also built by Travis-CI. These docs are then hosted `here
 <http://pandas-docs.github.io/pandas-docs-travis>`__.
 
@@ -410,22 +410,33 @@ Code standards
 --------------
 
 *pandas* uses the `PEP8 <http://www.python.org/dev/peps/pep-0008/>`_ standard.
-There are several tools to ensure you abide by this standard.
+There are several tools to ensure you abide by this standard. Here are *some* of
+the more common ``PEP8`` issues:
 
-We've written a tool to check that your commits are PEP8 great, `pip install pep8radius 
+  - we restrict line-length to 80 characters to promote readability
+  - passing arguments should have spaces after commas, e.g. ``foo(arg1, arg2, kw1='bar')``
+
+The Travis-CI will run `flake8 <http://pypi.python.org/pypi/flake8>`_ tool and report
+any stylistic errors in your code. Generating any warnings will cause the build to fail;
+thus these are part of the requirements for submitting code to *pandas*.
+
+It is helpful before submitting code to run this yourself on the diff::
+
+   git diff master | flake8 --diff
+
+Furthermore, we've written a tool to check that your commits are PEP8 great, `pip install pep8radius
 <https://github.com/hayd/pep8radius>`_. Look at PEP8 fixes in your branch vs master with::
 
-    pep8radius master --diff 
+    pep8radius master --diff
 
 and make these changes with::
 
     pep8radius master --diff --in-place
 
-Alternatively, use the `flake8 <http://pypi.python.org/pypi/flake8>`_ tool for checking 
-the style of your code. Additional standards are outlined on the `code style wiki 
+Additional standards are outlined on the `code style wiki
 page <https://github.com/pydata/pandas/wiki/Code-Style-and-Conventions>`_.
 
-Please try to maintain backward compatibility. *pandas* has lots of users with lots of 
+Please try to maintain backward compatibility. *pandas* has lots of users with lots of
 existing code, so don't break it if at all possible.  If you think breakage is required,
 clearly state why as part of the pull request.  Also, be careful when changing method
 signatures and add deprecation warnings where needed.
@@ -433,7 +444,7 @@ signatures and add deprecation warnings where needed.
 Test-driven development/code writing
 ------------------------------------
 
-*pandas* is serious about testing and strongly encourages contributors to embrace 
+*pandas* is serious about testing and strongly encourages contributors to embrace
 `test-driven development (TDD) <http://en.wikipedia.org/wiki/Test-driven_development>`_.
 This development process "relies on the repetition of a very short development cycle:
 first the developer writes an (initially failing) automated test case that defines a desired
@@ -498,6 +509,15 @@ entire suite.  This is done using one of the following constructs::
     nosetests pandas/tests/[test-module].py:[TestClass]
     nosetests pandas/tests/[test-module].py:[TestClass].[test_method]
 
+  .. versionadded:: 0.18.0
+
+Furthermore one can run
+
+.. code-block:: python
+
+   pd.test()
+
+with an imported pandas to run tests similarly.
 
 Running the performance test suite
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -556,7 +576,7 @@ It can also be useful to run tests in your current environment. You can simply d
 
 This command is equivalent to::
 
-    asv run --quick --show-stderr --python=same 
+    asv run --quick --show-stderr --python=same
 
 This will launch every test only once, display stderr from the benchmarks, and use your local ``python`` that comes from your ``$PATH``.
 
@@ -680,7 +700,7 @@ To squash to the master branch do::
 Use the ``s`` option on a commit to ``squash``, meaning to keep the commit messages,
 or ``f`` to ``fixup``, meaning to merge the commit messages.
 
-Then you will need to push the branch (see below) forcefully to replace the current 
+Then you will need to push the branch (see below) forcefully to replace the current
 commits with the new ones::
 
     git push origin shiny-new-feature -f
@@ -714,8 +734,8 @@ Review your code
 ----------------
 
 When you're ready to ask for a code review, file a pull request. Before you do, once
-again make sure that you have followed all the guidelines outlined in this document 
-regarding code style, tests, performance tests, and documentation. You should also 
+again make sure that you have followed all the guidelines outlined in this document
+regarding code style, tests, performance tests, and documentation. You should also
 double check your branch changes against the branch it was based on:
 
 #. Navigate to your repository on GitHub -- https://github.com/your-user-name/pandas
@@ -735,7 +755,7 @@ release.  To submit a pull request:
 
 #. Navigate to your repository on GitHub
 #. Click on the ``Pull Request`` button
-#. You can then click on ``Commits`` and ``Files Changed`` to make sure everything looks 
+#. You can then click on ``Commits`` and ``Files Changed`` to make sure everything looks
    okay one last time
 #. Write a description of your changes in the ``Preview Discussion`` tab
 #. Click ``Send Pull Request``.
@@ -747,14 +767,14 @@ updated.  Pushing them to GitHub again is done by::
 
     git push -f origin shiny-new-feature
 
-This will automatically update your pull request with the latest code and restart the 
+This will automatically update your pull request with the latest code and restart the
 Travis-CI tests.
 
 Delete your merged branch (optional)
 ------------------------------------
 
 Once your feature branch is accepted into upstream, you'll probably want to get rid of
-the branch. First, merge upstream master into your branch so git knows it is safe to 
+the branch. First, merge upstream master into your branch so git knows it is safe to
 delete your branch::
 
     git fetch upstream

@@ -179,8 +179,8 @@ cdef class SeriesBinGrouper:
         if not values.flags.c_contiguous:
             values = values.copy('C')
         self.arr = values
-        self.typ = type(series)
-        self.ityp = type(series.index)
+        self.typ = series._constructor
+        self.ityp = series.index._constructor
         self.index = series.index.values
         self.name = getattr(series,'name',None)
 
@@ -306,8 +306,8 @@ cdef class SeriesGrouper:
         if not values.flags.c_contiguous:
             values = values.copy('C')
         self.arr = values
-        self.typ = type(series)
-        self.ityp = type(series.index)
+        self.typ = series._constructor
+        self.ityp = series.index._constructor
         self.index = series.index.values
         self.name = getattr(series,'name',None)
 
@@ -592,7 +592,7 @@ cdef class BlockSlider:
 def reduce(arr, f, axis=0, dummy=None, labels=None):
     """
 
-    Paramaters
+    Parameters
     -----------
     arr : NDFrame object
     f : function

@@ -6,6 +6,8 @@ during building.  To regenerate `generated.pyx`, just run:
 
 """
 
+# flake8: noqa
+
 from __future__ import print_function
 import os
 from pandas.compat import StringIO
@@ -88,13 +90,7 @@ cpdef ensure_object(object arr):
 """
 
 
-take_1d_template = """
-@cython.wraparound(False)
-@cython.boundscheck(False)
-def take_1d_%(name)s_%(dest)s(%(c_type_in)s[:] values,
-                              int64_t[:] indexer,
-                              %(c_type_out)s[:] out,
-                              fill_value=np.nan):
+inner_take_1d_template = """\
     cdef:
         Py_ssize_t i, n, idx
         %(c_type_out)s fv
@@ -111,6 +107,33 @@ def take_1d_%(name)s_%(dest)s(%(c_type_in)s[:] values,
     %(tab)s    else:
     %(tab)s        out[i] = %(preval)svalues[idx]%(postval)s
 """
+
+take_1d_template = """\
+@cython.wraparound(False)
+@cython.boundscheck(False)
+cdef inline take_1d_%(name)s_%(dest)s_memview(%(c_type_in)s[:] values,
+                      int64_t[:] indexer,
+                      %(c_type_out)s[:] out,
+                      fill_value=np.nan):
+""" + inner_take_1d_template + """
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def take_1d_%(name)s_%(dest)s(ndarray[%(c_type_in)s, ndim=1] values,
+                              int64_t[:] indexer,
+                              %(c_type_out)s[:] out,
+                              fill_value=np.nan):
+
+    if values.flags.writeable:
+        # We can call the memoryview version of the code
+        take_1d_%(name)s_%(dest)s_memview(values, indexer, out,
+                                          fill_value=fill_value)
+        return
+
+    # We cannot use the memoryview version on readonly-buffers due to
+    # a limitation of Cython's typed memoryviews. Instead we can use
+    # the slightly slower Cython ndarray type directly.
+""" + inner_take_1d_template
 
 inner_take_2d_axis0_template = """\
     cdef:

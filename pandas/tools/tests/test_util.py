@@ -2,7 +2,7 @@ import os
 import locale
 import codecs
 import nose
-from nose.tools import assert_raises, assert_true
+from nose.tools import assert_raises
 
 import numpy as np
 from numpy.testing import assert_equal
@@ -22,7 +22,7 @@ class TestCartesianProduct(tm.TestCase):
         x, y = list('ABC'), [1, 22]
         result = cartesian_product([x, y])
         expected = [np.array(['A', 'A', 'B', 'B', 'C', 'C']),
-                    np.array([ 1, 22,  1, 22,  1, 22])]
+                    np.array([1, 22, 1, 22, 1, 22])]
         assert_equal(result, expected)
 
     def test_datetimeindex(self):
@@ -91,6 +91,7 @@ class TestLocaleUtils(tm.TestCase):
 
 
 class TestToNumeric(tm.TestCase):
+
     def test_series(self):
         s = pd.Series(['1', '-3.14', '7'])
         res = to_numeric(s)
@@ -113,7 +114,6 @@ class TestToNumeric(tm.TestCase):
         expected = pd.Series([1, -3.14, np.nan])
         tm.assert_series_equal(res, expected)
 
-
     def test_list(self):
         s = ['1', '-3.14', '7']
         res = to_numeric(s)
@@ -131,13 +131,20 @@ class TestToNumeric(tm.TestCase):
         tm.assert_series_equal(res, expected)
 
     def test_all_nan(self):
-        s = pd.Series(['a','b','c'])
+        s = pd.Series(['a', 'b', 'c'])
         res = to_numeric(s, errors='coerce')
         expected = pd.Series([np.nan, np.nan, np.nan])
         tm.assert_series_equal(res, expected)
 
+    def test_type_check(self):
+        # GH 11776
+        df = pd.DataFrame({'a': [1, -3.14, 7], 'b': ['4', '5', '6']})
+        with tm.assertRaisesRegexp(TypeError, "1-d array"):
+            to_numeric(df)
+        for errors in ['ignore', 'raise', 'coerce']:
+            with tm.assertRaisesRegexp(TypeError, "1-d array"):
+                to_numeric(df, errors=errors)
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
                    exit=False)
-

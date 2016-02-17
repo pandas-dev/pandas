@@ -3,7 +3,7 @@ Period formatters and locators adapted from scikits.timeseries by
 Pierre GF Gerard-Marchant & Matt Knox
 """
 
-#!!! TODO: Use the fact that axis can have units to simplify the process
+# TODO: Use the fact that axis can have units to simplify the process
 
 import numpy as np
 
@@ -18,7 +18,7 @@ import pandas.compat as compat
 from pandas.tseries.converter import (TimeSeries_DateLocator,
                                       TimeSeries_DateFormatter)
 
-#----------------------------------------------------------------------
+# ---------------------------------------------------------------------
 # Plotting functions and monkey patches
 
 
@@ -71,8 +71,8 @@ def _maybe_resample(series, ax, kwargs):
             freq = ax_freq
         elif _is_sup(freq, ax_freq):  # one is weekly
             how = kwargs.pop('how', 'last')
-            series = series.resample('D', how=how).dropna()
-            series = series.resample(ax_freq, how=how).dropna()
+            series = getattr(series.resample('D'), how)().dropna()
+            series = getattr(series.resample(ax_freq), how)().dropna()
             freq = ax_freq
         elif frequencies.is_subperiod(freq, ax_freq) or _is_sub(freq, ax_freq):
             _upsample_others(ax, freq, kwargs)
@@ -139,7 +139,8 @@ def _replot_ax(ax, freq, kwargs):
                 from pandas.tools.plotting import _plot_klass
                 plotf = _plot_klass[plotf]._plot
 
-            lines.append(plotf(ax, series.index._mpl_repr(), series.values, **kwds)[0])
+            lines.append(plotf(ax, series.index._mpl_repr(),
+                               series.values, **kwds)[0])
             labels.append(com.pprint_thing(series.name))
 
     return lines, labels
@@ -287,7 +288,7 @@ def format_dateaxis(subplot, freq):
     subplot.xaxis.set_minor_formatter(minformatter)
 
     # x and y coord info
-    subplot.format_coord = lambda t, y: ("t = {0}  "
-        "y = {1:8f}".format(Period(ordinal=int(t), freq=freq), y))
+    subplot.format_coord = lambda t, y: (
+        "t = {0}  y = {1:8f}".format(Period(ordinal=int(t), freq=freq), y))
 
     pylab.draw_if_interactive()

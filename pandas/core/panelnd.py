@@ -8,21 +8,20 @@ def create_nd_panel_factory(klass_name, orders, slices, slicer, aliases=None,
                             stat_axis=2, info_axis=0, ns=None):
     """ manufacture a n-d class:
 
-        Parameters
-        ----------
-        klass_name : the klass name
-        orders : the names of the axes in order (highest to lowest)
-        slices : a dictionary that defines how the axes map to the slice axis
-        slicer : the class representing a slice of this panel
-        aliases : a dictionary defining aliases for various axes
-            default = { major : major_axis, minor : minor_axis }
-        stat_axis : the default statistic axis default = 2
-        info_axis : the info axis
+    Parameters
+    ----------
+    klass_name : the klass name
+    orders : the names of the axes in order (highest to lowest)
+    slices : a dictionary that defines how the axes map to the slice axis
+    slicer : the class representing a slice of this panel
+    aliases : a dictionary defining aliases for various axes
+        default = { major : major_axis, minor : minor_axis }
+    stat_axis : the default statistic axis default = 2
+    info_axis : the info axis
 
-        Returns
-        -------
-        a class object representing this panel
-
+    Returns
+    -------
+    a class object representing this panel
     """
 
     # if slicer is a name, get the object
@@ -35,7 +34,7 @@ def create_nd_panel_factory(klass_name, orders, slices, slicer, aliases=None,
 
     # build the klass
     ns = {} if not ns else ns
-    klass = type(klass_name, (slicer,), ns)
+    klass = type(klass_name, (slicer, ), ns)
 
     # setup the axes
     klass._setup_axes(axes=orders, info_axis=info_axis, stat_axis=stat_axis,
@@ -46,19 +45,21 @@ def create_nd_panel_factory(klass_name, orders, slices, slicer, aliases=None,
     # define the methods ####
     def __init__(self, *args, **kwargs):
         if not (kwargs.get('data') or len(args)):
-            raise Exception(
-                "must supply at least a data argument to [%s]" % klass_name)
+            raise Exception("must supply at least a data argument to [%s]" %
+                            klass_name)
         if 'copy' not in kwargs:
             kwargs['copy'] = False
         if 'dtype' not in kwargs:
             kwargs['dtype'] = None
         self._init_data(*args, **kwargs)
+
     klass.__init__ = __init__
 
     def _get_plane_axes_index(self, axis):
         """ return the sliced index for this object """
 
-        axis_name = self._get_axis_name(axis)
+        # TODO: axis_name is not used, remove?
+        axis_name = self._get_axis_name(axis)  # noqa
         index = self._AXIS_ORDERS.index(axis)
 
         planes = []
@@ -68,12 +69,14 @@ def create_nd_panel_factory(klass_name, orders, slices, slicer, aliases=None,
             planes.extend(self._AXIS_ORDERS[index + 1:])
 
         return planes
+
     klass._get_plane_axes_index = _get_plane_axes_index
 
     def _combine(self, other, func, axis=0):
         if isinstance(other, klass):
             return self._combine_with_constructor(other, func)
         return super(klass, self)._combine(other, func, axis=axis)
+
     klass._combine = _combine
 
     def _combine_with_constructor(self, other, func):
@@ -92,13 +95,16 @@ def create_nd_panel_factory(klass_name, orders, slices, slicer, aliases=None,
         result_values = func(this.values, other.values)
 
         return self._constructor(result_values, **d)
+
     klass._combine_with_constructor = _combine_with_constructor
 
     # set as NonImplemented operations which we don't support
     for f in ['to_frame', 'to_excel', 'to_sparse', 'groupby', 'join', 'filter',
               'dropna', 'shift']:
+
         def func(self, *args, **kwargs):
             raise NotImplementedError("this operation is not supported")
+
         setattr(klass, f, func)
 
     # add the aggregate operations

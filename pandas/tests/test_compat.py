@@ -3,18 +3,16 @@
 Testing that functions from compat work as expected
 """
 
-from pandas.compat import (
-    range, zip, map, filter,
-    lrange, lzip, lmap, lfilter,
-    builtins
-)
-import unittest
-import nose
+from pandas.compat import (range, zip, map, filter, lrange, lzip, lmap,
+                           lfilter, builtins)
 import pandas.util.testing as tm
 
+
 class TestBuiltinIterators(tm.TestCase):
+
     def check_result(self, actual, expected, lengths):
-        for (iter_res, list_res), exp, length in zip(actual, expected, lengths):
+        for (iter_res, list_res), exp, length in zip(actual, expected,
+                                                     lengths):
             self.assertNotIsInstance(iter_res, list)
             tm.assertIsInstance(list_res, list)
             iter_res = list(iter_res)
@@ -47,7 +45,6 @@ class TestBuiltinIterators(tm.TestCase):
         lengths = 10,
         self.check_result(actual, expected, lengths)
 
-
     def test_filter(self):
         func = lambda x: x
         lst = list(builtins.range(10))
@@ -64,8 +61,3 @@ class TestBuiltinIterators(tm.TestCase):
         expected = list(builtins.zip(*lst)),
         lengths = 10,
         self.check_result(actual, expected, lengths)
-
-if __name__ == '__main__':
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   # '--with-coverage', '--cover-package=pandas.core'],
-                   exit=False)

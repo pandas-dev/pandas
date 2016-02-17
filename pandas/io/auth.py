@@ -45,12 +45,14 @@ gflags.DEFINE_enum('logging_level', 'ERROR',
 # a secure place.
 
 
-def process_flags(flags=[]):
+def process_flags(flags=None):
     """Uses the command-line flags to set the logging level.
 
     Args:
     argv: List of command line arguments passed to the python script.
     """
+    if flags is None:
+        flags = []
 
     # Let the gflags module process the command-line arguments.
     try:

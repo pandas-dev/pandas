@@ -48,7 +48,22 @@ users upgrade to this version.
 
 Highlights include:
 
-See the :ref:`v0.17.0 Whatsnew <whatsnew_0180>` overview for an extensive list
+- Moving and expanding window functions are now methods on Series and DataFrame,
+  similar to ``.groupby``, see :ref:`here <whatsnew_0180.enhancements.moments>`.
+- Adding support for a ``RangeIndex`` as a specialized form of the ``Int64Index``
+  for memory savings, see :ref:`here <whatsnew_0180.enhancements.rangeindex>`.
+- API breaking change to the ``.resample`` method to make it more ``.groupby``
+  like, see :ref:`here <whatsnew_0180.breaking.resample>`.
+- Removal of support for positional indexing with floats, which was deprecated
+  since 0.14.0. This will now raise a ``TypeError``, see :ref:`here <whatsnew_0180.enhancements.float_indexers>`.
+- The ``.to_xarray()`` function has been added for compatibility with the
+  `xarray package <http://xarray.pydata.org/en/stable/>`__, see :ref:`here <whatsnew_0180.enhancements.xarray>`.
+- Addition of the :ref:`.str.extractall() method <whatsnew_0180.enhancements.extract>`,
+  and API changes to the :ref:`.str.extract() method <whatsnew_0180.enhancements.extract>`
+  and :ref:`.str.cat() method <whatsnew_0180.enhancements.strcat>`.
+- ``pd.test()`` top-level nose test runner is available (:issue:`4327`).
+
+See the :ref:`v0.18.0 Whatsnew <whatsnew_0180>` overview for an extensive list
 of all enhancements and bugs that have been fixed in 0.17.1.
 
 Thanks

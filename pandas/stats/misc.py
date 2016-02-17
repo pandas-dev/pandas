@@ -2,9 +2,10 @@ from numpy import NaN
 from pandas import compat
 import numpy as np
 
-from pandas.core.api import Series, DataFrame, isnull, notnull
+from pandas.core.api import Series, DataFrame
 from pandas.core.series import remove_na
-from pandas.compat import zip
+from pandas.compat import zip, lrange
+import pandas.core.common as com
 
 
 def zscore(series):
@@ -41,6 +42,7 @@ def correl_ts(frame1, frame2):
 
 def correl_xs(frame1, frame2):
     return correl_ts(frame1.T, frame2.T)
+
 
 def percentileofscore(a, score, kind='rank'):
     """The percentile rank of a score relative to a list of scores.
@@ -130,6 +132,7 @@ def percentileofscore(a, score, kind='rank'):
         return (sum(a < score) + sum(a <= score)) * 50 / float(n)
     else:
         raise ValueError("kind can only be 'rank', 'strict', 'weak' or 'mean'")
+
 
 def percentileRank(frame, column=None, kind='mean'):
     """

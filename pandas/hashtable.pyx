@@ -342,7 +342,7 @@ cdef class Int64HashTable(HashTable):
                 self.table.vals[k] = <Py_ssize_t> values[i]
 
     @cython.boundscheck(False)
-    def map_locations(self, int64_t[:] values):
+    def map_locations(self, ndarray[int64_t, ndim=1] values):
         cdef:
             Py_ssize_t i, n = len(values)
             int ret = 0
@@ -377,12 +377,13 @@ cdef class Int64HashTable(HashTable):
 
     def factorize(self, ndarray[object] values):
         reverse = {}
-        labels = self.get_labels(values, reverse, 0)
+        labels = self.get_labels(values, reverse, 0, 0)
         return reverse, labels
 
     @cython.boundscheck(False)
     def get_labels(self, int64_t[:] values, Int64Vector uniques,
-                   Py_ssize_t count_prior, Py_ssize_t na_sentinel):
+                   Py_ssize_t count_prior, Py_ssize_t na_sentinel,
+                   bint check_null=True):
         cdef:
             Py_ssize_t i, n = len(values)
             int64_t[:] labels
@@ -399,6 +400,11 @@ cdef class Int64HashTable(HashTable):
             for i in range(n):
                 val = values[i]
                 k = kh_get_int64(self.table, val)
+
+                if check_null and val == iNaT:
+                    labels[i] = na_sentinel
+                    continue
+
                 if k != self.table.n_buckets:
                     idx = self.table.vals[k]
                     labels[i] = idx
@@ -525,13 +531,14 @@ cdef class Float64HashTable(HashTable):
 
     def factorize(self, float64_t[:] values):
         uniques = Float64Vector()
-        labels = self.get_labels(values, uniques, 0, -1)
+        labels = self.get_labels(values, uniques, 0, -1, 1)
         return uniques.to_array(), labels
 
     @cython.boundscheck(False)
     def get_labels(self, float64_t[:] values,
-                     Float64Vector uniques,
-                     Py_ssize_t count_prior, int64_t na_sentinel):
+                   Float64Vector uniques,
+                   Py_ssize_t count_prior, int64_t na_sentinel,
+                   bint check_null=True):
         cdef:
             Py_ssize_t i, n = len(values)
             int64_t[:] labels
@@ -548,7 +555,7 @@ cdef class Float64HashTable(HashTable):
             for i in range(n):
                 val = values[i]
 
-                if val != val:
+                if check_null and val != val:
                     labels[i] = na_sentinel
                     continue
 
@@ -570,7 +577,7 @@ cdef class Float64HashTable(HashTable):
         return np.asarray(labels)
 
     @cython.boundscheck(False)
-    def map_locations(self, float64_t[:] values):
+    def map_locations(self, ndarray[float64_t, ndim=1] values):
         cdef:
             Py_ssize_t i, n = len(values)
             int ret = 0
@@ -762,7 +769,8 @@ cdef class PyObjectHashTable(HashTable):
         return uniques.to_array()
 
     def get_labels(self, ndarray[object] values, ObjectVector uniques,
-                     Py_ssize_t count_prior, int64_t na_sentinel):
+                   Py_ssize_t count_prior, int64_t na_sentinel,
+                   bint check_null=True):
         cdef:
             Py_ssize_t i, n = len(values)
             int64_t[:] labels
@@ -777,7 +785,7 @@ cdef class PyObjectHashTable(HashTable):
             val = values[i]
             hash(val)
 
-            if val != val or val is None:
+            if check_null and val != val or val is None:
                 labels[i] = na_sentinel
                 continue
 
@@ -808,14 +816,15 @@ cdef class Factorizer:
     def get_count(self):
         return self.count
 
-    def factorize(self, ndarray[object] values, sort=False, na_sentinel=-1):
+    def factorize(self, ndarray[object] values, sort=False, na_sentinel=-1,
+                  check_null=True):
         """
         Factorize values with nans replaced by na_sentinel
         >>> factorize(np.array([1,2,np.nan], dtype='O'), na_sentinel=20)
         array([ 0,  1, 20])
         """
         labels = self.table.get_labels(values, self.uniques,
-                                       self.count, na_sentinel)
+                                       self.count, na_sentinel, check_null)
         mask = (labels == na_sentinel)
         # sort on
         if sort:
@@ -848,9 +857,10 @@ cdef class Int64Factorizer:
         return self.count
 
     def factorize(self, int64_t[:] values, sort=False,
-                  na_sentinel=-1):
+                  na_sentinel=-1, check_null=True):
         labels = self.table.get_labels(values, self.uniques,
-                                       self.count, na_sentinel)
+                                       self.count, na_sentinel,
+                                       check_null)
 
         # sort on
         if sort:
@@ -1067,7 +1077,8 @@ def mode_int64(int64_t[:] values):
 @cython.boundscheck(False)
 def duplicated_int64(ndarray[int64_t, ndim=1] values, object keep='first'):
     cdef:
-        int ret = 0, value, k
+        int ret = 0, k
+        int64_t value
         Py_ssize_t i, n = len(values)
         kh_int64_t * table = kh_init_int64()
         ndarray[uint8_t, ndim=1, cast=True] out = np.empty(n, dtype='bool')

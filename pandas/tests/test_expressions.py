@@ -13,37 +13,45 @@ import numpy as np
 from pandas.core.api import DataFrame, Panel
 from pandas.computation import expressions as expr
 from pandas import compat
-
 from pandas.util.testing import (assert_almost_equal, assert_series_equal,
                                  assert_frame_equal, assert_panel_equal,
                                  assert_panel4d_equal)
+import pandas.core.common as com
 import pandas.util.testing as tm
 from numpy.testing.decorators import slow
 
-
 if not expr._USE_NUMEXPR:
     try:
-        import numexpr
+        import numexpr  # noqa
     except ImportError:
         msg = "don't have"
     else:
         msg = "not using"
     raise nose.SkipTest("{0} numexpr".format(msg))
 
-_frame  = DataFrame(randn(10000, 4), columns=list('ABCD'), dtype='float64')
-_frame2 = DataFrame(randn(100, 4),   columns = list('ABCD'), dtype='float64')
-_mixed  = DataFrame({ 'A' : _frame['A'].copy(), 'B' : _frame['B'].astype('float32'), 'C' : _frame['C'].astype('int64'), 'D' : _frame['D'].astype('int32') })
-_mixed2 = DataFrame({ 'A' : _frame2['A'].copy(), 'B' : _frame2['B'].astype('float32'), 'C' : _frame2['C'].astype('int64'), 'D' : _frame2['D'].astype('int32') })
-_integer  = DataFrame(np.random.randint(1, 100, size=(10001, 4)), columns = list('ABCD'), dtype='int64')
+_frame = DataFrame(randn(10000, 4), columns=list('ABCD'), dtype='float64')
+_frame2 = DataFrame(randn(100, 4), columns=list('ABCD'), dtype='float64')
+_mixed = DataFrame({'A': _frame['A'].copy(),
+                    'B': _frame['B'].astype('float32'),
+                    'C': _frame['C'].astype('int64'),
+                    'D': _frame['D'].astype('int32')})
+_mixed2 = DataFrame({'A': _frame2['A'].copy(),
+                     'B': _frame2['B'].astype('float32'),
+                     'C': _frame2['C'].astype('int64'),
+                     'D': _frame2['D'].astype('int32')})
+_integer = DataFrame(
+    np.random.randint(1, 100,
+                      size=(10001, 4)), columns=list('ABCD'), dtype='int64')
 _integer2 = DataFrame(np.random.randint(1, 100, size=(101, 4)),
                       columns=list('ABCD'), dtype='int64')
-_frame_panel = Panel(dict(ItemA=_frame.copy(), ItemB=(_frame.copy() + 3), ItemC=_frame.copy(), ItemD=_frame.copy()))
+_frame_panel = Panel(dict(ItemA=_frame.copy(), ItemB=(
+    _frame.copy() + 3), ItemC=_frame.copy(), ItemD=_frame.copy()))
 _frame2_panel = Panel(dict(ItemA=_frame2.copy(), ItemB=(_frame2.copy() + 3),
                            ItemC=_frame2.copy(), ItemD=_frame2.copy()))
-_integer_panel = Panel(dict(ItemA=_integer,
-                            ItemB=(_integer + 34).astype('int64')))
-_integer2_panel = Panel(dict(ItemA=_integer2,
-                             ItemB=(_integer2 + 34).astype('int64')))
+_integer_panel = Panel(dict(ItemA=_integer, ItemB=(_integer + 34).astype(
+    'int64')))
+_integer2_panel = Panel(dict(ItemA=_integer2, ItemB=(_integer2 + 34).astype(
+    'int64')))
 _mixed_panel = Panel(dict(ItemA=_mixed, ItemB=(_mixed + 3)))
 _mixed2_panel = Panel(dict(ItemA=_mixed2, ItemB=(_mixed2 + 3)))
 
@@ -54,9 +62,9 @@ class TestExpressions(tm.TestCase):
 
     def setUp(self):
 
-        self.frame  = _frame.copy()
+        self.frame = _frame.copy()
         self.frame2 = _frame2.copy()
-        self.mixed  = _mixed.copy()
+        self.mixed = _mixed.copy()
         self.mixed2 = _mixed2.copy()
         self.integer = _integer.copy()
         self._MIN_ELEMENTS = expr._MIN_ELEMENTS
@@ -97,13 +105,13 @@ class TestExpressions(tm.TestCase):
     def test_integer_arithmetic(self):
         self.run_arithmetic_test(self.integer, self.integer,
                                  assert_frame_equal)
-        self.run_arithmetic_test(self.integer.iloc[:,0], self.integer.iloc[:, 0],
-                                 assert_series_equal, check_dtype=True)
+        self.run_arithmetic_test(self.integer.iloc[:, 0],
+                                 self.integer.iloc[:, 0], assert_series_equal,
+                                 check_dtype=True)
 
     @nose.tools.nottest
-    def run_binary_test(self, df, other, assert_func,
-                        test_flex=False, numexpr_ops=set(['gt', 'lt', 'ge',
-                                                          'le', 'eq', 'ne'])):
+    def run_binary_test(self, df, other, assert_func, test_flex=False,
+                        numexpr_ops=set(['gt', 'lt', 'ge', 'le', 'eq', 'ne'])):
         """
         tests solely that the result is the same whether or not numexpr is
         enabled.  Need to test whether the function does the correct thing
@@ -159,10 +167,10 @@ class TestExpressions(tm.TestCase):
         # series doesn't uses vec_compare instead of numexpr...
         # if binary_comp is None:
         #     binary_comp = other + 1
-        # self.run_binary_test(ser, binary_comp, assert_frame_equal, test_flex=False,
-        #         **kwargs)
-        # self.run_binary_test(ser, binary_comp, assert_frame_equal, test_flex=True,
-        #         **kwargs)
+        # self.run_binary_test(ser, binary_comp, assert_frame_equal,
+        # test_flex=False, **kwargs)
+        # self.run_binary_test(ser, binary_comp, assert_frame_equal,
+        # test_flex=True, **kwargs)
 
     def run_panel(self, panel, other, binary_comp=None, run_binary=True,
                   assert_func=assert_panel_equal, **kwargs):
@@ -231,50 +239,59 @@ class TestExpressions(tm.TestCase):
 
     def test_integer_with_zeros(self):
         self.integer *= np.random.randint(0, 2, size=np.shape(self.integer))
-        self.run_arithmetic_test(self.integer, self.integer, assert_frame_equal)
-        self.run_arithmetic_test(self.integer.iloc[:, 0], self.integer.iloc[:, 0],
-                                 assert_series_equal)
+        self.run_arithmetic_test(self.integer, self.integer,
+                                 assert_frame_equal)
+        self.run_arithmetic_test(self.integer.iloc[:, 0],
+                                 self.integer.iloc[:, 0], assert_series_equal)
 
     def test_invalid(self):
 
         # no op
-        result   = expr._can_use_numexpr(operator.add, None, self.frame, self.frame, 'evaluate')
+        result = expr._can_use_numexpr(operator.add, None, self.frame,
+                                       self.frame, 'evaluate')
         self.assertFalse(result)
 
         # mixed
-        result   = expr._can_use_numexpr(operator.add, '+', self.mixed, self.frame, 'evaluate')
+        result = expr._can_use_numexpr(operator.add, '+', self.mixed,
+                                       self.frame, 'evaluate')
         self.assertFalse(result)
 
         # min elements
-        result   = expr._can_use_numexpr(operator.add, '+', self.frame2, self.frame2, 'evaluate')
+        result = expr._can_use_numexpr(operator.add, '+', self.frame2,
+                                       self.frame2, 'evaluate')
         self.assertFalse(result)
 
         # ok, we only check on first part of expression
-        result   = expr._can_use_numexpr(operator.add, '+', self.frame, self.frame2, 'evaluate')
+        result = expr._can_use_numexpr(operator.add, '+', self.frame,
+                                       self.frame2, 'evaluate')
         self.assertTrue(result)
 
     def test_binary_ops(self):
-
         def testit():
 
-            for f, f2 in [ (self.frame, self.frame2), (self.mixed, self.mixed2) ]:
+            for f, f2 in [(self.frame, self.frame2),
+                          (self.mixed, self.mixed2)]:
 
-                for op, op_str in [('add','+'),('sub','-'),('mul','*'),('div','/'),('pow','**')]:
+                for op, op_str in [('add', '+'), ('sub', '-'), ('mul', '*'),
+                                   ('div', '/'), ('pow', '**')]:
                     if op == 'div':
                         op = getattr(operator, 'truediv', None)
                     else:
                         op = getattr(operator, op, None)
                     if op is not None:
-                        result   = expr._can_use_numexpr(op, op_str, f, f, 'evaluate')
+                        result = expr._can_use_numexpr(op, op_str, f, f,
+                                                       'evaluate')
                         self.assertNotEqual(result, f._is_mixed_type)
 
-                        result   = expr.evaluate(op, op_str, f, f, use_numexpr=True)
-                        expected = expr.evaluate(op, op_str, f, f, use_numexpr=False)
-                        tm.assert_numpy_array_equal(result,expected.values)
+                        result = expr.evaluate(op, op_str, f, f,
+                                               use_numexpr=True)
+                        expected = expr.evaluate(op, op_str, f, f,
+                                                 use_numexpr=False)
+                        tm.assert_numpy_array_equal(result, expected.values)
 
-                        result   = expr._can_use_numexpr(op, op_str, f2, f2, 'evaluate')
+                        result = expr._can_use_numexpr(op, op_str, f2, f2,
+                                                       'evaluate')
                         self.assertFalse(result)
-
 
         expr.set_use_numexpr(False)
         testit()
@@ -285,10 +302,9 @@ class TestExpressions(tm.TestCase):
         testit()
 
     def test_boolean_ops(self):
-
-
         def testit():
-            for f, f2 in [ (self.frame, self.frame2), (self.mixed, self.mixed2) ]:
+            for f, f2 in [(self.frame, self.frame2),
+                          (self.mixed, self.mixed2)]:
 
                 f11 = f
                 f12 = f + 1
@@ -296,18 +312,23 @@ class TestExpressions(tm.TestCase):
                 f21 = f2
                 f22 = f2 + 1
 
-                for op, op_str in [('gt','>'),('lt','<'),('ge','>='),('le','<='),('eq','=='),('ne','!=')]:
+                for op, op_str in [('gt', '>'), ('lt', '<'), ('ge', '>='),
+                                   ('le', '<='), ('eq', '=='), ('ne', '!=')]:
 
-                    op = getattr(operator,op)
+                    op = getattr(operator, op)
 
-                    result   = expr._can_use_numexpr(op, op_str, f11, f12, 'evaluate')
+                    result = expr._can_use_numexpr(op, op_str, f11, f12,
+                                                   'evaluate')
                     self.assertNotEqual(result, f11._is_mixed_type)
 
-                    result   = expr.evaluate(op, op_str, f11, f12, use_numexpr=True)
-                    expected = expr.evaluate(op, op_str, f11, f12, use_numexpr=False)
-                    tm.assert_numpy_array_equal(result,expected.values)
+                    result = expr.evaluate(op, op_str, f11, f12,
+                                           use_numexpr=True)
+                    expected = expr.evaluate(op, op_str, f11, f12,
+                                             use_numexpr=False)
+                    tm.assert_numpy_array_equal(result, expected.values)
 
-                    result   = expr._can_use_numexpr(op, op_str, f21, f22, 'evaluate')
+                    result = expr._can_use_numexpr(op, op_str, f21, f22,
+                                                   'evaluate')
                     self.assertFalse(result)
 
         expr.set_use_numexpr(False)
@@ -319,18 +340,16 @@ class TestExpressions(tm.TestCase):
         testit()
 
     def test_where(self):
-
         def testit():
-            for f in [ self.frame, self.frame2, self.mixed, self.mixed2 ]:
+            for f in [self.frame, self.frame2, self.mixed, self.mixed2]:
 
+                for cond in [True, False]:
 
-                for cond in [ True, False ]:
-
-                    c = np.empty(f.shape,dtype=np.bool_)
+                    c = np.empty(f.shape, dtype=np.bool_)
                     c.fill(cond)
-                    result   = expr.where(c, f.values, f.values+1)
-                    expected = np.where(c, f.values, f.values+1)
-                    tm.assert_numpy_array_equal(result,expected)
+                    result = expr.where(c, f.values, f.values + 1)
+                    expected = np.where(c, f.values, f.values + 1)
+                    tm.assert_numpy_array_equal(result, expected)
 
         expr.set_use_numexpr(False)
         testit()

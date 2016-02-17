@@ -194,64 +194,13 @@ Top-level evaluation
 
    eval
 
-Standard moving window functions
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Testing
+~~~~~~~
 
 .. autosummary::
    :toctree: generated/
 
-   rolling_count
-   rolling_sum
-   rolling_mean
-   rolling_median
-   rolling_var
-   rolling_std
-   rolling_min
-   rolling_max
-   rolling_corr
-   rolling_corr_pairwise
-   rolling_cov
-   rolling_skew
-   rolling_kurt
-   rolling_apply
-   rolling_quantile
-   rolling_window
-
-.. _api.functions_expanding:
-
-Standard expanding window functions
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. autosummary::
-   :toctree: generated/
-
-   expanding_count
-   expanding_sum
-   expanding_mean
-   expanding_median
-   expanding_var
-   expanding_std
-   expanding_min
-   expanding_max
-   expanding_corr
-   expanding_corr_pairwise
-   expanding_cov
-   expanding_skew
-   expanding_kurt
-   expanding_apply
-   expanding_quantile
-
-Exponentially-weighted moving window functions
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. autosummary::
-   :toctree: generated/
-
-   ewma
-   ewmstd
-   ewmvar
-   ewmcorr
-   ewmcov
+   test
 
 .. _api.series:
 
@@ -260,6 +209,9 @@ Series
 
 Constructor
 ~~~~~~~~~~~
+
+.. currentmodule:: pandas
+
 .. autosummary::
    :toctree: generated/
 
@@ -344,14 +296,17 @@ Binary operator functions
    Series.ne
    Series.eq
 
-Function application, GroupBy
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Function application, GroupBy & Window
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .. autosummary::
    :toctree: generated/
 
    Series.apply
    Series.map
    Series.groupby
+   Series.rolling
+   Series.expanding
+   Series.ewm
 
 .. _api.series.stats:
 
@@ -398,6 +353,7 @@ Computations / Descriptive Stats
    Series.var
    Series.unique
    Series.nunique
+   Series.is_unique
    Series.value_counts
 
 Reindexing / Selection / Label manipulation
@@ -526,6 +482,9 @@ These can be accessed like ``Series.dt.<property>``.
    Series.dt.tz_convert
    Series.dt.normalize
    Series.dt.strftime
+   Series.dt.round
+   Series.dt.floor
+   Series.dt.ceil
 
 **Timedelta Properties**
 
@@ -551,7 +510,7 @@ These can be accessed like ``Series.dt.<property>``.
 String handling
 ~~~~~~~~~~~~~~~
 ``Series.str`` can be used to access the values of the series as
-strings and apply several methods to it. These can be acccessed like
+strings and apply several methods to it. These can be accessed like
 ``Series.str.<function/property>``.
 
 .. autosummary::
@@ -567,6 +526,7 @@ strings and apply several methods to it. These can be acccessed like
    Series.str.encode
    Series.str.endswith
    Series.str.extract
+   Series.str.extractall
    Series.str.find
    Series.str.findall
    Series.str.get
@@ -624,6 +584,7 @@ strings and apply several methods to it. These can be acccessed like
        Series.dt
        Index.str
        CategoricalIndex.str
+       MultiIndex.str
        DatetimeIndex.str
        TimedeltaIndex.str
 
@@ -723,6 +684,7 @@ Serialization / IO / Conversion
    Series.to_csv
    Series.to_dict
    Series.to_frame
+   Series.to_xarray
    Series.to_hdf
    Series.to_sql
    Series.to_msgpack
@@ -845,14 +807,17 @@ Binary operator functions
    DataFrame.combine
    DataFrame.combine_first
 
-Function application, GroupBy
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Function application, GroupBy & Window
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .. autosummary::
    :toctree: generated/
 
    DataFrame.apply
    DataFrame.applymap
    DataFrame.groupby
+   DataFrame.rolling
+   DataFrame.expanding
+   DataFrame.ewm
 
 .. _api.dataframe.stats:
 
@@ -954,6 +919,7 @@ Reshaping, sorting, transposing
    DataFrame.unstack
    DataFrame.T
    DataFrame.to_panel
+   DataFrame.to_xarray
    DataFrame.transpose
 
 Combining / joining / merging
@@ -1252,6 +1218,7 @@ Serialization / IO / Conversion
    Panel.to_json
    Panel.to_sparse
    Panel.to_frame
+   Panel.to_xarray
    Panel.to_clipboard
 
 .. _api.panel4d:
@@ -1265,6 +1232,13 @@ Constructor
    :toctree: generated/
 
    Panel4D
+
+Serialization / IO / Conversion
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. autosummary::
+   :toctree: generated/
+
+   Panel4D.to_xarray
 
 Attributes and underlying data
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1445,6 +1419,33 @@ Categorical Components
    CategoricalIndex.as_ordered
    CategoricalIndex.as_unordered
 
+.. _api.multiindex:
+
+MultiIndex
+----------
+
+.. autosummary::
+   :toctree: generated/
+
+   MultiIndex
+
+MultiIndex Components
+~~~~~~~~~~~~~~~~~~~~~~
+
+.. autosummary::
+   :toctree: generated/
+
+   MultiIndex.from_arrays
+   MultiIndex.from_tuples
+   MultiIndex.from_product
+   MultiIndex.set_levels
+   MultiIndex.set_labels
+   MultiIndex.to_hierarchical
+   MultiIndex.is_lexsorted
+   MultiIndex.droplevel
+   MultiIndex.swaplevel
+   MultiIndex.reorder_levels
+
 .. _api.datetimeindex:
 
 DatetimeIndex
@@ -1507,7 +1508,9 @@ Time-specific operations
    DatetimeIndex.snap
    DatetimeIndex.tz_convert
    DatetimeIndex.tz_localize
-
+   DatetimeIndex.round
+   DatetimeIndex.floor
+   DatetimeIndex.ceil
 
 Conversion
 ~~~~~~~~~~
@@ -1548,6 +1551,81 @@ Conversion
 
    TimedeltaIndex.to_pytimedelta
    TimedeltaIndex.to_series
+   TimedeltaIndex.round
+   TimedeltaIndex.floor
+   TimedeltaIndex.ceil
+
+Window
+------
+.. currentmodule:: pandas.core.window
+
+Rolling objects are returned by ``.rolling`` calls: :func:`pandas.DataFrame.rolling`, :func:`pandas.Series.rolling`, etc.
+Expanding objects are returned by ``.expanding`` calls: :func:`pandas.DataFrame.expanding`, :func:`pandas.Series.expanding`, etc.
+EWM objects are returned by ``.ewm`` calls: :func:`pandas.DataFrame.ewm`, :func:`pandas.Series.ewm`, etc.
+
+Standard moving window functions
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. currentmodule:: pandas.core.window
+
+.. autosummary::
+   :toctree: generated/
+
+   Rolling.count
+   Rolling.sum
+   Rolling.mean
+   Rolling.median
+   Rolling.var
+   Rolling.std
+   Rolling.min
+   Rolling.max
+   Rolling.corr
+   Rolling.cov
+   Rolling.skew
+   Rolling.kurt
+   Rolling.apply
+   Rolling.quantile
+   Window.mean
+   Window.sum
+
+.. _api.functions_expanding:
+
+Standard expanding window functions
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. currentmodule:: pandas.core.window
+
+.. autosummary::
+   :toctree: generated/
+
+   Expanding.count
+   Expanding.sum
+   Expanding.mean
+   Expanding.median
+   Expanding.var
+   Expanding.std
+   Expanding.min
+   Expanding.max
+   Expanding.corr
+   Expanding.cov
+   Expanding.skew
+   Expanding.kurt
+   Expanding.apply
+   Expanding.quantile
+
+Exponentially-weighted moving window functions
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. currentmodule:: pandas.core.window
+
+.. autosummary::
+   :toctree: generated/
+
+   EWM.mean
+   EWM.std
+   EWM.var
+   EWM.corr
+   EWM.cov
 
 GroupBy
 -------
@@ -1662,6 +1740,65 @@ The following methods are available only for ``DataFrameGroupBy`` objects.
    DataFrameGroupBy.corrwith
    DataFrameGroupBy.boxplot
 
+Resampling
+----------
+.. currentmodule:: pandas.tseries.resample
+
+Resampler objects are returned by resample calls: :func:`pandas.DataFrame.resample`, :func:`pandas.Series.resample`.
+
+Indexing, iteration
+~~~~~~~~~~~~~~~~~~~
+.. autosummary::
+   :toctree: generated/
+
+   Resampler.__iter__
+   Resampler.groups
+   Resampler.indices
+   Resampler.get_group
+
+Function application
+~~~~~~~~~~~~~~~~~~~~
+.. autosummary::
+   :toctree: generated/
+
+   Resampler.apply
+   Resampler.aggregate
+   Resampler.transform
+
+Upsampling
+~~~~~~~~~~
+
+.. autosummary::
+   :toctree: generated/
+
+   Resampler.ffill
+   Resampler.backfill
+   Resampler.bfill
+   Resampler.pad
+   Resampler.fillna
+   Resampler.asfreq
+
+Computations / Descriptive Stats
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. autosummary::
+   :toctree: generated/
+
+   Resampler.count
+   Resampler.nunique
+   Resampler.first
+   Resampler.last
+   Resampler.max
+   Resampler.mean
+   Resampler.median
+   Resampler.min
+   Resampler.ohlc
+   Resampler.prod
+   Resampler.size
+   Resampler.sem
+   Resampler.std
+   Resampler.sum
+   Resampler.var
+
 Style
 -----
 .. currentmodule:: pandas.core.style
@@ -1683,6 +1820,7 @@ Style Application
 
    Styler.apply
    Styler.applymap
+   Styler.format
    Styler.set_precision
    Styler.set_table_styles
    Styler.set_caption

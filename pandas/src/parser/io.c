@@ -117,12 +117,13 @@ void* buffer_rd_bytes(void *source, size_t nbytes,
 
     size_t length;
     rd_source *src = RDS(source);
+    state = PyGILState_Ensure();
 
     /* delete old object */
     Py_XDECREF(src->buffer);
+    src->buffer = NULL;
     args = Py_BuildValue("(i)", nbytes);
 
-    state = PyGILState_Ensure();
     func = PyObject_GetAttrString(src->obj, "read");
     /* printf("%s\n", PyBytes_AsString(PyObject_Repr(func))); */
 

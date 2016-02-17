@@ -178,9 +178,7 @@ CLASSIFIERS = [
     'Programming Language :: Python',
     'Programming Language :: Python :: 2',
     'Programming Language :: Python :: 3',
-    'Programming Language :: Python :: 2.6',
     'Programming Language :: Python :: 2.7',
-    'Programming Language :: Python :: 3.3',
     'Programming Language :: Python :: 3.4',
     'Programming Language :: Python :: 3.5',
     'Programming Language :: Cython',
@@ -292,7 +290,7 @@ class CheckSDist(sdist_class):
 class CheckingBuildExt(build_ext):
     """
     Subclass build_ext to get clearer report if Cython is necessary.
-    Also, add some platform based compiler flags.
+
     """
 
     def check_cython_extensions(self, extensions):
@@ -306,26 +304,7 @@ class CheckingBuildExt(build_ext):
 
     def build_extensions(self):
         self.check_cython_extensions(self.extensions)
-        self.add_gnu_inline_flag(self.extensions)
         build_ext.build_extensions(self)
-
-    def add_gnu_inline_flag(self, extensions):
-        '''
-        Add CFLAGS `-fgnu89-inline` for clang on FreeBSD 10+
-        '''
-        if not platform.system() == 'FreeBSD':
-            return
-
-        try:
-            bsd_release = float(platform.release().split('-')[0])
-        except ValueError:  # unknow freebsd version
-            return
-
-        if bsd_release < 10:  # 9 or earlier still using gcc42
-            return
-
-        for ext in extensions:
-            ext.extra_compile_args += ['-fgnu89-inline']
 
 
 class CythonCommand(build_ext):
@@ -429,8 +408,11 @@ ext_data = dict(
            'sources': ['pandas/src/datetime/np_datetime.c',
                        'pandas/src/datetime/np_datetime_strings.c']},
     algos={'pyxfile': 'algos',
+           'pxdfiles': ['src/skiplist'],
            'depends': [srcpath('generated', suffix='.pyx'),
-                       srcpath('join', suffix='.pyx')]},
+                       srcpath('join', suffix='.pyx'),
+                       'pandas/src/skiplist.pyx',
+                       'pandas/src/skiplist.h']},
     parser={'pyxfile': 'parser',
             'depends': ['pandas/src/parser/tokenizer.h',
                         'pandas/src/parser/io.h',
@@ -482,6 +464,8 @@ else:
     macros = [('__LITTLE_ENDIAN__', '1')]
 
 packer_ext = Extension('pandas.msgpack._packer',
+                        depends=['pandas/src/msgpack/pack.h',
+                                 'pandas/src/msgpack/pack_template.h'],
                         sources = [srcpath('_packer',
                                    suffix=suffix if suffix == '.pyx' else '.cpp',
                                    subdir='msgpack')],
@@ -489,6 +473,9 @@ packer_ext = Extension('pandas.msgpack._packer',
                         include_dirs=['pandas/src/msgpack'] + common_include,
                         define_macros=macros)
 unpacker_ext = Extension('pandas.msgpack._unpacker',
+                        depends=['pandas/src/msgpack/unpack.h',
+                                 'pandas/src/msgpack/unpack_define.h',
+                                 'pandas/src/msgpack/unpack_template.h'],
                         sources = [srcpath('_unpacker',
                                    suffix=suffix if suffix == '.pyx' else '.cpp',
                                    subdir='msgpack')],
@@ -538,6 +525,7 @@ setup(name=DISTNAME,
                 'pandas.computation',
                 'pandas.computation.tests',
                 'pandas.core',
+                'pandas.indexes',
                 'pandas.io',
                 'pandas.rpy',
                 'pandas.sandbox',
@@ -546,6 +534,9 @@ setup(name=DISTNAME,
                 'pandas.stats',
                 'pandas.util',
                 'pandas.tests',
+                'pandas.tests.frame',
+                'pandas.tests.indexes',
+                'pandas.tests.series',
                 'pandas.tests.test_msgpack',
                 'pandas.tools',
                 'pandas.tools.tests',
@@ -560,7 +551,7 @@ setup(name=DISTNAME,
                                   'tests/data/legacy_pickle/*/*.pickle',
                                   'tests/data/legacy_msgpack/*/*.msgpack',
                                   'tests/data/*.csv*',
-                                  'tests/data/*.XPT',
+                                  'tests/data/*.xpt',
                                   'tests/data/*.dta',
                                   'tests/data/*.txt',
                                   'tests/data/*.xls',
@@ -573,6 +564,7 @@ setup(name=DISTNAME,
                     'pandas.tools': ['tests/*.csv'],
                     'pandas.tests': ['data/*.pickle',
                                      'data/*.csv'],
+                    'pandas.tests.indexes': ['data/*.pickle'],
                     'pandas.tseries.tests': ['data/*.pickle',
                                              'data/*.csv']
                     },

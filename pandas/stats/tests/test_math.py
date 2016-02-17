@@ -5,12 +5,8 @@ from numpy.random import randn
 import numpy as np
 
 from pandas.core.api import Series, DataFrame, date_range
-from pandas.util.testing import assert_almost_equal
-import pandas.core.datetools as datetools
-import pandas.stats.moments as mom
 import pandas.util.testing as tm
 import pandas.stats.math as pmath
-import pandas.tests.test_series as ts
 from pandas import ols
 
 N, K = 100, 10
@@ -20,7 +16,7 @@ try:
     import statsmodels.api as sm
 except ImportError:
     try:
-        import scikits.statsmodels.api as sm
+        import scikits.statsmodels.api as sm  # noqa
     except ImportError:
         _have_statsmodels = False
 
@@ -52,7 +48,8 @@ class TestMath(tm.TestCase):
 
         b = Series(np.random.randn(N), self.frame.index)
         result = pmath.solve(self.frame, b)
-        expected = ols(y=b, x=self.frame, intercept=False).beta
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            expected = ols(y=b, x=self.frame, intercept=False).beta
         self.assertTrue(np.allclose(result, expected))
 
     def test_inv_illformed(self):
@@ -62,6 +59,5 @@ class TestMath(tm.TestCase):
         self.assertTrue(np.allclose(rs, expected))
 
 if __name__ == '__main__':
-    import nose
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
                    exit=False)

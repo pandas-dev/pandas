@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+# flake8: noqa
+
 import warnings
 import operator
 from itertools import product
@@ -81,6 +83,7 @@ def _is_py3_complex_incompat(result, expected):
 
 
 _good_arith_ops = com.difference(_arith_ops_syms, _special_case_arith_ops_syms)
+
 
 class TestEvalNumexprPandas(tm.TestCase):
 
@@ -194,7 +197,7 @@ class TestEvalNumexprPandas(tm.TestCase):
                                                                 binop=binop,
                                                                 cmp2=cmp2)
         scalar_with_in_notin = (np.isscalar(rhs) and (cmp1 in skip_these or
-                                cmp2 in skip_these))
+                                                      cmp2 in skip_these))
         if scalar_with_in_notin:
             with tm.assertRaises(TypeError):
                 pd.eval(ex, engine=self.engine, parser=self.parser)
@@ -211,12 +214,12 @@ class TestEvalNumexprPandas(tm.TestCase):
                 # hand side bool ops are fixed.
 
                 # try:
-                    # self.assertRaises(Exception, pd.eval, ex,
-                                    #local_dict={'lhs': lhs, 'rhs': rhs},
-                                    # engine=self.engine, parser=self.parser)
+                # self.assertRaises(Exception, pd.eval, ex,
+                #local_dict={'lhs': lhs, 'rhs': rhs},
+                # engine=self.engine, parser=self.parser)
                 # except AssertionError:
-                    #import ipdb; ipdb.set_trace()
-                    # raise
+                #import ipdb; ipdb.set_trace()
+                # raise
             else:
                 expected = _eval_single_bin(
                     lhs_new, binop, rhs_new, self.engine)
@@ -351,7 +354,7 @@ class TestEvalNumexprPandas(tm.TestCase):
             for engine in self.current_engines:
                 tm.skip_if_no_ne(engine)
                 tm.assert_numpy_array_equal(result, pd.eval('~elb', engine=engine,
-                                            parser=self.parser))
+                                                            parser=self.parser))
 
     def check_compound_invert_op(self, lhs, cmp1, rhs):
         skip_these = 'in', 'not in'
@@ -616,8 +619,8 @@ class TestEvalNumexprPandas(tm.TestCase):
                     '-False, False, ~False, +False,'
                     '-37, 37, ~37, +37]'),
             np.array([-True, True, ~True, +True,
-             -False, False, ~False, +False,
-             -37, 37, ~37, +37]))
+                      -False, False, ~False, +False,
+                      -37, 37, ~37, +37]))
 
     def test_disallow_scalar_bool_ops(self):
         exprs = '1 or 2', '1 and 2'
@@ -662,6 +665,13 @@ class TestEvalNumexprPandas(tm.TestCase):
         result = pd.eval('x', engine=self.engine, parser=self.parser)
         tm.assert_numpy_array_equal(result, np.array([False]))
         self.assertEqual(result.shape, (1, ))
+
+    def test_line_continuation(self):
+        # GH 11149
+        exp = """1 + 2 * \
+        5 - 1 + 2 """
+        result = pd.eval(exp, engine=self.engine, parser=self.parser)
+        self.assertEqual(result, 12)
 
 
 class TestEvalNumexprPython(TestEvalNumexprPandas):
@@ -827,7 +837,8 @@ class TestAlignment(object):
                         res = pd.eval('df + df2 + df3', engine=engine,
                                       parser=parser)
                 else:
-                    res = pd.eval('df + df2 + df3', engine=engine, parser=parser)
+                    res = pd.eval('df + df2 + df3',
+                                  engine=engine, parser=parser)
                 assert_frame_equal(res, df + df2 + df3)
 
     @slow
@@ -889,13 +900,13 @@ class TestAlignment(object):
 
         # only test dt with dt, otherwise weird joins result
         args = product(['i', 'u', 's'], ['i', 'u', 's'], ('index', 'columns'))
-        for r_idx_type, c_idx_type, index_name in args:
-            testit(r_idx_type, c_idx_type, index_name)
+        with warnings.catch_warnings(record=True):
+            for r_idx_type, c_idx_type, index_name in args:
+                testit(r_idx_type, c_idx_type, index_name)
 
         # dt with dt
         args = product(['dt'], ['dt'], ('index', 'columns'))
         with warnings.catch_warnings(record=True):
-            warnings.simplefilter('always', RuntimeWarning)
             for r_idx_type, c_idx_type, index_name in args:
                 testit(r_idx_type, c_idx_type, index_name)
 
@@ -991,7 +1002,7 @@ class TestAlignment(object):
         df = DataFrame(randn(1000, 10))
         s = Series(randn(10000))
         if engine == 'numexpr':
-            seen = pd.io.common.PerformanceWarning
+            seen = pd.core.common.PerformanceWarning
         else:
             seen = False
 
@@ -1013,7 +1024,7 @@ class TestAlignment(object):
         is_python_engine = engine == 'python'
 
         if not is_python_engine:
-            wrn = pd.io.common.PerformanceWarning
+            wrn = pd.core.common.PerformanceWarning
         else:
             wrn = False
 
@@ -1220,21 +1231,21 @@ class TestOperationsNumExprPandas(tm.TestCase):
         expected = orig_df.copy()
         expected['a'] = expected['a'] + expected['b']
         df = orig_df.copy()
-        df.eval('a = a + b')
+        df.eval('a = a + b', inplace=True)
         assert_frame_equal(df, expected)
 
         # single assignment - new variable
         expected = orig_df.copy()
         expected['c'] = expected['a'] + expected['b']
         df = orig_df.copy()
-        df.eval('c = a + b')
+        df.eval('c = a + b', inplace=True)
         assert_frame_equal(df, expected)
 
         # with a local name overlap
         def f():
             df = orig_df.copy()
-            a = 1
-            df.eval('a = 1 + b')
+            a = 1  # noqa
+            df.eval('a = 1 + b', inplace=True)
             return df
 
         df = f()
@@ -1245,9 +1256,9 @@ class TestOperationsNumExprPandas(tm.TestCase):
         df = orig_df.copy()
 
         def f():
-            a = 1
+            a = 1  # noqa
             old_a = df.a.copy()
-            df.eval('a = a + b')
+            df.eval('a = a + b', inplace=True)
             result = old_a + df.b
             assert_series_equal(result, df.a, check_names=False)
             self.assertTrue(result.name is None)
@@ -1256,12 +1267,13 @@ class TestOperationsNumExprPandas(tm.TestCase):
 
         # multiple assignment
         df = orig_df.copy()
-        df.eval('c = a + b')
+        df.eval('c = a + b', inplace=True)
         self.assertRaises(SyntaxError, df.eval, 'c = a = b')
 
         # explicit targets
         df = orig_df.copy()
-        self.eval('c = df.a + df.b', local_dict={'df': df}, target=df)
+        self.eval('c = df.a + df.b', local_dict={'df': df},
+                  target=df, inplace=True)
         expected = orig_df.copy()
         expected['c'] = expected['a'] + expected['b']
         assert_frame_equal(df, expected)
@@ -1272,6 +1284,89 @@ class TestOperationsNumExprPandas(tm.TestCase):
         result = df.eval('a in [11, -32]')
         expected = Series([True])
         assert_series_equal(result, expected)
+
+    def assignment_not_inplace(self):
+        # GH 9297
+        tm.skip_if_no_ne('numexpr')
+        df = DataFrame(np.random.randn(5, 2), columns=list('ab'))
+
+        actual = df.eval('c = a + b', inplace=False)
+        self.assertIsNotNone(actual)
+        expected = df.copy()
+        expected['c'] = expected['a'] + expected['b']
+        assert_frame_equal(df, expected)
+
+        # default for inplace will change
+        with tm.assert_produces_warnings(FutureWarning):
+            df.eval('c = a + b')
+
+        # but don't warn without assignment
+        with tm.assert_produces_warnings(None):
+            df.eval('a + b')
+
+    def test_multi_line_expression(self):
+        # GH 11149
+        tm.skip_if_no_ne('numexpr')
+        df = pd.DataFrame({'a': [1, 2, 3], 'b': [4, 5, 6]})
+        expected = df.copy()
+
+        expected['c'] = expected['a'] + expected['b']
+        expected['d'] = expected['c'] + expected['b']
+        ans = df.eval("""
+        c = a + b
+        d = c + b""", inplace=True)
+        assert_frame_equal(expected, df)
+        self.assertIsNone(ans)
+
+        expected['a'] = expected['a'] - 1
+        expected['e'] = expected['a'] + 2
+        ans = df.eval("""
+        a = a - 1
+        e = a + 2""", inplace=True)
+        assert_frame_equal(expected, df)
+        self.assertIsNone(ans)
+
+        # multi-line not valid if not all assignments
+        with tm.assertRaises(ValueError):
+            df.eval("""
+            a = b + 2
+            b - 2""", inplace=False)
+
+    def test_multi_line_expression_not_inplace(self):
+        # GH 11149
+        tm.skip_if_no_ne('numexpr')
+        df = pd.DataFrame({'a': [1, 2, 3], 'b': [4, 5, 6]})
+        expected = df.copy()
+
+        expected['c'] = expected['a'] + expected['b']
+        expected['d'] = expected['c'] + expected['b']
+        df = df.eval("""
+        c = a + b
+        d = c + b""", inplace=False)
+        assert_frame_equal(expected, df)
+
+        expected['a'] = expected['a'] - 1
+        expected['e'] = expected['a'] + 2
+        df = df.eval("""
+        a = a - 1
+        e = a + 2""", inplace=False)
+        assert_frame_equal(expected, df)
+
+    def test_assignment_in_query(self):
+        # GH 8664
+        df = pd.DataFrame({'a': [1, 2, 3], 'b': [4, 5, 6]})
+        df_orig = df.copy()
+        with tm.assertRaises(ValueError):
+            df.query('a = 1')
+        assert_frame_equal(df, df_orig)
+
+    def query_inplace(self):
+        # GH 11149
+        df = pd.DataFrame({'a': [1, 2, 3], 'b': [4, 5, 6]})
+        expected = df.copy()
+        expected = expected[expected['a'] == 2]
+        df.query('a == 2', inplace=True)
+        assert_frame_equal(expected, df)
 
     def test_basic_period_index_boolean_expression(self):
         df = mkdf(2, 2, data_gen_f=f, c_idx_type='p', r_idx_type='i')
@@ -1458,6 +1553,7 @@ class TestOperationsPythonPandas(TestOperationsNumExprPandas):
 
 
 class TestMathPythonPython(tm.TestCase):
+
     @classmethod
     def setUpClass(cls):
         super(TestMathPythonPython, cls).setUpClass()
@@ -1484,7 +1580,7 @@ class TestMathPythonPython(tm.TestCase):
             expr = "{0}(a)".format(fn)
             got = self.eval(expr)
             expect = getattr(np, fn)(a)
-            pd.util.testing.assert_almost_equal(got, expect)
+            tm.assert_series_equal(got, expect, check_names=False)
 
     def test_binary_functions(self):
         df = DataFrame({'a': np.random.randn(10),
@@ -1502,38 +1598,43 @@ class TestMathPythonPython(tm.TestCase):
                         'b': np.random.randn(10)})
         df.eval("e = arctan2(sin(a), b)",
                 engine=self.engine,
-                parser=self.parser)
+                parser=self.parser, inplace=True)
         got = df.e
         expect = np.arctan2(np.sin(df.a), df.b)
-        pd.util.testing.assert_almost_equal(got, expect)
+        tm.assert_series_equal(got, expect, check_names=False)
 
     def test_df_arithmetic_subexpression(self):
         df = DataFrame({'a': np.random.randn(10),
                         'b': np.random.randn(10)})
         df.eval("e = sin(a + b)",
                 engine=self.engine,
-                parser=self.parser)
+                parser=self.parser, inplace=True)
         got = df.e
         expect = np.sin(df.a + df.b)
-        pd.util.testing.assert_almost_equal(got, expect)
+        tm.assert_series_equal(got, expect, check_names=False)
 
     def check_result_type(self, dtype, expect_dtype):
         df = DataFrame({'a': np.random.randn(10).astype(dtype)})
         self.assertEqual(df.a.dtype, dtype)
         df.eval("b = sin(a)",
                 engine=self.engine,
-                parser=self.parser)
+                parser=self.parser, inplace=True)
         got = df.b
         expect = np.sin(df.a)
         self.assertEqual(expect.dtype, got.dtype)
         self.assertEqual(expect_dtype, got.dtype)
-        pd.util.testing.assert_almost_equal(got, expect)
+        tm.assert_series_equal(got, expect, check_names=False)
 
     def test_result_types(self):
         self.check_result_type(np.int32, np.float64)
         self.check_result_type(np.int64, np.float64)
         self.check_result_type(np.float32, np.float32)
         self.check_result_type(np.float64, np.float64)
+
+    def test_result_types2(self):
+	# xref https://github.com/pydata/pandas/issues/12293
+        tm._skip_if_windows()
+
         # Did not test complex64 because DataFrame is converting it to
         # complex128. Due to https://github.com/pydata/pandas/issues/10952
         self.check_result_type(np.complex128, np.complex128)
@@ -1557,6 +1658,7 @@ class TestMathPythonPython(tm.TestCase):
 
 
 class TestMathPythonPandas(TestMathPythonPython):
+
     @classmethod
     def setUpClass(cls):
         super(TestMathPythonPandas, cls).setUpClass()
@@ -1565,6 +1667,7 @@ class TestMathPythonPandas(TestMathPythonPython):
 
 
 class TestMathNumExprPandas(TestMathPythonPython):
+
     @classmethod
     def setUpClass(cls):
         super(TestMathNumExprPandas, cls).setUpClass()
@@ -1573,6 +1676,7 @@ class TestMathNumExprPandas(TestMathPythonPython):
 
 
 class TestMathNumExprPython(TestMathPythonPython):
+
     @classmethod
     def setUpClass(cls):
         super(TestMathNumExprPython, cls).setUpClass()
@@ -1588,7 +1692,7 @@ class TestScope(object):
     def check_global_scope(self, e, engine, parser):
         tm.skip_if_no_ne(engine)
         tm.assert_numpy_array_equal(_var_s * 2, pd.eval(e, engine=engine,
-                                    parser=parser))
+                                                        parser=parser))
 
     def test_global_scope(self):
         e = '_var_s * 2'
@@ -1728,7 +1832,7 @@ def check_numexpr_builtin_raises(engine, parser):
     sin, dotted_line = 1, 2
     if engine == 'numexpr':
         with tm.assertRaisesRegexp(NumExprClobberingError,
-                                'Variables in expression .+'):
+                                   'Variables in expression .+'):
             pd.eval('sin + dotted_line', engine=engine, parser=parser)
     else:
         res = pd.eval('sin + dotted_line', engine=engine, parser=parser)
@@ -1814,6 +1918,7 @@ def check_negate_lt_eq_le(engine, parser):
     else:
         result = df.query('not (cat > 0)', engine=engine, parser=parser)
         tm.assert_frame_equal(result, expected)
+
 
 def test_negate_lt_eq_le():
     for engine, parser in product(_engines, expr._parsers):

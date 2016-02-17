@@ -194,7 +194,7 @@ Bug Fixes
 - Bug in Timestamp-Timestamp not returning a Timedelta type and datelike-datelike ops with timezones (:issue:`8865`)
 - Made consistent a timezone mismatch exception (either tz operated with None or incompatible timezone), will now return ``TypeError`` rather than ``ValueError`` (a couple of edge cases only), (:issue:`8865`)
 - Bug in using a ``pd.Grouper(key=...)`` with no level/axis or level only (:issue:`8795`, :issue:`8866`)
-- Report a ``TypeError`` when invalid/no paramaters are passed in a groupby (:issue:`8015`)
+- Report a ``TypeError`` when invalid/no parameters are passed in a groupby (:issue:`8015`)
 - Bug in packaging pandas with ``py2app/cx_Freeze`` (:issue:`8602`, :issue:`8831`)
 - Bug in ``groupby`` signatures that didn't include \*args or \*\*kwargs (:issue:`8733`).
 - ``io.data.Options`` now raises ``RemoteDataError`` when no expiry dates are available from Yahoo and when it receives no data from Yahoo (:issue:`8761`), (:issue:`8783`).
@@ -238,4 +238,3 @@ Bug Fixes
 - Bug in plotting if sharex was enabled and index was a timeseries, would show labels on multiple axes (:issue:`3964`).
 - Bug where passing a unit to the TimedeltaIndex constructor applied the to nano-second conversion twice. (:issue:`9011`).
 - Bug in plotting of a period-like array (:issue:`9012`)
-

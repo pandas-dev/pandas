@@ -7,7 +7,7 @@ v0.17.1 (November 21, 2015)
 
    We are proud to announce that *pandas* has become a sponsored project of the (`NUMFocus organization`_). This will help ensure the success of development of *pandas* as a world-class open-source project.
 
-.. _numfocus organization: http://numfocus.org/news/2015/10/09/numfocus-announces-new-fiscally-sponsored-project-pandas/
+.. _numfocus organization: http://www.numfocus.org/blog/numfocus-announces-new-fiscally-sponsored-project-pandas
 
 This is a minor bug-fix release from 0.17.0 and includes a large number of
 bug fixes along several new features, enhancements, and performance improvements.

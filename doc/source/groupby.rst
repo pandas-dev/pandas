@@ -10,10 +10,7 @@
    import pandas as pd
    pd.options.display.max_rows = 15
    import matplotlib
-   try:
-      matplotlib.style.use('ggplot')
-   except AttributeError:
-      pd.options.display.mpl_style = 'default'
+   matplotlib.style.use('ggplot')
    import matplotlib.pyplot as plt
    plt.close('all')
 
@@ -519,7 +516,7 @@ to standardize the data within each group:
 
    index = pd.date_range('10/1/1999', periods=1100)
    ts = pd.Series(np.random.normal(0.5, 2, 1100), index)
-   ts = pd.rolling_mean(ts, 100, 100).dropna()
+   ts = ts.rolling(window=100,min_periods=100).mean().dropna()
 
    ts.head()
    ts.tail()
@@ -649,7 +646,7 @@ For dataframes with multiple columns, filters should explicitly specify a column
 .. note::
 
    Some functions when applied to a groupby object will act as a **filter** on the input, returning
-   a reduced shape of the original (and potentitally eliminating groups), but with the index unchanged.
+   a reduced shape of the original (and potentially eliminating groups), but with the index unchanged.
    Passing ``as_index=False`` will not affect these transformation methods.
 
    For example: ``head, tail``.

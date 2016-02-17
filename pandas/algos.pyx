@@ -226,13 +226,26 @@ def rank_1d_int64(object in_arr, ties_method='average', ascending=True,
         ndarray[int64_t] sorted_data, values
         ndarray[float64_t] ranks
         ndarray[int64_t] argsorted
-        int64_t val
+        int64_t val, nan_value
         float64_t sum_ranks = 0
+        bint keep_na
         int tiebreak = 0
         float count = 0.0
     tiebreak = tiebreakers[ties_method]
 
+    keep_na = na_option == 'keep'
+
     values = np.asarray(in_arr)
+
+    if ascending ^ (na_option == 'top'):
+        nan_value = np.iinfo('int64').max
+    else:
+        nan_value = np.iinfo('int64').min
+
+    # unlike floats, which have np.inf, -np.inf, and np.nan
+    # ints do not
+    mask = values == iNaT
+    np.putmask(values, mask, nan_value)
 
     n = len(values)
     ranks = np.empty(n, dtype='f8')
@@ -256,6 +269,9 @@ def rank_1d_int64(object in_arr, ties_method='average', ascending=True,
         sum_ranks += i + 1
         dups += 1
         val = sorted_data[i]
+        if (val == nan_value) and keep_na:
+            ranks[argsorted[i]] = nan
+            continue
         count += 1.0
         if i == n - 1 or fabs(sorted_data[i + 1] - val) > 0:
             if tiebreak == TIEBREAK_AVERAGE:
@@ -387,16 +403,30 @@ def rank_2d_int64(object in_arr, axis=0, ties_method='average',
         ndarray[float64_t, ndim=2] ranks
         ndarray[int64_t, ndim=2] argsorted
         ndarray[int64_t, ndim=2, cast=True] values
-        int64_t val
+        int64_t val, nan_value
         float64_t sum_ranks = 0
+        bint keep_na = 0
         int tiebreak = 0
         float count = 0.0
     tiebreak = tiebreakers[ties_method]
 
+    keep_na = na_option == 'keep'
+
+    in_arr = np.asarray(in_arr)
+
     if axis == 0:
-        values = np.asarray(in_arr).T
+        values = in_arr.T.copy()
     else:
-        values = np.asarray(in_arr)
+        values = in_arr.copy()
+
+    if ascending ^ (na_option == 'top'):
+        nan_value = np.iinfo('int64').max
+    else:
+        nan_value = np.iinfo('int64').min
+
+    # unlike floats, which have np.inf, -np.inf, and np.nan
+    # ints do not
+    np.putmask(values, values == iNaT, nan_value)
 
     n, k = (<object> values).shape
     ranks = np.empty((n, k), dtype='f8')
@@ -423,6 +453,9 @@ def rank_2d_int64(object in_arr, axis=0, ties_method='average',
             sum_ranks += j + 1
             dups += 1
             val = values[i, j]
+            if val == nan_value and keep_na:
+                ranks[i, argsorted[i, j]] = nan
+                continue
             count += 1.0
             if j == k - 1 or fabs(values[i, j + 1] - val) > FP_ERR:
                 if tiebreak == TIEBREAK_AVERAGE:

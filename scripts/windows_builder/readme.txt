@@ -8,9 +8,9 @@ Full python installs for each version with the deps
 
 Currently supporting
 
-26-32,26-64,27-32,27-64,33-32,33-64,34-32,34-64
+27-32,27-64,34-32,34-64
 
-Note that 33 and 34 use the 4.0 SDK, while the other suse 3.5 SDK
+Note that 34 use the 4.0 SDK, while the other suse 3.5 SDK
 
 I installed these scripts in C:\Builds
 

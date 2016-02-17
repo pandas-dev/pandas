@@ -24,13 +24,17 @@ def pivot_table(data, values=None, index=None, columns=None, aggfunc='mean',
     ----------
     data : DataFrame
     values : column to aggregate, optional
-    index : a column, Grouper, array which has the same length as data, or list of them.
-        Keys to group by on the pivot table index.
-        If an array is passed, it is being used as the same manner as column values.
-    columns : a column, Grouper, array which has the same length as data, or list of them.
-        Keys to group by on the pivot table column.
-        If an array is passed, it is being used as the same manner as column values.
-    aggfunc : function, default numpy.mean, or list of functions
+    index : column, Grouper, array, or list of the previous
+        If an array is passed, it must be the same length as the data. The list
+        can contain any of the other types (except list).
+        Keys to group by on the pivot table index.  If an array is passed, it
+        is being used as the same manner as column values.
+    columns : column, Grouper, array, or list of the previous
+        If an array is passed, it must be the same length as the data. The list
+        can contain any of the other types (except list).
+        Keys to group by on the pivot table column.  If an array is passed, it
+        is being used as the same manner as column values.
+    aggfunc : function or list of functions, default numpy.mean
         If list of functions passed, the resulting pivot table will have
         hierarchical columns whose top level are the function names (inferred
         from the function objects themselves)
@@ -78,7 +82,8 @@ def pivot_table(data, values=None, index=None, columns=None, aggfunc='mean',
         pieces = []
         keys = []
         for func in aggfunc:
-            table = pivot_table(data, values=values, index=index, columns=columns,
+            table = pivot_table(data, values=values, index=index,
+                                columns=columns,
                                 fill_value=fill_value, aggfunc=func,
                                 margins=margins)
             pieces.append(table)
@@ -89,8 +94,9 @@ def pivot_table(data, values=None, index=None, columns=None, aggfunc='mean',
 
     values_passed = values is not None
     if values_passed:
-        if isinstance(values, (list, tuple)):
+        if com.is_list_like(values):
             values_multi = True
+            values = list(values)
         else:
             values_multi = False
             values = [values]
@@ -124,7 +130,7 @@ def pivot_table(data, values=None, index=None, columns=None, aggfunc='mean',
             m = MultiIndex.from_arrays(cartesian_product(table.index.levels))
             table = table.reindex_axis(m, axis=0)
         except AttributeError:
-            pass # it's a single level
+            pass  # it's a single level
 
         try:
             m = MultiIndex.from_arrays(cartesian_product(table.columns.levels))
@@ -147,7 +153,7 @@ def pivot_table(data, values=None, index=None, columns=None, aggfunc='mean',
                              margins_name=margins_name)
 
     # discard the top level
-    if values_passed and not values_multi:
+    if values_passed and not values_multi and not table.empty:
         table = table[values[0]]
 
     if len(index) == 0 and len(columns) > 0:
@@ -197,7 +203,7 @@ def _add_margins(table, data, values, rows, cols, aggfunc,
         result, margin_keys, row_margin = marginal_result_set
     else:
         marginal_result_set = _generate_marginal_results_without_values(
-                table, data, rows, cols, aggfunc, margins_name)
+            table, data, rows, cols, aggfunc, margins_name)
         if not isinstance(marginal_result_set, tuple):
             return marginal_result_set
         result, margin_keys, row_margin = marginal_result_set
@@ -273,7 +279,8 @@ def _generate_marginal_results(table, data, values, rows, cols, aggfunc,
                 except TypeError:
 
                     # we cannot reshape, so coerce the axis
-                    piece.set_axis(cat_axis, piece._get_axis(cat_axis)._to_safe_for_reshape())
+                    piece.set_axis(cat_axis, piece._get_axis(
+                        cat_axis)._to_safe_for_reshape())
                     piece[all_key] = margin[key]
 
                 table_pieces.append(piece)
@@ -349,12 +356,14 @@ def _generate_marginal_results_without_values(
 def _convert_by(by):
     if by is None:
         by = []
-    elif (np.isscalar(by) or isinstance(by, (np.ndarray, Index, Series, Grouper))
-          or hasattr(by, '__call__')):
+    elif (np.isscalar(by) or isinstance(by, (np.ndarray, Index,
+                                             Series, Grouper)) or
+          hasattr(by, '__call__')):
         by = [by]
     else:
         by = list(by)
     return by
+
 
 def crosstab(index, columns, values=None, rownames=None, colnames=None,
              aggfunc=None, margins=False, dropna=True):
@@ -386,6 +395,9 @@ def crosstab(index, columns, values=None, rownames=None, colnames=None,
     -----
     Any Series passed will have their name attributes used unless row or column
     names for the cross-tabulation are specified
+
+    In the event that there aren't overlapping indexes an empty DataFrame will
+    be returned.
 
     Examples
     --------

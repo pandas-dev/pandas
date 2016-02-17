@@ -2,16 +2,16 @@
 from pandas import compat
 import nose
 
+from distutils.version import LooseVersion
 from numpy import nan
 import numpy as np
 
 from pandas import Series, DataFrame
 
 from pandas.compat import product
-from pandas.util.testing import (assert_frame_equal,
-                                 assert_series_equal,
-                                 assert_almost_equal)
+from pandas.util.testing import (assert_frame_equal, assert_series_equal)
 import pandas.util.testing as tm
+
 
 class TestRank(tm.TestCase):
     _multiprocess_can_split_ = True
@@ -32,7 +32,7 @@ class TestRank(tm.TestCase):
 
         def _check(s, expected, method='average'):
             result = s.rank(method=method)
-            assert_almost_equal(result, expected)
+            tm.assert_series_equal(result, Series(expected))
 
         dtypes = [None, object]
         disabled = set([(object, 'first')])
@@ -46,10 +46,11 @@ class TestRank(tm.TestCase):
 
     def test_rank_methods_series(self):
         tm.skip_if_no_package('scipy', '0.13', 'scipy.stats.rankdata')
+        import scipy
         from scipy.stats import rankdata
 
         xs = np.random.randn(9)
-        xs = np.concatenate([xs[i:] for i in range(0, 9, 2)]) # add duplicates
+        xs = np.concatenate([xs[i:] for i in range(0, 9, 2)])  # add duplicates
         np.random.shuffle(xs)
 
         index = [chr(ord('a') + i) for i in range(len(xs))]
@@ -58,12 +59,17 @@ class TestRank(tm.TestCase):
             ts = Series(vals, index=index)
 
             for m in ['average', 'min', 'max', 'first', 'dense']:
-                result = ts.rank(m)
+                result = ts.rank(method=m)
                 sprank = rankdata(vals, m if m != 'first' else 'ordinal')
-                tm.assert_series_equal(result, Series(sprank, index=index))
+                expected = Series(sprank, index=index)
+
+                if LooseVersion(scipy.__version__) >= '0.17.0':
+                    expected = expected.astype('float64')
+                tm.assert_series_equal(result, expected)
 
     def test_rank_methods_frame(self):
         tm.skip_if_no_package('scipy', '0.13', 'scipy.stats.rankdata')
+        import scipy
         from scipy.stats import rankdata
 
         xs = np.random.randint(0, 21, (100, 26))
@@ -76,9 +82,14 @@ class TestRank(tm.TestCase):
             for ax in [0, 1]:
                 for m in ['average', 'min', 'max', 'first', 'dense']:
                     result = df.rank(axis=ax, method=m)
-                    sprank = np.apply_along_axis(rankdata, ax, vals,
-                                      m if m != 'first' else 'ordinal')
+                    sprank = np.apply_along_axis(
+                        rankdata, ax, vals,
+                        m if m != 'first' else 'ordinal')
+                    sprank = sprank.astype(np.float64)
                     expected = DataFrame(sprank, columns=cols)
+
+                    if LooseVersion(scipy.__version__) >= '0.17.0':
+                        expected = expected.astype('float64')
                     tm.assert_frame_equal(result, expected)
 
     def test_rank_dense_method(self):
@@ -86,11 +97,11 @@ class TestRank(tm.TestCase):
         in_out = [([1], [1]),
                   ([2], [1]),
                   ([0], [1]),
-                  ([2,2], [1,1]),
-                  ([1,2,3], [1,2,3]),
-                  ([4,2,1], [3,2,1],),
-                  ([1,1,5,5,3], [1,1,3,3,2]),
-                  ([-5,-4,-3,-2,-1], [1,2,3,4,5])]
+                  ([2, 2], [1, 1]),
+                  ([1, 2, 3], [1, 2, 3]),
+                  ([4, 2, 1], [3, 2, 1],),
+                  ([1, 1, 5, 5, 3], [1, 1, 3, 3, 2]),
+                  ([-5, -4, -3, -2, -1], [1, 2, 3, 4, 5])]
 
         for ser, exp in in_out:
             for dtype in dtypes:
@@ -137,7 +148,6 @@ class TestRank(tm.TestCase):
             assert_frame_equal(res3, expected)
 
     def test_rank_2d_tie_methods(self):
-        s = self.s
         df = self.df
 
         def _check2d(df, expected, method='average', axis=0):

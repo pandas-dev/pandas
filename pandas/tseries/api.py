@@ -2,6 +2,7 @@
 
 """
 
+# flake8: noqa
 
 from pandas.tseries.index import DatetimeIndex, date_range, bdate_range
 from pandas.tseries.frequencies import infer_freq

@@ -1,4 +1,5 @@
 # pylint: disable-msg=W0611,W0402
+# flake8: noqa
 
 from datetime import datetime
 import string
@@ -54,6 +55,7 @@ def check_for_statsmodels():
 
 
 class BaseTest(tm.TestCase):
+
     def setUp(self):
         check_for_scipy()
         check_for_statsmodels()

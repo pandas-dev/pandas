@@ -1,4 +1,4 @@
-from pandas.compat import range, lrange
+from pandas.compat import lrange
 import numpy as np
 import pandas.core.common as com
 from pandas.core.frame import DataFrame

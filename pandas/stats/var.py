@@ -1,3 +1,5 @@
+# flake8: noqa
+
 from __future__ import division
 
 from pandas.compat import range, lrange, zip, reduce
@@ -26,6 +28,12 @@ class VAR(StringMixin):
     """
 
     def __init__(self, data, p=1, intercept=True):
+        import warnings
+        warnings.warn("The pandas.stats.var module is deprecated and will be "
+                      "removed in a future version. We refer to external packages "
+                      "like statsmodels, see some examples here: http://statsmodels.sourceforge.net/stable/vector_ar.html#var",
+                      FutureWarning, stacklevel=4)
+
         try:
             import statsmodels.tsa.vector_ar.api as sm_var
         except ImportError:
@@ -511,6 +519,7 @@ class PanelVAR(VAR):
     data: Panel or dict of DataFrame
     lags: int
     """
+
     def __init__(self, data, lags, intercept=True):
         self._data = _prep_panel_data(data)
         self._p = lags

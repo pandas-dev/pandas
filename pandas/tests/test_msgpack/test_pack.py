@@ -2,12 +2,12 @@
 # coding: utf-8
 
 import unittest
-import nose
 
 import struct
 from pandas import compat
 from pandas.compat import u, OrderedDict
 from pandas.msgpack import packb, unpackb, Unpacker, Packer
+
 
 class TestPack(unittest.TestCase):
 
@@ -20,25 +20,25 @@ class TestPack(unittest.TestCase):
             0, 1, 127, 128, 255, 256, 65535, 65536,
             -1, -32, -33, -128, -129, -32768, -32769,
             1.0,
-            b"", b"a", b"a"*31, b"a"*32,
+            b"", b"a", b"a" * 31, b"a" * 32,
             None, True, False,
             (), ((),), ((), None,),
             {None: 0},
-            (1<<23),
-            ]
+            (1 << 23),
+        ]
         for td in test_data:
             self.check(td)
 
     def testPackUnicode(self):
-        test_data = [
-            u(""), u("abcd"), [u("defgh")], u("Русский текст"),
-            ]
+        test_data = [u(""), u("abcd"), [u("defgh")], u("Русский текст"), ]
         for td in test_data:
-            re = unpackb(packb(td, encoding='utf-8'), use_list=1, encoding='utf-8')
+            re = unpackb(
+                packb(td, encoding='utf-8'), use_list=1, encoding='utf-8')
             assert re == td
             packer = Packer(encoding='utf-8')
             data = packer.pack(td)
-            re = Unpacker(compat.BytesIO(data), encoding='utf-8', use_list=1).unpack()
+            re = Unpacker(
+                compat.BytesIO(data), encoding='utf-8', use_list=1).unpack()
             assert re == td
 
     def testPackUTF32(self):
@@ -47,30 +47,36 @@ class TestPack(unittest.TestCase):
             compat.u("abcd"),
             [compat.u("defgh")],
             compat.u("Русский текст"),
-            ]
+        ]
         for td in test_data:
-            re = unpackb(packb(td, encoding='utf-32'), use_list=1, encoding='utf-32')
+            re = unpackb(
+                packb(td, encoding='utf-32'), use_list=1, encoding='utf-32')
             assert re == td
 
     def testPackBytes(self):
-        test_data = [
-            b"", b"abcd", (b"defgh",),
-            ]
+        test_data = [b"", b"abcd", (b"defgh", ), ]
         for td in test_data:
             self.check(td)
 
     def testIgnoreUnicodeErrors(self):
-        re = unpackb(packb(b'abc\xeddef'), encoding='utf-8', unicode_errors='ignore', use_list=1)
+        re = unpackb(
+            packb(b'abc\xeddef'), encoding='utf-8', unicode_errors='ignore',
+            use_list=1)
         assert re == "abcdef"
 
     def testStrictUnicodeUnpack(self):
-        self.assertRaises(UnicodeDecodeError, unpackb, packb(b'abc\xeddef'), encoding='utf-8', use_list=1)
+        self.assertRaises(UnicodeDecodeError, unpackb, packb(b'abc\xeddef'),
+                          encoding='utf-8', use_list=1)
 
     def testStrictUnicodePack(self):
-        self.assertRaises(UnicodeEncodeError, packb, compat.u("abc\xeddef"), encoding='ascii', unicode_errors='strict')
+        self.assertRaises(UnicodeEncodeError, packb, compat.u("abc\xeddef"),
+                          encoding='ascii', unicode_errors='strict')
 
     def testIgnoreErrorsPack(self):
-        re = unpackb(packb(compat.u("abcФФФdef"), encoding='ascii', unicode_errors='ignore'), encoding='utf-8', use_list=1)
+        re = unpackb(
+            packb(
+                compat.u("abcФФФdef"), encoding='ascii',
+                unicode_errors='ignore'), encoding='utf-8', use_list=1)
         assert re == compat.u("abcdef")
 
     def testNoEncoding(self):
@@ -81,8 +87,10 @@ class TestPack(unittest.TestCase):
         assert re == b"abc"
 
     def testPackFloat(self):
-        assert packb(1.0, use_single_float=True)  == b'\xca' + struct.pack('>f', 1.0)
-        assert packb(1.0, use_single_float=False) == b'\xcb' + struct.pack('>d', 1.0)
+        assert packb(1.0,
+                     use_single_float=True) == b'\xca' + struct.pack('>f', 1.0)
+        assert packb(
+            1.0, use_single_float=False) == b'\xcb' + struct.pack('>d', 1.0)
 
     def testArraySize(self, sizes=[0, 5, 50, 1000]):
         bio = compat.BytesIO()
@@ -118,23 +126,24 @@ class TestPack(unittest.TestCase):
         for size in sizes:
             bio.write(packer.pack_map_header(size))
             for i in range(size):
-                bio.write(packer.pack(i)) # key
-                bio.write(packer.pack(i * 2)) # value
+                bio.write(packer.pack(i))  # key
+                bio.write(packer.pack(i * 2))  # value
 
         bio.seek(0)
         unpacker = Unpacker(bio)
         for size in sizes:
             assert unpacker.unpack() == dict((i, i * 2) for i in range(size))
 
-
     def test_odict(self):
         seq = [(b'one', 1), (b'two', 2), (b'three', 3), (b'four', 4)]
         od = OrderedDict(seq)
         assert unpackb(packb(od), use_list=1) == dict(seq)
+
         def pair_hook(seq):
             return list(seq)
-        assert unpackb(packb(od), object_pairs_hook=pair_hook, use_list=1) == seq
 
+        assert unpackb(
+            packb(od), object_pairs_hook=pair_hook, use_list=1) == seq
 
     def test_pairlist(self):
         pairlist = [(b'a', 1), (2, b'b'), (b'foo', b'bar')]

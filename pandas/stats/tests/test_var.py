@@ -1,3 +1,5 @@
+# flake8: noqa
+
 from __future__ import print_function
 from numpy.testing import run_module_suite, assert_equal, TestCase
 
@@ -29,6 +31,7 @@ DECIMAL_2 = 2
 
 
 class CheckVAR(object):
+
     def test_params(self):
         assert_almost_equal(self.res1.params, self.res2.params, DECIMAL_3)
 
@@ -80,6 +83,7 @@ class CheckVAR(object):
 
 
 class Foo(object):
+
     def __init__(self):
         data = sm.datasets.macrodata.load()
         data = data.data[['realinv', 'realgdp', 'realcons']].view((float, 3))

@@ -228,6 +228,27 @@ which level in the columns to stack:
    df2.stack('exp')
    df2.stack('animal')
 
+Unstacking can result in missing values if subgroups do not have the same
+set of labels.  By default, missing values will be replaced with the default
+fill value for that data type, ``NaN`` for float, ``NaT`` for datetimelike,
+etc.  For integer types, by default data will converted to float and missing
+values will be set to ``NaN``.
+
+.. ipython:: python
+
+   df3 = df.iloc[[0, 1, 4, 7], [1, 2]]
+   df3
+   df3.unstack()
+
+.. versionadded: 0.18.0
+
+Alternatively, unstack takes an optional ``fill_value`` argument, for specifying
+the value of missing data.
+
+.. ipython:: python
+
+   df3.unstack(fill_value=-1e9)
+
 With a MultiIndex
 ~~~~~~~~~~~~~~~~~
 
@@ -517,6 +538,32 @@ the prefix separator. You can specify ``prefix`` and ``prefix_sep`` in 3 ways
     from_list
     from_dict = pd.get_dummies(df, prefix={'B': 'from_B', 'A': 'from_A'})
     from_dict
+
+.. versionadded:: 0.18.0
+
+Sometimes it will be useful to only keep k-1 levels of a categorical
+variable to avoid collinearity when feeding the result to statistical models.
+You can switch to this mode by turn on ``drop_first``.
+
+.. ipython:: python
+
+    s = pd.Series(list('abcaa'))
+
+    pd.get_dummies(s)
+
+    pd.get_dummies(s, drop_first=True)
+
+When a column contains only one level, it will be omitted in the result.
+
+.. ipython:: python
+
+    df = pd.DataFrame({'A':list('aaaaa'),'B':list('ababc')})
+
+    pd.get_dummies(df)
+
+    pd.get_dummies(df, drop_first=True)
+
+
 
 Factorizing values
 ------------------

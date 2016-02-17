@@ -178,7 +178,7 @@ It's also possible to pass in the categories in a specific order:
 
 .. note::
 
-    New categorical data are NOT automatically ordered. You must explicity pass ``ordered=True`` to
+    New categorical data are NOT automatically ordered. You must explicitly pass ``ordered=True`` to
     indicate an ordered ``Categorical``.
 
 
@@ -342,7 +342,7 @@ necessarily make the sort order the same as the categories order.
 Multi Column Sorting
 ~~~~~~~~~~~~~~~~~~~~
 
-A categorical dtyped column will partcipate in a multi-column sort in a similar manner to other columns.
+A categorical dtyped column will participate in a multi-column sort in a similar manner to other columns.
 The ordering of the categorical is determined by the ``categories`` of that column.
 
 .. ipython:: python

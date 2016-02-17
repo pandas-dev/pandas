@@ -5,10 +5,11 @@ from pandas.compat import StringIO
 import os
 from os.path import isabs
 
-import nose
 import pandas.util.testing as tm
 
 from pandas.io import common
+
+from pandas import read_csv, concat
 
 try:
     from pathlib import Path
@@ -20,7 +21,16 @@ try:
 except ImportError:
     pass
 
+
 class TestCommonIOCapabilities(tm.TestCase):
+    data1 = """index,A,B,C,D
+foo,2,3,4,5
+bar,7,8,9,10
+baz,12,13,14,15
+qux,12,13,14,15
+foo2,12,13,14,15
+bar2,12,13,14,15
+"""
 
     def test_expand_user(self):
         filename = '~/sometest'
@@ -64,3 +74,16 @@ class TestCommonIOCapabilities(tm.TestCase):
         input_buffer = StringIO()
         filepath_or_buffer, _, _ = common.get_filepath_or_buffer(input_buffer)
         self.assertEqual(filepath_or_buffer, input_buffer)
+
+    def test_iterator(self):
+        reader = read_csv(StringIO(self.data1), chunksize=1)
+        result = concat(reader, ignore_index=True)
+        expected = read_csv(StringIO(self.data1))
+        tm.assert_frame_equal(result, expected)
+
+        # GH12153
+        it = read_csv(StringIO(self.data1), chunksize=1)
+        first = next(it)
+        tm.assert_frame_equal(first, expected.iloc[[0]])
+        expected.index = [0 for i in range(len(expected))]
+        tm.assert_frame_equal(concat(it), expected.iloc[1:])

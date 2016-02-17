@@ -1,6 +1,6 @@
 import sys
 cimport util
-from tslib import NaT
+from tslib import NaT, get_timezone
 from datetime import datetime, timedelta
 iNaT = util.get_nat()
 
@@ -430,6 +430,35 @@ def is_datetime64_array(ndarray values):
         elif not util.is_datetime64_object(v):
             return False
     return null_count != n
+
+
+cpdef is_datetime_with_singletz_array(ndarray[object] values):
+    """
+    Check values have the same tzinfo attribute.
+    Doesn't check values are datetime-like types.
+    """
+
+    cdef Py_ssize_t i, j, n = len(values)
+    cdef object base_val, base_tz, val, tz
+
+    if n == 0:
+        return False
+
+    for i in range(n):
+        base_val = values[i]
+        if base_val is not NaT:
+            base_tz = get_timezone(getattr(base_val, 'tzinfo', None))
+
+            for j in range(i, n):
+                val = values[j]
+                if val is not NaT:
+                    tz = getattr(val, 'tzinfo', None)
+                    if base_tz != tz and base_tz != get_timezone(tz):
+                        return False
+            break
+
+    return True
+
 
 def is_timedelta_array(ndarray values):
     cdef Py_ssize_t i, null_count = 0, n = len(values)

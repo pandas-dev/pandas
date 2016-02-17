@@ -3,3 +3,4 @@ pytz
 numpy
 cython
 nose
+flake8

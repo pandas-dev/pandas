@@ -101,7 +101,7 @@ def _align_core(terms):
                                   'than an order of magnitude on term {1!r}, '
                                   'by more than {2:.4g}; performance may '
                                   'suffer'.format(axis, terms[i].name, ordm),
-                                  category=pd.io.common.PerformanceWarning,
+                                  category=pd.core.common.PerformanceWarning,
                                   stacklevel=6)
 
                 if transpose:
@@ -173,8 +173,8 @@ def _reconstruct_object(typ, obj, axes, dtype):
         ret_value = res_t.type(obj)
     else:
         ret_value = typ(obj).astype(res_t)
-        # The condition is to distinguish 0-dim array (returned in case of scalar)
-        # and 1 element array
+        # The condition is to distinguish 0-dim array (returned in case of
+        # scalar) and 1 element array
         # e.g. np.array(0) and np.array([0])
         if len(obj.shape) == 1 and len(obj) == 1:
             if not isinstance(ret_value, np.ndarray):

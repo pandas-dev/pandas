@@ -1,5 +1,7 @@
 """ support pre 0.12 series pickle compatibility """
 
+# flake8: noqa
+
 import sys
 import numpy as np
 import pandas

@@ -889,7 +889,8 @@ cdef class Period(object):
             ordinal = self.ordinal
         else:
             # freq.n can't be negative or 0
-            ordinal = (self + self.freq.n).start_time.value - 1
+            # ordinal = (self + self.freq.n).start_time.value - 1
+            ordinal = (self + 1).start_time.value - 1
         return Timestamp(ordinal)
 
     def to_timestamp(self, freq=None, how='start', tz=None):
