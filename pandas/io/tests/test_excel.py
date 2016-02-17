@@ -401,6 +401,60 @@ class ReadingTestsBase(SharedItems):
         actual = self.get_exceldf('blank_with_header', 'Sheet1')
         tm.assert_frame_equal(actual, expected)
 
+    # GH 12292 : error when read one empty column from excel file
+    def test_read_one_empty_col_no_header(self):
+        df = pd.DataFrame(
+            [["", 1, 100],
+             ["", 2, 200],
+             ["", 3, 300],
+             ["", 4, 400]]
+        )
+        with ensure_clean(self.ext) as path:
+            df.to_excel(path, 'no_header', index=False, header=False)
+            actual_header_none = read_excel(
+                path,
+                'no_header',
+                parse_cols=[0],
+                header=None
+            )
+
+            actual_header_zero = read_excel(
+                path,
+                'no_header',
+                parse_cols=[0],
+                header=0
+            )
+        expected = DataFrame()
+        tm.assert_frame_equal(actual_header_none, expected)
+        tm.assert_frame_equal(actual_header_zero, expected)
+
+    def test_read_one_empty_col_with_header(self):
+        df = pd.DataFrame(
+            [["", 1, 100],
+             ["", 2, 200],
+             ["", 3, 300],
+             ["", 4, 400]]
+        )
+        with ensure_clean(self.ext) as path:
+            df.to_excel(path, 'with_header', index=False, header=True)
+            actual_header_none = read_excel(
+                path,
+                'with_header',
+                parse_cols=[0],
+                header=None
+            )
+
+            actual_header_zero = read_excel(
+                path,
+                'with_header',
+                parse_cols=[0],
+                header=0
+            )
+        expected_header_none = DataFrame(pd.Series([0], dtype='int64'))
+        tm.assert_frame_equal(actual_header_none, expected_header_none)
+        expected_header_zero = DataFrame(columns=[0], dtype='int64')
+        tm.assert_frame_equal(actual_header_zero, expected_header_zero)
+
 
 class XlrdTests(ReadingTestsBase):
     """
