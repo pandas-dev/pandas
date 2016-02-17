@@ -5774,7 +5774,6 @@ class TestGroupBy(tm.TestCase):
         data = np.array([np.timedelta64(1, 'ns')] * 5, dtype='m8[ns]')[:, None]
         accum = np.array([[0]], dtype='int64')
         actual = np.zeros_like(data, dtype='int64')
-        actual.fill(np.nan)
         pd.algos.group_cumsum(actual, data.view('int64'), labels, accum)
         expected = np.array([np.timedelta64(1, 'ns'), np.timedelta64(
             2, 'ns'), np.timedelta64(3, 'ns'), np.timedelta64(4, 'ns'),
