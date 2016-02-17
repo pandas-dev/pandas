@@ -14,7 +14,7 @@ from pandas.core.common import (_possibly_downcast_to_dtype, isnull, _NS_DTYPE,
                                 is_dtype_equal, is_null_datelike_scalar,
                                 _maybe_promote, is_timedelta64_dtype,
                                 is_datetime64_dtype, is_datetimetz, is_sparse,
-                                array_equivalent,
+                                array_equivalent, _is_na_compat,
                                 _maybe_convert_string_to_object,
                                 is_categorical, is_datetimelike_v_numeric,
                                 is_numeric_v_string_like, is_internal_type)
@@ -4392,7 +4392,6 @@ def _putmask_smart(v, m, n):
     m : `mask`, applies to both sides (array like)
     n : `new values` either scalar or an array like aligned with `values`
     """
-
     # n should be the length of the mask or a scalar here
     if not is_list_like(n):
         n = np.array([n] * len(m))
@@ -4403,6 +4402,12 @@ def _putmask_smart(v, m, n):
     # will work in the current dtype
     try:
         nn = n[m]
+
+        # make sure that we have a nullable type
+        # if we have nulls
+        if not _is_na_compat(v, nn[0]):
+            raise ValueError
+
         nn_at = nn.astype(v.dtype)
 
         # avoid invalid dtype comparisons
