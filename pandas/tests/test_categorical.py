@@ -4305,6 +4305,13 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
 
         tm.assert_frame_equal(df_expected, df_concat)
 
+    def test_categorical_scalar_init(self):
+        # GH 12336
+        result = pd.Series(0, index=range(3), dtype="category")
+        expected = pd.Series(0, index=range(3)).astype("category")
+
+        tm.assert_series_equal(result, expected)
+
 
 if __name__ == '__main__':
     import nose
