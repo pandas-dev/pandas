@@ -448,21 +448,26 @@ class ExcelFile(object):
             if com.is_list_like(header) and len(header) > 1:
                 has_index_names = True
 
-            parser = TextParser(data, header=header, index_col=index_col,
-                                has_index_names=has_index_names,
-                                na_values=na_values,
-                                thousands=thousands,
-                                parse_dates=parse_dates,
-                                date_parser=date_parser,
-                                skiprows=skiprows,
-                                skip_footer=skip_footer,
-                                squeeze=squeeze,
-                                **kwds)
+            # GH 12292 : error when read one empty column from excel file
+            try:
+                parser = TextParser(data, header=header, index_col=index_col,
+                                    has_index_names=has_index_names,
+                                    na_values=na_values,
+                                    thousands=thousands,
+                                    parse_dates=parse_dates,
+                                    date_parser=date_parser,
+                                    skiprows=skiprows,
+                                    skip_footer=skip_footer,
+                                    squeeze=squeeze,
+                                    **kwds)
 
-            output[asheetname] = parser.read()
-            if not squeeze or isinstance(output[asheetname], DataFrame):
-                output[asheetname].columns = output[
-                    asheetname].columns.set_names(header_names)
+                output[asheetname] = parser.read()
+                if not squeeze or isinstance(output[asheetname], DataFrame):
+                    output[asheetname].columns = output[
+                        asheetname].columns.set_names(header_names)
+            except StopIteration:
+                # No Data, return an empty DataFrame
+                output[asheetname] = DataFrame()
 
         if ret_dict:
             return output
