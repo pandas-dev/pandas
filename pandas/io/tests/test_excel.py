@@ -436,23 +436,24 @@ class ReadingTestsBase(SharedItems):
              ["", 4, 400]]
         )
         with ensure_clean(self.ext) as path:
-            df.to_excel(path, 'no_header', index=False, header=True)
+            df.to_excel(path, 'with_header', index=False, header=True)
             actual_header_none = read_excel(
                 path,
-                'no_header',
+                'with_header',
                 parse_cols=[0],
                 header=None
             )
 
             actual_header_zero = read_excel(
                 path,
-                'no_header',
+                'with_header',
                 parse_cols=[0],
                 header=0
             )
-        expected= DataFrame(pd.Series([0], dtype='int64'))
-        tm.assert_frame_equal(actual_header_none, expected)
-        tm.assert_frame_equal(actual_header_none, expected)
+        expected_header_none = DataFrame(pd.Series([0], dtype='int64'))
+        tm.assert_frame_equal(actual_header_none, expected_header_none)
+        expected_header_zero = DataFrame(columns=[0], dtype='int64')
+        tm.assert_frame_equal(actual_header_zero, expected_header_zero)
 
 
 class XlrdTests(ReadingTestsBase):
