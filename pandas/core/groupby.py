@@ -2550,15 +2550,7 @@ class SeriesGroupBy(GroupBy):
         # _level handled at higher
         if not _level and isinstance(ret, dict):
             from pandas import concat
-
-            # our result is a Series-like
-            if len(ret) == 1:
-                ret = concat([r for r in ret.values()],
-                             axis=1)
-
-            # our result is a DataFrame like
-            else:
-                ret = concat(ret, axis=1)
+            ret = concat(ret, axis=1)
         return ret
 
     agg = aggregate
