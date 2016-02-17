@@ -2810,7 +2810,7 @@ class DataFrame(NDFrame):
                 level = col.get_level_values(col.nlevels - 1)
                 names.extend(col.names)
             elif isinstance(col, Series):
-                level = col.values
+                level = col._values
                 names.append(col.name)
             elif isinstance(col, Index):
                 level = col
