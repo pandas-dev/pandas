@@ -274,15 +274,19 @@ def unconvert(values, dtype, compress=None):
             arr = np.frombuffer(values, dtype=dtype)
             # We are setting the memory owned by a bytes object as mutable.
             # We can do this because we know that no one has a reference to
-            # this object since it was just created in the call to decompress
-            # and we have checked that we have the only reference.
-            # the refcnt reports as 2 instead of 1 because we incref the
-            # values object when we push it on the stack to call getrefcnt.
-            # The 2 references are then the local variable `values` and
-            # TOS.
+            # this object since it was just created in the call to
+            # decompress and we have checked that we have the only
+            # reference. the refcnt reports as 2 instead of 1 because we
+            # incref the values object when we push it on the stack to call
+            # getrefcnt. The 2 references are then the local variable
+            # `values` and TOS.
             arr.flags.writeable = True
             return arr
-        else:
+        elif len(values) > 1:
+            # The empty string and single characters are memoized in many
+            # string creating functions in the capi. This case should not warn
+            # even though we need to make a copy because we are only copying at
+            # most 1 byte.
             warnings.warn(
                 'copying data after decompressing; this may mean that'
                 ' decompress is caching its result',
