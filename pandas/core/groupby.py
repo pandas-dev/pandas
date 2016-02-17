@@ -2819,8 +2819,16 @@ class SeriesGroupBy(GroupBy):
             inc[idx] = 1
 
         out = np.add.reduceat(inc, idx).astype('int64', copy=False)
-        return Series(out if ids[0] != -1 else out[1:],
-                      index=self.grouper.result_index,
+        res = out if ids[0] != -1 else out[1:]
+        ri = self.grouper.result_index
+
+        # we might have duplications among the bins
+        if len(res) != len(ri):
+            res, out = np.zeros(len(ri), dtype=out.dtype), res
+            res[ids] = out
+
+        return Series(res,
+                      index=ri,
                       name=self.name)
 
     @deprecate_kwarg('take_last', 'keep',
