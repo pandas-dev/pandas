@@ -20,7 +20,7 @@ import pandas.core.common as com
 import pandas.core.missing as mis
 import pandas.core.datetools as datetools
 from pandas import compat
-from pandas.compat import map, zip, lrange, string_types, isidentifier
+from pandas.compat import map, zip, lrange, string_types, isidentifier, PY3
 from pandas.core.common import (isnull, notnull, is_list_like,
                                 _values_from_object, _maybe_promote,
                                 _maybe_box_datetimelike, ABCSeries,
@@ -4976,11 +4976,11 @@ class NDFrame(PandasObject):
         axis_descr, name, name2 = _doc_parms(cls)
 
         cls.any = _make_logical_function(
-            'any', name, name2, axis_descr,
+            cls, 'any', name, name2, axis_descr,
             'Return whether any element is True over requested axis',
             nanops.nanany)
         cls.all = _make_logical_function(
-            'all', name, name2, axis_descr,
+            cls, 'all', name, name2, axis_descr,
             'Return whether all elements are True over requested axis',
             nanops.nanall)
 
@@ -5008,18 +5008,18 @@ class NDFrame(PandasObject):
         cls.mad = mad
 
         cls.sem = _make_stat_function_ddof(
-            'sem', name, name2, axis_descr,
+            cls, 'sem', name, name2, axis_descr,
             "Return unbiased standard error of the mean over requested "
             "axis.\n\nNormalized by N-1 by default. This can be changed "
             "using the ddof argument",
             nanops.nansem)
         cls.var = _make_stat_function_ddof(
-            'var', name, name2, axis_descr,
+            cls, 'var', name, name2, axis_descr,
             "Return unbiased variance over requested axis.\n\nNormalized by "
             "N-1 by default. This can be changed using the ddof argument",
             nanops.nanvar)
         cls.std = _make_stat_function_ddof(
-            'std', name, name2, axis_descr,
+            cls, 'std', name, name2, axis_descr,
             "Return sample standard deviation over requested axis."
             "\n\nNormalized by N-1 by default. This can be changed using the "
             "ddof argument",
@@ -5038,54 +5038,54 @@ class NDFrame(PandasObject):
         cls.compound = compound
 
         cls.cummin = _make_cum_function(
-            'min', name, name2, axis_descr, "cumulative minimum",
+            cls, 'cummin', name, name2, axis_descr, "cumulative minimum",
             lambda y, axis: np.minimum.accumulate(y, axis), np.inf, np.nan)
         cls.cumsum = _make_cum_function(
-            'sum', name, name2, axis_descr, "cumulative sum",
+            cls, 'cumsum', name, name2, axis_descr, "cumulative sum",
             lambda y, axis: y.cumsum(axis), 0., np.nan)
         cls.cumprod = _make_cum_function(
-            'prod', name, name2, axis_descr, "cumulative product",
+            cls, 'cumprod', name, name2, axis_descr, "cumulative product",
             lambda y, axis: y.cumprod(axis), 1., np.nan)
         cls.cummax = _make_cum_function(
-            'max', name, name2, axis_descr, "cumulative max",
+            cls, 'cummax', name, name2, axis_descr, "cumulative max",
             lambda y, axis: np.maximum.accumulate(y, axis), -np.inf, np.nan)
 
         cls.sum = _make_stat_function(
-            'sum', name, name2, axis_descr,
+            cls, 'sum', name, name2, axis_descr,
             'Return the sum of the values for the requested axis',
             nanops.nansum)
         cls.mean = _make_stat_function(
-            'mean', name, name2, axis_descr,
+            cls, 'mean', name, name2, axis_descr,
             'Return the mean of the values for the requested axis',
             nanops.nanmean)
         cls.skew = _make_stat_function(
-            'skew', name, name2, axis_descr,
+            cls, 'skew', name, name2, axis_descr,
             'Return unbiased skew over requested axis\nNormalized by N-1',
             nanops.nanskew)
         cls.kurt = _make_stat_function(
-            'kurt', name, name2, axis_descr,
+            cls, 'kurt', name, name2, axis_descr,
             "Return unbiased kurtosis over requested axis using Fisher's "
             "definition of\nkurtosis (kurtosis of normal == 0.0). Normalized "
             "by N-1\n",
             nanops.nankurt)
         cls.kurtosis = cls.kurt
         cls.prod = _make_stat_function(
-            'prod', name, name2, axis_descr,
+            cls, 'prod', name, name2, axis_descr,
             'Return the product of the values for the requested axis',
             nanops.nanprod)
         cls.product = cls.prod
         cls.median = _make_stat_function(
-            'median', name, name2, axis_descr,
+            cls, 'median', name, name2, axis_descr,
             'Return the median of the values for the requested axis',
             nanops.nanmedian)
         cls.max = _make_stat_function(
-            'max', name, name2, axis_descr,
+            cls, 'max', name, name2, axis_descr,
             """This method returns the maximum of the values in the object.
             If you want the *index* of the maximum, use ``idxmax``. This is
             the equivalent of the ``numpy.ndarray`` method ``argmax``.""",
             nanops.nanmax)
         cls.min = _make_stat_function(
-            'min', name, name2, axis_descr,
+            cls, 'min', name, name2, axis_descr,
             """This method returns the minimum of the values in the object.
             If you want the *index* of the minimum, use ``idxmin``. This is
             the equivalent of the ``numpy.ndarray`` method ``argmin``.""",
@@ -5105,7 +5105,7 @@ class NDFrame(PandasObject):
             return nmax - nmin
 
         cls.ptp = _make_stat_function(
-            'ptp', name, name2, axis_descr,
+            cls, 'ptp', name, name2, axis_descr,
             """Returns the difference between the maximum value and the
             minimum value in the object. This is the equivalent of the
             ``numpy.ndarray`` method ``ptp``.""",
@@ -5238,7 +5238,17 @@ Returns
 %(outname)s : %(name1)s\n"""
 
 
-def _make_stat_function(name, name1, name2, axis_descr, desc, f):
+def _set_function_name(f, name, cls):
+    f.__name__ = name
+    if PY3:
+        f.__qualname__ = '{klass}.{name}'.format(
+            klass=cls.__name__,
+            name=name)
+        f.__module__ = cls.__module__
+    return f
+
+
+def _make_stat_function(cls, name, name1, name2, axis_descr, desc, f):
     @Substitution(outname=name, desc=desc, name1=name1, name2=name2,
                   axis_descr=axis_descr)
     @Appender(_num_doc)
@@ -5255,11 +5265,10 @@ def _make_stat_function(name, name1, name2, axis_descr, desc, f):
         return self._reduce(f, name, axis=axis, skipna=skipna,
                             numeric_only=numeric_only)
 
-    stat_func.__name__ = name
-    return stat_func
+    return _set_function_name(stat_func, name, cls)
 
 
-def _make_stat_function_ddof(name, name1, name2, axis_descr, desc, f):
+def _make_stat_function_ddof(cls, name, name1, name2, axis_descr, desc, f):
     @Substitution(outname=name, desc=desc, name1=name1, name2=name2,
                   axis_descr=axis_descr)
     @Appender(_num_ddof_doc)
@@ -5276,17 +5285,16 @@ def _make_stat_function_ddof(name, name1, name2, axis_descr, desc, f):
         return self._reduce(f, name, axis=axis, numeric_only=numeric_only,
                             skipna=skipna, ddof=ddof)
 
-    stat_func.__name__ = name
-    return stat_func
+    return _set_function_name(stat_func, name, cls)
 
 
-def _make_cum_function(name, name1, name2, axis_descr, desc, accum_func,
+def _make_cum_function(cls, name, name1, name2, axis_descr, desc, accum_func,
                        mask_a, mask_b):
     @Substitution(outname=name, desc=desc, name1=name1, name2=name2,
                   axis_descr=axis_descr)
     @Appender("Return cumulative {0} over requested axis.".format(name) +
               _cnum_doc)
-    def func(self, axis=None, dtype=None, out=None, skipna=True, **kwargs):
+    def cum_func(self, axis=None, dtype=None, out=None, skipna=True, **kwargs):
         validate_kwargs(name, kwargs, 'out', 'dtype')
         if axis is None:
             axis = self._stat_axis_number
@@ -5312,11 +5320,10 @@ def _make_cum_function(name, name1, name2, axis_descr, desc, accum_func,
         d['copy'] = False
         return self._constructor(result, **d).__finalize__(self)
 
-    func.__name__ = name
-    return func
+    return _set_function_name(cum_func, name, cls)
 
 
-def _make_logical_function(name, name1, name2, axis_descr, desc, f):
+def _make_logical_function(cls, name, name1, name2, axis_descr, desc, f):
     @Substitution(outname=name, desc=desc, name1=name1, name2=name2,
                   axis_descr=axis_descr)
     @Appender(_bool_doc)
@@ -5337,8 +5344,8 @@ def _make_logical_function(name, name1, name2, axis_descr, desc, f):
                             numeric_only=bool_only, filter_type='bool',
                             name=name)
 
-    logical_func.__name__ = name
-    return logical_func
+    return _set_function_name(logical_func, name, cls)
+
 
 # install the indexes
 for _name, _indexer in indexing.get_indexers_list():
