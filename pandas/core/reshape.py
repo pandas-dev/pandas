@@ -1035,8 +1035,10 @@ def get_dummies(data, prefix=None, prefix_sep='_', dummy_na=False,
     2  0  1
     3  0  0
     4  0  0
-    See also ``Series.str.get_dummies``.
 
+    See Also
+    --------
+    Series.str.get_dummies
     """
     from pandas.tools.merge import concat
     from itertools import cycle
