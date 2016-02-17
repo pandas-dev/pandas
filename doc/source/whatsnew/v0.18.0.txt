@@ -1107,3 +1107,4 @@ Bug Fixes
 - Bug in ``crosstab`` where arguments with non-overlapping indexes would return a ``KeyError`` (:issue:`10291`)
 
 - Bug in ``DataFrame.apply`` in which reduction was not being prevented for cases in which ``dtype`` was not a numpy dtype (:issue:`12244`)
+- Bug when initializing categorical series with a scalar value. (:issue:`12336`)

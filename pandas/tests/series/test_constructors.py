@@ -635,6 +635,14 @@ class TestSeriesConstructors(TestData, tm.TestCase):
         self.assertEqual(dates.dtype, 'M8[ns]')
         self.assertEqual(len(dates), len(self.ts))
 
+        # GH12336
+        # Test construction of categorical series from value
+        categorical = Series(0, index=self.ts.index, dtype="category")
+        expected = Series(0, index=self.ts.index).astype("category")
+        self.assertEqual(categorical.dtype, 'category')
+        self.assertEqual(len(categorical), len(self.ts))
+        tm.assert_series_equal(categorical, expected)
+
     def test_constructor_dtype_timedelta64(self):
 
         # basic
