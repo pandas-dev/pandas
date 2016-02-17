@@ -83,9 +83,9 @@ class TimeFormatter(Formatter):
 
     def __init__(self, locs):
         self.locs = locs
+        self.fmt = '%H:%M:%S'
 
     def __call__(self, x, pos=0):
-        fmt = '%H:%M:%S'
         s = int(x)
         ms = int((x - s) * 1e3)
         us = int((x - s) * 1e6 - ms)
@@ -97,7 +97,7 @@ class TimeFormatter(Formatter):
         elif ms != 0:
             fmt += '.%3f'
 
-        return pydt.time(h, m, s, us).strftime(fmt)
+        return pydt.time(h, m, s, us).strftime(self.fmt)
 
 
 # Period Conversion
