@@ -725,7 +725,11 @@ TestPackers
                     f.split('.')[-4][-1] == '2'):
                 continue
             vf = os.path.join(pth, f)
-            self.compare(vf, version)
+            try:
+                self.compare(vf, version)
+            except ImportError:
+                # blosc not installed
+                continue
             n += 1
         assert n > 0, 'Msgpack files are not tested'
 
