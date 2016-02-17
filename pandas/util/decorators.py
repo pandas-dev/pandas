@@ -1,4 +1,4 @@
-from pandas.compat import StringIO, callable
+from pandas.compat import StringIO, callable, signature
 from pandas.lib import cache_readonly  # noqa
 import sys
 import warnings
@@ -275,8 +275,7 @@ def make_signature(func):
     >>> print(_make_signature(f))
     a,b,c=2
     """
-    from inspect import getargspec
-    spec = getargspec(func)
+    spec = signature(func)
     if spec.defaults is None:
         n_wo_defaults = len(spec.args)
         defaults = ('',) * n_wo_defaults
