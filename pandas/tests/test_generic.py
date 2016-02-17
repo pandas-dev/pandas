@@ -1034,6 +1034,8 @@ class TestSeries(tm.TestCase, Generic):
         self.assertIsInstance(result, DataArray)
         assert_series_equal(result.to_series(), s)
 
+        #assert_series_equal(Series(result), s)
+
 
 class TestDataFrame(tm.TestCase, Generic):
     _typ = DataFrame
@@ -1832,6 +1834,10 @@ class TestDataFrame(tm.TestCase, Generic):
                                expected,
                                check_index_type=False)
 
+            assert_frame_equal(DataFrame(result).set_index('foo'),
+                               expected,
+                               check_index_type=False)
+
         # not implemented
         df.index = pd.MultiIndex.from_product([['a'], range(3)],
                                               names=['one', 'two'])
@@ -1858,6 +1864,8 @@ class TestPanel(tm.TestCase, Generic):
 
         # idempotency
         assert_panel_equal(result.to_pandas(), p)
+
+        #assert_panel_equal(Panel(result), p)
 
 
 class TestPanel4D(tm.TestCase, Generic):
