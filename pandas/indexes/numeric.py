@@ -7,6 +7,7 @@ from pandas import compat
 from pandas.indexes.base import Index, InvalidIndexError
 from pandas.util.decorators import Appender, cache_readonly
 import pandas.core.common as com
+from pandas.core.common import is_dtype_equal, isnull
 import pandas.indexes.base as ibase
 
 
@@ -29,7 +30,7 @@ class NumericIndex(Index):
         ----------
         label : object
         side : {'left', 'right'}
-        kind : string / None
+        kind : {'ix', 'loc', 'getitem'}
 
         Returns
         -------
@@ -40,18 +41,10 @@ class NumericIndex(Index):
         Value of `side` parameter should be validated in caller.
 
         """
+        assert kind in ['ix', 'loc', 'getitem', None]
 
-        # we are a numeric index, so we accept
-        # integer directly
-        if com.is_integer(label):
-            pass
-
-        # disallow floats only if we not-strict
-        elif com.is_float(label):
-            if not (self.is_floating() or kind in ['ix']):
-                self._invalid_indexer('slice', label)
-
-        return label
+        # we will try to coerce to integers
+        return self._maybe_cast_indexer(label)
 
     def _convert_tolerance(self, tolerance):
         try:
@@ -139,6 +132,24 @@ class Int64Index(NumericIndex):
         Checks that all the labels are datetime objects
         """
         return False
+
+    def _convert_scalar_indexer(self, key, kind=None):
+        """
+        convert a scalar indexer
+
+        Parameters
+        ----------
+        key : label of the slice bound
+        kind : {'ix', 'loc', 'getitem'} or None
+        """
+
+        assert kind in ['ix', 'loc', 'getitem', 'iloc', None]
+
+        # don't coerce ilocs to integers
+        if kind != 'iloc':
+            key = self._maybe_cast_indexer(key)
+        return (super(Int64Index, self)
+                ._convert_scalar_indexer(key, kind=kind))
 
     def equals(self, other):
         """
@@ -247,18 +258,13 @@ class Float64Index(NumericIndex):
         Parameters
         ----------
         key : label of the slice bound
-        kind : optional, type of the indexing operation (loc/ix/iloc/None)
-
-        right now we are converting
-        floats -> ints if the index supports it
+        kind : {'ix', 'loc', 'getitem'} or None
         """
 
-        if kind == 'iloc':
-            if com.is_integer(key):
-                return key
+        assert kind in ['ix', 'loc', 'getitem', 'iloc', None]
 
-            return (super(Float64Index, self)
-                    ._convert_scalar_indexer(key, kind=kind))
+        if kind == 'iloc':
+            return self._validate_indexer('positional', key, kind)
 
         return key
 
@@ -282,7 +288,7 @@ class Float64Index(NumericIndex):
                                                                     kind=kind)
 
         # translate to locations
-        return self.slice_indexer(key.start, key.stop, key.step)
+        return self.slice_indexer(key.start, key.stop, key.step, kind=kind)
 
     def _format_native_types(self, na_rep='', float_format=None, decimal='.',
                              quoting=None, **kwargs):
@@ -324,7 +330,7 @@ class Float64Index(NumericIndex):
         try:
             if not isinstance(other, Float64Index):
                 other = self._constructor(other)
-            if (not com.is_dtype_equal(self.dtype, other.dtype) or
+            if (not is_dtype_equal(self.dtype, other.dtype) or
                     self.shape != other.shape):
                 return False
             left, right = self._values, other._values
@@ -380,7 +386,7 @@ class Float64Index(NumericIndex):
         if level is not None:
             self._validate_index_level(level)
         return lib.ismember_nans(np.array(self), value_set,
-                                 com.isnull(list(value_set)).any())
+                                 isnull(list(value_set)).any())
 
 
 Float64Index._add_numeric_methods()

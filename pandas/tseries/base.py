@@ -453,12 +453,20 @@ class DatetimeIndexOpsMixin(object):
         Parameters
         ----------
         key : label of the slice bound
-        kind : optional, type of the indexing operation (loc/ix/iloc/None)
+        kind : {'ix', 'loc', 'getitem', 'iloc'} or None
         """
 
-        if (kind in ['loc'] and lib.isscalar(key) and
-                (is_integer(key) or is_float(key))):
-            self._invalid_indexer('index', key)
+        assert kind in ['ix', 'loc', 'getitem', 'iloc', None]
+
+        # we don't allow integer/float indexing for loc
+        # we don't allow float indexing for ix/getitem
+        if lib.isscalar(key):
+            is_int = is_integer(key)
+            is_flt = is_float(key)
+            if kind in ['loc'] and (is_int or is_flt):
+                self._invalid_indexer('index', key)
+            elif kind in ['ix', 'getitem'] and is_flt:
+                self._invalid_indexer('index', key)
 
         return (super(DatetimeIndexOpsMixin, self)
                 ._convert_scalar_indexer(key, kind=kind))
