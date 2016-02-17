@@ -381,6 +381,7 @@ Method Summary
     :meth:`~Series.str.rsplit`,Split strings on delimiter working from the end of the string
     :meth:`~Series.str.get`,Index into each element (retrieve i-th element)
     :meth:`~Series.str.join`,Join strings in each element of the Series with passed separator
+    :meth:`~Series.str.get_dummies`,Split strings on delimiter, returning DataFrame of dummy variables
     :meth:`~Series.str.contains`,Return boolean array if each string contains pattern/regex
     :meth:`~Series.str.replace`,Replace occurrences of pattern/regex with some other string
     :meth:`~Series.str.repeat`,Duplicate values (``s.str.repeat(3)`` equivalent to ``x * 3``)
