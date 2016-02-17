@@ -2926,6 +2926,8 @@ def _sanitize_array(data, index, dtype=None, copy=False,
 
         if is_datetimetz(dtype):
             subarr = DatetimeIndex([value] * len(index), dtype=dtype)
+        elif is_categorical_dtype(dtype):
+            subarr = Categorical([value] * len(index))
         else:
             if not isinstance(dtype, (np.dtype, type(np.dtype))):
                 dtype = dtype.dtype
