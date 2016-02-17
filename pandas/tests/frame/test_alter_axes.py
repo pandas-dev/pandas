@@ -7,7 +7,8 @@ from datetime import datetime, timedelta
 import numpy as np
 
 from pandas.compat import lrange
-from pandas import DataFrame, Series, Index, MultiIndex, RangeIndex
+from pandas import (DataFrame, Series, Index, MultiIndex,
+                    RangeIndex)
 import pandas as pd
 
 from pandas.util.testing import (assert_series_equal,
@@ -266,6 +267,15 @@ class TestDataFrameAlterAxes(tm.TestCase, TestData):
             expected['idx'] = expected['idx'].apply(
                 lambda d: pd.Timestamp(d, tz=tz))
             assert_frame_equal(df.reset_index(), expected)
+
+        # GH 12358
+        # tz-aware Series should retain the tz
+        i = pd.to_datetime(["2014-01-01 10:10:10"],
+                           utc=True).tz_convert('Europe/Rome')
+        df = DataFrame({'i': i})
+        self.assertEqual(df.set_index(i).index[0].hour, 11)
+        self.assertEqual(pd.DatetimeIndex(pd.Series(df.i))[0].hour, 11)
+        self.assertEqual(df.set_index(df.i).index[0].hour, 11)
 
     def test_set_index_multiindexcolumns(self):
         columns = MultiIndex.from_tuples([('foo', 1), ('foo', 2), ('bar', 1)])

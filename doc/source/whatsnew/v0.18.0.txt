@@ -1045,7 +1045,7 @@ Bug Fixes
 - Bug in ``DataFrame.info`` when duplicated column names exist (:issue:`11761`)
 - Bug in ``.copy`` of datetime tz-aware objects (:issue:`11794`)
 - Bug in ``Series.apply`` and ``Series.map`` where ``timedelta64`` was not boxed (:issue:`11349`)
-
+- Bug in ``DataFrame.set_index()`` with tz-aware ``Series`` (:issue:`12358`)
 
 
 
