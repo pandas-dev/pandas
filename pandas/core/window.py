@@ -149,16 +149,17 @@ class _Window(PandasObject, SelectionMixin):
         if values is None:
             values = getattr(self._selected_obj, 'values', self._selected_obj)
 
-        # coerce dtypes as appropriate
+        # GH #12373 : rolling functions error on float32 data
+        # make sure the data is coerced to float64
         if com.is_float_dtype(values.dtype):
-            pass
+            values = com._ensure_float64(values)
         elif com.is_integer_dtype(values.dtype):
-            values = values.astype(float)
+            values = com._ensure_float64(values)
         elif com.is_timedelta64_dtype(values.dtype):
-            values = values.view('i8').astype(float)
+            values = com._ensure_float64(values.view('i8'))
         else:
             try:
-                values = values.astype(float)
+                values = com._ensure_float64(values)
             except (ValueError, TypeError):
                 raise TypeError("cannot handle this type -> {0}"
                                 "".format(values.dtype))
@@ -457,7 +458,9 @@ class _Rolling(_Window):
 
                 def func(arg, window, min_periods=None):
                     minp = check_minp(min_periods, window)
-                    return cfunc(arg, window, minp, **kwargs)
+                    # GH #12373: rolling functions error on float32 data
+                    return cfunc(com._ensure_float64(arg),
+                                 window, minp, **kwargs)
 
             # calculation function
             if center:
@@ -494,6 +497,7 @@ class _Rolling_and_Expanding(_Rolling):
         obj = self._convert_freq()
         window = self._get_window()
         window = min(window, len(obj)) if not self.center else window
+
         try:
             converted = np.isfinite(obj).astype(float)
         except TypeError:
@@ -657,6 +661,10 @@ class _Rolling_and_Expanding(_Rolling):
         window = self._get_window(other)
 
         def _get_cov(X, Y):
+            # GH #12373 : rolling functions error on float32 data
+            # to avoid potential overflow, cast the data to float64
+            X = X.astype('float64')
+            Y = Y.astype('float64')
             mean = lambda x: x.rolling(window, self.min_periods,
                                        center=self.center).mean(**kwargs)
             count = (X + Y).rolling(window=window,
