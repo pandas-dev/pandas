@@ -289,6 +289,193 @@ class TestDeprecations(Base):
             mom.rolling_mean(Series(np.ones(10)), 3, center=True, axis=0)
 
 
+# GH #12373 : rolling functions error on float32 data
+# make sure rolling functions works for different dtypes
+class TestDtype(Base):
+    dtype = None
+    window = 2
+
+    funcs = {
+        'count': lambda v: v.count(),
+        'max': lambda v: v.max(),
+        'min': lambda v: v.min(),
+        'sum': lambda v: v.sum(),
+        'mean': lambda v: v.mean(),
+        'std': lambda v: v.std(),
+        'var': lambda v: v.var(),
+        'median': lambda v: v.median()
+    }
+
+    def get_expects(self):
+        expects = {
+            'sr1': {
+                'count': Series([1, 2, 2, 2, 2], dtype='float64'),
+                'max': Series([np.nan, 1, 2, 3, 4], dtype='float64'),
+                'min': Series([np.nan, 0, 1, 2, 3], dtype='float64'),
+                'sum': Series([np.nan, 1, 3, 5, 7], dtype='float64'),
+                'mean': Series([np.nan, .5, 1.5, 2.5, 3.5], dtype='float64'),
+                'std': Series([np.nan] + [np.sqrt(.5)] * 4, dtype='float64'),
+                'var': Series([np.nan, .5, .5, .5, .5], dtype='float64'),
+                'median': Series([np.nan, .5, 1.5, 2.5, 3.5], dtype='float64')
+            },
+            'sr2': {
+                'count': Series([1, 2, 2, 2, 2], dtype='float64'),
+                'max': Series([np.nan, 10, 8, 6, 4], dtype='float64'),
+                'min': Series([np.nan, 8, 6, 4, 2], dtype='float64'),
+                'sum': Series([np.nan, 18, 14, 10, 6], dtype='float64'),
+                'mean': Series([np.nan, 9, 7, 5, 3], dtype='float64'),
+                'std': Series([np.nan] + [np.sqrt(2)] * 4, dtype='float64'),
+                'var': Series([np.nan, 2, 2, 2, 2], dtype='float64'),
+                'median': Series([np.nan, 9, 7, 5, 3], dtype='float64')
+            },
+            'df': {
+                'count': DataFrame({0: Series([1, 2, 2, 2, 2]),
+                                    1: Series([1, 2, 2, 2, 2])},
+                                   dtype='float64'),
+                'max': DataFrame({0: Series([np.nan, 2, 4, 6, 8]),
+                                  1: Series([np.nan, 3, 5, 7, 9])},
+                                 dtype='float64'),
+                'min': DataFrame({0: Series([np.nan, 0, 2, 4, 6]),
+                                  1: Series([np.nan, 1, 3, 5, 7])},
+                                 dtype='float64'),
+                'sum': DataFrame({0: Series([np.nan, 2, 6, 10, 14]),
+                                  1: Series([np.nan, 4, 8, 12, 16])},
+                                 dtype='float64'),
+                'mean': DataFrame({0: Series([np.nan, 1, 3, 5, 7]),
+                                   1: Series([np.nan, 2, 4, 6, 8])},
+                                  dtype='float64'),
+                'std': DataFrame({0: Series([np.nan] + [np.sqrt(2)] * 4),
+                                  1: Series([np.nan] + [np.sqrt(2)] * 4)},
+                                 dtype='float64'),
+                'var': DataFrame({0: Series([np.nan, 2, 2, 2, 2]),
+                                  1: Series([np.nan, 2, 2, 2, 2])},
+                                 dtype='float64'),
+                'median': DataFrame({0: Series([np.nan, 1, 3, 5, 7]),
+                                     1: Series([np.nan, 2, 4, 6, 8])},
+                                    dtype='float64'),
+            }
+        }
+        return expects
+
+    def _create_dtype_data(self, dtype):
+        sr1 = Series(range(5), dtype=dtype)
+        sr2 = Series(range(10, 0, -2), dtype=dtype)
+        df = DataFrame(np.arange(10).reshape((5, 2)), dtype=dtype)
+
+        data = {
+            'sr1': sr1,
+            'sr2': sr2,
+            'df': df
+        }
+
+        return data
+
+    def _create_data(self):
+        super(TestDtype, self)._create_data()
+        self.data = self._create_dtype_data(self.dtype)
+        self.expects = self.get_expects()
+
+    def setUp(self):
+        self._create_data()
+
+    def test_dtypes(self):
+        for f_name, d_name in product(self.funcs.keys(), self.data.keys()):
+            f = self.funcs[f_name]
+            d = self.data[d_name]
+            assert_equal = assert_series_equal if isinstance(
+                d, Series) else assert_frame_equal
+            exp = self.expects[d_name][f_name]
+
+            roll = d.rolling(window=self.window)
+            result = f(roll)
+
+            assert_equal(result, exp)
+
+
+class TestDtype_object(TestDtype):
+    dtype = object
+
+
+class TestDtype_int8(TestDtype):
+    dtype = np.int8
+
+
+class TestDtype_int16(TestDtype):
+    dtype = np.int16
+
+
+class TestDtype_int32(TestDtype):
+    dtype = np.int32
+
+
+class TestDtype_int64(TestDtype):
+    dtype = np.int64
+
+
+class TestDtype_uint8(TestDtype):
+    dtype = np.uint8
+
+
+class TestDtype_uint16(TestDtype):
+    dtype = np.uint16
+
+
+class TestDtype_uint32(TestDtype):
+    dtype = np.uint32
+
+
+class TestDtype_uint64(TestDtype):
+    dtype = np.uint64
+
+
+class TestDtype_float16(TestDtype):
+    dtype = np.float16
+
+
+class TestDtype_float32(TestDtype):
+    dtype = np.float32
+
+
+class TestDtype_float64(TestDtype):
+    dtype = np.float64
+
+
+class TestDtype_category(TestDtype):
+    dtype = 'category'
+    include_df = False
+
+    def _create_dtype_data(self, dtype):
+        sr1 = Series(range(5), dtype=dtype)
+        sr2 = Series(range(10, 0, -2), dtype=dtype)
+
+        data = {
+            'sr1': sr1,
+            'sr2': sr2
+        }
+
+        return data
+
+
+class TestDatetimeLikeDtype(TestDtype):
+    dtype = np.dtype('M8[ns]')
+
+    # GH #12373: rolling functions raise ValueError on float32 data
+    def setUp(self):
+        raise nose.SkipTest("Skip rolling on DatetimeLike dtypes [{0}].".format(self.dtype))
+
+    def test_dtypes(self):
+        with tm.assertRaises(TypeError):
+            super(TestDatetimeLikeDtype, self).test_dtypes()
+
+
+class TestDtype_timedelta(TestDatetimeLikeDtype):
+    dtype = np.dtype('m8[ns]')
+
+
+class TestDtype_datetime64UTC(TestDatetimeLikeDtype):
+    dtype = 'datetime64[ns, UTC]'
+
+
 class TestMoments(Base):
 
     def setUp(self):
