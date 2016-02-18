@@ -16,6 +16,7 @@ from pandas.util.testing import (assert_almost_equal, assert_series_equal,
                                  assert_frame_equal, assert_panel_equal,
                                  assert_index_equal)
 import pandas.core.datetools as datetools
+import pandas.core.common as com
 import pandas.stats.moments as mom
 import pandas.core.window as rwindow
 from pandas.core.base import SpecificationError
@@ -287,6 +288,233 @@ class TestDeprecations(Base):
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             mom.rolling_mean(np.ones(10), 3, center=True, axis=0)
             mom.rolling_mean(Series(np.ones(10)), 3, center=True, axis=0)
+
+
+# GH #12373 : rolling functions error on float32 data
+# make sure rolling functions works for different dtypes
+class TestDtype(Base):
+    dtype = None
+    window = 2
+    # the nan value, timedelta uses tslib.iNaT
+    naval = np.nan
+    # Do we construct DataFrame for testing.
+    include_df = True
+
+    # Function Name : (function, result_dtype, expectation_dtype)
+    funcs = {
+        'count': (lambda v: v.count(), 'float64', 'float64'),
+        'max': (lambda v: v.max(), 'float64', 'float64'),
+        'min': (lambda v: v.min(), 'float64', 'float64'),
+        'sum': (lambda v: v.sum(), 'float64', 'float64'),
+        'mean': (lambda v: v.mean(), 'float64', 'float64'),
+        'std': (lambda v: v.std(), 'float64', 'float64'),
+        'var': (lambda v: v.var(), 'float64', 'float64'),
+        'median': (lambda v: v.median(), 'float64', 'float64')
+    }
+
+    def get_expects(self):
+        expects = {
+            'sr1': {
+                'count': Series([1, 2, 2, 2, 2]),
+                'max': Series([self.naval, 1, 2, 3, 4]),
+                'min': Series([self.naval, 0, 1, 2, 3]),
+                'sum': Series([self.naval, 1, 3, 5, 7]),
+                'mean': Series([self.naval, .5, 1.5, 2.5, 3.5]),
+                'std': Series([self.naval] + [np.sqrt(.5)] * 4),
+                'var': Series([self.naval, .5, .5, .5, .5]),
+                'median': Series([self.naval, .5, 1.5, 2.5, 3.5])
+            },
+            'sr2': {
+                'count': Series([1, 2, 2, 2, 2]),
+                'max': Series([self.naval, 10, 8, 6, 4]),
+                'min': Series([self.naval, 8, 6, 4, 2]),
+                'sum': Series([self.naval, 18, 14, 10, 6]),
+                'mean': Series([self.naval, 9, 7, 5, 3]),
+                'std': Series([self.naval] + [np.sqrt(2)] * 4),
+                'var': Series([self.naval, 2, 2, 2, 2]),
+                'median': Series([self.naval, 9, 7, 5, 3])
+            },
+            'df': {
+                'count': DataFrame({0: Series([1, 2, 2, 2, 2]),
+                                    1: Series([1, 2, 2, 2, 2])}),
+                'max': DataFrame({0: Series([self.naval, 2, 4, 6, 8]),
+                                  1: Series([self.naval, 3, 5, 7, 9])}),
+                'min': DataFrame({0: Series([self.naval, 0, 2, 4, 6]),
+                                  1: Series([self.naval, 1, 3, 5, 7])}),
+                'sum': DataFrame({0: Series([self.naval, 2, 6, 10, 14]),
+                                  1: Series([self.naval, 4, 8, 12, 16])}),
+                'mean': DataFrame({0: Series([self.naval, 1, 3, 5, 7]),
+                                  1: Series([self.naval, 2, 4, 6, 8])}),
+                'std': DataFrame({0: Series([self.naval] + [np.sqrt(2)] * 4),
+                                  1: Series([self.naval] + [np.sqrt(2)] * 4)}),
+                'var': DataFrame({0: Series([self.naval, 2, 2, 2, 2]),
+                                  1: Series([self.naval, 2, 2, 2, 2])}),
+                'median': DataFrame({0: Series([self.naval, 1, 3, 5, 7]),
+                                     1: Series([self.naval, 2, 4, 6, 8])}),
+            }
+        }
+        return expects
+
+    def _create_dtype_data(self, dtype):
+        sr1 = Series(range(5), dtype=dtype)
+        sr2 = Series(range(10, 0, -2), dtype=dtype)
+
+        data = {
+            'sr1': sr1,
+            'sr2': sr2
+        }
+        if self.include_df:
+            df = DataFrame(np.arange(10).reshape((5, 2)), dtype=dtype)
+            data['df'] = df
+
+        return data
+
+    def _create_data(self):
+        super(TestDtype, self)._create_data()
+        self.data = self._create_dtype_data(self.dtype)
+        self.expects = self.get_expects()
+
+    def setUp(self):
+        self._create_data()
+
+    def _cast_result(self, result, from_dtype, to_dtype):
+        if com.needs_i8_conversion(from_dtype):
+            if isinstance(result, Series):
+                result = result.view('i8')
+            elif isinstance(result, DataFrame):
+                final = []
+                for idx in result:
+                    final.append(Series(result[idx].view('i8')))
+                result = pd.concat(final, axis=1).reindex(
+                    columns=result.columns)
+        return result.astype(to_dtype)
+
+    def test_dtypes(self):
+        for f_name, d_name in product(self.funcs.keys(), self.data.keys()):
+            # Specify if the results and expectations
+            # need to be coerced to a given dtype
+            # once we changed the return value for roll_<function>,
+            # we should change coerce behavior here accordingly
+            f, res_dtype, exp_dtype = self.funcs[f_name]
+            d = self.data[d_name]
+            assert_equal = assert_series_equal if isinstance(
+                d, Series) else assert_frame_equal
+            exp = self.expects[d_name][f_name]
+            if exp_dtype:
+                exp = exp.astype(com.pandas_dtype(exp_dtype))
+
+            roll = d.rolling(window=self.window)
+            result = f(roll)
+            if res_dtype:
+                result = self._cast_result(result,
+                                           self.dtype,
+                                           com.pandas_dtype(res_dtype))
+            assert_equal(result, exp)
+
+
+class TestDtype_object(TestDtype):
+    dtype = object
+
+
+class TestDtype_int8(TestDtype):
+    dtype = np.int8
+
+
+class TestDtype_int16(TestDtype):
+    dtype = np.int16
+
+
+class TestDtype_int32(TestDtype):
+    dtype = np.int32
+
+
+class TestDtype_int64(TestDtype):
+    dtype = np.int64
+
+
+class TestDtype_uint8(TestDtype):
+    dtype = np.uint8
+
+
+class TestDtype_uint16(TestDtype):
+    dtype = np.uint16
+
+
+class TestDtype_uint32(TestDtype):
+    dtype = np.uint32
+
+
+class TestDtype_uint64(TestDtype):
+    dtype = np.uint64
+
+
+class TestDtype_float16(TestDtype):
+    dtype = np.float16
+
+
+class TestDtype_float32(TestDtype):
+    dtype = np.float32
+
+
+class TestDtype_float64(TestDtype):
+    dtype = np.float64
+
+
+class TestDtype_timedelta(TestDtype):
+    dtype = np.dtype('m8[ns]')
+    import pandas.tslib as tslib
+    naval = tslib.iNaT
+
+    funcs = {
+        'count': (lambda v: v.count(), None, 'float64'),
+        'max': (lambda v: v.max(), None, 'm8[ns]'),
+        'min': (lambda v: v.min(), None, 'm8[ns]'),
+        'sum': (lambda v: v.sum(), None, 'm8[ns]'),
+        'mean': (lambda v: v.mean(), None, 'm8[ns]'),
+        'std': (lambda v: v.std(), None, 'm8[ns]'),
+        'var': (lambda v: v.var(), None, 'm8[ns]'),
+        'median': (lambda v: v.median(), None, 'm8[ns]')
+    }
+
+
+class TestDtype_datetime64(TestDtype):
+    dtype = np.dtype('M8[ns]')
+
+    # Rolling functions apply to datetime64 returns float64
+    # So we do not need to coerce the results, just coerce expects
+    funcs = {
+        'count': (lambda v: v.count(), None, 'float64'),
+        'max': (lambda v: v.max(), None, 'float64'),
+        'min': (lambda v: v.min(), None, 'float64'),
+        'sum': (lambda v: v.sum(), None, 'float64'),
+        'mean': (lambda v: v.mean(), None, 'float64'),
+        'std': (lambda v: v.std(), None, 'float64'),
+        'var': (lambda v: v.var(), None, 'float64'),
+        'median': (lambda v: v.median(), None, 'float64')
+    }
+
+
+class TestDtype_datetime64UTC(TestDtype):
+    dtype = 'datetime64[ns, UTC]'
+    # Set to True once dtype='datetime64[ns, UTC]' is available
+    # when constructing a DataFrame
+    include_df = False
+
+    funcs = {
+        'count': (lambda v: v.count(), None, 'float64'),
+        'max': (lambda v: v.max(), None, 'float64'),
+        'min': (lambda v: v.min(), None, 'float64'),
+        'sum': (lambda v: v.sum(), None, 'float64'),
+        'mean': (lambda v: v.mean(), None, 'float64'),
+        'std': (lambda v: v.std(), None, 'float64'),
+        'var': (lambda v: v.var(), None, 'float64'),
+        'median': (lambda v: v.median(), None, 'float64')
+    }
+
+
+class TestDtype_category(TestDtype):
+    dtype = 'category'
+    include_df = False
 
 
 class TestMoments(Base):
