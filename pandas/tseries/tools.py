@@ -310,7 +310,7 @@ def _to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
             if not isinstance(arg, DatetimeIndex):
                 return DatetimeIndex(arg, tz='utc' if utc else None)
             if utc:
-                arg = arg.tz_convert(None)
+                arg = arg.tz_convert(None).tz_localize('UTC')
             return arg
 
         elif format is None and com.is_integer_dtype(arg) and unit == 'ns':
