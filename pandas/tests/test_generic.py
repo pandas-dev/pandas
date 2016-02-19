@@ -1832,10 +1832,26 @@ class TestDataFrame(tm.TestCase, Generic):
                                expected,
                                check_index_type=False)
 
-        # not implemented
+        # available in 0.7.1
+        # MultiIndex
         df.index = pd.MultiIndex.from_product([['a'], range(3)],
                                               names=['one', 'two'])
-        self.assertRaises(ValueError, lambda: df.to_xarray())
+        result = df.to_xarray()
+        self.assertEqual(result.dims['one'], 1)
+        self.assertEqual(result.dims['two'], 3)
+        self.assertEqual(len(result.coords), 2)
+        self.assertEqual(len(result.data_vars), 8)
+        assert_almost_equal(list(result.coords.keys()), ['one', 'two'])
+        self.assertIsInstance(result, Dataset)
+
+        result = result.to_dataframe()
+        expected = df.copy()
+        expected['f'] = expected['f'].astype(object)
+        expected['h'] = expected['h'].astype('datetime64[ns]')
+        expected.columns.name = None
+        assert_frame_equal(result,
+                           expected,
+                           check_index_type=False)
 
 
 class TestPanel(tm.TestCase, Generic):
