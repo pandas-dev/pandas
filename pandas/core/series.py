@@ -2475,14 +2475,25 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
             Left boundary
         right : scalar
             Right boundary
+        inclusive : Boolean to indicate whether or not to include both the left
+            and right endpoints (True: a <= series <= b, False: a < series < b)
+            or an iterable boolean pair to set them separately, e.g
+            inclusive=(False, True) for a < series <= b.
 
         Returns
         -------
         is_between : Series
         """
         if inclusive:
-            lmask = self >= left
-            rmask = self <= right
+            try:
+                pair = iter(inclusive)
+                left_inclusive = pair.next()
+                rigt_inclusive = pair.next()
+                lmask = self >= left if left_inclusive else self > left
+                rmask = self <= right if rigt_inclusive else self < right
+            except TypeError:
+                lmask = self >= left
+                rmask = self <= right
         else:
             lmask = self > left
             rmask = self < right
