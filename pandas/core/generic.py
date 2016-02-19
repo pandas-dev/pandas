@@ -2090,8 +2090,12 @@ class NDFrame(PandasObject):
 
     def filter(self, items=None, like=None, regex=None, axis=None):
         """
-        Subset rows or columns of dataframe according to specified filters.
+        Subset rows or columns of dataframe according to  labels in the index.
 
+        Note that this routine does not filter a dataframe on its contents. The filter is 
+        applied to the labels of the index.
+        This method is a thin veneer on top of :ref:`DateFrame Select <DataFrame.select>`
+        
         Parameters
         ----------
         items : list-like
@@ -2109,20 +2113,19 @@ class NDFrame(PandasObject):
                 one  two  three
         mouse     1    2      3
         rabbit    4    5      6
+
         >>> # select columns by name
         >>> df.filter(items=['one', 'three'])  
                 one  three
         mouse     1      3
         rabbit    4      6
+
         >>> # select columns by regular expression
         >>> df.filter(regex='e$', axis=1)
                 one  three
         mouse     1      3
         rabbit    4      6
-        >>> # select rows containing 'm'
-        >>> df.filter(like='m', axis=0)
-               one  two  three
-        mouse    1    2      3
+
         >>> # select rows containing 'bbi'
         >>> df.filter(like='bbi', axis=0)
                 one  two  three
@@ -2134,11 +2137,9 @@ class NDFrame(PandasObject):
 
         Notes
         -----
-        Arguments are mutually exclusive, but this is not checked for. 
+        The ``items``, ``like``, and ``regex`` parameters should be mutually exclusive, but this is not checked.
 
-        ``axis`` defaults to the info axis that is used when indexing with ``[]``, 
-        e.g. ``df = DataFrame({'a': [1, 2, 3, 4]]}); df['a']``
-        In this instance the ``DataFrame`` columns are the info axis.
+        ``axis`` defaults to the info axis that is used when indexing with ``[]``.
 
         """
         import re
