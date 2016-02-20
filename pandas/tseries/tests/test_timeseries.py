@@ -1143,6 +1143,16 @@ class TestTimeSeries(tm.TestCase):
                                  dtype='datetime64[ns, UTC]', freq=None)
         tm.assert_index_equal(result, expected)
 
+    def test_to_datetime_utc_is_true(self):
+        # See gh-11934
+        start = pd.Timestamp('2014-01-01', tz='utc')
+        end = pd.Timestamp('2014-01-03', tz='utc')
+        date_range = pd.bdate_range(start, end)
+
+        result = pd.to_datetime(date_range, utc=True)
+        expected = pd.DatetimeIndex(data=date_range)
+        tm.assert_index_equal(result, expected)
+
     def test_to_datetime_tz_psycopg2(self):
 
         # xref 8260
@@ -1175,7 +1185,8 @@ class TestTimeSeries(tm.TestCase):
         tm.assert_index_equal(result, i)
 
         result = pd.to_datetime(i, errors='coerce', utc=True)
-        expected = pd.DatetimeIndex(['2000-01-01 13:00:00'])
+        expected = pd.DatetimeIndex(['2000-01-01 13:00:00'],
+                                    dtype='datetime64[ns, UTC]')
         tm.assert_index_equal(result, expected)
 
     def test_index_to_datetime(self):
