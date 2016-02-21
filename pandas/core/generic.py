@@ -1313,11 +1313,11 @@ class NDFrame(PandasObject):
                 if hasattr(self, 'index') and self.index.name == item:
                     res = self.index.to_series()
 
-                elif (isinstance(self.index, MultiIndex) and
+                elif (hasattr(self, 'index') and
+                      isinstance(self.index, MultiIndex) and
                       item in self.index.names):
                     res = pd.Series(self.index.get_level_values(item).values,
                                     index=self.index, name=item)
-
                 else:
                     raise
             cache[item] = res

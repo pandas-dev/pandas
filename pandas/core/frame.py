@@ -2025,14 +2025,11 @@ class DataFrame(NDFrame):
                 if self.index.name in key:
                     ix_name = self.index.name
                     ix_ix = key.index(ix_name)
-
-                elif (isinstance(self.index, MultiIndex) and
+                elif (hasattr(self, 'index') and
+                      isinstance(self.index, MultiIndex) and
                       any(item in self.index.names for item in key)):
-                    for item in key:
-                        if item in self.index.names:
-                            ix_name = item
-                            ix_ix = key.index(item)
-
+                    ix_ix, ix_name = next((i, k) for i, k in enumerate(key)
+                                          if k in self.index.names)
                 else:
                     raise
 
