@@ -2633,11 +2633,7 @@ class NDFrame(PandasObject):
         if (name in self._internal_names_set or name in self._metadata or
                 name in self._accessors):
             return object.__getattribute__(self, name)
-        elif (
-            name in self._info_axis or
-            name == self.index.name or
-            (isinstance(self.index, MultiIndex) and name in self.index.names)
-        ):
+        elif name in self._info_axis or name in self.index.names:
                 return self[name]
         return object.__getattribute__(self, name)
 
