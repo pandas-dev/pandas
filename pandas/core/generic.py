@@ -1310,14 +1310,8 @@ class NDFrame(PandasObject):
                 values = self._data.get(item)
                 res = self._box_item_values(item, values)
             except KeyError:
-                if hasattr(self, 'index') and self.index.name == item:
-                    res = self.index.to_series()
-
-                elif (hasattr(self, 'index') and
-                      isinstance(self.index, MultiIndex) and
-                      item in self.index.names):
-                    res = pd.Series(self.index.get_level_values(item).values,
-                                    index=self.index, name=item)
+                if hasattr(self, 'index') and item in self.index.names:
+                    res = self._get_item_index_name(item)
                 else:
                     raise
             cache[item] = res
@@ -1326,6 +1320,10 @@ class NDFrame(PandasObject):
             # for a chain
             res.is_copy = self.is_copy
         return res
+
+    def _get_item_index_name(self, item):
+        return pd.Series(self.index.get_level_values(item),
+                         index=self.index, name=item)
 
     def _set_as_cached(self, item, cacher):
         """Set the _cacher attribute on the calling object with a weakref to

@@ -2020,24 +2020,11 @@ class DataFrame(NDFrame):
         else:
             try:
                 indexer = self.ix._convert_to_indexer(key, axis=1)
-
             except KeyError:
-                if self.index.name in key:
-                    ix_name = self.index.name
-                    ix_ix = key.index(ix_name)
-                elif (hasattr(self, 'index') and
-                      isinstance(self.index, MultiIndex) and
-                      any(item in self.index.names for item in key)):
-                    ix_ix, ix_name = next((i, k) for i, k in enumerate(key)
-                                          if k in self.index.names)
-                else:
-                    raise
-
-                key.remove(ix_name)
-                ix_col = self[ix_name]
-                other_cols = self[key]
-                other_cols.insert(ix_ix, ix_name, ix_col)
-                return other_cols
+                if (hasattr(self, 'index') and
+                        any(item in self.index.names for item in key)):
+                    return self._getitem_array_with_index_name(key)
+                raise
 
             return self.take(indexer, axis=1, convert=True)
 
@@ -2073,6 +2060,16 @@ class DataFrame(NDFrame):
         if key.values.size and not com.is_bool_dtype(key.values):
             raise ValueError('Must pass DataFrame with boolean values only')
         return self.where(key)
+
+    def _getitem_array_with_index_name(self, key):
+        ix_ix, ix_name = next((i, k) for i, k in enumerate(key)
+                              if k in self.index.names)
+        key.remove(ix_name)
+        ix_col = self[ix_name]
+        result = self[key]
+        result.insert(ix_ix, ix_name, ix_col)
+        return result
+
 
     def query(self, expr, inplace=False, **kwargs):
         """Query the columns of a frame with a boolean expression.
