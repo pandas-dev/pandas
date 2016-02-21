@@ -2070,7 +2070,6 @@ class DataFrame(NDFrame):
         result.insert(ix_ix, ix_name, ix_col)
         return result
 
-
     def query(self, expr, inplace=False, **kwargs):
         """Query the columns of a frame with a boolean expression.
 
