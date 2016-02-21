@@ -497,6 +497,36 @@ class TestDateRange(tm.TestCase):
             self.assertTrue(expected_left.equals(left))
             self.assertTrue(expected_right.equals(right))
 
+    def test_range_closed_with_tz_aware_start_end(self):
+        # GH12409
+        begin = Timestamp('2011/1/1', tz='US/Eastern')
+        end = Timestamp('2014/1/1', tz='US/Eastern')
+
+        for freq in ["3D", "2M", "7W", "3H", "A"]:
+            closed = date_range(begin, end, closed=None, freq=freq)
+            left = date_range(begin, end, closed="left", freq=freq)
+            right = date_range(begin, end, closed="right", freq=freq)
+            expected_left = left
+            expected_right = right
+
+            if end == closed[-1]:
+                expected_left = closed[:-1]
+            if begin == closed[0]:
+                expected_right = closed[1:]
+
+            self.assertTrue(expected_left.equals(left))
+            self.assertTrue(expected_right.equals(right))
+
+        # test with default frequency, UTC
+        begin = Timestamp('2011/1/1', tz='UTC')
+        end = Timestamp('2014/1/1', tz='UTC')
+
+        intervals = ['left', 'right', None]
+        for i in intervals:
+            result = date_range(start=begin, end=end, closed=i)
+            self.assertEqual(result[0], begin)
+            self.assertEqual(result[-1], end)
+
     def test_range_closed_boundary(self):
         # GH 11804
         for closed in ['right', 'left', None]:
