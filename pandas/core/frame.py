@@ -2018,7 +2018,30 @@ class DataFrame(NDFrame):
             indexer = key.nonzero()[0]
             return self.take(indexer, axis=0, convert=False)
         else:
-            indexer = self.ix._convert_to_indexer(key, axis=1)
+            try:
+                indexer = self.ix._convert_to_indexer(key, axis=1)
+
+            except KeyError:
+                if self.index.name in key:
+                    ix_name = self.index.name
+                    ix_ix = key.index(ix_name)
+
+                elif (isinstance(self.index, MultiIndex) and
+                      any(item in self.index.names for item in key)):
+                    for item in key:
+                        if item in self.index.names:
+                            ix_name = item
+                            ix_ix = key.index(item)
+
+                else:
+                    raise
+
+                key.remove(ix_name)
+                ix_col = self[ix_name]
+                other_cols = self[key]
+                other_cols.insert(ix_ix, ix_name, ix_col)
+                return other_cols
+
             return self.take(indexer, axis=1, convert=True)
 
     def _getitem_multilevel(self, key):

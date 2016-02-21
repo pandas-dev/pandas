@@ -1853,6 +1853,81 @@ class TestDataFrame(tm.TestCase, Generic):
                            expected,
                            check_index_type=False)
 
+    def test_getitem_index(self):
+        # GH8162
+        idx = pd.Index(list('abc'), name='idx')
+        df = pd.DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6]}, index=idx)
+        expected = pd.Series(['a', 'b', 'c'], index=idx, name='idx')
+
+        assert_series_equal(df['idx'], expected)
+        assert_series_equal(df.idx, expected)
+
+    def test_getitem_index_listlike(self):
+        idx = pd.Index(list('abc'), name='idx')
+        df = pd.DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6]}, index=idx)
+        assert_frame_equal(
+            df[['idx', 'B']],
+            pd.DataFrame([
+                ['a', 4],
+                ['b', 5],
+                ['c', 6],
+            ],
+                columns=['idx', 'B'],
+                index=idx)
+        )
+        assert_frame_equal(
+            df[['idx', 'A', 'B']],
+            pd.DataFrame([
+                ['a', 1, 4],
+                ['b', 2, 5],
+                ['c', 3, 6],
+            ],
+                columns=['idx', 'A', 'B'],
+                index=idx)
+        )
+
+    def test_getitem_multiindex_level(self):
+        # GH10816
+        idx = pd.MultiIndex.from_product([list('abc'), list('fg')],
+                                         names=['lev0', 'lev1'])
+        df = pd.DataFrame({'A': range(6), 'B': range(10, 16)}, index=idx)
+        expected = pd.Series(list('aabbcc'), index=idx, name='lev0')
+
+        assert_series_equal(df['lev0'], expected)
+        assert_series_equal(df.lev0, expected)
+
+    def test_getitem_multiindex_level_listlike(self):
+        idx = pd.MultiIndex.from_product([list('abc'), list('fg')],
+                                         names=['lev0', 'lev1'])
+        df = pd.DataFrame({'A': range(6), 'B': range(10, 16)}, index=idx)
+        assert_frame_equal(
+            df[['A', 'lev1']],
+            pd.DataFrame([
+                [0, 'f'],
+                [1, 'g'],
+                [2, 'f'],
+                [3, 'g'],
+                [4, 'f'],
+                [5, 'g'],
+            ],
+                columns=['A', 'lev1'],
+                index=idx)
+        )
+
+        assert_frame_equal(
+            df[['A', 'B', 'lev1', 'lev0']],
+            pd.DataFrame([
+                [0, 10, 'f', 'a'],
+                [1, 11, 'g', 'a'],
+                [2, 12, 'f', 'b'],
+                [3, 13, 'g', 'b'],
+                [4, 14, 'f', 'c'],
+                [5, 15, 'g', 'c'],
+            ],
+                columns=['A', 'B', 'lev1', 'lev0'],
+                index=idx)
+        )
+
 
 class TestPanel(tm.TestCase, Generic):
     _typ = Panel
