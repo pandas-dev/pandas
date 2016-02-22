@@ -7,6 +7,15 @@ import numpy as np
 import operator
 import sys
 
+from distutils.version import LooseVersion
+
+# numpy versioning
+_np_version = np.version.short_version
+_np_version_under1p8 = LooseVersion(_np_version) < '1.8'
+_np_version_under1p9 = LooseVersion(_np_version) < '1.9'
+_np_version_under1p10 = LooseVersion(_np_version) < '1.10'
+_np_version_under1p11 = LooseVersion(_np_version) < '1.11'
+
 np.import_array()
 np.import_ufunc()
 
@@ -1001,12 +1010,14 @@ cdef inline float64_t __rdiv(float64_t a, float64_t b):
 
 cdef inline float64_t __floordiv(float64_t a, float64_t b):
     if b == 0:
-        if a > 0:
-            return INF
-        elif a < 0:
-            return -INF
-        else:
-            return NaN
+        # numpy >= 1.11 returns NaN
+        # for a // 0, rather than +-inf
+        if _np_version_under1p11:
+            if a > 0:
+                return INF
+            elif a < 0:
+                return -INF
+        return NaN
     else:
         return a // b
 
