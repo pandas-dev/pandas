@@ -25,7 +25,8 @@ from numpy.random import randn
 from pandas.compat import range, lrange, lmap, zip, text_type, PY3
 from pandas.compat.numpy_compat import np_datetime64_compat
 
-from pandas import Series, DataFrame, _np_version_under1p9
+from pandas import (Series, DataFrame,
+                    _np_version_under1p9, _np_version_under1p11)
 from pandas import tslib
 from pandas.util.testing import (assert_series_equal, assert_almost_equal,
                                  assertRaisesRegexp)
@@ -2580,12 +2581,15 @@ class TestPeriodIndex(tm.TestCase):
         didx = DatetimeIndex(start='2013/01/01', freq='D', periods=400)
         pidx = PeriodIndex(start='2013/01/01', freq='D', periods=400)
 
+        # changed to TypeError in 1.11
+        exc = IndexError if _np_version_under1p11 else TypeError
+
         for idx in [didx, pidx]:
             # slices against index should raise IndexError
             values = ['2014', '2013/02', '2013/01/02', '2013/02/01 9H',
                       '2013/02/01 09:00']
             for v in values:
-                with tm.assertRaises(IndexError):
+                with tm.assertRaises(exc):
                     idx[v:]
 
             s = Series(np.random.rand(len(idx)), index=idx)
@@ -2597,7 +2601,7 @@ class TestPeriodIndex(tm.TestCase):
 
             invalid = ['2013/02/01 9H', '2013/02/01 09:00']
             for v in invalid:
-                with tm.assertRaises(IndexError):
+                with tm.assertRaises(exc):
                     idx[v:]
 
     def test_getitem_seconds(self):
@@ -2634,12 +2638,15 @@ class TestPeriodIndex(tm.TestCase):
                              periods=4000)
         pidx = PeriodIndex(start='2013/01/01 09:00:00', freq='S', periods=4000)
 
+        # changed to TypeError in 1.11
+        exc = IndexError if _np_version_under1p11 else TypeError
+
         for idx in [didx, pidx]:
             # slices against index should raise IndexError
             values = ['2014', '2013/02', '2013/01/02', '2013/02/01 9H',
                       '2013/02/01 09:00']
             for v in values:
-                with tm.assertRaises(IndexError):
+                with tm.assertRaises(exc):
                     idx[v:]
 
             s = Series(np.random.rand(len(idx)), index=idx)
