@@ -5,6 +5,7 @@ import warnings
 from datetime import time, datetime
 from datetime import timedelta
 import numpy as np
+from pandas.core.base import _shared_docs
 from pandas.core.common import (_NS_DTYPE, _INT64_DTYPE,
                                 _values_from_object, _maybe_box,
                                 is_object_dtype, is_datetime64_dtype,
@@ -22,7 +23,8 @@ from pandas.tseries.base import DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin
 from pandas.tseries.offsets import DateOffset, generate_range, Tick, CDay
 from pandas.tseries.tools import parse_time_string, normalize_date, to_time
 from pandas.tseries.timedeltas import to_timedelta
-from pandas.util.decorators import cache_readonly, deprecate_kwarg
+from pandas.util.decorators import (Appender, cache_readonly,
+                                    deprecate_kwarg, Substitution)
 import pandas.core.common as com
 import pandas.tseries.offsets as offsets
 import pandas.tseries.tools as tools
@@ -1629,7 +1631,9 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         return DatetimeIndex(new_values, freq='infer', name=self.name,
                              tz=self.tz)
 
-    def searchsorted(self, key, side='left'):
+    @Substitution(klass='DatetimeIndex', value='key')
+    @Appender(_shared_docs['searchsorted'])
+    def searchsorted(self, key, side='left', sorter=None):
         if isinstance(key, (np.ndarray, Index)):
             key = np.array(key, dtype=_NS_DTYPE, copy=False)
         else:

@@ -43,6 +43,7 @@ Enhancements
 
 API changes
 ~~~~~~~~~~~
+- ``searchsorted`` for ``Index`` and ``TimedeltaIndex`` now accept a ``sorter`` argument to maintain compatibility with numpy's ``searchsorted`` function (:issue:`12238`)
 
 - ``Period`` and ``PeriodIndex`` now raises ``IncompatibleFrequency`` error which inherits ``ValueError`` rather than raw ``ValueError`` (:issue:`12615`)
 
