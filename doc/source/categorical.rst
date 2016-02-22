@@ -182,6 +182,23 @@ It's also possible to pass in the categories in a specific order:
     indicate an ordered ``Categorical``.
 
 
+.. note::
+
+    The result of ``Series.unique()`` is not always the same as ``Series.cat.categories``,
+    because ``Series.unique()`` has a couple of guarantees, namely that it returns categories
+    in the order of appearance, and it only includes values that are actually present.
+
+    .. ipython:: python
+
+         s = pd.Series(list('babc')).astype('category', categories=list('abcd'))
+         s
+
+         # categories
+         s.cat.categories
+
+         # uniques
+         s.unique()
+
 Renaming categories
 ~~~~~~~~~~~~~~~~~~~
 
