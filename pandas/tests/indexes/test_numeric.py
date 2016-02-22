@@ -831,3 +831,11 @@ class TestInt64Index(Numeric, tm.TestCase):
         tm.assertIsInstance(result, Float64Index)
         exp = Float64Index([0.5, 1., 1.5, 2., 2.5], name='x')
         tm.assert_index_equal(result, exp)
+
+    def test_ensure_copied_data(self):
+        data = np.array([1, 2, 3], dtype='int64')
+        idx = Int64Index(data, copy=True)
+        self.assert_numpy_array_equal(data, idx._data)
+        tm.assertIsNot(data, idx._data)
+        idx2 = Int64Index(data, copy=False)
+        tm.assertIs(data, idx2._data)
