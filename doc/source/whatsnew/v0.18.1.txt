@@ -1,0 +1,45 @@
+.. _whatsnew_0181:
+
+v0.18.1 (April ??, 2016)
+------------------------
+
+This is a minor bug-fix release from 0.18.0 and includes a large number of
+bug fixes along several new features, enhancements, and performance improvements.
+We recommend that all users upgrade to this version.
+
+Highlights include:
+
+.. contents:: What's new in v0.18.1
+    :local:
+    :backlinks: none
+
+New features
+~~~~~~~~~~~~
+
+
+.. _whatsnew_0181.enhancements:
+
+Enhancements
+~~~~~~~~~~~~
+
+
+.. _whatsnew_0181.api:
+
+API changes
+~~~~~~~~~~~
+
+
+.. _whatsnew_0181.deprecations:
+
+Deprecations
+^^^^^^^^^^^^
+
+.. _whatsnew_0181.performance:
+
+Performance Improvements
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. _whatsnew_0181.bug_fixes:
+
+Bug Fixes
+~~~~~~~~~
