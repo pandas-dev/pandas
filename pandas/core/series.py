@@ -39,6 +39,7 @@ from pandas.tseries.tdi import TimedeltaIndex
 from pandas.tseries.period import PeriodIndex, Period
 from pandas import compat
 from pandas.util.terminal import get_terminal_size
+from pandas.util.validators import validate_args
 from pandas.compat import zip, u, OrderedDict, StringIO
 
 
@@ -1256,7 +1257,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
     argmin = idxmin
     argmax = idxmax
 
-    def round(self, decimals=0):
+    def round(self, decimals=0, *args):
         """
         Round each value in a Series to the given number of decimals.
 
@@ -1274,8 +1275,12 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         See Also
         --------
         numpy.around
+        DataFrame.round
 
         """
+        validate_args(args, min_length=0, max_length=1,
+                      msg="Inplace rounding is not supported")
+
         result = _values_from_object(self).round(decimals)
         result = self._constructor(result, index=self.index).__finalize__(self)
 

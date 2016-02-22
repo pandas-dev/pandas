@@ -2060,6 +2060,17 @@ class TestDataFrameAnalytics(tm.TestCase, TestData):
         assert_series_equal(df.round(decimals)['col1'],
                             expected_rounded['col1'])
 
+    def test_numpy_round(self):
+        # See gh-12600
+        df = DataFrame([[1.53, 1.36], [0.06, 7.01]])
+        out = np.round(df, decimals=0)
+        expected = DataFrame([[2., 1.], [0., 7.]])
+        assert_frame_equal(out, expected)
+
+        msg = "Inplace rounding is not supported"
+        with tm.assertRaisesRegexp(ValueError, msg):
+            np.round(df, decimals=0, out=df)
+
     def test_round_mixed_type(self):
         # GH11885
         df = DataFrame({'col1': [1.1, 2.2, 3.3, 4.4],

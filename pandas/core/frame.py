@@ -46,6 +46,7 @@ from pandas.compat import (range, map, zip, lrange, lmap, lzip, StringIO, u,
 from pandas import compat
 from pandas.util.decorators import (deprecate, Appender, Substitution,
                                     deprecate_kwarg)
+from pandas.util.validators import validate_args
 
 from pandas.tseries.period import PeriodIndex
 from pandas.tseries.index import DatetimeIndex
@@ -4420,7 +4421,7 @@ class DataFrame(NDFrame):
                      right_index=right_index, sort=sort, suffixes=suffixes,
                      copy=copy, indicator=indicator)
 
-    def round(self, decimals=0, out=None):
+    def round(self, decimals=0, *args):
         """
         Round a DataFrame to a variable number of decimal places.
 
@@ -4471,6 +4472,8 @@ class DataFrame(NDFrame):
         See Also
         --------
         numpy.around
+        Series.round
+
         """
         from pandas.tools.merge import concat
 
@@ -4485,6 +4488,9 @@ class DataFrame(NDFrame):
             if com.is_integer_dtype(s) or com.is_float_dtype(s):
                 return s.round(decimals)
             return s
+
+        validate_args(args, min_length=0, max_length=1,
+                      msg="Inplace rounding is not supported")
 
         if isinstance(decimals, (dict, Series)):
             if isinstance(decimals, Series):
