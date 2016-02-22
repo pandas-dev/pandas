@@ -2,6 +2,8 @@
 import nose
 
 from pandas.util.decorators import deprecate_kwarg
+from pandas.util.validators import validate_args, validate_kwargs
+
 import pandas.util.testing as tm
 
 
@@ -72,6 +74,81 @@ def test_rands_array():
     arr = tm.rands_array(7, size=(10, 10))
     assert(arr.shape == (10, 10))
     assert(len(arr[1, 1]) == 7)
+
+
+class TestValidateArgs(tm.TestCase):
+
+    def test_bad_min_length(self):
+        msg = "'min_length' must be non-negative"
+        with tm.assertRaisesRegexp(ValueError, msg):
+            validate_args((None,), min_length=-1, max_length=5)
+
+    def test_bad_arg_length_no_max(self):
+        min_length = 5
+        msg = "expected at least {min_length} arguments".format(
+            min_length=min_length)
+
+        with tm.assertRaisesRegexp(ValueError, msg):
+            validate_args((None,), min_length=min_length, max_length=None)
+
+    def test_bad_arg_length_with_max(self):
+        min_length = 5
+        max_length = 10
+        msg = ("expected between {min_length} and {max_length}"
+               " arguments inclusive".format(min_length=min_length,
+                                             max_length=max_length))
+
+        with tm.assertRaisesRegexp(ValueError, msg):
+            validate_args((None,), min_length=min_length,
+                          max_length=max_length)
+
+    def test_bad_min_max_length(self):
+        msg = "'min_length' > 'max_length'"
+        with tm.assertRaisesRegexp(ValueError, msg):
+            validate_args((None,), min_length=5, max_length=2)
+
+    def test_not_all_none(self):
+        msg = "All arguments must be None"
+        with tm.assertRaisesRegexp(ValueError, msg):
+            validate_args(('foo',), min_length=0,
+                          max_length=1, msg=msg)
+
+        with tm.assertRaisesRegexp(ValueError, msg):
+            validate_args(('foo', 'bar', 'baz'), min_length=2,
+                          max_length=5, msg=msg)
+
+        with tm.assertRaisesRegexp(ValueError, msg):
+            validate_args((None, 'bar', None), min_length=2,
+                          max_length=5, msg=msg)
+
+    def test_validation(self):
+        # No exceptions should be thrown
+        validate_args((None,), min_length=0, max_length=1)
+        validate_args((None, None), min_length=1, max_length=5)
+
+
+class TestValidateKwargs(tm.TestCase):
+
+    def test_bad_kwarg(self):
+        goodarg = 'f'
+        badarg = goodarg + 'o'
+
+        kwargs = {goodarg: 'foo', badarg: 'bar'}
+        compat_args = (goodarg, badarg + 'o')
+        fname = 'func'
+
+        msg = ("{fname}\(\) got an unexpected "
+               "keyword argument '{arg}'".format(
+                   fname=fname, arg=badarg))
+
+        with tm.assertRaisesRegexp(TypeError, msg):
+            validate_kwargs(fname, kwargs, *compat_args)
+
+    def test_validation(self):
+        # No exceptions should be thrown
+        compat_args = ('f', 'b', 'ba')
+        kwargs = {'f': 'foo', 'b': 'bar'}
+        validate_kwargs('func', kwargs, *compat_args)
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
