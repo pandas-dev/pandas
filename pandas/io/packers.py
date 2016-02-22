@@ -246,6 +246,77 @@ def convert(values):
     return ExtType(0, v.tostring())
 
 
+class _BadMove(ValueError):
+    """Exception used to indicate that a move was attempted on a value with
+    more than a single reference.
+
+    Parameters
+    ----------
+    data : any
+        The data which was passed to ``_move_into_mutable_buffer``.
+
+    See Also
+    --------
+    _move_into_mutable_buffer
+    """
+    def __init__(self, data):
+        self.data = data
+
+    def __str__(self):
+        return 'cannot move data from a named object'
+
+
+def _move_into_mutable_buffer(bytes_rvalue):
+    """Moves a bytes object that is about to be destroyed into a mutable buffer
+    without copying the data.
+
+    Parameters
+    ----------
+    bytes_rvalue : bytes with 1 refcount.
+        The bytes object that you want to move into a mutable buffer. This
+        cannot be a named object. It must only have a single reference.
+
+    Returns
+    -------
+    buf : memoryview
+        A mutable buffer that was previously used as that data for
+        ``bytes_rvalue``.
+
+    Raises
+    ------
+    _BadMove
+        Raised when a move is attempted on an object with more than one
+        reference.
+
+    Notes
+    -----
+    If you want to use this function you are probably wrong.
+    """
+    if sys.getrefcount(bytes_rvalue) != 3:
+        # The three references are:
+        # 1. The callers stack (this is the only external reference)
+        # 2. The locals for this function
+        # 3. This function's stack (to pass to `sys.getrefcount`)
+        raise _BadMove(bytes_rvalue)
+
+    # create a numpy array from the memory of `bytes_rvalue`
+    arr = np.frombuffer(bytes_rvalue, dtype=np.int8)
+    try:
+        # mark this array as mutable
+        arr.flags.writeable = True
+        # At this point any mutations to `arr` will invalidate `bytes_rvalue`.
+        # This would be fine but `np.frombuffer` is going to store this object
+        # on `arr.base`. In order to preserve user's sanity we are going to
+        # destroy `arr` to drop the final reference to `bytes_rvalue` and just
+        # return a `memoryview` of the now mutable data. This dance is very
+        # fast and makes it impossible for users to shoot themselves in the
+        # foot.
+        return memoryview(arr)
+    finally:
+        # assure that our mutable view is destroyed even if we raise
+        del arr
+
+
 def unconvert(values, dtype, compress=None):
 
     as_is_ext = isinstance(values, ExtType) and values.code == 0
@@ -269,30 +340,28 @@ def unconvert(values, dtype, compress=None):
         else:
             raise ValueError("compress must be one of 'zlib' or 'blosc'")
 
-        values = decompress(values)
-        if sys.getrefcount(values) == 2:
-            arr = np.frombuffer(values, dtype=dtype)
-            # We are setting the memory owned by a bytes object as mutable.
-            # We can do this because we know that no one has a reference to
-            # this object since it was just created in the call to
-            # decompress and we have checked that we have the only
-            # reference. the refcnt reports as 2 instead of 1 because we
-            # incref the values object when we push it on the stack to call
-            # getrefcnt. The 2 references are then the local variable
-            # `values` and TOS.
-            arr.flags.writeable = True
-            return arr
-        elif len(values) > 1:
-            # The empty string and single characters are memoized in many
-            # string creating functions in the capi. This case should not warn
-            # even though we need to make a copy because we are only copying at
-            # most 1 byte.
-            warnings.warn(
-                'copying data after decompressing; this may mean that'
-                ' decompress is caching its result',
-                PerformanceWarning,
+        try:
+            return np.frombuffer(
+                _move_into_mutable_buffer(decompress(values)),
+                dtype=dtype,
             )
-            # fall through to copying `np.fromstring`
+        except _BadMove as e:
+            # Pull the decompressed data off of the `_BadMove` exception.
+            # We don't just store this in the locals because we want to
+            # minimize the risk of giving users access to a `bytes` object
+            # whose data is also given to a mutable buffer.
+            values = e.data
+            if len(values) > 1:
+                # The empty string and single characters are memoized in many
+                # string creating functions in the capi. This case should not
+                # warn even though we need to make a copy because we are only
+                # copying at most 1 byte.
+                warnings.warn(
+                    'copying data after decompressing; this may mean that'
+                    ' decompress is caching its result',
+                    PerformanceWarning,
+                )
+                # fall through to copying `np.fromstring`
 
     # Copy the string into a numpy array.
     return np.fromstring(values, dtype=dtype)
