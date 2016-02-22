@@ -10,7 +10,9 @@ from pandas.core.index import Index, Int64Index
 import pandas.compat as compat
 from pandas.compat import u
 from pandas.tseries.frequencies import to_offset
+from pandas.core.base import _shared_docs
 import pandas.core.common as com
+from pandas.util.decorators import Appender, Substitution
 from pandas.tseries.base import TimelikeOps, DatetimeIndexOpsMixin
 from pandas.tseries.timedeltas import (to_timedelta,
                                        _coerce_scalar_to_timedelta_type)
@@ -786,13 +788,15 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
         # # try to find a the dates
         # return (lhs_mask & rhs_mask).nonzero()[0]
 
-    def searchsorted(self, key, side='left'):
+    @Substitution(klass='TimedeltaIndex', value='key')
+    @Appender(_shared_docs['searchsorted'])
+    def searchsorted(self, key, side='left', sorter=None):
         if isinstance(key, (np.ndarray, Index)):
             key = np.array(key, dtype=_TD_DTYPE, copy=False)
         else:
             key = _to_m8(key)
 
-        return self.values.searchsorted(key, side=side)
+        return self.values.searchsorted(key, side=side, sorter=sorter)
 
     def is_type_compatible(self, typ):
         return typ == self.inferred_type or typ == 'timedelta'
