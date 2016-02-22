@@ -4542,24 +4542,6 @@ whether imported ``Categorical`` variables are ordered.
     a ``Categorical`` with string categories for the values that are labeled and
     numeric categories for values with no label.
 
-.. _io.other:
-
-Other file formats
-------------------
-
-pandas itself only supports IO with a limited set of file formats that map
-cleanly to its tabular data model. For reading and writing other file formats
-into and from pandas, we recommend these packages from the broader community.
-
-netCDF
-''''''
-
-xray_ provides data structures inspired by the pandas DataFrame for working
-with multi-dimensional datasets, with a focus on the netCDF file format and
-easy conversion to and from pandas.
-
-.. _xray: http://xray.readthedocs.org/
-
 .. _io.sas:
 
 .. _io.sas_reader:
@@ -4584,11 +4566,11 @@ objects (``XportReader`` or ``SAS7BDATReader``) for incrementally
 reading the file.  The reader objects also have attributes that
 contain additional information about the file and its variables.
 
-Read a SAS XPORT file:
+Read a SAS7BDAT file:
 
 .. code-block:: python
 
-    df = pd.read_sas('sas_xport.xpt')
+    df = pd.read_sas('sas_data.sas7bdat')
 
 Obtain an iterator and read an XPORT file 100,000 lines at a time:
 
@@ -4604,6 +4586,24 @@ web site.
 .. _specification: https://support.sas.com/techsup/technote/ts140.pdf
 
 No official documentation is available for the SAS7BDAT format.
+
+.. _io.other:
+
+Other file formats
+------------------
+
+pandas itself only supports IO with a limited set of file formats that map
+cleanly to its tabular data model. For reading and writing other file formats
+into and from pandas, we recommend these packages from the broader community.
+
+netCDF
+''''''
+
+xray_ provides data structures inspired by the pandas DataFrame for working
+with multi-dimensional datasets, with a focus on the netCDF file format and
+easy conversion to and from pandas.
+
+.. _xray: http://xray.readthedocs.org/
 
 .. _io.perf:
 
