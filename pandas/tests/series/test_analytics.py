@@ -511,6 +511,17 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
         assert_series_equal(result, expected)
         self.assertEqual(result.name, self.ts.name)
 
+    def test_numpy_round(self):
+        # See gh-12600
+        s = Series([1.53, 1.36, 0.06])
+        out = np.round(s, decimals=0)
+        expected = Series([2., 1., 0.])
+        assert_series_equal(out, expected)
+
+        msg = "Inplace rounding is not supported"
+        with tm.assertRaisesRegexp(ValueError, msg):
+            np.round(s, decimals=0, out=s)
+
     def test_built_in_round(self):
         if not compat.PY3:
             raise nose.SkipTest(
