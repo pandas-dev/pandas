@@ -4599,11 +4599,11 @@ into and from pandas, we recommend these packages from the broader community.
 netCDF
 ''''''
 
-xray_ provides data structures inspired by the pandas DataFrame for working
+xarray_ provides data structures inspired by the pandas DataFrame for working
 with multi-dimensional datasets, with a focus on the netCDF file format and
 easy conversion to and from pandas.
 
-.. _xray: http://xray.readthedocs.org/
+.. _xarray: http://xarray.pydata.org/
 
 .. _io.perf:
 
