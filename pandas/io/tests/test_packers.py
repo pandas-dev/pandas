@@ -1,6 +1,5 @@
 import nose
 
-from contextlib import contextmanager
 import os
 import datetime
 import numpy as np
@@ -16,7 +15,8 @@ from pandas.io.packers import to_msgpack, read_msgpack
 import pandas.util.testing as tm
 from pandas.util.testing import (ensure_clean, assert_index_equal,
                                  assert_series_equal,
-                                 assert_frame_equal)
+                                 assert_frame_equal,
+                                 patch)
 from pandas.tests.test_panel import assert_panel_equal
 
 import pandas
@@ -57,20 +57,6 @@ def check_arbitrary(a, b):
         assert_index_equal(a, b)
     else:
         assert(a == b)
-
-
-@contextmanager
-def patch(ob, attr, value):
-    noattr = object()  # mark that the attribute never existed
-    old = getattr(ob, attr, noattr)
-    setattr(ob, attr, value)
-    try:
-        yield
-    finally:
-        if old is noattr:
-            delattr(ob, attr)
-        else:
-            setattr(ob, attr, old)
 
 
 class TestPackers(tm.TestCase):
