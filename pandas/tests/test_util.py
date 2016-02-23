@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import nose
 
+from pandas.util._move import move_into_mutable_buffer, BadMove
 from pandas.util.decorators import deprecate_kwarg
 from pandas.util.validators import validate_args, validate_kwargs
 
@@ -149,6 +150,38 @@ class TestValidateKwargs(tm.TestCase):
         compat_args = ('f', 'b', 'ba')
         kwargs = {'f': 'foo', 'b': 'bar'}
         validate_kwargs('func', kwargs, *compat_args)
+
+
+class TestMove(tm.TestCase):
+    def test_more_than_one_ref(self):
+        """Test case for when we try to use ``move_into_mutable_buffer`` when
+        the object being moved has other references.
+        """
+        b = b'testing'
+
+        with tm.assertRaises(BadMove) as e:
+            def handle_success(type_, value, tb):
+                self.assertIs(value.args[0], b)
+                return type(e).handle_success(e, type_, value, tb)  # super
+
+            e.handle_success = handle_success
+            move_into_mutable_buffer(b)
+
+    def test_exactly_one_ref(self):
+        """Test case for when the object being moved has exactly one reference.
+        """
+        b = b'testing'
+
+        # We need to pass an expression on the stack to ensure that there are
+        # not extra references hanging around. We cannot rewrite this test as
+        #   buf = b[:-3]
+        #   as_stolen_buf = move_into_mutable_buffer(buf)
+        # because then we would have more than one reference to buf.
+        as_stolen_buf = move_into_mutable_buffer(b[:-3])
+
+        # materialize as bytearray to show that it is mutable
+        self.assertEqual(bytearray(as_stolen_buf), b'test')
+
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],

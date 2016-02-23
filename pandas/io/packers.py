@@ -41,7 +41,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 from datetime import datetime, date, timedelta
 from dateutil.parser import parse
 import os
-import sys
+from textwrap import dedent
 import warnings
 
 import numpy as np
@@ -64,6 +64,51 @@ from pandas.core.internals import BlockManager, make_block
 import pandas.core.internals as internals
 
 from pandas.msgpack import Unpacker as _Unpacker, Packer as _Packer, ExtType
+from pandas.util._move import (
+    BadMove as _BadMove,
+    move_into_mutable_buffer as _move_into_mutable_buffer,
+)
+
+# check whcih compression libs we have installed
+try:
+    import zlib
+
+    def _check_zlib():
+        pass
+except ImportError:
+    def _check_zlib():
+        raise ValueError('zlib is not installed')
+
+_check_zlib.__doc__ = dedent(
+    """\
+    Check if zlib is installed.
+
+    Raises
+    ------
+    ValueError
+        Raised when zlib is not installed.
+    """,
+)
+
+try:
+    import blosc
+
+    def _check_blosc():
+        pass
+except ImportError:
+    def _check_blosc():
+        raise ValueError('blosc is not installed')
+
+_check_blosc.__doc__ = dedent(
+    """\
+    Check if blosc is installed.
+
+    Raises
+    ------
+    ValueError
+        Raised when blosc is not installed.
+    """,
+)
 
 # until we can pass this into our conversion functions,
 # this is pretty hacky
@@ -221,6 +266,7 @@ def convert(values):
         return v.tolist()
 
     if compressor == 'zlib':
+        _check_zlib()
 
         # return string arrays like they are
         if dtype == np.object_:
@@ -228,10 +274,10 @@ def convert(values):
 
         # convert to a bytes array
         v = v.tostring()
-        import zlib
         return ExtType(0, zlib.compress(v))
 
     elif compressor == 'blosc':
+        _check_blosc()
 
         # return string arrays like they are
         if dtype == np.object_:
@@ -239,82 +285,10 @@ def convert(values):
 
         # convert to a bytes array
         v = v.tostring()
-        import blosc
         return ExtType(0, blosc.compress(v, typesize=dtype.itemsize))
 
     # ndarray (on original dtype)
     return ExtType(0, v.tostring())
-
-
-class _BadMove(ValueError):
-    """Exception used to indicate that a move was attempted on a value with
-    more than a single reference.
-
-    Parameters
-    ----------
-    data : any
-        The data which was passed to ``_move_into_mutable_buffer``.
-
-    See Also
-    --------
-    _move_into_mutable_buffer
-    """
-    def __init__(self, data):
-        self.data = data
-
-    def __str__(self):
-        return 'cannot move data from a named object'
-
-
-def _move_into_mutable_buffer(bytes_rvalue):
-    """Moves a bytes object that is about to be destroyed into a mutable buffer
-    without copying the data.
-
-    Parameters
-    ----------
-    bytes_rvalue : bytes with 1 refcount.
-        The bytes object that you want to move into a mutable buffer. This
-        cannot be a named object. It must only have a single reference.
-
-    Returns
-    -------
-    buf : memoryview
-        A mutable buffer that was previously used as that data for
-        ``bytes_rvalue``.
-
-    Raises
-    ------
-    _BadMove
-        Raised when a move is attempted on an object with more than one
-        reference.
-
-    Notes
-    -----
-    If you want to use this function you are probably wrong.
-    """
-    if sys.getrefcount(bytes_rvalue) != 3:
-        # The three references are:
-        # 1. The callers stack (this is the only external reference)
-        # 2. The locals for this function
-        # 3. This function's stack (to pass to `sys.getrefcount`)
-        raise _BadMove(bytes_rvalue)
-
-    # create a numpy array from the memory of `bytes_rvalue`
-    arr = np.frombuffer(bytes_rvalue, dtype=np.int8)
-    try:
-        # mark this array as mutable
-        arr.flags.writeable = True
-        # At this point any mutations to `arr` will invalidate `bytes_rvalue`.
-        # This would be fine but `np.frombuffer` is going to store this object
-        # on `arr.base`. In order to preserve user's sanity we are going to
-        # destroy `arr` to drop the final reference to `bytes_rvalue` and just
-        # return a `memoryview` of the now mutable data. This dance is very
-        # fast and makes it impossible for users to shoot themselves in the
-        # foot.
-        return memoryview(arr)
-    finally:
-        # assure that our mutable view is destroyed even if we raise
-        del arr
 
 
 def unconvert(values, dtype, compress=None):
@@ -334,9 +308,11 @@ def unconvert(values, dtype, compress=None):
 
     if compress:
         if compress == u'zlib':
-            from zlib import decompress
+            _check_zlib()
+            decompress = zlib.decompress
         elif compress == u'blosc':
-            from blosc import decompress
+            _check_blosc()
+            decompress = blosc.decompress
         else:
             raise ValueError("compress must be one of 'zlib' or 'blosc'")
 
@@ -350,7 +326,7 @@ def unconvert(values, dtype, compress=None):
             # We don't just store this in the locals because we want to
             # minimize the risk of giving users access to a `bytes` object
             # whose data is also given to a mutable buffer.
-            values = e.data
+            values = e.args[0]
             if len(values) > 1:
                 # The empty string and single characters are memoized in many
                 # string creating functions in the capi. This case should not
