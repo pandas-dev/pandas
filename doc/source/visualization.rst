@@ -1641,7 +1641,7 @@ We import the rplot API:
 Examples
 ~~~~~~~~
 
-RPlot was an API for producing Trellis plots. These plots allow you toµ
+RPlot was an API for producing Trellis plots. These plots allow you to
 arrange data in a rectangular grid by values of certain attributes.
 In the example below, data from the tips data set is arranged by the attributes
 'sex' and 'smoker'. Since both of those attributes can take on one of two
