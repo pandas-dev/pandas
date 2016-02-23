@@ -867,6 +867,9 @@ Other API Changes
 
 - Statistical functions for ``NDFrame`` objects will now raise if non-numpy-compatible arguments are passed in for ``**kwargs`` (:issue:`12301`)
 
+- ``.to_latex`` and ``.to_html`` gain a ``decimal`` parameter like ``.to_csv``; the default is ``'.'`` (:issue:`12031`)
+
+
 .. _whatsnew_0180.deprecations:
 
 Deprecations
