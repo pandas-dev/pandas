@@ -528,12 +528,12 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
                                                  ambiguous=ambiguous)
                 index = index.view(_NS_DTYPE)
 
-        index = cls._simple_new(index, name=name, freq=offset, tz=tz)
         if not left_closed and len(index) and index[0] == start:
             index = index[1:]
         if not right_closed and len(index) and index[-1] == end:
             index = index[:-1]
 
+        index = cls._simple_new(index, name=name, freq=offset, tz=tz)
         return index
 
     @property
