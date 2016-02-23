@@ -1497,7 +1497,7 @@ class DataFrame(NDFrame):
                 float_format=None, sparsify=None, index_names=True,
                 justify=None, bold_rows=True, classes=None, escape=True,
                 max_rows=None, max_cols=None, show_dimensions=False,
-                notebook=False):
+                notebook=False, decimal='.'):
         """
         Render a DataFrame as an HTML table.
 
@@ -1515,7 +1515,10 @@ class DataFrame(NDFrame):
         max_cols : int, optional
             Maximum number of columns to show before truncating. If None, show
             all.
+        decimal : string, default '.'
+            Character recognized as decimal separator, e.g. ',' in Europe
 
+            .. versionadded:: 0.18.0
         """
 
         if colSpace is not None:  # pragma: no cover
@@ -1533,7 +1536,8 @@ class DataFrame(NDFrame):
                                            bold_rows=bold_rows, escape=escape,
                                            max_rows=max_rows,
                                            max_cols=max_cols,
-                                           show_dimensions=show_dimensions)
+                                           show_dimensions=show_dimensions,
+                                           decimal=decimal)
         # TODO: a generic formatter wld b in DataFrameFormatter
         formatter.to_html(classes=classes, notebook=notebook)
 
@@ -1545,7 +1549,7 @@ class DataFrame(NDFrame):
                  header=True, index=True, na_rep='NaN', formatters=None,
                  float_format=None, sparsify=None, index_names=True,
                  bold_rows=True, column_format=None, longtable=None,
-                 escape=None, encoding=None):
+                 escape=None, encoding=None, decimal='.'):
         """
         Render a DataFrame to a tabular environment table. You can splice
         this into a LaTeX document. Requires \\usepackage{booktabs}.
@@ -1568,6 +1572,11 @@ class DataFrame(NDFrame):
             characters in column names.
         encoding : str, default None
             Default encoding is ascii in Python 2 and utf-8 in Python 3
+        decimal : string, default '.'
+            Character recognized as decimal separator, e.g. ',' in Europe
+
+            .. versionadded:: 0.18.0
+
         """
 
         if colSpace is not None:  # pragma: no cover
@@ -1588,7 +1597,7 @@ class DataFrame(NDFrame):
                                            bold_rows=bold_rows,
                                            sparsify=sparsify,
                                            index_names=index_names,
-                                           escape=escape)
+                                           escape=escape, decimal=decimal)
         formatter.to_latex(column_format=column_format, longtable=longtable,
                            encoding=encoding)
 

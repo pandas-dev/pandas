@@ -338,7 +338,7 @@ class DataFrameFormatter(TableFormatter):
                  header=True, index=True, na_rep='NaN', formatters=None,
                  justify=None, float_format=None, sparsify=None,
                  index_names=True, line_width=None, max_rows=None,
-                 max_cols=None, show_dimensions=False, **kwds):
+                 max_cols=None, show_dimensions=False, decimal='.', **kwds):
         self.frame = frame
         self.buf = _expand_user(buf) if buf is not None else StringIO()
         self.show_index_names = index_names
@@ -351,6 +351,7 @@ class DataFrameFormatter(TableFormatter):
         self.float_format = float_format
         self.formatters = formatters if formatters is not None else {}
         self.na_rep = na_rep
+        self.decimal = decimal
         self.col_space = col_space
         self.header = header
         self.index = index
@@ -648,7 +649,7 @@ class DataFrameFormatter(TableFormatter):
         formatter = self._get_formatter(i)
         return format_array(frame.iloc[:, i]._values, formatter,
                             float_format=self.float_format, na_rep=self.na_rep,
-                            space=self.col_space)
+                            space=self.col_space, decimal=self.decimal)
 
     def to_html(self, classes=None, notebook=False):
         """
@@ -1970,7 +1971,7 @@ class ExcelFormatter(object):
 
 
 def format_array(values, formatter, float_format=None, na_rep='NaN',
-                 digits=None, space=None, justify='right'):
+                 digits=None, space=None, justify='right', decimal='.'):
 
     if com.is_categorical_dtype(values):
         fmt_klass = CategoricalArrayFormatter
@@ -2000,7 +2001,7 @@ def format_array(values, formatter, float_format=None, na_rep='NaN',
 
     fmt_obj = fmt_klass(values, digits=digits, na_rep=na_rep,
                         float_format=float_format, formatter=formatter,
-                        space=space, justify=justify)
+                        space=space, justify=justify, decimal=decimal)
 
     return fmt_obj.get_result()
 
