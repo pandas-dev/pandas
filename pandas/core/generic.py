@@ -842,7 +842,7 @@ class NDFrame(PandasObject):
 
     @property
     def empty(self):
-        """True if NDFrame is entirely empty [no items], i.e. all of the axes
+        """True if NDFrame is entirely empty [no items], i.e. any of the axes
         are of length 0.
 
         Notes
