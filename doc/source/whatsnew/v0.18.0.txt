@@ -1094,7 +1094,7 @@ Bug Fixes
 
 - Bug in ``.plot`` potentially modifying the ``colors`` input when the number of columns didn't match the number of series provided (:issue:`12039`).
 - Bug in ``Series.plot`` failing when index has a ``CustomBusinessDay`` frequency (:issue:`7222`).
-
+- Bug in ``.to_sql`` for ``datetime.time`` values with sqlite fallback (:issue:`8341`)
 - Bug in ``read_excel`` failing to read data with one column when ``squeeze=True`` (:issue:`12157`)
 - Bug in ``.groupby`` where a ``KeyError`` was not raised for a wrong column if there was only one row in the dataframe (:issue:`11741`)
 - Bug in ``.read_csv`` with dtype specified on empty data producing an error (:issue:`12048`)
