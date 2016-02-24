@@ -842,7 +842,25 @@ class NDFrame(PandasObject):
 
     @property
     def empty(self):
-        """True if NDFrame is entirely empty [no items]"""
+        """True if NDFrame is entirely empty [no items], i.e. all of the axes
+        are of length 0.
+
+        Notes
+        -----
+        If NDFrame contains only NaNs, it is still not considered empty.
+
+        Examples
+        --------
+
+        >>> # containing only NaNs does not make the df empty
+        >>> df = pd.DataFrame({'A' : [np.nan]})
+        >>> df.empty
+        False
+        >>> # if we drop NAs, the axes are now of length 0
+        >>> df.dropna().empty
+        True
+
+        """
         return not all(len(self._get_axis(a)) > 0 for a in self._AXIS_ORDERS)
 
     def __nonzero__(self):
