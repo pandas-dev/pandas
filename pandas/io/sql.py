@@ -5,7 +5,7 @@ retrieval and to reduce dependency on DB-specific API.
 """
 
 from __future__ import print_function, division
-from datetime import datetime, date
+from datetime import datetime, date, time
 
 import warnings
 import traceback
@@ -1402,6 +1402,15 @@ class SQLiteTable(SQLTable):
     Patch the SQLTable for fallback support.
     Instead of a table variable just use the Create Table statement.
     """
+
+    def __init__(self, *args, **kwargs):
+        # GH 8341
+        # register an adapter callable for datetime.time object
+        import sqlite3
+        # this will transform time(12,34,56,789) into '12:34:56.000789'
+        # (this is what sqlalchemy does)
+        sqlite3.register_adapter(time, lambda _: _.strftime("%H:%M:%S.%f"))
+        super(SQLiteTable, self).__init__(*args, **kwargs)
 
     def sql_schema(self):
         return str(";\n".join(self.table))
