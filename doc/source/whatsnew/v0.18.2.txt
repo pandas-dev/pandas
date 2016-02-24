@@ -89,6 +89,7 @@ Other enhancements
 
 - ``pd.read_html()`` has gained support for the ``decimal`` option (:issue:`12907`)
 
+- ``eval``'s upcasting rules for ``float32`` types have also been updated to be more consistent with numpy's rules.  New behavior will not upcast to ``float64`` if you multiply a pandas ``float32`` object by a scalar float64. (:issue:`12388`)
 
 
 .. _whatsnew_0182.api:

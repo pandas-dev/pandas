@@ -5,6 +5,7 @@ import ast
 import tokenize
 
 from functools import partial
+import numpy as np
 
 import pandas as pd
 from pandas import compat
@@ -356,6 +357,19 @@ class BaseExprVisitor(ast.NodeVisitor):
                                                                 right)
         return op, op_class, left, right
 
+    def _possibly_downcast_constants(self, left, right):
+        f32 = np.dtype(np.float32)
+        if left.isscalar and not right.isscalar and right.return_type == f32:
+            # right is a float32 array, left is a scalar
+            name = self.env.add_tmp(np.float32(left.value))
+            left = self.term_type(name, self.env)
+        if right.isscalar and not left.isscalar and left.return_type == f32:
+            # left is a float32 array, right is a scalar
+            name = self.env.add_tmp(np.float32(right.value))
+            right = self.term_type(name, self.env)
+
+        return left, right
+
     def _possibly_eval(self, binop, eval_in_python):
         # eval `in` and `not in` (for now) in "partial" python space
         # things that can be evaluated in "eval" space will be turned into
@@ -399,6 +413,7 @@ class BaseExprVisitor(ast.NodeVisitor):
 
     def visit_BinOp(self, node, **kwargs):
         op, op_class, left, right = self._possibly_transform_eq_ne(node)
+        left, right = self._possibly_downcast_constants(left, right)
         return self._possibly_evaluate_binop(op, op_class, left, right)
 
     def visit_Div(self, node, **kwargs):
