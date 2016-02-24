@@ -217,10 +217,10 @@ For Python 2.7, you can install the ``mingw`` compiler which will work equivalen
 
       conda install -n pandas_dev libpython
 
-or use the [Microsoft Visual Studio VC++ compiler for Python](https://www.microsoft.com/en-us/download/details.aspx?id=44266). Note that you have to check the ``x64`` box to install the ``x64`` extension building capability as this is not installed by default.
+or use the `Microsoft Visual Studio VC++ compiler for Python <https://www.microsoft.com/en-us/download/details.aspx?id=44266>`__. Note that you have to check the ``x64`` box to install the ``x64`` extension building capability as this is not installed by default.
 
-For Python 3.4, you can download and install the [Windows 7.1 SDK](https://www.microsoft.com/en-us/download/details.aspx?id=8279)
-For Python 3.5, you can download and install the [Visual Studio 2015 Community Edition](https://www.visualstudio.com/en-us/downloads/visual-studio-2015-downloads-vs.aspx).
+For Python 3.4, you can download and install the `Windows 7.1 SDK <https://www.microsoft.com/en-us/download/details.aspx?id=8279>`__
+For Python 3.5, you can download and install the `Visual Studio 2015 Community Edition <https://www.visualstudio.com/en-us/downloads/visual-studio-2015-downloads-vs.aspx>`__.
 
 Here are some references:
 
