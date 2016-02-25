@@ -847,16 +847,30 @@ class NDFrame(PandasObject):
 
         Notes
         -----
-        If NDFrame contains only NaNs, it is still not considered empty.
+        If NDFrame contains only NaNs, it is still not considered empty. See
+        the example below.
 
         Examples
         --------
+        An example of an actual empty DataFrame. Notice the index is empty:
 
-        >>> # containing only NaNs does not make the df empty
+        >>> df_empty = pd.DataFrame({'A' : []})
+        >>> df_empty
+        Empty DataFrame
+        Columns: [A]
+        Index: []
+        >>> df_empty.empty
+        True
+
+        If we only have NaNs in our DataFrame, it is not considered empty! We
+        will need to drop the NaNs to make the DataFrame empty:
+
         >>> df = pd.DataFrame({'A' : [np.nan]})
+        >>> df
+            A
+        0 NaN
         >>> df.empty
         False
-        >>> # if we drop NAs, the axes are now of length 0
         >>> df.dropna().empty
         True
 
