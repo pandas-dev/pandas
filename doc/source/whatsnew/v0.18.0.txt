@@ -406,10 +406,10 @@ method. See the :ref:`options documentation<options>` for more info.
 
 .. _whatsnew_0180.enhancements.sas:
 
-SAS7BDAT files
-^^^^^^^^^^^^^^
+read_sas changes
+^^^^^^^^^^^^^^^^
 
-Pandas can now read SAS7BDAT files, including compressed files.  The files can be read in entirety, or incrementally.  For full details see :ref:`here <io.sas>`. (issue:`4052`)
+``read_sas`` has gained the ability to read SAS7BDAT files, including compressed files.  The files can be read in entirety, or incrementally.  For full details see :ref:`here <io.sas>`. (issue:`4052`)
 
 .. _whatsnew_0180.enhancements.other:
 
@@ -1119,4 +1119,4 @@ Bug Fixes
 
 - Bug in ``DataFrame.apply`` in which reduction was not being prevented for cases in which ``dtype`` was not a numpy dtype (:issue:`12244`)
 - Bug when initializing categorical series with a scalar value. (:issue:`12336`)
-- Bug when specifying a UTC ``DatetimeIndex`` by setting ``utc=True`` in ``.to_datetime`` (:issue:11934)
+- Bug when specifying a UTC ``DatetimeIndex`` by setting ``utc=True`` in ``.to_datetime`` (:issue:`11934`)
