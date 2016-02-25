@@ -842,8 +842,8 @@ class NDFrame(PandasObject):
 
     @property
     def empty(self):
-        """True if NDFrame is entirely empty [no items], i.e. any of the axes
-        are of length 0.
+        """True if NDFrame is entirely empty [no items], meaning any of the
+        axes are of length 0.
 
         Notes
         -----
@@ -874,6 +874,10 @@ class NDFrame(PandasObject):
         >>> df.dropna().empty
         True
 
+        See also
+        --------
+        pandas.Series.dropna
+        pandas.DataFrame.dropna
         """
         return not all(len(self._get_axis(a)) > 0 for a in self._AXIS_ORDERS)
 
