@@ -409,7 +409,7 @@ method. See the :ref:`options documentation<options>` for more info.
 read_sas changes
 ^^^^^^^^^^^^^^^^
 
-``read_sas`` has gained the ability to read SAS7BDAT files, including compressed files.  The files can be read in entirety, or incrementally.  For full details see :ref:`here <io.sas>`. (issue:`4052`)
+``read_sas`` has gained the ability to read SAS7BDAT files, including compressed files.  The files can be read in entirety, or incrementally.  For full details see :ref:`here <io.sas>`. (:issue:`4052`)
 
 .. _whatsnew_0180.enhancements.other:
 
