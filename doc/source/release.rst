@@ -55,9 +55,10 @@ Highlights include:
 - API breaking change to the ``.resample`` method to make it more ``.groupby``
   like, see :ref:`here <whatsnew_0180.breaking.resample>`.
 - Removal of support for positional indexing with floats, which was deprecated
-  since 0.14.0. This will now raise a ``TypeError``, see :ref:`here <whatsnew_0180.enhancements.float_indexers>`.
+  since 0.14.0. This will now raise a ``TypeError``, see :ref:`here <whatsnew_0180.float_indexers>`.
 - The ``.to_xarray()`` function has been added for compatibility with the
   `xarray package <http://xarray.pydata.org/en/stable/>`__, see :ref:`here <whatsnew_0180.enhancements.xarray>`.
+- The ``read_sas`` function has been enhanced to read ``sas7bdat`` files, see :ref:`here <whatsnew_0180.enhancements.sas>`.
 - Addition of the :ref:`.str.extractall() method <whatsnew_0180.enhancements.extract>`,
   and API changes to the :ref:`.str.extract() method <whatsnew_0180.enhancements.extract>`
   and :ref:`.str.cat() method <whatsnew_0180.enhancements.strcat>`.
