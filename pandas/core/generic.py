@@ -4875,26 +4875,27 @@ class NDFrame(PandasObject):
         def describe_categorical_1d(data):
             names = ['count', 'unique']
             objcounts = data.value_counts()
-            result = [data.count(), len(objcounts[objcounts != 0])]
+            count_unique = len(objcounts[objcounts != 0])
+            result = [data.count(), count_unique]
             if result[1] > 0:
                 top, freq = objcounts.index[0], objcounts.iloc[0]
 
-                if (data.dtype == object or
-                        com.is_categorical_dtype(data.dtype)):
-                    names += ['top', 'freq']
-                    result += [top, freq]
-
-                elif com.is_datetime64_dtype(data):
+                if com.is_datetime64_dtype(data):
                     asint = data.dropna().values.view('i8')
                     names += ['top', 'freq', 'first', 'last']
                     result += [lib.Timestamp(top), freq,
                                lib.Timestamp(asint.min()),
                                lib.Timestamp(asint.max())]
+                else:
+                    names += ['top', 'freq']
+                    result += [top, freq]
 
             return pd.Series(result, index=names, name=data.name)
 
         def describe_1d(data, percentiles):
-            if com.is_numeric_dtype(data):
+            if com.is_bool_dtype(data):
+                return describe_categorical_1d(data)
+            elif com.is_numeric_dtype(data):
                 return describe_numeric_1d(data, percentiles)
             elif com.is_timedelta64_dtype(data):
                 return describe_numeric_1d(data, percentiles)
@@ -4906,7 +4907,7 @@ class NDFrame(PandasObject):
         elif (include is None) and (exclude is None):
             if len(self._get_numeric_data()._info_axis) > 0:
                 # when some numerics are found, keep only numerics
-                data = self.select_dtypes(include=[np.number, np.bool])
+                data = self.select_dtypes(include=[np.number])
             else:
                 data = self
         elif include == 'all':

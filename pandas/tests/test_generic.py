@@ -955,7 +955,7 @@ class TestSeries(tm.TestCase, Generic):
         s = Series(['a', 'b', 'b', np.nan, np.nan, np.nan, 'c', 'd', 'a', 'a'])
         result = s.describe()
         expected = Series({'count': 7, 'unique': 4,
-                           'top': 'a', 'freq': 3}, index=result.index)
+                           'top': 'a', 'freq': 3,'second':'b', 'second_freq': 2}, index=result.index)
         assert_series_equal(result, expected)
 
         dt = list(self.ts.index)
@@ -1486,9 +1486,8 @@ class TestDataFrame(tm.TestCase, Generic):
                         'D_num': np.arange(24.) + .5,
                         'E_ts': tm.makeTimeSeries()[:24].index})
 
-        # bool is considered numeric in describe, although not an np.number
         desc = df.describe()
-        expected_cols = ['C_bool', 'D_num']
+        expected_cols = ['D_num']
         expected = DataFrame(dict((k, df[k].describe())
                                   for k in expected_cols),
                              columns=expected_cols)
