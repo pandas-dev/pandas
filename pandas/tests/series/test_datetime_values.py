@@ -32,8 +32,8 @@ class TestSeriesDatetimeValues(TestData, tm.TestCase):
                        'weekofyear', 'week', 'dayofweek', 'weekday',
                        'dayofyear', 'quarter', 'freq', 'days_in_month',
                        'daysinmonth']
-        ok_for_period = ok_for_base + ['qyear']
-        ok_for_period_methods = ['strftime']
+        ok_for_period = ok_for_base + ['qyear', 'start_time', 'end_time']
+        ok_for_period_methods = ['strftime', 'to_timestamp', 'asfreq']
         ok_for_dt = ok_for_base + ['date', 'time', 'microsecond', 'nanosecond',
                                    'is_month_start', 'is_month_end',
                                    'is_quarter_start', 'is_quarter_end',
