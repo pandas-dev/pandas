@@ -192,7 +192,7 @@ Bug Fixes
 
 
 - Bug in ``.drop()`` with a non-unique ``MultiIndex``. (:issue:`12701`)
-
+- Bug in ``.concat`` of datetime tz-aware and naive DataFrames (:issue:`12467`)
 
 
 - Bug in ``Timestamp.__repr__`` that caused ``pprint`` to fail in nested structures (:issue:`12622`)

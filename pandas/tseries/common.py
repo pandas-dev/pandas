@@ -260,7 +260,7 @@ def _concat_compat(to_concat, axis=0, typs=None):
         # if dtype is of datetimetz or timezone
         if x.dtype.kind == _NS_DTYPE.kind:
             if getattr(x, 'tz', None) is not None:
-                x = x.asobject
+                x = x.asobject.values
             else:
                 shape = x.shape
                 x = tslib.ints_to_pydatetime(x.view(np.int64).ravel())
@@ -271,6 +271,8 @@ def _concat_compat(to_concat, axis=0, typs=None):
             x = tslib.ints_to_pytimedelta(x.view(np.int64).ravel())
             x = x.reshape(shape)
 
+        if axis == 1:
+            x = np.atleast_2d(x)
         return x
 
     if typs is None:
