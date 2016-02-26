@@ -856,21 +856,14 @@ Other API Changes
      ValueError: Cannot convert arg ['20150101 07:00:00'] to a time.
 
 - ``.memory_usage()`` now includes values in the index, as does memory_usage in ``.info`` (:issue:`11597`)
-
 - ``DataFrame.to_latex()`` now supports non-ascii encodings (eg utf-8) in Python 2 with the parameter ``encoding`` (:issue:`7061`)
-
 - ``pandas.merge()`` and ``DataFrame.merge()`` will show a specific error message when trying to merge with an object that is not of type ``DataFrame`` or a subclass (:issue:`12081`)
-
 - ``DataFrame.unstack`` and ``Series.unstack`` now take ``fill_value`` keyword to allow direct replacement of missing values when an unstack results in missing values in the resulting ``DataFrame``. As an added benefit, specifying ``fill_value`` will preserve the data type of the original stacked data.  (:issue:`9746`)
-
 - As part of the new API for :ref:`window functions <whatsnew_0180.enhancements.moments>` and :ref:`resampling <whatsnew_0180.breaking.resample>`, aggregation functions have been clarified, raising more informative error messages on invalid aggregations. (:issue:`9052`). A full set of examples are presented in :ref:`groupby <groupby.aggregation>`.
-
 - Statistical functions for ``NDFrame`` objects will now raise if non-numpy-compatible arguments are passed in for ``**kwargs`` (:issue:`12301`)
-
 - ``.to_latex`` and ``.to_html`` gain a ``decimal`` parameter like ``.to_csv``; the default is ``'.'`` (:issue:`12031`)
-
 - More helpful error message when constructing a ``DataFrame`` with empty data but with indices (:issue:`8020`)
-
+- ``.describe()`` will now properly handle bool dtype as a categorical (:issue:`6625`)
 
 .. _whatsnew_0180.deprecations:
 
