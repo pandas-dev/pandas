@@ -3256,12 +3256,12 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
 
         df.ix[4, 'c'] = arr
         assert_series_equal(df.ix[4, 'c'], Series(arr, index=[8, 10], name='c',
-                                                  dtype='int64'))
+                                                  dtype='float64'))
 
         # scalar ok
         df.ix[4, 'c'] = 10
         assert_series_equal(df.ix[4, 'c'], Series(10, index=[8, 10], name='c',
-                                                  dtype='int64'))
+                                                  dtype='float64'))
 
         # invalid assignments
         def f():
