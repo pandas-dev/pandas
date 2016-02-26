@@ -366,7 +366,7 @@ class Generic(object):
 
         # assigning the same type should not change the type
         df1 = pd.DataFrame({'a': [0, 1, 1], 'b': [100, 200, 300]},
-                          dtype='uint32')
+                           dtype='uint32')
         ix = df1['a'] == 1
         newb1 = df1.loc[ix, 'b'] + 1
         df1.loc[ix, 'b'] = newb1
@@ -374,7 +374,7 @@ class Generic(object):
 
         # assigning a new type should get the inferred type
         df2 = pd.DataFrame({'a': [0, 1, 1], 'b': [100, 200, 300]},
-                          dtype='uint64')
+                           dtype='uint64')
         newb2 = df2.loc[ix, 'b']
         df1.loc[ix, 'b'] = newb2
         assert_equal(df1['a'].dtype, np.dtype('int64'))
