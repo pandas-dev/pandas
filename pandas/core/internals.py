@@ -702,7 +702,10 @@ class Block(PandasObject):
                 values[indexer] = value
 
             # coerce and try to infer the dtypes of the result
-            if lib.isscalar(value):
+            if hasattr(value, 'dtype') and is_dtype_equal(values.dtype,
+                                                          value.dtype):
+                dtype = value.dtype
+            elif lib.isscalar(value):
                 dtype, _ = _infer_dtype_from_scalar(value)
             else:
                 dtype = 'infer'

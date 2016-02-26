@@ -362,6 +362,89 @@ New Behavior:
    s.index
    print(s.to_csv(path=None))
 
+Changes to dtype assignment behaviors
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+When a DataFrame's slice is updated with a new slice of the same
+dtype, the dtype of the DataFrame will now remain the same.
+
+Previous Behavior:
+
+.. code-block:: python
+
+   In [2]: df = pd.DataFrame({'a':[0, 1, 1], 'b':[100, 200, 300]}, dtype='uint32')
+
+   In [3]: df.info()
+   <class 'pandas.core.frame.DataFrame'>
+   RangeIndex: 3 entries, 0 to 2
+   Data columns (total 2 columns):
+   a    3 non-null uint32
+   b    3 non-null uint32
+   dtypes: uint32(2)
+   memory usage: 96.0 bytes
+
+   In [4]: ix = df['a'] == 1
+
+   In [5]: df.loc[ix, 'b'] = df.loc[ix, 'b']
+
+   In [6]: df.info()
+   <class 'pandas.core.frame.DataFrame'>
+   RangeIndex: 3 entries, 0 to 2
+   Data columns (total 2 columns):
+   a    3 non-null int64
+   b    3 non-null int64
+   dtypes: int64(2)
+
+New Behavior:
+
+.. ipython:: python
+
+   df = pd.DataFrame({'a':[0, 1, 1], 'b':[100, 200, 300]}, dtype='uint32')
+   df.info()
+   ix = df['a'] == 1
+   df.loc[ix, 'b'] = df.loc[ix, 'b']
+   df.info()
+
+
+When a DataFrame's integer slice is partially updated with a new slice of floats that
+could potentially be downcasted to integer without losing precision,
+the dtype of the slice will be set to float instead of integer.
+
+Previous Behavior:
+
+.. code-block:: python
+
+   In [4]: df = pd.DataFrame(np.array(range(1,10)).reshape(3,3),
+      ...: columns=list('abc'),
+      ...: index=[[4,4,8], [8,10,12]])
+
+   In [5]: df
+   Out[5]: 
+         a  b  c
+   4 8   1  2  3
+     10  4  5  6
+   8 12  7  8  9
+
+   In [6]: df.ix[4, 'c'] = np.array([0., 1.])
+
+   In [7]: df
+   Out[7]: 
+         a  b  c
+   4 8   1  2  0
+     10  4  5  1
+   8 12  7  8  9
+
+New Behavior:
+
+.. ipython:: python
+
+   df = pd.DataFrame(np.array(range(1,10)).reshape(3,3),
+      columns=list('abc'),
+      index=[[4,4,8], [8,10,12]])
+   df
+   df.ix[4, 'c'] = np.array([0., 1.])
+   df
+
 .. _whatsnew_0180.enhancements.xarray:
 
 to_xarray
@@ -1119,3 +1202,4 @@ Bug Fixes
 - Bug in ``DataFrame.apply`` in which reduction was not being prevented for cases in which ``dtype`` was not a numpy dtype (:issue:`12244`)
 - Bug when initializing categorical series with a scalar value. (:issue:`12336`)
 - Bug when specifying a UTC ``DatetimeIndex`` by setting ``utc=True`` in ``.to_datetime`` (:issue:`11934`)
+- Bug when modifying a slice of a ``DataFrame`` with the same ``dtype``, the ``dtype`` of the ``DataFrame`` could unexpected changed. (:issue:`10503`).
