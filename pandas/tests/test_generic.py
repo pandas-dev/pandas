@@ -361,6 +361,16 @@ class Generic(object):
             self._compare(o.head(-3), o.head(7))
             self._compare(o.tail(-3), o.tail(7))
 
+    def test_dtype_after_slice_update(self):
+        # GH10503
+
+        df = pd.DataFrame({'a': [0, 1, 1], 'b': [100, 200, 300]},
+                          dtype='uint32')
+        ix = df['a'] == 1
+        newb = df.loc[ix, 'b'] + 1
+        df.loc[ix, 'b'] = newb
+        assert_equal(df['a'].dtype, newb.dtype)
+
     def test_sample(self):
         # Fixes issue: 2419
 
