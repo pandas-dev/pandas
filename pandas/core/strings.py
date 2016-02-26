@@ -331,7 +331,7 @@ def str_repeat(arr, repeats):
     -------
     repeated : Series/Index of objects
     """
-    if np.isscalar(repeats):
+    if lib.isscalar(repeats):
 
         def rep(x):
             try:

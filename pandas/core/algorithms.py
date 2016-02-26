@@ -468,7 +468,7 @@ def quantile(x, q, interpolation_method='fraction'):
 
         return score
 
-    if np.isscalar(q):
+    if lib.isscalar(q):
         return _get_score(q)
     else:
         q = np.asarray(q, np.float64)

@@ -13,6 +13,7 @@ from pandas import (Index, Series, DataFrame, Panel, isnull,
 from pandas.core.index import MultiIndex
 
 import pandas.core.common as com
+import pandas.lib as lib
 
 from pandas.compat import range, zip
 from pandas import compat
@@ -60,7 +61,7 @@ class Generic(object):
         if isinstance(shape, int):
             shape = tuple([shape] * self._ndim)
         if value is not None:
-            if np.isscalar(value):
+            if lib.isscalar(value):
                 if value == 'empty':
                     arr = None
 

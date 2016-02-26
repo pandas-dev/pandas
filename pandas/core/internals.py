@@ -665,7 +665,7 @@ class Block(PandasObject):
                 if arr_value.ndim == 1:
                     if not isinstance(indexer, tuple):
                         indexer = tuple([indexer])
-                    return all([np.isscalar(idx) for idx in indexer])
+                    return all([lib.isscalar(idx) for idx in indexer])
                 return False
 
             def _is_empty_indexer(indexer):
@@ -702,7 +702,7 @@ class Block(PandasObject):
                 values[indexer] = value
 
             # coerce and try to infer the dtypes of the result
-            if np.isscalar(value):
+            if lib.isscalar(value):
                 dtype, _ = _infer_dtype_from_scalar(value)
             else:
                 dtype = 'infer'
@@ -3209,7 +3209,7 @@ class BlockManager(PandasObject):
                 indexer = np.arange(len(self.items))[isnull(self.items)]
 
                 # allow a single nan location indexer
-                if not np.isscalar(indexer):
+                if not lib.isscalar(indexer):
                     if len(indexer) == 1:
                         loc = indexer.item()
                     else:

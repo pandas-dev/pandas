@@ -10,6 +10,7 @@ from pandas.indexes.base import Index
 from pandas.util.decorators import Appender, cache_readonly
 import pandas.core.common as com
 import pandas.indexes.base as ibase
+import pandas.lib as lib
 
 from pandas.indexes.numeric import Int64Index
 
@@ -440,7 +441,7 @@ class RangeIndex(Int64Index):
         """
         super_getitem = super(RangeIndex, self).__getitem__
 
-        if np.isscalar(key):
+        if lib.isscalar(key):
             n = int(key)
             if n != key:
                 return super_getitem(key)

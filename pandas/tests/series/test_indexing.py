@@ -15,6 +15,7 @@ from pandas.tseries.tdi import Timedelta
 import pandas.core.common as com
 
 import pandas.core.datetools as datetools
+import pandas.lib as lib
 
 from pandas.compat import lrange, range
 from pandas import compat
@@ -364,7 +365,7 @@ class TestSeriesIndexing(TestData, tm.TestCase):
 
     def test_getitem_unordered_dup(self):
         obj = Series(lrange(5), index=['c', 'a', 'a', 'b', 'b'])
-        self.assertTrue(np.isscalar(obj['c']))
+        self.assertTrue(lib.isscalar(obj['c']))
         self.assertEqual(obj['c'], 0)
 
     def test_getitem_dups_with_missing(self):

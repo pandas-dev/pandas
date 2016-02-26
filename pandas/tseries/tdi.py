@@ -165,7 +165,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
             data = to_timedelta(data, unit=unit, box=False)
 
         if not isinstance(data, (np.ndarray, Index, ABCSeries)):
-            if np.isscalar(data):
+            if lib.isscalar(data):
                 raise ValueError('TimedeltaIndex() must be called with a '
                                  'collection of some kind, %s was passed'
                                  % repr(data))

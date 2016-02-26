@@ -351,7 +351,7 @@ def _get_counts_nanvar(mask, axis, ddof, dtype=float):
     d = count - dtype.type(ddof)
 
     # always return NaN, never inf
-    if np.isscalar(count):
+    if lib.isscalar(count):
         if count <= ddof:
             count = np.nan
             d = np.nan
@@ -623,7 +623,7 @@ def _get_counts(mask, axis, dtype=float):
         return dtype.type(mask.size - mask.sum())
 
     count = mask.shape[axis] - mask.sum(axis)
-    if np.isscalar(count):
+    if lib.isscalar(count):
         return dtype.type(count)
     try:
         return count.astype(dtype)

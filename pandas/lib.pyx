@@ -312,6 +312,8 @@ def isscalar(object val):
     return (np.PyArray_IsAnyScalar(val)
             # As of numpy-1.9, PyArray_IsAnyScalar misses bytearrays on Py3.
             or PyBytes_Check(val)
+            # We differ from numpy (as of 1.10), which claims that None is
+            # not scalar in np.isscalar().
             or val is None
             or PyDate_Check(val)
             or PyDelta_Check(val)

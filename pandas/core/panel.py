@@ -576,7 +576,7 @@ class Panel(NDFrame):
                                  'object was {1}'.format(
                                      shape[1:], tuple(map(int, value.shape))))
             mat = np.asarray(value)
-        elif np.isscalar(value):
+        elif lib.isscalar(value):
             dtype, value = _infer_dtype_from_scalar(value)
             mat = np.empty(shape[1:], dtype=dtype)
             mat.fill(value)
@@ -703,7 +703,7 @@ class Panel(NDFrame):
             return self._combine_panel(other, func)
         elif isinstance(other, DataFrame):
             return self._combine_frame(other, func, axis=axis)
-        elif np.isscalar(other):
+        elif lib.isscalar(other):
             return self._combine_const(other, func)
         else:
             raise NotImplementedError("%s is not supported in combine "

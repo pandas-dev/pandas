@@ -898,7 +898,7 @@ class NDFrame(PandasObject):
         v = self.squeeze()
         if isinstance(v, (bool, np.bool_)):
             return bool(v)
-        elif np.isscalar(v):
+        elif lib.isscalar(v):
             raise ValueError("bool cannot act on a non-boolean single element "
                              "{0}".format(self.__class__.__name__))
 
@@ -1750,10 +1750,10 @@ class NDFrame(PandasObject):
                 else:
                     return self.take(loc, axis=axis, convert=True)
 
-            if not np.isscalar(loc):
+            if not lib.isscalar(loc):
                 new_index = self.index[loc]
 
-        if np.isscalar(loc):
+        if lib.isscalar(loc):
             from pandas import Series
             new_values = self._data.fast_xs(loc)
 

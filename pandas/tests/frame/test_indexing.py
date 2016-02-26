@@ -26,6 +26,7 @@ from pandas.util.testing import (assert_almost_equal,
 from pandas.core.indexing import IndexingError
 
 import pandas.util.testing as tm
+import pandas.lib as lib
 
 from pandas.tests.frame.common import TestData
 
@@ -2218,7 +2219,7 @@ class TestDataFrameIndexing(tm.TestCase, TestData):
                 d = df[k].values
                 c = cond[k].reindex(df[k].index).fillna(False).values
 
-                if np.isscalar(other):
+                if lib.isscalar(other):
                     o = other
                 else:
                     if isinstance(other, np.ndarray):

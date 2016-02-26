@@ -978,7 +978,7 @@ class MultiIndex(Index):
         self._reset_identity()
 
     def __getitem__(self, key):
-        if np.isscalar(key):
+        if lib.isscalar(key):
             retval = []
             for lev, lab in zip(self.levels, self.labels):
                 if lab[key] == -1:
