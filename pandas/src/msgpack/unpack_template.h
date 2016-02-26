@@ -89,7 +89,7 @@ static inline int unpack_execute(unpack_context* ctx, const char* data, size_t l
     */
     unpack_user* user = &ctx->user;
 
-    PyObject* obj;
+    PyObject* obj = NULL;
     unpack_stack* c = NULL;
 
     int ret;

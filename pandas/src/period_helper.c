@@ -30,8 +30,6 @@ static int floordiv(int x, int divisor) {
     }
 }
 
-static asfreq_info NULL_AF_INFO;
-
 /* Table with day offsets for each month (0-based, without and with leap) */
 static int month_offset[2][13] = {
     { 0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334, 365 },
@@ -299,7 +297,7 @@ PANDAS_INLINE int get_freq_group_index(int freq) {
     return freq/1000;
 }
 
-static int calc_conversion_factors_matrix_size() {
+static int calc_conversion_factors_matrix_size(void) {
     int matrix_size = 0;
     int index;
     for (index=0;; index++) {
@@ -348,7 +346,7 @@ static npy_int64 calculate_conversion_factor(int start_value, int end_value) {
     return conversion_factor;
 }
 
-static void populate_conversion_factors_matrix() {
+static void populate_conversion_factors_matrix(void) {
     int row_index_index;
 	int row_value, row_index;
     int column_index_index;
