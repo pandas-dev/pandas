@@ -295,7 +295,7 @@ class Float64Index(NumericIndex):
 
     def get_value(self, series, key):
         """ we always want to get an index value, never a value """
-        if not np.isscalar(key):
+        if not lib.isscalar(key):
             raise InvalidIndexError
 
         from pandas.core.indexing import maybe_droplevels
@@ -305,7 +305,7 @@ class Float64Index(NumericIndex):
         loc = self.get_loc(k)
         new_values = com._values_from_object(series)[loc]
 
-        if np.isscalar(new_values) or new_values is None:
+        if lib.isscalar(new_values) or new_values is None:
             return new_values
 
         new_index = self[loc]

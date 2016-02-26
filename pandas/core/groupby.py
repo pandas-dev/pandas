@@ -712,7 +712,7 @@ class _GroupBy(PandasObject, SelectionMixin):
         else:
             dtype = obj.dtype
 
-        if not np.isscalar(result):
+        if not lib.isscalar(result):
             result = _possibly_downcast_to_dtype(result, dtype)
 
         return result
@@ -2384,7 +2384,8 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True):
 
 
 def _is_label_like(val):
-    return isinstance(val, compat.string_types) or np.isscalar(val)
+    return (isinstance(val, compat.string_types) or
+            (val is not None and lib.isscalar(val)))
 
 
 def _convert_grouper(axis, grouper):

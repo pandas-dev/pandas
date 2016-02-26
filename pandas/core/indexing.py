@@ -4,6 +4,7 @@ from pandas.core.index import Index, MultiIndex
 from pandas.compat import range, zip
 import pandas.compat as compat
 import pandas.core.common as com
+import pandas.lib as lib
 from pandas.core.common import (is_bool_indexer, is_integer_dtype,
                                 _asarray_tuplesafe, is_list_like, isnull,
                                 is_null_slice, is_full_slice, ABCSeries,
@@ -67,7 +68,7 @@ class _NDFrameIndexer(object):
         if type(key) is tuple:
             try:
                 values = self.obj.get_value(*key)
-                if np.isscalar(values):
+                if lib.isscalar(values):
                     return values
             except Exception:
                 pass
@@ -677,7 +678,7 @@ class _NDFrameIndexer(object):
 
                     return ser
 
-        elif np.isscalar(indexer):
+        elif lib.isscalar(indexer):
             ax = self.obj._get_axis(1)
 
             if ser.index.equals(ax):
@@ -753,7 +754,7 @@ class _NDFrameIndexer(object):
                 val = df.reindex(index=ax)._values
             return val
 
-        elif np.isscalar(indexer) and is_panel:
+        elif lib.isscalar(indexer) and is_panel:
             idx = self.obj.axes[1]
             cols = self.obj.axes[2]
 
@@ -960,7 +961,7 @@ class _NDFrameIndexer(object):
             axis += 1
 
             # if we have a scalar, we are done
-            if np.isscalar(obj) or not hasattr(obj, 'ndim'):
+            if lib.isscalar(obj) or not hasattr(obj, 'ndim'):
                 break
 
             # has the dim of the obj changed?

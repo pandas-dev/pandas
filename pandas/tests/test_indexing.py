@@ -199,7 +199,7 @@ class TestIndexing(tm.TestCase):
                     return
 
                 try:
-                    if np.isscalar(rs) and np.isscalar(xp):
+                    if lib.isscalar(rs) and lib.isscalar(xp):
                         self.assertEqual(rs, xp)
                     elif xp.ndim == 1:
                         assert_series_equal(rs, xp)

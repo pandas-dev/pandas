@@ -211,7 +211,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
     def _from_arraylike(cls, data, freq, tz):
         if not isinstance(data, (np.ndarray, PeriodIndex,
                                  DatetimeIndex, Int64Index)):
-            if np.isscalar(data) or isinstance(data, Period):
+            if lib.isscalar(data) or isinstance(data, Period):
                 raise ValueError('PeriodIndex() must be called with a '
                                  'collection of some kind, %s was passed'
                                  % repr(data))
@@ -805,7 +805,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
 
     def __getitem__(self, key):
         getitem = self._data.__getitem__
-        if np.isscalar(key):
+        if lib.isscalar(key):
             val = getitem(key)
             return Period(ordinal=val, freq=self.freq)
         else:

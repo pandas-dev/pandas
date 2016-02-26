@@ -18,6 +18,7 @@ from pandas.util.decorators import deprecate
 
 import pandas.core.common as com
 import pandas.core.ops as ops
+import pandas.lib as lib
 
 
 class SparsePanelAxis(object):
@@ -390,7 +391,7 @@ class SparsePanel(Panel):
             return self._combineFrame(other, func, axis=axis)
         elif isinstance(other, Panel):
             return self._combinePanel(other, func)
-        elif np.isscalar(other):
+        elif lib.isscalar(other):
             new_frames = dict((k, func(v, other))
                               for k, v in compat.iteritems(self))
             return self._new_like(new_frames)

@@ -856,7 +856,7 @@ class ParserBase(object):
             name = self.index_names[i]
             j = self.index_col[i]
 
-            if np.isscalar(self.parse_dates):
+            if lib.isscalar(self.parse_dates):
                 return (j == self.parse_dates) or (name == self.parse_dates)
             else:
                 return (j in self.parse_dates) or (name in self.parse_dates)
@@ -2144,7 +2144,7 @@ def _process_date_conversion(data_dict, converter, parse_spec,
     if isinstance(parse_spec, list):
         # list of column lists
         for colspec in parse_spec:
-            if np.isscalar(colspec):
+            if lib.isscalar(colspec):
                 if isinstance(colspec, int) and colspec not in data_dict:
                     colspec = orig_names[colspec]
                 if _isindex(colspec):
