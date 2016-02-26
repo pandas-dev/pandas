@@ -152,7 +152,7 @@ typedef khint_t khiter_t;
 #define __ac_set_isempty_false(flag, i) (flag[i>>5]&=~(1ul<<(i&0x1fU)))
 #define __ac_set_isempty_true(flag, i) (flag[i>>5]|=(1ul<<(i&0x1fU)))
 #define __ac_set_isboth_false(flag, i) __ac_set_isempty_false(flag, i)
-#define __ac_set_isdel_true(flag, i) (0)
+#define __ac_set_isdel_true(flag, i) ((void)0)
 
 #ifdef KHASH_LINEAR
 #define __ac_inc(k, m) 1

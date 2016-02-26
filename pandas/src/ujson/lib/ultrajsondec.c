@@ -76,12 +76,6 @@ static JSOBJ SetError( struct DecoderState *ds, int offset, const char *message)
   return NULL;
 }
 
-static void ClearError( struct DecoderState *ds)
-{
-  ds->dec->errorOffset = 0;
-  ds->dec->errorStr = NULL;
-}
-
 double createDouble(double intNeg, double intValue, double frcValue, int frcDecimalCount)
 {
   static const double g_pow10[] = {1.0, 0.1, 0.01, 0.001, 0.0001, 0.00001, 0.000001,0.0000001, 0.00000001, 0.000000001, 0.0000000001, 0.00000000001, 0.000000000001, 0.0000000000001, 0.00000000000001, 0.000000000000001};

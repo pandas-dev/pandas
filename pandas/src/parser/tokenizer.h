@@ -267,7 +267,7 @@ double xstrtod(const char *p, char **q, char decimal, char sci, char tsep, int s
 double precise_xstrtod(const char *p, char **q, char decimal, char sci, char tsep, int skip_trailing);
 double round_trip(const char *p, char **q, char decimal, char sci, char tsep, int skip_trailing);
 //int P_INLINE to_complex(char *item, double *p_real, double *p_imag, char sci, char decimal);
-int P_INLINE to_longlong(char *item, long long *p_value);
+//int P_INLINE to_longlong(char *item, long long *p_value);
 //int P_INLINE to_longlong_thousands(char *item, long long *p_value, char tsep);
 int to_boolean(const char *item, uint8_t *val);
 
