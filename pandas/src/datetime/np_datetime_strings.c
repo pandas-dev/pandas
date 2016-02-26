@@ -400,7 +400,7 @@ parse_iso_8601_datetime(char *str, int len,
      * an error code will be retuned because the date is ambigous
     */
     int has_sep = 0;
-    char sep = NULL;
+    char sep = '\0';
     char valid_sep[] = {'-', '.', '/', '\\', ' '};
     int valid_sep_len = 5;
 
