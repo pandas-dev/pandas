@@ -362,6 +362,24 @@ class Generic(object):
             self._compare(o.head(-3), o.head(7))
             self._compare(o.tail(-3), o.tail(7))
 
+    def test_dtype_after_slice_update(self):
+        # GH10503
+
+        # assigning the same type should not change the type
+        df1 = pd.DataFrame({'a': [0, 1, 1], 'b': [100, 200, 300]},
+                           dtype='uint32')
+        ix = df1['a'] == 1
+        newb1 = df1.loc[ix, 'b'] + 1
+        df1.loc[ix, 'b'] = newb1
+        assert_equal(df1['a'].dtype, newb1.dtype)
+
+        # assigning a new type should get the inferred type
+        df2 = pd.DataFrame({'a': [0, 1, 1], 'b': [100, 200, 300]},
+                           dtype='uint64')
+        newb2 = df2.loc[ix, 'b']
+        df1.loc[ix, 'b'] = newb2
+        assert_equal(df1['a'].dtype, np.dtype('int64'))
+
     def test_sample(self):
         # Fixes issue: 2419
 
