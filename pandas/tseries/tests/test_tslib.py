@@ -180,6 +180,36 @@ class TestTimestamp(tm.TestCase):
         with tm.assertRaisesRegexp(ValueError, 'Cannot convert Period'):
             Timestamp(Period('1000-01-01'))
 
+    def test_constructor_positional(self):
+        # GH 10758
+        with tm.assertRaises(TypeError):
+            Timestamp(2000, 1)
+        with tm.assertRaises(ValueError):
+            Timestamp(2000, 0, 1)
+        with tm.assertRaises(ValueError):
+            Timestamp(2000, 13, 1)
+        with tm.assertRaises(ValueError):
+            Timestamp(2000, 1, 0)
+        with tm.assertRaises(ValueError):
+            Timestamp(2000, 1, 32)
+        with tm.assertRaises(TypeError):
+            Timestamp(2000, 1, 1, None)
+        with tm.assertRaises(TypeError):
+            Timestamp(2000, 1, 1, None, None)
+        with tm.assertRaises(TypeError):
+            Timestamp(2000, 1, 1, None, None, None)
+
+        ts = Timestamp(2000, 1, 2)
+
+        actual = ts.to_pydatetime()
+        expected = datetime.datetime(2000, 1, 2)
+        self.assertEqual(actual, expected)
+        self.assertEqual(type(actual), type(expected))
+
+        pos_args = [2000, 1, 2, 3, 4, 5, 999999]
+        self.assertEqual(Timestamp(*pos_args).to_pydatetime(),
+                         datetime.datetime(*pos_args))
+
     def test_conversion(self):
         # GH 9255
         ts = Timestamp('2000-01-01')

@@ -216,6 +216,7 @@ cdef inline bint _is_fixed_offset(object tz):
 
 
 _zero_time = datetime_time(0, 0)
+_no_unit = object()
 
 # Python front end to C extension type _Timestamp
 # This serves as the box for datetime64
@@ -288,9 +289,35 @@ class Timestamp(_Timestamp):
     def combine(cls, date, time):
         return cls(datetime.combine(date, time))
 
-    def __new__(cls, object ts_input, object offset=None, tz=None, unit=None):
+    def __new__(cls,
+            object ts_input, object offset=None, tz=None, unit=_no_unit,
+            minute=0, second=0, microsecond=0, tzinfo=None):
+        # The parameter list folds together legacy parameter names (the first
+        # four) and positional parameter names from pydatetime (starting with
+        # `minute`).
+        #
+        # When using the pydatetime form, the first three parameters are
+        # required, but the fourth (called `unit` but standing in for `hour`)
+        # is optional. However, when using the legacy form, only the first
+        # parameter is required and the fourth parameter defaults to `None`.
+        # We use a special non-`None` constant to distinguish when callers
+        # pass `None` as the fourth pydatetime parameter.
+
         cdef _TSObject ts
         cdef _Timestamp ts_base
+
+        if offset is not None and is_integer_object(offset):
+            # User passed positional arguments:
+            #   Timestamp(year, month, day[, hour[, minute[, second[, microsecond[, tzinfo]]]]])
+            # When using the positional form, the first three parameters are
+            # required. Assign defaults to the rest.
+            if unit is _no_unit:
+                unit = 0
+            # Forward positional arguments to datetime constructor.
+            return Timestamp(datetime(ts_input, offset, tz, unit, minute, second, microsecond, tzinfo),
+                             tz=tzinfo)
+        elif unit is _no_unit:
+            unit = None
 
         ts = convert_to_tsobject(ts_input, tz, unit, 0, 0)
 
