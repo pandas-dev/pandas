@@ -60,8 +60,8 @@ class TestPlotBase(tm.TestCase):
 
         n = 100
         with tm.RNGContext(42):
-            gender = tm.choice(['Male', 'Female'], size=n)
-            classroom = tm.choice(['A', 'B', 'C'], size=n)
+            gender = np.random.choice(['Male', 'Female'], size=n)
+            classroom = np.random.choice(['A', 'B', 'C'], size=n)
 
             self.hist_df = DataFrame({'gender': gender,
                                       'classroom': classroom,
@@ -3861,7 +3861,7 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         weight = Series(np.random.normal(166, 20, size=n))
         height = Series(np.random.normal(60, 10, size=n))
         with tm.RNGContext(42):
-            gender = tm.choice(['male', 'female'], size=n)
+            gender = np.random.choice(['male', 'female'], size=n)
 
         weight.groupby(gender).plot()
         tm.close()

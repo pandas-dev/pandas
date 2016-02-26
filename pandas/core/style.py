@@ -352,7 +352,7 @@ class Styler(object):
         ``Styler`` objects have defined the ``_repr_html_`` method
         which automatically calls ``self.render()`` when it's the
         last item in a Notebook cell. When calling ``Styler.render()``
-        directly, wrap the resul in ``IPython.display.HTML`` to view
+        directly, wrap the result in ``IPython.display.HTML`` to view
         the rendered HTML in the notebook.
         """
         self._compute()

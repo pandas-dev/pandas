@@ -699,6 +699,29 @@ class TestIndexing(tm.TestCase):
         expected = Series([0, 1, 0], index=[4, 5, 6])
         assert_series_equal(s, expected)
 
+    def test_loc_setitem_slice(self):
+        # GH10503
+
+        # assigning the same type should not change the type
+        df1 = DataFrame({'a': [0, 1, 1],
+                         'b': Series([100, 200, 300], dtype='uint32')})
+        ix = df1['a'] == 1
+        newb1 = df1.loc[ix, 'b'] + 1
+        df1.loc[ix, 'b'] = newb1
+        expected = DataFrame({'a': [0, 1, 1],
+                              'b': Series([100, 201, 301], dtype='uint32')})
+        assert_frame_equal(df1, expected)
+
+        # assigning a new type should get the inferred type
+        df2 = DataFrame({'a': [0, 1, 1], 'b': [100, 200, 300]},
+                        dtype='uint64')
+        ix = df1['a'] == 1
+        newb2 = df2.loc[ix, 'b']
+        df1.loc[ix, 'b'] = newb2
+        expected = DataFrame({'a': [0, 1, 1], 'b': [100, 200, 300]},
+                             dtype='uint64')
+        assert_frame_equal(df2, expected)
+
     def test_ix_loc_setitem_consistency(self):
 
         # GH 5771
@@ -3256,12 +3279,12 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
 
         df.ix[4, 'c'] = arr
         assert_series_equal(df.ix[4, 'c'], Series(arr, index=[8, 10], name='c',
-                                                  dtype='int64'))
+                                                  dtype='float64'))
 
         # scalar ok
         df.ix[4, 'c'] = 10
         assert_series_equal(df.ix[4, 'c'], Series(10, index=[8, 10], name='c',
-                                                  dtype='int64'))
+                                                  dtype='float64'))
 
         # invalid assignments
         def f():

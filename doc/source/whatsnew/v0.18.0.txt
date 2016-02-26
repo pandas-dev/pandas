@@ -362,6 +362,82 @@ New Behavior:
    s.index
    print(s.to_csv(path=None))
 
+Changes to dtype assignment behaviors
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+When a DataFrame's slice is updated with a new slice of the same dtype, the dtype of the DataFrame will now remain the same. (:issue:`10503`)
+
+Previous Behavior:
+
+.. code-block:: python
+
+   In [5]: df = pd.DataFrame({'a': [0, 1, 1],
+                              'b': pd.Series([100, 200, 300], dtype='uint32')})
+
+   In [7]: df.dtypes
+   Out[7]:
+   a     int64
+   b    uint32
+   dtype: object
+
+   In [8]: ix = df['a'] == 1
+
+   In [9]: df.loc[ix, 'b'] = df.loc[ix, 'b']
+
+   In [11]: df.dtypes
+   Out[11]:
+   a    int64
+   b    int64
+   dtype: object
+
+New Behavior:
+
+.. ipython:: python
+
+   df = pd.DataFrame({'a': [0, 1, 1],
+                      'b': pd.Series([100, 200, 300], dtype='uint32')})
+   df.dtypes
+   ix = df['a'] == 1
+   df.loc[ix, 'b'] = df.loc[ix, 'b']
+   df.dtypes
+
+When a DataFrame's integer slice is partially updated with a new slice of floats that could potentially be downcasted to integer without losing precision, the dtype of the slice will be set to float instead of integer.
+
+Previous Behavior:
+
+.. code-block:: python
+
+   In [4]: df = pd.DataFrame(np.array(range(1,10)).reshape(3,3),
+                             columns=list('abc'),
+                             index=[[4,4,8], [8,10,12]])
+
+   In [5]: df
+   Out[5]:
+         a  b  c
+   4 8   1  2  3
+     10  4  5  6
+   8 12  7  8  9
+
+   In [7]: df.ix[4, 'c'] = np.array([0., 1.])
+
+   In [8]: df
+   Out[8]:
+         a  b  c
+   4 8   1  2  0
+     10  4  5  1
+   8 12  7  8  9
+
+New Behavior:
+
+.. ipython:: python
+
+   df = pd.DataFrame(np.array(range(1,10)).reshape(3,3),
+                     columns=list('abc'),
+                     index=[[4,4,8], [8,10,12]])
+   df
+   df.ix[4, 'c'] = np.array([0., 1.])
+   df
+
 .. _whatsnew_0180.enhancements.xarray:
 
 to_xarray
@@ -431,6 +507,7 @@ Other enhancements
 - ``pivot_table()`` now accepts most iterables for the ``values`` parameter (:issue:`12017`)
 - Added Google ``BigQuery`` service account authentication support, which enables authentication on remote servers. (:issue:`11881`). For further details see :ref:`here <io.bigquery_authentication>`
 - ``HDFStore`` is now iterable: ``for k in store`` is equivalent to ``for k in store.keys()`` (:issue:`12221`).
+- Add missing methods/fields to ``.dt`` for ``Period`` (:issue:`8848`)
 - The entire codebase has been ``PEP``-ified (:issue:`12096`)
 
 .. _whatsnew_0180.api_breaking:
@@ -856,21 +933,15 @@ Other API Changes
      ValueError: Cannot convert arg ['20150101 07:00:00'] to a time.
 
 - ``.memory_usage()`` now includes values in the index, as does memory_usage in ``.info`` (:issue:`11597`)
-
 - ``DataFrame.to_latex()`` now supports non-ascii encodings (eg utf-8) in Python 2 with the parameter ``encoding`` (:issue:`7061`)
-
 - ``pandas.merge()`` and ``DataFrame.merge()`` will show a specific error message when trying to merge with an object that is not of type ``DataFrame`` or a subclass (:issue:`12081`)
-
 - ``DataFrame.unstack`` and ``Series.unstack`` now take ``fill_value`` keyword to allow direct replacement of missing values when an unstack results in missing values in the resulting ``DataFrame``. As an added benefit, specifying ``fill_value`` will preserve the data type of the original stacked data.  (:issue:`9746`)
-
 - As part of the new API for :ref:`window functions <whatsnew_0180.enhancements.moments>` and :ref:`resampling <whatsnew_0180.breaking.resample>`, aggregation functions have been clarified, raising more informative error messages on invalid aggregations. (:issue:`9052`). A full set of examples are presented in :ref:`groupby <groupby.aggregation>`.
-
 - Statistical functions for ``NDFrame`` objects will now raise if non-numpy-compatible arguments are passed in for ``**kwargs`` (:issue:`12301`)
-
 - ``.to_latex`` and ``.to_html`` gain a ``decimal`` parameter like ``.to_csv``; the default is ``'.'`` (:issue:`12031`)
-
 - More helpful error message when constructing a ``DataFrame`` with empty data but with indices (:issue:`8020`)
-
+- ``.describe()`` will now properly handle bool dtype as a categorical (:issue:`6625`)
+- More helpful error message invalid ``.transform`` with user defined input (:issue:`10165`)
 
 .. _whatsnew_0180.deprecations:
 
@@ -1124,3 +1195,5 @@ Bug Fixes
 - Bug in ``DataFrame.apply`` in which reduction was not being prevented for cases in which ``dtype`` was not a numpy dtype (:issue:`12244`)
 - Bug when initializing categorical series with a scalar value. (:issue:`12336`)
 - Bug when specifying a UTC ``DatetimeIndex`` by setting ``utc=True`` in ``.to_datetime`` (:issue:`11934`)
+
+- Removed pandas.util.testing.choice().  Should use np.random.choice(), instead. (:issue:`12386`)
