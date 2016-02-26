@@ -43,3 +43,5 @@ Performance Improvements
 
 Bug Fixes
 ~~~~~~~~~
+
+- Removed some compiler warnings (:issue:`5385`)
