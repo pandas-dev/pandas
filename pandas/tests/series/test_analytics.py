@@ -160,6 +160,16 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
         assert_series_equal(s.mode(), Series(['2011-01-03', '2013-01-02'],
                                              dtype='M8[ns]'))
 
+        # GH 5986
+        s = Series(['1 days', '-1 days', '0 days'], dtype='timedelta64[ns]')
+        assert_series_equal(s.mode(), Series([], dtype='timedelta64[ns]'))
+
+        s = Series(['1 day', '1 day', '-1 day', '-1 day 2 min',
+                    '2 min', '2 min'],
+                   dtype='timedelta64[ns]')
+        assert_series_equal(s.mode(), Series(['2 min', '1 day'],
+                                             dtype='timedelta64[ns]'))
+
     def test_prod(self):
         self._check_stat_op('prod', np.prod)
 
@@ -1012,6 +1022,13 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
 
         iseries = Series([1e-50, 1e-100, 1e-20, 1e-2, 1e-20 + 1e-30, 1e-1])
         exp = Series([2, 1, 3, 5, 4, 6.0])
+        iranks = iseries.rank()
+        assert_series_equal(iranks, exp)
+
+        # GH 5968
+        iseries = Series(['3 day', '1 day 10m', '-2 day', pd.NaT],
+                         dtype='m8[ns]')
+        exp = Series([3, 2, 1, np.nan])
         iranks = iseries.rank()
         assert_series_equal(iranks, exp)
 
