@@ -201,6 +201,12 @@ def mplskip(cls):
     cls.setUpClass = setUpClass
     return cls
 
+def _skip_if_no_mpl():
+    try:
+        import matplotlib
+    except ImportError:
+        import nose
+        raise nose.SkipTest("matplotlib not installed")
 
 def _skip_if_mpl_1_5():
     import matplotlib
@@ -208,7 +214,6 @@ def _skip_if_mpl_1_5():
     if v > LooseVersion('1.4.3') or v[0] == '0':
         import nose
         raise nose.SkipTest("matplotlib 1.5")
-
 
 def _skip_if_no_scipy():
     try:
@@ -765,6 +770,21 @@ def assert_attr_equal(attr, left, right, obj='Attributes'):
     else:
         raise_assert_detail(obj, 'Attribute "{0}" are different'.format(attr),
                         left_attr, right_attr)
+
+
+def assert_is_valid_plot_return_object(objs):
+    import matplotlib.pyplot as plt
+    if isinstance(objs, np.ndarray):
+        for el in objs.flat:
+            assert isinstance(el, plt.Axes), ('one of \'objs\' is not a '
+                                              'matplotlib Axes instance, '
+                                              'type encountered {0!r}'
+                                              ''.format(el.__class__.__name__))
+    else:
+        assert isinstance(objs, (plt.Artist, tuple, dict)), \
+            ('objs is neither an ndarray of Artist instances nor a '
+             'single Artist instance, tuple, or dict, "objs" is a {0!r} '
+             ''.format(objs.__class__.__name__))
 
 
 def isiterable(obj):

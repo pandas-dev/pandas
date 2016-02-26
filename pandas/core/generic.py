@@ -3932,57 +3932,18 @@ class NDFrame(PandasObject):
         Freq: 3T, dtype: int64
 
         """
-        from pandas.tseries.resample import resample
+        from pandas.tseries.resample import (resample,
+                                             _maybe_process_deprecations)
 
         axis = self._get_axis_number(axis)
         r = resample(self, freq=rule, label=label, closed=closed,
                      axis=axis, kind=kind, loffset=loffset,
-                     fill_method=fill_method, convention=convention,
-                     limit=limit, base=base)
-
-        # deprecation warnings
-        # but call methods anyhow
-
-        if how is not None:
-
-            # .resample(..., how='sum')
-            if isinstance(how, compat.string_types):
-                method = "{0}()".format(how)
-
-            # .resample(..., how=lambda x: ....)
-            else:
-                method = ".apply(<func>)"
-
-            # if we have both a how and fill_method, then show
-            # the following warning
-            if fill_method is None:
-                warnings.warn("how in .resample() is deprecated\n"
-                              "the new syntax is "
-                              ".resample(...).{method}".format(
-                                  method=method),
-                              FutureWarning, stacklevel=2)
-            r = r.aggregate(how)
-
-        if fill_method is not None:
-
-            # show the prior function call
-            method = '.' + method if how is not None else ''
-
-            args = "limit={0}".format(limit) if limit is not None else ""
-            warnings.warn("fill_method is deprecated to .resample()\n"
-                          "the new syntax is .resample(...){method}"
-                          ".{fill_method}({args})".format(
-                              method=method,
-                              fill_method=fill_method,
-                              args=args),
-                          FutureWarning, stacklevel=2)
-
-            if how is not None:
-                r = getattr(r, fill_method)(limit=limit)
-            else:
-                r = r.aggregate(fill_method, limit=limit)
-
-        return r
+                     convention=convention,
+                     base=base)
+        return _maybe_process_deprecations(r,
+                                           how=how,
+                                           fill_method=fill_method,
+                                           limit=limit)
 
     def first(self, offset):
         """

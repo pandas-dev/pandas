@@ -17,7 +17,9 @@ from pandas.compat import (range, lrange, StringIO, lmap, lzip, u, zip,
 from pandas.util.decorators import cache_readonly
 import pandas.core.common as com
 import pandas.util.testing as tm
-from pandas.util.testing import ensure_clean
+from pandas.util.testing import (ensure_clean,
+                                 assert_is_valid_plot_return_object)
+
 from pandas.core.config import set_option
 
 import numpy as np
@@ -3914,21 +3916,6 @@ class TestDataFrameGroupByPlots(TestPlotBase):
 
         res = df.groupby('z').plot.scatter(x='x', y='y')
         self.assertEqual(len(res['a'].collections), 1)
-
-
-def assert_is_valid_plot_return_object(objs):
-    import matplotlib.pyplot as plt
-    if isinstance(objs, np.ndarray):
-        for el in objs.flat:
-            assert isinstance(el, plt.Axes), ('one of \'objs\' is not a '
-                                              'matplotlib Axes instance, '
-                                              'type encountered {0!r}'
-                                              ''.format(el.__class__.__name__))
-    else:
-        assert isinstance(objs, (plt.Artist, tuple, dict)), \
-            ('objs is neither an ndarray of Artist instances nor a '
-             'single Artist instance, tuple, or dict, "objs" is a {0!r} '
-             ''.format(objs.__class__.__name__))
 
 
 def _check_plot_works(f, filterwarnings='always', **kwargs):
