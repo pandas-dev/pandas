@@ -260,7 +260,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         elif hasattr(data, '__array__'):
             return Index(np.asarray(data), dtype=dtype, copy=copy, name=name,
                          **kwargs)
-        elif data is None or np.isscalar(data):
+        elif data is None or lib.isscalar(data):
             cls._scalar_data_error(data)
         else:
             if (tupleize_cols and isinstance(data, list) and data and
@@ -486,7 +486,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         """
 
         if not isinstance(data, (np.ndarray, Index)):
-            if data is None or np.isscalar(data):
+            if data is None or lib.isscalar(data):
                 cls._scalar_data_error(data)
 
             # other iterable of some kind
@@ -1269,7 +1269,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         getitem = self._data.__getitem__
         promote = self._shallow_copy
 
-        if np.isscalar(key):
+        if lib.isscalar(key):
             return getitem(key)
 
         if isinstance(key, slice):
@@ -1282,7 +1282,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
 
         key = _values_from_object(key)
         result = getitem(key)
-        if not np.isscalar(result):
+        if not lib.isscalar(result):
             return promote(result)
         else:
             return result
@@ -1941,7 +1941,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
                 raise e1
         except TypeError:
             # python 3
-            if np.isscalar(key):  # pragma: no cover
+            if lib.isscalar(key):  # pragma: no cover
                 raise IndexError(key)
             raise InvalidIndexError(key)
 

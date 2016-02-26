@@ -9,6 +9,7 @@ from pandas.tools.util import cartesian_product
 from pandas.compat import range, lrange, zip
 from pandas import compat
 import pandas.core.common as com
+import pandas.lib as lib
 import numpy as np
 
 
@@ -356,7 +357,7 @@ def _generate_marginal_results_without_values(
 def _convert_by(by):
     if by is None:
         by = []
-    elif (np.isscalar(by) or isinstance(by, (np.ndarray, Index,
+    elif (lib.isscalar(by) or isinstance(by, (np.ndarray, Index,
                                              Series, Grouper)) or
           hasattr(by, '__call__')):
         by = [by]

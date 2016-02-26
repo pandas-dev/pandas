@@ -37,7 +37,7 @@ def _arith_method(op, name, str_rep=None, default_axis=None, fill_zeros=None,
                 return _sparse_array_op(other, self, op, name[1:])
             else:
                 return _sparse_array_op(self, other, op, name)
-        elif np.isscalar(other):
+        elif lib.isscalar(other):
             new_fill_value = op(np.float64(self.fill_value), np.float64(other))
 
             return SparseArray(op(self.sp_values, other),
@@ -121,7 +121,7 @@ class SparseArray(PandasObject, np.ndarray):
         if index is not None:
             if data is None:
                 data = np.nan
-            if not np.isscalar(data):
+            if not lib.isscalar(data):
                 raise Exception("must only pass scalars with an index ")
             values = np.empty(len(index), dtype='float64')
             values.fill(data)
@@ -362,7 +362,7 @@ class SparseArray(PandasObject, np.ndarray):
             j = 0
         slobj = slice(i, j)  # noqa
 
-        # if not np.isscalar(value):
+        # if not lib.isscalar(value):
         #    raise Exception("SparseArray does not support seting non-scalars
         # via slices")
 
@@ -504,7 +504,7 @@ def make_sparse(arr, kind='block', fill_value=nan):
     if hasattr(arr, 'values'):
         arr = arr.values
     else:
-        if np.isscalar(arr):
+        if lib.isscalar(arr):
             arr = [arr]
         arr = np.asarray(arr)
 

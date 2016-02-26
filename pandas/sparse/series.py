@@ -19,6 +19,7 @@ from pandas.core import generic
 import pandas.core.common as com
 import pandas.core.ops as ops
 import pandas.index as _index
+import pandas.lib as lib
 
 from pandas.sparse.array import (make_sparse, _sparse_array_op, SparseArray)
 from pandas._sparse import BlockIndex, IntIndex
@@ -48,7 +49,7 @@ def _arith_method(op, name, str_rep=None, default_axis=None, fill_zeros=None,
             return _sparse_series_op(self, other, op, name)
         elif isinstance(other, DataFrame):
             return NotImplemented
-        elif np.isscalar(other):
+        elif lib.isscalar(other):
             if isnull(other) or isnull(self.fill_value):
                 new_fill_value = np.nan
             else:
