@@ -27,8 +27,10 @@ from pandas.core.common import (isnull, notnull, is_list_like,
                                 SettingWithCopyError, SettingWithCopyWarning,
                                 AbstractMethodError)
 import pandas.core.nanops as nanops
+from numpy import percentile as _quantile
 from pandas.util.decorators import Appender, Substitution, deprecate_kwarg
 from pandas.core import config
+from pandas import _np_version_under1p9
 
 # goal is to be able to define the docs close to function, while still being
 # able to share
@@ -842,43 +844,7 @@ class NDFrame(PandasObject):
 
     @property
     def empty(self):
-        """True if NDFrame is entirely empty [no items], meaning any of the
-        axes are of length 0.
-
-        Notes
-        -----
-        If NDFrame contains only NaNs, it is still not considered empty. See
-        the example below.
-
-        Examples
-        --------
-        An example of an actual empty DataFrame. Notice the index is empty:
-
-        >>> df_empty = pd.DataFrame({'A' : []})
-        >>> df_empty
-        Empty DataFrame
-        Columns: [A]
-        Index: []
-        >>> df_empty.empty
-        True
-
-        If we only have NaNs in our DataFrame, it is not considered empty! We
-        will need to drop the NaNs to make the DataFrame empty:
-
-        >>> df = pd.DataFrame({'A' : [np.nan]})
-        >>> df
-            A
-        0 NaN
-        >>> df.empty
-        False
-        >>> df.dropna().empty
-        True
-
-        See also
-        --------
-        pandas.Series.dropna
-        pandas.DataFrame.dropna
-        """
+        """True if NDFrame is entirely empty [no items]"""
         return not all(len(self._get_axis(a)) > 0 for a in self._AXIS_ORDERS)
 
     def __nonzero__(self):
@@ -4109,6 +4075,125 @@ class NDFrame(PandasObject):
             data = self
 
         return ranker(data)
+
+    _shared_docs['quantile'] = ("""
+        Return values at the given quantile over requested axis, a la
+        numpy.percentile.
+
+        Parameters
+        ----------
+        q : float or array-like, default 0.5 (50 percentile)
+            0 <= q <= 1, the quantile(s) to compute
+        axis : {0, 1, 'index', 'columns'} (default 0)
+            0 or 'index' for row-wise, 1 or 'columns' for column-wise
+        numeric_only : boolean, default None
+            Include only float, int, boolean data. If None, will attempt to use
+            everything, then use only numeric data
+        interpolation : {'linear', 'lower', 'higher', 'midpoint', 'nearest'}
+            .. versionadded:: 0.18.0
+            This optional parameter specifies the interpolation method to use,
+            when the desired quantile lies between two data points `i` and `j`:
+
+            * linear: `i + (j - i) * fraction`, where `fraction` is the
+              fractional part of the index surrounded by `i` and `j`.
+            * lower: `i`.
+            * higher: `j`.
+            * nearest: `i` or `j` whichever is nearest.
+            * midpoint: (`i` + `j`) / 2.
+
+        Returns
+        -------
+        %s
+
+        Examples
+        --------
+
+        >>> s = Series([1, 2, 3, 4])
+        >>> s.quantile(.5)
+            2.5
+        >>> s.quantile([.25, .5, .75])
+        0.25    1.75
+        0.50    2.50
+        0.75    3.25
+        dtype: float64
+        >>> df = DataFrame(np.array([[1, 1], [2, 10], [3, 100], [4, 100]]),
+                           columns=['a', 'b'])
+        >>> df.quantile(.1)
+        a    1.3
+        b    3.7
+        dtype: float64
+        >>> df.quantile([.1, .5])
+               a     b
+        0.1  1.3   3.7
+        0.5  2.5  55.0
+        """)
+
+    @Appender(_shared_docs['quantile'] % '')
+    def quantile(self, q=0.5, axis=0, numeric_only=None,
+                 interpolation='linear'):
+        if self.ndim >= 3:
+            msg = "quantile is not implemented on on Panel or PanelND objects."
+            raise NotImplementedError(msg)
+        elif self.ndim == 1:
+            result = self.to_frame().quantile(q=q, axis=axis,
+                                              numeric_only=numeric_only,
+                                              interpolation=interpolation)
+            if not com.is_list_like(q):
+                return result.iloc[0]
+            else:
+                return result[result.columns[0]]
+
+        self._check_percentile(q)
+        per = np.asarray(q) * 100
+
+        if not com.is_list_like(per):
+            per = [per]
+            q = [q]
+            squeeze = True
+        else:
+            squeeze = False
+
+        if _np_version_under1p9:
+            if interpolation != 'linear':
+                raise ValueError("Interpolation methods other than linear "
+                                 "are not supported in numpy < 1.9")
+
+        def f(arr, per, interpolation):
+            boxer = com.i8_boxer(arr) \
+                if com.needs_i8_conversion(arr) else lambda x: x
+            if arr._is_datelike_mixed_type:
+                values = _values_from_object(arr).view('i8')
+            else:
+                values = arr.astype(float)
+            values = values[notnull(values)]
+            if len(values) == 0:
+                return boxer(np.nan)
+            else:
+                if _np_version_under1p9:
+                    return boxer(_quantile(values, per))
+                else:
+                    return boxer(_quantile(values, per,
+                                           interpolation=interpolation))
+
+        data = self._get_numeric_data() if numeric_only else self
+
+        axis = self._get_axis_number(axis)
+
+        if axis == 1:
+            data = data.T
+
+        quantiles = [[f(vals, x, interpolation) for x in per]
+                     for (_, vals) in data.iteritems()]
+
+        result = self._constructor(quantiles, index=data._info_axis,
+                                   columns=q).T
+        if squeeze:
+            if result.shape == (1, 1):
+                result = result.T.iloc[:, 0]  # don't want scalar
+            else:
+                result = result.T.squeeze()
+            result.name = None  # For groupby, so it can set an index name
+        return result
 
     _shared_docs['align'] = ("""
         Align two object on their axes with the

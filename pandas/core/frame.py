@@ -62,7 +62,8 @@ import pandas.lib as lib
 import pandas.algos as _algos
 
 from pandas.core.config import get_option
-from pandas import _np_version_under1p9
+
+from textwrap import dedent
 
 # ---------------------------------------------------------------------
 # Docstring templates
@@ -4919,108 +4920,20 @@ class DataFrame(NDFrame):
 
         return data.apply(f, axis=axis)
 
-    def quantile(self, q=0.5, axis=0, numeric_only=True,
-                 interpolation='linear'):
-        """
-        Return values at the given quantile over requested axis, a la
-        numpy.percentile.
-
-        Parameters
-        ----------
-        q : float or array-like, default 0.5 (50% quantile)
-            0 <= q <= 1, the quantile(s) to compute
-        axis : {0, 1, 'index', 'columns'} (default 0)
-            0 or 'index' for row-wise, 1 or 'columns' for column-wise
-        interpolation : {'linear', 'lower', 'higher', 'midpoint', 'nearest'}
-            .. versionadded:: 0.18.0
-            This optional parameter specifies the interpolation method to use,
-            when the desired quantile lies between two data points `i` and `j`:
-
-            * linear: `i + (j - i) * fraction`, where `fraction` is the
-              fractional part of the index surrounded by `i` and `j`.
-            * lower: `i`.
-            * higher: `j`.
-            * nearest: `i` or `j` whichever is nearest.
-            * midpoint: (`i` + `j`) / 2.
-
-        Returns
-        -------
+    @Substitution(dedent("""
         quantiles : Series or DataFrame
             If ``q`` is an array, a DataFrame will be returned where the
             index is ``q``, the columns are the columns of self, and the
             values are the quantiles.
             If ``q`` is a float, a Series will be returned where the
             index is the columns of self and the values are the quantiles.
-
-        Examples
-        --------
-
-        >>> df = DataFrame(np.array([[1, 1], [2, 10], [3, 100], [4, 100]]),
-                           columns=['a', 'b'])
-        >>> df.quantile(.1)
-        a    1.3
-        b    3.7
-        dtype: float64
-        >>> df.quantile([.1, .5])
-               a     b
-        0.1  1.3   3.7
-        0.5  2.5  55.0
-        """
-        self._check_percentile(q)
-        per = np.asarray(q) * 100
-
-        if not com.is_list_like(per):
-            per = [per]
-            q = [q]
-            squeeze = True
-        else:
-            squeeze = False
-
-        if _np_version_under1p9:
-            if interpolation != 'linear':
-                raise ValueError("Interpolation methods other than linear "
-                                 "are not supported in numpy < 1.9")
-
-        def f(arr, per, interpolation):
-            if arr._is_datelike_mixed_type:
-                values = _values_from_object(arr).view('i8')
-            else:
-                values = arr.astype(float)
-            values = values[notnull(values)]
-            if len(values) == 0:
-                return NA
-            else:
-                if _np_version_under1p9:
-                    return _quantile(values, per)
-                else:
-                    return _quantile(values, per, interpolation=interpolation)
-
-        data = self._get_numeric_data() if numeric_only else self
-
-        axis = self._get_axis_number(axis)
-
-        if axis == 1:
-            data = data.T
-
-        # need to know which cols are timestamp going in so that we can
-        # map timestamp over them after getting the quantile.
-        is_dt_col = data.dtypes.map(com.is_datetime64_dtype)
-        is_dt_col = is_dt_col[is_dt_col].index
-
-        quantiles = [[f(vals, x, interpolation) for x in per]
-                     for (_, vals) in data.iteritems()]
-
-        result = self._constructor(quantiles, index=data._info_axis,
-                                   columns=q).T
-        if len(is_dt_col) > 0:
-            result[is_dt_col] = result[is_dt_col].applymap(lib.Timestamp)
-        if squeeze:
-            if result.shape == (1, 1):
-                result = result.T.iloc[:, 0]  # don't want scalar
-            else:
-                result = result.T.squeeze()
-            result.name = None  # For groupby, so it can set an index name
-        return result
+            """))
+    @Appender(_shared_docs['quantile'])
+    def quantile(self, q=0.5, axis=0, numeric_only=True,
+                 interpolation='linear'):
+        return super(DataFrame,
+                     self).quantile(q=q, axis=axis, numeric_only=numeric_only,
+                                    interpolation=interpolation)
 
     def to_timestamp(self, freq=None, how='start', axis=0, copy=True):
         """

@@ -572,8 +572,7 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
         assert_series_equal(result, expected)
 
         result = self.ts.quantile([])
-        expected = pd.Series([], name=self.ts.name, index=Index(
-            [], dtype=float))
+        expected = pd.Series([], name=self.ts.name, index=[])
         assert_series_equal(result, expected)
 
     def test_quantile_interpolation(self):
