@@ -9,7 +9,7 @@ matrix:
   fast_finish: true     # immediately finish build once one of the jobs fails.
 
 # set clone depth
-clone_depth: 200
+clone_depth: 300
 
 environment:
   global:
