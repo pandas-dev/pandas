@@ -717,8 +717,23 @@ class Block(PandasObject):
                 block = block.convert(numeric=False)
 
             return block
-        except (ValueError, TypeError):
+        except ValueError:
             raise
+        except TypeError:
+
+            # cast to the passed dtype if possible
+            # otherwise raise the original error
+            try:
+                # e.g. we are uint32 and our value is uint64
+                # this is for compat with older numpies
+                block = self.make_block(transf(values.astype(value.dtype)))
+                return block.setitem(indexer=indexer, value=value, mgr=mgr)
+
+            except:
+                pass
+
+            raise
+
         except Exception:
             pass
 
