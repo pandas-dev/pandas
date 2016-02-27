@@ -1925,6 +1925,15 @@ class TestMomentsConsistency(Base):
         mom.rolling_median(Series(np.random.randn(n)), window=2, center=False)
         mom.rolling_median(Series(np.random.randn(n)), window=2, center=False)
 
+    def test_rolling_min_max_numeric_types(self):
+        # GH12373
+        types_test = [np.dtype("f{}".format(width)) for width in [4,8]]
+        types_test.extend([np.dtype("{}{}".format(sign,width)) for width in [1,2,4,8] for sign in "ui"])
+        for data_type in types_test:
+            # Just testing that these don't throw exceptions. Other tests will cover quantitative correctness
+            mom.rolling_min(DataFrame(np.arange(20, dtype=data_type)), window=5)        
+            mom.rolling_max(DataFrame(np.arange(20, dtype=data_type)), window=5)
+
 if __name__ == '__main__':
     import nose
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
