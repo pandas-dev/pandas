@@ -519,7 +519,12 @@ class TestDatetimeParsingWrappers(tm.TestCase):
                  '2014-06': datetime.datetime(2014, 6, 1),
                  '06-2014': datetime.datetime(2014, 6, 1),
                  '2014-6': datetime.datetime(2014, 6, 1),
-                 '6-2014': datetime.datetime(2014, 6, 1), }
+                 '6-2014': datetime.datetime(2014, 6, 1),
+
+                 '20010101 12': datetime.datetime(2001, 1, 1, 12),
+                 '20010101 1234': datetime.datetime(2001, 1, 1, 12, 34),
+                 '20010101 123456': datetime.datetime(2001, 1, 1, 12, 34, 56),
+                 }
 
         for date_str, expected in compat.iteritems(cases):
             result1, _, _ = tools.parse_time_string(date_str)
@@ -713,11 +718,22 @@ class TestDatetimeParsingWrappers(tm.TestCase):
             self.assertEqual(actual, exp)
 
         # seperators must all match - YYYYMM not valid
-        invalid_cases = ['2011-01/02', '2011^11^11', '201401',
-                         '201111', '200101']
+        invalid_cases = ['2011-01/02', '2011^11^11',
+                         '201401', '201111', '200101',
+                         # mixed separated and unseparated
+                         '2005-0101', '200501-01',
+                         '20010101 12:3456', '20010101 1234:56',
+                         # HHMMSS must have two digits in each component
+                         # if unseparated
+                         '20010101 1', '20010101 123', '20010101 12345',
+                         '20010101 12345Z',
+                         # wrong separator for HHMMSS
+                         '2001-01-01 12-34-56']
         for date_str in invalid_cases:
             with tm.assertRaises(ValueError):
                 tslib._test_parse_iso8601(date_str)
+                # If no ValueError raised, let me know which case failed.
+                raise Exception(date_str)
 
 
 class TestArrayToDatetime(tm.TestCase):
@@ -879,6 +895,11 @@ class TestTimestampNsOperations(tm.TestCase):
 
         ts = Timestamp('2013-05-01 07:15:45.123456789', tz='US/Eastern')
         self.assertEqual(ts.value, expected_value + 4 * 3600 * 1000000000)
+        self.assertIn(expected_repr, repr(ts))
+
+        # GH 10041
+        ts = Timestamp('20130501T071545.123456789')
+        self.assertEqual(ts.value, expected_value)
         self.assertIn(expected_repr, repr(ts))
 
     def test_nanosecond_timestamp(self):
