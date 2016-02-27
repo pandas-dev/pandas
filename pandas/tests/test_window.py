@@ -2700,9 +2700,11 @@ class TestMomentsConsistency(Base):
 
     def test_rolling_min_max_numeric_types(self):
         # GH12373
-        types_test = [np.dtype("f{}".format(width)) for width in [4,8]]
-        types_test.extend([np.dtype("{}{}".format(sign,width)) for width in [1,2,4,8] for sign in "ui"])
+        types_test = [np.dtype("f{}".format(width)) for width in [4, 8]]
+        types_test.extend([np.dtype("{}{}".format(sign, width))
+                           for width in [1, 2, 4, 8] for sign in "ui"])
         for data_type in types_test:
-            # Just testing that these don't throw exceptions. Other tests will cover quantitative correctness
-            DataFrame(np.arange(20, dtype=data_type)).rolling(window=5).max()       
+            # Just testing that these don't throw exceptions. Other tests will
+            # cover quantitative correctness
+            DataFrame(np.arange(20, dtype=data_type)).rolling(window=5).max()
             DataFrame(np.arange(20, dtype=data_type)).rolling(window=5).min()
