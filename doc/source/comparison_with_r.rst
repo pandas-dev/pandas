@@ -57,8 +57,8 @@ R                                            pandas
 ``select(df, -(col1:col3))``                 ``df.drop(cols_to_drop, axis=1)`` but see [#select_range]_
 ``distinct(select(df, col1))``               ``df.col1.unique()``
 ``distinct(select(df, col1, col2))``         ``df[['col1', 'col2']].drop_duplicates()``
-``sample_n(df, 10)``                         ``df.loc[np.random.choice(df.index, 10)]``
-``sample_frac(df, 0.01)``                    ``df.iloc[np.random.randint(0, len(df), .01 * len(flights))]``
+``sample_n(df, 10)``                         ``df.sample(n=10)``
+``sample_frac(df, 0.01)``                    ``df.sample(frac=0.01)``
 ===========================================  ===========================================
 
 .. [#select_range] R's shorthand for a subrange of columns
