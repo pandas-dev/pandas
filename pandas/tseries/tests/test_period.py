@@ -2030,6 +2030,16 @@ class TestPeriodIndex(tm.TestCase):
             ['2011-02-28', 'NaT', '2011-03-31'], name='idx')
         self.assert_index_equal(result, expected)
 
+    def test_start_time(self):
+        index = PeriodIndex(freq='M', start='2016-01-01', end='2016-05-31')
+        expected_index = date_range('2016-01-01', end='2016-05-31', freq='MS')
+        self.assertTrue(index.start_time.equals(expected_index))
+
+    def test_end_time(self):
+        index = PeriodIndex(freq='M', start='2016-01-01', end='2016-05-31')
+        expected_index = date_range('2016-01-01', end='2016-05-31', freq='M')
+        self.assertTrue(index.end_time.equals(expected_index))
+
     def test_as_frame_columns(self):
         rng = period_range('1/1/2000', periods=5)
         df = DataFrame(randn(10, 5), columns=rng)
