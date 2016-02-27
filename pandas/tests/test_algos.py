@@ -143,6 +143,20 @@ class TestFactorize(tm.TestCase):
             [0, 0, 0, 1, 1, 0], dtype=np.int64))
         self.assert_numpy_array_equal(uniques, pd.PeriodIndex([v1, v2]))
 
+        # GH 5986
+        v1 = pd.to_timedelta('1 day 1 min')
+        v2 = pd.to_timedelta('1 day')
+        x = Series([v1, v2, v1, v1, v2, v2, v1])
+        labels, uniques = algos.factorize(x)
+        self.assert_numpy_array_equal(labels, np.array(
+                [0, 1, 0, 0, 1, 1, 0], dtype=np.int64))
+        self.assert_numpy_array_equal(uniques, pd.to_timedelta([v1, v2]))
+
+        labels, uniques = algos.factorize(x, sort=True)
+        self.assert_numpy_array_equal(labels, np.array(
+                [1, 0, 1, 1, 0, 0, 1], dtype=np.int64))
+        self.assert_numpy_array_equal(uniques, pd.to_timedelta([v2, v1]))
+
     def test_factorize_nan(self):
         # nan should map to na_sentinel, not reverse_indexer[na_sentinel]
         # rizer.factorize should not raise an exception if na_sentinel indexes
