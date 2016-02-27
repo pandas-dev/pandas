@@ -411,7 +411,6 @@ class DataFrame(NDFrame):
         values = _prep_ndarray(values, copy=copy)
 
         if dtype is not None:
-
             if values.dtype != dtype:
                 try:
                     values = values.astype(dtype)
