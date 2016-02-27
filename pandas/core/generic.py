@@ -3,6 +3,7 @@ import warnings
 import operator
 import weakref
 import gc
+from collections import OrderedDict
 
 import numpy as np
 import pandas.lib as lib
@@ -4837,6 +4838,7 @@ class NDFrame(PandasObject):
         See Also
         --------
         DataFrame.select_dtypes
+        DataFrame.summary
         """
 
     @Appender(_shared_docs['describe'] % _shared_doc_kwargs)
@@ -4943,6 +4945,159 @@ class NDFrame(PandasObject):
                 raise ValueError(msg.format(q / 100.0))
         return q
 
+    _shared_docs['summary'] = """
+        Human readable tabular description of a dataset and its columns.
+
+        Returns
+        -------
+        summary: tabular representation of summary statistics
+
+        Notes
+        -----
+        As compared to describe(), the summary function
+        will always return information about all columns.
+
+        See Also
+        --------
+        DataFrame.describe
+        """
+
+    @Appender(_shared_docs['summary'] % _shared_doc_kwargs)
+    def summary(
+            self,
+            value_count_limit=1000000,
+            significant_value_threshold=0.2,
+            significant_percentage=5,
+    ):
+        def summary_1d(series, percentiles, std, mean, count):
+            count_all = len(series)
+            ret = OrderedDict()
+
+            if count_all != count:
+                ret['count valid'] = count
+                ret['NAs'] = count_all - count
+            else:
+                ret['count'] = count
+
+            if mean is not None:
+                ret['mean'] = mean
+            if std is not None:
+                ret['std'] = std
+
+            if percentiles is not None:
+                def percentile_to_label(p):
+                    if p == 0:
+                        return 'min'
+                    if p == 50:
+                        return 'median'
+                    if p == 100:
+                        return 'max'
+                    return 'p' + str(p)
+
+                def maybe_output_range(start_p, end_p, value):
+                    output = False
+                    for p in [0, 25, 50, 75, 100]:
+                        if start_p <= p and end_p >= p:
+                            output = True
+                            break
+                    if end_p - start_p >= significant_percentage:
+                        output = True
+
+                    if output:
+                        label = percentile_to_label(start_p)
+                        if start_p != end_p:
+                            label += ':' + percentile_to_label(end_p)
+                        ret[label] = series.dtype.type(value)
+
+                start_p = 0
+                last_p = -1
+                value = None
+                for p in range(len(percentiles)):
+                    v = percentiles[p]
+                    if value != v:
+                        maybe_output_range(start_p, last_p, value)
+                        start_p = p
+                        value = v
+                    last_p = p
+                maybe_output_range(start_p, last_p, value)
+
+            if count < value_count_limit:
+                # for small sets, report on object counts
+                objcounts = series.value_counts()
+                cardinality = len(objcounts)
+                ret['cardinality'] = cardinality
+                threshold = significant_value_threshold * count
+
+                for i in range(len(objcounts)):
+                    if objcounts.iloc[i] > threshold:
+                        ret['value:' + str(objcounts.index[i])] =\
+                            '{:,} ({:.0%})'.format(
+                                objcounts.iloc[i], (1. * objcounts.iloc[i]) /
+                                count_all)
+
+            ret_as_list = []
+            for k, v in ret.iteritems():
+                def pretty_str(v):
+                    # this could be much improved
+                    if com.is_integer(v):
+                        return "{:,}".format(v)
+                    elif com.is_number(v):
+                        return "%.3g" % v
+                    else:
+                        return str(v)
+                ret_as_list.append(str(k) + '=' + pretty_str(v))
+
+            return ret_as_list
+
+        def process_dataframe_of_same_dtype(df):
+            percentiles = [None] * len(df.columns)
+            means = [None] * len(df.columns)
+            stds = [None] * len(df.columns)
+
+            if com.is_numeric_dtype(df[df.columns[0]].dtype):
+                try:
+                    percentiles = np.nanpercentile(
+                        df,
+                        range(101),
+                        axis=0,
+                        interpolation='nearest',
+                    )
+                except AttributeError:
+                    # old NumPy before 0.10 does not support interpolation
+                    # settings or skipping NaNs
+                    percentiles = np.percentile(df, range(101), axis=0)
+
+                percentiles = np.transpose(percentiles)
+
+                means = df.mean(axis=0)
+                stds = df.std(axis=0)
+
+            counts = df.count(axis=0)
+
+            results = []
+            for i, (colname, series) in enumerate(df.iteritems()):
+                results.append(
+                    pd.Series(
+                        summary_1d(
+                            series,
+                            std=stds[i],
+                            mean=means[i],
+                            count=counts[i],
+                            percentiles=percentiles[i],
+                        ),
+                        name=colname)
+                )
+
+            ret = pd.concat(results, axis=1)
+
+            return ret
+
+        result = []
+        for k, df in self.as_blocks(copy=False).items():
+            result.append(process_dataframe_of_same_dtype(df))
+        return pd.concat(result, axis=1)\
+                 .reindex(columns=self.columns).fillna('')
+
     _shared_docs['pct_change'] = """
         Percent change over given number of periods.
 
@@ -5003,6 +5158,7 @@ class NDFrame(PandasObject):
 
         cls.any = _make_logical_function(
             'any', name, name2, axis_descr,
+
             'Return whether any element is True over requested axis',
             nanops.nanany)
         cls.all = _make_logical_function(
