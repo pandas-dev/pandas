@@ -241,24 +241,16 @@ class TestDataFrameAnalytics(tm.TestCase, TestData):
             'int_data': [10, 20, 30, 40, 50],
         })
 
-        # Boolean data and integer data is included in .describe() output,
-        # string data isn't
-        self.assert_numpy_array_equal(df.describe().columns, [
-                                      'bool_data', 'int_data'])
+        # Integer data are included in .describe() output,
+        # Boolean and string data are not.
+        self.assert_numpy_array_equal(df.describe().columns, ['int_data'])
 
-        bool_describe = df.describe()['bool_data']
+        bool_describe = df.describe(include='all')['bool_data']
 
-        # Both the min and the max values should stay booleans
-        self.assertEqual(bool_describe['min'].dtype, np.bool_)
-        self.assertEqual(bool_describe['max'].dtype, np.bool_)
+        # Top value is a boolean value that is False
+        self.assertTrue(isinstance(bool_describe['top'] , bool))
+        self.assertFalse(bool_describe['top'])
 
-        self.assertFalse(bool_describe['min'])
-        self.assertTrue(bool_describe['max'])
-
-        # For numeric operations, like mean or median, the values True/False
-        # are cast to the integer values 1 and 0
-        assert_almost_equal(bool_describe['mean'], 0.4)
-        assert_almost_equal(bool_describe['50%'], 0)
 
     def test_reduce_mixed_frame(self):
         # GH 6806
