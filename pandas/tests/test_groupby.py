@@ -6104,6 +6104,21 @@ class TestGroupBy(tm.TestCase):
         expected = pd.Series([1] * 5, name='name', index=index)
         tm.assert_series_equal(result, expected)
 
+    def test_transform_with_non_scalar_group(self):
+        # GH 10165
+        cols = pd.MultiIndex.from_tuples([
+            ('syn', 'A'), ('mis', 'A'), ('non', 'A'),
+            ('syn', 'C'), ('mis', 'C'), ('non', 'C'),
+            ('syn', 'T'), ('mis', 'T'), ('non', 'T'),
+            ('syn', 'G'), ('mis', 'G'), ('non', 'G')])
+        df = pd.DataFrame(np.random.randint(1, 10, (4, 12)),
+                          columns=cols,
+                          index=['A', 'C', 'G', 'T'])
+        self.assertRaisesRegexp(ValueError, 'transform must return a scalar '
+                                'value for each group.*', df.groupby
+                                (axis=1, level=1).transform,
+                                lambda z: z.div(z.sum(axis=1), axis=0))
+
 
 def assert_fp_equal(a, b):
     assert (np.abs(a - b) < 1e-12).all()
