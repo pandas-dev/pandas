@@ -43,3 +43,5 @@ Performance Improvements
 
 Bug Fixes
 ~~~~~~~~~
+
+- Better error reporting on invalid .transform with user defined input (:issue:`10165`)

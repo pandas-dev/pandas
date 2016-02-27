@@ -3345,9 +3345,9 @@ class NDFrameGroupBy(GroupBy):
                     path, res = self._choose_path(fast_path, slow_path, group)
                 except TypeError:
                     return self._transform_item_by_item(obj, fast_path)
-                except Exception:  # pragma: no cover
-                    res = fast_path(group)
-                    path = fast_path
+                except ValueError:
+                    msg = 'transform must return a scalar value for each group'
+                    raise ValueError(msg)
             else:
                 res = path(group)
 
