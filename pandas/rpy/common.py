@@ -2,6 +2,9 @@
 Utilities for making working with rpy2 more user- and
 developer-friendly.
 """
+
+# flake8: noqa
+
 from __future__ import print_function
 
 from distutils.version import LooseVersion

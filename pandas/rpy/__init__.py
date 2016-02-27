@@ -2,6 +2,8 @@
 # GH9602
 # deprecate rpy to instead directly use rpy2
 
+# flake8: noqa
+
 import warnings
 warnings.warn("The pandas.rpy module is deprecated and will be "
               "removed in a future version. We refer to external packages "

@@ -2,6 +2,8 @@
 Testing that functions from rpy work as expected
 """
 
+# flake8: noqa
+
 import pandas as pd
 import numpy as np
 import unittest

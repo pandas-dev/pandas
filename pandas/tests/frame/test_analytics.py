@@ -244,8 +244,8 @@ class TestDataFrameAnalytics(tm.TestCase, TestData):
         # Integer data are included in .describe() output,
         # Boolean and string data are not.
         result = df.describe()
-        expected = DataFrame({'int_data' : [5, 30, df.int_data.std(),
-                                            10, 20, 30, 40, 50]},
+        expected = DataFrame({'int_data': [5, 30, df.int_data.std(),
+                                           10, 20, 30, 40, 50]},
                              index=['count', 'mean', 'std', 'min', '25%',
                                     '50%', '75%', 'max'])
         assert_frame_equal(result, expected)
@@ -253,8 +253,8 @@ class TestDataFrameAnalytics(tm.TestCase, TestData):
         # Top value is a boolean value that is False
         result = df.describe(include=['bool'])
 
-        expected = DataFrame({'bool_data' : [5, 2, False, 3]},
-                              index=['count', 'unique', 'top', 'freq'])
+        expected = DataFrame({'bool_data': [5, 2, False, 3]},
+                             index=['count', 'unique', 'top', 'freq'])
         assert_frame_equal(result, expected)
 
     def test_reduce_mixed_frame(self):
