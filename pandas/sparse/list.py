@@ -4,6 +4,7 @@ from pandas.core.common import pprint_thing
 
 from pandas.sparse.array import SparseArray
 import pandas._sparse as splib
+import pandas.lib as lib
 
 
 class SparseList(PandasObject):
@@ -120,7 +121,7 @@ class SparseList(PandasObject):
         ----------
         value: scalar or array-like
         """
-        if np.isscalar(value):
+        if lib.isscalar(value):
             value = [value]
 
         sparr = SparseArray(value, fill_value=self.fill_value)

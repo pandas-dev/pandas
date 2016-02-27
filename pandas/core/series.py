@@ -559,7 +559,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         try:
             result = self.index.get_value(self, key)
 
-            if not np.isscalar(result):
+            if not lib.isscalar(result):
                 if is_list_like(result) and not isinstance(result, Series):
 
                     # we need to box if we have a non-unique index here

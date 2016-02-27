@@ -31,6 +31,7 @@ from pandas.core.common import (is_sequence, array_equivalent, is_list_like, is_
                                 needs_i8_conversion)
 
 import pandas.compat as compat
+import pandas.lib as lib
 from pandas.compat import(
     filter, map, zip, range, unichr, lrange, lmap, lzip, u, callable, Counter,
     raise_with_traceback, httplib, is_platform_windows, is_platform_32bit
@@ -885,7 +886,7 @@ def assert_numpy_array_equal(left, right,
     if err_msg is None:
         # show detailed error
 
-        if np.isscalar(left) and np.isscalar(right):
+        if lib.isscalar(left) and lib.isscalar(right):
             # show scalar comparison error
             assert_equal(left, right)
         elif is_list_like(left) and is_list_like(right):

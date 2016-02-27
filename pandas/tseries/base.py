@@ -145,13 +145,13 @@ class DatetimeIndexOpsMixin(object):
     def __contains__(self, key):
         try:
             res = self.get_loc(key)
-            return np.isscalar(res) or type(res) == slice or np.any(res)
+            return lib.isscalar(res) or type(res) == slice or np.any(res)
         except (KeyError, TypeError, ValueError):
             return False
 
     def __getitem__(self, key):
         getitem = self._data.__getitem__
-        if np.isscalar(key):
+        if lib.isscalar(key):
             val = getitem(key)
             return self._box_func(val)
         else:

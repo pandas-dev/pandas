@@ -10,6 +10,7 @@ import numpy as np
 import pandas as pd
 from pandas.compat import PY3, string_types, text_type
 import pandas.core.common as com
+import pandas.lib as lib
 from pandas.core.base import StringMixin
 from pandas.computation.common import _ensure_decoded, _result_type_many
 from pandas.computation.scope import _DEFAULT_GLOBALS
@@ -98,7 +99,7 @@ class Term(StringMixin):
 
     @property
     def isscalar(self):
-        return np.isscalar(self._value)
+        return lib.isscalar(self._value)
 
     @property
     def type(self):

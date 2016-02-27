@@ -333,7 +333,7 @@ def notnull(obj):
     pandas.isnull : boolean inverse of pandas.notnull
     """
     res = isnull(obj)
-    if np.isscalar(res):
+    if lib.isscalar(res):
         return not res
     return ~res
 
@@ -343,7 +343,7 @@ def is_null_datelike_scalar(other):
     but guard against passing a non-scalar """
     if other is pd.NaT or other is None:
         return True
-    elif np.isscalar(other):
+    elif lib.isscalar(other):
 
         # a timedelta
         if hasattr(other, 'dtype'):
@@ -489,7 +489,7 @@ def mask_missing(arr, values_to_mask):
 
             # if x is a string and arr is not, then we get False and we must
             # expand the mask to size arr.shape
-            if np.isscalar(mask):
+            if lib.isscalar(mask):
                 mask = np.zeros(arr.shape, dtype=bool)
         else:
 
@@ -1276,7 +1276,7 @@ def _maybe_upcast_putmask(result, mask, other):
 
             # we have a scalar or len 0 ndarray
             # and its nan and we are changing some values
-            if (np.isscalar(other) or
+            if (lib.isscalar(other) or
                     (isinstance(other, np.ndarray) and other.ndim < 1)):
                 if isnull(other):
                     return changeit()
@@ -1336,7 +1336,7 @@ def _possibly_downcast_to_dtype(result, dtype):
     or could be an astype of float64->float32
     """
 
-    if np.isscalar(result):
+    if lib.isscalar(result):
         return result
 
     def trans(x):
