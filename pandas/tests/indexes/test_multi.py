@@ -14,8 +14,8 @@ from pandas.compat import range, lrange, u, PY3, long, lzip
 
 import numpy as np
 
-from pandas.util.testing import (assert_almost_equal, assertRaisesRegexp,
-                                 assert_copy)
+from pandas.util.testing import (assert_almost_equal, assertRaises,
+                                 assertRaisesRegexp, assert_copy)
 
 import pandas.util.testing as tm
 
@@ -1970,3 +1970,82 @@ class TestMultiIndex(Base, tm.TestCase):
     def test_equals_operator(self):
         # GH9785
         self.assertTrue((self.index == self.index).all())
+
+    def test_partial_string_timestamp_multiindex(self):
+        # GH10331
+        dr = pd.date_range('2016-01-01', '2016-01-03', freq='12H')
+        abc = ['a', 'b', 'c']
+        ix = pd.MultiIndex.from_product([dr, abc])
+        df = pd.DataFrame({'c1': range(0, 15)}, index=ix)
+        idx = pd.IndexSlice
+
+        #                        c1
+        # 2016-01-01 00:00:00 a   0
+        #                     b   1
+        #                     c   2
+        # 2016-01-01 12:00:00 a   3
+        #                     b   4
+        #                     c   5
+        # 2016-01-02 00:00:00 a   6
+        #                     b   7
+        #                     c   8
+        # 2016-01-02 12:00:00 a   9
+        #                     b  10
+        #                     c  11
+        # 2016-01-03 00:00:00 a  12
+        #                     b  13
+        #                     c  14
+
+        # partial string matching on a single index
+        df_swap = df.swaplevel(0, 1).sort_index()
+        just_a = df_swap.loc['a']
+        result = just_a.loc['2016-01-01']
+        expected = df.loc[idx[:, 'a'], :].iloc[0:2]
+        expected.index = expected.index.droplevel(1)
+        tm.assert_frame_equal(result, expected)
+
+        # indexing with IndexSlice
+        result = df.loc[idx['2016-01-01':'2016-02-01', :], :]
+        expected = df
+        tm.assert_frame_equal(result, expected)
+
+        # match on secondary index
+        result = df_swap.loc[idx[:, '2016-01-01':'2016-01-01'], :]
+        expected = df_swap.iloc[[0, 1, 5, 6, 10, 11]]
+        tm.assert_frame_equal(result, expected)
+
+        # Even though this syntax works on a single index, this is somewhat
+        # ambiguous and we don't want to extend this behavior forward to work
+        # in multi-indexes. This would amount to selecting a scalar from a
+        # column.
+        with assertRaises(KeyError):
+            df['2016-01-01']
+
+        # partial string match on year only
+        result = df.loc['2016']
+        expected = df
+        tm.assert_frame_equal(result, expected)
+
+        # partial string match on date
+        result = df.loc['2016-01-01']
+        expected = df.iloc[0:6]
+        tm.assert_frame_equal(result, expected)
+
+        # partial string match on date and hour, from middle
+        result = df.loc['2016-01-02 12']
+        expected = df.iloc[9:12]
+        tm.assert_frame_equal(result, expected)
+
+        # partial string match on secondary index
+        result = df_swap.loc[idx[:, '2016-01-02'], :]
+        expected = df_swap.iloc[[2, 3, 7, 8, 12, 13]]
+        tm.assert_frame_equal(result, expected)
+
+        # tuple selector with partial string match on date
+        result = df.loc[('2016-01-01', 'a'), :]
+        expected = df.iloc[[0, 3]]
+        tm.assert_frame_equal(result, expected)
+
+        # Slicing date on first level should break (of course)
+        with assertRaises(KeyError):
+            df_swap.loc['2016-01-01']
