@@ -5,8 +5,8 @@ import nose
 import os
 import warnings
 
-from pandas import DataFrame
-from pandas.compat import zip, iteritems, OrderedDict
+from pandas import DataFrame, Series
+from pandas.compat import zip, iteritems
 from pandas.util.decorators import cache_readonly
 from pandas.types.api import is_list_like
 import pandas.util.testing as tm
@@ -445,7 +445,8 @@ class TestPlotBase(tm.TestCase):
                     self.assertIsInstance(r, Axes)
                 return
 
-            self.assertTrue(isinstance(returned, OrderedDict))
+            self.assertTrue(isinstance(returned, Series))
+
             self.assertEqual(sorted(returned.keys()), sorted(expected_keys))
             for key, value in iteritems(returned):
                 self.assertTrue(isinstance(value, types[return_type]))

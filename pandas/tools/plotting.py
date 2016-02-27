@@ -2247,7 +2247,7 @@ class BoxPlot(LinePlot):
     # namedtuple to hold results
     BP = namedtuple("Boxplot", ['ax', 'lines'])
 
-    def __init__(self, data, return_type=None, **kwargs):
+    def __init__(self, data, return_type='axes', **kwargs):
         # Do not call LinePlot.__init__ which may fill nan
         if return_type not in self._valid_return_types:
             raise ValueError(
@@ -2339,7 +2339,7 @@ class BoxPlot(LinePlot):
 
     def _make_plot(self):
         if self.subplots:
-            self._return_obj = compat.OrderedDict()
+            self._return_obj = Series()
 
             for i, (label, y) in enumerate(self._iter_data()):
                 ax = self._get_ax(i)
@@ -2691,14 +2691,17 @@ _shared_docs['boxplot'] = """
     grid : Setting this to True will show the grid
     layout : tuple (optional)
         (rows, columns) for the layout of the plot
-    return_type : {'axes', 'dict', 'both'}, default 'axes'
-        The kind of object to return. 'dict' returns a dictionary
-        whose values are the matplotlib Lines of the boxplot;
+    return_type : {None, 'axes', 'dict', 'both'}, default None
+        The kind of object to return. The default is ``axes``
         'axes' returns the matplotlib axes the boxplot is drawn on;
+        'dict' returns a dictionary  whose values are the matplotlib
+        Lines of the boxplot;
         'both' returns a namedtuple with the axes and dict.
 
-        When grouping with ``by``, a dict mapping columns to ``return_type``
-        is returned.
+        When grouping with ``by``, a Series mapping columns to ``return_type``
+        is returned, unless ``return_type`` is None, in which case a NumPy
+        array of axes is returned with the same shape as ``layout``.
+        See the prose documentation for more.
 
     kwds : other plotting keyword arguments to be passed to matplotlib boxplot
            function
@@ -2719,12 +2722,12 @@ _shared_docs['boxplot'] = """
 
 @Appender(_shared_docs['boxplot'] % _shared_doc_kwargs)
 def boxplot(data, column=None, by=None, ax=None, fontsize=None,
-            rot=0, grid=True, figsize=None, layout=None, return_type='axes',
+            rot=0, grid=True, figsize=None, layout=None, return_type=None,
             **kwds):
 
     # validate return_type:
     if return_type not in BoxPlot._valid_return_types:
-        raise ValueError("return_type must be {None, 'axes', 'dict', 'both'}")
+        raise ValueError("return_type must be {'axes', 'dict', 'both'}")
 
     from pandas import Series, DataFrame
     if isinstance(data, Series):
@@ -2769,11 +2772,15 @@ def boxplot(data, column=None, by=None, ax=None, fontsize=None,
             columns = [column]
 
     if by is not None:
+        # Prefer array return type for 2-D plots to match the subplot layout
+        # https://github.com/pydata/pandas/pull/12216#issuecomment-241175580
         result = _grouped_plot_by_column(plot_group, data, columns=columns,
                                          by=by, grid=grid, figsize=figsize,
                                          ax=ax, layout=layout,
                                          return_type=return_type)
     else:
+        if return_type is None:
+            return_type = 'axes'
         if layout is not None:
             raise ValueError("The 'layout' keyword is not supported when "
                              "'by' is None")
@@ -3096,12 +3103,12 @@ def boxplot_frame_groupby(grouped, subplots=True, column=None, fontsize=None,
                               figsize=figsize, layout=layout)
         axes = _flatten(axes)
 
-        ret = compat.OrderedDict()
+        ret = Series()
         for (key, group), ax in zip(grouped, axes):
             d = group.boxplot(ax=ax, column=column, fontsize=fontsize,
                               rot=rot, grid=grid, **kwds)
             ax.set_title(pprint_thing(key))
-            ret[key] = d
+            ret.loc[key] = d
         fig.subplots_adjust(bottom=0.15, top=0.9, left=0.1,
                             right=0.9, wspace=0.2)
     else:
@@ -3167,7 +3174,9 @@ def _grouped_plot_by_column(plotf, data, columns=None, by=None,
 
     _axes = _flatten(axes)
 
-    result = compat.OrderedDict()
+    result = Series()
+    ax_values = []
+
     for i, col in enumerate(columns):
         ax = _axes[i]
         gp_col = grouped[col]
@@ -3175,8 +3184,10 @@ def _grouped_plot_by_column(plotf, data, columns=None, by=None,
         re_plotf = plotf(keys, values, ax, **kwargs)
         ax.set_title(col)
         ax.set_xlabel(pprint_thing(by))
-        result[col] = re_plotf
+        ax_values.append(re_plotf)
         ax.grid(grid)
+
+    result = Series(ax_values, index=columns)
 
     # Return axes in multiplot case, maybe revisit later # 985
     if return_type is None:

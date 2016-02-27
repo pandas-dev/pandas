@@ -880,12 +880,12 @@ def assert_attr_equal(attr, left, right, obj='Attributes'):
 
 def assert_is_valid_plot_return_object(objs):
     import matplotlib.pyplot as plt
-    if isinstance(objs, np.ndarray):
-        for el in objs.flat:
-            assert isinstance(el, plt.Axes), ('one of \'objs\' is not a '
-                                              'matplotlib Axes instance, '
-                                              'type encountered {0!r}'
-                                              ''.format(el.__class__.__name__))
+    if isinstance(objs, (pd.Series, np.ndarray)):
+        for el in objs.ravel():
+            msg = ('one of \'objs\' is not a matplotlib Axes instance, '
+                   'type encountered {0!r}')
+            assert isinstance(el, (plt.Axes, dict)), msg.format(
+                el.__class__.__name__)
     else:
         assert isinstance(objs, (plt.Artist, tuple, dict)), \
             ('objs is neither an ndarray of Artist instances nor a '

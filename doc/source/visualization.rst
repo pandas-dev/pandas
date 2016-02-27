@@ -458,22 +458,27 @@ columns:
 
 .. warning::
 
-   The default changed from ``'dict'`` to ``'axes'`` in version 0.18.0.
+   The default changed from ``'dict'`` to ``'axes'`` in version 0.19.0.
 
-Plot functions return scalar or arrays of :class:`matplotlib Axes <matplotlib.axes.Axes>`.
-In ``boxplot``, the return type can be controlled by the ``return_type``, keyword. The valid choices are ``{"axes", "dict", "both"}``. If the ``by`` argument is ``None``,
+In ``boxplot``, the return type can be controlled by the ``return_type``, keyword. The valid choices are ``{"axes", "dict", "both", None}``.
+Faceting, created by ``DataFrame.boxplot`` with the ``by``
+keyword, will affect the output type as well:
 
-* ``'axes'`` returns a single matplotlib axes.
-* ``'dict'`` returns a dict of matplotlib artists, similar to the matplotlib boxplot function.
-* ``'both'`` returns a named tuple of axes and dicts.
+================ ======= ==========================
+``return_type=`` Faceted Output type
+---------------- ------- --------------------------
 
-When ``by`` is not None, you get back an ``OrderedDict`` of whatever ``return_type`` is.
-Unless ``return_type`` is just ``None``, in which case you get back an array of axes.
+``None``         No      axes
+``None``         Yes     2-D ndarray of axes
+``'axes'``       No      axes
+``'axes'``       Yes     Series of axes
+``'dict'``       No      dict of artists
+``'dict'``       Yes     Series of dicts of artists
+``'both'``       No      namedtuple
+``'both'``       Yes     Series of namedtuples
+================ ======= ==========================
 
-Finally, when calling boxplot on a :class:`Groupby` object, an  ``OrderedDict`` of ``return_type``
-is returned, where the keys are the same as the Groupby object. The plot has a
-facet for each key, with each facet containing a box for each column of the
-DataFrame.
+``Groupby.boxplot`` always returns a Series of ``return_type``.
 
 .. ipython:: python
    :okwarning:

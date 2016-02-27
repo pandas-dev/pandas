@@ -1168,7 +1168,6 @@ Removal of prior version deprecations/changes
 - Removal of ``rolling_corr_pairwise`` in favor of ``.rolling().corr(pairwise=True)`` (:issue:`4950`)
 - Removal of ``expanding_corr_pairwise`` in favor of ``.expanding().corr(pairwise=True)`` (:issue:`4950`)
 - Removal of ``DataMatrix`` module. This was not imported into the pandas namespace in any event (:issue:`12111`)
-- Changed the default value for the ``return_type`` parameter for ``DataFrame.plot.box`` and ``DataFrame.boxplot`` from ``None`` to ``"axes"``. These methods will now return a matplotlib axes by default instead of a dictionary of artists. See :ref:`here <visualization.box.return>` (:issue:`6581`).
 - Removal of ``cols`` keyword in favor of ``subset`` in ``DataFrame.duplicated()`` and ``DataFrame.drop_duplicates()`` (:issue:`6680`)
 - Removal of the ``read_frame`` and ``frame_query`` (both aliases for ``pd.read_sql``)
   and ``write_frame`` (alias of ``to_sql``) functions in the ``pd.io.sql`` namespace,
