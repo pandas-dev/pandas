@@ -156,7 +156,8 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
     _datetimelike_ops = ['year', 'month', 'day', 'hour', 'minute', 'second',
                          'weekofyear', 'week', 'dayofweek', 'weekday',
                          'dayofyear', 'quarter', 'qyear', 'freq',
-                         'days_in_month', 'daysinmonth']
+                         'days_in_month', 'daysinmonth',
+                         'to_timestamp', 'asfreq', 'start_time', 'end_time']
     _is_numeric_dtype = False
     _infer_as_myclass = True
 
@@ -497,6 +498,14 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
     days_in_month = _field_accessor(
         'days_in_month', 11, "The number of days in the month")
     daysinmonth = days_in_month
+
+    @property
+    def start_time(self):
+        return self.to_timestamp(how='start')
+
+    @property
+    def end_time(self):
+        return self.to_timestamp(how='end')
 
     def _get_object_array(self):
         freq = self.freq
