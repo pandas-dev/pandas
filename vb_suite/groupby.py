@@ -143,7 +143,7 @@ offsets[np.random.rand(n) > 0.5] = np.timedelta64('nat')
 value2 = np.random.randn(n)
 value2[np.random.rand(n) > 0.5] = np.nan
 
-obj = tm.choice(list('ab'), size=n).astype(object)
+obj = np.random.choice(list('ab'), size=n).astype(object)
 obj[np.random.randn(n) > 0.5] = np.nan
 
 df = DataFrame({'key1': np.random.randint(0, 500, size=n),
