@@ -641,7 +641,7 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         weight = Series(np.random.normal(166, 20, size=n))
         height = Series(np.random.normal(60, 10, size=n))
         with tm.RNGContext(42):
-            gender = tm.choice(['male', 'female'], size=n)
+            gender = np.random.choice(['male', 'female'], size=n)
         df = DataFrame({'height': height, 'weight': weight, 'gender': gender})
         gb = df.groupby('gender')
 
@@ -715,7 +715,7 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         weight = Series(np.random.normal(166, 20, size=n))
         height = Series(np.random.normal(60, 10, size=n))
         with tm.RNGContext(42):
-            gender_int = tm.choice([0, 1], size=n)
+            gender_int = np.random.choice([0, 1], size=n)
         df_int = DataFrame({'height': height, 'weight': weight,
                             'gender': gender_int})
         gb = df_int.groupby('gender')
