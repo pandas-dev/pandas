@@ -138,7 +138,7 @@ Getting items where ``col1`` IS NOT NULL can be done with :meth:`~pandas.Series.
 
 GROUP BY
 --------
-In pandas, SQL's GROUP BY operations performed using the similarly named
+In pandas, SQL's GROUP BY operations are performed using the similarly named
 :meth:`~pandas.DataFrame.groupby` method. :meth:`~pandas.DataFrame.groupby` typically refers to a
 process where we'd like to split a dataset into groups, apply some function (typically aggregation)
 , and then combine the groups together.
@@ -163,23 +163,24 @@ The pandas equivalent would be:
 
     tips.groupby('sex').size()
 
-Notice that in the pandas code we used :meth:`~pandas.DataFrameGroupBy.size` and not
-:meth:`~pandas.DataFrameGroupBy.count`. This is because :meth:`~pandas.DataFrameGroupBy.count`
-applies the function to each column, returning the number of ``not null`` records within each.
+Notice that in the pandas code we used :meth:`~pandas.core.groupby.DataFrameGroupBy.size` and not
+:meth:`~pandas.core.groupby.DataFrameGroupBy.count`. This is because
+:meth:`~pandas.core.groupby.DataFrameGroupBy.count` applies the function to each column, returning
+the number of ``not null`` records within each.
 
 .. ipython:: python
 
     tips.groupby('sex').count()
 
-Alternatively, we could have applied the :meth:`~pandas.DataFrameGroupBy.count` method to an
-individual column:
+Alternatively, we could have applied the :meth:`~pandas.core.groupby.DataFrameGroupBy.count` method
+to an individual column:
 
 .. ipython:: python
 
     tips.groupby('sex')['total_bill'].count()
 
 Multiple functions can also be applied at once. For instance, say we'd like to see how tip amount
-differs by day of the week - :meth:`~pandas.DataFrameGroupBy.agg` allows you to pass a dictionary
+differs by day of the week - :meth:`~pandas.core.groupby.DataFrameGroupBy.agg` allows you to pass a dictionary
 to your grouped DataFrame, indicating which functions to apply to specific columns.
 
 .. code-block:: sql
