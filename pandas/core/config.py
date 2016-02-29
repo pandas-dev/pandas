@@ -127,7 +127,11 @@ def _set_option(*args, **kwargs):
         root[k] = v
 
         if o.cb:
-            o.cb(key)
+            if silent:
+                with warnings.catch_warnings(record=True):
+                    o.cb(key)
+            else:
+                o.cb(key)
 
 
 def _describe_option(pat='', _print_desc=True):

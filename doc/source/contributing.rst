@@ -169,10 +169,9 @@ For a python 3 environment::
 
       conda create -n pandas_dev python=3 --file ci/requirements_dev.txt
 
+.. warning::
 
-If you are on Windows, then you will also need to install the compiler linkages::
-
-      conda install -n pandas_dev libpython
+   If you are on Windows, see :ref:`here for a fully compliant Windows environment <contributing.windows>`.
 
 This will create the new environment, and not touch any of your existing environments,
 nor any existing python installation. It will install all of the basic dependencies of
@@ -207,6 +206,30 @@ See the full conda docs `here <http://conda.pydata.org/docs>`__.
 
 At this point you can easily do an *in-place* install, as detailed in the next section.
 
+.. _contributing.windows:
+
+Creating a Windows development environment
+------------------------------------------
+
+To build on Windows, you need to have compilers installed to build the extensions. You will need to install the appropriate Visual Studio compilers, VS 2008 for Python 2.7, VS 2010 for 3.4, and VS 2015 for Python 3.5.
+
+For Python 2.7, you can install the ``mingw`` compiler which will work equivalently to VS 2008::
+
+      conda install -n pandas_dev libpython
+
+or use the `Microsoft Visual Studio VC++ compiler for Python <https://www.microsoft.com/en-us/download/details.aspx?id=44266>`__. Note that you have to check the ``x64`` box to install the ``x64`` extension building capability as this is not installed by default.
+
+For Python 3.4, you can download and install the `Windows 7.1 SDK <https://www.microsoft.com/en-us/download/details.aspx?id=8279>`__. Read the references below as there may be various gotchas during the installation.
+
+For Python 3.5, you can download and install the `Visual Studio 2015 Community Edition <https://www.visualstudio.com/en-us/downloads/visual-studio-2015-downloads-vs.aspx>`__.
+
+Here are some references:
+
+- https://github.com/conda/conda-recipes/wiki/Building-from-Source-on-Windows-32-bit-and-64-bit
+- https://cowboyprogrammer.org/building-python-wheels-for-windows/
+- https://blog.ionelmc.ro/2014/12/21/compiling-python-extensions-on-windows/
+- https://support.enthought.com/hc/en-us/articles/204469260-Building-Python-extensions-with-Canopy
+
 .. _contributing.getting_source:
 
 Making changes
@@ -230,6 +253,7 @@ just checked out.  There are two primary methods of doing this.
    This makes a symbolic link that tells the Python interpreter to import *pandas*
    from your development directory. Thus, you can always be using the development
    version on your system without being inside the clone directory.
+
 
 .. _contributing.documentation:
 

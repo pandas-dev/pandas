@@ -165,7 +165,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
             data = to_timedelta(data, unit=unit, box=False)
 
         if not isinstance(data, (np.ndarray, Index, ABCSeries)):
-            if np.isscalar(data):
+            if lib.isscalar(data):
                 raise ValueError('TimedeltaIndex() must be called with a '
                                  'collection of some kind, %s was passed'
                                  % repr(data))
@@ -317,17 +317,24 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
         return NotImplemented
 
     def _add_datelike(self, other):
-
         # adding a timedeltaindex to a datetimelike
         from pandas import Timestamp, DatetimeIndex
-        other = Timestamp(other)
-        i8 = self.asi8
-        result = i8 + other.value
-        result = self._maybe_mask_results(result, fill_value=tslib.iNaT)
+        if other is tslib.NaT:
+            result = self._nat_new(box=False)
+        else:
+            other = Timestamp(other)
+            i8 = self.asi8
+            result = i8 + other.value
+            result = self._maybe_mask_results(result, fill_value=tslib.iNaT)
         return DatetimeIndex(result, name=self.name, copy=False)
 
     def _sub_datelike(self, other):
-        raise TypeError("cannot subtract a datelike from a TimedeltaIndex")
+        from pandas import DatetimeIndex
+        if other is tslib.NaT:
+            result = self._nat_new(box=False)
+        else:
+            raise TypeError("cannot subtract a datelike from a TimedeltaIndex")
+        return DatetimeIndex(result, name=self.name, copy=False)
 
     def _format_native_types(self, na_rep=u('NaT'),
                              date_format=None, **kwargs):

@@ -32,8 +32,8 @@ class TestSeriesDatetimeValues(TestData, tm.TestCase):
                        'weekofyear', 'week', 'dayofweek', 'weekday',
                        'dayofyear', 'quarter', 'freq', 'days_in_month',
                        'daysinmonth']
-        ok_for_period = ok_for_base + ['qyear']
-        ok_for_period_methods = ['strftime']
+        ok_for_period = ok_for_base + ['qyear', 'start_time', 'end_time']
+        ok_for_period_methods = ['strftime', 'to_timestamp', 'asfreq']
         ok_for_dt = ok_for_base + ['date', 'time', 'microsecond', 'nanosecond',
                                    'is_month_start', 'is_month_end',
                                    'is_quarter_start', 'is_quarter_end',
@@ -52,7 +52,7 @@ class TestSeriesDatetimeValues(TestData, tm.TestCase):
                     result = result.astype('int64')
             elif not com.is_list_like(result):
                 return result
-            return Series(result, index=s.index)
+            return Series(result, index=s.index, name=s.name)
 
         def compare(s, name):
             a = getattr(s.dt, prop)
@@ -63,10 +63,12 @@ class TestSeriesDatetimeValues(TestData, tm.TestCase):
                 tm.assert_series_equal(a, b)
 
         # datetimeindex
-        for s in [Series(date_range('20130101', periods=5)),
-                  Series(date_range('20130101', periods=5, freq='s')),
-                  Series(date_range('20130101 00:00:00', periods=5, freq='ms'))
-                  ]:
+        cases = [Series(date_range('20130101', periods=5), name='xxx'),
+                 Series(date_range('20130101', periods=5, freq='s'),
+                        name='xxx'),
+                 Series(date_range('20130101 00:00:00', periods=5, freq='ms'),
+                        name='xxx')]
+        for s in cases:
             for prop in ok_for_dt:
                 # we test freq below
                 if prop != 'freq':
@@ -80,9 +82,8 @@ class TestSeriesDatetimeValues(TestData, tm.TestCase):
             self.assertTrue(result.dtype == object)
 
             result = s.dt.tz_localize('US/Eastern')
-            expected = Series(
-                DatetimeIndex(s.values).tz_localize('US/Eastern'),
-                index=s.index)
+            exp_values = DatetimeIndex(s.values).tz_localize('US/Eastern')
+            expected = Series(exp_values, index=s.index, name='xxx')
             tm.assert_series_equal(result, expected)
 
             tz_result = result.dt.tz
@@ -93,48 +94,50 @@ class TestSeriesDatetimeValues(TestData, tm.TestCase):
 
             # let's localize, then convert
             result = s.dt.tz_localize('UTC').dt.tz_convert('US/Eastern')
-            expected = Series(
-                DatetimeIndex(s.values).tz_localize('UTC').tz_convert(
-                    'US/Eastern'), index=s.index)
+            exp_values = (DatetimeIndex(s.values).tz_localize('UTC')
+                                                 .tz_convert('US/Eastern'))
+            expected = Series(exp_values, index=s.index, name='xxx')
             tm.assert_series_equal(result, expected)
 
         # round
-        s = Series(pd.to_datetime(
-            ['2012-01-01 13:00:00', '2012-01-01 12:01:00',
-             '2012-01-01 08:00:00']))
+        s = Series(pd.to_datetime(['2012-01-01 13:00:00',
+                                   '2012-01-01 12:01:00',
+                                   '2012-01-01 08:00:00']), name='xxx')
         result = s.dt.round('D')
         expected = Series(pd.to_datetime(['2012-01-02', '2012-01-02',
-                                          '2012-01-01']))
+                                          '2012-01-01']), name='xxx')
         tm.assert_series_equal(result, expected)
 
         # round with tz
-        result = s.dt.tz_localize('UTC').dt.tz_convert('US/Eastern').dt.round(
-            'D')
-        expected = Series(pd.to_datetime(['2012-01-01', '2012-01-01',
-                                          '2012-01-01']).tz_localize(
-                                              'US/Eastern'))
+        result = (s.dt.tz_localize('UTC')
+                   .dt.tz_convert('US/Eastern')
+                   .dt.round('D'))
+        exp_values = pd.to_datetime(['2012-01-01', '2012-01-01',
+                                     '2012-01-01']).tz_localize('US/Eastern')
+        expected = Series(exp_values, name='xxx')
         tm.assert_series_equal(result, expected)
 
         # floor
-        s = Series(pd.to_datetime(
-            ['2012-01-01 13:00:00', '2012-01-01 12:01:00',
-             '2012-01-01 08:00:00']))
+        s = Series(pd.to_datetime(['2012-01-01 13:00:00',
+                                   '2012-01-01 12:01:00',
+                                   '2012-01-01 08:00:00']), name='xxx')
         result = s.dt.floor('D')
         expected = Series(pd.to_datetime(['2012-01-01', '2012-01-01',
-                                          '2012-01-01']))
+                                          '2012-01-01']), name='xxx')
         tm.assert_series_equal(result, expected)
 
         # ceil
-        s = Series(pd.to_datetime(
-            ['2012-01-01 13:00:00', '2012-01-01 12:01:00',
-             '2012-01-01 08:00:00']))
+        s = Series(pd.to_datetime(['2012-01-01 13:00:00',
+                                   '2012-01-01 12:01:00',
+                                   '2012-01-01 08:00:00']), name='xxx')
         result = s.dt.ceil('D')
         expected = Series(pd.to_datetime(['2012-01-02', '2012-01-02',
-                                          '2012-01-02']))
+                                          '2012-01-02']), name='xxx')
         tm.assert_series_equal(result, expected)
 
         # datetimeindex with tz
-        s = Series(date_range('20130101', periods=5, tz='US/Eastern'))
+        s = Series(date_range('20130101', periods=5, tz='US/Eastern'),
+                   name='xxx')
         for prop in ok_for_dt:
 
             # we test freq below
@@ -149,7 +152,8 @@ class TestSeriesDatetimeValues(TestData, tm.TestCase):
         self.assertTrue(result.dtype == object)
 
         result = s.dt.tz_convert('CET')
-        expected = Series(s._values.tz_convert('CET'), index=s.index)
+        expected = Series(s._values.tz_convert('CET'),
+                          index=s.index, name='xxx')
         tm.assert_series_equal(result, expected)
 
         tz_result = result.dt.tz
@@ -159,11 +163,13 @@ class TestSeriesDatetimeValues(TestData, tm.TestCase):
                                                     freq='infer').freq)
 
         # timedeltaindex
-        for s in [Series(
-                timedelta_range('1 day', periods=5), index=list('abcde')),
-            Series(timedelta_range('1 day 01:23:45', periods=5, freq='s')),
-            Series(timedelta_range('2 days 01:23:45.012345', periods=5,
-                                   freq='ms'))]:
+        cases = [Series(timedelta_range('1 day', periods=5),
+                        index=list('abcde'), name='xxx'),
+                 Series(timedelta_range('1 day 01:23:45', periods=5,
+                        freq='s'), name='xxx'),
+                 Series(timedelta_range('2 days 01:23:45.012345', periods=5,
+                        freq='ms'), name='xxx')]
+        for s in cases:
             for prop in ok_for_td:
                 # we test freq below
                 if prop != 'freq':
@@ -190,21 +196,27 @@ class TestSeriesDatetimeValues(TestData, tm.TestCase):
 
         # both
         index = date_range('20130101', periods=3, freq='D')
-        s = Series(date_range('20140204', periods=3, freq='s'), index=index)
-        tm.assert_series_equal(s.dt.year, Series(
-            np.array(
-                [2014, 2014, 2014], dtype='int64'), index=index))
-        tm.assert_series_equal(s.dt.month, Series(
-            np.array(
-                [2, 2, 2], dtype='int64'), index=index))
-        tm.assert_series_equal(s.dt.second, Series(
-            np.array(
-                [0, 1, 2], dtype='int64'), index=index))
-        tm.assert_series_equal(s.dt.normalize(), pd.Series(
-            [s[0]] * 3, index=index))
+        s = Series(date_range('20140204', periods=3, freq='s'),
+                   index=index, name='xxx')
+        exp = Series(np.array([2014, 2014, 2014], dtype='int64'),
+                     index=index, name='xxx')
+        tm.assert_series_equal(s.dt.year, exp)
+
+        exp = Series(np.array([2, 2, 2], dtype='int64'),
+                     index=index, name='xxx')
+        tm.assert_series_equal(s.dt.month, exp)
+
+        exp = Series(np.array([0, 1, 2], dtype='int64'),
+                     index=index, name='xxx')
+        tm.assert_series_equal(s.dt.second, exp)
+
+        exp = pd.Series([s[0]] * 3, index=index, name='xxx')
+        tm.assert_series_equal(s.dt.normalize(), exp)
 
         # periodindex
-        for s in [Series(period_range('20130101', periods=5, freq='D'))]:
+        cases = [Series(period_range('20130101', periods=5, freq='D'),
+                        name='xxx')]
+        for s in cases:
             for prop in ok_for_period:
                 # we test freq below
                 if prop != 'freq':
@@ -221,30 +233,32 @@ class TestSeriesDatetimeValues(TestData, tm.TestCase):
             results = [r for r in s.dt.__dir__() if not r.startswith('_')]
             return list(sorted(set(results)))
 
-        s = Series(date_range('20130101', periods=5, freq='D'))
+        s = Series(date_range('20130101', periods=5, freq='D'), name='xxx')
         results = get_dir(s)
         tm.assert_almost_equal(
             results, list(sorted(set(ok_for_dt + ok_for_dt_methods))))
 
-        s = Series(period_range('20130101', periods=5, freq='D').asobject)
+        s = Series(period_range('20130101', periods=5,
+                                freq='D', name='xxx').asobject)
         results = get_dir(s)
         tm.assert_almost_equal(
             results, list(sorted(set(ok_for_period + ok_for_period_methods))))
 
         # 11295
         # ambiguous time error on the conversions
-        s = Series(pd.date_range('2015-01-01', '2016-01-01', freq='T'))
+        s = Series(pd.date_range('2015-01-01', '2016-01-01',
+                                 freq='T'), name='xxx')
         s = s.dt.tz_localize('UTC').dt.tz_convert('America/Chicago')
         results = get_dir(s)
         tm.assert_almost_equal(
             results, list(sorted(set(ok_for_dt + ok_for_dt_methods))))
-        expected = Series(pd.date_range('2015-01-01', '2016-01-01', freq='T',
-                                        tz='UTC').tz_convert(
-                                            'America/Chicago'))
+        exp_values = pd.date_range('2015-01-01', '2016-01-01', freq='T',
+                                   tz='UTC').tz_convert('America/Chicago')
+        expected = Series(exp_values, name='xxx')
         tm.assert_series_equal(s, expected)
 
         # no setting allowed
-        s = Series(date_range('20130101', periods=5, freq='D'))
+        s = Series(date_range('20130101', periods=5, freq='D'), name='xxx')
         with tm.assertRaisesRegexp(ValueError, "modifications"):
             s.dt.hour = 5
 

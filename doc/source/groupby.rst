@@ -10,10 +10,7 @@
    import pandas as pd
    pd.options.display.max_rows = 15
    import matplotlib
-   try:
-      matplotlib.style.use('ggplot')
-   except AttributeError:
-      pd.options.display.mpl_style = 'default'
+   matplotlib.style.use('ggplot')
    import matplotlib.pyplot as plt
    plt.close('all')
 
@@ -220,7 +217,7 @@ the length of the ``groups`` dict, so it is largely just a convenience:
    weight = np.random.normal(166, 20, size=n)
    height = np.random.normal(60, 10, size=n)
    time = pd.date_range('1/1/2000', periods=n)
-   gender = tm.choice(['male', 'female'], size=n)
+   gender = np.random.choice(['male', 'female'], size=n)
    df = pd.DataFrame({'height': height, 'weight': weight,
                       'gender': gender}, index=time)
 

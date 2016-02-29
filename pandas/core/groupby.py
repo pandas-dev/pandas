@@ -31,7 +31,8 @@ from pandas.core.common import(_possibly_downcast_to_dtype, isnull,
                                is_timedelta64_dtype, is_datetime64_dtype,
                                is_categorical_dtype, _values_from_object,
                                is_datetime_or_timedelta_dtype, is_bool,
-                               is_bool_dtype, AbstractMethodError)
+                               is_bool_dtype, AbstractMethodError,
+                               _maybe_fill)
 from pandas.core.config import option_context
 import pandas.lib as lib
 from pandas.lib import Timestamp
@@ -711,7 +712,7 @@ class _GroupBy(PandasObject, SelectionMixin):
         else:
             dtype = obj.dtype
 
-        if not np.isscalar(result):
+        if not lib.isscalar(result):
             result = _possibly_downcast_to_dtype(result, dtype)
 
         return result
@@ -1725,14 +1726,15 @@ class BaseGrouper(object):
         labels, _, _ = self.group_info
 
         if kind == 'aggregate':
-            result = np.empty(out_shape, dtype=out_dtype)
-            result.fill(np.nan)
+            result = _maybe_fill(np.empty(out_shape, dtype=out_dtype),
+                                 fill_value=np.nan)
             counts = np.zeros(self.ngroups, dtype=np.int64)
             result = self._aggregate(
                 result, counts, values, labels, func, is_numeric)
         elif kind == 'transform':
-            result = np.empty_like(values, dtype=out_dtype)
-            result.fill(np.nan)
+            result = _maybe_fill(np.empty_like(values, dtype=out_dtype),
+                                 fill_value=np.nan)
+
             # temporary storange for running-total type tranforms
             accum = np.empty(out_shape, dtype=out_dtype)
             result = self._transform(
@@ -2382,7 +2384,8 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True):
 
 
 def _is_label_like(val):
-    return isinstance(val, compat.string_types) or np.isscalar(val)
+    return (isinstance(val, compat.string_types) or
+            (val is not None and lib.isscalar(val)))
 
 
 def _convert_grouper(axis, grouper):
@@ -2526,7 +2529,8 @@ class SeriesGroupBy(GroupBy):
             return getattr(self, func_or_funcs)(*args, **kwargs)
 
         if hasattr(func_or_funcs, '__iter__'):
-            ret = self._aggregate_multiple_funcs(func_or_funcs, _level)
+            ret = self._aggregate_multiple_funcs(func_or_funcs,
+                                                 (_level or 0) + 1)
         else:
             cyfunc = self._is_cython_func(func_or_funcs)
             if cyfunc and not args and not kwargs:
@@ -2546,6 +2550,10 @@ class SeriesGroupBy(GroupBy):
         if not self.as_index:  # pragma: no cover
             print('Warning, ignoring as_index=True')
 
+        # _level handled at higher
+        if not _level and isinstance(ret, dict):
+            from pandas import concat
+            ret = concat(ret, axis=1)
         return ret
 
     agg = aggregate
@@ -2570,14 +2578,6 @@ class SeriesGroupBy(GroupBy):
                     # protect against callables without names
                     columns.append(com._get_callable_name(f))
             arg = lzip(columns, arg)
-
-        # for a ndim=1, disallow a nested dict for an aggregator as
-        # this is a mis-specification of the aggregations, via a
-        # specificiation error
-        # e.g. g['A'].agg({'A': ..., 'B': ...})
-        if self.name in columns and len(columns) > 1:
-            raise SpecificationError('invalid aggregation names specified '
-                                     'for selected objects')
 
         results = {}
         for name, func in arg:
@@ -2820,8 +2820,16 @@ class SeriesGroupBy(GroupBy):
             inc[idx] = 1
 
         out = np.add.reduceat(inc, idx).astype('int64', copy=False)
-        return Series(out if ids[0] != -1 else out[1:],
-                      index=self.grouper.result_index,
+        res = out if ids[0] != -1 else out[1:]
+        ri = self.grouper.result_index
+
+        # we might have duplications among the bins
+        if len(res) != len(ri):
+            res, out = np.zeros(len(ri), dtype=out.dtype), res
+            res[ids] = out
+
+        return Series(res,
+                      index=ri,
                       name=self.name)
 
     @deprecate_kwarg('take_last', 'keep',
@@ -3338,9 +3346,9 @@ class NDFrameGroupBy(GroupBy):
                     path, res = self._choose_path(fast_path, slow_path, group)
                 except TypeError:
                     return self._transform_item_by_item(obj, fast_path)
-                except Exception:  # pragma: no cover
-                    res = fast_path(group)
-                    path = fast_path
+                except ValueError:
+                    msg = 'transform must return a scalar value for each group'
+                    raise ValueError(msg)
             else:
                 res = path(group)
 

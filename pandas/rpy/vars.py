@@ -1,3 +1,5 @@
+# flake8: noqa
+
 import pandas.rpy.util as util
 
 

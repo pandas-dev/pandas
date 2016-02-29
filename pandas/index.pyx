@@ -136,7 +136,7 @@ cdef class IndexEngine:
 
     cpdef get_loc(self, object val):
         if is_definitely_invalid_key(val):
-            raise TypeError
+            raise TypeError("'{val}' is an invalid key".format(val=val))
 
         if self.over_size_threshold and self.is_monotonic_increasing:
             if not self.is_unique:

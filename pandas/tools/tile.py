@@ -7,6 +7,7 @@ from pandas.core.categorical import Categorical
 import pandas.core.algorithms as algos
 import pandas.core.common as com
 import pandas.core.nanops as nanops
+import pandas.lib as lib
 from pandas.compat import zip
 
 import numpy as np
@@ -79,7 +80,7 @@ def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
     """
     # NOTE: this binning code is changed a bit from histogram for var(x) == 0
     if not np.iterable(bins):
-        if np.isscalar(bins) and bins < 1:
+        if lib.isscalar(bins) and bins < 1:
             raise ValueError("`bins` should be a positive integer.")
         try:  # for array-like
             sz = x.size

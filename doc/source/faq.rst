@@ -14,10 +14,7 @@ Frequently Asked Questions (FAQ)
    import pandas as pd
    pd.options.display.max_rows = 15
    import matplotlib
-   try:
-      matplotlib.style.use('ggplot')
-   except AttributeError:
-      pd.options.display.mpl_style = 'default'
+   matplotlib.style.use('ggplot')
    import matplotlib.pyplot as plt
    plt.close('all')
 

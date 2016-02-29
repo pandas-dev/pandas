@@ -44,14 +44,15 @@ from dateutil.parser import parse
 
 import numpy as np
 from pandas import compat
-from pandas.compat import u
+from pandas.compat import u, u_safe
 from pandas import (Timestamp, Period, Series, DataFrame,  # noqa
                     Index, MultiIndex, Float64Index, Int64Index,
-                    Panel, RangeIndex, PeriodIndex, DatetimeIndex)
+                    Panel, RangeIndex, PeriodIndex, DatetimeIndex, NaT)
+from pandas.tslib import NaTType
 from pandas.sparse.api import SparseSeries, SparseDataFrame, SparsePanel
 from pandas.sparse.array import BlockIndex, IntIndex
 from pandas.core.generic import NDFrame
-from pandas.core.common import needs_i8_conversion
+from pandas.core.common import needs_i8_conversion, pandas_dtype
 from pandas.io.common import get_filepath_or_buffer
 from pandas.core.internals import BlockManager, make_block
 import pandas.core.internals as internals
@@ -75,6 +76,7 @@ def to_msgpack(path_or_buf, *args, **kwargs):
     path_or_buf : string File path, buffer-like, or None
                   if None, return generated string
     args : an object or objects to serialize
+    encoding: encoding for unicode objects
     append : boolean whether to append to an existing msgpack
              (default is False)
     compress : type of compressor (zlib or blosc), default to None (no
@@ -82,6 +84,8 @@ def to_msgpack(path_or_buf, *args, **kwargs):
     """
     global compressor
     compressor = kwargs.pop('compress', None)
+    if compressor:
+        compressor = u(compressor)
     append = kwargs.pop('append', None)
     if append:
         mode = 'a+b'
@@ -103,7 +107,7 @@ def to_msgpack(path_or_buf, *args, **kwargs):
         writer(path_or_buf)
 
 
-def read_msgpack(path_or_buf, iterator=False, **kwargs):
+def read_msgpack(path_or_buf, encoding='utf-8', iterator=False, **kwargs):
     """
     Load msgpack pandas object from the specified
     file path
@@ -114,6 +118,7 @@ def read_msgpack(path_or_buf, iterator=False, **kwargs):
     Parameters
     ----------
     path_or_buf : string File path, BytesIO like or string
+    encoding: Encoding for decoding msgpack str type
     iterator : boolean, if True, return an iterator to the unpacker
                (default is False)
 
@@ -127,7 +132,7 @@ def read_msgpack(path_or_buf, iterator=False, **kwargs):
         return Iterator(path_or_buf)
 
     def read(fh):
-        l = list(unpack(fh, **kwargs))
+        l = list(unpack(fh, encoding=encoding, **kwargs))
         if len(l) == 1:
             return l[0]
         return l
@@ -177,7 +182,7 @@ def dtype_for(t):
     """ return my dtype mapping, whether number or name """
     if t in dtype_dict:
         return dtype_dict[t]
-    return np.typeDict[t]
+    return np.typeDict.get(t, t)
 
 c2f_dict = {'complex': np.float64,
             'complex128': np.float64,
@@ -245,15 +250,17 @@ def unconvert(values, dtype, compress=None):
     if dtype == np.object_:
         return np.array(values, dtype=object)
 
+    dtype = pandas_dtype(dtype).base
+
     if not as_is_ext:
         values = values.encode('latin1')
 
-    if compress == 'zlib':
+    if compress == u'zlib':
         import zlib
         values = zlib.decompress(values)
         return np.frombuffer(values, dtype=dtype)
 
-    elif compress == 'blosc':
+    elif compress == u'blosc':
         import blosc
         values = blosc.decompress(values)
         return np.frombuffer(values, dtype=dtype)
@@ -266,53 +273,52 @@ def encode(obj):
     """
     Data encoder
     """
-
     tobj = type(obj)
     if isinstance(obj, Index):
         if isinstance(obj, RangeIndex):
-            return {'typ': 'range_index',
-                    'klass': obj.__class__.__name__,
-                    'name': getattr(obj, 'name', None),
-                    'start': getattr(obj, '_start', None),
-                    'stop': getattr(obj, '_stop', None),
-                    'step': getattr(obj, '_step', None)}
+            return {u'typ': u'range_index',
+                    u'klass': u(obj.__class__.__name__),
+                    u'name': getattr(obj, 'name', None),
+                    u'start': getattr(obj, '_start', None),
+                    u'stop': getattr(obj, '_stop', None),
+                    u'step': getattr(obj, '_step', None)}
         elif isinstance(obj, PeriodIndex):
-            return {'typ': 'period_index',
-                    'klass': obj.__class__.__name__,
-                    'name': getattr(obj, 'name', None),
-                    'freq': getattr(obj, 'freqstr', None),
-                    'dtype': obj.dtype.name,
-                    'data': convert(obj.asi8),
-                    'compress': compressor}
+            return {u'typ': u'period_index',
+                    u'klass': u(obj.__class__.__name__),
+                    u'name': getattr(obj, 'name', None),
+                    u'freq': u_safe(getattr(obj, 'freqstr', None)),
+                    u'dtype': u(obj.dtype.name),
+                    u'data': convert(obj.asi8),
+                    u'compress': compressor}
         elif isinstance(obj, DatetimeIndex):
             tz = getattr(obj, 'tz', None)
 
             # store tz info and data as UTC
             if tz is not None:
-                tz = tz.zone
+                tz = u(tz.zone)
                 obj = obj.tz_convert('UTC')
-            return {'typ': 'datetime_index',
-                    'klass': obj.__class__.__name__,
-                    'name': getattr(obj, 'name', None),
-                    'dtype': obj.dtype.name,
-                    'data': convert(obj.asi8),
-                    'freq': getattr(obj, 'freqstr', None),
-                    'tz': tz,
-                    'compress': compressor}
+            return {u'typ': u'datetime_index',
+                    u'klass': u(obj.__class__.__name__),
+                    u'name': getattr(obj, 'name', None),
+                    u'dtype': u(obj.dtype.name),
+                    u'data': convert(obj.asi8),
+                    u'freq': u_safe(getattr(obj, 'freqstr', None)),
+                    u'tz': tz,
+                    u'compress': compressor}
         elif isinstance(obj, MultiIndex):
-            return {'typ': 'multi_index',
-                    'klass': obj.__class__.__name__,
-                    'names': getattr(obj, 'names', None),
-                    'dtype': obj.dtype.name,
-                    'data': convert(obj.values),
-                    'compress': compressor}
+            return {u'typ': u'multi_index',
+                    u'klass': u(obj.__class__.__name__),
+                    u'names': getattr(obj, 'names', None),
+                    u'dtype': u(obj.dtype.name),
+                    u'data': convert(obj.values),
+                    u'compress': compressor}
         else:
-            return {'typ': 'index',
-                    'klass': obj.__class__.__name__,
-                    'name': getattr(obj, 'name', None),
-                    'dtype': obj.dtype.name,
-                    'data': convert(obj.values),
-                    'compress': compressor}
+            return {u'typ': u'index',
+                    u'klass': u(obj.__class__.__name__),
+                    u'name': getattr(obj, 'name', None),
+                    u'dtype': u(obj.dtype.name),
+                    u'data': convert(obj.values),
+                    u'compress': compressor}
     elif isinstance(obj, Series):
         if isinstance(obj, SparseSeries):
             raise NotImplementedError(
@@ -329,13 +335,13 @@ def encode(obj):
             #    d[f] = getattr(obj, f, None)
             # return d
         else:
-            return {'typ': 'series',
-                    'klass': obj.__class__.__name__,
-                    'name': getattr(obj, 'name', None),
-                    'index': obj.index,
-                    'dtype': obj.dtype.name,
-                    'data': convert(obj.values),
-                    'compress': compressor}
+            return {u'typ': u'series',
+                    u'klass': u(obj.__class__.__name__),
+                    u'name': getattr(obj, 'name', None),
+                    u'index': obj.index,
+                    u'dtype': u(obj.dtype.name),
+                    u'data': convert(obj.values),
+                    u'compress': compressor}
     elif issubclass(tobj, NDFrame):
         if isinstance(obj, SparseDataFrame):
             raise NotImplementedError(
@@ -368,84 +374,85 @@ def encode(obj):
                 data = data.consolidate()
 
             # the block manager
-            return {'typ': 'block_manager',
-                    'klass': obj.__class__.__name__,
-                    'axes': data.axes,
-                    'blocks': [{'items': data.items.take(b.mgr_locs),
-                                'locs': b.mgr_locs.as_array,
-                                'values': convert(b.values),
-                                'shape': b.values.shape,
-                                'dtype': b.dtype.name,
-                                'klass': b.__class__.__name__,
-                                'compress': compressor
-                                } for b in data.blocks]}
+            return {u'typ': u'block_manager',
+                    u'klass': u(obj.__class__.__name__),
+                    u'axes': data.axes,
+                    u'blocks': [{u'locs': b.mgr_locs.as_array,
+                                 u'values': convert(b.values),
+                                 u'shape': b.values.shape,
+                                 u'dtype': u(b.dtype.name),
+                                 u'klass': u(b.__class__.__name__),
+                                 u'compress': compressor} for b in data.blocks]
+                    }
 
     elif isinstance(obj, (datetime, date, np.datetime64, timedelta,
-                          np.timedelta64)):
+                          np.timedelta64, NaTType)):
         if isinstance(obj, Timestamp):
             tz = obj.tzinfo
             if tz is not None:
-                tz = tz.zone
+                tz = u(tz.zone)
             offset = obj.offset
             if offset is not None:
-                offset = offset.freqstr
-            return {'typ': 'timestamp',
-                    'value': obj.value,
-                    'offset': offset,
-                    'tz': tz}
+                offset = u(offset.freqstr)
+            return {u'typ': u'timestamp',
+                    u'value': obj.value,
+                    u'offset': offset,
+                    u'tz': tz}
+        if isinstance(obj, NaTType):
+            return {u'typ': u'nat'}
         elif isinstance(obj, np.timedelta64):
-            return {'typ': 'timedelta64',
-                    'data': obj.view('i8')}
+            return {u'typ': u'timedelta64',
+                    u'data': obj.view('i8')}
         elif isinstance(obj, timedelta):
-            return {'typ': 'timedelta',
-                    'data': (obj.days, obj.seconds, obj.microseconds)}
+            return {u'typ': u'timedelta',
+                    u'data': (obj.days, obj.seconds, obj.microseconds)}
         elif isinstance(obj, np.datetime64):
-            return {'typ': 'datetime64',
-                    'data': str(obj)}
+            return {u'typ': u'datetime64',
+                    u'data': u(str(obj))}
         elif isinstance(obj, datetime):
-            return {'typ': 'datetime',
-                    'data': obj.isoformat()}
+            return {u'typ': u'datetime',
+                    u'data': u(obj.isoformat())}
         elif isinstance(obj, date):
-            return {'typ': 'date',
-                    'data': obj.isoformat()}
+            return {u'typ': u'date',
+                    u'data': u(obj.isoformat())}
         raise Exception("cannot encode this datetimelike object: %s" % obj)
     elif isinstance(obj, Period):
-        return {'typ': 'period',
-                'ordinal': obj.ordinal,
-                'freq': obj.freq}
+        return {u'typ': u'period',
+                u'ordinal': obj.ordinal,
+                u'freq': u(obj.freq)}
     elif isinstance(obj, BlockIndex):
-        return {'typ': 'block_index',
-                'klass': obj.__class__.__name__,
-                'blocs': obj.blocs,
-                'blengths': obj.blengths,
-                'length': obj.length}
+        return {u'typ': u'block_index',
+                u'klass': u(obj.__class__.__name__),
+                u'blocs': obj.blocs,
+                u'blengths': obj.blengths,
+                u'length': obj.length}
     elif isinstance(obj, IntIndex):
-        return {'typ': 'int_index',
-                'klass': obj.__class__.__name__,
-                'indices': obj.indices,
-                'length': obj.length}
+        return {u'typ': u'int_index',
+                u'klass': u(obj.__class__.__name__),
+                u'indices': obj.indices,
+                u'length': obj.length}
     elif isinstance(obj, np.ndarray):
-        return {'typ': 'ndarray',
-                'shape': obj.shape,
-                'ndim': obj.ndim,
-                'dtype': obj.dtype.name,
-                'data': convert(obj),
-                'compress': compressor}
+        return {u'typ': u'ndarray',
+                u'shape': obj.shape,
+                u'ndim': obj.ndim,
+                u'dtype': u(obj.dtype.name),
+                u'data': convert(obj),
+                u'compress': compressor}
     elif isinstance(obj, np.number):
         if np.iscomplexobj(obj):
-            return {'typ': 'np_scalar',
-                    'sub_typ': 'np_complex',
-                    'dtype': obj.dtype.name,
-                    'real': obj.real.__repr__(),
-                    'imag': obj.imag.__repr__()}
+            return {u'typ': u'np_scalar',
+                    u'sub_typ': u'np_complex',
+                    u'dtype': u(obj.dtype.name),
+                    u'real': u(obj.real.__repr__()),
+                    u'imag': u(obj.imag.__repr__())}
         else:
-            return {'typ': 'np_scalar',
-                    'dtype': obj.dtype.name,
-                    'data': obj.__repr__()}
+            return {u'typ': u'np_scalar',
+                    u'dtype': u(obj.dtype.name),
+                    u'data': u(obj.__repr__())}
     elif isinstance(obj, complex):
-        return {'typ': 'np_complex',
-                'real': obj.real.__repr__(),
-                'imag': obj.imag.__repr__()}
+        return {u'typ': u'np_complex',
+                u'real': u(obj.real.__repr__()),
+                u'imag': u(obj.imag.__repr__())}
 
     return obj
 
@@ -455,81 +462,91 @@ def decode(obj):
     Decoder for deserializing numpy data types.
     """
 
-    typ = obj.get('typ')
+    typ = obj.get(u'typ')
     if typ is None:
         return obj
-    elif typ == 'timestamp':
-        return Timestamp(obj['value'], tz=obj['tz'], offset=obj['offset'])
-    elif typ == 'period':
-        return Period(ordinal=obj['ordinal'], freq=obj['freq'])
-    elif typ == 'index':
-        dtype = dtype_for(obj['dtype'])
-        data = unconvert(obj['data'], dtype,
-                         obj.get('compress'))
-        return globals()[obj['klass']](data, dtype=dtype, name=obj['name'])
-    elif typ == 'range_index':
-        return globals()[obj['klass']](obj['start'],
-                                       obj['stop'],
-                                       obj['step'],
-                                       name=obj['name'])
-    elif typ == 'multi_index':
-        dtype = dtype_for(obj['dtype'])
-        data = unconvert(obj['data'], dtype,
-                         obj.get('compress'))
+    elif typ == u'timestamp':
+        return Timestamp(obj[u'value'], tz=obj[u'tz'], offset=obj[u'offset'])
+    elif typ == u'nat':
+        return NaT
+    elif typ == u'period':
+        return Period(ordinal=obj[u'ordinal'], freq=obj[u'freq'])
+    elif typ == u'index':
+        dtype = dtype_for(obj[u'dtype'])
+        data = unconvert(obj[u'data'], dtype,
+                         obj.get(u'compress'))
+        return globals()[obj[u'klass']](data, dtype=dtype, name=obj[u'name'])
+    elif typ == u'range_index':
+        return globals()[obj[u'klass']](obj[u'start'],
+                                        obj[u'stop'],
+                                        obj[u'step'],
+                                        name=obj[u'name'])
+    elif typ == u'multi_index':
+        dtype = dtype_for(obj[u'dtype'])
+        data = unconvert(obj[u'data'], dtype,
+                         obj.get(u'compress'))
         data = [tuple(x) for x in data]
-        return globals()[obj['klass']].from_tuples(data, names=obj['names'])
-    elif typ == 'period_index':
-        data = unconvert(obj['data'], np.int64, obj.get('compress'))
-        d = dict(name=obj['name'], freq=obj['freq'])
-        return globals()[obj['klass']](data, **d)
-    elif typ == 'datetime_index':
-        data = unconvert(obj['data'], np.int64, obj.get('compress'))
-        d = dict(name=obj['name'], freq=obj['freq'], verify_integrity=False)
-        result = globals()[obj['klass']](data, **d)
-        tz = obj['tz']
+        return globals()[obj[u'klass']].from_tuples(data, names=obj[u'names'])
+    elif typ == u'period_index':
+        data = unconvert(obj[u'data'], np.int64, obj.get(u'compress'))
+        d = dict(name=obj[u'name'], freq=obj[u'freq'])
+        return globals()[obj[u'klass']](data, **d)
+    elif typ == u'datetime_index':
+        data = unconvert(obj[u'data'], np.int64, obj.get(u'compress'))
+        d = dict(name=obj[u'name'], freq=obj[u'freq'], verify_integrity=False)
+        result = globals()[obj[u'klass']](data, **d)
+        tz = obj[u'tz']
 
         # reverse tz conversion
         if tz is not None:
             result = result.tz_localize('UTC').tz_convert(tz)
         return result
 
-    elif typ == 'series':
-        dtype = dtype_for(obj['dtype'])
-        index = obj['index']
-        return globals()[obj['klass']](unconvert(obj['data'], dtype,
-                                                 obj['compress']),
-                                       index=index,
-                                       dtype=dtype,
-                                       name=obj['name'])
-    elif typ == 'block_manager':
-        axes = obj['axes']
+    elif typ == u'series':
+        dtype = dtype_for(obj[u'dtype'])
+        pd_dtype = pandas_dtype(dtype)
+        np_dtype = pandas_dtype(dtype).base
+        index = obj[u'index']
+        result = globals()[obj[u'klass']](unconvert(obj[u'data'], dtype,
+                                                    obj[u'compress']),
+                                          index=index,
+                                          dtype=np_dtype,
+                                          name=obj[u'name'])
+        tz = getattr(pd_dtype, 'tz', None)
+        if tz:
+            result = result.dt.tz_localize('UTC').dt.tz_convert(tz)
+        return result
+
+    elif typ == u'block_manager':
+        axes = obj[u'axes']
 
         def create_block(b):
-            values = unconvert(b['values'], dtype_for(b['dtype']),
-                               b['compress']).reshape(b['shape'])
+            values = unconvert(b[u'values'], dtype_for(b[u'dtype']),
+                               b[u'compress']).reshape(b[u'shape'])
 
             # locs handles duplicate column names, and should be used instead
             # of items; see GH 9618
-            if 'locs' in b:
-                placement = b['locs']
+            if u'locs' in b:
+                placement = b[u'locs']
             else:
-                placement = axes[0].get_indexer(b['items'])
+                placement = axes[0].get_indexer(b[u'items'])
             return make_block(values=values,
-                              klass=getattr(internals, b['klass']),
-                              placement=placement)
+                              klass=getattr(internals, b[u'klass']),
+                              placement=placement,
+                              dtype=b[u'dtype'])
 
-        blocks = [create_block(b) for b in obj['blocks']]
-        return globals()[obj['klass']](BlockManager(blocks, axes))
-    elif typ == 'datetime':
-        return parse(obj['data'])
-    elif typ == 'datetime64':
-        return np.datetime64(parse(obj['data']))
-    elif typ == 'date':
-        return parse(obj['data']).date()
-    elif typ == 'timedelta':
-        return timedelta(*obj['data'])
-    elif typ == 'timedelta64':
-        return np.timedelta64(int(obj['data']))
+        blocks = [create_block(b) for b in obj[u'blocks']]
+        return globals()[obj[u'klass']](BlockManager(blocks, axes))
+    elif typ == u'datetime':
+        return parse(obj[u'data'])
+    elif typ == u'datetime64':
+        return np.datetime64(parse(obj[u'data']))
+    elif typ == u'date':
+        return parse(obj[u'data']).date()
+    elif typ == u'timedelta':
+        return timedelta(*obj[u'data'])
+    elif typ == u'timedelta64':
+        return np.timedelta64(int(obj[u'data']))
     # elif typ == 'sparse_series':
     #    dtype = dtype_for(obj['dtype'])
     #    return globals()[obj['klass']](
@@ -547,25 +564,25 @@ def decode(obj):
     #        obj['data'], items=obj['items'],
     #        default_fill_value=obj['default_fill_value'],
     #        default_kind=obj['default_kind'])
-    elif typ == 'block_index':
-        return globals()[obj['klass']](obj['length'], obj['blocs'],
-                                       obj['blengths'])
-    elif typ == 'int_index':
-        return globals()[obj['klass']](obj['length'], obj['indices'])
-    elif typ == 'ndarray':
-        return unconvert(obj['data'], np.typeDict[obj['dtype']],
-                         obj.get('compress')).reshape(obj['shape'])
-    elif typ == 'np_scalar':
-        if obj.get('sub_typ') == 'np_complex':
-            return c2f(obj['real'], obj['imag'], obj['dtype'])
+    elif typ == u'block_index':
+        return globals()[obj[u'klass']](obj[u'length'], obj[u'blocs'],
+                                        obj[u'blengths'])
+    elif typ == u'int_index':
+        return globals()[obj[u'klass']](obj[u'length'], obj[u'indices'])
+    elif typ == u'ndarray':
+        return unconvert(obj[u'data'], np.typeDict[obj[u'dtype']],
+                         obj.get(u'compress')).reshape(obj[u'shape'])
+    elif typ == u'np_scalar':
+        if obj.get(u'sub_typ') == u'np_complex':
+            return c2f(obj[u'real'], obj[u'imag'], obj[u'dtype'])
         else:
-            dtype = dtype_for(obj['dtype'])
+            dtype = dtype_for(obj[u'dtype'])
             try:
-                return dtype(obj['data'])
+                return dtype(obj[u'data'])
             except:
-                return dtype.type(obj['data'])
-    elif typ == 'np_complex':
-        return complex(obj['real'] + '+' + obj['imag'] + 'j')
+                return dtype.type(obj[u'data'])
+    elif typ == u'np_complex':
+        return complex(obj[u'real'] + u'+' + obj[u'imag'] + u'j')
     elif isinstance(obj, (dict, list, set)):
         return obj
     else:
@@ -573,7 +590,7 @@ def decode(obj):
 
 
 def pack(o, default=encode,
-         encoding='latin1', unicode_errors='strict', use_single_float=False,
+         encoding='utf-8', unicode_errors='strict', use_single_float=False,
          autoreset=1, use_bin_type=1):
     """
     Pack an object and return the packed bytes.
@@ -587,7 +604,7 @@ def pack(o, default=encode,
 
 
 def unpack(packed, object_hook=decode,
-           list_hook=None, use_list=False, encoding='latin1',
+           list_hook=None, use_list=False, encoding='utf-8',
            unicode_errors='strict', object_pairs_hook=None,
            max_buffer_size=0, ext_hook=ExtType):
     """
@@ -607,7 +624,7 @@ def unpack(packed, object_hook=decode,
 class Packer(_Packer):
 
     def __init__(self, default=encode,
-                 encoding='latin1',
+                 encoding='utf-8',
                  unicode_errors='strict',
                  use_single_float=False,
                  autoreset=1,
@@ -624,7 +641,7 @@ class Unpacker(_Unpacker):
 
     def __init__(self, file_like=None, read_size=0, use_list=False,
                  object_hook=decode,
-                 object_pairs_hook=None, list_hook=None, encoding='latin1',
+                 object_pairs_hook=None, list_hook=None, encoding='utf-8',
                  unicode_errors='strict', max_buffer_size=0, ext_hook=ExtType):
         super(Unpacker, self).__init__(file_like=file_like,
                                        read_size=read_size,

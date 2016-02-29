@@ -425,9 +425,12 @@ class TestDataFramePlots(TestPlotBase):
         with tm.RNGContext(42):
             df = DataFrame(randn(100, 3))
 
-        axes = _check_plot_works(scatter_matrix, filterwarnings='always',
-                                 frame=df, range_padding=.1)
+        # we are plotting multiples on a sub-plot
+        with tm.assert_produces_warning(UserWarning):
+            axes = _check_plot_works(scatter_matrix, filterwarnings='always',
+                                     frame=df, range_padding=.1)
         axes0_labels = axes[0][0].yaxis.get_majorticklabels()
+
         # GH 5662
         expected = ['-2', '-1', '0', '1', '2']
         self._check_text_labels(axes0_labels, expected)
@@ -435,8 +438,11 @@ class TestDataFramePlots(TestPlotBase):
             axes, xlabelsize=8, xrot=90, ylabelsize=8, yrot=0)
 
         df[0] = ((df[0] - 2) / 3)
-        axes = _check_plot_works(scatter_matrix, filterwarnings='always',
-                                 frame=df, range_padding=.1)
+
+        # we are plotting multiples on a sub-plot
+        with tm.assert_produces_warning(UserWarning):
+            axes = _check_plot_works(scatter_matrix, filterwarnings='always',
+                                     frame=df, range_padding=.1)
         axes0_labels = axes[0][0].yaxis.get_majorticklabels()
         expected = ['-1.2', '-1.0', '-0.8', '-0.6', '-0.4', '-0.2', '0.0']
         self._check_text_labels(axes0_labels, expected)

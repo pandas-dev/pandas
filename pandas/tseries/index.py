@@ -261,7 +261,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
                                  ambiguous=ambiguous)
 
         if not isinstance(data, (np.ndarray, Index, ABCSeries)):
-            if np.isscalar(data):
+            if lib.isscalar(data):
                 raise ValueError('DatetimeIndex() must be called with a '
                                  'collection of some kind, %s was passed'
                                  % repr(data))
@@ -528,12 +528,12 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
                                                  ambiguous=ambiguous)
                 index = index.view(_NS_DTYPE)
 
-        index = cls._simple_new(index, name=name, freq=offset, tz=tz)
         if not left_closed and len(index) and index[0] == start:
             index = index[1:]
         if not right_closed and len(index) and index[-1] == end:
             index = index[:-1]
 
+        index = cls._simple_new(index, name=name, freq=offset, tz=tz)
         return index
 
     @property
@@ -740,20 +740,26 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
             raise Exception("invalid pickle state")
     _unpickle_compat = __setstate__
 
+    def _add_datelike(self, other):
+        # adding a timedeltaindex to a datetimelike
+        if other is tslib.NaT:
+            return self._nat_new(box=True)
+        raise TypeError("cannot add a datelike to a DatetimeIndex")
+
     def _sub_datelike(self, other):
         # subtract a datetime from myself, yielding a TimedeltaIndex
-
         from pandas import TimedeltaIndex
         other = Timestamp(other)
-
+        if other is tslib.NaT:
+            result = self._nat_new(box=False)
         # require tz compat
-        if not self._has_same_tz(other):
+        elif not self._has_same_tz(other):
             raise TypeError("Timestamp subtraction must have the same "
                             "timezones or no timezones")
-
-        i8 = self.asi8
-        result = i8 - other.value
-        result = self._maybe_mask_results(result, fill_value=tslib.iNaT)
+        else:
+            i8 = self.asi8
+            result = i8 - other.value
+            result = self._maybe_mask_results(result, fill_value=tslib.iNaT)
         return TimedeltaIndex(result, name=self.name, copy=False)
 
     def _maybe_update_attributes(self, attrs):

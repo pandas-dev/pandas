@@ -201,7 +201,7 @@ class SafeForLongAndSparse(object):
         self.assertRaises(Exception, f, axis=obj.ndim)
 
         # Unimplemented numeric_only parameter.
-        if 'numeric_only' in signature(f):
+        if 'numeric_only' in signature(f).args:
             self.assertRaisesRegexp(NotImplementedError, name, f,
                                     numeric_only=True)
 

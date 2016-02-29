@@ -14,7 +14,7 @@ from pandas.core.common import (_possibly_downcast_to_dtype, isnull, _NS_DTYPE,
                                 is_dtype_equal, is_null_datelike_scalar,
                                 _maybe_promote, is_timedelta64_dtype,
                                 is_datetime64_dtype, is_datetimetz, is_sparse,
-                                array_equivalent,
+                                array_equivalent, _is_na_compat,
                                 _maybe_convert_string_to_object,
                                 is_categorical, is_datetimelike_v_numeric,
                                 is_numeric_v_string_like, is_internal_type)
@@ -665,7 +665,7 @@ class Block(PandasObject):
                 if arr_value.ndim == 1:
                     if not isinstance(indexer, tuple):
                         indexer = tuple([indexer])
-                    return all([np.isscalar(idx) for idx in indexer])
+                    return all([lib.isscalar(idx) for idx in indexer])
                 return False
 
             def _is_empty_indexer(indexer):
@@ -702,7 +702,10 @@ class Block(PandasObject):
                 values[indexer] = value
 
             # coerce and try to infer the dtypes of the result
-            if np.isscalar(value):
+            if hasattr(value, 'dtype') and is_dtype_equal(values.dtype,
+                                                          value.dtype):
+                dtype = value.dtype
+            elif lib.isscalar(value):
                 dtype, _ = _infer_dtype_from_scalar(value)
             else:
                 dtype = 'infer'
@@ -714,8 +717,23 @@ class Block(PandasObject):
                 block = block.convert(numeric=False)
 
             return block
-        except (ValueError, TypeError):
+        except ValueError:
             raise
+        except TypeError:
+
+            # cast to the passed dtype if possible
+            # otherwise raise the original error
+            try:
+                # e.g. we are uint32 and our value is uint64
+                # this is for compat with older numpies
+                block = self.make_block(transf(values.astype(value.dtype)))
+                return block.setitem(indexer=indexer, value=value, mgr=mgr)
+
+            except:
+                pass
+
+            raise
+
         except Exception:
             pass
 
@@ -1380,8 +1398,9 @@ class FloatBlock(FloatOrComplexBlock):
         from pandas.core.format import FloatArrayFormatter
         formatter = FloatArrayFormatter(values, na_rep=na_rep,
                                         float_format=float_format,
-                                        decimal=decimal, quoting=quoting)
-        return formatter.get_formatted_data()
+                                        decimal=decimal, quoting=quoting,
+                                        fixed_width=False)
+        return formatter.get_result_as_array()
 
     def should_store(self, value):
         # when inserting a column should not coerce integers to floats
@@ -2097,6 +2116,14 @@ class DatetimeTZBlock(NonConsolidatableMixIn, DatetimeBlock):
 
         if not isinstance(values, self._holder):
             values = self._holder(values)
+
+        dtype = kwargs.pop('dtype', None)
+
+        if dtype is not None:
+            if isinstance(dtype, compat.string_types):
+                dtype = DatetimeTZDtype.construct_from_string(dtype)
+            values = values.tz_localize('UTC').tz_convert(dtype.tz)
+
         if values.tz is None:
             raise ValueError("cannot create a DatetimeTZBlock without a tz")
 
@@ -2426,6 +2453,10 @@ def make_block(values, placement, klass=None, ndim=None, dtype=None,
             klass = CategoricalBlock
         else:
             klass = ObjectBlock
+
+    elif klass is DatetimeTZBlock and not is_datetimetz(values):
+        return klass(values, ndim=ndim, fastpath=fastpath,
+                     placement=placement, dtype=dtype)
 
     return klass(values, ndim=ndim, fastpath=fastpath, placement=placement)
 
@@ -3196,7 +3227,7 @@ class BlockManager(PandasObject):
                 indexer = np.arange(len(self.items))[isnull(self.items)]
 
                 # allow a single nan location indexer
-                if not np.isscalar(indexer):
+                if not lib.isscalar(indexer):
                     if len(indexer) == 1:
                         loc = indexer.item()
                     else:
@@ -3862,6 +3893,8 @@ def construction_error(tot_items, block_shape, axes, e=None):
     implied = tuple(map(int, [len(ax) for ax in axes]))
     if passed == implied and e is not None:
         raise e
+    if block_shape[0] == 0:
+        raise ValueError("Empty data passed with indices specified.")
     raise ValueError("Shape of passed values is {0}, indices imply {1}".format(
         passed, implied))
 
@@ -4379,7 +4412,6 @@ def _putmask_smart(v, m, n):
     m : `mask`, applies to both sides (array like)
     n : `new values` either scalar or an array like aligned with `values`
     """
-
     # n should be the length of the mask or a scalar here
     if not is_list_like(n):
         n = np.array([n] * len(m))
@@ -4390,6 +4422,12 @@ def _putmask_smart(v, m, n):
     # will work in the current dtype
     try:
         nn = n[m]
+
+        # make sure that we have a nullable type
+        # if we have nulls
+        if not _is_na_compat(v, nn[0]):
+            raise ValueError
+
         nn_at = nn.astype(v.dtype)
 
         # avoid invalid dtype comparisons

@@ -30,6 +30,7 @@ from pandas.computation.ops import (_binary_ops_dict,
 
 import pandas.computation.expr as expr
 import pandas.util.testing as tm
+import pandas.lib as lib
 from pandas.util.testing import (assert_frame_equal, randbool,
                                  assertRaisesRegexp, assert_numpy_array_equal,
                                  assert_produces_warning, assert_series_equal)
@@ -196,7 +197,7 @@ class TestEvalNumexprPandas(tm.TestCase):
         ex = '(lhs {cmp1} rhs) {binop} (lhs {cmp2} rhs)'.format(cmp1=cmp1,
                                                                 binop=binop,
                                                                 cmp2=cmp2)
-        scalar_with_in_notin = (np.isscalar(rhs) and (cmp1 in skip_these or
+        scalar_with_in_notin = (lib.isscalar(rhs) and (cmp1 in skip_these or
                                                       cmp2 in skip_these))
         if scalar_with_in_notin:
             with tm.assertRaises(TypeError):
@@ -327,7 +328,7 @@ class TestEvalNumexprPandas(tm.TestCase):
         expected = self.get_expected_pow_result(lhs, rhs)
         result = pd.eval(ex, engine=self.engine, parser=self.parser)
 
-        if (np.isscalar(lhs) and np.isscalar(rhs) and
+        if (lib.isscalar(lhs) and lib.isscalar(rhs) and
                 _is_py3_complex_incompat(result, expected)):
             self.assertRaises(AssertionError, tm.assert_numpy_array_equal,
                               result, expected)
@@ -360,16 +361,16 @@ class TestEvalNumexprPandas(tm.TestCase):
         skip_these = 'in', 'not in'
         ex = '~(lhs {0} rhs)'.format(cmp1)
 
-        if np.isscalar(rhs) and cmp1 in skip_these:
+        if lib.isscalar(rhs) and cmp1 in skip_these:
             self.assertRaises(TypeError, pd.eval, ex, engine=self.engine,
                               parser=self.parser, local_dict={'lhs': lhs,
                                                               'rhs': rhs})
         else:
             # compound
-            if np.isscalar(lhs) and np.isscalar(rhs):
+            if lib.isscalar(lhs) and lib.isscalar(rhs):
                 lhs, rhs = map(lambda x: np.array([x]), (lhs, rhs))
             expected = _eval_single_bin(lhs, cmp1, rhs, self.engine)
-            if np.isscalar(expected):
+            if lib.isscalar(expected):
                 expected = not expected
             else:
                 expected = ~expected
@@ -639,17 +640,17 @@ class TestEvalNumexprPandas(tm.TestCase):
         x = 1
         result = pd.eval('x', engine=self.engine, parser=self.parser)
         self.assertEqual(result, 1)
-        self.assertTrue(np.isscalar(result))
+        self.assertTrue(lib.isscalar(result))
 
         x = 1.5
         result = pd.eval('x', engine=self.engine, parser=self.parser)
         self.assertEqual(result, 1.5)
-        self.assertTrue(np.isscalar(result))
+        self.assertTrue(lib.isscalar(result))
 
         x = False
         result = pd.eval('x', engine=self.engine, parser=self.parser)
         self.assertEqual(result, False)
-        self.assertTrue(np.isscalar(result))
+        self.assertTrue(lib.isscalar(result))
 
         x = np.array([1])
         result = pd.eval('x', engine=self.engine, parser=self.parser)
@@ -900,13 +901,13 @@ class TestAlignment(object):
 
         # only test dt with dt, otherwise weird joins result
         args = product(['i', 'u', 's'], ['i', 'u', 's'], ('index', 'columns'))
-        for r_idx_type, c_idx_type, index_name in args:
-            testit(r_idx_type, c_idx_type, index_name)
+        with warnings.catch_warnings(record=True):
+            for r_idx_type, c_idx_type, index_name in args:
+                testit(r_idx_type, c_idx_type, index_name)
 
         # dt with dt
         args = product(['dt'], ['dt'], ('index', 'columns'))
         with warnings.catch_warnings(record=True):
-            warnings.simplefilter('always', RuntimeWarning)
             for r_idx_type, c_idx_type, index_name in args:
                 testit(r_idx_type, c_idx_type, index_name)
 
@@ -1580,7 +1581,7 @@ class TestMathPythonPython(tm.TestCase):
             expr = "{0}(a)".format(fn)
             got = self.eval(expr)
             expect = getattr(np, fn)(a)
-            pd.util.testing.assert_almost_equal(got, expect)
+            tm.assert_series_equal(got, expect, check_names=False)
 
     def test_binary_functions(self):
         df = DataFrame({'a': np.random.randn(10),
@@ -1601,7 +1602,7 @@ class TestMathPythonPython(tm.TestCase):
                 parser=self.parser, inplace=True)
         got = df.e
         expect = np.arctan2(np.sin(df.a), df.b)
-        pd.util.testing.assert_almost_equal(got, expect)
+        tm.assert_series_equal(got, expect, check_names=False)
 
     def test_df_arithmetic_subexpression(self):
         df = DataFrame({'a': np.random.randn(10),
@@ -1611,7 +1612,7 @@ class TestMathPythonPython(tm.TestCase):
                 parser=self.parser, inplace=True)
         got = df.e
         expect = np.sin(df.a + df.b)
-        pd.util.testing.assert_almost_equal(got, expect)
+        tm.assert_series_equal(got, expect, check_names=False)
 
     def check_result_type(self, dtype, expect_dtype):
         df = DataFrame({'a': np.random.randn(10).astype(dtype)})
@@ -1623,13 +1624,18 @@ class TestMathPythonPython(tm.TestCase):
         expect = np.sin(df.a)
         self.assertEqual(expect.dtype, got.dtype)
         self.assertEqual(expect_dtype, got.dtype)
-        pd.util.testing.assert_almost_equal(got, expect)
+        tm.assert_series_equal(got, expect, check_names=False)
 
     def test_result_types(self):
         self.check_result_type(np.int32, np.float64)
         self.check_result_type(np.int64, np.float64)
         self.check_result_type(np.float32, np.float32)
         self.check_result_type(np.float64, np.float64)
+
+    def test_result_types2(self):
+	# xref https://github.com/pydata/pandas/issues/12293
+        tm._skip_if_windows()
+
         # Did not test complex64 because DataFrame is converting it to
         # complex128. Due to https://github.com/pydata/pandas/issues/10952
         self.check_result_type(np.complex128, np.complex128)

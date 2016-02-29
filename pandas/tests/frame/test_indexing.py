@@ -26,6 +26,7 @@ from pandas.util.testing import (assert_almost_equal,
 from pandas.core.indexing import IndexingError
 
 import pandas.util.testing as tm
+import pandas.lib as lib
 
 from pandas.tests.frame.common import TestData
 
@@ -212,9 +213,11 @@ class TestDataFrameIndexing(tm.TestCase, TestData):
         assert_frame_equal(subframe_obj, subframe)
 
         # test that Series indexers reindex
+        # we are producing a warning that since the passed boolean
+        # key is not the same as the given index, we will reindex
+        # not sure this is really necessary
         with tm.assert_produces_warning(UserWarning):
             indexer_obj = indexer_obj.reindex(self.tsframe.index[::-1])
-
             subframe_obj = self.tsframe[indexer_obj]
             assert_frame_equal(subframe_obj, subframe)
 
@@ -1309,37 +1312,25 @@ class TestDataFrameIndexing(tm.TestCase, TestData):
         df = DataFrame(np.random.randn(5, 5), index=index)
 
         # positional slicing only via iloc!
-        # stacklevel=False -> needed stacklevel depends on index type
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            result = df.iloc[1.0:5]
-
-        expected = df.reindex([2.5, 3.5, 4.5, 5.0])
-        assert_frame_equal(result, expected)
-        self.assertEqual(len(result), 4)
+        self.assertRaises(TypeError, lambda: df.iloc[1.0:5])
 
         result = df.iloc[4:5]
         expected = df.reindex([5.0])
         assert_frame_equal(result, expected)
         self.assertEqual(len(result), 1)
 
-        # GH 4892, float indexers in iloc are deprecated
-        import warnings
-        warnings.filterwarnings(action='error', category=FutureWarning)
-
         cp = df.copy()
 
         def f():
             cp.iloc[1.0:5] = 0
-        self.assertRaises(FutureWarning, f)
+        self.assertRaises(TypeError, f)
 
         def f():
             result = cp.iloc[1.0:5] == 0  # noqa
 
-        self.assertRaises(FutureWarning, f)
+        self.assertRaises(TypeError, f)
         self.assertTrue(result.values.all())
         self.assertTrue((cp.iloc[0:1] == df.iloc[0:1]).values.all())
-
-        warnings.filterwarnings(action='default', category=FutureWarning)
 
         cp = df.copy()
         cp.iloc[4:5] = 0
@@ -1555,7 +1546,7 @@ class TestDataFrameIndexing(tm.TestCase, TestData):
                         'mask_c': [False, True, False, True]})
         df['mask'] = df.lookup(df.index, 'mask_' + df['label'])
         exp_mask = alt(df, df.index, 'mask_' + df['label'])
-        assert_almost_equal(df['mask'], exp_mask)
+        tm.assert_series_equal(df['mask'], pd.Series(exp_mask, name='mask'))
         self.assertEqual(df['mask'].dtype, np.bool_)
 
         with tm.assertRaises(KeyError):
@@ -2070,7 +2061,9 @@ class TestDataFrameIndexing(tm.TestCase, TestData):
         df['E'] = 3.
 
         xs = df.xs(0)
-        assert_almost_equal(xs, [1., 'foo', 2., 'bar', 3.])
+        exp = pd.Series([1., 'foo', 2., 'bar', 3.],
+                        index=list('ABCDE'), name=0)
+        tm.assert_series_equal(xs, exp)
 
         # no columns but Index(dtype=object)
         df = DataFrame(index=['a', 'b', 'c'])
@@ -2226,7 +2219,7 @@ class TestDataFrameIndexing(tm.TestCase, TestData):
                 d = df[k].values
                 c = cond[k].reindex(df[k].index).fillna(False).values
 
-                if np.isscalar(other):
+                if lib.isscalar(other):
                     o = other
                 else:
                     if isinstance(other, np.ndarray):
@@ -2598,3 +2591,30 @@ class TestDataFrameIndexing(tm.TestCase, TestData):
         empty_df = DataFrame()
         assert_frame_equal(empty_df.tail(), empty_df)
         assert_frame_equal(empty_df.head(), empty_df)
+
+    def test_type_error_multiindex(self):
+        # See gh-12218
+        df = DataFrame(columns=['i', 'c', 'x', 'y'],
+                       data=[[0, 0, 1, 2], [1, 0, 3, 4],
+                             [0, 1, 1, 2], [1, 1, 3, 4]])
+        dg = df.pivot_table(index='i', columns='c',
+                            values=['x', 'y'])
+
+        with assertRaisesRegexp(TypeError, "is an invalid key"):
+            str(dg[:, 0])
+
+        index = Index(range(2), name='i')
+        columns = MultiIndex(levels=[['x', 'y'], [0, 1]],
+                             labels=[[0, 1], [0, 0]],
+                             names=[None, 'c'])
+        expected = DataFrame([[1, 2], [3, 4]], columns=columns, index=index)
+
+        result = dg.loc[:, (slice(None), 0)]
+        assert_frame_equal(result, expected)
+
+        name = ('x', 0)
+        index = Index(range(2), name='i')
+        expected = Series([1, 3], index=index, name=name)
+
+        result = dg['x', 0]
+        assert_series_equal(result, expected)

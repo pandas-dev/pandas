@@ -9,18 +9,26 @@ users upgrade to this version.
 
 .. warning::
 
-   pandas >= 0.18.0 will no longer support compatibility with Python version 2.6 (:issue:`7718`)
-
-.. warning::
-
-   pandas >= 0.18.0 will no longer support compatibility with Python version 3.3 (:issue:`11273`)
+   pandas >= 0.18.0 no longer supports compatibility with Python version 2.6
+   and 3.3 (:issue:`7718`, :issue:`11273`)
 
 Highlights include:
 
-- Window functions are now methods on ``.groupby`` like objects, see :ref:`here <whatsnew_0180.enhancements.moments>`.
-- ``pd.test()`` top-level nose test runner is available (:issue:`4327`)
-- Adding support for a ``RangeIndex`` as a specialized form of the ``Int64Index`` for memory savings, see :ref:`here <whatsnew_0180.enhancements.rangeindex>`.
-- API breaking ``.resample`` changes to make it more ``.groupby`` like, see :ref:`here <whatsnew_0180.breaking.resample>`.
+- Moving and expanding window functions are now methods on Series and DataFrame,
+  similar to ``.groupby``, see :ref:`here <whatsnew_0180.enhancements.moments>`.
+- Adding support for a ``RangeIndex`` as a specialized form of the ``Int64Index``
+  for memory savings, see :ref:`here <whatsnew_0180.enhancements.rangeindex>`.
+- API breaking change to the ``.resample`` method to make it more ``.groupby``
+  like, see :ref:`here <whatsnew_0180.breaking.resample>`.
+- Removal of support for positional indexing with floats, which was deprecated
+  since 0.14.0. This will now raise a ``TypeError``, see :ref:`here <whatsnew_0180.float_indexers>`.
+- The ``.to_xarray()`` function has been added for compatibility with the
+  `xarray package <http://xarray.pydata.org/en/stable/>`__, see :ref:`here <whatsnew_0180.enhancements.xarray>`.
+- The ``read_sas`` function has been enhanced to read ``sas7bdat`` files, see :ref:`here <whatsnew_0180.enhancements.sas>`.
+- Addition of the :ref:`.str.extractall() method <whatsnew_0180.enhancements.extract>`,
+  and API changes to the :ref:`.str.extract() method <whatsnew_0180.enhancements.extract>`
+  and :ref:`.str.cat() method <whatsnew_0180.enhancements.strcat>`.
+- ``pd.test()`` top-level nose test runner is available (:issue:`4327`).
 
 Check the :ref:`API Changes <whatsnew_0180.api_breaking>` and :ref:`deprecations <whatsnew_0180.deprecations>` before updating.
 
@@ -104,6 +112,29 @@ And multiple aggregations
    r.agg({'A' : ['mean','std'],
           'B' : ['mean','std']})
 
+.. _whatsnew_0180.enhancements.rename:
+
+Changes to rename
+^^^^^^^^^^^^^^^^^
+
+``Series.rename`` and ``NDFrame.rename_axis`` can now take a scalar or list-like
+argument for altering the Series or axis *name*, in addition to their old behaviors of altering labels. (:issue:`9494`, :issue:`11965`)
+
+.. ipython:: python
+
+   s = pd.Series(np.random.randn(5))
+   s.rename('newname')
+
+.. ipython:: python
+
+   df = pd.DataFrame(np.random.randn(5, 2))
+   (df.rename_axis("indexname")
+      .rename_axis("columns_name", axis="columns"))
+
+The new functionality works well in method chains. Previously these methods only accepted functions or dicts mapping a *label* to a new label.
+This continues to work as before for function or dict-like values.
+
+
 .. _whatsnew_0180.enhancements.rangeindex:
 
 Range Index
@@ -111,7 +142,7 @@ Range Index
 
 A ``RangeIndex`` has been added to the ``Int64Index`` sub-classes to support a memory saving alternative for common use cases. This has a similar implementation to the python ``range`` object (``xrange`` in python 2), in that it only stores the start, stop, and step values for the index. It will transparently interact with the user API, converting to ``Int64Index`` if needed.
 
-This will now be the default constructed index for ``NDFrame`` objects, rather than previous an ``Int64Index``. (:issue:`939`, :issue:`12070`, :issue:`12071`, :issue:`12109`)
+This will now be the default constructed index for ``NDFrame`` objects, rather than previous an ``Int64Index``. (:issue:`939`, :issue:`12070`, :issue:`12071`, :issue:`12109`, :issue:`12888`)
 
 Previous Behavior:
 
@@ -205,10 +236,10 @@ In summary, ``extract(expand=True)`` always returns a ``DataFrame``
 with a row for every subject string, and a column for every capture
 group.
 
+.. _whatsnew_0180.enhancements.extractall:
+
 Addition of str.extractall
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-.. _whatsnew_0180.enhancements.extractall:
 
 The :ref:`.str.extractall <text.extractall>` method was added
 (:issue:`11386`).  Unlike ``extract`` (which returns only the first
@@ -225,6 +256,26 @@ the ``extractall`` method returns all matches.
 .. ipython:: python
 
    s.str.extractall("(?P<letter>[ab])(?P<digit>\d)")
+
+.. _whatsnew_0180.enhancements.strcat:
+
+Changes to str.cat
+^^^^^^^^^^^^^^^^^^
+
+The method ``.str.cat()`` concatenates the members of a ``Series``. Before, if ``NaN`` values were present in the Series, calling ``.str.cat()`` on it would return ``NaN``, unlike the rest of the ``Series.str.*`` API. This behavior has been amended to ignore ``NaN`` values by default. (:issue:`11435`).
+
+A new, friendlier ``ValueError`` is added to protect against the mistake of supplying the ``sep`` as an arg, rather than as a kwarg. (:issue:`11334`).
+
+.. ipython:: python
+
+    Series(['a','b',np.nan,'c']).str.cat(sep=' ')
+    Series(['a','b',np.nan,'c']).str.cat(sep=' ', na_rep='?')
+
+.. code-block:: python
+
+    In [2]: Series(['a','b',np.nan,'c']).str.cat(' ')
+    ValueError: Did you mean to supply a `sep` keyword?
+
 
 .. _whatsnew_0180.enhancements.rounding:
 
@@ -274,15 +325,11 @@ In addition, ``.round()``, ``.floor()`` and ``.ceil()`` will be available thru t
    s
    s.dt.round('D')
 
-
 Formatting of integer in FloatIndex
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Integers in ``FloatIndex``, e.g. 1., are now formatted with a decimal point
-and a ``0`` digit, e.g. ``1.0`` (:issue:`11713`)
-
-This change affects the display in jupyter, but also the output of IO methods
-like ``.to_csv`` or ``.to_html``
+Integers in ``FloatIndex``, e.g. 1., are now formatted with a decimal point and a ``0`` digit, e.g. ``1.0`` (:issue:`11713`)
+This change not only affects the display in a jupyter notebook, but also the output of IO methods like ``.to_csv`` or ``.to_html``
 
 Previous Behavior:
 
@@ -315,6 +362,130 @@ New Behavior:
    s.index
    print(s.to_csv(path=None))
 
+Changes to dtype assignment behaviors
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+When a DataFrame's slice is updated with a new slice of the same dtype, the dtype of the DataFrame will now remain the same. (:issue:`10503`)
+
+Previous Behavior:
+
+.. code-block:: python
+
+   In [5]: df = pd.DataFrame({'a': [0, 1, 1],
+                              'b': pd.Series([100, 200, 300], dtype='uint32')})
+
+   In [7]: df.dtypes
+   Out[7]:
+   a     int64
+   b    uint32
+   dtype: object
+
+   In [8]: ix = df['a'] == 1
+
+   In [9]: df.loc[ix, 'b'] = df.loc[ix, 'b']
+
+   In [11]: df.dtypes
+   Out[11]:
+   a    int64
+   b    int64
+   dtype: object
+
+New Behavior:
+
+.. ipython:: python
+
+   df = pd.DataFrame({'a': [0, 1, 1],
+                      'b': pd.Series([100, 200, 300], dtype='uint32')})
+   df.dtypes
+   ix = df['a'] == 1
+   df.loc[ix, 'b'] = df.loc[ix, 'b']
+   df.dtypes
+
+When a DataFrame's integer slice is partially updated with a new slice of floats that could potentially be downcasted to integer without losing precision, the dtype of the slice will be set to float instead of integer.
+
+Previous Behavior:
+
+.. code-block:: python
+
+   In [4]: df = pd.DataFrame(np.array(range(1,10)).reshape(3,3),
+                             columns=list('abc'),
+                             index=[[4,4,8], [8,10,12]])
+
+   In [5]: df
+   Out[5]:
+         a  b  c
+   4 8   1  2  3
+     10  4  5  6
+   8 12  7  8  9
+
+   In [7]: df.ix[4, 'c'] = np.array([0., 1.])
+
+   In [8]: df
+   Out[8]:
+         a  b  c
+   4 8   1  2  0
+     10  4  5  1
+   8 12  7  8  9
+
+New Behavior:
+
+.. ipython:: python
+
+   df = pd.DataFrame(np.array(range(1,10)).reshape(3,3),
+                     columns=list('abc'),
+                     index=[[4,4,8], [8,10,12]])
+   df
+   df.ix[4, 'c'] = np.array([0., 1.])
+   df
+
+.. _whatsnew_0180.enhancements.xarray:
+
+to_xarray
+^^^^^^^^^
+
+In a future version of pandas, we will be deprecating ``Panel`` and other > 2 ndim objects. In order to provide for continuity,
+all ``NDFrame`` objects have gained the ``.to_xarray()`` method in order to convert to ``xarray`` objects, which has
+a pandas-like interface for > 2 ndim.
+
+See the `xarray full-documentation here <http://xarray.pydata.org/en/stable/>`__.
+
+.. code-block:: python
+
+   In [1]: p = Panel(np.arange(2*3*4).reshape(2,3,4))
+
+   In [2]: p.to_xarray()
+   Out[2]:
+   <xarray.DataArray (items: 2, major_axis: 3, minor_axis: 4)>
+   array([[[ 0,  1,  2,  3],
+           [ 4,  5,  6,  7],
+           [ 8,  9, 10, 11]],
+
+          [[12, 13, 14, 15],
+           [16, 17, 18, 19],
+           [20, 21, 22, 23]]])
+   Coordinates:
+     * items       (items) int64 0 1
+     * major_axis  (major_axis) int64 0 1 2
+     * minor_axis  (minor_axis) int64 0 1 2 3
+
+Latex Representation
+^^^^^^^^^^^^^^^^^^^^
+
+``DataFrame`` has gained a ``._repr_latex_()`` method in order to allow for conversion to latex in a ipython/jupyter notebook using nbconvert. (:issue:`11778`)
+
+Note that this must be activated by setting the option ``display.latex.repr`` to ``True`` (issue:`12182`)
+
+For example, if you have a jupyter notebook you plan to convert to latex using nbconvert, place the statement ``pd.set_option('display.latex.repr', True)`` in the first cell to have the contained DataFrame output also stored as latex.
+
+Options ``display.latex.escape`` and ``display.latex.longtable`` have also been added to the configuration and are used automatically by the ``to_latex``
+method. See the :ref:`options documentation<options>` for more info.
+
+.. _whatsnew_0180.enhancements.sas:
+
+read_sas changes
+^^^^^^^^^^^^^^^^
+
+``read_sas`` has gained the ability to read SAS7BDAT files, including compressed files.  The files can be read in entirety, or incrementally.  For full details see :ref:`here <io.sas>`. (:issue:`4052`)
 
 .. _whatsnew_0180.enhancements.other:
 
@@ -327,14 +498,17 @@ Other enhancements
 - add support for ``AWS_S3_HOST`` env variable when reading from s3 (:issue:`12198`)
 - A simple version of ``Panel.round()`` is now implemented (:issue:`11763`)
 - For Python 3.x, ``round(DataFrame)``, ``round(Series)``, ``round(Panel)`` will work (:issue:`11763`)
-- ``DataFrame`` has gained a ``_repr_latex_`` method in order to allow for automatic conversion to latex in a ipython/jupyter notebook using nbconvert. Options ``display.latex.escape`` and ``display.latex.longtable`` have been added to the configuration and are used automatically by the ``to_latex`` method. (:issue:`11778`)
 - ``sys.getsizeof(obj)`` returns the memory usage of a pandas object, including the
   values it contains (:issue:`11597`)
 - ``Series`` gained an ``is_unique`` attribute (:issue:`11946`)
 - ``DataFrame.quantile`` and ``Series.quantile`` now accept ``interpolation`` keyword (:issue:`10174`).
+- Added ``DataFrame.style.format`` for more flexible formatting of cell values (:issue:`11692`)
 - ``DataFrame.select_dtypes`` now allows the ``np.float16`` typecode (:issue:`11990`)
 - ``pivot_table()`` now accepts most iterables for the ``values`` parameter (:issue:`12017`)
 - Added Google ``BigQuery`` service account authentication support, which enables authentication on remote servers. (:issue:`11881`). For further details see :ref:`here <io.bigquery_authentication>`
+- ``HDFStore`` is now iterable: ``for k in store`` is equivalent to ``for k in store.keys()`` (:issue:`12221`).
+- Add missing methods/fields to ``.dt`` for ``Period`` (:issue:`8848`)
+- The entire codebase has been ``PEP``-ified (:issue:`12096`)
 
 .. _whatsnew_0180.api_breaking:
 
@@ -346,6 +520,10 @@ Backwards incompatible API changes
 - ``DataFrame.round()`` leaves non-numeric columns unchanged in its return, rather than raises. (:issue:`11885`)
 - ``DataFrame.head(0)`` and ``DataFrame.tail(0)`` return empty frames, rather than ``self``.  (:issue:`11937`)
 - ``Series.head(0)`` and ``Series.tail(0)`` return empty series, rather than ``self``.  (:issue:`11937`)
+- ``to_msgpack`` and ``read_msgpack`` encoding now defaults to ``'utf-8'``. (:issue:`12170`)
+- the order of keyword arguments to text file parsing functions (``.read_csv()``, ``.read_table()``, ``.read_fwf()``) changed to group related arguments. (:issue:`11555`)
+- ``NaTType.isoformat`` now returns the string ``'NaT`` to allow the result to
+  be passed to the constructor of ``Timestamp``. (:issue:`12300`)
 
 NaT and Timedelta operations
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -415,6 +593,38 @@ Subtraction by ``Timedelta`` in a ``Series`` by a ``Timestamp`` works (:issue:`1
    ser
    pd.Timestamp('2012-01-01') - ser
 
+
+``NaT.isoformat()`` now returns ``'NaT'``. This change allows allows
+``pd.Timestamp`` to rehydrate any timestamp like object from its isoformat
+(:issue:`12300`).
+
+Changes to msgpack
+^^^^^^^^^^^^^^^^^^
+
+Forward incompatible changes in ``msgpack`` writing format were made over 0.17.0 and 0.18.0; older versions of pandas cannot read files packed by newer versions (:issue:`12129`, `10527`)
+
+Bug in ``to_msgpack`` and ``read_msgpack`` introduced in 0.17.0 and fixed in 0.18.0, caused files packed in Python 2 unreadable by Python 3 (:issue:`12142`)
+
+.. warning::
+
+   As a result of a number of issues:
+
+   +----------------------+------------------------+
+   | Packed with          | Can be unpacked with   |
+   +======================+========================+
+   | pre-0.17 / Python 2  | any                    |
+   +----------------------+------------------------+
+   | pre-0.17 / Python 3  | any                    |
+   +----------------------+------------------------+
+   | 0.17 / Python 2      | - 0.17 / Python 2      |
+   |                      | - >=0.18 / any Python  |
+   +----------------------+------------------------+
+   | 0.17 / Python 3      | >=0.18 / any Python    |
+   +----------------------+------------------------+
+   | 0.18                 | >= 0.18                |
+   +======================+========================+
+
+   0.18.0 is backward-compatible for reading files packed by older versions, except for files packed with 0.17 in Python 2, in which case only they can only be unpacked in Python 2.
 
 Signature change for .rank
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -490,7 +700,7 @@ other anchored offsets like ``MonthBegin`` and ``YearBegin``.
 Resample API
 ^^^^^^^^^^^^
 
-Like the change in the window functions API :ref:`above <whatsnew_0180.enhancements.moments>`, ``.resample(...)`` is changing to have a more groupby-like API. (:issue:`11732`, :issue:`12702`).
+Like the change in the window functions API :ref:`above <whatsnew_0180.enhancements.moments>`, ``.resample(...)`` is changing to have a more groupby-like API. (:issue:`11732`, :issue:`12702`, :issue:`12202`, :issue:`12332`, :issue:`12334`, :issue:`12348`).
 
 .. ipython:: python
 
@@ -613,8 +823,8 @@ performed with the ``Resampler`` objects with :meth:`~Resampler.backfill`,
 
 .. ipython:: python
 
-   s = Series(np.arange(5,dtype='int64'),
-              index=date_range('2010-01-01', periods=5, freq='Q'))
+   s = pd.Series(np.arange(5,dtype='int64'),
+                 index=date_range('2010-01-01', periods=5, freq='Q'))
    s
 
 Previously
@@ -708,7 +918,6 @@ assignments are valid for multi-line expressions.
 
 Other API Changes
 ^^^^^^^^^^^^^^^^^
-
 - ``DataFrame.between_time`` and ``Series.between_time`` now only parse a fixed set of time strings. Parsing of date strings is no longer supported and raises a ``ValueError``. (:issue:`11818`)
 
   .. ipython:: python
@@ -724,14 +933,15 @@ Other API Changes
      ValueError: Cannot convert arg ['20150101 07:00:00'] to a time.
 
 - ``.memory_usage()`` now includes values in the index, as does memory_usage in ``.info`` (:issue:`11597`)
-
 - ``DataFrame.to_latex()`` now supports non-ascii encodings (eg utf-8) in Python 2 with the parameter ``encoding`` (:issue:`7061`)
-
 - ``pandas.merge()`` and ``DataFrame.merge()`` will show a specific error message when trying to merge with an object that is not of type ``DataFrame`` or a subclass (:issue:`12081`)
-
 - ``DataFrame.unstack`` and ``Series.unstack`` now take ``fill_value`` keyword to allow direct replacement of missing values when an unstack results in missing values in the resulting ``DataFrame``. As an added benefit, specifying ``fill_value`` will preserve the data type of the original stacked data.  (:issue:`9746`)
-
 - As part of the new API for :ref:`window functions <whatsnew_0180.enhancements.moments>` and :ref:`resampling <whatsnew_0180.breaking.resample>`, aggregation functions have been clarified, raising more informative error messages on invalid aggregations. (:issue:`9052`). A full set of examples are presented in :ref:`groupby <groupby.aggregation>`.
+- Statistical functions for ``NDFrame`` objects will now raise if non-numpy-compatible arguments are passed in for ``**kwargs`` (:issue:`12301`)
+- ``.to_latex`` and ``.to_html`` gain a ``decimal`` parameter like ``.to_csv``; the default is ``'.'`` (:issue:`12031`)
+- More helpful error message when constructing a ``DataFrame`` with empty data but with indices (:issue:`8020`)
+- ``.describe()`` will now properly handle bool dtype as a categorical (:issue:`6625`)
+- More helpful error message invalid ``.transform`` with user defined input (:issue:`10165`)
 
 .. _whatsnew_0180.deprecations:
 
@@ -745,7 +955,7 @@ Deprecations
 
   .. code-block:: python
 
-     In [1]: s = Series(range(3))
+     In [1]: s = pd.Series(range(3))
 
      In [2]: pd.rolling_mean(s,window=2,min_periods=1)
              FutureWarning: pd.rolling_mean is deprecated for Series and
@@ -776,6 +986,87 @@ Deprecations
 - ``pandas.stats.ols``, ``pandas.stats.plm`` and ``pandas.stats.var`` routines are deprecated and will be removed in a future version (:issue:`6077`)
 - show a ``FutureWarning`` rather than a ``DeprecationWarning`` on using long-time deprecated syntax in ``HDFStore.select``, where the ``where`` clause is not a string-like (:issue:`12027`)
 
+- The ``pandas.options.display.mpl_style`` configuration has been deprecated
+  and will be removed in a future version of pandas. This functionality
+  is better handled by matplotlib's `style sheets`_ (:issue:`11783`).
+
+
+.. _style sheets: http://matplotlib.org/users/style_sheets.html
+
+.. _whatsnew_0180.float_indexers:
+
+Removal of deprecated float indexers
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+In :issue:`4892` indexing with floating point numbers on a non-``Float64Index`` was deprecated (in version 0.14.0).
+In 0.18.0, this deprecation warning is removed and these will now raise a ``TypeError``. (:issue:`12165`)
+
+.. ipython:: python
+
+   s = pd.Series([1,2,3])
+   s
+   s2 = pd.Series([1, 2, 3], index=list('abc'))
+   s2
+
+Previous Behavior:
+
+.. code-block:: python
+
+   In [2]: s[1.0]
+   FutureWarning: scalar indexers for index type Int64Index should be integers and not floating point
+   Out[2]: 2
+
+   In [3]: s.iloc[1.0]
+   FutureWarning: scalar indexers for index type Int64Index should be integers and not floating point
+   Out[3]: 2
+
+   In [4]: s.loc[1.0]
+   FutureWarning: scalar indexers for index type Int64Index should be integers and not floating point
+   Out[4]: 2
+
+   # .ix would coerce 1.0 to the positional 1, and index
+   In [5]: s2.ix[1.0] = 10
+   FutureWarning: scalar indexers for index type Index should be integers and not floating point
+
+   In [6]: s2
+   Out[6]:
+   a     1
+   b    10
+   c     3
+   dtype: int64
+
+New Behavior:
+
+.. code-block:: python
+
+   In [2]: s[1.0]
+   TypeError: cannot do label indexing on <class 'pandas.indexes.range.RangeIndex'> with these indexers [1.0] of <type 'float'>
+
+   In [3]: s.iloc[1.0]
+   TypeError: cannot do label indexing on <class 'pandas.indexes.range.RangeIndex'> with these indexers [1.0] of <type 'float'>
+
+   In [4]: s.loc[1.0]
+   TypeError: cannot do label indexing on <class 'pandas.indexes.range.RangeIndex'> with these indexers [1.0] of <type 'float'>
+
+   # .ix will now cause this to be a label lookup and coerce to and Index
+   In [5]: s2.ix[1.0] = 10
+
+   In [6]: s2
+   Out[3]:
+   a       1
+   b       2
+   c       3
+   1.0    10
+   dtype: int64
+
+Float indexing on a ``Float64Index`` is unchanged.
+
+.. ipython:: python
+
+   s = pd.Series([1,2,3],index=np.arange(3.))
+   s[1.0]
+   s[1.0:2.5]
+
 .. _whatsnew_0180.prior_deprecations:
 
 Removal of prior version deprecations/changes
@@ -799,7 +1090,7 @@ Performance Improvements
 - Improved huge ``DatetimeIndex``, ``PeriodIndex`` and ``TimedeltaIndex``'s ops performance including ``NaT`` (:issue:`10277`)
 - Improved performance of ``pandas.concat`` (:issue:`11958`)
 - Improved performance of ``StataReader`` (:issue:`11591`)
-- Improved performance in construction of ``Categoricals`` with Series of datetimes containing ``NaT`` (:issue:`12077`)
+- Improved performance in construction of ``Categoricals`` with ``Series`` of datetimes containing ``NaT`` (:issue:`12077`)
 
 
 - Improved performance of ISO 8601 date parsing for dates without separators (:issue:`11899`), leading zeros (:issue:`11871`) and with whitespace preceding the time zone (:issue:`9714`)
@@ -815,7 +1106,7 @@ Bug Fixes
 - Bug in ``GroupBy.size`` when data-frame is empty. (:issue:`11699`)
 - Bug in ``Period.end_time`` when a multiple of time period is requested (:issue:`11738`)
 - Regression in ``.clip`` with tz-aware datetimes (:issue:`11838`)
-- Bug in ``date_range`` when the boundaries fell on the frequency (:issue:`11804`)
+- Bug in ``date_range`` when the boundaries fell on the frequency (:issue:`11804`, :issue:`12409`)
 - Bug in consistency of passing nested dicts to ``.groupby(...).agg(...)`` (:issue:`9052`)
 - Accept unicode in ``Timedelta`` constructor (:issue:`11995`)
 - Bug in value label reading for ``StataReader`` when reading incrementally (:issue:`12014`)
@@ -825,16 +1116,21 @@ Bug Fixes
 - Bug in not treating ``NaT`` as a missing value in datetimelikes when factorizing & with ``Categoricals`` (:issue:`12077`)
 - Bug in getitem when the values of a ``Series`` were tz-aware (:issue:`12089`)
 - Bug in ``Series.str.get_dummies`` when one of the variables was 'name' (:issue:`12180`)
-- Bug in ``pd.concat`` while concatenating tz-aware NaT series. (:issue:`11693`, :issue:`11755`)
+- Bug in ``pd.concat`` while concatenating tz-aware NaT series. (:issue:`11693`, :issue:`11755`, :issue:`12217`)
 - Bug in ``pd.read_stata`` with version <= 108 files (:issue:`12232`)
+- Bug in ``Series.resample`` using a frequency of ``Nano`` when the index is a ``DatetimeIndex`` and contains non-zero nanosecond parts (:issue:`12037`)
+- Bug in resampling with ``.nunique`` and a sparse index (:issue:`12352`)
+- Removed some compiler warnings (:issue:`12471`)
 
+- Bug in ``NaT`` subtraction from ``Timestamp`` or ``DatetimeIndex`` with timezones (:issue:`11718`)
+- Bug in subtraction of ``Series`` of a single tz-aware ``Timestamp`` (:issue:`12290`)
 
 - Bug in ``Timedelta.round`` with negative values (:issue:`11690`)
 - Bug in ``.loc`` against ``CategoricalIndex`` may result in normal ``Index`` (:issue:`11586`)
 - Bug in ``DataFrame.info`` when duplicated column names exist (:issue:`11761`)
 - Bug in ``.copy`` of datetime tz-aware objects (:issue:`11794`)
 - Bug in ``Series.apply`` and ``Series.map`` where ``timedelta64`` was not boxed (:issue:`11349`)
-
+- Bug in ``DataFrame.set_index()`` with tz-aware ``Series`` (:issue:`12358`)
 
 
 
@@ -844,6 +1140,7 @@ Bug Fixes
 - Bug in ``DataFrame.query`` containing an assignment (:issue:`8664`)
 
 - Bug in ``from_msgpack`` where ``__contains__()`` fails for columns of the unpacked ``DataFrame``, if the ``DataFrame`` has object columns. (:issue:`11880`)
+- Bug in ``.resample`` on categorical data with ``TimedeltaIndex`` (:issue:`12169`)
 
 
 - Bug in timezone info lost when broadcasting scalar datetime to ``DataFrame`` (:issue:`11682`)
@@ -855,6 +1152,8 @@ Bug Fixes
 - Bug in ``DataFrame.duplicated`` and ``drop_duplicates`` causing spurious matches when setting ``keep=False`` (:issue:`11864`)
 - Bug in ``.loc`` result with duplicated key may have ``Index`` with incorrect dtype (:issue:`11497`)
 - Bug in ``pd.rolling_median`` where memory allocation failed even with sufficient memory (:issue:`11696`)
+- Bug in ``DataFrame.style`` with spurious zeros (:issue:`12134`)
+- Bug in ``DataFrame.style`` with integer columns not starting at 0 (:issue:`12125`)
 - Bug in ``.style.bar`` may not rendered properly using specific browser (:issue:`11678`)
 - Bug in rich comparison of ``Timedelta`` with a ``numpy.array`` of ``Timedelta`` that caused an infinite recursion (:issue:`11835`)
 - Bug in ``DataFrame.round`` dropping column index name (:issue:`11986`)
@@ -871,8 +1170,10 @@ Bug Fixes
 
 
 - Bug in ``.plot`` potentially modifying the ``colors`` input when the number of columns didn't match the number of series provided (:issue:`12039`).
-
+- Bug in ``Series.plot`` failing when index has a ``CustomBusinessDay`` frequency (:issue:`7222`).
+- Bug in ``.to_sql`` for ``datetime.time`` values with sqlite fallback (:issue:`8341`)
 - Bug in ``read_excel`` failing to read data with one column when ``squeeze=True`` (:issue:`12157`)
+- Bug in ``read_excel`` failing to read one empty column (:issue:`12292`, :issue:`9002`)
 - Bug in ``.groupby`` where a ``KeyError`` was not raised for a wrong column if there was only one row in the dataframe (:issue:`11741`)
 - Bug in ``.read_csv`` with dtype specified on empty data producing an error (:issue:`12048`)
 - Bug in ``.read_csv`` where strings like ``'2E'`` are treated as valid floats (:issue:`12237`)
@@ -884,7 +1185,13 @@ Bug Fixes
 
 - Bug in ``.loc`` setitem indexer preventing the use of a TZ-aware DatetimeIndex (:issue:`12050`)
 - Bug in ``.style`` indexes and multi-indexes not appearing (:issue:`11655`)
-
+- Bug in ``to_msgpack`` and ``from_msgpack`` which did not correctly serialize or deserialize ``NaT`` (:issue:`12307`).
 - Bug in ``.skew`` and ``.kurt`` due to roundoff error for highly similar values (:issue:`11974`)
 
 - Bug in ``buffer_rd_bytes`` src->buffer could be freed more than once if reading failed, causing a segfault (:issue:`12098`)
+
+- Bug in ``crosstab`` where arguments with non-overlapping indexes would return a ``KeyError`` (:issue:`10291`)
+
+- Bug in ``DataFrame.apply`` in which reduction was not being prevented for cases in which ``dtype`` was not a numpy dtype (:issue:`12244`)
+- Bug when initializing categorical series with a scalar value. (:issue:`12336`)
+- Bug when specifying a UTC ``DatetimeIndex`` by setting ``utc=True`` in ``.to_datetime`` (:issue:`11934`)

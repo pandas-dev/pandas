@@ -1,12 +1,14 @@
 package:
     name: pandas
-    version: {{ environ.get('GIT_DESCRIBE_TAG', '').replace('.dev', 'dev') }}
+    version: {{ GIT_DESCRIBE_TAG }}
 
 build:
-    number: {{ environ.get('GIT_DESCRIBE_NUMBER', 0) }}
+    number: {{ GIT_DESCRIBE_NUMBER|int }}
+    {% if GIT_DESCRIBE_NUMBER|int == 0 %}string: np{{ CONDA_NPY }}py{{ CONDA_PY }}_0
+    {% else %}string: np{{ CONDA_NPY }}py{{ CONDA_PY }}_{{ GIT_BUILD_STR }}{% endif %}
 
 source:
-    path: ../
+    git_url: ../
 
 requirements:
   build:

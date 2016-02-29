@@ -411,7 +411,6 @@ class DataFrame(NDFrame):
         values = _prep_ndarray(values, copy=copy)
 
         if dtype is not None:
-
             if values.dtype != dtype:
                 try:
                     values = values.astype(dtype)
@@ -574,7 +573,10 @@ class DataFrame(NDFrame):
         Returns a LaTeX representation for a particular Dataframe.
         Mainly for use with nbconvert (jupyter notebook conversion to pdf).
         """
-        return self.to_latex()
+        if get_option('display.latex.repr'):
+            return self.to_latex()
+        else:
+            return None
 
     @property
     def style(self):
@@ -1494,7 +1496,7 @@ class DataFrame(NDFrame):
                 float_format=None, sparsify=None, index_names=True,
                 justify=None, bold_rows=True, classes=None, escape=True,
                 max_rows=None, max_cols=None, show_dimensions=False,
-                notebook=False):
+                notebook=False, decimal='.'):
         """
         Render a DataFrame as an HTML table.
 
@@ -1512,7 +1514,10 @@ class DataFrame(NDFrame):
         max_cols : int, optional
             Maximum number of columns to show before truncating. If None, show
             all.
+        decimal : string, default '.'
+            Character recognized as decimal separator, e.g. ',' in Europe
 
+            .. versionadded:: 0.18.0
         """
 
         if colSpace is not None:  # pragma: no cover
@@ -1530,7 +1535,8 @@ class DataFrame(NDFrame):
                                            bold_rows=bold_rows, escape=escape,
                                            max_rows=max_rows,
                                            max_cols=max_cols,
-                                           show_dimensions=show_dimensions)
+                                           show_dimensions=show_dimensions,
+                                           decimal=decimal)
         # TODO: a generic formatter wld b in DataFrameFormatter
         formatter.to_html(classes=classes, notebook=notebook)
 
@@ -1542,7 +1548,7 @@ class DataFrame(NDFrame):
                  header=True, index=True, na_rep='NaN', formatters=None,
                  float_format=None, sparsify=None, index_names=True,
                  bold_rows=True, column_format=None, longtable=None,
-                 escape=None, encoding=None):
+                 escape=None, encoding=None, decimal='.'):
         """
         Render a DataFrame to a tabular environment table. You can splice
         this into a LaTeX document. Requires \\usepackage{booktabs}.
@@ -1565,6 +1571,11 @@ class DataFrame(NDFrame):
             characters in column names.
         encoding : str, default None
             Default encoding is ascii in Python 2 and utf-8 in Python 3
+        decimal : string, default '.'
+            Character recognized as decimal separator, e.g. ',' in Europe
+
+            .. versionadded:: 0.18.0
+
         """
 
         if colSpace is not None:  # pragma: no cover
@@ -1585,7 +1596,7 @@ class DataFrame(NDFrame):
                                            bold_rows=bold_rows,
                                            sparsify=sparsify,
                                            index_names=index_names,
-                                           escape=escape)
+                                           escape=escape, decimal=decimal)
         formatter.to_latex(column_format=column_format, longtable=longtable,
                            encoding=encoding)
 
@@ -2807,7 +2818,7 @@ class DataFrame(NDFrame):
                 level = col.get_level_values(col.nlevels - 1)
                 names.extend(col.names)
             elif isinstance(col, Series):
-                level = col.values
+                level = col._values
                 names.append(col.name)
             elif isinstance(col, Index):
                 level = col
@@ -4069,22 +4080,24 @@ class DataFrame(NDFrame):
         # this only matters if the reduction in values is of different dtype
         # e.g. if we want to apply to a SparseFrame, then can't directly reduce
         if reduce:
-
             values = self.values
 
-            # Create a dummy Series from an empty array
-            index = self._get_axis(axis)
-            empty_arr = np.empty(len(index), dtype=values.dtype)
-            dummy = Series(empty_arr, index=self._get_axis(axis),
-                           dtype=values.dtype)
+            # we cannot reduce using non-numpy dtypes,
+            # as demonstrated in gh-12244
+            if not is_internal_type(values):
+                # Create a dummy Series from an empty array
+                index = self._get_axis(axis)
+                empty_arr = np.empty(len(index), dtype=values.dtype)
+                dummy = Series(empty_arr, index=self._get_axis(axis),
+                               dtype=values.dtype)
 
-            try:
-                labels = self._get_agg_axis(axis)
-                result = lib.reduce(values, func, axis=axis, dummy=dummy,
-                                    labels=labels)
-                return Series(result, index=labels)
-            except Exception:
-                pass
+                try:
+                    labels = self._get_agg_axis(axis)
+                    result = lib.reduce(values, func, axis=axis, dummy=dummy,
+                                        labels=labels)
+                    return Series(result, index=labels)
+                except Exception:
+                    pass
 
         dtype = object if self._is_mixed_type else None
         if axis == 0:

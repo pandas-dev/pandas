@@ -18,7 +18,7 @@ from pandas.util.testing import (ensure_clean, assert_index_equal,
 from pandas.tests.test_panel import assert_panel_equal
 
 import pandas
-from pandas import Timestamp, tslib
+from pandas import Timestamp, NaT, tslib
 
 nan = np.nan
 
@@ -225,6 +225,10 @@ class TestBasic(TestPackers):
             i_rec = self.encode_decode(i)
             self.assertEqual(i, i_rec)
 
+    def test_nat(self):
+        nat_rec = self.encode_decode(NaT)
+        self.assertIs(NaT, nat_rec)
+
     def test_datetimes(self):
 
         # fails under 2.6/win32 (np.datetime64 seems broken)
@@ -299,11 +303,8 @@ class TestIndex(TestPackers):
     def test_unicode(self):
         i = tm.makeUnicodeIndex(100)
 
-        # this currently fails
-        self.assertRaises(UnicodeEncodeError, self.encode_decode, i)
-
-        # i_rec = self.encode_decode(i)
-        # self.assertTrue(i.equals(i_rec))
+        i_rec = self.encode_decode(i)
+        self.assertTrue(i.equals(i_rec))
 
 
 class TestSeries(TestPackers):
@@ -330,11 +331,16 @@ class TestSeries(TestPackers):
             'C': ['foo1', 'foo2', 'foo3', 'foo4', 'foo5'],
             'D': date_range('1/1/2009', periods=5),
             'E': [0., 1, Timestamp('20100101'), 'foo', 2.],
+            'F': [Timestamp('20130102', tz='US/Eastern')] * 2 +
+                 [Timestamp('20130603', tz='CET')] * 3,
+            'G': [Timestamp('20130102', tz='US/Eastern')] * 5
         }
 
         self.d['float'] = Series(data['A'])
         self.d['int'] = Series(data['B'])
         self.d['mixed'] = Series(data['E'])
+        self.d['dt_tz_mixed'] = Series(data['F'])
+        self.d['dt_tz'] = Series(data['G'])
 
     def test_basic(self):
 
@@ -356,13 +362,14 @@ class TestNDFrame(TestPackers):
             'C': ['foo1', 'foo2', 'foo3', 'foo4', 'foo5'],
             'D': date_range('1/1/2009', periods=5),
             'E': [0., 1, Timestamp('20100101'), 'foo', 2.],
+            'F': [Timestamp('20130102', tz='US/Eastern')] * 5,
+            'G': [Timestamp('20130603', tz='CET')] * 5
         }
 
         self.frame = {
             'float': DataFrame(dict(A=data['A'], B=Series(data['A']) + 1)),
             'int': DataFrame(dict(A=data['B'], B=Series(data['B']) + 1)),
-            'mixed': DataFrame(dict([(k, data[k])
-                                     for k in ['A', 'B', 'C', 'D']]))}
+            'mixed': DataFrame(data)}
 
         self.panel = {
             'float': Panel(dict(ItemA=self.frame['float'],
@@ -615,6 +622,14 @@ class TestEncoding(TestPackers):
                 result = self.encode_decode(frame, encoding=encoding)
                 assert_frame_equal(result, frame)
 
+    def test_default_encoding(self):
+        for frame in compat.itervalues(self.frame):
+            result = frame.to_msgpack()
+            expected = frame.to_msgpack(encoding='utf8')
+            self.assertEqual(result, expected)
+            result = self.encode_decode(frame)
+            assert_frame_equal(result, frame)
+
 
 class TestMsgpack():
     """
@@ -652,7 +667,11 @@ TestPackers
                     typ], '"{0}" not found in data["{1}"]'.format(kind, typ)
 
     def compare(self, vf, version):
-        data = read_msgpack(vf)
+        # GH12277 encoding default used to be latin-1, now utf-8
+        if LooseVersion(version) < '0.18.0':
+            data = read_msgpack(vf, encoding='latin-1')
+        else:
+            data = read_msgpack(vf)
         self.check_min_structure(data)
         for typ, dv in data.items():
             assert typ in self.all_data, ('unpacked data contains '
@@ -700,8 +719,17 @@ TestPackers
         pth = tm.get_data_path('legacy_msgpack/{0}'.format(str(version)))
         n = 0
         for f in os.listdir(pth):
+            # GH12142 0.17 files packed in P2 can't be read in P3
+            if (compat.PY3 and
+                    version.startswith('0.17.') and
+                    f.split('.')[-4][-1] == '2'):
+                continue
             vf = os.path.join(pth, f)
-            self.compare(vf, version)
+            try:
+                self.compare(vf, version)
+            except ImportError:
+                # blosc not installed
+                continue
             n += 1
         assert n > 0, 'Msgpack files are not tested'
 

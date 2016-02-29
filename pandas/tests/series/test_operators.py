@@ -139,13 +139,15 @@ class TestSeriesOperators(TestData, tm.TestCase):
         assert_series_equal(result, expected)
 
     def test_operators(self):
-        def _check_op(series, other, op, pos_only=False):
+        def _check_op(series, other, op, pos_only=False,
+                      check_dtype=True):
             left = np.abs(series) if pos_only else series
             right = np.abs(other) if pos_only else other
 
             cython_or_numpy = op(left, right)
             python = left.combine(right, op)
-            tm.assert_almost_equal(cython_or_numpy, python)
+            tm.assert_series_equal(cython_or_numpy, python,
+                                   check_dtype=check_dtype)
 
         def check(series, other):
             simple_ops = ['add', 'sub', 'mul', 'truediv', 'floordiv', 'mod']
@@ -169,15 +171,15 @@ class TestSeriesOperators(TestData, tm.TestCase):
         check(self.ts, self.ts[::2])
         check(self.ts, 5)
 
-        def check_comparators(series, other):
-            _check_op(series, other, operator.gt)
-            _check_op(series, other, operator.ge)
-            _check_op(series, other, operator.eq)
-            _check_op(series, other, operator.lt)
-            _check_op(series, other, operator.le)
+        def check_comparators(series, other, check_dtype=True):
+            _check_op(series, other, operator.gt, check_dtype=check_dtype)
+            _check_op(series, other, operator.ge, check_dtype=check_dtype)
+            _check_op(series, other, operator.eq, check_dtype=check_dtype)
+            _check_op(series, other, operator.lt, check_dtype=check_dtype)
+            _check_op(series, other, operator.le, check_dtype=check_dtype)
 
         check_comparators(self.ts, 5)
-        check_comparators(self.ts, self.ts + 1)
+        check_comparators(self.ts, self.ts + 1, check_dtype=False)
 
     def test_operators_empty_int_corner(self):
         s1 = Series([], [], dtype=np.int32)
@@ -659,6 +661,17 @@ class TestSeriesOperators(TestData, tm.TestCase):
 
         self.assertRaises(TypeError, lambda: td1 - dt1)
         self.assertRaises(TypeError, lambda: td2 - dt2)
+
+    def test_sub_single_tz(self):
+        # GH12290
+        s1 = Series([pd.Timestamp('2016-02-10', tz='America/Sao_Paulo')])
+        s2 = Series([pd.Timestamp('2016-02-08', tz='America/Sao_Paulo')])
+        result = s1 - s2
+        expected = Series([Timedelta('2days')])
+        assert_series_equal(result, expected)
+        result = s2 - s1
+        expected = Series([Timedelta('-2days')])
+        assert_series_equal(result, expected)
 
     def test_ops_nat(self):
         # GH 11349
@@ -1184,7 +1197,15 @@ class TestSeriesOperators(TestData, tm.TestCase):
         # TODO: Fix this exception - needs to be fixed! (see GH5035)
         # (previously this was a TypeError because series returned
         # NotImplemented
+
+        # this is an alignment issue; these are equivalent
+        # https://github.com/pydata/pandas/issues/5284
+
+        self.assertRaises(ValueError, lambda: d.__and__(s, axis='columns'))
         self.assertRaises(ValueError, tester, s, d)
+
+        # this is wrong as its not a boolean result
+        # result = d.__and__(s,axis='index')
 
     def test_operators_corner(self):
         series = self.ts
@@ -1245,10 +1266,14 @@ class TestSeriesOperators(TestData, tm.TestCase):
         # rpow does not work with DataFrame
         df = DataFrame({'A': self.ts})
 
-        tm.assert_almost_equal(self.ts + self.ts, self.ts + df['A'])
-        tm.assert_almost_equal(self.ts ** self.ts, self.ts ** df['A'])
-        tm.assert_almost_equal(self.ts < self.ts, self.ts < df['A'])
-        tm.assert_almost_equal(self.ts / self.ts, self.ts / df['A'])
+        tm.assert_series_equal(self.ts + self.ts, self.ts + df['A'],
+                               check_names=False)
+        tm.assert_series_equal(self.ts ** self.ts, self.ts ** df['A'],
+                               check_names=False)
+        tm.assert_series_equal(self.ts < self.ts, self.ts < df['A'],
+                               check_names=False)
+        tm.assert_series_equal(self.ts / self.ts, self.ts / df['A'],
+                               check_names=False)
 
     def test_operators_combine(self):
         def _check_fill(meth, op, a, b, fill_value=0):

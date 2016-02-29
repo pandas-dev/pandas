@@ -175,7 +175,7 @@ class TestDataFrameAnalytics(tm.TestCase, TestData):
         a = self.tsframe
         noise = Series(randn(len(a)), index=a.index)
 
-        b = self.tsframe + noise
+        b = self.tsframe.add(noise, axis=0)
 
         # make sure order does not matter
         b = b.reindex(columns=b.columns[::-1], index=b.index[::-1][10:])
@@ -241,24 +241,21 @@ class TestDataFrameAnalytics(tm.TestCase, TestData):
             'int_data': [10, 20, 30, 40, 50],
         })
 
-        # Boolean data and integer data is included in .describe() output,
-        # string data isn't
-        self.assert_numpy_array_equal(df.describe().columns, [
-                                      'bool_data', 'int_data'])
+        # Integer data are included in .describe() output,
+        # Boolean and string data are not.
+        result = df.describe()
+        expected = DataFrame({'int_data': [5, 30, df.int_data.std(),
+                                           10, 20, 30, 40, 50]},
+                             index=['count', 'mean', 'std', 'min', '25%',
+                                    '50%', '75%', 'max'])
+        assert_frame_equal(result, expected)
 
-        bool_describe = df.describe()['bool_data']
+        # Top value is a boolean value that is False
+        result = df.describe(include=['bool'])
 
-        # Both the min and the max values should stay booleans
-        self.assertEqual(bool_describe['min'].dtype, np.bool_)
-        self.assertEqual(bool_describe['max'].dtype, np.bool_)
-
-        self.assertFalse(bool_describe['min'])
-        self.assertTrue(bool_describe['max'])
-
-        # For numeric operations, like mean or median, the values True/False
-        # are cast to the integer values 1 and 0
-        assert_almost_equal(bool_describe['mean'], 0.4)
-        assert_almost_equal(bool_describe['50%'], 0)
+        expected = DataFrame({'bool_data': [5, 2, False, 3]},
+                             index=['count', 'unique', 'top', 'freq'])
+        assert_frame_equal(result, expected)
 
     def test_reduce_mixed_frame(self):
         # GH 6806

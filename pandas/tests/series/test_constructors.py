@@ -16,7 +16,7 @@ import pandas.lib as lib
 
 from pandas.compat import lrange, range, zip, OrderedDict, long
 from pandas import compat
-from pandas.util.testing import assert_series_equal, assert_almost_equal
+from pandas.util.testing import assert_series_equal
 import pandas.util.testing as tm
 
 from .common import TestData
@@ -213,7 +213,7 @@ class TestSeriesConstructors(TestData, tm.TestCase):
 
     def test_constructor_default_index(self):
         s = Series([0, 1, 2])
-        assert_almost_equal(s.index, np.arange(3))
+        tm.assert_index_equal(s.index, pd.Index(np.arange(3)))
 
     def test_constructor_corner(self):
         df = tm.makeTimeDataFrame()
@@ -519,6 +519,24 @@ class TestSeriesConstructors(TestData, tm.TestCase):
         ser = ser.reindex(index=expected.index)
         check(ser, expected)
 
+    def test_constructor_dict_timedelta_index(self):
+        # GH #12169 : Resample category data with timedelta index
+        # construct Series from dict as data and TimedeltaIndex as index
+        # will result NaN in result Series data
+        expected = Series(
+            data=['A', 'B', 'C'],
+            index=pd.to_timedelta([0, 10, 20], unit='s')
+        )
+
+        result = Series(
+            data={pd.to_timedelta(0, unit='s'): 'A',
+                  pd.to_timedelta(10, unit='s'): 'B',
+                  pd.to_timedelta(20, unit='s'): 'C'},
+            index=pd.to_timedelta([0, 10, 20], unit='s')
+        )
+        # this should work
+        assert_series_equal(result, expected)
+
     def test_constructor_subclass_dict(self):
         data = tm.TestSubDict((x, 10.0 * x) for x in range(10))
         series = Series(data)
@@ -616,6 +634,14 @@ class TestSeriesConstructors(TestData, tm.TestCase):
         dates = Series(d, index=self.ts.index)
         self.assertEqual(dates.dtype, 'M8[ns]')
         self.assertEqual(len(dates), len(self.ts))
+
+        # GH12336
+        # Test construction of categorical series from value
+        categorical = Series(0, index=self.ts.index, dtype="category")
+        expected = Series(0, index=self.ts.index).astype("category")
+        self.assertEqual(categorical.dtype, 'category')
+        self.assertEqual(len(categorical), len(self.ts))
+        tm.assert_series_equal(categorical, expected)
 
     def test_constructor_dtype_timedelta64(self):
 

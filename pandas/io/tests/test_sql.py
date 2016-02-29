@@ -1429,6 +1429,22 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         res = read_sql_table('test_time', self.conn)
         tm.assert_frame_equal(res, df)
 
+        # GH8341
+        # first, use the fallback to have the sqlite adapter put in place
+        sqlite_conn = TestSQLiteFallback.connect()
+        sql.to_sql(df, "test_time2", sqlite_conn, index=False)
+        res = sql.read_sql_query("SELECT * FROM test_time2", sqlite_conn)
+        ref = df.applymap(lambda _: _.strftime("%H:%M:%S.%f"))
+        tm.assert_frame_equal(ref, res)  # check if adapter is in place
+        # then test if sqlalchemy is unaffected by the sqlite adapter
+        sql.to_sql(df, "test_time3", self.conn, index=False)
+        if self.flavor == 'sqlite':
+            res = sql.read_sql_query("SELECT * FROM test_time3", self.conn)
+            ref = df.applymap(lambda _: _.strftime("%H:%M:%S.%f"))
+            tm.assert_frame_equal(ref, res)
+        res = sql.read_sql_table("test_time3", self.conn)
+        tm.assert_frame_equal(df, res)
+
     def test_mixed_dtype_insert(self):
         # see GH6509
         s1 = Series(2**25 + 1, dtype=np.int32)
@@ -1957,12 +1973,14 @@ class TestSQLiteFallback(SQLiteMixIn, PandasSQLTest):
             tm.assert_frame_equal(res, df)
 
     def test_datetime_time(self):
-        # test support for datetime.time
+        # test support for datetime.time, GH #8341
         df = DataFrame([time(9, 0, 0), time(9, 1, 30)], columns=["a"])
-        # test it raises an error and not fails silently (GH8341)
+        df.to_sql('test_time', self.conn, index=False, flavor=self.flavor)
+        res = read_sql_query('SELECT * FROM test_time', self.conn)
         if self.flavor == 'sqlite':
-            self.assertRaises(sqlite3.InterfaceError, sql.to_sql, df,
-                              'test_time', self.conn)
+            # comes back as strings
+            expected = df.applymap(lambda _: _.strftime("%H:%M:%S.%f"))
+            tm.assert_frame_equal(res, expected)
 
     def _get_index_columns(self, tbl_name):
         ixs = sql.read_sql_query(

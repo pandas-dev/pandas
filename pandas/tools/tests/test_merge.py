@@ -609,12 +609,19 @@ class TestMerge(tm.TestCase):
         merged = left.merge(right, left_on='lkey', right_on='rkey',
                             how='outer', sort=True)
 
-        assert_almost_equal(merged['lkey'],
-                            ['bar', 'baz', 'foo', 'foo', 'foo', 'foo', np.nan])
-        assert_almost_equal(merged['rkey'],
-                            ['bar', np.nan, 'foo', 'foo', 'foo', 'foo', 'qux'])
-        assert_almost_equal(merged['value_x'], [2, 3, 1, 1, 4, 4, np.nan])
-        assert_almost_equal(merged['value_y'], [6, np.nan, 5, 8, 5, 8, 7])
+        exp = pd.Series(['bar', 'baz', 'foo', 'foo', 'foo', 'foo', np.nan],
+                        name='lkey')
+        tm.assert_series_equal(merged['lkey'], exp)
+
+        exp = pd.Series(['bar', np.nan, 'foo', 'foo', 'foo', 'foo', 'qux'],
+                        name='rkey')
+        tm.assert_series_equal(merged['rkey'], exp)
+
+        exp = pd.Series([2, 3, 1, 1, 4, 4, np.nan], name='value_x')
+        tm.assert_series_equal(merged['value_x'], exp)
+
+        exp = pd.Series([6, np.nan, 5, 8, 5, 8, 7], name='value_y')
+        tm.assert_series_equal(merged['value_y'], exp)
 
     def test_merge_copy(self):
         left = DataFrame({'a': 0, 'b': 1}, index=lrange(10))
@@ -1080,6 +1087,49 @@ class TestMerge(tm.TestCase):
                           dtype='object')
         result = concat([x, y], ignore_index=True)
         tm.assert_series_equal(result, expected)
+
+        # 12217
+        # 12306 fixed I think
+
+        # Concat'ing two UTC times
+        first = pd.DataFrame([[datetime(2016, 1, 1)]])
+        first[0] = first[0].dt.tz_localize('UTC')
+
+        second = pd.DataFrame([[datetime(2016, 1, 2)]])
+        second[0] = second[0].dt.tz_localize('UTC')
+
+        result = pd.concat([first, second])
+        self.assertEqual(result[0].dtype, 'datetime64[ns, UTC]')
+
+        # Concat'ing two London times
+        first = pd.DataFrame([[datetime(2016, 1, 1)]])
+        first[0] = first[0].dt.tz_localize('Europe/London')
+
+        second = pd.DataFrame([[datetime(2016, 1, 2)]])
+        second[0] = second[0].dt.tz_localize('Europe/London')
+
+        result = pd.concat([first, second])
+        self.assertEqual(result[0].dtype, 'datetime64[ns, Europe/London]')
+
+        # Concat'ing 2+1 London times
+        first = pd.DataFrame([[datetime(2016, 1, 1)], [datetime(2016, 1, 2)]])
+        first[0] = first[0].dt.tz_localize('Europe/London')
+
+        second = pd.DataFrame([[datetime(2016, 1, 3)]])
+        second[0] = second[0].dt.tz_localize('Europe/London')
+
+        result = pd.concat([first, second])
+        self.assertEqual(result[0].dtype, 'datetime64[ns, Europe/London]')
+
+        # Concat'ing 1+2 London times
+        first = pd.DataFrame([[datetime(2016, 1, 1)]])
+        first[0] = first[0].dt.tz_localize('Europe/London')
+
+        second = pd.DataFrame([[datetime(2016, 1, 2)], [datetime(2016, 1, 3)]])
+        second[0] = second[0].dt.tz_localize('Europe/London')
+
+        result = pd.concat([first, second])
+        self.assertEqual(result[0].dtype, 'datetime64[ns, Europe/London]')
 
     def test_indicator(self):
         # PR #10054. xref #7412 and closes #8790.

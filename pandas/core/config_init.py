@@ -9,6 +9,7 @@ If you need to make sure options are available even before a certain
 module is imported, register them here rather then in the module.
 
 """
+import warnings
 
 import pandas.core.config as cf
 from pandas.core.config import (is_int, is_bool, is_text, is_instance_factory,
@@ -155,6 +156,13 @@ pc_ambiguous_as_wide_doc = """
     (default: False)
 """
 
+pc_latex_repr_doc = """
+: boolean
+    Whether to produce a latex DataFrame representation for jupyter
+    environments that support it.
+    (default: False)
+"""
+
 pc_line_width_deprecation_warning = """\
 line_width has been deprecated, use display.width instead (currently both are
 identical)
@@ -215,6 +223,11 @@ pc_mpl_style_doc = """
     Setting this to None/False restores the values to their initial value.
 """
 
+pc_mpl_style_deprecation_warning = """
+mpl_style had been deprecated and will be removed in a future version.
+Use `matplotlib.pyplot.style.use` instead.
+"""
+
 pc_memory_usage_doc = """
 : bool, string or None
     This specifies if the memory usage of a DataFrame should be displayed when
@@ -239,6 +252,9 @@ style_backup = dict()
 
 
 def mpl_style_cb(key):
+    warnings.warn(pc_mpl_style_deprecation_warning, FutureWarning,
+                  stacklevel=5)
+
     import sys
     from pandas.tools.plotting import mpl_stylesheet
     global style_backup
@@ -314,6 +330,8 @@ with cf.config_prefix('display'):
                        pc_east_asian_width_doc, validator=is_bool)
     cf.register_option('unicode.ambiguous_as_wide', False,
                        pc_east_asian_width_doc, validator=is_bool)
+    cf.register_option('latex.repr', False,
+                       pc_latex_repr_doc, validator=is_bool)
     cf.register_option('latex.escape', True, pc_latex_escape,
                        validator=is_bool)
     cf.register_option('latex.longtable', False, pc_latex_longtable,

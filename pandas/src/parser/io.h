@@ -29,7 +29,7 @@ typedef struct _file_source {
 
 #define FS(source) ((file_source *)source)
 
-#if !defined(_WIN32)
+#if !defined(_WIN32) && !defined(HAVE_MMAP)
 #define HAVE_MMAP
 #endif
 

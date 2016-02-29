@@ -307,6 +307,9 @@ display.large_repr         truncate     For DataFrames exceeding max_rows/max_co
                                         or switch to the view from df.info()
                                         (the behaviour in earlier versions of pandas).
                                         allowable settings, ['truncate', 'info']
+display.latex.repr         False        Whether to produce a latex DataFrame
+                                        representation for jupyter frontends
+                                        that support it.
 display.latex.escape       True         Escapes special caracters in Dataframes, when
                                         using the to_latex method.
 display.latex.longtable    False        Specifies if the to_latex method of a Dataframe
@@ -358,12 +361,6 @@ display.max_seq_items      100          when pretty-printing a long sequence,
 display.memory_usage       True         This specifies if the memory usage of
                                         a DataFrame should be displayed when the
                                         df.info() method is invoked.
-display.mpl_style          None         Setting this to 'default' will modify
-                                        the rcParams used by matplotlib
-                                        to give plots a more pleasing visual
-                                        style by default. Setting this to
-                                        None/False restores the values to
-                                        their initial value.
 display.multi_sparse       True         "Sparsify" MultiIndex display (don't
                                         display repeated elements in outer
                                         levels within groups)

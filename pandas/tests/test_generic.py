@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 # pylint: disable-msg=E1101,W0612
 
+from operator import methodcaller
 import nose
 import numpy as np
 from numpy import nan
@@ -8,17 +9,22 @@ import pandas as pd
 
 from distutils.version import LooseVersion
 from pandas import (Index, Series, DataFrame, Panel, isnull,
-                    date_range, period_range)
+                    date_range, period_range, Panel4D)
 from pandas.core.index import MultiIndex
 
 import pandas.core.common as com
+import pandas.lib as lib
 
 from pandas.compat import range, zip
 from pandas import compat
-from pandas.util.testing import (assert_series_equal,
+from pandas.util.testing import (assertRaisesRegexp,
+                                 assert_series_equal,
                                  assert_frame_equal,
                                  assert_panel_equal,
+                                 assert_panel4d_equal,
+                                 assert_almost_equal,
                                  assert_equal)
+
 import pandas.util.testing as tm
 
 
@@ -55,7 +61,7 @@ class Generic(object):
         if isinstance(shape, int):
             shape = tuple([shape] * self._ndim)
         if value is not None:
-            if np.isscalar(value):
+            if lib.isscalar(value):
                 if value == 'empty':
                     arr = None
 
@@ -453,35 +459,6 @@ class Generic(object):
         with tm.assertRaises(ValueError):
             o.sample(n=3, weights=nan_weights)
 
-        # A few dataframe test with degenerate weights.
-        easy_weight_list = [0] * 10
-        easy_weight_list[5] = 1
-
-        df = pd.DataFrame({'col1': range(10, 20),
-                           'col2': range(20, 30),
-                           'colString': ['a'] * 10,
-                           'easyweights': easy_weight_list})
-        sample1 = df.sample(n=1, weights='easyweights')
-        assert_frame_equal(sample1, df.iloc[5:6])
-
-        # Ensure proper error if string given as weight for Series, panel, or
-        # DataFrame with axis = 1.
-        s = Series(range(10))
-        with tm.assertRaises(ValueError):
-            s.sample(n=3, weights='weight_column')
-
-        panel = pd.Panel(items=[0, 1, 2], major_axis=[2, 3, 4],
-                         minor_axis=[3, 4, 5])
-        with tm.assertRaises(ValueError):
-            panel.sample(n=1, weights='weight_column')
-
-        with tm.assertRaises(ValueError):
-            df.sample(n=1, weights='weight_column', axis=1)
-
-        # Check weighting key error
-        with tm.assertRaises(KeyError):
-            df.sample(n=3, weights='not_a_real_column_name')
-
         # Check np.nan are replaced by zeros.
         weights_with_nan = [np.nan] * 10
         weights_with_nan[5] = 0.5
@@ -493,90 +470,6 @@ class Generic(object):
         weights_with_None[5] = 0.5
         self._compare(
             o.sample(n=1, axis=0, weights=weights_with_None), o.iloc[5:6])
-
-        # Check that re-normalizes weights that don't sum to one.
-        weights_less_than_1 = [0] * 10
-        weights_less_than_1[0] = 0.5
-        tm.assert_frame_equal(
-            df.sample(n=1, weights=weights_less_than_1), df.iloc[:1])
-
-        ###
-        # Test axis argument
-        ###
-
-        # Test axis argument
-        df = pd.DataFrame({'col1': range(10), 'col2': ['a'] * 10})
-        second_column_weight = [0, 1]
-        assert_frame_equal(
-            df.sample(n=1, axis=1, weights=second_column_weight), df[['col2']])
-
-        # Different axis arg types
-        assert_frame_equal(df.sample(n=1, axis='columns',
-                                     weights=second_column_weight),
-                           df[['col2']])
-
-        weight = [0] * 10
-        weight[5] = 0.5
-        assert_frame_equal(df.sample(n=1, axis='rows', weights=weight),
-                           df.iloc[5:6])
-        assert_frame_equal(df.sample(n=1, axis='index', weights=weight),
-                           df.iloc[5:6])
-
-        # Check out of range axis values
-        with tm.assertRaises(ValueError):
-            df.sample(n=1, axis=2)
-
-        with tm.assertRaises(ValueError):
-            df.sample(n=1, axis='not_a_name')
-
-        with tm.assertRaises(ValueError):
-            s = pd.Series(range(10))
-            s.sample(n=1, axis=1)
-
-        # Test weight length compared to correct axis
-        with tm.assertRaises(ValueError):
-            df.sample(n=1, axis=1, weights=[0.5] * 10)
-
-        # Check weights with axis = 1
-        easy_weight_list = [0] * 3
-        easy_weight_list[2] = 1
-
-        df = pd.DataFrame({'col1': range(10, 20),
-                           'col2': range(20, 30),
-                           'colString': ['a'] * 10})
-        sample1 = df.sample(n=1, axis=1, weights=easy_weight_list)
-        assert_frame_equal(sample1, df[['colString']])
-
-        # Test default axes
-        p = pd.Panel(items=['a', 'b', 'c'], major_axis=[2, 4, 6],
-                     minor_axis=[1, 3, 5])
-        assert_panel_equal(
-            p.sample(n=3, random_state=42), p.sample(n=3, axis=1,
-                                                     random_state=42))
-        assert_frame_equal(
-            df.sample(n=3, random_state=42), df.sample(n=3, axis=0,
-                                                       random_state=42))
-
-        # Test that function aligns weights with frame
-        df = DataFrame(
-            {'col1': [5, 6, 7],
-             'col2': ['a', 'b', 'c'], }, index=[9, 5, 3])
-        s = Series([1, 0, 0], index=[3, 5, 9])
-        assert_frame_equal(df.loc[[3]], df.sample(1, weights=s))
-
-        # Weights have index values to be dropped because not in
-        # sampled DataFrame
-        s2 = Series([0.001, 0, 10000], index=[3, 5, 10])
-        assert_frame_equal(df.loc[[3]], df.sample(1, weights=s2))
-
-        # Weights have empty values to be filed with zeros
-        s3 = Series([0.01, 0], index=[3, 5])
-        assert_frame_equal(df.loc[[3]], df.sample(1, weights=s3))
-
-        # No overlap in weight and sampled DataFrame indices
-        s4 = Series([1, 0], index=[1, 2])
-        with tm.assertRaises(ValueError):
-            df.sample(1, weights=s4)
 
     def test_size_compat(self):
         # GH8846
@@ -593,8 +486,6 @@ class Generic(object):
         self.assertTrue(len(np.array_split(o, 2)) == 2)
 
     def test_unexpected_keyword(self):  # GH8597
-        from pandas.util.testing import assertRaisesRegexp
-
         df = DataFrame(np.random.randn(5, 2), columns=['jim', 'joe'])
         ca = pd.Categorical([0, 0, 2, 2, 3, np.nan])
         ts = df['joe'].copy()
@@ -611,6 +502,20 @@ class Generic(object):
 
         with assertRaisesRegexp(TypeError, 'unexpected keyword'):
             ts.fillna(0, in_place=True)
+
+    # See gh-12301
+    def test_stat_unexpected_keyword(self):
+        obj = self._construct(5)
+        starwars = 'Star Wars'
+
+        with assertRaisesRegexp(TypeError, 'unexpected keyword'):
+            obj.max(epic=starwars)  # stat_function
+        with assertRaisesRegexp(TypeError, 'unexpected keyword'):
+            obj.var(epic=starwars)  # stat_function_ddof
+        with assertRaisesRegexp(TypeError, 'unexpected keyword'):
+            obj.sum(epic=starwars)  # cum_function
+        with assertRaisesRegexp(TypeError, 'unexpected keyword'):
+            obj.any(epic=starwars)  # logical_function
 
 
 class TestSeries(tm.TestCase, Generic):
@@ -629,6 +534,33 @@ class TestSeries(tm.TestCase, Generic):
                    index=MultiIndex.from_tuples(
                        [("A", x) for x in ["a", "B", "c"]]))
         s.rename(str.lower)
+
+    def test_set_axis_name(self):
+        s = Series([1, 2, 3], index=['a', 'b', 'c'])
+        funcs = ['rename_axis', '_set_axis_name']
+        name = 'foo'
+        for func in funcs:
+            result = methodcaller(func, name)(s)
+            self.assertTrue(s.index.name is None)
+            self.assertEqual(result.index.name, name)
+
+    def test_set_axis_name_mi(self):
+        s = Series([11, 21, 31], index=MultiIndex.from_tuples(
+            [("A", x) for x in ["a", "B", "c"]],
+            names=['l1', 'l2'])
+        )
+        funcs = ['rename_axis', '_set_axis_name']
+        for func in funcs:
+            result = methodcaller(func, ['L1', 'L2'])(s)
+            self.assertTrue(s.index.name is None)
+            self.assertEqual(s.index.names, ['l1', 'l2'])
+            self.assertTrue(result.index.name is None)
+            self.assertTrue(result.index.names, ['L1', 'L2'])
+
+    def test_set_axis_name_raises(self):
+        s = pd.Series([1])
+        with tm.assertRaises(ValueError):
+            s._set_axis_name(name='a', axis=1)
 
     def test_get_numeric_data_preserve_dtype(self):
 
@@ -1024,7 +956,8 @@ class TestSeries(tm.TestCase, Generic):
         s = Series(['a', 'b', 'b', np.nan, np.nan, np.nan, 'c', 'd', 'a', 'a'])
         result = s.describe()
         expected = Series({'count': 7, 'unique': 4,
-                           'top': 'a', 'freq': 3}, index=result.index)
+                           'top': 'a', 'freq': 3, 'second': 'b',
+                           'second_freq': 2}, index=result.index)
         assert_series_equal(result, expected)
 
         dt = list(self.ts.index)
@@ -1057,6 +990,52 @@ class TestSeries(tm.TestCase, Generic):
         expected = Series([0, 0], index=['count', 'unique'], name='None')
         assert_series_equal(noneSeries.describe(), expected)
 
+    def test_to_xarray(self):
+
+        tm._skip_if_no_xarray()
+        from xarray import DataArray
+
+        s = Series([])
+        s.index.name = 'foo'
+        result = s.to_xarray()
+        self.assertEqual(len(result), 0)
+        self.assertEqual(len(result.coords), 1)
+        assert_almost_equal(list(result.coords.keys()), ['foo'])
+        self.assertIsInstance(result, DataArray)
+
+        def testit(index, check_index_type=True):
+            s = Series(range(6), index=index(6))
+            s.index.name = 'foo'
+            result = s.to_xarray()
+            repr(result)
+            self.assertEqual(len(result), 6)
+            self.assertEqual(len(result.coords), 1)
+            assert_almost_equal(list(result.coords.keys()), ['foo'])
+            self.assertIsInstance(result, DataArray)
+
+            # idempotency
+            assert_series_equal(result.to_series(), s,
+                                check_index_type=check_index_type)
+
+        for index in [tm.makeFloatIndex, tm.makeIntIndex,
+                      tm.makeStringIndex, tm.makeUnicodeIndex,
+                      tm.makeDateIndex, tm.makePeriodIndex,
+                      tm.makeTimedeltaIndex]:
+            testit(index)
+
+        # not idempotent
+        testit(tm.makeCategoricalIndex, check_index_type=False)
+
+        s = Series(range(6))
+        s.index.name = 'foo'
+        s.index = pd.MultiIndex.from_product([['a', 'b'], range(3)],
+                                             names=['one', 'two'])
+        result = s.to_xarray()
+        self.assertEqual(len(result), 2)
+        assert_almost_equal(list(result.coords.keys()), ['one', 'two'])
+        self.assertIsInstance(result, DataArray)
+        assert_series_equal(result.to_series(), s)
+
 
 class TestDataFrame(tm.TestCase, Generic):
     _typ = DataFrame
@@ -1067,6 +1046,36 @@ class TestDataFrame(tm.TestCase, Generic):
             11, 21, 31
         ], index=MultiIndex.from_tuples([("A", x) for x in ["a", "B", "c"]]))
         df.rename(str.lower)
+
+    def test_set_axis_name(self):
+        df = pd.DataFrame([[1, 2], [3, 4]])
+        funcs = ['_set_axis_name', 'rename_axis']
+        for func in funcs:
+            result = methodcaller(func, 'foo')(df)
+            self.assertTrue(df.index.name is None)
+            self.assertEqual(result.index.name, 'foo')
+
+            result = methodcaller(func, 'cols', axis=1)(df)
+            self.assertTrue(df.columns.name is None)
+            self.assertEqual(result.columns.name, 'cols')
+
+    def test_set_axis_name_mi(self):
+        df = DataFrame(
+            np.empty((3, 3)),
+            index=MultiIndex.from_tuples([("A", x) for x in list('aBc')]),
+            columns=MultiIndex.from_tuples([('C', x) for x in list('xyz')])
+        )
+
+        level_names = ['L1', 'L2']
+        funcs = ['_set_axis_name', 'rename_axis']
+        for func in funcs:
+            result = methodcaller(func, level_names)(df)
+            self.assertEqual(result.index.names, level_names)
+            self.assertEqual(result.columns.names, [None, None])
+
+            result = methodcaller(func, level_names, axis=1)(df)
+            self.assertEqual(result.columns.names, ["L1", "L2"])
+            self.assertEqual(result.index.names, [None, None])
 
     def test_nonzero_single_element(self):
 
@@ -1479,9 +1488,8 @@ class TestDataFrame(tm.TestCase, Generic):
                         'D_num': np.arange(24.) + .5,
                         'E_ts': tm.makeTimeSeries()[:24].index})
 
-        # bool is considered numeric in describe, although not an np.number
         desc = df.describe()
-        expected_cols = ['C_bool', 'D_num']
+        expected_cols = ['D_num']
         expected = DataFrame(dict((k, df[k].describe())
                                   for k in expected_cols),
                              columns=expected_cols)
@@ -1777,14 +1785,242 @@ class TestDataFrame(tm.TestCase, Generic):
 
             self.assert_frame_equal(result, expected)
 
+    def test_to_xarray(self):
+
+        tm._skip_if_no_xarray()
+        from xarray import Dataset
+
+        df = DataFrame({'a': list('abc'),
+                        'b': list(range(1, 4)),
+                        'c': np.arange(3, 6).astype('u1'),
+                        'd': np.arange(4.0, 7.0, dtype='float64'),
+                        'e': [True, False, True],
+                        'f': pd.Categorical(list('abc')),
+                        'g': pd.date_range('20130101', periods=3),
+                        'h': pd.date_range('20130101',
+                                           periods=3,
+                                           tz='US/Eastern')}
+                       )
+
+        df.index.name = 'foo'
+        result = df[0:0].to_xarray()
+        self.assertEqual(result.dims['foo'], 0)
+        self.assertIsInstance(result, Dataset)
+
+        for index in [tm.makeFloatIndex, tm.makeIntIndex,
+                      tm.makeStringIndex, tm.makeUnicodeIndex,
+                      tm.makeDateIndex, tm.makePeriodIndex,
+                      tm.makeCategoricalIndex, tm.makeTimedeltaIndex]:
+            df.index = index(3)
+            df.index.name = 'foo'
+            df.columns.name = 'bar'
+            result = df.to_xarray()
+            self.assertEqual(result.dims['foo'], 3)
+            self.assertEqual(len(result.coords), 1)
+            self.assertEqual(len(result.data_vars), 8)
+            assert_almost_equal(list(result.coords.keys()), ['foo'])
+            self.assertIsInstance(result, Dataset)
+
+            # idempotency
+            # categoricals are not preserved
+            # datetimes w/tz are not preserved
+            # column names are lost
+            expected = df.copy()
+            expected['f'] = expected['f'].astype(object)
+            expected['h'] = expected['h'].astype('datetime64[ns]')
+            expected.columns.name = None
+            assert_frame_equal(result.to_dataframe(),
+                               expected,
+                               check_index_type=False)
+
+        # available in 0.7.1
+        # MultiIndex
+        df.index = pd.MultiIndex.from_product([['a'], range(3)],
+                                              names=['one', 'two'])
+        result = df.to_xarray()
+        self.assertEqual(result.dims['one'], 1)
+        self.assertEqual(result.dims['two'], 3)
+        self.assertEqual(len(result.coords), 2)
+        self.assertEqual(len(result.data_vars), 8)
+        assert_almost_equal(list(result.coords.keys()), ['one', 'two'])
+        self.assertIsInstance(result, Dataset)
+
+        result = result.to_dataframe()
+        expected = df.copy()
+        expected['f'] = expected['f'].astype(object)
+        expected['h'] = expected['h'].astype('datetime64[ns]')
+        expected.columns.name = None
+        assert_frame_equal(result,
+                           expected,
+                           check_index_type=False)
+
 
 class TestPanel(tm.TestCase, Generic):
     _typ = Panel
     _comparator = lambda self, x, y: assert_panel_equal(x, y)
 
+    def test_to_xarray(self):
+
+        tm._skip_if_no_xarray()
+        from xarray import DataArray
+
+        p = tm.makePanel()
+
+        result = p.to_xarray()
+        self.assertIsInstance(result, DataArray)
+        self.assertEqual(len(result.coords), 3)
+        assert_almost_equal(list(result.coords.keys()),
+                            ['items', 'major_axis', 'minor_axis'])
+        self.assertEqual(len(result.dims), 3)
+
+        # idempotency
+        assert_panel_equal(result.to_pandas(), p)
+
+
+class TestPanel4D(tm.TestCase, Generic):
+    _typ = Panel4D
+    _comparator = lambda self, x, y: assert_panel4d_equal(x, y)
+
+    def test_sample(self):
+        raise nose.SkipTest("sample on Panel4D")
+
+    def test_to_xarray(self):
+
+        tm._skip_if_no_xarray()
+        from xarray import DataArray
+
+        p = tm.makePanel4D()
+
+        result = p.to_xarray()
+        self.assertIsInstance(result, DataArray)
+        self.assertEqual(len(result.coords), 4)
+        assert_almost_equal(list(result.coords.keys()),
+                            ['labels', 'items', 'major_axis', 'minor_axis'])
+        self.assertEqual(len(result.dims), 4)
+
+        # non-convertible
+        self.assertRaises(ValueError, lambda: result.to_pandas())
+
 
 class TestNDFrame(tm.TestCase):
     # tests that don't fit elsewhere
+
+    def test_sample(sel):
+        # Fixes issue: 2419
+        # additional specific object based tests
+
+        # A few dataframe test with degenerate weights.
+        easy_weight_list = [0] * 10
+        easy_weight_list[5] = 1
+
+        df = pd.DataFrame({'col1': range(10, 20),
+                           'col2': range(20, 30),
+                           'colString': ['a'] * 10,
+                           'easyweights': easy_weight_list})
+        sample1 = df.sample(n=1, weights='easyweights')
+        assert_frame_equal(sample1, df.iloc[5:6])
+
+        # Ensure proper error if string given as weight for Series, panel, or
+        # DataFrame with axis = 1.
+        s = Series(range(10))
+        with tm.assertRaises(ValueError):
+            s.sample(n=3, weights='weight_column')
+
+        panel = pd.Panel(items=[0, 1, 2], major_axis=[2, 3, 4],
+                         minor_axis=[3, 4, 5])
+        with tm.assertRaises(ValueError):
+            panel.sample(n=1, weights='weight_column')
+
+        with tm.assertRaises(ValueError):
+            df.sample(n=1, weights='weight_column', axis=1)
+
+        # Check weighting key error
+        with tm.assertRaises(KeyError):
+            df.sample(n=3, weights='not_a_real_column_name')
+
+        # Check that re-normalizes weights that don't sum to one.
+        weights_less_than_1 = [0] * 10
+        weights_less_than_1[0] = 0.5
+        tm.assert_frame_equal(
+            df.sample(n=1, weights=weights_less_than_1), df.iloc[:1])
+
+        ###
+        # Test axis argument
+        ###
+
+        # Test axis argument
+        df = pd.DataFrame({'col1': range(10), 'col2': ['a'] * 10})
+        second_column_weight = [0, 1]
+        assert_frame_equal(
+            df.sample(n=1, axis=1, weights=second_column_weight), df[['col2']])
+
+        # Different axis arg types
+        assert_frame_equal(df.sample(n=1, axis='columns',
+                                     weights=second_column_weight),
+                           df[['col2']])
+
+        weight = [0] * 10
+        weight[5] = 0.5
+        assert_frame_equal(df.sample(n=1, axis='rows', weights=weight),
+                           df.iloc[5:6])
+        assert_frame_equal(df.sample(n=1, axis='index', weights=weight),
+                           df.iloc[5:6])
+
+        # Check out of range axis values
+        with tm.assertRaises(ValueError):
+            df.sample(n=1, axis=2)
+
+        with tm.assertRaises(ValueError):
+            df.sample(n=1, axis='not_a_name')
+
+        with tm.assertRaises(ValueError):
+            s = pd.Series(range(10))
+            s.sample(n=1, axis=1)
+
+        # Test weight length compared to correct axis
+        with tm.assertRaises(ValueError):
+            df.sample(n=1, axis=1, weights=[0.5] * 10)
+
+        # Check weights with axis = 1
+        easy_weight_list = [0] * 3
+        easy_weight_list[2] = 1
+
+        df = pd.DataFrame({'col1': range(10, 20),
+                           'col2': range(20, 30),
+                           'colString': ['a'] * 10})
+        sample1 = df.sample(n=1, axis=1, weights=easy_weight_list)
+        assert_frame_equal(sample1, df[['colString']])
+
+        # Test default axes
+        p = pd.Panel(items=['a', 'b', 'c'], major_axis=[2, 4, 6],
+                     minor_axis=[1, 3, 5])
+        assert_panel_equal(
+            p.sample(n=3, random_state=42), p.sample(n=3, axis=1,
+                                                     random_state=42))
+        assert_frame_equal(
+            df.sample(n=3, random_state=42), df.sample(n=3, axis=0,
+                                                       random_state=42))
+
+        # Test that function aligns weights with frame
+        df = DataFrame(
+            {'col1': [5, 6, 7],
+             'col2': ['a', 'b', 'c'], }, index=[9, 5, 3])
+        s = Series([1, 0, 0], index=[3, 5, 9])
+        assert_frame_equal(df.loc[[3]], df.sample(1, weights=s))
+
+        # Weights have index values to be dropped because not in
+        # sampled DataFrame
+        s2 = Series([0.001, 0, 10000], index=[3, 5, 10])
+        assert_frame_equal(df.loc[[3]], df.sample(1, weights=s2))
+
+        # Weights have empty values to be filed with zeros
+        s3 = Series([0.01, 0], index=[3, 5])
+        assert_frame_equal(df.loc[[3]], df.sample(1, weights=s3))
+
+        # No overlap in weight and sampled DataFrame indices
+        s4 = Series([1, 0], index=[1, 2])
+        with tm.assertRaises(ValueError):
+            df.sample(1, weights=s4)
 
     def test_squeeze(self):
         # noop
@@ -1957,7 +2193,6 @@ class TestNDFrame(tm.TestCase):
 
         with tm.assertRaises(ValueError):
             result = wp.pipe((f, 'y'), x=1, y=1)
-
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],

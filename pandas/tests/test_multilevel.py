@@ -849,7 +849,8 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
 
         self.frame['D'] = 'foo'
         result = self.frame.count(level=0, numeric_only=True)
-        assert_almost_equal(result.columns, ['A', 'B', 'C'])
+        tm.assert_index_equal(result.columns,
+                              pd.Index(['A', 'B', 'C'], name='exp'))
 
     def test_count_level_series(self):
         index = MultiIndex(levels=[['foo', 'bar', 'baz'], ['one', 'two',
@@ -2365,7 +2366,7 @@ Thur,Lunch,Yes,51.51,17"""
         idx1 = idx1.append(idx1)
         idx2 = pd.period_range('2013-01-01 09:00', periods=2, freq='H')
         idx2 = idx2.append(idx2).append(idx2)
-        idx3 = pd.period_range('2005', periods=6, freq='Y')
+        idx3 = pd.period_range('2005', periods=6, freq='A')
 
         df = df.set_index(idx1)
         df = df.set_index(idx2, append=True)

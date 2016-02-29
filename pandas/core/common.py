@@ -333,7 +333,7 @@ def notnull(obj):
     pandas.isnull : boolean inverse of pandas.notnull
     """
     res = isnull(obj)
-    if np.isscalar(res):
+    if lib.isscalar(res):
         return not res
     return ~res
 
@@ -343,7 +343,7 @@ def is_null_datelike_scalar(other):
     but guard against passing a non-scalar """
     if other is pd.NaT or other is None:
         return True
-    elif np.isscalar(other):
+    elif lib.isscalar(other):
 
         # a timedelta
         if hasattr(other, 'dtype'):
@@ -489,7 +489,7 @@ def mask_missing(arr, values_to_mask):
 
             # if x is a string and arr is not, then we get False and we must
             # expand the mask to size arr.shape
-            if np.isscalar(mask):
+            if lib.isscalar(mask):
                 mask = np.zeros(arr.shape, dtype=bool)
         else:
 
@@ -1098,6 +1098,33 @@ def _infer_dtype_from_scalar(val):
     return dtype, val
 
 
+def _is_na_compat(arr, fill_value=np.nan):
+    """
+    Parameters
+    ----------
+    arr: a numpy array
+    fill_value: fill value, default to np.nan
+
+    Returns
+    -------
+    True if we can fill using this fill_value
+    """
+    dtype = arr.dtype
+    if isnull(fill_value):
+        return not (is_bool_dtype(dtype) or
+                    is_integer_dtype(dtype))
+    return True
+
+
+def _maybe_fill(arr, fill_value=np.nan):
+    """
+    if we have a compatiable fill_value and arr dtype, then fill
+    """
+    if _is_na_compat(arr, fill_value):
+        arr.fill(fill_value)
+    return arr
+
+
 def _maybe_promote(dtype, fill_value=np.nan):
 
     # if we passed an array here, determine the fill value by dtype
@@ -1249,7 +1276,7 @@ def _maybe_upcast_putmask(result, mask, other):
 
             # we have a scalar or len 0 ndarray
             # and its nan and we are changing some values
-            if (np.isscalar(other) or
+            if (lib.isscalar(other) or
                     (isinstance(other, np.ndarray) and other.ndim < 1)):
                 if isnull(other):
                     return changeit()
@@ -1309,7 +1336,7 @@ def _possibly_downcast_to_dtype(result, dtype):
     or could be an astype of float64->float32
     """
 
-    if np.isscalar(result):
+    if lib.isscalar(result):
         return result
 
     def trans(x):
@@ -1359,7 +1386,10 @@ def _possibly_downcast_to_dtype(result, dtype):
             # do a test on the first element, if it fails then we are done
             r = result.ravel()
             arr = np.array([r[0]])
-            if not np.allclose(arr, trans(arr).astype(dtype)):
+
+            # if we have any nulls, then we are done
+            if isnull(arr).any() or not np.allclose(arr,
+                                                    trans(arr).astype(dtype)):
                 return result
 
             # a comparable, e.g. a Decimal may slip in here
@@ -1681,7 +1711,7 @@ def _possibly_cast_to_datetime(value, dtype, errors='raise'):
                                 errors=errors).tz_localize(dtype.tz)
                         elif is_timedelta64:
                             value = to_timedelta(value, errors=errors)._values
-                    except (AttributeError, ValueError):
+                    except (AttributeError, ValueError, TypeError):
                         pass
 
         # coerce datetimelike to object
@@ -2456,6 +2486,10 @@ def is_list_like(arg):
             not isinstance(arg, compat.string_and_binary_types))
 
 
+def is_dict_like(arg):
+    return hasattr(arg, '__getitem__') and hasattr(arg, 'keys')
+
+
 def is_named_tuple(arg):
     return isinstance(arg, tuple) and hasattr(arg, '_fields')
 
@@ -3035,3 +3069,29 @@ def _random_state(state=None):
     else:
         raise ValueError("random_state must be an integer, a numpy "
                          "RandomState, or None")
+
+
+def pandas_dtype(dtype):
+    """
+    Converts input into a pandas only dtype object or a numpy dtype object.
+
+    Parameters
+    ----------
+    dtype : object to be converted
+
+    Returns
+    -------
+    np.dtype or a pandas dtype
+    """
+    if isinstance(dtype, compat.string_types):
+        try:
+            return DatetimeTZDtype.construct_from_string(dtype)
+        except TypeError:
+            pass
+
+        try:
+            return CategoricalDtype.construct_from_string(dtype)
+        except TypeError:
+            pass
+
+    return np.dtype(dtype)

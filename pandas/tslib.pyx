@@ -673,6 +673,10 @@ class NaTType(_NaT):
     def __str__(self):
         return 'NaT'
 
+    def isoformat(self, sep='T'):
+        # This allows Timestamp(ts.isoformat()) to always correctly roundtrip.
+        return 'NaT'
+
     def __hash__(self):
         return NPY_NAT
 
@@ -736,7 +740,7 @@ _nat_methods = ['date', 'now', 'replace', 'to_datetime', 'today']
 
 _nan_methods = ['weekday', 'isoweekday', 'total_seconds']
 
-_implemented_methods = ['to_datetime64']
+_implemented_methods = ['to_datetime64', 'isoformat']
 _implemented_methods.extend(_nat_methods)
 _implemented_methods.extend(_nan_methods)
 
@@ -1055,16 +1059,12 @@ cdef class _Timestamp(datetime):
             return self + neg_other
 
         # a Timestamp-DatetimeIndex -> yields a negative TimedeltaIndex
-        elif getattr(other,'_typ',None) == 'datetimeindex':
-
-            # we may be passed reverse ops
-            if get_timezone(getattr(self,'tzinfo',None)) != get_timezone(other.tz):
-                    raise TypeError("Timestamp subtraction must have the same timezones or no timezones")
-
+        elif getattr(other, '_typ', None) == 'datetimeindex':
+            # timezone comparison is performed in DatetimeIndex._sub_datelike
             return -other.__sub__(self)
 
         # a Timestamp-TimedeltaIndex -> yields a negative TimedeltaIndex
-        elif getattr(other,'_typ',None) == 'timedeltaindex':
+        elif getattr(other, '_typ', None) == 'timedeltaindex':
             return (-other).__add__(self)
 
         elif other is NaT:
@@ -1157,6 +1157,7 @@ cdef class _NaT(_Timestamp):
             if isinstance(other, datetime):
                 return NaT
             result = _Timestamp.__add__(self, other)
+            # Timestamp.__add__ doesn't return DatetimeIndex/TimedeltaIndex
             if result is NotImplemented:
                 return result
         except (OverflowError, OutOfBoundsDatetime):
@@ -1164,15 +1165,12 @@ cdef class _NaT(_Timestamp):
         return NaT
 
     def __sub__(self, other):
-
-        if other is NaT:
+        if isinstance(other, (datetime, timedelta)):
             return NaT
-
-        if type(self) is datetime:
-            other, self = self, other
         try:
             result = _Timestamp.__sub__(self, other)
-            if result is NotImplemented:
+            # Timestamp.__sub__ may return DatetimeIndex/TimedeltaIndex
+            if result is NotImplemented or hasattr(result, '_typ'):
                 return result
         except (OverflowError, OutOfBoundsDatetime):
             pass
@@ -3536,7 +3534,7 @@ def tz_convert(ndarray[int64_t] vals, object tz1, object tz2):
     if _get_zone(tz2) == 'UTC':
         return utc_dates
 
-    result = np.empty(n, dtype=np.int64)
+    result = np.zeros(n, dtype=np.int64)
     if _is_tzlocal(tz2):
         for i in range(n):
             v = utc_dates[i]

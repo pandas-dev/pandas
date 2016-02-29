@@ -571,7 +571,7 @@ class TestStata(tm.TestCase):
     def test_105(self):
         # Data obtained from:
         # http://go.worldbank.org/ZXY29PVJ21
-        dpath = os.path.join(self.dirpath, 'S4_EDUC1.DTA')
+        dpath = os.path.join(self.dirpath, 'S4_EDUC1.dta')
         df = pd.read_stata(dpath)
         df0 = [[1, 1, 3, -2], [2, 1, 2, -2], [4, 1, 1, -2]]
         df0 = pd.DataFrame(df0)

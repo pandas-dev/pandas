@@ -318,6 +318,24 @@ class packers_read_stata_with_validation(object):
             pass
 
 
+class packers_read_sas7bdat(object):
+
+    def setup(self):
+        self.f = 'data/test1.sas7bdat'
+
+    def time_packers_read_sas7bdat(self):
+        pd.read_sas(self.f, format='sas7bdat')
+
+
+class packers_read_xport(object):
+
+    def setup(self):
+        self.f = 'data/paxraw_d_short.xpt'
+
+    def time_packers_read_xport(self):
+        pd.read_sas(self.f, format='xport')
+
+
 class packers_write_csv(object):
     goal_time = 0.2
 

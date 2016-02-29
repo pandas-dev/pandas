@@ -10,6 +10,7 @@ import re
 from pandas.compat import range, zip, lrange, StringIO, PY3, lzip, u
 import pandas.compat as compat
 import itertools
+from operator import methodcaller
 import os
 import sys
 from textwrap import dedent
@@ -758,6 +759,34 @@ class TestDataFrameFormatting(tm.TestCase):
         df = DataFrame({'A': [u('\u03c3')]})
         expected = u'<table border="1" class="dataframe">\n  <thead>\n    <tr style="text-align: right;">\n      <th></th>\n      <th>A</th>\n    </tr>\n  </thead>\n  <tbody>\n    <tr>\n      <th>0</th>\n      <td>\u03c3</td>\n    </tr>\n  </tbody>\n</table>'
         self.assertEqual(df.to_html(), expected)
+
+    def test_to_html_decimal(self):
+        # GH 12031
+        df = DataFrame({'A': [6.0, 3.1, 2.2]})
+        result = df.to_html(decimal=',')
+        expected = ('<table border="1" class="dataframe">\n'
+                    '  <thead>\n'
+                    '    <tr style="text-align: right;">\n'
+                    '      <th></th>\n'
+                    '      <th>A</th>\n'
+                    '    </tr>\n'
+                    '  </thead>\n'
+                    '  <tbody>\n'
+                    '    <tr>\n'
+                    '      <th>0</th>\n'
+                    '      <td>6,0</td>\n'
+                    '    </tr>\n'
+                    '    <tr>\n'
+                    '      <th>1</th>\n'
+                    '      <td>3,1</td>\n'
+                    '    </tr>\n'
+                    '    <tr>\n'
+                    '      <th>2</th>\n'
+                    '      <td>2,2</td>\n'
+                    '    </tr>\n'
+                    '  </tbody>\n'
+                    '</table>')
+        self.assertEqual(result, expected)
 
     def test_to_html_escaped(self):
         a = 'str<ing1 &amp;'
@@ -2896,6 +2925,24 @@ b &       b &     b \\
 
         self.assertEqual(withoutindex_result, withoutindex_expected)
 
+    def test_to_latex_decimal(self):
+        # GH 12031
+        self.frame.to_latex()
+        df = DataFrame({'a': [1.0, 2.1], 'b': ['b1', 'b2']})
+        withindex_result = df.to_latex(decimal=',')
+        print("WHAT THE")
+        withindex_expected = r"""\begin{tabular}{lrl}
+\toprule
+{} &    a &   b \\
+\midrule
+0 &  1,0 &  b1 \\
+1 &  2,1 &  b2 \\
+\bottomrule
+\end{tabular}
+"""
+
+        self.assertEqual(withindex_result, withindex_expected)
+
     def test_to_csv_quotechar(self):
         df = DataFrame({'col': [1, 2]})
         expected = """\
@@ -4082,6 +4129,10 @@ class TestStringRepTimestamp(tm.TestCase):
 
         dt_datetime_us = datetime(2013, 1, 2, 12, 1, 3, 45, tzinfo=utc)
         self.assertEqual(str(dt_datetime_us), str(Timestamp(dt_datetime_us)))
+
+    def test_nat_representations(self):
+        for f in (str, repr, methodcaller('isoformat')):
+            self.assertEqual(f(pd.NaT), 'NaT')
 
 
 if __name__ == '__main__':

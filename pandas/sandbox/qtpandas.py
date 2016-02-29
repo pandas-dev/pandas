@@ -4,6 +4,8 @@ Easy integration of DataFrame into pyqt framework
 @author: Jev Kuznetsov
 '''
 
+# flake8: noqa
+
 # GH9615
 
 import warnings

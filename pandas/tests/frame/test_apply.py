@@ -4,6 +4,7 @@ from __future__ import print_function
 
 from datetime import datetime
 
+import warnings
 import numpy as np
 
 from pandas import (notnull, DataFrame, Series, MultiIndex, date_range,
@@ -168,7 +169,8 @@ class TestDataFrameApply(tm.TestCase, TestData):
         no_index = DataFrame(columns=['a', 'b', 'c'])
 
         def _check(df, f):
-            test_res = f(np.array([], dtype='f8'))
+            with warnings.catch_warnings(record=True):
+                test_res = f(np.array([], dtype='f8'))
             is_reduction = not isinstance(test_res, np.ndarray)
 
             def _checkit(axis=0, raw=False):
@@ -400,3 +402,19 @@ class TestDataFrameApply(tm.TestCase, TestData):
         result = df.applymap(str)
         for f in ['datetime', 'timedelta']:
             self.assertEqual(result.loc[0, f], str(df.loc[0, f]))
+
+    # See gh-12244
+    def test_apply_non_numpy_dtype(self):
+        df = DataFrame({'dt': pd.date_range(
+            "2015-01-01", periods=3, tz='Europe/Brussels')})
+        result = df.apply(lambda x: x)
+        assert_frame_equal(result, df)
+
+        result = df.apply(lambda x: x + pd.Timedelta('1day'))
+        expected = DataFrame({'dt': pd.date_range(
+            "2015-01-02", periods=3, tz='Europe/Brussels')})
+        assert_frame_equal(result, expected)
+
+        df = DataFrame({'dt': ['a', 'b', 'c', 'a']}, dtype='category')
+        result = df.apply(lambda x: x)
+        assert_frame_equal(result, df)

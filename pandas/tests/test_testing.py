@@ -116,6 +116,14 @@ class TestAssertAlmostEqual(tm.TestCase):
 
         self._assert_not_almost_equal_both(np.inf, 0)
 
+    def test_assert_almost_equal_pandas(self):
+        self.assert_almost_equal(pd.Index([1., 1.1]),
+                                 pd.Index([1., 1.100001]))
+        self.assert_almost_equal(pd.Series([1., 1.1]),
+                                 pd.Series([1., 1.100001]))
+        self.assert_almost_equal(pd.DataFrame({'a': [1., 1.1]}),
+                                 pd.DataFrame({'a': [1., 1.100001]}))
+
 
 class TestUtilTesting(tm.TestCase):
     _multiprocess_can_split_ = True
