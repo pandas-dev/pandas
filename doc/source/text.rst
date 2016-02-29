@@ -256,7 +256,7 @@ It raises ``ValueError`` if ``expand=False``.
 .. code-block:: python
 
     >>> s.index.str.extract("(?P<letter>[a-zA-Z])([0-9]+)", expand=False)
-    ValueError: This pattern contains no groups to capture.
+    ValueError: only one regex group is supported with Index
 
 The table below summarizes the behavior of ``extract(expand=False)``
 (input subject in first column, number of groups in regex in
