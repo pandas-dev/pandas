@@ -250,6 +250,10 @@ accept the following arguments:
   result is NA)
 - ``center``: boolean, whether to set the labels at the center (default is False)
 
+.. note::
+
+   The ``.min()`` and ``.max()`` will by default return the result as a float. For integer inputs, integer outputs can be obtained by passing ``as_float``=False
+
 .. warning::
 
    The ``freq`` and ``how`` arguments were in the API prior to 0.18.0 changes. These are deprecated in the new API. You can simply resample the input prior to creating a window function.
