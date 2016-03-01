@@ -988,9 +988,13 @@ Other API Changes
 - Statistical functions for ``NDFrame`` objects will now raise if non-numpy-compatible arguments are passed in for ``**kwargs`` (:issue:`12301`)
 - ``.to_latex`` and ``.to_html`` gain a ``decimal`` parameter like ``.to_csv``; the default is ``'.'`` (:issue:`12031`)
 - More helpful error message when constructing a ``DataFrame`` with empty data but with indices (:issue:`8020`)
+<<<<<<< HEAD
 - ``.describe()`` will now properly handle bool dtype as a categorical (:issue:`6625`)
 - More helpful error message invalid ``.transform`` with user defined input (:issue:`10165`)
 - Exponentially weighted functions now allow specifying alpha directly (:issue:`10789`) and raise ``ValueError`` if parameters violate ``0 < alpha <= 1`` (:issue:`12492`)
+=======
+
+>>>>>>> Adding documentation
 - ``Rolling.min`` and ``Rolling.max`` now take an as_float argument, that when False, will cause those functions to return output that has the same value as the input type. This is 
 
 .. _whatsnew_0180.deprecations:
