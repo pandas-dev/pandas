@@ -871,6 +871,7 @@ Other API Changes
 
 - More helpful error message when constructing a ``DataFrame`` with empty data but with indices (:issue:`8020`)
 
+- ``Rolling.min`` and ``Rolling.max`` now take an as_float argument, that when False, will cause those functions to return output that has the same value as the input type. This is 
 
 .. _whatsnew_0180.deprecations:
 
@@ -1123,3 +1124,4 @@ Bug Fixes
 - Bug in ``DataFrame.apply`` in which reduction was not being prevented for cases in which ``dtype`` was not a numpy dtype (:issue:`12244`)
 - Bug when initializing categorical series with a scalar value. (:issue:`12336`)
 - Bug when specifying a UTC ``DatetimeIndex`` by setting ``utc=True`` in ``.to_datetime`` (:issue:`11934`)
+- Bug in ``.rolling.min`` and ``.rolling.max`` where passing columns of type float32 raised a Value error (:issue:`12373`)
