@@ -252,7 +252,7 @@ accept the following arguments:
 
 .. note::
 
-   The ``.min()`` and ``.max()`` will by default return the result as a float. For integer inputs, integer outputs can be obtained by passing ``as_float``=False
+   The ``min`` and ``max`` functions will by default return the result as a float. For integer inputs, integer outputs can be obtained by passing True as the ``as_float`` argument.
 
 .. warning::
 
