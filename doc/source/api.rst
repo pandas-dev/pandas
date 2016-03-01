@@ -1694,16 +1694,18 @@ application to columns of a specific data type.
 .. autosummary::
    :toctree: generated/
 
+   DataFrameGroupBy.agg
+   DataFrameGroupBy.all
+   DataFrameGroupBy.any
    DataFrameGroupBy.bfill
+   DataFrameGroupBy.corr
+   DataFrameGroupBy.count
+   DataFrameGroupBy.cov
    DataFrameGroupBy.cummax
    DataFrameGroupBy.cummin
    DataFrameGroupBy.cumprod
    DataFrameGroupBy.cumsum
    DataFrameGroupBy.describe
-   DataFrameGroupBy.all
-   DataFrameGroupBy.any
-   DataFrameGroupBy.corr
-   DataFrameGroupBy.cov
    DataFrameGroupBy.diff
    DataFrameGroupBy.ffill
    DataFrameGroupBy.fillna
@@ -1717,6 +1719,7 @@ application to columns of a specific data type.
    DataFrameGroupBy.rank
    DataFrameGroupBy.resample
    DataFrameGroupBy.shift
+   DataFrameGroupBy.size
    DataFrameGroupBy.skew
    DataFrameGroupBy.take
    DataFrameGroupBy.tshift
