@@ -1625,10 +1625,6 @@ def roll_median_c(ndarray[float64_t] arg, int win, int minp):
 # of its Simplified BSD license
 # https://github.com/kwgoodman/bottleneck
 
-cdef struct pairs:
-    double value
-    int death
-
 from libc cimport stdlib
 
 @cython.boundscheck(False)
@@ -1645,7 +1641,7 @@ def roll_min(ndarray[numeric] a, int window, int minp):
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def _roll_min_max(ndarray[numeric] a, int window, int minp, bint is_max):
+cdef _roll_min_max(ndarray[numeric] a, int window, int minp, bint is_max):
     "Moving min/max of 1d array of any numeric type along axis=0 ignoring NaNs."
     cdef numeric ai, aold
     cdef Py_ssize_t count

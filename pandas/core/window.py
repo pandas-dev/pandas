@@ -144,7 +144,7 @@ class _Window(PandasObject, SelectionMixin):
                 kwargs[attr] = getattr(self, attr)
         return self._constructor(obj, **kwargs)
 
-    def _prep_values(self, values=None, kill_inf=True, how=None):
+    def _prep_values(self, values=None, kill_inf=True, how=None, as_float=True):
 
         if values is None:
             values = getattr(self._selected_obj, 'values', self._selected_obj)
@@ -152,7 +152,7 @@ class _Window(PandasObject, SelectionMixin):
         # coerce dtypes as appropriate
         if com.is_float_dtype(values.dtype):
             pass
-        elif com.is_integer_dtype(values.dtype):
+        elif com.is_integer_dtype(values.dtype) and as_float:
             values = values.astype(float)
         elif com.is_timedelta64_dtype(values.dtype):
             values = values.view('i8').astype(float)
@@ -198,6 +198,7 @@ class _Window(PandasObject, SelectionMixin):
         results : list of ndarrays
         blocks : list of blocks
         obj : conformed data (may be resampled)
+        as_float: bool, cast results to float
         """
 
         final = []
@@ -408,7 +409,7 @@ class _Rolling(_Window):
         return Rolling
 
     def _apply(self, func, window=None, center=None, check_minp=None, how=None,
-               **kwargs):
+               as_float=True, **kwargs):
         """
         Rolling statistical measure using supplied function. Designed to be
         used with passed-in Cython array-based functions.
@@ -421,6 +422,8 @@ class _Rolling(_Window):
         check_minp : function, default to _use_window
         how : string, default to None (DEPRECATED)
             how to resample
+        as_float: bool, default to True
+            Cast result to float, otherwise return as original type
 
         Returns
         -------
@@ -438,7 +441,7 @@ class _Rolling(_Window):
         results = []
         for b in blocks:
             try:
-                values = self._prep_values(b.values)
+                values = self._prep_values(b.values, as_float=as_float)
             except TypeError:
                 results.append(b.values.copy())
                 continue
@@ -535,12 +538,14 @@ class _Rolling_and_Expanding(_Rolling):
     Parameters
     ----------
     how : string, default 'max' (DEPRECATED)
-        Method for down- or re-sampling""")
+        Method for down- or re-sampling
+    as_float : bool, default True
+        Cast to float, otherwise return as original type""")
 
-    def max(self, how=None, **kwargs):
+    def max(self, how=None, as_float=True, **kwargs):
         if self.freq is not None and how is None:
             how = 'max'
-        return self._apply('roll_max', how=how, **kwargs)
+        return self._apply('roll_max', how=how, as_float=as_float, **kwargs)
 
     _shared_docs['min'] = dedent("""
     %(name)s minimum
@@ -548,12 +553,14 @@ class _Rolling_and_Expanding(_Rolling):
     Parameters
     ----------
     how : string, default 'min' (DEPRECATED)
-        Method for down- or re-sampling""")
+        Method for down- or re-sampling
+    as_float : bool, default True
+        Cast to float, otherwise return as original type""")
 
-    def min(self, how=None, **kwargs):
+    def min(self, how=None, as_float=True, **kwargs):
         if self.freq is not None and how is None:
             how = 'min'
-        return self._apply('roll_min', how=how, **kwargs)
+        return self._apply('roll_min', how=how, as_float=as_float, **kwargs)
 
     def mean(self, **kwargs):
         return self._apply('roll_mean', **kwargs)
