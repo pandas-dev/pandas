@@ -144,7 +144,8 @@ class _Window(PandasObject, SelectionMixin):
                 kwargs[attr] = getattr(self, attr)
         return self._constructor(obj, **kwargs)
 
-    def _prep_values(self, values=None, kill_inf=True, how=None, as_float=True):
+    def _prep_values(self, values=None, kill_inf=True, how=None,
+                     as_float=True):
 
         if values is None:
             values = getattr(self._selected_obj, 'values', self._selected_obj)
