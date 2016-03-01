@@ -2439,18 +2439,20 @@ class TestMomentsConsistency(Base):
         types_test.extend([np.dtype("{}{}".format(sign, width))
                            for width in [1, 2, 4, 8] for sign in "ui"])
         for data_type in types_test:
-            # Just testing that these don't throw exceptions and that the types match. 
-            # Other tests will cover quantitative correctness
+            # Just testing that these don't throw exceptions and that
+            # the types match. Other tests will cover quantitative
+            # correctness
             for convert_to_float in [True]:
                 if data_type.kind == 'f' or not convert_to_float:
-                    # Floating point values are left as-is when convert_to_float is True.
-                    # We compare to the original floating point type instead
+                    # Floating point values are left as-is when
+                    # convert_to_float is True. We compare to the
+                    # original floating point type instead
                     expected_type = data_type
                 else:
                     expected_type = np.dtype(float)
-                result = DataFrame(np.arange(20, dtype=data_type)).rolling(window=5).max(as_float=convert_to_float)
+                result = (DataFrame(np.arange(20, dtype=data_type))
+                          .rolling(window=5).max(as_float=convert_to_float))
                 self.assertEqual(result.dtypes[0], expected_type)
-                result = DataFrame(np.arange(20, dtype=data_type)).rolling(window=5).min(as_float=convert_to_float)
+                result = (DataFrame(np.arange(20, dtype=data_type))
+                          .rolling(window=5).min(as_float=convert_to_float))
                 self.assertEqual(result.dtypes[0], expected_type)
-
-
