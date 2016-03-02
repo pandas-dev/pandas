@@ -20,7 +20,8 @@ from pandas.core.config import get_option
 from pandas.io.date_converters import generic_parser
 from pandas.io.common import (get_filepath_or_buffer, _validate_header_arg,
                               _get_handle, UnicodeReader, UTF8Recoder,
-                              BaseIterator)
+                              BaseIterator, CParserError, EmptyDataError,
+                              ParserWarning)
 from pandas.tseries import tools
 
 from pandas.util.decorators import Appender
@@ -35,10 +36,6 @@ _NA_VALUES = set([
     '-1.#IND', '1.#QNAN', '1.#IND', '-1.#QNAN', '#N/A N/A', '#N/A',
     'N/A', 'NA', '#NA', 'NULL', 'NaN', '-NaN', 'nan', '-nan', ''
 ])
-
-
-class ParserWarning(Warning):
-    pass
 
 _parser_params = """Also supports optionally iterating or breaking of the file
 into chunks.
@@ -936,7 +933,7 @@ class ParserBase(object):
         # long
         for n in range(len(columns[0])):
             if all(['Unnamed' in tostr(c[n]) for c in columns]):
-                raise _parser.CParserError(
+                raise CParserError(
                     "Passed header=[%s] are too many rows for this "
                     "multi_index of columns"
                     % ','.join([str(x) for x in self.header])
@@ -1759,10 +1756,26 @@ class PythonParser(ParserBase):
 
             columns = []
             for level, hr in enumerate(header):
-                line = self._buffered_line()
+                try:
+                    line = self._buffered_line()
 
-                while self.line_pos <= hr:
-                    line = self._next_line()
+                    while self.line_pos <= hr:
+                        line = self._next_line()
+
+                except StopIteration:
+                    if self.line_pos < hr:
+                        raise ValueError(
+                            'Passed header=%s but only %d lines in file'
+                            % (hr, self.line_pos + 1))
+
+                    # We have an empty file, so check
+                    # if columns are provided. That will
+                    # serve as the 'line' for parsing
+                    if not self.names:
+                        raise EmptyDataError(
+                            "No columns to parse from file")
+
+                    line = self.names[:]
 
                 unnamed_count = 0
                 this_columns = []
@@ -1827,10 +1840,19 @@ class PythonParser(ParserBase):
             else:
                 columns = self._handle_usecols(columns, columns[0])
         else:
-            # header is None
-            line = self._buffered_line()
+            try:
+                line = self._buffered_line()
+
+            except StopIteration:
+                if not names:
+                    raise EmptyDataError(
+                        "No columns to parse from file")
+
+                line = names[:]
+
             ncols = len(line)
             num_original_columns = ncols
+
             if not names:
                 if self.prefix:
                     columns = [['%s%d' % (self.prefix, i)

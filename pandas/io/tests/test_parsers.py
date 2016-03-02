@@ -16,7 +16,6 @@ from multiprocessing.pool import ThreadPool
 import nose
 import numpy as np
 import pandas.lib as lib
-import pandas.parser
 from numpy import nan
 from numpy.testing.decorators import slow
 from pandas.lib import Timestamp
@@ -32,7 +31,8 @@ from pandas.compat import(
 )
 from pandas.compat import parse_date
 from pandas.core.common import AbstractMethodError
-from pandas.io.common import DtypeWarning, URLError
+from pandas.io.common import (CParserError, DtypeWarning,
+                              EmptyDataError, URLError)
 from pandas.io.parsers import (read_csv, read_table, read_fwf,
                                TextFileReader, TextParser)
 from pandas.tseries.index import date_range
@@ -1209,7 +1209,7 @@ baz,7,8,9
 6,7,8,9,10,11,12
 11,12,13,14,15,16
 """
-        self.assertRaises(Exception, self.read_csv, StringIO(data))
+        self.assertRaises(ValueError, self.read_csv, StringIO(data))
 
     def test_read_table_duplicate_index(self):
         data = """index,A,B,C,D
@@ -1740,7 +1740,7 @@ c,4,5,01/03/2009
         # Temporarily copied to TestPythonParser.
         # Here test that CParserError is raised:
 
-        with tm.assertRaises(pandas.parser.CParserError):
+        with tm.assertRaises(CParserError):
             text = """                      A       B       C       D        E
 one two three   four
 a   b   10.0032 5    -0.5109 -2.3358 -0.4645  0.05076  0.3640
@@ -1840,7 +1840,7 @@ bar"""
         tm.assert_frame_equal(df, expected)
 
         parser = lambda d: parse_date(d, day_first=True)
-        self.assertRaises(Exception, self.read_csv,
+        self.assertRaises(TypeError, self.read_csv,
                           StringIO(text), skiprows=[0],
                           names=['time', 'Q', 'NTU'], index_col=0,
                           parse_dates=True, date_parser=parser,
@@ -2014,7 +2014,7 @@ False,NA,True"""
     def test_nonexistent_path(self):
         # don't segfault pls #2428
         path = '%s.csv' % tm.rands(10)
-        self.assertRaises(Exception, self.read_csv, path)
+        self.assertRaises(IOError, self.read_csv, path)
 
     def test_missing_trailing_delimiters(self):
         data = """A,B,C,D
@@ -2358,7 +2358,7 @@ a,b,c
 4,,6
 7,8,9
 10,11,12\n"""
-        tm.assertRaises(Exception, read_csv, StringIO(data),
+        tm.assertRaises(ValueError, read_csv, StringIO(data),
                         header=0, names=['a', 'b', 'c', 'd'])
 
     def test_ignore_leading_whitespace(self):
@@ -2525,9 +2525,8 @@ MyColumn
         result = self.read_csv(StringIO(data))
         self.assertTrue(result['ID'].dtype == object)
 
-        self.assertRaises((OverflowError, pandas.parser.OverflowError),
-                          self.read_csv, StringIO(data),
-                          converters={'ID': np.int64})
+        self.assertRaises(OverflowError, self.read_csv,
+                          StringIO(data), converters={'ID': np.int64})
 
         # Just inside int64 range: parse as integer
         i_max = np.iinfo(np.int64).max
@@ -2774,7 +2773,7 @@ MyColumn
         usecols = [0, 'b', 2]
 
         with tm.assertRaisesRegexp(ValueError, msg):
-            df = self.read_csv(StringIO(data), usecols=usecols)
+            self.read_csv(StringIO(data), usecols=usecols)
 
     def test_usecols_with_integer_like_header(self):
         data = """2,0,1
@@ -2795,6 +2794,37 @@ MyColumn
                              columns=['0', '1'])
         df = self.read_csv(StringIO(data), usecols=usecols)
         tm.assert_frame_equal(df, expected)
+
+    def test_read_empty_with_usecols(self):
+        # See gh-12493
+        names = ['Dummy', 'X', 'Dummy_2']
+        usecols = names[1:2]  # ['X']
+
+        # first, check to see that the response of
+        # parser when faced with no provided columns
+        # throws the correct error, with or without usecols
+        errmsg = "No columns to parse from file"
+
+        with tm.assertRaisesRegexp(EmptyDataError, errmsg):
+            self.read_csv(StringIO(''))
+
+        with tm.assertRaisesRegexp(EmptyDataError, errmsg):
+            self.read_csv(StringIO(''), usecols=usecols)
+
+        expected = DataFrame(columns=usecols, index=[0], dtype=np.float64)
+        df = self.read_csv(StringIO(',,'), names=names, usecols=usecols)
+        tm.assert_frame_equal(df, expected)
+
+        expected = DataFrame(columns=usecols)
+        df = self.read_csv(StringIO(''), names=names, usecols=usecols)
+        tm.assert_frame_equal(df, expected)
+
+    def test_read_with_bad_header(self):
+        errmsg = "but only \d+ lines in file"
+
+        with tm.assertRaisesRegexp(ValueError, errmsg):
+            s = StringIO(',,')
+            self.read_csv(s, header=[10])
 
 
 class CompressionTests(object):
@@ -3807,22 +3837,6 @@ class CParserTests(ParserTests):
             except Exception as e:
                 pass
 
-    def test_read_empty_with_usecols(self):
-        # See gh-12493
-        names = ['Dummy', 'X', 'Dummy_2']
-        usecols = names[1:2] # ['X']
-
-        def check_usecols(stringIO, expected):
-            df = read_csv(stringIO, names=names, usecols=usecols)
-            tm.assert_frame_equal(df, expected)
-
-        expected = DataFrame(columns=usecols,
-                             index=[0], dtype=np.float64)
-        check_usecols(StringIO(',,'), expected)
-
-        expected = DataFrame(columns=usecols)
-        check_usecols(StringIO(''), expected)
-
 
 class TestCParserHighMemory(CParserTests, CompressionTests, tm.TestCase):
     engine = 'c'
@@ -4415,7 +4429,7 @@ No,No,No"""
 2001,106380451,10
 2001,,11
 2001,106380451,67"""
-        self.assertRaises(Exception, read_csv, StringIO(data), sep=",",
+        self.assertRaises(ValueError, read_csv, StringIO(data), sep=",",
                           skipinitialspace=True,
                           dtype={'DOY': np.int64})
 
