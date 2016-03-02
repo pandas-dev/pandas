@@ -13,7 +13,7 @@ import numpy as np
 from pandas.core.frame import DataFrame
 from pandas.io.parsers import TextParser
 from pandas.io.common import (_is_url, _urlopen, _validate_header_arg,
-                              get_filepath_or_buffer)
+                              EmptyDataError, get_filepath_or_buffer)
 from pandas.tseries.period import Period
 from pandas import json
 from pandas.compat import (map, zip, reduce, range, lrange, u, add_metaclass,
@@ -468,7 +468,7 @@ class ExcelFile(object):
                 if not squeeze or isinstance(output[asheetname], DataFrame):
                     output[asheetname].columns = output[
                         asheetname].columns.set_names(header_names)
-            except StopIteration:
+            except EmptyDataError:
                 # No Data, return an empty DataFrame
                 output[asheetname] = DataFrame()
 

@@ -12,7 +12,8 @@ from distutils.version import LooseVersion
 
 import numpy as np
 
-from pandas.io.common import _is_url, urlopen, parse_url, _validate_header_arg
+from pandas.io.common import (EmptyDataError, _is_url, urlopen,
+                              parse_url, _validate_header_arg)
 from pandas.io.parsers import TextParser
 from pandas.compat import (lrange, lmap, u, string_types, iteritems,
                            raise_with_traceback, binary_type)
@@ -742,7 +743,7 @@ def _parse(flavor, io, match, header, index_col, skiprows,
                                       parse_dates=parse_dates,
                                       tupleize_cols=tupleize_cols,
                                       thousands=thousands))
-        except StopIteration:  # empty table
+        except EmptyDataError:  # empty table
             continue
     return ret
 
