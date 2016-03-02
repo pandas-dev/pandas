@@ -3807,6 +3807,22 @@ class CParserTests(ParserTests):
             except Exception as e:
                 pass
 
+    def test_read_empty_with_usecols(self):
+        # See gh-12493
+        names = ['Dummy', 'X', 'Dummy_2']
+        usecols = names[1:2] # ['X']
+
+        def check_usecols(stringIO, expected):
+            df = read_csv(stringIO, names=names, usecols=usecols)
+            tm.assert_frame_equal(df, expected)
+
+        expected = DataFrame(columns=usecols,
+                             index=[0], dtype=np.float64)
+        check_usecols(StringIO(',,'), expected)
+
+        expected = DataFrame(columns=usecols)
+        check_usecols(StringIO(''), expected)
+
 
 class TestCParserHighMemory(CParserTests, CompressionTests, tm.TestCase):
     engine = 'c'

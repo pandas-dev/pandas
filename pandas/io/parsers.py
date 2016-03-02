@@ -1255,10 +1255,19 @@ class CParserWrapper(ParserBase):
         except StopIteration:
             if self._first_chunk:
                 self._first_chunk = False
-                return _get_empty_meta(self.orig_names,
-                                       self.index_col,
-                                       self.index_names,
-                                       dtype=self.kwds.get('dtype'))
+
+                index, columns, col_dict = _get_empty_meta(
+                    self.orig_names, self.index_col,
+                    self.index_names, dtype=self.kwds.get('dtype'))
+
+                if self.usecols is not None:
+                    columns = self._filter_usecols(columns)
+
+                col_dict = dict(filter(lambda item: item[0] in columns,
+                                       col_dict.items()))
+
+                return index, columns, col_dict
+
             else:
                 raise
 
