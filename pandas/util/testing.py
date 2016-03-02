@@ -133,7 +133,7 @@ RANDU_CHARS = np.array(list(u("").join(map(unichr, lrange(1488, 1488 + 26))) +
 
 def rands_array(nchars, size, dtype='O'):
     """Generate an array of byte strings."""
-    retval = (choice(RANDS_CHARS, size=nchars * np.prod(size))
+    retval = (np.random.choice(RANDS_CHARS, size=nchars * np.prod(size))
               .view((np.str_, nchars)).reshape(size))
     if dtype is None:
         return retval
@@ -143,7 +143,7 @@ def rands_array(nchars, size, dtype='O'):
 
 def randu_array(nchars, size, dtype='O'):
     """Generate an array of unicode strings."""
-    retval = (choice(RANDU_CHARS, size=nchars * np.prod(size))
+    retval = (np.random.choice(RANDU_CHARS, size=nchars * np.prod(size))
               .view((np.unicode_, nchars)).reshape(size))
     if dtype is None:
         return retval
@@ -158,7 +158,7 @@ def rands(nchars):
     See `rands_array` if you want to create an array of random strings.
 
     """
-    return ''.join(choice(RANDS_CHARS, nchars))
+    return ''.join(np.random.choice(RANDS_CHARS, nchars))
 
 
 def randu(nchars):
@@ -169,14 +169,6 @@ def randu(nchars):
 
     """
     return ''.join(choice(RANDU_CHARS, nchars))
-
-
-def choice(x, size=10):
-    """sample with replacement; uniform over the input"""
-    try:
-        return np.random.choice(x, size=size)
-    except AttributeError:
-        return np.random.randint(len(x), size=size).choose(x)
 
 
 def close(fignum=None):
