@@ -1157,18 +1157,21 @@ class CParserWrapper(ParserBase):
             else:
                 self.names = lrange(self._reader.table_width)
 
-        # If the names were inferred (not passed by user) and usedcols is
-        # defined, then ensure names refers to the used columns, not the
-        # document's columns.
-        if self.usecols and passed_names:
-            col_indices = []
-            for u in self.usecols:
-                if isinstance(u, string_types):
-                    col_indices.append(self.names.index(u))
-                else:
-                    col_indices.append(u)
-            self.names = [n for i, n in enumerate(self.names)
-                          if i in col_indices]
+        # gh-9755
+        #
+        # need to set orig_names here first
+        # so that proper indexing can be done
+        # with _set_noconvert_columns
+        #
+        # once names has been filtered, we will
+        # then set orig_names again to names
+        self.orig_names = self.names[:]
+
+        if self.usecols:
+            if len(self.names) > len(self.usecols):
+                self.names = [n for i, n in enumerate(self.names)
+                              if (i in self.usecols or n in self.usecols)]
+
             if len(self.names) < len(self.usecols):
                 raise ValueError("Usecols do not match names.")
 
@@ -1194,13 +1197,17 @@ class CParserWrapper(ParserBase):
         self._implicit_index = self._reader.leading_cols > 0
 
     def _set_noconvert_columns(self):
-        names = self.names
+        names = self.orig_names
+        usecols = self.usecols
 
         def _set(x):
-            if com.is_integer(x):
-                self._reader.set_noconvert(x)
-            else:
-                self._reader.set_noconvert(names.index(x))
+            if usecols and com.is_integer(x):
+                x = list(usecols)[x]
+
+            if not com.is_integer(x):
+                x = names.index(x)
+
+            self._reader.set_noconvert(x)
 
         if isinstance(self.parse_dates, list):
             for val in self.parse_dates:

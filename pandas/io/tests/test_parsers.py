@@ -2682,12 +2682,84 @@ MyColumn
         df = self.read_csv(StringIO(csv), usecols=usecols)
         tm.assert_frame_equal(df, expected)
 
-        usecols = ['a', 1]
+        usecols = ['a', 'b']
         df = self.read_csv(StringIO(csv), usecols=usecols)
         tm.assert_frame_equal(df, expected)
 
-        usecols = ['a', 'b']
-        df = self.read_csv(StringIO(csv), usecols=usecols)
+    def test_usecols_with_parse_dates(self):
+        # See gh-9755
+        s = """a,b,c,d,e
+        0,1,20140101,0900,4
+        0,1,20140102,1000,4"""
+        parse_dates = [[1, 2]]
+
+        cols = {
+            'a'  : [0, 0],
+            'c_d': [
+                Timestamp('2014-01-01 09:00:00'),
+                Timestamp('2014-01-02 10:00:00')
+            ]
+        }
+        expected = DataFrame(cols, columns=['c_d', 'a'])
+
+        df = read_csv(StringIO(s), usecols=[0, 2, 3],
+                      parse_dates=parse_dates)
+        tm.assert_frame_equal(df, expected)
+
+        df = read_csv(StringIO(s), usecols=[3, 0, 2],
+                      parse_dates=parse_dates)
+        tm.assert_frame_equal(df, expected)
+
+    def test_usecols_with_parse_dates_and_full_names(self):
+        # See gh-9755
+        s = """0,1,20140101,0900,4
+        0,1,20140102,1000,4"""
+        parse_dates = [[1, 2]]
+        names = list('abcde')
+
+        cols = {
+            'a'  : [0, 0],
+            'c_d': [
+                Timestamp('2014-01-01 09:00:00'),
+                Timestamp('2014-01-02 10:00:00')
+            ]
+        }
+        expected = DataFrame(cols, columns=['c_d', 'a'])
+
+        df = read_csv(StringIO(s), names=names,
+                      usecols=[0, 2, 3],
+                      parse_dates=parse_dates)
+        tm.assert_frame_equal(df, expected)
+
+        df = read_csv(StringIO(s), names=names,
+                      usecols=[3, 0, 2],
+                      parse_dates=parse_dates)
+        tm.assert_frame_equal(df, expected)
+
+    def test_usecols_with_parse_dates_and_usecol_names(self):
+        # See gh-9755
+        s = """0,1,20140101,0900,4
+        0,1,20140102,1000,4"""
+        parse_dates = [[1, 2]]
+        names = list('acd')
+
+        cols = {
+            'a'  : [0, 0],
+            'c_d': [
+                Timestamp('2014-01-01 09:00:00'),
+                Timestamp('2014-01-02 10:00:00')
+            ]
+        }
+        expected = DataFrame(cols, columns=['c_d', 'a'])
+
+        df = read_csv(StringIO(s), names=names,
+                      usecols=[0, 2, 3],
+                      parse_dates=parse_dates)
+        tm.assert_frame_equal(df, expected)
+
+        df = read_csv(StringIO(s), names=names,
+                      usecols=[3, 0, 2],
+                      parse_dates=parse_dates)
         tm.assert_frame_equal(df, expected)
 
 
