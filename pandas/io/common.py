@@ -56,7 +56,37 @@ _VALID_URLS = set(uses_relative + uses_netloc + uses_params)
 _VALID_URLS.discard('')
 
 
+class CParserError(ValueError):
+    """
+    Exception that is thrown by the C engine when it encounters
+    a parsing error in `pd.read_csv`
+    """
+    pass
+
+
 class DtypeWarning(Warning):
+    """
+    Warning that is raised whenever `pd.read_csv` encounters non-
+    uniform dtypes in a column(s) of a given CSV file
+    """
+    pass
+
+
+class EmptyDataError(ValueError):
+    """
+    Exception that is thrown in `pd.read_csv` (by both the C and
+    Python engines) when empty data or header is encountered
+    """
+    pass
+
+
+class ParserWarning(Warning):
+    """
+    Warning that is raised in `pd.read_csv` whenever it is necessary
+    to change parsers (generally from 'c' to 'python') contrary to the
+    one specified by the user due to lack of support or functionality for
+    parsing particular attributes of a CSV file with the requsted engine
+    """
     pass
 
 

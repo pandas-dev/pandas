@@ -179,6 +179,45 @@ New Behavior:
     # Output is a DataFrame
     df.groupby(pd.TimeGrouper(key='date', freq='M')).apply(lambda x: x[['value']].sum())
 
+.. _whatsnew_0181.read_csv_exceptions:
+
+Change in ``read_csv`` exceptions
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+In order to standardize the ``read_csv`` API for both the C and Python engines, both will now raise an
+``EmptyDataError``, a subclass of ``ValueError``, in response to empty columns or header (:issue:`12493`, :issue:`12506`)
+
+Previous behaviour:
+
+.. code-block:: python
+
+   In [1]: df = pd.read_csv(StringIO(''), engine='c')
+   ...
+   ValueError: No columns to parse from file
+
+   In [2]: df = pd.read_csv(StringIO(''), engine='python')
+   ...
+   StopIteration
+
+New behaviour:
+
+.. code-block:: python
+
+   In [1]: df = pd.read_csv(StringIO(''), engine='c')
+   ...
+   pandas.io.common.EmptyDataError: No columns to parse from file
+
+   In [2]: df = pd.read_csv(StringIO(''), engine='python')
+   ...
+   pandas.io.common.EmptyDataError: No columns to parse from file
+
+In addition to this error change, several others have been made as well:
+
+- ``CParserError`` is now a ``ValueError`` instead of just an ``Exception`` (:issue:`12551`)
+- A ``CParserError`` is now raised instead of a generic ``Exception`` in ``read_csv`` when the C engine cannot parse a column
+- A ``ValueError`` is now raised instead of a generic ``Exception`` in ``read_csv`` when the C engine encounters a ``NaN`` value in an integer column
+- A ``ValueError`` is now raised instead of a generic ``Exception`` in ``read_csv`` when ``true_values`` is specified, and the C engine encounters an element in a column containing unencodable bytes
+- ``pandas.parser.OverflowError`` exception has been removed and has been replaced with Python's built-in ``OverflowError`` exception
 
 .. _whatsnew_0181.deprecations:
 
