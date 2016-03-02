@@ -498,30 +498,8 @@ class _Rolling_and_Expanding(_Rolling):
         window = self._get_window()
         window = min(window, len(obj)) if not self.center else window
 
-        # GH #12373: rolling functions raise ValueError on float32 data
-        # enables count for timedelta/datatime64 dtypes
-        def maybe_i8conversion1d(obj):
-            if com.needs_i8_conversion(obj):
-                obj = obj.view('i8').astype('float64')
-            return obj
-
-        def maybe_i8conversion(obj):
-            if isinstance(obj, (np.ndarray, pd.Series)):
-                return maybe_i8conversion1d(obj)
-            elif isinstance(obj, pd.DataFrame):
-                print('here')
-                values = obj.values.copy()
-                values = maybe_i8conversion1d(values)
-
-                result = pd.DataFrame(values,
-                                      index=obj.index,
-                                      columns=obj.columns)
-                return result
-            else:
-                return obj
-
         try:
-            converted = np.isfinite(maybe_i8conversion(obj)).astype(float)
+            converted = np.isfinite(obj).astype(float)
         except TypeError:
             converted = np.isfinite(obj.astype(float)).astype(float)
         result = self._constructor(converted, window=window, min_periods=0,

@@ -460,60 +460,27 @@ class TestDtype_float64(TestDtype):
     dtype = np.float64
 
 
-class TestDtype_timedelta(TestDtype):
-    dtype = np.dtype('m8[ns]')
-    import pandas.tslib as tslib
-    naval = tslib.iNaT
-
-    funcs = {
-        'count': (lambda v: v.count(), None, 'float64'),
-        'max': (lambda v: v.max(), None, 'm8[ns]'),
-        'min': (lambda v: v.min(), None, 'm8[ns]'),
-        'sum': (lambda v: v.sum(), None, 'm8[ns]'),
-        'mean': (lambda v: v.mean(), None, 'm8[ns]'),
-        'std': (lambda v: v.std(), None, 'm8[ns]'),
-        'var': (lambda v: v.var(), None, 'm8[ns]'),
-        'median': (lambda v: v.median(), None, 'm8[ns]')
-    }
-
-
-class TestDtype_datetime64(TestDtype):
-    dtype = np.dtype('M8[ns]')
-
-    # Rolling functions apply to datetime64 returns float64
-    # So we do not need to coerce the results, just coerce expects
-    funcs = {
-        'count': (lambda v: v.count(), None, 'float64'),
-        'max': (lambda v: v.max(), None, 'float64'),
-        'min': (lambda v: v.min(), None, 'float64'),
-        'sum': (lambda v: v.sum(), None, 'float64'),
-        'mean': (lambda v: v.mean(), None, 'float64'),
-        'std': (lambda v: v.std(), None, 'float64'),
-        'var': (lambda v: v.var(), None, 'float64'),
-        'median': (lambda v: v.median(), None, 'float64')
-    }
-
-
-class TestDtype_datetime64UTC(TestDtype):
-    dtype = 'datetime64[ns, UTC]'
-    # Set to True once dtype='datetime64[ns, UTC]' is available
-    # when constructing a DataFrame
-    include_df = False
-
-    funcs = {
-        'count': (lambda v: v.count(), None, 'float64'),
-        'max': (lambda v: v.max(), None, 'float64'),
-        'min': (lambda v: v.min(), None, 'float64'),
-        'sum': (lambda v: v.sum(), None, 'float64'),
-        'mean': (lambda v: v.mean(), None, 'float64'),
-        'std': (lambda v: v.std(), None, 'float64'),
-        'var': (lambda v: v.var(), None, 'float64'),
-        'median': (lambda v: v.median(), None, 'float64')
-    }
-
-
 class TestDtype_category(TestDtype):
     dtype = 'category'
+    include_df = False
+
+
+class TestDatetimeLikeDtype(TestDtype):
+    dtype = np.dtype('M8[ns]')
+
+    def test_dtypes(self):
+        with tm.assertRaises(TypeError):
+            super(TestDatetimeLikeDtype, self).test_dtypes()
+
+
+class TestDtype_timedelta(TestDatetimeLikeDtype):
+    dtype = np.dtype('m8[ns]')
+
+
+class TestDtype_datetime64UTC(TestDatetimeLikeDtype):
+    dtype = 'datetime64[ns, UTC]'
+    # Turn this to false once DataFrame constructor accept
+    # 'datetime64[ns, UTC]' as dtype
     include_df = False
 
 
