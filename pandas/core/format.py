@@ -10,7 +10,7 @@ from pandas.core.common import isnull, notnull
 from pandas.core.index import Index, MultiIndex, _ensure_index
 from pandas import compat
 from pandas.compat import (StringIO, lzip, range, map, zip, reduce, u,
-                           OrderedDict)
+                           OrderedDict, unichr)
 from pandas.util.terminal import get_terminal_size
 from pandas.core.config import get_option, set_option
 from pandas.io.common import _get_handle, UnicodeWriter, _expand_user

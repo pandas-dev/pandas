@@ -11,6 +11,9 @@ import numpy as np
 from pandas.core.common import _values_from_object
 from pandas.computation import _NUMEXPR_INSTALLED
 
+if _NUMEXPR_INSTALLED:
+    import numexpr as ne
+
 _TEST_MODE = None
 _TEST_RESULT = None
 _USE_NUMEXPR = _NUMEXPR_INSTALLED
