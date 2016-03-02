@@ -6,11 +6,11 @@
 import warnings
 import tokenize
 from pandas.core import common as com
+from pandas.computation import _NUMEXPR_INSTALLED
 from pandas.computation.expr import Expr, _parsers, tokenize_string
 from pandas.computation.scope import _ensure_scope
 from pandas.compat import string_types
 from pandas.computation.engines import _engines
-from distutils.version import LooseVersion
 
 
 def _check_engine(engine):
@@ -35,17 +35,11 @@ def _check_engine(engine):
     # that won't necessarily be import-able)
     # Could potentially be done on engine instantiation
     if engine == 'numexpr':
-        try:
-            import numexpr
-        except ImportError:
-            raise ImportError("'numexpr' not found. Cannot use "
+        if not _NUMEXPR_INSTALLED:
+            raise ImportError("'numexpr' is not installed or an "
+                              "unsupported version. Cannot use "
                               "engine='numexpr' for query/eval "
                               "if 'numexpr' is not installed")
-        else:
-            ne_version = numexpr.__version__
-            if ne_version < LooseVersion('2.1'):
-                raise ImportError("'numexpr' version is %s, "
-                                  "must be >= 2.1" % ne_version)
 
 
 def _check_parser(parser):

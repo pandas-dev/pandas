@@ -12,6 +12,10 @@ users upgrade to this version.
    pandas >= 0.18.0 no longer supports compatibility with Python version 2.6
    and 3.3 (:issue:`7718`, :issue:`11273`)
 
+.. warning::
+
+   ``numexpr`` version 2.4.4 will now show a warning and not be used as a computation back-end for pandas because of some buggy behavior. This does not affect other versions (>= 2.1 and >= 2.4.6). (:issue:`12489`)
+
 Highlights include:
 
 - Moving and expanding window functions are now methods on Series and DataFrame,
