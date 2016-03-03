@@ -2635,6 +2635,26 @@ MyColumn
         self.assertRaises(Exception, self.read_csv,
                           StringIO(data), escapechar='\\')
 
+    def test_grow_boundary_at_cap(self):
+        # See gh-12494
+        #
+        # Cause of error was the fact that pandas
+        # was not increasing the buffer size when
+        # the desired space would fill the buffer
+        # to capacity, which later would cause a
+        # buffer overflow error when checking the
+        # EOF terminator of the CSV stream
+        def test_empty_header_read(count):
+            s = StringIO(',' * count)
+            expected = DataFrame(columns=[
+                'Unnamed: {i}'.format(i=i)
+                for i in range(count + 1)])
+            df = read_csv(s)
+            tm.assert_frame_equal(df, expected)
+
+        for count in range(1, 101):
+            test_empty_header_read(count)
+
 
 class TestPythonParser(ParserTests, tm.TestCase):
 
