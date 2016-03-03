@@ -111,7 +111,7 @@ static void *grow_buffer(void *buffer, int length, int *capacity,
     void *newbuffer = buffer;
 
     // Can we fit potentially nbytes tokens (+ null terminators) in the stream?
-    while ( (length + space > cap) && (newbuffer != NULL) ){
+    while ( (length + space >= cap) && (newbuffer != NULL) ){
         cap = cap? cap << 1 : 2;
         buffer = newbuffer;
         newbuffer = safe_realloc(newbuffer, elsize * cap);
