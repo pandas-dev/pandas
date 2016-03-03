@@ -1,8 +1,8 @@
 """A collection of random tools for dealing with dates in Python"""
 
-from pandas.tseries.tools import *  # noqa
-from pandas.tseries.offsets import *  # noqa
-from pandas.tseries.frequencies import *  # noqa
+from pandas.tseries.tools import *  # flake8: noqa
+from pandas.tseries.offsets import *  # flake8: noqa
+from pandas.tseries.frequencies import *  # flake8: noqa
 
 day = DateOffset()
 bday = BDay()
