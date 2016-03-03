@@ -1782,33 +1782,6 @@ def test_name_error_exprs():
         yield check_name_error_exprs, engine, parser
 
 
-def check_invalid_numexpr_version(engine, parser):
-    def testit():
-        a, b = 1, 2
-        res = pd.eval('a + b', engine=engine, parser=parser)
-        tm.assert_equal(res, 3)
-
-    if engine == 'numexpr':
-        try:
-            import numexpr as ne
-        except ImportError:
-            raise nose.SkipTest("no numexpr")
-        else:
-            if ne.__version__ < LooseVersion('2.1'):
-                with tm.assertRaisesRegexp(ImportError, "'numexpr' version is "
-                                           ".+, must be >= 2.1"):
-                    testit()
-            else:
-                testit()
-    else:
-        testit()
-
-
-def test_invalid_numexpr_version():
-    for engine, parser in ENGINES_PARSERS:
-        yield check_invalid_numexpr_version, engine, parser
-
-
 def check_invalid_local_variable_reference(engine, parser):
     tm.skip_if_no_ne(engine)
 

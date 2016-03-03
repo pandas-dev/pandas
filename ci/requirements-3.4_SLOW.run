@@ -9,7 +9,7 @@ html5lib
 patsy
 beautiful-soup
 scipy
-numexpr
+numexpr=2.4.4
 pytables
 matplotlib
 lxml
