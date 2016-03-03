@@ -7,7 +7,8 @@ from itertools import product
 from contextlib import contextmanager
 from uuid import uuid1
 import copy
-from collections import defaultdict, MutableMapping
+from collections import defaultdict
+from collections.abc import MutableMapping
 
 try:
     from jinja2 import Template
@@ -215,7 +216,7 @@ class Styler(object):
                                "class": " ".join(cs)})
             head.append(row_es)
 
-        if self.data.index.names:
+        if self.data.index.names and self.data.index.names != [None]:
             index_header_row = []
 
             for c, name in enumerate(self.data.index.names):
@@ -272,7 +273,7 @@ class Styler(object):
                     caption=caption, table_attributes=self.table_attributes)
 
     def format(self, formatter, subset=None):
-        """
+        '''
         Format the text display value of cells.
 
         .. versionadded:: 0.18.0
@@ -281,8 +282,6 @@ class Styler(object):
         ----------
         formatter: str, callable, or dict
         subset: IndexSlice
-            A argument to DataFrame.loc that restricts which elements
-            ``formatter`` is applied to.
 
         Returns
         -------
@@ -293,9 +292,8 @@ class Styler(object):
 
         ``formatter`` is either an ``a`` or a dict ``{column name: a}`` where
         ``a`` is one of
-
-        - str: this will be wrapped in: ``a.format(x)``
-        - callable: called with the value of an individual cell
+            - str: this will be wrapped in: ``a.format(x)``
+            - callable: called with the value of an individual cell
 
         The default display value for numeric values is the "general" (``g``)
         format with ``pd.options.display.precision`` precision.
@@ -307,7 +305,7 @@ class Styler(object):
         >>> df.style.format("{:.2%}")
         >>> df['c'] = ['a', 'b', 'c', 'd']
         >>> df.style.format({'C': str.upper})
-        """
+        '''
         if subset is None:
             row_locs = range(len(self.data))
             col_locs = range(len(self.data.columns))
@@ -855,11 +853,11 @@ class Styler(object):
 
 
 def _maybe_wrap_formatter(formatter):
-    if com.is_string_like(formatter):
-        return lambda x: formatter.format(x)
-    elif callable(formatter):
-        return formatter
-    else:
+    if not (callable(formatter) or com.is_string_like(formatter)):
         msg = "Expected a template string or callable, got {} instead".format(
             formatter)
         raise TypeError(msg)
+    if not callable(formatter):
+        return lambda x: formatter.format(x)
+    else:
+        return formatter
