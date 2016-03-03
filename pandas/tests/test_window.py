@@ -297,8 +297,6 @@ class TestDtype(Base):
     window = 2
     # the nan value, timedelta uses tslib.iNaT
     naval = np.nan
-    # Do we construct DataFrame for testing.
-    include_df = True
 
     # Function Name : (function, result_dtype, expectation_dtype)
     funcs = {
@@ -358,14 +356,13 @@ class TestDtype(Base):
     def _create_dtype_data(self, dtype):
         sr1 = Series(range(5), dtype=dtype)
         sr2 = Series(range(10, 0, -2), dtype=dtype)
+        df = DataFrame(np.arange(10).reshape((5, 2)), dtype=dtype)
 
         data = {
             'sr1': sr1,
-            'sr2': sr2
+            'sr2': sr2,
+            'df': df
         }
-        if self.include_df:
-            df = DataFrame(np.arange(10).reshape((5, 2)), dtype=dtype)
-            data['df'] = df
 
         return data
 
@@ -464,9 +461,24 @@ class TestDtype_category(TestDtype):
     dtype = 'category'
     include_df = False
 
+    def _create_dtype_data(self, dtype):
+        sr1 = Series(range(5), dtype=dtype)
+        sr2 = Series(range(10, 0, -2), dtype=dtype)
+
+        data = {
+            'sr1': sr1,
+            'sr2': sr2
+        }
+
+        return data
+
 
 class TestDatetimeLikeDtype(TestDtype):
     dtype = np.dtype('M8[ns]')
+
+    # GH #12373: rolling functions raise ValueError on float32 data
+    def setUp(self):
+        raise nose.SkipTest("Skip rolling on DatetimeLike dtypes.")
 
     def test_dtypes(self):
         with tm.assertRaises(TypeError):
@@ -479,9 +491,6 @@ class TestDtype_timedelta(TestDatetimeLikeDtype):
 
 class TestDtype_datetime64UTC(TestDatetimeLikeDtype):
     dtype = 'datetime64[ns, UTC]'
-    # Turn this to false once DataFrame constructor accept
-    # 'datetime64[ns, UTC]' as dtype
-    include_df = False
 
 
 class TestMoments(Base):
