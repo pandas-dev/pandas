@@ -9,20 +9,10 @@ Offer fast expression evaluation through numexpr
 import warnings
 import numpy as np
 from pandas.core.common import _values_from_object
-from distutils.version import LooseVersion
+from pandas.computation import _NUMEXPR_INSTALLED
 
-try:
+if _NUMEXPR_INSTALLED:
     import numexpr as ne
-    ver = ne.__version__
-    _NUMEXPR_INSTALLED = ver >= LooseVersion('2.1')
-    if not _NUMEXPR_INSTALLED:
-        warnings.warn(
-            "The installed version of numexpr {ver} is not supported "
-            "in pandas and will be not be used\nThe minimum supported "
-            "version is 2.1\n".format(ver=ver), UserWarning)
-
-except ImportError:  # pragma: no cover
-    _NUMEXPR_INSTALLED = False
 
 _TEST_MODE = None
 _TEST_RESULT = None

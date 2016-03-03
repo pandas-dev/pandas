@@ -225,7 +225,7 @@ Recommended Dependencies
 
 * `numexpr <https://github.com/pydata/numexpr>`__: for accelerating certain numerical operations.
   ``numexpr`` uses multiple cores as well as smart chunking and caching to achieve large speedups.
-  If installed, must be Version 2.1 or higher. Version 2.4.6 or higher on Windows is highly recommended.
+  If installed, must be Version 2.1 or higher (excluding a buggy 2.4.4). Version 2.4.6 or higher is highly recommended.
 
 * `bottleneck <http://berkeleyanalytics.com/bottleneck>`__: for accelerating certain types of ``nan``
   evaluations. ``bottleneck`` uses specialized cython routines to achieve large speedups.

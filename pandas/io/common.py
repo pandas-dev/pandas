@@ -146,6 +146,10 @@ try:
 except ImportError:
     # boto is only needed for reading from S3.
     pass
+except TypeError:
+    # boto/boto3 issues
+    # GH11915
+    pass
 
 
 def _is_url(url):
