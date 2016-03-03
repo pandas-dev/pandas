@@ -104,7 +104,7 @@ def assert_sp_frame_equal(left, right, exact_indices=True):
 
 
 def assert_sp_panel_equal(left, right, exact_indices=True):
-    for item, frame in compat.iteritems(left):
+    for item, frame in left.iteritems():
         assert (item in right)
         # trade-off?
         assert_sp_frame_equal(frame, right[item], exact_indices=exact_indices)

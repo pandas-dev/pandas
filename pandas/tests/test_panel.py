@@ -318,10 +318,10 @@ class SafeForSparse(object):
     def test_iteritems(self):
         # Test panel.iteritems(), aka panel.iteritems()
         # just test that it works
-        for k, v in compat.iteritems(self.panel):
+        for k, v in self.panel.iteritems():
             pass
 
-        self.assertEqual(len(list(compat.iteritems(self.panel))),
+        self.assertEqual(len(list(self.panel.iteritems())),
                          len(self.panel.items))
 
     @ignore_sparse_panel_future_warning
@@ -1105,7 +1105,7 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing, SafeForLongAndSparse,
         assert_panel_equal(result, expected)
 
     def test_constructor_dict_mixed(self):
-        data = dict((k, v.values) for k, v in compat.iteritems(self.panel))
+        data = dict((k, v.values) for k, v in self.panel.iteritems())
         result = Panel(data)
         exp_major = Index(np.arange(len(self.panel.major_axis)))
         self.assertTrue(result.major_axis.equals(exp_major))
@@ -1872,7 +1872,7 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing, SafeForLongAndSparse,
         # negative numbers, #2164
         result = self.panel.shift(-1)
         expected = Panel(dict((i, f.shift(-1)[:-1])
-                              for i, f in compat.iteritems(self.panel)))
+                              for i, f in self.panel.iteritems()))
         assert_panel_equal(result, expected)
 
         # mixed dtypes #6959
@@ -2072,7 +2072,7 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing, SafeForLongAndSparse,
                 except ImportError:
                     raise nose.SkipTest("need xlwt xlrd openpyxl")
 
-                for item, df in compat.iteritems(self.panel):
+                for item, df in self.panel.iteritems():
                     recdf = reader.parse(str(item), index_col=0)
                     assert_frame_equal(df, recdf)
 
@@ -2092,7 +2092,7 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing, SafeForLongAndSparse,
             except ImportError as e:
                 raise nose.SkipTest("cannot write excel file: %s" % e)
 
-            for item, df in compat.iteritems(self.panel):
+            for item, df in self.panel.iteritems():
                 recdf = reader.parse(str(item), index_col=0)
                 assert_frame_equal(df, recdf)
 
