@@ -4,7 +4,8 @@ Testing that functions from compat work as expected
 """
 
 from pandas.compat import (range, zip, map, filter, lrange, lzip, lmap,
-                           lfilter, builtins)
+                           lfilter, builtins, iterkeys, itervalues, iteritems,
+                           next)
 import pandas.util.testing as tm
 
 
@@ -61,3 +62,8 @@ class TestBuiltinIterators(tm.TestCase):
         expected = list(builtins.zip(*lst)),
         lengths = 10,
         self.check_result(actual, expected, lengths)
+
+    def test_dict_iterators(self):
+        self.assertEqual(next(itervalues({1: 2})), 2)
+        self.assertEqual(next(iterkeys({1: 2})), 1)
+        self.assertEqual(next(iteritems({1: 2})), (1, 2))

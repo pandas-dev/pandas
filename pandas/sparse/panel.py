@@ -393,7 +393,7 @@ class SparsePanel(Panel):
             return self._combinePanel(other, func)
         elif lib.isscalar(other):
             new_frames = dict((k, func(v, other))
-                              for k, v in compat.iteritems(self))
+                              for k, v in self.iteritems())
             return self._new_like(new_frames)
 
     def _combineFrame(self, other, func, axis=0):
@@ -470,7 +470,7 @@ class SparsePanel(Panel):
         y : DataFrame
             index -> minor axis, columns -> items
         """
-        slices = dict((k, v.xs(key)) for k, v in compat.iteritems(self))
+        slices = dict((k, v.xs(key)) for k, v in self.iteritems())
         return DataFrame(slices, index=self.minor_axis, columns=self.items)
 
     def minor_xs(self, key):
@@ -487,7 +487,7 @@ class SparsePanel(Panel):
         y : SparseDataFrame
             index -> major axis, columns -> items
         """
-        slices = dict((k, v[key]) for k, v in compat.iteritems(self))
+        slices = dict((k, v[key]) for k, v in self.iteritems())
         return SparseDataFrame(slices, index=self.major_axis,
                                columns=self.items,
                                default_fill_value=self.default_fill_value,

@@ -44,7 +44,7 @@ class TestFamaMacBeth(BaseTest):
             end = index[i + window - 1]
 
             x2 = {}
-            for k, v in compat.iteritems(x):
+            for k, v in x.iteritems():
                 x2[k] = v.truncate(start, end)
             y2 = y.truncate(start, end)
 

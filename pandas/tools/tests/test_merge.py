@@ -2671,7 +2671,7 @@ class TestConcatenate(tm.TestCase):
 
         data_dict = {}
         for p in panels:
-            data_dict.update(compat.iteritems(p))
+            data_dict.update(p.iteritems())
 
         joined = panels[0].join(panels[1:], how='inner')
         expected = Panel.from_dict(data_dict, intersect=True)

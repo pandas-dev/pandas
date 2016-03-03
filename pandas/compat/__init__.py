@@ -153,31 +153,28 @@ else:
     lfilter = builtins.filter
 
 
-def iteritems(obj, **kwargs):
-    """replacement for six's iteritems for Python2/3 compat
-       uses 'iteritems' if available and otherwise uses 'items'.
+if PY2:
+    def iteritems(obj, **kw):
+        return obj.iteritems(**kw)
 
-       Passes kwargs to method.
-    """
-    func = getattr(obj, "iteritems", None)
-    if not func:
-        func = obj.items
-    return func(**kwargs)
+    def iterkeys(obj, **kw):
+        return obj.iterkeys(**kw)
 
+    def itervalues(obj, **kw):
+        return obj.itervalues(**kw)
 
-def iterkeys(obj, **kwargs):
-    func = getattr(obj, "iterkeys", None)
-    if not func:
-        func = obj.keys
-    return func(**kwargs)
+    next = lambda it : it.next()
+else:
+    def iteritems(obj, **kw):
+        return iter(obj.items(**kw))
 
+    def iterkeys(obj, **kw):
+        return iter(obj.keys(**kw))
 
-def itervalues(obj, **kwargs):
-    func = getattr(obj, "itervalues", None)
-    if not func:
-        func = obj.values
-    return func(**kwargs)
+    def itervalues(obj, **kw):
+        return iter(obj.values(**kw))
 
+    next = next
 
 def bind_method(cls, name, func):
     """Bind a method to class, python 2 and python 3 compatible.

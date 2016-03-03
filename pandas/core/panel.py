@@ -398,7 +398,7 @@ class Panel(NDFrame):
         y : SparseDataFrame
         """
         from pandas.core.sparse import SparsePanel
-        frames = dict(compat.iteritems(self))
+        frames = dict(self.iteritems())
         return SparsePanel(frames, items=self.items,
                            major_axis=self.major_axis,
                            minor_axis=self.minor_axis, default_kind=kind,
@@ -450,7 +450,7 @@ class Panel(NDFrame):
             writer = path
         kwargs['na_rep'] = na_rep
 
-        for item, df in compat.iteritems(self):
+        for item, df in self.iteritems():
             name = str(item)
             df.to_excel(writer, name, **kwargs)
         writer.save()
