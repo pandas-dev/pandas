@@ -537,9 +537,13 @@ static int end_line(parser_t *self) {
             }
 
             while (fields < ex_fields){
-                end_field(self);
-                /* printf("Prior word: %s\n", self->words[self->words_len - 2]); */
-                fields++;
+                self->error_msg = (char*) malloc(100);
+                sprintf(self->error_msg, "Expected %d fields in line %d, saw %d\n",
+                        ex_fields, self->file_lines, fields);
+
+                TRACE(("Error at line %d, %d fields\n", self->file_lines, fields));
+
+                return -1;
             }
         }
 
