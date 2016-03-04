@@ -17,9 +17,12 @@ job_name = os.environ.get('JOB_NAME', None)
 if job_name == '27_slow_nnet_LOCALE':
     raise SkipTest("No jinja")
 try:
-    from pandas.core.style import Styler
+    # Do try except on just jinja, so the only reason
+    # We skip is if jinja can't import, not something else
+    import jinja2  # noqa
 except ImportError:
     raise SkipTest("No Jinja2")
+from pandas.core.style import Styler  # noqa
 
 
 class TestStyler(TestCase):
