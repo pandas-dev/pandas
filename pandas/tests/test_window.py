@@ -295,60 +295,57 @@ class TestDeprecations(Base):
 class TestDtype(Base):
     dtype = None
     window = 2
-    # the nan value, timedelta uses tslib.iNaT
-    naval = np.nan
 
-    # Function Name : (function, result_dtype, expectation_dtype)
     funcs = {
-        'count': (lambda v: v.count(), 'float64', 'float64'),
-        'max': (lambda v: v.max(), 'float64', 'float64'),
-        'min': (lambda v: v.min(), 'float64', 'float64'),
-        'sum': (lambda v: v.sum(), 'float64', 'float64'),
-        'mean': (lambda v: v.mean(), 'float64', 'float64'),
-        'std': (lambda v: v.std(), 'float64', 'float64'),
-        'var': (lambda v: v.var(), 'float64', 'float64'),
-        'median': (lambda v: v.median(), 'float64', 'float64')
+        'count': lambda v: v.count(),
+        'max': lambda v: v.max(),
+        'min': lambda v: v.min(),
+        'sum': lambda v: v.sum(),
+        'mean': lambda v: v.mean(),
+        'std': lambda v: v.std(),
+        'var': lambda v: v.var(),
+        'median': lambda v: v.median()
     }
 
     def get_expects(self):
         expects = {
             'sr1': {
-                'count': Series([1, 2, 2, 2, 2]),
-                'max': Series([self.naval, 1, 2, 3, 4]),
-                'min': Series([self.naval, 0, 1, 2, 3]),
-                'sum': Series([self.naval, 1, 3, 5, 7]),
-                'mean': Series([self.naval, .5, 1.5, 2.5, 3.5]),
-                'std': Series([self.naval] + [np.sqrt(.5)] * 4),
-                'var': Series([self.naval, .5, .5, .5, .5]),
-                'median': Series([self.naval, .5, 1.5, 2.5, 3.5])
+                'count': Series([1, 2, 2, 2, 2], dtype='float64'),
+                'max': Series([np.nan, 1, 2, 3, 4], dtype='float64'),
+                'min': Series([np.nan, 0, 1, 2, 3], dtype='float64'),
+                'sum': Series([np.nan, 1, 3, 5, 7], dtype='float64'),
+                'mean': Series([np.nan, .5, 1.5, 2.5, 3.5], dtype='float64'),
+                'std': Series([np.nan] + [np.sqrt(.5)] * 4, dtype='float64'),
+                'var': Series([np.nan, .5, .5, .5, .5], dtype='float64'),
+                'median': Series([np.nan, .5, 1.5, 2.5, 3.5], dtype='float64')
             },
             'sr2': {
-                'count': Series([1, 2, 2, 2, 2]),
-                'max': Series([self.naval, 10, 8, 6, 4]),
-                'min': Series([self.naval, 8, 6, 4, 2]),
-                'sum': Series([self.naval, 18, 14, 10, 6]),
-                'mean': Series([self.naval, 9, 7, 5, 3]),
-                'std': Series([self.naval] + [np.sqrt(2)] * 4),
-                'var': Series([self.naval, 2, 2, 2, 2]),
-                'median': Series([self.naval, 9, 7, 5, 3])
+                'count': Series([1, 2, 2, 2, 2], dtype='float64'),
+                'max': Series([np.nan, 10, 8, 6, 4], dtype='float64'),
+                'min': Series([np.nan, 8, 6, 4, 2], dtype='float64'),
+                'sum': Series([np.nan, 18, 14, 10, 6], dtype='float64'),
+                'mean': Series([np.nan, 9, 7, 5, 3], dtype='float64'),
+                'std': Series([np.nan] + [np.sqrt(2)] * 4, dtype='float64'),
+                'var': Series([np.nan, 2, 2, 2, 2], dtype='float64'),
+                'median': Series([np.nan, 9, 7, 5, 3], dtype='float64')
             },
             'df': {
                 'count': DataFrame({0: Series([1, 2, 2, 2, 2]),
-                                    1: Series([1, 2, 2, 2, 2])}),
-                'max': DataFrame({0: Series([self.naval, 2, 4, 6, 8]),
-                                  1: Series([self.naval, 3, 5, 7, 9])}),
-                'min': DataFrame({0: Series([self.naval, 0, 2, 4, 6]),
-                                  1: Series([self.naval, 1, 3, 5, 7])}),
-                'sum': DataFrame({0: Series([self.naval, 2, 6, 10, 14]),
-                                  1: Series([self.naval, 4, 8, 12, 16])}),
-                'mean': DataFrame({0: Series([self.naval, 1, 3, 5, 7]),
-                                  1: Series([self.naval, 2, 4, 6, 8])}),
-                'std': DataFrame({0: Series([self.naval] + [np.sqrt(2)] * 4),
-                                  1: Series([self.naval] + [np.sqrt(2)] * 4)}),
-                'var': DataFrame({0: Series([self.naval, 2, 2, 2, 2]),
-                                  1: Series([self.naval, 2, 2, 2, 2])}),
-                'median': DataFrame({0: Series([self.naval, 1, 3, 5, 7]),
-                                     1: Series([self.naval, 2, 4, 6, 8])}),
+                                    1: Series([1, 2, 2, 2, 2])}, dtype='float64'),
+                'max': DataFrame({0: Series([np.nan, 2, 4, 6, 8]),
+                                  1: Series([np.nan, 3, 5, 7, 9])}, dtype='float64'),
+                'min': DataFrame({0: Series([np.nan, 0, 2, 4, 6]),
+                                  1: Series([np.nan, 1, 3, 5, 7])}, dtype='float64'),
+                'sum': DataFrame({0: Series([np.nan, 2, 6, 10, 14]),
+                                  1: Series([np.nan, 4, 8, 12, 16])}, dtype='float64'),
+                'mean': DataFrame({0: Series([np.nan, 1, 3, 5, 7]),
+                                  1: Series([np.nan, 2, 4, 6, 8])}, dtype='float64'),
+                'std': DataFrame({0: Series([np.nan] + [np.sqrt(2)] * 4),
+                                  1: Series([np.nan] + [np.sqrt(2)] * 4)}, dtype='float64'),
+                'var': DataFrame({0: Series([np.nan, 2, 2, 2, 2]),
+                                  1: Series([np.nan, 2, 2, 2, 2])}, dtype='float64'),
+                'median': DataFrame({0: Series([np.nan, 1, 3, 5, 7]),
+                                     1: Series([np.nan, 2, 4, 6, 8])}, dtype='float64'),
             }
         }
         return expects
@@ -374,38 +371,17 @@ class TestDtype(Base):
     def setUp(self):
         self._create_data()
 
-    def _cast_result(self, result, from_dtype, to_dtype):
-        if com.needs_i8_conversion(from_dtype):
-            if isinstance(result, Series):
-                result = result.view('i8')
-            elif isinstance(result, DataFrame):
-                final = []
-                for idx in result:
-                    final.append(Series(result[idx].view('i8')))
-                result = pd.concat(final, axis=1).reindex(
-                    columns=result.columns)
-        return result.astype(to_dtype)
-
     def test_dtypes(self):
         for f_name, d_name in product(self.funcs.keys(), self.data.keys()):
-            # Specify if the results and expectations
-            # need to be coerced to a given dtype
-            # once we changed the return value for roll_<function>,
-            # we should change coerce behavior here accordingly
-            f, res_dtype, exp_dtype = self.funcs[f_name]
+            f = self.funcs[f_name]
             d = self.data[d_name]
             assert_equal = assert_series_equal if isinstance(
                 d, Series) else assert_frame_equal
             exp = self.expects[d_name][f_name]
-            if exp_dtype:
-                exp = exp.astype(com.pandas_dtype(exp_dtype))
 
             roll = d.rolling(window=self.window)
             result = f(roll)
-            if res_dtype:
-                result = self._cast_result(result,
-                                           self.dtype,
-                                           com.pandas_dtype(res_dtype))
+
             assert_equal(result, exp)
 
 
