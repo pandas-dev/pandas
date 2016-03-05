@@ -73,7 +73,7 @@ def is_datetimetz(array):
 
 def is_period(array):
     """ return if we are a period array """
-    return isinstance(array, ABCPeriodIndex) or is_period_arraylike(array)
+    return is_period_dtype(array) # or is_period_arraylike(array)
 
 
 def is_datetime64_dtype(arr_or_dtype):
@@ -322,6 +322,8 @@ def is_extension_type(value):
     elif is_sparse(value):
         return True
     elif is_datetimetz(value):
+        return True
+    elif is_period_dtype(value):
         return True
     return False
 

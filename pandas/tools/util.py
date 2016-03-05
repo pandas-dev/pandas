@@ -168,7 +168,10 @@ def to_numeric(arg, errors='raise', downcast=None):
 
     if isinstance(arg, pd.Series):
         is_series = True
-        values = arg.values
+        if com.is_period_dtype(arg):
+            values = arg._values.asi8
+        else:
+            values = arg.values
     elif isinstance(arg, pd.Index):
         is_index = True
         values = arg.asi8

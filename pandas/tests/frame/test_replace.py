@@ -1032,15 +1032,15 @@ class TestDataFrameReplace(tm.TestCase, TestData):
 
         result = df.copy()
         result.iloc[1, 0] = np.nan
-        result = result.replace(
-            {'A': pd.NaT}, Timestamp('20130104', tz='US/Eastern'))
+        result = result.replace({'A': pd.NaT},
+                                Timestamp('20130104', tz='US/Eastern'))
         assert_frame_equal(result, expected)
 
         # coerce to object
         result = df.copy()
         result.iloc[1, 0] = np.nan
-        result = result.replace(
-            {'A': pd.NaT}, Timestamp('20130104', tz='US/Pacific'))
+        result = result.replace({'A': pd.NaT},
+                                Timestamp('20130104', tz='US/Pacific'))
         expected = DataFrame({'A': [Timestamp('20130101', tz='US/Eastern'),
                                     Timestamp('20130104', tz='US/Pacific'),
                                     Timestamp('20130103', tz='US/Eastern')],

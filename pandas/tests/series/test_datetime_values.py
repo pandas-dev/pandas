@@ -300,8 +300,8 @@ class TestSeriesDatetimeValues(TestData, tm.TestCase):
                            '2013/01/04', '2013/01/05'])
         tm.assert_series_equal(result, expected)
 
-        s = Series(period_range(
-            '2015-02-03 11:22:33.4567', periods=5, freq='s'))
+        s = Series(period_range('2015-02-03 11:22:33.4567',
+                                periods=5, freq='s'))
         result = s.dt.strftime('%Y/%m/%d %H-%M-%S')
         expected = Series(['2015/02/03 11-22-33', '2015/02/03 11-22-34',
                            '2015/02/03 11-22-35', '2015/02/03 11-22-36',
@@ -422,3 +422,32 @@ class TestSeriesDatetimeValues(TestData, tm.TestCase):
                            date(2015, 11, 22)])
         assert_series_equal(s.dt.date, expected)
         assert_series_equal(s.apply(lambda x: x.date()), expected)
+
+    def test_shift(self):
+        # shift test related to DatetimeBlock exists in test_timeseries,
+        # this intendes for datetime/timedelta/period compat
+        cases = [date_range('2016-11-06', freq='H', periods=10),
+                 date_range('2016-11-06', freq='H', periods=10,
+                            tz='US/Eastern'),
+                 timedelta_range('1 days', freq='D', periods=10),
+                 period_range('2011-01', freq='M', periods=10)]
+
+        for case in cases:
+            s = Series(case)
+            self.assertEqual(s.dtype, case.dtype)
+
+            res = s.shift(0)
+            tm.assert_series_equal(res, s)
+            self.assertEqual(res.dtype, case.dtype)
+
+            res = s.shift(1)
+            exp_vals = [pd.NaT] + case.asobject.values.tolist()[:9]
+            exp = Series(exp_vals)
+            tm.assert_series_equal(res, exp)
+            self.assertEqual(res.dtype, case.dtype)
+
+            res = s.shift(-2)
+            exp_vals = case.asobject.values.tolist()[2:] + [pd.NaT, pd.NaT]
+            exp = Series(exp_vals)
+            tm.assert_series_equal(res, exp)
+            self.assertEqual(res.dtype, case.dtype)

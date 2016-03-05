@@ -237,13 +237,14 @@ class TestDataFrameReshape(tm.TestCase, TestData):
         # Test unstacking with period
         periods = [Period('2012-01'), Period('2012-02'), Period('2012-03'),
                    Period('2012-04')]
+        pNaT = pd.Period('NaT', freq='M')
         data = Series(periods)
         data.index = MultiIndex.from_tuples(
             [('x', 'a'), ('x', 'b'), ('y', 'b'), ('z', 'a')])
 
         result = data.unstack()
-        expected = DataFrame({'a': [periods[0], None, periods[3]],
-                              'b': [periods[1], periods[2], None]},
+        expected = DataFrame({'a': [periods[0], pNaT, periods[3]],
+                              'b': [periods[1], periods[2], pNaT]},
                              index=['x', 'y', 'z'])
         assert_frame_equal(result, expected)
 

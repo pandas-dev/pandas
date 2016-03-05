@@ -92,8 +92,8 @@ def create_block(typestr, placement, item_shape=None, num_offset=0):
     elif typestr in ('category', ):
         values = Categorical([1, 1, 2, 2, 3, 3, 3, 3, 4, 4])
     elif typestr in ('category2', ):
-        values = Categorical(['a', 'a', 'a', 'a', 'b', 'b', 'c', 'c', 'c', 'd'
-                              ])
+        values = Categorical(['a', 'a', 'a', 'a', 'b', 'b',
+                              'c', 'c', 'c', 'd'])
     elif typestr in ('sparse', 'sparse_na'):
         # FIXME: doesn't support num_rows != 10
         assert shape[-1] == 10
@@ -468,8 +468,8 @@ class TestBlockManager(tm.TestCase):
         self.assertEqual(mgr2.get('quux').dtype, np.float_)
 
     def test_set_change_dtype_slice(self):  # GH8850
-        cols = MultiIndex.from_tuples([('1st', 'a'), ('2nd', 'b'), ('3rd', 'c')
-                                       ])
+        cols = MultiIndex.from_tuples([('1st', 'a'), ('2nd', 'b'),
+                                       ('3rd', 'c')])
         df = DataFrame([[1.0, 2, 3], [4.0, 5, 6]], columns=cols)
         df['2nd'] = df['2nd'] * 2.0
 
@@ -720,26 +720,22 @@ class TestBlockManager(tm.TestCase):
         reindexed = mgr.reindex_axis(['g', 'c', 'a', 'd'], axis=0)
         self.assertEqual(reindexed.nblocks, 2)
         tm.assert_index_equal(reindexed.items, pd.Index(['g', 'c', 'a', 'd']))
-        assert_almost_equal(
-            mgr.get('g', fastpath=False), reindexed.get('g', fastpath=False))
-        assert_almost_equal(
-            mgr.get('c', fastpath=False), reindexed.get('c', fastpath=False))
-        assert_almost_equal(
-            mgr.get('a', fastpath=False), reindexed.get('a', fastpath=False))
-        assert_almost_equal(
-            mgr.get('d', fastpath=False), reindexed.get('d', fastpath=False))
-        assert_almost_equal(
-            mgr.get('g').internal_values(),
-            reindexed.get('g').internal_values())
-        assert_almost_equal(
-            mgr.get('c').internal_values(),
-            reindexed.get('c').internal_values())
-        assert_almost_equal(
-            mgr.get('a').internal_values(),
-            reindexed.get('a').internal_values())
-        assert_almost_equal(
-            mgr.get('d').internal_values(),
-            reindexed.get('d').internal_values())
+        assert_almost_equal(mgr.get('g', fastpath=False),
+                            reindexed.get('g', fastpath=False))
+        assert_almost_equal(mgr.get('c', fastpath=False),
+                            reindexed.get('c', fastpath=False))
+        assert_almost_equal(mgr.get('a', fastpath=False),
+                            reindexed.get('a', fastpath=False))
+        assert_almost_equal(mgr.get('d', fastpath=False),
+                            reindexed.get('d', fastpath=False))
+        assert_almost_equal(mgr.get('g').internal_values(),
+                            reindexed.get('g').internal_values())
+        assert_almost_equal(mgr.get('c').internal_values(),
+                            reindexed.get('c').internal_values())
+        assert_almost_equal(mgr.get('a').internal_values(),
+                            reindexed.get('a').internal_values())
+        assert_almost_equal(mgr.get('d').internal_values(),
+                            reindexed.get('d').internal_values())
 
     def test_multiindex_xs(self):
         mgr = create_mgr('a,b,c: f8; d,e,f: i8')
@@ -765,28 +761,26 @@ class TestBlockManager(tm.TestCase):
         numeric = mgr.get_numeric_data()
         tm.assert_index_equal(numeric.items,
                               pd.Index(['int', 'float', 'complex', 'bool']))
-        assert_almost_equal(
-            mgr.get('float', fastpath=False), numeric.get('float',
-                                                          fastpath=False))
-        assert_almost_equal(
-            mgr.get('float').internal_values(),
-            numeric.get('float').internal_values())
+        assert_almost_equal(mgr.get('float', fastpath=False),
+                            numeric.get('float', fastpath=False))
+        assert_almost_equal(mgr.get('float').internal_values(),
+                            numeric.get('float').internal_values())
 
         # Check sharing
         numeric.set('float', np.array([100., 200., 300.]))
-        assert_almost_equal(
-            mgr.get('float', fastpath=False), np.array([100., 200., 300.]))
-        assert_almost_equal(
-            mgr.get('float').internal_values(), np.array([100., 200., 300.]))
+        assert_almost_equal(mgr.get('float', fastpath=False),
+                            np.array([100., 200., 300.]))
+        assert_almost_equal(mgr.get('float').internal_values(),
+                            np.array([100., 200., 300.]))
 
         numeric2 = mgr.get_numeric_data(copy=True)
         tm.assert_index_equal(numeric.items,
                               pd.Index(['int', 'float', 'complex', 'bool']))
         numeric2.set('float', np.array([1000., 2000., 3000.]))
-        assert_almost_equal(
-            mgr.get('float', fastpath=False), np.array([100., 200., 300.]))
-        assert_almost_equal(
-            mgr.get('float').internal_values(), np.array([100., 200., 300.]))
+        assert_almost_equal(mgr.get('float', fastpath=False),
+                            np.array([100., 200., 300.]))
+        assert_almost_equal(mgr.get('float').internal_values(),
+                            np.array([100., 200., 300.]))
 
     def test_get_bool_data(self):
         mgr = create_mgr('int: int; float: float; complex: complex;'
@@ -798,9 +792,8 @@ class TestBlockManager(tm.TestCase):
         tm.assert_index_equal(bools.items, pd.Index(['bool']))
         assert_almost_equal(mgr.get('bool', fastpath=False),
                             bools.get('bool', fastpath=False))
-        assert_almost_equal(
-            mgr.get('bool').internal_values(),
-            bools.get('bool').internal_values())
+        assert_almost_equal(mgr.get('bool').internal_values(),
+                            bools.get('bool').internal_values())
 
         bools.set('bool', np.array([True, False, True]))
         tm.assert_numpy_array_equal(mgr.get('bool', fastpath=False),
@@ -1189,6 +1182,40 @@ class TestBlockPlacement(tm.TestCase):
         self.assertRaises(ValueError,
                           lambda: BlockPlacement(slice(2, None, -1)).add(-1))
 
+
+class TestIndexHolder(tm.TestCase):
+
+    def test_datetimetz_internal(self):
+        s = pd.Series([pd.Timestamp('2011-01-01', tz='US/Eastern')])
+        self.assertEqual(s.dtype, 'datetime64[ns, US/Eastern]')
+
+        b = s._data.blocks[0]
+        exp = pd.DatetimeIndex(['2011-01-01'], tz='US/Eastern')
+        tm.assert_index_equal(b.values, exp)
+        tm.assert_index_equal(b.internal_values(), exp)
+        tm.assert_index_equal(b.to_dense(), exp)
+        tm.assert_index_equal(b.get_values(), exp)
+        tm.assert_numpy_array_equal(b.external_values(), exp.values)
+
+        tm.assert_numpy_array_equal(b.to_native_types(),
+                                    exp.to_native_types().reshape(1, len(exp)))
+
+    def test_period_internal(self):
+        s = pd.Series([pd.Period('2011-01', freq='M')])
+        self.assertEqual(s.dtype, 'period[M]')
+
+        b = s._data.blocks[0]
+        exp = pd.PeriodIndex(['2011-01'], freq='M')
+        tm.assert_index_equal(b.values, exp)
+        tm.assert_index_equal(b.internal_values(), exp)
+        # FIXME?
+        tm.assert_index_equal(b.to_dense(), exp.asobject)
+        tm.assert_index_equal(b.get_values(), exp)
+        tm.assert_numpy_array_equal(b.external_values(),
+                                    exp.asobject.values)
+
+        tm.assert_numpy_array_equal(b.to_native_types(),
+                                    exp.to_native_types().reshape(1, len(exp)))
 
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],

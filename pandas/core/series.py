@@ -20,6 +20,7 @@ from pandas.types.common import (_coerce_to_dtype, is_categorical_dtype,
                                  is_datetimelike,
                                  is_datetime64tz_dtype,
                                  is_timedelta64_dtype,
+                                 is_period_dtype, is_period,
                                  is_list_like,
                                  is_hashable,
                                  is_iterator,
@@ -27,7 +28,7 @@ from pandas.types.common import (_coerce_to_dtype, is_categorical_dtype,
                                  is_scalar,
                                  _is_unorderable_exception,
                                  _ensure_platform_int)
-from pandas.types.generic import ABCSparseArray, ABCDataFrame
+from pandas.types.generic import ABCSparseArray, ABCDataFrame, ABCPeriodIndex
 from pandas.types.cast import (_maybe_upcast, _infer_dtype_from_scalar,
                                _possibly_convert_platform,
                                _possibly_cast_to_datetime, _possibly_castable)
@@ -165,8 +166,9 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
                 # need to copy to avoid aliasing issues
                 if name is None:
                     name = data.name
-
-                data = data._to_embed(keep_tz=True)
+                if not isinstance(data, ABCPeriodIndex):
+                    # to_embed returns Period object array
+                    data = data._to_embed(keep_tz=True)
                 copy = True
             elif isinstance(data, np.ndarray):
                 pass
@@ -2826,7 +2828,7 @@ def _sanitize_index(data, index, copy=False):
         raise ValueError('Length of values does not match length of ' 'index')
 
     if isinstance(data, PeriodIndex):
-        data = data.asobject
+        pass
     elif isinstance(data, DatetimeIndex):
         data = data._to_embed(keep_tz=True)
         if copy:
@@ -2845,7 +2847,6 @@ def _sanitize_array(data, index, dtype=None, copy=False,
     """ sanitize input data to an ndarray, copy if specified, coerce to the
     dtype if specified
     """
-
     if dtype is not None:
         dtype = _coerce_to_dtype(dtype)
 
@@ -2869,8 +2870,12 @@ def _sanitize_array(data, index, dtype=None, copy=False,
             if not is_extension_type(subarr):
                 subarr = np.array(subarr, dtype=dtype, copy=copy)
         except (ValueError, TypeError):
+
             if is_categorical_dtype(dtype):
                 subarr = Categorical(arr)
+            elif is_period_dtype(dtype):
+                from pandas.tseries.period import PeriodIndex
+                subarr = PeriodIndex(arr, freq=dtype.freq)
             elif dtype is not None and raise_cast_failure:
                 raise
             else:
@@ -2879,7 +2884,6 @@ def _sanitize_array(data, index, dtype=None, copy=False,
 
     # GH #846
     if isinstance(data, (np.ndarray, Index, Series)):
-
         if dtype is not None:
             subarr = np.array(data, copy=False)
 
@@ -2924,7 +2928,6 @@ def _sanitize_array(data, index, dtype=None, copy=False,
             subarr = _possibly_convert_platform(data)
 
         subarr = _possibly_cast_to_datetime(subarr, dtype)
-
     else:
         subarr = _try_cast(data, False)
 
@@ -2933,6 +2936,8 @@ def _sanitize_array(data, index, dtype=None, copy=False,
 
         if is_datetimetz(dtype):
             subarr = DatetimeIndex([value] * len(index), dtype=dtype)
+        elif is_period(dtype):
+            subarr = PeriodIndex([value] * len(index), dtype=dtype)
         elif is_categorical_dtype(dtype):
             subarr = Categorical([value] * len(index))
         else:
@@ -2981,7 +2986,6 @@ def _sanitize_array(data, index, dtype=None, copy=False,
     # NumPy string type, e.g. NaN --> '-1#IND'.
     if issubclass(subarr.dtype.type, compat.string_types):
         subarr = np.array(data, dtype=object, copy=copy)
-
     return subarr
 
 

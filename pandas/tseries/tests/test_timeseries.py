@@ -2872,8 +2872,8 @@ class TestDatetimeIndex(tm.TestCase):
         # passing a dtype with a tz should localize
         idx = DatetimeIndex(['2013-01-01', '2013-01-02'],
                             dtype='datetime64[ns, US/Eastern]')
-        expected = DatetimeIndex(['2013-01-01', '2013-01-02']
-                                 ).tz_localize('US/Eastern')
+        expected = DatetimeIndex(['2013-01-01', '2013-01-02'])
+        expected = expected.tz_localize('US/Eastern')
         tm.assert_index_equal(idx, expected)
 
         idx = DatetimeIndex(['2013-01-01', '2013-01-02'],
@@ -2884,18 +2884,20 @@ class TestDatetimeIndex(tm.TestCase):
         idx = DatetimeIndex(['2013-01-01', '2013-01-02'],
                             dtype='datetime64[ns, US/Eastern]')
 
-        self.assertRaises(ValueError,
-                          lambda: DatetimeIndex(idx,
-                                                dtype='datetime64[ns]'))
+        msg = 'cannot localize from non-UTC data'
+        with tm.assertRaisesRegexp(ValueError, msg):
+            DatetimeIndex(idx, dtype='datetime64[ns]')
 
         # this is effectively trying to convert tz's
-        self.assertRaises(TypeError,
-                          lambda: DatetimeIndex(idx,
-                                                dtype='datetime64[ns, CET]'))
-        self.assertRaises(ValueError,
-                          lambda: DatetimeIndex(
-                              idx, tz='CET',
-                              dtype='datetime64[ns, US/Eastern]'))
+        msg = ("data is already tz-aware US/Eastern, "
+               "unable to set specified tz: CET")
+        with tm.assertRaisesRegexp(TypeError, msg):
+            DatetimeIndex(idx, dtype='datetime64[ns, CET]')
+
+        msg = 'cannot supply both a tz and a dtype with a tz'
+        with tm.assertRaisesRegexp(ValueError, msg):
+            DatetimeIndex(idx, tz='CET', dtype='datetime64[ns, US/Eastern]')
+
         result = DatetimeIndex(idx, dtype='datetime64[ns, US/Eastern]')
         tm.assert_index_equal(idx, result)
 
@@ -4427,8 +4429,6 @@ class TestSeriesDatetime64(tm.TestCase):
 
     def test_intercept_astype_object(self):
 
-        # this test no longer makes sense as series is by default already
-        # M8[ns]
         expected = self.series.astype('object')
 
         df = DataFrame({'a': self.series,

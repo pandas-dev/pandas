@@ -2,7 +2,7 @@
 
 import nose
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from numpy.random import randn
 from numpy import nan
 import numpy as np
@@ -457,20 +457,17 @@ class TestMerge(tm.TestCase):
 
     def test_join_append_timedeltas(self):
 
-        import datetime as dt
-        from pandas import NaT
-
         # timedelta64 issues with join/merge
         # GH 5695
 
-        d = {'d': dt.datetime(2013, 11, 5, 5, 56), 't': dt.timedelta(0, 22500)}
+        d = {'d': datetime(2013, 11, 5, 5, 56), 't': timedelta(0, 22500)}
         df = DataFrame(columns=list('dt'))
         df = df.append(d, ignore_index=True)
         result = df.append(d, ignore_index=True)
-        expected = DataFrame({'d': [dt.datetime(2013, 11, 5, 5, 56),
-                                    dt.datetime(2013, 11, 5, 5, 56)],
-                              't': [dt.timedelta(0, 22500),
-                                    dt.timedelta(0, 22500)]})
+        expected = DataFrame({'d': [datetime(2013, 11, 5, 5, 56),
+                                    datetime(2013, 11, 5, 5, 56)],
+                              't': [timedelta(0, 22500),
+                                    timedelta(0, 22500)]})
         assert_frame_equal(result, expected)
 
         td = np.timedelta64(300000000)
@@ -479,7 +476,7 @@ class TestMerge(tm.TestCase):
 
         result = lhs.join(rhs, rsuffix='r', how="left")
         expected = DataFrame({'0': Series([td, td], index=list('AB')),
-                              '0r': Series([td, NaT], index=list('AB'))})
+                              '0r': Series([td, pd.NaT], index=list('AB'))})
         assert_frame_equal(result, expected)
 
     def test_other_datetime_unit(self):
@@ -593,6 +590,7 @@ class TestMerge(tm.TestCase):
                               'value_y': [np.nan, 1, 2, 3]})
         result = pd.merge(left, right, on='key', how='outer')
         assert_frame_equal(result, expected)
+        self.assertEqual(result['key'].dtype, 'period[D]')
 
         left = pd.DataFrame({'value': pd.period_range('20151010', periods=2,
                                                       freq='D'),
@@ -608,8 +606,8 @@ class TestMerge(tm.TestCase):
                               'key': [1, 2, 3]})
         result = pd.merge(left, right, on='key', how='outer')
         assert_frame_equal(result, expected)
-        self.assertEqual(result['value_x'].dtype, 'object')
-        self.assertEqual(result['value_y'].dtype, 'object')
+        self.assertEqual(result['value_x'].dtype, 'period[D]')
+        self.assertEqual(result['value_y'].dtype, 'period[D]')
 
     def test_indicator(self):
         # PR #10054. xref #7412 and closes #8790.

@@ -566,10 +566,41 @@ class TestSeriesConstructors(TestData, tm.TestCase):
 
         pi = period_range('20130101', periods=5, freq='D')
         s = Series(pi)
-        expected = Series(pi.asobject)
+        expected = Series(pi)
         assert_series_equal(s, expected)
 
-        self.assertEqual(s.dtype, 'object')
+        self.assertIsInstance(s._data.blocks[0], pd.core.internals.PeriodBlock)
+        self.assertEqual(s.dtype, 'period[D]')
+
+        # with NaT
+        pi = pd.PeriodIndex(['2011-01-01', pd.NaT, '2011-01-03'], freq='D')
+        s = Series(pi)
+        expected = Series(pi)
+        assert_series_equal(s, expected)
+
+        self.assertIsInstance(s._data.blocks[0], pd.core.internals.PeriodBlock)
+        self.assertEqual(s.dtype, 'period[D]')
+
+        # basic check (fillna)
+        result = s.fillna(pd.Period('2011-01-02', freq='D'))
+        exp = pd.Series(pd.period_range('2011-01-01', freq='D', periods=3))
+        self.assert_series_equal(result, exp)
+
+        # basic check (dropna)
+        exp = pd.Series(pd.PeriodIndex(['2011-01-01', '2011-01-03'], freq='D'),
+                        index=[0, 2])
+        self.assert_series_equal(s.dropna(), exp)
+
+    def test_constructor_period_listlike(self):
+        s = pd.Series([pd.Period('2011-01', freq='M'), pd.NaT])
+        self.assertEqual(s.dtype, 'period[M]')
+
+        s = pd.Series([pd.NaT, pd.Period('2011-01', freq='M')])
+        self.assertEqual(s.dtype, 'period[M]')
+
+        s = pd.Series([pd.NaT, pd.Period('2011-01', freq='M'),
+                       pd.Period('2011-01', freq='D')])
+        self.assertEqual(s.dtype, np.object_)
 
     def test_constructor_dict(self):
         d = {'a': 0., 'b': 1., 'c': 2.}

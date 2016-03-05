@@ -333,11 +333,8 @@ class TestPeriodDtype(Base, tm.TestCase):
         self.assertTrue(is_period(pidx))
 
         s = Series(pidx, name='A')
-        # dtypes
-        # series results in object dtype currently,
-        # is_period checks period_arraylike
-        self.assertFalse(is_period_dtype(s.dtype))
-        self.assertFalse(is_period_dtype(s))
+        self.assertTrue(is_period_dtype(s.dtype))
+        self.assertTrue(is_period_dtype(s))
         self.assertTrue(is_period(s))
 
         self.assertFalse(is_period_dtype(np.dtype('float64')))

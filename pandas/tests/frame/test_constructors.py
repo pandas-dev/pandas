@@ -496,14 +496,14 @@ class TestDataFrameConstructors(tm.TestCase, TestData):
         a = pd.PeriodIndex(['2012-01', 'NaT', '2012-04'], freq='M')
         b = pd.PeriodIndex(['2012-02-01', '2012-03-01', 'NaT'], freq='D')
         df = pd.DataFrame({'a': a, 'b': b})
-        self.assertEqual(df['a'].dtype, 'object')
-        self.assertEqual(df['b'].dtype, 'object')
+        self.assertEqual(df['a'].dtype, 'period[M]')
+        self.assertEqual(df['b'].dtype, 'period[D]')
 
         # list of periods
         df = pd.DataFrame({'a': a.asobject.tolist(),
                            'b': b.asobject.tolist()})
-        self.assertEqual(df['a'].dtype, 'object')
-        self.assertEqual(df['b'].dtype, 'object')
+        self.assertEqual(df['a'].dtype, 'period[M]')
+        self.assertEqual(df['b'].dtype, 'period[D]')
 
     def test_nested_dict_frame_constructor(self):
         rng = pd.period_range('1/1/2000', periods=5)

@@ -268,6 +268,42 @@ class TestSeriesMissingData(TestData, tm.TestCase):
 
         assert_series_equal(filled, expected)
 
+    def test_fillna_period(self):
+        periods = pd.PeriodIndex(['2011-01', 'NaT', '2011-03'], freq='M')
+
+        s = pd.Series(periods)
+        res = s.fillna(pd.Period('2015-02', freq='M'))
+        exp = pd.Series(pd.PeriodIndex(['2011-01', '2015-02',
+                                        '2011-03'], freq='M'))
+        tm.assert_series_equal(res, exp)
+
+        periods = pd.PeriodIndex(['2011-01', 'NaT', '2011-03', 'NaT'],
+                                 freq='M')
+        s = pd.Series(periods)
+        res = s.fillna(pd.Period('2015-02', freq='M'))
+        exp = pd.Series(pd.PeriodIndex(['2011-01', '2015-02',
+                                        '2011-03', '2015-02'], freq='M'))
+        tm.assert_series_equal(res, exp)
+
+        # coerce to object
+        periods = pd.PeriodIndex(['2011-01', 'NaT', '2011-03'], freq='M')
+
+        s = pd.Series(periods)
+        res = s.fillna(pd.Period('2015-02-01', freq='D'))
+        exp = pd.Series([pd.Period('2011-01', freq='M'),
+                         pd.Period('2015-02-01', freq='D'),
+                         pd.Period('2011-03', freq='M')])
+        tm.assert_series_equal(res, exp)
+
+        periods = pd.PeriodIndex(['2011-01', 'NaT', '2011-03'], freq='M')
+
+        s = pd.Series(periods)
+        res = s.fillna('xx')
+        exp = pd.Series([pd.Period('2011-01', freq='M'),
+                         'xx',
+                         pd.Period('2011-03', freq='M')])
+        tm.assert_series_equal(res, exp)
+
     def test_fillna_int(self):
         s = Series(np.random.randint(-100, 100, 50))
         s.fillna(method='ffill', inplace=True)
@@ -445,7 +481,7 @@ class TestSeriesMissingData(TestData, tm.TestCase):
         # invalid axis
         self.assertRaises(ValueError, s.dropna, axis=1)
 
-    def test_datetime64_tz_dropna(self):
+    def test_dropna_datetime64_tz(self):
         # DatetimeBlock
         s = Series([Timestamp('2011-01-01 10:00'), pd.NaT, Timestamp(
             '2011-01-03 10:00'), pd.NaT])
@@ -466,6 +502,23 @@ class TestSeriesMissingData(TestData, tm.TestCase):
                           index=[0, 2])
         self.assertEqual(result.dtype, 'datetime64[ns, Asia/Tokyo]')
         self.assert_series_equal(result, expected)
+
+    def test_dropna_period(self):
+        periods = pd.PeriodIndex(['2011-01', 'NaT', '2011-03'], freq='M')
+
+        s = pd.Series(periods)
+        res = s.dropna()
+        exp = pd.Series(pd.PeriodIndex(['2011-01', '2011-03'], freq='M'),
+                        index=[0, 2])
+        tm.assert_series_equal(res, exp)
+
+        periods = pd.PeriodIndex(['2011-01', 'NaT', '2011-03', 'NaT'],
+                                 freq='M')
+        s = pd.Series(periods)
+        res = s.dropna()
+        exp = pd.Series(pd.PeriodIndex(['2011-01', '2011-03'], freq='M'),
+                        index=[0, 2])
+        tm.assert_series_equal(res, exp)
 
     def test_dropna_no_nan(self):
         for s in [Series([1, 2, 3], name='x'), Series(

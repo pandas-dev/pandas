@@ -105,7 +105,7 @@ class TestSeriesApply(TestData, tm.TestCase):
         vals = [pd.Period('2011-01-01', freq='M'),
                 pd.Period('2011-01-02', freq='M')]
         s = pd.Series(vals)
-        self.assertEqual(s.dtype, 'object')
+        self.assertEqual(s.dtype, 'period[M]')
         res = s.apply(lambda x: '{0}_{1}'.format(x.__class__.__name__,
                                                  x.freqstr))
         exp = pd.Series(['Period_M', 'Period_M'])
@@ -279,7 +279,7 @@ class TestSeriesMap(TestData, tm.TestCase):
         vals = [pd.Period('2011-01-01', freq='M'),
                 pd.Period('2011-01-02', freq='M')]
         s = pd.Series(vals)
-        self.assertEqual(s.dtype, 'object')
+        self.assertEqual(s.dtype, 'period[M]')
         res = s.map(lambda x: '{0}_{1}'.format(x.__class__.__name__,
                                                x.freqstr))
         exp = pd.Series(['Period_M', 'Period_M'])

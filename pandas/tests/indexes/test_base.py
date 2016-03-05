@@ -104,6 +104,25 @@ class TestIndex(Base, tm.TestCase):
         self.assertIsInstance(idx2, Index) and self.assertNotInstance(
             idx2, MultiIndex)
 
+    def test_constructor_from_index_datetime(self):
+        idx = pd.date_range('2015-01-01 10:00', freq='D', periods=3)
+        result = pd.Index(idx)
+        tm.assert_index_equal(result, idx)
+        self.assertEqual(result.tz, idx.tz)
+
+        # coerces to DatetimeIndex
+        result = pd.Index(idx.asobject)
+        tm.assert_index_equal(result, idx)
+        self.assertEqual(result.tz, idx.tz)
+
+        # instance must be datetime, not Timestamp
+        result = pd.Index(idx, dtype=object)
+        exp = pd.Index([datetime(2015, 1, 1, 10), datetime(2015, 1, 2, 10),
+                        datetime(2015, 1, 3, 10)], dtype=object)
+        tm.assert_index_equal(result, exp)
+        self.assertIsInstance(result[0], datetime)
+        self.assertNotIsInstance(result[0], Timestamp)
+
     def test_constructor_from_index_datetimetz(self):
         idx = pd.date_range('2015-01-01 10:00', freq='D', periods=3,
                             tz='US/Eastern')

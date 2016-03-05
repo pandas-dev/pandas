@@ -27,11 +27,14 @@ from pandas.types.common import (needs_i8_conversion,
                                  is_integer_dtype, is_categorical_dtype,
                                  is_object_dtype, is_timedelta64_dtype,
                                  is_datetime64_dtype, is_datetime64tz_dtype,
+                                 is_period_dtype,
                                  is_bool_dtype, is_datetimetz,
                                  is_list_like,
                                  _ensure_object)
 from pandas.types.cast import _maybe_upcast_putmask, _find_common_type
-from pandas.types.generic import ABCSeries, ABCIndex, ABCPeriodIndex
+from pandas.types.generic import (ABCSeries, ABCIndex, ABCDatetimeIndex,
+                                  ABCPeriodIndex)
+
 
 # -----------------------------------------------------------------------------
 # Functions that add arithmetic methods to objects, given arithmetic factory
@@ -300,6 +303,10 @@ class _Op(object):
     dtype = None
 
     def __init__(self, left, right, name, na_op):
+
+        self.is_series_lhs = isinstance(left, ABCSeries)
+        self.is_series_rhs = isinstance(right, ABCSeries)
+
         self.left = left
         self.right = right
 
@@ -323,11 +330,14 @@ class _Op(object):
         is_timedelta_lhs = is_timedelta64_dtype(left)
         is_datetime_lhs = (is_datetime64_dtype(left) or
                            is_datetime64tz_dtype(left))
+        is_period_lhs = is_period_dtype(left)
 
-        if not (is_datetime_lhs or is_timedelta_lhs):
-            return _Op(left, right, name, na_op)
-        else:
+        if (is_datetime_lhs or is_timedelta_lhs):
             return _TimeOp(left, right, name, na_op)
+        elif is_period_lhs:
+            return _PeriodOp(left, right, name, na_op)
+        else:
+            return _Op(left, right, name, na_op)
 
 
 class _TimeOp(_Op):
@@ -350,6 +360,7 @@ class _TimeOp(_Op):
         self.is_datetime64tz_lhs = is_datetime64tz_dtype(lvalues)
         self.is_datetime_lhs = (self.is_datetime64_lhs or
                                 self.is_datetime64tz_lhs)
+        self.is_period_lhs = is_period_dtype(lvalues)
         self.is_integer_lhs = left.dtype.kind in ['i', 'u']
         self.is_floating_lhs = left.dtype.kind == 'f'
 
@@ -360,6 +371,7 @@ class _TimeOp(_Op):
         self.is_datetime_rhs = (self.is_datetime64_rhs or
                                 self.is_datetime64tz_rhs)
         self.is_timedelta_rhs = is_timedelta64_dtype(rvalues)
+        self.is_period_rhs = is_period_dtype(rvalues)
         self.is_integer_rhs = rvalues.dtype.kind in ('i', 'u')
         self.is_floating_rhs = rvalues.dtype.kind == 'f'
 
@@ -625,6 +637,118 @@ def _align_method_SERIES(left, right, align_asobject=False):
     return left, right
 
 
+class _PeriodOp(_TimeOp):
+    """
+    Wrapper around Series period arithmetic operations. Generally, you
+    should use classmethod ``maybe_convert_for_period_op`` as an
+    entry point.
+    """
+
+    def __init__(self, left, right, name, na_op):
+        super(_PeriodOp, self).__init__(left, right, name, na_op)
+        # if self.is_series_lhs and self.is_period_lhs:
+        #     # get PeriodIndex
+        #     self.lvalues = left._values
+
+        """
+        if self.is_series_rhs and self.is_period_rhs:
+            self.rvalues = right._values
+        elif not self.is_series_rhs:
+            self.rvalues = right
+        """
+
+    def _validate(self, lvalues, rvalues, name):
+        # peiod and integer add/sub
+        if ((self.is_period_lhs and self.is_integer_rhs) or
+           (self.is_integer_lhs and self.is_period_rhs)):
+            if name not in ('__add__', '__sub__', '__radd__', '__rsub__'):
+                raise TypeError("can only operate on a period and an "
+                                "integer for addition and "
+                                "subtraction, but the operator [%s] was"
+                                "passed" % name)
+
+    def _convert_to_array(self, values, name=None, other=None):
+        """converts values to ndarray"""
+        from pandas.tseries.timedeltas import to_timedelta
+        supplied_dtype = None
+
+        if not is_list_like(values):
+            values = np.array([values])
+
+        elif isinstance(values, pd.Series) and is_period_dtype(values):
+            supplied_dtype = values.dtype
+
+        inferred_type = supplied_dtype or lib.infer_dtype(values)
+        if inferred_type == 'period' or is_period_dtype(inferred_type):
+            if (supplied_dtype is None and other is not None and
+                (other.dtype == 'integer') and
+                    isnull(values).all()):
+                values = np.empty(values.shape, dtype='timedelta64[ns]')
+                values[:] = iNaT
+
+            # a datelike
+            elif isinstance(values, pd.PeriodIndex):
+                values = values.to_series()
+
+            elif not (isinstance(values, (np.ndarray, ABCSeries)) and
+                      is_period_dtype(values)):
+
+                if name not in ('__sub__', '__rsub__'):
+                    raise TypeError("incompatible type for a period "
+                                    "operation [{0}]".format(name))
+
+                from pandas.tseries.period import PeriodIndex
+                return PeriodIndex(values)
+                # values = tslib.array_to_datetime(values)
+        elif inferred_type in ('timedelta', 'timedelta64'):
+            # have a timedelta, convert to to ns here
+            values = to_timedelta(values, errors='coerce')
+        elif inferred_type == 'integer':
+            if name not in ('__add__', '__sub__', '__radd__', '__rsub__'):
+                raise TypeError("incompatible type for a period "
+                                "operation [{0}]".format(name))
+        elif self._is_offset(values):
+            return values
+        else:
+            raise TypeError("incompatible type [{0}] for a period"
+                            " operation".format(np.array(values).dtype))
+
+        return values
+
+    def _convert_for_datetime(self, lvalues, rvalues):
+
+        # Period - Period
+        if self.is_period_lhs and self.is_period_rhs:
+            lvalues = self.left._values.asi8
+            if self.is_series_rhs:
+                rvalues = self.right._values.asi8
+            else:
+                rvalues = self.right.ordinal
+            self.dtype = np.int64
+        elif self.is_period_lhs:
+            # if self.is_integer_rhs:
+            #     lvalues = self.left._values.asi8
+            # else:
+            lvalues = self.left._values
+            self.dtype = self.left.dtype
+        elif self.is_period_rhs:
+            self.dtype = self.right.dtype
+
+        if not self.is_series_rhs:
+            if self.is_period_rhs:
+                rvalues = self.right.ordinal
+            else:
+                rvalues = self.right
+        return lvalues, rvalues
+
+    @classmethod
+    def maybe_convert_for_period_op(cls, left, right, name, na_op):
+        if not is_period_dtype(left) and not is_period_dtype(right):
+            return None
+
+        return cls(left, right, name, na_op)
+
+
 def _construct_result(left, result, index, name, dtype):
     return left._constructor(result, index=index, name=name, dtype=dtype)
 
@@ -687,7 +811,6 @@ def _arith_method_SERIES(op, name, str_rep, fill_zeros=None, default_axis=None,
             raise
 
     def wrapper(left, right, name=name, na_op=na_op):
-
         if isinstance(right, pd.DataFrame):
             return NotImplemented
 
@@ -708,8 +831,9 @@ def _arith_method_SERIES(op, name, str_rep, fill_zeros=None, default_axis=None,
             # _Op aligns left and right
         else:
             name = left.name
+            extension_klasses = (ABCDatetimeIndex, ABCPeriodIndex)
             if (hasattr(lvalues, 'values') and
-                    not isinstance(lvalues, pd.DatetimeIndex)):
+                    not isinstance(lvalues, extension_klasses)):
                 lvalues = lvalues.values
 
         result = wrap_results(safe_na_op(lvalues, rvalues))
@@ -747,7 +871,6 @@ def _comp_method_SERIES(op, name, str_rep, masker=False):
     """
 
     def na_op(x, y):
-
         # dispatch to the categorical if we have a categorical
         # in either operand
         if is_categorical_dtype(x):
@@ -846,6 +969,12 @@ def _comp_method_SERIES(op, name, str_rep, masker=False):
             # dispatch to it.
             with np.errstate(all='ignore'):
                 res = op(self.values, other)
+
+        # ToDo: GH 12601
+        # elif is_datetime64tz_dtype(self):
+        #     res = op(self._values, other)
+        elif is_period_dtype(self):
+            res = op(self._values, other)
         else:
             values = self.get_values()
             if isinstance(other, (list, np.ndarray)):

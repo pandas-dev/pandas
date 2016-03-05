@@ -10,7 +10,9 @@ from .common import (_ensure_object, is_bool, is_integer, is_float,
                      is_datetimelike,
                      is_extension_type, is_object_dtype,
                      is_datetime64tz_dtype, is_datetime64_dtype,
-                     is_timedelta64_dtype, is_dtype_equal,
+                     is_timedelta64_dtype,
+                     is_period, is_period_dtype,
+                     is_dtype_equal,
                      is_float_dtype, is_complex_dtype,
                      is_integer_dtype, is_datetime_or_timedelta_dtype,
                      is_bool_dtype, is_scalar,
@@ -265,6 +267,12 @@ def _maybe_promote(dtype, fill_value=np.nan):
     elif is_datetimetz(dtype):
         if isnull(fill_value):
             fill_value = iNaT
+    elif is_period(dtype):
+        from pandas.tseries.period import Period
+        if isnull(fill_value):
+            fill_value = tslib.iNaT
+        elif isinstance(fill_value, Period):
+            fill_value = fill_value.ordinal
     elif is_float(fill_value):
         if issubclass(dtype.type, np.bool_):
             dtype = np.object_
@@ -303,6 +311,8 @@ def _maybe_promote(dtype, fill_value=np.nan):
     if is_categorical_dtype(dtype):
         pass
     elif is_datetimetz(dtype):
+        pass
+    elif is_period(dtype):
         pass
     elif issubclass(np.dtype(dtype).type, string_types):
         dtype = np.object_
@@ -605,7 +615,7 @@ def _possibly_convert_objects(values, convert_dates=True, convert_numeric=True,
 
 
 def _soft_convert_objects(values, datetime=True, numeric=True, timedelta=True,
-                          coerce=False, copy=True):
+                          period=True, coerce=False, copy=True):
     """ if we have an object dtype, try to coerce dates and/or numbers """
 
     conversion_count = sum((datetime, numeric, timedelta))
@@ -635,6 +645,9 @@ def _soft_convert_objects(values, datetime=True, numeric=True, timedelta=True,
         elif timedelta:
             from pandas import to_timedelta
             return to_timedelta(values, errors='coerce', box=False)
+        # ToDo: needs coercion here?
+        # elif period:
+        #     return PeriodIndex(values)
         elif numeric:
             from pandas import to_numeric
             return to_numeric(values, errors='coerce')
@@ -643,9 +656,28 @@ def _soft_convert_objects(values, datetime=True, numeric=True, timedelta=True,
     if datetime:
         values = lib.maybe_convert_objects(values, convert_datetime=datetime)
 
-    if timedelta and is_object_dtype(values.dtype):
-        # Object check to ensure only run if previous did not convert
-        values = lib.maybe_convert_objects(values, convert_timedelta=timedelta)
+    if is_object_dtype(values.dtype):
+        if timedelta:
+            # Object check to ensure only run if previous did not convert
+            values = lib.maybe_convert_objects(values,
+                                               convert_timedelta=timedelta)
+
+        if period:
+            try:
+                from pandas.tseries.period import PeriodIndex
+                return PeriodIndex(values)
+            except:
+                pass
+
+        if numeric:
+            try:
+                converted = lib.maybe_convert_numeric(values, set(),
+                                                      coerce_numeric=True)
+                # If all NaNs, then do not-alter
+                values = converted if not isnull(converted).all() else values
+                values = values.copy() if copy else values
+            except:
+                pass
 
     if numeric and is_object_dtype(values.dtype):
         try:
@@ -749,6 +781,13 @@ def _possibly_infer_to_datetimelike(value, convert_dates=False):
         elif inferred_type in ['timedelta', 'timedelta64']:
             value = _try_timedelta(v)
 
+        elif inferred_type in ['period']:
+            try:
+                from pandas.tseries.period import PeriodIndex
+                value = PeriodIndex(value)
+            except:
+                pass
+
         # It's possible to have nulls intermixed within the datetime or
         # timedelta.  These will in general have an inferred_type of 'mixed',
         # so have to try both datetime and timedelta.
@@ -776,11 +815,16 @@ def _possibly_cast_to_datetime(value, dtype, errors='raise'):
         if isinstance(dtype, string_types):
             dtype = np.dtype(dtype)
 
+        if hasattr(value, 'dtype') and is_dtype_equal(value.dtype, dtype):
+            return value
+
         is_datetime64 = is_datetime64_dtype(dtype)
         is_datetime64tz = is_datetime64tz_dtype(dtype)
         is_timedelta64 = is_timedelta64_dtype(dtype)
+        is_period_type = is_period_dtype(dtype)
 
-        if is_datetime64 or is_datetime64tz or is_timedelta64:
+        if (is_datetime64 or is_datetime64tz or is_timedelta64 or
+           is_period_type):
 
             # force the dtype if needed
             if is_datetime64 and not is_dtype_equal(dtype, _NS_DTYPE):
@@ -829,6 +873,9 @@ def _possibly_cast_to_datetime(value, dtype, errors='raise'):
                                      )
                         elif is_timedelta64:
                             value = to_timedelta(value, errors=errors)._values
+                        elif is_period_type:
+                            from pandas.tseries.period import PeriodIndex
+                            value = PeriodIndex(value, dtype=dtype)
                     except (AttributeError, ValueError, TypeError):
                         pass
 
@@ -842,6 +889,11 @@ def _possibly_cast_to_datetime(value, dtype, errors='raise'):
 
             # we have a non-castable dtype that was passed
             raise TypeError('Cannot cast datetime64 to %s' % dtype)
+
+        elif is_period_dtype(value) and not is_period_dtype(dtype):
+            if is_object_dtype(dtype):
+                return value.asobject.values
+            raise TypeError('Cannot cast period to %s' % dtype)
 
     else:
 

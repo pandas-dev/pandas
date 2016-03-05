@@ -68,7 +68,7 @@ class TestConcatCompat(tm.TestCase):
         to_concat = [pd.Series([pd.Period('2011-01', freq='M')]),
                      pd.Series([pd.Period('2011-02', freq='M')])]
         res = _concat.get_dtype_kinds(to_concat)
-        self.assertEqual(res, set(['object']))
+        self.assertEqual(res, set(['period[M]']))
 
         to_concat = [pd.PeriodIndex(['2011-01'], freq='M'),
                      pd.PeriodIndex(['2011-01'], freq='D')]
@@ -78,7 +78,7 @@ class TestConcatCompat(tm.TestCase):
         to_concat = [pd.Series([pd.Period('2011-01', freq='M')]),
                      pd.Series([pd.Period('2011-02', freq='D')])]
         res = _concat.get_dtype_kinds(to_concat)
-        self.assertEqual(res, set(['object']))
+        self.assertEqual(res, set(['period[M]', 'period[D]']))
 
 
 if __name__ == '__main__':

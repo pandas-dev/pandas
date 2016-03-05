@@ -8,7 +8,6 @@ import numpy as np
 
 from pandas.types.generic import ABCSeries
 from pandas.types.common import (is_integer,
-                                 is_period_arraylike,
                                  is_timedelta64_dtype,
                                  is_datetime64_dtype)
 
@@ -773,7 +772,7 @@ def infer_freq(index, warn=True):
                             "dtype on a Series of {0}".format(index.dtype))
         index = values
 
-    if is_period_arraylike(index):
+    if isinstance(index, pd.PeriodIndex):
         raise TypeError("PeriodIndex given. Check the `freq` attribute "
                         "instead of using infer_freq.")
     elif isinstance(index, pd.TimedeltaIndex):

@@ -38,6 +38,7 @@ from pandas.types.common import (is_categorical_dtype,
                                  is_datetimetz,
                                  is_datetime64_dtype,
                                  is_datetime64tz_dtype,
+                                 is_period_dtype,
                                  is_bool_dtype,
                                  is_integer_dtype,
                                  is_float_dtype,
@@ -263,8 +264,10 @@ class DataFrame(NDFrame):
         if isinstance(data, BlockManager):
             mgr = self._init_mgr(data, axes=dict(index=index, columns=columns),
                                  dtype=dtype, copy=copy)
+
         elif isinstance(data, dict):
             mgr = self._init_dict(data, index, columns, dtype=dtype)
+
         elif isinstance(data, ma.MaskedArray):
             import numpy.ma.mrecords as mrecords
             # masked recarray
@@ -2946,7 +2949,7 @@ class DataFrame(NDFrame):
 
         def _maybe_casted_values(index, labels=None):
             if isinstance(index, PeriodIndex):
-                values = index.asobject.values
+                values = index
             elif isinstance(index, DatetimeIndex) and index.tz is not None:
                 values = index
             else:
@@ -3706,6 +3709,11 @@ class DataFrame(NDFrame):
             # see if we need to be represented as i8 (datetimelike)
             # try to keep us at this dtype
             needs_i8_conversion_i = needs_i8_conversion(new_dtype)
+
+            if is_period_dtype(new_dtype):
+                # temp for PeriodDtype
+                needs_i8_conversion_i = False
+
             if needs_i8_conversion_i:
                 arr = func(series, otherSeries, True)
             else:
@@ -3756,6 +3764,7 @@ class DataFrame(NDFrame):
         """
 
         def combiner(x, y, needs_i8_conversion=False):
+            # ToDo:
             x_values = x.values if hasattr(x, 'values') else x
             y_values = y.values if hasattr(y, 'values') else y
             if needs_i8_conversion:

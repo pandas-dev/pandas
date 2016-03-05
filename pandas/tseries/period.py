@@ -43,6 +43,7 @@ from pandas.util.decorators import (Appender, Substitution, cache_readonly,
                                     deprecate_kwarg)
 from pandas.lib import infer_dtype
 import pandas.tslib as tslib
+from pandas.tslib import Timedelta
 from pandas.compat import zip, u
 
 
@@ -212,6 +213,8 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
                 data, freq = cls._generate_range(start, end, periods,
                                                  freq, kwargs)
         else:
+            if isinstance(data, ABCSeries):
+                data = data._values
             ordinal, freq = cls._from_arraylike(data, freq, tz)
             data = np.array(ordinal, dtype=np.int64, copy=copy)
 
