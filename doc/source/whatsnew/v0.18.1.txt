@@ -13,6 +13,8 @@ Highlights include:
 - ``pd.to_datetime()`` has gained the ability to assemble dates from a ``DataFrame``, see :ref:`here <whatsnew_0181.enhancements.assembling>`
 - Custom business hour offset, see :ref:`here <whatsnew_0181.enhancements.custombusinesshour>`.
 - Many bug fixes in the handling of ``sparse``, see :ref:`here <whatsnew_0181.sparse>`
+- Method chaining improvements, see :ref:`here <whatsnew_0181.enhancements.method_chain>`.
+
 
 .. contents:: What's new in v0.18.1
     :local:
@@ -93,6 +95,66 @@ Now you can do:
 .. ipython:: python
 
    df.groupby('group').resample('1D').ffill()
+
+.. _whatsnew_0181.enhancements.method_chain:
+
+Method chaininng improvements
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The following methods / indexers now accept ``callable``. It is intended to make
+these more useful in method chains, see :ref:`Selection By Callable <indexing.callable>`.
+(:issue:`11485`, :issue:`12533`)
+
+- ``.where()`` and ``.mask()``
+- ``.loc[]``, ``iloc[]`` and ``.ix[]``
+- ``[]`` indexing
+
+``.where()`` and ``.mask()``
+""""""""""""""""""""""""""""
+
+These can accept a callable as condition and ``other``
+arguments.
+
+.. ipython:: python
+
+   df = pd.DataFrame({'A': [1, 2, 3],
+                      'B': [4, 5, 6],
+                      'C': [7, 8, 9]})
+   df.where(lambda x: x > 4, lambda x: x + 10)
+
+``.loc[]``, ``.iloc[]``, ``.ix[]``
+""""""""""""""""""""""""""""""""""
+
+These can accept a callable, and tuple of callable as a slicer. The callable
+can return valid ``bool`` indexer or anything which is valid for these indexer's input.
+
+.. ipython:: python
+
+   # callable returns bool indexer
+   df.loc[lambda x: x.A >= 2, lambda x: x.sum() > 10]
+
+   # callable returns list of labels
+   df.loc[lambda x: [1, 2], lambda x: ['A', 'B']]
+
+``[]`` indexing
+"""""""""""""""
+
+Finally, you can use a callable in ``[]`` indexing of Series, DataFrame and Panel.
+The callable must return valid input for ``[]`` indexing depending on its
+class and index type.
+
+.. ipython:: python
+
+   df[lambda x: 'A']
+
+Using these methods / indexers, you can chain data selection operations
+without using temporary variable.
+
+.. ipython:: python
+
+   bb = pd.read_csv('data/baseball.csv', index_col='id')
+   (bb.groupby(['year', 'team']).sum()
+      .loc[lambda df: df.r > 100])
 
 .. _whatsnew_0181.partial_string_indexing:
 

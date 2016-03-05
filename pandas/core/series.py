@@ -577,6 +577,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         return self._get_values(slobj)
 
     def __getitem__(self, key):
+        key = com._apply_if_callable(key, self)
         try:
             result = self.index.get_value(self, key)
 
@@ -692,6 +693,8 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
             return self._values[indexer]
 
     def __setitem__(self, key, value):
+        key = com._apply_if_callable(key, self)
+
         def setitem(key, value):
             try:
                 self._set_with_engine(key, value)
