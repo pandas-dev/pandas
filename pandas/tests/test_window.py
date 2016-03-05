@@ -3,6 +3,7 @@ import nose
 import sys
 import warnings
 
+from nose.tools import assert_raises
 from datetime import datetime
 from numpy.random import randn
 from numpy.testing.decorators import slow
@@ -96,19 +97,6 @@ class TestApi(Base):
 
         expected = pd.concat([r[['A', 'B']].sum(), df[['C']]], axis=1)
         result = r.sum()
-        assert_frame_equal(result, expected)
-
-    def test_timedeltas(self):
-
-        df = DataFrame({'A': range(5),
-                        'B': pd.timedelta_range('1 day', periods=5)})
-        r = df.rolling(window=3)
-        result = r.sum()
-        expected = DataFrame({'A': [np.nan, np.nan, 3, 6, 9],
-                              'B': pd.to_timedelta([pd.NaT, pd.NaT,
-                                                    '6 days', '9 days',
-                                                    '12 days'])},
-                             columns=list('AB'))
         assert_frame_equal(result, expected)
 
     def test_agg(self):
@@ -291,8 +279,13 @@ class TestDeprecations(Base):
 
 # GH #12373 : rolling functions error on float32 data
 # make sure rolling functions works for different dtypes
-class TestDtype(Base):
-    dtype = None
+#
+# NOTE that these are yielded tests and so _create_data is
+# explicity called, nor do these inherit from unittest.TestCase
+#
+# further note that we are only checking rolling for fully dtype
+# compliance (though both expanding and ewm inherit)
+class Dtype(object):
     window = 2
 
     funcs = {
@@ -371,76 +364,84 @@ class TestDtype(Base):
         return data
 
     def _create_data(self):
-        super(TestDtype, self)._create_data()
         self.data = self._create_dtype_data(self.dtype)
         self.expects = self.get_expects()
 
-    def setUp(self):
-        self._create_data()
-
     def test_dtypes(self):
+        self._create_data()
         for f_name, d_name in product(self.funcs.keys(), self.data.keys()):
             f = self.funcs[f_name]
             d = self.data[d_name]
-            assert_equal = assert_series_equal if isinstance(
-                d, Series) else assert_frame_equal
             exp = self.expects[d_name][f_name]
+            yield self.check_dtypes, f, f_name, d, d_name, exp
 
-            roll = d.rolling(window=self.window)
-            result = f(roll)
+    def check_dtypes(self, f, f_name, d, d_name, exp):
+        roll = d.rolling(window=self.window)
+        result = f(roll)
+        assert_almost_equal(result, exp)
 
-            assert_equal(result, exp)
 
-
-class TestDtype_object(TestDtype):
+class TestDtype_object(Dtype):
     dtype = object
 
 
-class TestDtype_int8(TestDtype):
+class Dtype_integer(Dtype):
+    pass
+
+
+class TestDtype_int8(Dtype_integer):
     dtype = np.int8
 
 
-class TestDtype_int16(TestDtype):
+class TestDtype_int16(Dtype_integer):
     dtype = np.int16
 
 
-class TestDtype_int32(TestDtype):
+class TestDtype_int32(Dtype_integer):
     dtype = np.int32
 
 
-class TestDtype_int64(TestDtype):
+class TestDtype_int64(Dtype_integer):
     dtype = np.int64
 
 
-class TestDtype_uint8(TestDtype):
+class Dtype_uinteger(Dtype):
+    pass
+
+
+class TestDtype_uint8(Dtype_uinteger):
     dtype = np.uint8
 
 
-class TestDtype_uint16(TestDtype):
+class TestDtype_uint16(Dtype_uinteger):
     dtype = np.uint16
 
 
-class TestDtype_uint32(TestDtype):
+class TestDtype_uint32(Dtype_uinteger):
     dtype = np.uint32
 
 
-class TestDtype_uint64(TestDtype):
+class TestDtype_uint64(Dtype_uinteger):
     dtype = np.uint64
 
 
-class TestDtype_float16(TestDtype):
+class Dtype_float(Dtype):
+    pass
+
+
+class TestDtype_float16(Dtype_float):
     dtype = np.float16
 
 
-class TestDtype_float32(TestDtype):
+class TestDtype_float32(Dtype_float):
     dtype = np.float32
 
 
-class TestDtype_float64(TestDtype):
+class TestDtype_float64(Dtype_float):
     dtype = np.float64
 
 
-class TestDtype_category(TestDtype):
+class TestDtype_category(Dtype):
     dtype = 'category'
     include_df = False
 
@@ -456,24 +457,36 @@ class TestDtype_category(TestDtype):
         return data
 
 
-class TestDatetimeLikeDtype(TestDtype):
-    dtype = np.dtype('M8[ns]')
+class DatetimeLike(Dtype):
 
-    # GH #12373: rolling functions raise ValueError on float32 data
-    def setUp(self):
-        raise nose.SkipTest("Skip rolling on DatetimeLike dtypes [{0}].".format(self.dtype))
+    def check_dtypes(self, f, f_name, d, d_name, exp):
 
-    def test_dtypes(self):
-        with tm.assertRaises(TypeError):
-            super(TestDatetimeLikeDtype, self).test_dtypes()
+        roll = d.rolling(window=self.window)
+
+        if f_name == 'count':
+            result = f(roll)
+            assert_almost_equal(result, exp)
+
+        else:
+
+            # other methods not Implemented ATM
+            assert_raises(NotImplementedError, f, roll)
 
 
-class TestDtype_timedelta(TestDatetimeLikeDtype):
+class TestDtype_timedelta(DatetimeLike):
     dtype = np.dtype('m8[ns]')
 
 
-class TestDtype_datetime64UTC(TestDatetimeLikeDtype):
+class TestDtype_datetime(DatetimeLike):
+    dtype = np.dtype('M8[ns]')
+
+
+class TestDtype_datetime64UTC(DatetimeLike):
     dtype = 'datetime64[ns, UTC]'
+
+    def _create_data(self):
+        raise nose.SkipTest("direct creation of extension dtype "
+                            "datetime64[ns, UTC] is not supported ATM")
 
 
 class TestMoments(Base):

@@ -124,13 +124,17 @@ class _Window(PandasObject, SelectionMixin):
     def _get_window(self, other=None):
         return self.window
 
+    @property
+    def _window_type(self):
+        return self.__class__.__name__
+
     def __unicode__(self):
         """ provide a nice str repr of our rolling object """
 
         attrs = ["{k}={v}".format(k=k, v=getattr(self, k))
                  for k in self._attributes
                  if getattr(self, k, None) is not None]
-        return "{klass} [{attrs}]".format(klass=self.__class__.__name__,
+        return "{klass} [{attrs}]".format(klass=self._window_type,
                                           attrs=','.join(attrs))
 
     def _shallow_copy(self, obj=None, **kwargs):
@@ -155,8 +159,12 @@ class _Window(PandasObject, SelectionMixin):
             values = com._ensure_float64(values)
         elif com.is_integer_dtype(values.dtype):
             values = com._ensure_float64(values)
-        elif com.is_timedelta64_dtype(values.dtype):
-            values = com._ensure_float64(values.view('i8'))
+        elif com.needs_i8_conversion(values.dtype):
+            raise NotImplementedError("ops for {action} for this "
+                                      "dtype {dtype} are not "
+                                      "implemented".format(
+                                          action=self._window_type,
+                                          dtype=values.dtype))
         else:
             try:
                 values = com._ensure_float64(values)
@@ -498,15 +506,25 @@ class _Rolling_and_Expanding(_Rolling):
         window = self._get_window()
         window = min(window, len(obj)) if not self.center else window
 
-        try:
-            converted = np.isfinite(obj).astype(float)
-        except TypeError:
-            converted = np.isfinite(obj.astype(float)).astype(float)
-        result = self._constructor(converted, window=window, min_periods=0,
-                                   center=self.center).sum()
+        blocks, obj = self._create_blocks(how=None)
+        results = []
+        for b in blocks:
 
-        result[result.isnull()] = 0
-        return result
+            if com.needs_i8_conversion(b.values):
+                result = b.notnull().astype(int)
+            else:
+                try:
+                    result = np.isfinite(b).astype(float)
+                except TypeError:
+                    result = np.isfinite(b.astype(float)).astype(float)
+
+                result[pd.isnull(result)] = 0
+
+            result = self._constructor(result, window=window, min_periods=0,
+                                       center=self.center).sum()
+            results.append(result)
+
+        return self._wrap_results(results, blocks, obj)
 
     _shared_docs['apply'] = dedent("""
     %(name)s function apply
