@@ -287,11 +287,7 @@ class CategoricalIndex(Index, base.PandasDelegate):
         codes = self.categories.get_loc(key)
         if (codes == -1):
             raise KeyError(key)
-        indexer, _ = self._engine.get_indexer_non_unique(np.array([codes]))
-        if (indexer == -1).any():
-            raise KeyError(key)
-
-        return indexer
+        return self._engine.get_loc(codes)
 
     def _can_reindex(self, indexer):
         """ always allow reindexing """
