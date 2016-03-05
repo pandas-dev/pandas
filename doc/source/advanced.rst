@@ -281,7 +281,7 @@ As usual, **both sides** of the slicers are included as this is label indexing.
 .. warning::
 
    You should specify all axes in the ``.loc`` specifier, meaning the indexer for the **index** and
-   for the **columns**. Their are some ambiguous cases where the passed indexer could be mis-interpreted
+   for the **columns**. There are some ambiguous cases where the passed indexer could be mis-interpreted
    as indexing *both* axes, rather than into say the MuliIndex for the rows.
 
    You should do this:
