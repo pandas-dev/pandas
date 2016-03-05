@@ -1200,3 +1200,5 @@ Bug Fixes
 - Bug when initializing categorical series with a scalar value. (:issue:`12336`)
 - Bug when specifying a UTC ``DatetimeIndex`` by setting ``utc=True`` in ``.to_datetime`` (:issue:`11934`)
 - Bug when increasing the buffer size of CSV reader in ``read_csv`` (:issue:`12494`)
+
+- Bug in ``.rolling`` in which apply on float32 data will raise a ``ValueError`` (:issue:`12373`)
