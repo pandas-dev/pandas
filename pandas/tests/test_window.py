@@ -16,7 +16,6 @@ from pandas.util.testing import (assert_almost_equal, assert_series_equal,
                                  assert_frame_equal, assert_panel_equal,
                                  assert_index_equal)
 import pandas.core.datetools as datetools
-import pandas.core.common as com
 import pandas.stats.moments as mom
 import pandas.core.window as rwindow
 from pandas.core.base import SpecificationError
@@ -331,21 +330,29 @@ class TestDtype(Base):
             },
             'df': {
                 'count': DataFrame({0: Series([1, 2, 2, 2, 2]),
-                                    1: Series([1, 2, 2, 2, 2])}, dtype='float64'),
+                                    1: Series([1, 2, 2, 2, 2])},
+                                   dtype='float64'),
                 'max': DataFrame({0: Series([np.nan, 2, 4, 6, 8]),
-                                  1: Series([np.nan, 3, 5, 7, 9])}, dtype='float64'),
+                                  1: Series([np.nan, 3, 5, 7, 9])},
+                                 dtype='float64'),
                 'min': DataFrame({0: Series([np.nan, 0, 2, 4, 6]),
-                                  1: Series([np.nan, 1, 3, 5, 7])}, dtype='float64'),
+                                  1: Series([np.nan, 1, 3, 5, 7])},
+                                 dtype='float64'),
                 'sum': DataFrame({0: Series([np.nan, 2, 6, 10, 14]),
-                                  1: Series([np.nan, 4, 8, 12, 16])}, dtype='float64'),
+                                  1: Series([np.nan, 4, 8, 12, 16])},
+                                 dtype='float64'),
                 'mean': DataFrame({0: Series([np.nan, 1, 3, 5, 7]),
-                                  1: Series([np.nan, 2, 4, 6, 8])}, dtype='float64'),
+                                   1: Series([np.nan, 2, 4, 6, 8])},
+                                  dtype='float64'),
                 'std': DataFrame({0: Series([np.nan] + [np.sqrt(2)] * 4),
-                                  1: Series([np.nan] + [np.sqrt(2)] * 4)}, dtype='float64'),
+                                  1: Series([np.nan] + [np.sqrt(2)] * 4)},
+                                 dtype='float64'),
                 'var': DataFrame({0: Series([np.nan, 2, 2, 2, 2]),
-                                  1: Series([np.nan, 2, 2, 2, 2])}, dtype='float64'),
+                                  1: Series([np.nan, 2, 2, 2, 2])},
+                                 dtype='float64'),
                 'median': DataFrame({0: Series([np.nan, 1, 3, 5, 7]),
-                                     1: Series([np.nan, 2, 4, 6, 8])}, dtype='float64'),
+                                     1: Series([np.nan, 2, 4, 6, 8])},
+                                    dtype='float64'),
             }
         }
         return expects
