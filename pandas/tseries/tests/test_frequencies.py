@@ -170,6 +170,47 @@ def test_get_rule_month():
     assert (result == 'MAY')
 
 
+def test_period_str_to_code():
+    assert (frequencies._period_str_to_code('A') == 1000)
+    assert (frequencies._period_str_to_code('A-DEC') == 1000)
+    assert (frequencies._period_str_to_code('A-JAN') == 1001)
+    assert (frequencies._period_str_to_code('Q') == 2000)
+    assert (frequencies._period_str_to_code('Q-DEC') == 2000)
+    assert (frequencies._period_str_to_code('Q-FEB') == 2002)
+
+    def _assert_depr(freq, expected, aliases):
+        assert isinstance(aliases, list)
+        assert (frequencies._period_str_to_code(freq) == expected)
+
+        for alias in aliases:
+            with tm.assert_produces_warning(FutureWarning,
+                                            check_stacklevel=False):
+                assert (frequencies._period_str_to_code(alias) == expected)
+
+    _assert_depr("M", 3000, ["MTH", "MONTH", "MONTHLY"])
+
+    assert (frequencies._period_str_to_code('W') == 4000)
+    assert (frequencies._period_str_to_code('W-SUN') == 4000)
+    assert (frequencies._period_str_to_code('W-FRI') == 4005)
+
+    _assert_depr("B", 5000, ["BUS", "BUSINESS", "BUSINESSLY", "WEEKDAY"])
+    _assert_depr("D", 6000, ["DAY", "DLY", "DAILY"])
+    _assert_depr("H", 7000, ["HR", "HOUR", "HRLY", "HOURLY"])
+
+    _assert_depr("T", 8000, ["minute", "MINUTE", "MINUTELY"])
+    assert (frequencies._period_str_to_code('Min') == 8000)
+
+    _assert_depr("S", 9000, ["sec", "SEC", "SECOND", "SECONDLY"])
+    _assert_depr("L", 10000, ["MILLISECOND", "MILLISECONDLY"])
+    assert (frequencies._period_str_to_code('ms') == 10000)
+
+    _assert_depr("U", 11000, ["MICROSECOND", "MICROSECONDLY"])
+    assert (frequencies._period_str_to_code('US') == 11000)
+
+    _assert_depr("N", 12000, ["NANOSECOND", "NANOSECONDLY"])
+    assert (frequencies._period_str_to_code('NS') == 12000)
+
+
 class TestFrequencyCode(tm.TestCase):
     def test_freq_code(self):
         self.assertEqual(frequencies.get_freq('A'), 1000)

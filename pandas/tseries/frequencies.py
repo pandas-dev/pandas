@@ -385,7 +385,8 @@ _lite_rule_alias = {
     'Min': 'T',
     'min': 'T',
     'ms': 'L',
-    'us': 'U'
+    'us': 'U',
+    'ns': 'N'
 }
 
 # TODO: Can this be killed?
@@ -683,7 +684,7 @@ def _period_alias_dictionary():
     alias_dict = {}
 
     M_aliases = ["M", "MTH", "MONTH", "MONTHLY"]
-    B_aliases = ["B", "BUS", "BUSINESS", "BUSINESSLY", 'WEEKDAY']
+    B_aliases = ["B", "BUS", "BUSINESS", "BUSINESSLY", "WEEKDAY"]
     D_aliases = ["D", "DAY", "DLY", "DAILY"]
     H_aliases = ["H", "HR", "HOUR", "HRLY", "HOURLY"]
     T_aliases = ["T", "MIN", "MINUTE", "MINUTELY"]
@@ -705,7 +706,7 @@ def _period_alias_dictionary():
         alias_dict[k] = 'H'
 
     for k in T_aliases:
-        alias_dict[k] = 'Min'
+        alias_dict[k] = 'T'
 
     for k in S_aliases:
         alias_dict[k] = 'S'
