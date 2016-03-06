@@ -5165,11 +5165,12 @@ class NDFrame(PandasObject):
         cls.expanding = expanding
 
         @Appender(rwindow.ewm.__doc__)
-        def ewm(self, com=None, span=None, halflife=None, min_periods=0,
-                freq=None, adjust=True, ignore_na=False, axis=0):
+        def ewm(self, com=None, span=None, halflife=None, alpha=None,
+                min_periods=0, freq=None, adjust=True, ignore_na=False,
+                axis=0):
             axis = self._get_axis_number(axis)
             return rwindow.ewm(self, com=com, span=span, halflife=halflife,
-                               min_periods=min_periods, freq=freq,
+                               alpha=alpha, min_periods=min_periods, freq=freq,
                                adjust=adjust, ignore_na=ignore_na, axis=axis)
 
         cls.ewm = ewm

@@ -1038,13 +1038,21 @@ class EWM(_Rolling):
 
     Parameters
     ----------
-    com : float. optional
-        Center of mass: :math:`\alpha = 1 / (1 + com)`,
+    com : float, optional
+        Specify decay in terms of center of mass,
+        :math:`\alpha = 1 / (1 + com),\text{ for } com \geq 0`
     span : float, optional
-        Specify decay in terms of span, :math:`\alpha = 2 / (span + 1)`
+        Specify decay in terms of span,
+        :math:`\alpha = 2 / (span + 1),\text{ for } span \geq 1`
     halflife : float, optional
-        Specify decay in terms of halflife,
-        :math:`\alpha = 1 - exp(log(0.5) / halflife)`
+        Specify decay in terms of half-life,
+        :math:`\alpha = 1 - exp(log(0.5) / halflife),\text{ for } halflife > 0`
+    alpha : float, optional
+        Specify smoothing factor :math:`\alpha` directly,
+        :math:`0 < \alpha \leq 1`
+
+        .. versionadded:: 0.18.0
+
     min_periods : int, default 0
         Minimum number of observations in window required to have a value
         (otherwise result is NA).
@@ -1063,16 +1071,10 @@ class EWM(_Rolling):
 
     Notes
     -----
-    Either center of mass, span or halflife must be specified
-
-    EWMA is sometimes specified using a "span" parameter `s`, we have that the
-    decay parameter :math:`\alpha` is related to the span as
-    :math:`\alpha = 2 / (s + 1) = 1 / (1 + c)`
-
-    where `c` is the center of mass. Given a span, the associated center of
-    mass is :math:`c = (s - 1) / 2`
-
-    So a "20-day EWMA" would have center 9.5.
+    Exactly one of center of mass, span, half-life, and alpha must be provided.
+    Allowed values and relationship between the parameters are specified in the
+    parameter descriptions above; see the link at the end of this section for
+    a detailed explanation.
 
     The `freq` keyword is used to conform time series data to a specified
     frequency by resampling the data. This is done with the default parameters
@@ -1096,14 +1098,15 @@ class EWM(_Rolling):
     (if adjust is True), and 1-alpha and alpha (if adjust is False).
 
     More details can be found at
-    http://pandas.pydata.org/pandas-docs/stable/computation.html#exponentially-weighted-moment-functions
+    http://pandas.pydata.org/pandas-docs/stable/computation.html#exponentially-weighted-windows
     """
     _attributes = ['com', 'min_periods', 'freq', 'adjust', 'ignore_na', 'axis']
 
-    def __init__(self, obj, com=None, span=None, halflife=None, min_periods=0,
-                 freq=None, adjust=True, ignore_na=False, axis=0):
+    def __init__(self, obj, com=None, span=None, halflife=None, alpha=None,
+                 min_periods=0, freq=None, adjust=True, ignore_na=False,
+                 axis=0):
         self.obj = obj
-        self.com = _get_center_of_mass(com, span, halflife)
+        self.com = _get_center_of_mass(com, span, halflife, alpha)
         self.min_periods = min_periods
         self.freq = freq
         self.adjust = adjust
@@ -1320,20 +1323,32 @@ def _flex_binary_moment(arg1, arg2, f, pairwise=False):
         return _flex_binary_moment(arg2, arg1, f)
 
 
-def _get_center_of_mass(com, span, halflife):
-    valid_count = len([x for x in [com, span, halflife] if x is not None])
+def _get_center_of_mass(com, span, halflife, alpha):
+    valid_count = len([x for x in [com, span, halflife, alpha]
+                      if x is not None])
     if valid_count > 1:
-        raise Exception("com, span, and halflife are mutually exclusive")
+        raise ValueError("com, span, halflife, and alpha "
+                         "are mutually exclusive")
 
-    if span is not None:
-        # convert span to center of mass
+    # Convert to center of mass; domain checks ensure 0 < alpha <= 1
+    if com is not None:
+        if com < 0:
+            raise ValueError("com must satisfy: com >= 0")
+    elif span is not None:
+        if span < 1:
+            raise ValueError("span must satisfy: span >= 1")
         com = (span - 1) / 2.
     elif halflife is not None:
-        # convert halflife to center of mass
+        if halflife <= 0:
+            raise ValueError("halflife must satisfy: halflife > 0")
         decay = 1 - np.exp(np.log(0.5) / halflife)
         com = 1 / decay - 1
-    elif com is None:
-        raise Exception("Must pass one of com, span, or halflife")
+    elif alpha is not None:
+        if alpha <= 0 or alpha > 1:
+            raise ValueError("alpha must satisfy: 0 < alpha <= 1")
+        com = (1.0 - alpha) / alpha
+    else:
+        raise ValueError("Must pass one of com, span, halflife, or alpha")
 
     return float(com)
 
