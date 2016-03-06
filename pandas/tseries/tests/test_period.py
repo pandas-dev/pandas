@@ -22,7 +22,7 @@ import pandas.core.datetools as datetools
 import pandas as pd
 import numpy as np
 from numpy.random import randn
-from pandas.compat import range, lrange, lmap, zip, text_type, PY3
+from pandas.compat import range, lrange, lmap, zip, text_type, PY3, iteritems
 from pandas.compat.numpy_compat import np_datetime64_compat
 
 from pandas import (Series, DataFrame,
@@ -35,8 +35,6 @@ import pandas.util.testing as tm
 
 class TestPeriodProperties(tm.TestCase):
     "Test properties such as year, month, weekday, etc...."
-
-    #
 
     def test_quarterly_negative_ordinals(self):
         p = Period(ordinal=-1, freq='Q-DEC')
@@ -439,6 +437,24 @@ class TestPeriodProperties(tm.TestCase):
         i1 = Period('1982', freq='Min')
         self.assertEqual(i1.freq, offsets.Minute())
         self.assertEqual(i1.freqstr, 'T')
+
+    def test_period_deprecated_freq(self):
+        cases = {"M": ["MTH", "MONTH", "MONTHLY", "Mth", "month", "monthly"],
+                 "B": ["BUS", "BUSINESS", "BUSINESSLY", "WEEKDAY", "bus"],
+                 "D": ["DAY", "DLY", "DAILY", "Day", "Dly", "Daily"],
+                 "H": ["HR", "HOUR", "HRLY", "HOURLY", "hr", "Hour", "HRly"],
+                 "T": ["minute", "MINUTE", "MINUTELY", "minutely"],
+                 "S": ["sec", "SEC", "SECOND", "SECONDLY", "second"],
+                 "L": ["MILLISECOND", "MILLISECONDLY", "millisecond"],
+                 "U": ["MICROSECOND", "MICROSECONDLY", "microsecond"],
+                 "N": ["NANOSECOND", "NANOSECONDLY", "nanosecond"]}
+        for exp, freqs in iteritems(cases):
+            for freq in freqs:
+
+                with tm.assert_produces_warning(FutureWarning,
+                                                check_stacklevel=False):
+                    res = pd.Period('2016-03-01 09:00', freq=freq)
+                self.assertEqual(res, Period('2016-03-01 09:00', freq=exp))
 
     def test_repr(self):
         p = Period('Jan-2000')

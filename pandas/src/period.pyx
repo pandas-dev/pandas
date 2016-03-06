@@ -657,6 +657,7 @@ cdef class Period(object):
 
         if isinstance(freq, compat.string_types):
             from pandas.tseries.frequencies import _period_alias_dict
+            freq = freq.upper()
             freq = _period_alias_dict.get(freq, freq)
         elif isinstance(freq, (int, tuple)):
             from pandas.tseries.frequencies import get_freq_code as _gfc
