@@ -136,6 +136,7 @@ DataFrames into the equivalent R object (that is, **data.frame**):
 
 .. ipython:: python
 
+   import pandas.rpy.common as com
    df = pd.DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6], 'C':[7,8,9]},
                      index=["one", "two", "three"])
    r_dataframe = com.convert_to_r_dataframe(df)
@@ -154,6 +155,7 @@ R matrices bear no information on the data type):
 
 .. ipython:: python
 
+   import pandas.rpy.common as com
    r_matrix = com.convert_to_r_matrix(df)
 
    print(type(r_matrix))
