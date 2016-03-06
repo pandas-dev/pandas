@@ -733,24 +733,29 @@ therefore there is an assumption that :math:`x_0` is not an ordinary value
 but rather an exponentially weighted moment of the infinite series up to that
 point.
 
-One must have :math:`0 < \alpha \leq 1`, but rather than pass :math:`\alpha`
-directly, it's easier to think about either the **span**, **center of mass
-(com)** or **halflife** of an EW moment:
+One must have :math:`0 < \alpha \leq 1`, and while since version 0.18.0
+it has been possible to pass :math:`\alpha` directly, it's often easier
+to think about either the **span**, **center of mass (com)** or **half-life**
+of an EW moment:
 
 .. math::
 
    \alpha =
     \begin{cases}
-        \frac{2}{s + 1},               & s = \text{span}\\
-        \frac{1}{1 + c},               & c = \text{center of mass}\\
-        1 - \exp^{\frac{\log 0.5}{h}}, & h = \text{half life}
+        \frac{2}{s + 1},               & \text{for span}\ s \geq 1\\
+        \frac{1}{1 + c},               & \text{for center of mass}\ c \geq 0\\
+        1 - \exp^{\frac{\log 0.5}{h}}, & \text{for half-life}\ h > 0
     \end{cases}
 
-One must specify precisely one of the three to the EW functions. **Span**
-corresponds to what is commonly called a "20-day EW moving average" for
-example. **Center of mass** has a more physical interpretation. For example,
-**span** = 20 corresponds to **com** = 9.5. **Halflife** is the period of
-time for the exponential weight to reduce to one half.
+One must specify precisely one of **span**, **center of mass**, **half-life**
+and **alpha** to the EW functions:
+
+- **Span** corresponds to what is commonly called an "N-day EW moving average".
+- **Center of mass** has a more physical interpretation and can be thought of
+  in terms of span: :math:`c = (s - 1) / 2`.
+- **Half-life** is the period of time for the exponential weight to reduce to
+  one half.
+- **Alpha** specifies the smoothing factor directly.
 
 Here is an example for a univariate time series:
 

@@ -15,7 +15,7 @@ from pandas import (Series, DataFrame, Panel, bdate_range, isnull,
                     notnull, concat)
 from pandas.util.testing import (assert_almost_equal, assert_series_equal,
                                  assert_frame_equal, assert_panel_equal,
-                                 assert_index_equal)
+                                 assert_index_equal, assert_numpy_array_equal)
 import pandas.core.datetools as datetools
 import pandas.stats.moments as mom
 import pandas.core.window as rwindow
@@ -1249,8 +1249,8 @@ class TestMoments(Base):
             B = mom.ewma(self.arr, span=20)
             assert_almost_equal(A, B)
 
-            self.assertRaises(Exception, mom.ewma, self.arr, com=9.5, span=20)
-            self.assertRaises(Exception, mom.ewma, self.arr)
+            self.assertRaises(ValueError, mom.ewma, self.arr, com=9.5, span=20)
+            self.assertRaises(ValueError, mom.ewma, self.arr)
 
     def test_ewma_halflife_arg(self):
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
@@ -1258,13 +1258,78 @@ class TestMoments(Base):
             B = mom.ewma(self.arr, halflife=10.0)
             assert_almost_equal(A, B)
 
-            self.assertRaises(Exception, mom.ewma, self.arr, span=20,
+            self.assertRaises(ValueError, mom.ewma, self.arr, span=20,
                               halflife=50)
-            self.assertRaises(Exception, mom.ewma, self.arr, com=9.5,
+            self.assertRaises(ValueError, mom.ewma, self.arr, com=9.5,
                               halflife=50)
-            self.assertRaises(Exception, mom.ewma, self.arr, com=9.5, span=20,
+            self.assertRaises(ValueError, mom.ewma, self.arr, com=9.5, span=20,
                               halflife=50)
-            self.assertRaises(Exception, mom.ewma, self.arr)
+            self.assertRaises(ValueError, mom.ewma, self.arr)
+
+    def test_ewma_alpha_old_api(self):
+        # GH 10789
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            a = mom.ewma(self.arr, alpha=0.61722699889169674)
+            b = mom.ewma(self.arr, com=0.62014947789973052)
+            c = mom.ewma(self.arr, span=2.240298955799461)
+            d = mom.ewma(self.arr, halflife=0.721792864318)
+            assert_numpy_array_equal(a, b)
+            assert_numpy_array_equal(a, c)
+            assert_numpy_array_equal(a, d)
+
+    def test_ewma_alpha_arg_old_api(self):
+        # GH 10789
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            self.assertRaises(ValueError, mom.ewma, self.arr)
+            self.assertRaises(ValueError, mom.ewma, self.arr,
+                              com=10.0, alpha=0.5)
+            self.assertRaises(ValueError, mom.ewma, self.arr,
+                              span=10.0, alpha=0.5)
+            self.assertRaises(ValueError, mom.ewma, self.arr,
+                              halflife=10.0, alpha=0.5)
+
+    def test_ewm_alpha(self):
+        # GH 10789
+        s = Series(self.arr)
+        a = s.ewm(alpha=0.61722699889169674).mean()
+        b = s.ewm(com=0.62014947789973052).mean()
+        c = s.ewm(span=2.240298955799461).mean()
+        d = s.ewm(halflife=0.721792864318).mean()
+        assert_series_equal(a, b)
+        assert_series_equal(a, c)
+        assert_series_equal(a, d)
+
+    def test_ewm_alpha_arg(self):
+        # GH 10789
+        s = Series(self.arr)
+        self.assertRaises(ValueError, s.ewm)
+        self.assertRaises(ValueError, s.ewm, com=10.0, alpha=0.5)
+        self.assertRaises(ValueError, s.ewm, span=10.0, alpha=0.5)
+        self.assertRaises(ValueError, s.ewm, halflife=10.0, alpha=0.5)
+
+    def test_ewm_domain_checks(self):
+        # GH 12492
+        s = Series(self.arr)
+        # com must satisfy: com >= 0
+        self.assertRaises(ValueError, s.ewm, com=-0.1)
+        s.ewm(com=0.0)
+        s.ewm(com=0.1)
+        # span must satisfy: span >= 1
+        self.assertRaises(ValueError, s.ewm, span=-0.1)
+        self.assertRaises(ValueError, s.ewm, span=0.0)
+        self.assertRaises(ValueError, s.ewm, span=0.9)
+        s.ewm(span=1.0)
+        s.ewm(span=1.1)
+        # halflife must satisfy: halflife > 0
+        self.assertRaises(ValueError, s.ewm, halflife=-0.1)
+        self.assertRaises(ValueError, s.ewm, halflife=0.0)
+        s.ewm(halflife=0.1)
+        # alpha must satisfy: 0 < alpha <= 1
+        self.assertRaises(ValueError, s.ewm, alpha=-0.1)
+        self.assertRaises(ValueError, s.ewm, alpha=0.0)
+        s.ewm(alpha=0.1)
+        s.ewm(alpha=1.0)
+        self.assertRaises(ValueError, s.ewm, alpha=1.1)
 
     def test_ew_empty_arrays(self):
         arr = np.array([], dtype=np.float64)

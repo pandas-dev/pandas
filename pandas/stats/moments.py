@@ -67,13 +67,21 @@ of :meth:`~pandas.Series.resample` (i.e. using the `mean`).
 """
 
 
-_ewm_kw = r"""com : float. optional
-    Center of mass: :math:`\alpha = 1 / (1 + com)`,
+_ewm_kw = r"""com : float, optional
+    Specify decay in terms of center of mass,
+    :math:`\alpha = 1 / (1 + com),\text{ for } com \geq 0`
 span : float, optional
-    Specify decay in terms of span, :math:`\alpha = 2 / (span + 1)`
+    Specify decay in terms of span,
+    :math:`\alpha = 2 / (span + 1),\text{ for } span \geq 1`
 halflife : float, optional
-    Specify decay in terms of halflife,
-    :math:`\alpha = 1 - exp(log(0.5) / halflife)`
+    Specify decay in terms of half-life,
+    :math:`\alpha = 1 - exp(log(0.5) / halflife),\text{ for } halflife > 0`
+alpha : float, optional
+    Specify smoothing factor :math:`\alpha` directly,
+    :math:`0 < \alpha \leq 1`
+
+    .. versionadded:: 0.18.0
+
 min_periods : int, default 0
     Minimum number of observations in window required to have a value
     (otherwise result is NA).
@@ -92,16 +100,10 @@ ignore_na : boolean, default False
 _ewm_notes = r"""
 Notes
 -----
-Either center of mass, span or halflife must be specified
-
-EWMA is sometimes specified using a "span" parameter `s`, we have that the
-decay parameter :math:`\alpha` is related to the span as
-:math:`\alpha = 2 / (s + 1) = 1 / (1 + c)`
-
-where `c` is the center of mass. Given a span, the associated center of mass is
-:math:`c = (s - 1) / 2`
-
-So a "20-day EWMA" would have center 9.5.
+Exactly one of center of mass, span, half-life, and alpha must be provided.
+Allowed values and relationship between the parameters are specified in the
+parameter descriptions above; see the link at the end of this section for
+a detailed explanation.
 
 When adjust is True (default), weighted averages are calculated using weights
     (1-alpha)**(n-1), (1-alpha)**(n-2), ..., 1-alpha, 1.
@@ -121,7 +123,7 @@ the final weighted average of [x, None, y] are 1-alpha and 1 (if adjust is
 True), and 1-alpha and alpha (if adjust is False).
 
 More details can be found at
-http://pandas.pydata.org/pandas-docs/stable/computation.html#exponentially-weighted-moment-functions
+http://pandas.pydata.org/pandas-docs/stable/computation.html#exponentially-weighted-windows
 """
 
 _expanding_kw = """min_periods : int, default None
@@ -323,14 +325,15 @@ def rolling_corr(arg1, arg2=None, window=None, pairwise=None, **kwargs):
 @Substitution("Exponentially-weighted moving average", _unary_arg, _ewm_kw,
               _type_of_input_retval, _ewm_notes)
 @Appender(_doc_template)
-def ewma(arg, com=None, span=None, halflife=None, min_periods=0, freq=None,
-         adjust=True, how=None, ignore_na=False):
+def ewma(arg, com=None, span=None, halflife=None, alpha=None, min_periods=0,
+         freq=None, adjust=True, how=None, ignore_na=False):
     return ensure_compat('ewm',
                          'mean',
                          arg,
                          com=com,
                          span=span,
                          halflife=halflife,
+                         alpha=alpha,
                          min_periods=min_periods,
                          freq=freq,
                          adjust=adjust,
@@ -341,14 +344,15 @@ def ewma(arg, com=None, span=None, halflife=None, min_periods=0, freq=None,
 @Substitution("Exponentially-weighted moving variance", _unary_arg,
               _ewm_kw + _bias_kw, _type_of_input_retval, _ewm_notes)
 @Appender(_doc_template)
-def ewmvar(arg, com=None, span=None, halflife=None, min_periods=0, bias=False,
-           freq=None, how=None, ignore_na=False, adjust=True):
+def ewmvar(arg, com=None, span=None, halflife=None, alpha=None, min_periods=0,
+           bias=False, freq=None, how=None, ignore_na=False, adjust=True):
     return ensure_compat('ewm',
                          'var',
                          arg,
                          com=com,
                          span=span,
                          halflife=halflife,
+                         alpha=alpha,
                          min_periods=min_periods,
                          freq=freq,
                          adjust=adjust,
@@ -361,14 +365,15 @@ def ewmvar(arg, com=None, span=None, halflife=None, min_periods=0, bias=False,
 @Substitution("Exponentially-weighted moving std", _unary_arg,
               _ewm_kw + _bias_kw, _type_of_input_retval, _ewm_notes)
 @Appender(_doc_template)
-def ewmstd(arg, com=None, span=None, halflife=None, min_periods=0, bias=False,
-           freq=None, how=None, ignore_na=False, adjust=True):
+def ewmstd(arg, com=None, span=None, halflife=None, alpha=None, min_periods=0,
+           bias=False, freq=None, how=None, ignore_na=False, adjust=True):
     return ensure_compat('ewm',
                          'std',
                          arg,
                          com=com,
                          span=span,
                          halflife=halflife,
+                         alpha=alpha,
                          min_periods=min_periods,
                          freq=freq,
                          adjust=adjust,
@@ -383,9 +388,9 @@ ewmvol = ewmstd
 @Substitution("Exponentially-weighted moving covariance", _binary_arg_flex,
               _ewm_kw + _pairwise_kw, _type_of_input_retval, _ewm_notes)
 @Appender(_doc_template)
-def ewmcov(arg1, arg2=None, com=None, span=None, halflife=None, min_periods=0,
-           bias=False, freq=None, pairwise=None, how=None, ignore_na=False,
-           adjust=True):
+def ewmcov(arg1, arg2=None, com=None, span=None, halflife=None, alpha=None,
+           min_periods=0, bias=False, freq=None, pairwise=None, how=None,
+           ignore_na=False, adjust=True):
     if arg2 is None:
         arg2 = arg1
         pairwise = True if pairwise is None else pairwise
@@ -401,6 +406,7 @@ def ewmcov(arg1, arg2=None, com=None, span=None, halflife=None, min_periods=0,
                          com=com,
                          span=span,
                          halflife=halflife,
+                         alpha=alpha,
                          min_periods=min_periods,
                          bias=bias,
                          freq=freq,
@@ -414,8 +420,9 @@ def ewmcov(arg1, arg2=None, com=None, span=None, halflife=None, min_periods=0,
 @Substitution("Exponentially-weighted moving correlation", _binary_arg_flex,
               _ewm_kw + _pairwise_kw, _type_of_input_retval, _ewm_notes)
 @Appender(_doc_template)
-def ewmcorr(arg1, arg2=None, com=None, span=None, halflife=None, min_periods=0,
-            freq=None, pairwise=None, how=None, ignore_na=False, adjust=True):
+def ewmcorr(arg1, arg2=None, com=None, span=None, halflife=None, alpha=None,
+            min_periods=0, freq=None, pairwise=None, how=None, ignore_na=False,
+            adjust=True):
     if arg2 is None:
         arg2 = arg1
         pairwise = True if pairwise is None else pairwise
@@ -430,6 +437,7 @@ def ewmcorr(arg1, arg2=None, com=None, span=None, halflife=None, min_periods=0,
                          com=com,
                          span=span,
                          halflife=halflife,
+                         alpha=alpha,
                          min_periods=min_periods,
                          freq=freq,
                          how=how,
