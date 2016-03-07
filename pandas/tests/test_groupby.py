@@ -3993,11 +3993,13 @@ class TestGroupBy(tm.TestCase):
         df['datetime'] = df['datetime'].apply(
             lambda d: Timestamp(d, tz='US/Pacific'))
 
-        exp_idx1 = pd.DatetimeIndex(
-            ['2011-07-19 07:00:00', '2011-07-19 07:00:00',
-             '2011-07-19 08:00:00', '2011-07-19 08:00:00',
-             '2011-07-19 09:00:00', '2011-07-19 09:00:00'],
-            tz='US/Pacific', name='datetime')
+        exp_idx1 = pd.DatetimeIndex(['2011-07-19 07:00:00',
+                                     '2011-07-19 07:00:00',
+                                     '2011-07-19 08:00:00',
+                                     '2011-07-19 08:00:00',
+                                     '2011-07-19 09:00:00',
+                                     '2011-07-19 09:00:00'],
+                                    tz='US/Pacific', name='datetime')
         exp_idx2 = Index(['a', 'b'] * 3, name='label')
         exp_idx = MultiIndex.from_arrays([exp_idx1, exp_idx2])
         expected = DataFrame({'value1': [0, 3, 1, 4, 2, 5],
@@ -4013,9 +4015,9 @@ class TestGroupBy(tm.TestCase):
                         'value2': [1, 2, 3, 1, 2, 3]},
                        index=didx)
 
-        exp_idx = pd.DatetimeIndex(
-            ['2011-07-19 07:00:00', '2011-07-19 08:00:00',
-             '2011-07-19 09:00:00'], tz='Asia/Tokyo')
+        exp_idx = pd.DatetimeIndex(['2011-07-19 07:00:00',
+                                    '2011-07-19 08:00:00',
+                                    '2011-07-19 09:00:00'], tz='Asia/Tokyo')
         expected = DataFrame({'value1': [3, 5, 7], 'value2': [2, 4, 6]},
                              index=exp_idx, columns=['value1', 'value2'])
 
@@ -4032,8 +4034,8 @@ class TestGroupBy(tm.TestCase):
 3,2000-01-31 16:50:00,America/Chicago
 4,2000-01-01 16:50:00,America/New_York"""
 
-        df = pd.read_csv(
-            StringIO(data), header=None, names=['value', 'date', 'tz'])
+        df = pd.read_csv(StringIO(data), header=None,
+                         names=['value', 'date', 'tz'])
         result = df.groupby('tz').date.apply(
             lambda x: pd.to_datetime(x).dt.tz_localize(x.name))
 
@@ -4051,13 +4053,53 @@ class TestGroupBy(tm.TestCase):
         assert_series_equal(result, expected)
 
         tz = 'America/Chicago'
-        result = pd.to_datetime(df.groupby('tz').date.get_group(
-            tz)).dt.tz_localize(tz)
-        expected = pd.to_datetime(Series(
-            ['2000-01-28 16:47:00', '2000-01-29 16:48:00',
-             '2000-01-31 16:50:00'], index=[0, 1, 3
-                                            ], name='date')).dt.tz_localize(tz)
+        res_values = df.groupby('tz').date.get_group(tz)
+        result = pd.to_datetime(res_values).dt.tz_localize(tz)
+        exp_values = Series(['2000-01-28 16:47:00', '2000-01-29 16:48:00',
+                             '2000-01-31 16:50:00'],
+                            index=[0, 1, 3], name='date')
+        expected = pd.to_datetime(exp_values).dt.tz_localize(tz)
         assert_series_equal(result, expected)
+
+    def test_groupby_groups_periods(self):
+        dates = ['2011-07-19 07:00:00', '2011-07-19 08:00:00',
+                 '2011-07-19 09:00:00', '2011-07-19 07:00:00',
+                 '2011-07-19 08:00:00', '2011-07-19 09:00:00']
+        df = DataFrame({'label': ['a', 'a', 'a', 'b', 'b', 'b'],
+                        'period': [pd.Period(d, freq='H') for d in dates],
+                        'value1': np.arange(6, dtype='int64'),
+                        'value2': [1, 2] * 3})
+
+        exp_idx1 = pd.PeriodIndex(['2011-07-19 07:00:00',
+                                   '2011-07-19 07:00:00',
+                                   '2011-07-19 08:00:00',
+                                   '2011-07-19 08:00:00',
+                                   '2011-07-19 09:00:00',
+                                   '2011-07-19 09:00:00'],
+                                  freq='H', name='period')
+        exp_idx2 = Index(['a', 'b'] * 3, name='label')
+        exp_idx = MultiIndex.from_arrays([exp_idx1, exp_idx2])
+        expected = DataFrame({'value1': [0, 3, 1, 4, 2, 5],
+                              'value2': [1, 2, 2, 1, 1, 2]},
+                             index=exp_idx, columns=['value1', 'value2'])
+
+        result = df.groupby(['period', 'label']).sum()
+        assert_frame_equal(result, expected)
+
+        # by level
+        didx = pd.PeriodIndex(dates, freq='H')
+        df = DataFrame({'value1': np.arange(6, dtype='int64'),
+                        'value2': [1, 2, 3, 1, 2, 3]},
+                       index=didx)
+
+        exp_idx = pd.PeriodIndex(['2011-07-19 07:00:00',
+                                  '2011-07-19 08:00:00',
+                                  '2011-07-19 09:00:00'], freq='H')
+        expected = DataFrame({'value1': [3, 5, 7], 'value2': [2, 4, 6]},
+                             index=exp_idx, columns=['value1', 'value2'])
+
+        result = df.groupby(level=0).sum()
+        assert_frame_equal(result, expected)
 
     def test_groupby_reindex_inside_function(self):
         from pandas.tseries.api import DatetimeIndex
