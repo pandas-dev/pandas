@@ -2792,7 +2792,7 @@ class SeriesGroupBy(GroupBy):
         ids, _, _ = self.grouper.group_info
         
         if len(ids) == 0:  # bugfix for 12553
-            return self._constructor([])
+            return Series([])
         
         val = self.obj.get_values()
 
