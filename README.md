@@ -1,3 +1,8 @@
+<div align="center">
+  <img src="http://pandas.pydata.org/_static/pandas_logo.png"><br>
+</div>
+-----------------
+
 # pandas: powerful Python data analysis toolkit
 
 <table>
