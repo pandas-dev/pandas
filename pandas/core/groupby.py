@@ -2813,7 +2813,7 @@ class SeriesGroupBy(GroupBy):
         # unique observations are where sorted values change
         idx = np.r_[0, 1 + np.nonzero(ids[1:] != ids[:-1])[0]]
         inc = np.r_[1, val[1:] != val[:-1]]
-
+        
         # 1st item of each group is a new unique observation
         mask = isnull(val)
         if dropna:
