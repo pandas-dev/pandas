@@ -2790,6 +2790,10 @@ class SeriesGroupBy(GroupBy):
     def nunique(self, dropna=True):
         """ Returns number of unique elements in the group """
         ids, _, _ = self.grouper.group_info
+        
+        if len(ids) == 0:  # bufix for 12553
+            return Series([])
+        
         val = self.obj.get_values()
 
         try:
@@ -2804,6 +2808,7 @@ class SeriesGroupBy(GroupBy):
             isnull = com.isnull
 
         ids, val = ids[sorter], val[sorter]
+        
 
         # group boundaries are where group ids change
         # unique observations are where sorted values change
@@ -2820,7 +2825,7 @@ class SeriesGroupBy(GroupBy):
             inc[idx] = 1
 
         out = np.add.reduceat(inc, idx).astype('int64', copy=False)
-        res = out if ids[0] != -1 else out[1:]
+        res = out if ids[0] != -1 else out[1:])
         ri = self.grouper.result_index
 
         # we might have duplications among the bins
