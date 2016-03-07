@@ -2877,6 +2877,17 @@ class TestPeriodIndex(tm.TestCase):
         index3 = period_range('1/1/2000', '1/20/2000', freq='2D')
         self.assertRaises(ValueError, index.join, index3)
 
+    def test_union_dataframe_index(self):
+        rng1 = pd.period_range('1/1/1999', '1/1/2012', freq='M')
+        s1 = pd.Series(np.random.randn(len(rng1)), rng1)
+
+        rng2 = pd.period_range('1/1/1980', '12/1/2001', freq='M')
+        s2 = pd.Series(np.random.randn(len(rng2)), rng2)
+        df = pd.DataFrame({'s1': s1, 's2': s2})
+
+        exp = pd.period_range('1/1/1980', '1/1/2012', freq='M')
+        self.assert_index_equal(df.index, exp)
+
     def test_intersection(self):
         index = period_range('1/1/2000', '1/20/2000', freq='D')
 
@@ -2896,6 +2907,63 @@ class TestPeriodIndex(tm.TestCase):
 
         index3 = period_range('1/1/2000', '1/20/2000', freq='2D')
         self.assertRaises(ValueError, index.intersection, index3)
+
+    def test_intersection_cases(self):
+        base = period_range('6/1/2000', '6/30/2000', freq='D', name='idx')
+
+        # if target has the same name, it is preserved
+        rng2 = period_range('5/15/2000', '6/20/2000', freq='D', name='idx')
+        expected2 = period_range('6/1/2000', '6/20/2000', freq='D',
+                                 name='idx')
+
+        # if target name is different, it will be reset
+        rng3 = period_range('5/15/2000', '6/20/2000', freq='D', name='other')
+        expected3 = period_range('6/1/2000', '6/20/2000', freq='D',
+                                 name=None)
+
+        rng4 = period_range('7/1/2000', '7/31/2000', freq='D', name='idx')
+        expected4 = PeriodIndex([], name='idx', freq='D')
+
+        for (rng, expected) in [(rng2, expected2), (rng3, expected3),
+                                (rng4, expected4)]:
+            result = base.intersection(rng)
+            self.assertTrue(result.equals(expected))
+            self.assertEqual(result.name, expected.name)
+            self.assertEqual(result.freq, expected.freq)
+
+        # non-monotonic
+        base = PeriodIndex(['2011-01-05', '2011-01-04', '2011-01-02',
+                            '2011-01-03'], freq='D', name='idx')
+
+        rng2 = PeriodIndex(['2011-01-04', '2011-01-02',
+                            '2011-02-02', '2011-02-03'],
+                           freq='D', name='idx')
+        expected2 = PeriodIndex(['2011-01-04', '2011-01-02'], freq='D',
+                                name='idx')
+
+        rng3 = PeriodIndex(['2011-01-04', '2011-01-02', '2011-02-02',
+                            '2011-02-03'],
+                           freq='D', name='other')
+        expected3 = PeriodIndex(['2011-01-04', '2011-01-02'], freq='D',
+                                name=None)
+
+        rng4 = period_range('7/1/2000', '7/31/2000', freq='D', name='idx')
+        expected4 = PeriodIndex([], freq='D', name='idx')
+
+        for (rng, expected) in [(rng2, expected2), (rng3, expected3),
+                                (rng4, expected4)]:
+            result = base.intersection(rng)
+            self.assertTrue(result.equals(expected))
+            self.assertEqual(result.name, expected.name)
+            self.assertEqual(result.freq, 'D')
+
+        # empty same freq
+        rng = date_range('6/1/2000', '6/15/2000', freq='T')
+        result = rng[0:0].intersection(rng)
+        self.assertEqual(len(result), 0)
+
+        result = rng.intersection(rng[0:0])
+        self.assertEqual(len(result), 0)
 
     def test_fields(self):
         # year, month, day, hour, minute
@@ -3732,6 +3800,86 @@ class TestComparisons(tm.TestCase):
                 idx1 > diff
             with tm.assertRaisesRegexp(ValueError, msg):
                 idx1 == diff
+
+
+class TestSeriesPeriod(tm.TestCase):
+
+    def setUp(self):
+        self.series = Series(period_range('2000-01-01', periods=10, freq='D'))
+
+    def test_auto_conversion(self):
+        series = Series(list(period_range('2000-01-01', periods=10, freq='D')))
+        self.assertEqual(series.dtype, 'object')
+
+    def test_constructor_cant_cast_period(self):
+        with tm.assertRaises(TypeError):
+            Series(period_range('2000-01-01', periods=10, freq='D'),
+                   dtype=float)
+
+    def test_series_comparison_scalars(self):
+        val = pd.Period('2000-01-04', freq='D')
+        result = self.series > val
+        expected = np.array([x > val for x in self.series])
+        self.assert_numpy_array_equal(result, expected)
+
+        val = self.series[5]
+        result = self.series > val
+        expected = np.array([x > val for x in self.series])
+        self.assert_numpy_array_equal(result, expected)
+
+    def test_between(self):
+        left, right = self.series[[2, 7]]
+        result = self.series.between(left, right)
+        expected = (self.series >= left) & (self.series <= right)
+        assert_series_equal(result, expected)
+
+    # ---------------------------------------------------------------------
+    # NaT support
+
+    """
+    # ToDo: Enable when support period dtype
+    def test_NaT_scalar(self):
+        series = Series([0, 1000, 2000, iNaT], dtype='period[D]')
+
+        val = series[3]
+        self.assertTrue(com.isnull(val))
+
+        series[2] = val
+        self.assertTrue(com.isnull(series[2]))
+
+    def test_NaT_cast(self):
+        result = Series([np.nan]).astype('period[D]')
+        expected = Series([NaT])
+        assert_series_equal(result, expected)
+    """
+
+    def test_set_none_nan(self):
+        # currently Period is stored as object dtype, not as NaT
+        self.series[3] = None
+        self.assertIs(self.series[3], None)
+
+        self.series[3:5] = None
+        self.assertIs(self.series[4], None)
+
+        self.series[5] = np.nan
+        self.assertTrue(np.isnan(self.series[5]))
+
+        self.series[5:7] = np.nan
+        self.assertTrue(np.isnan(self.series[6]))
+
+    def test_intercept_astype_object(self):
+        expected = self.series.astype('object')
+
+        df = DataFrame({'a': self.series,
+                        'b': np.random.randn(len(self.series))})
+
+        result = df.values.squeeze()
+        self.assertTrue((result[:, 0] == expected.values).all())
+
+        df = DataFrame({'a': self.series, 'b': ['foo'] * len(self.series)})
+
+        result = df.values.squeeze()
+        self.assertTrue((result[:, 0] == expected.values).all())
 
 
 if __name__ == '__main__':

@@ -1325,6 +1325,47 @@ class TestTimeSeries(tm.TestCase):
         self.assert_index_equal(rng, exp)
         self.assertEqual(rng.freq, '-2M')
 
+    def test_date_range_bms_bug(self):
+        # #1645
+        rng = date_range('1/1/2000', periods=10, freq='BMS')
+
+        ex_first = Timestamp('2000-01-03')
+        self.assertEqual(rng[0], ex_first)
+
+    def test_date_range_businesshour(self):
+        idx = DatetimeIndex(['2014-07-04 09:00', '2014-07-04 10:00',
+                             '2014-07-04 11:00',
+                             '2014-07-04 12:00', '2014-07-04 13:00',
+                             '2014-07-04 14:00',
+                             '2014-07-04 15:00', '2014-07-04 16:00'],
+                            freq='BH')
+        rng = date_range('2014-07-04 09:00', '2014-07-04 16:00', freq='BH')
+        tm.assert_index_equal(idx, rng)
+
+        idx = DatetimeIndex(
+            ['2014-07-04 16:00', '2014-07-07 09:00'], freq='BH')
+        rng = date_range('2014-07-04 16:00', '2014-07-07 09:00', freq='BH')
+        tm.assert_index_equal(idx, rng)
+
+        idx = DatetimeIndex(['2014-07-04 09:00', '2014-07-04 10:00',
+                             '2014-07-04 11:00',
+                             '2014-07-04 12:00', '2014-07-04 13:00',
+                             '2014-07-04 14:00',
+                             '2014-07-04 15:00', '2014-07-04 16:00',
+                             '2014-07-07 09:00', '2014-07-07 10:00',
+                             '2014-07-07 11:00',
+                             '2014-07-07 12:00', '2014-07-07 13:00',
+                             '2014-07-07 14:00',
+                             '2014-07-07 15:00', '2014-07-07 16:00',
+                             '2014-07-08 09:00', '2014-07-08 10:00',
+                             '2014-07-08 11:00',
+                             '2014-07-08 12:00', '2014-07-08 13:00',
+                             '2014-07-08 14:00',
+                             '2014-07-08 15:00', '2014-07-08 16:00'],
+                            freq='BH')
+        rng = date_range('2014-07-04 09:00', '2014-07-08 16:00', freq='BH')
+        tm.assert_index_equal(idx, rng)
+
     def test_first_subset(self):
         ts = _simple_ts('1/1/2000', '1/1/2010', freq='12h')
         result = ts.first('10d')
@@ -2716,14 +2757,6 @@ class TestDatetimeIndex(tm.TestCase):
         exp = DatetimeIndex(sorted(set(list(left)) | set(list(right))))
         self.assertTrue(result.equals(exp))
 
-    def test_intersection_bug_1708(self):
-        from pandas import DateOffset
-        index_1 = date_range('1/1/2012', periods=4, freq='12H')
-        index_2 = index_1 + DateOffset(hours=1)
-
-        result = index_1 & index_2
-        self.assertEqual(len(result), 0)
-
     def test_union_freq_both_none(self):
         # GH11086
         expected = bdate_range('20150101', periods=10)
@@ -2732,6 +2765,100 @@ class TestDatetimeIndex(tm.TestCase):
         result = expected.union(expected)
         tm.assert_index_equal(result, expected)
         self.assertIsNone(result.freq)
+
+    def test_union_dataframe_index(self):
+        rng1 = date_range('1/1/1999', '1/1/2012', freq='MS')
+        s1 = Series(np.random.randn(len(rng1)), rng1)
+
+        rng2 = date_range('1/1/1980', '12/1/2001', freq='MS')
+        s2 = Series(np.random.randn(len(rng2)), rng2)
+        df = DataFrame({'s1': s1, 's2': s2})
+
+        exp = pd.date_range('1/1/1980', '1/1/2012', freq='MS')
+        self.assert_index_equal(df.index, exp)
+
+    def test_intersection_bug_1708(self):
+        from pandas import DateOffset
+        index_1 = date_range('1/1/2012', periods=4, freq='12H')
+        index_2 = index_1 + DateOffset(hours=1)
+
+        result = index_1 & index_2
+        self.assertEqual(len(result), 0)
+
+    def test_intersection(self):
+        # GH 4690 (with tz)
+        for tz in [None, 'Asia/Tokyo', 'US/Eastern', 'dateutil/US/Pacific']:
+            base = date_range('6/1/2000', '6/30/2000', freq='D', name='idx')
+
+            # if target has the same name, it is preserved
+            rng2 = date_range('5/15/2000', '6/20/2000', freq='D', name='idx')
+            expected2 = date_range('6/1/2000', '6/20/2000', freq='D',
+                                   name='idx')
+
+            # if target name is different, it will be reset
+            rng3 = date_range('5/15/2000', '6/20/2000', freq='D', name='other')
+            expected3 = date_range('6/1/2000', '6/20/2000', freq='D',
+                                   name=None)
+
+            rng4 = date_range('7/1/2000', '7/31/2000', freq='D', name='idx')
+            expected4 = DatetimeIndex([], name='idx')
+
+            for (rng, expected) in [(rng2, expected2), (rng3, expected3),
+                                    (rng4, expected4)]:
+                result = base.intersection(rng)
+                self.assertTrue(result.equals(expected))
+                self.assertEqual(result.name, expected.name)
+                self.assertEqual(result.freq, expected.freq)
+                self.assertEqual(result.tz, expected.tz)
+
+            # non-monotonic
+            base = DatetimeIndex(['2011-01-05', '2011-01-04',
+                                  '2011-01-02', '2011-01-03'],
+                                 tz=tz, name='idx')
+
+            rng2 = DatetimeIndex(['2011-01-04', '2011-01-02',
+                                  '2011-02-02', '2011-02-03'],
+                                 tz=tz, name='idx')
+            expected2 = DatetimeIndex(
+                ['2011-01-04', '2011-01-02'], tz=tz, name='idx')
+
+            rng3 = DatetimeIndex(['2011-01-04', '2011-01-02',
+                                  '2011-02-02', '2011-02-03'],
+                                 tz=tz, name='other')
+            expected3 = DatetimeIndex(
+                ['2011-01-04', '2011-01-02'], tz=tz, name=None)
+
+            # GH 7880
+            rng4 = date_range('7/1/2000', '7/31/2000', freq='D', tz=tz,
+                              name='idx')
+            expected4 = DatetimeIndex([], tz=tz, name='idx')
+
+            for (rng, expected) in [(rng2, expected2), (rng3, expected3),
+                                    (rng4, expected4)]:
+                result = base.intersection(rng)
+                self.assertTrue(result.equals(expected))
+                self.assertEqual(result.name, expected.name)
+                self.assertIsNone(result.freq)
+                self.assertEqual(result.tz, expected.tz)
+
+        # empty same freq GH2129
+        rng = date_range('6/1/2000', '6/15/2000', freq='T')
+        result = rng[0:0].intersection(rng)
+        self.assertEqual(len(result), 0)
+
+        result = rng.intersection(rng[0:0])
+        self.assertEqual(len(result), 0)
+
+    def test_string_index_series_name_converted(self):
+        # #1644
+        df = DataFrame(np.random.randn(10, 4),
+                       index=date_range('1/1/2000', periods=10))
+
+        result = df.ix['1/3/2000']
+        self.assertEqual(result.name, df.index[2])
+
+        result = df.T['1/3/2000']
+        self.assertEqual(result.name, df.index[2])
 
     # GH 10699
     def test_datetime64_with_DateOffset(self):
@@ -3822,131 +3949,6 @@ class TestSeriesDatetime64(tm.TestCase):
 
         result = df.values.squeeze()
         self.assertTrue((result[:, 0] == expected.values).all())
-
-    def test_union(self):
-        rng1 = date_range('1/1/1999', '1/1/2012', freq='MS')
-        s1 = Series(np.random.randn(len(rng1)), rng1)
-
-        rng2 = date_range('1/1/1980', '12/1/2001', freq='MS')
-        s2 = Series(np.random.randn(len(rng2)), rng2)
-        df = DataFrame({'s1': s1, 's2': s2})
-        self.assertEqual(df.index.values.dtype, np.dtype('M8[ns]'))
-
-    def test_intersection(self):
-        # GH 4690 (with tz)
-        for tz in [None, 'Asia/Tokyo', 'US/Eastern', 'dateutil/US/Pacific']:
-            base = date_range('6/1/2000', '6/30/2000', freq='D', name='idx')
-
-            # if target has the same name, it is preserved
-            rng2 = date_range('5/15/2000', '6/20/2000', freq='D', name='idx')
-            expected2 = date_range('6/1/2000', '6/20/2000', freq='D',
-                                   name='idx')
-
-            # if target name is different, it will be reset
-            rng3 = date_range('5/15/2000', '6/20/2000', freq='D', name='other')
-            expected3 = date_range('6/1/2000', '6/20/2000', freq='D',
-                                   name=None)
-
-            rng4 = date_range('7/1/2000', '7/31/2000', freq='D', name='idx')
-            expected4 = DatetimeIndex([], name='idx')
-
-            for (rng, expected) in [(rng2, expected2), (rng3, expected3),
-                                    (rng4, expected4)]:
-                result = base.intersection(rng)
-                self.assertTrue(result.equals(expected))
-                self.assertEqual(result.name, expected.name)
-                self.assertEqual(result.freq, expected.freq)
-                self.assertEqual(result.tz, expected.tz)
-
-            # non-monotonic
-            base = DatetimeIndex(['2011-01-05', '2011-01-04',
-                                  '2011-01-02', '2011-01-03'],
-                                 tz=tz, name='idx')
-
-            rng2 = DatetimeIndex(['2011-01-04', '2011-01-02',
-                                  '2011-02-02', '2011-02-03'],
-                                 tz=tz, name='idx')
-            expected2 = DatetimeIndex(
-                ['2011-01-04', '2011-01-02'], tz=tz, name='idx')
-
-            rng3 = DatetimeIndex(['2011-01-04', '2011-01-02',
-                                  '2011-02-02', '2011-02-03'],
-                                 tz=tz, name='other')
-            expected3 = DatetimeIndex(
-                ['2011-01-04', '2011-01-02'], tz=tz, name=None)
-
-            # GH 7880
-            rng4 = date_range('7/1/2000', '7/31/2000', freq='D', tz=tz,
-                              name='idx')
-            expected4 = DatetimeIndex([], tz=tz, name='idx')
-
-            for (rng, expected) in [(rng2, expected2), (rng3, expected3),
-                                    (rng4, expected4)]:
-                result = base.intersection(rng)
-                self.assertTrue(result.equals(expected))
-                self.assertEqual(result.name, expected.name)
-                self.assertIsNone(result.freq)
-                self.assertEqual(result.tz, expected.tz)
-
-        # empty same freq GH2129
-        rng = date_range('6/1/2000', '6/15/2000', freq='T')
-        result = rng[0:0].intersection(rng)
-        self.assertEqual(len(result), 0)
-
-        result = rng.intersection(rng[0:0])
-        self.assertEqual(len(result), 0)
-
-    def test_date_range_bms_bug(self):
-        # #1645
-        rng = date_range('1/1/2000', periods=10, freq='BMS')
-
-        ex_first = Timestamp('2000-01-03')
-        self.assertEqual(rng[0], ex_first)
-
-    def test_date_range_businesshour(self):
-        idx = DatetimeIndex(['2014-07-04 09:00', '2014-07-04 10:00',
-                             '2014-07-04 11:00',
-                             '2014-07-04 12:00', '2014-07-04 13:00',
-                             '2014-07-04 14:00',
-                             '2014-07-04 15:00', '2014-07-04 16:00'],
-                            freq='BH')
-        rng = date_range('2014-07-04 09:00', '2014-07-04 16:00', freq='BH')
-        tm.assert_index_equal(idx, rng)
-
-        idx = DatetimeIndex(
-            ['2014-07-04 16:00', '2014-07-07 09:00'], freq='BH')
-        rng = date_range('2014-07-04 16:00', '2014-07-07 09:00', freq='BH')
-        tm.assert_index_equal(idx, rng)
-
-        idx = DatetimeIndex(['2014-07-04 09:00', '2014-07-04 10:00',
-                             '2014-07-04 11:00',
-                             '2014-07-04 12:00', '2014-07-04 13:00',
-                             '2014-07-04 14:00',
-                             '2014-07-04 15:00', '2014-07-04 16:00',
-                             '2014-07-07 09:00', '2014-07-07 10:00',
-                             '2014-07-07 11:00',
-                             '2014-07-07 12:00', '2014-07-07 13:00',
-                             '2014-07-07 14:00',
-                             '2014-07-07 15:00', '2014-07-07 16:00',
-                             '2014-07-08 09:00', '2014-07-08 10:00',
-                             '2014-07-08 11:00',
-                             '2014-07-08 12:00', '2014-07-08 13:00',
-                             '2014-07-08 14:00',
-                             '2014-07-08 15:00', '2014-07-08 16:00'],
-                            freq='BH')
-        rng = date_range('2014-07-04 09:00', '2014-07-08 16:00', freq='BH')
-        tm.assert_index_equal(idx, rng)
-
-    def test_string_index_series_name_converted(self):
-        # #1644
-        df = DataFrame(np.random.randn(10, 4),
-                       index=date_range('1/1/2000', periods=10))
-
-        result = df.ix['1/3/2000']
-        self.assertEqual(result.name, df.index[2])
-
-        result = df.T['1/3/2000']
-        self.assertEqual(result.name, df.index[2])
 
 
 class TestTimestamp(tm.TestCase):
