@@ -1,10 +1,10 @@
 package:
     name: pandas
-    version: {{ environ.get('GIT_DESCRIBE_TAG','') }}
+    version: 0.18.0
 
 build:
-    number: {{ environ.get('GIT_DESCRIBE_NUMBER',0) }}
-    string: np{{ environ.get('CONDA_NPY') }}py{{ environ.get('CONDA_PY') }}_{{ environ.get('GIT_BUILD_STR','') }}
+    number: {{environ.get('APPVEYOR_BUILD_NUMBER', 0)}}  # [win]
+    string: np{{ environ.get('CONDA_NPY') }}py{{ environ.get('CONDA_PY') }}_{{ environ.get('APPVEYOR_BUILD_NUMBER', 0) }} # [win]
 
 source:
 
