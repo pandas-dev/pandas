@@ -1984,7 +1984,9 @@ class PythonParser(ParserBase):
             raise ValueError('skip footer cannot be negative')
 
         # Loop through rows to verify lengths are correct.
-        if col_len != zip_len and self.index_col is not False:
+        if (col_len != zip_len and
+                self.index_col is not False and
+                self.usecols is None):
             i = 0
             for (i, l) in enumerate(content):
                 if len(l) != col_len:

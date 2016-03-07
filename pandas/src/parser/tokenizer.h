@@ -184,6 +184,8 @@ typedef struct parser_t {
     int allow_embedded_newline;
     int strict;                 /* raise exception on bad CSV */
 
+    int usecols; // Boolean: 1: usecols provided, 0: none provided
+
     int expected_fields;
     int error_bad_lines;
     int warn_bad_lines;

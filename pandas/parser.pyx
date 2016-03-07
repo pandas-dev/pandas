@@ -143,6 +143,8 @@ cdef extern from "parser/tokenizer.h":
         int allow_embedded_newline
         int strict                 # raise exception on bad CSV */
 
+        int usecols
+
         int expected_fields
         int error_bad_lines
         int warn_bad_lines
@@ -349,6 +351,8 @@ cdef class TextReader:
 
         self.compression = compression
         self.memory_map = memory_map
+
+        self.parser.usecols = (usecols is not None)
 
         self._setup_parser_source(source)
         parser_set_default_options(self.parser)
@@ -1208,7 +1212,7 @@ cdef class TextReader:
             else:
                 return None
 
-class CParserError(Exception):
+class CParserError(ValueError):
     pass
 
 
