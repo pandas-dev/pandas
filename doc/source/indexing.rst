@@ -53,6 +53,10 @@ advanced indexing.
    but instead subclass ``PandasObject``, similarly to the rest of the pandas objects. This should be
    a transparent change with only very limited API implications (See the :ref:`Internal Refactoring <whatsnew_0150.refactoring>`)
 
+.. warning::
+
+   Indexing on an integer-based Index with floats has been clarified in 0.18.0, for a summary of the changes, see :ref:`here <whatsnew_0180.float_indexers>`.
+
 See the :ref:`MultiIndex / Advanced Indexing <advanced>` for ``MultiIndex`` and more advanced indexing documentation.
 
 See the :ref:`cookbook<cookbook.selection>` for some advanced strategies

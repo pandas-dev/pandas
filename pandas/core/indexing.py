@@ -995,6 +995,10 @@ class _NDFrameIndexer(object):
 
             return self._getitem_iterable(key, axis=axis)
         else:
+
+            # maybe coerce a float scalar to integer
+            key = labels._maybe_cast_indexer(key)
+
             if is_integer(key):
                 if axis == 0 and isinstance(labels, MultiIndex):
                     try:

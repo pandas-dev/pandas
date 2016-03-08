@@ -2016,7 +2016,7 @@ class DataFrame(NDFrame):
             # with all other indexing behavior
             if isinstance(key, Series) and not key.index.equals(self.index):
                 warnings.warn("Boolean Series key will be reindexed to match "
-                              "DataFrame index.", UserWarning)
+                              "DataFrame index.", UserWarning, stacklevel=3)
             elif len(key) != len(self.index):
                 raise ValueError('Item wrong length %d instead of %d.' %
                                  (len(key), len(self.index)))
