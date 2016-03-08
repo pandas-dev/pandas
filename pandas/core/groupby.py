@@ -1044,27 +1044,71 @@ class GroupBy(_GroupBy):
 
     @Substitution(name='groupby')
     @Appender(_doc_template)
-    def resample(self, rule, **kwargs):
+    def resample(self, rule, how=None, fill_method=None, limit=None, **kwargs):
         """
         Provide resampling when using a TimeGrouper
         Return a new grouper with our resampler appended
         """
-        from pandas.tseries.resample import TimeGrouper
+        from pandas.tseries.resample import (TimeGrouper,
+                                             _maybe_process_deprecations)
         gpr = TimeGrouper(axis=self.axis, freq=rule, **kwargs)
 
         # we by definition have at least 1 key as we are already a grouper
         groupings = list(self.grouper.groupings)
         groupings.append(gpr)
 
-        return self.__class__(self.obj,
-                              keys=groupings,
-                              axis=self.axis,
-                              level=self.level,
-                              as_index=self.as_index,
-                              sort=self.sort,
-                              group_keys=self.group_keys,
-                              squeeze=self.squeeze,
-                              selection=self._selection)
+        result = self.__class__(self.obj,
+                                keys=groupings,
+                                axis=self.axis,
+                                level=self.level,
+                                as_index=self.as_index,
+                                sort=self.sort,
+                                group_keys=self.group_keys,
+                                squeeze=self.squeeze,
+                                selection=self._selection)
+
+        return _maybe_process_deprecations(result,
+                                           how=how,
+                                           fill_method=fill_method,
+                                           limit=limit)
+
+    @Substitution(name='groupby')
+    @Appender(_doc_template)
+    def pad(self, limit=None):
+        """
+        Forward fill the values
+
+        Parameters
+        ----------
+        limit : integer, optional
+            limit of how many values to fill
+
+        See Also
+        --------
+        Series.fillna
+        DataFrame.fillna
+        """
+        return self.apply(lambda x: x.ffill(limit=limit))
+    ffill = pad
+
+    @Substitution(name='groupby')
+    @Appender(_doc_template)
+    def backfill(self, limit=None):
+        """
+        Backward fill the values
+
+        Parameters
+        ----------
+        limit : integer, optional
+            limit of how many values to fill
+
+        See Also
+        --------
+        Series.fillna
+        DataFrame.fillna
+        """
+        return self.apply(lambda x: x.bfill(limit=limit))
+    bfill = backfill
 
     @Substitution(name='groupby')
     @Appender(_doc_template)

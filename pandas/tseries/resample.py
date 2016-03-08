@@ -102,7 +102,7 @@ class Resampler(_GroupBy):
     def _deprecated(self):
         warnings.warn(".resample() is now a deferred operation\n"
                       "use .resample(...).mean() instead of .resample(...)",
-                      FutureWarning, stacklevel=2)
+                      FutureWarning, stacklevel=3)
         return self.mean()
 
     def _make_deprecated_binop(op):
@@ -154,9 +154,7 @@ class Resampler(_GroupBy):
         if attr in self._deprecated_invalids:
             raise ValueError(".resample() is now a deferred operation\n"
                              "\tuse .resample(...).mean() instead of "
-                             ".resample(...)\n"
-                             "\tassignment will have no effect as you "
-                             "are working on a copy")
+                             ".resample(...)")
         if attr not in self._deprecated_valids:
             self = self._deprecated()
         return object.__getattribute__(self, attr)
@@ -166,6 +164,17 @@ class Resampler(_GroupBy):
             raise ValueError("cannot set values on {0}".format(
                 self.__class__.__name__))
         object.__setattr__(self, attr, value)
+
+    def __getitem__(self, key):
+        try:
+            return super(Resampler, self).__getitem__(key)
+        except (KeyError, com.AbstractMethodError):
+
+            # compat for deprecated
+            if isinstance(self.obj, com.ABCSeries):
+                return self._deprecated()[key]
+
+            raise
 
     def __setitem__(self, attr, value):
         raise ValueError("cannot set items on {0}".format(
@@ -207,6 +216,11 @@ class Resampler(_GroupBy):
     def _assure_grouper(self):
         """ make sure that we are creating our binner & grouper """
         self._set_binner()
+
+    def plot(self, *args, **kwargs):
+        # for compat with prior versions, we want to
+        # have the warnings shown here and just have this work
+        return self._deprecated().plot(*args, **kwargs)
 
     def aggregate(self, arg, *args, **kwargs):
         """
@@ -466,6 +480,52 @@ for method in ['nunique']:
         return self._groupby_and_aggregate(None, _method)
     f.__doc__ = getattr(SeriesGroupBy, method).__doc__
     setattr(Resampler, method, f)
+
+
+def _maybe_process_deprecations(r, how=None, fill_method=None, limit=None):
+    """ potentially we might have a deprecation warning, show it
+    but call the appropriate methods anyhow """
+
+    if how is not None:
+
+        # .resample(..., how='sum')
+        if isinstance(how, compat.string_types):
+            method = "{0}()".format(how)
+
+            # .resample(..., how=lambda x: ....)
+        else:
+            method = ".apply(<func>)"
+
+        # if we have both a how and fill_method, then show
+        # the following warning
+        if fill_method is None:
+            warnings.warn("how in .resample() is deprecated\n"
+                          "the new syntax is "
+                          ".resample(...).{method}".format(
+                              method=method),
+                          FutureWarning, stacklevel=3)
+        r = r.aggregate(how)
+
+    if fill_method is not None:
+
+        # show the prior function call
+        method = '.' + method if how is not None else ''
+
+        args = "limit={0}".format(limit) if limit is not None else ""
+        warnings.warn("fill_method is deprecated to .resample()\n"
+                      "the new syntax is .resample(...){method}"
+                      ".{fill_method}({args})".format(
+                          method=method,
+                          fill_method=fill_method,
+                          args=args),
+                      FutureWarning, stacklevel=3)
+
+        if how is not None:
+            r = getattr(r, fill_method)(limit=limit)
+        else:
+            r = r.aggregate(fill_method, limit=limit)
+
+    return r
 
 
 class DatetimeIndexResampler(Resampler):

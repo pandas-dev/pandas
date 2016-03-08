@@ -5610,7 +5610,8 @@ class TestGroupBy(tm.TestCase):
              'cumprod', 'tail', 'resample', 'cummin', 'fillna', 'cumsum',
              'cumcount', 'all', 'shift', 'skew', 'bfill', 'ffill', 'take',
              'tshift', 'pct_change', 'any', 'mad', 'corr', 'corrwith', 'cov',
-             'dtypes', 'ndim', 'diff', 'idxmax', 'idxmin'])
+             'dtypes', 'ndim', 'diff', 'idxmax', 'idxmin',
+             'ffill', 'bfill', 'pad', 'backfill'])
         self.assertEqual(results, expected)
 
     def test_lexsort_indexer(self):
