@@ -13,9 +13,6 @@ lxml
 matplotlib
 jinja2
 bottleneck
-sqlalchemy
-pymysql
-psycopg2
 xarray
 boto
 

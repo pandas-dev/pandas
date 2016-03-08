@@ -1,17 +1,22 @@
 #!/bin/bash
 
-home_dir=$(pwd)
-ccache -s
-
-MISSES=$(ccache -s | grep "cache miss" | grep -Po "\d+")
-echo "MISSES: $MISSES"
-
-if [ x"$MISSES" == x"0" ]; then
-    echo "No cache misses detected, skipping upload"
-    exit 0
+if [ "${TRAVIS_OS_NAME}" != "linux" ]; then
+   echo "not using ccache on non-linux"
+   exit 0
 fi
 
 if [ "$IRON_TOKEN" ]; then
+
+    home_dir=$(pwd)
+    ccache -s
+
+    MISSES=$(ccache -s | grep "cache miss" | grep -Po "\d+")
+    echo "MISSES: $MISSES"
+
+    if [ x"$MISSES" == x"0" ]; then
+       echo "No cache misses detected, skipping upload"
+       exit 0
+    fi
 
     # install the compiler cache
     sudo apt-get $APT_ARGS install ccache p7zip-full
@@ -29,6 +34,6 @@ if [ "$IRON_TOKEN" ]; then
     split -b 500000 -d $HOME/ccache.7z $HOME/ccache.
 
     python ci/ironcache/put.py
-fi;
+fi
 
 exit 0

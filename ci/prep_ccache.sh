@@ -1,5 +1,10 @@
 #!/bin/bash
 
+if [ "${TRAVIS_OS_NAME}" != "linux" ]; then
+   echo "not using ccache on non-linux"
+   exit 0
+fi
+
 if [ "$IRON_TOKEN" ]; then
 
     home_dir=$(pwd)

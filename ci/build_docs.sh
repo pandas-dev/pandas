@@ -1,5 +1,10 @@
 #!/bin/bash
 
+if [ "${TRAVIS_OS_NAME}" != "linux" ]; then
+   echo "not doing build_docs on non-linux"
+   exit 0
+fi
+
 cd "$TRAVIS_BUILD_DIR"
 echo "inside $0"
 
