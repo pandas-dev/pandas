@@ -705,7 +705,7 @@ other anchored offsets like ``MonthBegin`` and ``YearBegin``.
 Resample API
 ^^^^^^^^^^^^
 
-Like the change in the window functions API :ref:`above <whatsnew_0180.enhancements.moments>`, ``.resample(...)`` is changing to have a more groupby-like API. (:issue:`11732`, :issue:`12702`, :issue:`12202`, :issue:`12332`, :issue:`12334`, :issue:`12348`).
+Like the change in the window functions API :ref:`above <whatsnew_0180.enhancements.moments>`, ``.resample(...)`` is changing to have a more groupby-like API. (:issue:`11732`, :issue:`12702`, :issue:`12202`, :issue:`12332`, :issue:`12334`, :issue:`12348`, :issue:`12448`).
 
 .. ipython:: python
 
@@ -773,6 +773,29 @@ You could also specify a ``how`` directly
       ValueError: .resample() is now a deferred operation
             use .resample(...).mean() instead of .resample(...)
             assignment will have no effect as you are working on a copy
+
+   There is a situation where the new API can not perform all the operations when using original code.
+   This code is intending to resample every 2s, take the ``mean`` AND then take the ``min` of those results.
+
+   .. code-block:: python
+
+      In [4]: df.resample('2s').min()
+      Out[4]:
+      A    0.433985
+      B    0.314582
+      C    0.357096
+      D    0.531096
+      dtype: float64
+
+   The new API will:
+
+   .. ipython: python
+
+      df.resample('2s').min()
+
+   Good news is the return dimensions will differ (between the new API and the old API), so this should loudly raise
+   an exception.
+
 
 **New API**:
 
