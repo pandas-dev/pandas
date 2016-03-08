@@ -420,7 +420,7 @@ Rolling/Expanding Moments improvements
 
   New behavior
 
-  .. ipython:: python
+  .. code-block:: python
 
      In [10]: pd.rolling_window(s, window=3, win_type='triang', center=True)
      Out[10]:

@@ -292,6 +292,7 @@ Updated PyTables Support
    store.select('df')
 
 .. ipython:: python
+   :okwarning:
 
    wp = Panel(randn(2, 5, 4), items=['Item1', 'Item2'],
           major_axis=date_range('1/1/2000', periods=5),

@@ -1625,6 +1625,7 @@ This is the correct access method
 This *can* work at times, but is not guaranteed, and so should be avoided
 
 .. ipython:: python
+   :okwarning:
 
    dfc = dfc.copy()
    dfc['A'][0] = 111
