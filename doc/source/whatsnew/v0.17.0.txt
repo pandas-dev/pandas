@@ -723,6 +723,7 @@ be broadcast:
 or it can return False if broadcasting can not be done:
 
 .. ipython:: python
+   :okwarning:
 
    np.array([1, 2, 3]) == np.array([1, 2])
 

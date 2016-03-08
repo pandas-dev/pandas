@@ -98,6 +98,7 @@ First we're going to need to import the cython magic function to ipython (for
 cython versions >=0.21 you can use ``%load_ext Cython``):
 
 .. ipython:: python
+   :okwarning:
 
    %load_ext cythonmagic
 

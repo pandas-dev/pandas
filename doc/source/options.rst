@@ -107,6 +107,7 @@ All options also have a default value, and you can use ``reset_option`` to do ju
 It's also possible to reset multiple options at once (using a regex):
 
 .. ipython:: python
+   :okwarning:
 
    pd.reset_option("^display")
 
@@ -499,5 +500,3 @@ Enabling ``display.unicode.ambiguous_as_wide`` lets pandas to figure these chara
 
    pd.set_option('display.unicode.east_asian_width', False)
    pd.set_option('display.unicode.ambiguous_as_wide', False)
-
-

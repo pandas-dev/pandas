@@ -192,6 +192,7 @@ In v0.18.0, the ``expand`` argument was added to
 Currently the default is ``expand=None`` which gives a ``FutureWarning`` and uses ``expand=False``. To avoid this warning, please explicitly specify ``expand``.
 
 .. ipython:: python
+   :okwarning:
 
    pd.Series(['a1', 'b2', 'c3']).str.extract('[ab](\d)', expand=None)
 
@@ -608,11 +609,9 @@ Changes to msgpack
 
 Forward incompatible changes in ``msgpack`` writing format were made over 0.17.0 and 0.18.0; older versions of pandas cannot read files packed by newer versions (:issue:`12129`, `10527`)
 
-Bug in ``to_msgpack`` and ``read_msgpack`` introduced in 0.17.0 and fixed in 0.18.0, caused files packed in Python 2 unreadable by Python 3 (:issue:`12142`)
+Bug in ``to_msgpack`` and ``read_msgpack`` introduced in 0.17.0 and fixed in 0.18.0, caused files packed in Python 2 unreadable by Python 3 (:issue:`12142`). The following table describes the backward and forward compat of msgpacks.
 
 .. warning::
-
-   As a result of a number of issues:
 
    +----------------------+------------------------+
    | Packed with          | Can be unpacked with   |
@@ -621,13 +620,14 @@ Bug in ``to_msgpack`` and ``read_msgpack`` introduced in 0.17.0 and fixed in 0.1
    +----------------------+------------------------+
    | pre-0.17 / Python 3  | any                    |
    +----------------------+------------------------+
-   | 0.17 / Python 2      | - 0.17 / Python 2      |
+   | 0.17 / Python 2      | - ==0.17 / Python 2    |
    |                      | - >=0.18 / any Python  |
    +----------------------+------------------------+
    | 0.17 / Python 3      | >=0.18 / any Python    |
    +----------------------+------------------------+
    | 0.18                 | >= 0.18                |
-   +======================+========================+
+   +----------------------+------------------------+
+
 
    0.18.0 is backward-compatible for reading files packed by older versions, except for files packed with 0.17 in Python 2, in which case only they can only be unpacked in Python 2.
 
@@ -780,7 +780,7 @@ Now, you can write ``.resample`` as a 2-stage operation like groupby, which
 yields a ``Resampler``.
 
 .. ipython:: python
-
+   :okwarning:
 
    r = df.resample('2s')
    r
@@ -872,8 +872,27 @@ in an inplace change to the ``DataFrame``. (:issue:`9297`)
 .. ipython:: python
 
    df = pd.DataFrame({'a': np.linspace(0, 10, 5), 'b': range(5)})
-   df.eval('c = a + b')
    df
+
+.. ipython:: python
+   :suppress:
+
+   df.eval('c = a + b', inplace=True)
+
+.. code-block:: python
+
+   In [12]: df.eval('c = a + b')
+   FutureWarning: eval expressions containing an assignment currentlydefault to operating inplace.
+   This will change in a future version of pandas, use inplace=True to avoid this warning.
+
+   In [13]: df
+   Out[13]:
+         a  b     c
+   0   0.0  0   0.0
+   1   2.5  1   3.5
+   2   5.0  2   7.0
+   3   7.5  3  10.5
+   4  10.0  4  14.0
 
 In version 0.18.0, a new ``inplace`` keyword was added to choose whether the
 assignment should be done inplace or return a copy.
@@ -941,7 +960,7 @@ Other API Changes
 - ``DataFrame.to_latex()`` now supports non-ascii encodings (eg utf-8) in Python 2 with the parameter ``encoding`` (:issue:`7061`)
 - ``pandas.merge()`` and ``DataFrame.merge()`` will show a specific error message when trying to merge with an object that is not of type ``DataFrame`` or a subclass (:issue:`12081`)
 - ``DataFrame.unstack`` and ``Series.unstack`` now take ``fill_value`` keyword to allow direct replacement of missing values when an unstack results in missing values in the resulting ``DataFrame``. As an added benefit, specifying ``fill_value`` will preserve the data type of the original stacked data.  (:issue:`9746`)
-- As part of the new API for :ref:`window functions <whatsnew_0180.enhancements.moments>` and :ref:`resampling <whatsnew_0180.breaking.resample>`, aggregation functions have been clarified, raising more informative error messages on invalid aggregations. (:issue:`9052`). A full set of examples are presented in :ref:`groupby <groupby.aggregation>`.
+- As part of the new API for :ref:`window functions <whatsnew_0180.enhancements.moments>` and :ref:`resampling <whatsnew_0180.breaking.resample>`, aggregation functions have been clarified, raising more informative error messages on invalid aggregations. (:issue:`9052`). A full set of examples are presented in :ref:`groupby <groupby.aggregate>`.
 - Statistical functions for ``NDFrame`` objects will now raise if non-numpy-compatible arguments are passed in for ``**kwargs`` (:issue:`12301`)
 - ``.to_latex`` and ``.to_html`` gain a ``decimal`` parameter like ``.to_csv``; the default is ``'.'`` (:issue:`12031`)
 - More helpful error message when constructing a ``DataFrame`` with empty data but with indices (:issue:`8020`)
