@@ -13,10 +13,6 @@ scipy
 xlsxwriter
 boto
 bottleneck
-patsy
 html5lib
 beautiful-soup
 jinja2=2.8
-
-#pymysql=0.6.3
-#psycopg2=2.5.2

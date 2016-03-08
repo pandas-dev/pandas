@@ -5,13 +5,8 @@ openpyxl
 xlsxwriter
 xlrd
 xlwt
-html5lib
-patsy
-beautiful-soup
 scipy
 numexpr
 pytables
-lxml
-sqlalchemy
 bottleneck
 jinja2=2.8

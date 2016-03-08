@@ -38,16 +38,16 @@ if [ -n "$LOCALE_OVERRIDE" ]; then
     # make sure the locale is available
     # probably useless, since you would need to relogin
     time sudo locale-gen "$LOCALE_OVERRIDE"
+
+    # Need to enable for locale testing. The location of the locale file(s) is
+    # distro specific. For example, on Arch Linux all of the locales are in a
+    # commented file--/etc/locale.gen--that must be commented in to be used
+    # whereas Ubuntu looks in /var/lib/locales/supported.d/* and generates locales
+    # based on what's in the files in that folder
+    time echo 'it_CH.UTF-8 UTF-8' | sudo tee -a /var/lib/locales/supported.d/it
+    time sudo locale-gen
+
 fi
-
-# Need to enable for locale testing. The location of the locale file(s) is
-# distro specific. For example, on Arch Linux all of the locales are in a
-# commented file--/etc/locale.gen--that must be commented in to be used
-# whereas Ubuntu looks in /var/lib/locales/supported.d/* and generates locales
-# based on what's in the files in that folder
-time echo 'it_CH.UTF-8 UTF-8' | sudo tee -a /var/lib/locales/supported.d/it
-time sudo locale-gen
-
 
 # install gui for clipboard testing
 if [ -n "$CLIPBOARD_GUI" ]; then
@@ -67,7 +67,12 @@ fi
 python_major_version="${TRAVIS_PYTHON_VERSION:0:1}"
 [ "$python_major_version" == "2" ] && python_major_version=""
 
-wget http://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh -O miniconda.sh || exit 1
+# install miniconda
+if [ "${TRAVIS_OS_NAME}" == "osx" ]; then
+    wget http://repo.continuum.io/miniconda/Miniconda-latest-MacOSX-x86_64.sh -O miniconda.sh || exit 1
+else
+    wget http://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh -O miniconda.sh || exit 1
+fi
 bash miniconda.sh -b -p $HOME/miniconda || exit 1
 
 conda config --set always_yes yes --set changeps1 no || exit 1
@@ -94,7 +99,7 @@ time conda install -n pandas --file=${REQ} || exit 1
 source activate pandas
 
 # set the compiler cache to work
-if [ "$IRON_TOKEN" ]; then
+if [[ "$IRON_TOKEN" && "${TRAVIS_OS_NAME}" == "linux" ]]; then
     export PATH=/usr/lib/ccache:/usr/lib64/ccache:$PATH
     gcc=$(which gcc)
     echo "gcc: $gcc"
@@ -113,24 +118,31 @@ if [ "$BUILD_TEST" ]; then
 else
 
     # build but don't install
+    echo "build em"
     time python setup.py build_ext --inplace || exit 1
 
     # we may have run installations
+    echo "conda installs"
     REQ="ci/requirements-${TRAVIS_PYTHON_VERSION}${JOB_TAG}.run"
     time conda install -n pandas --file=${REQ} || exit 1
 
     # we may have additional pip installs
+    echo "pip installs"
     REQ="ci/requirements-${TRAVIS_PYTHON_VERSION}${JOB_TAG}.pip"
     if [ -e ${REQ} ]; then
         pip install -r $REQ
     fi
 
     # remove any installed pandas package
-    conda remove pandas
+    # w/o removing anything else
+    echo "removing installed pandas"
+    conda remove pandas --force
 
     # install our pandas
+    echo "running setup.py develop"
     python setup.py develop  || exit 1
 
 fi
 
-true
+echo "done"
+exit 0
