@@ -1443,7 +1443,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         ----------
         label : object
         side : {'left', 'right'}
-        kind : string / None
+        kind : {'ix', 'loc', 'getitem'}
 
         Returns
         -------
@@ -1454,6 +1454,8 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         Value of `side` parameter should be validated in caller.
 
         """
+        assert kind in ['ix', 'loc', 'getitem', None]
+
         if is_float(label) or isinstance(label, time) or is_integer(label):
             self._invalid_indexer('slice', label)
 
@@ -1500,7 +1502,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
             raise KeyError('Cannot mix time and non-time slice keys')
 
         try:
-            return Index.slice_indexer(self, start, end, step)
+            return Index.slice_indexer(self, start, end, step, kind=kind)
         except KeyError:
             # For historical reasons DatetimeIndex by default supports
             # value-based partial (aka string) slices on non-monotonic arrays,

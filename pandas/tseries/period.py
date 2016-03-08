@@ -692,7 +692,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
             except ValueError:
                 # we cannot construct the Period
                 # as we have an invalid type
-                return self._invalid_indexer('label', key)
+                raise KeyError(key)
             try:
                 return Index.get_loc(self, key.ordinal, method, tolerance)
             except KeyError:
@@ -707,7 +707,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
         ----------
         label : object
         side : {'left', 'right'}
-        kind : string / None
+        kind : {'ix', 'loc', 'getitem'}
 
         Returns
         -------
@@ -718,6 +718,8 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
         Value of `side` parameter should be validated in caller.
 
         """
+        assert kind in ['ix', 'loc', 'getitem']
+
         if isinstance(label, datetime):
             return Period(label, freq=self.freq)
         elif isinstance(label, compat.string_types):

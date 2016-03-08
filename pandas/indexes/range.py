@@ -487,8 +487,8 @@ class RangeIndex(Int64Index):
                     stop = l
 
             # delegate non-integer slices
-            if (start != int(start) and
-                    stop != int(stop) and
+            if (start != int(start) or
+                    stop != int(stop) or
                     step != int(step)):
                 return super_getitem(key)
 

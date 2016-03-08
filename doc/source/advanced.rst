@@ -717,6 +717,10 @@ values NOT in the categories, similarly to how you can reindex ANY pandas index.
 Int64Index and RangeIndex
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
+.. warning::
+
+   Indexing on an integer-based Index with floats has been clarified in 0.18.0, for a summary of the changes, see :ref:`here <whatsnew_0180.float_indexers>`.
+
 ``Int64Index`` is a fundamental basic index in *pandas*. This is an Immutable array implementing an ordered, sliceable set.
 Prior to 0.18.0, the ``Int64Index`` would provide the default index for all ``NDFrame`` objects.
 
@@ -735,7 +739,6 @@ Float64Index
    array. Using a ``float64`` dtype in the backend speeds up arithmetic
    operations by about 30x and boolean indexing operations on the
    ``Float64Index`` itself are about 2x as fast.
-
 
 .. versionadded:: 0.13.0
 
@@ -797,12 +800,12 @@ In non-float indexes, slicing using floats will raise a ``TypeError``
 
 .. warning::
 
-   Using a scalar float indexer has been removed in 0.18.0, so the following will raise a ``TypeError``
+   Using a scalar float indexer for ``.iloc`` has been removed in 0.18.0, so the following will raise a ``TypeError``
 
    .. code-block:: python
 
-      In [3]: pd.Series(range(5))[3.0]
-      TypeError: cannot do label indexing on <class 'pandas.indexes.range.RangeIndex'> with these indexers [3.0] of <type 'float'>
+      In [3]: pd.Series(range(5)).iloc[3.0]
+      TypeError: cannot do positional indexing on <class 'pandas.indexes.range.RangeIndex'> with these indexers [3.0] of <type 'float'>
 
    Further the treatment of ``.ix`` with a float indexer on a non-float index, will be label based, and thus coerce the index.
 

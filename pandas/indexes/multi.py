@@ -1409,6 +1409,7 @@ class MultiIndex(Index):
         return Index(self._values)
 
     def get_slice_bound(self, label, side, kind):
+
         if not isinstance(label, tuple):
             label = label,
         return self._partial_tup_index(label, side=side)
@@ -1743,7 +1744,7 @@ class MultiIndex(Index):
                 # we have a partial slice (like looking up a partial date
                 # string)
                 start = stop = level_index.slice_indexer(key.start, key.stop,
-                                                         key.step)
+                                                         key.step, kind='loc')
                 step = start.step
 
             if isinstance(start, slice) or isinstance(stop, slice):

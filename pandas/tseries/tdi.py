@@ -710,13 +710,15 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
         ----------
         label : object
         side : {'left', 'right'}
-        kind : string / None
+        kind : {'ix', 'loc', 'getitem'}
 
         Returns
         -------
         label :  object
 
         """
+        assert kind in ['ix', 'loc', 'getitem', None]
+
         if isinstance(label, compat.string_types):
             parsed = _coerce_scalar_to_timedelta_type(label, box=True)
             lbound = parsed.round(parsed.resolution)

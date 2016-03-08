@@ -1024,11 +1024,11 @@ Removal of deprecated float indexers
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 In :issue:`4892` indexing with floating point numbers on a non-``Float64Index`` was deprecated (in version 0.14.0).
-In 0.18.0, this deprecation warning is removed and these will now raise a ``TypeError``. (:issue:`12165`)
+In 0.18.0, this deprecation warning is removed and these will now raise a ``TypeError``. (:issue:`12165`, :issue:`12333`)
 
 .. ipython:: python
 
-   s = pd.Series([1,2,3])
+   s = pd.Series([1, 2, 3], index=[4, 5, 6])
    s
    s2 = pd.Series([1, 2, 3], index=list('abc'))
    s2
@@ -1037,15 +1037,18 @@ Previous Behavior:
 
 .. code-block:: python
 
-   In [2]: s[1.0]
+   # this is label indexing
+   In [2]: s[5.0]
    FutureWarning: scalar indexers for index type Int64Index should be integers and not floating point
    Out[2]: 2
 
+   # this is positional indexing
    In [3]: s.iloc[1.0]
    FutureWarning: scalar indexers for index type Int64Index should be integers and not floating point
    Out[3]: 2
 
-   In [4]: s.loc[1.0]
+   # this is label indexing
+   In [4]: s.loc[5.0]
    FutureWarning: scalar indexers for index type Int64Index should be integers and not floating point
    Out[4]: 2
 
@@ -1062,33 +1065,54 @@ Previous Behavior:
 
 New Behavior:
 
+For iloc, getting & setting via a float scalar will always raise.
+
 .. code-block:: python
 
-   In [2]: s[1.0]
-   TypeError: cannot do label indexing on <class 'pandas.indexes.range.RangeIndex'> with these indexers [1.0] of <type 'float'>
+   In [3]: s.iloc[2.0]
+   TypeError: cannot do label indexing on <class 'pandas.indexes.numeric.Int64Index'> with these indexers [2.0] of <type 'float'>
 
-   In [3]: s.iloc[1.0]
-   TypeError: cannot do label indexing on <class 'pandas.indexes.range.RangeIndex'> with these indexers [1.0] of <type 'float'>
+Other indexers will coerce to a like integer for both getting and setting. The ``FutureWarning`` has been dropped for ``.loc``, ``.ix`` and ``[]``.
 
-   In [4]: s.loc[1.0]
-   TypeError: cannot do label indexing on <class 'pandas.indexes.range.RangeIndex'> with these indexers [1.0] of <type 'float'>
+.. ipython:: python
 
-   # .ix will now cause this to be a label lookup and coerce to and Index
-   In [5]: s2.ix[1.0] = 10
+   s[5.0]
+   s.loc[5.0]
+   s.ix[5.0]
 
-   In [6]: s2
-   Out[3]:
-   a       1
-   b       2
-   c       3
-   1.0    10
-   dtype: int64
+and setting
+
+.. ipython:: python
+
+   s_copy = s.copy()
+   s_copy[5.0] = 10
+   s_copy
+   s_copy = s.copy()
+   s_copy.loc[5.0] = 10
+   s_copy
+   s_copy = s.copy()
+   s_copy.ix[5.0] = 10
+   s_copy
+
+Slicing will also coerce integer-like floats to integers for a non-``Float64Index``.
+
+.. ipython:: python
+
+   s.loc[5.0:6]
+   s.ix[5.0:6]
+
+Note that for floats that are NOT coercible to ints, the label based bounds will be excluded
+
+.. ipython:: python
+
+   s.loc[5.1:6]
+   s.ix[5.1:6]
 
 Float indexing on a ``Float64Index`` is unchanged.
 
 .. ipython:: python
 
-   s = pd.Series([1,2,3],index=np.arange(3.))
+   s = pd.Series([1, 2, 3], index=np.arange(3.))
    s[1.0]
    s[1.0:2.5]
 
