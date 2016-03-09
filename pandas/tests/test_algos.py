@@ -517,6 +517,12 @@ class TestValueCounts(tm.TestCase):
                 pd.Series([10.3, 5., 5., None]).value_counts(dropna=False),
                 pd.Series([2, 1, 1], index=[5., 10.3, np.nan]))
 
+    def test_dropna_normalize(self):
+        # Issue 12558
+        tm.assert_series_equal(
+            pd.Series([ 5.,10.3,10.3,10.3,np.nan]).value_counts(dropna=True, normalize=True),
+            pd.Series([0.75, 0.25], index=[10.3, 5.]))
+
 
 class GroupVarTestMixin(object):
 

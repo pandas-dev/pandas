@@ -269,6 +269,7 @@ def value_counts(values, sort=True, ascending=False, normalize=False,
     from pandas.core.series import Series
     from pandas.tools.tile import cut
     from pandas import Index, PeriodIndex, DatetimeIndex
+    from pandas.core.common import notnull
 
     name = getattr(values, 'name', None)
     values = Series(values).values
@@ -342,7 +343,10 @@ def value_counts(values, sort=True, ascending=False, normalize=False,
         result = result.sort_values(ascending=ascending)
 
     if normalize:
-        result = result / float(values.size)
+        if dropna:
+            result = result / float(values[notnull(values)].size)
+        else:
+            result = result / float(values.size)
 
     return result
 

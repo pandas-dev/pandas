@@ -43,3 +43,4 @@ Performance Improvements
 
 Bug Fixes
 ~~~~~~~~~
+- Bug in ``value_counts`` where normalizes over all observations including missing even when ``dropna=True`` (:issue:`12558`)
