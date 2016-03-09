@@ -1633,8 +1633,8 @@ class TestMathPythonPython(tm.TestCase):
         self.check_result_type(np.float64, np.float64)
 
     def test_result_types2(self):
-	# xref https://github.com/pydata/pandas/issues/12293
-        tm._skip_if_windows()
+        # xref https://github.com/pydata/pandas/issues/12293
+        raise nose.SkipTest("unreliable tests on complex128")
 
         # Did not test complex64 because DataFrame is converting it to
         # complex128. Due to https://github.com/pydata/pandas/issues/10952
