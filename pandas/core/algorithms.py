@@ -342,7 +342,7 @@ def value_counts(values, sort=True, ascending=False, normalize=False,
         result = result.sort_values(ascending=ascending)
 
     if normalize:
-        result = result / float(values.size)
+        result = result / float(counts.sum())
 
     return result
 

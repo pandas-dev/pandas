@@ -11,7 +11,7 @@ from pandas.compat import(
     callable, map
 )
 from pandas import compat
-
+from pandas.compat.numpy_compat import _np_version_under1p8
 from pandas.core.base import (PandasObject, SelectionMixin, GroupByError,
                               DataError, SpecificationError)
 from pandas.core.categorical import Categorical
@@ -2949,8 +2949,18 @@ class SeriesGroupBy(GroupBy):
 
         if normalize:
             out = out.astype('float')
-            acc = rep(np.diff(np.r_[idx, len(ids)]))
-            out /= acc[mask] if dropna else acc
+            d = np.diff(np.r_[idx, len(ids)])
+            if dropna:
+                m = ids[lab == -1]
+                if _np_version_under1p8:
+                    mi, ml = algos.factorize(m)
+                    d[ml] = d[ml] - np.bincount(mi)
+                else:
+                    np.add.at(d, m, -1)
+                acc = rep(d)[mask]
+            else:
+                acc = rep(d)
+            out /= acc
 
         if sort and bins is None:
             cat = ids[inc][mask] if dropna else ids[inc]
