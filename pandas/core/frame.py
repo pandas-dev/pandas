@@ -1627,6 +1627,7 @@ class DataFrame(NDFrame):
             human-readable units (base-2 representation).
         null_counts : boolean, default None
             Whether to show the non-null counts
+
             - If None, then only show if the frame is smaller than
               max_info_rows and max_info_columns.
             - If True, always show counts.
@@ -4932,6 +4933,7 @@ class DataFrame(NDFrame):
             0 or 'index' for row-wise, 1 or 'columns' for column-wise
         interpolation : {'linear', 'lower', 'higher', 'midpoint', 'nearest'}
             .. versionadded:: 0.18.0
+
             This optional parameter specifies the interpolation method to use,
             when the desired quantile lies between two data points `i` and `j`:
 
@@ -4945,11 +4947,12 @@ class DataFrame(NDFrame):
         Returns
         -------
         quantiles : Series or DataFrame
-            If ``q`` is an array, a DataFrame will be returned where the
-            index is ``q``, the columns are the columns of self, and the
-            values are the quantiles.
-            If ``q`` is a float, a Series will be returned where the
-            index is the columns of self and the values are the quantiles.
+
+            - If ``q`` is an array, a DataFrame will be returned where the
+              index is ``q``, the columns are the columns of self, and the
+              values are the quantiles.
+            - If ``q`` is a float, a Series will be returned where the
+              index is the columns of self and the values are the quantiles.
 
         Examples
         --------
@@ -4965,6 +4968,7 @@ class DataFrame(NDFrame):
         0.1  1.3   3.7
         0.5  2.5  55.0
         """
+
         self._check_percentile(q)
         per = np.asarray(q) * 100
 

@@ -190,6 +190,7 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
     ----------
     arg : string, datetime, list, tuple, 1-d array, or Series
     errors : {'ignore', 'raise', 'coerce'}, default 'raise'
+
         - If 'raise', then invalid parsing will raise an exception
         - If 'coerce', then invalid parsing will be set as NaT
         - If 'ignore', then invalid parsing will return the input
@@ -201,10 +202,12 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
         with day first (this is a known bug, based on dateutil behavior).
     yearfirst : boolean, default False
         Specify a date parse order if `arg` is str or its list-likes.
+
         - If True parses dates with the year first, eg 10/11/12 is parsed as
           2010-11-12.
         - If both dayfirst and yearfirst are True, yearfirst is preceded (same
           as dateutil).
+
         Warning: yearfirst=True is not strict, but will prefer to parse
         with year first (this is a known bug, based on dateutil beahavior).
 
@@ -214,14 +217,17 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
         Return UTC DatetimeIndex if True (converting any tz-aware
         datetime.datetime objects as well).
     box : boolean, default True
+
         - If True returns a DatetimeIndex
         - If False returns ndarray of values.
     format : string, default None
         strftime to parse time, eg "%d/%m/%Y", note that "%f" will parse
         all the way up to nanoseconds.
     exact : boolean, True by default
+
         - If True, require an exact format match.
         - If False, allow the format to match anywhere in the target string.
+
     unit : unit of the arg (D,s,ms,us,ns) denote the unit in epoch
         (e.g. a unix timestamp), which is an integer/float number.
     infer_datetime_format : boolean, default False
@@ -273,6 +279,7 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
     datetime.datetime(1300, 1, 1, 0, 0)
     >>> pd.to_datetime('13000101', format='%Y%m%d', errors='coerce')
     NaT
+
     """
     return _to_datetime(arg, errors=errors, dayfirst=dayfirst,
                         yearfirst=yearfirst,

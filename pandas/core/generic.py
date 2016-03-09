@@ -2041,11 +2041,13 @@ class NDFrame(PandasObject):
             method to use for filling holes in reindexed DataFrame.
             Please note: this is only  applicable to DataFrames/Series with a
             monotonically increasing/decreasing index.
-              * default: don't fill gaps
-              * pad / ffill: propagate last valid observation forward to next
-                valid
-              * backfill / bfill: use next valid observation to fill gap
-              * nearest: use nearest valid observations to fill gap
+
+            * default: don't fill gaps
+            * pad / ffill: propagate last valid observation forward to next
+              valid
+            * backfill / bfill: use next valid observation to fill gap
+            * nearest: use nearest valid observations to fill gap
+
         copy : boolean, default True
             Return a new object, even if the passed indexes are the same
         level : int or name
@@ -2265,11 +2267,13 @@ class NDFrame(PandasObject):
         axis : %(axes_single_arg)s
         method : {None, 'backfill'/'bfill', 'pad'/'ffill', 'nearest'}, optional
             Method to use for filling holes in reindexed DataFrame:
-              * default: don't fill gaps
-              * pad / ffill: propagate last valid observation forward to next
-                valid
-              * backfill / bfill: use next valid observation to fill gap
-              * nearest: use nearest valid observations to fill gap
+
+            * default: don't fill gaps
+            * pad / ffill: propagate last valid observation forward to next
+              valid
+            * backfill / bfill: use next valid observation to fill gap
+            * nearest: use nearest valid observations to fill gap
+
         copy : boolean, default True
             Return a new object, even if the passed indexes are the same
         level : int or name

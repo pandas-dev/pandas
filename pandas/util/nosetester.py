@@ -123,7 +123,8 @@ class NoseTester(nosetester.NoseTester):
         return None
 
     def _test_argv(self, label, verbose, extra_argv):
-        ''' Generate argv for nosetest command
+        """
+        Generate argv for nosetest command
 
         Parameters
         ----------
@@ -138,7 +139,8 @@ class NoseTester(nosetester.NoseTester):
         -------
         argv : list
             command line arguments that will be passed to nose
-        '''
+        """
+
         argv = [__file__, self.package_path]
         if label and label != 'full':
             if not isinstance(label, string_types):
@@ -170,6 +172,7 @@ class NoseTester(nosetester.NoseTester):
             Identifies the tests to run. This can be a string to pass to
             the nosetests executable with the '-A' option, or one of several
             special values.  Special values are:
+
             * 'fast' - the default - which corresponds to the ``nosetests -A``
               option of 'not slow'.
             * 'full' - fast (as above) and slow tests as in the
@@ -177,6 +180,7 @@ class NoseTester(nosetester.NoseTester):
             * None or '' - run all tests.
             * attribute_identifier - string passed directly to nosetests
               as '-A'.
+
         verbose : int, optional
             Verbosity value for test outputs, in the range 1-10. Default is 1.
         extra_argv : list, optional
@@ -191,14 +195,15 @@ class NoseTester(nosetester.NoseTester):
             This specifies which warnings to configure as 'raise' instead
             of 'warn' during the test execution.  Valid strings are:
 
-            - "develop" : equals ``(DeprecationWarning, RuntimeWarning)``
-            - "release" : equals ``()``, don't raise on any warnings.
+            - 'develop' : equals ``(DeprecationWarning, RuntimeWarning)``
+            - 'release' : equals ``()``, don't raise on any warnings.
 
         Returns
         -------
         result : object
             Returns the result of running the tests as a
             ``nose.result.TextTestResult`` object.
+
         """
 
         # cap verbosity at 3 because nose becomes *very* verbose beyond that

@@ -692,6 +692,7 @@ R package):
 
 .. ipython:: python
    :suppress:
+   :okwarning:
 
    # restore GlobalPrintConfig
    pd.reset_option('^display\.')

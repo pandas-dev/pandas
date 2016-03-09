@@ -12,7 +12,7 @@
    import matplotlib.pyplot as plt
    plt.close('all')
 
-   options.display.max_rows=15
+   pd.options.display.max_rows=15
    import pandas.util.testing as tm
 
 *************
