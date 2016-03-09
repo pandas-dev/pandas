@@ -371,7 +371,7 @@ def _convert_by(by):
 
 
 def crosstab(index, columns, values=None, rownames=None, colnames=None,
-             aggfunc=None, margins=False, dropna=True):
+             aggfunc=None, margins=False, dropna=True, normalize=False):
     """
     Compute a simple cross-tabulation of two (or more) factors. By default
     computes a frequency table of the factors unless an array of values and an
@@ -384,9 +384,10 @@ def crosstab(index, columns, values=None, rownames=None, colnames=None,
     columns : array-like, Series, or list of arrays/Series
         Values to group by in the columns
     values : array-like, optional
-        Array of values to aggregate according to the factors
+        Array of values to aggregate according to the factors.
+        Requires `aggfunc` be specified.
     aggfunc : function, optional
-        If no values array is passed, computes a frequency table
+        If specified, requires `values` be specified as well
     rownames : sequence, default None
         If passed, must match number of row arrays passed
     colnames : sequence, default None
@@ -395,6 +396,16 @@ def crosstab(index, columns, values=None, rownames=None, colnames=None,
         Add row/column margins (subtotals)
     dropna : boolean, default True
         Do not include columns whose entries are all NaN
+    normalize : boolean, {'all', 'index', 'columns'}, or {0,1}, default False
+        Normalize by dividing all values by the sum of values.
+
+        - If passed 'all' or `True`, will normalize over all values.
+        - If passed 'index' will normalize over each row.
+        - If passed 'columns' will normalize over each column.
+        - If margins is `True`, will also normalize margin values.
+
+        .. versionadded:: 0.18.1
+
 
     Notes
     -----
@@ -438,18 +449,97 @@ def crosstab(index, columns, values=None, rownames=None, colnames=None,
     data.update(zip(rownames, index))
     data.update(zip(colnames, columns))
 
+    if values is None and aggfunc is not None:
+        raise ValueError("aggfunc cannot be used without values.")
+
+    if values is not None and aggfunc is None:
+        raise ValueError("values cannot be used without an aggfunc.")
+
     if values is None:
         df = DataFrame(data)
         df['__dummy__'] = 0
         table = df.pivot_table('__dummy__', index=rownames, columns=colnames,
                                aggfunc=len, margins=margins, dropna=dropna)
-        return table.fillna(0).astype(np.int64)
+        table = table.fillna(0).astype(np.int64)
+
     else:
         data['__dummy__'] = values
         df = DataFrame(data)
         table = df.pivot_table('__dummy__', index=rownames, columns=colnames,
                                aggfunc=aggfunc, margins=margins, dropna=dropna)
-        return table
+
+    # Post-process
+    if normalize is not False:
+        table = _normalize(table, normalize=normalize, margins=margins)
+
+    return table
+
+
+def _normalize(table, normalize, margins):
+
+    if not isinstance(normalize, bool) and not isinstance(normalize,
+                                                          compat.string_types):
+        axis_subs = {0: 'index', 1: 'columns'}
+        try:
+            normalize = axis_subs[normalize]
+        except KeyError:
+            raise ValueError("Not a valid normalize argument")
+
+    if margins is False:
+
+        # Actual Normalizations
+        normalizers = {
+            'all': lambda x: x / x.sum(axis=1).sum(axis=0),
+            'columns': lambda x: x / x.sum(),
+            'index': lambda x: x.div(x.sum(axis=1), axis=0)
+        }
+
+        normalizers[True] = normalizers['all']
+
+        try:
+            f = normalizers[normalize]
+        except KeyError:
+            raise ValueError("Not a valid normalize argument")
+
+        table = f(table)
+        table = table.fillna(0)
+
+    elif margins is True:
+
+        column_margin = table.loc[:, 'All'].drop('All')
+        index_margin = table.loc['All', :].drop('All')
+        table = table.drop('All', axis=1).drop('All')
+
+        # Normalize core
+        table = _normalize(table, normalize=normalize, margins=False)
+
+        # Fix Margins
+        if normalize == 'columns':
+            column_margin = column_margin / column_margin.sum()
+            table = concat([table, column_margin], axis=1)
+            table = table.fillna(0)
+
+        elif normalize == 'index':
+            index_margin = index_margin / index_margin.sum()
+            table = table.append(index_margin)
+            table = table.fillna(0)
+
+        elif normalize == "all" or normalize is True:
+            column_margin = column_margin / column_margin.sum()
+            index_margin = index_margin / index_margin.sum()
+            index_margin.loc['All'] = 1
+            table = concat([table, column_margin], axis=1)
+            table = table.append(index_margin)
+
+            table = table.fillna(0)
+
+        else:
+            raise ValueError("Not a valid normalize argument")
+
+    else:
+        raise ValueError("Not a valid margins argument")
+
+    return table
 
 
 def _get_names(arrs, names, prefix='row'):

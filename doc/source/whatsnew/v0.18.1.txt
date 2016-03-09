@@ -94,6 +94,8 @@ Other Enhancements
    idx = pd.Index(['a|b', 'a|c', 'b|c'])
    idx.str.get_dummies('|')
 
+- ``pd.crosstab()`` has gained a ``normalize`` argument for normalizing frequency tables (:issue:`12569`). Examples in the updated docs :ref:`here <reshaping.crosstabulations>`.
+
 
 .. _whatsnew_0181.sparse:
 
@@ -364,6 +366,8 @@ Bug Fixes
 - Bug in ``.concat`` of datetime tz-aware and naive DataFrames (:issue:`12467`)
 - Bug in correctly raising a ``ValueError`` in ``.resample(..).fillna(..)`` when passing a non-string (:issue:`12952`)
 - Bug fixes in various encoding and header processing issues in ``pd.read_sas()`` (:issue:`12659`, :issue:`12654`, :issue:`12647`, :issue:`12809`)
+- Bug in ``pd.crosstab()`` where would silently ignore ``aggfunc`` if ``values=None`` (:issue:`12569`).
+
 
 - Bug in ``Timestamp.__repr__`` that caused ``pprint`` to fail in nested structures (:issue:`12622`)
 - Bug in ``Timedelta.min`` and ``Timedelta.max``, the properties now report the true minimum/maximum ``timedeltas`` as recognized by Pandas. See :ref:`documentation <timedeltas.limitations>`. (:issue:`12727`)
