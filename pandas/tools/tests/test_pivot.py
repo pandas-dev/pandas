@@ -1021,6 +1021,150 @@ class TestCrosstab(tm.TestCase):
         expected.columns = Index(['dull', 'shiny', 'All'], name='c')
         tm.assert_frame_equal(actual, expected)
 
+    def test_crosstab_normalize(self):
+        # Issue 12578
+        df = pd.DataFrame({'a': [1, 2, 2, 2, 2], 'b': [3, 3, 4, 4, 4],
+                           'c': [1, 1, np.nan, 1, 1]})
+
+        rindex = pd.Index([1, 2], name='a')
+        cindex = pd.Index([3, 4], name='b')
+        full_normal = pd.DataFrame([[0.2, 0], [0.2, 0.6]],
+                                   index=rindex, columns=cindex)
+        row_normal = pd.DataFrame([[1.0, 0], [0.25, 0.75]],
+                                  index=rindex, columns=cindex)
+        col_normal = pd.DataFrame([[0.5, 0], [0.5, 1.0]],
+                                  index=rindex, columns=cindex)
+
+        # Check all normalize args
+        tm.assert_frame_equal(pd.crosstab(df.a, df.b, normalize='all'),
+                              full_normal)
+        tm.assert_frame_equal(pd.crosstab(df.a, df.b, normalize=True),
+                              full_normal)
+        tm.assert_frame_equal(pd.crosstab(df.a, df.b, normalize='index'),
+                              row_normal)
+        tm.assert_frame_equal(pd.crosstab(df.a, df.b, normalize='columns'),
+                              col_normal)
+        tm.assert_frame_equal(pd.crosstab(df.a, df.b, normalize=1),
+                              pd.crosstab(df.a, df.b, normalize='columns'))
+        tm.assert_frame_equal(pd.crosstab(df.a, df.b, normalize=0),
+                              pd.crosstab(df.a, df.b, normalize='index'))
+
+        row_normal_margins = pd.DataFrame([[1.0, 0],
+                                          [0.25, 0.75],
+                                          [0.4, 0.6]],
+                                          index=pd.Index([1, 2, 'All'],
+                                                         name='a',
+                                                         dtype='object'),
+                                          columns=pd.Index([3, 4], name='b'))
+        col_normal_margins = pd.DataFrame([[0.5, 0, 0.2], [0.5, 1.0, 0.8]],
+                                          index=pd.Index([1, 2], name='a',
+                                                         dtype='object'),
+                                          columns=pd.Index([3, 4, 'All'],
+                                                           name='b'))
+
+        all_normal_margins = pd.DataFrame([[0.2, 0, 0.2],
+                                          [0.2, 0.6, 0.8],
+                                          [0.4, 0.6, 1]],
+                                          index=pd.Index([1, 2, 'All'],
+                                                         name='a',
+                                                         dtype='object'),
+                                          columns=pd.Index([3, 4, 'All'],
+                                                           name='b'))
+
+        tm.assert_frame_equal(pd.crosstab(df.a, df.b, normalize='index',
+                                          margins=True), row_normal_margins)
+        tm.assert_frame_equal(pd.crosstab(df.a, df.b, normalize='columns',
+                                          margins=True), col_normal_margins)
+        tm.assert_frame_equal(pd.crosstab(df.a, df.b, normalize=True,
+                                          margins=True), all_normal_margins)
+
+        # Test arrays
+        pd.crosstab([np.array([1, 1, 2, 2]), np.array([1, 2, 1, 2])],
+                    np.array([1, 2, 1, 2]))
+
+        # Test with aggfunc
+        norm_counts = pd.DataFrame([[0.25, 0, 0.25],
+                                    [0.25, 0.5, 0.75],
+                                    [0.5, 0.5, 1]],
+                                   index=pd.Index([1, 2, 'All'],
+                                                  name='a',
+                                                  dtype='object'),
+                                   columns=pd.Index([3, 4, 'All'],
+                                                    name='b'))
+        test_case = pd.crosstab(df.a, df.b, df.c, aggfunc='count',
+                                normalize='all',
+                                margins=True)
+        tm.assert_frame_equal(test_case, norm_counts)
+
+        df = pd.DataFrame({'a': [1, 2, 2, 2, 2], 'b': [3, 3, 4, 4, 4],
+                           'c': [0, 4, np.nan, 3, 3]})
+
+        norm_sum = pd.DataFrame([[0, 0, 0.],
+                                 [0.4, 0.6, 1],
+                                 [0.4, 0.6, 1]],
+                                index=pd.Index([1, 2, 'All'],
+                                               name='a',
+                                               dtype='object'),
+                                columns=pd.Index([3, 4, 'All'],
+                                                 name='b',
+                                                 dtype='object'))
+        test_case = pd.crosstab(df.a, df.b, df.c, aggfunc=np.sum,
+                                normalize='all',
+                                margins=True)
+        tm.assert_frame_equal(test_case, norm_sum)
+
+    def test_crosstab_with_empties(self):
+        # Check handling of empties
+        df = pd.DataFrame({'a': [1, 2, 2, 2, 2], 'b': [3, 3, 4, 4, 4],
+                           'c': [np.nan, np.nan, np.nan, np.nan, np.nan]})
+
+        empty = pd.DataFrame([[0.0, 0.0], [0.0, 0.0]],
+                             index=pd.Index([1, 2],
+                                            name='a',
+                                            dtype='int64'),
+                             columns=pd.Index([3, 4], name='b'))
+
+        for i in [True, 'index', 'columns']:
+            calculated = pd.crosstab(df.a, df.b, values=df.c, aggfunc='count',
+                                     normalize=i)
+            tm.assert_frame_equal(empty, calculated)
+
+        nans = pd.DataFrame([[0.0, np.nan], [0.0, 0.0]],
+                            index=pd.Index([1, 2],
+                                           name='a',
+                                           dtype='int64'),
+                            columns=pd.Index([3, 4], name='b'))
+
+        calculated = pd.crosstab(df.a, df.b, values=df.c, aggfunc='count',
+                                 normalize=False)
+        tm.assert_frame_equal(nans, calculated)
+
+    def test_crosstab_errors(self):
+        # Issue 12578
+
+        df = pd.DataFrame({'a': [1, 2, 2, 2, 2], 'b': [3, 3, 4, 4, 4],
+                           'c': [1, 1, np.nan, 1, 1]})
+
+        error = 'values cannot be used without an aggfunc.'
+        with tm.assertRaisesRegexp(ValueError, error):
+            pd.crosstab(df.a, df.b, values=df.c)
+
+        error = 'aggfunc cannot be used without values'
+        with tm.assertRaisesRegexp(ValueError, error):
+            pd.crosstab(df.a, df.b, aggfunc=np.mean)
+
+        error = 'Not a valid normalize argument'
+        with tm.assertRaisesRegexp(ValueError, error):
+            pd.crosstab(df.a, df.b, normalize='42')
+
+        with tm.assertRaisesRegexp(ValueError, error):
+            pd.crosstab(df.a, df.b, normalize=42)
+
+        error = 'Not a valid margins argument'
+        with tm.assertRaisesRegexp(ValueError, error):
+            pd.crosstab(df.a, df.b, normalize='all', margins=42)
+
+
 if __name__ == '__main__':
     import nose
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
