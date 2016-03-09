@@ -40,7 +40,7 @@ analysis / manipulation tool available in any language.
 pandas 0.18.0
 -------------
 
-**Release date:** (January ??, 2016)
+**Release date:** (March 13, 2016)
 
 This is a major release from 0.17.1 and includes a small number of API changes, several new features,
 enhancements, and performance improvements along with a large number of bug fixes. We recommend that all
