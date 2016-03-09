@@ -1128,6 +1128,7 @@ Performance Improvements
 Bug Fixes
 ~~~~~~~~~
 
+- Bug in ``to_clipboard`` when called for objects containing unicode without passing an encoding (:issue:`12529`)
 - Bug in ``GroupBy.size`` when data-frame is empty. (:issue:`11699`)
 - Bug in ``Period.end_time`` when a multiple of time period is requested (:issue:`11738`)
 - Regression in ``.clip`` with tz-aware datetimes (:issue:`11838`)
