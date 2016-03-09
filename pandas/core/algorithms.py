@@ -269,7 +269,6 @@ def value_counts(values, sort=True, ascending=False, normalize=False,
     from pandas.core.series import Series
     from pandas.tools.tile import cut
     from pandas import Index, PeriodIndex, DatetimeIndex
-    from pandas.core.common import notnull
 
     name = getattr(values, 'name', None)
     values = Series(values).values
@@ -344,7 +343,9 @@ def value_counts(values, sort=True, ascending=False, normalize=False,
 
     if normalize:
         if dropna:
-            result = result / float(values[notnull(values)].size)
+            # NaT's dropped above if time, so don't need to do again.
+            if not com.is_datetime_or_timedelta_dtype(dtype) and not is_period and not is_datetimetz:
+                result = result / float(Series(values).count())
         else:
             result = result / float(values.size)
 
