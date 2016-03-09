@@ -1289,8 +1289,10 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
             0 <= q <= 1, the quantile(s) to compute
         interpolation : {'linear', 'lower', 'higher', 'midpoint', 'nearest'}
             .. versionadded:: 0.18.0
+
             This optional parameter specifies the interpolation method to use,
             when the desired quantile lies between two data points `i` and `j`:
+
                 * linear: `i + (j - i) * fraction`, where `fraction` is the
                   fractional part of the index surrounded by `i` and `j`.
                 * lower: `i`.
@@ -1306,15 +1308,15 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
 
         Examples
         --------
-
         >>> s = Series([1, 2, 3, 4])
         >>> s.quantile(.5)
-            2.5
+        2.5
         >>> s.quantile([.25, .5, .75])
         0.25    1.75
         0.50    2.50
         0.75    3.25
         dtype: float64
+
         """
 
         self._check_percentile(q)

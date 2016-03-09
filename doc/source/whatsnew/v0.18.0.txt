@@ -863,11 +863,10 @@ Previous API will work but deprecations
 
       In [7]: r.iloc[0] = 5
       ValueError: .resample() is now a deferred operation
-            use .resample(...).mean() instead of .resample(...)
-            assignment will have no effect as you are working on a copy
+      use .resample(...).mean() instead of .resample(...)
 
    There is a situation where the new API can not perform all the operations when using original code.
-   This code is intending to resample every 2s, take the ``mean`` AND then take the ``min` of those results.
+   This code is intending to resample every 2s, take the ``mean`` AND then take the ``min`` of those results.
 
    .. code-block:: python
 

@@ -121,6 +121,7 @@ skip_blank_lines : boolean, default True
     If True, skip over blank lines rather than interpreting as NaN values
 parse_dates : boolean or list of ints or names or list of lists or dict, \
 default False
+
     * boolean. If True -> try parsing the index.
     * list of ints or names. e.g. If [1, 2, 3] -> try parsing columns 1, 2, 3
       each as a separate date column.
@@ -128,6 +129,7 @@ default False
         a single date column.
     * dict, e.g. {'foo' : [1, 3]} -> parse columns 1, 3 as date and call result
       'foo'
+
     Note: A fast-path exists for iso8601-formatted dates.
 infer_datetime_format : boolean, default False
     If True and parse_dates is enabled for a column, attempt to infer

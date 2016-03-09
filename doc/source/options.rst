@@ -438,6 +438,7 @@ For instance:
 
 .. ipython:: python
    :suppress:
+   :okwarning:
 
    pd.reset_option('^display\.')
 
