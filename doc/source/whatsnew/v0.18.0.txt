@@ -1,7 +1,7 @@
 .. _whatsnew_0180:
 
-v0.18.0 (February ??, 2016)
----------------------------
+v0.18.0 (March 13, 2016)
+------------------------
 
 This is a major release from 0.17.1 and includes a small number of API changes, several new features,
 enhancements, and performance improvements along with a large number of bug fixes. We recommend that all
@@ -607,9 +607,9 @@ Subtraction by ``Timedelta`` in a ``Series`` by a ``Timestamp`` works (:issue:`1
 Changes to msgpack
 ^^^^^^^^^^^^^^^^^^
 
-Forward incompatible changes in ``msgpack`` writing format were made over 0.17.0 and 0.18.0; older versions of pandas cannot read files packed by newer versions (:issue:`12129`, `10527`)
+Forward incompatible changes in ``msgpack`` writing format were made over 0.17.0 and 0.18.0; older versions of pandas cannot read files packed by newer versions (:issue:`12129`, :issue:`10527`)
 
-Bug in ``to_msgpack`` and ``read_msgpack`` introduced in 0.17.0 and fixed in 0.18.0, caused files packed in Python 2 unreadable by Python 3 (:issue:`12142`). The following table describes the backward and forward compat of msgpacks.
+Bugs in ``to_msgpack`` and ``read_msgpack`` introduced in 0.17.0 and fixed in 0.18.0, caused files packed in Python 2 unreadable by Python 3 (:issue:`12142`). The following table describes the backward and forward compat of msgpacks.
 
 .. warning::
 
@@ -745,58 +745,6 @@ You could also specify a ``how`` directly
    2010-01-01 09:00:06  1.249976  1.219477  1.266330  1.224904
    2010-01-01 09:00:08  1.020940  1.068634  1.146402  1.613897
 
-.. warning::
-
-   This new API for resample includes some internal changes for the prior-to-0.18.0 API, to work with a deprecation warning in most cases, as the resample operation returns a deferred object. We can intercept operations and just do what the (pre 0.18.0) API did (with a warning). Here is a typical use case:
-
-   .. code-block:: python
-
-      In [4]: r = df.resample('2s')
-
-      In [6]: r*10
-      pandas/tseries/resample.py:80: FutureWarning: .resample() is now a deferred operation
-      use .resample(...).mean() instead of .resample(...)
-
-      Out[6]:
-                            A         B         C         D
-      2010-01-01 09:00:00  4.857476  4.473507  3.570960  7.936154
-      2010-01-01 09:00:02  8.208011  7.943173  3.640340  5.310957
-      2010-01-01 09:00:04  4.339846  3.145823  4.241039  6.257326
-      2010-01-01 09:00:06  6.249881  6.097384  6.331650  6.124518
-      2010-01-01 09:00:08  5.104699  5.343172  5.732009  8.069486
-
-   However, getting and assignment operations directly on a ``Resampler`` will raise a ``ValueError``:
-
-   .. code-block:: python
-
-      In [7]: r.iloc[0] = 5
-      ValueError: .resample() is now a deferred operation
-            use .resample(...).mean() instead of .resample(...)
-            assignment will have no effect as you are working on a copy
-
-   There is a situation where the new API can not perform all the operations when using original code.
-   This code is intending to resample every 2s, take the ``mean`` AND then take the ``min` of those results.
-
-   .. code-block:: python
-
-      In [4]: df.resample('2s').min()
-      Out[4]:
-      A    0.433985
-      B    0.314582
-      C    0.357096
-      D    0.531096
-      dtype: float64
-
-   The new API will:
-
-   .. ipython: python
-
-      df.resample('2s').min()
-
-   Good news is the return dimensions will differ (between the new API and the old API), so this should loudly raise
-   an exception.
-
-
 **New API**:
 
 Now, you can write ``.resample`` as a 2-stage operation like groupby, which
@@ -885,6 +833,60 @@ New API
 .. note::
 
    In the new API, you can either downsample OR upsample. The prior implementation would allow you to pass an aggregator function (like ``mean``) even though you were upsampling, providing a bit of confusion.
+
+Previous API will work but deprecations
+'''''''''''''''''''''''''''''''''''''''
+
+.. warning::
+
+   This new API for resample includes some internal changes for the prior-to-0.18.0 API, to work with a deprecation warning in most cases, as the resample operation returns a deferred object. We can intercept operations and just do what the (pre 0.18.0) API did (with a warning). Here is a typical use case:
+
+   .. code-block:: python
+
+      In [4]: r = df.resample('2s')
+
+      In [6]: r*10
+      pandas/tseries/resample.py:80: FutureWarning: .resample() is now a deferred operation
+      use .resample(...).mean() instead of .resample(...)
+
+      Out[6]:
+                            A         B         C         D
+      2010-01-01 09:00:00  4.857476  4.473507  3.570960  7.936154
+      2010-01-01 09:00:02  8.208011  7.943173  3.640340  5.310957
+      2010-01-01 09:00:04  4.339846  3.145823  4.241039  6.257326
+      2010-01-01 09:00:06  6.249881  6.097384  6.331650  6.124518
+      2010-01-01 09:00:08  5.104699  5.343172  5.732009  8.069486
+
+   However, getting and assignment operations directly on a ``Resampler`` will raise a ``ValueError``:
+
+   .. code-block:: python
+
+      In [7]: r.iloc[0] = 5
+      ValueError: .resample() is now a deferred operation
+            use .resample(...).mean() instead of .resample(...)
+            assignment will have no effect as you are working on a copy
+
+   There is a situation where the new API can not perform all the operations when using original code.
+   This code is intending to resample every 2s, take the ``mean`` AND then take the ``min` of those results.
+
+   .. code-block:: python
+
+      In [4]: df.resample('2s').min()
+      Out[4]:
+      A    0.433985
+      B    0.314582
+      C    0.357096
+      D    0.531096
+      dtype: float64
+
+   The new API will:
+
+   .. ipython:: python
+
+      df.resample('2s').min()
+
+   The good news is the return dimensions will differ between the new API and the old API, so this should loudly raise
+   an exception.
 
 Changes to eval
 ^^^^^^^^^^^^^^^
