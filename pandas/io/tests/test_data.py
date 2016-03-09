@@ -304,6 +304,7 @@ class TestYahooOptions(tm.TestCase):
         super(TestYahooOptions, cls).setUpClass()
         _skip_if_no_lxml()
         _skip_if_no_bs()
+        raise nose.SkipTest('unreliable test')
 
         # aapl has monthlies
         cls.aapl = web.Options('aapl', 'yahoo')
@@ -370,6 +371,7 @@ class TestYahooOptions(tm.TestCase):
 
     @network
     def test_get_all_data(self):
+
         try:
             data = self.aapl.get_all_data(put=True)
         except RemoteDataError as e:
