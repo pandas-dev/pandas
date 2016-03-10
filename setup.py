@@ -439,7 +439,8 @@ for name, data in ext_data.items():
     obj = Extension('pandas.%s' % name,
                     sources=sources,
                     depends=data.get('depends', []),
-                    include_dirs=include)
+                    include_dirs=include,
+                    extra_compile_args=['-w'])
 
     extensions.append(obj)
 
@@ -447,14 +448,16 @@ for name, data in ext_data.items():
 sparse_ext = Extension('pandas._sparse',
                        sources=[srcpath('sparse', suffix=suffix)],
                        include_dirs=[],
-                       libraries=libraries)
+                       libraries=libraries,
+                       extra_compile_args=['-w'])
 
 extensions.extend([sparse_ext])
 
 testing_ext = Extension('pandas._testing',
                        sources=[srcpath('testing', suffix=suffix)],
                        include_dirs=[],
-                       libraries=libraries)
+                       libraries=libraries,
+                       extra_compile_args=['-w'])
 
 extensions.extend([testing_ext])
 
@@ -474,7 +477,8 @@ packer_ext = Extension('pandas.msgpack._packer',
                                    subdir='msgpack')],
                         language='c++',
                         include_dirs=['pandas/src/msgpack'] + common_include,
-                        define_macros=macros)
+                        define_macros=macros,
+                        extra_compile_args=['-w'])
 unpacker_ext = Extension('pandas.msgpack._unpacker',
                         depends=['pandas/src/msgpack/unpack.h',
                                  'pandas/src/msgpack/unpack_define.h',
@@ -484,7 +488,8 @@ unpacker_ext = Extension('pandas.msgpack._unpacker',
                                    subdir='msgpack')],
                         language='c++',
                         include_dirs=['pandas/src/msgpack'] + common_include,
-                        define_macros=macros)
+                        define_macros=macros,
+                        extra_compile_args=['-w'])
 extensions.append(packer_ext)
 extensions.append(unpacker_ext)
 
@@ -508,7 +513,7 @@ ujson_ext = Extension('pandas.json',
                       include_dirs=['pandas/src/ujson/python',
                                     'pandas/src/ujson/lib',
                                     'pandas/src/datetime'] + common_include,
-                      extra_compile_args=['-D_GNU_SOURCE'])
+                      extra_compile_args=['-D_GNU_SOURCE', '-w'])
 
 
 extensions.append(ujson_ext)
