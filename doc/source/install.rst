@@ -267,9 +267,11 @@ Optional Dependencies
   <http://www.vergenet.net/~conrad/software/xsel/>`__, or `xclip
   <http://sourceforge.net/projects/xclip/>`__: necessary to use
   :func:`~pandas.io.clipboard.read_clipboard`. Most package managers on Linux distributions will have ``xclip`` and/or ``xsel`` immediately available for installation.
-* Google's `python-gflags <http://code.google.com/p/python-gflags/>`__
-  and `google-api-python-client <http://github.com/google/google-api-python-client>`__: Needed for :mod:`~pandas.io.gbq`
-* `httplib2 <http://pypi.python.org/pypi/httplib2>`__: Needed for :mod:`~pandas.io.gbq`
+* Google's `python-gflags <http://code.google.com/p/python-gflags/>`__ ,
+  `oauth2client <https://github.com/google/oauth2client>`__ ,
+  `httplib2 <http://pypi.python.org/pypi/httplib2>`__
+  and `google-api-python-client <http://github.com/google/google-api-python-client>`__
+  : Needed for :mod:`~pandas.io.gbq`
 * One of the following combinations of libraries is needed to use the
   top-level :func:`~pandas.io.html.read_html` function:
 

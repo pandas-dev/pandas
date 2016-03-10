@@ -4168,6 +4168,12 @@ DataFrame with a shape and data types derived from the source table.
 Additionally, DataFrames can be inserted into new BigQuery tables or appended
 to existing tables.
 
+You will need to install some additional dependencies:
+
+- Google's `python-gflags <http://code.google.com/p/python-gflags/>`__
+- `httplib2 <http://pypi.python.org/pypi/httplib2>`__
+- `google-api-python-client <http://github.com/google/google-api-python-client>`__
+
 .. warning::
 
    To use this module, you will need a valid BigQuery account. Refer to the
@@ -4205,6 +4211,8 @@ Authentication with service account credentials is possible via the `'private_ke
 is particularly useful when working on remote servers (eg. jupyter iPython notebook on remote host).
 Additional information on service accounts can be found
 `here <https://developers.google.com/identity/protocols/OAuth2#serviceaccount>`__.
+
+You will need to install an additional dependency: `oauth2client <https://github.com/google/oauth2client>`__.
 
 .. note::
 
