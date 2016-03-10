@@ -1,6 +1,6 @@
 package:
     name: pandas
-    version: {{ GIT_DESCRIBE_TAG }}
+    version: {{ GIT_DESCRIBE_TAG|replace("v","") }}
 
 build:
     number: {{ GIT_DESCRIBE_NUMBER|int }}
