@@ -50,16 +50,15 @@ import pandas.core.common as com
 import pandas.core.datetools as datetools
 import pandas.core.format as fmt
 import pandas.core.nanops as nanops
-from pandas.util.decorators import Appender, deprecate_kwarg
+from pandas.util.decorators import Appender, Substitution, deprecate_kwarg
 
 import pandas.lib as lib
 import pandas.tslib as tslib
 import pandas.index as _index
 
-from numpy import percentile as _quantile
 from pandas.core.config import get_option
 
-from pandas import _np_version_under1p9
+from textwrap import dedent
 
 __all__ = ['Series']
 
@@ -1279,66 +1278,17 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
 
         return result
 
-    def quantile(self, q=0.5, interpolation='linear'):
-        """
-        Return value at the given quantile, a la numpy.percentile.
-
-        Parameters
-        ----------
-        q : float or array-like, default 0.5 (50% quantile)
-            0 <= q <= 1, the quantile(s) to compute
-        interpolation : {'linear', 'lower', 'higher', 'midpoint', 'nearest'}
-            .. versionadded:: 0.18.0
-            This optional parameter specifies the interpolation method to use,
-            when the desired quantile lies between two data points `i` and `j`:
-                * linear: `i + (j - i) * fraction`, where `fraction` is the
-                  fractional part of the index surrounded by `i` and `j`.
-                * lower: `i`.
-                * higher: `j`.
-                * nearest: `i` or `j` whichever is nearest.
-                * midpoint: (`i` + `j`) / 2.
-
-        Returns
-        -------
+    @Substitution(dedent("""
         quantile : float or Series
             if ``q`` is an array, a Series will be returned where the
             index is ``q`` and the values are the quantiles.
-
-        Examples
-        --------
-
-        >>> s = Series([1, 2, 3, 4])
-        >>> s.quantile(.5)
-            2.5
-        >>> s.quantile([.25, .5, .75])
-        0.25    1.75
-        0.50    2.50
-        0.75    3.25
-        dtype: float64
-        """
-
-        self._check_percentile(q)
-
-        if _np_version_under1p9:
-            if interpolation != 'linear':
-                raise ValueError("Interpolation methods other than linear "
-                                 "are not supported in numpy < 1.9.")
-
-        def multi(values, qs, **kwargs):
-            if com.is_list_like(qs):
-                values = [_quantile(values, x * 100, **kwargs) for x in qs]
-                # let empty result to be Float64Index
-                qs = Float64Index(qs)
-                return self._constructor(values, index=qs, name=self.name)
-            else:
-                return _quantile(values, qs * 100, **kwargs)
-
-        kwargs = dict()
-        if not _np_version_under1p9:
-            kwargs.update({'interpolation': interpolation})
-
-        return self._maybe_box(lambda values: multi(values, q, **kwargs),
-                               dropna=True)
+            """))
+    @Appender(generic._shared_docs['quantile'])
+    def quantile(self, q=0.5, axis=0, numeric_only=None,
+                 interpolation='linear'):
+        return super(Series,
+                     self).quantile(q=q, axis=axis, numeric_only=numeric_only,
+                                    interpolation=interpolation)
 
     def corr(self, other, method='pearson', min_periods=None):
         """
