@@ -92,6 +92,5 @@ doc/source/vbench
 doc/source/vbench.rst
 doc/source/index.rst
 doc/build/html/index.html
-doc/builddir/
 # Windows specific leftover:
 doc/tmp.sv
