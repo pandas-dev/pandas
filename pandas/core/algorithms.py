@@ -344,7 +344,9 @@ def value_counts(values, sort=True, ascending=False, normalize=False,
     if normalize:
         if dropna:
             # NaT's dropped above if time, so don't need to do again.
-            if not com.is_datetime_or_timedelta_dtype(dtype) and not is_period and not is_datetimetz:
+            if not com.is_datetime_or_timedelta_dtype(dtype) \
+                    and not is_period and not is_datetimetz:
+
                 result = result / float(Series(values).count())
         else:
             result = result / float(values.size)

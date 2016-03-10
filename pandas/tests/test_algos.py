@@ -520,27 +520,29 @@ class TestValueCounts(tm.TestCase):
     def test_normalize(self):
         # Issue 12558
         tm.assert_series_equal(
-            pd.Series([ 5.,10.3,10.3,10.3,np.nan]).value_counts(dropna=True, normalize=True),
+            pd.Series([5., 10.3, 10.3, 10.3, np.nan]).value_counts(
+                dropna=True, normalize=True),
             pd.Series([0.75, 0.25], index=[10.3, 5.]))
 
         tm.assert_series_equal(
-            pd.Series([ 5.,10.3,10.3,10.3,np.nan]).value_counts(dropna=True, normalize=False),
+            pd.Series([5., 10.3, 10.3, 10.3, np.nan]).value_counts(
+                dropna=True, normalize=False),
             pd.Series([3, 1], index=[10.3, 5.]))
 
         tm.assert_series_equal(
-            pd.Series([ 5.,10.3,10.3,10.3,np.nan]).value_counts(dropna=False, normalize=True),
-            pd.Series([0.6, 0.2,0.2], index=[10.3, 5., np.nan]))
+            pd.Series([5., 10.3, 10.3, 10.3, np.nan]).value_counts(
+                dropna=False, normalize=True),
+            pd.Series([0.6, 0.2, 0.2], index=[10.3, 5., np.nan]))
 
         tm.assert_series_equal(
-            pd.Series([ 5.,10.3,10.3,10.3,np.nan]).value_counts(dropna=False, normalize=False),
-            pd.Series([3, 1, 1], index=[10.3, 5.,np.nan]))
+            pd.Series([5., 10.3, 10.3, 10.3, np.nan]).value_counts(
+                dropna=False, normalize=False),
+            pd.Series([3, 1, 1], index=[10.3, 5., np.nan]))
 
         s = pd.Series(['2015-01-03T00:00:00.000000000+0000', pd.NaT])
         tm.assert_series_equal(
             s.value_counts(dropna=True, normalize=True),
             pd.Series([1], index=[s.loc[0]]))
-
-
 
 
 class GroupVarTestMixin(object):
