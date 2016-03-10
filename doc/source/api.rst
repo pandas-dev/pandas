@@ -1215,7 +1215,6 @@ Serialization / IO / Conversion
    Panel.to_pickle
    Panel.to_excel
    Panel.to_hdf
-   Panel.to_json
    Panel.to_sparse
    Panel.to_frame
    Panel.to_xarray
