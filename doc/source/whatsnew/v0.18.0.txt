@@ -1271,3 +1271,4 @@ Bug Fixes
 - Bug when specifying a UTC ``DatetimeIndex`` by setting ``utc=True`` in ``.to_datetime`` (:issue:`11934`)
 - Bug when increasing the buffer size of CSV reader in ``read_csv`` (:issue:`12494`)
 - Bug when setting columns of a ``DataFrame`` with duplicate column names (:issue:`12344`)
+- Resolve ImportError in ``read_gbq`` which appears with oauthclient >= 2.0.0 (:issue:`12572`)
