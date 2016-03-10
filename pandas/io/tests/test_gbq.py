@@ -77,7 +77,6 @@ def _test_imports():
 
             from oauth2client.client import OAuth2WebServerFlow  # noqa
             from oauth2client.client import AccessTokenRefreshError  # noqa
-            from oauth2client.client import SignedJwtAssertionCredentials  # noqa
 
             from oauth2client.file import Storage  # noqa
             from oauth2client.tools import run_flow  # noqa
@@ -114,6 +113,30 @@ def _test_imports():
     if not _HTTPLIB2_INSTALLED:
         raise ImportError(
             "pandas requires httplib2 for Google BigQuery support")
+
+    # Bug fix for https://github.com/pydata/pandas/issues/12572
+    # We need to know that a supported version of oauth2client is installed
+    # Test that either of the following is installed:
+    # - SignedJwtAssertionCredentials from oauth2client.client
+    # - ServiceAccountCredentials from oauth2client.service_account
+    # SignedJwtAssertionCredentials is available in oauthclient < 2.0.0
+    # ServiceAccountCredentials is available in oauthclient >= 2.0.0
+    oauth2client_v1 = True
+    oauth2client_v2 = True
+
+    try:
+        from oauth2client.client import SignedJwtAssertionCredentials  # noqa
+    except ImportError:
+        oauth2client_v1 = False
+
+    try:
+        from oauth2client.service_account import ServiceAccountCredentials  # noqa
+    except ImportError:
+        oauth2client_v2 = False
+
+    if not oauth2client_v1 and not oauth2client_v2:
+        raise ImportError("Missing oauth2client required for BigQuery "
+                          "service account support")
 
 
 def test_requirements():
