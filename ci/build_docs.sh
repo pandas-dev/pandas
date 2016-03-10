@@ -36,6 +36,10 @@ if [ x"$DOC_BUILD" != x"" ]; then
     echo ./make.py
     ./make.py
 
+    echo ########################
+    echo # Create and send docs #
+    echo ########################
+
     cd /tmp/doc/build/html
     git config --global user.email "pandas-docs-bot@localhost.foo"
     git config --global user.name "pandas-docs-bot"
