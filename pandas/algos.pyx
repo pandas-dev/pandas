@@ -1655,8 +1655,8 @@ cdef _roll_min_max(ndarray[numeric] a, int window, int minp, bint is_max):
     dim = PyArray_DIMS(a)
     cdef Py_ssize_t n0 = dim[0]
     cdef np.npy_intp *dims = [n0]
-    cdef numeric* y
     cdef bint should_replace
+    cdef np.ndarray[numeric, ndim=1] y = PyArray_EMPTY(1, dims, PyArray_TYPE(a), 0)
 
     if window < 1:
         raise ValueError('Invalid window size %d'
@@ -1670,7 +1670,6 @@ cdef _roll_min_max(ndarray[numeric] a, int window, int minp, bint is_max):
     with nogil:
         ring = <numeric*>stdlib.malloc(window * sizeof(numeric))
         death = <Py_ssize_t*>stdlib.malloc(window * sizeof(Py_ssize_t))
-        y = <numeric*>stdlib.malloc(n0 * sizeof(numeric))
         end = ring + window
         last = ring
 
@@ -1740,8 +1739,7 @@ cdef _roll_min_max(ndarray[numeric] a, int window, int minp, bint is_max):
 
         stdlib.free(ring)
         stdlib.free(death)
-    return PyArray_SimpleNewFromData(1, dims, PyArray_TYPE(a), y)
-
+    return y
 
 cdef double_t _get_max(object skiplist, int nobs, int minp):
     if nobs >= minp:
