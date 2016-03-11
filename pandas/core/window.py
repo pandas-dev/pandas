@@ -156,7 +156,7 @@ class _Window(PandasObject, SelectionMixin):
 
         # GH #12373 : rolling functions error on float32 data
         # make sure the data is coerced to float64
-        if com.is_float_dtype(values.dtype):
+        if com.is_float_dtype(values.dtype) and as_float:
             values = com._ensure_float64(values)
         elif com.is_integer_dtype(values.dtype) and as_float:
             values = com._ensure_float64(values)

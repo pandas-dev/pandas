@@ -2708,10 +2708,7 @@ class TestMomentsConsistency(Base):
             # the types match. Other tests will cover quantitative
             # correctness
             for convert_to_float in [True]:
-                if data_type.kind == 'f' or not convert_to_float:
-                    # Floating point values are left as-is when
-                    # convert_to_float is True. We compare to the
-                    # original floating point type instead
+                if not convert_to_float:
                     expected_type = data_type
                 else:
                     expected_type = np.dtype(float)
