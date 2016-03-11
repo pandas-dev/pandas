@@ -267,8 +267,10 @@ Options are 'right', and 'left'.
 
 
 
-List of Options
----------------
+.. _options.available:
+
+Available Options
+-----------------
 
 ========================== ============ ==================================
 Option                     Default      Function

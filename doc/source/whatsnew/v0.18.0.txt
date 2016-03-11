@@ -56,7 +56,7 @@ Window functions have been refactored to be methods on ``Series/DataFrame`` obje
 .. ipython:: python
 
    np.random.seed(1234)
-   df = DataFrame({'A' : range(10), 'B' : np.random.randn(10)})
+   df = pd.DataFrame({'A' : range(10), 'B' : np.random.randn(10)})
    df
 
 Previous Behavior:
@@ -153,7 +153,7 @@ Previous Behavior:
 
 .. code-block:: python
 
-   In [3]: s = Series(range(1000))
+   In [3]: s = pd.Series(range(1000))
 
    In [4]: s.index
    Out[4]:
@@ -169,7 +169,7 @@ New Behavior:
 
 .. ipython:: python
 
-   s = Series(range(1000))
+   s = pd.Series(range(1000))
    s.index
    s.index.nbytes
 
@@ -191,10 +191,17 @@ In v0.18.0, the ``expand`` argument was added to
 
 Currently the default is ``expand=None`` which gives a ``FutureWarning`` and uses ``expand=False``. To avoid this warning, please explicitly specify ``expand``.
 
-.. ipython:: python
-   :okwarning:
+.. code-block:: python
 
-   pd.Series(['a1', 'b2', 'c3']).str.extract('[ab](\d)', expand=None)
+   In [1]: pd.Series(['a1', 'b2', 'c3']).str.extract('[ab](\d)', expand=None)
+   FutureWarning: currently extract(expand=None) means expand=False (return Index/Series/DataFrame)
+   but in a future version of pandas this will be changed to expand=True (return DataFrame)
+
+   Out[1]:
+   0      1
+   1      2
+   2    NaN
+   dtype: object
 
 Extracting a regular expression with one group returns a Series if
 ``expand=False``.
@@ -215,7 +222,7 @@ returns  an ``Index`` if ``expand=False``.
 .. ipython:: python
 
    s = pd.Series(["a1", "b2", "c3"], ["A11", "B22", "C33"])
-   s
+   s.index
    s.index.str.extract("(?P<letter>[a-zA-Z])", expand=False)
 
 It returns a ``DataFrame`` with one column if ``expand=True``.
@@ -248,8 +255,8 @@ Addition of str.extractall
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The :ref:`.str.extractall <text.extractall>` method was added
-(:issue:`11386`).  Unlike ``extract`` (which returns only the first
-match),
+(:issue:`11386`).  Unlike ``extract``, which returns only the first
+match.
 
 .. ipython:: python
 
@@ -257,7 +264,7 @@ match),
    s
    s.str.extract("(?P<letter>[ab])(?P<digit>\d)", expand=False)
 
-the ``extractall`` method returns all matches.
+The ``extractall`` method returns all matches.
 
 .. ipython:: python
 
@@ -274,12 +281,12 @@ A new, friendlier ``ValueError`` is added to protect against the mistake of supp
 
 .. ipython:: python
 
-    Series(['a','b',np.nan,'c']).str.cat(sep=' ')
-    Series(['a','b',np.nan,'c']).str.cat(sep=' ', na_rep='?')
+    pd.Series(['a','b',np.nan,'c']).str.cat(sep=' ')
+    pd.Series(['a','b',np.nan,'c']).str.cat(sep=' ', na_rep='?')
 
 .. code-block:: python
 
-    In [2]: Series(['a','b',np.nan,'c']).str.cat(' ')
+    In [2]: pd.Series(['a','b',np.nan,'c']).str.cat(' ')
     ValueError: Did you mean to supply a `sep` keyword?
 
 
@@ -327,21 +334,21 @@ In addition, ``.round()``, ``.floor()`` and ``.ceil()`` will be available thru t
 
 .. ipython:: python
 
-   s = Series(dr)
+   s = pd.Series(dr)
    s
    s.dt.round('D')
 
-Formatting of integer in FloatIndex
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Formatting of Integers in FloatIndex
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Integers in ``FloatIndex``, e.g. 1., are now formatted with a decimal point and a ``0`` digit, e.g. ``1.0`` (:issue:`11713`)
-This change not only affects the display in a jupyter notebook, but also the output of IO methods like ``.to_csv`` or ``.to_html``
+This change not only affects the display to the console, but also the output of IO methods like ``.to_csv`` or ``.to_html``.
 
 Previous Behavior:
 
 .. code-block:: python
 
-   In [2]: s = Series([1,2,3], index=np.arange(3.))
+   In [2]: s = pd.Series([1,2,3], index=np.arange(3.))
 
    In [3]: s
    Out[3]:
@@ -363,7 +370,7 @@ New Behavior:
 
 .. ipython:: python
 
-   s = Series([1,2,3], index=np.arange(3.))
+   s = pd.Series([1,2,3], index=np.arange(3.))
    s
    s.index
    print(s.to_csv(path=None))
@@ -451,7 +458,7 @@ to_xarray
 
 In a future version of pandas, we will be deprecating ``Panel`` and other > 2 ndim objects. In order to provide for continuity,
 all ``NDFrame`` objects have gained the ``.to_xarray()`` method in order to convert to ``xarray`` objects, which has
-a pandas-like interface for > 2 ndim.
+a pandas-like interface for > 2 ndim. (:issue:`11972`)
 
 See the `xarray full-documentation here <http://xarray.pydata.org/en/stable/>`__.
 
@@ -479,17 +486,17 @@ Latex Representation
 
 ``DataFrame`` has gained a ``._repr_latex_()`` method in order to allow for conversion to latex in a ipython/jupyter notebook using nbconvert. (:issue:`11778`)
 
-Note that this must be activated by setting the option ``display.latex.repr`` to ``True`` (issue:`12182`)
+Note that this must be activated by setting the option ``pd.display.latex.repr=True`` (:issue:`12182`)
 
-For example, if you have a jupyter notebook you plan to convert to latex using nbconvert, place the statement ``pd.set_option('display.latex.repr', True)`` in the first cell to have the contained DataFrame output also stored as latex.
+For example, if you have a jupyter notebook you plan to convert to latex using nbconvert, place the statement ``pd.display.latex.repr=True`` in the first cell to have the contained DataFrame output also stored as latex.
 
-Options ``display.latex.escape`` and ``display.latex.longtable`` have also been added to the configuration and are used automatically by the ``to_latex``
-method. See the :ref:`options documentation<options>` for more info.
+The options ``display.latex.escape`` and ``display.latex.longtable`` have also been added to the configuration and are used automatically by the ``to_latex``
+method. See the :ref:`available options docs <options.available>` for more info.
 
 .. _whatsnew_0180.enhancements.sas:
 
-read_sas changes
-^^^^^^^^^^^^^^^^
+``pd.read_sas()`` changes
+^^^^^^^^^^^^^^^^^^^^^^^^^
 
 ``read_sas`` has gained the ability to read SAS7BDAT files, including compressed files.  The files can be read in entirety, or incrementally.  For full details see :ref:`here <io.sas>`. (:issue:`4052`)
 
@@ -736,7 +743,7 @@ You could also specify a ``how`` directly
 
 .. code-block:: python
 
-   In [7]: df.resample('2s',how='sum')
+   In [7]: df.resample('2s', how='sum')
    Out[7]:
                             A         B         C         D
    2010-01-01 09:00:00  0.971495  0.894701  0.714192  1.587231
@@ -747,7 +754,7 @@ You could also specify a ``how`` directly
 
 **New API**:
 
-Now, you can write ``.resample`` as a 2-stage operation like groupby, which
+Now, you can write ``.resample(..)`` as a 2-stage operation like ``.groupby(...)``, which
 yields a ``Resampler``.
 
 .. ipython:: python
@@ -760,7 +767,7 @@ Downsampling
 ''''''''''''
 
 You can then use this object to perform operations.
-These are downsampling operations (going from a lower frequency to a higher one).
+These are downsampling operations (going from a higher frequency to a lower one).
 
 .. ipython:: python
 
@@ -793,7 +800,7 @@ Upsampling
 
 .. currentmodule:: pandas.tseries.resample
 
-Upsampling operations take you from a higher frequency to a lower frequency. These are now
+Upsampling operations take you from a lower frequency to a higher frequency. These are now
 performed with the ``Resampler`` objects with :meth:`~Resampler.backfill`,
 :meth:`~Resampler.ffill`, :meth:`~Resampler.fillna` and :meth:`~Resampler.asfreq` methods.
 
@@ -834,8 +841,8 @@ New API
 
    In the new API, you can either downsample OR upsample. The prior implementation would allow you to pass an aggregator function (like ``mean``) even though you were upsampling, providing a bit of confusion.
 
-Previous API will work but deprecations
-'''''''''''''''''''''''''''''''''''''''
+Previous API will work but with deprecations
+''''''''''''''''''''''''''''''''''''''''''''
 
 .. warning::
 
@@ -886,6 +893,12 @@ Previous API will work but deprecations
 
    The good news is the return dimensions will differ between the new API and the old API, so this should loudly raise
    an exception.
+
+   To replicate the original operation
+
+   .. ipython:: python
+
+      df.resample('2s').mean().min()
 
 Changes to eval
 ^^^^^^^^^^^^^^^
@@ -980,16 +993,16 @@ Other API Changes
      In [2]: s.between_time('20150101 07:00:00','20150101 09:00:00')
      ValueError: Cannot convert arg ['20150101 07:00:00'] to a time.
 
-- ``.memory_usage()`` now includes values in the index, as does memory_usage in ``.info`` (:issue:`11597`)
-- ``DataFrame.to_latex()`` now supports non-ascii encodings (eg utf-8) in Python 2 with the parameter ``encoding`` (:issue:`7061`)
+- ``.memory_usage()`` now includes values in the index, as does memory_usage in ``.info()`` (:issue:`11597`)
+- ``DataFrame.to_latex()`` now supports non-ascii encodings (eg ``utf-8``) in Python 2 with the parameter ``encoding`` (:issue:`7061`)
 - ``pandas.merge()`` and ``DataFrame.merge()`` will show a specific error message when trying to merge with an object that is not of type ``DataFrame`` or a subclass (:issue:`12081`)
 - ``DataFrame.unstack`` and ``Series.unstack`` now take ``fill_value`` keyword to allow direct replacement of missing values when an unstack results in missing values in the resulting ``DataFrame``. As an added benefit, specifying ``fill_value`` will preserve the data type of the original stacked data.  (:issue:`9746`)
 - As part of the new API for :ref:`window functions <whatsnew_0180.enhancements.moments>` and :ref:`resampling <whatsnew_0180.breaking.resample>`, aggregation functions have been clarified, raising more informative error messages on invalid aggregations. (:issue:`9052`). A full set of examples are presented in :ref:`groupby <groupby.aggregate>`.
-- Statistical functions for ``NDFrame`` objects will now raise if non-numpy-compatible arguments are passed in for ``**kwargs`` (:issue:`12301`)
+- Statistical functions for ``NDFrame`` objects (like ``sum(), mean(), min()``) will now raise if non-numpy-compatible arguments are passed in for ``**kwargs`` (:issue:`12301`)
 - ``.to_latex`` and ``.to_html`` gain a ``decimal`` parameter like ``.to_csv``; the default is ``'.'`` (:issue:`12031`)
 - More helpful error message when constructing a ``DataFrame`` with empty data but with indices (:issue:`8020`)
 - ``.describe()`` will now properly handle bool dtype as a categorical (:issue:`6625`)
-- More helpful error message invalid ``.transform`` with user defined input (:issue:`10165`)
+- More helpful error message with an invalid ``.transform`` with user defined input (:issue:`10165`)
 - Exponentially weighted functions now allow specifying alpha directly (:issue:`10789`) and raise ``ValueError`` if parameters violate ``0 < alpha <= 1`` (:issue:`12492`)
 
 .. _whatsnew_0180.deprecations:
@@ -1028,7 +1041,7 @@ Deprecations
 
 - The the ``freq`` and ``how`` arguments to the ``.rolling``, ``.expanding``, and ``.ewm`` (new) functions are deprecated, and will be removed in a future version. You can simply resample the input prior to creating a window function. (:issue:`11603`).
 
-  For example, instead of ``s.rolling(window=5,freq='D').max()`` to get the max value on a rolling 5 Day window, one could use ``s.resample('D',how='max').rolling(window=5).max()``, which first resamples the data to daily data, then provides a rolling 5 day window.
+  For example, instead of ``s.rolling(window=5,freq='D').max()`` to get the max value on a rolling 5 Day window, one could use ``s.resample('D').mean().rolling(window=5).max()``, which first resamples the data to daily data, then provides a rolling 5 day window.
 
 - ``pd.tseries.frequencies.get_offset_name`` function is deprecated. Use offset's ``.freqstr`` property as alternative (:issue:`11192`)
 - ``pandas.stats.fama_macbeth`` routines are deprecated and will be removed in a future version (:issue:`6077`)
@@ -1117,6 +1130,13 @@ and setting
    s_copy = s.copy()
    s_copy.ix[5.0] = 10
    s_copy
+
+Positional setting with ``.ix`` and a float indexer will ADD this value to the index, rather than previously setting the value by position.
+
+.. ipython:: python
+
+   s2.ix[1.0] = 10
+   s2
 
 Slicing will also coerce integer-like floats to integers for a non-``Float64Index``.
 
