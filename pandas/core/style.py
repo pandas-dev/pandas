@@ -179,6 +179,7 @@ class Styler(object):
         DATA_CLASS = "data"
         BLANK_CLASS = "blank"
         BLANK_VALUE = ""
+        INDEX_CLASS = COL_HEADING_CLASS
 
         cell_context = dict()
 
@@ -201,9 +202,15 @@ class Styler(object):
         head = []
 
         for r in range(n_clvls):
-            row_es = [{"type": "th",
-                       "value": BLANK_VALUE,
-                       "class": " ".join([BLANK_CLASS])}] * n_rlvls
+            row_es = []
+            for index_name in self.data.index.names:
+                if index_name is not None:
+                    val, th_class = index_name, INDEX_CLASS
+                else:
+                    val, th_class = BLANK_VALUE, BLANK_CLASS
+                    
+                row_es.append({"type": "th", "value": val,
+                               "class": " ".join([th_class])})
             for c in range(len(clabels[0])):
                 cs = [COL_HEADING_CLASS, "level%s" % r, "col%s" % c]
                 cs.extend(cell_context.get(
