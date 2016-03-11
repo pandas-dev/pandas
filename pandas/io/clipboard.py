@@ -73,6 +73,9 @@ def to_clipboard(obj, excel=None, sep=None, **kwargs):  # pragma: no cover
       - Linux: xclip, or xsel (with gtk or PyQt4 modules)
       - Windows:
       - OS X:
+      
+    If the object contains unicode and no encoding is passed as keyword 
+    argument, the default locale will be used.
     """
     from pandas.util.clipboard import clipboard_set
     if excel is None:
@@ -84,6 +87,12 @@ def to_clipboard(obj, excel=None, sep=None, **kwargs):  # pragma: no cover
                 sep = '\t'
             buf = StringIO()
             obj.to_csv(buf, sep=sep, **kwargs)
+            clipboard_set(buf.getvalue())
+            return
+        except UnicodeEncodeError:
+            # try again with encoding from locale
+            from locale import getdefaultlocale
+            obj.to_csv(buf, sep=sep, encoding=getdefaultlocale()[1], **kwargs)
             clipboard_set(buf.getvalue())
             return
         except:

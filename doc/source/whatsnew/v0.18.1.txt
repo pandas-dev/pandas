@@ -43,3 +43,5 @@ Performance Improvements
 
 Bug Fixes
 ~~~~~~~~~
+
+- Bug in ``to_clipboard`` when called for objects containing unicode without passing an encoding (:issue:`12529`)
