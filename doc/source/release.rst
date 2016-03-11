@@ -70,6 +70,107 @@ of all enhancements and bugs that have been fixed in 0.17.1.
 Thanks
 ~~~~~~
 
+- ARF
+- Alex Alekseyev
+- Andrew McPherson
+- Andrew Rosenfeld
+- Anthonios Partheniou
+- Anton I. Sipos
+- Ben
+- Ben North
+- Bran Yang
+- Chris
+- Chris Carroux
+- Christopher C. Aycock
+- Christopher Scanlin
+- Cody
+- Da Wang
+- Daniel Grady
+- Dorozhko Anton
+- Dr-Irv
+- Erik M. Bray
+- Evan Wright
+- Francis T. O'Donovan
+- Frank Cleary
+- Gianluca Rossi
+- Graham Jeffries
+- Guillaume Horel
+- Henry Hammond
+- Isaac Schwabacher
+- Jean-Mathieu Deschenes
+- Jeff Reback
+- Joe Jevnik
+- John Freeman
+- John Fremlin
+- Jonas Hoersch
+- Joris Van den Bossche
+- Joris Vankerschaver
+- Justin Lecher
+- Justin Lin
+- Ka Wo Chen
+- Keming Zhang
+- Kerby Shedden
+- Kyle
+- Marco Farrugia
+- MasonGallo
+- MattRijk
+- Matthew Lurie
+- Maximilian Roos
+- Mayank Asthana
+- Mortada Mehyar
+- Moussa Taifi
+- Navreet Gill
+- Nicolas Bonnotte
+- Paul Reiners
+- Philip Gura
+- Pietro Battiston
+- RahulHP
+- Randy Carnevale
+- Rinoc Johnson
+- Rishipuri
+- Sangmin Park
+- Scott E Lasley
+- Sereger13
+- Shannon Wang
+- Skipper Seabold
+- Thierry Moisan
+- Thomas A Caswell
+- Toby Dylan Hocking
+- Tom Augspurger
+- Travis
+- Trent Hauck
+- Tux1
+- Varun
+- Wes McKinney
+- Will Thompson
+- Yoav Ram
+- Yoong Kang Lim
+- Yoshiki Vázquez Baeza
+- Young Joong Kim
+- Younggun Kim
+- Yuval Langer
+- alex argunov
+- behzad nouri
+- boombard
+- brian-pantano
+- chromy
+- daniel
+- dgram0
+- gfyoung
+- hack-c
+- hcontrast
+- jfoo
+- kaustuv deolal
+- llllllllll
+- ranarag
+- rockg
+- scls19fr
+- seales
+- sinhrks
+- srib
+- surveymedia.ca
+- tworec
+
 pandas 0.17.1
 -------------
 
