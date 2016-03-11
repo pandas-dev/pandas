@@ -1374,7 +1374,7 @@ Combining / joining / set operations
    Index.intersection
    Index.union
    Index.difference
-   Index.sym_diff
+   Index.symmetric_difference
 
 Selecting
 ~~~~~~~~~
