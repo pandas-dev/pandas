@@ -1625,117 +1625,56 @@ def roll_median_c(ndarray[float64_t] arg, int win, int minp):
 # of its Simplified BSD license
 # https://github.com/kwgoodman/bottleneck
 
-cdef struct pairs:
-    double value
-    int death
-
 from libc cimport stdlib
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def roll_max(ndarray[float64_t] a, int window, int minp):
-    "Moving max of 1d array of dtype=float64 along axis=0 ignoring NaNs."
-    cdef np.float64_t ai, aold
-    cdef Py_ssize_t count
-    cdef pairs* ring
-    cdef pairs* minpair
-    cdef pairs* end
-    cdef pairs* last
-    cdef Py_ssize_t i0
-    cdef np.npy_intp *dim
-    dim = PyArray_DIMS(a)
-    cdef Py_ssize_t n0 = dim[0]
-    cdef np.npy_intp *dims = [n0]
-    cdef np.ndarray[np.float64_t, ndim=1] y = PyArray_EMPTY(1, dims,
-        NPY_float64, 0)
+def roll_max(ndarray[numeric] a, int window, int minp):
+    """
+    Moving max of 1d array of any numeric type along axis=0 ignoring NaNs.
 
-    if window < 1:
-        raise ValueError('Invalid window size %d'
-                         % (window))
-
-    if minp > window:
-        raise ValueError('Invalid min_periods size %d greater than window %d'
-                        % (minp, window))
-
-    minp = _check_minp(window, minp, n0)
-    with nogil:
-        ring = <pairs*>stdlib.malloc(window * sizeof(pairs))
-        end = ring + window
-        last = ring
-
-        minpair = ring
-        ai = a[0]
-        if ai == ai:
-            minpair.value = ai
-        else:
-            minpair.value = MINfloat64
-        minpair.death = window
-
-        count = 0
-        for i0 in range(n0):
-            ai = a[i0]
-            if ai == ai:
-                count += 1
-            else:
-                ai = MINfloat64
-            if i0 >= window:
-                aold = a[i0 - window]
-                if aold == aold:
-                    count -= 1
-            if minpair.death == i0:
-                minpair += 1
-                if minpair >= end:
-                    minpair = ring
-            if ai >= minpair.value:
-                minpair.value = ai
-                minpair.death = i0 + window
-                last = minpair
-            else:
-                while last.value <= ai:
-                    if last == ring:
-                        last = end
-                    last -= 1
-                last += 1
-                if last == end:
-                    last = ring
-                last.value = ai
-                last.death = i0 + window
-            if count >= minp:
-                y[i0] = minpair.value
-            else:
-                y[i0] = NaN
-
-        for i0 in range(minp - 1):
-            y[i0] = NaN
-
-        stdlib.free(ring)
-    return y
-
-
-cdef double_t _get_max(object skiplist, int nobs, int minp):
-    if nobs >= minp:
-        return <IndexableSkiplist> skiplist.get(nobs - 1)
-    else:
-        return NaN
-
+    Parameters
+    ----------
+    a: numpy array
+    window: int, size of rolling window
+    minp: if number of observations in window
+          is below this, output a NaN
+    """
+    return _roll_min_max(a, window, minp, 1)
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def roll_min(np.ndarray[np.float64_t, ndim=1] a, int window, int minp):
-    "Moving min of 1d array of dtype=float64 along axis=0 ignoring NaNs."
-    cdef np.float64_t ai, aold
+def roll_min(ndarray[numeric] a, int window, int minp):
+    """
+    Moving max of 1d array of any numeric type along axis=0 ignoring NaNs.
+
+    Parameters
+    ----------
+    a: numpy array
+    window: int, size of rolling window
+    minp: if number of observations in window
+          is below this, output a NaN
+    """
+    return _roll_min_max(a, window, minp, 0)
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef _roll_min_max(ndarray[numeric] a, int window, int minp, bint is_max):
+    "Moving min/max of 1d array of any numeric type along axis=0 ignoring NaNs."
+    cdef numeric ai, aold
     cdef Py_ssize_t count
-    cdef pairs* ring
-    cdef pairs* minpair
-    cdef pairs* end
-    cdef pairs* last
+    cdef Py_ssize_t* death
+    cdef numeric* ring
+    cdef numeric* minvalue
+    cdef numeric* end
+    cdef numeric* last
     cdef Py_ssize_t i0
     cdef np.npy_intp *dim
     dim = PyArray_DIMS(a)
     cdef Py_ssize_t n0 = dim[0]
     cdef np.npy_intp *dims = [n0]
-    cdef np.ndarray[np.float64_t, ndim=1] y = PyArray_EMPTY(1, dims,
-        NPY_float64, 0)
+    cdef bint should_replace
+    cdef np.ndarray[numeric, ndim=1] y = PyArray_EMPTY(1, dims, PyArray_TYPE(a), 0)
 
     if window < 1:
         raise ValueError('Invalid window size %d'
@@ -1747,63 +1686,78 @@ def roll_min(np.ndarray[np.float64_t, ndim=1] a, int window, int minp):
 
     minp = _check_minp(window, minp, n0)
     with nogil:
-        ring = <pairs*>stdlib.malloc(window * sizeof(pairs))
+        ring = <numeric*>stdlib.malloc(window * sizeof(numeric))
+        death = <Py_ssize_t*>stdlib.malloc(window * sizeof(Py_ssize_t))
         end = ring + window
         last = ring
 
-        minpair = ring
+        minvalue = ring
         ai = a[0]
-        if ai == ai:
-            minpair.value = ai
+        if numeric in cython.floating:
+            if ai == ai:
+                minvalue[0] = ai
+            elif is_max:
+                minvalue[0] = MINfloat64
+            else:
+                minvalue[0] = MAXfloat64
         else:
-            minpair.value = MAXfloat64
-        minpair.death = window
+            minvalue[0] = ai
+        death[0] = window
 
         count = 0
         for i0 in range(n0):
             ai = a[i0]
-            if ai == ai:
-                count += 1
+            if numeric in cython.floating:
+                if ai == ai:
+                    count += 1
+                elif is_max:
+                    ai = MINfloat64
+                else:
+                    ai = MAXfloat64
             else:
-                ai = MAXfloat64
+                count += 1
             if i0 >= window:
                 aold = a[i0 - window]
                 if aold == aold:
                     count -= 1
-            if minpair.death == i0:
-                minpair += 1
-                if minpair >= end:
-                    minpair = ring
-            if ai <= minpair.value:
-                minpair.value = ai
-                minpair.death = i0 + window
-                last = minpair
+            if death[minvalue-ring] == i0:
+                minvalue += 1
+                if minvalue >= end:
+                    minvalue = ring
+            should_replace = ai >= minvalue[0] if is_max else ai <= minvalue[0]
+            if should_replace:
+                minvalue[0] = ai
+                death[minvalue-ring] = i0 + window
+                last = minvalue
             else:
-                while last.value >= ai:
+                should_replace = last[0] <= ai if is_max else last[0] >= ai
+                while should_replace:
                     if last == ring:
                         last = end
                     last -= 1
+                    should_replace = last[0] <= ai if is_max else last[0] >= ai
                 last += 1
                 if last == end:
                     last = ring
-                last.value = ai
-                last.death = i0 + window
-            if count >= minp:
-                y[i0] = minpair.value
+                last[0] = ai
+                death[last - ring] = i0 + window
+            if numeric in cython.floating:
+                if count >= minp:
+                    y[i0] = minvalue[0]
+                else:
+                    y[i0] = NaN
             else:
-                y[i0] = NaN
+                y[i0] = minvalue[0]
 
         for i0 in range(minp - 1):
-            y[i0] = NaN
+            if numeric in cython.floating:
+                y[i0] = NaN
+            else:
+                y[i0] = 0
 
         stdlib.free(ring)
+        stdlib.free(death)
     return y
-
-cdef double_t _get_min(object skiplist, int nobs, int minp):
-    if nobs >= minp:
-        return <IndexableSkiplist> skiplist.get(0)
-    else:
-        return NaN
 
 def roll_quantile(ndarray[float64_t, cast=True] input, int win,
                   int minp, double quantile):

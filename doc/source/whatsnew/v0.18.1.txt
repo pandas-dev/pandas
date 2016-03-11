@@ -105,6 +105,8 @@ Bug Fixes
 - Bug in ``value_counts`` when ``normalize=True`` and ``dropna=True`` where nulls still contributed to the normalized count (:issue:`12558`)
 - Bug in ``Panel.fillna()`` ignoring ``inplace=True`` (:issue:`12633`)
 - Bug in ``Series.rename``, ``DataFrame.rename`` and ``DataFrame.rename_axis`` not treating ``Series`` as mappings to relabel (:issue:`12623`).
+- Clean in ``.rolling.min`` and ``.rolling.max`` to enhance dtype handling (:issue:`12373`)
+
 
 
 
