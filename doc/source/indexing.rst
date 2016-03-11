@@ -1359,7 +1359,7 @@ operators. Difference is provided via the ``.difference()`` method.
    a & b
    a.difference(b)
 
-Also available is the ``sym_diff (^)`` operation, which returns elements
+Also available is the ``symmetric_difference (^)`` operation, which returns elements
 that appear in either ``idx1`` or ``idx2`` but not both. This is
 equivalent to the Index created by ``idx1.difference(idx2).union(idx2.difference(idx1))``,
 with duplicates dropped.
@@ -1368,7 +1368,7 @@ with duplicates dropped.
 
    idx1 = pd.Index([1, 2, 3, 4])
    idx2 = pd.Index([2, 3, 4, 5])
-   idx1.sym_diff(idx2)
+   idx1.symmetric_difference(idx2)
    idx1 ^ idx2
 
 Missing values

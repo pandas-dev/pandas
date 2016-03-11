@@ -1619,7 +1619,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         return self.union(other)
 
     def __xor__(self, other):
-        return self.sym_diff(other)
+        return self.symmetric_difference(other)
 
     def union(self, other):
         """
@@ -1796,7 +1796,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
 
     diff = deprecate('diff', difference)
 
-    def sym_diff(self, other, result_name=None):
+    def symmetric_difference(self, other, result_name=None):
         """
         Compute the sorted symmetric difference of two Index objects.
 
@@ -1807,11 +1807,11 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
 
         Returns
         -------
-        sym_diff : Index
+        symmetric_difference : Index
 
         Notes
         -----
-        ``sym_diff`` contains elements that appear in either ``idx1`` or
+        ``symmetric_difference`` contains elements that appear in either ``idx1`` or
         ``idx2`` but not both. Equivalent to the Index created by
         ``(idx1 - idx2) + (idx2 - idx1)`` with duplicates dropped.
 
@@ -1822,7 +1822,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         --------
         >>> idx1 = Index([1, 2, 3, 4])
         >>> idx2 = Index([2, 3, 4, 5])
-        >>> idx1.sym_diff(idx2)
+        >>> idx1.symmetric_difference(idx2)
         Int64Index([1, 5], dtype='int64')
 
         You can also use the ``^`` operator:
@@ -1842,6 +1842,8 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         if 'freq' in attribs:
             attribs['freq'] = None
         return self._shallow_copy_with_infer(the_diff, **attribs)
+
+    sym_diff = deprecate('sym_diff', symmetric_difference)
 
     def get_loc(self, key, method=None, tolerance=None):
         """
