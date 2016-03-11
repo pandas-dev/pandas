@@ -305,7 +305,7 @@ class Base(object):
             # # non-iterable input
             cases = [0.5, 'xxx']
             methods = [idx.intersection, idx.union, idx.difference,
-                       idx.sym_diff]
+                       idx.symmetric_difference]
 
             for method in methods:
                 for case in cases:
@@ -404,7 +404,7 @@ class Base(object):
                 with tm.assertRaisesRegexp(TypeError, msg):
                     result = first.difference([1, 2, 3])
 
-    def test_symmetric_diff(self):
+    def test_symmetric_difference(self):
         for name, idx in compat.iteritems(self.indices):
             first = idx[1:]
             second = idx[:-1]
@@ -412,7 +412,7 @@ class Base(object):
                 pass
             else:
                 answer = idx[[0, -1]]
-                result = first.sym_diff(second)
+                result = first.symmetric_difference(second)
                 self.assertTrue(tm.equalContents(result, answer))
 
             # GH 10149
@@ -422,17 +422,17 @@ class Base(object):
                 if isinstance(idx, PeriodIndex):
                     msg = "can only call with other PeriodIndex-ed objects"
                     with tm.assertRaisesRegexp(ValueError, msg):
-                        result = first.sym_diff(case)
+                        result = first.symmetric_difference(case)
                 elif isinstance(idx, CategoricalIndex):
                     pass
                 else:
-                    result = first.sym_diff(case)
+                    result = first.symmetric_difference(case)
                     self.assertTrue(tm.equalContents(result, answer))
 
             if isinstance(idx, MultiIndex):
                 msg = "other must be a MultiIndex or a list of tuples"
                 with tm.assertRaisesRegexp(TypeError, msg):
-                    result = first.sym_diff([1, 2, 3])
+                    result = first.symmetric_difference([1, 2, 3])
 
     def test_insert_base(self):
 

@@ -641,11 +641,11 @@ class TestIndex(Base, tm.TestCase):
         self.assertEqual(len(result), 0)
         self.assertEqual(result.name, first.name)
 
-    def test_symmetric_diff(self):
+    def test_symmetric_difference(self):
         # smoke
         idx1 = Index([1, 2, 3, 4], name='idx1')
         idx2 = Index([2, 3, 4, 5])
-        result = idx1.sym_diff(idx2)
+        result = idx1.symmetric_difference(idx2)
         expected = Index([1, 5])
         self.assertTrue(tm.equalContents(result, expected))
         self.assertIsNone(result.name)
@@ -658,7 +658,7 @@ class TestIndex(Base, tm.TestCase):
         # multiIndex
         idx1 = MultiIndex.from_tuples(self.tuples)
         idx2 = MultiIndex.from_tuples([('foo', 1), ('bar', 3)])
-        result = idx1.sym_diff(idx2)
+        result = idx1.symmetric_difference(idx2)
         expected = MultiIndex.from_tuples([('bar', 2), ('baz', 3), ('bar', 3)])
         self.assertTrue(tm.equalContents(result, expected))
 
@@ -667,7 +667,7 @@ class TestIndex(Base, tm.TestCase):
         # and the correct non-nan values are there. punt on sorting.
         idx1 = Index([1, 2, 3, np.nan])
         idx2 = Index([0, 1, np.nan])
-        result = idx1.sym_diff(idx2)
+        result = idx1.symmetric_difference(idx2)
         # expected = Index([0.0, np.nan, 2.0, 3.0, np.nan])
 
         nans = pd.isnull(result)
@@ -679,11 +679,11 @@ class TestIndex(Base, tm.TestCase):
         idx1 = Index([1, 2, 3, 4], name='idx1')
         idx2 = np.array([2, 3, 4, 5])
         expected = Index([1, 5])
-        result = idx1.sym_diff(idx2)
+        result = idx1.symmetric_difference(idx2)
         self.assertTrue(tm.equalContents(result, expected))
         self.assertEqual(result.name, 'idx1')
 
-        result = idx1.sym_diff(idx2, result_name='new_name')
+        result = idx1.symmetric_difference(idx2, result_name='new_name')
         self.assertTrue(tm.equalContents(result, expected))
         self.assertEqual(result.name, 'new_name')
 
