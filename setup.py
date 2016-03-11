@@ -375,6 +375,8 @@ common_include = ['pandas/src/klib', 'pandas/src']
 def pxd(name):
     return os.path.abspath(pjoin('pandas', name + '.pxd'))
 
+# args to ignore warnings
+extra_compile_args=['-Wno-unused-function']
 
 lib_depends = lib_depends + ['pandas/src/numpy_helper.h',
                              'pandas/src/parse_helper.h']
@@ -440,7 +442,7 @@ for name, data in ext_data.items():
                     sources=sources,
                     depends=data.get('depends', []),
                     include_dirs=include,
-                    extra_compile_args=['-w'])
+                    extra_compile_args=extra_compile_args)
 
     extensions.append(obj)
 
@@ -449,7 +451,7 @@ sparse_ext = Extension('pandas._sparse',
                        sources=[srcpath('sparse', suffix=suffix)],
                        include_dirs=[],
                        libraries=libraries,
-                       extra_compile_args=['-w'])
+                       extra_compile_args=extra_compile_args)
 
 extensions.extend([sparse_ext])
 
@@ -457,7 +459,7 @@ testing_ext = Extension('pandas._testing',
                        sources=[srcpath('testing', suffix=suffix)],
                        include_dirs=[],
                        libraries=libraries,
-                       extra_compile_args=['-w'])
+                       extra_compile_args=extra_compile_args)
 
 extensions.extend([testing_ext])
 
@@ -478,7 +480,7 @@ packer_ext = Extension('pandas.msgpack._packer',
                         language='c++',
                         include_dirs=['pandas/src/msgpack'] + common_include,
                         define_macros=macros,
-                        extra_compile_args=['-w'])
+                        extra_compile_args=extra_compile_args)
 unpacker_ext = Extension('pandas.msgpack._unpacker',
                         depends=['pandas/src/msgpack/unpack.h',
                                  'pandas/src/msgpack/unpack_define.h',
@@ -489,7 +491,7 @@ unpacker_ext = Extension('pandas.msgpack._unpacker',
                         language='c++',
                         include_dirs=['pandas/src/msgpack'] + common_include,
                         define_macros=macros,
-                        extra_compile_args=['-w'])
+                        extra_compile_args=extra_compile_args)
 extensions.append(packer_ext)
 extensions.append(unpacker_ext)
 
@@ -513,7 +515,7 @@ ujson_ext = Extension('pandas.json',
                       include_dirs=['pandas/src/ujson/python',
                                     'pandas/src/ujson/lib',
                                     'pandas/src/datetime'] + common_include,
-                      extra_compile_args=['-D_GNU_SOURCE', '-w'])
+                      extra_compile_args=['-D_GNU_SOURCE'] + extra_compile_args)
 
 
 extensions.append(ujson_ext)
