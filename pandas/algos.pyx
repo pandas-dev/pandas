@@ -1639,6 +1639,7 @@ def roll_min(ndarray[numeric] a, int window, int minp):
     "Moving min of 1d array of any numeric type along axis=0 ignoring NaNs."
     return _roll_min_max(a, window, minp, 0)
 
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
 cdef _roll_min_max(ndarray[numeric] a, int window, int minp, bint is_max):
