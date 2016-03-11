@@ -414,6 +414,8 @@ class Resampler(_GroupBy):
 
     def fillna(self, method, limit=None):
         """
+        Fill missing values
+
         Parameters
         ----------
         method : str, method of resampling ('ffill', 'bfill')
