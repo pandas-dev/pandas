@@ -14,6 +14,15 @@ import re
 import platform
 from distutils.version import LooseVersion
 
+def is_platform_windows():
+    return sys.platform == 'win32' or sys.platform == 'cygwin'
+
+def is_platform_linux():
+    return sys.platform == 'linux2'
+
+def is_platform_mac():
+    return sys.platform == 'darwin'
+
 # versioning
 import versioneer
 cmdclass = versioneer.get_cmdclass()
@@ -376,7 +385,10 @@ def pxd(name):
     return os.path.abspath(pjoin('pandas', name + '.pxd'))
 
 # args to ignore warnings
-extra_compile_args=['-Wno-unused-function']
+if is_platform_windows():
+    extra_compile_args=[]
+else:
+    extra_compile_args=['-Wno-unused-function']
 
 lib_depends = lib_depends + ['pandas/src/numpy_helper.h',
                              'pandas/src/parse_helper.h']
@@ -388,7 +400,7 @@ tseries_depends = ['pandas/src/datetime/np_datetime.h',
 
 
 # some linux distros require it
-libraries = ['m'] if 'win32' not in sys.platform else []
+libraries = ['m'] if not is_platform_windows() else []
 
 ext_data = dict(
     lib={'pyxfile': 'lib',
