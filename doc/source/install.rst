@@ -253,7 +253,6 @@ Optional Dependencies
     - `SQLite <https://docs.python.org/3.5/library/sqlite3.html>`__: for SQLite, this is included in Python's standard library by default.
 
 * `matplotlib <http://matplotlib.sourceforge.net/>`__: for plotting
-* `statsmodels <http://statsmodels.sourceforge.net/>`__: Needed for parts of :mod:`pandas.stats`
 * `openpyxl <http://packages.python.org/openpyxl/>`__, `xlrd/xlwt <http://www.python-excel.org/>`__: Needed for Excel I/O
 * `XlsxWriter <https://pypi.python.org/pypi/XlsxWriter>`__: Alternative Excel writer
 * `Jinja2 <http://jinja.pocoo.org/>`__: Template engine for conditional HTML formatting.

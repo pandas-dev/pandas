@@ -4197,6 +4197,9 @@ The key functions are:
 
 Authentication
 ''''''''''''''
+
+.. versionadded:: 0.18.0
+
 Authentication to the Google ``BigQuery`` service is via ``OAuth 2.0``.
 Is possible to authenticate with either user account credentials or service account credentials.
 
@@ -4560,7 +4563,7 @@ SAS Formats
 .. versionadded:: 0.17.0
 
 The top-level function :func:`read_sas` can read (but not write) SAS
-`xport` (.XPT) and `SAS7BDAT` (.sas7bdat) format files (v0.18.0).
+`xport` (.XPT) and `SAS7BDAT` (.sas7bdat) format files were added in *v0.18.0*.
 
 SAS files only contain two value types: ASCII text and floating point
 values (usually 8 bytes but sometimes truncated).  For xport files,

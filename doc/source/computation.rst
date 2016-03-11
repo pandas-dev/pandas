@@ -254,7 +254,7 @@ accept the following arguments:
 
    The ``freq`` and ``how`` arguments were in the API prior to 0.18.0 changes. These are deprecated in the new API. You can simply resample the input prior to creating a window function.
 
-   For example, instead of ``s.rolling(window=5,freq='D').max()`` to get the max value on a rolling 5 Day window, one could use ``s.resample('D',how='max').rolling(window=5).max()``, which first resamples the data to daily data, then provides a rolling 5 day window.
+   For example, instead of ``s.rolling(window=5,freq='D').max()`` to get the max value on a rolling 5 Day window, one could use ``s.resample('D').max().rolling(window=5).max()``, which first resamples the data to daily data, then provides a rolling 5 day window.
 
 We can then call methods on these ``rolling`` objects. These return like-indexed objects:
 
@@ -477,9 +477,7 @@ Aggregation
 -----------
 
 Once the ``Rolling``, ``Expanding`` or ``EWM`` objects have been created, several methods are available to
-perform multiple computations on the data. This is very similar to a ``.groupby.agg`` seen :ref:`here <groupby.aggregate>`.
-
-An obvious one is aggregation via the ``aggregate`` or equivalently ``agg`` method:
+perform multiple computations on the data. This is very similar to a ``.groupby(...).agg`` seen :ref:`here <groupby.aggregate>`.
 
 .. ipython:: python
 
@@ -545,7 +543,7 @@ columns of a DataFrame:
           'B' : lambda x: np.std(x, ddof=1)})
 
 The function names can also be strings. In order for a string to be valid it
-must be implemented on the Windowed object
+must be implemented on the windowed object
 
 .. ipython:: python
 
@@ -647,7 +645,7 @@ Exponentially Weighted Windows
 
 A related set of functions are exponentially weighted versions of several of
 the above statistics. A similar interface to ``.rolling`` and ``.expanding`` is accessed
-thru the ``.ewm`` method to receive a :class:`~pandas.core.window.EWM` object.
+thru the ``.ewm`` method to receive an :class:`~pandas.core.window.EWM` object.
 A number of expanding EW (exponentially weighted)
 methods are provided:
 
@@ -806,5 +804,5 @@ are scaled by debiasing factors
 
 (For :math:`w_i = 1`, this reduces to the usual :math:`N / (N - 1)` factor,
 with :math:`N = t + 1`.)
-See http://en.wikipedia.org/wiki/Weighted_arithmetic_mean#Weighted_sample_variance
+See `Weighted Sample Variance <http://en.wikipedia.org/wiki/Weighted_arithmetic_mean#Weighted_sample_variance>`__
 for further details.
