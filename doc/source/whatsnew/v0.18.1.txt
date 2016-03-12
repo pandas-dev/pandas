@@ -13,8 +13,15 @@ Highlights include:
     :local:
     :backlinks: none
 
+.. _whatsnew_0181.new_features:
+
 New features
 ~~~~~~~~~~~~
+
+
+
+
+
 
 
 .. _whatsnew_0181.enhancements:
@@ -23,10 +30,29 @@ Enhancements
 ~~~~~~~~~~~~
 
 
+
+
+
+
+
+
+
+
+
 .. _whatsnew_0181.api:
 
 API changes
 ~~~~~~~~~~~
+
+
+
+
+
+
+
+
+
+
 
 
 .. _whatsnew_0181.deprecations:
@@ -34,10 +60,28 @@ API changes
 Deprecations
 ^^^^^^^^^^^^
 
+
+
+
+
+
+
+
+
+
 .. _whatsnew_0181.performance:
 
 Performance Improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+
+
+
+
+
+
+
 
 .. _whatsnew_0181.bug_fixes:
 
