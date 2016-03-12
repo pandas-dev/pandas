@@ -236,12 +236,6 @@ In certain cases :meth:`~pandas.DataFrame.eval` will be much faster than
 evaluation in pure Python. For more details and examples see :ref:`the eval
 documentation <enhancingperf.eval>`.
 
-zoo
----
-
-xts
----
-
 plyr
 ----
 
@@ -295,7 +289,7 @@ In ``pandas`` the equivalent expression, using the
    })
 
    grouped = df.groupby(['month','week'])
-   print grouped['x'].agg([np.mean, np.std])
+   grouped['x'].agg([np.mean, np.std])
 
 
 For more details and examples see :ref:`the groupby documentation
