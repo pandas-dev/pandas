@@ -2902,8 +2902,8 @@ Storing Mixed Types in a Table
 ++++++++++++++++++++++++++++++
 
 Storing mixed-dtype data is supported. Strings are stored as a
-fixed-width using the maximum size of the appended column. Subsequent
-appends will truncate strings at this length.
+fixed-width using the maximum size of the appended column. Subsequent attempts
+at appending longer strings will raise a ``ValueError``.
 
 Passing ``min_itemsize={`values`: size}`` as a parameter to append
 will set a larger minimum for the string columns. Storing ``floats,
