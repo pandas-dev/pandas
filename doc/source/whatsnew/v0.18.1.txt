@@ -34,6 +34,8 @@ API changes
 Deprecations
 ^^^^^^^^^^^^
 
+- The method name ``Index.sym_diff()`` is deprecated and can be replaced by ``Index.symmetric_difference()`` (:issue:`12591`)
+
 .. _whatsnew_0181.performance:
 
 Performance Improvements
