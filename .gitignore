@@ -43,6 +43,7 @@ dist
 # Egg metadata
 *.egg-info
 .eggs
+.pypirc
 
 # tox testing tool
 .tox
