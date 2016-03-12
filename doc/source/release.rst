@@ -37,6 +37,22 @@ analysis / manipulation tool available in any language.
 * Binary installers on PyPI: http://pypi.python.org/pypi/pandas
 * Documentation: http://pandas.pydata.org
 
+pandas 0.18.1
+-------------
+
+**Release date:** (April ??, 2016)
+
+This is a minor release from 0.18.0 and includes a large number of bug fixes
+along with several new features, enhancements, and performance improvements.
+
+Highlights include:
+
+See the :ref:`v0.18.1 Whatsnew <whatsnew_0181>` overview for an extensive list
+of all enhancements and bugs that have been fixed in 0.18.1.
+
+Thanks
+~~~~~~
+
 pandas 0.18.0
 -------------
 
