@@ -295,7 +295,7 @@ In ``pandas`` the equivalent expression, using the
    })
 
    grouped = df.groupby(['month','week'])
-   print grouped['x'].agg([np.mean, np.std])
+   print(grouped['x'].agg([np.mean, np.std]))
 
 
 For more details and examples see :ref:`the groupby documentation
