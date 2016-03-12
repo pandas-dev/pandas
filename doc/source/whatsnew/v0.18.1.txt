@@ -87,3 +87,5 @@ Performance Improvements
 
 Bug Fixes
 ~~~~~~~~~
+
+- Bug in ``value_counts`` when ``normalize=True`` and ``dropna=True`` where nulls still contributed to the normalized count (:issue:`12558`)
