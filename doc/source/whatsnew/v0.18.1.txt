@@ -167,3 +167,4 @@ Bug Fixes
 
 
 - Bug in ``pivot_table`` when ``margins=True`` and ``dropna=True`` where nulls still contributed to margin count (:issue:`12577`)
+- Bug in ``Series.name`` when ``name`` attribute can be a hashable type (:issue:`12610`)

@@ -146,8 +146,9 @@ class TestSeriesIO(TestData, tm.TestCase):
         self.assertEqual(new_ts.index.freq, 'M')
 
     def test_pickle_preserve_name(self):
-        unpickled = self._pickle_roundtrip_name(self.ts)
-        self.assertEqual(unpickled.name, self.ts.name)
+        for n in [777, 777., 'name', datetime(2001, 11, 11), (1, 2)]:
+            unpickled = self._pickle_roundtrip_name(tm.makeTimeSeries(name=n))
+            self.assertEqual(unpickled.name, n)
 
     def _pickle_roundtrip_name(self, obj):
 

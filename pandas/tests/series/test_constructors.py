@@ -725,3 +725,14 @@ class TestSeriesConstructors(TestData, tm.TestCase):
         self.assertEqual(s.dtype, 'timedelta64[ns]')
         s = Series([pd.NaT, np.nan, '1 Day'])
         self.assertEqual(s.dtype, 'timedelta64[ns]')
+
+    def test_constructor_name_hashable(self):
+        for n in [777, 777., 'name', datetime(2001, 11, 11), (1, ), u"\u05D0"]:
+            for data in [[1, 2, 3], np.ones(3), {'a': 0, 'b': 1}]:
+                s = Series(data, name=n)
+                self.assertEqual(s.name, n)
+
+    def test_constructor_name_unhashable(self):
+        for n in [['name_list'], np.ones(2), {1: 2}]:
+            for data in [['name_list'], np.ones(2), {1: 2}]:
+                self.assertRaises(TypeError, Series, data, name=n)
