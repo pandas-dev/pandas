@@ -172,8 +172,8 @@ def eval(expr, parser='pandas', engine=None, truediv=True,
 
         More backends may be available in the future.
 
-        If set to None (the default) then uses ``'numexpr'`` if available, otherwise
-        uses ``'python'``.
+        If set to None (the default) then uses ``'numexpr'`` if available,
+        otherwise uses ``'python'``.
 
     truediv : bool, optional
         Whether to use true division, like in Python >= 3
