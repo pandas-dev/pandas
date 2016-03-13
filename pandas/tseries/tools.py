@@ -231,8 +231,10 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
     unit : unit of the arg (D,s,ms,us,ns) denote the unit in epoch
         (e.g. a unix timestamp), which is an integer/float number.
     infer_datetime_format : boolean, default False
-        If no `format` is given, try to infer the format based on the first
-        datetime string. Provides a large speed-up in many cases.
+        If True and no `format` is given, attempt to infer the format of the
+        datetime strings, and if it can be inferred, switch to a faster
+        method of parsing them. In some cases this can increase the parsing
+        speed by ~5-10x.
 
     Returns
     -------
@@ -272,6 +274,19 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
     98   2000-04-08
     99   2000-04-09
     Length: 100, dtype: datetime64[ns]
+
+    Infer the format from the first entry
+
+    >>> pd.to_datetime(df.month + '/' +  df.day + '/' + df.year,
+                       infer_datetime_format=True)
+    0    2000-01-01
+    1    2000-01-02
+    ...
+    98   2000-04-08
+    99   2000-04-09
+
+    This gives the same results as omitting the `infer_datetime_format=True`,
+    but is much faster.
 
     Date that does not meet timestamp limitations:
 
