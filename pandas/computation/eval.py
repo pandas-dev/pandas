@@ -131,7 +131,7 @@ def _check_for_locals(expr, stack_level, parser):
                 raise SyntaxError(msg)
 
 
-def eval(expr, parser='pandas', engine='numexpr', truediv=True,
+def eval(expr, parser='pandas', engine=None, truediv=True,
          local_dict=None, global_dict=None, resolvers=(), level=0,
          target=None, inplace=None):
     """Evaluate a Python expression as a string using various backends.
@@ -160,7 +160,7 @@ def eval(expr, parser='pandas', engine='numexpr', truediv=True,
         ``'python'`` parser to retain strict Python semantics.  See the
         :ref:`enhancing performance <enhancingperf.eval>` documentation for
         more details.
-    engine : string, default 'numexpr', {'python', 'numexpr'}
+    engine : string, default None, {'python', 'numexpr'}
 
         The engine used to evaluate the expression. Supported engines are
 
@@ -171,6 +171,9 @@ def eval(expr, parser='pandas', engine='numexpr', truediv=True,
                         level python. This engine is generally not that useful.
 
         More backends may be available in the future.
+
+        If set to None (the default) then uses ``'numexpr'`` if available, otherwise
+        uses ``'python'``.
 
     truediv : bool, optional
         Whether to use true division, like in Python >= 3
@@ -226,6 +229,12 @@ def eval(expr, parser='pandas', engine='numexpr', truediv=True,
     if multi_line and target is None:
         raise ValueError("multi-line expressions are only valid in the "
                          "context of data, use DataFrame.eval")
+
+    if engine is None:
+        if _NUMEXPR_INSTALLED:
+            engine = 'numexpr'
+        else:
+            engine = 'python'
 
     first_expr = True
     for expr in exprs:
