@@ -132,8 +132,8 @@ default False
 
     Note: A fast-path exists for iso8601-formatted dates.
 infer_datetime_format : boolean, default False
-    If parse_dates is enabled and this flag is set, pandas will attempt to infer
-    the format of the datetime strings in the columns, and if it can be
+    If parse_dates is enabled and this flag is set, pandas will attempt to
+    infer the format of the datetime strings in the columns, and if it can be
     inferred, switch to a faster method of parsing them. In some cases this
     can increase the parsing speed by ~5-10x.
 keep_date_col : boolean, default False
