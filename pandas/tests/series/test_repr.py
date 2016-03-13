@@ -97,7 +97,7 @@ class TestSeriesRepr(TestData, tm.TestCase):
         rep_str = repr(ser)
         self.assertIn("Name: 0", rep_str)
 
-        ser = Series(["a\n\r\tb"], name=["a\n\r\td"], index=["a\n\r\tf"])
+        ser = Series(["a\n\r\tb"], name="a\n\r\td", index=["a\n\r\tf"])
         self.assertFalse("\t" in repr(ser))
         self.assertFalse("\r" in repr(ser))
         self.assertFalse("a\n" in repr(ser))

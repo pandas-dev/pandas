@@ -232,7 +232,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
 
         generic.NDFrame.__init__(self, data, fastpath=True)
 
-        object.__setattr__(self, 'name', name)
+        self.name = name
         self._set_axis(0, index, fastpath=True)
 
     @classmethod
@@ -300,6 +300,16 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
     def _update_inplace(self, result, **kwargs):
         # we want to call the generic version and not the IndexOpsMixin
         return generic.NDFrame._update_inplace(self, result, **kwargs)
+
+    @property
+    def name(self):
+        return self._name
+
+    @name.setter
+    def name(self, value):
+        if value is not None and not com.is_hashable(value):
+            raise TypeError('Series.name must be a hashable type')
+        object.__setattr__(self, '_name', value)
 
     # ndarray compatibility
     @property
