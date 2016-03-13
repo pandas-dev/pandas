@@ -360,16 +360,16 @@ class ReadingTestsBase(SharedItems):
         tm.assert_frame_equal(actual, expected)
 
     def test_reading_all_sheets(self):
-        # Test reading all sheetnames by setting sheetname to None,
+        # Test reading all sheet_names by setting sheet_name to None,
         # Ensure a dict is returned.
         # See PR #9450
         basename = 'test_multisheet'
-        dfs = self.get_exceldf(basename, sheetname=None)
+        dfs = self.get_exceldf(basename, sheet_name=None)
         expected_keys = ['Alpha', 'Beta', 'Charlie']
         tm.assert_contains_all(expected_keys, dfs.keys())
 
     def test_reading_multiple_specific_sheets(self):
-        # Test reading specific sheetnames by specifying a mixed list
+        # Test reading specific sheet_names by specifying a mixed list
         # of integers and strings, and confirm that duplicated sheet
         # references (positions/names) are removed properly.
         # Ensure a dict is returned
@@ -377,17 +377,17 @@ class ReadingTestsBase(SharedItems):
         basename = 'test_multisheet'
         # Explicitly request duplicates. Only the set should be returned.
         expected_keys = [2, 'Charlie', 'Charlie']
-        dfs = self.get_exceldf(basename, sheetname=expected_keys)
+        dfs = self.get_exceldf(basename, sheet_name=expected_keys)
         expected_keys = list(set(expected_keys))
         tm.assert_contains_all(expected_keys, dfs.keys())
         assert len(expected_keys) == len(dfs.keys())
 
     def test_reading_all_sheets_with_blank(self):
-        # Test reading all sheetnames by setting sheetname to None,
+        # Test reading all sheet_names by setting sheet_name to None,
         # In the case where some sheets are blank.
         # Issue #11711
         basename = 'blank_with_header'
-        dfs = self.get_exceldf(basename, sheetname=None)
+        dfs = self.get_exceldf(basename, sheet_name=None)
         expected_keys = ['Sheet1', 'Sheet2', 'Sheet3']
         tm.assert_contains_all(expected_keys, dfs.keys())
 
@@ -488,7 +488,7 @@ class XlrdTests(ReadingTestsBase):
                 result = read_excel(xl, "SheetA")
                 tm.assert_frame_equal(df, result)
 
-            result = read_excel(book, sheetname="SheetA", engine="xlrd")
+            result = read_excel(book, sheet_name="SheetA", engine="xlrd")
             tm.assert_frame_equal(df, result)
 
     @tm.network
@@ -546,9 +546,9 @@ class XlrdTests(ReadingTestsBase):
         _skip_if_no_xlwt()
         _skip_if_no_openpyxl()
 
-        def tdf(sheetname):
+        def tdf(sheet_name):
             d, i = [11, 22, 33], [1, 2, 3]
-            return DataFrame(d, i, columns=[sheetname])
+            return DataFrame(d, i, columns=[sheet_name])
 
         sheets = ['AAA', 'BBB', 'CCC']
 
@@ -557,9 +557,9 @@ class XlrdTests(ReadingTestsBase):
 
         with ensure_clean(self.ext) as pth:
             with ExcelWriter(pth) as ew:
-                for sheetname, df in iteritems(dfs):
-                    df.to_excel(ew, sheetname)
-            dfs_returned = read_excel(pth, sheetname=sheets)
+                for sheet_name, df in iteritems(dfs):
+                    df.to_excel(ew, sheet_name)
+            dfs_returned = read_excel(pth, sheet_name=sheets)
             for s in sheets:
                 tm.assert_frame_equal(dfs[s], dfs_returned[s])
 
