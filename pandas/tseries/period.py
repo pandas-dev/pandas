@@ -8,13 +8,10 @@ from pandas.tseries.base import DatelikeOps, DatetimeIndexOpsMixin
 from pandas.tseries.tools import parse_time_string
 import pandas.tseries.offsets as offsets
 
-from pandas._period import Period
 import pandas._period as period
-from pandas._period import (
-    get_period_field_arr,
-    _validate_end_alias,
-    _quarter_to_myear,
-)
+from pandas._period import (Period, IncompatibleFrequency,
+                            get_period_field_arr, _validate_end_alias,
+                            _quarter_to_myear)
 
 import pandas.core.common as com
 from pandas.core.common import (isnull, _INT64_DTYPE, _maybe_box,
@@ -69,13 +66,13 @@ def _period_index_cmp(opname, nat_result=False):
             other_base, _ = _gfc(other.freq)
             if other.freq != self.freq:
                 msg = _DIFFERENT_FREQ_INDEX.format(self.freqstr, other.freqstr)
-                raise ValueError(msg)
+                raise IncompatibleFrequency(msg)
 
             result = func(other.ordinal)
         elif isinstance(other, PeriodIndex):
             if other.freq != self.freq:
                 msg = _DIFFERENT_FREQ_INDEX.format(self.freqstr, other.freqstr)
-                raise ValueError(msg)
+                raise IncompatibleFrequency(msg)
 
             result = getattr(self.values, opname)(other.values)
 
@@ -392,7 +389,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
         if isinstance(key, Period):
             if key.freq != self.freq:
                 msg = _DIFFERENT_FREQ_INDEX.format(self.freqstr, key.freqstr)
-                raise ValueError(msg)
+                raise IncompatibleFrequency(msg)
             key = key.ordinal
         elif isinstance(key, compat.string_types):
             key = Period(key, freq=self.freq).ordinal
@@ -573,6 +570,8 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
             base = frequencies.get_base_alias(freqstr)
             if base == self.freq.rule_code:
                 return other.n
+            msg = _DIFFERENT_FREQ_INDEX.format(self.freqstr, other.freqstr)
+            raise IncompatibleFrequency(msg)
         elif isinstance(other, np.ndarray):
             if com.is_integer_dtype(other):
                 return other
@@ -583,8 +582,9 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
                     offset_nanos = tslib._delta_to_nanoseconds(offset)
                     if (nanos % offset_nanos).all() == 0:
                         return nanos // offset_nanos
+        # raise when input doesn't have freq
         msg = "Input has different freq from PeriodIndex(freq={0})"
-        raise ValueError(msg.format(self.freqstr))
+        raise IncompatibleFrequency(msg.format(self.freqstr))
 
     def _add_delta(self, other):
         ordinal_delta = self._maybe_convert_timedelta(other)
@@ -663,8 +663,8 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
 
     def get_indexer(self, target, method=None, limit=None, tolerance=None):
         if hasattr(target, 'freq') and target.freq != self.freq:
-            raise ValueError('target and index have different freq: '
-                             '(%s, %s)' % (target.freq, self.freq))
+            msg = _DIFFERENT_FREQ_INDEX.format(self.freqstr, target.freqstr)
+            raise IncompatibleFrequency(msg)
         return Index.get_indexer(self, target, method, limit, tolerance)
 
     def get_loc(self, key, method=None, tolerance=None):
@@ -801,7 +801,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
 
         if self.freq != other.freq:
             msg = _DIFFERENT_FREQ_INDEX.format(self.freqstr, other.freqstr)
-            raise ValueError(msg)
+            raise IncompatibleFrequency(msg)
 
     def _wrap_union_result(self, other, result):
         name = self.name if self.name == other.name else None

@@ -2886,12 +2886,16 @@ class TestPeriodIndex(tm.TestCase):
         # raise if different frequencies
         index = period_range('1/1/2000', '1/20/2000', freq='D')
         index2 = period_range('1/1/2000', '1/20/2000', freq='W-WED')
-        self.assertRaises(ValueError, index.union, index2)
+        with tm.assertRaises(period.IncompatibleFrequency):
+            index.union(index2)
 
-        self.assertRaises(ValueError, index.join, index.to_timestamp())
+        msg = 'can only call with other PeriodIndex-ed objects'
+        with tm.assertRaisesRegexp(ValueError, msg):
+            index.join(index.to_timestamp())
 
         index3 = period_range('1/1/2000', '1/20/2000', freq='2D')
-        self.assertRaises(ValueError, index.join, index3)
+        with tm.assertRaises(period.IncompatibleFrequency):
+            index.join(index3)
 
     def test_union_dataframe_index(self):
         rng1 = pd.period_range('1/1/1999', '1/1/2012', freq='M')
@@ -2919,10 +2923,12 @@ class TestPeriodIndex(tm.TestCase):
         # raise if different frequencies
         index = period_range('1/1/2000', '1/20/2000', freq='D')
         index2 = period_range('1/1/2000', '1/20/2000', freq='W-WED')
-        self.assertRaises(ValueError, index.intersection, index2)
+        with tm.assertRaises(period.IncompatibleFrequency):
+            index.intersection(index2)
 
         index3 = period_range('1/1/2000', '1/20/2000', freq='2D')
-        self.assertRaises(ValueError, index.intersection, index3)
+        with tm.assertRaises(period.IncompatibleFrequency):
+            index.intersection(index3)
 
     def test_intersection_cases(self):
         base = period_range('6/1/2000', '6/30/2000', freq='D', name='idx')
@@ -3213,11 +3219,11 @@ class TestPeriodIndex(tm.TestCase):
             self.assertEqual(pidx.searchsorted(p2), 3)
 
             msg = "Input has different freq=H from PeriodIndex"
-            with self.assertRaisesRegexp(ValueError, msg):
+            with self.assertRaisesRegexp(period.IncompatibleFrequency, msg):
                 pidx.searchsorted(pd.Period('2014-01-01', freq='H'))
 
             msg = "Input has different freq=5D from PeriodIndex"
-            with self.assertRaisesRegexp(ValueError, msg):
+            with self.assertRaisesRegexp(period.IncompatibleFrequency, msg):
                 pidx.searchsorted(pd.Period('2014-01-01', freq='5D'))
 
     def test_round_trip(self):
@@ -3535,7 +3541,7 @@ class TestMethods(tm.TestCase):
 
         # incompatible freq
         msg = "Input has different freq from PeriodIndex\(freq=M\)"
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assertRaisesRegexp(period.IncompatibleFrequency, msg):
             idx + np.array([np.timedelta64(1, 'D')] * 4)
 
         idx = PeriodIndex(['2011-01-01 09:00', '2011-01-01 10:00', 'NaT',
@@ -3551,7 +3557,7 @@ class TestMethods(tm.TestCase):
         self.assert_index_equal(result, exp)
 
         msg = "Input has different freq from PeriodIndex\(freq=H\)"
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assertRaisesRegexp(period.IncompatibleFrequency, msg):
             idx + np.array([np.timedelta64(1, 's')] * 4)
 
         idx = PeriodIndex(['2011-01-01 09:00:00', '2011-01-01 10:00:00', 'NaT',
@@ -3754,7 +3760,7 @@ class TestComparisons(tm.TestCase):
 
             # different base freq
             msg = "Input has different freq=A-DEC from PeriodIndex"
-            with tm.assertRaisesRegexp(ValueError, msg):
+            with tm.assertRaisesRegexp(period.IncompatibleFrequency, msg):
                 base <= Period('2011', freq='A')
 
             with tm.assertRaisesRegexp(ValueError, msg):
@@ -3763,10 +3769,10 @@ class TestComparisons(tm.TestCase):
 
             # different mult
             msg = "Input has different freq=4M from PeriodIndex"
-            with tm.assertRaisesRegexp(ValueError, msg):
+            with tm.assertRaisesRegexp(period.IncompatibleFrequency, msg):
                 base <= Period('2011', freq='4M')
 
-            with tm.assertRaisesRegexp(ValueError, msg):
+            with tm.assertRaisesRegexp(period.IncompatibleFrequency, msg):
                 idx = PeriodIndex(['2011', '2012', '2013', '2014'], freq='4M')
                 base <= idx
 
@@ -3812,9 +3818,9 @@ class TestComparisons(tm.TestCase):
             diff = PeriodIndex(
                 ['2011-02', '2011-01', '2011-04', 'NaT'], freq='4M')
             msg = "Input has different freq=4M from PeriodIndex"
-            with tm.assertRaisesRegexp(ValueError, msg):
+            with tm.assertRaisesRegexp(period.IncompatibleFrequency, msg):
                 idx1 > diff
-            with tm.assertRaisesRegexp(ValueError, msg):
+            with tm.assertRaisesRegexp(period.IncompatibleFrequency, msg):
                 idx1 == diff
 
 

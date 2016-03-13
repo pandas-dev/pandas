@@ -44,7 +44,7 @@ Enhancements
 API changes
 ~~~~~~~~~~~
 
-
+- ``Period`` and ``PeriodIndex`` now raises ``IncompatibleFrequency`` error which inherits ``ValueError`` rather than raw ``ValueError`` (:issue:`12615`)
 
 
 
@@ -130,5 +130,6 @@ Bug Fixes
 
 
 
-
 - Bug in ``pivot_table`` when ``margins=True`` and ``dropna=True`` where nulls still contributed to margin count (:issue:`12577`)
+- Bug in printing data which contains ``Period`` with different ``freq`` raises ``ValueError`` (:issue:`12615`)
+

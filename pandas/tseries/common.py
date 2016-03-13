@@ -6,6 +6,7 @@ import numpy as np
 from pandas.core.base import PandasDelegate, NoNewAttributesMixin
 from pandas.core import common as com
 from pandas.tseries.index import DatetimeIndex
+from pandas._period import IncompatibleFrequency    # flake8: noqa
 from pandas.tseries.period import PeriodIndex
 from pandas.tseries.tdi import TimedeltaIndex
 from pandas import tslib
