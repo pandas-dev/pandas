@@ -81,7 +81,7 @@ class NDFrame(PandasObject):
     copy : boolean, default False
     """
     _internal_names = ['_data', '_cacher', '_item_cache', '_cache', 'is_copy',
-                       '_subtyp', '_index', '_default_kind',
+                       '_subtyp', '_name', '_index', '_default_kind',
                        '_default_fill_value', '_metadata', '__array_struct__',
                        '__array_interface__']
     _internal_names_set = set(_internal_names)

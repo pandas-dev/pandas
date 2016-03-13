@@ -1,6 +1,8 @@
 # coding=utf-8
 # pylint: disable-msg=E1101,W0612
 
+from datetime import datetime
+
 import numpy as np
 import pandas as pd
 
@@ -64,7 +66,7 @@ class TestSeriesAlterAxes(TestData, tm.TestCase):
 
     def test_rename_set_name(self):
         s = Series(range(4), index=list('abcd'))
-        for name in ['foo', ['foo'], ('foo',)]:
+        for name in ['foo', 123, 123., datetime(2001, 11, 11), ('foo',)]:
             result = s.rename(name)
             self.assertEqual(result.name, name)
             self.assert_numpy_array_equal(result.index.values, s.index.values)
@@ -72,7 +74,7 @@ class TestSeriesAlterAxes(TestData, tm.TestCase):
 
     def test_rename_set_name_inplace(self):
         s = Series(range(3), index=list('abc'))
-        for name in ['foo', ['foo'], ('foo',)]:
+        for name in ['foo', 123, 123., datetime(2001, 11, 11), ('foo',)]:
             s.rename(name, inplace=True)
             self.assertEqual(s.name, name)
             self.assert_numpy_array_equal(s.index.values,
