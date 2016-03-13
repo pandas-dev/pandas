@@ -275,6 +275,19 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
     99   2000-04-09
     Length: 100, dtype: datetime64[ns]
 
+    Infer the format from the first entry
+
+    >>> pd.to_datetime(df.month + '/' +  df.day + '/' + df.year,
+                       infer_datetime_format=True)
+    0    2000-01-01
+    1    2000-01-02
+    ...
+    98   2000-04-08
+    99   2000-04-09
+
+    This gives the same results as omitting the `infer_datetime_format=True`,
+    but is much faster.
+
     Date that does not meet timestamp limitations:
 
     >>> pd.to_datetime('13000101', format='%Y%m%d')
