@@ -2697,3 +2697,24 @@ class TestMomentsConsistency(Base):
         n = 20000
         Series(np.random.randn(n)).rolling(window=2, center=False).median()
         Series(np.random.randn(n)).rolling(window=2, center=False).median()
+
+    def test_rolling_min_max_numeric_types(self):
+        # GH12373
+        types_test = [np.dtype("f{}".format(width)) for width in [4, 8]]
+        types_test.extend([np.dtype("{}{}".format(sign, width))
+                           for width in [1, 2, 4, 8] for sign in "ui"])
+        for data_type in types_test:
+            # Just testing that these don't throw exceptions and that
+            # the types match. Other tests will cover quantitative
+            # correctness
+            for convert_to_float in [True]:
+                if not convert_to_float:
+                    expected_type = data_type
+                else:
+                    expected_type = np.dtype(float)
+                result = (DataFrame(np.arange(20, dtype=data_type))
+                          .rolling(window=5).max(as_float=convert_to_float))
+                self.assertEqual(result.dtypes[0], expected_type)
+                result = (DataFrame(np.arange(20, dtype=data_type))
+                          .rolling(window=5).min(as_float=convert_to_float))
+                self.assertEqual(result.dtypes[0], expected_type)
