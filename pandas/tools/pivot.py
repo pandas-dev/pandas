@@ -267,7 +267,7 @@ def _generate_marginal_results(table, data, values, rows, cols, aggfunc,
             return (key, margins_name) + ('',) * (len(cols) - 1)
 
         if len(rows) > 0:
-            margin = data[rows + values].groupby(rows).agg(aggfunc)
+            margin = data[data[cols].notnull().any(axis=1)][rows + values].groupby(rows).agg(aggfunc)
             cat_axis = 1
 
             for key, piece in table.groupby(level=0, axis=cat_axis):
@@ -304,7 +304,7 @@ def _generate_marginal_results(table, data, values, rows, cols, aggfunc,
         margin_keys = table.columns
 
     if len(cols) > 0:
-        row_margin = data[cols + values].groupby(cols).agg(aggfunc)
+        row_margin = data[data[rows].notnull().any(axis=1)][cols + values].groupby(cols).agg(aggfunc)
         row_margin = row_margin.stack()
 
         # slight hack
