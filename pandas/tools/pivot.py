@@ -150,14 +150,10 @@ def pivot_table(data, values=None, index=None, columns=None, aggfunc='mean',
 
     if margins:
         if dropna:
-            data_dropna = data[data.notnull().all(axis = 1)]
-            table = _add_margins(table, data_dropna, values, rows=index,
-                                 cols=columns, aggfunc=aggfunc,
-                                 margins_name=margins_name)
-        else:
-            table = _add_margins(table, data, values, rows=index,
-                                 cols=columns, aggfunc=aggfunc,
-                                 margins_name=margins_name)
+            data = data[data.notnull().all(axis = 1)]
+        table = _add_margins(table, data, values, rows=index,
+                             cols=columns, aggfunc=aggfunc,
+                             margins_name=margins_name)
 
     # discard the top level
     if values_passed and not values_multi and not table.empty:
