@@ -55,6 +55,13 @@ class TestSeriesAlterAxes(TestData, tm.TestCase):
         renamed = renamer.rename({})
         self.assertEqual(renamed.index.name, renamer.index.name)
 
+    def test_rename_by_series(self):
+        s = Series(range(5), name='foo')
+        renamer = Series({1: 10, 2: 20})
+        result = s.rename(renamer)
+        expected = Series(range(5), index=[0, 10, 20, 3, 4], name='foo')
+        tm.assert_series_equal(result, expected)
+
     def test_rename_set_name(self):
         s = Series(range(4), index=list('abcd'))
         for name in ['foo', ['foo'], ('foo',)]:
