@@ -145,6 +145,9 @@ before_install:
   - pwd
   - uname -a
   - python -V
+# git info & get tags
+  - git --version
+  - git tag
   - ci/before_install_travis.sh
   - export DISPLAY=:99.0
 
