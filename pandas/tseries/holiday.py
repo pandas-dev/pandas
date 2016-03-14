@@ -23,7 +23,7 @@ def next_monday(dt):
 def next_monday_or_tuesday(dt):
     """
     For second holiday of two adjacent ones!
-    1. The first holiday falls on Thursday, the second on Saturday. The one
+    1. The first holiday falls on Friday, the second on Saturday. The one
        on Saturday moves to next Monday
     2. The first holiday falls on Saturday, the second on Sunday. The first one
        moves to next Monday and the second one moves to Tuesday.
