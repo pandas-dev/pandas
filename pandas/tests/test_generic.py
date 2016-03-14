@@ -88,20 +88,52 @@ class Generic(object):
     def test_rename(self):
 
         # single axis
+        idx = list('ABCD')
+        # relabeling values passed into self.rename
+        args = [
+            str.lower,
+            {x: x.lower() for x in idx},
+            Series({x: x.lower() for x in idx}),
+        ]
+
         for axis in self._axes():
-            kwargs = {axis: list('ABCD')}
+            kwargs = {axis: idx}
             obj = self._construct(4, **kwargs)
 
-            # no values passed
-            # self.assertRaises(Exception, o.rename(str.lower))
-
-            # rename a single axis
-            result = obj.rename(**{axis: str.lower})
-            expected = obj.copy()
-            setattr(expected, axis, list('abcd'))
-            self._compare(result, expected)
+            for arg in args:
+                # rename a single axis
+                result = obj.rename(**{axis: arg})
+                expected = obj.copy()
+                setattr(expected, axis, list('abcd'))
+                self._compare(result, expected)
 
         # multiple axes at once
+
+    def test_rename_axis(self):
+        idx = list('ABCD')
+        # relabeling values passed into self.rename
+        args = [
+            str.lower,
+            {x: x.lower() for x in idx},
+            Series({x: x.lower() for x in idx}),
+        ]
+
+        for axis in self._axes():
+            kwargs = {axis: idx}
+            obj = self._construct(4, **kwargs)
+
+            for arg in args:
+                # rename a single axis
+                result = obj.rename_axis(arg, axis=axis)
+                expected = obj.copy()
+                setattr(expected, axis, list('abcd'))
+                self._compare(result, expected)
+            # scalar values
+            for arg in ['foo', None]:
+                result = obj.rename_axis(arg, axis=axis)
+                expected = obj.copy()
+                getattr(expected, axis).name = arg
+                self._compare(result, expected)
 
     def test_get_numeric_data(self):
 

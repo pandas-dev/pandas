@@ -700,12 +700,9 @@ class NDFrame(PandasObject):
         1    2  5
         2    3  6
         """
-        is_scalar_or_list = (
-            (not com.is_sequence(mapper) and not callable(mapper)) or
-            (com.is_list_like(mapper) and not com.is_dict_like(mapper))
-        )
-
-        if is_scalar_or_list:
+        non_mapper = lib.isscalar(mapper) or (com.is_list_like(mapper) and not
+                                              com.is_dict_like(mapper))
+        if non_mapper:
             return self._set_axis_name(mapper, axis=axis)
         else:
             axis = self._get_axis_name(axis)
