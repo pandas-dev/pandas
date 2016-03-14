@@ -474,6 +474,11 @@ class TestDatetimeParsingWrappers(tm.TestCase):
                 good_date_string))
 
     def test_parsers(self):
+
+        # https://github.com/dateutil/dateutil/issues/217
+        import dateutil
+        yearfirst = dateutil.__version__ >= LooseVersion('2.5.0')
+
         cases = {'2011-01-01': datetime.datetime(2011, 1, 1),
                  '2Q2005': datetime.datetime(2005, 4, 1),
                  '2Q05': datetime.datetime(2005, 4, 1),
@@ -527,20 +532,26 @@ class TestDatetimeParsingWrappers(tm.TestCase):
                  }
 
         for date_str, expected in compat.iteritems(cases):
-            result1, _, _ = tools.parse_time_string(date_str)
-            result2 = to_datetime(date_str)
-            result3 = to_datetime([date_str])
-            result4 = to_datetime(np.array([date_str], dtype=object))
-            result5 = Timestamp(date_str)
-            result6 = DatetimeIndex([date_str])[0]
-            result7 = date_range(date_str, freq='S', periods=1)
+            result1, _, _ = tools.parse_time_string(date_str,
+                                                    yearfirst=yearfirst)
+            result2 = to_datetime(date_str, yearfirst=yearfirst)
+            result3 = to_datetime([date_str], yearfirst=yearfirst)
+            result4 = to_datetime(np.array([date_str], dtype=object),
+                                  yearfirst=yearfirst)
+            result6 = DatetimeIndex([date_str], yearfirst=yearfirst)[0]
             self.assertEqual(result1, expected)
             self.assertEqual(result2, expected)
             self.assertEqual(result3, expected)
             self.assertEqual(result4, expected)
-            self.assertEqual(result5, expected)
             self.assertEqual(result6, expected)
-            self.assertEqual(result7, expected)
+
+            # these really need to have yearfist, but we don't support
+            if not yearfirst:
+                result5 = Timestamp(date_str)
+                self.assertEqual(result5, expected)
+                result7 = date_range(date_str, freq='S', periods=1,
+                                     yearfirst=yearfirst)
+                self.assertEqual(result7, expected)
 
         # NaT
         result1, _, _ = tools.parse_time_string('NaT')
