@@ -55,7 +55,7 @@ matrix:
       - NOSE_ARGS="not slow and not network and not disabled"
       - FULL_DEPS=true
       - CLIPBOARD=xsel
-      - LINT=true
+      - COVERAGE=true
     - python: 2.7
       env:
       - JOB_NAME: "27_slow"
@@ -73,7 +73,7 @@ matrix:
       env:
       - JOB_NAME: "27_build_test_conda"
       - JOB_TAG=_BUILD_TEST
-      - NOSE_ARGS="not slow and not disabled --with-coverage"
+      - NOSE_ARGS="not slow and not disabled"
       - FULL_DEPS=true
       - BUILD_TEST=true
     - python: 3.5
@@ -100,7 +100,7 @@ matrix:
         env:
         - JOB_NAME: "27_slow"
         - JOB_TAG=_SLOW
-        - NOSE_ARGS="slow and not network and not disabled --with-coverage"
+        - NOSE_ARGS="slow and not network and not disabled"
         - FULL_DEPS=true
       - python: 3.4
         env:
@@ -155,6 +155,7 @@ install:
   - ci/submit_ccache.sh
 
 before_script:
+  - source activate pandas && pip install codecov
   - ci/install_db.sh
 
 script:
@@ -162,7 +163,9 @@ script:
   - ci/run_build_docs.sh
   - ci/script.sh
   - ci/lint.sh
-# nothing here, or failed tests won't fail travis
+
+after_success:
+  - source activate pandas && codecov
 
 after_script:
   - ci/install_test.sh
