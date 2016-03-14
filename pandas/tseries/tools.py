@@ -1,6 +1,4 @@
 from datetime import datetime, timedelta, time
-import sys
-
 import numpy as np
 
 import pandas.lib as lib
@@ -9,17 +7,6 @@ import pandas.core.common as com
 from pandas.core.common import ABCIndexClass
 import pandas.compat as compat
 from pandas.util.decorators import deprecate_kwarg
-
-try:
-    import dateutil
-    # raise exception if dateutil 2.0 install on 2.x platform
-    if (sys.version_info[0] == 2 and
-            dateutil.__version__ == '2.0'):  # pragma: no cover
-        raise Exception('dateutil 2.0 incompatible with Python 2.x, you must '
-                        'install version 1.5 or 2.1+!')
-except ImportError:  # pragma: no cover
-    print('Please install python-dateutil via easy_install or some method!')
-    raise  # otherwise a 2nd import won't show the message
 
 _DATEUTIL_LEXER_SPLIT = None
 try:
