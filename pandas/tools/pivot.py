@@ -149,9 +149,15 @@ def pivot_table(data, values=None, index=None, columns=None, aggfunc='mean',
         table = table.fillna(value=fill_value, downcast='infer')
 
     if margins:
-        table = _add_margins(table, data, values, rows=index,
-                             cols=columns, aggfunc=aggfunc,
-                             margins_name=margins_name)
+        if dropna:
+            data_dropna = data[data.notnull().all(axis = 1)]
+            table = _add_margins(table, data_dropna, values, rows=index,
+                                 cols=columns, aggfunc=aggfunc,
+                                 margins_name=margins_name)
+        else:
+            table = _add_margins(table, data, values, rows=index,
+                                 cols=columns, aggfunc=aggfunc,
+                                 margins_name=margins_name)
 
     # discard the top level
     if values_passed and not values_multi and not table.empty:
@@ -267,7 +273,7 @@ def _generate_marginal_results(table, data, values, rows, cols, aggfunc,
             return (key, margins_name) + ('',) * (len(cols) - 1)
 
         if len(rows) > 0:
-            margin = data[data[cols].notnull().any(axis=1)][rows + values].groupby(rows).agg(aggfunc)
+            margin = data[rows + values].groupby(rows).agg(aggfunc)
             cat_axis = 1
 
             for key, piece in table.groupby(level=0, axis=cat_axis):
@@ -304,7 +310,7 @@ def _generate_marginal_results(table, data, values, rows, cols, aggfunc,
         margin_keys = table.columns
 
     if len(cols) > 0:
-        row_margin = data[data[rows].notnull().any(axis=1)][cols + values].groupby(cols).agg(aggfunc)
+        row_margin = data[cols + values].groupby(cols).agg(aggfunc)
         row_margin = row_margin.stack()
 
         # slight hack
