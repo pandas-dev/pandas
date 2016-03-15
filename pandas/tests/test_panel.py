@@ -1528,6 +1528,12 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing, SafeForLongAndSparse,
         p.iloc[0:2, 0:2, 0:2] = np.nan
         self.assertRaises(NotImplementedError, lambda: p.fillna(999, limit=1))
 
+    def test_fillna_inplace(self):
+        panel = self.panel.copy()
+        panel.fillna(method='backfill', inplace=True)
+        assert_frame_equal(panel['ItemA'],
+                           self.panel['ItemA'].fillna(method='backfill'))
+
     def test_ffill_bfill(self):
         assert_panel_equal(self.panel.ffill(),
                            self.panel.fillna(method='ffill'))
