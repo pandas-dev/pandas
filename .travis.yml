@@ -36,26 +36,26 @@ matrix:
       - LOCALE_OVERRIDE="zh_CN.GB18030"
       - FULL_DEPS=true
       - JOB_TAG=_LOCALE
-      - BUILD_TYPE=conda
     - python: 2.7
       env:
       - JOB_NAME: "27_nslow"
       - NOSE_ARGS="not slow and not disabled"
       - FULL_DEPS=true
       - CLIPBOARD_GUI=gtk2
+      - LINT=true
     - python: 3.4
       env:
       - JOB_NAME: "34_nslow"
       - NOSE_ARGS="not slow and not disabled"
       - FULL_DEPS=true
       - CLIPBOARD=xsel
-      - BUILD_TYPE=conda
     - python: 3.5
       env:
       - JOB_NAME: "35_nslow"
       - NOSE_ARGS="not slow and not network and not disabled"
       - FULL_DEPS=true
       - CLIPBOARD=xsel
+      - LINT=true
     - python: 2.7
       env:
       - JOB_NAME: "27_slow"
@@ -73,7 +73,7 @@ matrix:
       env:
       - JOB_NAME: "27_build_test_conda"
       - JOB_TAG=_BUILD_TEST
-      - NOSE_ARGS="not slow and not disabled"
+      - NOSE_ARGS="not slow and not disabled --with-coverage"
       - FULL_DEPS=true
       - BUILD_TEST=true
     - python: 3.5
@@ -87,14 +87,12 @@ matrix:
       - JOB_NAME: "27_nslow_nnet_COMPAT"
       - NOSE_ARGS="not slow and not network and not disabled"
       - LOCALE_OVERRIDE="it_IT.UTF-8"
-      - BUILD_TYPE=conda
       - INSTALL_TEST=true
       - JOB_TAG=_COMPAT
     - python: 2.7
       env:
       - JOB_NAME: "doc_build"
       - FULL_DEPS=true
-      - BUILD_TYPE=conda
       - DOC_BUILD=true # if rst files were changed, build docs in parallel with tests
       - JOB_TAG=_DOC_BUILD
     allow_failures:
@@ -102,7 +100,7 @@ matrix:
         env:
         - JOB_NAME: "27_slow"
         - JOB_TAG=_SLOW
-        - NOSE_ARGS="slow and not network and not disabled"
+        - NOSE_ARGS="slow and not network and not disabled --with-coverage"
         - FULL_DEPS=true
       - python: 3.4
         env:
@@ -129,14 +127,12 @@ matrix:
         - JOB_NAME: "27_nslow_nnet_COMPAT"
         - NOSE_ARGS="not slow and not network and not disabled"
         - LOCALE_OVERRIDE="it_IT.UTF-8"
-        - BUILD_TYPE=conda
         - INSTALL_TEST=true
         - JOB_TAG=_COMPAT
       - python: 2.7
         env:
         - JOB_NAME: "doc_build"
         - FULL_DEPS=true
-        - BUILD_TYPE=conda
         - DOC_BUILD=true
         - JOB_TAG=_DOC_BUILD
 
