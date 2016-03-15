@@ -28,7 +28,8 @@ from pandas.core.common import (isnull, array_equivalent,
 from pandas.core.config import get_option
 
 from pandas.indexes.base import (Index, _ensure_index, _ensure_frozen,
-                                 _get_na_value, InvalidIndexError)
+                                 _get_na_value, InvalidIndexError,
+                                 _index_shared_docs)
 import pandas.indexes.base as ibase
 
 
@@ -381,6 +382,7 @@ class MultiIndex(Index):
     def _shallow_copy_with_infer(self, values=None, **kwargs):
         return self._shallow_copy(values, **kwargs)
 
+    @Appender(_index_shared_docs['_shallow_copy'])
     def _shallow_copy(self, values=None, **kwargs):
         if values is not None:
             if 'name' in kwargs:
