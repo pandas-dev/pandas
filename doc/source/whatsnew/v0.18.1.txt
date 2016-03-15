@@ -89,3 +89,5 @@ Bug Fixes
 ~~~~~~~~~
 
 - Bug in ``value_counts`` when ``normalize=True`` and ``dropna=True`` where nulls still contributed to the normalized count (:issue:`12558`)
+
+- Bug in ``Panel.fillna`` was ignoring the ``inplace=True`` option. (:issue:`12624`)

@@ -3122,7 +3122,8 @@ class NDFrame(PandasObject):
             elif self.ndim == 3:
 
                 # fill in 2d chunks
-                result = dict([(col, s.fillna(method=method, value=value))
+                result = dict([(col, s.fillna(method=method, value=value,
+                                              inplace=inplace))
                                for col, s in self.iteritems()])
                 return self._constructor.from_dict(result).__finalize__(self)
 
