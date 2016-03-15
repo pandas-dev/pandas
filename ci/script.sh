@@ -19,6 +19,9 @@ fi
 
 if [ "$BUILD_TEST" ]; then
     echo "We are not running nosetests as this is simply a build test."
+elif [ "$COVERAGE" ]; then
+    echo nosetests --exe -A "$NOSE_ARGS" pandas --with-coverage --with-xunit --xunit-file=/tmp/nosetests.xml
+    nosetests --exe -A "$NOSE_ARGS" pandas --with-coverage --cover-package=pandas --cover-tests --with-xunit --xunit-file=/tmp/nosetests.xml
 else
     echo nosetests --exe -A "$NOSE_ARGS" pandas --doctest-tests --with-xunit --xunit-file=/tmp/nosetests.xml
     nosetests --exe -A "$NOSE_ARGS" pandas --doctest-tests --with-xunit --xunit-file=/tmp/nosetests.xml
