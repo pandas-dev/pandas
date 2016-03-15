@@ -180,6 +180,50 @@ class TestCategoricalIndex(tm.TestCase):
                 'that are in the categories'):
             df.loc[['a', 'x']]
 
+    def test_ix_categorical_index(self):
+        df = pd.DataFrame(np.random.randn(3, 3),
+                          index=list('ABC'), columns=list('XYZ'))
+        cdf = df.copy()
+        cdf.index = pd.CategoricalIndex(df.index)
+        cdf.columns = pd.CategoricalIndex(df.columns)
+
+        expect = pd.Series(df.ix['A', :], index=cdf.columns, name='A')
+        assert_series_equal(cdf.ix['A', :], expect)
+
+        expect = pd.Series(df.ix[:, 'X'], index=cdf.index, name='X')
+        assert_series_equal(cdf.ix[:, 'X'], expect)
+
+        expect = pd.DataFrame(df.ix[['A', 'B'], :], columns=cdf.columns,
+                              index=pd.CategoricalIndex(list('AB')))
+        assert_frame_equal(cdf.ix[['A', 'B'], :], expect)
+
+        expect = pd.DataFrame(df.ix[:, ['X', 'Y']], index=cdf.index,
+                              columns=pd.CategoricalIndex(list('XY')))
+        assert_frame_equal(cdf.ix[:, ['X', 'Y']], expect)
+
+        # non-unique
+        df = pd.DataFrame(np.random.randn(3, 3),
+                          index=list('ABA'), columns=list('XYX'))
+        cdf = df.copy()
+        cdf.index = pd.CategoricalIndex(df.index)
+        cdf.columns = pd.CategoricalIndex(df.columns)
+
+        expect = pd.DataFrame(df.ix['A', :], columns=cdf.columns,
+                              index=pd.CategoricalIndex(list('AA')))
+        assert_frame_equal(cdf.ix['A', :], expect)
+
+        expect = pd.DataFrame(df.ix[:, 'X'], index=cdf.index,
+                              columns=pd.CategoricalIndex(list('XX')))
+        assert_frame_equal(cdf.ix[:, 'X'], expect)
+
+        expect = pd.DataFrame(df.ix[['A', 'B'], :], columns=cdf.columns,
+                              index=pd.CategoricalIndex(list('AAB')))
+        assert_frame_equal(cdf.ix[['A', 'B'], :], expect)
+
+        expect = pd.DataFrame(df.ix[:, ['X', 'Y']], index=cdf.index,
+                              columns=pd.CategoricalIndex(list('XXY')))
+        assert_frame_equal(cdf.ix[:, ['X', 'Y']], expect)
+
     def test_read_only_source(self):
         # GH 10043
         rw_array = np.eye(10)
