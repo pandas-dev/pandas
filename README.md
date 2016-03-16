@@ -37,6 +37,10 @@
   </td>
 </tr>
 <tr>
+  <td>Coverage</td>
+  <td><img src="https://codecov.io/github/pydata/pandas/coverage.svg?branch=master" alt="coverage" /></td>
+</tr>
+<tr>
   <td>Conda</td>
   <td>
     <a href="http://pandas.pydata.org">

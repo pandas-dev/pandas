@@ -10,6 +10,7 @@ import sys
 import re
 import nose
 import platform
+from distutils.version import LooseVersion
 
 from multiprocessing.pool import ThreadPool
 
@@ -1048,12 +1049,20 @@ c,4,5
                         'C': [2, 4, 5]}, idx)
         tm.assert_frame_equal(rs, xp)
 
-    def test_yy_format(self):
+    def test_yy_format_with_yearfirst(self):
         data = """date,time,B,C
 090131,0010,1,2
 090228,1020,3,4
 090331,0830,5,6
 """
+
+        # https://github.com/dateutil/dateutil/issues/217
+        import dateutil
+        if dateutil.__version__ >= LooseVersion('2.5.0'):
+            raise nose.SkipTest("testing yearfirst=True not-support"
+                                "on datetutil < 2.5.0 this works but"
+                                "is wrong")
+
         rs = self.read_csv(StringIO(data), index_col=0,
                            parse_dates=[['date', 'time']])
         idx = DatetimeIndex([datetime(2009, 1, 31, 0, 10, 0),

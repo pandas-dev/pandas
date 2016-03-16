@@ -1,6 +1,4 @@
 from datetime import datetime, timedelta, time
-import sys
-
 import numpy as np
 
 import pandas.lib as lib
@@ -9,17 +7,6 @@ import pandas.core.common as com
 from pandas.core.common import ABCIndexClass
 import pandas.compat as compat
 from pandas.util.decorators import deprecate_kwarg
-
-try:
-    import dateutil
-    # raise exception if dateutil 2.0 install on 2.x platform
-    if (sys.version_info[0] == 2 and
-            dateutil.__version__ == '2.0'):  # pragma: no cover
-        raise Exception('dateutil 2.0 incompatible with Python 2.x, you must '
-                        'install version 1.5 or 2.1+!')
-except ImportError:  # pragma: no cover
-    print('Please install python-dateutil via easy_install or some method!')
-    raise  # otherwise a 2nd import won't show the message
 
 _DATEUTIL_LEXER_SPLIT = None
 try:
@@ -231,8 +218,10 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
     unit : unit of the arg (D,s,ms,us,ns) denote the unit in epoch
         (e.g. a unix timestamp), which is an integer/float number.
     infer_datetime_format : boolean, default False
-        If no `format` is given, try to infer the format based on the first
-        datetime string. Provides a large speed-up in many cases.
+        If True and no `format` is given, attempt to infer the format of the
+        datetime strings, and if it can be inferred, switch to a faster
+        method of parsing them. In some cases this can increase the parsing
+        speed by ~5-10x.
 
     Returns
     -------
@@ -264,14 +253,27 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
 
     Or from strings
 
-    >>> df = df.astype(str)
-    >>> pd.to_datetime(df.day + df.month + df.year, format="%d%m%Y")
+    >>> dfs = df.astype(str)
+    >>> pd.to_datetime(dfs.day + dfs.month + dfs.year, format="%d%m%Y")
     0    2000-01-01
     1    2000-01-02
     ...
     98   2000-04-08
     99   2000-04-09
     Length: 100, dtype: datetime64[ns]
+
+    Infer the format from the first entry
+
+    >>> pd.to_datetime(dfs.month + '/' +  dfs.day + '/' + dfs.year,
+                       infer_datetime_format=True)
+    0    2000-01-01
+    1    2000-01-02
+    ...
+    98   2000-04-08
+    99   2000-04-09
+
+    This gives the same results as omitting the `infer_datetime_format=True`,
+    but is much faster.
 
     Date that does not meet timestamp limitations:
 

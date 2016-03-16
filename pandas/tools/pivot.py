@@ -121,6 +121,7 @@ def pivot_table(data, values=None, index=None, columns=None, aggfunc='mean',
     agged = grouped.agg(aggfunc)
 
     table = agged
+    print data
     if table.index.nlevels > 1:
         to_unstack = [agged.index.names[i] or i
                       for i in range(len(index), len(keys))]
@@ -467,3 +468,12 @@ def _get_names(arrs, names, prefix='row'):
             names = list(names)
 
     return names
+
+a = np.array(['foo', 'foo', 'foo', 'bar',
+              'bar', 'foo', 'foo'], dtype=object)
+b = np.array(['one', 'one', 'two', 'one',
+              'two', np.nan, 'two'], dtype=object)
+c = np.array(['dull', 'dull', 'dull', 'dull',
+              'dull', 'shiny', 'shiny'], dtype=object)
+
+print crosstab(a, [b, c], margins=True, dropna=False)

@@ -936,7 +936,7 @@ class TestCrosstab(tm.TestCase):
 
         tm.assert_frame_equal(actual, expected)
 
-    def test_margin_ignore_dropna_bug(self):
+    def test_margin_dropna(self):
         # GH 12577
         # pivot_table counts null into margin ('All')
         # when margins=true and dropna=true
@@ -965,7 +965,6 @@ class TestCrosstab(tm.TestCase):
         expected.columns = Index([3, 4, 'All'], name='b')
         tm.assert_frame_equal(actual, expected)
 
-    def test_marginsTrue_dropnaFalse_KeyError_bug(self):
         # GH 12642
         # _add_margins raises KeyError: Level None not found
         # when margins=True and dropna=False

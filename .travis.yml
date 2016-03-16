@@ -36,26 +36,26 @@ matrix:
       - LOCALE_OVERRIDE="zh_CN.GB18030"
       - FULL_DEPS=true
       - JOB_TAG=_LOCALE
-      - BUILD_TYPE=conda
     - python: 2.7
       env:
       - JOB_NAME: "27_nslow"
       - NOSE_ARGS="not slow and not disabled"
       - FULL_DEPS=true
       - CLIPBOARD_GUI=gtk2
+      - LINT=true
     - python: 3.4
       env:
       - JOB_NAME: "34_nslow"
       - NOSE_ARGS="not slow and not disabled"
       - FULL_DEPS=true
       - CLIPBOARD=xsel
-      - BUILD_TYPE=conda
     - python: 3.5
       env:
       - JOB_NAME: "35_nslow"
       - NOSE_ARGS="not slow and not network and not disabled"
       - FULL_DEPS=true
       - CLIPBOARD=xsel
+      - COVERAGE=true
     - python: 2.7
       env:
       - JOB_NAME: "27_slow"
@@ -87,14 +87,12 @@ matrix:
       - JOB_NAME: "27_nslow_nnet_COMPAT"
       - NOSE_ARGS="not slow and not network and not disabled"
       - LOCALE_OVERRIDE="it_IT.UTF-8"
-      - BUILD_TYPE=conda
       - INSTALL_TEST=true
       - JOB_TAG=_COMPAT
     - python: 2.7
       env:
       - JOB_NAME: "doc_build"
       - FULL_DEPS=true
-      - BUILD_TYPE=conda
       - DOC_BUILD=true # if rst files were changed, build docs in parallel with tests
       - JOB_TAG=_DOC_BUILD
     allow_failures:
@@ -129,14 +127,12 @@ matrix:
         - JOB_NAME: "27_nslow_nnet_COMPAT"
         - NOSE_ARGS="not slow and not network and not disabled"
         - LOCALE_OVERRIDE="it_IT.UTF-8"
-        - BUILD_TYPE=conda
         - INSTALL_TEST=true
         - JOB_TAG=_COMPAT
       - python: 2.7
         env:
         - JOB_NAME: "doc_build"
         - FULL_DEPS=true
-        - BUILD_TYPE=conda
         - DOC_BUILD=true
         - JOB_TAG=_DOC_BUILD
 
@@ -149,6 +145,9 @@ before_install:
   - pwd
   - uname -a
   - python -V
+# git info & get tags
+  - git --version
+  - git tag
   - ci/before_install_travis.sh
   - export DISPLAY=:99.0
 
@@ -159,6 +158,7 @@ install:
   - ci/submit_ccache.sh
 
 before_script:
+  - source activate pandas && pip install codecov
   - ci/install_db.sh
 
 script:
@@ -166,7 +166,9 @@ script:
   - ci/run_build_docs.sh
   - ci/script.sh
   - ci/lint.sh
-# nothing here, or failed tests won't fail travis
+
+after_success:
+  - source activate pandas && codecov
 
 after_script:
   - ci/install_test.sh
