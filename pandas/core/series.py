@@ -197,7 +197,8 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
                     data = data.reindex(index, copy=copy)
             elif isinstance(data, Categorical):
                 # Allow dtype=category only, otherwise error
-                if (dtype is not None) and (not isinstance(dtype, CategoricalDtype)):
+                if ((dtype is not None) and
+                        not isinstance(dtype, CategoricalDtype)):
                     raise ValueError("cannot specify a dtype with a "
                                      "Categorical unless "
                                      "dtype='category'")
