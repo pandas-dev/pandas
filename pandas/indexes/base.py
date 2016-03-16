@@ -1329,23 +1329,59 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
 
         return indexes
 
-    def take(self, indices, axis=0, allow_fill=True, fill_value=None):
-        """
-        return a new Index of the values selected by the indexer
+    _index_shared_docs['take'] = """
+        return a new Index of the values selected by the indices
 
         For internal compatibility with numpy arrays.
 
-        # filling must always be None/nan here
-        # but is passed thru internally
+        Parameters
+        ----------
+        indices : list
+            Indices to be taken
+        axis : int, optional
+            The axis over which to select values, always 0.
+        allow_fill : bool, default True
+        fill_value : bool, default None
+            If allow_fill=True and fill_value is not None, indices specified by
+            -1 is regarded as NA. If Index doesn't hold NA, raise ValueError
 
         See also
         --------
         numpy.ndarray.take
         """
-
+    @Appender(_index_shared_docs['take'])
+    def take(self, indices, axis=0, allow_fill=True, fill_value=None):
         indices = com._ensure_platform_int(indices)
-        taken = self.values.take(indices)
+        if self._can_hold_na:
+            taken = self._assert_take_fillable(self.values, indices,
+                                               allow_fill=allow_fill,
+                                               fill_value=fill_value,
+                                               na_value=self._na_value)
+        else:
+            if allow_fill and fill_value is not None:
+                msg = 'Unable to fill values because {0} cannot contain NA'
+                raise ValueError(msg.format(self.__class__.__name__))
+            taken = self.values.take(indices)
         return self._shallow_copy(taken)
+
+    def _assert_take_fillable(self, values, indices, allow_fill=True,
+                              fill_value=None, na_value=np.nan):
+        """ Internal method to handle NA filling of take """
+        indices = com._ensure_platform_int(indices)
+
+        # only fill if we are passing a non-None fill_value
+        if allow_fill and fill_value is not None:
+            if (indices < -1).any():
+                msg = ('When allow_fill=True and fill_value is not None, '
+                       'all indices must be >= -1')
+                raise ValueError(msg)
+            taken = values.take(indices)
+            mask = indices == -1
+            if mask.any():
+                taken[mask] = na_value
+        else:
+            taken = values.take(indices)
+        return taken
 
     @cache_readonly
     def _isnan(self):

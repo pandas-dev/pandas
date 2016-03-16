@@ -12,6 +12,7 @@ from pandas.core.common import is_integer, is_float, AbstractMethodError
 import pandas.tslib as tslib
 import pandas.lib as lib
 from pandas.core.index import Index
+from pandas.indexes.base import _index_shared_docs
 from pandas.util.decorators import Appender, cache_readonly
 import pandas.tseries.frequencies as frequencies
 import pandas.algos as _algos
@@ -258,22 +259,22 @@ class DatetimeIndexOpsMixin(object):
 
             return self._simple_new(sorted_values, **attribs)
 
+    @Appender(_index_shared_docs['take'])
     def take(self, indices, axis=0, allow_fill=True, fill_value=None):
-        """
-        Analogous to ndarray.take
-        """
         indices = com._ensure_int64(indices)
+
         maybe_slice = lib.maybe_indices_to_slice(indices, len(self))
         if isinstance(maybe_slice, slice):
             return self[maybe_slice]
-        taken = self.asi8.take(com._ensure_platform_int(indices))
 
-        # only fill if we are passing a non-None fill_value
-        if allow_fill and fill_value is not None:
-            mask = indices == -1
-            if mask.any():
-                taken[mask] = tslib.iNaT
-        return self._shallow_copy(taken, freq=None)
+        taken = self._assert_take_fillable(self.asi8, indices,
+                                           allow_fill=allow_fill,
+                                           fill_value=fill_value,
+                                           na_value=tslib.iNaT)
+
+        # keep freq in PeriodIndex, reset otherwise
+        freq = self.freq if isinstance(self, com.ABCPeriodIndex) else None
+        return self._shallow_copy(taken, freq=freq)
 
     def get_duplicates(self):
         values = Index.get_duplicates(self)

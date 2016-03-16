@@ -1,3 +1,4 @@
+
 # pylint: disable=E1101,E1103,W0232
 import datetime
 import warnings
@@ -11,7 +12,7 @@ from pandas.lib import Timestamp
 
 from pandas.compat import range, zip, lrange, lzip, map
 from pandas import compat
-from pandas.core.base import FrozenList
+from pandas.core.base import FrozenList, FrozenNDArray
 import pandas.core.base as base
 from pandas.util.decorators import (Appender, cache_readonly,
                                     deprecate, deprecate_kwarg)
@@ -1003,11 +1004,37 @@ class MultiIndex(Index):
                               names=self.names, sortorder=sortorder,
                               verify_integrity=False)
 
-    def take(self, indexer, axis=None):
-        indexer = com._ensure_platform_int(indexer)
-        new_labels = [lab.take(indexer) for lab in self.labels]
-        return MultiIndex(levels=self.levels, labels=new_labels,
+    @Appender(_index_shared_docs['take'])
+    def take(self, indices, axis=0, allow_fill=True, fill_value=None):
+        indices = com._ensure_platform_int(indices)
+        taken = self._assert_take_fillable(self.labels, indices,
+                                                allow_fill=allow_fill,
+                                                fill_value=fill_value,
+                                                na_value=-1)
+        return MultiIndex(levels=self.levels, labels=taken,
                           names=self.names, verify_integrity=False)
+
+    def _assert_take_fillable(self, values, indices, allow_fill=True,
+                              fill_value=None, na_value=None):
+        """ Internal method to handle NA filling of take """
+        # only fill if we are passing a non-None fill_value
+        if allow_fill and fill_value is not None:
+            if (indices < -1).any():
+                msg = ('When allow_fill=True and fill_value is not None, '
+                       'all indices must be >= -1')
+                raise ValueError(msg)
+            taken = [lab.take(indices) for lab in self.labels]
+            mask = indices == -1
+            if mask.any():
+                masked = []
+                for new_label in taken:
+                    label_values = new_label.values()
+                    label_values[mask] = na_value
+                    masked.append(base.FrozenNDArray(label_values))
+                taken = masked
+        else:
+            taken = [lab.take(indices) for lab in self.labels]
+        return taken
 
     def append(self, other):
         """
