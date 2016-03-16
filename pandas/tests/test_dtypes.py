@@ -80,6 +80,13 @@ class TestCategoricalDtype(Base, tm.TestCase):
         self.assertFalse(is_categorical(np.dtype('float64')))
         self.assertFalse(is_categorical(1.0))
 
+    def test_series_with_dtype(self):
+        self.assertRaises(
+            ValueError, lambda: Series(Categorical([1, 2, 3]), dtype='foo'))
+        s = Series(Categorical([1, 2, 3]), dtype='category')
+        self.assertTrue(is_categorical_dtype(s))
+        self.assertTrue(is_categorical_dtype(s.dtype))
+
 
 class TestDatetimeTZDtype(Base, tm.TestCase):
 
