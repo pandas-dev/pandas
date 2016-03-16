@@ -121,6 +121,7 @@ def pivot_table(data, values=None, index=None, columns=None, aggfunc='mean',
     agged = grouped.agg(aggfunc)
 
     table = agged
+    print data
     if table.index.nlevels > 1:
         to_unstack = [agged.index.names[i] or i
                       for i in range(len(index), len(keys))]
@@ -175,16 +176,18 @@ def _add_margins(table, data, values, rows, cols, aggfunc,
 
     exception_msg = 'Conflicting name "{0}" in margins'.format(margins_name)
     for level in table.index.names:
-        if margins_name in table.index.get_level_values(level):
-            raise ValueError(exception_msg)
+        if level is not None:
+            if margins_name in table.index.get_level_values(level):
+                raise ValueError(exception_msg)
 
     grand_margin = _compute_grand_margin(data, values, aggfunc, margins_name)
 
     # could be passed a Series object with no 'columns'
     if hasattr(table, 'columns'):
         for level in table.columns.names[1:]:
-            if margins_name in table.columns.get_level_values(level):
-                raise ValueError(exception_msg)
+            if level is not None:
+                if margins_name in table.columns.get_level_values(level):
+                    raise ValueError(exception_msg)
 
     if len(rows) > 1:
         key = (margins_name,) + ('',) * (len(rows) - 1)
@@ -465,3 +468,12 @@ def _get_names(arrs, names, prefix='row'):
             names = list(names)
 
     return names
+
+a = np.array(['foo', 'foo', 'foo', 'bar',
+              'bar', 'foo', 'foo'], dtype=object)
+b = np.array(['one', 'one', 'two', 'one',
+              'two', np.nan, 'two'], dtype=object)
+c = np.array(['dull', 'dull', 'dull', 'dull',
+              'dull', 'shiny', 'shiny'], dtype=object)
+
+print crosstab(a, [b, c], margins=True, dropna=False)
