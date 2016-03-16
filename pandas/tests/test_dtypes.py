@@ -82,7 +82,7 @@ class TestCategoricalDtype(Base, tm.TestCase):
 
     def test_series_with_dtype(self):
         self.assertRaises(
-            ValueError, lambda: Series(Categorical([1, 2, 3]), dtype='foo'))
+            ValueError, lambda: Series(Categorical([1, 2, 3]), dtype='int64'))
         s = Series(Categorical([1, 2, 3]), dtype='category')
         self.assertTrue(is_categorical_dtype(s))
         self.assertTrue(is_categorical_dtype(s.dtype))
