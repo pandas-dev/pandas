@@ -90,3 +90,4 @@ Bug Fixes
 
 - Bug in ``value_counts`` when ``normalize=True`` and ``dropna=True`` where nulls still contributed to the normalized count (:issue:`12558`)
 - Bug in ``pivot_table`` when ``margins=True`` and ``dropna=True`` where nulls still contributed to margin count (:issue:`12577`)
+- Bug in ``pivot_table`` when ``margins=True`` and ``dropna=False`` where column names result in KeyError
