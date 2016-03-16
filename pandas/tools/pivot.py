@@ -175,8 +175,9 @@ def _add_margins(table, data, values, rows, cols, aggfunc,
 
     exception_msg = 'Conflicting name "{0}" in margins'.format(margins_name)
     for level in table.index.names:
-        if margins_name in table.index.get_level_values(level):
-            raise ValueError(exception_msg)
+        if level is not None:
+            if margins_name in table.index.get_level_values(level):
+                raise ValueError(exception_msg)
 
     grand_margin = _compute_grand_margin(data, values, aggfunc, margins_name)
 
