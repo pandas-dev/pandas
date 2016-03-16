@@ -183,8 +183,9 @@ def _add_margins(table, data, values, rows, cols, aggfunc,
     # could be passed a Series object with no 'columns'
     if hasattr(table, 'columns'):
         for level in table.columns.names[1:]:
-            if margins_name in table.columns.get_level_values(level):
-                raise ValueError(exception_msg)
+            if level is not None:
+                if margins_name in table.columns.get_level_values(level):
+                    raise ValueError(exception_msg)
 
     if len(rows) > 1:
         key = (margins_name,) + ('',) * (len(rows) - 1)

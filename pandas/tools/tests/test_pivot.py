@@ -943,7 +943,7 @@ class TestCrosstab(tm.TestCase):
 
         df = pd.DataFrame({'a': [1, 2, 2, 2, 2, np.nan],
                            'b': [3, 3, 4, 4, 4, 4]})
-        actual = pd.crosstab(df.a, df.b, margins=True)
+        actual = pd.crosstab(df.a, df.b, margins=True, dropna=True)
         expected = pd.DataFrame([[1, 0, 1], [1, 3, 4], [2, 3, 5]])
         expected.index = Index([1.0, 2.0, 'All'], name='a')
         expected.columns = Index([3, 4, 'All'], name='b')
@@ -951,7 +951,7 @@ class TestCrosstab(tm.TestCase):
 
         df = DataFrame({'a': [1, np.nan, np.nan, np.nan, 2, np.nan],
                         'b': [3, np.nan, 4, 4, 4, 4]})
-        actual = pd.crosstab(df.a, df.b, margins=True)
+        actual = pd.crosstab(df.a, df.b, margins=True, dropna=True)
         expected = pd.DataFrame([[1, 0, 1], [0, 1, 1], [1, 1, 2]])
         expected.index = Index([1.0, 2.0, 'All'], name='a')
         expected.columns = Index([3.0, 4.0, 'All'], name='b')
@@ -959,10 +959,34 @@ class TestCrosstab(tm.TestCase):
 
         df = DataFrame({'a': [1, np.nan, np.nan, np.nan, np.nan, 2],
                         'b': [3, 3, 4, 4, 4, 4]})
-        actual = pd.crosstab(df.a, df.b, margins=True)
+        actual = pd.crosstab(df.a, df.b, margins=True, dropna=True)
         expected = pd.DataFrame([[1, 0, 1], [0, 1, 1], [1, 1, 2]])
         expected.index = Index([1.0, 2.0, 'All'], name='a')
         expected.columns = Index([3, 4, 'All'], name='b')
+        tm.assert_frame_equal(actual, expected)
+
+        df = pd.DataFrame({'a': [1, 2, 2, 2, 2, np.nan],
+                           'b': [3, 3, 4, 4, 4, 4]})
+        actual = pd.crosstab(df.a, df.b, margins=True, dropna=False)
+        expected = pd.DataFrame([[1, 0, 1], [1, 3, 4], [2, 4, 6]])
+        expected.index = Index([1.0, 2.0, 'All'], name='a')
+        expected.columns = Index([3, 4, 'All'])
+        tm.assert_frame_equal(actual, expected)
+
+        df = DataFrame({'a': [1, np.nan, np.nan, np.nan, 2, np.nan],
+                        'b': [3, np.nan, 4, 4, 4, 4]})
+        actual = pd.crosstab(df.a, df.b, margins=True, dropna=False)
+        expected = pd.DataFrame([[1, 0, 1], [0, 1, 1], [1, 4, 6]])
+        expected.index = Index([1.0, 2.0, 'All'], name='a')
+        expected.columns = Index([3.0, 4.0, 'All'])
+        tm.assert_frame_equal(actual, expected)
+
+        df = DataFrame({'a': [1, np.nan, np.nan, np.nan, np.nan, 2],
+                        'b': [3, 3, 4, 4, 4, 4]})
+        actual = pd.crosstab(df.a, df.b, margins=True, dropna=False)
+        expected = pd.DataFrame([[1, 0, 1], [0, 1, 1], [2, 4, 6]])
+        expected.index = Index([1.0, 2.0, 'All'], name='a')
+        expected.columns = Index([3, 4, 'All'])
         tm.assert_frame_equal(actual, expected)
 
 if __name__ == '__main__':
