@@ -32,6 +32,7 @@ from pandas.core.indexing import check_bool_indexer, maybe_convert_indices
 from pandas.core import generic, base
 from pandas.core.internals import SingleBlockManager
 from pandas.core.categorical import Categorical, CategoricalAccessor
+from pandas.core.dtypes import CategoricalDtype
 import pandas.core.strings as strings
 from pandas.tseries.common import (maybe_to_datetimelike,
                                    CombinedDatetimelikeProperties)
@@ -195,9 +196,11 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
                 else:
                     data = data.reindex(index, copy=copy)
             elif isinstance(data, Categorical):
-                if dtype is not None:
+                # Allow dtype=category only, otherwise error
+                if (dtype is not None) and (not isinstance(dtype, CategoricalDtype)):
                     raise ValueError("cannot specify a dtype with a "
-                                     "Categorical")
+                                     "Categorical unless "
+                                     "dtype='category'")
             elif (isinstance(data, types.GeneratorType) or
                   (compat.PY3 and isinstance(data, map))):
                 data = list(data)
