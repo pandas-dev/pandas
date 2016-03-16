@@ -195,9 +195,12 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
                 else:
                     data = data.reindex(index, copy=copy)
             elif isinstance(data, Categorical):
-                if dtype is not None:
+                # GH12574: Allow dtype=category only, otherwise error
+                if ((dtype is not None) and
+                        not is_categorical_dtype(dtype)):
                     raise ValueError("cannot specify a dtype with a "
-                                     "Categorical")
+                                     "Categorical unless "
+                                     "dtype='category'")
             elif (isinstance(data, types.GeneratorType) or
                   (compat.PY3 and isinstance(data, map))):
                 data = list(data)

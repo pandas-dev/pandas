@@ -139,6 +139,17 @@ class TestSeriesConstructors(TestData, tm.TestCase):
         res = Series(cat)
         self.assertTrue(res.values.equals(cat))
 
+        # GH12574
+        self.assertRaises(
+            ValueError, lambda: Series(pd.Categorical([1, 2, 3]),
+                                       dtype='int64'))
+        cat = Series(pd.Categorical([1, 2, 3]), dtype='category')
+        self.assertTrue(com.is_categorical_dtype(cat))
+        self.assertTrue(com.is_categorical_dtype(cat.dtype))
+        s = Series([1, 2, 3], dtype='category')
+        self.assertTrue(com.is_categorical_dtype(s))
+        self.assertTrue(com.is_categorical_dtype(s.dtype))
+
     def test_constructor_maskedarray(self):
         data = ma.masked_all((3, ), dtype=float)
         result = Series(data)
