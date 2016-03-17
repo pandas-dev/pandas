@@ -38,9 +38,11 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 """
 
-import os
 from datetime import datetime, date, timedelta
 from dateutil.parser import parse
+import os
+from textwrap import dedent
+import warnings
 
 import numpy as np
 from pandas import compat
@@ -52,12 +54,61 @@ from pandas.tslib import NaTType
 from pandas.sparse.api import SparseSeries, SparseDataFrame, SparsePanel
 from pandas.sparse.array import BlockIndex, IntIndex
 from pandas.core.generic import NDFrame
-from pandas.core.common import needs_i8_conversion, pandas_dtype
+from pandas.core.common import (
+    PerformanceWarning,
+    needs_i8_conversion,
+    pandas_dtype,
+)
 from pandas.io.common import get_filepath_or_buffer
 from pandas.core.internals import BlockManager, make_block
 import pandas.core.internals as internals
 
 from pandas.msgpack import Unpacker as _Unpacker, Packer as _Packer, ExtType
+from pandas.util._move import (
+    BadMove as _BadMove,
+    move_into_mutable_buffer as _move_into_mutable_buffer,
+)
+
+# check whcih compression libs we have installed
+try:
+    import zlib
+
+    def _check_zlib():
+        pass
+except ImportError:
+    def _check_zlib():
+        raise ValueError('zlib is not installed')
+
+_check_zlib.__doc__ = dedent(
+    """\
+    Check if zlib is installed.
+
+    Raises
+    ------
+    ValueError
+        Raised when zlib is not installed.
+    """,
+)
+
+try:
+    import blosc
+
+    def _check_blosc():
+        pass
+except ImportError:
+    def _check_blosc():
+        raise ValueError('blosc is not installed')
+
+_check_blosc.__doc__ = dedent(
+    """\
+    Check if blosc is installed.
+
+    Raises
+    ------
+    ValueError
+        Raised when blosc is not installed.
+    """,
+)
 
 # until we can pass this into our conversion functions,
 # this is pretty hacky
@@ -215,6 +266,7 @@ def convert(values):
         return v.tolist()
 
     if compressor == 'zlib':
+        _check_zlib()
 
         # return string arrays like they are
         if dtype == np.object_:
@@ -222,10 +274,10 @@ def convert(values):
 
         # convert to a bytes array
         v = v.tostring()
-        import zlib
         return ExtType(0, zlib.compress(v))
 
     elif compressor == 'blosc':
+        _check_blosc()
 
         # return string arrays like they are
         if dtype == np.object_:
@@ -233,7 +285,6 @@ def convert(values):
 
         # convert to a bytes array
         v = v.tostring()
-        import blosc
         return ExtType(0, blosc.compress(v, typesize=dtype.itemsize))
 
     # ndarray (on original dtype)
@@ -255,17 +306,40 @@ def unconvert(values, dtype, compress=None):
     if not as_is_ext:
         values = values.encode('latin1')
 
-    if compress == u'zlib':
-        import zlib
-        values = zlib.decompress(values)
-        return np.frombuffer(values, dtype=dtype)
+    if compress:
+        if compress == u'zlib':
+            _check_zlib()
+            decompress = zlib.decompress
+        elif compress == u'blosc':
+            _check_blosc()
+            decompress = blosc.decompress
+        else:
+            raise ValueError("compress must be one of 'zlib' or 'blosc'")
 
-    elif compress == u'blosc':
-        import blosc
-        values = blosc.decompress(values)
-        return np.frombuffer(values, dtype=dtype)
+        try:
+            return np.frombuffer(
+                _move_into_mutable_buffer(decompress(values)),
+                dtype=dtype,
+            )
+        except _BadMove as e:
+            # Pull the decompressed data off of the `_BadMove` exception.
+            # We don't just store this in the locals because we want to
+            # minimize the risk of giving users access to a `bytes` object
+            # whose data is also given to a mutable buffer.
+            values = e.args[0]
+            if len(values) > 1:
+                # The empty string and single characters are memoized in many
+                # string creating functions in the capi. This case should not
+                # warn even though we need to make a copy because we are only
+                # copying at most 1 byte.
+                warnings.warn(
+                    'copying data after decompressing; this may mean that'
+                    ' decompress is caching its result',
+                    PerformanceWarning,
+                )
+                # fall through to copying `np.fromstring`
 
-    # from a string
+    # Copy the string into a numpy array.
     return np.fromstring(values, dtype=dtype)
 
 
