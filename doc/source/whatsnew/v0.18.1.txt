@@ -89,46 +89,17 @@ Bug Fixes
 ~~~~~~~~~
 
 - Bug in ``Period`` and ``PeriodIndex`` creation raises ``KeyError`` if ``freq="Minute"`` is specified. Note that "Minute" freq is deprecated in v0.17.0, and recommended to use ``freq="T"`` instead (:issue:`11854`)
+
 - Bug in ``Series`` construction with ``Categorical`` and ``dtype='category'`` is specified (:issue:`12574`)
 
-
-
-
-
-
-
-
-
+- BUG: Can't get period code with frequency alias 'minute' or 'Minute'
 
 - Bug in ``value_counts`` when ``normalize=True`` and ``dropna=True`` where nulls still contributed to the normalized count (:issue:`12558`)
 
-
-
-
-
-
-
-
-
-
-
-
 - Bug in ``CategoricalIndex.get_loc`` returns different result from regular ``Index`` (:issue:`12531`)
 
+- Bug in ``Panel.fillna()`` ignores ``inplace=True`` (:issue:`12633`)
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+- BUG: Crosstab with margins=True ignoring dropna=True
 
 - Bug in ``pivot_table`` when ``margins=True`` and ``dropna=True`` where nulls still contributed to margin count (:issue:`12577`)
