@@ -135,3 +135,6 @@ Bug Fixes
 
 
 - Bug in ``pivot_table`` when ``margins=True`` and ``dropna=True`` where nulls still contributed to margin count (:issue:`12577`)
+
+
+
