@@ -327,12 +327,13 @@ class SAS7BDATReader(BaseIterator):
                                _os_version_number_length)
         self.os_version = buf.rstrip(b'\x00 ').decode()
 
-        buf = self._read_bytes(
-            _os_name_offset, _os_name_length).rstrip(b'\x00 ')
+        buf = self._read_bytes(_os_name_offset + total_align,
+                               _os_name_length).rstrip(b'\x00 ')
         if len(buf) > 0:
-            self.os_name = buf.rstrip(b'\x00 ').decode()
+            self.os_name = buf.decode()
         else:
-            buf = self._path_or_buf.read(_os_maker_offset, _os_maker_length)
+            buf = self._read_bytes(_os_maker_offset + total_align,
+                                   _os_maker_length)
             self.os_name = buf.rstrip(b'\x00 ').decode()
 
     # Read a single float of the given width (4 or 8).
