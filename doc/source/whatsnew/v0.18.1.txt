@@ -37,7 +37,12 @@ Enhancements
 
 
 
+.. _whatsnew_0181.other:
 
+Other Enhancements
+^^^^^^^^^^^^^^^^^^
+
+- ``pd.read_msgpack()`` now always gives writeable ndarrays even when compression is used (:issue:`12359`).
 
 .. _whatsnew_0181.api:
 

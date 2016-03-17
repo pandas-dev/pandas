@@ -532,6 +532,12 @@ ujson_ext = Extension('pandas.json',
 
 extensions.append(ujson_ext)
 
+# extension for pseudo-safely moving bytes into mutable buffers
+_move_ext = Extension('pandas.util._move',
+                      depends=[],
+                      sources=['pandas/util/_move.c'])
+extensions.append(_move_ext)
+
 
 if _have_setuptools:
     setuptools_kwargs["test_suite"] = "nose.collector"
