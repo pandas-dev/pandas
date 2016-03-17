@@ -1262,7 +1262,7 @@ class TestTimeSeries(tm.TestCase):
         self.assertEqual(df.asfreq('D').index.freq, 'D')
 
         # does .resample() set .freq correctly?
-        self.assertEqual(df.resample('D').index.freq, 'D')
+        self.assertEqual(df.resample('D').asfreq().index.freq, 'D')
 
     def test_promote_datetime_date(self):
         rng = date_range('1/1/2000', periods=20)
@@ -4783,7 +4783,8 @@ class TimeConversionFormats(tm.TestCase):
         s = Series(['19MAY11', 'foobar19MAY11', '19MAY11:00:00:00',
                     '19MAY11 00:00:00Z'])
         result = to_datetime(s, format='%d%b%y', exact=False)
-        expected = to_datetime(s.str.extract('(\d+\w+\d+)'), format='%d%b%y')
+        expected = to_datetime(s.str.extract('(\d+\w+\d+)', expand=False),
+                               format='%d%b%y')
         assert_series_equal(result, expected)
 
     def test_parse_nanoseconds_with_formula(self):
