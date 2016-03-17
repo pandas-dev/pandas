@@ -3124,13 +3124,17 @@ class NDFrame(PandasObject):
                 # fill in 2d chunks
                 result = dict([(col, s.fillna(method=method, value=value))
                                for col, s in self.iteritems()])
-                return self._constructor.from_dict(result).__finalize__(self)
+                new_obj = self._constructor.\
+                    from_dict(result).__finalize__(self)
+                new_data = new_obj._data
 
-            # 2d or less
-            method = mis._clean_fill_method(method)
-            new_data = self._data.interpolate(method=method, axis=axis,
-                                              limit=limit, inplace=inplace,
-                                              coerce=True, downcast=downcast)
+            else:
+                # 2d or less
+                method = mis._clean_fill_method(method)
+                new_data = self._data.interpolate(method=method, axis=axis,
+                                                  limit=limit, inplace=inplace,
+                                                  coerce=True,
+                                                  downcast=downcast)
         else:
             if method is not None:
                 raise ValueError('cannot specify both a fill method and value')

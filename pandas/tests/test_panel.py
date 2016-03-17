@@ -1528,6 +1528,24 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing, SafeForLongAndSparse,
         p.iloc[0:2, 0:2, 0:2] = np.nan
         self.assertRaises(NotImplementedError, lambda: p.fillna(999, limit=1))
 
+        # Test in place fillNA
+        # Expected result
+        expected = Panel([[[0, 1], [2, 1]], [[10, 11], [12, 11]]],
+                         items=['a', 'b'], minor_axis=['x', 'y'],
+                         dtype=np.float64)
+        # method='ffill'
+        p1 = Panel([[[0, 1], [2, np.nan]], [[10, 11], [12, np.nan]]],
+                   items=['a', 'b'], minor_axis=['x', 'y'],
+                   dtype=np.float64)
+        p1.fillna(method='ffill', inplace=True)
+        assert_panel_equal(p1, expected)
+
+        # method='bfill'
+        p2 = Panel([[[0, np.nan], [2, 1]], [[10, np.nan], [12, 11]]],
+                   items=['a', 'b'], minor_axis=['x', 'y'], dtype=np.float64)
+        p2.fillna(method='bfill', inplace=True)
+        assert_panel_equal(p2, expected)
+
     def test_ffill_bfill(self):
         assert_panel_equal(self.panel.ffill(),
                            self.panel.fillna(method='ffill'))
