@@ -2713,7 +2713,7 @@ def _concat_compat(to_concat, axis=0):
     # these are mandated to handle empties as well
     if 'datetime' in typs or 'datetimetz' in typs or 'timedelta' in typs:
         from pandas.tseries.common import _concat_compat
-        return _concat_compat(to_concat, axis=axis)
+        return _concat_compat(to_concat, axis=axis, typs=typs)
 
     elif 'sparse' in typs:
         from pandas.sparse.array import _concat_compat

@@ -1161,6 +1161,20 @@ class TestMerge(tm.TestCase):
         result = pd.concat([first, second])
         self.assertEqual(result[0].dtype, 'datetime64[ns, Europe/London]')
 
+    def test_concat_tz_series_with_datetimelike(self):
+        # GH 12620
+        # tz and timedelta
+        x = [pd.Timestamp('2011-01-01', tz='US/Eastern'),
+             pd.Timestamp('2011-02-01', tz='US/Eastern')]
+        y = [pd.Timedelta('1 day'), pd.Timedelta('2 day')]
+        result = concat([pd.Series(x), pd.Series(y)], ignore_index=True)
+        tm.assert_series_equal(result, pd.Series(x + y, dtype='object'))
+
+        # tz and period
+        y = [pd.Period('2011-03', freq='M'), pd.Period('2011-04', freq='M')]
+        result = concat([pd.Series(x), pd.Series(y)], ignore_index=True)
+        tm.assert_series_equal(result, pd.Series(x + y, dtype='object'))
+
     def test_concat_period_series(self):
         x = Series(pd.PeriodIndex(['2015-11-01', '2015-12-01'], freq='D'))
         y = Series(pd.PeriodIndex(['2015-10-01', '2016-01-01'], freq='D'))
