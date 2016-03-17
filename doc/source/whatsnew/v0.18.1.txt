@@ -128,7 +128,7 @@ Bug Fixes
 
 
 
-
+- Bug in ``concat`` raises ``AttributeError`` when input data contains tz-aware datetime and timedelta (:issue:`12620`)
 
 
 

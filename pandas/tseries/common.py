@@ -238,7 +238,7 @@ class CombinedDatetimelikeProperties(DatetimeProperties, TimedeltaProperties):
     __doc__ = DatetimeProperties.__doc__
 
 
-def _concat_compat(to_concat, axis=0):
+def _concat_compat(to_concat, axis=0, typs=None):
     """
     provide concatenation of an datetimelike array of arrays each of which is a
     single M8[ns], datetimet64[ns, tz] or m8[ns] dtype
@@ -272,38 +272,33 @@ def _concat_compat(to_concat, axis=0):
 
         return x
 
-    typs = get_dtype_kinds(to_concat)
+    if typs is None:
+        typs = get_dtype_kinds(to_concat)
 
-    # datetimetz
-    if 'datetimetz' in typs:
-
-        # if to_concat have 'datetime' or 'object'
-        # then we need to coerce to object
-        if 'datetime' in typs or 'object' in typs:
-            to_concat = [convert_to_pydatetime(x, axis) for x in to_concat]
-            return np.concatenate(to_concat, axis=axis)
-
-        # we require ALL of the same tz for datetimetz
-        tzs = set([getattr(x, 'tz', None) for x in to_concat]) - set([None])
-        if len(tzs) == 1:
-            return DatetimeIndex(np.concatenate([x.tz_localize(None).asi8
-                                                 for x in to_concat]),
-                                 tz=list(tzs)[0])
-
-    # single dtype
+    # must be single dtype
     if len(typs) == 1:
 
-        if not len(typs - set(['datetime'])):
+        if 'datetimetz' in typs:
+            # datetime with no tz should be stored as "datetime" in typs,
+            # thus no need to care
+
+            # we require ALL of the same tz for datetimetz
+            tzs = set([x.tz for x in to_concat])
+            if len(tzs) == 1:
+                return DatetimeIndex(np.concatenate([x.tz_localize(None).asi8
+                                                     for x in to_concat]),
+                                     tz=list(tzs)[0])
+
+        elif 'datetime' in typs:
             new_values = np.concatenate([x.view(np.int64) for x in to_concat],
                                         axis=axis)
             return new_values.view(_NS_DTYPE)
 
-        elif not len(typs - set(['timedelta'])):
+        elif 'timedelta' in typs:
             new_values = np.concatenate([x.view(np.int64) for x in to_concat],
                                         axis=axis)
             return new_values.view(_TD_DTYPE)
 
     # need to coerce to object
     to_concat = [convert_to_pydatetime(x, axis) for x in to_concat]
-
     return np.concatenate(to_concat, axis=axis)
