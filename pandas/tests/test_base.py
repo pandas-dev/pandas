@@ -972,6 +972,15 @@ class TestIndexOps(Ops):
             diff = res_deep - sys.getsizeof(o)
             self.assertTrue(abs(diff) < 100)
 
+    def test_searchsorted(self):
+        # See gh-12238
+        for o in self.objs:
+            index = np.searchsorted(o, max(o))
+            self.assertTrue(0 <= index <= len(o))
+
+            index = np.searchsorted(o, max(o), sorter=range(len(o)))
+            self.assertTrue(0 <= index <= len(o))
+
 
 class TestFloat64HashTable(tm.TestCase):
 

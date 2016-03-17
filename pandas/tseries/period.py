@@ -13,13 +13,14 @@ from pandas._period import (Period, IncompatibleFrequency,
                             get_period_field_arr, _validate_end_alias,
                             _quarter_to_myear)
 
+from pandas.core.base import _shared_docs
+
 import pandas.core.common as com
 from pandas.core.common import (isnull, _INT64_DTYPE, _maybe_box,
                                 _values_from_object, ABCSeries,
                                 is_integer, is_float, is_object_dtype)
 from pandas import compat
-from pandas.util.decorators import cache_readonly
-
+from pandas.util.decorators import Appender, cache_readonly, Substitution
 from pandas.lib import Timedelta
 import pandas.lib as lib
 import pandas.tslib as tslib
@@ -385,7 +386,9 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
             return Index(self.values, dtype)
         raise ValueError('Cannot cast PeriodIndex to dtype %s' % dtype)
 
-    def searchsorted(self, key, side='left'):
+    @Substitution(klass='PeriodIndex', value='key')
+    @Appender(_shared_docs['searchsorted'])
+    def searchsorted(self, key, side='left', sorter=None):
         if isinstance(key, Period):
             if key.freq != self.freq:
                 msg = _DIFFERENT_FREQ_INDEX.format(self.freqstr, key.freqstr)
@@ -394,7 +397,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
         elif isinstance(key, compat.string_types):
             key = Period(key, freq=self.freq).ordinal
 
-        return self.values.searchsorted(key, side=side)
+        return self.values.searchsorted(key, side=side, sorter=sorter)
 
     @property
     def is_all_dates(self):
