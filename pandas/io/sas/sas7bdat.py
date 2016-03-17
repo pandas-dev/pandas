@@ -327,12 +327,12 @@ class SAS7BDATReader(BaseIterator):
                                _os_version_number_length)
         self.os_version = buf.rstrip(b'\x00 ').decode()
 
-        buf = self._read_bytes(
-            _os_name_offset, _os_name_length).rstrip(b'\x00 ')
+        buf = self._read_bytes(_os_name_offset, _os_name_length)
+        buf = buf.rstrip(b'\x00 ')
         if len(buf) > 0:
-            self.os_name = buf.rstrip(b'\x00 ').decode()
+            self.os_name = buf.decode()
         else:
-            buf = self._path_or_buf.read(_os_maker_offset, _os_maker_length)
+            buf = self._read_bytes(_os_maker_offset, _os_maker_length)
             self.os_name = buf.rstrip(b'\x00 ').decode()
 
     # Read a single float of the given width (4 or 8).
@@ -592,6 +592,10 @@ class SAS7BDATReader(BaseIterator):
             length - 2 * int_len - 12) // (int_len + 8)
         self.column_types = np.empty(
             column_attributes_vectors_count, dtype=np.dtype('S1'))
+        self._column_data_lengths = np.empty(
+            column_attributes_vectors_count, dtype=np.int64)
+        self._column_data_offsets = np.empty(
+            column_attributes_vectors_count, dtype=np.int64)
         for i in range(column_attributes_vectors_count):
             col_data_offset = (offset + int_len +
                                _column_data_offset_offset + i * (int_len + 8))
@@ -600,11 +604,11 @@ class SAS7BDATReader(BaseIterator):
             col_types = (offset + 2 * int_len +
                          _column_type_offset + i * (int_len + 8))
 
-            self._column_data_offsets.append(
-                self._read_int(col_data_offset, int_len))
+            x = self._read_int(col_data_offset, int_len)
+            self._column_data_offsets[i] = x
 
             x = self._read_int(col_data_len, _column_data_length_length)
-            self._column_data_lengths.append(x)
+            self._column_data_lengths[i] = x
 
             x = self._read_int(col_types, _column_type_length)
             if x == 1:

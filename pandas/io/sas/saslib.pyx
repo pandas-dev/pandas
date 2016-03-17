@@ -1,6 +1,6 @@
 import numpy as np
 cimport numpy as np
-from numpy cimport uint8_t, uint16_t
+from numpy cimport uint8_t, uint16_t, int8_t
 
 # rle_decompress decompresses data using a Run Length Encoding
 # algorithm.  It is partially documented here:
@@ -191,43 +191,44 @@ def _rdc_decompress(int result_length, np.ndarray[uint8_t, ndim=1] inbuff):
 
     return np.asarray(outbuff).tostring()
 
-def process_byte_array_with_data(parser, int offset, int length, np.ndarray[uint8_t, ndim=2] byte_chunk,
-                                 np.ndarray[dtype=object, ndim=2] string_chunk):
+def process_byte_array_with_data(parser, int offset, int length, uint8_t[:, ::1] byte_chunk,
+                                 object[:, ::1] string_chunk):
 
     cdef int s
     cdef int j
+    cdef int k
     cdef int m
     cdef int start
-    cdef int end
-    cdef bytes source
-    cdef bytes temp
     cdef int jb
     cdef int js
+    cdef int lngt
 
+    cdef long[:] lengths = parser._column_data_lengths
+    cdef long[:] offsets = parser._column_data_offsets
+    cdef char[:] column_types = parser.column_types
+
+    source = parser._cached_page[offset:offset+length]
     if (parser.compression != "") and (length < parser.row_length):
-        source = parser._decompress(parser.row_length, parser._cached_page[offset:offset + length])
-    else:
-        source = parser._cached_page[offset:offset + length]
+        source = parser._decompress(parser.row_length, source)
 
     s = 8 * parser._current_row_in_chunk_index
     js = 0
     jb = 0
     for j in range(parser.column_count):
-        length = parser._column_data_lengths[j]
-        if length == 0:
+        lngt = lengths[j]
+        if lngt == 0:
             break
-        start = parser._column_data_offsets[j]
-        end = start + length
-        temp = source[start:end]
-        if parser.column_types[j] == b'd':
-            m = 8 - length
+        start = offsets[j]
+        if column_types[j] == b'd':
             if parser.byte_order == "<":
-                byte_chunk[jb, s+m:s+8] = np.frombuffer(temp, dtype=np.uint8)
+                m = s + 8 - lngt
             else:
-                byte_chunk[jb, s:s+length] = np.frombuffer(temp, dtype=np.uint8)
+                m = s
+            for k in range(lngt):
+                byte_chunk[jb, m + k] = source[start + k]
             jb += 1
-        elif parser.column_types[j] == b's':
-            string_chunk[js, parser._current_row_in_chunk_index] = bytes(temp)
+        elif column_types[j] == b's':
+            string_chunk[js, parser._current_row_in_chunk_index] = bytes(source[start:start+lngt])
             js += 1
         else:
             raise ValueError("unknown column type: %s" % parser.columns[j].ctype)
