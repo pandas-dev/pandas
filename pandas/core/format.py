@@ -2235,7 +2235,13 @@ class Datetime64Formatter(GenericArrayFormatter):
 
 class PeriodArrayFormatter(IntArrayFormatter):
     def _format_strings(self):
-        values = PeriodIndex(self.values).to_native_types()
+        from pandas.tseries.period import IncompatibleFrequency
+        try:
+            values = PeriodIndex(self.values).to_native_types()
+        except IncompatibleFrequency:
+            # periods may contains different freq
+            values = Index(self.values, dtype='object').to_native_types()
+
         formatter = self.formatter or (lambda x: '%s' % x)
         fmt_values = [formatter(x) for x in values]
         return fmt_values

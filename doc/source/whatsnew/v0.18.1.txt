@@ -44,7 +44,7 @@ Enhancements
 API changes
 ~~~~~~~~~~~
 
-
+- ``Period`` and ``PeriodIndex`` now raises ``IncompatibleFrequency`` error which inherits ``ValueError`` rather than raw ``ValueError`` (:issue:`12615`)
 
 
 
@@ -91,8 +91,8 @@ Bug Fixes
 ~~~~~~~~~
 
 - Bug in ``Period`` and ``PeriodIndex`` creation raises ``KeyError`` if ``freq="Minute"`` is specified. Note that "Minute" freq is deprecated in v0.17.0, and recommended to use ``freq="T"`` instead (:issue:`11854`)
+- Bug in printing data which contains ``Period`` with different ``freq`` raises ``ValueError`` (:issue:`12615`)
 - Bug in ``Series`` construction with ``Categorical`` and ``dtype='category'`` is specified (:issue:`12574`)
-
 
 
 
@@ -131,7 +131,6 @@ Bug Fixes
 
 
 - Bug in ``concat`` raises ``AttributeError`` when input data contains tz-aware datetime and timedelta (:issue:`12620`)
-
 
 
 
