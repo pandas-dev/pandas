@@ -3498,7 +3498,7 @@ class TestSeriesFormatting(tm.TestCase):
     def test_period(self):
         # GH 12615
         index = pd.period_range('2013-01', periods=6, freq='M')
-        s = Series(np.arange(6), index=index)
+        s = Series(np.arange(6, dtype='int64'), index=index)
         exp = ("2013-01    0\n2013-02    1\n2013-03    2\n2013-04    3\n"
                "2013-05    4\n2013-06    5\nFreq: M, dtype: int64")
         self.assertEqual(str(s), exp)
