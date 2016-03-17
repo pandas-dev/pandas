@@ -10,11 +10,13 @@ from pandas import compat
 from pandas.compat import u
 from pandas import (Series, DataFrame, Panel, MultiIndex, bdate_range,
                     date_range, period_range, Index)
+from pandas.core.common import PerformanceWarning
 from pandas.io.packers import to_msgpack, read_msgpack
 import pandas.util.testing as tm
 from pandas.util.testing import (ensure_clean, assert_index_equal,
                                  assert_series_equal,
-                                 assert_frame_equal)
+                                 assert_frame_equal,
+                                 patch)
 from pandas.tests.test_panel import assert_panel_equal
 
 import pandas
@@ -539,17 +541,126 @@ class TestCompression(TestPackers):
         for k in self.frame.keys():
             assert_frame_equal(self.frame[k], i_rec[k])
 
-    def test_compression_zlib(self):
-        i_rec = self.encode_decode(self.frame, compress='zlib')
+    def _test_compression(self, compress):
+        i_rec = self.encode_decode(self.frame, compress=compress)
         for k in self.frame.keys():
-            assert_frame_equal(self.frame[k], i_rec[k])
+            value = i_rec[k]
+            expected = self.frame[k]
+            assert_frame_equal(value, expected)
+            # make sure that we can write to the new frames
+            for block in value._data.blocks:
+                self.assertTrue(block.values.flags.writeable)
+
+    def test_compression_zlib(self):
+        if not _ZLIB_INSTALLED:
+            raise nose.SkipTest('no zlib')
+        self._test_compression('zlib')
 
     def test_compression_blosc(self):
         if not _BLOSC_INSTALLED:
             raise nose.SkipTest('no blosc')
-        i_rec = self.encode_decode(self.frame, compress='blosc')
-        for k in self.frame.keys():
-            assert_frame_equal(self.frame[k], i_rec[k])
+        self._test_compression('blosc')
+
+    def _test_compression_warns_when_decompress_caches(self, compress):
+        not_garbage = []
+        control = []  # copied data
+
+        compress_module = globals()[compress]
+        real_decompress = compress_module.decompress
+
+        def decompress(ob):
+            """mock decompress function that delegates to the real
+            decompress but caches the result and a copy of the result.
+            """
+            res = real_decompress(ob)
+            not_garbage.append(res)  # hold a reference to this bytes object
+            control.append(bytearray(res))  # copy the data here to check later
+            return res
+
+        # types mapped to values to add in place.
+        rhs = {
+            np.dtype('float64'): 1.0,
+            np.dtype('int32'): 1,
+            np.dtype('object'): 'a',
+            np.dtype('datetime64[ns]'): np.timedelta64(1, 'ns'),
+            np.dtype('timedelta64[ns]'): np.timedelta64(1, 'ns'),
+        }
+
+        with patch(compress_module, 'decompress', decompress), \
+                tm.assert_produces_warning(PerformanceWarning) as ws:
+
+            i_rec = self.encode_decode(self.frame, compress=compress)
+            for k in self.frame.keys():
+
+                value = i_rec[k]
+                expected = self.frame[k]
+                assert_frame_equal(value, expected)
+                # make sure that we can write to the new frames even though
+                # we needed to copy the data
+                for block in value._data.blocks:
+                    self.assertTrue(block.values.flags.writeable)
+                    # mutate the data in some way
+                    block.values[0] += rhs[block.dtype]
+
+        for w in ws:
+            # check the messages from our warnings
+            self.assertEqual(
+                str(w.message),
+                'copying data after decompressing; this may mean that'
+                ' decompress is caching its result',
+            )
+
+        for buf, control_buf in zip(not_garbage, control):
+            # make sure none of our mutations above affected the
+            # original buffers
+            self.assertEqual(buf, control_buf)
+
+    def test_compression_warns_when_decompress_caches_zlib(self):
+        if not _ZLIB_INSTALLED:
+            raise nose.SkipTest('no zlib')
+        self._test_compression_warns_when_decompress_caches('zlib')
+
+    def test_compression_warns_when_decompress_caches_blosc(self):
+        if not _BLOSC_INSTALLED:
+            raise nose.SkipTest('no blosc')
+        self._test_compression_warns_when_decompress_caches('blosc')
+
+    def _test_small_strings_no_warn(self, compress):
+        empty = np.array([], dtype='uint8')
+        with tm.assert_produces_warning(None):
+            empty_unpacked = self.encode_decode(empty, compress=compress)
+
+        np.testing.assert_array_equal(empty_unpacked, empty)
+        self.assertTrue(empty_unpacked.flags.writeable)
+
+        char = np.array([ord(b'a')], dtype='uint8')
+        with tm.assert_produces_warning(None):
+            char_unpacked = self.encode_decode(char, compress=compress)
+
+        np.testing.assert_array_equal(char_unpacked, char)
+        self.assertTrue(char_unpacked.flags.writeable)
+        # if this test fails I am sorry because the interpreter is now in a
+        # bad state where b'a' points to 98 == ord(b'b').
+        char_unpacked[0] = ord(b'b')
+
+        # we compare the ord of bytes b'a' with unicode u'a' because the should
+        # always be the same (unless we were able to mutate the shared
+        # character singleton in which case ord(b'a') == ord(b'b').
+        self.assertEqual(ord(b'a'), ord(u'a'))
+        np.testing.assert_array_equal(
+            char_unpacked,
+            np.array([ord(b'b')], dtype='uint8'),
+        )
+
+    def test_small_strings_no_warn_zlib(self):
+        if not _ZLIB_INSTALLED:
+            raise nose.SkipTest('no zlib')
+        self._test_small_strings_no_warn('zlib')
+
+    def test_small_strings_no_warn_blosc(self):
+        if not _BLOSC_INSTALLED:
+            raise nose.SkipTest('no blosc')
+        self._test_small_strings_no_warn('blosc')
 
     def test_readonly_axis_blosc(self):
         # GH11880
