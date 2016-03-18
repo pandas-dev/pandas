@@ -2808,6 +2808,38 @@ class CompressionTests(object):
             result = self.read_csv(path, compression='infer')
             tm.assert_frame_equal(result, expected)
 
+    def test_xz(self):
+        try:
+            if compat.PY3:
+                import lzma
+            else:
+                from backports import lzma
+        except ImportError:
+            raise nose.SkipTest('need lzma to run')
+
+        with open(self.csv1, 'rb') as data_file:
+            data = data_file.read()
+            expected = self.read_csv(self.csv1)
+
+        with tm.ensure_clean() as path:
+            tmp = lzma.LZMAFile(path, mode='wb')
+            tmp.write(data)
+            tmp.close()
+
+            result = self.read_csv(path, compression='xz')
+            tm.assert_frame_equal(result, expected)
+
+            with open(path, 'rb') as f:
+                result = self.read_csv(f, compression='xz')
+                tm.assert_frame_equal(result, expected)
+
+        with tm.ensure_clean('test.xz') as path:
+            tmp = lzma.LZMAFile(path, mode='wb')
+            tmp.write(data)
+            tmp.close()
+            result = self.read_csv(path, compression='infer')
+            tm.assert_frame_equal(result, expected)
+
     def test_decompression_regex_sep(self):
         try:
             import gzip

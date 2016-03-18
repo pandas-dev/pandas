@@ -4,4 +4,5 @@ google-api-python-client==1.2
 python-gflags==2.0
 oauth2client==1.5.0
 pathlib
+backports.lzma
 py

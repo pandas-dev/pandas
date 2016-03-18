@@ -375,6 +375,12 @@ def _get_handle(path, mode, encoding=None, compression=None):
                 raise ValueError('Multiple files found in ZIP file.'
                                  ' Only one file per ZIP :{}'
                                  .format(zip_names))
+        elif compression == 'xz':
+            if compat.PY2:
+                from backports import lzma
+            else:
+                import lzma
+            f = lzma.LZMAFile(path, mode)
         else:
             raise ValueError('Unrecognized compression type: %s' %
                              compression)
