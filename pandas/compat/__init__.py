@@ -237,6 +237,11 @@ if PY3:
         else:
             return len(data)
 
+    def import_lzma():
+        """ import lzma from the std library """
+        import lzma
+        return lzma
+
 else:
     string_types = basestring,
     integer_types = (int, long)
@@ -272,6 +277,12 @@ else:
             return sum([_EAW_MAP.get(east_asian_width(c), ambiguous_width) for c in data])
         else:
             return len(data)
+
+    def import_lzma():
+        """ import the backported lzma library
+        or raise ImportError if not available """
+        from backports import lzma
+        return lzma
 
 string_and_binary_types = string_types + (binary_type,)
 

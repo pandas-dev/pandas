@@ -582,6 +582,14 @@ cdef class TextReader:
                 else:
                     raise ValueError('Multiple files found in compressed '
                                      'zip file %s', str(zip_names))
+            elif self.compression == 'xz':
+                from pandas import compat
+                lzma = compat.import_lzma()
+
+                if isinstance(source, basestring):
+                    source = lzma.LZMAFile(source, 'rb')
+                else:
+                    source = lzma.LZMAFile(filename=source)
             else:
                 raise ValueError('Unrecognized compression type: %s' %
                                  self.compression)

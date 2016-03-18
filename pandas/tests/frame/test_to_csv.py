@@ -985,6 +985,28 @@ class TestDataFrameToCSV(tm.TestCase, TestData):
             for col in df.columns:
                 self.assertIn(col, text)
 
+    def test_to_csv_compression_xz(self):
+        # GH11852
+        # use the compression kw in to_csv
+        tm._skip_if_no_lzma()
+        df = DataFrame([[0.123456, 0.234567, 0.567567],
+                        [12.32112, 123123.2, 321321.2]],
+                       index=['A', 'B'], columns=['X', 'Y', 'Z'])
+
+        with ensure_clean() as filename:
+
+            df.to_csv(filename, compression="xz")
+
+            # test the round trip - to_csv -> read_csv
+            rs = read_csv(filename, compression="xz", index_col=0)
+            assert_frame_equal(df, rs)
+
+            # explicitly make sure file is xzipped
+            lzma = compat.import_lzma()
+            f = lzma.open(filename, 'rb')
+            assert_frame_equal(df, read_csv(f, index_col=0))
+            f.close()
+
     def test_to_csv_compression_value_error(self):
         # GH7615
         # use the compression kw in to_csv

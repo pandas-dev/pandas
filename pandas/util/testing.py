@@ -246,6 +246,14 @@ def _skip_if_scipy_0_17():
         raise nose.SkipTest("scipy 0.17")
 
 
+def _skip_if_no_lzma():
+    try:
+        return compat.import_lzma()
+    except ImportError:
+        import nose
+        raise nose.SkipTest('need backports.lzma to run')
+
+
 def _skip_if_no_xarray():
     try:
         import xarray

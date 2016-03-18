@@ -1301,7 +1301,7 @@ class DataFrame(NDFrame):
             defaults to 'ascii' on Python 2 and 'utf-8' on Python 3.
         compression : string, optional
             a string representing the compression to use in the output file,
-            allowed values are 'gzip', 'bz2',
+            allowed values are 'gzip', 'bz2', 'xz',
             only used when the first argument is a filename
         line_terminator : string, default '\\n'
             The newline character or character sequence to use in the output
