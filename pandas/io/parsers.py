@@ -158,14 +158,14 @@ chunksize : int, default None
     information
     <http://pandas.pydata.org/pandas-docs/stable/io.html#io-chunking>`_ on
     ``iterator`` and ``chunksize``.
-compression : {'infer', 'gzip', 'bz2', 'zip', None}, default 'infer'
+compression : {'infer', 'gzip', 'bz2', 'zip', 'xz', None}, default 'infer'
     For on-the-fly decompression of on-disk data. If 'infer', then use gzip,
-    bz2 or zip if filepath_or_buffer is a string ending in '.gz', '.bz2' or
-    '.zip', respectively, and no decompression otherwise. If using 'zip',
-    the ZIP file must contain only one data file to be read in.
+    bz2, zip or xz if filepath_or_buffer is a string ending in '.gz', '.bz2',
+    '.zip', or 'xz', respectively, and no decompression otherwise. If using
+    'zip', the ZIP file must contain only one data file to be read in.
     Set to None for no decompression.
 
-    .. versionadded:: 0.18.0 support for 'zip' compression.
+    .. versionadded:: 0.18.1 support for 'zip' and 'xz' compression.
 
 thousands : str, default None
     Thousands separator
@@ -279,6 +279,8 @@ def _read(filepath_or_buffer, kwds):
                 inferred_compression = 'bz2'
             elif filepath_or_buffer.endswith('.zip'):
                 inferred_compression = 'zip'
+            elif filepath_or_buffer.endswith('.xz'):
+                inferred_compression = 'xz'
             else:
                 inferred_compression = None
         else:
@@ -1420,6 +1422,18 @@ def _wrap_compressed(f, compression, encoding=None):
         else:
             raise ValueError('Multiple files found in compressed '
                              'zip file %s', str(zip_names))
+
+    elif compression == 'xz':
+
+        lzma = compat.import_lzma()
+        f = lzma.LZMAFile(f)
+
+        if compat.PY3:
+            from io import TextIOWrapper
+
+            f = TextIOWrapper(f)
+
+        return f
 
     else:
         raise ValueError('do not recognize compression method %s'
