@@ -2952,7 +2952,12 @@ class NDFrame(PandasObject):
         Parameters
         ----------
         deep : boolean or string, default True
-            Make a deep copy, i.e. also copy data
+            Make a deep copy, i.e. also copy data.
+            
+            Note that when ``deep=True`` data is copied unless ``dtype=object``,
+            in which case only the reference to the object is copied. This is
+            in contrast to ``copy.deepcopy`` in the Standard Library, which
+            recursively copies object data.
 
         Returns
         -------
