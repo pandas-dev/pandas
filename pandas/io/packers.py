@@ -77,7 +77,7 @@ try:
         pass
 except ImportError:
     def _check_zlib():
-        raise ValueError('zlib is not installed')
+        raise ImportError('zlib is not installed')
 
 _check_zlib.__doc__ = dedent(
     """\
@@ -85,7 +85,7 @@ _check_zlib.__doc__ = dedent(
 
     Raises
     ------
-    ValueError
+    ImportError
         Raised when zlib is not installed.
     """,
 )
@@ -97,7 +97,7 @@ try:
         pass
 except ImportError:
     def _check_blosc():
-        raise ValueError('blosc is not installed')
+        raise ImportError('blosc is not installed')
 
 _check_blosc.__doc__ = dedent(
     """\
@@ -105,7 +105,7 @@ _check_blosc.__doc__ = dedent(
 
     Raises
     ------
-    ValueError
+    ImportError
         Raised when blosc is not installed.
     """,
 )
