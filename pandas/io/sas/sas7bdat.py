@@ -20,7 +20,7 @@ from pandas.io.common import get_filepath_or_buffer, BaseIterator
 import numpy as np
 import struct
 import pandas.io.sas.sas_constants as const
-from .saslib import (_rle_decompress, _rdc_decompress, _readline)
+from .saslib import (_rle_decompress, _rdc_decompress, _do_read)
 
 
 class _subheader_pointer(object):
@@ -549,10 +549,7 @@ class SAS7BDATReader(BaseIterator):
         self._byte_chunk = np.empty((nd, 8 * nrows), dtype=np.uint8)
 
         self._current_row_in_chunk_index = 0
-        for i in range(nrows):
-            done = _readline(self)
-            if done:
-                break
+        _do_read(self, nrows)
 
         rslt = self._chunk_to_dataframe()
         if self.index is not None:

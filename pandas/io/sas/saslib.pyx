@@ -194,6 +194,15 @@ def _rdc_decompress(int result_length, np.ndarray[uint8_t, ndim=1] inbuff):
     return np.asarray(outbuff).tostring()
 
 
+def _do_read(parser, int nrows):
+    cdef int i
+
+    for i in range(nrows):
+        done = _readline(parser)
+        if done:
+            break
+
+
 def _readline(parser):
 
     cdef int offset
