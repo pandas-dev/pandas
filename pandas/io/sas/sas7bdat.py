@@ -183,12 +183,13 @@ class SAS7BDATReader(BaseIterator):
                                const.os_version_number_length)
         self.os_version = buf.rstrip(b'\x00 ').decode()
 
-        buf = self._read_bytes(const.os_name_offset, const.os_name_length)
+        buf = self._read_bytes(const.os_name_offset + total_align,
+                               const.os_name_length)
         buf = buf.rstrip(b'\x00 ')
         if len(buf) > 0:
             self.os_name = buf.decode()
         else:
-            buf = self._read_bytes(const.os_maker_offset,
+            buf = self._read_bytes(const.os_maker_offset + total_align,
                                    const.os_maker_length)
             self.os_name = buf.rstrip(b'\x00 ').decode()
 
