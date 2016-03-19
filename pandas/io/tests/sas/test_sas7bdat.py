@@ -62,3 +62,14 @@ class TestSAS7BDAT(tm.TestCase):
                 tm.assert_frame_equal(df, df0.iloc[0:2, :])
                 df = rdr.read(3)
                 tm.assert_frame_equal(df, df0.iloc[2:5, :])
+
+
+def test_productsales():
+    dirpath = tm.get_data_path()
+    fname = os.path.join(dirpath, "productsales.sas7bdat")
+    df = pd.read_sas(fname, encoding='utf-8')
+    fname = os.path.join(dirpath, "productsales.csv")
+    df0 = pd.read_csv(fname)
+    vn = ["ACTUAL", "PREDICT", "QUARTER", "YEAR", "MONTH"]
+    df0[vn] = df0[vn].astype(np.float64)
+    tm.assert_frame_equal(df, df0)
