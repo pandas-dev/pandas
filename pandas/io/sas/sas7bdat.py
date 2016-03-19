@@ -53,17 +53,21 @@ class SAS7BDATReader(BaseIterator):
         Return SAS7BDATReader object for iterations, returns chunks
         with given number of lines.
     encoding : string, defaults to None
-        String encoding.  If None, text variables are left as raw bytes.
+        String encoding.
+    convert_text : bool, deafaults to True
+        If False, text variables are left as raw bytes.
     """
 
     def __init__(self, path_or_buf, index=None, convert_dates=True,
-                 blank_missing=True, chunksize=None, encoding=None):
+                 blank_missing=True, chunksize=None, encoding=None,
+                 convert_text=True):
 
         self.index = index
         self.convert_dates = convert_dates
         self.blank_missing = blank_missing
         self.chunksize = chunksize
         self.encoding = encoding
+        self.convert_text = convert_text
 
         self.compression = ""
         self.column_names_strings = []
@@ -611,7 +615,7 @@ class SAS7BDATReader(BaseIterator):
             elif self.column_types[j] == b's':
                 rslt[name] = self._string_chunk[js, :]
                 rslt[name] = rslt[name].apply(lambda x: x.rstrip(b'\x00 '))
-                if self.encoding is not None:
+                if self.convert_text and (self.encoding is not None):
                     rslt[name] = rslt[name].apply(
                         lambda x: x.decode(encoding=self.encoding))
                 if self.blank_missing:
