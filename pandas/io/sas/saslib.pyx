@@ -1,6 +1,8 @@
 import numpy as np
 cimport numpy as np
 from numpy cimport uint8_t, uint16_t, int8_t
+import sas_constants as const
+
 
 # rle_decompress decompresses data using a Run Length Encoding
 # algorithm.  It is partially documented here:
@@ -190,6 +192,85 @@ def _rdc_decompress(int result_length, np.ndarray[uint8_t, ndim=1] inbuff):
         raise ValueError("RDC: %v != %v\n", len(outbuff), result_length)
 
     return np.asarray(outbuff).tostring()
+
+
+def _readline(parser):
+
+    cdef int offset
+    cdef int bit_offset
+    cdef int align_correction
+    cdef int subheader_pointer_length
+
+    bit_offset = parser._page_bit_offset
+    subheader_pointer_length = parser._subheader_pointer_length
+
+    # If there is no page, go to the end of the header and read a page.
+    if parser._cached_page is None:
+        parser._path_or_buf.seek(parser.header_length)
+        done = parser._read_next_page()
+        if done:
+            return True
+
+    # Loop until a data row is read
+    while True:
+        if parser._current_page_type == const.page_meta_type:
+            flag = (parser._current_row_on_page_index >=
+                    len(parser._current_page_data_subheader_pointers))
+            if flag:
+                done = parser._read_next_page()
+                if done:
+                    return True
+                parser._current_row_on_page_index = 0
+                continue
+            current_subheader_pointer = (
+                parser._current_page_data_subheader_pointers[
+                    parser._current_row_on_page_index])
+            process_byte_array_with_data(parser,
+                                         current_subheader_pointer.offset,
+                                         current_subheader_pointer.length,
+                                         parser._byte_chunk,
+                                         parser._string_chunk)
+            return False
+        elif parser._current_page_type in const.page_mix_types:
+            align_correction = (bit_offset + const.subheader_pointers_offset +
+                                parser._current_page_subheaders_count *
+                                subheader_pointer_length)
+            align_correction = align_correction % 8
+            offset = bit_offset + align_correction
+            offset += const.subheader_pointers_offset
+            offset += (parser._current_page_subheaders_count *
+                       subheader_pointer_length)
+            offset += parser._current_row_on_page_index * parser.row_length
+            process_byte_array_with_data(parser, offset, parser.row_length,
+                                         parser._byte_chunk,
+                                         parser._string_chunk)
+            mn = min(parser.row_count, parser._mix_page_row_count)
+            if parser._current_row_on_page_index == mn:
+                done = parser._read_next_page()
+                if done:
+                    return True
+                parser._current_row_on_page_index = 0
+            return False
+        elif parser._current_page_type == const.page_data_type:
+            process_byte_array_with_data(parser,
+                                         bit_offset +
+                                         const.subheader_pointers_offset +
+                                         parser._current_row_on_page_index *
+                                         parser.row_length,
+                                         parser.row_length, parser._byte_chunk,
+                                         parser._string_chunk)
+            flag = (parser._current_row_on_page_index ==
+                    parser._current_page_block_count)
+            if flag:
+                done = parser._read_next_page()
+                if done:
+                    return True
+                parser._current_row_on_page_index = 0
+            return False
+        else:
+            raise ValueError("unknown page type: %s",
+                             parser._current_page_type)
+
 
 def process_byte_array_with_data(parser, int offset, int length, uint8_t[:, ::1] byte_chunk,
                                  object[:, ::1] string_chunk):

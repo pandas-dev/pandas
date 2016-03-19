@@ -19,158 +19,8 @@ from pandas import compat
 from pandas.io.common import get_filepath_or_buffer, BaseIterator
 import numpy as np
 import struct
-from .saslib import (_rle_decompress, _rdc_decompress,
-                     process_byte_array_with_data)
-
-_magic = (b"\x00\x00\x00\x00\x00\x00\x00\x00" +
-          b"\x00\x00\x00\x00\xc2\xea\x81\x60" +
-          b"\xb3\x14\x11\xcf\xbd\x92\x08\x00" +
-          b"\x09\xc7\x31\x8c\x18\x1f\x10\x11")
-
-_align_1_checker_value = b'3'
-_align_1_offset = 32
-_align_1_length = 1
-_align_1_value = 4
-_u64_byte_checker_value = b'3'
-_align_2_offset = 35
-_align_2_length = 1
-_align_2_value = 4
-_endianness_offset = 37
-_endianness_length = 1
-_platform_offset = 39
-_platform_length = 1
-_encoding_offset = 70
-_encoding_length = 1
-_dataset_offset = 92
-_dataset_length = 64
-_file_type_offset = 156
-_file_type_length = 8
-_date_created_offset = 164
-_date_created_length = 8
-_date_modified_offset = 172
-_date_modified_length = 8
-_header_size_offset = 196
-_header_size_length = 4
-_page_size_offset = 200
-_page_size_length = 4
-_page_count_offset = 204
-_page_count_length = 4
-_sas_release_offset = 216
-_sas_release_length = 8
-_sas_server_type_offset = 224
-_sas_server_type_length = 16
-_os_version_number_offset = 240
-_os_version_number_length = 16
-_os_maker_offset = 256
-_os_maker_length = 16
-_os_name_offset = 272
-_os_name_length = 16
-_page_bit_offset_x86 = 16
-_page_bit_offset_x64 = 32
-_subheader_pointer_length_x86 = 12
-_subheader_pointer_length_x64 = 24
-_page_type_offset = 0
-_page_type_length = 2
-_block_count_offset = 2
-_block_count_length = 2
-_subheader_count_offset = 4
-_subheader_count_length = 2
-_page_meta_type = 0
-_page_data_type = 256
-_page_amd_type = 1024
-_page_metc_type = 16384
-_page_comp_type = -28672
-_page_mix_types = [512, 640]
-_subheader_pointers_offset = 8
-_truncated_subheader_id = 1
-_compressed_subheader_id = 4
-_compressed_subheader_type = 1
-_text_block_size_length = 2
-_row_length_offset_multiplier = 5
-_row_count_offset_multiplier = 6
-_col_count_p1_multiplier = 9
-_col_count_p2_multiplier = 10
-_row_count_on_mix_page_offset_multiplier = 15
-_column_name_pointer_length = 8
-_column_name_text_subheader_offset = 0
-_column_name_text_subheader_length = 2
-_column_name_offset_offset = 2
-_column_name_offset_length = 2
-_column_name_length_offset = 4
-_column_name_length_length = 2
-_column_data_offset_offset = 8
-_column_data_length_offset = 8
-_column_data_length_length = 4
-_column_type_offset = 14
-_column_type_length = 1
-_column_format_text_subheader_index_offset = 22
-_column_format_text_subheader_index_length = 2
-_column_format_offset_offset = 24
-_column_format_offset_length = 2
-_column_format_length_offset = 26
-_column_format_length_length = 2
-_column_label_text_subheader_index_offset = 28
-_column_label_text_subheader_index_length = 2
-_column_label_offset_offset = 30
-_column_label_offset_length = 2
-_column_label_length_offset = 32
-_column_label_length_length = 2
-_rle_compression = 'SASYZCRL'
-_rdc_compression = 'SASYZCR2'
-
-_compression_literals = [_rle_compression, _rdc_compression]
-
-# Incomplete list of encodings, using SAS nomenclature:
-# http://support.sas.com/documentation/cdl/en/nlsref/61893/HTML/default/viewer.htm#a002607278.htm
-_encoding_names = {29: "latin1", 20: "utf-8", 33: "cyrillic", 60: "wlatin2",
-                   61: "wcyrillic", 62: "wlatin1", 90: "ebcdic870"}
-
-# Should be enum
-
-
-class _index:
-    rowSizeIndex = 0
-    columnSizeIndex = 1
-    subheaderCountsIndex = 2
-    columnTextIndex = 3
-    columnNameIndex = 4
-    columnAttributesIndex = 5
-    formatAndLabelIndex = 6
-    columnListIndex = 7
-    dataSubheaderIndex = 8
-
-
-_subheader_signature_to_index = {
-    b"\xF7\xF7\xF7\xF7": _index.rowSizeIndex,
-    b"\x00\x00\x00\x00\xF7\xF7\xF7\xF7": _index.rowSizeIndex,
-    b"\xF7\xF7\xF7\xF7\x00\x00\x00\x00": _index.rowSizeIndex,
-    b"\xF7\xF7\xF7\xF7\xFF\xFF\xFB\xFE": _index.rowSizeIndex,
-    b"\xF6\xF6\xF6\xF6": _index.columnSizeIndex,
-    b"\x00\x00\x00\x00\xF6\xF6\xF6\xF6": _index.columnSizeIndex,
-    b"\xF6\xF6\xF6\xF6\x00\x00\x00\x00": _index.columnSizeIndex,
-    b"\xF6\xF6\xF6\xF6\xFF\xFF\xFB\xFE": _index.columnSizeIndex,
-    b"\x00\xFC\xFF\xFF": _index.subheaderCountsIndex,
-    b"\xFF\xFF\xFC\x00": _index.subheaderCountsIndex,
-    b"\x00\xFC\xFF\xFF\xFF\xFF\xFF\xFF": _index.subheaderCountsIndex,
-    b"\xFF\xFF\xFF\xFF\xFF\xFF\xFC\x00": _index.subheaderCountsIndex,
-    b"\xFD\xFF\xFF\xFF": _index.columnTextIndex,
-    b"\xFF\xFF\xFF\xFD": _index.columnTextIndex,
-    b"\xFD\xFF\xFF\xFF\xFF\xFF\xFF\xFF": _index.columnTextIndex,
-    b"\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFD": _index.columnTextIndex,
-    b"\xFF\xFF\xFF\xFF": _index.columnNameIndex,
-    b"\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF": _index.columnNameIndex,
-    b"\xFC\xFF\xFF\xFF": _index.columnAttributesIndex,
-    b"\xFF\xFF\xFF\xFC": _index.columnAttributesIndex,
-    b"\xFC\xFF\xFF\xFF\xFF\xFF\xFF\xFF": _index.columnAttributesIndex,
-    b"\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFC": _index.columnAttributesIndex,
-    b"\xFE\xFB\xFF\xFF": _index.formatAndLabelIndex,
-    b"\xFF\xFF\xFB\xFE": _index.formatAndLabelIndex,
-    b"\xFE\xFB\xFF\xFF\xFF\xFF\xFF\xFF": _index.formatAndLabelIndex,
-    b"\xFF\xFF\xFF\xFF\xFF\xFF\xFB\xFE": _index.formatAndLabelIndex,
-    b"\xFE\xFF\xFF\xFF": _index.columnListIndex,
-    b"\xFF\xFF\xFF\xFE": _index.columnListIndex,
-    b"\xFE\xFF\xFF\xFF\xFF\xFF\xFF\xFF": _index.columnListIndex,
-    b"\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFE": _index.columnListIndex}
+import pandas.io.sas.sas_constants as const
+from .saslib import (_rle_decompress, _rdc_decompress, _readline)
 
 
 class _subheader_pointer(object):
@@ -242,44 +92,45 @@ class SAS7BDATReader(BaseIterator):
         # Check magic number
         self._path_or_buf.seek(0)
         self._cached_page = self._path_or_buf.read(288)
-        if self._cached_page[0:len(_magic)] != _magic:
+        if self._cached_page[0:len(const.magic)] != const.magic:
             raise ValueError("magic number mismatch (not a SAS file?)")
 
         # Get alignment information
         align1, align2 = 0, 0
-        buf = self._read_bytes(_align_1_offset, _align_1_length)
-        if buf == _u64_byte_checker_value:
-            align2 = _align_2_value
+        buf = self._read_bytes(const.align_1_offset, const.align_1_length)
+        if buf == const.u64_byte_checker_value:
+            align2 = const.align_2_value
             self.U64 = True
             self._int_length = 8
-            self._page_bit_offset = _page_bit_offset_x64
-            self._subheader_pointer_length = _subheader_pointer_length_x64
+            self._page_bit_offset = const.page_bit_offset_x64
+            self._subheader_pointer_length = const.subheader_pointer_length_x64
         else:
             self.U64 = False
-            self._page_bit_offset = _page_bit_offset_x86
-            self._subheader_pointer_length = _subheader_pointer_length_x86
+            self._page_bit_offset = const.page_bit_offset_x86
+            self._subheader_pointer_length = const.subheader_pointer_length_x86
             self._int_length = 4
-        buf = self._read_bytes(_align_2_offset, _align_2_length)
-        if buf == _align_1_checker_value:
-            align1 = _align_2_value
+        buf = self._read_bytes(const.align_2_offset, const.align_2_length)
+        if buf == const.align_1_checker_value:
+            align1 = const.align_2_value
         total_align = align1 + align2
 
         # Get endianness information
-        buf = self._read_bytes(_endianness_offset, _endianness_length)
+        buf = self._read_bytes(const.endianness_offset,
+                               const.endianness_length)
         if buf == b'\x01':
             self.byte_order = "<"
         else:
             self.byte_order = ">"
 
         # Get encoding information
-        buf = self._read_bytes(_encoding_offset, _encoding_length)[0]
-        if buf in _encoding_names:
-            self.file_encoding = _encoding_names[buf]
+        buf = self._read_bytes(const.encoding_offset, const.encoding_length)[0]
+        if buf in const.encoding_names:
+            self.file_encoding = const.encoding_names[buf]
         else:
             self.file_encoding = "unknown (code=%s)" % str(buf)
 
         # Get platform information
-        buf = self._read_bytes(_platform_offset, _platform_length)
+        buf = self._read_bytes(const.platform_offset, const.platform_length)
         if buf == b'1':
             self.platform = "unix"
         elif buf == b'2':
@@ -287,23 +138,23 @@ class SAS7BDATReader(BaseIterator):
         else:
             self.platform = "unknown"
 
-        buf = self._read_bytes(_dataset_offset, _dataset_length)
+        buf = self._read_bytes(const.dataset_offset, const.dataset_length)
         self.name = buf.rstrip(b'\x00 ').decode()
 
-        buf = self._read_bytes(_file_type_offset, _file_type_length)
+        buf = self._read_bytes(const.file_type_offset, const.file_type_length)
         self.file_type = buf.rstrip(b'\x00 ').decode()
 
         # Timestamp is epoch 01/01/1960
         epoch = pd.datetime(1960, 1, 1)
-        x = self._read_float(_date_created_offset + align1,
-                             _date_created_length)
+        x = self._read_float(const.date_created_offset + align1,
+                             const.date_created_length)
         self.date_created = epoch + pd.to_timedelta(x, unit='s')
-        x = self._read_float(_date_modified_offset + align1,
-                             _date_modified_length)
+        x = self._read_float(const.date_modified_offset + align1,
+                             const.date_modified_length)
         self.date_modified = epoch + pd.to_timedelta(x, unit='s')
 
-        self.header_length = self._read_int(_header_size_offset + align1,
-                                            _header_size_length)
+        self.header_length = self._read_int(const.header_size_offset + align1,
+                                            const.header_size_length)
 
         # Read the rest of the header into cached_page.
         buf = self._path_or_buf.read(self.header_length - 288)
@@ -311,29 +162,30 @@ class SAS7BDATReader(BaseIterator):
         if len(self._cached_page) != self.header_length:
             raise ValueError("The SAS7BDAT file appears to be truncated.")
 
-        self._page_length = self._read_int(_page_size_offset + align1,
-                                           _page_size_length)
-        self._page_count = self._read_int(_page_count_offset + align1,
-                                          _page_count_length)
+        self._page_length = self._read_int(const.page_size_offset + align1,
+                                           const.page_size_length)
+        self._page_count = self._read_int(const.page_count_offset + align1,
+                                          const.page_count_length)
 
-        buf = self._read_bytes(_sas_release_offset + total_align,
-                               _sas_release_length)
+        buf = self._read_bytes(const.sas_release_offset + total_align,
+                               const.sas_release_length)
         self.sas_release = buf.rstrip(b'\x00 ').decode()
 
-        buf = self._read_bytes(_sas_server_type_offset + total_align,
-                               _sas_server_type_length)
+        buf = self._read_bytes(const.sas_server_type_offset + total_align,
+                               const.sas_server_type_length)
         self.server_type = buf.rstrip(b'\x00 ').decode()
 
-        buf = self._read_bytes(_os_version_number_offset + total_align,
-                               _os_version_number_length)
+        buf = self._read_bytes(const.os_version_number_offset + total_align,
+                               const.os_version_number_length)
         self.os_version = buf.rstrip(b'\x00 ').decode()
 
-        buf = self._read_bytes(_os_name_offset, _os_name_length)
+        buf = self._read_bytes(const.os_name_offset, const.os_name_length)
         buf = buf.rstrip(b'\x00 ')
         if len(buf) > 0:
             self.os_name = buf.decode()
         else:
-            buf = self._read_bytes(_os_maker_offset, _os_maker_length)
+            buf = self._read_bytes(const.os_maker_offset,
+                                   const.os_maker_length)
             self.os_name = buf.rstrip(b'\x00 ').decode()
 
     # Read a single float of the given width (4 or 8).
@@ -379,32 +231,32 @@ class SAS7BDATReader(BaseIterator):
 
     def _process_page_meta(self):
         self._read_page_header()
-        pt = [_page_meta_type, _page_amd_type] + _page_mix_types
+        pt = [const.page_meta_type, const.page_amd_type] + const.page_mix_types
         if self._current_page_type in pt:
             self._process_page_metadata()
-        return ((self._current_page_type in [256] + _page_mix_types) or
+        return ((self._current_page_type in [256] + const.page_mix_types) or
                 (self._current_page_data_subheader_pointers is not None))
 
     def _read_page_header(self):
         bit_offset = self._page_bit_offset
-        tx = _page_type_offset + bit_offset
-        self._current_page_type = self._read_int(tx, _page_type_length)
-        tx = _block_count_offset + bit_offset
-        self._current_page_block_count = self._read_int(tx,
-                                                        _block_count_length)
-        tx = _subheader_count_offset + bit_offset
+        tx = const.page_type_offset + bit_offset
+        self._current_page_type = self._read_int(tx, const.page_type_length)
+        tx = const.block_count_offset + bit_offset
+        self._current_page_block_count = self._read_int(
+            tx, const.block_count_length)
+        tx = const.subheader_count_offset + bit_offset
         self._current_page_subheaders_count = (
-            self._read_int(tx, _subheader_count_length))
+            self._read_int(tx, const.subheader_count_length))
 
     def _process_page_metadata(self):
         bit_offset = self._page_bit_offset
 
         for i in range(self._current_page_subheaders_count):
             pointer = self._process_subheader_pointers(
-                _subheader_pointers_offset + bit_offset, i)
+                const.subheader_pointers_offset + bit_offset, i)
             if pointer.length == 0:
                 continue
-            if pointer.compression == _truncated_subheader_id:
+            if pointer.compression == const.truncated_subheader_id:
                 continue
             subheader_signature = self._read_subheader_signature(
                 pointer.offset)
@@ -414,13 +266,13 @@ class SAS7BDATReader(BaseIterator):
             self._process_subheader(subheader_index, pointer)
 
     def _get_subheader_index(self, signature, compression, ptype):
-        index = _subheader_signature_to_index.get(signature)
+        index = const.subheader_signature_to_index.get(signature)
         if index is None:
-            f1 = ((compression == _compressed_subheader_id) or
+            f1 = ((compression == const.compressed_subheader_id) or
                   (compression == 0))
-            f2 = (ptype == _compressed_subheader_type)
+            f2 = (ptype == const.compressed_subheader_type)
             if (self.compression != "") and f1 and f2:
-                index = _index.dataSubheaderIndex
+                index = const.index.dataSubheaderIndex
             else:
                 raise ValueError("Unknown subheader signature")
         return index
@@ -458,23 +310,23 @@ class SAS7BDATReader(BaseIterator):
         offset = pointer.offset
         length = pointer.length
 
-        if subheader_index == _index.rowSizeIndex:
+        if subheader_index == const.index.rowSizeIndex:
             processor = self._process_rowsize_subheader
-        elif subheader_index == _index.columnSizeIndex:
+        elif subheader_index == const.index.columnSizeIndex:
             processor = self._process_columnsize_subheader
-        elif subheader_index == _index.columnTextIndex:
+        elif subheader_index == const.index.columnTextIndex:
             processor = self._process_columntext_subheader
-        elif subheader_index == _index.columnNameIndex:
+        elif subheader_index == const.index.columnNameIndex:
             processor = self._process_columnname_subheader
-        elif subheader_index == _index.columnAttributesIndex:
+        elif subheader_index == const.index.columnAttributesIndex:
             processor = self._process_columnattributes_subheader
-        elif subheader_index == _index.formatAndLabelIndex:
+        elif subheader_index == const.index.formatAndLabelIndex:
             processor = self._process_format_subheader
-        elif subheader_index == _index.columnListIndex:
+        elif subheader_index == const.index.columnListIndex:
             processor = self._process_columnlist_subheader
-        elif subheader_index == _index.subheaderCountsIndex:
+        elif subheader_index == const.index.subheaderCountsIndex:
             processor = self._process_subheader_counts
-        elif subheader_index == _index.dataSubheaderIndex:
+        elif subheader_index == const.index.dataSubheaderIndex:
             self._current_page_data_subheader_pointers.append(pointer)
             return
         else:
@@ -495,14 +347,14 @@ class SAS7BDATReader(BaseIterator):
             lcp_offset += 378
 
         self.row_length = self._read_int(
-            offset + _row_length_offset_multiplier * int_len, int_len)
+            offset + const.row_length_offset_multiplier * int_len, int_len)
         self.row_count = self._read_int(
-            offset + _row_count_offset_multiplier * int_len, int_len)
+            offset + const.row_count_offset_multiplier * int_len, int_len)
         self.col_count_p1 = self._read_int(
-            offset + _col_count_p1_multiplier * int_len, int_len)
+            offset + const.col_count_p1_multiplier * int_len, int_len)
         self.col_count_p2 = self._read_int(
-            offset + _col_count_p2_multiplier * int_len, int_len)
-        mx = _row_count_on_mix_page_offset_multiplier * int_len
+            offset + const.col_count_p2_multiplier * int_len, int_len)
+        mx = const.row_count_on_mix_page_offset_multiplier * int_len
         self._mix_page_row_count = self._read_int(offset + mx, int_len)
         self._lcs = self._read_int(lcs_offset, 2)
         self._lcp = self._read_int(lcp_offset, 2)
@@ -523,7 +375,7 @@ class SAS7BDATReader(BaseIterator):
     def _process_columntext_subheader(self, offset, length):
 
         offset += self._int_length
-        text_block_size = self._read_int(offset, _text_block_size_length)
+        text_block_size = self._read_int(offset, const.text_block_size_length)
 
         buf = self._read_bytes(offset, text_block_size)
         self.column_names_strings.append(
@@ -532,7 +384,7 @@ class SAS7BDATReader(BaseIterator):
         if len(self.column_names_strings) == 1:
             column_name = self.column_names_strings[0]
             compression_literal = ""
-            for cl in _compression_literals:
+            for cl in const.compression_literals:
                 if cl in column_name:
                     compression_literal = cl
             self.compression = compression_literal
@@ -551,7 +403,7 @@ class SAS7BDATReader(BaseIterator):
                     offset1 += 4
                 buf = self._read_bytes(offset1, self._lcp)
                 self.creator_proc = buf[0:self._lcp].decode()
-            elif compression_literal == _rle_compression:
+            elif compression_literal == const.rle_compression:
                 offset1 = offset + 40
                 if self.U64:
                     offset1 += 4
@@ -570,19 +422,19 @@ class SAS7BDATReader(BaseIterator):
         offset += int_len
         column_name_pointers_count = (length - 2 * int_len - 12) // 8
         for i in range(column_name_pointers_count):
-            text_subheader = offset + _column_name_pointer_length * \
-                (i + 1) + _column_name_text_subheader_offset
-            col_name_offset = offset + _column_name_pointer_length * \
-                (i + 1) + _column_name_offset_offset
-            col_name_length = offset + _column_name_pointer_length * \
-                (i + 1) + _column_name_length_offset
+            text_subheader = offset + const.column_name_pointer_length * \
+                (i + 1) + const.column_name_text_subheader_offset
+            col_name_offset = offset + const.column_name_pointer_length * \
+                (i + 1) + const.column_name_offset_offset
+            col_name_length = offset + const.column_name_pointer_length * \
+                (i + 1) + const.column_name_length_offset
 
             idx = self._read_int(
-                text_subheader, _column_name_text_subheader_length)
+                text_subheader, const.column_name_text_subheader_length)
             col_offset = self._read_int(
-                col_name_offset, _column_name_offset_length)
+                col_name_offset, const.column_name_offset_length)
             col_len = self._read_int(
-                col_name_length, _column_name_length_length)
+                col_name_length, const.column_name_length_length)
 
             name_str = self.column_names_strings[idx]
             self.column_names.append(name_str[col_offset:col_offset + col_len])
@@ -599,19 +451,21 @@ class SAS7BDATReader(BaseIterator):
             column_attributes_vectors_count, dtype=np.int64)
         for i in range(column_attributes_vectors_count):
             col_data_offset = (offset + int_len +
-                               _column_data_offset_offset + i * (int_len + 8))
+                               const.column_data_offset_offset +
+                               i * (int_len + 8))
             col_data_len = (offset + 2 * int_len +
-                            _column_data_length_offset + i * (int_len + 8))
+                            const.column_data_length_offset +
+                            i * (int_len + 8))
             col_types = (offset + 2 * int_len +
-                         _column_type_offset + i * (int_len + 8))
+                         const.column_type_offset + i * (int_len + 8))
 
             x = self._read_int(col_data_offset, int_len)
             self._column_data_offsets[i] = x
 
-            x = self._read_int(col_data_len, _column_data_length_length)
+            x = self._read_int(col_data_len, const.column_data_length_length)
             self._column_data_lengths[i] = x
 
-            x = self._read_int(col_types, _column_type_length)
+            x = self._read_int(col_types, const.column_type_length)
             if x == 1:
                 self.column_types[i] = b'd'
             else:
@@ -623,31 +477,43 @@ class SAS7BDATReader(BaseIterator):
 
     def _process_format_subheader(self, offset, length):
         int_len = self._int_length
-        text_subheader_format = offset + \
-            _column_format_text_subheader_index_offset + 3 * int_len
-        col_format_offset = offset + _column_format_offset_offset + 3 * int_len
-        col_format_len = offset + _column_format_length_offset + 3 * int_len
-        text_subheader_label = offset + \
-            _column_label_text_subheader_index_offset + 3 * int_len
-        col_label_offset = offset + _column_label_offset_offset + 3 * int_len
-        col_label_len = offset + _column_label_length_offset + 3 * int_len
+        text_subheader_format = (
+            offset +
+            const.column_format_text_subheader_index_offset +
+            3 * int_len)
+        col_format_offset = (offset +
+                             const.column_format_offset_offset +
+                             3 * int_len)
+        col_format_len = (offset +
+                          const.column_format_length_offset +
+                          3 * int_len)
+        text_subheader_label = (
+            offset +
+            const.column_label_text_subheader_index_offset +
+            3 * int_len)
+        col_label_offset = (offset +
+                            const.column_label_offset_offset +
+                            3 * int_len)
+        col_label_len = offset + const.column_label_length_offset + 3 * int_len
 
         x = self._read_int(text_subheader_format,
-                           _column_format_text_subheader_index_length)
+                           const.column_format_text_subheader_index_length)
         format_idx = min(x, len(self.column_names_strings) - 1)
 
         format_start = self._read_int(
-            col_format_offset, _column_format_offset_length)
+            col_format_offset, const.column_format_offset_length)
         format_len = self._read_int(
-            col_format_len, _column_format_length_length)
+            col_format_len, const.column_format_length_length)
 
         label_idx = self._read_int(
-            text_subheader_label, _column_label_text_subheader_index_length)
+            text_subheader_label,
+            const.column_label_text_subheader_index_length)
         label_idx = min(label_idx, len(self.column_names_strings) - 1)
 
         label_start = self._read_int(
-            col_label_offset, _column_label_offset_length)
-        label_len = self._read_int(col_label_len, _column_label_length_length)
+            col_label_offset, const.column_label_offset_length)
+        label_len = self._read_int(col_label_len,
+                                   const.column_label_length_length)
 
         label_names = self.column_names_strings[label_idx]
         column_label = label_names[label_start: label_start + label_len]
@@ -684,7 +550,7 @@ class SAS7BDATReader(BaseIterator):
 
         self._current_row_in_chunk_index = 0
         for i in range(nrows):
-            done = self._readline()
+            done = _readline(self)
             if done:
                 break
 
@@ -693,78 +559,6 @@ class SAS7BDATReader(BaseIterator):
             rslt = rslt.set_index(self.index)
 
         return rslt
-
-    def _readline(self):
-
-        bit_offset = self._page_bit_offset
-        subheader_pointer_length = self._subheader_pointer_length
-
-        # If there is no page, go to the end of the header and read a page.
-        if self._cached_page is None:
-            self._path_or_buf.seek(self.header_length)
-            done = self._read_next_page()
-            if done:
-                return True
-
-        # Loop until a data row is read
-        while True:
-            if self._current_page_type == _page_meta_type:
-                flag = (self._current_row_on_page_index >=
-                        len(self._current_page_data_subheader_pointers))
-                if flag:
-                    done = self._read_next_page()
-                    if done:
-                        return True
-                    self._current_row_on_page_index = 0
-                    continue
-                current_subheader_pointer = (
-                    self._current_page_data_subheader_pointers[
-                        self._current_row_on_page_index])
-                process_byte_array_with_data(self,
-                                             current_subheader_pointer.offset,
-                                             current_subheader_pointer.length,
-                                             self._byte_chunk,
-                                             self._string_chunk)
-                return False
-            elif self._current_page_type in _page_mix_types:
-                align_correction = (bit_offset + _subheader_pointers_offset +
-                                    self._current_page_subheaders_count *
-                                    subheader_pointer_length)
-                align_correction = align_correction % 8
-                offset = bit_offset + align_correction
-                offset += _subheader_pointers_offset
-                offset += (self._current_page_subheaders_count *
-                           subheader_pointer_length)
-                offset += self._current_row_on_page_index * self.row_length
-                process_byte_array_with_data(self, offset, self.row_length,
-                                             self._byte_chunk,
-                                             self._string_chunk)
-                mn = min(self.row_count, self._mix_page_row_count)
-                if self._current_row_on_page_index == mn:
-                    done = self._read_next_page()
-                    if done:
-                        return True
-                    self._current_row_on_page_index = 0
-                return False
-            elif self._current_page_type == _page_data_type:
-                process_byte_array_with_data(self,
-                                             bit_offset +
-                                             _subheader_pointers_offset +
-                                             self._current_row_on_page_index *
-                                             self.row_length,
-                                             self.row_length, self._byte_chunk,
-                                             self._string_chunk)
-                flag = (self._current_row_on_page_index ==
-                        self._current_page_block_count)
-                if flag:
-                    done = self._read_next_page()
-                    if done:
-                        return True
-                    self._current_row_on_page_index = 0
-                return False
-            else:
-                raise ValueError("unknown page type: %s",
-                                 self._current_page_type)
 
     def _read_next_page(self):
         self._current_page_data_subheader_pointers = []
@@ -778,9 +572,10 @@ class SAS7BDATReader(BaseIterator):
                                         self._page_length))
 
         self._read_page_header()
-        if self._current_page_type == _page_meta_type:
+        if self._current_page_type == const.page_meta_type:
             self._process_page_metadata()
-        pt = [_page_meta_type, _page_data_type] + [_page_mix_types]
+        pt = [const.page_meta_type, const.page_data_type]
+        pt += [const.page_mix_types]
         if self._current_page_type not in pt:
             return self._read_next_page()
 
@@ -788,9 +583,9 @@ class SAS7BDATReader(BaseIterator):
 
     def _decompress(self, row_length, page):
         page = np.frombuffer(page, dtype=np.uint8)
-        if self.compression == _rle_compression:
+        if self.compression == const.rle_compression:
             return _rle_decompress(row_length, page)
-        elif self.compression == _rdc_compression:
+        elif self.compression == const.rdc_compression:
             return _rdc_decompress(row_length, page)
         else:
             raise ValueError("unknown SAS compression method: %s" %
