@@ -120,7 +120,8 @@ _rdc_compression = 'SASYZCR2'
 
 _compression_literals = [_rle_compression, _rdc_compression]
 
-# Incomplete list of encodings
+# Incomplete list of encodings, using SAS nomenclature:
+# http://support.sas.com/documentation/cdl/en/nlsref/61893/HTML/default/viewer.htm#a002607278.htm
 _encoding_names = {29: "latin1", 20: "utf-8", 33: "cyrillic", 60: "wlatin2",
                    61: "wcyrillic", 62: "wlatin1", 90: "ebcdic870"}
 
@@ -526,7 +527,7 @@ class SAS7BDATReader(BaseIterator):
 
         buf = self._read_bytes(offset, text_block_size)
         self.column_names_strings.append(
-            buf[0:text_block_size].rstrip(b"\x00 ").decode())
+            buf[0:text_block_size].rstrip(b"\x00 ").decode(self.encoding))
 
         if len(self.column_names_strings) == 1:
             column_name = self.column_names_strings[0]

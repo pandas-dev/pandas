@@ -73,3 +73,13 @@ def test_productsales():
     vn = ["ACTUAL", "PREDICT", "QUARTER", "YEAR", "MONTH"]
     df0[vn] = df0[vn].astype(np.float64)
     tm.assert_frame_equal(df, df0)
+
+
+def test_12659():
+    dirpath = tm.get_data_path()
+    fname = os.path.join(dirpath, "test_12659.sas7bdat")
+    df = pd.read_sas(fname, encoding='latin1')
+    fname = os.path.join(dirpath, "test_12659.csv")
+    df0 = pd.read_csv(fname)
+    df0 = df0.astype(np.float64)
+    tm.assert_frame_equal(df, df0)
