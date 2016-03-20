@@ -466,6 +466,12 @@ preserve the location of NA values:
 
    df.cumsum()
 
+Also, refer to the ``expanding()`` function which is similar to the ``cumsum`` function.
+
+.. ipython:: python
+
+   df.expanding()
+
 Here is a quick reference summary table of common functions. Each also takes an
 optional ``level`` parameter which applies only if the object has a
 :ref:`hierarchical index<advanced.hierarchical>`.
