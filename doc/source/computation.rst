@@ -578,15 +578,7 @@ they are implemented in pandas such that the following two calls are equivalent:
    df.expanding(min_periods=1).mean()[:5]
 
 These have a similar set of methods to ``.rolling`` methods.
-Also ``.expanding().sum()`` has a similar functionality to ``.cumsum().ffill()`` 
-
-..ipython:: python
-	df.expanding().sum()
-	
-	df.cumsum().ffill()
-	df.cumprod().ffill()
-	df.cummax().ffill()
-	df.cummin().ffill()
+Please see the :ref:`cumsum, cummax, cummin, cumprod <basics.stats>`
 
 Method Summary
 ~~~~~~~~~~~~~~
