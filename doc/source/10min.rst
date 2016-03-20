@@ -286,6 +286,12 @@ A ``where`` operation for getting.
 
 .. ipython:: python
 
+   df.where(df>0)
+
+It is similar to the statement.
+
+.. ipython:: python
+
    df[df > 0]
 
 Using the :func:`~Series.isin` method for filtering:
