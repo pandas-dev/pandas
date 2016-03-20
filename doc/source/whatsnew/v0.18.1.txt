@@ -55,6 +55,12 @@ API changes
 
 
 
+- ``CParserError`` is now a ``ValueError`` instead of just an ``Exception`` (:issue:`12551`)
+
+
+
+
+
 
 
 
@@ -95,6 +101,7 @@ Performance Improvements
 
 Bug Fixes
 ~~~~~~~~~
+- ``usecols`` parameter in ``pd.read_csv`` is now respected even when the lines of a CSV file are not even (:issue:`12203`)
 
 - Bug in ``Period`` and ``PeriodIndex`` creation raises ``KeyError`` if ``freq="Minute"`` is specified. Note that "Minute" freq is deprecated in v0.17.0, and recommended to use ``freq="T"`` instead (:issue:`11854`)
 - Bug in printing data which contains ``Period`` with different ``freq`` raises ``ValueError`` (:issue:`12615`)

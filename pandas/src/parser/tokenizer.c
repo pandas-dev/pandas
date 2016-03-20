@@ -494,7 +494,8 @@ static int end_line(parser_t *self) {
     /* printf("Line: %d, Fields: %d, Ex-fields: %d\n", self->lines, fields, ex_fields); */
 
     if (!(self->lines <= self->header_end + 1)
-        && (self->expected_fields < 0 && fields > ex_fields)) {
+        && (self->expected_fields < 0 && fields > ex_fields)
+        && !(self->usecols)) {
         // increment file line count
         self->file_lines++;
 

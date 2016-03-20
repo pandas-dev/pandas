@@ -2664,6 +2664,37 @@ MyColumn
         for count in range(1, 101):
             test_empty_header_read(count)
 
+    def test_uneven_lines_with_usecols(self):
+        # See gh-12203
+        csv = r"""a,b,c
+        0,1,2
+        3,4,5,6,7
+        8,9,10
+        """
+
+        # make sure that an error is still thrown
+        # when the 'usecols' parameter is not provided
+        msg = "Expected \d+ fields in line \d+, saw \d+"
+        with tm.assertRaisesRegexp(ValueError, msg):
+            df = self.read_csv(StringIO(csv))
+
+        expected = DataFrame({
+            'a': [0, 3, 8],
+            'b': [1, 4, 9]
+        })
+
+        usecols = [0, 1]
+        df = self.read_csv(StringIO(csv), usecols=usecols)
+        tm.assert_frame_equal(df, expected)
+
+        usecols = ['a', 1]
+        df = self.read_csv(StringIO(csv), usecols=usecols)
+        tm.assert_frame_equal(df, expected)
+
+        usecols = ['a', 'b']
+        df = self.read_csv(StringIO(csv), usecols=usecols)
+        tm.assert_frame_equal(df, expected)
+
 
 class TestPythonParser(ParserTests, tm.TestCase):
 
