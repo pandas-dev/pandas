@@ -282,7 +282,8 @@ Using a single column's values to select data.
 
    df[df.A > 0]
 
-A ``where`` operation for getting.
+A ``where`` is an attribute of the DataFrame class which helps in getting the results
+based upon the conditional statement that was passed as an argument.
 
 .. ipython:: python
 
