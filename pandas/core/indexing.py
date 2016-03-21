@@ -1748,7 +1748,7 @@ def convert_to_index_sliceable(obj, key):
         if idx.is_all_dates:
             try:
                 return idx._get_string_slice(key)
-            except ValueError:
+            except (ValueError, NotImplementedError):
                 return None
 
     return None
