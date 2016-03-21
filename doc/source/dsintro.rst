@@ -720,10 +720,25 @@ option:
 
    pd.DataFrame(np.random.randn(3, 12))
 
+You can adjust the max width of the individual columns by setting ``display.max_colwidth``
+
+.. ipython:: python
+
+   datafile={'filename': ['filename_01','filename_02'],
+             'path': ["media/user_name/storage/folder_01/filename_01",
+                      "media/user_name/storage/folder_02/filename_02"]}
+
+   pd.set_option('display.max_colwidth',30)
+   pd.DataFrame(datafile)
+
+   pd.set_option('display.max_colwidth',100)
+   pd.DataFrame(datafile)
+
 .. ipython:: python
    :suppress:
 
    pd.reset_option('display.width')
+   pd.reset_option('display.max_colwidth')
 
 You can also disable this feature via the ``expand_frame_repr`` option.
 This will print the table in one block.
