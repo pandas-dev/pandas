@@ -422,6 +422,20 @@ We are stopping on the included end-point as it is part of the index
 
       dft.loc['2013-1-15 12:30:00']
 
+DatetimeIndex Partial String Indexing also works on DataFrames with hierarchical indexing (``MultiIndex``). For
+instance:
+
+.. ipython:: python
+
+   dft2 = pd.DataFrame(randn(20,1),
+                    columns=['A'],
+                    index=pd.MultiIndex.from_product([date_range('20130101',
+                                                              periods=10,
+                                                              freq='12H'),
+                                                  ['a', 'b']]))
+   dft2.loc['2013-01-05']
+   dft2 = dft2.swaplevel(0, 1).sort_index()
+   dft2.loc[pd.IndexSlice[:,'2013-01-05'],:]
 
 Datetime Indexing
 ~~~~~~~~~~~~~~~~~
