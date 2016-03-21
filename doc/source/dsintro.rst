@@ -725,10 +725,16 @@ option:
 
 .. ipython:: python
 
-   pd.set_option('display.max_colwidth',500)
-
-   pd.DataFrame(np.random.randn(3, 12))
+   datafile={'filename':['children.jpg','flower.jpg'],
+   	     'path':["media/prabhjot/PRABHJOT/WALLPAPERS/children.jpg",
+   	     	     "media/prabhjot/PRABHJOT/WALLPAPERS/flower.jpg"]}
    
+   pd.set_option('display.max_colwidth',30)
+   pd.DataFrame(data=datafile)
+   
+   pd.set_option('display.max_colwidth',100)
+   pd.DataFrame(data=datafile)
+
 .. ipython:: python
    :suppress:
 
