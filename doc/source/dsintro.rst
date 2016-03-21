@@ -720,6 +720,15 @@ option:
 
    pd.DataFrame(np.random.randn(3, 12))
 
+Note : You can also adjust the max width of the individual columns by using `display.max_colwidth`
+option:
+
+.. ipython:: python
+
+   pd.set_option('display.max_colwidth',500)
+
+   pd.DataFrame(np.random.randn(3, 12))
+   
 .. ipython:: python
    :suppress:
 
