@@ -33,7 +33,7 @@ Enhancements
 .. _whatsnew_0181.partial_string_indexing:
 
 Partial string indexing on ``DateTimeIndex`` when part of a ``MultiIndex``
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Partial string indexing now matches on ``DateTimeIndex`` when part of a ``MultiIndex`` (:issue:`10331`)
 
