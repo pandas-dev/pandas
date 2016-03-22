@@ -1126,7 +1126,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
             return (right_start == left_end + offset) or right_start in left
         except (ValueError):
 
-            # if we are comparing an offset that does not propogate timezones
+            # if we are comparing an offset that does not propagate timezones
             # this will raise
             return False
 
