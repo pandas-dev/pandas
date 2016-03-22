@@ -3,44 +3,39 @@
 
 # flake8: noqa
 
-from datetime import datetime
 import csv
 import os
-import sys
-import re
-import nose
 import platform
 from distutils.version import LooseVersion
 
+import re
+import sys
+from datetime import datetime
 from multiprocessing.pool import ThreadPool
 
-from numpy import nan
+import nose
 import numpy as np
-from pandas.io.common import DtypeWarning
+import pandas.lib as lib
+import pandas.parser
+from numpy import nan
+from numpy.testing.decorators import slow
+from pandas.lib import Timestamp
 
+import pandas as pd
+import pandas.io.parsers as parsers
+import pandas.tseries.tools as tools
+import pandas.util.testing as tm
 from pandas import DataFrame, Series, Index, MultiIndex, DatetimeIndex
+from pandas import compat
 from pandas.compat import(
     StringIO, BytesIO, PY3, range, long, lrange, lmap, u
 )
-from pandas.io.common import URLError
-import pandas.io.parsers as parsers
+from pandas.compat import parse_date
+from pandas.core.common import AbstractMethodError
+from pandas.io.common import DtypeWarning, URLError
 from pandas.io.parsers import (read_csv, read_table, read_fwf,
                                TextFileReader, TextParser)
-
-import pandas.util.testing as tm
-import pandas as pd
-
-from pandas.core.common import AbstractMethodError
-from pandas.compat import parse_date
-import pandas.lib as lib
-from pandas import compat
-from pandas.lib import Timestamp
 from pandas.tseries.index import date_range
-import pandas.tseries.tools as tools
-
-from numpy.testing.decorators import slow
-
-import pandas.parser
 
 
 class ParserTests(object):
@@ -2696,7 +2691,166 @@ MyColumn
         tm.assert_frame_equal(df, expected)
 
 
-class TestPythonParser(ParserTests, tm.TestCase):
+class CompressionTests(object):
+    def test_zip(self):
+        try:
+            import zipfile
+        except ImportError:
+            raise nose.SkipTest('need zipfile to run')
+
+        with open(self.csv1, 'rb') as data_file:
+            data = data_file.read()
+            expected = self.read_csv(self.csv1)
+
+        with tm.ensure_clean('test_file.zip') as path:
+            tmp = zipfile.ZipFile(path, mode='w')
+            tmp.writestr('test_file', data)
+            tmp.close()
+
+            result = self.read_csv(path, compression='zip')
+            tm.assert_frame_equal(result, expected)
+
+            result = self.read_csv(path, compression='infer')
+            tm.assert_frame_equal(result, expected)
+
+            if self.engine is not 'python':
+                with open(path, 'rb') as f:
+                    result = self.read_csv(f, compression='zip')
+                    tm.assert_frame_equal(result, expected)
+
+        with tm.ensure_clean('combined_zip.zip') as path:
+            inner_file_names = ['test_file', 'second_file']
+            tmp = zipfile.ZipFile(path, mode='w')
+            for file_name in inner_file_names:
+                tmp.writestr(file_name, data)
+            tmp.close()
+
+            self.assertRaisesRegexp(ValueError, 'Multiple files', self.read_csv,
+                              path, compression='zip')
+
+            self.assertRaisesRegexp(ValueError, 'Multiple files', self.read_csv,
+                              path, compression='infer')
+
+        with tm.ensure_clean() as path:
+            tmp = zipfile.ZipFile(path, mode='w')
+            tmp.close()
+
+            self.assertRaisesRegexp(ValueError, 'Zero files',self.read_csv,
+                              path, compression='zip')
+
+        with tm.ensure_clean() as path:
+            with open(path, 'wb') as f:
+                self.assertRaises(zipfile.BadZipfile, self.read_csv, f, compression='zip')
+
+
+    def test_gzip(self):
+        try:
+            import gzip
+        except ImportError:
+            raise nose.SkipTest('need gzip to run')
+
+        with open(self.csv1, 'rb') as data_file:
+            data = data_file.read()
+            expected = self.read_csv(self.csv1)
+
+        with tm.ensure_clean() as path:
+            tmp = gzip.GzipFile(path, mode='wb')
+            tmp.write(data)
+            tmp.close()
+
+            result = self.read_csv(path, compression='gzip')
+            tm.assert_frame_equal(result, expected)
+
+            with open(path, 'rb') as f:
+                result = self.read_csv(f, compression='gzip')
+                tm.assert_frame_equal(result, expected)
+
+        with tm.ensure_clean('test.gz') as path:
+            tmp = gzip.GzipFile(path, mode='wb')
+            tmp.write(data)
+            tmp.close()
+            result = self.read_csv(path, compression='infer')
+            tm.assert_frame_equal(result, expected)
+
+    def test_bz2(self):
+        try:
+            import bz2
+        except ImportError:
+            raise nose.SkipTest('need bz2 to run')
+
+        with open(self.csv1, 'rb') as data_file:
+            data = data_file.read()
+            expected = self.read_csv(self.csv1)
+
+        with tm.ensure_clean() as path:
+            tmp = bz2.BZ2File(path, mode='wb')
+            tmp.write(data)
+            tmp.close()
+
+            result = self.read_csv(path, compression='bz2')
+            tm.assert_frame_equal(result, expected)
+
+            self.assertRaises(ValueError, self.read_csv,
+                              path, compression='bz3')
+
+            with open(path, 'rb') as fin:
+                if compat.PY3:
+                    result = self.read_csv(fin, compression='bz2')
+                    tm.assert_frame_equal(result, expected)
+                elif self.engine is not 'python':
+                    self.assertRaises(ValueError, self.read_csv,
+                                      fin, compression='bz2')
+
+        with tm.ensure_clean('test.bz2') as path:
+            tmp = bz2.BZ2File(path, mode='wb')
+            tmp.write(data)
+            tmp.close()
+            result = self.read_csv(path, compression='infer')
+            tm.assert_frame_equal(result, expected)
+
+    def test_decompression_regex_sep(self):
+        try:
+            import gzip
+            import bz2
+        except ImportError:
+            raise nose.SkipTest('need gzip and bz2 to run')
+
+        with open(self.csv1, 'rb') as data_file:
+            data = data_file.read()
+            data = data.replace(b',', b'::')
+            expected = self.read_csv(self.csv1)
+
+        with tm.ensure_clean() as path:
+            tmp = gzip.GzipFile(path, mode='wb')
+            tmp.write(data)
+            tmp.close()
+
+            # GH 6607
+            # Test currently only valid with the python engine because of
+            # regex sep. Temporarily copied to TestPythonParser.
+            # Here test for ValueError when passing regex sep:
+
+            with tm.assertRaisesRegexp(ValueError, 'regex sep'): #XXX
+                result = self.read_csv(path, sep='::', compression='gzip', engine='c')
+                tm.assert_frame_equal(result, expected)
+
+        with tm.ensure_clean() as path:
+            tmp = bz2.BZ2File(path, mode='wb')
+            tmp.write(data)
+            tmp.close()
+
+            # GH 6607
+            with tm.assertRaisesRegexp(ValueError, 'regex sep'): #XXX
+                result = self.read_csv(path, sep='::', compression='bz2', engine='c')
+                tm.assert_frame_equal(result, expected)
+
+            self.assertRaises(ValueError, self.read_csv,
+                              path, compression='bz3')
+
+
+class TestPythonParser(ParserTests, CompressionTests, tm.TestCase):
+
+    engine = 'python'
 
     def test_negative_skipfooter_raises(self):
         text = """#foo,a,b,c
@@ -2716,12 +2870,12 @@ class TestPythonParser(ParserTests, tm.TestCase):
 
     def read_csv(self, *args, **kwds):
         kwds = kwds.copy()
-        kwds['engine'] = 'python'
+        kwds['engine'] = self.engine
         return read_csv(*args, **kwds)
 
     def read_table(self, *args, **kwds):
         kwds = kwds.copy()
-        kwds['engine'] = 'python'
+        kwds['engine'] = self.engine
         return read_table(*args, **kwds)
 
     def float_precision_choices(self):
@@ -3521,17 +3675,19 @@ class CParserTests(ParserTests):
             except Exception as e:
                 pass
 
-class TestCParserHighMemory(CParserTests, tm.TestCase):
+
+class TestCParserHighMemory(CParserTests, CompressionTests, tm.TestCase):
+    engine = 'c'
 
     def read_csv(self, *args, **kwds):
         kwds = kwds.copy()
-        kwds['engine'] = 'c'
+        kwds['engine'] = self.engine
         kwds['low_memory'] = False
         return read_csv(*args, **kwds)
 
     def read_table(self, *args, **kwds):
         kwds = kwds.copy()
-        kwds['engine'] = 'c'
+        kwds['engine'] = self.engine
         kwds['low_memory'] = False
         return read_table(*args, **kwds)
 
@@ -3832,18 +3988,20 @@ MyColumn
         tm.assert_frame_equal(result, expected)
 
 
-class TestCParserLowMemory(CParserTests, tm.TestCase):
+class TestCParserLowMemory(CParserTests, CompressionTests, tm.TestCase):
+
+    engine = 'c'
 
     def read_csv(self, *args, **kwds):
         kwds = kwds.copy()
-        kwds['engine'] = 'c'
+        kwds['engine'] = self.engine
         kwds['low_memory'] = True
         kwds['buffer_lines'] = 2
         return read_csv(*args, **kwds)
 
     def read_table(self, *args, **kwds):
         kwds = kwds.copy()
-        kwds['engine'] = 'c'
+        kwds['engine'] = self.engine
         kwds['low_memory'] = True
         kwds['buffer_lines'] = 2
         return read_table(*args, **kwds)
@@ -4060,86 +4218,6 @@ one,two
         expected = DataFrame({'a': [1, 4], 'b': [2, 5], 'c': [3, 6]})
         tm.assert_frame_equal(result, expected)
 
-    def test_decompression(self):
-        try:
-            import gzip
-            import bz2
-        except ImportError:
-            raise nose.SkipTest('need gzip and bz2 to run')
-
-        data = open(self.csv1, 'rb').read()
-        expected = self.read_csv(self.csv1)
-
-        with tm.ensure_clean() as path:
-            tmp = gzip.GzipFile(path, mode='wb')
-            tmp.write(data)
-            tmp.close()
-
-            result = self.read_csv(path, compression='gzip')
-            tm.assert_frame_equal(result, expected)
-
-            result = self.read_csv(open(path, 'rb'), compression='gzip')
-            tm.assert_frame_equal(result, expected)
-
-        with tm.ensure_clean() as path:
-            tmp = bz2.BZ2File(path, mode='wb')
-            tmp.write(data)
-            tmp.close()
-
-            result = self.read_csv(path, compression='bz2')
-            tm.assert_frame_equal(result, expected)
-
-            # result = self.read_csv(open(path, 'rb'), compression='bz2')
-            # tm.assert_frame_equal(result, expected)
-
-            self.assertRaises(ValueError, self.read_csv,
-                              path, compression='bz3')
-
-            with open(path, 'rb') as fin:
-                if compat.PY3:
-                    result = self.read_csv(fin, compression='bz2')
-                    tm.assert_frame_equal(result, expected)
-                else:
-                    self.assertRaises(ValueError, self.read_csv,
-                                      fin, compression='bz2')
-
-    def test_decompression_regex_sep(self):
-        try:
-            import gzip
-            import bz2
-        except ImportError:
-            raise nose.SkipTest('need gzip and bz2 to run')
-
-        data = open(self.csv1, 'rb').read()
-        data = data.replace(b',', b'::')
-        expected = self.read_csv(self.csv1)
-
-        with tm.ensure_clean() as path:
-            tmp = gzip.GzipFile(path, mode='wb')
-            tmp.write(data)
-            tmp.close()
-
-            # GH 6607
-            # Test currently only valid with the python engine because of
-            # regex sep. Temporarily copied to TestPythonParser.
-            # Here test for ValueError when passing regex sep:
-
-            with tm.assertRaisesRegexp(ValueError, 'regex sep'):  # XXX
-                result = self.read_csv(path, sep='::', compression='gzip')
-                tm.assert_frame_equal(result, expected)
-
-        with tm.ensure_clean() as path:
-            tmp = bz2.BZ2File(path, mode='wb')
-            tmp.write(data)
-            tmp.close()
-
-            # GH 6607
-            with tm.assertRaisesRegexp(ValueError, 'regex sep'):  # XXX
-                result = self.read_csv(path, sep='::', compression='bz2')
-                tm.assert_frame_equal(result, expected)
-
-            self.assertRaises(ValueError, self.read_csv,
-                              path, compression='bz3')
 
     def test_memory_map(self):
         # it works!
