@@ -9,9 +9,9 @@ from pandas.core.categorical import Categorical
 from pandas.core.frame import DataFrame, _merge_doc
 from pandas.core.generic import NDFrame
 from pandas.core.series import Series
-from pandas.core.index import (Index, MultiIndex, _get_combined_index,
-                               _ensure_index, _get_consensus_names,
-                               _all_indexes_same)
+from pandas.core.index import (Index, MultiIndex, RangeIndex,
+                               _get_combined_index, _ensure_index,
+                               _get_consensus_names, _all_indexes_same)
 from pandas.core.internals import (items_overlap_with_suffix,
                                    concatenate_block_managers)
 from pandas.util.decorators import Appender, Substitution
@@ -1079,8 +1079,7 @@ class _Concatenator(object):
             if self.axis == 0:
                 indexes = [x.index for x in self.objs]
             elif self.ignore_index:
-                idx = Index(np.arange(len(self.objs)))
-                idx.is_unique = True  # arange is always unique
+                idx = RangeIndex(len(self.objs))
                 return idx
             elif self.keys is None:
                 names = []
@@ -1092,7 +1091,7 @@ class _Concatenator(object):
                     if x.name is not None:
                         names.append(x.name)
                     else:
-                        idx = Index(np.arange(len(self.objs)))
+                        idx = RangeIndex(len(self.objs))
                         idx.is_unique = True
                         return idx
 
@@ -1103,8 +1102,7 @@ class _Concatenator(object):
             indexes = [x._data.axes[self.axis] for x in self.objs]
 
         if self.ignore_index:
-            idx = Index(np.arange(sum(len(i) for i in indexes)))
-            idx.is_unique = True
+            idx = RangeIndex(sum(len(i) for i in indexes))
             return idx
 
         if self.keys is None:
