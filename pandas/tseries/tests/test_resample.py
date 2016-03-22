@@ -2029,7 +2029,7 @@ class TestResamplePeriodIndex(tm.TestCase):
         assert_series_equal(result, expected)
 
         # GH 6397
-        # comparing an offset that doesn't propogate tz's
+        # comparing an offset that doesn't propagate tz's
         rng = date_range('1/1/2011', periods=20000, freq='H')
         rng = rng.tz_localize('EST')
         ts = DataFrame(index=rng)

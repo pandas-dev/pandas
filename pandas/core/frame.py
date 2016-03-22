@@ -3624,7 +3624,7 @@ class DataFrame(NDFrame):
             other_mask = isnull(otherSeries)
 
             # don't overwrite columns unecessarily
-            # DO propogate if this column is not in the intersection
+            # DO propagate if this column is not in the intersection
             if not overwrite and other_mask.all():
                 result[col] = this[col].copy()
                 continue

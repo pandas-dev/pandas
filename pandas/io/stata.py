@@ -1933,7 +1933,7 @@ class StataWriter(StataParser):
             * Variables with names that are too long
 
         When an illegal variable name is detected, it is converted, and if
-        dates are exported, the variable name is propogated to the date
+        dates are exported, the variable name is propagated to the date
         conversion dictionary
         """
         converted_names = []

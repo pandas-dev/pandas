@@ -158,7 +158,7 @@ class Block(PandasObject):
 
     def make_block(self, values, placement=None, ndim=None, **kwargs):
         """
-        Create a new block, with type inference propogate any values that are
+        Create a new block, with type inference propagate any values that are
         not specified
         """
         if placement is None:
