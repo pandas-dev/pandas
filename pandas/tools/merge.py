@@ -992,7 +992,7 @@ class _Concatenator(object):
                 # names (because set via the 'key' argument in the 'concat'
                 # function call. If that's not the case, use the series names
                 # as column names
-                if (columns.equals(Index(np.arange(len(self.objs)))) and
+                if (columns.equals(RangeIndex(len(self.objs))) and
                         not self.ignore_index):
                     columns = np.array([data[i].name
                                         for i in range(len(data))],
@@ -1092,7 +1092,6 @@ class _Concatenator(object):
                         names.append(x.name)
                     else:
                         idx = RangeIndex(len(self.objs))
-                        idx.is_unique = True
                         return idx
 
                 return Index(names)
