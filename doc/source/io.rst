@@ -217,10 +217,15 @@ chunksize : int, default ``None``
 Quoting, Compression, and File Format
 +++++++++++++++++++++++++++++++++++++
 
-compression : {``'infer'``, ``'gzip'``, ``'bz2'``, ``None``}, default ``'infer'``
-  For on-the-fly decompression of on-disk data. If 'infer', then use gzip or bz2
-  if filepath_or_buffer is a string ending in '.gz' or '.bz2', respectively, and
-  no decompression otherwise. Set to ``None`` for no decompression.
+compression : {``'infer'``, ``'gzip'``, ``'bz2'``, ``'zip'``, ``None``}, default ``'infer'``
+  For on-the-fly decompression of on-disk data. If 'infer', then use gzip,
+  bz2 or zip if filepath_or_buffer is a string ending in '.gz', '.bz2' or
+  '.zip', respectively, and no decompression otherwise. If using 'zip',
+  the ZIP file must contain only one data file to be read in.
+  Set to ``None`` for no decompression.
+
+  .. versionadded:: 0.18.0 support for 'zip' compression.
+
 thousands : str, default ``None``
   Thousands separator.
 decimal : str, default ``'.'``
