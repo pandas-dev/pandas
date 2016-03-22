@@ -9,9 +9,9 @@ from pandas.core.categorical import Categorical
 from pandas.core.frame import DataFrame, _merge_doc
 from pandas.core.generic import NDFrame
 from pandas.core.series import Series
-from pandas.core.index import (Index, MultiIndex, RangeIndex,
-                               _get_combined_index, _ensure_index,
-                               _get_consensus_names, _all_indexes_same)
+from pandas.core.index import (Index, MultiIndex, _get_combined_index,
+                               _ensure_index, _get_consensus_names,
+                               _all_indexes_same)
 from pandas.core.internals import (items_overlap_with_suffix,
                                    concatenate_block_managers)
 from pandas.util.decorators import Appender, Substitution
@@ -992,7 +992,7 @@ class _Concatenator(object):
                 # names (because set via the 'key' argument in the 'concat'
                 # function call. If that's not the case, use the series names
                 # as column names
-                if (columns.equals(RangeIndex(len(self.objs))) and
+                if (columns.equals(com._default_index(len(self.objs))) and
                         not self.ignore_index):
                     columns = np.array([data[i].name
                                         for i in range(len(data))],
@@ -1079,7 +1079,7 @@ class _Concatenator(object):
             if self.axis == 0:
                 indexes = [x.index for x in self.objs]
             elif self.ignore_index:
-                idx = RangeIndex(len(self.objs))
+                idx = com._default_index(len(self.objs))
                 return idx
             elif self.keys is None:
                 names = []
@@ -1091,7 +1091,7 @@ class _Concatenator(object):
                     if x.name is not None:
                         names.append(x.name)
                     else:
-                        idx = RangeIndex(len(self.objs))
+                        idx = com._default_index(len(self.objs))
                         return idx
 
                 return Index(names)
@@ -1101,7 +1101,7 @@ class _Concatenator(object):
             indexes = [x._data.axes[self.axis] for x in self.objs]
 
         if self.ignore_index:
-            idx = RangeIndex(sum(len(i) for i in indexes))
+            idx = com._default_index(sum(len(i) for i in indexes))
             return idx
 
         if self.keys is None:
