@@ -282,7 +282,8 @@ cdef class TextReader:
         object compression
         object mangle_dupe_cols
         object tupleize_cols
-        set noconvert, usecols
+        set noconvert 
+        list usecols
 
     def __cinit__(self, source,
                   delimiter=b',',
@@ -413,7 +414,8 @@ cdef class TextReader:
         # suboptimal
         if usecols is not None:
             self.has_usecols = 1
-            self.usecols = set(usecols)
+            self.usecols = list(usecols)
+            #self.usecols = set(usecols)
 
         # XXX
         if skip_footer > 0:

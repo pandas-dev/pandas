@@ -3,7 +3,7 @@ Module contains tools for processing files into DataFrames or other objects
 """
 from __future__ import print_function
 from pandas.compat import range, lrange, StringIO, lzip, zip, string_types, map
-from pandas import compat
+from pandas import compat, unique
 from collections import defaultdict
 import re
 import csv
@@ -1812,12 +1812,8 @@ class PythonParser(ParserBase):
                 if len(columns) > 1:
                     raise ValueError("If using multiple headers, usecols must "
                                      "be integers.")
-                col_indices = []
-                for u in self.usecols:
-                    if isinstance(u, string_types):
-                        col_indices.append(usecols_key.index(u))
-                    else:
-                        col_indices.append(u)
+                col_indices = Index(usecols_key).get_indexer_for(
+                    unique(self.usecols))
             else:
                 col_indices = self.usecols
 
