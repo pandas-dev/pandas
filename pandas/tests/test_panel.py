@@ -1081,9 +1081,21 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing, SafeForLongAndSparse,
         data['ItemB'] = self.panel['ItemB'].values[:, :-1]
         self.assertRaises(Exception, Panel, data)
 
+    def test_constructor_mapping(self):
+
+        mapping = tm.MappingMock(base=DataFrame({1: [0, 1], 2: [0, 1]}))
+
+        result = Panel(mapping)
+        expected = Panel({
+            4: DataFrame({1: [0, 4], 2: [0, 4]}),
+            5: DataFrame({1: [0, 5], 2: [0, 5]})
+        })
+
+        assert_panel_equal(result, expected)
+
     def test_ctor_orderedDict(self):
-        keys = list(set(np.random.randint(0, 5000, 100)))[
-            :50]  # unique random int  keys
+        # unique random int  keys
+        keys = list(set(np.random.randint(0, 5000, 100)))[:50]
         d = OrderedDict([(k, mkdf(10, 5)) for k in keys])
         p = Panel(d)
         self.assertTrue(list(p.items) == keys)
@@ -2147,6 +2159,7 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing, SafeForLongAndSparse,
                 pprint_thing("Failed with axis_number %d and aliases: %s" %
                              (axis_number, aliases))
                 raise
+
         # Items
         expected = Panel({"One": df})
         check_drop('Two', 0, ['items'], expected)
