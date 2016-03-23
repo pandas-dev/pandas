@@ -45,21 +45,19 @@ class IndexingError(Exception):
 class _NDFrameIndexer(object):
     _valid_types = None
     _exception = KeyError
+    axis = None
 
     def __init__(self, obj, name):
         self.obj = obj
         self.ndim = obj.ndim
         self.name = name
-        self.axis = None
 
-    def __call__(self, *args, **kwargs):
+    def __call__(self, axis=None):
         # we need to return a copy of ourselves
-        self = self.__class__(self.obj, self.name)
+        new_self = self.__class__(self.obj, self.name)
 
-        # set the passed in values
-        for k, v in compat.iteritems(kwargs):
-            setattr(self, k, v)
-        return self
+        new_self.axis = axis
+        return new_self
 
     def __iter__(self):
         raise NotImplementedError('ix is not iterable')
