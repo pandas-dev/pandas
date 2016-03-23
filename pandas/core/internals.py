@@ -1874,6 +1874,17 @@ class CategoricalBlock(NonConsolidatableMixIn, ObjectBlock):
         # return same dims as we currently have
         return self.values._slice(slicer)
 
+    def _try_coerce_result(self, result):
+        """ reverse of try_coerce_args """
+
+        # GH12564: CategoricalBlock is 1-dim only
+        # while returned results could be any dim
+        if ((not com.is_categorical_dtype(result)) and
+                isinstance(result, np.ndarray)):
+            result = _block_shape(result, ndim=self.ndim)
+
+        return result
+
     def fillna(self, value, limit=None, inplace=False, downcast=None,
                mgr=None):
         # we may need to upcast our fill to match our dtype

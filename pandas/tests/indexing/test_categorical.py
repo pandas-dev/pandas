@@ -382,3 +382,19 @@ class TestCategoricalIndex(tm.TestCase):
         #         name=u'B')
         self.assertRaises(TypeError, lambda: df4[df4.index < 2])
         self.assertRaises(TypeError, lambda: df4[df4.index > 1])
+
+    def test_indexing_with_category(self):
+
+        # https://github.com/pydata/pandas/issues/12564
+        # consistent result if comparing as Dataframe
+
+        cat = DataFrame({'A': ['foo', 'bar', 'baz']})
+        exp = DataFrame({'A': [True, False, False]})
+
+        res = (cat[['A']] == 'foo')
+        tm.assert_frame_equal(res, exp)
+
+        cat['A'] = cat['A'].astype('category')
+
+        res = (cat[['A']] == 'foo')
+        tm.assert_frame_equal(res, exp)
