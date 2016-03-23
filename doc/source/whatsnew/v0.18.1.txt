@@ -207,7 +207,9 @@ Bug Fixes
 
 
 - Bug in ``pivot_table`` when ``margins=True`` and ``dropna=True`` where nulls still contributed to margin count (:issue:`12577`)
+
 - Bug in ``Series.name`` when ``name`` attribute can be a hashable type (:issue:`12610`)
 - Bug in ``.describe()`` resets categorical columns information (:issue:`11558`)
 - Bug where ``loffset`` argument was not applied when calling ``resample().count()`` on a timeseries (:issue:`12725`)
 - ``pd.read_excel()`` now accepts path objects (e.g. ``pathlib.Path``, ``py.path.local``) for the file path, in line with other ``read_*`` functions (:issue:`12655`)
+- Bug in ``CategoricalBlock`` when Categoricals equality check raises ValueError in DataFrame (:issue:`12564`)
