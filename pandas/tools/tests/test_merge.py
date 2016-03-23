@@ -923,6 +923,41 @@ class TestMerge(tm.TestCase):
 
         tm.assertIsInstance(result, NotADataFrame)
 
+    def test_empty_dtype_coerce(self):
+
+        # xref to #12411
+        # xref to #12045
+        # xref to #11594
+        # see below
+
+        # 10571
+        df1 = DataFrame(data=[[1, None], [2, None]], columns=['a', 'b'])
+        df2 = DataFrame(data=[[3, None], [4, None]], columns=['a', 'b'])
+        result = concat([df1, df2])
+        expected = df1.dtypes
+        assert_series_equal(result.dtypes, expected)
+
+    def test_dtype_coerceion(self):
+
+        # 12411
+        df = DataFrame({'date': [pd.Timestamp('20130101').tz_localize('UTC'),
+                                 pd.NaT]})
+
+        result = concat([df.iloc[[0]], df.iloc[[1]]])
+        assert_series_equal(result.dtypes, df.dtypes)
+
+        # 12045
+        import datetime
+        df = DataFrame({'date': [datetime.datetime(2012, 1, 1),
+                                 datetime.datetime(1012, 1, 2)]})
+        result = concat([df.iloc[[0]], df.iloc[[1]]])
+        assert_series_equal(result.dtypes, df.dtypes)
+
+        # 11594
+        df = DataFrame({'text': ['some words'] + [None] * 9})
+        result = concat([df.iloc[[0]], df.iloc[[1]]])
+        assert_series_equal(result.dtypes, df.dtypes)
+
     def test_append_dtype_coerce(self):
 
         # GH 4993

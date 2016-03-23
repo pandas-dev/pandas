@@ -122,6 +122,7 @@ Bug Fixes
 - Bug in printing data which contains ``Period`` with different ``freq`` raises ``ValueError`` (:issue:`12615`)
 - Bug in numpy compatibility of ``np.round()`` on a ``Series`` (:issue:`12600`)
 - Bug in ``Series`` construction with ``Categorical`` and ``dtype='category'`` is specified (:issue:`12574`)
+- Bugs in concatenation with a coercable dtype was too aggressive. (:issue:`12411`, :issue:`12045`, :issue:`11594`, :issue:`10571`)
 
 
 
