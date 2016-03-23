@@ -271,6 +271,7 @@ Optional Dependencies
   `httplib2 <http://pypi.python.org/pypi/httplib2>`__
   and `google-api-python-client <http://github.com/google/google-api-python-client>`__
   : Needed for :mod:`~pandas.io.gbq`
+* `Backports.lzma <https://pypi.python.org/pypi/backports.lzma/>`__: Only for Python 2, for writing to and/or reading from an xz compressed DataFrame in CSV.
 * One of the following combinations of libraries is needed to use the
   top-level :func:`~pandas.io.html.read_html` function:
 
