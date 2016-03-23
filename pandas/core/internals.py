@@ -4820,21 +4820,23 @@ class JoinUnit(object):
         else:
             fill_value = upcasted_na
 
-            if self.is_null and not getattr(self.block, 'is_categorical',
-                                            None):
-                missing_arr = np.empty(self.shape, dtype=empty_dtype)
-                if np.prod(self.shape):
-                    # NumPy 1.6 workaround: this statement gets strange if all
-                    # blocks are of same dtype and some of them are empty:
-                    # empty one are considered "null" so they must be filled,
-                    # but no dtype upcasting happens and the dtype may not
-                    # allow NaNs.
-                    #
-                    # In general, no one should get hurt when one tries to put
-                    # incorrect values into empty array, but numpy 1.6 is
-                    # strict about that.
+            if self.is_null:
+                if getattr(self.block, 'is_object', False):
+                    # we want to avoid filling with np.nan if we are
+                    # using None; we already know that we are all
+                    # nulls
+                    values = self.block.values.ravel(order='K')
+                    if len(values) and values[0] is None:
+                        fill_value = None
+
+                if getattr(self.block, 'is_datetimetz', False):
+                    pass
+                elif getattr(self.block, 'is_categorical', False):
+                    pass
+                else:
+                    missing_arr = np.empty(self.shape, dtype=empty_dtype)
                     missing_arr.fill(fill_value)
-                return missing_arr
+                    return missing_arr
 
             if not self.indexers:
                 if not self.block._can_consolidate:
