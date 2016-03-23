@@ -2481,7 +2481,7 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         # setitem
         df.loc(axis=0)[:, :, ['C1', 'C3']] = -10
 
-    def test_loc_arguments(self):
+    def test_loc_axis_arguments(self):
 
         index = MultiIndex.from_product([_mklbl('A', 4), _mklbl('B', 2),
                                          _mklbl('C', 4), _mklbl('D', 2)])
@@ -2531,6 +2531,41 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
             df.loc(axis='foo')[:, :, ['C1', 'C3']]
 
         self.assertRaises(ValueError, f)
+
+    def test_loc_coerceion(self):
+
+        # 12411
+        df = DataFrame({'date': [pd.Timestamp('20130101').tz_localize('UTC'),
+                                 pd.NaT]})
+        expected = df.dtypes
+
+        result = df.iloc[[0]]
+        assert_series_equal(result.dtypes, expected)
+
+        result = df.iloc[[1]]
+        assert_series_equal(result.dtypes, expected)
+
+        # 12045
+        import datetime
+        df = DataFrame({'date': [datetime.datetime(2012, 1, 1),
+                                 datetime.datetime(1012, 1, 2)]})
+        expected = df.dtypes
+
+        result = df.iloc[[0]]
+        assert_series_equal(result.dtypes, expected)
+
+        result = df.iloc[[1]]
+        assert_series_equal(result.dtypes, expected)
+
+        # 11594
+        df = DataFrame({'text': ['some words'] + [None] * 9})
+        expected = df.dtypes
+
+        result = df.iloc[0:2]
+        assert_series_equal(result.dtypes, expected)
+
+        result = df.iloc[3:]
+        assert_series_equal(result.dtypes, expected)
 
     def test_per_axis_per_level_setitem(self):
 

@@ -980,7 +980,9 @@ class _Concatenator(object):
             if self.axis == 0:
                 new_data = com._concat_compat([x._values for x in self.objs])
                 name = com._consensus_name_attr(self.objs)
-                return (Series(new_data, index=self.new_axes[0], name=name)
+                return (Series(new_data, index=self.new_axes[0],
+                               name=name,
+                               dtype=new_data.dtype)
                         .__finalize__(self, method='concat'))
 
             # combine as columns in a frame

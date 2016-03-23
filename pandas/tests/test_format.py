@@ -728,6 +728,37 @@ class TestDataFrameFormatting(tm.TestCase):
         with option_context("display.max_rows", 7, "display.max_columns", 7):
             self.assertTrue(has_doubly_truncated_repr(df))
 
+    def test_truncate_with_different_dtypes(self):
+
+        # 11594, 12045, 12211
+        # when truncated the dtypes of the splits can differ
+
+        # 12211
+        df = DataFrame({'date' : [pd.Timestamp('20130101').tz_localize('UTC')] + [pd.NaT]*5})
+
+        with option_context("display.max_rows", 5):
+            result = str(df)
+            self.assertTrue('2013-01-01 00:00:00+00:00' in result)
+            self.assertTrue('NaT' in result)
+            self.assertTrue('...' in result)
+            self.assertTrue('[6 rows x 1 columns]' in result)
+
+        # 11594
+        import datetime
+        s = Series([datetime.datetime(2012, 1, 1)]*10 + [datetime.datetime(1012,1,2)] + [datetime.datetime(2012, 1, 3)]*10)
+
+        with pd.option_context('display.max_rows', 8):
+            result = str(s)
+            self.assertTrue('object' in result)
+
+        # 12045
+        df = DataFrame({'text': ['some words'] + [None]*9})
+
+        with pd.option_context('display.max_rows', 8, 'display.max_columns', 3):
+            result = str(df)
+            self.assertTrue('None' in result)
+            self.assertFalse('NaN' in result)
+
     def test_to_html_with_col_space(self):
         def check_with_width(df, col_space):
             import re
