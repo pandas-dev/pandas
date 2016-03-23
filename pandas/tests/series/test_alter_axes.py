@@ -80,6 +80,12 @@ class TestSeriesAlterAxes(TestData, tm.TestCase):
             self.assert_numpy_array_equal(s.index.values,
                                           np.array(['a', 'b', 'c']))
 
+    def test_set_name_attribute(self):
+        s = Series([1, 2, 3])
+        for name in [7, 7., 'name', datetime(2001, 1, 1), (1,), u"\u05D0"]:
+            s.name = name
+            self.assertEqual(s.name, name)
+
     def test_set_name(self):
         s = Series([1, 2, 3])
         s2 = s._set_name('foo')
