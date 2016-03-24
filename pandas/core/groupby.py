@@ -457,19 +457,18 @@ class _GroupBy(PandasObject, SelectionMixin):
                 self._group_selection = ax.difference(Index(groupers)).tolist()
 
     def _set_result_index_ordered(self, result):
-        # set the result index on the passed values object
-        # return the new object
-        # related 8046
+        # set the result index on the passed values object and
+        # return the new object, xref 8046
 
         # the values/counts are repeated according to the group index
-        # shortcut of we have an already ordered grouper
+        # shortcut if we have an already ordered grouper
         if not self.grouper.is_monotonic:
             index = Index(np.concatenate(
                 self._get_indices(self.grouper.result_index)))
-            result.index = index
-            result = result.sort_index()
+            result.set_axis(self.axis, index)
+            result = result.sort_index(axis=self.axis)
 
-        result.index = self.obj.index
+        result.set_axis(self.axis, self.obj._get_axis(self.axis))
         return result
 
     def _dir_additions(self):
