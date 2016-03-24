@@ -13,7 +13,8 @@ import warnings
 
 import pandas.core.config as cf
 from pandas.core.config import (is_int, is_bool, is_text, is_instance_factory,
-                                is_one_of_factory, get_default_val)
+                                is_one_of_factory, get_default_val,
+                                is_callable)
 from pandas.core.format import detect_console_encoding
 
 #
@@ -279,7 +280,8 @@ def mpl_style_cb(key):
 
 with cf.config_prefix('display'):
     cf.register_option('precision', 6, pc_precision_doc, validator=is_int)
-    cf.register_option('float_format', None, float_format_doc)
+    cf.register_option('float_format', None, float_format_doc,
+                       validator=is_one_of_factory([None, is_callable]))
     cf.register_option('column_space', 12, validator=is_int)
     cf.register_option('max_info_rows', 1690785, pc_max_info_rows_doc,
                        validator=is_instance_factory((int, type(None))))
