@@ -786,12 +786,20 @@ def is_instance_factory(_type):
 
 
 def is_one_of_factory(legal_values):
+
+    callables = [c for c in legal_values if callable(c)]
+    legal_values = [c for c in legal_values if not callable(c)]
+
     def inner(x):
         from pandas.core.common import pprint_thing as pp
         if x not in legal_values:
-            pp_values = lmap(pp, legal_values)
-            raise ValueError("Value must be one of %s" %
-                             pp("|".join(pp_values)))
+
+            if not any([c(x) for c in callables]):
+                pp_values = pp("|".join(lmap(pp, legal_values)))
+                msg = "Value must be one of {0}".format(pp_values)
+                if len(callables):
+                    msg += " or a callable"
+                raise ValueError(msg)
 
     return inner
 
@@ -803,3 +811,21 @@ is_float = is_type_factory(float)
 is_str = is_type_factory(str)
 is_unicode = is_type_factory(compat.text_type)
 is_text = is_instance_factory((str, bytes))
+
+
+def is_callable(obj):
+    """
+
+    Parameters
+    ----------
+    `obj` - the object to be checked
+
+    Returns
+    -------
+    validator - returns True if object is callable
+        raises ValueError otherwise.
+
+    """
+    if not callable(obj):
+        raise ValueError("Value must be a callable")
+    return True

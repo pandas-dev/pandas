@@ -124,6 +124,7 @@ Bug Fixes
 - Bug in numpy compatibility of ``np.round()`` on a ``Series`` (:issue:`12600`)
 - Bug in ``Series`` construction with ``Categorical`` and ``dtype='category'`` is specified (:issue:`12574`)
 - Bugs in concatenation with a coercable dtype was too aggressive. (:issue:`12411`, :issue:`12045`, :issue:`11594`, :issue:`10571`)
+- Bug in ``float_format`` option with option not being validated as a callable. (:issue:`12706`)
 
 
 
