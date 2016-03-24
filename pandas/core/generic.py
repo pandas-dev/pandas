@@ -307,6 +307,8 @@ class NDFrame(PandasObject):
         if com.is_integer(axis):
             if axis in self._AXIS_NAMES:
                 return axis
+            elif self.ndim + axis in self._AXIS_NAMES:
+                return self.ndim + axis
         else:
             try:
                 return self._AXIS_NUMBERS[axis]
@@ -931,6 +933,68 @@ class NDFrame(PandasObject):
         # compat
         return self
 
+    # ----------------------------------------------------------------------
+    # sorting
+
+    _shared_docs['argsort'] = """
+        Returns the indices that would sort the %(klass)s.
+        Equivalent to ``self.values.argsort(axis, kind, order)``.
+
+        Parameters
+        ----------
+        %(argsort_args)s
+
+        Returns
+        -------
+        index_array : numpy.ndarray
+            Array of indices that sort the %(klass)s along the specified axis.
+
+        See also
+        --------
+        numpy.ndarray.argsort
+        """
+
+    _shared_doc_kwargs['argsort_args'] = """
+        axis : int or axis name, default -1
+            Axis along which to sort.
+        kind : {'quicksort', 'mergesort', 'heapsort'}, default 'quicksort'
+            Sorting algorithm. See np.sort for more information.
+            'mergesort' is the only stable algorithm.
+        order : ignored
+        """
+
+    @Appender(_shared_docs['argsort'] % _shared_doc_kwargs)
+    def argsort(self, axis=-1, kind='quicksort', order=None):
+        return self.values.argsort(self._get_axis_number(axis), kind, order)
+
+    _shared_docs['ordering'] = """
+        Returns the order of each entry in the %(klass)s along the specified axis.
+
+        Parameters
+        ----------
+        %(argsort_args)s
+        fill_value : default -1
+            Value to place in locations of NA/null values.
+
+        Returns
+        -------
+        ordering : %(klass)s
+            %(klass)s with the same shape and axes, with values equal to
+            the order of each entry along the specified axis.
+
+        See also
+        --------
+        %(klass)s.argsort
+        """
+
+    @Appender(_shared_docs['ordering'] % _shared_doc_kwargs)
+    def ordering(self, axis=-1, kind='quicksort', order=None, fill_value=-1):
+        axis = self._get_axis_number(axis)
+        new_values = self.argsort(axis, kind, order).argsort(axis, kind, order)
+        result = self._constructor(new_values, *self.axes)
+        result[self.isnull()] = fill_value
+        return result
+    
     # ----------------------------------------------------------------------
     # Picklability
 
