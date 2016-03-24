@@ -803,3 +803,21 @@ is_float = is_type_factory(float)
 is_str = is_type_factory(str)
 is_unicode = is_type_factory(compat.text_type)
 is_text = is_instance_factory((str, bytes))
+
+
+def is_callable_or_none(obj):
+    """
+
+    Parameters
+    ----------
+    `obj` - the object to be checked
+
+    Returns
+    -------
+    validator - returns True if object is callable or None, and
+        raises ValueError otherwise.
+
+    """
+    if not (callable(obj) or obj is None):
+        raise ValueError("Value must be an callable or None")
+    return True
