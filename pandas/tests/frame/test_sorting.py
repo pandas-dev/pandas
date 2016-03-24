@@ -93,7 +93,7 @@ class TestDataFrameSorting(tm.TestCase, TestData):
 
         # by column
         sorted_df = frame.sort_values(by='A')
-        indexer = frame['A'].argsort().values
+        indexer = frame['A'].argsort()
         expected = frame.ix[frame.index[indexer]]
         assert_frame_equal(sorted_df, expected)
 

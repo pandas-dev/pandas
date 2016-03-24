@@ -398,8 +398,9 @@ Reshaping, sorting
 .. autosummary::
    :toctree: generated/
 
-   Series.argsort
    Series.reorder_levels
+   Series.argsort
+   Series.ordering
    Series.sort_values
    Series.sort_index
    Series.sortlevel
@@ -909,6 +910,8 @@ Reshaping, sorting, transposing
 
    DataFrame.pivot
    DataFrame.reorder_levels
+   DataFrame.argsort
+   DataFrame.ordering
    DataFrame.sort_values
    DataFrame.sort_index
    DataFrame.sortlevel
@@ -1181,6 +1184,9 @@ Reshaping, sorting, transposing
 .. autosummary::
    :toctree: generated/
 
+   Panel.argsort
+   Panel.ordering
+   Panel.sort_values
    Panel.sort_index
    Panel.swaplevel
    Panel.transpose
@@ -1270,6 +1276,15 @@ Conversion
    Panel4D.copy
    Panel4D.isnull
    Panel4D.notnull
+
+Reshaping, sorting, transposing
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. autosummary::
+   :toctree: generated/
+
+   Panel4D.argsort
+   Panel4D.ordering
+   Panel4D.sort_values
 
 .. _api.index:
 

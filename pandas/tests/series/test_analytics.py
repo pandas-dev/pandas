@@ -11,8 +11,8 @@ from numpy import nan
 import numpy as np
 import pandas as pd
 
-from pandas import (Index, Series, DataFrame, isnull, notnull, bdate_range,
-                    date_range, _np_version_under1p9)
+from pandas import (Index, Series, DataFrame, Panel, Panel4D, isnull, notnull,
+                    bdate_range, date_range, _np_version_under1p9)
 from pandas.core.index import MultiIndex
 from pandas.tseries.index import Timestamp
 from pandas.tseries.tdi import Timedelta
@@ -262,11 +262,7 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
                 self.assertEqual(0, s.kurt())
                 self.assertTrue((df.kurt() == 0).all())
 
-    def test_argsort(self):
-        self._check_accum_op('argsort')
-        argsorted = self.ts.argsort()
-        self.assertTrue(issubclass(argsorted.dtype.type, np.integer))
-
+    def test_argsort_timestamps(self):
         # GH 2967 (introduced bug in 0.11-dev I think)
         s = Series([Timestamp('201301%02d' % (i + 1)) for i in range(5)])
         self.assertEqual(s.dtype, 'datetime64[ns]')
@@ -275,24 +271,64 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
         self.assertTrue(isnull(shifted[4]))
 
         result = s.argsort()
-        expected = Series(lrange(5), dtype='int64')
+        expected = np.arange(5, dtype=np.int64)
         assert_series_equal(result, expected)
 
         result = shifted.argsort()
-        expected = Series(lrange(4) + [-1], dtype='int64')
+        expected = np.arange(5, dtype=np.int64)
         assert_series_equal(result, expected)
 
-    def test_argsort_stable(self):
+    def test_argsort_and_ordering(self):
+        argsorted = self.ts.argsort()
+        self.assertTrue(issubclass(argsorted.dtype.type, np.integer))
+
         s = Series(np.random.randint(0, 100, size=10000))
-        mindexer = s.argsort(kind='mergesort')
-        qindexer = s.argsort()
+        s[::21] = nan
+        df = DataFrame(s.values.reshape(100, 100))
+        p = Panel(s.values.reshape(100, 10, 10))
+        p4d = Panel4D(s.values.reshape(10, 10, 10, 10))
 
-        mexpected = np.argsort(s.values, kind='mergesort')
-        qexpected = np.argsort(s.values, kind='quicksort')
+        for x in [s, df, p, p4d]:
+            for axis in [-1] + list(x._AXIS_NAMES.keys()) + \
+                    list(x._AXIS_NUMBERS.keys()):
+                for kind in ['quicksort', 'mergesort', 'heapsort']:
 
-        self.assert_numpy_array_equal(mindexer, mexpected)
-        self.assert_numpy_array_equal(qindexer, qexpected)
-        self.assertFalse(np.array_equal(qindexer, mindexer))
+                    result = x.argsort(axis=axis, kind=kind)
+                    expected = x.values.argsort(axis=x._get_axis_number(axis),
+                                                kind=kind)
+                    self.assert_numpy_array_equal(result, expected)
+
+                    result = x.ordering(axis=axis, kind=kind)
+                    expected = x._constructor(
+                        expected.argsort(axis=x._get_axis_number(axis),
+                                         kind=kind),
+                        *x.axes)
+                    expected[x.isnull()] = -1
+                    self.assertEqual(result, expected)
+
+        s = Series([1, 5, nan, 0, 4], index=list('abcde'))
+        result = s.argsort()
+        expected = np.array([3, 0, 4, 1, 2], dtype=np.int64)
+        self.assert_numpy_array_equal(result, expected)
+
+        result = s.ordering()
+        expected = Series([1, 3, -1, 0, 2], index=list('abcde'))
+        self.assert_series_equal(result, expected)
+
+        df = DataFrame([[1, 5, nan, 0, 4],
+                        [8, 2, 6, 9, 7]],
+                       index=list('xy'), columns=list('abcde'))
+        result = df.argsort()
+        expected = np.array([[3, 0, 4, 1, 2],
+                             [1, 2, 4, 0, 3]],
+                            dtype=np.int64)
+        self.assert_numpy_array_equal(result, expected)
+
+        result = df.ordering()
+        expected = DataFrame([[1, 3, -1, 0, 2],
+                              [3, 0, 1, 4, 2]],
+                             index=list('xy'), columns=list('abcde'))
+        self.assert_frame_equal(result, expected)
 
     def test_cumsum(self):
         self._check_accum_op('cumsum')
