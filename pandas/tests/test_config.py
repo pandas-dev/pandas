@@ -206,6 +206,12 @@ class TestConfig(unittest.TestCase):
         self.assertRaises(ValueError, self.cf.set_option, 'a', 'ab')
         self.assertRaises(ValueError, self.cf.set_option, 'b.c', 1)
 
+        self.cf.register_option('b', lambda: None, 'doc',
+                                validator=self.cf.is_callable_or_none)
+        self.cf.set_option('b', '%.1f'.format)  # Formatter is callable
+        self.cf.set_option('b', None)  # Formatter is none (default)
+        self.assertRaises(ValueError, self.cf.set_option, 'b', '%.1f')
+
     def test_reset_option(self):
         self.cf.register_option('a', 1, 'doc', validator=self.cf.is_int)
         self.cf.register_option('b.c', 'hullo', 'doc2',
