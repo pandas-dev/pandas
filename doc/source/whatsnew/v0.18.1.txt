@@ -127,7 +127,7 @@ Bug Fixes
 
 
 
-
+- Bug in ``Timestamp.__repr__`` that caused ``pprint`` to fail in nested structures (:issue:`12622`)
 
 
 
