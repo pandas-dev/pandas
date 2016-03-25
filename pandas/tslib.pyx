@@ -316,50 +316,6 @@ class Timestamp(_Timestamp):
 
         return ts_base
 
-    def __repr__(self):
-        stamp = self._repr_base
-        zone = None
-
-        try:
-            stamp += self.strftime('%z')
-            if self.tzinfo:
-                zone = _get_zone(self.tzinfo)
-        except ValueError:
-            year2000 = self.replace(year=2000)
-            stamp += year2000.strftime('%z')
-            if self.tzinfo:
-                zone = _get_zone(self.tzinfo)
-
-        try:
-            stamp += zone.strftime(' %%Z')
-        except:
-            pass
-
-        tz = ", tz='{0}'".format(zone) if zone is not None else ""
-        offset = ", offset='{0}'".format(self.offset.freqstr) if self.offset is not None else ""
-
-        return "Timestamp('{stamp}'{tz}{offset})".format(stamp=stamp, tz=tz, offset=offset)
-
-    @property
-    def _date_repr(self):
-        # Ideal here would be self.strftime("%Y-%m-%d"), but
-        # the datetime strftime() methods require year >= 1900
-        return '%d-%.2d-%.2d' % (self.year, self.month, self.day)
-
-    @property
-    def _time_repr(self):
-        result = '%.2d:%.2d:%.2d' % (self.hour, self.minute, self.second)
-
-        if self.nanosecond != 0:
-            result += '.%.9d' % (self.nanosecond + 1000 * self.microsecond)
-        elif self.microsecond != 0:
-            result += '.%.6d' % self.microsecond
-
-        return result
-
-    @property
-    def _repr_base(self):
-        return '%s %s' % (self._date_repr, self._time_repr)
 
     def _round(self, freq, rounder):
 
@@ -977,6 +933,30 @@ cdef class _Timestamp(datetime):
         self._assert_tzawareness_compat(other)
         return _cmp_scalar(self.value, ots.value, op)
 
+    def __repr__(self):
+        stamp = self._repr_base
+        zone = None
+
+        try:
+            stamp += self.strftime('%z')
+            if self.tzinfo:
+                zone = _get_zone(self.tzinfo)
+        except ValueError:
+            year2000 = self.replace(year=2000)
+            stamp += year2000.strftime('%z')
+            if self.tzinfo:
+                zone = _get_zone(self.tzinfo)
+
+        try:
+            stamp += zone.strftime(' %%Z')
+        except:
+            pass
+
+        tz = ", tz='{0}'".format(zone) if zone is not None else ""
+        offset = ", offset='{0}'".format(self.offset.freqstr) if self.offset is not None else ""
+
+        return "Timestamp('{stamp}'{tz}{offset})".format(stamp=stamp, tz=tz, offset=offset)
+
     cdef bint _compare_outside_nanorange(_Timestamp self, datetime other,
                                          int op) except -1:
         cdef datetime dtval = self.to_datetime()
@@ -1097,6 +1077,27 @@ cdef class _Timestamp(datetime):
         freqstr = self.freqstr if self.freq else None
         out = get_start_end_field(np.array([self.value], dtype=np.int64), field, freqstr, month_kw)
         return out[0]
+
+    property _repr_base:
+        def __get__(self):
+            return '%s %s' % (self._date_repr, self._time_repr)
+
+    property _date_repr:
+        def __get__(self):
+            # Ideal here would be self.strftime("%Y-%m-%d"), but
+            # the datetime strftime() methods require year >= 1900
+            return '%d-%.2d-%.2d' % (self.year, self.month, self.day)
+
+    property _time_repr:
+        def __get__(self):
+            result = '%.2d:%.2d:%.2d' % (self.hour, self.minute, self.second)
+
+            if self.nanosecond != 0:
+                result += '.%.9d' % (self.nanosecond + 1000 * self.microsecond)
+            elif self.microsecond != 0:
+                result += '.%.6d' % self.microsecond
+
+            return result
 
     property asm8:
         def __get__(self):

@@ -453,6 +453,25 @@ class TestTimestamp(tm.TestCase):
         self.assertTrue(np.isnan(ts.daysinmonth))
         self.assertTrue(np.isnan(ts.days_in_month))
 
+    def test_pprint(self):
+        # GH12622
+        import pprint
+        nested_obj = {'foo': 1,
+                      'bar': [{'w': {'a': Timestamp('2011-01-01')}}] * 10}
+        result = pprint.pformat(nested_obj, width=50)
+        expected = r'''{'bar': [{'w': {'a': Timestamp('2011-01-01 00:00:00')}},
+         {'w': {'a': Timestamp('2011-01-01 00:00:00')}},
+         {'w': {'a': Timestamp('2011-01-01 00:00:00')}},
+         {'w': {'a': Timestamp('2011-01-01 00:00:00')}},
+         {'w': {'a': Timestamp('2011-01-01 00:00:00')}},
+         {'w': {'a': Timestamp('2011-01-01 00:00:00')}},
+         {'w': {'a': Timestamp('2011-01-01 00:00:00')}},
+         {'w': {'a': Timestamp('2011-01-01 00:00:00')}},
+         {'w': {'a': Timestamp('2011-01-01 00:00:00')}},
+         {'w': {'a': Timestamp('2011-01-01 00:00:00')}}],
+ 'foo': 1}'''
+        self.assertEqual(result, expected)
+
 
 class TestDatetimeParsingWrappers(tm.TestCase):
     def test_does_not_convert_mixed_integer(self):
