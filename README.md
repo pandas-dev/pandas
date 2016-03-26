@@ -5,60 +5,18 @@
 
 # pandas: powerful Python data analysis toolkit
 
-<table>
-<tr>
-  <td>Latest Release</td>
-  <td><img src="https://img.shields.io/pypi/v/pandas.svg" alt="latest release" /></td>
-</tr>
-  <td></td>
-  <td><img src="https://anaconda.org/pandas/pandas/badges/version.svg" alt="latest release" /></td>
-</tr>
-<tr>
-  <td>Package Status</td>
-  <td><img src="https://img.shields.io/pypi/status/pandas.svg" alt="status" /></td>
-</tr>
-<tr>
-  <td>License</td>
-  <td><img src="https://img.shields.io/pypi/l/pandas.svg" alt="license" /></td>
-</tr>
-<tr>
-  <td>Build Status</td>
-  <td>
-    <a href="https://travis-ci.org/pydata/pandas">
-    <img src="https://travis-ci.org/pydata/pandas.svg?branch=master" alt="travis build status" />
-    </a>
-  </td>
-</tr>
-  <td></td>
-  <td>
-    <a href="https://ci.appveyor.com/project/jreback/pandas-465">
-    <img src="https://ci.appveyor.com/api/projects/status/iblk29s98quexwxi/branch/master?svg=true" alt="appveyor build status" />
-    </a>
-  </td>
-</tr>
-<tr>
-  <td>Coverage</td>
-  <td><img src="https://codecov.io/github/pydata/pandas/coverage.svg?branch=master" alt="coverage" /></td>
-</tr>
-<tr>
-  <td>Conda</td>
-  <td>
-    <a href="http://pandas.pydata.org">
-    <img src="http://pubbadges.s3-website-us-east-1.amazonaws.com/pkgs-downloads-pandas.png" alt="conda downloads" />
-    </a>
-  </td>
-</tr>
-<tr>
-  <td>PyPI</td>
-  <td>
-    <a href="https://pypi.python.org/pypi/pandas/">
-    <img src="https://img.shields.io/pypi/dm/pandas.svg" alt="pypi downloads" />
-    </a>
-  </td>
-</tr>
-</table>
-
-[![https://gitter.im/pydata/pandas](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/pydata/pandas?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+| | |
+------------ | -------------
+Latest Release | [![Latest Version](https://img.shields.io/pypi/v/pandas.svg)](https://pypi.python.org/pypi/pandas/)
+Latest Release | [![Latest Version](https://anaconda.org/pandas/pandas/badges/version.svg)](https://anaconda.org/pandas/pandas/)
+Package Status | [![Package Status](https://img.shields.io/pypi/status/pandas.svg)](https://pypi.python.org/pypi/pandas/)
+License | [![License](https://img.shields.io/pypi/l/pandas.svg)](https://pypi.python.org/pypi/pandas/)
+Build Status | [![Build Status](https://travis-ci.org/pydata/pandas.svg?branch=master)](https://travis-ci.org/pydata/pandas)
+Build Status | [![Build Status](https://ci.appveyor.com/api/projects/status/iblk29s98quexwxi/branch/master?svg=true)](https://ci.appveyor.com/project/jreback/pandas-465)
+Coverage | [![Coverage](https://codecov.io/github/pydata/pandas/coverage.svg?branch=master)](https://codecov.io/github/pydata/pandas?branch=master)
+Conda | [![Conda](http://pubbadges.s3-website-us-east-1.amazonaws.com/pkgs-downloads-pandas.png)](http://conda.anaconda.org/pandas)
+PyPI | [![PyPI](https://img.shields.io/pypi/dm/pandas.svg)](https://pypi.python.org/pypi/pandas/)
+Gitter | [![https://gitter.im/pydata/pandas](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/pydata/pandas)
 
 ## What is it
 
