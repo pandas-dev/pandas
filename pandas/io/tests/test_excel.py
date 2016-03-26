@@ -528,6 +528,33 @@ class XlrdTests(ReadingTestsBase):
 
         tm.assert_frame_equal(url_table, local_table)
 
+    def test_read_from_pathlib_path(self):
+        tm._skip_if_no_pathlib()
+
+        from pathlib import Path
+
+        str_path = os.path.join(self.dirpath, 'test1' + self.ext)
+        expected = read_excel(str_path, 'Sheet1', index_col=0)
+
+        path_obj = Path(self.dirpath, 'test1' + self.ext)
+        actual = read_excel(path_obj, 'Sheet1', index_col=0)
+
+        tm.assert_frame_equal(expected, actual)
+
+    def test_read_from_py_localpath(self):
+        tm._skip_if_no_localpath()
+
+        from py.path import local as LocalPath
+
+        str_path = os.path.join(self.dirpath, 'test1' + self.ext)
+        expected = read_excel(str_path, 'Sheet1', index_col=0)
+
+        abs_dir = os.path.abspath(self.dirpath)
+        path_obj = LocalPath(abs_dir).join('test1' + self.ext)
+        actual = read_excel(path_obj, 'Sheet1', index_col=0)
+
+        tm.assert_frame_equal(expected, actual)
+
     def test_reader_closes_file(self):
 
         pth = os.path.join(self.dirpath, 'test1' + self.ext)
