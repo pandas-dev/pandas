@@ -761,6 +761,9 @@ class TestMoments(Base):
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             self._check_moment_func(mom.rolling_median, np.median,
                                     name='median')
+        # GH 12669
+        with self.assertRaises(TypeError):
+            pd.DataFrame(np.arange(10)).rolling(2., center=True).median()
 
     def test_rolling_min(self):
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):

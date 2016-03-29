@@ -1354,6 +1354,8 @@ def _get_center_of_mass(com, span, halflife, alpha):
 
 
 def _offset(window, center):
+    if com.is_float(window):
+        raise TypeError("Window should be of type Integer, given Float")
     if not com.is_integer(window):
         window = len(window)
     offset = (window - 1) / 2. if center else 0
