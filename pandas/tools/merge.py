@@ -2,6 +2,8 @@
 SQL-style merge routines
 """
 
+import warnings
+
 import numpy as np
 from pandas.compat import range, lrange, lzip, zip, map, filter
 import pandas.compat as compat
@@ -192,6 +194,13 @@ class _MergeOperation(object):
             raise ValueError(
                 'can not merge DataFrame with instance of '
                 'type {0}'.format(type(right)))
+
+        # warn user when merging between different levels
+        if left.columns.nlevels != right.columns.nlevels:
+            msg = ('merging between different levels can give an unintended '
+                   'result ({0} levels on the left, {1} on the right)')
+            msg = msg.format(left.columns.nlevels, right.columns.nlevels)
+            warnings.warn(msg, UserWarning)
 
         # note this function has side effects
         (self.left_join_keys,

@@ -75,7 +75,7 @@ API changes
 
 
 
-
+- ``pandas.merge()`` and ``DataFrame.join()`` will show a ``UserWarning`` when merging/joining a single- with a multi-leveled dataframe (:issue:`9455`, :issue:`12219`)
 
 
 
