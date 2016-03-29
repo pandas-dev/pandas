@@ -72,7 +72,7 @@ API changes
 
 
 - ``CParserError`` is now a ``ValueError`` instead of just an ``Exception`` (:issue:`12551`)
-
+- ``pd.show_versions()`` now includes ``pandas_datareader`` version (:issue:`12740`)
 
 
 
