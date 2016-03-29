@@ -4,19 +4,17 @@ import numpy as np
 from distutils.version import LooseVersion
 from pandas.compat import string_types, string_and_binary_types
 
-# TODO: HACK for NumPy 1.5.1 to suppress warnings
-# is this necessary?
-try:
-    np.seterr(all='ignore')
-except Exception:  # pragma: no cover
-    pass
+# turn off all numpy warnings
+np.seterr(all='ignore')
 
 # numpy versioning
 _np_version = np.version.short_version
-_np_version_under1p8 = LooseVersion(_np_version) < '1.8'
-_np_version_under1p9 = LooseVersion(_np_version) < '1.9'
-_np_version_under1p10 = LooseVersion(_np_version) < '1.10'
-_np_version_under1p11 = LooseVersion(_np_version) < '1.11'
+_nlv = LooseVersion(_np_version)
+_np_version_under1p8 = _nlv < '1.8'
+_np_version_under1p9 = _nlv < '1.9'
+_np_version_under1p10 = _nlv < '1.10'
+_np_version_under1p11 = _nlv < '1.11'
+_np_version_under1p12 = _nlv < '1.12'
 
 if LooseVersion(_np_version) < '1.7.0':
     raise ImportError('this version of pandas is incompatible with '
@@ -67,9 +65,9 @@ def np_array_datetime64_compat(arr, *args, **kwargs):
     return np.array(arr, *args, **kwargs)
 
 __all__ = ['np',
-           '_np_version',
            '_np_version_under1p8',
            '_np_version_under1p9',
            '_np_version_under1p10',
            '_np_version_under1p11',
+           '_np_version_under1p12',
            ]

@@ -26,7 +26,7 @@ from pandas.compat import range, lrange, lmap, zip, text_type, PY3, iteritems
 from pandas.compat.numpy_compat import np_datetime64_compat
 
 from pandas import (Series, DataFrame,
-                    _np_version_under1p9, _np_version_under1p11)
+                    _np_version_under1p9, _np_version_under1p12)
 from pandas import tslib
 from pandas.util.testing import (assert_series_equal, assert_almost_equal,
                                  assertRaisesRegexp)
@@ -2607,8 +2607,9 @@ class TestPeriodIndex(tm.TestCase):
         didx = DatetimeIndex(start='2013/01/01', freq='D', periods=400)
         pidx = PeriodIndex(start='2013/01/01', freq='D', periods=400)
 
-        # changed to TypeError in 1.11
-        exc = IndexError if _np_version_under1p11 else TypeError
+        # changed to TypeError in 1.12
+        # https://github.com/numpy/numpy/pull/6271
+        exc = IndexError if _np_version_under1p12 else TypeError
 
         for idx in [didx, pidx]:
             # slices against index should raise IndexError
@@ -2664,8 +2665,9 @@ class TestPeriodIndex(tm.TestCase):
                              periods=4000)
         pidx = PeriodIndex(start='2013/01/01 09:00:00', freq='S', periods=4000)
 
-        # changed to TypeError in 1.11
-        exc = IndexError if _np_version_under1p11 else TypeError
+        # changed to TypeError in 1.12
+        # https://github.com/numpy/numpy/pull/6271
+        exc = IndexError if _np_version_under1p12 else TypeError
 
         for idx in [didx, pidx]:
             # slices against index should raise IndexError
