@@ -589,23 +589,62 @@ class TestDatetimeParsingWrappers(tm.TestCase):
             self.assertRaises(ValueError, tools.parse_time_string, case)
 
     def test_parsers_dayfirst_yearfirst(self):
+
+        # https://github.com/dateutil/dateutil/issues/217
+        # this issue was closed
+        import dateutil
+        is_compat_version = dateutil.__version__ >= LooseVersion('2.5.2')
+        if is_compat_version:
+            dayfirst_yearfirst1 = datetime.datetime(2010, 12, 11)
+            dayfirst_yearfirst2 = datetime.datetime(2020, 12, 21)
+        else:
+            dayfirst_yearfirst1 = datetime.datetime(2010, 11, 12)
+            dayfirst_yearfirst2 = datetime.datetime(2020, 12, 21)
+
         # str : dayfirst, yearfirst, expected
-        cases = {'10-11-12': [(False, False, datetime.datetime(2012, 10, 11)),
-                              (True, False, datetime.datetime(2012, 11, 10)),
-                              (False, True, datetime.datetime(2010, 11, 12)),
-                              (True, True, datetime.datetime(2010, 11, 12))],
-                 '20/12/21': [(False, False, datetime.datetime(2021, 12, 20)),
-                              (True, False, datetime.datetime(2021, 12, 20)),
-                              (False, True, datetime.datetime(2020, 12, 21)),
-                              (True, True, datetime.datetime(2020, 12, 21))]}
+        cases = {'10-11-12': [(False, False, False,
+                               datetime.datetime(2012, 10, 11)),
+                              (True, False, False,
+                               datetime.datetime(2012, 11, 10)),
+                              (False, True, False,
+                               datetime.datetime(2010, 11, 12)),
+                              (True, True, False, dayfirst_yearfirst1)],
+                 '20/12/21': [(False, False, False,
+                               datetime.datetime(2021, 12, 20)),
+                              (True, False, False,
+                               datetime.datetime(2021, 12, 20)),
+                              (False, True, False,
+                               datetime.datetime(2020, 12, 21)),
+                              (True, True, True, dayfirst_yearfirst2)]}
 
         tm._skip_if_no_dateutil()
         from dateutil.parser import parse
         for date_str, values in compat.iteritems(cases):
-            for dayfirst, yearfirst, expected in values:
-                result1, _, _ = tools.parse_time_string(date_str,
-                                                        dayfirst=dayfirst,
-                                                        yearfirst=yearfirst)
+            for dayfirst, yearfirst, is_compat, expected in values:
+
+                f = lambda x: tools.parse_time_string(x,
+                                                      dayfirst=dayfirst,
+                                                      yearfirst=yearfirst)
+
+                # we now have an invalid parse
+                if is_compat and is_compat_version:
+                    self.assertRaises(tslib.DateParseError, f, date_str)
+
+                    def f(date_str):
+                        return to_datetime(date_str, dayfirst=dayfirst,
+                                           yearfirst=yearfirst)
+
+                    self.assertRaises(ValueError, f, date_str)
+
+                    def f(date_str):
+                        return DatetimeIndex([date_str], dayfirst=dayfirst,
+                                             yearfirst=yearfirst)[0]
+
+                    self.assertRaises(ValueError, f, date_str)
+
+                    continue
+
+                result1, _, _ = f(date_str)
 
                 result2 = to_datetime(date_str, dayfirst=dayfirst,
                                       yearfirst=yearfirst)
@@ -614,7 +653,6 @@ class TestDatetimeParsingWrappers(tm.TestCase):
                                         yearfirst=yearfirst)[0]
 
                 # Timestamp doesn't support dayfirst and yearfirst
-
                 self.assertEqual(result1, expected)
                 self.assertEqual(result2, expected)
                 self.assertEqual(result3, expected)
