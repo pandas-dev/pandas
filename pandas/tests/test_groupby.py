@@ -2821,8 +2821,8 @@ class TestGroupBy(tm.TestCase):
 
         # describe
         expected = DataFrame(dict(B=concat(
-            [df.loc[[0, 1], 'B'].describe(), df.loc[[2], 'B'].describe()
-             ], keys=[1, 3])))
+            [df.loc[[0, 1], 'B'].describe(), df.loc[[2], 'B'].describe()],
+            keys=[1, 3])))
         expected.index.names = ['A', None]
         result = g.describe()
         assert_frame_equal(result, expected)
@@ -4007,6 +4007,36 @@ class TestGroupBy(tm.TestCase):
             Categorical.from_codes(
                 [0, 1, 2, 3], levels, ordered=True), name='cats')
         assert_frame_equal(result, expected)
+
+    def test_groupby_describe_categorical_columns(self):
+        # GH 11558
+        cats = pd.CategoricalIndex(['qux', 'foo', 'baz', 'bar'],
+                                   categories=['foo', 'bar', 'baz', 'qux'],
+                                   ordered=True)
+        df = DataFrame(np.random.randn(20, 4), columns=cats)
+        result = df.groupby([1, 2, 3, 4] * 5).describe()
+
+        tm.assert_index_equal(result.columns, cats)
+        tm.assert_categorical_equal(result.columns.values, cats.values)
+
+    def test_groupby_unstack_categorical(self):
+        # GH11558 (example is taken from the original issue)
+        df = pd.DataFrame({'a': range(10),
+                           'medium': ['A', 'B'] * 5,
+                           'artist': list('XYXXY') * 2})
+        df['medium'] = df['medium'].astype('category')
+
+        gcat = df.groupby(['artist', 'medium'])['a'].count().unstack()
+        result = gcat.describe()
+
+        exp_columns = pd.CategoricalIndex(['A', 'B'], ordered=False,
+                                          name='medium')
+        tm.assert_index_equal(result.columns, exp_columns)
+        tm.assert_categorical_equal(result.columns.values, exp_columns.values)
+
+        result = gcat['A'] + gcat['B']
+        expected = pd.Series([6, 4], index=pd.Index(['X', 'Y'], name='artist'))
+        tm.assert_series_equal(result, expected)
 
     def test_groupby_groups_datetimeindex(self):
         # #1430

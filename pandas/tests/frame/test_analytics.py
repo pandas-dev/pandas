@@ -257,6 +257,52 @@ class TestDataFrameAnalytics(tm.TestCase, TestData):
                              index=['count', 'unique', 'top', 'freq'])
         assert_frame_equal(result, expected)
 
+    def test_describe_categorical_columns(self):
+        # GH 11558
+        columns = pd.CategoricalIndex(['int1', 'int2', 'obj'],
+                                      ordered=True, name='XXX')
+        df = DataFrame({'int1': [10, 20, 30, 40, 50],
+                        'int2': [10, 20, 30, 40, 50],
+                        'obj': ['A', 0, None, 'X', 1]},
+                       columns=columns)
+        result = df.describe()
+
+        exp_columns = pd.CategoricalIndex(['int1', 'int2'],
+                                          categories=['int1', 'int2', 'obj'],
+                                          ordered=True, name='XXX')
+        expected = DataFrame({'int1': [5, 30, df.int1.std(),
+                                       10, 20, 30, 40, 50],
+                              'int2': [5, 30, df.int2.std(),
+                                       10, 20, 30, 40, 50]},
+                             index=['count', 'mean', 'std', 'min', '25%',
+                                    '50%', '75%', 'max'],
+                             columns=exp_columns)
+        tm.assert_frame_equal(result, expected)
+        tm.assert_categorical_equal(result.columns.values,
+                                    expected.columns.values)
+
+    def test_describe_datetime_columns(self):
+        columns = pd.DatetimeIndex(['2011-01-01', '2011-02-01', '2011-03-01'],
+                                   freq='MS', tz='US/Eastern', name='XXX')
+        df = DataFrame({0: [10, 20, 30, 40, 50],
+                        1: [10, 20, 30, 40, 50],
+                        2: ['A', 0, None, 'X', 1]})
+        df.columns = columns
+        result = df.describe()
+
+        exp_columns = pd.DatetimeIndex(['2011-01-01', '2011-02-01'],
+                                       freq='MS', tz='US/Eastern', name='XXX')
+        expected = DataFrame({0: [5, 30, df.iloc[:, 0].std(),
+                                  10, 20, 30, 40, 50],
+                              1: [5, 30, df.iloc[:, 1].std(),
+                                  10, 20, 30, 40, 50]},
+                             index=['count', 'mean', 'std', 'min', '25%',
+                                    '50%', '75%', 'max'])
+        expected.columns = exp_columns
+        tm.assert_frame_equal(result, expected)
+        self.assertEqual(result.columns.freq, 'MS')
+        self.assertEqual(result.columns.tz, expected.columns.tz)
+
     def test_reduce_mixed_frame(self):
         # GH 6806
         df = DataFrame({

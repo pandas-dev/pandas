@@ -7,7 +7,7 @@ from pandas.util.decorators import (Appender, cache_readonly,
                                     deprecate_kwarg)
 from pandas.core.missing import _clean_reindex_fill_method
 from pandas.core.config import get_option
-from pandas.indexes.base import Index
+from pandas.indexes.base import Index, _index_shared_docs
 import pandas.core.base as base
 import pandas.core.common as com
 import pandas.indexes.base as ibase
@@ -135,6 +135,19 @@ class CategoricalIndex(Index, base.PandasDelegate):
 
         result._reset_identity()
         return result
+
+    @Appender(_index_shared_docs['_shallow_copy'])
+    def _shallow_copy(self, values=None, categories=None, ordered=None,
+                      **kwargs):
+        # categories and ordered can't be part of attributes,
+        # as these are properties
+        if categories is None:
+            categories = self.categories
+        if ordered is None:
+            ordered = self.ordered
+        return super(CategoricalIndex,
+                     self)._shallow_copy(values=values, categories=categories,
+                                         ordered=ordered, **kwargs)
 
     def _is_dtype_compat(self, other):
         """
