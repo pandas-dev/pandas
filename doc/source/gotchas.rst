@@ -356,27 +356,6 @@ such as ``numpy.logical_and``.
 See the `this old issue <https://github.com/pydata/pandas/issues/2388>`__ for a more
 detailed discussion.
 
-.. _gotchas.timestamp-limits:
-
-Timestamp limitations
----------------------
-
-Minimum and maximum timestamps
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Since pandas represents timestamps in nanosecond resolution, the timespan that
-can be represented using a 64-bit integer is limited to approximately 584 years:
-
-.. ipython:: python
-
-   begin = pd.Timestamp.min
-   begin
-
-   end = pd.Timestamp.max
-   end
-
-See :ref:`here <timeseries.oob>` for ways to represent data outside these bound.
-
 Parsing Dates from Text Files
 -----------------------------
 
