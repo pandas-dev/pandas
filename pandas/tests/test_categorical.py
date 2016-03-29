@@ -2768,7 +2768,7 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
             pd.Series([2, 1, 3],
                       index=pd.CategoricalIndex(["a", "b", np.nan])))
 
-        with tm.assert_produces_warning(FutureWarning):
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             s = pd.Series(pd.Categorical(
                 ["a", "b", "a"], categories=["a", "b", np.nan]))
             tm.assert_series_equal(
@@ -2779,7 +2779,7 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
                 pd.Series([2, 1, 0],
                           index=pd.CategoricalIndex(["a", "b", np.nan])))
 
-        with tm.assert_produces_warning(FutureWarning):
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             s = pd.Series(pd.Categorical(
                 ["a", "b", None, "a", None, None], categories=["a", "b", np.nan
                                                                ]))

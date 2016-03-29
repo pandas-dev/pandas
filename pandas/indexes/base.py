@@ -327,8 +327,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         result._reset_identity()
         return result
 
-    def _shallow_copy(self, values=None, **kwargs):
-        """
+    _index_shared_docs['_shallow_copy'] = """
         create a new Index with the same class as the caller, don't copy the
         data, use the same object attributes with passed in attributes taking
         precedence
@@ -340,6 +339,8 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         values : the values to create the new Index, optional
         kwargs : updates the default attributes for this Index
         """
+    @Appender(_index_shared_docs['_shallow_copy'])
+    def _shallow_copy(self, values=None, **kwargs):
         if values is None:
             values = self.values
         attributes = self._get_attributes_dict()

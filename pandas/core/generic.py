@@ -4899,7 +4899,9 @@ class NDFrame(PandasObject):
             for name in idxnames:
                 if name not in names:
                     names.append(name)
+
         d = pd.concat(ldesc, join_axes=pd.Index([names]), axis=1)
+        d.columns = self.columns._shallow_copy(values=d.columns.values)
         d.columns.names = data.columns.names
         return d
 

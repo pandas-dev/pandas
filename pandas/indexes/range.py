@@ -6,7 +6,7 @@ import pandas.index as _index
 
 from pandas import compat
 from pandas.compat import lrange, range
-from pandas.indexes.base import Index
+from pandas.indexes.base import Index, _index_shared_docs
 from pandas.util.decorators import Appender, cache_readonly
 import pandas.core.common as com
 import pandas.indexes.base as ibase
@@ -225,9 +225,8 @@ class RangeIndex(Int64Index):
     def tolist(self):
         return lrange(self._start, self._stop, self._step)
 
+    @Appender(_index_shared_docs['_shallow_copy'])
     def _shallow_copy(self, values=None, **kwargs):
-        """ create a new Index, don't copy the data, use the same object attributes
-            with passed in attributes taking precedence """
         if values is None:
             return RangeIndex(name=self.name, fastpath=True,
                               **dict(self._get_data_as_items()))
