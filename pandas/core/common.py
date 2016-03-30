@@ -2377,16 +2377,6 @@ def needs_i8_conversion(arr_or_dtype):
             is_datetime64tz_dtype(arr_or_dtype))
 
 
-def i8_boxer(arr_or_dtype):
-    """ return the scalar boxer for the dtype """
-    if (is_datetime64_dtype(arr_or_dtype) or
-            is_datetime64tz_dtype(arr_or_dtype)):
-        return lib.Timestamp
-    elif is_timedelta64_dtype(arr_or_dtype):
-        return lambda x: lib.Timedelta(x, unit='ns')
-    raise ValueError("cannot find a scalar boxer for {0}".format(arr_or_dtype))
-
-
 def is_numeric_dtype(arr_or_dtype):
     tipo = _get_dtype_type(arr_or_dtype)
     return (issubclass(tipo, (np.number, np.bool_)) and

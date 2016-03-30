@@ -403,6 +403,24 @@ class TestDataFrameApply(tm.TestCase, TestData):
         for f in ['datetime', 'timedelta']:
             self.assertEqual(result.loc[0, f], str(df.loc[0, f]))
 
+    def test_applymap_box(self):
+        # ufunc will not be boxed. Same test cases as the test_map_box
+        df = pd.DataFrame({'a': [pd.Timestamp('2011-01-01'),
+                                 pd.Timestamp('2011-01-02')],
+                           'b': [pd.Timestamp('2011-01-01', tz='US/Eastern'),
+                                 pd.Timestamp('2011-01-02', tz='US/Eastern')],
+                           'c': [pd.Timedelta('1 days'),
+                                 pd.Timedelta('2 days')],
+                           'd': [pd.Period('2011-01-01', freq='M'),
+                                 pd.Period('2011-01-02', freq='M')]})
+
+        res = df.applymap(lambda x: '{0}'.format(x.__class__.__name__))
+        exp = pd.DataFrame({'a': ['Timestamp', 'Timestamp'],
+                            'b': ['Timestamp', 'Timestamp'],
+                            'c': ['Timedelta', 'Timedelta'],
+                            'd': ['Period', 'Period']})
+        tm.assert_frame_equal(res, exp)
+
     # See gh-12244
     def test_apply_non_numpy_dtype(self):
         df = DataFrame({'dt': pd.date_range(

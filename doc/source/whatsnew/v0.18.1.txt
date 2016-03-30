@@ -222,11 +222,15 @@ Bug Fixes
 - Bug in ``concat`` raises ``AttributeError`` when input data contains tz-aware datetime and timedelta (:issue:`12620`)
 
 
-
-
 - Bug in ``pivot_table`` when ``margins=True`` and ``dropna=True`` where nulls still contributed to margin count (:issue:`12577`)
 
 - Bug in ``Series.name`` when ``name`` attribute can be a hashable type (:issue:`12610`)
 - Bug in ``.describe()`` resets categorical columns information (:issue:`11558`)
 - Bug where ``loffset`` argument was not applied when calling ``resample().count()`` on a timeseries (:issue:`12725`)
 - ``pd.read_excel()`` now accepts path objects (e.g. ``pathlib.Path``, ``py.path.local``) for the file path, in line with other ``read_*`` functions (:issue:`12655`)
+
+
+
+
+- Bug in ``.quantile`` with interpolation may coerce to ``float`` unexpectedly (:issue:`12772`)
+- Bug in ``.quantile`` with empty Series may return scalar rather than empty Series (:issue:`12772`)

@@ -17,8 +17,8 @@ from pandas.core.common import (isnull, notnull, is_bool_indexer,
                                 _default_index, _maybe_upcast,
                                 _asarray_tuplesafe, _infer_dtype_from_scalar,
                                 is_list_like, _values_from_object,
-                                is_categorical_dtype, needs_i8_conversion,
-                                i8_boxer, _possibly_cast_to_datetime,
+                                is_categorical_dtype,
+                                _possibly_cast_to_datetime,
                                 _possibly_castable, _possibly_convert_platform,
                                 _try_sort, is_internal_type, is_datetimetz,
                                 _maybe_match_name, ABCSparseArray,
@@ -56,7 +56,6 @@ import pandas.lib as lib
 import pandas.tslib as tslib
 import pandas.index as _index
 
-from numpy import percentile as _quantile
 from pandas.core.config import get_option
 
 from pandas import _np_version_under1p9
@@ -373,6 +372,15 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
     def get_values(self):
         """ same as values (but handles sparseness conversions); is a view """
         return self._data.get_values()
+
+    @property
+    def asobject(self):
+        """
+        return object Series which contains boxed values
+
+        *this is an internal non-public method*
+        """
+        return self._data.asobject
 
     # ops
     def ravel(self, order='C'):
@@ -1050,9 +1058,8 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
     def __iter__(self):
         """ provide iteration over the values of the Series
         box values if necessary """
-        if needs_i8_conversion(self.dtype):
-            boxer = i8_boxer(self)
-            return (boxer(x) for x in self._values)
+        if com.is_datetimelike(self):
+            return (_maybe_box_datetimelike(x) for x in self._values)
         else:
             return iter(self._values)
 
@@ -1343,21 +1350,20 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
                 raise ValueError("Interpolation methods other than linear "
                                  "are not supported in numpy < 1.9.")
 
-        def multi(values, qs, **kwargs):
-            if com.is_list_like(qs):
-                values = [_quantile(values, x * 100, **kwargs) for x in qs]
-                # let empty result to be Float64Index
-                qs = Float64Index(qs)
-                return self._constructor(values, index=qs, name=self.name)
-            else:
-                return _quantile(values, qs * 100, **kwargs)
-
         kwargs = dict()
         if not _np_version_under1p9:
             kwargs.update({'interpolation': interpolation})
 
-        return self._maybe_box(lambda values: multi(values, q, **kwargs),
-                               dropna=True)
+        result = self._data._block.quantile(self.dropna()._values,
+                                            q, **kwargs)
+
+        if com.is_list_like(result):
+            # explicitly use Float64Index to coerce empty result to float dtype
+            index = Float64Index(q)
+            return self._constructor(result, index=index, name=self.name)
+        else:
+            # scalar
+            return result
 
     def corr(self, other, method='pearson', min_periods=None):
         """
@@ -2061,10 +2067,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         y : Series
             same index as caller
         """
-        values = self._values
-        if needs_i8_conversion(values.dtype):
-            boxer = i8_boxer(values)
-            values = lib.map_infer(values, boxer)
+        values = self.asobject
 
         if na_action == 'ignore':
             mask = isnull(values)
@@ -2194,12 +2197,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         if isinstance(f, np.ufunc):
             return f(self)
 
-        values = _values_from_object(self)
-        if needs_i8_conversion(values.dtype):
-            boxer = i8_boxer(values)
-            values = lib.map_infer(values, boxer)
-
-        mapped = lib.map_infer(values, f, convert=convert_dtype)
+        mapped = lib.map_infer(self.asobject, f, convert=convert_dtype)
         if len(mapped) and isinstance(mapped[0], Series):
             from pandas.core.frame import DataFrame
             return DataFrame(mapped.tolist(), index=self.index)
@@ -2228,45 +2226,6 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         return delegate._reduce(op=op, name=name, axis=axis, skipna=skipna,
                                 numeric_only=numeric_only,
                                 filter_type=filter_type, **kwds)
-
-    def _maybe_box(self, func, dropna=False):
-        """
-        evaluate a function with possible input/output conversion if we are i8
-
-        Parameters
-        ----------
-        dropna : bool, default False
-           whether to drop values if necessary
-
-        """
-        if dropna:
-            values = self.dropna()._values
-        else:
-            values = self._values
-
-        if needs_i8_conversion(self):
-            boxer = i8_boxer(self)
-
-            if len(values) == 0:
-                return boxer(tslib.iNaT)
-
-            values = values.view('i8')
-            result = func(values)
-
-            if com.is_list_like(result):
-                result = result.map(boxer)
-            else:
-                result = boxer(result)
-
-        else:
-
-            # let the function return nan if appropriate
-            if dropna:
-                if len(values) == 0:
-                    return np.nan
-            result = func(values)
-
-        return result
 
     def _reindex_indexer(self, new_index, indexer, copy):
         if indexer is None:

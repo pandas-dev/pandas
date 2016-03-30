@@ -40,7 +40,6 @@ from pandas.core.series import Series
 from pandas.core.categorical import Categorical
 import pandas.computation.expressions as expressions
 from pandas.computation.eval import eval as _eval
-from numpy import percentile as _quantile
 from pandas.compat import (range, map, zip, lrange, lmap, lzip, StringIO, u,
                            OrderedDict, raise_with_traceback)
 from pandas import compat
@@ -63,7 +62,6 @@ import pandas.lib as lib
 import pandas.algos as _algos
 
 from pandas.core.config import get_option
-from pandas import _np_version_under1p9
 
 # ---------------------------------------------------------------------
 # Docstring templates
@@ -4227,10 +4225,7 @@ class DataFrame(NDFrame):
 
         # if we have a dtype == 'M8[ns]', provide boxed values
         def infer(x):
-            if com.needs_i8_conversion(x):
-                f = com.i8_boxer(x)
-                x = lib.map_infer(_values_from_object(x), f)
-            return lib.map_infer(_values_from_object(x), func)
+            return lib.map_infer(x.asobject, func)
 
         return self.apply(infer)
 
@@ -4974,55 +4969,26 @@ class DataFrame(NDFrame):
         0.1  1.3   3.7
         0.5  2.5  55.0
         """
-
         self._check_percentile(q)
-        per = np.asarray(q) * 100
-
-        if not com.is_list_like(per):
-            per = [per]
+        if not com.is_list_like(q):
             q = [q]
             squeeze = True
         else:
             squeeze = False
 
-        if _np_version_under1p9:
-            if interpolation != 'linear':
-                raise ValueError("Interpolation methods other than linear "
-                                 "are not supported in numpy < 1.9")
-
-        def f(arr, per, interpolation):
-            if arr._is_datelike_mixed_type:
-                values = _values_from_object(arr).view('i8')
-            else:
-                values = arr.astype(float)
-            values = values[notnull(values)]
-            if len(values) == 0:
-                return NA
-            else:
-                if _np_version_under1p9:
-                    return _quantile(values, per)
-                else:
-                    return _quantile(values, per, interpolation=interpolation)
-
         data = self._get_numeric_data() if numeric_only else self
-
         axis = self._get_axis_number(axis)
+
+        def _quantile(series):
+            res = series.quantile(q, interpolation=interpolation)
+            return series.name, res
 
         if axis == 1:
             data = data.T
 
-        # need to know which cols are timestamp going in so that we can
-        # map timestamp over them after getting the quantile.
-        is_dt_col = data.dtypes.map(com.is_datetime64_dtype)
-        is_dt_col = is_dt_col[is_dt_col].index
-
-        quantiles = [[f(vals, x, interpolation) for x in per]
-                     for (_, vals) in data.iteritems()]
-
-        result = self._constructor(quantiles, index=data._info_axis,
-                                   columns=q).T
-        if len(is_dt_col) > 0:
-            result[is_dt_col] = result[is_dt_col].applymap(lib.Timestamp)
+        # unable to use DataFrame.apply, becasuse data may be empty
+        result = dict(_quantile(s) for (_, s) in data.iteritems())
+        result = self._constructor(result, columns=data.columns)
         if squeeze:
             if result.shape == (1, 1):
                 result = result.T.iloc[:, 0]  # don't want scalar
