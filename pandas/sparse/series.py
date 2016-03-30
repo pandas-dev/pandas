@@ -282,6 +282,10 @@ class SparseSeries(Series):
     def __len__(self):
         return len(self.block)
 
+    @property
+    def shape(self):
+        return self._data.shape
+
     def __unicode__(self):
         # currently, unicode is same as repr...fixes infinite loop
         series_rep = Series.__unicode__(self)
