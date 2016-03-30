@@ -13,7 +13,7 @@ import numpy as np
 from pandas.core.frame import DataFrame
 from pandas.io.parsers import TextParser
 from pandas.io.common import (_is_url, _urlopen, _validate_header_arg,
-                              get_filepath_or_buffer, _is_s3_url)
+                              get_filepath_or_buffer)
 from pandas.tseries.period import Period
 from pandas import json
 from pandas.compat import (map, zip, reduce, range, lrange, u, add_metaclass,
@@ -82,7 +82,8 @@ def read_excel(io, sheetname=0, header=0, skiprows=None, skip_footer=0,
 
     Parameters
     ----------
-    io : string, file-like object, pandas ExcelFile, or xlrd workbook.
+    io : string, path object (pathlib.Path or py._path.local.LocalPath),
+        file-like object, pandas ExcelFile, or xlrd workbook.
         The string could be a URL. Valid URL schemes include http, ftp, s3,
         and file. For file URLs, a host is expected. For instance, a local
         file could be file://localhost/path/to/workbook.xlsx
@@ -184,8 +185,9 @@ class ExcelFile(object):
 
     Parameters
     ----------
-    io : string, file-like object or xlrd workbook
-        If a string, expected to be a path to xls or xlsx file
+    io : string, path object (pathlib.Path or py._path.local.LocalPath),
+        file-like object or xlrd workbook
+        If a string or path object, expected to be a path to xls or xlsx file
     engine: string, default None
         If io is not a buffer or path, this must be set to identify io.
         Acceptable values are None or xlrd
@@ -207,21 +209,22 @@ class ExcelFile(object):
         if engine is not None and engine != 'xlrd':
             raise ValueError("Unknown engine: %s" % engine)
 
-        if isinstance(io, compat.string_types):
-            if _is_s3_url(io):
-                buffer, _, _ = get_filepath_or_buffer(io)
-                self.book = xlrd.open_workbook(file_contents=buffer.read())
-            elif _is_url(io):
-                data = _urlopen(io).read()
-                self.book = xlrd.open_workbook(file_contents=data)
-            else:
-                self.book = xlrd.open_workbook(io)
-        elif engine == 'xlrd' and isinstance(io, xlrd.Book):
+        # If io is a url, want to keep the data as bytes so can't pass
+        # to get_filepath_or_buffer()
+        if _is_url(io):
+            io = _urlopen(io)
+        # Deal with S3 urls, path objects, etc. Will convert them to
+        # buffer or path string
+        io, _, _ = get_filepath_or_buffer(io)
+
+        if engine == 'xlrd' and isinstance(io, xlrd.Book):
             self.book = io
         elif not isinstance(io, xlrd.Book) and hasattr(io, "read"):
             # N.B. xlrd.Book has a read attribute too
             data = io.read()
             self.book = xlrd.open_workbook(file_contents=data)
+        elif isinstance(io, compat.string_types):
+            self.book = xlrd.open_workbook(io)
         else:
             raise ValueError('Must explicitly set engine if not passing in'
                              ' buffer or path for io.')
