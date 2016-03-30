@@ -38,7 +38,6 @@ json_unicode = (json.dumps if compat.PY3
                 else partial(json.dumps, encoding="utf-8"))
 
 
-
 class UltraJSONTests(TestCase):
 
     def test_encodeDecimal(self):
@@ -846,7 +845,6 @@ class UltraJSONTests(TestCase):
             input = quote + (base * 1024 * 1024 * 2) + quote
             output = ujson.decode(input)  # noqa
 
-
     def test_object_default(self):
         # An object without toDict or __json__ defined should be serialized
         # as an empty dict.
@@ -857,7 +855,6 @@ class UltraJSONTests(TestCase):
         dec = ujson.decode(output)
         self.assertEquals(dec, {})
 
-
     def test_toDict(self):
         d = {u("key"): 31337}
 
@@ -865,8 +862,9 @@ class UltraJSONTests(TestCase):
 
             def toDict(self):
                 return d
+
             def __json__(self):
-                return '"json defined"' # Fallback and shouldn't be called.
+                return '"json defined"'   # Fallback and shouldn't be called.
 
         o = DictTest()
         output = ujson.encode(o)
@@ -877,7 +875,9 @@ class UltraJSONTests(TestCase):
         # If __json__ returns a string, then that string
         # will be used as a raw JSON snippet in the object.
         output_text = 'this is the correct output'
+
         class JSONTest:
+
             def __json__(self):
                 return '"' + output_text + '"'
 
@@ -890,7 +890,9 @@ class UltraJSONTests(TestCase):
         # If __json__ returns a string, then that string
         # will be used as a raw JSON snippet in the object.
         output_text = u'this is the correct output'
+
         class JSONTest:
+
             def __json__(self):
                 return u'"' + output_text + u'"'
 
@@ -903,7 +905,9 @@ class UltraJSONTests(TestCase):
         # If __json__ returns a string, then that string
         # will be used as a raw JSON snippet in the object.
         obj = {u'foo': [u'bar', u'baz']}
+
         class JSONTest:
+
             def __json__(self):
                 return ujson.encode(obj)
 
@@ -1254,7 +1258,6 @@ class NumpyJSONTests(TestCase):
 
 
 class PandasJSONTests(TestCase):
-
 
     def testDataFrame(self):
         df = DataFrame([[1, 2, 3], [4, 5, 6]], index=[
@@ -1662,23 +1665,29 @@ class PandasJSONTests(TestCase):
         for v in dec:
             self.assertTrue(v in s)
 
-
     def test_rawJsonInDataFrame(self):
+
         class ujson_as_is(object):
+
             def __init__(self, value):
                 self.value = value
+
             def __json__(self):
                 return self.value
+
             def __eq__(self, other):
                 return ujson.loads(self.value) == ujson.loads(other.value)
+
             __repr__ = __json__
 
-        df = DataFrame([[1, 2, 3, 4], [5, 6, 7, 8]], index=[
-                       'a', 'b'], columns=['w', 'x', 'y', 'z'])
+        df = DataFrame([[1, 2, 3, 4], [5, 6, 7, 8]],
+                       index=['a', 'b'],
+                       columns=['w', 'x', 'y', 'z'])
 
-        x_y_ser = df[['x','y']].apply(
-                        lambda x: ujson_as_is(ujson.dumps(x.to_dict())),
-                        axis = 1)
+        x_y_ser = df[['x', 'y']].apply(
+            lambda x: ujson_as_is(ujson.dumps(x.to_dict())),
+            axis=1
+        )
 
         expected_result = {
             'a': ujson_as_is('{"y":3,"x":2}'),
@@ -1687,16 +1696,19 @@ class PandasJSONTests(TestCase):
         self.assertEqual(x_y_ser.to_dict(), expected_result)
 
         df['x_y'] = x_y_ser
-        ser_x_y_z = df[['x_y', 'z']].apply(lambda x: ujson_as_is(ujson.dumps(x.to_dict())), axis = 1)
+        ser_x_y_z = df[['x_y', 'z']].apply(
+            lambda x: ujson_as_is(ujson.dumps(x.to_dict())),
+            axis=1
+        )
         df['x_y_z'] = ser_x_y_z
 
         df_json_dump = df[['x_y_z', 'w']].to_json(orient='records')
 
-        expected_result = '[{"x_y_z":{"z":4,"x_y":{"y":3,"x":2}},"w":1},{"x_y_z":{"z":8,"x_y":{"y":7,"x":6}},"w":5}]'
+        expected_result = '[{"x_y_z":{"z":4,"x_y":{"y":3,"x":2}},"w":1}' + \
+                          ',{"x_y_z":{"z":8,"x_y":{"y":7,"x":6}},"w":5}]'
 
-        self.assertEqual(ujson.loads(df_json_dump), ujson.loads(expected_result))
-
-
+        self.assertEqual(ujson.loads(df_json_dump),
+                         ujson.loads(expected_result))
 
 
 def _clean_dict(d):
