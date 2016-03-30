@@ -1136,6 +1136,7 @@ def _concat_indexes(indexes):
 
 
 def _make_concat_multiindex(indexes, keys, levels=None, names=None):
+
     if ((levels is None and isinstance(keys[0], tuple)) or
             (levels is not None and len(levels) > 1)):
         zipped = lzip(*keys)

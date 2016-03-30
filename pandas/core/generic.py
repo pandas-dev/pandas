@@ -3705,7 +3705,7 @@ class NDFrame(PandasObject):
         return self.where(subset, threshold, axis=axis)
 
     def groupby(self, by=None, axis=0, level=None, as_index=True, sort=True,
-                group_keys=True, squeeze=False):
+                group_keys=True, squeeze=False, **kwargs):
         """
         Group series using mapper (dict or key function, apply given function
         to group, return result as series) or by a series of columns.
@@ -3757,7 +3757,8 @@ class NDFrame(PandasObject):
             raise TypeError("You have to supply one of 'by' and 'level'")
         axis = self._get_axis_number(axis)
         return groupby(self, by=by, axis=axis, level=level, as_index=as_index,
-                       sort=sort, group_keys=group_keys, squeeze=squeeze)
+                       sort=sort, group_keys=group_keys, squeeze=squeeze,
+                       **kwargs)
 
     def asfreq(self, freq, method=None, how=None, normalize=False):
         """

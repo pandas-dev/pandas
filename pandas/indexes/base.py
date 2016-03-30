@@ -326,8 +326,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         result.name = name
         for k, v in compat.iteritems(kwargs):
             setattr(result, k, v)
-        result._reset_identity()
-        return result
+        return result._reset_identity()
 
     _index_shared_docs['_shallow_copy'] = """
         create a new Index with the same class as the caller, don't copy the
@@ -402,6 +401,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
     def _reset_identity(self):
         """Initializes or resets ``_id`` attribute with new object"""
         self._id = _Identity()
+        return self
 
     # ndarray compat
     def __len__(self):

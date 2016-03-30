@@ -18,6 +18,8 @@ Highlights include:
 
 .. _whatsnew_0181.new_features:
 
+- ``.groupby(...)`` has been enhanced to provide convenient syntax when working with ``.rolling(..)``, ``.expanding(..)`` and ``.resample(..)`` per group, see :ref:`here <whatsnew_0181.deferred_ops>`
+
 New features
 ~~~~~~~~~~~~
 
@@ -47,6 +49,55 @@ see :ref:`Custom Business Hour <timeseries.custombusinesshour>` (:issue:`11514`)
 
 Enhancements
 ~~~~~~~~~~~~
+
+.. _whatsnew_0181.deferred_ops:
+
+``.groupby(..)`` syntax with window and resample operations
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+``.groupby(...)`` has been enhanced to provide convenient syntax when working with ``.rolling(..)``, ``.expanding(..)`` and ``.resample(..)`` per group, see (:issue:`12486`, :issue:`12738`).
+
+You can now use ``.rolling(..)`` and ``.expanding(..)`` as methods on groupbys. These return another deferred object (similar to what ``.rolling()`` and ``.expanding()`` do on ungrouped pandas objects). You can then operate on these ``RollingGroupby`` objects in a similar manner.
+
+Previously you would have to do this to get a rolling window mean per-group:
+
+.. ipython:: python
+
+   df = pd.DataFrame({'A': [1] * 20 + [2] * 12 + [3] * 8,
+                      'B': np.arange(40)})
+   df
+
+.. ipython:: python
+
+   df.groupby('A').apply(lambda x: x.rolling(4).B.mean())
+
+Now you can do:
+
+.. ipython:: python
+
+   df.groupby('A').rolling(4).B.mean()
+
+For ``.resample(..)`` type of operations, previously you would have to:
+
+.. ipython:: python
+
+   df = pd.DataFrame({'date': pd.date_range(start='2016-01-01',
+                                            periods=4,
+                                            freq='W'),
+                      'group': [1, 1, 2, 2],
+                      'val': [5, 6, 7, 8]}).set_index('date')
+
+   df
+
+.. ipython:: python
+
+   df.groupby('group').apply(lambda x: x.resample('1D').ffill())
+
+Now you can do:
+
+.. ipython:: python
+
+   df.groupby('group').resample('1D').ffill()
 
 .. _whatsnew_0181.partial_string_indexing:
 
@@ -281,6 +332,9 @@ Bug Fixes
 - Bug in ``.drop()`` with a non-unique ``MultiIndex``. (:issue:`12701`)
 - Bug in ``.concat`` of datetime tz-aware and naive DataFrames (:issue:`12467`)
 - Bug in correctly raising a ``ValueError`` in ``.resample(..).fillna(..)`` when passing a non-string (:issue:`12952`)
+
+- Bug in consistency of ``.name`` on ``.groupby(..).apply(..)`` cases (:issue:`12363`)
+
 
 - Bug in ``Timestamp.__repr__`` that caused ``pprint`` to fail in nested structures (:issue:`12622`)
 - Bug in ``Timedelta.min`` and ``Timedelta.max``, the properties now report the true minimum/maximum ``timedeltas`` as recognized by Pandas. See :ref:`documentation <timedeltas.limitations>`. (:issue:`12727`)

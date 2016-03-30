@@ -3095,6 +3095,20 @@ class TestGroupBy(tm.TestCase):
         testFunc = lambda x: np.sum(x) * 2
         self.assertEqual(result.agg(testFunc).name, 'C')
 
+    def test_consistency_name(self):
+        # GH 12363
+
+        df = DataFrame({'A': ['foo', 'bar', 'foo', 'bar',
+                              'foo', 'bar', 'foo', 'foo'],
+                        'B': ['one', 'one', 'two', 'two',
+                              'two', 'two', 'one', 'two'],
+                        'C': np.random.randn(8) + 1.0,
+                        'D': np.arange(8)})
+
+        expected = df.groupby(['A']).B.count()
+        result = df.B.groupby(df.A).count()
+        assert_series_equal(result, expected)
+
     def test_groupby_name_propagation(self):
         # GH 6124
         def summarize(df, name=None):
@@ -3561,8 +3575,7 @@ class TestGroupBy(tm.TestCase):
             expected.append(piece.value.rank())
         expected = concat(expected, axis=0)
         expected = expected.reindex(result.index)
-        assert_series_equal(result, expected, check_names=False)
-        self.assertTrue(result.name is None)
+        assert_series_equal(result, expected)
 
         result = df.groupby(['key1', 'key2']).value.rank(pct=True)
 
@@ -3571,8 +3584,7 @@ class TestGroupBy(tm.TestCase):
             expected.append(piece.value.rank(pct=True))
         expected = concat(expected, axis=0)
         expected = expected.reindex(result.index)
-        assert_series_equal(result, expected, check_names=False)
-        self.assertTrue(result.name is None)
+        assert_series_equal(result, expected)
 
     def test_dont_clobber_name_column(self):
         df = DataFrame({'key': ['a', 'a', 'a', 'b', 'b', 'b'],
@@ -3604,8 +3616,7 @@ class TestGroupBy(tm.TestCase):
             pieces.append(group.sort_values()[:3])
 
         expected = concat(pieces)
-        assert_series_equal(result, expected, check_names=False)
-        self.assertTrue(result.name is None)
+        assert_series_equal(result, expected)
 
     def test_no_nonsense_name(self):
         # GH #995
@@ -4131,6 +4142,7 @@ class TestGroupBy(tm.TestCase):
                                      tz='America/Chicago'),
                            Timestamp('2000-01-01 16:50:00-0500',
                                      tz='America/New_York')],
+                          name='date',
                           dtype=object)
         assert_series_equal(result, expected)
 
@@ -5743,7 +5755,7 @@ class TestGroupBy(tm.TestCase):
              'cumcount', 'all', 'shift', 'skew', 'bfill', 'ffill', 'take',
              'tshift', 'pct_change', 'any', 'mad', 'corr', 'corrwith', 'cov',
              'dtypes', 'ndim', 'diff', 'idxmax', 'idxmin',
-             'ffill', 'bfill', 'pad', 'backfill'])
+             'ffill', 'bfill', 'pad', 'backfill', 'rolling', 'expanding'])
         self.assertEqual(results, expected)
 
     def test_lexsort_indexer(self):

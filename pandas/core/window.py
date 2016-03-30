@@ -13,7 +13,8 @@ from collections import defaultdict
 
 import pandas as pd
 from pandas.lib import isscalar
-from pandas.core.base import PandasObject, SelectionMixin
+from pandas.core.base import (PandasObject, SelectionMixin,
+                              GroupByMixin)
 import pandas.core.common as com
 import pandas.algos as algos
 from pandas import compat
@@ -40,7 +41,7 @@ class _Window(PandasObject, SelectionMixin):
     exclusions = set()
 
     def __init__(self, obj, window=None, min_periods=None, freq=None,
-                 center=False, win_type=None, axis=0):
+                 center=False, win_type=None, axis=0, **kwargs):
 
         if freq is not None:
             warnings.warn("The freq kw is deprecated and will be removed in a "
@@ -55,14 +56,10 @@ class _Window(PandasObject, SelectionMixin):
         self.center = center
         self.win_type = win_type
         self.axis = axis
-        self._setup()
 
     @property
     def _constructor(self):
         return Window
-
-    def _setup(self):
-        pass
 
     def _convert_freq(self, how=None):
         """ resample according to the how, return a new object """
@@ -137,17 +134,6 @@ class _Window(PandasObject, SelectionMixin):
         return "{klass} [{attrs}]".format(klass=self._window_type,
                                           attrs=','.join(attrs))
 
-    def _shallow_copy(self, obj=None, **kwargs):
-        """ return a new object with the replacement attributes """
-        if obj is None:
-            obj = self._selected_obj.copy()
-        if isinstance(obj, self.__class__):
-            obj = obj.obj
-        for attr in self._attributes:
-            if attr not in kwargs:
-                kwargs[attr] = getattr(self, attr)
-        return self._constructor(obj, **kwargs)
-
     def _prep_values(self, values=None, kill_inf=True, how=None):
 
         if values is None:
@@ -183,6 +169,8 @@ class _Window(PandasObject, SelectionMixin):
 
         if obj is None:
             obj = self._selected_obj
+
+        index = obj.index
         if isinstance(result, np.ndarray):
 
             # coerce if necessary
@@ -193,9 +181,9 @@ class _Window(PandasObject, SelectionMixin):
 
             if result.ndim == 1:
                 from pandas import Series
-                return Series(result, obj.index, name=obj.name)
+                return Series(result, index, name=obj.name)
 
-            return type(obj)(result, index=obj.index, columns=block.columns)
+            return type(obj)(result, index=index, columns=block.columns)
         return result
 
     def _wrap_results(self, results, blocks, obj):
@@ -411,13 +399,48 @@ class Window(_Window):
         return self._apply_window(mean=True, **kwargs)
 
 
+class _GroupByMixin(GroupByMixin):
+    """ provide the groupby facilities """
+
+    def __init__(self, obj, *args, **kwargs):
+        parent = kwargs.pop('parent', None)  # noqa
+        groupby = kwargs.pop('groupby', None)
+        if groupby is None:
+            groupby, obj = obj, obj.obj
+        self._groupby = groupby
+        self._groupby.mutated = True
+        self._groupby.grouper.mutated = True
+        super(GroupByMixin, self).__init__(obj, *args, **kwargs)
+
+    count = GroupByMixin._dispatch('count')
+    corr = GroupByMixin._dispatch('corr', other=None, pairwise=None)
+    cov = GroupByMixin._dispatch('cov', other=None, pairwise=None)
+
+    def _apply(self, func, name, window=None, center=None,
+               check_minp=None, how=None, **kwargs):
+        """
+        dispatch to apply; we are stripping all of the _apply kwargs and
+        performing the original function call on the grouped object
+        """
+
+        def f(x, name=name, *args):
+            x = self._shallow_copy(x)
+
+            if isinstance(name, compat.string_types):
+                return getattr(x, name)(*args, **kwargs)
+
+            return x.apply(name, *args, **kwargs)
+
+        return self._groupby.apply(f)
+
+
 class _Rolling(_Window):
     @property
     def _constructor(self):
         return Rolling
 
-    def _apply(self, func, window=None, center=None, check_minp=None, how=None,
-               **kwargs):
+    def _apply(self, func, name=None, window=None, center=None,
+               check_minp=None, how=None, **kwargs):
         """
         Rolling statistical measure using supplied function. Designed to be
         used with passed-in Cython array-based functions.
@@ -425,6 +448,8 @@ class _Rolling(_Window):
         Parameters
         ----------
         func : string/callable to apply
+        name : string, optional
+           name of this function
         window : int/array, default to _get_window()
         center : boolean, default to self.center
         check_minp : function, default to _use_window
@@ -546,10 +571,11 @@ class _Rolling_and_Expanding(_Rolling):
             return algos.roll_generic(arg, window, minp, offset, func, args,
                                       kwargs)
 
-        return self._apply(f, center=False)
+        return self._apply(f, func, args=args, kwargs=kwargs,
+                           center=False)
 
     def sum(self, **kwargs):
-        return self._apply('roll_sum', **kwargs)
+        return self._apply('roll_sum', 'sum', **kwargs)
 
     _shared_docs['max'] = dedent("""
     %(name)s maximum
@@ -562,7 +588,7 @@ class _Rolling_and_Expanding(_Rolling):
     def max(self, how=None, **kwargs):
         if self.freq is not None and how is None:
             how = 'max'
-        return self._apply('roll_max', how=how, **kwargs)
+        return self._apply('roll_max', 'max', how=how, **kwargs)
 
     _shared_docs['min'] = dedent("""
     %(name)s minimum
@@ -575,10 +601,10 @@ class _Rolling_and_Expanding(_Rolling):
     def min(self, how=None, **kwargs):
         if self.freq is not None and how is None:
             how = 'min'
-        return self._apply('roll_min', how=how, **kwargs)
+        return self._apply('roll_min', 'min', how=how, **kwargs)
 
     def mean(self, **kwargs):
-        return self._apply('roll_mean', **kwargs)
+        return self._apply('roll_mean', 'mean', **kwargs)
 
     _shared_docs['median'] = dedent("""
     %(name)s median
@@ -591,7 +617,7 @@ class _Rolling_and_Expanding(_Rolling):
     def median(self, how=None, **kwargs):
         if self.freq is not None and how is None:
             how = 'median'
-        return self._apply('roll_median_c', how=how, **kwargs)
+        return self._apply('roll_median_c', 'median', how=how, **kwargs)
 
     _shared_docs['std'] = dedent("""
     %(name)s standard deviation
@@ -609,7 +635,8 @@ class _Rolling_and_Expanding(_Rolling):
             minp = _require_min_periods(1)(self.min_periods, window)
             return _zsqrt(algos.roll_var(arg, window, minp, ddof))
 
-        return self._apply(f, check_minp=_require_min_periods(1), **kwargs)
+        return self._apply(f, 'std', check_minp=_require_min_periods(1),
+                           ddof=ddof, **kwargs)
 
     _shared_docs['var'] = dedent("""
     %(name)s variance
@@ -621,20 +648,21 @@ class _Rolling_and_Expanding(_Rolling):
         is ``N - ddof``, where ``N`` represents the number of elements.""")
 
     def var(self, ddof=1, **kwargs):
-        return self._apply('roll_var', check_minp=_require_min_periods(1),
-                           ddof=ddof, **kwargs)
+        return self._apply('roll_var', 'var',
+                           check_minp=_require_min_periods(1), ddof=ddof,
+                           **kwargs)
 
     _shared_docs['skew'] = """Unbiased %(name)s skewness"""
 
     def skew(self, **kwargs):
-        return self._apply('roll_skew', check_minp=_require_min_periods(3),
-                           **kwargs)
+        return self._apply('roll_skew', 'skew',
+                           check_minp=_require_min_periods(3), **kwargs)
 
     _shared_docs['kurt'] = """Unbiased %(name)s kurtosis"""
 
     def kurt(self, **kwargs):
-        return self._apply('roll_kurt', check_minp=_require_min_periods(4),
-                           **kwargs)
+        return self._apply('roll_kurt', 'kurt',
+                           check_minp=_require_min_periods(4), **kwargs)
 
     _shared_docs['quantile'] = dedent("""
     %(name)s quantile
@@ -651,7 +679,8 @@ class _Rolling_and_Expanding(_Rolling):
             minp = _use_window(self.min_periods, window)
             return algos.roll_quantile(arg, window, minp, quantile)
 
-        return self._apply(f, **kwargs)
+        return self._apply(f, 'quantile', quantile=quantile,
+                           **kwargs)
 
     _shared_docs['cov'] = dedent("""
     %(name)s sample covariance
@@ -857,6 +886,18 @@ class Rolling(_Rolling_and_Expanding):
                                          **kwargs)
 
 
+class RollingGroupby(_GroupByMixin, Rolling):
+    """
+    Provides a rolling groupby implementation
+
+    .. versionadded:: 0.18.1
+
+    """
+    @property
+    def _constructor(self):
+        return Rolling
+
+
 class Expanding(_Rolling_and_Expanding):
     """
     Provides expanding transformations.
@@ -1003,6 +1044,18 @@ class Expanding(_Rolling_and_Expanding):
     def corr(self, other=None, pairwise=None, **kwargs):
         return super(Expanding, self).corr(other=other, pairwise=pairwise,
                                            **kwargs)
+
+
+class ExpandingGroupby(_GroupByMixin, Expanding):
+    """
+    Provides a expanding groupby implementation
+
+    .. versionadded:: 0.18.1
+
+    """
+    @property
+    def _constructor(self):
+        return Expanding
 
 
 _bias_template = """
