@@ -207,6 +207,7 @@ class CleanCommand(Command):
         base = pjoin('pandas','src')
         dt = pjoin(base,'datetime')
         src = base
+        util = pjoin('pandas','util')
         parser = pjoin(base,'parser')
         ujson_python = pjoin(base,'ujson','python')
         ujson_lib = pjoin(base,'ujson','lib')
@@ -220,6 +221,7 @@ class CleanCommand(Command):
                                pjoin(ujson_python,'JSONtoObj.c'),
                                pjoin(ujson_lib,'ultrajsonenc.c'),
                                pjoin(ujson_lib,'ultrajsondec.c'),
+                               pjoin(util,'move.c'),
                                ]
 
         for root, dirs, files in os.walk('pandas'):
@@ -476,7 +478,7 @@ testing_ext = Extension('pandas._testing',
 extensions.extend([testing_ext])
 
 #----------------------------------------------------------------------
-# msgpack stuff here
+# msgpack
 
 if sys.byteorder == 'big':
     macros = [('__BIG_ENDIAN__', '1')]
@@ -507,6 +509,9 @@ unpacker_ext = Extension('pandas.msgpack._unpacker',
 extensions.append(packer_ext)
 extensions.append(unpacker_ext)
 
+#----------------------------------------------------------------------
+# ujson
+
 if suffix == '.pyx' and 'setuptools' in sys.modules:
     # undo dumb setuptools bug clobbering .pyx sources back to .c
     for ext in extensions:
@@ -532,10 +537,12 @@ ujson_ext = Extension('pandas.json',
 
 extensions.append(ujson_ext)
 
+#----------------------------------------------------------------------
+# util
 # extension for pseudo-safely moving bytes into mutable buffers
 _move_ext = Extension('pandas.util._move',
                       depends=[],
-                      sources=['pandas/util/_move.c'])
+                      sources=['pandas/util/move.c'])
 extensions.append(_move_ext)
 
 
