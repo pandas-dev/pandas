@@ -498,6 +498,8 @@ class TestSeriesConstructors(TestData, tm.TestCase):
         expected = Series(pi.asobject)
         assert_series_equal(s, expected)
 
+        self.assertEqual(s.dtype, 'object')
+
     def test_constructor_dict(self):
         d = {'a': 0., 'b': 1., 'c': 2.}
         result = Series(d, index=['b', 'c', 'd', 'a'])

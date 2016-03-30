@@ -4,6 +4,7 @@ from itertools import product
 import nose
 import numpy as np
 from pandas import Series, Categorical, date_range
+import pandas.core.common as com
 from pandas.core.common import (CategoricalDtype, is_categorical_dtype,
                                 is_categorical, DatetimeTZDtype,
                                 is_datetime64tz_dtype, is_datetimetz,
@@ -96,6 +97,12 @@ class TestDatetimeTZDtype(Base, tm.TestCase):
 
         self.assertTrue(issubclass(type(a), type(a)))
         self.assertTrue(issubclass(type(a), type(b)))
+
+    def test_coerce_to_dtype(self):
+        self.assertEqual(com._coerce_to_dtype('datetime64[ns, US/Eastern]'),
+                         DatetimeTZDtype('ns', 'US/Eastern'))
+        self.assertEqual(com._coerce_to_dtype('datetime64[ns, Asia/Tokyo]'),
+                         DatetimeTZDtype('ns', 'Asia/Tokyo'))
 
     def test_compat(self):
         self.assertFalse(is_datetime64_ns_dtype(self.dtype))
