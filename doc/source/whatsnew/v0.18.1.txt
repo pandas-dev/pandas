@@ -472,6 +472,8 @@ Performance Improvements
 - Improved performance of ``DataFrame.to_sql`` when checking case sensitivity for tables. Now only checks if table has been created correctly when table name is not lower case. (:issue:`12876`)
 - Improved performance of ``Period`` construction and time series plotting (:issue:`12903`, :issue:`11831`).
 - Improved performance of ``.str.encode()`` and ``.str.decode()`` methods (:issue:`13008`)
+- Improved performance of ``to_numeric`` if input is numeric dtype (:issue:`12777`)
+
 
 
 
@@ -583,3 +585,6 @@ Bug Fixes
 - Bug in ``.describe()`` resets categorical columns information (:issue:`11558`)
 - Bug where ``loffset`` argument was not applied when calling ``resample().count()`` on a timeseries (:issue:`12725`)
 - ``pd.read_excel()`` now accepts column names associated with keyword argument ``names`` (:issue:`12870`)
+- Bug in ``to_numeric`` with ``Index`` returns ``np.ndarray``, rather than ``Index`` (:issue:`12777`)
+- Bug in ``to_numeric`` with datetime-like may raise ``TypeError`` (:issue:`12777`)
+- Bug in ``to_numeric`` with scalar raises ``ValueError`` (:issue:`12777`)
