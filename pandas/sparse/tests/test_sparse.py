@@ -213,6 +213,11 @@ class TestSparseSeries(tm.TestCase, SharedWithSparse):
         assert_sp_series_equal(iseries, self.iseries, check_names=False)
         self.assertEqual(iseries.name, self.bseries.name)
 
+        self.assertEqual(len(series), len(bseries))
+        self.assertEqual(len(series), len(iseries))
+        self.assertEqual(series.shape, bseries.shape)
+        self.assertEqual(series.shape, iseries.shape)
+
         # non-NaN fill value
         series = self.zbseries.to_dense()
         zbseries = series.to_sparse(kind='block', fill_value=0)
@@ -220,6 +225,11 @@ class TestSparseSeries(tm.TestCase, SharedWithSparse):
         assert_sp_series_equal(zbseries, self.zbseries)
         assert_sp_series_equal(ziseries, self.ziseries, check_names=False)
         self.assertEqual(ziseries.name, self.zbseries.name)
+
+        self.assertEqual(len(series), len(zbseries))
+        self.assertEqual(len(series), len(ziseries))
+        self.assertEqual(series.shape, zbseries.shape)
+        self.assertEqual(series.shape, ziseries.shape)
 
     def test_to_dense_preserve_name(self):
         assert (self.bseries.name is not None)
@@ -271,11 +281,17 @@ class TestSparseSeries(tm.TestCase, SharedWithSparse):
         sp.sp_values[:5] = 97
         self.assertEqual(values[0], 97)
 
+        self.assertEqual(len(sp), 20)
+        self.assertEqual(sp.shape, (20, ))
+
         # but can make it copy!
         sp = SparseSeries(values, sparse_index=self.bseries.sp_index,
                           copy=True)
         sp.sp_values[:5] = 100
         self.assertEqual(values[0], 97)
+
+        self.assertEqual(len(sp), 20)
+        self.assertEqual(sp.shape, (20, ))
 
     def test_constructor_scalar(self):
         data = 5
@@ -286,6 +302,8 @@ class TestSparseSeries(tm.TestCase, SharedWithSparse):
 
         data = np.nan
         sp = SparseSeries(data, np.arange(100))
+        self.assertEqual(len(sp), 100)
+        self.assertEqual(sp.shape, (100, ))
 
     def test_constructor_ndarray(self):
         pass
@@ -294,11 +312,14 @@ class TestSparseSeries(tm.TestCase, SharedWithSparse):
         arr = [0, 0, 0, nan, nan]
         sp_series = SparseSeries(arr, fill_value=0)
         assert_equal(sp_series.values.values, arr)
+        self.assertEqual(len(sp_series), 5)
+        self.assertEqual(sp_series.shape, (5, ))
 
     # GH 9272
     def test_constructor_empty(self):
         sp = SparseSeries()
         self.assertEqual(len(sp.index), 0)
+        self.assertEqual(sp.shape, (0, ))
 
     def test_copy_astype(self):
         cop = self.bseries.astype(np.float64)
@@ -327,6 +348,18 @@ class TestSparseSeries(tm.TestCase, SharedWithSparse):
         view = self.bseries.copy(deep=False)
         view.sp_values[:5] = 5
         self.assertTrue((self.bseries.sp_values[:5] == 5).all())
+
+    def test_shape(self):
+        # GH 10452
+        self.assertEqual(self.bseries.shape, (20, ))
+        self.assertEqual(self.btseries.shape, (20, ))
+        self.assertEqual(self.iseries.shape, (20, ))
+
+        self.assertEqual(self.bseries2.shape, (15, ))
+        self.assertEqual(self.iseries2.shape, (15, ))
+
+        self.assertEqual(self.zbseries2.shape, (15, ))
+        self.assertEqual(self.ziseries2.shape, (15, ))
 
     def test_astype(self):
         self.assertRaises(Exception, self.bseries.astype, np.int64)
@@ -1089,6 +1122,13 @@ class TestSparseDataFrame(tm.TestCase, SparseFrameTests):
         result = sdf.get_dtype_counts()
         expected = Series({'float64': 4})
         assert_series_equal(result, expected)
+
+    def test_shape(self):
+        # GH 10452
+        self.assertEqual(self.frame.shape, (10, 4))
+        self.assertEqual(self.iframe.shape, (10, 4))
+        self.assertEqual(self.zframe.shape, (10, 4))
+        self.assertEqual(self.fill_frame.shape, (10, 4))
 
     def test_str(self):
         df = DataFrame(np.random.randn(10000, 4))
