@@ -937,6 +937,28 @@ class TestResample(tm.TestCase):
         expected = ser.resample('w-sun', loffset=-bday).last()
         self.assertEqual(result.index[0] - bday, expected.index[0])
 
+    def test_resample_loffset_count(self):
+        # GH 12725
+        start_time = '1/1/2000 00:00:00'
+        rng = date_range(start_time, periods=100, freq='S')
+        ts = Series(np.random.randn(len(rng)), index=rng)
+
+        result = ts.resample('10S', loffset='1s').count()
+
+        expected_index = (
+            date_range(start_time, periods=10, freq='10S') +
+            timedelta(seconds=1)
+        )
+        expected = pd.Series(10, index=expected_index)
+
+        assert_series_equal(result, expected)
+
+        # Same issue should apply to .size() since it goes through
+        #   same code path
+        result = ts.resample('10S', loffset='1s').size()
+
+        assert_series_equal(result, expected)
+
     def test_resample_upsample(self):
         # from daily
         dti = DatetimeIndex(start=datetime(2005, 1, 1),
