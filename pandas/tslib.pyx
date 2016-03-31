@@ -2722,6 +2722,11 @@ class Timedelta(_Timedelta):
     __pos__ = _op_unary_method(lambda x: x, '__pos__')
     __abs__ = _op_unary_method(lambda x: abs(x), '__abs__')
 
+
+# Resolution is in nanoseconds
+Timedelta.min = Timedelta(np.iinfo(np.int64).min+1, 'ns')
+Timedelta.max = Timedelta(np.iinfo(np.int64).max, 'ns')
+
 cdef PyTypeObject* td_type = <PyTypeObject*> Timedelta
 
 cdef inline bint is_timedelta(object o):

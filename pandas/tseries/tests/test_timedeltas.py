@@ -1083,6 +1083,35 @@ class TestTimedeltas(tm.TestCase):
         ns_td = Timedelta(1, 'ns')
         self.assertNotEqual(hash(ns_td), hash(ns_td.to_pytimedelta()))
 
+    def test_implementation_limits(self):
+        min_td = Timedelta(Timedelta.min)
+        max_td = Timedelta(Timedelta.max)
+
+        # GH 12727
+        # timedelta limits correspond to int64 boundaries
+        self.assertTrue(min_td.value == np.iinfo(np.int64).min + 1)
+        self.assertTrue(max_td.value == np.iinfo(np.int64).max)
+
+        # Beyond lower limit, a NAT before the Overflow
+        self.assertIsInstance(min_td - Timedelta(1, 'ns'),
+                              pd.tslib.NaTType)
+
+        with tm.assertRaises(OverflowError):
+            min_td - Timedelta(2, 'ns')
+
+        with tm.assertRaises(OverflowError):
+            max_td + Timedelta(1, 'ns')
+
+        # Same tests using the internal nanosecond values
+        td = Timedelta(min_td.value - 1, 'ns')
+        self.assertIsInstance(td, pd.tslib.NaTType)
+
+        with tm.assertRaises(OverflowError):
+            Timedelta(min_td.value - 2, 'ns')
+
+        with tm.assertRaises(OverflowError):
+            Timedelta(max_td.value + 1, 'ns')
+
 
 class TestTimedeltaIndex(tm.TestCase):
     _multiprocess_can_split_ = True
