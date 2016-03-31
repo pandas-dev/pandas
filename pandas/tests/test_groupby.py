@@ -4827,6 +4827,7 @@ class TestGroupBy(tm.TestCase):
     def test_timegrouper_apply_return_type_series(self):
         # Using `apply` with the `TimeGrouper` should give the
         # same return type as an `apply` with a `Grouper`.
+        # Issue #11742
         df = pd.DataFrame({'date': ['10/10/2000', '11/10/2000'],
                            'value': [10, 13]})
         df_dt = df.copy()
@@ -4844,6 +4845,7 @@ class TestGroupBy(tm.TestCase):
     def test_timegrouper_apply_return_type_value(self):
         # Using `apply` with the `TimeGrouper` should give the
         # same return type as an `apply` with a `Grouper`.
+        # Issue #11742
         df = pd.DataFrame({'date': ['10/10/2000', '11/10/2000'],
                            'value': [10, 13]})
         df_dt = df.copy()

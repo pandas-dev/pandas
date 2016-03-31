@@ -77,76 +77,34 @@ API changes
 
 - Using ``apply`` on resampling groupby operations (e.g. ``df.groupby(pd.TimeGrouper(freq='M', key='date')).apply(...)``) now has the same output types as similar ``apply``s on other groupby operations (e.g. ``df.groupby(pd.Grouper(key='color')).apply(...)``). (:issue:`11742`).
 
+
+New Behavior:
+
+.. ipython:: python
+
+    df = pd.DataFrame({'date': pd.to_datetime(['10/10/2000', '11/10/2000']), 'value': [10, 13]})
+    df
+    # Output is a Series
+    df.groupby(pd.TimeGrouper(key='date', freq='M')).apply(lambda x: x.value.sum())
+    # Output is a DataFrame
+    df.groupby(pd.TimeGrouper(key='date', freq='M')).apply(lambda x: x[['value']].sum())
+
 Previous behavior:
 
 .. code-block:: python
 
-    In [1]: df = pd.DataFrame({'date': pd.to_datetime(['10/10/2000', '11/10/2000']), 'value': [10, 13]})
-
-    In [2]: df.groupby(pd.TimeGrouper(key='date', freq='M')).apply(lambda x: x.value.sum())
-    Out[2]:
+    In [1]: df.groupby(pd.TimeGrouper(key='date', freq='M')).apply(lambda x: x.value.sum())
+    Out[1]:
     ...
     TypeError: cannot concatenate a non-NDFrame object
 
-    In [3]: df.groupby(pd.TimeGrouper(key='date', freq='M')).apply(lambda x: x[['value']].sum())
-    Out[3]:
+    # Output is a Series
+    In [2]: df.groupby(pd.TimeGrouper(key='date', freq='M')).apply(lambda x: x[['value']].sum())
+    Out[2]:
     date
     2000-10-31  value    10
     2000-11-30  value    13
     dtype: int64
-
-    In [3]: type(df.groupby(pd.TimeGrouper(key='date', freq='M')).apply(lambda x: x[['value']].sum()))
-    Out[3]: pandas.core.series.Series
-
-
-    In [4]: df.groupby(pd.Grouper(key='date')).apply(lambda x: x.value.sum())
-    Out[4]:
-    date
-    2000-10-10    10
-    2000-11-10    13
-    dtype: int64
-
-    In [5]: type(df.groupby(pd.Grouper(key='date')).apply(lambda x: x.value.sum()))
-    Out[5]: pandas.core.series.Series
-
-
-    In [6]: df.groupby(pd.Grouper(key='date')).apply(lambda x: x[['value']].sum())
-    Out[6]:
-                value
-    date
-    2000-10-10     10
-    2000-11-10     13
-
-    In [7]: type(df.groupby(pd.Grouper(key='date')).apply(lambda x: x[['value']].sum()))
-    Out[7]: pandas.core.frame.DataFrame
-
-
-New Behavior:
-
-.. code-block:: python
-
-    In [1]: df = pd.DataFrame({'date': pd.to_datetime(['10/10/2000', '11/10/2000']), 'value': [10, 13]})
-
-    In [2]: df.groupby(pd.TimeGrouper(key='date', freq='M')).apply(lambda x: x.value.sum())
-    Out[2]:
-    date
-    2000-10-31    10
-    2000-11-30    13
-    Freq: M, dtype: int64
-
-    In [3]: type(df.groupby(pd.TimeGrouper(key='date', freq='M')).apply(lambda x: x.value.sum()))
-    Out[3]: pandas.core.series.Series
-
-
-    In [4]: df.groupby(pd.TimeGrouper(key='date', freq='M')).apply(lambda x: x[['value']].sum())
-    Out[4]:
-                value
-    date
-    2000-10-31     10
-    2000-11-30     13
-
-    In [5]: type(df.groupby(pd.TimeGrouper(key='date', freq='M')).apply(lambda x: x[['value']].sum()))
-    Out[5]: pandas.core.frame.DataFrame
 
 
 .. _whatsnew_0181.deprecations:
