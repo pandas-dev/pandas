@@ -1642,6 +1642,38 @@ class TestTimedeltaIndex(tm.TestCase):
             self.assertIsNone(taken.freq)
             self.assertEqual(taken.name, expected.name)
 
+    def test_take_fill_value(self):
+        # GH 12631
+        idx = pd.TimedeltaIndex(['1 days', '2 days', '3 days'],
+                                name='xxx')
+        result = idx.take(np.array([1, 0, -1]))
+        expected = pd.TimedeltaIndex(['2 days', '1 days', '3 days'],
+                                     name='xxx')
+        tm.assert_index_equal(result, expected)
+
+        # fill_value
+        result = idx.take(np.array([1, 0, -1]), fill_value=True)
+        expected = pd.TimedeltaIndex(['2 days', '1 days', 'NaT'],
+                                     name='xxx')
+        tm.assert_index_equal(result, expected)
+
+        # allow_fill=False
+        result = idx.take(np.array([1, 0, -1]), allow_fill=False,
+                          fill_value=True)
+        expected = pd.TimedeltaIndex(['2 days', '1 days', '3 days'],
+                                     name='xxx')
+        tm.assert_index_equal(result, expected)
+
+        msg = ('When allow_fill=True and fill_value is not None, '
+               'all indices must be >= -1')
+        with tm.assertRaisesRegexp(ValueError, msg):
+            idx.take(np.array([1, 0, -2]), fill_value=True)
+        with tm.assertRaisesRegexp(ValueError, msg):
+            idx.take(np.array([1, 0, -5]), fill_value=True)
+
+        with tm.assertRaises(IndexError):
+            idx.take(np.array([1, -5]))
+
     def test_isin(self):
 
         index = tm.makeTimedeltaIndex(4)

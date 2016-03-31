@@ -851,14 +851,6 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
         values[imask] = np.array([formatter(dt) for dt in values[imask]])
         return values
 
-    def take(self, indices, axis=0, allow_fill=True, fill_value=None):
-        """
-        Analogous to ndarray.take
-        """
-        indices = com._ensure_platform_int(indices)
-        taken = self.asi8.take(indices, axis=axis)
-        return self._simple_new(taken, self.name, freq=self.freq)
-
     def append(self, other):
         """
         Append a collection of Index options together

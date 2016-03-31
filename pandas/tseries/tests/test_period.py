@@ -2815,6 +2815,38 @@ class TestPeriodIndex(tm.TestCase):
             self.assertEqual(taken.freq, index.freq)
             self.assertEqual(taken.name, expected.name)
 
+    def test_take_fill_value(self):
+        # GH 12631
+        idx = pd.PeriodIndex(['2011-01-01', '2011-02-01', '2011-03-01'],
+                             name='xxx', freq='D')
+        result = idx.take(np.array([1, 0, -1]))
+        expected = pd.PeriodIndex(['2011-02-01', '2011-01-01', '2011-03-01'],
+                                  name='xxx', freq='D')
+        tm.assert_index_equal(result, expected)
+
+        # fill_value
+        result = idx.take(np.array([1, 0, -1]), fill_value=True)
+        expected = pd.PeriodIndex(['2011-02-01', '2011-01-01', 'NaT'],
+                                  name='xxx', freq='D')
+        tm.assert_index_equal(result, expected)
+
+        # allow_fill=False
+        result = idx.take(np.array([1, 0, -1]), allow_fill=False,
+                          fill_value=True)
+        expected = pd.PeriodIndex(['2011-02-01', '2011-01-01', '2011-03-01'],
+                                  name='xxx', freq='D')
+        tm.assert_index_equal(result, expected)
+
+        msg = ('When allow_fill=True and fill_value is not None, '
+               'all indices must be >= -1')
+        with tm.assertRaisesRegexp(ValueError, msg):
+            idx.take(np.array([1, 0, -2]), fill_value=True)
+        with tm.assertRaisesRegexp(ValueError, msg):
+            idx.take(np.array([1, 0, -5]), fill_value=True)
+
+        with tm.assertRaises(IndexError):
+            idx.take(np.array([1, -5]))
+
     def test_joins(self):
         index = period_range('1/1/2000', '1/20/2000', freq='D')
 

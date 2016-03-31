@@ -1240,6 +1240,34 @@ class TestIndex(Base, tm.TestCase):
         exp = Index([idx[-1], idx[0], idx[1]])
         tm.assert_index_equal(res, exp)
 
+    def test_take_fill_value(self):
+        # GH 12631
+        idx = pd.Index(list('ABC'), name='xxx')
+        result = idx.take(np.array([1, 0, -1]))
+        expected = pd.Index(list('BAC'), name='xxx')
+        tm.assert_index_equal(result, expected)
+
+        # fill_value
+        result = idx.take(np.array([1, 0, -1]), fill_value=True)
+        expected = pd.Index(['B', 'A', np.nan], name='xxx')
+        tm.assert_index_equal(result, expected)
+
+        # allow_fill=False
+        result = idx.take(np.array([1, 0, -1]), allow_fill=False,
+                          fill_value=True)
+        expected = pd.Index(['B', 'A', 'C'], name='xxx')
+        tm.assert_index_equal(result, expected)
+
+        msg = ('When allow_fill=True and fill_value is not None, '
+               'all indices must be >= -1')
+        with tm.assertRaisesRegexp(ValueError, msg):
+            idx.take(np.array([1, 0, -2]), fill_value=True)
+        with tm.assertRaisesRegexp(ValueError, msg):
+            idx.take(np.array([1, 0, -5]), fill_value=True)
+
+        with tm.assertRaises(IndexError):
+            idx.take(np.array([1, -5]))
+
     def test_reindex_preserves_name_if_target_is_list_or_ndarray(self):
         # GH6552
         idx = pd.Index([0, 1, 2])

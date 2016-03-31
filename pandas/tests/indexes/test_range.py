@@ -647,6 +647,33 @@ class TestRangeIndex(Numeric, tm.TestCase):
         taken = index.take([3, 0, 1])
         self.assertEqual(index.name, taken.name)
 
+    def test_take_fill_value(self):
+        # GH 12631
+        idx = pd.RangeIndex(1, 4, name='xxx')
+        result = idx.take(np.array([1, 0, -1]))
+        expected = pd.Int64Index([2, 1, 3], name='xxx')
+        tm.assert_index_equal(result, expected)
+
+        # fill_value
+        msg = "Unable to fill values because RangeIndex cannot contain NA"
+        with tm.assertRaisesRegexp(ValueError, msg):
+            idx.take(np.array([1, 0, -1]), fill_value=True)
+
+        # allow_fill=False
+        result = idx.take(np.array([1, 0, -1]), allow_fill=False,
+                          fill_value=True)
+        expected = pd.Int64Index([2, 1, 3], name='xxx')
+        tm.assert_index_equal(result, expected)
+
+        msg = "Unable to fill values because RangeIndex cannot contain NA"
+        with tm.assertRaisesRegexp(ValueError, msg):
+            idx.take(np.array([1, 0, -2]), fill_value=True)
+        with tm.assertRaisesRegexp(ValueError, msg):
+            idx.take(np.array([1, 0, -5]), fill_value=True)
+
+        with tm.assertRaises(IndexError):
+            idx.take(np.array([1, -5]))
+
     def test_print_unicode_columns(self):
         df = pd.DataFrame({u("\u05d0"): [1, 2, 3],
                            "\u05d1": [4, 5, 6],

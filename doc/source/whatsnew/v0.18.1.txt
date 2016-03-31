@@ -29,7 +29,6 @@ New features
 Enhancements
 ~~~~~~~~~~~~
 
-
 .. _whatsnew_0181.partial_string_indexing:
 
 Partial string indexing on ``DateTimeIndex`` when part of a ``MultiIndex``
@@ -59,6 +58,14 @@ Other Enhancements
 - ``pd.read_csv()`` now supports opening ZIP files that contains a single CSV, via extension inference or explict ``compression='zip'`` (:issue:`12175`)
 - ``pd.read_csv()`` now supports opening files using xz compression, via extension inference or explicit ``compression='xz'`` is specified; ``xz`` compressions is also supported by ``DataFrame.to_csv`` in the same way (:issue:`11852`)
 - ``pd.read_msgpack()`` now always gives writeable ndarrays even when compression is used (:issue:`12359`).
+- ``Index.take`` now handles ``allow_fill`` and ``fill_value`` consistently (:issue:`12631`)
+
+.. ipython:: python
+
+   idx = pd.Index([1., 2., 3., 4.], dtype='float')
+   idx.take([2, -1])     # default, allow_fill=True, fill_value=None
+   idx.take([2, -1], fill_value=True)
+
 
 .. _whatsnew_0181.api:
 
