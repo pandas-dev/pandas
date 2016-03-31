@@ -938,7 +938,7 @@ class TestResample(tm.TestCase):
         self.assertEqual(result.index[0] - bday, expected.index[0])
 
     def test_resample_loffset_count(self):
-        # GH issue 12725
+        # GH 12725
         start_time = '1/1/2000 00:00:00'
         rng = date_range(start_time, periods=100, freq='S')
         ts = Series(np.random.randn(len(rng)), index=rng)
