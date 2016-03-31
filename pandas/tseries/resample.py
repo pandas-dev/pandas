@@ -372,6 +372,8 @@ class Resampler(_GroupBy):
             # try to evaluate
             result = grouped.apply(how, *args, **kwargs)
 
+        result = self._apply_loffset(result)
+
         return self._wrap_result(result)
 
     def _apply_loffset(self, result):
