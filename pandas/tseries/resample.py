@@ -382,9 +382,12 @@ class Resampler(_GroupBy):
         if isinstance(loffset, compat.string_types):
             loffset = to_offset(self.loffset)
 
-        if isinstance(loffset, (DateOffset, timedelta)) and \
-                isinstance(result.index, DatetimeIndex) and \
-                        len(result.index) > 0:
+        needs_offset = (
+            isinstance(loffset, (DateOffset, timedelta)) and
+            isinstance(result.index, DatetimeIndex) and
+            len(result.index) > 0
+        )
+        if needs_offset:
             result.index = result.index + loffset
 
         return result

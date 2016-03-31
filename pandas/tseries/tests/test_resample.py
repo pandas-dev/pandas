@@ -945,7 +945,10 @@ class TestResample(tm.TestCase):
 
         result = ts.resample('10S', loffset='1s').count()
 
-        expected_index = date_range(start_time, periods=10, freq='10S') + timedelta(seconds=1)
+        expected_index = (
+            date_range(start_time, periods=10, freq='10S') +
+            timedelta(seconds=1)
+        )
         expected = pd.Series(10, index=expected_index)
 
         assert_series_equal(result, expected)
