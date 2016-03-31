@@ -459,21 +459,13 @@ class CategoricalIndex(Index, base.PandasDelegate):
 
         return None
 
-    def take(self, indexer, axis=0, allow_fill=True, fill_value=None):
-        """
-        For internal compatibility with numpy arrays.
-
-        # filling must always be None/nan here
-        # but is passed thru internally
-        assert isnull(fill_value)
-
-        See also
-        --------
-        numpy.ndarray.take
-        """
-
-        indexer = com._ensure_platform_int(indexer)
-        taken = self.codes.take(indexer)
+    @Appender(_index_shared_docs['take'])
+    def take(self, indices, axis=0, allow_fill=True, fill_value=None):
+        indices = com._ensure_platform_int(indices)
+        taken = self._assert_take_fillable(self.codes, indices,
+                                           allow_fill=allow_fill,
+                                           fill_value=fill_value,
+                                           na_value=-1)
         return self._create_from_codes(taken)
 
     def delete(self, loc):
