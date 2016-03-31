@@ -374,6 +374,19 @@ class Resampler(_GroupBy):
 
         return self._wrap_result(result)
 
+    def _apply_loffset(self, result):
+        """if loffset if set, offset the result index"""
+        loffset = self.loffset
+        if isinstance(loffset, compat.string_types):
+            loffset = to_offset(self.loffset)
+
+        if isinstance(loffset, (DateOffset, timedelta)) and \
+                isinstance(result.index, DatetimeIndex) and \
+                        len(result.index) > 0:
+            result.index = result.index + loffset
+
+        return result
+
     def _wrap_result(self, result):
         """ potentially wrap any results """
         return result
@@ -572,14 +585,7 @@ class DatetimeIndexResampler(Resampler):
         result = obj.groupby(
             self.grouper, axis=self.axis).aggregate(how, **kwargs)
 
-        loffset = self.loffset
-        if isinstance(loffset, compat.string_types):
-            loffset = to_offset(self.loffset)
-
-        if isinstance(loffset, (DateOffset, timedelta)) and \
-           isinstance(result.index, DatetimeIndex) and \
-           len(result.index) > 0:
-                result.index = result.index + loffset
+        result = self._apply_loffset(result)
 
         return self._wrap_result(result)
 
