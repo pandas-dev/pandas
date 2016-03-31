@@ -67,8 +67,10 @@ class MultiIndex(Index):
                 name=None, **kwargs):
 
         # compat with Index
-        if name is not None:
-            names = name
+        if name is None and hasattr(levels, 'name'):
+            name = levels.name
+        if isinstance(levels, MultiIndex):
+            return levels.copy(name=name, names=names, deep=copy)
         if levels is None or labels is None:
             raise TypeError("Must pass both levels and labels")
         if len(levels) != len(labels):
@@ -78,8 +80,6 @@ class MultiIndex(Index):
         if len(levels) == 1:
             if names:
                 name = names[0]
-            else:
-                name = None
             return Index(levels[0], name=name, copy=True).take(labels[0])
 
         result = object.__new__(MultiIndex)
@@ -334,7 +334,7 @@ class MultiIndex(Index):
     labels = property(fget=_get_labels, fset=__set_labels)
 
     def copy(self, names=None, dtype=None, levels=None, labels=None,
-             deep=False, _set_identity=False):
+             deep=False, name=None, _set_identity=False):
         """
         Make a copy of this object. Names, dtype, levels and labels can be
         passed and will be set on new copy.
@@ -345,6 +345,7 @@ class MultiIndex(Index):
         dtype : numpy dtype or pandas type, optional
         levels : sequence, optional
         labels : sequence, optional
+        name : object, optional
 
         Returns
         -------
@@ -367,7 +368,7 @@ class MultiIndex(Index):
             names = self.names
         return MultiIndex(levels=levels, labels=labels, names=names,
                           sortorder=self.sortorder, verify_integrity=False,
-                          _set_identity=_set_identity)
+                          name=name, _set_identity=_set_identity)
 
     def __array__(self, dtype=None):
         """ the array interface, return my values """

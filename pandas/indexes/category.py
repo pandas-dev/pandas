@@ -45,6 +45,9 @@ class CategoricalIndex(Index, base.PandasDelegate):
         if fastpath:
             return cls._simple_new(data, name=name)
 
+        if name is None and hasattr(data, 'name'):
+            name = data.name
+
         if isinstance(data, com.ABCCategorical):
             data = cls._create_categorical(cls, data, categories, ordered)
         elif isinstance(data, CategoricalIndex):
