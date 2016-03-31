@@ -12,7 +12,7 @@ import numpy as np
 import pandas as pd
 
 from pandas import (Series, DataFrame, isnull, notnull, bdate_range,
-                    date_range)
+                    date_range, _np_version_under1p10)
 from pandas.core.index import MultiIndex
 from pandas.tseries.index import Timestamp
 from pandas.tseries.tdi import Timedelta
@@ -500,13 +500,35 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
 
         self.assert_numpy_array_equal(result, expected)
 
+    def test_compress(self):
+        cond = [True, False, True, False, False]
+        s = Series([1, -1, 5, 8, 7],
+                   index=list('abcde'), name='foo')
+        expected = Series(s.values.compress(cond),
+                          index=list('ac'), name='foo')
+        tm.assert_series_equal(s.compress(cond), expected)
+
+    def test_numpy_compress(self):
+        cond = [True, False, True, False, False]
+        s = Series([1, -1, 5, 8, 7],
+                   index=list('abcde'), name='foo')
+        expected = Series(s.values.compress(cond),
+                          index=list('ac'), name='foo')
+        tm.assert_series_equal(np.compress(cond, s), expected)
+
+        msg = "the 'axis' parameter is not supported"
+        tm.assertRaisesRegexp(ValueError, msg, np.compress,
+                              cond, s, axis=1)
+
+        msg = "the 'out' parameter is not supported"
+        tm.assertRaisesRegexp(ValueError, msg, np.compress,
+                              cond, s, out=s)
+
     def test_round(self):
-        # numpy.round doesn't preserve metadata, probably a numpy bug,
-        # re: GH #314
         self.ts.index.name = "index_name"
         result = self.ts.round(2)
-        expected = Series(np.round(self.ts.values, 2), index=self.ts.index,
-                          name='ts')
+        expected = Series(np.round(self.ts.values, 2),
+                          index=self.ts.index, name='ts')
         assert_series_equal(result, expected)
         self.assertEqual(result.name, self.ts.name)
 
@@ -517,7 +539,7 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
         expected = Series([2., 1., 0.])
         assert_series_equal(out, expected)
 
-        msg = "Inplace rounding is not supported"
+        msg = "the 'out' parameter is not supported"
         with tm.assertRaisesRegexp(ValueError, msg):
             np.round(s, decimals=0, out=s)
 
@@ -1198,6 +1220,17 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
         result = s.idxmin()
         self.assertEqual(result, 1)
 
+    def test_numpy_argmin(self):
+        # argmin is aliased to idxmin
+        data = np.random.randint(0, 11, size=10)
+        result = np.argmin(Series(data))
+        self.assertEqual(result, np.argmin(data))
+
+        if not _np_version_under1p10:
+            msg = "the 'out' parameter is not supported"
+            tm.assertRaisesRegexp(ValueError, msg, np.argmin,
+                                  Series(data), out=data)
+
     def test_idxmax(self):
         # test idxmax
         # _check_stat_op approach can not be used here because of isnull check.
@@ -1241,6 +1274,17 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
         self.assertEqual(result, 3.1)
         result = s.idxmin()
         self.assertEqual(result, 1.1)
+
+    def test_numpy_argmax(self):
+        # argmax is aliased to idxmax
+        data = np.random.randint(0, 11, size=10)
+        result = np.argmax(Series(data))
+        self.assertEqual(result, np.argmax(data))
+
+        if not _np_version_under1p10:
+            msg = "the 'out' parameter is not supported"
+            tm.assertRaisesRegexp(ValueError, msg, np.argmax,
+                                  Series(data), out=data)
 
     def test_ptp(self):
         N = 1000
@@ -1294,6 +1338,15 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
         exp = Series(s.values.repeat(to_rep),
                      index=s.index.values.repeat(to_rep))
         assert_series_equal(reps, exp)
+
+    def test_numpy_repeat(self):
+        s = Series(np.arange(3), name='x')
+        expected = Series(s.values.repeat(2), name='x',
+                          index=s.index.values.repeat(2))
+        assert_series_equal(np.repeat(s, 2), expected)
+
+        msg = "the 'axis' parameter is not supported"
+        tm.assertRaisesRegexp(ValueError, msg, np.repeat, s, 2, axis=0)
 
     def test_searchsorted_numeric_dtypes_scalar(self):
         s = Series([1, 2, 90, 1000, 3e9])
@@ -1621,7 +1674,7 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
         result = a.reshape(2, 2)
         expected = a.values.reshape(2, 2)
         tm.assert_numpy_array_equal(result, expected)
-        self.assertTrue(type(result) is type(expected))
+        self.assertIsInstance(result, type(expected))
 
     def test_reshape_2d_return_array(self):
         x = Series(np.random.random(201), name='x')
@@ -1634,6 +1687,26 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
         result = x[:, None]
         expected = x.reshape((-1, 1))
         assert_almost_equal(result, expected)
+
+    def test_reshape_bad_kwarg(self):
+        a = Series([1, 2, 3, 4])
+
+        msg = "'foo' is an invalid keyword argument for this function"
+        tm.assertRaisesRegexp(TypeError, msg, a.reshape, (2, 2), foo=2)
+
+        msg = "reshape\(\) got an unexpected keyword argument 'foo'"
+        tm.assertRaisesRegexp(TypeError, msg, a.reshape, a.shape, foo=2)
+
+    def test_numpy_reshape(self):
+        a = Series([1, 2, 3, 4])
+
+        result = np.reshape(a, (2, 2))
+        expected = a.values.reshape(2, 2)
+        tm.assert_numpy_array_equal(result, expected)
+        self.assertIsInstance(result, type(expected))
+
+        result = np.reshape(a, a.shape)
+        tm.assert_series_equal(result, a)
 
     def test_unstack(self):
         from numpy import nan

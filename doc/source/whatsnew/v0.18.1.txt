@@ -357,6 +357,39 @@ New Behavior:
    df.groupby('c', sort=False).nth(1)
 
 
+.. _whatsnew_0181.numpy_compatibility
+
+Compatibility between pandas array-like methods (e.g. ```sum`` and ``take``) and their ``numpy``
+counterparts has been greatly increased by augmenting the signatures of the ``pandas`` methods so
+as to accept arguments that can be passed in from ``numpy``, even if they are not necessarily
+used in the ``pandas`` implementation (:issue:`12644`). Issues that were addressed were:
+
+- ``.searchsorted()`` for ``Index`` and ``TimedeltaIndex`` now accept a ``sorter`` argument to maintain compatibility with numpy's ``searchsorted`` function (:issue:`12238`)
+- Bug in numpy compatibility of ``np.round()`` on a ``Series`` (:issue:`12600`)
+
+An example of this signature augmentation is illustrated below:
+
+Previous behaviour:
+
+.. code-block:: ipython
+
+   In [1]: sp = pd.SparseDataFrame([1, 2, 3])
+   In [2]: np.cumsum(sp, axis=0)
+   ...
+   TypeError: cumsum() takes at most 2 arguments (4 given)
+
+New behaviour:
+
+.. code-block:: ipython
+
+   In [1]: sp = pd.SparseDataFrame([1, 2, 3])
+   In [2]: np.cumsum(sp, axis=0)
+   Out[1]:
+         0
+   0   1.0
+   1   3.0
+   2   6.0
+
 .. _whatsnew_0181.apply_resample:
 
 Using ``.apply`` on groupby resampling
@@ -527,7 +560,6 @@ Bug Fixes
 - Bug in ``.resample(...)`` with a ``PeriodIndex`` casting to a ``DatetimeIndex`` when empty (:issue:`12868`)
 - Bug in ``.resample(...)`` with a ``PeriodIndex`` when resampling to an existing frequency (:issue:`12770`)
 - Bug in printing data which contains ``Period`` with different ``freq`` raises ``ValueError`` (:issue:`12615`)
-- Bug in numpy compatibility of ``np.round()`` on a ``Series`` (:issue:`12600`)
 - Bug in ``Series`` construction with ``Categorical`` and ``dtype='category'`` is specified (:issue:`12574`)
 - Bugs in concatenation with a coercable dtype was too aggressive, resulting in different dtypes in outputformatting when an object was longer than ``display.max_rows`` (:issue:`12411`, :issue:`12045`, :issue:`11594`, :issue:`10571`, :issue:`12211`)
 - Bug in ``float_format`` option with option not being validated as a callable. (:issue:`12706`)
@@ -547,6 +579,7 @@ Bug Fixes
 - Segfault in ``to_json`` when attempting to serialise a ``DataFrame`` or ``Series`` with non-ndarray values (:issue:`10778`).
 - Bug in ``.align`` not returning the sub-class (:issue:`12983`)
 - Bug in aligning a ``Series`` with a ``DataFrame`` (:issue:`13037`)
+- Bug in ``ABCPanel`` in which ``Panel4D`` was not being considered as a valid instance of this generic type (:issue:`12810`)
 
 
 - Bug in consistency of ``.name`` on ``.groupby(..).apply(..)`` cases (:issue:`12363`)

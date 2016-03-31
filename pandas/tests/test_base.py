@@ -14,7 +14,7 @@ import pandas.util.testing as tm
 from pandas import (Series, Index, DatetimeIndex, TimedeltaIndex, PeriodIndex,
                     Timedelta)
 from pandas.compat import u, StringIO
-from pandas.compat.numpy_compat import np_array_datetime64_compat
+from pandas.compat.numpy import np_array_datetime64_compat
 from pandas.core.base import (FrozenList, FrozenNDArray, PandasDelegate,
                               NoNewAttributesMixin)
 from pandas.tseries.base import DatetimeIndexOpsMixin
@@ -991,6 +991,34 @@ class TestFloat64HashTable(tm.TestCase):
         m = Float64HashTable()
         m.map_locations(xs)
         self.assert_numpy_array_equal(m.lookup(xs), np.arange(len(xs)))
+
+
+class TestTranspose(Ops):
+    errmsg = "the 'axes' parameter is not supported"
+
+    def test_transpose(self):
+        for obj in self.objs:
+            if isinstance(obj, Index):
+                tm.assert_index_equal(obj.transpose(), obj)
+            else:
+                tm.assert_series_equal(obj.transpose(), obj)
+
+    def test_transpose_non_default_axes(self):
+        for obj in self.objs:
+            tm.assertRaisesRegexp(ValueError, self.errmsg,
+                                  obj.transpose, 1)
+            tm.assertRaisesRegexp(ValueError, self.errmsg,
+                                  obj.transpose, axes=1)
+
+    def test_numpy_transpose(self):
+        for obj in self.objs:
+            if isinstance(obj, Index):
+                tm.assert_index_equal(np.transpose(obj), obj)
+            else:
+                tm.assert_series_equal(np.transpose(obj), obj)
+
+            tm.assertRaisesRegexp(ValueError, self.errmsg,
+                                  np.transpose, obj, axes=1)
 
 
 class TestNoNewAttributesMixin(tm.TestCase):

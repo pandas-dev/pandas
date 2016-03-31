@@ -7,6 +7,7 @@ import numpy as np
 from pandas.core import common as com
 import pandas.core.nanops as nanops
 import pandas.lib as lib
+from pandas.compat.numpy import function as nv
 from pandas.util.decorators import (Appender, cache_readonly,
                                     deprecate_kwarg, Substitution)
 from pandas.core.common import AbstractMethodError
@@ -798,8 +799,9 @@ class IndexOpsMixin(object):
     # ndarray compatibility
     __array_priority__ = 1000
 
-    def transpose(self):
+    def transpose(self, *args, **kwargs):
         """ return the transpose, which is by definition self """
+        nv.validate_transpose(args, kwargs)
         return self
 
     T = property(transpose, doc="return the transpose, which is by "

@@ -11,7 +11,7 @@ from pandas.compat import(
     callable, map
 )
 from pandas import compat
-from pandas.compat.numpy_compat import _np_version_under1p8
+from pandas.compat.numpy import _np_version_under1p8
 from pandas.core.base import (PandasObject, SelectionMixin, GroupByError,
                               DataError, SpecificationError)
 from pandas.core.categorical import Categorical
@@ -359,7 +359,7 @@ class _GroupBy(PandasObject, SelectionMixin):
         self.exclusions = set(exclusions) if exclusions else set()
 
         # we accept no other args
-        validate_kwargs('group', kwargs)
+        validate_kwargs('group', kwargs, {})
 
     def __len__(self):
         return len(self.groups)

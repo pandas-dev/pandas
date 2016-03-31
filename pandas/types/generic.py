@@ -39,7 +39,7 @@ ABCIndexClass = create_pandas_abc_type("ABCIndexClass", "_typ",
 
 ABCSeries = create_pandas_abc_type("ABCSeries", "_typ", ("series", ))
 ABCDataFrame = create_pandas_abc_type("ABCDataFrame", "_typ", ("dataframe", ))
-ABCPanel = create_pandas_abc_type("ABCPanel", "_typ", ("panel", ))
+ABCPanel = create_pandas_abc_type("ABCPanel", "_typ", ("panel", "panel4d"))
 ABCSparseSeries = create_pandas_abc_type("ABCSparseSeries", "_subtyp",
                                          ('sparse_series',
                                           'sparse_time_series'))

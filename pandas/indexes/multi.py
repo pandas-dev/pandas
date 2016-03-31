@@ -11,6 +11,7 @@ import pandas.index as _index
 from pandas.lib import Timestamp
 
 from pandas.compat import range, zip, lrange, lzip, map
+from pandas.compat.numpy import function as nv
 from pandas import compat
 from pandas.core.base import FrozenList
 import pandas.core.base as base
@@ -769,7 +770,7 @@ class MultiIndex(Index):
         levels = self.levels
         labels = [np.repeat(x, n_repeat) for x in self.labels]
         # Assumes that each label is divisible by n_shuffle
-        labels = [x.reshape(n_shuffle, -1).ravel('F') for x in labels]
+        labels = [x.reshape(n_shuffle, -1).ravel(order='F') for x in labels]
         names = self.names
         return MultiIndex(levels=levels, labels=labels, names=names)
 
@@ -1007,7 +1008,9 @@ class MultiIndex(Index):
                               verify_integrity=False)
 
     @Appender(_index_shared_docs['take'])
-    def take(self, indices, axis=0, allow_fill=True, fill_value=None):
+    def take(self, indices, axis=0, allow_fill=True,
+             fill_value=None, **kwargs):
+        nv.validate_take(tuple(), kwargs)
         indices = com._ensure_platform_int(indices)
         taken = self._assert_take_fillable(self.labels, indices,
                                            allow_fill=allow_fill,
@@ -1074,7 +1077,8 @@ class MultiIndex(Index):
     def argsort(self, *args, **kwargs):
         return self.values.argsort(*args, **kwargs)
 
-    def repeat(self, n):
+    def repeat(self, n, *args, **kwargs):
+        nv.validate_repeat(args, kwargs)
         return MultiIndex(levels=self.levels,
                           labels=[label.view(np.ndarray).repeat(n)
                                   for label in self.labels], names=self.names,
