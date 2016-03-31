@@ -307,6 +307,27 @@ using various combinations of parameters like ``start``, ``end``,
 The start and end dates are strictly inclusive. So it will not generate any
 dates outside of those dates if specified.
 
+.. _timeseries.timestamp-limits:
+
+Timestamp limitations
+---------------------
+
+Minimum and maximum timestamps
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Since pandas represents timestamps in nanosecond resolution, the timespan that
+can be represented using a 64-bit integer is limited to approximately 584 years:
+
+.. ipython:: python
+
+   begin = pd.Timestamp.min
+   begin
+
+   end = pd.Timestamp.max
+   end
+
+See :ref:`here <timeseries.oob>` for ways to represent data outside these bound.
+
 .. _timeseries.datetimeindex:
 
 DatetimeIndex
@@ -1691,7 +1712,7 @@ the quarter end:
 Representing out-of-bounds spans
 --------------------------------
 
-If you have data that is outside of the ``Timestamp`` bounds, see :ref:`Timestamp limitations <gotchas.timestamp-limits>`,
+If you have data that is outside of the ``Timestamp`` bounds, see :ref:`Timestamp limitations <timeseries.timestamp-limits>`,
 then you can use a ``PeriodIndex`` and/or ``Series`` of ``Periods`` to do computations.
 
 .. ipython:: python

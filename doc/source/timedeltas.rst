@@ -109,6 +109,26 @@ The ``unit`` keyword argument specifies the unit of the Timedelta:
    to_timedelta(np.arange(5), unit='s')
    to_timedelta(np.arange(5), unit='d')
 
+.. _timedeltas.limitations:
+
+Timedelta limitations
+~~~~~~~~~~~~~~~~~~~~~
+
+Pandas represents ``Timedeltas`` in nanosecond resolution using
+64 bit integers. As such, the 64 bit integer limits determine
+the ``Timedelta`` limits.
+
+.. ipython:: python
+   min_int = np.iinfo(np.int64).min
+   max_int = np.iinfo(np.int64).max
+
+   # Note: the smallest integer gives a NaT
+   Timedelta(min_int)
+   Timedelta(min_int+1) == Timedelta.min
+   Timedelta(max_int) == Timedelta.max
+
+   # (min_int - 1) and (max_int + 1) result in OverflowErrors
+
 .. _timedeltas.operations:
 
 Operations
