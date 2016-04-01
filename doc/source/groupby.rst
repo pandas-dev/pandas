@@ -747,7 +747,7 @@ The dimension of the returned result can also change:
 .. ipython:: python
 
     def f(x):
-      return pd.Series([ x, x**2 ], index = ['x', 'x^s'])
+      return pd.Series([ x, x**2 ], index = ['x', 'x^2'])
     s = pd.Series(np.random.rand(5))
     s
     s.apply(f)
@@ -971,7 +971,7 @@ Plotting
 ~~~~~~~~
 
 Groupby also works with some plotting methods.  For example, suppose we
-suspect that some features in a DataFrame my differ by group, in this case,
+suspect that some features in a DataFrame may differ by group, in this case,
 the values in column 1 where the group is "B" are 3 higher on average.
 
 .. ipython:: python
