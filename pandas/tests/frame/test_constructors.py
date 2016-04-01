@@ -483,6 +483,20 @@ class TestDataFrameConstructors(tm.TestCase, TestData):
         assert_frame_equal(result_timedelta, expected)
         assert_frame_equal(result_Timedelta, expected)
 
+    def test_constructor_period(self):
+        # PeriodIndex
+        a = pd.PeriodIndex(['2012-01', 'NaT', '2012-04'], freq='M')
+        b = pd.PeriodIndex(['2012-02-01', '2012-03-01', 'NaT'], freq='D')
+        df = pd.DataFrame({'a': a, 'b': b})
+        self.assertEqual(df['a'].dtype, 'object')
+        self.assertEqual(df['b'].dtype, 'object')
+
+        # list of periods
+        df = pd.DataFrame({'a': a.asobject.tolist(),
+                           'b': b.asobject.tolist()})
+        self.assertEqual(df['a'].dtype, 'object')
+        self.assertEqual(df['b'].dtype, 'object')
+
     def test_nested_dict_frame_constructor(self):
         rng = pd.period_range('1/1/2000', periods=5)
         df = DataFrame(randn(10, 5), columns=rng)

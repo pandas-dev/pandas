@@ -3865,10 +3865,29 @@ class TestSeriesPeriod(tm.TestCase):
         series = Series(list(period_range('2000-01-01', periods=10, freq='D')))
         self.assertEqual(series.dtype, 'object')
 
+        series = pd.Series([pd.Period('2011-01-01', freq='D'),
+                            pd.Period('2011-02-01', freq='D')])
+        self.assertEqual(series.dtype, 'object')
+
+    def test_getitem(self):
+        self.assertEqual(self.series[1], pd.Period('2000-01-02', freq='D'))
+
+        result = self.series[[2, 4]]
+        exp = pd.Series([pd.Period('2000-01-03', freq='D'),
+                         pd.Period('2000-01-05', freq='D')],
+                        index=[2, 4])
+        self.assert_series_equal(result, exp)
+        self.assertEqual(result.dtype, 'object')
+
     def test_constructor_cant_cast_period(self):
         with tm.assertRaises(TypeError):
             Series(period_range('2000-01-01', periods=10, freq='D'),
                    dtype=float)
+
+    def test_constructor_cast_object(self):
+        s = Series(period_range('1/1/2000', periods=10), dtype=object)
+        exp = Series(period_range('1/1/2000', periods=10))
+        tm.assert_series_equal(s, exp)
 
     def test_series_comparison_scalars(self):
         val = pd.Period('2000-01-04', freq='D')

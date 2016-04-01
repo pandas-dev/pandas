@@ -3944,8 +3944,17 @@ class TestSeriesDatetime64(tm.TestCase):
         self.assertEqual(series.dtype, 'M8[ns]')
 
     def test_constructor_cant_cast_datetime64(self):
-        self.assertRaises(TypeError, Series,
-                          date_range('1/1/2000', periods=10), dtype=float)
+        msg = "Cannot cast datetime64 to "
+        with tm.assertRaisesRegexp(TypeError, msg):
+            Series(date_range('1/1/2000', periods=10), dtype=float)
+
+        with tm.assertRaisesRegexp(TypeError, msg):
+            Series(date_range('1/1/2000', periods=10), dtype=int)
+
+    def test_constructor_cast_object(self):
+        s = Series(date_range('1/1/2000', periods=10), dtype=object)
+        exp = Series(date_range('1/1/2000', periods=10))
+        tm.assert_series_equal(s, exp)
 
     def test_series_comparison_scalars(self):
         val = datetime(2000, 1, 4)
@@ -4004,6 +4013,9 @@ class TestSeriesDatetime64(tm.TestCase):
 
         df = DataFrame({'a': self.series,
                         'b': np.random.randn(len(self.series))})
+        exp_dtypes = pd.Series([np.dtype('datetime64[ns]'),
+                                np.dtype('float64')], index=['a', 'b'])
+        tm.assert_series_equal(df.dtypes, exp_dtypes)
 
         result = df.values.squeeze()
         self.assertTrue((result[:, 0] == expected.values).all())
