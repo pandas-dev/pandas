@@ -79,15 +79,39 @@ API changes
 
 
 - ``CParserError`` is now a ``ValueError`` instead of just an ``Exception`` (:issue:`12551`)
+
 - ``pd.show_versions()`` now includes ``pandas_datareader`` version (:issue:`12740`)
 
+- Using ``apply`` on resampling groupby operations (e.g. ``df.groupby(pd.TimeGrouper(freq='M', key='date')).apply(...)``) now has the same output types as similar ``apply``s on other groupby operations (e.g. ``df.groupby(pd.Grouper(key='color')).apply(...)``). (:issue:`11742`).
 
 
+New Behavior:
 
+.. ipython:: python
 
+    df = pd.DataFrame({'date': pd.to_datetime(['10/10/2000', '11/10/2000']), 'value': [10, 13]})
+    df
+    # Output is a Series
+    df.groupby(pd.TimeGrouper(key='date', freq='M')).apply(lambda x: x.value.sum())
+    # Output is a DataFrame
+    df.groupby(pd.TimeGrouper(key='date', freq='M')).apply(lambda x: x[['value']].sum())
 
+Previous behavior:
 
+.. code-block:: python
 
+    In [1]: df.groupby(pd.TimeGrouper(key='date', freq='M')).apply(lambda x: x.value.sum())
+    Out[1]:
+    ...
+    TypeError: cannot concatenate a non-NDFrame object
+
+    # Output is a Series
+    In [2]: df.groupby(pd.TimeGrouper(key='date', freq='M')).apply(lambda x: x[['value']].sum())
+    Out[2]:
+    date
+    2000-10-31  value    10
+    2000-11-30  value    13
+    dtype: int64
 
 
 .. _whatsnew_0181.deprecations:
