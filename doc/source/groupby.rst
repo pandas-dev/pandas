@@ -747,7 +747,7 @@ The dimension of the returned result can also change:
 .. ipython:: python
 
     def f(x):
-      return pd.Series([ x, x**2 ], index = ['x', 'x^s'])
+      return pd.Series([ x, x**2 ], index = ['x', 'x^2'])
     s = pd.Series(np.random.rand(5))
     s
     s.apply(f)
