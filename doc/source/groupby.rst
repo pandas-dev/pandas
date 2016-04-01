@@ -971,7 +971,7 @@ Plotting
 ~~~~~~~~
 
 Groupby also works with some plotting methods.  For example, suppose we
-suspect that some features in a DataFrame my differ by group, in this case,
+suspect that some features in a DataFrame may differ by group, in this case,
 the values in column 1 where the group is "B" are 3 higher on average.
 
 .. ipython:: python
