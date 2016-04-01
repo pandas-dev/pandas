@@ -103,6 +103,50 @@ class TestIndex(Base, tm.TestCase):
         self.assertIsInstance(idx2, Index) and self.assertNotInstance(
             idx2, MultiIndex)
 
+    def test_constructor_from_index_datetimetz(self):
+        idx = pd.date_range('2015-01-01 10:00', freq='D', periods=3,
+                            tz='US/Eastern')
+        result = pd.Index(idx)
+        tm.assert_index_equal(result, idx)
+        self.assertEqual(result.tz, idx.tz)
+
+        result = pd.Index(idx.asobject)
+        tm.assert_index_equal(result, idx)
+        self.assertEqual(result.tz, idx.tz)
+
+    def test_constructor_from_index_timedelta(self):
+        idx = pd.timedelta_range('1 days', freq='D', periods=3)
+        result = pd.Index(idx)
+        tm.assert_index_equal(result, idx)
+
+        result = pd.Index(idx.asobject)
+        tm.assert_index_equal(result, idx)
+
+    def test_constructor_from_index_period(self):
+        idx = pd.period_range('2015-01-01', freq='D', periods=3)
+        result = pd.Index(idx)
+        tm.assert_index_equal(result, idx)
+
+        result = pd.Index(idx.asobject)
+        tm.assert_index_equal(result, idx)
+
+    def test_constructor_from_series_datetimetz(self):
+        idx = pd.date_range('2015-01-01 10:00', freq='D', periods=3,
+                            tz='US/Eastern')
+        result = pd.Index(pd.Series(idx))
+        tm.assert_index_equal(result, idx)
+        self.assertEqual(result.tz, idx.tz)
+
+    def test_constructor_from_series_timedelta(self):
+        idx = pd.timedelta_range('1 days', freq='D', periods=3)
+        result = pd.Index(pd.Series(idx))
+        tm.assert_index_equal(result, idx)
+
+    def test_constructor_from_series_period(self):
+        idx = pd.period_range('2015-01-01', freq='D', periods=3)
+        result = pd.Index(pd.Series(idx))
+        tm.assert_index_equal(result, idx)
+
     def test_constructor_from_series(self):
 
         expected = DatetimeIndex([Timestamp('20110101'), Timestamp('20120101'),

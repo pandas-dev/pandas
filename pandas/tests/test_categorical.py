@@ -340,6 +340,31 @@ class TestCategorical(tm.TestCase):
             result = repr(c)
             self.assertTrue('NaT' in result)
 
+    def test_constructor_from_index_series_datetimetz(self):
+        idx = pd.date_range('2015-01-01 10:00', freq='D', periods=3,
+                            tz='US/Eastern')
+        result = pd.Categorical.from_array(idx)
+        tm.assert_index_equal(result.categories, idx)
+
+        result = pd.Categorical.from_array(pd.Series(idx))
+        tm.assert_index_equal(result.categories, idx)
+
+    def test_constructor_from_index_series_timedelta(self):
+        idx = pd.timedelta_range('1 days', freq='D', periods=3)
+        result = pd.Categorical.from_array(idx)
+        tm.assert_index_equal(result.categories, idx)
+
+        result = pd.Categorical.from_array(pd.Series(idx))
+        tm.assert_index_equal(result.categories, idx)
+
+    def test_constructor_from_index_series_period(self):
+        idx = pd.period_range('2015-01-01', freq='D', periods=3)
+        result = pd.Categorical.from_array(idx)
+        tm.assert_index_equal(result.categories, idx)
+
+        result = pd.Categorical.from_array(pd.Series(idx))
+        tm.assert_index_equal(result.categories, idx)
+
     def test_from_codes(self):
 
         # too few categories

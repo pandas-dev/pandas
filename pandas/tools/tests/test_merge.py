@@ -1065,6 +1065,8 @@ class TestMerge(tm.TestCase):
             'key': [1., 2, 3]})
         result = pd.merge(left, right, on='key', how='outer')
         assert_frame_equal(result, expected)
+        self.assertEqual(result['value_x'].dtype, 'datetime64[ns, US/Eastern]')
+        self.assertEqual(result['value_y'].dtype, 'datetime64[ns, US/Eastern]')
 
     def test_merge_on_periods(self):
         left = pd.DataFrame({'key': pd.period_range('20151010', periods=2,
@@ -1095,6 +1097,8 @@ class TestMerge(tm.TestCase):
                               'key': [1., 2, 3]})
         result = pd.merge(left, right, on='key', how='outer')
         assert_frame_equal(result, expected)
+        self.assertEqual(result['value_x'].dtype, 'object')
+        self.assertEqual(result['value_y'].dtype, 'object')
 
     def test_concat_NaT_series(self):
         # GH 11693
@@ -1216,6 +1220,7 @@ class TestMerge(tm.TestCase):
         expected = Series([x[0], x[1], y[0], y[1]], dtype='object')
         result = concat([x, y], ignore_index=True)
         tm.assert_series_equal(result, expected)
+        self.assertEqual(result.dtype, 'object')
 
         # different freq
         x = Series(pd.PeriodIndex(['2015-11-01', '2015-12-01'], freq='D'))
@@ -1223,12 +1228,14 @@ class TestMerge(tm.TestCase):
         expected = Series([x[0], x[1], y[0], y[1]], dtype='object')
         result = concat([x, y], ignore_index=True)
         tm.assert_series_equal(result, expected)
+        self.assertEqual(result.dtype, 'object')
 
         x = Series(pd.PeriodIndex(['2015-11-01', '2015-12-01'], freq='D'))
         y = Series(pd.PeriodIndex(['2015-11-01', '2015-12-01'], freq='M'))
         expected = Series([x[0], x[1], y[0], y[1]], dtype='object')
         result = concat([x, y], ignore_index=True)
         tm.assert_series_equal(result, expected)
+        self.assertEqual(result.dtype, 'object')
 
         # non-period
         x = Series(pd.PeriodIndex(['2015-11-01', '2015-12-01'], freq='D'))
@@ -1236,12 +1243,14 @@ class TestMerge(tm.TestCase):
         expected = Series([x[0], x[1], y[0], y[1]], dtype='object')
         result = concat([x, y], ignore_index=True)
         tm.assert_series_equal(result, expected)
+        self.assertEqual(result.dtype, 'object')
 
         x = Series(pd.PeriodIndex(['2015-11-01', '2015-12-01'], freq='D'))
         y = Series(['A', 'B'])
         expected = Series([x[0], x[1], y[0], y[1]], dtype='object')
         result = concat([x, y], ignore_index=True)
         tm.assert_series_equal(result, expected)
+        self.assertEqual(result.dtype, 'object')
 
     def test_indicator(self):
         # PR #10054. xref #7412 and closes #8790.
