@@ -820,7 +820,7 @@ class _GroupBy(PandasObject, SelectionMixin):
 
     def _apply_filter(self, indices, dropna):
         if len(indices) == 0:
-            indices = []
+            indices = np.array([], dtype='int64')
         else:
             indices = np.sort(np.concatenate(indices))
         if dropna:
