@@ -81,7 +81,7 @@ The `Vincent <https://github.com/wrobstory/vincent>`__ project leverages `Vega <
 for pandas data objects.
 
 `Plotly <https://plot.ly/python>`__
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 `Plotly’s <https://plot.ly/>`__ `Python API <https://plot.ly/python/>`__ enables interactive figures and web shareability. Maps, 2D, 3D, and live-streaming graphs are rendered with WebGL and `D3.js <http://d3js.org/>`__. The library supports plotting directly from a pandas DataFrame and cloud-based collaboration. Users of `matplotlib, ggplot for Python, and Seaborn <https://plot.ly/python/matplotlib-to-plotly-tutorial/>`__ can convert figures into interactive web-based plots. Plots can be drawn in `IPython Notebooks <https://plot.ly/ipython-notebooks/>`__ , edited with R or MATLAB, modified in a GUI, or embedded in apps and dashboards. Plotly is free for unlimited sharing, and has `cloud <https://plot.ly/product/plans/>`__, `offline <https://plot.ly/python/offline/>`__, or `on-premise <https://plot.ly/product/enterprise/>`__ accounts for private use.
 
@@ -91,7 +91,7 @@ IDE
 ------
 
 `IPython <http://ipython.org/documentation.html>`__
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 IPython is an interactive command shell and distributed computing
 environment.
@@ -110,13 +110,13 @@ which are utilized by IPython Notebook for displaying
 compatible with non-HTML IPython output formats.)
 
 `quantopian/qgrid <https://github.com/quantopian/qgrid>`__
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 qgrid is "an interactive grid for sorting and filtering
 DataFrames in IPython Notebook" built with SlickGrid.
 
 `Spyder <https://code.google.com/p/spyderlib/>`__
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Spyder is a cross-platform Qt-based open-source Python IDE with
 editing, testing, debugging, and introspection features.
@@ -129,20 +129,35 @@ both "column wise min/max and global min/max coloring."
 API
 -----
 
-`quandl/Python <https://github.com/quandl/Python>`_
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+`pandas-datareader <https://github.com/pydata/pandas-datareader>`__
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+``pandas-datareader`` is a remote data access library for pandas. ``pandas.io`` from pandas < 0.17.0 is now refactored/split-off to and importable from ``pandas_datareader`` (PyPI:``pandas-datareader``). Many/most of the supported APIs have at least a documentation paragraph in the `pandas-datareader docs <https://pandas-datareader.readthedocs.org/en/latest/>`_:
+
+The following data feeds are available:
+
+  * Yahoo! Finance
+  * Google Finance
+  * FRED
+  * Fama/French
+  * World Bank
+  * OECD
+  * Eurostat
+  * EDGAR Index
+
+`quandl/Python <https://github.com/quandl/Python>`__
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Quandl API for Python wraps the Quandl REST API to return
 Pandas DataFrames with timeseries indexes.
 
-`pydatastream <https://github.com/vfilimonov/pydatastream>`_
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+`pydatastream <https://github.com/vfilimonov/pydatastream>`__
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 PyDatastream is a Python interface to the
 `Thomson Dataworks Enterprise (DWE/Datastream) <http://dataworks.thomson.com/Dataworks/Enterprise/1.0/>`__
 SOAP API to return indexed Pandas DataFrames or Panels with financial data.
 This package requires valid credentials for this API (non free).
 
-`pandaSDMX <http://pandasdmx.readthedocs.org>`_
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+`pandaSDMX <http://pandasdmx.readthedocs.org>`__
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 pandaSDMX is an extensible library to retrieve and acquire statistical data
 and metadata disseminated in
 `SDMX <http://www.sdmx.org>`_ 2.1. This standard is currently supported by
@@ -150,8 +165,8 @@ the European statistics office (Eurostat)
 and the European Central Bank (ECB). Datasets may be returned as pandas Series
 or multi-indexed DataFrames.
 
-`fredapi <https://github.com/mortada/fredapi>`_
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+`fredapi <https://github.com/mortada/fredapi>`__
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 fredapi is a Python interface to the `Federal Reserve Economic Data (FRED) <http://research.stlouisfed.org/fred2/>`__
 provided by the Federal Reserve Bank of St. Louis. It works with both the FRED database and ALFRED database that
 contains point-in-time data (i.e. historic data revisions). fredapi provides a wrapper in python to the FRED
@@ -186,6 +201,12 @@ dimensional arrays, rather than the tabular data for which pandas excels.
 Out-of-core
 -------------
 
+`Dask <https://dask.readthedocs.org/en/latest/>`__
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Dask is a flexible parallel computing library for analytics. Dask
+allow a familiar ``DataFrame`` interface to out-of-core, parallel and distributed computing.
+
 `Blaze <http://blaze.pydata.org/>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -195,6 +216,7 @@ PySpark.
 
 `Odo <http://odo.pydata.org>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 Odo provides a uniform API for moving data between different formats. It uses
 pandas own ``read_csv`` for CSV IO and leverages many existing packages such as
 PyTables, h5py, and pymongo to move data between non pandas formats. Its graph
