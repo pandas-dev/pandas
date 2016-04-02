@@ -39,6 +39,8 @@ def mask_missing(arr, values_to_mask):
             # numpy elementwise comparison warning
             if is_numeric_v_string_like(arr, x):
                 mask = False
+            # elif is_object_dtype(arr):
+            #     mask = lib.scalar_compare(arr, x, operator.eq)
             else:
                 mask = arr == x
 
@@ -51,6 +53,8 @@ def mask_missing(arr, values_to_mask):
             # numpy elementwise comparison warning
             if is_numeric_v_string_like(arr, x):
                 mask |= False
+            # elif is_object_dtype(arr):
+            #     mask |= lib.scalar_compare(arr, x, operator.eq)
             else:
                 mask |= arr == x
 

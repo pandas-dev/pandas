@@ -1890,8 +1890,11 @@ class ObjectBlock(Block):
                 blocks.append(newb)
 
         else:
-            values = fn(
-                self.values.ravel(), **fn_kwargs).reshape(self.values.shape)
+            values = fn(self.values.ravel(), **fn_kwargs)
+            try:
+                values = values.reshape(self.values.shape)
+            except NotImplementedError:
+                pass
             blocks.append(make_block(values, ndim=self.ndim,
                                      placement=self.mgr_locs))
 
@@ -3233,6 +3236,16 @@ class BlockManager(PandasObject):
             return _possibly_compare(values, getattr(s, 'asm8', s),
                                      operator.eq)
 
+        def _cast(block, scalar):
+            dtype, val = _infer_dtype_from_scalar(scalar, pandas_dtype=True)
+            if not is_dtype_equal(block.dtype, dtype):
+                dtype = _find_common_type([block.dtype, dtype])
+                block = block.astype(dtype)
+                # use original value
+                val = scalar
+
+            return block, val
+
         masks = [comp(s) for i, s in enumerate(src_list)]
 
         result_blocks = []
@@ -3255,7 +3268,8 @@ class BlockManager(PandasObject):
                         # particular block
                         m = masks[i][b.mgr_locs.indexer]
                         if m.any():
-                            new_rb.extend(b.putmask(m, d, inplace=True))
+                            b, val = _cast(b, d)
+                            new_rb.extend(b.putmask(m, val, inplace=True))
                         else:
                             new_rb.append(b)
                 rb = new_rb

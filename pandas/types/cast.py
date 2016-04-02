@@ -19,8 +19,8 @@ from .common import (_ensure_object, is_bool, is_integer, is_float,
                      _ensure_int8, _ensure_int16,
                      _ensure_int32, _ensure_int64,
                      _NS_DTYPE, _TD_DTYPE, _INT64_DTYPE,
-                     _POSSIBLY_CAST_DTYPES)
-from .dtypes import ExtensionDtype
+                     _DATELIKE_DTYPES, _POSSIBLY_CAST_DTYPES)
+from .dtypes import ExtensionDtype, DatetimeTZDtype, PeriodDtype
 from .generic import ABCDatetimeIndex, ABCPeriodIndex, ABCSeries
 from .missing import isnull, notnull
 from .inference import is_list_like
@@ -310,8 +310,17 @@ def _maybe_promote(dtype, fill_value=np.nan):
     return dtype, fill_value
 
 
-def _infer_dtype_from_scalar(val):
-    """ interpret the dtype from a scalar """
+def _infer_dtype_from_scalar(val, pandas_dtype=False):
+    """
+    interpret the dtype from a scalar
+
+    Parameters
+    ----------
+    pandas_dtype : bool, default False
+        whether to infer dtype including pandas extension types.
+        If False, scalar belongs to pandas extension types is inferred as
+        object
+    """
 
     dtype = np.object_
 
@@ -334,13 +343,23 @@ def _infer_dtype_from_scalar(val):
 
         dtype = np.object_
 
-    elif isinstance(val, (np.datetime64,
-                          datetime)) and getattr(val, 'tzinfo', None) is None:
-        val = lib.Timestamp(val).value
-        dtype = np.dtype('M8[ns]')
+    elif isinstance(val, (np.datetime64, datetime)):
+        val = tslib.Timestamp(val)
+        if val is tslib.NaT or val.tz is None:
+            dtype = np.dtype('M8[ns]')
+        else:
+            if pandas_dtype:
+                dtype = DatetimeTZDtype(unit='ns', tz=val.tz)
+                # ToDo: This localization is not needed if
+                # DatetimeTZBlock doesn't localize internal values
+                val = val.tz_localize(None)
+            else:
+                # return datetimetz as object
+                return np.object_, val
+        val = val.value
 
     elif isinstance(val, (np.timedelta64, timedelta)):
-        val = lib.Timedelta(val).value
+        val = tslib.Timedelta(val).value
         dtype = np.dtype('m8[ns]')
 
     elif is_bool(val):
@@ -360,6 +379,13 @@ def _infer_dtype_from_scalar(val):
 
     elif is_complex(val):
         dtype = np.complex_
+
+    elif pandas_dtype:
+        # to do use util
+        from pandas.tseries.period import Period
+        if isinstance(val, Period):
+            dtype = PeriodDtype(freq=val.freq)
+            val = val.ordinal
 
     return dtype, val
 
