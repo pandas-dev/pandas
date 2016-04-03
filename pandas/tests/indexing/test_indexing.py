@@ -2300,6 +2300,36 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
                 'lexsorted tuple len \(2\), lexsort depth \(0\)'):
             df.loc[(slice(None), df.loc[:, ('a', 'bar')] > 5), :]
 
+    def test_multiindex_slicers_raise_key_error(self):
+
+        # GH6134
+        # Test that mi slicers raise a KeyError with the proper error message
+        # on unsorted indices regardless of the invocation method
+        iterables1 = [['a', 'b'], [2, 1]]
+        iterables2 = [['c', 'd'], [4, 3]]
+        rows = pd.MultiIndex.from_product(iterables1,
+                                          names=['row1', 'row2'])
+        columns = pd.MultiIndex.from_product(iterables2,
+                                             names=['col1', 'col2'])
+        df = pd.DataFrame(np.random.randn(4, 4), index=rows, columns=columns)
+
+        # In this example rows are not sorted at all,
+        # columns are sorted to the first level
+        self.assertEqual(df.index.lexsort_depth, 1)
+        self.assertEqual(df.columns.lexsort_depth, 0)
+
+        with tm.assertRaisesRegexp(
+                KeyError,
+                'MultiIndex Slicing requires the index to be fully '
+                'lexsorted tuple len \(\d\), lexsort depth \(\d\)'):
+            df.loc[('a', slice(None)), 'b']
+
+        with tm.assertRaisesRegexp(
+                KeyError,
+                'MultiIndex Slicing requires the index to be fully '
+                'lexsorted tuple len \(\d\), lexsort depth \(\d\)'):
+            df.loc['a', 'b']
+
     def test_multiindex_slicers_non_unique(self):
 
         # GH 7106

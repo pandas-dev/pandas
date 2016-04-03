@@ -1595,6 +1595,8 @@ class MultiIndex(Index):
         ----------
         key : label or tuple
         level : int/level name or list thereof
+        drop_level : bool
+            drop a level from the index if only a single element is selected
 
         Returns
         -------
@@ -1637,6 +1639,18 @@ class MultiIndex(Index):
         # kludge for #1796
         if isinstance(key, list):
             key = tuple(key)
+
+        # must be lexsorted to at least as many levels as the level parameter,
+        # or the number of items in the key tuple.
+        # Note: level is 0-based
+        required_lexsort_depth = level + 1
+        if isinstance(key, tuple):
+            required_lexsort_depth = max(required_lexsort_depth, len(key))
+        if self.lexsort_depth < required_lexsort_depth:
+            raise KeyError('MultiIndex Slicing requires the index to be '
+                           'fully lexsorted tuple len ({0}), lexsort depth '
+                           '({1})'.format(required_lexsort_depth,
+                                          self.lexsort_depth))
 
         if isinstance(key, tuple) and level == 0:
 
