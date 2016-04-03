@@ -4990,6 +4990,21 @@ class TestGroupBy(tm.TestCase):
         filtered = grouped.filter(lambda x: x['A'].mean() > 0)
         assert_frame_equal(filtered, df)
 
+    def test_filter_out_all_groups_in_df_dropna_false(self):
+        # GH12768
+        df = pd.DataFrame({'a': [1, 1, 2], 'b': [1, 2, 0]})
+        res = df.groupby('a')
+        res = res.filter(lambda x: x['b'].sum() > 5, dropna=False)
+        expected = pd.DataFrame({'a': [nan] * 3, 'b': [nan] * 3})
+        assert_frame_equal(expected, res)
+
+    def test_filter_out_all_groups_in_df_dropna_true(self):
+        df = pd.DataFrame({'a': [1, 1, 2], 'b': [1, 2, 0]})
+        res = df.groupby('a')
+        res = res.filter(lambda x: x['b'].sum() > 5, dropna=True)
+        expected = pd.DataFrame({'a': [], 'b': []}, dtype="int64")
+        assert_frame_equal(expected, res)
+
     def test_filter_condition_raises(self):
         def raise_if_sum_is_zero(x):
             if x.sum() == 0:
