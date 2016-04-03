@@ -1203,30 +1203,51 @@ def assert_sp_array_equal(left, right):
     assertIsInstance(right, pd.SparseArray, '[SparseArray]')
 
     assert_almost_equal(left.sp_values, right.sp_values)
+
+    # SparseIndex comparison
+    assertIsInstance(left.sp_index, pd._sparse.SparseIndex, '[SparseIndex]')
+    assertIsInstance(right.sp_index, pd._sparse.SparseIndex, '[SparseIndex]')
     assert (left.sp_index.equals(right.sp_index))
+
     if np.isnan(left.fill_value):
         assert (np.isnan(right.fill_value))
     else:
         assert (left.fill_value == right.fill_value)
 
+    assert_attr_equal('dtype', left, right)
+    assert_numpy_array_equal(left.values, right.values)
 
-def assert_sp_series_equal(left, right, exact_indices=True, check_names=True):
+
+def assert_sp_series_equal(left, right, exact_indices=True,
+                           check_names=True, obj='SparseSeries'):
     assertIsInstance(left, pd.SparseSeries, '[SparseSeries]')
     assertIsInstance(right, pd.SparseSeries, '[SparseSeries]')
 
-    assert (left.index.equals(right.index))
+    assert_index_equal(left.index, right.index,
+                       obj='{0}.index'.format(obj))
+
     assert_sp_array_equal(left.block.values, right.block.values)
+
     if check_names:
         assert_attr_equal('name', left, right)
+    assert_attr_equal('dtype', left, right)
+
+    assert_numpy_array_equal(left.values, right.values)
 
 
-def assert_sp_frame_equal(left, right, exact_indices=True):
+def assert_sp_frame_equal(left, right, exact_indices=True,
+                          obj='SparseDataFrame'):
     """
     exact: Series SparseIndex objects must be exactly the same, otherwise just
     compare dense representations
     """
     assertIsInstance(left, pd.SparseDataFrame, '[SparseDataFrame]')
     assertIsInstance(right, pd.SparseDataFrame, '[SparseDataFrame]')
+
+    assert_index_equal(left.index, right.index,
+                       obj='{0}.index'.format(obj))
+    assert_index_equal(left.columns, right.columns,
+                       obj='{0}.columns'.format(obj))
 
     for col, series in compat.iteritems(left):
         assert (col in right)
