@@ -91,9 +91,10 @@ filepath_or_buffer : various
   :class:`~python:io.StringIO`).
 sep : str, defaults to ``','`` for :func:`read_csv`, ``\t`` for :func:`read_table`
   Delimiter to use. If sep is ``None``,
-  will try to automatically determine this. Regular expressions are accepted,
-  use of a regular expression will force use of the python parsing engine and
-  will ignore quotes in the data.
+  will try to automatically determine this. Separators longer than 1 character
+  and different from ``'\s+'`` will be interpreted as regular expressions, will
+  force use of the python parsing engine and will ignore quotes in the data.
+  Regex example: ``'\\r\\t'``.
 delimiter : str, default ``None``
   Alternative argument name for sep.
 
