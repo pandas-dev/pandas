@@ -191,6 +191,8 @@ Bug Fixes
 
 - Bug in ``Timestamp.__repr__`` that caused ``pprint`` to fail in nested structures (:issue:`12622`)
 - Bug in ``Timedelta.min`` and ``Timedelta.max``, the properties now report the true minimum/maximum ``timedeltas`` as recognized by Pandas. See :ref:`documentation <timedeltas.limitations>`. (:issue:`12727`)
+- Bug in ``.quantile()`` with interpolation may coerce to ``float`` unexpectedly (:issue:`12772`)
+- Bug in ``.quantile()`` with empty Series may return scalar rather than empty Series (:issue:`12772`)
 
 
 
@@ -228,9 +230,3 @@ Bug Fixes
 - Bug in ``.describe()`` resets categorical columns information (:issue:`11558`)
 - Bug where ``loffset`` argument was not applied when calling ``resample().count()`` on a timeseries (:issue:`12725`)
 - ``pd.read_excel()`` now accepts path objects (e.g. ``pathlib.Path``, ``py.path.local``) for the file path, in line with other ``read_*`` functions (:issue:`12655`)
-
-
-
-
-- Bug in ``.quantile`` with interpolation may coerce to ``float`` unexpectedly (:issue:`12772`)
-- Bug in ``.quantile`` with empty Series may return scalar rather than empty Series (:issue:`12772`)
