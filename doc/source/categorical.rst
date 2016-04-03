@@ -352,9 +352,9 @@ necessarily make the sort order the same as the categories order.
 .. note::
 
     If the `Categorical` is not ordered, ``Series.min()`` and ``Series.max()`` will raise
-    `TypeError`. Numeric operations like ``+``, ``-``, ``*``, ``/`` and operations based on them
-    (e.g.``Series.median()``, which would need to compute the mean between two values if the length
-    of an array is even) do not work and raise a `TypeError`.
+    ``TypeError``. Numeric operations like ``+``, ``-``, ``*``, ``/`` and operations based on them
+    (e.g. ``Series.median()``, which would need to compute the mean between two values if the length
+    of an array is even) do not work and raise a ``TypeError``.
 
 Multi Column Sorting
 ~~~~~~~~~~~~~~~~~~~~
