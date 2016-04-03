@@ -7,7 +7,8 @@ from __future__ import print_function
 from distutils.version import LooseVersion
 import re
 
-from pandas.compat import range, zip, lrange, StringIO, PY3, lzip, u
+from pandas.compat import (range, zip, lrange, StringIO, PY3,
+                           u, lzip, is_platform_windows)
 import pandas.compat as compat
 import itertools
 from operator import methodcaller
@@ -3714,10 +3715,11 @@ class TestSeriesFormatting(tm.TestCase):
     def test_sparse_max_row(self):
         s = pd.Series([1, np.nan, np.nan, 3, np.nan]).to_sparse()
         result = repr(s)
+        dtype = '' if is_platform_windows() else ', dtype=int32'
         exp = ("0    1.0\n1    NaN\n2    NaN\n3    3.0\n"
                "4    NaN\ndtype: float64\nBlockIndex\n"
-               "Block locations: array([0, 3], dtype=int32)\n"
-               "Block lengths: array([1, 1], dtype=int32)")
+               "Block locations: array([0, 3]{0})\n"
+               "Block lengths: array([1, 1]{0})".format(dtype))
         self.assertEqual(result, exp)
 
         with option_context("display.max_rows", 3):
@@ -3725,8 +3727,8 @@ class TestSeriesFormatting(tm.TestCase):
             result = repr(s)
             exp = ("0    1.0\n    ... \n4    NaN\n"
                    "dtype: float64\nBlockIndex\n"
-                   "Block locations: array([0, 3], dtype=int32)\n"
-                   "Block lengths: array([1, 1], dtype=int32)")
+                   "Block locations: array([0, 3]{0})\n"
+                   "Block lengths: array([1, 1]{0})".format(dtype))
             self.assertEqual(result, exp)
 
 
