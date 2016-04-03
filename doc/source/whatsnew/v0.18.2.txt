@@ -97,6 +97,9 @@ Performance Improvements
 
 - Improved performance of sparse ``IntIndex.intersect`` (:issue:`13082`)
 - Improved performance of sparse arithmetic with ``BlockIndex`` when the number of blocks are large, though recommended to use ``IntIndex`` in such cases (:issue:`13082`)
+- increased performance of ``DataFrame.quantile()`` as it now operates per-block (:issue:`11623`)
+
+
 
 
 
@@ -110,6 +113,7 @@ Bug Fixes
 
 
 
+- Regression in ``Series.quantile`` with nans (:issue:`13098`)
 
 
 
