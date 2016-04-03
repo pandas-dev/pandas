@@ -62,6 +62,34 @@ class TestSparseArray(tm.TestCase):
         not_copy.sp_values[:3] = 0
         self.assertTrue((self.arr.sp_values[:3] == 0).all())
 
+    def test_constructor_bool(self):
+        # GH 10648
+        data = np.array([False, False, True, True, False, False])
+        arr = SparseArray(data, fill_value=False, dtype=bool)
+
+        self.assertEqual(arr.dtype, bool)
+        tm.assert_numpy_array_equal(arr.sp_values, np.array([True, True]))
+        tm.assert_numpy_array_equal(arr.sp_values, np.asarray(arr))
+        tm.assert_numpy_array_equal(arr.sp_index.indices, np.array([2, 3]))
+
+        for dense in [arr.to_dense(), arr.values]:
+            self.assertEqual(dense.dtype, bool)
+            tm.assert_numpy_array_equal(dense, data)
+
+    def test_constructor_float32(self):
+        # GH 10648
+        data = np.array([1., np.nan, 3], dtype=np.float32)
+        arr = SparseArray(data, dtype=np.float32)
+
+        self.assertEqual(arr.dtype, np.float32)
+        tm.assert_numpy_array_equal(arr.sp_values, np.array([1, 3]))
+        tm.assert_numpy_array_equal(arr.sp_values, np.asarray(arr))
+        tm.assert_numpy_array_equal(arr.sp_index.indices, np.array([0, 2]))
+
+        for dense in [arr.to_dense(), arr.values]:
+            self.assertEqual(dense.dtype, np.float32)
+            self.assert_numpy_array_equal(dense, data)
+
     def test_astype(self):
         res = self.arr.astype('f8')
         res.sp_values[:3] = 27
