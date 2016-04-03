@@ -1891,6 +1891,85 @@ class TestResamplePeriodIndex(tm.TestCase):
             expected = expected.asfreq(targ, 'ffill').to_period()
             assert_series_equal(result, expected)
 
+    def test_resample_basic(self):
+        # GH3609
+        s = Series(range(100), index=date_range(
+            '20130101', freq='s', periods=100, name='idx'), dtype='float')
+        s[10:30] = np.nan
+        index = PeriodIndex([
+            Period('2013-01-01 00:00', 'T'),
+            Period('2013-01-01 00:01', 'T')], name='idx')
+        expected = Series([34.5, 79.5], index=index)
+        result = s.to_period().resample('T', kind='period').mean()
+        assert_series_equal(result, expected)
+        result2 = s.resample('T', kind='period').mean()
+        assert_series_equal(result2, expected)
+
+    def test_resample_empty(self):
+
+        # GH12771
+        index = PeriodIndex(start='2000', periods=0, freq='D', name='idx')
+        s = Series(index=index)
+        result = s.resample('M').sum()
+
+        # after GH12774 is resolved, this should be a PeriodIndex
+        expected_index = DatetimeIndex([], name='idx')
+        expected = Series(index=expected_index)
+        assert_series_equal(result, expected)
+
+    def test_with_local_timezone_pytz(self):
+        # GH5430
+        tm._skip_if_no_pytz()
+        import pytz
+
+        local_timezone = pytz.timezone('America/Los_Angeles')
+
+        start = datetime(year=2013, month=11, day=1, hour=0, minute=0,
+                         tzinfo=pytz.utc)
+        # 1 day later
+        end = datetime(year=2013, month=11, day=2, hour=0, minute=0,
+                       tzinfo=pytz.utc)
+
+        index = pd.date_range(start, end, freq='H')
+
+        series = pd.Series(1, index=index)
+        series = series.tz_convert(local_timezone)
+        result = series.resample('D', kind='period').mean()
+
+        # Create the expected series
+        # Index is moved back a day with the timezone conversion from UTC to
+        # Pacific
+        expected_index = (pd.period_range(start=start, end=end, freq='D') - 1)
+        expected = pd.Series(1, index=expected_index)
+        assert_series_equal(result, expected)
+
+    def test_with_local_timezone_dateutil(self):
+        # GH5430
+        tm._skip_if_no_dateutil()
+        import dateutil
+
+        local_timezone = 'dateutil/America/Los_Angeles'
+
+        start = datetime(year=2013, month=11, day=1, hour=0, minute=0,
+                         tzinfo=dateutil.tz.tzutc())
+        # 1 day later
+        end = datetime(year=2013, month=11, day=2, hour=0, minute=0,
+                       tzinfo=dateutil.tz.tzutc())
+
+        index = pd.date_range(start, end, freq='H', name='idx')
+
+        series = pd.Series(1, index=index)
+        series = series.tz_convert(local_timezone)
+        result = series.resample('D', kind='period').mean()
+
+        # Create the expected series
+        # Index is moved back a day with the timezone conversion from UTC to
+        # Pacific
+        expected_index = (pd.period_range(start=start, end=end, freq='D',
+                                          name='idx') - 1)
+        expected = pd.Series(1, index=expected_index)
+        assert_series_equal(result, expected)
+
     def test_fill_method_and_how_upsample(self):
         # GH2073
         s = Series(np.arange(9, dtype='int64'),
@@ -1982,12 +2061,6 @@ class TestResamplePeriodIndex(tm.TestCase):
         exp_rng = period_range('1/1/2000', '2/1/2000 23:00', freq='H')
         expected = ts.asfreq('H', how='s').reindex(exp_rng)
         assert_series_equal(result, expected)
-
-    def test_resample_empty(self):
-        ts = _simple_pts('1/1/2000', '2/1/2000')[:0]
-
-        result = ts.resample('A').asfreq()
-        self.assertEqual(len(result), 0)
 
     def test_resample_irregular_sparse(self):
         dr = date_range(start='1/1/2012', freq='5min', periods=1000)

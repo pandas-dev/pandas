@@ -220,7 +220,7 @@ Bug Fixes
 
 
 - Bug in ``CategoricalIndex.get_loc`` returns different result from regular ``Index`` (:issue:`12531`)
-
+- Bug in ``PeriodIndex.resample`` where name not propagated (:issue:`12769`)
 
 
 
