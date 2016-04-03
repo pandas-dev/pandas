@@ -1948,6 +1948,23 @@ Thur,Lunch,Yes,51.51,17"""
         expected = self.frame.ix[[0, 2, 3, 6, 7, 9]].T
         assert_frame_equal(result, expected)
 
+    def test_drop_level_nonunique_datetime(self):
+        # GH 12701
+        idx = pd.Index([2, 3, 4, 4, 5], name='id')
+        idxdt = pd.to_datetime(['201603231400',
+                                '201603231500',
+                                '201603231600',
+                                '201603231600',
+                                '201603231700'])
+        df = DataFrame(np.arange(10).reshape(5, 2),
+                       columns=list('ab'), index=idx)
+        df['tstamp'] = idxdt
+        df = df.set_index('tstamp', append=True)
+        ts = pd.Timestamp('201603231600')
+        result = df.drop(ts, level='tstamp')
+        expected = df.loc[idx != 4]
+        assert_frame_equal(result, expected)
+
     def test_drop_preserve_names(self):
         index = MultiIndex.from_arrays([[0, 0, 0, 1, 1, 1],
                                         [1, 2, 3, 1, 2, 3]],
