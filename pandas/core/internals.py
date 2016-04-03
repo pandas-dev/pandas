@@ -6,6 +6,8 @@ from datetime import datetime, timedelta, date
 from collections import defaultdict
 
 import numpy as np
+from numpy import percentile as _quantile
+
 from pandas.core.base import PandasObject
 
 from pandas.core.common import (_possibly_downcast_to_dtype, isnull, _NS_DTYPE,
@@ -131,6 +133,8 @@ class Block(PandasObject):
         return an internal format, currently just the ndarray
         this is often overriden to handle to_dense like operations
         """
+        if com.is_object_dtype(dtype):
+            return self.values.astype(object)
         return self.values
 
     def to_dense(self):
@@ -140,6 +144,10 @@ class Block(PandasObject):
         """ return myself as an object block """
         values = self.get_values(dtype=object)
         return self.make_block(values, klass=ObjectBlock)
+
+    @property
+    def _na_value(self):
+        return np.nan
 
     @property
     def fill_value(self):
@@ -1247,6 +1255,19 @@ class Block(PandasObject):
             return False
         return array_equivalent(self.values, other.values)
 
+    def quantile(self, values, qs, **kwargs):
+        if len(values) == 0:
+            if com.is_list_like(qs):
+                return np.array([self.fill_value])
+            else:
+                return self._na_value
+
+        if com.is_list_like(qs):
+            values = [_quantile(values, x * 100, **kwargs) for x in qs]
+            return np.array(values)
+        else:
+            return _quantile(values, qs * 100, **kwargs)
+
 
 class NonConsolidatableMixIn(object):
     """ hold methods for the nonconsolidatable blocks """
@@ -1455,15 +1476,55 @@ class IntBlock(NumericBlock):
         return com.is_integer_dtype(value) and value.dtype == self.dtype
 
 
-class TimeDeltaBlock(IntBlock):
+class DatetimeLikeBlockMixin(object):
+
+    @property
+    def _na_value(self):
+        return tslib.NaT
+
+    @property
+    def fill_value(self):
+        return tslib.iNaT
+
+    def _try_operate(self, values):
+        """ return a version to operate on """
+        return values.view('i8')
+
+    def get_values(self, dtype=None):
+        """
+        return object dtype as boxed values, such as Timestamps/Timedelta
+        """
+        if com.is_object_dtype(dtype):
+            return lib.map_infer(self.values.ravel(),
+                                 self._box_func).reshape(self.values.shape)
+        return self.values
+
+    def quantile(self, values, qs, **kwargs):
+        values = values.view('i8')
+        mask = values == self.fill_value
+        if mask.any():
+            values = values[~mask]
+        result = Block.quantile(self, values, qs, **kwargs)
+
+        if com.is_datetime64tz_dtype(self):
+            # ToDo: Temp logic to avoid GH 12619 and GH 12772
+            # which affects to DatetimeBlockTZ_try_coerce_result for np.ndarray
+            if isinstance(result, np.ndarray) and values.ndim > 0:
+                result = self._holder(result, tz='UTC')
+                result = result.tz_convert(self.values.tz)
+                return result
+        return self._try_coerce_result(result)
+
+
+class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
     __slots__ = ()
     is_timedelta = True
     _can_hold_na = True
     is_numeric = False
 
     @property
-    def fill_value(self):
-        return tslib.iNaT
+    def _box_func(self):
+        return lambda x: tslib.Timedelta(x, unit='ns')
 
     def fillna(self, value, **kwargs):
 
@@ -1516,10 +1577,6 @@ class TimeDeltaBlock(IntBlock):
 
         return values, values_mask, other, other_mask
 
-    def _try_operate(self, values):
-        """ return a version to operate on """
-        return values.view('i8')
-
     def _try_coerce_result(self, result):
         """ reverse of try_coerce_args / try_operate """
         if isinstance(result, np.ndarray):
@@ -1527,8 +1584,8 @@ class TimeDeltaBlock(IntBlock):
             if result.dtype.kind in ['i', 'f', 'O']:
                 result = result.astype('m8[ns]')
             result[mask] = tslib.iNaT
-        elif isinstance(result, np.integer):
-            result = lib.Timedelta(result)
+        elif isinstance(result, (np.integer, np.float)):
+            result = self._box_func(result)
         return result
 
     def should_store(self, value):
@@ -1557,13 +1614,6 @@ class TimeDeltaBlock(IntBlock):
                                         for val in values.ravel()[imask]],
                                        dtype=object)
         return rvalues
-
-    def get_values(self, dtype=None):
-        # return object dtypes as Timedelta
-        if dtype == object:
-            return lib.map_infer(self.values.ravel(),
-                                 lib.Timedelta).reshape(self.values.shape)
-        return self.values
 
 
 class BoolBlock(NumericBlock):
@@ -1965,7 +2015,7 @@ class CategoricalBlock(NonConsolidatableMixIn, ObjectBlock):
         return values.reshape(1, len(values))
 
 
-class DatetimeBlock(Block):
+class DatetimeBlock(DatetimeLikeBlockMixin, Block):
     __slots__ = ()
     is_datetime = True
     _can_hold_na = True
@@ -2009,10 +2059,6 @@ class DatetimeBlock(Block):
         except:
             return element
 
-    def _try_operate(self, values):
-        """ return a version to operate on """
-        return values.view('i8')
-
     def _try_coerce_args(self, values, other):
         """
         Coerce values and other to dtype 'i8'. NaN and NaT convert to
@@ -2040,7 +2086,7 @@ class DatetimeBlock(Block):
             other = tslib.iNaT
             other_mask = True
         elif isinstance(other, (datetime, np.datetime64, date)):
-            other = lib.Timestamp(other)
+            other = self._box_func(other)
             if getattr(other, 'tz') is not None:
                 raise TypeError("cannot coerce a Timestamp with a tz on a "
                                 "naive Block")
@@ -2067,13 +2113,13 @@ class DatetimeBlock(Block):
         if isinstance(result, np.ndarray):
             if result.dtype.kind in ['i', 'f', 'O']:
                 result = result.astype('M8[ns]')
-        elif isinstance(result, (np.integer, np.datetime64)):
-            result = lib.Timestamp(result)
+        elif isinstance(result, (np.integer, np.float, np.datetime64)):
+            result = self._box_func(result)
         return result
 
     @property
-    def fill_value(self):
-        return tslib.iNaT
+    def _box_func(self):
+        return tslib.Timestamp
 
     def to_native_types(self, slicer=None, na_rep=None, date_format=None,
                         quoting=None, **kwargs):
@@ -2108,13 +2154,6 @@ class DatetimeBlock(Block):
             values = tslib.cast_to_nanoseconds(values)
 
         self.values[locs] = values
-
-    def get_values(self, dtype=None):
-        # return object dtype as Timestamps
-        if dtype == object:
-            return lib.map_infer(
-                self.values.ravel(), lib.Timestamp).reshape(self.values.shape)
-        return self.values
 
 
 class DatetimeTZBlock(NonConsolidatableMixIn, DatetimeBlock):
@@ -2156,7 +2195,7 @@ class DatetimeTZBlock(NonConsolidatableMixIn, DatetimeBlock):
 
     def get_values(self, dtype=None):
         # return object dtype as Timestamps with the zones
-        if dtype == object:
+        if com.is_object_dtype(dtype):
             f = lambda x: lib.Timestamp(x, tz=self.values.tz)
             return lib.map_infer(
                 self.values.ravel(), f).reshape(self.values.shape)
@@ -2239,9 +2278,13 @@ class DatetimeTZBlock(NonConsolidatableMixIn, DatetimeBlock):
 
         if isinstance(result, np.ndarray):
             result = self._holder(result, tz=self.values.tz)
-        elif isinstance(result, (np.integer, np.datetime64)):
+        elif isinstance(result, (np.integer, np.float, np.datetime64)):
             result = lib.Timestamp(result, tz=self.values.tz)
         return result
+
+    @property
+    def _box_func(self):
+        return lambda x: tslib.Timestamp(x, tz=self.dtype.tz)
 
     def shift(self, periods, axis=0, mgr=None):
         """ shift the block by periods """
@@ -3862,6 +3905,14 @@ class SingleBlockManager(BlockManager):
     def get_values(self):
         """ return a dense type view """
         return np.array(self._block.to_dense(), copy=False)
+
+    @property
+    def asobject(self):
+        """
+        return a object dtype array. datetime/timedelta like values are boxed
+        to Timestamp/Timedelta instances.
+        """
+        return self._block.get_values(dtype=object)
 
     @property
     def itemsize(self):
