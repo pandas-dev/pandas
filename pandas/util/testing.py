@@ -536,9 +536,9 @@ def _valid_locales(locales, normalize):
 
     return list(filter(_can_set_locale, map(normalizer, locales)))
 
-
 # -----------------------------------------------------------------------------
 # Console debugging tools
+
 
 def debug(f, *args, **kwargs):
     from pdb import Pdb as OldPdb
@@ -1192,6 +1192,84 @@ assert_panel_equal = partial(assert_panelnd_equal,
                              assert_func=_panel_frame_equal)
 assert_panel4d_equal = partial(assert_panelnd_equal,
                                assert_func=assert_panel_equal)
+
+
+# -----------------------------------------------------------------------------
+# Sparse
+
+
+def assert_sp_array_equal(left, right):
+    assertIsInstance(left, pd.SparseArray, '[SparseArray]')
+    assertIsInstance(right, pd.SparseArray, '[SparseArray]')
+
+    assert_almost_equal(left.sp_values, right.sp_values)
+    assert (left.sp_index.equals(right.sp_index))
+    if np.isnan(left.fill_value):
+        assert (np.isnan(right.fill_value))
+    else:
+        assert (left.fill_value == right.fill_value)
+
+
+def assert_sp_series_equal(left, right, exact_indices=True, check_names=True):
+    assertIsInstance(left, pd.SparseSeries, '[SparseSeries]')
+    assertIsInstance(right, pd.SparseSeries, '[SparseSeries]')
+
+    assert (left.index.equals(right.index))
+    assert_sp_array_equal(left.block.values, right.block.values)
+    if check_names:
+        assert_attr_equal('name', left, right)
+
+
+def assert_sp_frame_equal(left, right, exact_indices=True):
+    """
+    exact: Series SparseIndex objects must be exactly the same, otherwise just
+    compare dense representations
+    """
+    assertIsInstance(left, pd.SparseDataFrame, '[SparseDataFrame]')
+    assertIsInstance(right, pd.SparseDataFrame, '[SparseDataFrame]')
+
+    for col, series in compat.iteritems(left):
+        assert (col in right)
+        # trade-off?
+
+        if exact_indices:
+            assert_sp_series_equal(series, right[col])
+        else:
+            assert_series_equal(series.to_dense(), right[col].to_dense())
+
+    assert_almost_equal(left.default_fill_value, right.default_fill_value)
+
+    # do I care?
+    # assert(left.default_kind == right.default_kind)
+
+    for col in right:
+        assert (col in left)
+
+
+def assert_sp_panel_equal(left, right, exact_indices=True):
+    assertIsInstance(left, pd.SparsePanel, '[SparsePanel]')
+    assertIsInstance(right, pd.SparsePanel, '[SparsePanel]')
+
+    for item, frame in left.iteritems():
+        assert (item in right)
+        # trade-off?
+        assert_sp_frame_equal(frame, right[item], exact_indices=exact_indices)
+
+    assert_almost_equal(left.default_fill_value, right.default_fill_value)
+    assert (left.default_kind == right.default_kind)
+
+    for item in right:
+        assert (item in left)
+
+
+def assert_sp_list_equal(left, right):
+    assertIsInstance(left, pd.SparseList, '[SparseList]')
+    assertIsInstance(right, pd.SparseList, '[SparseList]')
+
+    assert_sp_array_equal(left.to_array(), right.to_array())
+
+# -----------------------------------------------------------------------------
+# Others
 
 
 def assert_contains_all(iterable, dic):
