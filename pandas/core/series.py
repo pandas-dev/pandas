@@ -1354,8 +1354,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         if not _np_version_under1p9:
             kwargs.update({'interpolation': interpolation})
 
-        result = self._data._block.quantile(self.dropna()._values,
-                                            q, **kwargs)
+        result = self._data.quantile(qs=q, **kwargs)
 
         if com.is_list_like(result):
             # explicitly use Float64Index to coerce empty result to float dtype

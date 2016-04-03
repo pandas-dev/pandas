@@ -1255,18 +1255,32 @@ class Block(PandasObject):
             return False
         return array_equivalent(self.values, other.values)
 
-    def quantile(self, values, qs, **kwargs):
+    def quantile(self, qs, mgr=None, **kwargs):
+        """
+        compute the quantiles of the
+
+        Parameters
+        ----------
+        qs : a scalar or list of the quantiles to be computed
+        """
+
+        values = self.get_values()
+        values, mask, _, _ = self._try_coerce_args(values, values)
+        if not lib.isscalar(mask) and mask.any():
+            values = values[~mask]
+
         if len(values) == 0:
             if com.is_list_like(qs):
-                return np.array([self.fill_value])
+                result = np.array([self.fill_value])
             else:
-                return self._na_value
-
-        if com.is_list_like(qs):
+                result = self._na_value
+        elif com.is_list_like(qs):
             values = [_quantile(values, x * 100, **kwargs) for x in qs]
-            return np.array(values)
+            result = np.array(values)
         else:
-            return _quantile(values, qs * 100, **kwargs)
+            result = _quantile(values, qs * 100, **kwargs)
+
+        return self._try_coerce_result(result)
 
 
 class NonConsolidatableMixIn(object):
@@ -1498,22 +1512,6 @@ class DatetimeLikeBlockMixin(object):
             return lib.map_infer(self.values.ravel(),
                                  self._box_func).reshape(self.values.shape)
         return self.values
-
-    def quantile(self, values, qs, **kwargs):
-        values = values.view('i8')
-        mask = values == self.fill_value
-        if mask.any():
-            values = values[~mask]
-        result = Block.quantile(self, values, qs, **kwargs)
-
-        if com.is_datetime64tz_dtype(self):
-            # ToDo: Temp logic to avoid GH 12619 and GH 12772
-            # which affects to DatetimeBlockTZ_try_coerce_result for np.ndarray
-            if isinstance(result, np.ndarray) and values.ndim > 0:
-                result = self._holder(result, tz='UTC')
-                result = result.tz_convert(self.values.tz)
-                return result
-        return self._try_coerce_result(result)
 
 
 class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
@@ -2274,12 +2272,14 @@ class DatetimeTZBlock(NonConsolidatableMixIn, DatetimeBlock):
 
     def _try_coerce_result(self, result):
         """ reverse of try_coerce_args """
-        result = super(DatetimeTZBlock, self)._try_coerce_result(result)
-
         if isinstance(result, np.ndarray):
-            result = self._holder(result, tz=self.values.tz)
+            if result.dtype.kind in ['i', 'f', 'O']:
+                result = result.astype('M8[ns]')
         elif isinstance(result, (np.integer, np.float, np.datetime64)):
-            result = lib.Timestamp(result, tz=self.values.tz)
+            result = lib.Timestamp(result).tz_localize(self.values.tz)
+        if isinstance(result, np.ndarray):
+            result = self._holder(result).tz_localize(self.values.tz)
+
         return result
 
     @property
@@ -2806,7 +2806,7 @@ class BlockManager(PandasObject):
                                      len(self.items), tot_items))
 
     def apply(self, f, axes=None, filter=None, do_integrity_check=False,
-              consolidate=True, **kwargs):
+              consolidate=True, raw=False, **kwargs):
         """
         iterate over the blocks, collect and create a new block manager
 
@@ -2820,6 +2820,7 @@ class BlockManager(PandasObject):
             integrity check
         consolidate: boolean, default True. Join together blocks having same
             dtype
+        raw: boolean, default False. Return the raw returned results
 
         Returns
         -------
@@ -2886,7 +2887,11 @@ class BlockManager(PandasObject):
             applied = getattr(b, f)(**kwargs)
             result_blocks = _extend_blocks(applied, result_blocks)
 
-        if len(result_blocks) == 0:
+        if raw:
+            if self._is_single_block:
+                return result_blocks[0]
+            return result_blocks
+        elif len(result_blocks) == 0:
             return self.make_empty(axes or self.axes)
         bm = self.__class__(result_blocks, axes or self.axes,
                             do_integrity_check=do_integrity_check)
@@ -2901,6 +2906,9 @@ class BlockManager(PandasObject):
 
     def eval(self, **kwargs):
         return self.apply('eval', **kwargs)
+
+    def quantile(self, **kwargs):
+        return self.apply('quantile', raw=True, **kwargs)
 
     def setitem(self, **kwargs):
         return self.apply('setitem', **kwargs)
