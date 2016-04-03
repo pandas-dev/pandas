@@ -339,6 +339,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         values : the values to create the new Index, optional
         kwargs : updates the default attributes for this Index
         """
+
     @Appender(_index_shared_docs['_shallow_copy'])
     def _shallow_copy(self, values=None, **kwargs):
         if values is None:
@@ -1349,6 +1350,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         --------
         numpy.ndarray.take
         """
+
     @Appender(_index_shared_docs['take'])
     def take(self, indices, axis=0, allow_fill=True, fill_value=None):
         indices = com._ensure_platform_int(indices)
@@ -1848,8 +1850,8 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
 
         Notes
         -----
-        ``symmetric_difference`` contains elements that appear in either ``idx1`` or
-        ``idx2`` but not both. Equivalent to the Index created by
+        ``symmetric_difference`` contains elements that appear in either
+        ``idx1`` or ``idx2`` but not both. Equivalent to the Index created by
         ``(idx1 - idx2) + (idx2 - idx1)`` with duplicates dropped.
 
         The sorting of a result containing ``NaN`` values is not guaranteed
