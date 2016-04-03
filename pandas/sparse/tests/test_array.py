@@ -6,6 +6,7 @@ import numpy as np
 import operator
 import warnings
 
+from pandas import _np_version_under1p8
 from pandas.sparse.api import SparseArray
 from pandas.util.testing import assert_almost_equal, assertRaisesRegexp
 import pandas.util.testing as tm
@@ -37,11 +38,15 @@ class TestSparseArray(tm.TestCase):
     def test_take(self):
         self.assertTrue(np.isnan(self.arr.take(0)))
         self.assertTrue(np.isscalar(self.arr.take(2)))
-        self.assertEqual(self.arr.take(2), np.take(self.arr_data, 2))
-        self.assertEqual(self.arr.take(6), np.take(self.arr_data, 6))
+
+        # np.take in < 1.8 doesn't support scalar indexing
+        if not _np_version_under1p8:
+            self.assertEqual(self.arr.take(2), np.take(self.arr_data, 2))
+            self.assertEqual(self.arr.take(6), np.take(self.arr_data, 6))
 
         tm.assert_sp_array_equal(self.arr.take([2, 3]),
-                                 SparseArray(np.take(self.arr_data, [2, 3])))
+                                 SparseArray(np.take(self.arr_data,
+                                                     [2, 3])))
         tm.assert_sp_array_equal(self.arr.take([0, 1, 2]),
                                  SparseArray(np.take(self.arr_data,
                                                      [0, 1, 2])))
