@@ -936,6 +936,22 @@ class TestIndexing(tm.TestCase):
             check(target=df, indexers=(df.index, df.columns), value=df,
                   compare_fn=assert_frame_equal, expected=copy)
 
+    def test_indexing_with_category(self):
+
+        # https://github.com/pydata/pandas/issues/12564#issuecomment-194022792
+        # consistent result if comparing as Dataframe
+
+        cat = DataFrame({'A': ['foo', 'bar', 'baz']})
+        exp = DataFrame({'A': [True, False, False]})
+
+        res = (cat[['A']] == 'foo')
+        tm.assert_frame_equal(res, exp)
+
+        cat['A'] = cat['A'].astype('category')
+
+        res = (cat[['A']] == 'foo')
+        tm.assert_frame_equal(res, exp)
+
     def test_indexing_with_datetime_tz(self):
 
         # 8260
