@@ -12,7 +12,7 @@ from pandas.lib import Timestamp
 
 from pandas.compat import range, zip, lrange, lzip, map
 from pandas import compat
-from pandas.core.base import FrozenList, FrozenNDArray
+from pandas.core.base import FrozenList
 import pandas.core.base as base
 from pandas.util.decorators import (Appender, cache_readonly,
                                     deprecate, deprecate_kwarg)
@@ -1008,9 +1008,9 @@ class MultiIndex(Index):
     def take(self, indices, axis=0, allow_fill=True, fill_value=None):
         indices = com._ensure_platform_int(indices)
         taken = self._assert_take_fillable(self.labels, indices,
-                                                allow_fill=allow_fill,
-                                                fill_value=fill_value,
-                                                na_value=-1)
+                                           allow_fill=allow_fill,
+                                           fill_value=fill_value,
+                                           na_value=-1)
         return MultiIndex(levels=self.levels, labels=taken,
                           names=self.names, verify_integrity=False)
 
