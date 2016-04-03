@@ -1915,8 +1915,10 @@ class DataFrame(NDFrame):
                     # if we are a copy, mark as such
                     copy = (isinstance(new_values, np.ndarray) and
                             new_values.base is None)
-                    result = Series(new_values, index=self.columns,
-                                    name=self.index[i], dtype=new_values.dtype)
+                    result = self._constructor_sliced(new_values,
+                                                      index=self.columns,
+                                                      name=self.index[i],
+                                                      dtype=new_values.dtype)
                 result._set_is_copy(self, copy=copy)
                 return result
 
