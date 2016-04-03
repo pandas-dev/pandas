@@ -809,9 +809,6 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         self._data = self._data.setitem(indexer=key, value=value)
         self._maybe_update_cacher()
 
-    # help out SparseSeries
-    _get_val_at = ndarray.__getitem__
-
     def repeat(self, reps):
         """
         return a new Series with the values repeated reps times
