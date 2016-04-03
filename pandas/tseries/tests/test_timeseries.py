@@ -1,42 +1,38 @@
 # pylint: disable-msg=E1101,W0612
 import calendar
-from datetime import datetime, time, timedelta
-import sys
 import operator
+import sys
 import warnings
+from datetime import datetime, time, timedelta
+from numpy.random import rand
+from numpy.testing.decorators import slow
+
 import nose
 import numpy as np
-import pandas.tseries.frequencies as frequencies
+import pandas.index as _index
 import pandas.lib as lib
 import pandas.tslib as tslib
-import pandas.index as _index
+
 import pandas as pd
-from pandas import (Index, Series, DataFrame, isnull, date_range, Timestamp,
-                    Period, DatetimeIndex, Int64Index, to_datetime,
-                    bdate_range, Float64Index, NaT, timedelta_range, Timedelta)
-
-from pandas.compat.numpy_compat import np_datetime64_compat
-import pandas.core.datetools as datetools
-import pandas.tseries.offsets as offsets
-import pandas.tseries.tools as tools
-
-
-from pandas.util.testing import assert_series_equal, assert_almost_equal,\
-    _skip_if_has_locale
-import pandas.util.testing as tm
-
-from pandas.tslib import iNaT
-
-from pandas.compat import range, long, StringIO, lrange, lmap, zip, product
-from numpy.random import rand
-from pandas.util.testing import assert_frame_equal
-from pandas.core.common import PerformanceWarning
 import pandas.compat as compat
 import pandas.core.common as com
-from pandas import concat
-from pandas import _np_version_under1p8
-
-from numpy.testing.decorators import slow
+import pandas.core.datetools as datetools
+import pandas.tseries.frequencies as frequencies
+import pandas.tseries.offsets as offsets
+import pandas.tseries.tools as tools
+import pandas.util.testing as tm
+from pandas import (
+    Index, Series, DataFrame, isnull, date_range, Timestamp, Period,
+    DatetimeIndex, Int64Index, to_datetime, bdate_range, Float64Index,
+    NaT, timedelta_range, Timedelta, _np_version_under1p8, concat,
+    PeriodIndex)
+from pandas.compat import range, long, StringIO, lrange, lmap, zip, product
+from pandas.compat.numpy_compat import np_datetime64_compat
+from pandas.core.common import PerformanceWarning
+from pandas.tslib import iNaT
+from pandas.util.testing import (
+    assert_frame_equal, assert_series_equal, assert_almost_equal,
+    _skip_if_has_locale)
 
 randn = np.random.randn
 
@@ -1247,23 +1243,6 @@ class TestTimeSeries(tm.TestCase):
         tm.assert_equal(index_name, df.index.name)
         tm.assert_equal(index_name, df.asfreq('10D').index.name)
 
-    def test_asfreq_resample_set_correct_freq(self):
-        # GH5613
-        # we test if .asfreq() and .resample() set the correct value for .freq
-        df = pd.DataFrame({'date': ["2012-01-01", "2012-01-02", "2012-01-03"],
-                           'col': [1, 2, 3]})
-        df = df.set_index(pd.to_datetime(df.date))
-
-        # testing the settings before calling .asfreq() and .resample()
-        self.assertEqual(df.index.freq, None)
-        self.assertEqual(df.index.inferred_freq, 'D')
-
-        # does .asfreq() set .freq correctly?
-        self.assertEqual(df.asfreq('D').index.freq, 'D')
-
-        # does .resample() set .freq correctly?
-        self.assertEqual(df.resample('D').asfreq().index.freq, 'D')
-
     def test_promote_datetime_date(self):
         rng = date_range('1/1/2000', periods=20)
         ts = Series(np.random.randn(20), index=rng)
@@ -2246,69 +2225,22 @@ class TestTimeSeries(tm.TestCase):
         # it works!
         pd.concat([df1, df2_obj])
 
-    def test_period_resample(self):
-        # GH3609
-        s = Series(range(100), index=date_range(
-            '20130101', freq='s', periods=100), dtype='float')
-        s[10:30] = np.nan
-        expected = Series([34.5, 79.5], index=[Period(
-            '2013-01-01 00:00', 'T'), Period('2013-01-01 00:01', 'T')])
-        result = s.to_period().resample('T', kind='period').mean()
-        assert_series_equal(result, expected)
-        result2 = s.resample('T', kind='period').mean()
-        assert_series_equal(result2, expected)
+    def test_asfreq_resample_set_correct_freq(self):
+        # GH5613
+        # we test if .asfreq() and .resample() set the correct value for .freq
+        df = pd.DataFrame({'date': ["2012-01-01", "2012-01-02", "2012-01-03"],
+                           'col': [1, 2, 3]})
+        df = df.set_index(pd.to_datetime(df.date))
 
-    def test_period_resample_with_local_timezone_pytz(self):
-        # GH5430
-        tm._skip_if_no_pytz()
-        import pytz
+        # testing the settings before calling .asfreq() and .resample()
+        self.assertEqual(df.index.freq, None)
+        self.assertEqual(df.index.inferred_freq, 'D')
 
-        local_timezone = pytz.timezone('America/Los_Angeles')
+        # does .asfreq() set .freq correctly?
+        self.assertEqual(df.asfreq('D').index.freq, 'D')
 
-        start = datetime(year=2013, month=11, day=1, hour=0, minute=0,
-                         tzinfo=pytz.utc)
-        # 1 day later
-        end = datetime(year=2013, month=11, day=2, hour=0, minute=0,
-                       tzinfo=pytz.utc)
-
-        index = pd.date_range(start, end, freq='H')
-
-        series = pd.Series(1, index=index)
-        series = series.tz_convert(local_timezone)
-        result = series.resample('D', kind='period').mean()
-
-        # Create the expected series
-        # Index is moved back a day with the timezone conversion from UTC to
-        # Pacific
-        expected_index = (pd.period_range(start=start, end=end, freq='D') - 1)
-        expected = pd.Series(1, index=expected_index)
-        assert_series_equal(result, expected)
-
-    def test_period_resample_with_local_timezone_dateutil(self):
-        # GH5430
-        tm._skip_if_no_dateutil()
-        import dateutil
-
-        local_timezone = 'dateutil/America/Los_Angeles'
-
-        start = datetime(year=2013, month=11, day=1, hour=0, minute=0,
-                         tzinfo=dateutil.tz.tzutc())
-        # 1 day later
-        end = datetime(year=2013, month=11, day=2, hour=0, minute=0,
-                       tzinfo=dateutil.tz.tzutc())
-
-        index = pd.date_range(start, end, freq='H')
-
-        series = pd.Series(1, index=index)
-        series = series.tz_convert(local_timezone)
-        result = series.resample('D', kind='period').mean()
-
-        # Create the expected series
-        # Index is moved back a day with the timezone conversion from UTC to
-        # Pacific
-        expected_index = (pd.period_range(start=start, end=end, freq='D') - 1)
-        expected = pd.Series(1, index=expected_index)
-        assert_series_equal(result, expected)
+        # does .resample() set .freq correctly?
+        self.assertEqual(df.resample('D').asfreq().index.freq, 'D')
 
     def test_pickle(self):
 
