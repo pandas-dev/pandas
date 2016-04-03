@@ -81,6 +81,13 @@ API changes
 - ``CParserError`` is now a ``ValueError`` instead of just an ``Exception`` (:issue:`12551`)
 
 - ``pd.show_versions()`` now includes ``pandas_datareader`` version (:issue:`12740`)
+- ``SparseArray.take`` now returns scalar for scalar input, ``SparseArray`` for others (:issue:`10560`)
+
+.. ipython:: python
+
+    s = pd.SparseArray([np.nan, np.nan, 1, 2, 3, np.nan, 4, 5, np.nan, 6])
+    s.take(0)
+    s.take([1, 2, 3])
 
 .. _whatsnew_0181.apply_resample:
 
@@ -211,3 +218,9 @@ Bug Fixes
 - Bug in ``.describe()`` resets categorical columns information (:issue:`11558`)
 - Bug where ``loffset`` argument was not applied when calling ``resample().count()`` on a timeseries (:issue:`12725`)
 - ``pd.read_excel()`` now accepts path objects (e.g. ``pathlib.Path``, ``py.path.local``) for the file path, in line with other ``read_*`` functions (:issue:`12655`)
+
+
+- Bug in ``SparseSeries.loc[]`` with list-like input raises ``TypeError`` (:issue:`10560`)
+- Bug in ``SparseSeries.iloc[]`` with scalar input may raise ``IndexError`` (:issue:`10560`)
+- Bug in ``SparseSeries.loc[]``, ``.iloc[]`` with ``slice`` returns ``SparseArray``, rather than ``SparseSeries`` (:issue:`10560`)
+- Bug in ``SparseSeries.__repr__`` raises ``TypeError`` when it is longer than ``max_rows`` (:issue:`10560`)

@@ -10,7 +10,6 @@ from distutils.version import LooseVersion
 import pandas as pd
 from pandas import Index
 from pandas.compat import u
-from pandas.sparse.tests import test_sparse
 from pandas.util.misc import is_little_endian
 import pandas
 import pandas.util.testing as tm
@@ -46,7 +45,7 @@ class TestPickle():
             return
 
         if typ.startswith('sp_'):
-            comparator = getattr(test_sparse, "assert_%s_equal" % typ)
+            comparator = getattr(tm, "assert_%s_equal" % typ)
             comparator(result, expected, exact_indices=False)
         else:
             comparator = getattr(tm, "assert_%s_equal" %
