@@ -237,7 +237,7 @@ class SparseArray(PandasObject, np.ndarray):
         """
         Dense values
         """
-        output = np.empty(len(self), dtype=np.float64)
+        output = np.empty(len(self), dtype=self.dtype)
         int_index = self.sp_index.to_int_index()
         output.fill(self.fill_value)
         output.put(int_index.indices, self)
@@ -261,8 +261,8 @@ class SparseArray(PandasObject, np.ndarray):
         # fill the nans
         if fill is None:
             fill = self.fill_value
-        if not np.isnan(fill):
-            values[np.isnan(values)] = fill
+        if not com.isnull(fill):
+            values[com.isnull(values)] = fill
 
         return values
 
