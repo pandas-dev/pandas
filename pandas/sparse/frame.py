@@ -136,6 +136,8 @@ class SparseDataFrame(DataFrame):
 
         return wrapper
 
+    _constructor_sliced = SparseSeries
+
     def _init_dict(self, data, index, columns, dtype=None):
         # pre-filter out columns if we passed it
         if columns is not None:
