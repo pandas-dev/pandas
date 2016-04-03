@@ -1,42 +1,38 @@
 # pylint: disable-msg=E1101,W0612
 import calendar
-from datetime import datetime, time, timedelta
-import sys
 import operator
+import sys
 import warnings
+from datetime import datetime, time, timedelta
+from numpy.random import rand
+from numpy.testing.decorators import slow
+
 import nose
 import numpy as np
-import pandas.tseries.frequencies as frequencies
+import pandas.index as _index
 import pandas.lib as lib
 import pandas.tslib as tslib
-import pandas.index as _index
+
 import pandas as pd
-from pandas import (Index, Series, DataFrame, isnull, date_range, Timestamp,
-                    Period, DatetimeIndex, Int64Index, to_datetime,
-                    bdate_range, Float64Index, NaT, timedelta_range, Timedelta)
-
-from pandas.compat.numpy_compat import np_datetime64_compat
-import pandas.core.datetools as datetools
-import pandas.tseries.offsets as offsets
-import pandas.tseries.tools as tools
-
-
-from pandas.util.testing import assert_series_equal, assert_almost_equal,\
-    _skip_if_has_locale
-import pandas.util.testing as tm
-
-from pandas.tslib import iNaT
-
-from pandas.compat import range, long, StringIO, lrange, lmap, zip, product
-from numpy.random import rand
-from pandas.util.testing import assert_frame_equal
-from pandas.core.common import PerformanceWarning
 import pandas.compat as compat
 import pandas.core.common as com
-from pandas import concat
-from pandas import _np_version_under1p8
-
-from numpy.testing.decorators import slow
+import pandas.core.datetools as datetools
+import pandas.tseries.frequencies as frequencies
+import pandas.tseries.offsets as offsets
+import pandas.tseries.tools as tools
+import pandas.util.testing as tm
+from pandas import (
+    Index, Series, DataFrame, isnull, date_range, Timestamp, Period,
+    DatetimeIndex, Int64Index, to_datetime, bdate_range, Float64Index,
+    NaT, timedelta_range, Timedelta, _np_version_under1p8, concat,
+    PeriodIndex)
+from pandas.compat import range, long, StringIO, lrange, lmap, zip, product
+from pandas.compat.numpy_compat import np_datetime64_compat
+from pandas.core.common import PerformanceWarning
+from pandas.tslib import iNaT
+from pandas.util.testing import (
+    assert_frame_equal, assert_series_equal, assert_almost_equal,
+    _skip_if_has_locale)
 
 randn = np.random.randn
 
@@ -2249,14 +2245,26 @@ class TestTimeSeries(tm.TestCase):
     def test_period_resample(self):
         # GH3609
         s = Series(range(100), index=date_range(
-            '20130101', freq='s', periods=100), dtype='float')
+            '20130101', freq='s', periods=100, name='idx'), dtype='float')
         s[10:30] = np.nan
-        expected = Series([34.5, 79.5], index=[Period(
-            '2013-01-01 00:00', 'T'), Period('2013-01-01 00:01', 'T')])
+        index = PeriodIndex([
+            Period('2013-01-01 00:00', 'T'),
+            Period('2013-01-01 00:01', 'T')], name='idx')
+        expected = Series([34.5, 79.5], index=index)
         result = s.to_period().resample('T', kind='period').mean()
         assert_series_equal(result, expected)
         result2 = s.resample('T', kind='period').mean()
         assert_series_equal(result2, expected)
+
+    def test_empty_period_index_resample(self):
+        # GH12771
+        index = PeriodIndex(start='2000', periods=0, freq='D', name='idx')
+        s = Series(index=index)
+        result = s.resample('M').sum()
+        # after GH12774 is resolved, this should be a PeriodIndex
+        expected_index = DatetimeIndex([], name='idx')
+        expected = Series(index=expected_index)
+        assert_series_equal(result, expected)
 
     def test_period_resample_with_local_timezone_pytz(self):
         # GH5430
@@ -2297,7 +2305,7 @@ class TestTimeSeries(tm.TestCase):
         end = datetime(year=2013, month=11, day=2, hour=0, minute=0,
                        tzinfo=dateutil.tz.tzutc())
 
-        index = pd.date_range(start, end, freq='H')
+        index = pd.date_range(start, end, freq='H', name='idx')
 
         series = pd.Series(1, index=index)
         series = series.tz_convert(local_timezone)
@@ -2306,7 +2314,8 @@ class TestTimeSeries(tm.TestCase):
         # Create the expected series
         # Index is moved back a day with the timezone conversion from UTC to
         # Pacific
-        expected_index = (pd.period_range(start=start, end=end, freq='D') - 1)
+        expected_index = (pd.period_range(start=start, end=end, freq='D',
+                                          name='idx') - 1)
         expected = pd.Series(1, index=expected_index)
         assert_series_equal(result, expected)
 
