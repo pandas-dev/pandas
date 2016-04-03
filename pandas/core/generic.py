@@ -1752,7 +1752,6 @@ class NDFrame(PandasObject):
                 new_index = self.index[loc]
 
         if lib.isscalar(loc):
-            from pandas import Series
             new_values = self._data.fast_xs(loc)
 
             # may need to box a datelike-scalar
@@ -1763,9 +1762,9 @@ class NDFrame(PandasObject):
             if not is_list_like(new_values) or self.ndim == 1:
                 return _maybe_box_datetimelike(new_values)
 
-            result = Series(new_values, index=self.columns,
-                            name=self.index[loc], copy=copy,
-                            dtype=new_values.dtype)
+            result = self._constructor_sliced(new_values, index=self.columns,
+                                              name=self.index[loc], copy=copy,
+                                              dtype=new_values.dtype)
 
         else:
             result = self.iloc[loc]

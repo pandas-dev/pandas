@@ -77,6 +77,7 @@ These changes conform sparse handling to return the correct types and work to ma
 - Bug in ``SparseSeries.loc[]`` with list-like input raises ``TypeError`` (:issue:`10560`)
 - Bug in ``SparseSeries.iloc[]`` with scalar input may raise ``IndexError`` (:issue:`10560`)
 - Bug in ``SparseSeries.loc[]``, ``.iloc[]`` with ``slice`` returns ``SparseArray``, rather than ``SparseSeries`` (:issue:`10560`)
+- Bug in ``SparseDataFrame.loc[]``, ``.iloc[]`` may results in dense ``Series``, rather than ``SparseSeries`` (:issue:`12787`)
 - Bug in ``SparseSeries.__repr__`` raises ``TypeError`` when it is longer than ``max_rows`` (:issue:`10560`)
 - Bug in ``SparseSeries.shape`` ignores ``fill_value`` (:issue:`10452`)
 - Bug in ``SparseArray.to_dense()`` does not preserve ``dtype`` (:issue:`10648`)
