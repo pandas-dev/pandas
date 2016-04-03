@@ -11,15 +11,6 @@ from pandas.util.testing import assert_almost_equal, assertRaisesRegexp
 import pandas.util.testing as tm
 
 
-def assert_sp_array_equal(left, right):
-    assert_almost_equal(left.sp_values, right.sp_values)
-    assert (left.sp_index.equals(right.sp_index))
-    if np.isnan(left.fill_value):
-        assert (np.isnan(right.fill_value))
-    else:
-        assert (left.fill_value == right.fill_value)
-
-
 class TestSparseArray(tm.TestCase):
     _multiprocess_can_split_ = True
 
@@ -29,10 +20,31 @@ class TestSparseArray(tm.TestCase):
         self.zarr = SparseArray([0, 0, 1, 2, 3, 0, 4, 5, 0, 6], fill_value=0)
 
     def test_get_item(self):
+
+        self.assertTrue(np.isnan(self.arr[1]))
+        self.assertEqual(self.arr[2], 1)
+        self.assertEqual(self.arr[7], 5)
+
+        self.assertEqual(self.zarr[0], 0)
+        self.assertEqual(self.zarr[2], 1)
+        self.assertEqual(self.zarr[7], 5)
+
         errmsg = re.compile("bounds")
         assertRaisesRegexp(IndexError, errmsg, lambda: self.arr[11])
         assertRaisesRegexp(IndexError, errmsg, lambda: self.arr[-11])
         self.assertEqual(self.arr[-1], self.arr[len(self.arr) - 1])
+
+    def test_take(self):
+        self.assertTrue(np.isnan(self.arr.take(0)))
+        self.assertTrue(np.isscalar(self.arr.take(2)))
+        self.assertEqual(self.arr.take(2), np.take(self.arr_data, 2))
+        self.assertEqual(self.arr.take(6), np.take(self.arr_data, 6))
+
+        tm.assert_sp_array_equal(self.arr.take([2, 3]),
+                                 SparseArray(np.take(self.arr_data, [2, 3])))
+        tm.assert_sp_array_equal(self.arr.take([0, 1, 2]),
+                                 SparseArray(np.take(self.arr_data,
+                                                     [0, 1, 2])))
 
     def test_bad_take(self):
         assertRaisesRegexp(IndexError, "bounds", lambda: self.arr.take(11))
@@ -96,20 +108,20 @@ class TestSparseArray(tm.TestCase):
     def test_getslice(self):
         result = self.arr[:-3]
         exp = SparseArray(self.arr.values[:-3])
-        assert_sp_array_equal(result, exp)
+        tm.assert_sp_array_equal(result, exp)
 
         result = self.arr[-4:]
         exp = SparseArray(self.arr.values[-4:])
-        assert_sp_array_equal(result, exp)
+        tm.assert_sp_array_equal(result, exp)
 
         # two corner cases from Series
         result = self.arr[-12:]
         exp = SparseArray(self.arr)
-        assert_sp_array_equal(result, exp)
+        tm.assert_sp_array_equal(result, exp)
 
         result = self.arr[:-12]
         exp = SparseArray(self.arr.values[:0])
-        assert_sp_array_equal(result, exp)
+        tm.assert_sp_array_equal(result, exp)
 
     def test_binary_operators(self):
         data1 = np.random.randn(20)
@@ -134,11 +146,11 @@ class TestSparseArray(tm.TestCase):
 
             res2 = op(first, second.values)
             tm.assertIsInstance(res2, SparseArray)
-            assert_sp_array_equal(res, res2)
+            tm.assert_sp_array_equal(res, res2)
 
             res3 = op(first.values, second)
             tm.assertIsInstance(res3, SparseArray)
-            assert_sp_array_equal(res, res3)
+            tm.assert_sp_array_equal(res, res3)
 
             res4 = op(first, 4)
             tm.assertIsInstance(res4, SparseArray)
@@ -169,7 +181,7 @@ class TestSparseArray(tm.TestCase):
     def test_pickle(self):
         def _check_roundtrip(obj):
             unpickled = self.round_trip_pickle(obj)
-            assert_sp_array_equal(unpickled, obj)
+            tm.assert_sp_array_equal(unpickled, obj)
 
         _check_roundtrip(self.arr)
         _check_roundtrip(self.zarr)

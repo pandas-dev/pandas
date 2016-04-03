@@ -5,13 +5,7 @@ from numpy import nan
 import numpy as np
 
 from pandas.sparse.api import SparseList, SparseArray
-from pandas.util.testing import assert_almost_equal
-
-from .test_sparse import assert_sp_array_equal
-
-
-def assert_sp_list_equal(left, right):
-    assert_sp_array_equal(left.to_array(), right.to_array())
+import pandas.util.testing as tm
 
 
 class TestSparseList(unittest.TestCase):
@@ -26,7 +20,7 @@ class TestSparseList(unittest.TestCase):
         lst1 = SparseList(self.na_data[:5])
         exp = SparseList()
         exp.append(self.na_data[:5])
-        assert_sp_list_equal(lst1, exp)
+        tm.assert_sp_list_equal(lst1, exp)
 
     def test_len(self):
         arr = self.na_data
@@ -46,7 +40,7 @@ class TestSparseList(unittest.TestCase):
         splist.append(arr[6:])
 
         sparr = splist.to_array()
-        assert_sp_array_equal(sparr, SparseArray(arr))
+        tm.assert_sp_array_equal(sparr, SparseArray(arr))
 
     def test_append_zero(self):
         arr = self.zero_data
@@ -56,7 +50,7 @@ class TestSparseList(unittest.TestCase):
         splist.append(arr[6:])
 
         sparr = splist.to_array()
-        assert_sp_array_equal(sparr, SparseArray(arr, fill_value=0))
+        tm.assert_sp_array_equal(sparr, SparseArray(arr, fill_value=0))
 
     def test_consolidate(self):
         arr = self.na_data
@@ -70,11 +64,11 @@ class TestSparseList(unittest.TestCase):
         consol = splist.consolidate(inplace=False)
         self.assertEqual(consol.nchunks, 1)
         self.assertEqual(splist.nchunks, 3)
-        assert_sp_array_equal(consol.to_array(), exp_sparr)
+        tm.assert_sp_array_equal(consol.to_array(), exp_sparr)
 
         splist.consolidate()
         self.assertEqual(splist.nchunks, 1)
-        assert_sp_array_equal(splist.to_array(), exp_sparr)
+        tm.assert_sp_array_equal(splist.to_array(), exp_sparr)
 
     def test_copy(self):
         arr = self.na_data
@@ -87,7 +81,7 @@ class TestSparseList(unittest.TestCase):
         cp = splist.copy()
         cp.append(arr[6:])
         self.assertEqual(splist.nchunks, 2)
-        assert_sp_array_equal(cp.to_array(), exp_sparr)
+        tm.assert_sp_array_equal(cp.to_array(), exp_sparr)
 
     def test_getitem(self):
         arr = self.na_data
@@ -97,8 +91,8 @@ class TestSparseList(unittest.TestCase):
         splist.append(arr[6:])
 
         for i in range(len(arr)):
-            assert_almost_equal(splist[i], arr[i])
-            assert_almost_equal(splist[-i], arr[-i])
+            tm.assert_almost_equal(splist[i], arr[i])
+            tm.assert_almost_equal(splist[-i], arr[-i])
 
 
 if __name__ == '__main__':

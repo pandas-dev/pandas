@@ -280,10 +280,7 @@ class SparseArray(PandasObject, np.ndarray):
             if isinstance(key, SparseArray):
                 key = np.asarray(key)
             if hasattr(key, '__len__') and len(self) != len(key):
-                indices = self.sp_index
-                if hasattr(indices, 'to_int_index'):
-                    indices = indices.to_int_index()
-                data_slice = self.values.take(indices.indices)[key]
+                return self.take(key)
             else:
                 data_slice = self.values[key]
             return self._constructor(data_slice)
@@ -320,6 +317,11 @@ class SparseArray(PandasObject, np.ndarray):
         """
         if axis:
             raise ValueError("axis must be 0, input was {0}".format(axis))
+
+        if com.is_integer(indices):
+            # return scalar
+            return self[indices]
+
         indices = np.atleast_1d(np.asarray(indices, dtype=int))
 
         # allow -1 to indicate missing values
@@ -344,7 +346,7 @@ class SparseArray(PandasObject, np.ndarray):
             result = np.empty(len(indices))
             result.fill(self.fill_value)
 
-        return result
+        return self._constructor(result)
 
     def __setitem__(self, key, value):
         # if com.is_integer(key):

@@ -3198,6 +3198,7 @@ $1$,$2$
 
 
 class TestSeriesFormatting(tm.TestCase):
+
     _multiprocess_can_split_ = True
 
     def setUp(self):
@@ -3709,6 +3710,24 @@ class TestSeriesFormatting(tm.TestCase):
         res = s.to_string(header=False, max_rows=2)
         exp = '0    0\n    ..\n9    9'
         self.assertEqual(res, exp)
+
+    def test_sparse_max_row(self):
+        s = pd.Series([1, np.nan, np.nan, 3, np.nan]).to_sparse()
+        result = repr(s)
+        exp = ("0    1.0\n1    NaN\n2    NaN\n3    3.0\n"
+               "4    NaN\ndtype: float64\nBlockIndex\n"
+               "Block locations: array([0, 3], dtype=int32)\n"
+               "Block lengths: array([1, 1], dtype=int32)")
+        self.assertEqual(result, exp)
+
+        with option_context("display.max_rows", 3):
+            # GH 10560
+            result = repr(s)
+            exp = ("0    1.0\n    ... \n4    NaN\n"
+                   "dtype: float64\nBlockIndex\n"
+                   "Block locations: array([0, 3], dtype=int32)\n"
+                   "Block lengths: array([1, 1], dtype=int32)")
+            self.assertEqual(result, exp)
 
 
 class TestEngFormatter(tm.TestCase):

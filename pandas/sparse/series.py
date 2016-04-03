@@ -354,9 +354,32 @@ class SparseSeries(Series):
         else:
             object.__setattr__(self, '_subtyp', 'sparse_series')
 
+    def _ixs(self, i, axis=0):
+        """
+        Return the i-th value or values in the SparseSeries by location
+
+        Parameters
+        ----------
+        i : int, slice, or sequence of integers
+
+        Returns
+        -------
+        value : scalar (int) or Series (slice, sequence)
+        """
+        label = self.index[i]
+        if isinstance(label, Index):
+            return self.take(i, axis=axis, convert=True)
+        else:
+            return self._get_val_at(i)
+
     def _get_val_at(self, loc):
         """ forward to the array """
         return self.block.values._get_val_at(loc)
+
+    def _slice(self, slobj, axis=0, kind=None):
+        slobj = self.index._convert_slice_indexer(slobj,
+                                                  kind=kind or 'getitem')
+        return self._get_values(slobj)
 
     def __getitem__(self, key):
         """
@@ -381,6 +404,13 @@ class SparseSeries(Series):
         dataSlice = self.values[key]
         new_index = Index(self.index.view(ndarray)[key])
         return self._constructor(dataSlice, index=new_index).__finalize__(self)
+
+    def _get_values(self, indexer):
+        try:
+            return self._constructor(self._data.get_slice(indexer),
+                                     fastpath=True).__finalize__(self)
+        except Exception:
+            return self[indexer]
 
     def _set_with_engine(self, key, value):
         return self.set_value(key, value)
@@ -517,7 +547,8 @@ class SparseSeries(Series):
         return self._constructor(new_data, sparse_index=self.sp_index,
                                  fill_value=self.fill_value).__finalize__(self)
 
-    def reindex(self, index=None, method=None, copy=True, limit=None):
+    def reindex(self, index=None, method=None, copy=True, limit=None,
+                **kwargs):
         """
         Conform SparseSeries to new Index
 

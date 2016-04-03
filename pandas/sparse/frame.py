@@ -543,9 +543,10 @@ class SparseDataFrame(DataFrame):
                 continue
 
             values = series.values
+            # .take returns SparseArray
             new = values.take(indexer)
-
             if need_mask:
+                new = new.values
                 np.putmask(new, mask, fill_value)
 
             new_series[col] = new
