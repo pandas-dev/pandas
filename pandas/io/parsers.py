@@ -221,8 +221,9 @@ _engine_doc = """engine : {'c', 'python'}, optional
 
 _sep_doc = """sep : str, default {default}
     Delimiter to use. If sep is None, will try to automatically determine
-    this. Regular expressions are accepted and will force use of the python
-    parsing engine and will ignore quotes in the data."""
+    this. Separators longer than 1 character and different from '\s+' will be
+    interpreted as regular expressions, will force use of the python parsing
+    engine and will ignore quotes in the data. Regex example: '\\r\\t'"""
 
 _read_csv_doc = """
 Read CSV (comma-separated) file into DataFrame
@@ -674,7 +675,9 @@ class TextFileReader(BaseIterator):
             elif engine not in ('python', 'python-fwf'):
                 # wait until regex engine integrated
                 fallback_reason = "the 'c' engine does not support"\
-                                  " regex separators"
+                                  " regex separators (separators > 1 char and"\
+                                  " different from '\s+' are"\
+                                  " interpreted as regex)"
                 engine = 'python'
 
         if fallback_reason and engine_specified:
