@@ -6,11 +6,6 @@ import nose  # noqa
 from numpy import nan
 import numpy as np
 import pandas as pd
-
-from pandas.util.testing import (assert_almost_equal, assert_series_equal,
-                                 assert_index_equal, assert_frame_equal,
-                                 assertRaisesRegexp,
-                                 assert_numpy_array_equal)
 from numpy.testing import assert_equal
 
 from pandas import Series, DataFrame, bdate_range
@@ -124,7 +119,7 @@ class TestSparseSeries(tm.TestCase, SharedWithSparse):
         # blocking
         expected = Series({'col': 'float64:sparse'})
         result = df.ftypes
-        assert_series_equal(expected, result)
+        tm.assert_series_equal(expected, result)
 
     def test_series_density(self):
         # GH2803
@@ -151,6 +146,29 @@ class TestSparseSeries(tm.TestCase, SharedWithSparse):
 
         series = self.ziseries.to_dense()
         assert_equal(series, arr)
+
+    def test_to_dense_fill_value(self):
+        s = pd.Series([1, np.nan, np.nan, 3, np.nan])
+        res = SparseSeries(s).to_dense()
+        tm.assert_series_equal(res, s)
+
+        res = SparseSeries(s, fill_value=0).to_dense()
+        tm.assert_series_equal(res, s)
+
+        s = pd.Series([1, np.nan, 0, 3, 0])
+        res = SparseSeries(s, fill_value=0).to_dense()
+        tm.assert_series_equal(res, s)
+
+        res = SparseSeries(s, fill_value=0).to_dense()
+        tm.assert_series_equal(res, s)
+
+        s = pd.Series([np.nan, np.nan, np.nan, np.nan, np.nan])
+        res = SparseSeries(s).to_dense()
+        tm.assert_series_equal(res, s)
+
+        s = pd.Series([np.nan, np.nan, np.nan, np.nan, np.nan])
+        res = SparseSeries(s, fill_value=0).to_dense()
+        tm.assert_series_equal(res, s)
 
     def test_dense_to_sparse(self):
         series = self.bseries.to_dense()
@@ -332,10 +350,10 @@ class TestSparseSeries(tm.TestCase, SharedWithSparse):
     def test_getitem(self):
         def _check_getitem(sp, dense):
             for idx, val in compat.iteritems(dense):
-                assert_almost_equal(val, sp[idx])
+                tm.assert_almost_equal(val, sp[idx])
 
             for i in range(len(dense)):
-                assert_almost_equal(sp[i], dense[i])
+                tm.assert_almost_equal(sp[i], dense[i])
                 # j = np.float64(i)
                 # assert_almost_equal(sp[j], dense[j])
 
@@ -360,15 +378,15 @@ class TestSparseSeries(tm.TestCase, SharedWithSparse):
                           self.btseries.index[-1] + BDay())
 
     def test_get_get_value(self):
-        assert_almost_equal(self.bseries.get(10), self.bseries[10])
+        tm.assert_almost_equal(self.bseries.get(10), self.bseries[10])
         self.assertIsNone(self.bseries.get(len(self.bseries) + 1))
 
         dt = self.btseries.index[10]
         result = self.btseries.get(dt)
         expected = self.btseries.to_dense()[dt]
-        assert_almost_equal(result, expected)
+        tm.assert_almost_equal(result, expected)
 
-        assert_almost_equal(self.bseries.get_value(10), self.bseries[10])
+        tm.assert_almost_equal(self.bseries.get_value(10), self.bseries[10])
 
     def test_set_value(self):
 
@@ -407,7 +425,8 @@ class TestSparseSeries(tm.TestCase, SharedWithSparse):
                 dense_result = dense.take(idx).values
                 sparse_result = sp.take(idx)
                 self.assertIsInstance(sparse_result, SparseSeries)
-                assert_almost_equal(dense_result, sparse_result.values.values)
+                tm.assert_almost_equal(dense_result,
+                                       sparse_result.values.values)
 
             _compare([1., 2., 3., 4., 5., 0.])
             _compare([7, 2, 9, 0, 4])
@@ -429,9 +448,9 @@ class TestSparseSeries(tm.TestCase, SharedWithSparse):
 
     def test_setslice(self):
         self.bseries[5:10] = 7.
-        assert_series_equal(self.bseries[5:10].to_dense(),
-                            Series(7., index=range(5, 10),
-                                   name=self.bseries.name))
+        tm.assert_series_equal(self.bseries[5:10].to_dense(),
+                               Series(7., index=range(5, 10),
+                                      name=self.bseries.name))
 
     def test_operators(self):
         def _check_op(a, b, op):
@@ -439,7 +458,7 @@ class TestSparseSeries(tm.TestCase, SharedWithSparse):
             adense = a.to_dense() if isinstance(a, SparseSeries) else a
             bdense = b.to_dense() if isinstance(b, SparseSeries) else b
             dense_result = op(adense, bdense)
-            assert_almost_equal(sp_result.to_dense(), dense_result)
+            tm.assert_almost_equal(sp_result.to_dense(), dense_result)
 
         def check(a, b):
             _check_op(a, b, operator.add)
@@ -564,7 +583,7 @@ class TestSparseSeries(tm.TestCase, SharedWithSparse):
 
             expected = Series(values, index=int_indices1)
             expected = expected.reindex(int_indices2).fillna(fill_value)
-            assert_almost_equal(expected.values, reindexed.sp_values)
+            tm.assert_almost_equal(expected.values, reindexed.sp_values)
 
             # make sure level argument asserts
             # TODO: expected is not used anywhere...remove?
@@ -657,7 +676,7 @@ class TestSparseSeries(tm.TestCase, SharedWithSparse):
         expected = sp.to_dense().valid()
         expected = expected[expected != 0]
 
-        assert_almost_equal(sp_valid.values, expected.values)
+        tm.assert_almost_equal(sp_valid.values, expected.values)
         self.assertTrue(sp_valid.index.equals(expected.index))
         self.assertEqual(len(sp_valid.sp_values), 2)
 
@@ -689,7 +708,8 @@ class TestSparseSeries(tm.TestCase, SharedWithSparse):
         # must have NaN fill value
         data = {'a': SparseSeries(np.arange(7), sparse_index=expected2,
                                   fill_value=0)}
-        assertRaisesRegexp(TypeError, "NaN fill value", spf.homogenize, data)
+        with tm.assertRaisesRegexp(TypeError, "NaN fill value"):
+            spf.homogenize(data)
 
     def test_fill_value_corner(self):
         cop = self.zbseries.copy()
@@ -729,12 +749,12 @@ class TestSparseSeries(tm.TestCase, SharedWithSparse):
         expected = self.bseries.to_dense().cumsum()
         tm.assertIsInstance(result, SparseSeries)
         self.assertEqual(result.name, self.bseries.name)
-        assert_series_equal(result.to_dense(), expected)
+        tm.assert_series_equal(result.to_dense(), expected)
 
         result = self.zbseries.cumsum()
         expected = self.zbseries.to_dense().cumsum()
         tm.assertIsInstance(result, Series)
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
     def test_combine_first(self):
         s = self.bseries
@@ -762,15 +782,16 @@ class TestSparseHandlingMultiIndexes(tm.TestCase):
     def test_to_sparse_preserve_multiindex_names_columns(self):
         sparse_multiindex_frame = self.dense_multiindex_frame.to_sparse()
         sparse_multiindex_frame = sparse_multiindex_frame.copy()
-        assert_index_equal(sparse_multiindex_frame.columns,
-                           self.dense_multiindex_frame.columns)
+        tm.assert_index_equal(sparse_multiindex_frame.columns,
+                              self.dense_multiindex_frame.columns)
 
     def test_round_trip_preserve_multiindex_names(self):
         sparse_multiindex_frame = self.dense_multiindex_frame.to_sparse()
         round_trip_multiindex_frame = sparse_multiindex_frame.to_dense()
-        assert_frame_equal(self.dense_multiindex_frame,
-                           round_trip_multiindex_frame, check_column_type=True,
-                           check_names=True)
+        tm.assert_frame_equal(self.dense_multiindex_frame,
+                              round_trip_multiindex_frame,
+                              check_column_type=True,
+                              check_names=True)
 
 
 class TestSparseSeriesScipyInteraction(tm.TestCase):
@@ -898,7 +919,7 @@ class TestSparseSeriesScipyInteraction(tm.TestCase):
         (A, il, jl) = results
         (A_result, il_result, jl_result) = check
         # convert to dense and compare
-        assert_numpy_array_equal(A.todense(), A_result.todense())
+        tm.assert_numpy_array_equal(A.todense(), A_result.todense())
         # or compare directly as difference of sparse
         # assert(abs(A - A_result).max() < 1e-12) # max is failing in python
         # 2.6
@@ -910,7 +931,7 @@ def _dense_series_compare(s, f):
     result = f(s)
     assert (isinstance(result, SparseSeries))
     dense_result = f(s.to_dense())
-    assert_series_equal(result.to_dense(), dense_result)
+    tm.assert_series_equal(result.to_dense(), dense_result)
 
 
 if __name__ == '__main__':
