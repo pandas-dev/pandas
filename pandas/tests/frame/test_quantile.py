@@ -112,7 +112,7 @@ class TestDataFrameQuantile(tm.TestCase, TestData):
         # cross-check interpolation=nearest results in original dtype
         exp = np.percentile(np.array([[1, 2, 3], [2, 3, 4]]), .5,
                             axis=0, interpolation='nearest')
-        expected = Series(exp, index=[1, 2, 3])
+        expected = Series(exp, index=[1, 2, 3], dtype='int64')
         assert_series_equal(result, expected)
 
         # float
@@ -122,7 +122,7 @@ class TestDataFrameQuantile(tm.TestCase, TestData):
         assert_series_equal(result, expected)
         exp = np.percentile(np.array([[1., 2., 3.], [2., 3., 4.]]), .5,
                             axis=0, interpolation='nearest')
-        expected = Series(exp, index=[1, 2, 3])
+        expected = Series(exp, index=[1, 2, 3], dtype='float64')
         assert_series_equal(result, expected)
 
         # axis
