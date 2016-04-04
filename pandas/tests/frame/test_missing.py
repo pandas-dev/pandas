@@ -425,3 +425,19 @@ class TestDataFrameMissingData(tm.TestCase, TestData):
 
         # TODO(wesm): unused?
         result = empty_float.fillna(value=0)  # noqa
+
+    def test_fill_value_when_combine_const(self):
+        # GH12723
+        dat = np.array([0, 1, np.nan, 3, 4, 5], dtype='float')
+        df = DataFrame({'foo': dat}, index=range(6))
+
+        exp = df.fillna(0).add(2)
+        res = df.add(2, fill_value=0)
+        assert_frame_equal(res, exp)
+
+
+if __name__ == '__main__':
+    import nose
+    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
+                   # '--with-coverage', '--cover-package=pandas.core']
+                   exit=False)

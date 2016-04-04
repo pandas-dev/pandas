@@ -740,6 +740,14 @@ class TestSparseSeries(tm.TestCase, SharedWithSparse):
         result = cop2 / cop
         self.assertTrue(np.isnan(result.fill_value))
 
+    def test_fill_value_when_combine_const(self):
+        # GH12723
+        s = SparseSeries([0, 1, np.nan, 3, 4, 5], index=np.arange(6))
+
+        exp = s.fillna(0).add(2)
+        res = s.add(2, fill_value=0)
+        self.assert_series_equal(res, exp)
+
     def test_shift(self):
         series = SparseSeries([nan, 1., 2., 3., nan, nan], index=np.arange(6))
 

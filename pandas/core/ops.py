@@ -933,6 +933,9 @@ def _flex_method_SERIES(op, name, str_rep, default_axis=None, fill_zeros=None,
             return self._binop(self._constructor(other, self.index), op,
                                level=level, fill_value=fill_value)
         else:
+            if fill_value is not None:
+                self = self.fillna(fill_value)
+
             return self._constructor(op(self.values, other),
                                      self.index).__finalize__(self)
 
@@ -1088,6 +1091,9 @@ def _arith_method_FRAME(op, name, str_rep=None, default_axis='columns',
                 raise ValueError("Incompatible argument shape: %s" %
                                  (other.shape, ))
         else:
+            if fill_value is not None:
+                self = self.fillna(fill_value)
+
             return self._combine_const(other, na_op)
 
     f.__name__ = name
