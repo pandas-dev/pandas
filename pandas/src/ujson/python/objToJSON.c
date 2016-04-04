@@ -636,10 +636,6 @@ static int NpyTypeToJSONType(PyObject* obj, JSONTypeContext* tc, int npyType, vo
   }
 
   PRINTMARK();
-  PyErr_Format (
-      PyExc_RuntimeError,
-      "Unhandled numpy dtype %d",
-      npyType);
   return JT_INVALID;
 }
 
@@ -791,6 +787,7 @@ int NpyArr_iterNextItem(JSOBJ obj, JSONTypeContext *tc)
     Py_INCREF(obj);
     ((PyObjectEncoder*) tc->encoder)->npyType = PyArray_TYPE(npyarr->array);
     ((PyObjectEncoder*) tc->encoder)->npyValue = npyarr->dataptr;
+    ((PyObjectEncoder*) tc->encoder)->npyCtxtPassthru = npyarr;
   }
   else
   {
@@ -1917,6 +1914,26 @@ char** NpyArr_encodeLabels(PyArrayObject* labels, JSONObjectEncoder* enc, npy_in
     return ret;
 }
 
+void Object_invokeDefaultHandler(PyObject *obj, PyObjectEncoder *enc)
+{
+  PyObject *tmpObj = NULL;
+  PRINTMARK();
+  tmpObj = PyObject_CallFunctionObjArgs(enc->defaultHandler, obj, NULL);
+  if (!PyErr_Occurred())
+  {
+    if (tmpObj == NULL)
+    {
+      PyErr_SetString(PyExc_TypeError, "Failed to execute default handler");
+    }
+    else
+    {
+      encode (tmpObj, (JSONObjectEncoder*) enc, NULL, 0);
+    }
+  }
+  Py_XDECREF(tmpObj);
+  return;
+}
+
 void Object_beginTypeContext (JSOBJ _obj, JSONTypeContext *tc)
 {
   PyObject *obj, *exc, *toDictFunc, *tmpObj, *values;
@@ -1942,6 +1959,24 @@ void Object_beginTypeContext (JSOBJ _obj, JSONTypeContext *tc)
     PRINTMARK();
     tc->prv = &(enc->basicTypeContext);
     tc->type = NpyTypeToJSONType(obj, tc, enc->npyType, enc->npyValue);
+
+    if (tc->type == JT_INVALID)
+    {
+      if(enc->defaultHandler)
+      {
+        enc->npyType = -1;
+        PRINTMARK();
+        Object_invokeDefaultHandler(enc->npyCtxtPassthru->getitem(enc->npyValue, enc->npyCtxtPassthru->array), enc);
+      }
+      else
+      {
+        PyErr_Format (
+            PyExc_RuntimeError,
+            "Unhandled numpy dtype %d",
+            enc->npyType);
+      }
+    }
+    enc->npyCtxtPassthru = NULL;
     enc->npyType = -1;
     return;
   }
@@ -2528,18 +2563,7 @@ ISITERABLE:
 
   if (enc->defaultHandler)
   {
-    PRINTMARK();
-    tmpObj = PyObject_CallFunctionObjArgs(enc->defaultHandler, obj, NULL);
-    if (tmpObj == NULL || PyErr_Occurred())
-    {
-      if (!PyErr_Occurred())
-      {
-        PyErr_SetString(PyExc_TypeError, "Failed to execute default handler");
-      }
-      goto INVALID;
-    }
-    encode (tmpObj, (JSONObjectEncoder*) enc, NULL, 0);
-    Py_DECREF(tmpObj);
+    Object_invokeDefaultHandler(obj, enc);
     goto INVALID;
   }
 

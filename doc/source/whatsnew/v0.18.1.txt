@@ -462,6 +462,8 @@ Bug Fixes
 
 - Bug in ``.loc`` with out-of-bounds in a large indexer would raise ``IndexError`` rather than ``KeyError`` (:issue:`12527`)
 - Bug in resampling when using a ``TimedeltaIndex`` and ``.asfreq()``, would previously not include the final fencepost (:issue:`12926`)
+- Bug in ``DataFrame.to_json`` with unsupported `dtype` not passed to default handler (:issue:`12554`).
+
 - Bug in equality testing with a ``Categorical`` in a ``DataFrame`` (:issue:`12564`)
 - Bug in ``GroupBy.first()``, ``.last()`` returns incorrect row when ``TimeGrouper`` is used (:issue:`7453`)
 
