@@ -148,6 +148,7 @@ Other Enhancements
 - ``pd.read_csv()`` now supports opening files using xz compression, via extension inference or explicit ``compression='xz'`` is specified; ``xz`` compressions is also supported by ``DataFrame.to_csv`` in the same way (:issue:`11852`)
 - ``pd.read_msgpack()`` now always gives writeable ndarrays even when compression is used (:issue:`12359`).
 - ``pd.read_msgpack()`` now supports serializing and de-serializing categoricals with msgpack (:issue:`12573`)
+- ``(DataFrame|Series).to_json()`` now supports `DataFrame`s that contain categorical and sparse data (:issue:`10778`)
 - ``interpolate()`` now supports ``method='akima'`` (:issue:`7588`).
 - ``Index.take`` now handles ``allow_fill`` and ``fill_value`` consistently (:issue:`12631`)
 - Added ``weekday_name`` as a component to ``DatetimeIndex`` and ``.dt`` accessor. (:issue:`11128`)
@@ -391,6 +392,9 @@ Deprecations
 
 
 
+- Potential segfault in ``DataFrame.to_json`` when serialising ``datetime.time`` (:issue:`11473`).
+- Potential segfault in ``DataFrame.to_json`` when attempting to serialise 0d array (:issue:`11299`).
+- Segfault in ``to_json`` when attempting to serialise ``DataFrame`` or ``Series`` with non-ndarray values (:issue:`10778`).
 
 
 
