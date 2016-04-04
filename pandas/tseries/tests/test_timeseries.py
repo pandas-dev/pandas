@@ -24,8 +24,7 @@ import pandas.util.testing as tm
 from pandas import (
     Index, Series, DataFrame, isnull, date_range, Timestamp, Period,
     DatetimeIndex, Int64Index, to_datetime, bdate_range, Float64Index,
-    NaT, timedelta_range, Timedelta, _np_version_under1p8, concat,
-    PeriodIndex)
+    NaT, timedelta_range, Timedelta, _np_version_under1p8, concat)
 from pandas.compat import range, long, StringIO, lrange, lmap, zip, product
 from pandas.compat.numpy_compat import np_datetime64_compat
 from pandas.core.common import PerformanceWarning
