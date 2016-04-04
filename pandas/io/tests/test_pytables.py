@@ -3001,8 +3001,8 @@ class TestHDFStore(Base, tm.TestCase):
         # GH 2931
 
         # make sparse dataframe
-        df = DataFrame(np.random.binomial(
-            n=1, p=.01, size=(1e3, 10))).to_sparse(fill_value=0)
+        arr = np.random.binomial(n=1, p=.01, size=(1000, 10))
+        df = DataFrame(arr).to_sparse(fill_value=0)
 
         # case 1: store uncompressed
         self._check_double_roundtrip(df, tm.assert_frame_equal,
@@ -3015,7 +3015,7 @@ class TestHDFStore(Base, tm.TestCase):
                                      check_frame_type=True)
 
         # set one series to be completely sparse
-        df[0] = np.zeros(1e3)
+        df[0] = np.zeros(1000)
 
         # case 3: store df with completely sparse series uncompressed
         self._check_double_roundtrip(df, tm.assert_frame_equal,
