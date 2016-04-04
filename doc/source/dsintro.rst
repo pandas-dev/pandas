@@ -725,9 +725,9 @@ option:
 
 .. ipython:: python
 
-   datafile={'filename':['children.jpg','flower.jpg'],
-   	     'path':["media/prabhjot/PRABHJOT/WALLPAPERS/children.jpg",
-   	     	     "media/prabhjot/PRABHJOT/WALLPAPERS/flower.jpg"]}
+   datafile={'filename':['filename_01','filename_02'],
+   	     'path':["media/user_name/storage/folder_01/filename_01",
+   	     	     "media/user_name/storage/folder_02/filename_02"]}
    
    pd.set_option('display.max_colwidth',30)
    pd.DataFrame(data=datafile)
