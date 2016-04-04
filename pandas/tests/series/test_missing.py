@@ -452,3 +452,18 @@ class TestSeriesMissingData(TestData, tm.TestCase):
         ts = self.ts.copy()
         ts.dropna(inplace=True)
         self.assertEqual(ts.name, name)
+
+    def test_fill_value_when_combine_const(self):
+        # GH12723
+        s = Series([0, 1, np.nan, 3, 4, 5])
+
+        exp = s.fillna(0).add(2)
+        res = s.add(2, fill_value=0)
+        assert_series_equal(res, exp)
+
+
+if __name__ == '__main__':
+    import nose
+    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
+                   # '--with-coverage', '--cover-package=pandas.core']
+                   exit=False)

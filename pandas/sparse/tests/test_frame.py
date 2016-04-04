@@ -60,6 +60,15 @@ class TestSparseDataFrame(tm.TestCase, SharedWithSparse):
 
         self.empty = SparseDataFrame()
 
+    def test_fill_value_when_combine_const(self):
+        # GH12723
+        dat = np.array([0, 1, np.nan, 3, 4, 5], dtype='float')
+        df = SparseDataFrame({'foo': dat}, index=range(6))
+
+        exp = df.fillna(0).add(2)
+        res = df.add(2, fill_value=0)
+        tm.assert_sp_frame_equal(res, exp)
+
     def test_as_matrix(self):
         empty = self.empty.as_matrix()
         self.assertEqual(empty.shape, (0, 0))
