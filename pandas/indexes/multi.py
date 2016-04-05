@@ -18,6 +18,7 @@ from pandas.util.decorators import (Appender, cache_readonly,
                                     deprecate, deprecate_kwarg)
 import pandas.core.common as com
 import pandas.core.missing as missing
+import pandas.core.algorithms as algos
 from pandas.core.common import (isnull, array_equivalent,
                                 is_object_dtype,
                                 _values_from_object,
@@ -540,12 +541,12 @@ class MultiIndex(Index):
             box = hasattr(lev, '_box_values')
             # Try to minimize boxing.
             if box and len(lev) > len(lab):
-                taken = lev._box_values(com.take_1d(lev._values, lab))
+                taken = lev._box_values(algos.take_1d(lev._values, lab))
             elif box:
-                taken = com.take_1d(lev._box_values(lev._values), lab,
-                                    fill_value=_get_na_value(lev.dtype.type))
+                taken = algos.take_1d(lev._box_values(lev._values), lab,
+                                      fill_value=_get_na_value(lev.dtype.type))
             else:
-                taken = com.take_1d(np.asarray(lev._values), lab)
+                taken = algos.take_1d(np.asarray(lev._values), lab)
             values.append(taken)
 
         self._tuples = lib.fast_zip(values)
@@ -661,8 +662,8 @@ class MultiIndex(Index):
         num = self._get_level_number(level)
         unique = self.levels[num]  # .values
         labels = self.labels[num]
-        filled = com.take_1d(unique.values, labels,
-                             fill_value=unique._na_value)
+        filled = algos.take_1d(unique.values, labels,
+                               fill_value=unique._na_value)
         _simple_new = unique._simple_new
         values = _simple_new(filled, self.names[num],
                              freq=getattr(unique, 'freq', None),
@@ -693,7 +694,7 @@ class MultiIndex(Index):
                 # weird all NA case
                 formatted = [com.pprint_thing(na if isnull(x) else x,
                                               escape_chars=('\t', '\r', '\n'))
-                             for x in com.take_1d(lev._values, lab)]
+                             for x in algos.take_1d(lev._values, lab)]
             stringified_levels.append(formatted)
 
         result_levels = []
@@ -1957,10 +1958,10 @@ class MultiIndex(Index):
             return False
 
         for i in range(self.nlevels):
-            svalues = com.take_nd(np.asarray(self.levels[i]._values),
-                                  self.labels[i], allow_fill=False)
-            ovalues = com.take_nd(np.asarray(other.levels[i]._values),
-                                  other.labels[i], allow_fill=False)
+            svalues = algos.take_nd(np.asarray(self.levels[i]._values),
+                                    self.labels[i], allow_fill=False)
+            ovalues = algos.take_nd(np.asarray(other.levels[i]._values),
+                                    other.labels[i], allow_fill=False)
             if not array_equivalent(svalues, ovalues):
                 return False
 

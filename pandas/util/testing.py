@@ -25,7 +25,8 @@ import pandas as pd
 from pandas.core.common import (is_sequence, array_equivalent,
                                 is_list_like, is_datetimelike_v_numeric,
                                 is_datetimelike_v_object, is_number,
-                                pprint_thing, take_1d, needs_i8_conversion)
+                                pprint_thing, needs_i8_conversion)
+from pandas.core.algorithms import take_1d
 
 import pandas.compat as compat
 import pandas.lib as lib

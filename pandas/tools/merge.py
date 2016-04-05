@@ -17,9 +17,10 @@ from pandas.core.internals import (items_overlap_with_suffix,
 from pandas.util.decorators import Appender, Substitution
 from pandas.core.common import ABCSeries, isnull
 
+import pandas.core.algorithms as algos
 import pandas.core.common as com
 
-import pandas.algos as algos
+import pandas.algos as _algos
 import pandas.hashtable as _hash
 
 
@@ -291,8 +292,8 @@ class _MergeOperation(object):
 
                         right_na_indexer = right_indexer.take(na_indexer)
                         result.iloc[na_indexer, key_indexer] = (
-                            com.take_1d(self.right_join_keys[i],
-                                        right_na_indexer))
+                            algos.take_1d(self.right_join_keys[i],
+                                          right_na_indexer))
                     elif name in self.right:
                         if len(self.right) == 0:
                             continue
@@ -303,8 +304,8 @@ class _MergeOperation(object):
 
                         left_na_indexer = left_indexer.take(na_indexer)
                         result.iloc[na_indexer, key_indexer] = (
-                            com.take_1d(self.left_join_keys[i],
-                                        left_na_indexer))
+                            algos.take_1d(self.left_join_keys[i],
+                                          left_na_indexer))
             elif left_indexer is not None \
                     and isinstance(self.left_join_keys[i], np.ndarray):
 
@@ -312,11 +313,11 @@ class _MergeOperation(object):
                     name = 'key_%d' % i
 
                 # a faster way?
-                key_col = com.take_1d(self.left_join_keys[i], left_indexer)
+                key_col = algos.take_1d(self.left_join_keys[i], left_indexer)
                 na_indexer = (left_indexer == -1).nonzero()[0]
                 right_na_indexer = right_indexer.take(na_indexer)
-                key_col.put(na_indexer, com.take_1d(self.right_join_keys[i],
-                                                    right_na_indexer))
+                key_col.put(na_indexer, algos.take_1d(self.right_join_keys[i],
+                                                      right_na_indexer))
                 result.insert(i, name, key_col)
 
     def _get_join_info(self):
@@ -576,8 +577,8 @@ class _OrderedMerge(_MergeOperation):
                                                      rdata.items, rsuf)
 
         if self.fill_method == 'ffill':
-            left_join_indexer = algos.ffill_indexer(left_indexer)
-            right_join_indexer = algos.ffill_indexer(right_indexer)
+            left_join_indexer = _algos.ffill_indexer(left_indexer)
+            right_join_indexer = _algos.ffill_indexer(right_indexer)
         else:
             left_join_indexer = left_indexer
             right_join_indexer = right_indexer
@@ -632,16 +633,16 @@ def _get_multiindex_indexer(join_keys, index, sort):
     # factorize keys to a dense i8 space
     lkey, rkey, count = fkeys(lkey, rkey)
 
-    return algos.left_outer_join(lkey, rkey, count, sort=sort)
+    return _algos.left_outer_join(lkey, rkey, count, sort=sort)
 
 
 def _get_single_indexer(join_key, index, sort=False):
     left_key, right_key, count = _factorize_keys(join_key, index, sort=sort)
 
-    left_indexer, right_indexer = \
-        algos.left_outer_join(com._ensure_int64(left_key),
-                              com._ensure_int64(right_key),
-                              count, sort=sort)
+    left_indexer, right_indexer = _algos.left_outer_join(
+        com._ensure_int64(left_key),
+        com._ensure_int64(right_key),
+        count, sort=sort)
 
     return left_indexer, right_indexer
 
@@ -673,14 +674,14 @@ def _left_join_on_index(left_ax, right_ax, join_keys, sort=False):
 
 
 def _right_outer_join(x, y, max_groups):
-    right_indexer, left_indexer = algos.left_outer_join(y, x, max_groups)
+    right_indexer, left_indexer = _algos.left_outer_join(y, x, max_groups)
     return left_indexer, right_indexer
 
 _join_functions = {
-    'inner': algos.inner_join,
-    'left': algos.left_outer_join,
+    'inner': _algos.inner_join,
+    'left': _algos.left_outer_join,
     'right': _right_outer_join,
-    'outer': algos.full_outer_join,
+    'outer': _algos.full_outer_join,
 }
 
 

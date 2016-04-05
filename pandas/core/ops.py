@@ -19,6 +19,7 @@ from pandas.lib import isscalar
 from pandas.tslib import iNaT
 from pandas.compat import bind_method
 import pandas.core.missing as missing
+import pandas.core.algorithms as algos
 from pandas.core.common import (is_list_like, notnull, isnull,
                                 _values_from_object, _maybe_match_name,
                                 needs_i8_conversion, is_datetimelike_v_numeric,
@@ -632,10 +633,10 @@ def _arith_method_SERIES(op, name, str_rep, fill_zeros=None, default_axis=None,
                                                     return_indexers=True)
 
                 if lidx is not None:
-                    lvalues = com.take_1d(lvalues, lidx)
+                    lvalues = algos.take_1d(lvalues, lidx)
 
                 if ridx is not None:
-                    rvalues = com.take_1d(rvalues, ridx)
+                    rvalues = algos.take_1d(rvalues, ridx)
 
             arr = na_op(lvalues, rvalues)
 

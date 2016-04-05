@@ -11,7 +11,6 @@ from pandas.lib import Timestamp, Timedelta, is_datetime_array
 
 from pandas.compat import range, u
 from pandas import compat
-from pandas.core import algorithms
 from pandas.core.base import (PandasObject, FrozenList, FrozenNDArray,
                               IndexOpsMixin)
 import pandas.core.base as base
@@ -19,6 +18,7 @@ from pandas.util.decorators import (Appender, Substitution, cache_readonly,
                                     deprecate, deprecate_kwarg)
 import pandas.core.common as com
 import pandas.core.missing as missing
+import pandas.core.algorithms as algos
 from pandas.core.common import (isnull, array_equivalent,
                                 is_object_dtype, is_datetimetz, ABCSeries,
                                 ABCPeriodIndex, ABCMultiIndex,
@@ -1710,8 +1710,8 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
             indexer, = (indexer == -1).nonzero()
 
             if len(indexer) > 0:
-                other_diff = com.take_nd(other._values, indexer,
-                                         allow_fill=False)
+                other_diff = algos.take_nd(other._values, indexer,
+                                           allow_fill=False)
                 result = com._concat_compat((self.values, other_diff))
 
                 try:
@@ -2227,7 +2227,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         """
         if level is not None:
             self._validate_index_level(level)
-        return algorithms.isin(np.array(self), values)
+        return algos.isin(np.array(self), values)
 
     def _can_reindex(self, indexer):
         """
@@ -2611,8 +2611,8 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
             rev_indexer = lib.get_reverse_indexer(left_lev_indexer,
                                                   len(old_level))
 
-            new_lev_labels = com.take_nd(rev_indexer, left.labels[level],
-                                         allow_fill=False)
+            new_lev_labels = algos.take_nd(rev_indexer, left.labels[level],
+                                           allow_fill=False)
 
             new_labels = list(left.labels)
             new_labels[level] = new_lev_labels
@@ -2654,9 +2654,9 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
                                     names=left.names, verify_integrity=False)
 
         if right_lev_indexer is not None:
-            right_indexer = com.take_nd(right_lev_indexer,
-                                        join_index.labels[level],
-                                        allow_fill=False)
+            right_indexer = algos.take_nd(right_lev_indexer,
+                                          join_index.labels[level],
+                                          allow_fill=False)
         else:
             right_indexer = join_index.labels[level]
 

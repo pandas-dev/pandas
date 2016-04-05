@@ -20,6 +20,7 @@ from pandas.core.common import (_possibly_downcast_to_dtype, isnull, _NS_DTYPE,
                                 _maybe_convert_string_to_object,
                                 is_categorical, is_datetimelike_v_numeric,
                                 is_numeric_v_string_like, is_internal_type)
+import pandas.core.algorithms as algos
 from pandas.types.api import DatetimeTZDtype
 
 from pandas.core.index import Index, MultiIndex, _ensure_index
@@ -286,8 +287,8 @@ class Block(PandasObject):
         if fill_value is None:
             fill_value = self.fill_value
 
-        new_values = com.take_nd(self.values, indexer, axis,
-                                 fill_value=fill_value, mask_info=mask_info)
+        new_values = algos.take_nd(self.values, indexer, axis,
+                                   fill_value=fill_value, mask_info=mask_info)
         return self.make_block(new_values, fastpath=True)
 
     def get(self, item):
@@ -974,7 +975,7 @@ class Block(PandasObject):
 
         """
 
-        # com.take_nd dispatches for DatetimeTZBlock, CategoricalBlock
+        # algos.take_nd dispatches for DatetimeTZBlock, CategoricalBlock
         # so need to preserve types
         # sparse is treated like an ndarray, but needs .get_values() shaping
 
@@ -984,12 +985,12 @@ class Block(PandasObject):
 
         if fill_tuple is None:
             fill_value = self.fill_value
-            new_values = com.take_nd(values, indexer, axis=axis,
-                                     allow_fill=False)
+            new_values = algos.take_nd(values, indexer, axis=axis,
+                                       allow_fill=False)
         else:
             fill_value = fill_tuple[0]
-            new_values = com.take_nd(values, indexer, axis=axis,
-                                     allow_fill=True, fill_value=fill_value)
+            new_values = algos.take_nd(values, indexer, axis=axis,
+                                       allow_fill=True, fill_value=fill_value)
 
         if new_mgr_locs is None:
             if axis == 0:
@@ -1008,7 +1009,7 @@ class Block(PandasObject):
 
     def diff(self, n, axis=1, mgr=None):
         """ return block for the diff of the values """
-        new_values = com.diff(self.values, n, axis=axis)
+        new_values = algos.diff(self.values, n, axis=axis)
         return [self.make_block(values=new_values, fastpath=True)]
 
     def shift(self, periods, axis=0, mgr=None):
@@ -2711,11 +2712,11 @@ class BlockManager(PandasObject):
 
     def get_dtypes(self):
         dtypes = np.array([blk.dtype for blk in self.blocks])
-        return com.take_1d(dtypes, self._blknos, allow_fill=False)
+        return algos.take_1d(dtypes, self._blknos, allow_fill=False)
 
     def get_ftypes(self):
         ftypes = np.array([blk.ftype for blk in self.blocks])
-        return com.take_1d(ftypes, self._blknos, allow_fill=False)
+        return algos.take_1d(ftypes, self._blknos, allow_fill=False)
 
     def __getstate__(self):
         block_values = [b.values for b in self.blocks]
@@ -3070,8 +3071,8 @@ class BlockManager(PandasObject):
         new_blocks = []
         for b in blocks:
             b = b.copy(deep=copy)
-            b.mgr_locs = com.take_1d(inv_indexer, b.mgr_locs.as_array, axis=0,
-                                     allow_fill=False)
+            b.mgr_locs = algos.take_1d(inv_indexer, b.mgr_locs.as_array,
+                                       axis=0, allow_fill=False)
             new_blocks.append(b)
 
         new_axes = list(self.axes)
@@ -3451,8 +3452,8 @@ class BlockManager(PandasObject):
             new_blknos.fill(-1)
             new_blknos[~is_deleted] = np.arange(self.nblocks -
                                                 len(removed_blknos))
-            self._blknos = com.take_1d(new_blknos, self._blknos, axis=0,
-                                       allow_fill=False)
+            self._blknos = algos.take_1d(new_blknos, self._blknos, axis=0,
+                                         allow_fill=False)
             self.blocks = tuple(blk for i, blk in enumerate(self.blocks)
                                 if i not in set(removed_blknos))
 
@@ -3632,10 +3633,10 @@ class BlockManager(PandasObject):
             blknos = self._blknos[slobj]
             blklocs = self._blklocs[slobj]
         else:
-            blknos = com.take_1d(self._blknos, slobj, fill_value=-1,
-                                 allow_fill=allow_fill)
-            blklocs = com.take_1d(self._blklocs, slobj, fill_value=-1,
-                                  allow_fill=allow_fill)
+            blknos = algos.take_1d(self._blknos, slobj, fill_value=-1,
+                                   allow_fill=allow_fill)
+            blklocs = algos.take_1d(self._blklocs, slobj, fill_value=-1,
+                                    allow_fill=allow_fill)
 
         # When filling blknos, make sure blknos is updated before appending to
         # blocks list, that way new blkno is exactly len(blocks).
@@ -3847,7 +3848,7 @@ class SingleBlockManager(BlockManager):
             else:
                 fill_value = np.nan
 
-        new_values = com.take_1d(values, indexer, fill_value=fill_value)
+        new_values = algos.take_1d(values, indexer, fill_value=fill_value)
 
         # fill if needed
         if method is not None or limit is not None:
@@ -4676,8 +4677,8 @@ def get_mgr_concatenation_plan(mgr, indexers):
 
     if 0 in indexers:
         ax0_indexer = indexers.pop(0)
-        blknos = com.take_1d(mgr._blknos, ax0_indexer, fill_value=-1)
-        blklocs = com.take_1d(mgr._blklocs, ax0_indexer, fill_value=-1)
+        blknos = algos.take_1d(mgr._blknos, ax0_indexer, fill_value=-1)
+        blklocs = algos.take_1d(mgr._blklocs, ax0_indexer, fill_value=-1)
     else:
 
         if mgr._is_single_block:
@@ -4932,8 +4933,8 @@ class JoinUnit(object):
 
         else:
             for ax, indexer in self.indexers.items():
-                values = com.take_nd(values, indexer, axis=ax,
-                                     fill_value=fill_value)
+                values = algos.take_nd(values, indexer, axis=ax,
+                                       fill_value=fill_value)
 
         return values
 

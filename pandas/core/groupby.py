@@ -1351,7 +1351,7 @@ class GroupBy(_GroupBy):
 
         output = {}
         for name, obj in self._iterate_slices():
-            output[name] = com.take_nd(obj.values, indexer)
+            output[name] = algos.take_nd(obj.values, indexer)
 
         return self._wrap_transformed_output(output)
 
@@ -1873,7 +1873,7 @@ class BaseGrouper(object):
         dummy = obj._get_values(slice(None, 0)).to_dense()
         indexer = _get_group_index_sorter(group_index, ngroups)
         obj = obj.take(indexer, convert=False)
-        group_index = com.take_nd(group_index, indexer, allow_fill=False)
+        group_index = algos.take_nd(group_index, indexer, allow_fill=False)
         grouper = lib.SeriesGrouper(obj, func, group_index, ngroups,
                                     dummy)
         result, counts = grouper.get_result()
@@ -3850,7 +3850,7 @@ class DataSplitter(object):
     @cache_readonly
     def slabels(self):
         # Sorted labels
-        return com.take_nd(self.labels, self.sort_idx, allow_fill=False)
+        return algos.take_nd(self.labels, self.sort_idx, allow_fill=False)
 
     @cache_readonly
     def sort_idx(self):
@@ -4278,11 +4278,11 @@ def _reorder_by_uniques(uniques, labels):
     mask = labels < 0
 
     # move labels to right locations (ie, unsort ascending labels)
-    labels = com.take_nd(reverse_indexer, labels, allow_fill=False)
+    labels = algos.take_nd(reverse_indexer, labels, allow_fill=False)
     np.putmask(labels, mask, -1)
 
     # sort observed ids
-    uniques = com.take_nd(uniques, sorter, allow_fill=False)
+    uniques = algos.take_nd(uniques, sorter, allow_fill=False)
 
     return uniques, labels
 

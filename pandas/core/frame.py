@@ -39,6 +39,7 @@ from pandas.core.internals import (BlockManager,
 from pandas.core.series import Series
 from pandas.core.categorical import Categorical
 import pandas.computation.expressions as expressions
+import pandas.core.algorithms as algos
 from pandas.computation.eval import eval as _eval
 from pandas.compat import (range, map, zip, lrange, lmap, lzip, StringIO, u,
                            OrderedDict, raise_with_traceback)
@@ -2709,8 +2710,8 @@ class DataFrame(NDFrame):
 
         if row_indexer is not None and col_indexer is not None:
             indexer = row_indexer, col_indexer
-            new_values = com.take_2d_multi(self.values, indexer,
-                                           fill_value=fill_value)
+            new_values = algos.take_2d_multi(self.values, indexer,
+                                             fill_value=fill_value)
             return self._constructor(new_values, index=new_index,
                                      columns=new_columns)
         else:
@@ -3084,11 +3085,11 @@ class DataFrame(NDFrame):
         duplicated : Series
         """
         from pandas.core.groupby import get_group_index
-        from pandas.core.algorithms import factorize
         from pandas.hashtable import duplicated_int64, _SIZE_HINT_LIMIT
 
         def f(vals):
-            labels, shape = factorize(vals, size_hint=min(len(self),
+            labels, shape = algos.factorize(vals,
+                                            size_hint=min(len(self),
                                                           _SIZE_HINT_LIMIT))
             return labels.astype('i8', copy=False), len(shape)
 
@@ -5436,7 +5437,7 @@ def _list_of_series_to_arrays(data, columns, coerce_float=False, dtype=None):
             indexer = indexer_cache[id(index)] = index.get_indexer(columns)
 
         values = _values_from_object(s)
-        aligned_values.append(com.take_1d(values, indexer))
+        aligned_values.append(algos.take_1d(values, indexer))
 
     values = np.vstack(aligned_values)
 

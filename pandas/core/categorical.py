@@ -7,7 +7,7 @@ import types
 from pandas import compat, lib
 from pandas.compat import u
 
-from pandas.core.algorithms import factorize
+from pandas.core.algorithms import factorize, take_1d
 from pandas.core.base import (PandasObject, PandasDelegate,
                               NoNewAttributesMixin, _shared_docs)
 import pandas.core.common as com
@@ -20,7 +20,7 @@ from pandas.core.common import (
     is_dtype_equal, is_categorical_dtype, is_integer_dtype,
     _possibly_infer_to_datetimelike, get_dtype_kinds, is_list_like,
     is_sequence, is_null_slice, is_bool, _ensure_object, _ensure_int64,
-    _coerce_indexer_dtype, take_1d)
+    _coerce_indexer_dtype)
 from pandas.types.api import CategoricalDtype
 from pandas.util.terminal import get_terminal_size
 from pandas.core.config import get_option

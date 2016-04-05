@@ -10,12 +10,13 @@ from pandas._period import IncompatibleFrequency    # flake8: noqa
 from pandas.tseries.period import PeriodIndex
 from pandas.tseries.tdi import TimedeltaIndex
 from pandas import tslib
+from pandas.core.algorithms import take_1d
 from pandas.core.common import (_NS_DTYPE, _TD_DTYPE, is_period_arraylike,
                                 is_datetime_arraylike, is_integer_dtype,
                                 is_list_like,
                                 is_datetime64_dtype, is_datetime64tz_dtype,
                                 is_timedelta64_dtype, is_categorical_dtype,
-                                get_dtype_kinds, take_1d)
+                                get_dtype_kinds)
 
 
 def is_datetimelike(data):
