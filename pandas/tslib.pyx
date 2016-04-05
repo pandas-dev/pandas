@@ -4411,7 +4411,7 @@ def get_date_name_field(ndarray[int64_t] dtindex, object field):
 
     _dayname = np.array(
         ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
-         dtype=np.str )
+         dtype=np.object_ ) # was np.str
 
     count = len(dtindex)
     out = np.empty(count, dtype=object)

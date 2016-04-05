@@ -457,6 +457,7 @@ These can be accessed like ``Series.dt.<property>``.
    Series.dt.weekofyear
    Series.dt.dayofweek
    Series.dt.weekday
+   Series.dt.weekday_name
    Series.dt.dayofyear
    Series.dt.quarter
    Series.dt.is_month_start
@@ -469,7 +470,6 @@ These can be accessed like ``Series.dt.<property>``.
    Series.dt.days_in_month
    Series.dt.tz
    Series.dt.freq
-   Series.dt.weekday_name
 
 **Datetime Methods**
 
@@ -1477,6 +1477,7 @@ Time/Date Components
    DatetimeIndex.week
    DatetimeIndex.dayofweek
    DatetimeIndex.weekday
+   DatetimeIndex.weekday_name
    DatetimeIndex.quarter
    DatetimeIndex.tz
    DatetimeIndex.freq
@@ -1488,7 +1489,6 @@ Time/Date Components
    DatetimeIndex.is_year_start
    DatetimeIndex.is_year_end
    DatetimeIndex.inferred_freq
-   DatetimeIndex.weekday_name
 
 Selecting
 ~~~~~~~~~

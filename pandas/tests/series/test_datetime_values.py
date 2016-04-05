@@ -25,7 +25,7 @@ class TestSeriesDatetimeValues(TestData, tm.TestCase):
 
     def test_dt_namespace_accessor(self):
 
-        # GH 7207
+        # GH 7207, 11128
         # test .dt namespace accessor
 
         ok_for_base = ['year', 'month', 'day', 'hour', 'minute', 'second',

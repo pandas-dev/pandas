@@ -3550,6 +3550,14 @@ class TestDatetime64(tm.TestCase):
         self.assertEqual(dti.weekday_name[9], u'Saturday')
         self.assertEqual(dti.weekday_name[10], u'Sunday')
 
+        self.assertEqual(Timestamp('2016-04-04').weekday_name, u'Monday')
+        self.assertEqual(Timestamp('2016-04-05').weekday_name, u'Tuesday')
+        self.assertEqual(Timestamp('2016-04-06').weekday_name, u'Wednesday')
+        self.assertEqual(Timestamp('2016-04-07').weekday_name, u'Thursday')
+        self.assertEqual(Timestamp('2016-04-08').weekday_name, u'Friday')
+        self.assertEqual(Timestamp('2016-04-09').weekday_name, u'Saturday')
+        self.assertEqual(Timestamp('2016-04-10').weekday_name, u'Sunday')
+
         self.assertEqual(len(dti.year), 365)
         self.assertEqual(len(dti.month), 365)
         self.assertEqual(len(dti.day), 365)
