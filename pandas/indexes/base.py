@@ -18,7 +18,7 @@ import pandas.core.base as base
 from pandas.util.decorators import (Appender, Substitution, cache_readonly,
                                     deprecate, deprecate_kwarg)
 import pandas.core.common as com
-from pandas.core.missing import _clean_reindex_fill_method
+import pandas.core.missing as missing
 from pandas.core.common import (isnull, array_equivalent,
                                 is_object_dtype, is_datetimetz, ABCSeries,
                                 ABCPeriodIndex, ABCMultiIndex,
@@ -2034,7 +2034,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
             positions matches the corresponding target values. Missing values
             in the target are marked by -1.
         """
-        method = _clean_reindex_fill_method(method)
+        method = missing.clean_reindex_fill_method(method)
         target = _ensure_index(target)
         if tolerance is not None:
             tolerance = self._convert_tolerance(tolerance)

@@ -242,6 +242,15 @@ if PY3:
         import lzma
         return lzma
 
+    def set_function_name(f, name, cls):
+        """ Bind the name/qualname attributes of the function """
+        f.__name__ = name
+        f.__qualname__ = '{klass}.{name}'.format(
+            klass=cls.__name__,
+            name=name)
+        f.__module__ = cls.__module__
+        return f
+
 else:
     string_types = basestring,
     integer_types = (int, long)
@@ -283,6 +292,11 @@ else:
         or raise ImportError if not available """
         from backports import lzma
         return lzma
+
+    def set_function_name(f, name, cls):
+        """ Bind the name attributes of the function """
+        f.__name__ = name
+        return f
 
 string_and_binary_types = string_types + (binary_type,)
 
@@ -369,6 +383,10 @@ class OrderedDefaultdict(OrderedDict):
 
 
 # https://github.com/pydata/pandas/pull/9123
+def is_platform_little_endian():
+    """ am I little endian """
+    return sys.byteorder == 'little'
+
 def is_platform_windows():
     return sys.platform == 'win32' or sys.platform == 'cygwin'
 

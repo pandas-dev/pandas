@@ -103,6 +103,7 @@ API changes
 - ``CParserError`` is now a ``ValueError`` instead of just an ``Exception`` (:issue:`12551`)
 
 - ``pd.show_versions()`` now includes ``pandas_datareader`` version (:issue:`12740`)
+- Provide a proper ``__name__`` and ``__qualname__`` attributes for generic functions (:issue:`12021`)
 
 .. _whatsnew_0181.apply_resample:
 
@@ -170,6 +171,7 @@ Performance Improvements
 
 
 
+- Bug in ``__name__`` of ``.cum*`` functions (:issue:`12021`)
 
 
 

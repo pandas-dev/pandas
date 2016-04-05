@@ -15,7 +15,7 @@ from pandas.core.index import MultiIndex
 import pandas.core.common as com
 import pandas.lib as lib
 
-from pandas.compat import range, zip
+from pandas.compat import range, zip, PY3
 from pandas import compat
 from pandas.util.testing import (assertRaisesRegexp,
                                  assert_series_equal,
@@ -548,6 +548,18 @@ class Generic(object):
             obj.sum(epic=starwars)  # cum_function
         with assertRaisesRegexp(TypeError, 'unexpected keyword'):
             obj.any(epic=starwars)  # logical_function
+
+    def test_api_compat(self):
+
+        # GH 12021
+        # compat for __name__, __qualname__
+
+        obj = self._construct(5)
+        for func in ['sum', 'cumsum', 'any', 'var']:
+            f = getattr(obj, func)
+            self.assertEqual(f.__name__, func)
+            if PY3:
+                self.assertTrue(f.__qualname__.endswith(func))
 
 
 class TestSeries(tm.TestCase, Generic):

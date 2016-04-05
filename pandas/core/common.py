@@ -5,7 +5,6 @@ Misc tools for implementing data structures
 import re
 import collections
 import numbers
-import types
 from datetime import datetime, timedelta
 from functools import partial
 
@@ -128,31 +127,6 @@ class _ABCGeneric(type):
 
 
 ABCGeneric = _ABCGeneric("ABCGeneric", tuple(), {})
-
-
-def bind_method(cls, name, func):
-    """Bind a method to class, python 2 and python 3 compatible.
-
-    Parameters
-    ----------
-
-    cls : type
-        class to receive bound method
-    name : basestring
-        name of method on class instance
-    func : function
-        function to be bound as method
-
-
-    Returns
-    -------
-    None
-    """
-    # only python 2 has bound/unbound method issue
-    if not compat.PY3:
-        setattr(cls, name, types.MethodType(func, None, cls))
-    else:
-        setattr(cls, name, func)
 
 
 def isnull(obj):
@@ -1464,60 +1438,6 @@ def _lcd_dtypes(a_dtype, b_dtype):
         elif is_integer(b_dtype):
             return np.float64
     return np.object
-
-
-def _fill_zeros(result, x, y, name, fill):
-    """
-    if this is a reversed op, then flip x,y
-
-    if we have an integer value (or array in y)
-    and we have 0's, fill them with the fill,
-    return the result
-
-    mask the nan's from x
-    """
-    if fill is None or is_float_dtype(result):
-        return result
-
-    if name.startswith(('r', '__r')):
-        x, y = y, x
-
-    is_typed_variable = (hasattr(y, 'dtype') or hasattr(y, 'type'))
-    is_scalar = lib.isscalar(y)
-
-    if not is_typed_variable and not is_scalar:
-        return result
-
-    if is_scalar:
-        y = np.array(y)
-
-    if is_integer_dtype(y):
-
-        if (y == 0).any():
-
-            # GH 7325, mask and nans must be broadcastable (also: PR 9308)
-            # Raveling and then reshaping makes np.putmask faster
-            mask = ((y == 0) & ~np.isnan(result)).ravel()
-
-            shape = result.shape
-            result = result.astype('float64', copy=False).ravel()
-
-            np.putmask(result, mask, fill)
-
-            # if we have a fill of inf, then sign it correctly
-            # (GH 6178 and PR 9308)
-            if np.isinf(fill):
-                signs = np.sign(y if name.startswith(('r', '__r')) else x)
-                negative_inf_mask = (signs.ravel() < 0) & mask
-                np.putmask(result, negative_inf_mask, -fill)
-
-            if "floordiv" in name:  # (PR 9308)
-                nan_mask = ((y == 0) & (x == 0)).ravel()
-                np.putmask(result, nan_mask, np.nan)
-
-            result = result.reshape(shape)
-
-    return result
 
 
 def _consensus_name_attr(objs):

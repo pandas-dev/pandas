@@ -15,12 +15,11 @@ import numpy.ma as ma
 import numpy.ma.mrecords as mrecords
 
 from pandas.compat import (lmap, long, zip, range, lrange, lzip,
-                           OrderedDict)
+                           OrderedDict, is_platform_little_endian)
 from pandas import compat
 from pandas import (DataFrame, Index, Series, notnull, isnull,
                     MultiIndex, Timedelta, Timestamp,
                     date_range)
-from pandas.util.misc import is_little_endian
 from pandas.core.common import PandasError
 import pandas as pd
 import pandas.core.common as com
@@ -1835,7 +1834,7 @@ class TestDataFrameConstructors(tm.TestCase, TestData):
 
         # this may fail on certain platforms because of a numpy issue
         # related GH6140
-        if not is_little_endian():
+        if not is_platform_little_endian():
             raise nose.SkipTest("known failure of test on non-little endian")
 
         # construction with a null in a recarray

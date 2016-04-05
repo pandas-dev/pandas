@@ -9,8 +9,7 @@ from distutils.version import LooseVersion
 
 import pandas as pd
 from pandas import Index
-from pandas.compat import u
-from pandas.util.misc import is_little_endian
+from pandas.compat import u, is_platform_little_endian
 import pandas
 import pandas.util.testing as tm
 from pandas.tseries.offsets import Day, MonthEnd
@@ -97,7 +96,7 @@ class TestPickle():
             tm.assert_frame_equal(result, expected)
 
     def read_pickles(self, version):
-        if not is_little_endian():
+        if not is_platform_little_endian():
             raise nose.SkipTest("known failure on non-little endian")
 
         pth = tm.get_data_path('legacy_pickle/{0}'.format(str(version)))
