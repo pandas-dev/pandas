@@ -597,7 +597,7 @@ class Block(PandasObject):
         try:
             values, _, to_replace, _ = self._try_coerce_args(self.values,
                                                              to_replace)
-            mask = com.mask_missing(values, to_replace)
+            mask = missing.mask_missing(values, to_replace)
             if filter is not None:
                 filtered_out = ~self.mgr_locs.isin(filter)
                 mask[filtered_out.nonzero()[0]] = False

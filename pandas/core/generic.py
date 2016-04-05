@@ -54,7 +54,7 @@ def _single_replace(self, to_replace, method, inplace, limit):
     result = self if inplace else self.copy()
     fill_f = missing.get_fill_func(method)
 
-    mask = com.mask_missing(result.values, to_replace)
+    mask = missing.mask_missing(result.values, to_replace)
     values = fill_f(result.values, limit=limit, mask=mask)
 
     if values.dtype == orig_dtype and inplace:
