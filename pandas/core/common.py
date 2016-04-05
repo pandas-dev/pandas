@@ -8,15 +8,13 @@ import numbers
 from datetime import datetime, timedelta
 from functools import partial
 
-from numpy.lib.format import read_array, write_array
 import numpy as np
-
 import pandas as pd
 import pandas.algos as algos
 import pandas.lib as lib
 import pandas.tslib as tslib
 from pandas import compat
-from pandas.compat import (BytesIO, range, long, u, zip, map, string_types,
+from pandas.compat import (range, long, u, zip, map, string_types,
                            iteritems)
 from pandas.types import api as gt
 from pandas.types.api import *  # noqa
@@ -376,27 +374,6 @@ def flatten(l):
                 yield s
         else:
             yield el
-
-
-def _pickle_array(arr):
-    arr = arr.view(np.ndarray)
-
-    buf = BytesIO()
-    write_array(buf, arr)
-
-    return buf.getvalue()
-
-
-def _unpickle_array(bytes):
-    arr = read_array(BytesIO(bytes))
-
-    # All datetimes should be stored as M8[ns].  When unpickling with
-    # numpy1.6, it will read these as M8[us].  So this ensures all
-    # datetime64 types are read as MS[ns]
-    if is_datetime64_dtype(arr):
-        arr = arr.view(_NS_DTYPE)
-
-    return arr
 
 
 def _coerce_indexer_dtype(indexer, categories):

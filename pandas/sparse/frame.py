@@ -10,7 +10,7 @@ from pandas.compat import lmap
 from pandas import compat
 import numpy as np
 
-from pandas.core.common import isnull, _unpickle_array, _try_sort
+from pandas.core.common import isnull, _try_sort
 from pandas.core.index import Index, MultiIndex, _ensure_index
 from pandas.core.series import Series
 from pandas.core.frame import (DataFrame, extract_index, _prep_ndarray,
@@ -217,11 +217,13 @@ class SparseDataFrame(DataFrame):
         series, cols, idx, fv, kind = state
 
         if not isinstance(cols, Index):  # pragma: no cover
+            from pandas.io.pickle import _unpickle_array
             columns = _unpickle_array(cols)
         else:
             columns = cols
 
         if not isinstance(idx, Index):  # pragma: no cover
+            from pandas.io.pickle import _unpickle_array
             index = _unpickle_array(idx)
         else:
             index = idx
