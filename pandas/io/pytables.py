@@ -1475,10 +1475,10 @@ class IndexCol(StringMixin):
 
     def convert(self, values, nan_rep, encoding):
         """ set the values from this selection: take = take ownership """
-        try:
+
+        # values is a recarray
+        if values.dtype.fields is not None:
             values = values[self.cname]
-        except:
-            pass
 
         values = _maybe_convert(values, self.kind, encoding)
 
@@ -2001,10 +2001,10 @@ class DataCol(IndexCol):
         if we can)
         """
 
-        try:
+        # values is a recarray
+        if values.dtype.fields is not None:
             values = values[self.cname]
-        except:
-            pass
+
         self.set_data(values)
 
         # use the meta if needed
@@ -4057,7 +4057,7 @@ class AppendableFrameTable(AppendableTable):
         if len(frames) == 1:
             df = frames[0]
         else:
-            df = concat(frames, axis=1, verify_integrity=False).consolidate()
+            df = concat(frames, axis=1)
 
         # apply the selection filters & axis orderings
         df = self.process_axes(df, columns=columns)
