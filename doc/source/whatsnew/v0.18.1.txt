@@ -408,6 +408,8 @@ New behaviour:
 
    np.cumsum(sp, axis=0)
 
+- ``map`` on an ``Index`` now returns an ``Index``, not an array (:issue:`12766`)
+
 .. _whatsnew_0181.apply_resample:
 
 Using ``.apply`` on groupby resampling

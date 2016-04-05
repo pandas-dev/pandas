@@ -1744,6 +1744,41 @@ Index([u'a', u'bb', u'ccc', u'a', u'bb', u'ccc', u'a', u'bb', u'ccc', u'a',
 
                 self.assertEqual(coerce(idx), expected)
 
+    def test_map(self):
+
+        # Applying a function to the Index
+        df = pd.DataFrame([[0, 1], [2, 3]], columns=['c1', 'c2'], index=['i1', 'i2'])
+        df.index.name = "Numbering"
+        df.index = df.index.map(lambda x: x.upper())
+        self.assertTrue(df.index.equals(Index(['I1', 'I2'])))
+        self.assertEqual(df.index.name, "Numbering")
+
+        testIdx = self.unicodeIndex.map(lambda x: len(x))
+        tm.assert_index_equal(testIdx, Int64Index([10]*100))
+
+        testIdx = self.strIndex.map(lambda x: len(x))
+        tm.assert_index_equal(testIdx, Int64Index([10]*100))
+
+        testIdx = self.dateIndex.map(lambda x: x + timedelta(days=1))
+        tm.assert_index_equal(
+            testIdx, DatetimeIndex([dt + timedelta(days=1) for dt in tm.makeDateIndex(100)]))
+
+        testIdx = self.periodIndex.map(lambda x: x.to_timestamp())
+        tm.assert_index_equal(testIdx, self.dateIndex)
+
+        testIdx = self.intIndex.map(lambda x: str(x))
+        tm.assert_index_equal(testIdx, Index([str(i) for i in range(100)]))
+
+        testIdx = self.floatIndex.map(lambda x: -1 if x < 0 else 1)
+        self.assertEqual(len(testIdx), 100)
+        self.assertTrue(isinstance(testIdx, Int64Index))
+        self.assertTrue(set(testIdx == {-1, 1}))
+
+        testIdx = self.boolIndex.map(lambda x: not x)
+        tm.assert_index_equal(testIdx, Index([False, True]))
+
+        testIdx = self.catIndex.map(lambda x: len(x))
+
 
 class TestMixedIntIndex(Base, tm.TestCase):
     # Mostly the tests from common.py for which the results differ
