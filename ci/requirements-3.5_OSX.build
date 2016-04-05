@@ -1,2 +1,2 @@
-numpy
+numpy=1.10.4
 cython
