@@ -600,6 +600,7 @@ setup(name=DISTNAME,
                     'pandas.tools': ['tests/*.csv'],
                     'pandas.tests': ['data/*.pickle',
                                      'data/*.csv'],
+                    'pandas.formats': ['data/*.csv'],
                     'pandas.tests.indexes': ['data/*.pickle'],
                     'pandas.tseries.tests': ['data/*.pickle',
                                              'data/*.csv']

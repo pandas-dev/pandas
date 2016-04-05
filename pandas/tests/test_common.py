@@ -15,7 +15,7 @@ from pandas.compat import range, lrange, lmap, u
 from pandas.core.common import notnull, isnull, array_equivalent
 import pandas.core.common as com
 import pandas.core.convert as convert
-import pandas.core.format as fmt
+import pandas.formats.format as fmt
 import pandas.util.testing as tm
 import pandas.core.config as cf
 

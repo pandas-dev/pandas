@@ -1431,7 +1431,7 @@ class FloatBlock(FloatOrComplexBlock):
         if slicer is not None:
             values = values[:, slicer]
 
-        from pandas.core.format import FloatArrayFormatter
+        from pandas.formats.format import FloatArrayFormatter
         formatter = FloatArrayFormatter(values, na_rep=na_rep,
                                         float_format=float_format,
                                         decimal=decimal, quoting=quoting,
@@ -1606,7 +1606,7 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
         imask = (~mask).ravel()
 
         # FIXME:
-        # should use the core.format.Timedelta64Formatter here
+        # should use the formats.format.Timedelta64Formatter here
         # to figure what format to pass to the Timedelta
         # e.g. to not show the decimals say
         rvalues.flat[imask] = np.array([Timedelta(val)._repr_base(format='all')
@@ -2128,7 +2128,7 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
         if slicer is not None:
             values = values[..., slicer]
 
-        from pandas.core.format import _get_format_datetime64_from_values
+        from pandas.formats.format import _get_format_datetime64_from_values
         format = _get_format_datetime64_from_values(values, date_format)
 
         result = tslib.format_array_from_datetime(

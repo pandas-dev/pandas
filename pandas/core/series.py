@@ -48,8 +48,8 @@ import pandas.core.algorithms as algos
 
 import pandas.core.common as com
 import pandas.core.datetools as datetools
-import pandas.core.format as fmt
 import pandas.core.nanops as nanops
+import pandas.formats.format as fmt
 from pandas.util.decorators import Appender, deprecate_kwarg, Substitution
 
 import pandas.lib as lib

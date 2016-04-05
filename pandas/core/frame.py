@@ -54,9 +54,9 @@ from pandas.tseries.tdi import TimedeltaIndex
 
 import pandas.core.base as base
 import pandas.core.common as com
-import pandas.core.format as fmt
 import pandas.core.nanops as nanops
 import pandas.core.ops as ops
+import pandas.formats.format as fmt
 import pandas.tools.plotting as gfx
 
 import pandas.lib as lib
@@ -586,9 +586,9 @@ class DataFrame(NDFrame):
 
         See Also
         --------
-        pandas.core.style.Styler
+        pandas.formats.style.Styler
         """
-        from pandas.core.style import Styler
+        from pandas.formats.style import Styler
         return Styler(self)
 
     def iteritems(self):
@@ -1634,7 +1634,7 @@ class DataFrame(NDFrame):
             - If False, never show counts.
 
         """
-        from pandas.core.format import _put_lines
+        from pandas.formats.format import _put_lines
 
         if buf is None:  # pragma: no cover
             buf = sys.stdout

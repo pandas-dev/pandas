@@ -33,7 +33,7 @@ except ImportError:
 
 from pandas import DataFrame, Series, Index, Timestamp, MultiIndex, date_range, NaT
 
-import pandas.core.format as fmt
+import pandas.formats.format as fmt
 import pandas.util.testing as tm
 import pandas.core.common as com
 from pandas.util.terminal import get_terminal_size

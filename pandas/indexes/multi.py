@@ -724,7 +724,7 @@ class MultiIndex(Index):
                                       sentinel=sentinel)
 
         if adjoin:
-            from pandas.core.format import _get_adjustment
+            from pandas.formats.format import _get_adjustment
             adj = _get_adjustment()
             return adj.adjoin(space, *result_levels).split('\n')
         else:
