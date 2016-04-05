@@ -12,7 +12,7 @@ from pandas import (Index, Series, DataFrame, Panel, isnull,
                     date_range, period_range, Panel4D)
 from pandas.core.index import MultiIndex
 
-import pandas.core.common as com
+import pandas.formats.printing as printing
 import pandas.lib as lib
 
 from pandas.compat import range, zip, PY3
@@ -208,7 +208,7 @@ class Generic(object):
 
         def f():
             if obj1:
-                com.pprint_thing("this works and shouldn't")
+                printing.pprint_thing("this works and shouldn't")
 
         self.assertRaises(ValueError, f)
         self.assertRaises(ValueError, lambda: obj1 and obj2)

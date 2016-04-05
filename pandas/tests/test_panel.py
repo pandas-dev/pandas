@@ -16,6 +16,7 @@ from pandas.core.nanops import nanall, nanany
 from pandas.core.panel import Panel
 from pandas.core.series import remove_na
 import pandas.core.common as com
+from pandas.formats.printing import pprint_thing
 from pandas import compat
 from pandas.compat import range, lrange, StringIO, OrderedDict, signature
 from pandas import SparsePanel
@@ -371,13 +372,13 @@ class SafeForSparse(object):
             try:
                 check_op(getattr(operator, op), op)
             except:
-                com.pprint_thing("Failing operation: %r" % op)
+                pprint_thing("Failing operation: %r" % op)
                 raise
         if compat.PY3:
             try:
                 check_op(operator.truediv, 'div')
             except:
-                com.pprint_thing("Failing operation: %r" % 'div')
+                pprint_thing("Failing operation: %r" % 'div')
                 raise
 
     @ignore_sparse_panel_future_warning
@@ -2160,8 +2161,8 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing, SafeForLongAndSparse,
                     actual = panel.drop(drop_val, axis=alias)
                     assert_panel_equal(actual, expected)
             except AssertionError:
-                com.pprint_thing("Failed with axis_number %d and aliases: %s" %
-                                 (axis_number, aliases))
+                pprint_thing("Failed with axis_number %d and aliases: %s" %
+                             (axis_number, aliases))
                 raise
         # Items
         expected = Panel({"One": df})

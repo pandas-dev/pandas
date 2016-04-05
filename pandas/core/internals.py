@@ -27,6 +27,7 @@ from pandas.core.index import Index, MultiIndex, _ensure_index
 from pandas.core.indexing import maybe_convert_indices, length_of_indexer
 from pandas.core.categorical import Categorical, maybe_to_categorical
 from pandas.tseries.index import DatetimeIndex
+from pandas.formats.printing import pprint_thing
 import pandas.core.common as com
 import pandas.core.missing as missing
 import pandas.core.convert as convert
@@ -195,15 +196,15 @@ class Block(PandasObject):
     def __unicode__(self):
 
         # don't want to print out all of the items here
-        name = com.pprint_thing(self.__class__.__name__)
+        name = pprint_thing(self.__class__.__name__)
         if self._is_single_block:
 
             result = '%s: %s dtype: %s' % (name, len(self), self.dtype)
 
         else:
 
-            shape = ' x '.join([com.pprint_thing(s) for s in self.shape])
-            result = '%s: %s, %s, dtype: %s' % (name, com.pprint_thing(
+            shape = ' x '.join([pprint_thing(s) for s in self.shape])
+            result = '%s: %s, %s, dtype: %s' % (name, pprint_thing(
                 self.mgr_locs.indexer), shape, self.dtype)
 
         return result
@@ -2783,7 +2784,7 @@ class BlockManager(PandasObject):
         return len(self.items)
 
     def __unicode__(self):
-        output = com.pprint_thing(self.__class__.__name__)
+        output = pprint_thing(self.__class__.__name__)
         for i, ax in enumerate(self.axes):
             if i == 0:
                 output += u('\nItems: %s') % ax
@@ -2791,7 +2792,7 @@ class BlockManager(PandasObject):
                 output += u('\nAxis %d: %s') % (i, ax)
 
         for block in self.blocks:
-            output += u('\n%s') % com.pprint_thing(block)
+            output += u('\n%s') % pprint_thing(block)
         return output
 
     def _verify_integrity(self):

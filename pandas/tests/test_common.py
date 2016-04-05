@@ -411,18 +411,6 @@ def test_split_ranges():
     test_locs([1])
 
 
-def test_indent():
-    s = 'a b c\nd e f'
-    result = com.indent(s, spaces=6)
-
-    assert (result == '      a b c\n      d e f')
-
-
-def test_banner():
-    ban = com.banner('hi')
-    assert (ban == ('%s\nhi\n%s' % ('=' * 80, '=' * 80)))
-
-
 def test_map_indices_py():
     data = [4, 3, 2, 1]
     expected = {4: 0, 3: 1, 2: 2, 1: 3}
@@ -683,21 +671,23 @@ class TestMaybe(tm.TestCase):
         self.assertTrue(result.dtype == object)
 
 
-def test_possibly_convert_objects_copy():
-    values = np.array([1, 2])
+class TestConvert(tm.TestCase):
 
-    out = convert._possibly_convert_objects(values, copy=False)
-    assert_true(values is out)
+    def test_possibly_convert_objects_copy(self):
+        values = np.array([1, 2])
 
-    out = convert._possibly_convert_objects(values, copy=True)
-    assert_true(values is not out)
+        out = convert._possibly_convert_objects(values, copy=False)
+        self.assertTrue(values is out)
 
-    values = np.array(['apply', 'banana'])
-    out = convert._possibly_convert_objects(values, copy=False)
-    assert_true(values is out)
+        out = convert._possibly_convert_objects(values, copy=True)
+        self.assertTrue(values is not out)
 
-    out = convert._possibly_convert_objects(values, copy=True)
-    assert_true(values is not out)
+        values = np.array(['apply', 'banana'])
+        out = convert._possibly_convert_objects(values, copy=False)
+        self.assertTrue(values is out)
+
+        out = convert._possibly_convert_objects(values, copy=True)
+        self.assertTrue(values is not out)
 
 
 def test_dict_compat():

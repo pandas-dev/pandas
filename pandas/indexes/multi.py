@@ -19,6 +19,7 @@ from pandas.util.decorators import (Appender, cache_readonly,
 import pandas.core.common as com
 import pandas.core.missing as missing
 import pandas.core.algorithms as algos
+from pandas.formats.printing import pprint_thing
 from pandas.core.common import (isnull, array_equivalent,
                                 is_object_dtype,
                                 _values_from_object,
@@ -692,8 +693,8 @@ class MultiIndex(Index):
 
             else:
                 # weird all NA case
-                formatted = [com.pprint_thing(na if isnull(x) else x,
-                                              escape_chars=('\t', '\r', '\n'))
+                formatted = [pprint_thing(na if isnull(x) else x,
+                                          escape_chars=('\t', '\r', '\n'))
                              for x in algos.take_1d(lev._values, lab)]
             stringified_levels.append(formatted)
 
@@ -702,8 +703,8 @@ class MultiIndex(Index):
             level = []
 
             if names:
-                level.append(com.pprint_thing(name,
-                                              escape_chars=('\t', '\r', '\n'))
+                level.append(pprint_thing(name,
+                                          escape_chars=('\t', '\r', '\n'))
                              if name is not None else '')
 
             level.extend(np.array(lev, dtype=object))

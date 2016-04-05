@@ -5,7 +5,7 @@
 
 import warnings
 import tokenize
-from pandas.core import common as com
+from pandas.formats.printing import pprint_thing
 from pandas.computation import _NUMEXPR_INSTALLED
 from pandas.computation.expr import Expr, _parsers, tokenize_string
 from pandas.computation.scope import _ensure_scope
@@ -108,7 +108,7 @@ def _convert_expression(expr):
     ValueError
       * If the expression is empty.
     """
-    s = com.pprint_thing(expr)
+    s = pprint_thing(expr)
     _check_expression(s)
     return s
 

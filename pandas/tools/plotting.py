@@ -19,6 +19,7 @@ from pandas.core.series import Series, remove_na
 from pandas.tseries.period import PeriodIndex
 from pandas.compat import range, lrange, lmap, map, zip, string_types
 import pandas.compat as compat
+from pandas.formats.printing import pprint_thing
 from pandas.util.decorators import Appender
 try:  # mpl optional
     import pandas.tseries.converter as conv
@@ -486,7 +487,7 @@ def radviz(frame, class_column, ax=None, color=None, colormap=None, **kwds):
 
     for i, kls in enumerate(classes):
         ax.scatter(to_plot[kls][0], to_plot[kls][1], color=colors[i],
-                   label=com.pprint_thing(kls), **kwds)
+                   label=pprint_thing(kls), **kwds)
     ax.legend()
 
     ax.add_patch(patches.Circle((0.0, 0.0), radius=1.0, facecolor='none'))
@@ -591,7 +592,7 @@ def andrews_curves(frame, class_column, ax=None, samples=200, color=None,
         f = function(row)
         y = f(t)
         kls = class_col.iat[i]
-        label = com.pprint_thing(kls)
+        label = pprint_thing(kls)
         if label not in used_legends:
             used_legends.add(label)
             ax.plot(t, y, color=colors[kls], label=label, **kwds)
@@ -753,7 +754,7 @@ def parallel_coordinates(frame, class_column, cols=None, ax=None, color=None,
     for i in range(n):
         y = df.iloc[i].values
         kls = class_col.iat[i]
-        label = com.pprint_thing(kls)
+        label = pprint_thing(kls)
         if label not in used_legends:
             used_legends.add(label)
             ax.plot(x, y, color=colors[kls], label=label, **kwds)
@@ -1148,7 +1149,7 @@ class MPLPlot(object):
 
     def _post_plot_logic_common(self, ax, data):
         """Common post process for each axes"""
-        labels = [com.pprint_thing(key) for key in data.index]
+        labels = [pprint_thing(key) for key in data.index]
         labels = dict(zip(range(len(data.index)), labels))
 
         if self.orientation == 'vertical' or self.orientation is None:
@@ -1216,10 +1217,10 @@ class MPLPlot(object):
         if not isinstance(self.data.columns, MultiIndex):
             name = self.data.columns.name
             if name is not None:
-                name = com.pprint_thing(name)
+                name = pprint_thing(name)
             return name
         else:
-            stringified = map(com.pprint_thing,
+            stringified = map(pprint_thing,
                               self.data.columns.names)
             return ','.join(stringified)
 
@@ -1342,13 +1343,13 @@ class MPLPlot(object):
         if isinstance(self.data.index, MultiIndex):
             name = self.data.index.names
             if any(x is not None for x in name):
-                name = ','.join([com.pprint_thing(x) for x in name])
+                name = ','.join([pprint_thing(x) for x in name])
             else:
                 name = None
         else:
             name = self.data.index.name
             if name is not None:
-                name = com.pprint_thing(name)
+                name = pprint_thing(name)
 
         return name
 
@@ -1549,8 +1550,8 @@ class PlanePlot(MPLPlot):
 
     def _post_plot_logic(self, ax, data):
         x, y = self.x, self.y
-        ax.set_ylabel(com.pprint_thing(y))
-        ax.set_xlabel(com.pprint_thing(x))
+        ax.set_ylabel(pprint_thing(y))
+        ax.set_xlabel(pprint_thing(x))
 
 
 class ScatterPlot(PlanePlot):
@@ -1695,7 +1696,7 @@ class LinePlot(MPLPlot):
             errors = self._get_errorbars(label=label, index=i)
             kwds = dict(kwds, **errors)
 
-            label = com.pprint_thing(label)  # .encode('utf-8')
+            label = pprint_thing(label)  # .encode('utf-8')
             kwds['label'] = label
 
             newlines = plotf(ax, x, y, style=style, column_num=i,
@@ -1935,7 +1936,7 @@ class BarPlot(MPLPlot):
             errors = self._get_errorbars(label=label, index=i)
             kwds = dict(kwds, **errors)
 
-            label = com.pprint_thing(label)
+            label = pprint_thing(label)
 
             if (('yerr' in kwds) or ('xerr' in kwds)) \
                     and (kwds.get('ecolor') is None):
@@ -1970,9 +1971,9 @@ class BarPlot(MPLPlot):
 
     def _post_plot_logic(self, ax, data):
         if self.use_index:
-            str_index = [com.pprint_thing(key) for key in data.index]
+            str_index = [pprint_thing(key) for key in data.index]
         else:
-            str_index = [com.pprint_thing(key) for key in range(data.shape[0])]
+            str_index = [pprint_thing(key) for key in range(data.shape[0])]
         name = self._get_index_name()
 
         s_edge = self.ax_pos[0] - 0.25 + self.lim_offset
@@ -2058,7 +2059,7 @@ class HistPlot(LinePlot):
 
             kwds = self.kwds.copy()
 
-            label = com.pprint_thing(label)
+            label = pprint_thing(label)
             kwds['label'] = label
 
             style, kwds = self._apply_style_colors(colors, kwds, i, label)
@@ -2169,7 +2170,7 @@ class PiePlot(MPLPlot):
         for i, (label, y) in enumerate(self._iter_data()):
             ax = self._get_ax(i)
             if label is not None:
-                label = com.pprint_thing(label)
+                label = pprint_thing(label)
                 ax.set_ylabel(label)
 
             kwds = self.kwds.copy()
@@ -2180,7 +2181,7 @@ class PiePlot(MPLPlot):
                 else:
                     return label
 
-            idx = [com.pprint_thing(v) for v in self.data.index]
+            idx = [pprint_thing(v) for v in self.data.index]
             labels = kwds.pop('labels', idx)
             # labels is used for each wedge's labels
             # Blank out labels for values of 0 so they don't overlap
@@ -2319,7 +2320,7 @@ class BoxPlot(LinePlot):
                 self.maybe_color_bp(bp)
                 self._return_obj[label] = ret
 
-                label = [com.pprint_thing(label)]
+                label = [pprint_thing(label)]
                 self._set_ticklabels(ax, label)
         else:
             y = self.data.values.T
@@ -2332,9 +2333,9 @@ class BoxPlot(LinePlot):
             self._return_obj = ret
 
             labels = [l for l, _ in self._iter_data()]
-            labels = [com.pprint_thing(l) for l in labels]
+            labels = [pprint_thing(l) for l in labels]
             if not self.use_index:
-                labels = [com.pprint_thing(key) for key in range(len(labels))]
+                labels = [pprint_thing(key) for key in range(len(labels))]
             self._set_ticklabels(ax, labels)
 
     def _set_ticklabels(self, ax, labels):
@@ -2711,7 +2712,7 @@ def boxplot(data, column=None, by=None, ax=None, fontsize=None,
             setp(bp['medians'], color=colors[2], alpha=1)
 
     def plot_group(keys, values, ax):
-        keys = [com.pprint_thing(x) for x in keys]
+        keys = [pprint_thing(x) for x in keys]
         values = [remove_na(v) for v in values]
         bp = ax.boxplot(values, **kwds)
         if kwds.get('vert', 1):
@@ -2821,8 +2822,8 @@ def scatter_plot(data, x, y, by=None, ax=None, figsize=None, grid=False,
         else:
             fig = ax.get_figure()
         plot_group(data, ax)
-        ax.set_ylabel(com.pprint_thing(y))
-        ax.set_xlabel(com.pprint_thing(x))
+        ax.set_ylabel(pprint_thing(y))
+        ax.set_xlabel(pprint_thing(x))
 
         ax.grid(grid)
 
@@ -3077,7 +3078,7 @@ def boxplot_frame_groupby(grouped, subplots=True, column=None, fontsize=None,
         for (key, group), ax in zip(grouped, axes):
             d = group.boxplot(ax=ax, column=column, fontsize=fontsize,
                               rot=rot, grid=grid, **kwds)
-            ax.set_title(com.pprint_thing(key))
+            ax.set_title(pprint_thing(key))
             ret[key] = d
         fig.subplots_adjust(bottom=0.15, top=0.9, left=0.1,
                             right=0.9, wspace=0.2)
@@ -3124,7 +3125,7 @@ def _grouped_plot(plotf, data, column=None, by=None, numeric_only=True,
         if numeric_only and isinstance(group, DataFrame):
             group = group._get_numeric_data()
         plotf(group, ax, **kwargs)
-        ax.set_title(com.pprint_thing(key))
+        ax.set_title(pprint_thing(key))
 
     return fig, axes
 
@@ -3151,7 +3152,7 @@ def _grouped_plot_by_column(plotf, data, columns=None, by=None,
         keys, values = zip(*gp_col)
         re_plotf = plotf(keys, values, ax, **kwargs)
         ax.set_title(col)
-        ax.set_xlabel(com.pprint_thing(by))
+        ax.set_xlabel(pprint_thing(by))
         result[col] = re_plotf
         ax.grid(grid)
 

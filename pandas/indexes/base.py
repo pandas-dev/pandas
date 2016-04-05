@@ -19,6 +19,7 @@ from pandas.util.decorators import (Appender, Substitution, cache_readonly,
 import pandas.core.common as com
 import pandas.core.missing as missing
 import pandas.core.algorithms as algos
+from pandas.formats.printing import pprint_thing
 from pandas.core.common import (isnull, array_equivalent,
                                 is_object_dtype, is_datetimetz, ABCSeries,
                                 ABCPeriodIndex, ABCMultiIndex,
@@ -33,8 +34,8 @@ from pandas.core.config import get_option
 
 # simplify
 default_pprint = lambda x, max_seq_items=None: \
-    com.pprint_thing(x, escape_chars=('\t', '\r', '\n'), quote_strings=True,
-                     max_seq_items=max_seq_items)
+    pprint_thing(x, escape_chars=('\t', '\r', '\n'), quote_strings=True,
+                 max_seq_items=max_seq_items)
 
 __all__ = ['Index']
 
@@ -888,8 +889,8 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
             if (hasattr(tail, 'format') and
                     not isinstance(tail, compat.string_types)):
                 tail = tail.format()
-            index_summary = ', %s to %s' % (com.pprint_thing(head),
-                                            com.pprint_thing(tail))
+            index_summary = ', %s to %s' % (pprint_thing(head),
+                                            pprint_thing(tail))
         else:
             index_summary = ''
 
@@ -1444,8 +1445,8 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         """
         header = []
         if name:
-            header.append(com.pprint_thing(self.name,
-                                           escape_chars=('\t', '\r', '\n')) if
+            header.append(pprint_thing(self.name,
+                                       escape_chars=('\t', '\r', '\n')) if
                           self.name is not None else '')
 
         if formatter is not None:
@@ -1464,7 +1465,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
             values = lib.maybe_convert_objects(values, safe=1)
 
         if is_object_dtype(values.dtype):
-            result = [com.pprint_thing(x, escape_chars=('\t', '\r', '\n'))
+            result = [pprint_thing(x, escape_chars=('\t', '\r', '\n'))
                       for x in values]
 
             # could have nans

@@ -19,6 +19,7 @@ import pandas.core.algorithms as algos
 import pandas.core.common as com
 import pandas.core.missing as missing
 import pandas.core.datetools as datetools
+from pandas.formats.printing import pprint_thing
 from pandas import compat
 from pandas.compat import (map, zip, lrange, string_types,
                            isidentifier, set_function_name)
@@ -150,7 +151,7 @@ class NDFrame(PandasObject):
     def __unicode__(self):
         # unicode representation based upon iterating over self
         # (since, by definition, `PandasContainers` are iterable)
-        prepr = '[%s]' % ','.join(map(com.pprint_thing, self))
+        prepr = '[%s]' % ','.join(map(pprint_thing, self))
         return '%s(%s)' % (self.__class__.__name__, prepr)
 
     def _dir_additions(self):

@@ -57,6 +57,7 @@ import pandas.core.common as com
 import pandas.core.nanops as nanops
 import pandas.core.ops as ops
 import pandas.formats.format as fmt
+from pandas.formats.printing import pprint_thing
 import pandas.tools.plotting as gfx
 
 import pandas.lib as lib
@@ -1668,7 +1669,7 @@ class DataFrame(NDFrame):
         def _verbose_repr():
             lines.append('Data columns (total %d columns):' %
                          len(self.columns))
-            space = max([len(com.pprint_thing(k)) for k in self.columns]) + 4
+            space = max([len(pprint_thing(k)) for k in self.columns]) + 4
             counts = None
 
             tmpl = "%s%s"
@@ -1682,7 +1683,7 @@ class DataFrame(NDFrame):
             dtypes = self.dtypes
             for i, col in enumerate(self.columns):
                 dtype = dtypes.iloc[i]
-                col = com.pprint_thing(col)
+                col = pprint_thing(col)
 
                 count = ""
                 if show_counts:
@@ -4145,7 +4146,7 @@ class DataFrame(NDFrame):
                     if i is not None:
                         k = res_index[i]
                         e.args = e.args + ('occurred at index %s' %
-                                           com.pprint_thing(k), )
+                                           pprint_thing(k), )
                 raise
 
         if len(results) > 0 and is_sequence(results[0]):

@@ -10,6 +10,7 @@ import numpy as np
 import pandas as pd
 from pandas.compat import PY3, string_types, text_type
 import pandas.core.common as com
+from pandas.formats.printing import pprint_thing, pprint_thing_encoded
 import pandas.lib as lib
 from pandas.core.base import StringMixin
 from pandas.computation.common import _ensure_decoded, _result_type_many
@@ -62,7 +63,7 @@ class Term(StringMixin):
         return self.name.replace(_LOCAL_TAG, '')
 
     def __unicode__(self):
-        return com.pprint_thing(self.name)
+        return pprint_thing(self.name)
 
     def __call__(self, *args, **kwargs):
         return self.value
@@ -118,9 +119,9 @@ class Term(StringMixin):
 
     @property
     def raw(self):
-        return com.pprint_thing('{0}(name={1!r}, type={2})'
-                                ''.format(self.__class__.__name__, self.name,
-                                          self.type))
+        return pprint_thing('{0}(name={1!r}, type={2})'
+                            ''.format(self.__class__.__name__, self.name,
+                                      self.type))
 
     @property
     def is_datetime(self):
@@ -186,9 +187,9 @@ class Op(StringMixin):
         """Print a generic n-ary operator and its operands using infix
         notation"""
         # recurse over the operands
-        parened = ('({0})'.format(com.pprint_thing(opr))
+        parened = ('({0})'.format(pprint_thing(opr))
                    for opr in self.operands)
-        return com.pprint_thing(' {0} '.format(self.op).join(parened))
+        return pprint_thing(' {0} '.format(self.op).join(parened))
 
     @property
     def return_type(self):
@@ -390,10 +391,10 @@ class BinOp(Op):
         """
         def stringify(value):
             if self.encoding is not None:
-                encoder = partial(com.pprint_thing_encoded,
+                encoder = partial(pprint_thing_encoded,
                                   encoding=self.encoding)
             else:
-                encoder = com.pprint_thing
+                encoder = pprint_thing
             return encoder(value)
 
         lhs, rhs = self.lhs, self.rhs
@@ -491,7 +492,7 @@ class UnaryOp(Op):
         return self.func(operand)
 
     def __unicode__(self):
-        return com.pprint_thing('{0}({1})'.format(self.op, self.operand))
+        return pprint_thing('{0}({1})'.format(self.op, self.operand))
 
     @property
     def return_type(self):
@@ -516,7 +517,7 @@ class MathCall(Op):
 
     def __unicode__(self):
         operands = map(str, self.operands)
-        return com.pprint_thing('{0}({1})'.format(self.op, ','.join(operands)))
+        return pprint_thing('{0}({1})'.format(self.op, ','.join(operands)))
 
 
 class FuncNode(object):

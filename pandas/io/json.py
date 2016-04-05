@@ -12,7 +12,7 @@ from pandas import compat, isnull
 from pandas import Series, DataFrame, to_datetime
 from pandas.io.common import get_filepath_or_buffer
 from pandas.core.common import AbstractMethodError
-import pandas.core.common as com
+from pandas.formats.printing import pprint_thing
 
 loads = _json.loads
 dumps = _json.dumps
@@ -266,7 +266,7 @@ class Parser(object):
         if bad_keys:
             bad_keys = ", ".join(bad_keys)
             raise ValueError(u("JSON data had unexpected key(s): %s") %
-                             com.pprint_thing(bad_keys))
+                             pprint_thing(bad_keys))
 
     def parse(self):
 

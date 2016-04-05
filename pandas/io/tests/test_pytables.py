@@ -3806,15 +3806,9 @@ class TestHDFStore(Base, tm.TestCase):
                 expected = df[df.x != 'none']
                 assert_frame_equal(result, expected)
             except Exception as detail:
-<<<<<<< HEAD
-                com.pprint_thing("[{0}]".format(detail))
-                com.pprint_thing(store)
-                com.pprint_thing(expected)
-=======
                 pprint_thing("[{0}]".format(detail))
                 pprint_thing(store)
                 pprint_thing(expected)
->>>>>>> e462ffe... wip
 
             df2 = df.copy()
             df2.loc[df2.x == '', 'x'] = np.nan

@@ -19,7 +19,7 @@ from pandas import json
 from pandas.compat import (map, zip, reduce, range, lrange, u, add_metaclass,
                            string_types)
 from pandas.core import config
-from pandas.core.common import pprint_thing
+from pandas.formats.printing import pprint_thing
 import pandas.compat as compat
 import pandas.compat.openpyxl_compat as openpyxl_compat
 import pandas.core.common as com

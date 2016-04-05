@@ -11,6 +11,7 @@ from pandas import compat
 from pandas.compat import StringIO, lmap, zip, reduce, string_types
 from pandas.core.base import StringMixin
 from pandas.core import common as com
+import pandas.formats.printing as printing
 from pandas.tools.util import compose
 from pandas.computation.ops import (_cmp_ops_syms, _bool_ops_syms,
                                     _arith_ops_syms, _unary_ops_syms, is_term)
@@ -716,7 +717,7 @@ class Expr(StringMixin):
         return self.terms(self.env)
 
     def __unicode__(self):
-        return com.pprint_thing(self.terms)
+        return printing.pprint_thing(self.terms)
 
     def __len__(self):
         return len(self.expr)

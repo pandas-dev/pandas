@@ -25,7 +25,7 @@ def adjoin(space, *lists, **kwargs):
         function used to justify str. Needed for unicode handling.
     """
     strlen = kwargs.pop('strlen', len)
-    justfunc = kwargs.pop('justfunc', _justify)
+    justfunc = kwargs.pop('justfunc', justify)
 
     out_lines = []
     newLists = []
@@ -43,7 +43,7 @@ def adjoin(space, *lists, **kwargs):
     return _join_unicode(out_lines, sep='\n')
 
 
-def _justify(texts, max_len, mode='right'):
+def justify(texts, max_len, mode='right'):
     """
     Perform ljust, center, rjust against string or list-like
     """
@@ -63,18 +63,6 @@ def _join_unicode(lines, sep=''):
         return sep.join([x.decode('utf-8') if isinstance(x, str) else x
                          for x in lines])
 
-
-def indent(string, spaces=4):
-    dent = ' ' * spaces
-    return '\n'.join([dent + x for x in string.split('\n')])
-
-
-def banner(message):
-    """
-    Return 80-char width message declaration with = bars on top and bottom.
-    """
-    bar = '=' * 80
-    return '%s\n%s\n%s' % (bar, message, bar)
 
 # Unicode consolidation
 # ---------------------

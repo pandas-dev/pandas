@@ -36,6 +36,7 @@ from pandas import DataFrame, Series, Index, Timestamp, MultiIndex, date_range, 
 import pandas.formats.format as fmt
 import pandas.util.testing as tm
 import pandas.core.common as com
+import pandas.formats.printing as printing
 from pandas.util.terminal import get_terminal_size
 import pandas as pd
 from pandas.core.config import (set_option, get_option, option_context,
@@ -213,13 +214,13 @@ class TestDataFrameFormatting(tm.TestCase):
 
     def test_repr_obeys_max_seq_limit(self):
         with option_context("display.max_seq_items", 2000):
-            self.assertTrue(len(com.pprint_thing(lrange(1000))) > 1000)
+            self.assertTrue(len(printing.pprint_thing(lrange(1000))) > 1000)
 
         with option_context("display.max_seq_items", 5):
-            self.assertTrue(len(com.pprint_thing(lrange(1000))) < 100)
+            self.assertTrue(len(printing.pprint_thing(lrange(1000))) < 100)
 
     def test_repr_set(self):
-        self.assertEqual(com.pprint_thing(set([1])), '{1}')
+        self.assertEqual(printing.pprint_thing(set([1])), '{1}')
 
     def test_repr_is_valid_construction_code(self):
         # for the case of Index, where the repr is traditional rather then
@@ -321,7 +322,7 @@ class TestDataFrameFormatting(tm.TestCase):
                 df = mkframe((term_width // 7) - 2)
                 self.assertFalse(has_expanded_repr(df))
                 df = mkframe((term_width // 7) + 2)
-                com.pprint_thing(df._repr_fits_horizontal_())
+                printing.pprint_thing(df._repr_fits_horizontal_())
                 self.assertTrue(has_expanded_repr(df))
 
     def test_str_max_colwidth(self):
@@ -1556,7 +1557,7 @@ class TestDataFrameFormatting(tm.TestCase):
         fmt.set_option('display.max_rows', 200)
 
     def test_pprint_thing(self):
-        from pandas.core.common import pprint_thing as pp_t
+        from pandas.formats.printing import pprint_thing as pp_t
 
         if PY3:
             raise nose.SkipTest("doesn't work on Python 3")

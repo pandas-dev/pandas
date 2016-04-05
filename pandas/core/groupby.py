@@ -24,6 +24,7 @@ from pandas.core.series import Series
 from pandas.core.panel import Panel
 from pandas.util.decorators import (cache_readonly, Substitution, Appender,
                                     make_signature, deprecate_kwarg)
+from pandas.formats.printing import pprint_thing
 import pandas.core.algorithms as algos
 import pandas.core.common as com
 from pandas.core.common import(_possibly_downcast_to_dtype, isnull,
@@ -2213,7 +2214,7 @@ class Grouping(object):
                         len(self.grouper) == len(self.index)):
                     errmsg = ('Grouper result violates len(labels) == '
                               'len(data)\nresult: %s' %
-                              com.pprint_thing(self.grouper))
+                              pprint_thing(self.grouper))
                     self.grouper = None  # Try for sanity
                     raise AssertionError(errmsg)
 

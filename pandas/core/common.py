@@ -14,7 +14,7 @@ import pandas.algos as algos
 import pandas.lib as lib
 import pandas.tslib as tslib
 from pandas import compat
-from pandas.compat import (range, long, u, zip, map, string_types,
+from pandas.compat import (long, zip, map, string_types,
                            iteritems)
 from pandas.types import api as gt
 from pandas.types.api import *  # noqa

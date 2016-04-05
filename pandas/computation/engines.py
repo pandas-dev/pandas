@@ -7,7 +7,8 @@ import abc
 
 from pandas import compat
 from pandas.compat import DeepChainMap, map
-from pandas.core import common as com
+import pandas.core.common as com
+import pandas.formats.printing as printing
 from pandas.computation.align import _align, _reconstruct_object
 from pandas.computation.ops import (UndefinedVariableError,
                                     _mathops, _reductions)
@@ -55,7 +56,7 @@ class AbstractEngine(object):
 
         Defaults to return the expression as a string.
         """
-        return com.pprint_thing(self.expr)
+        return printing.pprint_thing(self.expr)
 
     def evaluate(self):
         """Run the engine on the expression

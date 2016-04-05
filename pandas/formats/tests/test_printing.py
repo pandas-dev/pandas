@@ -121,18 +121,6 @@ c        ff         いいい"""
         self.assertEqual(adjoined, expected)
 
 
-def test_indent():
-    s = 'a b c\nd e f'
-    result = printing.indent(s, spaces=6)
-
-    assert (result == '      a b c\n      d e f')
-
-
-def test_banner():
-    ban = printing.banner('hi')
-    assert (ban == ('%s\nhi\n%s' % ('=' * 80, '=' * 80)))
-
-
 # TODO: fix this broken test
 
 # def test_console_encode():
