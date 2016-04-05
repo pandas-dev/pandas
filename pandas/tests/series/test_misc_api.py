@@ -6,7 +6,6 @@ import pandas as pd
 
 from pandas import Index, Series, DataFrame, date_range
 from pandas.tseries.index import Timestamp
-import pandas.core.common as com
 
 from pandas.compat import range
 from pandas import compat

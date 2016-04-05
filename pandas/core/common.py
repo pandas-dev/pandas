@@ -18,7 +18,8 @@ import pandas.tslib as tslib
 from pandas import compat
 from pandas.compat import (BytesIO, range, long, u, zip, map, string_types,
                            iteritems)
-from pandas.types.api import *
+from pandas.types import api as gt
+from pandas.types.api import *  # noqa
 from pandas.core.config import get_option
 
 
@@ -71,63 +72,6 @@ _int32_max = np.iinfo(np.int32).max
 _int64_max = np.iinfo(np.int64).max
 
 
-# define abstract base classes to enable isinstance type checking on our
-# objects
-def create_pandas_abc_type(name, attr, comp):
-    @classmethod
-    def _check(cls, inst):
-        return getattr(inst, attr, '_typ') in comp
-
-    dct = dict(__instancecheck__=_check, __subclasscheck__=_check)
-    meta = type("ABCBase", (type, ), dct)
-    return meta(name, tuple(), dct)
-
-
-ABCIndex = create_pandas_abc_type("ABCIndex", "_typ", ("index", ))
-ABCInt64Index = create_pandas_abc_type("ABCInt64Index", "_typ",
-                                       ("int64index", ))
-ABCRangeIndex = create_pandas_abc_type("ABCRangeIndex", "_typ",
-                                       ("rangeindex", ))
-ABCFloat64Index = create_pandas_abc_type("ABCFloat64Index", "_typ",
-                                         ("float64index", ))
-ABCMultiIndex = create_pandas_abc_type("ABCMultiIndex", "_typ",
-                                       ("multiindex", ))
-ABCDatetimeIndex = create_pandas_abc_type("ABCDatetimeIndex", "_typ",
-                                          ("datetimeindex", ))
-ABCTimedeltaIndex = create_pandas_abc_type("ABCTimedeltaIndex", "_typ",
-                                           ("timedeltaindex", ))
-ABCPeriodIndex = create_pandas_abc_type("ABCPeriodIndex", "_typ",
-                                        ("periodindex", ))
-ABCCategoricalIndex = create_pandas_abc_type("ABCCategoricalIndex", "_typ",
-                                             ("categoricalindex", ))
-ABCIndexClass = create_pandas_abc_type("ABCIndexClass", "_typ",
-                                       ("index", "int64index", "rangeindex",
-                                        "float64index",
-                                        "multiindex", "datetimeindex",
-                                        "timedeltaindex", "periodindex",
-                                        "categoricalindex"))
-
-ABCSeries = create_pandas_abc_type("ABCSeries", "_typ", ("series", ))
-ABCDataFrame = create_pandas_abc_type("ABCDataFrame", "_typ", ("dataframe", ))
-ABCPanel = create_pandas_abc_type("ABCPanel", "_typ", ("panel", ))
-ABCSparseSeries = create_pandas_abc_type("ABCSparseSeries", "_subtyp",
-                                         ('sparse_series',
-                                          'sparse_time_series'))
-ABCSparseArray = create_pandas_abc_type("ABCSparseArray", "_subtyp",
-                                        ('sparse_array', 'sparse_series'))
-ABCCategorical = create_pandas_abc_type("ABCCategorical", "_typ",
-                                        ("categorical"))
-ABCPeriod = create_pandas_abc_type("ABCPeriod", "_typ", ("period", ))
-
-
-class _ABCGeneric(type):
-    def __instancecheck__(cls, inst):
-        return hasattr(inst, "_data")
-
-
-ABCGeneric = _ABCGeneric("ABCGeneric", tuple(), {})
-
-
 def isnull(obj):
     """Detect missing values (NaN in numeric arrays, None/NaN in object arrays)
 
@@ -155,9 +99,9 @@ def _isnull_new(obj):
     # hack (for now) because MI registers as ndarray
     elif isinstance(obj, pd.MultiIndex):
         raise NotImplementedError("isnull is not defined for MultiIndex")
-    elif isinstance(obj, (ABCSeries, np.ndarray, pd.Index)):
+    elif isinstance(obj, (gt.ABCSeries, np.ndarray, pd.Index)):
         return _isnull_ndarraylike(obj)
-    elif isinstance(obj, ABCGeneric):
+    elif isinstance(obj, gt.ABCGeneric):
         return obj._constructor(obj._data.isnull(func=isnull))
     elif isinstance(obj, list) or hasattr(obj, '__array__'):
         return _isnull_ndarraylike(np.asarray(obj))
@@ -181,9 +125,9 @@ def _isnull_old(obj):
     # hack (for now) because MI registers as ndarray
     elif isinstance(obj, pd.MultiIndex):
         raise NotImplementedError("isnull is not defined for MultiIndex")
-    elif isinstance(obj, (ABCSeries, np.ndarray, pd.Index)):
+    elif isinstance(obj, (gt.ABCSeries, np.ndarray, pd.Index)):
         return _isnull_ndarraylike_old(obj)
-    elif isinstance(obj, ABCGeneric):
+    elif isinstance(obj, gt.ABCGeneric):
         return obj._constructor(obj._data.isnull(func=_isnull_old))
     elif isinstance(obj, list) or hasattr(obj, '__array__'):
         return _isnull_ndarraylike_old(np.asarray(obj))
@@ -250,7 +194,7 @@ def _isnull_ndarraylike(obj):
         result = np.isnan(values)
 
     # box
-    if isinstance(obj, ABCSeries):
+    if isinstance(obj, gt.ABCSeries):
         from pandas import Series
         result = Series(result, index=obj.index, name=obj.name, copy=False)
 
@@ -279,7 +223,7 @@ def _isnull_ndarraylike_old(obj):
         result = ~np.isfinite(values)
 
     # box
-    if isinstance(obj, ABCSeries):
+    if isinstance(obj, gt.ABCSeries):
         from pandas import Series
         result = Series(result, index=obj.index, name=obj.name, copy=False)
 
@@ -1687,10 +1631,10 @@ def _possibly_infer_to_datetimelike(value, convert_dates=False):
 
     """
 
-    if isinstance(value, (ABCDatetimeIndex, ABCPeriodIndex)):
+    if isinstance(value, (gt.ABCDatetimeIndex, gt.ABCPeriodIndex)):
         return value
-    elif isinstance(value, ABCSeries):
-        if isinstance(value._values, ABCDatetimeIndex):
+    elif isinstance(value, gt.ABCSeries):
+        if isinstance(value._values, gt.ABCDatetimeIndex):
             return value._values
 
     v = value
@@ -1760,7 +1704,7 @@ def _possibly_infer_to_datetimelike(value, convert_dates=False):
 
 
 def is_bool_indexer(key):
-    if isinstance(key, (ABCSeries, np.ndarray)):
+    if isinstance(key, (gt.ABCSeries, np.ndarray)):
         if key.dtype == np.object_:
             key = np.asarray(_values_from_object(key))
 
@@ -2088,22 +2032,23 @@ def is_period_arraylike(arr):
     """ return if we are period arraylike / PeriodIndex """
     if isinstance(arr, pd.PeriodIndex):
         return True
-    elif isinstance(arr, (np.ndarray, ABCSeries)):
+    elif isinstance(arr, (np.ndarray, gt.ABCSeries)):
         return arr.dtype == object and lib.infer_dtype(arr) == 'period'
     return getattr(arr, 'inferred_type', None) == 'period'
 
 
 def is_datetime_arraylike(arr):
     """ return if we are datetime arraylike / DatetimeIndex """
-    if isinstance(arr, ABCDatetimeIndex):
+    if isinstance(arr, gt.ABCDatetimeIndex):
         return True
-    elif isinstance(arr, (np.ndarray, ABCSeries)):
+    elif isinstance(arr, (np.ndarray, gt.ABCSeries)):
         return arr.dtype == object and lib.infer_dtype(arr) == 'datetime'
     return getattr(arr, 'inferred_type', None) == 'datetime'
 
 
 def is_datetimelike(arr):
-    return (arr.dtype in _DATELIKE_DTYPES or isinstance(arr, ABCPeriodIndex) or
+    return (arr.dtype in _DATELIKE_DTYPES or
+            isinstance(arr, gt.ABCPeriodIndex) or
             is_datetimetz(arr))
 
 
@@ -2334,12 +2279,12 @@ def is_bool_dtype(arr_or_dtype):
 
 def is_sparse(array):
     """ return if we are a sparse array """
-    return isinstance(array, (ABCSparseArray, ABCSparseSeries))
+    return isinstance(array, (gt.ABCSparseArray, gt.ABCSparseSeries))
 
 
 def is_datetimetz(array):
     """ return if we are a datetime with tz array """
-    return ((isinstance(array, ABCDatetimeIndex) and
+    return ((isinstance(array, gt.ABCDatetimeIndex) and
              getattr(array, 'tz', None) is not None) or
             is_datetime64tz_dtype(array))
 
@@ -2360,7 +2305,7 @@ def is_internal_type(value):
 
 def is_categorical(array):
     """ return if we are a categorical possibility """
-    return isinstance(array, ABCCategorical) or is_categorical_dtype(array)
+    return isinstance(array, gt.ABCCategorical) or is_categorical_dtype(array)
 
 
 def is_categorical_dtype(arr_or_dtype):

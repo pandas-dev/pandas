@@ -16,6 +16,7 @@ from pandas import (Series, DataFrame, Panel, MultiIndex, Int64Index,
                     isnull)
 
 from pandas.compat import is_platform_windows, PY3, PY35
+from pandas.formats.printing import pprint_thing
 from pandas.io.pytables import _tables, TableIterator
 try:
     _tables()
@@ -28,7 +29,6 @@ from pandas.io.pytables import (HDFStore, get_store, Term, read_hdf,
                                 AttributeConflictWarning, DuplicateWarning,
                                 PossibleDataLossError, ClosedFileError)
 from pandas.io import pytables as pytables
-import pandas.core.common as com
 import pandas.util.testing as tm
 from pandas.util.testing import (assert_panel4d_equal,
                                  assert_panel_equal,
@@ -3806,9 +3806,15 @@ class TestHDFStore(Base, tm.TestCase):
                 expected = df[df.x != 'none']
                 assert_frame_equal(result, expected)
             except Exception as detail:
+<<<<<<< HEAD
                 com.pprint_thing("[{0}]".format(detail))
                 com.pprint_thing(store)
                 com.pprint_thing(expected)
+=======
+                pprint_thing("[{0}]".format(detail))
+                pprint_thing(store)
+                pprint_thing(expected)
+>>>>>>> e462ffe... wip
 
             df2 = df.copy()
             df2.loc[df2.x == '', 'x'] = np.nan
