@@ -18,6 +18,7 @@ import pandas.computation.expressions as expressions
 from pandas.lib import isscalar
 from pandas.tslib import iNaT
 from pandas.compat import bind_method
+import pandas.core.missing as missing
 from pandas.core.common import (is_list_like, notnull, isnull,
                                 _values_from_object, _maybe_match_name,
                                 needs_i8_conversion, is_datetimelike_v_numeric,
@@ -595,7 +596,7 @@ def _arith_method_SERIES(op, name, str_rep, fill_zeros=None, default_axis=None,
 
             result, changed = com._maybe_upcast_putmask(result, ~mask, np.nan)
 
-        result = com._fill_zeros(result, x, y, name, fill_zeros)
+        result = missing.fill_zeros(result, x, y, name, fill_zeros)
         return result
 
     def wrapper(left, right, name=name, na_op=na_op):
@@ -1004,7 +1005,7 @@ def _arith_method_FRAME(op, name, str_rep=None, default_axis='columns',
             result, changed = com._maybe_upcast_putmask(result, ~mask, np.nan)
             result = result.reshape(x.shape)
 
-        result = com._fill_zeros(result, x, y, name, fill_zeros)
+        result = missing.fill_zeros(result, x, y, name, fill_zeros)
 
         return result
 
@@ -1207,7 +1208,7 @@ def _arith_method_PANEL(op, name, str_rep=None, fill_zeros=None,
             result[mask] = op(x[mask], y)
             result, changed = com._maybe_upcast_putmask(result, ~mask, np.nan)
 
-        result = com._fill_zeros(result, x, y, name, fill_zeros)
+        result = missing.fill_zeros(result, x, y, name, fill_zeros)
         return result
 
     # work only for scalars

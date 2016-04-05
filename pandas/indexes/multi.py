@@ -17,7 +17,7 @@ import pandas.core.base as base
 from pandas.util.decorators import (Appender, cache_readonly,
                                     deprecate, deprecate_kwarg)
 import pandas.core.common as com
-from pandas.core.missing import _clean_reindex_fill_method
+import pandas.core.missing as missing
 from pandas.core.common import (isnull, array_equivalent,
                                 is_object_dtype,
                                 _values_from_object,
@@ -1334,8 +1334,7 @@ class MultiIndex(Index):
         -------
         (indexer, mask) : (ndarray, ndarray)
         """
-        method = _clean_reindex_fill_method(method)
-
+        method = missing.clean_reindex_fill_method(method)
         target = _ensure_index(target)
 
         target_index = target

@@ -17,10 +17,11 @@ from pandas.tseries.period import PeriodIndex
 from pandas.core.internals import BlockManager
 import pandas.core.algorithms as algos
 import pandas.core.common as com
-import pandas.core.missing as mis
+import pandas.core.missing as missing
 import pandas.core.datetools as datetools
 from pandas import compat
-from pandas.compat import map, zip, lrange, string_types, isidentifier, PY3
+from pandas.compat import (map, zip, lrange, string_types,
+                           isidentifier, set_function_name)
 from pandas.core.common import (isnull, notnull, is_list_like,
                                 _values_from_object, _maybe_promote,
                                 _maybe_box_datetimelike, ABCSeries,
@@ -51,7 +52,7 @@ def _single_replace(self, to_replace, method, inplace, limit):
 
     orig_dtype = self.dtype
     result = self if inplace else self.copy()
-    fill_f = mis._get_fill_func(method)
+    fill_f = missing.get_fill_func(method)
 
     mask = com.mask_missing(result.values, to_replace)
     values = fill_f(result.values, limit=limit, mask=mask)
@@ -2189,7 +2190,7 @@ class NDFrame(PandasObject):
 
         # construct the args
         axes, kwargs = self._construct_axes_from_arguments(args, kwargs)
-        method = mis._clean_reindex_fill_method(kwargs.pop('method', None))
+        method = missing.clean_reindex_fill_method(kwargs.pop('method', None))
         level = kwargs.pop('level', None)
         copy = kwargs.pop('copy', True)
         limit = kwargs.pop('limit', None)
@@ -2304,7 +2305,7 @@ class NDFrame(PandasObject):
 
         axis_name = self._get_axis_name(axis)
         axis_values = self._get_axis(axis_name)
-        method = mis._clean_reindex_fill_method(method)
+        method = missing.clean_reindex_fill_method(method)
         new_index, indexer = axis_values.reindex(labels, method, level,
                                                  limit=limit)
         return self._reindex_with_indexers({axis: [new_index, indexer]},
@@ -3099,7 +3100,7 @@ class NDFrame(PandasObject):
         if axis is None:
             axis = 0
         axis = self._get_axis_number(axis)
-        method = mis._clean_fill_method(method)
+        method = missing.clean_fill_method(method)
 
         from pandas import DataFrame
         if value is None:
@@ -3132,7 +3133,7 @@ class NDFrame(PandasObject):
 
             else:
                 # 2d or less
-                method = mis._clean_fill_method(method)
+                method = missing.clean_fill_method(method)
                 new_data = self._data.interpolate(method=method, axis=axis,
                                                   limit=limit, inplace=inplace,
                                                   coerce=True,
@@ -4121,7 +4122,7 @@ class NDFrame(PandasObject):
               fill_value=None, method=None, limit=None, fill_axis=0,
               broadcast_axis=None):
         from pandas import DataFrame, Series
-        method = mis._clean_fill_method(method)
+        method = missing.clean_fill_method(method)
 
         if broadcast_axis == 1 and self.ndim != other.ndim:
             if isinstance(self, Series):
@@ -5238,16 +5239,6 @@ Returns
 %(outname)s : %(name1)s\n"""
 
 
-def _set_function_name(f, name, cls):
-    f.__name__ = name
-    if PY3:
-        f.__qualname__ = '{klass}.{name}'.format(
-            klass=cls.__name__,
-            name=name)
-        f.__module__ = cls.__module__
-    return f
-
-
 def _make_stat_function(cls, name, name1, name2, axis_descr, desc, f):
     @Substitution(outname=name, desc=desc, name1=name1, name2=name2,
                   axis_descr=axis_descr)
@@ -5265,7 +5256,7 @@ def _make_stat_function(cls, name, name1, name2, axis_descr, desc, f):
         return self._reduce(f, name, axis=axis, skipna=skipna,
                             numeric_only=numeric_only)
 
-    return _set_function_name(stat_func, name, cls)
+    return set_function_name(stat_func, name, cls)
 
 
 def _make_stat_function_ddof(cls, name, name1, name2, axis_descr, desc, f):
@@ -5285,7 +5276,7 @@ def _make_stat_function_ddof(cls, name, name1, name2, axis_descr, desc, f):
         return self._reduce(f, name, axis=axis, numeric_only=numeric_only,
                             skipna=skipna, ddof=ddof)
 
-    return _set_function_name(stat_func, name, cls)
+    return set_function_name(stat_func, name, cls)
 
 
 def _make_cum_function(cls, name, name1, name2, axis_descr, desc, accum_func,
@@ -5320,7 +5311,7 @@ def _make_cum_function(cls, name, name1, name2, axis_descr, desc, accum_func,
         d['copy'] = False
         return self._constructor(result, **d).__finalize__(self)
 
-    return _set_function_name(cum_func, name, cls)
+    return set_function_name(cum_func, name, cls)
 
 
 def _make_logical_function(cls, name, name1, name2, axis_descr, desc, f):
@@ -5344,7 +5335,7 @@ def _make_logical_function(cls, name, name1, name2, axis_descr, desc, f):
                             numeric_only=bool_only, filter_type='bool',
                             name=name)
 
-    return _set_function_name(logical_func, name, cls)
+    return set_function_name(logical_func, name, cls)
 
 
 # install the indexes

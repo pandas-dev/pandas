@@ -5,11 +5,11 @@ import pandas.index as _index
 from pandas import compat
 from pandas.util.decorators import (Appender, cache_readonly,
                                     deprecate_kwarg)
-from pandas.core.missing import _clean_reindex_fill_method
 from pandas.core.config import get_option
 from pandas.indexes.base import Index, _index_shared_docs
 import pandas.core.base as base
 import pandas.core.common as com
+import pandas.core.missing as missing
 import pandas.indexes.base as ibase
 
 
@@ -415,7 +415,7 @@ class CategoricalIndex(Index, base.PandasDelegate):
         -------
         (indexer, mask) : (ndarray, ndarray)
         """
-        method = _clean_reindex_fill_method(method)
+        method = missing.clean_reindex_fill_method(method)
         target = ibase._ensure_index(target)
 
         if isinstance(target, CategoricalIndex):

@@ -10,7 +10,7 @@ import pandas.lib as lib
 from pandas.compat import range
 
 
-def _clean_fill_method(method, allow_nearest=False):
+def clean_fill_method(method, allow_nearest=False):
     if method is None:
         return None
     method = method.lower()
@@ -31,7 +31,7 @@ def _clean_fill_method(method, allow_nearest=False):
     return method
 
 
-def _clean_interp_method(method, **kwargs):
+def clean_interp_method(method, **kwargs):
     order = kwargs.get('order')
     valid = ['linear', 'time', 'index', 'values', 'nearest', 'zero', 'slinear',
              'quadratic', 'cubic', 'barycentric', 'polynomial', 'krogh',
@@ -241,7 +241,7 @@ def interpolate_2d(values, method='pad', axis=0, limit=None, fill_value=None,
     else:  # todo create faster fill func without masking
         mask = com.mask_missing(transf(values), fill_value)
 
-    method = _clean_fill_method(method)
+    method = clean_fill_method(method)
     if method == 'pad':
         values = transf(pad_2d(
             transf(values), limit=limit, mask=mask, dtype=dtype))
@@ -385,10 +385,64 @@ def backfill_2d(values, limit=None, mask=None, dtype=None):
 _fill_methods = {'pad': pad_1d, 'backfill': backfill_1d}
 
 
-def _get_fill_func(method):
-    method = _clean_fill_method(method)
+def get_fill_func(method):
+    method = clean_fill_method(method)
     return _fill_methods[method]
 
 
-def _clean_reindex_fill_method(method):
-    return _clean_fill_method(method, allow_nearest=True)
+def clean_reindex_fill_method(method):
+    return clean_fill_method(method, allow_nearest=True)
+
+
+def fill_zeros(result, x, y, name, fill):
+    """
+    if this is a reversed op, then flip x,y
+
+    if we have an integer value (or array in y)
+    and we have 0's, fill them with the fill,
+    return the result
+
+    mask the nan's from x
+    """
+    if fill is None or com.is_float_dtype(result):
+        return result
+
+    if name.startswith(('r', '__r')):
+        x, y = y, x
+
+    is_typed_variable = (hasattr(y, 'dtype') or hasattr(y, 'type'))
+    is_scalar = lib.isscalar(y)
+
+    if not is_typed_variable and not is_scalar:
+        return result
+
+    if is_scalar:
+        y = np.array(y)
+
+    if com.is_integer_dtype(y):
+
+        if (y == 0).any():
+
+            # GH 7325, mask and nans must be broadcastable (also: PR 9308)
+            # Raveling and then reshaping makes np.putmask faster
+            mask = ((y == 0) & ~np.isnan(result)).ravel()
+
+            shape = result.shape
+            result = result.astype('float64', copy=False).ravel()
+
+            np.putmask(result, mask, fill)
+
+            # if we have a fill of inf, then sign it correctly
+            # (GH 6178 and PR 9308)
+            if np.isinf(fill):
+                signs = np.sign(y if name.startswith(('r', '__r')) else x)
+                negative_inf_mask = (signs.ravel() < 0) & mask
+                np.putmask(result, negative_inf_mask, -fill)
+
+            if "floordiv" in name:  # (PR 9308)
+                nan_mask = ((y == 0) & (x == 0)).ravel()
+                np.putmask(result, nan_mask, np.nan)
+
+            result = result.reshape(shape)
+
+    return result
