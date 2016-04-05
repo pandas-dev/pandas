@@ -20,7 +20,7 @@ from pandas.core.common import (_possibly_downcast_to_dtype, isnull, _NS_DTYPE,
                                 _maybe_convert_string_to_object,
                                 is_categorical, is_datetimelike_v_numeric,
                                 is_numeric_v_string_like, is_internal_type)
-from pandas.core.dtypes import DatetimeTZDtype
+from pandas.types.api import DatetimeTZDtype
 
 from pandas.core.index import Index, MultiIndex, _ensure_index
 from pandas.core.indexing import maybe_convert_indices, length_of_indexer

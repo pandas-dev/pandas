@@ -5,7 +5,8 @@ import nose
 import numpy as np
 from pandas import Series, Categorical, date_range
 import pandas.core.common as com
-from pandas.core.common import (CategoricalDtype, is_categorical_dtype,
+from pandas.types.api import CategoricalDtype
+from pandas.core.common import (is_categorical_dtype,
                                 is_categorical, DatetimeTZDtype,
                                 is_datetime64tz_dtype, is_datetimetz,
                                 is_dtype_equal, is_datetime64_ns_dtype,
