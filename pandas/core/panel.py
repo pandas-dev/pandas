@@ -22,6 +22,7 @@ from pandas.core.frame import DataFrame
 from pandas.core.generic import NDFrame, _shared_docs
 from pandas.core.index import (Index, MultiIndex, _ensure_index,
                                _get_combined_index)
+from pandas.formats.printing import pprint_thing
 from pandas.core.indexing import maybe_droplevels
 from pandas.core.internals import (BlockManager,
                                    create_block_manager_from_arrays,
@@ -345,8 +346,8 @@ class Panel(NDFrame):
             v = getattr(self, a)
             if len(v) > 0:
                 return u('%s axis: %s to %s') % (a.capitalize(),
-                                                 com.pprint_thing(v[0]),
-                                                 com.pprint_thing(v[-1]))
+                                                 pprint_thing(v[0]),
+                                                 pprint_thing(v[-1]))
             else:
                 return u('%s axis: None') % a.capitalize()
 

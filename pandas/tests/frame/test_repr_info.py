@@ -11,7 +11,7 @@ import numpy as np
 
 from pandas import (DataFrame, compat, option_context)
 from pandas.compat import StringIO, lrange, u
-import pandas.core.format as fmt
+import pandas.formats.format as fmt
 import pandas as pd
 
 from numpy.testing.decorators import slow

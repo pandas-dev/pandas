@@ -8,7 +8,7 @@ from pandas.core.algorithms import factorize, match, unique, value_counts
 from pandas.core.common import isnull, notnull
 from pandas.core.categorical import Categorical
 from pandas.core.groupby import Grouper
-from pandas.core.format import set_eng_float_format
+from pandas.formats.format import set_eng_float_format
 from pandas.core.index import (Index, CategoricalIndex, Int64Index,
                                RangeIndex, Float64Index, MultiIndex)
 

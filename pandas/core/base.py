@@ -10,6 +10,7 @@ import pandas.lib as lib
 from pandas.util.decorators import (Appender, cache_readonly,
                                     deprecate_kwarg, Substitution)
 from pandas.core.common import AbstractMethodError
+from pandas.formats.printing import pprint_thing
 
 _shared_docs = dict()
 _indexops_doc_kwargs = dict(klass='IndexOpsMixin', inplace='',
@@ -680,7 +681,6 @@ class FrozenList(PandasObject, list):
                         self.__class__.__name__)
 
     def __unicode__(self):
-        from pandas.core.common import pprint_thing
         return pprint_thing(self, quote_strings=True,
                             escape_chars=('\t', '\r', '\n'))
 
@@ -724,8 +724,8 @@ class FrozenNDArray(PandasObject, np.ndarray):
         Invoked by unicode(df) in py2 only. Yields a Unicode String in both
         py2/py3.
         """
-        prepr = com.pprint_thing(self, escape_chars=('\t', '\r', '\n'),
-                                 quote_strings=True)
+        prepr = pprint_thing(self, escape_chars=('\t', '\r', '\n'),
+                             quote_strings=True)
         return "%s(%s, dtype='%s')" % (type(self).__name__, prepr, self.dtype)
 
 

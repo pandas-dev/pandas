@@ -25,7 +25,7 @@ import pandas as pd
 import pandas.core.common as com
 import pandas.lib as lib
 
-from pandas.core.dtypes import DatetimeTZDtype
+from pandas.types.api import DatetimeTZDtype
 
 from pandas.util.testing import (assert_numpy_array_equal,
                                  assert_series_equal,

@@ -14,6 +14,7 @@ from pandas.compat import (StringIO, lzip, range, map, zip, reduce, u,
 from pandas.util.terminal import get_terminal_size
 from pandas.core.config import get_option, set_option
 from pandas.io.common import _get_handle, UnicodeWriter, _expand_user
+from pandas.formats.printing import adjoin, justify, pprint_thing
 import pandas.core.common as com
 import pandas.lib as lib
 from pandas.tslib import iNaT, Timestamp, Timedelta, format_array_from_datetime
@@ -171,8 +172,8 @@ class SeriesFormatter(object):
             if footer:
                 footer += ', '
 
-            series_name = com.pprint_thing(name,
-                                           escape_chars=('\t', '\r', '\n'))
+            series_name = pprint_thing(name,
+                                       escape_chars=('\t', '\r', '\n'))
             footer += ("Name: %s" % series_name) if name is not None else ""
 
         if self.length:
@@ -185,7 +186,7 @@ class SeriesFormatter(object):
             if name:
                 if footer:
                     footer += ', '
-                footer += 'dtype: %s' % com.pprint_thing(name)
+                footer += 'dtype: %s' % pprint_thing(name)
 
         # level infos are added to the end and in a new line, like it is done
         # for Categoricals
@@ -260,11 +261,11 @@ class TextAdjustment(object):
         return compat.strlen(text, encoding=self.encoding)
 
     def justify(self, texts, max_len, mode='right'):
-        return com._justify(texts, max_len, mode=mode)
+        return justify(texts, max_len, mode=mode)
 
     def adjoin(self, space, *lists, **kwargs):
-        return com.adjoin(space, *lists, strlen=self.len,
-                          justfunc=self.justify, **kwargs)
+        return adjoin(space, *lists, strlen=self.len,
+                      justfunc=self.justify, **kwargs)
 
 
 class EastAsianTextAdjustment(TextAdjustment):
@@ -541,8 +542,8 @@ class DataFrameFormatter(TableFormatter):
         if len(frame.columns) == 0 or len(frame.index) == 0:
             info_line = (u('Empty %s\nColumns: %s\nIndex: %s') %
                          (type(self.frame).__name__,
-                          com.pprint_thing(frame.columns),
-                          com.pprint_thing(frame.index)))
+                          pprint_thing(frame.columns),
+                          pprint_thing(frame.index)))
             text = info_line
         else:
             strcols = self._to_str_columns()
@@ -908,7 +909,7 @@ class HTMLFormatter(TableFormatter):
         self.notebook = notebook
 
     def write(self, s, indent=0):
-        rs = com.pprint_thing(s)
+        rs = pprint_thing(s)
         self.elements.append(' ' * indent + rs)
 
     def write_th(self, s, indent=0, tags=None):
@@ -933,7 +934,7 @@ class HTMLFormatter(TableFormatter):
                                ('>', r'&gt;')])
         else:
             esc = {}
-        rs = com.pprint_thing(s, escape_chars=esc).strip()
+        rs = pprint_thing(s, escape_chars=esc).strip()
         self.write('%s%s</%s>' % (start_tag, rs, kind), indent)
 
     def write_tr(self, line, indent=0, indent_delta=4, header=False,
@@ -1090,7 +1091,7 @@ class HTMLFormatter(TableFormatter):
 
                 name = self.columns.names[lnum]
                 row = [''] * (row_levels - 1) + ['' if name is None else
-                                                 com.pprint_thing(name)]
+                                                 pprint_thing(name)]
 
                 if row == [""] and self.fmt.index is False:
                     row = []
@@ -1803,7 +1804,7 @@ class ExcelFormatter(object):
         else:
             # Format in legacy format with dots to indicate levels.
             for i, values in enumerate(zip(*level_strs)):
-                v = ".".join(map(com.pprint_thing, values))
+                v = ".".join(map(pprint_thing, values))
                 yield ExcelCell(lnum, coloffset + i + 1, v, header_style)
 
         self.rowcounter = lnum
@@ -2036,7 +2037,7 @@ class GenericArrayFormatter(object):
 
         formatter = (
             self.formatter if self.formatter is not None else
-            (lambda x: com.pprint_thing(x, escape_chars=('\t', '\r', '\n'))))
+            (lambda x: pprint_thing(x, escape_chars=('\t', '\r', '\n'))))
 
         def _format(x):
             if self.na_rep is not None and lib.checknull(x):

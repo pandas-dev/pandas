@@ -14,6 +14,7 @@ from pandas.tseries.tdi import TimedeltaIndex
 from pandas.tseries.offsets import DateOffset, Tick, Day, _delta_to_nanoseconds
 from pandas.tseries.period import PeriodIndex, period_range
 import pandas.core.common as com
+import pandas.core.algorithms as algos
 import pandas.compat as compat
 
 from pandas.lib import Timestamp
@@ -1047,7 +1048,7 @@ def _take_new_index(obj, indexer, new_index, axis=0):
     from pandas.core.api import Series, DataFrame
 
     if isinstance(obj, Series):
-        new_values = com.take_1d(obj.values, indexer)
+        new_values = algos.take_1d(obj.values, indexer)
         return Series(new_values, index=new_index, name=obj.name)
     elif isinstance(obj, DataFrame):
         if axis == 1:

@@ -4,18 +4,16 @@ from datetime import datetime
 import re
 
 import nose
-from nose.tools import assert_equal, assert_true
 import numpy as np
 import pandas as pd
 from pandas.tslib import iNaT, NaT
 from pandas import (Series, DataFrame, date_range, DatetimeIndex,
                     TimedeltaIndex, Timestamp, Float64Index)
 from pandas import compat
-from pandas.compat import range, long, lrange, lmap, u
+from pandas.compat import range, lrange, lmap, u
 from pandas.core.common import notnull, isnull, array_equivalent
 import pandas.core.common as com
 import pandas.core.convert as convert
-import pandas.core.format as fmt
 import pandas.util.testing as tm
 import pandas.core.config as cf
 
@@ -68,40 +66,6 @@ def test_get_callable_name():
     assert getname(part2) == 'fn'
     assert getname(somecall()) == 'somecall'
     assert getname(1) is None
-
-
-# Issue 10859
-class TestABCClasses(tm.TestCase):
-    tuples = [[1, 2, 2], ['red', 'blue', 'red']]
-    multi_index = pd.MultiIndex.from_arrays(tuples, names=('number', 'color'))
-    datetime_index = pd.to_datetime(['2000/1/1', '2010/1/1'])
-    timedelta_index = pd.to_timedelta(np.arange(5), unit='s')
-    period_index = pd.period_range('2000/1/1', '2010/1/1/', freq='M')
-    categorical = pd.Categorical([1, 2, 3], categories=[2, 3, 1])
-    categorical_df = pd.DataFrame({"values": [1, 2, 3]}, index=categorical)
-    df = pd.DataFrame({'names': ['a', 'b', 'c']}, index=multi_index)
-    sparse_series = pd.Series([1, 2, 3]).to_sparse()
-    sparse_array = pd.SparseArray(np.random.randn(10))
-
-    def test_abc_types(self):
-        self.assertIsInstance(pd.Index(['a', 'b', 'c']), com.ABCIndex)
-        self.assertIsInstance(pd.Int64Index([1, 2, 3]), com.ABCInt64Index)
-        self.assertIsInstance(pd.Float64Index([1, 2, 3]), com.ABCFloat64Index)
-        self.assertIsInstance(self.multi_index, com.ABCMultiIndex)
-        self.assertIsInstance(self.datetime_index, com.ABCDatetimeIndex)
-        self.assertIsInstance(self.timedelta_index, com.ABCTimedeltaIndex)
-        self.assertIsInstance(self.period_index, com.ABCPeriodIndex)
-        self.assertIsInstance(self.categorical_df.index,
-                              com.ABCCategoricalIndex)
-        self.assertIsInstance(pd.Index(['a', 'b', 'c']), com.ABCIndexClass)
-        self.assertIsInstance(pd.Int64Index([1, 2, 3]), com.ABCIndexClass)
-        self.assertIsInstance(pd.Series([1, 2, 3]), com.ABCSeries)
-        self.assertIsInstance(self.df, com.ABCDataFrame)
-        self.assertIsInstance(self.df.to_panel(), com.ABCPanel)
-        self.assertIsInstance(self.sparse_series, com.ABCSparseSeries)
-        self.assertIsInstance(self.sparse_array, com.ABCSparseArray)
-        self.assertIsInstance(self.categorical, com.ABCCategorical)
-        self.assertIsInstance(pd.Period('2012', freq='A-DEC'), com.ABCPeriod)
 
 
 class TestInferDtype(tm.TestCase):
@@ -408,118 +372,6 @@ def test_all_not_none():
     assert (not com._all_not_none(None, None, None, None))
 
 
-def test_repr_binary_type():
-    import string
-    letters = string.ascii_letters
-    btype = compat.binary_type
-    try:
-        raw = btype(letters, encoding=cf.get_option('display.encoding'))
-    except TypeError:
-        raw = btype(letters)
-    b = compat.text_type(compat.bytes_to_str(raw))
-    res = com.pprint_thing(b, quote_strings=True)
-    assert_equal(res, repr(b))
-    res = com.pprint_thing(b, quote_strings=False)
-    assert_equal(res, b)
-
-
-def test_adjoin():
-    data = [['a', 'b', 'c'], ['dd', 'ee', 'ff'], ['ggg', 'hhh', 'iii']]
-    expected = 'a  dd  ggg\nb  ee  hhh\nc  ff  iii'
-
-    adjoined = com.adjoin(2, *data)
-
-    assert (adjoined == expected)
-
-
-class TestFormattBase(tm.TestCase):
-
-    def test_adjoin(self):
-        data = [['a', 'b', 'c'], ['dd', 'ee', 'ff'], ['ggg', 'hhh', 'iii']]
-        expected = 'a  dd  ggg\nb  ee  hhh\nc  ff  iii'
-
-        adjoined = com.adjoin(2, *data)
-
-        self.assertEqual(adjoined, expected)
-
-    def test_adjoin_unicode(self):
-        data = [[u'あ', 'b', 'c'], ['dd', u'ええ', 'ff'], ['ggg', 'hhh', u'いいい']]
-        expected = u'あ  dd  ggg\nb  ええ  hhh\nc  ff  いいい'
-        adjoined = com.adjoin(2, *data)
-        self.assertEqual(adjoined, expected)
-
-        adj = fmt.EastAsianTextAdjustment()
-
-        expected = u"""あ  dd    ggg
-b   ええ  hhh
-c   ff    いいい"""
-
-        adjoined = adj.adjoin(2, *data)
-        self.assertEqual(adjoined, expected)
-        cols = adjoined.split('\n')
-        self.assertEqual(adj.len(cols[0]), 13)
-        self.assertEqual(adj.len(cols[1]), 13)
-        self.assertEqual(adj.len(cols[2]), 16)
-
-        expected = u"""あ       dd         ggg
-b        ええ       hhh
-c        ff         いいい"""
-
-        adjoined = adj.adjoin(7, *data)
-        self.assertEqual(adjoined, expected)
-        cols = adjoined.split('\n')
-        self.assertEqual(adj.len(cols[0]), 23)
-        self.assertEqual(adj.len(cols[1]), 23)
-        self.assertEqual(adj.len(cols[2]), 26)
-
-    def test_justify(self):
-        adj = fmt.EastAsianTextAdjustment()
-
-        def just(x, *args, **kwargs):
-            # wrapper to test single str
-            return adj.justify([x], *args, **kwargs)[0]
-
-        self.assertEqual(just('abc', 5, mode='left'), 'abc  ')
-        self.assertEqual(just('abc', 5, mode='center'), ' abc ')
-        self.assertEqual(just('abc', 5, mode='right'), '  abc')
-        self.assertEqual(just(u'abc', 5, mode='left'), 'abc  ')
-        self.assertEqual(just(u'abc', 5, mode='center'), ' abc ')
-        self.assertEqual(just(u'abc', 5, mode='right'), '  abc')
-
-        self.assertEqual(just(u'パンダ', 5, mode='left'), u'パンダ')
-        self.assertEqual(just(u'パンダ', 5, mode='center'), u'パンダ')
-        self.assertEqual(just(u'パンダ', 5, mode='right'), u'パンダ')
-
-        self.assertEqual(just(u'パンダ', 10, mode='left'), u'パンダ    ')
-        self.assertEqual(just(u'パンダ', 10, mode='center'), u'  パンダ  ')
-        self.assertEqual(just(u'パンダ', 10, mode='right'), u'    パンダ')
-
-    def test_east_asian_len(self):
-        adj = fmt.EastAsianTextAdjustment()
-
-        self.assertEqual(adj.len('abc'), 3)
-        self.assertEqual(adj.len(u'abc'), 3)
-
-        self.assertEqual(adj.len(u'パンダ'), 6)
-        self.assertEqual(adj.len(u'ﾊﾟﾝﾀﾞ'), 5)
-        self.assertEqual(adj.len(u'パンダpanda'), 11)
-        self.assertEqual(adj.len(u'ﾊﾟﾝﾀﾞpanda'), 10)
-
-    def test_ambiguous_width(self):
-        adj = fmt.EastAsianTextAdjustment()
-        self.assertEqual(adj.len(u'¡¡ab'), 4)
-
-        with cf.option_context('display.unicode.ambiguous_as_wide', True):
-            adj = fmt.EastAsianTextAdjustment()
-            self.assertEqual(adj.len(u'¡¡ab'), 6)
-
-        data = [[u'あ', 'b', 'c'], ['dd', u'ええ', 'ff'],
-                ['ggg', u'¡¡ab', u'いいい']]
-        expected = u'あ  dd    ggg \nb   ええ  ¡¡ab\nc   ff    いいい'
-        adjoined = adj.adjoin(2, *data)
-        self.assertEqual(adjoined, expected)
-
-
 def test_iterpairs():
     data = [1, 2, 3, 4]
     expected = [(1, 2), (2, 3), (3, 4)]
@@ -557,18 +409,6 @@ def test_split_ranges():
     test_locs([])
     test_locs([0])
     test_locs([1])
-
-
-def test_indent():
-    s = 'a b c\nd e f'
-    result = com.indent(s, spaces=6)
-
-    assert (result == '      a b c\n      d e f')
-
-
-def test_banner():
-    ban = com.banner('hi')
-    assert (ban == ('%s\nhi\n%s' % ('=' * 80, '=' * 80)))
 
 
 def test_map_indices_py():
@@ -732,21 +572,6 @@ def test_ensure_platform_int():
     pi = com._ensure_platform_int(x)
     assert (pi.dtype == np.int_)
 
-# TODO: fix this broken test
-
-# def test_console_encode():
-#     """
-#     On Python 2, if sys.stdin.encoding is None (IPython with zmq frontend)
-#     common.console_encode should encode things as utf-8.
-#     """
-#     if compat.PY3:
-#         raise nose.SkipTest
-
-#     with tm.stdin_encoding(encoding=None):
-#         result = com.console_encode(u"\u05d0")
-#         expected = u"\u05d0".encode('utf-8')
-#         assert (result == expected)
-
 
 def test_is_re():
     passes = re.compile('ad'),
@@ -775,11 +600,11 @@ def test_random_state():
     import numpy.random as npr
     # Check with seed
     state = com._random_state(5)
-    assert_equal(state.uniform(), npr.RandomState(5).uniform())
+    tm.assert_equal(state.uniform(), npr.RandomState(5).uniform())
 
     # Check with random state object
     state2 = npr.RandomState(10)
-    assert_equal(
+    tm.assert_equal(
         com._random_state(state2).uniform(), npr.RandomState(10).uniform())
 
     # check with no arg random state
@@ -818,434 +643,6 @@ def test_maybe_match_name():
     assert (matched == 'y')
 
 
-class TestTake(tm.TestCase):
-    # standard incompatible fill error
-    fill_error = re.compile("Incompatible type for fill_value")
-
-    _multiprocess_can_split_ = True
-
-    def test_1d_with_out(self):
-        def _test_dtype(dtype, can_hold_na, writeable=True):
-            data = np.random.randint(0, 2, 4).astype(dtype)
-            data.flags.writeable = writeable
-
-            indexer = [2, 1, 0, 1]
-            out = np.empty(4, dtype=dtype)
-            com.take_1d(data, indexer, out=out)
-            expected = data.take(indexer)
-            tm.assert_almost_equal(out, expected)
-
-            indexer = [2, 1, 0, -1]
-            out = np.empty(4, dtype=dtype)
-            if can_hold_na:
-                com.take_1d(data, indexer, out=out)
-                expected = data.take(indexer)
-                expected[3] = np.nan
-                tm.assert_almost_equal(out, expected)
-            else:
-                with tm.assertRaisesRegexp(TypeError, self.fill_error):
-                    com.take_1d(data, indexer, out=out)
-                # no exception o/w
-                data.take(indexer, out=out)
-
-        for writeable in [True, False]:
-            # Check that take_nd works both with writeable arrays (in which
-            # case fast typed memoryviews implementation) and read-only
-            # arrays alike.
-            _test_dtype(np.float64, True, writeable=writeable)
-            _test_dtype(np.float32, True, writeable=writeable)
-            _test_dtype(np.uint64, False, writeable=writeable)
-            _test_dtype(np.uint32, False, writeable=writeable)
-            _test_dtype(np.uint16, False, writeable=writeable)
-            _test_dtype(np.uint8, False, writeable=writeable)
-            _test_dtype(np.int64, False, writeable=writeable)
-            _test_dtype(np.int32, False, writeable=writeable)
-            _test_dtype(np.int16, False, writeable=writeable)
-            _test_dtype(np.int8, False, writeable=writeable)
-            _test_dtype(np.object_, True, writeable=writeable)
-            _test_dtype(np.bool, False, writeable=writeable)
-
-    def test_1d_fill_nonna(self):
-        def _test_dtype(dtype, fill_value, out_dtype):
-            data = np.random.randint(0, 2, 4).astype(dtype)
-
-            indexer = [2, 1, 0, -1]
-
-            result = com.take_1d(data, indexer, fill_value=fill_value)
-            assert ((result[[0, 1, 2]] == data[[2, 1, 0]]).all())
-            assert (result[3] == fill_value)
-            assert (result.dtype == out_dtype)
-
-            indexer = [2, 1, 0, 1]
-
-            result = com.take_1d(data, indexer, fill_value=fill_value)
-            assert ((result[[0, 1, 2, 3]] == data[indexer]).all())
-            assert (result.dtype == dtype)
-
-        _test_dtype(np.int8, np.int16(127), np.int8)
-        _test_dtype(np.int8, np.int16(128), np.int16)
-        _test_dtype(np.int32, 1, np.int32)
-        _test_dtype(np.int32, 2.0, np.float64)
-        _test_dtype(np.int32, 3.0 + 4.0j, np.complex128)
-        _test_dtype(np.int32, True, np.object_)
-        _test_dtype(np.int32, '', np.object_)
-        _test_dtype(np.float64, 1, np.float64)
-        _test_dtype(np.float64, 2.0, np.float64)
-        _test_dtype(np.float64, 3.0 + 4.0j, np.complex128)
-        _test_dtype(np.float64, True, np.object_)
-        _test_dtype(np.float64, '', np.object_)
-        _test_dtype(np.complex128, 1, np.complex128)
-        _test_dtype(np.complex128, 2.0, np.complex128)
-        _test_dtype(np.complex128, 3.0 + 4.0j, np.complex128)
-        _test_dtype(np.complex128, True, np.object_)
-        _test_dtype(np.complex128, '', np.object_)
-        _test_dtype(np.bool_, 1, np.object_)
-        _test_dtype(np.bool_, 2.0, np.object_)
-        _test_dtype(np.bool_, 3.0 + 4.0j, np.object_)
-        _test_dtype(np.bool_, True, np.bool_)
-        _test_dtype(np.bool_, '', np.object_)
-
-    def test_2d_with_out(self):
-        def _test_dtype(dtype, can_hold_na, writeable=True):
-            data = np.random.randint(0, 2, (5, 3)).astype(dtype)
-            data.flags.writeable = writeable
-
-            indexer = [2, 1, 0, 1]
-            out0 = np.empty((4, 3), dtype=dtype)
-            out1 = np.empty((5, 4), dtype=dtype)
-            com.take_nd(data, indexer, out=out0, axis=0)
-            com.take_nd(data, indexer, out=out1, axis=1)
-            expected0 = data.take(indexer, axis=0)
-            expected1 = data.take(indexer, axis=1)
-            tm.assert_almost_equal(out0, expected0)
-            tm.assert_almost_equal(out1, expected1)
-
-            indexer = [2, 1, 0, -1]
-            out0 = np.empty((4, 3), dtype=dtype)
-            out1 = np.empty((5, 4), dtype=dtype)
-            if can_hold_na:
-                com.take_nd(data, indexer, out=out0, axis=0)
-                com.take_nd(data, indexer, out=out1, axis=1)
-                expected0 = data.take(indexer, axis=0)
-                expected1 = data.take(indexer, axis=1)
-                expected0[3, :] = np.nan
-                expected1[:, 3] = np.nan
-                tm.assert_almost_equal(out0, expected0)
-                tm.assert_almost_equal(out1, expected1)
-            else:
-                for i, out in enumerate([out0, out1]):
-                    with tm.assertRaisesRegexp(TypeError, self.fill_error):
-                        com.take_nd(data, indexer, out=out, axis=i)
-                    # no exception o/w
-                    data.take(indexer, out=out, axis=i)
-
-        for writeable in [True, False]:
-            # Check that take_nd works both with writeable arrays (in which
-            # case fast typed memoryviews implementation) and read-only
-            # arrays alike.
-            _test_dtype(np.float64, True, writeable=writeable)
-            _test_dtype(np.float32, True, writeable=writeable)
-            _test_dtype(np.uint64, False, writeable=writeable)
-            _test_dtype(np.uint32, False, writeable=writeable)
-            _test_dtype(np.uint16, False, writeable=writeable)
-            _test_dtype(np.uint8, False, writeable=writeable)
-            _test_dtype(np.int64, False, writeable=writeable)
-            _test_dtype(np.int32, False, writeable=writeable)
-            _test_dtype(np.int16, False, writeable=writeable)
-            _test_dtype(np.int8, False, writeable=writeable)
-            _test_dtype(np.object_, True, writeable=writeable)
-            _test_dtype(np.bool, False, writeable=writeable)
-
-    def test_2d_fill_nonna(self):
-        def _test_dtype(dtype, fill_value, out_dtype):
-            data = np.random.randint(0, 2, (5, 3)).astype(dtype)
-
-            indexer = [2, 1, 0, -1]
-
-            result = com.take_nd(data, indexer, axis=0, fill_value=fill_value)
-            assert ((result[[0, 1, 2], :] == data[[2, 1, 0], :]).all())
-            assert ((result[3, :] == fill_value).all())
-            assert (result.dtype == out_dtype)
-
-            result = com.take_nd(data, indexer, axis=1, fill_value=fill_value)
-            assert ((result[:, [0, 1, 2]] == data[:, [2, 1, 0]]).all())
-            assert ((result[:, 3] == fill_value).all())
-            assert (result.dtype == out_dtype)
-
-            indexer = [2, 1, 0, 1]
-
-            result = com.take_nd(data, indexer, axis=0, fill_value=fill_value)
-            assert ((result[[0, 1, 2, 3], :] == data[indexer, :]).all())
-            assert (result.dtype == dtype)
-
-            result = com.take_nd(data, indexer, axis=1, fill_value=fill_value)
-            assert ((result[:, [0, 1, 2, 3]] == data[:, indexer]).all())
-            assert (result.dtype == dtype)
-
-        _test_dtype(np.int8, np.int16(127), np.int8)
-        _test_dtype(np.int8, np.int16(128), np.int16)
-        _test_dtype(np.int32, 1, np.int32)
-        _test_dtype(np.int32, 2.0, np.float64)
-        _test_dtype(np.int32, 3.0 + 4.0j, np.complex128)
-        _test_dtype(np.int32, True, np.object_)
-        _test_dtype(np.int32, '', np.object_)
-        _test_dtype(np.float64, 1, np.float64)
-        _test_dtype(np.float64, 2.0, np.float64)
-        _test_dtype(np.float64, 3.0 + 4.0j, np.complex128)
-        _test_dtype(np.float64, True, np.object_)
-        _test_dtype(np.float64, '', np.object_)
-        _test_dtype(np.complex128, 1, np.complex128)
-        _test_dtype(np.complex128, 2.0, np.complex128)
-        _test_dtype(np.complex128, 3.0 + 4.0j, np.complex128)
-        _test_dtype(np.complex128, True, np.object_)
-        _test_dtype(np.complex128, '', np.object_)
-        _test_dtype(np.bool_, 1, np.object_)
-        _test_dtype(np.bool_, 2.0, np.object_)
-        _test_dtype(np.bool_, 3.0 + 4.0j, np.object_)
-        _test_dtype(np.bool_, True, np.bool_)
-        _test_dtype(np.bool_, '', np.object_)
-
-    def test_3d_with_out(self):
-        def _test_dtype(dtype, can_hold_na):
-            data = np.random.randint(0, 2, (5, 4, 3)).astype(dtype)
-
-            indexer = [2, 1, 0, 1]
-            out0 = np.empty((4, 4, 3), dtype=dtype)
-            out1 = np.empty((5, 4, 3), dtype=dtype)
-            out2 = np.empty((5, 4, 4), dtype=dtype)
-            com.take_nd(data, indexer, out=out0, axis=0)
-            com.take_nd(data, indexer, out=out1, axis=1)
-            com.take_nd(data, indexer, out=out2, axis=2)
-            expected0 = data.take(indexer, axis=0)
-            expected1 = data.take(indexer, axis=1)
-            expected2 = data.take(indexer, axis=2)
-            tm.assert_almost_equal(out0, expected0)
-            tm.assert_almost_equal(out1, expected1)
-            tm.assert_almost_equal(out2, expected2)
-
-            indexer = [2, 1, 0, -1]
-            out0 = np.empty((4, 4, 3), dtype=dtype)
-            out1 = np.empty((5, 4, 3), dtype=dtype)
-            out2 = np.empty((5, 4, 4), dtype=dtype)
-            if can_hold_na:
-                com.take_nd(data, indexer, out=out0, axis=0)
-                com.take_nd(data, indexer, out=out1, axis=1)
-                com.take_nd(data, indexer, out=out2, axis=2)
-                expected0 = data.take(indexer, axis=0)
-                expected1 = data.take(indexer, axis=1)
-                expected2 = data.take(indexer, axis=2)
-                expected0[3, :, :] = np.nan
-                expected1[:, 3, :] = np.nan
-                expected2[:, :, 3] = np.nan
-                tm.assert_almost_equal(out0, expected0)
-                tm.assert_almost_equal(out1, expected1)
-                tm.assert_almost_equal(out2, expected2)
-            else:
-                for i, out in enumerate([out0, out1, out2]):
-                    with tm.assertRaisesRegexp(TypeError, self.fill_error):
-                        com.take_nd(data, indexer, out=out, axis=i)
-                    # no exception o/w
-                    data.take(indexer, out=out, axis=i)
-
-        _test_dtype(np.float64, True)
-        _test_dtype(np.float32, True)
-        _test_dtype(np.uint64, False)
-        _test_dtype(np.uint32, False)
-        _test_dtype(np.uint16, False)
-        _test_dtype(np.uint8, False)
-        _test_dtype(np.int64, False)
-        _test_dtype(np.int32, False)
-        _test_dtype(np.int16, False)
-        _test_dtype(np.int8, False)
-        _test_dtype(np.object_, True)
-        _test_dtype(np.bool, False)
-
-    def test_3d_fill_nonna(self):
-        def _test_dtype(dtype, fill_value, out_dtype):
-            data = np.random.randint(0, 2, (5, 4, 3)).astype(dtype)
-
-            indexer = [2, 1, 0, -1]
-
-            result = com.take_nd(data, indexer, axis=0, fill_value=fill_value)
-            assert ((result[[0, 1, 2], :, :] == data[[2, 1, 0], :, :]).all())
-            assert ((result[3, :, :] == fill_value).all())
-            assert (result.dtype == out_dtype)
-
-            result = com.take_nd(data, indexer, axis=1, fill_value=fill_value)
-            assert ((result[:, [0, 1, 2], :] == data[:, [2, 1, 0], :]).all())
-            assert ((result[:, 3, :] == fill_value).all())
-            assert (result.dtype == out_dtype)
-
-            result = com.take_nd(data, indexer, axis=2, fill_value=fill_value)
-            assert ((result[:, :, [0, 1, 2]] == data[:, :, [2, 1, 0]]).all())
-            assert ((result[:, :, 3] == fill_value).all())
-            assert (result.dtype == out_dtype)
-
-            indexer = [2, 1, 0, 1]
-
-            result = com.take_nd(data, indexer, axis=0, fill_value=fill_value)
-            assert ((result[[0, 1, 2, 3], :, :] == data[indexer, :, :]).all())
-            assert (result.dtype == dtype)
-
-            result = com.take_nd(data, indexer, axis=1, fill_value=fill_value)
-            assert ((result[:, [0, 1, 2, 3], :] == data[:, indexer, :]).all())
-            assert (result.dtype == dtype)
-
-            result = com.take_nd(data, indexer, axis=2, fill_value=fill_value)
-            assert ((result[:, :, [0, 1, 2, 3]] == data[:, :, indexer]).all())
-            assert (result.dtype == dtype)
-
-        _test_dtype(np.int8, np.int16(127), np.int8)
-        _test_dtype(np.int8, np.int16(128), np.int16)
-        _test_dtype(np.int32, 1, np.int32)
-        _test_dtype(np.int32, 2.0, np.float64)
-        _test_dtype(np.int32, 3.0 + 4.0j, np.complex128)
-        _test_dtype(np.int32, True, np.object_)
-        _test_dtype(np.int32, '', np.object_)
-        _test_dtype(np.float64, 1, np.float64)
-        _test_dtype(np.float64, 2.0, np.float64)
-        _test_dtype(np.float64, 3.0 + 4.0j, np.complex128)
-        _test_dtype(np.float64, True, np.object_)
-        _test_dtype(np.float64, '', np.object_)
-        _test_dtype(np.complex128, 1, np.complex128)
-        _test_dtype(np.complex128, 2.0, np.complex128)
-        _test_dtype(np.complex128, 3.0 + 4.0j, np.complex128)
-        _test_dtype(np.complex128, True, np.object_)
-        _test_dtype(np.complex128, '', np.object_)
-        _test_dtype(np.bool_, 1, np.object_)
-        _test_dtype(np.bool_, 2.0, np.object_)
-        _test_dtype(np.bool_, 3.0 + 4.0j, np.object_)
-        _test_dtype(np.bool_, True, np.bool_)
-        _test_dtype(np.bool_, '', np.object_)
-
-    def test_1d_other_dtypes(self):
-        arr = np.random.randn(10).astype(np.float32)
-
-        indexer = [1, 2, 3, -1]
-        result = com.take_1d(arr, indexer)
-        expected = arr.take(indexer)
-        expected[-1] = np.nan
-        tm.assert_almost_equal(result, expected)
-
-    def test_2d_other_dtypes(self):
-        arr = np.random.randn(10, 5).astype(np.float32)
-
-        indexer = [1, 2, 3, -1]
-
-        # axis=0
-        result = com.take_nd(arr, indexer, axis=0)
-        expected = arr.take(indexer, axis=0)
-        expected[-1] = np.nan
-        tm.assert_almost_equal(result, expected)
-
-        # axis=1
-        result = com.take_nd(arr, indexer, axis=1)
-        expected = arr.take(indexer, axis=1)
-        expected[:, -1] = np.nan
-        tm.assert_almost_equal(result, expected)
-
-    def test_1d_bool(self):
-        arr = np.array([0, 1, 0], dtype=bool)
-
-        result = com.take_1d(arr, [0, 2, 2, 1])
-        expected = arr.take([0, 2, 2, 1])
-        self.assert_numpy_array_equal(result, expected)
-
-        result = com.take_1d(arr, [0, 2, -1])
-        self.assertEqual(result.dtype, np.object_)
-
-    def test_2d_bool(self):
-        arr = np.array([[0, 1, 0], [1, 0, 1], [0, 1, 1]], dtype=bool)
-
-        result = com.take_nd(arr, [0, 2, 2, 1])
-        expected = arr.take([0, 2, 2, 1], axis=0)
-        self.assert_numpy_array_equal(result, expected)
-
-        result = com.take_nd(arr, [0, 2, 2, 1], axis=1)
-        expected = arr.take([0, 2, 2, 1], axis=1)
-        self.assert_numpy_array_equal(result, expected)
-
-        result = com.take_nd(arr, [0, 2, -1])
-        self.assertEqual(result.dtype, np.object_)
-
-    def test_2d_float32(self):
-        arr = np.random.randn(4, 3).astype(np.float32)
-        indexer = [0, 2, -1, 1, -1]
-
-        # axis=0
-        result = com.take_nd(arr, indexer, axis=0)
-        result2 = np.empty_like(result)
-        com.take_nd(arr, indexer, axis=0, out=result2)
-        tm.assert_almost_equal(result, result2)
-
-        expected = arr.take(indexer, axis=0)
-        expected[[2, 4], :] = np.nan
-        tm.assert_almost_equal(result, expected)
-
-        # this now accepts a float32! # test with float64 out buffer
-        out = np.empty((len(indexer), arr.shape[1]), dtype='float32')
-        com.take_nd(arr, indexer, out=out)  # it works!
-
-        # axis=1
-        result = com.take_nd(arr, indexer, axis=1)
-        result2 = np.empty_like(result)
-        com.take_nd(arr, indexer, axis=1, out=result2)
-        tm.assert_almost_equal(result, result2)
-
-        expected = arr.take(indexer, axis=1)
-        expected[:, [2, 4]] = np.nan
-        tm.assert_almost_equal(result, expected)
-
-    def test_2d_datetime64(self):
-        # 2005/01/01 - 2006/01/01
-        arr = np.random.randint(
-            long(11045376), long(11360736), (5, 3)) * 100000000000
-        arr = arr.view(dtype='datetime64[ns]')
-        indexer = [0, 2, -1, 1, -1]
-
-        # axis=0
-        result = com.take_nd(arr, indexer, axis=0)
-        result2 = np.empty_like(result)
-        com.take_nd(arr, indexer, axis=0, out=result2)
-        tm.assert_almost_equal(result, result2)
-
-        expected = arr.take(indexer, axis=0)
-        expected.view(np.int64)[[2, 4], :] = iNaT
-        tm.assert_almost_equal(result, expected)
-
-        result = com.take_nd(arr, indexer, axis=0,
-                             fill_value=datetime(2007, 1, 1))
-        result2 = np.empty_like(result)
-        com.take_nd(arr, indexer, out=result2, axis=0,
-                    fill_value=datetime(2007, 1, 1))
-        tm.assert_almost_equal(result, result2)
-
-        expected = arr.take(indexer, axis=0)
-        expected[[2, 4], :] = datetime(2007, 1, 1)
-        tm.assert_almost_equal(result, expected)
-
-        # axis=1
-        result = com.take_nd(arr, indexer, axis=1)
-        result2 = np.empty_like(result)
-        com.take_nd(arr, indexer, axis=1, out=result2)
-        tm.assert_almost_equal(result, result2)
-
-        expected = arr.take(indexer, axis=1)
-        expected.view(np.int64)[:, [2, 4]] = iNaT
-        tm.assert_almost_equal(result, expected)
-
-        result = com.take_nd(arr, indexer, axis=1,
-                             fill_value=datetime(2007, 1, 1))
-        result2 = np.empty_like(result)
-        com.take_nd(arr, indexer, out=result2, axis=1,
-                    fill_value=datetime(2007, 1, 1))
-        tm.assert_almost_equal(result, result2)
-
-        expected = arr.take(indexer, axis=1)
-        expected[:, [2, 4]] = datetime(2007, 1, 1)
-        tm.assert_almost_equal(result, expected)
-
-
 class TestMaybe(tm.TestCase):
 
     def test_maybe_convert_string_to_array(self):
@@ -1274,21 +671,23 @@ class TestMaybe(tm.TestCase):
         self.assertTrue(result.dtype == object)
 
 
-def test_possibly_convert_objects_copy():
-    values = np.array([1, 2])
+class TestConvert(tm.TestCase):
 
-    out = convert._possibly_convert_objects(values, copy=False)
-    assert_true(values is out)
+    def test_possibly_convert_objects_copy(self):
+        values = np.array([1, 2])
 
-    out = convert._possibly_convert_objects(values, copy=True)
-    assert_true(values is not out)
+        out = convert._possibly_convert_objects(values, copy=False)
+        self.assertTrue(values is out)
 
-    values = np.array(['apply', 'banana'])
-    out = convert._possibly_convert_objects(values, copy=False)
-    assert_true(values is out)
+        out = convert._possibly_convert_objects(values, copy=True)
+        self.assertTrue(values is not out)
 
-    out = convert._possibly_convert_objects(values, copy=True)
-    assert_true(values is not out)
+        values = np.array(['apply', 'banana'])
+        out = convert._possibly_convert_objects(values, copy=False)
+        self.assertTrue(values is out)
+
+        out = convert._possibly_convert_objects(values, copy=True)
+        self.assertTrue(values is not out)
 
 
 def test_dict_compat():

@@ -14,7 +14,7 @@ from pandas.compat import OrderedDict, lrange
 from pandas.sparse.array import SparseArray
 from pandas.core.internals import (BlockPlacement, SingleBlockManager,
                                    make_block, BlockManager)
-import pandas.core.common as com
+import pandas.core.algorithms as algos
 import pandas.util.testing as tm
 import pandas as pd
 from pandas.util.testing import (assert_almost_equal, assert_frame_equal,
@@ -948,8 +948,8 @@ class TestIndexing(object):
 
             reindexed = mgr.reindex_axis(new_labels, axis,
                                          fill_value=fill_value)
-            tm.assert_numpy_array_equal(com.take_nd(mat, indexer, axis,
-                                                    fill_value=fill_value),
+            tm.assert_numpy_array_equal(algos.take_nd(mat, indexer, axis,
+                                                      fill_value=fill_value),
                                         reindexed.as_matrix())
             tm.assert_index_equal(reindexed.axes[axis], new_labels)
 
@@ -981,8 +981,8 @@ class TestIndexing(object):
         def assert_reindex_indexer_is_ok(mgr, axis, new_labels, indexer,
                                          fill_value):
             mat = mgr.as_matrix()
-            reindexed_mat = com.take_nd(mat, indexer, axis,
-                                        fill_value=fill_value)
+            reindexed_mat = algos.take_nd(mat, indexer, axis,
+                                          fill_value=fill_value)
             reindexed = mgr.reindex_indexer(new_labels, indexer, axis,
                                             fill_value=fill_value)
             tm.assert_numpy_array_equal(reindexed_mat, reindexed.as_matrix())

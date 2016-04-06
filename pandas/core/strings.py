@@ -4,7 +4,8 @@ from pandas.compat import zip
 from pandas.core.common import (isnull, notnull, _values_from_object,
                                 is_bool_dtype,
                                 is_list_like, is_categorical_dtype,
-                                is_object_dtype, take_1d)
+                                is_object_dtype)
+from pandas.core.algorithms import take_1d
 import pandas.compat as compat
 from pandas.core.base import AccessorProperty, NoNewAttributesMixin
 from pandas.util.decorators import Appender, deprecate_kwarg

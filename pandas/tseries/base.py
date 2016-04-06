@@ -9,6 +9,7 @@ from pandas import compat
 import numpy as np
 from pandas.core import common as com, algorithms
 from pandas.core.common import is_integer, is_float, AbstractMethodError
+import pandas.formats.printing as printing
 import pandas.tslib as tslib
 import pandas.lib as lib
 from pandas.core.index import Index
@@ -673,7 +674,7 @@ class DatetimeIndexOpsMixin(object):
 
         if name is None:
             name = type(self).__name__
-        result = '%s: %s entries%s' % (com.pprint_thing(name),
+        result = '%s: %s entries%s' % (printing.pprint_thing(name),
                                        len(self), index_summary)
         if self.freq:
             result += '\nFreq: %s' % self.freqstr

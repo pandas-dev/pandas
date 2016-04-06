@@ -19,7 +19,7 @@ from pandas.compat import (lzip, map, zip, raise_with_traceback,
 from pandas.core.api import DataFrame, Series
 from pandas.core.common import isnull
 from pandas.core.base import PandasObject
-from pandas.core.dtypes import DatetimeTZDtype
+from pandas.types.api import DatetimeTZDtype
 from pandas.tseries.tools import to_datetime
 
 from contextlib import contextmanager

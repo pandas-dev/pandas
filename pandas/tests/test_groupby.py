@@ -14,6 +14,7 @@ from pandas.core.groupby import (SpecificationError, DataError, _nargsort,
                                  _lexsort_indexer)
 from pandas.core.series import Series
 from pandas.core.config import option_context
+from pandas.formats.printing import pprint_thing
 from pandas.util.testing import (assert_panel_equal, assert_frame_equal,
                                  assert_series_equal, assert_almost_equal,
                                  assert_index_equal, assertRaisesRegexp)
@@ -981,8 +982,8 @@ class TestGroupBy(tm.TestCase):
         df = DataFrame(randint(10, size=(20, 10)))
 
         def raiseException(df):
-            com.pprint_thing('----------------------------------------')
-            com.pprint_thing(df.to_string())
+            pprint_thing('----------------------------------------')
+            pprint_thing(df.to_string())
             raise TypeError
 
         self.assertRaises(TypeError, df.groupby(0).agg, raiseException)

@@ -18,7 +18,8 @@ from pandas.core.common import notnull, _ensure_platform_int, _maybe_promote
 from pandas.core.groupby import get_group_index, _compress_group_index
 
 import pandas.core.common as com
-import pandas.algos as algos
+import pandas.core.algorithms as algos
+import pandas.algos as _algos
 
 from pandas.core.index import MultiIndex, _get_na_value
 
@@ -109,10 +110,10 @@ class _Unstacker(object):
         comp_index, obs_ids = get_compressed_ids(to_sort, sizes)
         ngroups = len(obs_ids)
 
-        indexer = algos.groupsort_indexer(comp_index, ngroups)[0]
+        indexer = _algos.groupsort_indexer(comp_index, ngroups)[0]
         indexer = _ensure_platform_int(indexer)
 
-        self.sorted_values = com.take_nd(self.values, indexer, axis=0)
+        self.sorted_values = algos.take_nd(self.values, indexer, axis=0)
         self.sorted_labels = [l.take(indexer) for l in to_sort]
 
     def _make_selectors(self):
@@ -155,7 +156,7 @@ class _Unstacker(object):
             # rare case, level values not observed
             if len(obs_ids) < self.full_shape[1]:
                 inds = (value_mask.sum(0) > 0).nonzero()[0]
-                values = com.take_nd(values, inds, axis=1)
+                values = algos.take_nd(values, inds, axis=1)
                 columns = columns[inds]
 
         # may need to coerce categoricals here

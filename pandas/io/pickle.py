@@ -1,4 +1,9 @@
-from pandas.compat import cPickle as pkl, pickle_compat as pc, PY3
+""" pickle compat """
+
+import numpy as np
+from numpy.lib.format import read_array, write_array
+from pandas.compat import BytesIO, cPickle as pkl, pickle_compat as pc, PY3
+import pandas.core.common as com
 
 
 def to_pickle(obj, path):
@@ -62,3 +67,26 @@ def read_pickle(path):
         if PY3:
             return try_read(path, encoding='latin1')
         raise
+
+# compat with sparse pickle / unpickle
+
+
+def _pickle_array(arr):
+    arr = arr.view(np.ndarray)
+
+    buf = BytesIO()
+    write_array(buf, arr)
+
+    return buf.getvalue()
+
+
+def _unpickle_array(bytes):
+    arr = read_array(BytesIO(bytes))
+
+    # All datetimes should be stored as M8[ns].  When unpickling with
+    # numpy1.6, it will read these as M8[us].  So this ensures all
+    # datetime64 types are read as MS[ns]
+    if com.is_datetime64_dtype(arr):
+        arr = arr.view(com._NS_DTYPE)
+
+    return arr

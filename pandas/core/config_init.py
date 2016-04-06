@@ -15,7 +15,7 @@ import pandas.core.config as cf
 from pandas.core.config import (is_int, is_bool, is_text, is_instance_factory,
                                 is_one_of_factory, get_default_val,
                                 is_callable)
-from pandas.core.format import detect_console_encoding
+from pandas.formats.format import detect_console_encoding
 
 #
 # options from the "display" namespace
@@ -110,7 +110,7 @@ float_format_doc = """
     The callable should accept a floating point number and return
     a string with the desired format of the number. This is used
     in some places like SeriesFormatter.
-    See core.format.EngFormatter for an example.
+    See formats.format.EngFormatter for an example.
 """
 
 max_colwidth_doc = """

@@ -24,6 +24,7 @@ from pandas.util.decorators import Appender, cache_readonly, Substitution
 from pandas.lib import Timedelta
 import pandas.lib as lib
 import pandas.tslib as tslib
+import pandas.core.missing as missing
 from pandas.compat import zip, u
 
 
@@ -77,8 +78,8 @@ def _period_index_cmp(opname, nat_result=False):
 
             result = getattr(self.values, opname)(other.values)
 
-            mask = (com.mask_missing(self.values, tslib.iNaT) |
-                    com.mask_missing(other.values, tslib.iNaT))
+            mask = (missing.mask_missing(self.values, tslib.iNaT) |
+                    missing.mask_missing(other.values, tslib.iNaT))
             if mask.any():
                 result[mask] = nat_result
 
