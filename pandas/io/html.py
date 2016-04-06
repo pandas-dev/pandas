@@ -19,6 +19,7 @@ from pandas.compat import (lrange, lmap, u, string_types, iteritems,
 from pandas.core import common as com
 from pandas import Series
 from pandas.core.common import AbstractMethodError
+from pandas.formats.printing import pprint_thing
 
 _IMPORTS = False
 _HAS_BS4 = False
@@ -683,7 +684,7 @@ def _parser_dispatch(flavor):
 
 
 def _print_as_set(s):
-    return '{%s}' % ', '.join([com.pprint_thing(el) for el in s])
+    return '{%s}' % ', '.join([pprint_thing(el) for el in s])
 
 
 def _validate_flavor(flavor):

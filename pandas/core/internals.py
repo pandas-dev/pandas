@@ -20,12 +20,14 @@ from pandas.core.common import (_possibly_downcast_to_dtype, isnull, _NS_DTYPE,
                                 _maybe_convert_string_to_object,
                                 is_categorical, is_datetimelike_v_numeric,
                                 is_numeric_v_string_like, is_internal_type)
-from pandas.core.dtypes import DatetimeTZDtype
+import pandas.core.algorithms as algos
+from pandas.types.api import DatetimeTZDtype
 
 from pandas.core.index import Index, MultiIndex, _ensure_index
 from pandas.core.indexing import maybe_convert_indices, length_of_indexer
 from pandas.core.categorical import Categorical, maybe_to_categorical
 from pandas.tseries.index import DatetimeIndex
+from pandas.formats.printing import pprint_thing
 import pandas.core.common as com
 import pandas.core.missing as missing
 import pandas.core.convert as convert
@@ -194,15 +196,15 @@ class Block(PandasObject):
     def __unicode__(self):
 
         # don't want to print out all of the items here
-        name = com.pprint_thing(self.__class__.__name__)
+        name = pprint_thing(self.__class__.__name__)
         if self._is_single_block:
 
             result = '%s: %s dtype: %s' % (name, len(self), self.dtype)
 
         else:
 
-            shape = ' x '.join([com.pprint_thing(s) for s in self.shape])
-            result = '%s: %s, %s, dtype: %s' % (name, com.pprint_thing(
+            shape = ' x '.join([pprint_thing(s) for s in self.shape])
+            result = '%s: %s, %s, dtype: %s' % (name, pprint_thing(
                 self.mgr_locs.indexer), shape, self.dtype)
 
         return result
@@ -286,8 +288,8 @@ class Block(PandasObject):
         if fill_value is None:
             fill_value = self.fill_value
 
-        new_values = com.take_nd(self.values, indexer, axis,
-                                 fill_value=fill_value, mask_info=mask_info)
+        new_values = algos.take_nd(self.values, indexer, axis,
+                                   fill_value=fill_value, mask_info=mask_info)
         return self.make_block(new_values, fastpath=True)
 
     def get(self, item):
@@ -597,7 +599,7 @@ class Block(PandasObject):
         try:
             values, _, to_replace, _ = self._try_coerce_args(self.values,
                                                              to_replace)
-            mask = com.mask_missing(values, to_replace)
+            mask = missing.mask_missing(values, to_replace)
             if filter is not None:
                 filtered_out = ~self.mgr_locs.isin(filter)
                 mask[filtered_out.nonzero()[0]] = False
@@ -974,7 +976,7 @@ class Block(PandasObject):
 
         """
 
-        # com.take_nd dispatches for DatetimeTZBlock, CategoricalBlock
+        # algos.take_nd dispatches for DatetimeTZBlock, CategoricalBlock
         # so need to preserve types
         # sparse is treated like an ndarray, but needs .get_values() shaping
 
@@ -984,12 +986,12 @@ class Block(PandasObject):
 
         if fill_tuple is None:
             fill_value = self.fill_value
-            new_values = com.take_nd(values, indexer, axis=axis,
-                                     allow_fill=False)
+            new_values = algos.take_nd(values, indexer, axis=axis,
+                                       allow_fill=False)
         else:
             fill_value = fill_tuple[0]
-            new_values = com.take_nd(values, indexer, axis=axis,
-                                     allow_fill=True, fill_value=fill_value)
+            new_values = algos.take_nd(values, indexer, axis=axis,
+                                       allow_fill=True, fill_value=fill_value)
 
         if new_mgr_locs is None:
             if axis == 0:
@@ -1008,7 +1010,7 @@ class Block(PandasObject):
 
     def diff(self, n, axis=1, mgr=None):
         """ return block for the diff of the values """
-        new_values = com.diff(self.values, n, axis=axis)
+        new_values = algos.diff(self.values, n, axis=axis)
         return [self.make_block(values=new_values, fastpath=True)]
 
     def shift(self, periods, axis=0, mgr=None):
@@ -1430,7 +1432,7 @@ class FloatBlock(FloatOrComplexBlock):
         if slicer is not None:
             values = values[:, slicer]
 
-        from pandas.core.format import FloatArrayFormatter
+        from pandas.formats.format import FloatArrayFormatter
         formatter = FloatArrayFormatter(values, na_rep=na_rep,
                                         float_format=float_format,
                                         decimal=decimal, quoting=quoting,
@@ -1605,7 +1607,7 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
         imask = (~mask).ravel()
 
         # FIXME:
-        # should use the core.format.Timedelta64Formatter here
+        # should use the formats.format.Timedelta64Formatter here
         # to figure what format to pass to the Timedelta
         # e.g. to not show the decimals say
         rvalues.flat[imask] = np.array([Timedelta(val)._repr_base(format='all')
@@ -2127,7 +2129,7 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
         if slicer is not None:
             values = values[..., slicer]
 
-        from pandas.core.format import _get_format_datetime64_from_values
+        from pandas.formats.format import _get_format_datetime64_from_values
         format = _get_format_datetime64_from_values(values, date_format)
 
         result = tslib.format_array_from_datetime(
@@ -2711,11 +2713,11 @@ class BlockManager(PandasObject):
 
     def get_dtypes(self):
         dtypes = np.array([blk.dtype for blk in self.blocks])
-        return com.take_1d(dtypes, self._blknos, allow_fill=False)
+        return algos.take_1d(dtypes, self._blknos, allow_fill=False)
 
     def get_ftypes(self):
         ftypes = np.array([blk.ftype for blk in self.blocks])
-        return com.take_1d(ftypes, self._blknos, allow_fill=False)
+        return algos.take_1d(ftypes, self._blknos, allow_fill=False)
 
     def __getstate__(self):
         block_values = [b.values for b in self.blocks]
@@ -2782,7 +2784,7 @@ class BlockManager(PandasObject):
         return len(self.items)
 
     def __unicode__(self):
-        output = com.pprint_thing(self.__class__.__name__)
+        output = pprint_thing(self.__class__.__name__)
         for i, ax in enumerate(self.axes):
             if i == 0:
                 output += u('\nItems: %s') % ax
@@ -2790,7 +2792,7 @@ class BlockManager(PandasObject):
                 output += u('\nAxis %d: %s') % (i, ax)
 
         for block in self.blocks:
-            output += u('\n%s') % com.pprint_thing(block)
+            output += u('\n%s') % pprint_thing(block)
         return output
 
     def _verify_integrity(self):
@@ -3070,8 +3072,8 @@ class BlockManager(PandasObject):
         new_blocks = []
         for b in blocks:
             b = b.copy(deep=copy)
-            b.mgr_locs = com.take_1d(inv_indexer, b.mgr_locs.as_array, axis=0,
-                                     allow_fill=False)
+            b.mgr_locs = algos.take_1d(inv_indexer, b.mgr_locs.as_array,
+                                       axis=0, allow_fill=False)
             new_blocks.append(b)
 
         new_axes = list(self.axes)
@@ -3451,8 +3453,8 @@ class BlockManager(PandasObject):
             new_blknos.fill(-1)
             new_blknos[~is_deleted] = np.arange(self.nblocks -
                                                 len(removed_blknos))
-            self._blknos = com.take_1d(new_blknos, self._blknos, axis=0,
-                                       allow_fill=False)
+            self._blknos = algos.take_1d(new_blknos, self._blknos, axis=0,
+                                         allow_fill=False)
             self.blocks = tuple(blk for i, blk in enumerate(self.blocks)
                                 if i not in set(removed_blknos))
 
@@ -3632,10 +3634,10 @@ class BlockManager(PandasObject):
             blknos = self._blknos[slobj]
             blklocs = self._blklocs[slobj]
         else:
-            blknos = com.take_1d(self._blknos, slobj, fill_value=-1,
-                                 allow_fill=allow_fill)
-            blklocs = com.take_1d(self._blklocs, slobj, fill_value=-1,
-                                  allow_fill=allow_fill)
+            blknos = algos.take_1d(self._blknos, slobj, fill_value=-1,
+                                   allow_fill=allow_fill)
+            blklocs = algos.take_1d(self._blklocs, slobj, fill_value=-1,
+                                    allow_fill=allow_fill)
 
         # When filling blknos, make sure blknos is updated before appending to
         # blocks list, that way new blkno is exactly len(blocks).
@@ -3847,7 +3849,7 @@ class SingleBlockManager(BlockManager):
             else:
                 fill_value = np.nan
 
-        new_values = com.take_1d(values, indexer, fill_value=fill_value)
+        new_values = algos.take_1d(values, indexer, fill_value=fill_value)
 
         # fill if needed
         if method is not None or limit is not None:
@@ -4676,8 +4678,8 @@ def get_mgr_concatenation_plan(mgr, indexers):
 
     if 0 in indexers:
         ax0_indexer = indexers.pop(0)
-        blknos = com.take_1d(mgr._blknos, ax0_indexer, fill_value=-1)
-        blklocs = com.take_1d(mgr._blklocs, ax0_indexer, fill_value=-1)
+        blknos = algos.take_1d(mgr._blknos, ax0_indexer, fill_value=-1)
+        blklocs = algos.take_1d(mgr._blklocs, ax0_indexer, fill_value=-1)
     else:
 
         if mgr._is_single_block:
@@ -4932,8 +4934,8 @@ class JoinUnit(object):
 
         else:
             for ax, indexer in self.indexers.items():
-                values = com.take_nd(values, indexer, axis=ax,
-                                     fill_value=fill_value)
+                values = algos.take_nd(values, indexer, axis=ax,
+                                       fill_value=fill_value)
 
         return values
 

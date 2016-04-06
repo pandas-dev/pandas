@@ -12,7 +12,7 @@ from pandas.tseries.period import Period
 from pandas.tseries.offsets import DateOffset
 import pandas.tseries.frequencies as frequencies
 from pandas.tseries.index import DatetimeIndex
-import pandas.core.common as com
+from pandas.formats.printing import pprint_thing
 import pandas.compat as compat
 
 from pandas.tseries.converter import (TimeSeries_DateLocator,
@@ -141,7 +141,7 @@ def _replot_ax(ax, freq, kwargs):
 
             lines.append(plotf(ax, series.index._mpl_repr(),
                                series.values, **kwds)[0])
-            labels.append(com.pprint_thing(series.name))
+            labels.append(pprint_thing(series.name))
 
     return lines, labels
 

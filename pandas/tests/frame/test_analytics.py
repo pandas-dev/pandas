@@ -15,8 +15,8 @@ from pandas.compat import lrange
 from pandas import (compat, isnull, notnull, DataFrame, Series,
                     MultiIndex, date_range, Timestamp)
 import pandas as pd
-import pandas.core.common as com
 import pandas.core.nanops as nanops
+import pandas.formats.printing as printing
 
 from pandas.util.testing import (assert_almost_equal,
                                  assert_equal,
@@ -882,14 +882,14 @@ class TestDataFrameAnalytics(tm.TestCase, TestData):
 
         # outputs in sorted order
         df["C"] = list(reversed(df["C"]))
-        com.pprint_thing(df["C"])
-        com.pprint_thing(df["C"].mode())
+        printing.pprint_thing(df["C"])
+        printing.pprint_thing(df["C"].mode())
         a, b = (df[["A", "B", "C"]].mode(),
                 pd.DataFrame({"A": [12, np.nan],
                               "B": [10, np.nan],
                               "C": [8, 9]}))
-        com.pprint_thing(a)
-        com.pprint_thing(b)
+        printing.pprint_thing(a)
+        printing.pprint_thing(b)
         assert_frame_equal(a, b)
         # should work with heterogeneous types
         df = pd.DataFrame({"A": np.arange(6, dtype='int64'),

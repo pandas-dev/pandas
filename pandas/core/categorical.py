@@ -7,7 +7,7 @@ import types
 from pandas import compat, lib
 from pandas.compat import u
 
-from pandas.core.algorithms import factorize
+from pandas.core.algorithms import factorize, take_1d
 from pandas.core.base import (PandasObject, PandasDelegate,
                               NoNewAttributesMixin, _shared_docs)
 import pandas.core.common as com
@@ -20,8 +20,8 @@ from pandas.core.common import (
     is_dtype_equal, is_categorical_dtype, is_integer_dtype,
     _possibly_infer_to_datetimelike, get_dtype_kinds, is_list_like,
     is_sequence, is_null_slice, is_bool, _ensure_object, _ensure_int64,
-    _coerce_indexer_dtype, take_1d)
-from pandas.core.dtypes import CategoricalDtype
+    _coerce_indexer_dtype)
+from pandas.types.api import CategoricalDtype
 from pandas.util.terminal import get_terminal_size
 from pandas.core.config import get_option
 
@@ -1433,7 +1433,7 @@ class Categorical(PandasObject):
         """ return the base repr for the categories """
         max_categories = (10 if get_option("display.max_categories") == 0 else
                           get_option("display.max_categories"))
-        from pandas.core import format as fmt
+        from pandas.formats import format as fmt
         if len(self.categories) > max_categories:
             num = max_categories // 2
             head = fmt.format_array(self.categories[:num], None)
@@ -1481,7 +1481,7 @@ class Categorical(PandasObject):
         return u('Length: %d\n%s') % (len(self), self._repr_categories_info())
 
     def _get_repr(self, length=True, na_rep='NaN', footer=True):
-        from pandas.core import format as fmt
+        from pandas.formats import format as fmt
         formatter = fmt.CategoricalFormatter(self, length=length,
                                              na_rep=na_rep, footer=footer)
         result = formatter.to_string()

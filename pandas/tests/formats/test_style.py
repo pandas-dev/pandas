@@ -22,7 +22,7 @@ try:
     import jinja2  # noqa
 except ImportError:
     raise SkipTest("No Jinja2")
-from pandas.core.style import Styler  # noqa
+from pandas.formats.style import Styler  # noqa
 
 
 class TestStyler(TestCase):

@@ -44,12 +44,12 @@ from pandas.compat import zip, u, OrderedDict, StringIO
 
 
 import pandas.core.ops as ops
-from pandas.core import algorithms
+import pandas.core.algorithms as algos
 
 import pandas.core.common as com
 import pandas.core.datetools as datetools
-import pandas.core.format as fmt
 import pandas.core.nanops as nanops
+import pandas.formats.format as fmt
 from pandas.util.decorators import Appender, deprecate_kwarg, Substitution
 
 import pandas.lib as lib
@@ -1202,7 +1202,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         modes : Series (sorted)
         """
         # TODO: Add option for bins like value_counts()
-        return algorithms.mode(self)
+        return algos.mode(self)
 
     @deprecate_kwarg('take_last', 'keep', mapping={True: 'last',
                                                    False: 'first'})
@@ -1424,7 +1424,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         -------
         diffed : Series
         """
-        result = com.diff(_values_from_object(self), periods)
+        result = algos.diff(_values_from_object(self), periods)
         return self._constructor(result, index=self.index).__finalize__(self)
 
     def autocorr(self, lag=1):
@@ -1889,7 +1889,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         >>> s = pd.Series(np.random.randn(1e6))
         >>> s.nlargest(10)  # only sorts up to the N requested
         """
-        return algorithms.select_n(self, n=n, keep=keep, method='nlargest')
+        return algos.select_n(self, n=n, keep=keep, method='nlargest')
 
     @deprecate_kwarg('take_last', 'keep', mapping={True: 'last',
                                                    False: 'first'})
@@ -1927,7 +1927,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         >>> s = pd.Series(np.random.randn(1e6))
         >>> s.nsmallest(10)  # only sorts up to the N requested
         """
-        return algorithms.select_n(self, n=n, keep=keep, method='nsmallest')
+        return algos.select_n(self, n=n, keep=keep, method='nsmallest')
 
     def sortlevel(self, level=0, ascending=True, sort_remaining=True):
         """
@@ -2081,7 +2081,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
                 arg = self._constructor(arg, index=arg.keys())
 
             indexer = arg.index.get_indexer(values)
-            new_values = com.take_1d(arg._values, indexer)
+            new_values = algos.take_1d(arg._values, indexer)
             return self._constructor(new_values,
                                      index=self.index).__finalize__(self)
         else:
@@ -2233,7 +2233,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
             return self
 
         # be subclass-friendly
-        new_values = com.take_1d(self.get_values(), indexer)
+        new_values = algos.take_1d(self.get_values(), indexer)
         return self._constructor(new_values, index=new_index)
 
     def _needs_reindex_multi(self, axes, method, level):
@@ -2384,7 +2384,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         dtype: bool
 
         """
-        result = algorithms.isin(_values_from_object(self), values)
+        result = algos.isin(_values_from_object(self), values)
         return self._constructor(result, index=self.index).__finalize__(self)
 
     def between(self, left, right, inclusive=True):
@@ -2627,7 +2627,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
             where = Index(where)
 
         locs = self.index.asof_locs(where, notnull(values))
-        new_values = com.take_1d(values, locs)
+        new_values = algos.take_1d(values, locs)
         return self._constructor(new_values, index=where).__finalize__(self)
 
     def to_timestamp(self, freq=None, how='start', copy=True):

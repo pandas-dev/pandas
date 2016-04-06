@@ -16,7 +16,7 @@ from pandas import compat
 from pandas.util.testing import (assert_almost_equal, assert_series_equal,
                                  assert_frame_equal, assert_panel_equal,
                                  assert_panel4d_equal)
-import pandas.core.common as com
+from pandas.formats.printing import pprint_thing
 import pandas.util.testing as tm
 from numpy.testing.decorators import slow
 
@@ -99,7 +99,7 @@ class TestExpressions(tm.TestCase):
                         assert expected.dtype.kind == 'f'
                 assert_func(expected, result)
             except Exception:
-                com.pprint_thing("Failed test with operator %r" % op.__name__)
+                pprint_thing("Failed test with operator %r" % op.__name__)
                 raise
 
     def test_integer_arithmetic(self):
@@ -139,8 +139,8 @@ class TestExpressions(tm.TestCase):
                     assert not used_numexpr, "Used numexpr unexpectedly."
                 assert_func(expected, result)
             except Exception:
-                com.pprint_thing("Failed test with operation %r" % arith)
-                com.pprint_thing("test_flex was %r" % test_flex)
+                pprint_thing("Failed test with operation %r" % arith)
+                pprint_thing("test_flex was %r" % test_flex)
                 raise
 
     def run_frame(self, df, other, binary_comp=None, run_binary=True,

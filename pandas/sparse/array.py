@@ -17,6 +17,7 @@ from pandas._sparse import BlockIndex, IntIndex
 import pandas._sparse as splib
 import pandas.index as _index
 import pandas.core.ops as ops
+import pandas.formats.printing as printing
 
 
 def _arith_method(op, name, str_rep=None, default_axis=None, fill_zeros=None,
@@ -214,9 +215,9 @@ class SparseArray(PandasObject, np.ndarray):
             return 0
 
     def __unicode__(self):
-        return '%s\nFill: %s\n%s' % (com.pprint_thing(self),
-                                     com.pprint_thing(self.fill_value),
-                                     com.pprint_thing(self.sp_index))
+        return '%s\nFill: %s\n%s' % (printing.pprint_thing(self),
+                                     printing.pprint_thing(self.fill_value),
+                                     printing.pprint_thing(self.sp_index))
 
     def disable(self, other):
         raise NotImplementedError('inplace binary ops not supported')

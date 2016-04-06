@@ -15,6 +15,7 @@ from pandas import (Series, DataFrame, MultiIndex, PeriodIndex, date_range,
 from pandas.compat import (range, lrange, StringIO, lmap, lzip, u, zip,
                            iteritems, OrderedDict, PY3)
 from pandas.util.decorators import cache_readonly
+from pandas.formats.printing import pprint_thing
 import pandas.core.common as com
 import pandas.util.testing as tm
 from pandas.util.testing import (ensure_clean,
@@ -1543,7 +1544,7 @@ class TestDataFramePlots(TestPlotBase):
 
             for ax, column in zip(axes, df.columns):
                 self._check_legend_labels(ax,
-                                          labels=[com.pprint_thing(column)])
+                                          labels=[pprint_thing(column)])
 
             for ax in axes[:-2]:
                 self._check_visible(ax.xaxis)  # xaxis must be visible for grid
@@ -2344,7 +2345,7 @@ class TestDataFramePlots(TestPlotBase):
         df = self.hist_df
         series = df['height']
         numeric_cols = df._get_numeric_data().columns
-        labels = [com.pprint_thing(c) for c in numeric_cols]
+        labels = [pprint_thing(c) for c in numeric_cols]
 
         ax = _check_plot_works(df.plot.box)
         self._check_text_labels(ax.get_xticklabels(), labels)
@@ -2371,7 +2372,7 @@ class TestDataFramePlots(TestPlotBase):
         positions = np.array([1, 6, 7])
         ax = df.plot.box(positions=positions)
         numeric_cols = df._get_numeric_data().columns
-        labels = [com.pprint_thing(c) for c in numeric_cols]
+        labels = [pprint_thing(c) for c in numeric_cols]
         self._check_text_labels(ax.get_xticklabels(), labels)
         tm.assert_numpy_array_equal(ax.xaxis.get_ticklocs(), positions)
         self.assertEqual(len(ax.lines), self.bp_n_objects * len(numeric_cols))
@@ -2380,7 +2381,7 @@ class TestDataFramePlots(TestPlotBase):
     def test_boxplot_vertical(self):
         df = self.hist_df
         numeric_cols = df._get_numeric_data().columns
-        labels = [com.pprint_thing(c) for c in numeric_cols]
+        labels = [pprint_thing(c) for c in numeric_cols]
 
         # if horizontal, yticklabels are rotated
         ax = df.plot.box(rot=50, fontsize=8, vert=False)
@@ -2442,7 +2443,7 @@ class TestDataFramePlots(TestPlotBase):
         _skip_if_no_scipy_gaussian_kde()
         df = DataFrame(randn(100, 4))
         ax = _check_plot_works(df.plot, kind='kde')
-        expected = [com.pprint_thing(c) for c in df.columns]
+        expected = [pprint_thing(c) for c in df.columns]
         self._check_legend_labels(ax, labels=expected)
         self._check_ticks_props(ax, xrot=0)
 
@@ -2474,7 +2475,7 @@ class TestDataFramePlots(TestPlotBase):
         series = df[0]
 
         ax = _check_plot_works(df.plot.hist)
-        expected = [com.pprint_thing(c) for c in df.columns]
+        expected = [pprint_thing(c) for c in df.columns]
         self._check_legend_labels(ax, labels=expected)
 
         axes = _check_plot_works(df.plot.hist, filterwarnings='ignore',

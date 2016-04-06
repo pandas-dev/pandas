@@ -7,9 +7,10 @@ from functools import partial
 from datetime import datetime, timedelta
 import numpy as np
 import pandas as pd
+import pandas.core.common as com
 from pandas.compat import u, string_types, DeepChainMap
 from pandas.core.base import StringMixin
-import pandas.core.common as com
+from pandas.formats.printing import pprint_thing, pprint_thing_encoded
 from pandas.computation import expr, ops
 from pandas.computation.ops import is_term, UndefinedVariableError
 from pandas.computation.expr import BaseExprVisitor
@@ -169,10 +170,10 @@ class BinOp(ops.BinOp):
 
         def stringify(value):
             if self.encoding is not None:
-                encoder = partial(com.pprint_thing_encoded,
+                encoder = partial(pprint_thing_encoded,
                                   encoding=self.encoding)
             else:
-                encoder = com.pprint_thing
+                encoder = pprint_thing
             return encoder(value)
 
         kind = _ensure_decoded(self.kind)
@@ -224,8 +225,8 @@ class BinOp(ops.BinOp):
 class FilterBinOp(BinOp):
 
     def __unicode__(self):
-        return com.pprint_thing("[Filter : [{0}] -> "
-                                "[{1}]".format(self.filter[0], self.filter[1]))
+        return pprint_thing("[Filter : [{0}] -> "
+                            "[{1}]".format(self.filter[0], self.filter[1]))
 
     def invert(self):
         """ invert the filter """
@@ -296,7 +297,7 @@ class JointFilterBinOp(FilterBinOp):
 class ConditionBinOp(BinOp):
 
     def __unicode__(self):
-        return com.pprint_thing("[Condition : [{0}]]".format(self.condition))
+        return pprint_thing("[Condition : [{0}]]".format(self.condition))
 
     def invert(self):
         """ invert the condition """
@@ -571,8 +572,8 @@ class Expr(expr.Expr):
 
     def __unicode__(self):
         if self.terms is not None:
-            return com.pprint_thing(self.terms)
-        return com.pprint_thing(self.expr)
+            return pprint_thing(self.terms)
+        return pprint_thing(self.expr)
 
     def evaluate(self):
         """ create and return the numexpr condition and filter """

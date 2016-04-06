@@ -6,10 +6,10 @@ import pandas as pd
 
 from pandas import Index, Series, DataFrame, date_range
 from pandas.tseries.index import Timestamp
-import pandas.core.common as com
 
 from pandas.compat import range
 from pandas import compat
+import pandas.formats.printing as printing
 from pandas.util.testing import (assert_series_equal,
                                  ensure_clean)
 import pandas.util.testing as tm
@@ -37,7 +37,7 @@ class SharedWithSparse(object):
 
         cp = self.ts.copy()
         cp.index.name = 'foo'
-        com.pprint_thing(self.ts.index.name)
+        printing.pprint_thing(self.ts.index.name)
         self.assertIsNone(self.ts.index.name)
 
     def test_append_preserve_name(self):

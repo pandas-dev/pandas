@@ -17,7 +17,7 @@ import pandas.tseries.tools as tools
 from pytz import NonExistentTimeError
 
 import pandas.util.testing as tm
-from pandas.core.dtypes import DatetimeTZDtype
+from pandas.types.api import DatetimeTZDtype
 from pandas.util.testing import assert_frame_equal
 from pandas.compat import lrange, zip
 

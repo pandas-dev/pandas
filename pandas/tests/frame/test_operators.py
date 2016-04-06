@@ -15,6 +15,7 @@ from pandas import compat
 from pandas import (DataFrame, Series, MultiIndex, Timestamp,
                     date_range)
 import pandas.core.common as com
+import pandas.formats.printing as printing
 import pandas as pd
 
 from pandas.util.testing import (assert_numpy_array_equal,
@@ -411,7 +412,7 @@ class TestDataFrameOperators(tm.TestCase, TestData):
                         assert_frame_equal(result, exp)
                         _check_mixed_int(result, dtype=dtype)
             except:
-                com.pprint_thing("Failing operation %r" % op)
+                printing.pprint_thing("Failing operation %r" % op)
                 raise
 
             # ndim >= 3

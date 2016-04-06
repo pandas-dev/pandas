@@ -250,19 +250,21 @@ class SparsePanel(Panel):
 
     def __getstate__(self):
         # pickling
-        return (self._frames, com._pickle_array(self.items),
-                com._pickle_array(self.major_axis),
-                com._pickle_array(self.minor_axis), self.default_fill_value,
+        from pandas.io.pickle import _pickle_array
+        return (self._frames, _pickle_array(self.items),
+                _pickle_array(self.major_axis),
+                _pickle_array(self.minor_axis), self.default_fill_value,
                 self.default_kind)
 
     def __setstate__(self, state):
         frames, items, major, minor, fv, kind = state
 
+        from pandas.io.pickle import _unpickle_array
         self.default_fill_value = fv
         self.default_kind = kind
-        self._items = _ensure_index(com._unpickle_array(items))
-        self._major_axis = _ensure_index(com._unpickle_array(major))
-        self._minor_axis = _ensure_index(com._unpickle_array(minor))
+        self._items = _ensure_index(_unpickle_array(items))
+        self._major_axis = _ensure_index(_unpickle_array(major))
+        self._minor_axis = _ensure_index(_unpickle_array(minor))
         self._frames = frames
 
     def copy(self, deep=True):

@@ -11,7 +11,6 @@ from pandas.lib import Timestamp, Timedelta, is_datetime_array
 
 from pandas.compat import range, u
 from pandas import compat
-from pandas.core import algorithms
 from pandas.core.base import (PandasObject, FrozenList, FrozenNDArray,
                               IndexOpsMixin)
 import pandas.core.base as base
@@ -19,6 +18,8 @@ from pandas.util.decorators import (Appender, Substitution, cache_readonly,
                                     deprecate, deprecate_kwarg)
 import pandas.core.common as com
 import pandas.core.missing as missing
+import pandas.core.algorithms as algos
+from pandas.formats.printing import pprint_thing
 from pandas.core.common import (isnull, array_equivalent,
                                 is_object_dtype, is_datetimetz, ABCSeries,
                                 ABCPeriodIndex, ABCMultiIndex,
@@ -33,8 +34,8 @@ from pandas.core.config import get_option
 
 # simplify
 default_pprint = lambda x, max_seq_items=None: \
-    com.pprint_thing(x, escape_chars=('\t', '\r', '\n'), quote_strings=True,
-                     max_seq_items=max_seq_items)
+    pprint_thing(x, escape_chars=('\t', '\r', '\n'), quote_strings=True,
+                 max_seq_items=max_seq_items)
 
 __all__ = ['Index']
 
@@ -609,7 +610,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         """
         Return the formatted data as a unicode string
         """
-        from pandas.core.format import get_console_size, _get_adjustment
+        from pandas.formats.format import get_console_size, _get_adjustment
         display_width, _ = get_console_size()
         if display_width is None:
             display_width = get_option('display.width') or 80
@@ -888,8 +889,8 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
             if (hasattr(tail, 'format') and
                     not isinstance(tail, compat.string_types)):
                 tail = tail.format()
-            index_summary = ', %s to %s' % (com.pprint_thing(head),
-                                            com.pprint_thing(tail))
+            index_summary = ', %s to %s' % (pprint_thing(head),
+                                            pprint_thing(tail))
         else:
             index_summary = ''
 
@@ -1444,8 +1445,8 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         """
         header = []
         if name:
-            header.append(com.pprint_thing(self.name,
-                                           escape_chars=('\t', '\r', '\n')) if
+            header.append(pprint_thing(self.name,
+                                       escape_chars=('\t', '\r', '\n')) if
                           self.name is not None else '')
 
         if formatter is not None:
@@ -1456,7 +1457,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
     def _format_with_header(self, header, na_rep='NaN', **kwargs):
         values = self.values
 
-        from pandas.core.format import format_array
+        from pandas.formats.format import format_array
 
         if is_categorical_dtype(values.dtype):
             values = np.array(values)
@@ -1464,7 +1465,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
             values = lib.maybe_convert_objects(values, safe=1)
 
         if is_object_dtype(values.dtype):
-            result = [com.pprint_thing(x, escape_chars=('\t', '\r', '\n'))
+            result = [pprint_thing(x, escape_chars=('\t', '\r', '\n'))
                       for x in values]
 
             # could have nans
@@ -1710,8 +1711,8 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
             indexer, = (indexer == -1).nonzero()
 
             if len(indexer) > 0:
-                other_diff = com.take_nd(other._values, indexer,
-                                         allow_fill=False)
+                other_diff = algos.take_nd(other._values, indexer,
+                                           allow_fill=False)
                 result = com._concat_compat((self.values, other_diff))
 
                 try:
@@ -2227,7 +2228,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         """
         if level is not None:
             self._validate_index_level(level)
-        return algorithms.isin(np.array(self), values)
+        return algos.isin(np.array(self), values)
 
     def _can_reindex(self, indexer):
         """
@@ -2611,8 +2612,8 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
             rev_indexer = lib.get_reverse_indexer(left_lev_indexer,
                                                   len(old_level))
 
-            new_lev_labels = com.take_nd(rev_indexer, left.labels[level],
-                                         allow_fill=False)
+            new_lev_labels = algos.take_nd(rev_indexer, left.labels[level],
+                                           allow_fill=False)
 
             new_labels = list(left.labels)
             new_labels[level] = new_lev_labels
@@ -2654,9 +2655,9 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
                                     names=left.names, verify_integrity=False)
 
         if right_lev_indexer is not None:
-            right_indexer = com.take_nd(right_lev_indexer,
-                                        join_index.labels[level],
-                                        allow_fill=False)
+            right_indexer = algos.take_nd(right_lev_indexer,
+                                          join_index.labels[level],
+                                          allow_fill=False)
         else:
             right_indexer = join_index.labels[level]
 
