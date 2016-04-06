@@ -26,7 +26,7 @@ import pandas.util.testing as tm
 from pandas.tests.frame.common import TestData
 
 
-class SafeForSparse(object):
+class SharedWithSparse(object):
 
     _multiprocess_can_split_ = True
 
@@ -156,7 +156,7 @@ class SafeForSparse(object):
         self.assert_numpy_array_equal(with_suffix.columns, expected)
 
 
-class TestDataFrameMisc(tm.TestCase, SafeForSparse, TestData):
+class TestDataFrameMisc(tm.TestCase, SharedWithSparse, TestData):
 
     klass = DataFrame
 
