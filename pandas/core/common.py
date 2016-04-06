@@ -907,9 +907,9 @@ def _get_dtype_from_object(dtype):
     if isinstance(dtype, type) and issubclass(dtype, np.generic):
         return dtype
     elif is_categorical(dtype):
-        return CategoricalDtype().type
+        return gt.CategoricalDtype().type
     elif is_datetimetz(dtype):
-        return DatetimeTZDtype(dtype).type
+        return gt.DatetimeTZDtype(dtype).type
     elif isinstance(dtype, np.dtype):  # dtype object
         try:
             _validate_date_like_dtype(dtype)
@@ -1465,9 +1465,9 @@ def is_datetimelike(arr):
 def _coerce_to_dtype(dtype):
     """ coerce a string / np.dtype to a dtype """
     if is_categorical_dtype(dtype):
-        dtype = CategoricalDtype()
+        dtype = gt.CategoricalDtype()
     elif is_datetime64tz_dtype(dtype):
-        dtype = DatetimeTZDtype(dtype)
+        dtype = gt.DatetimeTZDtype(dtype)
     else:
         dtype = np.dtype(dtype)
     return dtype
@@ -1478,15 +1478,15 @@ def _get_dtype(arr_or_dtype):
         return arr_or_dtype
     elif isinstance(arr_or_dtype, type):
         return np.dtype(arr_or_dtype)
-    elif isinstance(arr_or_dtype, CategoricalDtype):
+    elif isinstance(arr_or_dtype, gt.CategoricalDtype):
         return arr_or_dtype
-    elif isinstance(arr_or_dtype, DatetimeTZDtype):
+    elif isinstance(arr_or_dtype, gt.DatetimeTZDtype):
         return arr_or_dtype
     elif isinstance(arr_or_dtype, compat.string_types):
         if is_categorical_dtype(arr_or_dtype):
-            return CategoricalDtype.construct_from_string(arr_or_dtype)
+            return gt.CategoricalDtype.construct_from_string(arr_or_dtype)
         elif is_datetime64tz_dtype(arr_or_dtype):
-            return DatetimeTZDtype.construct_from_string(arr_or_dtype)
+            return gt.DatetimeTZDtype.construct_from_string(arr_or_dtype)
 
     if hasattr(arr_or_dtype, 'dtype'):
         arr_or_dtype = arr_or_dtype.dtype
@@ -1498,15 +1498,15 @@ def _get_dtype_type(arr_or_dtype):
         return arr_or_dtype.type
     elif isinstance(arr_or_dtype, type):
         return np.dtype(arr_or_dtype).type
-    elif isinstance(arr_or_dtype, CategoricalDtype):
-        return CategoricalDtypeType
-    elif isinstance(arr_or_dtype, DatetimeTZDtype):
-        return DatetimeTZDtypeType
+    elif isinstance(arr_or_dtype, gt.CategoricalDtype):
+        return gt.CategoricalDtypeType
+    elif isinstance(arr_or_dtype, gt.DatetimeTZDtype):
+        return gt.DatetimeTZDtypeType
     elif isinstance(arr_or_dtype, compat.string_types):
         if is_categorical_dtype(arr_or_dtype):
-            return CategoricalDtypeType
+            return gt.CategoricalDtypeType
         elif is_datetime64tz_dtype(arr_or_dtype):
-            return DatetimeTZDtypeType
+            return gt.DatetimeTZDtypeType
         return _get_dtype_type(np.dtype(arr_or_dtype))
     try:
         return arr_or_dtype.dtype.type
@@ -1558,7 +1558,7 @@ def is_datetime64_dtype(arr_or_dtype):
 
 
 def is_datetime64tz_dtype(arr_or_dtype):
-    return DatetimeTZDtype.is_dtype(arr_or_dtype)
+    return gt.DatetimeTZDtype.is_dtype(arr_or_dtype)
 
 
 def is_datetime64_any_dtype(arr_or_dtype):
@@ -1719,7 +1719,7 @@ def is_categorical(array):
 
 
 def is_categorical_dtype(arr_or_dtype):
-    return CategoricalDtype.is_dtype(arr_or_dtype)
+    return gt.CategoricalDtype.is_dtype(arr_or_dtype)
 
 
 def is_complex_dtype(arr_or_dtype):
