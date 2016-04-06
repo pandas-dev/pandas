@@ -131,7 +131,7 @@ API
 
 `pandas-datareader <https://github.com/pydata/pandas-datareader>`_
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-pandas-datareader is a remote data access library for pandas. ``pandas.io`` from pandas < 0.18 is now refactored to and importable from ``pandas_datareader`` (PyPI:``pandas-datareader``). Many/most of the supported APIs have at least a documentation paragraph in the `pandas-datareader docs <https://pandas-datareader.readthedocs.org/en/latest/>`_:
+pandas-datareader is a remote data access library for pandas. ``pandas.io`` from pandas < 0.17.0 is now refactored/split-off to and importable from ``pandas_datareader`` (PyPI:``pandas-datareader``). Many/most of the supported APIs have at least a documentation paragraph in the `pandas-datareader docs <https://pandas-datareader.readthedocs.org/en/latest/>`_:
 
 * Yahoo! Finance
 * Google Finance
