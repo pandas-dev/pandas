@@ -41,7 +41,7 @@ class TestSeriesDatetimeValues(TestData, tm.TestCase):
                                    'weekday_name']
         ok_for_dt_methods = ['to_period', 'to_pydatetime', 'tz_localize',
                              'tz_convert', 'normalize', 'strftime', 'round',
-                             'floor', 'ceil']
+                             'floor', 'ceil', 'weekday_name']
         ok_for_td = ['days', 'seconds', 'microseconds', 'nanoseconds']
         ok_for_td_methods = ['components', 'to_pytimedelta', 'total_seconds',
                              'round', 'floor', 'ceil']
