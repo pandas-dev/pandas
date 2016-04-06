@@ -75,8 +75,12 @@ index_col : int or sequence or False, default None
     of each line, you might consider index_col=False to force pandas to _not_
     use the first column as the index (row names)
 usecols : array-like, default None
-    Return a subset of the columns.
-    Results in much faster parsing time and lower memory usage.
+    Return a subset of the columns. All elements in this array must either
+    be positional (i.e. integer indices into the document columns) or strings
+    that correspond to column names provided either by the user in `names` or
+    inferred from the document header row(s). For example, a valid `usecols`
+    parameter would be [0, 1, 2] or ['foo', 'bar', 'baz']. Using this parameter
+    results in much faster parsing time and lower memory usage.
 squeeze : boolean, default False
     If the parsed data only contains one column then return a Series
 prefix : str, default None
@@ -801,6 +805,23 @@ def _is_index_col(col):
     return col is not None and col is not False
 
 
+def _validate_usecols_arg(usecols):
+    """
+    Check whether or not the 'usecols' parameter
+    contains all integers (column selection by index)
+    or strings (column by name). Raises a ValueError
+    if that is not the case.
+    """
+    if usecols is not None:
+        usecols_dtype = lib.infer_dtype(usecols)
+        if usecols_dtype not in ('integer', 'string'):
+            raise ValueError(("The elements of 'usecols' "
+                              "must either be all strings "
+                              "or all integers"))
+
+    return usecols
+
+
 class ParserBase(object):
 
     def __init__(self, kwds):
@@ -1132,7 +1153,7 @@ class CParserWrapper(ParserBase):
         self._reader = _parser.TextReader(src, **kwds)
 
         # XXX
-        self.usecols = self._reader.usecols
+        self.usecols = _validate_usecols_arg(self._reader.usecols)
 
         passed_names = self.names is None
 
@@ -1157,18 +1178,21 @@ class CParserWrapper(ParserBase):
             else:
                 self.names = lrange(self._reader.table_width)
 
-        # If the names were inferred (not passed by user) and usedcols is
-        # defined, then ensure names refers to the used columns, not the
-        # document's columns.
-        if self.usecols and passed_names:
-            col_indices = []
-            for u in self.usecols:
-                if isinstance(u, string_types):
-                    col_indices.append(self.names.index(u))
-                else:
-                    col_indices.append(u)
-            self.names = [n for i, n in enumerate(self.names)
-                          if i in col_indices]
+        # gh-9755
+        #
+        # need to set orig_names here first
+        # so that proper indexing can be done
+        # with _set_noconvert_columns
+        #
+        # once names has been filtered, we will
+        # then set orig_names again to names
+        self.orig_names = self.names[:]
+
+        if self.usecols:
+            if len(self.names) > len(self.usecols):
+                self.names = [n for i, n in enumerate(self.names)
+                              if (i in self.usecols or n in self.usecols)]
+
             if len(self.names) < len(self.usecols):
                 raise ValueError("Usecols do not match names.")
 
@@ -1194,13 +1218,17 @@ class CParserWrapper(ParserBase):
         self._implicit_index = self._reader.leading_cols > 0
 
     def _set_noconvert_columns(self):
-        names = self.names
+        names = self.orig_names
+        usecols = self.usecols
 
         def _set(x):
-            if com.is_integer(x):
-                self._reader.set_noconvert(x)
-            else:
-                self._reader.set_noconvert(names.index(x))
+            if usecols and com.is_integer(x):
+                x = list(usecols)[x]
+
+            if not com.is_integer(x):
+                x = names.index(x)
+
+            self._reader.set_noconvert(x)
 
         if isinstance(self.parse_dates, list):
             for val in self.parse_dates:
@@ -1472,7 +1500,7 @@ class PythonParser(ParserBase):
         self.lineterminator = kwds['lineterminator']
         self.quoting = kwds['quoting']
         self.mangle_dupe_cols = kwds.get('mangle_dupe_cols', True)
-        self.usecols = kwds['usecols']
+        self.usecols = _validate_usecols_arg(kwds['usecols'])
         self.skip_blank_lines = kwds['skip_blank_lines']
 
         self.names_passed = kwds['names'] or None

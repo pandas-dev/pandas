@@ -120,8 +120,12 @@ index_col :  int or sequence or ``False``, default ``None``
   each line, you might consider ``index_col=False`` to force pandas to *not* use
   the first column as the index (row names).
 usecols : array-like, default ``None``
-  Return a subset of the columns. Results in much faster parsing time and lower
-  memory usage
+  Return a subset of the columns. All elements in this array must either
+  be positional (i.e. integer indices into the document columns) or strings
+  that correspond to column names provided either by the user in `names` or
+  inferred from the document header row(s). For example, a valid `usecols`
+  parameter would be [0, 1, 2] or ['foo', 'bar', 'baz']. Using this parameter
+  results in much faster parsing time and lower memory usage.
 squeeze : boolean, default ``False``
   If the parsed data only contains one column then return a Series.
 prefix : str, default ``None``

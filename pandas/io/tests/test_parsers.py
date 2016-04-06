@@ -2682,12 +2682,118 @@ MyColumn
         df = self.read_csv(StringIO(csv), usecols=usecols)
         tm.assert_frame_equal(df, expected)
 
-        usecols = ['a', 1]
+        usecols = ['a', 'b']
         df = self.read_csv(StringIO(csv), usecols=usecols)
         tm.assert_frame_equal(df, expected)
 
-        usecols = ['a', 'b']
-        df = self.read_csv(StringIO(csv), usecols=usecols)
+    def test_usecols_with_parse_dates(self):
+        # See gh-9755
+        s = """a,b,c,d,e
+        0,1,20140101,0900,4
+        0,1,20140102,1000,4"""
+        parse_dates = [[1, 2]]
+
+        cols = {
+            'a'  : [0, 0],
+            'c_d': [
+                Timestamp('2014-01-01 09:00:00'),
+                Timestamp('2014-01-02 10:00:00')
+            ]
+        }
+        expected = DataFrame(cols, columns=['c_d', 'a'])
+
+        df = self.read_csv(StringIO(s), usecols=[0, 2, 3],
+                           parse_dates=parse_dates)
+        tm.assert_frame_equal(df, expected)
+
+        df = self.read_csv(StringIO(s), usecols=[3, 0, 2],
+                           parse_dates=parse_dates)
+        tm.assert_frame_equal(df, expected)
+
+    def test_usecols_with_parse_dates_and_full_names(self):
+        # See gh-9755
+        s = """0,1,20140101,0900,4
+        0,1,20140102,1000,4"""
+        parse_dates = [[1, 2]]
+        names = list('abcde')
+
+        cols = {
+            'a'  : [0, 0],
+            'c_d': [
+                Timestamp('2014-01-01 09:00:00'),
+                Timestamp('2014-01-02 10:00:00')
+            ]
+        }
+        expected = DataFrame(cols, columns=['c_d', 'a'])
+
+        df = self.read_csv(StringIO(s), names=names,
+                           usecols=[0, 2, 3],
+                           parse_dates=parse_dates)
+        tm.assert_frame_equal(df, expected)
+
+        df = self.read_csv(StringIO(s), names=names,
+                           usecols=[3, 0, 2],
+                           parse_dates=parse_dates)
+        tm.assert_frame_equal(df, expected)
+
+    def test_usecols_with_parse_dates_and_usecol_names(self):
+        # See gh-9755
+        s = """0,1,20140101,0900,4
+        0,1,20140102,1000,4"""
+        parse_dates = [[1, 2]]
+        names = list('acd')
+
+        cols = {
+            'a'  : [0, 0],
+            'c_d': [
+                Timestamp('2014-01-01 09:00:00'),
+                Timestamp('2014-01-02 10:00:00')
+            ]
+        }
+        expected = DataFrame(cols, columns=['c_d', 'a'])
+
+        df = self.read_csv(StringIO(s), names=names,
+                           usecols=[0, 2, 3],
+                           parse_dates=parse_dates)
+        tm.assert_frame_equal(df, expected)
+
+        df = self.read_csv(StringIO(s), names=names,
+                           usecols=[3, 0, 2],
+                           parse_dates=parse_dates)
+        tm.assert_frame_equal(df, expected)
+
+    def test_mixed_dtype_usecols(self):
+        # See gh-12678
+        data = """a,b,c
+        1000,2000,3000
+        4000,5000,6000
+        """
+        msg = ("The elements of \'usecols\' "
+               "must either be all strings "
+               "or all integers")
+        usecols = [0, 'b', 2]
+
+        with tm.assertRaisesRegexp(ValueError, msg):
+            df = self.read_csv(StringIO(data), usecols=usecols)
+
+    def test_usecols_with_integer_like_header(self):
+        data = """2,0,1
+        1000,2000,3000
+        4000,5000,6000
+        """
+
+        usecols = [0, 1]  # column selection by index
+        expected = DataFrame(data=[[1000, 2000],
+                                   [4000, 5000]],
+                             columns=['2', '0'])
+        df = self.read_csv(StringIO(data), usecols=usecols)
+        tm.assert_frame_equal(df, expected)
+
+        usecols = ['0', '1']  # column selection by name
+        expected = DataFrame(data=[[2000, 3000],
+                                   [5000, 6000]],
+                             columns=['0', '1'])
+        df = self.read_csv(StringIO(data), usecols=usecols)
         tm.assert_frame_equal(df, expected)
 
 
