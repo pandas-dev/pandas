@@ -129,6 +129,22 @@ both "column wise min/max and global min/max coloring."
 API
 -----
 
+`pandas-datareader <https://github.com/pydata/pandas-datareader>`_
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+pandas-datareader is a remote data access library for pandas. ``pandas.io`` from pandas < 0.17.0 is now refactored/split-off to and importable from ``pandas_datareader`` (PyPI:``pandas-datareader``). Many/most of the supported APIs have at least a documentation paragraph in the `pandas-datareader docs <https://pandas-datareader.readthedocs.org/en/latest/>`_:
+
+* Yahoo! Finance
+* Google Finance
+* FRED
+* Fama/French
+* World Bank
+* OECD
+* Eurostat
+* EDGAR Index
+
+
+
+
 `quandl/Python <https://github.com/quandl/Python>`_
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Quandl API for Python wraps the Quandl REST API to return
