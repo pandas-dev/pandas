@@ -297,7 +297,7 @@ Selection By Label
      dfl = pd.DataFrame(np.random.randn(5,4), columns=list('ABCD'), index=pd.date_range('20130101',periods=5))
      dfl
 
-  .. code-block:: python
+  .. code-block:: ipython
 
      In [4]: dfl.loc[2:3]
      TypeError: cannot do slice indexing on <class 'pandas.tseries.index.DatetimeIndex'> with these indexers [2] of <type 'int'>

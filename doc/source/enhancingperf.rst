@@ -68,7 +68,7 @@ Here's the function in pure python:
 
 We achieve our result by using ``apply`` (row-wise):
 
-.. code-block:: python
+.. code-block:: ipython
 
    In [7]: %timeit df.apply(lambda x: integrate_f(x['a'], x['b'], x['N']), axis=1)
    10 loops, best of 3: 174 ms per loop
@@ -125,7 +125,7 @@ is here to distinguish between function versions):
   to be using bleeding edge ipython for paste to play well with cell magics.
 
 
-.. code-block:: python
+.. code-block:: ipython
 
    In [4]: %timeit df.apply(lambda x: integrate_f_plain(x['a'], x['b'], x['N']), axis=1)
    10 loops, best of 3: 85.5 ms per loop
@@ -154,7 +154,7 @@ We get another huge improvement simply by providing type information:
       ...:     return s * dx
       ...:
 
-.. code-block:: python
+.. code-block:: ipython
 
    In [4]: %timeit df.apply(lambda x: integrate_f_typed(x['a'], x['b'], x['N']), axis=1)
    10 loops, best of 3: 20.3 ms per loop
@@ -234,7 +234,7 @@ the rows, applying our ``integrate_f_typed``, and putting this in the zeros arra
     Loops like this would be *extremely* slow in python, but in Cython looping
     over numpy arrays is *fast*.
 
-.. code-block:: python
+.. code-block:: ipython
 
    In [4]: %timeit apply_integrate_f(df['a'].values, df['b'].values, df['N'].values)
    1000 loops, best of 3: 1.25 ms per loop
@@ -284,7 +284,7 @@ advanced cython techniques:
       ...:     return res
       ...:
 
-.. code-block:: python
+.. code-block:: ipython
 
    In [4]: %timeit apply_integrate_f_wrap(df['a'].values, df['b'].values, df['N'].values)
    1000 loops, best of 3: 987 us per loop
@@ -348,7 +348,7 @@ Using ``numba`` to just-in-time compile your code. We simply take the plain pyth
 
 Note that we directly pass ``numpy`` arrays to the numba function. ``compute_numba`` is just a wrapper that provides a nicer interface by passing/returning pandas objects.
 
-.. code-block:: python
+.. code-block:: ipython
 
     In [4]: %timeit compute_numba(df)
     1000 loops, best of 3: 798 us per loop

@@ -102,7 +102,7 @@ This uses a new-dtype representation as well, that is very similar in look-and-f
 
    Previous Behavior:
 
-   .. code-block:: python
+   .. code-block:: ipython
 
       In [1]: pd.date_range('20130101',periods=3,tz='US/Eastern')
       Out[1]: DatetimeIndex(['2013-01-01 00:00:00-05:00', '2013-01-02 00:00:00-05:00',
@@ -410,7 +410,7 @@ Other enhancements
 
   Previous Behavior:
 
-  .. code-block:: python
+  .. code-block:: ipython
 
      In [1] pd.concat([foo, bar, baz], 1)
      Out[1]:
@@ -607,14 +607,14 @@ will raise rather that return the original input as in previous versions. (:issu
 
 Previous Behavior:
 
-.. code-block:: python
+.. code-block:: ipython
 
    In [2]: pd.to_datetime(['2009-07-31', 'asd'])
    Out[2]: array(['2009-07-31', 'asd'], dtype=object)
 
 New Behavior:
 
-.. code-block:: python
+.. code-block:: ipython
 
    In [3]: pd.to_datetime(['2009-07-31', 'asd'])
    ValueError: Unknown string format
@@ -648,7 +648,7 @@ can parse, such as a quarterly string.
 
 Previous Behavior:
 
-.. code-block:: python
+.. code-block:: ipython
 
    In [1]: Timestamp('2012Q2')
    Traceback
@@ -689,7 +689,7 @@ a ``ValueError``. This is to be consistent with the behavior of ``Series``.
 
 Previous Behavior:
 
-.. code-block:: python
+.. code-block:: ipython
 
    In [2]: pd.Index([1, 2, 3]) == pd.Index([1, 4, 5])
    Out[2]: array([ True, False, False], dtype=bool)
@@ -702,7 +702,7 @@ Previous Behavior:
 
 New Behavior:
 
-.. code-block:: python
+.. code-block:: ipython
 
    In [8]: pd.Index([1, 2, 3]) == pd.Index([1, 4, 5])
    Out[8]: array([ True, False, False], dtype=bool)
@@ -740,7 +740,7 @@ Boolean comparisons of a ``Series`` vs ``None`` will now be equivalent to compar
 
 Previous Behavior:
 
-.. code-block:: python
+.. code-block:: ipython
 
    In [5]: s==None
    TypeError: Could not compare <type 'NoneType'> type with Series
@@ -784,15 +784,15 @@ Previous Behavior:
    df_with_missing
 
 
-.. code-block:: python
+.. code-block:: ipython
 
-   In [28]:
+   In [27]:
    df_with_missing.to_hdf('file.h5',
                           'df_with_missing',
                           format='table',
                           mode='w')
 
-   pd.read_hdf('file.h5', 'df_with_missing')
+   In [28]: pd.read_hdf('file.h5', 'df_with_missing')
 
    Out [28]:
          col1  col2
@@ -833,7 +833,7 @@ The ``display.precision`` option has been clarified to refer to decimal places (
 Earlier versions of pandas would format floating point numbers to have one less decimal place than the value in
 ``display.precision``.
 
-.. code-block:: python
+.. code-block:: ipython
 
   In [1]: pd.set_option('display.precision', 2)
 
@@ -987,7 +987,7 @@ Removal of prior version deprecations/changes
 
   Previously
 
-  .. code-block:: python
+  .. code-block:: ipython
 
      In [3]: df + df.A
      FutureWarning: TimeSeries broadcasting along DataFrame index by default is deprecated.

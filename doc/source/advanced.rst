@@ -790,7 +790,7 @@ In float indexes, slicing using floats is allowed
 
 In non-float indexes, slicing using floats will raise a ``TypeError``
 
-.. code-block:: python
+.. code-block:: ipython
 
    In [1]: pd.Series(range(5))[3.5]
    TypeError: the label [3.5] is not a proper indexer for this index type (Int64Index)
@@ -802,7 +802,7 @@ In non-float indexes, slicing using floats will raise a ``TypeError``
 
    Using a scalar float indexer for ``.iloc`` has been removed in 0.18.0, so the following will raise a ``TypeError``
 
-   .. code-block:: python
+   .. code-block:: ipython
 
       In [3]: pd.Series(range(5)).iloc[3.0]
       TypeError: cannot do positional indexing on <class 'pandas.indexes.range.RangeIndex'> with these indexers [3.0] of <type 'float'>

@@ -48,7 +48,7 @@ API changes
   offsets (BusinessMonthBegin, MonthEnd, BusinessMonthEnd, CustomBusinessMonthEnd,
   BusinessYearBegin, LastWeekOfMonth, FY5253Quarter, LastWeekOfMonth, Easter):
 
-  .. code-block:: python
+  .. code-block:: ipython
 
      In [6]: from pandas.tseries import offsets
 

@@ -130,7 +130,7 @@ Setting Startup Options in python/ipython Environment
 
 Using startup scripts for the python/ipython environment to import pandas and set options makes working with pandas more efficient.  To do this, create a .py or .ipy script in the startup directory of the desired profile.  An example where the startup folder is in a default ipython profile can be found at:
 
-.. code-block:: python
+.. code-block:: none
 
   $IPYTHONDIR/profile_default/startup
 

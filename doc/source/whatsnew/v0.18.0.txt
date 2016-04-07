@@ -61,7 +61,7 @@ Window functions have been refactored to be methods on ``Series/DataFrame`` obje
 
 Previous Behavior:
 
-.. code-block:: python
+.. code-block:: ipython
 
    In [8]: pd.rolling_mean(df,window=3)
            FutureWarning: pd.rolling_mean is deprecated for DataFrame and will be removed in a future version, replace with
@@ -92,7 +92,7 @@ These show a descriptive repr
    r
 with tab-completion of available methods and properties.
 
-.. code-block:: python
+.. code-block:: ipython
 
    In [9]: r.
    r.A           r.agg         r.apply       r.count       r.exclusions  r.max         r.median      r.name        r.skew        r.sum
@@ -151,7 +151,7 @@ This will now be the default constructed index for ``NDFrame`` objects, rather t
 
 Previous Behavior:
 
-.. code-block:: python
+.. code-block:: ipython
 
    In [3]: s = pd.Series(range(1000))
 
@@ -191,7 +191,7 @@ In v0.18.0, the ``expand`` argument was added to
 
 Currently the default is ``expand=None`` which gives a ``FutureWarning`` and uses ``expand=False``. To avoid this warning, please explicitly specify ``expand``.
 
-.. code-block:: python
+.. code-block:: ipython
 
    In [1]: pd.Series(['a1', 'b2', 'c3']).str.extract('[ab](\d)', expand=None)
    FutureWarning: currently extract(expand=None) means expand=False (return Index/Series/DataFrame)
@@ -284,7 +284,7 @@ A new, friendlier ``ValueError`` is added to protect against the mistake of supp
     pd.Series(['a','b',np.nan,'c']).str.cat(sep=' ')
     pd.Series(['a','b',np.nan,'c']).str.cat(sep=' ', na_rep='?')
 
-.. code-block:: python
+.. code-block:: ipython
 
     In [2]: pd.Series(['a','b',np.nan,'c']).str.cat(' ')
     ValueError: Did you mean to supply a `sep` keyword?
@@ -346,7 +346,7 @@ This change not only affects the display to the console, but also the output of 
 
 Previous Behavior:
 
-.. code-block:: python
+.. code-block:: ipython
 
    In [2]: s = pd.Series([1,2,3], index=np.arange(3.))
 
@@ -382,7 +382,7 @@ When a DataFrame's slice is updated with a new slice of the same dtype, the dtyp
 
 Previous Behavior:
 
-.. code-block:: python
+.. code-block:: ipython
 
    In [5]: df = pd.DataFrame({'a': [0, 1, 1],
                               'b': pd.Series([100, 200, 300], dtype='uint32')})
@@ -418,7 +418,7 @@ When a DataFrame's integer slice is partially updated with a new slice of floats
 
 Previous Behavior:
 
-.. code-block:: python
+.. code-block:: ipython
 
    In [4]: df = pd.DataFrame(np.array(range(1,10)).reshape(3,3),
                              columns=list('abc'),
@@ -462,7 +462,7 @@ a pandas-like interface for > 2 ndim. (:issue:`11972`)
 
 See the `xarray full-documentation here <http://xarray.pydata.org/en/stable/>`__.
 
-.. code-block:: python
+.. code-block:: ipython
 
    In [1]: p = Panel(np.arange(2*3*4).reshape(2,3,4))
 
@@ -574,7 +574,7 @@ to succeed.
 
 as opposed to
 
-.. code-block:: python
+.. code-block:: ipython
 
    In [3]: pd.Timestamp('19900315') + pd.Timestamp('19900315')
    TypeError: unsupported operand type(s) for +: 'Timestamp' and 'Timestamp'
@@ -582,7 +582,7 @@ as opposed to
 However, when wrapped in a ``Series`` whose ``dtype`` is ``datetime64[ns]`` or ``timedelta64[ns]``,
 the ``dtype`` information is respected.
 
-.. code-block:: python
+.. code-block:: ipython
 
    In [1]: pd.Series([pd.NaT], dtype='<M8[ns]') + pd.Series([pd.NaT], dtype='<M8[ns]')
    TypeError: can only operate on a datetimes for subtraction,
@@ -645,7 +645,7 @@ Signature change for .rank
 
 Previous signature
 
-.. code-block:: python
+.. code-block:: ipython
 
    In [3]: pd.Series([0,1]).rank(method='average', na_option='keep',
                                  ascending=True, pct=False)
@@ -692,7 +692,7 @@ forward to the next anchor point.
 For the ``QuarterBegin`` offset in previous versions, the date would be rolled
 *backwards* if date was in the same month as the quarter start date.
 
-.. code-block:: python
+.. code-block:: ipython
 
    In [3]: d = pd.Timestamp('2014-02-15')
 
@@ -728,7 +728,7 @@ Like the change in the window functions API :ref:`above <whatsnew_0180.enhanceme
 You would write a resampling operation that immediately evaluates. If a ``how`` parameter was not provided, it
 would default to ``how='mean'``.
 
-.. code-block:: python
+.. code-block:: ipython
 
    In [6]: df.resample('2s')
    Out[6]:
@@ -741,7 +741,7 @@ would default to ``how='mean'``.
 
 You could also specify a ``how`` directly
 
-.. code-block:: python
+.. code-block:: ipython
 
    In [7]: df.resample('2s', how='sum')
    Out[7]:
@@ -812,7 +812,7 @@ performed with the ``Resampler`` objects with :meth:`~Resampler.backfill`,
 
 Previously
 
-.. code-block:: python
+.. code-block:: ipython
 
    In [6]: s.resample('M', fill_method='ffill')
    Out[6]:
@@ -848,7 +848,7 @@ Previous API will work but with deprecations
 
    This new API for resample includes some internal changes for the prior-to-0.18.0 API, to work with a deprecation warning in most cases, as the resample operation returns a deferred object. We can intercept operations and just do what the (pre 0.18.0) API did (with a warning). Here is a typical use case:
 
-   .. code-block:: python
+   .. code-block:: ipython
 
       In [4]: r = df.resample('2s')
 
@@ -866,7 +866,7 @@ Previous API will work but with deprecations
 
    However, getting and assignment operations directly on a ``Resampler`` will raise a ``ValueError``:
 
-   .. code-block:: python
+   .. code-block:: ipython
 
       In [7]: r.iloc[0] = 5
       ValueError: .resample() is now a deferred operation
@@ -875,7 +875,7 @@ Previous API will work but with deprecations
    There is a situation where the new API can not perform all the operations when using original code.
    This code is intending to resample every 2s, take the ``mean`` AND then take the ``min`` of those results.
 
-   .. code-block:: python
+   .. code-block:: ipython
 
       In [4]: df.resample('2s').min()
       Out[4]:
@@ -916,7 +916,7 @@ in an inplace change to the ``DataFrame``. (:issue:`9297`)
 
    df.eval('c = a + b', inplace=True)
 
-.. code-block:: python
+.. code-block:: ipython
 
    In [12]: df.eval('c = a + b')
    FutureWarning: eval expressions containing an assignment currentlydefault to operating inplace.
@@ -988,7 +988,7 @@ Other API Changes
 
   This will now raise.
 
-  .. code-block:: python
+  .. code-block:: ipython
 
      In [2]: s.between_time('20150101 07:00:00','20150101 09:00:00')
      ValueError: Cannot convert arg ['20150101 07:00:00'] to a time.
@@ -1015,7 +1015,7 @@ Deprecations
 - The functions ``pd.rolling_*``, ``pd.expanding_*``, and ``pd.ewm*`` are deprecated and replaced by the corresponding method call. Note that
   the new suggested syntax includes all of the arguments (even if default) (:issue:`11603`)
 
-  .. code-block:: python
+  .. code-block:: ipython
 
      In [1]: s = pd.Series(range(3))
 
@@ -1072,7 +1072,7 @@ In 0.18.0, this deprecation warning is removed and these will now raise a ``Type
 
 Previous Behavior:
 
-.. code-block:: python
+.. code-block:: ipython
 
    # this is label indexing
    In [2]: s[5.0]
@@ -1104,7 +1104,7 @@ New Behavior:
 
 For iloc, getting & setting via a float scalar will always raise.
 
-.. code-block:: python
+.. code-block:: ipython
 
    In [3]: s.iloc[2.0]
    TypeError: cannot do label indexing on <class 'pandas.indexes.numeric.Int64Index'> with these indexers [2.0] of <type 'float'>

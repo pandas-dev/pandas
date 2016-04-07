@@ -116,7 +116,7 @@ API changes
 Using ``.apply`` on groupby resampling
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Using ``apply`` on resampling groupby operations (using a ``pd.TimeGrouper``) now has the same output types as a similar ``apply`` on other groupby operations. (:issue:`11742`).
+Using ``apply`` on resampling groupby operations (using a ``pd.TimeGrouper``) now has the same output types as similar ``apply`` calls on other groupby operations. (:issue:`11742`).
 
 .. ipython:: python
 
@@ -125,7 +125,7 @@ Using ``apply`` on resampling groupby operations (using a ``pd.TimeGrouper``) no
 
 Previous behavior:
 
-.. code-block:: python
+.. code-block:: ipython
 
     In [1]: df.groupby(pd.TimeGrouper(key='date', freq='M')).apply(lambda x: x.value.sum())
     Out[1]:

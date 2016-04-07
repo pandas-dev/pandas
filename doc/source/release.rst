@@ -1521,7 +1521,7 @@ API Changes
   of the future import. You can use ``//`` and ``floordiv`` to do integer
   division.
 
-.. code-block:: python
+.. code-block:: ipython
 
    In [3]: arr = np.array([1, 2, 3, 4])
 
