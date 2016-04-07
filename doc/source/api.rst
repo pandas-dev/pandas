@@ -1803,7 +1803,7 @@ Computations / Descriptive Stats
 
 Style
 -----
-.. currentmodule:: pandas.core.style
+.. currentmodule:: pandas.formats.style
 
 ``Styler`` objects are returned by :attr:`pandas.DataFrame.style`.
 
