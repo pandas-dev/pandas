@@ -1216,7 +1216,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
     def duplicated(self, keep='first'):
         return super(Series, self).duplicated(keep=keep)
 
-    def idxmin(self, axis=None, out=None, skipna=True):
+    def idxmin(self, axis=None, skipna=True):
         """
         Index of first occurrence of minimum of values.
 
@@ -1243,7 +1243,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
             return np.nan
         return self.index[i]
 
-    def idxmax(self, axis=None, out=None, skipna=True):
+    def idxmax(self, axis=None, skipna=True):
         """
         Index of first occurrence of maximum of values.
 
