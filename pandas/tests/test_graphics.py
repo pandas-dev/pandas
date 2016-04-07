@@ -1181,6 +1181,20 @@ class TestSeriesPlots(TestPlotBase):
         with tm.assertRaises((ValueError, TypeError)):
             s.plot(yerr=s_err)
 
+    def test_errorbar_asymmetrical(self):
+        # github issue #9536
+        s = Series(np.random.randn(5))
+        err = np.random.rand(2, 5)
+
+        ax = _check_plot_works(s.plot, yerr=err, xerr=(err / 2))
+        self._check_has_errorbars(ax, yerr=1, xerr=1)
+
+        assert_allclose(ax.lines[2].get_ydata(), s.values - err[0])
+        assert_allclose(ax.lines[3].get_ydata(), s.values + err[1])
+
+        assert_allclose(ax.lines[0].get_xdata(), s.index - (err[0] / 2))
+        assert_allclose(ax.lines[1].get_xdata(), s.index + (err[1] / 2))
+
     def test_table(self):
         _check_plot_works(self.series.plot, table=True)
         _check_plot_works(self.series.plot, table=self.series)

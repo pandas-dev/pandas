@@ -60,12 +60,13 @@ Other Enhancements
 - ``pd.read_msgpack()`` now always gives writeable ndarrays even when compression is used (:issue:`12359`).
 - ``Index.take`` now handles ``allow_fill`` and ``fill_value`` consistently (:issue:`12631`)
 
-.. ipython:: python
+  .. ipython:: python
 
-   idx = pd.Index([1., 2., 3., 4.], dtype='float')
-   idx.take([2, -1])     # default, allow_fill=True, fill_value=None
-   idx.take([2, -1], fill_value=True)
+     idx = pd.Index([1., 2., 3., 4.], dtype='float')
+     idx.take([2, -1])     # default, allow_fill=True, fill_value=None
+     idx.take([2, -1], fill_value=True)
 
+- ``Series.plot`` allows now asymmetric error bars in the shape of 2xN array (:issue:`9536`)
 
 .. _whatsnew_0181.sparse:
 
