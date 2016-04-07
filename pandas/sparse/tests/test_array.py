@@ -1,18 +1,157 @@
 from pandas.compat import range
 import re
-from numpy import nan
-import numpy as np
-
 import operator
 import warnings
 
+from numpy import nan
+import numpy as np
+
 from pandas import _np_version_under1p8
 from pandas.sparse.api import SparseArray
+import pandas.sparse.array as sparray
 from pandas.util.testing import assert_almost_equal, assertRaisesRegexp
 import pandas.util.testing as tm
 
 
+class TestSparseArrayIndex(tm.TestCase):
+
+    _multiprocess_can_split_ = True
+
+    def test_int_internal(self):
+        idx = sparray._make_index(4, np.array([2, 3], dtype=np.int32),
+                                  kind='integer')
+        self.assertIsInstance(idx, sparray.IntIndex)
+        self.assertEqual(idx.npoints, 2)
+        tm.assert_numpy_array_equal(idx.indices,
+                                    np.array([2, 3], dtype=np.int32))
+
+        idx = sparray._make_index(4, np.array([], dtype=np.int32),
+                                  kind='integer')
+        self.assertIsInstance(idx, sparray.IntIndex)
+        self.assertEqual(idx.npoints, 0)
+        tm.assert_numpy_array_equal(idx.indices,
+                                    np.array([], dtype=np.int32))
+
+        idx = sparray._make_index(4, np.array([0, 1, 2, 3], dtype=np.int32),
+                                  kind='integer')
+        self.assertIsInstance(idx, sparray.IntIndex)
+        self.assertEqual(idx.npoints, 4)
+        tm.assert_numpy_array_equal(idx.indices,
+                                    np.array([0, 1, 2, 3], dtype=np.int32))
+
+    def test_block_internal(self):
+        idx = sparray._make_index(4, np.array([2, 3], dtype=np.int32),
+                                  kind='block')
+        self.assertIsInstance(idx, sparray.BlockIndex)
+        self.assertEqual(idx.npoints, 2)
+        tm.assert_numpy_array_equal(idx.blocs,
+                                    np.array([2], dtype=np.int32))
+        tm.assert_numpy_array_equal(idx.blengths,
+                                    np.array([2], dtype=np.int32))
+
+        idx = sparray._make_index(4, np.array([], dtype=np.int32),
+                                  kind='block')
+        self.assertIsInstance(idx, sparray.BlockIndex)
+        self.assertEqual(idx.npoints, 0)
+        tm.assert_numpy_array_equal(idx.blocs,
+                                    np.array([], dtype=np.int32))
+        tm.assert_numpy_array_equal(idx.blengths,
+                                    np.array([], dtype=np.int32))
+
+        idx = sparray._make_index(4, np.array([0, 1, 2, 3], dtype=np.int32),
+                                  kind='block')
+        self.assertIsInstance(idx, sparray.BlockIndex)
+        self.assertEqual(idx.npoints, 4)
+        tm.assert_numpy_array_equal(idx.blocs,
+                                    np.array([0], dtype=np.int32))
+        tm.assert_numpy_array_equal(idx.blengths,
+                                    np.array([4], dtype=np.int32))
+
+        idx = sparray._make_index(4, np.array([0, 2, 3], dtype=np.int32),
+                                  kind='block')
+        self.assertIsInstance(idx, sparray.BlockIndex)
+        self.assertEqual(idx.npoints, 3)
+        tm.assert_numpy_array_equal(idx.blocs,
+                                    np.array([0, 2], dtype=np.int32))
+        tm.assert_numpy_array_equal(idx.blengths,
+                                    np.array([1, 2], dtype=np.int32))
+
+    def test_lookup(self):
+        for kind in ['integer', 'block']:
+            idx = sparray._make_index(4, np.array([2, 3], dtype=np.int32),
+                                      kind=kind)
+            self.assertEqual(idx.lookup(-1), -1)
+            self.assertEqual(idx.lookup(0), -1)
+            self.assertEqual(idx.lookup(1), -1)
+            self.assertEqual(idx.lookup(2), 0)
+            self.assertEqual(idx.lookup(3), 1)
+            self.assertEqual(idx.lookup(4), -1)
+
+            idx = sparray._make_index(4, np.array([], dtype=np.int32),
+                                      kind=kind)
+            for i in range(-1, 5):
+                self.assertEqual(idx.lookup(i), -1)
+
+            idx = sparray._make_index(4, np.array([0, 1, 2, 3],
+                                                  dtype=np.int32), kind=kind)
+            self.assertEqual(idx.lookup(-1), -1)
+            self.assertEqual(idx.lookup(0), 0)
+            self.assertEqual(idx.lookup(1), 1)
+            self.assertEqual(idx.lookup(2), 2)
+            self.assertEqual(idx.lookup(3), 3)
+            self.assertEqual(idx.lookup(4), -1)
+
+            idx = sparray._make_index(4, np.array([0, 2, 3], dtype=np.int32),
+                                      kind=kind)
+            self.assertEqual(idx.lookup(-1), -1)
+            self.assertEqual(idx.lookup(0), 0)
+            self.assertEqual(idx.lookup(1), -1)
+            self.assertEqual(idx.lookup(2), 1)
+            self.assertEqual(idx.lookup(3), 2)
+            self.assertEqual(idx.lookup(4), -1)
+
+    def test_lookup_array(self):
+        for kind in ['integer', 'block']:
+            idx = sparray._make_index(4, np.array([2, 3], dtype=np.int32),
+                                      kind=kind)
+
+            res = idx.lookup_array(np.array([-1, 0, 2], dtype=np.int32))
+            exp = np.array([-1, -1, 0], dtype=np.int32)
+            self.assert_numpy_array_equal(res, exp)
+
+            res = idx.lookup_array(np.array([4, 2, 1, 3], dtype=np.int32))
+            exp = np.array([-1, 0, -1, 1], dtype=np.int32)
+            self.assert_numpy_array_equal(res, exp)
+
+            idx = sparray._make_index(4, np.array([], dtype=np.int32),
+                                      kind=kind)
+            res = idx.lookup_array(np.array([-1, 0, 2, 4], dtype=np.int32))
+            exp = np.array([-1, -1, -1, -1], dtype=np.int32)
+
+            idx = sparray._make_index(4, np.array([0, 1, 2, 3],
+                                                  dtype=np.int32),
+                                      kind=kind)
+            res = idx.lookup_array(np.array([-1, 0, 2], dtype=np.int32))
+            exp = np.array([-1, 0, 2], dtype=np.int32)
+            self.assert_numpy_array_equal(res, exp)
+
+            res = idx.lookup_array(np.array([4, 2, 1, 3], dtype=np.int32))
+            exp = np.array([-1, 2, 1, 3], dtype=np.int32)
+            self.assert_numpy_array_equal(res, exp)
+
+            idx = sparray._make_index(4, np.array([0, 2, 3], dtype=np.int32),
+                                      kind=kind)
+            res = idx.lookup_array(np.array([2, 1, 3, 0], dtype=np.int32))
+            exp = np.array([1, -1, 2, 0], dtype=np.int32)
+            self.assert_numpy_array_equal(res, exp)
+
+            res = idx.lookup_array(np.array([1, 4, 2, 5], dtype=np.int32))
+            exp = np.array([-1, -1, 1, -1], dtype=np.int32)
+            self.assert_numpy_array_equal(res, exp)
+
+
 class TestSparseArray(tm.TestCase):
+
     _multiprocess_can_split_ = True
 
     def setUp(self):
@@ -44,16 +183,113 @@ class TestSparseArray(tm.TestCase):
             self.assertEqual(self.arr.take(2), np.take(self.arr_data, 2))
             self.assertEqual(self.arr.take(6), np.take(self.arr_data, 6))
 
-        tm.assert_sp_array_equal(self.arr.take([2, 3]),
-                                 SparseArray(np.take(self.arr_data,
-                                                     [2, 3])))
-        tm.assert_sp_array_equal(self.arr.take([0, 1, 2]),
-                                 SparseArray(np.take(self.arr_data,
-                                                     [0, 1, 2])))
+        exp = SparseArray(np.take(self.arr_data, [2, 3]))
+        tm.assert_sp_array_equal(self.arr.take([2, 3]), exp)
+
+        exp = SparseArray(np.take(self.arr_data, [0, 1, 2]))
+        tm.assert_sp_array_equal(self.arr.take([0, 1, 2]), exp)
+
+    def test_take_fill_value(self):
+        data = np.array([1, np.nan, 0, 3, 0])
+        sparse = SparseArray(data, fill_value=0)
+
+        exp = SparseArray(np.take(data, [0]), fill_value=0)
+        tm.assert_sp_array_equal(sparse.take([0]), exp)
+
+        exp = SparseArray(np.take(data, [1, 3, 4]), fill_value=0)
+        tm.assert_sp_array_equal(sparse.take([1, 3, 4]), exp)
+
+    def test_take_negative(self):
+        exp = SparseArray(np.take(self.arr_data, [-1]))
+        tm.assert_sp_array_equal(self.arr.take([-1]), exp)
+
+        exp = SparseArray(np.take(self.arr_data, [-4, -3, -2]))
+        tm.assert_sp_array_equal(self.arr.take([-4, -3, -2]), exp)
 
     def test_bad_take(self):
         assertRaisesRegexp(IndexError, "bounds", lambda: self.arr.take(11))
         self.assertRaises(IndexError, lambda: self.arr.take(-11))
+
+    def test_take_filling(self):
+        # similar tests as GH 12631
+        sparse = SparseArray([np.nan, np.nan, 1, np.nan, 4])
+        result = sparse.take(np.array([1, 0, -1]))
+        expected = SparseArray([np.nan, np.nan, 4])
+        tm.assert_sp_array_equal(result, expected)
+
+        # fill_value
+        result = sparse.take(np.array([1, 0, -1]), fill_value=True)
+        expected = SparseArray([np.nan, np.nan, np.nan])
+        tm.assert_sp_array_equal(result, expected)
+
+        # allow_fill=False
+        result = sparse.take(np.array([1, 0, -1]),
+                             allow_fill=False, fill_value=True)
+        expected = SparseArray([np.nan, np.nan, 4])
+        tm.assert_sp_array_equal(result, expected)
+
+        msg = ('When allow_fill=True and fill_value is not None, '
+               'all indices must be >= -1')
+        with tm.assertRaisesRegexp(ValueError, msg):
+            sparse.take(np.array([1, 0, -2]), fill_value=True)
+        with tm.assertRaisesRegexp(ValueError, msg):
+            sparse.take(np.array([1, 0, -5]), fill_value=True)
+
+        with tm.assertRaises(IndexError):
+            sparse.take(np.array([1, -6]))
+        with tm.assertRaises(IndexError):
+            sparse.take(np.array([1, 5]))
+        with tm.assertRaises(IndexError):
+            sparse.take(np.array([1, 5]), fill_value=True)
+
+    def test_take_filling_fill_value(self):
+        # same tests as GH 12631
+        sparse = SparseArray([np.nan, 0, 1, 0, 4], fill_value=0)
+        result = sparse.take(np.array([1, 0, -1]))
+        expected = SparseArray([0, np.nan, 4], fill_value=0)
+        tm.assert_sp_array_equal(result, expected)
+
+        # fill_value
+        result = sparse.take(np.array([1, 0, -1]), fill_value=True)
+        expected = SparseArray([0, np.nan, 0], fill_value=0)
+        tm.assert_sp_array_equal(result, expected)
+
+        # allow_fill=False
+        result = sparse.take(np.array([1, 0, -1]),
+                             allow_fill=False, fill_value=True)
+        expected = SparseArray([0, np.nan, 4], fill_value=0)
+        tm.assert_sp_array_equal(result, expected)
+
+        msg = ('When allow_fill=True and fill_value is not None, '
+               'all indices must be >= -1')
+        with tm.assertRaisesRegexp(ValueError, msg):
+            sparse.take(np.array([1, 0, -2]), fill_value=True)
+        with tm.assertRaisesRegexp(ValueError, msg):
+            sparse.take(np.array([1, 0, -5]), fill_value=True)
+
+        with tm.assertRaises(IndexError):
+            sparse.take(np.array([1, -6]))
+        with tm.assertRaises(IndexError):
+            sparse.take(np.array([1, 5]))
+        with tm.assertRaises(IndexError):
+            sparse.take(np.array([1, 5]), fill_value=True)
+
+    def test_take_filling_all_nan(self):
+        sparse = SparseArray([np.nan, np.nan, np.nan, np.nan, np.nan])
+        result = sparse.take(np.array([1, 0, -1]))
+        expected = SparseArray([np.nan, np.nan, np.nan])
+        tm.assert_sp_array_equal(result, expected)
+
+        result = sparse.take(np.array([1, 0, -1]), fill_value=True)
+        expected = SparseArray([np.nan, np.nan, np.nan])
+        tm.assert_sp_array_equal(result, expected)
+
+        with tm.assertRaises(IndexError):
+            sparse.take(np.array([1, -6]))
+        with tm.assertRaises(IndexError):
+            sparse.take(np.array([1, 5]))
+        with tm.assertRaises(IndexError):
+            sparse.take(np.array([1, 5]), fill_value=True)
 
     def test_set_item(self):
         def setitem():

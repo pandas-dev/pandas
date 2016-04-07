@@ -1332,7 +1332,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         return indexes
 
     _index_shared_docs['take'] = """
-        return a new Index of the values selected by the indices
+        return a new %(klass)s of the values selected by the indices
 
         For internal compatibility with numpy arrays.
 
@@ -1352,7 +1352,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         numpy.ndarray.take
         """
 
-    @Appender(_index_shared_docs['take'])
+    @Appender(_index_shared_docs['take'] % _index_doc_kwargs)
     def take(self, indices, axis=0, allow_fill=True, fill_value=None):
         indices = com._ensure_platform_int(indices)
         if self._can_hold_na:

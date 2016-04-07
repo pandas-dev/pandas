@@ -165,10 +165,10 @@ class SparseSeries(Series):
                 if index is None:
                     index = data.index.view()
                 else:
+
                     data = data.reindex(index, copy=False)
 
             else:
-
                 length = len(index)
 
                 if data == fill_value or (isnull(data) and isnull(fill_value)):
@@ -375,11 +375,6 @@ class SparseSeries(Series):
     def _get_val_at(self, loc):
         """ forward to the array """
         return self.block.values._get_val_at(loc)
-
-    def _slice(self, slobj, axis=0, kind=None):
-        slobj = self.index._convert_slice_indexer(slobj,
-                                                  kind=kind or 'getitem')
-        return self._get_values(slobj)
 
     def __getitem__(self, key):
         """

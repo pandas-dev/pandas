@@ -1,4 +1,4 @@
-from numpy cimport ndarray, int32_t, float64_t
+from numpy cimport ndarray, uint8_t, int32_t, float64_t
 cimport numpy as np
 
 cimport cython
@@ -177,12 +177,21 @@ cdef class IntIndex(SparseIndex):
         return IntIndex(x.length, new_list)
 
     @cython.wraparound(False)
-    cpdef lookup(self, Py_ssize_t index):
+    cpdef int lookup(self, Py_ssize_t index):
+        """
+        Return the internal location if value exists on given index.
+        Return -1 otherwise.
+        """
         cdef:
-            Py_ssize_t res, n, cum_len = 0
+            Py_ssize_t res
             ndarray[int32_t, ndim=1] inds
 
         inds = self.indices
+        if self.npoints == 0:
+            return -1
+        elif index < 0 or self.length <= index:
+            return -1
+
         res = inds.searchsorted(index)
         if res == self.npoints:
             return -1
@@ -190,6 +199,36 @@ cdef class IntIndex(SparseIndex):
             return res
         else:
             return -1
+
+    @cython.wraparound(False)
+    cpdef ndarray[int32_t] lookup_array(self, ndarray[int32_t, ndim=1] indexer):
+        """
+        Vectorized lookup, returns ndarray[int32_t]
+        """
+        cdef:
+            Py_ssize_t n, i, ind_val
+            ndarray[int32_t, ndim=1] inds
+            ndarray[uint8_t, ndim=1, cast=True] mask
+            ndarray[int32_t, ndim=1] masked
+            ndarray[int32_t, ndim=1] res
+            ndarray[int32_t, ndim=1] results
+
+        n = len(indexer)
+        results = np.empty(n, dtype=np.int32)
+        results.fill(-1)
+
+        if self.npoints == 0:
+            return results
+
+        inds = self.indices
+        mask = (inds[0] <= indexer) & (indexer <= inds[len(inds) - 1])
+
+        masked = indexer[mask]
+        res = inds.searchsorted(masked).astype(np.int32)
+
+        res[inds[res] != masked] = -1
+        results[mask] = res
+        return results
 
     cpdef ndarray reindex(self, ndarray[float64_t, ndim=1] values,
                           float64_t fill_value, SparseIndex other_):
@@ -475,11 +514,11 @@ cdef class BlockIndex(SparseIndex):
         '''
         return BlockUnion(self, y.to_block_index()).result
 
-    cpdef lookup(self, Py_ssize_t index):
-        '''
-
-        Returns -1 if not found
-        '''
+    cpdef int lookup(self, Py_ssize_t index):
+        """
+        Return the internal location if value exists on given index.
+        Return -1 otherwise.
+        """
         cdef:
             Py_ssize_t i, cum_len
             ndarray[int32_t, ndim=1] locs, lens
@@ -499,6 +538,36 @@ cdef class BlockIndex(SparseIndex):
             cum_len += lens[i]
 
         return -1
+
+    @cython.wraparound(False)
+    cpdef ndarray[int32_t] lookup_array(self, ndarray[int32_t, ndim=1] indexer):
+        """
+        Vectorized lookup, returns ndarray[int32_t]
+        """
+        cdef:
+            Py_ssize_t n, i, j, ind_val
+            ndarray[int32_t, ndim=1] locs, lens
+            ndarray[int32_t, ndim=1] results
+
+        locs = self.blocs
+        lens = self.blengths
+
+        n = len(indexer)
+        results = np.empty(n, dtype=np.int32)
+        results.fill(-1)
+
+        if self.npoints == 0:
+            return results
+
+        for i from 0 <= i < n:
+            ind_val = indexer[i]
+            if not (ind_val < 0 or self.length <= ind_val):
+                cum_len = 0
+                for j from 0 <= j < self.nblocks:
+                    if ind_val >= locs[j] and ind_val < locs[j] + lens[j]:
+                        results[i] = cum_len + ind_val - locs[j]
+                    cum_len += lens[j]
+        return results
 
     cpdef ndarray reindex(self, ndarray[float64_t, ndim=1] values,
                           float64_t fill_value, SparseIndex other_):

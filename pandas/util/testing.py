@@ -1209,7 +1209,10 @@ def assert_sp_array_equal(left, right):
     # SparseIndex comparison
     assertIsInstance(left.sp_index, pd._sparse.SparseIndex, '[SparseIndex]')
     assertIsInstance(right.sp_index, pd._sparse.SparseIndex, '[SparseIndex]')
-    assert (left.sp_index.equals(right.sp_index))
+
+    if not left.sp_index.equals(right.sp_index):
+        raise_assert_detail('SparseArray.index', 'index are not equal',
+                            left.sp_index, right.sp_index)
 
     if np.isnan(left.fill_value):
         assert (np.isnan(right.fill_value))

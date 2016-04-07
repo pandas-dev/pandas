@@ -13,11 +13,16 @@ import pandas.core.common as com
 from pandas import compat, lib
 from pandas.compat import range
 
-from pandas._sparse import BlockIndex, IntIndex
+from pandas._sparse import SparseIndex, BlockIndex, IntIndex
 import pandas._sparse as splib
 import pandas.index as _index
 import pandas.core.ops as ops
 import pandas.formats.printing as printing
+from pandas.util.decorators import Appender
+from pandas.indexes.base import _index_shared_docs
+
+
+_sparray_doc_kwargs = dict(klass='SparseArray')
 
 
 def _arith_method(op, name, str_rep=None, default_axis=None, fill_zeros=None,
@@ -167,10 +172,19 @@ class SparseArray(PandasObject, np.ndarray):
                 fill_value = bool(fill_value)
 
         # Change the class of the array to be the subclass type.
-        output = subarr.view(cls)
-        output.sp_index = sparse_index
-        output.fill_value = fill_value
-        return output
+        return cls._simple_new(subarr, sparse_index, fill_value)
+
+    @classmethod
+    def _simple_new(cls, data, sp_index, fill_value):
+        result = data.view(cls)
+
+        if not isinstance(sp_index, SparseIndex):
+            # caller must pass SparseIndex
+            raise ValueError('sp_index must be a SparseIndex')
+
+        result.sp_index = sp_index
+        result.fill_value = fill_value
+        return result
 
     @property
     def _constructor(self):
@@ -308,14 +322,12 @@ class SparseArray(PandasObject, np.ndarray):
         else:
             return _index.get_value_at(self, sp_loc)
 
-    def take(self, indices, axis=0):
-        """
-        Sparse-compatible version of ndarray.take
+    @Appender(_index_shared_docs['take'] % _sparray_doc_kwargs)
+    def take(self, indices, axis=0, allow_fill=True,
+             fill_value=None):
 
-        Returns
-        -------
-        taken : ndarray
-        """
+        # Sparse-compatible version of ndarray.take, returns SparseArray
+
         if axis:
             raise ValueError("axis must be 0, input was {0}".format(axis))
 
@@ -323,31 +335,40 @@ class SparseArray(PandasObject, np.ndarray):
             # return scalar
             return self[indices]
 
-        indices = np.atleast_1d(np.asarray(indices, dtype=int))
-
-        # allow -1 to indicate missing values
+        indices = com._ensure_platform_int(indices)
         n = len(self)
-        if ((indices >= n) | (indices < -1)).any():
-            raise IndexError('out of bounds access')
-
-        if self.sp_index.npoints > 0:
-            locs = np.array([self.sp_index.lookup(loc) if loc > -1 else -1
-                             for loc in indices])
-            result = self.sp_values.take(locs)
-            mask = locs == -1
-            if mask.any():
-                try:
-                    result[mask] = self.fill_value
-                except ValueError:
-                    # wrong dtype
-                    result = result.astype('float64')
-                    result[mask] = self.fill_value
-
+        if allow_fill and fill_value is not None:
+            # allow -1 to indicate self.fill_value,
+            # self.fill_value may not be NaN
+            if (indices < -1).any():
+                msg = ('When allow_fill=True and fill_value is not None, '
+                       'all indices must be >= -1')
+                raise ValueError(msg)
+            elif (n <= indices).any():
+                msg = 'index is out of bounds for size {0}'
+                raise IndexError(msg.format(n))
         else:
-            result = np.empty(len(indices))
-            result.fill(self.fill_value)
+            if ((indices < -n) | (n <= indices)).any():
+                msg = 'index is out of bounds for size {0}'
+                raise IndexError(msg.format(n))
 
-        return self._constructor(result)
+        indices = indices.astype(np.int32)
+        if not (allow_fill and fill_value is not None):
+            indices = indices.copy()
+            indices[indices < 0] += n
+
+        locs = self.sp_index.lookup_array(indices)
+        indexer = np.arange(len(locs), dtype=np.int32)
+        mask = locs != -1
+        if mask.any():
+            indexer = indexer[mask]
+            new_values = self.sp_values.take(locs[mask])
+        else:
+            indexer = np.empty(shape=(0, ), dtype=np.int32)
+            new_values = np.empty(shape=(0, ), dtype=self.sp_values.dtype)
+
+        sp_index = _make_index(len(indices), indexer, kind=self.sp_index)
+        return self._simple_new(new_values, sp_index, self.fill_value)
 
     def __setitem__(self, key, value):
         # if com.is_integer(key):
@@ -525,16 +546,21 @@ def make_sparse(arr, kind='block', fill_value=nan):
     else:
         indices = np.arange(length, dtype=np.int32)[mask]
 
-    if kind == 'block':
+    index = _make_index(length, indices, kind)
+    sparsified_values = arr[mask]
+    return sparsified_values, index
+
+
+def _make_index(length, indices, kind):
+
+    if kind == 'block' or isinstance(kind, BlockIndex):
         locs, lens = splib.get_blocks(indices)
         index = BlockIndex(length, locs, lens)
-    elif kind == 'integer':
+    elif kind == 'integer' or isinstance(kind, IntIndex):
         index = IntIndex(length, indices)
     else:  # pragma: no cover
         raise ValueError('must be block or integer type')
-
-    sparsified_values = arr[mask]
-    return sparsified_values, index
+    return index
 
 
 ops.add_special_arithmetic_methods(SparseArray, arith_method=_arith_method,
