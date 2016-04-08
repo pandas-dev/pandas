@@ -72,7 +72,7 @@ def get_writer(engine_name):
         raise ValueError("No Excel writer '%s'" % engine_name)
 
 
-def read_excel(io, sheetname=0, header=0, skiprows=None, skip_footer=0,
+def read_excel(io, sheet_name=0, header=0, skiprows=None, skip_footer=0,
                index_col=None, names=None, parse_cols=None, parse_dates=False,
                date_parser=None, na_values=None, thousands=None,
                convert_float=True, has_index_names=None, converters=None,
@@ -87,7 +87,7 @@ def read_excel(io, sheetname=0, header=0, skiprows=None, skip_footer=0,
         The string could be a URL. Valid URL schemes include http, ftp, s3,
         and file. For file URLs, a host is expected. For instance, a local
         file could be file://localhost/path/to/workbook.xlsx
-    sheetname : string, int, mixed list of strings/ints, or None, default 0
+    sheet_name : string, int, mixed list of strings/ints, or None, default 0
 
         Strings are used for sheet names, Integers are used in zero-indexed
         sheet positions.
@@ -163,14 +163,14 @@ def read_excel(io, sheetname=0, header=0, skiprows=None, skip_footer=0,
     Returns
     -------
     parsed : DataFrame or Dict of DataFrames
-        DataFrame from the passed in Excel file.  See notes in sheetname
+        DataFrame from the passed in Excel file.  See notes in sheet_name
         argument for more information on when a Dict of Dataframes is returned.
     """
     if not isinstance(io, ExcelFile):
         io = ExcelFile(io, engine=engine)
 
     return io._parse_excel(
-        sheetname=sheetname, header=header, skiprows=skiprows,
+        sheet_name=sheet_name, header=header, skiprows=skiprows,
         index_col=index_col, parse_cols=parse_cols, parse_dates=parse_dates,
         date_parser=date_parser, na_values=na_values, thousands=thousands,
         convert_float=convert_float, has_index_names=has_index_names,
@@ -229,7 +229,7 @@ class ExcelFile(object):
             raise ValueError('Must explicitly set engine if not passing in'
                              ' buffer or path for io.')
 
-    def parse(self, sheetname=0, header=0, skiprows=None, skip_footer=0,
+    def parse(self, sheet_name=0, header=0, skiprows=None, skip_footer=0,
               index_col=None, parse_cols=None, parse_dates=False,
               date_parser=None, na_values=None, thousands=None,
               convert_float=True, has_index_names=None,
@@ -241,7 +241,7 @@ class ExcelFile(object):
         docstring for more info on accepted parameters
         """
 
-        return self._parse_excel(sheetname=sheetname, header=header,
+        return self._parse_excel(sheet_name=sheet_name, header=header,
                                  skiprows=skiprows,
                                  index_col=index_col,
                                  has_index_names=has_index_names,
@@ -288,7 +288,7 @@ class ExcelFile(object):
         else:
             return i in parse_cols
 
-    def _parse_excel(self, sheetname=0, header=0, skiprows=None, skip_footer=0,
+    def _parse_excel(self, sheet_name=0, header=0, skiprows=None, skip_footer=0,
                      index_col=None, has_index_names=None, parse_cols=None,
                      parse_dates=False, date_parser=None, na_values=None,
                      thousands=None, convert_float=True,
@@ -373,29 +373,29 @@ class ExcelFile(object):
 
         ret_dict = False
 
-        # Keep sheetname to maintain backwards compatibility.
-        if isinstance(sheetname, list):
-            sheets = sheetname
+        # Keep sheet_name to maintain backwards compatibility.
+        if isinstance(sheet_name, list):
+            sheets = sheet_name
             ret_dict = True
-        elif sheetname is None:
+        elif sheet_name is None:
             sheets = self.sheet_names
             ret_dict = True
         else:
-            sheets = [sheetname]
+            sheets = [sheet_name]
 
         # handle same-type duplicates.
         sheets = list(set(sheets))
 
         output = {}
 
-        for asheetname in sheets:
+        for a_sheet_name in sheets:
             if verbose:
-                print("Reading sheet %s" % asheetname)
+                print("Reading sheet %s" % a_sheet_name)
 
-            if isinstance(asheetname, compat.string_types):
-                sheet = self.book.sheet_by_name(asheetname)
+            if isinstance(a_sheet_name, compat.string_types):
+                sheet = self.book.sheet_by_name(a_sheet_name)
             else:  # assume an integer if not a string
-                sheet = self.book.sheet_by_index(asheetname)
+                sheet = self.book.sheet_by_index(a_sheet_name)
 
             data = []
             should_parse = {}
@@ -412,7 +412,7 @@ class ExcelFile(object):
                 data.append(row)
 
             if sheet.nrows == 0:
-                output[asheetname] = DataFrame()
+                output[a_sheet_name] = DataFrame()
                 continue
 
             if com.is_list_like(header) and len(header) == 1:
@@ -464,18 +464,18 @@ class ExcelFile(object):
                                     squeeze=squeeze,
                                     **kwds)
 
-                output[asheetname] = parser.read()
-                if not squeeze or isinstance(output[asheetname], DataFrame):
-                    output[asheetname].columns = output[
-                        asheetname].columns.set_names(header_names)
+                output[a_sheet_name] = parser.read()
+                if not squeeze or isinstance(output[a_sheet_name], DataFrame):
+                    output[a_sheet_name].columns = output[
+                        a_sheet_name].columns.set_names(header_names)
             except StopIteration:
                 # No Data, return an empty DataFrame
-                output[asheetname] = DataFrame()
+                output[a_sheet_name] = DataFrame()
 
         if ret_dict:
             return output
         else:
-            return output[asheetname]
+            return output[a_sheet_name]
 
     @property
     def sheet_names(self):
