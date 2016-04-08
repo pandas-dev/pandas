@@ -888,11 +888,11 @@ def assertNotIsInstance(obj, cls, msg=''):
 
 
 def assert_categorical_equal(res, exp):
+    assertIsInstance(res, pd.Categorical, '[Categorical] ')
+    assertIsInstance(exp, pd.Categorical, '[Categorical] ')
 
-    if not array_equivalent(res.categories, exp.categories):
-        raise AssertionError(
-            'categories not equivalent: {0} vs {1}.'.format(res.categories,
-                                                            exp.categories))
+    assert_index_equal(res.categories, exp.categories)
+
     if not array_equivalent(res.codes, exp.codes):
         raise AssertionError(
             'codes not equivalent: {0} vs {1}.'.format(res.codes, exp.codes))

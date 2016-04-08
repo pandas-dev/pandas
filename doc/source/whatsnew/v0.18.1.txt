@@ -129,6 +129,7 @@ API changes
 
 - ``Period`` and ``PeriodIndex`` now raises ``IncompatibleFrequency`` error which inherits ``ValueError`` rather than raw ``ValueError`` (:issue:`12615`)
 
+- ``Series.apply`` for category dtype now applies passed function to each ``.categories`` (not ``.codes``), and returns "category" dtype if possible (:issue:`12473`)
 
 
 - The default for ``.query()/.eval()`` is now ``engine=None``, which will use ``numexpr`` if it's installed; otherwise it will fallback to the ``python`` engine. This mimics the pre-0.18.1 behavior if ``numexpr`` is installed (and which Previously, if numexpr was not installed, ``.query()/.eval()`` would raise). (:issue:`12749`)
@@ -324,4 +325,8 @@ Bug Fixes
 - ``pd.read_excel()`` now accepts path objects (e.g. ``pathlib.Path``, ``py.path.local``) for the file path, in line with other ``read_*`` functions (:issue:`12655`)
 - ``pd.read_excel()`` now accepts column names associated with keyword argument ``names``(:issue `12870`)
 
+
 - Bug in ``fill_value`` is ignored if the argument to a binary operator is a constant (:issue `12723`)
+
+
+- Bug in ``Series.map`` raises ``TypeError`` if its dtype is ``category`` or tz-aware ``datetime`` (:issue:`12473`)

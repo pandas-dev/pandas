@@ -110,6 +110,32 @@ class TestSeriesApply(TestData, tm.TestCase):
         exp = pd.Series(['Period_M', 'Period_M'])
         tm.assert_series_equal(res, exp)
 
+    def test_apply_datetimetz(self):
+        values = pd.date_range('2011-01-01', '2011-01-02',
+                               freq='H').tz_localize('Asia/Tokyo')
+        s = pd.Series(values, name='XX')
+
+        result = s.apply(lambda x: x + pd.offsets.Day())
+        exp_values = pd.date_range('2011-01-02', '2011-01-03',
+                                   freq='H').tz_localize('Asia/Tokyo')
+        exp = pd.Series(exp_values, name='XX')
+        tm.assert_series_equal(result, exp)
+
+        # change dtype
+        result = s.apply(lambda x: x.hour)
+        exp = pd.Series(list(range(24)) + [0], name='XX', dtype=np.int32)
+        tm.assert_series_equal(result, exp)
+
+        # not vectorized
+        def f(x):
+            if not isinstance(x, pd.Timestamp):
+                raise ValueError
+            return str(x.tz)
+
+        result = s.map(f)
+        exp = pd.Series(['Asia/Tokyo'] * 25, name='XX')
+        tm.assert_series_equal(result, exp)
+
 
 class TestSeriesMap(TestData, tm.TestCase):
 
@@ -255,3 +281,53 @@ class TestSeriesMap(TestData, tm.TestCase):
                                                x.freqstr))
         exp = pd.Series(['Period_M', 'Period_M'])
         tm.assert_series_equal(res, exp)
+
+    def test_map_categorical(self):
+        values = pd.Categorical(list('ABBABCD'), categories=list('DCBA'),
+                                ordered=True)
+        s = pd.Series(values, name='XX', index=list('abcdefg'))
+
+        result = s.map(lambda x: x.lower())
+        exp_values = pd.Categorical(list('abbabcd'), categories=list('dcba'),
+                                    ordered=True)
+        exp = pd.Series(exp_values, name='XX', index=list('abcdefg'))
+        tm.assert_series_equal(result, exp)
+        tm.assert_categorical_equal(result.values, exp_values)
+
+        result = s.map(lambda x: 'A')
+        exp = pd.Series(['A'] * 7, name='XX', index=list('abcdefg'))
+        tm.assert_series_equal(result, exp)
+        self.assertEqual(result.dtype, np.object)
+
+        with tm.assertRaises(NotImplementedError):
+            s.map(lambda x: x, na_action='ignore')
+
+    def test_map_datetimetz(self):
+        values = pd.date_range('2011-01-01', '2011-01-02',
+                               freq='H').tz_localize('Asia/Tokyo')
+        s = pd.Series(values, name='XX')
+
+        # keep tz
+        result = s.map(lambda x: x + pd.offsets.Day())
+        exp_values = pd.date_range('2011-01-02', '2011-01-03',
+                                   freq='H').tz_localize('Asia/Tokyo')
+        exp = pd.Series(exp_values, name='XX')
+        tm.assert_series_equal(result, exp)
+
+        # change dtype
+        result = s.map(lambda x: x.hour)
+        exp = pd.Series(list(range(24)) + [0], name='XX', dtype=np.int32)
+        tm.assert_series_equal(result, exp)
+
+        with tm.assertRaises(NotImplementedError):
+            s.map(lambda x: x, na_action='ignore')
+
+        # not vectorized
+        def f(x):
+            if not isinstance(x, pd.Timestamp):
+                raise ValueError
+            return str(x.tz)
+
+        result = s.map(f)
+        exp = pd.Series(['Asia/Tokyo'] * 25, name='XX')
+        tm.assert_series_equal(result, exp)
