@@ -20,7 +20,7 @@ from pandas.core.common import (isnull, notnull, is_bool_indexer,
                                 is_categorical_dtype,
                                 _possibly_cast_to_datetime,
                                 _possibly_castable, _possibly_convert_platform,
-                                _try_sort, is_internal_type, is_datetimetz,
+                                _try_sort, is_extension_type, is_datetimetz,
                                 _maybe_match_name, ABCSparseArray,
                                 _coerce_to_dtype, SettingWithCopyError,
                                 _maybe_box_datetimelike, ABCDataFrame,
@@ -2063,15 +2063,21 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         y : Series
             same index as caller
         """
-        values = self.asobject
 
-        if na_action == 'ignore':
-            mask = isnull(values)
-
-            def map_f(values, f):
-                return lib.map_infer_mask(values, f, mask.view(np.uint8))
+        if is_extension_type(self.dtype):
+            values = self._values
+            if na_action is not None:
+                raise NotImplementedError
+            map_f = lambda values, f: values.map(f)
         else:
-            map_f = lib.map_infer
+            values = self.asobject
+
+            if na_action == 'ignore':
+                def map_f(values, f):
+                    return lib.map_infer_mask(values, f,
+                                              isnull(values).view(np.uint8))
+            else:
+                map_f = lib.map_infer
 
         if isinstance(arg, (dict, Series)):
             if isinstance(arg, dict):
@@ -2079,12 +2085,11 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
 
             indexer = arg.index.get_indexer(values)
             new_values = algos.take_1d(arg._values, indexer)
-            return self._constructor(new_values,
-                                     index=self.index).__finalize__(self)
         else:
-            mapped = map_f(values, arg)
-            return self._constructor(mapped,
-                                     index=self.index).__finalize__(self)
+            new_values = map_f(values, arg)
+
+        return self._constructor(new_values,
+                                 index=self.index).__finalize__(self)
 
     def apply(self, func, convert_dtype=True, args=(), **kwds):
         """
@@ -2193,7 +2198,12 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         if isinstance(f, np.ufunc):
             return f(self)
 
-        mapped = lib.map_infer(self.asobject, f, convert=convert_dtype)
+        if is_extension_type(self.dtype):
+            mapped = self._values.map(f)
+        else:
+            values = self.asobject
+            mapped = lib.map_infer(values, f, convert=convert_dtype)
+
         if len(mapped) and isinstance(mapped[0], Series):
             from pandas.core.frame import DataFrame
             return DataFrame(mapped.tolist(), index=self.index)
@@ -2779,7 +2789,7 @@ def _sanitize_array(data, index, dtype=None, copy=False,
 
         try:
             subarr = _possibly_cast_to_datetime(arr, dtype)
-            if not is_internal_type(subarr):
+            if not is_extension_type(subarr):
                 subarr = np.array(subarr, dtype=dtype, copy=copy)
         except (ValueError, TypeError):
             if is_categorical_dtype(dtype):

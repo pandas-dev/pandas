@@ -27,7 +27,7 @@ from pandas.core.common import (
     isnull, notnull, PandasError, _try_sort, _default_index, _maybe_upcast,
     is_sequence, _infer_dtype_from_scalar, _values_from_object, is_list_like,
     _maybe_box_datetimelike, is_categorical_dtype, is_object_dtype,
-    is_internal_type, is_datetimetz, _possibly_infer_to_datetimelike,
+    is_extension_type, is_datetimetz, _possibly_infer_to_datetimelike,
     _dict_compat)
 from pandas.core.generic import NDFrame, _shared_docs
 from pandas.core.index import Index, MultiIndex, _ensure_index
@@ -2594,7 +2594,7 @@ class DataFrame(NDFrame):
             value = com._possibly_cast_to_datetime(value, dtype)
 
         # return internal types directly
-        if is_internal_type(value):
+        if is_extension_type(value):
             return value
 
         # broadcast across multiple columns if necessary
@@ -4094,7 +4094,7 @@ class DataFrame(NDFrame):
 
             # we cannot reduce using non-numpy dtypes,
             # as demonstrated in gh-12244
-            if not is_internal_type(values):
+            if not is_extension_type(values):
                 # Create a dummy Series from an empty array
                 index = self._get_axis(axis)
                 empty_arr = np.empty(len(index), dtype=values.dtype)

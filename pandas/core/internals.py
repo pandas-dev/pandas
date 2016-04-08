@@ -20,7 +20,7 @@ from pandas.core.common import (_possibly_downcast_to_dtype, isnull, _NS_DTYPE,
                                 _maybe_convert_string_to_object,
                                 _maybe_convert_scalar,
                                 is_categorical, is_datetimelike_v_numeric,
-                                is_numeric_v_string_like, is_internal_type)
+                                is_numeric_v_string_like, is_extension_type)
 import pandas.core.algorithms as algos
 from pandas.types.api import DatetimeTZDtype
 
@@ -1765,7 +1765,7 @@ class ObjectBlock(Block):
         return not (issubclass(value.dtype.type,
                                (np.integer, np.floating, np.complexfloating,
                                 np.datetime64, np.bool_)) or
-                    is_internal_type(value))
+                    is_extension_type(value))
 
     def replace(self, to_replace, value, inplace=False, filter=None,
                 regex=False, convert=True, mgr=None):
@@ -3388,10 +3388,10 @@ class BlockManager(PandasObject):
         # FIXME: refactor, clearly separate broadcasting & zip-like assignment
         #        can prob also fix the various if tests for sparse/categorical
 
-        value_is_internal_type = is_internal_type(value)
+        value_is_extension_type = is_extension_type(value)
 
         # categorical/spares/datetimetz
-        if value_is_internal_type:
+        if value_is_extension_type:
 
             def value_getitem(placement):
                 return value
@@ -3463,7 +3463,7 @@ class BlockManager(PandasObject):
             unfit_count = len(unfit_mgr_locs)
 
             new_blocks = []
-            if value_is_internal_type:
+            if value_is_extension_type:
                 # This code (ab-)uses the fact that sparse blocks contain only
                 # one item.
                 new_blocks.extend(

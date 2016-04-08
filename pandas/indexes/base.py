@@ -2194,11 +2194,22 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         -------
         groups : dict
             {group name -> group labels}
-
         """
         return self._groupby(self.values, _values_from_object(to_groupby))
 
     def map(self, mapper):
+        """
+        Apply mapper function to its values.
+
+        Parameters
+        ----------
+        mapper : callable
+            Function to be applied.
+
+        Returns
+        -------
+        applied : array
+        """
         return self._arrmap(self.values, mapper)
 
     def isin(self, values, level=None):

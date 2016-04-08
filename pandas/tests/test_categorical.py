@@ -1551,6 +1551,24 @@ Categories (3, object): [ああああ, いいいいい, ううううううう]""
         self.assert_numpy_array_equal(cat == 4, [False, False, False])
         self.assert_numpy_array_equal(cat != 4, [True, True, True])
 
+    def test_map(self):
+        c = pd.Categorical(list('ABABC'), categories=list('CBA'),
+                           ordered=True)
+        result = c.map(lambda x: x.lower())
+        exp = pd.Categorical(list('ababc'), categories=list('cba'),
+                             ordered=True)
+        tm.assert_categorical_equal(result, exp)
+
+        c = pd.Categorical(list('ABABC'), categories=list('ABC'),
+                           ordered=False)
+        result = c.map(lambda x: x.lower())
+        exp = pd.Categorical(list('ababc'), categories=list('abc'),
+                             ordered=False)
+        tm.assert_categorical_equal(result, exp)
+
+        result = c.map(lambda x: 1)
+        tm.assert_numpy_array_equal(result, np.array([1] * 5))
+
 
 class TestCategoricalAsBlock(tm.TestCase):
     _multiprocess_can_split_ = True
