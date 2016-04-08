@@ -705,7 +705,7 @@ def _maybe_upcast(values, fill_value=np.nan, dtype=None, copy=False):
     copy : if True always make a copy even if no upcast is required
     """
 
-    if is_internal_type(values):
+    if is_extension_type(values):
         if copy:
             values = values.copy()
     else:
@@ -1714,7 +1714,7 @@ def is_datetimetz(array):
             is_datetime64tz_dtype(array))
 
 
-def is_internal_type(value):
+def is_extension_type(value):
     """
     if we are a klass that is preserved by the internals
     these are internal klasses that we represent (and don't use a np.array)

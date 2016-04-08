@@ -468,6 +468,24 @@ class CategoricalIndex(Index, base.PandasDelegate):
                                            na_value=-1)
         return self._create_from_codes(taken)
 
+    def map(self, mapper):
+        """
+        Apply mapper function to its categories (not codes).
+
+        Parameters
+        ----------
+        mapper : callable
+            Function to be applied. When all categories are mapped
+            to different categories, the result will be Categorical which has
+            the same order property as the original. Otherwise, the result will
+            be np.ndarray.
+
+        Returns
+        -------
+        applied : Categorical or np.ndarray.
+        """
+        return self.values.map(mapper)
+
     def delete(self, loc):
         """
         Make new Index with passed location(-s) deleted
