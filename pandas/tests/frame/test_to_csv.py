@@ -36,10 +36,9 @@ class TestDataFrameToCSV(tm.TestCase, TestData):
 
     _multiprocess_can_split_ = True
 
-    def test_to_csv_from_csv(self):
+    def test_to_csv_from_csv1(self):
 
-        pname = '__tmp_to_csv_from_csv__'
-        with ensure_clean(pname) as path:
+        with ensure_clean('__tmp_to_csv_from_csv1__') as path:
             self.frame['A'][:5] = nan
 
             self.frame.to_csv(path)
@@ -69,7 +68,9 @@ class TestDataFrameToCSV(tm.TestCase, TestData):
             recons = DataFrame.from_csv(path)
             assert_frame_equal(dm, recons)
 
-        with ensure_clean(pname) as path:
+    def test_to_csv_from_csv2(self):
+
+        with ensure_clean('__tmp_to_csv_from_csv2__') as path:
 
             # duplicate index
             df = DataFrame(np.random.randn(3, 3), index=['a', 'a', 'b'],
@@ -101,7 +102,9 @@ class TestDataFrameToCSV(tm.TestCase, TestData):
             self.assertRaises(ValueError, self.frame2.to_csv, path,
                               header=['AA', 'X'])
 
-        with ensure_clean(pname) as path:
+    def test_to_csv_from_csv3(self):
+
+        with ensure_clean('__tmp_to_csv_from_csv3__') as path:
             df1 = DataFrame(np.random.randn(3, 1))
             df2 = DataFrame(np.random.randn(3, 1))
 
@@ -113,7 +116,9 @@ class TestDataFrameToCSV(tm.TestCase, TestData):
             xp.columns = lmap(int, xp.columns)
             assert_frame_equal(xp, rs)
 
-        with ensure_clean() as path:
+    def test_to_csv_from_csv4(self):
+
+        with ensure_clean('__tmp_to_csv_from_csv4__') as path:
             # GH 10833 (TimedeltaIndex formatting)
             dt = pd.Timedelta(seconds=1)
             df = pd.DataFrame({'dt_data': [i * dt for i in range(3)]},
@@ -129,8 +134,10 @@ class TestDataFrameToCSV(tm.TestCase, TestData):
 
             assert_frame_equal(df, result, check_index_type=True)
 
+    def test_to_csv_from_csv5(self):
+
         # tz, 8260
-        with ensure_clean(pname) as path:
+        with ensure_clean('__tmp_to_csv_from_csv5__') as path:
 
             self.tzframe.to_csv(path)
             result = pd.read_csv(path, index_col=0, parse_dates=['A'])
@@ -213,10 +220,40 @@ class TestDataFrameToCSV(tm.TestCase, TestData):
         _check_df(df, cols)
 
     @slow
-    def test_to_csv_moar(self):
-        path = '__tmp_to_csv_moar__'
+    def test_to_csv_dtnat(self):
+        # GH3437
+        from pandas import NaT
 
-        def _do_test(df, path, r_dtype=None, c_dtype=None,
+        def make_dtnat_arr(n, nnat=None):
+            if nnat is None:
+                nnat = int(n * 0.1)  # 10%
+            s = list(date_range('2000', freq='5min', periods=n))
+            if nnat:
+                for i in np.random.randint(0, len(s), nnat):
+                    s[i] = NaT
+                i = np.random.randint(100)
+                s[-i] = NaT
+                s[i] = NaT
+            return s
+
+        chunksize = 1000
+        # N=35000
+        s1 = make_dtnat_arr(chunksize + 5)
+        s2 = make_dtnat_arr(chunksize + 5, 0)
+
+        # s3=make_dtnjat_arr(chunksize+5,0)
+        with ensure_clean('1.csv') as pth:
+            df = DataFrame(dict(a=s1, b=s2))
+            df.to_csv(pth, chunksize=chunksize)
+            recons = DataFrame.from_csv(pth)._convert(datetime=True,
+                                                      coerce=True)
+            assert_frame_equal(df, recons, check_names=False,
+                               check_less_precise=True)
+
+    @slow
+    def test_to_csv_moar(self):
+
+        def _do_test(df, r_dtype=None, c_dtype=None,
                      rnlvl=None, cnlvl=None, dupe_col=False):
 
             kwargs = dict(parse_dates=False)
@@ -224,14 +261,14 @@ class TestDataFrameToCSV(tm.TestCase, TestData):
                 if rnlvl is not None:
                     kwargs['index_col'] = lrange(rnlvl)
                 kwargs['header'] = lrange(cnlvl)
-                with ensure_clean(path) as path:
+                with ensure_clean('__tmp_to_csv_moar__') as path:
                     df.to_csv(path, encoding='utf8',
                               chunksize=chunksize, tupleize_cols=False)
                     recons = DataFrame.from_csv(
                         path, tupleize_cols=False, **kwargs)
             else:
                 kwargs['header'] = 0
-                with ensure_clean(path) as path:
+                with ensure_clean('__tmp_to_csv_moar__') as path:
                     df.to_csv(path, encoding='utf8', chunksize=chunksize)
                     recons = DataFrame.from_csv(path, **kwargs)
 
@@ -307,34 +344,13 @@ class TestDataFrameToCSV(tm.TestCase, TestData):
         N = 100
         chunksize = 1000
 
-        # GH3437
-        from pandas import NaT
-
-        def make_dtnat_arr(n, nnat=None):
-            if nnat is None:
-                nnat = int(n * 0.1)  # 10%
-            s = list(date_range('2000', freq='5min', periods=n))
-            if nnat:
-                for i in np.random.randint(0, len(s), nnat):
-                    s[i] = NaT
-                i = np.random.randint(100)
-                s[-i] = NaT
-                s[i] = NaT
-            return s
-
-        # N=35000
-        s1 = make_dtnat_arr(chunksize + 5)
-        s2 = make_dtnat_arr(chunksize + 5, 0)
-        path = '1.csv'
-
-        # s3=make_dtnjat_arr(chunksize+5,0)
-        with ensure_clean('.csv') as pth:
-            df = DataFrame(dict(a=s1, b=s2))
-            df.to_csv(pth, chunksize=chunksize)
-            recons = DataFrame.from_csv(pth)._convert(datetime=True,
-                                                      coerce=True)
-            assert_frame_equal(df, recons, check_names=False,
-                               check_less_precise=True)
+        for ncols in [4]:
+            base = int((chunksize // ncols or 1) or 1)
+            for nrows in [2, 10, N - 1, N, N + 1, N + 2, 2 * N - 2,
+                          2 * N - 1, 2 * N, 2 * N + 1, 2 * N + 2,
+                          base - 1, base, base + 1]:
+                _do_test(mkdf(nrows, ncols, r_idx_type='dt',
+                              c_idx_type='s'), 'dt', 's')
 
         for ncols in [4]:
             base = int((chunksize // ncols or 1) or 1)
@@ -342,15 +358,7 @@ class TestDataFrameToCSV(tm.TestCase, TestData):
                           2 * N - 1, 2 * N, 2 * N + 1, 2 * N + 2,
                           base - 1, base, base + 1]:
                 _do_test(mkdf(nrows, ncols, r_idx_type='dt',
-                              c_idx_type='s'), path, 'dt', 's')
-
-        for ncols in [4]:
-            base = int((chunksize // ncols or 1) or 1)
-            for nrows in [2, 10, N - 1, N, N + 1, N + 2, 2 * N - 2,
-                          2 * N - 1, 2 * N, 2 * N + 1, 2 * N + 2,
-                          base - 1, base, base + 1]:
-                _do_test(mkdf(nrows, ncols, r_idx_type='dt',
-                              c_idx_type='s'), path, 'dt', 's')
+                              c_idx_type='s'), 'dt', 's')
                 pass
 
         for r_idx_type, c_idx_type in [('i', 'i'), ('s', 's'), ('u', 'dt'),
@@ -362,14 +370,14 @@ class TestDataFrameToCSV(tm.TestCase, TestData):
                               base - 1, base, base + 1]:
                     _do_test(mkdf(nrows, ncols, r_idx_type=r_idx_type,
                                   c_idx_type=c_idx_type),
-                             path, r_idx_type, c_idx_type)
+                             r_idx_type, c_idx_type)
 
         for ncols in [1, 2, 3, 4]:
             base = int((chunksize // ncols or 1) or 1)
             for nrows in [10, N - 2, N - 1, N, N + 1, N + 2, 2 * N - 2,
                           2 * N - 1, 2 * N, 2 * N + 1, 2 * N + 2,
                           base - 1, base, base + 1]:
-                _do_test(mkdf(nrows, ncols), path)
+                _do_test(mkdf(nrows, ncols))
 
         for nrows in [10, N - 2, N - 1, N, N + 1, N + 2]:
             df = mkdf(nrows, 3)
@@ -381,19 +389,19 @@ class TestDataFrameToCSV(tm.TestCase, TestData):
             ix[-2:] = ["rdupe", "rdupe"]
             df.index = ix
             df.columns = cols
-            _do_test(df, path, dupe_col=True)
+            _do_test(df, dupe_col=True)
 
-        _do_test(DataFrame(index=lrange(10)), path)
-        _do_test(mkdf(chunksize // 2 + 1, 2, r_idx_nlevels=2), path, rnlvl=2)
+        _do_test(DataFrame(index=lrange(10)))
+        _do_test(mkdf(chunksize // 2 + 1, 2, r_idx_nlevels=2), rnlvl=2)
         for ncols in [2, 3, 4]:
             base = int(chunksize // ncols)
             for nrows in [10, N - 2, N - 1, N, N + 1, N + 2, 2 * N - 2,
                           2 * N - 1, 2 * N, 2 * N + 1, 2 * N + 2,
                           base - 1, base, base + 1]:
-                _do_test(mkdf(nrows, ncols, r_idx_nlevels=2), path, rnlvl=2)
-                _do_test(mkdf(nrows, ncols, c_idx_nlevels=2), path, cnlvl=2)
+                _do_test(mkdf(nrows, ncols, r_idx_nlevels=2), rnlvl=2)
+                _do_test(mkdf(nrows, ncols, c_idx_nlevels=2), cnlvl=2)
                 _do_test(mkdf(nrows, ncols, r_idx_nlevels=2, c_idx_nlevels=2),
-                         path, rnlvl=2, cnlvl=2)
+                         rnlvl=2, cnlvl=2)
 
     def test_to_csv_from_csv_w_some_infs(self):
 
@@ -428,8 +436,7 @@ class TestDataFrameToCSV(tm.TestCase, TestData):
 
     def test_to_csv_no_index(self):
         # GH 3624, after appending columns, to_csv fails
-        pname = '__tmp_to_csv_no_index__'
-        with ensure_clean(pname) as path:
+        with ensure_clean('__tmp_to_csv_no_index__') as path:
             df = DataFrame({'c1': [1, 2, 3], 'c2': [4, 5, 6]})
             df.to_csv(path, index=False)
             result = read_csv(path)
@@ -451,10 +458,9 @@ class TestDataFrameToCSV(tm.TestCase, TestData):
     def test_to_csv_headers(self):
         # GH6186, the presence or absence of `index` incorrectly
         # causes to_csv to have different header semantics.
-        pname = '__tmp_to_csv_headers__'
         from_df = DataFrame([[1, 2], [3, 4]], columns=['A', 'B'])
         to_df = DataFrame([[1, 2], [3, 4]], columns=['X', 'Y'])
-        with ensure_clean(pname) as path:
+        with ensure_clean('__tmp_to_csv_headers__') as path:
             from_df.to_csv(path, header=['X', 'Y'])
             recons = DataFrame.from_csv(path)
             assert_frame_equal(to_df, recons)
@@ -466,14 +472,13 @@ class TestDataFrameToCSV(tm.TestCase, TestData):
 
     def test_to_csv_multiindex(self):
 
-        pname = '__tmp_to_csv_multiindex__'
         frame = self.frame
         old_index = frame.index
         arrays = np.arange(len(old_index) * 2).reshape(2, -1)
         new_index = MultiIndex.from_arrays(arrays, names=['first', 'second'])
         frame.index = new_index
 
-        with ensure_clean(pname) as path:
+        with ensure_clean('__tmp_to_csv_multiindex__') as path:
 
             frame.to_csv(path, header=False)
             frame.to_csv(path, columns=['A', 'B'])
@@ -514,7 +519,7 @@ class TestDataFrameToCSV(tm.TestCase, TestData):
             # needed if setUP becomes classmethod
             self.tsframe.index = old_index
 
-        with ensure_clean(pname) as path:
+        with ensure_clean('__tmp_to_csv_multiindex__') as path:
             # GH3571, GH1651, GH3141
 
             def _make_frame(names=None):
@@ -618,7 +623,7 @@ class TestDataFrameToCSV(tm.TestCase, TestData):
                                     'MultiIndex'):
                 df.to_csv(path, tupleize_cols=False, columns=['foo', 'bar'])
 
-        with ensure_clean(pname) as path:
+        with ensure_clean('__tmp_to_csv_multiindex__') as path:
             # empty
             tsframe[:0].to_csv(path)
             recons = DataFrame.from_csv(path)
@@ -1022,8 +1027,7 @@ class TestDataFrameToCSV(tm.TestCase, TestData):
 
     def test_to_csv_date_format(self):
         from pandas import to_datetime
-        pname = '__tmp_to_csv_date_format__'
-        with ensure_clean(pname) as path:
+        with ensure_clean('__tmp_to_csv_date_format__') as path:
             for engine in [None, 'python']:
                 w = FutureWarning if engine == 'python' else None
 
