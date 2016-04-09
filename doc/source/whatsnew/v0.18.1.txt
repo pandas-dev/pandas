@@ -89,6 +89,7 @@ These changes conform sparse handling to return the correct types and work to ma
 - Bug in ``SparseSeries.__repr__`` raises ``TypeError`` when it is longer than ``max_rows`` (:issue:`10560`)
 - Bug in ``SparseSeries.shape`` ignores ``fill_value`` (:issue:`10452`)
 - Bug in ``SparseSeries.reindex`` incorrectly handle ``fill_value`` (:issue:`12797`)
+- Bug in ``SparseArray.to_frame()`` results in ``DataFrame``, rather than ``SparseDataFrame`` (:issue:`9850`)
 - Bug in ``SparseArray.to_dense()`` does not preserve ``dtype`` (:issue:`10648`)
 - Bug in ``SparseArray.to_dense()`` incorrectly handle ``fill_value`` (:issue:`12797`)
 
