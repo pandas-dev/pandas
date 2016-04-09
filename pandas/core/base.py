@@ -10,6 +10,7 @@ import pandas.lib as lib
 from pandas.util.decorators import (Appender, cache_readonly,
                                     deprecate_kwarg, Substitution)
 from pandas.core.common import AbstractMethodError
+from pandas.types import api as gt
 from pandas.formats.printing import pprint_thing
 
 _shared_docs = dict()
@@ -291,15 +292,15 @@ class SelectionMixin(object):
 
     @property
     def _selection_list(self):
-        if not isinstance(self._selection, (list, tuple, com.ABCSeries,
-                                            com.ABCIndex, np.ndarray)):
+        if not isinstance(self._selection, (list, tuple, gt.ABCSeries,
+                                            gt.ABCIndex, np.ndarray)):
             return [self._selection]
         return self._selection
 
     @cache_readonly
     def _selected_obj(self):
 
-        if self._selection is None or isinstance(self.obj, com.ABCSeries):
+        if self._selection is None or isinstance(self.obj, gt.ABCSeries):
             return self.obj
         else:
             return self.obj[self._selection]
@@ -311,7 +312,7 @@ class SelectionMixin(object):
     @cache_readonly
     def _obj_with_exclusions(self):
         if self._selection is not None and isinstance(self.obj,
-                                                      com.ABCDataFrame):
+                                                      gt.ABCDataFrame):
             return self.obj.reindex(columns=self._selection_list)
 
         if len(self.exclusions) > 0:
@@ -323,7 +324,7 @@ class SelectionMixin(object):
         if self._selection is not None:
             raise Exception('Column(s) %s already selected' % self._selection)
 
-        if isinstance(key, (list, tuple, com.ABCSeries, com.ABCIndex,
+        if isinstance(key, (list, tuple, gt.ABCSeries, gt.ABCIndex,
                             np.ndarray)):
             if len(self.obj.columns.intersection(key)) != len(key):
                 bad_keys = list(set(key).difference(self.obj.columns))
@@ -551,7 +552,7 @@ pandas.DataFrame.%(name)s
             if isinstance(result, list):
                 result = concat(result, keys=keys, axis=1)
             elif isinstance(list(compat.itervalues(result))[0],
-                            com.ABCDataFrame):
+                            gt.ABCDataFrame):
                 result = concat([result[k] for k in keys], keys=keys, axis=1)
             else:
                 from pandas import DataFrame
@@ -940,17 +941,20 @@ class IndexOpsMixin(object):
         counts : Series
         """
         from pandas.core.algorithms import value_counts
-        from pandas.tseries.api import DatetimeIndex, PeriodIndex
         result = value_counts(self, sort=sort, ascending=ascending,
                               normalize=normalize, bins=bins, dropna=dropna)
 
-        if isinstance(self, PeriodIndex):
+        if isinstance(self, gt.ABCPeriodIndex):
             # preserve freq
             result.index = self._simple_new(result.index.values,
                                             freq=self.freq)
-        elif isinstance(self, DatetimeIndex):
-            result.index = self._simple_new(result.index.values,
-                                            tz=getattr(self, 'tz', None))
+        elif com.is_datetimetz(self):
+            if isinstance(self, gt.ABCDatetimeIndex):
+                tz = self.tz
+            else:
+                tz = self.dt.tz
+            result.index = result.index._simple_new(result.index.values,
+                                                    tz=tz)
         return result
 
     def unique(self):

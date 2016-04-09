@@ -197,6 +197,7 @@ These changes conform sparse handling to return the correct types and work to ma
 - Bug in ``SparseSeries`` and ``SparseArray`` may have different ``dtype`` from its dense values (:issue:`12908`)
 - Bug in ``SparseSeries.reindex`` incorrectly handle ``fill_value`` (:issue:`12797`)
 - Bug in ``SparseArray.to_frame()`` results in ``DataFrame``, rather than ``SparseDataFrame`` (:issue:`9850`)
+- Bug in ``SparseSeries.value_counts()`` does not count ``fill_value`` (:issue:`6749`)
 - Bug in ``SparseArray.to_dense()`` does not preserve ``dtype`` (:issue:`10648`)
 - Bug in ``SparseArray.to_dense()`` incorrectly handle ``fill_value`` (:issue:`12797`)
 - Bug in ``pd.concat()`` of ``SparseSeries`` results in dense (:issue:`10536`)
@@ -474,6 +475,9 @@ Bug Fixes
 
 
 - Bug in ``value_counts`` when ``normalize=True`` and ``dropna=True`` where nulls still contributed to the normalized count (:issue:`12558`)
+- Bug in ``Series.value_counts()`` loses name if its dtype is category (:issue:`12835`)
+- Bug in ``Series.value_counts()`` loses timezone info (:issue:`12835`)
+- Bug in ``Series.value_counts(normalize=True)`` with ``Categorical`` raises ``UnboundLocalError`` (:issue:`12835`)
 - Bug in ``Panel.fillna()`` ignoring ``inplace=True`` (:issue:`12633`)
 - Bug in ``read_csv`` when specifying ``names``, ``usecols``, and ``parse_dates`` simultaneously with the C engine (:issue:`9755`)
 - Bug in ``read_csv`` when specifying ``delim_whitespace=True`` and ``lineterminator`` simultaneously with the C engine (:issue:`12912`)

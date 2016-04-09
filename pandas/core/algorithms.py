@@ -254,7 +254,6 @@ def value_counts(values, sort=True, ascending=False, normalize=False,
     """
     from pandas.core.series import Series
     from pandas.tools.tile import cut
-    from pandas import Index, PeriodIndex, DatetimeIndex
 
     name = getattr(values, 'name', None)
     values = Series(values).values
@@ -266,63 +265,24 @@ def value_counts(values, sort=True, ascending=False, normalize=False,
             raise TypeError("bins argument only works with numeric data.")
         values = cat.codes
 
-    if com.is_categorical_dtype(values.dtype):
-        result = values.value_counts(dropna)
-
+    if com.is_extension_type(values):
+        result = values.value_counts(dropna=dropna)
+        result.name = name
+        counts = result.values
     else:
+        # ndarray path
+        keys, counts = _value_counts_arraylike(values, dropna=dropna)
 
-        dtype = values.dtype
-        is_period = com.is_period_arraylike(values)
-        is_datetimetz = com.is_datetimetz(values)
-
-        if com.is_datetime_or_timedelta_dtype(dtype) or is_period or \
-                is_datetimetz:
-
-            if is_period:
-                values = PeriodIndex(values)
-            elif is_datetimetz:
-                tz = getattr(values, 'tz', None)
-                values = DatetimeIndex(values).tz_localize(None)
-
-            values = values.view(np.int64)
-            keys, counts = htable.value_count_scalar64(values, dropna)
-
-            if dropna:
-                msk = keys != iNaT
-                keys, counts = keys[msk], counts[msk]
-
-            # localize to the original tz if necessary
-            if is_datetimetz:
-                keys = DatetimeIndex(keys).tz_localize(tz)
-
-            # convert the keys back to the dtype we came in
-            else:
-                keys = keys.astype(dtype)
-
-        elif com.is_integer_dtype(dtype):
-            values = com._ensure_int64(values)
-            keys, counts = htable.value_count_scalar64(values, dropna)
-        elif com.is_float_dtype(dtype):
-            values = com._ensure_float64(values)
-            keys, counts = htable.value_count_scalar64(values, dropna)
-
-        else:
-            values = com._ensure_object(values)
-            mask = com.isnull(values)
-            keys, counts = htable.value_count_object(values, mask)
-            if not dropna and mask.any():
-                keys = np.insert(keys, 0, np.NaN)
-                counts = np.insert(counts, 0, mask.sum())
-
+        from pandas import Index
         if not isinstance(keys, Index):
             keys = Index(keys)
         result = Series(counts, index=keys, name=name)
 
-        if bins is not None:
-            # TODO: This next line should be more efficient
-            result = result.reindex(np.arange(len(cat.categories)),
-                                    fill_value=0)
-            result.index = bins[:-1]
+    if bins is not None:
+        # TODO: This next line should be more efficient
+        result = result.reindex(np.arange(len(cat.categories)),
+                                fill_value=0)
+        result.index = bins[:-1]
 
     if sort:
         result = result.sort_values(ascending=ascending)
@@ -331,6 +291,55 @@ def value_counts(values, sort=True, ascending=False, normalize=False,
         result = result / float(counts.sum())
 
     return result
+
+
+def _value_counts_arraylike(values, dropna=True):
+    from pandas import PeriodIndex, DatetimeIndex
+
+    dtype = values.dtype
+    is_period = com.is_period_arraylike(values)
+    is_datetimetz = com.is_datetimetz(values)
+
+    if com.is_datetime_or_timedelta_dtype(dtype) or is_period or \
+            is_datetimetz:
+
+        if is_period:
+            values = PeriodIndex(values)
+        elif is_datetimetz:
+            tz = getattr(values, 'tz', None)
+            values = DatetimeIndex(values).tz_localize(None)
+
+        values = values.view(np.int64)
+        keys, counts = htable.value_count_scalar64(values, dropna)
+
+        if dropna:
+            msk = keys != iNaT
+            keys, counts = keys[msk], counts[msk]
+
+        # localize to the original tz if necessary
+        if is_datetimetz:
+            keys = DatetimeIndex(keys).tz_localize(tz)
+
+        # convert the keys back to the dtype we came in
+        else:
+            keys = keys.astype(dtype)
+
+    elif com.is_integer_dtype(dtype):
+        values = com._ensure_int64(values)
+        keys, counts = htable.value_count_scalar64(values, dropna)
+    elif com.is_float_dtype(dtype):
+        values = com._ensure_float64(values)
+        keys, counts = htable.value_count_scalar64(values, dropna)
+
+    else:
+        values = com._ensure_object(values)
+        mask = com.isnull(values)
+        keys, counts = htable.value_count_object(values, mask)
+        if not dropna and mask.any():
+            keys = np.insert(keys, 0, np.NaN)
+            counts = np.insert(counts, 0, mask.sum())
+
+    return keys, counts
 
 
 def mode(values):
