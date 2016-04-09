@@ -18,7 +18,7 @@ from pandas.util.decorators import (Appender, cache_readonly,
 from pandas.core.common import (
     ABCSeries, ABCIndexClass, ABCCategoricalIndex, isnull, notnull,
     is_dtype_equal, is_categorical_dtype, is_integer_dtype,
-    _possibly_infer_to_datetimelike, get_dtype_kinds, is_list_like,
+    _possibly_infer_to_datetimelike, is_list_like,
     is_sequence, is_null_slice, is_bool, _ensure_object, _ensure_int64,
     _coerce_indexer_dtype)
 from pandas.types.api import CategoricalDtype
@@ -1873,59 +1873,3 @@ def _convert_to_list_like(list_like):
     else:
         # is this reached?
         return [list_like]
-
-
-def _concat_compat(to_concat, axis=0):
-    """Concatenate an object/categorical array of arrays, each of which is a
-    single dtype
-
-    Parameters
-    ----------
-    to_concat : array of arrays
-    axis : int
-        Axis to provide concatenation in the current implementation this is
-        always 0, e.g. we only have 1D categoricals
-
-    Returns
-    -------
-    Categorical
-        A single array, preserving the combined dtypes
-    """
-
-    def convert_categorical(x):
-        # coerce to object dtype
-        if is_categorical_dtype(x.dtype):
-            return x.get_values()
-        return x.ravel()
-
-    if get_dtype_kinds(to_concat) - set(['object', 'category']):
-        # convert to object type and perform a regular concat
-        from pandas.core.common import _concat_compat
-        return _concat_compat([np.array(x, copy=False, dtype=object)
-                               for x in to_concat], axis=0)
-
-    # we could have object blocks and categoricals here
-    # if we only have a single categoricals then combine everything
-    # else its a non-compat categorical
-    categoricals = [x for x in to_concat if is_categorical_dtype(x.dtype)]
-
-    # validate the categories
-    categories = categoricals[0]
-    rawcats = categories.categories
-    for x in categoricals[1:]:
-        if not categories.is_dtype_equal(x):
-            raise ValueError("incompatible categories in categorical concat")
-
-    # we've already checked that all categoricals are the same, so if their
-    # length is equal to the input then we have all the same categories
-    if len(categoricals) == len(to_concat):
-        # concating numeric types is much faster than concating object types
-        # and fastpath takes a shorter path through the constructor
-        return Categorical(np.concatenate([x.codes for x in to_concat],
-                                          axis=0),
-                           rawcats, ordered=categoricals[0].ordered,
-                           fastpath=True)
-    else:
-        concatted = np.concatenate(list(map(convert_categorical, to_concat)),
-                                   axis=0)
-        return Categorical(concatted, rawcats)

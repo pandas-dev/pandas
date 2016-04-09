@@ -18,6 +18,7 @@ from pandas.core.common import notnull, _ensure_platform_int, _maybe_promote
 from pandas.core.groupby import get_group_index, _compress_group_index
 
 import pandas.core.common as com
+import pandas.types.concat as _concat
 import pandas.core.algorithms as algos
 import pandas.algos as _algos
 
@@ -848,7 +849,8 @@ def lreshape(data, groups, dropna=True, label=None):
     pivot_cols = []
 
     for target, names in zip(keys, values):
-        mdata[target] = com._concat_compat([data[col].values for col in names])
+        to_concat = [data[col].values for col in names]
+        mdata[target] = _concat._concat_compat(to_concat)
         pivot_cols.append(target)
 
     for col in id_cols:
