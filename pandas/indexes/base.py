@@ -17,6 +17,7 @@ import pandas.core.base as base
 from pandas.util.decorators import (Appender, Substitution, cache_readonly,
                                     deprecate, deprecate_kwarg)
 import pandas.core.common as com
+import pandas.types.concat as _concat
 import pandas.core.missing as missing
 import pandas.core.algorithms as algos
 from pandas.formats.printing import pprint_thing
@@ -1713,7 +1714,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
             if len(indexer) > 0:
                 other_diff = algos.take_nd(other._values, indexer,
                                            allow_fill=False)
-                result = com._concat_compat((self.values, other_diff))
+                result = _concat._concat_compat((self.values, other_diff))
 
                 try:
                     self.values[0] < other_diff[0]
