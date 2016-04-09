@@ -19,7 +19,6 @@ from .common import TestData
 
 
 class TestSeriesTimeSeries(TestData, tm.TestCase):
-
     _multiprocess_can_split_ = True
 
     def test_shift(self):
@@ -222,6 +221,7 @@ class TestSeriesTimeSeries(TestData, tm.TestCase):
 
     def test_getitem_setitem_datetimeindex(self):
         from pandas import date_range
+
         N = 50
         # testing with timezone, GH #2785
         rng = date_range('1/1/1990', periods=N, freq='H', tz='US/Eastern')
@@ -304,6 +304,7 @@ class TestSeriesTimeSeries(TestData, tm.TestCase):
         from pytz import timezone as tz
 
         from pandas import date_range
+
         N = 50
         # testing with timezone, GH #2785
         rng = date_range('1/1/1990', periods=N, freq='H', tz='US/Eastern')
@@ -343,6 +344,7 @@ class TestSeriesTimeSeries(TestData, tm.TestCase):
             x)  # handle special case for utc in dateutil
 
         from pandas import date_range
+
         N = 50
         # testing with timezone, GH #2785
         rng = date_range('1/1/1990', periods=N, freq='H', tz='US/Eastern')
@@ -372,6 +374,7 @@ class TestSeriesTimeSeries(TestData, tm.TestCase):
 
     def test_getitem_setitem_periodindex(self):
         from pandas import period_range
+
         N = 50
         rng = period_range('1/1/1990', periods=N, freq='H')
         ts = Series(np.random.randn(N), index=rng)
@@ -460,6 +463,7 @@ class TestSeriesTimeSeries(TestData, tm.TestCase):
 
     def test_asof_more(self):
         from pandas import date_range
+
         s = Series([nan, nan, 1, 2, nan, nan, 3, 4, 5],
                    index=date_range('1/1/2000', periods=9))
 
@@ -604,6 +608,11 @@ class TestSeriesTimeSeries(TestData, tm.TestCase):
         ser = Series([], index=[])
         self.assertIsNone(ser.last_valid_index())
         self.assertIsNone(ser.first_valid_index())
+
+        # GH12800
+        empty = Series()
+        self.assertIsNone(empty.last_valid_index())
+        self.assertIsNone(empty.first_valid_index())
 
     def test_mpl_compat_hack(self):
         result = self.ts[:, np.newaxis]

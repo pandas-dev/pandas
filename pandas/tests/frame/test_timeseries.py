@@ -336,3 +336,8 @@ class TestDataFrameTimeSeriesMethods(tm.TestCase, TestData):
 
         index = frame.last_valid_index()
         self.assertEqual(index, frame.index[-6])
+
+        # GH12800
+        empty = DataFrame()
+        self.assertIsNone(empty.last_valid_index())
+        self.assertIsNone(empty.first_valid_index())
