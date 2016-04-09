@@ -392,9 +392,12 @@ The ``method`` argument gives access to fancier interpolation methods.
 If you have scipy_ installed, you can set pass the name of a 1-d interpolation routine to ``method``.
 You'll want to consult the full scipy interpolation documentation_ and reference guide_ for details.
 The appropriate interpolation method will depend on the type of data you are working with.
-For example, if you are dealing with a time series that is growing at an increasing rate,
-``method='quadratic'`` may be appropriate.  If you have values approximating a cumulative
-distribution function, then ``method='pchip'`` should work well.
+
+* If you are dealing with a time series that is growing at an increasing rate,
+  ``method='quadratic'`` may be appropriate.
+* If you have values approximating a cumulative distribution function,
+  then ``method='pchip'`` should work well.
+* To fill missing values with goal of smooth plotting, use ``method='akima'``.
 
 .. warning::
 
@@ -405,6 +408,8 @@ distribution function, then ``method='pchip'`` should work well.
    df.interpolate(method='barycentric')
 
    df.interpolate(method='pchip')
+
+   df.interpolate(method='akima')
 
 When interpolating via a polynomial or spline approximation, you must also specify
 the degree or order of the approximation:
