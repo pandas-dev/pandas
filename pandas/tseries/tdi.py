@@ -12,6 +12,7 @@ from pandas.compat import u
 from pandas.tseries.frequencies import to_offset
 from pandas.core.base import _shared_docs
 import pandas.core.common as com
+import pandas.types.concat as _concat
 from pandas.util.decorators import Appender, Substitution
 from pandas.tseries.base import TimelikeOps, DatetimeIndexOpsMixin
 from pandas.tseries.timedeltas import (to_timedelta,
@@ -514,7 +515,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
                 break
 
         to_concat = self._ensure_compat_concat(to_concat)
-        return Index(com._concat_compat(to_concat), name=name)
+        return Index(_concat._concat_compat(to_concat), name=name)
 
     def join(self, other, how='left', level=None, return_indexers=False):
         """
@@ -585,7 +586,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
         if left_end < right_end:
             loc = right.searchsorted(left_end, side='right')
             right_chunk = right.values[loc:]
-            dates = com._concat_compat((left.values, right_chunk))
+            dates = _concat._concat_compat((left.values, right_chunk))
             return self._shallow_copy(dates)
         else:
             return left

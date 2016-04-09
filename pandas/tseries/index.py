@@ -26,6 +26,7 @@ from pandas.tseries.timedeltas import to_timedelta
 from pandas.util.decorators import (Appender, cache_readonly,
                                     deprecate_kwarg, Substitution)
 import pandas.core.common as com
+import pandas.types.concat as _concat
 import pandas.tseries.offsets as offsets
 import pandas.tseries.tools as tools
 
@@ -1151,7 +1152,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
             if left_end < right_end:
                 loc = right.searchsorted(left_end, side='right')
                 right_chunk = right.values[loc:]
-                dates = com._concat_compat((left.values, right_chunk))
+                dates = _concat._concat_compat((left.values, right_chunk))
                 return self._shallow_copy(dates)
             else:
                 return left
@@ -2219,7 +2220,7 @@ def _process_concat_data(to_concat, name):
             # well, technically not a "class" anymore...oh well
             klass = DatetimeIndex._simple_new
             kwargs = {'tz': tz}
-            concat = com._concat_compat
+            concat = _concat._concat_compat
     else:
         for i, x in enumerate(to_concat):
             if isinstance(x, DatetimeIndex):

@@ -30,6 +30,7 @@ from pandas.core.categorical import Categorical, maybe_to_categorical
 from pandas.tseries.index import DatetimeIndex
 from pandas.formats.printing import pprint_thing
 import pandas.core.common as com
+import pandas.types.concat as _concat
 import pandas.core.missing as missing
 import pandas.core.convert as convert
 from pandas.sparse.array import _maybe_to_sparse, SparseArray
@@ -4646,7 +4647,7 @@ def concatenate_join_units(join_units, concat_axis, copy):
         if copy and concat_values.base is not None:
             concat_values = concat_values.copy()
     else:
-        concat_values = com._concat_compat(to_concat, axis=concat_axis)
+        concat_values = _concat._concat_compat(to_concat, axis=concat_axis)
 
     return concat_values
 

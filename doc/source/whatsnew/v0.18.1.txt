@@ -123,6 +123,7 @@ These changes conform sparse handling to return the correct types and work to ma
 - Bug in ``SparseArray.to_frame()`` results in ``DataFrame``, rather than ``SparseDataFrame`` (:issue:`9850`)
 - Bug in ``SparseArray.to_dense()`` does not preserve ``dtype`` (:issue:`10648`)
 - Bug in ``SparseArray.to_dense()`` incorrectly handle ``fill_value`` (:issue:`12797`)
+- Bug in ``pd.concat()`` of ``SparseSeries`` results in dense (:issue:`10536`)
 
 .. _whatsnew_0181.api:
 
