@@ -4,7 +4,6 @@ import nose  # noqa
 from numpy import nan
 import pandas as pd
 
-from pandas.util.testing import assert_frame_equal, assert_panel_equal
 from pandas import DataFrame, bdate_range, Panel
 from pandas.core.index import Index
 import pandas.util.testing as tm
@@ -48,10 +47,6 @@ def panel_data3():
 class TestSparsePanel(tm.TestCase, test_panel.SafeForLongAndSparse,
                       test_panel.SafeForSparse):
     _multiprocess_can_split_ = True
-
-    @classmethod
-    def assert_panel_equal(cls, x, y):
-        tm.assert_sp_panel_equal(x, y)
 
     def setUp(self):
         self.data_dict = {
@@ -115,7 +110,7 @@ class TestSparsePanel(tm.TestCase, test_panel.SafeForLongAndSparse,
     def test_to_dense(self):
         dwp = self.panel.to_dense()
         dwp2 = Panel.from_dict(self.data_dict)
-        assert_panel_equal(dwp, dwp2)
+        tm.assert_panel_equal(dwp, dwp2)
 
     def test_to_frame(self):
 
@@ -191,7 +186,7 @@ class TestSparsePanel(tm.TestCase, test_panel.SafeForLongAndSparse,
                 swp_re = swp.reindex(items=items, major=major, minor=minor)
                 dwp_re = swp.to_dense().reindex(items=items, major=major,
                                                 minor=minor)
-                assert_panel_equal(swp_re.to_dense(), dwp_re)
+                tm.assert_panel_equal(swp_re.to_dense(), dwp_re)
 
             _compare_with_dense(self.panel, self.panel.items[:2],
                                 self.panel.major_axis[::2],
@@ -218,14 +213,15 @@ class TestSparsePanel(tm.TestCase, test_panel.SafeForLongAndSparse,
                     dense = panel.to_dense()
                     sparse_result = op(panel)
                     dense_result = op(dense)
-                    assert_panel_equal(sparse_result.to_dense(), dense_result)
+                    tm.assert_panel_equal(sparse_result.to_dense(),
+                                          dense_result)
 
             def _mixed_comp(op):
                 with tm.assert_produces_warning(FutureWarning,
                                                 check_stacklevel=False):
                     result = op(panel, panel.to_dense())
                     expected = op(panel.to_dense(), panel.to_dense())
-                    assert_panel_equal(result, expected)
+                    tm.assert_panel_equal(result, expected)
 
             op1 = lambda x: x + 2
 
@@ -255,7 +251,7 @@ class TestSparsePanel(tm.TestCase, test_panel.SafeForLongAndSparse,
             for idx in sparse.major_axis:
                 dslice = dense.major_xs(idx)
                 sslice = sparse.major_xs(idx)
-                assert_frame_equal(dslice, sslice)
+                tm.assert_frame_equal(dslice, sslice)
 
         _dense_comp(self.panel)
 
@@ -266,7 +262,7 @@ class TestSparsePanel(tm.TestCase, test_panel.SafeForLongAndSparse,
             for idx in sparse.minor_axis:
                 dslice = dense.minor_xs(idx)
                 sslice = sparse.minor_xs(idx).to_dense()
-                assert_frame_equal(dslice, sslice)
+                tm.assert_frame_equal(dslice, sslice)
 
         _dense_comp(self.panel)
 

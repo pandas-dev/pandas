@@ -2385,7 +2385,7 @@ class SparseBlock(NonConsolidatableMixIn, Block):
         """ return a new block """
         if dtype is None:
             dtype = self.dtype
-        if fill_value is None:
+        if fill_value is None and not isinstance(values, SparseArray):
             fill_value = self.values.fill_value
 
         # if not isinstance(values, SparseArray) and values.ndim != self.ndim:
@@ -2427,11 +2427,9 @@ class SparseBlock(NonConsolidatableMixIn, Block):
         if limit is not None:
             raise NotImplementedError("specifying a limit for 'fillna' has "
                                       "not been implemented yet")
-        if issubclass(self.dtype.type, np.floating):
-            value = float(value)
         values = self.values if inplace else self.values.copy()
-        return [self.make_block_same_class(values=values.get_values(value),
-                                           fill_value=value,
+        values = values.fillna(value, downcast=downcast)
+        return [self.make_block_same_class(values=values,
                                            placement=self.mgr_locs)]
 
     def shift(self, periods, axis=0, mgr=None):
@@ -3843,11 +3841,7 @@ class SingleBlockManager(BlockManager):
             indexer = self.items.get_indexer_for(new_axis)
 
         if fill_value is None:
-            # FIXME: is fill_value used correctly in sparse blocks?
-            if not self._block.is_sparse:
-                fill_value = self._block.fill_value
-            else:
-                fill_value = np.nan
+            fill_value = np.nan
 
         new_values = algos.take_1d(values, indexer, fill_value=fill_value)
 

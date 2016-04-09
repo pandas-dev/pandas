@@ -271,15 +271,7 @@ class SparseArray(PandasObject, np.ndarray):
         """
         Convert SparseSeries to (dense) Series
         """
-        values = self.values
-
-        # fill the nans
-        if fill is None:
-            fill = self.fill_value
-        if not com.isnull(fill):
-            values[com.isnull(values)] = fill
-
-        return values
+        return self.values
 
     def __iter__(self):
         for i in range(len(self)):
@@ -443,6 +435,23 @@ class SparseArray(PandasObject, np.ndarray):
         sp_vals = self.sp_values
         mask = np.isfinite(sp_vals)
         return sp_vals[mask]
+
+    @Appender(_index_shared_docs['fillna'] % _sparray_doc_kwargs)
+    def fillna(self, value, downcast=None):
+        if downcast is not None:
+            raise NotImplementedError
+
+        if issubclass(self.dtype.type, np.floating):
+            value = float(value)
+
+        if self._null_fill_value:
+            return self._simple_new(self.sp_values, self.sp_index,
+                                    fill_value=value)
+        else:
+            new_values = self.sp_values.copy()
+            new_values[com.isnull(new_values)] = value
+            return self._simple_new(new_values, self.sp_index,
+                                    fill_value=self.fill_value)
 
     def sum(self, axis=None, dtype=None, out=None):
         """
