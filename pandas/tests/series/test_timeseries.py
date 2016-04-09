@@ -617,3 +617,8 @@ class TestSeriesTimeSeries(TestData, tm.TestCase):
             self.assertTrue(ser.is_time_series)
         self.assertTrue(ser.index.is_all_dates)
         self.assertIsInstance(ser.index, DatetimeIndex)
+
+    def test_empty_first_last(self):
+        empty_frame = Series()
+        self.assertIsNone(empty_frame.last_valid_index())
+        self.assertIsNone(empty_frame.first_valid_index())
