@@ -2083,8 +2083,7 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing, SafeForLongAndSparse,
             raise nose.SkipTest("need xlwt xlrd openpyxl")
 
         for ext in ['xls', 'xlsx']:
-            path = '__tmp__.' + ext
-            with ensure_clean(path) as path:
+            with ensure_clean('__tmp__.' + ext) as path:
                 self.panel.to_excel(path)
                 try:
                     reader = ExcelFile(path)
@@ -2103,8 +2102,7 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing, SafeForLongAndSparse,
         except ImportError:
             raise nose.SkipTest("Requires xlrd and xlsxwriter. Skipping test.")
 
-        path = '__tmp__.xlsx'
-        with ensure_clean(path) as path:
+        with ensure_clean('__tmp__.xlsx') as path:
             self.panel.to_excel(path, engine='xlsxwriter')
             try:
                 reader = ExcelFile(path)
