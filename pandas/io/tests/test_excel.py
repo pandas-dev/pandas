@@ -1347,8 +1347,6 @@ class ExcelWriterBase(SharedItems):
 
     def test_to_excel_output_encoding(self):
         _skip_if_no_xlrd()
-        ext = self.ext
-        filename = '__tmp_to_excel_float_format__.' + ext
 
         # avoid mixed inferred_type
         df = DataFrame([[u'\u0192', u'\u0193', u'\u0194'],
@@ -1356,7 +1354,8 @@ class ExcelWriterBase(SharedItems):
                        index=[u'A\u0192', u'B'],
                        columns=[u'X\u0193', u'Y', u'Z'])
 
-        with ensure_clean(filename) as filename:
+        with ensure_clean('__tmp_to_excel_float_format__.' + self.ext)\
+                as filename:
             df.to_excel(filename, sheet_name='TestSheet', encoding='utf8')
             result = read_excel(filename, 'TestSheet', encoding='utf8')
             tm.assert_frame_equal(result, df)
