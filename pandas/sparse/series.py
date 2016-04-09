@@ -263,6 +263,11 @@ class SparseSeries(Series):
         return SparseSeries
 
     @property
+    def _constructor_expanddim(self):
+        from pandas.sparse.api import SparseDataFrame
+        return SparseDataFrame
+
+    @property
     def kind(self):
         if isinstance(self.sp_index, BlockIndex):
             return 'block'

@@ -333,6 +333,23 @@ class TestSparseSeries(tm.TestCase, SharedWithSparse):
         self.assertEqual(self.bseries.kind, 'block')
         self.assertEqual(self.iseries.kind, 'integer')
 
+    def test_to_frame(self):
+        # GH 9850
+        s = pd.SparseSeries([1, 2, 0, nan, 4, nan, 0], name='x')
+        exp = pd.SparseDataFrame({'x': [1, 2, 0, nan, 4, nan, 0]})
+        tm.assert_sp_frame_equal(s.to_frame(), exp)
+
+        exp = pd.SparseDataFrame({'y': [1, 2, 0, nan, 4, nan, 0]})
+        tm.assert_sp_frame_equal(s.to_frame(name='y'), exp)
+
+        s = pd.SparseSeries([1, 2, 0, nan, 4, nan, 0], name='x', fill_value=0)
+        exp = pd.SparseDataFrame({'x': [1, 2, 0, nan, 4, nan, 0]},
+                                 default_fill_value=0)
+
+        tm.assert_sp_frame_equal(s.to_frame(), exp)
+        exp = pd.DataFrame({'y': [1, 2, 0, nan, 4, nan, 0]})
+        tm.assert_frame_equal(s.to_frame(name='y').to_dense(), exp)
+
     def test_pickle(self):
         def _test_roundtrip(series):
             unpickled = self.round_trip_pickle(series)
