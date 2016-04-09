@@ -119,23 +119,7 @@ class SparseDataFrame(DataFrame):
 
     @property
     def _constructor(self):
-        def wrapper(data=None, index=None, columns=None,
-                    default_fill_value=None, kind=None, fill_value=None,
-                    copy=False):
-            result = SparseDataFrame(data, index=index, columns=columns,
-                                     default_fill_value=fill_value,
-                                     default_kind=kind, copy=copy)
-
-            # fill if requested
-            if fill_value is not None and not isnull(fill_value):
-                result.fillna(fill_value, inplace=True)
-
-            # set the default_fill_value
-            # if default_fill_value is not None:
-            #    result._default_fill_value = default_fill_value
-            return result
-
-        return wrapper
+        return SparseDataFrame
 
     _constructor_sliced = SparseSeries
 
@@ -452,8 +436,8 @@ class SparseDataFrame(DataFrame):
 
         return self._constructor(data=new_data, index=new_index,
                                  columns=new_columns,
-                                 default_fill_value=new_fill_value,
-                                 fill_value=new_fill_value).__finalize__(self)
+                                 default_fill_value=new_fill_value
+                                 ).__finalize__(self)
 
     def _combine_match_index(self, other, func, level=None, fill_value=None):
         new_data = {}
@@ -483,8 +467,7 @@ class SparseDataFrame(DataFrame):
 
         return self._constructor(
             new_data, index=new_index, columns=self.columns,
-            default_fill_value=fill_value,
-            fill_value=self.default_fill_value).__finalize__(self)
+            default_fill_value=fill_value).__finalize__(self)
 
     def _combine_match_columns(self, other, func, level=None, fill_value=None):
         # patched version of DataFrame._combine_match_columns to account for
@@ -510,8 +493,7 @@ class SparseDataFrame(DataFrame):
 
         return self._constructor(
             new_data, index=self.index, columns=union,
-            default_fill_value=self.default_fill_value,
-            fill_value=self.default_fill_value).__finalize__(self)
+            default_fill_value=self.default_fill_value).__finalize__(self)
 
     def _combine_const(self, other, func):
         new_data = {}
@@ -520,8 +502,7 @@ class SparseDataFrame(DataFrame):
 
         return self._constructor(
             data=new_data, index=self.index, columns=self.columns,
-            default_fill_value=self.default_fill_value,
-            fill_value=self.default_fill_value).__finalize__(self)
+            default_fill_value=self.default_fill_value).__finalize__(self)
 
     def _reindex_index(self, index, method, copy, level, fill_value=np.nan,
                        limit=None, takeable=False):
@@ -715,7 +696,7 @@ class SparseDataFrame(DataFrame):
             return self._constructor(
                 new_series, index=self.index, columns=self.columns,
                 default_fill_value=self._default_fill_value,
-                kind=self._default_kind).__finalize__(self)
+                default_kind=self._default_kind).__finalize__(self)
         else:
             if not broadcast:
                 return self._apply_standard(func, axis, reduce=reduce)

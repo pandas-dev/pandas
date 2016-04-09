@@ -255,6 +255,59 @@ class TestSparseSeriesIndexing(tm.TestCase):
         exp = orig.take([-1, -2]).to_sparse(fill_value=0)
         tm.assert_sp_series_equal(sparse.take([-1, -2]), exp)
 
+    def test_reindex(self):
+        orig = pd.Series([1, np.nan, np.nan, 3, np.nan],
+                         index=list('ABCDE'))
+        sparse = orig.to_sparse()
+
+        res = sparse.reindex(['A', 'E', 'C', 'D'])
+        exp = orig.reindex(['A', 'E', 'C', 'D']).to_sparse()
+        tm.assert_sp_series_equal(res, exp)
+
+        # all missing & fill_value
+        res = sparse.reindex(['B', 'E', 'C'])
+        exp = orig.reindex(['B', 'E', 'C']).to_sparse()
+        tm.assert_sp_series_equal(res, exp)
+
+        orig = pd.Series([np.nan, np.nan, np.nan, np.nan, np.nan],
+                         index=list('ABCDE'))
+        sparse = orig.to_sparse()
+
+        res = sparse.reindex(['A', 'E', 'C', 'D'])
+        exp = orig.reindex(['A', 'E', 'C', 'D']).to_sparse()
+        tm.assert_sp_series_equal(res, exp)
+
+    def test_reindex_fill_value(self):
+        orig = pd.Series([1, np.nan, 0, 3, 0], index=list('ABCDE'))
+        sparse = orig.to_sparse(fill_value=0)
+
+        res = sparse.reindex(['A', 'E', 'C', 'D'])
+        exp = orig.reindex(['A', 'E', 'C', 'D']).to_sparse(fill_value=0)
+        tm.assert_sp_series_equal(res, exp)
+
+        # includes missing and fill_value
+        res = sparse.reindex(['A', 'B', 'C'])
+        exp = orig.reindex(['A', 'B', 'C']).to_sparse(fill_value=0)
+        tm.assert_sp_series_equal(res, exp)
+
+        # all missing
+        orig = pd.Series([np.nan, np.nan, np.nan, np.nan, np.nan],
+                         index=list('ABCDE'))
+        sparse = orig.to_sparse(fill_value=0)
+
+        res = sparse.reindex(['A', 'E', 'C', 'D'])
+        exp = orig.reindex(['A', 'E', 'C', 'D']).to_sparse(fill_value=0)
+        tm.assert_sp_series_equal(res, exp)
+
+        # all fill_value
+        orig = pd.Series([0., 0., 0., 0., 0.],
+                         index=list('ABCDE'))
+        sparse = orig.to_sparse(fill_value=0)
+
+        res = sparse.reindex(['A', 'E', 'C', 'D'])
+        exp = orig.reindex(['A', 'E', 'C', 'D']).to_sparse(fill_value=0)
+        tm.assert_sp_series_equal(res, exp)
+
 
 class TestSparseDataFrameIndexing(tm.TestCase):
 

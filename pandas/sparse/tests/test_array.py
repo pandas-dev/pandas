@@ -366,6 +366,28 @@ class TestSparseArray(tm.TestCase):
         assert_almost_equal(self.arr.to_dense(), self.arr_data)
         assert_almost_equal(self.arr.sp_values, np.asarray(self.arr))
 
+    def test_to_dense(self):
+        vals = np.array([1, np.nan, np.nan, 3, np.nan])
+        res = SparseArray(vals).to_dense()
+        tm.assert_numpy_array_equal(res, vals)
+
+        res = SparseArray(vals, fill_value=0).to_dense()
+        tm.assert_numpy_array_equal(res, vals)
+
+        vals = np.array([1, np.nan, 0, 3, 0])
+        res = SparseArray(vals).to_dense()
+        tm.assert_numpy_array_equal(res, vals)
+
+        res = SparseArray(vals, fill_value=0).to_dense()
+        tm.assert_numpy_array_equal(res, vals)
+
+        vals = np.array([np.nan, np.nan, np.nan, np.nan, np.nan])
+        res = SparseArray(vals).to_dense()
+        tm.assert_numpy_array_equal(res, vals)
+
+        res = SparseArray(vals, fill_value=0).to_dense()
+        tm.assert_numpy_array_equal(res, vals)
+
     def test_getitem(self):
         def _checkit(i):
             assert_almost_equal(self.arr[i], self.arr.values[i])
@@ -465,6 +487,60 @@ class TestSparseArray(tm.TestCase):
             for _ in sp_arr:
                 pass
             assert len(w) == 0
+
+    def test_fillna(self):
+        s = SparseArray([1, np.nan, np.nan, 3, np.nan])
+        res = s.fillna(-1)
+        exp = SparseArray([1, -1, -1, 3, -1], fill_value=-1)
+        tm.assert_sp_array_equal(res, exp)
+
+        s = SparseArray([1, np.nan, np.nan, 3, np.nan], fill_value=0)
+        res = s.fillna(-1)
+        exp = SparseArray([1, -1, -1, 3, -1], fill_value=0)
+        tm.assert_sp_array_equal(res, exp)
+
+        s = SparseArray([1, np.nan, 0, 3, 0])
+        res = s.fillna(-1)
+        exp = SparseArray([1, -1, 0, 3, 0], fill_value=-1)
+        tm.assert_sp_array_equal(res, exp)
+
+        s = SparseArray([1, np.nan, 0, 3, 0], fill_value=0)
+        res = s.fillna(-1)
+        exp = SparseArray([1, -1, 0, 3, 0], fill_value=0)
+        tm.assert_sp_array_equal(res, exp)
+
+        s = SparseArray([np.nan, np.nan, np.nan, np.nan])
+        res = s.fillna(-1)
+        exp = SparseArray([-1, -1, -1, -1], fill_value=-1)
+        tm.assert_sp_array_equal(res, exp)
+
+        s = SparseArray([np.nan, np.nan, np.nan, np.nan], fill_value=0)
+        res = s.fillna(-1)
+        exp = SparseArray([-1, -1, -1, -1], fill_value=0)
+        tm.assert_sp_array_equal(res, exp)
+
+        s = SparseArray([0, 0, 0, 0])
+        res = s.fillna(-1)
+        exp = SparseArray([0, 0, 0, 0], fill_value=-1)
+        tm.assert_sp_array_equal(res, exp)
+
+        s = SparseArray([0, 0, 0, 0], fill_value=0)
+        res = s.fillna(-1)
+        exp = SparseArray([0, 0, 0, 0], fill_value=0)
+        tm.assert_sp_array_equal(res, exp)
+
+    def test_fillna_overlap(self):
+        s = SparseArray([1, np.nan, np.nan, 3, np.nan])
+        # filling with existing value doesn't replace existing value with
+        # fill_value, i.e. existing 3 remains in sp_values
+        res = s.fillna(3)
+        exp = np.array([1, 3, 3, 3, 3])
+        tm.assert_numpy_array_equal(res.to_dense(), exp)
+
+        s = SparseArray([1, np.nan, np.nan, 3, np.nan], fill_value=0)
+        res = s.fillna(3)
+        exp = SparseArray([1, 3, 3, 3, 3], fill_value=0)
+        tm.assert_sp_array_equal(res, exp)
 
 
 if __name__ == '__main__':

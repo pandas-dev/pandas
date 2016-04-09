@@ -3036,7 +3036,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
 
         Returns
         -------
-        filled : Index
+        filled : %(klass)s
         """
 
     @Appender(_index_shared_docs['fillna'])
