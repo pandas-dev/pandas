@@ -124,6 +124,24 @@ class _Window(PandasObject, SelectionMixin):
     def _get_window(self, other=None):
         return self.window
 
+    def _prep_window(self, **kwargs):
+        """ provide validation for our window type, return the window """
+        window = self._get_window()
+
+        if isinstance(window, (list, tuple, np.ndarray)):
+            return com._asarray_tuplesafe(window).astype(float)
+        elif com.is_integer(window):
+            try:
+                import scipy.signal as sig
+            except ImportError:
+                raise ImportError('Please install scipy to generate window '
+                                  'weight')
+            # the below may pop from kwargs
+            win_type = _validate_win_type(self.win_type, kwargs)
+            return sig.get_window(win_type, window).astype(float)
+
+        raise ValueError('Invalid window %s' % str(window))
+
     @property
     def _window_type(self):
         return self.__class__.__name__
@@ -317,24 +335,6 @@ class Window(_Window):
     * ``slepian`` (needs width).
 """
 
-    def _prep_window(self, **kwargs):
-        """ provide validation for our window type, return the window """
-        window = self._get_window()
-
-        if isinstance(window, (list, tuple, np.ndarray)):
-            return com._asarray_tuplesafe(window).astype(float)
-        elif com.is_integer(window):
-            try:
-                import scipy.signal as sig
-            except ImportError:
-                raise ImportError('Please install scipy to generate window '
-                                  'weight')
-            # the below may pop from kwargs
-            win_type = _validate_win_type(self.win_type, kwargs)
-            return sig.get_window(win_type, window).astype(float)
-
-        raise ValueError('Invalid window %s' % str(window))
-
     def _apply_window(self, mean=True, how=None, **kwargs):
         """
         Applies a moving window of type ``window_type`` on the data.
@@ -437,8 +437,7 @@ class _Rolling(_Window):
         """
         if center is None:
             center = self.center
-        if window is None:
-            window = self._get_window()
+        window = self._prep_window(**kwargs)
 
         if check_minp is None:
             check_minp = _use_window
@@ -1354,7 +1353,9 @@ def _get_center_of_mass(com, span, halflife, alpha):
 
 
 def _offset(window, center):
-    if not com.is_integer(window):
+    if com.is_float(window) and int(window) == window:
+        window = int(window)
+    elif not com.is_integer(window):
         window = len(window)
     offset = (window - 1) / 2. if center else 0
     try:

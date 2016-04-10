@@ -3,7 +3,7 @@ import nose
 import sys
 import warnings
 
-from nose.tools import assert_raises
+from nose.tools import assert_raises, raises
 from datetime import datetime
 from numpy.random import randn
 from numpy.testing.decorators import slow
@@ -224,6 +224,14 @@ class TestApi(Base):
         expected.columns = ['a', 'b']
         result = r.aggregate([a, b])
         assert_frame_equal(result, expected)
+
+    @raises(ValueError)
+    def test_window_rolling_float(self):
+        pd.DataFrame(np.arange(10)).rolling(2.).median()
+
+    @raises(ValueError)
+    def test_window_rolling_center_float(self):
+        pd.DataFrame(np.arange(10)).rolling(2., center=True).median()
 
     def test_preserve_metadata(self):
         # GH 10565
