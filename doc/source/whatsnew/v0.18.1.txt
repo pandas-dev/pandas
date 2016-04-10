@@ -108,6 +108,7 @@ API changes
 - ``read_csv`` no longer allows a combination of strings and integers for the ``usecols`` parameter (:issue:`12678`)
 - ``pd.show_versions()`` now includes ``pandas_datareader`` version (:issue:`12740`)
 - Provide a proper ``__name__`` and ``__qualname__`` attributes for generic functions (:issue:`12021`)
+- ``pd.concat(ignore_index=True)`` now uses ``RangeIndex`` as default (:issue:`12695`)
 
 .. _whatsnew_0181.apply_resample:
 
@@ -234,6 +235,7 @@ Bug Fixes
 
 
 - Bug in ``concat`` raises ``AttributeError`` when input data contains tz-aware datetime and timedelta (:issue:`12620`)
+- Bug in ``concat`` doesn't handle empty ``Series`` properly (:issue:`11082`)
 
 
 - Bug in ``pivot_table`` when ``margins=True`` and ``dropna=True`` where nulls still contributed to margin count (:issue:`12577`)
