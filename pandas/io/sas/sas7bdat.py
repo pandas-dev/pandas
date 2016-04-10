@@ -550,10 +550,7 @@ class SAS7BDATReader(BaseIterator):
         nd = (self.column_types == b'd').sum()
         ns = (self.column_types == b's').sum()
 
-        self._string_chunk = []
-        for j,ct in enumerate(self.column_types):
-            if ct == b's':
-                self._string_chunk.append([None] * nrows)
+        self._string_chunk = np.empty((ns, nrows), dtype=np.object)
         self._byte_chunk = np.empty((nd, 8 * nrows), dtype=np.uint8)
 
         self._current_row_in_chunk_index = 0
@@ -607,7 +604,7 @@ class SAS7BDATReader(BaseIterator):
                     rslt[name] = epoch + pd.to_timedelta(rslt[name], unit='d')
                 jb += 1
             elif self.column_types[j] == b's':
-                rslt[name] = pd.Series(self._string_chunk[js], dtype=np.object)
+                rslt[name] = self._string_chunk[js, :]
                 if self.convert_text and (self.encoding is not None):
                     rslt[name] = rslt[name].str.decode(self.encoding)
                 if self.blank_missing:

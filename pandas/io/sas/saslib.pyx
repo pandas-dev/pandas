@@ -3,20 +3,21 @@ cimport numpy as np
 from numpy cimport uint8_t, uint16_t, int8_t
 import sas_constants as const
 
-
 # rle_decompress decompresses data using a Run Length Encoding
 # algorithm.  It is partially documented here:
 #
 # https://cran.r-project.org/web/packages/sas7bdat/vignettes/sas7bdat.pdf
-cdef np.ndarray[uint8_t, ndim=1] rle_decompress(int result_length, np.ndarray[uint8_t, ndim=1] inbuff):
+cdef rle_decompress(int result_length, np.ndarray[uint8_t, ndim=1] inbuff):
 
-    cdef:
-        uint8_t control_byte, x
-        np.ndarray[uint8_t, ndim=1] result = np.zeros(result_length, np.uint8)
-        int rpos = 0
-        int ipos = 0
-        int i, nbytes
-        length = len(inbuff)
+    cdef uint8_t control_byte
+    cdef uint8_t [:] result = np.zeros(result_length, np.uint8)
+
+    cdef int rpos = 0
+    cdef int ipos = 0
+    cdef int i
+    cdef int nbytes
+    cdef uint8_t x
+    cdef length = len(inbuff)
 
     while ipos < length:
         control_byte = inbuff[ipos] & 0xF0
@@ -105,22 +106,24 @@ cdef np.ndarray[uint8_t, ndim=1] rle_decompress(int result_length, np.ndarray[ui
     if len(result) != result_length:
         print("RLE: %v != %v\n", (len(result), result_length))
 
-    return np.asarray(result, dtype=np.uint8)
+    return np.asarray(result).tostring()
 
 
 # rdc_decompress decompresses data using the Ross Data Compression algorithm:
 #
 #   http://collaboration.cmc.ec.gc.ca/science/rpn/biblio/ddj/Website/articles/CUJ/1992/9210/ross/ross.htm
-cdef np.ndarray[uint8_t, ndim=1] rdc_decompress(int result_length, np.ndarray[uint8_t, ndim=1] inbuff):
+cdef rdc_decompress(int result_length, np.ndarray[uint8_t, ndim=1] inbuff):
 
-    cdef:
-        uint8_t cmd, ofs, cnt
-        uint16_t ctrl_bits
-        uint16_t ctrl_mask = 0
-        int ipos = 0
-        int rpos = 0
-        int k
-        np.ndarray[uint8_t, ndim=1] outbuff = np.zeros(result_length, dtype=np.uint8)
+    cdef uint8_t cmd
+    cdef uint16_t ctrl_bits
+    cdef uint16_t ctrl_mask = 0
+    cdef uint16_t ofs
+    cdef uint16_t cnt
+    cdef int ipos = 0
+    cdef int rpos = 0
+    cdef int k
+
+    cdef uint8_t [:] outbuff = np.zeros(result_length, dtype=np.uint8)
 
     ii = -1
 
@@ -187,10 +190,9 @@ cdef np.ndarray[uint8_t, ndim=1] rdc_decompress(int result_length, np.ndarray[ui
     if len(outbuff) != result_length:
         raise ValueError("RDC: %v != %v\n", len(outbuff), result_length)
 
-    return np.asarray(outbuff, dtype=np.uint8)
+    return np.asarray(outbuff).tostring()
 
-
-cdef np.ndarray[uint8_t, ndim=1] decompress(object parser, int row_length, uint8_t[:] page):
+cdef decompress(object parser, int row_length, page):
     page = np.frombuffer(page, dtype=np.uint8)
     if parser.compression == const.rle_compression:
         return rle_decompress(row_length, page)
@@ -210,7 +212,7 @@ def do_read(object parser, int nrows):
             break
 
 
-cdef bint readline(object parser):
+cdef readline(object parser):
 
     cdef:
         int offset, bit_offset, align_correction, subheader_pointer_length
@@ -281,7 +283,7 @@ cdef bint readline(object parser):
                              parser._current_page_type)
 
 
-cdef void process_byte_array_with_data(object parser, int offset, int length):
+cdef process_byte_array_with_data(object parser, int offset, int length):
 
     cdef:
         int s, j, k, m, start, jb, js, lngt
@@ -289,9 +291,9 @@ cdef void process_byte_array_with_data(object parser, int offset, int length):
         long[:] offsets = parser._column_data_offsets
         char[:] column_types = parser.column_types
         uint8_t[:, :] byte_chunk = parser._byte_chunk
-        #object[:, :] string_chunk = parser._string_chunk
+        object[:, :] string_chunk = parser._string_chunk
 
-    source = np.frombuffer(parser._cached_page[offset:offset+length], dtype=np.uint8)
+    source = parser._cached_page[offset:offset+length]
     if (parser.compression != "") and (length < parser.row_length):
         source = decompress(parser, parser.row_length, source)
 
@@ -312,7 +314,7 @@ cdef void process_byte_array_with_data(object parser, int offset, int length):
                 byte_chunk[jb, m + k] = source[start + k]
             jb += 1
         elif column_types[j] == b's':
-            parser._string_chunk[js][parser._current_row_in_chunk_index] = source[start:(start+lngt)].tostring().rstrip()
+            string_chunk[js, parser._current_row_in_chunk_index] = source[start:(start+lngt)].rstrip()
             js += 1
         else:
           raise ValueError("unknown column type: %s" % parser.columns[j].ctype)
