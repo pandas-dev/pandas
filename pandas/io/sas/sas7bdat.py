@@ -20,7 +20,7 @@ from pandas.io.common import get_filepath_or_buffer, BaseIterator
 import numpy as np
 import struct
 import pandas.io.sas.sas_constants as const
-from .saslib import (_rle_decompress, _rdc_decompress, _do_read)
+from pandas.io.sas.saslib import do_read
 
 
 class _subheader_pointer(object):
@@ -550,11 +550,14 @@ class SAS7BDATReader(BaseIterator):
         nd = (self.column_types == b'd').sum()
         ns = (self.column_types == b's').sum()
 
-        self._string_chunk = np.empty((ns, nrows), dtype=np.object)
+        self._string_chunk = []
+        for j,ct in enumerate(self.column_types):
+            if ct == b's':
+                self._string_chunk.append([None] * nrows)
         self._byte_chunk = np.empty((nd, 8 * nrows), dtype=np.uint8)
 
         self._current_row_in_chunk_index = 0
-        _do_read(self, nrows)
+        do_read(self, nrows)
 
         rslt = self._chunk_to_dataframe()
         if self.index is not None:
@@ -583,16 +586,6 @@ class SAS7BDATReader(BaseIterator):
 
         return False
 
-    def _decompress(self, row_length, page):
-        page = np.frombuffer(page, dtype=np.uint8)
-        if self.compression == const.rle_compression:
-            return _rle_decompress(row_length, page)
-        elif self.compression == const.rdc_compression:
-            return _rdc_decompress(row_length, page)
-        else:
-            raise ValueError("unknown SAS compression method: %s" %
-                             self.compression)
-
     def _chunk_to_dataframe(self):
 
         n = self._current_row_in_chunk_index
@@ -614,11 +607,9 @@ class SAS7BDATReader(BaseIterator):
                     rslt[name] = epoch + pd.to_timedelta(rslt[name], unit='d')
                 jb += 1
             elif self.column_types[j] == b's':
-                rslt[name] = self._string_chunk[js, :]
-                rslt[name] = rslt[name].apply(lambda x: x.rstrip(b'\x00 '))
+                rslt[name] = pd.Series(self._string_chunk[js], dtype=np.object)
                 if self.convert_text and (self.encoding is not None):
-                    rslt[name] = rslt[name].apply(
-                        lambda x: x.decode(encoding=self.encoding))
+                    rslt[name] = rslt[name].str.decode(self.encoding)
                 if self.blank_missing:
                     ii = rslt[name].str.len() == 0
                     rslt.loc[ii, name] = np.nan
