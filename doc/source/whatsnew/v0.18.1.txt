@@ -82,6 +82,7 @@ These changes conform sparse handling to return the correct types and work to ma
    s.take(0)
    s.take([1, 2, 3])
 
+- Bug in ``SparseSeries.__getitem__`` with ``Ellipsis`` raises ``KeyError`` (:issue:`9467`)
 - Bug in ``SparseSeries.loc[]`` with list-like input raises ``TypeError`` (:issue:`10560`)
 - Bug in ``SparseSeries.iloc[]`` with scalar input may raise ``IndexError`` (:issue:`10560`)
 - Bug in ``SparseSeries.loc[]``, ``.iloc[]`` with ``slice`` returns ``SparseArray``, rather than ``SparseSeries`` (:issue:`10560`)
