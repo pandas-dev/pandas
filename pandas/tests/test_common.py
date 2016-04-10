@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import collections
-from datetime import datetime
+from datetime import datetime, timedelta
 import re
 
 import nose
@@ -249,6 +249,106 @@ class TestIsNull(tm.TestCase):
         self.assertTrue(isnull(np.array(np.nan, dtype=object)))
         self.assertFalse(isnull(np.array(0.0, dtype=object)))
         self.assertFalse(isnull(np.array(0, dtype=object)))
+
+
+class TestNumberScalar(tm.TestCase):
+
+    def test_is_number(self):
+
+        self.assertTrue(com.is_number(True))
+        self.assertTrue(com.is_number(1))
+        self.assertTrue(com.is_number(1.1))
+        self.assertTrue(com.is_number(1 + 3j))
+        self.assertTrue(com.is_number(np.bool(False)))
+        self.assertTrue(com.is_number(np.int64(1)))
+        self.assertTrue(com.is_number(np.float64(1.1)))
+        self.assertTrue(com.is_number(np.complex128(1 + 3j)))
+        self.assertTrue(com.is_number(np.nan))
+
+        self.assertFalse(com.is_number(None))
+        self.assertFalse(com.is_number('x'))
+        self.assertFalse(com.is_number(datetime(2011, 1, 1)))
+        self.assertFalse(com.is_number(np.datetime64('2011-01-01')))
+        self.assertFalse(com.is_number(pd.Timestamp('2011-01-01')))
+        self.assertFalse(com.is_number(pd.Timestamp('2011-01-01',
+                                                    tz='US/Eastern')))
+        self.assertFalse(com.is_number(timedelta(1000)))
+        self.assertFalse(com.is_number(pd.Timedelta('1 days')))
+
+        # questionable
+        self.assertFalse(com.is_number(np.bool_(False)))
+        self.assertTrue(com.is_number(np.timedelta64(1, 'D')))
+
+    def test_is_bool(self):
+        self.assertTrue(com.is_bool(True))
+        self.assertTrue(com.is_bool(np.bool(False)))
+        self.assertTrue(com.is_bool(np.bool_(False)))
+
+        self.assertFalse(com.is_bool(1))
+        self.assertFalse(com.is_bool(1.1))
+        self.assertFalse(com.is_bool(1 + 3j))
+        self.assertFalse(com.is_bool(np.int64(1)))
+        self.assertFalse(com.is_bool(np.float64(1.1)))
+        self.assertFalse(com.is_bool(np.complex128(1 + 3j)))
+        self.assertFalse(com.is_bool(np.nan))
+        self.assertFalse(com.is_bool(None))
+        self.assertFalse(com.is_bool('x'))
+        self.assertFalse(com.is_bool(datetime(2011, 1, 1)))
+        self.assertFalse(com.is_bool(np.datetime64('2011-01-01')))
+        self.assertFalse(com.is_bool(pd.Timestamp('2011-01-01')))
+        self.assertFalse(com.is_bool(pd.Timestamp('2011-01-01',
+                                                  tz='US/Eastern')))
+        self.assertFalse(com.is_bool(timedelta(1000)))
+        self.assertFalse(com.is_bool(np.timedelta64(1, 'D')))
+        self.assertFalse(com.is_bool(pd.Timedelta('1 days')))
+
+    def test_is_integer(self):
+        self.assertTrue(com.is_integer(1))
+        self.assertTrue(com.is_integer(np.int64(1)))
+
+        self.assertFalse(com.is_integer(True))
+        self.assertFalse(com.is_integer(1.1))
+        self.assertFalse(com.is_integer(1 + 3j))
+        self.assertFalse(com.is_integer(np.bool(False)))
+        self.assertFalse(com.is_integer(np.bool_(False)))
+        self.assertFalse(com.is_integer(np.float64(1.1)))
+        self.assertFalse(com.is_integer(np.complex128(1 + 3j)))
+        self.assertFalse(com.is_integer(np.nan))
+        self.assertFalse(com.is_integer(None))
+        self.assertFalse(com.is_integer('x'))
+        self.assertFalse(com.is_integer(datetime(2011, 1, 1)))
+        self.assertFalse(com.is_integer(np.datetime64('2011-01-01')))
+        self.assertFalse(com.is_integer(pd.Timestamp('2011-01-01')))
+        self.assertFalse(com.is_integer(pd.Timestamp('2011-01-01',
+                                                     tz='US/Eastern')))
+        self.assertFalse(com.is_integer(timedelta(1000)))
+        self.assertFalse(com.is_integer(pd.Timedelta('1 days')))
+
+        # questionable
+        self.assertTrue(com.is_integer(np.timedelta64(1, 'D')))
+
+    def test_is_float(self):
+        self.assertTrue(com.is_float(1.1))
+        self.assertTrue(com.is_float(np.float64(1.1)))
+        self.assertTrue(com.is_float(np.nan))
+
+        self.assertFalse(com.is_float(True))
+        self.assertFalse(com.is_float(1))
+        self.assertFalse(com.is_float(1 + 3j))
+        self.assertFalse(com.is_float(np.bool(False)))
+        self.assertFalse(com.is_float(np.bool_(False)))
+        self.assertFalse(com.is_float(np.int64(1)))
+        self.assertFalse(com.is_float(np.complex128(1 + 3j)))
+        self.assertFalse(com.is_float(None))
+        self.assertFalse(com.is_float('x'))
+        self.assertFalse(com.is_float(datetime(2011, 1, 1)))
+        self.assertFalse(com.is_float(np.datetime64('2011-01-01')))
+        self.assertFalse(com.is_float(pd.Timestamp('2011-01-01')))
+        self.assertFalse(com.is_float(pd.Timestamp('2011-01-01',
+                                                   tz='US/Eastern')))
+        self.assertFalse(com.is_float(timedelta(1000)))
+        self.assertFalse(com.is_float(np.timedelta64(1, 'D')))
+        self.assertFalse(com.is_float(pd.Timedelta('1 days')))
 
 
 def test_downcast_conv():
