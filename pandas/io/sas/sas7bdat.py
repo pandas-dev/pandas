@@ -54,13 +54,16 @@ class SAS7BDATReader(BaseIterator):
         with given number of lines.
     encoding : string, defaults to None
         String encoding.
-    convert_text : bool, deafaults to True
+    convert_text : bool, defaults to True
         If False, text variables are left as raw bytes.
+    convert_header_text : bool, defaults to True
+        If False, header text, including column names, are left as raw
+        bytes.
     """
 
     def __init__(self, path_or_buf, index=None, convert_dates=True,
                  blank_missing=True, chunksize=None, encoding=None,
-                 convert_text=True):
+                 convert_text=True, convert_header_text=True):
 
         self.index = index
         self.convert_dates = convert_dates
@@ -68,6 +71,7 @@ class SAS7BDATReader(BaseIterator):
         self.chunksize = chunksize
         self.encoding = encoding
         self.convert_text = convert_text
+        self.convert_header_text = convert_header_text
 
         self.compression = ""
         self.column_names_strings = []
@@ -143,10 +147,14 @@ class SAS7BDATReader(BaseIterator):
             self.platform = "unknown"
 
         buf = self._read_bytes(const.dataset_offset, const.dataset_length)
-        self.name = buf.rstrip(b'\x00 ').decode()
+        self.name = buf.rstrip(b'\x00 ')
+        if self.convert_header_text:
+            self.name = self.name.decode(self.encoding)
 
         buf = self._read_bytes(const.file_type_offset, const.file_type_length)
-        self.file_type = buf.rstrip(b'\x00 ').decode()
+        self.file_type = buf.rstrip(b'\x00 ')
+        if self.convert_header_text:
+            self.file_type = self.file_type.decode(self.encoding)
 
         # Timestamp is epoch 01/01/1960
         epoch = pd.datetime(1960, 1, 1)
@@ -173,25 +181,33 @@ class SAS7BDATReader(BaseIterator):
 
         buf = self._read_bytes(const.sas_release_offset + total_align,
                                const.sas_release_length)
-        self.sas_release = buf.rstrip(b'\x00 ').decode()
+        self.sas_release = buf.rstrip(b'\x00 ')
+        if self.convert_header_text:
+            self.sas_release = self.sas_release.decode(self.encoding)
 
         buf = self._read_bytes(const.sas_server_type_offset + total_align,
                                const.sas_server_type_length)
-        self.server_type = buf.rstrip(b'\x00 ').decode()
+        self.server_type = buf.rstrip(b'\x00 ')
+        if self.convert_header_text:
+            self.server_type = self.server_type.decode(self.encoding)
 
         buf = self._read_bytes(const.os_version_number_offset + total_align,
                                const.os_version_number_length)
-        self.os_version = buf.rstrip(b'\x00 ').decode()
+        self.os_version = buf.rstrip(b'\x00 ')
+        if self.convert_header_text:
+            self.os_version = self.os_version.decode(self.encoding)
 
         buf = self._read_bytes(const.os_name_offset + total_align,
                                const.os_name_length)
         buf = buf.rstrip(b'\x00 ')
         if len(buf) > 0:
-            self.os_name = buf.decode()
+            self.os_name = buf.decode(self.encoding)
         else:
             buf = self._read_bytes(const.os_maker_offset + total_align,
                                    const.os_maker_length)
-            self.os_name = buf.rstrip(b'\x00 ').decode()
+            self.os_name = buf.rstrip(b'\x00 ')
+            if self.convert_header_text:
+                self.os_name = self.os_name.decode(self.encoding)
 
     # Read a single float of the given width (4 or 8).
     def _read_float(self, offset, width):
@@ -383,8 +399,10 @@ class SAS7BDATReader(BaseIterator):
         text_block_size = self._read_int(offset, const.text_block_size_length)
 
         buf = self._read_bytes(offset, text_block_size)
-        self.column_names_strings.append(
-            buf[0:text_block_size].rstrip(b"\x00 ").decode(self.encoding))
+        cname = buf[0:text_block_size].rstrip(b"\x00 ")
+        if self.convert_header_text:
+            cname = cname.decode(self.encoding)
+        self.column_names_strings.append(cname)
 
         if len(self.column_names_strings) == 1:
             column_name = self.column_names_strings[0]

@@ -11,7 +11,6 @@ cdef rle_decompress(int result_length, np.ndarray[uint8_t, ndim=1] inbuff):
 
     cdef uint8_t control_byte
     cdef uint8_t [:] result = np.zeros(result_length, np.uint8)
-
     cdef int rpos = 0
     cdef int ipos = 0
     cdef int i
@@ -106,7 +105,7 @@ cdef rle_decompress(int result_length, np.ndarray[uint8_t, ndim=1] inbuff):
     if len(result) != result_length:
         print("RLE: %v != %v\n", (len(result), result_length))
 
-    return np.asarray(result).tostring()
+    return np.asarray(result)
 
 
 # rdc_decompress decompresses data using the Ross Data Compression algorithm:
@@ -122,7 +121,6 @@ cdef rdc_decompress(int result_length, np.ndarray[uint8_t, ndim=1] inbuff):
     cdef int ipos = 0
     cdef int rpos = 0
     cdef int k
-
     cdef uint8_t [:] outbuff = np.zeros(result_length, dtype=np.uint8)
 
     ii = -1
@@ -190,7 +188,7 @@ cdef rdc_decompress(int result_length, np.ndarray[uint8_t, ndim=1] inbuff):
     if len(outbuff) != result_length:
         raise ValueError("RDC: %v != %v\n", len(outbuff), result_length)
 
-    return np.asarray(outbuff).tostring()
+    return np.asarray(outbuff)
 
 cdef decompress(object parser, int row_length, page):
     page = np.frombuffer(page, dtype=np.uint8)
@@ -292,10 +290,13 @@ cdef process_byte_array_with_data(object parser, int offset, int length):
         char[:] column_types = parser.column_types
         uint8_t[:, :] byte_chunk = parser._byte_chunk
         object[:, :] string_chunk = parser._string_chunk
+        np.ndarray[uint8_t, ndim=1] source
+        np.ndarray[uint8_t, ndim=1] raw_source = np.frombuffer(parser._cached_page[offset:offset+length], dtype=np.uint8)
 
-    source = parser._cached_page[offset:offset+length]
     if (parser.compression != "") and (length < parser.row_length):
-        source = decompress(parser, parser.row_length, source)
+        source = decompress(parser, parser.row_length, raw_source)
+    else:
+        source = raw_source
 
     s = 8 * parser._current_row_in_chunk_index
     js = 0
@@ -314,7 +315,7 @@ cdef process_byte_array_with_data(object parser, int offset, int length):
                 byte_chunk[jb, m + k] = source[start + k]
             jb += 1
         elif column_types[j] == b's':
-            string_chunk[js, parser._current_row_in_chunk_index] = source[start:(start+lngt)].rstrip()
+            string_chunk[js, parser._current_row_in_chunk_index] = source[start:(start+lngt)].tostring().rstrip()
             js += 1
         else:
           raise ValueError("unknown column type: %s" % parser.columns[j].ctype)

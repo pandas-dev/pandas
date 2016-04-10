@@ -47,7 +47,7 @@ class TestSAS7BDAT(tm.TestCase):
                 byts = open(fname, 'rb').read()
                 buf = io.BytesIO(byts)
                 df = pd.read_sas(buf, format="sas7bdat", encoding='utf-8')
-                tm.assert_frame_equal(df, df0)
+                tm.assert_frame_equal(df, df0, check_exact=False)
 
     def test_from_iterator(self):
         for j in 0, 1:
