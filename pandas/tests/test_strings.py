@@ -1938,6 +1938,30 @@ class TestStringMethods(tm.TestCase):
         tm.assert_index_equal(result, exp)
         self.assertEqual(result.nlevels, 2)
 
+    def test_split_with_name(self):
+        # GH 12617
+
+        # should preserve name
+        s = Series(['a,b', 'c,d'], name='xxx')
+        res = s.str.split(',')
+        exp = Series([('a', 'b'), ('c', 'd')], name='xxx')
+        tm.assert_series_equal(res, exp)
+
+        res = s.str.split(',', expand=True)
+        exp = DataFrame([['a', 'b'], ['c', 'd']])
+        tm.assert_frame_equal(res, exp)
+
+        idx = Index(['a,b', 'c,d'], name='xxx')
+        res = idx.str.split(',')
+        exp = Index([['a', 'b'], ['c', 'd']], name='xxx')
+        self.assertTrue(res.nlevels, 1)
+        tm.assert_index_equal(res, exp)
+
+        res = idx.str.split(',', expand=True)
+        exp = MultiIndex.from_tuples([('a', 'b'), ('c', 'd')])
+        self.assertTrue(res.nlevels, 2)
+        tm.assert_index_equal(res, exp)
+
     def test_partition_series(self):
         values = Series(['a_b_c', 'c_d_e', NA, 'f_g_h'])
 
@@ -2058,6 +2082,31 @@ class TestStringMethods(tm.TestCase):
                          1: ['_', '_', np.nan, '_'],
                          2: ['c', 'e', np.nan, 'h']})
         tm.assert_frame_equal(result, exp)
+
+    def test_partition_with_name(self):
+        # GH 12617
+
+        s = Series(['a,b', 'c,d'], name='xxx')
+        res = s.str.partition(',')
+        exp = DataFrame({0: ['a', 'c'], 1: [',', ','], 2: ['b', 'd']})
+        tm.assert_frame_equal(res, exp)
+
+        # should preserve name
+        res = s.str.partition(',', expand=False)
+        exp = Series([('a', ',', 'b'), ('c', ',', 'd')], name='xxx')
+        tm.assert_series_equal(res, exp)
+
+        idx = Index(['a,b', 'c,d'], name='xxx')
+        res = idx.str.partition(',')
+        exp = MultiIndex.from_tuples([('a', ',', 'b'), ('c', ',', 'd')])
+        self.assertTrue(res.nlevels, 3)
+        tm.assert_index_equal(res, exp)
+
+        # should preserve name
+        res = idx.str.partition(',', expand=False)
+        exp = Index(np.array([('a', ',', 'b'), ('c', ',', 'd')]), name='xxx')
+        self.assertTrue(res.nlevels, 1)
+        tm.assert_index_equal(res, exp)
 
     def test_pipe_failures(self):
         # #2119
