@@ -9,6 +9,9 @@ We recommend that all users upgrade to this version.
 
 Highlights include:
 
+- Custom business hour offset, see :ref:`here <whatsnew_0181.enhancements.custombusinesshour>`.
+
+
 .. contents:: What's new in v0.18.1
     :local:
     :backlinks: none
@@ -18,11 +21,27 @@ Highlights include:
 New features
 ~~~~~~~~~~~~
 
+.. _whatsnew_0181.enhancements.custombusinesshour:
 
+Custom Business Hour
+^^^^^^^^^^^^^^^^^^^^
 
+The ``CustomBusinessHour`` is a mixture of ``BusinessHour`` and ``CustomBusinessDay`` which
+allows you to specify arbitrary holidays. For details,
+see :ref:`Custom Business Hour <timeseries.custombusinesshour>` (:issue:`11514`)
 
+.. ipython:: python
 
+    from pandas.tseries.offsets import CustomBusinessHour
+    from pandas.tseries.holiday import USFederalHolidayCalendar
+    bhour_us = CustomBusinessHour(calendar=USFederalHolidayCalendar())
+    # Friday before MLK Day
+    dt = datetime(2014, 1, 17, 15)
 
+    dt + bhour_us
+
+    # Tuesday after MLK Day (Monday is skipped because it's a holiday)
+    dt + bhour_us * 2
 
 .. _whatsnew_0181.enhancements:
 
@@ -216,6 +235,7 @@ Bug Fixes
 
 
 
+
 - Bug in ``value_counts`` when ``normalize=True`` and ``dropna=True`` where nulls still contributed to the normalized count (:issue:`12558`)
 - Bug in ``Panel.fillna()`` ignoring ``inplace=True`` (:issue:`12633`)
 - Bug in ``read_csv`` when specifying ``names``, ```usecols``, and ``parse_dates`` simultaneously with the C engine (:issue:`9755`)
@@ -229,6 +249,7 @@ Bug Fixes
 
 
 - Bug in ``.str`` accessor methods may raise ``ValueError`` if input has ``name`` and the result is ``DataFrame`` or ``MultiIndex`` (:issue:`12617`)
+
 
 
 - Bug in ``CategoricalIndex.get_loc`` returns different result from regular ``Index`` (:issue:`12531`)

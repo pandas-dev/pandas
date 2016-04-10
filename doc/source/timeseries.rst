@@ -563,6 +563,7 @@ frequency increment. Specific offset logic like "month", "business day", or
     BYearBegin, "business year begin"
     FY5253, "retail (aka 52-53 week) year"
     BusinessHour, "business hour"
+    CustomBusinessHour, "custom business hour"
     Hour, "one hour"
     Minute, "one minute"
     Second, "one second"
@@ -883,6 +884,40 @@ under the default business hours (9:00 - 17:00), there is no gap (0 minutes) bet
     # The result is the same as rollworward because BusinessDay never overlap.
     BusinessHour().apply(Timestamp('2014-08-02'))
 
+``BusinessHour`` regards Saturday and Sunday as holidays. To use arbitrary holidays,
+you can use ``CustomBusinessHour`` offset, see :ref:`Custom Business Hour <timeseries.custombusinesshour>`:
+
+.. _timeseries.custombusinesshour:
+
+Custom Business Hour
+~~~~~~~~~~~~~~~~~~~~
+
+.. versionadded:: 0.18.1
+
+The ``CustomBusinessHour`` is a mixture of ``BusinessHour`` and ``CustomBusinessDay`` which
+allows you to specify arbitrary holidays. ``CustomBusinessHour`` works as the same
+as ``BusinessHour`` except that it skips specified custom holidays.
+
+.. ipython:: python
+
+    from pandas.tseries.holiday import USFederalHolidayCalendar
+    bhour_us = CustomBusinessHour(calendar=USFederalHolidayCalendar())
+    # Friday before MLK Day
+    dt = datetime(2014, 1, 17, 15)
+
+    dt + bhour_us
+
+    # Tuesday after MLK Day (Monday is skipped because it's a holiday)
+    dt + bhour_us * 2
+
+You can use keyword arguments suported by either ``BusinessHour`` and ``CustomBusinessDay``.
+
+.. ipython:: python
+
+    bhour_mon = CustomBusinessHour(start='10:00', weekmask='Tue Wed Thu Fri')
+
+    # Monday is skipped because it's a holiday, business hour starts from 10:00
+    dt + bhour_mon * 2
 
 Offset Aliases
 ~~~~~~~~~~~~~~

@@ -10,7 +10,8 @@ import numpy as np
 
 from pandas.compat.numpy_compat import np_datetime64_compat
 from pandas.core.datetools import (bday, BDay, CDay, BQuarterEnd, BMonthEnd,
-                                   BusinessHour, CBMonthEnd, CBMonthBegin,
+                                   BusinessHour, CustomBusinessHour,
+                                   CBMonthEnd, CBMonthBegin,
                                    BYearEnd, MonthEnd, MonthBegin, BYearBegin,
                                    QuarterBegin,
                                    BQuarterBegin, BMonthBegin, DateOffset,
@@ -134,7 +135,7 @@ class Base(tm.TestCase):
         # try to create an out-of-bounds result timestamp; if we can't create
         # the offset skip
         try:
-            if self._offset is BusinessHour:
+            if self._offset in (BusinessHour, CustomBusinessHour):
                 # Using 10000 in BusinessHour fails in tz check because of DST
                 # difference
                 offset = self._get_offset(self._offset, value=100000)
@@ -163,8 +164,8 @@ class Base(tm.TestCase):
 
 
 class TestCommon(Base):
-    def setUp(self):
 
+    def setUp(self):
         # exected value created by Base._get_offset
         # are applied to 2011/01/01 09:00 (Saturday)
         # used for .apply and .rollforward
@@ -191,6 +192,8 @@ class TestCommon(Base):
                           'QuarterEnd': Timestamp('2011-03-31 09:00:00'),
                           'BQuarterEnd': Timestamp('2011-03-31 09:00:00'),
                           'BusinessHour': Timestamp('2011-01-03 10:00:00'),
+                          'CustomBusinessHour':
+                          Timestamp('2011-01-03 10:00:00'),
                           'WeekOfMonth': Timestamp('2011-01-08 09:00:00'),
                           'LastWeekOfMonth': Timestamp('2011-01-29 09:00:00'),
                           'FY5253Quarter': Timestamp('2011-01-25 09:00:00'),
@@ -315,6 +318,7 @@ class TestCommon(Base):
             expecteds[n] = Timestamp('2011/01/01 09:00')
 
         expecteds['BusinessHour'] = Timestamp('2011-01-03 09:00:00')
+        expecteds['CustomBusinessHour'] = Timestamp('2011-01-03 09:00:00')
 
         # but be changed when normalize=True
         norm_expected = expecteds.copy()
@@ -363,6 +367,7 @@ class TestCommon(Base):
                      'QuarterEnd': Timestamp('2010-12-31 09:00:00'),
                      'BQuarterEnd': Timestamp('2010-12-31 09:00:00'),
                      'BusinessHour': Timestamp('2010-12-31 17:00:00'),
+                     'CustomBusinessHour': Timestamp('2010-12-31 17:00:00'),
                      'WeekOfMonth': Timestamp('2010-12-11 09:00:00'),
                      'LastWeekOfMonth': Timestamp('2010-12-25 09:00:00'),
                      'FY5253Quarter': Timestamp('2010-10-26 09:00:00'),
@@ -413,7 +418,7 @@ class TestCommon(Base):
             offset_n = self._get_offset(offset, normalize=True)
             self.assertFalse(offset_n.onOffset(dt))
 
-            if offset is BusinessHour:
+            if offset in (BusinessHour, CustomBusinessHour):
                 # In default BusinessHour (9:00-17:00), normalized time
                 # cannot be in business hour range
                 continue
@@ -750,7 +755,8 @@ class TestBusinessHour(Base):
                             BusinessHour(start='17:00', end='09:01'))
 
     def test_hash(self):
-        self.assertEqual(hash(self.offset2), hash(self.offset2))
+        for offset in [self.offset1, self.offset2, self.offset3, self.offset4]:
+            self.assertEqual(hash(offset), hash(offset))
 
     def testCall(self):
         self.assertEqual(self.offset1(self.d), datetime(2014, 7, 1, 11))
@@ -1387,6 +1393,267 @@ class TestBusinessHour(Base):
         expected = idx1
         for idx in [idx1, idx2, idx3]:
             tm.assert_index_equal(idx, expected)
+
+
+class TestCustomBusinessHour(Base):
+    _multiprocess_can_split_ = True
+    _offset = CustomBusinessHour
+
+    def setUp(self):
+        # 2014 Calendar to check custom holidays
+        #   Sun Mon Tue Wed Thu Fri Sat
+        #  6/22  23  24  25  26  27  28
+        #    29  30 7/1   2   3   4   5
+        #     6   7   8   9  10  11  12
+        self.d = datetime(2014, 7, 1, 10, 00)
+        self.offset1 = CustomBusinessHour(weekmask='Tue Wed Thu Fri')
+
+        self.holidays = ['2014-06-27', datetime(2014, 6, 30),
+                         np.datetime64('2014-07-02')]
+        self.offset2 = CustomBusinessHour(holidays=self.holidays)
+
+    def test_constructor_errors(self):
+        from datetime import time as dt_time
+        with tm.assertRaises(ValueError):
+            CustomBusinessHour(start=dt_time(11, 0, 5))
+        with tm.assertRaises(ValueError):
+            CustomBusinessHour(start='AAA')
+        with tm.assertRaises(ValueError):
+            CustomBusinessHour(start='14:00:05')
+
+    def test_different_normalize_equals(self):
+        # equivalent in this special case
+        offset = self._offset()
+        offset2 = self._offset()
+        offset2.normalize = True
+        self.assertEqual(offset, offset2)
+
+    def test_repr(self):
+        self.assertEqual(repr(self.offset1),
+                         '<CustomBusinessHour: CBH=09:00-17:00>')
+        self.assertEqual(repr(self.offset2),
+                         '<CustomBusinessHour: CBH=09:00-17:00>')
+
+    def test_with_offset(self):
+        expected = Timestamp('2014-07-01 13:00')
+
+        self.assertEqual(self.d + CustomBusinessHour() * 3, expected)
+        self.assertEqual(self.d + CustomBusinessHour(n=3), expected)
+
+    def testEQ(self):
+        for offset in [self.offset1, self.offset2]:
+            self.assertEqual(offset, offset)
+
+        self.assertNotEqual(CustomBusinessHour(), CustomBusinessHour(-1))
+        self.assertEqual(CustomBusinessHour(start='09:00'),
+                         CustomBusinessHour())
+        self.assertNotEqual(CustomBusinessHour(start='09:00'),
+                            CustomBusinessHour(start='09:01'))
+        self.assertNotEqual(CustomBusinessHour(start='09:00', end='17:00'),
+                            CustomBusinessHour(start='17:00', end='09:01'))
+
+        self.assertNotEqual(CustomBusinessHour(weekmask='Tue Wed Thu Fri'),
+                            CustomBusinessHour(weekmask='Mon Tue Wed Thu Fri'))
+        self.assertNotEqual(CustomBusinessHour(holidays=['2014-06-27']),
+                            CustomBusinessHour(holidays=['2014-06-28']))
+
+    def test_hash(self):
+        self.assertEqual(hash(self.offset1), hash(self.offset1))
+        self.assertEqual(hash(self.offset2), hash(self.offset2))
+
+    def testCall(self):
+        self.assertEqual(self.offset1(self.d), datetime(2014, 7, 1, 11))
+        self.assertEqual(self.offset2(self.d), datetime(2014, 7, 1, 11))
+
+    def testRAdd(self):
+        self.assertEqual(self.d + self.offset2, self.offset2 + self.d)
+
+    def testSub(self):
+        off = self.offset2
+        self.assertRaises(Exception, off.__sub__, self.d)
+        self.assertEqual(2 * off - off, off)
+
+        self.assertEqual(self.d - self.offset2, self.d - (2 * off - off))
+
+    def testRSub(self):
+        self.assertEqual(self.d - self.offset2, (-self.offset2).apply(self.d))
+
+    def testMult1(self):
+        self.assertEqual(self.d + 5 * self.offset1, self.d + self._offset(5))
+
+    def testMult2(self):
+        self.assertEqual(self.d + (-3 * self._offset(-2)),
+                         self.d + self._offset(6))
+
+    def testRollback1(self):
+        self.assertEqual(self.offset1.rollback(self.d), self.d)
+        self.assertEqual(self.offset2.rollback(self.d), self.d)
+
+        d = datetime(2014, 7, 1, 0)
+        # 2014/07/01 is Tuesday, 06/30 is Monday(holiday)
+        self.assertEqual(self.offset1.rollback(d), datetime(2014, 6, 27, 17))
+
+        # 2014/6/30 and 2014/6/27 are holidays
+        self.assertEqual(self.offset2.rollback(d), datetime(2014, 6, 26, 17))
+
+    def testRollback2(self):
+        self.assertEqual(self._offset(-3)
+                         .rollback(datetime(2014, 7, 5, 15, 0)),
+                         datetime(2014, 7, 4, 17, 0))
+
+    def testRollforward1(self):
+        self.assertEqual(self.offset1.rollforward(self.d), self.d)
+        self.assertEqual(self.offset2.rollforward(self.d), self.d)
+
+        d = datetime(2014, 7, 1, 0)
+        self.assertEqual(self.offset1.rollforward(d), datetime(2014, 7, 1, 9))
+        self.assertEqual(self.offset2.rollforward(d), datetime(2014, 7, 1, 9))
+
+    def testRollforward2(self):
+        self.assertEqual(self._offset(-3)
+                         .rollforward(datetime(2014, 7, 5, 16, 0)),
+                         datetime(2014, 7, 7, 9))
+
+    def test_roll_date_object(self):
+        offset = BusinessHour()
+
+        dt = datetime(2014, 7, 6, 15, 0)
+
+        result = offset.rollback(dt)
+        self.assertEqual(result, datetime(2014, 7, 4, 17))
+
+        result = offset.rollforward(dt)
+        self.assertEqual(result, datetime(2014, 7, 7, 9))
+
+    def test_normalize(self):
+        tests = []
+
+        tests.append((CustomBusinessHour(normalize=True,
+                                         holidays=self.holidays),
+                      {datetime(2014, 7, 1, 8): datetime(2014, 7, 1),
+                       datetime(2014, 7, 1, 17): datetime(2014, 7, 3),
+                       datetime(2014, 7, 1, 16): datetime(2014, 7, 3),
+                       datetime(2014, 7, 1, 23): datetime(2014, 7, 3),
+                       datetime(2014, 7, 1, 0): datetime(2014, 7, 1),
+                       datetime(2014, 7, 4, 15): datetime(2014, 7, 4),
+                       datetime(2014, 7, 4, 15, 59): datetime(2014, 7, 4),
+                       datetime(2014, 7, 4, 16, 30): datetime(2014, 7, 7),
+                       datetime(2014, 7, 5, 23): datetime(2014, 7, 7),
+                       datetime(2014, 7, 6, 10): datetime(2014, 7, 7)}))
+
+        tests.append((CustomBusinessHour(-1, normalize=True,
+                                         holidays=self.holidays),
+                      {datetime(2014, 7, 1, 8): datetime(2014, 6, 26),
+                       datetime(2014, 7, 1, 17): datetime(2014, 7, 1),
+                       datetime(2014, 7, 1, 16): datetime(2014, 7, 1),
+                       datetime(2014, 7, 1, 10): datetime(2014, 6, 26),
+                       datetime(2014, 7, 1, 0): datetime(2014, 6, 26),
+                       datetime(2014, 7, 7, 10): datetime(2014, 7, 4),
+                       datetime(2014, 7, 7, 10, 1): datetime(2014, 7, 7),
+                       datetime(2014, 7, 5, 23): datetime(2014, 7, 4),
+                       datetime(2014, 7, 6, 10): datetime(2014, 7, 4)}))
+
+        tests.append((CustomBusinessHour(1, normalize=True, start='17:00',
+                                         end='04:00', holidays=self.holidays),
+                      {datetime(2014, 7, 1, 8): datetime(2014, 7, 1),
+                       datetime(2014, 7, 1, 17): datetime(2014, 7, 1),
+                       datetime(2014, 7, 1, 23): datetime(2014, 7, 2),
+                       datetime(2014, 7, 2, 2): datetime(2014, 7, 2),
+                       datetime(2014, 7, 2, 3): datetime(2014, 7, 3),
+                       datetime(2014, 7, 4, 23): datetime(2014, 7, 5),
+                       datetime(2014, 7, 5, 2): datetime(2014, 7, 5),
+                       datetime(2014, 7, 7, 2): datetime(2014, 7, 7),
+                       datetime(2014, 7, 7, 17): datetime(2014, 7, 7)}))
+
+        for offset, cases in tests:
+            for dt, expected in compat.iteritems(cases):
+                self.assertEqual(offset.apply(dt), expected)
+
+    def test_onOffset(self):
+        tests = []
+
+        tests.append((CustomBusinessHour(start='10:00', end='15:00',
+                                         holidays=self.holidays),
+                      {datetime(2014, 7, 1, 9): False,
+                       datetime(2014, 7, 1, 10): True,
+                       datetime(2014, 7, 1, 15): True,
+                       datetime(2014, 7, 1, 15, 1): False,
+                       datetime(2014, 7, 5, 12): False,
+                       datetime(2014, 7, 6, 12): False}))
+
+        for offset, cases in tests:
+            for dt, expected in compat.iteritems(cases):
+                self.assertEqual(offset.onOffset(dt), expected)
+
+    def test_apply(self):
+        tests = []
+
+        tests.append((
+            CustomBusinessHour(holidays=self.holidays),
+            {datetime(2014, 7, 1, 11): datetime(2014, 7, 1, 12),
+             datetime(2014, 7, 1, 13): datetime(2014, 7, 1, 14),
+             datetime(2014, 7, 1, 15): datetime(2014, 7, 1, 16),
+             datetime(2014, 7, 1, 19): datetime(2014, 7, 3, 10),
+             datetime(2014, 7, 1, 16): datetime(2014, 7, 3, 9),
+             datetime(2014, 7, 1, 16, 30, 15): datetime(2014, 7, 3, 9, 30, 15),
+             datetime(2014, 7, 1, 17): datetime(2014, 7, 3, 10),
+             datetime(2014, 7, 2, 11): datetime(2014, 7, 3, 10),
+             # out of business hours
+             datetime(2014, 7, 2, 8): datetime(2014, 7, 3, 10),
+             datetime(2014, 7, 2, 19): datetime(2014, 7, 3, 10),
+             datetime(2014, 7, 2, 23): datetime(2014, 7, 3, 10),
+             datetime(2014, 7, 3, 0): datetime(2014, 7, 3, 10),
+             # saturday
+             datetime(2014, 7, 5, 15): datetime(2014, 7, 7, 10),
+             datetime(2014, 7, 4, 17): datetime(2014, 7, 7, 10),
+             datetime(2014, 7, 4, 16, 30): datetime(2014, 7, 7, 9, 30),
+             datetime(2014, 7, 4, 16, 30, 30): datetime(2014, 7, 7, 9, 30,
+                                                        30)}))
+
+        tests.append((
+            CustomBusinessHour(4, holidays=self.holidays),
+            {datetime(2014, 7, 1, 11): datetime(2014, 7, 1, 15),
+             datetime(2014, 7, 1, 13): datetime(2014, 7, 3, 9),
+             datetime(2014, 7, 1, 15): datetime(2014, 7, 3, 11),
+             datetime(2014, 7, 1, 16): datetime(2014, 7, 3, 12),
+             datetime(2014, 7, 1, 17): datetime(2014, 7, 3, 13),
+             datetime(2014, 7, 2, 11): datetime(2014, 7, 3, 13),
+             datetime(2014, 7, 2, 8): datetime(2014, 7, 3, 13),
+             datetime(2014, 7, 2, 19): datetime(2014, 7, 3, 13),
+             datetime(2014, 7, 2, 23): datetime(2014, 7, 3, 13),
+             datetime(2014, 7, 3, 0): datetime(2014, 7, 3, 13),
+             datetime(2014, 7, 5, 15): datetime(2014, 7, 7, 13),
+             datetime(2014, 7, 4, 17): datetime(2014, 7, 7, 13),
+             datetime(2014, 7, 4, 16, 30): datetime(2014, 7, 7, 12, 30),
+             datetime(2014, 7, 4, 16, 30, 30): datetime(2014, 7, 7, 12, 30,
+                                                        30)}))
+
+        for offset, cases in tests:
+            for base, expected in compat.iteritems(cases):
+                assertEq(offset, base, expected)
+
+    def test_apply_nanoseconds(self):
+        tests = []
+
+        tests.append((CustomBusinessHour(holidays=self.holidays),
+                      {Timestamp('2014-07-01 15:00') + Nano(5): Timestamp(
+                          '2014-07-01 16:00') + Nano(5),
+                       Timestamp('2014-07-01 16:00') + Nano(5): Timestamp(
+                           '2014-07-03 09:00') + Nano(5),
+                       Timestamp('2014-07-01 16:00') - Nano(5): Timestamp(
+                           '2014-07-01 17:00') - Nano(5)}))
+
+        tests.append((CustomBusinessHour(-1, holidays=self.holidays),
+                      {Timestamp('2014-07-01 15:00') + Nano(5): Timestamp(
+                          '2014-07-01 14:00') + Nano(5),
+                       Timestamp('2014-07-01 10:00') + Nano(5): Timestamp(
+                           '2014-07-01 09:00') + Nano(5),
+                       Timestamp('2014-07-01 10:00') - Nano(5): Timestamp(
+                           '2014-06-26 17:00') - Nano(5), }))
+
+        for offset, cases in tests:
+            for base, expected in compat.iteritems(cases):
+                assertEq(offset, base, expected)
 
 
 class TestCustomBusinessDay(Base):
