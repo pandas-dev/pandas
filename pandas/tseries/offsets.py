@@ -18,7 +18,7 @@ import operator
 __all__ = ['Day', 'BusinessDay', 'BDay', 'CustomBusinessDay', 'CDay',
            'CBMonthEnd', 'CBMonthBegin',
            'MonthBegin', 'BMonthBegin', 'MonthEnd', 'BMonthEnd',
-           'BusinessHour',
+           'BusinessHour', 'CustomBusinessHour',
            'YearBegin', 'BYearBegin', 'YearEnd', 'BYearEnd',
            'QuarterBegin', 'BQuarterBegin', 'QuarterEnd', 'BQuarterEnd',
            'LastWeekOfMonth', 'FY5253Quarter', 'FY5253',
@@ -669,20 +669,9 @@ class BusinessDay(BusinessMixin, SingleConstructorOffset):
         return dt.weekday() < 5
 
 
-class BusinessHour(BusinessMixin, SingleConstructorOffset):
-    """
-    DateOffset subclass representing possibly n business days
+class BusinessHourMixin(BusinessMixin):
 
-    .. versionadded: 0.16.1
-
-    """
-    _prefix = 'BH'
-    _anchor = 0
-
-    def __init__(self, n=1, normalize=False, **kwds):
-        self.n = int(n)
-        self.normalize = normalize
-
+    def __init__(self, **kwds):
         # must be validated here to equality check
         kwds['start'] = self._validate_time(kwds.get('start', '09:00'))
         kwds['end'] = self._validate_time(kwds.get('end', '17:00'))
@@ -690,12 +679,6 @@ class BusinessHour(BusinessMixin, SingleConstructorOffset):
         self.offset = kwds.get('offset', timedelta(0))
         self.start = kwds.get('start', '09:00')
         self.end = kwds.get('end', '17:00')
-
-        # used for moving to next businessday
-        if self.n >= 0:
-            self.next_bday = BusinessDay(n=1)
-        else:
-            self.next_bday = BusinessDay(n=-1)
 
     def _validate_time(self, t_input):
         from datetime import time as dt_time
@@ -721,13 +704,6 @@ class BusinessHour(BusinessMixin, SingleConstructorOffset):
             return True
         else:
             return False
-
-    def _repr_attrs(self):
-        out = super(BusinessHour, self)._repr_attrs()
-        attrs = ['BH=%s-%s' % (self.start.strftime('%H:%M'),
-                               self.end.strftime('%H:%M'))]
-        out += ': ' + ', '.join(attrs)
-        return out
 
     def _next_opening_time(self, other):
         """
@@ -905,6 +881,38 @@ class BusinessHour(BusinessMixin, SingleConstructorOffset):
         else:
             return False
 
+    def _repr_attrs(self):
+        out = super(BusinessHourMixin, self)._repr_attrs()
+        start = self.start.strftime('%H:%M')
+        end = self.end.strftime('%H:%M')
+        attrs = ['{prefix}={start}-{end}'.format(prefix=self._prefix,
+                                                 start=start, end=end)]
+        out += ': ' + ', '.join(attrs)
+        return out
+
+
+class BusinessHour(BusinessHourMixin, SingleConstructorOffset):
+    """
+    DateOffset subclass representing possibly n business days
+
+    .. versionadded: 0.16.1
+
+    """
+    _prefix = 'BH'
+    _anchor = 0
+
+    def __init__(self, n=1, normalize=False, **kwds):
+        self.n = int(n)
+        self.normalize = normalize
+        super(BusinessHour, self).__init__(**kwds)
+
+        # used for moving to next businessday
+        if self.n >= 0:
+            nb_offset = 1
+        else:
+            nb_offset = -1
+        self.next_bday = BusinessDay(n=nb_offset)
+
 
 class CustomBusinessDay(BusinessDay):
     """
@@ -976,18 +984,7 @@ class CustomBusinessDay(BusinessDay):
         if holidays:
             kwargs['holidays'] = holidays
 
-        try:
-            busdaycalendar = np.busdaycalendar(**kwargs)
-        except:
-            # Check we have the required numpy version
-            from distutils.version import LooseVersion
-
-            if LooseVersion(np.__version__) < '1.7.0':
-                raise NotImplementedError(
-                    "CustomBusinessDay requires numpy >= "
-                    "1.7.0. Current version: " + np.__version__)
-            else:
-                raise
+        busdaycalendar = np.busdaycalendar(**kwargs)
         return busdaycalendar, holidays
 
     def __getstate__(self):
@@ -1065,6 +1062,36 @@ class CustomBusinessDay(BusinessDay):
             return False
         day64 = self._to_dt64(dt, 'datetime64[D]')
         return np.is_busday(day64, busdaycal=self.calendar)
+
+
+class CustomBusinessHour(BusinessHourMixin, SingleConstructorOffset):
+    """
+    DateOffset subclass representing possibly n custom business days
+
+    .. versionadded: 0.18.1
+
+    """
+    _prefix = 'CBH'
+    _anchor = 0
+
+    def __init__(self, n=1, normalize=False, weekmask='Mon Tue Wed Thu Fri',
+                 holidays=None, calendar=None, **kwds):
+        self.n = int(n)
+        self.normalize = normalize
+        super(CustomBusinessHour, self).__init__(**kwds)
+        # used for moving to next businessday
+        if self.n >= 0:
+            nb_offset = 1
+        else:
+            nb_offset = -1
+        self.next_bday = CustomBusinessDay(n=nb_offset,
+                                           weekmask=weekmask,
+                                           holidays=holidays,
+                                           calendar=calendar)
+
+        self.kwds['weekmask'] = self.next_bday.weekmask
+        self.kwds['holidays'] = self.next_bday.holidays
+        self.kwds['calendar'] = self.next_bday.calendar
 
 
 class MonthOffset(SingleConstructorOffset):
@@ -2673,31 +2700,32 @@ def generate_range(start=None, end=None, periods=None,
             cur = next_date
 
 prefix_mapping = dict((offset._prefix, offset) for offset in [
-    YearBegin,                # 'AS'
-    YearEnd,                  # 'A'
-    BYearBegin,               # 'BAS'
-    BYearEnd,                 # 'BA'
-    BusinessDay,              # 'B'
-    BusinessMonthBegin,       # 'BMS'
-    BusinessMonthEnd,         # 'BM'
-    BQuarterEnd,              # 'BQ'
-    BQuarterBegin,            # 'BQS'
-    BusinessHour,             # 'BH'
-    CustomBusinessDay,        # 'C'
-    CustomBusinessMonthEnd,   # 'CBM'
+    YearBegin,                 # 'AS'
+    YearEnd,                   # 'A'
+    BYearBegin,                # 'BAS'
+    BYearEnd,                  # 'BA'
+    BusinessDay,               # 'B'
+    BusinessMonthBegin,        # 'BMS'
+    BusinessMonthEnd,          # 'BM'
+    BQuarterEnd,               # 'BQ'
+    BQuarterBegin,             # 'BQS'
+    BusinessHour,              # 'BH'
+    CustomBusinessDay,         # 'C'
+    CustomBusinessMonthEnd,    # 'CBM'
     CustomBusinessMonthBegin,  # 'CBMS'
-    MonthEnd,                 # 'M'
-    MonthBegin,               # 'MS'
-    Week,                     # 'W'
-    Second,                   # 'S'
-    Minute,                   # 'T'
-    Micro,                    # 'U'
-    QuarterEnd,               # 'Q'
-    QuarterBegin,             # 'QS'
-    Milli,                    # 'L'
-    Hour,                     # 'H'
-    Day,                      # 'D'
-    WeekOfMonth,              # 'WOM'
+    CustomBusinessHour,        # 'CBH'
+    MonthEnd,                  # 'M'
+    MonthBegin,                # 'MS'
+    Week,                      # 'W'
+    Second,                    # 'S'
+    Minute,                    # 'T'
+    Micro,                     # 'U'
+    QuarterEnd,                # 'Q'
+    QuarterBegin,              # 'QS'
+    Milli,                     # 'L'
+    Hour,                      # 'H'
+    Day,                       # 'D'
+    WeekOfMonth,               # 'WOM'
     FY5253,
     FY5253Quarter,
 ])
