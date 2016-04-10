@@ -18,6 +18,7 @@ from pandas.core.common import (_possibly_downcast_to_dtype, isnull, _NS_DTYPE,
                                 is_datetime64_dtype, is_datetimetz, is_sparse,
                                 array_equivalent, _is_na_compat,
                                 _maybe_convert_string_to_object,
+                                _maybe_convert_scalar,
                                 is_categorical, is_datetimelike_v_numeric,
                                 is_numeric_v_string_like, is_internal_type)
 import pandas.core.algorithms as algos
@@ -1201,6 +1202,7 @@ class Block(PandasObject):
                              "like")
 
         other = _maybe_convert_string_to_object(other)
+        other = _maybe_convert_scalar(other)
 
         # our where function
         def func(cond, values, other):

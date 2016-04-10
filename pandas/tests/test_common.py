@@ -770,6 +770,36 @@ class TestMaybe(tm.TestCase):
         tm.assert_numpy_array_equal(result, np.array(['x', 2], dtype=object))
         self.assertTrue(result.dtype == object)
 
+    def test_maybe_convert_scalar(self):
+
+        # pass thru
+        result = com._maybe_convert_scalar('x')
+        self.assertEqual(result, 'x')
+        result = com._maybe_convert_scalar(np.array([1]))
+        self.assertEqual(result, np.array([1]))
+
+        # leave scalar dtype
+        result = com._maybe_convert_scalar(np.int64(1))
+        self.assertEqual(result, np.int64(1))
+        result = com._maybe_convert_scalar(np.int32(1))
+        self.assertEqual(result, np.int32(1))
+        result = com._maybe_convert_scalar(np.float32(1))
+        self.assertEqual(result, np.float32(1))
+        result = com._maybe_convert_scalar(np.int64(1))
+        self.assertEqual(result, np.float64(1))
+
+        # coerce
+        result = com._maybe_convert_scalar(1)
+        self.assertEqual(result, np.int64(1))
+        result = com._maybe_convert_scalar(1.0)
+        self.assertEqual(result, np.float64(1))
+        result = com._maybe_convert_scalar(pd.Timestamp('20130101'))
+        self.assertEqual(result, pd.Timestamp('20130101').value)
+        result = com._maybe_convert_scalar(datetime(2013, 1, 1))
+        self.assertEqual(result, pd.Timestamp('20130101').value)
+        result = com._maybe_convert_scalar(pd.Timedelta('1 day 1 min'))
+        self.assertEqual(result, pd.Timedelta('1 day 1 min').value)
+
 
 class TestConvert(tm.TestCase):
 
