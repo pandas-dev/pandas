@@ -382,15 +382,14 @@ class SparseSeries(Series):
         return self.block.values._get_val_at(loc)
 
     def __getitem__(self, key):
-        """
-
-        """
         try:
             return self._get_val_at(self.index.get_loc(key))
 
         except KeyError:
             if isinstance(key, (int, np.integer)):
                 return self._get_val_at(key)
+            elif key is Ellipsis:
+                return self
             raise Exception('Requested index not in this series!')
 
         except TypeError:

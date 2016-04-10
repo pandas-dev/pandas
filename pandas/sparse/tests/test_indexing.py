@@ -55,6 +55,14 @@ class TestSparseSeriesIndexing(tm.TestCase):
         exp = orig[orig % 2 == 1].to_sparse(fill_value=0)
         tm.assert_sp_series_equal(result, exp)
 
+    def test_getitem_ellipsis(self):
+        # GH 9467
+        s = pd.SparseSeries([1, np.nan, 2, 0, np.nan])
+        tm.assert_sp_series_equal(s[...], s)
+
+        s = pd.SparseSeries([1, np.nan, 2, 0, np.nan], fill_value=0)
+        tm.assert_sp_series_equal(s[...], s)
+
     def test_loc(self):
         orig = pd.Series([1, np.nan, np.nan, 3, np.nan])
         sparse = orig.to_sparse()
