@@ -294,7 +294,6 @@ cdef void process_byte_array_with_data(object parser, int offset, int length):
     source = np.frombuffer(parser._cached_page[offset:offset+length], dtype=np.uint8)
     if (parser.compression != "") and (length < parser.row_length):
         source = decompress(parser, parser.row_length, source)
-    return
 
     s = 8 * parser._current_row_in_chunk_index
     js = 0
