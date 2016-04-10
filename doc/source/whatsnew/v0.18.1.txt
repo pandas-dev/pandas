@@ -225,6 +225,7 @@ Bug Fixes
 
 
 
+- Bug in ``.str`` accessor methods may raise ``ValueError`` if input has ``name`` and the result is ``DataFrame`` or ``MultiIndex`` (:issue:`12617`)
 
 
 - Bug in ``CategoricalIndex.get_loc`` returns different result from regular ``Index`` (:issue:`12531`)
