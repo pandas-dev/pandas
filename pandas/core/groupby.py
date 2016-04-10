@@ -273,7 +273,8 @@ class Grouper(object):
 
         # possibly sort
         if (self.sort or sort) and not ax.is_monotonic:
-            indexer = self.indexer = ax.argsort(kind='quicksort')
+            # use stable sort to support first, last, nth
+            indexer = self.indexer = ax.argsort(kind='mergesort')
             ax = ax.take(indexer)
             obj = obj.take(indexer, axis=self.axis,
                            convert=False, is_copy=False)

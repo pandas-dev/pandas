@@ -207,6 +207,7 @@ Bug Fixes
 
 
 - Bug in equality testing with a ``Categorical`` in a ``DataFrame`` (:issue:`12564`)
+- Bug in ``GroupBy.first()``, ``.last()`` returns incorrect row when ``TimeGrouper`` is used (:issue:`7453`)
 
 
 

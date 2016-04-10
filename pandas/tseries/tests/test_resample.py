@@ -2365,6 +2365,28 @@ class TestTimeGrouper(tm.TestCase):
                                    "got an instance of 'PeriodIndex'"):
             df.groupby(TimeGrouper('D'))
 
+    def test_aaa_group_order(self):
+        # GH 12840
+        # check TimeGrouper perform stable sorts
+        n = 20
+        data = np.random.randn(n, 4)
+        df = DataFrame(data, columns=['A', 'B', 'C', 'D'])
+        df['key'] = [datetime(2013, 1, 1), datetime(2013, 1, 2),
+                     datetime(2013, 1, 3), datetime(2013, 1, 4),
+                     datetime(2013, 1, 5)] * 4
+        grouped = df.groupby(TimeGrouper(key='key', freq='D'))
+
+        tm.assert_frame_equal(grouped.get_group(datetime(2013, 1, 1)),
+                              df[::5])
+        tm.assert_frame_equal(grouped.get_group(datetime(2013, 1, 2)),
+                              df[1::5])
+        tm.assert_frame_equal(grouped.get_group(datetime(2013, 1, 3)),
+                              df[2::5])
+        tm.assert_frame_equal(grouped.get_group(datetime(2013, 1, 4)),
+                              df[3::5])
+        tm.assert_frame_equal(grouped.get_group(datetime(2013, 1, 5)),
+                              df[4::5])
+
     def test_aggregate_normal(self):
         # check TimeGrouper's aggregation is identical as normal groupby
 
@@ -2402,7 +2424,8 @@ class TestTimeGrouper(tm.TestCase):
                                         periods=5, name='key')
             dt_result = getattr(dt_grouped, func)()
             assert_series_equal(expected, dt_result)
-        """
+
+        # GH 7453
         for func in ['first', 'last']:
             expected = getattr(normal_grouped, func)()
             expected.index = date_range(start='2013-01-01', freq='D',
@@ -2410,6 +2433,9 @@ class TestTimeGrouper(tm.TestCase):
             dt_result = getattr(dt_grouped, func)()
             assert_frame_equal(expected, dt_result)
 
+        # if TimeGrouper is used included, 'nth' doesn't work yet
+
+        """
         for func in ['nth']:
             expected = getattr(normal_grouped, func)(3)
             expected.index = date_range(start='2013-01-01',
@@ -2417,8 +2443,6 @@ class TestTimeGrouper(tm.TestCase):
             dt_result = getattr(dt_grouped, func)(3)
             assert_frame_equal(expected, dt_result)
         """
-        # if TimeGrouper is used included, 'first','last' and 'nth' doesn't
-        # work yet
 
     def test_aggregate_with_nat(self):
         # check TimeGrouper's aggregation is identical as normal groupby
