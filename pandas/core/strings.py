@@ -1329,12 +1329,15 @@ class StringMethods(NoNewAttributesMixin):
         if not isinstance(expand, bool):
             raise ValueError("expand must be True or False")
 
-        if name is None:
-            name = getattr(result, 'name', None)
-        if name is None:
-            # do not use logical or, _orig may be a DataFrame
-            # which has "name" column
-            name = self._orig.name
+        if expand is False:
+            # if expand is False, result should have the same name
+            # as the original otherwise specified
+            if name is None:
+                name = getattr(result, 'name', None)
+            if name is None:
+                # do not use logical or, _orig may be a DataFrame
+                # which has "name" column
+                name = self._orig.name
 
         # Wait until we are sure result is a Series or Index before
         # checking attributes (GH 12180)
