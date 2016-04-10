@@ -15,7 +15,7 @@ from pandas.core.index import (Index, MultiIndex, _get_combined_index,
 from pandas.core.internals import (items_overlap_with_suffix,
                                    concatenate_block_managers)
 from pandas.util.decorators import Appender, Substitution
-from pandas.core.common import ABCSeries, isnull
+from pandas.core.common import ABCSeries
 
 import pandas.core.algorithms as algos
 import pandas.core.common as com
@@ -906,13 +906,14 @@ class _Concatenator(object):
                     break
 
         else:
-            # filter out the empties
-            # if we have not multi-index possibiltes
-            df = DataFrame([obj.shape for obj in objs]).sum(1)
-            non_empties = df[df != 0]
+            # filter out the empties if we have not multi-index possibiltes
+            # note to keep empty Series as it affect to result columns / name
+            non_empties = [obj for obj in objs
+                           if sum(obj.shape) > 0 or isinstance(obj, Series)]
+
             if (len(non_empties) and (keys is None and names is None and
                                       levels is None and join_axes is None)):
-                objs = [objs[i] for i in non_empties.index]
+                objs = non_empties
                 sample = objs[0]
 
         if sample is None:
@@ -979,7 +980,14 @@ class _Concatenator(object):
 
             # stack blocks
             if self.axis == 0:
-                new_data = com._concat_compat([x._values for x in self.objs])
+                # concat Series with length to keep dtype as much
+                non_empties = [x for x in self.objs if len(x) > 0]
+                if len(non_empties) > 0:
+                    values = [x._values for x in non_empties]
+                else:
+                    values = [x._values for x in self.objs]
+                new_data = com._concat_compat(values)
+
                 name = com._consensus_name_attr(self.objs)
                 return (Series(new_data, index=self.new_axes[0],
                                name=name,
@@ -991,18 +999,6 @@ class _Concatenator(object):
                 data = dict(zip(range(len(self.objs)), self.objs))
                 index, columns = self.new_axes
                 tmpdf = DataFrame(data, index=index)
-                # checks if the column variable already stores valid column
-                # names (because set via the 'key' argument in the 'concat'
-                # function call. If that's not the case, use the series names
-                # as column names
-                if (columns.equals(Index(np.arange(len(self.objs)))) and
-                        not self.ignore_index):
-                    columns = np.array([data[i].name
-                                        for i in range(len(data))],
-                                       dtype='object')
-                    indexer = isnull(columns)
-                    if indexer.any():
-                        columns[indexer] = np.arange(len(indexer[indexer]))
                 tmpdf.columns = columns
                 return tmpdf.__finalize__(self, method='concat')
 
@@ -1082,32 +1078,34 @@ class _Concatenator(object):
             if self.axis == 0:
                 indexes = [x.index for x in self.objs]
             elif self.ignore_index:
-                idx = Index(np.arange(len(self.objs)))
-                idx.is_unique = True  # arange is always unique
+                idx = com._default_index(len(self.objs))
                 return idx
             elif self.keys is None:
-                names = []
-                for x in self.objs:
+                names = [None] * len(self.objs)
+                num = 0
+                has_names = False
+                for i, x in enumerate(self.objs):
                     if not isinstance(x, Series):
                         raise TypeError("Cannot concatenate type 'Series' "
                                         "with object of type "
                                         "%r" % type(x).__name__)
                     if x.name is not None:
-                        names.append(x.name)
+                        names[i] = x.name
+                        has_names = True
                     else:
-                        idx = Index(np.arange(len(self.objs)))
-                        idx.is_unique = True
-                        return idx
-
-                return Index(names)
+                        names[i] = num
+                        num += 1
+                if has_names:
+                    return Index(names)
+                else:
+                    return com._default_index(len(self.objs))
             else:
                 return _ensure_index(self.keys)
         else:
             indexes = [x._data.axes[self.axis] for x in self.objs]
 
         if self.ignore_index:
-            idx = Index(np.arange(sum(len(i) for i in indexes)))
-            idx.is_unique = True
+            idx = com._default_index(sum(len(i) for i in indexes))
             return idx
 
         if self.keys is None:
