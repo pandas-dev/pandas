@@ -354,16 +354,27 @@ Methods like ``match``, ``contains``, ``startswith``, and ``endswith`` take
    s4 = pd.Series(['A', 'B', 'C', 'Aaba', 'Baca', np.nan, 'CABA', 'dog', 'cat'])
    s4.str.contains('A', na=False)
 
+.. _text.indicator:
+
 Creating Indicator Variables
 ----------------------------
 
 You can extract dummy variables from string columns.
 For example if they are separated by a ``'|'``:
 
-  .. ipython:: python
+.. ipython:: python
 
-      s = pd.Series(['a', 'a|b', np.nan, 'a|c'])
-      s.str.get_dummies(sep='|')
+    s = pd.Series(['a', 'a|b', np.nan, 'a|c'])
+    s.str.get_dummies(sep='|')
+
+String ``Index`` also supports ``get_dummies`` which returns ``MultiIndex``.
+
+.. versionadded:: 0.18.1
+
+.. ipython:: python
+
+    idx = pd.Index(['a', 'a|b', np.nan, 'a|c'])
+    idx.str.get_dummies(sep='|')
 
 See also :func:`~pandas.get_dummies`.
 
