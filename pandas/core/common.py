@@ -473,7 +473,7 @@ def _infer_dtype_from_scalar(val):
         dtype = np.dtype('M8[ns]')
 
     elif isinstance(val, (np.timedelta64, timedelta)):
-        val = tslib.convert_to_timedelta(val, 'ns')
+        val = lib.Timedelta(val).value
         dtype = np.dtype('m8[ns]')
 
     elif is_bool(val):
@@ -826,6 +826,7 @@ def _possibly_downcast_to_dtype(result, dtype):
 
 def _maybe_convert_string_to_object(values):
     """
+
     Convert string-like and string-like array to convert object dtype.
     This is to avoid numpy to handle the array as str dtype.
     """
@@ -834,6 +835,20 @@ def _maybe_convert_string_to_object(values):
     elif (isinstance(values, np.ndarray) and
           issubclass(values.dtype.type, (np.string_, np.unicode_))):
         values = values.astype(object)
+    return values
+
+
+def _maybe_convert_scalar(values):
+    """
+    Convert a python scalar to the appropriate numpy dtype if possible
+    This avoids numpy directly converting according to platform preferences
+    """
+    if lib.isscalar(values):
+        dtype, values = _infer_dtype_from_scalar(values)
+        try:
+            values = dtype(values)
+        except TypeError:
+            pass
     return values
 
 
