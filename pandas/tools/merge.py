@@ -995,7 +995,7 @@ class _Concatenator(object):
                 # names (because set via the 'key' argument in the 'concat'
                 # function call. If that's not the case, use the series names
                 # as column names
-                if (columns.equals(Index(np.arange(len(self.objs)))) and
+                if (columns.equals(com._default_index(len(self.objs))) and
                         not self.ignore_index):
                     columns = np.array([data[i].name
                                         for i in range(len(data))],
@@ -1082,8 +1082,7 @@ class _Concatenator(object):
             if self.axis == 0:
                 indexes = [x.index for x in self.objs]
             elif self.ignore_index:
-                idx = Index(np.arange(len(self.objs)))
-                idx.is_unique = True  # arange is always unique
+                idx = com._default_index(len(self.objs))
                 return idx
             elif self.keys is None:
                 names = []
@@ -1095,8 +1094,7 @@ class _Concatenator(object):
                     if x.name is not None:
                         names.append(x.name)
                     else:
-                        idx = Index(np.arange(len(self.objs)))
-                        idx.is_unique = True
+                        idx = com._default_index(len(self.objs))
                         return idx
 
                 return Index(names)
@@ -1106,8 +1104,7 @@ class _Concatenator(object):
             indexes = [x._data.axes[self.axis] for x in self.objs]
 
         if self.ignore_index:
-            idx = Index(np.arange(sum(len(i) for i in indexes)))
-            idx.is_unique = True
+            idx = com._default_index(sum(len(i) for i in indexes))
             return idx
 
         if self.keys is None:
