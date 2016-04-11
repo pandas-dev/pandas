@@ -225,7 +225,7 @@ So in v0.16.0, we are restoring the API to match that of ``datetime.timedelta``.
 
 Previous Behavior
 
-.. code-block:: python
+.. code-block:: ipython
 
    In [2]: t = pd.Timedelta('1 day, 10:11:12.100123')
 
@@ -274,7 +274,7 @@ The behavior of a small sub-set of edge cases for using ``.loc`` have changed (:
 
   Previous Behavior
 
-  .. code-block:: python
+  .. code-block:: ipython
 
      In [4]: df.loc['2013-01-02':'2013-01-10']
      KeyError: 'stop bound [2013-01-10] is not in the [index]'
@@ -293,7 +293,7 @@ The behavior of a small sub-set of edge cases for using ``.loc`` have changed (:
 
   Previous Behavior
 
-  .. code-block:: python
+  .. code-block:: ipython
 
      In [8]: s.ix[-1.0:2]
      TypeError: the slice start value [-1.0] is not a proper indexer for this index type (Int64Index)
@@ -315,7 +315,7 @@ The behavior of a small sub-set of edge cases for using ``.loc`` have changed (:
 
   New Behavior
 
-  .. code-block:: python
+  .. code-block:: ipython
 
      In [4]: df.loc[2:3]
      TypeError: Cannot do slice indexing on <class 'pandas.tseries.index.DatetimeIndex'> with <type 'int'> keys
@@ -332,7 +332,7 @@ Furthermore, previously you *could* change the ``ordered`` attribute of a Catego
 
 Previous Behavior
 
-.. code-block:: python
+.. code-block:: ipython
 
    In [3]: s = Series([0,1,2], dtype='category')
 
@@ -394,14 +394,14 @@ Other API Changes
   Previously data was coerced to a common dtype before serialisation, which for
   example resulted in integers being serialised to floats:
 
-  .. code-block:: python
+  .. code-block:: ipython
 
     In [2]: pd.DataFrame({'i': [1,2], 'f': [3.0, 4.2]}).to_json()
     Out[2]: '{"f":{"0":3.0,"1":4.2},"i":{"0":1.0,"1":2.0}}'
 
   Now each column is serialised using its correct dtype:
 
-  .. code-block:: python
+  .. code-block:: ipython
 
     In [2]:  pd.DataFrame({'i': [1,2], 'f': [3.0, 4.2]}).to_json()
     Out[2]: '{"f":{"0":3.0,"1":4.2},"i":{"0":1,"1":2}}'
@@ -417,7 +417,7 @@ Other API Changes
 
   Previous Behavior
 
-  .. code-block:: python
+  .. code-block:: ipython
 
      In [2]: pd.Series([0,1,2,3], list('abcd')) | pd.Series([4,4,4,4], list('abcd'))
      Out[2]:
@@ -430,7 +430,7 @@ Other API Changes
   New Behavior. If the input dtypes are integral, the output dtype is also integral and the output
   values are the result of the bitwise operation.
 
-  .. code-block:: python
+  .. code-block:: ipython
 
      In [2]: pd.Series([0,1,2,3], list('abcd')) | pd.Series([4,4,4,4], list('abcd'))
      Out[2]:
@@ -445,7 +445,7 @@ Other API Changes
 
   Previous Behavior
 
-  .. code-block:: python
+  .. code-block:: ipython
 
         In [2]: p = pd.Series([0, 1])
 
@@ -478,7 +478,7 @@ Other API Changes
 
   Old behavior:
 
-  .. code-block:: python
+  .. code-block:: ipython
 
     In [4]: pd.to_datetime(['2000-01-31', '2000-02-28']).asof('2000-02')
     Out[4]: Timestamp('2000-01-31 00:00:00')

@@ -4375,7 +4375,7 @@ Creating BigQuery Tables
 As of 0.15.2, the gbq module has a function :func:`~pandas.io.gbq.generate_bq_schema` which will
 produce the dictionary representation schema of the specified pandas DataFrame.
 
-.. code-block:: python
+.. code-block:: ipython
 
    In [10]: gbq.generate_bq_schema(df, default_type='STRING')
 
@@ -4633,7 +4633,7 @@ Performance Considerations
 
 This is an informal comparison of various IO methods, using pandas 0.13.1.
 
-.. code-block:: python
+.. code-block:: ipython
 
    In [1]: df = DataFrame(randn(1000000,2),columns=list('AB'))
 
@@ -4648,7 +4648,7 @@ This is an informal comparison of various IO methods, using pandas 0.13.1.
 
 Writing
 
-.. code-block:: python
+.. code-block:: ipython
 
    In [14]: %timeit test_sql_write(df)
    1 loops, best of 3: 6.24 s per loop
@@ -4670,7 +4670,7 @@ Writing
 
 Reading
 
-.. code-block:: python
+.. code-block:: ipython
 
    In [18]: %timeit test_sql_read()
    1 loops, best of 3: 766 ms per loop
@@ -4692,7 +4692,7 @@ Reading
 
 Space on disk (in bytes)
 
-.. code-block:: python
+.. code-block::
 
     25843712 Apr  8 14:11 test.sql
     24007368 Apr  8 14:11 test_fixed.hdf

@@ -80,7 +80,7 @@ API changes
 
   Integer division
 
-  .. code-block:: python
+  .. code-block:: ipython
 
       In [3]: arr = np.array([1, 2, 3, 4])
 
@@ -99,7 +99,7 @@ API changes
 
   True Division
 
-  .. code-block:: python
+  .. code-block:: ipython
 
       In [7]: pd.Series(arr) / pd.Series(arr2) # no future import required
       Out[7]:
@@ -304,7 +304,7 @@ Float64Index API Change
 - Indexing on other index types are preserved (and positional fallback for ``[],ix``), with the exception, that floating point slicing
   on indexes on non ``Float64Index`` will now raise a ``TypeError``.
 
-  .. code-block:: python
+  .. code-block:: ipython
 
      In [1]: Series(range(5))[3.5]
      TypeError: the label [3.5] is not a proper indexer for this index type (Int64Index)
@@ -314,7 +314,7 @@ Float64Index API Change
 
   Using a scalar float indexer will be deprecated in a future version, but is allowed for now.
 
-  .. code-block:: python
+  .. code-block:: ipython
 
      In [3]: Series(range(5))[3.0]
      Out[3]: 3

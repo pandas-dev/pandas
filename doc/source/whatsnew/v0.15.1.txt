@@ -26,7 +26,7 @@ API changes
 
   previous behavior:
 
-  .. code-block:: python
+  .. code-block:: ipython
 
      In [6]: s.dt.hour
      Out[6]:
@@ -57,7 +57,7 @@ API changes
 
   previous behavior:
 
-  .. code-block:: python
+  .. code-block:: ipython
 
      In [4]: df.groupby(ts, as_index=False).max()
      Out[4]:
@@ -83,7 +83,7 @@ API changes
 
   previous behavior (excludes 1st column from output):
 
-  .. code-block:: python
+  .. code-block:: ipython
 
      In [4]: gr.apply(sum)
      Out[4]:
@@ -108,7 +108,7 @@ API changes
 
   previous behavior:
 
-  .. code-block:: python
+  .. code-block:: ipython
 
      In [8]: s.loc[3.5:1.5]
      KeyError: 3.5
@@ -180,7 +180,7 @@ Enhancements
 
   previous behavior:
 
-  .. code-block:: python
+  .. code-block:: ipython
 
      In [7]: pd.concat(deque((df1, df2)))
      TypeError: first argument must be a list-like of pandas objects, you passed an object of type "deque"
@@ -199,7 +199,7 @@ Enhancements
 
   previous behavior:
 
-  .. code-block:: python
+  .. code-block:: ipython
 
      # this was underreported in prior versions
      In [1]: dfi.memory_usage(index=True)

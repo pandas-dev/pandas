@@ -192,7 +192,7 @@ every world bank indicator is accessible.
 For example, if you wanted to compare the Gross Domestic Products per capita in
 constant dollars in North America, you would use the ``search`` function:
 
-.. code-block:: python
+.. code-block:: ipython
 
     In [1]: from pandas.io import wb
 
@@ -207,7 +207,7 @@ constant dollars in North America, you would use the ``search`` function:
 Then you would use the ``download`` function to acquire the data from the World
 Bank's servers:
 
-.. code-block:: python
+.. code-block:: ipython
 
     In [3]: dat = wb.download(indicator='NY.GDP.PCAP.KD', country=['US', 'CA', 'MX'], start=2005, end=2008)
 
@@ -230,7 +230,7 @@ Bank's servers:
 The resulting dataset is a properly formatted ``DataFrame`` with a hierarchical
 index, so it is easy to apply ``.groupby`` transformations to it:
 
-.. code-block:: python
+.. code-block:: ipython
 
     In [6]: dat['NY.GDP.PCAP.KD'].groupby(level=0).mean()
     Out[6]:
@@ -243,7 +243,7 @@ index, so it is easy to apply ``.groupby`` transformations to it:
 Now imagine you want to compare GDP to the share of people with cellphone
 contracts around the world.
 
-.. code-block:: python
+.. code-block:: ipython
 
     In [7]: wb.search('cell.*%').iloc[:,:2]
     Out[7]:
@@ -255,7 +255,7 @@ contracts around the world.
 Notice that this second search was much faster than the first one because
 ``pandas`` now has a cached list of available data series.
 
-.. code-block:: python
+.. code-block:: ipython
 
     In [13]: ind = ['NY.GDP.PCAP.KD', 'IT.MOB.COV.ZS']
     In [14]: dat = wb.download(indicator=ind, country='all', start=2011, end=2011).dropna()
@@ -273,7 +273,7 @@ Finally, we use the ``statsmodels`` package to assess the relationship between
 our two variables using ordinary least squares regression. Unsurprisingly,
 populations in rich countries tend to use cellphones at a higher rate:
 
-.. code-block:: python
+.. code-block:: ipython
 
     In [17]: import numpy as np
     In [18]: import statsmodels.formula.api as smf

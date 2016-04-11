@@ -252,7 +252,7 @@ I/O Enhancements
   - Iterator support via ``read_hdf`` that automatically opens and closes the
     store when iteration is finished. This is only for *tables*
 
-    .. code-block:: python
+    .. code-block:: ipython
 
         In [25]: path = 'store_iterator.h5'
 

@@ -44,7 +44,7 @@ API changes
   whether they were "used" or not (see :issue:`8559` for the discussion).
   Previous behaviour was to return all categories:
 
-  .. code-block:: python
+  .. code-block:: ipython
 
     In [3]: cat = pd.Categorical(['a', 'b', 'a'], categories=['a', 'b', 'c'])
 
@@ -81,7 +81,7 @@ API changes
 
   Old behavior:
 
-  .. code-block:: python
+  .. code-block:: ipython
 
      In [6]: data.y
      Out[6]: 2
@@ -102,7 +102,7 @@ API changes
 
   Old behavior:
 
-  .. code-block:: python
+  .. code-block:: ipython
 
      In [1]: s = pd.Series(np.arange(3), ['a', 'b', 'c'])
      Out[1]:
