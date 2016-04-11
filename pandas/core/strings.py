@@ -741,15 +741,6 @@ def str_get_dummies(arr, sep='|'):
     --------
     pandas.get_dummies
     """
-    from pandas.core.frame import DataFrame
-    from pandas.core.index import Index
-
-    # GH9980, Index.str does not support get_dummies() as it returns a frame
-    if isinstance(arr, Index):
-        raise TypeError("get_dummies is not supported for string methods on "
-                        "Index")
-
-    # TODO remove this hack?
     arr = arr.fillna('')
     try:
         arr = sep + arr + sep
@@ -766,7 +757,7 @@ def str_get_dummies(arr, sep='|'):
     for i, t in enumerate(tags):
         pat = sep + t + sep
         dummies[:, i] = lib.map_infer(arr.values, lambda x: pat in x)
-    return DataFrame(dummies, arr.index, tags)
+    return dummies, tags
 
 
 def str_join(arr, sep):
@@ -1356,9 +1347,9 @@ class StringMethods(NoNewAttributesMixin):
             index = self._orig.index
             if expand:
                 cons = self._orig._constructor_expanddim
-                return cons(result, index=index)
+                return cons(result, columns=name, index=index)
             else:
-                # Must a Series
+                # Must be a Series
                 cons = self._orig._constructor
                 return cons(result, name=name, index=index)
 
@@ -1589,9 +1580,9 @@ class StringMethods(NoNewAttributesMixin):
         # we need to cast to Series of strings as only that has all
         # methods available for making the dummies...
         data = self._orig.astype(str) if self._is_categorical else self._data
-        result = str_get_dummies(data, sep)
+        result, name = str_get_dummies(data, sep)
         return self._wrap_result(result, use_codes=(not self._is_categorical),
-                                 expand=True)
+                                 name=name, expand=True)
 
     @copy(str_translate)
     def translate(self, table, deletechars=None):

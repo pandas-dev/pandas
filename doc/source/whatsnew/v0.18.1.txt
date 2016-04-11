@@ -85,6 +85,13 @@ Other Enhancements
    idx.take([2, -1])     # default, allow_fill=True, fill_value=None
    idx.take([2, -1], fill_value=True)
 
+- ``Index`` now supports ``.str.get_dummies()`` which returns ``MultiIndex``, see :ref:`Creating Indicator Variables <text.indicator>` (:issue:`10008`, :issue:`10103`)
+
+.. ipython:: python
+
+   idx = pd.Index(['a|b', 'a|c', 'b|c'])
+   idx.str.get_dummies('|')
+
 
 .. _whatsnew_0181.sparse:
 
