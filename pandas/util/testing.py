@@ -1263,7 +1263,7 @@ def assert_sp_frame_equal(left, right, exact_indices=True,
         else:
             assert_series_equal(series.to_dense(), right[col].to_dense())
 
-    assert_almost_equal(left.default_fill_value, right.default_fill_value)
+    assert_attr_equal('default_fill_value', left, right, obj=obj)
 
     # do I care?
     # assert(left.default_kind == right.default_kind)

@@ -32,6 +32,14 @@ class TestSparseSeriesIndexing(tm.TestCase):
         exp = orig[orig % 2 == 1].to_sparse()
         tm.assert_sp_series_equal(result, exp)
 
+    def test_getitem_slice(self):
+        orig = pd.Series([1, np.nan, np.nan, 3, np.nan])
+        sparse = orig.to_sparse()
+        tm.assert_sp_series_equal(sparse[:2], orig[:2].to_sparse())
+        tm.assert_sp_series_equal(sparse[4:2], orig[4:2].to_sparse())
+        tm.assert_sp_series_equal(sparse[::2], orig[::2].to_sparse())
+        tm.assert_sp_series_equal(sparse[-5:], orig[-5:].to_sparse())
+
     def test_getitem_fill_value(self):
         orig = pd.Series([1, np.nan, 0, 3, 0])
         sparse = orig.to_sparse(fill_value=0)
@@ -62,6 +70,18 @@ class TestSparseSeriesIndexing(tm.TestCase):
 
         s = pd.SparseSeries([1, np.nan, 2, 0, np.nan], fill_value=0)
         tm.assert_sp_series_equal(s[...], s)
+
+    def test_getitem_slice_fill_value(self):
+        orig = pd.Series([1, np.nan, 0, 3, 0])
+        sparse = orig.to_sparse(fill_value=0)
+        tm.assert_sp_series_equal(sparse[:2],
+                                  orig[:2].to_sparse(fill_value=0))
+        tm.assert_sp_series_equal(sparse[4:2],
+                                  orig[4:2].to_sparse(fill_value=0))
+        tm.assert_sp_series_equal(sparse[::2],
+                                  orig[::2].to_sparse(fill_value=0))
+        tm.assert_sp_series_equal(sparse[-5:],
+                                  orig[-5:].to_sparse(fill_value=0))
 
     def test_loc(self):
         orig = pd.Series([1, np.nan, np.nan, 3, np.nan])
@@ -237,6 +257,25 @@ class TestSparseSeriesIndexing(tm.TestCase):
         self.assertEqual(sparse.iat[-1], orig.iat[-1])
         self.assertEqual(sparse.iat[-5], orig.iat[-5])
 
+    def test_get(self):
+        s = pd.SparseSeries([1, np.nan, np.nan, 3, np.nan])
+        self.assertEqual(s.get(0), 1)
+        self.assertTrue(np.isnan(s.get(1)))
+        self.assertIsNone(s.get(5))
+
+        s = pd.SparseSeries([1, np.nan, 0, 3, 0], index=list('ABCDE'))
+        self.assertEqual(s.get('A'), 1)
+        self.assertTrue(np.isnan(s.get('B')))
+        self.assertEqual(s.get('C'), 0)
+        self.assertIsNone(s.get('XX'))
+
+        s = pd.SparseSeries([1, np.nan, 0, 3, 0], index=list('ABCDE'),
+                            fill_value=0)
+        self.assertEqual(s.get('A'), 1)
+        self.assertTrue(np.isnan(s.get('B')))
+        self.assertEqual(s.get('C'), 0)
+        self.assertIsNone(s.get('XX'))
+
     def test_take(self):
         orig = pd.Series([1, np.nan, np.nan, 3, np.nan],
                          index=list('ABCDE'))
@@ -320,6 +359,53 @@ class TestSparseSeriesIndexing(tm.TestCase):
 class TestSparseDataFrameIndexing(tm.TestCase):
 
     _multiprocess_can_split_ = True
+
+    def test_getitem(self):
+        orig = pd.DataFrame([[1, np.nan, np.nan],
+                             [2, 3, np.nan],
+                             [np.nan, np.nan, 4],
+                             [0, np.nan, 5]],
+                            columns=list('xyz'))
+        sparse = orig.to_sparse()
+
+        tm.assert_sp_series_equal(sparse['x'], orig['x'].to_sparse())
+        tm.assert_sp_frame_equal(sparse[['x']], orig[['x']].to_sparse())
+        tm.assert_sp_frame_equal(sparse[['z', 'x']],
+                                 orig[['z', 'x']].to_sparse())
+
+        tm.assert_sp_frame_equal(sparse[[True, False, True, True]],
+                                 orig[[True, False, True, True]].to_sparse())
+
+        tm.assert_sp_frame_equal(sparse[[1, 2]],
+                                 orig[[1, 2]].to_sparse())
+
+    def test_getitem_fill_value(self):
+        orig = pd.DataFrame([[1, np.nan, 0],
+                             [2, 3, np.nan],
+                             [0, np.nan, 4],
+                             [0, np.nan, 5]],
+                            columns=list('xyz'))
+        sparse = orig.to_sparse(fill_value=0)
+
+        tm.assert_sp_series_equal(sparse['y'],
+                                  orig['y'].to_sparse(fill_value=0))
+
+        exp = orig[['x']].to_sparse(fill_value=0)
+        exp._default_fill_value = np.nan
+        tm.assert_sp_frame_equal(sparse[['x']], exp)
+
+        exp = orig[['z', 'x']].to_sparse(fill_value=0)
+        exp._default_fill_value = np.nan
+        tm.assert_sp_frame_equal(sparse[['z', 'x']], exp)
+
+        indexer = [True, False, True, True]
+        exp = orig[indexer].to_sparse(fill_value=0)
+        exp._default_fill_value = np.nan
+        tm.assert_sp_frame_equal(sparse[indexer], exp)
+
+        exp = orig[[1, 2]].to_sparse(fill_value=0)
+        exp._default_fill_value = np.nan
+        tm.assert_sp_frame_equal(sparse[[1, 2]], exp)
 
     def test_loc(self):
         orig = pd.DataFrame([[1, np.nan, np.nan],
@@ -477,3 +563,151 @@ class TestSparseDataFrameIndexing(tm.TestCase):
                             columns=list('xyz'))
         sparse = orig.to_sparse()
         tm.assert_sp_frame_equal(sparse.iloc[2:], orig.iloc[2:].to_sparse())
+
+    def test_at(self):
+        orig = pd.DataFrame([[1, np.nan, 0],
+                             [2, 3, np.nan],
+                             [0, np.nan, 4],
+                             [0, np.nan, 5]],
+                            index=list('ABCD'), columns=list('xyz'))
+        sparse = orig.to_sparse()
+        self.assertEqual(sparse.at['A', 'x'], orig.at['A', 'x'])
+        self.assertTrue(np.isnan(sparse.at['B', 'z']))
+        self.assertTrue(np.isnan(sparse.at['C', 'y']))
+        self.assertEqual(sparse.at['D', 'x'], orig.at['D', 'x'])
+
+    def test_at_fill_value(self):
+        orig = pd.DataFrame([[1, np.nan, 0],
+                             [2, 3, np.nan],
+                             [0, np.nan, 4],
+                             [0, np.nan, 5]],
+                            index=list('ABCD'), columns=list('xyz'))
+        sparse = orig.to_sparse(fill_value=0)
+        self.assertEqual(sparse.at['A', 'x'], orig.at['A', 'x'])
+        self.assertTrue(np.isnan(sparse.at['B', 'z']))
+        self.assertTrue(np.isnan(sparse.at['C', 'y']))
+        self.assertEqual(sparse.at['D', 'x'], orig.at['D', 'x'])
+
+    def test_iat(self):
+        orig = pd.DataFrame([[1, np.nan, 0],
+                             [2, 3, np.nan],
+                             [0, np.nan, 4],
+                             [0, np.nan, 5]],
+                            index=list('ABCD'), columns=list('xyz'))
+        sparse = orig.to_sparse()
+        self.assertEqual(sparse.iat[0, 0], orig.iat[0, 0])
+        self.assertTrue(np.isnan(sparse.iat[1, 2]))
+        self.assertTrue(np.isnan(sparse.iat[2, 1]))
+        self.assertEqual(sparse.iat[2, 0], orig.iat[2, 0])
+
+        self.assertTrue(np.isnan(sparse.iat[-1, -2]))
+        self.assertEqual(sparse.iat[-1, -1], orig.iat[-1, -1])
+
+    def test_iat_fill_value(self):
+        orig = pd.DataFrame([[1, np.nan, 0],
+                             [2, 3, np.nan],
+                             [0, np.nan, 4],
+                             [0, np.nan, 5]],
+                            index=list('ABCD'), columns=list('xyz'))
+        sparse = orig.to_sparse(fill_value=0)
+        self.assertEqual(sparse.iat[0, 0], orig.iat[0, 0])
+        self.assertTrue(np.isnan(sparse.iat[1, 2]))
+        self.assertTrue(np.isnan(sparse.iat[2, 1]))
+        self.assertEqual(sparse.iat[2, 0], orig.iat[2, 0])
+
+        self.assertTrue(np.isnan(sparse.iat[-1, -2]))
+        self.assertEqual(sparse.iat[-1, -1], orig.iat[-1, -1])
+
+    def test_take(self):
+        orig = pd.DataFrame([[1, np.nan, 0],
+                             [2, 3, np.nan],
+                             [0, np.nan, 4],
+                             [0, np.nan, 5]],
+                            columns=list('xyz'))
+        sparse = orig.to_sparse()
+
+        tm.assert_sp_frame_equal(sparse.take([0]),
+                                 orig.take([0]).to_sparse())
+        tm.assert_sp_frame_equal(sparse.take([0, 1]),
+                                 orig.take([0, 1]).to_sparse())
+        tm.assert_sp_frame_equal(sparse.take([-1, -2]),
+                                 orig.take([-1, -2]).to_sparse())
+
+    def test_take_fill_value(self):
+        orig = pd.DataFrame([[1, np.nan, 0],
+                             [2, 3, np.nan],
+                             [0, np.nan, 4],
+                             [0, np.nan, 5]],
+                            columns=list('xyz'))
+        sparse = orig.to_sparse(fill_value=0)
+
+        exp = orig.take([0]).to_sparse(fill_value=0)
+        exp._default_fill_value = np.nan
+        tm.assert_sp_frame_equal(sparse.take([0]), exp)
+
+        exp = orig.take([0, 1]).to_sparse(fill_value=0)
+        exp._default_fill_value = np.nan
+        tm.assert_sp_frame_equal(sparse.take([0, 1]), exp)
+
+        exp = orig.take([-1, -2]).to_sparse(fill_value=0)
+        exp._default_fill_value = np.nan
+        tm.assert_sp_frame_equal(sparse.take([-1, -2]), exp)
+
+    def test_reindex(self):
+        orig = pd.DataFrame([[1, np.nan, 0],
+                             [2, 3, np.nan],
+                             [0, np.nan, 4],
+                             [0, np.nan, 5]],
+                            index=list('ABCD'), columns=list('xyz'))
+        sparse = orig.to_sparse()
+
+        res = sparse.reindex(['A', 'C', 'B'])
+        exp = orig.reindex(['A', 'C', 'B']).to_sparse()
+        tm.assert_sp_frame_equal(res, exp)
+
+        orig = pd.DataFrame([[np.nan, np.nan, np.nan],
+                             [np.nan, np.nan, np.nan],
+                             [np.nan, np.nan, np.nan],
+                             [np.nan, np.nan, np.nan]],
+                            index=list('ABCD'), columns=list('xyz'))
+        sparse = orig.to_sparse()
+
+        res = sparse.reindex(['A', 'C', 'B'])
+        exp = orig.reindex(['A', 'C', 'B']).to_sparse()
+        tm.assert_sp_frame_equal(res, exp)
+
+    def test_reindex_fill_value(self):
+        orig = pd.DataFrame([[1, np.nan, 0],
+                             [2, 3, np.nan],
+                             [0, np.nan, 4],
+                             [0, np.nan, 5]],
+                            index=list('ABCD'), columns=list('xyz'))
+        sparse = orig.to_sparse(fill_value=0)
+
+        res = sparse.reindex(['A', 'C', 'B'])
+        exp = orig.reindex(['A', 'C', 'B']).to_sparse(fill_value=0)
+        tm.assert_sp_frame_equal(res, exp)
+
+        # all missing
+        orig = pd.DataFrame([[np.nan, np.nan, np.nan],
+                             [np.nan, np.nan, np.nan],
+                             [np.nan, np.nan, np.nan],
+                             [np.nan, np.nan, np.nan]],
+                            index=list('ABCD'), columns=list('xyz'))
+        sparse = orig.to_sparse(fill_value=0)
+
+        res = sparse.reindex(['A', 'C', 'B'])
+        exp = orig.reindex(['A', 'C', 'B']).to_sparse(fill_value=0)
+        tm.assert_sp_frame_equal(res, exp)
+
+        # all fill_value
+        orig = pd.DataFrame([[0, 0, 0],
+                             [0, 0, 0],
+                             [0, 0, 0],
+                             [0, 0, 0]],
+                            index=list('ABCD'), columns=list('xyz'))
+        sparse = orig.to_sparse(fill_value=0)
+
+        res = sparse.reindex(['A', 'C', 'B'])
+        exp = orig.reindex(['A', 'C', 'B']).to_sparse(fill_value=0)
+        tm.assert_sp_frame_equal(res, exp)
