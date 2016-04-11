@@ -4,7 +4,6 @@ openpyxl
 xlsxwriter
 xlrd
 xlwt
-scipy
 numexpr
 pytables
 html5lib

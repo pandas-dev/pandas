@@ -82,7 +82,7 @@ def clean_interp_method(method, **kwargs):
     order = kwargs.get('order')
     valid = ['linear', 'time', 'index', 'values', 'nearest', 'zero', 'slinear',
              'quadratic', 'cubic', 'barycentric', 'polynomial', 'krogh',
-             'piecewise_polynomial', 'pchip', 'spline']
+             'piecewise_polynomial', 'pchip', 'akima', 'spline']
     if method in ('spline', 'polynomial') and order is None:
         raise ValueError("You must specify the order of the spline or "
                          "polynomial.")
@@ -188,7 +188,7 @@ def interpolate_1d(xvalues, yvalues, method='linear', limit=None,
 
     sp_methods = ['nearest', 'zero', 'slinear', 'quadratic', 'cubic',
                   'barycentric', 'krogh', 'spline', 'polynomial',
-                  'piecewise_polynomial', 'pchip']
+                  'piecewise_polynomial', 'pchip', 'akima']
     if method in sp_methods:
         inds = np.asarray(xvalues)
         # hack for DatetimeIndex, #1646
@@ -232,12 +232,19 @@ def _interpolate_scipy_wrapper(x, y, new_x, method, fill_value=None,
         # GH 5975, scipy.interp1d can't hande datetime64s
         x, new_x = x._values.astype('i8'), new_x.astype('i8')
 
-    try:
-        alt_methods['pchip'] = interpolate.pchip_interpolate
-    except AttributeError:
-        if method == 'pchip':
-            raise ImportError("Your version of scipy does not support "
+    if method == 'pchip':
+        try:
+            alt_methods['pchip'] = interpolate.pchip_interpolate
+        except AttributeError:
+            raise ImportError("Your version of Scipy does not support "
                               "PCHIP interpolation.")
+    elif method == 'akima':
+        try:
+            from scipy.interpolate import Akima1DInterpolator  # noqa
+            alt_methods['akima'] = _akima_interpolate
+        except ImportError:
+            raise ImportError("Your version of Scipy does not support "
+                              "Akima interpolation.")
 
     interp1d_methods = ['nearest', 'zero', 'slinear', 'quadratic', 'cubic',
                         'polynomial']
@@ -265,6 +272,56 @@ def _interpolate_scipy_wrapper(x, y, new_x, method, fill_value=None,
         method = alt_methods[method]
         new_y = method(x, y, new_x, **kwargs)
     return new_y
+
+
+def _akima_interpolate(xi, yi, x, der=0, axis=0):
+    """
+    Convenience function for akima interpolation.
+    xi and yi are arrays of values used to approximate some function f,
+    with ``yi = f(xi)``.
+
+    See `Akima1DInterpolator` for details.
+
+    Parameters
+    ----------
+    xi : array_like
+        A sorted list of x-coordinates, of length N.
+    yi :  array_like
+        A 1-D array of real values.  `yi`'s length along the interpolation
+        axis must be equal to the length of `xi`. If N-D array, use axis
+        parameter to select correct axis.
+    x : scalar or array_like
+        Of length M.
+    der : int or list, optional
+        How many derivatives to extract; None for all potentially
+        nonzero derivatives (that is a number equal to the number
+        of points), or a list of derivatives to extract. This number
+        includes the function value as 0th derivative.
+    axis : int, optional
+        Axis in the yi array corresponding to the x-coordinate values.
+
+    See Also
+    --------
+    scipy.interpolate.Akima1DInterpolator
+
+    Returns
+    -------
+    y : scalar or array_like
+        The result, of length R or length M or M by R,
+
+    """
+    from scipy import interpolate
+    try:
+        P = interpolate.Akima1DInterpolator(xi, yi, axis=axis)
+    except TypeError:
+        # Scipy earlier than 0.17.0 missing axis
+        P = interpolate.Akima1DInterpolator(xi, yi)
+    if der == 0:
+        return P(x)
+    elif interpolate._isscalar(der):
+        return P(x, der=der)
+    else:
+        return [P(x, nu) for nu in der]
 
 
 def interpolate_2d(values, method='pad', axis=0, limit=None, fill_value=None,

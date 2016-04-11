@@ -34,6 +34,13 @@ def _skip_if_no_pchip():
     except ImportError:
         raise nose.SkipTest('scipy.interpolate.pchip missing')
 
+
+def _skip_if_no_akima():
+    try:
+        from scipy.interpolate import Akima1DInterpolator  # noqa
+    except ImportError:
+        raise nose.SkipTest('scipy.interpolate.Akima1DInterpolator missing')
+
 # ----------------------------------------------------------------------
 # Generic types test cases
 
@@ -734,7 +741,7 @@ class TestSeries(tm.TestCase, Generic):
         non_ts[0] = np.NaN
         self.assertRaises(ValueError, non_ts.interpolate, method='time')
 
-    def test_interp_regression(self):
+    def test_interpolate_pchip(self):
         tm._skip_if_no_scipy()
         _skip_if_no_pchip()
 
@@ -746,6 +753,21 @@ class TestSeries(tm.TestCase, Generic):
         interp_s = ser.reindex(new_index).interpolate(method='pchip')
         # does not blow up, GH5977
         interp_s[49:51]
+
+    def test_interpolate_akima(self):
+        tm._skip_if_no_scipy()
+        _skip_if_no_akima()
+
+        ser = Series([10, 11, 12, 13])
+
+        expected = Series([11.00, 11.25, 11.50, 11.75,
+                           12.00, 12.25, 12.50, 12.75, 13.00],
+                          index=Index([1.0, 1.25, 1.5, 1.75,
+                                       2.0, 2.25, 2.5, 2.75, 3.0]))
+        # interpolate at new_index
+        new_index = ser.index.union(Index([1.25, 1.5, 1.75, 2.25, 2.5, 2.75]))
+        interp_s = ser.reindex(new_index).interpolate(method='akima')
+        assert_series_equal(interp_s[1:3], expected)
 
     def test_interpolate_corners(self):
         s = Series([np.nan, np.nan])
