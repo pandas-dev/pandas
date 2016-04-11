@@ -112,7 +112,7 @@ API changes
   - Upsampling data with a PeriodIndex will result in a higher frequency
     TimeSeries that spans the original time window
 
-    .. code-block:: python
+    .. code-block:: ipython
 
        In [1]: prng = period_range('2012Q1', periods=2, freq='Q')
 

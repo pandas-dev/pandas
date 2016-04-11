@@ -1522,7 +1522,7 @@ If ``Period`` freq is daily or higher (``D``, ``H``, ``T``, ``S``, ``L``, ``U``,
    p + timedelta(minutes=120)
    p + np.timedelta64(7200, 's')
 
-.. code-block:: python
+.. code-block:: ipython
 
    In [1]: p + Minute(5)
    Traceback
@@ -1536,7 +1536,7 @@ If ``Period`` has other freqs, only the same ``offsets`` can be added. Otherwise
    p = Period('2014-07', freq='M')
    p + MonthEnd(3)
 
-.. code-block:: python
+.. code-block:: ipython
 
    In [1]: p + MonthBegin(3)
    Traceback

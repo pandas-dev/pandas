@@ -170,7 +170,7 @@ API changes
   :ref:`Computing rolling pairwise covariances and correlations
   <stats.moments.corr_pairwise>` in the docs.
 
-  .. code-block:: python
+  .. code-block:: ipython
 
      In [1]: df = DataFrame(np.random.randn(10,4),columns=list('ABCD'))
 
@@ -661,7 +661,7 @@ Deprecations
 - Indexers will warn ``FutureWarning`` when used with a scalar indexer and
   a non-floating point Index (:issue:`4892`, :issue:`6960`)
 
-  .. code-block:: python
+  .. code-block:: ipython
 
      # non-floating point indexes can only be indexed by integers / labels
      In [1]: Series(1,np.arange(5))[3.0]

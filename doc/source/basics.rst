@@ -272,7 +272,7 @@ To evaluate single-element pandas objects in a boolean context, use the method
 
    .. code-block:: python
 
-       >>>if df:
+       >>> if df:
             ...
 
    Or
@@ -352,7 +352,7 @@ objects of the same length:
 Trying to compare ``Index`` or ``Series`` objects of different lengths will
 raise a ValueError:
 
-.. code-block:: python
+.. code-block:: ipython
 
     In [55]: pd.Series(['foo', 'bar', 'baz']) == pd.Series(['foo', 'bar'])
     ValueError: Series lengths must match to compare

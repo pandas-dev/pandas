@@ -112,7 +112,7 @@ This type is very similar to how ``Timestamp`` works for ``datetimes``. It is a 
 
    ``Timedelta`` scalars (and ``TimedeltaIndex``) component fields are *not the same* as the component fields on a ``datetime.timedelta`` object. For example, ``.seconds`` on a ``datetime.timedelta`` object returns the total number of seconds combined between ``hours``, ``minutes`` and ``seconds``. In contrast, the pandas ``Timedelta`` breaks out hours, minutes, microseconds and nanoseconds separately.
 
-   .. code-block:: python
+   .. code-block:: ipython
 
       # Timedelta accessor
       In [9]: tds = Timedelta('31 days 5 min 3 sec')
@@ -346,14 +346,14 @@ Rolling/Expanding Moments improvements
 
      s = Series([10, 11, 12, 13])
 
-  .. code-block:: python
+  .. code-block:: ipython
 
      In [15]: rolling_min(s, window=10, min_periods=5)
      ValueError: min_periods (5) must be <= window (4)
 
   New behavior
 
-  .. code-block:: python
+  .. code-block:: ipython
 
      In [4]: pd.rolling_min(s, window=10, min_periods=5)
      Out[4]:
@@ -375,7 +375,7 @@ Rolling/Expanding Moments improvements
 
   Prior behavior (note final value is ``NaN``):
 
-  .. code-block:: python
+  .. code-block:: ipython
 
     In [7]: rolling_sum(Series(range(4)), window=3, min_periods=0, center=True)
     Out[7]:
@@ -387,7 +387,7 @@ Rolling/Expanding Moments improvements
 
   New behavior (note final value is ``5 = sum([2, 3, NaN])``):
 
-  .. code-block:: python
+  .. code-block:: ipython
 
      In [7]: rolling_sum(Series(range(4)), window=3, min_periods=0, center=True)
      Out[7]:
@@ -407,7 +407,7 @@ Rolling/Expanding Moments improvements
 
   Behavior prior to 0.15.0:
 
-  .. code-block:: python
+  .. code-block:: ipython
 
      In [39]: rolling_window(s, window=3, win_type='triang', center=True)
      Out[39]:
@@ -420,7 +420,7 @@ Rolling/Expanding Moments improvements
 
   New behavior
 
-  .. code-block:: python
+  .. code-block:: ipython
 
      In [10]: pd.rolling_window(s, window=3, win_type='triang', center=True)
      Out[10]:
@@ -454,7 +454,7 @@ Rolling/Expanding Moments improvements
 
     s  = Series([1, None, None, None, 2, 3])
 
-  .. code-block:: python
+  .. code-block:: ipython
 
 	In [51]: ewma(s, com=3., min_periods=2)
 	Out[51]:
@@ -468,7 +468,7 @@ Rolling/Expanding Moments improvements
 
   New behavior (note values start at index ``4``, the location of the 2nd (since ``min_periods=2``) non-empty value):
 
-  .. code-block:: python
+  .. code-block:: ipython
 
      In [2]: pd.ewma(s, com=3., min_periods=2)
      Out[2]:
@@ -492,7 +492,7 @@ Rolling/Expanding Moments improvements
   When ``ignore_na=True`` (which reproduces the pre-0.15.0 behavior), missing values are ignored in the weights calculation.
   (:issue:`7543`)
 
-  .. code-block:: python
+  .. code-block:: ipython
 
      In [7]: pd.ewma(Series([None, 1., 8.]), com=2.)
      Out[7]:
@@ -547,7 +547,7 @@ Rolling/Expanding Moments improvements
 
      s = Series([1., 2., 0., 4.])
 
-  .. code-block:: python
+  .. code-block:: ipython
 
 	 In [89]: ewmvar(s, com=2., bias=False)
 	 Out[89]:
@@ -569,7 +569,7 @@ Rolling/Expanding Moments improvements
   By comparison, the following 0.15.0 results have a ``NaN`` for entry ``0``,
   and the debiasing factors are decreasing (towards 1.25):
 
-  .. code-block:: python
+  .. code-block:: ipython
 
      In [14]: pd.ewmvar(s, com=2., bias=False)
      Out[14]:
@@ -637,7 +637,7 @@ for more details):
 
   will have to adapted to the following to keep the same behaviour:
 
-  .. code-block:: python
+  .. code-block:: ipython
 
     In [2]: pd.Categorical.from_codes([0,1,0,2,1], categories=['a', 'b', 'c'])
     Out[2]:
@@ -747,7 +747,7 @@ Other notable API changes:
 
   Behavior prior to v0.15.0
 
-  .. code-block:: python
+  .. code-block:: ipython
 
 
      # the original object
@@ -1037,7 +1037,7 @@ Other:
 - ``Index.isin`` now supports a ``level`` argument to specify which index level
   to use for membership tests (:issue:`7892`, :issue:`7890`)
 
-  .. code-block:: python
+  .. code-block:: ipython
 
      In [1]: idx = MultiIndex.from_product([[0, 1], ['a', 'b', 'c']])
 

@@ -236,7 +236,7 @@ These are created from methods on ``Series`` and ``DataFrame``.
 
 These object provide tab-completion of the avaible methods and properties.
 
-.. code-block:: python
+.. code-block:: ipython
 
    In [14]: r.
    r.agg         r.apply       r.count       r.exclusions  r.max         r.median      r.name        r.skew        r.sum
