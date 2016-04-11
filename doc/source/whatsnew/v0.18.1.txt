@@ -131,6 +131,7 @@ API changes
 
 
 
+- the default for ``.query()/.eval()`` is now ``engine=None`` which will use ``numexpr`` if its installed, else will fallback to the ``python`` engine. This mimics the pre-0.18.1 behavior if ``numexpr`` is installed (and which previously would raise if ``numexpr`` was NOT installed and ``.query()/.eval()`` was used). (:issue:`12749`)
 
 - ``CParserError`` is now a ``ValueError`` instead of just an ``Exception`` (:issue:`12551`)
 - ``read_csv`` no longer allows a combination of strings and integers for the ``usecols`` parameter (:issue:`12678`)
