@@ -329,21 +329,16 @@ def _incompat_bottleneck_version(method):
 
 
 def skip_if_no_ne(engine='numexpr'):
-    import nose
-    _USE_NUMEXPR = pd.computation.expressions._USE_NUMEXPR
+    from pandas.computation.expressions import (_USE_NUMEXPR,
+                                                _NUMEXPR_INSTALLED)
 
     if engine == 'numexpr':
-        try:
-            import numexpr as ne
-        except ImportError:
-            raise nose.SkipTest("numexpr not installed")
-
         if not _USE_NUMEXPR:
-            raise nose.SkipTest("numexpr disabled")
-
-        if ne.__version__ < LooseVersion('2.0'):
-            raise nose.SkipTest("numexpr version too low: "
-                                "%s" % ne.__version__)
+            import nose
+            raise nose.SkipTest("numexpr enabled->{enabled}, "
+                                "installed->{installed}".format(
+                                    enabled=_USE_NUMEXPR,
+                                    installed=_NUMEXPR_INSTALLED))
 
 
 def _skip_if_has_locale():

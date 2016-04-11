@@ -19,6 +19,7 @@ from pandas.util.testing import (assert_series_equal,
                                  makeCustomDataframe as mkdf)
 
 import pandas.util.testing as tm
+from pandas.computation import _NUMEXPR_INSTALLED
 
 from pandas.tests.frame.common import TestData
 
@@ -34,11 +35,57 @@ def skip_if_no_pandas_parser(parser):
 
 def skip_if_no_ne(engine='numexpr'):
     if engine == 'numexpr':
-        try:
-            import numexpr as ne  # noqa
-        except ImportError:
+        if not _NUMEXPR_INSTALLED:
             raise nose.SkipTest("cannot query engine numexpr when numexpr not "
                                 "installed")
+
+
+class TestCompat(tm.TestCase):
+
+    def setUp(self):
+        self.df = DataFrame({'A': [1, 2, 3]})
+        self.expected1 = self.df[self.df.A > 0]
+        self.expected2 = self.df.A + 1
+
+    def test_query_default(self):
+
+        # GH 12749
+        # this should always work, whether _NUMEXPR_INSTALLED or not
+        df = self.df
+        result = df.query('A>0')
+        assert_frame_equal(result, self.expected1)
+        result = df.eval('A+1')
+        assert_series_equal(result, self.expected2, check_names=False)
+
+    def test_query_None(self):
+
+        df = self.df
+        result = df.query('A>0', engine=None)
+        assert_frame_equal(result, self.expected1)
+        result = df.eval('A+1', engine=None)
+        assert_series_equal(result, self.expected2, check_names=False)
+
+    def test_query_python(self):
+
+        df = self.df
+        result = df.query('A>0', engine='python')
+        assert_frame_equal(result, self.expected1)
+        result = df.eval('A+1', engine='python')
+        assert_series_equal(result, self.expected2, check_names=False)
+
+    def test_query_numexpr(self):
+
+        df = self.df
+        if _NUMEXPR_INSTALLED:
+            result = df.query('A>0', engine='numexpr')
+            assert_frame_equal(result, self.expected1)
+            result = df.eval('A+1', engine='numexpr')
+            assert_series_equal(result, self.expected2, check_names=False)
+        else:
+            self.assertRaises(ImportError,
+                              lambda: df.query('A>0', engine='numexpr'))
+            self.assertRaises(ImportError,
+                              lambda: df.eval('A+1', engine='numexpr'))
 
 
 class TestDataFrameEval(tm.TestCase, TestData):
