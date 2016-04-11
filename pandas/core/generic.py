@@ -3451,7 +3451,8 @@ class NDFrame(PandasObject):
         ----------
         method : {'linear', 'time', 'index', 'values', 'nearest', 'zero',
                   'slinear', 'quadratic', 'cubic', 'barycentric', 'krogh',
-                  'polynomial', 'spline' 'piecewise_polynomial', 'pchip'}
+                  'polynomial', 'spline' 'piecewise_polynomial', 'pchip',
+                  'akima'}
 
             * 'linear': ignore the index and treat the values as equally
               spaced. This is the only method supported on MultiIndexes.
@@ -3465,12 +3466,15 @@ class NDFrame(PandasObject):
               require that you also specify an `order` (int),
               e.g. df.interpolate(method='polynomial', order=4).
               These use the actual numerical values of the index.
-            * 'krogh', 'piecewise_polynomial', 'spline', and 'pchip' are all
+            * 'krogh', 'piecewise_polynomial', 'spline', 'pchip' and 'akima' are all
               wrappers around the scipy interpolation methods of similar
               names. These use the actual numerical values of the index. See
               the scipy documentation for more on their behavior
               `here <http://docs.scipy.org/doc/scipy/reference/interpolate.html#univariate-interpolation>`__  # noqa
               `and here <http://docs.scipy.org/doc/scipy/reference/tutorial/interpolate.html>`__  # noqa
+
+            .. versionadded:: 0.18.1
+               Added support for the 'akima' method
 
         axis : {0, 1}, default 0
             * 0: fill column-by-column
