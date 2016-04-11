@@ -26,7 +26,19 @@ def _check_engine(engine):
       * If an invalid engine is passed
     ImportError
       * If numexpr was requested but doesn't exist
+
+    Returns
+    -------
+    string engine
+
     """
+
+    if engine is None:
+        if _NUMEXPR_INSTALLED:
+            engine = 'numexpr'
+        else:
+            engine = 'python'
+
     if engine not in _engines:
         raise KeyError('Invalid engine {0!r} passed, valid engines are'
                        ' {1}'.format(engine, list(_engines.keys())))
@@ -40,6 +52,8 @@ def _check_engine(engine):
                               "unsupported version. Cannot use "
                               "engine='numexpr' for query/eval "
                               "if 'numexpr' is not installed")
+
+    return engine
 
 
 def _check_parser(parser):
@@ -131,7 +145,7 @@ def _check_for_locals(expr, stack_level, parser):
                 raise SyntaxError(msg)
 
 
-def eval(expr, parser='pandas', engine='numexpr', truediv=True,
+def eval(expr, parser='pandas', engine=None, truediv=True,
          local_dict=None, global_dict=None, resolvers=(), level=0,
          target=None, inplace=None):
     """Evaluate a Python expression as a string using various backends.
@@ -160,10 +174,11 @@ def eval(expr, parser='pandas', engine='numexpr', truediv=True,
         ``'python'`` parser to retain strict Python semantics.  See the
         :ref:`enhancing performance <enhancingperf.eval>` documentation for
         more details.
-    engine : string, default 'numexpr', {'python', 'numexpr'}
+    engine : string or None, default 'numexpr', {'python', 'numexpr'}
 
         The engine used to evaluate the expression. Supported engines are
 
+        - None         : tries to use ``numexpr``, falls back to ``python``
         - ``'numexpr'``: This default engine evaluates pandas objects using
                          numexpr for large speed ups in complex expressions
                          with large frames.
@@ -230,7 +245,7 @@ def eval(expr, parser='pandas', engine='numexpr', truediv=True,
     first_expr = True
     for expr in exprs:
         expr = _convert_expression(expr)
-        _check_engine(engine)
+        engine = _check_engine(engine)
         _check_parser(parser)
         _check_resolvers(resolvers)
         _check_for_locals(expr, level, parser)

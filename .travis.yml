@@ -152,25 +152,29 @@ before_install:
   - export DISPLAY=:99.0
 
 install:
-  - echo "install"
+  - echo "install start"
   - ci/prep_ccache.sh
   - ci/install_travis.sh
   - ci/submit_ccache.sh
+  - echo "install done"
 
 before_script:
   - source activate pandas && pip install codecov
   - ci/install_db.sh
 
 script:
-  - echo "script"
+  - echo "script start"
   - ci/run_build_docs.sh
   - ci/script.sh
   - ci/lint.sh
+  - echo "script done"
 
 after_success:
   - source activate pandas && codecov
 
 after_script:
+  - echo "after_script start"
   - ci/install_test.sh
   - source activate pandas && ci/print_versions.py
   - ci/print_skipped.py /tmp/nosetests.xml
+  - echo "after_script done"
