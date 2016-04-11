@@ -79,7 +79,7 @@ def test_encoding_options():
     from pandas.io.sas.sas7bdat import SAS7BDATReader
     rdr = SAS7BDATReader(fname, convert_header_text=False)
     df3 = rdr.read()
-    for x,y in zip(df1.columns, df3.columns):
+    for x, y in zip(df1.columns, df3.columns):
         assert(x == y.decode())
 
 

@@ -150,12 +150,14 @@ class SAS7BDATReader(BaseIterator):
         buf = self._read_bytes(const.dataset_offset, const.dataset_length)
         self.name = buf.rstrip(b'\x00 ')
         if self.convert_header_text:
-            self.name = self.name.decode(self.encoding or self.default_encoding)
+            self.name = self.name.decode(
+                self.encoding or self.default_encoding)
 
         buf = self._read_bytes(const.file_type_offset, const.file_type_length)
         self.file_type = buf.rstrip(b'\x00 ')
         if self.convert_header_text:
-            self.file_type = self.file_type.decode(self.encoding or self.default_encoding)
+            self.file_type = self.file_type.decode(
+                self.encoding or self.default_encoding)
 
         # Timestamp is epoch 01/01/1960
         epoch = pd.datetime(1960, 1, 1)
@@ -184,19 +186,22 @@ class SAS7BDATReader(BaseIterator):
                                const.sas_release_length)
         self.sas_release = buf.rstrip(b'\x00 ')
         if self.convert_header_text:
-            self.sas_release = self.sas_release.decode(self.encoding or self.default_encoding)
+            self.sas_release = self.sas_release.decode(
+                self.encoding or self.default_encoding)
 
         buf = self._read_bytes(const.sas_server_type_offset + total_align,
                                const.sas_server_type_length)
         self.server_type = buf.rstrip(b'\x00 ')
         if self.convert_header_text:
-            self.server_type = self.server_type.decode(self.encoding or self.default_encoding)
+            self.server_type = self.server_type.decode(
+                self.encoding or self.default_encoding)
 
         buf = self._read_bytes(const.os_version_number_offset + total_align,
                                const.os_version_number_length)
         self.os_version = buf.rstrip(b'\x00 ')
         if self.convert_header_text:
-            self.os_version = self.os_version.decode(self.encoding or self.default_encoding)
+            self.os_version = self.os_version.decode(
+                self.encoding or self.default_encoding)
 
         buf = self._read_bytes(const.os_name_offset + total_align,
                                const.os_name_length)
@@ -208,7 +213,8 @@ class SAS7BDATReader(BaseIterator):
                                    const.os_maker_length)
             self.os_name = buf.rstrip(b'\x00 ')
             if self.convert_header_text:
-                self.os_name = self.os_name.decode(self.encoding or self.default_encoding)
+                self.os_name = self.os_name.decode(
+                    self.encoding or self.default_encoding)
 
     # Read a single float of the given width (4 or 8).
     def _read_float(self, offset, width):
@@ -442,7 +448,8 @@ class SAS7BDATReader(BaseIterator):
                 self.creator_proc = buf[0:self._lcp]
             if self.convert_header_text:
                 if hasattr(self, "creator_proc"):
-                    self.creator_proc = self.creator_proc.decode(self.encoding or self.default_encoding)
+                    self.creator_proc = self.creator_proc.decode(
+                        self.encoding or self.default_encoding)
 
     def _process_columnname_subheader(self, offset, length):
         int_len = self._int_length
@@ -628,7 +635,8 @@ class SAS7BDATReader(BaseIterator):
             elif self.column_types[j] == b's':
                 rslt[name] = self._string_chunk[js, :]
                 if self.convert_text and (self.encoding is not None):
-                    rslt[name] = rslt[name].str.decode(self.encoding or self.default_encoding)
+                    rslt[name] = rslt[name].str.decode(
+                        self.encoding or self.default_encoding)
                 if self.blank_missing:
                     ii = rslt[name].str.len() == 0
                     rslt.loc[ii, name] = np.nan
