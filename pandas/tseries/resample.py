@@ -653,9 +653,6 @@ class PeriodIndexResampler(DatetimeIndexResampler):
             # Cannot have multiple of periods, convert to timestamp
             self.kind = 'timestamp'
 
-        if not len(obj):
-            self.kind = 'timestamp'
-
         # convert to timestamp
         if not (self.kind is None or self.kind == 'period'):
             obj = obj.to_timestamp(how=self.convention)
@@ -673,18 +670,15 @@ class PeriodIndexResampler(DatetimeIndexResampler):
     def _get_new_index(self):
         """ return our new index """
         ax = self.ax
-        ax_attrs = ax._get_attributes_dict()
-        ax_attrs['freq'] = self.freq
-        obj = self._selected_obj
 
         if len(ax) == 0:
-            new_index = PeriodIndex(data=[], **ax_attrs)
-            return obj.reindex(new_index)
+            values = []
+        else:
+            start = ax[0].asfreq(self.freq, how=self.convention)
+            end = ax[-1].asfreq(self.freq, how='end')
+            values = period_range(start, end, freq=self.freq).values
 
-        start = ax[0].asfreq(self.freq, how=self.convention)
-        end = ax[-1].asfreq(self.freq, how='end')
-
-        return period_range(start, end, **ax_attrs)
+        return ax._shallow_copy(values, freq=self.freq)
 
     def _downsample(self, how, **kwargs):
         """
@@ -705,7 +699,7 @@ class PeriodIndexResampler(DatetimeIndexResampler):
 
         new_index = self._get_new_index()
         if len(new_index) == 0:
-            return self._wrap_result(new_index)
+            return self._wrap_result(self._selected_obj.reindex(new_index))
 
         # Start vs. end of period
         memb = ax.asfreq(self.freq, how=self.convention)
@@ -717,6 +711,8 @@ class PeriodIndexResampler(DatetimeIndexResampler):
             grouper = BinGrouper(bins, new_index)
             return self._groupby_and_aggregate(grouper, how)
         elif is_superperiod(ax.freq, self.freq):
+            return self.asfreq()
+        elif ax.freq == self.freq:
             return self.asfreq()
 
         raise ValueError('Frequency {axfreq} cannot be '
@@ -743,23 +739,24 @@ class PeriodIndexResampler(DatetimeIndexResampler):
 
         ax = self.ax
         obj = self.obj
-
         new_index = self._get_new_index()
-        if len(new_index) == 0:
-            return self._wrap_result(new_index)
 
-        if not is_superperiod(ax.freq, self.freq):
-            return self.asfreq()
+        if len(new_index) == 0:
+            return self._wrap_result(self._selected_obj.reindex(new_index))
 
         # Start vs. end of period
         memb = ax.asfreq(self.freq, how=self.convention)
 
         # Get the fill indexer
         indexer = memb.get_indexer(new_index, method=method, limit=limit)
-        return self._wrap_result(_take_new_index(obj,
-                                                 indexer,
-                                                 new_index,
-                                                 axis=self.axis))
+        return self._wrap_result(_take_new_index(
+            obj, indexer, new_index, axis=self.axis))
+
+    def _groupby_and_aggregate(self, grouper, how, *args, **kwargs):
+        if grouper is None:
+            return self._downsample(how, **kwargs)
+        return super(PeriodIndexResampler, self)._groupby_and_aggregate(
+            grouper, how, *args, **kwargs)
 
 
 class TimedeltaResampler(DatetimeIndexResampler):
