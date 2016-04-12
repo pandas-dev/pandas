@@ -203,6 +203,7 @@ Performance Improvements
 
 
 
+- Improved performance of ``DataFrame.to_sql`` when checking case sensitivity. Now only checks if table has been created correctly when table name is not lower case. (:issue:`12876`)
 
 
 
