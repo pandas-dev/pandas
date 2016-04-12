@@ -224,6 +224,7 @@ Deprecations
 ^^^^^^^^^^^^
 
 - The method name ``Index.sym_diff()`` is deprecated and can be replaced by ``Index.symmetric_difference()`` (:issue:`12591`)
+- The method name ``Categorical.sort()`` is deprecated in favor of ``Categorical.sort_values()`` (:issue:`12882`)
 
 
 
