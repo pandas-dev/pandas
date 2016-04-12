@@ -675,11 +675,9 @@ class PeriodIndexResampler(DatetimeIndexResampler):
         ax = self.ax
         ax_attrs = ax._get_attributes_dict()
         ax_attrs['freq'] = self.freq
-        obj = self._selected_obj
 
         if len(ax) == 0:
-            new_index = PeriodIndex(data=[], **ax_attrs)
-            return obj.reindex(new_index)
+            return PeriodIndex(data=[], **ax_attrs)
 
         start = ax[0].asfreq(self.freq, how=self.convention)
         end = ax[-1].asfreq(self.freq, how='end')
@@ -705,7 +703,7 @@ class PeriodIndexResampler(DatetimeIndexResampler):
 
         new_index = self._get_new_index()
         if len(new_index) == 0:
-            return self._wrap_result(new_index)
+            return self._wrap_result(self._selected_obj.reindex(new_index))
 
         # Start vs. end of period
         memb = ax.asfreq(self.freq, how=self.convention)
@@ -746,7 +744,7 @@ class PeriodIndexResampler(DatetimeIndexResampler):
 
         new_index = self._get_new_index()
         if len(new_index) == 0:
-            return self._wrap_result(new_index)
+            return self._wrap_result(self._selected_obj.reindex(new_index))
 
         if not is_superperiod(ax.freq, self.freq):
             return self.asfreq()
