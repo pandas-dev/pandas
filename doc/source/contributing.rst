@@ -223,8 +223,9 @@ For Python 3.4, you can download and install the `Windows 7.1 SDK <https://www.m
 
 For Python 3.5, you can download and install the `Visual Studio 2015 Community Edition <https://www.visualstudio.com/en-us/downloads/visual-studio-2015-downloads-vs.aspx>`__.
 
-Here are some references:
+Here are some references and blogs:
 
+- https://blogs.msdn.microsoft.com/pythonengineering/2016/04/11/unable-to-find-vcvarsall-bat/
 - https://github.com/conda/conda-recipes/wiki/Building-from-Source-on-Windows-32-bit-and-64-bit
 - https://cowboyprogrammer.org/building-python-wheels-for-windows/
 - https://blog.ionelmc.ro/2014/12/21/compiling-python-extensions-on-windows/
