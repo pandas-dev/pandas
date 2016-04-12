@@ -3,33 +3,34 @@
 from datetime import datetime, timedelta
 from functools import partial
 
-from pandas.compat import range, lrange, zip, product, OrderedDict
+import nose
 import numpy as np
 
+import pandas as pd
+import pandas.tseries.offsets as offsets
+import pandas.util.testing as tm
 from pandas import (Series, DataFrame, Panel, Index, isnull,
                     notnull, Timestamp)
-
+from pandas.compat import range, lrange, zip, product, OrderedDict
+from pandas.core.base import SpecificationError
+from pandas.core.common import ABCSeries, ABCDataFrame
 from pandas.core.groupby import DataError
+from pandas.tseries.frequencies import MONTHS, DAYS
 from pandas.tseries.index import date_range
-from pandas.tseries.tdi import timedelta_range
 from pandas.tseries.offsets import Minute, BDay
 from pandas.tseries.period import period_range, PeriodIndex, Period
 from pandas.tseries.resample import (DatetimeIndex, TimeGrouper,
                                      DatetimeIndexResampler)
-from pandas.tseries.frequencies import MONTHS, DAYS
-from pandas.core.common import ABCSeries, ABCDataFrame
-from pandas.core.base import SpecificationError
-
-import pandas.tseries.offsets as offsets
-import pandas as pd
-
-import nose
-
+from pandas.tseries.tdi import timedelta_range
 from pandas.util.testing import (assert_series_equal, assert_almost_equal,
                                  assert_frame_equal)
-import pandas.util.testing as tm
 
 bday = BDay()
+downsample_methods = ['min', 'max', 'first', 'last', 'sum', 'mean', 'sem',
+                      'median', 'prod', 'ohlc']
+upsample_methods = ['count', 'size']
+series_methods = ['nunique']
+resample_methods = downsample_methods + upsample_methods + series_methods
 
 
 class TestResampleAPI(tm.TestCase):
@@ -95,12 +96,13 @@ class TestResampleAPI(tm.TestCase):
         self.assertRaises(ValueError, lambda: r.iat[0])
         self.assertRaises(ValueError, lambda: r.ix[0])
         self.assertRaises(ValueError, lambda: r.loc[
-                          Timestamp('2013-01-01 00:00:00', offset='H')])
+            Timestamp('2013-01-01 00:00:00', offset='H')])
         self.assertRaises(ValueError, lambda: r.at[
-                          Timestamp('2013-01-01 00:00:00', offset='H')])
+            Timestamp('2013-01-01 00:00:00', offset='H')])
 
         def f():
             r[0] = 5
+
         self.assertRaises(ValueError, f)
 
         # str/repr
@@ -144,7 +146,6 @@ class TestResampleAPI(tm.TestCase):
 
         # comparison ops
         for op in ['__lt__', '__le__', '__gt__', '__ge__', '__eq__', '__ne__']:
-
             r = self.series.resample('H')
 
             with tm.assert_produces_warning(FutureWarning,
@@ -259,6 +260,7 @@ class TestResampleAPI(tm.TestCase):
         # setting
         def f():
             r.F = 'bah'
+
         self.assertRaises(ValueError, f)
 
     def test_api_compat_before_use(self):
@@ -509,10 +511,10 @@ class TestResampleAPI(tm.TestCase):
         # errors
         # invalid names in the agg specification
         for t in [r, g]:
-
             def f():
                 r[['A']].agg({'A': ['sum', 'std'],
                               'B': ['mean', 'std']})
+
             self.assertRaises(SpecificationError, f)
 
     def test_agg_nested_dicts(self):
@@ -679,7 +681,7 @@ class TestResample(tm.TestCase):
                     assert_series_equal(result, expected)
             except BaseException as exc:
 
-                exc.args += ('how=%s' % arg, )
+                exc.args += ('how=%s' % arg,)
                 raise
 
     def test_resample_how_callables(self):
@@ -692,7 +694,6 @@ class TestResample(tm.TestCase):
             return str(type(x))
 
         class fn_class:
-
             def __call__(self, x):
                 return str(type(x))
 
@@ -768,7 +769,7 @@ class TestResample(tm.TestCase):
 
         from pandas.compat import StringIO
         df = pd.read_csv(StringIO(data), parse_dates={'timestamp': [
-                         'date', 'time']}, index_col='timestamp')
+            'date', 'time']}, index_col='timestamp')
         df.index.name = None
         result = df.resample('6s').sum()
         expected = DataFrame({'value': [
@@ -1061,10 +1062,10 @@ class TestResample(tm.TestCase):
 
         df.columns = [['a', 'b'], ['c', 'd']]
         res = df.resample('H').ohlc()
-        exp.columns = pd.MultiIndex.from_tuples([('a', 'c', 'open'), (
-            'a', 'c', 'high'), ('a', 'c', 'low'), ('a', 'c', 'close'), (
-                'b', 'd', 'open'), ('b', 'd', 'high'), ('b', 'd', 'low'), (
-                    'b', 'd', 'close')])
+        exp.columns = pd.MultiIndex.from_tuples([
+            ('a', 'c', 'open'), ('a', 'c', 'high'), ('a', 'c', 'low'),
+            ('a', 'c', 'close'), ('b', 'd', 'open'), ('b', 'd', 'high'),
+            ('b', 'd', 'low'), ('b', 'd', 'close')])
         assert_frame_equal(exp, res)
 
         # dupe columns fail atm
@@ -1449,11 +1450,12 @@ class TestResample(tm.TestCase):
         #
         # See: https://github.com/pydata/pandas/issues/8683
 
-        s = pd.Series(np.random.randn(5),
-                      index=pd.date_range('2014-10-14 23:06:23.206',
-                                          periods=3, freq='400L') |
-                      pd.date_range('2014-10-15 23:00:00',
-                                    periods=2, freq='2200L'))
+        index = pd.date_range(
+            '2014-10-14 23:06:23.206', periods=3, freq='400L'
+        ) | pd.date_range(
+            '2014-10-15 23:00:00', periods=2, freq='2200L')
+
+        s = pd.Series(np.random.randn(5), index=index)
 
         # Ensure left closing works
         result = s.resample('2200L').mean()
@@ -1763,7 +1765,6 @@ def _simple_pts(start, end, freq='D'):
 
 
 class TestResamplePeriodIndex(tm.TestCase):
-
     _multiprocess_can_split_ = True
 
     def test_annual_upsample_D_s_f(self):
@@ -1907,15 +1908,39 @@ class TestResamplePeriodIndex(tm.TestCase):
 
     def test_resample_empty(self):
 
-        # GH12771
+        # GH12771 & GH12868
         index = PeriodIndex(start='2000', periods=0, freq='D', name='idx')
         s = Series(index=index)
-        result = s.resample('M').sum()
 
-        # after GH12774 is resolved, this should be a PeriodIndex
-        expected_index = DatetimeIndex([], name='idx')
+        expected_index = PeriodIndex([], name='idx', freq='M')
         expected = Series(index=expected_index)
+
+        for method in resample_methods:
+            result = getattr(s.resample('M'), method)()
+            assert_series_equal(result, expected)
+
+    def test_resample_count(self):
+
+        # GH12774
+        series = pd.Series(1, index=pd.period_range(start='2000',
+                                                    periods=100))
+        result = series.resample('M').count()
+
+        expected_index = pd.period_range(start='2000', freq='M', periods=4)
+        expected = pd.Series([31, 29, 31, 9], index=expected_index)
+
         assert_series_equal(result, expected)
+
+    def test_resample_same_freq(self):
+
+        # GH12770
+        series = pd.Series(range(3), index=pd.period_range(
+            start='2000', periods=3, freq='M'))
+        expected = series
+
+        for method in resample_methods:
+            result = getattr(series.resample('M'), method)()
+            assert_series_equal(result, expected)
 
     def test_with_local_timezone_pytz(self):
         # GH5430
@@ -2493,8 +2518,8 @@ class TestTimeGrouper(tm.TestCase):
             # GH 9925
             self.assertEqual(dt_result.index.name, 'key')
 
-        # if NaT is included, 'var', 'std', 'mean', 'first','last' and 'nth'
-        # doesn't work yet
+            # if NaT is included, 'var', 'std', 'mean', 'first','last'
+            # and 'nth' doesn't work yet
 
 
 if __name__ == '__main__':
