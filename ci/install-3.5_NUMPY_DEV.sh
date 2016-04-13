@@ -15,6 +15,6 @@ pip uninstall numpy -y
 time sudo apt-get $APT_ARGS install libatlas-base-dev gfortran
 
 # install numpy wheel from master
-pip install --pre --upgrade --no-index --timeout=60 --trusted-host travis-dev-wheels.scipy.org -f http://travis-dev-wheels.scipy.org/ numpy
+pip install --pre --upgrade --no-index --timeout=60 --trusted-host travis-dev-wheels.scipy.org -f http://travis-dev-wheels.scipy.org/ numpy scipy
 
 true

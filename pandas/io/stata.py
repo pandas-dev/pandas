@@ -161,9 +161,15 @@ def read_stata(filepath_or_buffer, convert_dates=True,
                          chunksize=chunksize, encoding=encoding)
 
     if iterator or chunksize:
-        return reader
+        try:
+            return reader
+        except StopIteration:
+            reader.close()
 
-    return reader.read()
+    try:
+        return reader.read()
+    finally:
+        reader.close()
 
 _date_formats = ["%tc", "%tC", "%td", "%d", "%tw", "%tm", "%tq", "%th", "%ty"]
 
