@@ -1344,29 +1344,8 @@ class TestResample(tm.TestCase):
                         # (ex: doing mean with dtype of np.object)
                         pass
 
-    def test_resample_empty_nunique(self):
-
-        # this routines should be folded into the above when
-        # GH12886 is closed
-        for index in tm.all_timeseries_index_generator(0):
-            for dtype in (np.float, np.int, np.object, 'datetime64[ns]'):
-                for how in ['nunique']:
-
-                    empty_series = pd.Series([], index, dtype)
-
-                    def f():
-                        getattr(empty_series.resample('d'), how)()
-
-                    if isinstance(index,
-                                  (pd.DatetimeIndex, pd.TimedeltaIndex)):
-                        self.assertRaises(Exception, f)
-                    else:
-                        try:
-                            f()
-                        except DataError:
-                            # Ignore these since some combinations are invalid
-                            # (ex: doing mean with dtype of np.object)
-                            pass
+        # this should also tests nunique (IOW, use resample_methods)
+        # when GH12886 is closed
 
     def test_resample_dtype_preservation(self):
 
