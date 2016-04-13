@@ -134,8 +134,6 @@ API changes
 - The default for ``.query()/.eval()`` is now ``engine=None``, which will use ``numexpr`` if it's installed; otherwise it will fallback to the ``python`` engine. This mimics the pre-0.18.1 behavior if ``numexpr`` is installed (and which Previously, if numexpr was not installed, ``.query()/.eval()`` would raise). (:issue:`12749`)
 
 
-- ``CParserError`` is now a ``ValueError`` instead of just an ``Exception`` (:issue:`12551`)
-- ``read_csv`` no longer allows a combination of strings and integers for the ``usecols`` parameter (:issue:`12678`)
 - ``pd.show_versions()`` now includes ``pandas_datareader`` version (:issue:`12740`)
 - Provide a proper ``__name__`` and ``__qualname__`` attributes for generic functions (:issue:`12021`)
 - ``pd.concat(ignore_index=True)`` now uses ``RangeIndex`` as default (:issue:`12695`)
@@ -181,8 +179,8 @@ New Behavior:
 
 .. _whatsnew_0181.read_csv_exceptions:
 
-Change in ``read_csv`` exceptions
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Changes in ``read_csv`` exceptions
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 In order to standardize the ``read_csv`` API for both the C and Python engines, both will now raise an
 ``EmptyDataError``, a subclass of ``ValueError``, in response to empty columns or header (:issue:`12493`, :issue:`12506`)
@@ -218,6 +216,7 @@ In addition to this error change, several others have been made as well:
 - A ``ValueError`` is now raised instead of a generic ``Exception`` in ``read_csv`` when the C engine encounters a ``NaN`` value in an integer column
 - A ``ValueError`` is now raised instead of a generic ``Exception`` in ``read_csv`` when ``true_values`` is specified, and the C engine encounters an element in a column containing unencodable bytes
 - ``pandas.parser.OverflowError`` exception has been removed and has been replaced with Python's built-in ``OverflowError`` exception
+- ``read_csv`` no longer allows a combination of strings and integers for the ``usecols`` parameter (:issue:`12678`)
 
 .. _whatsnew_0181.deprecations:
 
