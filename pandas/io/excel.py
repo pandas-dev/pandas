@@ -170,7 +170,7 @@ def read_excel(io, sheetname=0, header=0, skiprows=None, skip_footer=0,
         io = ExcelFile(io, engine=engine)
 
     return io._parse_excel(
-        sheetname=sheetname, header=header, skiprows=skiprows,
+        sheetname=sheetname, header=header, skiprows=skiprows, names=names,
         index_col=index_col, parse_cols=parse_cols, parse_dates=parse_dates,
         date_parser=date_parser, na_values=na_values, thousands=thousands,
         convert_float=convert_float, has_index_names=has_index_names,
@@ -230,7 +230,7 @@ class ExcelFile(object):
                              ' buffer or path for io.')
 
     def parse(self, sheetname=0, header=0, skiprows=None, skip_footer=0,
-              index_col=None, parse_cols=None, parse_dates=False,
+              names=None, index_col=None, parse_cols=None, parse_dates=False,
               date_parser=None, na_values=None, thousands=None,
               convert_float=True, has_index_names=None,
               converters=None, squeeze=False, **kwds):
@@ -242,7 +242,7 @@ class ExcelFile(object):
         """
 
         return self._parse_excel(sheetname=sheetname, header=header,
-                                 skiprows=skiprows,
+                                 skiprows=skiprows, names=names,
                                  index_col=index_col,
                                  has_index_names=has_index_names,
                                  parse_cols=parse_cols,
@@ -288,10 +288,10 @@ class ExcelFile(object):
         else:
             return i in parse_cols
 
-    def _parse_excel(self, sheetname=0, header=0, skiprows=None, skip_footer=0,
-                     index_col=None, has_index_names=None, parse_cols=None,
-                     parse_dates=False, date_parser=None, na_values=None,
-                     thousands=None, convert_float=True,
+    def _parse_excel(self, sheetname=0, header=0, skiprows=None, names=None,
+                     skip_footer=0, index_col=None, has_index_names=None,
+                     parse_cols=None, parse_dates=False, date_parser=None,
+                     na_values=None, thousands=None, convert_float=True,
                      verbose=False, squeeze=False, **kwds):
 
         skipfooter = kwds.pop('skipfooter', None)
@@ -465,6 +465,8 @@ class ExcelFile(object):
                                     **kwds)
 
                 output[asheetname] = parser.read()
+                if names is not None:
+                    output[asheetname].columns = names
                 if not squeeze or isinstance(output[asheetname], DataFrame):
                     output[asheetname].columns = output[
                         asheetname].columns.set_names(header_names)
