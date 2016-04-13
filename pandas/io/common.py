@@ -428,7 +428,7 @@ def _get_handle(path, mode, encoding=None, compression=None):
     return f
 
 
-class UTF8Recoder:
+class UTF8Recoder(BaseIterator):
 
     """
     Iterator that reads an encoded stream and reencodes the input to UTF-8
@@ -436,9 +436,6 @@ class UTF8Recoder:
 
     def __init__(self, f, encoding):
         self.reader = codecs.getreader(encoding)(f)
-
-    def __iter__(self):
-        return self
 
     def read(self, bytes=-1):
         return self.reader.read(bytes).encode("utf-8")
@@ -448,9 +445,6 @@ class UTF8Recoder:
 
     def next(self):
         return next(self.reader).encode("utf-8")
-
-    # Python 3 iterator
-    __next__ = next
 
 
 if compat.PY3:  # pragma: no cover

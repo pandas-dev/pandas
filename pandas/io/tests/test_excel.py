@@ -429,6 +429,9 @@ class ReadingTestsBase(SharedItems):
         tm.assert_frame_equal(actual_header_zero, expected)
 
     def test_read_one_empty_col_with_header(self):
+        _skip_if_no_xlwt()
+        _skip_if_no_openpyxl()
+
         df = pd.DataFrame(
             [["", 1, 100],
              ["", 2, 200],

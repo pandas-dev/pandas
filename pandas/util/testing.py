@@ -33,7 +33,8 @@ import pandas.compat as compat
 import pandas.lib as lib
 from pandas.compat import(
     filter, map, zip, range, unichr, lrange, lmap, lzip, u, callable, Counter,
-    raise_with_traceback, httplib, is_platform_windows, is_platform_32bit
+    raise_with_traceback, httplib, is_platform_windows, is_platform_32bit,
+    PY3
 )
 
 from pandas.computation import expressions as expr
@@ -51,18 +52,22 @@ _RAISE_NETWORK_ERROR_DEFAULT = False
 
 
 # set testing_mode
+_testing_mode_warnings = (DeprecationWarning, compat.ResourceWarning)
+
+
 def set_testing_mode():
     # set the testing mode filters
     testing_mode = os.environ.get('PANDAS_TESTING_MODE', 'None')
     if 'deprecate' in testing_mode:
-        warnings.simplefilter('always', DeprecationWarning)
+
+        warnings.simplefilter('always', _testing_mode_warnings)
 
 
 def reset_testing_mode():
     # reset the testing mode filters
     testing_mode = os.environ.get('PANDAS_TESTING_MODE', 'None')
     if 'deprecate' in testing_mode:
-        warnings.simplefilter('ignore', DeprecationWarning)
+        warnings.simplefilter('ignore', _testing_mode_warnings)
 
 set_testing_mode()
 
@@ -286,7 +291,7 @@ def _skip_if_no_dateutil():
 
 
 def _skip_if_windows_python_3():
-    if compat.PY3 and is_platform_windows():
+    if PY3 and is_platform_windows():
         import nose
         raise nose.SkipTest("not used on python 3/win32")
 
@@ -437,7 +442,7 @@ def get_locales(prefix=None, normalize=True,
         raw_locales = raw_locales.split(b'\n')
         out_locales = []
         for x in raw_locales:
-            if compat.PY3:
+            if PY3:
                 out_locales.append(str(
                     x, encoding=pd.options.display.encoding))
             else:

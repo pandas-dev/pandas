@@ -251,6 +251,8 @@ if PY3:
         f.__module__ = cls.__module__
         return f
 
+    ResourceWarning = ResourceWarning
+
 else:
     string_types = basestring,
     integer_types = (int, long)
@@ -297,6 +299,8 @@ else:
         """ Bind the name attributes of the function """
         f.__name__ = name
         return f
+
+    class ResourceWarning(Warning): pass
 
 string_and_binary_types = string_types + (binary_type,)
 

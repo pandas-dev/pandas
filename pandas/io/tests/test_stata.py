@@ -1024,6 +1024,7 @@ class TestStata(tm.TestCase):
                                 check_datetimelike_compat=True)
 
                             pos += chunksize
+                        itr.close()
 
     def test_iterator(self):
 
@@ -1031,21 +1032,21 @@ class TestStata(tm.TestCase):
 
         parsed = read_stata(fname)
 
-        itr = read_stata(fname, iterator=True)
-        chunk = itr.read(5)
-        tm.assert_frame_equal(parsed.iloc[0:5, :], chunk)
+        with read_stata(fname, iterator=True) as itr:
+            chunk = itr.read(5)
+            tm.assert_frame_equal(parsed.iloc[0:5, :], chunk)
 
-        itr = read_stata(fname, chunksize=5)
-        chunk = list(itr)
-        tm.assert_frame_equal(parsed.iloc[0:5, :], chunk[0])
+        with read_stata(fname, chunksize=5) as itr:
+            chunk = list(itr)
+            tm.assert_frame_equal(parsed.iloc[0:5, :], chunk[0])
 
-        itr = read_stata(fname, iterator=True)
-        chunk = itr.get_chunk(5)
-        tm.assert_frame_equal(parsed.iloc[0:5, :], chunk)
+        with read_stata(fname, iterator=True) as itr:
+            chunk = itr.get_chunk(5)
+            tm.assert_frame_equal(parsed.iloc[0:5, :], chunk)
 
-        itr = read_stata(fname, chunksize=5)
-        chunk = itr.get_chunk()
-        tm.assert_frame_equal(parsed.iloc[0:5, :], chunk)
+        with read_stata(fname, chunksize=5) as itr:
+            chunk = itr.get_chunk()
+            tm.assert_frame_equal(parsed.iloc[0:5, :], chunk)
 
         # GH12153
         from_chunks = pd.concat(read_stata(fname, chunksize=4))
@@ -1089,6 +1090,7 @@ class TestStata(tm.TestCase):
                                 check_datetimelike_compat=True)
 
                             pos += chunksize
+                        itr.close()
 
     def test_read_chunks_columns(self):
         fname = self.dta3_117
@@ -1096,15 +1098,15 @@ class TestStata(tm.TestCase):
         chunksize = 2
 
         parsed = read_stata(fname, columns=columns)
-        itr = read_stata(fname, iterator=True)
-        pos = 0
-        for j in range(5):
-            chunk = itr.read(chunksize, columns=columns)
-            if chunk is None:
-                break
-            from_frame = parsed.iloc[pos:pos + chunksize, :]
-            tm.assert_frame_equal(from_frame, chunk, check_dtype=False)
-            pos += chunksize
+        with read_stata(fname, iterator=True) as itr:
+            pos = 0
+            for j in range(5):
+                chunk = itr.read(chunksize, columns=columns)
+                if chunk is None:
+                    break
+                from_frame = parsed.iloc[pos:pos + chunksize, :]
+                tm.assert_frame_equal(from_frame, chunk, check_dtype=False)
+                pos += chunksize
 
 
 if __name__ == '__main__':

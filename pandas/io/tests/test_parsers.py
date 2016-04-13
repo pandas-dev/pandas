@@ -2071,6 +2071,7 @@ A,B,C
                                            sep=sep)
                     expected = self.read_csv(s, encoding='utf-8', skiprows=2,
                                              sep=sep)
+                    s.close()
 
                     tm.assert_frame_equal(result, expected)
 

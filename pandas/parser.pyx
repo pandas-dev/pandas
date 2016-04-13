@@ -258,6 +258,7 @@ cdef class TextReader:
         parser_t *parser
         object file_handle, na_fvalues
         object true_values, false_values
+        object dsource
         bint na_filter, verbose, has_usecols, has_mi_columns
         int parser_start
         list clocks
@@ -535,6 +536,15 @@ cdef class TextReader:
         kh_destroy_str(self.true_set)
         kh_destroy_str(self.false_set)
 
+    def close(self):
+        # we need to properly close an open derived
+        # filehandle here, e.g. and UTFRecoder
+        if self.dsource is not None:
+            try:
+                self.dsource.close()
+            except:
+                pass
+
     def set_error_bad_lines(self, int status):
         self.parser.error_bad_lines = status
 
@@ -634,6 +644,8 @@ cdef class TextReader:
         else:
             raise IOError('Expected file path name or file-like object,'
                           ' got %s type' % type(source))
+
+        self.dsource = source
 
     cdef _get_header(self):
         # header is now a list of lists, so field_count should use header[0]

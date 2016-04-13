@@ -623,6 +623,12 @@ class TextFileReader(BaseIterator):
 
         self._make_engine(self.engine)
 
+    def close(self):
+        try:
+            self._engine._reader.close()
+        except:
+            pass
+
     def _get_options_with_defaults(self, engine):
         kwds = self.orig_options
 
@@ -874,6 +880,9 @@ class ParserBase(object):
         self._name_processed = False
 
         self._first_chunk = True
+
+    def close(self):
+        self._reader.close()
 
     @property
     def _has_complex_date_col(self):
