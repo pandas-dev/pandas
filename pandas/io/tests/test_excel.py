@@ -455,6 +455,14 @@ class ReadingTestsBase(SharedItems):
         expected_header_zero = DataFrame(columns=[0], dtype='int64')
         tm.assert_frame_equal(actual_header_zero, expected_header_zero)
 
+    def test_set_column_names_in_parameter(self):
+        excel = self.get_excelfile('testcolnameset')
+        refdf = pd.DataFrame([[1, 'foo'], [2, 'bar'],
+                              [3, 'baz']], columns=['A', 'B'])
+
+        xlsdf = read_excel(excel, header=None, names=['A', 'B'])
+        tm.assert_frame_equal(xlsdf, refdf)
+
 
 class XlrdTests(ReadingTestsBase):
     """
