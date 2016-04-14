@@ -231,6 +231,34 @@ class TestFloat64Index(Numeric, tm.TestCase):
         self.assertTrue(i.equals(result))
         self.check_is_index(result)
 
+        # GH 12881
+        # a float astype int
+        for dtype in ['int16', 'int32', 'int64']:
+            i = Float64Index([0, 1, 2])
+            result = i.astype(dtype)
+            expected = Int64Index([0, 1, 2])
+            tm.assert_index_equal(result, expected)
+
+            i = Float64Index([0, 1.1, 2])
+            result = i.astype(dtype)
+            expected = Int64Index([0, 1, 2])
+            tm.assert_index_equal(result, expected)
+
+        for dtype in ['float32', 'float64']:
+            i = Float64Index([0, 1, 2])
+            result = i.astype(dtype)
+            expected = i
+            tm.assert_index_equal(result, expected)
+
+            i = Float64Index([0, 1.1, 2])
+            result = i.astype(dtype)
+            expected = Index(i.values.astype(dtype))
+            tm.assert_index_equal(result, expected)
+
+        # invalid
+        for dtype in ['M8[ns]', 'm8[ns]']:
+            self.assertRaises(TypeError, lambda: i.astype(dtype))
+
     def test_equals(self):
 
         i = Float64Index([1.0, 2.0])

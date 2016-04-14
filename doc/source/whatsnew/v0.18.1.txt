@@ -267,7 +267,8 @@ Bug Fixes
 - Bug in ``float_format`` option with option not being validated as a callable. (:issue:`12706`)
 - Bug in ``GroupBy.filter`` when ``dropna=False`` and no groups fulfilled the criteria (:issue:`12768`)
 - Bug in ``__name__`` of ``.cum*`` functions (:issue:`12021`)
-
+- Bug in ``.astype()`` of a ``Float64Inde/Int64Index`` to an ``Int64Index`` (:issue:`12881`)
+- Bug in roundtripping an integer based index in ``.to_json()/.read_json()`` when ``orient='index'`` (the default) (:issue:`12866`)
 
 - Bug in ``.drop()`` with a non-unique ``MultiIndex``. (:issue:`12701`)
 - Bug in ``.concat`` of datetime tz-aware and naive DataFrames (:issue:`12467`)
