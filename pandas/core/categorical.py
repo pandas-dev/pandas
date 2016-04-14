@@ -1157,30 +1157,76 @@ class Categorical(PandasObject):
         return result
 
     def sort_values(self, inplace=False, ascending=True, na_position='last'):
-        """ Sorts the Category by category value returning a new Categorical by
-        default.
+        """ Sorts the Categorical by category value returning a new
+        Categorical by default.
 
-        Only ordered Categoricals can be sorted!
-
-        Categorical.sort is the equivalent but sorts the Categorical inplace.
+        While an ordering is applied to the category values, sorting in this
+        context refers more to organizing and grouping together based on
+        matching category values. Thus, this function can be called on an
+        unordered Categorical instance unlike the functions 'Categorical.min'
+        and 'Categorical.max'.
 
         Parameters
         ----------
         inplace : boolean, default False
             Do operation in place.
         ascending : boolean, default True
-            Sort ascending. Passing False sorts descending
+            Order ascending. Passing False orders descending. The
+            ordering parameter provides the method by which the
+            category values are organized.
         na_position : {'first', 'last'} (optional, default='last')
             'first' puts NaNs at the beginning
             'last' puts NaNs at the end
 
         Returns
         -------
-        y : Category or None
+        y : Categorical or None
 
         See Also
         --------
-        Category.sort
+        Categorical.sort
+
+        Examples
+        --------
+        >>> c = pd.Categorical([1, 2, 2, 1, 5])
+        >>> c
+        [1, 2, 2, 1, 5]
+        Categories (3, int64): [1, 2, 5]
+        >>> c.sort_values()
+        [1, 1, 2, 2, 5]
+        Categories (3, int64): [1, 2, 5]
+        >>> c.sort_values(ascending=False)
+        [5, 2, 2, 1, 1]
+        Categories (3, int64): [1, 2, 5]
+
+        Inplace sorting can be done as well:
+
+        >>> c.sort_values(inplace=True)
+        >>> c
+        [1, 1, 2, 2, 5]
+        Categories (3, int64): [1, 2, 5]
+        >>>
+        >>> c = pd.Categorical([1, 2, 2, 1, 5])
+
+        'sort_values' behaviour with NaNs. Note that 'na_position'
+        is independent of the 'ascending' parameter:
+
+        >>> c = pd.Categorical([np.nan, 2, 2, np.nan, 5])
+        >>> c
+        [NaN, 2.0, 2.0, NaN, 5.0]
+        Categories (2, int64): [2, 5]
+        >>> c.sort_values()
+        [2.0, 2.0, 5.0, NaN, NaN]
+        Categories (2, int64): [2, 5]
+        >>> c.sort_values(ascending=False)
+        [5.0, 2.0, 2.0, NaN, NaN]
+        Categories (2, int64): [2, 5]
+        >>> c.sort_values(na_position='first')
+        [NaN, NaN, 2.0, 2.0, 5.0]
+        Categories (2, int64): [2, 5]
+        >>> c.sort_values(ascending=False, na_position='first')
+        [NaN, NaN, 5.0, 2.0, 2.0]
+        Categories (2, int64): [2, 5]
         """
         if na_position not in ['last', 'first']:
             raise ValueError('invalid na_position: {!r}'.format(na_position))
@@ -1193,13 +1239,13 @@ class Categorical(PandasObject):
         na_mask = (codes == -1)
         if na_mask.any():
             n_nans = len(codes[na_mask])
-            if na_position == "first" and not ascending:
+            if na_position == "first":
                 # in this case sort to the front
                 new_codes = codes.copy()
                 new_codes[0:n_nans] = -1
                 new_codes[n_nans:] = codes[~na_mask]
                 codes = new_codes
-            elif na_position == "last" and not ascending:
+            elif na_position == "last":
                 # ... and to the end
                 new_codes = codes.copy()
                 pos = len(codes) - n_nans
@@ -1215,32 +1261,12 @@ class Categorical(PandasObject):
 
     def order(self, inplace=False, ascending=True, na_position='last'):
         """
-        DEPRECATED: use :meth:`Categorical.sort_values`
-
-        Sorts the Category by category value returning a new Categorical by
-        default.
-
-        Only ordered Categoricals can be sorted!
-
-        Categorical.sort is the equivalent but sorts the Categorical inplace.
-
-        Parameters
-        ----------
-        inplace : boolean, default False
-            Do operation in place.
-        ascending : boolean, default True
-            Sort ascending. Passing False sorts descending
-        na_position : {'first', 'last'} (optional, default='last')
-            'first' puts NaNs at the beginning
-            'last' puts NaNs at the end
-
-        Returns
-        -------
-        y : Category or None
+        DEPRECATED: use :meth:`Categorical.sort_values`. That function
+        is entirely equivalent to this one.
 
         See Also
         --------
-        Category.sort
+        Categorical.sort_values
         """
         warn("order is deprecated, use sort_values(...)", FutureWarning,
              stacklevel=2)
@@ -1248,30 +1274,18 @@ class Categorical(PandasObject):
                                 na_position=na_position)
 
     def sort(self, inplace=True, ascending=True, na_position='last'):
-        """ Sorts the Category inplace by category value.
-
-        Only ordered Categoricals can be sorted!
-
-        Catgorical.order is the equivalent but returns a new Categorical.
-
-        Parameters
-        ----------
-        ascending : boolean, default True
-            Sort ascending. Passing False sorts descending
-        inplace : boolean, default False
-            Do operation in place.
-        na_position : {'first', 'last'} (optional, default='last')
-            'first' puts NaNs at the beginning
-            'last' puts NaNs at the end
-
-        Returns
-        -------
-        y : Category or None
+        """
+        DEPRECATED: use :meth:`Categorical.sort_values`. That function
+        is just like this one, except that a new Categorical is returned
+        by default, so make sure to pass in 'inplace=True' to get
+        inplace sorting.
 
         See Also
         --------
-        Category.sort_values
+        Categorical.sort_values
         """
+        warn("sort is deprecated, use sort_values(...)", FutureWarning,
+             stacklevel=2)
         return self.sort_values(inplace=inplace, ascending=ascending,
                                 na_position=na_position)
 
