@@ -124,6 +124,8 @@ typedef enum {
     EAT_LINE_COMMENT,
     WHITESPACE_LINE,
     SKIP_LINE,
+    QUOTE_IN_SKIP_LINE,
+    QUOTE_IN_QUOTE_IN_SKIP_LINE,
     FINISHED
 } ParserState;
 
