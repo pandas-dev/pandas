@@ -899,8 +899,8 @@ class TestCrosstab(tm.TestCase):
                       'two', 'two', 'two'], dtype=object)
         c = np.array(['dull', 'dull', 'dull', 'dull',
                       'dull', 'shiny', 'shiny'], dtype=object)
-        res = crosstab(a, [b, c], rownames=['a'],
-                       colnames=['b', 'c'], dropna=False)
+        res = pd.crosstab(a, [b, c], rownames=['a'],
+                          colnames=['b', 'c'], dropna=False)
         m = MultiIndex.from_tuples([('one', 'dull'), ('one', 'shiny'),
                                     ('two', 'dull'), ('two', 'shiny')])
         assert_equal(res.columns.values, m.values)
@@ -936,7 +936,7 @@ class TestCrosstab(tm.TestCase):
 
         tm.assert_frame_equal(actual, expected)
 
-    def test_margin_ignore_dropna_bug(self):
+    def test_margin_dropna(self):
         # GH 12577
         # pivot_table counts null into margin ('All')
         # when margins=true and dropna=true
@@ -963,6 +963,62 @@ class TestCrosstab(tm.TestCase):
         expected = pd.DataFrame([[1, 0, 1], [0, 1, 1], [1, 1, 2]])
         expected.index = Index([1.0, 2.0, 'All'], name='a')
         expected.columns = Index([3, 4, 'All'], name='b')
+        tm.assert_frame_equal(actual, expected)
+
+        # GH 12642
+        # _add_margins raises KeyError: Level None not found
+        # when margins=True and dropna=False
+        df = pd.DataFrame({'a': [1, 2, 2, 2, 2, np.nan],
+                           'b': [3, 3, 4, 4, 4, 4]})
+        actual = pd.crosstab(df.a, df.b, margins=True, dropna=False)
+        expected = pd.DataFrame([[1, 0, 1], [1, 3, 4], [2, 4, 6]])
+        expected.index = Index([1.0, 2.0, 'All'], name='a')
+        expected.columns = Index([3, 4, 'All'], name='b')
+        tm.assert_frame_equal(actual, expected)
+
+        df = DataFrame({'a': [1, np.nan, np.nan, np.nan, 2, np.nan],
+                        'b': [3, np.nan, 4, 4, 4, 4]})
+        actual = pd.crosstab(df.a, df.b, margins=True, dropna=False)
+        expected = pd.DataFrame([[1, 0, 1], [0, 1, 1], [1, 4, 6]])
+        expected.index = Index([1.0, 2.0, 'All'], name='a')
+        expected.columns = Index([3.0, 4.0, 'All'], name='b')
+        tm.assert_frame_equal(actual, expected)
+
+        a = np.array(['foo', 'foo', 'foo', 'bar',
+                      'bar', 'foo', 'foo'], dtype=object)
+        b = np.array(['one', 'one', 'two', 'one',
+                      'two', np.nan, 'two'], dtype=object)
+        c = np.array(['dull', 'dull', 'dull', 'dull',
+                      'dull', 'shiny', 'shiny'], dtype=object)
+
+        actual = pd.crosstab(a, [b, c], rownames=['a'],
+                             colnames=['b', 'c'], margins=True, dropna=False)
+        m = MultiIndex.from_arrays([['one', 'one', 'two', 'two', 'All'],
+                                    ['dull', 'shiny', 'dull', 'shiny', '']],
+                                   names=['b', 'c'])
+        expected = DataFrame([[1, 0, 1, 0, 2], [2, 0, 1, 1, 5],
+                              [3, 0, 2, 1, 7]], columns=m)
+        expected.index = Index(['bar', 'foo', 'All'], name='a')
+        tm.assert_frame_equal(actual, expected)
+
+        actual = pd.crosstab([a, b], c, rownames=['a', 'b'],
+                             colnames=['c'], margins=True, dropna=False)
+        m = MultiIndex.from_arrays([['bar', 'bar', 'foo', 'foo', 'All'],
+                                    ['one', 'two', 'one', 'two', '']],
+                                   names=['a', 'b'])
+        expected = DataFrame([[1, 0, 1], [1, 0, 1], [2, 0, 2], [1, 1, 2],
+                              [5, 2, 7]], index=m)
+        expected.columns = Index(['dull', 'shiny', 'All'], name='c')
+        tm.assert_frame_equal(actual, expected)
+
+        actual = pd.crosstab([a, b], c, rownames=['a', 'b'],
+                             colnames=['c'], margins=True, dropna=True)
+        m = MultiIndex.from_arrays([['bar', 'bar', 'foo', 'foo', 'All'],
+                                    ['one', 'two', 'one', 'two', '']],
+                                   names=['a', 'b'])
+        expected = DataFrame([[1, 0, 1], [1, 0, 1], [2, 0, 2], [1, 1, 2],
+                              [5, 1, 6]], index=m)
+        expected.columns = Index(['dull', 'shiny', 'All'], name='c')
         tm.assert_frame_equal(actual, expected)
 
 if __name__ == '__main__':
