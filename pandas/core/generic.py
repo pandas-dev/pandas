@@ -1117,7 +1117,8 @@ class NDFrame(PandasObject):
                                   **kwargs)
 
     def to_sql(self, name, con, flavor='sqlite', schema=None, if_exists='fail',
-               index=True, index_label=None, chunksize=None, dtype=None):
+               index=True, index_label=None, chunksize=None, dtype=None,
+               indexes=None):
         """
         Write records stored in a DataFrame to a SQL database.
 
@@ -1157,7 +1158,7 @@ class NDFrame(PandasObject):
         from pandas.io import sql
         sql.to_sql(self, name, con, flavor=flavor, schema=schema,
                    if_exists=if_exists, index=index, index_label=index_label,
-                   chunksize=chunksize, dtype=dtype)
+                   chunksize=chunksize, dtype=dtype, indexes=indexes)
 
     def to_pickle(self, path):
         """

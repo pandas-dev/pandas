@@ -309,6 +309,14 @@ class PandasSQLTest(unittest.TestCase):
 
         self.test_frame3 = DataFrame(data, columns=columns)
 
+    def _load_test4_data(self):
+        n = 10
+        colors = np.random.choice(['red', 'green'], size=n)
+        foods = np.random.choice(['eggs', 'ham'], size=n)
+        index = pd.MultiIndex.from_arrays([colors, foods],
+                                          names=['color', 'food'])
+        self.test_frame4 = DataFrame(np.random.randn(n, 2), index=index)
+
     def _load_raw_sql(self):
         self.drop_table('types_test_data')
         self._get_exec().execute(SQL_STRINGS['create_test_types'][self.flavor])
@@ -512,6 +520,7 @@ class _TestSQLApi(PandasSQLTest):
         self._load_test1_data()
         self._load_test2_data()
         self._load_test3_data()
+        self._load_test4_data()
         self._load_raw_sql()
 
     def test_read_sql_iris(self):
@@ -933,7 +942,7 @@ class TestSQLApi(SQLAlchemyMixIn, _TestSQLApi):
     def _get_index_columns(self, tbl_name):
         from sqlalchemy.engine import reflection
         insp = reflection.Inspector.from_engine(self.conn)
-        ixs = insp.get_indexes('test_index_saved')
+        ixs = insp.get_indexes(tbl_name)
         ixs = [i['column_names'] for i in ixs]
         return ixs
 
@@ -965,6 +974,66 @@ class TestSQLApi(SQLAlchemyMixIn, _TestSQLApi):
         tm.assert_frame_equal(test_frame1, test_frame2)
         tm.assert_frame_equal(test_frame1, test_frame3)
         tm.assert_frame_equal(test_frame1, test_frame4)
+
+    def test_to_sql_column_indexes(self):
+        temp_frame = DataFrame({'col1': range(4), 'col2': range(4)})
+        sql.to_sql(temp_frame, 'test_to_sql_column_indexes', self.conn,
+                   index=False, if_exists='replace', indexes=['col1', 'col2'])
+        ix_cols = self._get_index_columns('test_to_sql_column_indexes')
+        self.assertEqual(sorted(ix_cols), [['col1'], ['col2']],
+                         "columns are not correctly indexes")
+
+    def test_sqltable_key_and_multiindex_no_pk(self):
+        db = sql.SQLDatabase(self.conn)
+        table = sql.SQLTable('test_sqltable_key_and_multiindex_no_pk', db,
+                             frame=self.test_frame4, index=True)
+        metadata = table.table.tometadata(table.pd_sql.meta)
+        indexed_columns = [e.columns.keys() for e in metadata.indexes]
+        primary_keys = metadata.primary_key.columns.keys()
+        self.assertListEqual([['color'], ['food']], sorted(indexed_columns),
+                             "Wrong secondary indexes")
+        self.assertListEqual([], primary_keys,
+                             "There should be no primary keys")
+
+    def test_sqltable_key_and_multiindex_one_pk(self):
+        db = sql.SQLDatabase(self.conn)
+        table = sql.SQLTable('test_sqltable_key_and_multiindex_one_pk', db,
+                             frame=self.test_frame4, index=True,
+                             keys=['color'])
+        metadata = table.table.tometadata(table.pd_sql.meta)
+        indexed_columns = [e.columns.keys() for e in metadata.indexes]
+        primary_keys = metadata.primary_key.columns.keys()
+        self.assertListEqual([['food']], indexed_columns,
+                             "Wrong secondary indexes")
+        self.assertListEqual(['color'], primary_keys,
+                             "Wrong primary keys")
+
+    def test_sqltable_key_and_multiindex_two_pk(self):
+        db = sql.SQLDatabase(self.conn)
+        table = sql.SQLTable('test_sqltable_key_and_multiindex_two_pk', db,
+                             frame=self.test_frame4, index=True,
+                             keys=['color', 'food'])
+        metadata = table.table.tometadata(table.pd_sql.meta)
+        indexed_columns = [e.columns.keys() for e in metadata.indexes]
+        primary_keys = metadata.primary_key.columns.keys()
+        self.assertListEqual([], indexed_columns,
+                             "There should be no secondary indexes")
+        self.assertListEqual(['color', 'food'], primary_keys,
+                             "Wrong primary keys")
+
+    def test_sqltable_no_double_key_and_index_index(self):
+        temp_frame = DataFrame({'col1': range(4), 'col2': range(4)})
+        db = sql.SQLDatabase(self.conn)
+        table = sql.SQLTable('test_sqltable_no_double_key_and_index_index', db,
+                             frame=temp_frame, index=True, index_label='id',
+                             keys=['id'], indexes=['col1', 'col2'])
+        table_metadata = table.table.tometadata(table.pd_sql.meta)
+        indexed_columns = [e.columns.keys() for e in table_metadata.indexes]
+        self.assertNotIn('id', indexed_columns,
+                         "Secondary Index found for primary key")
+
+        self.assertListEqual(['id'], table_metadata.primary_key.columns.keys(),
+                             "Primary key missing from table")
 
     def _make_iris_table_metadata(self):
         sa = sqlalchemy
