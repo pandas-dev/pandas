@@ -14,7 +14,7 @@ import pandas.tseries.offsets as offsets
 import pandas.core.common as com
 import pandas.lib as lib
 import pandas.tslib as tslib
-import pandas._period as period
+from pandas.tseries import constants
 from pandas.tslib import Timedelta
 from pytz import AmbiguousTimeError
 
@@ -38,12 +38,12 @@ class Resolution(object):
 
     # defined in period.pyx
     # note that these are different from freq codes
-    RESO_US = period.US_RESO
-    RESO_MS = period.MS_RESO
-    RESO_SEC = period.S_RESO
-    RESO_MIN = period.T_RESO
-    RESO_HR = period.H_RESO
-    RESO_DAY = period.D_RESO
+    RESO_US = constants.US_RESO
+    RESO_MS = constants.MS_RESO
+    RESO_SEC = constants.S_RESO
+    RESO_MIN = constants.T_RESO
+    RESO_HR = constants.H_RESO
+    RESO_DAY = constants.D_RESO
 
     _reso_str_map = {
         RESO_US: 'microsecond',

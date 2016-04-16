@@ -36,6 +36,13 @@ from tslib cimport (
     _nat_scalar_rules,
 )
 
+from pandas.tseries.frequencies import _period_alias_dict
+from pandas.tseries.frequencies import _get_freq_str
+from pandas.tseries.frequencies import to_offset
+from pandas.tseries.frequencies import get_freq_code as _gfc
+from pandas.tseries import frequencies
+from pandas.tseries.constants import US_RESO, MS_RESO, S_RESO, T_RESO, H_RESO, D_RESO
+
 from sys import version_info
 
 cdef bint PY2 = version_info[0] == 2
@@ -476,12 +483,6 @@ cpdef resolution(ndarray[int64_t] stamps, tz=None):
                 reso = curr_reso
         return reso
 
-US_RESO = 0
-MS_RESO = 1
-S_RESO = 2
-T_RESO = 3
-H_RESO = 4
-D_RESO = 5
 
 cdef inline int _reso_stamp(pandas_datetimestruct *dts):
     if dts.us != 0:
@@ -662,16 +663,12 @@ cdef class Period(object):
     def _maybe_convert_freq(cls, object freq):
 
         if isinstance(freq, compat.string_types):
-            from pandas.tseries.frequencies import _period_alias_dict
             freq = freq.upper()
             freq = _period_alias_dict.get(freq, freq)
         elif isinstance(freq, (int, tuple)):
-            from pandas.tseries.frequencies import get_freq_code as _gfc
-            from pandas.tseries.frequencies import _get_freq_str
             code, stride = _gfc(freq)
             freq = _get_freq_str(code, stride)
 
-        from pandas.tseries.frequencies import to_offset
         freq = to_offset(freq)
 
         if freq.n <= 0:
@@ -691,9 +688,6 @@ cdef class Period(object):
     def __init__(self, value=None, freq=None, ordinal=None,
                  year=None, month=1, quarter=None, day=1,
                  hour=0, minute=0, second=0):
-        from pandas.tseries import frequencies
-        from pandas.tseries.frequencies import get_freq_code as _gfc
-
         # freq points to a tuple (base, mult);  base is one of the defined
         # periods such as A, Q, etc. Every five minutes would be, e.g.,
         # ('T', 5) but may be passed in as a string like '5T'
@@ -771,7 +765,6 @@ cdef class Period(object):
 
     def __richcmp__(self, other, op):
         if isinstance(other, Period):
-            from pandas.tseries.frequencies import get_freq_code as _gfc
             if other.freq != self.freq:
                 msg = _DIFFERENT_FREQ.format(self.freqstr, other.freqstr)
                 raise IncompatibleFrequency(msg)
@@ -790,7 +783,6 @@ cdef class Period(object):
         return hash((self.ordinal, self.freq))
 
     def _add_delta(self, other):
-        from pandas.tseries import frequencies
         if isinstance(other, (timedelta, np.timedelta64, offsets.Tick, Timedelta)):
             offset = frequencies.to_offset(self.freq.rule_code)
             if isinstance(offset, offsets.Tick):
@@ -868,7 +860,6 @@ cdef class Period(object):
         -------
         resampled : Period
         """
-        from pandas.tseries.frequencies import get_freq_code as _gfc
         how = _validate_end_alias(how)
         base1, mult1 = _gfc(self.freq)
         base2, mult2 = _gfc(freq)
@@ -918,8 +909,6 @@ cdef class Period(object):
         -------
         Timestamp
         """
-        from pandas.tseries import frequencies
-        from pandas.tseries.frequencies import get_freq_code as _gfc
         how = _validate_end_alias(how)
 
         if freq is None:
@@ -933,7 +922,6 @@ cdef class Period(object):
         return Timestamp(dt64, tz=tz)
 
     cdef _field(self, alias):
-        from pandas.tseries.frequencies import get_freq_code as _gfc
         base, mult = _gfc(self.freq)
         return get_period_field(alias, self.ordinal, base)
 
@@ -996,7 +984,6 @@ cdef class Period(object):
         return self.freq.freqstr
 
     def __repr__(self):
-        from pandas.tseries.frequencies import get_freq_code as _gfc
         base, mult = _gfc(self.freq)
         formatted = period_format(self.ordinal, base)
         return "Period('%s', '%s')" % (formatted, self.freqstr)
@@ -1008,7 +995,6 @@ cdef class Period(object):
         Invoked by unicode(df) in py2 only. Yields a Unicode String in both
         py2/py3.
         """
-        from pandas.tseries.frequencies import get_freq_code as _gfc
         base, mult = _gfc(self.freq)
         formatted = period_format(self.ordinal, base)
         value = ("%s" % formatted)
@@ -1159,14 +1145,12 @@ cdef class Period(object):
             >>> a.strftime('%b. %d, %Y was a %A')
             'Jan. 01, 2001 was a Monday'
         """
-        from pandas.tseries.frequencies import get_freq_code as _gfc
         base, mult = _gfc(self.freq)
         return period_format(self.ordinal, base, fmt)
 
 
 def _ordinal_from_fields(year, month, quarter, day, hour, minute,
                          second, freq):
-    from pandas.tseries.frequencies import get_freq_code as _gfc
     base, mult = _gfc(freq)
     if quarter is not None:
         year, month = _quarter_to_myear(year, quarter, freq)
@@ -1179,7 +1163,6 @@ def _quarter_to_myear(year, quarter, freq):
         if quarter <= 0 or quarter > 4:
             raise ValueError('Quarter must be 1 <= q <= 4')
 
-        from pandas.tseries import frequencies
         mnum = frequencies._month_numbers[frequencies._get_rule_month(freq)] + 1
         month = (mnum + (quarter - 1) * 3) % 12 + 1
         if month > mnum:
