@@ -134,6 +134,7 @@ API changes
 
 - ``Series.apply`` for category dtype now applies passed function to each ``.categories`` (not ``.codes``), and returns "category" dtype if possible (:issue:`12473`)
 
+- ``read_csv`` will now raise a ``TypeError`` if ``parse_dates`` is neither a boolean, list, or dictionary (:issue:`5636`)
 
 - The default for ``.query()/.eval()`` is now ``engine=None``, which will use ``numexpr`` if it's installed; otherwise it will fallback to the ``python`` engine. This mimics the pre-0.18.1 behavior if ``numexpr`` is installed (and which Previously, if numexpr was not installed, ``.query()/.eval()`` would raise). (:issue:`12749`)
 

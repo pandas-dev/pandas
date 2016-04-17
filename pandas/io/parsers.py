@@ -825,6 +825,27 @@ def _validate_usecols_arg(usecols):
     return usecols
 
 
+def _validate_parse_dates_arg(parse_dates):
+    """
+    Check whether or not the 'parse_dates' parameter
+    is a non-boolean scalar. Raises a ValueError if
+    that is the case.
+    """
+    msg = ("Only booleans, lists, and "
+           "dictionaries are accepted "
+           "for the 'parse_dates' parameter")
+
+    if parse_dates is not None:
+        if lib.isscalar(parse_dates):
+            if not lib.is_bool(parse_dates):
+                raise TypeError(msg)
+
+        elif not isinstance(parse_dates, (list, dict)):
+            raise TypeError(msg)
+
+    return parse_dates
+
+
 class ParserBase(object):
 
     def __init__(self, kwds):
@@ -836,7 +857,8 @@ class ParserBase(object):
         self.index_names = None
         self.col_names = None
 
-        self.parse_dates = kwds.pop('parse_dates', False)
+        self.parse_dates = _validate_parse_dates_arg(
+            kwds.pop('parse_dates', False))
         self.date_parser = kwds.pop('date_parser', None)
         self.dayfirst = kwds.pop('dayfirst', False)
         self.keep_date_col = kwds.pop('keep_date_col', False)
