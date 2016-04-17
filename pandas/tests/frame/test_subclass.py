@@ -4,10 +4,6 @@ from __future__ import print_function
 
 from pandas import DataFrame, Series, MultiIndex, Panel
 import pandas as pd
-
-from pandas.util.testing import (assert_frame_equal,
-                                 SubclassedDataFrame)
-
 import pandas.util.testing as tm
 
 from pandas.tests.frame.common import TestData
@@ -75,8 +71,8 @@ class TestDataFrameSubclassing(tm.TestCase, TestData):
         self.assertTrue(isinstance(cdf_multi2['A'], CustomSeries))
 
     def test_dataframe_metadata(self):
-        df = SubclassedDataFrame({'X': [1, 2, 3], 'Y': [1, 2, 3]},
-                                 index=['a', 'b', 'c'])
+        df = tm.SubclassedDataFrame({'X': [1, 2, 3], 'Y': [1, 2, 3]},
+                                    index=['a', 'b', 'c'])
         df.testattr = 'XXX'
 
         self.assertEqual(df.testattr, 'XXX')
@@ -89,9 +85,45 @@ class TestDataFrameSubclassing(tm.TestCase, TestData):
 
         # GH10553
         unpickled = self.round_trip_pickle(df)
-        assert_frame_equal(df, unpickled)
+        tm.assert_frame_equal(df, unpickled)
         self.assertEqual(df._metadata, unpickled._metadata)
         self.assertEqual(df.testattr, unpickled.testattr)
+
+    def test_indexing_sliced(self):
+        # GH 11559
+        df = tm.SubclassedDataFrame({'X': [1, 2, 3],
+                                     'Y': [4, 5, 6],
+                                     'Z': [7, 8, 9]},
+                                    index=['a', 'b', 'c'])
+        res = df.loc[:, 'X']
+        exp = tm.SubclassedSeries([1, 2, 3], index=list('abc'), name='X')
+        tm.assert_series_equal(res, exp)
+        tm.assertIsInstance(res, tm.SubclassedSeries)
+
+        res = df.iloc[:, 1]
+        exp = tm.SubclassedSeries([4, 5, 6], index=list('abc'), name='Y')
+        tm.assert_series_equal(res, exp)
+        tm.assertIsInstance(res, tm.SubclassedSeries)
+
+        res = df.ix[:, 'Z']
+        exp = tm.SubclassedSeries([7, 8, 9], index=list('abc'), name='Z')
+        tm.assert_series_equal(res, exp)
+        tm.assertIsInstance(res, tm.SubclassedSeries)
+
+        res = df.loc['a', :]
+        exp = tm.SubclassedSeries([1, 4, 7], index=list('XYZ'), name='a')
+        tm.assert_series_equal(res, exp)
+        tm.assertIsInstance(res, tm.SubclassedSeries)
+
+        res = df.iloc[1, :]
+        exp = tm.SubclassedSeries([2, 5, 8], index=list('XYZ'), name='b')
+        tm.assert_series_equal(res, exp)
+        tm.assertIsInstance(res, tm.SubclassedSeries)
+
+        res = df.ix['c', :]
+        exp = tm.SubclassedSeries([3, 6, 9], index=list('XYZ'), name='c')
+        tm.assert_series_equal(res, exp)
+        tm.assertIsInstance(res, tm.SubclassedSeries)
 
     def test_to_panel_expanddim(self):
         # GH 9762

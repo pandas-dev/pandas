@@ -298,7 +298,7 @@ Bug Fixes
 
 
 
-
+- Bug in slicing subclassed ``DataFrame`` defined to return subclassed ``Series`` may return normal ``Series`` (:issue:`11559`)
 
 
 - Bug in ``.str`` accessor methods may raise ``ValueError`` if input has ``name`` and the result is ``DataFrame`` or ``MultiIndex`` (:issue:`12617`)
