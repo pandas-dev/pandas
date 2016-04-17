@@ -976,6 +976,21 @@ class TestResample(tm.TestCase):
 
         self.assertEqual(result.index.name, 'index')
 
+    def test_resample_how_method(self):
+        # GH9915
+        s = pd.Series([11, 22],
+                      index=[Timestamp('2015-03-31 21:48:52.672000'),
+                             Timestamp('2015-03-31 21:49:52.739000')])
+        expected = pd.Series([11, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, 22],
+                             index=[Timestamp('2015-03-31 21:48:50'),
+                                    Timestamp('2015-03-31 21:49:00'),
+                                    Timestamp('2015-03-31 21:49:10'),
+                                    Timestamp('2015-03-31 21:49:20'),
+                                    Timestamp('2015-03-31 21:49:30'),
+                                    Timestamp('2015-03-31 21:49:40'),
+                                    Timestamp('2015-03-31 21:49:50')])
+        assert_series_equal(s.resample("10S").mean(), expected)
+
     def test_resample_extra_index_point(self):
         # GH 9756
         index = DatetimeIndex(start='20150101', end='20150331', freq='BM')
