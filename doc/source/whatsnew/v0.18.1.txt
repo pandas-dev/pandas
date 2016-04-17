@@ -333,3 +333,5 @@ Bug Fixes
 
 
 - Bug in ``fill_value`` is ignored if the argument to a binary operator is a constant (:issue `12723`)
+
+- Bug in index coercion when falling back from ```RangeIndex``` construction (:issue:`12893`)

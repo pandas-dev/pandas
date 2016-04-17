@@ -2130,3 +2130,12 @@ class TestMultiIndex(Base, tm.TestCase):
         # Slicing date on first level should break (of course)
         with assertRaises(KeyError):
             df_swap.loc['2016-01-01']
+
+    def test_rangeindex_fallback_coercion_bug(self):
+        # GH 12893
+        foo = pd.DataFrame(np.arange(100).reshape((10, 10)))
+        bar = pd.DataFrame(np.arange(100).reshape((10, 10)))
+        df = pd.concat({'foo': foo.stack(), 'bar': bar.stack()}, axis=1)
+        df.index.names = ['fizz', 'buzz']
+        expected = [i for i in range(10) for j in range(10)]
+        self.assertTrue((df.index.get_level_values('fizz') == expected).all())
