@@ -305,6 +305,7 @@ Bug Fixes
 - Bug in ``Series.map`` raises ``TypeError`` if its dtype is ``category`` or tz-aware ``datetime`` (:issue:`12473`)
 
 
+- Bug in index coercion when falling back from ```RangeIndex``` construction (:issue:`12893`)
 
 - Bug in slicing subclassed ``DataFrame`` defined to return subclassed ``Series`` may return normal ``Series`` (:issue:`11559`)
 
