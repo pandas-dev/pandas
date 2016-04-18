@@ -576,10 +576,7 @@ class TestPandasContainer(tm.TestCase):
         df = DataFrame([[1, 2, 3], [4, 5, 6]])
         result = read_json(df.to_json())
 
-        self.assertEqual(result.index.dtype, np.float64)
-        self.assertEqual(result.columns.dtype, np.float64)
-        assert_frame_equal(result, df, check_index_type=False,
-                           check_column_type=False)
+        assert_frame_equal(result, df)
 
         df = DataFrame({'a': [1, 2, 3], 'b': [4, 5, 6]}, index=['A', 'B', 'C'])
         result = read_json(df.to_json())
@@ -776,23 +773,20 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
 
         s = Series([timedelta(23), timedelta(seconds=5)])
         self.assertEqual(s.dtype, 'timedelta64[ns]')
-        # index will be float dtype
-        assert_series_equal(s, pd.read_json(s.to_json(), typ='series')
-                            .apply(converter),
-                            check_index_type=False)
+
+        result = pd.read_json(s.to_json(), typ='series').apply(converter)
+        assert_series_equal(result, s)
 
         s = Series([timedelta(23), timedelta(seconds=5)],
-                   index=pd.Index([0, 1], dtype=float))
+                   index=pd.Index([0, 1]))
         self.assertEqual(s.dtype, 'timedelta64[ns]')
-        assert_series_equal(s, pd.read_json(
-            s.to_json(), typ='series').apply(converter))
+        result = pd.read_json(s.to_json(), typ='series').apply(converter)
+        assert_series_equal(result, s)
 
         frame = DataFrame([timedelta(23), timedelta(seconds=5)])
         self.assertEqual(frame[0].dtype, 'timedelta64[ns]')
         assert_frame_equal(frame, pd.read_json(frame.to_json())
-                           .apply(converter),
-                           check_index_type=False,
-                           check_column_type=False)
+                           .apply(converter))
 
         frame = DataFrame({'a': [timedelta(days=23), timedelta(seconds=5)],
                            'b': [1, 2],
@@ -801,7 +795,7 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         result = pd.read_json(frame.to_json(date_unit='ns'))
         result['a'] = pd.to_timedelta(result.a, unit='ns')
         result['c'] = pd.to_datetime(result.c)
-        assert_frame_equal(frame, result, check_index_type=False)
+        assert_frame_equal(frame, result)
 
     def test_mixed_timedelta_datetime(self):
         frame = DataFrame({'a': [timedelta(23), pd.Timestamp('20130101')]},
