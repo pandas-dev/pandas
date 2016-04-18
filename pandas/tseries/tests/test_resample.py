@@ -1359,8 +1359,33 @@ class TestResample(tm.TestCase):
                         # (ex: doing mean with dtype of np.object)
                         pass
 
-        # this should also tests nunique (IOW, use resample_methods)
+        # this should also tests nunique
+        # (IOW, use resample_methods)
         # when GH12886 is closed
+
+    def test_resample_segfault(self):
+        # GH 8573
+        # segfaulting in older versions
+        all_wins_and_wagers = [
+            (1, datetime(2013, 10, 1, 16, 20), 1, 0),
+            (2, datetime(2013, 10, 1, 16, 10), 1, 0),
+            (2, datetime(2013, 10, 1, 18, 15), 1, 0),
+            (2, datetime(2013, 10, 1, 16, 10, 31), 1, 0)]
+
+        df = pd.DataFrame.from_records(all_wins_and_wagers,
+                                       columns=("ID", "timestamp", "A", "B")
+                                       ).set_index("timestamp")
+        result = df.groupby("ID").resample("5min").sum()
+        expected = DataFrame([[1, 1, 0],
+                              [4, 2, 0],
+                              [2, 1, 0]],
+                             index=pd.MultiIndex.from_tuples([
+                                 (1, pd.Timestamp('2013-10-01 16:20:00')),
+                                 (2, pd.Timestamp('2013-10-01 16:10:00')),
+                                 (2, pd.Timestamp('2013-10-01 18:15:00'))],
+                                 names=['ID', 'timestamp']),
+                             columns=['ID', 'A', 'B'])
+        assert_frame_equal(result, expected)
 
     def test_resample_dtype_preservation(self):
 
