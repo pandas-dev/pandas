@@ -1747,7 +1747,7 @@ class BaseGrouper(object):
             values = _algos.ensure_float64(values)
         elif com.is_integer_dtype(values):
             values = values.astype('int64', copy=False)
-        elif is_numeric:
+        elif is_numeric and not com.is_complex_dtype(values):
             values = _algos.ensure_float64(values)
         else:
             values = values.astype(object)
