@@ -331,3 +331,6 @@ Bug Fixes
 
 
 - Bug in ``fill_value`` is ignored if the argument to a binary operator is a constant (:issue `12723`)
+
+
+- Bug in ``Series.map`` raises ``TypeError`` if its dtype is ``category`` or tz-aware ``datetime`` (:issue:`12473`)
