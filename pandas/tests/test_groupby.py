@@ -2475,6 +2475,15 @@ class TestGroupBy(tm.TestCase):
         result = a.groupby(level=0).sum()
         self.assertEqual(result.index.name, a.index.name)
 
+    def test_groupby_complex(self):
+        # GH 12902
+        a = Series(data=np.arange(4) * (1 + 2j), index=[0, 0, 1, 1])
+        result0 = a.groupby(level=0).sum()
+        result1 = a.sum(level=0)
+        expected = Series((1 + 2j, 5 + 10j))
+        assert_series_equal(result0, expected)
+        assert_series_equal(result1, expected)
+
     def test_level_preserve_order(self):
         grouped = self.mframe.groupby(level=0)
         exp_labels = np.array([0, 0, 0, 1, 1, 2, 2, 3, 3, 3])
