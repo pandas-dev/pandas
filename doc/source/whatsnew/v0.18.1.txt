@@ -325,3 +325,4 @@ Bug Fixes
 - ``pd.read_excel()`` now accepts column names associated with keyword argument ``names``(:issue `12870`)
 
 - Bug in ``fill_value`` is ignored if the argument to a binary operator is a constant (:issue `12723`)
+- Bug in ``groupby`` where complex types are coerced to float (:issue:`12902`)

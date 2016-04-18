@@ -2475,6 +2475,17 @@ class TestGroupBy(tm.TestCase):
         result = a.groupby(level=0).sum()
         self.assertEqual(result.index.name, a.index.name)
 
+    def test_groupby_complex(self):
+        # GH 12902
+        a = Series(data=np.arange(4) * (1 + 2j), index=[0, 0, 1, 1])
+        expected = Series((1 + 2j, 5 + 10j))
+
+        result = a.groupby(level=0).sum()
+        assert_series_equal(result, expected)
+
+        result = a.sum(level=0)
+        assert_series_equal(result, expected)
+
     def test_level_preserve_order(self):
         grouped = self.mframe.groupby(level=0)
         exp_labels = np.array([0, 0, 0, 1, 1, 2, 2, 3, 3, 3])
@@ -3254,7 +3265,7 @@ class TestGroupBy(tm.TestCase):
     def test_groupby_keys_same_size_as_index(self):
         # GH 11185
         freq = 's'
-        index = pd.date_range(start=np.datetime64('2015-09-29T11:34:44-0700'),
+        index = pd.date_range(start=pd.Timestamp('2015-09-29T11:34:44-0700'),
                               periods=2, freq=freq)
         df = pd.DataFrame([['A', 10], ['B', 15]], columns=[
             'metric', 'values'
