@@ -55,7 +55,7 @@ R                                            pandas
 ``select(df, col1, col2)``                   ``df[['col1', 'col2']]``
 ``select(df, col1:col3)``                    No one-line equivalent, but see [#select_range]_
 ``select(df, -(col1:col3))``                 ``df.drop(cols_to_drop, axis=1)`` but see [#select_range]_
-``distinct(select(df, col1))``               ``df.col1.unique()``
+``distinct(select(df, col1))``               ``df[['col1']].drop_duplicates()``
 ``distinct(select(df, col1, col2))``         ``df[['col1', 'col2']].drop_duplicates()``
 ``sample_n(df, 10)``                         ``df.sample(n=10)``
 ``sample_frac(df, 0.01)``                    ``df.sample(frac=0.01)``
@@ -75,8 +75,8 @@ Sorting
 ===========================================  ===========================================
 R                                            pandas
 ===========================================  ===========================================
-``arrange(df, col1, col2)``                  ``df.sort(['col1', 'col2'])``
-``arrange(df, desc(col1))``                  ``df.sort('col1', ascending=False)``
+``arrange(df, col1, col2)``                  ``df.sort_values(['col1', 'col2'])``
+``arrange(df, desc(col1))``                  ``df.sort_values('col1', ascending=False)``
 ===========================================  ===========================================
 
 Transforming
