@@ -59,10 +59,7 @@ def _arith_method(op, name, str_rep=None, default_axis=None, fill_zeros=None,
 
 
 def _sparse_array_op(left, right, op, name):
-    if np.isnan(left.fill_value):
-        sparse_op = lambda a, b: _sparse_nanop(a, b, name)
-    else:
-        sparse_op = lambda a, b: _sparse_fillop(a, b, name)
+    sparse_op = lambda a, b: _sparse_op(a, b, name)
 
     if left.sp_index.equals(right.sp_index):
         result = op(left.sp_values, right.sp_values)
@@ -79,15 +76,7 @@ def _sparse_array_op(left, right, op, name):
                        fill_value=fill_value)
 
 
-def _sparse_nanop(this, other, name):
-    sparse_op = getattr(splib, 'sparse_nan%s' % name)
-    result, result_index = sparse_op(this.sp_values, this.sp_index,
-                                     other.sp_values, other.sp_index)
-
-    return result, result_index
-
-
-def _sparse_fillop(this, other, name):
+def _sparse_op(this, other, name):
     sparse_op = getattr(splib, 'sparse_%s' % name)
     result, result_index = sparse_op(this.sp_values, this.sp_index,
                                      this.fill_value, other.sp_values,

@@ -543,6 +543,69 @@ class TestSparseArray(tm.TestCase):
         tm.assert_sp_array_equal(res, exp)
 
 
+class TestSparseArrayArithmetic(tm.TestCase):
+
+    _multiprocess_can_split_ = True
+
+    def _check_numeric_ops(self, a, b, a_dense, b_dense):
+        tm.assert_numpy_array_equal((a + b).to_dense(), a_dense + b_dense)
+        tm.assert_numpy_array_equal((b + a).to_dense(), b_dense + a_dense)
+
+        tm.assert_numpy_array_equal((a - b).to_dense(), a_dense - b_dense)
+        tm.assert_numpy_array_equal((b - a).to_dense(), b_dense - a_dense)
+
+        tm.assert_numpy_array_equal((a * b).to_dense(), a_dense * b_dense)
+        tm.assert_numpy_array_equal((b * a).to_dense(), b_dense * a_dense)
+
+        tm.assert_numpy_array_equal((a / b).to_dense(), a_dense / b_dense)
+        tm.assert_numpy_array_equal((b / a).to_dense(), b_dense / a_dense)
+
+        tm.assert_numpy_array_equal((a // b).to_dense(), a_dense // b_dense)
+        tm.assert_numpy_array_equal((b // a).to_dense(), b_dense // a_dense)
+
+        tm.assert_numpy_array_equal((a % b).to_dense(), a_dense % b_dense)
+        tm.assert_numpy_array_equal((b % a).to_dense(), b_dense % a_dense)
+
+        tm.assert_numpy_array_equal((a ** b).to_dense(), a_dense ** b_dense)
+        tm.assert_numpy_array_equal((b ** a).to_dense(), b_dense ** a_dense)
+
+    def test_float_scalar(self):
+        values = np.array([np.nan, 1, 2, 0, np.nan, 0, 1, 2, 1, np.nan])
+
+        a = SparseArray(values)
+        self._check_numeric_ops(a, 1, values, 1)
+        self._check_numeric_ops(a, 0, values, 0)
+
+        a = SparseArray(values, fill_value=0)
+        self._check_numeric_ops(a, 1, values, 1)
+        self._check_numeric_ops(a, 0, values, 0)
+
+        a = SparseArray(values, fill_value=2)
+        self._check_numeric_ops(a, 1, values, 1)
+        self._check_numeric_ops(a, 0, values, 0)
+
+    def test_float_array(self):
+        values = np.array([np.nan, 1, 2, 0, np.nan, 0, 1, 2, 1, np.nan])
+        rvalues = np.array([2, np.nan, 2, 3, np.nan, 0, 1, 5, 2, np.nan])
+
+        a = SparseArray(values)
+        b = SparseArray(rvalues)
+        self._check_numeric_ops(a, b, values, rvalues)
+        self._check_numeric_ops(a, b * 0, values, rvalues * 0)
+
+        a = SparseArray(values, fill_value=0)
+        b = SparseArray(rvalues)
+        self._check_numeric_ops(a, b, values, rvalues)
+
+        a = SparseArray(values, fill_value=0)
+        b = SparseArray(rvalues, fill_value=0)
+        self._check_numeric_ops(a, b, values, rvalues)
+
+        a = SparseArray(values, fill_value=1)
+        b = SparseArray(rvalues, fill_value=2)
+        self._check_numeric_ops(a, b, values, rvalues)
+
+
 if __name__ == '__main__':
     import nose
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],

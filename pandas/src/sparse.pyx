@@ -765,20 +765,6 @@ cdef class BlockUnion(BlockMerge):
 
 ctypedef float64_t (* double_func)(float64_t a, float64_t b)
 
-cdef inline tuple sparse_nancombine(ndarray x, SparseIndex xindex,
-                                    ndarray y, SparseIndex yindex,
-                                    double_func op):
-    # faster to convert to IntIndex
-    return int_nanop(x, xindex.to_int_index(),
-                     y, yindex.to_int_index(), op)
-
-    # if isinstance(xindex, BlockIndex):
-    #     return block_nanop(x, xindex.to_block_index(),
-    #                        y, yindex.to_block_index(), op)
-    # elif isinstance(xindex, IntIndex):
-    #     return int_nanop(x, xindex.to_int_index(),
-    #                      y, yindex.to_int_index(), op)
-
 
 cdef inline tuple sparse_combine(ndarray x, SparseIndex xindex, float64_t xfill,
                                  ndarray y, SparseIndex yindex, float64_t yfill,
@@ -789,115 +775,6 @@ cdef inline tuple sparse_combine(ndarray x, SparseIndex xindex, float64_t xfill,
     elif isinstance(xindex, IntIndex):
         return int_op(x, xindex.to_int_index(), xfill,
                       y, yindex.to_int_index(), yfill, op)
-
-# NaN-based arithmetic operation-- no handling of fill values
-# TODO: faster to convert everything to dense?
-
-@cython.boundscheck(False)
-cdef inline tuple block_nanop(ndarray x_, BlockIndex xindex,
-                              ndarray y_, BlockIndex yindex,
-                              double_func op):
-    cdef:
-        BlockIndex out_index
-        Py_ssize_t xi = 0, yi = 0, out_i = 0 # fp buf indices
-        Py_ssize_t xbp = 0, ybp = 0, obp = 0 # block positions
-        Py_ssize_t xblock = 0, yblock = 0, outblock = 0 # block numbers
-
-        ndarray[float64_t, ndim=1] x, y
-        ndarray[float64_t, ndim=1] out
-
-    # suppress Cython compiler warnings due to inlining
-    x = x_
-    y = y_
-
-    out_index = xindex.intersect(yindex)
-    out = np.empty(out_index.npoints, dtype=np.float64)
-
-    # walk the two SparseVectors, adding matched locations...
-    for out_i from 0 <= out_i < out_index.npoints:
-
-        # I have a feeling this is inefficient
-
-        # walk x
-        while xindex.locbuf[xblock] + xbp < out_index.locbuf[outblock] + obp:
-            xbp += 1
-            xi += 1
-            if xbp == xindex.lenbuf[xblock]:
-                xblock += 1
-                xbp = 0
-
-        # walk y
-        while yindex.locbuf[yblock] + ybp < out_index.locbuf[outblock] + obp:
-            ybp += 1
-            yi += 1
-            if ybp == yindex.lenbuf[yblock]:
-                yblock += 1
-                ybp = 0
-
-        out[out_i] = op(x[xi], y[yi])
-
-        # advance. strikes me as too complicated
-        xi += 1
-        yi += 1
-
-        xbp += 1
-        if xbp == xindex.lenbuf[xblock]:
-            xblock += 1
-            xbp = 0
-
-        ybp += 1
-        if ybp == yindex.lenbuf[yblock]:
-            yblock += 1
-            ybp = 0
-
-        obp += 1
-        if obp == out_index.lenbuf[outblock]:
-            outblock += 1
-            obp = 0
-
-    return out, out_index
-
-@cython.boundscheck(False)
-cdef inline tuple int_nanop(ndarray x_, IntIndex xindex,
-                            ndarray y_, IntIndex yindex,
-                            double_func op):
-    cdef:
-        IntIndex out_index
-        Py_ssize_t xi = 0, yi = 0, out_i = 0 # fp buf indices
-        ndarray[int32_t, ndim=1] xindices, yindices, out_indices
-        ndarray[float64_t, ndim=1] x, y
-        ndarray[float64_t, ndim=1] out
-
-    # suppress Cython compiler warnings due to inlining
-    x = x_
-    y = y_
-
-    # need to do this first to know size of result array
-    out_index = xindex.intersect(yindex)
-    out = np.empty(out_index.npoints, dtype=np.float64)
-
-    xindices = xindex.indices
-    yindices = yindex.indices
-    out_indices = out_index.indices
-
-    # walk the two SparseVectors, adding matched locations...
-    for out_i from 0 <= out_i < out_index.npoints:
-
-        # walk x
-        while xindices[xi] < out_indices[out_i]:
-            xi += 1
-
-        # walk y
-        while yindices[yi] < out_indices[out_i]:
-            yi += 1
-
-        out[out_i] = op(x[xi], y[yi])
-
-        # advance
-        xi += 1
-        yi += 1
-
-    return out, out_index
 
 
 @cython.boundscheck(False)
@@ -1095,19 +972,29 @@ cdef inline float64_t __rfloordiv(float64_t a, float64_t b):
 
 cdef inline float64_t __mul(float64_t a, float64_t b):
     return a * b
+
 cdef inline float64_t __eq(float64_t a, float64_t b):
     return a == b
+
 cdef inline float64_t __ne(float64_t a, float64_t b):
     return a != b
+
 cdef inline float64_t __lt(float64_t a, float64_t b):
     return a < b
+
 cdef inline float64_t __gt(float64_t a, float64_t b):
     return a > b
 
-cdef inline float64_t __pow(float64_t a, float64_t b):
-    # NaN
-    if a != a or b != b:
+cdef inline float64_t __mod(float64_t a, float64_t b):
+    if b == 0:
         return NaN
+    else:
+        return a % b
+
+cdef inline float64_t __rmod(float64_t a, float64_t b):
+    return __mod(b, a)
+
+cdef inline float64_t __pow(float64_t a, float64_t b):
     return a ** b
 
 cdef inline float64_t __rpow(float64_t a, float64_t b):
@@ -1116,49 +1003,6 @@ cdef inline float64_t __rpow(float64_t a, float64_t b):
 
 # This probably needs to be "templated" to achieve maximum performance.
 # TODO: quantify performance boost to "templating"
-
-cpdef sparse_nanadd(ndarray x, SparseIndex xindex,
-                    ndarray y, SparseIndex yindex):
-    return sparse_nancombine(x, xindex, y, yindex, __add)
-
-cpdef sparse_nansub(ndarray x, SparseIndex xindex,
-                    ndarray y, SparseIndex yindex):
-    return sparse_nancombine(x, xindex, y, yindex, __sub)
-
-cpdef sparse_nanrsub(ndarray x, SparseIndex xindex,
-                    ndarray y, SparseIndex yindex):
-    return sparse_nancombine(x, xindex, y, yindex, __rsub)
-
-cpdef sparse_nanmul(ndarray x, SparseIndex xindex,
-                    ndarray y, SparseIndex yindex):
-    return sparse_nancombine(x, xindex, y, yindex, __mul)
-
-cpdef sparse_nandiv(ndarray x, SparseIndex xindex,
-                    ndarray y, SparseIndex yindex):
-    return sparse_nancombine(x, xindex, y, yindex, __div)
-
-cpdef sparse_nanrdiv(ndarray x, SparseIndex xindex,
-                    ndarray y, SparseIndex yindex):
-    return sparse_nancombine(x, xindex, y, yindex, __rdiv)
-
-sparse_nantruediv = sparse_nandiv
-sparse_nanrtruediv = sparse_nanrdiv
-
-cpdef sparse_nanfloordiv(ndarray x, SparseIndex xindex,
-                    ndarray y, SparseIndex yindex):
-    return sparse_nancombine(x, xindex, y, yindex, __floordiv)
-
-cpdef sparse_nanrfloordiv(ndarray x, SparseIndex xindex,
-                    ndarray y, SparseIndex yindex):
-    return sparse_nancombine(x, xindex, y, yindex, __rfloordiv)
-
-cpdef sparse_nanpow(ndarray x, SparseIndex xindex,
-                    ndarray y, SparseIndex yindex):
-    return sparse_nancombine(x, xindex, y, yindex, __pow)
-
-cpdef sparse_nanrpow(ndarray x, SparseIndex xindex,
-                    ndarray y, SparseIndex yindex):
-    return sparse_nancombine(x, xindex, y, yindex, __rpow)
 
 cpdef sparse_add(ndarray x, SparseIndex xindex, float64_t xfill,
                  ndarray y, SparseIndex yindex, float64_t yfill):
@@ -1171,7 +1015,7 @@ cpdef sparse_sub(ndarray x, SparseIndex xindex, float64_t xfill,
                              y, yindex, yfill, __sub)
 
 cpdef sparse_rsub(ndarray x, SparseIndex xindex, float64_t xfill,
-                 ndarray y, SparseIndex yindex, float64_t yfill):
+                  ndarray y, SparseIndex yindex, float64_t yfill):
     return sparse_combine(x, xindex, xfill,
                              y, yindex, yfill, __rsub)
 
@@ -1186,7 +1030,7 @@ cpdef sparse_div(ndarray x, SparseIndex xindex, float64_t xfill,
                              y, yindex, yfill, __div)
 
 cpdef sparse_rdiv(ndarray x, SparseIndex xindex, float64_t xfill,
-                 ndarray y, SparseIndex yindex, float64_t yfill):
+                  ndarray y, SparseIndex yindex, float64_t yfill):
     return sparse_combine(x, xindex, xfill,
                              y, yindex, yfill, __rdiv)
 
@@ -1194,14 +1038,24 @@ sparse_truediv = sparse_div
 sparse_rtruediv = sparse_rdiv
 
 cpdef sparse_floordiv(ndarray x, SparseIndex xindex, float64_t xfill,
-                 ndarray y, SparseIndex yindex, float64_t yfill):
+                      ndarray y, SparseIndex yindex, float64_t yfill):
     return sparse_combine(x, xindex, xfill,
                              y, yindex, yfill, __floordiv)
 
 cpdef sparse_rfloordiv(ndarray x, SparseIndex xindex, float64_t xfill,
-                 ndarray y, SparseIndex yindex, float64_t yfill):
+                       ndarray y, SparseIndex yindex, float64_t yfill):
     return sparse_combine(x, xindex, xfill,
                              y, yindex, yfill, __rfloordiv)
+
+cpdef sparse_mod(ndarray x, SparseIndex xindex, float64_t xfill,
+                 ndarray y, SparseIndex yindex, float64_t yfill):
+    return sparse_combine(x, xindex, xfill,
+                             y, yindex, yfill, __mod)
+
+cpdef sparse_rmod(ndarray x, SparseIndex xindex, float64_t xfill,
+                  ndarray y, SparseIndex yindex, float64_t yfill):
+    return sparse_combine(x, xindex, xfill,
+                             y, yindex, yfill, __rmod)
 
 cpdef sparse_pow(ndarray x, SparseIndex xindex, float64_t xfill,
                  ndarray y, SparseIndex yindex, float64_t yfill):
@@ -1209,7 +1063,7 @@ cpdef sparse_pow(ndarray x, SparseIndex xindex, float64_t xfill,
                              y, yindex, yfill, __pow)
 
 cpdef sparse_rpow(ndarray x, SparseIndex xindex, float64_t xfill,
-                 ndarray y, SparseIndex yindex, float64_t yfill):
+                  ndarray y, SparseIndex yindex, float64_t yfill):
     return sparse_combine(x, xindex, xfill,
                              y, yindex, yfill, __rpow)
 
