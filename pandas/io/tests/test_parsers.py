@@ -2827,6 +2827,16 @@ MyColumn
             s = StringIO(',,')
             self.read_csv(s, header=[10])
 
+    def test_read_only_header_no_rows(self):
+        # See gh-7773
+        expected = DataFrame(columns=['a', 'b', 'c'])
+
+        df = self.read_csv(StringIO('a,b,c'))
+        tm.assert_frame_equal(df, expected)
+
+        df = self.read_csv(StringIO('a,b,c'), index_col=False)
+        tm.assert_frame_equal(df, expected)
+
 
 class CompressionTests(object):
     def test_zip(self):
