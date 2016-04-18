@@ -53,7 +53,7 @@ R                                            pandas
 ``filter(df, col1 == 1, col2 == 1)``         ``df.query('col1 == 1 & col2 == 1')``
 ``df[df$col1 == 1 & df$col2 == 1,]``         ``df[(df.col1 == 1) & (df.col2 == 1)]``
 ``select(df, col1, col2)``                   ``df[['col1', 'col2']]``
-``select(df, col1:col3)``                    No one-line equivalent, but see [#select_range]_
+``select(df, col1:col3)``                    ``df.loc[:, 'col1':'col3']``
 ``select(df, -(col1:col3))``                 ``df.drop(cols_to_drop, axis=1)`` but see [#select_range]_
 ``distinct(select(df, col1))``               ``df[['col1']].drop_duplicates()``
 ``distinct(select(df, col1, col2))``         ``df[['col1', 'col2']].drop_duplicates()``
