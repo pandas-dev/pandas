@@ -269,31 +269,6 @@ class TestIntIndex(tm.TestCase):
 
 
 class TestSparseOperators(tm.TestCase):
-    def _nan_op_tests(self, sparse_op, python_op):
-        def _check_case(xloc, xlen, yloc, ylen, eloc, elen):
-            xindex = BlockIndex(TEST_LENGTH, xloc, xlen)
-            yindex = BlockIndex(TEST_LENGTH, yloc, ylen)
-
-            xdindex = xindex.to_int_index()
-            ydindex = yindex.to_int_index()
-
-            x = np.arange(xindex.npoints) * 10. + 1
-            y = np.arange(yindex.npoints) * 100. + 1
-
-            result_block_vals, rb_index = sparse_op(x, xindex, y, yindex)
-            result_int_vals, ri_index = sparse_op(x, xdindex, y, ydindex)
-
-            self.assertTrue(rb_index.to_int_index().equals(ri_index))
-            assert_equal(result_block_vals, result_int_vals)
-
-            # check versus Series...
-            xseries = Series(x, xdindex.indices)
-            yseries = Series(y, ydindex.indices)
-            series_result = python_op(xseries, yseries).valid()
-            assert_equal(result_block_vals, series_result.values)
-            assert_equal(result_int_vals, series_result.values)
-
-        check_cases(_check_case)
 
     def _op_tests(self, sparse_op, python_op):
         def _check_case(xloc, xlen, yloc, ylen, eloc, elen):
@@ -337,16 +312,6 @@ class TestSparseOperators(tm.TestCase):
 check_ops = ['add', 'sub', 'mul', 'truediv', 'floordiv']
 
 
-def make_nanoptestf(op):
-    def f(self):
-        sparse_op = getattr(splib, 'sparse_nan%s' % op)
-        python_op = getattr(operator, op)
-        self._nan_op_tests(sparse_op, python_op)
-
-    f.__name__ = 'test_nan%s' % op
-    return f
-
-
 def make_optestf(op):
     def f(self):
         sparse_op = getattr(splib, 'sparse_%s' % op)
@@ -358,12 +323,10 @@ def make_optestf(op):
 
 
 for op in check_ops:
-    f = make_nanoptestf(op)
     g = make_optestf(op)
-    setattr(TestSparseOperators, f.__name__, f)
     setattr(TestSparseOperators, g.__name__, g)
-    del f
     del g
+
 
 if __name__ == '__main__':
     import nose  # noqa
