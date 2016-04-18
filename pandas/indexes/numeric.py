@@ -7,7 +7,9 @@ from pandas import compat
 from pandas.indexes.base import Index, InvalidIndexError
 from pandas.util.decorators import Appender, cache_readonly
 import pandas.core.common as com
-from pandas.core.common import is_dtype_equal, isnull
+from pandas.core.common import (is_dtype_equal, isnull, pandas_dtype,
+                                is_float_dtype, is_object_dtype,
+                                is_integer_dtype)
 import pandas.indexes.base as ibase
 
 
@@ -101,12 +103,7 @@ class Int64Index(NumericIndex):
             cls._string_data_error(data)
 
         elif issubclass(data.dtype.type, np.integer):
-            # don't force the upcast as we may be dealing
-            # with a platform int
-            if (dtype is None or
-                    not issubclass(np.dtype(dtype).type, np.integer)):
-                dtype = np.int64
-
+            dtype = np.int64
             subarr = np.array(data, dtype=dtype, copy=copy)
         else:
             subarr = np.array(data, dtype=np.int64, copy=copy)
@@ -219,11 +216,8 @@ class Float64Index(NumericIndex):
         dtype = np.dtype(dtype)
 
         # allow integer / object dtypes to be passed, but coerce to float64
-        if dtype.kind in ['i', 'O']:
+        if dtype.kind in ['i', 'O', 'f']:
             dtype = np.float64
-
-        elif dtype.kind in ['f']:
-            pass
 
         else:
             raise TypeError("cannot support {0} dtype in "
@@ -245,11 +239,16 @@ class Float64Index(NumericIndex):
         return 'floating'
 
     def astype(self, dtype):
-        if np.dtype(dtype) not in (np.object, np.float64):
+        dtype = pandas_dtype(dtype)
+        if is_float_dtype(dtype) or is_integer_dtype(dtype):
+            values = self._values.astype(dtype)
+        elif is_object_dtype(dtype):
+            values = self._values
+        else:
             raise TypeError('Setting %s dtype to anything other than '
                             'float64 or object is not supported' %
                             self.__class__)
-        return Index(self._values, name=self.name, dtype=dtype)
+        return Index(values, name=self.name, dtype=dtype)
 
     def _convert_scalar_indexer(self, key, kind=None):
         """
