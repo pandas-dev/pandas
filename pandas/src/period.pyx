@@ -36,12 +36,7 @@ from tslib cimport (
     _nat_scalar_rules,
 )
 
-from pandas.tseries.frequencies import _period_alias_dict
-from pandas.tseries.frequencies import _get_freq_str
-from pandas.tseries.frequencies import to_offset
-from pandas.tseries.frequencies import get_freq_code as _gfc
 from pandas.tseries import frequencies
-from pandas.tseries.constants import US_RESO, MS_RESO, S_RESO, T_RESO, H_RESO, D_RESO
 
 from sys import version_info
 
@@ -468,7 +463,7 @@ cpdef resolution(ndarray[int64_t] stamps, tz=None):
     cdef:
         Py_ssize_t i, n = len(stamps)
         pandas_datetimestruct dts
-        int reso = D_RESO, curr_reso
+        int reso = frequencies.D_RESO, curr_reso
 
     if tz is not None:
         tz = maybe_get_tz(tz)
@@ -487,20 +482,20 @@ cpdef resolution(ndarray[int64_t] stamps, tz=None):
 cdef inline int _reso_stamp(pandas_datetimestruct *dts):
     if dts.us != 0:
         if dts.us % 1000 == 0:
-            return MS_RESO
-        return US_RESO
+            return frequencies.MS_RESO
+        return frequencies.US_RESO
     elif dts.sec != 0:
-        return S_RESO
+        return frequencies.S_RESO
     elif dts.min != 0:
-        return T_RESO
+        return frequencies.T_RESO
     elif dts.hour != 0:
-        return H_RESO
-    return D_RESO
+        return frequencies.H_RESO
+    return frequencies.D_RESO
 
 cdef _reso_local(ndarray[int64_t] stamps, object tz):
     cdef:
         Py_ssize_t n = len(stamps)
-        int reso = D_RESO, curr_reso
+        int reso = frequencies.D_RESO, curr_reso
         ndarray[int64_t] trans, deltas, pos
         pandas_datetimestruct dts
 
@@ -664,12 +659,12 @@ cdef class Period(object):
 
         if isinstance(freq, compat.string_types):
             freq = freq.upper()
-            freq = _period_alias_dict.get(freq, freq)
+            freq = frequencies._period_alias_dict.get(freq, freq)
         elif isinstance(freq, (int, tuple)):
-            code, stride = _gfc(freq)
-            freq = _get_freq_str(code, stride)
+            code, stride = frequencies.get_freq_code(freq)
+            freq = frequencies._get_freq_str(code, stride)
 
-        freq = to_offset(freq)
+        freq = frequencies.to_offset(freq)
 
         if freq.n <= 0:
             raise ValueError('Frequency must be positive, because it'
@@ -711,7 +706,7 @@ cdef class Period(object):
 
         elif isinstance(value, Period):
             other = value
-            if freq is None or _gfc(freq) == _gfc(other.freq):
+            if freq is None or frequencies.get_freq_code(freq) == frequencies.get_freq_code(other.freq):
                 ordinal = other.ordinal
                 freq = other.freq
             else:
@@ -752,7 +747,7 @@ cdef class Period(object):
             msg = "Value must be Period, string, integer, or datetime"
             raise ValueError(msg)
 
-        base, mult = _gfc(freq)
+        base, mult = frequencies.get_freq_code(freq)
 
         if ordinal is None:
             self.ordinal = get_period_ordinal(dt.year, dt.month, dt.day,
@@ -861,8 +856,8 @@ cdef class Period(object):
         resampled : Period
         """
         how = _validate_end_alias(how)
-        base1, mult1 = _gfc(self.freq)
-        base2, mult2 = _gfc(freq)
+        base1, mult1 = frequencies.get_freq_code(self.freq)
+        base2, mult2 = frequencies.get_freq_code(freq)
 
         if self.ordinal == tslib.iNaT:
             ordinal = self.ordinal
@@ -912,17 +907,17 @@ cdef class Period(object):
         how = _validate_end_alias(how)
 
         if freq is None:
-            base, mult = _gfc(self.freq)
+            base, mult = frequencies.get_freq_code(self.freq)
             freq = frequencies.get_to_timestamp_base(base)
 
-        base, mult = _gfc(freq)
+        base, mult = frequencies.get_freq_code(freq)
         val = self.asfreq(freq, how)
 
         dt64 = period_ordinal_to_dt64(val.ordinal, base)
         return Timestamp(dt64, tz=tz)
 
     cdef _field(self, alias):
-        base, mult = _gfc(self.freq)
+        base, mult = frequencies.get_freq_code(self.freq)
         return get_period_field(alias, self.ordinal, base)
 
     property year:
@@ -984,7 +979,7 @@ cdef class Period(object):
         return self.freq.freqstr
 
     def __repr__(self):
-        base, mult = _gfc(self.freq)
+        base, mult = frequencies.get_freq_code(self.freq)
         formatted = period_format(self.ordinal, base)
         return "Period('%s', '%s')" % (formatted, self.freqstr)
 
@@ -995,7 +990,7 @@ cdef class Period(object):
         Invoked by unicode(df) in py2 only. Yields a Unicode String in both
         py2/py3.
         """
-        base, mult = _gfc(self.freq)
+        base, mult = frequencies.get_freq_code(self.freq)
         formatted = period_format(self.ordinal, base)
         value = ("%s" % formatted)
         return value
@@ -1145,13 +1140,13 @@ cdef class Period(object):
             >>> a.strftime('%b. %d, %Y was a %A')
             'Jan. 01, 2001 was a Monday'
         """
-        base, mult = _gfc(self.freq)
+        base, mult = frequencies.get_freq_code(self.freq)
         return period_format(self.ordinal, base, fmt)
 
 
 def _ordinal_from_fields(year, month, quarter, day, hour, minute,
                          second, freq):
-    base, mult = _gfc(freq)
+    base, mult = frequencies.get_freq_code(freq)
     if quarter is not None:
         year, month = _quarter_to_myear(year, quarter, freq)
 
