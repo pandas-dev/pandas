@@ -608,27 +608,40 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         """
         return default_pprint
 
-    def _format_data(self):
+    def _format_data(self, display_width=None, justify=False,
+                     max_seq_items=None):
         """
         Return the formatted data as a unicode string
+
+        Parameters
+        ----------
+        display_width: number of spaces for max width, optional
+            inferred to console size or display.width option if None
+        justify: boolean, default False
+            force justification
+        max_seq_items: integer, default None
+            max number of items to display in a sequence
+
         """
         from pandas.formats.format import get_console_size, _get_adjustment
-        display_width, _ = get_console_size()
         if display_width is None:
-            display_width = get_option('display.width') or 80
+            display_width, _ = get_console_size()
+            if display_width is None:
+                display_width = get_option('display.width') or 80
 
         space1 = "\n%s" % (' ' * (len(self.__class__.__name__) + 1))
         space2 = "\n%s" % (' ' * (len(self.__class__.__name__) + 2))
 
         n = len(self)
         sep = ','
-        max_seq_items = get_option('display.max_seq_items') or n
+        max_seq_items = max_seq_items \
+            or get_option('display.max_seq_items') or n
         formatter = self._formatter_func
 
         # do we want to justify (only do so for non-objects)
         is_justify = not (self.inferred_type in ('string', 'unicode') or
                           (self.inferred_type == 'categorical' and
-                           is_object_dtype(self.categories)))
+                           is_object_dtype(self.categories))) or justify
 
         # are we a truncated display
         is_truncated = n > max_seq_items
@@ -663,7 +676,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         else:
 
             if n > max_seq_items:
-                n = min(max_seq_items // 2, 10)
+                n = min(max(max_seq_items // 2, 10), 50)
                 head = [formatter(x) for x in self[:n]]
                 tail = [formatter(x) for x in self[-n:]]
             else:

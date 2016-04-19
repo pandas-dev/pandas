@@ -562,23 +562,16 @@ class TestCategoricalIndex(Base, tm.TestCase):
             self.assertEqual(unicode(idx), expected)
 
         # truncated
-        idx = pd.CategoricalIndex(['a', 'bb', 'ccc'] * 100)
-        if PY3:
-            expected = u"""CategoricalIndex(['a', 'bb', 'ccc', 'a', 'bb', 'ccc', 'a', 'bb', 'ccc', 'a',
-                  ...
-                  'ccc', 'a', 'bb', 'ccc', 'a', 'bb', 'ccc', 'a', 'bb', 'ccc'],
-                 categories=['a', 'bb', 'ccc'], ordered=False, dtype='category', length=300)"""
+        with cf.option_context('display.width', 80):
+            idx = pd.CategoricalIndex(['a', 'bb', 'ccc'] * 100)
+            if PY3:
+                expected = u"""CategoricalIndex([a', bb', ccc', a', bb', ccc', a', bb',\n                  ccc', a', bb', ccc', a', bb', ccc', a',\n                  bb', ccc', a', bb', ccc', a', bb', ccc',\n                  a', bb', ccc', a', bb', ccc', a', bb',\n                  ccc', a', bb', ccc', a', bb', ccc', a',\n                  bb', ccc', a', bb', ccc', a', bb', ccc',\n                  a', bb',\n                  ...\n                  bb', ccc', a', bb', ccc', a', bb', ccc',\n                  a', bb', ccc', a', bb', ccc', a', bb',\n                  ccc', a', bb', ccc', a', bb', ccc', a',\n                  bb', ccc', a', bb', ccc', a', bb', ccc',\n                  a', bb', ccc', a', bb', ccc', a', bb',\n                  ccc', a', bb', ccc', a', bb', ccc', a',\n                  bb', ccc'],\n                 categories=[a', bb', ccc'], ordered=False, dtype='category', length=300)"""  # noqa
 
-            self.assertEqual(repr(idx), expected)
-        else:
-            expected = u"""CategoricalIndex([u'a', u'bb', u'ccc', u'a', u'bb', u'ccc', u'a', u'bb',
-                  u'ccc', u'a',
-                  ...
-                  u'ccc', u'a', u'bb', u'ccc', u'a', u'bb', u'ccc', u'a',
-                  u'bb', u'ccc'],
-                 categories=[u'a', u'bb', u'ccc'], ordered=False, dtype='category', length=300)"""
+                self.assertEqual(repr(idx), expected)
+            else:
+                expected = u"""CategoricalIndex([u'a', u'bb', u'ccc', u'a', u'bb', u'ccc', u'a', u'bb',\n                  u'ccc', u'a', u'bb', u'ccc', u'a', u'bb', u'ccc', u'a',\n                  u'bb', u'ccc', u'a', u'bb', u'ccc', u'a', u'bb', u'ccc',\n                  u'a', u'bb', u'ccc', u'a', u'bb', u'ccc', u'a', u'bb',\n                  u'ccc', u'a', u'bb', u'ccc', u'a', u'bb', u'ccc', u'a',\n                  u'bb', u'ccc', u'a', u'bb', u'ccc', u'a', u'bb', u'ccc',\n                  u'a', u'bb',\n                  ...\n                  u'bb', u'ccc', u'a', u'bb', u'ccc', u'a', u'bb', u'ccc',\n                  u'a', u'bb', u'ccc', u'a', u'bb', u'ccc', u'a', u'bb',\n                  u'ccc', u'a', u'bb', u'ccc', u'a', u'bb', u'ccc', u'a',\n                  u'bb', u'ccc', u'a', u'bb', u'ccc', u'a', u'bb', u'ccc',\n                  u'a', u'bb', u'ccc', u'a', u'bb', u'ccc', u'a', u'bb',\n                  u'ccc', u'a', u'bb', u'ccc', u'a', u'bb', u'ccc', u'a',\n                  u'bb', u'ccc'],\n                 categories=[u'a', u'bb', u'ccc'], ordered=False, dtype='category', length=300)"""  # noqa
 
-            self.assertEqual(unicode(idx), expected)
+                self.assertEqual(unicode(idx), expected)
 
         # larger categories
         idx = pd.CategoricalIndex(list('abcdefghijklmmo'))
@@ -622,39 +615,42 @@ class TestCategoricalIndex(Base, tm.TestCase):
 
             self.assertEqual(unicode(idx), expected)
 
-        # truncated
-        idx = pd.CategoricalIndex([u'あ', u'いい', u'ううう'] * 100)
-        if PY3:
-            expected = u"""CategoricalIndex(['あ', 'いい', 'ううう', 'あ', 'いい', 'ううう', 'あ', 'いい', 'ううう', 'あ',
-                  ...
-                  'ううう', 'あ', 'いい', 'ううう', 'あ', 'いい', 'ううう', 'あ', 'いい', 'ううう'],
-                 categories=['あ', 'いい', 'ううう'], ordered=False, dtype='category', length=300)"""
+        with cf.option_context('display.width', 200,
+                               'display.max_seq_items', 10):
 
-            self.assertEqual(repr(idx), expected)
-        else:
-            expected = u"""CategoricalIndex([u'あ', u'いい', u'ううう', u'あ', u'いい', u'ううう', u'あ', u'いい',
-                  u'ううう', u'あ',
-                  ...
-                  u'ううう', u'あ', u'いい', u'ううう', u'あ', u'いい', u'ううう', u'あ',
-                  u'いい', u'ううう'],
-                 categories=[u'あ', u'いい', u'ううう'], ordered=False, dtype='category', length=300)"""
+            # truncated
+            idx = pd.CategoricalIndex([u'あ', u'いい', u'ううう'] * 100)
+            if PY3:
+                expected = u"""CategoricalIndex(['あ', 'いい', 'ううう', 'あ', 'いい', 'ううう', 'あ', 'いい', 'ううう', 'あ',
+                ...
+                'ううう', 'あ', 'いい', 'ううう', 'あ', 'いい', 'ううう', 'あ', 'いい', 'ううう'],
+                categories=['あ', 'いい', 'ううう'], ordered=False, dtype='category', length=300)"""
 
-            self.assertEqual(unicode(idx), expected)
+                self.assertEqual(repr(idx), expected)
+            else:
+                expected = u"""CategoricalIndex([u'あ', u'いい', u'ううう', u'あ', u'いい', u'ううう', u'あ', u'いい',
+                u'ううう', u'あ',
+                ...
+                u'ううう', u'あ', u'いい', u'ううう', u'あ', u'いい', u'ううう', u'あ',
+                u'いい', u'ううう'],
+                categories=[u'あ', u'いい', u'ううう'], ordered=False, dtype='category', length=300)"""
 
-        # larger categories
-        idx = pd.CategoricalIndex(list(u'あいうえおかきくけこさしすせそ'))
-        if PY3:
-            expected = u"""CategoricalIndex(['あ', 'い', 'う', 'え', 'お', 'か', 'き', 'く', 'け', 'こ', 'さ', 'し',
-                  'す', 'せ', 'そ'],
-                 categories=['あ', 'い', 'う', 'え', 'お', 'か', 'き', 'く', ...], ordered=False, dtype='category')"""
+                self.assertEqual(unicode(idx), expected)
 
-            self.assertEqual(repr(idx), expected)
-        else:
-            expected = u"""CategoricalIndex([u'あ', u'い', u'う', u'え', u'お', u'か', u'き', u'く', u'け', u'こ',
-                  u'さ', u'し', u'す', u'せ', u'そ'],
-                 categories=[u'あ', u'い', u'う', u'え', u'お', u'か', u'き', u'く', ...], ordered=False, dtype='category')"""
+            # larger categories
+            idx = pd.CategoricalIndex(list(u'あいうえおかきくけこさしすせそ'))
+            if PY3:
+                expected = u"""CategoricalIndex(['あ', 'い', 'う', 'え', 'お', 'か', 'き', 'く', 'け', 'こ', 'さ', 'し',
+                'す', 'せ', 'そ'],
+                categories=['あ', 'い', 'う', 'え', 'お', 'か', 'き', 'く', ...], ordered=False, dtype='category')"""
 
-            self.assertEqual(unicode(idx), expected)
+                self.assertEqual(repr(idx), expected)
+            else:
+                expected = u"""CategoricalIndex([u'あ', u'い', u'う', u'え', u'お', u'か', u'き', u'く', u'け', u'こ',
+                u'さ', u'し', u'す', u'せ', u'そ'],
+                categories=[u'あ', u'い', u'う', u'え', u'お', u'か', u'き', u'く', ...], ordered=False, dtype='category')"""
+
+                self.assertEqual(unicode(idx), expected)
 
         # Emable Unicode option -----------------------------------------
         with cf.option_context('display.unicode.east_asian_width', True):
