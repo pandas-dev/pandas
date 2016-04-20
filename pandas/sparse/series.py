@@ -20,13 +20,19 @@ import pandas.core.common as com
 import pandas.core.ops as ops
 import pandas.index as _index
 import pandas.lib as lib
+from pandas.util.decorators import Appender
 
-from pandas.sparse.array import (make_sparse, _sparse_array_op, SparseArray)
+from pandas.sparse.array import (make_sparse, _sparse_array_op, SparseArray,
+                                 _make_index)
 from pandas._sparse import BlockIndex, IntIndex
 import pandas._sparse as splib
 
 from pandas.sparse.scipy_sparse import (_sparse_series_to_coo,
                                         _coo_to_sparse_series)
+
+
+_shared_doc_kwargs = dict(klass='SparseSeries',
+                          axes_single_arg="{0, 'index'}")
 
 # -----------------------------------------------------------------------------
 # Wrapper function for Series arithmetic methods
@@ -633,20 +639,17 @@ class SparseSeries(Series):
             dense_valid = dense_valid[dense_valid != self.fill_value]
             return dense_valid.to_sparse(fill_value=self.fill_value)
 
-    def shift(self, periods, freq=None):
-        """
-        Analogous to Series.shift
-        """
+    @Appender(generic._shared_docs['shift'] % _shared_doc_kwargs)
+    def shift(self, periods, freq=None, axis=0):
+        if periods == 0:
+            return self.copy()
 
         # no special handling of fill values yet
         if not isnull(self.fill_value):
-            # TODO: kwds is not defined...should this work?
-            dense_shifted = self.to_dense().shift(periods, freq=freq, **kwds)  # noqa
-            return dense_shifted.to_sparse(fill_value=self.fill_value,
-                                           kind=self.kind)
-
-        if periods == 0:
-            return self.copy()
+            shifted = self.to_dense().shift(periods, freq=freq,
+                                            axis=axis)
+            return shifted.to_sparse(fill_value=self.fill_value,
+                                     kind=self.kind)
 
         if freq is not None:
             return self._constructor(
@@ -659,14 +662,11 @@ class SparseSeries(Series):
         start, end = new_indices.searchsorted([0, int_index.length])
 
         new_indices = new_indices[start:end]
+        new_sp_index = _make_index(len(self), new_indices, self.sp_index)
 
-        new_sp_index = IntIndex(len(self), new_indices)
-        if isinstance(self.sp_index, BlockIndex):
-            new_sp_index = new_sp_index.to_block_index()
-
-        return self._constructor(self.sp_values[start:end].copy(),
-                                 index=self.index, sparse_index=new_sp_index,
-                                 fill_value=self.fill_value).__finalize__(self)
+        arr = self.values._simple_new(self.sp_values[start:end].copy(),
+                                      new_sp_index, fill_value=np.nan)
+        return self._constructor(arr, index=self.index).__finalize__(self)
 
     def combine_first(self, other):
         """
