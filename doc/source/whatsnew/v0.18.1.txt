@@ -302,6 +302,7 @@ Bug Fixes
 - Bug in ``value_counts`` when ``normalize=True`` and ``dropna=True`` where nulls still contributed to the normalized count (:issue:`12558`)
 - Bug in ``Panel.fillna()`` ignoring ``inplace=True`` (:issue:`12633`)
 - Bug in ``read_csv`` when specifying ``names``, ```usecols``, and ``parse_dates`` simultaneously with the C engine (:issue:`9755`)
+- Bug in ``read_csv`` when specifying ``delim_whitespace=True`` and ``lineterminator`` simultaneously with the C engine (:issue:`12912`)
 - Bug in ``Series.rename``, ``DataFrame.rename`` and ``DataFrame.rename_axis`` not treating ``Series`` as mappings to relabel (:issue:`12623`).
 - Clean in ``.rolling.min`` and ``.rolling.max`` to enhance dtype handling (:issue:`12373`)
 - Bug in ``groupby`` where complex types are coerced to float (:issue:`12902`)

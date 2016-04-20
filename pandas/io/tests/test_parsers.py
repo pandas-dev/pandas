@@ -3878,6 +3878,15 @@ class CParserTests(ParserTests):
             except Exception as e:
                 pass
 
+    def test_delim_whitespace_custom_terminator(self):
+        # See gh-12912
+        data = """a b c~1 2 3~4 5 6~7 8 9"""
+        df = self.read_csv(StringIO(data), lineterminator='~',
+                           delim_whitespace=True)
+        expected = DataFrame([[1, 2, 3], [4, 5, 6], [7, 8, 9]],
+                             columns=['a', 'b', 'c'])
+        tm.assert_frame_equal(df, expected)
+
 
 class TestCParserHighMemory(CParserTests, CompressionTests, tm.TestCase):
     engine = 'c'
