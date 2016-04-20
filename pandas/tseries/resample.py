@@ -595,6 +595,14 @@ class DatetimeIndexResampler(Resampler):
 
         return self._wrap_result(result)
 
+    def _adjust_binner_for_upsample(self, binner):
+        """ adjust our binner when upsampling """
+        if self.closed == 'right':
+            binner = binner[1:]
+        else:
+            binner = binner[:-1]
+        return binner
+
     def _upsample(self, method, limit=None):
         """
         method : string {'backfill', 'bfill', 'pad', 'ffill'}
@@ -614,11 +622,7 @@ class DatetimeIndexResampler(Resampler):
         ax = self.ax
         obj = self._selected_obj
         binner = self.binner
-
-        if self.closed == 'right':
-            res_index = binner[1:]
-        else:
-            res_index = binner[:-1]
+        res_index = self._adjust_binner_for_upsample(binner)
 
         # if we have the same frequency as our axis, then we are equal sampling
         if limit is None and to_offset(ax.inferred_freq) == self.freq:
@@ -763,6 +767,20 @@ class TimedeltaResampler(DatetimeIndexResampler):
 
     def _get_binner_for_time(self):
         return self.groupby._get_time_delta_bins(self.ax)
+
+    def _adjust_binner_for_upsample(self, binner):
+        """ adjust our binner when upsampling """
+        ax = self.ax
+
+        if is_subperiod(ax.freq, self.freq):
+            # We are actually downsampling
+            # but are in the asfreq path
+            # GH 12926
+            if self.closed == 'right':
+                binner = binner[1:]
+            else:
+                binner = binner[:-1]
+        return binner
 
 
 def resample(obj, kind=None, **kwds):
@@ -1004,8 +1022,10 @@ class TimeGrouper(Grouper):
                 data=[], freq=self.freq, name=ax.name)
             return binner, [], labels
 
-        labels = binner = TimedeltaIndex(start=ax[0],
-                                         end=ax[-1],
+        start = ax[0]
+        end = ax[-1]
+        labels = binner = TimedeltaIndex(start=start,
+                                         end=end,
                                          freq=self.freq,
                                          name=ax.name)
 
