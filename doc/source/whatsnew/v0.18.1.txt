@@ -243,7 +243,7 @@ Performance Improvements
 
 
 - Improved performance of ``DataFrame.to_sql`` when checking case sensitivity for tables. Now only checks if table has been created correctly when table name is not lower case. (:issue:`12876`)
-
+- Improved performance of creating multiple instances of Period. This has regressed from ``O(1)`` to ``O(n)`` in terms on number of calls to ``_find_and_load`` between ``0.15.2`` and ``0.18.0``. (:issue:`12903`, :issue:`11831`)
 
 
 

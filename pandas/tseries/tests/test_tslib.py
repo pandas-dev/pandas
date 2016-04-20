@@ -11,7 +11,10 @@ from pandas.core.api import Timestamp, Series, Timedelta, Period, to_datetime
 from pandas.tslib import get_timezone
 from pandas._period import period_asfreq, period_ordinal
 from pandas.tseries.index import date_range, DatetimeIndex
-from pandas.tseries.frequencies import get_freq
+from pandas.tseries.frequencies import (
+    get_freq,
+    US_RESO, MS_RESO, S_RESO, H_RESO, D_RESO, T_RESO
+)
 import pandas.tseries.tools as tools
 import pandas.tseries.offsets as offsets
 import pandas.util.testing as tm
@@ -1307,11 +1310,11 @@ class TestTimestampOps(tm.TestCase):
 
         for freq, expected in zip(['A', 'Q', 'M', 'D', 'H', 'T',
                                    'S', 'L', 'U'],
-                                  [period.D_RESO, period.D_RESO,
-                                   period.D_RESO, period.D_RESO,
-                                   period.H_RESO, period.T_RESO,
-                                   period.S_RESO, period.MS_RESO,
-                                   period.US_RESO]):
+                                  [D_RESO, D_RESO,
+                                   D_RESO, D_RESO,
+                                   H_RESO, T_RESO,
+                                   S_RESO, MS_RESO,
+                                   US_RESO]):
             for tz in [None, 'Asia/Tokyo', 'US/Eastern',
                        'dateutil/US/Eastern']:
                 idx = date_range(start='2013-04-01', periods=30, freq=freq,
