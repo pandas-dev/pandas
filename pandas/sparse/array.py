@@ -165,6 +165,12 @@ class SparseArray(PandasObject, np.ndarray):
 
     @classmethod
     def _simple_new(cls, data, sp_index, fill_value):
+        if (com.is_integer_dtype(data) and com.is_float(fill_value) and
+           sp_index.ngaps > 0):
+            # if float fill_value is being included in dense repr,
+            # convert values to float
+            data = data.astype(float)
+
         result = data.view(cls)
 
         if not isinstance(sp_index, SparseIndex):

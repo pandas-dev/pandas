@@ -91,6 +91,23 @@ class TestSparseSeries(tm.TestCase, SharedWithSparse):
         self.ziseries2 = SparseSeries(arr, index=index, kind='integer',
                                       fill_value=0)
 
+    def test_constructor_dtype(self):
+        arr = SparseSeries([np.nan, 1, 2, np.nan])
+        self.assertEqual(arr.dtype, np.float64)
+        self.assertTrue(np.isnan(arr.fill_value))
+
+        arr = SparseSeries([np.nan, 1, 2, np.nan], fill_value=0)
+        self.assertEqual(arr.dtype, np.float64)
+        self.assertEqual(arr.fill_value, 0)
+
+        arr = SparseSeries([0, 1, 2, 4], dtype=np.int64)
+        self.assertEqual(arr.dtype, np.int64)
+        self.assertTrue(np.isnan(arr.fill_value))
+
+        arr = SparseSeries([0, 1, 2, 4], fill_value=0, dtype=np.int64)
+        self.assertEqual(arr.dtype, np.int64)
+        self.assertEqual(arr.fill_value, 0)
+
     def test_iteration_and_str(self):
         [x for x in self.bseries]
         str(self.bseries)
@@ -768,6 +785,78 @@ class TestSparseSeries(tm.TestCase, SharedWithSparse):
 
         f = lambda s: s.shift(2, freq=datetools.bday)
         _dense_series_compare(series, f)
+
+    def test_shift_nan(self):
+        # GH 12908
+        orig = pd.Series([np.nan, 2, np.nan, 4, 0, np.nan, 0])
+        sparse = orig.to_sparse()
+
+        tm.assert_sp_series_equal(sparse.shift(0), orig.shift(0).to_sparse())
+        tm.assert_sp_series_equal(sparse.shift(1), orig.shift(1).to_sparse())
+        tm.assert_sp_series_equal(sparse.shift(2), orig.shift(2).to_sparse())
+        tm.assert_sp_series_equal(sparse.shift(3), orig.shift(3).to_sparse())
+
+        tm.assert_sp_series_equal(sparse.shift(-1), orig.shift(-1).to_sparse())
+        tm.assert_sp_series_equal(sparse.shift(-2), orig.shift(-2).to_sparse())
+        tm.assert_sp_series_equal(sparse.shift(-3), orig.shift(-3).to_sparse())
+        tm.assert_sp_series_equal(sparse.shift(-4), orig.shift(-4).to_sparse())
+
+        sparse = orig.to_sparse(fill_value=0)
+        tm.assert_sp_series_equal(sparse.shift(0),
+                                  orig.shift(0).to_sparse(fill_value=0))
+        tm.assert_sp_series_equal(sparse.shift(1),
+                                  orig.shift(1).to_sparse(fill_value=0))
+        tm.assert_sp_series_equal(sparse.shift(2),
+                                  orig.shift(2).to_sparse(fill_value=0))
+        tm.assert_sp_series_equal(sparse.shift(3),
+                                  orig.shift(3).to_sparse(fill_value=0))
+
+        tm.assert_sp_series_equal(sparse.shift(-1),
+                                  orig.shift(-1).to_sparse(fill_value=0))
+        tm.assert_sp_series_equal(sparse.shift(-2),
+                                  orig.shift(-2).to_sparse(fill_value=0))
+        tm.assert_sp_series_equal(sparse.shift(-3),
+                                  orig.shift(-3).to_sparse(fill_value=0))
+        tm.assert_sp_series_equal(sparse.shift(-4),
+                                  orig.shift(-4).to_sparse(fill_value=0))
+
+    def test_shift_dtype(self):
+        # GH 12908
+        orig = pd.Series([1, 2, 3, 4], dtype=np.int64)
+        sparse = orig.to_sparse()
+
+        tm.assert_sp_series_equal(sparse.shift(0), orig.shift(0).to_sparse())
+        tm.assert_sp_series_equal(sparse.shift(1), orig.shift(1).to_sparse())
+        tm.assert_sp_series_equal(sparse.shift(2), orig.shift(2).to_sparse())
+        tm.assert_sp_series_equal(sparse.shift(3), orig.shift(3).to_sparse())
+
+        tm.assert_sp_series_equal(sparse.shift(-1), orig.shift(-1).to_sparse())
+        tm.assert_sp_series_equal(sparse.shift(-2), orig.shift(-2).to_sparse())
+        tm.assert_sp_series_equal(sparse.shift(-3), orig.shift(-3).to_sparse())
+        tm.assert_sp_series_equal(sparse.shift(-4), orig.shift(-4).to_sparse())
+
+    def test_shift_dtype_fill_value(self):
+        # GH 12908
+        orig = pd.Series([1, 0, 0, 4], dtype=np.int64)
+        sparse = orig.to_sparse(fill_value=0)
+
+        tm.assert_sp_series_equal(sparse.shift(0),
+                                  orig.shift(0).to_sparse(fill_value=0))
+        tm.assert_sp_series_equal(sparse.shift(1),
+                                  orig.shift(1).to_sparse(fill_value=0))
+        tm.assert_sp_series_equal(sparse.shift(2),
+                                  orig.shift(2).to_sparse(fill_value=0))
+        tm.assert_sp_series_equal(sparse.shift(3),
+                                  orig.shift(3).to_sparse(fill_value=0))
+
+        tm.assert_sp_series_equal(sparse.shift(-1),
+                                  orig.shift(-1).to_sparse(fill_value=0))
+        tm.assert_sp_series_equal(sparse.shift(-2),
+                                  orig.shift(-2).to_sparse(fill_value=0))
+        tm.assert_sp_series_equal(sparse.shift(-3),
+                                  orig.shift(-3).to_sparse(fill_value=0))
+        tm.assert_sp_series_equal(sparse.shift(-4),
+                                  orig.shift(-4).to_sparse(fill_value=0))
 
     def test_cumsum(self):
         result = self.bseries.cumsum()
