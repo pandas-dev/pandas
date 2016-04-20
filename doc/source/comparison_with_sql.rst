@@ -489,6 +489,8 @@ DELETE
     DELETE FROM tips
     WHERE tip > 9;
 
+In pandas we select the rows that should remain, instead of deleting them
+
 .. ipython:: python
 
     tips = tips.loc[tips['tip'] <= 9]
