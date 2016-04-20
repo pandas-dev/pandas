@@ -670,6 +670,15 @@ MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT',
 
 
 def test_is_superperiod_subperiod():
+
+    # input validation
+    assert not (frequencies.is_superperiod(offsets.YearEnd(), None))
+    assert not (frequencies.is_subperiod(offsets.MonthEnd(), None))
+    assert not (frequencies.is_superperiod(None, offsets.YearEnd()))
+    assert not (frequencies.is_subperiod(None, offsets.MonthEnd()))
+    assert not (frequencies.is_superperiod(None, None))
+    assert not (frequencies.is_subperiod(None, None))
+
     assert (frequencies.is_superperiod(offsets.YearEnd(), offsets.MonthEnd()))
     assert (frequencies.is_subperiod(offsets.MonthEnd(), offsets.YearEnd()))
 

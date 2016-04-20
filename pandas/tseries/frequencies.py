@@ -1124,6 +1124,26 @@ def _maybe_add_count(base, count):
         return base
 
 
+def _maybe_coerce_freq(code):
+    """ we might need to coerce a code to a rule_code
+    and uppercase it
+
+    Parameters
+    ----------
+    source : string
+        Frequency converting from
+
+    Returns
+    -------
+    string code
+    """
+
+    assert code is not None
+    if isinstance(code, offsets.DateOffset):
+        code = code.rule_code
+    return code.upper()
+
+
 def is_subperiod(source, target):
     """
     Returns True if downsampling is possible between source and target
@@ -1140,14 +1160,12 @@ def is_subperiod(source, target):
     -------
     is_subperiod : boolean
     """
-    if isinstance(source, offsets.DateOffset):
-        source = source.rule_code
 
-    if isinstance(target, offsets.DateOffset):
-        target = target.rule_code
+    if target is None or source is None:
+        return False
+    source = _maybe_coerce_freq(source)
+    target = _maybe_coerce_freq(target)
 
-    target = target.upper()
-    source = source.upper()
     if _is_annual(target):
         if _is_quarterly(source):
             return _quarter_months_conform(_get_rule_month(source),
@@ -1195,14 +1213,11 @@ def is_superperiod(source, target):
     -------
     is_superperiod : boolean
     """
-    if isinstance(source, offsets.DateOffset):
-        source = source.rule_code
+    if target is None or source is None:
+        return False
+    source = _maybe_coerce_freq(source)
+    target = _maybe_coerce_freq(target)
 
-    if isinstance(target, offsets.DateOffset):
-        target = target.rule_code
-
-    target = target.upper()
-    source = source.upper()
     if _is_annual(source):
         if _is_annual(target):
             return _get_rule_month(source) == _get_rule_month(target)
