@@ -3017,6 +3017,9 @@ class NDFrame(PandasObject):
     def _get_bool_data(self):
         return self._constructor(self._data.get_bool_data()).__finalize__(self)
 
+    def _get_dt_data(self):
+        return self._constructor(self._data.get_dt_data()).__finalize__(self)
+
     # ----------------------------------------------------------------------
     # Internal Interface Methods
 

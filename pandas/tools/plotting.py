@@ -1146,6 +1146,8 @@ class MPLPlot(object):
             data = data.to_frame(name=label)
 
         numeric_data = data._convert(datetime=True)._get_numeric_data()
+        time_data = data._convert(datetime=True)._get_dt_data()
+        numeric_data = numeric_data.join(time_data)
 
         try:
             is_empty = numeric_data.empty
@@ -1579,8 +1581,11 @@ class PlanePlot(MPLPlot):
 
     _layout_type = 'single'
 
-    def __init__(self, data, x, y, **kwargs):
-        MPLPlot.__init__(self, data, **kwargs)
+    def __init__(self, data, x, y, sharex=False, **kwargs):
+        if sharex is None:
+            # Fix x axis color bar problems
+            sharex = False
+        MPLPlot.__init__(self, data, sharex=sharex, **kwargs)
         if x is None or y is None:
             raise ValueError(self._kind + ' requires and x and y column')
         if is_integer(x) and not self.data.columns.holds_integer():

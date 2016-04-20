@@ -3354,6 +3354,16 @@ class BlockManager(PandasObject):
         self._consolidate_inplace()
         return self.combine([b for b in self.blocks if b.is_numeric], copy)
 
+    def get_dt_data(self, copy=False):
+        """
+        Parameters
+        ----------
+        copy : boolean, default False
+            Whether to copy the blocks
+        """
+        self._consolidate_inplace()
+        return self.combine([b for b in self.blocks if b.is_datetime], copy)
+
     def combine(self, blocks, copy=True):
         """ return a new manager with the blocks """
         if len(blocks) == 0:
