@@ -2052,6 +2052,23 @@ class TestMultiIndex(Base, tm.TestCase):
         # GH9785
         self.assertTrue((self.index == self.index).all())
 
+    def test_large_multiindex_error(self):
+        # GH12527
+        df_below_1000000 = pd.DataFrame(
+            1, index=pd.MultiIndex.from_product([[1, 2], range(499999)]),
+            columns=['dest'])
+        with assertRaises(KeyError):
+            df_below_1000000.loc[(-1, 0), 'dest']
+        with assertRaises(KeyError):
+            df_below_1000000.loc[(3, 0), 'dest']
+        df_above_1000000 = pd.DataFrame(
+            1, index=pd.MultiIndex.from_product([[1, 2], range(500001)]),
+            columns=['dest'])
+        with assertRaises(KeyError):
+            df_above_1000000.loc[(-1, 0), 'dest']
+        with assertRaises(KeyError):
+            df_above_1000000.loc[(3, 0), 'dest']
+
     def test_partial_string_timestamp_multiindex(self):
         # GH10331
         dr = pd.date_range('2016-01-01', '2016-01-03', freq='12H')

@@ -769,7 +769,7 @@ class MultiIndex(Index):
         levels = self.levels
         labels = [np.repeat(x, n_repeat) for x in self.labels]
         # Assumes that each label is divisible by n_shuffle
-        labels = [x.reshape(n_shuffle, -1).ravel(1) for x in labels]
+        labels = [x.reshape(n_shuffle, -1).ravel('F') for x in labels]
         names = self.names
         return MultiIndex(levels=levels, labels=labels, names=names)
 
