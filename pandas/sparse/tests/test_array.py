@@ -76,6 +76,15 @@ class TestSparseArray(tm.TestCase):
         self.assertEqual(arr.dtype, np.int64)
         self.assertTrue(np.isnan(arr.fill_value))
 
+        # scalar input
+        arr = SparseArray(data=1,
+                          sparse_index=IntIndex(1, [0]),
+                          dtype=None)
+        exp = SparseArray([1], dtype=None)
+        tm.assert_sp_array_equal(arr, exp)
+        self.assertEqual(arr.dtype, np.int64)
+        self.assertTrue(np.isnan(arr.fill_value))
+
         arr = SparseArray(data=[1, 2], sparse_index=IntIndex(4, [1, 2]),
                           fill_value=0, dtype=None)
         exp = SparseArray([0, 1, 2, 0], fill_value=0, dtype=None)
