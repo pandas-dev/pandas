@@ -67,6 +67,19 @@ def _get_series_result_type(result):
         return Series
 
 
+def _get_frame_result_type(result, objs):
+    """
+    return appropriate class of DataFrame-like concat
+    if any block is SparseBlock, return SparseDataFrame
+    otherwise, return 1st obj
+    """
+    if any(b.is_sparse for b in result.blocks):
+        from pandas.sparse.api import SparseDataFrame
+        return SparseDataFrame
+    else:
+        return objs[0]
+
+
 def _concat_compat(to_concat, axis=0):
     """
     provide concatenation of an array of arrays each of which is a single

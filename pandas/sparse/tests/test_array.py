@@ -347,6 +347,26 @@ class TestSparseArray(tm.TestCase):
         exp = SparseArray(self.arr.values[:0])
         tm.assert_sp_array_equal(result, exp)
 
+    def test_getslice_tuple(self):
+        dense = np.array([np.nan, 0, 3, 4, 0, 5, np.nan, np.nan, 0])
+
+        sparse = SparseArray(dense)
+        res = sparse[4:, ]
+        exp = SparseArray(dense[4:, ])
+        tm.assert_sp_array_equal(res, exp)
+
+        sparse = SparseArray(dense, fill_value=0)
+        res = sparse[4:, ]
+        exp = SparseArray(dense[4:, ], fill_value=0)
+        tm.assert_sp_array_equal(res, exp)
+
+        with tm.assertRaises(IndexError):
+            sparse[4:, :]
+
+        with tm.assertRaises(IndexError):
+            # check numpy compat
+            dense[4:, :]
+
     def test_binary_operators(self):
         data1 = np.random.randn(20)
         data2 = np.random.randn(20)
