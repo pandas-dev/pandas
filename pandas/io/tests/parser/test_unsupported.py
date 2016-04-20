@@ -20,6 +20,16 @@ from pandas.io.parsers import read_csv, read_table
 
 
 class TestUnsupportedFeatures(tm.TestCase):
+    def test_mangle_dupe_cols_false(self):
+        # see gh-12935
+        data = 'a b c\n1 2 3'
+        msg = 'is not supported'
+
+        for engine in ('c', 'python'):
+            with tm.assertRaisesRegexp(ValueError, msg):
+                read_csv(StringIO(data), engine=engine,
+                         mangle_dupe_cols=False)
+
     def test_c_engine(self):
         # see gh-6607
         data = 'a b c\n1 2 3'

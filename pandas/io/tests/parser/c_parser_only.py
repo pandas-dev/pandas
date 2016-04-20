@@ -293,23 +293,18 @@ one,two
             {'one': np.empty(0, dtype='u1'), 'one.1': np.empty(0, dtype='f')})
         tm.assert_frame_equal(result, expected, check_index_type=False)
 
-    def test_empty_with_dup_column_pass_dtype_by_names(self):
+    def test_empty_with_dup_column_pass_dtype_by_indexes(self):
+        # see gh-9424
+        expected = pd.concat([Series([], name='one', dtype='u1'),
+                              Series([], name='one.1', dtype='f')], axis=1)
+
         data = 'one,one'
-        result = self.read_csv(
-            StringIO(data), mangle_dupe_cols=False, dtype={'one': 'u1'})
-        expected = pd.concat([Series([], name='one', dtype='u1')] * 2, axis=1)
+        result = self.read_csv(StringIO(data), dtype={0: 'u1', 1: 'f'})
         tm.assert_frame_equal(result, expected, check_index_type=False)
 
-    def test_empty_with_dup_column_pass_dtype_by_indexes(self):
-        # FIXME in gh-9424
-        raise nose.SkipTest(
-            "gh-9424; known failure read_csv with duplicate columns")
-
-        data = 'one,one'
-        result = self.read_csv(
-            StringIO(data), mangle_dupe_cols=False, dtype={0: 'u1', 1: 'f'})
-        expected = pd.concat([Series([], name='one', dtype='u1'),
-                              Series([], name='one', dtype='f')], axis=1)
+        data = ''
+        result = self.read_csv(StringIO(data), names=['one', 'one'],
+                               dtype={0: 'u1', 1: 'f'})
         tm.assert_frame_equal(result, expected, check_index_type=False)
 
     def test_usecols_dtypes(self):
