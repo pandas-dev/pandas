@@ -372,10 +372,123 @@ In pandas, you can use :meth:`~pandas.concat` in conjunction with
 
     pd.concat([df1, df2]).drop_duplicates()
 
+SOME ANALYTIC AND AGGREGATE FUNCTIONS
+-------------------------------------
+Top N rows with offset
+
+.. code-block:: sql
+
+    -- MySQL
+    SELECT * FROM tips
+    ORDER BY tip DESC
+    LIMIT 10 OFFSET 5;
+
+    -- Oracle 12c+
+    SELECT * FROM tips
+    ORDER BY tip DESC
+    OFFSET 5 ROWS FETCH NEXT 10 ROWS ONLY;
+
+In pandas:
+
+.. ipython:: python
+
+    tips.sort_values(['tip'], ascending=False).head(10+5).tail(10)
+
+Top N rows per group
+
+.. code-block:: sql
+
+    -- Oracle's ROW_NUMBER() analytic function
+    SELECT * FROM (
+      SELECT
+        t.*,
+        ROW_NUMBER() OVER(PARTITION BY day ORDER BY total_bill DESC) AS rn
+      FROM tips t
+    )
+    WHERE rn <= 3
+    ORDER BY day, rn;
+
+.. ipython:: python
+
+    tips.sort_values(['total_bill'], ascending=False).groupby('sex').head(3)
+
+Let's add an `RN` (Row Number) column
+
+.. ipython:: python
+
+    tips['rn'] = tips.sort_values(['total_bill'], ascending=False) \
+                     .groupby(['day']) \
+                     .cumcount() + 1
+    tips.loc[tips['rn'] < 3].sort_values(['day','rn'])
+
+the same using `rank(method='first')` function
+
+.. ipython:: python
+
+    tips['rnk'] = tips.groupby(['day'])['total_bill'].rank(method='first', ascending=False)
+    tips.loc[tips['rnk'] < 3].sort_values(['day','rnk'])
+
+Top second and top third total bills per day
+
+.. code-block:: sql
+
+    -- Oracle
+    SELECT * FROM (
+      SELECT
+        t.*,
+        ROW_NUMBER() OVER(PARTITION BY day ORDER BY total_bill DESC) AS rn
+      FROM tips t
+    )
+    WHERE rn BETWEEN 2 and 3
+    ORDER BY day, rn;
+
+.. ipython:: python
+
+    tips['rn'] = tips.sort_values(['total_bill'], ascending=False) \
+                     .groupby(['day']) \
+                     .cumcount() + 1
+    tips.loc[tips['rn'].between(2, 3)].sort_values(['day','rn'])
+
+    
+.. code-block:: sql
+
+    -- Oracle
+    SELECT * FROM (
+      SELECT
+        t.*,
+        RANK() OVER(PARTITION BY day ORDER BY total_bill DESC) AS rnk
+      FROM tips t
+    )
+    WHERE rnk < 3
+    ORDER BY day, rn;
+
+.. ipython:: python
+
+    tips['rnk_min'] = tips.groupby(['day'])['total_bill'].rank(method='min', ascending=False)
+    tips.loc[tips['rnk_min'] < 3].sort_values(['day','rnk_min'])
+
 
 UPDATE
 ------
 
+.. code-block:: sql
+
+    UPDATE tips
+    SET tip = tip*2
+    WHERE tip < 2;
+
+.. ipython:: python
+
+    tips.loc[tips['tip'] < 2, 'tip'] *= 2
 
 DELETE
 ------
+
+.. code-block:: sql
+
+    DELETE FROM tips
+    WHERE tip > 9;
+
+.. ipython:: python
+
+    tips = tips.loc[tips['tip'] <= 9]
