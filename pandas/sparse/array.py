@@ -140,7 +140,7 @@ class SparseArray(PandasObject, np.ndarray):
                 values, sparse_index = make_sparse(data, kind=kind,
                                                    fill_value=fill_value)
             else:
-                values = data
+                values = _sanitize_values(data)
                 if len(values) != sparse_index.npoints:
                     raise AssertionError("Non array-like type {0} must have"
                                          " the same length as the"
@@ -515,6 +515,33 @@ def _maybe_to_sparse(array):
     return array
 
 
+def _sanitize_values(arr):
+    """
+    return an ndarray for our input,
+    in a platform independent manner
+    """
+
+    if hasattr(arr, 'values'):
+        arr = arr.values
+    else:
+
+        # scalar
+        if lib.isscalar(arr):
+            arr = [arr]
+
+        # ndarray
+        if isinstance(arr, np.ndarray):
+            pass
+
+        elif com.is_list_like(arr) and len(arr) > 0:
+            arr = com._possibly_convert_platform(arr)
+
+        else:
+            arr = np.asarray(arr)
+
+    return arr
+
+
 def make_sparse(arr, kind='block', fill_value=nan):
     """
     Convert ndarray to sparse format
@@ -529,13 +556,8 @@ def make_sparse(arr, kind='block', fill_value=nan):
     -------
     (sparse_values, index) : (ndarray, SparseIndex)
     """
-    if hasattr(arr, 'values'):
-        arr = arr.values
-    else:
-        if lib.isscalar(arr):
-            arr = [arr]
-        arr = np.asarray(arr)
 
+    arr = _sanitize_values(arr)
     length = len(arr)
 
     if np.isnan(fill_value):
