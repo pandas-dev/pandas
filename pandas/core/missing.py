@@ -7,7 +7,7 @@ import numpy as np
 import pandas.core.common as com
 import pandas.algos as algos
 import pandas.lib as lib
-from pandas.compat import range
+from pandas.compat import range, string_types
 
 
 def mask_missing(arr, values_to_mask):
@@ -60,11 +60,13 @@ def mask_missing(arr, values_to_mask):
 def clean_fill_method(method, allow_nearest=False):
     if method is None:
         return None
-    method = method.lower()
-    if method == 'ffill':
-        method = 'pad'
-    if method == 'bfill':
-        method = 'backfill'
+
+    if isinstance(method, string_types):
+        method = method.lower()
+        if method == 'ffill':
+            method = 'pad'
+        elif method == 'bfill':
+            method = 'backfill'
 
     valid_methods = ['pad', 'backfill']
     expecting = 'pad (ffill) or backfill (bfill)'
