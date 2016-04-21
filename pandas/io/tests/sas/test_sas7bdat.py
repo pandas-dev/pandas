@@ -103,6 +103,7 @@ def test_12659():
     df0 = df0.astype(np.float64)
     tm.assert_frame_equal(df, df0)
 
+
 def test_airline():
     dirpath = tm.get_data_path()
     fname = os.path.join(dirpath, "airline.sas7bdat")

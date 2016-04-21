@@ -101,6 +101,7 @@ compression_literals = [rle_compression, rdc_compression]
 encoding_names = {29: "latin1", 20: "utf-8", 33: "cyrillic", 60: "wlatin2",
                   61: "wcyrillic", 62: "wlatin1", 90: "ebcdic870"}
 
+
 class index:
     rowSizeIndex = 0
     columnSizeIndex = 1

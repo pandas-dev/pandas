@@ -413,7 +413,6 @@ class SAS7BDATReader(BaseIterator):
         self.column_names_strings.append(cname)
 
         if len(self.column_names_strings) == 1:
-            column_name = self.column_names_strings[0]
             compression_literal = ""
             for cl in const.compression_literals:
                 if cl in cname_raw:

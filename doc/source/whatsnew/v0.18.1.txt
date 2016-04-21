@@ -248,7 +248,7 @@ Deprecations
 Performance Improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-- Improved speed of SAS reader (PR 12656)
+- Improved speed of SAS reader (:issue:`12656`)
 
 - Improved performance of ``DataFrame.to_sql`` when checking case sensitivity for tables. Now only checks if table has been created correctly when table name is not lower case. (:issue:`12876`)
 
