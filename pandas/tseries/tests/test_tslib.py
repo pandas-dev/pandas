@@ -589,6 +589,8 @@ class TestDatetimeParsingWrappers(tm.TestCase):
             self.assertRaises(ValueError, tools.parse_time_string, case)
 
     def test_parsers_dayfirst_yearfirst(self):
+        raise nose.SkipTest("skipping until comprehensive fixes for dateutil, "
+                            "xref #12944")
 
         # https://github.com/dateutil/dateutil/issues/217
         # this issue was closed
