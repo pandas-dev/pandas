@@ -356,6 +356,9 @@ class TestResampleAPI(tm.TestCase):
         result = r.fillna(method='bfill')
         assert_series_equal(result, expected)
 
+        with self.assertRaises(ValueError):
+            r.fillna(0)
+
     def test_apply_without_aggregation(self):
 
         # both resample and groupby should work w/o aggregation
