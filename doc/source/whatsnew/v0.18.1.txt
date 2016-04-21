@@ -170,7 +170,6 @@ Other Enhancements
 
 - ``pd.crosstab()`` has gained a ``normalize`` argument for normalizing frequency tables (:issue:`12569`). Examples in the updated docs :ref:`here <reshaping.crosstabulations>`.
 
-
 .. _whatsnew_0181.sparse:
 
 Sparse changes

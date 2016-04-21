@@ -237,9 +237,6 @@ class Timestamp(_Timestamp):
         numpy unit used for conversion, if ts_input is int or float
     """
 
-    # Do not add ``dayfirst`` and ``yearfist`` to Timestamp based on the discussion
-    # https://github.com/pydata/pandas/pull/7599
-
     @classmethod
     def fromordinal(cls, ordinal, offset=None, tz=None):
         """ passed an ordinal, translate and convert to a ts
@@ -295,7 +292,7 @@ class Timestamp(_Timestamp):
         cdef _TSObject ts
         cdef _Timestamp ts_base
 
-        ts = convert_to_tsobject(ts_input, tz, unit)
+        ts = convert_to_tsobject(ts_input, tz, unit, 0, 0)
 
         if ts.value == NPY_NAT:
             return NaT
@@ -544,7 +541,7 @@ class Timestamp(_Timestamp):
 
         if self.nanosecond != 0 and warn:
             print 'Warning: discarding nonzero nanoseconds'
-        ts = convert_to_tsobject(self, self.tzinfo, None)
+        ts = convert_to_tsobject(self, self.tzinfo, None, 0, 0)
 
         return datetime(ts.dts.year, ts.dts.month, ts.dts.day,
                         ts.dts.hour, ts.dts.min, ts.dts.sec,
@@ -997,7 +994,7 @@ cdef class _Timestamp(datetime):
         cdef:
             pandas_datetimestruct dts
             _TSObject ts
-        ts = convert_to_tsobject(self, self.tzinfo, None)
+        ts = convert_to_tsobject(self, self.tzinfo, None, 0, 0)
         dts = ts.dts
         return datetime(dts.year, dts.month, dts.day,
                         dts.hour, dts.min, dts.sec,
@@ -1237,7 +1234,8 @@ cpdef _get_utcoffset(tzinfo, obj):
         return tzinfo.utcoffset(obj)
 
 # helper to extract datetime and int64 from several different possibilities
-cdef convert_to_tsobject(object ts, object tz, object unit):
+cdef convert_to_tsobject(object ts, object tz, object unit,
+                         bint dayfirst, bint yearfirst):
     """
     Extract datetime and int64 from any of:
         - np.int64 (with unit providing a possible modifier)
@@ -1259,7 +1257,7 @@ cdef convert_to_tsobject(object ts, object tz, object unit):
     obj = _TSObject()
 
     if util.is_string_object(ts):
-        return convert_str_to_tsobject(ts, tz, unit)
+        return convert_str_to_tsobject(ts, tz, unit, dayfirst, yearfirst)
 
     if ts is None or ts is NaT:
         obj.value = NPY_NAT
@@ -1329,7 +1327,7 @@ cdef convert_to_tsobject(object ts, object tz, object unit):
     elif PyDate_Check(ts):
         # Keep the converter same as PyDateTime's
         ts = datetime.combine(ts, datetime_time())
-        return convert_to_tsobject(ts, tz, None)
+        return convert_to_tsobject(ts, tz, None, 0, 0)
     elif getattr(ts, '_typ', None) == 'period':
         raise ValueError("Cannot convert Period to Timestamp unambiguously. Use to_timestamp")
     else:
@@ -1390,7 +1388,7 @@ cpdef convert_str_to_tsobject(object ts, object tz, object unit,
             except Exception:
                 raise ValueError
 
-    return convert_to_tsobject(ts, tz, unit)
+    return convert_to_tsobject(ts, tz, unit, dayfirst, yearfirst)
 
 def _test_parse_iso8601(object ts):
     """
@@ -1581,7 +1579,7 @@ def datetime_to_datetime64(ndarray[object] values):
                 else:
                     inferred_tz = _get_zone(val.tzinfo)
 
-                _ts = convert_to_tsobject(val, None, None)
+                _ts = convert_to_tsobject(val, None, None, 0, 0)
                 iresult[i] = _ts.value
                 _check_dts_bounds(&_ts.dts)
             else:
@@ -1993,7 +1991,7 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
                 seen_datetime=1
                 if val.tzinfo is not None:
                     if utc_convert:
-                        _ts = convert_to_tsobject(val, None, unit)
+                        _ts = convert_to_tsobject(val, None, unit, 0, 0)
                         iresult[i] = _ts.value
                         try:
                             _check_dts_bounds(&_ts.dts)
@@ -2091,7 +2089,7 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
                         raise TypeError("invalid string coercion to datetime")
 
                     try:
-                        _ts = convert_to_tsobject(py_dt, None, None)
+                        _ts = convert_to_tsobject(py_dt, None, None, 0, 0)
                         iresult[i] = _ts.value
                     except ValueError:
                         if is_coerce:
@@ -2180,7 +2178,7 @@ def parse_str_array_to_datetime(ndarray values, dayfirst=False,
                                           yearfirst=yearfirst, freq=freq)
         except Exception:
             raise ValueError
-        _ts = convert_to_tsobject(py_dt, None, None)
+        _ts = convert_to_tsobject(py_dt, None, None, 0, 0)
         iresult[i] = _ts.value
 
     return iresult
@@ -3466,7 +3464,7 @@ def pydt_to_i8(object pydt):
     cdef:
         _TSObject ts
 
-    ts = convert_to_tsobject(pydt, None, None)
+    ts = convert_to_tsobject(pydt, None, None, 0, 0)
 
     return ts.value
 
@@ -4230,7 +4228,7 @@ def get_start_end_field(ndarray[int64_t] dtindex, object field, object freqstr=N
                 if dtindex[i] == NPY_NAT: out[i] = -1; continue
 
                 pandas_datetime_to_datetimestruct(dtindex[i], PANDAS_FR_ns, &dts)
-                ts = convert_to_tsobject(dtindex[i], None, None)
+                ts = convert_to_tsobject(dtindex[i], None, None, 0, 0)
                 dom = dts.day
                 dow = ts_dayofweek(ts)
 
@@ -4254,7 +4252,7 @@ def get_start_end_field(ndarray[int64_t] dtindex, object field, object freqstr=N
                 if dtindex[i] == NPY_NAT: out[i] = -1; continue
 
                 pandas_datetime_to_datetimestruct(dtindex[i], PANDAS_FR_ns, &dts)
-                ts = convert_to_tsobject(dtindex[i], None, None)
+                ts = convert_to_tsobject(dtindex[i], None, None, 0, 0)
                 isleap = is_leapyear(dts.year)
                 mo_off = _month_offset[isleap, dts.month - 1]
                 dom = dts.day
@@ -4286,7 +4284,7 @@ def get_start_end_field(ndarray[int64_t] dtindex, object field, object freqstr=N
                 if dtindex[i] == NPY_NAT: out[i] = -1; continue
 
                 pandas_datetime_to_datetimestruct(dtindex[i], PANDAS_FR_ns, &dts)
-                ts = convert_to_tsobject(dtindex[i], None, None)
+                ts = convert_to_tsobject(dtindex[i], None, None, 0, 0)
                 dom = dts.day
                 dow = ts_dayofweek(ts)
 
@@ -4310,7 +4308,7 @@ def get_start_end_field(ndarray[int64_t] dtindex, object field, object freqstr=N
                 if dtindex[i] == NPY_NAT: out[i] = -1; continue
 
                 pandas_datetime_to_datetimestruct(dtindex[i], PANDAS_FR_ns, &dts)
-                ts = convert_to_tsobject(dtindex[i], None, None)
+                ts = convert_to_tsobject(dtindex[i], None, None, 0, 0)
                 isleap = is_leapyear(dts.year)
                 mo_off = _month_offset[isleap, dts.month - 1]
                 dom = dts.day
@@ -4342,7 +4340,7 @@ def get_start_end_field(ndarray[int64_t] dtindex, object field, object freqstr=N
                 if dtindex[i] == NPY_NAT: out[i] = -1; continue
 
                 pandas_datetime_to_datetimestruct(dtindex[i], PANDAS_FR_ns, &dts)
-                ts = convert_to_tsobject(dtindex[i], None, None)
+                ts = convert_to_tsobject(dtindex[i], None, None, 0, 0)
                 dom = dts.day
                 dow = ts_dayofweek(ts)
 
@@ -4366,7 +4364,7 @@ def get_start_end_field(ndarray[int64_t] dtindex, object field, object freqstr=N
                 if dtindex[i] == NPY_NAT: out[i] = -1; continue
 
                 pandas_datetime_to_datetimestruct(dtindex[i], PANDAS_FR_ns, &dts)
-                ts = convert_to_tsobject(dtindex[i], None, None)
+                ts = convert_to_tsobject(dtindex[i], None, None, 0, 0)
                 isleap = is_leapyear(dts.year)
                 dom = dts.day
                 mo_off = _month_offset[isleap, dts.month - 1]
@@ -4382,7 +4380,7 @@ def get_start_end_field(ndarray[int64_t] dtindex, object field, object freqstr=N
                 if dtindex[i] == NPY_NAT: out[i] = -1; continue
 
                 pandas_datetime_to_datetimestruct(dtindex[i], PANDAS_FR_ns, &dts)
-                ts = convert_to_tsobject(dtindex[i], None, None)
+                ts = convert_to_tsobject(dtindex[i], None, None, 0, 0)
                 isleap = is_leapyear(dts.year)
                 mo_off = _month_offset[isleap, dts.month - 1]
                 dom = dts.day
@@ -4429,7 +4427,7 @@ def get_date_name_field(ndarray[int64_t] dtindex, object field):
 
 
 cdef inline int m8_weekday(int64_t val):
-    ts = convert_to_tsobject(val, None, None)
+    ts = convert_to_tsobject(val, None, None, 0, 0)
     return ts_dayofweek(ts)
 
 cdef int64_t DAY_NS = 86400000000000LL
