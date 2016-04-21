@@ -51,8 +51,13 @@ object with a read() method (such as a file handle or StringIO)
     file. For file URLs, a host is expected. For instance, a local file could
     be file ://localhost/path/to/table.csv
 %s
-delimiter : str, default None
+delimiter : str, default ``None``
     Alternative argument name for sep.
+delim_whitespace : boolean, default False
+    Specifies whether or not whitespace (e.g. ``' '`` or ``'\t'``) will be
+    used as the sep. Equivalent to setting ``sep='\+s'``. If this option
+    is set to True, nothing should be passed in for the ``delimiter``
+    parameter. This parameter is currently supported for the C parser only.
 header : int or list of ints, default 'infer'
     Row number(s) to use as the column names, and the start of the data.
     Default behavior is as if set to 0 if no ``names`` passed, otherwise

@@ -97,6 +97,12 @@ sep : str, defaults to ``','`` for :func:`read_csv`, ``\t`` for :func:`read_tabl
   Regex example: ``'\\r\\t'``.
 delimiter : str, default ``None``
   Alternative argument name for sep.
+delim_whitespace : boolean, default False
+  Specifies whether or not whitespace (e.g. ``' '`` or ``'\t'``)
+  will be used as the delimiter. Equivalent to setting ``sep='\+s'``.
+  If this option is set to True, nothing should be passed in for the
+  ``delimiter`` parameter. This parameter is currently supported for
+  the C parser only.
 
 Column and Index Locations and Names
 ++++++++++++++++++++++++++++++++++++
