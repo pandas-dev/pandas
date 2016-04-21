@@ -406,7 +406,8 @@ class SAS7BDATReader(BaseIterator):
         text_block_size = self._read_int(offset, const.text_block_size_length)
 
         buf = self._read_bytes(offset, text_block_size)
-        cname = buf[0:text_block_size].rstrip(b"\x00 ")
+        cname_raw = buf[0:text_block_size].rstrip(b"\x00 ")
+        cname = cname_raw
         if self.convert_header_text:
             cname = cname.decode(self.encoding or self.default_encoding)
         self.column_names_strings.append(cname)
@@ -415,7 +416,7 @@ class SAS7BDATReader(BaseIterator):
             column_name = self.column_names_strings[0]
             compression_literal = ""
             for cl in const.compression_literals:
-                if cl in str(column_name):
+                if cl in cname_raw:
                     compression_literal = cl
             self.compression = compression_literal
             offset -= self._int_length

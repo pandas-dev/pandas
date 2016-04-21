@@ -91,8 +91,8 @@ column_label_offset_offset = 30
 column_label_offset_length = 2
 column_label_length_offset = 32
 column_label_length_length = 2
-rle_compression = 'SASYZCRL'
-rdc_compression = 'SASYZCR2'
+rle_compression = b'SASYZCRL'
+rdc_compression = b'SASYZCR2'
 
 compression_literals = [rle_compression, rdc_compression]
 

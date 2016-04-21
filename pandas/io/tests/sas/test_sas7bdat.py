@@ -97,8 +97,17 @@ def test_productsales():
 def test_12659():
     dirpath = tm.get_data_path()
     fname = os.path.join(dirpath, "test_12659.sas7bdat")
-    df = pd.read_sas(fname, encoding='latin1')
+    df = pd.read_sas(fname)
     fname = os.path.join(dirpath, "test_12659.csv")
     df0 = pd.read_csv(fname)
     df0 = df0.astype(np.float64)
     tm.assert_frame_equal(df, df0)
+
+def test_airline():
+    dirpath = tm.get_data_path()
+    fname = os.path.join(dirpath, "airline.sas7bdat")
+    df = pd.read_sas(fname)
+    fname = os.path.join(dirpath, "airline.csv")
+    df0 = pd.read_csv(fname)
+    df0 = df0.astype(np.float64)
+    tm.assert_frame_equal(df, df0, check_exact=False)
