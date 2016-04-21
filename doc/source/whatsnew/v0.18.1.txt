@@ -4,7 +4,7 @@ v0.18.1 (April ??, 2016)
 ------------------------
 
 This is a minor bug-fix release from 0.18.0 and includes a large number of
-bug fixes along several new features, enhancements, and performance improvements.
+bug fixes along with several new features, enhancements, and performance improvements.
 We recommend that all users upgrade to this version.
 
 Highlights include:
@@ -131,6 +131,8 @@ These changes conform sparse handling to return the correct types and work to ma
 
 API changes
 ~~~~~~~~~~~
+- ``.swaplevel()`` for ``Series``, ``DataFrame``, ``Panel``, and ``MultiIndex`` now features defaults for its first two parameters ``i`` and ``j`` that swap the two innermost levels of the index. (:issue:`12934`)
+
 - ``.searchsorted()`` for ``Index`` and ``TimedeltaIndex`` now accept a ``sorter`` argument to maintain compatibility with numpy's ``searchsorted`` function (:issue:`12238`)
 
 - ``Period`` and ``PeriodIndex`` now raises ``IncompatibleFrequency`` error which inherits ``ValueError`` rather than raw ``ValueError`` (:issue:`12615`)

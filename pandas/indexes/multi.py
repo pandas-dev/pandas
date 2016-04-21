@@ -1194,7 +1194,7 @@ class MultiIndex(Index):
             return MultiIndex(levels=new_levels, labels=new_labels,
                               names=new_names, verify_integrity=False)
 
-    def swaplevel(self, i, j):
+    def swaplevel(self, i=-2, j=-1):
         """
         Swap level i with level j. Do not change the ordering of anything
 
@@ -1206,6 +1206,11 @@ class MultiIndex(Index):
         Returns
         -------
         swapped : MultiIndex
+
+        .. versionchanged:: 0.18.1
+           The indexes ``i`` and ``j`` are now optional, and default to
+           the two innermost levels of the index.
+
         """
         new_levels = list(self.levels)
         new_labels = list(self.labels)
