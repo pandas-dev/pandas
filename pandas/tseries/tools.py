@@ -470,8 +470,8 @@ def _assemble_from_unit_mappings(arg, errors):
     required = ['year', 'month', 'day']
     req = sorted(list(set(required) - set(unit_rev.keys())))
     if len(req):
-        raise ValueError("to assemble mappings with a dict of "
-                         "units, requires year, month, day: "
+        raise ValueError("to assemble mappings requires at "
+                         "least that [year, month, day] be specified: "
                          "[{0}] is missing".format(','.join(req)))
 
     # keys we don't recognize
