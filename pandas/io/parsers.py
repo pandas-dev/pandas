@@ -214,6 +214,11 @@ error_bad_lines : boolean, default True
 warn_bad_lines : boolean, default True
     If error_bad_lines is False, and warn_bad_lines is True, a warning for each
     "bad line" will be output. (Only valid with C parser).
+delim_whitespace : boolean, default False
+    Specifies whether or not whitespace (e.g. ``' '`` or ``'\t'``) will be used
+    as the delimiter. Equivalent to setting ``sep='\+s'``. If this option is set
+    to True, nothing should be passed in for the ``delimiter`` parameter. This
+    parameter is currently supported for the C parser only.
 
 Returns
 -------
