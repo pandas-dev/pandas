@@ -167,8 +167,7 @@ class TestGroupBy(tm.TestCase):
         self.df.loc[self.df['A'] == 'foo', 'B'] = np.nan
         self.assertTrue(com.isnull(grouped['B'].first()['foo']))
         self.assertTrue(com.isnull(grouped['B'].last()['foo']))
-        self.assertTrue(com.isnull(grouped['B'].nth(0)[0])
-                        )  # not sure what this is testing
+        self.assertTrue(com.isnull(grouped['B'].nth(0)['foo']))
 
         # v0.14.0 whatsnew
         df = DataFrame([[1, np.nan], [1, 4], [5, 6]], columns=['A', 'B'])
@@ -221,12 +220,12 @@ class TestGroupBy(tm.TestCase):
 
         assert_frame_equal(g.nth(0), df.iloc[[0, 2]].set_index('A'))
         assert_frame_equal(g.nth(1), df.iloc[[1]].set_index('A'))
-        assert_frame_equal(g.nth(2), df.loc[[], ['B']])
+        assert_frame_equal(g.nth(2), df.loc[[]].set_index('A'))
         assert_frame_equal(g.nth(-1), df.iloc[[1, 2]].set_index('A'))
         assert_frame_equal(g.nth(-2), df.iloc[[0]].set_index('A'))
-        assert_frame_equal(g.nth(-3), df.loc[[], ['B']])
-        assert_series_equal(g.B.nth(0), df.B.iloc[[0, 2]])
-        assert_series_equal(g.B.nth(1), df.B.iloc[[1]])
+        assert_frame_equal(g.nth(-3), df.loc[[]].set_index('A'))
+        assert_series_equal(g.B.nth(0), df.set_index('A').B.iloc[[0, 2]])
+        assert_series_equal(g.B.nth(1), df.set_index('A').B.iloc[[1]])
         assert_frame_equal(g[['B']].nth(0),
                            df.ix[[0, 2], ['A', 'B']].set_index('A'))
 
@@ -262,11 +261,11 @@ class TestGroupBy(tm.TestCase):
                                 4: 0.70422799999999997}}).set_index(['color',
                                                                      'food'])
 
-        result = df.groupby(level=0).nth(2)
+        result = df.groupby(level=0, as_index=False).nth(2)
         expected = df.iloc[[-1]]
         assert_frame_equal(result, expected)
 
-        result = df.groupby(level=0).nth(3)
+        result = df.groupby(level=0, as_index=False).nth(3)
         expected = df.loc[[]]
         assert_frame_equal(result, expected)
 
@@ -290,8 +289,7 @@ class TestGroupBy(tm.TestCase):
         # as it keeps the order in the series (and not the group order)
         # related GH 7287
         expected = s.groupby(g, sort=False).first()
-        expected.index = pd.Index(range(1, 10), name=0)
-        result = s.groupby(g).nth(0, dropna='all')
+        result = s.groupby(g, sort=False).nth(0, dropna='all')
         assert_series_equal(result, expected)
 
         # doc example
@@ -316,14 +314,14 @@ class TestGroupBy(tm.TestCase):
         assert_frame_equal(
             g.nth([0, 1, -1]), df.iloc[[0, 1, 2, 3, 4]].set_index('A'))
         assert_frame_equal(g.nth([2]), df.iloc[[2]].set_index('A'))
-        assert_frame_equal(g.nth([3, 4]), df.loc[[], ['B']])
+        assert_frame_equal(g.nth([3, 4]), df.loc[[]].set_index('A'))
 
         business_dates = pd.date_range(start='4/1/2014', end='6/30/2014',
                                        freq='B')
         df = DataFrame(1, index=business_dates, columns=['a', 'b'])
         # get the first, fourth and last two business days for each month
-        result = df.groupby((df.index.year, df.index.month)).nth([0, 3, -2, -1
-                                                                  ])
+        key = (df.index.year, df.index.month)
+        result = df.groupby(key, as_index=False).nth([0, 3, -2, -1])
         expected_dates = pd.to_datetime(
             ['2014/4/1', '2014/4/4', '2014/4/29', '2014/4/30', '2014/5/1',
              '2014/5/6', '2014/5/29', '2014/5/30', '2014/6/2', '2014/6/5',

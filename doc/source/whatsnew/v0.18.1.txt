@@ -146,6 +146,47 @@ API changes
 - Provide a proper ``__name__`` and ``__qualname__`` attributes for generic functions (:issue:`12021`)
 - ``pd.concat(ignore_index=True)`` now uses ``RangeIndex`` as default (:issue:`12695`)
 
+.. _whatsnew_0181.enhancements.groubynth:
+
+Index in ``Groupby.nth`` output is now more consistent with ``as_index``
+argument passed in (:issue:`11039`):
+
+Previous Behavior:
+
+.. code-block:: ipython
+
+    In [4]: df
+    Out[4]:
+       A  B
+    0  a  1
+    1  b  2
+    2  a  3
+
+    In [5]: df.groupby('A', as_index=True)['B'].nth(0)
+    Out[5]:
+    0    1
+    1    2
+    Name: B, dtype: int64
+
+
+New Behavior:
+
+.. code-block:: ipython
+
+    In [7]: df.groupby('A', as_index=True)['B'].nth(0)
+    Out[7]:
+    A
+    a    1
+    b    2
+    Name: B, dtype: int64
+
+    In [8]: df.groupby('A', as_index=False)['B'].nth(0)
+    Out[8]:
+    0    1
+    1    2
+    Name: B, dtype: int64
+
+
 .. _whatsnew_0181.apply_resample:
 
 Using ``.apply`` on groupby resampling
@@ -247,7 +288,7 @@ Deprecations
 
 Performance Improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
-
+- Performance improvements in ``GroupBy.cumcount`` (:issue:`11039`)
 
 
 - Improved performance of ``DataFrame.to_sql`` when checking case sensitivity for tables. Now only checks if table has been created correctly when table name is not lower case. (:issue:`12876`)
