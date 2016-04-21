@@ -199,10 +199,10 @@ You can also pass a ``DataFrame`` of integer or string columns to assemble into 
 
 .. ipython:: python
 
-   df = pd.pd.DataFrame({'year': [2015, 2016],
-                         'month': [2, 3],
-                         'day': [4, 5],
-                         'hour': [2, 3]})
+   df = pd.DataFrame({'year': [2015, 2016],
+                      'month': [2, 3],
+                      'day': [4, 5],
+                      'hour': [2, 3]})
    pd.to_datetime(df)
 
 

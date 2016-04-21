@@ -592,78 +592,101 @@ class TestDatetimeParsingWrappers(tm.TestCase):
             self.assertRaises(ValueError, tools.parse_time_string, case)
 
     def test_parsers_dayfirst_yearfirst(self):
+        tm._skip_if_no_dateutil()
 
-        # https://github.com/dateutil/dateutil/issues/217
-        # this issue was closed
+        # OK
+        # 2.5.1 10-11-12   [dayfirst=0, yearfirst=0] -> 2012-10-11 00:00:00
+        # 2.5.2 10-11-12   [dayfirst=0, yearfirst=1] -> 2012-10-11 00:00:00
+        # 2.5.3 10-11-12   [dayfirst=0, yearfirst=0] -> 2012-10-11 00:00:00
+
+        # OK
+        # 2.5.1 10-11-12   [dayfirst=0, yearfirst=1] -> 2010-11-12 00:00:00
+        # 2.5.2 10-11-12   [dayfirst=0, yearfirst=1] -> 2010-11-12 00:00:00
+        # 2.5.3 10-11-12   [dayfirst=0, yearfirst=1] -> 2010-11-12 00:00:00
+
+        # bug fix in 2.5.2
+        # 2.5.1 10-11-12   [dayfirst=1, yearfirst=1] -> 2010-11-12 00:00:00
+        # 2.5.2 10-11-12   [dayfirst=1, yearfirst=1] -> 2010-12-11 00:00:00
+        # 2.5.3 10-11-12   [dayfirst=1, yearfirst=1] -> 2010-12-11 00:00:00
+
+        # OK
+        # 2.5.1 10-11-12   [dayfirst=1, yearfirst=0] -> 2012-11-10 00:00:00
+        # 2.5.2 10-11-12   [dayfirst=1, yearfirst=0] -> 2012-11-10 00:00:00
+        # 2.5.3 10-11-12   [dayfirst=1, yearfirst=0] -> 2012-11-10 00:00:00
+
+        # OK
+        # 2.5.1 20/12/21   [dayfirst=0, yearfirst=0] -> 2021-12-20 00:00:00
+        # 2.5.2 20/12/21   [dayfirst=0, yearfirst=0] -> 2021-12-20 00:00:00
+        # 2.5.3 20/12/21   [dayfirst=0, yearfirst=0] -> 2021-12-20 00:00:00
+
+        # OK
+        # 2.5.1 20/12/21   [dayfirst=0, yearfirst=1] -> 2020-12-21 00:00:00
+        # 2.5.2 20/12/21   [dayfirst=0, yearfirst=1] -> 2020-12-21 00:00:00
+        # 2.5.3 20/12/21   [dayfirst=0, yearfirst=1] -> 2020-12-21 00:00:00
+
+        # revert of bug in 2.5.2
+        # 2.5.1 20/12/21   [dayfirst=1, yearfirst=1] -> 2020-12-21 00:00:00
+        # 2.5.2 20/12/21   [dayfirst=1, yearfirst=1] -> month must be in 1..12
+        # 2.5.3 20/12/21   [dayfirst=1, yearfirst=1] -> 2020-12-21 00:00:00
+
+        # OK
+        # 2.5.1 20/12/21   [dayfirst=1, yearfirst=0] -> 2021-12-20 00:00:00
+        # 2.5.2 20/12/21   [dayfirst=1, yearfirst=0] -> 2021-12-20 00:00:00
+        # 2.5.3 20/12/21   [dayfirst=1, yearfirst=0] -> 2021-12-20 00:00:00
+
         import dateutil
-        is_compat_version = dateutil.__version__ >= LooseVersion('2.5.2')
-        if is_compat_version:
-            dayfirst_yearfirst1 = datetime.datetime(2010, 12, 11)
-            dayfirst_yearfirst2 = datetime.datetime(2020, 12, 21)
-        else:
-            dayfirst_yearfirst1 = datetime.datetime(2010, 11, 12)
-            dayfirst_yearfirst2 = datetime.datetime(2020, 12, 21)
+        is_lt_253 = dateutil.__version__ < LooseVersion('2.5.3')
 
         # str : dayfirst, yearfirst, expected
-        cases = {'10-11-12': [(False, False, False,
+        cases = {'10-11-12': [(False, False,
                                datetime.datetime(2012, 10, 11)),
-                              (True, False, False,
+                              (True, False,
                                datetime.datetime(2012, 11, 10)),
-                              (False, True, False,
+                              (False, True,
                                datetime.datetime(2010, 11, 12)),
-                              (True, True, False, dayfirst_yearfirst1)],
-                 '20/12/21': [(False, False, False,
+                              (True, True,
+                               datetime.datetime(2010, 12, 11))],
+                 '20/12/21': [(False, False,
                                datetime.datetime(2021, 12, 20)),
-                              (True, False, False,
+                              (True, False,
                                datetime.datetime(2021, 12, 20)),
-                              (False, True, False,
+                              (False, True,
                                datetime.datetime(2020, 12, 21)),
-                              (True, True, True, dayfirst_yearfirst2)]}
+                              (True, True,
+                               datetime.datetime(2020, 12, 21))]}
 
-        tm._skip_if_no_dateutil()
         from dateutil.parser import parse
         for date_str, values in compat.iteritems(cases):
-            for dayfirst, yearfirst, is_compat, expected in values:
+            for dayfirst, yearfirst, expected in values:
 
-                f = lambda x: tools.parse_time_string(x,
-                                                      dayfirst=dayfirst,
-                                                      yearfirst=yearfirst)
-
-                # we now have an invalid parse
-                if is_compat and is_compat_version:
-                    self.assertRaises(tslib.DateParseError, f, date_str)
-
-                    def f(date_str):
-                        return to_datetime(date_str, dayfirst=dayfirst,
-                                           yearfirst=yearfirst)
-
-                    self.assertRaises(ValueError, f, date_str)
-
-                    def f(date_str):
-                        return DatetimeIndex([date_str], dayfirst=dayfirst,
-                                             yearfirst=yearfirst)[0]
-
-                    self.assertRaises(ValueError, f, date_str)
-
+                # odd comparisons across version
+                # let's just skip
+                if dayfirst and yearfirst and is_lt_253:
                     continue
-
-                result1, _, _ = f(date_str)
-
-                result2 = to_datetime(date_str, dayfirst=dayfirst,
-                                      yearfirst=yearfirst)
-
-                result3 = DatetimeIndex([date_str], dayfirst=dayfirst,
-                                        yearfirst=yearfirst)[0]
-
-                # Timestamp doesn't support dayfirst and yearfirst
-                self.assertEqual(result1, expected)
-                self.assertEqual(result2, expected)
-                self.assertEqual(result3, expected)
 
                 # compare with dateutil result
                 dateutil_result = parse(date_str, dayfirst=dayfirst,
                                         yearfirst=yearfirst)
                 self.assertEqual(dateutil_result, expected)
+
+                result1, _, _ = tools.parse_time_string(date_str,
+                                                        dayfirst=dayfirst,
+                                                        yearfirst=yearfirst)
+
+                # we don't support dayfirst/yearfirst here:
+                if not dayfirst and not yearfirst:
+                    result2 = Timestamp(date_str)
+                    self.assertEqual(result2, expected)
+
+                result3 = to_datetime(date_str, dayfirst=dayfirst,
+                                      yearfirst=yearfirst)
+
+                result4 = DatetimeIndex([date_str], dayfirst=dayfirst,
+                                        yearfirst=yearfirst)[0]
+
+                self.assertEqual(result1, expected)
+                self.assertEqual(result3, expected)
+                self.assertEqual(result4, expected)
 
     def test_parsers_timestring(self):
         tm._skip_if_no_dateutil()
