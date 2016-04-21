@@ -383,8 +383,11 @@ calling ``to_string`` if you wish:
 
 Note that ``pivot_table`` is also available as an instance method on DataFrame.
 
+.. _reshaping.crosstabulations:
+
 Cross tabulations
 ~~~~~~~~~~~~~~~~~
+
 
 Use the ``crosstab`` function to compute a cross-tabulation of two (or more)
 factors. By default ``crosstab`` computes a frequency table of the factors
@@ -402,6 +405,9 @@ It takes a number of arguments
 - ``colnames``: sequence, default None, if passed, must match number of column
   arrays passed
 - ``margins``: boolean, default False, Add row/column margins (subtotals)
+- ``normalize``: boolean, {'all', 'index', 'columns'}, or {0,1}, default False.
+  Normalize by dividing all values by the sum of values.
+
 
 Any Series passed will have their name attributes used unless row or column
 names for the cross-tabulation are specified
@@ -415,6 +421,47 @@ For example:
     b = np.array([one, one, two, one, two, one], dtype=object)
     c = np.array([dull, dull, shiny, dull, dull, shiny], dtype=object)
     pd.crosstab(a, [b, c], rownames=['a'], colnames=['b', 'c'])
+
+
+If ``crosstab`` receives only two Series, it will provide a frequency table. 
+
+.. ipython:: python
+
+    df = pd.DataFrame({'a': [1, 2, 2, 2, 2], 'b': [3, 3, 4, 4, 4],
+                       'c': [1, 1, np.nan, 1, 1]})
+    df
+
+    pd.crosstab(df.a, df.b)
+
+.. versionadded:: 0.18.1
+
+Frequency tables can also be normalized to show percentages rather than counts 
+using the ``normalize`` argument:
+
+.. ipython:: python
+
+   pd.crosstab(df.a, df.b, normalize=True)
+
+``normalize`` can also normalize values within each row or within each column:
+
+.. ipython:: python
+
+   pd.crosstab(df.a, df.b, normalize='columns')
+
+``crosstab`` can also be passed a third Series and an aggregation function 
+(``aggfunc``) that will be applied to the values of the third Series within each 
+group defined by the first two Series:
+
+.. ipython:: python
+
+   pd.crosstab(df.a, df.b, values=df.c, aggfunc=np.sum)
+
+And finally, one can also add margins or normalize this output. 
+
+.. ipython:: python
+
+   pd.crosstab(df.a, df.b, values=df.c, aggfunc=np.sum, normalize=True,
+               margins=True)
 
 .. _reshaping.pivot.margins:
 
