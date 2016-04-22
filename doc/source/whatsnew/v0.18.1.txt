@@ -402,7 +402,7 @@ Deprecations
 Performance Improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-- Improved speed of SAS reader (:issue:`12656`)
+- Improved speed of SAS reader (:issue:`12656`, :issue`12961`)
 - Performance improvements in ``.groupby(..).cumcount()`` (:issue:`11039`)
 - Improved memory usage in ``pd.read_csv()`` when using ``skiprows=an_integer`` (:issue:`13005`)
 
