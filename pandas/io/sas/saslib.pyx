@@ -7,16 +7,12 @@ import sas_constants as const
 # algorithm.  It is partially documented here:
 #
 # https://cran.r-project.org/web/packages/sas7bdat/vignettes/sas7bdat.pdf
-cdef rle_decompress(int result_length, np.ndarray[uint8_t, ndim=1] inbuff):
+cdef np.ndarray[uint8_t, ndim=1] rle_decompress(int result_length, np.ndarray[uint8_t, ndim=1] inbuff):
 
-    cdef uint8_t control_byte
-    cdef uint8_t [:] result = np.zeros(result_length, np.uint8)
-    cdef int rpos = 0
-    cdef int ipos = 0
-    cdef int i
-    cdef int nbytes
-    cdef uint8_t x
-    cdef length = len(inbuff)
+    cdef:
+        uint8_t control_byte, x, end_of_first_byte
+        uint8_t [:] result = np.zeros(result_length, np.uint8)
+        int rpos = 0, ipos = 0, i, nbytes, length = len(inbuff)
 
     while ipos < length:
         control_byte = inbuff[ipos] & 0xF0
@@ -111,17 +107,13 @@ cdef rle_decompress(int result_length, np.ndarray[uint8_t, ndim=1] inbuff):
 # rdc_decompress decompresses data using the Ross Data Compression algorithm:
 #
 #   http://collaboration.cmc.ec.gc.ca/science/rpn/biblio/ddj/Website/articles/CUJ/1992/9210/ross/ross.htm
-cdef rdc_decompress(int result_length, np.ndarray[uint8_t, ndim=1] inbuff):
+cdef np.ndarray[uint8_t, ndim=1] rdc_decompress(int result_length, np.ndarray[uint8_t, ndim=1] inbuff):
 
-    cdef uint8_t cmd
-    cdef uint16_t ctrl_bits
-    cdef uint16_t ctrl_mask = 0
-    cdef uint16_t ofs
-    cdef uint16_t cnt
-    cdef int ipos = 0
-    cdef int rpos = 0
-    cdef int k
-    cdef uint8_t [:] outbuff = np.zeros(result_length, dtype=np.uint8)
+    cdef:
+        uint8_t cmd
+        uint16_t ctrl_bits, ctrl_mask = 0, ofs, cnt
+        int ipos = 0, rpos = 0, k
+        uint8_t [:] outbuff = np.zeros(result_length, dtype=np.uint8)
 
     ii = -1
 
@@ -190,136 +182,203 @@ cdef rdc_decompress(int result_length, np.ndarray[uint8_t, ndim=1] inbuff):
 
     return np.asarray(outbuff)
 
-cdef decompress(object parser, int row_length, page):
-    page = np.frombuffer(page, dtype=np.uint8)
-    if parser.compression == const.rle_compression:
-        return rle_decompress(row_length, page)
-    elif parser.compression == const.rdc_compression:
-        return rdc_decompress(row_length, page)
-    else:
-        raise ValueError("unknown SAS compression method: %s" %
-                         parser.compression)
 
-
-def do_read(object parser, int nrows):
-    cdef int i
-
-    for i in range(nrows):
-        done = readline(parser)
-        if done:
-            break
-
-
-cdef readline(object parser):
+cdef class Parser(object):
 
     cdef:
-        int offset, bit_offset, align_correction, subheader_pointer_length
+        int column_count
+        long[:] lengths
+        long[:] offsets
+        long[:] column_types
+        uint8_t[:, :] byte_chunk
+        object[:, :] string_chunk
+        char *cached_page
+        int current_row_on_page_index
+        int current_row_in_chunk_index
+        int current_row_in_file_index
+        int row_length
+        int bit_offset
+        int subheader_pointer_length
+        bint is_little_endian
+        np.ndarray[uint8_t, ndim=1] (*decompress)(int result_length, np.ndarray[uint8_t, ndim=1] inbuff)
+        object parser
 
-    bit_offset = parser._page_bit_offset
-    subheader_pointer_length = parser._subheader_pointer_length
+    def __init__(self, object parser):
+        cdef:
+            int j
+            char[:] column_types
 
-    # If there is no page, go to the end of the header and read a page.
-    if parser._cached_page is None:
-        parser._path_or_buf.seek(parser.header_length)
-        done = parser._read_next_page()
-        if done:
-            return True
+        self.current_row_on_page_index = parser._current_row_on_page_index
+        self.current_row_in_chunk_index = parser._current_row_in_chunk_index
+        self.current_row_in_file_index = parser._current_row_in_file_index
+        self.parser = parser
+        self.column_count = parser.column_count
+        self.lengths = parser._column_data_lengths
+        self.offsets = parser._column_data_offsets
+        self.byte_chunk = parser._byte_chunk
+        self.string_chunk = parser._string_chunk
+        self.row_length = parser.row_length
+        self.cached_page = <char *>parser._cached_page
+        self.bit_offset = self.parser._page_bit_offset
+        self.subheader_pointer_length = self.parser._subheader_pointer_length
+        self.is_little_endian = parser.byte_order == "<"
+        self.column_types = np.empty(self.column_count, dtype=long)
 
-    # Loop until a data row is read
-    while True:
-        if parser._current_page_type == const.page_meta_type:
-            flag = (parser._current_row_on_page_index >=
-                    len(parser._current_page_data_subheader_pointers))
-            if flag:
-                done = parser._read_next_page()
-                if done:
-                    return True
-                parser._current_row_on_page_index = 0
-                continue
-            current_subheader_pointer = (
-                parser._current_page_data_subheader_pointers[
-                    parser._current_row_on_page_index])
-            process_byte_array_with_data(parser,
-                                         current_subheader_pointer.offset,
-                                         current_subheader_pointer.length)
-            return False
-        elif parser._current_page_type in const.page_mix_types:
-            align_correction = (bit_offset + const.subheader_pointers_offset +
-                                parser._current_page_subheaders_count *
-                                subheader_pointer_length)
-            align_correction = align_correction % 8
-            offset = bit_offset + align_correction
-            offset += const.subheader_pointers_offset
-            offset += (parser._current_page_subheaders_count *
-                       subheader_pointer_length)
-            offset += parser._current_row_on_page_index * parser.row_length
-            process_byte_array_with_data(parser, offset, parser.row_length)
-            mn = min(parser.row_count, parser._mix_page_row_count)
-            if parser._current_row_on_page_index == mn:
-                done = parser._read_next_page()
-                if done:
-                    return True
-                parser._current_row_on_page_index = 0
-            return False
-        elif parser._current_page_type == const.page_data_type:
-            process_byte_array_with_data(parser,
-                                         bit_offset +
-                                         const.subheader_pointers_offset +
-                                         parser._current_row_on_page_index *
-                                         parser.row_length,
-                                         parser.row_length)
-            flag = (parser._current_row_on_page_index ==
-                    parser._current_page_block_count)
-            if flag:
-                done = parser._read_next_page()
-                if done:
-                    return True
-                parser._current_row_on_page_index = 0
-            return False
-        else:
-            raise ValueError("unknown page type: %s",
-                             parser._current_page_type)
+        column_types = parser.column_types
 
-
-cdef process_byte_array_with_data(object parser, int offset, int length):
-
-    cdef:
-        int s, j, k, m, start, jb, js, lngt
-        long[:] lengths = parser._column_data_lengths
-        long[:] offsets = parser._column_data_offsets
-        char[:] column_types = parser.column_types
-        uint8_t[:, :] byte_chunk = parser._byte_chunk
-        object[:, :] string_chunk = parser._string_chunk
-        np.ndarray[uint8_t, ndim=1] source
-        np.ndarray[uint8_t, ndim=1] raw_source = np.frombuffer(parser._cached_page[offset:offset+length], dtype=np.uint8)
-
-    if (parser.compression != "") and (length < parser.row_length):
-        source = decompress(parser, parser.row_length, raw_source)
-    else:
-        source = raw_source
-
-    s = 8 * parser._current_row_in_chunk_index
-    js = 0
-    jb = 0
-    for j in range(parser.column_count):
-        lngt = lengths[j]
-        if lngt == 0:
-            break
-        start = offsets[j]
-        if column_types[j] == b'd':
-            if parser.byte_order == "<":
-                m = s + 8 - lngt
+        # map column types
+        for j in range(self.column_count):
+            if column_types[j] == b'd':
+                self.column_types[j] = 1
+            elif column_types[j] == b's':
+                self.column_types[j] = 2
             else:
-                m = s
-            for k in range(lngt):
-                byte_chunk[jb, m + k] = source[start + k]
-            jb += 1
-        elif column_types[j] == b's':
-            string_chunk[js, parser._current_row_in_chunk_index] = source[start:(start+lngt)].tostring().rstrip()
-            js += 1
-        else:
-          raise ValueError("unknown column type: %s" % parser.columns[j].ctype)
+              raise ValueError("unknown column type: %s" % self.parser.columns[j].ctype)
 
-    parser._current_row_on_page_index += 1
-    parser._current_row_in_chunk_index += 1
-    parser._current_row_in_file_index += 1
+        # compression
+        if parser.compression == const.rle_compression:
+            self.decompress = rle_decompress
+        elif parser.compression == const.rdc_compression:
+            self.decompress = rdc_decompress
+        else:
+            self.decompress = NULL
+
+    def read(self, int nrows):
+        cdef:
+            bint done
+            int i
+
+        for i in range(nrows):
+            done = self.readline()
+            if done:
+                break
+
+        # update the parser
+        self.parser._current_row_on_page_index = self.current_row_on_page_index
+        self.parser._current_row_in_chunk_index = self.current_row_in_chunk_index
+        self.parser._current_row_in_file_index = self.current_row_in_file_index
+
+    cdef bint read_next_page(self):
+        cdef done
+
+        done = self.parser._read_next_page()
+        if done:
+            self.cached_page = NULL
+        else:
+            self.cached_page = <char *>self.parser._cached_page
+            self.current_row_on_page_index = 0
+        return done
+
+    cdef bint readline(self):
+
+        cdef:
+            int offset, bit_offset, align_correction, subheader_pointer_length
+            bint done
+
+        bit_offset = self.bit_offset
+        subheader_pointer_length = self.subheader_pointer_length
+
+        # If there is no page, go to the end of the header and read a page.
+        if self.cached_page == NULL:
+            self.parser._path_or_buf.seek(self.parser.header_length)
+            done = self.read_next_page()
+            if done:
+                return True
+
+        # Loop until a data row is read
+        while True:
+            if self.parser._current_page_type == const.page_meta_type:
+                flag = (self.current_row_on_page_index >=
+                        len(self.parser._current_page_data_subheader_pointers))
+                if flag:
+                    done = self.read_next_page()
+                    if done:
+                        return True
+                    continue
+                current_subheader_pointer = (
+                    self.parser._current_page_data_subheader_pointers[
+                        self.current_row_on_page_index])
+                self.process_byte_array_with_data(current_subheader_pointer.offset,
+                                                  current_subheader_pointer.length)
+                return False
+            elif self.parser._current_page_type in const.page_mix_types:
+                align_correction = (bit_offset + const.subheader_pointers_offset +
+                                    self.parser._current_page_subheaders_count *
+                                    subheader_pointer_length)
+                align_correction = align_correction % 8
+                offset = bit_offset + align_correction
+                offset += const.subheader_pointers_offset
+                offset += (self.parser._current_page_subheaders_count *
+                           subheader_pointer_length)
+                offset += self.current_row_on_page_index * self.row_length
+                self.process_byte_array_with_data(offset,
+                                                  self.row_length)
+                mn = min(self.parser.row_count, self.parser._mix_page_row_count)
+                if self.current_row_on_page_index == mn:
+                    done = self.read_next_page()
+                    if done:
+                        return True
+                return False
+            elif self.parser._current_page_type == const.page_data_type:
+                self.process_byte_array_with_data(bit_offset +
+                                                  const.subheader_pointers_offset +
+                                                  self.current_row_on_page_index *
+                                                  self.row_length,
+                                                  self.row_length)
+                flag = (self.current_row_on_page_index ==
+                        self.parser._current_page_block_count)
+                if flag:
+                    done = self.read_next_page()
+                    if done:
+                        return True
+                return False
+            else:
+                raise ValueError("unknown page type: %s",
+                                 self.parser._current_page_type)
+
+    cdef void process_byte_array_with_data(self, int offset, int length):
+
+        cdef:
+             long s, j, k, m, jb, js, lngt, start
+             np.ndarray[uint8_t, ndim=1] source
+             long[:] column_types
+             long[:] lengths
+             long[:] offsets
+             uint8_t[:, :] byte_chunk
+             object[:, :] string_chunk
+
+        source = np.frombuffer(self.cached_page[offset:offset+length], dtype=np.uint8)
+
+        if self.decompress != NULL and (length < self.row_length):
+            source = self.decompress(self.row_length, source)
+
+        column_types = self.column_types
+        lengths = self.lengths
+        offsets = self.offsets
+        byte_chunk = self.byte_chunk
+        string_chunk = self.string_chunk
+        s = 8 * self.current_row_in_chunk_index
+        js = 0
+        jb = 0
+        for j in range(self.column_count):
+            lngt = lengths[j]
+            if lngt == 0:
+                break
+            start = offsets[j]
+            if column_types[j] == 1:
+                # decimal
+                if self.is_little_endian:
+                    m = s + 8 - lngt
+                else:
+                    m = s
+                for k in range(lngt):
+                   byte_chunk[jb, m + k] = source[start + k]
+                jb += 1
+            elif column_types[j] == 2:
+                # string
+                string_chunk[js, self.current_row_in_chunk_index] = source[start:(start+lngt)].tostring().rstrip()
+                js += 1
+
+        self.current_row_on_page_index += 1
+        self.current_row_in_chunk_index += 1
+        self.current_row_in_file_index += 1
