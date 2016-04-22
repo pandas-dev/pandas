@@ -47,7 +47,7 @@ class TestSAS7BDAT(tm.TestCase):
                 byts = open(fname, 'rb').read()
                 buf = io.BytesIO(byts)
                 df = pd.read_sas(buf, format="sas7bdat", encoding='utf-8')
-                tm.assert_frame_equal(df, df0)
+                tm.assert_frame_equal(df, df0, check_exact=False)
 
     def test_from_iterator(self):
         for j in 0, 1:
@@ -62,3 +62,53 @@ class TestSAS7BDAT(tm.TestCase):
                 tm.assert_frame_equal(df, df0.iloc[0:2, :])
                 df = rdr.read(3)
                 tm.assert_frame_equal(df, df0.iloc[2:5, :])
+
+
+def test_encoding_options():
+    dirpath = tm.get_data_path()
+    fname = os.path.join(dirpath, "test1.sas7bdat")
+    df1 = pd.read_sas(fname)
+    df2 = pd.read_sas(fname, encoding='utf-8')
+    for col in df1.columns:
+        try:
+            df1[col] = df1[col].str.decode('utf-8')
+        except AttributeError:
+            pass
+    tm.assert_frame_equal(df1, df2)
+
+    from pandas.io.sas.sas7bdat import SAS7BDATReader
+    rdr = SAS7BDATReader(fname, convert_header_text=False)
+    df3 = rdr.read()
+    for x, y in zip(df1.columns, df3.columns):
+        assert(x == y.decode())
+
+
+def test_productsales():
+    dirpath = tm.get_data_path()
+    fname = os.path.join(dirpath, "productsales.sas7bdat")
+    df = pd.read_sas(fname, encoding='utf-8')
+    fname = os.path.join(dirpath, "productsales.csv")
+    df0 = pd.read_csv(fname)
+    vn = ["ACTUAL", "PREDICT", "QUARTER", "YEAR", "MONTH"]
+    df0[vn] = df0[vn].astype(np.float64)
+    tm.assert_frame_equal(df, df0)
+
+
+def test_12659():
+    dirpath = tm.get_data_path()
+    fname = os.path.join(dirpath, "test_12659.sas7bdat")
+    df = pd.read_sas(fname)
+    fname = os.path.join(dirpath, "test_12659.csv")
+    df0 = pd.read_csv(fname)
+    df0 = df0.astype(np.float64)
+    tm.assert_frame_equal(df, df0)
+
+
+def test_airline():
+    dirpath = tm.get_data_path()
+    fname = os.path.join(dirpath, "airline.sas7bdat")
+    df = pd.read_sas(fname)
+    fname = os.path.join(dirpath, "airline.csv")
+    df0 = pd.read_csv(fname)
+    df0 = df0.astype(np.float64)
+    tm.assert_frame_equal(df, df0, check_exact=False)
