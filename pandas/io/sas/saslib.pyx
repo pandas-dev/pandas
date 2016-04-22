@@ -273,7 +273,7 @@ cdef class Parser(object):
 
         cdef:
             int offset, bit_offset, align_correction, subheader_pointer_length
-            bint done
+            bint done, flag
 
         bit_offset = self.bit_offset
         subheader_pointer_length = self.subheader_pointer_length
