@@ -478,7 +478,10 @@ static int end_line(parser_t *self) {
         }
     }
 
-    if (self->state == SKIP_LINE) {
+    if (self->state == SKIP_LINE || \
+        self->state == QUOTE_IN_SKIP_LINE || \
+        self->state == QUOTE_IN_QUOTE_IN_SKIP_LINE
+    ) {
         TRACE(("end_line: Skipping row %d\n", self->file_lines));
         // increment file line count
         self->file_lines++;
@@ -490,8 +493,6 @@ static int end_line(parser_t *self) {
         self->line_fields[self->lines] = 0;
         return 0;
     }
-
-    /* printf("Line: %d, Fields: %d, Ex-fields: %d\n", self->lines, fields, ex_fields); */
 
     if (!(self->lines <= self->header_end + 1)
         && (self->expected_fields < 0 && fields > ex_fields)
@@ -505,8 +506,7 @@ static int end_line(parser_t *self) {
         // reset field count
         self->line_fields[self->lines] = 0;
 
-        // file_lines is now the _actual_ file line number (starting at 1)
-
+        // file_lines is now the actual file line number (starting at 1)
         if (self->error_bad_lines) {
             self->error_msg = (char*) malloc(100);
             sprintf(self->error_msg, "Expected %d fields in line %d, saw %d\n",
@@ -526,12 +526,11 @@ static int end_line(parser_t *self) {
                 free(msg);
             }
         }
-    }
-    else {
-        /* missing trailing delimiters */
+    } else {
+        // missing trailing delimiters
         if ((self->lines >= self->header_end + 1) && fields < ex_fields) {
 
-            /* Might overrun the buffer when closing fields */
+            // might overrun the buffer when closing fields
             if (make_stream_space(self, ex_fields - fields) < 0) {
                 self->error_msg = "out of memory";
                 return -1;
@@ -539,19 +538,13 @@ static int end_line(parser_t *self) {
 
             while (fields < ex_fields){
                 end_field(self);
-                /* printf("Prior word: %s\n", self->words[self->words_len - 2]); */
                 fields++;
             }
         }
 
         // increment both line counts
         self->file_lines++;
-
         self->lines++;
-
-        /* coliter_t it; */
-        /* coliter_setup(&it, self, 5, self->lines - 1); */
-        /* printf("word at column 5: %s\n", COLITER_NEXT(it)); */
 
         // good line, set new start point
         if (self->lines >= self->lines_cap) {
@@ -573,8 +566,6 @@ static int end_line(parser_t *self) {
 
     return 0;
 }
-
-
 
 int parser_add_skiprow(parser_t *self, int64_t row) {
     khiter_t k;
@@ -763,6 +754,31 @@ int tokenize_bytes(parser_t *self, size_t line_limit)
             } else if (IS_CARRIAGE(c)) {
                 self->file_lines++;
                 self->state = EAT_CRNL_NOP;
+            } else if (IS_QUOTE(c)) {
+                self->state = QUOTE_IN_SKIP_LINE;
+            }
+            break;
+
+        case QUOTE_IN_SKIP_LINE:
+            if (IS_QUOTE(c)) {
+                if (self->doublequote) {
+                    self->state = QUOTE_IN_QUOTE_IN_SKIP_LINE;
+                } else {
+                    self->state = SKIP_LINE;
+                }
+            }
+            break;
+
+        case QUOTE_IN_QUOTE_IN_SKIP_LINE:
+            if (IS_QUOTE(c)) {
+                self->state = QUOTE_IN_SKIP_LINE;
+            } else if (IS_TERMINATOR(c)) {
+                END_LINE();
+            } else if (IS_CARRIAGE(c)) {
+                self->file_lines++;
+                self->state = EAT_CRNL_NOP;
+            } else {
+                self->state = SKIP_LINE;
             }
             break;
 
@@ -815,9 +831,14 @@ int tokenize_bytes(parser_t *self, size_t line_limit)
         case START_RECORD:
             // start of record
             if (skip_this_line(self, self->file_lines)) {
-                self->state = SKIP_LINE;
-                if (IS_TERMINATOR(c)) {
-                    END_LINE();
+                if (IS_QUOTE(c)) {
+                    self->state = QUOTE_IN_SKIP_LINE;
+                } else {
+                    self->state = SKIP_LINE;
+
+                    if (IS_TERMINATOR(c)) {
+                        END_LINE();
+                    }
                 }
                 break;
             } else if (IS_TERMINATOR(c)) {
