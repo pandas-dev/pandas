@@ -522,7 +522,7 @@ class NDFrame(PandasObject):
         except:
             return self
 
-    def swaplevel(self, i, j, axis=0):
+    def swaplevel(self, i=-2, j=-1, axis=0):
         """
         Swap levels i and j in a MultiIndex on a particular axis
 
@@ -534,6 +534,12 @@ class NDFrame(PandasObject):
         Returns
         -------
         swapped : type of caller (new object)
+
+        .. versionchanged:: 0.18.1
+
+           The indexes ``i`` and ``j`` are now optional, and default to
+           the two innermost levels of the index.
+
         """
         axis = self._get_axis_number(axis)
         result = self.copy()

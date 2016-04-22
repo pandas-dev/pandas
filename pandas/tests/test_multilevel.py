@@ -1320,15 +1320,23 @@ Thur,Lunch,Yes,51.51,17"""
                            )  # TODO what should join do with names ?
 
     def test_swaplevel(self):
-        swapped = self.frame['A'].swaplevel(0, 1)
-        swapped2 = self.frame['A'].swaplevel('first', 'second')
+        swapped = self.frame['A'].swaplevel()
+        swapped2 = self.frame['A'].swaplevel(0)
+        swapped3 = self.frame['A'].swaplevel(0, 1)
+        swapped4 = self.frame['A'].swaplevel('first', 'second')
         self.assertFalse(swapped.index.equals(self.frame.index))
         assert_series_equal(swapped, swapped2)
+        assert_series_equal(swapped, swapped3)
+        assert_series_equal(swapped, swapped4)
 
-        back = swapped.swaplevel(0, 1)
-        back2 = swapped.swaplevel('second', 'first')
+        back = swapped.swaplevel()
+        back2 = swapped.swaplevel(0)
+        back3 = swapped.swaplevel(0, 1)
+        back4 = swapped.swaplevel('second', 'first')
         self.assertTrue(back.index.equals(self.frame.index))
         assert_series_equal(back, back2)
+        assert_series_equal(back, back3)
+        assert_series_equal(back, back4)
 
         ft = self.frame.T
         swapped = ft.swaplevel('first', 'second', axis=1)
@@ -1337,11 +1345,13 @@ Thur,Lunch,Yes,51.51,17"""
 
     def test_swaplevel_panel(self):
         panel = Panel({'ItemA': self.frame, 'ItemB': self.frame * 2})
-
-        result = panel.swaplevel(0, 1, axis='major')
         expected = panel.copy()
         expected.major_axis = expected.major_axis.swaplevel(0, 1)
-        tm.assert_panel_equal(result, expected)
+
+        for result in (panel.swaplevel(axis='major'),
+                       panel.swaplevel(0, axis='major'),
+                       panel.swaplevel(0, 1, axis='major')):
+            tm.assert_panel_equal(result, expected)
 
     def test_reorder_levels(self):
         result = self.ymd.reorder_levels(['month', 'day', 'year'])
