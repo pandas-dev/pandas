@@ -3384,7 +3384,7 @@ class DataFrame(NDFrame):
         """
         return self._nsorted(columns, n, 'nsmallest', keep)
 
-    def swaplevel(self, i, j, axis=0):
+    def swaplevel(self, i=-2, j=-1, axis=0):
         """
         Swap levels i and j in a MultiIndex on a particular axis
 
@@ -3396,6 +3396,12 @@ class DataFrame(NDFrame):
         Returns
         -------
         swapped : type of caller (new object)
+
+        .. versionchanged:: 0.18.1
+
+           The indexes ``i`` and ``j`` are now optional, and default to
+           the two innermost levels of the index.
+
         """
         result = self.copy()
 
