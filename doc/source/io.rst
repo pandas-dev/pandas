@@ -101,8 +101,9 @@ delim_whitespace : boolean, default False
   Specifies whether or not whitespace (e.g. ``' '`` or ``'\t'``)
   will be used as the delimiter. Equivalent to setting ``sep='\+s'``.
   If this option is set to True, nothing should be passed in for the
-  ``delimiter`` parameter. This parameter is currently supported for
-  the C parser only.
+  ``delimiter`` parameter.
+
+  .. versionadded:: 0.18.1 support for the Python parser.
 
 Column and Index Locations and Names
 ++++++++++++++++++++++++++++++++++++

@@ -1878,18 +1878,6 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
             df = self.read_table(StringIO(text), sep='\s+')
             self.assertEqual(df.index.names, ('one', 'two', 'three', 'four'))
 
-    def test_line_comment(self):
-        data = """# empty
-A,B,C
-1,2.,4.#hello world
-#ignore this line
-5.,NaN,10.0
-"""
-        expected = [[1., 2., 4.],
-                    [5., np.nan, 10.]]
-        df = self.read_csv(StringIO(data), comment='#')
-        tm.assert_almost_equal(df.values, expected)
-
     def test_comment_skiprows(self):
         data = """# empty
 random line
@@ -2403,20 +2391,6 @@ a,b,c
         data = 'a b c'
         self.assertRaises(NotImplementedError, self.read_csv, StringIO(data),
                           nrows=10, chunksize=5)
-
-    def test_single_char_leading_whitespace(self):
-        # GH 9710
-        data = """\
-MyColumn
-   a
-   b
-   a
-   b\n"""
-
-        expected = DataFrame({'MyColumn': list('abab')})
-
-        result = self.read_csv(StringIO(data), skipinitialspace=True)
-        tm.assert_frame_equal(result, expected)
 
     def test_chunk_begins_with_newline_whitespace(self):
         # GH 10022
@@ -2951,6 +2925,103 @@ line 22",2
             'id', 'text', 'num_lines'])
         df = self.read_csv(StringIO(data), skiprows=[1])
         tm.assert_frame_equal(df, expected)
+
+    def test_line_comment(self):
+        data = """# empty
+A,B,C
+1,2.,4.#hello world
+#ignore this line
+5.,NaN,10.0
+"""
+        expected = [[1., 2., 4.],
+                    [5., np.nan, 10.]]
+        df = self.read_csv(StringIO(data), comment='#')
+        tm.assert_almost_equal(df.values, expected)
+        # check with delim_whitespace=True
+        df = self.read_csv(StringIO(data.replace(',', ' ')), comment='#',
+                           delim_whitespace=True)
+        tm.assert_almost_equal(df.values, expected)
+
+    def test_skiprows_lineterminator(self):
+        # see gh-9079
+        data = '\n'.join(['SMOSMANIA ThetaProbe-ML2X ',
+                          '2007/01/01 01:00   0.2140 U M ',
+                          '2007/01/01 02:00   0.2141 M O ',
+                          '2007/01/01 04:00   0.2142 D M '])
+        expected = pd.DataFrame([['2007/01/01', '01:00', 0.2140, 'U', 'M'],
+                                 ['2007/01/01', '02:00', 0.2141, 'M', 'O'],
+                                 ['2007/01/01', '04:00', 0.2142, 'D', 'M']],
+                                columns=['date', 'time', 'var', 'flag',
+                                         'oflag'])
+        # test with default lineterminators LF and CRLF
+        # "CR" is not respected with the Python parser, so
+        # there is a separate test "test_skiprows_lineterminator_cr"
+        # in the C engine for that
+        df = self.read_csv(StringIO(data), skiprows=1, delim_whitespace=True,
+                           names=['date', 'time', 'var', 'flag', 'oflag'])
+        tm.assert_frame_equal(df, expected)
+        df = self.read_csv(StringIO(data.replace('\n', '\r\n')),
+                           skiprows=1, delim_whitespace=True,
+                           names=['date', 'time', 'var', 'flag', 'oflag'])
+        tm.assert_frame_equal(df, expected)
+
+    def test_trailing_spaces(self):
+        data = "A B C  \nrandom line with trailing spaces    \nskip\n1,2,3\n1,2.,4.\nrandom line with trailing tabs\t\t\t\n   \n5.1,NaN,10.0\n"
+        expected = pd.DataFrame([[1., 2., 4.],
+                                 [5.1, np.nan, 10.]])
+
+        # gh-8661, gh-8679: this should ignore six lines including
+        # lines with trailing whitespace and blank lines
+        df = self.read_csv(StringIO(data.replace(',', '  ')),
+                           header=None, delim_whitespace=True,
+                           skiprows=[0, 1, 2, 3, 5, 6], skip_blank_lines=True)
+        tm.assert_frame_equal(df, expected)
+        df = self.read_table(StringIO(data.replace(',', '  ')),
+                             header=None, delim_whitespace=True,
+                             skiprows=[0, 1, 2, 3, 5, 6], skip_blank_lines=True)
+        tm.assert_frame_equal(df, expected)
+
+        # gh-8983: test skipping set of rows after a row with trailing spaces
+        expected = pd.DataFrame({"A": [1., 5.1], "B": [2., np.nan],
+                                 "C": [4., 10]})
+        df = self.read_table(StringIO(data.replace(',', '  ')),
+                             delim_whitespace=True,
+                             skiprows=[1, 2, 3, 5, 6], skip_blank_lines=True)
+        tm.assert_frame_equal(df, expected)
+
+    def test_raise_on_sep_with_delim_whitespace(self):
+        # see gh-6607
+        data = 'a b c\n1 2 3'
+        with tm.assertRaisesRegexp(ValueError, 'you can only specify one'):
+            self.read_table(StringIO(data), sep='\s', delim_whitespace=True)
+
+    def test_single_char_leading_whitespace(self):
+        # see gh-9710
+        data = """\
+MyColumn
+   a
+   b
+   a
+   b\n"""
+
+        expected = DataFrame({'MyColumn': list('abab')})
+
+        result = self.read_csv(StringIO(data), delim_whitespace=True,
+                               skipinitialspace=True)
+        tm.assert_frame_equal(result, expected)
+
+        result = self.read_csv(StringIO(data), skipinitialspace=True)
+        tm.assert_frame_equal(result, expected)
+
+    def test_usecols_with_whitespace(self):
+        data = 'a  b  c\n4  apple  bat  5.7\n8  orange  cow  10'
+
+        result = self.read_csv(StringIO(data), delim_whitespace=True,
+                               usecols=('a', 'b'))
+        expected = DataFrame({'a': ['apple', 'orange'],
+                              'b': ['bat', 'cow']}, index=[4, 8])
+
+        tm.assert_frame_equal(result, expected)
 
 
 class CompressionTests(object):
@@ -3770,18 +3841,6 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         actual = self.read_table(StringIO(data), sep='\s+')
         tm.assert_frame_equal(actual, expected)
 
-    def test_line_comment(self):
-        data = """# empty
-A,B,C
-1,2.,4.#hello world
-#ignore this line
-5.,NaN,10.0
-"""
-        expected = [[1., 2., 4.],
-                    [5., np.nan, 10.]]
-        df = self.read_csv(StringIO(data), comment='#')
-        tm.assert_almost_equal(df.values, expected)
-
     def test_empty_lines(self):
         data = """\
 A,B,C
@@ -3972,6 +4031,45 @@ class CParserTests(ParserTests):
                              columns=['a', 'b', 'c'])
         tm.assert_frame_equal(df, expected)
 
+    def test_line_comment_customterm(self):
+        # TODO: move into ParserTests once Python supports custom terminator
+        data = """# empty
+A,B,C
+1,2.,4.#hello world
+#ignore this line
+5.,NaN,10.0
+"""
+        expected = [[1., 2., 4.],
+                    [5., np.nan, 10.]]
+        df = self.read_csv(StringIO(data.replace('\n', '*')), comment='#',
+                           lineterminator='*')
+        tm.assert_almost_equal(df.values, expected)
+
+    def test_skiprows_lineterminator_cr(self):
+        # see gh-9079
+        # TODO: move into ParserTests once Python supports custom terminator
+        data = '\n'.join(['SMOSMANIA ThetaProbe-ML2X ',
+                          '2007/01/01 01:00   0.2140 U M ',
+                          '2007/01/01 02:00   0.2141 M O ',
+                          '2007/01/01 04:00   0.2142 D M '])
+        expected = pd.DataFrame([['2007/01/01', '01:00', 0.2140, 'U', 'M'],
+                                 ['2007/01/01', '02:00', 0.2141, 'M', 'O'],
+                                 ['2007/01/01', '04:00', 0.2142, 'D', 'M']],
+                                columns=['date', 'time', 'var', 'flag',
+                                         'oflag'])
+        # test with the three default lineterminators LF, CR and CRLF
+        df = self.read_csv(StringIO(data), skiprows=1, delim_whitespace=True,
+                           names=['date', 'time', 'var', 'flag', 'oflag'])
+        tm.assert_frame_equal(df, expected)
+        df = self.read_csv(StringIO(data.replace('\n', '\r')),
+                           skiprows=1, delim_whitespace=True,
+                           names=['date', 'time', 'var', 'flag', 'oflag'])
+        tm.assert_frame_equal(df, expected)
+        df = self.read_csv(StringIO(data.replace('\n', '\r\n')),
+                           skiprows=1, delim_whitespace=True,
+                           names=['date', 'time', 'var', 'flag', 'oflag'])
+        tm.assert_frame_equal(df, expected)
+
 
 class TestCParserHighMemory(CParserTests, CompressionTests, tm.TestCase):
     engine = 'c'
@@ -4018,26 +4116,6 @@ class TestCParserHighMemory(CParserTests, CompressionTests, tm.TestCase):
         raise nose.SkipTest(
             "Usecols is not supported in C High Memory engine.")
 
-    def test_line_comment(self):
-        data = """# empty
-A,B,C
-1,2.,4.#hello world
-#ignore this line
-5.,NaN,10.0
-"""
-        expected = [[1., 2., 4.],
-                    [5., np.nan, 10.]]
-        df = self.read_csv(StringIO(data), comment='#')
-        tm.assert_almost_equal(df.values, expected)
-        # check with delim_whitespace=True
-        df = self.read_csv(StringIO(data.replace(',', ' ')), comment='#',
-                           delim_whitespace=True)
-        tm.assert_almost_equal(df.values, expected)
-        # check with custom line terminator
-        df = self.read_csv(StringIO(data.replace('\n', '*')), comment='#',
-                           lineterminator='*')
-        tm.assert_almost_equal(df.values, expected)
-
     def test_comment_skiprows(self):
         data = """# empty
 random line
@@ -4052,53 +4130,6 @@ A,B,C
         # this should ignore the first four lines (including comments)
         df = self.read_csv(StringIO(data), comment='#', skiprows=4)
         tm.assert_almost_equal(df.values, expected)
-
-    def test_skiprows_lineterminator(self):
-        # GH #9079
-        data = '\n'.join(['SMOSMANIA ThetaProbe-ML2X ',
-                          '2007/01/01 01:00   0.2140 U M ',
-                          '2007/01/01 02:00   0.2141 M O ',
-                          '2007/01/01 04:00   0.2142 D M '])
-        expected = pd.DataFrame([['2007/01/01', '01:00', 0.2140, 'U', 'M'],
-                                 ['2007/01/01', '02:00', 0.2141, 'M', 'O'],
-                                 ['2007/01/01', '04:00', 0.2142, 'D', 'M']],
-                                columns=['date', 'time', 'var', 'flag',
-                                         'oflag'])
-        # test with the three default lineterminators LF, CR and CRLF
-        df = self.read_csv(StringIO(data), skiprows=1, delim_whitespace=True,
-                           names=['date', 'time', 'var', 'flag', 'oflag'])
-        tm.assert_frame_equal(df, expected)
-        df = self.read_csv(StringIO(data.replace('\n', '\r')),
-                           skiprows=1, delim_whitespace=True,
-                           names=['date', 'time', 'var', 'flag', 'oflag'])
-        tm.assert_frame_equal(df, expected)
-        df = self.read_csv(StringIO(data.replace('\n', '\r\n')),
-                           skiprows=1, delim_whitespace=True,
-                           names=['date', 'time', 'var', 'flag', 'oflag'])
-        tm.assert_frame_equal(df, expected)
-
-    def test_trailing_spaces(self):
-        data = "A B C  \nrandom line with trailing spaces    \nskip\n1,2,3\n1,2.,4.\nrandom line with trailing tabs\t\t\t\n   \n5.1,NaN,10.0\n"
-        expected = pd.DataFrame([[1., 2., 4.],
-                                 [5.1, np.nan, 10.]])
-        # this should ignore six lines including lines with trailing
-        # whitespace and blank lines.  issues 8661, 8679
-        df = self.read_csv(StringIO(data.replace(',', '  ')),
-                           header=None, delim_whitespace=True,
-                           skiprows=[0, 1, 2, 3, 5, 6], skip_blank_lines=True)
-        tm.assert_frame_equal(df, expected)
-        df = self.read_table(StringIO(data.replace(',', '  ')),
-                             header=None, delim_whitespace=True,
-                             skiprows=[0, 1, 2, 3, 5, 6], skip_blank_lines=True)
-        tm.assert_frame_equal(df, expected)
-        # test skipping set of rows after a row with trailing spaces, issue
-        # #8983
-        expected = pd.DataFrame({"A": [1., 5.1], "B": [2., np.nan],
-                                 "C": [4., 10]})
-        df = self.read_table(StringIO(data.replace(',', '  ')),
-                             delim_whitespace=True,
-                             skiprows=[1, 2, 3, 5, 6], skip_blank_lines=True)
-        tm.assert_frame_equal(df, expected)
 
     def test_comment_header(self):
         data = """# empty
@@ -4264,25 +4295,6 @@ nan 2
             self.read_table(StringIO(data), engine='c', sep='\s')
         with tm.assertRaisesRegexp(ValueError, 'does not support'):
             self.read_table(StringIO(data), engine='c', skip_footer=1)
-
-    def test_single_char_leading_whitespace(self):
-        # GH 9710
-        data = """\
-MyColumn
-   a
-   b
-   a
-   b\n"""
-
-        expected = DataFrame({'MyColumn': list('abab')})
-
-        result = self.read_csv(StringIO(data), delim_whitespace=True,
-                               skipinitialspace=True)
-        tm.assert_frame_equal(result, expected)
-
-        result = self.read_csv(StringIO(data), lineterminator='\n',
-                               skipinitialspace=True)
-        tm.assert_frame_equal(result, expected)
 
 
 class TestCParserLowMemory(CParserTests, CompressionTests, tm.TestCase):
@@ -4488,16 +4500,6 @@ one,two
 
         tm.assert_frame_equal(result, expected)
 
-    def test_usecols_with_whitespace(self):
-        data = 'a  b  c\n4  apple  bat  5.7\n8  orange  cow  10'
-
-        result = self.read_csv(StringIO(data), delim_whitespace=True,
-                               usecols=('a', 'b'))
-        expected = DataFrame({'a': ['apple', 'orange'],
-                              'b': ['bat', 'cow']}, index=[4, 8])
-
-        tm.assert_frame_equal(result, expected)
-
     def test_usecols_regex_sep(self):
         # #2733
         data = 'a  b  c\n4  apple  bat  5.7\n8  orange  cow  10'
@@ -4642,6 +4644,7 @@ No,No,No"""
 
     def test_invalid_c_parser_opts_with_not_c_parser(self):
         from pandas.io.parsers import _c_parser_defaults as c_defaults
+        from pandas.io.parsers import _python_unsupported as py_unsupported
 
         data = """1,2,3,,
 1,2,3,4,
@@ -4652,6 +4655,9 @@ No,No,No"""
         engines = 'python', 'python-fwf'
         for default in c_defaults:
             for engine in engines:
+                if 'python' in engine and default not in py_unsupported:
+                    continue
+
                 kwargs = {default: object()}
                 with tm.assertRaisesRegexp(ValueError,
                                            'The %r option is not supported '
@@ -4707,31 +4713,6 @@ No,No,No"""
             self.read_table(StringIO(data), engine='c', sep='\s')
         with tm.assertRaisesRegexp(ValueError, 'does not support'):
             self.read_table(StringIO(data), engine='c', skip_footer=1)
-
-    def test_raise_on_sep_with_delim_whitespace(self):
-        # GH 6607
-        data = 'a b c\n1 2 3'
-        with tm.assertRaisesRegexp(ValueError, 'you can only specify one'):
-            self.read_table(StringIO(data), sep='\s', delim_whitespace=True)
-
-    def test_single_char_leading_whitespace(self):
-        # GH 9710
-        data = """\
-MyColumn
-   a
-   b
-   a
-   b\n"""
-
-        expected = DataFrame({'MyColumn': list('abab')})
-
-        result = self.read_csv(StringIO(data), delim_whitespace=True,
-                               skipinitialspace=True)
-        tm.assert_frame_equal(result, expected)
-
-        result = self.read_csv(StringIO(data), lineterminator='\n',
-                               skipinitialspace=True)
-        tm.assert_frame_equal(result, expected)
 
     def test_bool_header_arg(self):
         # GH 6114
