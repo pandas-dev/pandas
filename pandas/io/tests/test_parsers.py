@@ -2867,6 +2867,91 @@ MyColumn
         df = self.read_csv(StringIO('a,b,c'), index_col=False)
         tm.assert_frame_equal(df, expected)
 
+    def test_skiprow_with_newline(self):
+        # see gh-12775 and gh-10911
+        data = """id,text,num_lines
+1,"line 11
+line 12",2
+2,"line 21
+line 22",2
+3,"line 31",1"""
+        expected = [[2, 'line 21\nline 22', 2],
+                    [3, 'line 31', 1]]
+        expected = DataFrame(expected, columns=[
+            'id', 'text', 'num_lines'])
+        df = self.read_csv(StringIO(data), skiprows=[1])
+        tm.assert_frame_equal(df, expected)
+
+        data = ('a,b,c\n~a\n b~,~e\n d~,'
+                '~f\n f~\n1,2,~12\n 13\n 14~')
+        expected = [['a\n b', 'e\n d', 'f\n f']]
+        expected = DataFrame(expected, columns=[
+            'a', 'b', 'c'])
+        df = self.read_csv(StringIO(data),
+                           quotechar="~",
+                           skiprows=[2])
+        tm.assert_frame_equal(df, expected)
+
+        data = ('Text,url\n~example\n '
+                'sentence\n one~,url1\n~'
+                'example\n sentence\n two~,url2\n~'
+                'example\n sentence\n three~,url3')
+        expected = [['example\n sentence\n two', 'url2']]
+        expected = DataFrame(expected, columns=[
+            'Text', 'url'])
+        df = self.read_csv(StringIO(data),
+                           quotechar="~",
+                           skiprows=[1, 3])
+        tm.assert_frame_equal(df, expected)
+
+    def test_skiprow_with_quote(self):
+        # see gh-12775 and gh-10911
+        data = """id,text,num_lines
+1,"line '11' line 12",2
+2,"line '21' line 22",2
+3,"line '31' line 32",1"""
+        expected = [[2, "line '21' line 22", 2],
+                    [3, "line '31' line 32", 1]]
+        expected = DataFrame(expected, columns=[
+            'id', 'text', 'num_lines'])
+        df = self.read_csv(StringIO(data), skiprows=[1])
+        tm.assert_frame_equal(df, expected)
+
+    def test_skiprow_with_newline_and_quote(self):
+        # see gh-12775 and gh-10911
+        data = """id,text,num_lines
+1,"line \n'11' line 12",2
+2,"line \n'21' line 22",2
+3,"line \n'31' line 32",1"""
+        expected = [[2, "line \n'21' line 22", 2],
+                    [3, "line \n'31' line 32", 1]]
+        expected = DataFrame(expected, columns=[
+            'id', 'text', 'num_lines'])
+        df = self.read_csv(StringIO(data), skiprows=[1])
+        tm.assert_frame_equal(df, expected)
+
+        data = """id,text,num_lines
+1,"line '11\n' line 12",2
+2,"line '21\n' line 22",2
+3,"line '31\n' line 32",1"""
+        expected = [[2, "line '21\n' line 22", 2],
+                    [3, "line '31\n' line 32", 1]]
+        expected = DataFrame(expected, columns=[
+            'id', 'text', 'num_lines'])
+        df = self.read_csv(StringIO(data), skiprows=[1])
+        tm.assert_frame_equal(df, expected)
+
+        data = """id,text,num_lines
+1,"line '11\n' \r\tline 12",2
+2,"line '21\n' \r\tline 22",2
+3,"line '31\n' \r\tline 32",1"""
+        expected = [[2, "line '21\n' \r\tline 22", 2],
+                    [3, "line '31\n' \r\tline 32", 1]]
+        expected = DataFrame(expected, columns=[
+            'id', 'text', 'num_lines'])
+        df = self.read_csv(StringIO(data), skiprows=[1])
+        tm.assert_frame_equal(df, expected)
+
 
 class CompressionTests(object):
     def test_zip(self):

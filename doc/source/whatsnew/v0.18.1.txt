@@ -296,6 +296,7 @@ Bug Fixes
 
 
 
+- Bug in ``read_csv`` with the C engine when specifying ``skiprows`` with newlines in quoted items (:issue:`10911`, `12775`)
 
 
 
