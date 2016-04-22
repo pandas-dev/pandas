@@ -620,6 +620,13 @@ class Base(object):
         expected = frame.reindex(new_index)
         assert_frame_equal(result, expected)
 
+    def test_resample_interpolate(self):
+        # # 12925
+        df = self.create_series().to_frame('value')
+        assert_frame_equal(
+            df.resample('1T').asfreq().interpolate(),
+            df.resample('1T').interpolate())
+
 
 class TestDatetimeIndex(Base, tm.TestCase):
     _multiprocess_can_split_ = True

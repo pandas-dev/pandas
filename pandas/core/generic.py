@@ -3445,9 +3445,7 @@ class NDFrame(PandasObject):
         else:
             return self._constructor(new_data).__finalize__(self)
 
-    def interpolate(self, method='linear', axis=0, limit=None, inplace=False,
-                    limit_direction='forward', downcast=None, **kwargs):
-        """
+    _shared_docs['interpolate'] = """
         Interpolate values according to different methods.
 
         Please note that only ``method='linear'`` is supported for
@@ -3520,6 +3518,14 @@ class NDFrame(PandasObject):
         3    3
         dtype: float64
 
+        """
+
+    @Appender(_shared_docs['interpolate'] % _shared_doc_kwargs)
+    def interpolate(self, method='linear', axis=0, limit=None, inplace=False,
+                    limit_direction='forward', downcast=None, **kwargs):
+        """
+        .. versionadded:: 0.18.1
+            ``.resample(..).interpolate()`` is now supported (:issue:`12925`)
         """
         if self.ndim > 2:
             raise NotImplementedError("Interpolate has not been implemented "

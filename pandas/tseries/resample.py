@@ -21,6 +21,10 @@ from pandas.lib import Timestamp
 import pandas.lib as lib
 import pandas.tslib as tslib
 
+from pandas.util.decorators import Appender
+from pandas.core.generic import _shared_docs
+_shared_docs_kwargs = dict()
+
 
 class Resampler(_GroupBy):
 
@@ -447,6 +451,15 @@ class Resampler(_GroupBy):
         DataFrame.fillna
         """
         return self._upsample(method, limit=limit)
+
+    @Appender(_shared_docs['interpolate'] % _shared_docs_kwargs)
+    def interpolate(self, method='linear', axis=0, limit=None, inplace=False,
+                    limit_direction='forward', downcast=None, **kwargs):
+        result = self._upsample(None)
+        return result.interpolate(method=method, axis=axis, limit=limit,
+                                  inplace=inplace,
+                                  limit_direction=limit_direction,
+                                  downcast=downcast, **kwargs)
 
     def asfreq(self):
         """
