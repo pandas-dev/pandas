@@ -2910,6 +2910,28 @@ everything in the sub-store and BELOW, so be *careful*.
    store.remove('food')
    store
 
+.. warning::
+
+    Hierarchical keys cannot be retrieved as dotted (attribute) access as described above for items stored under the root node.
+
+    .. code-block:: python
+
+       In [8]: store.foo.bar.bah
+       AttributeError: 'HDFStore' object has no attribute 'foo'
+
+       # you can directly access the actual PyTables node but using the root node
+       In [9]: store.root.foo.bar.bah
+       Out[9]:
+       /foo/bar/bah (Group) ''
+         children := ['block0_items' (Array), 'block0_values' (Array), 'axis0' (Array), 'axis1' (Array)]
+
+    Instead, use explicit string based keys
+
+    .. ipython:: python
+
+       store['foo/bar/bah']
+
+
 .. _io.hdf5-types:
 
 Storing Types
