@@ -69,6 +69,24 @@ Partial string indexing now matches on ``DateTimeIndex`` when part of a ``MultiI
    dft2 = dft2.swaplevel(0, 1).sort_index()
    dft2.loc[idx[:, '2013-01-05'], :]
 
+.. _whatsnew_0181.enhancements.assembling:
+
+Assembling Datetimes
+^^^^^^^^^^^^^^^^^^^^
+
+``pd.to_datetime()`` has gained the ability to assemble datetimes from a passed in ``DataFrame`` or a dict. (:issue:`8158`).
+
+.. ipython:: python
+
+   df = pd.DataFrame({'year': [2015, 2016],
+                      'month': [2, 3],
+                      'day': [4, 5],
+                      'hour': [2, 3]})
+   pd.to_datetime(df)
+
+   # pass only the columns that you need to assemble
+   pd.to_datetime(df[['year', 'month', 'day']])
+
 .. _whatsnew_0181.other:
 
 Other Enhancements

@@ -2283,6 +2283,131 @@ def _simple_ts(start, end, freq='D'):
     return Series(np.random.randn(len(rng)), index=rng)
 
 
+class TestToDatetime(tm.TestCase):
+    _multiprocess_can_split_ = True
+
+    # TODO: move all to_datetime tests not covered in other
+    # classes here
+
+    def test_dataframe(self):
+
+        df = DataFrame({'year': [2015, 2016],
+                        'month': [2, 3],
+                        'day': [4, 5],
+                        'hour': [6, 7],
+                        'minute': [58, 59],
+                        'second': [10, 11],
+                        'ms': [1, 1],
+                        'us': [2, 2],
+                        'ns': [3, 3]})
+
+        result = to_datetime({'year': df['year'],
+                              'month': df['month'],
+                              'day': df['day']})
+        expected = Series([Timestamp('20150204 00:00:00'),
+                           Timestamp('20160305 00:0:00')])
+        assert_series_equal(result, expected)
+
+        # dict-like
+        result = to_datetime(df[['year', 'month', 'day']].to_dict())
+        assert_series_equal(result, expected)
+
+        # dict but with constructable
+        df2 = df[['year', 'month', 'day']].to_dict()
+        df2['month'] = 2
+        result = to_datetime(df2)
+        expected2 = Series([Timestamp('20150204 00:00:00'),
+                            Timestamp('20160205 00:0:00')])
+        assert_series_equal(result, expected2)
+
+        # unit mappings
+        units = [{'year': 'year',
+                  'month': 'month',
+                  'day': 'day',
+                  'hour': 'HH',
+                  'minute': 'MM',
+                  'second': 'SS'},
+                 {'year': '%Y',
+                  'month': '%m',
+                  'day': '%d',
+                  'hour': '%H',
+                  'minute': '%M',
+                  'second': '%S'},
+                 {'year': 'y',
+                  'month': 'month',
+                  'day': 'd',
+                  'hour': 'h',
+                  'minute': 'm',
+                  'second': 's'},
+                 ]
+
+        for d in units:
+            result = to_datetime(df[list(d.keys())].rename(columns=d))
+            expected = Series([Timestamp('20150204 06:58:10'),
+                               Timestamp('20160305 07:59:11')])
+            assert_series_equal(result, expected)
+
+        d = {'year': 'y',
+             'month': 'month',
+             'day': 'd',
+             'hour': 'h',
+             'minute': 'm',
+             'second': 's',
+             'ms': 'ms',
+             'us': 'us',
+             'ns': 'ns'}
+
+        result = to_datetime(df.rename(columns=d))
+        expected = Series([Timestamp('20150204 06:58:10.001002003'),
+                           Timestamp('20160305 07:59:11.001002003')])
+        assert_series_equal(result, expected)
+
+        # coerce back to int
+        result = to_datetime(df.astype(str), unit=d)
+        assert_series_equal(result, expected)
+
+        # passing coerce
+        df2 = DataFrame({'year': [2015, 2016],
+                         'month': [2, 20],
+                         'day': [4, 5]})
+        with self.assertRaises(ValueError):
+            to_datetime(df2)
+        result = to_datetime(df2, errors='coerce')
+        expected = Series([Timestamp('20150204 00:00:00'),
+                           pd.NaT])
+        assert_series_equal(result, expected)
+
+        # extra columns
+        with self.assertRaises(ValueError):
+            df2 = df.copy()
+            df2['foo'] = 1
+            to_datetime(df2)
+
+        # not enough
+        for c in [['year'],
+                  ['year', 'month'],
+                  ['year', 'month', 'second'],
+                  ['month', 'day'],
+                  ['year', 'day', 'second']]:
+            with self.assertRaises(ValueError):
+                to_datetime(df[c])
+
+        # duplicates
+        df2 = DataFrame({'year': [2015, 2016],
+                         'month': [2, 20],
+                         'day': [4, 5]})
+        df2.columns = ['year', 'year', 'day']
+        with self.assertRaises(ValueError):
+            to_datetime(df2)
+
+        df2 = DataFrame({'year': [2015, 2016],
+                         'month': [2, 20],
+                         'day': [4, 5],
+                         'hour': [4, 5]})
+        df2.columns = ['year', 'month', 'day', 'day']
+        with self.assertRaises(ValueError):
+            to_datetime(df2)
+
 class TestDatetimeIndex(tm.TestCase):
     _multiprocess_can_split_ = True
 
