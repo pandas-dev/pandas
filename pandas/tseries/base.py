@@ -8,7 +8,8 @@ from datetime import datetime, timedelta
 from pandas import compat
 import numpy as np
 from pandas.core import common as com, algorithms
-from pandas.core.common import is_integer, is_float, AbstractMethodError
+from pandas.core.common import (is_integer, is_float, is_bool_dtype,
+                                AbstractMethodError)
 import pandas.formats.printing as printing
 import pandas.tslib as tslib
 import pandas.lib as lib
@@ -123,6 +124,38 @@ class DatetimeIndexOpsMixin(object):
             return results
 
         return wrapper
+
+    def _evaluate_compare(self, other, op):
+        """
+        We have been called because a comparison between
+        8 aware arrays. numpy >= 1.11 will
+        now warn about NaT comparisons
+        """
+
+        # coerce to a similar object
+        if not isinstance(other, type(self)):
+            if not com.is_list_like(other):
+                # scalar
+                other = [other]
+            elif lib.isscalar(lib.item_from_zerodim(other)):
+                # ndarray scalar
+                other = [other.item()]
+            other = type(self)(other)
+
+        # compare
+        result = getattr(self.asi8, op)(other.asi8)
+
+        # technically we could support bool dtyped Index
+        # for now just return the indexing array directly
+        mask = (self._isnan) | (other._isnan)
+        if is_bool_dtype(result):
+            result[mask] = False
+            return result
+        try:
+            result[mask] = tslib.iNaT
+            return Index(result)
+        except TypeError:
+            return result
 
     @property
     def _box_func(self):

@@ -223,7 +223,8 @@ class Testisscalar(tm.TestCase):
     def test_isscalar_numpy_zerodim_arrays(self):
         for zerodim in [np.array(1), np.array('foobar'),
                         np.array(np.datetime64('2014-01-01')),
-                        np.array(np.timedelta64(1, 'h'))]:
+                        np.array(np.timedelta64(1, 'h')),
+                        np.array(np.datetime64('NaT'))]:
             self.assertFalse(lib.isscalar(zerodim))
             self.assertTrue(lib.isscalar(lib.item_from_zerodim(zerodim)))
 

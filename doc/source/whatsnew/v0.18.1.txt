@@ -281,6 +281,7 @@ Bug Fixes
 - Bug in ``.astype()`` of a ``Float64Inde/Int64Index`` to an ``Int64Index`` (:issue:`12881`)
 - Bug in roundtripping an integer based index in ``.to_json()/.read_json()`` when ``orient='index'`` (the default) (:issue:`12866`)
 
+- Compat with >= numpy 1.11 for NaT comparions (:issue:`12969`)
 - Bug in ``.drop()`` with a non-unique ``MultiIndex``. (:issue:`12701`)
 - Bug in ``.concat`` of datetime tz-aware and naive DataFrames (:issue:`12467`)
 - Bug in correctly raising a ``ValueError`` in ``.resample(..).fillna(..)`` when passing a non-string (:issue:`12952`)
