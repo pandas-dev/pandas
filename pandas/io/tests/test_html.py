@@ -416,6 +416,30 @@ class TestReadHtml(tm.TestCase, ReadHtmlMixin):
         res2 = self.read_html(StringIO(data2))
         assert_framelist_equal(res1, res2)
 
+    def test_header_and_one_column(self):
+        """
+        Don't fail with bs4 when there is a header and only one column
+        """
+        data = StringIO('''<html>
+            <body>
+             <table>
+                <thead>
+                    <tr>
+                        <th>Header</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>first</td>
+                    </tr>
+                </tbody>
+            </table>
+            </body>
+        </html>''')
+
+        correct_df = DataFrame(data={'Header': 'first'}, index=[0])
+        tm.assert_frame_equal(self.read_html(data)[0], correct_df)
+
     def test_tfoot_read(self):
         """
         Make sure that read_html reads tfoot, containing td or th.
