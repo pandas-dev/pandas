@@ -417,6 +417,11 @@ Bug Fixes
 - Bug in ``concat`` doesn't handle empty ``Series`` properly (:issue:`11082`)
 
 
+
+- Bug in ``fill_value`` is ignored if the argument to a binary operator is a constant (:issue `12723`)
+
+- Bug in ``pd.read_html`` when using bs4 flavor and parsing table with a header and only one column (:issue `9178`)
+
 - Bug in ``pivot_table`` when ``margins=True`` and ``dropna=True`` where nulls still contributed to margin count (:issue:`12577`)
 - Bug in ``pivot_table`` when ``dropna=False`` where table index/column names disappear (:issue:`12133`)
 - Bug in ``crosstab`` when ``margins=True`` and ``dropna=False`` which raised (:issue:`12642`)
@@ -425,7 +430,4 @@ Bug Fixes
 - Bug in ``.describe()`` resets categorical columns information (:issue:`11558`)
 - Bug where ``loffset`` argument was not applied when calling ``resample().count()`` on a timeseries (:issue:`12725`)
 - ``pd.read_excel()`` now accepts path objects (e.g. ``pathlib.Path``, ``py.path.local``) for the file path, in line with other ``read_*`` functions (:issue:`12655`)
-- ``pd.read_excel()`` now accepts column names associated with keyword argument ``names``(:issue:`12870`)
-
-
-- Bug in ``fill_value`` is ignored if the argument to a binary operator is a constant (:issue:`12723`)
+- ``pd.read_excel()`` now accepts column names associated with keyword argument ``names``(:issue `12870`)

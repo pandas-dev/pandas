@@ -356,14 +356,16 @@ class _HtmlFrameParser(object):
         res = []
         if thead:
             res = lmap(self._text_getter, self._parse_th(thead[0]))
-        return np.array(res).squeeze() if res and len(res) == 1 else res
+        return np.atleast_1d(
+            np.array(res).squeeze()) if res and len(res) == 1 else res
 
     def _parse_raw_tfoot(self, table):
         tfoot = self._parse_tfoot(table)
         res = []
         if tfoot:
             res = lmap(self._text_getter, self._parse_td(tfoot[0]))
-        return np.array(res).squeeze() if res and len(res) == 1 else res
+        return np.atleast_1d(
+            np.array(res).squeeze()) if res and len(res) == 1 else res
 
     def _parse_raw_tbody(self, table):
         tbody = self._parse_tbody(table)
