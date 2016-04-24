@@ -344,3 +344,5 @@ Bug Fixes
 
 
 - Bug in ``fill_value`` is ignored if the argument to a binary operator is a constant (:issue `12723`)
+
+- Bug in ``read_html`` when using bs4 flavor and parsing table with a header and only one column (:issue `9178`)
