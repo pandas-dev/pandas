@@ -49,13 +49,15 @@ from pandas import compat
 from pandas.compat import u, u_safe
 from pandas import (Timestamp, Period, Series, DataFrame,  # noqa
                     Index, MultiIndex, Float64Index, Int64Index,
-                    Panel, RangeIndex, PeriodIndex, DatetimeIndex, NaT)
+                    Panel, RangeIndex, PeriodIndex, DatetimeIndex, NaT,
+                    Categorical)
 from pandas.tslib import NaTType
 from pandas.sparse.api import SparseSeries, SparseDataFrame, SparsePanel
 from pandas.sparse.array import BlockIndex, IntIndex
 from pandas.core.generic import NDFrame
 from pandas.core.common import (
     PerformanceWarning,
+    is_categorical_dtype,
     needs_i8_conversion,
     pandas_dtype,
 )
@@ -226,6 +228,7 @@ dtype_dict = {21: np.dtype('M8[ns]'),
               # this is platform int, which we need to remap to np.int64
               # for compat on windows platforms
               7: np.dtype('int64'),
+              'category': 'category'
               }
 
 
@@ -262,6 +265,9 @@ def convert(values):
     v = values.ravel()
 
     # convert object
+    if is_categorical_dtype(values):
+        return values
+
     if dtype == np.object_:
         return v.tolist()
 
@@ -297,6 +303,9 @@ def unconvert(values, dtype, compress=None):
 
     if as_is_ext:
         values = values.data
+
+    if is_categorical_dtype(dtype):
+        return values
 
     if dtype == np.object_:
         return np.array(values, dtype=object)
@@ -393,6 +402,16 @@ def encode(obj):
                     u'dtype': u(obj.dtype.name),
                     u'data': convert(obj.values),
                     u'compress': compressor}
+
+    elif isinstance(obj, Categorical):
+        return {u'typ': u'category',
+                u'klass': u(obj.__class__.__name__),
+                u'name': getattr(obj, 'name', None),
+                u'codes': obj.codes,
+                u'categories': obj.categories,
+                u'ordered': obj.ordered,
+                u'compress': compressor}
+
     elif isinstance(obj, Series):
         if isinstance(obj, SparseSeries):
             raise NotImplementedError(
@@ -576,10 +595,18 @@ def decode(obj):
             result = result.tz_localize('UTC').tz_convert(tz)
         return result
 
+    elif typ == u'category':
+        from_codes = globals()[obj[u'klass']].from_codes
+        return from_codes(codes=obj[u'codes'],
+                          categories=obj[u'categories'],
+                          ordered=obj[u'ordered'],
+                          name=obj[u'name'])
+
     elif typ == u'series':
         dtype = dtype_for(obj[u'dtype'])
         pd_dtype = pandas_dtype(dtype)
         np_dtype = pandas_dtype(dtype).base
+
         index = obj[u'index']
         result = globals()[obj[u'klass']](unconvert(obj[u'data'], dtype,
                                                     obj[u'compress']),
