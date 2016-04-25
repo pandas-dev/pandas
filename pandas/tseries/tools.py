@@ -290,7 +290,7 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
 
 
     Assembling a datetime from multiple columns of a DataFrame. The keys can be
-    strplike (%Y, %m) or common abbreviations like ('year', 'month')
+    strptime-like (%Y, %m) or common abbreviations like ('year', 'month')
 
     >>> df = pd.DataFrame({'year': [2015, 2016],
                            'month': [2, 3],

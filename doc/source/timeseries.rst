@@ -195,8 +195,7 @@ or ``format``, use ``to_datetime`` if these are required.
 
 .. versionadded:: 0.18.1
 
-You can also pass a ``DataFrame`` of integer or string columns to assemble into a ``Series``
-of ``Timestamps``.
+You can also pass a ``DataFrame`` of integer or string columns to assemble into a ``Series`` of ``Timestamps``.
 
 .. ipython:: python
 
@@ -212,8 +211,6 @@ You can pass only the columns that you need to assemble.
 .. ipython:: python
 
    pd.to_datetime(df[['year', 'month', 'day']])
-
-.. _whatsnew_0181.other:
 
 
 Invalid Data
