@@ -459,13 +459,15 @@ class TestMerge(tm.TestCase):
         # _assert_same_contents(expected, expected2.ix[:, expected.columns])
 
     def test_join_hierarchical_mixed(self):
+        # GH 2024
         df = DataFrame([(1, 2, 3), (4, 5, 6)], columns=['a', 'b', 'c'])
         new_df = df.groupby(['a']).agg({'b': [np.mean, np.sum]})
         other_df = DataFrame(
             [(1, 2, 3), (7, 10, 6)], columns=['a', 'b', 'd'])
         other_df.set_index('a', inplace=True)
-
-        result = merge(new_df, other_df, left_index=True, right_index=True)
+        # GH 9455, 12219
+        with tm.assert_produces_warning(UserWarning):
+            result = merge(new_df, other_df, left_index=True, right_index=True)
         self.assertTrue(('b', 'mean') in result)
         self.assertTrue('b' in result)
 

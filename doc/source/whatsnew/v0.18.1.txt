@@ -226,6 +226,7 @@ API changes
 - ``pd.show_versions()`` now includes ``pandas_datareader`` version (:issue:`12740`)
 - Provide a proper ``__name__`` and ``__qualname__`` attributes for generic functions (:issue:`12021`)
 - ``pd.concat(ignore_index=True)`` now uses ``RangeIndex`` as default (:issue:`12695`)
+- ``pd.merge()`` and ``DataFrame.join()`` will show a ``UserWarning`` when merging/joining a single- with a multi-leveled dataframe (:issue:`9455`, :issue:`12219`)
 
 .. _whatsnew_0181.apply_resample:
 
