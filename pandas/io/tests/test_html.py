@@ -419,6 +419,7 @@ class TestReadHtml(tm.TestCase, ReadHtmlMixin):
     def test_header_and_one_column(self):
         """
         Don't fail with bs4 when there is a header and only one column
+        as described in issue #9178
         """
         data = StringIO('''<html>
             <body>
@@ -436,9 +437,9 @@ class TestReadHtml(tm.TestCase, ReadHtmlMixin):
             </table>
             </body>
         </html>''')
-
-        correct_df = DataFrame(data={'Header': 'first'}, index=[0])
-        tm.assert_frame_equal(self.read_html(data)[0], correct_df)
+        expected = DataFrame(data={'Header': 'first'}, index=[0])
+        result = self.read_html(data)[0]
+        tm.assert_frame_equal(result, expected)
 
     def test_tfoot_read(self):
         """
