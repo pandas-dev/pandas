@@ -115,9 +115,12 @@ class SparseSeries(Series):
         if fastpath:
 
             # data is an ndarray, index is defined
-            data = SingleBlockManager(data, index, fastpath=True)
+
+            if not isinstance(data, SingleBlockManager):
+                data = SingleBlockManager(data, index, fastpath=True)
             if copy:
                 data = data.copy()
+
         else:
 
             if data is None:
