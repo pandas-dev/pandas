@@ -111,6 +111,7 @@ These changes conform sparse handling to return the correct types and work to ma
    s.take([1, 2, 3])
 
 - Bug in ``SparseSeries[]`` indexing with ``Ellipsis`` raises ``KeyError`` (:issue:`9467`)
+- Bug in ``SparseArray[]`` indexing with tuples are not handled properly (:issue:`12966`)
 - Bug in ``SparseSeries.loc[]`` with list-like input raises ``TypeError`` (:issue:`10560`)
 - Bug in ``SparseSeries.iloc[]`` with scalar input may raise ``IndexError`` (:issue:`10560`)
 - Bug in ``SparseSeries.loc[]``, ``.iloc[]`` with ``slice`` returns ``SparseArray``, rather than ``SparseSeries`` (:issue:`10560`)
@@ -126,6 +127,8 @@ These changes conform sparse handling to return the correct types and work to ma
 - Bug in ``SparseArray.to_dense()`` does not preserve ``dtype`` (:issue:`10648`)
 - Bug in ``SparseArray.to_dense()`` incorrectly handle ``fill_value`` (:issue:`12797`)
 - Bug in ``pd.concat()`` of ``SparseSeries`` results in dense (:issue:`10536`)
+- Bug in ``pd.concat()`` of ``SparseDataFrame`` incorrectly handle ``fill_value`` (:issue:`9765`)
+- Bug in ``pd.concat()`` of ``SparseDataFrame`` may raise ``AttributeError`` (:issue:`12174`)
 - Bug in ``SparseArray.shift()`` may raise ``NameError`` or ``TypeError`` (:issue:`12908`)
 
 .. _whatsnew_0181.api:

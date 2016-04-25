@@ -1030,7 +1030,8 @@ class _Concatenator(object):
             if not self.copy:
                 new_data._consolidate_inplace()
 
-            return (self.objs[0]._from_axes(new_data, self.new_axes)
+            cons = _concat._get_frame_result_type(new_data, self.objs)
+            return (cons._from_axes(new_data, self.new_axes)
                     .__finalize__(self, method='concat'))
 
     def _get_result_dim(self):

@@ -4872,6 +4872,11 @@ class JoinUnit(object):
         values = self.block.values
         if self.block.is_categorical:
             values_flat = values.categories
+        elif self.block.is_sparse:
+            # fill_value is not NaN and have holes
+            if not values._null_fill_value and values.sp_index.ngaps > 0:
+                return False
+            values_flat = values.ravel(order='K')
         else:
             values_flat = values.ravel(order='K')
         total_len = values_flat.shape[0]
@@ -4903,6 +4908,8 @@ class JoinUnit(object):
                 if getattr(self.block, 'is_datetimetz', False):
                     pass
                 elif getattr(self.block, 'is_categorical', False):
+                    pass
+                elif getattr(self.block, 'is_sparse', False):
                     pass
                 else:
                     missing_arr = np.empty(self.shape, dtype=empty_dtype)

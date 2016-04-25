@@ -388,8 +388,8 @@ class TestGetDummies(tm.TestCase):
                               'B_b': [1., 1, 0, 0],
                               'B_c': [0., 0, 1, 0],
                               'B_nan': [0., 0, 0, 1]})
-        expected = expected[['C', 'A_a', 'A_b', 'A_nan', 'B_b', 'B_c', 'B_nan'
-                             ]]
+        expected = expected[['C', 'A_a', 'A_b', 'A_nan',
+                             'B_b', 'B_c', 'B_nan']]
         assert_frame_equal(result, expected)
 
         result = get_dummies(df, dummy_na=False, sparse=self.sparse)
@@ -407,8 +407,8 @@ class TestGetDummies(tm.TestCase):
                               'B_c': [0., 0, 1],
                               'cat_x': [1., 0, 0],
                               'cat_y': [0., 1, 1]})
-        expected = expected[['C', 'A_a', 'A_b', 'B_b', 'B_c', 'cat_x', 'cat_y'
-                             ]]
+        expected = expected[['C', 'A_a', 'A_b', 'B_b', 'B_c',
+                             'cat_x', 'cat_y']]
         assert_frame_equal(result, expected)
 
     # GH12402 Add a new parameter `drop_first` to avoid collinearity
