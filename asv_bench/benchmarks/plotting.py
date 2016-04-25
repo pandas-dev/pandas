@@ -11,6 +11,8 @@ class plot_timeseries_period(object):
     goal_time = 0.2
 
     def setup(self):
+        import matplotlib
+        matplotlib.use('Agg')
         self.N = 2000
         self.M = 5
         self.df = DataFrame(np.random.randn(self.N, self.M), index=date_range('1/1/1975', periods=self.N))
@@ -18,10 +20,13 @@ class plot_timeseries_period(object):
     def time_plot_timeseries_period(self):
         self.df.plot()
 
+
 class plot_andrews_curves(object):
     goal_time = 0.6
 
     def setup(self):
+        import matplotlib
+        matplotlib.use('Agg')
         self.N = 500
         self.M = 10
         data_dict = {x: np.random.randn(self.N) for x in range(self.M)}

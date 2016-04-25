@@ -321,7 +321,9 @@ class packers_read_stata_with_validation(object):
 class packers_read_sas7bdat(object):
 
     def setup(self):
-        self.f = 'data/test1.sas7bdat'
+        self.f = os.path.join(os.path.dirname(__file__), '..', '..',
+                              'pandas', 'io', 'tests', 'sas', 'data',
+                              'test1.sas7bdat')
 
     def time_packers_read_sas7bdat(self):
         pd.read_sas(self.f, format='sas7bdat')
@@ -330,7 +332,9 @@ class packers_read_sas7bdat(object):
 class packers_read_xport(object):
 
     def setup(self):
-        self.f = 'data/paxraw_d_short.xpt'
+        self.f = os.path.join(os.path.dirname(__file__), '..', '..',
+                              'pandas', 'io', 'tests', 'sas', 'data',
+                              'paxraw_d_short.xpt')
 
     def time_packers_read_xport(self):
         pd.read_sas(self.f, format='xport')

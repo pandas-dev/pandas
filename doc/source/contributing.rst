@@ -547,8 +547,8 @@ with an imported pandas to run tests similarly.
 Running the performance test suite
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Performance matters and it is worth considering whether your code has introduced
-performance regressions.  *pandas* is in the process of migrating to the
-`asv library <https://github.com/spacetelescope/asv>`__
+performance regressions.  *pandas* is in the process of migrating to
+`asv benchmarks <https://github.com/spacetelescope/asv>`__
 to enable easy monitoring of the performance of critical *pandas* operations.
 These benchmarks are all found in the ``pandas/asv_bench`` directory.  asv
 supports both python2 and python3.
@@ -559,8 +559,9 @@ supports both python2 and python3.
     so many stylistic issues are likely a result of automated transformation of the
     code.
 
-To use asv you will need either ``conda`` or ``virtualenv``. For more details
-please check the `asv installation webpage <http://asv.readthedocs.org/en/latest/installing.html>`_.
+To use all features of asv, you will need either ``conda`` or
+``virtualenv``. For more details please check the `asv installation
+webpage <http://asv.readthedocs.org/en/latest/installing.html>`_.
 
 To install asv::
 
@@ -570,6 +571,14 @@ If you need to run a benchmark, change your directory to ``/asv_bench/`` and run
 the following if you have been developing on ``master``::
 
     asv continuous master
+
+This command uses ``conda`` by default for creating the benchmark
+environments. If you want to use virtualenv instead, write::
+
+    asv continuous -E virtualenv master
+
+The ``-E virtualenv`` option should be added to all ``asv`` commands
+that run benchmarks. The default value is defined in ``asv.conf.json``.
 
 If you are working on another branch, either of the following can be used::
 
@@ -595,17 +604,26 @@ using ``.`` as a separator. For example::
 
 will only run a ``groupby_agg_builtins1`` test defined in a ``groupby`` file.
 
-It can also be useful to run tests in your current environment. You can simply do it by::
+You can also run the benchmark suite using the version of ``pandas``
+already installed in your current Python environment. This can be
+useful if you do not have virtualenv or conda, or are using the
+``setup.py develop`` approach discussed above; for the in-place build
+you need to set ``PYTHONPATH``, e.g.
+``PYTHONPATH="$PWD/.." asv [remaining arguments]``.
+You can run benchmarks using an existing Python
+environment by::
 
-    asv dev
+    asv run -e -E existing
 
-This command is equivalent to::
+or, to use a specific Python interpreter,::
 
-    asv run --quick --show-stderr --python=same
+    asv run -e -E existing:python3.5
 
-This will launch every test only once, display stderr from the benchmarks, and use your local ``python`` that comes from your ``$PATH``.
+This will display stderr from the benchmarks, and use your local
+``python`` that comes from your ``$PATH``.
 
-Information on how to write a benchmark can be found in the `asv documentation <http://asv.readthedocs.org/en/latest/writing_benchmarks.html>`_.
+Information on how to write a benchmark and how to use asv can be found in the
+`asv documentation <http://asv.readthedocs.org/en/latest/writing_benchmarks.html>`_.
 
 Running the vbench performance test suite (phasing out)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
