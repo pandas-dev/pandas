@@ -505,37 +505,80 @@ class TestSparseArrayArithmetic(tm.TestCase):
     def test_float_scalar(self):
         values = np.array([np.nan, 1, 2, 0, np.nan, 0, 1, 2, 1, np.nan])
 
-        a = SparseArray(values)
-        self._check_numeric_ops(a, 1, values, 1)
-        self._check_numeric_ops(a, 0, values, 0)
+        for kind in ['integer', 'block']:
+            a = SparseArray(values, kind=kind)
+            self._check_numeric_ops(a, 1, values, 1)
+            self._check_numeric_ops(a, 0, values, 0)
+            self._check_numeric_ops(a, 3, values, 3)
 
-        a = SparseArray(values, fill_value=0)
-        self._check_numeric_ops(a, 1, values, 1)
-        self._check_numeric_ops(a, 0, values, 0)
+            a = SparseArray(values, kind=kind, fill_value=0)
+            self._check_numeric_ops(a, 1, values, 1)
+            self._check_numeric_ops(a, 0, values, 0)
+            self._check_numeric_ops(a, 3, values, 3)
 
-        a = SparseArray(values, fill_value=2)
-        self._check_numeric_ops(a, 1, values, 1)
-        self._check_numeric_ops(a, 0, values, 0)
+            a = SparseArray(values, kind=kind, fill_value=2)
+            self._check_numeric_ops(a, 1, values, 1)
+            self._check_numeric_ops(a, 0, values, 0)
+            self._check_numeric_ops(a, 3, values, 3)
+
+    def test_float_same_index(self):
+        # when sp_index are the same
+        for kind in ['integer', 'block']:
+            values = np.array([np.nan, 1, 2, 0, np.nan, 0, 1, 2, 1, np.nan])
+            rvalues = np.array([np.nan, 2, 3, 4, np.nan, 0, 1, 3, 2, np.nan])
+
+            a = SparseArray(values, kind=kind)
+            b = SparseArray(rvalues, kind=kind)
+            self._check_numeric_ops(a, b, values, rvalues)
+
+            values = np.array([0., 1., 2., 6., 0., 0., 1., 2., 1., 0.])
+            rvalues = np.array([0., 2., 3., 4., 0., 0., 1., 3., 2., 0.])
+
+            a = SparseArray(values, kind=kind, fill_value=0)
+            b = SparseArray(rvalues, kind=kind, fill_value=0)
+            self._check_numeric_ops(a, b, values, rvalues)
 
     def test_float_array(self):
         values = np.array([np.nan, 1, 2, 0, np.nan, 0, 1, 2, 1, np.nan])
         rvalues = np.array([2, np.nan, 2, 3, np.nan, 0, 1, 5, 2, np.nan])
 
-        a = SparseArray(values)
-        b = SparseArray(rvalues)
+        for kind in ['integer', 'block']:
+            a = SparseArray(values, kind=kind)
+            b = SparseArray(rvalues, kind=kind)
+            self._check_numeric_ops(a, b, values, rvalues)
+            self._check_numeric_ops(a, b * 0, values, rvalues * 0)
+
+            a = SparseArray(values, kind=kind, fill_value=0)
+            b = SparseArray(rvalues, kind=kind)
+            self._check_numeric_ops(a, b, values, rvalues)
+
+            a = SparseArray(values, kind=kind, fill_value=0)
+            b = SparseArray(rvalues, kind=kind, fill_value=0)
+            self._check_numeric_ops(a, b, values, rvalues)
+
+            a = SparseArray(values, kind=kind, fill_value=1)
+            b = SparseArray(rvalues, kind=kind, fill_value=2)
+            self._check_numeric_ops(a, b, values, rvalues)
+
+    def test_float_array_different_kind(self):
+        values = np.array([np.nan, 1, 2, 0, np.nan, 0, 1, 2, 1, np.nan])
+        rvalues = np.array([2, np.nan, 2, 3, np.nan, 0, 1, 5, 2, np.nan])
+
+        a = SparseArray(values, kind='integer')
+        b = SparseArray(rvalues, kind='block')
         self._check_numeric_ops(a, b, values, rvalues)
         self._check_numeric_ops(a, b * 0, values, rvalues * 0)
 
-        a = SparseArray(values, fill_value=0)
-        b = SparseArray(rvalues)
+        a = SparseArray(values, kind='integer', fill_value=0)
+        b = SparseArray(rvalues, kind='block')
         self._check_numeric_ops(a, b, values, rvalues)
 
-        a = SparseArray(values, fill_value=0)
-        b = SparseArray(rvalues, fill_value=0)
+        a = SparseArray(values, kind='integer', fill_value=0)
+        b = SparseArray(rvalues, kind='block', fill_value=0)
         self._check_numeric_ops(a, b, values, rvalues)
 
-        a = SparseArray(values, fill_value=1)
-        b = SparseArray(rvalues, fill_value=2)
+        a = SparseArray(values, kind='integer', fill_value=1)
+        b = SparseArray(rvalues, kind='block', fill_value=2)
         self._check_numeric_ops(a, b, values, rvalues)
 
 
