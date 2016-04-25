@@ -262,6 +262,19 @@ class TestSparseArray(tm.TestCase):
             self.assertEqual(dense.dtype, bool)
             tm.assert_numpy_array_equal(dense, data)
 
+    def test_constructor_bool_fill_value(self):
+        arr = SparseArray([True, False, True], dtype=None)
+        self.assertEqual(arr.dtype, np.bool)
+        self.assertFalse(arr.fill_value)
+
+        arr = SparseArray([True, False, True], dtype=np.bool)
+        self.assertEqual(arr.dtype, np.bool)
+        self.assertFalse(arr.fill_value)
+
+        arr = SparseArray([True, False, True], dtype=np.bool, fill_value=True)
+        self.assertEqual(arr.dtype, np.bool)
+        self.assertTrue(arr.fill_value)
+
     def test_constructor_float32(self):
         # GH 10648
         data = np.array([1., np.nan, 3], dtype=np.float32)
@@ -522,6 +535,31 @@ class TestSparseArrayArithmetic(tm.TestCase):
         tm.assert_numpy_array_equal((a ** b).to_dense(), a_dense ** b_dense)
         tm.assert_numpy_array_equal((b ** a).to_dense(), b_dense ** a_dense)
 
+    def _check_comparison_ops(self, a, b, a_dense, b_dense):
+
+        def _check(res):
+            tm.assertIsInstance(res, SparseArray)
+            self.assertEqual(res.dtype, np.bool)
+            self.assertIsInstance(res.fill_value, bool)
+
+        _check(a == b)
+        tm.assert_numpy_array_equal((a == b).to_dense(), a_dense == b_dense)
+
+        _check(a != b)
+        tm.assert_numpy_array_equal((a != b).to_dense(), a_dense != b_dense)
+
+        _check(a >= b)
+        tm.assert_numpy_array_equal((a >= b).to_dense(), a_dense >= b_dense)
+
+        _check(a <= b)
+        tm.assert_numpy_array_equal((a <= b).to_dense(), a_dense <= b_dense)
+
+        _check(a > b)
+        tm.assert_numpy_array_equal((a > b).to_dense(), a_dense > b_dense)
+
+        _check(a < b)
+        tm.assert_numpy_array_equal((a < b).to_dense(), a_dense < b_dense)
+
     def test_float_scalar(self):
         values = np.array([np.nan, 1, 2, 0, np.nan, 0, 1, 2, 1, np.nan])
 
@@ -541,6 +579,25 @@ class TestSparseArrayArithmetic(tm.TestCase):
             self._check_numeric_ops(a, 0, values, 0)
             self._check_numeric_ops(a, 3, values, 3)
 
+    def test_float_scalar_comparison(self):
+        values = np.array([np.nan, 1, 2, 0, np.nan, 0, 1, 2, 1, np.nan])
+
+        for kind in ['integer', 'block']:
+            a = SparseArray(values, kind=kind)
+            self._check_comparison_ops(a, 1, values, 1)
+            self._check_comparison_ops(a, 0, values, 0)
+            self._check_comparison_ops(a, 3, values, 3)
+
+            a = SparseArray(values, kind=kind, fill_value=0)
+            self._check_comparison_ops(a, 1, values, 1)
+            self._check_comparison_ops(a, 0, values, 0)
+            self._check_comparison_ops(a, 3, values, 3)
+
+            a = SparseArray(values, kind=kind, fill_value=2)
+            self._check_comparison_ops(a, 1, values, 1)
+            self._check_comparison_ops(a, 0, values, 0)
+            self._check_comparison_ops(a, 3, values, 3)
+
     def test_float_same_index(self):
         # when sp_index are the same
         for kind in ['integer', 'block']:
@@ -557,6 +614,23 @@ class TestSparseArrayArithmetic(tm.TestCase):
             a = SparseArray(values, kind=kind, fill_value=0)
             b = SparseArray(rvalues, kind=kind, fill_value=0)
             self._check_numeric_ops(a, b, values, rvalues)
+
+    def test_float_same_index_comparison(self):
+        # when sp_index are the same
+        for kind in ['integer', 'block']:
+            values = np.array([np.nan, 1, 2, 0, np.nan, 0, 1, 2, 1, np.nan])
+            rvalues = np.array([np.nan, 2, 3, 4, np.nan, 0, 1, 3, 2, np.nan])
+
+            a = SparseArray(values, kind=kind)
+            b = SparseArray(rvalues, kind=kind)
+            self._check_comparison_ops(a, b, values, rvalues)
+
+            values = np.array([0., 1., 2., 6., 0., 0., 1., 2., 1., 0.])
+            rvalues = np.array([0., 2., 3., 4., 0., 0., 1., 3., 2., 0.])
+
+            a = SparseArray(values, kind=kind, fill_value=0)
+            b = SparseArray(rvalues, kind=kind, fill_value=0)
+            self._check_comparison_ops(a, b, values, rvalues)
 
     def test_float_array(self):
         values = np.array([np.nan, 1, 2, 0, np.nan, 0, 1, 2, 1, np.nan])
@@ -600,6 +674,28 @@ class TestSparseArrayArithmetic(tm.TestCase):
         a = SparseArray(values, kind='integer', fill_value=1)
         b = SparseArray(rvalues, kind='block', fill_value=2)
         self._check_numeric_ops(a, b, values, rvalues)
+
+    def test_float_array_comparison(self):
+        values = np.array([np.nan, 1, 2, 0, np.nan, 0, 1, 2, 1, np.nan])
+        rvalues = np.array([2, np.nan, 2, 3, np.nan, 0, 1, 5, 2, np.nan])
+
+        for kind in ['integer', 'block']:
+            a = SparseArray(values, kind=kind)
+            b = SparseArray(rvalues, kind=kind)
+            self._check_comparison_ops(a, b, values, rvalues)
+            self._check_comparison_ops(a, b * 0, values, rvalues * 0)
+
+            a = SparseArray(values, kind=kind, fill_value=0)
+            b = SparseArray(rvalues, kind=kind)
+            self._check_comparison_ops(a, b, values, rvalues)
+
+            a = SparseArray(values, kind=kind, fill_value=0)
+            b = SparseArray(rvalues, kind=kind, fill_value=0)
+            self._check_comparison_ops(a, b, values, rvalues)
+
+            a = SparseArray(values, kind=kind, fill_value=1)
+            b = SparseArray(rvalues, kind=kind, fill_value=2)
+            self._check_comparison_ops(a, b, values, rvalues)
 
 
 if __name__ == '__main__':

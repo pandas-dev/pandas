@@ -317,7 +317,8 @@ cdef class BlockIndex(SparseIndex):
 
     cdef:
         object __weakref__ # need to be picklable
-        int32_t* locbuf, *lenbuf
+        int32_t *locbuf
+        int32_t *lenbuf
 
     def __init__(self, length, blocs, blengths):
 
@@ -985,6 +986,12 @@ cdef inline float64_t __lt(float64_t a, float64_t b):
 cdef inline float64_t __gt(float64_t a, float64_t b):
     return a > b
 
+cdef inline float64_t __le(float64_t a, float64_t b):
+    return a <= b
+
+cdef inline float64_t __ge(float64_t a, float64_t b):
+    return a >= b
+
 cdef inline float64_t __mod(float64_t a, float64_t b):
     if b == 0:
         return NaN
@@ -1040,33 +1047,62 @@ sparse_rtruediv = sparse_rdiv
 cpdef sparse_floordiv(ndarray x, SparseIndex xindex, float64_t xfill,
                       ndarray y, SparseIndex yindex, float64_t yfill):
     return sparse_combine(x, xindex, xfill,
-                             y, yindex, yfill, __floordiv)
+                          y, yindex, yfill, __floordiv)
 
 cpdef sparse_rfloordiv(ndarray x, SparseIndex xindex, float64_t xfill,
                        ndarray y, SparseIndex yindex, float64_t yfill):
     return sparse_combine(x, xindex, xfill,
-                             y, yindex, yfill, __rfloordiv)
+                          y, yindex, yfill, __rfloordiv)
 
 cpdef sparse_mod(ndarray x, SparseIndex xindex, float64_t xfill,
                  ndarray y, SparseIndex yindex, float64_t yfill):
     return sparse_combine(x, xindex, xfill,
-                             y, yindex, yfill, __mod)
+                          y, yindex, yfill, __mod)
 
 cpdef sparse_rmod(ndarray x, SparseIndex xindex, float64_t xfill,
                   ndarray y, SparseIndex yindex, float64_t yfill):
     return sparse_combine(x, xindex, xfill,
-                             y, yindex, yfill, __rmod)
+                          y, yindex, yfill, __rmod)
 
 cpdef sparse_pow(ndarray x, SparseIndex xindex, float64_t xfill,
                  ndarray y, SparseIndex yindex, float64_t yfill):
     return sparse_combine(x, xindex, xfill,
-                             y, yindex, yfill, __pow)
+                          y, yindex, yfill, __pow)
 
 cpdef sparse_rpow(ndarray x, SparseIndex xindex, float64_t xfill,
                   ndarray y, SparseIndex yindex, float64_t yfill):
     return sparse_combine(x, xindex, xfill,
-                             y, yindex, yfill, __rpow)
+                          y, yindex, yfill, __rpow)
 
+cpdef sparse_eq(ndarray x, SparseIndex xindex, float64_t xfill,
+                  ndarray y, SparseIndex yindex, float64_t yfill):
+    return sparse_combine(x, xindex, xfill,
+                          y, yindex, yfill, __eq)
+
+cpdef sparse_ne(ndarray x, SparseIndex xindex, float64_t xfill,
+                  ndarray y, SparseIndex yindex, float64_t yfill):
+    return sparse_combine(x, xindex, xfill,
+                          y, yindex, yfill, __ne)
+
+cpdef sparse_lt(ndarray x, SparseIndex xindex, float64_t xfill,
+                  ndarray y, SparseIndex yindex, float64_t yfill):
+    return sparse_combine(x, xindex, xfill,
+                          y, yindex, yfill, __lt)
+
+cpdef sparse_gt(ndarray x, SparseIndex xindex, float64_t xfill,
+                  ndarray y, SparseIndex yindex, float64_t yfill):
+    return sparse_combine(x, xindex, xfill,
+                          y, yindex, yfill, __gt)
+
+cpdef sparse_le(ndarray x, SparseIndex xindex, float64_t xfill,
+                ndarray y, SparseIndex yindex, float64_t yfill):
+    return sparse_combine(x, xindex, xfill,
+                          y, yindex, yfill, __le)
+
+cpdef sparse_ge(ndarray x, SparseIndex xindex, float64_t xfill,
+                ndarray y, SparseIndex yindex, float64_t yfill):
+    return sparse_combine(x, xindex, xfill,
+                          y, yindex, yfill, __ge)
 
 #-------------------------------------------------------------------------------
 # Indexing operations

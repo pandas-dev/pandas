@@ -121,6 +121,7 @@ These changes conform sparse handling to return the correct types and work to ma
 - Bug in ``SparseArray`` addition ignores ``fill_value`` of right hand side (:issue:`12910`)
 - Bug in ``SparseArray`` mod raises ``AttributeError (:issue:`12910`)
 - Bug in ``SparseArray`` pow calculates ``1 ** np.nan`` as ``np.nan`` which must be 1 (:issue:`12910`)
+- Bug in ``SparseArray`` comparison output may incorrect result or raise ``ValueError`` (:issue:`12971`)
 - Bug in ``SparseSeries.__repr__`` raises ``TypeError`` when it is longer than ``max_rows`` (:issue:`10560`)
 - Bug in ``SparseSeries.shape`` ignores ``fill_value`` (:issue:`10452`)
 - Bug in ``SparseSeries`` and ``SparseArray`` may have different ``dtype`` from its dense values (:issue:`12908`)
