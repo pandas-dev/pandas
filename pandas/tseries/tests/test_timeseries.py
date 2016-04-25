@@ -2532,74 +2532,77 @@ class TestDatetimeIndex(tm.TestCase):
             cases = [(fidx1, fidx2), (didx1, didx2), (didx1, darr)]
 
         # Check pd.NaT is handles as the same as np.nan
-        for idx1, idx2 in cases:
+        with tm.assert_produces_warning(None):
+            for idx1, idx2 in cases:
 
-            result = idx1 < idx2
-            expected = np.array([True, False, False, False, True, False])
-            self.assert_numpy_array_equal(result, expected)
+                result = idx1 < idx2
+                expected = np.array([True, False, False, False, True, False])
+                self.assert_numpy_array_equal(result, expected)
 
-            result = idx2 > idx1
-            expected = np.array([True, False, False, False, True, False])
-            self.assert_numpy_array_equal(result, expected)
+                result = idx2 > idx1
+                expected = np.array([True, False, False, False, True, False])
+                self.assert_numpy_array_equal(result, expected)
 
-            result = idx1 <= idx2
-            expected = np.array([True, False, False, False, True, True])
-            self.assert_numpy_array_equal(result, expected)
+                result = idx1 <= idx2
+                expected = np.array([True, False, False, False, True, True])
+                self.assert_numpy_array_equal(result, expected)
 
-            result = idx2 >= idx1
-            expected = np.array([True, False, False, False, True, True])
-            self.assert_numpy_array_equal(result, expected)
+                result = idx2 >= idx1
+                expected = np.array([True, False, False, False, True, True])
+                self.assert_numpy_array_equal(result, expected)
 
-            result = idx1 == idx2
-            expected = np.array([False, False, False, False, False, True])
-            self.assert_numpy_array_equal(result, expected)
+                result = idx1 == idx2
+                expected = np.array([False, False, False, False, False, True])
+                self.assert_numpy_array_equal(result, expected)
 
-            result = idx1 != idx2
-            expected = np.array([True, True, True, True, True, False])
-            self.assert_numpy_array_equal(result, expected)
+                result = idx1 != idx2
+                expected = np.array([True, True, True, True, True, False])
+                self.assert_numpy_array_equal(result, expected)
 
-        for idx1, val in [(fidx1, np.nan), (didx1, pd.NaT)]:
-            result = idx1 < val
-            expected = np.array([False, False, False, False, False, False])
-            self.assert_numpy_array_equal(result, expected)
-            result = idx1 > val
-            self.assert_numpy_array_equal(result, expected)
+        with tm.assert_produces_warning(None):
+            for idx1, val in [(fidx1, np.nan), (didx1, pd.NaT)]:
+                result = idx1 < val
+                expected = np.array([False, False, False, False, False, False])
+                self.assert_numpy_array_equal(result, expected)
+                result = idx1 > val
+                self.assert_numpy_array_equal(result, expected)
 
-            result = idx1 <= val
-            self.assert_numpy_array_equal(result, expected)
-            result = idx1 >= val
-            self.assert_numpy_array_equal(result, expected)
+                result = idx1 <= val
+                self.assert_numpy_array_equal(result, expected)
+                result = idx1 >= val
+                self.assert_numpy_array_equal(result, expected)
 
-            result = idx1 == val
-            self.assert_numpy_array_equal(result, expected)
+                result = idx1 == val
+                self.assert_numpy_array_equal(result, expected)
 
-            result = idx1 != val
-            expected = np.array([True, True, True, True, True, True])
-            self.assert_numpy_array_equal(result, expected)
+                result = idx1 != val
+                expected = np.array([True, True, True, True, True, True])
+                self.assert_numpy_array_equal(result, expected)
 
         # Check pd.NaT is handles as the same as np.nan
-        for idx1, val in [(fidx1, 3), (didx1, datetime(2014, 3, 1))]:
-            result = idx1 < val
-            expected = np.array([True, False, False, False, False, False])
-            self.assert_numpy_array_equal(result, expected)
-            result = idx1 > val
-            expected = np.array([False, False, False, False, True, True])
-            self.assert_numpy_array_equal(result, expected)
+        with tm.assert_produces_warning(None):
+            for idx1, val in [(fidx1, 3), (didx1, datetime(2014, 3, 1))]:
+                result = idx1 < val
+                expected = np.array([True, False, False, False, False, False])
+                self.assert_numpy_array_equal(result, expected)
+                result = idx1 > val
+                expected = np.array([False, False, False, False, True, True])
+                self.assert_numpy_array_equal(result, expected)
 
-            result = idx1 <= val
-            expected = np.array([True, False, True, False, False, False])
-            self.assert_numpy_array_equal(result, expected)
-            result = idx1 >= val
-            expected = np.array([False, False, True, False, True, True])
-            self.assert_numpy_array_equal(result, expected)
+                result = idx1 <= val
+                expected = np.array([True, False, True, False, False, False])
+                self.assert_numpy_array_equal(result, expected)
+                result = idx1 >= val
+                expected = np.array([False, False, True, False, True, True])
+                self.assert_numpy_array_equal(result, expected)
 
-            result = idx1 == val
-            expected = np.array([False, False, True, False, False, False])
-            self.assert_numpy_array_equal(result, expected)
+                result = idx1 == val
+                expected = np.array([False, False, True, False, False, False])
+                self.assert_numpy_array_equal(result, expected)
 
-            result = idx1 != val
-            expected = np.array([True, True, False, True, True, True])
-            self.assert_numpy_array_equal(result, expected)
+                result = idx1 != val
+                expected = np.array([True, True, False, True, True, True])
+                self.assert_numpy_array_equal(result, expected)
 
     def test_map(self):
         rng = date_range('1/1/2000', periods=10)

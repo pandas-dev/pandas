@@ -28,7 +28,8 @@ from pandas.core.common import (isnull, array_equivalent,
                                 is_iterator, is_categorical_dtype,
                                 _ensure_object, _ensure_int64, is_bool_indexer,
                                 is_list_like, is_bool_dtype,
-                                is_integer_dtype, is_float_dtype)
+                                is_integer_dtype, is_float_dtype,
+                                needs_i8_conversion)
 from pandas.core.strings import StringAccessorMixin
 
 from pandas.core.config import get_option
@@ -3068,6 +3069,9 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
     def _evaluate_with_datetime_like(self, other, op, opstr):
         raise TypeError("can only perform ops with datetime like values")
 
+    def _evalute_compare(self, op):
+        raise base.AbstractMethodError(self)
+
     @classmethod
     def _add_comparison_methods(cls):
         """ add in comparison methods """
@@ -3077,6 +3081,12 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
                 if isinstance(other, (np.ndarray, Index, ABCSeries)):
                     if other.ndim > 0 and len(self) != len(other):
                         raise ValueError('Lengths must match to compare')
+
+                # we may need to directly compare underlying
+                # representations
+                if needs_i8_conversion(self) and needs_i8_conversion(other):
+                    return self._evaluate_compare(other, op)
+
                 func = getattr(self.values, op)
                 result = func(np.asarray(other))
 
