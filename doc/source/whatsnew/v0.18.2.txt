@@ -149,3 +149,4 @@ Bug Fixes
 - Bug in ``NaT`` - ``Period`` raises ``AttributeError`` (:issue:`13071`)
 - Bug in ``Period`` addition raises ``TypeError`` if ``Period`` is on right hand side (:issue:`13069`)
 - Bug in ``pd.set_eng_float_format()`` that would prevent NaN's from formatting (:issue:`11981`)
+- Bug in ``groupby`` where ``apply`` returns different result depending on whether first result is ``None`` or not (:issue:`12824`)
