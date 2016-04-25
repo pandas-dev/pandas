@@ -254,7 +254,7 @@ class groupby_multi_count(object):
         self.offsets[(np.random.rand(self.n) > 0.5)] = np.timedelta64('nat')
         self.value2 = np.random.randn(self.n)
         self.value2[(np.random.rand(self.n) > 0.5)] = np.nan
-        self.obj = tm.choice(list('ab'), size=self.n).astype(object)
+        self.obj = np.random.choice(list('ab'), size=self.n).astype(object)
         self.obj[(np.random.randn(self.n) > 0.5)] = np.nan
         self.df = DataFrame({'key1': np.random.randint(0, 500, size=self.n),
                              'key2': np.random.randint(0, 100, size=self.n),
@@ -651,7 +651,7 @@ class groupby_sum_multiindex(object):
 
     def setup(self):
         self.N = 50
-        self.df = DataFrame({'A': (range(self.N) * 2), 'B': range((self.N * 2)), 'C': 1, }).set_index(['A', 'B'])
+        self.df = DataFrame({'A': (list(range(self.N)) * 2), 'B': list(range((self.N * 2))), 'C': 1, }).set_index(['A', 'B'])
 
     def time_groupby_sum_multiindex(self):
         self.df.groupby(level=[0, 1]).sum()
@@ -673,9 +673,9 @@ class groupby_transform(object):
         self.secid_min = int('10000000', 16)
         self.secid_max = int('F0000000', 16)
         self.step = ((self.secid_max - self.secid_min) // (self.n_securities - 1))
-        self.security_ids = map((lambda x: hex(x)[2:10].upper()), range(self.secid_min, (self.secid_max + 1), self.step))
+        self.security_ids = map((lambda x: hex(x)[2:10].upper()), list(range(self.secid_min, (self.secid_max + 1), self.step)))
         self.data_index = MultiIndex(levels=[self.dates.values, self.security_ids],
-                                     labels=[[i for i in range(self.n_dates) for _ in range(self.n_securities)], (range(self.n_securities) * self.n_dates)],
+                                     labels=[[i for i in range(self.n_dates) for _ in range(self.n_securities)], (list(range(self.n_securities)) * self.n_dates)],
                                      names=['date', 'security_id'])
         self.n_data = len(self.data_index)
         self.columns = Index(['factor{}'.format(i) for i in range(1, (self.n_columns + 1))])
