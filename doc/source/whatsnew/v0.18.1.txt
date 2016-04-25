@@ -434,5 +434,4 @@ Bug Fixes
 - ``pd.read_excel()`` now accepts path objects (e.g. ``pathlib.Path``, ``py.path.local``) for the file path, in line with other ``read_*`` functions (:issue:`12655`)
 - ``pd.read_excel()`` now accepts column names associated with keyword argument ``names``(:issue `12870`)
 
-- Bug in ``DataFrame._santize_column`` now preserves Timezone when RHS is a Series (:issue `12981`)
-
+- Bug in ``DataFrame`` timezone lost when assigning tz-aware datetime ``Series`` with alignment (:issue `12981`)

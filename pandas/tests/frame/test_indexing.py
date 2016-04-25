@@ -1950,6 +1950,9 @@ class TestDataFrameIndexing(tm.TestCase, TestData):
         df['dates'] = column[[1, 0, 2]]
         assert_series_equal(df['dates'], column)
 
+        df.loc[[0, 1, 2], 'dates'] = column[[1, 0, 2]]
+        assert_series_equal(df['dates'], column)
+
     def test_setitem_datetime_coercion(self):
         # GH 1048
         df = pd.DataFrame({'c': [pd.Timestamp('2010-10-01')] * 3})
