@@ -46,9 +46,8 @@ def _arith_method(op, name, str_rep=None, default_axis=None, fill_zeros=None,
         elif lib.isscalar(other):
             new_fill_value = op(np.float64(self.fill_value), np.float64(other))
 
-            return SparseArray(op(self.sp_values, other),
-                               sparse_index=self.sp_index,
-                               fill_value=new_fill_value)
+            return _wrap_result(name, op(self.sp_values, other),
+                                self.sp_index, new_fill_value)
         else:  # pragma: no cover
             raise TypeError('operation with %s not supported' % type(other))
 
@@ -59,30 +58,32 @@ def _arith_method(op, name, str_rep=None, default_axis=None, fill_zeros=None,
 
 
 def _sparse_array_op(left, right, op, name):
-    sparse_op = lambda a, b: _sparse_op(a, b, name)
-
     if left.sp_index.equals(right.sp_index):
         result = op(left.sp_values, right.sp_values)
         result_index = left.sp_index
     else:
-        result, result_index = sparse_op(left, right)
-
+        sparse_op = getattr(splib, 'sparse_%s' % name)
+        result, result_index = sparse_op(left.sp_values, left.sp_index,
+                                         left.fill_value, right.sp_values,
+                                         right.sp_index, right.fill_value)
     try:
         fill_value = op(left.fill_value, right.fill_value)
     except:
         fill_value = nan
-
-    return SparseArray(result, sparse_index=result_index,
-                       fill_value=fill_value)
+    return _wrap_result(name, result, result_index, fill_value)
 
 
-def _sparse_op(this, other, name):
-    sparse_op = getattr(splib, 'sparse_%s' % name)
-    result, result_index = sparse_op(this.sp_values, this.sp_index,
-                                     this.fill_value, other.sp_values,
-                                     other.sp_index, other.fill_value)
-
-    return result, result_index
+def _wrap_result(name, data, sparse_index, fill_value):
+    """ wrap op result to have correct dtype """
+    if name in ('eq', 'ne', 'lt', 'gt', 'le', 'ge'):
+        # ToDo: We can remove this condition when removing
+        # SparseArray's dtype default when closing GH 667
+        return SparseArray(data, sparse_index=sparse_index,
+                           fill_value=fill_value,
+                           dtype=np.bool)
+    else:
+        return SparseArray(data, sparse_index=sparse_index,
+                           fill_value=fill_value)
 
 
 class SparseArray(PandasObject, np.ndarray):
@@ -594,4 +595,5 @@ def _make_index(length, indices, kind):
 
 
 ops.add_special_arithmetic_methods(SparseArray, arith_method=_arith_method,
+                                   comp_method=_arith_method,
                                    use_numexpr=False)
