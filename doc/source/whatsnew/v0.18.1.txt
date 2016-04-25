@@ -81,18 +81,18 @@ Other Enhancements
 - ``interpolate()`` now supports ``method='akima'`` (:issue:`7588`).
 - ``Index.take`` now handles ``allow_fill`` and ``fill_value`` consistently (:issue:`12631`)
 
-.. ipython:: python
+   .. ipython:: python
 
-   idx = pd.Index([1., 2., 3., 4.], dtype='float')
-   idx.take([2, -1])     # default, allow_fill=True, fill_value=None
-   idx.take([2, -1], fill_value=True)
+      idx = pd.Index([1., 2., 3., 4.], dtype='float')
+      idx.take([2, -1])     # default, allow_fill=True, fill_value=None
+      idx.take([2, -1], fill_value=True)
 
 - ``Index`` now supports ``.str.get_dummies()`` which returns ``MultiIndex``, see :ref:`Creating Indicator Variables <text.indicator>` (:issue:`10008`, :issue:`10103`)
 
-.. ipython:: python
+   .. ipython:: python
 
-   idx = pd.Index(['a|b', 'a|c', 'b|c'])
-   idx.str.get_dummies('|')
+      idx = pd.Index(['a|b', 'a|c', 'b|c'])
+      idx.str.get_dummies('|')
 
 - ``pd.crosstab()`` has gained a ``normalize`` argument for normalizing frequency tables (:issue:`12569`). Examples in the updated docs :ref:`here <reshaping.crosstabulations>`.
 
@@ -164,7 +164,7 @@ Previous Behavior:
 
 New Behavior:
 
-.. ipython:: ipython
+.. ipython:: python
 
     df.groupby('A', as_index=True)['B'].nth(0)
     df.groupby('A', as_index=False)['B'].nth(0)
@@ -216,7 +216,7 @@ API changes
 
 - ``Period`` and ``PeriodIndex`` now raises ``IncompatibleFrequency`` error which inherits ``ValueError`` rather than raw ``ValueError`` (:issue:`12615`)
 
-- ``Series.apply`` for category dtype now applies passed function to each ``.categories`` (not ``.codes``), and returns "category" dtype if possible (:issue:`12473`)
+- ``Series.apply`` for category dtype now applies the passed function to each ``.categories`` (not ``.codes``), and returns a ``category`` dtype if possible (:issue:`12473`)
 
 - ``read_csv`` will now raise a ``TypeError`` if ``parse_dates`` is neither a boolean, list, or dictionary (:issue:`5636`)
 
@@ -237,7 +237,8 @@ Using ``apply`` on resampling groupby operations (using a ``pd.TimeGrouper``) no
 
 .. ipython:: python
 
-    df = pd.DataFrame({'date': pd.to_datetime(['10/10/2000', '11/10/2000']), 'value': [10, 13]})
+    df = pd.DataFrame({'date': pd.to_datetime(['10/10/2000', '11/10/2000']),
+                      'value': [10, 13]})
     df
 
 Previous behavior:
@@ -424,7 +425,7 @@ Bug Fixes
 - Bug in ``.describe()`` resets categorical columns information (:issue:`11558`)
 - Bug where ``loffset`` argument was not applied when calling ``resample().count()`` on a timeseries (:issue:`12725`)
 - ``pd.read_excel()`` now accepts path objects (e.g. ``pathlib.Path``, ``py.path.local``) for the file path, in line with other ``read_*`` functions (:issue:`12655`)
-- ``pd.read_excel()`` now accepts column names associated with keyword argument ``names``(:issue `12870`)
+- ``pd.read_excel()`` now accepts column names associated with keyword argument ``names``(:issue:`12870`)
 
 
-- Bug in ``fill_value`` is ignored if the argument to a binary operator is a constant (:issue `12723`)
+- Bug in ``fill_value`` is ignored if the argument to a binary operator is a constant (:issue:`12723`)
