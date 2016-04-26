@@ -513,8 +513,9 @@ There are several time/date properties that one can access from ``Timestamp`` or
     dayofyear,"The ordinal day of year"
     weekofyear,"The week ordinal of the year"
     week,"The week ordinal of the year"
-    dayofweek,"The day of the week with Monday=0, Sunday=6"
-    weekday,"The day of the week with Monday=0, Sunday=6"
+    dayofweek,"The numer of the day of the week with Monday=0, Sunday=6"
+    weekday,"The number of the day of the week with Monday=0, Sunday=6"
+    weekday_name,"The name of the day in a week (ex: Friday)"
     quarter,"Quarter of the date: Jan=Mar = 1, Apr-Jun = 2, etc."
     days_in_month,"The number of days in the month of the datetime"
     is_month_start,"Logical indicating if first day of month (defined by frequency)"
@@ -523,7 +524,6 @@ There are several time/date properties that one can access from ``Timestamp`` or
     is_quarter_end,"Logical indicating if last day of quarter (defined by frequency)"
     is_year_start,"Logical indicating if first day of year (defined by frequency)"
     is_year_end,"Logical indicating if last day of year (defined by frequency)"
-    weekday_name,"The name of day in a week (ex: Friday)"
 
 Furthermore, if you have a ``Series`` with datetimelike values, then you can access these properties via the ``.dt`` accessor, see the :ref:`docs <basics.dt_accessors>`
 
