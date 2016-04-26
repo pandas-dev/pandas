@@ -821,6 +821,99 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
                           DataFrame({'a': [1, 2, object()]}).to_json,
                           default_handler=my_handler_raises)
 
+    def test_categorical(self):
+        # GH4377 df.to_json segfaults with non-ndarray blocks
+        df = DataFrame({"A": ["a", "b", "c", "a", "b", "b", "a"]})
+        df["B"] = df["A"]
+        expected = df.to_json()
+
+        df["B"] = df["A"].astype('category')
+        self.assertEqual(expected, df.to_json())
+
+        s = df["A"]
+        sc = df["B"]
+        self.assertEqual(s.to_json(), sc.to_json())
+
+    def test_datetime_tz(self):
+        # GH4377 df.to_json segfaults with non-ndarray blocks
+        tz_range = pd.date_range('20130101', periods=3, tz='US/Eastern')
+        tz_naive = tz_range.tz_convert('utc').tz_localize(None)
+
+        df = DataFrame({
+            'A': tz_range,
+            'B': pd.date_range('20130101', periods=3)})
+
+        df_naive = df.copy()
+        df_naive['A'] = tz_naive
+        expected = df_naive.to_json()
+        self.assertEqual(expected, df.to_json())
+
+        stz = Series(tz_range)
+        s_naive = Series(tz_naive)
+        self.assertEqual(stz.to_json(), s_naive.to_json())
+
+    def test_sparse(self):
+        # GH4377 df.to_json segfaults with non-ndarray blocks
+        df = pd.DataFrame(np.random.randn(10, 4))
+        df.ix[:8] = np.nan
+
+        sdf = df.to_sparse()
+        expected = df.to_json()
+        self.assertEqual(expected, sdf.to_json())
+
+        s = pd.Series(np.random.randn(10))
+        s.ix[:8] = np.nan
+        ss = s.to_sparse()
+
+        expected = s.to_json()
+        self.assertEqual(expected, ss.to_json())
+
+    def test_tz_is_utc(self):
+        exp = '"2013-01-10T05:00:00.000Z"'
+
+        ts = Timestamp('2013-01-10 05:00:00Z')
+        self.assertEqual(exp, pd.json.dumps(ts, iso_dates=True))
+        dt = ts.to_datetime()
+        self.assertEqual(exp, pd.json.dumps(dt, iso_dates=True))
+
+        ts = Timestamp('2013-01-10 00:00:00', tz='US/Eastern')
+        self.assertEqual(exp, pd.json.dumps(ts, iso_dates=True))
+        dt = ts.to_datetime()
+        self.assertEqual(exp, pd.json.dumps(dt, iso_dates=True))
+
+        ts = Timestamp('2013-01-10 00:00:00-0500')
+        self.assertEqual(exp, pd.json.dumps(ts, iso_dates=True))
+        dt = ts.to_datetime()
+        self.assertEqual(exp, pd.json.dumps(dt, iso_dates=True))
+
+    def test_tz_range_is_utc(self):
+        exp = '["2013-01-01T05:00:00.000Z","2013-01-02T05:00:00.000Z"]'
+        dfexp = ('{"DT":{'
+                 '"0":"2013-01-01T05:00:00.000Z",'
+                 '"1":"2013-01-02T05:00:00.000Z"}}')
+
+        tz_range = pd.date_range('2013-01-01 05:00:00Z', periods=2)
+        self.assertEqual(exp, pd.json.dumps(tz_range, iso_dates=True))
+        dti = pd.DatetimeIndex(tz_range)
+        self.assertEqual(exp, pd.json.dumps(dti, iso_dates=True))
+        df = DataFrame({'DT': dti})
+        self.assertEqual(dfexp, pd.json.dumps(df, iso_dates=True))
+
+        tz_range = pd.date_range('2013-01-01 00:00:00', periods=2,
+                                 tz='US/Eastern')
+        self.assertEqual(exp, pd.json.dumps(tz_range, iso_dates=True))
+        dti = pd.DatetimeIndex(tz_range)
+        self.assertEqual(exp, pd.json.dumps(dti, iso_dates=True))
+        df = DataFrame({'DT': dti})
+        self.assertEqual(dfexp, pd.json.dumps(df, iso_dates=True))
+
+        tz_range = pd.date_range('2013-01-01 00:00:00-0500', periods=2)
+        self.assertEqual(exp, pd.json.dumps(tz_range, iso_dates=True))
+        dti = pd.DatetimeIndex(tz_range)
+        self.assertEqual(exp, pd.json.dumps(dti, iso_dates=True))
+        df = DataFrame({'DT': dti})
+        self.assertEqual(dfexp, pd.json.dumps(df, iso_dates=True))
+
 
 if __name__ == '__main__':
     import nose
