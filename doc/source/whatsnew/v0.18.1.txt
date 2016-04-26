@@ -81,6 +81,7 @@ Other Enhancements
 - ``pd.read_msgpack()`` now supports serializing and de-serializing categoricals with msgpack (:issue:`12573`)
 - ``interpolate()`` now supports ``method='akima'`` (:issue:`7588`).
 - ``Index.take`` now handles ``allow_fill`` and ``fill_value`` consistently (:issue:`12631`)
+- Added ``weekday_name`` as a component to ``DatetimeIndex`` and ``.dt`` accessor. (:issue:`11128`)
 
    .. ipython:: python
 
