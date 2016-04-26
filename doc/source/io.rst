@@ -19,10 +19,9 @@
    import matplotlib.pyplot as plt
    plt.close('all')
 
-   from pandas import *
    options.display.max_rows=15
    import pandas.util.testing as tm
-   clipdf = DataFrame({'A':[1,2,3],'B':[4,5,6],'C':['p','q','r']},
+   clipdf = pd.DataFrame({'A':[1,2,3],'B':[4,5,6],'C':['p','q','r']},
                       index=['x','y','z'])
 
 ===============================
@@ -1212,7 +1211,7 @@ class of the csv module. For this, you have to specify ``sep=None``.
 .. ipython:: python
    :suppress:
 
-   df = DataFrame(np.random.randn(10, 4))
+   df = pd.DataFrame(np.random.randn(10, 4))
    df.to_csv('tmp.sv', sep='|')
    df.to_csv('tmp2.sv', sep=':')
 
@@ -1392,7 +1391,7 @@ Note ``NaN``'s, ``NaT``'s and ``None`` will be converted to ``null`` and ``datet
 
 .. ipython:: python
 
-   dfj = DataFrame(randn(5, 2), columns=list('AB'))
+   dfj = pd.DataFrame(randn(5, 2), columns=list('AB'))
    json = dfj.to_json()
    json
 
@@ -1404,10 +1403,10 @@ file / string. Consider the following DataFrame and Series:
 
 .. ipython:: python
 
-  dfjo = DataFrame(dict(A=range(1, 4), B=range(4, 7), C=range(7, 10)),
+  dfjo = pd.DataFrame(dict(A=range(1, 4), B=range(4, 7), C=range(7, 10)),
                    columns=list('ABC'), index=list('xyz'))
   dfjo
-  sjo = Series(dict(x=15, y=16, z=17), name='D')
+  sjo = pd.Series(dict(x=15, y=16, z=17), name='D')
   sjo
 
 **Column oriented** (the default for ``DataFrame``) serializes the data as
@@ -1489,10 +1488,10 @@ Writing to a file, with a date index and a date column
 .. ipython:: python
 
    dfj2 = dfj.copy()
-   dfj2['date'] = Timestamp('20130101')
+   dfj2['date'] = pd.Timestamp('20130101')
    dfj2['ints'] = list(range(5))
    dfj2['bools'] = True
-   dfj2.index = date_range('20130101', periods=5)
+   dfj2.index = pd.date_range('20130101', periods=5)
    dfj2.to_json('test.json')
    open('test.json').read()
 
@@ -1523,7 +1522,7 @@ problems:
 
    In [141]: from datetime import timedelta
 
-   In [142]: dftd = DataFrame([timedelta(23), timedelta(seconds=5), 42])
+   In [142]: dftd = pd.DataFrame([timedelta(23), timedelta(seconds=5), 42])
 
    In [143]: dftd.to_json()
 
@@ -1650,7 +1649,7 @@ Preserve string indices:
 
 .. ipython:: python
 
-   si = DataFrame(np.zeros((4, 4)),
+   si = pd.DataFrame(np.zeros((4, 4)),
             columns=list(range(4)),
             index=[str(i) for i in range(4)])
    si
@@ -1698,7 +1697,7 @@ data:
 
    randfloats = np.random.uniform(-100, 1000, 10000)
    randfloats.shape = (1000, 10)
-   dffloats = DataFrame(randfloats, columns=list('ABCDEFGHIJ'))
+   dffloats = pd.DataFrame(randfloats, columns=list('ABCDEFGHIJ'))
 
    jsonfloats = dffloats.to_json()
 
@@ -1901,7 +1900,7 @@ Read in pandas ``to_html`` output (with some loss of floating point precision)
 
 .. code-block:: python
 
-   df = DataFrame(randn(2, 2))
+   df = pd.DataFrame(randn(2, 2))
    s = df.to_html(float_format='{0:.40g}'.format)
    dfin = read_html(s, index_col=0)
 
@@ -1954,7 +1953,7 @@ in the method ``to_string`` described above.
 
 .. ipython:: python
 
-   df = DataFrame(randn(2, 2))
+   df = pd.DataFrame(randn(2, 2))
    df
    print(df.to_html())  # raw html
 
@@ -2030,7 +2029,7 @@ Finally, the ``escape`` argument allows you to control whether the
 
 .. ipython:: python
 
-   df = DataFrame({'a': list('&<>'), 'b': randn(3)})
+   df = pd.DataFrame({'a': list('&<>'), 'b': randn(3)})
 
 
 .. ipython:: python
@@ -2384,7 +2383,7 @@ Added support for Openpyxl >= 2.2
    bio = BytesIO()
 
    # By setting the 'engine' in the ExcelWriter constructor.
-   writer = ExcelWriter(bio, engine='xlsxwriter')
+   writer = pd.ExcelWriter(bio, engine='xlsxwriter')
    df.to_excel(writer, sheet_name='Sheet1')
 
    # Save the workbook
@@ -2440,7 +2439,7 @@ argument to ``to_excel`` and to ``ExcelWriter``. The built-in engines are:
    df.to_excel('path_to_file.xlsx', sheet_name='Sheet1', engine='xlsxwriter')
 
    # By setting the 'engine' in the ExcelWriter constructor.
-   writer = ExcelWriter('path_to_file.xlsx', engine='xlsxwriter')
+   writer = pd.ExcelWriter('path_to_file.xlsx', engine='xlsxwriter')
 
    # Or via pandas configuration.
    from pandas import options
@@ -2576,7 +2575,7 @@ both on the writing (serialization), and reading (deserialization).
 
 .. ipython:: python
 
-   df = DataFrame(np.random.rand(5,2),columns=list('AB'))
+   df = pd.DataFrame(np.random.rand(5,2),columns=list('AB'))
    df.to_msgpack('foo.msg')
    pd.read_msgpack('foo.msg')
    s = Series(np.random.rand(5),index=date_range('20130101',periods=5))
@@ -2664,7 +2663,7 @@ for some advanced strategies
 
 .. ipython:: python
 
-   store = HDFStore('store.h5')
+   store = pd.HDFStore('store.h5')
    print(store)
 
 Objects can be written to the file just like adding key-value pairs to a
@@ -2673,11 +2672,11 @@ dict:
 .. ipython:: python
 
    np.random.seed(1234)
-   index = date_range('1/1/2000', periods=8)
-   s = Series(randn(5), index=['a', 'b', 'c', 'd', 'e'])
-   df = DataFrame(randn(8, 3), index=index,
+   index = pd.date_range('1/1/2000', periods=8)
+   s = pd.Series(randn(5), index=['a', 'b', 'c', 'd', 'e'])
+   df = pd.DataFrame(randn(8, 3), index=index,
                   columns=['A', 'B', 'C'])
-   wp = Panel(randn(2, 5, 4), items=['Item1', 'Item2'],
+   wp = pd.Panel(randn(2, 5, 4), items=['Item1', 'Item2'],
               major_axis=date_range('1/1/2000', periods=5),
               minor_axis=['A', 'B', 'C', 'D'])
 
@@ -2722,7 +2721,7 @@ Closing a Store, Context Manager
 
    # Working with, and automatically closing the store with the context
    # manager
-   with HDFStore('store.h5') as store:
+   with pd.HDFStore('store.h5') as store:
        store.keys()
 
 .. ipython:: python
@@ -2789,7 +2788,7 @@ This is also true for the major axis of a ``Panel``:
           [[np.nan, np.nan, np.nan], [np.nan,5,6]],
           [[np.nan, np.nan, np.nan],[np.nan,3,np.nan]]]
 
-   panel_with_major_axis_all_missing = Panel(matrix,
+   panel_with_major_axis_all_missing = pd.Panel(matrix,
            items=['Item1', 'Item2','Item3'],
            major_axis=[1,2],
            minor_axis=['A', 'B', 'C'])
@@ -2833,7 +2832,7 @@ This format is specified by default when using ``put`` or ``to_hdf`` or by ``for
 
    .. code-block:: python
 
-       DataFrame(randn(10,2)).to_hdf('test_fixed.h5','df')
+       pd.DataFrame(randn(10,2)).to_hdf('test_fixed.h5','df')
 
        pd.read_hdf('test_fixed.h5','df',where='index>5')
        TypeError: cannot pass a where specification when reading a fixed format.
@@ -2865,7 +2864,7 @@ enable ``put/append/to_hdf`` to by default store in the ``table`` format.
 
 .. ipython:: python
 
-   store = HDFStore('store.h5')
+   store = pd.HDFStore('store.h5')
    df1 = df[0:4]
    df2 = df[4:]
 
@@ -2953,7 +2952,7 @@ defaults to `nan`.
 
 .. ipython:: python
 
-    df_mixed = DataFrame({ 'A' : randn(8),
+    df_mixed = pd.DataFrame({ 'A' : randn(8),
                            'B' : randn(8),
                            'C' : np.array(randn(8),dtype='float32'),
                            'string' :'string',
@@ -2979,12 +2978,12 @@ storing/selecting from homogeneous index DataFrames.
 
 .. ipython:: python
 
-        index = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux'],
+        index = pd.MultiIndex(levels=[['foo', 'bar', 'baz', 'qux'],
                                    ['one', 'two', 'three']],
                            labels=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
                                    [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
                            names=['foo', 'bar'])
-        df_mi = DataFrame(np.random.randn(10, 3), index=index,
+        df_mi = pd.DataFrame(np.random.randn(10, 3), index=index,
                           columns=['A', 'B', 'C'])
         df_mi
 
@@ -3166,7 +3165,7 @@ specified in the format: ``<float>(<unit>)``, where float may be signed (and fra
 .. ipython:: python
 
    from datetime import timedelta
-   dftd = DataFrame(dict(A = Timestamp('20130101'), B = [ Timestamp('20130101') + timedelta(days=i,seconds=10) for i in range(10) ]))
+   dftd = pd.DataFrame(dict(A = Timestamp('20130101'), B = [ Timestamp('20130101') + timedelta(days=i,seconds=10) for i in range(10) ]))
    dftd['C'] = dftd['A']-dftd['B']
    dftd
    store.append('dftd',dftd,data_columns=True)
@@ -3202,8 +3201,8 @@ Oftentimes when appending large amounts of data to a store, it is useful to turn
 
 .. ipython:: python
 
-   df_1 = DataFrame(randn(10,2),columns=list('AB'))
-   df_2 = DataFrame(randn(10,2),columns=list('AB'))
+   df_1 = pd.DataFrame(randn(10,2),columns=list('AB'))
+   df_2 = pd.DataFrame(randn(10,2),columns=list('AB'))
 
    st = pd.HDFStore('appends.h5',mode='w')
    st.append('df', df_1, data_columns=['B'], index=False)
@@ -3300,7 +3299,7 @@ chunks.
 
 .. ipython:: python
 
-   dfeq = DataFrame({'number': np.arange(1,11)})
+   dfeq = pd.DataFrame({'number': np.arange(1,11)})
    dfeq
 
    store.append('dfeq', dfeq, data_columns=['number'])
@@ -3340,7 +3339,7 @@ Sometimes you want to get the coordinates (a.k.a the index locations) of your qu
 
 .. ipython:: python
 
-   df_coord = DataFrame(np.random.randn(1000,2),index=date_range('20000101',periods=1000))
+   df_coord = pd.DataFrame(np.random.randn(1000,2),index=date_range('20000101',periods=1000))
    store.append('df_coord',df_coord)
    c = store.select_as_coordinates('df_coord','index>20020101')
    c.summary()
@@ -3357,7 +3356,7 @@ a datetimeindex which are 5.
 
 .. ipython:: python
 
-   df_mask = DataFrame(np.random.randn(1000,2),index=date_range('20000101',periods=1000))
+   df_mask = pd.DataFrame(np.random.randn(1000,2),index=date_range('20000101',periods=1000))
    store.append('df_mask',df_mask)
    c = store.select_column('df_mask','index')
    where = c[DatetimeIndex(c).month==5].index
@@ -3405,7 +3404,7 @@ results.
 
 .. ipython:: python
 
-   df_mt = DataFrame(randn(8, 6), index=date_range('1/1/2000', periods=8),
+   df_mt = pd.DataFrame(randn(8, 6), index=date_range('1/1/2000', periods=8),
                                   columns=['A', 'B', 'C', 'D', 'E', 'F'])
    df_mt['foo'] = 'bar'
    df_mt.ix[1, ('A', 'B')] = np.nan
@@ -3497,7 +3496,7 @@ Compression for all objects within the file
 
 .. code-block:: python
 
-   store_compressed = HDFStore('store_compressed.h5', complevel=9, complib='blosc')
+   store_compressed = pd.HDFStore('store_compressed.h5', complevel=9, complib='blosc')
 
 Or on-the-fly compression (this only applies to tables). You can turn
 off file compression for a specific table by passing ``complevel=0``
@@ -3595,7 +3594,7 @@ stored in a more efficient manner.
 
 .. ipython:: python
 
-   dfcat = DataFrame({ 'A' : Series(list('aabbcdba')).astype('category'),
+   dfcat = pd.DataFrame({ 'A' : Series(list('aabbcdba')).astype('category'),
                        'B' : np.random.randn(8) })
    dfcat
    dfcat.dtypes
@@ -3653,7 +3652,7 @@ Starting in 0.11.0, passing a ``min_itemsize`` dict will cause all passed column
 
 .. ipython:: python
 
-   dfs = DataFrame(dict(A = 'foo', B = 'bar'),index=list(range(5)))
+   dfs = pd.DataFrame(dict(A = 'foo', B = 'bar'),index=list(range(5)))
    dfs
 
    # A and B have a size of 30
@@ -3672,7 +3671,7 @@ You could inadvertently turn an actual ``nan`` value into a missing value.
 
 .. ipython:: python
 
-   dfss = DataFrame(dict(A = ['foo','bar','nan']))
+   dfss = pd.DataFrame(dict(A = ['foo','bar','nan']))
    dfss
 
    store.append('dfss', dfss)
@@ -3706,7 +3705,7 @@ It is possible to write an ``HDFStore`` object that can easily be imported into 
                             index=range(100))
    df_for_r.head()
 
-   store_export = HDFStore('export.h5')
+   store_export = pd.HDFStore('export.h5')
    store_export.append('df_for_r', df_for_r, data_columns=df_dc.columns)
    store_export
 
@@ -3795,7 +3794,7 @@ number of options, please see the docstring.
 .. ipython:: python
 
    # a legacy store
-   legacy_store = HDFStore(legacy_file_path,'r')
+   legacy_store = pd.HDFStore(legacy_file_path,'r')
    legacy_store
 
    # copy (and return the new handle)
@@ -3959,7 +3958,7 @@ the database using :func:`~pandas.DataFrame.to_sql`.
    (42, datetime.datetime(2010,10,19), 'Y', -12.5, False),
    (63, datetime.datetime(2010,10,20), 'Z', 5.73, True)]
 
-   data  = DataFrame(d, columns=c)
+   data  = pd.DataFrame(d, columns=c)
 
 .. ipython:: python
 
@@ -4439,7 +4438,7 @@ into a .dta file. The format version of this file is always 115 (Stata 12).
 
 .. ipython:: python
 
-   df = DataFrame(randn(10, 2), columns=list('AB'))
+   df = pd.DataFrame(randn(10, 2), columns=list('AB'))
    df.to_stata('stata.dta')
 
 *Stata* data files have limited data type support; only strings with
@@ -4664,7 +4663,7 @@ This is an informal comparison of various IO methods, using pandas 0.13.1.
 
 .. code-block:: ipython
 
-   In [1]: df = DataFrame(randn(1000000,2),columns=list('AB'))
+   In [1]: df = pd.DataFrame(randn(1000000,2),columns=list('AB'))
 
    In [2]: df.info()
    <class 'pandas.core.frame.DataFrame'>
@@ -4738,7 +4737,7 @@ And here's the code
    import os
    from pandas.io import sql
 
-   df = DataFrame(randn(1000000,2),columns=list('AB'))
+   df = pd.DataFrame(randn(1000000,2),columns=list('AB'))
 
    def test_sql_write(df):
        if os.path.exists('test.sql'):
