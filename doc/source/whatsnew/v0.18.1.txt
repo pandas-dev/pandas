@@ -433,3 +433,5 @@ Bug Fixes
 - Bug where ``loffset`` argument was not applied when calling ``resample().count()`` on a timeseries (:issue:`12725`)
 - ``pd.read_excel()`` now accepts path objects (e.g. ``pathlib.Path``, ``py.path.local``) for the file path, in line with other ``read_*`` functions (:issue:`12655`)
 - ``pd.read_excel()`` now accepts column names associated with keyword argument ``names``(:issue `12870`)
+
+- Bug in ``DataFrame`` timezone lost when assigning tz-aware datetime ``Series`` with alignment (:issue `12981`)

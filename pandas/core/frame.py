@@ -2538,7 +2538,7 @@ class DataFrame(NDFrame):
 
                 # GH 4107
                 try:
-                    value = value.reindex(self.index).values
+                    value = value.reindex(self.index)._values
                 except Exception as e:
 
                     # duplicate axis
