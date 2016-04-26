@@ -462,6 +462,8 @@ class Resampler(_GroupBy):
     def interpolate(self, method='linear', axis=0, limit=None, inplace=False,
                     limit_direction='forward', downcast=None, **kwargs):
         """
+        Interpolate values according to different methods.
+
         .. versionadded:: 0.18.1
         """
         result = self._upsample(None)

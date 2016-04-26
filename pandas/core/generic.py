@@ -3446,8 +3446,6 @@ class NDFrame(PandasObject):
             return self._constructor(new_data).__finalize__(self)
 
     _shared_docs['interpolate'] = """
-        Interpolate values according to different methods.
-
         Please note that only ``method='linear'`` is supported for
         DataFrames/Series with a MultiIndex.
 
@@ -3523,6 +3521,10 @@ class NDFrame(PandasObject):
     @Appender(_shared_docs['interpolate'] % _shared_doc_kwargs)
     def interpolate(self, method='linear', axis=0, limit=None, inplace=False,
                     limit_direction='forward', downcast=None, **kwargs):
+        """
+        Interpolate values according to different methods.
+        """
+
         if self.ndim > 2:
             raise NotImplementedError("Interpolate has not been implemented "
                                       "on Panel and Panel 4D objects.")
