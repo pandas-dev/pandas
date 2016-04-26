@@ -244,53 +244,10 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
 
     Examples
     --------
-    Take separate series and convert to datetime
-
-    >>> import pandas as pd
-    >>> i = pd.date_range('20000101',periods=100)
-    >>> df = pd.DataFrame(dict(year = i.year, month = i.month, day = i.day))
-    >>> pd.to_datetime(df.year*10000 + df.month*100 + df.day, format='%Y%m%d')
-    0    2000-01-01
-    1    2000-01-02
-    ...
-    98   2000-04-08
-    99   2000-04-09
-    Length: 100, dtype: datetime64[ns]
-
-    Or from strings
-
-    >>> dfs = df.astype(str)
-    >>> pd.to_datetime(dfs.day + dfs.month + dfs.year, format="%d%m%Y")
-    0    2000-01-01
-    1    2000-01-02
-    ...
-    98   2000-04-08
-    99   2000-04-09
-    Length: 100, dtype: datetime64[ns]
-
-    Infer the format from the first entry
-
-    >>> pd.to_datetime(dfs.month + '/' +  dfs.day + '/' + dfs.year,
-                       infer_datetime_format=True)
-    0    2000-01-01
-    1    2000-01-02
-    ...
-    98   2000-04-08
-    99   2000-04-09
-
-    This gives the same results as omitting the `infer_datetime_format=True`,
-    but is much faster.
-
-    Date that does not meet timestamp limitations:
-
-    >>> pd.to_datetime('13000101', format='%Y%m%d')
-    datetime.datetime(1300, 1, 1, 0, 0)
-    >>> pd.to_datetime('13000101', format='%Y%m%d', errors='coerce')
-    NaT
-
 
     Assembling a datetime from multiple columns of a DataFrame. The keys can be
-    strptime-like (%Y, %m) or common abbreviations like ('year', 'month')
+    common abbreviations like ['year', 'month', 'day', 'minute', 'second',
+    'ms', 'us', 'ns']) or plurals of the same
 
     >>> df = pd.DataFrame({'year': [2015, 2016],
                            'month': [2, 3],
@@ -300,6 +257,12 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
     1   2016-03-05
     dtype: datetime64[ns]
 
+    Date that does not meet timestamp limitations:
+
+    >>> pd.to_datetime('13000101', format='%Y%m%d')
+    datetime.datetime(1300, 1, 1, 0, 0)
+    >>> pd.to_datetime('13000101', format='%Y%m%d', errors='coerce')
+    NaT
     """
     return _to_datetime(arg, errors=errors, dayfirst=dayfirst,
                         yearfirst=yearfirst,
@@ -439,31 +402,21 @@ def _to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
 
 # mappings for assembling units
 _unit_map = {'year': 'year',
-             'y': 'year',
-             '%Y': 'year',
+             'years': 'year',
              'month': 'month',
-             'M': 'month',
-             '%m': 'month',
+             'months': 'month',
              'day': 'day',
              'days': 'day',
-             'd': 'day',
-             '%d': 'day',
-             'h': 'h',
              'hour': 'h',
-             'hh': 'h',
-             '%H': 'h',
+             'hours': 'h',
              'minute': 'm',
-             't': 'm',
+             'minutes': 'm',
              'min': 'm',
-             '%M': 'm',
-             'mm': 'm',
-             'MM': 'm',
-             '%M': 'm',
-             's': 's',
-             'seconds': 's',
+             'mins': 'm',
              'second': 's',
-             '%S': 's',
-             'ss': 's',
+             'seconds': 's',
+             'sec': 's',
+             'secs': 's',
              'ms': 'ms',
              'millisecond': 'ms',
              'milliseconds': 'ms',
@@ -505,7 +458,7 @@ def _assemble_from_unit_mappings(arg, errors):
             return _unit_map[value]
 
         # m is case significant
-        if value.lower() in _unit_map and not value.startswith('m'):
+        if value.lower() in _unit_map:
             return _unit_map[value.lower()]
 
         return value
