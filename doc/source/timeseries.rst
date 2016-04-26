@@ -189,9 +189,28 @@ or ``format``, use ``to_datetime`` if these are required.
 
 .. ipython:: python
 
-    to_datetime('2010/11/12')
+    pd.to_datetime('2010/11/12')
 
-    Timestamp('2010/11/12')
+    pd.Timestamp('2010/11/12')
+
+.. versionadded:: 0.18.1
+
+You can also pass a ``DataFrame`` of integer or string columns to assemble into a ``Series`` of ``Timestamps``.
+
+.. ipython:: python
+
+   df = pd.pd.DataFrame({'year': [2015, 2016],
+                         'month': [2, 3],
+                         'day': [4, 5],
+                         'hour': [2, 3]})
+   pd.to_datetime(df)
+
+
+You can pass only the columns that you need to assemble.
+
+.. ipython:: python
+
+   pd.to_datetime(df[['year', 'month', 'day']])
 
 
 Invalid Data

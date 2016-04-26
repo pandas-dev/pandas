@@ -1049,154 +1049,6 @@ class TestTimeSeries(tm.TestCase):
 
         self.assertTrue(rng.equals(result))
 
-    def test_to_datetime_dt64s(self):
-        in_bound_dts = [
-            np.datetime64('2000-01-01'),
-            np.datetime64('2000-01-02'),
-        ]
-
-        for dt in in_bound_dts:
-            self.assertEqual(pd.to_datetime(dt), Timestamp(dt))
-
-        oob_dts = [np.datetime64('1000-01-01'), np.datetime64('5000-01-02'), ]
-
-        for dt in oob_dts:
-            self.assertRaises(ValueError, pd.to_datetime, dt, errors='raise')
-            self.assertRaises(ValueError, tslib.Timestamp, dt)
-            self.assertIs(pd.to_datetime(dt, errors='coerce'), NaT)
-
-    def test_to_datetime_array_of_dt64s(self):
-        dts = [np.datetime64('2000-01-01'), np.datetime64('2000-01-02'), ]
-
-        # Assuming all datetimes are in bounds, to_datetime() returns
-        # an array that is equal to Timestamp() parsing
-        self.assert_numpy_array_equal(
-            pd.to_datetime(dts, box=False),
-            np.array([Timestamp(x).asm8 for x in dts])
-        )
-
-        # A list of datetimes where the last one is out of bounds
-        dts_with_oob = dts + [np.datetime64('9999-01-01')]
-
-        self.assertRaises(ValueError, pd.to_datetime, dts_with_oob,
-                          errors='raise')
-
-        self.assert_numpy_array_equal(
-            pd.to_datetime(dts_with_oob, box=False, errors='coerce'),
-            np.array(
-                [
-                    Timestamp(dts_with_oob[0]).asm8,
-                    Timestamp(dts_with_oob[1]).asm8,
-                    iNaT,
-                ],
-                dtype='M8'
-            )
-        )
-
-        # With errors='ignore', out of bounds datetime64s
-        # are converted to their .item(), which depending on the version of
-        # numpy is either a python datetime.datetime or datetime.date
-        self.assert_numpy_array_equal(
-            pd.to_datetime(dts_with_oob, box=False, errors='ignore'),
-            np.array(
-                [dt.item() for dt in dts_with_oob],
-                dtype='O'
-            )
-        )
-
-    def test_to_datetime_tz(self):
-
-        # xref 8260
-        # uniform returns a DatetimeIndex
-        arr = [pd.Timestamp('2013-01-01 13:00:00-0800', tz='US/Pacific'),
-               pd.Timestamp('2013-01-02 14:00:00-0800', tz='US/Pacific')]
-        result = pd.to_datetime(arr)
-        expected = DatetimeIndex(
-            ['2013-01-01 13:00:00', '2013-01-02 14:00:00'], tz='US/Pacific')
-        tm.assert_index_equal(result, expected)
-
-        # mixed tzs will raise
-        arr = [pd.Timestamp('2013-01-01 13:00:00', tz='US/Pacific'),
-               pd.Timestamp('2013-01-02 14:00:00', tz='US/Eastern')]
-        self.assertRaises(ValueError, lambda: pd.to_datetime(arr))
-
-    def test_to_datetime_tz_pytz(self):
-
-        # xref 8260
-        tm._skip_if_no_pytz()
-        import pytz
-
-        us_eastern = pytz.timezone('US/Eastern')
-        arr = np.array([us_eastern.localize(datetime(year=2000, month=1, day=1,
-                                                     hour=3, minute=0)),
-                        us_eastern.localize(datetime(year=2000, month=6, day=1,
-                                                     hour=3, minute=0))],
-                       dtype=object)
-        result = pd.to_datetime(arr, utc=True)
-        expected = DatetimeIndex(['2000-01-01 08:00:00+00:00',
-                                  '2000-06-01 07:00:00+00:00'],
-                                 dtype='datetime64[ns, UTC]', freq=None)
-        tm.assert_index_equal(result, expected)
-
-    def test_to_datetime_utc_is_true(self):
-        # See gh-11934
-        start = pd.Timestamp('2014-01-01', tz='utc')
-        end = pd.Timestamp('2014-01-03', tz='utc')
-        date_range = pd.bdate_range(start, end)
-
-        result = pd.to_datetime(date_range, utc=True)
-        expected = pd.DatetimeIndex(data=date_range)
-        tm.assert_index_equal(result, expected)
-
-    def test_to_datetime_tz_psycopg2(self):
-
-        # xref 8260
-        try:
-            import psycopg2
-        except ImportError:
-            raise nose.SkipTest("no psycopg2 installed")
-
-        # misc cases
-        tz1 = psycopg2.tz.FixedOffsetTimezone(offset=-300, name=None)
-        tz2 = psycopg2.tz.FixedOffsetTimezone(offset=-240, name=None)
-        arr = np.array([datetime(2000, 1, 1, 3, 0, tzinfo=tz1),
-                        datetime(2000, 6, 1, 3, 0, tzinfo=tz2)],
-                       dtype=object)
-
-        result = pd.to_datetime(arr, errors='coerce', utc=True)
-        expected = DatetimeIndex(['2000-01-01 08:00:00+00:00',
-                                  '2000-06-01 07:00:00+00:00'],
-                                 dtype='datetime64[ns, UTC]', freq=None)
-        tm.assert_index_equal(result, expected)
-
-        # dtype coercion
-        i = pd.DatetimeIndex([
-            '2000-01-01 08:00:00+00:00'
-        ], tz=psycopg2.tz.FixedOffsetTimezone(offset=-300, name=None))
-        self.assertFalse(com.is_datetime64_ns_dtype(i))
-
-        # tz coerceion
-        result = pd.to_datetime(i, errors='coerce')
-        tm.assert_index_equal(result, i)
-
-        result = pd.to_datetime(i, errors='coerce', utc=True)
-        expected = pd.DatetimeIndex(['2000-01-01 13:00:00'],
-                                    dtype='datetime64[ns, UTC]')
-        tm.assert_index_equal(result, expected)
-
-    def test_index_to_datetime(self):
-        idx = Index(['1/1/2000', '1/2/2000', '1/3/2000'])
-
-        result = idx.to_datetime()
-        expected = DatetimeIndex(datetools.to_datetime(idx.values))
-        self.assertTrue(result.equals(expected))
-
-        today = datetime.today()
-        idx = Index([today], dtype=object)
-        result = idx.to_datetime()
-        expected = DatetimeIndex([today])
-        self.assertTrue(result.equals(expected))
-
     def test_to_datetime_freq(self):
         xp = bdate_range('2000-1-1', periods=10, tz='UTC')
         rs = xp.to_datetime()
@@ -2281,6 +2133,277 @@ class TestTimeSeries(tm.TestCase):
 def _simple_ts(start, end, freq='D'):
     rng = date_range(start, end, freq=freq)
     return Series(np.random.randn(len(rng)), index=rng)
+
+
+class TestToDatetime(tm.TestCase):
+    _multiprocess_can_split_ = True
+
+    def test_to_datetime_dt64s(self):
+        in_bound_dts = [
+            np.datetime64('2000-01-01'),
+            np.datetime64('2000-01-02'),
+        ]
+
+        for dt in in_bound_dts:
+            self.assertEqual(pd.to_datetime(dt), Timestamp(dt))
+
+        oob_dts = [np.datetime64('1000-01-01'), np.datetime64('5000-01-02'), ]
+
+        for dt in oob_dts:
+            self.assertRaises(ValueError, pd.to_datetime, dt, errors='raise')
+            self.assertRaises(ValueError, tslib.Timestamp, dt)
+            self.assertIs(pd.to_datetime(dt, errors='coerce'), NaT)
+
+    def test_to_datetime_array_of_dt64s(self):
+        dts = [np.datetime64('2000-01-01'), np.datetime64('2000-01-02'), ]
+
+        # Assuming all datetimes are in bounds, to_datetime() returns
+        # an array that is equal to Timestamp() parsing
+        self.assert_numpy_array_equal(
+            pd.to_datetime(dts, box=False),
+            np.array([Timestamp(x).asm8 for x in dts])
+        )
+
+        # A list of datetimes where the last one is out of bounds
+        dts_with_oob = dts + [np.datetime64('9999-01-01')]
+
+        self.assertRaises(ValueError, pd.to_datetime, dts_with_oob,
+                          errors='raise')
+
+        self.assert_numpy_array_equal(
+            pd.to_datetime(dts_with_oob, box=False, errors='coerce'),
+            np.array(
+                [
+                    Timestamp(dts_with_oob[0]).asm8,
+                    Timestamp(dts_with_oob[1]).asm8,
+                    iNaT,
+                ],
+                dtype='M8'
+            )
+        )
+
+        # With errors='ignore', out of bounds datetime64s
+        # are converted to their .item(), which depending on the version of
+        # numpy is either a python datetime.datetime or datetime.date
+        self.assert_numpy_array_equal(
+            pd.to_datetime(dts_with_oob, box=False, errors='ignore'),
+            np.array(
+                [dt.item() for dt in dts_with_oob],
+                dtype='O'
+            )
+        )
+
+    def test_to_datetime_tz(self):
+
+        # xref 8260
+        # uniform returns a DatetimeIndex
+        arr = [pd.Timestamp('2013-01-01 13:00:00-0800', tz='US/Pacific'),
+               pd.Timestamp('2013-01-02 14:00:00-0800', tz='US/Pacific')]
+        result = pd.to_datetime(arr)
+        expected = DatetimeIndex(
+            ['2013-01-01 13:00:00', '2013-01-02 14:00:00'], tz='US/Pacific')
+        tm.assert_index_equal(result, expected)
+
+        # mixed tzs will raise
+        arr = [pd.Timestamp('2013-01-01 13:00:00', tz='US/Pacific'),
+               pd.Timestamp('2013-01-02 14:00:00', tz='US/Eastern')]
+        self.assertRaises(ValueError, lambda: pd.to_datetime(arr))
+
+    def test_to_datetime_tz_pytz(self):
+
+        # xref 8260
+        tm._skip_if_no_pytz()
+        import pytz
+
+        us_eastern = pytz.timezone('US/Eastern')
+        arr = np.array([us_eastern.localize(datetime(year=2000, month=1, day=1,
+                                                     hour=3, minute=0)),
+                        us_eastern.localize(datetime(year=2000, month=6, day=1,
+                                                     hour=3, minute=0))],
+                       dtype=object)
+        result = pd.to_datetime(arr, utc=True)
+        expected = DatetimeIndex(['2000-01-01 08:00:00+00:00',
+                                  '2000-06-01 07:00:00+00:00'],
+                                 dtype='datetime64[ns, UTC]', freq=None)
+        tm.assert_index_equal(result, expected)
+
+    def test_to_datetime_utc_is_true(self):
+        # See gh-11934
+        start = pd.Timestamp('2014-01-01', tz='utc')
+        end = pd.Timestamp('2014-01-03', tz='utc')
+        date_range = pd.bdate_range(start, end)
+
+        result = pd.to_datetime(date_range, utc=True)
+        expected = pd.DatetimeIndex(data=date_range)
+        tm.assert_index_equal(result, expected)
+
+    def test_to_datetime_tz_psycopg2(self):
+
+        # xref 8260
+        try:
+            import psycopg2
+        except ImportError:
+            raise nose.SkipTest("no psycopg2 installed")
+
+        # misc cases
+        tz1 = psycopg2.tz.FixedOffsetTimezone(offset=-300, name=None)
+        tz2 = psycopg2.tz.FixedOffsetTimezone(offset=-240, name=None)
+        arr = np.array([datetime(2000, 1, 1, 3, 0, tzinfo=tz1),
+                        datetime(2000, 6, 1, 3, 0, tzinfo=tz2)],
+                       dtype=object)
+
+        result = pd.to_datetime(arr, errors='coerce', utc=True)
+        expected = DatetimeIndex(['2000-01-01 08:00:00+00:00',
+                                  '2000-06-01 07:00:00+00:00'],
+                                 dtype='datetime64[ns, UTC]', freq=None)
+        tm.assert_index_equal(result, expected)
+
+        # dtype coercion
+        i = pd.DatetimeIndex([
+            '2000-01-01 08:00:00+00:00'
+        ], tz=psycopg2.tz.FixedOffsetTimezone(offset=-300, name=None))
+        self.assertFalse(com.is_datetime64_ns_dtype(i))
+
+        # tz coerceion
+        result = pd.to_datetime(i, errors='coerce')
+        tm.assert_index_equal(result, i)
+
+        result = pd.to_datetime(i, errors='coerce', utc=True)
+        expected = pd.DatetimeIndex(['2000-01-01 13:00:00'],
+                                    dtype='datetime64[ns, UTC]')
+        tm.assert_index_equal(result, expected)
+
+    def test_index_to_datetime(self):
+        idx = Index(['1/1/2000', '1/2/2000', '1/3/2000'])
+
+        result = idx.to_datetime()
+        expected = DatetimeIndex(datetools.to_datetime(idx.values))
+        self.assertTrue(result.equals(expected))
+
+        today = datetime.today()
+        idx = Index([today], dtype=object)
+        result = idx.to_datetime()
+        expected = DatetimeIndex([today])
+        self.assertTrue(result.equals(expected))
+
+    def test_dataframe(self):
+
+        df = DataFrame({'year': [2015, 2016],
+                        'month': [2, 3],
+                        'day': [4, 5],
+                        'hour': [6, 7],
+                        'minute': [58, 59],
+                        'second': [10, 11],
+                        'ms': [1, 1],
+                        'us': [2, 2],
+                        'ns': [3, 3]})
+
+        result = to_datetime({'year': df['year'],
+                              'month': df['month'],
+                              'day': df['day']})
+        expected = Series([Timestamp('20150204 00:00:00'),
+                           Timestamp('20160305 00:0:00')])
+        assert_series_equal(result, expected)
+
+        # dict-like
+        result = to_datetime(df[['year', 'month', 'day']].to_dict())
+        assert_series_equal(result, expected)
+
+        # dict but with constructable
+        df2 = df[['year', 'month', 'day']].to_dict()
+        df2['month'] = 2
+        result = to_datetime(df2)
+        expected2 = Series([Timestamp('20150204 00:00:00'),
+                            Timestamp('20160205 00:0:00')])
+        assert_series_equal(result, expected2)
+
+        # unit mappings
+        units = [{'year': 'year',
+                  'month': 'month',
+                  'day': 'day',
+                  'hour': 'HH',
+                  'minute': 'MM',
+                  'second': 'SS'},
+                 {'year': '%Y',
+                  'month': '%m',
+                  'day': '%d',
+                  'hour': '%H',
+                  'minute': '%M',
+                  'second': '%S'},
+                 {'year': 'y',
+                  'month': 'month',
+                  'day': 'd',
+                  'hour': 'h',
+                  'minute': 'm',
+                  'second': 's'},
+                 ]
+
+        for d in units:
+            result = to_datetime(df[list(d.keys())].rename(columns=d))
+            expected = Series([Timestamp('20150204 06:58:10'),
+                               Timestamp('20160305 07:59:11')])
+            assert_series_equal(result, expected)
+
+        d = {'year': 'y',
+             'month': 'month',
+             'day': 'd',
+             'hour': 'h',
+             'minute': 'm',
+             'second': 's',
+             'ms': 'ms',
+             'us': 'us',
+             'ns': 'ns'}
+
+        result = to_datetime(df.rename(columns=d))
+        expected = Series([Timestamp('20150204 06:58:10.001002003'),
+                           Timestamp('20160305 07:59:11.001002003')])
+        assert_series_equal(result, expected)
+
+        # coerce back to int
+        result = to_datetime(df.astype(str), unit=d)
+        assert_series_equal(result, expected)
+
+        # passing coerce
+        df2 = DataFrame({'year': [2015, 2016],
+                         'month': [2, 20],
+                         'day': [4, 5]})
+        with self.assertRaises(ValueError):
+            to_datetime(df2)
+        result = to_datetime(df2, errors='coerce')
+        expected = Series([Timestamp('20150204 00:00:00'),
+                           pd.NaT])
+        assert_series_equal(result, expected)
+
+        # extra columns
+        with self.assertRaises(ValueError):
+            df2 = df.copy()
+            df2['foo'] = 1
+            to_datetime(df2)
+
+        # not enough
+        for c in [['year'],
+                  ['year', 'month'],
+                  ['year', 'month', 'second'],
+                  ['month', 'day'],
+                  ['year', 'day', 'second']]:
+            with self.assertRaises(ValueError):
+                to_datetime(df[c])
+
+        # duplicates
+        df2 = DataFrame({'year': [2015, 2016],
+                         'month': [2, 20],
+                         'day': [4, 5]})
+        df2.columns = ['year', 'year', 'day']
+        with self.assertRaises(ValueError):
+            to_datetime(df2)
+
+        df2 = DataFrame({'year': [2015, 2016],
+                         'month': [2, 20],
+                         'day': [4, 5],
+                         'hour': [4, 5]})
+        df2.columns = ['year', 'month', 'day', 'day']
+        with self.assertRaises(ValueError):
+            to_datetime(df2)
 
 
 class TestDatetimeIndex(tm.TestCase):
@@ -4837,6 +4960,7 @@ class TimeConversionFormats(tm.TestCase):
 
 
 class TestToDatetimeInferFormat(tm.TestCase):
+
     def test_to_datetime_infer_datetime_format_consistent_format(self):
         time_series = pd.Series(pd.date_range('20000101', periods=50,
                                               freq='H'))

@@ -1,10 +1,11 @@
 from datetime import datetime, timedelta, time
 import numpy as np
+from collections import MutableMapping
 
 import pandas.lib as lib
 import pandas.tslib as tslib
 import pandas.core.common as com
-from pandas.core.common import ABCIndexClass
+from pandas.core.common import ABCIndexClass, ABCSeries, ABCDataFrame
 import pandas.compat as compat
 from pandas.util.decorators import deprecate_kwarg
 
@@ -175,7 +176,12 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
 
     Parameters
     ----------
-    arg : string, datetime, list, tuple, 1-d array, or Series
+    arg : string, datetime, list, tuple, 1-d array, Series
+
+        .. versionadded: 0.18.1
+
+           or DataFrame/dict-like
+
     errors : {'ignore', 'raise', 'coerce'}, default 'raise'
 
         - If 'raise', then invalid parsing will raise an exception
@@ -282,6 +288,18 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
     >>> pd.to_datetime('13000101', format='%Y%m%d', errors='coerce')
     NaT
 
+
+    Assembling a datetime from multiple columns of a DataFrame. The keys can be
+    strptime-like (%Y, %m) or common abbreviations like ('year', 'month')
+
+    >>> df = pd.DataFrame({'year': [2015, 2016],
+                           'month': [2, 3],
+                           'day': [4, 5]})
+    >>> pd.to_datetime(df)
+    0   2015-02-04
+    1   2016-03-05
+    dtype: datetime64[ns]
+
     """
     return _to_datetime(arg, errors=errors, dayfirst=dayfirst,
                         yearfirst=yearfirst,
@@ -296,7 +314,6 @@ def _to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
     Same as to_datetime, but accept freq for
     DatetimeIndex internal construction
     """
-    from pandas.core.series import Series
     from pandas.tseries.index import DatetimeIndex
 
     def _convert_listlike(arg, box, format, name=None):
@@ -407,15 +424,135 @@ def _to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
         return arg
     elif isinstance(arg, tslib.Timestamp):
         return arg
-    elif isinstance(arg, Series):
+    elif isinstance(arg, ABCSeries):
+        from pandas import Series
         values = _convert_listlike(arg._values, False, format)
         return Series(values, index=arg.index, name=arg.name)
+    elif isinstance(arg, (ABCDataFrame, MutableMapping)):
+        return _assemble_from_unit_mappings(arg, errors=errors)
     elif isinstance(arg, ABCIndexClass):
         return _convert_listlike(arg, box, format, name=arg.name)
     elif com.is_list_like(arg):
         return _convert_listlike(arg, box, format)
 
     return _convert_listlike(np.array([arg]), box, format)[0]
+
+# mappings for assembling units
+_unit_map = {'year': 'year',
+             'y': 'year',
+             '%Y': 'year',
+             'month': 'month',
+             'M': 'month',
+             '%m': 'month',
+             'day': 'day',
+             'days': 'day',
+             'd': 'day',
+             '%d': 'day',
+             'h': 'h',
+             'hour': 'h',
+             'hh': 'h',
+             '%H': 'h',
+             'minute': 'm',
+             't': 'm',
+             'min': 'm',
+             '%M': 'm',
+             'mm': 'm',
+             'MM': 'm',
+             '%M': 'm',
+             's': 's',
+             'seconds': 's',
+             'second': 's',
+             '%S': 's',
+             'ss': 's',
+             'ms': 'ms',
+             'millisecond': 'ms',
+             'milliseconds': 'ms',
+             'us': 'us',
+             'microsecond': 'us',
+             'microseconds': 'us',
+             'ns': 'ns',
+             'nanosecond': 'ns',
+             'nanoseconds': 'ns'
+             }
+
+
+def _assemble_from_unit_mappings(arg, errors):
+    """
+    assemble the unit specifed fields from the arg (DataFrame)
+    Return a Series for actual parsing
+
+    Parameters
+    ----------
+    arg : DataFrame
+    errors : {'ignore', 'raise', 'coerce'}, default 'raise'
+
+        - If 'raise', then invalid parsing will raise an exception
+        - If 'coerce', then invalid parsing will be set as NaT
+        - If 'ignore', then invalid parsing will return the input
+
+    Returns
+    -------
+    Series
+    """
+    from pandas import to_timedelta, to_numeric, DataFrame
+    arg = DataFrame(arg)
+    if not arg.columns.is_unique:
+        raise ValueError("cannot assemble with duplicate keys")
+
+    # replace passed unit with _unit_map
+    def f(value):
+        if value in _unit_map:
+            return _unit_map[value]
+
+        # m is case significant
+        if value.lower() in _unit_map and not value.startswith('m'):
+            return _unit_map[value.lower()]
+
+        return value
+
+    unit = {k: f(k) for k in arg.keys()}
+    unit_rev = {v: k for k, v in unit.items()}
+
+    # we require at least Ymd
+    required = ['year', 'month', 'day']
+    req = sorted(list(set(required) - set(unit_rev.keys())))
+    if len(req):
+        raise ValueError("to assemble mappings with a dict of "
+                         "units, requires year, month, day: "
+                         "[{0}] is missing".format(','.join(req)))
+
+    # keys we don't recognize
+    excess = sorted(list(set(unit_rev.keys()) - set(_unit_map.values())))
+    if len(excess):
+        raise ValueError("extra keys have been passed "
+                         "to the datetime assemblage: "
+                         "[{0}]".format(','.join(excess)))
+
+    def coerce(values):
+        # we allow coercion to if errors allows
+        return to_numeric(values, errors=errors)
+
+    values = (coerce(arg[unit_rev['year']]) * 10000 +
+              coerce(arg[unit_rev['month']]) * 100 +
+              coerce(arg[unit_rev['day']]))
+    try:
+        values = to_datetime(values, format='%Y%m%d', errors=errors)
+    except (TypeError, ValueError) as e:
+        raise ValueError("cannot assemble the "
+                         "datetimes: {0}".format(e))
+
+    for u in ['h', 'm', 's', 'ms', 'us', 'ns']:
+        value = unit_rev.get(u)
+        if value is not None and value in arg:
+            try:
+                values += to_timedelta(coerce(arg[value]),
+                                       unit=u,
+                                       errors=errors)
+            except (TypeError, ValueError) as e:
+                raise ValueError("cannot assemble the datetimes "
+                                 "[{0}]: {1}".format(value, e))
+
+    return values
 
 
 def _attempt_YYYYMMDD(arg, errors):
