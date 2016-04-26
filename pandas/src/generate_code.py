@@ -284,7 +284,7 @@ def take_2d_multi_%(name)s_%(dest)s(ndarray[%(c_type_in)s, ndim=2] values,
 
 
 
-'''
+"""
 Backfilling logic for generating fill vector
 
 Diagram of what's going on
@@ -307,7 +307,7 @@ C        C        2               1
          .                        0
          .                        0
 D
-'''
+"""
 
 backfill_template = """@cython.boundscheck(False)
 @cython.wraparound(False)
@@ -621,14 +621,14 @@ def diff_2d_%(name)s(ndarray[%(c_type)s, ndim=2] arr,
                     out[i, j] = arr[i, j] - arr[i, j - periods]
 """
 
-is_monotonic_template = """@cython.boundscheck(False)
+is_monotonic_template = '''@cython.boundscheck(False)
 @cython.wraparound(False)
 def is_monotonic_%(name)s(ndarray[%(c_type)s] arr, bint timelike):
-    '''
+    """
     Returns
     -------
     is_monotonic_inc, is_monotonic_dec
-    '''
+    """
     cdef:
         Py_ssize_t i, n
         %(c_type)s prev, cur
@@ -674,12 +674,12 @@ def is_monotonic_%(name)s(ndarray[%(c_type)s] arr, bint timelike):
     %(tab)s        break
     %(tab)s    prev = cur
     return is_monotonic_inc, is_monotonic_dec
-"""
+'''
 
-map_indices_template = """@cython.wraparound(False)
+map_indices_template = '''@cython.wraparound(False)
 @cython.boundscheck(False)
 cpdef map_indices_%(name)s(ndarray[%(c_type)s] index):
-    '''
+    """
     Produce a dict mapping the values of the input array to their respective
     locations.
 
@@ -687,7 +687,7 @@ cpdef map_indices_%(name)s(ndarray[%(c_type)s] index):
         array(['hi', 'there']) --> {'hi' : 0 , 'there' : 1}
 
     Better to do this with Cython because of the enormous speed boost.
-    '''
+    """
     cdef Py_ssize_t i, length
     cdef dict result = {}
 
@@ -697,9 +697,9 @@ cpdef map_indices_%(name)s(ndarray[%(c_type)s] index):
         result[index[i]] = i
 
     return result
-"""
+'''
 
-groupby_template = """@cython.wraparound(False)
+groupby_template = '''@cython.wraparound(False)
 @cython.boundscheck(False)
 def groupby_%(name)s(ndarray[%(c_type)s] index, ndarray labels):
     cdef dict result = {}
@@ -726,17 +726,17 @@ def groupby_%(name)s(ndarray[%(c_type)s] index, ndarray labels):
             result[key] = [idx]
 
     return result
-"""
+'''
 
-group_last_template = """@cython.wraparound(False)
+group_last_template = '''@cython.wraparound(False)
 @cython.boundscheck(False)
 def group_last_%(name)s(ndarray[%(dest_type2)s, ndim=2] out,
                ndarray[int64_t] counts,
                ndarray[%(c_type)s, ndim=2] values,
                ndarray[int64_t] labels):
-    '''
+    """
     Only aggregates on axis=0
-    '''
+    """
     cdef:
         Py_ssize_t i, j, N, K, lab, ncounts = len(counts)
         %(dest_type2)s val, count
@@ -772,17 +772,17 @@ def group_last_%(name)s(ndarray[%(dest_type2)s, ndim=2] out,
                     out[i, j] = %(nan_val)s
                 else:
                     out[i, j] = resx[i, j]
-"""
+'''
 
-group_nth_template = """@cython.wraparound(False)
+group_nth_template = '''@cython.wraparound(False)
 @cython.boundscheck(False)
 def group_nth_%(name)s(ndarray[%(dest_type2)s, ndim=2] out,
               ndarray[int64_t] counts,
               ndarray[%(c_type)s, ndim=2] values,
               ndarray[int64_t] labels, int64_t rank):
-    '''
+    """
     Only aggregates on axis=0
-    '''
+    """
     cdef:
         Py_ssize_t i, j, N, K, lab, ncounts = len(counts)
         %(dest_type2)s val, count
@@ -819,17 +819,17 @@ def group_nth_%(name)s(ndarray[%(dest_type2)s, ndim=2] out,
                     out[i, j] = %(nan_val)s
                 else:
                     out[i, j] = resx[i, j]
-"""
+'''
 
-group_add_template = """@cython.wraparound(False)
+group_add_template = '''@cython.wraparound(False)
 @cython.boundscheck(False)
 def group_add_%(name)s(ndarray[%(dest_type2)s, ndim=2] out,
               ndarray[int64_t] counts,
               ndarray[%(c_type)s, ndim=2] values,
               ndarray[int64_t] labels):
-    '''
+    """
     Only aggregates on axis=0
-    '''
+    """
     cdef:
         Py_ssize_t i, j, N, K, lab, ncounts = len(counts)
         %(dest_type2)s val, count
@@ -883,17 +883,17 @@ def group_add_%(name)s(ndarray[%(dest_type2)s, ndim=2] out,
                     out[i, j] = NAN
                 else:
                     out[i, j] = sumx[i, j]
-"""
+'''
 
-group_prod_template = """@cython.wraparound(False)
+group_prod_template = '''@cython.wraparound(False)
 @cython.boundscheck(False)
 def group_prod_%(name)s(ndarray[%(dest_type2)s, ndim=2] out,
                ndarray[int64_t] counts,
                ndarray[%(c_type)s, ndim=2] values,
                ndarray[int64_t] labels):
-    '''
+    """
     Only aggregates on axis=0
-    '''
+    """
     cdef:
         Py_ssize_t i, j, N, K, lab, ncounts = len(counts)
         %(dest_type2)s val, count
@@ -942,9 +942,9 @@ def group_prod_%(name)s(ndarray[%(dest_type2)s, ndim=2] out,
                     out[i, j] = NAN
                 else:
                     out[i, j] = prodx[i, j]
-"""
+'''
 
-group_var_template = """@cython.wraparound(False)
+group_var_template = '''@cython.wraparound(False)
 @cython.boundscheck(False)
 @cython.cdivision(True)
 def group_var_%(name)s(ndarray[%(dest_type2)s, ndim=2] out,
@@ -992,7 +992,7 @@ def group_var_%(name)s(ndarray[%(dest_type2)s, ndim=2] out,
                 else:
                     out[i, j] /= (ct - 1)
 
-"""
+'''
 
 # add passing bin edges, instead of labels
 
@@ -1000,15 +1000,15 @@ def group_var_%(name)s(ndarray[%(dest_type2)s, ndim=2] out,
 #----------------------------------------------------------------------
 # group_min, group_max
 
-group_max_template = """@cython.wraparound(False)
+group_max_template = '''@cython.wraparound(False)
 @cython.boundscheck(False)
 def group_max_%(name)s(ndarray[%(dest_type2)s, ndim=2] out,
               ndarray[int64_t] counts,
               ndarray[%(dest_type2)s, ndim=2] values,
               ndarray[int64_t] labels):
-    '''
+    """
     Only aggregates on axis=0
-    '''
+    """
     cdef:
         Py_ssize_t i, j, N, K, lab, ncounts = len(counts)
         %(dest_type2)s val, count
@@ -1061,17 +1061,17 @@ def group_max_%(name)s(ndarray[%(dest_type2)s, ndim=2] out,
                     out[i, j] = %(nan_val)s
                 else:
                     out[i, j] = maxx[i, j]
-"""
+'''
 
-group_min_template = """@cython.wraparound(False)
+group_min_template = '''@cython.wraparound(False)
 @cython.boundscheck(False)
 def group_min_%(name)s(ndarray[%(dest_type2)s, ndim=2] out,
               ndarray[int64_t] counts,
               ndarray[%(dest_type2)s, ndim=2] values,
               ndarray[int64_t] labels):
-    '''
+    """
     Only aggregates on axis=0
-    '''
+    """
     cdef:
         Py_ssize_t i, j, N, K, lab, ncounts = len(counts)
         %(dest_type2)s val, count
@@ -1125,10 +1125,10 @@ def group_min_%(name)s(ndarray[%(dest_type2)s, ndim=2] out,
                     out[i, j] = %(nan_val)s
                 else:
                     out[i, j] = minx[i, j]
-"""
+'''
 
 
-group_mean_template = """@cython.wraparound(False)
+group_mean_template = '''@cython.wraparound(False)
 @cython.boundscheck(False)
 def group_mean_%(name)s(ndarray[%(dest_type2)s, ndim=2] out,
                ndarray[int64_t] counts,
@@ -1181,17 +1181,17 @@ def group_mean_%(name)s(ndarray[%(dest_type2)s, ndim=2] out,
                     out[i, j] = NAN
                 else:
                     out[i, j] = sumx[i, j] / count
-"""
+'''
 
-group_ohlc_template = """@cython.wraparound(False)
+group_ohlc_template = '''@cython.wraparound(False)
 @cython.boundscheck(False)
 def group_ohlc_%(name)s(ndarray[%(dest_type2)s, ndim=2] out,
                   ndarray[int64_t] counts,
                   ndarray[%(dest_type2)s, ndim=2] values,
                   ndarray[int64_t] labels):
-    '''
+    """
     Only aggregates on axis=0
-    '''
+    """
     cdef:
         Py_ssize_t i, j, N, K, lab
         %(dest_type2)s val, count
@@ -1227,9 +1227,9 @@ def group_ohlc_%(name)s(ndarray[%(dest_type2)s, ndim=2] out,
                 out[lab, 1] = max(out[lab, 1], val)
                 out[lab, 2] = min(out[lab, 2], val)
                 out[lab, 3] = val
-"""
+'''
 
-arrmap_template = """@cython.wraparound(False)
+arrmap_template = '''@cython.wraparound(False)
 @cython.boundscheck(False)
 def arrmap_%(name)s(ndarray[%(c_type)s] index, object func):
     cdef Py_ssize_t length = index.shape[0]
@@ -1243,14 +1243,14 @@ def arrmap_%(name)s(ndarray[%(c_type)s] index, object func):
         result[i] = func(index[i])
 
     return maybe_convert_objects(result)
-"""
+'''
 
 #----------------------------------------------------------------------
 # Joins on ordered, unique indices
 
 # right might contain non-unique values
 
-left_join_unique_template = """@cython.wraparound(False)
+left_join_unique_template = '''@cython.wraparound(False)
 @cython.boundscheck(False)
 def left_join_indexer_unique_%(name)s(ndarray[%(c_type)s] left,
                                       ndarray[%(c_type)s] right):
@@ -1294,17 +1294,16 @@ def left_join_indexer_unique_%(name)s(ndarray[%(c_type)s] left,
             indexer[i] = -1
             i += 1
     return indexer
-"""
+'''
 
 # @cython.wraparound(False)
 # @cython.boundscheck(False)
 
-left_join_template = """
-def left_join_indexer_%(name)s(ndarray[%(c_type)s] left,
-                              ndarray[%(c_type)s] right):
-    '''
+left_join_template = '''def left_join_indexer_%(name)s(ndarray[%(c_type)s] left,
+                               ndarray[%(c_type)s] right):
+    """
     Two-pass algorithm for monotonic indexes. Handles many-to-one merges
-    '''
+    """
     cdef:
         Py_ssize_t i, j, k, nright, nleft, count
         %(c_type)s lval, rval
@@ -1400,16 +1399,16 @@ def left_join_indexer_%(name)s(ndarray[%(c_type)s] left,
                 j += 1
 
     return result, lindexer, rindexer
-"""
+'''
 
 
-inner_join_template = """@cython.wraparound(False)
+inner_join_template = '''@cython.wraparound(False)
 @cython.boundscheck(False)
 def inner_join_indexer_%(name)s(ndarray[%(c_type)s] left,
                               ndarray[%(c_type)s] right):
-    '''
+    """
     Two-pass algorithm for monotonic indexes. Handles many-to-one merges
-    '''
+    """
     cdef:
         Py_ssize_t i, j, k, nright, nleft, count
         %(c_type)s lval, rval
@@ -1495,10 +1494,10 @@ def inner_join_indexer_%(name)s(ndarray[%(c_type)s] left,
                 j += 1
 
     return result, lindexer, rindexer
-"""
+'''
 
 
-outer_join_template2 = """@cython.wraparound(False)
+outer_join_template2 = '''@cython.wraparound(False)
 @cython.boundscheck(False)
 def outer_join_indexer_%(name)s(ndarray[%(c_type)s] left,
                                 ndarray[%(c_type)s] right):
@@ -1626,9 +1625,9 @@ def outer_join_indexer_%(name)s(ndarray[%(c_type)s] left,
                 j += 1
 
     return result, lindexer, rindexer
-"""
+'''
 
-outer_join_template = """@cython.wraparound(False)
+outer_join_template = '''@cython.wraparound(False)
 @cython.boundscheck(False)
 def outer_join_indexer_%(name)s(ndarray[%(c_type)s] left,
                                 ndarray[%(c_type)s] right):
@@ -1723,7 +1722,7 @@ def outer_join_indexer_%(name)s(ndarray[%(c_type)s] left,
             count += 1
 
     return result, lindexer, rindexer
-"""
+'''
 
 # ensure_dtype functions
 
@@ -1774,14 +1773,13 @@ def put2d_%(name)s_%(dest_type)s(ndarray[%(c_type)s, ndim=2, cast=True] values,
 
 #----------------------------------------------------------------------
 # other grouping functions not needing a template
-grouping_no_template = """
-def group_median_float64(ndarray[float64_t, ndim=2] out,
+grouping_no_template = '''def group_median_float64(ndarray[float64_t, ndim=2] out,
                          ndarray[int64_t] counts,
                          ndarray[float64_t, ndim=2] values,
                          ndarray[int64_t] labels):
-    '''
+    """
     Only aggregates on axis=0
-    '''
+    """
     cdef:
         Py_ssize_t i, j, N, K, ngroups, size
         ndarray[int64_t] _counts
@@ -1806,15 +1804,16 @@ def group_median_float64(ndarray[float64_t, ndim=2] out,
             out[j, i] = _median_linear(ptr, size)
             ptr += size
 
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def group_cumprod_float64(float64_t[:,:] out,
                           float64_t[:,:] values,
                           int64_t[:] labels,
                           float64_t[:,:] accum):
-    '''
+    """
     Only transforms on axis=0
-    '''
+    """
     cdef:
         Py_ssize_t i, j, N, K, size
         float64_t val
@@ -1841,9 +1840,9 @@ def group_cumsum(numeric[:,:] out,
                  numeric[:,:] values,
                  int64_t[:] labels,
                  numeric[:,:] accum):
-    '''
+    """
     Only transforms on axis=0
-    '''
+    """
     cdef:
         Py_ssize_t i, j, N, K, size
         numeric val
@@ -1908,7 +1907,7 @@ def group_shift_indexer(int64_t[:] out, int64_t[:] labels,
                     out[ii] = -1
 
                 label_indexer[lab, idxer_slot] = ii
-"""
+'''
 
 
 #-------------------------------------------------------------------------

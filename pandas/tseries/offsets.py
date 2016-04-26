@@ -958,7 +958,7 @@ class CustomBusinessDay(BusinessDay):
         self.kwds['calendar'] = self.calendar = calendar
 
     def get_calendar(self, weekmask, holidays, calendar):
-        '''Generate busdaycalendar'''
+        """Generate busdaycalendar"""
         if isinstance(calendar, np.busdaycalendar):
             if not holidays:
                 holidays = tuple(calendar.holidays)
@@ -2422,12 +2422,12 @@ class FY5253Quarter(DateOffset):
 
 
 class Easter(DateOffset):
-    '''
+    """
     DateOffset for the Easter holiday using
     logic defined in dateutil.  Right now uses
     the revised method which is valid in years
     1583-4099.
-    '''
+    """
     _adjust_dst = True
 
     def __init__(self, n=1, **kwds):

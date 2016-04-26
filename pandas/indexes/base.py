@@ -2569,10 +2569,10 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         from .multi import MultiIndex
 
         def _get_leaf_sorter(labels):
-            '''
+            """
             returns sorter for the inner most level while preserving the
             order of higher levels
-            '''
+            """
             if labels[0].size == 0:
                 return np.empty(0, dtype='int64')
 

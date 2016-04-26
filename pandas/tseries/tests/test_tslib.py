@@ -459,7 +459,7 @@ class TestTimestamp(tm.TestCase):
         nested_obj = {'foo': 1,
                       'bar': [{'w': {'a': Timestamp('2011-01-01')}}] * 10}
         result = pprint.pformat(nested_obj, width=50)
-        expected = r'''{'bar': [{'w': {'a': Timestamp('2011-01-01 00:00:00')}},
+        expected = r"""{'bar': [{'w': {'a': Timestamp('2011-01-01 00:00:00')}},
          {'w': {'a': Timestamp('2011-01-01 00:00:00')}},
          {'w': {'a': Timestamp('2011-01-01 00:00:00')}},
          {'w': {'a': Timestamp('2011-01-01 00:00:00')}},
@@ -469,7 +469,7 @@ class TestTimestamp(tm.TestCase):
          {'w': {'a': Timestamp('2011-01-01 00:00:00')}},
          {'w': {'a': Timestamp('2011-01-01 00:00:00')}},
          {'w': {'a': Timestamp('2011-01-01 00:00:00')}}],
- 'foo': 1}'''
+ 'foo': 1}"""
         self.assertEqual(result, expected)
 
 

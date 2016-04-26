@@ -850,13 +850,13 @@ class TestStringMethods(tm.TestCase):
             ("rob", "gmail", "com"), ("steve", "gmail", "com"),
             ("a", "b", "com"), ("c", "d", "com"), ("e", "f", "com"),
         ]
-        named_pattern = r'''
+        named_pattern = r"""
         (?P<user>[a-z0-9]+)
         @
         (?P<domain>[a-z]+)
         \.
         (?P<tld>[a-z]{2,4})
-        '''
+        """
         expected_columns = ["user", "domain", "tld"]
         S = Series(subject_list)
         # extractall should return a DataFrame with one row for each
