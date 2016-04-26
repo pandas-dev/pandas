@@ -265,9 +265,9 @@ class TestOLSMisc(tm.TestCase):
 
     _multiprocess_can_split_ = True
 
-    '''
+    """
     For test coverage with faux data
-    '''
+    """
     @classmethod
     def setUpClass(cls):
         super(TestOLSMisc, cls).setUpClass()

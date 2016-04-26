@@ -19,10 +19,10 @@ cdef _get_result_array(object obj,
 
 
 cdef class Reducer:
-    '''
+    """
     Performs generic reduction operation on a C or Fortran-contiguous ndarray
     while avoiding ndarray construction overhead
-    '''
+    """
     cdef:
         Py_ssize_t increment, chunksize, nresults
         object arr, dummy, f, labels, typ, ityp, index
@@ -159,9 +159,9 @@ cdef class Reducer:
 
 
 cdef class SeriesBinGrouper:
-    '''
+    """
     Performs grouping operation according to bin edges, rather than labels
-    '''
+    """
     cdef:
         Py_ssize_t nresults, ngroups
         bint passed_dummy
@@ -284,10 +284,10 @@ cdef class SeriesBinGrouper:
 
 
 cdef class SeriesGrouper:
-    '''
+    """
     Performs generic grouping operation while avoiding ndarray construction
     overhead
-    '''
+    """
     cdef:
         Py_ssize_t nresults, ngroups
         bint passed_dummy
@@ -409,8 +409,8 @@ cdef class SeriesGrouper:
 
 
 cdef inline _extract_result(object res):
-    ''' extract the result object, it might be a 0-dim ndarray
-        or a len-1 0-dim, or a scalar '''
+    """ extract the result object, it might be a 0-dim ndarray
+        or a len-1 0-dim, or a scalar """
     if hasattr(res,'values'):
        res = res.values
     if not np.isscalar(res):
@@ -422,9 +422,9 @@ cdef inline _extract_result(object res):
     return res
 
 cdef class Slider:
-    '''
+    """
     Only handles contiguous data for now
-    '''
+    """
     cdef:
         ndarray values, buf
         Py_ssize_t stride, orig_len, orig_stride
@@ -452,9 +452,9 @@ cdef class Slider:
         self.buf.data = <char*> self.buf.data + self.stride * k
 
     cdef move(self, int start, int end):
-        '''
+        """
         For slicing
-        '''
+        """
         self.buf.data = self.values.data + self.stride * start
         self.buf.shape[0] = end - start
 
@@ -526,9 +526,9 @@ def apply_frame_axis0(object frame, object f, object names,
     return results, mutated
 
 cdef class BlockSlider:
-    '''
+    """
     Only capable of sliding on axis=0
-    '''
+    """
 
     cdef public:
         object frame, dummy, index

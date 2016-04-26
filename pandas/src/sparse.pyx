@@ -32,15 +32,15 @@ cdef inline int int_min(int a, int b): return a if a <= b else b
 
 
 cdef class SparseIndex:
-    '''
+    """
     Abstract superclass for sparse index types
-    '''
+    """
     def __init__(self):
         raise NotImplementedError
 
 
 cdef class IntIndex(SparseIndex):
-    '''
+    """
     Object for holding exact integer sparse indexing information
 
     Parameters
@@ -48,7 +48,7 @@ cdef class IntIndex(SparseIndex):
     length : integer
     indices : array-like
         Contains integers corresponding to
-    '''
+    """
     cdef readonly:
         Py_ssize_t length, npoints
         ndarray indices
@@ -68,10 +68,10 @@ cdef class IntIndex(SparseIndex):
         return output
 
     def check_integrity(self):
-        '''
+        """
         Only need be strictly ascending and nothing less than 0 or greater than
         totall ength
-        '''
+        """
         pass
 
     def equals(self, other):
@@ -305,12 +305,12 @@ cpdef get_blocks(ndarray[int32_t, ndim=1] indices):
 # BlockIndex
 
 cdef class BlockIndex(SparseIndex):
-    '''
+    """
     Object for holding block-based sparse indexing information
 
     Parameters
     ----------
-    '''
+    """
     cdef readonly:
         Py_ssize_t nblocks, npoints, length
         ndarray blocs, blengths
@@ -354,12 +354,12 @@ cdef class BlockIndex(SparseIndex):
         return self.length - self.npoints
 
     cpdef check_integrity(self):
-        '''
+        """
         Check:
         - Locations are in ascending order
         - No overlapping blocks
         - Blocks to not start after end of index, nor extend beyond end
-        '''
+        """
         cdef:
             Py_ssize_t i
             ndarray[int32_t, ndim=1] blocs, blengths
@@ -419,7 +419,7 @@ cdef class BlockIndex(SparseIndex):
         return IntIndex(self.length, indices)
 
     cpdef BlockIndex intersect(self, SparseIndex other):
-        '''
+        """
         Intersect two BlockIndex objects
 
         Parameters
@@ -428,7 +428,7 @@ cdef class BlockIndex(SparseIndex):
         Returns
         -------
         intersection : BlockIndex
-        '''
+        """
         cdef:
             BlockIndex y
             ndarray[int32_t, ndim=1] xloc, xlen, yloc, ylen
@@ -497,7 +497,7 @@ cdef class BlockIndex(SparseIndex):
         return BlockIndex(self.length, out_blocs, out_blengths)
 
     cpdef BlockIndex make_union(self, SparseIndex y):
-        '''
+        """
         Combine together two BlockIndex objects, accepting indices if contained
         in one or the other
 
@@ -512,7 +512,7 @@ cdef class BlockIndex(SparseIndex):
         Returns
         -------
         union : BlockIndex
-        '''
+        """
         return BlockUnion(self, y.to_block_index()).result
 
     cpdef int lookup(self, Py_ssize_t index):
@@ -604,10 +604,10 @@ cdef class BlockIndex(SparseIndex):
 
 
 cdef class BlockMerge(object):
-    '''
+    """
     Object-oriented approach makes sharing state between recursive functions a
     lot easier and reduces code duplication
-    '''
+    """
     cdef:
         BlockIndex x, y, result
         ndarray xstart, xlen, xend, ystart, ylen, yend
@@ -646,16 +646,16 @@ cdef class BlockMerge(object):
             self.yi = xi
 
 cdef class BlockIntersection(BlockMerge):
-    '''
+    """
     not done yet
-    '''
+    """
     pass
 
 cdef class BlockUnion(BlockMerge):
-    '''
+    """
     Object-oriented approach makes sharing state between recursive functions a
     lot easier and reduces code duplication
-    '''
+    """
 
     cdef _make_merged_blocks(self):
         cdef:
@@ -697,12 +697,12 @@ cdef class BlockUnion(BlockMerge):
         return BlockIndex(self.x.length, out_blocs, out_blengths)
 
     cdef int32_t _find_next_block_end(self, bint mode) except -1:
-        '''
+        """
         Wow, this got complicated in a hurry
 
         mode 0: block started in index x
         mode 1: block started in index y
-        '''
+        """
         cdef:
             ndarray[int32_t, ndim=1] xstart, xend, ystart, yend
             int32_t xi, yi, xnblocks, ynblocks, nend
@@ -782,9 +782,9 @@ cdef inline tuple sparse_combine(ndarray x, SparseIndex xindex, float64_t xfill,
 cdef inline tuple block_op(ndarray x_, BlockIndex xindex, float64_t xfill,
                            ndarray y_, BlockIndex yindex, float64_t yfill,
                            double_func op):
-    '''
+    """
     Binary operator on BlockIndex objects with fill values
-    '''
+    """
 
     cdef:
         BlockIndex out_index
@@ -1139,10 +1139,10 @@ def get_reindexer(ndarray[object, ndim=1] values, dict index_map):
 
 
 # cdef class SparseCruncher(object):
-#     '''
+#     """
 #     Class to acquire float pointer for convenient operations on sparse data
 #     structures
-#     '''
+#     """
 #     cdef:
 #         SparseIndex index
 #         float64_t* buf

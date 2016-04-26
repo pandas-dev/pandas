@@ -33,7 +33,7 @@ def recursive_repr(fillvalue='...'):
 
 
 class ChainMap(MutableMapping):
-    ''' A ChainMap groups multiple dicts (or other mappings) together
+    """ A ChainMap groups multiple dicts (or other mappings) together
     to create a single, updateable view.
 
     The underlying mappings are stored in a list.  That list is public and can
@@ -43,13 +43,13 @@ class ChainMap(MutableMapping):
     In contrast, writes, updates, and deletions only operate on the first
     mapping.
 
-    '''
+    """
 
     def __init__(self, *maps):
-        '''Initialize a ChainMap by setting *maps* to the given mappings.
+        """Initialize a ChainMap by setting *maps* to the given mappings.
         If no mappings are provided, a single empty dictionary is used.
 
-        '''
+        """
         self.maps = list(maps) or [{}]          # always at least one map
 
     def __missing__(self, key):
@@ -101,10 +101,10 @@ class ChainMap(MutableMapping):
     __copy__ = copy
 
     def new_child(self, m=None):                # like Django's Context.push()
-        '''
+        """
         New ChainMap with a new map followed by all previous maps. If no
         map is provided, an empty dict is used.
-        '''
+        """
         if m is None:
             m = {}
         return self.__class__(m, *self.maps)

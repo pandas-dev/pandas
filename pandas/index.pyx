@@ -101,9 +101,9 @@ cdef class IndexEngine:
         return val in self.mapping
 
     cpdef get_value(self, ndarray arr, object key, object tz=None):
-        '''
+        """
         arr : 1-dimensional ndarray
-        '''
+        """
         cdef:
             object loc
             void* data_ptr
@@ -119,9 +119,9 @@ cdef class IndexEngine:
             return util.get_value_at(arr, loc)
 
     cpdef set_value(self, ndarray arr, object key, object value):
-        '''
+        """
         arr : 1-dimensional ndarray
-        '''
+        """
         cdef:
             object loc
             void* data_ptr

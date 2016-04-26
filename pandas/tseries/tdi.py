@@ -932,9 +932,9 @@ def _is_convertible_to_td(key):
 
 
 def _to_m8(key):
-    '''
+    """
     Timedelta-like => dt64
-    '''
+    """
     if not isinstance(key, Timedelta):
         # this also converts strings
         key = Timedelta(key)

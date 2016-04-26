@@ -14,7 +14,7 @@ def match(needles, haystack):
 
 
 def cartesian_product(X):
-    '''
+    """
     Numpy version of itertools.product or pandas.compat.product.
     Sometimes faster (for large inputs)...
 
@@ -24,7 +24,7 @@ def cartesian_product(X):
     [array(['A', 'A', 'B', 'B', 'C', 'C'], dtype='|S1'),
     array([1, 2, 1, 2, 1, 2])]
 
-    '''
+    """
 
     lenX = np.fromiter((len(x) for x in X), dtype=int)
     cumprodX = np.cumproduct(lenX)

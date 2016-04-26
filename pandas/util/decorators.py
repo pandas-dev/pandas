@@ -205,7 +205,7 @@ def suppress_stdout(f):
 
 
 class KnownFailureTest(Exception):
-    '''Raise this exception to mark a test as a known failing test.'''
+    """Raise this exception to mark a test as a known failing test."""
     pass
 
 
