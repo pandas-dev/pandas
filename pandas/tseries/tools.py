@@ -257,12 +257,33 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
     1   2016-03-05
     dtype: datetime64[ns]
 
-    Date that does not meet timestamp limitations:
+    If a date that does not meet timestamp limitations, passing errors='coerce'
+    will force to NaT. Furthermore this will force non-dates to NaT as well.
 
     >>> pd.to_datetime('13000101', format='%Y%m%d')
     datetime.datetime(1300, 1, 1, 0, 0)
     >>> pd.to_datetime('13000101', format='%Y%m%d', errors='coerce')
     NaT
+
+    Passing infer_datetime_format=True can often-times speedup a parsing
+    if its not an ISO8601 format exactly, but in a regular format.
+
+    >>> s = pd.Series(['3/11/2000', '3/12/2000', '3/13/2000']*1000)
+
+    >>> s.head()
+    0    3/11/2000
+    1    3/12/2000
+    2    3/13/2000
+    3    3/11/2000
+    4    3/12/2000
+    dtype: object
+
+    >>> %timeit pd.to_datetime(s,infer_datetime_format=True)
+    100 loops, best of 3: 10.4 ms per loop
+
+    >>> %timeit pd.to_datetime(s,infer_datetime_format=False)
+    1 loop, best of 3: 471 ms per loop
+
     """
     return _to_datetime(arg, errors=errors, dayfirst=dayfirst,
                         yearfirst=yearfirst,
