@@ -428,6 +428,9 @@ Bug Fixes
 - Bug in consistency of ``.name`` on ``.groupby(..).apply(..)`` cases (:issue:`12363`)
 
 
+- Bug in consistency of ``.name`` on ``.groupby(..).apply(..)`` cases (:issue:`12363`)
+
+
 - Bug in ``Timestamp.__repr__`` that caused ``pprint`` to fail in nested structures (:issue:`12622`)
 - Bug in ``Timedelta.min`` and ``Timedelta.max``, the properties now report the true minimum/maximum ``timedeltas`` as recognized by Pandas. See :ref:`documentation <timedeltas.limitations>`. (:issue:`12727`)
 - Bug in ``.quantile()`` with interpolation may coerce to ``float`` unexpectedly (:issue:`12772`)
