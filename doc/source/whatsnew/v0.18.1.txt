@@ -484,6 +484,7 @@ Bug Fixes
 
 
 - Bug in index coercion when falling back from ``RangeIndex`` construction (:issue:`12893`)
+- Better error message in window functions when invalid argument (e.g. a float window) is passed (:issue:`12669`)
 
 - Bug in slicing subclassed ``DataFrame`` defined to return subclassed ``Series`` may return normal ``Series`` (:issue:`11559`)
 
@@ -511,6 +512,7 @@ Bug Fixes
 - Bug in ``crosstab`` when ``margins=True`` and ``dropna=False`` which raised (:issue:`12642`)
 
 - Bug in ``Series.name`` when ``name`` attribute can be a hashable type (:issue:`12610`)
+
 - Bug in ``.describe()`` resets categorical columns information (:issue:`11558`)
 - Bug where ``loffset`` argument was not applied when calling ``resample().count()`` on a timeseries (:issue:`12725`)
 - ``pd.read_excel()`` now accepts column names associated with keyword argument ``names``(:issue:`12870`)

@@ -264,6 +264,90 @@ class TestApi(Base):
                         assert_series_equal(result, expected)
 
 
+class TestWindow(Base):
+
+    def setUp(self):
+        self._create_data()
+
+    def test_constructor(self):
+        # GH 12669
+        tm._skip_if_no_scipy()
+
+        for o in [self.series, self.frame]:
+            c = o.rolling
+
+            # valid
+            c(win_type='boxcar', window=2, min_periods=1)
+            c(win_type='boxcar', window=2, min_periods=1, center=True)
+            c(win_type='boxcar', window=2, min_periods=1, center=False)
+
+            for wt in ['boxcar', 'triang', 'blackman', 'hamming', 'bartlett',
+                       'bohman', 'blackmanharris', 'nuttall', 'barthann']:
+                c(win_type=wt, window=2)
+
+            # not valid
+            for w in [2., 'foo', np.array([2])]:
+                with self.assertRaises(ValueError):
+                    c(win_type='boxcar', window=2, min_periods=w)
+                with self.assertRaises(ValueError):
+                    c(win_type='boxcar', window=2, min_periods=1, center=w)
+
+            for wt in ['foobar', 1]:
+                with self.assertRaises(ValueError):
+                    c(win_type=wt, window=2)
+
+
+class TestRolling(Base):
+
+    def setUp(self):
+        self._create_data()
+
+    def test_constructor(self):
+        # GH 12669
+
+        for o in [self.series, self.frame]:
+            c = o.rolling
+
+            # valid
+            c(window=2)
+            c(window=2, min_periods=1)
+            c(window=2, min_periods=1, center=True)
+            c(window=2, min_periods=1, center=False)
+
+            # not valid
+            for w in [2., 'foo', np.array([2])]:
+                with self.assertRaises(ValueError):
+                    c(window=w)
+                with self.assertRaises(ValueError):
+                    c(window=2, min_periods=w)
+                with self.assertRaises(ValueError):
+                    c(window=2, min_periods=1, center=w)
+
+
+class TestExpanding(Base):
+
+    def setUp(self):
+        self._create_data()
+
+    def test_constructor(self):
+        # GH 12669
+
+        for o in [self.series, self.frame]:
+            c = o.expanding
+
+            # valid
+            c(min_periods=1)
+            c(min_periods=1, center=True)
+            c(min_periods=1, center=False)
+
+            # not valid
+            for w in [2., 'foo', np.array([2])]:
+                with self.assertRaises(ValueError):
+                    c(min_periods=w)
+                with self.assertRaises(ValueError):
+                    c(min_periods=1, center=w)
+
+
 class TestDeprecations(Base):
     """ test that we are catching deprecation warnings """
 

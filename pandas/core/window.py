@@ -55,11 +55,19 @@ class _Window(PandasObject, SelectionMixin):
         self.freq = freq
         self.center = center
         self.win_type = win_type
-        self.axis = axis
+        self.axis = obj._get_axis_number(axis) if axis is not None else None
+        self.validate()
 
     @property
     def _constructor(self):
         return Window
+
+    def validate(self):
+        if self.center is not None and not com.is_bool(self.center):
+            raise ValueError("center must be a boolean")
+        if self.min_periods is not None and not \
+           com.is_integer(self.min_periods):
+            raise ValueError("min_periods must be an integer")
 
     def _convert_freq(self, how=None):
         """ resample according to the how, return a new object """
@@ -305,23 +313,61 @@ class Window(_Window):
     * ``slepian`` (needs width).
 """
 
-    def _prep_window(self, **kwargs):
-        """ provide validation for our window type, return the window """
-        window = self._get_window()
+    def validate(self):
+        super(Window, self).validate()
 
+        window = self.window
         if isinstance(window, (list, tuple, np.ndarray)):
-            return com._asarray_tuplesafe(window).astype(float)
+            pass
         elif com.is_integer(window):
             try:
                 import scipy.signal as sig
             except ImportError:
                 raise ImportError('Please install scipy to generate window '
                                   'weight')
+
+            if not isinstance(self.win_type, compat.string_types):
+                raise ValueError('Invalid win_type {0}'.format(self.win_type))
+            if getattr(sig, self.win_type, None) is None:
+                raise ValueError('Invalid win_type {0}'.format(self.win_type))
+        else:
+            raise ValueError('Invalid window {0}'.format(window))
+
+    def _prep_window(self, **kwargs):
+        """
+        provide validation for our window type, return the window
+        we have already been validated
+        """
+
+        window = self._get_window()
+        if isinstance(window, (list, tuple, np.ndarray)):
+            return com._asarray_tuplesafe(window).astype(float)
+        elif com.is_integer(window):
+            import scipy.signal as sig
+
             # the below may pop from kwargs
+            def _validate_win_type(win_type, kwargs):
+                arg_map = {'kaiser': ['beta'],
+                           'gaussian': ['std'],
+                           'general_gaussian': ['power', 'width'],
+                           'slepian': ['width']}
+                if win_type in arg_map:
+                    return tuple([win_type] + _pop_args(win_type,
+                                                        arg_map[win_type],
+                                                        kwargs))
+                return win_type
+
+            def _pop_args(win_type, arg_names, kwargs):
+                msg = '%s window requires %%s' % win_type
+                all_args = []
+                for n in arg_names:
+                    if n not in kwargs:
+                        raise ValueError(msg % n)
+                    all_args.append(kwargs.pop(n))
+                return all_args
+
             win_type = _validate_win_type(self.win_type, kwargs)
             return sig.get_window(win_type, window).astype(float)
-
-        raise ValueError('Invalid window %s' % str(window))
 
     def _apply_window(self, mean=True, how=None, **kwargs):
         """
@@ -790,6 +836,11 @@ class Rolling(_Rolling_and_Expanding):
     frequency by resampling the data. This is done with the default parameters
     of :meth:`~pandas.Series.resample` (i.e. using the `mean`).
     """
+
+    def validate(self):
+        super(Rolling, self).validate()
+        if not com.is_integer(self.window):
+            raise ValueError("window must be an integer")
 
     @Substitution(name='rolling')
     @Appender(SelectionMixin._see_also_template)
@@ -1457,28 +1508,6 @@ def _prep_binary(arg1, arg2):
     Y = arg2 + 0 * arg1
 
     return X, Y
-
-
-def _validate_win_type(win_type, kwargs):
-    # may pop from kwargs
-    arg_map = {'kaiser': ['beta'],
-               'gaussian': ['std'],
-               'general_gaussian': ['power', 'width'],
-               'slepian': ['width']}
-    if win_type in arg_map:
-        return tuple([win_type] + _pop_args(win_type, arg_map[win_type],
-                                            kwargs))
-    return win_type
-
-
-def _pop_args(win_type, arg_names, kwargs):
-    msg = '%s window requires %%s' % win_type
-    all_args = []
-    for n in arg_names:
-        if n not in kwargs:
-            raise ValueError(msg % n)
-        all_args.append(kwargs.pop(n))
-    return all_args
 
 
 # Top-level exports
