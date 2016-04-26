@@ -168,7 +168,11 @@ Other Enhancements
       idx = pd.Index(['a|b', 'a|c', 'b|c'])
       idx.str.get_dummies('|')
 
+
 - ``pd.crosstab()`` has gained a ``normalize`` argument for normalizing frequency tables (:issue:`12569`). Examples in the updated docs :ref:`here <reshaping.crosstabulations>`.
+
+- ``.resample(..).interpolate()`` is now supported (:issue:`12925`)
+
 
 
 .. _whatsnew_0181.sparse:
