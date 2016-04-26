@@ -1,7 +1,7 @@
 .. _whatsnew_0181:
 
-v0.18.1 (April ??, 2016)
-------------------------
+v0.18.1 (Mayl ??, 2016)
+-----------------------
 
 This is a minor bug-fix release from 0.18.0 and includes a large number of
 bug fixes along with several new features, enhancements, and performance improvements.
@@ -9,8 +9,10 @@ We recommend that all users upgrade to this version.
 
 Highlights include:
 
+- ``.groupby(...)`` has been enhanced to provide convenient syntax when working with ``.rolling(..)``, ``.expanding(..)`` and ``.resample(..)`` per group, see :ref:`here <whatsnew_0181.deferred_ops>`
+- ``pd.to_datetime()`` has gained the ability to assemble dates from a ``DataFrame``, see :ref:`here <whatsnew_0181.enhancements.assembling>`
 - Custom business hour offset, see :ref:`here <whatsnew_0181.enhancements.custombusinesshour>`.
-
+- Many bug fixes in the handling of ``sparse``, see :ref:`here <whatsnew_0181.sparse>`
 
 .. contents:: What's new in v0.18.1
     :local:
@@ -18,7 +20,6 @@ Highlights include:
 
 .. _whatsnew_0181.new_features:
 
-- ``.groupby(...)`` has been enhanced to provide convenient syntax when working with ``.rolling(..)``, ``.expanding(..)`` and ``.resample(..)`` per group, see :ref:`here <whatsnew_0181.deferred_ops>`
 
 New features
 ~~~~~~~~~~~~
@@ -149,6 +150,7 @@ Other Enhancements
 - ``pd.read_msgpack()`` now always gives writeable ndarrays even when compression is used (:issue:`12359`).
 - ``pd.read_msgpack()`` now supports serializing and de-serializing categoricals with msgpack (:issue:`12573`)
 - ``interpolate()`` now supports ``method='akima'`` (:issue:`7588`).
+- ``pd.read_excel()`` now accepts path objects (e.g. ``pathlib.Path``, ``py.path.local``) for the file path, in line with other ``read_*`` functions (:issue:`12655`)
 - ``Index.take`` now handles ``allow_fill`` and ``fill_value`` consistently (:issue:`12631`)
 - Added ``weekday_name`` as a component to ``DatetimeIndex`` and ``.dt`` accessor. (:issue:`11128`)
 
@@ -375,11 +377,11 @@ New behaviour:
 In addition to this error change, several others have been made as well:
 
 - ``CParserError`` is now a ``ValueError`` instead of just an ``Exception`` (:issue:`12551`)
-- A ``CParserError`` is now raised instead of a generic ``Exception`` in ``read_csv`` when the C engine cannot parse a column
-- A ``ValueError`` is now raised instead of a generic ``Exception`` in ``read_csv`` when the C engine encounters a ``NaN`` value in an integer column
-- A ``ValueError`` is now raised instead of a generic ``Exception`` in ``read_csv`` when ``true_values`` is specified, and the C engine encounters an element in a column containing unencodable bytes
-- ``pandas.parser.OverflowError`` exception has been removed and has been replaced with Python's built-in ``OverflowError`` exception
-- ``read_csv`` no longer allows a combination of strings and integers for the ``usecols`` parameter (:issue:`12678`)
+- A ``CParserError`` is now raised instead of a generic ``Exception`` in ``read_csv`` when the C engine cannot parse a column (:issue:`12506`)
+- A ``ValueError`` is now raised instead of a generic ``Exception`` in ``read_csv`` when the C engine encounters a ``NaN`` value in an integer column (:issue:`12506`)
+- A ``ValueError`` is now raised instead of a generic ``Exception`` in ``read_csv`` when ``true_values`` is specified, and the C engine encounters an element in a column containing unencodable bytes (:issue:`12506`)
+- ``pandas.parser.OverflowError`` exception has been removed and has been replaced with Python's built-in ``OverflowError`` exception (:issue:`12506`)
+- ``pd.read_csv()`` no longer allows a combination of strings and integers for the ``usecols`` parameter (:issue:`12678`)
 
 .. _whatsnew_0181.deprecations:
 
@@ -459,15 +461,15 @@ Bug Fixes
 
 
 
-- Bug in ``read_csv`` with the C engine when specifying ``skiprows`` with newlines in quoted items (:issue:`10911`, `12775`)
-- Bug in ``DataFrame`` timezone lost when assigning tz-aware datetime ``Series`` with alignment (:issue `12981`)
+- Bug in ``read_csv`` with the C engine when specifying ``skiprows`` with newlines in quoted items (:issue:`10911`, :issue:`12775`)
+- Bug in ``DataFrame`` timezone lost when assigning tz-aware datetime ``Series`` with alignment (:issue:`12981`)
 
 
 
 
 - Bug in ``value_counts`` when ``normalize=True`` and ``dropna=True`` where nulls still contributed to the normalized count (:issue:`12558`)
 - Bug in ``Panel.fillna()`` ignoring ``inplace=True`` (:issue:`12633`)
-- Bug in ``read_csv`` when specifying ``names``, ```usecols``, and ``parse_dates`` simultaneously with the C engine (:issue:`9755`)
+- Bug in ``read_csv`` when specifying ``names``, ``usecols``, and ``parse_dates`` simultaneously with the C engine (:issue:`9755`)
 - Bug in ``read_csv`` when specifying ``delim_whitespace=True`` and ``lineterminator`` simultaneously with the C engine (:issue:`12912`)
 - Bug in ``Series.rename``, ``DataFrame.rename`` and ``DataFrame.rename_axis`` not treating ``Series`` as mappings to relabel (:issue:`12623`).
 - Clean in ``.rolling.min`` and ``.rolling.max`` to enhance dtype handling (:issue:`12373`)
@@ -475,7 +477,7 @@ Bug Fixes
 - Bug in ``Series.map`` raises ``TypeError`` if its dtype is ``category`` or tz-aware ``datetime`` (:issue:`12473`)
 
 
-- Bug in index coercion when falling back from ```RangeIndex``` construction (:issue:`12893`)
+- Bug in index coercion when falling back from ``RangeIndex`` construction (:issue:`12893`)
 
 - Bug in slicing subclassed ``DataFrame`` defined to return subclassed ``Series`` may return normal ``Series`` (:issue:`11559`)
 
@@ -494,9 +496,9 @@ Bug Fixes
 
 
 
-- Bug in ``fill_value`` is ignored if the argument to a binary operator is a constant (:issue `12723`)
+- Bug in ``fill_value`` is ignored if the argument to a binary operator is a constant (:issue:`12723`)
 
-- Bug in ``pd.read_html`` when using bs4 flavor and parsing table with a header and only one column (:issue `9178`)
+- Bug in ``pd.read_html`` when using bs4 flavor and parsing table with a header and only one column (:issue:`9178`)
 
 - Bug in ``pivot_table`` when ``margins=True`` and ``dropna=True`` where nulls still contributed to margin count (:issue:`12577`)
 - Bug in ``pivot_table`` when ``dropna=False`` where table index/column names disappear (:issue:`12133`)
@@ -505,5 +507,4 @@ Bug Fixes
 - Bug in ``Series.name`` when ``name`` attribute can be a hashable type (:issue:`12610`)
 - Bug in ``.describe()`` resets categorical columns information (:issue:`11558`)
 - Bug where ``loffset`` argument was not applied when calling ``resample().count()`` on a timeseries (:issue:`12725`)
-- ``pd.read_excel()`` now accepts path objects (e.g. ``pathlib.Path``, ``py.path.local``) for the file path, in line with other ``read_*`` functions (:issue:`12655`)
-- ``pd.read_excel()`` now accepts column names associated with keyword argument ``names``(:issue `12870`)
+- ``pd.read_excel()`` now accepts column names associated with keyword argument ``names``(:issue:`12870`)
