@@ -2713,3 +2713,132 @@ class TestMomentsConsistency(Base):
             result = (DataFrame(np.arange(20, dtype=data_type))
                       .rolling(window=5).min())
             self.assertEqual(result.dtypes[0], np.dtype("f8"))
+
+
+class TestGrouperGrouping(tm.TestCase):
+
+    def setUp(self):
+        self.series = Series(np.arange(10))
+        self.frame = DataFrame({'A': [1] * 20 + [2] * 12 + [3] * 8,
+                                'B': np.arange(40)})
+
+    def test_mutated(self):
+
+        def f():
+            self.frame.groupby('A', foo=1)
+        self.assertRaises(TypeError, f)
+
+        g = self.frame.groupby('A')
+        self.assertFalse(g.mutated)
+        g = self.frame.groupby('A', mutated=True)
+        self.assertTrue(g.mutated)
+
+    def test_getitem(self):
+        g = self.frame.groupby('A')
+        g_mutated = self.frame.groupby('A', mutated=True)
+
+        expected = g_mutated.B.apply(lambda x: x.rolling(2).mean())
+
+        result = g.rolling(2).mean().B
+        assert_series_equal(result, expected)
+
+        result = g.rolling(2).B.mean()
+        assert_series_equal(result, expected)
+
+        result = g.B.rolling(2).mean()
+        assert_series_equal(result, expected)
+
+        result = self.frame.B.groupby(self.frame.A).rolling(2).mean()
+        assert_series_equal(result, expected)
+
+    def test_rolling(self):
+        g = self.frame.groupby('A')
+        r = g.rolling(window=4)
+
+        for f in ['sum', 'mean', 'min', 'max', 'count', 'kurt', 'skew']:
+            result = getattr(r, f)()
+            expected = g.apply(lambda x: getattr(x.rolling(4), f)())
+            assert_frame_equal(result, expected)
+
+        for f in ['std', 'var']:
+            result = getattr(r, f)(ddof=1)
+            expected = g.apply(lambda x: getattr(x.rolling(4), f)(ddof=1))
+            assert_frame_equal(result, expected)
+
+        result = r.quantile(0.5)
+        expected = g.apply(lambda x: x.rolling(4).quantile(0.5))
+        assert_frame_equal(result, expected)
+
+    def test_rolling_corr_cov(self):
+        g = self.frame.groupby('A')
+        r = g.rolling(window=4)
+
+        for f in ['corr', 'cov']:
+            result = getattr(r, f)(self.frame)
+
+            def func(x):
+                return getattr(x.rolling(4), f)(self.frame)
+            expected = g.apply(func)
+            assert_frame_equal(result, expected)
+
+            result = getattr(r.B, f)(pairwise=True)
+
+            def func(x):
+                return getattr(x.B.rolling(4), f)(pairwise=True)
+            expected = g.apply(func)
+            assert_series_equal(result, expected)
+
+    def test_rolling_apply(self):
+        g = self.frame.groupby('A')
+        r = g.rolling(window=4)
+
+        # reduction
+        result = r.apply(lambda x: x.sum())
+        expected = g.apply(lambda x: x.rolling(4).apply(lambda y: y.sum()))
+        assert_frame_equal(result, expected)
+
+    def test_expanding(self):
+        g = self.frame.groupby('A')
+        r = g.expanding()
+
+        for f in ['sum', 'mean', 'min', 'max', 'count', 'kurt', 'skew']:
+            result = getattr(r, f)()
+            expected = g.apply(lambda x: getattr(x.expanding(), f)())
+            assert_frame_equal(result, expected)
+
+        for f in ['std', 'var']:
+            result = getattr(r, f)(ddof=0)
+            expected = g.apply(lambda x: getattr(x.expanding(), f)(ddof=0))
+            assert_frame_equal(result, expected)
+
+        result = r.quantile(0.5)
+        expected = g.apply(lambda x: x.expanding().quantile(0.5))
+        assert_frame_equal(result, expected)
+
+    def test_expanding_corr_cov(self):
+        g = self.frame.groupby('A')
+        r = g.expanding()
+
+        for f in ['corr', 'cov']:
+            result = getattr(r, f)(self.frame)
+
+            def func(x):
+                return getattr(x.expanding(), f)(self.frame)
+            expected = g.apply(func)
+            assert_frame_equal(result, expected)
+
+            result = getattr(r.B, f)(pairwise=True)
+
+            def func(x):
+                return getattr(x.B.expanding(), f)(pairwise=True)
+            expected = g.apply(func)
+            assert_series_equal(result, expected)
+
+    def test_expanding_apply(self):
+        g = self.frame.groupby('A')
+        r = g.expanding()
+
+        # reduction
+        result = r.apply(lambda x: x.sum())
+        expected = g.apply(lambda x: x.expanding().apply(lambda y: y.sum()))
+        assert_frame_equal(result, expected)
