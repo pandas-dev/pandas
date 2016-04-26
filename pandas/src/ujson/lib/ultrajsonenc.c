@@ -837,6 +837,7 @@ void encode(JSOBJ obj, JSONObjectEncoder *enc, const char *name, size_t cbName)
     break;
   }
 
+
   case JT_UTF8:
   {
       value = enc->getStringValue(obj, &tc, &szlen);
@@ -870,6 +871,29 @@ void encode(JSOBJ obj, JSONObjectEncoder *enc, const char *name, size_t cbName)
       Buffer_AppendCharUnchecked (enc, '\"');
       break;
     }
+
+    case JT_RAW:
+    {
+        value = enc->getStringValue(obj, &tc, &szlen);
+        if(!value)
+        {
+            SetError(obj, enc, "utf-8 encoding error");
+            return;
+        }
+
+        Buffer_Reserve(enc, RESERVE_STRING(szlen));
+        if (enc->errorMsg)
+        {
+            enc->endTypeContext(obj, &tc);
+            return;
+        }
+
+        memcpy(enc->offset, value, szlen);
+        enc->offset += szlen;
+
+        break;
+    }
+
   }
 
   enc->endTypeContext(obj, &tc);
