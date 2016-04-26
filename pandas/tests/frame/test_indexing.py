@@ -1940,6 +1940,20 @@ class TestDataFrameIndexing(tm.TestCase, TestData):
         exp = pd.Series([1, 0, 0], name='new_column')
         assert_series_equal(df['new_column'], exp)
 
+    def test_setitem_with_unaligned_tz_aware_datetime_column(self):
+        # GH 12981
+        # Assignment of unaligned offset-aware datetime series.
+        # Make sure timezone isn't lost
+        column = pd.Series(pd.date_range('2015-01-01', periods=3, tz='utc'),
+                           name='dates')
+        df = pd.DataFrame({'dates': column})
+        df['dates'] = column[[1, 0, 2]]
+        assert_series_equal(df['dates'], column)
+
+        df = pd.DataFrame({'dates': column})
+        df.loc[[0, 1, 2], 'dates'] = column[[1, 0, 2]]
+        assert_series_equal(df['dates'], column)
+
     def test_setitem_datetime_coercion(self):
         # GH 1048
         df = pd.DataFrame({'c': [pd.Timestamp('2010-10-01')] * 3})
@@ -1949,7 +1963,7 @@ class TestDataFrameIndexing(tm.TestCase, TestData):
         df.loc[2, 'c'] = date(2005, 5, 5)
         self.assertEqual(pd.Timestamp('2005-05-05'), df.loc[2, 'c'])
 
-    def test_datetimelike_setitem_with_inference(self):
+    def test_setitem_datetimelike_with_inference(self):
         # GH 7592
         # assignment of timedeltas with NaT
 
