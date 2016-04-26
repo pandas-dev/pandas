@@ -1,8 +1,8 @@
-'''
+"""
 Easy integration of DataFrame into pyqt framework
 
 @author: Jev Kuznetsov
-'''
+"""
 
 # flake8: noqa
 
@@ -27,7 +27,7 @@ from pandas import DataFrame, Index
 
 
 class DataFrameModel(QAbstractTableModel):
-    ''' data model for a DataFrame class '''
+    """ data model for a DataFrame class """
     def __init__(self):
         super(DataFrameModel, self).__init__()
         self.df = DataFrame()
@@ -36,8 +36,8 @@ class DataFrameModel(QAbstractTableModel):
         self.df = dataFrame
 
     def signalUpdate(self):
-        ''' tell viewers to update their data (this is full update, not
-        efficient)'''
+        """ tell viewers to update their data (this is full update, not
+        efficient)"""
         self.layoutChanged.emit()
 
     #------------- table display functions -----------------
@@ -93,7 +93,7 @@ class DataFrameModel(QAbstractTableModel):
 
 
 class DataFrameWidget(QWidget):
-    ''' a simple widget for using DataFrames in a gui '''
+    """ a simple widget for using DataFrames in a gui """
     def __init__(self, dataFrame, parent=None):
         super(DataFrameWidget, self).__init__(parent)
 
@@ -116,7 +116,7 @@ class DataFrameWidget(QWidget):
 
 
 def testDf():
-    ''' creates test dataframe '''
+    """ creates test dataframe """
     data = {'int': [1, 2, 3], 'float': [1.5, 2.5, 3.5],
             'string': ['a', 'b', 'c'], 'nan': [np.nan, np.nan, np.nan]}
     return DataFrame(data, index=Index(['AAA', 'BBB', 'CCC']),

@@ -95,7 +95,7 @@ def values_from_object(object o):
     return o
 
 cpdef map_indices_list(list index):
-    '''
+    """
     Produce a dict mapping the values of the input array to their respective
     locations.
 
@@ -103,7 +103,7 @@ cpdef map_indices_list(list index):
         array(['hi', 'there']) --> {'hi' : 0 , 'there' : 1}
 
     Better to do this with Cython because of the enormous speed boost.
-    '''
+    """
     cdef Py_ssize_t i, length
     cdef dict result = {}
 
@@ -134,7 +134,7 @@ def ismember_nans(float64_t[:] arr, set values, bint hasnans):
 
 
 def ismember(ndarray arr, set values):
-    '''
+    """
     Checks whether
 
     Parameters
@@ -145,7 +145,7 @@ def ismember(ndarray arr, set values):
     Returns
     -------
     ismember : ndarray (boolean dtype)
-    '''
+    """
     cdef:
         Py_ssize_t i, n
         ndarray[uint8_t] result
@@ -160,7 +160,7 @@ def ismember(ndarray arr, set values):
     return result.view(np.bool_)
 
 def ismember_int64(ndarray[int64_t] arr, set values):
-    '''
+    """
     Checks whether
 
     Parameters
@@ -171,7 +171,7 @@ def ismember_int64(ndarray[int64_t] arr, set values):
     Returns
     -------
     ismember : ndarray (boolean dtype)
-    '''
+    """
     cdef:
         Py_ssize_t i, n
         ndarray[uint8_t] result
@@ -404,10 +404,10 @@ def isnullobj2d_old(ndarray[object, ndim=2] arr):
 @cython.wraparound(False)
 @cython.boundscheck(False)
 cpdef ndarray[object] list_to_object_array(list obj):
-    '''
+    """
     Convert list to object ndarray. Seriously can\'t believe I had to write this
     function
-    '''
+    """
     cdef:
         Py_ssize_t i, n = len(obj)
         ndarray[object] arr = np.empty(n, dtype=object)
@@ -542,9 +542,9 @@ def dicts_to_array(list dicts, list columns):
     return result
 
 def fast_zip(list ndarrays):
-    '''
+    """
     For zipping multiple ndarrays into an ndarray of tuples
-    '''
+    """
     cdef:
         Py_ssize_t i, j, k, n
         ndarray[object] result
@@ -959,9 +959,9 @@ cpdef ndarray[object] astype_str(ndarray arr):
     return result
 
 def clean_index_list(list obj):
-    '''
+    """
     Utility used in pandas.core.index._ensure_index
-    '''
+    """
     cdef:
         ndarray[object] converted
         Py_ssize_t i, n = len(obj)
@@ -1325,9 +1325,9 @@ cdef class _PandasNull:
 pandas_null = _PandasNull()
 
 def fast_zip_fillna(list ndarrays, fill_value=pandas_null):
-    '''
+    """
     For zipping multiple ndarrays into an ndarray of tuples
-    '''
+    """
     cdef:
         Py_ssize_t i, j, k, n
         ndarray[object] result

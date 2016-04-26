@@ -838,9 +838,9 @@ cdef inline kth_smallest_c(float64_t* a, Py_ssize_t k, Py_ssize_t n):
 
 
 cpdef numeric median(numeric[:] arr):
-    '''
+    """
     A faster median
-    '''
+    """
     cdef Py_ssize_t n = arr.size
 
     if n == 0:
@@ -999,7 +999,7 @@ def roll_mean(ndarray[double_t] input,
 # Exponentially weighted moving average
 
 def ewma(ndarray[double_t] input, double_t com, int adjust, int ignore_na, int minp):
-    '''
+    """
     Compute exponentially-weighted moving average using center-of-mass.
 
     Parameters
@@ -1013,7 +1013,7 @@ def ewma(ndarray[double_t] input, double_t com, int adjust, int ignore_na, int m
     Returns
     -------
     y : ndarray
-    '''
+    """
 
     cdef Py_ssize_t N = len(input)
     cdef ndarray[double_t] output = np.empty(N, dtype=float)
@@ -1061,7 +1061,7 @@ def ewma(ndarray[double_t] input, double_t com, int adjust, int ignore_na, int m
 
 def ewmcov(ndarray[double_t] input_x, ndarray[double_t] input_y,
            double_t com, int adjust, int ignore_na, int minp, int bias):
-    '''
+    """
     Compute exponentially-weighted moving variance using center-of-mass.
 
     Parameters
@@ -1077,7 +1077,7 @@ def ewmcov(ndarray[double_t] input_x, ndarray[double_t] input_y,
     Returns
     -------
     y : ndarray
-    '''
+    """
 
     cdef Py_ssize_t N = len(input_x)
     if len(input_y) != N:
@@ -1761,9 +1761,9 @@ cdef _roll_min_max(ndarray[numeric] a, int window, int minp, bint is_max):
 
 def roll_quantile(ndarray[float64_t, cast=True] input, int win,
                   int minp, double quantile):
-    '''
+    """
     O(N log(window)) implementation using skip list
-    '''
+    """
     cdef double val, prev, midpoint
     cdef IndexableSkiplist skiplist
     cdef Py_ssize_t nobs = 0, i
@@ -1997,12 +1997,12 @@ def groupby_indices(ndarray values):
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def group_labels(ndarray[object] values):
-    '''
+    """
     Compute label vector from input values and associated useful data
 
     Returns
     -------
-    '''
+    """
     cdef:
         Py_ssize_t i, n = len(values)
         ndarray[int64_t] labels = np.empty(n, dtype=np.int64)
@@ -2074,9 +2074,9 @@ def group_nth_object(ndarray[object, ndim=2] out,
                      ndarray[object, ndim=2] values,
                      ndarray[int64_t] labels,
                      int64_t rank):
-    '''
+    """
     Only aggregates on axis=0
-    '''
+    """
     cdef:
         Py_ssize_t i, j, N, K, lab
         object val
@@ -2117,9 +2117,9 @@ def group_nth_bin_object(ndarray[object, ndim=2] out,
                          ndarray[int64_t] counts,
                          ndarray[object, ndim=2] values,
                          ndarray[int64_t] bins, int64_t rank):
-    '''
+    """
     Only aggregates on axis=0
-    '''
+    """
     cdef:
         Py_ssize_t i, j, N, K, ngroups, b
         object val
@@ -2167,9 +2167,9 @@ def group_last_object(ndarray[object, ndim=2] out,
                       ndarray[int64_t] counts,
                       ndarray[object, ndim=2] values,
                       ndarray[int64_t] labels):
-    '''
+    """
     Only aggregates on axis=0
-    '''
+    """
     cdef:
         Py_ssize_t i, j, N, K, lab
         object val
@@ -2209,9 +2209,9 @@ def group_last_bin_object(ndarray[object, ndim=2] out,
                           ndarray[int64_t] counts,
                           ndarray[object, ndim=2] values,
                           ndarray[int64_t] bins):
-    '''
+    """
     Only aggregates on axis=0
-    '''
+    """
     cdef:
         Py_ssize_t i, j, N, K, ngroups, b
         object val

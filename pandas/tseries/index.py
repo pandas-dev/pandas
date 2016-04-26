@@ -2148,9 +2148,9 @@ def cdate_range(start=None, end=None, periods=None, freq='C', tz=None,
 
 
 def _to_m8(key, tz=None):
-    '''
+    """
     Timestamp-like => dt64
-    '''
+    """
     if not isinstance(key, Timestamp):
         # this also converts strings
         key = Timestamp(key, tz=tz)

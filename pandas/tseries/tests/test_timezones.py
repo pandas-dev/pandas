@@ -845,21 +845,21 @@ class TestTimeZoneSupportDateutil(TestTimeZoneSupportPytz):
         tm._skip_if_no_dateutil()
 
     def tz(self, tz):
-        '''
+        """
         Construct a dateutil timezone.
         Use tslib.maybe_get_tz so that we get the filename on the tz right
         on windows. See #7337.
-        '''
+        """
         return tslib.maybe_get_tz('dateutil/' + tz)
 
     def tzstr(self, tz):
-        ''' Construct a timezone string from a string. Overridden in subclass
-        to parameterize tests. '''
+        """ Construct a timezone string from a string. Overridden in subclass
+        to parameterize tests. """
         return 'dateutil/' + tz
 
     def cmptz(self, tz1, tz2):
-        ''' Compare two timezones. Overridden in subclass to parameterize
-        tests. '''
+        """ Compare two timezones. Overridden in subclass to parameterize
+        tests. """
         return tz1 == tz2
 
     def localize(self, tz, x):

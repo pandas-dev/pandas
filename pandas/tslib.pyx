@@ -1393,10 +1393,10 @@ cpdef convert_str_to_tsobject(object ts, object tz, object unit,
     return convert_to_tsobject(ts, tz, unit)
 
 def _test_parse_iso8601(object ts):
-    '''
+    """
     TESTING ONLY: Parse string into Timestamp using iso8601 parser. Used
     only for testing, actual construction uses `convert_str_to_tsobject`
-    '''
+    """
     cdef:
         _TSObject obj
         int out_local = 0, out_tzoffset = 0
@@ -1414,9 +1414,9 @@ def _test_parse_iso8601(object ts):
         return Timestamp(obj.value)
 
 cdef inline void _localize_tso(_TSObject obj, object tz):
-    '''
+    """
     Take a TSObject in UTC and localizes to timezone tz.
-    '''
+    """
     if _is_utc(tz):
         obj.tzinfo = tz
     elif _is_tzlocal(tz):
@@ -1457,9 +1457,9 @@ cdef inline void _localize_tso(_TSObject obj, object tz):
 
 
 def _localize_pydatetime(object dt, object tz):
-    '''
+    """
     Take a datetime/Timestamp in UTC and localizes to timezone tz.
-    '''
+    """
     if tz is None:
         return dt
     elif isinstance(dt, Timestamp):
@@ -1480,7 +1480,7 @@ cdef inline bint _is_utc(object tz):
     return tz is UTC or isinstance(tz, _dateutil_tzutc)
 
 cdef inline object _get_zone(object tz):
-    '''
+    """
     We need to do several things here:
     1/ Distinguish between pytz and dateutil timezones
     2/ Not be over-specific (e.g. US/Eastern with/without DST is same *zone* but a different tz object)
@@ -1488,7 +1488,7 @@ cdef inline object _get_zone(object tz):
 
     We return a string prefaced with dateutil if it's a dateutil tz, else just the tz name. It needs to be a
     string so that we can serialize it with UJSON/pytables. maybe_get_tz (below) is the inverse of this process.
-    '''
+    """
     if _is_utc(tz):
         return 'UTC'
     else:
@@ -1510,10 +1510,10 @@ cdef inline object _get_zone(object tz):
 
 
 cpdef inline object maybe_get_tz(object tz):
-    '''
+    """
     (Maybe) Construct a timezone object from a string. If tz is a string, use it to construct a timezone object.
     Otherwise, just return tz.
-    '''
+    """
     if isinstance(tz, string_types):
         if tz.startswith('dateutil/'):
             zone = tz[9:]
@@ -3459,10 +3459,10 @@ def cast_to_nanoseconds(ndarray arr):
 
 
 def pydt_to_i8(object pydt):
-    '''
+    """
     Convert to int64 representation compatible with numpy datetime64; converts
     to UTC
-    '''
+    """
     cdef:
         _TSObject ts
 
@@ -3471,9 +3471,9 @@ def pydt_to_i8(object pydt):
     return ts.value
 
 def i8_to_pydt(int64_t i8, object tzinfo = None):
-    '''
+    """
     Inverse of pydt_to_i8
-    '''
+    """
     return Timestamp(i8)
 
 #----------------------------------------------------------------------
@@ -3649,7 +3649,7 @@ cdef inline bint _treat_tz_as_dateutil(object tz):
 
 
 def _p_tz_cache_key(tz):
-    ''' Python interface for cache function to facilitate testing.'''
+    """ Python interface for cache function to facilitate testing."""
     return _tz_cache_key(tz)
 
 
@@ -3741,10 +3741,10 @@ cdef object _get_dst_info(object tz):
     return dst_cache[cache_key]
 
 cdef object _get_utc_trans_times_from_dateutil_tz(object tz):
-    '''
+    """
     Transition times in dateutil timezones are stored in local non-dst time. This code
     converts them to UTC. It's the reverse of the code in dateutil.tz.tzfile.__init__.
-    '''
+    """
     new_trans = list(tz._trans_list)
     last_std_offset = 0
     for i, (trans, tti) in enumerate(zip(tz._trans_list, tz._trans_idx)):
@@ -3951,9 +3951,9 @@ cdef inline bisect_right_i8(int64_t *data, int64_t val, Py_ssize_t n):
 #----------------------------------------------------------------------
 
 def build_field_sarray(ndarray[int64_t] dtindex):
-    '''
+    """
     Datetime as int64 representation to a structured array of fields
-    '''
+    """
     cdef:
         Py_ssize_t i, count = 0
         int isleap
@@ -3993,9 +3993,9 @@ def build_field_sarray(ndarray[int64_t] dtindex):
     return out
 
 def get_time_micros(ndarray[int64_t] dtindex):
-    '''
+    """
     Datetime as int64 representation to a structured array of fields
-    '''
+    """
     cdef:
         Py_ssize_t i, n = len(dtindex)
         pandas_datetimestruct dts
@@ -4014,10 +4014,10 @@ def get_time_micros(ndarray[int64_t] dtindex):
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def get_date_field(ndarray[int64_t] dtindex, object field):
-    '''
+    """
     Given a int64-based datetime index, extract the year, month, etc.,
     field and return an array of these values.
-    '''
+    """
     cdef:
         _TSObject ts
         Py_ssize_t i, count = 0
@@ -4179,11 +4179,11 @@ def get_date_field(ndarray[int64_t] dtindex, object field):
 
 @cython.wraparound(False)
 def get_start_end_field(ndarray[int64_t] dtindex, object field, object freqstr=None, int month_kw=12):
-    '''
+    """
     Given an int64-based datetime index return array of indicators
     of whether timestamps are at the start/end of the month/quarter/year
     (defined by frequency).
-    '''
+    """
     cdef:
         _TSObject ts
         Py_ssize_t i
@@ -4398,10 +4398,10 @@ def get_start_end_field(ndarray[int64_t] dtindex, object field, object freqstr=N
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def get_date_name_field(ndarray[int64_t] dtindex, object field):
-    '''
+    """
     Given a int64-based datetime index, return array of strings of date
     name based on requested field (e.g. weekday_name)
-    '''
+    """
     cdef:
         _TSObject ts
         Py_ssize_t i, count = 0
@@ -4587,14 +4587,14 @@ cdef inline int days_in_month(pandas_datetimestruct dts) nogil:
     return days_per_month_table[is_leapyear(dts.year)][dts.month-1]
 
 cpdef normalize_date(object dt):
-    '''
+    """
     Normalize datetime.datetime value to midnight. Returns datetime.date as a
     datetime.datetime at midnight
 
     Returns
     -------
     normalized : datetime.datetime or Timestamp
-    '''
+    """
     if PyDateTime_Check(dt):
         return dt.replace(hour=0, minute=0, second=0, microsecond=0)
     elif PyDate_Check(dt):
@@ -4605,19 +4605,19 @@ cpdef normalize_date(object dt):
 
 cdef inline int _year_add_months(pandas_datetimestruct dts,
                                  int months) nogil:
-    '''new year number after shifting pandas_datetimestruct number of months'''
+    """new year number after shifting pandas_datetimestruct number of months"""
     return dts.year + (dts.month + months - 1) / 12
 
 cdef inline int _month_add_months(pandas_datetimestruct dts,
                                   int months) nogil:
-    '''new month number after shifting pandas_datetimestruct number of months'''
+    """new month number after shifting pandas_datetimestruct number of months"""
     cdef int new_month = (dts.month + months) % 12
     return 12 if new_month == 0 else new_month
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def shift_months(int64_t[:] dtindex, int months, object day=None):
-    '''
+    """
     Given an int64-based datetime index, shift all elements
     specified number of months using DateOffset semantics
 
@@ -4625,7 +4625,7 @@ def shift_months(int64_t[:] dtindex, int months, object day=None):
        * None: day of month
        * 'start' 1st day of month
        * 'end' last day of month
-    '''
+    """
     cdef:
         Py_ssize_t i
         pandas_datetimestruct dts
