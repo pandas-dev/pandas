@@ -2318,24 +2318,18 @@ class TestToDatetime(tm.TestCase):
         assert_series_equal(result, expected2)
 
         # unit mappings
-        units = [{'year': 'year',
+        units = [{'year': 'years',
+                  'month': 'months',
+                  'day': 'days',
+                  'hour': 'hours',
+                  'minute': 'minutes',
+                  'second': 'seconds'},
+                 {'year': 'year',
                   'month': 'month',
                   'day': 'day',
-                  'hour': 'HH',
-                  'minute': 'MM',
-                  'second': 'SS'},
-                 {'year': '%Y',
-                  'month': '%m',
-                  'day': '%d',
-                  'hour': '%H',
-                  'minute': '%M',
-                  'second': '%S'},
-                 {'year': 'y',
-                  'month': 'month',
-                  'day': 'd',
-                  'hour': 'h',
-                  'minute': 'm',
-                  'second': 's'},
+                  'hour': 'hour',
+                  'minute': 'min',
+                  'second': 'sec'},
                  ]
 
         for d in units:
@@ -2344,12 +2338,12 @@ class TestToDatetime(tm.TestCase):
                                Timestamp('20160305 07:59:11')])
             assert_series_equal(result, expected)
 
-        d = {'year': 'y',
+        d = {'year': 'year',
              'month': 'month',
-             'day': 'd',
-             'hour': 'h',
-             'minute': 'm',
-             'second': 's',
+             'day': 'day',
+             'hour': 'hour',
+             'minute': 'minute',
+             'second': 'second',
              'ms': 'ms',
              'us': 'us',
              'ns': 'ns'}
@@ -2360,7 +2354,7 @@ class TestToDatetime(tm.TestCase):
         assert_series_equal(result, expected)
 
         # coerce back to int
-        result = to_datetime(df.astype(str), unit=d)
+        result = to_datetime(df.astype(str))
         assert_series_equal(result, expected)
 
         # passing coerce
