@@ -58,7 +58,8 @@ def mask_missing(arr, values_to_mask):
 
 
 def clean_fill_method(method, allow_nearest=False):
-    if method is None:
+    # asfreq is compat for resampling
+    if method in [None, 'asfreq']:
         return None
 
     if isinstance(method, string_types):
