@@ -2328,8 +2328,8 @@ class TestToDatetime(tm.TestCase):
                   'month': 'month',
                   'day': 'day',
                   'hour': 'hour',
-                  'minute': 'min',
-                  'second': 'sec'},
+                  'minute': 'minute',
+                  'second': 'second'},
                  ]
 
         for d in units:

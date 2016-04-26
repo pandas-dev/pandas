@@ -1781,6 +1781,7 @@ Upsampling
    Resampler.pad
    Resampler.fillna
    Resampler.asfreq
+   Resampler.interpolate
 
 Computations / Descriptive Stats
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
