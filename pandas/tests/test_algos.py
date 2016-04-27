@@ -11,6 +11,7 @@ from pandas import compat
 import pandas.core.algorithms as algos
 import pandas.util.testing as tm
 import pandas.hashtable as hashtable
+from pandas.compat.numpy_compat import np_array_datetime64_compat
 
 
 class TestMatch(tm.TestCase):
@@ -275,9 +276,10 @@ class TestUnique(tm.TestCase):
 
     def test_datetime64_dtype_array_returned(self):
         # GH 9431
-        expected = np.array(['2015-01-03T00:00:00.000000000+0000',
-                             '2015-01-01T00:00:00.000000000+0000'],
-                            dtype='M8[ns]')
+        expected = np_array_datetime64_compat(
+            ['2015-01-03T00:00:00.000000000+0000',
+             '2015-01-01T00:00:00.000000000+0000'],
+            dtype='M8[ns]')
 
         dt_index = pd.to_datetime(['2015-01-03T00:00:00.000000000+0000',
                                    '2015-01-01T00:00:00.000000000+0000',

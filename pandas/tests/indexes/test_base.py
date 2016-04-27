@@ -21,6 +21,7 @@ from pandas import (period_range, date_range, Series,
                     CategoricalIndex, DatetimeIndex, TimedeltaIndex,
                     PeriodIndex)
 from pandas.util.testing import assert_almost_equal
+from pandas.compat.numpy_compat import np_datetime64_compat
 
 import pandas.core.config as cf
 
@@ -250,18 +251,18 @@ class TestIndex(Base, tm.TestCase):
 
         for idx in [Index(np.array([1, 2, 3], dtype=int), dtype='category'),
                     Index([1, 2, 3], dtype='category'),
-                    Index(np.array([np.datetime64('2011-01-01'),
-                                    np.datetime64('2011-01-02')]), dtype='category'),
+                    Index(np.array([np_datetime64_compat('2011-01-01'),
+                                    np_datetime64_compat('2011-01-02')]), dtype='category'),
                     Index([datetime(2011, 1, 1), datetime(2011, 1, 2)], dtype='category')]:
             self.assertIsInstance(idx, CategoricalIndex)
 
-        for idx in [Index(np.array([np.datetime64('2011-01-01'),
-                                    np.datetime64('2011-01-02')])),
+        for idx in [Index(np.array([np_datetime64_compat('2011-01-01'),
+                                    np_datetime64_compat('2011-01-02')])),
                     Index([datetime(2011, 1, 1), datetime(2011, 1, 2)])]:
             self.assertIsInstance(idx, DatetimeIndex)
 
-        for idx in [Index(np.array([np.datetime64('2011-01-01'),
-                                    np.datetime64('2011-01-02')]), dtype=object),
+        for idx in [Index(np.array([np_datetime64_compat('2011-01-01'),
+                                    np_datetime64_compat('2011-01-02')]), dtype=object),
                     Index([datetime(2011, 1, 1),
                            datetime(2011, 1, 2)], dtype=object)]:
             self.assertNotIsInstance(idx, DatetimeIndex)
@@ -442,8 +443,8 @@ class TestIndex(Base, tm.TestCase):
 
         self.assertEqual(
             first_value,
-            x[Timestamp(np.datetime64('2013-01-01 00:00:00.000000050+0000',
-                                      'ns'))])
+            x[Timestamp(np_datetime64_compat('2013-01-01 00:00:00.000000050+0000',
+                                             'ns'))])
 
     def test_comparators(self):
         index = self.dateIndex
