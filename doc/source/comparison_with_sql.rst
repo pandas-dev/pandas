@@ -405,22 +405,28 @@ Top N rows per group
 
 .. ipython:: python
 
-    tips.sort_values(['total_bill'], ascending=False).groupby('sex').head(3)
+    (tips.sort_values(['total_bill'], ascending=False)
+         .groupby('sex')
+         .head(3)
+    )
 
 Let's add an `RN` (Row Number) column
 
 .. ipython:: python
 
-    tips['rn'] = tips.sort_values(['total_bill'], ascending=False) \
-                     .groupby(['day']) \
-                     .cumcount() + 1
+    tips['rn'] = (tips.sort_values(['total_bill'], ascending=False)
+                      .groupby(['day'])
+                      .cumcount() + 1
+                 )
     tips.loc[tips['rn'] < 3].sort_values(['day','rn'])
 
 the same using `rank(method='first')` function
 
 .. ipython:: python
 
-    tips['rnk'] = tips.groupby(['day'])['total_bill'].rank(method='first', ascending=False)
+    tips['rnk'] = (tips.groupby(['day'])['total_bill']
+                       .rank(method='first', ascending=False
+                  )
     tips.loc[tips['rnk'] < 3].sort_values(['day','rnk'])
 
 .. code-block:: sql
@@ -437,7 +443,9 @@ the same using `rank(method='first')` function
 
 .. ipython:: python
 
-    tips['rnk_min'] = tips.groupby(['day'])['total_bill'].rank(method='min', ascending=False)
+    tips['rnk_min'] = (tips.groupby(['day'])['total_bill']
+                           .rank(method='min', ascending=False
+                      )
     tips.loc[tips['rnk_min'] < 3].sort_values(['day','rnk_min'])
 
 
