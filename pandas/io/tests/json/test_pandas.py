@@ -809,16 +809,47 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
 
     def test_default_handler(self):
         value = object()
-        frame = DataFrame({'a': ['a', value]})
-        expected = frame.applymap(str)
+        frame = DataFrame({'a': [7, value]})
+        expected = DataFrame({'a': [7, str(value)]})
         result = pd.read_json(frame.to_json(default_handler=str))
         assert_frame_equal(expected, result, check_index_type=False)
+
+    def test_default_handler_indirect(self):
+        from pandas.io.json import dumps
+
+        def default(obj):
+            if isinstance(obj, complex):
+                return [('mathjs', 'Complex'),
+                        ('re', obj.real),
+                        ('im', obj.imag)]
+            return str(obj)
+        df_list = [9, DataFrame({'a': [1, 'STR', complex(4, -5)],
+                                 'b': [float('nan'), None, 'N/A']},
+                                columns=['a', 'b'])]
+        expected = ('[9,[[1,null],["STR",null],[[["mathjs","Complex"],'
+                    '["re",4.0],["im",-5.0]],"N\\/A"]]]')
+        self.assertEqual(expected, dumps(df_list, default_handler=default,
+                                         orient="values"))
+
+    def test_default_handler_numpy_unsupported_dtype(self):
+        # GH12554 to_json raises 'Unhandled numpy dtype 15'
+        df = DataFrame({'a': [1, 2.3, complex(4, -5)],
+                        'b': [float('nan'), None, complex(1.2, 0)]},
+                       columns=['a', 'b'])
+        expected = ('[["(1+0j)","(nan+0j)"],'
+                    '["(2.3+0j)","(nan+0j)"],'
+                    '["(4-5j)","(1.2+0j)"]]')
+        self.assertEqual(expected, df.to_json(default_handler=str,
+                                              orient="values"))
 
     def test_default_handler_raises(self):
         def my_handler_raises(obj):
             raise TypeError("raisin")
         self.assertRaises(TypeError,
                           DataFrame({'a': [1, 2, object()]}).to_json,
+                          default_handler=my_handler_raises)
+        self.assertRaises(TypeError,
+                          DataFrame({'a': [1, 2, complex(4, -5)]}).to_json,
                           default_handler=my_handler_raises)
 
     def test_categorical(self):
