@@ -400,17 +400,10 @@ Top N rows per group
         ROW_NUMBER() OVER(PARTITION BY day ORDER BY total_bill DESC) AS rn
       FROM tips t
     )
-    WHERE rn <= 3
+    WHERE rn < 3
     ORDER BY day, rn;
 
-.. ipython:: python
-
-    (tips.sort_values(['total_bill'], ascending=False)
-         .groupby('sex')
-         .head(3)
-    )
-
-Let's add an `RN` (Row Number) column
+Let's add a helper column: `RN` (Row Number)
 
 .. ipython:: python
 
@@ -425,7 +418,7 @@ the same using `rank(method='first')` function
 .. ipython:: python
 
     tips['rnk'] = (tips.groupby(['day'])['total_bill']
-                       .rank(method='first', ascending=False
+                       .rank(method='first', ascending=False)
                   )
     tips.loc[tips['rnk'] < 3].sort_values(['day','rnk'])
 
