@@ -234,6 +234,10 @@ class TestSparseArray(tm.TestCase):
         assertRaisesRegexp(TypeError, "item assignment", setitem)
         assertRaisesRegexp(TypeError, "item assignment", setslice)
 
+    def test_constructor_from_too_large_array(self):
+        assertRaisesRegexp(TypeError, "expected dimension <= 1 data",
+                           SparseArray, np.arange(10).reshape((2, 5)))
+
     def test_constructor_from_sparse(self):
         res = SparseArray(self.zarr)
         self.assertEqual(res.fill_value, 0)
