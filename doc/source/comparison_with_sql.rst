@@ -444,7 +444,7 @@ the same using `rank(method='first')` function
 .. ipython:: python
 
     tips['rnk_min'] = (tips.groupby(['day'])['total_bill']
-                           .rank(method='min', ascending=False
+                           .rank(method='min', ascending=False)
                       )
     tips.loc[tips['rnk_min'] < 3].sort_values(['day','rnk_min'])
 
