@@ -1,6 +1,6 @@
 .. _whatsnew_0181:
 
-v0.18.1 (Mayl ??, 2016)
+v0.18.1 (May ??, 2016)
 -----------------------
 
 This is a minor bug-fix release from 0.18.0 and includes a large number of
@@ -19,7 +19,6 @@ Highlights include:
     :backlinks: none
 
 .. _whatsnew_0181.new_features:
-
 
 New features
 ~~~~~~~~~~~~
@@ -45,11 +44,6 @@ see :ref:`Custom Business Hour <timeseries.custombusinesshour>` (:issue:`11514`)
 
     # Tuesday after MLK Day (Monday is skipped because it's a holiday)
     dt + bhour_us * 2
-
-.. _whatsnew_0181.enhancements:
-
-Enhancements
-~~~~~~~~~~~~
 
 .. _whatsnew_0181.deferred_ops:
 
@@ -195,7 +189,7 @@ These changes conform sparse handling to return the correct types and work to ma
 - Bug in ``SparseSeries.loc[]``, ``.iloc[]`` with ``slice`` returns ``SparseArray``, rather than ``SparseSeries`` (:issue:`10560`)
 - Bug in ``SparseDataFrame.loc[]``, ``.iloc[]`` may results in dense ``Series``, rather than ``SparseSeries`` (:issue:`12787`)
 - Bug in ``SparseArray`` addition ignores ``fill_value`` of right hand side (:issue:`12910`)
-- Bug in ``SparseArray`` mod raises ``AttributeError (:issue:`12910`)
+- Bug in ``SparseArray`` mod raises ``AttributeError`` (:issue:`12910`)
 - Bug in ``SparseArray`` pow calculates ``1 ** np.nan`` as ``np.nan`` which must be 1 (:issue:`12910`)
 - Bug in ``SparseArray`` comparison output may incorrect result or raise ``ValueError`` (:issue:`12971`)
 - Bug in ``SparseSeries.__repr__`` raises ``TypeError`` when it is longer than ``max_rows`` (:issue:`10560`)
@@ -210,10 +204,15 @@ These changes conform sparse handling to return the correct types and work to ma
 - Bug in ``pd.concat()`` of ``SparseDataFrame`` may raise ``AttributeError`` (:issue:`12174`)
 - Bug in ``SparseArray.shift()`` may raise ``NameError`` or ``TypeError`` (:issue:`12908`)
 
+.. _whatsnew_0181.api:
+
+API changes
+~~~~~~~~~~~
+
 .. _whatsnew_0181.api.groubynth:
 
 ``.groupby(..).nth()`` changes
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The index in ``.groupby(..).nth()`` output is now more consistent when the ``as_index`` argument is passed (:issue:`11039`):
 
@@ -283,27 +282,6 @@ New Behavior:
    df.groupby('c', sort=True).nth(1)
    df.groupby('c', sort=False).nth(1)
 
-.. _whatsnew_0181.api:
-
-API changes
-~~~~~~~~~~~
-- ``.swaplevel()`` for ``Series``, ``DataFrame``, ``Panel``, and ``MultiIndex`` now features defaults for its first two parameters ``i`` and ``j`` that swap the two innermost levels of the index. (:issue:`12934`)
-
-- ``.searchsorted()`` for ``Index`` and ``TimedeltaIndex`` now accept a ``sorter`` argument to maintain compatibility with numpy's ``searchsorted`` function (:issue:`12238`)
-
-- ``Period`` and ``PeriodIndex`` now raises ``IncompatibleFrequency`` error which inherits ``ValueError`` rather than raw ``ValueError`` (:issue:`12615`)
-
-- ``Series.apply`` for category dtype now applies the passed function to each ``.categories`` (not ``.codes``), and returns a ``category`` dtype if possible (:issue:`12473`)
-
-- ``read_csv`` will now raise a ``TypeError`` if ``parse_dates`` is neither a boolean, list, or dictionary (:issue:`5636`)
-
-- The default for ``.query()/.eval()`` is now ``engine=None``, which will use ``numexpr`` if it's installed; otherwise it will fallback to the ``python`` engine. This mimics the pre-0.18.1 behavior if ``numexpr`` is installed (and which Previously, if numexpr was not installed, ``.query()/.eval()`` would raise). (:issue:`12749`)
-
-
-- ``pd.show_versions()`` now includes ``pandas_datareader`` version (:issue:`12740`)
-- Provide a proper ``__name__`` and ``__qualname__`` attributes for generic functions (:issue:`12021`)
-- ``pd.concat(ignore_index=True)`` now uses ``RangeIndex`` as default (:issue:`12695`)
-- ``pd.merge()`` and ``DataFrame.join()`` will show a ``UserWarning`` when merging/joining a single- with a multi-leveled dataframe (:issue:`9455`, :issue:`12219`)
 
 .. _whatsnew_0181.apply_resample:
 
@@ -386,6 +364,24 @@ In addition to this error change, several others have been made as well:
 - ``pandas.parser.OverflowError`` exception has been removed and has been replaced with Python's built-in ``OverflowError`` exception (:issue:`12506`)
 - ``pd.read_csv()`` no longer allows a combination of strings and integers for the ``usecols`` parameter (:issue:`12678`)
 
+
+.. _whatsnew_0181.api.other:
+
+Other API changes
+^^^^^^^^^^^^^^^^^
+
+- ``.swaplevel()`` for ``Series``, ``DataFrame``, ``Panel``, and ``MultiIndex`` now features defaults for its first two parameters ``i`` and ``j`` that swap the two innermost levels of the index. (:issue:`12934`)
+- ``.searchsorted()`` for ``Index`` and ``TimedeltaIndex`` now accept a ``sorter`` argument to maintain compatibility with numpy's ``searchsorted`` function (:issue:`12238`)
+- ``Period`` and ``PeriodIndex`` now raises ``IncompatibleFrequency`` error which inherits ``ValueError`` rather than raw ``ValueError`` (:issue:`12615`)
+- ``Series.apply`` for category dtype now applies the passed function to each ``.categories`` (not ``.codes``), and returns a ``category`` dtype if possible (:issue:`12473`)
+- ``read_csv`` will now raise a ``TypeError`` if ``parse_dates`` is neither a boolean, list, or dictionary (:issue:`5636`)
+- The default for ``.query()/.eval()`` is now ``engine=None``, which will use ``numexpr`` if it's installed; otherwise it will fallback to the ``python`` engine. This mimics the pre-0.18.1 behavior if ``numexpr`` is installed (and which Previously, if numexpr was not installed, ``.query()/.eval()`` would raise). (:issue:`12749`)
+- ``pd.show_versions()`` now includes ``pandas_datareader`` version (:issue:`12740`)
+- Provide a proper ``__name__`` and ``__qualname__`` attributes for generic functions (:issue:`12021`)
+- ``pd.concat(ignore_index=True)`` now uses ``RangeIndex`` as default (:issue:`12695`)
+- ``pd.merge()`` and ``DataFrame.join()`` will show a ``UserWarning`` when merging/joining a single- with a multi-leveled dataframe (:issue:`9455`, :issue:`12219`)
+
+
 .. _whatsnew_0181.deprecations:
 
 Deprecations
@@ -411,7 +407,7 @@ Performance Improvements
 
 
 - Improved performance of ``DataFrame.to_sql`` when checking case sensitivity for tables. Now only checks if table has been created correctly when table name is not lower case. (:issue:`12876`)
-- Improved performance of ``Period`` construction and plotting of ``Period``s. (:issue:`12903`, :issue:`11831`)
+- Improved performance of ``Period`` construction and time series plotting (:issue:`12903`, :issue:`11831`).
 
 
 
@@ -513,4 +509,4 @@ Bug Fixes
 - Bug in ``Series.name`` when ``name`` attribute can be a hashable type (:issue:`12610`)
 - Bug in ``.describe()`` resets categorical columns information (:issue:`11558`)
 - Bug where ``loffset`` argument was not applied when calling ``resample().count()`` on a timeseries (:issue:`12725`)
-- ``pd.read_excel()`` now accepts column names associated with keyword argument ``names``(:issue:`12870`)
+- ``pd.read_excel()`` now accepts column names associated with keyword argument ``names`` (:issue:`12870`)
