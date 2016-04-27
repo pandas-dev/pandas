@@ -61,7 +61,7 @@ from pandas.sparse.array import BlockIndex, IntIndex
 from pandas.core.generic import NDFrame
 from pandas.core.common import PerformanceWarning
 from pandas.io.common import get_filepath_or_buffer
-from pandas.core.internals import BlockManager, make_block
+from pandas.core.internals import BlockManager, make_block, _safe_reshape
 import pandas.core.internals as internals
 
 from pandas.msgpack import Unpacker as _Unpacker, Packer as _Packer, ExtType
@@ -622,8 +622,9 @@ def decode(obj):
         axes = obj[u'axes']
 
         def create_block(b):
-            values = unconvert(b[u'values'], dtype_for(b[u'dtype']),
-                               b[u'compress']).reshape(b[u'shape'])
+            values = _safe_reshape(unconvert(
+                b[u'values'], dtype_for(b[u'dtype']),
+                b[u'compress']), b[u'shape'])
 
             # locs handles duplicate column names, and should be used instead
             # of items; see GH 9618
