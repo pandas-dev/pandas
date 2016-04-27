@@ -14,6 +14,7 @@ import pandas.util.testing as tm
 from pandas import (Series, Index, DatetimeIndex, TimedeltaIndex, PeriodIndex,
                     Timedelta)
 from pandas.compat import u, StringIO
+from pandas.compat.numpy_compat import np_array_datetime64_compat
 from pandas.core.base import (FrozenList, FrozenNDArray, PandasDelegate,
                               NoNewAttributesMixin)
 from pandas.tseries.base import DatetimeIndexOpsMixin
@@ -663,10 +664,10 @@ class TestIndexOps(Ops):
             expected_s = Series([3, 2, 1], index=idx)
             tm.assert_series_equal(s.value_counts(), expected_s)
 
-            expected = np.array(['2010-01-01 00:00:00Z',
-                                 '2009-01-01 00:00:00Z',
-                                 '2008-09-09 00:00:00Z'],
-                                dtype='datetime64[ns]')
+            expected = np_array_datetime64_compat(['2010-01-01 00:00:00Z',
+                                                   '2009-01-01 00:00:00Z',
+                                                   '2008-09-09 00:00:00Z'],
+                                                  dtype='datetime64[ns]')
             if isinstance(s, DatetimeIndex):
                 expected = DatetimeIndex(expected)
                 self.assertTrue(s.unique().equals(expected))

@@ -2174,19 +2174,17 @@ class ExcelWriterEngineTests(tm.TestCase):
             del called_save[:]
             del called_write_cells[:]
 
-        register_writer(DummyClass)
-        writer = ExcelWriter('something.test')
-        tm.assertIsInstance(writer, DummyClass)
-        df = tm.makeCustomDataframe(1, 1)
-        panel = tm.makePanel()
-        func = lambda: df.to_excel('something.test')
-        check_called(func)
-        check_called(lambda: panel.to_excel('something.test'))
-        val = get_option('io.excel.xlsx.writer')
-        set_option('io.excel.xlsx.writer', 'dummy')
-        check_called(lambda: df.to_excel('something.xlsx'))
-        check_called(lambda: df.to_excel('something.xls', engine='dummy'))
-        set_option('io.excel.xlsx.writer', val)
+        with pd.option_context('io.excel.xlsx.writer', 'dummy'):
+            register_writer(DummyClass)
+            writer = ExcelWriter('something.test')
+            tm.assertIsInstance(writer, DummyClass)
+            df = tm.makeCustomDataframe(1, 1)
+            panel = tm.makePanel()
+            func = lambda: df.to_excel('something.test')
+            check_called(func)
+            check_called(lambda: panel.to_excel('something.test'))
+            check_called(lambda: df.to_excel('something.xlsx'))
+            check_called(lambda: df.to_excel('something.xls', engine='dummy'))
 
 
 if __name__ == '__main__':
