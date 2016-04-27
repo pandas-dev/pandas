@@ -408,6 +408,8 @@ Performance Improvements
 
 - Improved performance of ``DataFrame.to_sql`` when checking case sensitivity for tables. Now only checks if table has been created correctly when table name is not lower case. (:issue:`12876`)
 - Improved performance of ``Period`` construction and time series plotting (:issue:`12903`, :issue:`11831`).
+- Improved performance of ``.str.encode()`` and ``.str.decode()`` methods (:issue:`13008`)
+
 
 
 
