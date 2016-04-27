@@ -533,6 +533,36 @@ class TestSeriesInterpolateData(TestData, tm.TestCase):
         interp_s = ser.reindex(new_index).interpolate(method='akima')
         assert_series_equal(interp_s[1:3], expected)
 
+    def test_interpolate_piecewise_polynomial(self):
+        tm._skip_if_no_scipy()
+
+        ser = Series([10, 11, 12, 13])
+
+        expected = Series([11.00, 11.25, 11.50, 11.75,
+                           12.00, 12.25, 12.50, 12.75, 13.00],
+                          index=Index([1.0, 1.25, 1.5, 1.75,
+                                       2.0, 2.25, 2.5, 2.75, 3.0]))
+        # interpolate at new_index
+        new_index = ser.index.union(Index([1.25, 1.5, 1.75, 2.25, 2.5, 2.75]))
+        interp_s = ser.reindex(new_index).interpolate(
+            method='piecewise_polynomial')
+        assert_series_equal(interp_s[1:3], expected)
+
+    def test_interpolate_from_derivatives(self):
+        tm._skip_if_no_scipy()
+
+        ser = Series([10, 11, 12, 13])
+
+        expected = Series([11.00, 11.25, 11.50, 11.75,
+                           12.00, 12.25, 12.50, 12.75, 13.00],
+                          index=Index([1.0, 1.25, 1.5, 1.75,
+                                       2.0, 2.25, 2.5, 2.75, 3.0]))
+        # interpolate at new_index
+        new_index = ser.index.union(Index([1.25, 1.5, 1.75, 2.25, 2.5, 2.75]))
+        interp_s = ser.reindex(new_index).interpolate(
+            method='from_derivatives')
+        assert_series_equal(interp_s[1:3], expected)
+
     def test_interpolate_corners(self):
         s = Series([np.nan, np.nan])
         assert_series_equal(s.interpolate(), s)
