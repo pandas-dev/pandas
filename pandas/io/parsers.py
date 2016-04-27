@@ -775,9 +775,12 @@ class TextFileReader(BaseIterator):
         # Converting values to NA
         na_values, na_fvalues = _clean_na_values(na_values, keep_default_na)
 
-        if com.is_integer(skiprows):
-            skiprows = lrange(skiprows)
-        skiprows = set() if skiprows is None else set(skiprows)
+        # handle skiprows; this is internally handled by the
+        # c-engine, so only need for python parsers
+        if engine != 'c':
+            if com.is_integer(skiprows):
+                skiprows = lrange(skiprows)
+            skiprows = set() if skiprows is None else set(skiprows)
 
         # put stuff back
         result['names'] = names
