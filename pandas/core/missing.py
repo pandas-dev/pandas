@@ -223,13 +223,22 @@ def _interpolate_scipy_wrapper(x, y, new_x, method, fill_value=None,
         raise ImportError('{0} interpolation requires Scipy'.format(method))
 
     new_x = np.asarray(new_x)
-
-    # ignores some kwargs that could be passed along.
-    alt_methods = {
-        'barycentric': interpolate.barycentric_interpolate,
-        'krogh': interpolate.krogh_interpolate,
-        'piecewise_polynomial': interpolate.piecewise_polynomial_interpolate,
-    }
+    import scipy
+    if scipy.__version__ <= '0.17':
+        # ignores some kwargs that could be passed along.
+        alt_methods = {
+            'barycentric': interpolate.barycentric_interpolate,
+            'krogh': interpolate.krogh_interpolate,
+            'piecewise_polynomial':
+                interpolate.piecewise_polynomial_interpolate,
+        }
+    else:
+        # ignores some kwargs that could be passed along.
+        alt_methods = {
+            'barycentric': interpolate.barycentric_interpolate,
+            'krogh': interpolate.krogh_interpolate,
+            'from_derivatives': interpolate.BPoly.from_derivatives,
+        }
 
     if getattr(x, 'is_all_dates', False):
         # GH 5975, scipy.interp1d can't hande datetime64s

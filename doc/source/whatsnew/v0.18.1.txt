@@ -656,3 +656,4 @@ Bug Fixes
 - Bug in ``to_numeric`` with ``Index`` returns ``np.ndarray``, rather than ``Index`` (:issue:`12777`)
 - Bug in ``to_numeric`` with datetime-like may raise ``TypeError`` (:issue:`12777`)
 - Bug in ``to_numeric`` with scalar raises ``ValueError`` (:issue:`12777`)
+- Compat with SciPy > 0.17 for deprecated 'piecewise_polynomial' interpolation method (:issue:`12887`)

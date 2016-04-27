@@ -3452,7 +3452,7 @@ class NDFrame(PandasObject):
         ----------
         method : {'linear', 'time', 'index', 'values', 'nearest', 'zero',
                   'slinear', 'quadratic', 'cubic', 'barycentric', 'krogh',
-                  'polynomial', 'spline' 'piecewise_polynomial', 'pchip',
+                  'polynomial', 'spline' 'from_derivatives', 'pchip',
                   'akima'}
 
             * 'linear': ignore the index and treat the values as equally
@@ -3473,9 +3473,14 @@ class NDFrame(PandasObject):
               the scipy documentation for more on their behavior
               `here <http://docs.scipy.org/doc/scipy/reference/interpolate.html#univariate-interpolation>`__  # noqa
               `and here <http://docs.scipy.org/doc/scipy/reference/tutorial/interpolate.html>`__  # noqa
+            * 'from_derivatives' refers to BPoly.from_derivatives which
+              replaces 'piecewise_polynomial' interpolation method for
+              scipy versions > 0.17
 
             .. versionadded:: 0.18.1
                Added support for the 'akima' method
+               Replaced interpolate method 'piecewise_polynomial' with
+               'from_derivatives' for scipy > 0.17
 
         axis : {0, 1}, default 0
             * 0: fill column-by-column
