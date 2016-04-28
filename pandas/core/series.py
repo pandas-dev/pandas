@@ -2370,10 +2370,14 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
 
         Parameters
         ----------
-        values : list-like
+        values : set or list-like
             The sequence of values to test. Passing in a single string will
             raise a ``TypeError``. Instead, turn a single string into a
             ``list`` of one element.
+
+            .. versionadded:: 0.18.1
+
+            Support for values as a set
 
         Returns
         -------

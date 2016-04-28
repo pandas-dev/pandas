@@ -2246,8 +2246,13 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
 
         Parameters
         ----------
-        values : set or sequence of values
+        values : set or list-like
             Sought values.
+
+            .. versionadded:: 0.18.1
+
+            Support for values as a set
+
         level : str or int, optional
             Name or position of the index level to use (if the index is a
             MultiIndex).

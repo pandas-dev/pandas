@@ -1191,6 +1191,10 @@ class TestIndex(Base, tm.TestCase):
         expected = np.array([False, False, True, True])
         tm.assert_numpy_array_equal(result, expected)
 
+        # set
+        result = idx.isin(set(values))
+        tm.assert_numpy_array_equal(result, expected)
+
         # empty, return dtype bool
         idx = Index([])
         result = idx.isin(values)

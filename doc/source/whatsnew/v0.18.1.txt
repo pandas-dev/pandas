@@ -238,6 +238,7 @@ Other Enhancements
 
 - ``pd.crosstab()`` has gained a ``normalize`` argument for normalizing frequency tables (:issue:`12569`). Examples in the updated docs :ref:`here <reshaping.crosstabulations>`.
 - ``.resample(..).interpolate()`` is now supported (:issue:`12925`)
+- ``.isin()`` now accepts passed ``sets`` (:issue:`12988`)
 
 .. _whatsnew_0181.sparse:
 
@@ -583,7 +584,6 @@ Bug Fixes
 
 
 - Bug in consistency of ``.name`` on ``.groupby(..).apply(..)`` cases (:issue:`12363`)
-
 
 - Bug in ``Timestamp.__repr__`` that caused ``pprint`` to fail in nested structures (:issue:`12622`)
 - Bug in ``Timedelta.min`` and ``Timedelta.max``, the properties now report the true minimum/maximum ``timedeltas`` as recognized by Pandas. See :ref:`documentation <timedeltas.limitations>`. (:issue:`12727`)
