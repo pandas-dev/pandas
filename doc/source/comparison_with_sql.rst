@@ -407,20 +407,22 @@ Let's add a helper column: `RN` (Row Number)
 
 .. ipython:: python
 
-    tips['rn'] = (tips.sort_values(['total_bill'], ascending=False)
-                      .groupby(['day'])
-                      .cumcount() + 1
-                 )
-    tips.loc[tips['rn'] < 3].sort_values(['day','rn'])
+    (tips.assign(rn=tips.sort_values(['total_bill'], ascending=False)
+                        .groupby(['day'])
+                        .cumcount() + 1)
+         .query('rn < 3')
+         .sort_values(['day','rn'])
+    )
 
 the same using `rank(method='first')` function
 
 .. ipython:: python
 
-    tips['rnk'] = (tips.groupby(['day'])['total_bill']
-                       .rank(method='first', ascending=False)
-                  )
-    tips.loc[tips['rnk'] < 3].sort_values(['day','rnk'])
+    (tips.assign(rnk=tips.groupby(['day'])['total_bill']
+                         .rank(method='first', ascending=False))
+         .query('rnk < 3')
+         .sort_values(['day','rnk'])
+    )
 
 .. code-block:: sql
 
@@ -428,18 +430,26 @@ the same using `rank(method='first')` function
     SELECT * FROM (
       SELECT
         t.*,
-        RANK() OVER(PARTITION BY day ORDER BY total_bill DESC) AS rnk
+        RANK() OVER(PARTITION BY sex ORDER BY tip) AS rnk
       FROM tips t
+      WHERE tip < 2
     )
     WHERE rnk < 3
-    ORDER BY day, rn;
+    ORDER BY sex, rnk;
+
+Let's find tips with (rank < 3) per gender group for (tips < 2).
+Notice that when using ``rank(method='min')`` function
+`rnk_min` remains the same for the same `tip`
+(as Oracle's RANK() function)
 
 .. ipython:: python
 
-    tips['rnk_min'] = (tips.groupby(['day'])['total_bill']
-                           .rank(method='min', ascending=False)
-                      )
-    tips.loc[tips['rnk_min'] < 3].sort_values(['day','rnk_min'])
+    (tips[tips['tip'] < 2]
+         .assign(rnk_min=tips.groupby(['sex'])['tip']
+                             .rank(method='min'))
+         .query('rnk_min < 3')
+         .sort_values(['sex','rnk_min'])
+    )
 
 
 UPDATE
