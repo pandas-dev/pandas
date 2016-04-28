@@ -87,11 +87,11 @@ def _wrap_result(name, data, sparse_index, fill_value):
 
 
 class SparseArray(PandasObject, np.ndarray):
-    """Data structure for labeled, sparse floating point data
+    """Data structure for labeled, sparse floating point 1-D data
 
     Parameters
     ----------
-    data : {array-like, Series, SparseSeries, dict}
+    data : {array-like (1-D), Series, SparseSeries, dict}
     kind : {'block', 'integer'}
     fill_value : float
         Defaults to NaN (code for missing)
@@ -563,7 +563,9 @@ def make_sparse(arr, kind='block', fill_value=nan):
     """
 
     arr = _sanitize_values(arr)
-    length = len(arr)
+
+    if np.ndim(arr) > 1:
+        raise TypeError("expected dimension <= 1 data")
 
     if np.isnan(fill_value):
         mask = ~np.isnan(arr)
