@@ -1118,6 +1118,9 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
         result = s.isin([np.datetime64(s[1])])
         assert_series_equal(result, expected2)
 
+        result = s.isin(set(s[0:2]))
+        assert_series_equal(result, expected)
+
         # timedelta64[ns]
         s = Series(pd.to_timedelta(lrange(5), unit='d'))
         result = s.isin(s[0:2])
