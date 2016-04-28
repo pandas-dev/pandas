@@ -109,9 +109,9 @@ For a python 3 environment:
 
     conda create -n pandas_dev python=3 --file ci/requirements_dev.txt
 
-If you are on Windows, then you will also need to install the compiler linkages:
-
-    conda install -n pandas_dev libpython
+> **warning**
+>
+> If you are on Windows, see here for a fully compliant Windows environment &lt;contributing.windows&gt;.
 
 This will create the new environment, and not touch any of your existing environments, nor any existing python installation. It will install all of the basic dependencies of *pandas*, as well as the development and testing tools. If you would like to install other dependencies, you can install them as follows:
 
@@ -142,6 +142,28 @@ To return to you home root environment:
 See the full conda docs [here](http://conda.pydata.org/docs).
 
 At this point you can easily do an *in-place* install, as detailed in the next section.
+
+### Creating a Windows development environment
+
+To build on Windows, you need to have compilers installed to build the extensions. You will need to install the appropriate Visual Studio compilers, VS 2008 for Python 2.7, VS 2010 for 3.4, and VS 2015 for Python 3.5.
+
+For Python 2.7, you can install the `mingw` compiler which will work equivalently to VS 2008:
+
+    conda install -n pandas_dev libpython
+
+or use the [Microsoft Visual Studio VC++ compiler for Python](https://www.microsoft.com/en-us/download/details.aspx?id=44266). Note that you have to check the `x64` box to install the `x64` extension building capability as this is not installed by default.
+
+For Python 3.4, you can download and install the [Windows 7.1 SDK](https://www.microsoft.com/en-us/download/details.aspx?id=8279). Read the references below as there may be various gotchas during the installation.
+
+For Python 3.5, you can download and install the [Visual Studio 2015 Community Edition](https://www.visualstudio.com/en-us/downloads/visual-studio-2015-downloads-vs.aspx).
+
+Here are some references and blogs:
+
+-   <https://blogs.msdn.microsoft.com/pythonengineering/2016/04/11/unable-to-find-vcvarsall-bat/>
+-   <https://github.com/conda/conda-recipes/wiki/Building-from-Source-on-Windows-32-bit-and-64-bit>
+-   <https://cowboyprogrammer.org/building-python-wheels-for-windows/>
+-   <https://blog.ionelmc.ro/2014/12/21/compiling-python-extensions-on-windows/>
+-   <https://support.enthought.com/hc/en-us/articles/204469260-Building-Python-extensions-with-Canopy>
 
 ### Making changes
 
@@ -258,17 +280,26 @@ Contributing to the code base
 
 ### Code standards
 
-*pandas* uses the [PEP8](http://www.python.org/dev/peps/pep-0008/) standard. There are several tools to ensure you abide by this standard.
+*pandas* uses the [PEP8](http://www.python.org/dev/peps/pep-0008/) standard. There are several tools to ensure you abide by this standard. Here are *some* of the more common `PEP8` issues:
 
-We've written a tool to check that your commits are PEP8 great, [pip install pep8radius](https://github.com/hayd/pep8radius). Look at PEP8 fixes in your branch vs master with:
+> -   we restrict line-length to 80 characters to promote readability
+> -   passing arguments should have spaces after commas, e.g. `foo(arg1, arg2, kw1='bar')`
 
-    pep8radius master --diff 
+The Travis-CI will run [flake8](http://pypi.python.org/pypi/flake8) tool and report any stylistic errors in your code. Generating any warnings will cause the build to fail; thus these are part of the requirements for submitting code to *pandas*.
+
+It is helpful before submitting code to run this yourself on the diff:
+
+    git diff master | flake8 --diff
+
+Furthermore, we've written a tool to check that your commits are PEP8 great, [pip install pep8radius](https://github.com/hayd/pep8radius). Look at PEP8 fixes in your branch vs master with:
+
+    pep8radius master --diff
 
 and make these changes with:
 
     pep8radius master --diff --in-place
 
-Alternatively, use the [flake8](http://pypi.python.org/pypi/flake8) tool for checking the style of your code. Additional standards are outlined on the [code style wiki page](https://github.com/pydata/pandas/wiki/Code-Style-and-Conventions).
+Additional standards are outlined on the [code style wiki page](https://github.com/pydata/pandas/wiki/Code-Style-and-Conventions).
 
 Please try to maintain backward compatibility. *pandas* has lots of users with lots of existing code, so don't break it if at all possible. If you think breakage is required, clearly state why as part of the pull request. Also, be careful when changing method signatures and add deprecation warnings where needed.
 
@@ -315,6 +346,14 @@ The tests suite is exhaustive and takes around 20 minutes to run. Often it is wo
     nosetests pandas/tests/[test-module].py:[TestClass]
     nosetests pandas/tests/[test-module].py:[TestClass].[test_method]
 
+Furthermore one can run
+
+``` sourceCode
+pd.test()
+```
+
+with an imported pandas to run tests similarly.
+
 #### Running the performance test suite
 
 Performance matters and it is worth considering whether your code has introduced performance regressions. *pandas* is in the process of migrating to the [asv library](https://github.com/spacetelescope/asv) to enable easy monitoring of the performance of critical *pandas* operations. These benchmarks are all found in the `pandas/asv_bench` directory. asv supports both python2 and python3.
@@ -356,7 +395,7 @@ It can also be useful to run tests in your current environment. You can simply d
 
 This command is equivalent to:
 
-    asv run --quick --show-stderr --python=same 
+    asv run --quick --show-stderr --python=same
 
 This will launch every test only once, display stderr from the benchmarks, and use your local `python` that comes from your `$PATH`.
 
