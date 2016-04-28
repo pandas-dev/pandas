@@ -977,7 +977,7 @@ class HTMLFormatter(TableFormatter):
                 import IPython
                 if IPython.__version__ < LooseVersion('3.0.0'):
                     div_style = ' style="max-width:1500px;overflow:auto;"'
-            except ImportError:
+            except (ImportError, AttributeError):
                 pass
 
             self.write('<div{0}>'.format(div_style))
