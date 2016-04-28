@@ -1728,6 +1728,29 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
         tm.assert_series_equal(s.value_counts(normalize=True), exp)
         tm.assert_series_equal(idx.value_counts(normalize=True), exp)
 
+    def test_value_counts_period(self):
+        values = [pd.Period('2011-01', freq='M'),
+                  pd.Period('2011-02', freq='M'),
+                  pd.Period('2011-03', freq='M'),
+                  pd.Period('2011-01', freq='M'),
+                  pd.Period('2011-01', freq='M'),
+                  pd.Period('2011-03', freq='M')]
+
+        exp_idx = pd.PeriodIndex(['2011-01', '2011-03', '2011-02'], freq='M')
+        exp = pd.Series([3, 2, 1], index=exp_idx, name='xxx')
+
+        s = pd.Series(values, name='xxx')
+        tm.assert_series_equal(s.value_counts(), exp)
+        # check DatetimeIndex outputs the same result
+        idx = pd.PeriodIndex(values, name='xxx')
+        tm.assert_series_equal(idx.value_counts(), exp)
+
+        # normalize
+        exp = pd.Series(np.array([3., 2., 1]) / 6.,
+                        index=exp_idx, name='xxx')
+        tm.assert_series_equal(s.value_counts(normalize=True), exp)
+        tm.assert_series_equal(idx.value_counts(normalize=True), exp)
+
     def test_value_counts_categorical_ordered(self):
         # most dtypes are tested in test_base.py
         values = pd.Categorical([1, 2, 3, 1, 1, 3], ordered=True)

@@ -10,6 +10,7 @@ from pandas import compat, lib, tslib, _np_version_under1p8
 import pandas.core.common as com
 import pandas.algos as algos
 import pandas.hashtable as htable
+from pandas.types import api as gt
 from pandas.compat import string_types
 from pandas.tslib import iNaT
 
@@ -253,27 +254,28 @@ def value_counts(values, sort=True, ascending=False, normalize=False,
 
     """
     from pandas.core.series import Series
-    from pandas.tools.tile import cut
-
     name = getattr(values, 'name', None)
-    values = Series(values).values
 
     if bins is not None:
         try:
+            from pandas.tools.tile import cut
+            values = Series(values).values
             cat, bins = cut(values, bins, retbins=True)
         except TypeError:
             raise TypeError("bins argument only works with numeric data.")
         values = cat.codes
 
-    if com.is_extension_type(values):
-        result = values.value_counts(dropna=dropna)
+    if com.is_extension_type(values) and not com.is_datetimetz(values):
+        # handle Categorical and sparse,
+        # datetime tz can be handeled in ndarray path
+        result = Series(values).values.value_counts(dropna=dropna)
         result.name = name
         counts = result.values
     else:
-        # ndarray path
+        # ndarray path. pass original to handle DatetimeTzBlock
         keys, counts = _value_counts_arraylike(values, dropna=dropna)
 
-        from pandas import Index
+        from pandas import Index, Series
         if not isinstance(keys, Index):
             keys = Index(keys)
         result = Series(counts, index=keys, name=name)
@@ -294,20 +296,23 @@ def value_counts(values, sort=True, ascending=False, normalize=False,
 
 
 def _value_counts_arraylike(values, dropna=True):
-    from pandas import PeriodIndex, DatetimeIndex
-
-    dtype = values.dtype
-    is_period = com.is_period_arraylike(values)
     is_datetimetz = com.is_datetimetz(values)
+    is_period = (isinstance(values, gt.ABCPeriodIndex) or
+                 com.is_period_arraylike(values))
 
-    if com.is_datetime_or_timedelta_dtype(dtype) or is_period or \
-            is_datetimetz:
+    orig = values
+
+    from pandas.core.series import Series
+    values = Series(values).values
+    dtype = values.dtype
+
+    if com.is_datetime_or_timedelta_dtype(dtype) or is_period:
+        from pandas.tseries.index import DatetimeIndex
+        from pandas.tseries.period import PeriodIndex
 
         if is_period:
             values = PeriodIndex(values)
-        elif is_datetimetz:
-            tz = getattr(values, 'tz', None)
-            values = DatetimeIndex(values).tz_localize(None)
+            freq = values.freq
 
         values = values.view(np.int64)
         keys, counts = htable.value_count_scalar64(values, dropna)
@@ -316,13 +321,18 @@ def _value_counts_arraylike(values, dropna=True):
             msk = keys != iNaT
             keys, counts = keys[msk], counts[msk]
 
-        # localize to the original tz if necessary
-        if is_datetimetz:
-            keys = DatetimeIndex(keys).tz_localize(tz)
-
         # convert the keys back to the dtype we came in
-        else:
-            keys = keys.astype(dtype)
+        keys = keys.astype(dtype)
+
+        # dtype handling
+        if is_datetimetz:
+            if isinstance(orig, gt.ABCDatetimeIndex):
+                tz = orig.tz
+            else:
+                tz = orig.dt.tz
+            keys = DatetimeIndex._simple_new(keys, tz=tz)
+        if is_period:
+            keys = PeriodIndex._simple_new(keys, freq=freq)
 
     elif com.is_integer_dtype(dtype):
         values = com._ensure_int64(values)
@@ -330,7 +340,6 @@ def _value_counts_arraylike(values, dropna=True):
     elif com.is_float_dtype(dtype):
         values = com._ensure_float64(values)
         keys, counts = htable.value_count_scalar64(values, dropna)
-
     else:
         values = com._ensure_object(values)
         mask = com.isnull(values)

@@ -943,18 +943,6 @@ class IndexOpsMixin(object):
         from pandas.core.algorithms import value_counts
         result = value_counts(self, sort=sort, ascending=ascending,
                               normalize=normalize, bins=bins, dropna=dropna)
-
-        if isinstance(self, gt.ABCPeriodIndex):
-            # preserve freq
-            result.index = self._simple_new(result.index.values,
-                                            freq=self.freq)
-        elif com.is_datetimetz(self):
-            if isinstance(self, gt.ABCDatetimeIndex):
-                tz = self.tz
-            else:
-                tz = self.dt.tz
-            result.index = result.index._simple_new(result.index.values,
-                                                    tz=tz)
         return result
 
     def unique(self):
