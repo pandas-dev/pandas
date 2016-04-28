@@ -3,6 +3,7 @@ Routines for filling missing data
 """
 
 import numpy as np
+from distutils.version import LooseVersion
 
 import pandas.core.common as com
 import pandas.algos as algos
@@ -82,16 +83,24 @@ def clean_fill_method(method, allow_nearest=False):
 
 
 def clean_interp_method(method, **kwargs):
+    import scipy
+    scipy_version = scipy.__version__
     order = kwargs.get('order')
     valid = ['linear', 'time', 'index', 'values', 'nearest', 'zero', 'slinear',
              'quadratic', 'cubic', 'barycentric', 'polynomial', 'krogh',
-             'piecewise_polynomial', 'pchip', 'akima', 'spline']
+             'piecewise_polynomial', 'pchip', 'akima', 'spline',
+             'from_derivatives']
     if method in ('spline', 'polynomial') and order is None:
         raise ValueError("You must specify the order of the spline or "
                          "polynomial.")
     if method not in valid:
         raise ValueError("method must be one of {0}."
                          "Got '{1}' instead.".format(valid, method))
+    # compat GH12887
+    if method == 'piecewise_polynomial' and LooseVersion(scipy_version) > \
+            LooseVersion('0.17'):
+        raise ValueError("Method '{0}' is deprecated for Scipy > 0.17. "
+                         "Use 'from_derivatives' instead".format(method))
     return method
 
 
@@ -216,6 +225,7 @@ def _interpolate_scipy_wrapper(x, y, new_x, method, fill_value=None,
     the list in _clean_interp_method
     """
     try:
+        import scipy
         from scipy import interpolate
         # TODO: Why is DatetimeIndex being imported here?
         from pandas import DatetimeIndex  # noqa
@@ -223,22 +233,14 @@ def _interpolate_scipy_wrapper(x, y, new_x, method, fill_value=None,
         raise ImportError('{0} interpolation requires Scipy'.format(method))
 
     new_x = np.asarray(new_x)
-    import scipy
-    if scipy.__version__ <= '0.17':
-        # ignores some kwargs that could be passed along.
-        alt_methods = {
-            'barycentric': interpolate.barycentric_interpolate,
-            'krogh': interpolate.krogh_interpolate,
-            'piecewise_polynomial':
-                interpolate.piecewise_polynomial_interpolate,
-        }
-    else:
-        # ignores some kwargs that could be passed along.
-        alt_methods = {
-            'barycentric': interpolate.barycentric_interpolate,
-            'krogh': interpolate.krogh_interpolate,
-            'from_derivatives': interpolate.BPoly.from_derivatives,
-        }
+    scipy_version = scipy.__version__  # for version check; GH12887
+
+    # ignores some kwargs that could be passed along.
+    alt_methods = {
+        'barycentric': interpolate.barycentric_interpolate,
+        'krogh': interpolate.krogh_interpolate,
+        'from_derivatives': interpolate.BPoly.from_derivatives,
+    }
 
     if getattr(x, 'is_all_dates', False):
         # GH 5975, scipy.interp1d can't hande datetime64s
@@ -257,6 +259,13 @@ def _interpolate_scipy_wrapper(x, y, new_x, method, fill_value=None,
         except ImportError:
             raise ImportError("Your version of Scipy does not support "
                               "Akima interpolation.")
+    elif method == 'piecewise_polynomial':  # GH12887
+        if LooseVersion(scipy_version) > LooseVersion('0.17'):
+            raise ValueError("Method '{0}' is deprecated for Scipy > 0.17. "
+                             "Use 'from_derivatives' instead".format(method))
+        else:
+            alt_methods['piecewise_polynomial'] = \
+                interpolate.piecewise_polynomial_interpolate
 
     interp1d_methods = ['nearest', 'zero', 'slinear', 'quadratic', 'cubic',
                         'polynomial']
