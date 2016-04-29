@@ -2034,6 +2034,26 @@ class TestDataFramePlots(TestPlotBase):
                                   position=0.2)
 
     @slow
+    def test_bar_barwidth_position_int(self):
+        # GH 12979
+        df = DataFrame(randn(5, 5))
+
+        for w in [1, 1.]:
+            ax = df.plot.bar(stacked=True, width=w)
+            ticks = ax.xaxis.get_ticklocs()
+            tm.assert_numpy_array_equal(ticks, np.array([0, 1, 2, 3, 4]))
+            self.assertEqual(ax.get_xlim(), (-0.75, 4.75))
+            # check left-edge of bars
+            self.assertEqual(ax.patches[0].get_x(), -0.5)
+            self.assertEqual(ax.patches[-1].get_x(), 3.5)
+
+        self._check_bar_alignment(df, kind='bar', stacked=True, width=1)
+        self._check_bar_alignment(df, kind='barh', stacked=False, width=1)
+        self._check_bar_alignment(df, kind='barh', stacked=True, width=1)
+        self._check_bar_alignment(df, kind='bar', subplots=True, width=1)
+        self._check_bar_alignment(df, kind='barh', subplots=True, width=1)
+
+    @slow
     def test_bar_bottom_left(self):
         df = DataFrame(rand(5, 5))
         ax = df.plot.bar(stacked=False, bottom=1)

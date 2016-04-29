@@ -501,6 +501,7 @@ Bug Fixes
 - Bug in ``concat`` raises ``AttributeError`` when input data contains tz-aware datetime and timedelta (:issue:`12620`)
 - Bug in ``concat`` doesn't handle empty ``Series`` properly (:issue:`11082`)
 
+- Bug in ``.plot.bar`` alginment when ``width`` is specified with ``int`` (:issue:`12979`)
 
 
 - Bug in ``fill_value`` is ignored if the argument to a binary operator is a constant (:issue:`12723`)
