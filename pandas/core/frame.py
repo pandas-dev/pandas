@@ -1970,6 +1970,7 @@ class DataFrame(NDFrame):
         return self.iat[i, j]
 
     def __getitem__(self, key):
+        key = com._apply_if_callable(key, self)
 
         # shortcut if we are an actual column
         is_mi_columns = isinstance(self.columns, MultiIndex)
@@ -2138,6 +2139,9 @@ class DataFrame(NDFrame):
         >>> df.query('a > b')
         >>> df[df.a > df.b]  # same result as the previous expression
         """
+        if not isinstance(expr, compat.string_types):
+            msg = "expr must be a string to be evaluated, {0} given"
+            raise ValueError(msg.format(type(expr)))
         kwargs['level'] = kwargs.pop('level', 0) + 1
         kwargs['target'] = None
         res = self.eval(expr, **kwargs)
@@ -2336,6 +2340,7 @@ class DataFrame(NDFrame):
                                                    name=items, fastpath=True)
 
     def __setitem__(self, key, value):
+        key = com._apply_if_callable(key, self)
 
         # see if we can slice the rows
         indexer = convert_to_index_sliceable(self, key)
@@ -2454,8 +2459,9 @@ class DataFrame(NDFrame):
         kwargs : keyword, value pairs
             keywords are the column names. If the values are
             callable, they are computed on the DataFrame and
-            assigned to the new columns. If the values are
-            not callable, (e.g. a Series, scalar, or array),
+            assigned to the new columns. The callable must not
+            change input DataFrame (though pandas doesn't check it).
+            If the values are not callable, (e.g. a Series, scalar, or array),
             they are simply assigned.
 
         Returns
@@ -2513,11 +2519,7 @@ class DataFrame(NDFrame):
         # do all calculations first...
         results = {}
         for k, v in kwargs.items():
-
-            if callable(v):
-                results[k] = v(data)
-            else:
-                results[k] = v
+            results[k] = com._apply_if_callable(v, data)
 
         # ... and then assign
         for k, v in sorted(results.items()):

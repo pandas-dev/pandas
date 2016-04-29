@@ -4283,8 +4283,26 @@ class NDFrame(PandasObject):
 
         Parameters
         ----------
-        cond : boolean %(klass)s or array
-        other : scalar or %(klass)s
+        cond : boolean %(klass)s, array or callable
+            If cond is callable, it is computed on the %(klass)s and
+            should return boolean %(klass)s or array.
+            The callable must not change input %(klass)s
+            (though pandas doesn't check it).
+
+            .. versionadded:: 0.18.1
+
+            A callable can be used as cond.
+
+        other : scalar, %(klass)s, or callable
+            If other is callable, it is computed on the %(klass)s and
+            should return scalar or %(klass)s.
+            The callable must not change input %(klass)s
+            (though pandas doesn't check it).
+
+            .. versionadded:: 0.18.1
+
+            A callable can be used as other.
+
         inplace : boolean, default False
             Whether to perform the operation in place on the data
         axis : alignment axis if needed, default None
@@ -4303,6 +4321,9 @@ class NDFrame(PandasObject):
     @Appender(_shared_docs['where'] % dict(_shared_doc_kwargs, cond="True"))
     def where(self, cond, other=np.nan, inplace=False, axis=None, level=None,
               try_cast=False, raise_on_error=True):
+
+        cond = com._apply_if_callable(cond, self)
+        other = com._apply_if_callable(other, self)
 
         if isinstance(cond, NDFrame):
             cond, _ = cond.align(self, join='right', broadcast_axis=1)
@@ -4461,6 +4482,9 @@ class NDFrame(PandasObject):
     @Appender(_shared_docs['where'] % dict(_shared_doc_kwargs, cond="False"))
     def mask(self, cond, other=np.nan, inplace=False, axis=None, level=None,
              try_cast=False, raise_on_error=True):
+
+        cond = com._apply_if_callable(cond, self)
+
         return self.where(~cond, other=other, inplace=inplace, axis=axis,
                           level=level, try_cast=try_cast,
                           raise_on_error=raise_on_error)
