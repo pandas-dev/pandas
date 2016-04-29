@@ -2825,16 +2825,25 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
         tm.assert_series_equal(res, exp)
 
     def test_value_counts(self):
-
-        s = pd.Series(pd.Categorical(
-            ["a", "b", "c", "c", "c", "b"], categories=["c", "a", "b", "d"]))
+        # GH 12835
+        cats = pd.Categorical(["a", "b", "c", "c", "c", "b"],
+                              categories=["c", "a", "b", "d"])
+        s = pd.Series(cats, name='xxx')
         res = s.value_counts(sort=False)
-        exp = Series([3, 1, 2, 0],
+        exp = Series([3, 1, 2, 0], name='xxx',
                      index=pd.CategoricalIndex(["c", "a", "b", "d"]))
         tm.assert_series_equal(res, exp)
+
         res = s.value_counts(sort=True)
-        exp = Series([3, 2, 1, 0],
+        exp = Series([3, 2, 1, 0], name='xxx',
                      index=pd.CategoricalIndex(["c", "b", "a", "d"]))
+        tm.assert_series_equal(res, exp)
+
+        # check object dtype handles the Series.name as the same
+        # (tested in test_base.py)
+        s = pd.Series(["a", "b", "c", "c", "c", "b"], name='xxx')
+        res = s.value_counts()
+        exp = Series([3, 2, 1], name='xxx', index=["c", "b", "a"])
         tm.assert_series_equal(res, exp)
 
     def test_value_counts_with_nan(self):

@@ -2,8 +2,6 @@
 from __future__ import print_function
 import nose
 
-from numpy.testing.decorators import slow
-
 from datetime import datetime
 from numpy import nan
 
@@ -1875,7 +1873,6 @@ class TestGroupBy(tm.TestCase):
             check_nunique(frame, ['jim'])
             check_nunique(frame, ['jim', 'joe'])
 
-    @slow
     def test_series_groupby_value_counts(self):
         from itertools import product
 
@@ -1910,7 +1907,7 @@ class TestGroupBy(tm.TestCase):
 
         days = date_range('2015-08-24', periods=10)
 
-        for n, m in product((100, 10000), (5, 20)):
+        for n, m in product((100, 1000), (5, 20)):
             frame = DataFrame({
                 '1st': np.random.choice(
                     list('abcd'), n),
