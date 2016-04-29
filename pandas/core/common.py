@@ -1765,10 +1765,6 @@ def is_list_like(arg):
             not isinstance(arg, compat.string_and_binary_types))
 
 
-def is_set_like(arg):
-    return (is_list_like(arg) and not hasattr(arg, '__getitem__'))
-
-
 def is_dict_like(arg):
     return hasattr(arg, '__getitem__') and hasattr(arg, 'keys')
 

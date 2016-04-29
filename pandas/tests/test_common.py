@@ -571,18 +571,6 @@ def test_is_list_like():
         assert not com.is_list_like(f)
 
 
-def test_is_set_like():
-    passes = (set([1, 'a']), frozenset([1, 'a']))
-    fails = ([], [1], (1, ), (1, 2), {'a': 1}, Series([1]), Series([]),
-             Series(['a']).str, 1, '2', object())
-
-    for p in passes:
-        assert com.is_set_like(p)
-
-    for f in fails:
-        assert not com.is_set_like(f)
-
-
 def test_is_dict_like():
     passes = [{}, {'A': 1}, pd.Series([1])]
     fails = ['1', 1, [1, 2], (1, 2), range(2), pd.Index([1])]

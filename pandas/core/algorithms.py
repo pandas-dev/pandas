@@ -113,7 +113,7 @@ def isin(comps, values):
         raise TypeError("only list-like objects are allowed to be passed"
                         " to isin(), you passed a "
                         "[{0}]".format(type(values).__name__))
-    if com.is_set_like(values):
+    if not isinstance(values, np.ndarray):
         values = list(values)
 
     # GH11232

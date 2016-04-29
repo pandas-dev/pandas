@@ -345,11 +345,19 @@ class TestIsin(tm.TestCase):
         expected = np.array([True, False])
         tm.assert_numpy_array_equal(result, expected)
 
+        result = algos.isin(pd.Series([1, 2]), set([1]))
+        expected = np.array([True, False])
+        tm.assert_numpy_array_equal(result, expected)
+
         result = algos.isin(['a', 'b'], ['a'])
         expected = np.array([True, False])
         tm.assert_numpy_array_equal(result, expected)
 
         result = algos.isin(pd.Series(['a', 'b']), pd.Series(['a']))
+        expected = np.array([True, False])
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = algos.isin(pd.Series(['a', 'b']), set(['a']))
         expected = np.array([True, False])
         tm.assert_numpy_array_equal(result, expected)
 
@@ -366,9 +374,21 @@ class TestIsin(tm.TestCase):
         expected = np.array([True, True, False])
         tm.assert_numpy_array_equal(result, expected)
 
+        result = algos.isin(arr, set(arr[0:2]))
+        expected = np.array([True, True, False])
+        tm.assert_numpy_array_equal(result, expected)
+
         arr = pd.timedelta_range('1 day', periods=3).values
         result = algos.isin(arr, [arr[0]])
         expected = np.array([True, False, False])
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = algos.isin(arr, arr[0:2])
+        expected = np.array([True, True, False])
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = algos.isin(arr, set(arr[0:2]))
+        expected = np.array([True, True, False])
         tm.assert_numpy_array_equal(result, expected)
 
     def test_large(self):
