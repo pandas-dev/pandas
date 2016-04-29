@@ -4507,6 +4507,57 @@ class TestGroupBy(tm.TestCase):
         grouped = series.groupby(grouper)
         assert next(iter(grouped), None) is None
 
+    def test_aaa_groupby_with_small_elem(self):
+        # GH 8542
+        # length=2
+        df = pd.DataFrame({'event': ['start', 'start'],
+                           'change': [1234, 5678]},
+                          index=pd.DatetimeIndex(['2014-09-10', '2013-10-10']))
+        grouped = df.groupby([pd.TimeGrouper(freq='M'), 'event'])
+        self.assertEqual(len(grouped.groups), 2)
+        self.assertEqual(grouped.ngroups, 2)
+        self.assertIn((pd.Timestamp('2014-09-30'), 'start'), grouped.groups)
+        self.assertIn((pd.Timestamp('2013-10-31'), 'start'), grouped.groups)
+
+        res = grouped.get_group((pd.Timestamp('2014-09-30'), 'start'))
+        tm.assert_frame_equal(res, df.iloc[[0], :])
+        res = grouped.get_group((pd.Timestamp('2013-10-31'), 'start'))
+        tm.assert_frame_equal(res, df.iloc[[1], :])
+
+        df = pd.DataFrame({'event': ['start', 'start', 'start'],
+                           'change': [1234, 5678, 9123]},
+                          index=pd.DatetimeIndex(['2014-09-10', '2013-10-10',
+                                                  '2014-09-15']))
+        grouped = df.groupby([pd.TimeGrouper(freq='M'), 'event'])
+        self.assertEqual(len(grouped.groups), 2)
+        self.assertEqual(grouped.ngroups, 2)
+        self.assertIn((pd.Timestamp('2014-09-30'), 'start'), grouped.groups)
+        self.assertIn((pd.Timestamp('2013-10-31'), 'start'), grouped.groups)
+
+        res = grouped.get_group((pd.Timestamp('2014-09-30'), 'start'))
+        tm.assert_frame_equal(res, df.iloc[[0, 2], :])
+        res = grouped.get_group((pd.Timestamp('2013-10-31'), 'start'))
+        tm.assert_frame_equal(res, df.iloc[[1], :])
+
+        # length=3
+        df = pd.DataFrame({'event': ['start', 'start', 'start'],
+                           'change': [1234, 5678, 9123]},
+                          index=pd.DatetimeIndex(['2014-09-10', '2013-10-10',
+                                                  '2014-08-05']))
+        grouped = df.groupby([pd.TimeGrouper(freq='M'), 'event'])
+        self.assertEqual(len(grouped.groups), 3)
+        self.assertEqual(grouped.ngroups, 3)
+        self.assertIn((pd.Timestamp('2014-09-30'), 'start'), grouped.groups)
+        self.assertIn((pd.Timestamp('2013-10-31'), 'start'), grouped.groups)
+        self.assertIn((pd.Timestamp('2014-08-31'), 'start'), grouped.groups)
+
+        res = grouped.get_group((pd.Timestamp('2014-09-30'), 'start'))
+        tm.assert_frame_equal(res, df.iloc[[0], :])
+        res = grouped.get_group((pd.Timestamp('2013-10-31'), 'start'))
+        tm.assert_frame_equal(res, df.iloc[[1], :])
+        res = grouped.get_group((pd.Timestamp('2014-08-31'), 'start'))
+        tm.assert_frame_equal(res, df.iloc[[2], :])
+
     def test_groupby_with_timezone_selection(self):
         # GH 11616
         # Test that column selection returns output in correct timezone.
