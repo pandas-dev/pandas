@@ -1843,6 +1843,16 @@ def _get_callable_name(obj):
     return None
 
 
+def _apply_if_callable(maybe_callable, obj, **kwargs):
+    """
+    Evaluate possibly callable input using obj and kwargs if it is callable,
+    otherwise return as it is
+    """
+    if callable(maybe_callable):
+        return maybe_callable(obj, **kwargs)
+    return maybe_callable
+
+
 _string_dtypes = frozenset(map(_get_dtype_from_object, (compat.binary_type,
                                                         compat.text_type)))
 

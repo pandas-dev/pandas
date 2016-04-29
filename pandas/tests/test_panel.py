@@ -713,6 +713,14 @@ class CheckIndexing(object):
         self._check_view((item, NS, 'C'), comp)
         self._check_view((NS, date, 'C'), comp)
 
+    def test_getitem_callable(self):
+        p = self.panel
+        # GH 12533
+
+        assert_frame_equal(p[lambda x: 'ItemB'], p.loc['ItemB'])
+        assert_panel_equal(p[lambda x: ['ItemB', 'ItemC']],
+                           p.loc[['ItemB', 'ItemC']])
+
     def test_ix_setitem_slice_dataframe(self):
         a = Panel(items=[1, 2, 3], major_axis=[11, 22, 33],
                   minor_axis=[111, 222, 333])

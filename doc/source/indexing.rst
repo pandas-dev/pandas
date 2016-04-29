@@ -79,6 +79,10 @@ of multi-axis indexing.
   - A slice object with labels ``'a':'f'``, (note that contrary to usual python
     slices, **both** the start and the stop are included!)
   - A boolean array
+  - A ``callable`` function with one argument (the calling Series, DataFrame or Panel) and
+    that returns valid output for indexing (one of the above)
+
+      .. versionadded:: 0.18.1
 
   See more at :ref:`Selection by Label <indexing.label>`
 
@@ -93,6 +97,10 @@ of multi-axis indexing.
   - A list or array of integers ``[4, 3, 0]``
   - A slice object with ints ``1:7``
   - A boolean array
+  - A ``callable`` function with one argument (the calling Series, DataFrame or Panel) and
+    that returns valid output for indexing (one of the above)
+
+      .. versionadded:: 0.18.1
 
   See more at :ref:`Selection by Position <indexing.integer>`
 
@@ -109,6 +117,8 @@ of multi-axis indexing.
 
   See more at :ref:`Advanced Indexing <advanced>` and :ref:`Advanced
   Hierarchical <advanced.advanced_hierarchical>`.
+
+- ``.loc``, ``.iloc``, ``.ix`` and also ``[]`` indexing can accept a ``callable`` as indexer. See more at :ref:`Selection By Callable <indexing.callable>`.
 
 Getting values from an object with multi-axes selection uses the following
 notation (using ``.loc`` as an example, but applies to ``.iloc`` and ``.ix`` as
@@ -317,6 +327,7 @@ The ``.loc`` attribute is the primary access method. The following are valid inp
 - A list or array of labels ``['a', 'b', 'c']``
 - A slice object with labels ``'a':'f'`` (note that contrary to usual python slices, **both** the start and the stop are included!)
 - A boolean array
+- A ``callable``, see :ref:`Selection By Callable <indexing.callable>`
 
 .. ipython:: python
 
@@ -340,13 +351,13 @@ With a DataFrame
                       index=list('abcdef'),
                       columns=list('ABCD'))
    df1
-   df1.loc[['a','b','d'],:]
+   df1.loc[['a', 'b', 'd'], :]
 
 Accessing via label slices
 
 .. ipython:: python
 
-   df1.loc['d':,'A':'C']
+   df1.loc['d':, 'A':'C']
 
 For getting a cross section using a label (equiv to ``df.xs('a')``)
 
@@ -358,15 +369,15 @@ For getting values with a boolean array
 
 .. ipython:: python
 
-   df1.loc['a']>0
-   df1.loc[:,df1.loc['a']>0]
+   df1.loc['a'] > 0
+   df1.loc[:, df1.loc['a'] > 0]
 
 For getting a value explicitly (equiv to deprecated ``df.get_value('a','A')``)
 
 .. ipython:: python
 
    # this is also equivalent to ``df1.at['a','A']``
-   df1.loc['a','A']
+   df1.loc['a', 'A']
 
 .. _indexing.integer:
 
@@ -387,6 +398,7 @@ The ``.iloc`` attribute is the primary access method. The following are valid in
 - A list or array of integers ``[4, 3, 0]``
 - A slice object with ints ``1:7``
 - A boolean array
+- A ``callable``, see :ref:`Selection By Callable <indexing.callable>`
 
 .. ipython:: python
 
@@ -416,26 +428,26 @@ Select via integer slicing
 .. ipython:: python
 
    df1.iloc[:3]
-   df1.iloc[1:5,2:4]
+   df1.iloc[1:5, 2:4]
 
 Select via integer list
 
 .. ipython:: python
 
-   df1.iloc[[1,3,5],[1,3]]
+   df1.iloc[[1, 3, 5], [1, 3]]
 
 .. ipython:: python
 
-   df1.iloc[1:3,:]
+   df1.iloc[1:3, :]
 
 .. ipython:: python
 
-   df1.iloc[:,1:3]
+   df1.iloc[:, 1:3]
 
 .. ipython:: python
 
    # this is also equivalent to ``df1.iat[1,1]``
-   df1.iloc[1,1]
+   df1.iloc[1, 1]
 
 For getting a cross section using an integer position (equiv to ``df.xs(1)``)
 
@@ -471,8 +483,8 @@ returned)
 
    dfl = pd.DataFrame(np.random.randn(5,2), columns=list('AB'))
    dfl
-   dfl.iloc[:,2:3]
-   dfl.iloc[:,1:3]
+   dfl.iloc[:, 2:3]
+   dfl.iloc[:, 1:3]
    dfl.iloc[4:6]
 
 A single indexer that is out of bounds will raise an ``IndexError``.
@@ -481,11 +493,51 @@ A list of indexers where any element is out of bounds will raise an
 
 .. code-block:: python
 
-   dfl.iloc[[4,5,6]]
+   dfl.iloc[[4, 5, 6]]
    IndexError: positional indexers are out-of-bounds
 
-   dfl.iloc[:,4]
+   dfl.iloc[:, 4]
    IndexError: single positional indexer is out-of-bounds
+
+.. _indexing.callable:
+
+Selection By Callable
+---------------------
+
+.. versionadded:: 0.18.1
+
+``.loc``, ``.iloc``, ``.ix`` and also ``[]`` indexing can accept a ``callable`` as indexer.
+The ``callable`` must be a function with one argument (the calling Series, DataFrame or Panel) and that returns valid output for indexing.
+
+.. ipython:: python
+
+   df1 = pd.DataFrame(np.random.randn(6, 4),
+                      index=list('abcdef'),
+                      columns=list('ABCD'))
+   df1
+
+   df1.loc[lambda df: df.A > 0, :]
+   df1.loc[:, lambda df: ['A', 'B']]
+
+   df1.iloc[:, lambda df: [0, 1]]
+
+   df1[lambda df: df.columns[0]]
+
+
+You can use callable indexing in ``Series``.
+
+.. ipython:: python
+
+   df1.A.loc[lambda s: s > 0]
+
+Using these methods / indexers, you can chain data selection operations
+without using temporary variable.
+
+.. ipython:: python
+
+   bb = pd.read_csv('data/baseball.csv', index_col='id')
+   (bb.groupby(['year', 'team']).sum()
+      .loc[lambda df: df.r > 100])
 
 .. _indexing.basics.partial_setting:
 
@@ -847,6 +899,19 @@ This is equivalent (but faster than) the following.
 
    df2 = df.copy()
    df.apply(lambda x, y: x.where(x>0,y), y=df['A'])
+
+.. versionadded:: 0.18.1
+
+Where can accept a callable as condition and ``other`` arguments. The function must
+be with one argument (the calling Series or DataFrame) and that returns valid output
+as condition and ``other`` argument.
+
+.. ipython:: python
+
+   df3 = pd.DataFrame({'A': [1, 2, 3],
+                       'B': [4, 5, 6],
+                       'C': [7, 8, 9]})
+   df3.where(lambda x: x > 4, lambda x: x + 10)
 
 **mask**
 

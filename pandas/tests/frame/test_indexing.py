@@ -119,6 +119,18 @@ class TestDataFrameIndexing(tm.TestCase, TestData):
         assert_frame_equal(result, expected)
         self.assertEqual(result.columns.names, ['sth', 'sth2'])
 
+    def test_getitem_callable(self):
+        # GH 12533
+        result = self.frame[lambda x: 'A']
+        tm.assert_series_equal(result, self.frame.loc[:, 'A'])
+
+        result = self.frame[lambda x: ['A', 'B']]
+        tm.assert_frame_equal(result, self.frame.loc[:, ['A', 'B']])
+
+        df = self.frame[:3]
+        result = df[lambda x: [True, False, True]]
+        tm.assert_frame_equal(result, self.frame.iloc[[0, 2], :])
+
     def test_setitem_list(self):
 
         self.frame['E'] = 'foo'
@@ -186,6 +198,14 @@ class TestDataFrameIndexing(tm.TestCase, TestData):
         np.random.shuffle(j)
         df[('joe', 'last')] = df[('jolie', 'first')].loc[i, j]
         assert_frame_equal(df[('joe', 'last')], df[('jolie', 'first')])
+
+    def test_setitem_callable(self):
+        # GH 12533
+        df = pd.DataFrame({'A': [1, 2, 3, 4], 'B': [5, 6, 7, 8]})
+        df[lambda x: 'A'] = [11, 12, 13, 14]
+
+        exp = pd.DataFrame({'A': [11, 12, 13, 14], 'B': [5, 6, 7, 8]})
+        tm.assert_frame_equal(df, exp)
 
     def test_getitem_boolean(self):
         # boolean indexing
@@ -2545,6 +2565,27 @@ class TestDataFrameIndexing(tm.TestCase, TestData):
         result.where(mask, d2, inplace=True, axis='columns')
         assert_frame_equal(result, expected)
 
+    def test_where_callable(self):
+        # GH 12533
+        df = DataFrame([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
+        result = df.where(lambda x: x > 4, lambda x: x + 1)
+        exp = DataFrame([[2, 3, 4], [5, 5, 6], [7, 8, 9]])
+        tm.assert_frame_equal(result, exp)
+        tm.assert_frame_equal(result, df.where(df > 4, df + 1))
+
+        # return ndarray and scalar
+        result = df.where(lambda x: (x % 2 == 0).values, lambda x: 99)
+        exp = DataFrame([[99, 2, 99], [4, 99, 6], [99, 8, 99]])
+        tm.assert_frame_equal(result, exp)
+        tm.assert_frame_equal(result, df.where(df % 2 == 0, 99))
+
+        # chain
+        result = (df + 2).where(lambda x: x > 8, lambda x: x + 10)
+        exp = DataFrame([[13, 14, 15], [16, 17, 18], [9, 10, 11]])
+        tm.assert_frame_equal(result, exp)
+        tm.assert_frame_equal(result,
+                              (df + 2).where((df + 2) > 8, (df + 2) + 10))
+
     def test_mask(self):
         df = DataFrame(np.random.randn(5, 3))
         cond = df > 0
@@ -2580,6 +2621,27 @@ class TestDataFrameIndexing(tm.TestCase, TestData):
         res = df.mask(DataFrame([[True, False]]))
         expec = DataFrame([[nan, 2]])
         assert_frame_equal(res, expec)
+
+    def test_mask_callable(self):
+        # GH 12533
+        df = DataFrame([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
+        result = df.mask(lambda x: x > 4, lambda x: x + 1)
+        exp = DataFrame([[1, 2, 3], [4, 6, 7], [8, 9, 10]])
+        tm.assert_frame_equal(result, exp)
+        tm.assert_frame_equal(result, df.mask(df > 4, df + 1))
+
+        # return ndarray and scalar
+        result = df.mask(lambda x: (x % 2 == 0).values, lambda x: 99)
+        exp = DataFrame([[1, 99, 3], [99, 5, 99], [7, 99, 9]])
+        tm.assert_frame_equal(result, exp)
+        tm.assert_frame_equal(result, df.mask(df % 2 == 0, 99))
+
+        # chain
+        result = (df + 2).mask(lambda x: x > 8, lambda x: x + 10)
+        exp = DataFrame([[3, 4, 5], [6, 7, 8], [19, 20, 21]])
+        tm.assert_frame_equal(result, exp)
+        tm.assert_frame_equal(result,
+                              (df + 2).mask((df + 2) > 8, (df + 2) + 10))
 
     def test_head_tail(self):
         assert_frame_equal(self.frame.head(), self.frame[:5])

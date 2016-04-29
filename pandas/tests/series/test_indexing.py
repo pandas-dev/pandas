@@ -389,6 +389,18 @@ class TestSeriesIndexing(TestData, tm.TestCase):
         df = pd.DataFrame(rng, index=rng)
         self.assertRaises(TypeError, s.__getitem__, df > 5)
 
+    def test_getitem_callable(self):
+        # GH 12533
+        s = pd.Series(4, index=list('ABCD'))
+        result = s[lambda x: 'A']
+        self.assertEqual(result, s.loc['A'])
+
+        result = s[lambda x: ['A', 'B']]
+        tm.assert_series_equal(result, s.loc[['A', 'B']])
+
+        result = s[lambda x: [True, False, True, True]]
+        tm.assert_series_equal(result, s.iloc[[0, 2, 3]])
+
     def test_setitem_ambiguous_keyerror(self):
         s = Series(lrange(10), index=lrange(0, 20, 2))
 
@@ -412,6 +424,12 @@ class TestSeriesIndexing(TestData, tm.TestCase):
         tmp.iloc[2] = 'zoo'
 
         assert_series_equal(s, tmp)
+
+    def test_setitem_callable(self):
+        # GH 12533
+        s = pd.Series([1, 2, 3, 4], index=list('ABCD'))
+        s[lambda x: 'A'] = -1
+        tm.assert_series_equal(s, pd.Series([-1, 2, 3, 4], index=list('ABCD')))
 
     def test_slice(self):
         numSlice = self.series[10:20]
