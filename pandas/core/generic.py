@@ -4633,14 +4633,15 @@ class NDFrame(PandasObject):
 
     def truncate(self, before=None, after=None, axis=None, copy=True):
         """Truncates a sorted NDFrame before and/or after some particular
-        dates.
+        index value. If the axis contains only datetime values, before/after
+        parameters are converted to datetime values.
 
         Parameters
         ----------
         before : date
-            Truncate before date
+            Truncate before index value
         after : date
-            Truncate after date
+            Truncate after index value
         axis : the truncation axis, defaults to the stat axis
         copy : boolean, default is True,
             return a copy of the truncated section

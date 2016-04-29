@@ -426,7 +426,7 @@ class CheckIndexing(object):
         p1 = tm.makePanel4D()
         p2 = tm.makePanel4D()
 
-        tp = p1.reindex(labels=p1.labels + ['foo'])
+        tp = p1.reindex(labels=p1.labels.tolist() + ['foo'])
         p = p1[p1.labels[0]]
 
         def test_comp(func):
