@@ -617,6 +617,23 @@ Freq: D"""
         exp = np.array([tslib.iNaT] * 5, dtype=np.int64)
         tm.assert_numpy_array_equal(result, exp)
 
+    def test_shift(self):
+        # GH 9903
+        for tz in [None, 'US/Eastern', 'Asia/Tokyo']:
+            idx = pd.DatetimeIndex([], name='xxx', tz=tz)
+            tm.assert_index_equal(idx.shift(0, freq='H'), idx)
+            tm.assert_index_equal(idx.shift(3, freq='H'), idx)
+
+            idx = pd.DatetimeIndex(['2011-01-01 10:00', '2011-01-01 11:00'
+                                    '2011-01-01 12:00'], name='xxx', tz=tz)
+            tm.assert_index_equal(idx.shift(0, freq='H'), idx)
+            exp = pd.DatetimeIndex(['2011-01-01 13:00', '2011-01-01 14:00'
+                                    '2011-01-01 15:00'], name='xxx', tz=tz)
+            tm.assert_index_equal(idx.shift(3, freq='H'), exp)
+            exp = pd.DatetimeIndex(['2011-01-01 07:00', '2011-01-01 08:00'
+                                    '2011-01-01 09:00'], name='xxx', tz=tz)
+            tm.assert_index_equal(idx.shift(-3, freq='H'), exp)
+
 
 class TestTimedeltaIndexOps(Ops):
     def setUp(self):
@@ -1289,6 +1306,27 @@ Freq: D"""
         result = idx._nat_new(box=False)
         exp = np.array([tslib.iNaT] * 5, dtype=np.int64)
         tm.assert_numpy_array_equal(result, exp)
+
+    def test_shift(self):
+        # GH 9903
+        idx = pd.TimedeltaIndex([], name='xxx')
+        tm.assert_index_equal(idx.shift(0, freq='H'), idx)
+        tm.assert_index_equal(idx.shift(3, freq='H'), idx)
+
+        idx = pd.TimedeltaIndex(['5 hours', '6 hours', '9 hours'], name='xxx')
+        tm.assert_index_equal(idx.shift(0, freq='H'), idx)
+        exp = pd.TimedeltaIndex(['8 hours', '9 hours', '12 hours'], name='xxx')
+        tm.assert_index_equal(idx.shift(3, freq='H'), exp)
+        exp = pd.TimedeltaIndex(['2 hours', '3 hours', '6 hours'], name='xxx')
+        tm.assert_index_equal(idx.shift(-3, freq='H'), exp)
+
+        tm.assert_index_equal(idx.shift(0, freq='T'), idx)
+        exp = pd.TimedeltaIndex(['05:03:00', '06:03:00', '9:03:00'],
+                                name='xxx')
+        tm.assert_index_equal(idx.shift(3, freq='T'), exp)
+        exp = pd.TimedeltaIndex(['04:57:00', '05:57:00', '8:57:00'],
+                                name='xxx')
+        tm.assert_index_equal(idx.shift(-3, freq='T'), exp)
 
 
 class TestPeriodIndexOps(Ops):
@@ -2103,3 +2141,24 @@ Freq: Q-DEC"""
         result = idx._nat_new(box=False)
         exp = np.array([tslib.iNaT] * 5, dtype=np.int64)
         tm.assert_numpy_array_equal(result, exp)
+
+    def test_shift(self):
+        # GH 9903
+        idx = pd.PeriodIndex([], name='xxx', freq='H')
+
+        with tm.assertRaises(TypeError):
+            # period shift doesn't accept freq
+            idx.shift(1, freq='H')
+
+        tm.assert_index_equal(idx.shift(0), idx)
+        tm.assert_index_equal(idx.shift(3), idx)
+
+        idx = pd.PeriodIndex(['2011-01-01 10:00', '2011-01-01 11:00'
+                              '2011-01-01 12:00'], name='xxx', freq='H')
+        tm.assert_index_equal(idx.shift(0), idx)
+        exp = pd.PeriodIndex(['2011-01-01 13:00', '2011-01-01 14:00'
+                              '2011-01-01 15:00'], name='xxx', freq='H')
+        tm.assert_index_equal(idx.shift(3), exp)
+        exp = pd.PeriodIndex(['2011-01-01 07:00', '2011-01-01 08:00'
+                              '2011-01-01 09:00'], name='xxx', freq='H')
+        tm.assert_index_equal(idx.shift(-3), exp)
