@@ -1,5 +1,7 @@
 # being a bit too dynamic
 # pylint: disable=E1101
+from __future__ import division
+
 import warnings
 import re
 from math import ceil
