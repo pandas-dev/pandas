@@ -1040,6 +1040,174 @@ class TestSparseSeriesScipyInteraction(tm.TestCase):
         assert_equal(il, il_result)
         assert_equal(jl, jl_result)
 
+    def test_concat(self):
+        val1 = np.array([1, 2, np.nan, np.nan, 0, np.nan])
+        val2 = np.array([3, np.nan, 4, 0, 0])
+
+        for kind in ['integer', 'block']:
+            sparse1 = pd.SparseSeries(val1, name='x', kind=kind)
+            sparse2 = pd.SparseSeries(val2, name='y', kind=kind)
+
+            res = pd.concat([sparse1, sparse2])
+            exp = pd.concat([pd.Series(val1), pd.Series(val2)])
+            exp = pd.SparseSeries(exp, kind=kind)
+            tm.assert_sp_series_equal(res, exp)
+
+            sparse1 = pd.SparseSeries(val1, fill_value=0, name='x', kind=kind)
+            sparse2 = pd.SparseSeries(val2, fill_value=0, name='y', kind=kind)
+
+            res = pd.concat([sparse1, sparse2])
+            exp = pd.concat([pd.Series(val1), pd.Series(val2)])
+            exp = pd.SparseSeries(exp, fill_value=0, kind=kind)
+            tm.assert_sp_series_equal(res, exp)
+
+    def test_concat_axis1(self):
+        val1 = np.array([1, 2, np.nan, np.nan, 0, np.nan])
+        val2 = np.array([3, np.nan, 4, 0, 0])
+
+        sparse1 = pd.SparseSeries(val1, name='x')
+        sparse2 = pd.SparseSeries(val2, name='y')
+
+        res = pd.concat([sparse1, sparse2], axis=1)
+        exp = pd.concat([pd.Series(val1, name='x'),
+                         pd.Series(val2, name='y')], axis=1)
+        exp = pd.SparseDataFrame(exp)
+        tm.assert_sp_frame_equal(res, exp)
+
+    def test_concat_different_fill(self):
+        val1 = np.array([1, 2, np.nan, np.nan, 0, np.nan])
+        val2 = np.array([3, np.nan, 4, 0, 0])
+
+        for kind in ['integer', 'block']:
+            sparse1 = pd.SparseSeries(val1, name='x', kind=kind)
+            sparse2 = pd.SparseSeries(val2, name='y', kind=kind, fill_value=0)
+
+            res = pd.concat([sparse1, sparse2])
+            exp = pd.concat([pd.Series(val1), pd.Series(val2)])
+            exp = pd.SparseSeries(exp, kind=kind)
+            tm.assert_sp_series_equal(res, exp)
+
+            res = pd.concat([sparse2, sparse1])
+            exp = pd.concat([pd.Series(val2), pd.Series(val1)])
+            exp = pd.SparseSeries(exp, kind=kind, fill_value=0)
+            tm.assert_sp_series_equal(res, exp)
+
+    def test_concat_axis1_different_fill(self):
+        val1 = np.array([1, 2, np.nan, np.nan, 0, np.nan])
+        val2 = np.array([3, np.nan, 4, 0, 0])
+
+        sparse1 = pd.SparseSeries(val1, name='x')
+        sparse2 = pd.SparseSeries(val2, name='y', fill_value=0)
+
+        res = pd.concat([sparse1, sparse2], axis=1)
+        exp = pd.concat([pd.Series(val1, name='x'),
+                         pd.Series(val2, name='y')], axis=1)
+        self.assertIsInstance(res, pd.SparseDataFrame)
+        tm.assert_frame_equal(res.to_dense(), exp)
+
+    def test_concat_different_kind(self):
+        val1 = np.array([1, 2, np.nan, np.nan, 0, np.nan])
+        val2 = np.array([3, np.nan, 4, 0, 0])
+
+        sparse1 = pd.SparseSeries(val1, name='x', kind='integer')
+        sparse2 = pd.SparseSeries(val2, name='y', kind='block', fill_value=0)
+
+        res = pd.concat([sparse1, sparse2])
+        exp = pd.concat([pd.Series(val1), pd.Series(val2)])
+        exp = pd.SparseSeries(exp, kind='integer')
+        tm.assert_sp_series_equal(res, exp)
+
+        res = pd.concat([sparse2, sparse1])
+        exp = pd.concat([pd.Series(val2), pd.Series(val1)])
+        exp = pd.SparseSeries(exp, kind='block', fill_value=0)
+        tm.assert_sp_series_equal(res, exp)
+
+    def test_concat_sparse_dense(self):
+        # use first input's fill_value
+        val1 = np.array([1, 2, np.nan, np.nan, 0, np.nan])
+        val2 = np.array([3, np.nan, 4, 0, 0])
+
+        for kind in ['integer', 'block']:
+            sparse = pd.SparseSeries(val1, name='x', kind=kind)
+            dense = pd.Series(val2, name='y')
+
+            res = pd.concat([sparse, dense])
+            exp = pd.concat([pd.Series(val1), dense])
+            exp = pd.SparseSeries(exp, kind=kind)
+            tm.assert_sp_series_equal(res, exp)
+
+            res = pd.concat([dense, sparse, dense])
+            exp = pd.concat([dense, pd.Series(val1), dense])
+            exp = pd.SparseSeries(exp, kind=kind)
+            tm.assert_sp_series_equal(res, exp)
+
+            sparse = pd.SparseSeries(val1, name='x', kind=kind, fill_value=0)
+            dense = pd.Series(val2, name='y')
+
+            res = pd.concat([sparse, dense])
+            exp = pd.concat([pd.Series(val1), dense])
+            exp = pd.SparseSeries(exp, kind=kind, fill_value=0)
+            tm.assert_sp_series_equal(res, exp)
+
+            res = pd.concat([dense, sparse, dense])
+            exp = pd.concat([dense, pd.Series(val1), dense])
+            exp = pd.SparseSeries(exp, kind=kind, fill_value=0)
+            tm.assert_sp_series_equal(res, exp)
+
+    def test_value_counts(self):
+        vals = [1, 2, nan, 0, nan, 1, 2, nan, nan, 1, 2, 0, 1, 1]
+        dense = pd.Series(vals, name='xx')
+
+        sparse = pd.SparseSeries(vals, name='xx')
+        tm.assert_series_equal(sparse.value_counts(),
+                               dense.value_counts())
+        tm.assert_series_equal(sparse.value_counts(dropna=False),
+                               dense.value_counts(dropna=False))
+
+        sparse = pd.SparseSeries(vals, name='xx', fill_value=0)
+        tm.assert_series_equal(sparse.value_counts(),
+                               dense.value_counts())
+        tm.assert_series_equal(sparse.value_counts(dropna=False),
+                               dense.value_counts(dropna=False))
+
+    def test_value_counts_dup(self):
+        vals = [1, 2, nan, 0, nan, 1, 2, nan, nan, 1, 2, 0, 1, 1]
+
+        # numeric op may cause sp_values to include the same value as
+        # fill_value
+        dense = pd.Series(vals, name='xx') / 0.
+        sparse = pd.SparseSeries(vals, name='xx') / 0.
+        tm.assert_series_equal(sparse.value_counts(),
+                               dense.value_counts())
+        tm.assert_series_equal(sparse.value_counts(dropna=False),
+                               dense.value_counts(dropna=False))
+
+        vals = [1, 2, 0, 0, 0, 1, 2, 0, 0, 1, 2, 0, 1, 1]
+
+        dense = pd.Series(vals, name='xx') * 0.
+        sparse = pd.SparseSeries(vals, name='xx') * 0.
+        tm.assert_series_equal(sparse.value_counts(),
+                               dense.value_counts())
+        tm.assert_series_equal(sparse.value_counts(dropna=False),
+                               dense.value_counts(dropna=False))
+
+    def test_value_counts_int(self):
+        vals = [1, 2, 0, 1, 2, 1, 2, 0, 1, 1]
+        dense = pd.Series(vals, name='xx')
+
+        # fill_value is np.nan, but should not be included in the result
+        sparse = pd.SparseSeries(vals, name='xx')
+        tm.assert_series_equal(sparse.value_counts(),
+                               dense.value_counts())
+        tm.assert_series_equal(sparse.value_counts(dropna=False),
+                               dense.value_counts(dropna=False))
+
+        sparse = pd.SparseSeries(vals, name='xx', fill_value=0)
+        tm.assert_series_equal(sparse.value_counts(),
+                               dense.value_counts())
+        tm.assert_series_equal(sparse.value_counts(dropna=False),
+                               dense.value_counts(dropna=False))
+
 
 def _dense_series_compare(s, f):
     result = f(s)
