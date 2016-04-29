@@ -4151,6 +4151,7 @@ class TestTimestamp(tm.TestCase):
         self.assertEqual(stamp.nanosecond, 500)
 
     def test_unit(self):
+
         def check(val, unit=None, h=1, s=1, us=0):
             stamp = Timestamp(val, unit=unit)
             self.assertEqual(stamp.year, 2000)
@@ -4216,6 +4217,44 @@ class TestTimestamp(tm.TestCase):
 
         result = Timestamp('NaT')
         self.assertIs(result, NaT)
+
+    def test_unit_errors(self):
+        # GH 11758
+        # test proper behavior with erros
+
+        with self.assertRaises(ValueError):
+            to_datetime([1], unit='D', format='%Y%m%d')
+
+        values = [11111111, 1, 1.0, tslib.iNaT, pd.NaT, np.nan,
+                  'NaT', '']
+        result = to_datetime(values, unit='D', errors='ignore')
+        expected = Index([11111111, Timestamp('1970-01-02'),
+                          Timestamp('1970-01-02'), pd.NaT,
+                          pd.NaT, pd.NaT, pd.NaT, pd.NaT],
+                         dtype=object)
+        tm.assert_index_equal(result, expected)
+
+        result = to_datetime(values, unit='D', errors='coerce')
+        expected = DatetimeIndex(['NaT', '1970-01-02', '1970-01-02',
+                                  'NaT', 'NaT', 'NaT', 'NaT', 'NaT'])
+        tm.assert_index_equal(result, expected)
+
+        with self.assertRaises(ValueError):
+            to_datetime(values, unit='D', errors='raise')
+
+        values = [1420043460000, tslib.iNaT, pd.NaT, np.nan, 'NaT']
+
+        result = to_datetime(values, errors='ignore', unit='s')
+        expected = Index([1420043460000, pd.NaT, pd.NaT,
+                          pd.NaT, pd.NaT], dtype=object)
+        tm.assert_index_equal(result, expected)
+
+        result = to_datetime(values, errors='coerce', unit='s')
+        expected = DatetimeIndex(['NaT', 'NaT', 'NaT', 'NaT', 'NaT'])
+        tm.assert_index_equal(result, expected)
+
+        with self.assertRaises(ValueError):
+            to_datetime(values, errors='raise', unit='s')
 
     def test_roundtrip(self):
 
