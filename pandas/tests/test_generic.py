@@ -595,6 +595,23 @@ class Generic(object):
                                lower=lower, upper=upper,
                                axis=bad_axis)
 
+    def test_truncate_out_of_bounds(self):
+        # GH11382
+
+        # small
+        shape = [int(2e3)] + ([1] * (self._ndim - 1))
+        small = self._construct(shape, dtype='int8')
+        self._compare(small.truncate(), small)
+        self._compare(small.truncate(before=0, after=3e3), small)
+        self._compare(small.truncate(before=-1, after=2e3), small)
+
+        # big
+        shape = [int(2e6)] + ([1] * (self._ndim - 1))
+        big = self._construct(shape, dtype='int8')
+        self._compare(big.truncate(), big)
+        self._compare(big.truncate(before=0, after=3e6), big)
+        self._compare(big.truncate(before=-1, after=2e6), big)
+
     def test_numpy_clip(self):
         lower = 1
         upper = 3
@@ -1412,7 +1429,7 @@ class TestDataFrame(tm.TestCase, Generic):
 
 class TestPanel(tm.TestCase, Generic):
     _typ = Panel
-    _comparator = lambda self, x, y: assert_panel_equal(x, y)
+    _comparator = lambda self, x, y: assert_panel_equal(x, y, by_blocks=True)
 
     def test_to_xarray(self):
 
@@ -1434,7 +1451,7 @@ class TestPanel(tm.TestCase, Generic):
 
 class TestPanel4D(tm.TestCase, Generic):
     _typ = Panel4D
-    _comparator = lambda self, x, y: assert_panel4d_equal(x, y)
+    _comparator = lambda self, x, y: assert_panel4d_equal(x, y, by_blocks=True)
 
     def test_sample(self):
         raise nose.SkipTest("sample on Panel4D")

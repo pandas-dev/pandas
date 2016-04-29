@@ -1185,7 +1185,7 @@ class TestTSPlot(tm.TestCase):
 
         ax = ts.plot()
         left_before, right_before = ax.get_xlim()
-        ts.resample('D').plot(secondary_y=True, ax=ax)
+        ts.resample('D').mean().plot(secondary_y=True, ax=ax)
         left_after, right_after = ax.get_xlim()
 
         # a downsample should not have changed either limit

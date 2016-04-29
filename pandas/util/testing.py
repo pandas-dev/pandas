@@ -1167,26 +1167,59 @@ def assert_frame_equal(left, right, check_dtype=True,
 
 
 def assert_panelnd_equal(left, right,
+                         check_dtype=True,
                          check_panel_type=False,
                          check_less_precise=False,
                          assert_func=assert_frame_equal,
-                         check_names=False):
+                         check_names=False,
+                         by_blocks=False):
+    """Check that left and right Panels are equal.
+
+    Parameters
+    ----------
+    left : Panel (or nd)
+    right : Panel (or nd)
+    check_dtype : bool, default True
+        Whether to check the Panel dtype is identical.
+    check_panel_type : bool, default False
+        Whether to check the Panel class is identical.
+    check_less_precise : bool, default False
+        Specify comparison precision. Only used when check_exact is False.
+        5 digits (False) or 3 digits (True) after decimal points are compared.
+    assert_func : function for comparing data
+    check_names : bool, default True
+        Whether to check the Index names attribute.
+    by_blocks : bool, default False
+        Specify how to compare internal data. If False, compare by columns.
+        If True, compare by blocks.
+    """
+
     if check_panel_type:
         assertIsInstance(left, type(right))
 
-    for axis in ['items', 'major_axis', 'minor_axis']:
+    for axis in left._AXIS_ORDERS:
         left_ind = getattr(left, axis)
         right_ind = getattr(right, axis)
         assert_index_equal(left_ind, right_ind, check_names=check_names)
 
-    for i, item in enumerate(left._get_axis(0)):
-        assert item in right, "non-matching item (right) '%s'" % item
-        litem = left.iloc[i]
-        ritem = right.iloc[i]
-        assert_func(litem, ritem, check_less_precise=check_less_precise)
+    if by_blocks:
+        rblocks = right.blocks
+        lblocks = left.blocks
+        for dtype in list(set(list(lblocks.keys()) + list(rblocks.keys()))):
+            assert dtype in lblocks
+            assert dtype in rblocks
+            array_equivalent(lblocks[dtype].values, rblocks[dtype].values)
+    else:
 
-    for i, item in enumerate(right._get_axis(0)):
-        assert item in left, "non-matching item (left) '%s'" % item
+        # can potentially be slow
+        for i, item in enumerate(left._get_axis(0)):
+            assert item in right, "non-matching item (right) '%s'" % item
+            litem = left.iloc[i]
+            ritem = right.iloc[i]
+            assert_func(litem, ritem, check_less_precise=check_less_precise)
+
+        for i, item in enumerate(right._get_axis(0)):
+            assert item in left, "non-matching item (left) '%s'" % item
 
 # TODO: strangely check_names fails in py3 ?
 _panel_frame_equal = partial(assert_frame_equal, check_names=False)
