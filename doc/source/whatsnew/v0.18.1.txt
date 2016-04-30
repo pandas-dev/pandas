@@ -238,7 +238,9 @@ Other Enhancements
 
 - ``pd.crosstab()`` has gained a ``normalize`` argument for normalizing frequency tables (:issue:`12569`). Examples in the updated docs :ref:`here <reshaping.crosstabulations>`.
 - ``.resample(..).interpolate()`` is now supported (:issue:`12925`)
+- Expanded the Tutorials :ref:`documentation <tutorial-modern>` with another `series`_ (:issue:`13045`).
 
+.. _series: http://tomaugspurger.github.io/modern-1.html
 
 .. _whatsnew_0181.sparse:
 
