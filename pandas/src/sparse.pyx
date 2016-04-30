@@ -129,52 +129,19 @@ cdef class IntIndex(SparseIndex):
         return IntIndex(self.length, new_list)
 
     cpdef IntIndex make_union(self, SparseIndex y_):
-        cdef:
-            Py_ssize_t out_length, i, xi, yi
-            int32_t xind
-            ndarray[int32_t, ndim=1] xindices, yindices
-            list new_list = []
-            IntIndex x, y
 
-        x = self
+        cdef:
+            ndarray[int32_t, ndim=1] new_indices
+            IntIndex y
 
         # if is one already, returns self
         y = y_.to_int_index()
 
         if self.length != y.length:
-            raise Exception('Indices must reference same underlying length')
+            raise ValueError('Indices must reference same underlying length')
 
-        xindices = self.indices
-        yindices = y.indices
-
-        xi = yi = 0
-        while True:
-            if xi == x.npoints:
-                while yi < y.npoints:
-                    new_list.append(yindices[yi])
-                    yi += 1
-                break
-            elif yi == y.npoints:
-                while xi < x.npoints:
-                    new_list.append(xindices[xi])
-                    xi += 1
-                break
-
-            xind = xindices[xi]
-            yind = yindices[yi]
-
-            if xind == yind:
-                new_list.append(xind)
-                xi += 1
-                yi += 1
-            elif xind < yind:
-                new_list.append(xind)
-                xi += 1
-            else:
-                new_list.append(yind)
-                yi += 1
-
-        return IntIndex(x.length, new_list)
+        new_indices = np.union1d(self.indices, y.indices)
+        return IntIndex(self.length, new_indices)
 
     @cython.wraparound(False)
     cpdef int lookup(self, Py_ssize_t index):

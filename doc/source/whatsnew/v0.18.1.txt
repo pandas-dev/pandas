@@ -496,6 +496,7 @@ Performance Improvements
 - Improved performance of ``Period`` construction and time series plotting (:issue:`12903`, :issue:`11831`).
 - Improved performance of ``.str.encode()`` and ``.str.decode()`` methods (:issue:`13008`)
 - Improved performance of ``to_numeric`` if input is numeric dtype (:issue:`12777`)
+- Improved performance of sparse arithmetic with ``IntIndex`` (:issue:`13036`)
 
 
 
