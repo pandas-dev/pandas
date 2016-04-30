@@ -751,6 +751,8 @@ def assert_index_equal(left, right, exact='equiv', check_names=True,
     # metadata comparison
     if check_names:
         assert_attr_equal('names', left, right, obj=obj)
+    if isinstance(left, pd.PeriodIndex) or isinstance(right, pd.PeriodIndex):
+        assert_attr_equal('freq', left, right, obj=obj)
 
 
 def assert_class_equal(left, right, exact=True, obj='Input'):

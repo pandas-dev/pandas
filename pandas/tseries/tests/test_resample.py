@@ -637,13 +637,13 @@ class Base(object):
             methods = [method for method in resample_methods
                        if method != 'ohlc']
             for method in methods:
-                expected_index = s.index._shallow_copy(freq=freq)
-
                 result = getattr(s.resample(freq), method)()
-                expected = s
-                assert_index_equal(result.index, expected_index)
-                # freq equality not yet checked in assert_index_equal
-                self.assertEqual(result.index.freq, expected_index.freq)
+
+                expected = s.copy()
+                expected.index = s.index._shallow_copy(freq=freq)
+                assert_index_equal(result.index, expected.index)
+                self.assertEqual(result.index.freq, expected.index.freq)
+
                 if (method == 'size' and
                    isinstance(result.index, PeriodIndex) and
                    freq in ['M', 'D']):
@@ -665,13 +665,12 @@ class Base(object):
             # count retains dimensions too
             methods = downsample_methods + ['count']
             for method in methods:
-                expected_index = f.index._shallow_copy(freq=freq)
                 result = getattr(f.resample(freq), method)()
-                expected = f
-                assert_index_equal(result.index, expected_index)
-                # freq equality not yet checked in assert_index_equal
-                # TODO: remove when freq checked
-                self.assertEqual(result.index.freq, expected_index.freq)
+
+                expected = f.copy()
+                expected.index = f.index._shallow_copy(freq=freq)
+                assert_index_equal(result.index, expected.index)
+                self.assertEqual(result.index.freq, expected.index.freq)
                 assert_frame_equal(result, expected, check_dtype=False)
 
             # test size for GH13212 (currently stays as df)
