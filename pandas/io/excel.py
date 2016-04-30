@@ -329,11 +329,15 @@ class ExcelFile(object):
                appropriate object"""
 
             if cell_typ == XL_CELL_DATE:
+
                 if xlrd_0_9_3:
                     # Use the newer xlrd datetime handling.
-                    cell_contents = xldate.xldate_as_datetime(cell_contents,
-                                                              epoch1904)
-
+                    try:
+                        cell_contents = \
+                            xldate.xldate_as_datetime(cell_contents,
+                                                      epoch1904)
+                    except OverflowError:
+                        return cell_contents
                     # Excel doesn't distinguish between dates and time,
                     # so we treat dates on the epoch as times only.
                     # Also, Excel supports 1900 and 1904 epochs.
@@ -346,7 +350,11 @@ class ExcelFile(object):
                                              cell_contents.microsecond)
                 else:
                     # Use the xlrd <= 0.9.2 date handling.
-                    dt = xldate.xldate_as_tuple(cell_contents, epoch1904)
+                    try:
+                        dt = xldate.xldate_as_tuple(cell_contents, epoch1904)
+
+                    except xldate.XLDateTooLarge:
+                        return cell_contents
 
                     if dt[0] < MINYEAR:
                         cell_contents = time(*dt[3:])

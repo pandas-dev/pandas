@@ -38,6 +38,7 @@ API changes
 ~~~~~~~~~~~
 
 
+- Non-convertible dates in an excel date column will be returned without conversion and the column will be ``object`` dtype, rather than raising an exception  (:issue:`10001`)
 
 
 
