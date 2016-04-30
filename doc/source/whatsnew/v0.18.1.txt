@@ -1,7 +1,7 @@
 .. _whatsnew_0181:
 
-v0.18.1 (May ??, 2016)
-----------------------
+v0.18.1 (May 3, 2016)
+---------------------
 
 This is a minor bug-fix release from 0.18.0 and includes a large number of
 bug fixes along with several new features, enhancements, and performance improvements.
@@ -190,9 +190,18 @@ Assembling Datetimes
                       'month': [2, 3],
                       'day': [4, 5],
                       'hour': [2, 3]})
+   df
+
+Assembling using the passed frame.
+
+.. ipython:: python
+
    pd.to_datetime(df)
 
-   # pass only the columns that you need to assemble
+You can pass only the columns that you need to assemble.
+
+.. ipython:: python
+
    pd.to_datetime(df[['year', 'month', 'day']])
 
 .. _whatsnew_0181.other:
@@ -209,20 +218,22 @@ Other Enhancements
 - ``interpolate()`` now supports ``method='akima'`` (:issue:`7588`).
 - ``pd.read_excel()`` now accepts path objects (e.g. ``pathlib.Path``, ``py.path.local``) for the file path, in line with other ``read_*`` functions (:issue:`12655`)
 - ``Index.take`` now handles ``allow_fill`` and ``fill_value`` consistently (:issue:`12631`)
-- Added ``weekday_name`` as a component to ``DatetimeIndex`` and ``.dt`` accessor. (:issue:`11128`)
+- Added ``.weekday_name`` property as a component to ``DatetimeIndex`` and the ``.dt`` accessor. (:issue:`11128`)
 
-   .. ipython:: python
+- ``Index.take`` now handles ``allow_fill`` and ``fill_value`` consistently (:issue:`12631`)
 
-      idx = pd.Index([1., 2., 3., 4.], dtype='float')
-      idx.take([2, -1])     # default, allow_fill=True, fill_value=None
-      idx.take([2, -1], fill_value=True)
+.. ipython:: python
+
+   idx = pd.Index([1., 2., 3., 4.], dtype='float')
+   idx.take([2, -1])     # default, allow_fill=True, fill_value=None
+   idx.take([2, -1], fill_value=True)
 
 - ``Index`` now supports ``.str.get_dummies()`` which returns ``MultiIndex``, see :ref:`Creating Indicator Variables <text.indicator>` (:issue:`10008`, :issue:`10103`)
 
-   .. ipython:: python
+.. ipython:: python
 
-      idx = pd.Index(['a|b', 'a|c', 'b|c'])
-      idx.str.get_dummies('|')
+   idx = pd.Index(['a|b', 'a|c', 'b|c'])
+   idx.str.get_dummies('|')
 
 
 - ``pd.crosstab()`` has gained a ``normalize`` argument for normalizing frequency tables (:issue:`12569`). Examples in the updated docs :ref:`here <reshaping.crosstabulations>`.
@@ -236,7 +247,7 @@ Sparse changes
 
 These changes conform sparse handling to return the correct types and work to make a smoother experience with indexing.
 
-``SparseArray.take`` now returns scalar for scalar input, ``SparseArray`` for others. Also now it handles negative indexer as the same rule as ``Index`` (:issue:`10560`, :issue:`12796`)
+``SparseArray.take`` now returns a scalar for scalar input, ``SparseArray`` for others. Furthermore, it handles a negative indexer with the same rule as ``Index`` (:issue:`10560`, :issue:`12796`)
 
 .. ipython:: python
 
@@ -488,7 +499,7 @@ Deprecations
 Performance Improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-- Improved speed of SAS reader (:issue:`12656`, :issue`12961`)
+- Improved speed of SAS reader (:issue:`12656`, :issue:`12961`)
 - Performance improvements in ``.groupby(..).cumcount()`` (:issue:`11039`)
 - Improved memory usage in ``pd.read_csv()`` when using ``skiprows=an_integer`` (:issue:`13005`)
 
@@ -517,14 +528,14 @@ Bug Fixes
 - Bug in printing data which contains ``Period`` with different ``freq`` raises ``ValueError`` (:issue:`12615`)
 - Bug in numpy compatibility of ``np.round()`` on a ``Series`` (:issue:`12600`)
 - Bug in ``Series`` construction with ``Categorical`` and ``dtype='category'`` is specified (:issue:`12574`)
-- Bugs in concatenation with a coercable dtype was too aggressive. (:issue:`12411`, :issue:`12045`, :issue:`11594`, :issue:`10571`, :issue:`12211`)
+- Bugs in concatenation with a coercable dtype was too aggressive, resulting in different dtypes in outputformatting when an object was longer than ``display.max_rows`` (:issue:`12411`, :issue:`12045`, :issue:`11594`, :issue:`10571`, :issue:`12211`)
 - Bug in ``float_format`` option with option not being validated as a callable. (:issue:`12706`)
 - Bug in ``GroupBy.filter`` when ``dropna=False`` and no groups fulfilled the criteria (:issue:`12768`)
 - Bug in ``__name__`` of ``.cum*`` functions (:issue:`12021`)
 - Bug in ``.astype()`` of a ``Float64Inde/Int64Index`` to an ``Int64Index`` (:issue:`12881`)
 - Bug in roundtripping an integer based index in ``.to_json()/.read_json()`` when ``orient='index'`` (the default) (:issue:`12866`)
 - Bug in plotting ``Categorical`` dtypes cause error when attempting stacked bar plot (:issue:`13019`)
-- Compat with >= numpy 1.11 for NaT comparions (:issue:`12969`)
+- Compat with >= ``numpy`` 1.11 for ``NaT`` comparions (:issue:`12969`)
 - Bug in ``.drop()`` with a non-unique ``MultiIndex``. (:issue:`12701`)
 - Bug in ``.concat`` of datetime tz-aware and naive DataFrames (:issue:`12467`)
 - Bug in correctly raising a ``ValueError`` in ``.resample(..).fillna(..)`` when passing a non-string (:issue:`12952`)
@@ -533,7 +544,7 @@ Bug Fixes
 - Potential segfault in ``DataFrame.to_json`` when serialising ``datetime.time`` (:issue:`11473`).
 - Potential segfault in ``DataFrame.to_json`` when attempting to serialise 0d array (:issue:`11299`).
 - Segfault in ``to_json`` when attempting to serialise a ``DataFrame`` or ``Series`` with non-ndarray values (:issue:`10778`).
-- Bug in ``.align`` when sub-classing not returning the sub-class (:issue:`12983`)
+- Bug in ``.align`` not returning the sub-class (:issue:`12983`)
 - Bug in aligning a ``Series`` with a ``DataFrame`` (:issue:`13037`)
 
 
@@ -590,7 +601,7 @@ Bug Fixes
 
 
 - Bug in ``concat`` raises ``AttributeError`` when input data contains tz-aware datetime and timedelta (:issue:`12620`)
-- Bug in ``concat`` doesn't handle empty ``Series`` properly (:issue:`11082`)
+- Bug in ``concat`` did not handle empty ``Series`` properly (:issue:`11082`)
 
 - Bug in ``.plot.bar`` alginment when ``width`` is specified with ``int`` (:issue:`12979`)
 

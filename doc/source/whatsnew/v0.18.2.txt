@@ -1,0 +1,76 @@
+.. _whatsnew_0182:
+
+v0.18.2 (July ??, 2016)
+-----------------------
+
+This is a minor bug-fix release from 0.18.1 and includes a large number of
+bug fixes along with several new features, enhancements, and performance improvements.
+We recommend that all users upgrade to this version.
+
+Highlights include:
+
+
+.. contents:: What's new in v0.18.2
+    :local:
+    :backlinks: none
+
+.. _whatsnew_0182.new_features:
+
+New features
+~~~~~~~~~~~~
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+.. _whatsnew_0182.api:
+
+API changes
+~~~~~~~~~~~
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+.. _whatsnew_0182.api.other:
+
+Other API changes
+^^^^^^^^^^^^^^^^^
+
+.. _whatsnew_0182.deprecations:
+
+Deprecations
+^^^^^^^^^^^^
+
+
+.. _whatsnew_0182.performance:
+
+Performance Improvements
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+
+
+
+.. _whatsnew_0182.bug_fixes:
+
+Bug Fixes
+~~~~~~~~~

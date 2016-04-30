@@ -40,12 +40,18 @@ analysis / manipulation tool available in any language.
 pandas 0.18.1
 -------------
 
-**Release date:** (April ??, 2016)
+**Release date:** (May 3, 2016)
 
 This is a minor release from 0.18.0 and includes a large number of bug fixes
 along with several new features, enhancements, and performance improvements.
 
 Highlights include:
+
+- ``.groupby(...)`` has been enhanced to provide convenient syntax when working with ``.rolling(..)``, ``.expanding(..)`` and ``.resample(..)`` per group, see :ref:`here <whatsnew_0181.deferred_ops>`
+- ``pd.to_datetime()`` has gained the ability to assemble dates from a ``DataFrame``, see :ref:`here <whatsnew_0181.enhancements.assembling>`
+- Custom business hour offset, see :ref:`here <whatsnew_0181.enhancements.custombusinesshour>`.
+- Many bug fixes in the handling of ``sparse``, see :ref:`here <whatsnew_0181.sparse>`
+- Method chaining improvements, see :ref:`here <whatsnew_0181.enhancements.method_chain>`.
 
 See the :ref:`v0.18.1 Whatsnew <whatsnew_0181>` overview for an extensive list
 of all enhancements and bugs that have been fixed in 0.18.1.
