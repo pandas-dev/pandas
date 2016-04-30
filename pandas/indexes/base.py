@@ -1663,6 +1663,21 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
     def __xor__(self, other):
         return self.symmetric_difference(other)
 
+    def _get_consensus_name(self, other):
+        """
+        Given 2 indexes, give a consensus name meaning
+        we take the not None one, or None if the names differ.
+        Return a new object if we are resetting the name
+        """
+        if self.name != other.name:
+            if self.name is None or other.name is None:
+                name = self.name or other.name
+            else:
+                name = None
+            if self.name != name:
+                return other._shallow_copy(name=name)
+        return self
+
     def union(self, other):
         """
         Form the union of two Index objects and sorts if possible.
@@ -1688,10 +1703,10 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         other = _ensure_index(other)
 
         if len(other) == 0 or self.equals(other):
-            return self
+            return self._get_consensus_name(other)
 
         if len(self) == 0:
-            return other
+            return other._get_consensus_name(self)
 
         if not com.is_dtype_equal(self.dtype, other.dtype):
             this = self.astype('O')
@@ -1774,7 +1789,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         other = _ensure_index(other)
 
         if self.equals(other):
-            return self
+            return self._get_consensus_name(other)
 
         if not com.is_dtype_equal(self.dtype, other.dtype):
             this = self.astype('O')
