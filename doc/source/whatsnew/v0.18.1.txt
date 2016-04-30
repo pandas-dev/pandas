@@ -584,7 +584,7 @@ Bug Fixes
 - Bug in ``groupby`` where complex types are coerced to float (:issue:`12902`)
 - Bug in ``Series.map`` raises ``TypeError`` if its dtype is ``category`` or tz-aware ``datetime`` (:issue:`12473`)
 
-
+- Bugs on 32bit platforms for some test comparisons (:issue:`12972`)
 - Bug in index coercion when falling back from ``RangeIndex`` construction (:issue:`12893`)
 - Better error message in window functions when invalid argument (e.g. a float window) is passed (:issue:`12669`)
 

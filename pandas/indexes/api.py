@@ -76,6 +76,9 @@ def _union_indexes(indexes):
             if not index.equals(other):
                 return _unique_indices(indexes)
 
+        name = _get_consensus_names(indexes)[0]
+        if name != index.name:
+            index = index._shallow_copy(name=name)
         return index
     else:
         return _unique_indices(indexes)

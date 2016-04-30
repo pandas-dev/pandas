@@ -554,6 +554,23 @@ class TestIndex(Base, tm.TestCase):
         result = idx1.intersection(idx2)
         self.assertTrue(result.equals(expected))
 
+        # preserve names
+        first = self.strIndex[5:20]
+        second = self.strIndex[:10]
+        first.name = 'A'
+        second.name = 'A'
+        intersect = first.intersection(second)
+        self.assertEqual(intersect.name, 'A')
+
+        second.name = 'B'
+        intersect = first.intersection(second)
+        self.assertIsNone(intersect.name)
+
+        first.name = None
+        second.name = 'B'
+        intersect = first.intersection(second)
+        self.assertIsNone(intersect.name)
+
     def test_union(self):
         first = self.strIndex[5:20]
         second = self.strIndex[:10]
@@ -578,14 +595,50 @@ class TestIndex(Base, tm.TestCase):
         self.assertIs(union, first)
 
         # preserve names
-        first.name = 'A'
-        second.name = 'A'
+        first = Index(list('ab'), name='A')
+        second = Index(list('ab'), name='B')
+        union = first.union(second)
+        self.assertIsNone(union.name)
+
+        first = Index(list('ab'), name='A')
+        second = Index([], name='B')
+        union = first.union(second)
+        self.assertIsNone(union.name)
+
+        first = Index([], name='A')
+        second = Index(list('ab'), name='B')
+        union = first.union(second)
+        self.assertIsNone(union.name)
+
+        first = Index(list('ab'))
+        second = Index(list('ab'), name='B')
+        union = first.union(second)
+        self.assertEqual(union.name, 'B')
+
+        first = Index([])
+        second = Index(list('ab'), name='B')
+        union = first.union(second)
+        self.assertEqual(union.name, 'B')
+
+        first = Index(list('ab'))
+        second = Index([], name='B')
+        union = first.union(second)
+        self.assertEqual(union.name, 'B')
+
+        first = Index(list('ab'), name='A')
+        second = Index(list('ab'))
         union = first.union(second)
         self.assertEqual(union.name, 'A')
 
-        second.name = 'B'
+        first = Index(list('ab'), name='A')
+        second = Index([])
         union = first.union(second)
-        self.assertIsNone(union.name)
+        self.assertEqual(union.name, 'A')
+
+        first = Index([], name='A')
+        second = Index(list('ab'))
+        union = first.union(second)
+        self.assertEqual(union.name, 'A')
 
     def test_add(self):
 
