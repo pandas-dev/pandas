@@ -584,6 +584,8 @@ setup(name=DISTNAME,
                 'pandas.types',
                 'pandas.io.tests',
                 'pandas.io.tests.json',
+                'pandas.io.tests.parser',
+                'pandas.io.tests.sas',
                 'pandas.stats.tests',
                 'pandas.msgpack'
                 ],

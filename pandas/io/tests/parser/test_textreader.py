@@ -1,12 +1,15 @@
+# -*- coding: utf-8 -*-
+
 """
-C/Cython ascii file parser tests
+Tests the TextReader class in parsers.pyx, which
+is integral to the C engine in parsers.py
 """
 
 from pandas.compat import StringIO, BytesIO, map
 from pandas import compat
+
 import os
 import sys
-
 import nose
 
 from numpy import nan
@@ -22,7 +25,7 @@ from pandas.parser import TextReader
 import pandas.parser as parser
 
 
-class TestCParser(tm.TestCase):
+class TestTextReader(tm.TestCase):
 
     def setUp(self):
         self.dirpath = tm.get_data_path()
