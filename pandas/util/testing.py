@@ -2420,7 +2420,7 @@ def test_parallel(num_threads=2, kwargs_list=None):
 
 
 class SubclassedSeries(Series):
-    _metadata = ['testattr']
+    _metadata = ['testattr', 'name']
 
     @property
     def _constructor(self):
