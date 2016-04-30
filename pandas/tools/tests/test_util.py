@@ -224,7 +224,7 @@ class TestToNumeric(tm.TestCase):
 
     def test_str(self):
         idx = pd.Index(['1', '2', '3'], name='xxx')
-        exp = np.array([1, 2, 3])
+        exp = np.array([1, 2, 3], dtype='int64')
         res = pd.to_numeric(idx)
         tm.assert_index_equal(res, pd.Index(exp, name='xxx'))
 
