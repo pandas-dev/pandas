@@ -170,7 +170,7 @@ def _guess_datetime_format_for_array(arr, **kwargs):
                  mapping={True: 'coerce', False: 'raise'})
 def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
                 utc=None, box=True, format=None, exact=True, coerce=None,
-                unit='ns', infer_datetime_format=False):
+                unit=None, infer_datetime_format=False):
     """
     Convert argument to datetime.
 
@@ -293,7 +293,7 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
 
 def _to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
                  utc=None, box=True, format=None, exact=True,
-                 unit='ns', freq=None, infer_datetime_format=False):
+                 unit=None, freq=None, infer_datetime_format=False):
     """
     Same as to_datetime, but accept freq for
     DatetimeIndex internal construction
@@ -323,9 +323,17 @@ def _to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
                 arg = arg.tz_convert(None).tz_localize('UTC')
             return arg
 
-        elif format is None and com.is_integer_dtype(arg) and unit == 'ns':
-            result = arg.astype('datetime64[ns]')
+        elif unit is not None:
+            if format is not None:
+                raise ValueError("cannot specify both format and unit")
+            arg = getattr(arg, 'values', arg)
+            result = tslib.array_with_unit_to_datetime(arg, unit,
+                                                       errors=errors)
             if box:
+                if errors == 'ignore':
+                    from pandas import Index
+                    return Index(result, dtype=object)
+
                 return DatetimeIndex(result, tz='utc' if utc else None,
                                      name=name)
             return result
@@ -387,7 +395,6 @@ def _to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
                     dayfirst=dayfirst,
                     yearfirst=yearfirst,
                     freq=freq,
-                    unit=unit,
                     require_iso8601=require_iso8601
                 )
 
