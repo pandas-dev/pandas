@@ -8,7 +8,8 @@ from distutils.version import LooseVersion
 import re
 
 from pandas.compat import (range, zip, lrange, StringIO, PY3,
-                           u, lzip, is_platform_windows)
+                           u, lzip, is_platform_windows,
+                           is_platform_32bit)
 import pandas.compat as compat
 import itertools
 from operator import methodcaller
@@ -44,6 +45,8 @@ from pandas.core.config import (set_option, get_option, option_context,
 from datetime import datetime
 
 import nose
+
+use_32bit_repr = is_platform_windows() or is_platform_32bit()
 
 _frame = DataFrame(tm.getSeriesData())
 
@@ -3758,7 +3761,7 @@ class TestSeriesFormatting(tm.TestCase):
     def test_sparse_max_row(self):
         s = pd.Series([1, np.nan, np.nan, 3, np.nan]).to_sparse()
         result = repr(s)
-        dtype = '' if is_platform_windows() else ', dtype=int32'
+        dtype = '' if use_32bit_repr else ', dtype=int32'
         exp = ("0    1.0\n1    NaN\n2    NaN\n3    3.0\n"
                "4    NaN\ndtype: float64\nBlockIndex\n"
                "Block locations: array([0, 3]{0})\n"
