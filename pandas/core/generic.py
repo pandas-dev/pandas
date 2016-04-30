@@ -4144,9 +4144,9 @@ class NDFrame(PandasObject):
             if isinstance(self, Series):
                 # this means other is a DataFrame, and we need to broadcast
                 # self
-                df = DataFrame(
-                    dict((c, self) for c in other.columns),
-                    **other._construct_axes_dict())
+                cons = self._constructor_expanddim
+                df = cons(dict((c, self) for c in other.columns),
+                          **other._construct_axes_dict())
                 return df._align_frame(other, join=join, axis=axis,
                                        level=level, copy=copy,
                                        fill_value=fill_value, method=method,
@@ -4154,8 +4154,9 @@ class NDFrame(PandasObject):
             elif isinstance(other, Series):
                 # this means self is a DataFrame, and we need to broadcast
                 # other
-                df = DataFrame(dict((c, other) for c in self.columns),
-                               **self._construct_axes_dict())
+                cons = other._constructor_expanddim
+                df = cons(dict((c, other) for c in self.columns),
+                          **self._construct_axes_dict())
                 return self._align_frame(df, join=join, axis=axis, level=level,
                                          copy=copy, fill_value=fill_value,
                                          method=method, limit=limit,
@@ -4184,20 +4185,27 @@ class NDFrame(PandasObject):
         ilidx, iridx = None, None
         clidx, cridx = None, None
 
+        is_series = isinstance(self, ABCSeries)
+
         if axis is None or axis == 0:
             if not self.index.equals(other.index):
                 join_index, ilidx, iridx = self.index.join(
                     other.index, how=join, level=level, return_indexers=True)
 
         if axis is None or axis == 1:
-            if not self.columns.equals(other.columns):
+            if not is_series and not self.columns.equals(other.columns):
                 join_columns, clidx, cridx = self.columns.join(
                     other.columns, how=join, level=level, return_indexers=True)
 
-        left = self._reindex_with_indexers({0: [join_index, ilidx],
-                                            1: [join_columns, clidx]},
-                                           copy=copy, fill_value=fill_value,
+        if is_series:
+            reindexers = {0: [join_index, ilidx]}
+        else:
+            reindexers = {0: [join_index, ilidx], 1: [join_columns, clidx]}
+
+        left = self._reindex_with_indexers(reindexers, copy=copy,
+                                           fill_value=fill_value,
                                            allow_dups=True)
+        # other must be always DataFrame
         right = other._reindex_with_indexers({0: [join_index, iridx],
                                               1: [join_columns, cridx]},
                                              copy=copy, fill_value=fill_value,
@@ -4212,10 +4220,8 @@ class NDFrame(PandasObject):
     def _align_series(self, other, join='outer', axis=None, level=None,
                       copy=True, fill_value=None, method=None, limit=None,
                       fill_axis=0):
-        from pandas import DataFrame
-
-        # series/series compat
-        if isinstance(self, ABCSeries) and isinstance(other, ABCSeries):
+        # series/series compat, other must always be a Series
+        if isinstance(self, ABCSeries):
             if axis:
                 raise ValueError('cannot align series to a series other than '
                                  'axis 0')
@@ -4261,7 +4267,7 @@ class NDFrame(PandasObject):
             if copy and fdata is self._data:
                 fdata = fdata.copy()
 
-            left = DataFrame(fdata)
+            left = self._constructor(fdata)
 
             if ridx is None:
                 right = other

@@ -510,7 +510,8 @@ Bug Fixes
 - Potential segfault in ``DataFrame.to_json`` when serialising ``datetime.time`` (:issue:`11473`).
 - Potential segfault in ``DataFrame.to_json`` when attempting to serialise 0d array (:issue:`11299`).
 - Segfault in ``to_json`` when attempting to serialise a ``DataFrame`` or ``Series`` with non-ndarray values (:issue:`10778`).
-
+- Bug in ``.align`` when sub-classing not returning the sub-class (:issue:`12983`)
+- Bug in aligning a ``Series`` with a ``DataFrame`` (:issue:`13037`)
 
 
 
