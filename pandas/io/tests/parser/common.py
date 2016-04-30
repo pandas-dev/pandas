@@ -592,7 +592,7 @@ bar"""
                'pandas/io/tests/parser/data/salary.table.csv')
         url_table = self.read_table(url)
         dirpath = tm.get_data_path()
-        localtable = os.path.join(dirpath, 'salary.table')
+        localtable = os.path.join(dirpath, 'salary.table.csv')
         local_table = self.read_table(localtable)
         tm.assert_frame_equal(url_table, local_table)
         # TODO: ftp testing
