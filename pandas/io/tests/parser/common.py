@@ -589,7 +589,7 @@ bar"""
     def test_url(self):
         # HTTP(S)
         url = ('https://raw.github.com/pydata/pandas/master/'
-               'pandas/io/tests/data/salary.table')
+               'pandas/io/tests/parser/data/salary.table.csv')
         url_table = self.read_table(url)
         dirpath = tm.get_data_path()
         localtable = os.path.join(dirpath, 'salary.table')
@@ -604,7 +604,7 @@ bar"""
         if sys.version_info[:2] < (2, 6):
             raise nose.SkipTest("file:// not supported with Python < 2.6")
         dirpath = tm.get_data_path()
-        localtable = os.path.join(dirpath, 'salary.table')
+        localtable = os.path.join(dirpath, 'salary.table.csv')
         local_table = self.read_table(localtable)
 
         try:
