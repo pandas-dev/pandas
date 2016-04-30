@@ -428,6 +428,30 @@ In addition to this error change, several others have been made as well:
 - ``pd.read_csv()`` no longer allows a combination of strings and integers for the ``usecols`` parameter (:issue:`12678`)
 
 
+.. _whatsnew_0181.api.to_datetime:
+
+``to_datetime`` error changes
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Bugs in ``pd.to_datetime()`` when passing a ``unit`` with convertible entries and ``errors='coerce'`` or non-convertible with ``errors='ignore'`` (:issue:`11758`)
+
+Previous behaviour:
+
+.. code-block:: python
+
+   In [27]: pd.to_datetime(1420043460, unit='s', errors='coerce')
+   Out[27]: NaT
+
+   In [28]: pd.to_datetime(11111111, unit='D', errors='ignore')
+   OverflowError: Python int too large to convert to C long
+
+New behaviour:
+
+.. ipython:: python
+
+   pd.to_datetime(1420043460, unit='s', errors='coerce')
+   pd.to_datetime(11111111, unit='D', errors='ignore')
+
 .. _whatsnew_0181.api.other:
 
 Other API changes
@@ -443,7 +467,6 @@ Other API changes
 - Provide a proper ``__name__`` and ``__qualname__`` attributes for generic functions (:issue:`12021`)
 - ``pd.concat(ignore_index=True)`` now uses ``RangeIndex`` as default (:issue:`12695`)
 - ``pd.merge()`` and ``DataFrame.join()`` will show a ``UserWarning`` when merging/joining a single- with a multi-leveled dataframe (:issue:`9455`, :issue:`12219`)
-
 
 .. _whatsnew_0181.deprecations:
 
@@ -512,7 +535,6 @@ Bug Fixes
 - Segfault in ``to_json`` when attempting to serialise a ``DataFrame`` or ``Series`` with non-ndarray values (:issue:`10778`).
 - Bug in ``.align`` when sub-classing not returning the sub-class (:issue:`12983`)
 - Bug in aligning a ``Series`` with a ``DataFrame`` (:issue:`13037`)
-
 
 
 - Bug in consistency of ``.name`` on ``.groupby(..).apply(..)`` cases (:issue:`12363`)
