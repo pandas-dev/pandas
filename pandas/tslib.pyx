@@ -1989,6 +1989,11 @@ cpdef array_with_unit_to_datetime(ndarray values, unit, errors='coerce'):
 
     assert is_ignore or is_coerce or is_raise
 
+    if unit == 'ns':
+        if issubclass(values.dtype.type, np.integer):
+            return values.astype('M8[ns]')
+        return array_to_datetime(values.astype(object), errors=errors)
+
     m = cast_from_unit(None, unit)
 
     if is_raise:
@@ -2002,13 +2007,6 @@ cpdef array_with_unit_to_datetime(ndarray values, unit, errors='coerce'):
             mask = iresult == iNaT
             iresult[mask] = 0
         except:
-
-            # we might have a directly convertible M8[ns]
-            if unit == 'ns':
-                try:
-                    return values.astype('M8[ns]')
-                except:
-                    pass
 
             # we have nulls embedded
             from pandas import isnull

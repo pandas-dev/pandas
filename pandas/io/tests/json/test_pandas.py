@@ -614,6 +614,7 @@ class TestPandasContainer(tm.TestCase):
 
         df['foo'] = 1.
         json = df.to_json(date_unit='ns')
+
         result = read_json(json, convert_dates=False)
         expected = df.copy()
         expected['date'] = expected['date'].values.view('i8')
