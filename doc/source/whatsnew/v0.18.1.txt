@@ -656,4 +656,5 @@ Bug Fixes
 - Bug in ``to_numeric`` with ``Index`` returns ``np.ndarray``, rather than ``Index`` (:issue:`12777`)
 - Bug in ``to_numeric`` with datetime-like may raise ``TypeError`` (:issue:`12777`)
 - Bug in ``to_numeric`` with scalar raises ``ValueError`` (:issue:`12777`)
+- ``pd.read_excel()`` now accepts column names associated with keyword argument ``names``(:issue:`12870`)
 - Compat with SciPy > 0.17 for deprecated 'piecewise_polynomial' interpolation method (:issue:`12887`)
