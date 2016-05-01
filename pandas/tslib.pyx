@@ -1992,6 +1992,7 @@ cpdef array_with_unit_to_datetime(ndarray values, unit, errors='coerce'):
         ndarray[float64_t] fvalues
         ndarray mask
         bint is_ignore=errors=='ignore', is_coerce=errors=='coerce', is_raise=errors=='raise'
+        bint need_to_iterate=True
         ndarray[int64_t] iresult
         ndarray[object] oresult
 
@@ -2006,33 +2007,28 @@ cpdef array_with_unit_to_datetime(ndarray values, unit, errors='coerce'):
 
     if is_raise:
 
-        # we can simply raise if there is a conversion
-        # issue; but we need to mask the nulls
-        # we need to guard against out-of-range conversions
-        # to i8
+        # try a quick conversion to i8
+        # if we have nulls that are not type-compat
+        # then need to iterate
         try:
             iresult = values.astype('i8')
             mask = iresult == iNaT
             iresult[mask] = 0
+            fvalues = iresult.astype('f8') * m
+            need_to_iterate=False
         except:
+            pass
 
-            # we have nulls embedded
-            from pandas import isnull
+        # check the bounds
+        if not need_to_iterate:
 
-            values = values.astype('object')
-            mask = isnull(values)
-            values[mask] = 0
-            iresult = values.astype('i8')
+            if (fvalues < _NS_LOWER_BOUND).any() or (fvalues > _NS_UPPER_BOUND).any():
+                raise ValueError("cannot convert input with unit: {0}".format(unit))
+            result = (iresult*m).astype('M8[ns]')
+            iresult = result.view('i8')
+            iresult[mask] = iNaT
+            return result
 
-        fvalues = iresult.astype('f8') * m
-        if (fvalues < _NS_LOWER_BOUND).any() or (fvalues > _NS_UPPER_BOUND).any():
-            raise ValueError("cannot convert input with unit: {0}".format(unit))
-        result = (values*m).astype('M8[ns]')
-        iresult = result.view('i8')
-        iresult[mask] = iNaT
-        return result
-
-    # coerce or ignore
     result = np.empty(n, dtype='M8[ns]')
     iresult = result.view('i8')
 
@@ -2051,7 +2047,7 @@ cpdef array_with_unit_to_datetime(ndarray values, unit, errors='coerce'):
                     try:
                         iresult[i] = cast_from_unit(val, unit)
                     except:
-                        if is_ignore:
+                        if is_ignore or is_raise:
                             raise
                         iresult[i] = NPY_NAT
 
@@ -2063,24 +2059,27 @@ cpdef array_with_unit_to_datetime(ndarray values, unit, errors='coerce'):
                     try:
                         iresult[i] = cast_from_unit(float(val), unit)
                     except:
-                        if is_ignore:
+                        if is_ignore or is_raise:
                             raise
                         iresult[i] = NPY_NAT
 
             else:
 
-                if is_ignore:
-                    raise Exception
+                if is_ignore or is_raise:
+                    raise ValueError
                 iresult[i] = NPY_NAT
 
         return result
 
-    except:
-        pass
+    except (OverflowError, ValueError) as e:
 
-        # we have hit an exception
-        # and are in ignore mode
-        # redo as object
+        # we cannot process and are done
+        if is_raise:
+            raise ValueError("cannot convert input with the unit: {0}".format(unit))
+
+    # we have hit an exception
+    # and are in ignore mode
+    # redo as object
 
     oresult = np.empty(n, dtype=object)
     for i in range(n):
