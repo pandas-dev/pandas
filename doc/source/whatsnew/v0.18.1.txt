@@ -512,6 +512,7 @@ Other API changes
 - Provide a proper ``__name__`` and ``__qualname__`` attributes for generic functions (:issue:`12021`)
 - ``pd.concat(ignore_index=True)`` now uses ``RangeIndex`` as default (:issue:`12695`)
 - ``pd.merge()`` and ``DataFrame.join()`` will show a ``UserWarning`` when merging/joining a single- with a multi-leveled dataframe (:issue:`9455`, :issue:`12219`)
+- Compat with SciPy > 0.17 for deprecated ``piecewise_polynomial`` interpolation method (:issue:`12887`)
 
 .. _whatsnew_0181.deprecations:
 
@@ -656,5 +657,3 @@ Bug Fixes
 - Bug in ``to_numeric`` with ``Index`` returns ``np.ndarray``, rather than ``Index`` (:issue:`12777`)
 - Bug in ``to_numeric`` with datetime-like may raise ``TypeError`` (:issue:`12777`)
 - Bug in ``to_numeric`` with scalar raises ``ValueError`` (:issue:`12777`)
-- ``pd.read_excel()`` now accepts column names associated with keyword argument ``names``(:issue:`12870`)
-- Compat with SciPy > 0.17 for deprecated 'piecewise_polynomial' interpolation method (:issue:`12887`)

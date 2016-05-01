@@ -83,8 +83,6 @@ def clean_fill_method(method, allow_nearest=False):
 
 
 def clean_interp_method(method, **kwargs):
-    import scipy
-    scipy_version = scipy.__version__
     order = kwargs.get('order')
     valid = ['linear', 'time', 'index', 'values', 'nearest', 'zero', 'slinear',
              'quadratic', 'cubic', 'barycentric', 'polynomial', 'krogh',
@@ -96,11 +94,7 @@ def clean_interp_method(method, **kwargs):
     if method not in valid:
         raise ValueError("method must be one of {0}."
                          "Got '{1}' instead.".format(valid, method))
-    # compat GH12887
-    if method == 'piecewise_polynomial' and LooseVersion(scipy_version) > \
-            LooseVersion('0.17'):
-        raise ValueError("Method '{0}' is deprecated for Scipy > 0.17. "
-                         "Use 'from_derivatives' instead".format(method))
+
     return method
 
 
@@ -200,7 +194,8 @@ def interpolate_1d(xvalues, yvalues, method='linear', limit=None,
 
     sp_methods = ['nearest', 'zero', 'slinear', 'quadratic', 'cubic',
                   'barycentric', 'krogh', 'spline', 'polynomial',
-                  'piecewise_polynomial', 'pchip', 'akima']
+                  'from_derivatives', 'piecewise_polynomial', 'pchip', 'akima']
+
     if method in sp_methods:
         inds = np.asarray(xvalues)
         # hack for DatetimeIndex, #1646
@@ -233,7 +228,6 @@ def _interpolate_scipy_wrapper(x, y, new_x, method, fill_value=None,
         raise ImportError('{0} interpolation requires Scipy'.format(method))
 
     new_x = np.asarray(new_x)
-    scipy_version = scipy.__version__  # for version check; GH12887
 
     # ignores some kwargs that could be passed along.
     alt_methods = {
@@ -259,13 +253,13 @@ def _interpolate_scipy_wrapper(x, y, new_x, method, fill_value=None,
         except ImportError:
             raise ImportError("Your version of Scipy does not support "
                               "Akima interpolation.")
-    elif method == 'piecewise_polynomial':  # GH12887
-        if LooseVersion(scipy_version) > LooseVersion('0.17'):
-            raise ValueError("Method '{0}' is deprecated for Scipy > 0.17. "
-                             "Use 'from_derivatives' instead".format(method))
+    elif method == 'piecewise_polynomial':
+        """ return the method for compat with scipy version """
+        if LooseVersion(scipy.__version__) <= LooseVersion('0.17'):
+            f = 'piecewise_polynomial_interpolate'
         else:
-            alt_methods['piecewise_polynomial'] = \
-                interpolate.piecewise_polynomial_interpolate
+            f = 'from_derivatives'
+        alt_methods['piecewise_polynomial'] = getattr(interpolate, f)
 
     interp1d_methods = ['nearest', 'zero', 'slinear', 'quadratic', 'cubic',
                         'polynomial']
