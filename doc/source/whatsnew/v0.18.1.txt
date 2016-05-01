@@ -478,7 +478,7 @@ In addition to this error change, several others have been made as well:
 ``to_datetime`` error changes
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Bugs in ``pd.to_datetime()`` when passing a ``unit`` with convertible entries and ``errors='coerce'`` or non-convertible with ``errors='ignore'`` (:issue:`11758`)
+Bugs in ``pd.to_datetime()`` when passing a ``unit`` with convertible entries and ``errors='coerce'`` or non-convertible with ``errors='ignore'`` (:issue:`11758`, :issue:`13052`)
 
 Previous behaviour:
 
