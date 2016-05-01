@@ -14,6 +14,7 @@ Highlights include:
 - Custom business hour offset, see :ref:`here <whatsnew_0181.enhancements.custombusinesshour>`.
 - Many bug fixes in the handling of ``sparse``, see :ref:`here <whatsnew_0181.sparse>`
 - Method chaining improvements, see :ref:`here <whatsnew_0181.enhancements.method_chain>`.
+- Expanded the Tutorials :ref:`documentation <tutorial-modern>` with another `series`_ , courtesy of @TomAugsburger. (:issue:`13045`).
 
 
 .. contents:: What's new in v0.18.1
@@ -217,28 +218,28 @@ Other Enhancements
 - ``.to_json()`` now supports ``NDFrames`` that contain categorical and sparse data (:issue:`10778`)
 - ``interpolate()`` now supports ``method='akima'`` (:issue:`7588`).
 - ``pd.read_excel()`` now accepts path objects (e.g. ``pathlib.Path``, ``py.path.local``) for the file path, in line with other ``read_*`` functions (:issue:`12655`)
-- ``Index.take`` now handles ``allow_fill`` and ``fill_value`` consistently (:issue:`12631`)
 - Added ``.weekday_name`` property as a component to ``DatetimeIndex`` and the ``.dt`` accessor. (:issue:`11128`)
 
 - ``Index.take`` now handles ``allow_fill`` and ``fill_value`` consistently (:issue:`12631`)
 
-.. ipython:: python
+  .. ipython:: python
 
-   idx = pd.Index([1., 2., 3., 4.], dtype='float')
-   idx.take([2, -1])     # default, allow_fill=True, fill_value=None
-   idx.take([2, -1], fill_value=True)
+     idx = pd.Index([1., 2., 3., 4.], dtype='float')
+     idx.take([2, -1])     # default, allow_fill=True, fill_value=None
+     idx.take([2, -1], fill_value=True)
 
 - ``Index`` now supports ``.str.get_dummies()`` which returns ``MultiIndex``, see :ref:`Creating Indicator Variables <text.indicator>` (:issue:`10008`, :issue:`10103`)
 
-.. ipython:: python
+  .. ipython:: python
 
-   idx = pd.Index(['a|b', 'a|c', 'b|c'])
-   idx.str.get_dummies('|')
+     idx = pd.Index(['a|b', 'a|c', 'b|c'])
+     idx.str.get_dummies('|')
 
 
 - ``pd.crosstab()`` has gained a ``normalize`` argument for normalizing frequency tables (:issue:`12569`). Examples in the updated docs :ref:`here <reshaping.crosstabulations>`.
 - ``.resample(..).interpolate()`` is now supported (:issue:`12925`)
 
+.. _series: http://tomaugspurger.github.io/modern-1.html
 
 .. _whatsnew_0181.sparse:
 
