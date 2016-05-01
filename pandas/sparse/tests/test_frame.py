@@ -778,17 +778,19 @@ class TestSparseDataFrame(tm.TestCase, SharedWithSparse):
         # win32 don't check dtype
         tm.assert_series_equal(result, dense_result, check_dtype=False)
 
-    def test_cumsum(self):
-        result = self.frame.cumsum()
-        expected = self.frame.to_dense().cumsum()
-        tm.assertIsInstance(result, SparseDataFrame)
-        tm.assert_frame_equal(result.to_dense(), expected)
-
     def _check_all(self, check_func):
         check_func(self.frame, self.orig)
         check_func(self.iframe, self.iorig)
         check_func(self.zframe, self.zorig)
         check_func(self.fill_frame, self.fill_orig)
+
+    def test_numpy_transpose(self):
+        sdf = SparseDataFrame([1, 2, 3], index=[1, 2, 3], columns=['a'])
+        result = np.transpose(np.transpose(sdf))
+        tm.assert_sp_frame_equal(result, sdf)
+
+        msg = "the 'axes' parameter is not supported"
+        tm.assertRaisesRegexp(ValueError, msg, np.transpose, sdf, axes=1)
 
     def test_combine_first(self):
         df = self.frame
@@ -847,6 +849,35 @@ class TestSparseDataFrame(tm.TestCase, SharedWithSparse):
         nan_colname_sparse = nan_colname.to_sparse()
         self.assertTrue(np.isnan(nan_colname_sparse.columns[0]))
 
+
+class TestSparseDataFrameAnalytics(tm.TestCase):
+    def setUp(self):
+        self.data = {'A': [nan, nan, nan, 0, 1, 2, 3, 4, 5, 6],
+                     'B': [0, 1, 2, nan, nan, nan, 3, 4, 5, 6],
+                     'C': np.arange(10),
+                     'D': [0, 1, 2, 3, 4, 5, nan, nan, nan, nan]}
+
+        self.dates = bdate_range('1/1/2011', periods=10)
+
+        self.frame = SparseDataFrame(self.data, index=self.dates)
+
+    def test_cumsum(self):
+        result = self.frame.cumsum()
+        expected = SparseDataFrame(self.frame.to_dense().cumsum())
+        tm.assert_sp_frame_equal(result, expected)
+
+    def test_numpy_cumsum(self):
+        result = np.cumsum(self.frame, axis=0)
+        expected = SparseDataFrame(self.frame.to_dense().cumsum())
+        tm.assert_sp_frame_equal(result, expected)
+
+        msg = "the 'dtype' parameter is not supported"
+        tm.assertRaisesRegexp(ValueError, msg, np.cumsum,
+                              self.frame, dtype=np.int64)
+
+        msg = "the 'out' parameter is not supported"
+        tm.assertRaisesRegexp(ValueError, msg, np.cumsum,
+                              self.frame, out=result)
 
 if __name__ == '__main__':
     import nose  # noqa

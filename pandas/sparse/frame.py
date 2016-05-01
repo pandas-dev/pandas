@@ -10,6 +10,7 @@ from pandas.compat import lmap
 from pandas import compat
 import numpy as np
 
+from pandas.compat.numpy import function as nv
 from pandas.core.common import isnull, _try_sort
 from pandas.core.index import Index, MultiIndex, _ensure_index
 from pandas.core.series import Series
@@ -636,10 +637,11 @@ class SparseDataFrame(DataFrame):
 
         return this, other
 
-    def transpose(self):
+    def transpose(self, *args, **kwargs):
         """
         Returns a DataFrame with the rows/columns switched.
         """
+        nv.validate_transpose(args, kwargs)
         return SparseDataFrame(
             self.values.T, index=self.columns, columns=self.index,
             default_fill_value=self._default_fill_value,
@@ -651,7 +653,7 @@ class SparseDataFrame(DataFrame):
     def count(self, axis=0, **kwds):
         return self.apply(lambda x: x.count(), axis=axis)
 
-    def cumsum(self, axis=0):
+    def cumsum(self, axis=0, *args, **kwargs):
         """
         Return SparseDataFrame of cumulative sums over requested axis.
 
@@ -664,6 +666,7 @@ class SparseDataFrame(DataFrame):
         -------
         y : SparseDataFrame
         """
+        nv.validate_cumsum(args, kwargs)
         return self.apply(lambda x: x.cumsum(), axis=axis)
 
     def apply(self, func, axis=0, broadcast=False, reduce=False):

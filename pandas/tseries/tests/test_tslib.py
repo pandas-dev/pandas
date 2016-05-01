@@ -19,8 +19,8 @@ import pandas.tseries.tools as tools
 import pandas.tseries.offsets as offsets
 import pandas.util.testing as tm
 import pandas.compat as compat
-from pandas.compat.numpy_compat import (np_datetime64_compat,
-                                        np_array_datetime64_compat)
+from pandas.compat.numpy import (np_datetime64_compat,
+                                 np_array_datetime64_compat)
 
 from pandas.util.testing import assert_series_equal, _skip_if_has_locale
 

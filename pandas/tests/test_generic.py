@@ -546,14 +546,15 @@ class Generic(object):
     def test_stat_unexpected_keyword(self):
         obj = self._construct(5)
         starwars = 'Star Wars'
+        errmsg = 'unexpected keyword'
 
-        with assertRaisesRegexp(TypeError, 'unexpected keyword'):
+        with assertRaisesRegexp(TypeError, errmsg):
             obj.max(epic=starwars)  # stat_function
-        with assertRaisesRegexp(TypeError, 'unexpected keyword'):
+        with assertRaisesRegexp(TypeError, errmsg):
             obj.var(epic=starwars)  # stat_function_ddof
-        with assertRaisesRegexp(TypeError, 'unexpected keyword'):
+        with assertRaisesRegexp(TypeError, errmsg):
             obj.sum(epic=starwars)  # cum_function
-        with assertRaisesRegexp(TypeError, 'unexpected keyword'):
+        with assertRaisesRegexp(TypeError, errmsg):
             obj.any(epic=starwars)  # logical_function
 
     def test_api_compat(self):
@@ -567,6 +568,69 @@ class Generic(object):
             self.assertEqual(f.__name__, func)
             if PY3:
                 self.assertTrue(f.__qualname__.endswith(func))
+
+    def test_stat_non_defaults_args(self):
+        obj = self._construct(5)
+        out = np.array([0])
+        errmsg = "the 'out' parameter is not supported"
+
+        with assertRaisesRegexp(ValueError, errmsg):
+            obj.max(out=out)  # stat_function
+        with assertRaisesRegexp(ValueError, errmsg):
+            obj.var(out=out)  # stat_function_ddof
+        with assertRaisesRegexp(ValueError, errmsg):
+            obj.sum(out=out)  # cum_function
+        with assertRaisesRegexp(ValueError, errmsg):
+            obj.any(out=out)  # logical_function
+
+    def test_clip(self):
+        lower = 1
+        upper = 3
+        col = np.arange(5)
+
+        obj = self._construct(len(col), value=col)
+
+        if isinstance(obj, Panel):
+            msg = "clip is not supported yet for panels"
+            tm.assertRaisesRegexp(NotImplementedError, msg,
+                                  obj.clip, lower=lower,
+                                  upper=upper)
+
+        else:
+            out = obj.clip(lower=lower, upper=upper)
+            expected = self._construct(len(col), value=col
+                                       .clip(lower, upper))
+            self._compare(out, expected)
+
+            bad_axis = 'foo'
+            msg = ('No axis named {axis} '
+                   'for object').format(axis=bad_axis)
+            assertRaisesRegexp(ValueError, msg, obj.clip,
+                               lower=lower, upper=upper,
+                               axis=bad_axis)
+
+    def test_numpy_clip(self):
+        lower = 1
+        upper = 3
+        col = np.arange(5)
+
+        obj = self._construct(len(col), value=col)
+
+        if isinstance(obj, Panel):
+            msg = "clip is not supported yet for panels"
+            tm.assertRaisesRegexp(NotImplementedError, msg,
+                                  np.clip, obj,
+                                  lower, upper)
+        else:
+            out = np.clip(obj, lower, upper)
+            expected = self._construct(len(col), value=col
+                                       .clip(lower, upper))
+            self._compare(out, expected)
+
+            msg = "the 'out' parameter is not supported"
+            tm.assertRaisesRegexp(ValueError, msg,
+                                  np.clip, obj,
+                                  lower, upper, out=col)
 
 
 class TestSeries(tm.TestCase, Generic):
@@ -2123,6 +2187,114 @@ class TestNDFrame(tm.TestCase):
 
         [tm.assert_series_equal(empty_series, higher_dim.squeeze())
          for higher_dim in [empty_series, empty_frame, empty_panel]]
+
+    def test_numpy_squeeze(self):
+        s = tm.makeFloatSeries()
+        tm.assert_series_equal(np.squeeze(s), s)
+
+        df = tm.makeTimeDataFrame().reindex(columns=['A'])
+        tm.assert_series_equal(np.squeeze(df), df['A'])
+
+        msg = "the 'axis' parameter is not supported"
+        tm.assertRaisesRegexp(ValueError, msg,
+                              np.squeeze, s, axis=0)
+
+    def test_transpose(self):
+        msg = ("transpose\(\) got multiple values for "
+               "keyword argument 'axes'")
+        for s in [tm.makeFloatSeries(), tm.makeStringSeries(),
+                  tm.makeObjectSeries()]:
+            # calls implementation in pandas/core/base.py
+            tm.assert_series_equal(s.transpose(), s)
+        for df in [tm.makeTimeDataFrame()]:
+            tm.assert_frame_equal(df.transpose().transpose(), df)
+        for p in [tm.makePanel()]:
+            tm.assert_panel_equal(p.transpose(2, 0, 1)
+                                  .transpose(1, 2, 0), p)
+            tm.assertRaisesRegexp(TypeError, msg, p.transpose,
+                                  2, 0, 1, axes=(2, 0, 1))
+        for p4d in [tm.makePanel4D()]:
+            tm.assert_panel4d_equal(p4d.transpose(2, 0, 3, 1)
+                                    .transpose(1, 3, 0, 2), p4d)
+            tm.assertRaisesRegexp(TypeError, msg, p4d.transpose,
+                                  2, 0, 3, 1, axes=(2, 0, 3, 1))
+
+    def test_numpy_transpose(self):
+        msg = "the 'axes' parameter is not supported"
+
+        s = tm.makeFloatSeries()
+        tm.assert_series_equal(
+            np.transpose(s), s)
+        tm.assertRaisesRegexp(ValueError, msg,
+                              np.transpose, s, axes=1)
+
+        df = tm.makeTimeDataFrame()
+        tm.assert_frame_equal(np.transpose(
+            np.transpose(df)), df)
+        tm.assertRaisesRegexp(ValueError, msg,
+                              np.transpose, df, axes=1)
+
+        p = tm.makePanel()
+        tm.assert_panel_equal(np.transpose(
+            np.transpose(p, axes=(2, 0, 1)),
+            axes=(1, 2, 0)), p)
+
+        p4d = tm.makePanel4D()
+        tm.assert_panel4d_equal(np.transpose(
+            np.transpose(p4d, axes=(2, 0, 3, 1)),
+            axes=(1, 3, 0, 2)), p4d)
+
+    def test_take(self):
+        indices = [1, 5, -2, 6, 3, -1]
+        for s in [tm.makeFloatSeries(), tm.makeStringSeries(),
+                  tm.makeObjectSeries()]:
+            out = s.take(indices)
+            expected = Series(data=s.values.take(indices),
+                              index=s.index.take(indices))
+            tm.assert_series_equal(out, expected)
+        for df in [tm.makeTimeDataFrame()]:
+            out = df.take(indices)
+            expected = DataFrame(data=df.values.take(indices, axis=0),
+                                 index=df.index.take(indices),
+                                 columns=df.columns)
+            tm.assert_frame_equal(out, expected)
+
+        indices = [-3, 2, 0, 1]
+        for p in [tm.makePanel()]:
+            out = p.take(indices)
+            expected = Panel(data=p.values.take(indices, axis=0),
+                             items=p.items.take(indices),
+                             major_axis=p.major_axis,
+                             minor_axis=p.minor_axis)
+            tm.assert_panel_equal(out, expected)
+        for p4d in [tm.makePanel4D()]:
+            out = p4d.take(indices)
+            expected = Panel4D(data=p4d.values.take(indices, axis=0),
+                               labels=p4d.labels.take(indices),
+                               major_axis=p4d.major_axis,
+                               minor_axis=p4d.minor_axis,
+                               items=p4d.items)
+            tm.assert_panel4d_equal(out, expected)
+
+    def test_take_invalid_kwargs(self):
+        indices = [-3, 2, 0, 1]
+        s = tm.makeFloatSeries()
+        df = tm.makeTimeDataFrame()
+        p = tm.makePanel()
+        p4d = tm.makePanel4D()
+
+        for obj in (s, df, p, p4d):
+            msg = "take\(\) got an unexpected keyword argument 'foo'"
+            tm.assertRaisesRegexp(TypeError, msg, obj.take,
+                                  indices, foo=2)
+
+            msg = "the 'out' parameter is not supported"
+            tm.assertRaisesRegexp(ValueError, msg, obj.take,
+                                  indices, out=indices)
+
+            msg = "the 'mode' parameter is not supported"
+            tm.assertRaisesRegexp(ValueError, msg, obj.take,
+                                  indices, mode='clip')
 
     def test_equals(self):
         s1 = pd.Series([1, 2, 3], index=[0, 2, 1])

@@ -15,7 +15,7 @@ from pandas.compat import u, range
 from pandas.core.frame import DataFrame
 import pandas.io.gbq as gbq
 import pandas.util.testing as tm
-from pandas.compat.numpy_compat import np_datetime64_compat
+from pandas.compat.numpy import np_datetime64_compat
 
 PROJECT_ID = None
 PRIVATE_KEY_JSON_PATH = None

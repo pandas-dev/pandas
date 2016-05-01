@@ -332,11 +332,19 @@ class Timestamp(_Timestamp):
 
     def round(self, freq):
         """
-        return a new Timestamp rounded to this resolution
+        Round the Timestamp to the specified resolution
+
+        Returns
+        -------
+        a new Timestamp rounded to the given resolution of `freq`
 
         Parameters
         ----------
         freq : a freq string indicating the rounding resolution
+
+        Raises
+        ------
+        ValueError if the freq cannot be converted
         """
         return self._round(freq, np.round)
 
@@ -1391,7 +1399,7 @@ cpdef convert_str_to_tsobject(object ts, object tz, object unit,
             try:
                 ts = parse_datetime_string(ts, dayfirst=dayfirst, yearfirst=yearfirst)
             except Exception:
-                raise ValueError
+                raise ValueError("could not convert string to Timestamp")
 
     return convert_to_tsobject(ts, tz, unit, dayfirst, yearfirst)
 
@@ -2581,12 +2589,19 @@ class Timedelta(_Timedelta):
 
     def round(self, freq):
         """
-        return a new Timedelta rounded to this resolution.
+        Round the Timedelta to the specified resolution
 
+        Returns
+        -------
+        a new Timedelta rounded to the given resolution of `freq`
 
         Parameters
         ----------
         freq : a freq string indicating the rounding resolution
+
+        Raises
+        ------
+        ValueError if the freq cannot be converted
         """
         return self._round(freq, np.round)
 
