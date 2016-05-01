@@ -8,7 +8,7 @@ import pandas as pd
 
 from pandas import Series, DataFrame
 
-from pandas.compat import StringIO, u
+from pandas.compat import StringIO, u, long
 from pandas.util.testing import (assert_series_equal, assert_almost_equal,
                                  assert_frame_equal, ensure_clean)
 import pandas.util.testing as tm
@@ -81,16 +81,6 @@ class TestSeriesIO(TestData, tm.TestCase):
         s2 = Series.from_csv(buf, index_col=0, encoding='UTF-8')
 
         assert_series_equal(s, s2)
-
-    def test_tolist(self):
-        rs = self.ts.tolist()
-        xp = self.ts.values.tolist()
-        assert_almost_equal(rs, xp)
-
-        # datetime64
-        s = Series(self.ts.index)
-        rs = s.tolist()
-        self.assertEqual(self.ts.index[0], rs[0])
 
     def test_to_frame(self):
         self.ts.name = None
@@ -174,3 +164,39 @@ class TestSeriesIO(TestData, tm.TestCase):
         self.assertTrue(isinstance(result, SubclassedFrame))
         expected = SubclassedFrame({'X': [1, 2, 3]})
         assert_frame_equal(result, expected)
+
+
+class TestSeriesToList(TestData, tm.TestCase):
+
+    _multiprocess_can_split_ = True
+
+    def test_tolist(self):
+        rs = self.ts.tolist()
+        xp = self.ts.values.tolist()
+        assert_almost_equal(rs, xp)
+
+        # datetime64
+        s = Series(self.ts.index)
+        rs = s.tolist()
+        self.assertEqual(self.ts.index[0], rs[0])
+
+    def test_tolist_np_int(self):
+        # GH10904
+        for t in ['int8', 'int16', 'int32', 'int64']:
+            s = pd.Series([1], dtype=t)
+            self.assertIsInstance(s.tolist()[0], int)
+
+    def test_tolist_np_uint(self):
+        # GH10904
+        for t in ['uint8', 'uint16']:
+            s = pd.Series([1], dtype=t)
+            self.assertIsInstance(s.tolist()[0], int)
+        for t in ['uint32', 'uint64']:
+            s = pd.Series([1], dtype=t)
+            self.assertIsInstance(s.tolist()[0], long)
+
+    def test_tolist_np_float(self):
+        # GH10904
+        for t in ['float16', 'float32', 'float64']:
+            s = pd.Series([1], dtype=t)
+            self.assertIsInstance(s.tolist()[0], float)
