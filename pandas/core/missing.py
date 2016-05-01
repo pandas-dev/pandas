@@ -83,8 +83,6 @@ def clean_fill_method(method, allow_nearest=False):
 
 
 def clean_interp_method(method, **kwargs):
-    import scipy
-    scipy_version = scipy.__version__
     order = kwargs.get('order')
     valid = ['linear', 'time', 'index', 'values', 'nearest', 'zero', 'slinear',
              'quadratic', 'cubic', 'barycentric', 'polynomial', 'krogh',
@@ -96,11 +94,7 @@ def clean_interp_method(method, **kwargs):
     if method not in valid:
         raise ValueError("method must be one of {0}."
                          "Got '{1}' instead.".format(valid, method))
-    # compat GH12887
-    if method == 'piecewise_polynomial' and LooseVersion(scipy_version) > \
-            LooseVersion('0.17'):
-        raise ValueError("Method '{0}' is deprecated for Scipy > 0.17. "
-                         "Use 'from_derivatives' instead".format(method))
+
     return method
 
 
@@ -200,7 +194,8 @@ def interpolate_1d(xvalues, yvalues, method='linear', limit=None,
 
     sp_methods = ['nearest', 'zero', 'slinear', 'quadratic', 'cubic',
                   'barycentric', 'krogh', 'spline', 'polynomial',
-                  'piecewise_polynomial', 'pchip', 'akima']
+                  'from_derivatives', 'piecewise_polynomial', 'pchip', 'akima']
+
     if method in sp_methods:
         inds = np.asarray(xvalues)
         # hack for DatetimeIndex, #1646
@@ -225,7 +220,6 @@ def _interpolate_scipy_wrapper(x, y, new_x, method, fill_value=None,
     the list in _clean_interp_method
     """
     try:
-        import scipy
         from scipy import interpolate
         # TODO: Why is DatetimeIndex being imported here?
         from pandas import DatetimeIndex  # noqa
@@ -233,13 +227,13 @@ def _interpolate_scipy_wrapper(x, y, new_x, method, fill_value=None,
         raise ImportError('{0} interpolation requires Scipy'.format(method))
 
     new_x = np.asarray(new_x)
-    scipy_version = scipy.__version__  # for version check; GH12887
 
     # ignores some kwargs that could be passed along.
     alt_methods = {
         'barycentric': interpolate.barycentric_interpolate,
         'krogh': interpolate.krogh_interpolate,
-        'from_derivatives': interpolate.BPoly.from_derivatives,
+        'from_derivatives': _from_derivatives,
+        'piecewise_polynomial': _from_derivatives,
     }
 
     if getattr(x, 'is_all_dates', False):
@@ -259,13 +253,6 @@ def _interpolate_scipy_wrapper(x, y, new_x, method, fill_value=None,
         except ImportError:
             raise ImportError("Your version of Scipy does not support "
                               "Akima interpolation.")
-    elif method == 'piecewise_polynomial':  # GH12887
-        if LooseVersion(scipy_version) > LooseVersion('0.17'):
-            raise ValueError("Method '{0}' is deprecated for Scipy > 0.17. "
-                             "Use 'from_derivatives' instead".format(method))
-        else:
-            alt_methods['piecewise_polynomial'] = \
-                interpolate.piecewise_polynomial_interpolate
 
     interp1d_methods = ['nearest', 'zero', 'slinear', 'quadratic', 'cubic',
                         'polynomial']
@@ -293,6 +280,60 @@ def _interpolate_scipy_wrapper(x, y, new_x, method, fill_value=None,
         method = alt_methods[method]
         new_y = method(x, y, new_x, **kwargs)
     return new_y
+
+
+def _from_derivatives(xi, yi, x, order=None, der=0, extrapolate=False):
+    """
+    Convenience function for interpolate.BPoly.from_derivatives
+
+    Construct a piecewise polynomial in the Bernstein basis, compatible
+    with the specified values and derivatives at breakpoints.
+
+    Parameters
+    ----------
+    xi : array_like
+        sorted 1D array of x-coordinates
+    yi : array_like or list of array-likes
+        yi[i][j] is the j-th derivative known at xi[i]
+    orders : None or int or array_like of ints. Default: None.
+        Specifies the degree of local polynomials. If not None, some
+        derivatives are ignored.
+    der : int or list
+        How many derivatives to extract; None for all potentially nonzero
+        derivatives (that is a number equal to the number of points), or a
+        list of derivatives to extract. This numberincludes the function
+        value as 0th derivative.
+     extrapolate : bool, optional
+        Whether to extrapolate to ouf-of-bounds points based on first and last
+        intervals, or to return NaNs. Default: True.
+
+    See Also
+    --------
+    scipy.interpolate.BPoly.from_derivatives
+
+    Returns
+    -------
+    y : scalar or array_like
+        The result, of length R or length M or M by R,
+
+    """
+    import scipy
+    from scipy import interpolate
+
+    if LooseVersion(scipy.__version__) < '0.18.0':
+        try:
+            method = interpolate.piecewise_polynomial_interpolate
+            return method(xi, yi.reshape(-1, 1), x,
+                          orders=order, der=der)
+        except AttributeError:
+            pass
+
+    # return the method for compat with scipy version & backwards compat
+    method = interpolate.BPoly.from_derivatives
+    m = method(xi, yi.reshape(-1, 1),
+               orders=order, extrapolate=extrapolate)
+
+    return m(x)
 
 
 def _akima_interpolate(xi, yi, x, der=0, axis=0):
