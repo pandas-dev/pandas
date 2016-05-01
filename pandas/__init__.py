@@ -19,7 +19,7 @@ if missing_dependencies:
 
 
 # numpy compat
-from pandas.compat.numpy_compat import *
+from pandas.compat.numpy import *
 
 try:
     from pandas import hashtable, tslib, lib
