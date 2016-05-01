@@ -11,7 +11,7 @@ from pandas import compat
 import pandas.core.algorithms as algos
 import pandas.util.testing as tm
 import pandas.hashtable as hashtable
-from pandas.compat.numpy_compat import np_array_datetime64_compat
+from pandas.compat.numpy import np_array_datetime64_compat
 
 
 class TestMatch(tm.TestCase):

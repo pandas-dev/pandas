@@ -78,6 +78,31 @@ class TestMultiIndex(Base, tm.TestCase):
         self.assertTrue((i.labels[0] >= 0).all())
         self.assertTrue((i.labels[1] >= 0).all())
 
+    def test_repeat(self):
+        reps = 2
+        numbers = [1, 2, 3]
+        names = np.array(['foo', 'bar'])
+
+        m = MultiIndex.from_product([
+            numbers, names], names=names)
+        expected = MultiIndex.from_product([
+            numbers, names.repeat(reps)], names=names)
+        tm.assert_index_equal(m.repeat(reps), expected)
+
+    def test_numpy_repeat(self):
+        reps = 2
+        numbers = [1, 2, 3]
+        names = np.array(['foo', 'bar'])
+
+        m = MultiIndex.from_product([
+            numbers, names], names=names)
+        expected = MultiIndex.from_product([
+            numbers, names.repeat(reps)], names=names)
+        tm.assert_index_equal(np.repeat(m, reps), expected)
+
+        msg = "the 'axis' parameter is not supported"
+        tm.assertRaisesRegexp(ValueError, msg, np.repeat, m, reps, axis=1)
+
     def test_set_name_methods(self):
         # so long as these are synonyms, we don't need to test set_names
         self.assertEqual(self.index.rename, self.index.set_names)
@@ -472,7 +497,7 @@ class TestMultiIndex(Base, tm.TestCase):
                 self.index.copy().labels = [[0, 0, 0, 0], [0, 0]]
 
     def assert_multiindex_copied(self, copy, original):
-        # levels shoudl be (at least, shallow copied)
+        # levels should be (at least, shallow copied)
         assert_copy(copy.levels, original.levels)
 
         assert_almost_equal(copy.labels, original.labels)
@@ -1594,6 +1619,24 @@ class TestMultiIndex(Base, tm.TestCase):
 
         with tm.assertRaises(IndexError):
             idx.take(np.array([1, -5]))
+
+    def take_invalid_kwargs(self):
+        vals = [['A', 'B'],
+                [pd.Timestamp('2011-01-01'), pd.Timestamp('2011-01-02')]]
+        idx = pd.MultiIndex.from_product(vals, names=['str', 'dt'])
+        indices = [1, 2]
+
+        msg = "take\(\) got an unexpected keyword argument 'foo'"
+        tm.assertRaisesRegexp(TypeError, msg, idx.take,
+                              indices, foo=2)
+
+        msg = "the 'out' parameter is not supported"
+        tm.assertRaisesRegexp(ValueError, msg, idx.take,
+                              indices, out=indices)
+
+        msg = "the 'mode' parameter is not supported"
+        tm.assertRaisesRegexp(ValueError, msg, idx.take,
+                              indices, mode='clip')
 
     def test_join_level(self):
         def _check_how(other, how):

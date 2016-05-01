@@ -1257,7 +1257,11 @@ def _comp_method_PANEL(op, name, str_rep=None, masker=False):
         return result
 
     @Appender('Wrapper for comparison method %s' % name)
-    def f(self, other):
+    def f(self, other, axis=None):
+        # Validate the axis parameter
+        if axis is not None:
+            axis = self._get_axis_number(axis)
+
         if isinstance(other, self._constructor):
             return self._compare_constructor(other, na_op)
         elif isinstance(other, (self._constructor_sliced, pd.DataFrame,

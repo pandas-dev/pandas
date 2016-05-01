@@ -3,7 +3,6 @@
 # flake8: noqa
 
 import sys
-import numpy as np
 import pandas
 import copy
 import pickle as pkl

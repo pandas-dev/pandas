@@ -20,6 +20,7 @@ from pandas.core.common import (isnull, _INT64_DTYPE, _maybe_box,
                                 _values_from_object, ABCSeries,
                                 is_integer, is_float, is_object_dtype)
 from pandas import compat
+from pandas.compat.numpy import function as nv
 from pandas.util.decorators import Appender, cache_readonly, Substitution
 from pandas.lib import Timedelta
 import pandas.lib as lib
@@ -891,14 +892,16 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
                      for x in to_concat]
         return Index(com._concat_compat(to_concat), name=name)
 
-    def repeat(self, n):
+    def repeat(self, n, *args, **kwargs):
         """
-        Return a new Index of the values repeated n times.
+        Return a new Index of the values repeated `n` times.
 
         See also
         --------
         numpy.ndarray.repeat
         """
+        nv.validate_repeat(args, kwargs)
+
         # overwrites method from DatetimeIndexOpsMixin
         return self._shallow_copy(self.values.repeat(n))
 

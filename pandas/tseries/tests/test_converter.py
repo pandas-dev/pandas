@@ -8,7 +8,7 @@ from pandas import Timestamp, Period
 from pandas.compat import u
 import pandas.util.testing as tm
 from pandas.tseries.offsets import Second, Milli, Micro
-from pandas.compat.numpy_compat import np_datetime64_compat
+from pandas.compat.numpy import np_datetime64_compat
 
 try:
     import pandas.tseries.converter as converter

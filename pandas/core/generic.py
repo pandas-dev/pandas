@@ -21,6 +21,7 @@ import pandas.core.missing as missing
 import pandas.core.datetools as datetools
 from pandas.formats.printing import pprint_thing
 from pandas import compat
+from pandas.compat.numpy import function as nv
 from pandas.compat import (map, zip, lrange, string_types,
                            isidentifier, set_function_name)
 from pandas.core.common import (isnull, notnull, is_list_like,
@@ -30,7 +31,6 @@ from pandas.core.common import (isnull, notnull, is_list_like,
                                 AbstractMethodError)
 import pandas.core.nanops as nanops
 from pandas.util.decorators import Appender, Substitution, deprecate_kwarg
-from pandas.util.validators import validate_kwargs
 from pandas.core import config
 
 # goal is to be able to define the docs close to function, while still being
@@ -469,10 +469,7 @@ class NDFrame(PandasObject):
         if kwargs.pop('copy', None) or (len(args) and args[-1]):
             new_values = new_values.copy()
 
-        if kwargs:
-            raise TypeError('transpose() got an unexpected keyword '
-                            'argument "{0}"'.format(list(kwargs.keys())[0]))
-
+        nv.validate_transpose_for_generic(self, kwargs)
         return self._constructor(new_values, **new_axes).__finalize__(self)
 
     def swapaxes(self, axis1, axis2, copy=True):
@@ -514,8 +511,10 @@ class NDFrame(PandasObject):
 
         return result
 
-    def squeeze(self):
+    def squeeze(self, **kwargs):
         """Squeeze length 1 dimensions."""
+        nv.validate_squeeze(tuple(), kwargs)
+
         try:
             return self.iloc[tuple([0 if len(a) == 1 else slice(None)
                                     for a in self.axes])]
@@ -1612,7 +1611,7 @@ class NDFrame(PandasObject):
         except KeyError:
             pass
 
-    def take(self, indices, axis=0, convert=True, is_copy=True):
+    def take(self, indices, axis=0, convert=True, is_copy=True, **kwargs):
         """
         Analogous to ndarray.take
 
@@ -1627,7 +1626,7 @@ class NDFrame(PandasObject):
         -------
         taken : type of caller
         """
-
+        nv.validate_take(tuple(), kwargs)
         self._consolidate_inplace()
         new_data = self._data.take(indices,
                                    axis=self._get_block_manager_axis(axis),
@@ -3604,7 +3603,7 @@ class NDFrame(PandasObject):
         """
         return notnull(self).__finalize__(self)
 
-    def clip(self, lower=None, upper=None, out=None, axis=None):
+    def clip(self, lower=None, upper=None, axis=None, *args, **kwargs):
         """
         Trim values at input threshold(s).
 
@@ -3650,8 +3649,10 @@ class NDFrame(PandasObject):
         3  0.230930  0.000000
         4  1.100000  0.570967
         """
-        if out is not None:  # pragma: no cover
-            raise Exception('out argument is not supported yet')
+        if isinstance(self, com.ABCPanel):
+            raise NotImplementedError("clip is not supported yet for panels")
+
+        axis = nv.validate_clip_with_axis(axis, args, kwargs)
 
         # GH 2747 (arguments were reversed)
         if lower is not None and upper is not None:
@@ -5291,7 +5292,7 @@ def _make_stat_function(cls, name, name1, name2, axis_descr, desc, f):
     @Appender(_num_doc)
     def stat_func(self, axis=None, skipna=None, level=None, numeric_only=None,
                   **kwargs):
-        validate_kwargs(name, kwargs, 'out', 'dtype')
+        nv.validate_stat_func(tuple(), kwargs)
         if skipna is None:
             skipna = True
         if axis is None:
@@ -5311,7 +5312,7 @@ def _make_stat_function_ddof(cls, name, name1, name2, axis_descr, desc, f):
     @Appender(_num_ddof_doc)
     def stat_func(self, axis=None, skipna=None, level=None, ddof=1,
                   numeric_only=None, **kwargs):
-        validate_kwargs(name, kwargs, 'out', 'dtype')
+        nv.validate_stat_ddof_func(tuple(), kwargs)
         if skipna is None:
             skipna = True
         if axis is None:
@@ -5332,7 +5333,7 @@ def _make_cum_function(cls, name, name1, name2, axis_descr, desc, accum_func,
     @Appender("Return cumulative {0} over requested axis.".format(name) +
               _cnum_doc)
     def cum_func(self, axis=None, dtype=None, out=None, skipna=True, **kwargs):
-        validate_kwargs(name, kwargs, 'out', 'dtype')
+        nv.validate_cum_func(tuple(), kwargs)
         if axis is None:
             axis = self._stat_axis_number
         else:
@@ -5366,7 +5367,7 @@ def _make_logical_function(cls, name, name1, name2, axis_descr, desc, f):
     @Appender(_bool_doc)
     def logical_func(self, axis=None, bool_only=None, skipna=None, level=None,
                      **kwargs):
-        validate_kwargs(name, kwargs, 'out', 'dtype')
+        nv.validate_logical_func(tuple(), kwargs)
         if skipna is None:
             skipna = True
         if axis is None:

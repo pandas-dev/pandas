@@ -476,6 +476,21 @@ class TestSparseSeries(tm.TestCase, SharedWithSparse):
         exp = pd.Series(np.repeat(nan, 5))
         tm.assert_series_equal(sp.take([0, 1, 2, 3, 4]), exp)
 
+    def test_numpy_take(self):
+        sp = SparseSeries([1.0, 2.0, 3.0])
+        indices = [1, 2]
+
+        tm.assert_series_equal(np.take(sp, indices, axis=0).to_dense(),
+                               np.take(sp.to_dense(), indices, axis=0))
+
+        msg = "the 'out' parameter is not supported"
+        tm.assertRaisesRegexp(ValueError, msg, np.take,
+                              sp, indices, out=np.empty(sp.shape))
+
+        msg = "the 'mode' parameter is not supported"
+        tm.assertRaisesRegexp(ValueError, msg, np.take,
+                              sp, indices, mode='clip')
+
     def test_setitem(self):
         self.bseries[5] = 7.
         self.assertEqual(self.bseries[5], 7.)
@@ -858,18 +873,6 @@ class TestSparseSeries(tm.TestCase, SharedWithSparse):
         tm.assert_sp_series_equal(sparse.shift(-4),
                                   orig.shift(-4).to_sparse(fill_value=0))
 
-    def test_cumsum(self):
-        result = self.bseries.cumsum()
-        expected = self.bseries.to_dense().cumsum()
-        tm.assertIsInstance(result, SparseSeries)
-        self.assertEqual(result.name, self.bseries.name)
-        tm.assert_series_equal(result.to_dense(), expected)
-
-        result = self.zbseries.cumsum()
-        expected = self.zbseries.to_dense().cumsum()
-        tm.assertIsInstance(result, Series)
-        tm.assert_series_equal(result, expected)
-
     def test_combine_first(self):
         s = self.bseries
 
@@ -1215,6 +1218,46 @@ def _dense_series_compare(s, f):
     dense_result = f(s.to_dense())
     tm.assert_series_equal(result.to_dense(), dense_result)
 
+
+class TestSparseSeriesAnalytics(tm.TestCase):
+    def setUp(self):
+        arr, index = _test_data1()
+        self.bseries = SparseSeries(arr, index=index, kind='block',
+                                    name='bseries')
+
+        arr, index = _test_data1_zero()
+        self.zbseries = SparseSeries(arr, index=index, kind='block',
+                                     fill_value=0, name='zbseries')
+
+    def test_cumsum(self):
+        result = self.bseries.cumsum()
+        expected = SparseSeries(self.bseries.to_dense().cumsum())
+        tm.assert_sp_series_equal(result, expected)
+
+        # TODO: gh-12855 - return a SparseSeries here
+        result = self.zbseries.cumsum()
+        expected = self.zbseries.to_dense().cumsum()
+        self.assertNotIsInstance(result, SparseSeries)
+        tm.assert_series_equal(result, expected)
+
+    def test_numpy_cumsum(self):
+        result = np.cumsum(self.bseries)
+        expected = SparseSeries(self.bseries.to_dense().cumsum())
+        tm.assert_sp_series_equal(result, expected)
+
+        # TODO: gh-12855 - return a SparseSeries here
+        result = np.cumsum(self.zbseries)
+        expected = self.zbseries.to_dense().cumsum()
+        self.assertNotIsInstance(result, SparseSeries)
+        tm.assert_series_equal(result, expected)
+
+        msg = "the 'dtype' parameter is not supported"
+        tm.assertRaisesRegexp(ValueError, msg, np.cumsum,
+                              self.bseries, dtype=np.int64)
+
+        msg = "the 'out' parameter is not supported"
+        tm.assertRaisesRegexp(ValueError, msg, np.cumsum,
+                              self.zbseries, out=result)
 
 if __name__ == '__main__':
     import nose  # noqa

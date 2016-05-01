@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
 import nose
 
+from collections import OrderedDict
 from pandas.util._move import move_into_mutable_buffer, BadMove
 from pandas.util.decorators import deprecate_kwarg
-from pandas.util.validators import validate_args, validate_kwargs
+from pandas.util.validators import (validate_args, validate_kwargs,
+                                    validate_args_and_kwargs)
 
 import pandas.util.testing as tm
 
@@ -78,78 +80,219 @@ def test_rands_array():
 
 
 class TestValidateArgs(tm.TestCase):
+    fname = 'func'
 
-    def test_bad_min_length(self):
-        msg = "'min_length' must be non-negative"
+    def test_bad_min_fname_arg_count(self):
+        msg = "'max_fname_arg_count' must be non-negative"
         with tm.assertRaisesRegexp(ValueError, msg):
-            validate_args((None,), min_length=-1, max_length=5)
+            validate_args(self.fname, (None,), -1, 'foo')
 
-    def test_bad_arg_length_no_max(self):
-        min_length = 5
-        msg = "expected at least {min_length} arguments".format(
-            min_length=min_length)
+    def test_bad_arg_length_max_value_single(self):
+        args = (None, None)
+        compat_args = ('foo',)
 
-        with tm.assertRaisesRegexp(ValueError, msg):
-            validate_args((None,), min_length=min_length, max_length=None)
+        min_fname_arg_count = 0
+        max_length = len(compat_args) + min_fname_arg_count
+        actual_length = len(args) + min_fname_arg_count
+        msg = ("{fname}\(\) takes at most {max_length} "
+               "argument \({actual_length} given\)"
+               .format(fname=self.fname, max_length=max_length,
+                       actual_length=actual_length))
 
-    def test_bad_arg_length_with_max(self):
-        min_length = 5
-        max_length = 10
-        msg = ("expected between {min_length} and {max_length}"
-               " arguments inclusive".format(min_length=min_length,
-                                             max_length=max_length))
+        with tm.assertRaisesRegexp(TypeError, msg):
+            validate_args(self.fname, args,
+                          min_fname_arg_count,
+                          compat_args)
 
-        with tm.assertRaisesRegexp(ValueError, msg):
-            validate_args((None,), min_length=min_length,
-                          max_length=max_length)
+    def test_bad_arg_length_max_value_multiple(self):
+        args = (None, None)
+        compat_args = dict(foo=None)
 
-    def test_bad_min_max_length(self):
-        msg = "'min_length' > 'max_length'"
-        with tm.assertRaisesRegexp(ValueError, msg):
-            validate_args((None,), min_length=5, max_length=2)
+        min_fname_arg_count = 2
+        max_length = len(compat_args) + min_fname_arg_count
+        actual_length = len(args) + min_fname_arg_count
+        msg = ("{fname}\(\) takes at most {max_length} "
+               "arguments \({actual_length} given\)"
+               .format(fname=self.fname, max_length=max_length,
+                       actual_length=actual_length))
 
-    def test_not_all_none(self):
-        msg = "All arguments must be None"
-        with tm.assertRaisesRegexp(ValueError, msg):
-            validate_args(('foo',), min_length=0,
-                          max_length=1, msg=msg)
+        with tm.assertRaisesRegexp(TypeError, msg):
+            validate_args(self.fname, args,
+                          min_fname_arg_count,
+                          compat_args)
 
-        with tm.assertRaisesRegexp(ValueError, msg):
-            validate_args(('foo', 'bar', 'baz'), min_length=2,
-                          max_length=5, msg=msg)
+    def test_not_all_defaults(self):
+        bad_arg = 'foo'
+        msg = ("the '{arg}' parameter is not supported "
+               "in the pandas implementation of {func}\(\)".
+               format(arg=bad_arg, func=self.fname))
 
-        with tm.assertRaisesRegexp(ValueError, msg):
-            validate_args((None, 'bar', None), min_length=2,
-                          max_length=5, msg=msg)
+        compat_args = OrderedDict()
+        compat_args['foo'] = 2
+        compat_args['bar'] = -1
+        compat_args['baz'] = 3
+
+        arg_vals = (1, -1, 3)
+
+        for i in range(1, 3):
+            with tm.assertRaisesRegexp(ValueError, msg):
+                validate_args(self.fname, arg_vals[:i], 2, compat_args)
 
     def test_validation(self):
         # No exceptions should be thrown
-        validate_args((None,), min_length=0, max_length=1)
-        validate_args((None, None), min_length=1, max_length=5)
+        validate_args(self.fname, (None,), 2, dict(out=None))
+
+        compat_args = OrderedDict()
+        compat_args['axis'] = 1
+        compat_args['out'] = None
+
+        validate_args(self.fname, (1, None), 2, compat_args)
 
 
 class TestValidateKwargs(tm.TestCase):
+    fname = 'func'
 
     def test_bad_kwarg(self):
         goodarg = 'f'
         badarg = goodarg + 'o'
 
+        compat_args = OrderedDict()
+        compat_args[goodarg] = 'foo'
+        compat_args[badarg + 'o'] = 'bar'
         kwargs = {goodarg: 'foo', badarg: 'bar'}
-        compat_args = (goodarg, badarg + 'o')
-        fname = 'func'
-
         msg = ("{fname}\(\) got an unexpected "
                "keyword argument '{arg}'".format(
-                   fname=fname, arg=badarg))
+                   fname=self.fname, arg=badarg))
 
         with tm.assertRaisesRegexp(TypeError, msg):
-            validate_kwargs(fname, kwargs, *compat_args)
+            validate_kwargs(self.fname, kwargs, compat_args)
+
+    def test_not_all_none(self):
+        bad_arg = 'foo'
+        msg = ("the '{arg}' parameter is not supported "
+               "in the pandas implementation of {func}\(\)".
+               format(arg=bad_arg, func=self.fname))
+
+        compat_args = OrderedDict()
+        compat_args['foo'] = 1
+        compat_args['bar'] = 's'
+        compat_args['baz'] = None
+
+        kwarg_keys = ('foo', 'bar', 'baz')
+        kwarg_vals = (2, 's', None)
+
+        for i in range(1, 3):
+            kwargs = dict(zip(kwarg_keys[:i],
+                              kwarg_vals[:i]))
+
+            with tm.assertRaisesRegexp(ValueError, msg):
+                validate_kwargs(self.fname, kwargs, compat_args)
 
     def test_validation(self):
         # No exceptions should be thrown
-        compat_args = ('f', 'b', 'ba')
-        kwargs = {'f': 'foo', 'b': 'bar'}
-        validate_kwargs('func', kwargs, *compat_args)
+        compat_args = OrderedDict()
+        compat_args['f'] = None
+        compat_args['b'] = 1
+        compat_args['ba'] = 's'
+        kwargs = dict(f=None, b=1)
+        validate_kwargs(self.fname, kwargs, compat_args)
+
+
+class TestValidateKwargsAndArgs(tm.TestCase):
+    fname = 'func'
+
+    def test_invalid_total_length_max_length_one(self):
+        compat_args = ('foo',)
+        kwargs = {'foo': 'FOO'}
+        args = ('FoO', 'BaZ')
+
+        min_fname_arg_count = 0
+        max_length = len(compat_args) + min_fname_arg_count
+        actual_length = len(kwargs) + len(args) + min_fname_arg_count
+        msg = ("{fname}\(\) takes at most {max_length} "
+               "argument \({actual_length} given\)"
+               .format(fname=self.fname, max_length=max_length,
+                       actual_length=actual_length))
+
+        with tm.assertRaisesRegexp(TypeError, msg):
+            validate_args_and_kwargs(self.fname, args, kwargs,
+                                     min_fname_arg_count,
+                                     compat_args)
+
+    def test_invalid_total_length_max_length_multiple(self):
+        compat_args = ('foo', 'bar', 'baz')
+        kwargs = {'foo': 'FOO', 'bar': 'BAR'}
+        args = ('FoO', 'BaZ')
+
+        min_fname_arg_count = 2
+        max_length = len(compat_args) + min_fname_arg_count
+        actual_length = len(kwargs) + len(args) + min_fname_arg_count
+        msg = ("{fname}\(\) takes at most {max_length} "
+               "arguments \({actual_length} given\)"
+               .format(fname=self.fname, max_length=max_length,
+                       actual_length=actual_length))
+
+        with tm.assertRaisesRegexp(TypeError, msg):
+            validate_args_and_kwargs(self.fname, args, kwargs,
+                                     min_fname_arg_count,
+                                     compat_args)
+
+    def test_no_args_with_kwargs(self):
+        bad_arg = 'bar'
+        min_fname_arg_count = 2
+
+        compat_args = OrderedDict()
+        compat_args['foo'] = -5
+        compat_args[bad_arg] = 1
+
+        msg = ("the '{arg}' parameter is not supported "
+               "in the pandas implementation of {func}\(\)".
+               format(arg=bad_arg, func=self.fname))
+
+        args = ()
+        kwargs = {'foo': -5, bad_arg: 2}
+        tm.assertRaisesRegexp(ValueError, msg,
+                              validate_args_and_kwargs,
+                              self.fname, args, kwargs,
+                              min_fname_arg_count, compat_args)
+
+        args = (-5, 2)
+        kwargs = {}
+        tm.assertRaisesRegexp(ValueError, msg,
+                              validate_args_and_kwargs,
+                              self.fname, args, kwargs,
+                              min_fname_arg_count, compat_args)
+
+    def test_duplicate_argument(self):
+        min_fname_arg_count = 2
+        compat_args = OrderedDict()
+        compat_args['foo'] = None
+        compat_args['bar'] = None
+        compat_args['baz'] = None
+        kwargs = {'foo': None, 'bar': None}
+        args = (None,)  # duplicate value for 'foo'
+
+        msg = ("{fname}\(\) got multiple values for keyword "
+               "argument '{arg}'".format(fname=self.fname, arg='foo'))
+
+        with tm.assertRaisesRegexp(TypeError, msg):
+            validate_args_and_kwargs(self.fname, args, kwargs,
+                                     min_fname_arg_count,
+                                     compat_args)
+
+    def test_validation(self):
+        # No exceptions should be thrown
+        compat_args = OrderedDict()
+        compat_args['foo'] = 1
+        compat_args['bar'] = None
+        compat_args['baz'] = -2
+        kwargs = {'baz': -2}
+        args = (1, None)
+
+        min_fname_arg_count = 2
+        validate_args_and_kwargs(self.fname, args, kwargs,
+                                 min_fname_arg_count,
+                                 compat_args)
 
 
 class TestMove(tm.TestCase):

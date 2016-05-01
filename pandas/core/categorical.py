@@ -12,6 +12,7 @@ from pandas.core.base import (PandasObject, PandasDelegate,
                               NoNewAttributesMixin, _shared_docs)
 import pandas.core.common as com
 from pandas.core.missing import interpolate_2d
+from pandas.compat.numpy import function as nv
 from pandas.util.decorators import (Appender, cache_readonly,
                                     deprecate_kwarg, Substitution)
 
@@ -356,8 +357,13 @@ class Categorical(PandasObject):
         """ return the size of a single category """
         return self.categories.itemsize
 
-    def reshape(self, new_shape, **kwargs):
-        """ compat with .reshape """
+    def reshape(self, new_shape, *args, **kwargs):
+        """
+        An ndarray-compatible method that returns
+        `self` because categorical instances cannot
+        actually be reshaped.
+        """
+        nv.validate_reshape(args, kwargs)
         return self
 
     @property
@@ -1087,6 +1093,13 @@ class Categorical(PandasObject):
         """
         return ~self.isnull()
 
+    def put(self, *args, **kwargs):
+        """
+        Replace specific elements in the Categorical with given values.
+        """
+        raise NotImplementedError(("'put' is not yet implemented "
+                                   "for Categorical"))
+
     def dropna(self):
         """
         Return the Categorical without null values.
@@ -1164,17 +1177,27 @@ class Categorical(PandasObject):
                             "you can use .as_ordered() to change the "
                             "Categorical to an ordered one\n".format(op=op))
 
-    def argsort(self, ascending=True, **kwargs):
-        """ Implements ndarray.argsort.
+    def argsort(self, ascending=True, *args, **kwargs):
+        """
+        Returns the indices that would sort the Categorical instance if
+        'sort_values' was called. This function is implemented to provide
+        compatibility with numpy ndarray objects.
 
-        For internal compatibility with numpy arrays.
-
-        Only ordered Categoricals can be argsorted!
+        While an ordering is applied to the category values, arg-sorting
+        in this context refers more to organizing and grouping together
+        based on matching category values. Thus, this function can be
+        called on an unordered Categorical instance unlike the functions
+        'Categorical.min' and 'Categorical.max'.
 
         Returns
         -------
         argsorted : numpy array
+
+        See also
+        --------
+        numpy.ndarray.argsort
         """
+        ascending = nv.validate_argsort_with_ascending(ascending, args, kwargs)
         result = np.argsort(self._codes.copy(), **kwargs)
         if not ascending:
             result = result[::-1]
@@ -1297,7 +1320,7 @@ class Categorical(PandasObject):
         return self.sort_values(inplace=inplace, ascending=ascending,
                                 na_position=na_position)
 
-    def sort(self, inplace=True, ascending=True, na_position='last'):
+    def sort(self, inplace=True, ascending=True, na_position='last', **kwargs):
         """
         DEPRECATED: use :meth:`Categorical.sort_values`. That function
         is just like this one, except that a new Categorical is returned
@@ -1310,6 +1333,7 @@ class Categorical(PandasObject):
         """
         warn("sort is deprecated, use sort_values(...)", FutureWarning,
              stacklevel=2)
+        nv.validate_sort(tuple(), kwargs)
         return self.sort_values(inplace=inplace, ascending=ascending,
                                 na_position=na_position)
 
@@ -1792,7 +1816,7 @@ class Categorical(PandasObject):
 
         return result
 
-    def repeat(self, repeats):
+    def repeat(self, repeats, *args, **kwargs):
         """
         Repeat elements of a Categorical.
 
@@ -1801,6 +1825,7 @@ class Categorical(PandasObject):
         numpy.ndarray.repeat
 
         """
+        nv.validate_repeat(args, kwargs)
         codes = self._codes.repeat(repeats)
         return Categorical(values=codes, categories=self.categories,
                            ordered=self.ordered, fastpath=True)

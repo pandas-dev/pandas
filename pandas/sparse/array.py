@@ -13,6 +13,7 @@ import pandas.core.common as com
 
 from pandas import compat, lib
 from pandas.compat import range
+from pandas.compat.numpy import function as nv
 
 from pandas._sparse import SparseIndex, BlockIndex, IntIndex
 import pandas._sparse as splib
@@ -318,9 +319,15 @@ class SparseArray(PandasObject, np.ndarray):
 
     @Appender(_index_shared_docs['take'] % _sparray_doc_kwargs)
     def take(self, indices, axis=0, allow_fill=True,
-             fill_value=None):
+             fill_value=None, **kwargs):
+        """
+        Sparse-compatible version of ndarray.take
 
-        # Sparse-compatible version of ndarray.take, returns SparseArray
+        Returns
+        -------
+        taken : ndarray
+        """
+        nv.validate_take(tuple(), kwargs)
 
         if axis:
             raise ValueError("axis must be 0, input was {0}".format(axis))
@@ -455,7 +462,7 @@ class SparseArray(PandasObject, np.ndarray):
             return self._simple_new(new_values, self.sp_index,
                                     fill_value=self.fill_value)
 
-    def sum(self, axis=None, dtype=None, out=None):
+    def sum(self, axis=0, *args, **kwargs):
         """
         Sum of non-NA/null values
 
@@ -463,6 +470,7 @@ class SparseArray(PandasObject, np.ndarray):
         -------
         sum : float
         """
+        nv.validate_sum(args, kwargs)
         valid_vals = self._valid_sp_values
         sp_sum = valid_vals.sum()
         if self._null_fill_value:
@@ -471,23 +479,25 @@ class SparseArray(PandasObject, np.ndarray):
             nsparse = self.sp_index.ngaps
             return sp_sum + self.fill_value * nsparse
 
-    def cumsum(self, axis=0, dtype=None, out=None):
+    def cumsum(self, axis=0, *args, **kwargs):
         """
         Cumulative sum of values. Preserves locations of NaN values
-
-        Extra parameters are to preserve ndarray interface.
 
         Returns
         -------
         cumsum : Series
         """
+        nv.validate_cumsum(args, kwargs)
+
+        # TODO: gh-12855 - return a SparseArray here
         if com.notnull(self.fill_value):
             return self.to_dense().cumsum()
+
         # TODO: what if sp_values contains NaN??
         return SparseArray(self.sp_values.cumsum(), sparse_index=self.sp_index,
                            fill_value=self.fill_value)
 
-    def mean(self, axis=None, dtype=None, out=None):
+    def mean(self, axis=0, *args, **kwargs):
         """
         Mean of non-NA/null values
 
@@ -495,6 +505,7 @@ class SparseArray(PandasObject, np.ndarray):
         -------
         mean : float
         """
+        nv.validate_mean(args, kwargs)
         valid_vals = self._valid_sp_values
         sp_sum = valid_vals.sum()
         ct = len(valid_vals)

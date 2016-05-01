@@ -268,13 +268,39 @@ class Base(object):
     def test_argsort(self):
         for k, ind in self.indices.items():
 
-            # sep teststed
+            # separately tested
             if k in ['catIndex']:
                 continue
 
             result = ind.argsort()
             expected = np.array(ind).argsort()
             tm.assert_numpy_array_equal(result, expected)
+
+    def test_numpy_argsort(self):
+        for k, ind in self.indices.items():
+            result = np.argsort(ind)
+            expected = ind.argsort()
+            tm.assert_numpy_array_equal(result, expected)
+
+            # these are the only two types that perform
+            # pandas compatibility input validation - the
+            # rest already perform separate (or no) such
+            # validation via their 'values' attribute as
+            # defined in pandas/indexes/base.py - they
+            # cannot be changed at the moment due to
+            # backwards compatibility concerns
+            if isinstance(type(ind), (CategoricalIndex, RangeIndex)):
+                msg = "the 'axis' parameter is not supported"
+                tm.assertRaisesRegexp(ValueError, msg,
+                                      np.argsort, ind, axis=1)
+
+                msg = "the 'kind' parameter is not supported"
+                tm.assertRaisesRegexp(ValueError, msg, np.argsort,
+                                      ind, kind='mergesort')
+
+                msg = "the 'order' parameter is not supported"
+                tm.assertRaisesRegexp(ValueError, msg, np.argsort,
+                                      ind, order=('a', 'b'))
 
     def test_pickle(self):
         for ind in self.indices.values():
@@ -299,6 +325,43 @@ class Base(object):
                 # GH 10791
                 with tm.assertRaises(AttributeError):
                     ind.freq
+
+    def test_take_invalid_kwargs(self):
+        idx = self.create_index()
+        indices = [1, 2]
+
+        msg = "take\(\) got an unexpected keyword argument 'foo'"
+        tm.assertRaisesRegexp(TypeError, msg, idx.take,
+                              indices, foo=2)
+
+        msg = "the 'out' parameter is not supported"
+        tm.assertRaisesRegexp(ValueError, msg, idx.take,
+                              indices, out=indices)
+
+        msg = "the 'mode' parameter is not supported"
+        tm.assertRaisesRegexp(ValueError, msg, idx.take,
+                              indices, mode='clip')
+
+    def test_repeat(self):
+        rep = 2
+        i = self.create_index()
+        expected = pd.Index(i.values.repeat(rep), name=i.name)
+        tm.assert_index_equal(i.repeat(rep), expected)
+
+        i = self.create_index()
+        rep = np.arange(len(i))
+        expected = pd.Index(i.values.repeat(rep), name=i.name)
+        tm.assert_index_equal(i.repeat(rep), expected)
+
+    def test_numpy_repeat(self):
+        rep = 2
+        i = self.create_index()
+        expected = i.repeat(rep)
+        tm.assert_index_equal(np.repeat(i, rep), expected)
+
+        msg = "the 'axis' parameter is not supported"
+        tm.assertRaisesRegexp(ValueError, msg, np.repeat,
+                              i, rep, axis=0)
 
     def test_setops_errorcases(self):
         for name, idx in compat.iteritems(self.indices):

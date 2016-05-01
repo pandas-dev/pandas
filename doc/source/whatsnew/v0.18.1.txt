@@ -14,7 +14,7 @@ Highlights include:
 - Custom business hour offset, see :ref:`here <whatsnew_0181.enhancements.custombusinesshour>`.
 - Many bug fixes in the handling of ``sparse``, see :ref:`here <whatsnew_0181.sparse>`
 - Method chaining improvements, see :ref:`here <whatsnew_0181.enhancements.method_chain>`.
-- Expanded the Tutorials :ref:`documentation <tutorial-modern>` with another `series`_ , courtesy of @TomAugsburger. (:issue:`13045`).
+- Expanded the :ref:`Tutorials section <tutorial-modern>` with a feature on modern pandas, courtesy of `@TomAugsburger <https://twitter.com/TomAugspurger>`__. (:issue:`13045`).
 
 
 .. contents:: What's new in v0.18.1
@@ -239,8 +239,6 @@ Other Enhancements
 - ``pd.crosstab()`` has gained a ``normalize`` argument for normalizing frequency tables (:issue:`12569`). Examples in the updated docs :ref:`here <reshaping.crosstabulations>`.
 - ``.resample(..).interpolate()`` is now supported (:issue:`12925`)
 
-.. _series: http://tomaugspurger.github.io/modern-1.html
-
 .. _whatsnew_0181.sparse:
 
 Sparse changes
@@ -357,6 +355,40 @@ New Behavior:
    df.groupby('c', sort=True).nth(1)
    df.groupby('c', sort=False).nth(1)
 
+
+.. _whatsnew_0181.numpy_compatibility
+
+numpy function compatibility
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Compatibility between pandas array-like methods (e.g. ```sum`` and ``take``) and their ``numpy``
+counterparts has been greatly increased by augmenting the signatures of the ``pandas`` methods so
+as to accept arguments that can be passed in from ``numpy``, even if they are not necessarily
+used in the ``pandas`` implementation (:issue:`12644`, :issue:`12638`, :issue:`12687`)
+
+- ``.searchsorted()`` for ``Index`` and ``TimedeltaIndex`` now accept a ``sorter`` argument to maintain compatibility with numpy's ``searchsorted`` function (:issue:`12238`)
+- Bug in numpy compatibility of ``np.round()`` on a ``Series`` (:issue:`12600`)
+
+An example of this signature augmentation is illustrated below:
+
+.. ipython:: python
+
+   sp = pd.SparseDataFrame([1, 2, 3])
+   sp
+
+Previous behaviour:
+
+.. code-block:: ipython
+
+   In [2]: np.cumsum(sp, axis=0)
+   ...
+   TypeError: cumsum() takes at most 2 arguments (4 given)
+
+New behaviour:
+
+.. ipython:: python
+
+   np.cumsum(sp, axis=0)
 
 .. _whatsnew_0181.apply_resample:
 
@@ -528,7 +560,6 @@ Bug Fixes
 - Bug in ``.resample(...)`` with a ``PeriodIndex`` casting to a ``DatetimeIndex`` when empty (:issue:`12868`)
 - Bug in ``.resample(...)`` with a ``PeriodIndex`` when resampling to an existing frequency (:issue:`12770`)
 - Bug in printing data which contains ``Period`` with different ``freq`` raises ``ValueError`` (:issue:`12615`)
-- Bug in numpy compatibility of ``np.round()`` on a ``Series`` (:issue:`12600`)
 - Bug in ``Series`` construction with ``Categorical`` and ``dtype='category'`` is specified (:issue:`12574`)
 - Bugs in concatenation with a coercable dtype was too aggressive, resulting in different dtypes in outputformatting when an object was longer than ``display.max_rows`` (:issue:`12411`, :issue:`12045`, :issue:`11594`, :issue:`10571`, :issue:`12211`)
 - Bug in ``float_format`` option with option not being validated as a callable. (:issue:`12706`)
@@ -548,6 +579,7 @@ Bug Fixes
 - Segfault in ``to_json`` when attempting to serialise a ``DataFrame`` or ``Series`` with non-ndarray values (:issue:`10778`).
 - Bug in ``.align`` not returning the sub-class (:issue:`12983`)
 - Bug in aligning a ``Series`` with a ``DataFrame`` (:issue:`13037`)
+- Bug in ``ABCPanel`` in which ``Panel4D`` was not being considered as a valid instance of this generic type (:issue:`12810`)
 
 
 - Bug in consistency of ``.name`` on ``.groupby(..).apply(..)`` cases (:issue:`12363`)

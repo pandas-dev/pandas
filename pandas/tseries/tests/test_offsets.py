@@ -8,7 +8,7 @@ from nose.tools import assert_raises
 
 import numpy as np
 
-from pandas.compat.numpy_compat import np_datetime64_compat
+from pandas.compat.numpy import np_datetime64_compat
 from pandas.core.datetools import (bday, BDay, CDay, BQuarterEnd, BMonthEnd,
                                    BusinessHour, CustomBusinessHour,
                                    CBMonthEnd, CBMonthBegin,

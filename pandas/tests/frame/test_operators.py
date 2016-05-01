@@ -972,7 +972,7 @@ class TestDataFrameOperators(tm.TestCase, TestData):
         assert_numpy_array_equal(result, expected.values)
 
         self.assertRaises(ValueError, lambda: df == b_c)
-        self.assertFalse((df.values == b_c))
+        self.assertFalse(np.array_equal(df.values, b_c))
 
         # with alignment
         df = DataFrame(np.arange(6).reshape((3, 2)),
@@ -1170,3 +1170,7 @@ class TestDataFrameOperators(tm.TestCase, TestData):
         assert_frame_equal(df, expected)
         assert_frame_equal(df2, expected)
         self.assertIs(df._data, df2._data)
+
+if __name__ == '__main__':
+    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
+                   exit=False)

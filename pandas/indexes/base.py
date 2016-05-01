@@ -10,6 +10,7 @@ import pandas.index as _index
 from pandas.lib import Timestamp, Timedelta, is_datetime_array
 
 from pandas.compat import range, u
+from pandas.compat.numpy import function as nv
 from pandas import compat
 from pandas.core.base import (PandasObject, FrozenList, FrozenNDArray,
                               IndexOpsMixin)
@@ -452,14 +453,16 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         """
         return list(self.values)
 
-    def repeat(self, n):
+    def repeat(self, n, *args, **kwargs):
         """
-        return a new Index of the values repeated n times
+        Repeat elements of an Index. Refer to `numpy.ndarray.repeat`
+        for more information about the `n` argument.
 
         See also
         --------
         numpy.ndarray.repeat
         """
+        nv.validate_repeat(args, kwargs)
         return self._shallow_copy(self._values.repeat(n))
 
     def ravel(self, order='C'):
@@ -1354,8 +1357,10 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         numpy.ndarray.take
         """
 
-    @Appender(_index_shared_docs['take'] % _index_doc_kwargs)
-    def take(self, indices, axis=0, allow_fill=True, fill_value=None):
+    @Appender(_index_shared_docs['take'])
+    def take(self, indices, axis=0, allow_fill=True,
+             fill_value=None, **kwargs):
+        nv.validate_take(tuple(), kwargs)
         indices = com._ensure_platform_int(indices)
         if self._can_hold_na:
             taken = self._assert_take_fillable(self.values, indices,
@@ -1619,7 +1624,12 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
 
     def argsort(self, *args, **kwargs):
         """
-        return an ndarray indexer of the underlying data
+        Returns the indices that would sort the index and its
+        underlying data.
+
+        Returns
+        -------
+        argsorted : numpy array
 
         See also
         --------

@@ -832,3 +832,19 @@ class TestCategoricalIndex(Base, tm.TestCase):
 
         with tm.assertRaises(IndexError):
             idx.take(np.array([1, -5]))
+
+    def test_take_invalid_kwargs(self):
+        idx = pd.CategoricalIndex([1, 2, 3], name='foo')
+        indices = [1, 0, -1]
+
+        msg = "take\(\) got an unexpected keyword argument 'foo'"
+        tm.assertRaisesRegexp(TypeError, msg, idx.take,
+                              indices, foo=2)
+
+        msg = "the 'out' parameter is not supported"
+        tm.assertRaisesRegexp(ValueError, msg, idx.take,
+                              indices, out=indices)
+
+        msg = "the 'mode' parameter is not supported"
+        tm.assertRaisesRegexp(ValueError, msg, idx.take,
+                              indices, mode='clip')

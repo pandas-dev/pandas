@@ -10,7 +10,7 @@ from pandas.io.parsers import (read_csv, read_table)
 from pandas.util.testing import assert_frame_equal
 import pandas.io.date_converters as conv
 import pandas.util.testing as tm
-from pandas.compat.numpy_compat import np_array_datetime64_compat
+from pandas.compat.numpy import np_array_datetime64_compat
 
 
 class TestConverters(tm.TestCase):

@@ -509,6 +509,35 @@ class TestCategorical(tm.TestCase):
         res = cat_rev > "b"
         self.assert_numpy_array_equal(res, exp)
 
+    def test_argsort(self):
+        c = Categorical([5, 3, 1, 4, 2], ordered=True)
+
+        expected = np.array([2, 4, 1, 3, 0])
+        tm.assert_numpy_array_equal(c.argsort(
+            ascending=True), expected)
+
+        expected = expected[::-1]
+        tm.assert_numpy_array_equal(c.argsort(
+            ascending=False), expected)
+
+    def test_numpy_argsort(self):
+        c = Categorical([5, 3, 1, 4, 2], ordered=True)
+
+        expected = np.array([2, 4, 1, 3, 0])
+        tm.assert_numpy_array_equal(np.argsort(c), expected)
+
+        msg = "the 'kind' parameter is not supported"
+        tm.assertRaisesRegexp(ValueError, msg, np.argsort,
+                              c, kind='mergesort')
+
+        msg = "the 'axis' parameter is not supported"
+        tm.assertRaisesRegexp(ValueError, msg, np.argsort,
+                              c, axis=0)
+
+        msg = "the 'order' parameter is not supported"
+        tm.assertRaisesRegexp(ValueError, msg, np.argsort,
+                              c, order='C')
+
     def test_na_flags_int_categories(self):
         # #1457
 
@@ -3975,6 +4004,22 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
         exp = pd.Categorical(["a", "a", "b", "b"], categories=["a", "b"])
         res = cat.repeat(2)
         self.assert_categorical_equal(res, exp)
+
+    def test_numpy_repeat(self):
+        cat = pd.Categorical(["a", "b"], categories=["a", "b"])
+        exp = pd.Categorical(["a", "a", "b", "b"], categories=["a", "b"])
+        self.assert_categorical_equal(np.repeat(cat, 2), exp)
+
+        msg = "the 'axis' parameter is not supported"
+        tm.assertRaisesRegexp(ValueError, msg, np.repeat, cat, 2, axis=1)
+
+    def test_numpy_reshape(self):
+        cat = pd.Categorical(["a", "b"], categories=["a", "b"])
+        self.assert_categorical_equal(np.reshape(cat, cat.shape), cat)
+
+        msg = "the 'order' parameter is not supported"
+        tm.assertRaisesRegexp(ValueError, msg, np.reshape,
+                              cat, cat.shape, order='F')
 
     def test_na_actions(self):
 

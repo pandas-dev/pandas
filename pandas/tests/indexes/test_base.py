@@ -21,7 +21,7 @@ from pandas import (period_range, date_range, Series,
                     CategoricalIndex, DatetimeIndex, TimedeltaIndex,
                     PeriodIndex)
 from pandas.util.testing import assert_almost_equal
-from pandas.compat.numpy_compat import np_datetime64_compat
+from pandas.compat.numpy import np_datetime64_compat
 
 import pandas.core.config as cf
 

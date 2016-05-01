@@ -6,6 +6,7 @@ import pandas.index as _index
 
 from pandas import compat
 from pandas.compat import lrange, range
+from pandas.compat.numpy import function as nv
 from pandas.indexes.base import Index, _index_shared_docs
 from pandas.util.decorators import Appender, cache_readonly
 import pandas.core.common as com
@@ -244,12 +245,19 @@ class RangeIndex(Int64Index):
 
     def argsort(self, *args, **kwargs):
         """
-        return an ndarray indexer of the underlying data
+        Returns the indices that would sort the index and its
+        underlying data.
+
+        Returns
+        -------
+        argsorted : numpy array
 
         See also
         --------
         numpy.ndarray.argsort
         """
+        nv.validate_argsort(args, kwargs)
+
         if self._step > 0:
             return np.arange(len(self))
         else:

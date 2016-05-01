@@ -10,6 +10,7 @@ import numpy as np
 import warnings
 import operator
 
+from pandas.compat.numpy import function as nv
 from pandas.core.common import isnull, _values_from_object, _maybe_match_name
 from pandas.core.index import Index, _ensure_index
 from pandas.core.series import Series
@@ -598,7 +599,7 @@ class SparseSeries(Series):
                                  sparse_index=new_index,
                                  fill_value=self.fill_value).__finalize__(self)
 
-    def take(self, indices, axis=0, convert=True):
+    def take(self, indices, axis=0, convert=True, *args, **kwargs):
         """
         Sparse-compatible version of ndarray.take
 
@@ -606,24 +607,28 @@ class SparseSeries(Series):
         -------
         taken : ndarray
         """
+        convert = nv.validate_take_with_convert(convert, args, kwargs)
         new_values = SparseArray.take(self.values, indices)
         new_index = self.index.take(indices)
         return self._constructor(new_values,
                                  index=new_index).__finalize__(self)
 
-    def cumsum(self, axis=0, dtype=None, out=None):
+    def cumsum(self, axis=0, *args, **kwargs):
         """
         Cumulative sum of values. Preserves locations of NaN values
 
         Returns
         -------
-        cumsum : Series or SparseSeries
+        cumsum : SparseSeries if `self` has a null `fill_value` and a
+                 generic Series otherwise
         """
+        nv.validate_cumsum(args, kwargs)
         new_array = SparseArray.cumsum(self.values)
         if isinstance(new_array, SparseArray):
             return self._constructor(
                 new_array, index=self.index,
                 sparse_index=new_array.sp_index).__finalize__(self)
+        # TODO: gh-12855 - return a SparseSeries here
         return Series(new_array, index=self.index).__finalize__(self)
 
     def dropna(self, axis=0, inplace=False, **kwargs):
