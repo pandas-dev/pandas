@@ -752,6 +752,16 @@ class TestTimeSeries(tm.TestCase):
             seconds=t) for t in range(20)] + [NaT])
         assert_series_equal(result, expected)
 
+        result = to_datetime([1, 2, 'NaT', pd.NaT, np.nan], unit='D')
+        expected = DatetimeIndex([Timestamp('1970-01-02'),
+                                  Timestamp('1970-01-03')] + ['NaT'] * 3)
+        tm.assert_index_equal(result, expected)
+
+        with self.assertRaises(ValueError):
+            to_datetime([1, 2, 'foo'], unit='D')
+        with self.assertRaises(ValueError):
+            to_datetime([1, 2, 111111111], unit='D')
+
     def test_series_ctor_datetime64(self):
         rng = date_range('1/1/2000 00:00:00', '1/1/2000 1:59:50', freq='10s')
         dates = np.asarray(rng)
