@@ -233,12 +233,8 @@ def _interpolate_scipy_wrapper(x, y, new_x, method, fill_value=None,
     alt_methods = {
         'barycentric': interpolate.barycentric_interpolate,
         'krogh': interpolate.krogh_interpolate,
-<<<<<<< HEAD
-        'from_derivatives': interpolate.BPoly.from_derivatives,
-=======
         'from_derivatives': _from_derivatives,
         'piecewise_polynomial': _from_derivatives,
->>>>>>> 95279d9d6125f9768a4326b677173248fa5f0702
     }
 
     if getattr(x, 'is_all_dates', False):
