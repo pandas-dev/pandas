@@ -22,6 +22,7 @@ def _skip_if_no_pchip():
     try:
         from scipy.interpolate import pchip_interpolate  # noqa
     except ImportError:
+        import nose
         raise nose.SkipTest('scipy.interpolate.pchip missing')
 
 
@@ -29,6 +30,7 @@ def _skip_if_no_akima():
     try:
         from scipy.interpolate import Akima1DInterpolator  # noqa
     except ImportError:
+        import nose
         raise nose.SkipTest('scipy.interpolate.Akima1DInterpolator missing')
 
 
