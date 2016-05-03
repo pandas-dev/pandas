@@ -128,8 +128,22 @@ Bug Fixes
 
 
 
+- Bug in ``Series`` arithmetic raises ``TypeError`` if it contains datetime-like as ``object`` dtype (:issue:`13043`)
+
 
 
 - Bug in ``NaT`` - ``Period`` raises ``AttributeError`` (:issue:`13071`)
 - Bug in ``Period`` addition raises ``TypeError`` if ``Period`` is on right hand side (:issue:`13069`)
 - Bug in ``pd.set_eng_float_format()`` that would prevent NaN's from formatting (:issue:`11981`)
+
+
+
+
+
+
+
+
+
+
+
+
