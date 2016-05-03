@@ -790,7 +790,10 @@ class PeriodIndexResampler(DatetimeIndexResampler):
 
         new_index = self._get_new_index()
         if len(new_index) == 0:
-            return self._wrap_result(self._selected_obj.reindex(new_index))
+            result = self._selected_obj
+            if isinstance(self._selected_obj.index, PeriodIndex):
+                result = result.asfreq(self.freq, how=self.convention)
+            return self._wrap_result(result.reindex(new_index))
 
         # Start vs. end of period
         memb = ax.asfreq(self.freq, how=self.convention)

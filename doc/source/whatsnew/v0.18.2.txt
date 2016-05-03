@@ -74,3 +74,5 @@ Performance Improvements
 
 Bug Fixes
 ~~~~~~~~~
+
+- Bug in ``.resample`` empty data with ``PeriodIndex`` doesn't change ``freq`` (:issue:`13067`)
