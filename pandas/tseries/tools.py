@@ -332,7 +332,7 @@ def _to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
             if box:
                 if errors == 'ignore':
                     from pandas import Index
-                    return Index(result, dtype=object)
+                    return Index(result)
 
                 return DatetimeIndex(result, tz='utc' if utc else None,
                                      name=name)
