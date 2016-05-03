@@ -1084,6 +1084,10 @@ class NDFrame(PandasObject):
                        / selecting subsets of the data
         append   : boolean, default False
             For Table formats, append the input data to the existing
+        data_columns : list of columns, or True, default None
+            This will create additional indexed columns for on-disk queries,
+            by default only 'index' and 'columns' are indexed. True will index
+            all columns.
         complevel : int, 1-9, default 0
             If a complib is specified compression will be applied
             where possible
