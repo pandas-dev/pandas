@@ -14,6 +14,7 @@ from pandas.core.common import (is_integer, is_float, is_bool_dtype,
                                 AbstractMethodError)
 import pandas.formats.printing as printing
 import pandas.tslib as tslib
+import pandas._period as _period
 import pandas.lib as lib
 from pandas.core.index import Index
 from pandas.indexes.base import _index_shared_docs
@@ -533,6 +534,9 @@ class DatetimeIndexOpsMixin(object):
     def _sub_datelike(self, other):
         raise AbstractMethodError(self)
 
+    def _sub_period(self, other):
+        return NotImplemented
+
     @classmethod
     def _add_datetimelike_methods(cls):
         """
@@ -591,6 +595,8 @@ class DatetimeIndexOpsMixin(object):
                 return self.shift(-other)
             elif isinstance(other, (tslib.Timestamp, datetime)):
                 return self._sub_datelike(other)
+            elif isinstance(other, _period.Period):
+                return self._sub_period(other)
             else:  # pragma: no cover
                 return NotImplemented
         cls.__sub__ = __sub__
