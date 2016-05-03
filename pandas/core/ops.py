@@ -19,6 +19,7 @@ from pandas.lib import isscalar
 from pandas.tslib import iNaT
 from pandas.compat import bind_method
 import pandas.core.missing as missing
+import pandas.algos as _algos
 import pandas.core.algorithms as algos
 from pandas.core.common import (is_list_like, notnull, isnull,
                                 _values_from_object, _maybe_match_name,
@@ -600,6 +601,21 @@ def _arith_method_SERIES(op, name, str_rep, fill_zeros=None, default_axis=None,
         result = missing.fill_zeros(result, x, y, name, fill_zeros)
         return result
 
+    def safe_na_op(lvalues, rvalues):
+        try:
+            return na_op(lvalues, rvalues)
+        except Exception:
+            if isinstance(rvalues, ABCSeries):
+                if is_object_dtype(rvalues):
+                    # if dtype is object, try elementwise op
+                    return _algos.arrmap_object(rvalues,
+                                                lambda x: op(lvalues, x))
+            else:
+                if is_object_dtype(lvalues):
+                    return _algos.arrmap_object(lvalues,
+                                                lambda x: op(x, rvalues))
+            raise
+
     def wrapper(left, right, name=name, na_op=na_op):
 
         if isinstance(right, pd.DataFrame):
@@ -638,9 +654,8 @@ def _arith_method_SERIES(op, name, str_rep, fill_zeros=None, default_axis=None,
                 if ridx is not None:
                     rvalues = algos.take_1d(rvalues, ridx)
 
-            arr = na_op(lvalues, rvalues)
-
-            return left._constructor(wrap_results(arr), index=index,
+            result = wrap_results(safe_na_op(lvalues, rvalues))
+            return left._constructor(result, index=index,
                                      name=name, dtype=dtype)
         else:
             # scalars
@@ -648,7 +663,8 @@ def _arith_method_SERIES(op, name, str_rep, fill_zeros=None, default_axis=None,
                     not isinstance(lvalues, pd.DatetimeIndex)):
                 lvalues = lvalues.values
 
-            return left._constructor(wrap_results(na_op(lvalues, rvalues)),
+            result = wrap_results(safe_na_op(lvalues, rvalues))
+            return left._constructor(result,
                                      index=left.index, name=left.name,
                                      dtype=dtype)
 
