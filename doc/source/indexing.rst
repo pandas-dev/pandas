@@ -193,14 +193,26 @@ columns.
 
 .. warning::
 
-   Pandas aligns index for assigning ``DataFrame`` from ``.loc``, ``.iloc`` and ``.ix``. 
-   For example, in the expression
+   pandas aligns index for setting a ``DataFrame`` from ``.loc``, ``.iloc`` and ``.ix``. 
+   For example, the expression
 
    .. code-block:: python
 
       df.loc[:,['B', 'A']] = df.loc[:,['A', 'B']]
 
-   ``df`` is not modified. The alignment is ignored in column assignment.
+   will **not** modify ``df`` because index alignment is before value assignment.
+   
+   The correct way is to use raw values, and so this will work   
+
+   .. code-block:: python
+
+      df.loc[:,['B', 'A']] = df.loc[:,['A', 'B']].values
+
+   This will also work because pandas ignores index alignment in column assignment
+
+   .. code-block:: python
+
+      df[['B', 'A']] = df.loc[:,['A', 'B']]
 
 Attribute Access
 ----------------
