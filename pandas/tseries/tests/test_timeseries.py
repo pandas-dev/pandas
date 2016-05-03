@@ -4249,7 +4249,7 @@ class TestTimestamp(tm.TestCase):
                                   'NaT', 'NaT', 'NaT', 'NaT', 'NaT'])
         tm.assert_index_equal(result, expected)
 
-        with self.assertRaises(ValueError):
+        with self.assertRaises(tslib.OutOfBoundsDatetime):
             to_datetime(values, unit='D', errors='raise')
 
         values = [1420043460000, tslib.iNaT, pd.NaT, np.nan, 'NaT']
@@ -4263,8 +4263,32 @@ class TestTimestamp(tm.TestCase):
         expected = DatetimeIndex(['NaT', 'NaT', 'NaT', 'NaT', 'NaT'])
         tm.assert_index_equal(result, expected)
 
-        with self.assertRaises(ValueError):
+        with self.assertRaises(tslib.OutOfBoundsDatetime):
             to_datetime(values, errors='raise', unit='s')
+
+        # if we have a string, then we raise a ValueError
+        # and NOT an OutOfBoundsDatetime
+        for val in ['foo', Timestamp('20130101')]:
+            try:
+                to_datetime(val, errors='raise', unit='s')
+            except tslib.OutOfBoundsDatetime:
+                raise AssertionError("incorrect exception raised")
+            except ValueError:
+                pass
+
+        # consistency of conversions
+        expected = Timestamp('1970-05-09 14:25:11')
+        result = pd.to_datetime(11111111, unit='s', errors='raise')
+        self.assertEqual(result, expected)
+        self.assertIsInstance(result, Timestamp)
+
+        result = pd.to_datetime(11111111, unit='s', errors='coerce')
+        self.assertEqual(result, expected)
+        self.assertIsInstance(result, Timestamp)
+
+        result = pd.to_datetime(11111111, unit='s', errors='ignore')
+        self.assertEqual(result, expected)
+        self.assertIsInstance(result, Timestamp)
 
     def test_roundtrip(self):
 

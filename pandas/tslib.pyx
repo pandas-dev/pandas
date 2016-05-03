@@ -1982,9 +1982,12 @@ cpdef array_with_unit_to_datetime(ndarray values, unit, errors='coerce'):
     """
     convert the ndarray according to the unit
     if errors:
-      - raise: return converted values or raise
+      - raise: return converted values or raise OutOfBoundsDatetime
+          if out of range on the conversion or
+          ValueError for other conversions (e.g. a string)
       - ignore: return non-convertible values as the same unit
       - coerce: NaT for non-convertibles
+
     """
     cdef:
         Py_ssize_t i, j, n=len(values)
@@ -2023,7 +2026,7 @@ cpdef array_with_unit_to_datetime(ndarray values, unit, errors='coerce'):
         if not need_to_iterate:
 
             if (fvalues < _NS_LOWER_BOUND).any() or (fvalues > _NS_UPPER_BOUND).any():
-                raise ValueError("cannot convert input with unit: {0}".format(unit))
+                raise OutOfBoundsDatetime("cannot convert input with unit '{0}'".format(unit))
             result = (iresult*m).astype('M8[ns]')
             iresult = result.view('i8')
             iresult[mask] = iNaT
@@ -2046,9 +2049,14 @@ cpdef array_with_unit_to_datetime(ndarray values, unit, errors='coerce'):
                 else:
                     try:
                         iresult[i] = cast_from_unit(val, unit)
-                    except:
-                        if is_ignore or is_raise:
-                            raise
+                    except OverflowError:
+                        if is_raise:
+                            raise OutOfBoundsDatetime("cannot convert input {0}"
+                                                      "with the unit '{1}'".format(
+                                                          val,
+                                                          unit))
+                        elif is_ignore:
+                            raise AssertionError
                         iresult[i] = NPY_NAT
 
             elif util.is_string_object(val):
@@ -2058,24 +2066,40 @@ cpdef array_with_unit_to_datetime(ndarray values, unit, errors='coerce'):
                 else:
                     try:
                         iresult[i] = cast_from_unit(float(val), unit)
+                    except ValueError:
+                        if is_raise:
+                            raise ValueError("non convertible value {0}"
+                                             "with the unit '{1}'".format(
+                                                 val,
+                                                 unit))
+                        elif is_ignore:
+                            raise AssertionError
                     except:
-                        if is_ignore or is_raise:
-                            raise
+                        if is_raise:
+                            raise OutOfBoundsDatetime("cannot convert input {0}"
+                                                      "with the unit '{1}'".format(
+                                                          val,
+                                                          unit))
+                        elif is_ignore:
+                            raise AssertionError
                         iresult[i] = NPY_NAT
 
             else:
 
-                if is_ignore or is_raise:
-                    raise ValueError
+                if is_raise:
+                    raise ValueError("non convertible value {0}"
+                                     "with the unit '{1}'".format(
+                                         val,
+                                         unit))
+                if is_ignore:
+                    raise AssertionError
+
                 iresult[i] = NPY_NAT
 
         return result
 
-    except (OverflowError, ValueError) as e:
-
-        # we cannot process and are done
-        if is_raise:
-            raise ValueError("cannot convert input with the unit: {0}".format(unit))
+    except AssertionError:
+        pass
 
     # we have hit an exception
     # and are in ignore mode
