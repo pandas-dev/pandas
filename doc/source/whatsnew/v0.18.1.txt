@@ -478,7 +478,7 @@ In addition to this error change, several others have been made as well:
 ``to_datetime`` error changes
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Bugs in ``pd.to_datetime()`` when passing a ``unit`` with convertible entries and ``errors='coerce'`` or non-convertible with ``errors='ignore'`` (:issue:`11758`, :issue:`13052`)
+Bugs in ``pd.to_datetime()`` when passing a ``unit`` with convertible entries and ``errors='coerce'`` or non-convertible with ``errors='ignore'``. Furthermore, an ``OutOfBoundsDateime`` exception will be raised when an out-of-range value is encountered for that unit when ``errors='raise'``. (:issue:`11758`, :issue:`13052`, :issue:`13059`)
 
 Previous behaviour:
 
@@ -490,12 +490,21 @@ Previous behaviour:
    In [28]: pd.to_datetime(11111111, unit='D', errors='ignore')
    OverflowError: Python int too large to convert to C long
 
+   In [29]: pd.to_datetime(11111111, unit='D', errors='raise')
+   OverflowError: Python int too large to convert to C long
+
 New behaviour:
 
-.. ipython:: python
+.. code-block:: python
 
-   pd.to_datetime(1420043460, unit='s', errors='coerce')
-   pd.to_datetime(11111111, unit='D', errors='ignore')
+   In [2]: pd.to_datetime(1420043460, unit='s', errors='coerce')
+   Out[2]: Timestamp('2014-12-31 16:31:00')
+
+   In [3]: pd.to_datetime(11111111, unit='D', errors='ignore')
+   Out[3]: 11111111
+
+   In [4]: pd.to_datetime(11111111, unit='D', errors='raise')
+   OutOfBoundsDatetime: cannot convert input with unit 'D'
 
 .. _whatsnew_0181.api.other:
 
