@@ -191,6 +191,17 @@ raised. Multiple columns can also be set in this manner:
 You may find this useful for applying a transform (in-place) to a subset of the
 columns.
 
+.. warning::
+
+   Pandas aligns index for assigning ``DataFrame`` from ``.loc``, ``.iloc`` and ``.ix``. 
+   For example, in the expression
+
+   .. code-block:: python
+
+      df.loc[:,['B', 'A']] = df.loc[:,['A', 'B']]
+
+   ``df`` is not modified. The alignment is ignored in column assignment.
+
 Attribute Access
 ----------------
 
