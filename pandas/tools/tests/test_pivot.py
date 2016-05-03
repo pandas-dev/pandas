@@ -1139,6 +1139,29 @@ class TestCrosstab(tm.TestCase):
                                  normalize=False)
         tm.assert_frame_equal(nans, calculated)
 
+    def test_crosstab_filtered_categorical(self):
+        # see gh-12298
+        df = pd.DataFrame({'col0': list('abcabc'),
+                           'col1': [1, 1, 2, 1, 2, 3],
+                           'col2': [1, 1, 0, 1, 1, 0]})
+        data = [[2, 0], [1, 1]]
+        columns = pd.Index([1, 2], name='col1')
+        index = pd.Index(['a', 'b'], name='col0')
+        expected = pd.DataFrame(data, columns=columns, index=index)
+
+        # sanity check
+        filtered = df[df.col2 == 1]
+        result = pd.crosstab(filtered.col0, filtered.col1)
+        tm.assert_frame_equal(result, expected)
+
+        # casting columns to Categorical shouldn't change anything
+        for col in df.columns:
+            df[col] = df[col].astype('category')
+
+        filtered = df[df.col2 == 1]
+        result = pd.crosstab(filtered.col0, filtered.col1)
+        tm.assert_frame_equal(result, expected)
+
     def test_crosstab_errors(self):
         # Issue 12578
 
