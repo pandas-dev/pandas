@@ -220,6 +220,7 @@ def _interpolate_scipy_wrapper(x, y, new_x, method, fill_value=None,
     the list in _clean_interp_method
     """
     try:
+        import scipy
         from scipy import interpolate
         # TODO: Why is DatetimeIndex being imported here?
         from pandas import DatetimeIndex  # noqa
@@ -253,6 +254,13 @@ def _interpolate_scipy_wrapper(x, y, new_x, method, fill_value=None,
         except ImportError:
             raise ImportError("Your version of Scipy does not support "
                               "Akima interpolation.")
+    elif method == 'piecewise_polynomial':
+        """ return the method for compat with scipy version """
+        if LooseVersion(scipy.__version__) <= LooseVersion('0.17'):
+            f = 'piecewise_polynomial_interpolate'
+        else:
+            f = 'from_derivatives'
+        alt_methods['piecewise_polynomial'] = getattr(interpolate, f)
 
     interp1d_methods = ['nearest', 'zero', 'slinear', 'quadratic', 'cubic',
                         'polynomial']
