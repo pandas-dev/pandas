@@ -55,9 +55,11 @@ class TestAssertAlmostEqual(tm.TestCase):
 
     def test_assert_almost_equal_edge_case_ndarrays(self):
         self._assert_almost_equal_both(np.array([], dtype='M8[ns]'),
-                                       np.array([], dtype='float64'))
+                                       np.array([], dtype='float64'),
+                                       check_dtype=False)
         self._assert_almost_equal_both(np.array([], dtype=str),
-                                       np.array([], dtype='int64'))
+                                       np.array([], dtype='int64'),
+                                       check_dtype=False)
 
     def test_assert_almost_equal_dicts(self):
         self._assert_almost_equal_both({'a': 1, 'b': 2}, {'a': 1, 'b': 2})
@@ -113,8 +115,13 @@ class TestAssertAlmostEqual(tm.TestCase):
     def test_assert_almost_equal_inf(self):
         self._assert_almost_equal_both(np.inf, np.inf)
         self._assert_almost_equal_both(np.inf, float("inf"))
-
         self._assert_not_almost_equal_both(np.inf, 0)
+        self._assert_almost_equal_both(np.array([np.inf, np.nan, -np.inf]),
+                                       np.array([np.inf, np.nan, -np.inf]))
+        self._assert_almost_equal_both(np.array([np.inf, None, -np.inf],
+                                                dtype=np.object_),
+                                       np.array([np.inf, np.nan, -np.inf],
+                                                dtype=np.object_))
 
     def test_assert_almost_equal_pandas(self):
         self.assert_almost_equal(pd.Index([1., 1.1]),
@@ -123,6 +130,11 @@ class TestAssertAlmostEqual(tm.TestCase):
                                  pd.Series([1., 1.100001]))
         self.assert_almost_equal(pd.DataFrame({'a': [1., 1.1]}),
                                  pd.DataFrame({'a': [1., 1.100001]}))
+
+    def test_assert_almost_equal_object(self):
+        a = [pd.Timestamp('2011-01-01'), pd.Timestamp('2011-01-01')]
+        b = [pd.Timestamp('2011-01-01'), pd.Timestamp('2011-01-01')]
+        self._assert_almost_equal_both(a, b)
 
 
 class TestUtilTesting(tm.TestCase):
@@ -173,11 +185,11 @@ numpy array shapes are different
             assert_almost_equal(1, 2)
 
         # array / scalar array comparison
-        expected = """(numpy array|Iterable) are different
+        expected = """numpy array are different
 
-First object is iterable, second isn't
-\\[left\\]:  \\[1\\]
-\\[right\\]: 1"""
+numpy array classes are different
+\\[left\\]:  ndarray
+\\[right\\]: int"""
 
         with assertRaisesRegexp(AssertionError, expected):
             assert_numpy_array_equal(np.array([1]), 1)
@@ -185,11 +197,11 @@ First object is iterable, second isn't
             assert_almost_equal(np.array([1]), 1)
 
         # scalar / array comparison
-        expected = """(numpy array|Iterable) are different
+        expected = """numpy array are different
 
-Second object is iterable, first isn't
-\\[left\\]:  1
-\\[right\\]: \\[1\\]"""
+numpy array classes are different
+\\[left\\]:  int
+\\[right\\]: ndarray"""
 
         with assertRaisesRegexp(AssertionError, expected):
             assert_numpy_array_equal(1, np.array([1]))
@@ -272,6 +284,26 @@ Index shapes are different
         with assertRaisesRegexp(AssertionError, expected):
             assert_almost_equal(np.array([1, 2]), np.array([3, 4, 5]),
                                 obj='Index')
+
+    def test_numpy_array_equal_object_message(self):
+
+        if is_platform_windows():
+            raise nose.SkipTest("windows has incomparable line-endings "
+                                "and uses L on the shape")
+
+        a = np.array([pd.Timestamp('2011-01-01'), pd.Timestamp('2011-01-01')])
+        b = np.array([pd.Timestamp('2011-01-01'), pd.Timestamp('2011-01-02')])
+
+        expected = """numpy array are different
+
+numpy array values are different \\(50\\.0 %\\)
+\\[left\\]:  \\[2011-01-01 00:00:00, 2011-01-01 00:00:00\\]
+\\[right\\]: \\[2011-01-01 00:00:00, 2011-01-02 00:00:00\\]"""
+
+        with assertRaisesRegexp(AssertionError, expected):
+            assert_numpy_array_equal(a, b)
+        with assertRaisesRegexp(AssertionError, expected):
+            assert_almost_equal(a, b)
 
     def test_assert_almost_equal_iterable_message(self):
 

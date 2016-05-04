@@ -3312,8 +3312,12 @@ class TestGroupBy(tm.TestCase):
         # confirm obj is not filtered
         tm.assert_frame_equal(grouped.grouper.groupings[0].obj, df)
         self.assertEqual(grouped.ngroups, 2)
-        expected = {Timestamp('2013-01-01 00:00:00'): np.array([1, 7]),
-                    Timestamp('2013-02-01 00:00:00'): np.array([3, 5])}
+
+        expected = {
+            Timestamp('2013-01-01 00:00:00'): np.array([1, 7], dtype=np.int64),
+            Timestamp('2013-02-01 00:00:00'): np.array([3, 5], dtype=np.int64)
+        }
+
         for k in grouped.indices:
             self.assert_numpy_array_equal(grouped.indices[k], expected[k])
 
@@ -3409,7 +3413,7 @@ class TestGroupBy(tm.TestCase):
         d['ones'] = [1, 1]
         d['label'] = ['l1', 'l2']
         tmp = d.groupby(['group']).mean()
-        res_values = np.array([[0., 1.], [0., 1.]])
+        res_values = np.array([[0, 1], [0, 1]], dtype=np.int64)
         self.assert_numpy_array_equal(tmp.columns, ['zeros', 'ones'])
         self.assert_numpy_array_equal(tmp.values, res_values)
 
@@ -5968,7 +5972,7 @@ class TestGroupBy(tm.TestCase):
                 exc.args += ('operation: %s' % op, )
                 raise
 
-    def test_cython_group_transform_algos(self):
+    def test_aa_cython_group_transform_algos(self):
         # GH 4095
         dtypes = [np.int8, np.int16, np.int32, np.int64, np.uint8, np.uint32,
                   np.uint64, np.float32, np.float64]
@@ -5983,7 +5987,8 @@ class TestGroupBy(tm.TestCase):
                 accum = np.array([[0]], dtype=dtype)
                 labels = np.array([0, 0, 0, 0], dtype=np.int64)
                 pd_op(ans, data, labels, accum)
-                self.assert_numpy_array_equal(np_op(data), ans[:, 0])
+                self.assert_numpy_array_equal(np_op(data), ans[:, 0],
+                                              check_dtype=False)
 
         # with nans
         labels = np.array([0, 0, 0, 0, 0], dtype=np.int64)

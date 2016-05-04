@@ -1335,32 +1335,38 @@ class TestStringMethods(tm.TestCase):
         values = Series(['ABCDEFG', 'BCDEFEF', 'DEFGHIJEF', 'EFGHEF', 'XXXX'])
         result = values.str.find('EF')
         tm.assert_series_equal(result, Series([4, 3, 1, 0, -1]))
-        expected = np.array([v.find('EF') for v in values.values])
+        expected = np.array([v.find('EF') for v in values.values],
+                            dtype=np.int64)
         tm.assert_numpy_array_equal(result.values, expected)
 
         result = values.str.rfind('EF')
         tm.assert_series_equal(result, Series([4, 5, 7, 4, -1]))
-        expected = np.array([v.rfind('EF') for v in values.values])
+        expected = np.array([v.rfind('EF') for v in values.values],
+                            dtype=np.int64)
         tm.assert_numpy_array_equal(result.values, expected)
 
         result = values.str.find('EF', 3)
         tm.assert_series_equal(result, Series([4, 3, 7, 4, -1]))
-        expected = np.array([v.find('EF', 3) for v in values.values])
+        expected = np.array([v.find('EF', 3) for v in values.values],
+                            dtype=np.int64)
         tm.assert_numpy_array_equal(result.values, expected)
 
         result = values.str.rfind('EF', 3)
         tm.assert_series_equal(result, Series([4, 5, 7, 4, -1]))
-        expected = np.array([v.rfind('EF', 3) for v in values.values])
+        expected = np.array([v.rfind('EF', 3) for v in values.values],
+                            dtype=np.int64)
         tm.assert_numpy_array_equal(result.values, expected)
 
         result = values.str.find('EF', 3, 6)
         tm.assert_series_equal(result, Series([4, 3, -1, 4, -1]))
-        expected = np.array([v.find('EF', 3, 6) for v in values.values])
+        expected = np.array([v.find('EF', 3, 6) for v in values.values],
+                            dtype=np.int64)
         tm.assert_numpy_array_equal(result.values, expected)
 
         result = values.str.rfind('EF', 3, 6)
         tm.assert_series_equal(result, Series([4, 3, -1, 4, -1]))
-        expected = np.array([v.rfind('EF', 3, 6) for v in values.values])
+        expected = np.array([v.rfind('EF', 3, 6) for v in values.values],
+                            dtype=np.int64)
         tm.assert_numpy_array_equal(result.values, expected)
 
         with tm.assertRaisesRegexp(TypeError,
@@ -1397,32 +1403,38 @@ class TestStringMethods(tm.TestCase):
 
             result = s.str.index('EF')
             tm.assert_numpy_array_equal(result, klass([4, 3, 1, 0]))
-            expected = np.array([v.index('EF') for v in s.values])
+            expected = np.array([v.index('EF') for v in s.values],
+                                dtype=np.int64)
             tm.assert_numpy_array_equal(result.values, expected)
 
             result = s.str.rindex('EF')
             tm.assert_numpy_array_equal(result, klass([4, 5, 7, 4]))
-            expected = np.array([v.rindex('EF') for v in s.values])
+            expected = np.array([v.rindex('EF') for v in s.values],
+                                dtype=np.int64)
             tm.assert_numpy_array_equal(result.values, expected)
 
             result = s.str.index('EF', 3)
             tm.assert_numpy_array_equal(result, klass([4, 3, 7, 4]))
-            expected = np.array([v.index('EF', 3) for v in s.values])
+            expected = np.array([v.index('EF', 3) for v in s.values],
+                                dtype=np.int64)
             tm.assert_numpy_array_equal(result.values, expected)
 
             result = s.str.rindex('EF', 3)
             tm.assert_numpy_array_equal(result, klass([4, 5, 7, 4]))
-            expected = np.array([v.rindex('EF', 3) for v in s.values])
+            expected = np.array([v.rindex('EF', 3) for v in s.values],
+                                dtype=np.int64)
             tm.assert_numpy_array_equal(result.values, expected)
 
             result = s.str.index('E', 4, 8)
             tm.assert_numpy_array_equal(result, klass([4, 5, 7, 4]))
-            expected = np.array([v.index('E', 4, 8) for v in s.values])
+            expected = np.array([v.index('E', 4, 8) for v in s.values],
+                                dtype=np.int64)
             tm.assert_numpy_array_equal(result.values, expected)
 
             result = s.str.rindex('E', 0, 5)
             tm.assert_numpy_array_equal(result, klass([4, 3, 1, 4]))
-            expected = np.array([v.rindex('E', 0, 5) for v in s.values])
+            expected = np.array([v.rindex('E', 0, 5) for v in s.values],
+                                dtype=np.int64)
             tm.assert_numpy_array_equal(result.values, expected)
 
             with tm.assertRaisesRegexp(ValueError, "substring not found"):
@@ -1611,19 +1623,22 @@ class TestStringMethods(tm.TestCase):
         result = values.str.center(5, fillchar='X')
         expected = Series(['XXaXX', 'XXbbX', 'Xcccc', 'ddddd', 'eeeeee'])
         tm.assert_series_equal(result, expected)
-        expected = np.array([v.center(5, 'X') for v in values.values])
+        expected = np.array([v.center(5, 'X') for v in values.values],
+                            dtype=np.object_)
         tm.assert_numpy_array_equal(result.values, expected)
 
         result = values.str.ljust(5, fillchar='X')
         expected = Series(['aXXXX', 'bbXXX', 'ccccX', 'ddddd', 'eeeeee'])
         tm.assert_series_equal(result, expected)
-        expected = np.array([v.ljust(5, 'X') for v in values.values])
+        expected = np.array([v.ljust(5, 'X') for v in values.values],
+                            dtype=np.object_)
         tm.assert_numpy_array_equal(result.values, expected)
 
         result = values.str.rjust(5, fillchar='X')
         expected = Series(['XXXXa', 'XXXbb', 'Xcccc', 'ddddd', 'eeeeee'])
         tm.assert_series_equal(result, expected)
-        expected = np.array([v.rjust(5, 'X') for v in values.values])
+        expected = np.array([v.rjust(5, 'X') for v in values.values],
+                            dtype=np.object_)
         tm.assert_numpy_array_equal(result.values, expected)
 
         # If fillchar is not a charatter, normal str raises TypeError
@@ -1659,13 +1674,15 @@ class TestStringMethods(tm.TestCase):
         result = values.str.zfill(5)
         expected = Series(['00001', '00022', '00aaa', '00333', '45678'])
         tm.assert_series_equal(result, expected)
-        expected = np.array([v.zfill(5) for v in values.values])
+        expected = np.array([v.zfill(5) for v in values.values],
+                            dtype=np.object_)
         tm.assert_numpy_array_equal(result.values, expected)
 
         result = values.str.zfill(3)
         expected = Series(['001', '022', 'aaa', '333', '45678'])
         tm.assert_series_equal(result, expected)
-        expected = np.array([v.zfill(3) for v in values.values])
+        expected = np.array([v.zfill(3) for v in values.values],
+                            dtype=np.object_)
         tm.assert_numpy_array_equal(result.values, expected)
 
         values = Series(['1', np.nan, 'aaa', np.nan, '45678'])

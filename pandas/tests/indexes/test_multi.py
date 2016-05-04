@@ -147,8 +147,8 @@ class TestMultiIndex(Base, tm.TestCase):
             self.assertEqual(len(actual), len(expected))
             for act, exp in zip(actual, expected):
                 act = np.asarray(act)
-                exp = np.asarray(exp)
-                assert_almost_equal(act, exp)
+                exp = np.asarray(exp, dtype=np.object_)
+                tm.assert_numpy_array_equal(act, exp)
 
         # level changing [w/o mutation]
         ind2 = self.index.set_levels(new_levels)
@@ -211,8 +211,8 @@ class TestMultiIndex(Base, tm.TestCase):
             self.assertEqual(len(actual), len(expected))
             for act, exp in zip(actual, expected):
                 act = np.asarray(act)
-                exp = np.asarray(exp)
-                assert_almost_equal(act, exp)
+                exp = np.asarray(exp, dtype=np.int8)
+                tm.assert_numpy_array_equal(act, exp)
 
         # label changing [w/o mutation]
         ind2 = self.index.set_labels(new_labels)
@@ -1699,8 +1699,8 @@ class TestMultiIndex(Base, tm.TestCase):
         jidx, lidx, ridx = midx.join(idx, how='inner', return_indexers=True)
         exp_idx = pd.MultiIndex.from_product(
             [np.arange(4), [1, 2]], names=['a', 'b'])
-        exp_lidx = np.array([1, 2, 5, 6, 9, 10, 13, 14])
-        exp_ridx = np.array([0, 1, 0, 1, 0, 1, 0, 1])
+        exp_lidx = np.array([1, 2, 5, 6, 9, 10, 13, 14], dtype=np.int_)
+        exp_ridx = np.array([0, 1, 0, 1, 0, 1, 0, 1], dtype=np.int64)
         self.assert_index_equal(jidx, exp_idx)
         self.assert_numpy_array_equal(lidx, exp_lidx)
         self.assert_numpy_array_equal(ridx, exp_ridx)
@@ -1713,7 +1713,7 @@ class TestMultiIndex(Base, tm.TestCase):
         # keep MultiIndex
         jidx, lidx, ridx = midx.join(idx, how='left', return_indexers=True)
         exp_ridx = np.array([-1, 0, 1, -1, -1, 0, 1, -1, -1, 0, 1, -1, -1, 0,
-                             1, -1])
+                             1, -1], dtype=np.int64)
         self.assert_index_equal(jidx, midx)
         self.assertIsNone(lidx)
         self.assert_numpy_array_equal(ridx, exp_ridx)
@@ -1743,11 +1743,11 @@ class TestMultiIndex(Base, tm.TestCase):
         exp_index2 = self.index.join(idx, level='second', how='left')
 
         self.assertTrue(target.equals(exp_index))
-        exp_indexer = np.array([0, 2, 4])
+        exp_indexer = np.array([0, 2, 4], dtype=np.int64)
         tm.assert_numpy_array_equal(indexer, exp_indexer)
 
         self.assertTrue(target2.equals(exp_index2))
-        exp_indexer2 = np.array([0, -1, 0, -1, 0, -1])
+        exp_indexer2 = np.array([0, -1, 0, -1, 0, -1], dtype=np.int64)
         tm.assert_numpy_array_equal(indexer2, exp_indexer2)
 
         assertRaisesRegexp(TypeError, "Fill method not supported",

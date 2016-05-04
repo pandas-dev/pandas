@@ -1430,8 +1430,8 @@ class TestDataFrameIndexing(tm.TestCase, TestData):
 
         # already aligned
         f = self.mixed_frame.copy()
-        piece = DataFrame([[1, 2], [3, 4]], index=f.index[
-                          0:2], columns=['A', 'B'])
+        piece = DataFrame([[1., 2.], [3., 4.]],
+                          index=f.index[0:2], columns=['A', 'B'])
         key = (slice(None, 2), ['A', 'B'])
         f.ix[key] = piece
         assert_almost_equal(f.ix[0:2, ['A', 'B']].values,
@@ -1439,8 +1439,9 @@ class TestDataFrameIndexing(tm.TestCase, TestData):
 
         # rows unaligned
         f = self.mixed_frame.copy()
-        piece = DataFrame([[1, 2], [3, 4], [5, 6], [7, 8]], index=list(
-            f.index[0:2]) + ['foo', 'bar'], columns=['A', 'B'])
+        piece = DataFrame([[1., 2.], [3., 4.], [5., 6.], [7., 8.]],
+                          index=list(f.index[0:2]) + ['foo', 'bar'],
+                          columns=['A', 'B'])
         key = (slice(None, 2), ['A', 'B'])
         f.ix[key] = piece
         assert_almost_equal(f.ix[0:2:, ['A', 'B']].values,

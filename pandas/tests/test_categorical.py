@@ -125,7 +125,7 @@ class TestCategorical(tm.TestCase):
 
     def test_constructor(self):
 
-        exp_arr = np.array(["a", "b", "c", "a", "b", "c"])
+        exp_arr = np.array(["a", "b", "c", "a", "b", "c"], dtype=np.object_)
         c1 = Categorical(exp_arr)
         self.assert_numpy_array_equal(c1.__array__(), exp_arr)
         c2 = Categorical(exp_arr, categories=["a", "b", "c"])
@@ -333,9 +333,9 @@ class TestCategorical(tm.TestCase):
             expected = type(dtl)(s2.dropna())
             expected.freq = None
             tm.assert_index_equal(c.categories, expected)
-            self.assert_numpy_array_equal(c.codes,
-                                          np.concatenate([np.arange(4, dtype='int8'),
-                                                      [-1]]))
+
+            exp = np.array([0, 1, 2, 3, -1], dtype=np.int8)
+            self.assert_numpy_array_equal(c.codes, exp)
 
             result = repr(c)
             self.assertTrue('NaT' in result)
@@ -512,18 +512,16 @@ class TestCategorical(tm.TestCase):
     def test_argsort(self):
         c = Categorical([5, 3, 1, 4, 2], ordered=True)
 
-        expected = np.array([2, 4, 1, 3, 0])
-        tm.assert_numpy_array_equal(c.argsort(
-            ascending=True), expected)
+        expected = np.array([2, 4, 1, 3, 0], dtype=np.int64)
+        tm.assert_numpy_array_equal(c.argsort(ascending=True), expected)
 
         expected = expected[::-1]
-        tm.assert_numpy_array_equal(c.argsort(
-            ascending=False), expected)
+        tm.assert_numpy_array_equal(c.argsort(ascending=False), expected)
 
     def test_numpy_argsort(self):
         c = Categorical([5, 3, 1, 4, 2], ordered=True)
 
-        expected = np.array([2, 4, 1, 3, 0])
+        expected = np.array([2, 4, 1, 3, 0], dtype=np.int64)
         tm.assert_numpy_array_equal(np.argsort(c), expected)
 
         msg = "the 'kind' parameter is not supported"
@@ -702,7 +700,7 @@ Categories (3, object): [ああああ, いいいいい, ううううううう]""
 
         cat1 = Categorical.from_array(idx1)
         str(cat1)
-        exp_arr = np.array([0, 0, 1, 1, 2, 2], dtype='int64')
+        exp_arr = np.array([0, 0, 1, 1, 2, 2], dtype=np.int8)
         exp_idx = PeriodIndex(['2014-01', '2014-02', '2014-03'], freq='M')
         self.assert_numpy_array_equal(cat1._codes, exp_arr)
         self.assertTrue(cat1.categories.equals(exp_idx))
@@ -711,7 +709,7 @@ Categories (3, object): [ああああ, いいいいい, ううううううう]""
                             '2014-03', '2014-01'], freq='M')
         cat2 = Categorical.from_array(idx2, ordered=True)
         str(cat2)
-        exp_arr = np.array([2, 2, 1, 0, 2, 0], dtype='int64')
+        exp_arr = np.array([2, 2, 1, 0, 2, 0], dtype=np.int8)
         exp_idx2 = PeriodIndex(['2014-01', '2014-02', '2014-03'], freq='M')
         self.assert_numpy_array_equal(cat2._codes, exp_arr)
         self.assertTrue(cat2.categories.equals(exp_idx2))
@@ -719,7 +717,7 @@ Categories (3, object): [ああああ, いいいいい, ううううううう]""
         idx3 = PeriodIndex(['2013-12', '2013-11', '2013-10', '2013-09',
                             '2013-08', '2013-07', '2013-05'], freq='M')
         cat3 = Categorical.from_array(idx3, ordered=True)
-        exp_arr = np.array([6, 5, 4, 3, 2, 1, 0], dtype='int64')
+        exp_arr = np.array([6, 5, 4, 3, 2, 1, 0], dtype=np.int8)
         exp_idx = PeriodIndex(['2013-05', '2013-07', '2013-08', '2013-09',
                                '2013-10', '2013-11', '2013-12'], freq='M')
         self.assert_numpy_array_equal(cat3._codes, exp_arr)
@@ -727,10 +725,11 @@ Categories (3, object): [ああああ, いいいいい, ううううううう]""
 
     def test_categories_assigments(self):
         s = pd.Categorical(["a", "b", "c", "a"])
-        exp = np.array([1, 2, 3, 1])
+        exp = np.array([1, 2, 3, 1], dtype=np.int64)
         s.categories = [1, 2, 3]
         self.assert_numpy_array_equal(s.__array__(), exp)
-        self.assert_numpy_array_equal(s.categories, np.array([1, 2, 3]))
+        self.assert_numpy_array_equal(s.categories,
+                                      np.array([1, 2, 3], dtype=np.int64))
 
         # lengthen
         def f():
@@ -802,8 +801,8 @@ Categories (3, object): [ああああ, いいいいい, ううううううう]""
 
     def test_set_categories(self):
         cat = Categorical(["a", "b", "c", "a"], ordered=True)
-        exp_categories = np.array(["c", "b", "a"])
-        exp_values = np.array(["a", "b", "c", "a"])
+        exp_categories = np.array(["c", "b", "a"], dtype=np.object_)
+        exp_values = np.array(["a", "b", "c", "a"], dtype=np.object_)
 
         res = cat.set_categories(["c", "b", "a"], inplace=True)
         self.assert_numpy_array_equal(cat.categories, exp_categories)
@@ -823,34 +822,43 @@ Categories (3, object): [ああああ, いいいいい, ううううううう]""
         # np.nan
         cat = Categorical(["a", "b", "c", "a"], ordered=True)
         res = cat.set_categories(["a"])
-        self.assert_numpy_array_equal(res.codes, np.array([0, -1, -1, 0]))
+        self.assert_numpy_array_equal(res.codes,
+                                      np.array([0, -1, -1, 0], dtype=np.int8))
 
         # still not all "old" in "new"
         res = cat.set_categories(["a", "b", "d"])
-        self.assert_numpy_array_equal(res.codes, np.array([0, 1, -1, 0]))
+        self.assert_numpy_array_equal(res.codes,
+                                      np.array([0, 1, -1, 0], dtype=np.int8))
         self.assert_numpy_array_equal(res.categories,
                                       np.array(["a", "b", "d"]))
 
         # all "old" included in "new"
         cat = cat.set_categories(["a", "b", "c", "d"])
-        exp_categories = np.array(["a", "b", "c", "d"])
+        exp_categories = np.array(["a", "b", "c", "d"], dtype=np.object_)
         self.assert_numpy_array_equal(cat.categories, exp_categories)
 
         # internals...
         c = Categorical([1, 2, 3, 4, 1], categories=[1, 2, 3, 4], ordered=True)
-        self.assert_numpy_array_equal(c._codes, np.array([0, 1, 2, 3, 0]))
+        self.assert_numpy_array_equal(c._codes,
+                                      np.array([0, 1, 2, 3, 0], dtype=np.int8))
         self.assert_numpy_array_equal(c.categories, np.array([1, 2, 3, 4]))
-        self.assert_numpy_array_equal(c.get_values(),
-                                      np.array([1, 2, 3, 4, 1]))
-        c = c.set_categories(
-            [4, 3, 2, 1
-             ])  # all "pointers" to '4' must be changed from 3 to 0,...
-        self.assert_numpy_array_equal(c._codes, np.array([3, 2, 1, 0, 3])
-                                      )  # positions are changed
-        self.assert_numpy_array_equal(c.categories, np.array([4, 3, 2, 1])
-                                      )  # categories are now in new order
-        self.assert_numpy_array_equal(c.get_values(), np.array([1, 2, 3, 4, 1])
-                                      )  # output is the same
+
+        exp = np.array([1, 2, 3, 4, 1], dtype=np.int64)
+        self.assert_numpy_array_equal(c.get_values(), exp)
+
+        # all "pointers" to '4' must be changed from 3 to 0,...
+        c = c.set_categories([4, 3, 2, 1])
+
+        # positions are changed
+        self.assert_numpy_array_equal(c._codes,
+                                      np.array([3, 2, 1, 0, 3], dtype=np.int8))
+
+        # categories are now in new order
+        self.assert_numpy_array_equal(c.categories, np.array([4, 3, 2, 1]))
+
+        # output is the same
+        exp = np.array([1, 2, 3, 4, 1], dtype=np.int64)
+        self.assert_numpy_array_equal(c.get_values(), exp)
         self.assertTrue(c.min(), 4)
         self.assertTrue(c.max(), 1)
 
@@ -869,18 +877,24 @@ Categories (3, object): [ああああ, いいいいい, ううううううう]""
 
         # inplace=False: the old one must not be changed
         res = cat.rename_categories([1, 2, 3])
-        self.assert_numpy_array_equal(res.__array__(), np.array([1, 2, 3, 1]))
-        self.assert_numpy_array_equal(res.categories, np.array([1, 2, 3]))
-        self.assert_numpy_array_equal(cat.__array__(),
-                                      np.array(["a", "b", "c", "a"]))
-        self.assert_numpy_array_equal(cat.categories,
-                                      np.array(["a", "b", "c"]))
+        self.assert_numpy_array_equal(res.__array__(),
+                                      np.array([1, 2, 3, 1], dtype=np.int64))
+        self.assert_numpy_array_equal(res.categories,
+                                      np.array([1, 2, 3], dtype=np.int64))
+
+        exp_cat = np.array(["a", "b", "c", "a"], dtype=np.object_)
+        self.assert_numpy_array_equal(cat.__array__(), exp_cat)
+
+        exp_cat = np.array(["a", "b", "c"], dtype=np.object_)
+        self.assert_numpy_array_equal(cat.categories, exp_cat)
         res = cat.rename_categories([1, 2, 3], inplace=True)
 
         # and now inplace
         self.assertIsNone(res)
-        self.assert_numpy_array_equal(cat.__array__(), np.array([1, 2, 3, 1]))
-        self.assert_numpy_array_equal(cat.categories, np.array([1, 2, 3]))
+        self.assert_numpy_array_equal(cat.__array__(),
+                                      np.array([1, 2, 3, 1], dtype=np.int64))
+        self.assert_numpy_array_equal(cat.categories,
+                                      np.array([1, 2, 3], dtype=np.int64))
 
         # lengthen
         def f():
@@ -1042,10 +1056,12 @@ Categories (3, object): [ああああ, いいいいい, ううううううう]""
         # Nans are represented as -1 in codes
         c = Categorical(["a", "b", np.nan, "a"])
         self.assert_numpy_array_equal(c.categories, np.array(["a", "b"]))
-        self.assert_numpy_array_equal(c._codes, np.array([0, 1, -1, 0]))
+        self.assert_numpy_array_equal(c._codes,
+                                      np.array([0, 1, -1, 0], dtype=np.int8))
         c[1] = np.nan
         self.assert_numpy_array_equal(c.categories, np.array(["a", "b"]))
-        self.assert_numpy_array_equal(c._codes, np.array([0, -1, -1, 0]))
+        self.assert_numpy_array_equal(c._codes,
+                                      np.array([0, -1, -1, 0], dtype=np.int8))
 
         # If categories have nan included, the code should point to that
         # instead
@@ -1055,12 +1071,14 @@ Categories (3, object): [ああああ, いいいいい, ううううううう]""
         self.assert_numpy_array_equal(c.categories,
                                       np.array(["a", "b", np.nan],
                                                dtype=np.object_))
-        self.assert_numpy_array_equal(c._codes, np.array([0, 1, 2, 0]))
+        self.assert_numpy_array_equal(c._codes,
+                                      np.array([0, 1, 2, 0], dtype=np.int8))
         c[1] = np.nan
         self.assert_numpy_array_equal(c.categories,
                                       np.array(["a", "b", np.nan],
                                                dtype=np.object_))
-        self.assert_numpy_array_equal(c._codes, np.array([0, 2, 2, 0]))
+        self.assert_numpy_array_equal(c._codes,
+                                      np.array([0, 2, 2, 0], dtype=np.int8))
 
         # Changing categories should also make the replaced category np.nan
         c = Categorical(["a", "b", "c", "a"])
@@ -1070,33 +1088,35 @@ Categories (3, object): [ああああ, いいいいい, ううううううう]""
         self.assert_numpy_array_equal(c.categories,
                                       np.array(["a", "b", np.nan],
                                                dtype=np.object_))
-        self.assert_numpy_array_equal(c._codes, np.array([0, 1, 2, 0]))
+        self.assert_numpy_array_equal(c._codes,
+                                      np.array([0, 1, 2, 0], dtype=np.int8))
 
         # Adding nan to categories should make assigned nan point to the
         # category!
         c = Categorical(["a", "b", np.nan, "a"])
         self.assert_numpy_array_equal(c.categories, np.array(["a", "b"]))
-        self.assert_numpy_array_equal(c._codes, np.array([0, 1, -1, 0]))
+        self.assert_numpy_array_equal(c._codes,
+                                      np.array([0, 1, -1, 0], dtype=np.int8))
         with tm.assert_produces_warning(FutureWarning):
             c.set_categories(["a", "b", np.nan], rename=True, inplace=True)
 
         self.assert_numpy_array_equal(c.categories,
                                       np.array(["a", "b", np.nan],
                                                dtype=np.object_))
-        self.assert_numpy_array_equal(c._codes, np.array([0, 1, -1, 0]))
+        self.assert_numpy_array_equal(c._codes,
+                                      np.array([0, 1, -1, 0], dtype=np.int8))
         c[1] = np.nan
         self.assert_numpy_array_equal(c.categories,
                                       np.array(["a", "b", np.nan],
                                                dtype=np.object_))
-        self.assert_numpy_array_equal(c._codes, np.array([0, 2, -1, 0]))
+        self.assert_numpy_array_equal(c._codes,
+                                      np.array([0, 2, -1, 0], dtype=np.int8))
 
         # Remove null categories (GH 10156)
-        cases = [
-            ([1.0, 2.0, np.nan], [1.0, 2.0]),
-            (['a', 'b', None], ['a', 'b']),
-            ([pd.Timestamp('2012-05-01'), pd.NaT],
-             [pd.Timestamp('2012-05-01')])
-        ]
+        cases = [([1.0, 2.0, np.nan], [1.0, 2.0]),
+                 (['a', 'b', None], ['a', 'b']),
+                 ([pd.Timestamp('2012-05-01'), pd.NaT],
+                  [pd.Timestamp('2012-05-01')])]
 
         null_values = [np.nan, None, pd.NaT]
 
@@ -1407,35 +1427,35 @@ Categories (3, object): [ああああ, いいいいい, ううううううう]""
         with tm.assert_produces_warning(FutureWarning):
             cat.set_categories([1, 2, 3, np.nan], rename=True, inplace=True)
         cat[1] = np.nan
-        exp = np.array([0, 3, 2, -1])
+        exp = np.array([0, 3, 2, -1], dtype=np.int8)
         self.assert_numpy_array_equal(cat.codes, exp)
 
         cat = pd.Categorical([1, 2, 3, np.nan], categories=[1, 2, 3])
         with tm.assert_produces_warning(FutureWarning):
             cat.set_categories([1, 2, 3, np.nan], rename=True, inplace=True)
         cat[1:3] = np.nan
-        exp = np.array([0, 3, 3, -1])
+        exp = np.array([0, 3, 3, -1], dtype=np.int8)
         self.assert_numpy_array_equal(cat.codes, exp)
 
         cat = pd.Categorical([1, 2, 3, np.nan], categories=[1, 2, 3])
         with tm.assert_produces_warning(FutureWarning):
             cat.set_categories([1, 2, 3, np.nan], rename=True, inplace=True)
         cat[1:3] = [np.nan, 1]
-        exp = np.array([0, 3, 0, -1])
+        exp = np.array([0, 3, 0, -1], dtype=np.int8)
         self.assert_numpy_array_equal(cat.codes, exp)
 
         cat = pd.Categorical([1, 2, 3, np.nan], categories=[1, 2, 3])
         with tm.assert_produces_warning(FutureWarning):
             cat.set_categories([1, 2, 3, np.nan], rename=True, inplace=True)
         cat[1:3] = [np.nan, np.nan]
-        exp = np.array([0, 3, 3, -1])
+        exp = np.array([0, 3, 3, -1], dtype=np.int8)
         self.assert_numpy_array_equal(cat.codes, exp)
 
         cat = pd.Categorical([1, 2, np.nan, 3], categories=[1, 2, 3])
         with tm.assert_produces_warning(FutureWarning):
             cat.set_categories([1, 2, 3, np.nan], rename=True, inplace=True)
         cat[pd.isnull(cat)] = np.nan
-        exp = np.array([0, 1, 3, 2])
+        exp = np.array([0, 1, 3, 2], dtype=np.int8)
         self.assert_numpy_array_equal(cat.codes, exp)
 
     def test_shift(self):
@@ -1487,7 +1507,7 @@ Categories (3, object): [ああああ, いいいいい, ううううううう]""
         # Single item array
         res = c1.searchsorted(['bread'])
         chk = s1.searchsorted(['bread'])
-        exp = np.array([1])
+        exp = np.array([1], dtype=np.int64)
         self.assert_numpy_array_equal(res, exp)
         self.assert_numpy_array_equal(res, chk)
 
@@ -1496,21 +1516,21 @@ Categories (3, object): [ああああ, いいいいい, ううううううう]""
         # np.array.searchsorted()
         res = c1.searchsorted('bread')
         chk = s1.searchsorted('bread')
-        exp = np.array([1])
+        exp = np.array([1], dtype=np.int64)
         self.assert_numpy_array_equal(res, exp)
         self.assert_numpy_array_equal(res, chk)
 
         # Searching for a value that is not present in the Categorical
         res = c1.searchsorted(['bread', 'eggs'])
         chk = s1.searchsorted(['bread', 'eggs'])
-        exp = np.array([1, 4])
+        exp = np.array([1, 4], dtype=np.int64)
         self.assert_numpy_array_equal(res, exp)
         self.assert_numpy_array_equal(res, chk)
 
         # Searching for a value that is not present, to the right
         res = c1.searchsorted(['bread', 'eggs'], side='right')
         chk = s1.searchsorted(['bread', 'eggs'], side='right')
-        exp = np.array([3, 4])  # eggs before milk
+        exp = np.array([3, 4], dtype=np.int64)  # eggs before milk
         self.assert_numpy_array_equal(res, exp)
         self.assert_numpy_array_equal(res, chk)
 
@@ -1519,8 +1539,8 @@ Categories (3, object): [ああああ, いいいいい, ううううううう]""
                               sorter=[0, 1, 2, 3, 5, 4])
         chk = s2.searchsorted(['bread', 'eggs'], side='right',
                               sorter=[0, 1, 2, 3, 5, 4])
-        exp = np.array([3, 5]
-                       )  # eggs after donuts, after switching milk and donuts
+        # eggs after donuts, after switching milk and donuts
+        exp = np.array([3, 5], dtype=np.int64)
         self.assert_numpy_array_equal(res, exp)
         self.assert_numpy_array_equal(res, chk)
 
@@ -1596,7 +1616,7 @@ Categories (3, object): [ああああ, いいいいい, ううううううう]""
         tm.assert_categorical_equal(result, exp)
 
         result = c.map(lambda x: 1)
-        tm.assert_numpy_array_equal(result, np.array([1] * 5))
+        tm.assert_numpy_array_equal(result, np.array([1] * 5, dtype=np.int64))
 
 
 class TestCategoricalAsBlock(tm.TestCase):
@@ -1875,14 +1895,14 @@ class TestCategoricalAsBlock(tm.TestCase):
         s = pd.Series(cat, copy=True)
         self.assertFalse(s.cat is cat)
         s.cat.categories = [1, 2, 3]
-        exp_s = np.array([1, 2, 3, 1])
-        exp_cat = np.array(["a", "b", "c", "a"])
+        exp_s = np.array([1, 2, 3, 1], dtype=np.int64)
+        exp_cat = np.array(["a", "b", "c", "a"], dtype=np.object_)
         self.assert_numpy_array_equal(s.__array__(), exp_s)
         self.assert_numpy_array_equal(cat.__array__(), exp_cat)
 
         # setting
         s[0] = 2
-        exp_s2 = np.array([2, 2, 3, 1])
+        exp_s2 = np.array([2, 2, 3, 1], dtype=np.int64)
         self.assert_numpy_array_equal(s.__array__(), exp_s2)
         self.assert_numpy_array_equal(cat.__array__(), exp_cat)
 
@@ -1892,12 +1912,12 @@ class TestCategoricalAsBlock(tm.TestCase):
         s = pd.Series(cat)
         self.assertTrue(s.values is cat)
         s.cat.categories = [1, 2, 3]
-        exp_s = np.array([1, 2, 3, 1])
+        exp_s = np.array([1, 2, 3, 1], dtype=np.int64)
         self.assert_numpy_array_equal(s.__array__(), exp_s)
         self.assert_numpy_array_equal(cat.__array__(), exp_s)
 
         s[0] = 2
-        exp_s2 = np.array([2, 2, 3, 1])
+        exp_s2 = np.array([2, 2, 3, 1], dtype=np.int64)
         self.assert_numpy_array_equal(s.__array__(), exp_s2)
         self.assert_numpy_array_equal(cat.__array__(), exp_s2)
 
@@ -1905,25 +1925,31 @@ class TestCategoricalAsBlock(tm.TestCase):
 
         # Nans are represented as -1 in labels
         s = Series(Categorical(["a", "b", np.nan, "a"]))
-        self.assert_numpy_array_equal(s.cat.categories, np.array(["a", "b"]))
-        self.assert_numpy_array_equal(s.values.codes, np.array([0, 1, -1, 0]))
+        self.assert_numpy_array_equal(s.cat.categories,
+                                      np.array(["a", "b"], dtype=np.object_))
+        self.assert_numpy_array_equal(s.values.codes,
+                                      np.array([0, 1, -1, 0], dtype=np.int8))
 
         # If categories have nan included, the label should point to that
         # instead
         with tm.assert_produces_warning(FutureWarning):
-            s2 = Series(Categorical(
-                ["a", "b", np.nan, "a"], categories=["a", "b", np.nan]))
-        self.assert_numpy_array_equal(s2.cat.categories, np.array(
-            ["a", "b", np.nan], dtype=np.object_))
-        self.assert_numpy_array_equal(s2.values.codes, np.array([0, 1, 2, 0]))
+            s2 = Series(Categorical(["a", "b", np.nan, "a"],
+                                    categories=["a", "b", np.nan]))
+
+        exp_cat = np.array(["a", "b", np.nan], dtype=np.object_)
+        self.assert_numpy_array_equal(s2.cat.categories, exp_cat)
+        self.assert_numpy_array_equal(s2.values.codes,
+                                      np.array([0, 1, 2, 0], dtype=np.int8))
 
         # Changing categories should also make the replaced category np.nan
         s3 = Series(Categorical(["a", "b", "c", "a"]))
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             s3.cat.categories = ["a", "b", np.nan]
-        self.assert_numpy_array_equal(s3.cat.categories, np.array(
-            ["a", "b", np.nan], dtype=np.object_))
-        self.assert_numpy_array_equal(s3.values.codes, np.array([0, 1, 2, 0]))
+
+        exp_cat = np.array(["a", "b", np.nan], dtype=np.object_)
+        self.assert_numpy_array_equal(s3.cat.categories, exp_cat)
+        self.assert_numpy_array_equal(s3.values.codes,
+                                      np.array([0, 1, 2, 0], dtype=np.int8))
 
     def test_cat_accessor(self):
         s = Series(Categorical(["a", "b", np.nan, "a"]))
@@ -1997,7 +2023,7 @@ class TestCategoricalAsBlock(tm.TestCase):
         # reorder
         s = Series(Categorical(["a", "b", "c", "a"], ordered=True))
         exp_categories = np.array(["c", "b", "a"])
-        exp_values = np.array(["a", "b", "c", "a"])
+        exp_values = np.array(["a", "b", "c", "a"], dtype=np.object_)
         s = s.cat.set_categories(["c", "b", "a"])
         self.assert_numpy_array_equal(s.cat.categories, exp_categories)
         self.assert_numpy_array_equal(s.values.__array__(), exp_values)
@@ -2006,8 +2032,8 @@ class TestCategoricalAsBlock(tm.TestCase):
         # remove unused categories
         s = Series(Categorical(["a", "b", "b", "a"], categories=["a", "b", "c"
                                                                  ]))
-        exp_categories = np.array(["a", "b"])
-        exp_values = np.array(["a", "b", "b", "a"])
+        exp_categories = np.array(["a", "b"], dtype=object)
+        exp_values = np.array(["a", "b", "b", "a"], dtype=np.object_)
         s = s.cat.remove_unused_categories()
         self.assert_numpy_array_equal(s.cat.categories, exp_categories)
         self.assert_numpy_array_equal(s.values.__array__(), exp_values)
@@ -3078,17 +3104,17 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
 
         cat = Series(Categorical(["a", "c", "b", "d"], ordered=True))
         res = cat.sort_values()
-        exp = np.array(["a", "b", "c", "d"])
+        exp = np.array(["a", "b", "c", "d"], dtype=np.object_)
         self.assert_numpy_array_equal(res.__array__(), exp)
 
         cat = Series(Categorical(["a", "c", "b", "d"], categories=[
                      "a", "b", "c", "d"], ordered=True))
         res = cat.sort_values()
-        exp = np.array(["a", "b", "c", "d"])
+        exp = np.array(["a", "b", "c", "d"], dtype=np.object_)
         self.assert_numpy_array_equal(res.__array__(), exp)
 
         res = cat.sort_values(ascending=False)
-        exp = np.array(["d", "c", "b", "a"])
+        exp = np.array(["d", "c", "b", "a"], dtype=np.object_)
         self.assert_numpy_array_equal(res.__array__(), exp)
 
         raw_cat1 = Categorical(["a", "b", "c", "d"],
@@ -3103,7 +3129,7 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
 
         # Cats must be sorted in a dataframe
         res = df.sort_values(by=["string"], ascending=False)
-        exp = np.array(["d", "c", "b", "a"])
+        exp = np.array(["d", "c", "b", "a"], dtype=np.object_)
         self.assert_numpy_array_equal(res["sort"].values.__array__(), exp)
         self.assertEqual(res["sort"].dtype, "category")
 
@@ -3136,7 +3162,7 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
     def test_slicing(self):
         cat = Series(Categorical([1, 2, 3, 4]))
         reversed = cat[::-1]
-        exp = np.array([4, 3, 2, 1])
+        exp = np.array([4, 3, 2, 1], dtype=np.int64)
         self.assert_numpy_array_equal(reversed.__array__(), exp)
 
         df = DataFrame({'value': (np.arange(100) + 1).astype('int64')})

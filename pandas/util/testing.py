@@ -682,21 +682,8 @@ def assert_index_equal(left, right, exact='equiv', check_names=True,
 
     def _check_types(l, r, obj='Index'):
         if exact:
-
-            if exact == 'equiv':
-                if type(l) != type(r):
-                    # allow equivalence of Int64Index/RangeIndex
-                    types = set([type(l).__name__, type(r).__name__])
-                    if len(types - set(['Int64Index', 'RangeIndex'])):
-                        msg = '{0} classes are not equivalent'.format(obj)
-                        raise_assert_detail(obj, msg, l, r)
-            else:
-                if type(l) != type(r):
-                    msg = '{0} classes are different'.format(obj)
-                    raise_assert_detail(obj, msg, l, r)
-
+            assert_class_equal(left, right, exact=exact, obj=obj)
             assert_attr_equal('dtype', l, r, obj=obj)
-
             # allow string-like to have different inferred_types
             if l.inferred_type in ('string', 'unicode'):
                 assertIn(r.inferred_type, ('string', 'unicode'))
@@ -758,11 +745,40 @@ def assert_index_equal(left, right, exact='equiv', check_names=True,
     else:
         _testing.assert_almost_equal(left.values, right.values,
                                      check_less_precise=check_less_precise,
+                                     check_dtype=exact,
                                      obj=obj, lobj=left, robj=right)
 
     # metadata comparison
     if check_names:
         assert_attr_equal('names', left, right, obj=obj)
+
+
+def assert_class_equal(left, right, exact=True, obj='Input'):
+    """checks classes are equal."""
+
+    def repr_class(x):
+        if isinstance(x, Index):
+            # return Index as it is to include values in the error message
+            return x
+
+        try:
+            return x.__class__.__name__
+        except AttributeError:
+            return repr(type(x))
+
+    if exact == 'equiv':
+        if type(left) != type(right):
+            # allow equivalence of Int64Index/RangeIndex
+            types = set([type(left).__name__, type(right).__name__])
+            if len(types - set(['Int64Index', 'RangeIndex'])):
+                msg = '{0} classes are not equivalent'.format(obj)
+                raise_assert_detail(obj, msg, repr_class(left),
+                                    repr_class(right))
+    elif exact:
+        if type(left) != type(right):
+            msg = '{0} classes are different'.format(obj)
+            raise_assert_detail(obj, msg, repr_class(left),
+                                repr_class(right))
 
 
 def assert_attr_equal(attr, left, right, obj='Attributes'):
@@ -915,54 +931,65 @@ def raise_assert_detail(obj, message, left, right):
     raise AssertionError(msg)
 
 
-def assert_numpy_array_equal(left, right,
-                             strict_nan=False, err_msg=None,
+def assert_numpy_array_equal(left, right, strict_nan=False,
+                             check_dtype=True, err_msg=None,
                              obj='numpy array'):
-    """Checks that 'np_array' is equivalent to 'assert_equal'.
+    """ Checks that 'np.ndarray' is equivalent
 
-    This is similar to ``numpy.testing.assert_array_equal``, but can
-    check equality including ``np.nan``. Two numpy arrays are regarded as
-    equivalent if the arrays have equal non-NaN elements,
-    and `np.nan` in corresponding locations.
+    Parameters
+    ----------
+    left : np.ndarray or iterable
+    right : np.ndarray or iterable
+    strict_nan : bool, default False
+        If True, consider NaN and None to be different.
+    check_dtype: bool, default True
+        check dtype if both a and b are np.ndarray
+    err_msg : str, default None
+        If provided, used as assertion message
+    obj : str, default 'numpy array'
+        Specify object name being compared, internally used to show appropriate
+        assertion message
     """
 
+    def _raise(left, right, err_msg):
+        if err_msg is None:
+            # show detailed error
+            if lib.isscalar(left) and lib.isscalar(right):
+                # show scalar comparison error
+                assert_equal(left, right)
+            elif is_list_like(left) and is_list_like(right):
+                # some test cases pass list
+                left = np.asarray(left)
+                right = np.array(right)
+
+                if left.shape != right.shape:
+                    raise_assert_detail(obj, '{0} shapes are different'
+                                        .format(obj), left.shape, right.shape)
+
+                diff = 0
+                for l, r in zip(left, right):
+                    # count up differences
+                    if not array_equivalent(l, r, strict_nan=strict_nan):
+                        diff += 1
+
+                diff = diff * 100.0 / left.size
+                msg = '{0} values are different ({1} %)'\
+                    .format(obj, np.round(diff, 5))
+                raise_assert_detail(obj, msg, left, right)
+            else:
+                assert_class_equal(left, right, obj=obj)
+
+        raise AssertionError(err_msg)
+
     # compare shape and values
-    if array_equivalent(left, right, strict_nan=strict_nan):
-        return True
+    if not array_equivalent(left, right, strict_nan=strict_nan):
+        _raise(left, right, err_msg)
 
-    if err_msg is None:
-        # show detailed error
+    if check_dtype:
+        if isinstance(left, np.ndarray) and isinstance(right, np.ndarray):
+            assert_attr_equal('dtype', left, right, obj=obj)
 
-        if lib.isscalar(left) and lib.isscalar(right):
-            # show scalar comparison error
-            assert_equal(left, right)
-        elif is_list_like(left) and is_list_like(right):
-            # some test cases pass list
-            left = np.asarray(left)
-            right = np.array(right)
-
-            if left.shape != right.shape:
-                raise_assert_detail(obj, '{0} shapes are different'
-                                    .format(obj), left.shape, right.shape)
-
-            diff = 0
-            for l, r in zip(left, right):
-                # count up differences
-                if not array_equivalent(l, r, strict_nan=strict_nan):
-                    diff += 1
-
-            diff = diff * 100.0 / left.size
-            msg = '{0} values are different ({1} %)'\
-                .format(obj, np.round(diff, 5))
-            raise_assert_detail(obj, msg, left, right)
-        elif is_list_like(left):
-            msg = "First object is iterable, second isn't"
-            raise_assert_detail(obj, msg, left, right)
-        else:
-            msg = "Second object is iterable, first isn't"
-            raise_assert_detail(obj, msg, left, right)
-
-    raise AssertionError(err_msg)
+    return True
 
 
 # This could be refactored to use the NDFrame.equals method
@@ -1007,7 +1034,10 @@ def assert_series_equal(left, right, check_dtype=True,
     assertIsInstance(right, Series, '[Series] ')
 
     if check_series_type:
+        # ToDo: There are some tests using rhs is sparse
+        # lhs is dense. Should use assert_class_equal in future
         assertIsInstance(left, type(right))
+        # assert_class_equal(left, right, obj=obj)
 
     # length comparison
     if len(left) != len(right):
@@ -1027,7 +1057,8 @@ def assert_series_equal(left, right, check_dtype=True,
 
     if check_exact:
         assert_numpy_array_equal(left.get_values(), right.get_values(),
-                                 obj='{0}'.format(obj))
+                                 obj='{0}'.format(obj),
+                                 check_dtype=check_dtype)
     elif check_datetimelike_compat:
         # we want to check only if we have compat dtypes
         # e.g. integer and M|m are NOT compat, but we can simply check
@@ -1043,10 +1074,13 @@ def assert_series_equal(left, right, check_dtype=True,
                 msg = '[datetimelike_compat=True] {0} is not equal to {1}.'
                 raise AssertionError(msg.format(left.values, right.values))
         else:
-            assert_numpy_array_equal(left.values, right.values)
+            assert_numpy_array_equal(left.values, right.values,
+                                     check_dtype=check_dtype)
     else:
         _testing.assert_almost_equal(left.get_values(), right.get_values(),
-                                     check_less_precise, obj='{0}'.format(obj))
+                                     check_less_precise,
+                                     check_dtype=check_dtype,
+                                     obj='{0}'.format(obj))
 
     # metadata comparison
     if check_names:
@@ -1106,7 +1140,10 @@ def assert_frame_equal(left, right, check_dtype=True,
     assertIsInstance(right, DataFrame, '[DataFrame] ')
 
     if check_frame_type:
+        # ToDo: There are some tests using rhs is SparseDataFrame
+        # lhs is DataFrame. Should use assert_class_equal in future
         assertIsInstance(left, type(right))
+        # assert_class_equal(left, right, obj=obj)
 
     if check_like:
         left, right = left.reindex_like(right), right
@@ -1172,7 +1209,7 @@ def assert_panelnd_equal(left, right,
                          assert_func=assert_frame_equal,
                          check_names=False):
     if check_panel_type:
-        assertIsInstance(left, type(right))
+        assert_class_equal(left, right, obj=obj)
 
     for axis in ['items', 'major_axis', 'minor_axis']:
         left_ind = getattr(left, axis)
@@ -1204,7 +1241,7 @@ def assert_sp_array_equal(left, right):
     assertIsInstance(left, pd.SparseArray, '[SparseArray]')
     assertIsInstance(right, pd.SparseArray, '[SparseArray]')
 
-    assert_almost_equal(left.sp_values, right.sp_values)
+    assert_numpy_array_equal(left.sp_values, right.sp_values)
 
     # SparseIndex comparison
     assertIsInstance(left.sp_index, pd._sparse.SparseIndex, '[SparseIndex]')

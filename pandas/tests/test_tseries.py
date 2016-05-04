@@ -104,8 +104,8 @@ def test_inner_join_indexer():
     index_exp = np.array([3, 5], dtype=np.int64)
     assert_almost_equal(index, index_exp)
 
-    aexp = np.array([2, 4])
-    bexp = np.array([1, 2])
+    aexp = np.array([2, 4], dtype=np.int64)
+    bexp = np.array([1, 2], dtype=np.int64)
     assert_almost_equal(ares, aexp)
     assert_almost_equal(bres, bexp)
 
@@ -128,7 +128,7 @@ def test_outer_join_indexer():
     assert_almost_equal(index, index_exp)
 
     aexp = np.array([-1, 0, 1, 2, 3, 4, -1, -1], dtype=np.int64)
-    bexp = np.array([0, -1, -1, 1, -1, 2, 3, 4])
+    bexp = np.array([0, -1, -1, 1, -1, 2, 3, 4], dtype=np.int64)
     assert_almost_equal(ares, aexp)
     assert_almost_equal(bres, bexp)
 

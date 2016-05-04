@@ -890,8 +890,10 @@ class TestIndexing(object):
                         len(ax) - len(slobj), dtype=bool)])
             sliced = mgr.get_slice(slobj, axis=axis)
             mat_slobj = (slice(None), ) * axis + (slobj, )
-            assert_almost_equal(mat[mat_slobj], sliced.as_matrix())
-            assert_almost_equal(mgr.axes[axis][slobj], sliced.axes[axis])
+            tm.assert_numpy_array_equal(mat[mat_slobj], sliced.as_matrix(),
+                                        check_dtype=False)
+            tm.assert_numpy_array_equal(mgr.axes[axis][slobj],
+                                        sliced.axes[axis])
 
         for mgr in self.MANAGERS:
             for ax in range(mgr.ndim):
@@ -927,8 +929,10 @@ class TestIndexing(object):
         def assert_take_ok(mgr, axis, indexer):
             mat = mgr.as_matrix()
             taken = mgr.take(indexer, axis)
-            assert_almost_equal(np.take(mat, indexer, axis), taken.as_matrix())
-            assert_almost_equal(mgr.axes[axis].take(indexer), taken.axes[axis])
+            tm.assert_numpy_array_equal(np.take(mat, indexer, axis),
+                                        taken.as_matrix(), check_dtype=False)
+            tm.assert_numpy_array_equal(mgr.axes[axis].take(indexer),
+                                        taken.axes[axis])
 
         for mgr in self.MANAGERS:
             for ax in range(mgr.ndim):
@@ -950,7 +954,8 @@ class TestIndexing(object):
                                          fill_value=fill_value)
             tm.assert_numpy_array_equal(algos.take_nd(mat, indexer, axis,
                                                       fill_value=fill_value),
-                                        reindexed.as_matrix())
+                                        reindexed.as_matrix(),
+                                        check_dtype=False)
             tm.assert_index_equal(reindexed.axes[axis], new_labels)
 
         for mgr in self.MANAGERS:
@@ -985,7 +990,9 @@ class TestIndexing(object):
                                           fill_value=fill_value)
             reindexed = mgr.reindex_indexer(new_labels, indexer, axis,
                                             fill_value=fill_value)
-            tm.assert_numpy_array_equal(reindexed_mat, reindexed.as_matrix())
+            tm.assert_numpy_array_equal(reindexed_mat,
+                                        reindexed.as_matrix(),
+                                        check_dtype=False)
             tm.assert_index_equal(reindexed.axes[axis], new_labels)
 
         for mgr in self.MANAGERS:
@@ -1114,7 +1121,7 @@ class TestBlockPlacement(tm.TestCase):
         def assert_as_array_equals(slc, asarray):
             tm.assert_numpy_array_equal(
                 BlockPlacement(slc).as_array,
-                np.asarray(asarray))
+                np.asarray(asarray, dtype=np.int64))
 
         assert_as_array_equals(slice(0, 3), [0, 1, 2])
         assert_as_array_equals(slice(0, 0), [])

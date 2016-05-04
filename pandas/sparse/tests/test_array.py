@@ -272,7 +272,8 @@ class TestSparseArray(tm.TestCase):
         self.assertEqual(arr.dtype, bool)
         tm.assert_numpy_array_equal(arr.sp_values, np.array([True, True]))
         tm.assert_numpy_array_equal(arr.sp_values, np.asarray(arr))
-        tm.assert_numpy_array_equal(arr.sp_index.indices, np.array([2, 3]))
+        tm.assert_numpy_array_equal(arr.sp_index.indices,
+                                    np.array([2, 3], np.int32))
 
         for dense in [arr.to_dense(), arr.values]:
             self.assertEqual(dense.dtype, bool)
@@ -297,9 +298,11 @@ class TestSparseArray(tm.TestCase):
         arr = SparseArray(data, dtype=np.float32)
 
         self.assertEqual(arr.dtype, np.float32)
-        tm.assert_numpy_array_equal(arr.sp_values, np.array([1, 3]))
+        tm.assert_numpy_array_equal(arr.sp_values,
+                                    np.array([1, 3], dtype=np.float32))
         tm.assert_numpy_array_equal(arr.sp_values, np.asarray(arr))
-        tm.assert_numpy_array_equal(arr.sp_index.indices, np.array([0, 2]))
+        tm.assert_numpy_array_equal(arr.sp_index.indices,
+                                    np.array([0, 2], dtype=np.int32))
 
         for dense in [arr.to_dense(), arr.values]:
             self.assertEqual(dense.dtype, np.float32)
@@ -516,7 +519,7 @@ class TestSparseArray(tm.TestCase):
         # filling with existing value doesn't replace existing value with
         # fill_value, i.e. existing 3 remains in sp_values
         res = s.fillna(3)
-        exp = np.array([1, 3, 3, 3, 3])
+        exp = np.array([1, 3, 3, 3, 3], dtype=np.float64)
         tm.assert_numpy_array_equal(res.to_dense(), exp)
 
         s = SparseArray([1, np.nan, np.nan, 3, np.nan], fill_value=0)
