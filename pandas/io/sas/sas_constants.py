@@ -145,3 +145,17 @@ subheader_signature_to_index = {
     b"\xFF\xFF\xFF\xFE": index.columnListIndex,
     b"\xFE\xFF\xFF\xFF\xFF\xFF\xFF\xFF": index.columnListIndex,
     b"\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFE": index.columnListIndex}
+
+
+# List of frequently used SAS date and datetime formats
+# http://support.sas.com/documentation/cdl/en/etsug/60372/HTML/default/viewer.htm#etsug_intervals_sect009.htm
+sas_date_formats = ("DATE", "DAY", "DDMMYY", "DOWNAME", "JULDAY", "JULIAN",
+                    "MMDDYY", "MMYY", "MMYYC", "MMYYD", "MMYYP", "MMYYS",
+                    "MMYYN", "MONNAME", "MONTH", "MONYY", "QTR", "QTRR",
+                    "NENGO", "WEEKDATE", "WEEKDATX", "WEEKDAY", "WEEKV",
+                    "WORDDATE", "WORDDATX", "YEAR", "YYMM", "YYMMC", "YYMMD",
+                    "YYMMP", "YYMMS", "YYMMN", "YYMON", "YYMMDD", "YYQ",
+                    "YYQC", "YYQD", "YYQP", "YYQS", "YYQN", "YYQR", "YYQRC",
+                    "YYQRD", "YYQRP", "YYQRS", "YYQRN")
+
+sas_datetime_formats = "DATETIME", "DTWKDATX"
