@@ -320,8 +320,6 @@ class TestSeriesDatetimeValues(TestData, tm.TestCase):
         expected = np.array(['2015/03/01', '2015/03/02', '2015/03/03',
                              '2015/03/04', '2015/03/05'], dtype=np.object_)
         # dtype may be S10 or U10 depending on python version
-        print(result)
-        print(expected)
         self.assert_numpy_array_equal(result, expected, check_dtype=False)
 
         period_index = period_range('20150301', periods=5)
