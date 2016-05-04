@@ -68,14 +68,36 @@ class TestPickle():
                 try:
                     expected = self.data[typ][dt]
                 except (KeyError):
-                    continue
+                    if version in ('0.10.1', '0.11.0') and dt == 'reg':
+                        break
+                    else:
+                        raise
 
                 # use a specific comparator
                 # if available
-                comparator = getattr(self, "compare_{typ}_{dt}".format(
-                    typ=typ, dt=dt), self.compare_element)
+                comparator = "compare_{typ}_{dt}".format(typ=typ, dt=dt)
+                comparator = getattr(self, comparator, self.compare_element)
                 comparator(result, expected, typ, version)
         return data
+
+    def compare_series_ts(self, result, expected, typ, version):
+        # GH 7748
+        tm.assert_series_equal(result, expected)
+        tm.assert_equal(result.index.freq, expected.index.freq)
+        tm.assert_equal(result.index.freq.normalize, False)
+        tm.assert_numpy_array_equal(result > 0, expected > 0)
+
+        # GH 9291
+        freq = result.index.freq
+        tm.assert_equal(freq + Day(1), Day(2))
+
+        res = freq + pandas.Timedelta(hours=1)
+        tm.assert_equal(isinstance(res, pandas.Timedelta), True)
+        tm.assert_equal(res, pandas.Timedelta(days=1, hours=1))
+
+        res = freq + pandas.Timedelta(nanoseconds=1)
+        tm.assert_equal(isinstance(res, pandas.Timedelta), True)
+        tm.assert_equal(res, pandas.Timedelta(days=1, nanoseconds=1))
 
     def compare_series_dt_tz(self, result, expected, typ, version):
         # 8260
@@ -95,6 +117,13 @@ class TestPickle():
         else:
             tm.assert_frame_equal(result, expected)
 
+    def compare_index_period(self, result, expected, typ, version):
+        tm.assert_index_equal(result, expected)
+        tm.assertIsInstance(result.freq, MonthEnd)
+        tm.assert_equal(result.freq, MonthEnd())
+        tm.assert_equal(result.freqstr, 'M')
+        tm.assert_index_equal(result.shift(2), expected.shift(2))
+
     def read_pickles(self, version):
         if not is_platform_little_endian():
             raise nose.SkipTest("known failure on non-little endian")
@@ -107,16 +136,6 @@ class TestPickle():
 
             if data is None:
                 continue
-
-            if 'series' in data:
-                if 'ts' in data['series']:
-                    self._validate_timeseries(
-                        data['series']['ts'], self.data['series']['ts'])
-                    self._validate_frequency(data['series']['ts'])
-            if 'index' in data:
-                if 'period' in data['index']:
-                    self._validate_periodindex(data['index']['period'],
-                                               self.data['index']['period'])
             n += 1
         assert n > 0, 'Pickle files are not tested'
 
@@ -180,34 +199,6 @@ class TestPickle():
 
                         result = python_unpickler(path)
                         self.compare_element(result, expected, typ)
-
-    def _validate_timeseries(self, pickled, current):
-        # GH 7748
-        tm.assert_series_equal(pickled, current)
-        tm.assert_equal(pickled.index.freq, current.index.freq)
-        tm.assert_equal(pickled.index.freq.normalize, False)
-        tm.assert_numpy_array_equal(pickled > 0, current > 0)
-
-    def _validate_frequency(self, pickled):
-        # GH 9291
-        freq = pickled.index.freq
-        result = freq + Day(1)
-        tm.assert_equal(result, Day(2))
-
-        result = freq + pandas.Timedelta(hours=1)
-        tm.assert_equal(isinstance(result, pandas.Timedelta), True)
-        tm.assert_equal(result, pandas.Timedelta(days=1, hours=1))
-
-        result = freq + pandas.Timedelta(nanoseconds=1)
-        tm.assert_equal(isinstance(result, pandas.Timedelta), True)
-        tm.assert_equal(result, pandas.Timedelta(days=1, nanoseconds=1))
-
-    def _validate_periodindex(self, pickled, current):
-        tm.assert_index_equal(pickled, current)
-        tm.assertIsInstance(pickled.freq, MonthEnd)
-        tm.assert_equal(pickled.freq, MonthEnd())
-        tm.assert_equal(pickled.freqstr, 'M')
-        tm.assert_index_equal(pickled.shift(2), current.shift(2))
 
 
 if __name__ == '__main__':
