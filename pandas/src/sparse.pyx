@@ -98,10 +98,9 @@ cdef class IntIndex(SparseIndex):
 
     cpdef IntIndex intersect(self, SparseIndex y_):
         cdef:
-            Py_ssize_t out_length, xi, yi = 0
+            Py_ssize_t out_length, xi, yi = 0, result_indexer = 0
             int32_t xind
-            ndarray[int32_t, ndim=1] xindices, yindices
-            list new_list = []
+            ndarray[int32_t, ndim=1] xindices, yindices, new_indices
             IntIndex y
 
         # if is one already, returns self
@@ -112,6 +111,7 @@ cdef class IntIndex(SparseIndex):
 
         xindices = self.indices
         yindices = y.indices
+        new_indices = np.empty(min(len(xindices), len(yindices)), dtype=np.int32)
 
         for xi from 0 <= xi < self.npoints:
             xind = xindices[xi]
@@ -124,9 +124,11 @@ cdef class IntIndex(SparseIndex):
 
             # TODO: would a two-pass algorithm be faster?
             if yindices[yi] == xind:
-                new_list.append(xind)
+                new_indices[result_indexer] = xind
+                result_indexer += 1
 
-        return IntIndex(self.length, new_list)
+        new_indices = new_indices[:result_indexer]
+        return IntIndex(self.length, new_indices)
 
     cpdef IntIndex make_union(self, SparseIndex y_):
 
@@ -238,15 +240,19 @@ cdef class IntIndex(SparseIndex):
 
 cpdef get_blocks(ndarray[int32_t, ndim=1] indices):
     cdef:
-        Py_ssize_t i, npoints
+        Py_ssize_t init_len, i, npoints, result_indexer = 0
         int32_t block, length = 1, cur, prev
-        list locs = [], lens = []
+        ndarray[int32_t, ndim=1] locs, lens
 
     npoints = len(indices)
 
     # just handle the special empty case separately
     if npoints == 0:
-        return [], []
+        return np.array([], dtype=np.int32), np.array([], dtype=np.int32)
+
+    # block size can't be longer than npoints
+    locs = np.empty(npoints, dtype=np.int32)
+    lens = np.empty(npoints, dtype=np.int32)
 
     # TODO: two-pass algorithm faster?
     prev = block = indices[0]
@@ -254,18 +260,22 @@ cpdef get_blocks(ndarray[int32_t, ndim=1] indices):
         cur = indices[i]
         if cur - prev > 1:
             # new block
-            locs.append(block)
-            lens.append(length)
+            locs[result_indexer] = block
+            lens[result_indexer] = length
             block = cur
             length = 1
+            result_indexer += 1
         else:
             # same block, increment length
             length += 1
 
         prev = cur
 
-    locs.append(block)
-    lens.append(length)
+    locs[result_indexer] = block
+    lens[result_indexer] = length
+    result_indexer += 1
+    locs = locs[:result_indexer]
+    lens = lens[:result_indexer]
     return locs, lens
 
 #-------------------------------------------------------------------------------
@@ -398,12 +408,8 @@ cdef class BlockIndex(SparseIndex):
         """
         cdef:
             BlockIndex y
-            ndarray[int32_t, ndim=1] xloc, xlen, yloc, ylen
-
-            list out_blocs = []
-            list out_blengths = []
-
-            Py_ssize_t xi = 0, yi = 0
+            ndarray[int32_t, ndim=1] xloc, xlen, yloc, ylen, out_bloc, out_blen
+            Py_ssize_t xi = 0, yi = 0, max_len, result_indexer = 0
             int32_t cur_loc, cur_length, diff
 
         y = other.to_block_index()
@@ -415,6 +421,11 @@ cdef class BlockIndex(SparseIndex):
         xlen = self.blengths
         yloc = y.blocs
         ylen = y.blengths
+
+        # block may be split, but can't exceed original len / 2 + 1
+        max_len = int(min(self.length, y.length) / 2) + 1
+        out_bloc = np.empty(max_len, dtype=np.int32)
+        out_blen = np.empty(max_len, dtype=np.int32)
 
         while True:
             # we are done (or possibly never began)
@@ -458,10 +469,14 @@ cdef class BlockIndex(SparseIndex):
                     cur_length = ylen[yi]
                     yi += 1
 
-            out_blocs.append(cur_loc)
-            out_blengths.append(cur_length)
+            out_bloc[result_indexer] = cur_loc
+            out_blen[result_indexer] = cur_length
+            result_indexer += 1
 
-        return BlockIndex(self.length, out_blocs, out_blengths)
+        out_bloc = out_bloc[:result_indexer]
+        out_blen = out_blen[:result_indexer]
+
+        return BlockIndex(self.length, out_bloc, out_blen)
 
     cpdef BlockIndex make_union(self, SparseIndex y):
         """
@@ -626,14 +641,18 @@ cdef class BlockUnion(BlockMerge):
 
     cdef _make_merged_blocks(self):
         cdef:
-            ndarray[int32_t, ndim=1] xstart, xend, ystart, yend
+            ndarray[int32_t, ndim=1] xstart, xend, ystart, yend, out_bloc, out_blen
             int32_t nstart, nend, diff
-            list out_blocs = [], out_blengths = []
+            Py_ssize_t max_len, result_indexer = 0
 
         xstart = self.xstart
         xend = self.xend
         ystart = self.ystart
         yend = self.yend
+
+        max_len = int(min(self.x.length, self.y.length) / 2) + 1
+        out_bloc = np.empty(max_len, dtype=np.int32)
+        out_blen = np.empty(max_len, dtype=np.int32)
 
         while True:
             # we are done (or possibly never began)
@@ -658,10 +677,14 @@ cdef class BlockUnion(BlockMerge):
                     nstart = ystart[self.yi]
                     nend = self._find_next_block_end(1)
 
-            out_blocs.append(nstart)
-            out_blengths.append(nend - nstart)
+            out_bloc[result_indexer] = nstart
+            out_blen[result_indexer] = nend - nstart
+            result_indexer += 1
 
-        return BlockIndex(self.x.length, out_blocs, out_blengths)
+        out_bloc = out_bloc[:result_indexer]
+        out_blen = out_blen[:result_indexer]
+
+        return BlockIndex(self.x.length, out_bloc, out_blen)
 
     cdef int32_t _find_next_block_end(self, bint mode) except -1:
         """
