@@ -595,6 +595,22 @@ class Generic(object):
                                lower=lower, upper=upper,
                                axis=bad_axis)
 
+    def test_truncate_outofbounds_small(self):
+        # GH11382
+        shape = [int(2e3)] + ([1] * (self._ndim-1))
+        small = self._construct(shape, dtype='int8')
+        self._compare(small.truncate(), small)
+        self._compare(small.truncate(before=0, after=3e3), small)
+        self._compare(small.truncate(before=-1, after=2e3), small)
+
+    def test_truncate_outofbounds_big(self):
+        # GH11382
+        shape = [int(2e6)] + ([1] * (self._ndim-1))
+        big = self._construct(shape, dtype='int8')
+        self._compare(big.truncate(), big)
+        self._compare(big.truncate(before=0, after=3e6), big)
+        self._compare(big.truncate(before=-1, after=2e6), big)
+
     def test_numpy_clip(self):
         lower = 1
         upper = 3
