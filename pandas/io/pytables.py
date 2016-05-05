@@ -2517,7 +2517,9 @@ class GenericFixed(Fixed):
         transposed = False
 
         if com.is_categorical_dtype(value):
-            raise NotImplementedError('Cannot store a category dtype in a HDF5 dataset that uses format="fixed". Use format="table".')
+            raise NotImplementedError('Cannot store a category dtype in '
+                                      'a HDF5 dataset that uses format='
+                                      '"fixed". Use format="table".')
 
         if not empty_array:
             value = value.T
