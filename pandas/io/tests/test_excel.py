@@ -481,6 +481,16 @@ class ReadingTestsBase(SharedItems):
             tm.assert_frame_equal(xlsdf_no_head, refdf)
             tm.assert_frame_equal(xlsdf_with_head, refdf)
 
+    def test_date_conversion_overflow(self):
+        # GH 10001 : pandas.ExcelFile ignore parse_dates=False
+        refdf = pd.DataFrame([[pd.Timestamp('2016-03-12'), 'Marc Johnson'],
+                              [pd.Timestamp('2016-03-16'), 'Jack Black'],
+                              [1e+20, 'Timothy Brown']],
+                             columns=['DateColWithBigInt', 'StringCol'])
+
+        act_df = self.get_exceldf('testdateoverflow')
+        tm.assert_frame_equal(refdf, act_df)
+
 
 class XlrdTests(ReadingTestsBase):
     """

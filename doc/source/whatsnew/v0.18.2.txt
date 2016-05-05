@@ -75,3 +75,4 @@ Performance Improvements
 
 Bug Fixes
 ~~~~~~~~~
+- If there is a large numeric value in excel cell of type 'date', convert it to float instead of raising an error  (:issue:`10001`)
