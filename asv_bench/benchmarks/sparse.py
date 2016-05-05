@@ -55,7 +55,7 @@ class sparse_series_to_coo(object):
         self.ss.to_coo(row_levels=[0, 1], column_levels=[2, 3], sort_labels=True)
 
 
-class sparse_arithmetic(object):
+class sparse_arithmetic_int(object):
     goal_time = 0.2
 
     def setup(self):
@@ -75,6 +75,12 @@ class sparse_arithmetic(object):
         arr[indexer] = np.random.randint(0, 100, len(indexer))
         return pd.SparseArray(arr, fill_value=fill_value)
 
+    def time_sparse_make_union(self):
+        self.a_10percent.sp_index.make_union(self.b_10percent.sp_index)
+
+    def time_sparse_intersect(self):
+        self.a_10percent.sp_index.intersect(self.b_10percent.sp_index)
+
     def time_sparse_addition_10percent(self):
         self.a_10percent + self.b_10percent
 
@@ -92,3 +98,45 @@ class sparse_arithmetic(object):
 
     def time_sparse_division_1percent(self):
         self.a_1percent / self.b_1percent
+
+
+
+class sparse_arithmetic_block(object):
+    goal_time = 0.2
+
+    def setup(self):
+        np.random.seed(1)
+        self.a = self.make_sparse_array(length=1000000, num_blocks=1000,
+                                        block_size=10, fill_value=np.nan)
+        self.b = self.make_sparse_array(length=1000000, num_blocks=1000,
+                                        block_size=10, fill_value=np.nan)
+
+        self.a_zero = self.make_sparse_array(length=1000000, num_blocks=1000,
+                                             block_size=10, fill_value=0)
+        self.b_zero = self.make_sparse_array(length=1000000, num_blocks=1000,
+                                             block_size=10, fill_value=np.nan)
+
+    def make_sparse_array(self, length, num_blocks, block_size, fill_value):
+        a = np.array([fill_value] * length)
+        for block in range(num_blocks):
+            i = np.random.randint(0, length)
+            a[i:i + block_size] = np.random.randint(0, 100, len(a[i:i + block_size]))
+        return pd.SparseArray(a, fill_value=fill_value)
+
+    def time_sparse_make_union(self):
+        self.a.sp_index.make_union(self.b.sp_index)
+
+    def time_sparse_intersect(self):
+        self.a.sp_index.intersect(self.b.sp_index)
+
+    def time_sparse_addition(self):
+        self.a + self.b
+
+    def time_sparse_addition_zero(self):
+        self.a_zero + self.b_zero
+
+    def time_sparse_division(self):
+        self.a / self.b
+
+    def time_sparse_division_zero(self):
+        self.a_zero / self.b_zero
