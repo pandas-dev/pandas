@@ -636,8 +636,8 @@ class SAS7BDATReader(BaseIterator):
                     elif self.column_formats[j] in const.sas_datetime_formats:
                         unit = 's'
                     if unit:
-                        epoch = pd.datetime(1960, 1, 1)
-                        rslt[name] = epoch + pd.to_timedelta(rslt[name], unit)
+                        rslt[name] = pd.to_datetime(rslt[name], unit=unit,
+                                                    origin="1960-01-01")
                 jb += 1
             elif self.column_types[j] == b's':
                 rslt[name] = self._string_chunk[js, :]
