@@ -2043,17 +2043,18 @@ class TestPeriodIndex(Base, tm.TestCase):
         assert_series_equal(result2, expected)
 
     def test_resample_empty(self):
-
         # GH12771 & GH12868
         index = PeriodIndex(start='2000', periods=0, freq='D', name='idx')
         s = Series(index=index)
 
-        expected_index = PeriodIndex([], name='idx', freq='M')
-        expected = Series(index=expected_index)
+        for freq in ['M', 'D', 'H']:
+            expected_index = PeriodIndex([], name='idx', freq=freq)
+            expected = Series(index=expected_index)
 
-        for method in resample_methods:
-            result = getattr(s.resample('M'), method)()
-            assert_series_equal(result, expected)
+            for method in resample_methods:
+                result = getattr(s.resample(freq), method)()
+                assert_series_equal(result, expected)
+                self.assertEqual(result.index.freq, freq)
 
     def test_resample_count(self):
 
