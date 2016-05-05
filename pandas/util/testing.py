@@ -868,9 +868,9 @@ def assertIsInstance(obj, cls, msg=''):
     """Test that obj is an instance of cls
     (which can be a class or a tuple of classes,
     as supported by isinstance())."""
-    assert isinstance(obj, cls), (
-        "%sExpected object to be of type %r, found %r instead" % (
-            msg, cls, type(obj)))
+    if not isinstance(obj, cls):
+        err_msg = "{0}Expected type {1}, found {2} instead"
+        raise AssertionError(err_msg.format(msg, cls, type(obj)))
 
 
 def assert_isinstance(obj, class_type_or_tuple, msg=''):
@@ -882,9 +882,9 @@ def assertNotIsInstance(obj, cls, msg=''):
     """Test that obj is not an instance of cls
     (which can be a class or a tuple of classes,
     as supported by isinstance())."""
-    assert not isinstance(obj, cls), (
-        "%sExpected object to be of type %r, found %r instead" % (
-            msg, cls, type(obj)))
+    if isinstance(obj, cls):
+        err_msg = "{0}Input must not be type {1}"
+        raise AssertionError(err_msg.format(msg, cls))
 
 
 def assert_categorical_equal(res, exp):
