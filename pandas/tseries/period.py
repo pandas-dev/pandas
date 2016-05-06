@@ -4,6 +4,7 @@ import numpy as np
 import pandas.tseries.frequencies as frequencies
 from pandas.tseries.frequencies import get_freq_code as _gfc
 from pandas.tseries.index import DatetimeIndex, Int64Index, Index
+from pandas.tseries.tdi import TimedeltaIndex
 from pandas.tseries.base import DatelikeOps, DatetimeIndexOpsMixin
 from pandas.tseries.tools import parse_time_string
 import pandas.tseries.offsets as offsets
@@ -594,6 +595,32 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
     def _add_delta(self, other):
         ordinal_delta = self._maybe_convert_timedelta(other)
         return self.shift(ordinal_delta)
+
+    def _sub_datelike(self, other):
+        if other is tslib.NaT:
+            new_data = np.empty(len(self), dtype=np.int64)
+            new_data.fill(tslib.iNaT)
+            return TimedeltaIndex(new_data, name=self.name)
+        return NotImplemented
+
+    def _sub_period(self, other):
+        if self.freq != other.freq:
+            msg = _DIFFERENT_FREQ_INDEX.format(self.freqstr, other.freqstr)
+            raise IncompatibleFrequency(msg)
+
+        if other.ordinal == tslib.iNaT:
+            new_data = np.empty(len(self))
+            new_data.fill(np.nan)
+        else:
+            asi8 = self.asi8
+            new_data = asi8 - other.ordinal
+
+            if self.hasnans:
+                mask = asi8 == tslib.iNaT
+                new_data = new_data.astype(np.float64)
+                new_data[mask] = np.nan
+        # result must be Int64Index or Float64Index
+        return Index(new_data, name=self.name)
 
     def shift(self, n):
         """

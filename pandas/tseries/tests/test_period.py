@@ -3418,6 +3418,16 @@ class TestMethods(tm.TestCase):
                 with tm.assertRaises(ValueError):
                     p + o
 
+    def test_sub_pdnat(self):
+        # GH 13071
+        p = pd.Period('2011-01', freq='M')
+        self.assertIs(p - pd.NaT, pd.NaT)
+        self.assertIs(pd.NaT - p, pd.NaT)
+
+        p = pd.Period('NaT', freq='M')
+        self.assertIs(p - pd.NaT, pd.NaT)
+        self.assertIs(pd.NaT - p, pd.NaT)
+
     def test_sub_offset(self):
         # freq is DateOffset
         for freq in ['A', '2A', '3A']:
@@ -3613,6 +3623,48 @@ class TestMethods(tm.TestCase):
         exp = PeriodIndex(['2011-01-01 10:00:00', '2011-01-01 10:00:30', 'NaT',
                            '2011-01-01 12:15:00'], freq='S', name='idx')
         self.assert_index_equal(result, exp)
+
+    def test_pi_sub_period(self):
+        # GH 13071
+        idx = PeriodIndex(['2011-01', '2011-02', '2011-03',
+                           '2011-04'], freq='M', name='idx')
+
+        result = idx - pd.Period('2012-01', freq='M')
+        exp = pd.Index([-12, -11, -10, -9], name='idx')
+        tm.assert_index_equal(result, exp)
+
+        result = pd.Period('2012-01', freq='M') - idx
+        exp = pd.Index([12, 11, 10, 9], name='idx')
+        tm.assert_index_equal(result, exp)
+
+        exp = pd.Index([np.nan, np.nan, np.nan, np.nan], name='idx')
+        tm.assert_index_equal(idx - pd.Period('NaT', freq='M'), exp)
+        tm.assert_index_equal(pd.Period('NaT', freq='M') - idx, exp)
+
+    def test_pi_sub_pdnat(self):
+        # GH 13071
+        idx = PeriodIndex(['2011-01', '2011-02', 'NaT',
+                           '2011-04'], freq='M', name='idx')
+        exp = pd.TimedeltaIndex([pd.NaT] * 4, name='idx')
+        tm.assert_index_equal(pd.NaT - idx, exp)
+        tm.assert_index_equal(idx - pd.NaT, exp)
+
+    def test_pi_sub_period_nat(self):
+        # GH 13071
+        idx = PeriodIndex(['2011-01', 'NaT', '2011-03',
+                           '2011-04'], freq='M', name='idx')
+
+        result = idx - pd.Period('2012-01', freq='M')
+        exp = pd.Index([-12, np.nan, -10, -9], name='idx')
+        tm.assert_index_equal(result, exp)
+
+        result = pd.Period('2012-01', freq='M') - idx
+        exp = pd.Index([12, np.nan, 10, 9], name='idx')
+        tm.assert_index_equal(result, exp)
+
+        exp = pd.Index([np.nan, np.nan, np.nan, np.nan], name='idx')
+        tm.assert_index_equal(idx - pd.Period('NaT', freq='M'), exp)
+        tm.assert_index_equal(pd.Period('NaT', freq='M') - idx, exp)
 
 
 class TestPeriodRepresentation(tm.TestCase):
