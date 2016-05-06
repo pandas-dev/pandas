@@ -75,3 +75,30 @@ Performance Improvements
 
 Bug Fixes
 ~~~~~~~~~
+
+
+
+
+
+
+
+
+
+
+
+- Bug in ``PeriodIndex`` and ``Period`` subtraction raises ``AttributeError`` (:issue:`13071`)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+- Bug in ``NaT`` - ``Period`` raises ``AttributeError`` (:issue:`13071`)
