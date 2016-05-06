@@ -66,7 +66,7 @@ def _skip_if_no_excelsuite():
 
 def _skip_if_no_boto():
     try:
-        import boto  # NOQA
+        import s3fs  # noqa
     except ImportError:
         raise nose.SkipTest('boto not installed, skipping')
 
