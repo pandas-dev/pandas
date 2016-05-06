@@ -627,6 +627,21 @@ DataFrame\\.iloc\\[:, 1\\] values are different \\(33\\.33333 %\\)
                                by_blocks=True)
 
 
+class TestIsInstance(tm.TestCase):
+
+    def test_isinstance(self):
+
+        expected = "Expected type "
+        with assertRaisesRegexp(AssertionError, expected):
+            tm.assertIsInstance(1, pd.Series)
+
+    def test_notisinstance(self):
+
+        expected = "Input must not be type "
+        with assertRaisesRegexp(AssertionError, expected):
+            tm.assertNotIsInstance(pd.Series([1]), pd.Series)
+
+
 class TestRNGContext(unittest.TestCase):
 
     def test_RNGContext(self):
