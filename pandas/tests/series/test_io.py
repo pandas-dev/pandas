@@ -189,7 +189,7 @@ class TestSeriesToList(TestData, tm.TestCase):
         # GH10904
         for t in ['int8', 'int16', 'int32', 'int64']:
             s = pd.Series([1], dtype=t)
-            self.assertIsInstance(s.tolist()[0], int)
+            self.assertIsInstance(s.tolist()[0], (int, long))
 
     def test_tolist_np_uint(self):
         # GH10904
