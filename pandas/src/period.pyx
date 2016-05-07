@@ -813,16 +813,23 @@ cdef class Period(object):
             return NotImplemented
 
     def __add__(self, other):
-        if isinstance(other, (timedelta, np.timedelta64,
-                              offsets.Tick, offsets.DateOffset, Timedelta)):
-            return self._add_delta(other)
-        elif lib.is_integer(other):
-            if self.ordinal == tslib.iNaT:
-                ordinal = self.ordinal
-            else:
-                ordinal = self.ordinal + other * self.freq.n
-            return Period(ordinal=ordinal, freq=self.freq)
-        else:  # pragma: no cover
+        if isinstance(self, Period):
+            if isinstance(other, (timedelta, np.timedelta64,
+                                  offsets.Tick, offsets.DateOffset, Timedelta)):
+                return self._add_delta(other)
+            elif other is tslib.NaT:
+                return tslib.NaT
+            elif lib.is_integer(other):
+                if self.ordinal == tslib.iNaT:
+                    ordinal = self.ordinal
+                else:
+                    ordinal = self.ordinal + other * self.freq.n
+                return Period(ordinal=ordinal, freq=self.freq)
+            else:  # pragma: no cover
+                return NotImplemented
+        elif isinstance(other, Period):
+            return other + self
+        else:
             return NotImplemented
 
     def __sub__(self, other):

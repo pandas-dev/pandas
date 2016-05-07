@@ -87,22 +87,26 @@ class TestPeriodProperties(tm.TestCase):
         self.assertEqual(p.ordinal, tslib.iNaT)
         self.assertEqual(p.freq, 'M')
         self.assertEqual((p + 1).ordinal, tslib.iNaT)
+        self.assertEqual((1 + p).ordinal, tslib.iNaT)
 
         p = Period('nat', freq='W-SUN')
         self.assertEqual(p.ordinal, tslib.iNaT)
         self.assertEqual(p.freq, 'W-SUN')
         self.assertEqual((p + 1).ordinal, tslib.iNaT)
+        self.assertEqual((1 + p).ordinal, tslib.iNaT)
 
         p = Period(tslib.iNaT, freq='D')
         self.assertEqual(p.ordinal, tslib.iNaT)
         self.assertEqual(p.freq, 'D')
         self.assertEqual((p + 1).ordinal, tslib.iNaT)
+        self.assertEqual((1 + p).ordinal, tslib.iNaT)
 
         p = Period(tslib.iNaT, freq='3D')
         self.assertEqual(p.ordinal, tslib.iNaT)
         self.assertEqual(p.freq, offsets.Day(3))
         self.assertEqual(p.freqstr, '3D')
         self.assertEqual((p + 1).ordinal, tslib.iNaT)
+        self.assertEqual((1 + p).ordinal, tslib.iNaT)
 
         self.assertRaises(ValueError, Period, 'NaT')
 
@@ -2798,7 +2802,9 @@ class TestPeriodIndex(tm.TestCase):
         self.assertEqual(result2.freq, offsets.YearEnd())
 
         self.assertEqual((result1 + 1).ordinal, result1.ordinal + 2)
+        self.assertEqual((1 + result1).ordinal, result1.ordinal + 2)
         self.assertEqual((result1 - 1).ordinal, result2.ordinal - 2)
+        self.assertEqual((-1 + result1).ordinal, result2.ordinal - 2)
 
     def test_pindex_multiples(self):
         pi = PeriodIndex(start='1/1/11', end='12/31/11', freq='2M')
@@ -3292,11 +3298,28 @@ class TestMethods(tm.TestCase):
         dt1 = Period(freq='D', year=2008, month=1, day=1)
         dt2 = Period(freq='D', year=2008, month=1, day=2)
         assert_equal(dt1 + 1, dt2)
-        #
+        assert_equal(1 + dt1, dt2)
+
+    def test_add_pdnat(self):
+        p = pd.Period('2011-01', freq='M')
+        self.assertIs(p + pd.NaT, pd.NaT)
+        self.assertIs(pd.NaT + p, pd.NaT)
+
+        p = pd.Period('NaT', freq='M')
+        self.assertIs(p + pd.NaT, pd.NaT)
+        self.assertIs(pd.NaT + p, pd.NaT)
+
+    def test_add_raises(self):
         # GH 4731
+        dt1 = Period(freq='D', year=2008, month=1, day=1)
+        dt2 = Period(freq='D', year=2008, month=1, day=2)
         msg = "unsupported operand type\(s\)"
         with tm.assertRaisesRegexp(TypeError, msg):
             dt1 + "str"
+
+        msg = "unsupported operand type\(s\)"
+        with tm.assertRaisesRegexp(TypeError, msg):
+            "str" + dt1
 
         with tm.assertRaisesRegexp(TypeError, msg):
             dt1 + dt2
@@ -3305,42 +3328,75 @@ class TestMethods(tm.TestCase):
         # freq is DateOffset
         for freq in ['A', '2A', '3A']:
             p = Period('2011', freq=freq)
-            self.assertEqual(p + offsets.YearEnd(2), Period('2013', freq=freq))
+            exp = Period('2013', freq=freq)
+            self.assertEqual(p + offsets.YearEnd(2), exp)
+            self.assertEqual(offsets.YearEnd(2) + p, exp)
 
             for o in [offsets.YearBegin(2), offsets.MonthBegin(1),
                       offsets.Minute(), np.timedelta64(365, 'D'),
                       timedelta(365)]:
                 with tm.assertRaises(ValueError):
                     p + o
+
+                if isinstance(o, np.timedelta64):
+                    with tm.assertRaises(TypeError):
+                        o + p
+                else:
+                    with tm.assertRaises(ValueError):
+                        o + p
 
         for freq in ['M', '2M', '3M']:
             p = Period('2011-03', freq=freq)
-            self.assertEqual(p + offsets.MonthEnd(2),
-                             Period('2011-05', freq=freq))
-            self.assertEqual(p + offsets.MonthEnd(12),
-                             Period('2012-03', freq=freq))
+            exp = Period('2011-05', freq=freq)
+            self.assertEqual(p + offsets.MonthEnd(2), exp)
+            self.assertEqual(offsets.MonthEnd(2) + p, exp)
+
+            exp = Period('2012-03', freq=freq)
+            self.assertEqual(p + offsets.MonthEnd(12), exp)
+            self.assertEqual(offsets.MonthEnd(12) + p, exp)
 
             for o in [offsets.YearBegin(2), offsets.MonthBegin(1),
                       offsets.Minute(), np.timedelta64(365, 'D'),
                       timedelta(365)]:
                 with tm.assertRaises(ValueError):
                     p + o
+
+                if isinstance(o, np.timedelta64):
+                    with tm.assertRaises(TypeError):
+                        o + p
+                else:
+                    with tm.assertRaises(ValueError):
+                        o + p
 
         # freq is Tick
         for freq in ['D', '2D', '3D']:
             p = Period('2011-04-01', freq=freq)
-            self.assertEqual(p + offsets.Day(5),
-                             Period('2011-04-06', freq=freq))
-            self.assertEqual(p + offsets.Hour(24),
-                             Period('2011-04-02', freq=freq))
-            self.assertEqual(p + np.timedelta64(2, 'D'),
-                             Period('2011-04-03', freq=freq))
-            self.assertEqual(p + np.timedelta64(3600 * 24, 's'),
-                             Period('2011-04-02', freq=freq))
-            self.assertEqual(p + timedelta(-2),
-                             Period('2011-03-30', freq=freq))
-            self.assertEqual(p + timedelta(hours=48),
-                             Period('2011-04-03', freq=freq))
+
+            exp = Period('2011-04-06', freq=freq)
+            self.assertEqual(p + offsets.Day(5), exp)
+            self.assertEqual(offsets.Day(5) + p, exp)
+
+            exp = Period('2011-04-02', freq=freq)
+            self.assertEqual(p + offsets.Hour(24), exp)
+            self.assertEqual(offsets.Hour(24) + p, exp)
+
+            exp = Period('2011-04-03', freq=freq)
+            self.assertEqual(p + np.timedelta64(2, 'D'), exp)
+            with tm.assertRaises(TypeError):
+                np.timedelta64(2, 'D') + p
+
+            exp = Period('2011-04-02', freq=freq)
+            self.assertEqual(p + np.timedelta64(3600 * 24, 's'), exp)
+            with tm.assertRaises(TypeError):
+                np.timedelta64(3600 * 24, 's') + p
+
+            exp = Period('2011-03-30', freq=freq)
+            self.assertEqual(p + timedelta(-2), exp)
+            self.assertEqual(timedelta(-2) + p, exp)
+
+            exp = Period('2011-04-03', freq=freq)
+            self.assertEqual(p + timedelta(hours=48), exp)
+            self.assertEqual(timedelta(hours=48) + p, exp)
 
             for o in [offsets.YearBegin(2), offsets.MonthBegin(1),
                       offsets.Minute(), np.timedelta64(4, 'h'),
@@ -3348,20 +3404,41 @@ class TestMethods(tm.TestCase):
                 with tm.assertRaises(ValueError):
                     p + o
 
+                if isinstance(o, np.timedelta64):
+                    with tm.assertRaises(TypeError):
+                        o + p
+                else:
+                    with tm.assertRaises(ValueError):
+                        o + p
+
         for freq in ['H', '2H', '3H']:
             p = Period('2011-04-01 09:00', freq=freq)
-            self.assertEqual(p + offsets.Day(2),
-                             Period('2011-04-03 09:00', freq=freq))
-            self.assertEqual(p + offsets.Hour(3),
-                             Period('2011-04-01 12:00', freq=freq))
-            self.assertEqual(p + np.timedelta64(3, 'h'),
-                             Period('2011-04-01 12:00', freq=freq))
-            self.assertEqual(p + np.timedelta64(3600, 's'),
-                             Period('2011-04-01 10:00', freq=freq))
-            self.assertEqual(p + timedelta(minutes=120),
-                             Period('2011-04-01 11:00', freq=freq))
-            self.assertEqual(p + timedelta(days=4, minutes=180),
-                             Period('2011-04-05 12:00', freq=freq))
+
+            exp = Period('2011-04-03 09:00', freq=freq)
+            self.assertEqual(p + offsets.Day(2), exp)
+            self.assertEqual(offsets.Day(2) + p, exp)
+
+            exp = Period('2011-04-01 12:00', freq=freq)
+            self.assertEqual(p + offsets.Hour(3), exp)
+            self.assertEqual(offsets.Hour(3) + p, exp)
+
+            exp = Period('2011-04-01 12:00', freq=freq)
+            self.assertEqual(p + np.timedelta64(3, 'h'), exp)
+            with tm.assertRaises(TypeError):
+                np.timedelta64(3, 'h') + p
+
+            exp = Period('2011-04-01 10:00', freq=freq)
+            self.assertEqual(p + np.timedelta64(3600, 's'), exp)
+            with tm.assertRaises(TypeError):
+                np.timedelta64(3600, 's') + p
+
+            exp = Period('2011-04-01 11:00', freq=freq)
+            self.assertEqual(p + timedelta(minutes=120), exp)
+            self.assertEqual(timedelta(minutes=120) + p, exp)
+
+            exp = Period('2011-04-05 12:00', freq=freq)
+            self.assertEqual(p + timedelta(days=4, minutes=180), exp)
+            self.assertEqual(timedelta(days=4, minutes=180) + p, exp)
 
             for o in [offsets.YearBegin(2), offsets.MonthBegin(1),
                       offsets.Minute(), np.timedelta64(3200, 's'),
@@ -3369,30 +3446,57 @@ class TestMethods(tm.TestCase):
                 with tm.assertRaises(ValueError):
                     p + o
 
+                if isinstance(o, np.timedelta64):
+                    with tm.assertRaises(TypeError):
+                        o + p
+                else:
+                    with tm.assertRaises(ValueError):
+                        o + p
+
     def test_add_offset_nat(self):
         # freq is DateOffset
         for freq in ['A', '2A', '3A']:
             p = Period('NaT', freq=freq)
             for o in [offsets.YearEnd(2)]:
                 self.assertEqual((p + o).ordinal, tslib.iNaT)
+                self.assertEqual((o + p).ordinal, tslib.iNaT)
 
             for o in [offsets.YearBegin(2), offsets.MonthBegin(1),
                       offsets.Minute(), np.timedelta64(365, 'D'),
                       timedelta(365)]:
                 with tm.assertRaises(ValueError):
                     p + o
+
+                if isinstance(o, np.timedelta64):
+                    with tm.assertRaises(TypeError):
+                        o + p
+                else:
+                    with tm.assertRaises(ValueError):
+                        o + p
 
         for freq in ['M', '2M', '3M']:
             p = Period('NaT', freq=freq)
             for o in [offsets.MonthEnd(2), offsets.MonthEnd(12)]:
                 self.assertEqual((p + o).ordinal, tslib.iNaT)
 
+                if isinstance(o, np.timedelta64):
+                    with tm.assertRaises(TypeError):
+                        o + p
+                else:
+                    self.assertEqual((o + p).ordinal, tslib.iNaT)
+
             for o in [offsets.YearBegin(2), offsets.MonthBegin(1),
                       offsets.Minute(), np.timedelta64(365, 'D'),
                       timedelta(365)]:
                 with tm.assertRaises(ValueError):
                     p + o
 
+                if isinstance(o, np.timedelta64):
+                    with tm.assertRaises(TypeError):
+                        o + p
+                else:
+                    with tm.assertRaises(ValueError):
+                        o + p
         # freq is Tick
         for freq in ['D', '2D', '3D']:
             p = Period('NaT', freq=freq)
@@ -3401,11 +3505,25 @@ class TestMethods(tm.TestCase):
                       timedelta(hours=48)]:
                 self.assertEqual((p + o).ordinal, tslib.iNaT)
 
+                if isinstance(o, np.timedelta64):
+                    with tm.assertRaises(TypeError):
+                        o + p
+                else:
+                    self.assertEqual((o + p).ordinal, tslib.iNaT)
+
             for o in [offsets.YearBegin(2), offsets.MonthBegin(1),
                       offsets.Minute(), np.timedelta64(4, 'h'),
                       timedelta(hours=23)]:
+
                 with tm.assertRaises(ValueError):
                     p + o
+
+                if isinstance(o, np.timedelta64):
+                    with tm.assertRaises(TypeError):
+                        o + p
+                else:
+                    with tm.assertRaises(ValueError):
+                        o + p
 
         for freq in ['H', '2H', '3H']:
             p = Period('NaT', freq=freq)
@@ -3414,11 +3532,21 @@ class TestMethods(tm.TestCase):
                       timedelta(days=4, minutes=180)]:
                 self.assertEqual((p + o).ordinal, tslib.iNaT)
 
+                if not isinstance(o, np.timedelta64):
+                    self.assertEqual((o + p).ordinal, tslib.iNaT)
+
             for o in [offsets.YearBegin(2), offsets.MonthBegin(1),
                       offsets.Minute(), np.timedelta64(3200, 's'),
                       timedelta(hours=23, minutes=30)]:
                 with tm.assertRaises(ValueError):
                     p + o
+
+                if isinstance(o, np.timedelta64):
+                    with tm.assertRaises(TypeError):
+                        o + p
+                else:
+                    with tm.assertRaises(ValueError):
+                        o + p
 
     def test_sub_pdnat(self):
         # GH 13071
@@ -3553,6 +3681,7 @@ class TestMethods(tm.TestCase):
         for freq in ['M', '2M', '3M']:
             p = Period('NaT', freq=freq)
             self.assertEqual((p + 1).ordinal, tslib.iNaT)
+            self.assertEqual((1 + p).ordinal, tslib.iNaT)
             self.assertEqual((p - 1).ordinal, tslib.iNaT)
             self.assertEqual(
                 (p - Period('2011-01', freq=freq)).ordinal, tslib.iNaT)

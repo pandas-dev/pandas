@@ -115,7 +115,6 @@ Bug Fixes
 
 
 
-
 - Bug in ``PeriodIndex`` and ``Period`` subtraction raises ``AttributeError`` (:issue:`13071`)
 
 
@@ -132,3 +131,4 @@ Bug Fixes
 
 
 - Bug in ``NaT`` - ``Period`` raises ``AttributeError`` (:issue:`13071`)
+- Bug in ``Period`` addition raises ``TypeError`` if ``Period`` is on right hand side (:issue:`13069`)
