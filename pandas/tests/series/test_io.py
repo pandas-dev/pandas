@@ -108,6 +108,7 @@ class TestSeriesToCSV(TestData, tm.TestCase):
         csv_str = s.to_csv(path=None)
         self.assertIsInstance(csv_str, str)
 
+
 class TestSeriesIO(TestData, tm.TestCase):
 
     _multiprocess_can_split_ = True
