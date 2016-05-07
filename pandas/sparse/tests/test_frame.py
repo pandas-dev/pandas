@@ -2,7 +2,6 @@
 
 import operator
 
-import nose  # noqa
 from numpy import nan
 import numpy as np
 import pandas as pd
@@ -768,12 +767,19 @@ class TestSparseDataFrame(tm.TestCase, SharedWithSparse):
         self._check_all(_check)
 
     def test_count(self):
-        result = self.frame.count()
         dense_result = self.frame.to_dense().count()
+
+        result = self.frame.count()
         tm.assert_series_equal(result, dense_result)
 
-        result = self.frame.count(1)
-        dense_result = self.frame.to_dense().count(1)
+        result = self.frame.count(axis=None)
+        tm.assert_series_equal(result, dense_result)
+
+        result = self.frame.count(axis=0)
+        tm.assert_series_equal(result, dense_result)
+
+        result = self.frame.count(axis=1)
+        dense_result = self.frame.to_dense().count(axis=1)
 
         # win32 don't check dtype
         tm.assert_series_equal(result, dense_result, check_dtype=False)
@@ -862,12 +868,19 @@ class TestSparseDataFrameAnalytics(tm.TestCase):
         self.frame = SparseDataFrame(self.data, index=self.dates)
 
     def test_cumsum(self):
-        result = self.frame.cumsum()
         expected = SparseDataFrame(self.frame.to_dense().cumsum())
+
+        result = self.frame.cumsum()
+        tm.assert_sp_frame_equal(result, expected)
+
+        result = self.frame.cumsum(axis=None)
+        tm.assert_sp_frame_equal(result, expected)
+
+        result = self.frame.cumsum(axis=0)
         tm.assert_sp_frame_equal(result, expected)
 
     def test_numpy_cumsum(self):
-        result = np.cumsum(self.frame, axis=0)
+        result = np.cumsum(self.frame)
         expected = SparseDataFrame(self.frame.to_dense().cumsum())
         tm.assert_sp_frame_equal(result, expected)
 
@@ -879,7 +892,16 @@ class TestSparseDataFrameAnalytics(tm.TestCase):
         tm.assertRaisesRegexp(ValueError, msg, np.cumsum,
                               self.frame, out=result)
 
+    def test_numpy_func_call(self):
+        # no exception should be raised even though
+        # numpy passes in 'axis=None' or `axis=-1'
+        funcs = ['sum', 'cumsum', 'var',
+                 'mean', 'prod', 'cumprod',
+                 'std', 'min', 'max']
+        for func in funcs:
+            getattr(np, func)(self.frame)
+
 if __name__ == '__main__':
-    import nose  # noqa
+    import nose
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
                    exit=False)

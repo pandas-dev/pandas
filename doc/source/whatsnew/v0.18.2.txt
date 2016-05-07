@@ -102,6 +102,7 @@ Performance Improvements
 
 Bug Fixes
 ~~~~~~~~~
+- Bug in ``SparseDataFrame`` in which ``axis=None`` did not default to ``axis=0`` (:issue:`13048`)
 
 
 

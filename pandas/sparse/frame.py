@@ -651,6 +651,9 @@ class SparseDataFrame(DataFrame):
 
     @Appender(DataFrame.count.__doc__)
     def count(self, axis=0, **kwds):
+        if axis is None:
+            axis = self._stat_axis_number
+
         return self.apply(lambda x: x.count(), axis=axis)
 
     def cumsum(self, axis=0, *args, **kwargs):
@@ -667,6 +670,10 @@ class SparseDataFrame(DataFrame):
         y : SparseDataFrame
         """
         nv.validate_cumsum(args, kwargs)
+
+        if axis is None:
+            axis = self._stat_axis_number
+
         return self.apply(lambda x: x.cumsum(), axis=axis)
 
     def apply(self, func, axis=0, broadcast=False, reduce=False):

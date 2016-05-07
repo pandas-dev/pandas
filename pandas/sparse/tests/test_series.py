@@ -2,7 +2,6 @@
 
 import operator
 
-import nose  # noqa
 from numpy import nan
 import numpy as np
 import pandas as pd
@@ -549,6 +548,7 @@ class TestSparseSeries(tm.TestCase, SharedWithSparse):
     def test_binary_operators(self):
 
         # skipping for now #####
+        import nose
         raise nose.SkipTest("skipping sparse binary operators test")
 
         def _check_inplace_op(iop, op):
@@ -1259,7 +1259,17 @@ class TestSparseSeriesAnalytics(tm.TestCase):
         tm.assertRaisesRegexp(ValueError, msg, np.cumsum,
                               self.zbseries, out=result)
 
+    def test_numpy_func_call(self):
+        # no exception should be raised even though
+        # numpy passes in 'axis=None' or `axis=-1'
+        funcs = ['sum', 'cumsum', 'var', 'mean',
+                 'prod', 'cumprod', 'std', 'argsort',
+                 'argmin', 'argmax', 'min', 'max']
+        for func in funcs:
+            for series in ('bseries', 'zbseries'):
+                getattr(np, func)(getattr(self, series))
+
 if __name__ == '__main__':
-    import nose  # noqa
+    import nose
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
                    exit=False)
