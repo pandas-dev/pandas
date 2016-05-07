@@ -316,16 +316,18 @@ class TestSeriesDatetimeValues(TestData, tm.TestCase):
 
         datetime_index = date_range('20150301', periods=5)
         result = datetime_index.strftime("%Y/%m/%d")
-        expected = np.array(
-            ['2015/03/01', '2015/03/02', '2015/03/03', '2015/03/04',
-             '2015/03/05'], dtype=object)
-        self.assert_numpy_array_equal(result, expected)
+
+        expected = np.array(['2015/03/01', '2015/03/02', '2015/03/03',
+                             '2015/03/04', '2015/03/05'], dtype=np.object_)
+        # dtype may be S10 or U10 depending on python version
+        print(result)
+        print(expected)
+        self.assert_numpy_array_equal(result, expected, check_dtype=False)
 
         period_index = period_range('20150301', periods=5)
         result = period_index.strftime("%Y/%m/%d")
-        expected = np.array(
-            ['2015/03/01', '2015/03/02', '2015/03/03', '2015/03/04',
-             '2015/03/05'], dtype=object)
+        expected = np.array(['2015/03/01', '2015/03/02', '2015/03/03',
+                             '2015/03/04', '2015/03/05'], dtype='<U10')
         self.assert_numpy_array_equal(result, expected)
 
         s = Series([datetime(2013, 1, 1, 2, 32, 59), datetime(2013, 1, 2, 14,
@@ -341,9 +343,10 @@ class TestSeriesDatetimeValues(TestData, tm.TestCase):
 
         s = Series(period_range('20130101', periods=4, freq='L'))
         result = s.dt.strftime('%Y/%m/%d %H:%M:%S.%l')
-        expected = Series(
-            ["2013/01/01 00:00:00.000", "2013/01/01 00:00:00.001",
-             "2013/01/01 00:00:00.002", "2013/01/01 00:00:00.003"])
+        expected = Series(["2013/01/01 00:00:00.000",
+                           "2013/01/01 00:00:00.001",
+                           "2013/01/01 00:00:00.002",
+                           "2013/01/01 00:00:00.003"])
         tm.assert_series_equal(result, expected)
 
     def test_valid_dt_with_missing_values(self):

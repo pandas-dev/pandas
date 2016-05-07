@@ -27,7 +27,8 @@ class DatelikeOps(object):
     """ common ops for DatetimeIndex/PeriodIndex, but not TimedeltaIndex """
 
     def strftime(self, date_format):
-        return np.asarray(self.format(date_format=date_format))
+        return np.asarray(self.format(date_format=date_format),
+                          dtype=compat.text_type)
     strftime.__doc__ = """
     Return an array of formatted strings specified by date_format, which
     supports the same string format as the python standard library. Details

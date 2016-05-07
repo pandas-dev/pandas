@@ -139,7 +139,7 @@ class TestPandasContainer(tm.TestCase):
         def _check_orient(df, orient, dtype=None, numpy=False,
                           convert_axes=True, check_dtype=True, raise_ok=None,
                           sort=None, check_index_type=True,
-                          check_column_type=True):
+                          check_column_type=True, check_numpy_dtype=False):
             if sort is not None:
                 df = df.sort_values(sort)
             else:
@@ -181,14 +181,16 @@ class TestPandasContainer(tm.TestCase):
                     unser.index.values.astype('i8') * 1e6)
             if orient == "records":
                 # index is not captured in this orientation
-                assert_almost_equal(df.values, unser.values)
+                assert_almost_equal(df.values, unser.values,
+                                    check_dtype=check_numpy_dtype)
                 self.assertTrue(df.columns.equals(unser.columns))
             elif orient == "values":
                 # index and cols are not captured in this orientation
                 if numpy is True and df.shape == (0, 0):
                     assert unser.shape[0] == 0
                 else:
-                    assert_almost_equal(df.values, unser.values)
+                    assert_almost_equal(df.values, unser.values,
+                                        check_dtype=check_numpy_dtype)
             elif orient == "split":
                 # index and col labels might not be strings
                 unser.index = [str(i) for i in unser.index]
@@ -196,7 +198,8 @@ class TestPandasContainer(tm.TestCase):
 
                 if sort is None:
                     unser = unser.sort_index()
-                assert_almost_equal(df.values, unser.values)
+                assert_almost_equal(df.values, unser.values,
+                                    check_dtype=check_numpy_dtype)
             else:
                 if convert_axes:
                     assert_frame_equal(df, unser, check_dtype=check_dtype,
