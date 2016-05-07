@@ -8,6 +8,7 @@ from numpy import nan
 from pandas import date_range, bdate_range, Timestamp
 from pandas.core.index import Index, MultiIndex, CategoricalIndex
 from pandas.core.api import Categorical, DataFrame
+from pandas.core.common import UnsupportedFunctionCall
 from pandas.core.groupby import (SpecificationError, DataError, _nargsort,
                                  _lexsort_indexer)
 from pandas.core.series import Series
@@ -6392,6 +6393,19 @@ class TestGroupBy(tm.TestCase):
                                 'value for each group.*', df.groupby
                                 (axis=1, level=1).transform,
                                 lambda z: z.div(z.sum(axis=1), axis=0))
+
+    def test_numpy_compat(self):
+        # see gh-12811
+        df = pd.DataFrame({'A': [1, 2, 1], 'B': [1, 2, 3]})
+        g = df.groupby('A')
+
+        msg = "numpy operations are not valid with groupby"
+
+        for func in ('mean', 'var', 'std', 'cumprod', 'cumsum'):
+            tm.assertRaisesRegexp(UnsupportedFunctionCall, msg,
+                                  getattr(g, func), 1, 2, 3)
+            tm.assertRaisesRegexp(UnsupportedFunctionCall, msg,
+                                  getattr(g, func), foo=1)
 
 
 def assert_fp_equal(a, b):
