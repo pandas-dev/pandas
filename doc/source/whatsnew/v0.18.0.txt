@@ -904,7 +904,7 @@ Changes to eval
 ^^^^^^^^^^^^^^^
 
 In prior versions, new columns assignments in an ``eval`` expression resulted
-in an inplace change to the ``DataFrame``. (:issue:`9297`)
+in an inplace change to the ``DataFrame``. (:issue:`9297`, :issue:`8664`, :issue:`10486`)
 
 .. ipython:: python
 
