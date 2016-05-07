@@ -477,31 +477,24 @@ allowing you to permute the hierarchical index levels in one step:
 
    df[:5].reorder_levels([1,0], axis=0)
 
-The need for sortedness with :class:`~pandas.MultiIndex`
---------------------------------------------------------
+Sorting a :class:`~pandas.MultiIndex`
+-------------------------------------
 
-**Caveat emptor**: the present implementation of ``MultiIndex`` requires that
-the labels be sorted for some of the slicing / indexing routines to work
-correctly. You can think about breaking the axis into unique groups, where at
-the hierarchical level of interest, each distinct group shares a label, but no
-two have the same label. However, the ``MultiIndex`` does not enforce this:
-**you are responsible for ensuring that things are properly sorted**. There is
-an important new method ``sort_index`` to sort an axis within a ``MultiIndex``
-so that its labels are grouped and sorted by the original ordering of the
-associated factor at that level. Note that this does not necessarily mean the
-labels will be sorted lexicographically!
+For MultiIndex-ed objects to be indexed & sliced efficiently, they need
+to be sorted. As with any index, you can use ``sort_index``.
 
 .. ipython:: python
 
    import random; random.shuffle(tuples)
    s = pd.Series(np.random.randn(8), index=pd.MultiIndex.from_tuples(tuples))
    s
+   s.sort_index()
    s.sort_index(level=0)
    s.sort_index(level=1)
 
 .. _advanced.sortlevel_byname:
 
-Note, you may also pass a level name to ``sort_index`` if the MultiIndex levels
+You may also pass a level name to ``sort_index`` if the MultiIndex levels
 are named.
 
 .. ipython:: python
@@ -510,14 +503,6 @@ are named.
    s.sort_index(level='L1')
    s.sort_index(level='L2')
 
-Some indexing will work even if the data are not sorted, but will be rather
-inefficient and will also return a copy of the data rather than a view:
-
-.. ipython:: python
-
-   s['qux']
-   s.sort_index(level=1)['qux']
-
 On higher dimensional objects, you can sort any of the other axes by level if
 they have a MultiIndex:
 
@@ -525,9 +510,16 @@ they have a MultiIndex:
 
    df.T.sort_index(level=1, axis=1)
 
-The ``MultiIndex`` object has code to **explicitly check the sort depth**. Thus,
-if you try to index at a depth at which the index is not sorted, it will raise
-an exception. Here is a concrete example to illustrate this:
+Some indexing will work even if the data are not sorted, but will be rather
+inefficient (and show a ``PerformanceWarning``). It will also
+return a copy of the data rather than a view:
+
+.. ipython:: python
+
+   s['qux']
+   s.sort_index(level=1)['qux']
+
+The ``lexsort_depth`` property returns the sort depth:
 
 .. ipython:: python
 
@@ -537,18 +529,6 @@ an exception. Here is a concrete example to illustrate this:
 
    reordered = idx[[1, 0, 3, 2]]
    reordered.lexsort_depth
-
-   s = pd.Series(np.random.randn(4), index=reordered)
-   s.ix['a':'a']
-
-However:
-
-::
-
-   >>> s.ix[('a', 'b'):('b', 'a')]
-   Traceback (most recent call last)
-        ...
-   KeyError: Key length (3) was greater than MultiIndex lexsort depth (2)
 
 
 Take Methods
