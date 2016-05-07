@@ -3765,7 +3765,8 @@ class TestDatetime64(tm.TestCase):
     def test_nanosecond_field(self):
         dti = DatetimeIndex(np.arange(10))
 
-        self.assert_numpy_array_equal(dti.nanosecond, np.arange(10))
+        self.assert_numpy_array_equal(dti.nanosecond,
+                                      np.arange(10, dtype=np.int32))
 
     def test_datetimeindex_diff(self):
         dti1 = DatetimeIndex(freq='Q-JAN', start=datetime(1997, 12, 31),

@@ -152,7 +152,7 @@ class TestToNumeric(tm.TestCase):
     def test_list_numeric(self):
         s = [1, 3, 4, 5]
         res = to_numeric(s)
-        tm.assert_numpy_array_equal(res, np.array(s))
+        tm.assert_numpy_array_equal(res, np.array(s, dtype=np.int64))
 
         s = [1., 3., 4., 5.]
         res = to_numeric(s)

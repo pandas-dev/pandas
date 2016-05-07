@@ -607,7 +607,7 @@ class TestEvalNumexprPandas(tm.TestCase):
                     '-37, 37, ~37, +37]'),
             np.array([-True, True, ~True, +True,
                       -False, False, ~False, +False,
-                      -37, 37, ~37, +37]))
+                      -37, 37, ~37, +37], dtype=np.object_))
 
     def test_disallow_scalar_bool_ops(self):
         exprs = '1 or 2', '1 and 2'

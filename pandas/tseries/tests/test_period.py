@@ -1673,8 +1673,8 @@ class TestPeriodIndex(tm.TestCase):
                           freq='X')
 
     def test_constructor_arrays_negative_year(self):
-        years = np.arange(1960, 2000).repeat(4)
-        quarters = np.tile(lrange(1, 5), 40)
+        years = np.arange(1960, 2000, dtype=np.int64).repeat(4)
+        quarters = np.tile(np.array([1, 2, 3, 4], dtype=np.int64), 40)
 
         pindex = PeriodIndex(year=years, quarter=quarters)
 
@@ -2732,9 +2732,11 @@ class TestPeriodIndex(tm.TestCase):
     def test_pindex_fieldaccessor_nat(self):
         idx = PeriodIndex(['2011-01', '2011-02', 'NaT',
                            '2012-03', '2012-04'], freq='D')
-        self.assert_numpy_array_equal(idx.year,
-                                      np.array([2011, 2011, -1, 2012, 2012]))
-        self.assert_numpy_array_equal(idx.month, np.array([1, 2, -1, 3, 4]))
+
+        exp = np.array([2011, 2011, -1, 2012, 2012], dtype=np.int64)
+        self.assert_numpy_array_equal(idx.year, exp)
+        exp = np.array([1, 2, -1, 3, 4], dtype=np.int64)
+        self.assert_numpy_array_equal(idx.month, exp)
 
     def test_pindex_qaccess(self):
         pi = PeriodIndex(['2Q05', '3Q05', '4Q05', '1Q06', '2Q06'], freq='Q')

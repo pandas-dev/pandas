@@ -274,7 +274,7 @@ class Base(object):
 
             result = ind.argsort()
             expected = np.array(ind).argsort()
-            tm.assert_numpy_array_equal(result, expected)
+            tm.assert_numpy_array_equal(result, expected, check_dtype=False)
 
     def test_numpy_argsort(self):
         for k, ind in self.indices.items():

@@ -1,7 +1,7 @@
 import numpy as np
 
 from pandas import compat
-from pandas.core.common import isnull, array_equivalent
+from pandas.core.common import isnull, array_equivalent, is_dtype_equal
 
 cdef NUMERIC_TYPES = (
     bool,
@@ -55,7 +55,7 @@ cpdef assert_dict_equal(a, b, bint compare_keys=True):
 
     return True
 
-cpdef assert_almost_equal(a, b, bint check_less_precise=False,
+cpdef assert_almost_equal(a, b, bint check_less_precise=False, check_dtype=True,
                           obj=None, lobj=None, robj=None):
     """Check that left and right objects are almost equal.
 
@@ -66,6 +66,8 @@ cpdef assert_almost_equal(a, b, bint check_less_precise=False,
     check_less_precise : bool, default False
         Specify comparison precision.
         5 digits (False) or 3 digits (True) after decimal points are compared.
+    check_dtype: bool, default True
+        check dtype if both a and b are np.ndarray
     obj : str, default None
         Specify object name being compared, internally used to show appropriate
         assertion message
@@ -82,7 +84,7 @@ cpdef assert_almost_equal(a, b, bint check_less_precise=False,
         double diff = 0.0
         Py_ssize_t i, na, nb
         double fa, fb
-        bint is_unequal = False
+        bint is_unequal = False, a_is_ndarray, b_is_ndarray
 
     if lobj is None:
         lobj = a
@@ -97,36 +99,43 @@ cpdef assert_almost_equal(a, b, bint check_less_precise=False,
         assert a == b, "%r != %r" % (a, b)
         return True
 
+    a_is_ndarray = isinstance(a, np.ndarray)
+    b_is_ndarray = isinstance(b, np.ndarray)
+
+    if obj is None:
+        if a_is_ndarray or b_is_ndarray:
+            obj = 'numpy array'
+        else:
+            obj = 'Iterable'
+
     if isiterable(a):
 
         if not isiterable(b):
-            from pandas.util.testing import raise_assert_detail
-            if obj is None:
-                obj = 'Iterable'
-            msg = "First object is iterable, second isn't"
-            raise_assert_detail(obj, msg, a, b)
+            from pandas.util.testing import assert_class_equal
+            # classes can't be the same, to raise error
+            assert_class_equal(a, b, obj=obj)
 
         assert has_length(a) and has_length(b), (
             "Can't compare objects without length, one or both is invalid: "
-            "(%r, %r)" % (a, b)
-        )
+            "(%r, %r)" % (a, b))
 
-        if isinstance(a, np.ndarray) and isinstance(b, np.ndarray):
-            if obj is None:
-                obj = 'numpy array'
+        if a_is_ndarray and b_is_ndarray:
             na, nb = a.size, b.size
             if a.shape != b.shape:
                 from pandas.util.testing import raise_assert_detail
                 raise_assert_detail(obj, '{0} shapes are different'.format(obj),
                                     a.shape, b.shape)
+
+            if check_dtype and not is_dtype_equal(a, b):
+                from pandas.util.testing import assert_attr_equal
+                assert_attr_equal('dtype', a, b, obj=obj)
+
             try:
                 if array_equivalent(a, b, strict_nan=True):
                     return True
             except:
                 pass
         else:
-            if obj is None:
-                obj = 'Iterable'
             na, nb = len(a), len(b)
 
         if na != nb:
@@ -149,27 +158,20 @@ cpdef assert_almost_equal(a, b, bint check_less_precise=False,
         return True
 
     elif isiterable(b):
-        from pandas.util.testing import raise_assert_detail
-        if obj is None:
-            obj = 'Iterable'
-        msg = "Second object is iterable, first isn't"
-        raise_assert_detail(obj, msg, a, b)
+        from pandas.util.testing import assert_class_equal
+        # classes can't be the same, to raise error
+        assert_class_equal(a, b, obj=obj)
 
-    if isnull(a):
-        assert isnull(b), (
-            "First object is null, second isn't: %r != %r" % (a, b)
-        )
+    if a == b:
+        # object comparison
         return True
-    elif isnull(b):
-        assert isnull(a), (
-            "First object is not null, second is null: %r != %r" % (a, b)
-        )
+    if isnull(a) and isnull(b):
+        # nan / None comparison
         return True
-
-    if is_comparable_as_number(a):
-        assert is_comparable_as_number(b), (
-            "First object is numeric, second is not: %r != %r" % (a, b)
-        )
+    if is_comparable_as_number(a) and is_comparable_as_number(b):
+        if array_equivalent(a, b, strict_nan=True):
+            # inf comparison
+            return True
 
         decimal = 5
 
@@ -177,26 +179,17 @@ cpdef assert_almost_equal(a, b, bint check_less_precise=False,
         if check_less_precise:
             decimal = 3
 
-        if np.isinf(a):
-            assert np.isinf(b), "First object is inf, second isn't"
-            if np.isposinf(a):
-                assert np.isposinf(b), "First object is positive inf, second is negative inf"
-            else:
-                assert np.isneginf(b), "First object is negative inf, second is positive inf"
+        fa, fb = a, b
+
+        # case for zero
+        if abs(fa) < 1e-5:
+            if not decimal_almost_equal(fa, fb, decimal):
+                assert False, (
+                    '(very low values) expected %.5f but got %.5f, with decimal %d' % (fb, fa, decimal)
+                )
         else:
-            fa, fb = a, b
+            if not decimal_almost_equal(1, fb / fa, decimal):
+                assert False, 'expected %.5f but got %.5f, with decimal %d' % (fb, fa, decimal)
+        return True
 
-            # case for zero
-            if abs(fa) < 1e-5:
-                if not decimal_almost_equal(fa, fb, decimal):
-                    assert False, (
-                        '(very low values) expected %.5f but got %.5f, with decimal %d' % (fb, fa, decimal)
-                    )
-            else:
-                if not decimal_almost_equal(1, fb / fa, decimal):
-                    assert False, 'expected %.5f but got %.5f, with decimal %d' % (fb, fa, decimal)
-
-    else:
-        assert a == b, "%r != %r" % (a, b)
-
-    return True
+    raise AssertionError("{0} != {1}".format(a, b))

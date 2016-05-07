@@ -116,7 +116,7 @@ class TestnanopsDataFrame(tm.TestCase):
     def tearDown(self):
         nanops._USE_BOTTLENECK = use_bn
 
-    def check_results(self, targ, res, axis):
+    def check_results(self, targ, res, axis, check_dtype=True):
         res = getattr(res, 'asm8', res)
         res = getattr(res, 'values', res)
 
@@ -138,13 +138,13 @@ class TestnanopsDataFrame(tm.TestCase):
             targ, res = _coerce_tds(targ, res)
 
         try:
-            tm.assert_almost_equal(targ, res)
+            tm.assert_almost_equal(targ, res, check_dtype=check_dtype)
         except:
 
             # handle timedelta dtypes
             if hasattr(targ, 'dtype') and targ.dtype == 'm8[ns]':
                 targ, res = _coerce_tds(targ, res)
-                tm.assert_almost_equal(targ, res)
+                tm.assert_almost_equal(targ, res, check_dtype=check_dtype)
                 return
 
             # There are sometimes rounding errors with
@@ -170,11 +170,13 @@ class TestnanopsDataFrame(tm.TestCase):
             # but nanops doesn't, so make that an exception
             elif targ.dtype.kind == 'O':
                 raise
-            tm.assert_almost_equal(targ.real, res.real)
-            tm.assert_almost_equal(targ.imag, res.imag)
+            tm.assert_almost_equal(targ.real, res.real,
+                                   check_dtype=check_dtype)
+            tm.assert_almost_equal(targ.imag, res.imag,
+                                   check_dtype=check_dtype)
 
     def check_fun_data(self, testfunc, targfunc, testarval, targarval,
-                       targarnanval, **kwargs):
+                       targarnanval, check_dtype=True, **kwargs):
         for axis in list(range(targarval.ndim)) + [None]:
             for skipna in [False, True]:
                 targartempval = targarval if skipna else targarnanval
@@ -182,16 +184,20 @@ class TestnanopsDataFrame(tm.TestCase):
                     targ = targfunc(targartempval, axis=axis, **kwargs)
                     res = testfunc(testarval, axis=axis, skipna=skipna,
                                    **kwargs)
-                    self.check_results(targ, res, axis)
+                    self.check_results(targ, res, axis,
+                                       check_dtype=check_dtype)
                     if skipna:
                         res = testfunc(testarval, axis=axis, **kwargs)
-                        self.check_results(targ, res, axis)
+                        self.check_results(targ, res, axis,
+                                           check_dtype=check_dtype)
                     if axis is None:
                         res = testfunc(testarval, skipna=skipna, **kwargs)
-                        self.check_results(targ, res, axis)
+                        self.check_results(targ, res, axis,
+                                           check_dtype=check_dtype)
                     if skipna and axis is None:
                         res = testfunc(testarval, **kwargs)
-                        self.check_results(targ, res, axis)
+                        self.check_results(targ, res, axis,
+                                           check_dtype=check_dtype)
                 except BaseException as exc:
                     exc.args += ('axis: %s of %s' % (axis, testarval.ndim - 1),
                                  'skipna: %s' % skipna, 'kwargs: %s' % kwargs)
@@ -207,7 +213,7 @@ class TestnanopsDataFrame(tm.TestCase):
         except ValueError:
             return
         self.check_fun_data(testfunc, targfunc, testarval2, targarval2,
-                            targarnanval2, **kwargs)
+                            targarnanval2, check_dtype=check_dtype, **kwargs)
 
     def check_fun(self, testfunc, targfunc, testar, targar=None,
                   targarnan=None, **kwargs):
@@ -317,7 +323,7 @@ class TestnanopsDataFrame(tm.TestCase):
 
     def test_nansum(self):
         self.check_funs(nanops.nansum, np.sum, allow_str=False,
-                        allow_date=False, allow_tdelta=True)
+                        allow_date=False, allow_tdelta=True, check_dtype=False)
 
     def test_nanmean(self):
         self.check_funs(nanops.nanmean, np.mean, allow_complex=False,
@@ -596,11 +602,11 @@ class TestnanopsDataFrame(tm.TestCase):
                 else:
                     targ1 = np.hstack([targ0, arr_nan])
                 res1 = checkfun(arr_float_nan, arr_float1_nan)
-                tm.assert_almost_equal(targ1, res1)
+                tm.assert_numpy_array_equal(targ1, res1, check_dtype=False)
 
                 targ2 = arr_nan_nan
                 res2 = checkfun(arr_float_nan, arr_nan_float1)
-                tm.assert_almost_equal(targ2, res2)
+                tm.assert_numpy_array_equal(targ2, res2, check_dtype=False)
             except Exception as exc:
                 exc.args += ('ndim: %s' % arr_float.ndim, )
                 raise

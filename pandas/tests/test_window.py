@@ -863,7 +863,7 @@ class TestMoments(Base):
             self._check_moment_func(mom.rolling_max, np.max, name='max')
 
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            a = np.array([1, 2, 3, 4, 5])
+            a = np.array([1, 2, 3, 4, 5], dtype=np.float64)
             b = mom.rolling_max(a, window=100, min_periods=1)
             assert_almost_equal(a, b)
 

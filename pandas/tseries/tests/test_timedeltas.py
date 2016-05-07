@@ -387,9 +387,11 @@ class TestTimedeltas(tm.TestCase):
         self.assertRaises(TypeError, lambda: td * other)
         self.assertRaises(TypeError, lambda: other * td)
 
-        self.assert_numpy_array_equal(td / other, np.array([1]))
+        self.assert_numpy_array_equal(td / other,
+                                      np.array([1], dtype=np.float64))
         if LooseVersion(np.__version__) >= '1.8':
-            self.assert_numpy_array_equal(other / td, np.array([1]))
+            self.assert_numpy_array_equal(other / td,
+                                          np.array([1], dtype=np.float64))
 
         # timedelta, datetime
         other = pd.to_datetime(['2000-01-01']).values
