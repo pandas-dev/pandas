@@ -319,6 +319,29 @@ class TestTimestamp(tm.TestCase):
                                    'tz_localize to localize'):
             Timestamp('2011-01-01').tz_convert('Asia/Tokyo')
 
+    def test_tz_localize_nonexistent(self):
+        # See issue 13057
+        from pytz.exceptions import NonExistentTimeError
+        times = ['2015-03-08 02:00', '2015-03-08 02:30',
+                 '2015-03-29 02:00', '2015-03-29 02:30']
+        timezones = ['US/Eastern', 'US/Pacific',
+                     'Europe/Paris', 'Europe/Belgrade']
+        for t, tz in zip(times, timezones):
+            ts = Timestamp(t)
+            self.assertRaises(NonExistentTimeError, ts.tz_localize,
+                              tz)
+            self.assertRaises(NonExistentTimeError, ts.tz_localize,
+                              tz, errors='raise')
+            self.assertIs(ts.tz_localize(tz, errors='coerce'),
+                          pd.NaT)
+
+    def test_tz_localize_errors_ambiguous(self):
+        # See issue 13057
+        from pytz.exceptions import AmbiguousTimeError
+        ts = pd.Timestamp('2015-11-1 01:00')
+        self.assertRaises(AmbiguousTimeError,
+                          ts.tz_localize, 'US/Pacific', errors='coerce')
+
     def test_tz_localize_roundtrip(self):
         for tz in ['UTC', 'Asia/Tokyo', 'US/Eastern', 'dateutil/US/Pacific']:
             for t in ['2014-02-01 09:00', '2014-07-08 09:00',

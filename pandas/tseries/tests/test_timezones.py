@@ -533,6 +533,23 @@ class TestTimeZoneSupportPytz(tm.TestCase):
         di_test = DatetimeIndex(times, tz='US/Eastern')
         self.assert_numpy_array_equal(di_test, localized)
 
+    def test_nonexistent_raise_coerce(self):
+        # See issue 13057
+        from pytz.exceptions import NonExistentTimeError
+        times = ['2015-03-08 01:00', '2015-03-08 02:00', '2015-03-08 03:00']
+        index = DatetimeIndex(times)
+        tz = 'US/Eastern'
+        self.assertRaises(NonExistentTimeError,
+                          index.tz_localize, tz=tz)
+        self.assertRaises(NonExistentTimeError,
+                          index.tz_localize, tz=tz, errors='raise')
+        result = index.tz_localize(tz=tz, errors='coerce')
+        test_times = ['2015-03-08 01:00-05:00', 'NaT',
+                      '2015-03-08 03:00-04:00']
+        expected = DatetimeIndex(test_times)\
+            .tz_localize('UTC').tz_convert('US/Eastern')
+        tm.assert_index_equal(result, expected)
+
     # test utility methods
     def test_infer_tz(self):
         eastern = self.tz('US/Eastern')
