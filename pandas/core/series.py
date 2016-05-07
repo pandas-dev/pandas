@@ -1085,7 +1085,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
 
     def tolist(self):
         """ Convert Series to a nested list """
-        return list(self)
+        return list(self.asobject)
 
     def to_dict(self):
         """

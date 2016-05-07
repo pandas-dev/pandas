@@ -41,6 +41,32 @@ API changes
 - Non-convertible dates in an excel date column will be returned without conversion and the column will be ``object`` dtype, rather than raising an exception  (:issue:`10001`)
 
 
+.. _whatsnew_0182.api.tolist:
+
+``Series.tolist()`` will now return Python types
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+``Series.tolist()`` will now return Python types in the output, mimicking NumPy ``.tolist()`` behaviour (:issue:`10904`)
+
+
+.. ipython:: python
+
+   s = pd.Series([1,2,3])
+   type(s.tolist()[0])
+
+Previous Behavior:
+
+.. code-block:: ipython
+
+   In [7]: type(s.tolist()[0])
+   Out[7]:
+    <class 'numpy.int64'>
+
+New Behavior:
+
+.. ipython:: python
+
+   type(s.tolist()[0])
 
 
 
