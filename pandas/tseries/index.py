@@ -1812,7 +1812,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
 
     @deprecate_kwarg(old_arg_name='infer_dst', new_arg_name='ambiguous',
                      mapping={True: 'infer', False: 'raise'})
-    def tz_localize(self, tz, ambiguous='raise'):
+    def tz_localize(self, tz, ambiguous='raise', errors='raise'):
         """
         Localize tz-naive DatetimeIndex to given time zone (using
         pytz/dateutil), or remove timezone from tz-aware DatetimeIndex
@@ -1832,6 +1832,15 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
             - 'NaT' will return NaT where there are ambiguous times
             - 'raise' will raise an AmbiguousTimeError if there are ambiguous
               times
+        errors : 'raise', 'coerce', default 'raise'
+            - 'raise' will raise a NonExistentTimeError if a timestamp is not
+               valid in the specified timezone (e.g. due to a transition from
+               or to DST time)
+            - 'coerce' will return NaT if the timestamp can not be converted
+              into the specified timezone
+
+            .. versionadded:: 0.18.2
+
         infer_dst : boolean, default False (DEPRECATED)
             Attempt to infer fall dst-transition hours based on order
 
@@ -1854,7 +1863,8 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
             # Convert to UTC
 
             new_dates = tslib.tz_localize_to_utc(self.asi8, tz,
-                                                 ambiguous=ambiguous)
+                                                 ambiguous=ambiguous,
+                                                 errors=errors)
         new_dates = new_dates.view(_NS_DTYPE)
         return self._shallow_copy(new_dates, tz=tz)
 

@@ -460,7 +460,7 @@ class Timestamp(_Timestamp):
     def is_year_end(self):
         return self._get_start_end_field('is_year_end')
 
-    def tz_localize(self, tz, ambiguous='raise'):
+    def tz_localize(self, tz, ambiguous='raise', errors='raise'):
         """
         Convert naive Timestamp to local time zone, or remove
         timezone from tz-aware Timestamp.
@@ -475,6 +475,14 @@ class Timestamp(_Timestamp):
             that this flag is only applicable for ambiguous fall dst dates)
             - 'NaT' will return NaT for an ambiguous time
             - 'raise' will raise an AmbiguousTimeError for an ambiguous time
+        errors : 'raise', 'coerce', default 'raise'
+            - 'raise' will raise a NonExistentTimeError if a timestamp is not
+               valid in the specified timezone (e.g. due to a transition from
+               or to DST time)
+            - 'coerce' will return NaT if the timestamp can not be converted
+              into the specified timezone
+
+              .. versionadded:: 0.18.2
 
         Returns
         -------
@@ -494,7 +502,7 @@ class Timestamp(_Timestamp):
             if not isinstance(ambiguous, basestring):
                 ambiguous   =   [ambiguous]
             value = tz_localize_to_utc(np.array([self.value],dtype='i8'), tz,
-                                       ambiguous=ambiguous)[0]
+                                       ambiguous=ambiguous, errors=errors)[0]
             return Timestamp(value, tz=tz)
         else:
             if tz is None:
@@ -3943,7 +3951,8 @@ cpdef ndarray _unbox_utcoffsets(object transinfo):
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def tz_localize_to_utc(ndarray[int64_t] vals, object tz, object ambiguous=None):
+def tz_localize_to_utc(ndarray[int64_t] vals, object tz, object ambiguous=None,
+                       object errors='raise'):
     """
     Localize tzinfo-naive DateRange to given time zone (using pytz). If
     there are ambiguities in the values, raise AmbiguousTimeError.
@@ -3960,8 +3969,11 @@ def tz_localize_to_utc(ndarray[int64_t] vals, object tz, object ambiguous=None):
         ndarray[int64_t] result, result_a, result_b, dst_hours
         pandas_datetimestruct dts
         bint infer_dst = False, is_dst = False, fill = False
+        bint is_coerce = errors == 'coerce', is_raise = errors == 'raise'
 
     # Vectorized version of DstTzInfo.localize
+
+    assert is_coerce or is_raise
 
     if not have_pytz:
         raise Exception("Could not find pytz module")
@@ -4092,8 +4104,11 @@ def tz_localize_to_utc(ndarray[int64_t] vals, object tz, object ambiguous=None):
         elif right != NPY_NAT:
             result[i] = right
         else:
-            stamp = Timestamp(vals[i])
-            raise pytz.NonExistentTimeError(stamp)
+            if is_coerce:
+                result[i] = NPY_NAT
+            else:
+                stamp = Timestamp(vals[i])
+                raise pytz.NonExistentTimeError(stamp)
 
     return result
 

@@ -24,10 +24,15 @@ New features
 
 
 
+.. _whatsnew_0182.enhancements.other:
 
 
+Other enhancements
+^^^^^^^^^^^^^^^^^^
 
-
+- The ``tz_localize()`` method of ``DatetimeIndex`` and ``Timestamp`` has gained the ``errors`` keyword,
+ so you can silently ignore nonexistent timestamps and replace them with ``NaT`` (``errors='coerce'``).
+ The default behaviour is still raising a ``NonExistentTimeError`` (``errors='raise'``) (:issue:`13057`)
 
 
 
