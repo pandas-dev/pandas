@@ -114,7 +114,6 @@ Bug Fixes
 
 
 
-
 - Bug in ``PeriodIndex`` and ``Period`` subtraction raises ``AttributeError`` (:issue:`13071`)
 
 
