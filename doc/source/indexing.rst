@@ -191,6 +191,26 @@ raised. Multiple columns can also be set in this manner:
 You may find this useful for applying a transform (in-place) to a subset of the
 columns.
 
+.. warning::
+
+   pandas aligns all AXES when setting ``Series`` and ``DataFrame`` from ``.loc``, ``.iloc`` and ``.ix``.
+
+   This will **not** modify ``df`` because the column alignment is before value assignment.
+
+   .. ipython:: python
+
+      df[['A', 'B']]
+      df.loc[:,['B', 'A']] = df[['A', 'B']]
+      df[['A', 'B']]
+
+   The correct way is to use raw values
+
+   .. ipython:: python
+
+      df.loc[:,['B', 'A']] = df[['A', 'B']].values
+      df[['A', 'B']]
+
+
 Attribute Access
 ----------------
 
