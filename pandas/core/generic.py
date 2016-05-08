@@ -144,7 +144,7 @@ class NDFrame(PandasObject):
 
     @property
     def _constructor(self):
-        """Used when a manipulation result has the same dimesions as the
+        """Used when a manipulation result has the same dimensions as the
         original.
         """
         raise AbstractMethodError(self)
@@ -2973,14 +2973,17 @@ class NDFrame(PandasObject):
         """Internal property, property synonym for as_blocks()"""
         return self.as_blocks()
 
-    def astype(self, dtype, copy=True, raise_on_error=True, **kwargs):
+    def astype(self, dtype, copy=True, inplace=False, raise_on_error=True,
+               **kwargs):
         """
         Cast object to input numpy.dtype
-        Return a copy when copy = True (be really careful with this!)
 
         Parameters
         ----------
         dtype : numpy.dtype or Python type
+        copy : deprecated; use inplace instead
+        inplace : boolean, default False
+            Modify the NDFrame in place (do not create a new object)
         raise_on_error : raise on invalid input
         kwargs : keyword arguments to pass on to the constructor
 
@@ -2988,7 +2991,12 @@ class NDFrame(PandasObject):
         -------
         casted : type of caller
         """
-
+        if inplace:
+            new_data = self._data.astype(dtype=dtype, copy=False,
+                                         raise_on_error=raise_on_error,
+                                         **kwargs)
+            self._update_inplace(new_data)
+            return
         mgr = self._data.astype(dtype=dtype, copy=copy,
                                 raise_on_error=raise_on_error, **kwargs)
         return self._constructor(mgr).__finalize__(self)
