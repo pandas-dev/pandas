@@ -267,6 +267,7 @@ API changes
 - ``.filter()`` enforces mutual exclusion of the keyword arguments. (:issue:`12399`)
 - ``PeridIndex`` can now accept ``list`` and ``array`` which contains ``pd.NaT`` (:issue:`13430`)
 - ``__setitem__`` will no longer apply a callable rhs as a function instead of storing it. Call ``where`` directly to get the previous behavior. (:issue:`13299`)
+- ``astype()`` will now accept a dict of column name to data types mapping as the ``dtype`` argument. (:issue:`12086`)
 
 
 .. _whatsnew_0190.api.tolist:
