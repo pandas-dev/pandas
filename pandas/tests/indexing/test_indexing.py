@@ -2334,6 +2334,18 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         self.assertFalse(result.index.is_unique)
         assert_frame_equal(result, expected)
 
+        # GH12896
+        # numpy-implementation dependent bug
+        ints = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 12, 13, 14, 14, 16,
+                17, 18, 19, 200000, 200000]
+        n = len(ints)
+        idx = MultiIndex.from_arrays([['a'] * n, ints])
+        result = Series([1] * n, index=idx)
+        result = result.sort_index()
+        result = result.loc[(slice(None), slice(100000))]
+        expected = Series([1] * (n - 2), index=idx[:-2]).sort_index()
+        assert_series_equal(result, expected)
+
     def test_multiindex_slicers_datetimelike(self):
 
         # GH 7429

@@ -1761,7 +1761,8 @@ class MultiIndex(Index):
 
             else:
                 m = np.zeros(len(labels), dtype=bool)
-                m[np.in1d(labels, r, assume_unique=True)] = True
+                m[np.in1d(labels, r,
+                          assume_unique=Index(labels).is_unique)] = True
 
             return m
 

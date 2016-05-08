@@ -134,7 +134,7 @@ Bug Fixes
 
 
 
-
+- Bug in ``MultiIndex`` slicing where extra elements were returned when level is non-unique (:issue:`12896`)
 
 
 
